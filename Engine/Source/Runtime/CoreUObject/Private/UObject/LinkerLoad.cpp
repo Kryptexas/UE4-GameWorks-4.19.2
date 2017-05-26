@@ -511,16 +511,20 @@ void FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(UObject* OldObject, UObject* 
 		FObjectExport& ObjExport = OldObjectLinker->ExportMap[CachedLinkerIndex];
 
 		// Detach the old object to make room for the new
+		const EObjectFlags OldObjectFlags = OldObject->GetFlags();
 		OldObject->ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
-		OldObject->SetLinker(NULL, INDEX_NONE, true);
+		OldObject->SetLinker(nullptr, INDEX_NONE, true);
+
+		// Copy flags from the old CDO.
+		NewObject->SetFlags(OldObjectFlags);
 
 		// Move the new object into the old object's slot, so any references to this object will now reference the new
 		NewObject->SetLinker(OldObjectLinker, CachedLinkerIndex);
 		ObjExport.Object = NewObject;
 
-		auto& ObjLoaded = FUObjectThreadContext::Get().ObjLoaded;
+		TArray<UObject*>& ObjLoaded = FUObjectThreadContext::Get().ObjLoaded;
 		// If the object was in the ObjLoaded queue (exported, but not yet serialized), swap out for our new object
-		int32 ObjLoadedIdx = ObjLoaded.Find(OldObject);
+		const int32 ObjLoadedIdx = ObjLoaded.Find(OldObject);
 		if( ObjLoadedIdx != INDEX_NONE )
 		{
 			ObjLoaded[ObjLoadedIdx] = NewObject;
@@ -2196,9 +2200,6 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				{
 					Result = VERIFY_Redirected;
 
-					// send a callback saying we followed a redirector successfully
-					FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
-
 					// now, fake our Import to be what the redirector pointed to
 					Import.XObject = Redir->DestinationObject;
 					FUObjectThreadContext::Get().ImportCount++;
@@ -3002,8 +3003,6 @@ UObject* FLinkerLoad::Create( UClass* ObjectClass, FName ObjectName, UObject* Ou
 			// if we found what it was point to, then return it
 			if (Redir->DestinationObject && Redir->DestinationObject->IsA(ObjectClass))
 			{
-				// send a callback saying we followed a redirector successfully
-				FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 				// and return the object we are being redirected to
 				return Redir->DestinationObject;
 			}

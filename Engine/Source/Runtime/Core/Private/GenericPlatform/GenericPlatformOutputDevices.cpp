@@ -22,22 +22,20 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
-	bool bHasConsole = !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE"));
-	if (bHasConsole)
+	// if console is enabled add an output device, unless the commandline says otherwise...
+	if (ALLOW_CONSOLE && !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
 	{
 		GLog->AddOutputDevice(GLogConsole);
 	}
-
-	// Only create debug output device if a debugger is attached or we're running on a console or build machine
-	// A shipping build with logging explicitly enabled will fail the IsDebuggerPresent() check, but we still need to add the debug output device for logging purposes
-	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
+	
+	// If the platform has a separate debug output channel (e.g. OutputDebugString) then add an output device
+	// unless logging is turned off
+#if !NO_LOGGING
+	if (FPlatformMisc::HasSeparateChannelForDebugOutput())
 	{
-		// Only need to do this if it's actually going to go to a different place than GLogConsole
-		if(!bHasConsole || FPlatformMisc::HasSeparateChannelForDebugOutput())
-		{
-			GLog->AddOutputDevice(new FOutputDeviceDebug());
-		}
+		GLog->AddOutputDevice(new FOutputDeviceDebug());
 	}
+#endif
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetEventLog());
 };

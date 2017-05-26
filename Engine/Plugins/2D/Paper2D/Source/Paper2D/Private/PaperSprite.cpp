@@ -2077,10 +2077,8 @@ void FSpriteGeometryCollisionBuilderBase::ProcessGeometry(const FSpriteGeometryC
 void FSpriteGeometryCollisionBuilderBase::Finalize()
 {
 	// Rebuild the body setup
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	MyBodySetup->InvalidatePhysicsData();
 	MyBodySetup->CreatePhysicsMeshes();
-#endif
 }
 
 void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry)

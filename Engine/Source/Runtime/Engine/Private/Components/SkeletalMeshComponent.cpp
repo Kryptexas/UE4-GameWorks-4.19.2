@@ -217,6 +217,8 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 	ClothingSimulation = nullptr;
 	ClothingSimulationContext = nullptr;
+
+	bPostEvaluatingAnimation = false;
 }
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
@@ -437,16 +439,12 @@ void USkeletalMeshComponent::OnRegister()
 
 	Super::OnRegister();
 
-	bool bForceReInit = false;
-#if WITH_EDITOR
-	// In editor worlds we force a full re-init. This is to ensure that construction script-modified
-	// variables propogate to the anim instance.
-	// This is done only in this case to limit the surface area of when we force a re-init 
-	// (which is an expensive operation).
-	const UWorld* OwnWorld = GetWorld();
-	bForceReInit = GIsEditor &&  OwnWorld && !OwnWorld->IsGameWorld();
-#endif
-	InitAnim(bForceReInit);
+	// We force an initialization here because we're in one of two cases.
+	// 1) First register, no spawned instance, need to initialize
+	// 2) We're being re-registered, in which case we've went through
+	// OnUnregister and unconditionally uninitialized our anim instances
+	// so we need to force initialize them before we begin to tick.
+	InitAnim(true);
 
 	if (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered && !FApp::CanEverRender())
 	{
@@ -867,6 +865,9 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
 	if (SkeletalMesh != nullptr)
 	{
+		// We're about to UpdateAnimation, this will potentially queue events that we'll need to dispatch.
+		bNeedsQueuedAnimEventsDispatched = true;
+
 		// We update sub instances first incase we're using either root motion or non-threaded update.
 		// This ensures that we go through the pre update process and initialize the proxies correctly.
 		for(UAnimInstance* SubInstance : SubInstances)
@@ -911,6 +912,17 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 		{
 			return true;
 		}
+
+		// if master pose is ticking, slave also has to update it
+		if (MasterPoseComponent.IsValid())
+		{
+			const USkeletalMeshComponent* Master = CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
+			if (Master->GetUpdateAnimationInEditor())
+			{
+				return true;
+			}
+		}
+
 		if( !bLODHasChanged )
 		{
 			return false;
@@ -1071,8 +1083,47 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 			ThisTickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
 		}
 	}
+
+	// If we are waiting for ParallelEval to complete or if we require Physics, 
+	// then FinalizeBoneTransform will be called and Anim events will be dispatched there. 
+	// We prefer doing it there so these events are triggered once we have a new updated pose.
+	// Note that it's possible that FinalizeBoneTransform has already been called here if not using ParallelUpdate.
+	// or it's possible that it hasn't been called at all if we're skipping Evaluate due to not being visible.
+	// ConditionallyDispatchQueuedAnimEvents will catch that and only Dispatch events if not already done.
+	if (!IsValidRef(ParallelAnimationEvaluationTask) && !bRequiresPhysics)
+	{
+		/////////////////////////////////////////////////////////////////////////////
+		// Notify / Event Handling!
+		// This can do anything to our component (including destroy it) 
+		// Any code added after this point needs to take that into account
+		/////////////////////////////////////////////////////////////////////////////
+
+		ConditionallyDispatchQueuedAnimEvents();
+	}
 }
 
+void USkeletalMeshComponent::ConditionallyDispatchQueuedAnimEvents()
+{
+	if (bNeedsQueuedAnimEventsDispatched)
+	{
+		bNeedsQueuedAnimEventsDispatched = false;
+
+		for (UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->DispatchQueuedAnimEvents();
+		}
+
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->DispatchQueuedAnimEvents();
+		}
+
+		if (PostProcessAnimInstance)
+		{
+			PostProcessAnimInstance->DispatchQueuedAnimEvents();
+		}
+	}
+}
 
 /** 
  *	Utility for taking two arrays of bone indices, which must be strictly increasing, and finding the intersection between them.
@@ -1533,12 +1584,12 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	}
 
 	// update anim instance
-	if (InAnimInstance && InAnimInstance->NeedsUpdate())
+	if(InAnimInstance && InAnimInstance->NeedsUpdate())
 	{
 		InAnimInstance->ParallelUpdateAnimation();
 	}
-
-	if (PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
+	
+	if(PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
 	{
 		// If we don't have an anim instance, we may still have a post physics instance
 		PostProcessAnimInstance->ParallelUpdateAnimation();
@@ -1809,7 +1860,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 					AnimCurves.CopyFrom(CachedCurve);
 				}
 			}
-			if (AnimScriptInstance && AnimScriptInstance->NeedsUpdate())
+			if(AnimScriptInstance && AnimScriptInstance->NeedsUpdate())
 			{
 				AnimScriptInstance->ParallelUpdateAnimation();
 			}
@@ -1832,13 +1883,18 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
+#if DO_CHECK
+	checkf(!bPostEvaluatingAnimation, TEXT("PostAnimEvaluation already in progress, recursion detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(this), *GetNameSafe(EvaluationContext.AnimInstance));
+	TGuardValue<bool> CircularGuard(bPostEvaluatingAnimation, true);
+#endif
+
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 
 	if (EvaluationContext.AnimInstance && EvaluationContext.AnimInstance->NeedsUpdate())
 	{
 		EvaluationContext.AnimInstance->PostUpdateAnimation();
 
-		for(UAnimInstance* SubInstance : SubInstances)
+		for (UAnimInstance* SubInstance : SubInstances)
 		{
 			SubInstance->PostUpdateAnimation();
 		}
@@ -2041,11 +2097,11 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 		UpdateHasValidBodies();
 
 		InitAnim(bReinitPose);
-	}
 
 #if WITH_APEX_CLOTHING
-	RecreateClothingActors();
+		RecreateClothingActors();
 #endif
+	}
 
 	// Mark cached material parameter names dirty
 	MarkCachedMaterialParameterNameIndicesDirty();
@@ -2214,7 +2270,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 		{
 			int32 BoneIndex = RequiredBones[Index];
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FTransform BoneTM = (GetComponentSpaceTransforms()[BoneIndex] * ComponentToWorld);
+			FTransform BoneTM = (GetComponentSpaceTransforms()[BoneIndex] * GetComponentTransform());
 			FVector Start, End;
 			FLinearColor LineColor;
 
@@ -2222,12 +2278,12 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 
 			if (ParentIndex >=0)
 			{
-				Start = (GetComponentSpaceTransforms()[ParentIndex] * ComponentToWorld).GetLocation();
+				Start = (GetComponentSpaceTransforms()[ParentIndex] * GetComponentTransform()).GetLocation();
 				LineColor = FLinearColor::White;
 			}
 			else
 			{
-				Start = ComponentToWorld.GetLocation();
+				Start = GetComponentTransform().GetLocation();
 				LineColor = FLinearColor::Red;
 			}
 
@@ -2529,30 +2585,27 @@ bool USkeletalMeshComponent::PoseTickedThisFrame() const
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
-	if (!bWorldToComponentUpdated)
-	{
-		UpdateComponentToWorld();
-	}
+	ConditionalUpdateComponentToWorld();
 
 #if !(UE_BUILD_SHIPPING)
-	if (ComponentToWorld.ContainsNaN())
+	if (GetComponentTransform().ContainsNaN())
 	{
-		logOrEnsureNanError(TEXT("SkeletalMeshComponent: ComponentToWorld contains NaN!"));
-		ComponentToWorld = FTransform::Identity;
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent: GetComponentTransform() contains NaN!"));
+		SetComponentToWorld(FTransform::Identity);
 	}
 #endif
 
 	//Calculate new actor transform after applying root motion to this component
 	const FTransform ActorToWorld = GetOwner()->GetTransform();
 
-	const FTransform ComponentToActor = ActorToWorld.GetRelativeTransform(ComponentToWorld);
-	const FTransform NewComponentToWorld = InTransform * ComponentToWorld;
+	const FTransform ComponentToActor = ActorToWorld.GetRelativeTransform(GetComponentTransform());
+	const FTransform NewComponentToWorld = InTransform * GetComponentTransform();
 	const FTransform NewActorTransform = ComponentToActor * NewComponentToWorld;
 
 	const FVector DeltaWorldTranslation = NewActorTransform.GetTranslation() - ActorToWorld.GetTranslation();
 
-	const FQuat NewWorldRotation = ComponentToWorld.GetRotation() * InTransform.GetRotation();
-	const FQuat DeltaWorldRotation = NewWorldRotation * ComponentToWorld.GetRotation().Inverse();
+	const FQuat NewWorldRotation = GetComponentTransform().GetRotation() * InTransform.GetRotation();
+	const FQuat DeltaWorldRotation = NewWorldRotation * GetComponentTransform().GetRotation().Inverse();
 	
 	const FTransform DeltaWorldTransform(DeltaWorldRotation, DeltaWorldTranslation);
 
@@ -2627,7 +2680,7 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		{
 			for (const auto& Vertex : Section.SoftVertices)
 			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
 
 				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
@@ -2671,7 +2724,7 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVo
 		{
 			for (const auto& Vertex : Section.SoftVertices)
 			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
 
 				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
@@ -2960,7 +3013,7 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
-	if (PhysicsAsset && ComponentToWorld.GetScale3D().IsUniform())
+	if (PhysicsAsset && GetComponentTransform().GetScale3D().IsUniform())
 	{
 		const int32 MaxBodies = PhysicsAsset->SkeletalBodySetups.Num();
 		for (int32 Idx = 0; Idx < MaxBodies; Idx++)
@@ -2970,7 +3023,7 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 
 			if (BoneIndex != INDEX_NONE)
 			{
-				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, ComponentToWorld);
+				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, GetComponentTransform());
 				if (FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
 				{
 					GeomExport.ExportRigidBodySetup(*BS, WorldBoneTransform);
@@ -2986,6 +3039,17 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 void USkeletalMeshComponent::FinalizeBoneTransform() 
 {
 	Super::FinalizeBoneTransform();
+
+	// After pose has been finalized, dispatch AnimNotifyEvents in case they want to use up to date pose.
+	// (For example attaching particle systems to up to date sockets).
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Notify / Event Handling!
+	// This can do anything to our component (including destroy it) 
+	// Any code added after this point needs to take that into account
+	/////////////////////////////////////////////////////////////////////////////
+
+	ConditionallyDispatchQueuedAnimEvents();
 
 	for(UAnimInstance* SubInstance : SubInstances)
 	{

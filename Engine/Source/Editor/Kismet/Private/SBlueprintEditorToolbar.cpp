@@ -254,11 +254,8 @@ static void OnDiffRevisionPicked(FRevisionInfo const& RevisionInfo, TWeakObjectP
 					FString PreviousTempPkgName;
 					if (Revision->Get(PreviousTempPkgName))
 					{
-						// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
-						TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
-
 						// Try and load that package
-						UPackage* PreviousTempPkg = LoadPackage(NULL, *PreviousTempPkgName, LOAD_None);
+						UPackage* PreviousTempPkg = LoadPackage(NULL, *PreviousTempPkgName, LOAD_DisableCompileOnLoad);
 
 						if (PreviousTempPkg != NULL)
 						{

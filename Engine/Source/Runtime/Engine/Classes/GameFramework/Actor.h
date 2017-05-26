@@ -63,6 +63,11 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnProcessEvent, AActor*, UFunction*, 
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATGROUP_Engine,ENGINE_API);
 
+#if WITH_EDITOR
+/** Annotation for actor selection.  This must be in engine instead of editor for ::IsSelected to work */
+extern ENGINE_API FUObjectAnnotationSparseBool GSelectedActorAnnotation;
+#endif
+
 /**
  * Actor is the base class for an Object that can be placed or spawned in a level.
  * Actors may contain a collection of ActorComponents, which can be used to control how actors move, how they are rendered, etc.
@@ -383,8 +388,13 @@ public:
 	/** Called on the actor when a subobject is dynamically destroyed via replication */
 	virtual void OnSubobjectDestroyFromReplication(UObject *Subobject);
 
-	/** Called on the actor right before replication occurs */
+	/** Called on the actor right before replication occurs. 
+	 * Only called on Server, and for autonomous proxies if recording a Client Replay. */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker );
+
+	/** Called on the actor right before replication occurs.
+	 * Called for everyone when recording a Client Replay, including Simulated Proxies. */
+	virtual void PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker);
 
 	/** Called by the networking system to call PreReplication on this actor and its components using the given NetDriver to find or create RepChangedPropertyTrackers. */
 	void CallPreReplication(UNetDriver* NetDriver);
@@ -459,7 +469,7 @@ protected:
 	/**
 	 * Collision primitive that defines the transform (location, rotation, scale) of this Actor.
 	 */
-	UPROPERTY()
+	UPROPERTY(BlueprintGetter=K2_GetRootComponent, Category="Utilities|Transformation")
 	USceneComponent* RootComponent;
 
 #if WITH_EDITORONLY_DATA
@@ -748,11 +758,7 @@ public:
 	/** Get the local-to-world transform of the RootComponent. Identical to GetTransform(). */
 	FORCEINLINE FTransform ActorToWorld() const
 	{
-		if( RootComponent != NULL )
-		{
-			return RootComponent->ComponentToWorld;
-		}
-		return FTransform::Identity;
+		return (RootComponent ? RootComponent->GetComponentTransform() : FTransform::Identity);
 	}
 
 
@@ -799,7 +805,7 @@ public:
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const;
 
 	/** Returns the RootComponent of this Actor */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetRootComponent"), Category="Utilities|Transformation")
+	UFUNCTION(BlueprintGetter)
 	USceneComponent* K2_GetRootComponent() const;
 
 	/** Returns velocity (in cm/s (Unreal Units/second) of the rootcomponent if it is either using physics or has an associated MovementComponent */
@@ -1123,6 +1129,7 @@ public:
 	class UActorComponent* AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext);
 
 	/** DEPRECATED - Use Component::DestroyComponent */
+	DEPRECATED(4.17, "Use Component.DestroyComponent instead")
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use Component.DestroyComponent instead", BlueprintProtected = "true", DisplayName = "DestroyComponent"))
 	void K2_DestroyComponent(UActorComponent* Component);
 
@@ -1137,6 +1144,7 @@ public:
 	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
 	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
+	DEPRECATED(4.17, "Use AttachToComponent instead.")
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToComponent (Deprecated)", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
 	void K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
@@ -1172,7 +1180,7 @@ public:
 	*  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
 	*   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	*/
-
+	DEPRECATED(4.17, "Use AttachToActor instead.")
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToActor (Deprecated)", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
 	void K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
@@ -1200,6 +1208,7 @@ public:
 	 *  Snap the RootComponent of this Actor to the supplied Actor's root component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *  If InSocketName == NAME_None, it will attach to origin of the InParentActor. 
 	 */
+	DEPRECATED(4.17, "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead")
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", DisplayName = "SnapActorTo"), Category="Utilities|Transformation")
 	void SnapRootComponentTo(AActor* InParentActor, FName InSocketName);
 
@@ -1207,6 +1216,7 @@ public:
 	 *  Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
+	DEPRECATED(4.17, "Use DetachFromActor instead")
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "DetachActorFromActor (Deprecated)"), Category="Utilities|Transformation")
 	void DetachRootComponentFromParent(bool bMaintainWorldPosition = true);
 
@@ -1286,6 +1296,7 @@ public:
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
 
 	/** Allocate a MID for a given parent material. */
+	DEPRECATED(4.17, "Use PrimitiveComponent.CreateAndSetMaterialInstanceDynamic instead.")
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage="Use PrimitiveComponent.CreateAndSetMaterialInstanceDynamic instead.", BlueprintProtected = "true"), Category="Rendering|Material")
 	class UMaterialInstanceDynamic* MakeMIDForMaterial(class UMaterialInterface* Parent);
 
@@ -1543,6 +1554,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
+	virtual bool IsSelectedInEditor() const override;
 
 	struct FActorRootComponentReconstructionData
 	{
@@ -1730,12 +1742,14 @@ public:
 	 * Simple accessor to check if the actor is hidden upon editor startup
 	 * @return	true if the actor is hidden upon editor startup; false if it is not
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsHiddenEdAtStartup() const
 	{
 		return bHiddenEd;
 	}
 
 	// Returns true if this actor is hidden in the editor viewports.
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsHiddenEd() const;
 
 	/**
@@ -1743,18 +1757,22 @@ public:
 	 *
 	 * @param bIsHidden	True if the actor is hidden
 	 */
+	UFUNCTION(BlueprintCallable, Category="Editor Scripting | Actor Editing")
 	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden );
 
 	/**
 	 * @param  bIncludeParent - Whether to recurse up child actor hierarchy or not
 	 * @return Whether or not this actor is hidden in the editor for the duration of the current editor session
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsTemporarilyHiddenInEditor(bool bIncludeParent = false) const;
 
 	/** @return	Returns true if this actor is allowed to be displayed, selected and manipulated by the editor. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsEditable() const;
 
 	/** @return	Returns true if this actor can EVER be selected in a level in the editor.  Can be overridden by specific actors to make them unselectable. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	virtual bool IsSelectable() const { return true; }
 
 	/** @return	Returns true if this actor should be shown in the scene outliner */

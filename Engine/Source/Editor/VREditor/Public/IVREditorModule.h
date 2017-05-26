@@ -65,12 +65,20 @@ public:
 	 * @return True if the VREditor is currently running 
 	 */
 	virtual bool IsVREditorModeActive() = 0;
+
 	/** 
 	* Get the current VREditor running
 	*
 	* @return The current VREditor running
 	*/
 	virtual class UVREditorMode* GetVRMode() = 0;
+
+	/** 
+	* Update the actor preview (for example, the view from a camera attached to a pawn) in VR mode
+	*
+	* @param The new actor preview widget
+	*/
+	virtual void UpdateActorPreview(TSharedRef<class SWidget> InWidget) = 0;
 
 	/** Gets the radial menu extender.  This can be used to add your own menu items to the VR radial menu */
 	virtual const TSharedRef<class FExtender>& GetRadialMenuExtender() = 0;

@@ -213,7 +213,7 @@ bool FDebugToolExec::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 				FRotator PlayerRotation;
 				PlayerController->GetPlayerViewPoint(PlayerLocation, PlayerRotation);
 				FHitResult Hit(1.0f);
-				PlayerController->GetWorld()->LineTraceSingleByChannel(Hit, PlayerLocation, PlayerLocation + PlayerRotation.Vector() * 10000.f, ECC_Pawn, FCollisionQueryParams(NAME_None, true, PlayerController->GetPawn()));
+				PlayerController->GetWorld()->LineTraceSingleByChannel(Hit, PlayerLocation, PlayerLocation + PlayerRotation.Vector() * 10000.f, ECC_Pawn, FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, PlayerController->GetPawn()));
 				Found = Hit.GetActor();
 			}
 		}

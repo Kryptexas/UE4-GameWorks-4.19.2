@@ -544,8 +544,8 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			EdgeVertices[ 1 ] = SelectedEdgeVertices[VertexIndex + 1];
 
 			PDI->DrawLine(
-				StaticMeshComponent->ComponentToWorld.TransformPosition( EdgeVertices[ 0 ] ),
-				StaticMeshComponent->ComponentToWorld.TransformPosition( EdgeVertices[ 1 ] ),
+				StaticMeshComponent->GetComponentTransform().TransformPosition( EdgeVertices[ 0 ] ),
+				StaticMeshComponent->GetComponentTransform().TransformPosition( EdgeVertices[ 1 ] ),
 				FColor( 255, 255, 0 ),
 				SDPG_World );
 		}
@@ -558,12 +558,12 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 		uint32 NumIndices = Indices.Num();
 
-		FMatrix LocalToWorldInverseTranspose = StaticMeshComponent->ComponentToWorld.ToMatrixWithScale().InverseFast().GetTransposed();
+		FMatrix LocalToWorldInverseTranspose = StaticMeshComponent->GetComponentTransform().ToMatrixWithScale().InverseFast().GetTransposed();
 		for (uint32 i = 0; i < NumIndices; i++)
 		{
 			const FVector& VertexPos = LODModel.PositionVertexBuffer.VertexPosition( Indices[i] );
 
-			const FVector WorldPos = StaticMeshComponent->ComponentToWorld.TransformPosition( VertexPos );
+			const FVector WorldPos = StaticMeshComponent->GetComponentTransform().TransformPosition( VertexPos );
 			const FVector& Normal = LODModel.VertexBuffer.VertexTangentZ( Indices[i] ); 
 			const FVector& Binormal = LODModel.VertexBuffer.VertexTangentY( Indices[i] ); 
 			const FVector& Tangent = LODModel.VertexBuffer.VertexTangentX( Indices[i] ); 
@@ -599,7 +599,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 	if( bShowPivot )
 	{
-		FUnrealEdUtils::DrawWidget(View, PDI, StaticMeshComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::All, EWidgetMovementMode::WMM_Translate, false);
+		FUnrealEdUtils::DrawWidget(View, PDI, StaticMeshComponent->GetComponentTransform().ToMatrixWithScale(), 0, 0, EAxisList::All, EWidgetMovementMode::WMM_Translate, false);
 	}
 
 	if( bDrawAdditionalData )
@@ -620,7 +620,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
 		{
 			// Draw the static mesh's body setup (simple collision)
-			FTransform GeomTransform(StaticMeshComponent->ComponentToWorld);
+			FTransform GeomTransform(StaticMeshComponent->GetComponentTransform());
 			FColor NavCollisionColor = FColor(118, 84, 255, 255);
 			StaticMesh->NavCollision->DrawSimpleGeom(PDI, GeomTransform, FColorList::LimeGreen);
 		}
@@ -1028,7 +1028,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 						const FVector TriangleNormal = (CA ^ BA).GetSafeNormal();
 
 						// Transform the view position from world to component space
-						const FVector ComponentSpaceViewOrigin = StaticMeshComponent->ComponentToWorld.InverseTransformPosition( View->ViewMatrices.GetViewOrigin());
+						const FVector ComponentSpaceViewOrigin = StaticMeshComponent->GetComponentTransform().InverseTransformPosition( View->ViewMatrices.GetViewOrigin());
 								
 						// Determine which side of the triangle's plane that the view position lies on.
 						bIsBackFacing = (FVector::PointPlaneDist( ComponentSpaceViewOrigin,  A, TriangleNormal)  < 0.0f);
@@ -1062,8 +1062,8 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 						}
 						else
 						{
-							FVector WorldSpaceEdgeStart( StaticMeshComponent->ComponentToWorld.TransformPosition( EdgeVertices[ 0 ] ) );
-							FVector WorldSpaceEdgeEnd( StaticMeshComponent->ComponentToWorld.TransformPosition( EdgeVertices[ 1 ] ) );
+							FVector WorldSpaceEdgeStart( StaticMeshComponent->GetComponentTransform().TransformPosition( EdgeVertices[ 0 ] ) );
+							FVector WorldSpaceEdgeEnd( StaticMeshComponent->GetComponentTransform().TransformPosition( EdgeVertices[ 1 ] ) );
 
 							// Determine the mesh edge that's closest to the ray cast through the eye towards the click location
 							FVector ClosestPointToEdgeOnClickLine;

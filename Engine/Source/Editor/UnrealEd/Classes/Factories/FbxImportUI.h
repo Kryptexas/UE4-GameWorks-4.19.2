@@ -26,6 +26,8 @@ enum EFBXImportType
 	FBXIT_MAX,
 };
 
+DECLARE_DELEGATE(FOnPreviewFbxImport);
+
 UCLASS(config=EditorPerProjectUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
 class UFbxImportUI : public UObject, public IImportSettingsParser
 {
@@ -145,6 +147,10 @@ public:
 	UPROPERTY()
 	bool bAutomatedImportShouldDetectType;
 
+	/** If true the existing material array will be reset by the incoming fbx file. The matching "material import name" will be restore properly but, the entries that has no match will use the material instance of the existing data at the same index. (Never enable this option if you have gameplay code that use a material slot)*/
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = Material, meta = (OBJRestrict = "true", ImportType = "Mesh"))
+	uint32 bResetMaterialSlots : 1;
+
 	/** UObject Interface */
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
 
@@ -156,6 +162,9 @@ public:
 	{
 		MeshTypeToImport = bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
 	}
+
+	/* Whether this UI is construct for a reimport */
+	bool bIsReimport;
 };
 
 

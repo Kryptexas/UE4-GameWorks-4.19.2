@@ -15,17 +15,17 @@ class USkeletalMeshComponent;
  *	Simple controller to copy a bone's transform to another one.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_CopyBone : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Source Bone Name to get transform from */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy)
+	UPROPERTY(EditAnywhere, Category = Copy)
 	FBoneReference SourceBone;
 
 	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy) 
+	UPROPERTY(EditAnywhere, Category=Copy) 
 	FBoneReference TargetBone;
 
 	/** If Translation should be copied */
@@ -41,7 +41,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyBone : public FAnimNode_SkeletalContro
 	bool bCopyScale;
 
 	/** Space to convert transforms into prior to copying components */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy)
+	UPROPERTY(EditAnywhere, Category = Copy)
 	TEnumAsByte<EBoneControlSpace> ControlSpace;
 
 	FAnimNode_CopyBone();

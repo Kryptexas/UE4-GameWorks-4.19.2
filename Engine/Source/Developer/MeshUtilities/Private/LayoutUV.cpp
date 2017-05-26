@@ -205,16 +205,7 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 		Chart.LastTri = Tri;
 
 #if !CHART_JOINING
-		if( Chart.UVArea > 1e-4f )
-		{
-			Chart.WorldScale /= Chart.UVArea;
-		}
-		else
-		{
-			Chart.WorldScale = FVector2D::ZeroVector;
-		}
-
-		//Chart.WorldScale.Set(1,1);
+		Chart.WorldScale /= FMath::Max( Chart.UVArea, 1e-8f );
 
 		TotalUVArea += Chart.UVArea * Chart.WorldScale.X * Chart.WorldScale.Y;
 #endif
@@ -519,14 +510,7 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	{
 		FMeshChart& Chart = Charts[i];
 
-		if( Chart.UVArea > 1e-4f )
-		{
-			Chart.WorldScale /= Chart.UVArea;
-		}
-		else
-		{
-			Chart.WorldScale = FVector2D::ZeroVector;
-		}
+		Chart.WorldScale /= FMath::Max( Chart.UVArea, 1e-8f );
 
 		TotalUVArea += Chart.UVArea * Chart.WorldScale.X * Chart.WorldScale.Y;
 	}

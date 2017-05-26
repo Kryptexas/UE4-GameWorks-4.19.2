@@ -74,12 +74,13 @@ UObject* SAssetDropTarget::GetDroppedObject(TSharedPtr<FDragDropOperation> DragD
 	{
 		bOutRecognizedEvent = true;
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropOperation);
+		const TArray<FAssetData>& DroppedAssets = DragDropOp->GetAssets();
 
-		bool bCanDrop = DragDropOp->AssetData.Num() == 1;
+		bool bCanDrop = DroppedAssets.Num() == 1;
 
 		if( bCanDrop )
 		{
-			const FAssetData& AssetData = DragDropOp->AssetData[0];
+			const FAssetData& AssetData = DroppedAssets[0];
 
 			// Make sure the asset is loaded
 			DroppedObject = AssetData.GetAsset();

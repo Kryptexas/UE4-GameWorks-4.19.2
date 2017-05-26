@@ -2707,7 +2707,7 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 			}
 
 			FString OriginalContent;
-			ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, NULL, PPF_Localized);
+			ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, NULL, PPF_None);
 
 			bool bIsDefaultContainerContent = OriginalContent == OriginalContainerContent;
 

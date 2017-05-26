@@ -80,9 +80,10 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewS
 			}
 		}
 
-		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_NoFlags, TemplateName );
+		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
 
 		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName);
+		NewSpawnable.ObjectTemplate->ClearFlags(RF_Transient);
 
 		GWorld->DestroyActor(Instance);
 	}

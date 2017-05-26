@@ -105,6 +105,7 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
 	bShowDashedOutlines = GetDefault<UWidgetDesignerSettings>()->bShowOutlines;
+	bRespectLocks = GetDefault<UWidgetDesignerSettings>()->bRespectLocks;
 
 	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
 	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
@@ -972,6 +973,16 @@ void FWidgetBlueprintEditor::SetShowDashedOutlines(bool Value)
 	bShowDashedOutlines = Value;
 }
 
+bool FWidgetBlueprintEditor::GetIsRespectingLocks() const
+{
+	return bRespectLocks;
+}
+
+void FWidgetBlueprintEditor::SetIsRespectingLocks(bool Value)
+{
+	bRespectLocks = Value;
+}
+
 class FObjectAndDisplayName
 {
 public:
@@ -1222,7 +1233,7 @@ void FWidgetBlueprintEditor::ExtendSequencerObjectBindingMenu(FMenuBuilder& Obje
 	if (SelectedWidget.IsValid())
 	{
 		UWidget* BoundWidget = Cast<UWidget>(ContextObjects[0]);
-		if (BoundWidget)
+		if (BoundWidget && SelectedWidget.GetPreview()->GetTypedOuter<UWidgetTree>() == BoundWidget->GetTypedOuter<UWidgetTree>() )
 		{
 			FUIAction ReplaceWithMenuAction(FExecuteAction::CreateRaw(this, &FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget, SelectedWidget, BoundWidget));
 

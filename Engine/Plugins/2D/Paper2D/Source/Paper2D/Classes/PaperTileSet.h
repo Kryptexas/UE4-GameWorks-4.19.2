@@ -13,7 +13,7 @@
 struct FPaperTileInfo;
 
 // Information about a single tile in a tile set
-USTRUCT(meta=(ShowOnlyInnerProperties))
+USTRUCT(BlueprintType, meta=(ShowOnlyInnerProperties))
 struct PAPER2D_API FPaperTileMetadata
 {
 public:

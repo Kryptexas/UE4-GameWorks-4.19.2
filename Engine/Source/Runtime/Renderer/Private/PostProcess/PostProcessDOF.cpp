@@ -193,7 +193,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 		FLinearColor(0, 0, 0, 0)
 	};
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, DestSize, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, true, NumRenderTargets, ClearColors, false, 0, false, 0, DestSize, DestRect);
 
 	Context.SetViewportAndCallRHI(DestRect.Min.X, DestRect.Min.Y, 0.0f, DestRect.Max.X + 1, DestRect.Max.Y + 1, 1.0f );
 	
@@ -447,7 +447,7 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 	}
 
 	Context.SetViewportAndCallRHI(View.ViewRect);

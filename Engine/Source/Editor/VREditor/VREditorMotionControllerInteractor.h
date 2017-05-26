@@ -19,11 +19,12 @@ class UStaticMeshSocket;
 UCLASS()
 class UVREditorMotionControllerInteractor : public UVREditorInteractor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 
-	virtual ~UVREditorMotionControllerInteractor();
+	/** Default constructor */
+	UVREditorMotionControllerInteractor();
 	
 	// UVREditorInteractor overrides
 	virtual void Init( class UVREditorMode* InVRMode ) override;

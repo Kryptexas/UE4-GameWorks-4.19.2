@@ -28,6 +28,7 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 	FSlateFontInfo Font = FEditorStyle::GetFontStyle(TEXT("SourceControl.LoginWindow.Font"));
 
 	bAutoCreateGitIgnore = true;
+	bAutoCreateGitAttributes = false;
 	bAutoInitialCommit = true;
 
 	InitialCommitMessage = LOCTEXT("InitialCommitMessage", "Initial commit");
@@ -188,6 +189,33 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 					.Font(Font)
 				]
 			]
+			// Option to add a proper .gitattributes file for Git LFS (false by default)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				.Visibility(this, &SGitSourceControlSettings::CanInitializeGitRepository)
+				+SHorizontalBox::Slot()
+				.FillWidth(0.1f)
+				[
+					SNew(SCheckBox)
+					.ToolTipText(LOCTEXT("CreateGitAttributes_Tooltip", "Create and add a '.gitattributes' file to enable Git LFS for the whole 'Content/' directory (needs Git LFS extensions to be installed)."))
+					.IsChecked(ECheckBoxState::Unchecked)
+					.OnCheckStateChanged(this, &SGitSourceControlSettings::OnCheckedCreateGitAttributes)
+					.IsEnabled(this, &SGitSourceControlSettings::CanInitializeGitLfs)
+				]
+				+SHorizontalBox::Slot()
+				.FillWidth(2.9f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("CreateGitAttributes", "Add a .gitattributes file to enable Git LFS"))
+					.ToolTipText(LOCTEXT("CreateGitAttributes_Tooltip", "Create and add a '.gitattributes' file to enable Git LFS"))
+					.Font(Font)
+				]
+			]
 			// Option to Make the initial Git commit with custom message
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -224,10 +252,10 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 					.Font(Font)
 				]
 			]
-			// Button to initialize the project with Git, create the .gitignore, and make the first commit)
+			// Button to initialize the project with Git, create .gitignore/.gitattributes files, and make the first commit)
 			+SVerticalBox::Slot()
 			.FillHeight(2.0f)
-			.Padding(2.0f)
+			.Padding(2.5f)
 			.VAlign(VAlign_Center)
 			[
 				SNew(SHorizontalBox)
@@ -240,6 +268,7 @@ void SGitSourceControlSettings::Construct(const FArguments& InArgs)
 					.ToolTipText(LOCTEXT("GitInitRepository_Tooltip", "Initialize current project as a new Git repository"))
 					.OnClicked(this, &SGitSourceControlSettings::OnClickedInitializeGitRepository)
 					.HAlign(HAlign_Center)
+					.ContentPadding(6)
 				]
 			]
 		]
@@ -260,8 +289,16 @@ FText SGitSourceControlSettings::GetBinaryPathText() const
 void SGitSourceControlSettings::OnBinaryPathTextCommited(const FText& InText, ETextCommit::Type InCommitType) const
 {
 	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
-	GitSourceControl.AccessSettings().SetBinaryPath(InText.ToString());
-	GitSourceControl.SaveSettings();
+	const bool bChanged = GitSourceControl.AccessSettings().SetBinaryPath(InText.ToString());
+	if(bChanged)
+	{
+		// Re-Check provided git binary path for each change
+		GitSourceControl.GetProvider().CheckGitAvailability();
+		if(GitSourceControl.GetProvider().IsGitAvailable())
+		{
+			GitSourceControl.SaveSettings();
+		}
+	}
 }
 
 FText SGitSourceControlSettings::GetPathToRepositoryRoot() const
@@ -290,6 +327,15 @@ EVisibility SGitSourceControlSettings::CanInitializeGitRepository() const
 	return (bGitAvailable && !bGitRepositoryFound) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+bool SGitSourceControlSettings::CanInitializeGitLfs() const
+{
+	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
+	const FString& PathToGitBinary = GitSourceControl.AccessSettings().GetBinaryPath();
+	const bool bGitLfsAvailable = GitSourceControl.GetProvider().GetGitVersion().bHasGitLfs;
+	const bool bGitRepositoryFound = GitSourceControl.GetProvider().IsEnabled();
+	return (bGitLfsAvailable && !bGitRepositoryFound);
+}
+
 FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 {
 	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
@@ -301,11 +347,11 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 	// 1. Synchronous (very quick) "git init" operation: initialize a Git local repository with a .git/ subdirectory
 	GitSourceControlUtils::RunCommand(TEXT("init"), PathToGitBinary, PathToGameDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
 
-	// Check the new repository status to enable connection
-	GitSourceControl.GetProvider().CheckGitAvailability();
-	if(GitSourceControl.GetProvider().IsEnabled())
+	// Check the new repository status to enable connection (branch, user e-mail)
+	GitSourceControl.GetProvider().CheckRepositoryStatus(PathToGitBinary);
+	if(GitSourceControl.GetProvider().IsAvailable())
 	{
-		// List of files to add to Source Control (.uproject, Config/, Content/, Source/ files and .gitignore if any)
+		// List of files to add to Source Control (.uproject, Config/, Content/, Source/ files and .gitignore/.gitattributes if any)
 		TArray<FString> ProjectFiles;
 		ProjectFiles.Add(FPaths::GetProjectFilePath());
 		ProjectFiles.Add(FPaths::GameConfigDir());
@@ -316,12 +362,25 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 		}
 		if(bAutoCreateGitIgnore)
 		{
-			// 2. Create a standard ".gitignore" file with common patterns for a typical Blueprint & C++ project
+			// 2.a. Create a standard ".gitignore" file with common patterns for a typical Blueprint & C++ project
 			const FString GitIgnoreFilename = FPaths::Combine(FPaths::GameDir(), TEXT(".gitignore"));
-			const FString GitIgnoreContent = TEXT("Binaries\nDerivedDataCache\nIntermediate\nSaved\n*.VC.db\n*.opensdf\n*.opendb\n*.sdf\n*.sln\n*.suo\n*.xcodeproj\n*.xcworkspace");
+			const FString GitIgnoreContent = TEXT("Binaries\nDerivedDataCache\nIntermediate\nSaved\n.vs\n*.VC.db\n*.opensdf\n*.opendb\n*.sdf\n*.sln\n*.suo\n*.xcodeproj\n*.xcworkspace");
 			if(FFileHelper::SaveStringToFile(GitIgnoreContent, *GitIgnoreFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 			{
 				ProjectFiles.Add(GitIgnoreFilename);
+			}
+		}
+		if (bAutoCreateGitAttributes)
+		{
+			// 2.b. Synchronous (very quick) "lfs install" operation: needs only to be run once by user
+			GitSourceControlUtils::RunCommand(TEXT("lfs install"), PathToGitBinary, PathToGameDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+
+			// 2.c. Create a ".gitattributes" file to enable Git LFS (Large File System) for the whole "Content/" subdir
+			const FString GitAttributesFilename = FPaths::Combine(FPaths::GameDir(), TEXT(".gitattributes"));
+			const FString GitAttributesContent = TEXT("Content/** filter=lfs diff=lfs merge=lfs -text lockable\n");
+			if (FFileHelper::SaveStringToFile(GitAttributesContent, *GitAttributesFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+			{
+				ProjectFiles.Add(GitAttributesFilename);
 			}
 		}
 
@@ -435,6 +494,11 @@ void SGitSourceControlSettings::DisplayFailureNotification(const FSourceControlO
 void SGitSourceControlSettings::OnCheckedCreateGitIgnore(ECheckBoxState NewCheckedState)
 {
 	bAutoCreateGitIgnore = (NewCheckedState == ECheckBoxState::Checked);
+}
+
+void SGitSourceControlSettings::OnCheckedCreateGitAttributes(ECheckBoxState NewCheckedState)
+{
+	bAutoCreateGitAttributes = (NewCheckedState == ECheckBoxState::Checked);
 }
 
 void SGitSourceControlSettings::OnCheckedInitialCommit(ECheckBoxState NewCheckedState)

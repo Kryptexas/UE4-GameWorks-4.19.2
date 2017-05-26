@@ -95,7 +95,7 @@ void UniformBufferBeginFrame()
 
 static bool IsPoolingEnabled()
 {
-	if (GRHIThread && IsInRenderingThread() && GRHICommandList.IsRHIThreadActive())
+	if (IsRunningRHIInSeparateThread() && IsInRenderingThread() && GRHICommandList.IsRHIThreadActive())
 	{
 		return false; // we can't currently use pooling if the RHI thread is active. 
 	}

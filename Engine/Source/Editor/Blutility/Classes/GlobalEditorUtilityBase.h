@@ -30,6 +30,9 @@ class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 	UPROPERTY(Transient)
 	bool bDirtiedSelectionSet;
 
+	/** UObject interface */
+	virtual UWorld* GetWorld() const override;
+
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	TArray<AActor*> GetSelectionSet();
 

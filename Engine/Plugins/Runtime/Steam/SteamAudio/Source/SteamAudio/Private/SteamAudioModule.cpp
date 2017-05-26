@@ -12,6 +12,7 @@
 #include "SteamAudioSettings.h"
 #include "PhononProbeVolume.h"
 #include "PhononListenerObserver.h"
+#include "AudioDevice.h"
 
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
@@ -157,7 +158,7 @@ namespace SteamAudio
 
 		RenderingSettings.convolutionType = IPL_CONVOLUTIONTYPE_PHONON;
 		RenderingSettings.frameSize = 1024; // FIXME
-		RenderingSettings.samplingRate = AUDIO_SAMPLE_RATE;
+		RenderingSettings.samplingRate = InAudioDevice->SampleRate;
 
 		EnvironmentalOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
 		EnvironmentalOutputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_AMBISONICS;

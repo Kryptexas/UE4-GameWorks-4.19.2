@@ -350,41 +350,31 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 
 bool FHTTPChunkInstall::IsConnectedToWiFiorLAN() const
 {
-#if PLATFORM_IOS
-	SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithName(NULL, "8.8.8.8");
-	SCNetworkReachabilityFlags flags;
-	BOOL success = SCNetworkReachabilityGetFlags(reachability, &flags);
-	CFRelease(reachability);
-	if (!success)
-	{
-		return false;
-	}
-	BOOL isReachable = ((flags & kSCNetworkReachabilityFlagsReachable) != 0);
-	BOOL needsConnection = ((flags & kSCNetworkReachabilityFlagsConnectionRequired) != 0);
-	BOOL isNetworkReachable = (isReachable && !needsConnection);
-
-	if (!isNetworkReachable)
-	{
-		// not on network
-		return false;
-	}
-	else if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0)
-	{
-		// on cell servce
-		return false;
-	}
-	else
-	{
-		// on WiFi
-		return true;
-	}
-#else
-	return true; // true for now on PC
-#endif
+	return FPlatformMisc::HasActiveWiFiConnection();
 }
 
 void FHTTPChunkInstall::UpdatePendingInstallQueue()
 {
+	// force a pak mount right here
+	if (PaksToMount.Num() > 0 && ChunkMountOnlyTask.IsDone())
+	{
+		MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+		while (PaksToMount.Num() > 0)
+		{
+			ChunkMountOnlyTask.AddWork(PaksToMount[0].DestDir, PaksToMount[0].BuildManifest.ToSharedRef(), MountedPaks);
+			PaksToMount.RemoveAt(0);
+		}
+		ChunkMountOnlyTaskThread.Reset(FRunnableThread::Create(&ChunkMountOnlyTask, TEXT("Chunk Mount Only Thread")));
+	}
+	else if (ChunkMountOnlyTask.IsDone())
+	{
+		if (ChunkMountOnlyTask.MountedPaks.Num() > 0)
+		{
+			MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+			ChunkMountOnlyTask.MountedPaks.Reset();
+		}
+	}
+
 	if (InstallingChunkID != -1
 #if !UE_BUILD_SHIPPING
 		|| bDebugNoInstalledRequired
@@ -433,10 +423,11 @@ void FHTTPChunkInstall::UpdatePendingInstallQueue()
 			PriorityQueue.RemoveAt(0);
 		}
 	}
-	if (InstallingChunkID == -1 && IsConnectedToWiFiorLAN())
+	if (InstallingChunkID == -1)
 	{
-		// check to see if we need to get some title files
-		if (TitleFilesToRead.Num() > 0 && PendingReads.Num() == 0)
+		// check to see if we need to mount or get some title files
+		int32 MountCount = 10;
+		while (TitleFilesToRead.Num() > 0 && MountCount > 0)
 		{
 			// check for an already installed manifest
 			FString ChunkFdrName;
@@ -470,38 +461,51 @@ void FHTTPChunkInstall::UpdatePendingInstallQueue()
 				}
 			}
 
-			// kick off a read of the manifest
-			FScopeLock Lock(&ReadFileGuard);
-			PendingReads.Add(TitleFilesToRead[0]);
 			if (!IsDataInFileCache(TitleFilesToRead[0].Hash))
 			{
-				UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Reading manifest %s from remote source"), *TitleFilesToRead[0].FileName);
-				OnlineTitleFile->ReadFile(TitleFilesToRead[0].DLName);
+				// add to the read list
+				FScopeLock Lock(&ReadFileGuard);
+				NeedsRead.Add(TitleFilesToRead[0]);
 				TitleFilesToRead.RemoveAt(0);
-				return;
 			}
 			else
 			{
+				// read the local file and mount the pak
+				FScopeLock Lock(&ReadFileGuard);
+				PendingReads.Add(TitleFilesToRead[0]);
 				OSSReadFileComplete(true, TitleFilesToRead[0].DLName);
 				TitleFilesToRead.RemoveAt(0);
 			}
+			MountCount--;
 		}
-		else if (PendingReads.Num() > 0)
+
+		// read any pending files one at a time
 		{
-			return;
+			if (NeedsRead.Num() > 0)
+			{
+				FScopeLock Lock(&ReadFileGuard);
+				UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Reading manifest %s from remote source"), *NeedsRead[0].FileName);
+				PendingReads.Add(NeedsRead[0]);
+				OnlineTitleFile->ReadFile(NeedsRead[0].DLName);
+				NeedsRead.RemoveAt(0);
+				return;
+			}
 		}
 
 		// Install the first available chunk
-		for (auto It = RemoteManifests.CreateConstIterator(); It; ++It)
+		if (IsConnectedToWiFiorLAN() && TitleFilesToRead.Num() == 0)
 		{
-			if (It)
+			for (auto It = RemoteManifests.CreateConstIterator(); It; ++It)
 			{
-				IBuildManifestPtr ChunkManifest = It.Value();
-				auto ChunkIDField = ChunkManifest->GetCustomField("ChunkID");
-				if (ChunkIDField.IsValid())
+				if (It)
 				{
-					BeginChunkInstall(ChunkIDField->AsInteger(), ChunkManifest, FindPreviousInstallManifest(ChunkManifest));
-					return;
+					IBuildManifestPtr ChunkManifest = It.Value();
+					auto ChunkIDField = ChunkManifest->GetCustomField("ChunkID");
+					if (ChunkIDField.IsValid())
+					{
+						BeginChunkInstall(ChunkIDField->AsInteger(), ChunkManifest, FindPreviousInstallManifest(ChunkManifest));
+						return;
+					}
 				}
 			}
 		}
@@ -525,7 +529,7 @@ EChunkLocation::Type FHTTPChunkInstall::GetChunkLocation(uint32 ChunkID)
 	}
 
 #if !PLATFORM_IOS
-	if ((ChunkID == 3 || ChunkID == 4 || ChunkID == 6 || ChunkID == 7 || ChunkID == 8 || ChunkID == 9
+	if ((ChunkID == 3 || ChunkID == 4 || ChunkID == 6 || ChunkID == 7 || ChunkID == 8 || ChunkID == 9 || ChunkID == 16
 		|| ChunkID == 101 || ChunkID == 104 || ChunkID == 106 || ChunkID == 110 || ChunkID == 112 || ChunkID == 118 || ChunkID == 119
 		|| ChunkID == 120 || ChunkID == 121 || ChunkID == 123 || ChunkID == 128 || ChunkID == 130 || ChunkID == 131 || ChunkID == 900
 		|| ChunkID == 901 || ChunkID == 902 || ChunkID == 903 || ChunkID == 904 || ChunkID == 905 || ChunkID == 906 || ChunkID == 907
@@ -534,7 +538,7 @@ EChunkLocation::Type FHTTPChunkInstall::GetChunkLocation(uint32 ChunkID)
 		return EChunkLocation::BestLocation;
 	}
 #else
-	if ((ChunkID == 3 || ChunkID == 4 || ChunkID == 6 || ChunkID == 8
+	if ((ChunkID == 3 || ChunkID == 4 || ChunkID == 6 || ChunkID == 8 || ChunkID == 16
 		|| ChunkID == 101 || ChunkID == 104 || ChunkID == 106 || ChunkID == 110 || ChunkID == 112 || ChunkID == 118 || ChunkID == 119
 		|| ChunkID == 120 || ChunkID == 121 || ChunkID == 123 || ChunkID == 128 || ChunkID == 130 || ChunkID == 131 || ChunkID == 900
 		|| ChunkID == 901 || ChunkID == 902 || ChunkID == 903 || ChunkID == 904 || ChunkID == 905 || ChunkID == 906 || ChunkID == 907
@@ -574,71 +578,99 @@ EChunkLocation::Type FHTTPChunkInstall::GetChunkLocation(uint32 ChunkID)
 		}
 	}
 
-	for (int32 Index = 0; Index < TitleFilesToRead.Num(); ++Index)
+	for (int32 Lists = 0; Lists < 2; ++Lists)
 	{
-		if (TitleFilesToRead[Index].ChunkID == ChunkID)
+		TArray<FCloudFileHeader>* FilesToRead = Lists ? &NeedsRead : &TitleFilesToRead;
+		for (int32 Index = 0; Index < FilesToRead->Num(); ++Index)
 		{
-			// check for an already installed manifest
-			FString ChunkFdrName;
-			FString ManifestName;
-			if (BuildChunkFolderName(ChunkFdrName, ManifestName, ChunkID))
+			if ((*FilesToRead)[Index].ChunkID == ChunkID)
 			{
-				FString ManifestPath = FPaths::Combine(*ContentDir, *ChunkFdrName, *ManifestName);
-				FString HoldingPath = FPaths::Combine(*HoldingDir, *ChunkFdrName, *ManifestName);
-				IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-				if (PlatformFile.FileExists(*ManifestPath))
+				// check for an already installed manifest
+				FString ChunkFdrName;
+				FString ManifestName;
+				if (BuildChunkFolderName(ChunkFdrName, ManifestName, ChunkID))
 				{
-					auto Manifest = BPSModule->LoadManifestFromFile(ManifestPath);
-					if (!Manifest.IsValid())
+					FString ManifestPath = FPaths::Combine(*ContentDir, *ChunkFdrName, *ManifestName);
+					FString HoldingPath = FPaths::Combine(*HoldingDir, *ChunkFdrName, *ManifestName);
+					IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+					if (PlatformFile.FileExists(*ManifestPath))
 					{
-						//Something is wrong, suggests corruption so mark the folder for delete
-						PlatformFile.DeleteFile(*ManifestPath);
-					}
-					else
-					{
-						auto ChunkIDField = Manifest->GetCustomField("ChunkID");
-						if (!ChunkIDField.IsValid())
+						auto Manifest = BPSModule->LoadManifestFromFile(ManifestPath);
+						if (!Manifest.IsValid())
 						{
 							//Something is wrong, suggests corruption so mark the folder for delete
 							PlatformFile.DeleteFile(*ManifestPath);
 						}
 						else
 						{
-							InstalledManifests.Add(ChunkID, Manifest);
+							auto ChunkIDField = Manifest->GetCustomField("ChunkID");
+							if (!ChunkIDField.IsValid())
+							{
+								//Something is wrong, suggests corruption so mark the folder for delete
+								PlatformFile.DeleteFile(*ManifestPath);
+							}
+							else
+							{
+								InstalledManifests.Add(ChunkID, Manifest);
+							}
 						}
 					}
 				}
-			}
 
-			// kick off a read of the manifest
-			FScopeLock Lock(&ReadFileGuard);
-			PendingReads.Add(TitleFilesToRead[Index]);
-			if (!IsDataInFileCache(TitleFilesToRead[Index].Hash))
-			{
-				UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Reading manifest %s from remote source"), *TitleFilesToRead[Index].FileName);
-				OnlineTitleFile->ReadFile(TitleFilesToRead[Index].DLName);
-				TitleFilesToRead.RemoveAt(Index);
-			}
-			else
-			{
-				OSSReadFileComplete(true, TitleFilesToRead[Index].DLName);
-				TitleFilesToRead.RemoveAt(Index);
-
-				// do another check of the remote vs installed
-				RemoteManifests.MultiFind(ChunkID, FoundManifests);
-				if (FoundManifests.Num() > 0)
+				// kick off a read of the manifest
+				if (!IsDataInFileCache((*FilesToRead)[Index].Hash))
 				{
-					return EChunkLocation::NotAvailable;
+					FScopeLock Lock(&ReadFileGuard);
+					PendingReads.Add((*FilesToRead)[Index]);
+					UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Reading manifest %s from remote source"), *(*FilesToRead)[Index].FileName);
+					OnlineTitleFile->ReadFile((*FilesToRead)[Index].DLName);
+					(*FilesToRead).RemoveAt(Index);
 				}
-
-				InstalledManifests.MultiFind(ChunkID, FoundManifests);
-				if (FoundManifests.Num() > 0)
+				else
 				{
-					return EChunkLocation::BestLocation;
-				}
-			}
+					FScopeLock Lock(&ReadFileGuard);
+					PendingReads.Add((*FilesToRead)[Index]);
+					OSSReadFileComplete(true, (*FilesToRead)[Index].DLName);
+					(*FilesToRead).RemoveAt(Index);
 
-			return EChunkLocation::NotAvailable;
+					// force a pak mount right here
+					if (PaksToMount.Num() > 0)
+					{
+						while (!ChunkMountOnlyTask.IsDone())
+						{
+							FPlatformProcess::Sleep(0.0f);
+						}
+						MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+						ChunkMountOnlyTask.MountedPaks.Reset();
+						while (PaksToMount.Num() > 0)
+						{
+							ChunkMountOnlyTask.AddWork(PaksToMount[0].DestDir, PaksToMount[0].BuildManifest.ToSharedRef(), MountedPaks);
+							PaksToMount.RemoveAt(0);
+						}
+						ChunkMountOnlyTaskThread.Reset(FRunnableThread::Create(&ChunkMountOnlyTask, TEXT("Chunk Mount Only Thread")));
+						while (!ChunkMountOnlyTask.IsDone())
+						{
+							FPlatformProcess::Sleep(0.0f);
+						}
+						MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+						ChunkMountOnlyTask.MountedPaks.Reset();
+					}
+
+					// do another check of the remote vs installed
+					RemoteManifests.MultiFind(ChunkID, FoundManifests);
+					if (FoundManifests.Num() > 0)
+					{
+						return EChunkLocation::NotAvailable;
+					}
+
+					InstalledManifests.MultiFind(ChunkID, FoundManifests);
+					if (FoundManifests.Num() > 0)
+					{
+						return EChunkLocation::BestLocation;
+					}
+				}
+				return EChunkLocation::NotAvailable;
+			}
 		}
 	}
 
@@ -996,16 +1028,10 @@ void FHTTPChunkInstall::ParseTitleFileManifest(const FString& ManifestFileHash)
 				bool bIsPatch;
 				if (BuildChunkFolderName(InstalledManifest.ToSharedRef(), ChunkFdrName, ManifestName, ChunkID, bIsPatch))
 				{
-					FString ManifestPath = FPaths::Combine(*ContentDir, *ChunkFdrName, *ManifestName);
 					FString DestDir = FPaths::Combine(*ContentDir, *ChunkFdrName);
-					ChunkMountOnlyTask.SetupWork(ManifestPath, DestDir, InstalledManifest.ToSharedRef(), MountedPaks);
-					UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Mounting Chunk %d"), TitleFilesToRead[0].ChunkID);
-					ChunkMountOnlyTaskThread.Reset(FRunnableThread::Create(&ChunkMountOnlyTask, TEXT("Chunk Mount Only Thread")));
-					while (!ChunkMountOnlyTask.IsDone())
-					{
-						FPlatformProcess::Sleep(0.0f);
-					}
-					MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+					MountTask Task = { DestDir, InstalledManifest };
+					PaksToMount.Add(Task);
+					UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Mounting Chunk %d"), ChunkID);
 				}
 			}
 		}
@@ -1390,6 +1416,90 @@ void FHTTPChunkInstall::EndInstall()
 	InstallingChunkID = -1;
 	InstallingChunkManifest.Reset();
 	InstallerState = ChunkInstallState::Idle;
+}
+
+void FHTTPChunkInstall::FlushPakMount()
+{
+	// check to see if we need to mount or get some title files
+	while (TitleFilesToRead.Num() > 0)
+	{
+		// check for an already installed manifest
+		FString ChunkFdrName;
+		FString ManifestName;
+		if (BuildChunkFolderName(ChunkFdrName, ManifestName, TitleFilesToRead[0].ChunkID))
+		{
+			FString ManifestPath = FPaths::Combine(*ContentDir, *ChunkFdrName, *ManifestName);
+			FString HoldingPath = FPaths::Combine(*HoldingDir, *ChunkFdrName, *ManifestName);
+			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+			if (PlatformFile.FileExists(*ManifestPath))
+			{
+				auto Manifest = BPSModule->LoadManifestFromFile(ManifestPath);
+				if (!Manifest.IsValid())
+				{
+					//Something is wrong, suggests corruption so mark the folder for delete
+					PlatformFile.DeleteFile(*ManifestPath);
+				}
+				else
+				{
+					auto ChunkIDField = Manifest->GetCustomField("ChunkID");
+					if (!ChunkIDField.IsValid())
+					{
+						//Something is wrong, suggests corruption so mark the folder for delete
+						PlatformFile.DeleteFile(*ManifestPath);
+					}
+					else
+					{
+						InstalledManifests.Add(TitleFilesToRead[0].ChunkID, Manifest);
+					}
+				}
+			}
+		}
+
+		if (!IsDataInFileCache(TitleFilesToRead[0].Hash))
+		{
+			// add to the read list
+			FScopeLock Lock(&ReadFileGuard);
+			NeedsRead.Add(TitleFilesToRead[0]);
+			TitleFilesToRead.RemoveAt(0);
+		}
+		else
+		{
+			// read the local file and mount the pak
+			FScopeLock Lock(&ReadFileGuard);
+			PendingReads.Add(TitleFilesToRead[0]);
+			OSSReadFileComplete(true, TitleFilesToRead[0].DLName);
+			TitleFilesToRead.RemoveAt(0);
+		}
+	}
+
+	// force a pak mount right here
+	if (PaksToMount.Num() > 0)
+	{
+		while (!ChunkMountOnlyTask.IsDone())
+		{
+			FPlatformProcess::Sleep(0.0f);
+		}
+		MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+		while (PaksToMount.Num() > 0)
+		{
+			ChunkMountOnlyTask.AddWork(PaksToMount[0].DestDir, PaksToMount[0].BuildManifest.ToSharedRef(), MountedPaks);
+			PaksToMount.RemoveAt(0);
+		}
+		ChunkMountOnlyTaskThread.Reset(FRunnableThread::Create(&ChunkMountOnlyTask, TEXT("Chunk Mount Only Thread")));
+		while (!ChunkMountOnlyTask.IsDone())
+		{
+			FPlatformProcess::Sleep(0.0f);
+		}
+		MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+	}
+	else
+	{
+		while (!ChunkMountOnlyTask.IsDone())
+		{
+			FPlatformProcess::Sleep(0.0f);
+		}
+		MountedPaks.Append(ChunkMountOnlyTask.MountedPaks);
+	}
 }
 
 /**

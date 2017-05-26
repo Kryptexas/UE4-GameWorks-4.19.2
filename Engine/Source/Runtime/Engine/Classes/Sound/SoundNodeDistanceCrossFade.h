@@ -21,23 +21,23 @@ struct FDistanceDatum
 	/* The FadeInDistance at which to start hearing this sound.
 	 * If you want to hear the sound up close then setting this to 0 might be a good option. 
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DistanceDatum )
+	UPROPERTY(EditAnywhere, Category=DistanceDatum )
 	float FadeInDistanceStart;
 
 	/* The distance at which this sound has faded in completely. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DistanceDatum )
+	UPROPERTY(EditAnywhere, Category=DistanceDatum )
 	float FadeInDistanceEnd;
 
 	/* The distance at which this sound starts fading out. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DistanceDatum )
+	UPROPERTY(EditAnywhere, Category=DistanceDatum )
 	float FadeOutDistanceStart;
 
 	/* The distance at which this sound is no longer audible. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DistanceDatum )
+	UPROPERTY(EditAnywhere, Category=DistanceDatum )
 	float FadeOutDistanceEnd;
 
 	/* The volume for which this Input should be played. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DistanceDatum)
+	UPROPERTY(EditAnywhere, Category=DistanceDatum)
 	float Volume;
 
 

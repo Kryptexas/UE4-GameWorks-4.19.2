@@ -71,13 +71,13 @@ void USoundClassGraphNode::AllocateDefaultPins()
 {
 	check(Pins.Num() == 0);
 
-	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, LOCTEXT("SoundClassChildren", "Children").ToString());
-	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT(""));
+	ChildPin = CreatePin(EGPD_Output, TEXT("SoundClass"), FString(), nullptr, LOCTEXT("SoundClassChildren", "Children").ToString());
+	ParentPin = CreatePin(EGPD_Input, TEXT("SoundClass"), FString(), nullptr, FString());
 }
 
 void USoundClassGraphNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
-	if (FromPin != NULL)
+	if (FromPin)
 	{
 		const USoundClassGraphSchema* Schema = CastChecked<USoundClassGraphSchema>(GetSchema());
 

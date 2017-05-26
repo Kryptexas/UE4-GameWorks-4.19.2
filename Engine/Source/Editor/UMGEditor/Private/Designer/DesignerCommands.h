@@ -38,6 +38,9 @@ public:
 	/** Toggle Showing Outlines */
 	TSharedPtr< FUICommandInfo > ToggleOutlines;
 
+	/** Toggle if we care about locking */
+	TSharedPtr< FUICommandInfo > ToggleRespectLocks;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

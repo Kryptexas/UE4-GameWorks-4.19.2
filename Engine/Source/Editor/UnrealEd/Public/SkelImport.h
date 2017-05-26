@@ -196,6 +196,8 @@ public:
 	bool 	bHasVertexColors; 					// If true there are vertex colors in the imported file
 	bool	bHasNormals;						// If true there are normals in the imported file
 	bool	bHasTangents;						// If true there are tangents in the imported file
+	bool	bUseT0AsRefPose;					// If true, then the pose at time=0 will be used instead of the ref pose
+	bool	bDiffPose;							// If true, one of the bones has a different pose at time=0 vs the ref pose
 
 	FSkeletalMeshImportData()
 		: NumTexCoords(0)
@@ -203,6 +205,8 @@ public:
 		, bHasVertexColors(false)
 		, bHasNormals(false)
 		, bHasTangents(false)
+		, bUseT0AsRefPose(false)
+		, bDiffPose(false)
 	{
 
 	}
@@ -221,7 +225,7 @@ public:
 		TArray<FMeshWedge>& LODWedges,
 		TArray<FMeshFace>& LODFaces,	
 		TArray<FVertInfluence>& LODInfluences,
-		TArray<int32>& LODPointToRawMap);
+		TArray<int32>& LODPointToRawMap) const;
 
 	static FString FixupBoneName( const FString& InBoneName );
 

@@ -52,8 +52,8 @@ void FSplineMeshComponentVisualizer::DrawVisualization(const UActorComponent* Co
 		// Draw the tangent handles before anything else so they will not overdraw the rest of the spline
 		for (int32 PointIndex = 0; PointIndex < 2; PointIndex++)
 		{
-			const FVector KeyPos = SplineMeshComp->ComponentToWorld.TransformPosition(Spline.Points[PointIndex].OutVal);
-			const FVector TangentWorldDirection = SplineMeshComp->ComponentToWorld.TransformVector(Spline.Points[PointIndex].LeaveTangent);
+			const FVector KeyPos = SplineMeshComp->GetComponentTransform().TransformPosition(Spline.Points[PointIndex].OutVal);
+			const FVector TangentWorldDirection = SplineMeshComp->GetComponentTransform().TransformVector(Spline.Points[PointIndex].LeaveTangent);
 
 			PDI->SetHitProxy(NULL);
 			DrawDashedLine(PDI, KeyPos, KeyPos + TangentWorldDirection, Color, 5, SDPG_Foreground);
@@ -68,17 +68,17 @@ void FSplineMeshComponentVisualizer::DrawVisualization(const UActorComponent* Co
 		// Draw the keypoints
 		for (int32 PointIndex = 0; PointIndex < 2; PointIndex++)
 		{
-			const FVector NewKeyPos = SplineMeshComp->ComponentToWorld.TransformPosition(Spline.Points[PointIndex].OutVal);
+			const FVector NewKeyPos = SplineMeshComp->GetComponentTransform().TransformPosition(Spline.Points[PointIndex].OutVal);
 			PDI->SetHitProxy(new HSplineMeshKeyProxy(Component, PointIndex));
 			PDI->DrawPoint(NewKeyPos, Color, GrabHandleSize, SDPG_Foreground);
 			PDI->SetHitProxy(NULL);
 		}
 
 		// Draw the spline
-		FVector StartPos = SplineMeshComp->ComponentToWorld.TransformPosition(Spline.Points[0].OutVal);
+		FVector StartPos = SplineMeshComp->GetComponentTransform().TransformPosition(Spline.Points[0].OutVal);
 		for (int32 Step = 1; Step < 32; Step++)
 		{
-			const FVector EndPos = SplineMeshComp->ComponentToWorld.TransformPosition(Spline.Eval(Step / 32.0f, FVector::ZeroVector));
+			const FVector EndPos = SplineMeshComp->GetComponentTransform().TransformPosition(Spline.Eval(Step / 32.0f, FVector::ZeroVector));
 			PDI->DrawLine(StartPos, EndPos, Color, SDPG_Foreground);
 			StartPos = EndPos;
 		}
@@ -170,11 +170,11 @@ bool FSplineMeshComponentVisualizer::GetWidgetLocation(const FEditorViewportClie
 			check(SelectedTangentHandleType != ESelectedTangentHandle::None);
 			if (SelectedTangentHandleType == ESelectedTangentHandle::Leave)
 			{
-				OutLocation = SplineMeshComp->ComponentToWorld.TransformPosition(Point.OutVal + Point.LeaveTangent);
+				OutLocation = SplineMeshComp->GetComponentTransform().TransformPosition(Point.OutVal + Point.LeaveTangent);
 			}
 			else if (SelectedTangentHandleType == ESelectedTangentHandle::Arrive)
 			{
-				OutLocation = SplineMeshComp->ComponentToWorld.TransformPosition(Point.OutVal - Point.ArriveTangent);
+				OutLocation = SplineMeshComp->GetComponentTransform().TransformPosition(Point.OutVal - Point.ArriveTangent);
 			}
 
 			return true;
@@ -184,7 +184,7 @@ bool FSplineMeshComponentVisualizer::GetWidgetLocation(const FEditorViewportClie
 			// Otherwise use the last key index set
 			check(SelectedKey < 2);
 			const auto& Point = Spline.Points[SelectedKey];
-			OutLocation = SplineMeshComp->ComponentToWorld.TransformPosition(Point.OutVal);
+			OutLocation = SplineMeshComp->GetComponentTransform().TransformPosition(Point.OutVal);
 			return true;
 		}
 	}
@@ -220,7 +220,7 @@ bool FSplineMeshComponentVisualizer::GetCustomInputCoordinateSystem(const FEdito
 				const FVector Bitangent = (Tangent.Z == 1.0f) ? FVector(1.0f, 0.0f, 0.0f) : FVector(-Tangent.Y, Tangent.X, 0.0f).GetSafeNormal();
 				const FVector Normal = FVector::CrossProduct(Tangent, Bitangent);
 
-				OutMatrix = FMatrix(Tangent, Bitangent, Normal, FVector::ZeroVector) * FQuatRotationTranslationMatrix(SplineMeshComp->ComponentToWorld.GetRotation(), FVector::ZeroVector);
+				OutMatrix = FMatrix(Tangent, Bitangent, Normal, FVector::ZeroVector) * FQuatRotationTranslationMatrix(SplineMeshComp->GetComponentTransform().GetRotation(), FVector::ZeroVector);
 				return true;
 			}
 		}
@@ -247,7 +247,7 @@ bool FSplineMeshComponentVisualizer::HandleInputDelta(FEditorViewportClient* Vie
 				check(SelectedTangentHandleType != ESelectedTangentHandle::None);
 
 				const FVector Delta = (SelectedTangentHandleType == ESelectedTangentHandle::Leave) ? DeltaTranslate : -DeltaTranslate;
-				const FVector NewTangent = OldTangent + SplineMeshComp->ComponentToWorld.InverseTransformVector(Delta);
+				const FVector NewTangent = OldTangent + SplineMeshComp->GetComponentTransform().InverseTransformVector(Delta);
 
 				SplineMeshComp->Modify();
 
@@ -279,11 +279,11 @@ bool FSplineMeshComponentVisualizer::HandleInputDelta(FEditorViewportClient* Vie
 			if (!DeltaTranslate.IsZero())
 			{
 				// Find key position in world space
-				const FVector CurrentWorldPos = SplineMeshComp->ComponentToWorld.TransformPosition(KeyPosition);
+				const FVector CurrentWorldPos = SplineMeshComp->GetComponentTransform().TransformPosition(KeyPosition);
 				// Move in world space
 				const FVector NewWorldPos = CurrentWorldPos + DeltaTranslate;
 				// Convert back to local space
-				KeyPosition = SplineMeshComp->ComponentToWorld.InverseTransformPosition(NewWorldPos);
+				KeyPosition = SplineMeshComp->GetComponentTransform().InverseTransformPosition(NewWorldPos);
 
 				bModifiedPosition = true;
 			}

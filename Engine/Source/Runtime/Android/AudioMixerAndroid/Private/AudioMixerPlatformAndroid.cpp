@@ -12,25 +12,42 @@
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
 
-
 DECLARE_LOG_CATEGORY_EXTERN(LogAudioMixerAndroid, Log, All);
 DEFINE_LOG_CATEGORY(LogAudioMixerAndroid);
 
 #define UNREAL_AUDIO_TEST_WHITE_NOISE 0
 
-const uint32	cSampleBufferBits = 12;
-const uint32	cNumChannels = 2;
-const uint32	cAudioMixerBufferSize = 1 << cSampleBufferBits;
-const uint32	cSampleBufferSize = cAudioMixerBufferSize * cNumChannels;
+// Macro to check result for XAudio2 failure, get string version, log, and return false
+#define OPENSLES_RETURN_ON_FAIL(Result)						\
+	if (Result != SL_RESULT_SUCCESS)						\
+	{														\
+		const TCHAR* ErrorString = GetErrorString(Result);	\
+		AUDIO_PLATFORM_ERROR(ErrorString);					\
+		return false;										\
+	}
+
+#define OPENSLES_CHECK_ON_FAIL(Result)						\
+	if (Result != SL_RESULT_SUCCESS)						\
+	{														\
+		const TCHAR* ErrorString = GetErrorString(Result);	\
+		AUDIO_PLATFORM_ERROR(ErrorString);					\
+		check(false);										\
+	}
+
+#define OPENSLES_LOG_ON_FAIL(Result)						\
+	if (Result != SL_RESULT_SUCCESS)						\
+	{														\
+		const TCHAR* ErrorString = GetErrorString(Result);	\
+		AUDIO_PLATFORM_ERROR(ErrorString);					\
+	}
 
 namespace Audio
 {	
 	FMixerPlatformAndroid::FMixerPlatformAndroid()
-	:
-	bInitialized(false),
-	bInCallback(false)
+		: bSuspended(false)
+		, bInitialized(false)
+		, bInCallback(false)
 	{
-		tempBuffer = (int16*)FMemory::Malloc(cSampleBufferSize * sizeof(int16));
 	}
 
 	FMixerPlatformAndroid::~FMixerPlatformAndroid()
@@ -39,72 +56,66 @@ namespace Audio
 		{
 			TeardownHardware();
 		}
+	}
 
-		if(tempBuffer != nullptr)
+	const TCHAR* FMixerPlatformAndroid::GetErrorString(SLresult Result)
+	{
+		switch (Result)
 		{
-			FMemory::Free(tempBuffer);
+			case SL_RESULT_PRECONDITIONS_VIOLATED:	return TEXT("SL_RESULT_PRECONDITIONS_VIOLATED");
+			case SL_RESULT_PARAMETER_INVALID:		return TEXT("SL_RESULT_PARAMETER_INVALID");
+			case SL_RESULT_MEMORY_FAILURE:			return TEXT("SL_RESULT_MEMORY_FAILURE");
+			case SL_RESULT_RESOURCE_ERROR:			return TEXT("SL_RESULT_RESOURCE_ERROR");
+			case SL_RESULT_RESOURCE_LOST:			return TEXT("SL_RESULT_RESOURCE_LOST");
+			case SL_RESULT_IO_ERROR:				return TEXT("SL_RESULT_IO_ERROR");
+			case SL_RESULT_BUFFER_INSUFFICIENT:		return TEXT("SL_RESULT_BUFFER_INSUFFICIENT");
+			case SL_RESULT_CONTENT_CORRUPTED:		return TEXT("SL_RESULT_CONTENT_CORRUPTED");
+			case SL_RESULT_CONTENT_UNSUPPORTED:		return TEXT("SL_RESULT_CONTENT_UNSUPPORTED");
+			case SL_RESULT_CONTENT_NOT_FOUND:		return TEXT("SL_RESULT_CONTENT_NOT_FOUND");
+			case SL_RESULT_PERMISSION_DENIED:		return TEXT("SL_RESULT_PERMISSION_DENIED");
+			case SL_RESULT_FEATURE_UNSUPPORTED:		return TEXT("SL_RESULT_FEATURE_UNSUPPORTED");
+			case SL_RESULT_INTERNAL_ERROR:			return TEXT("SL_RESULT_INTERNAL_ERROR");
+			case SL_RESULT_OPERATION_ABORTED:		return TEXT("SL_RESULT_OPERATION_ABORTED");
+			case SL_RESULT_CONTROL_LOST:			return TEXT("SL_RESULT_CONTROL_LOST");
+
+			default:
+			case SL_RESULT_UNKNOWN_ERROR:			return TEXT("SL_RESULT_UNKNOWN_ERROR");
 		}
 	}
 
-	//~ Begin IAudioMixerPlatformInterface
 	bool FMixerPlatformAndroid::InitializeHardware()
 	{
 		if (bInitialized)
 		{
 			return false;
 		}
-				
-		DeviceInfo.NumChannels = 2;
-		DeviceInfo.SampleRate = 44100;
-		DeviceInfo.DefaultSampleRate = DeviceInfo.SampleRate;
-		DeviceInfo.NumFrames = cAudioMixerBufferSize;
-		DeviceInfo.NumSamples = DeviceInfo.NumFrames * DeviceInfo.NumChannels;
-		DeviceInfo.Format = EAudioMixerStreamDataFormat::Float;
-		DeviceInfo.OutputChannelArray.SetNum(2);
-		DeviceInfo.OutputChannelArray[0] = EAudioMixerChannel::FrontLeft;
-		DeviceInfo.OutputChannelArray[1] = EAudioMixerChannel::FrontRight;
-		DeviceInfo.Latency = 0;
-		DeviceInfo.bIsSystemDefault = true;
-		AudioStreamInfo.DeviceInfo = DeviceInfo;
-		
-		SLresult result;
+					
+		SLresult Result;
 		SLEngineOption EngineOption[] = { {(SLuint32) SL_ENGINEOPTION_THREADSAFE, (SLuint32) SL_BOOLEAN_TRUE} };
 	
-		// create engine
-		result = slCreateEngine( &SL_EngineObject, 1, EngineOption, 0, NULL, NULL);
-		//check(SL_RESULT_SUCCESS == result);
-		if (SL_RESULT_SUCCESS != result)
-		{
-			UE_LOG( LogAudioMixerAndroid, Error, TEXT("Engine create failed %d"), int32(result));
-		}
+		// Create engine
+		Result = slCreateEngine( &SL_EngineObject, 1, EngineOption, 0, NULL, NULL);
+		OPENSLES_CHECK_ON_FAIL(Result);
 	
-		// realize the engine
-		result = (*SL_EngineObject)->Realize(SL_EngineObject, SL_BOOLEAN_FALSE);
-		check(SL_RESULT_SUCCESS == result);
+		// Realize the engine
+		Result = (*SL_EngineObject)->Realize(SL_EngineObject, SL_BOOLEAN_FALSE);
+		OPENSLES_CHECK_ON_FAIL(Result);
 	
 		// get the engine interface, which is needed in order to create other objects
-		result = (*SL_EngineObject)->GetInterface(SL_EngineObject, SL_IID_ENGINE, &SL_EngineEngine);
-		check(SL_RESULT_SUCCESS == result);
-	
-		// create output mix 
-		result = (*SL_EngineEngine)->CreateOutputMix(SL_EngineEngine, &SL_OutputMixObject, 0, NULL, NULL );
-		check(SL_RESULT_SUCCESS == result);
-	
-		// realize the output mix
-		result = (*SL_OutputMixObject)->Realize(SL_OutputMixObject, SL_BOOLEAN_FALSE);
-		check(SL_RESULT_SUCCESS == result);
+		Result = (*SL_EngineObject)->GetInterface(SL_EngineObject, SL_IID_ENGINE, &SL_EngineEngine);
+		OPENSLES_CHECK_ON_FAIL(Result);
 
-		AudioStreamInfo.StreamState = EAudioOutputStreamState::Closed;
-		
+		// create output mix 
+		Result = (*SL_EngineEngine)->CreateOutputMix(SL_EngineEngine, &SL_OutputMixObject, 0, NULL, NULL );
+		OPENSLES_CHECK_ON_FAIL(Result);
+
+		// realize the output mix
+		Result = (*SL_OutputMixObject)->Realize(SL_OutputMixObject, SL_BOOLEAN_FALSE);
+		OPENSLES_CHECK_ON_FAIL(Result);
+	
 		bInitialized = true;
 
 		return true;
-	}
-
-	bool FMixerPlatformAndroid::CheckAudioDeviceChange()
-	{
-		// only ever one device currently		
-		return false;
 	}
 
 	bool FMixerPlatformAndroid::TeardownHardware()
@@ -114,21 +125,20 @@ namespace Audio
 			return true;
 		}
 		
-		StopAudioStream();
-		CloseAudioStream();
-
 		// Teardown OpenSLES..
 		// Destroy the SLES objects in reverse order of creation:
 		if (SL_OutputMixObject)
 		{
 			(*SL_OutputMixObject)->Destroy(SL_OutputMixObject);
-			SL_OutputMixObject = NULL;
+			SL_OutputMixObject = nullptr;
 		}
+
 		if (SL_EngineObject)
 		{
 			(*SL_EngineObject)->Destroy(SL_EngineObject);
-			SL_EngineObject = NULL;
-			SL_EngineEngine = NULL;
+
+			SL_EngineObject = nullptr;
+			SL_EngineEngine = nullptr;
 		}
 
 		bInitialized = false;
@@ -144,20 +154,26 @@ namespace Audio
 	bool FMixerPlatformAndroid::GetNumOutputDevices(uint32& OutNumOutputDevices)
 	{
 		OutNumOutputDevices = 1;
-		
 		return true;
 	}
 
 	bool FMixerPlatformAndroid::GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo)
 	{
-		OutInfo = DeviceInfo;
+		OutInfo.Name = TEXT("Android Audio Device");
+		OutInfo.DeviceId = 0;
+		OutInfo.bIsSystemDefault = true;
+		OutInfo.SampleRate = 44100; // We don't really know of a way to get sample rate from an android device
+		OutInfo.NumChannels = 2; // Android doesn't support surround sound
+		OutInfo.Format = EAudioMixerStreamDataFormat::Int16;
+		OutInfo.OutputChannelArray.SetNum(2);
+		OutInfo.OutputChannelArray[0] = EAudioMixerChannel::FrontLeft;
+		OutInfo.OutputChannelArray[1] = EAudioMixerChannel::FrontRight;
 		return true;
 	}
 
 	bool FMixerPlatformAndroid::GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const
 	{
 		OutDefaultDeviceIndex = 0;
-		
 		return true;
 	}
 
@@ -167,12 +183,22 @@ namespace Audio
 		{
 			return false;
 		}
-		
-		AudioStreamInfo.DeviceInfo = DeviceInfo;
-		AudioStreamInfo.OutputDeviceIndex = Params.OutputDeviceIndex;
-		AudioStreamInfo.AudioMixer = Params.AudioMixer;
 
-		SLresult	result;
+		OpenStreamParams = Params;
+
+		AudioStreamInfo.Reset();
+
+		AudioStreamInfo.OutputDeviceIndex = 0;
+		AudioStreamInfo.NumOutputFrames = OpenStreamParams.NumFrames;
+		AudioStreamInfo.NumBuffers = OpenStreamParams.NumBuffers;
+		AudioStreamInfo.AudioMixer = OpenStreamParams.AudioMixer;
+
+		if (!GetOutputDeviceInfo(AudioStreamInfo.OutputDeviceIndex, AudioStreamInfo.DeviceInfo))
+		{
+			return false;
+		}
+
+		SLresult Result;
 
 		// data info
 		SLDataLocator_AndroidSimpleBufferQueue LocationBuffer = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 1};
@@ -180,8 +206,8 @@ namespace Audio
 		// PCM Info
 		SLDataFormat_PCM PCM_Format = {
 			SL_DATAFORMAT_PCM, 
-			2, 
-			Params.SampleRate * 1000 ,	
+			(SLuint32)AudioStreamInfo.DeviceInfo.NumChannels,
+			(SLuint32)(Params.SampleRate * 1000), // NOTE: OpenSLES has sample rates specified in millihertz. 
 			SL_PCMSAMPLEFORMAT_FIXED_16, 
 			SL_PCMSAMPLEFORMAT_FIXED_16, 
 			SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, 
@@ -191,38 +217,30 @@ namespace Audio
 		SLDataSource SoundDataSource = { &LocationBuffer, &PCM_Format };
 		
 		// configure audio sink
-		SLDataLocator_OutputMix Output_Mix = { SL_DATALOCATOR_OUTPUTMIX, SL_OutputMixObject };
-		SLDataSink AudioSink = { &Output_Mix, NULL };
+		SLDataLocator_OutputMix OutputMix = { SL_DATALOCATOR_OUTPUTMIX, SL_OutputMixObject };
+		SLDataSink AudioSink = { &OutputMix, nullptr };
 
 		// create audio player
-		const SLInterfaceID	ids[] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
-		const SLboolean		req[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
-		result = 
-			(*SL_EngineEngine)->CreateAudioPlayer(
-				SL_EngineEngine, 
-				&SL_PlayerObject, 
-				&SoundDataSource, 
-				&AudioSink, 
-				sizeof(ids) / sizeof(SLInterfaceID), 
-				ids, 
-				req );
-		if(result != SL_RESULT_SUCCESS)
-		{
-			UE_LOG(LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER CreateAudioPlayer 0x%x"), result);
-			return false;
-		}
+		const SLInterfaceID	InterfaceIds[] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
+		const SLboolean Req[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+
+		Result = (*SL_EngineEngine)->CreateAudioPlayer(SL_EngineEngine, &SL_PlayerObject, &SoundDataSource, &AudioSink, sizeof(InterfaceIds) / sizeof(SLInterfaceID), InterfaceIds, Req);
+		OPENSLES_RETURN_ON_FAIL(Result);
 
 		// realize the player
-		result = (*SL_PlayerObject)->Realize(SL_PlayerObject, SL_BOOLEAN_FALSE);
-		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER Realize 0x%x"), result); return false; }
+		Result = (*SL_PlayerObject)->Realize(SL_PlayerObject, SL_BOOLEAN_FALSE);
+		OPENSLES_RETURN_ON_FAIL(Result);
 		
 		// get the play interface
-		result = (*SL_PlayerObject)->GetInterface(SL_PlayerObject, SL_IID_PLAY, &SL_PlayerPlayInterface);
-		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER GetInterface SL_IID_PLAY 0x%x"), result); return false; }
-		
+		Result = (*SL_PlayerObject)->GetInterface(SL_PlayerObject, SL_IID_PLAY, &SL_PlayerPlayInterface);
+		OPENSLES_RETURN_ON_FAIL(Result);
+
 		// buffer system
-		result = (*SL_PlayerObject)->GetInterface(SL_PlayerObject, SL_IID_BUFFERQUEUE, &SL_PlayerBufferQueue);
-		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER GetInterface SL_IID_BUFFERQUEUE 0x%x"), result); return false; }
+		Result = (*SL_PlayerObject)->GetInterface(SL_PlayerObject, SL_IID_BUFFERQUEUE, &SL_PlayerBufferQueue);
+		OPENSLES_RETURN_ON_FAIL(Result);
+
+		Result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, OpenSLBufferQueueCallback, (void*)this);
+		OPENSLES_RETURN_ON_FAIL(Result);
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Open;
 
@@ -236,12 +254,13 @@ namespace Audio
 			return false;
 		}
 		
-		(*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
+		SLresult Result =(*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, nullptr, nullptr);
 
 		(*SL_PlayerObject)->Destroy(SL_PlayerObject);			
-		SL_PlayerObject			= NULL;
-		SL_PlayerPlayInterface	= NULL;
-		SL_PlayerBufferQueue	= NULL;
+
+		SL_PlayerObject = nullptr;
+		SL_PlayerPlayInterface = nullptr;
+		SL_PlayerBufferQueue = nullptr;
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Closed;
 		
@@ -250,38 +269,11 @@ namespace Audio
 
 	bool FMixerPlatformAndroid::StartAudioStream()
 	{
-		if (!bInitialized || (AudioStreamInfo.StreamState != EAudioOutputStreamState::Open && AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped))
-		{
-			return false;
-		}
-
-		SLresult	result;
-
-		result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, OpenSLBufferQueueCallback, (void*)this);
-		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER QUEUE RegisterCallback 0x%x "), result); return false; }
-		
-		// Setup the output buffers
-		for (int32 Index = 0; Index < NumMixerBuffers; ++Index)
-		{
-			OutputBuffers[Index].SetNumZeroed(DeviceInfo.NumSamples);
-		}
-		
-		// Lets prime the first buffer
-		FPlatformMemory::Memzero(OutputBuffers[0].GetData(), OutputBuffers[0].Num() * sizeof(float));
-		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[0]);
-
-		// Have the second buffer ready for submission when the first callback happens
-		FPlatformMemory::Memzero(OutputBuffers[1].GetData(), OutputBuffers[1].Num() * sizeof(float));
-		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[1]);
-
-		CurrentBufferIndex = 1;
-
-		// Give the platform audio device this first buffer to start the callback process
-		SubmitBuffer(OutputBuffers[0]);
+		BeginGeneratingAudio();
 
 		// set the player's state to playing
-		result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_PLAYING);
-		check(SL_RESULT_SUCCESS == result);
+		SLresult Result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_PLAYING);
+		OPENSLES_CHECK_ON_FAIL(Result);
 
 		return true;
 	}
@@ -293,20 +285,21 @@ namespace Audio
 			return false;
 		}
 		
-		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopping;
-		
-		// set the player's state to stopped
-		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
-		check(SL_RESULT_SUCCESS == result);
+		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
+		{
+			// set the player's state to stopped
+			SLresult Result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
+			OPENSLES_CHECK_ON_FAIL(Result);
 
-		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
-		
+			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
+			{
+				StopGeneratingAudio();
+			}
+
+			check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
+		}
+	
 		return true;
-	}
-
-	bool FMixerPlatformAndroid::MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId)
-	{
-		return false;
 	}
 
 	FAudioPlatformDeviceInfo FMixerPlatformAndroid::GetPlatformDeviceInfo() const
@@ -314,33 +307,26 @@ namespace Audio
 		return AudioStreamInfo.DeviceInfo;
 	}
 
-	void FMixerPlatformAndroid::SubmitBuffer(const TArray<float>& Buffer)
+ 	FAudioPlatformSettings FMixerPlatformAndroid::GetPlatformSettings() const
+ 	{
+		return FAudioPlatformSettings::GetPlatformSettings(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"));
+ 	}
+
+	void FMixerPlatformAndroid::SubmitBuffer(const uint8* Buffer)
 	{
-		float const*	floatData = Buffer.GetData();
-
-		check(Buffer.Num() <= cSampleBufferSize);
-
-		for(int i = 0; i < Buffer.Num(); ++i)
-		{
-			tempBuffer[i] = (int16)(floatData[i] * 32767.0f);
-		}
-
-		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, tempBuffer, Buffer.Num() * sizeof(int16));
-		if(result != SL_RESULT_SUCCESS) 
-		{ 
-			UE_LOG( LogAudioMixerAndroid, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue (Requeing)"));  
-		}
+		SLresult Result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer, AudioStreamInfo.NumOutputFrames * AudioStreamInfo.DeviceInfo.NumChannels * sizeof(int16));
+		OPENSLES_LOG_ON_FAIL(Result);
 	}
 
 	FName FMixerPlatformAndroid::GetRuntimeFormat(USoundWave* InSoundWave)
 	{
-		#if WITH_OGGVORBIS
+#if WITH_OGGVORBIS
 		static FName NAME_OGG(TEXT("OGG"));
 		if (InSoundWave->HasCompressedData(NAME_OGG))
 		{
 			return NAME_OGG;
 		}
-		#endif
+#endif
 
 		static FName NAME_ADPCM(TEXT("ADPCM"));
 
@@ -354,13 +340,13 @@ namespace Audio
 
 	ICompressedAudioInfo* FMixerPlatformAndroid::CreateCompressedAudioInfo(USoundWave* InSoundWave)
 	{
-		#if WITH_OGGVORBIS
+#if WITH_OGGVORBIS
 		static FName NAME_OGG(TEXT("OGG"));
 		if (InSoundWave->HasCompressedData(NAME_OGG))
 		{
 			return new FVorbisAudioInfo();
 		}
-		#endif
+#endif
 
 		static FName NAME_ADPCM(TEXT("ADPCM"));
 
@@ -371,44 +357,6 @@ namespace Audio
 	{
 		return FString();
 	}
-	//~ End IAudioMixerPlatformInterface
-
-	//~ Begin IAudioMixerDeviceChangedLister
-	void FMixerPlatformAndroid::RegisterDeviceChangedListener()
-	{
-
-	}
-
-	void FMixerPlatformAndroid::UnRegisterDeviceChangedListener()
-	{
-
-	}
-
-	void FMixerPlatformAndroid::OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAndroid::OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAndroid::OnDeviceAdded(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAndroid::OnDeviceRemoved(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAndroid::OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState)
-	{
-		
-	}
-	//~ End IAudioMixerDeviceChangedLister
 
 	void FMixerPlatformAndroid::ResumeContext()
 	{
@@ -428,24 +376,12 @@ namespace Audio
 		}
 	}
 
-	void FMixerPlatformAndroid::HandleCallback(void)
+	void FMixerPlatformAndroid::OpenSLBufferQueueCallback(SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext)
 	{
-		// Submit the ready buffer
-		SubmitBuffer(OutputBuffers[CurrentBufferIndex]);
-		CurrentBufferIndex = !CurrentBufferIndex;
-
-		// Start processing the new buffer
-		FPlatformMemory::Memzero(OutputBuffers[CurrentBufferIndex].GetData(), OutputBuffers[CurrentBufferIndex].Num() * sizeof(float));
-		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[CurrentBufferIndex]);
-	}
-
-	void FMixerPlatformAndroid::OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 
-	{
-		FMixerPlatformAndroid* me = (FMixerPlatformAndroid*)pContext;
-		if( me != nullptr )
+		FMixerPlatformAndroid* MixerPlatformAndroid = (FMixerPlatformAndroid*)pContext;
+		if (MixerPlatformAndroid != nullptr)
 		{
-			me->HandleCallback();
+			MixerPlatformAndroid->ReadNextBuffer();
 		}
 	}
-
 }

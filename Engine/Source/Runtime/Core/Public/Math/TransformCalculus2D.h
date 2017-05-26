@@ -661,6 +661,22 @@ public:
 		return M.IsIdentity() && Trans == FVector2D::ZeroVector;
 	}
 
+	/**
+	 * Converts this affine 2D Transform into an affine 3D transform.
+	 */
+	FMatrix To3DMatrix() const
+	{
+		float A, B, C, D;
+		M.GetMatrix(A, B, C, D);
+
+		return FMatrix(
+			FPlane(      A,      B, 0.0f, 0.0f),
+			FPlane(      C,      D, 0.0f, 0.0f),
+			FPlane(   0.0f,   0.0f, 1.0f, 0.0f),
+			FPlane(Trans.X, Trans.Y, 0.0f, 1.0f)
+		);
+	}
+
 private:
 	FMatrix2x2 M;
 	FVector2D Trans;

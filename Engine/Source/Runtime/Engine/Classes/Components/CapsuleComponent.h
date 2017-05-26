@@ -255,6 +255,6 @@ FORCEINLINE void UCapsuleComponent::GetUnscaledCapsuleSize_WithoutHemisphere(flo
 
 FORCEINLINE float UCapsuleComponent::GetShapeScale() const
 {
-	return ComponentToWorld.GetMinimumAxisScale();
+	return GetComponentTransform().GetMinimumAxisScale();
 }
 

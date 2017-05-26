@@ -28,8 +28,8 @@ struct FTransformGizmoMeasurement
 {
 	GENERATED_BODY()
 
-		/** The text that displays the actual measurement and units */
-		UPROPERTY()
+	/** The text that displays the actual measurement and units */
+	UPROPERTY()
 	class UTextRenderComponent* MeasurementText;
 };
 
@@ -47,9 +47,6 @@ public:
 	/** Default constructor that sets up CDO properties */
 	ABaseTransformGizmo();
 
-	/** Deconstructor */
-	virtual ~ABaseTransformGizmo();
-
 	//~ Begin AActor interface
 	virtual bool IsEditorOnly() const final
 	{
@@ -63,7 +60,7 @@ public:
 	/** Called by the world interaction system when one of our components is dragged by the user to find out
 	    what type of interaction to do.  If null is passed in then we'll treat it as dragging the whole object 
 		(rather than a specific axis/handle) */
-	ETransformGizmoInteractionType GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
+	class UViewportDragOperationComponent* GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
 
 	/** Updates the animation with the current time and selected time */
 	float GetAnimationAlpha();
@@ -101,14 +98,6 @@ protected:
 	/** Scene component root of this actor */
 	UPROPERTY()
 	USceneComponent* SceneComponent;
-
-	/** Gizmo material (opaque) */
-	UPROPERTY()
-	UMaterialInterface* GizmoMaterial;
-
-	/** Gizmo material (translucent) */
-	UPROPERTY()
-	UMaterialInterface* TranslucentGizmoMaterial;
 
 	/** All gizmo components */
 	UPROPERTY()

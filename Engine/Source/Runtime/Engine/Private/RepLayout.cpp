@@ -3432,33 +3432,33 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	RepState->ConditionMap[COND_None]						= true;
 	RepState->ConditionMap[COND_InitialOnly]				= bIsInitial;
 
-	RepState->ConditionMap[COND_OwnerOnly]					= bIsOwner;
-	RepState->ConditionMap[COND_SkipOwner]					= !bIsOwner;
+	RepState->ConditionMap[COND_OwnerOnly] = bIsOwner;
+	RepState->ConditionMap[COND_SkipOwner] = !bIsOwner;
 
-	RepState->ConditionMap[COND_SimulatedOnly]				= bIsSimulated;
-	RepState->ConditionMap[COND_SimulatedOnlyNoReplay]		= bIsSimulated && !bIsReplay;
-	RepState->ConditionMap[COND_AutonomousOnly]				= !bIsSimulated;
+	RepState->ConditionMap[COND_SimulatedOnly] = bIsSimulated;
+	RepState->ConditionMap[COND_SimulatedOnlyNoReplay] = bIsSimulated && !bIsReplay;
+	RepState->ConditionMap[COND_AutonomousOnly] = !bIsSimulated;
 
-	RepState->ConditionMap[COND_SimulatedOrPhysics]			= bIsSimulated || bIsPhysics;
-	RepState->ConditionMap[COND_SimulatedOrPhysicsNoReplay]	= ( bIsSimulated || bIsPhysics ) && !bIsReplay;
+	RepState->ConditionMap[COND_SimulatedOrPhysics] = bIsSimulated || bIsPhysics;
+	RepState->ConditionMap[COND_SimulatedOrPhysicsNoReplay] = (bIsSimulated || bIsPhysics) && !bIsReplay;
 
-	RepState->ConditionMap[COND_InitialOrOwner]				= bIsInitial || bIsOwner;
-	RepState->ConditionMap[COND_ReplayOrOwner]				= bIsReplay || bIsOwner;
-	RepState->ConditionMap[COND_ReplayOnly]					= bIsReplay;
-	RepState->ConditionMap[COND_SkipReplay]					= !bIsReplay;
+	RepState->ConditionMap[COND_InitialOrOwner] = bIsInitial || bIsOwner;
+	RepState->ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
+	RepState->ConditionMap[COND_ReplayOnly] = bIsReplay;
+	RepState->ConditionMap[COND_SkipReplay] = !bIsReplay;
 
-	RepState->ConditionMap[COND_Custom]						= true;
+	RepState->ConditionMap[COND_Custom] = true;
 
 	RepState->RepFlags = RepFlags;
 }
 
-void FRepLayout::InitChangedTracker( FRepChangedPropertyTracker * ChangedTracker ) const
+void FRepLayout::InitChangedTracker(FRepChangedPropertyTracker * ChangedTracker) const
 {
-	ChangedTracker->Parents.SetNum( Parents.Num() );
+	ChangedTracker->Parents.SetNum(Parents.Num());
 
-	for ( int32 i = 0; i < Parents.Num(); i++ )
+	for (int32 i = 0; i < Parents.Num(); i++)
 	{
-		ChangedTracker->Parents[i].IsConditional = ( Parents[i].Flags & PARENT_IsConditional ) ? 1 : 0;
+		ChangedTracker->Parents[i].IsConditional = (Parents[i].Flags & PARENT_IsConditional) ? 1 : 0;
 	}
 }
 
@@ -3566,6 +3566,18 @@ void FRepLayout::GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, T
 		}
 	}
 }
+
+void FRepLayout::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for (int32 i = 0; i < Parents.Num(); i++)
+	{
+		if (Parents[i].Property != nullptr)
+		{
+			Collector.AddReferencedObject(Parents[i].Property);
+		}
+	}
+}
+
 
 FRepState::~FRepState()
 {

@@ -21,7 +21,7 @@ bool UPostProcessComponent::EncompassesPoint(FVector Point, float SphereRadius/*
 		FVector ClosestPoint;
 		float Distance = ParentShape->GetDistanceToCollision(Point, ClosestPoint);
 #else
-		FBoxSphereBounds Bounds = ParentShape->CalcBounds(ParentShape->ComponentToWorld);
+		FBoxSphereBounds Bounds = ParentShape->CalcBounds(ParentShape->GetComponentTransform());
 		float Distance = 0;
 		if (ParentShape->IsA<USphereComponent>())
 		{

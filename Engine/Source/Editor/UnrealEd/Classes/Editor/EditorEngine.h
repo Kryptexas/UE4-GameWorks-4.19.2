@@ -440,7 +440,7 @@ public:
 	uint32 bEnableLODLocking:1;
 
 	/** If true, actors can be grouped and grouping rules will be maintained. When deactivated, any currently existing groups will still be preserved.*/
-	UPROPERTY(EditAnywhere, config, Category=Advanced)
+	DEPRECATED(4.17, "bGroupingActive has been deprecated.  Use UActorGroupingUtils::IsGroupingActive instead")
 	uint32 bGroupingActive:1;
 
 	UPROPERTY(config)
@@ -708,11 +708,6 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FGetActorRecordingState, bool& /* bIsRecordingActive */ );
 	FGetActorRecordingState& GetActorRecordingState() { return GetActorRecordingStateEvent; }
 
-
-
-
-
-
 	/** Editor-only event triggered when a HLOD Actor is moved between clusters */
 	DECLARE_EVENT_TwoParams(UEngine, FHLODActorMovedEvent, const AActor*, const AActor*);
 	FHLODActorMovedEvent& OnHLODActorMoved() { return HLODActorMovedEvent; }
@@ -761,36 +756,32 @@ public:
 	/** Called by internal engine systems after an Actor is removed from a cluster */
 	void BroadcastHLODActorRemovedFromCluster(const AActor* InActor, const AActor* ParentActor) { HLODActorRemovedFromClusterEvent.Broadcast(InActor, ParentActor); }
 
-
-
-
-
 	/**
-	* Called before an actor or component is about to be translated, rotated, or scaled by the editor
-	*
-	* @param Object	The actor or component that will be moved
-	*/
+	 * Called before an actor or component is about to be translated, rotated, or scaled by the editor
+	 *
+	 * @param Object	The actor or component that will be moved
+	 */
 	void BroadcastBeginObjectMovement(UObject& Object) const { OnBeginObjectTransformEvent.Broadcast(Object); }
 
 	/**
-	* Called when an actor or component has been translated, rotated, or scaled by the editor
-	*
-	* @param Object	The actor or component that moved
-	*/
+	 * Called when an actor or component has been translated, rotated, or scaled by the editor
+	 *
+	 * @param Object	The actor or component that moved
+	 */
 	void BroadcastEndObjectMovement(UObject& Object) const { OnEndObjectTransformEvent.Broadcast(Object); }
 
 	/**
-	* Called before the camera viewed through the viewport is moved by the editor
-	*
-	* @param Object	The camera that will be moved
-	*/
+	 * Called before the camera viewed through the viewport is moved by the editor
+	 *
+	 * @param Object	The camera that will be moved
+	 */
 	void BroadcastBeginCameraMovement(UObject& Object) const { OnBeginCameraTransformEvent.Broadcast(Object); }
 
 	/**
-	* Called when the camera viewed through the viewport has been moved by the editor
-	*
-	* @param Object	The camera that moved
-	*/
+	 * Called when the camera viewed through the viewport has been moved by the editor
+	 *
+	 * @param Object	The camera that moved
+	 */
 	void BroadcastEndCameraMovement(UObject& Object) const { OnEndCameraTransformEvent.Broadcast(Object); }
 
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
@@ -1353,7 +1344,7 @@ public:
 	/**
 	 * Paste selected actors from the clipboard.
 	 *
-	 * @param	InWorld				World conext
+	 * @param	InWorld				World context
 	 * @param	bDuplicate			Is this a duplicate operation (as opposed to a real paste)?
 	 * @param	bOffsetLocations	Should the actor locations be offset after they are created?
 	 * @param	bWarnIfHidden		If true displays a warning if the destination level is hidden
@@ -1929,6 +1920,7 @@ public:
 	 *
 	 * @param	InLevel		The destination level.
 	 */
+	DEPRECATED(4.17, "MoveSelectedActorsToLevel has been deprecated.  Use UEditorLevelUtils::MoveSelectedActorsToLevel instead")
 	void MoveSelectedActorsToLevel( ULevel* InLevel );
 
 	/**
@@ -2519,6 +2511,11 @@ public:
 	/** Sets the delegate for when the focused PIE window is changed */
 	void SetPIEInstanceWindowSwitchDelegate(FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate);
 
+	/**
+	 * Returns the actor grouping utility class that performs all grouping related tasks
+	 * This will create the class instance if it doesn't exist.
+	 */
+	class UActorGroupingUtils* GetActorGroupingUtils();
 
 private:
 	//
@@ -2556,15 +2553,6 @@ private:
 	 * @return	true if a static mesh was loaded; false, otherwise.
 	 */
 	bool LoadPreviewMesh( int32 Index );
-
-	/**
-	 * Moves selected actors to the current level - NB. This is only intended to be called from MoveSelectedActorsToCurrentLevel()
-	 * Note also that this contents of the copy buffer will be lost during the operation
-	 *
-	 * @param	InLevel		Destination level.
-	 */
-	void DoMoveSelectedActorsToLevel( ULevel* InLevel );
-
 public:
 	/** Creates a PIE world by saving to a temp file and then reloading it */
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
@@ -2882,7 +2870,7 @@ protected:
 	 * Launch a standalone instance on this PC.
 	 *
 	 * @param	MapNameOverride		Map name override
-	 * @param	WindowPos			Postion we want to put the window we create.
+	 * @param	WindowPos			Position we want to put the window we create.
 	 * @param	PIENum				PIE instance count
 	 * @param	bIsServer			Is this instance a server.
 	 */
@@ -2954,7 +2942,6 @@ public:
 	/** Function to run the Play On command for automation testing. */
 	void AutomationPlayUsingLauncher(const FString& InLauncherDeviceId);	
 
-public:
 	/**
 	 * Given a label, attempts to split this into its alpha/numeric parts.
 	 *
@@ -2980,6 +2967,13 @@ public:
 
 	void AutomationLoadMap(const FString& MapName, FString* OutError);
 
+protected:
+
+	UPROPERTY(EditAnywhere, config, Category = Advanced, meta = (MetaClass = "ActorGroupingUtils"))
+	FStringClassReference ActorGroupingUtilsClassName;
+
+	UPROPERTY()
+	class UActorGroupingUtils* ActorGroupingUtils;
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;
 

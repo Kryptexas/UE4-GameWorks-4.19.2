@@ -451,6 +451,7 @@ void Main(
 			Settings.TransitionScale = MobileDirectionalLight.DirectionalLightShadowTransition;
 			Settings.ShadowBufferSize = MobileDirectionalLight.DirectionalLightShadowSize;
 			Settings.bSubsurface = false;
+			Settings.bTreatMaxDepthUnshadowed = false;
 			Settings.DensityMulConstant = 0;
 			Settings.ProjectionDepthBiasParameters = 0;
 

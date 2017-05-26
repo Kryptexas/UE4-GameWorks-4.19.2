@@ -150,7 +150,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	MorphModel.Vertices.Shrink();
 }
 
-void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex)
+void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal)
 {
 	// create the LOD entry if it doesn't already exist
 	if (LODIndex >= MorphLODModels.Num())
@@ -172,7 +172,8 @@ void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const
 	// Still keep this (could remove in long term due to incoming data)
 	for (const FMorphTargetDelta& Delta : Deltas)
 	{
-		if (Delta.PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR))
+		if (Delta.PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR) || 
+			( bCompareNormal && Delta.TangentZDelta.SizeSquared() > 0.01f))
 		{
 			MorphModel.Vertices.Add(Delta);
 		}

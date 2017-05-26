@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/DataAsset.h"
+#include "PreviewCollectionInterface.h"
 #include "PreviewMeshCollection.generated.h"
 
 class USkeleton;
@@ -35,7 +36,7 @@ struct FPreviewMeshCollectionEntry
 
 /** A simple collection of skeletal meshes used for in-editor preview */
 UCLASS(MinimalAPI, BlueprintType)
-class UPreviewMeshCollection : public UDataAsset
+class UPreviewMeshCollection : public UDataAsset, public IPreviewCollectionInterface
 {
 public:
 	GENERATED_BODY()
@@ -46,4 +47,7 @@ public:
 	/** The skeletal meshes that this collection contains */
 	UPROPERTY(EditAnywhere, Category = "Skeletal Meshes")
 	TArray<FPreviewMeshCollectionEntry> SkeletalMeshes;
+
+	/** return list of preview skeletalmeshes */
+	virtual void GetPreviewSkeletalMeshes(TArray<USkeletalMesh*>& OutList) const override;
 };

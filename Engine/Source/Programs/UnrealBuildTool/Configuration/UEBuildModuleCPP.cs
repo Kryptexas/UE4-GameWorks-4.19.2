@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 			public class BuildInfoClass
 			{
 				/// <summary>
-				/// The wildcard of the *.generated.cpp file which was generated for the module
+				/// The wildcard of the *.gen.cpp file which was generated for the module
 				/// </summary>
 				public readonly string FileWildcard;
 
@@ -31,7 +31,7 @@ namespace UnrealBuildTool
 			}
 
 			/// <summary>
-			/// Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module.
+			/// Information about how to build the .gen.cpp files. If this is null, then we're not building .gen.cpp files for this module.
 			/// </summary>
 			public BuildInfoClass BuildInfo;
 
@@ -42,7 +42,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code.
+		/// Information about the .gen.cpp file.  If this is null then this module doesn't have any UHT-produced code.
 		/// </summary>
 		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
@@ -164,7 +164,7 @@ namespace UnrealBuildTool
 		{
 			return ((null == GeneratedCodeDirectory) || !DirectoryReference.Exists(GeneratedCodeDirectory))
 				? Enumerable.Empty<string>()
-				: DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.generated.cpp", SearchOption.TopDirectoryOnly).Select((Dir) => Dir.FullName);
+				: DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.gen.cpp", SearchOption.TopDirectoryOnly).Select((Dir) => Dir.FullName);
 		}
 
 		protected override void GetReferencedDirectories(HashSet<DirectoryReference> Directories)
@@ -376,7 +376,7 @@ namespace UnrealBuildTool
 
 			// Check to see if this is an Engine module (including program or plugin modules).  That is, the module is located under the "Engine" folder
 			bool IsPluginModule = (Target.ProjectFile != null && ModuleDirectory.IsUnderDirectory(DirectoryReference.Combine(Target.ProjectFile.Directory, "Plugins")));
-			bool IsGameModule = !IsPluginModule && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
+			bool IsGameModule = !IsPluginModule && !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleDirectory);
 
 			// Should we force a precompiled header to be generated for this module?  Usually, we only bother with a
 			// precompiled header if there are at least several source files in the module (after combining them for unity
@@ -521,7 +521,7 @@ namespace UnrealBuildTool
 			List<FileItem> CPPFilesToCompile = SourceFilesToBuild.CPPFiles;
 			if (bModuleUsesUnityBuild)
 			{
-				CPPFilesToCompile = Unity.GenerateUnityCPPs(Target, CPPFilesToCompile, CompileEnvironment, Name);
+				CPPFilesToCompile = Unity.GenerateUnityCPPs(Target, CPPFilesToCompile, CompileEnvironment, Rules.ShortName ?? Name);
 				LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, CompileEnvironment, ModuleCompileEnvironment, CPPFilesToCompile, ActionGraph).ObjectFiles);
 			}
 			else
@@ -557,7 +557,7 @@ namespace UnrealBuildTool
 
 					if (bModuleUsesUnityBuild)
 					{
-						GeneratedFileItems = Unity.GenerateUnityCPPs(Target, GeneratedFileItems, GeneratedCPPCompileEnvironment, Name + ".generated");
+						GeneratedFileItems = Unity.GenerateUnityCPPs(Target, GeneratedFileItems, GeneratedCPPCompileEnvironment, (Rules.ShortName ?? Name) + ".gen");
 						LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, GeneratedCPPCompileEnvironment, ModuleCompileEnvironment, GeneratedFileItems, ActionGraph).ObjectFiles);
 					}
 					else
@@ -1026,7 +1026,8 @@ namespace UnrealBuildTool
 		/// <returns>True if it is an engine module, false otherwise</returns>
 		public bool IsEngineModule()
 		{
-			return ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory) && Name != "UE4Game";
+			return UnrealBuildTool.IsUnderAnEngineDirectory(ModuleDirectory) && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory) && Name != "UE4Game" &&
+				!ModuleDirectory.IsUnderDirectory(DirectoryReference.Combine(UnrealBuildTool.EnterpriseSourceDirectory, "Programs"));
 		}
 
 		/// <summary>
@@ -1062,7 +1063,7 @@ namespace UnrealBuildTool
 			Result.bEnableShadowVariableWarnings = Rules.bEnableShadowVariableWarnings;
 			Result.bEnableUndefinedIdentifierWarnings = Rules.bEnableUndefinedIdentifierWarnings;
 			Result.bUseStaticCRT = Target.bUseStaticCRT;
-			Result.OutputDirectory = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Name);
+			Result.OutputDirectory = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Rules.ShortName ?? Name);
 			Result.PCHOutputDirectory = (Result.PCHOutputDirectory == null)? null : DirectoryReference.Combine(Result.PCHOutputDirectory, Name);
 
 			// Set the macro used to check whether monolithic headers can be used

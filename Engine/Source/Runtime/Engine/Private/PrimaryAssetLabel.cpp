@@ -12,6 +12,7 @@ const FName UPrimaryAssetLabel::DirectoryBundle = FName("Directory");
 UPrimaryAssetLabel::UPrimaryAssetLabel()
 {
 	bLabelAssetsInMyDirectory = false;
+	bIsRuntimeLabel = false;
 
 	// By default have low priority and don't recurse
 	Rules.bApplyRecursively = false;
@@ -38,12 +39,20 @@ void UPrimaryAssetLabel::UpdateAssetBundleData()
 		TArray<FAssetData> DirectoryAssets;
 		AssetRegistry.GetAssetsByPath(PackagePath, DirectoryAssets, true);
 
+		TArray<FStringAssetReference> NewPaths;
+
 		for (const FAssetData& AssetData : DirectoryAssets)
 		{
 			FStringAssetReference AssetRef = Manager.GetAssetPathForData(AssetData);
 
-			AssetBundleData.AddBundleAsset(DirectoryBundle, AssetRef);
+			if (!AssetRef.IsNull())
+			{
+				NewPaths.Add(AssetRef);
+			}
 		}
+
+		// Fast set, destroys NewPaths
+		AssetBundleData.SetBundleAssets(DirectoryBundle, MoveTemp(NewPaths));
 	}
 	
 	// Update rules

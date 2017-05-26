@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #include "AssetRegistry.h"
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
@@ -16,6 +15,9 @@
 #include "PackageReader.h"
 #include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "IPluginManager.h"
+#include "Misc/CoreDelegates.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Misc/RedirectCollector.h"
 
 #if WITH_EDITOR
 #include "IDirectoryWatcher.h"
@@ -110,8 +112,8 @@ FAssetRegistry::FAssetRegistry()
 	UE_LOG(LogAssetRegistry, Log, TEXT( "FAssetRegistry took %0.4f seconds to start up" ), FPlatformTime::Seconds() - StartupStartTime );
 
 #if WITH_EDITOR
-	// Commandlets and in-game don't listen for directory changes
-	if ( !IsRunningCommandlet() && GIsEditor)
+	// In-game doesn't listen for directory changes
+	if (GIsEditor)
 	{
 		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
@@ -150,8 +152,11 @@ FAssetRegistry::FAssetRegistry()
 
 	// Listen for new content paths being added or removed at runtime.  These are usually plugin-specific asset paths that
 	// will be loaded a bit later on.
-	FPackageName::OnContentPathMounted().AddRaw( this, &FAssetRegistry::OnContentPathMounted );
-	FPackageName::OnContentPathDismounted().AddRaw( this, &FAssetRegistry::OnContentPathDismounted );
+	FPackageName::OnContentPathMounted().AddRaw(this, &FAssetRegistry::OnContentPathMounted);
+	FPackageName::OnContentPathDismounted().AddRaw(this, &FAssetRegistry::OnContentPathDismounted);
+
+	// If we were called before engine has fully initialized, refresh classes on initialize. If not this won't do anything as it already happened
+	FCoreDelegates::OnPostEngineInit.AddRaw(this, &FAssetRegistry::RefreshNativeClasses);
 }
 
 void FAssetRegistry::InitializeSerializationOptions(FAssetRegistrySerializationOptions& Options, const FString& PlatformIniName) const
@@ -168,6 +173,7 @@ void FAssetRegistry::InitializeSerializationOptions(FAssetRegistrySerializationO
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bSerializeManageDependencies"), Options.bSerializeManageDependencies);
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bSerializePackageData"), Options.bSerializePackageData);
 	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bUseAssetRegistryTagsWhitelistInsteadOfBlacklist"), Options.bUseAssetRegistryTagsWhitelistInsteadOfBlacklist);
+	PlatformEngineIni.GetBool(TEXT("AssetRegistry"), TEXT("bFilterAssetDataWithNoTags"), Options.bFilterAssetDataWithNoTags);
 		
 	TArray<FString> FilterlistItems;
 	if (Options.bUseAssetRegistryTagsWhitelistInsteadOfBlacklist)
@@ -265,6 +271,15 @@ void FAssetRegistry::CollectCodeGeneratorClasses()
 	}
 }
 
+void FAssetRegistry::RefreshNativeClasses()
+{
+	// Native classes have changed so reinitialize code generator and serialization options
+	CollectCodeGeneratorClasses();
+
+	// Read default serialization options
+	InitializeSerializationOptions(SerializationOptions);
+}
+
 FAssetRegistry::~FAssetRegistry()
 {
 	// Make sure the asset search thread is closed
@@ -275,12 +290,12 @@ FAssetRegistry::~FAssetRegistry()
 	}
 
 	// Stop listening for content mount point events
-	FPackageName::OnContentPathMounted().RemoveAll( this );
-	FPackageName::OnContentPathDismounted().RemoveAll( this );
+	FPackageName::OnContentPathMounted().RemoveAll(this);
+	FPackageName::OnContentPathDismounted().RemoveAll(this);
+	FCoreDelegates::OnPostEngineInit.RemoveAll(this);
 
-	// Commandlets dont listen for directory changes
 #if WITH_EDITOR
-	if ( !IsRunningCommandlet() && GIsEditor )
+	if (GIsEditor)
 	{
 		// If the directory module is still loaded, unregister any delegates
 		if ( FModuleManager::Get().IsModuleLoaded("DirectoryWatcher") )
@@ -335,6 +350,14 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	{
 		const bool bForceRescan = false;
 		ScanPathsAndFilesSynchronous(PathsToSearch, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
+
+#if WITH_EDITOR
+		if (IsRunningCommandlet())
+		{
+			// Update redirectors
+			UpdateRedirectCollector();
+		}
+#endif
 	}
 	else if ( !BackgroundAssetSearch.IsValid() )
 	{
@@ -343,6 +366,27 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	}
 }
 
+bool FAssetRegistry::HasAssets(const FName PackagePath, const bool bRecursive) const
+{
+	bool bHasAssets = State.HasAssets(PackagePath);
+
+	if (!bHasAssets && bRecursive)
+	{
+		TSet<FName> SubPaths;
+		CachedPathTree.GetSubPaths(PackagePath, SubPaths);
+
+		for (const FName& SubPath : SubPaths)
+		{
+			bHasAssets = State.HasAssets(SubPath);
+			if (bHasAssets)
+			{
+				break;
+			}
+		}
+	}
+
+	return bHasAssets;
+}
 
 bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets ) const
 {
@@ -484,19 +528,18 @@ bool FAssetRegistry::GetAssets(const FARFilter& InFilter, TArray<FAssetData>& Ou
 					}
 				}
 
-				// Find the group names
-				FString GroupNamesStr;
-				FString AssetNameStr;
-				Obj->GetPathName(InMemoryPackage).Split(TEXT("."), &GroupNamesStr, &AssetNameStr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-				TMap<FName, FString> TagMap;
+				FAssetDataTagMap TagMap;
 				for (UObject::FAssetRegistryTag& AssetRegistryTag : ObjectTags)
 				{
-					TagMap.Add(AssetRegistryTag.Name, AssetRegistryTag.Value);
+					if (AssetRegistryTag.Name != NAME_None && !AssetRegistryTag.Value.IsEmpty())
+					{
+						// Don't add empty tags
+						TagMap.Add(AssetRegistryTag.Name, AssetRegistryTag.Value);
+					}
 				}
 
 				// This asset is in memory and passes all filters
-				FAssetData* AssetData = new (OutAssetData)FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs(), InMemoryPackage->GetPackageFlags());
+				FAssetData* AssetData = new (OutAssetData)FAssetData(PackageName, PackagePath, Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs(), InMemoryPackage->GetPackageFlags());
 			}
 		};
 
@@ -631,6 +674,40 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 const FAssetPackageData* FAssetRegistry::GetAssetPackageData(FName PackageName) const
 {
 	return State.GetAssetPackageData(PackageName);
+}
+
+FName FAssetRegistry::GetRedirectedObjectPath(const FName ObjectPath) const
+{
+	FString RedirectedPath = ObjectPath.ToString();
+	FAssetData DestinationData = GetAssetByObjectPath(ObjectPath);
+	TSet<FString> SeenPaths;
+	SeenPaths.Add(RedirectedPath);
+
+	// Need to follow chain of redirectors
+	while (DestinationData.IsRedirector())
+	{
+		if (DestinationData.GetTagValue("DestinationObject", RedirectedPath))
+		{
+			ConstructorHelpers::StripObjectClass(RedirectedPath);
+			if (SeenPaths.Contains(RedirectedPath))
+			{
+				// Recursive, bail
+				DestinationData = FAssetData();
+			}
+			else
+			{
+				SeenPaths.Add(RedirectedPath);
+				DestinationData = GetAssetByObjectPath(FName(*RedirectedPath), true);
+			}
+		}
+		else
+		{
+			// Can't extract
+			DestinationData = FAssetData();
+		}
+	}
+
+	return FName(*RedirectedPath);
 }
 
 bool FAssetRegistry::GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const
@@ -1045,19 +1122,14 @@ void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
 	}
 
 	// Also prioritize the queue of background search results
+	BackgroundAssetResults.Prioritize([&PathToPrioritize](const FAssetData* BackgroundAssetResult)
 	{
-		// Swap all priority files to the top of the list
-		int32 LowestNonPriorityFileIdx = 0;
-		for (int32 ResultIdx = 0; ResultIdx < BackgroundAssetResults.Num(); ++ResultIdx)
-		{
-			FAssetData* BackgroundAssetResult = BackgroundAssetResults[ResultIdx];
-			if (BackgroundAssetResult && BackgroundAssetResult->PackagePath.ToString().StartsWith(PathToPrioritize))
-			{
-				BackgroundAssetResults.Swap(ResultIdx, LowestNonPriorityFileIdx);
-				LowestNonPriorityFileIdx++;
-			}
-		}
-	}
+		return BackgroundAssetResult && BackgroundAssetResult->PackagePath.ToString().StartsWith(PathToPrioritize);
+	});
+	BackgroundPathResults.Prioritize([&PathToPrioritize](const FString& BackgroundPathResult)
+	{
+		return BackgroundPathResult.StartsWith(PathToPrioritize);
+	});
 }
 
 void FAssetRegistry::AssetCreated(UObject* NewAsset)
@@ -1114,8 +1186,18 @@ void FAssetRegistry::AssetDeleted(UObject* DeletedAsset)
 			}
 		}
 
+		FAssetData AssetDataDeleted = FAssetData(DeletedAsset);
+
+#if WITH_EDITOR
+		if (bInitialSearchCompleted && AssetDataDeleted.IsRedirector())
+		{
+			// Need to remove from GRedirectCollector
+			GRedirectCollector.RemoveAssetPathRedirection(AssetDataDeleted.ObjectPath.ToString());
+		}
+#endif
+
 		// Let subscribers know that the asset was removed from the registry
-		AssetRemovedEvent.Broadcast(FAssetData(DeletedAsset));
+		AssetRemovedEvent.Broadcast(AssetDataDeleted);
 
 		// Notify listeners that an in-memory asset was just deleted
 		InMemoryAssetDeletedEvent.Broadcast(DeletedAsset);
@@ -1199,6 +1281,12 @@ void FAssetRegistry::Tick(float DeltaTime)
 {
 	double TickStartTime = FPlatformTime::Seconds();
 
+	if (DeltaTime < 0)
+	{
+		// Force a full flush
+		TickStartTime = -1;
+	}
+
 	// Gather results from the background search
 	bool bIsSearching = false;
 	TArray<double> SearchTimes;
@@ -1270,6 +1358,10 @@ void FAssetRegistry::Tick(float DeltaTime)
 	{
 		if ( !bInitialSearchCompleted )
 		{
+#if WITH_EDITOR
+			// update redirectors
+			UpdateRedirectCollector();
+#endif
 			UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.4f seconds"), TotalAmortizeTime);
 			UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.4f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
 
@@ -1285,7 +1377,6 @@ void FAssetRegistry::Tick(float DeltaTime)
 #endif
 	}
 }
-
 
 bool FAssetRegistry::IsUsingWorldAssets()
 {
@@ -1311,6 +1402,22 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 	}
 }
 
+uint32 FAssetRegistry::GetAllocatedSize(bool bLogDetailed) const
+{
+	uint32 StateSize = State.GetAllocatedSize(bLogDetailed);
+
+	uint32 StaticSize = sizeof(FAssetRegistry) + CachedEmptyPackages.GetAllocatedSize() + CachedInheritanceMap.GetAllocatedSize() + EditSearchableNameDelegates.GetAllocatedSize() + ClassGeneratorNames.GetAllocatedSize() + SerializationOptions.CookFilterlistTagsByClass.GetAllocatedSize();
+	uint32 SearchSize = BackgroundAssetResults.GetAllocatedSize() + BackgroundPathResults.GetAllocatedSize() + BackgroundDependencyResults.GetAllocatedSize() + BackgroundCookedPackageNamesWithoutAssetDataResults.GetAllocatedSize() + SynchronouslyScannedPathsAndFiles.GetAllocatedSize() + CachedPathTree.GetAllocatedSize();
+
+	if (bLogDetailed)
+	{
+		UE_LOG(LogAssetRegistry, Log, TEXT("AssetRegistry Static Size: %dk"), StaticSize / 1024);
+		UE_LOG(LogAssetRegistry, Log, TEXT("AssetRegistry Search Size: %dk"), SearchSize / 1024);
+	}
+	
+	return StaticSize + StaticSize + SearchSize;
+}
+
 void FAssetRegistry::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &AssetDataList ) const
 {
 	
@@ -1330,7 +1437,7 @@ void FAssetRegistry::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &
 void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps /* = nullptr */)
 {
 	FAssetRegistryState TempState;
-	InitializeTemporaryAssetRegistryState(TempState, SerializationOptions, Data);
+	InitializeTemporaryAssetRegistryState(TempState, SerializationOptions, false, Data);
 
 	TempState.Serialize(Ar, SerializationOptions);
 }
@@ -1357,11 +1464,11 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	}
 }
 
-void FAssetRegistry::InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, const TMap<FName, FAssetData*>& OverrideData) const
+void FAssetRegistry::InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, bool bRefreshExisting, const TMap<FName, FAssetData*>& OverrideData) const
 {
 	const TMap<FName, FAssetData*>& DataToUse = OverrideData.Num() > 0 ? OverrideData : State.CachedAssetsByObjectPath;
 
-	OutState.InitializeFromExisting(DataToUse, State.CachedDependsNodes, State.CachedPackageData, Options);
+	OutState.InitializeFromExisting(DataToUse, State.CachedDependsNodes, State.CachedPackageData, Options, bRefreshExisting);
 }
 
 void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
@@ -1376,12 +1483,36 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
 	TArray<FString> PathsToScan;
 	TArray<FString> FilesToScan;
+	bool bPathsRemoved = false;
+
 	for (const FString& Path : InPaths)
 	{
-		if (bForceRescan || !SynchronouslyScannedPathsAndFiles.Contains(Path))
+		bool bAlreadyScanned = false;
+		FString PathWithSlash = Path;
+		if (!PathWithSlash.EndsWith(TEXT("/"), ESearchCase::CaseSensitive))
+		{
+			// Add / if it's missing so the substring check is safe
+			PathWithSlash += TEXT("/");
+		}
+
+		// Check that it starts with /
+		for (const FString& ScannedPath : SynchronouslyScannedPathsAndFiles)
+		{
+			if (PathWithSlash.StartsWith(ScannedPath))
+			{
+				bAlreadyScanned = true;
+				break;
+			}
+		}
+
+		if (bForceRescan || !bAlreadyScanned)
 		{
 			PathsToScan.Add(Path);
-			SynchronouslyScannedPathsAndFiles.Add(Path);
+			SynchronouslyScannedPathsAndFiles.Add(PathWithSlash);
+		}
+		else
+		{
+			bPathsRemoved = true;
 		}
 	}
 
@@ -1392,6 +1523,16 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 			FilesToScan.Add(SpecificFile);
 			SynchronouslyScannedPathsAndFiles.Add(SpecificFile);
 		}
+		else
+		{
+			bPathsRemoved = true;
+		}
+	}
+
+	// If we removed paths, we can't use the monolithic cache as this will replace it with invalid data
+	if (AssetDataCacheMode == EAssetDataCacheMode::UseMonolithicCache && bPathsRemoved)
+	{
+		AssetDataCacheMode = EAssetDataCacheMode::UseModularCache;
 	}
 
 	if ( PathsToScan.Num() > 0 || FilesToScan.Num() > 0 )
@@ -1400,10 +1541,10 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 		FAssetDataGatherer AssetSearch(PathsToScan, FilesToScan, /*bSynchronous=*/true, AssetDataCacheMode);
 
 		// Get the search results
-		TArray<FAssetData*> AssetResults;
-		TArray<FString> PathResults;
-		TArray<FPackageDependencyData> DependencyResults;
-		TArray<FString> CookedPackageNamesWithoutAssetDataResults;
+		TBackgroundGatherResults<FAssetData*> AssetResults;
+		TBackgroundGatherResults<FString> PathResults;
+		TBackgroundGatherResults<FPackageDependencyData> DependencyResults;
+		TBackgroundGatherResults<FString> CookedPackageNamesWithoutAssetDataResults;
 		TArray<double> SearchTimes;
 		int32 NumFilesToSearch = 0;
 		int32 NumPathsToSearch = 0;
@@ -1461,36 +1602,33 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 	}
 }
 
-void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults)
+void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TBackgroundGatherResults<FAssetData*>& AssetResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
-	TSet<FName> ModifiedPaths;
 
 	// Add the found assets
-	int32 AssetIndex = 0;
-	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
+	while (AssetResults.Num() > 0)
 	{
-		FAssetData*& BackgroundResult = AssetResults[AssetIndex];
+		FAssetData*& BackgroundResult = AssetResults.Pop();
 
 		CA_ASSUME(BackgroundResult);
 
 		// Try to update any asset data that may already exist
-		FAssetData* AssetData = nullptr;
-		FAssetData** AssetDataPtr = State.CachedAssetsByObjectPath.Find(BackgroundResult->ObjectPath);
-		if (AssetDataPtr != nullptr)
-		{
-			AssetData = *AssetDataPtr;
-		}
+		FAssetData* AssetData = State.CachedAssetsByObjectPath.FindRef(BackgroundResult->ObjectPath);
 
 		const FName PackagePath = BackgroundResult->PackagePath;
-		if ( AssetData != nullptr )
+		if (AssetData)
 		{
-			// The asset exists in the cache, update it
-			UpdateAssetData(AssetData, *BackgroundResult);
+			// If this ensure fires then we've somehow processed the same result more than once, and that should never happen
+			if (ensure(AssetData != BackgroundResult))
+			{
+				// The asset exists in the cache, update it
+				UpdateAssetData(AssetData, *BackgroundResult);
 
-			// Delete the result that was originally created by an FPackageReader
-			delete BackgroundResult;
-			BackgroundResult = nullptr;
+				// Delete the result that was originally created by an FPackageReader
+				delete BackgroundResult;
+				BackgroundResult = nullptr;
+			}
 		}
 		else
 		{
@@ -1502,51 +1640,43 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 		AddAssetPath(PackagePath);
 
 		// Check to see if we have run out of time in this tick
-		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++AssetIndex;
 			break;
 		}
 	}
 
 	// Trim the results array
-	if (AssetIndex > 0)
-	{
-		AssetResults.RemoveAt(0, AssetIndex);
-	}
+	AssetResults.Trim();
 }
 
-void FAssetRegistry::PathDataGathered(const double TickStartTime, TArray<FString>& PathResults)
+void FAssetRegistry::PathDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& PathResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
-	int32 ResultIdx = 0;
-	for (ResultIdx = 0; ResultIdx < PathResults.Num(); ++ResultIdx)
+
+	while (PathResults.Num() > 0)
 	{
-		const FString& Path = PathResults[ResultIdx];
+		const FString& Path = PathResults.Pop();
 		AddAssetPath(FName(*Path));
-		
+
 		// Check to see if we have run out of time in this tick
-		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++ResultIdx;
 			break;
 		}
 	}
 
 	// Trim the results array
-	PathResults.RemoveAt(0, ResultIdx);
+	PathResults.Trim();
 }
 
-void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults)
+void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TBackgroundGatherResults<FPackageDependencyData>& DependsResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
 
-	int32 ResultIdx = 0;
-	for (ResultIdx = 0; ResultIdx < DependsResults.Num(); ++ResultIdx)
+	while (DependsResults.Num() > 0)
 	{
-		FPackageDependencyData& Result = DependsResults[ResultIdx];
+		FPackageDependencyData& Result = DependsResults.Pop();
 
 		// Update package data
 		FAssetPackageData* PackageData = State.CreateOrGetAssetPackageData(Result.PackageName);
@@ -1666,42 +1796,34 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 		// Check to see if we have run out of time in this tick
 		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++ResultIdx;
 			break;
 		}
 	}
 
 	// Trim the results array
-	DependsResults.RemoveAt(0, ResultIdx);
+	DependsResults.Trim();
 }
 
-void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults)
+void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& CookedPackageNamesWithoutAssetDataResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
 
 	// Add the found assets
-	int32 PackageNameIndex = 0;
-	for (PackageNameIndex = 0; PackageNameIndex < CookedPackageNamesWithoutAssetDataResults.Num(); ++PackageNameIndex)
+	while (CookedPackageNamesWithoutAssetDataResults.Num() > 0)
 	{
 		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
-		const FString& BackgroundResult = CookedPackageNamesWithoutAssetDataResults[PackageNameIndex];
+		const FString& BackgroundResult = CookedPackageNamesWithoutAssetDataResults.Pop();
 		LoadPackage(nullptr, *BackgroundResult, 0);
 
 		// Check to see if we have run out of time in this tick
 		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++PackageNameIndex;
 			break;
 		}
 	}
 
 	// Trim the results array
-	if (PackageNameIndex > 0)
-	{
-		CookedPackageNamesWithoutAssetDataResults.RemoveAt(0, PackageNameIndex);
-	}
+	CookedPackageNamesWithoutAssetDataResults.Trim();
 }
 
 void FAssetRegistry::AddEmptyPackage(FName PackageName)
@@ -2031,7 +2153,7 @@ void FAssetRegistry::ProcessLoadedAssetsToUpdateCache(const double TickStartTime
 
 		FAssetData NewAssetData = FAssetData(LoadedAsset);
 
-		if (!NewAssetData.TagsAndValues.GetMap().OrderIndependentCompareEqual((*CachedData)->TagsAndValues.GetMap()))
+		if (NewAssetData.TagsAndValues.GetMap() != (*CachedData)->TagsAndValues.GetMap())
 		{
 			// We need to actually update disk cache
 			UpdateAssetData(*CachedData, NewAssetData);
@@ -2053,6 +2175,22 @@ void FAssetRegistry::ProcessLoadedAssetsToUpdateCache(const double TickStartTime
 	}
 }
 
+void FAssetRegistry::UpdateRedirectCollector()
+{
+	// Look for all redirectors in list
+	const TArray<const FAssetData*>& RedirectorAssets = State.GetAssetsByClassName(UObjectRedirector::StaticClass()->GetFName());
+
+	for (const FAssetData* AssetData : RedirectorAssets)
+	{
+		FName Destination = GetRedirectedObjectPath(AssetData->ObjectPath);
+
+		if (Destination != AssetData->ObjectPath)
+		{
+			GRedirectCollector.AddAssetPathRedirection(AssetData->ObjectPath.ToString(), Destination.ToString());
+		}
+	}
+}
+
 #endif // WITH_EDITOR
 
 
@@ -2071,8 +2209,8 @@ void FAssetRegistry::OnContentPathMounted( const FString& InAssetPath, const FSt
 
 	// Listen for directory changes in this content path
 #if WITH_EDITOR
-	// Commandlets and in-game don't listen for directory changes
-	if ( !IsRunningCommandlet() && GIsEditor)
+	// In-game doesn't listen for directory changes
+	if (GIsEditor)
 	{
 		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
@@ -2127,8 +2265,8 @@ void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const F
 
 	// Stop listening for directory changes in this content path
 #if WITH_EDITOR
-	// Commandlets and in-game don't listen for directory changes
-	if (!IsRunningCommandlet() && GIsEditor)
+	// In-game doesn't listen for directory changes
+	if (GIsEditor)
 	{
 		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
@@ -2354,11 +2492,11 @@ bool FAssetRegistry::SetPrimaryAssetIdForObjectPath(const FName ObjectPath, FPri
 
 	FAssetData* AssetData = *FoundAssetData;
 
-	TMap<FName, FString> TagsAndValues = AssetData->TagsAndValues.GetMap();
+	FAssetDataTagMap TagsAndValues = AssetData->TagsAndValues.GetMap();
 	TagsAndValues.Add(FPrimaryAssetId::PrimaryAssetTypeTag, PrimaryAssetId.PrimaryAssetType.ToString());
 	TagsAndValues.Add(FPrimaryAssetId::PrimaryAssetNameTag, PrimaryAssetId.PrimaryAssetName.ToString());
 
-	FAssetData NewAssetData = FAssetData(AssetData->PackageName, AssetData->PackagePath, AssetData->GroupNames, AssetData->AssetName, AssetData->AssetClass, TagsAndValues, AssetData->ChunkIDs, AssetData->PackageFlags);
+	FAssetData NewAssetData = FAssetData(AssetData->PackageName, AssetData->PackagePath, AssetData->AssetName, AssetData->AssetClass, TagsAndValues, AssetData->ChunkIDs, AssetData->PackageFlags);
 
 	UpdateAssetData(AssetData, NewAssetData);
 

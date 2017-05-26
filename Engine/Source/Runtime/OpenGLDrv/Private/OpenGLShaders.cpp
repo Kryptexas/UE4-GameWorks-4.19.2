@@ -689,6 +689,9 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 	// Whether we need to emit mobile multi-view code or not.
 	const bool bEmitMobileMultiView = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "gl_ViewID_OVR") != nullptr);
+
+	// Whether we need to emit texture external code or not.
+	const bool bEmitTextureExternal = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "samplerExternalOES") != nullptr);
 	
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
@@ -731,6 +734,23 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		{
 			// Strip out multi-view for devices that don't support it.
 			AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
+		}
+	}
+
+	if (bEmitTextureExternal)
+	{
+		MoveHashLines(GlslCode, GlslCodeOriginal);
+
+		if (GSupportsImageExternal)
+		{
+			AppendCString(GlslCode, "\n\n");
+			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+			AppendCString(GlslCode, "\n\n");
+		}
+		else
+		{
+			// Strip out texture external for devices that don't support it.
+			AppendCString(GlslCode, "#define samplerExternalOES sampler2D\n");
 		}
 	}
 

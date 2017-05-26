@@ -44,29 +44,29 @@ struct FSplineIKCachedBoneData
 	int32 RefSkeletonIndex;
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_SplineIK : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_BODY()
 
 	/** Name of root bone from which the spline extends **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
+	UPROPERTY(EditAnywhere, Category = "Parameters")
 	FBoneReference StartBone;
 
 	/** Name of bone at the end of the spline chain. Bones after this will not be altered by the controller. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
+	UPROPERTY(EditAnywhere, Category = "Parameters")
 	FBoneReference EndBone;
 
 	/** Axis of the controlled bone (ie the direction of the spline) to use as the direction for the curve. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
+	UPROPERTY(EditAnywhere, Category = "Parameters")
 	ESplineBoneAxis BoneAxis;
 
 	/** The number of points in the spline if we are specifying it directly */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
+	UPROPERTY(EditAnywhere, Category = "Parameters")
 	bool bAutoCalculateSpline;
 
 	/** The number of points in the spline if we are not auto-calculating */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters", meta = (ClampMin = 2, UIMin = 2, EditCondition = "!bAutoCalculateSpline"))
+	UPROPERTY(EditAnywhere, Category = "Parameters", meta = (ClampMin = 2, UIMin = 2, EditCondition = "!bAutoCalculateSpline"))
 	int32 PointCount;
 
 	/** Transforms applied to spline points **/
@@ -86,7 +86,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SplineIK : public FAnimNode_SkeletalContro
 	float TwistEnd;
 
 	/** How to interpolate twist along the length of the spline */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
+	UPROPERTY(EditAnywhere, Category = "Parameters")
 	FAlphaBlend TwistBlend;
 
 	/**

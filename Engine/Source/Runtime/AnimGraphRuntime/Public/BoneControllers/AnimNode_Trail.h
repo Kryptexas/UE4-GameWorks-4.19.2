@@ -24,25 +24,25 @@ struct FPerJointTrailSetup
  * Trail Controller
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Reference to the active bone in the hierarchy to modify. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, Category=Trail)
 	FBoneReference TrailBone;
 
 	/** Number of bones above the active one in the hierarchy to modify. ChainLength should be at least 2. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail, meta = (ClampMin = "2", UIMin = "2"))
+	UPROPERTY(EditAnywhere, Category = Trail, meta = (ClampMin = "2", UIMin = "2"))
 	int32	ChainLength;
 
 	/** Axis of the bones to point along trail. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, Category=Trail)
 	TEnumAsByte<EAxis::Type>	ChainBoneAxis;
 
 	/** Invert the direction specified in ChainBoneAxis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, Category=Trail)
 	bool	bInvertChainBoneAxis;
 
 	/** How quickly we 'relax' the bones to their animated positions. Deprecated. Replaced to TrailRelaxationCurve */
@@ -50,27 +50,27 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	float	TrailRelaxation_DEPRECATED;
 
 	/** How quickly we 'relax' the bones to their animated positions. Time 0 will map to top root joint, time 1 will map to the bottom joint. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail, meta=(CustomizeProperty))
+	UPROPERTY(EditAnywhere, Category=Trail, meta=(CustomizeProperty))
 	FRuntimeFloatCurve TrailRelaxationSpeed;
 
 	/** Limit the amount that a bone can stretch from its ref-pose length. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Limit)
+	UPROPERTY(EditAnywhere, Category=Limit)
 	bool	bLimitStretch;
 
 	/** If bLimitStretch is true, this indicates how long a bone can stretch beyond its length in the ref-pose. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Limit)
+	UPROPERTY(EditAnywhere, Category=Limit)
 	float	StretchLimit;
 
 	/** 'Fake' velocity applied to bones. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
+	UPROPERTY(EditAnywhere, Category=Velocity)
 	FVector	FakeVelocity;
 
 	/** Whether 'fake' velocity should be applied in actor or world space. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
+	UPROPERTY(EditAnywhere,  Category=Velocity)
 	bool	bActorSpaceFakeVel;
 
 	/** Base Joint to calculate velocity from. If none, it will use Component's World Transform. . */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
+	UPROPERTY(EditAnywhere, Category=Velocity)
 	FBoneReference BaseJoint;
 
 	/** Internal use - we need the timestep to do the relaxation in CalculateNewBoneTransforms. */

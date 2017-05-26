@@ -2696,6 +2696,8 @@ void UK2Node_MathExpression::ClearExpression()
 //------------------------------------------------------------------------------
 void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	if (CachedMessageLog.IsValid())
 	{
 		MessageLog.Append(*CachedMessageLog);

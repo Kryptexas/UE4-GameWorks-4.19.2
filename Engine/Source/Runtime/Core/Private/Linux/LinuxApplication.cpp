@@ -1512,12 +1512,6 @@ void FLinuxApplication::OnMouseCursorLock( bool bLockEnabled )
 	}
 }
 
-
-bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
-{
-	return false;
-}
-
 void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	int NumDisplays = 0;

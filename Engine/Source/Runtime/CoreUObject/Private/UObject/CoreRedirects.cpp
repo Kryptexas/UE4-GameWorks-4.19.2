@@ -719,7 +719,6 @@ bool FCoreRedirects::ReadRedirectsFromIni(const FString& IniName)
 		ConfigKeyMap.Add(TEXT("FunctionRedirects"), ECoreRedirectFlags::Type_Function);
 		ConfigKeyMap.Add(TEXT("PropertyRedirects"), ECoreRedirectFlags::Type_Property);
 		ConfigKeyMap.Add(TEXT("PackageRedirects"), ECoreRedirectFlags::Type_Package);
-		ConfigKeyMap.Add(TEXT("DelegateRedirects"), ECoreRedirectFlags::Type_Delegate);
 
 		RegisterNativeRedirects();
 

@@ -387,7 +387,7 @@ void FPersonaModule::ImportNewAsset(USkeleton* InSkeleton, EFBXImportType Defaul
 
 		// now I have to set skeleton on it. 
 		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		AssetToolsModule.Get().ImportAssets(AssetPath);
+		AssetToolsModule.Get().ImportAssetsWithDialog(AssetPath);
 	}
 }
 

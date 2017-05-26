@@ -6,8 +6,15 @@
 #include "Editor.h"
 #include "PropertyHandle.h"
 #include "DetailWidgetRow.h"
+#include "GameplayTagsEditorModule.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagCustomization"
+
+TSharedRef<IPropertyTypeCustomization> FGameplayTagCustomizationPublic::MakeInstance()
+{
+	return MakeShareable(new FGameplayTagCustomization);
+}
 
 void FGameplayTagCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
@@ -41,14 +48,29 @@ void FGameplayTagCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle
 				.Text(LOCTEXT("GameplayTagCustomization_Edit", "Edit"))
 			]
 		]
+		
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
 			SNew(SBorder)
+			.Visibility(this, &FGameplayTagCustomization::GetVisibilityForTagTextBlockWidget, true)
 			.Padding(4.0f)
 			[
 				SNew(STextBlock)
 				.Text(this, &FGameplayTagCustomization::SelectedTag)
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SBorder)
+			.Visibility(this, &FGameplayTagCustomization::GetVisibilityForTagTextBlockWidget, false)
+			.Padding(4.0f)
+			[
+				SNew(SHyperlink)
+				.Text(this, &FGameplayTagCustomization::SelectedTag)
+				.OnNavigate( this, &FGameplayTagCustomization::OnTagDoubleClicked)
 			]
 		]
 	];
@@ -56,26 +78,21 @@ void FGameplayTagCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle
 	GEditor->RegisterForUndo(this);
 }
 
+void FGameplayTagCustomization::OnTagDoubleClicked()
+{
+	UGameplayTagsManager::Get().NotifyGameplayTagDoubleClickedEditor(TagName);
+}
+
+EVisibility FGameplayTagCustomization::GetVisibilityForTagTextBlockWidget(bool ForTextWidget) const
+{
+	return (UGameplayTagsManager::Get().ShowGameplayTagAsHyperLinkEditor(TagName) ^ ForTextWidget) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 {
 	BuildEditableContainerList();
 	
-	FString Categories;
-	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = StructPropertyHandle;
-		while(PropertyHandle.IsValid())
-		{
-			if (PropertyHandle->GetProperty())
-			{
-				if (PropertyHandle->GetProperty()->HasMetaData( TEXT("Categories") ))
-				{
-					Categories = PropertyHandle->GetProperty()->GetMetaData( TEXT("Categories") );
-					break;
-				}
-			}
-			PropertyHandle = PropertyHandle->GetParentHandle();
-		}
-	}
+	FString Categories = UGameplayTagsManager::Get().GetCategoriesMetaFromPropertyHandle(StructPropertyHandle);
 
 	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
 

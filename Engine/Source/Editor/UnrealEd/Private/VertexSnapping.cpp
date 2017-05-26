@@ -76,7 +76,7 @@ class FStaticMeshVertexIterator : public FVertexIterator
 {
 public:
 	FStaticMeshVertexIterator( UStaticMeshComponent* SMC )
-		: ComponentToWorldIT( SMC->ComponentToWorld.ToInverseMatrixWithScale().GetTransposed() )
+		: ComponentToWorldIT( SMC->GetComponentTransform().ToInverseMatrixWithScale().GetTransposed() )
 		, StaticMeshComponent( SMC )
 		, PositionBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer )
 		, VertexBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffer )
@@ -88,7 +88,7 @@ public:
 	/** FVertexIterator interface */
 	virtual FVector Position() override
 	{
-		return StaticMeshComponent->ComponentToWorld.TransformPosition( PositionBuffer.VertexPosition( CurrentVertexIndex ) );	
+		return StaticMeshComponent->GetComponentTransform().TransformPosition( PositionBuffer.VertexPosition( CurrentVertexIndex ) );	
 	}
 
 	virtual FVector Normal() override
@@ -144,7 +144,7 @@ public:
 	/** FVertexIterator interface */
 	virtual FVector Position() override
 	{
-		return BrushComponent->ComponentToWorld.TransformPosition( Vertices[CurrentVertexIndex] );
+		return BrushComponent->GetComponentTransform().TransformPosition( Vertices[CurrentVertexIndex] );
 	}
 
 	/** FVertexIterator interface */
@@ -181,7 +181,7 @@ class FSkeletalMeshVertexIterator : public FVertexIterator
 {
 public:
 	FSkeletalMeshVertexIterator( USkinnedMeshComponent* InSkinnedMeshComp )
-		: ComponentToWorldIT( InSkinnedMeshComp->ComponentToWorld.ToInverseMatrixWithScale().GetTransposed() )
+		: ComponentToWorldIT( InSkinnedMeshComp->GetComponentTransform().ToInverseMatrixWithScale().GetTransposed() )
 		, SkinnedMeshComponent( InSkinnedMeshComp )
 		, LODModel( InSkinnedMeshComp->GetSkeletalMeshResource()->LODModels[0] )
 		, CurrentSectionIndex( 0 )
@@ -194,7 +194,7 @@ public:
 	virtual FVector Position() override
 	{
 		const FSkelMeshSection& Section = LODModel.Sections[CurrentSectionIndex];
-		return SkinnedMeshComponent->ComponentToWorld.TransformPosition(Section.SoftVertices[SoftVertexIndex].Position );
+		return SkinnedMeshComponent->GetComponentTransform().TransformPosition(Section.SoftVertices[SoftVertexIndex].Position );
 	}
 
 	virtual FVector Normal() override

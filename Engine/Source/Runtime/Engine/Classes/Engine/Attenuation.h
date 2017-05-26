@@ -38,7 +38,7 @@ namespace EAttenuationShape
 /*
 * Base class for attenuation settings.
 */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FBaseAttenuationSettings
 {
 	GENERATED_USTRUCT_BODY()

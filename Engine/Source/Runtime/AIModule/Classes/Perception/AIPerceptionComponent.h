@@ -313,6 +313,7 @@ protected:
 	void UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue);
 
 	FActorPerceptionContainer& GetPerceptualData() { return PerceptualData; }
+	const FActorPerceptionContainer& GetPerceptualData() const { return PerceptualData; }
 
 	/** called to clean up on owner's end play or destruction */
 	virtual void CleanUp();

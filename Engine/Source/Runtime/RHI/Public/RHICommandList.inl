@@ -41,7 +41,7 @@ FORCEINLINE_DEBUGGABLE bool FRHICommandListBase::Bypass()
 FORCEINLINE_DEBUGGABLE FScopedRHIThreadStaller::FScopedRHIThreadStaller(class FRHICommandListImmediate& InImmed)
 	: Immed(nullptr)
 {
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		check(IsInRenderingThread());
 		if (InImmed.StallRHIThread())
@@ -93,7 +93,7 @@ FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::ImmediateFlush(EImmediateF
 				GRHICommandList.ExecuteList(*this);
 			}
 			WaitForDispatch();
-			if (GRHIThread)
+			if (IsRunningRHIInSeparateThread())
 			{
 				WaitForRHIThreadTasks();
 			}

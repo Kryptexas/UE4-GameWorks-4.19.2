@@ -20,7 +20,7 @@ void UK2Node_GetNumEnumEntries::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Create the return value pin
-	CreatePin(EGPD_Output, Schema->PC_Int, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Output, Schema->PC_Int, FString(), nullptr, Schema->PN_ReturnValue);
 
 	Super::AllocateDefaultPins();
 }

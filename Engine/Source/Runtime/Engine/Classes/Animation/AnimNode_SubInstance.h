@@ -12,7 +12,7 @@
 
 struct FAnimInstanceProxy;
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_SubInstance : public FAnimNode_Base
 {
 	GENERATED_BODY()

@@ -3,6 +3,8 @@
 #include "Tasks/GameplayTask_TimeLimitedExecution.h"
 #include "Engine/EngineTypes.h"
 #include "TimerManager.h"
+#include "VisualLogger/VisualLogger.h"
+#include "GameplayTasksComponent.h"
 #include "Engine/World.h"
 
 UGameplayTask_TimeLimitedExecution::UGameplayTask_TimeLimitedExecution(const FObjectInitializer& ObjectInitializer)
@@ -47,6 +49,7 @@ void UGameplayTask_TimeLimitedExecution::Activate()
 	// Use a dummy timer handle as we don't need to store it for later but we don't need to look for something to clear
 	FTimerHandle TimerHandle;
 	World->GetTimerManager().SetTimer(TimerHandle, this, &UGameplayTask_TimeLimitedExecution::OnTimer, Time, false);
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose, TEXT("%s> started timeout: %.2fs for task:%s"), *GetName(), Time, *ChildTask->GetName());
 
 	if (!ChildTask->IsActive())
 	{
@@ -82,6 +85,7 @@ void UGameplayTask_TimeLimitedExecution::OnTimer()
 {
 	if (!bTimeExpired && !bChildTaskFinished)
 	{
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose, TEXT("%s> time expired!"), *GetName());
 		OnTimeExpired.Broadcast();
 	}
 

@@ -5,6 +5,7 @@
 #include "CoreTypes.h"
 #include "HAL/PlatformMath.h"
 #include "Templates/Less.h"
+#include "Algo/BinarySearch.h"
 
 /**
  * Helper class for dereferencing pointer types in Sort function
@@ -313,74 +314,19 @@ public:
 
 		while (AStart < BStart && BStart < Num)
 		{
-			int32 NewAOffset = BinarySearchLast(First + AStart, BStart - AStart, First[BStart], Predicate) + 1;
+			// Index after the last value == First[BStart]
+			int32 NewAOffset = AlgoImpl::UpperBoundInternal(First + AStart, BStart - AStart, First[BStart], FIdentityFunctor(), Predicate);
 			AStart += NewAOffset;
 
 			if (AStart >= BStart) // done
 				break;
 
-			int32 NewBOffset = BinarySearchFirst(First + BStart, Num - BStart, First[AStart], Predicate);
+			// Index of the first value == First[AStart]
+			int32 NewBOffset = AlgoImpl::LowerBoundInternal(First + BStart, Num - BStart, First[AStart], FIdentityFunctor(), Predicate);
 			TRotationPolicy::Rotate(First, AStart, BStart + NewBOffset, NewBOffset);
 			BStart += NewBOffset;
 			AStart += NewBOffset + 1;
 		}
-	}
-
-private:
-	/**
-	 * Performs binary search, resulting in position of the first element with given value in an array.
-	 *
-	 * @param First Pointer to array.
-	 * @param Num Number of elements in array.
-	 * @param Value Value to look for.
-	 * @param Predicate Predicate for comparison.
-	 *
-	 * @returns Position of the first element with value Value.
-	 */
-	template <class T, class PREDICATE_CLASS>
-	static int32 BinarySearchFirst(T* First, const int32 Num, const T& Value, const PREDICATE_CLASS& Predicate)
-	{
-		int32 Start = 0;
-		int32 End = Num;
-		
-		while (End - Start > 1)
-		{
-			int32 Mid = (Start + End) / 2;
-			bool bComparison = Predicate(First[Mid], Value);
-
-			Start = bComparison ? Mid : Start;
-			End = bComparison ? End : Mid;
-		}
-
-		return Predicate(First[Start], Value) ? Start + 1 : Start;
-	}
-
-	/**
-	 * Performs binary search, resulting in position of the last element with given value in an array.
-	 *
-	 * @param First Pointer to array.
-	 * @param Num Number of elements in array.
-	 * @param Value Value to look for.
-	 * @param Predicate Predicate for comparison.
-	 *
-	 * @returns Position of the last element with value Value.
-	 */
-	template <class T, class PREDICATE_CLASS>
-	static int32 BinarySearchLast(T* First, const int32 Num, const T& Value, const PREDICATE_CLASS& Predicate)
-	{
-		int32 Start = 0;
-		int32 End = Num;
-
-		while (End - Start > 1)
-		{
-			int32 Mid = (Start + End) / 2;
-			bool bComparison = !Predicate(Value, First[Mid]);
-			
-			Start = bComparison ? Mid : Start;
-			End = bComparison ? End : Mid;
-		}
-
-		return Predicate(Value, First[Start]) ? Start - 1 : Start;
 	}
 };
 

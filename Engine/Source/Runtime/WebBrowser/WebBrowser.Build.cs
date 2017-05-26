@@ -39,21 +39,24 @@ public class WebBrowser : ModuleRules
 				"CEF3"
 				);
 
-			if (Target.Platform == UnrealTargetPlatform.Mac)
+			if (Target.Type != TargetType.Server)
 			{
-				// Add contents of UnrealCefSubProcess.app directory as runtime dependencies
-				foreach (string FilePath in Directory.EnumerateFiles(BuildConfiguration.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
+				if (Target.Platform == UnrealTargetPlatform.Mac)
 				{
-					RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+					// Add contents of UnrealCefSubProcess.app directory as runtime dependencies
+					foreach (string FilePath in Directory.EnumerateFiles(BuildConfiguration.RelativeEnginePath + "/Binaries/Mac/UnrealCEFSubProcess.app", "*", SearchOption.AllDirectories))
+					{
+						RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+					}
 				}
-			}
-			else if (Target.Platform == UnrealTargetPlatform.Linux)
-			{
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess"));
-			}
-			else
-			{
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
+				else if (Target.Platform == UnrealTargetPlatform.Linux)
+				{
+					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess"));
+				}
+				else
+				{
+					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
+				}
 			}
 		}
 

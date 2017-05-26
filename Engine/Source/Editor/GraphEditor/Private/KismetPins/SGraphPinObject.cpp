@@ -13,6 +13,7 @@
 #include "ContentBrowserModule.h"
 #include "ScopedTransaction.h"
 #include "Engine/Selection.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "SGraphPinObject"
 
@@ -41,8 +42,6 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 {
 	if( AllowSelfPinWidget() )
 	{
-		UObject* DefaultObject = GraphPinObj->DefaultObject;
-
 		if(GraphPinObj->GetSchema()->IsSelfPin(*GraphPinObj))
 		{
 			return SNew(SEditableTextBox)
@@ -162,10 +161,11 @@ FReply SGraphPinObject::OnClickUse()
 
 FReply SGraphPinObject::OnClickBrowse()
 {
-	if (GraphPinObj->DefaultObject != NULL)
+	const FAssetData& AssetData = GetAssetData(false);
+	if (AssetData.IsValid())
 	{
-		TArray<UObject*> Objects;
-		Objects.Add(GraphPinObj->DefaultObject);
+		TArray<FAssetData> Objects;
+		Objects.Add(AssetData);
 
 		GEditor->SyncBrowserToObjects(Objects);
 	}
@@ -223,8 +223,8 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 
 void SGraphPinObject::OnAssetSelectedFromPicker(const class FAssetData& AssetData)
 {
-	UObject* AssetObject = AssetData.GetAsset();
-	if(GraphPinObj->DefaultObject != AssetObject)
+	const FAssetData& CurrentAssetData = GetAssetData(true);
+	if(CurrentAssetData != AssetData)
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("GraphEditor", "ChangeObjectPinValue", "Change Object Pin Value" ) );
 		GraphPinObj->Modify();
@@ -233,18 +233,18 @@ void SGraphPinObject::OnAssetSelectedFromPicker(const class FAssetData& AssetDat
 		AssetPickerAnchor->SetIsOpen(false);
 
 		// Set the object found from the asset picker
-		GraphPinObj->GetSchema()->TrySetDefaultObject(*GraphPinObj, AssetObject);
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, AssetData.ObjectPath.ToString());
 	}
 }
 
 
 FText SGraphPinObject::GetValue() const
 {
-	UObject* DefaultObject = GraphPinObj->DefaultObject;
+	const FAssetData& CurrentAssetData = GetAssetData(true);
 	FText Value;
-	if (DefaultObject != NULL)
+	if (CurrentAssetData.IsValid())
 	{
-		Value =  FText::FromString(DefaultObject->GetFullName());
+		Value = FText::FromString(CurrentAssetData.GetFullName());
 	}
 	else
 	{
@@ -266,10 +266,10 @@ FText SGraphPinObject::GetObjectName() const
 	
 	if (GraphPinObj != NULL)
 	{
-		UObject* DefaultObject = GraphPinObj->DefaultObject;
-		if (DefaultObject != NULL)
+		const FAssetData& CurrentAssetData = GetAssetData(true);
+		if (CurrentAssetData.IsValid())
 		{
-			Value = FText::FromString(DefaultObject->GetName());
+			Value = FText::FromString(CurrentAssetData.AssetName.ToString());
 			int32 StringLen = Value.ToString().Len();
 
 			//If string is too long, then truncate (eg. "abcdefgijklmnopq" is converted as "abcd...nopq")
@@ -298,16 +298,18 @@ FText SGraphPinObject::OnGetComboTextValue() const
 {
 	FText Value = GetDefaultComboText();
 	
-	if (GraphPinObj != NULL)
+	if (GraphPinObj != nullptr)
 	{
+		const FAssetData& CurrentAssetData = GetAssetData(true);
+
 		UObject* DefaultObject = GraphPinObj->DefaultObject;
 		if (UField* Field = Cast<UField>(DefaultObject))
 		{
 			Value = Field->GetDisplayNameText();
 		}
-		else if (DefaultObject != NULL)
+		else if (CurrentAssetData.IsValid())
 		{
-			Value = FText::FromString(DefaultObject->GetName());
+			Value = FText::FromString(CurrentAssetData.AssetName.ToString());
 		}
 	}
 	return Value;
@@ -315,20 +317,62 @@ FText SGraphPinObject::OnGetComboTextValue() const
 
 FSlateColor SGraphPinObject::OnGetComboForeground() const
 {
-	float Alpha = IsHovered() ? GraphPinObjectDefs::ActiveComboAlpha : GraphPinObjectDefs::InActiveComboAlpha;
+	float Alpha = (IsHovered() || bOnlyShowDefaultValue) ? GraphPinObjectDefs::ActiveComboAlpha : GraphPinObjectDefs::InActiveComboAlpha;
 	return FSlateColor( FLinearColor( 1.f, 1.f, 1.f, Alpha ) );
 }
 
 FSlateColor SGraphPinObject::OnGetWidgetForeground() const
 {
-	float Alpha = IsHovered() ? GraphPinObjectDefs::ActivePinForegroundAlpha : GraphPinObjectDefs::InactivePinForegroundAlpha;
+	float Alpha = (IsHovered() || bOnlyShowDefaultValue) ? GraphPinObjectDefs::ActivePinForegroundAlpha : GraphPinObjectDefs::InactivePinForegroundAlpha;
 	return FSlateColor( FLinearColor( 1.f, 1.f, 1.f, Alpha ) );
 }
 
 FSlateColor SGraphPinObject::OnGetWidgetBackground() const
 {
-	float Alpha = IsHovered() ? GraphPinObjectDefs::ActivePinBackgroundAlpha : GraphPinObjectDefs::InactivePinBackgroundAlpha;
+	float Alpha = (IsHovered() || bOnlyShowDefaultValue) ? GraphPinObjectDefs::ActivePinBackgroundAlpha : GraphPinObjectDefs::InactivePinBackgroundAlpha;
 	return FSlateColor( FLinearColor( 1.f, 1.f, 1.f, Alpha ) );
+}
+
+const FAssetData& SGraphPinObject::GetAssetData(bool bRuntimePath) const
+{
+	// For normal assets, the editor and runtime path are the same
+	if (GraphPinObj->DefaultObject)
+	{
+		if (!GraphPinObj->DefaultObject->GetPathName().Equals(CachedAssetData.ObjectPath.ToString(), ESearchCase::CaseSensitive))
+		{
+			// This always uses the exact object pointed at
+			CachedAssetData = FAssetData(GraphPinObj->DefaultObject, true);
+		}
+	}
+	else if (!GraphPinObj->DefaultValue.IsEmpty())
+	{
+		FName ObjectPath = FName(*GraphPinObj->DefaultValue);
+		if (ObjectPath != CachedAssetData.ObjectPath)
+		{
+			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+			CachedAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(ObjectPath);
+
+			if (!CachedAssetData.IsValid())
+			{
+				FString PackageName = FPackageName::ObjectPathToPackageName(GraphPinObj->DefaultValue);
+				FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+				FString ObjectName = FPackageName::ObjectPathToObjectName(GraphPinObj->DefaultValue);
+
+				// Fake one
+				CachedAssetData = FAssetData(FName(*PackageName), FName(*PackagePath), FName(*ObjectName), UObject::StaticClass()->GetFName());
+			}
+		}
+	}
+	else
+	{
+		if (CachedAssetData.IsValid())
+		{
+			CachedAssetData = FAssetData();
+		}
+	}
+
+	return CachedAssetData;
 }
 
 #undef LOCTEXT_NAMESPACE

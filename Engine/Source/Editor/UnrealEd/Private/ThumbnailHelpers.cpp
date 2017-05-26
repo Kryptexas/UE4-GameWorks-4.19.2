@@ -179,7 +179,7 @@ void FParticleSystemThumbnailScene::SetParticleSystem(UParticleSystem* ParticleS
 		ParticleSystem->PreviewComponent = NewObject<UParticleSystemComponent>();
 		ParticleSystem->PreviewComponent->Template = ParticleSystem;
 
-		ParticleSystem->PreviewComponent->ComponentToWorld.SetIdentity();
+		ParticleSystem->PreviewComponent->SetComponentToWorld(FTransform::Identity);
 
 		bNewComponent = true;
 	}
@@ -256,6 +256,7 @@ FMaterialThumbnailScene::FMaterialThumbnailScene()
 	PreviewActor = GetWorld()->SpawnActor<AStaticMeshActor>( SpawnInfo );
 
 	PreviewActor->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+	PreviewActor->GetStaticMeshComponent()->bSelectable = false;	// avoid generating hit proxies
 	PreviewActor->SetActorEnableCollision(false);
 }
 

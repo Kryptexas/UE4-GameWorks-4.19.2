@@ -140,7 +140,7 @@ public:
 	 * essentially the same.  Generally this is necessary as modern rendering techniques tend to introduce
 	 * noise constantly to hide aliasing.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Comparison")
+	UPROPERTY(EditAnywhere, Category="Comparison")
 	FComparisonToleranceAmount ToleranceAmount;
 
 	/**

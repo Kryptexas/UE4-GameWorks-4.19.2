@@ -277,7 +277,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	int32 NumErrorsAtStart = MessageLog.NumErrors;
 	bool bTypeMismatch = false;
 
-	if( Type.bIsArray )
+	if( Type.IsArray() )
 	{
 		// For arrays, the property we want to test against is the inner property
 		if( UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property) )
@@ -309,7 +309,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			return false;
 		}
 	}
-	else if (Type.bIsSet)
+	else if (Type.IsSet())
 	{
 		if (USetProperty* SetProperty = Cast<USetProperty>(Property))
 		{
@@ -326,7 +326,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			return false;
 		}
 	}
-	else if (Type.bIsMap)
+	else if (Type.IsMap())
 	{
 		if (UMapProperty* MapProperty = Cast<UMapProperty>(Property))
 		{
@@ -662,7 +662,7 @@ bool FKismetCompilerUtilities::ValidateSelfCompatibility(const UEdGraphPin* Pin,
 {
 	const UBlueprint* Blueprint = Context.Blueprint;
 	const UEdGraph* SourceGraph = Context.SourceGraph;
-	UEdGraphSchema_K2* K2Schema = Context.Schema;
+	const UEdGraphSchema_K2* K2Schema = Context.Schema;
 	const UBlueprintGeneratedClass* BPClass = Context.NewClass;
 
 	FString ErrorMsg;
@@ -757,8 +757,8 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
 			if (SetByNameFunction)
 			{
-				UK2Node_CallFunction* SetVarNode = NULL;
-				if (OrgPin->PinType.bIsArray)
+				UK2Node_CallFunction* SetVarNode = nullptr;
+				if (OrgPin->PinType.IsArray())
 				{
 					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(SpawnNode, SourceGraph);
 				}
@@ -801,7 +801,7 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 				else
 				{
 					// For non-array struct pins that are not linked, transfer the pin type so that the node will expand an auto-ref that will assign the value by-ref.
-					if (OrgPin->PinType.bIsArray == false && OrgPin->PinType.PinCategory == Schema->PC_Struct && OrgPin->LinkedTo.Num() == 0)
+					if (OrgPin->PinType.IsArray() == false && OrgPin->PinType.PinCategory == Schema->PC_Struct && OrgPin->LinkedTo.Num() == 0)
 					{
 						ValuePin->PinType.PinCategory = OrgPin->PinType.PinCategory;
 						ValuePin->PinType.PinSubCategory = OrgPin->PinType.PinSubCategory;
@@ -1057,9 +1057,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 {
 	const EObjectFlags ObjectFlags = RF_Public;
 
-	UProperty* NewProperty = NULL;
-	UObject* PropertyScope = NULL;
-
 	FName ValidatedPropertyName = PropertyName;
 
 	// Check to see if there's already a object on this scope with the same name, and throw an internal compiler error if so
@@ -1079,20 +1076,19 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				FString TestNameString = PropertyName.ToString() + FString::Printf(TEXT("_ERROR_DUPLICATE_%d"), Counter++);
 				TestName = FName(*TestNameString);
 
-			} while (CheckPropertyNameOnScope(Scope, TestName) != NULL);
+			} while (CheckPropertyNameOnScope(Scope, TestName) != nullptr);
 
 			ValidatedPropertyName = TestName;
 		}
 	}
 
-	// Handle creating an array property, if necessary
-	const bool bIsMapProperty = Type.bIsMap;
-	const bool bIsSetProperty = Type.bIsSet;
-	const bool bIsArrayProperty = Type.bIsArray;
-	// only one of these should be set (or none):
-	ensure( !(bIsMapProperty || bIsSetProperty || bIsArrayProperty) ||
-			( !(bIsMapProperty && bIsSetProperty && bIsArrayProperty) && (bIsMapProperty ^ bIsSetProperty ^ bIsArrayProperty) )
-			);
+	UProperty* NewProperty = nullptr;
+	UObject* PropertyScope = nullptr;
+
+	// Handle creating a container property, if necessary
+	const bool bIsMapProperty = Type.IsMap();
+	const bool bIsSetProperty = Type.IsSet();
+	const bool bIsArrayProperty = Type.IsArray();
 	UMapProperty* NewMapProperty = nullptr;
 	USetProperty* NewSetProperty = nullptr;
 	UArrayProperty* NewArrayProperty = nullptr;
@@ -1152,7 +1148,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		{
 			if (!NewProperty->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
 			{
-
 				MessageLog.Error(
 					*FString::Printf(
 						*LOCTEXT("MapKeyTypeUnhashable_Error", "Map Property @@ has key type of %s which cannot be hashed and is therefore invalid").ToString(),
@@ -1161,7 +1156,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				);
 			}
 			// make the value property:
-			// not feelign good about myself..
+			// not feeling good about myself..
 			// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
 			NewMapProperty->KeyProp = NewProperty;
 			// make sure the value property does not collide with the key property:
@@ -1223,6 +1218,11 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		{
 			NewArrayProperty->MarkPendingKill();
 		}
+	}
+
+	if (NewProperty)
+	{
+		NewProperty->SetPropertyFlags(PropertyFlags);
 	}
 
 	return NewProperty;
@@ -1634,8 +1634,8 @@ FBPTerminal* FNodeHandlingFunctor::RegisterLiteral(FKismetFunctionContext& Conte
 		FString ErrorString = FText::Format(ErrorFormat, InvalidReasonText, DefaultValue).ToString();
 		CompilerContext.MessageLog.Error(*ErrorString, Net);
 
-		// Skip over these properties if they are array or ref properties, because the backend can't emit valid code for them
-		if (Net->PinType.bIsArray || Net->PinType.bIsReference)
+		// Skip over these properties if they are container or ref properties, because the backend can't emit valid code for them
+		if (Net->PinType.IsContainer() || Net->PinType.bIsReference)
 		{
 			return nullptr;
 		}
@@ -1699,7 +1699,7 @@ FString FNetNameMapping::MakeBaseName(const UAnimGraphNode_Base* Net)
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
 	: Blueprint(InBlueprint)
 	, SourceGraph(nullptr)
 	, EntryPoint(nullptr)
@@ -2103,7 +2103,7 @@ struct FEventGraphUtils
 	{
 		// TODO: Strange cases..
 		if ((Net.Direction != EEdGraphPinDirection::EGPD_Output)
-			|| Net.PinType.bIsArray
+			|| Net.PinType.IsContainer()
 			|| Net.PinType.bIsReference
 			|| Net.PinType.bIsConst
 			|| Net.SubPins.Num())

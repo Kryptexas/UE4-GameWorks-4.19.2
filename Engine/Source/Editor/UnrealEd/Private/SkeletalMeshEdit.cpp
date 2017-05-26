@@ -648,8 +648,13 @@ int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 		double KeyAnimLength = TimeInterval.GetDuration().GetSecondDouble();
 		if (KeyAnimLength != 0.0)
 		{
-			// DEFAULT_SAMPLERATE(30) fps animation has (DEFAULT_SAMPLERATE + 1) keys because it includes index 0 key for 0.0 second
-			int32 SampleRate = 1;// FPlatformMath::RoundToInt((KeyCount - 1) / KeyAnimLength);
+			int32 SampleRate = FPlatformMath::RoundToInt((KeyCount - 1) / KeyAnimLength);
+			if (SampleRate >= DEFAULT_SAMPLERATE)
+			{
+				//We import a curve with more then 30 keys per frame
+				return SampleRate;
+			}
+			SampleRate = 1;
 
 			//Find the least sample rate we can use to have at least on key to every fbx key position
 			TArray<int32> KeyFrameSampleRates;
@@ -779,11 +784,17 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 	//Find the lowest sample rate that will pass by all the keys from all curves
 	for (int32 CurveSampleRate : CurveAnimSampleRates)
 	{
-		MaxStackResampleRate = LeastCommonMultiplier(MaxStackResampleRate, CurveSampleRate);
-		if (MaxStackResampleRate >= DEFAULT_SAMPLERATE)
+		if (CurveSampleRate >= DEFAULT_SAMPLERATE && MaxStackResampleRate < CurveSampleRate)
 		{
-			MaxStackResampleRate = DEFAULT_SAMPLERATE;
-			break;
+			MaxStackResampleRate = CurveSampleRate;
+		}
+		else if (MaxStackResampleRate < DEFAULT_SAMPLERATE)
+		{
+			MaxStackResampleRate = LeastCommonMultiplier(MaxStackResampleRate, CurveSampleRate);
+			if (MaxStackResampleRate >= DEFAULT_SAMPLERATE)
+			{
+				MaxStackResampleRate = DEFAULT_SAMPLERATE;
+			}
 		}
 	}
 

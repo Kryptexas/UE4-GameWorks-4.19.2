@@ -168,12 +168,12 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 		
 	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 	{
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0);
 	}
 	else
 	{
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
 	}
 
 	Context.SetViewportAndCallRHI(ViewRect1);

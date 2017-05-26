@@ -524,7 +524,13 @@ void MainPS(
 	out float4 OutColor : SV_Target0
 	)
 {
+#if EYEADAPTATION_EXPOSURE_FIX == 1
+	float3 vEyeAdapationVS = InExposureScaleVignette;
+	vEyeAdapationVS.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
+	OutColor = TonemapCommonPS(UV, vEyeAdapationVS, GrainUV, FringeUV, FullViewUV, SvPosition);
+#else
 	OutColor = TonemapCommonPS(UV, InExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+#endif
 }
 
 #if COMPUTESHADER

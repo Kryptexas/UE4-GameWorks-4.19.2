@@ -176,12 +176,12 @@ private:
 	//Cached ptr to actual mesh we sample from. 
 	UStaticMesh* Mesh;
 	
-	//Cached ComponentToWorld.
+	//Cached GetComponentTransform().
 	FMatrix Transform;
 	//InverseTranspose of above for transforming normals/tangents.
 	FMatrix TransformInverseTransposed;
 
-	//Cached ComponentToWorld from previous tick.
+	//Cached GetComponentTransform() from previous tick.
 	FMatrix PrevTransform;
 	//InverseTranspose of above for transforming normals/tangents.
 	FMatrix PrevTransformInverseTransposed;

@@ -55,9 +55,9 @@ void UK2Node_InputKey::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Pressed"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Released"));
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FKey::StaticStruct(), false, false, TEXT("Key"));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Pressed"));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Released"));
+	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FKey::StaticStruct(), TEXT("Key"));
 
 	Super::AllocateDefaultPins();
 }

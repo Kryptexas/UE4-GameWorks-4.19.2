@@ -1132,7 +1132,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		bool bUpdateBox = ((Component->bWarmingUp == false) && (Component->Template != NULL) && (Component->Template->bUseFixedRelativeBoundingBox == false));
 
 		// Take component scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 
@@ -1267,7 +1267,7 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 	if ( Component )
 	{
 		// Take component scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
@@ -2542,7 +2542,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 	OutData.Scale = FVector(1.0f, 1.0f, 1.0f);
 	if (Component)
 	{
-		OutData.Scale = Component->ComponentToWorld.GetScale3D();
+		OutData.Scale = Component->GetComponentTransform().GetScale3D();
 	}
 
 	int32 ParticleMemSize = MaxActiveParticles * ParticleStride;
@@ -2707,7 +2707,7 @@ void FParticleEmitterInstance::GetScreenAlignmentAndScale(int32& OutScreenAlign,
 	OutScale = FVector(1.0f, 1.0f, 1.0f);
 	if (Component)
 	{
-		OutScale = Component->ComponentToWorld.GetScale3D();
+		OutScale = Component->GetComponentTransform().GetScale3D();
 	}
 }
 
@@ -3139,7 +3139,7 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			(Component->Template != NULL) && (Component->Template->bUseFixedRelativeBoundingBox == false));
 
 		// Take scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// Get the static mesh bounds
 		FBoxSphereBounds MeshBound;
@@ -3621,7 +3621,7 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 		{
 			if (!bIgnoreComponentScale)
 			{
-				NewReplayData->Scale = Component->ComponentToWorld.GetScale3D();
+				NewReplayData->Scale = Component->GetComponentTransform().GetScale3D();
 			}
 		}
 	}

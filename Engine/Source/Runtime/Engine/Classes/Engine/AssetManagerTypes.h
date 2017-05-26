@@ -103,7 +103,7 @@ public:
 
 private:
 	/** Directories to search for this asset type */
-	UPROPERTY(EditAnywhere, Category = AssetType, meta = (RelativeToGameContentDir))
+	UPROPERTY(EditAnywhere, Category = AssetType, meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> Directories;
 
 	/** Individual assets to scan */

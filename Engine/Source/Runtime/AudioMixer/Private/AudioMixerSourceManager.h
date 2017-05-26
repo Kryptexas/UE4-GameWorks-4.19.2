@@ -396,6 +396,8 @@ namespace Audio
 
 		int32 NumActiveSources;
 		int32 NumTotalSources;
+		int32 NumOutputFrames;
+		int32 NumOutputSamples;
 		int32 NumSourceWorkers;
 
 		uint8 bInitialized : 1;

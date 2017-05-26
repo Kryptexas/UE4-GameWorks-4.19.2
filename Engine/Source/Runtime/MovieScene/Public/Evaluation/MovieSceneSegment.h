@@ -29,8 +29,23 @@ struct FSectionEvaluationData
 {
 	GENERATED_BODY()
 
-	FSectionEvaluationData() : ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None) {}
-	explicit FSectionEvaluationData(int32 InImplIndex, float InForcedTime = TNumericLimits<float>::Lowest()) : ImplIndex(InImplIndex), ForcedTime(InForcedTime), Flags(ESectionEvaluationFlags::None) {}
+	/** Default constructor */
+	FSectionEvaluationData() : ImplIndex(-1), ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None) {}
+
+	/** Construction from an implementaiton index (probably a section) */
+	explicit FSectionEvaluationData(int32 InImplIndex)
+		: ImplIndex(InImplIndex), ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None)
+	{}
+
+	/** Construction from an implementaiton index and a time to force evaluation at */
+	FSectionEvaluationData(int32 InImplIndex, float InForcedTime)
+		: ImplIndex(InImplIndex), ForcedTime(InForcedTime), Flags(ESectionEvaluationFlags::None)
+	{}
+
+	/** Construction from an implementaiton index and custom eval flags */
+	FSectionEvaluationData(int32 InImplIndex, ESectionEvaluationFlags InFlags)
+		: ImplIndex(InImplIndex), ForcedTime(TNumericLimits<float>::Lowest()), Flags(InFlags)
+	{}
 
 	friend bool operator==(FSectionEvaluationData A, FSectionEvaluationData B)
 	{
@@ -76,7 +91,7 @@ struct FMovieSceneSegment
 		: Range(InRange)
 	{}
 
-	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<FSectionEvaluationData> InApplicationImpls)
+	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<const FSectionEvaluationData> InApplicationImpls)
 		: Range(InRange)
 	{
 		Impls.Reserve(InApplicationImpls.Num());
@@ -85,11 +100,6 @@ struct FMovieSceneSegment
 			Impls.Add(Impl);
 		}
 	}
-
-	FMovieSceneSegment(const TRange<float>& InRange, std::initializer_list<FSectionEvaluationData> InSectionEvaluationData)
-		: Range(InRange)
-		, Impls(InSectionEvaluationData)
-	{}
 
 	/** Custom serializer to accomodate the inline allocator on our array */
 	bool Serialize(FArchive& Ar)

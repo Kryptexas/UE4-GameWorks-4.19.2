@@ -47,6 +47,7 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
 	, DefaultBoneDrawSelection(1)
+	, bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons(true)
 {
 	ViewModeIndex = VMI_Lit;
 
@@ -55,6 +56,8 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	BranchingPointTimingNodeColor = FLinearColor(0.5f, 1.0f, 1.0f);
 
 	bAutoAlignFloorToMesh = true;
+
+	NumFolderFiltersInAssetBrowser = 2;
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)

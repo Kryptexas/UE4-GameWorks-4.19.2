@@ -8,6 +8,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "ProjectDescriptor.h"
 #include "Modules/ModuleManager.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
@@ -30,6 +31,10 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
+		// Projects can have their own shaders
+		// Add potential project shader directory
+		FGenericPlatformProcess::AddShaderDir(FPaths::Combine(FPaths::GetPath(InProjectFile), TEXT("Shaders")));
+
 		// Create the project
 		CurrentProject = Descriptor;
 		return true;
@@ -320,6 +325,28 @@ bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled,
 	bIsCurrentProjectDirty = true;
 
 	return true;
+}
+
+bool FProjectManager::RemovePluginReference(const FString& PluginName, FText& OutFailReason)
+{
+	// Don't go any further if there's no project loaded
+	if (!CurrentProject.IsValid())
+	{
+		OutFailReason = LOCTEXT("NoProjectLoaded", "No project is currently loaded");
+		return false;
+	}
+
+	bool bPluginFound = false;
+	for (int32 PluginRefIdx = CurrentProject->Plugins.Num() - 1; PluginRefIdx >= 0 && !bPluginFound; --PluginRefIdx)
+	{
+		if (CurrentProject->Plugins[PluginRefIdx].Name == PluginName)
+		{
+			CurrentProject->Plugins.RemoveAt(PluginRefIdx);
+			bPluginFound = true;
+			break;
+		}
+	}
+	return bPluginFound;
 }
 
 void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames, bool bIncludeInstalledPlugins)

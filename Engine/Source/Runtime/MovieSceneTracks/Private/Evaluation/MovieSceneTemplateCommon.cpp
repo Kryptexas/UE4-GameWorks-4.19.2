@@ -59,8 +59,6 @@ void F3DTransformTrackToken::Apply(USceneComponent& SceneComponent, float DeltaT
 		FVector CurrentPosition = SceneComponent.GetComponentLocation();
 		FVector ComponentVelocity = (CurrentPosition - PreviousPosition) / DeltaTime;
 		SceneComponent.ComponentVelocity = ComponentVelocity;
-
-		//TODO: Set Component Velocity for attached objects
 	}
 };
 

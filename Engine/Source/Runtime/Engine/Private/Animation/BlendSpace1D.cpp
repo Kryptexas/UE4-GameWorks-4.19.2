@@ -13,12 +13,12 @@ UBlendSpace1D::UBlendSpace1D(const FObjectInitializer& ObjectInitializer)
 
 bool UBlendSpace1D::IsValidAdditive() const
 {
-	return ContainsMatchingSamples(AAT_LocalSpaceBase);
+	return ContainsMatchingSamples(AAT_LocalSpaceBase) || ContainsMatchingSamples(AAT_RotationOffsetMeshSpace);
 }
 
 bool UBlendSpace1D::IsValidAdditiveType(EAdditiveAnimationType AdditiveType) const
 {
-	return (AdditiveType == AAT_LocalSpaceBase || AdditiveType == AAT_None);
+	return (AdditiveType == AAT_LocalSpaceBase || AdditiveType == AAT_RotationOffsetMeshSpace || AdditiveType == AAT_None);
 }
 
 EBlendSpaceAxis UBlendSpace1D::GetAxisToScale() const

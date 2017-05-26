@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Layout/Geometry.h"
 #include "WidgetLayoutLibrary.generated.h"
 
 class APlayerController;
@@ -60,11 +61,40 @@ public:
 	static FVector2D GetViewportSize(UObject* WorldContextObject);
 
 	/**
+	 * Gets the geometry of the widget holding all widgets added to the "Viewport".  You
+	 * can use this geometry to convert between absolute and local space of widgets held on this
+	 * widget.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
+	static FGeometry GetViewportWidgetGeometry(UObject* WorldContextObject);
+
+	/**
+	 * Gets the geometry of the widget holding all widgets added to the "Player Screen". You
+	 * can use this geometry to convert between absolute and local space of widgets held on this
+	 * widget.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Viewport")
+	static FGeometry GetPlayerScreenWidgetGeometry(APlayerController* PlayerController);
+
+	/**
+	 * Gets the platform's mouse cursor position.  This is the 'absolute' desktop location of the mouse.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Viewport")
+	static FVector2D GetMousePositionOnPlatform();
+
+	/**
+	 * Gets the platform's mouse cursor position in the local space of the viewport widget.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Viewport", meta=( WorldContext="WorldContextObject" ))
+	static FVector2D GetMousePositionOnViewport(UObject* WorldContextObject);
+
+	/**
 	 * Gets the mouse position of the player controller, scaled by the DPI.  If you're trying to go from raw mouse screenspace coordinates
 	 * to fullscreen widget space, you'll need to transform the mouse into DPI Scaled space.  This function performs that scaling.
 	 *
 	 * MousePositionScaledByDPI = MousePosition * (1 / ViewportScale).
 	 */
+	//DEPRECATED(4.17, "Use GetMousePositionOnViewport() instead.  Optionally and for more options, you can use GetViewportWidgetGeometry and GetPlayerScreenWidgetGeometry are newly introduced to give you the geometry of the viewport and the player screen for widgets to help convert between spaces.")
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport")
 	static bool GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY);
 

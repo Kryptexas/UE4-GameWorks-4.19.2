@@ -166,7 +166,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 	FVector2D ExpectedSize(300, 200);
-	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, Orient_Vertical);
+	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, FVector2D::ZeroVector, Orient_Vertical);
 
 	TSharedRef<SWindow> NewMenuWindow =
 		SNew(SWindow)
@@ -357,7 +357,7 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 	if (ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 	{
 		// Places the menu's window in the work area
-		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, Orientation);
+		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, FVector2D::ZeroVector, Orientation);
 	}
 	else
 	{

@@ -6,7 +6,7 @@
 namespace Audio
 {
 	FBitCrusher::FBitCrusher()
-		: SampleRate(AUDIO_SAMPLE_RATE)
+		: SampleRate(0)
 		, BitDepth(16.0f)
 		, BitDelta(0.0f)
 		, Phase(1.0f)

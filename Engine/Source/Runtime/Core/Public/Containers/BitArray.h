@@ -6,7 +6,6 @@
 #include "Misc/AssertionMacros.h"
 #include "HAL/UnrealMemory.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "Serialization/Archive.h"
@@ -1067,7 +1066,7 @@ private:
 
 		// Check that the class footprint is the same
 		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptBitArray's size doesn't match TBitArray");
-		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptBitArray's alignment doesn't match TBitArray");
+		static_assert(alignof(ScriptType) == alignof(RealType), "FScriptBitArray's alignment doesn't match TBitArray");
 
 		// Check member sizes
 		static_assert(sizeof(DeclVal<ScriptType>().AllocatorInstance) == sizeof(DeclVal<RealType>().AllocatorInstance), "FScriptBitArray's AllocatorInstance member size does not match TBitArray's");

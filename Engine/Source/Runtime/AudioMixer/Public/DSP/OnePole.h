@@ -45,14 +45,8 @@ namespace Audio
 
 		float ProcessAudio(const float InputSample)
 		{
-			// read the delay line to get w(n-D); call base class
-			// read
 			float Yn = InputSample*A0 + B1*Z1;
-
-			// Underflow check
 			Yn = UnderflowClamp(Yn);
-
-			// Write to z1 delayed sample
 			Z1 = Yn;
 			return Yn;
 		}

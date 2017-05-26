@@ -67,10 +67,6 @@ private:
 	UPROPERTY()
 	UVREditorMode* CurrentVREditorMode;
 
-	/** The previous mode, nullptr if none */
-	UPROPERTY()
-	UVREditorMode* PreviousVREditorMode;
-
 	/** If the VR Editor mode needs to be enabled next tick */
 	bool bEnableVRRequest;
 

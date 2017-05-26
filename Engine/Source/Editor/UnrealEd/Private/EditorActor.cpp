@@ -58,6 +58,7 @@
 #include "LevelEditor.h"
 #include "Engine/LODActor.h"
 #include "Settings/LevelEditorMiscSettings.h"
+#include "ActorGroupingUtils.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -1787,8 +1788,8 @@ void UUnrealEdEngine::edactSelectInvert( UWorld* InWorld )
 	// or deselect them if they are currently selected
 
 	// Turn off Grouping during this process to avoid double toggling of selected actors via group selection
-	const bool bGroupingActiveSaved = bGroupingActive;
-	bGroupingActive = false;
+	const bool bGroupingActiveSaved = UActorGroupingUtils::IsGroupingActive();
+	UActorGroupingUtils::SetGroupingActive(false);
 	for( FActorIterator It(InWorld); It; ++It )
 	{
 		AActor* Actor = *It;
@@ -1798,7 +1799,7 @@ void UUnrealEdEngine::edactSelectInvert( UWorld* InWorld )
 		}
 	}
 	// Restore bGroupingActive to its original value
-	bGroupingActive = bGroupingActiveSaved;
+	UActorGroupingUtils::SetGroupingActive(bGroupingActiveSaved);
 
 	// Iterate through all of the BSP models and select them if they are not currently selected (and not hidden)
 	// or deselect them if they are currently selected

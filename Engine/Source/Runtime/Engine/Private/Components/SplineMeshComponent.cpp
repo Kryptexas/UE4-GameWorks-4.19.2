@@ -595,10 +595,8 @@ void USplineMeshComponent::UpdateRenderStateAndCollision_Internal(bool bConcurre
 		}
 	}
 
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	CachedMeshBodySetupGuid.Invalidate();
 	RecreatePhysicsState();
-#endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
 	bMeshDirty = false;
 }
@@ -998,20 +996,12 @@ void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 
 void USplineMeshComponent::OnCreatePhysicsState()
 {
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
 	const FGuid MeshBodySetupGuid = (GetStaticMesh() != nullptr ? GetStaticMesh()->BodySetup->BodySetupGuid : FGuid());
 	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
 	{
 		RecreateCollision();
 	}
-#else
-	// Without editor code we can only destroy the collision if the mesh is missing
-	if (GetStaticMesh() == NULL && BodySetup != NULL)
-	{
-		DestroyBodySetup();
-	}
-#endif
 
 	return Super::OnCreatePhysicsState();
 }
@@ -1054,7 +1044,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(),
-					ComponentToWorld);
+					GetComponentTransform());
 
 				VertexBuffer.Reset();
 				for (int32 i = 0; i < NavCollision->TriMeshCollision.VertexBuffer.Num(); ++i)
@@ -1065,7 +1055,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(),
-					ComponentToWorld);
+					GetComponentTransform());
 
 				return false;
 			}
@@ -1087,8 +1077,6 @@ void USplineMeshComponent::DestroyBodySetup()
 	}
 }
 
-
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 void USplineMeshComponent::RecreateCollision()
 {
 	if (GetStaticMesh() && IsCollisionEnabled())
@@ -1189,7 +1177,6 @@ void USplineMeshComponent::RecreateCollision()
 		DestroyBodySetup();
 	}
 }
-#endif
 
 /** Used to store spline mesh data during RerunConstructionScripts */
 class FSplineMeshInstanceData : public FSceneComponentInstanceData
@@ -1282,7 +1269,7 @@ float USplineMeshComponent::GetTextureStreamingTransformScale() const
 
 		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
 		const float MinExtent = 1.0f;
-		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(ComponentToWorld);
+		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(GetComponentTransform());
 		if (UndeformedBounds.BoxExtent.X >= MinExtent)
 		{
 			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.X / UndeformedBounds.BoxExtent.X);

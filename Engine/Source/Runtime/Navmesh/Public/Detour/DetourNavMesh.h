@@ -783,6 +783,14 @@ public:
 	
 private:
 
+	// [UE4] result struct for findConnectingPolys
+	struct FConnectingPolyData
+	{
+		float min;
+		float max;
+		dtPolyRef ref;
+	};
+
 	/// Returns pointer to tile in the tile array.
 	dtMeshTile* getTile(int i);
 
@@ -794,12 +802,12 @@ private:
 	int getNeighbourTilesAt(const int x, const int y, const int side,
 							dtMeshTile** tiles, const int maxTiles) const;
 	
-	/// Returns all polygons in neighbour tile based on portal defined by the segment.
+	/// [UE4] Returns all polygons in neighbour tile based on portal defined by the segment.
 	int findConnectingPolys(const float* va, const float* vb,
-							const dtMeshTile* fromTile, int fromPolyIdx,
-							const dtMeshTile* tile, int side,
-							dtPolyRef* con, float* conarea, int maxcon) const;
-	
+		const dtMeshTile* fromTile, int fromPolyIdx,
+		const dtMeshTile* tile, int side,
+		dtChunkArray<FConnectingPolyData>& cons) const;
+
 	/// Builds internal polygons links for a tile.
 	void connectIntLinks(dtMeshTile* tile);
 	/// Builds internal polygons links for a tile.

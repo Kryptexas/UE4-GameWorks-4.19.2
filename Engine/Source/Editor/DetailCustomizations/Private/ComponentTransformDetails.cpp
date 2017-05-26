@@ -29,9 +29,9 @@
 #include "Widgets/Input/SRotatorInputBox.h"
 #include "ScopedTransaction.h"
 #include "IPropertyUtilities.h"
-
 #include "Math/UnitConversion.h"
 #include "Widgets/Input/NumericUnitTypeInterface.inl"
+#include "EditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "FComponentTransformDetails"
 
@@ -78,7 +78,7 @@ static USceneComponent* GetSceneComponentFromDetailsObject(UObject* InObject)
 }
 
 FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, IDetailLayoutBuilder& DetailBuilder )
-	: TNumericUnitTypeInterface(EUnit::Centimeters)
+	: TNumericUnitTypeInterface(GetDefault<UEditorProjectAppearanceSettings>()->bDisplayUnitsOnComponentTransforms ? EUnit::Centimeters : EUnit::Unspecified)
 	, SelectedActorInfo( InSelectedActorInfo )
 	, SelectedObjects( InSelectedObjects )
 	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
@@ -693,12 +693,12 @@ void FComponentTransformDetails::OnToggleAbsoluteLocation( bool bEnable )
 				{
 					if (SceneComponent->bAbsoluteLocation)
 					{
-						SceneComponent->RelativeLocation = SceneComponent->ComponentToWorld.GetTranslation();
+						SceneComponent->RelativeLocation = SceneComponent->GetComponentTransform().GetTranslation();
 					}
 					else
 					{
 						FTransform ParentToWorld = SceneComponent->GetAttachParent()->GetSocketTransform(SceneComponent->GetAttachSocketName());
-						FTransform RelativeTM = SceneComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+						FTransform RelativeTM = SceneComponent->GetComponentTransform().GetRelativeTransform(ParentToWorld);
 						SceneComponent->RelativeLocation = RelativeTM.GetTranslation();
 					}
 				}

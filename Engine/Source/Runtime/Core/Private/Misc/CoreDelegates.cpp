@@ -53,6 +53,8 @@ FCoreDelegates::FPakSigningKeysDelegate& FCoreDelegates::GetPakSigningKeysDelega
 #endif	//WITH_EDITOR
 FSimpleMulticastDelegate FCoreDelegates::OnShutdownAfterError;
 FSimpleMulticastDelegate FCoreDelegates::OnInit;
+FSimpleMulticastDelegate FCoreDelegates::OnPostEngineInit;
+FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;
 FSimpleMulticastDelegate FCoreDelegates::OnExit;
 FSimpleMulticastDelegate FCoreDelegates::OnPreExit;
 FSimpleMulticastDelegate FCoreDelegates::ColorPickerChanged;
@@ -109,14 +111,26 @@ FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FOnAsyncLoadPackage FCoreDelegates::OnAsyncLoadPackage;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;
-FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;
 FCoreDelegates::FImageIntegrityChanged  FCoreDelegates::OnImageIntegrityChanged;
 
 FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelegate FCoreDelegates::ApplicationReceivedScreenOrientationChangedNotificationDelegate;
 
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
-FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;
+/**	 Implemented as a function to address global ctor issues */
+FSimpleMulticastDelegate& FCoreDelegates::GetMemoryTrimDelegate()
+{
+	static FSimpleMulticastDelegate OnMemoryTrim;;
+	return OnMemoryTrim;
+}
+
+/**	 Implemented as a function to address global ctor issues */
+FSimpleMulticastDelegate& FCoreDelegates::GetOutOfMemoryDelegate()
+{
+	static FSimpleMulticastDelegate OnOOM;
+	return OnOOM;
+}
+
 FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;
 
 void RegisterEncryptionKey(const char* InEncryptionKey)

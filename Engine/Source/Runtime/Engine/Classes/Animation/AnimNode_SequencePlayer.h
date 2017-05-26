@@ -10,7 +10,7 @@
 #pragma once
 
 // Sequence player node
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_SequencePlayer : public FAnimNode_AssetPlayerBase
 {
 	GENERATED_USTRUCT_BODY()

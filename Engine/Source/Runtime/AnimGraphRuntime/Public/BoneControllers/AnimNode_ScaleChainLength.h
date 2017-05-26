@@ -15,22 +15,22 @@ class USkeletalMeshComponent;
 /**
  *	
  */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_ScaleChainLength : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Links)
+	UPROPERTY(EditAnywhere, Category = Links)
 	FPoseLink InputPose;
 
 	/** Default chain length, as animated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ScaleChainLength, meta = (PinHiddenByDefault))
 	float DefaultChainLength;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ScaleChainLength)
+	UPROPERTY(EditAnywhere, Category = ScaleChainLength)
 	FBoneReference ChainStartBone;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ScaleChainLength)
+	UPROPERTY(EditAnywhere, Category = ScaleChainLength)
 	FBoneReference ChainEndBone;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ScaleChainLength, meta = (PinShownByDefault))
@@ -39,7 +39,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ScaleChainLength : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinShownByDefault))
 	mutable float Alpha;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings)
+	UPROPERTY(EditAnywhere, Category = Settings)
 	FInputScaleBias AlphaScaleBias;
 
 	UPROPERTY(Transient)

@@ -952,6 +952,12 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 
 	// Use L/R resize cursor if we're dragging or hovering a playback range bound
 	float HitTestPosition = MyGeometry.AbsoluteToLocal(CursorEvent.GetScreenSpacePosition()).X;
+
+	if (MouseDragType == DRAG_SCRUBBING_TIME)
+	{
+		return FCursorReply::Unhandled();
+	}
+
 	if ((MouseDragType == DRAG_PLAYBACK_END) ||
 		(MouseDragType == DRAG_PLAYBACK_START) ||
 		(MouseDragType == DRAG_SELECTION_START) ||
@@ -1246,9 +1252,11 @@ bool FSequencerTimeSliderController::HitTestScrubberStart(const FScrubRangeToScr
 {
 	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f, MouseTolerance = 2.f;
 	float LocalPlaybackStartPos = RangeToScreen.InputToLocalX(PlaybackRange.GetLowerBoundValue());
+	float LocalScrubPos = RangeToScreen.InputToLocalX(ScrubPosition);
 
 	// We favor hit testing the scrub bar over hit testing the playback range bounds
-	if (FMath::IsNearlyEqual(LocalPlaybackStartPos, RangeToScreen.InputToLocalX(ScrubPosition), ScrubHandleSize/2.f))
+	if ((LocalScrubPos - ScrubHandleSize/2.f) < LocalHitPositionX &&
+		(LocalScrubPos + ScrubHandleSize/2.f) > LocalHitPositionX)
 	{
 		return false;
 	}
@@ -1262,13 +1270,15 @@ bool FSequencerTimeSliderController::HitTestScrubberEnd(const FScrubRangeToScree
 {
 	static float BrushSizeInStateUnits = 6.f, DragToleranceSlateUnits = 2.f, MouseTolerance = 2.f;
 	float LocalPlaybackEndPos = RangeToScreen.InputToLocalX(PlaybackRange.GetUpperBoundValue());
+	float LocalScrubPos = RangeToScreen.InputToLocalX(ScrubPosition);
 	
 	// We favor hit testing the scrub bar over hit testing the playback range bounds
-	if (FMath::IsNearlyEqual(LocalPlaybackEndPos, RangeToScreen.InputToLocalX(ScrubPosition), ScrubHandleSize/2.f))
+	if ((LocalScrubPos - ScrubHandleSize/2.f) < LocalHitPositionX &&
+		(LocalScrubPos + ScrubHandleSize/2.f) > LocalHitPositionX)
 	{
 		return false;
 	}
-	
+
 	// Hit test against the brush region to the left of the playback end position, +/- DragToleranceSlateUnits
 	return LocalHitPositionX >= LocalPlaybackEndPos - MouseTolerance - BrushSizeInStateUnits - DragToleranceSlateUnits &&
 		LocalHitPositionX <= LocalPlaybackEndPos + MouseTolerance + DragToleranceSlateUnits;

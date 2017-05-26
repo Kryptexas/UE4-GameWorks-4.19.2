@@ -50,104 +50,142 @@ DEFINE_LOG_CATEGORY(LogLevelTools);
 
 #define LOCTEXT_NAMESPACE "EditorLevelUtils"
 
-namespace EditorLevelUtils
+
+int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, ULevelStreaming* DestStreamingLevel)
 {
-	/**
-	 * Moves the specified list of actors to the specified level
-	 *
-	 * @param	ActorsToMove		List of actors to move
-	 * @param	DestLevelStreaming	The level streaming object associated with the destination level
-	 * @param	OutNumMovedActors	The number of actors that were successfully moved to the new level
-	 */
-	void MovesActorsToLevel( TArray< AActor* >& ActorsToMove, ULevelStreaming* DestLevelStreaming, int32& OutNumMovedActors )
+	return MoveActorsToLevel(ActorsToMove, DestStreamingLevel->GetLoadedLevel());
+}
+
+int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, ULevel* DestLevel)
+{
+	int32 NumMovedActors = 0;
+
+	if (DestLevel)
 	{
+		UWorld* OwningWorld = DestLevel->OwningWorld;
+
 		// Backup the current contents of the clipboard string as we'll be using cut/paste features to move actors
 		// between levels and this will trample over the clipboard data.
 		FString OriginalClipboardContent;
 		FPlatformMisc::ClipboardPaste(OriginalClipboardContent);
 
-		check( DestLevelStreaming != NULL );
-		ULevel* DestLevel = DestLevelStreaming->GetLoadedLevel();
-		check( DestLevel != NULL );
 
-		// Cache a the destination world
-		UWorld* World = DestLevel->OwningWorld;
+		// The final list of actors to move after invalid actors were removed
+		TArray<AActor*> FinalMoveList;
+		FinalMoveList.Reserve(ActorsToMove.Num());
 
-		// Deselect all actors
-		GEditor->Exec( World, TEXT("ACTOR SELECT NONE"));
-
-		const FString& NewLevelName = DestLevelStreaming->GetWorldAssetPackageName();
-				
-		for( TArray< AActor* >::TIterator CurActorIt( ActorsToMove ); CurActorIt; ++CurActorIt )
+		bool bIsDestLevelLocked = FLevelUtils::IsLevelLocked(DestLevel);
+		if (!bIsDestLevelLocked)
 		{
-			AActor* CurActor = *CurActorIt;
-			check( CurActor != NULL );
-
-			if( !FLevelUtils::IsLevelLocked( DestLevel ) && !FLevelUtils::IsLevelLocked( CurActor ) )
+			for (AActor* CurActor : ActorsToMove)
 			{
-				ULevelStreaming* ActorPrevLevel = FLevelUtils::FindStreamingLevel( CurActor->GetLevel() );
-				const FString& PrevLevelName = ActorPrevLevel != NULL ? ActorPrevLevel->GetWorldAssetPackageName() : CurActor->GetLevel()->GetName();
-				UE_LOG(LogLevelTools, Warning, TEXT( "AutoLevel: Moving %s from %s to %s" ), *CurActor->GetName(), *PrevLevelName, *NewLevelName );
-
-				// Select this actor
-				GEditor->SelectActor( CurActor, true, false, true );
-				// Cache the world the actor is in, or if we already did ensure its the same world.
-				check( World == CurActor->GetWorld() );				
-			}
-			else
-			{
-				// Either the source or destination level was locked!
-				// @todo: Display warning
-			}
-		}
-		
-		OutNumMovedActors = 0;
-		if( GEditor->GetSelectedActorCount() > 0 )
-		{
-			// @todo: Perf: Not sure if this is needed here.
-			GEditor->NoteSelectionChange();
-
-			// Move the actors!
-			GEditor->MoveSelectedActorsToLevel( DestLevel );
-
-			// The moved (pasted) actors will now be selected
-			OutNumMovedActors += GEditor->GetSelectedActorCount();
-		}
-		
-		// Restore the original clipboard contents
-		FPlatformMisc::ClipboardCopy( *OriginalClipboardContent );
-	}
-
-	static TArray<FString> GStreamingMethodStrings;
-	static TArray<UClass*> GStreamingMethodClassList;
-
-	/**
-	 * Initializes the list of possible level streaming methods. 
-	 * Does nothing if the lists are already initialized.
-	 */
-	void InitializeStreamingMethods()
-	{
-		check( GStreamingMethodStrings.Num() == GStreamingMethodClassList.Num() );
-		if ( GStreamingMethodClassList.Num() == 0 )
-		{
-			// Assemble a list of possible level streaming methods.
-			for ( TObjectIterator<UClass> It ; It ; ++It )
-			{
-				if ( It->IsChildOf( ULevelStreaming::StaticClass() ) &&
-					(It->HasAnyClassFlags(CLASS_EditInlineNew)) &&
-					!(It->HasAnyClassFlags(CLASS_Hidden | CLASS_Abstract | CLASS_Deprecated | CLASS_Transient)))
+				if (!CurActor)
 				{
-					const FString ClassName( It->GetName() );
-					// Strip the leading "LevelStreaming" text from the class name.
-					// @todo DB: This assumes the names of all ULevelStreaming-derived types begin with the string "LevelStreaming".
-					GStreamingMethodStrings.Add( ClassName.Mid( 14 ) );
-					GStreamingMethodClassList.Add( *It );
+					continue;
+				}
+
+				bool bIsSourceLevelLocked = FLevelUtils::IsLevelLocked(CurActor);
+				
+				if (!bIsSourceLevelLocked)
+		{
+					if (CurActor->GetLevel() != DestLevel)
+					{
+						FinalMoveList.Add(CurActor);
+					}
+					else
+					{
+						UE_LOG(LogLevelTools, Warning, TEXT("%s is already in the destination level so it was ignored"), *CurActor->GetName());
+					}
+				}
+				else
+				{
+					UE_LOG(LogLevelTools, Error, TEXT("The source level '%s' is locked so actors could not be moved"), *CurActor->GetLevel()->GetName());
 				}
 			}
 		}
+		else
+		{
+			UE_LOG(LogLevelTools, Error, TEXT("The destination level '%s' is locked so actors could not be moved"), *DestLevel->GetName());
+		}
+
+
+		if (FinalMoveList.Num() > 0)
+			{
+			GEditor->SelectNone(false, true, false);
+
+			USelection* ActorSelection = GEditor->GetSelectedActors();
+			ActorSelection->BeginBatchSelectOperation();
+			for (AActor* Actor : FinalMoveList)
+			{
+				GEditor->SelectActor(Actor, true, false);
+			}
+			ActorSelection->EndBatchSelectOperation(false);
+
+			if (GEditor->GetSelectedActorCount() > 0)
+			{
+				// Start the transaction
+				FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "MoveSelectedActorsToSelectedLevel", "Move Actors To Level"));
+
+				// Cache the old level
+				ULevel* OldCurrentLevel = OwningWorld->GetCurrentLevel();
+
+				// Copy the actors we have selected to the clipboard
+				GEditor->CopySelectedActorsToClipboard(OwningWorld, true);
+
+				// Set the new level and force it visible while we do the paste
+				OwningWorld->SetCurrentLevel(DestLevel);
+				const bool bLevelVisible = DestLevel->bIsVisible;
+				if (!bLevelVisible)
+			{
+					UEditorLevelUtils::SetLevelVisibility(DestLevel, true, false);
+		}
+		
+				// Paste the actors into the new level
+				GEditor->edactPasteSelected(OwningWorld, false, false, false);
+
+				// Restore new level visibility to previous state
+				if (!bLevelVisible)
+		{
+					UEditorLevelUtils::SetLevelVisibility(DestLevel, false, false);
+				}
+
+				// Restore the original current level
+				OwningWorld->SetCurrentLevel(OldCurrentLevel);
+			}
+
+			// The moved (pasted) actors will now be selected
+			NumMovedActors += FinalMoveList.Num();
+		}
+		
+		// Restore the original clipboard contents
+		FPlatformMisc::ClipboardCopy(*OriginalClipboardContent);
 	}
 
-	ULevel* AddLevelsToWorld(UWorld* InWorld, const TArray<FString>& LevelPackageNames, UClass* LevelStreamingClass)
+
+	return NumMovedActors;
+}
+
+int32 UEditorLevelUtils::MoveSelectedActorsToLevel(ULevelStreaming* DestStreamingLevel)
+	{
+	return MoveSelectedActorsToLevel(DestStreamingLevel->GetLoadedLevel());
+}
+
+int32 UEditorLevelUtils::MoveSelectedActorsToLevel(ULevel* DestLevel)
+		{
+	TArray<AActor*> ActorsToMove;
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+			{
+		if (AActor* Actor = Cast<AActor>(*It))
+				{
+			ActorsToMove.Add(Actor);
+			}
+		}
+
+	return MoveActorsToLevel(ActorsToMove, DestLevel);
+	
+	}
+
+ULevel* UEditorLevelUtils::AddLevelsToWorld(UWorld* InWorld, const TArray<FString>& LevelPackageNames, UClass* LevelStreamingClass)
 	{
 		if ( !ensure(InWorld) )
 		{
@@ -171,7 +209,8 @@ namespace EditorLevelUtils
 		{
 			SlowTask.EnterProgressFrame();
 
-			NewLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
+		ULevelStreaming* NewStreamingLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
+		NewLevel = NewStreamingLevel->GetLoadedLevel();
 			if (NewLevel)
 			{
 				LevelDirtyCallback.Request();
@@ -203,9 +242,10 @@ namespace EditorLevelUtils
 		return NewLevel;
 	}
 
-	ULevel* AddLevelToWorld( UWorld* InWorld, const TCHAR* LevelPackageName, UClass* LevelStreamingClass)
+ULevelStreaming* UEditorLevelUtils::AddLevelToWorld( UWorld* InWorld, const TCHAR* LevelPackageName, TSubclassOf<ULevelStreaming> LevelStreamingClass)
 	{
-		ULevel* NewLevel = NULL;
+	ULevel* NewLevel = nullptr;
+	ULevelStreaming* StreamingLevel = nullptr;
 		bool bIsPersistentLevel = (InWorld->PersistentLevel->GetOutermost()->GetName() == FString(LevelPackageName));
 
 		if ( bIsPersistentLevel || FLevelUtils::FindStreamingLevel( InWorld, LevelPackageName ) )
@@ -216,14 +256,14 @@ namespace EditorLevelUtils
 		else
 		{
 			// If the selected class is still NULL, abort the operation.
-			if ( LevelStreamingClass == NULL )
+		if ( LevelStreamingClass == nullptr)
 			{
-				return NULL;
+			return nullptr;
 			}	
 
 			const FScopedBusyCursor BusyCursor;
 
-			ULevelStreaming* StreamingLevel = NewObject<ULevelStreaming>(InWorld, LevelStreamingClass, NAME_None, RF_NoFlags, NULL);
+		StreamingLevel = NewObject<ULevelStreaming>(InWorld, LevelStreamingClass, NAME_None, RF_NoFlags, NULL);
 
 			// Associate a package name.
 			StreamingLevel->SetWorldAssetByPackageName(LevelPackageName);
@@ -266,10 +306,10 @@ namespace EditorLevelUtils
 			FEditorDelegates::OnAddLevelToWorld.Broadcast(NewLevel);
 		}
 
-		return NewLevel;
+	return StreamingLevel;
 	}
 
-	ULevelStreaming* SetStreamingClassForLevel(ULevelStreaming* InLevel, UClass* LevelStreamingClass)
+ULevelStreaming* UEditorLevelUtils::SetStreamingClassForLevel(ULevelStreaming* InLevel, TSubclassOf<ULevelStreaming> LevelStreamingClass)
 	{
 		check(InLevel);
 
@@ -304,7 +344,7 @@ namespace EditorLevelUtils
 		return NewStreamingLevel;
 	}
 
-	void MakeLevelCurrent(ULevel* InLevel)
+void UEditorLevelUtils::MakeLevelCurrent(ULevel* InLevel)
 	{
 		// Locked levels can't be made current.
 		if ( !FLevelUtils::IsLevelLocked( InLevel ) )
@@ -344,13 +384,12 @@ namespace EditorLevelUtils
 		}
 	}
 	
-	/**
-	 * Removes a LevelStreaming from the world. Returns true if the LevelStreaming was removed successfully.
-	 *
-	 * @param	InLevelStreaming	The LevelStreaming to remove.
-	 * @return						true if the LevelStreaming was removed successfully, false otherwise.
-	 */
-	bool PrivateRemoveInvalidLevelFromWorld(ULevelStreaming* InLevelStreaming)
+void UEditorLevelUtils::MakeLevelCurrent(ULevelStreaming* InStreamingLevel)
+{
+	MakeLevelCurrent(InStreamingLevel->GetLoadedLevel());
+}
+
+bool UEditorLevelUtils::PrivateRemoveInvalidLevelFromWorld(ULevelStreaming* InLevelStreaming)
 	{
 		bool bRemovedLevelStreaming = false;
 		if (InLevelStreaming != NULL)
@@ -384,7 +423,7 @@ namespace EditorLevelUtils
 		return bRemovedLevelStreaming;
 	}
 
-	bool RemoveInvalidLevelFromWorld(ULevelStreaming* InLevelStreaming)
+bool UEditorLevelUtils::RemoveInvalidLevelFromWorld(ULevelStreaming* InLevelStreaming)
 	{
 		bool bRemoveSuccessful = PrivateRemoveInvalidLevelFromWorld(InLevelStreaming);
 		if (bRemoveSuccessful)
@@ -404,7 +443,94 @@ namespace EditorLevelUtils
 		return bRemoveSuccessful;
 	}
 	
-	bool RemoveLevelFromWorld(ULevel* InLevel)
+
+ULevelStreaming* UEditorLevelUtils::CreateNewStreamingLevel(TSubclassOf<ULevelStreaming> LevelStreamingClass, const FString& PackagePath /*= TEXT("")*/, bool bMoveSelectedActorsIntoNewLevel /*= false*/)
+{
+	FString Filename;
+	if (PackagePath.IsEmpty() || FPackageName::TryConvertLongPackageNameToFilename(PackagePath, Filename, FPackageName::GetMapPackageExtension()))
+	{
+		return CreateNewStreamingLevelForWorld(*GEditor->GetEditorWorldContext().World(), LevelStreamingClass, Filename, bMoveSelectedActorsIntoNewLevel);
+	}
+
+	return nullptr;
+}
+	
+
+ULevelStreaming* UEditorLevelUtils::CreateNewStreamingLevelForWorld(UWorld& InWorld, TSubclassOf<ULevelStreaming> LevelStreamingClass, const FString& DefaultFilename /* = TEXT( "" ) */, bool bMoveSelectedActorsIntoNewLevel /* = false */)
+{
+	// Editor modes cannot be active when any level saving occurs.
+	GLevelEditorModeTools().DeactivateAllModes();
+
+	// This is the world we are adding the new level to
+	UWorld* WorldToAddLevelTo = &InWorld;
+
+	// This is the new streaming level's world not the persistent level world
+	UWorld* NewLevelWorld = nullptr;
+	if (UEditorEngine::IsUsingWorldAssets())
+	{
+		// Create a new world
+		UWorldFactory* Factory = NewObject<UWorldFactory>();
+		Factory->WorldType = EWorldType::Inactive;
+		UPackage* Pkg = CreatePackage(NULL, NULL);
+		FName WorldName(TEXT("Untitled"));
+		EObjectFlags Flags = RF_Public | RF_Standalone;
+		NewLevelWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, WorldName, Flags, NULL, GWarn));
+		if (NewLevelWorld)
+		{
+			FAssetRegistryModule::AssetCreated(NewLevelWorld);
+		}
+	}
+	else
+	{
+		// Create a new world - so we can 'borrow' its level
+		NewLevelWorld = UWorld::CreateWorld(EWorldType::None, false);
+		check(NewLevelWorld);
+	}
+
+	// Save the new world to disk.
+	const bool bNewWorldSaved = FEditorFileUtils::SaveLevel(NewLevelWorld->PersistentLevel, DefaultFilename);
+	FString NewPackageName;
+	if (bNewWorldSaved)
+	{
+		NewPackageName = NewLevelWorld->GetOutermost()->GetName();
+	}
+
+	if (!UEditorEngine::IsUsingWorldAssets())
+	{
+		// Destroy the new world we created and collect the garbage
+		NewLevelWorld->DestroyWorld(false);
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	}
+
+	// If the new world was saved successfully, import it as a streaming level.
+	ULevelStreaming* NewStreamingLevel = nullptr;
+	ULevel* NewLevel = nullptr;
+	if (bNewWorldSaved)
+	{
+		NewStreamingLevel = AddLevelToWorld(WorldToAddLevelTo, *NewPackageName, LevelStreamingClass);
+		NewLevel = NewStreamingLevel->GetLoadedLevel();
+		// If we are moving the selected actors to the new level move them now
+		if (bMoveSelectedActorsIntoNewLevel)
+		{
+			MoveSelectedActorsToLevel(NewStreamingLevel);
+		}
+
+		// Finally make the new level the current one
+		if (WorldToAddLevelTo->SetCurrentLevel(NewLevel))
+		{
+			FEditorDelegates::NewCurrentLevel.Broadcast();
+		}
+	}
+
+	// Broadcast the levels have changed (new style)
+	WorldToAddLevelTo->BroadcastLevelsChanged();
+	FEditorDelegates::RefreshLevelBrowser.Broadcast();
+
+	return NewStreamingLevel;
+}
+
+
+bool UEditorLevelUtils::RemoveLevelFromWorld(ULevel* InLevel)
 	{
 		if (GEditor->Layers.IsValid())
 		{
@@ -454,13 +580,7 @@ namespace EditorLevelUtils
 	}
 
 
-	/**
-	* Removes a level from the world.  Returns true if the level was removed successfully.
-	*
-	* @param	InLevel		The level to remove from the world.
-	* @return				true if the level was removed successfully, false otherwise.
-	*/
-	bool PrivateRemoveLevelFromWorld(ULevel* InLevel)
+bool UEditorLevelUtils::PrivateRemoveLevelFromWorld(ULevel* InLevel)
 	{
 		if ( !InLevel || InLevel->IsPersistentLevel() )
 		{
@@ -540,7 +660,7 @@ namespace EditorLevelUtils
 		return true;
 	}
 
-	bool EditorDestroyLevel(ULevel* InLevel)
+bool UEditorLevelUtils::EditorDestroyLevel(ULevel* InLevel)
 	{
 		UWorld* World = InLevel->OwningWorld;
 
@@ -565,72 +685,13 @@ namespace EditorLevelUtils
 		return true;
 	}
 
-	ULevel* CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, UClass* LevelStreamingClass, const FString& DefaultFilename )
-	{
-		// Editor modes cannot be active when any level saving occurs.
-		GLevelEditorModeTools().DeactivateAllModes();
-
-		UWorld* NewWorld = nullptr;
-		if (UEditorEngine::IsUsingWorldAssets())
+ULevel* UEditorLevelUtils::CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, TSubclassOf<ULevelStreaming> LevelStreamingClass, const FString& DefaultFilename )
 		{
-			// Create a new world
-			UWorldFactory* Factory = NewObject<UWorldFactory>();
-			Factory->WorldType = EWorldType::Inactive;
-			UPackage* Pkg = CreatePackage(NULL, NULL);
-			FName WorldName(TEXT("Untitled"));
-			EObjectFlags Flags = RF_Public | RF_Standalone;
-			NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, WorldName, Flags, NULL, GWarn));
-			if ( NewWorld )
-			{
-				FAssetRegistryModule::AssetCreated(NewWorld);
-			}
-		}
-		else
-		{
-			// Create a new world - so we can 'borrow' its level
-			NewWorld = UWorld::CreateWorld(EWorldType::None, false );
-			check(NewWorld);
+	ULevelStreaming* StreamingLevel = CreateNewStreamingLevelForWorld(*InWorld, LevelStreamingClass, DefaultFilename, bMoveSelectedActorsIntoNewLevel);
+	return StreamingLevel->GetLoadedLevel();
 		}
 
-		// Save the new world to disk.
-		const bool bNewWorldSaved = FEditorFileUtils::SaveLevel( NewWorld->PersistentLevel, DefaultFilename );
-		FString NewPackageName;
-		if ( bNewWorldSaved )
-		{
-			NewPackageName = NewWorld->GetOutermost()->GetName();
-		}
-
-		if (!UEditorEngine::IsUsingWorldAssets())
-		{
-			// Destroy the new world we created and collect the garbage
-			NewWorld->DestroyWorld( false );
-			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-		}
-
-		// If the new world was saved successfully, import it as a streaming level.
-		ULevel* NewLevel = NULL;
-		if ( bNewWorldSaved )
-		{
-			NewLevel = AddLevelToWorld( InWorld, *NewPackageName, LevelStreamingClass );
-
-			// If we are moving the selected actors to the new level move them now
-			if ( bMoveSelectedActorsIntoNewLevel )
-			{
-				GEditor->MoveSelectedActorsToLevel( NewLevel );
-			}
-			// Finally make the new level the current one
-			if (InWorld->SetCurrentLevel(NewLevel))
-			{
-				FEditorDelegates::NewCurrentLevel.Broadcast();
-			}
-		}
-
-		// Broadcast the levels have changed (new style)
-		InWorld->BroadcastLevelsChanged();
-		return NewLevel;
-	}
-	
-	void DeselectAllSurfacesInLevel(ULevel* InLevel)
+void UEditorLevelUtils::DeselectAllSurfacesInLevel(ULevel* InLevel)
 	{
 		if(InLevel)
 		{
@@ -647,7 +708,7 @@ namespace EditorLevelUtils
 		}
 	}
 
-	void SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible)
+void UEditorLevelUtils::SetLevelVisibility(ULevel* Level, bool bShouldBeVisible, bool bForceLayersVisible)
 	{	
 		// Nothing to do
 		if ( Level == NULL )
@@ -855,18 +916,11 @@ namespace EditorLevelUtils
 
 		if (Level->bIsLightingScenario)
 		{
-			Level->OwningWorld->PropagateLightingScenarioChange();
+			Level->OwningWorld->PropagateLightingScenarioChange(bShouldBeVisible);
 		}
 	}
 
-	/**
-	* Assembles the set of all referenced worlds.
-	*
-	* @param	OutWorlds			[out] The set of referenced worlds.
-	* @param	bIncludeGWorld		If true, include GWorld in the output list.
-	* @param	bOnlyEditorVisible	If true, only sub-levels that should be visible in-editor are included
-	*/
-	void GetWorlds(UWorld* InWorld, TArray<UWorld*>& OutWorlds, bool bIncludeInWorld, bool bOnlyEditorVisible)
+void UEditorLevelUtils::GetWorlds(UWorld* InWorld, TArray<UWorld*>& OutWorlds, bool bIncludeInWorld, bool bOnlyEditorVisible)
 	{
 		OutWorlds.Empty();
 
@@ -921,7 +975,5 @@ namespace EditorLevelUtils
 			}
 		}
 	}
-
-}
 
 #undef LOCTEXT_NAMESPACE

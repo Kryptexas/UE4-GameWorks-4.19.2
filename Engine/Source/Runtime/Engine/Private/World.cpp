@@ -3110,6 +3110,11 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleTraceTagCommand( Cmd, Ar );
 	}
+	else if( FParse::Command( &Cmd, TEXT("TRACETAGALL")))
+	{
+		bDebugDrawAllTraceTags = !bDebugDrawAllTraceTags;
+		return true;
+	}
 	else if( FParse::Command( &Cmd, TEXT("FLUSHPERSISTENTDEBUGLINES") ) )
 	{		
 		return HandleFlushPersistentDebugLinesCommand( Cmd, Ar );
@@ -6467,8 +6472,8 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 	// Save/Display the file size and modify date
 	FDateTime AssetDateModified = IFileManager::Get().GetTimeStamp(*FullFilePath);
-	OutTags.Add(FAssetRegistryTag("DateModified", FText::AsDate(AssetDateModified, EDateTimeStyle::Short).ToString(), FAssetRegistryTag::TT_Dimensional));
-	OutTags.Add(FAssetRegistryTag("MapFileSize", FText::AsMemory(IFileManager::Get().FileSize(*FullFilePath)).ToString(), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("DateModified", AssetDateModified.ToString(), FAssetRegistryTag::TT_Chronological, FAssetRegistryTag::TD_Date));
+	OutTags.Add(FAssetRegistryTag("MapFileSize", Lex::ToString(IFileManager::Get().FileSize(*FullFilePath)), FAssetRegistryTag::TT_Numerical, FAssetRegistryTag::TD_Memory));
 
 	FWorldDelegates::GetAssetTags.Broadcast(this, OutTags);
 }

@@ -102,6 +102,12 @@ namespace UnrealBuildTool
 		[CommandLine("-StaticAnalyzer")]
 		public WindowsStaticAnalyzer StaticAnalyzer = WindowsStaticAnalyzer.None;
 
+		/// <summary>
+		/// Provides a Module Definition File (.def) to the linker to describe various attributes of a DLL.
+		/// Necessary when exporting functions by ordinal values instead of by name.
+		/// </summary>
+		public string ModuleDefinitionFile;
+
 		/// VS2015 updated some of the CRT definitions but not all of the Windows SDK has been updated to match.
 		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
 		public bool bNeedsLegacyStdioDefinitionsLib
@@ -183,6 +189,11 @@ namespace UnrealBuildTool
 		public WindowsStaticAnalyzer StaticAnalyzer
 		{
 			get { return Inner.StaticAnalyzer; }
+		}
+
+		public string ModuleDefinitionFile
+		{
+			get { return Inner.ModuleDefinitionFile; }
 		}
 
 		public bool bNeedsLegacyStdioDefinitionsLib
@@ -694,8 +705,8 @@ namespace UnrealBuildTool
 					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
 				}
 
-                // To enable platform specific D3D12 RHI Types
-                Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
+				// To enable platform specific D3D12 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
 
 			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
@@ -878,6 +889,8 @@ namespace UnrealBuildTool
 			{
 				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
 			}
+
+			LinkEnvironment.ModuleDefinitionFile = Target.WindowsPlatform.ModuleDefinitionFile;
 		}
 
 		/// <summary>

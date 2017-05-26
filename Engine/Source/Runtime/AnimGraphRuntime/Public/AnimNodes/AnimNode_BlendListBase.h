@@ -13,7 +13,7 @@ class UBlendProfile;
 class UCurveFloat;
 
 // Blend list node; has many children
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_BlendListBase : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

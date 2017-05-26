@@ -4,6 +4,7 @@
 #include "OnlineIdentityGoogle.h"
 #include "OnlineSubsystemGooglePrivate.h"
 #include "OnlineSubsystemGoogleTypes.h"
+#include "OnlineSubsystemGoogle.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Misc/ConfigCacheIni.h"
@@ -48,11 +49,12 @@ bool FJsonWebTokenGoogle::Parse(const FString& InJWTStr)
 							//Verify that the value of iss in the ID token is Google issued
 							static const FString Issuer1 = TEXT("https://accounts.google.com");
 							static const FString Issuer2 = TEXT("accounts.google.com");
-
 							if ((Payload.ISS == Issuer1) || (Payload.ISS == Issuer2))
 							{
 								// Verify that the value of aud in the ID token is equal to your app’s client ID.
-								if (Payload.Aud == IOnlineSubsystem::Get(GOOGLE_SUBSYSTEM)->GetAppId())
+								FOnlineSubsystemGoogle* GoogleSubsystem = static_cast<FOnlineSubsystemGoogle*>(IOnlineSubsystem::Get(GOOGLE_SUBSYSTEM));
+								if (Payload.Aud == GoogleSubsystem->GetAppId() ||
+									Payload.Aud == GoogleSubsystem->GetServerClientId())
 								{
 									//https://www.codescience.com/blog/2016/oauth2-server-to-server-authentication-from-salesforce-to-google-apis
 									// exp	Required	The expiration time of the assertion, specified as seconds since 00:00:00 UTC, January 1, 1970. This value has a maximum of 1 hour after the issued time.
@@ -75,16 +77,22 @@ bool FJsonWebTokenGoogle::Parse(const FString& InJWTStr)
 									else
 									{
 										UE_LOG(LogOnline, Warning, TEXT("Google auth: Expiry Time inconsistency"));
+										UE_LOG(LogOnline, Warning, TEXT("	Expiry: %s"), *ExpiryTime.ToString());
+										UE_LOG(LogOnline, Warning, TEXT("	Issue: %s"), *IssueTime.ToString());
 									}
 								}
 								else
 								{
 									UE_LOG(LogOnline, Warning, TEXT("Google auth: Audience inconsistency"));
+									UE_LOG(LogOnline, Warning, TEXT("	Payload: %s"), *Payload.Aud); 
+									UE_LOG(LogOnline, Warning, TEXT("	ClientId: %s"), *GoogleSubsystem->GetAppId());
+									UE_LOG(LogOnline, Warning, TEXT("	ServerClientId: %s"), *GoogleSubsystem->GetServerClientId());
 								}
 							}
 							else
 							{
 								UE_LOG(LogOnline, Warning, TEXT("Google auth: Issuer inconsistency"));
+								UE_LOG(LogOnline, Warning, TEXT("	ISS: %s"), *Payload.ISS);
 							}
 						}
 						else
@@ -163,24 +171,40 @@ bool FAuthTokenGoogle::Parse(const FString& InJsonStr)
 		if (FJsonSerializer::Deserialize(JsonReader, JsonAuth) &&
 			JsonAuth.IsValid())
 		{
-			if (FromJson(JsonAuth))
+			bSuccess = Parse(JsonAuth);
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FAuthTokenGoogle: Empty Json string"));
+	}
+
+	return bSuccess;
+}
+
+bool FAuthTokenGoogle::Parse(TSharedPtr<FJsonObject> InJsonObject)
+{
+	bool bSuccess = false;
+
+	if (InJsonObject.IsValid())
+	{
+		if (FromJson(InJsonObject))
+		{
+			if (!AccessToken.IsEmpty())
 			{
-				if (!AccessToken.IsEmpty())
+				if (IdTokenJWT.Parse(IdToken))
 				{
-					if (IdTokenJWT.Parse(IdToken))
-					{
-						AddAuthAttributes(JsonAuth);
-						AuthType = EGoogleAuthTokenType::AccessToken;
-						ExpiresInUTC = FDateTime::UtcNow() + FTimespan(ExpiresIn * ETimespan::TicksPerSecond);
-						bSuccess = true;
-					}
+					AddAuthAttributes(InJsonObject);
+					AuthType = EGoogleAuthTokenType::AccessToken;
+					ExpiresInUTC = FDateTime::UtcNow() + FTimespan(ExpiresIn * ETimespan::TicksPerSecond);
+					bSuccess = true;
 				}
 			}
 		}
 	}
 	else
 	{
-		UE_LOG_ONLINE(Warning, TEXT("FAuthTokenGoogle: Empty Json string"));
+		UE_LOG_ONLINE(Warning, TEXT("FAuthTokenGoogle: Invalid Json pointer"));
 	}
 
 	return bSuccess;
@@ -362,8 +386,15 @@ void FOnlineIdentityGoogleCommon::MeUser_HttpRequestComplete(FHttpRequestPtr Htt
 		}
 		else
 		{
-			//FErrorGoogle Error;
-			//Error.FromJson(ResponseStr);
+			FErrorGoogle Error;
+			if (Error.FromJson(ResponseStr) && !Error.Error_Description.IsEmpty())
+			{
+				ErrorStr = Error.Error_Description;
+			}
+			else
+			{
+				ErrorStr = FString::Printf(TEXT("Failed to parse Google error %s"), *ResponseStr);
+			}
 		}
 	}
 	else

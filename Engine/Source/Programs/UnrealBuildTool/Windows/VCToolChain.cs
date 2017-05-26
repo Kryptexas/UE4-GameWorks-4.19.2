@@ -229,8 +229,15 @@ namespace UnrealBuildTool
 				// Separate functions for linker.
 				Arguments.Add("/Gy");
 
-				// Allow 1000% of the default memory allocation limit.
-				Arguments.Add("/Zm850");
+				// Allow 750% of the default memory allocation limit when using the static analyzer, and 850% at other times.
+				if (bWithStaticAnalyzer)
+				{
+					Arguments.Add("/Zm750");
+				}
+				else
+				{
+					Arguments.Add("/Zm850");
+				}
 
 				// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 				Arguments.Add("/wd4819");
@@ -1439,13 +1446,18 @@ namespace UnrealBuildTool
 			}
 
 
-			// Add delay loaded DLLs.
 			if (!bIsBuildingLibrary)
 			{
 				// Delay-load these DLLs.
 				foreach (string DelayLoadDLL in LinkEnvironment.DelayLoadDLLs.Distinct())
 				{
 					Arguments.Add(String.Format("/DELAYLOAD:\"{0}\"", DelayLoadDLL));
+				}
+
+				// Pass the module definition file to the linker if we have one
+				if (LinkEnvironment.ModuleDefinitionFile != null && LinkEnvironment.ModuleDefinitionFile.Length > 0)
+				{
+					Arguments.Add(String.Format("/DEF:\"{0}\"", LinkEnvironment.ModuleDefinitionFile));
 				}
 			}
 

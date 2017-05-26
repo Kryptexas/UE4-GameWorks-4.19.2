@@ -43,6 +43,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "VectorField/VectorField.h"
+#include "CoreDelegates.h"
 #include "PipelineStateCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
@@ -3154,7 +3155,7 @@ public:
 		UParticleSystem *Template = Component->Template;
 
 		const bool bLocalSpace = EmitterInfo.RequiredModule->bUseLocalSpace;
-		const FMatrix ComponentToWorldMatrix = Component->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentToWorldMatrix = Component->GetComponentTransform().ToMatrixWithScale();
 		const FMatrix ComponentToWorld = (bLocalSpace || EmitterInfo.LocalVectorField.bIgnoreComponentTransform) ? FMatrix::Identity : ComponentToWorldMatrix;
 
 		const FRotationMatrix VectorFieldTransform(LocalVectorFieldRotation);
@@ -3177,7 +3178,7 @@ public:
 		DynamicData->bUseLocalSpace = EmitterInfo.RequiredModule->bUseLocalSpace;
 
 		// Account for LocalToWorld scaling
-		FVector ComponentScale = Component->ComponentToWorld.GetScale3D();
+		FVector ComponentScale = Component->GetComponentTransform().GetScale3D();
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
 			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
@@ -4573,6 +4574,15 @@ void FFXSystem::SimulateGPUParticles(
 	static TArray<FSimulationCommandGPU> SimulationCommands;
 	static TArray<uint32> TilesToClear;
 	static TArray<FNewParticle> NewParticles;
+
+	// One-time register delegate with Trim() so the data above can be freed on demand
+	static FDelegateHandle Clear = FCoreDelegates::GetMemoryTrimDelegate().AddLambda([]()
+	{
+		SimulationCommands.Empty();
+		TilesToClear.Empty();
+		NewParticles.Empty();
+	});
+
 	for (TSparseArray<FParticleSimulationGPU*>::TIterator It(GPUSimulations); It; ++It)
 	{
 		//SCOPE_CYCLE_COUNTER(STAT_GPUParticleBuildSimCmdsTime);

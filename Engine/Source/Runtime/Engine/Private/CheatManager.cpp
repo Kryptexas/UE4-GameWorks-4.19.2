@@ -76,8 +76,7 @@ void UCheatManager::Teleport()
 	FHitResult Hit;
 
 	APawn* AssociatedPawn = GetOuterAPlayerController()->GetPawn();
-	static FName NAME_TeleportTrace = FName(TEXT("TeleportTrace"));
-	FCollisionQueryParams TraceParams(NAME_TeleportTrace, true, AssociatedPawn);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(TeleportTrace), true, AssociatedPawn);
 
 	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, ViewLocation, ViewLocation + 1000000.f * ViewRotation.Vector(), ECC_Pawn, TraceParams);
 	if ( bHit )
@@ -207,38 +206,38 @@ void UCheatManager::Slomo(float NewTimeDilation)
 
 void UCheatManager::DamageTarget(float DamageAmount)
 {
-    APlayerController* const MyPC = GetOuterAPlayerController();
-    FHitResult Hit;
+	APlayerController* const MyPC = GetOuterAPlayerController();
+	FHitResult Hit;
     AActor* TargetActor = GetTarget(MyPC, Hit);
     if (TargetActor)
-    {
-        FVector ActorForward, ActorSide, ActorUp;
+	{
+		FVector ActorForward, ActorSide, ActorUp;
         FQuatRotationMatrix(TargetActor->GetActorQuat()).GetScaledAxes(ActorForward, ActorSide, ActorUp);
         
-        FPointDamageEvent DamageEvent(DamageAmount, Hit, -ActorForward, UDamageType::StaticClass());
+		FPointDamageEvent DamageEvent(DamageAmount, Hit, -ActorForward, UDamageType::StaticClass());
         TargetActor->TakeDamage(DamageAmount, DamageEvent, MyPC, MyPC->GetPawn());
-    }
+	}
 }
 
 void UCheatManager::DestroyTarget()
 {
-    APlayerController* const MyPC = GetOuterAPlayerController();
-    FHitResult Hit;
+	APlayerController* const MyPC = GetOuterAPlayerController();
+	FHitResult Hit;
     AActor* TargetActor = GetTarget(MyPC, Hit);
     if (TargetActor)
-    {
+	{
         APawn* Pawn = Cast<APawn>(TargetActor);
-        if (Pawn != NULL)
-        {
-            if ((Pawn->Controller != NULL) && (Cast<APlayerController>(Pawn->Controller) == NULL))
-            {
-                // Destroy any associated controller as long as it's not a player controller.
-                Pawn->Controller->Destroy();
-            }
-        }
+		if (Pawn != NULL)
+		{
+			if ((Pawn->Controller != NULL) && (Cast<APlayerController>(Pawn->Controller) == NULL))
+			{
+				// Destroy any associated controller as long as it's not a player controller.
+				Pawn->Controller->Destroy();
+			}
+		}
         
         TargetActor->Destroy();
-    }
+	}
 }
 
 void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
@@ -264,29 +263,29 @@ void UCheatManager::DestroyAll(TSubclassOf<AActor> aClass)
 
 void UCheatManager::DestroyAllPawnsExceptTarget()
 {
-    APlayerController* const MyPC = GetOuterAPlayerController();
-    FHitResult Hit;
+	APlayerController* const MyPC = GetOuterAPlayerController();
+	FHitResult Hit;
     APawn* HitPawnTarget = Cast<APawn>(GetTarget(MyPC, Hit));
-    // if we have a pawn target, destroy all other non-players
-    if (HitPawnTarget)
-    {
-        for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
-        {
-            APawn* Pawn = *It;
-            checkSlow(Pawn);
-            if (!Pawn->IsPendingKill())
-            {
-                if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
-                {
-                    if (Pawn->Controller != NULL)
-                    {
-                        Pawn->Controller->Destroy();
-                    }
-                    Pawn->Destroy();
-                }
-            }
-        }
-    }
+	// if we have a pawn target, destroy all other non-players
+	if (HitPawnTarget)
+	{
+		for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
+		{
+			APawn* Pawn = *It;
+			checkSlow(Pawn);
+			if (!Pawn->IsPendingKill())
+			{
+				if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)
+				{
+					if (Pawn->Controller != NULL)
+					{
+						Pawn->Controller->Destroy();
+					}
+					Pawn->Destroy();
+				}
+			}
+		}
+	}
 }
 
 void UCheatManager::DestroyPawns(TSubclassOf<APawn> aClass)
@@ -688,8 +687,7 @@ void UCheatManager::TickCollisionDebug()
 			FVector End = ViewLoc + (DebugTraceDistance * ViewDir);
 
 			// Fill in params and do trace
-			static const FName TickCollisionDebugName(TEXT("TickCollisionDebug"));
-			FCollisionQueryParams CapsuleParams(TickCollisionDebugName, false, PC->GetPawn());
+			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(TickCollisionDebug), false, PC->GetPawn());
 			CapsuleParams.bTraceComplex = bDebugCapsuleTraceComplex;
 
 			if (bDebugCapsuleSweep)
@@ -1207,7 +1205,7 @@ AActor* UCheatManager::GetTarget(APlayerController* PlayerController, struct FHi
     FVector const CamLoc = PlayerController->PlayerCameraManager->GetCameraLocation();
     FRotator const CamRot = PlayerController->PlayerCameraManager->GetCameraRotation();
     
-    FCollisionQueryParams TraceParams(NAME_None, true, PlayerController->GetPawn());
+    FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, PlayerController->GetPawn());
     bool bHit = GetWorld()->LineTraceSingleByChannel(OutHit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
     if (bHit)
     {

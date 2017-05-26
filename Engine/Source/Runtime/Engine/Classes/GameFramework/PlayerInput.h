@@ -136,7 +136,7 @@ struct FInputActionKeyMapping
 	GENERATED_USTRUCT_BODY()
 
 	/** Friendly name of action, e.g "jump" */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	FName ActionName;
 
 	/** Key to bind it to. */
@@ -204,15 +204,15 @@ struct FInputAxisKeyMapping
 	GENERATED_USTRUCT_BODY()
 
 	/** Friendly name of axis, e.g "MoveForward" */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	FName AxisName;
 
 	/** Key to bind it to. */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	FKey Key;
 
 	/** Multiplier to use for the mapping when accumulating the axis value */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	float Scale;
 
 	bool operator==(const FInputAxisKeyMapping& Other) const

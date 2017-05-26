@@ -188,11 +188,11 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 	else
 	{
 		// The widget is not managed by another widget, so handle the mouse input and enter edit mode if ready.
-		if(HasKeyboardFocus())
+		if(HasKeyboardFocus() && !bIsReadOnly.Get())
 		{
 			EnterEditingMode();
+			return FReply::Handled();
 		}
-		return FReply::Handled();
 	}
 
 	// Do not handle the mouse input, this will allow for drag and dropping events to trigger.

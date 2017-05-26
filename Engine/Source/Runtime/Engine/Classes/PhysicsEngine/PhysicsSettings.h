@@ -236,6 +236,10 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float InitialAverageFrameRate;
 
+	/** The number of frames it takes to rebuild the PhysX scene query AABB tree. The bigger the number, the smaller fetchResults takes per frame, but the more the tree deteriorates until a new tree is built */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "4", UIMin = "4"), Category = Framerate)
+	int PhysXTreeRebuildRate;
+
 	// PhysicalMaterial Surface Types
 	UPROPERTY(config, EditAnywhere, Category=PhysicalSurfaces)
 	TArray<FPhysicalSurfaceName> PhysicalSurfaces;

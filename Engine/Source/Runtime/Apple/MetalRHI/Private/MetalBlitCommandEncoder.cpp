@@ -14,6 +14,8 @@ extern int32 GMetalRuntimeDebugLevel;
 
 @implementation FMetalDebugBlitCommandEncoder
 
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugBlitCommandEncoder)
+
 @synthesize Inner;
 @synthesize Buffer;
 

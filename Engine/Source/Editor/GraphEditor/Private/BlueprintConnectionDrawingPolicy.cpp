@@ -442,8 +442,7 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 	const bool bDeemphasizeUnhoveredPins = HoveredPins.Num() > 0;
 
 	// If this is a K2 graph, try to be a little more specific
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Schema);
-	if (K2Schema != NULL)
+	if (const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Schema))
 	{
 		// If the output or input connect to a knot that is going backwards, we will flip the direction on values going into them
 		{
@@ -512,8 +511,8 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 		}
 		else
 		{
-			// Array types should draw thicker
-			if ((InputPin && InputPin->PinType.bIsArray) || (OutputPin && OutputPin->PinType.bIsArray))
+			// Container types should draw thicker
+			if ((InputPin && InputPin->PinType.IsContainer()) || (OutputPin && OutputPin->PinType.IsContainer()))
 			{
 				Params.WireThickness = 3.0f;
 			}

@@ -77,6 +77,8 @@ public:
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+
+	virtual FText GetOnlineServiceName() const override;
 	//~ End IOnlineSubsystem Interface
 
 	virtual bool Tick(float DeltaTime) override;

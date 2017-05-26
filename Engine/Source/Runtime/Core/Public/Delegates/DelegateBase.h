@@ -47,6 +47,11 @@ public:
 	{
 	}
 
+	~FDelegateBase()
+	{
+		Unbind();
+	}
+
 	/**
 	 * Move constructor.
 	 */

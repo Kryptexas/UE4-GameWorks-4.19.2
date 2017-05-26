@@ -96,9 +96,6 @@ bool GCompilingBlueprint = false;
 /** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
 bool GIsReconstructingBlueprintInstances = false;
 
-/** Force blueprints to not compile on load */
-bool GForceDisableBlueprintCompileOnLoad = false;
-
 /** True if actors and objects are being re-instanced. */
 bool GIsReinstancing = false;
 

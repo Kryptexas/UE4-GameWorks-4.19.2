@@ -171,6 +171,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 * @return true if the error code has been overriden, false if not
 	 */
 	static bool HasOverriddenReturnCode(uint8 * OverriddenReturnCodeToUsePtr);
+	static FString GetOSVersion();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

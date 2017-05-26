@@ -168,8 +168,8 @@ void UAnimGraphNode_BoneDrivenController::Draw(FPrimitiveDrawInterface* PDI, USk
 
 	if ((SourceIdx != INDEX_NONE) && (TargetIdx != INDEX_NONE))
 	{
-		const FTransform SourceTM = SkelMeshComp->GetComponentSpaceTransforms()[SourceIdx] * SkelMeshComp->ComponentToWorld;
-		const FTransform TargetTM = SkelMeshComp->GetComponentSpaceTransforms()[TargetIdx] * SkelMeshComp->ComponentToWorld;
+		const FTransform SourceTM = SkelMeshComp->GetComponentSpaceTransforms()[SourceIdx] * SkelMeshComp->GetComponentTransform();
+		const FTransform TargetTM = SkelMeshComp->GetComponentSpaceTransforms()[TargetIdx] * SkelMeshComp->GetComponentTransform();
 
 		PDI->DrawLine(TargetTM.GetLocation(), SourceTM.GetLocation(), FLinearColor(0.0f, 0.0f, 1.0f), SDPG_Foreground, 0.5f);
 
@@ -193,19 +193,19 @@ void UAnimGraphNode_BoneDrivenController::ValidateAnimNodeDuringCompilation(USke
 {
 	if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(Node.SourceBone.BoneName) == INDEX_NONE)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceBone", "@@ - You must pick a source bone as the Driver joint").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("DriverJoint_NoSourceBone", "@@ - You must pick a source bone as the Driver joint").ToString(), this);
 	}
 
 	if (Node.SourceComponent == EComponentType::None)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceComponent", "@@ - You must pick a source component on the Driver joint").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("DriverJoint_NoSourceComponent", "@@ - You must pick a source component on the Driver joint").ToString(), this);
 	}
 	
 	if (Node.DestinationMode == EDrivenDestinationMode::Bone)
 	{
 		if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(Node.TargetBone.BoneName) == INDEX_NONE)
 		{
-			MessageLog.Warning(*LOCTEXT("NoTargetBone", "@@ - You must pick a target bone as the Driven joint").ToString(), this);
+			MessageLog.Warning(*LOCTEXT("DriverJoint_NoTargetBone", "@@ - You must pick a target bone as the Driven joint").ToString(), this);
 		}
 		
 		const bool bAffectsTranslation = Node.bAffectTargetTranslationX || Node.bAffectTargetTranslationY || Node.bAffectTargetTranslationZ;
@@ -214,7 +214,7 @@ void UAnimGraphNode_BoneDrivenController::ValidateAnimNodeDuringCompilation(USke
 
 		if (!bAffectsTranslation && !bAffectsRotation && !bAffectsScale)
 		{
-			MessageLog.Warning(*LOCTEXT("NoTargetComponent", "@@ - You must pick one or more target components on the Driven joint").ToString(), this);
+			MessageLog.Warning(*LOCTEXT("DriverJoint_NoTargetComponent", "@@ - You must pick one or more target components on the Driven joint").ToString(), this);
 		}
 	}
 

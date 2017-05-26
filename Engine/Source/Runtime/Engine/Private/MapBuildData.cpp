@@ -43,7 +43,7 @@ ULevel* UWorld::GetActiveLightingScenario() const
 	return NULL;
 }
 
-void UWorld::PropagateLightingScenarioChange()
+void UWorld::PropagateLightingScenarioChange(bool bLevelWasMadeVisible)
 {
 	for (FActorIterator It(this); It; ++It)
 	{
@@ -68,8 +68,13 @@ void UWorld::PropagateLightingScenarioChange()
 		}
 	}
 
-	//@todo - store reflection capture data in UMapBuildDataRegistry so it can work with multiple lighting scenarios without forcing a recapture
-	UpdateAllReflectionCaptures();
+	// Skipping the reflection capture update if made invisible, in most cases another lighting scenario level will be made visible shortly after, 
+	// Or we're unloading all levels and then it doesn't matter if lighting is updated.
+	if (bLevelWasMadeVisible)
+	{
+		//@todo - store reflection capture data in UMapBuildDataRegistry so it can work with multiple lighting scenarios without forcing a recapture
+		UpdateAllReflectionCaptures();
+	}
 }
 
 UMapBuildDataRegistry* CreateRegistryForLegacyMap(ULevel* Level)

@@ -22,6 +22,14 @@ enum class EQueryMobilityType
 	Dynamic	//Any shape that is considered dynamic by physx (movable/stationary mobility)
 };
 
+/** Set to 1 so the compiler can find all QueryParams that don't take in a stat id.
+  * Note this will not include any queries taking a default SceneQuery param
+  */
+#define FIND_UNKNOWN_SCENE_QUERIES 0
+#define SCENE_QUERY_STAT_ONLY(QueryName) QUICK_USE_CYCLE_STAT(QueryName, STATGROUP_CollisionTags)
+#define SCENE_QUERY_STAT_NAME_ONLY(QueryName) [](){ static FName StaticName(#QueryName); return StaticName;}()
+#define SCENE_QUERY_STAT(QueryName) SCENE_QUERY_STAT_NAME_ONLY(QueryName), SCENE_QUERY_STAT_ONLY(QueryName)
+
 /** Structure that defines parameters passed into collision function */
 struct ENGINE_API FCollisionQueryParams
 {
@@ -64,6 +72,14 @@ struct ENGINE_API FCollisionQueryParams
 	/** Extra filtering done on the query. See declaration for filtering logic */
 	FMaskFilter IgnoreMask;
 
+	/** StatId used for profiling individual expensive scene queries */
+	TStatId StatId;
+
+	static FORCEINLINE TStatId GetUnknownStatId()
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(UnknownSceneQuery, STATGROUP_Collision);
+	}
+
 private:
 
 	/** Tracks whether the IgnoreComponents list is verified unique. */
@@ -102,7 +118,7 @@ public:
 	void SetNumIgnoredComponents(int32 NewNum);
 
 	// Constructors
-
+#if !FIND_UNKNOWN_SCENE_QUERIES
 	/** 
 	 *  DEPRECATED!  
 	 *  Please instead provide a FName parameter when constructing a FCollisionQueryParams object which will use the other constructor.
@@ -124,6 +140,7 @@ public:
 		IgnoreMask = 0;
 		bIgnoreBlocks = false;
 		bIgnoreTouches = false;
+		StatId = GetUnknownStatId();
 	}
 
 	FCollisionQueryParams()
@@ -139,11 +156,17 @@ public:
 		IgnoreMask = 0;
 		bIgnoreBlocks = false;
 		bIgnoreTouches = false;
+		StatId = GetUnknownStatId();
 	}
 
+	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL)
+	: FCollisionQueryParams(InTraceTag, GetUnknownStatId(), bInTraceComplex, InIgnoreActor)
+	{
 
+	}
+#endif
 
-	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL);
+	FCollisionQueryParams(FName InTraceTag, const TStatId& InStatId, bool bInTraceComplex = false, const AActor* InIgnoreActor = NULL);
 
 	// Utils
 
@@ -186,13 +209,20 @@ public:
 /** Structure when performing a collision query using a component's geometry */
 struct ENGINE_API FComponentQueryParams : public FCollisionQueryParams
 {
-	FComponentQueryParams() 
-	: FCollisionQueryParams(NAME_None,false)
+#if !FIND_UNKNOWN_SCENE_QUERIES
+	FComponentQueryParams()
+	: FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(),false)
 	{
 	}
 
 	FComponentQueryParams(FName InTraceTag, const AActor* InIgnoreActor=NULL)
-	: FCollisionQueryParams(InTraceTag, false, InIgnoreActor)
+	: FComponentQueryParams(InTraceTag, GetUnknownStatId(), InIgnoreActor)
+	{
+	}
+#endif
+
+	FComponentQueryParams(FName InTraceTag, const TStatId& InStatId, const AActor* InIgnoreActor = NULL)
+		: FCollisionQueryParams(InTraceTag, InStatId, false, InIgnoreActor)
 	{
 	}
 

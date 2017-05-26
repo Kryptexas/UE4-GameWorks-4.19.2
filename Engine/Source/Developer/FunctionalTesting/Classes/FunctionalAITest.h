@@ -16,7 +16,7 @@ class AFunctionalAITest;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIController*, Controller, APawn*, Pawn);
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAITestSpawnInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -79,7 +79,7 @@ struct FPendingDelayedSpawn : public FAITestSpawnInfo
 	void Tick(float TimeDelta, AFunctionalAITest* AITest);
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAITestSpawnSet
 {
 	GENERATED_USTRUCT_BODY()

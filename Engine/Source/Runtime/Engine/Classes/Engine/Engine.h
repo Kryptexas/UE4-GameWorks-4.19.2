@@ -573,7 +573,7 @@ class ENGINE_API UEngine
 {
 	GENERATED_UCLASS_BODY()
 
-	// Called after GEngine->Init has been called
+	DEPRECATED(4.17, "UEngine::OnPostEngineInit is deprecated, bind to FCoreDelegates::OnPostEngineInit instead, which will also be called for commandlets")
 	static FSimpleMulticastDelegate OnPostEngineInit;
 
 private:
@@ -780,6 +780,14 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference DefaultBokehTextureName;
+
+	/** Texture used to bloom when using FFT, mimics characteristic bloom produced in a camera from a signle bright source */
+	UPROPERTY()
+	class UTexture2D* DefaultBloomKernelTexture;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference DefaultBloomKernelTextureName;
 
 	/** The material used to render wireframe meshes. */
 	UPROPERTY()
@@ -1274,6 +1282,10 @@ public:
 	/** Fudge factor for tweaking the distance based miplevel determination */
 	UPROPERTY(EditAnywhere, Category=LevelStreaming, AdvancedDisplay)
 	float StreamingDistanceFactor;
+
+	/** The save directory for newly created screenshots */
+	UPROPERTY(config, EditAnywhere, Category = Screenshots)
+	FDirectoryPath GameScreenshotSaveDirectory;
 
 	/** The current transition type. */
 	UPROPERTY()
@@ -2044,6 +2056,11 @@ public:
 	 */
 	virtual void StopFPSChart(const FString& MapName);
 
+	/**
+	* Attempts to reclaim any idle memory by performing a garbage collection and broadcasting FCoreDelegates::OnMemoryTrim. Pending rendering commands are first flushed. This is called
+	* between level loads and may be called at other times, but is expensive and should be used sparingly. Do
+	*/
+	void TrimMemory();
 
 	/**
 	 * Calculates information about the previous frame and passes it to all active performance data consumers.

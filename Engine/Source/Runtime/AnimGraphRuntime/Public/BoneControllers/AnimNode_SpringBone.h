@@ -16,17 +16,17 @@ class USkeletalMeshComponent;
  *	Simple controller that replaces or adds to the translation/rotation of a single bone.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_SpringBone : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring) 
+	UPROPERTY(EditAnywhere, Category=Spring) 
 	FBoneReference SpringBone;
 
 	/** Limit the amount that a bone can stretch from its ref-pose length. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring)
 	bool bLimitDisplacement;
 
 	/** If bLimitDisplacement is true, this indicates how long a bone can stretch beyond its length in the ref-pose. */
@@ -34,15 +34,15 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SpringBone : public FAnimNode_SkeletalCont
 	float MaxDisplacement;
 
 	/** Stiffness of spring */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring)
 	float SpringStiffness;
 
 	/** Damping of spring */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring)
 	float SpringDamping;
 
 	/** If spring stretches more than this, reset it. Useful for catching teleports etc */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring)
+	UPROPERTY(EditAnywhere, Category=Spring)
 	float ErrorResetThresh;
 
 	/** If true, Z position is always correct, no spring applied */
@@ -50,27 +50,27 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SpringBone : public FAnimNode_SkeletalCont
 	bool bNoZSpring_DEPRECATED;
 
 	/** If true take the spring calculation for translation in X */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bTranslateX;
 
 	/** If true take the spring calculation for translation in Y */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bTranslateY;
 
 	/** If true take the spring calculation for translation in Z */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bTranslateZ;
 
 	/** If true take the spring calculation for rotation in X */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bRotateX;
 
 	/** If true take the spring calculation for rotation in Y */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bRotateY;
 
 	/** If true take the spring calculation for rotation in Z */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	UPROPERTY(EditAnywhere, Category=FilterChannels)
 	bool bRotateZ;
 
 	/** Internal use - Amount of time we need to simulate. */

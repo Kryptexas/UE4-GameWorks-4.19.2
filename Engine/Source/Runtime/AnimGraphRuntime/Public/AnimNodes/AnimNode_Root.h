@@ -8,7 +8,7 @@
 #include "AnimNode_Root.generated.h"
 
 // Root node of an animation tree (sink)
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_Root : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

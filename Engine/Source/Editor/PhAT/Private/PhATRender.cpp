@@ -288,13 +288,13 @@ void UPhATEdSkeletalMeshComponent::DrawHierarchy(FPrimitiveDrawInterface* PDI, b
 		FVector ParentPos, ChildPos;
 		if (bAnimSkel)
 		{
-			ParentPos = ComponentToWorld.TransformPosition(AnimationSpaceBases[ParentIndex].GetLocation());
-			ChildPos = ComponentToWorld.TransformPosition(AnimationSpaceBases[i].GetLocation());
+			ParentPos = GetComponentTransform().TransformPosition(AnimationSpaceBases[ParentIndex].GetLocation());
+			ChildPos = GetComponentTransform().TransformPosition(AnimationSpaceBases[i].GetLocation());
 		}
 		else
 		{
-			ParentPos = ComponentToWorld.TransformPosition(GetComponentSpaceTransforms()[ParentIndex].GetLocation());
-			ChildPos = ComponentToWorld.TransformPosition(GetComponentSpaceTransforms()[i].GetLocation());
+			ParentPos = GetComponentTransform().TransformPosition(GetComponentSpaceTransforms()[ParentIndex].GetLocation());
+			ChildPos = GetComponentTransform().TransformPosition(GetComponentSpaceTransforms()[i].GetLocation());
 		}
 
 		FColor DrawColor = bAnimSkel ? AnimSkelDrawColor : HierarchyDrawColor;

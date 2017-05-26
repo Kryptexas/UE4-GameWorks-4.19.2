@@ -88,14 +88,14 @@ public:
 	 * @param InVRMode Currently active VRMode
 	 * @param PanelToToggle UI panel to change the state of
 	 */
-	static void OnUIToggleButtonClicked(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToToggle);
+	static void OnUIToggleButtonClicked(UVREditorMode* InVRMode, VREditorPanelID PanelToToggle);
 
 	/**
 	 * Returns a VR UI panel's visibility - used for check boxes on the menu button
 	 * @param InVRMode Currently active VRMode
 	 * @param PanelToToggle UI panel to read the state of
 	 */
-	static ECheckBoxState GetUIToggledState(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToCheck);
+	static ECheckBoxState GetUIToggledState(UVREditorMode* InVRMode, VREditorPanelID PanelToCheck);
 
 	/**
 	 * Toggles a flashlight on and off on the interactor that clicked on the UI button

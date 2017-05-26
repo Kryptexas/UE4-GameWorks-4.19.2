@@ -7,7 +7,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Editor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "LevelSequenceObjectReference.h"
+#include "LevelSequenceBindingReference.h"
 #include "SequenceRecorderSettings.h"
 #include "Sections/MovieScene3DTransformSectionRecorderSettings.h"
 #include "MovieSceneFolder.h"
@@ -396,10 +396,7 @@ TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingC
 		ParentSpawnable->AddChildPossessable(PossessableGuid);
 	}
 
-	// BindingName must be the component's path relative to its owner Actor
-	FLevelSequenceObjectReference ObjectReference(FUniqueObjectGuid(), BindingName.ToString());
-
-	CurrentSequence->BindPossessableObject(PossessableGuid, ObjectReference);
+	CurrentSequence->BindPossessableObject(PossessableGuid, *SceneComponent, BindingContext);
 
 	// First try built-in animation recorder...
 	TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = nullptr;

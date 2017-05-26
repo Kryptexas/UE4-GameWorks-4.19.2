@@ -17,6 +17,63 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
+/** Mapping of asset property tag aliases that can be used by text searches */
+class FFrontendFilter_AssetPropertyTagAliases
+{
+public:
+	static FFrontendFilter_AssetPropertyTagAliases& Get()
+	{
+		static FFrontendFilter_AssetPropertyTagAliases Singleton;
+		return Singleton;
+	}
+
+	/** Get the source tag for the given asset data and alias, or none if there is no match */
+	FName GetSourceTagFromAlias(const FAssetData& InAssetData, const FName InAlias)
+	{
+		TSharedPtr<TMap<FName, FName>>& AliasToSourceTagMapping = ClassToAliasTagsMapping.FindOrAdd(InAssetData.AssetClass);
+
+		if (!AliasToSourceTagMapping.IsValid())
+		{
+			static const FName NAME_DisplayName(TEXT("DisplayName"));
+
+			UClass* AssetClass = InAssetData.GetClass();
+
+			TMap<FName, UObject::FAssetRegistryTagMetadata> AssetTagMetaData;
+			AssetClass->GetDefaultObject()->GetAssetRegistryTagMetadata(AssetTagMetaData);
+
+			AliasToSourceTagMapping = MakeShared<TMap<FName, FName>>();
+
+			for (const auto& AssetTagMetaDataPair : AssetTagMetaData)
+			{
+				if (!AssetTagMetaDataPair.Value.DisplayName.IsEmpty())
+				{
+					const FName DisplayName = MakeObjectNameFromDisplayLabel(AssetTagMetaDataPair.Value.DisplayName.ToString(), NAME_None);
+					AliasToSourceTagMapping->Add(DisplayName, AssetTagMetaDataPair.Key);
+				}
+			}
+
+			for (const auto& KeyValuePair : InAssetData.TagsAndValues)
+			{
+				if (UProperty* Field = FindField<UProperty>(AssetClass, KeyValuePair.Key))
+				{
+					if (Field->HasMetaData(NAME_DisplayName))
+					{
+						const FName DisplayName = MakeObjectNameFromDisplayLabel(Field->GetMetaData(NAME_DisplayName), NAME_None);
+						AliasToSourceTagMapping->Add(DisplayName, KeyValuePair.Key);
+					}
+				}
+			}
+		}
+
+		check(AliasToSourceTagMapping.IsValid());
+		return AliasToSourceTagMapping->FindRef(InAlias);
+	}
+
+private:
+	/** Mapping from class name -> (alias -> source) */
+	TMap<FName, TSharedPtr<TMap<FName, FName>>> ClassToAliasTagsMapping;
+};
+
 /** Expression context which gathers up the names of any dynamic collections being referenced by the current query */
 class FFrontendFilter_GatherDynamicCollectionsExpressionContext : public ITextFilterExpressionContext
 {
@@ -362,10 +419,30 @@ public:
 		}
 
 		// Generic handling for anything in the asset meta-data
-		FString MetaDataValue;
-		if (AssetPtr->GetTagValue(InKey, MetaDataValue))
 		{
-			return TextFilterUtils::TestComplexExpression(MetaDataValue, InValue, InComparisonOperation, InTextComparisonMode);
+			auto GetMetaDataValue = [this, &InKey](FString& OutMetaDataValue) -> bool
+			{
+				// Check for a literal key
+				if (AssetPtr->GetTagValue(InKey, OutMetaDataValue))
+				{
+					return true;
+				}
+
+				// Check for an alias key
+				const FName LiteralKey = FFrontendFilter_AssetPropertyTagAliases::Get().GetSourceTagFromAlias(*AssetPtr, InKey);
+				if (!LiteralKey.IsNone() && AssetPtr->GetTagValue(LiteralKey, OutMetaDataValue))
+				{
+					return true;
+				}
+
+				return false;
+			};
+
+			FString MetaDataValue;
+			if (GetMetaDataValue(MetaDataValue))
+			{
+				return TextFilterUtils::TestComplexExpression(MetaDataValue, InValue, InComparisonOperation, InTextComparisonMode);
+			}
 		}
 
 		return false;

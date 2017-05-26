@@ -80,6 +80,7 @@ public:
 
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
+	virtual void PostInitProperties() override;
 	virtual void Serialize(FArchive& Ar) override;
 
 	FORCEINLINE uint16 GetAreaFlags() const { return AreaFlags; }
@@ -107,4 +108,6 @@ protected:
 
 	/** these flags will be applied to navigation data along with AreaID */
 	uint16 AreaFlags;
+	
+	void RegisterArea();
 };

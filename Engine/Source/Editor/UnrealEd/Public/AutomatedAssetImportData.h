@@ -15,7 +15,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAutomatedImport, Log, All);
 /**
  * Contains data for a group of assets to import
  */ 
-UCLASS(Transient)
+UCLASS(Transient, BlueprintType)
 class UNREALED_API UAutomatedAssetImportData : public UObject
 {
 	GENERATED_BODY()
@@ -33,31 +33,31 @@ public:
 	FString GetDisplayName() const; 
 public:
 	/** Display name of the group. This is for logging purposes only. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category="Asset Import Data")
 	FString GroupName;
 
 	/** Filenames to import */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	TArray<FString> Filenames;
 
 	/** Content path in the projects content directory where assets will be imported */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	FString DestinationPath;
 
 	/** Name of the factory to use when importing these assets. If not specified the factory type will be auto detected */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	FString FactoryName;
 
 	/** Whether or not to replace existing assets */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	bool bReplaceExisting;
 
 	/** Whether or not to skip importing over read only assets that could not be checked out */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	bool bSkipReadOnly;
 
 	/** Pointer to the factory currently being sued */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Asset Import Data")
 	UFactory* Factory;
 
 	/** Json data to be read when importing this group */

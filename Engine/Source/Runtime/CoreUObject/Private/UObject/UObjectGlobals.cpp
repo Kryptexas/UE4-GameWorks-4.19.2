@@ -56,7 +56,7 @@ DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 bool						GIsSavingPackage = false;
 
 /** Object annotation used by the engine to keep track of which objects are selected */
-FUObjectAnnotationSparseBool GSelectedAnnotation;
+FUObjectAnnotationSparseBool GSelectedObjectAnnotation;
 
 DEFINE_STAT(STAT_InitProperties);
 DEFINE_STAT(STAT_ConstructObject);
@@ -113,7 +113,7 @@ FCoreUObjectDelegates::FOnAssetLoaded FCoreUObjectDelegates::OnAssetLoaded;
 FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
 #endif // WITH_EDITOR
 
-FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
+
 
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
@@ -125,12 +125,13 @@ FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FCoreUObjectDelegates::FPostLoadMapDelegate FCoreUObjectDelegates::PostLoadMapWithWorld;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
+FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
+FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
+FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
 
-FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
-FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
 FCoreUObjectDelegates::FGetPrimaryAssetIdForObject FCoreUObjectDelegates::GetPrimaryAssetIdForObject;
@@ -1123,12 +1124,21 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		FName PackageFName(*InPackageName);
 
+		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		if (!Result || Result->LinkerLoad || !Result->IsFullyLoaded())
 		{
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
 
-		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		if (InOuter)
+		{
+			return InOuter;
+		}
+		if (!Result)
+		{
+			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		}
 		return Result;
 	}
 
@@ -1225,12 +1235,28 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 		};
 
 #if WITH_EDITORONLY_DATA
-		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)) &&
-			(!ImportLinker || !ImportLinker->GetSerializedProperty() || !ImportLinker->GetSerializedProperty()->IsEditorOnlyProperty()))
+		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)))
 		{
-			// If this package hasn't been loaded as part of import verification and there's no import linker or the
-			// currently serialized property is not editor-only mark this package as runtime.
-			Result->SetLoadedByEditorPropertiesOnly(false);
+			bool bIsEditorOnly = false;
+			UProperty* SerializingProperty = ImportLinker ? ImportLinker->GetSerializedProperty() : nullptr;
+			
+			// Check property parent chain
+			while (SerializingProperty)
+			{
+				if (SerializingProperty->IsEditorOnlyProperty())
+				{
+					bIsEditorOnly = true;
+					break;
+				}
+				SerializingProperty = Cast<UProperty>(SerializingProperty->GetOuter());
+			}
+
+			if (!bIsEditorOnly)
+			{
+				// If this package hasn't been loaded as part of import verification and there's no import linker or the
+				// currently serialized property is not editor-only mark this package as runtime.
+				Result->SetLoadedByEditorPropertiesOnly(false);
+			}
 		}
 #endif
 

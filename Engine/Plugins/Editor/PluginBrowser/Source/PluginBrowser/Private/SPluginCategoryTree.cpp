@@ -82,6 +82,11 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	TSharedPtr<FPluginCategory> SelectCategory;
 	for(TSharedRef<IPlugin> Plugin: IPluginManager::Get().GetDiscoveredPlugins())
 	{
+		if (Plugin->IsHidden())
+		{
+			continue;
+		}
+
 		// Figure out which base category this plugin belongs in
 		TSharedPtr<FPluginCategory> RootCategory;
 		if (Plugin->GetDescriptor().bIsMod)

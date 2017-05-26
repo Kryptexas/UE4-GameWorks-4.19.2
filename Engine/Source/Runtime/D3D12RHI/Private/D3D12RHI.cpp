@@ -177,6 +177,9 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	if (!GIsEditor)
 	{
 		GRHISupportsRHIThread = true;
+#if PLATFORM_XBOXONE
+		GRHISupportsRHIOnTaskThread = true;
+#endif
 	}
 	GRHISupportsParallelRHIExecute = D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE;
 

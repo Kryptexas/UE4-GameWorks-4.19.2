@@ -130,15 +130,19 @@ public partial class Project : CommandUtils
 			{
 				TargetPlatformDescriptor ServerPlatformDesc = Params.ServerTargetPlatforms[0];
 				ServerProcess = RunDedicatedServer(Params, ServerLogFile, Params.RunCommandline);
-				// With dedicated server, the client connects to local host to load a map.
-				if (ServerPlatformDesc.Type == UnrealTargetPlatform.Linux)
-				{
-					Params.MapToRun = Params.ServerDeviceAddress;
-				}
-				else
-				{
-					Params.MapToRun = "127.0.0.1";
-				}
+
+                // With dedicated server, the client connects to local host to load a map, unless client parameters are already specified
+                if (String.IsNullOrEmpty(Params.ClientCommandline))
+                {
+                    if (!String.IsNullOrEmpty(Params.ServerDeviceAddress))
+                    {
+                        Params.ClientCommandline = Params.ServerDeviceAddress;
+                    }
+                    else
+                    {
+                        Params.ClientCommandline = "127.0.0.1";
+                    }
+                }
 			}
 			else
 			{
@@ -626,11 +630,15 @@ public partial class Project : CommandUtils
 		{
 			List<string> Exes = SC.StageTargetPlatform.GetExecutableNames(SC, true);
 			ClientApp = Exes[0];
-			if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.IOS)
-			{
-				TempCmdLine += SC.ProjectArgForCommandLines + " ";
-			}
-			TempCmdLine += Params.MapToRun + " ";
+
+            if (!String.IsNullOrEmpty(Params.ClientCommandline))
+            {
+                TempCmdLine += Params.ClientCommandline + " ";
+            }
+            else
+            {
+                TempCmdLine += Params.MapToRun + " ";
+            }
 
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
@@ -861,13 +869,12 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ClientLogFile) + " ";
 		}
-		if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.IOS && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Linux)
+		if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 || SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64)
 		{
-			TempCmdLine += "-Messaging -nomcp -Windowed ";
+			TempCmdLine += "-Messaging -Windowed ";
 		}
 		else
 		{
-			// skip arguments which don't make sense for iOS
 			TempCmdLine += "-Messaging ";
 		}
 		if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
@@ -986,12 +993,7 @@ public partial class Project : CommandUtils
 			{
 				Args += " -unattended";
 			}
-			// Do not blindly add -nomcp, only do so if the client is using it
-			if (Params.RunCommandline.Contains("-nomcp"))
-			{
-				Args += " -nomcp";
-			}
-
+			
 			if (Params.ServerCommandline.Length > 0)
 			{
 				Args += " " + Params.ServerCommandline;

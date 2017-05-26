@@ -142,6 +142,16 @@ namespace UnrealBuildTool
 		public UnrealTargetPlatform[] BlacklistPlatforms;
 
 		/// <summary>
+		/// List of allowed targets
+		/// </summary>
+		public TargetType[] WhitelistTargets;
+
+		/// <summary>
+		/// List of disallowed targets
+		/// </summary>
+		public TargetType[] BlacklistTargets;
+
+		/// <summary>
 		/// List of additional dependencies for building this module.
 		/// </summary>
 		public string[] AdditionalDependencies;
@@ -184,6 +194,18 @@ namespace UnrealBuildTool
 				Module.BlacklistPlatforms = BlacklistPlatforms;
 			}
 
+			TargetType[] WhitelistTargets;
+			if (InObject.TryGetEnumArrayField<TargetType>("WhitelistTargets", out WhitelistTargets))
+			{
+				Module.WhitelistTargets = WhitelistTargets;
+			}
+
+			TargetType[] BlacklistTargets;
+			if (InObject.TryGetEnumArrayField<TargetType>("BlacklistTargets", out BlacklistTargets))
+			{
+				Module.BlacklistTargets = BlacklistTargets;
+			}
+
 			string[] AdditionalDependencies;
 			if (InObject.TryGetStringArrayField("AdditionalDependencies", out AdditionalDependencies))
 			{
@@ -218,6 +240,24 @@ namespace UnrealBuildTool
 				foreach (UnrealTargetPlatform BlacklistPlatform in BlacklistPlatforms)
 				{
 					Writer.WriteValue(BlacklistPlatform.ToString());
+				}
+				Writer.WriteArrayEnd();
+			}
+			if (WhitelistTargets != null && WhitelistTargets.Length > 0)
+			{
+				Writer.WriteArrayStart("WhitelistTargets");
+				foreach (TargetType WhitelistTarget in WhitelistTargets)
+				{
+					Writer.WriteValue(WhitelistTarget.ToString());
+				}
+				Writer.WriteArrayEnd();
+			}
+			if (BlacklistTargets != null && BlacklistTargets.Length > 0)
+			{
+				Writer.WriteArrayStart("BlacklistTargets");
+				foreach (TargetType BlacklistTarget in BlacklistTargets)
+				{
+					Writer.WriteValue(BlacklistTarget.ToString());
 				}
 				Writer.WriteArrayEnd();
 			}
@@ -270,6 +310,18 @@ namespace UnrealBuildTool
 
 			// Check the platform is not blacklisted
 			if (BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+
+			// Check the target is whitelisted
+			if (WhitelistTargets != null && WhitelistTargets.Length > 0 && !WhitelistTargets.Contains(TargetType))
+			{
+				return false;
+			}
+
+			// Check the target is not blacklisted
+			if (BlacklistTargets != null && BlacklistTargets.Contains(TargetType))
 			{
 				return false;
 			}

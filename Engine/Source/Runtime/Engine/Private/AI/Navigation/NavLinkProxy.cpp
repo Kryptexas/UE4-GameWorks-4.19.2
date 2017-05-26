@@ -219,7 +219,7 @@ FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 		LinksBB += SegmentLink.RightEnd;
 	}
 
-	LinksBB = LinksBB.TransformBy(RootComponent->ComponentToWorld);
+	LinksBB = LinksBB.TransformBy(RootComponent->GetComponentTransform());
 
 	if (SmartLinkComp && SmartLinkComp->IsNavigationRelevant())
 	{

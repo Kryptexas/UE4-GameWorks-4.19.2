@@ -25,9 +25,6 @@ public:
 	/** Default constructor */
 	AVREditorDockableWindow();
 
-	/** Destructor */
-	~AVREditorDockableWindow();
-	
 	/** Updates the meshes for the UI */
 	virtual void TickManually( float DeltaTime ) override;
 

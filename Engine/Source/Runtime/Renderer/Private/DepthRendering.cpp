@@ -915,7 +915,8 @@ static void RenderHiddenAreaMaskView(FRHICommandList& RHICmdList, FGraphicsPipel
 	const auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 
-	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+	extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
@@ -1309,7 +1310,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 0);
+		DrawClearQuad(RHICmdList, false, FLinearColor::Transparent, false, 0, true, 0);
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

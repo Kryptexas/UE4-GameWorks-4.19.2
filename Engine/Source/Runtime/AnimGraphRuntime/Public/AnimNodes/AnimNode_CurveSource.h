@@ -13,7 +13,7 @@
 class UAnimInstance;
 
 /** Supply curves from some external source (e.g. audio) */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_CurveSource : public FAnimNode_Base
 {
 	GENERATED_BODY()

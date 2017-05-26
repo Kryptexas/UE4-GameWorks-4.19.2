@@ -46,14 +46,14 @@ class ENGINE_API UAssetManagerSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
-	UAssetManagerSettings() : bOnlyCookProductionAssets(false) {}
+	UAssetManagerSettings() : bOnlyCookProductionAssets(false), bShouldGuessTypeAndNameInEditor(true) {}
 
 	/** List of asset types to scan at startup */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	TArray<FPrimaryAssetTypeInfo> PrimaryAssetTypesToScan;
 
 	/** List of directories to exclude from scanning for Primary Assets, useful to exclude test assets */
-	UPROPERTY(config, EditAnywhere, Category = "Asset Manager", meta = (RelativeToGameContentDir))
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager", meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> DirectoriesToExclude;
 
 	/** List of specific asset rule overrides */
@@ -63,6 +63,10 @@ public:
 	/** If true, DevelopmentCook assets will error when they are cooked */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	bool bOnlyCookProductionAssets;
+
+	/** If true, PrimaryAsset Type/Name will be implied for assets in the editor (cooked builds always must be explicit). This allows guessing for content that hasn't been resaved yet */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	bool bShouldGuessTypeAndNameInEditor;
 
 	/** Redirect from Type:Name to Type:NameNew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")
@@ -75,4 +79,8 @@ public:
 	/** Redirect from /game/assetpath to /game/assetpathnew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")
 	TArray<FAssetManagerRedirect> AssetPathRedirects;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

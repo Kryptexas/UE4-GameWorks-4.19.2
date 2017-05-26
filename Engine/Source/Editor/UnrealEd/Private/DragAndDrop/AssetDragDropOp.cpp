@@ -8,22 +8,40 @@
 #include "AssetThumbnail.h"
 #include "ClassIconFinder.h"
 
-TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(const FAssetData& InAssetData, UActorFactory* ActorFactory /*= NULL*/)
+TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(const FAssetData& InAssetData, UActorFactory* ActorFactory)
 {
 	TArray<FAssetData> AssetDataArray;
-	AssetDataArray.Add(InAssetData);
-	return New(AssetDataArray, ActorFactory);
+	AssetDataArray.Emplace(InAssetData);
+	return New(MoveTemp(AssetDataArray), TArray<FString>(), ActorFactory);
 }
 
-TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(const TArray<FAssetData>& InAssetData, UActorFactory* ActorFactory /*= NULL*/)
+TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(TArray<FAssetData> InAssetData, UActorFactory* ActorFactory)
 {
-	TSharedRef<FAssetDragDropOp> Operation = MakeShareable(new FAssetDragDropOp);
+	return New(MoveTemp(InAssetData), TArray<FString>(), ActorFactory);
+}
+
+TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(FString InAssetPath)
+{
+	TArray<FString> AssetPathsArray;
+	AssetPathsArray.Emplace(MoveTemp(InAssetPath));
+	return New(TArray<FAssetData>(), MoveTemp(AssetPathsArray), nullptr);
+}
+
+TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(TArray<FString> InAssetPaths)
+{
+	return New(TArray<FAssetData>(), MoveTemp(InAssetPaths), nullptr);
+}
+
+TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(TArray<FAssetData> InAssetData, TArray<FString> InAssetPaths, UActorFactory* ActorFactory)
+{
+	TSharedRef<FAssetDragDropOp> Operation = MakeShared<FAssetDragDropOp>();
 
 	Operation->MouseCursor = EMouseCursor::GrabHandClosed;
 
 	Operation->ThumbnailSize = 64;
 
-	Operation->AssetData = InAssetData;
+	Operation->AssetData = MoveTemp(InAssetData);
+	Operation->AssetPaths = MoveTemp(InAssetPaths);
 	Operation->ActorFactory = ActorFactory;
 
 	Operation->Init();
@@ -34,7 +52,7 @@ TSharedRef<FAssetDragDropOp> FAssetDragDropOp::New(const TArray<FAssetData>& InA
 
 FAssetDragDropOp::~FAssetDragDropOp()
 {
-	if ( ThumbnailPool.IsValid() )
+	if (ThumbnailPool.IsValid())
 	{
 		// Release all rendering resources being held onto
 		ThumbnailPool->ReleaseResources();
@@ -43,22 +61,49 @@ FAssetDragDropOp::~FAssetDragDropOp()
 
 TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 {
-	TSharedPtr<SWidget> ThumbnailWidget;
+	const int32 TotalCount = AssetData.Num() + AssetPaths.Num();
 
-	if ( AssetThumbnail.IsValid() )
+	TSharedPtr<SWidget> ThumbnailWidget;
+	if (AssetThumbnail.IsValid())
 	{
 		ThumbnailWidget = AssetThumbnail->MakeThumbnailWidget();
 	}
+	else if (AssetPaths.Num() > 0)
+	{
+		ThumbnailWidget = 
+			SNew(SOverlay)
+
+			+SOverlay::Slot()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Base"))
+				.ColorAndOpacity(FLinearColor::Gray)
+			]
+		
+			+SOverlay::Slot()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Mask"))
+			];
+	}
 	else
 	{
-		ThumbnailWidget = SNew(SImage) .Image( FEditorStyle::GetDefaultBrush() );
+		ThumbnailWidget = 
+			SNew(SImage)
+			.Image(FEditorStyle::GetDefaultBrush());
 	}
-		
-	const FSlateBrush* ActorTypeBrush = FEditorStyle::GetDefaultBrush();
-	if ( ActorFactory.IsValid() && AssetData.Num() > 0 )
+	
+	const FSlateBrush* SubTypeBrush = FEditorStyle::GetDefaultBrush();
+	FLinearColor SubTypeColor = FLinearColor::White;
+	if (AssetThumbnail.IsValid() && AssetPaths.Num() > 0)
 	{
-		AActor* DefaultActor = ActorFactory->GetDefaultActor( AssetData[0] );
-		ActorTypeBrush = FClassIconFinder::FindIconForActor( DefaultActor );
+		SubTypeBrush = FEditorStyle::GetBrush("ContentBrowser.AssetTreeFolderClosed");
+		SubTypeColor = FLinearColor::Gray;
+	}
+	else if (ActorFactory.IsValid() && AssetData.Num() > 0)
+	{
+		AActor* DefaultActor = ActorFactory->GetDefaultActor(AssetData[0]);
+		SubTypeBrush = FClassIconFinder::FindIconForActor(DefaultActor);
 	}
 
 	return 
@@ -68,8 +113,8 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 		[
 			SNew(SHorizontalBox)
 
-			// Left slot is asset thumbnail
-			+ SHorizontalBox::Slot()
+			// Left slot is for the thumbnail
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.HAlign(HAlign_Left)
 			[
@@ -92,10 +137,11 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 					[
 						SNew(SBorder)
 						.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-						.Visibility(AssetData.Num() > 1 ? EVisibility::Visible : EVisibility::Collapsed)
+						.Visibility(TotalCount > 1 ? EVisibility::Visible : EVisibility::Collapsed)
 						.Content()
 						[
-							SNew(STextBlock) .Text(FText::AsNumber(AssetData.Num()))
+							SNew(STextBlock)
+							.Text(FText::AsNumber(TotalCount))
 						]
 					]
 
@@ -105,24 +151,25 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 					.Padding(FMargin(4, 4))
 					[
 						SNew(SImage)
-						.Image( ActorTypeBrush )
-						.Visibility( (ActorTypeBrush != FEditorStyle::GetDefaultBrush()) ? EVisibility::Visible : EVisibility::Collapsed)
+						.Image(SubTypeBrush)
+						.Visibility(SubTypeBrush != FEditorStyle::GetDefaultBrush() ? EVisibility::Visible : EVisibility::Collapsed)
+						.ColorAndOpacity(SubTypeColor)
 					]
 				]
 			]
 
 			// Right slot is for optional tooltip
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
 				SNew(SBox)
-				.Visibility(this, &FAssetDragDropOp::GetTooltipVisibility)
+				.MinDesiredWidth(80)
 				.Content()
 				[
 					SNew(SHorizontalBox)
 
-					+ SHorizontalBox::Slot()
+					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(3.0f)
 					.VAlign(VAlign_Center)
@@ -137,44 +184,49 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock) 
-						.Text(this, &FAssetDragDropOp::GetHoverText)
+						.Text(this, &FAssetDragDropOp::GetDecoratorText)
 					]
 				]
 			]
 		];
 }
 
+FText FAssetDragDropOp::GetDecoratorText() const
+{
+	if (CurrentHoverText.IsEmpty())
+	{
+		const int32 TotalCount = AssetData.Num() + AssetPaths.Num();
+		if (TotalCount > 0)
+		{
+			const FText FirstItemText = AssetData.Num() > 0 ? FText::FromName(AssetData[0].AssetName) : FText::FromString(AssetPaths[0]);
+			return (TotalCount == 1)
+				? FirstItemText
+				: FText::Format(NSLOCTEXT("ContentBrowser", "AssetDragDropOpDescriptionMulti", "'{0}' and {1} {1}|plural(one=other,other=others)"), FirstItemText, TotalCount - 1);
+		}
+	}
+	
+	return CurrentHoverText;
+}
+
 void FAssetDragDropOp::Init()
 {
-	if ( AssetData.Num() > 0 && ThumbnailSize > 0 )
+	if (AssetData.Num() > 0 && ThumbnailSize > 0)
 	{
 		// Load all assets first so that there is no loading going on while attempting to drag
 		// Can cause unsafe frame reentry 
-		for( FAssetData& Data : AssetData )
+		for (FAssetData& Data : AssetData)
 		{
 			Data.GetAsset();
 		}
 
 		// Create a thumbnail pool to hold the single thumbnail rendered
-		ThumbnailPool = MakeShareable( new FAssetThumbnailPool(1, /*InAreRealTileThumbnailsAllowed=*/false) );
+		ThumbnailPool = MakeShared<FAssetThumbnailPool>(1, /*InAreRealTileThumbnailsAllowed=*/false);
 
 		// Create the thumbnail handle
-		AssetThumbnail = MakeShareable( new FAssetThumbnail( AssetData[0], ThumbnailSize, ThumbnailSize, ThumbnailPool ) );
+		AssetThumbnail = MakeShared<FAssetThumbnail>(AssetData[0], ThumbnailSize, ThumbnailSize, ThumbnailPool);
 
 		// Request the texture then tick the pool once to render the thumbnail
 		AssetThumbnail->GetViewportRenderTargetTexture();
 		ThumbnailPool->Tick(0);
-	}
-}
-
-EVisibility FAssetDragDropOp::GetTooltipVisibility() const
-{
-	if ( !CurrentHoverText.IsEmpty() )
-	{
-		return EVisibility::Visible;
-	}
-	else
-	{
-		return EVisibility::Collapsed;
 	}
 }

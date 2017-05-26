@@ -7,6 +7,8 @@
 #include "UObject/Object.h"
 #include "Templates/SubclassOf.h"
 #include "Components/ActorComponent.h"
+#include "ViewportInteractionTypes.h"
+#include "UnrealWidget.h"
 #include "ViewportDragOperation.generated.h"
 
 /**
@@ -25,8 +27,20 @@ public:
 	 * @param UViewportInteractor - The interactor causing the dragging
 	 * @param IViewportInteractableInterface - The interactable owning this drag operation
 	 */
-	virtual void ExecuteDrag( class UViewportInteractor* Interactor, class IViewportInteractableInterface* Interactable ) PURE_VIRTUAL( UViewportDragOperation::ExecuteDrag, );
+	virtual void ExecuteDrag(class UViewportInteractor* Interactor, class IViewportInteractableInterface* Interactable){};
+
+	/** 
+	 * Execute dragging 
+	 *
+	 * @param UViewportInteractor - The interactor causing the dragging
+	 * @param IViewportInteractableInterface - The interactable owning this drag operation
+	 */
+	virtual void ExecuteDrag(struct FDraggingTransformableData& DraggingData){};
+
+	/** @todo ViewportInteraction: Temporary way to check if a drag operation needs to constrain the drag delta on a plane of a gizmo axis. */
+	bool bPlaneConstraint;
 };
+
 
 /**
  * Container component for UViewportDragOperation that can be used by objects in the world that are draggable and implement the ViewportInteractableInterface
@@ -34,11 +48,12 @@ public:
 UCLASS()
 class VIEWPORTINTERACTION_API UViewportDragOperationComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
-	/** Destructor */
-	~UViewportDragOperationComponent();
+	
+	/** Default constructor. */
+	UViewportDragOperationComponent();
 
 	/** Get the actual dragging operation */
 	UViewportDragOperation* GetDragOperation();
@@ -64,4 +79,65 @@ private:
 	/** The next class that will be used as drag operation */
 	UPROPERTY()
 	TSubclassOf<UViewportDragOperation> DragOperationSubclass;
+};
+
+/**
+ * Data structure that holds all arguments that can be used while dragging a transformable.
+ */
+USTRUCT()
+struct VIEWPORTINTERACTION_API FDraggingTransformableData
+{
+	GENERATED_BODY()
+
+	FDraggingTransformableData() :
+		Interactor(nullptr),
+		WorldInteraction(nullptr),
+		bIsUpdatingUnsnappedTarget(false),
+		PassDraggedTo(FVector::ZeroVector),
+		OptionalHandlePlacement(),
+		DragDelta(FVector::ZeroVector),
+		ConstrainedDragDelta(FVector::ZeroVector),
+		OtherHandDragDelta(FVector::ZeroVector),
+		DraggedTo(FVector::ZeroVector),
+		OtherHandDraggedTo(FVector::ZeroVector),
+		DragDeltaFromStart(FVector::ZeroVector),
+		OtherHandDragDeltaFromStart(FVector::ZeroVector),
+		LaserPointerStart(FVector::ZeroVector),
+		LaserPointerDirection(FVector::ZeroVector),
+		GizmoStartTransform(FTransform::Identity),
+		GizmoLastTransform(FTransform::Identity),
+		OutGizmoTargetTransform(FTransform::Identity),
+		OutGizmoUnsnappedTargetTransform(FTransform::Identity),
+		GizmoStartLocalBounds(EForceInit::ForceInitToZero),
+		GizmoCoordinateSpace(ECoordSystem::COORD_World),
+		bOutMovedTransformGizmo(false),
+		bOutShouldApplyVelocitiesFromDrag(false),
+		OutUnsnappedDraggedTo(FVector::ZeroVector)
+	{}
+
+	class UViewportInteractor* Interactor;
+	class UViewportWorldInteraction* WorldInteraction;
+
+	bool bIsUpdatingUnsnappedTarget;
+	FVector PassDraggedTo;
+	TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement;
+	FVector DragDelta;
+	FVector ConstrainedDragDelta;
+	FVector OtherHandDragDelta;
+	FVector DraggedTo;
+	FVector OtherHandDraggedTo;
+	FVector DragDeltaFromStart;
+	FVector OtherHandDragDeltaFromStart;
+	FVector LaserPointerStart;
+	FVector LaserPointerDirection;
+	FTransform GizmoStartTransform;
+	FTransform GizmoLastTransform;
+	FTransform OutGizmoTargetTransform;
+	FTransform OutGizmoUnsnappedTargetTransform;
+	FBox GizmoStartLocalBounds;
+	ECoordSystem GizmoCoordinateSpace;
+
+	bool bOutMovedTransformGizmo;
+	bool bOutShouldApplyVelocitiesFromDrag;
+	FVector OutUnsnappedDraggedTo;
 };

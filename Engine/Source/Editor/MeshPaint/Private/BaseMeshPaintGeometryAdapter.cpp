@@ -119,6 +119,36 @@ void FBaseMeshPaintGeometryAdapter::GetInfluencedVertexIndices(const float Compo
 	}
 }
 
+void FBaseMeshPaintGeometryAdapter::GetInfluencedVertexData(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing, TArray<TPair<int32, FVector>>& OutData) const
+{
+	// Get a list of (optionally front-facing) triangles that are within a reasonable distance to the brush
+	TArray<uint32> InfluencedTriangles = SphereIntersectTriangles(
+		ComponentSpaceSquaredBrushRadius,
+		ComponentSpaceBrushPosition,
+		ComponentSpaceCameraPosition,
+		bOnlyFrontFacing);
+
+	// Make sure we're dealing with triangle lists
+	const int32 NumIndexBufferIndices = MeshIndices.Num();
+	check(NumIndexBufferIndices % 3 == 0);
+
+	OutData.Reserve(InfluencedTriangles.Num() * 3);
+	for(int32 InfluencedTriangle : InfluencedTriangles)
+	{
+		for(int32 Index = 0; Index < 3; ++Index)
+		{
+			const FVector& VertexPosition = MeshVertices[MeshIndices[InfluencedTriangle * 3 + Index]];
+			if((VertexPosition - ComponentSpaceBrushPosition).SizeSquared() <= ComponentSpaceSquaredBrushRadius)
+			{
+				OutData.AddDefaulted();
+				TPair<int32, FVector>& OutPair = OutData.Last();
+				OutPair.Key = MeshIndices[InfluencedTriangle * 3 + Index];
+				OutPair.Value = MeshVertices[OutPair.Key];
+			}
+		}
+	}
+}
+
 TArray<FVector> FBaseMeshPaintGeometryAdapter::SphereIntersectVertices(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing) const
 {
 	// Get list of intersecting triangles with given sphere data

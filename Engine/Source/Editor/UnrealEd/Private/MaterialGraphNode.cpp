@@ -485,7 +485,7 @@ void UMaterialGraphNode::CreateInputPins()
 		FString PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? Schema->PC_Required : Schema->PC_Optional;
 		FString PinSubCategory = TEXT("");
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, PinSubCategory, NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, InputName);
+		UEdGraphPin* NewPin = CreatePin(EGPD_Input, PinCategory, PinSubCategory, nullptr, InputName);
 		if (NewPin->PinName.IsEmpty())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
@@ -538,7 +538,7 @@ void UMaterialGraphNode::CreateOutputPins()
 			OutputName = ExpressionOutput.OutputName;
 		}
 
-		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, OutputName);
+		UEdGraphPin* NewPin = CreatePin(EGPD_Output, PinCategory, PinSubCategory, nullptr, OutputName);
 		if (NewPin->PinName.IsEmpty())
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it

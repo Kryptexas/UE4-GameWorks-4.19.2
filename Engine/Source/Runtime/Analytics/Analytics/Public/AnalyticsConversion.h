@@ -8,52 +8,17 @@
 /** Helpers for converting various common types to strings that analytics providers can consume. */
 namespace AnalyticsConversion
 {
-	/** Identity conversion for strings. Complete passthrough. */
-	inline const FString& ToString(const FString& Str)
-	{
-		return Str;
-	}
-
-	/** Identity conversion for strings. Move support. */
-	inline FString&& ToString(FString&& Str)
-	{
-		return MoveTemp(Str);
-	}
-
-	/** Identity conversion for strings. char-array support. */
-	inline FString ToString(const ANSICHAR* Str)
-	{
-		return Str;
-	}
-
-	/** Identity conversion for strings. char-array support. */
-	inline FString ToString(const WIDECHAR* Str)
-	{
-		return Str;
-	}
-
-	/** Bool conversion. */
-	inline FString ToString(bool Value)
-	{
-		return Value ? TEXT("true") : TEXT("false");
-	}
-
-	/** Guid conversion. */
-	inline FString ToString(FGuid Value)
-	{
-		return Value.ToString();
-	}
-
-	/** Double conversion. Lex is broken to doubles (won't use SanitizeFloat), so overload this directly. */
-	inline FString ToString(double Value)
-	{
-		return FString::SanitizeFloat(Value);
-	}
-
-
-	/** Lexical conversion. Allow any type that we have a Lex for. */
+	/** Lexical conversion. Allow any type that we have a Lex for. Can't use universal references here because it then eats all non-perfect matches for the array and TMap conversions below, which we want to use a custom, analytics specific implementation for. */
 	template <typename T>
-	inline typename TEnableIf<TIsArithmetic<T>::Value, FString>::Type ToString(T Value)
+	inline auto ToString(const T& Value) -> decltype(Lex::ToString(Value)) 
+	{
+		return Lex::ToString(Value);
+	}
+	inline FString ToString(float Value)
+	{
+		return Lex::ToSanitizedString(Value);
+	}
+	inline FString ToString(double Value)
 	{
 		return Lex::ToSanitizedString(Value);
 	}

@@ -59,7 +59,7 @@ public:
 };
 
 /** A ViewTarget is the primary actor the camera is associated with. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FTViewTarget
 {
 	GENERATED_USTRUCT_BODY()
@@ -98,7 +98,7 @@ public:
 };
 
 /** A set of parameters to describe how to transition between view targets. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FViewTargetTransitionParams
 {
 	GENERATED_USTRUCT_BODY()

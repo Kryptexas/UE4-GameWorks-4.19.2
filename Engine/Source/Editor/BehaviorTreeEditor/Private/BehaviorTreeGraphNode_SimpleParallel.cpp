@@ -11,10 +11,10 @@ UBehaviorTreeGraphNode_SimpleParallel::UBehaviorTreeGraphNode_SimpleParallel(con
 
 void UBehaviorTreeGraphNode_SimpleParallel::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_MultipleNodes, TEXT(""), NULL, false, false, TEXT("In"));
+	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_MultipleNodes, FString(), nullptr, TEXT("In"));
 	
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleTask, TEXT(""), NULL, false, false, TEXT("Task"));
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleNode, TEXT(""), NULL, false, false, TEXT("Out"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleTask, FString(), nullptr, TEXT("Task"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleNode, FString(), nullptr, TEXT("Out"));
 }
 
 void UBehaviorTreeGraphNode_SimpleParallel::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const

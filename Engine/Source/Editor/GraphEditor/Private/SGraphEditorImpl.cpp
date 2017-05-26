@@ -725,6 +725,11 @@ void SGraphEditorImpl::SetPinVisibility( SGraphEditor::EPinVisibility InVisibili
 	}
 }
 
+TSharedRef<FActiveTimerHandle> SGraphEditorImpl::RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)
+{
+	return SWidget::RegisterActiveTimer(TickPeriod, TickFunction);
+}
+
 EVisibility SGraphEditorImpl::ReadOnlyVisibility() const
 {
 	if(ShowGraphStateOverlay.Get() && PIENotification() == EVisibility::Hidden && !IsEditable.Get())

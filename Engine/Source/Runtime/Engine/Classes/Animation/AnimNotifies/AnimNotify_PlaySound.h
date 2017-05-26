@@ -39,7 +39,7 @@ public:
 	float PitchMultiplier;
 
 	// If this sound should follow its owner
-	UPROPERTY(EditAnywhere, Category = "AnimNotify")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimNotify")
 	uint32 bFollow:1;
 
 	// Socket or bone name to attach sound to

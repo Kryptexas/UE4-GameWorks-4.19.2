@@ -2174,6 +2174,34 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 {
 	UNetDriver* This = CastChecked<UNetDriver>(InThis);
 	Super::AddReferencedObjects(This, Collector);
+
+	for (auto It = This->RepLayoutMap.CreateIterator(); It; ++It)
+	{
+		if (It.Value().IsValid())
+		{
+			It.Value()->AddReferencedObjects(Collector);
+		}
+		else
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	for (auto It = This->ReplicationChangeListMap.CreateIterator(); It; ++It)
+	{
+		if (It.Value().IsValid())
+		{
+			FRepChangelistState* const ChangelistState = It.Value()->GetRepChangelistState();
+			if (ChangelistState && ChangelistState->RepLayout.IsValid())
+			{
+				ChangelistState->RepLayout->AddReferencedObjects(Collector);
+			}
+		}
+		else
+		{
+			It.RemoveCurrent();
+		}
+	}
 }
 
 #if DO_ENABLE_NET_TEST
@@ -2404,7 +2432,6 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 			FHitResult Hit(1.0f);
 			FVector PredictedLocation = ViewLocation + Ahead;
 
-			static FName NAME_ServerForwardView = FName(TEXT("ServerForwardView"));
 			UWorld* World = NULL;
 			if( InConnection->PlayerController )
 			{
@@ -2415,7 +2442,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 				World = ViewerPawn->GetWorld();
 			}
 			check( World );
-			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget)))
+			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(SCENE_QUERY_STAT(ServerForwardView), true, ViewTarget)))
 			{
 				// hit something, view location is hit location
 				ViewLocation = Hit.Location;

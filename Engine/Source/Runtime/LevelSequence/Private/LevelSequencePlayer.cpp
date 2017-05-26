@@ -73,12 +73,17 @@ bool ULevelSequencePlayer::CanPlay() const
 	return World.IsValid();
 }
 
-void ULevelSequencePlayer::OnStartedPlaying()
+void ULevelSequencePlayer::BeginPlay()
 {
+	EnableCinematicMode(true);
+
+	Super::BeginPlay();
 }
 
 void ULevelSequencePlayer::OnStopped()
 {
+	EnableCinematicMode(false);
+
 	AActor* LevelSequenceActor = Cast<AActor>(GetOuter());
 	if (LevelSequenceActor == nullptr)
 	{
@@ -318,6 +323,27 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 
 			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();
 			OutSnapshot.CurrentShotLocalTime = ShotPosition;
+		}
+	}
+}
+
+void ULevelSequencePlayer::EnableCinematicMode(bool bEnable)
+{
+	// iterate through the controller list and set cinematic mode if necessary
+	bool bNeedsCinematicMode = PlaybackSettings.bDisableMovementInput || PlaybackSettings.bDisableLookAtInput || PlaybackSettings.bHidePlayer || PlaybackSettings.bHideHud;
+
+	if (bNeedsCinematicMode)
+	{
+		if (World.IsValid())
+		{
+			for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController *PC = Iterator->Get();
+				if (PC->IsLocalController())
+				{
+					PC->SetCinematicMode(bEnable, PlaybackSettings.bHidePlayer, PlaybackSettings.bHideHud, PlaybackSettings.bDisableMovementInput, PlaybackSettings.bDisableLookAtInput);
+				}
+			}
 		}
 	}
 }

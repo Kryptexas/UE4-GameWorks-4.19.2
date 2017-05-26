@@ -14,10 +14,6 @@ class IPropertyHandle;
 class FGameplayTagCustomization : public IPropertyTypeCustomization, public FEditorUndoClient
 {
 public:
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance()
-	{
-		return MakeShareable(new FGameplayTagCustomization);
-	}
 
 	~FGameplayTagCustomization();
 
@@ -60,5 +56,8 @@ private:
 
 	/** Tag name selected*/
 	FString TagName;
+
+	void OnTagDoubleClicked();
+	EVisibility GetVisibilityForTagTextBlockWidget(bool ForTextWidget) const;
 };
 

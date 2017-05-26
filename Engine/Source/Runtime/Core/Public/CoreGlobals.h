@@ -89,9 +89,6 @@ extern CORE_API bool GCompilingBlueprint;
 /** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
 extern CORE_API bool GIsReconstructingBlueprintInstances;
 
-/** Force blueprints to not compile on load */
-extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
-
 /** True if actors and objects are being re-instanced. */
 extern CORE_API bool GIsReinstancing;
 
@@ -433,7 +430,10 @@ extern CORE_API int32 GIsRenderingThreadSuspended;
 extern CORE_API bool IsInRHIThread();
 
 /** Thread used for RHI */
-extern CORE_API FRunnableThread* GRHIThread;
+extern CORE_API FRunnableThread* GRHIThread_InternalUseOnly;
+
+/** Thread ID of the the thread we are executing RHI commands on. This could either be a constant dedicated thread or changing every task if we run the rhi thread on tasks. */
+extern CORE_API uint32 GRHIThreadId;
 
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;

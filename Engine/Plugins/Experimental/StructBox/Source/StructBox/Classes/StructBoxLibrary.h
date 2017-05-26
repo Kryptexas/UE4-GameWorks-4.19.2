@@ -11,7 +11,7 @@
 #include "StructBox.h"
 #include "StructBoxLibrary.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FStubStruct
 {
 	GENERATED_USTRUCT_BODY()

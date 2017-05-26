@@ -44,7 +44,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
+				DrawClearQuad(RHICmdList, ClearColor);
 			});
 	}
 }
@@ -207,8 +207,11 @@ void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject*
 		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
 
 		check(NewTexture == Texture);
-		NewTexture->UpdateResource();
+		
 		NewTexture->Modify();
+		NewTexture->MarkPackageDirty();
+		NewTexture->PostEditChange();
+		NewTexture->UpdateResource();
 	}
 	else if (!RenderTarget)
 	{

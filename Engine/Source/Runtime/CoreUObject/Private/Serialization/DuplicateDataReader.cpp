@@ -30,7 +30,7 @@ FDuplicateDataReader::FDuplicateDataReader( class FUObjectAnnotationSparse<FDupl
 	ArPortFlags |= PPF_Duplicate | InPortFlags;
 
 #if USE_STABLE_LOCALIZATION_KEYS
-	if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+	if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 	{
 		SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(InDestOuter));
 	}
@@ -86,16 +86,6 @@ FArchive& FDuplicateDataReader::operator<<( FLazyObjectPtr& LazyObjectPtr)
 		ID = ID.FixupForPIE();
 	}
 	LazyObjectPtr = ID;
-	return Ar;
-}
-
-FArchive& FDuplicateDataReader::operator<<( FAssetPtr& AssetPtr)
-{
-	FArchive& Ar = *this;
-	FStringAssetReference ID;
-	ID.Serialize(Ar);
-
-	AssetPtr = ID;
 	return Ar;
 }
 

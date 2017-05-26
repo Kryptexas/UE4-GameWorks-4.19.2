@@ -87,6 +87,8 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "EditorLevelUtils.h"
+#include "ActorGroupingUtils.h"
+#include "LevelUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -421,10 +423,10 @@ void FLevelEditorActionCallbacks::SaveCurrentAs()
 			FString PackageName;
 			if (FPackageName::TryConvertFilenameToLongPackageName(SavedFilename, PackageName))
 			{
-				ULevel* Level = EditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
+				ULevelStreaming* StreamingLevel = UEditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
 
 				// Make the level we just added current because the expectation is that the new level replaces the existing current level
-				EditorLevelUtils::MakeLevelCurrent(Level);
+				EditorLevelUtils::MakeLevelCurrent(StreamingLevel->GetLoadedLevel());
 			}
 
 			FEditorDelegates::RefreshLevelBrowser.Broadcast();
@@ -629,6 +631,10 @@ void FLevelEditorActionCallbacks::Build_Execute()
 	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAll );
 }
 
+bool FLevelEditorActionCallbacks::Build_CanExecute()
+{
+	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+}
 
 void FLevelEditorActionCallbacks::BuildAndSubmitToSourceControl_Execute()
 {
@@ -651,7 +657,7 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return bAllowStaticLighting;
+	return bAllowStaticLighting && !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()
@@ -1278,8 +1284,7 @@ void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
 
 				FHitResult HitResult;
 
-				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
-				FCollisionQueryParams LineParams(FocusOnPoint, true);
+				FCollisionQueryParams LineParams(SCENE_QUERY_STAT(FocusOnPoint), true);
 
 				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams))
 				{
@@ -1654,9 +1659,11 @@ bool FLevelEditorActionCallbacks::Paste_CanExecute()
 	bool bCanPaste = false;
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
-		check(GEditor->GetSelectedActorCount() == 1);
-		auto SelectedActor = CastChecked<AActor>(*GEditor->GetSelectedActorIterator());
-		bCanPaste = FComponentEditorUtils::CanPasteComponents(SelectedActor->GetRootComponent());
+		if(ensureMsgf(GEditor->GetSelectedActorCount() == 1, TEXT("Expected SelectedActorCount to be 1 but was %d"), GEditor->GetSelectedActorCount()))
+		{
+			auto SelectedActor = CastChecked<AActor>(*GEditor->GetSelectedActorIterator());
+			bCanPaste = FComponentEditorUtils::CanPasteComponents(SelectedActor->GetRootComponent());
+		}
 	}
 	else
 	{
@@ -1811,32 +1818,32 @@ void FLevelEditorActionCallbacks::OnSurfaceAlignment( ETexAlign AlignmentMode )
 
 void FLevelEditorActionCallbacks::RegroupActor_Clicked()
 {
-	GUnrealEd->edactRegroupFromSelected();
+	UActorGroupingUtils::Get()->GroupSelected();
 }
 
 void FLevelEditorActionCallbacks::UngroupActor_Clicked()
 {
-	GUnrealEd->edactUngroupFromSelected();
+	UActorGroupingUtils::Get()->UngroupSelected();
 }
 
 void FLevelEditorActionCallbacks::LockGroup_Clicked()
 {
-	GUnrealEd->edactLockSelectedGroups();
+	UActorGroupingUtils::Get()->LockSelectedGroups();
 }
 
 void FLevelEditorActionCallbacks::UnlockGroup_Clicked()
 {
-	GUnrealEd->edactUnlockSelectedGroups();
+	UActorGroupingUtils::Get()->UnlockSelectedGroups();
 }
 
 void FLevelEditorActionCallbacks::AddActorsToGroup_Clicked()
 {
-	GUnrealEd->edactAddToGroup();
+	UActorGroupingUtils::Get()->AddSelectedToGroup();
 }
 
 void FLevelEditorActionCallbacks::RemoveActorsFromGroup_Clicked()
 {
-	GUnrealEd->edactRemoveFromGroup();
+	UActorGroupingUtils::Get()->RemoveSelectedFromGroup();
 }
 
 
@@ -2059,7 +2066,7 @@ void FLevelEditorActionCallbacks::OnMakeSelectedActorLevelCurrent()
 
 void FLevelEditorActionCallbacks::OnMoveSelectedToCurrentLevel()
 {
-	GEditor->MoveSelectedActorsToLevel( GetWorld()->GetCurrentLevel() );
+	UEditorLevelUtils::MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 }
 
 void FLevelEditorActionCallbacks::OnFindActorLevelInContentBrowser()
@@ -2282,7 +2289,7 @@ void FLevelEditorActionCallbacks::OnAllowGroupSelection()
 
 bool FLevelEditorActionCallbacks::OnIsAllowGroupSelectionEnabled() 
 {
-	return GUnrealEd->bGroupingActive;
+	return UActorGroupingUtils::IsGroupingActive();
 }
 
 void FLevelEditorActionCallbacks::OnToggleStrictBoxSelect()
@@ -2877,7 +2884,7 @@ void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool
 		{
 			GEditor->SetPivot(Actor->GetActorLocation(), false, true);
 
-			if(GEditor->bGroupingActive)
+			if(UActorGroupingUtils::IsGroupingActive())
 			{
 				// set group pivot for the root-most group
 				AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);

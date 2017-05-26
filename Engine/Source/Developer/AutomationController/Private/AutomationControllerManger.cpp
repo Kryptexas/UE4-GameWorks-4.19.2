@@ -27,6 +27,8 @@
 #include "Logging/MessageLog.h"
 #endif
 
+DEFINE_LOG_CATEGORY_STATIC(AutomationControllerLog, Log, All)
+
 FAutomationControllerManager::FAutomationControllerManager()
 {
 	CheckpointFile = nullptr;
@@ -320,21 +322,23 @@ void FAutomationControllerManager::CollectTestResults(TSharedPtr<IAutomationRepo
 	}
 }
 
-void FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
+bool FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
 	FString Json;
 	if ( FJsonObjectConverter::UStructToJsonObjectString(SerializedPassResults, Json) )
 	{
 		FString ReportFileName = FString::Printf(TEXT("%s/index.json"), *ReportOutputPath);
-		FFileHelper::SaveStringToFile(Json, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8);
+		if ( FFileHelper::SaveStringToFile(Json, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+		{
+			return true;
+		}
 	}
-	else
-	{
-		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Json is invalid - report not generated."));
-	}
+	
+	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Json is invalid - report not generated."));
+	return false;
 }
 
-void FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
+bool FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp)
 {
 	FString ReportTemplate;
 	const bool bLoadedResult = FFileHelper::LoadFileToString(ReportTemplate, *( FPaths::EngineContentDir() / TEXT("Automation/Report-Template.html") ));
@@ -342,15 +346,14 @@ void FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedT
 	if ( bLoadedResult )
 	{
 		FString ReportFileName = FString::Printf(TEXT("%s/index.html"), *ReportOutputPath);
-		if ( !FFileHelper::SaveStringToFile(ReportTemplate, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+		if ( FFileHelper::SaveStringToFile(ReportTemplate, *ReportFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
 		{
-			GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
+			return true;
 		}
 	}
-	else
-	{
-		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Html is invalid - report not generated."));
-	}
+	
+	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Html is invalid - report not generated."));
+	return false;
 }
 
 FString FAutomationControllerManager::SlugString(const FString& DisplayString) const
@@ -497,6 +500,7 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
+		.Handling<FAutomationWorkerTestDataRequest>(this, &FAutomationControllerManager::HandleTestDataRequest)
 		.Handling<FAutomationWorkerWorkerOffline>(this, &FAutomationControllerManager::HandleWorkerOfflineMessage);
 
 	if ( MessageEndpoint.IsValid() )
@@ -598,8 +602,12 @@ void FAutomationControllerManager::ProcessResults()
 	{
 		FDateTime Timestamp = FDateTime::Now();
 
+		UE_LOG(AutomationControllerLog, Display, TEXT("Generating Automation Report @ %s."), *ReportOutputPath);
+
 		if ( IFileManager::Get().DirectoryExists(*ReportOutputPath) )
 		{
+			UE_LOG(AutomationControllerLog, Display, TEXT("Existing report directory found, deleting %s."), *ReportOutputPath);
+
 			// Clear the old report folder.  Why move it first?  Because RemoveDirectory
 			// is actually an async call that is not immediately carried out by the Windows OS; Moving a directory on the other hand, is sync.
 			// So we move, to a temporary location, then delete it.
@@ -607,7 +615,7 @@ void FAutomationControllerManager::ProcessResults()
 			IFileManager::Get().Move(*TempDirectory, *ReportOutputPath);
 			IFileManager::Get().DeleteDirectory(*TempDirectory, false, true);
 		}
-
+				
 		FScreenshotExportResults ExportResults = ScreenshotManager->ExportComparisonResultsAsync(ReportOutputPath).Get();
 
 		FAutomatedTestPassResults SerializedPassResults = OurPassResults;
@@ -656,6 +664,8 @@ void FAutomationControllerManager::ProcessResults()
 			}
 		}
 
+		UE_LOG(AutomationControllerLog, Display, TEXT("Writing reports... %s."), *ReportOutputPath);
+
 		// Generate Json
 		GenerateJsonTestPassSummary(SerializedPassResults, Timestamp);
 
@@ -664,6 +674,8 @@ void FAutomationControllerManager::ProcessResults()
 
 		if ( !DeveloperReportUrl.IsEmpty() )
 		{
+			UE_LOG(AutomationControllerLog, Display, TEXT("Launching Report URL %s."), *DeveloperReportUrl);
+
 			FPlatformProcess::LaunchURL(*DeveloperReportUrl, nullptr, nullptr);
 		}
 	}
@@ -885,6 +897,62 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	Comparison->PendingComparison = ScreenshotManager->CompareScreensotAsync(Message.ScreenShotName);
 
 	ComparisonQueue.Enqueue(Comparison);
+}
+
+void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context)
+{
+	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Test"));
+	const FString DataFile = Message.DataType / Message.DataPlatform / Message.DataTestName / Message.DataName + TEXT(".json");
+	const FString DataFullPath = TestDataRoot / DataFile;
+
+	// Generate the folder for the data if it doesn't exist.
+	const bool bTree = true;
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(DataFile), bTree);
+
+	bool bIsNew = true;
+	FString ResponseJsonData = Message.JsonData;
+
+	if ( FPaths::FileExists(DataFullPath) )
+	{
+		if ( FFileHelper::LoadFileToString(ResponseJsonData, *DataFullPath) )
+		{
+			bIsNew = false;
+		}
+		else
+		{
+			// TODO Error
+		}
+	}
+
+	if ( bIsNew )
+	{
+		FString IncomingTestData = FPaths::GameSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
+		if ( FFileHelper::SaveStringToFile(Message.JsonData, *IncomingTestData) )
+		{
+			//TODO Anything extra to do here?
+		}
+		else
+		{
+			//TODO What do we do if this fails?
+		}
+	}
+
+	FAutomationWorkerTestDataResponse* ResponseMessage = new FAutomationWorkerTestDataResponse();
+	ResponseMessage->bIsNew = bIsNew;
+	ResponseMessage->JsonData = ResponseJsonData;
+
+	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
+}
+
+void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context)
+{
+	//TODO Read/Performance data.
+
+	FAutomationWorkerPerformanceDataResponse* ResponseMessage = new FAutomationWorkerPerformanceDataResponse();
+	ResponseMessage->bSuccess = true;
+	ResponseMessage->ErrorMessage = TEXT("");
+
+	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context)

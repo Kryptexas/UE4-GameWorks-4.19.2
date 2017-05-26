@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "HAL/ThreadSafeCounter.h"
 #include "Math/NumericLimits.h"
@@ -776,7 +775,7 @@ struct FStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64()
 	{
-		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(int64) <= DATA_SIZE && alignof(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		return *(int64*)&StatData;
 	}
@@ -788,7 +787,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS uint64& GetValue_Ptr()
 	{
-		static_assert(sizeof(uint64) <= DATA_SIZE && ALIGNOF(uint64) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(uint64) <= DATA_SIZE && alignof(uint64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_Ptr);
 		return *(uint64*)&StatData;
 	}
@@ -816,7 +815,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double()
 	{
-		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(double) <= DATA_SIZE && alignof(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		return *(double*)&StatData;
 	}
@@ -829,7 +828,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS FMinimalName& GetValue_FMinimalName()
 	{
-		static_assert(sizeof(FMinimalName) <= DATA_SIZE && ALIGNOF(FMinimalName) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(FMinimalName) <= DATA_SIZE && alignof(FMinimalName) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
 		return *(FMinimalName*)&StatData;
 	}
@@ -978,7 +977,7 @@ struct TStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64( typename TEnum::Type Index )
 	{
-		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(int64) <= DATA_SIZE && alignof(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		checkStats(Index<EnumCount);
 		int64& Value = *((int64*)&StatData+(uint32)Index);
@@ -1015,7 +1014,7 @@ struct TStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double( typename TEnum::Type Index )
 	{
-		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
+		static_assert(sizeof(double) <= DATA_SIZE && alignof(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(Index<EnumCount);
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		double& Value = *((double*)&StatData+(uint32)Index);
@@ -1251,6 +1250,9 @@ class FThreadStats : FNoncopyable
 
 	/** Tracks current stack depth for cycle counters. **/
 	bool bSawExplicitFlush;
+
+	/** True if this is the stats thread, which needs special handling. **/
+	bool bIsStatsThread;
 
 	/** Gathers information about the current thread and sets up the TLS value. **/
 	CORE_API FThreadStats();
@@ -1791,6 +1793,8 @@ struct FStat_##StatName\
 	static DEFINE_STAT(StatId) \
 	return GET_STATID(StatId);
 
+#define QUICK_USE_CYCLE_STAT(StatId,GroupId) [](){ RETURN_QUICK_DECLARE_CYCLE_STAT(StatId, GroupId); }()
+
 #define DECLARE_CYCLE_STAT(CounterName,StatId,GroupId) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(StatId)
@@ -2035,8 +2039,8 @@ DECLARE_STATS_GROUP(TEXT("CPU Stalls"), STATGROUP_CPUStalls, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Character"), STATGROUP_Character, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("CollisionTags"), STATGROUP_CollisionTags, STATCAT_Advanced);
 DECLARE_STATS_GROUP_VERBOSE(TEXT("CollisionVerbose"),STATGROUP_CollisionVerbose, STATCAT_Advanced);
-DECLARE_STATS_GROUP(TEXT("Crash Tracker"),STATGROUP_CrashTracker, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Default Stat Group"),STATGROUP_Default, STATCAT_Advanced);

@@ -459,6 +459,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsResourceView()						{ return bSupportsTextureBuffer; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return bES30Support; }
 	static FORCEINLINE bool SupportsMobileMultiView()					{ return bSupportsMobileMultiView; }
+	static FORCEINLINE bool SupportsImageExternal()						{ return bSupportsImageExternal; }
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
 		return bUseES30ShadingLanguage;
@@ -495,6 +496,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports mobile multi-view */
 	static bool bSupportsMobileMultiView;
+
+	/** Whether device supports image external */
+	static bool bSupportsImageExternal;
 
 	/** Maximum number of MSAA samples supported on chip in tile memory, or 1 if not available */
 	static GLint MaxMSAASamplesTileMem;

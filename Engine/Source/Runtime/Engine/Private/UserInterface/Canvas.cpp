@@ -923,7 +923,7 @@ void FCanvas::Clear(const FLinearColor& ClearColor)
 			{
 				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
+				DrawClearQuad(RHICmdList, ClearColor);
 			}
 			else
 			{

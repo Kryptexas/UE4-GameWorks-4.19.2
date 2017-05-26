@@ -33,7 +33,7 @@ public:
 	
 	virtual void SetScript(class UFunctionalTestingManager* NewScript) override;
 
-	virtual class UFunctionalTestingManager* GetCurrentScript() override { return TestScript.Get(); }
+	virtual class UFunctionalTestingManager* GetCurrentScript();
 
 	virtual void SetLooping(const bool bLoop) override;
 

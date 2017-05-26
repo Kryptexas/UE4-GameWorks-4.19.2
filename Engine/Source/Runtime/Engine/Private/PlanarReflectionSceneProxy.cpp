@@ -41,7 +41,7 @@ FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionCompon
 
 	OwnerName = Component->GetOwner() ? Component->GetOwner()->GetFName() : NAME_None;
 
-	UpdateTransform(Component->ComponentToWorld.ToMatrixWithScale());
+	UpdateTransform(Component->GetComponentTransform().ToMatrixWithScale());
 
 	PlanarReflectionId = Component->GetPlanarReflectionId();
 	PrefilterRoughness = Component->PrefilterRoughness;

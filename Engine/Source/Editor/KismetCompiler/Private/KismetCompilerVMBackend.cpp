@@ -595,9 +595,7 @@ public:
 					    {
 						    return false;
 					    }
-					    if ((TypeA.bIsMap != TypeB.bIsMap)
-						    || (TypeA.bIsSet != TypeB.bIsSet)
-						    || (TypeA.bIsArray != TypeB.bIsArray)
+					    if ((TypeA.ContainerType != TypeB.ContainerType)
 						    || (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
 					    {
 						    return false;
@@ -791,10 +789,13 @@ public:
 				if (Struct == VectorStruct)
 				{
 					FVector V = FVector::ZeroVector;
-					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_VectorConst;
 					Writer << V;
@@ -802,10 +803,13 @@ public:
 				else if (Struct == RotatorStruct)
 				{
 					FRotator R = FRotator::ZeroRotator;
-					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_RotationConst;
 					Writer << R;
@@ -968,8 +972,7 @@ public:
 			else if (FLiteralTypeHelper::IsAsset(&Term->Type, CoerceProperty))
 			{
 				Writer << EX_AssetConst;
-				FAssetPtr AssetPtr(Term->ObjectLiteral);
-				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
+				EmitStringLiteral(Term->Name);
 			}
 			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
@@ -1343,7 +1346,7 @@ public:
 	{
 		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
 
-		const bool bIsContainer = DestinationExpression->Type.bIsArray || DestinationExpression->Type.bIsSet || DestinationExpression->Type.bIsMap;
+		const bool bIsContainer = DestinationExpression->Type.IsContainer();
 		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
 		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
 		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;

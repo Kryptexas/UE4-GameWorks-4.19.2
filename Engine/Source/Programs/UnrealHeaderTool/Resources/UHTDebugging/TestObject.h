@@ -90,6 +90,11 @@ public:
 	}
 #endif
 
+#if WITH_EDITOR
+	UFUNCTION(BlueprintCallable, Category = "MyEditorOnlyFunction")
+	void MyEditorOnlyFunction();
+#endif
+
 	UFUNCTION(BlueprintNativeEvent, Category="Game")
 	UClass* BrokenReturnTypeForFunction();
 };

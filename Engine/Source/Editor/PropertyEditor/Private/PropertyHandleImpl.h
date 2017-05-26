@@ -490,8 +490,11 @@ public:
 	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const override;
 	virtual void SetIgnoreValidation(bool bInIgnore) override;
 	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) override;
+	virtual bool IsResetToDefaultAvailable() override;
+	virtual void CustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault) override;
 
 	TSharedPtr<FPropertyNode> GetPropertyNode() const;
+	void OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault);
 protected:
 	TSharedPtr<FPropertyValueImpl> Implementation;
 };
@@ -629,7 +632,7 @@ private:
 };
 
 
-class FPropertyHandleArray : public FPropertyHandleBase, public IPropertyHandleArray, public TSharedFromThis<FPropertyHandleArray>
+class FPropertyHandleArray : public FPropertyHandleBase, public IPropertyHandleArray
 {
 public:
 	FPropertyHandleArray( TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities );
@@ -663,7 +666,7 @@ public:
 	virtual FPropertyAccess::Result SetValue(const FString& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
 };
 
-class FPropertyHandleSet : public FPropertyHandleBase, public IPropertyHandleSet, public TSharedFromThis<FPropertyHandleSet>
+class FPropertyHandleSet : public FPropertyHandleBase, public IPropertyHandleSet
 {
 public:
 	FPropertyHandleSet(TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities);
@@ -687,7 +690,7 @@ private:
 	bool IsEditable() const;
 };
 
-class FPropertyHandleMap : public FPropertyHandleBase, public IPropertyHandleMap, public TSharedFromThis<FPropertyHandleMap>
+class FPropertyHandleMap : public FPropertyHandleBase, public IPropertyHandleMap
 {
 public:
 	FPropertyHandleMap(TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities);

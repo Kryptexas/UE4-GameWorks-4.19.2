@@ -49,6 +49,13 @@ struct CORE_API FRenderingObjectVersion
 
 		ShaderResourceCodeSharing,
 
+		MotionBlurAndTAASupportInSceneCapture2d,
+
+		AddedTextureRenderTargetFormats,
+
+		// Triggers a rebuild of the mesh UV density while also adding an update in the postedit
+		FixedMeshUVDensity,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

@@ -39,17 +39,17 @@ void UK2Node_MatineeController::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Preload the matinee data, if needed, so that we can have all the event tracks we need
-	if (MatineeActor != NULL)
+	if (MatineeActor)
 	{
 		PreloadObject(MatineeActor);
 		PreloadObject(MatineeActor->MatineeData);
 	}
 
 	// Create the "finished" playing pin
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_MatineeFinished);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_MatineeFinished);
 
 	// Create pins for each event
-	if(MatineeActor != NULL && MatineeActor->MatineeData != NULL)
+	if (MatineeActor && MatineeActor->MatineeData)
 	{
 		TArray<FName> EventNames;
 		MatineeActor->MatineeData->GetAllEventNames(EventNames);
@@ -57,7 +57,7 @@ void UK2Node_MatineeController::AllocateDefaultPins()
 		for(int32 i=0; i<EventNames.Num(); i++)
 		{
 			FName EventName = EventNames[i];
-			CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, EventName.ToString());			
+			CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, EventName.ToString());			
 		}
 	}
 
@@ -213,7 +213,7 @@ void UK2Node_MatineeController::OnEventKeyframeAdded(const AMatineeActor* InMati
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 			// Add one to the index as we insert "finished" at index 0
-			CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InPinName.ToString(), false, InIndex + 1);
+			CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, InPinName.ToString(), EPinContainerType::None, false, false, InIndex + 1);
 
 			// Update and refresh the blueprint
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());

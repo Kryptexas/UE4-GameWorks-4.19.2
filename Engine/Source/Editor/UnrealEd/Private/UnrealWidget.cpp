@@ -630,7 +630,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 		const FVector CameraZAxis = View->ViewMatrices.GetViewMatrix().GetColumn(2);
 
 		UMaterialInstanceDynamic* XYZMaterial = ( CurrentAxis&EAxisList::Screen) ? CurrentAxisMaterial : OpaquePlaneMaterialXY;
-		DrawSphere( PDI, InLocation, 4.0f * Space.Scale, 10, 5, XYZMaterial->GetRenderProxy(false), SDPG_Foreground );
+		DrawSphere( PDI, InLocation, FRotator::ZeroRotator, 4.0f * Space.Scale, 10, 5, XYZMaterial->GetRenderProxy(false), SDPG_Foreground );
 
 		PDI->SetHitProxy( NULL );
 	}

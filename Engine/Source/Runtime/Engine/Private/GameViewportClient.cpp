@@ -39,7 +39,6 @@
 #include "AudioDevice.h"
 #include "Sound/SoundWave.h"
 #include "HighResScreenshot.h"
-#include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 #include "BufferVisualizationData.h"
 #include "GameFramework/InputSettings.h"
 #include "Components/LineBatchComponent.h"
@@ -260,6 +259,12 @@ FSceneViewport* UGameViewportClient::GetGameViewport()
 {
 	return static_cast<FSceneViewport*>(Viewport);
 }
+
+const FSceneViewport* UGameViewportClient::GetGameViewport() const
+{
+	return static_cast<FSceneViewport*>(Viewport);
+}
+
 
 TSharedPtr<class SViewport> UGameViewportClient::GetGameViewportWidget()
 {
@@ -731,7 +736,12 @@ void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FSt
 		else
 		{
 			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
+			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: The cursor class %s was not found, check your custom cursor settings."), *CursorClass.ToString());
 		}
+	}
+	else
+	{
+		UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Attempting to add an invalid cursor class."));
 	}
 }
 
@@ -1590,10 +1600,6 @@ void UGameViewportClient::PostRender(UCanvas* Canvas)
 
 	// Draw the transition screen.
 	DrawTransition(Canvas);
-
-	// Draw default web cam.  This only will draw something if a web camera is currently enabled in the live streaming settings
-	// and the user has activated it.  Also, the game may override this functionality entirely, and draw the web cam video itself.
-	IGameLiveStreaming::Get().DrawSimpleWebCamVideo( Canvas );
 }
 
 void UGameViewportClient::PeekTravelFailureMessages(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString)
@@ -3275,6 +3281,13 @@ bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FNam
 	}
 	
 	return true;
+}
+
+bool UGameViewportClient::IsSimulateInEditorViewport() const
+{
+	const FSceneViewport* GameViewport = GetGameViewport();
+
+	return GameViewport ? GameViewport->GetPlayInEditorIsSimulate() : false;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1053,6 +1053,11 @@ private:
 
 	static bool bTemplateInitializing;
 	static uint32 bInitializingFromWidgetTree;
+
+protected:
+
+	PROPERTY_BINDING_IMPLEMENTATION(FLinearColor, ColorAndOpacity);
+	PROPERTY_BINDING_IMPLEMENTATION(FSlateColor, ForegroundColor);
 };
 
 #define LOCTEXT_NAMESPACE "UMG"

@@ -20,9 +20,7 @@
 	void* PhysX3CommonHandle = nullptr;
 	void* PhysX3Handle = nullptr;
 	void* PxPvdSDKHandle = nullptr;
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		void* PhysX3CookingHandle = nullptr;
-	#endif
+	void* PhysX3CookingHandle = nullptr;
 	void* nvToolsExtHandle = nullptr;
 	#if WITH_APEX
 		void* APEXFrameworkHandle = nullptr;
@@ -37,10 +35,8 @@
 /**
  *	Load the required modules for PhysX
  */
-ENGINE_API void LoadPhysXModules()
+ENGINE_API void LoadPhysXModules(bool bLoadCookingModule)
 {
-
-
 #if PLATFORM_WINDOWS
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
 	FString APEXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/");
@@ -98,9 +94,11 @@ ENGINE_API void LoadPhysXModules()
 	PxPvdSDKHandle = LoadPhysicsLibrary(RootSharedPath + "PxPvdSDK" + PhysXSuffix);
 	PhysX3Handle = LoadPhysicsLibrary(RootPhysXPath + "PhysX3" + PhysXSuffix);
 
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+	if(bLoadCookingModule)
+	{
 		PhysX3CookingHandle = LoadPhysicsLibrary(RootPhysXPath + "PhysX3Cooking" + PhysXSuffix);
-	#endif
+	}
+
 	#if WITH_APEX
 		APEXFrameworkHandle = LoadPhysicsLibrary(RootAPEXPath + "APEXFramework" + APEXSuffix);
 		APEX_DestructibleHandle = LoadPhysicsLibrary(RootAPEXPath + "APEX_Destructible" + APEXSuffix);
@@ -148,10 +146,12 @@ ENGINE_API void LoadPhysXModules()
 	const FString PhysX3LibName = FString::Printf(TEXT("%slibPhysX3%s"), *PhysXBinariesRoot, *PhysXSuffix);
 	PhysX3Handle = LoadPhysicsLibrary(PhysX3LibName);
 
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+	if(bLoadCookingModule)
+	{
 		const FString PhysX3CookinLibName = FString::Printf(TEXT("%slibPhysX3Cooking%s"), *PhysXBinariesRoot, *PhysXSuffix);
 		PhysX3CookingHandle = LoadPhysicsLibrary(PhysX3CookinLibName);
-	#endif
+	}
+
 	#if WITH_APEX
 		const FString APEXFrameworkLibName = FString::Printf(TEXT("%slibAPEXFramework%s"), *PhysXBinariesRoot, *APEXSuffix);
 		APEXFrameworkHandle = LoadPhysicsLibrary(APEXFrameworkLibName);
@@ -177,9 +177,10 @@ void UnloadPhysXModules()
 #if PLATFORM_WINDOWS || PLATFORM_MAC
 	FPlatformProcess::FreeDllHandle(PxPvdSDKHandle);
 	FPlatformProcess::FreeDllHandle(PhysX3Handle);
-	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+	if(PhysX3CookingHandle)
+	{
 		FPlatformProcess::FreeDllHandle(PhysX3CookingHandle);
-	#endif
+	}
 	FPlatformProcess::FreeDllHandle(PhysX3CommonHandle);
 	FPlatformProcess::FreeDllHandle(PxFoundationHandle);
 	#if WITH_APEX

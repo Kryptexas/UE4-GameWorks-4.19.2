@@ -6,6 +6,8 @@ public class LightPropagationVolumeRuntime : ModuleRules
 {
 	public LightPropagationVolumeRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
+		ShortName = "LPVRuntime";
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {	
 				"Core",

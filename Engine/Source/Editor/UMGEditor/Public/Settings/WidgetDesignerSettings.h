@@ -13,9 +13,10 @@
 UCLASS(config=EditorPerProjectUserSettings)
 class UMGEDITOR_API UWidgetDesignerSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
+	UWidgetDesignerSettings();
 
 	/** If enabled, actor positions will snap to the grid. */
 	UPROPERTY(EditAnywhere, config, Category = GridSnapping, meta = (DisplayName = "Enable Grid Snapping"))
@@ -45,4 +46,11 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category = Visuals)
 	bool bExecutePreConstructEvent;
+
+	/**
+	 * Should the designer respect locked widgets?  If true, the designer by default
+	 * will not allow you to select locked widgets in the designer view.
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Interaction)
+	bool bRespectLocks;
 };

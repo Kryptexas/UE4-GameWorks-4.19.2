@@ -6,6 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/Material.h"
 #include "VIGizmoHandle.h"
+#include "ViewportDragOperation.h"
 
 namespace VREd
 {
@@ -24,25 +25,6 @@ ABaseTransformGizmo::ABaseTransformGizmo( ) :
 
 		RootComponent = SceneComponent;
 	}
-
-	GizmoMaterial = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TransformGizmoMaterial" ) );
-		GizmoMaterial = ObjectFinder.Object;
-		check( GizmoMaterial != nullptr );
-	}
-
-	TranslucentGizmoMaterial = nullptr;
-	{
-		static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslucentTransformGizmoMaterial" ) );
-		TranslucentGizmoMaterial = ObjectFinder.Object;
-		check( TranslucentGizmoMaterial != nullptr );
-	}
-}
-
-ABaseTransformGizmo::~ABaseTransformGizmo()
-{
-	WorldInteraction = nullptr;
 }
 
 void ABaseTransformGizmo::OnNewObjectsSelected()
@@ -50,7 +32,7 @@ void ABaseTransformGizmo::OnNewObjectsSelected()
 	SelectedAtTime = FTimespan::FromSeconds( FApp::GetCurrentTime() );
 }
 
-ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
+UViewportDragOperationComponent* ABaseTransformGizmo::GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
 {
 	OutHandlePlacement.Reset();
 	if ( DraggedComponent != nullptr )
@@ -58,8 +40,6 @@ ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorCo
 		UStaticMeshComponent* DraggedMesh = Cast<UStaticMeshComponent>( DraggedComponent );
 		if ( DraggedMesh != nullptr )
 		{
-			ETransformGizmoInteractionType ResultInteractionType;
-
 			for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 			{
 				if ( HandleGroup != nullptr )
@@ -67,8 +47,8 @@ ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorCo
 					int32 HandIndex = HandleGroup->GetDraggedHandleIndex( DraggedMesh );
 					if ( HandIndex != INDEX_NONE )
 					{
-						HandleGroup->GetHandleIndexInteractionType( HandIndex, ResultInteractionType, OutHandlePlacement );
-						return ResultInteractionType;
+						OutHandlePlacement = HandleGroup->MakeHandlePlacementForIndex(HandIndex);
+						return HandleGroup->GetDragOperationComponent();
 					}
 				}
 			}
@@ -76,7 +56,7 @@ ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorCo
 	}
 
 	OutHandlePlacement.Reset();
-	return ETransformGizmoInteractionType::Translate;
+	return nullptr;
 }
 
 float ABaseTransformGizmo::GetAnimationAlpha()

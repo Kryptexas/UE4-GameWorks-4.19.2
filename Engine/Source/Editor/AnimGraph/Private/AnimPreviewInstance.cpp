@@ -107,7 +107,12 @@ void FAnimPreviewInstanceProxy::Update(float DeltaSeconds)
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+	if (CopyPoseNode.SourceMeshComponent.IsValid())
+	{
+		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
+		CopyPoseNode.Update(UpdateContext);
+	}
+	else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
 	{
 		PoseBlendNode.PoseAsset = PoseAsset;
 
@@ -135,87 +140,94 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 	// we cant evaluate on a worker thread here because of the key delegate needing to be fired
 	check(IsInGameThread());
 
-#if WITH_EDITORONLY_DATA
-	if(bForceRetargetBasePose)
+	if (CopyPoseNode.SourceMeshComponent.IsValid())
 	{
-		USkeletalMeshComponent* MeshComponent = Output.AnimInstanceProxy->GetSkelMeshComponent();
-		if(MeshComponent && MeshComponent->SkeletalMesh)
-		{
-			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose, GetSkelMeshComponent()->SkeletalMesh);
-		}
-		else
-		{
-			// ideally we'll return just ref pose, but not sure if this will work with LODs
-			Output.Pose.ResetToRefPose();
-		}
+		CopyPoseNode.Evaluate(Output);
 	}
 	else
-#endif // #if WITH_EDITORONLY_DATA
 	{
-		if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
+#if WITH_EDITORONLY_DATA
+		if(bForceRetargetBasePose)
 		{
-			PoseBlendNode.Evaluate(Output);
+			USkeletalMeshComponent* MeshComponent = Output.AnimInstanceProxy->GetSkelMeshComponent();
+			if(MeshComponent && MeshComponent->SkeletalMesh)
+			{
+				FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose, GetSkelMeshComponent()->SkeletalMesh);
+			}
+			else
+			{
+				// ideally we'll return just ref pose, but not sure if this will work with LODs
+				Output.Pose.ResetToRefPose();
+			}
 		}
 		else
+#endif // #if WITH_EDITORONLY_DATA
 		{
-			FAnimSingleNodeInstanceProxy::Evaluate(Output);
-		}
-	}
-
-	if (bEnableControllers)
-	{
-		UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent>(GetSkelMeshComponent());
-		if(Component)
-		{
-			// update curve controllers
-			UpdateCurveController();
-
-			// create bone controllers from 
-			if(BoneControllers.Num() > 0 || CurveBoneControllers.Num() > 0)
+			if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
 			{
-				FPoseContext PreController(Output), PostController(Output);
-				// if set key is true, we should save pre controller local space transform 
-				// so that we can calculate the delta correctly
-				if(bSetKey)
-				{
-					PreController = Output;
-				}
-
-				FComponentSpacePoseContext ComponentSpacePoseContext(Output.AnimInstanceProxy);
-				ComponentSpacePoseContext.Pose.InitPose(Output.Pose);
-
-				// apply curve data first
-				ApplyBoneControllers(CurveBoneControllers, ComponentSpacePoseContext);
-
-				// and now apply bone controllers data
-				// it is possible they can be overlapping, but then bone controllers will overwrite
-				ApplyBoneControllers(BoneControllers, ComponentSpacePoseContext);
-
-				// convert back to local @todo check this
-				ComponentSpacePoseContext.Pose.ConvertToLocalPoses(Output.Pose);
-
-				if(bSetKey)
-				{
-					// now we have post controller, and calculate delta now
-					PostController = Output;
-					SetKeyImplementation(PreController.Pose, PostController.Pose);
-				}
+				PoseBlendNode.Evaluate(Output);
 			}
-			// if any other bone is selected, still go for set key even if nothing changed
-			else if(Component->BonesOfInterest.Num() > 0)
+			else
 			{
-				if(bSetKey)
-				{
-					// in this case, pose is same
-					SetKeyImplementation(Output.Pose, Output.Pose);
-				}
+				FAnimSingleNodeInstanceProxy::Evaluate(Output);
 			}
 		}
 
-		// we should unset here, just in case somebody clicks the key when it's not valid
-		if(bSetKey)
+		if (bEnableControllers)
 		{
-			bSetKey = false;
+			UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent>(GetSkelMeshComponent());
+			if(Component)
+			{
+				// update curve controllers
+				UpdateCurveController();
+
+				// create bone controllers from 
+				if(BoneControllers.Num() > 0 || CurveBoneControllers.Num() > 0)
+				{
+					FPoseContext PreController(Output), PostController(Output);
+					// if set key is true, we should save pre controller local space transform 
+					// so that we can calculate the delta correctly
+					if(bSetKey)
+					{
+						PreController = Output;
+					}
+
+					FComponentSpacePoseContext ComponentSpacePoseContext(Output.AnimInstanceProxy);
+					ComponentSpacePoseContext.Pose.InitPose(Output.Pose);
+
+					// apply curve data first
+					ApplyBoneControllers(CurveBoneControllers, ComponentSpacePoseContext);
+
+					// and now apply bone controllers data
+					// it is possible they can be overlapping, but then bone controllers will overwrite
+					ApplyBoneControllers(BoneControllers, ComponentSpacePoseContext);
+
+					// convert back to local @todo check this
+					ComponentSpacePoseContext.Pose.ConvertToLocalPoses(Output.Pose);
+
+					if(bSetKey)
+					{
+						// now we have post controller, and calculate delta now
+						PostController = Output;
+						SetKeyImplementation(PreController.Pose, PostController.Pose);
+					}
+				}
+				// if any other bone is selected, still go for set key even if nothing changed
+				else if(Component->BonesOfInterest.Num() > 0)
+				{
+					if(bSetKey)
+					{
+						// in this case, pose is same
+						SetKeyImplementation(Output.Pose, Output.Pose);
+					}
+				}
+			}
+
+			// we should unset here, just in case somebody clicks the key when it's not valid
+			if(bSetKey)
+			{
+				bSetKey = false;
+			}
 		}
 	}
 
@@ -395,6 +407,17 @@ void FAnimPreviewInstanceProxy::AddKeyToSequence(UAnimSequence* Sequence, float 
 	ModifyBone(BoneName, true);
 
 	GetRequiredBones().SetUseSourceData(true);
+}
+
+void FAnimPreviewInstanceProxy::SetDebugSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
+{
+	CopyPoseNode.SourceMeshComponent = InSkeletalMeshComponent;
+	CopyPoseNode.Initialize(FAnimationInitializeContext(this));
+}
+
+USkeletalMeshComponent* FAnimPreviewInstanceProxy::GetDebugSkeletalMeshComponent() const
+{
+	return CopyPoseNode.SourceMeshComponent.Get();
 }
 
 UAnimPreviewInstance::UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer)
@@ -1138,6 +1161,20 @@ bool UAnimPreviewInstance::GetForceRetargetBasePose() const
 FAnimInstanceProxy* UAnimPreviewInstance::CreateAnimInstanceProxy()
 {
 	return new FAnimPreviewInstanceProxy(this);
+}
+
+void UAnimPreviewInstance::SetDebugSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
+{
+	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
+
+	Proxy.InitializeObjects(this);
+	Proxy.SetDebugSkeletalMeshComponent(InSkeletalMeshComponent);
+	Proxy.ClearObjects();
+}
+
+USkeletalMeshComponent* UAnimPreviewInstance::GetDebugSkeletalMeshComponent() const
+{
+	return GetProxyOnGameThread<FAnimPreviewInstanceProxy>().GetDebugSkeletalMeshComponent();
 }
 
 #undef LOCTEXT_NAMESPACE

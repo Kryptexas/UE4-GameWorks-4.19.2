@@ -158,6 +158,6 @@ public:
 	const OptionalType& Get(const OptionalType& DefaultValue) const { return IsSet() ? *(OptionalType*)&Value : DefaultValue; }
 
 private:
-	bool bIsSet;
 	TTypeCompatibleBytes<OptionalType> Value;
+	bool bIsSet;
 };

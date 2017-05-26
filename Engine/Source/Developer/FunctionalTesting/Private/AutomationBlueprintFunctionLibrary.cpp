@@ -26,6 +26,8 @@
 #include "BufferVisualizationData.h"
 #include "Engine/LocalPlayer.h"
 #include "ContentStreaming.h"
+#include "Stats/StatsData.h"
+#include "HAL/PlatformProperties.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -47,8 +49,11 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 
 void FinishLoadingBeforeScreenshot()
 {
-	// Force all shader compiling to finish.
-	GShaderCompilingManager->FinishAllCompilation();
+	// Finish compiling the shaders if the platform doesn't require cooked data.
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		GShaderCompilingManager->FinishAllCompilation();
+	}
 
 	// Force all mip maps to load before taking the screenshot.
 	UTexture::ForceUpdateTextureStreaming();
@@ -451,24 +456,130 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 	}
 }
 
-//void UAutomationBlueprintFunctionLibrary::BeginPerformanceCapture()
-//{
-//    //::BeginPerformanceCapture();
-//}
-//
-//void UAutomationBlueprintFunctionLibrary::EndPerformanceCapture()
-//{
-//    //::EndPerformanceCapture();
-//}
+void UAutomationBlueprintFunctionLibrary::EnableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+		if(StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand( FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+void UAutomationBlueprintFunctionLibrary::DisableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+
+		if (!StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand(FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+#if STATS
+template <EComplexStatField::Type ValueType, bool bCallCount = false>
+float HelperGetStat(FName StatName)
+{
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		if (const FComplexStatMessage* StatMessage = StatsData->GetStatData(StatName))
+		{
+			if(bCallCount)
+			{
+				return StatMessage->GetValue_CallCount(ValueType);	
+			}
+			else
+			{
+				return FPlatformTime::ToMilliseconds(StatMessage->GetValue_Duration(ValueType));
+			}
+		}
+	}
+
+#if WITH_EDITOR
+	FText WarningOut = FText::Format(LOCTEXT("StatNotFound", "Could not find stat data for {0}, did you call ToggleStatGroup with enough time to capture data?"), FText::FromName(StatName));
+	FMessageLog("PIE").Warning(WarningOut);
+	UE_LOG(AutomationFunctionLibrary, Warning, TEXT("%s"), *WarningOut.ToString());
+#endif
+
+	return 0.f;
+}
+#endif
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncAverage(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncAve>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncMax(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncMax>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcAverage(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::ExcAve>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcMax(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::ExcMax>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatCallCount(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncAve, /*bCallCount=*/true>(StatName);
+#else
+	return 0.0f;
+#endif
+}
 
 bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()
 {
 	return GIsAutomationTesting;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;
@@ -477,9 +588,10 @@ FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScre
 	return Options;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;

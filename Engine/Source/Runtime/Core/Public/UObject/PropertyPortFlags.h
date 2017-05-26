@@ -11,11 +11,10 @@
 // Property exporting flags.
 enum EPropertyPortFlags
 {
-	/** No special property exporint flags */
+	/** No special property exporting flags */
 	PPF_None						= 0x00000000,
 
-	/** Indicates that property data should be treated as text */
-	PPF_Localized					= 0x00000001,
+	//								= 0x00000001,
 
 	/** Indicates that property data should be wrapped in quotes (for some types of properties) */
 	PPF_Delimited					= 0x00000002,
@@ -27,7 +26,7 @@ enum EPropertyPortFlags
 	
 	PPF_AttemptNonQualifiedSearch	= 0x00000010,
 	
-	/** Indicates that importing values for config or localized properties is disallowed */
+	/** Indicates that importing values for config properties is disallowed */
 	PPF_RestrictImportTypes			= 0x00000020,
 
 	//								= 0x00000040,
@@ -101,4 +100,7 @@ enum EPropertyPortFlags
 
 	/** Ignores CPF_SkipSerialization flag when using tagged serialization */
 	PPF_ForceTaggedSerialization	= 0x20000000,
+
+	/** Set when duplicating objects verbatim (doesn't reset unique IDs) */
+	PPF_DuplicateVerbatim			= 0x40000000,
 };

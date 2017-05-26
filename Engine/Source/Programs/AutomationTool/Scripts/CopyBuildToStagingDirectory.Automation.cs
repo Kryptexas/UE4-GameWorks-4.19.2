@@ -317,16 +317,16 @@ public partial class Project : CommandUtils
             return;
         }
 
-
-		ThisPlatform.GetFilesToDeployOrStage(Params, SC);
-
-
-		// Stage any extra runtime dependencies from the receipts
-		foreach(StageTarget Target in SC.StageTargets)
+		if (!Params.IterateSharedBuildUsePrecompiledExe)
 		{
-			SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.UsePak(SC.StageTargetPlatform));
-		}
+			ThisPlatform.GetFilesToDeployOrStage(Params, SC);
 
+			// Stage any extra runtime dependencies from the receipts
+			foreach (StageTarget Target in SC.StageTargets)
+			{
+				SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.UsePak(SC.StageTargetPlatform));
+			}
+		}
 		// Get the build.properties file
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
 		// @todo: Maybe there should be a new category - UFSNotForPak
@@ -552,7 +552,7 @@ public partial class Project : CommandUtils
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
             // @todo Make CrashReportClient more portable so we don't have to do this
-            if (SC.bStageCrashReporter && PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType))
+            if (SC.bStageCrashReporter && PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType) && (Params.IterateSharedBuildUsePrecompiledExe == false))
             {
                 //If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
                 SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
@@ -1799,6 +1799,12 @@ public partial class Project : CommandUtils
                                 Architecture = PlatformExports.GetDefaultArchitecture(ReceiptPlatform, Params.RawProjectPath);
                             }
                         }
+
+						if (Params.IterateSharedBuildUsePrecompiledExe)
+						{
+							continue;
+						}
+
 						string ReceiptFileName = TargetReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);
 						if(!File.Exists(ReceiptFileName))
 						{

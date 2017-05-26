@@ -727,6 +727,7 @@ public:
 	 * Build callbacks
 	 */
 	static void Build_Execute();
+	static bool Build_CanExecute();
 	static void BuildAndSubmitToSourceControl_Execute();
 	static void BuildLightingOnly_Execute();
 	static bool BuildLighting_CanExecute();

@@ -17,7 +17,7 @@ class UTexture;
 /**
  * Holds texture information with UV coordinates as well.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCanvasIcon
 {
 	GENERATED_USTRUCT_BODY()
@@ -458,7 +458,7 @@ public:
 	 * Draw a CanvasItem at the given coordinates
 	 *
 	 * @param Item			Item to draw
-	 * @param InPostion		Position to draw item
+	 * @param InPosition	Position to draw item
 	 */
 	void DrawItem( FCanvasItem& Item, const FVector2D& InPosition );
 	

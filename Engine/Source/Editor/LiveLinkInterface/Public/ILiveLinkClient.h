@@ -4,6 +4,8 @@
 
 #include "LiveLinkRefSkeleton.h"
 #include "Features/IModularFeature.h"
+#include "LiveLinkTypes.h"
+#include "Guid.h"
 
 class LIVELINKINTERFACE_API ILiveLinkClient : public IModularFeature
 {
@@ -12,8 +14,13 @@ public:
 
 	static FName ModularFeatureName;
 
-	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) = 0;
-	virtual void PushSubjectData(FName SubjectName, const TArray<FTransform>& Transforms) = 0;
+	// Helper functions for making time codes for new frames
+	virtual FLiveLinkTimeCode MakeTimeCode(double InTime, int32 InFrameNum) const = 0;
+	virtual FLiveLinkTimeCode MakeTimeCodeFromTimeOnly(double InTime) const = 0;
 
-	virtual bool GetSubjectData(FName SubjectName, TArray<FTransform>& OutTransforms, FLiveLinkRefSkeleton& OutRefSkeleton) = 0;
+	virtual void PushSubjectSkeleton(FName SubjectName, const FLiveLinkRefSkeleton& RefSkeleton) = 0;
+	virtual void PushSubjectData(FGuid SourceGuid, FName SubjectName, const TArray<FTransform>& Transforms, const TArray<FLiveLinkCurveElement>& CurveElements, const FLiveLinkTimeCode& TimeCode) = 0;
+	virtual void ClearSubject(FName SubjectName) = 0;
+
+	virtual const FLiveLinkSubjectFrame* GetSubjectData(FName SubjectName) = 0;
 };

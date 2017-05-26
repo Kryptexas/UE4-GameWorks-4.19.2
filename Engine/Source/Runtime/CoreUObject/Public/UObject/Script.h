@@ -132,7 +132,7 @@ enum EFunctionFlags
 	FUNC_BlueprintCallable	= 0x04000000,	// function can be called from blueprint code
 	FUNC_BlueprintEvent		= 0x08000000,	// function can be overridden/implemented from a blueprint
 	FUNC_BlueprintPure		= 0x10000000,	// function can be called from blueprint code, and is also pure (produces no side effects). If you set this, you should set FUNC_BlueprintCallable as well.
-	// FUNC_				= 0x20000000,	// unused.
+	FUNC_EditorOnly			= 0x20000000,	// function can only be called from an editor scrippt.
 	FUNC_Const				= 0x40000000,	// function can be called from blueprint code, and only reads state (never writes state)
 	FUNC_NetValidate		= 0x80000000,	// function must supply a _Validate implementation
 

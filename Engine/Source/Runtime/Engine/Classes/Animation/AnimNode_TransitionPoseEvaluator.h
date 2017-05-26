@@ -41,7 +41,7 @@ namespace EEvaluatorMode
 /** Animation data node for state machine transitions.
  * Can be set to supply either the animation data from the transition source (From State) or the transition destination (To State).
 */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

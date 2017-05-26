@@ -24,7 +24,7 @@ class ENGINE_API USceneCaptureComponent2D : public USceneCaptureComponent
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionType;
 
 	/** Camera field of view (in degrees). */
-	UPROPERTY(interp, Category=Projection, meta=(DisplayName = "Field of View", UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
+	UPROPERTY(interp, EditAnywhere, BlueprintReadWrite, Category=Projection, meta=(DisplayName = "Field of View", UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
 	float FOVAngle;
 
 	/** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */

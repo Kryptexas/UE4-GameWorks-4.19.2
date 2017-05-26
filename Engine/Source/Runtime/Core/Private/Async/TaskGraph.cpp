@@ -34,6 +34,8 @@ DEFINE_STAT(STAT_FTriggerEventGraphTask);
 DEFINE_STAT(STAT_ParallelFor);
 DEFINE_STAT(STAT_ParallelForTask);
 
+static int32 GNumWorkerThreadsToIgnore = 0;
+
 #if (PLATFORM_XBOXONE || PLATFORM_PS4 || PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX) && !IS_PROGRAM && WITH_ENGINE && !UE_SERVER
 	#define CREATE_HIPRI_TASK_THREADS (1)
 	#define CREATE_BACKGROUND_TASK_THREADS (1)
@@ -49,14 +51,6 @@ namespace ENamedThreads
 	CORE_API int32 bHasBackgroundThreads = CREATE_BACKGROUND_TASK_THREADS;
 	CORE_API int32 bHasHighPriorityThreads = CREATE_HIPRI_TASK_THREADS;
 }
-
-static int32 GNumWorkerThreadsToIgnore = 0;
-static FAutoConsoleVariableRef CVarNumWorkerThreadsToIgnore(
-	TEXT("TaskGraph.NumWorkerThreadsToIgnore"),
-	GNumWorkerThreadsToIgnore,
-	TEXT("Used to tune the number of task threads. Generally once you have found the right value, PlatformMisc::NumberOfWorkerThreadsToSpawn() should be hardcoded."),
-	ECVF_Cheat
-	);
 
 #if CREATE_HIPRI_TASK_THREADS || CREATE_BACKGROUND_TASK_THREADS
 	static void ThreadSwitchForABTest(const TArray<FString>& Args)
@@ -656,6 +650,13 @@ public:
 				TestRandomizedThreads();
 			}
 		}
+#if STATS
+		if (bTasksOpen)
+		{
+			ProcessingTasks.Stop();
+			bTasksOpen = false;
+		}
+#endif
 	}
 	virtual void EnqueueFromThisThread(int32 QueueIndex, FBaseGraphTask* Task) override
 	{
@@ -808,6 +809,19 @@ public:
 		Queue.StallRestartEvent->Trigger();
 	}
 
+	void StallForTuning(bool Stall)
+	{
+		if (Stall)
+		{
+			Queue.StallForTuning.Lock();
+			Queue.bStallForTuning = true;
+		}
+		else
+		{
+			Queue.bStallForTuning = false;
+			Queue.StallForTuning.Unlock();
+		}
+	}
 	/**
 	*Return true if this thread is processing tasks. This is only a "guess" if you ask for a thread other than yourself because that can change before the function returns.
 	*@param QueueIndex, Queue to request quit from
@@ -879,6 +893,26 @@ private:
 			TestRandomizedThreads();
 			Task->Execute(NewTasks, ENamedThreads::Type(ThreadId));
 			TestRandomizedThreads();
+			if (Queue.bStallForTuning)
+			{
+#if STATS
+				if (bTasksOpen)
+				{
+					ProcessingTasks.Stop();
+					bTasksOpen = false;
+				}
+#endif
+				{
+					FScopeLock Lock(&Queue.StallForTuning);
+				}
+#if STATS
+				if (FThreadStats::IsCollectingData(StatName))
+				{
+					bTasksOpen = true;
+					ProcessingTasks.Start(StatName);
+				}
+#endif
+			}
 		}
 		verify(!--Queue.RecursionGuard);
 	}
@@ -886,17 +920,21 @@ private:
 	/** Grouping of the data for an individual queue. **/
 	struct FThreadTaskQueue
 	{
+		/** Event that this thread blocks on when it runs out of work. **/
+		FEvent* StallRestartEvent;
 		/** We need to disallow reentry of the processing loop **/
-		uint32												RecursionGuard;
+		uint32 RecursionGuard;
 		/** Indicates we executed a return task, so break out of the processing loop. **/
 		bool QuitForShutdown;
-		/** Event that this thread blocks on when it runs out of work. **/
-		FEvent*												StallRestartEvent;
+		/** Should we stall for tuning? **/
+		bool bStallForTuning;
+		FCriticalSection StallForTuning;
 
 		FThreadTaskQueue()
-			: RecursionGuard(0)
+			: StallRestartEvent(FPlatformProcess::GetSynchEventFromPool(false))
+			, RecursionGuard(0)
 			, QuitForShutdown(false)
-			, StallRestartEvent(FPlatformProcess::GetSynchEventFromPool(false))
+			, bStallForTuning(false)
 		{
 
 		}
@@ -1318,7 +1356,7 @@ public:
 	void StartTaskThread(int32 Priority, int32 IndexToStart)
 	{
 		ENamedThreads::Type ThreadToWake = ENamedThreads::Type(IndexToStart + Priority * NumTaskThreadsPerSet + NumNamedThreads);
-		((FTaskThreadAnyThread&)Thread(ThreadToWake)).FTaskThreadAnyThread::WakeUp();
+		((FTaskThreadAnyThread&)Thread(ThreadToWake)).WakeUp();
 	}
 	void StartAllTaskThreads(bool bDoBackgroundThreads)
 	{
@@ -1339,7 +1377,7 @@ public:
 
 	FBaseGraphTask* FindWork(ENamedThreads::Type ThreadInNeed)
 	{
-		int32 LocalNumWorkingThread = GetNumWorkerThreads();
+		int32 LocalNumWorkingThread = GetNumWorkerThreads() + GNumWorkerThreadsToIgnore;
 		int32 MyIndex = int32((uint32(ThreadInNeed) - NumNamedThreads) % NumTaskThreadsPerSet);
 		int32 Priority = int32((uint32(ThreadInNeed) - NumNamedThreads) / NumTaskThreadsPerSet);
 		check(MyIndex >= 0 && MyIndex < LocalNumWorkingThread &&
@@ -1349,6 +1387,14 @@ public:
 		return IncomingAnyThreadTasks[Priority].Pop(MyIndex, true);
 	}
 
+	void StallForTuning(int32 Index, bool Stall)
+	{
+		for (int32 Priority = 0; Priority < ENamedThreads::NumThreadPriorities; Priority++)
+		{
+			ENamedThreads::Type ThreadToWake = ENamedThreads::Type(Index + Priority * NumTaskThreadsPerSet + NumNamedThreads);
+			((FTaskThreadAnyThread&)Thread(ThreadToWake)).StallForTuning(Stall);
+		}
+	}
 	void SetTaskThreadPriorities(EThreadPriority Pri)
 	{
 		check(NumTaskThreadSets == 1); // otherwise tuning this doesn't make a lot of sense
@@ -1610,13 +1656,12 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 
 	FEvent* MyEvent = nullptr;
 	FGraphEventArray TaskThreadTasks;
+	FThreadSafeCounter StallForTaskThread;
 	if (bDoTaskThreads)
 	{
 		MyEvent = FPlatformProcess::GetSynchEventFromPool(false);
-		FThreadSafeCounter StallForTaskThread;
 
 		int32 Workers = FTaskGraphInterface::Get().GetNumWorkerThreads();
-		StallForTaskThread.Reset();
 		StallForTaskThread.Add(Workers * (1 + (bDoBackgroundThreads && ENamedThreads::bHasBackgroundThreads) + !!(ENamedThreads::bHasHighPriorityThreads)));
 
 		TaskEvents.Reserve(StallForTaskThread.GetValue());
@@ -1654,7 +1699,7 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 
 	FGraphEventArray Tasks;
 	STAT(Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::StatsThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr)););
-	if (GRHIThread)
+	if (GRHIThread_InternalUseOnly)
 	{
 		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RHIThread, ENamedThreads::HighTaskPriority), nullptr, nullptr, nullptr));
 	}
@@ -1665,7 +1710,8 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 	Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::GameThread_Local, nullptr, nullptr, nullptr));
 	if (bDoTaskThreads)
 	{
-		if (!MyEvent->Wait(3000))
+		check(MyEvent);
+		if (MyEvent && !MyEvent->Wait(3000))
 		{
 			UE_LOG(LogTaskGraph, Log, TEXT("FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes Broadcast failed after three seconds. Ok during automated tests."));
 		}
@@ -1674,16 +1720,51 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 			TaskEvent->Trigger();
 		}
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(TaskThreadTasks, ENamedThreads::GameThread_Local);
-		for (FEvent* TaskEvent : TaskEvents)
-		{
-			FPlatformProcess::ReturnSynchEventToPool(TaskEvent);
-		}
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+	}
+	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+	for (FEvent* TaskEvent : TaskEvents)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(TaskEvent);
+	}
+	if (MyEvent)
+	{
 		FPlatformProcess::ReturnSynchEventToPool(MyEvent);
 	}
 }
 
+static void HandleNumWorkerThreadsToIgnore(const TArray<FString>& Args)
+{
+	if (Args.Num() > 0)
+	{
+		int32 Arg = FCString::Atoi(*Args[0]);
+		int32 MaxNumPerBank = FTaskGraphInterface::Get().GetNumWorkerThreads() + GNumWorkerThreadsToIgnore;
+		if (Arg < MaxNumPerBank && Arg >= 0 && Arg != GNumWorkerThreadsToIgnore)
+		{
+			if (Arg > GNumWorkerThreadsToIgnore)
+			{
+				for (int32 Index = MaxNumPerBank - GNumWorkerThreadsToIgnore - 1; Index >= MaxNumPerBank - Arg; Index--)
+				{
+					FTaskGraphImplementation::Get().StallForTuning(Index, true);
+				}
+			}
+			else
+			{
+				for (int32 Index = MaxNumPerBank - Arg - 1; Index >= MaxNumPerBank - GNumWorkerThreadsToIgnore; Index--)
+				{
+					FTaskGraphImplementation::Get().StallForTuning(Index, false);
+				}
+			}
+			GNumWorkerThreadsToIgnore = Arg;
+		}
+	}
+	UE_LOG(LogConsoleResponse, Display, TEXT("Currently ignoring %d threads per priority bank"), GNumWorkerThreadsToIgnore);
+}
 
+static FAutoConsoleCommand CVarNumWorkerThreadsToIgnore(
+	TEXT("TaskGraph.NumWorkerThreadsToIgnore"),
+	TEXT("Used to tune the number of task threads. Generally once you have found the right value, PlatformMisc::NumberOfWorkerThreadsToSpawn() should be hardcoded."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&HandleNumWorkerThreadsToIgnore)
+	);
 
 // Benchmark
 
@@ -2098,14 +2179,14 @@ struct FTestRigFIFO
 {
 	FLockFreePointerFIFOBase<FTestStruct, PLATFORM_CACHE_LINE_SIZE> Test1;
 	FLockFreePointerFIFOBase<FTestStruct, 1> Test2;
-	FLockFreePointerFIFOBase<FTestStruct, 1, 1 << 16> Test3;
+	FLockFreePointerFIFOBase<FTestStruct, 1, 1 << 4> Test3;
 };
 
 struct FTestRigLIFO
 {
 	FLockFreePointerListLIFOBase<FTestStruct, PLATFORM_CACHE_LINE_SIZE> Test1;
 	FLockFreePointerListLIFOBase<FTestStruct, 1> Test2;
-	FLockFreePointerListLIFOBase<FTestStruct, 1, 1 << 16> Test3;
+	FLockFreePointerListLIFOBase<FTestStruct, 1, 1 << 4> Test3;
 };
 
 static void TestLockFree(int32 OuterIters = 3)

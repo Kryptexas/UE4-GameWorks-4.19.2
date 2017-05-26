@@ -8,14 +8,15 @@
 void SInputKeySelector::Construct( const FArguments& InArgs )
 {
 	SelectedKey = InArgs._SelectedKey;
+	KeySelectionText = InArgs._KeySelectionText;
+	NoKeySpecifiedText = InArgs._NoKeySpecifiedText;
 	OnKeySelected = InArgs._OnKeySelected;
-	Font = InArgs._Font;
-	ColorAndOpacity = InArgs._ColorAndOpacity;
 	OnIsSelectingKeyChanged = InArgs._OnIsSelectingKeyChanged;
 	bAllowModifierKeys = InArgs._AllowModifierKeys;
+	bAllowGamepadKeys = InArgs._AllowGamepadKeys;
 	bEscapeCancelsSelection = InArgs._EscapeCancelsSelection;
-
-	DefaultFont = FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "NormalText" ).Font;
+	EscapeKeys = InArgs._EscapeKeys;
+	bIsFocusable = InArgs._IsFocusable;
 
 	bIsSelectingKey = false;
 
@@ -23,13 +24,13 @@ void SInputKeySelector::Construct( const FArguments& InArgs )
 	[
 		SAssignNew(Button, SButton)
 		.ButtonStyle(InArgs._ButtonStyle)
+		.IsFocusable(bIsFocusable)
 		.OnClicked(this, &SInputKeySelector::OnClicked)
 		[
-			SNew(STextBlock)
+			SAssignNew(TextBlock, STextBlock)
 			.Text(this, &SInputKeySelector::GetSelectedKeyText)
-			.Font(this, &SInputKeySelector::GetFont)
+			.TextStyle(InArgs._TextStyle)
 			.Margin(Margin)
-			.ColorAndOpacity(this, &SInputKeySelector::GetSlateColorAndOpacity)
 			.Justification(ETextJustify::Center)
 		]
 	];
@@ -51,9 +52,8 @@ FText SInputKeySelector::GetSelectedKeyText() const
 				? SelectedKey.Get().Key.GetDisplayName()
 				: SelectedKey.Get().GetInputText();
 		}
-		return FText();
 	}
-	return FText();
+	return NoKeySpecifiedText;
 }
 
 FInputChord SInputKeySelector::GetSelectedKey() const
@@ -70,16 +70,6 @@ void SInputKeySelector::SetSelectedKey( TAttribute<FInputChord> InSelectedKey )
 	}
 }
 
-FSlateFontInfo SInputKeySelector::GetFont() const
-{
-	return Font.IsSet() ? Font.Get() : DefaultFont;
-}
-
-void SInputKeySelector::SetFont( TAttribute<FSlateFontInfo> InFont )
-{
-	Font = InFont;
-}
-
 FMargin SInputKeySelector::GetMargin() const
 {
 	return Margin.Get();
@@ -90,34 +80,20 @@ void SInputKeySelector::SetMargin( TAttribute<FMargin> InMargin )
 	Margin = InMargin;
 }
 
-FSlateColor SInputKeySelector::GetSlateColorAndOpacity() const
-{
-	return FSlateColor(GetColorAndOpacity());
-}
-
-void SInputKeySelector::SetColorAndOpacity( TAttribute<FLinearColor> InColorAndOpacity )
-{
-	ColorAndOpacity = InColorAndOpacity;
-}
-
 void SInputKeySelector::SetButtonStyle(const FButtonStyle* ButtonStyle )
 {
-	Button->SetButtonStyle(ButtonStyle);
+	if (Button.IsValid())
+	{
+		Button->SetButtonStyle(ButtonStyle);
+	}
 }
 
-void SInputKeySelector::SetKeySelectionText( FText InKeySelectionText )
+void SInputKeySelector::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
-	KeySelectionText = InKeySelectionText;
-}
-
-void SInputKeySelector::SetAllowModifierKeys( bool bInAllowModifierKeys )
-{
-	bAllowModifierKeys = bInAllowModifierKeys;
-}
-
-bool SInputKeySelector::GetIsSelectingKey() const
-{
-	return bIsSelectingKey;
+	if (TextBlock.IsValid())
+	{
+		TextBlock->SetTextStyle(InTextStyle);
+	}
 }
 
 FReply SInputKeySelector::OnClicked()
@@ -152,21 +128,34 @@ void SInputKeySelector::SetIsSelectingKey( bool bInIsSelectingKey )
 	}
 }
 
+bool SInputKeySelector::IsEscapeKey(const FKey& InKey) const
+{
+	return EscapeKeys.Contains(InKey);
+}
+
 FReply SInputKeySelector::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// TODO: Add an argument to allow gamepad key selection.
-	if ( bIsSelectingKey && InKeyEvent.GetKey().IsGamepadKey() == false)
+	if ( bIsSelectingKey && (bAllowGamepadKeys || InKeyEvent.GetKey().IsGamepadKey() == false) )
 	{
 		// While selecting keys handle all key downs to prevent contained controls from
 		// interfering with key selection.
 		return FReply::Handled();
 	}
-	return SWidget::OnPreviewKeyDown( MyGeometry, InKeyEvent );
+	return SCompoundWidget::OnPreviewKeyDown( MyGeometry, InKeyEvent );
+}
+
+FReply SInputKeySelector::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (!bIsSelectingKey && SelectedKey.IsSet() && SelectedKey.Get().Key.IsValid() && (bAllowGamepadKeys && InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Left))
+	{
+		SelectedKey = FInputChord();
+		return FReply::Handled();
+	}
+	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 FReply SInputKeySelector::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// TODO: Add an argument to allow gamepad key selection.
 	FKey KeyUp = InKeyEvent.GetKey();
 	EModifierKey::Type ModifierKey = EModifierKey::FromBools(
 		InKeyEvent.IsControlDown() && KeyUp != EKeys::LeftControl && KeyUp != EKeys::RightControl,
@@ -175,11 +164,12 @@ FReply SInputKeySelector::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent&
 		InKeyEvent.IsCommandDown() && KeyUp != EKeys::LeftCommand && KeyUp != EKeys::RightCommand );
 
 	// Don't allow chords consisting of just modifier keys.
-	if ( bIsSelectingKey && KeyUp.IsGamepadKey() == false && ( KeyUp.IsModifierKey() == false || ModifierKey == EModifierKey::None ) )
+	if ( bIsSelectingKey && (bAllowGamepadKeys || KeyUp.IsGamepadKey() == false) && ( KeyUp.IsModifierKey() == false || ModifierKey == EModifierKey::None ) )
 	{
 		SetIsSelectingKey( false );
 
-		if ( KeyUp == EKeys::Escape && bEscapeCancelsSelection )
+		if ((InKeyEvent.GetKey() == EKeys::PS4_Special) || // Required?
+			(bEscapeCancelsSelection && (KeyUp == EKeys::Escape || IsEscapeKey(KeyUp))))
 		{
 			return FReply::Handled();
 		}
@@ -192,7 +182,8 @@ FReply SInputKeySelector::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent&
 			ModifierKey == EModifierKey::Command);
 		return FReply::Handled();
 	}
-	return SWidget::OnPreviewKeyDown( MyGeometry, InKeyEvent );
+
+	return SCompoundWidget::OnKeyUp( MyGeometry, InKeyEvent );
 }
 
 FReply SInputKeySelector::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -204,7 +195,27 @@ FReply SInputKeySelector::OnPreviewMouseButtonDown( const FGeometry& MyGeometry,
 		SelectKey(MouseEvent.GetEffectingButton(), false, false, false, false);
 		return FReply::Handled();
 	}
-	return SWidget::OnPreviewMouseButtonDown( MyGeometry, MouseEvent );
+	return SCompoundWidget::OnPreviewMouseButtonDown( MyGeometry, MouseEvent );
+}
+
+FReply SInputKeySelector::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (!bIsSelectingKey && SelectedKey.IsSet() && SelectedKey.Get().Key.IsValid() && MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton))
+	{
+		SelectedKey = FInputChord();
+		return FReply::Handled();
+	}
+	return SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+}
+
+FNavigationReply SInputKeySelector::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	if (Button.IsValid())
+	{
+		return Button->OnNavigation(MyGeometry, InNavigationEvent);
+	}
+
+	return SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
 }
 
 void SInputKeySelector::OnFocusLost( const FFocusEvent& InFocusEvent )

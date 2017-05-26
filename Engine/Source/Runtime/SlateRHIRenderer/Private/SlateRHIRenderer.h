@@ -40,56 +40,6 @@ private:
 	FIntPoint SizeXY;
 };
 
-/** Resource for crash buffer editor capturing */
-class FSlateCrashReportResource : public FRenderResource
-{
-public:
-	FSlateCrashReportResource(FIntRect InVirtualScreen, FIntRect InUnscaledVirtualScreen)
-		: ReadbackBufferIndex(0)
-		, ElementListIndex(0)
-		, VirtualScreen(InVirtualScreen)
-		, UnscaledVirtualScreen(InUnscaledVirtualScreen) {}
-
-	/** FRenderResource Interface.  Called when render resources need to be initialized */
-	virtual void InitDynamicRHI() override;
-
-	/** FRenderResource Interface.  Called when render resources need to be released */
-	virtual void ReleaseDynamicRHI() override;
-	
-	/** Changes the target readback buffer */
-	void SwapTargetReadbackBuffer() {ReadbackBufferIndex = (ReadbackBufferIndex + 1) % 2;}
-	
-	/** Gets the next element list, ping ponging between the element lists */
-	FSlateWindowElementList* GetNextElementList();
-
-	/** Accessors */
-	FIntRect GetVirtualScreen() const {return VirtualScreen;}
-	FIntRect GetUnscaledVirtualScreen() const {return UnscaledVirtualScreen;}
-	FTexture2DRHIRef GetBuffer() const {return CrashReportBuffer;}
-	FTexture2DRHIRef GetReadbackBuffer() const {return ReadbackBuffer[ReadbackBufferIndex];}
-
-private:
-	/** The crash report buffer we push out to a movie capture */
-	FTexture2DRHIRef CrashReportBuffer;
-
-	/** The readback buffers for copying back to the CPU from the GPU */
-	FTexture2DRHIRef ReadbackBuffer[2];
-	/** We ping pong between the buffers in case the GPU is a frame behind (GSystemSettings.bAllowOneFrameThreadLag) */
-	int32 ReadbackBufferIndex;
-	
-	/** Window Element Lists for keypress buffer drawing */
-	FSlateWindowElementList ElementList[2];
-	/** We ping pong between the element lists, which is on the main thread, so it needs a different index than ReadbackBufferIndex */
-	int32 ElementListIndex;
-
-	/** The size of the virtual screen, used to calculate the buffer size */
-	FIntRect VirtualScreen;
-
-	/** Size of the virtual screen before we applied any scaling */
-	FIntRect UnscaledVirtualScreen;
-};
-
-
 /** A Slate rendering implementation for Unreal engine */
 class FSlateRHIRenderer : public FSlateRenderer
 {
@@ -246,27 +196,6 @@ public:
 	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
 
 	/**
-	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
-	 * 
-	 * @param	ScreenScaling	How much to downscale the desktop size
-	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
-	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
-	 *
-	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
-	 */
-	virtual FIntRect SetupVirtualScreenBuffer(const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) override;
-
-	/**
-	 * Copies all slate windows out to a buffer at half resolution with debug information
-	 * like the mouse cursor and any keypresses.
-	 */
-	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) override;
-	
-	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData) override;
-	virtual void UnmapVirtualScreenBuffer() override;
-
-	/**
 	 * Reloads texture resources from disk                   
 	 */
 	virtual void ReloadTextureResources() override;
@@ -340,9 +269,6 @@ private:
 	TSharedPtr<FSlateRHIRenderingPolicy> RenderingPolicy;
 
 	TArray< TSharedPtr<FSlateDynamicImageBrush> > DynamicBrushesToRemove[NumDrawBuffers];
-
-	/** The resource which allows us to capture the editor to a buffer */
-	FSlateCrashReportResource* CrashTrackerResource;
 
 	bool bTakingAScreenShot;
 	FIntRect ScreenshotRect;

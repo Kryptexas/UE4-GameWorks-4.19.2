@@ -34,11 +34,16 @@ public:
 	/**
 	 * Register an online subsystem with the login flow factory (call at startup)
 	 * 
-	 * @param InOnlineIdentifier online subsystem identifier requiring a login flow UI
+	 * @param OnlineIdentifier online subsystem identifier requiring a login flow UI
 	 * @param InPopupDelegate external delegate to receive widgets from the login flow
+	 * @param bPersistCookies let the global web context manage cookies, or keep them in memory only
+	 * @return whether or not the login flow was successfully added
 	 */
-	virtual bool AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPopup& InPopupDelegate) = 0;
+	virtual bool AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPopup& InPopupDelegate, bool bPersistCookies = true) = 0;
 
 	/** Cancel an active login flow */
 	virtual void CancelLoginFlow() = 0;
+
+	/** Cleanup and remove all registered login flows, detaching from online subsystems */
+	virtual void Reset() = 0;
 };

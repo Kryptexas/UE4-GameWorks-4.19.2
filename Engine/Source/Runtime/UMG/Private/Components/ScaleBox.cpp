@@ -33,7 +33,7 @@ TSharedRef<SWidget> UScaleBox::RebuildWidget()
 	
 	if ( GetChildrenCount() > 0 )
 	{
-		Cast<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
+		CastChecked<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
 	}
 
 	return BuildDesignTimeWidget( MyScaleBox.ToSharedRef() );

@@ -20,6 +20,7 @@ struct CORE_API FBlueprintsObjectVersion
 		SCSHasComponentTemplateClass,
 		ComponentTemplateClassSupport,
 		ArrayGetFuncsReplacedByCustomNode,
+		DisallowObjectConfigVars,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

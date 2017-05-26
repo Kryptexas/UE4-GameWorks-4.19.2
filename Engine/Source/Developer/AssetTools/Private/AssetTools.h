@@ -7,6 +7,7 @@
 #include "IAssetTypeActions.h"
 #include "AssetData.h"
 #include "AssetRenameManager.h"
+#include "AssetTools.generated.h"
 
 class FAssetFixUpRedirectors;
 class FMenuBuilder;
@@ -37,11 +38,18 @@ struct FAssetImportParams
 	bool bAutomated : 1;
 };
 
-class FAssetTools : public IAssetTools
+
+/** For backwards compatibility */
+typedef class UAssetToolsImpl FAssetTools;
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+UCLASS(transient)
+class UAssetToolsImpl : public UObject, public IAssetTools
 {
+	GENERATED_BODY()
 public:
-	FAssetTools();
-	virtual ~FAssetTools();
+	UAssetToolsImpl(const FObjectInitializer& ObjectInitializer);
 
 	// IAssetTools implementation
 	virtual void RegisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& NewActions) override;
@@ -58,13 +66,15 @@ public:
 	virtual bool GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading = true ) override;
 	virtual UObject* CreateAsset(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) override;
 	virtual UObject* CreateAsset(UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) override;
+	virtual UObject* CreateAssetWithDialog(UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) override;
 	virtual UObject* CreateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) override;
 	virtual UObject* DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
 	virtual UObject* DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
 	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const override;
 	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) override;
-	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser = true, TArray<TPair<FString, FString>> *FilesAndDestinations = nullptr) const override;
-	virtual TArray<UObject*> ImportAssetsAutomated(const UAutomatedAssetImportData& ImportData) const override;
+	virtual TArray<UObject*> ImportAssetsWithDialog(const FString& DestinationPath) override;
+	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser = true, TArray<TPair<FString, FString>>* FilesAndDestinations = nullptr) const override;
+	virtual TArray<UObject*> ImportAssetsAutomated(const UAutomatedAssetImportData* ImportData) const override;
 	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const override;
 	virtual bool AssetUsesGenericThumbnail( const FAssetData& AssetData ) const override;
 	virtual void DiffAgainstDepot(UObject* InObject, const FString& InPackagePath, const FString& InPackageName) const override;
@@ -75,10 +85,9 @@ public:
 	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const override;
 	virtual FAssetPostRenameEvent& OnAssetPostRename() override { return AssetRenameManager->OnAssetPostRenameEvent(); }
 	virtual void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const override;
-
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */
-	static FAssetTools& Get();
+	static UAssetToolsImpl& Get();
 
 	/** Syncs the primary content browser to the specified assets, whether or not it is locked. Most syncs that come from AssetTools -feel- like they came from the content browser, so this is okay. */
 	void SyncBrowserToAssets(const TArray<UObject*>& AssetsToSync);
@@ -110,10 +119,10 @@ private:
 
 private:
 	/** The manager to handle renaming assets */
-	TSharedRef<FAssetRenameManager> AssetRenameManager;
+	TSharedPtr<FAssetRenameManager> AssetRenameManager;
 
 	/** The manager to handle fixing up redirectors */
-	TSharedRef<FAssetFixUpRedirectors> AssetFixUpRedirectors;
+	TSharedPtr<FAssetFixUpRedirectors> AssetFixUpRedirectors;
 
 	/** The list of all registered AssetTypeActions */
 	TArray<TSharedRef<IAssetTypeActions>> AssetTypeActionsList;
@@ -127,3 +136,5 @@ private:
 	/** The next user category bit to allocate (set to 0 when there are no more bits left) */
 	uint32 NextUserCategoryBit;
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

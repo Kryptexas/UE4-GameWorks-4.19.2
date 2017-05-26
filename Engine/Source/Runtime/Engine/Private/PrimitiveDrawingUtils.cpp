@@ -312,7 +312,7 @@ extern ENGINE_API void GetSphereMesh(const FVector& Center, const FVector& Radii
 	GetHalfSphereMesh(Center, Radii, NumSides, NumRings, 0, PI, MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, ViewIndex, Collector, bUseSelectionOutline, HitProxy);
 }
 
-void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
+void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotator& Orientation,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
 {
 	// Use a mesh builder to draw the sphere.
 	FDynamicMeshBuilder MeshBuilder;
@@ -392,7 +392,7 @@ void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector
 		FMemory::Free(Verts);
 		FMemory::Free(ArcVerts);
 	}
-	MeshBuilder.Draw(PDI, FScaleMatrix( Radii ) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority,bDisableBackfaceCulling);
+	MeshBuilder.Draw(PDI, FScaleMatrix( Radii ) * FRotationMatrix(Orientation) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority,bDisableBackfaceCulling);
 }
 
 FVector CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)

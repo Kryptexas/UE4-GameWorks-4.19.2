@@ -241,7 +241,6 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMax)).ToSharedRef());
 	}
 
-
 	ChildBuilder.AddChildProperty(bIsFocusedHandle.ToSharedRef());
 
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusAzimuth)).ToSharedRef())
@@ -270,7 +269,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 
 	ChildBuilder.AddChildProperty(bIsOcclusionEnabledHandle.ToSharedRef());
 
-	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded. 
+	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded.
 	// Don't show the built-in occlusion settings if we're using 
 	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled() && IsAudioPluginEnabled(EAudioPlugin::OCCLUSION))
 	{

@@ -276,5 +276,84 @@ namespace ICUUtilities
 	{
 		return GetUnicodeStringLengthImpl<FPlatformString::IsUnicodeEncoded, sizeof(TCHAR)>(Source, InSourceStartIndex, InSourceLength);
 	}
+
+	FString SanitizeCultureCode(const FString& InCultureCode)
+	{
+		if (InCultureCode.IsEmpty())
+		{
+			return InCultureCode;
+		}
+
+		// ICU culture codes (IETF language tags) may only contain A-Z, a-z, -, or _
+		FString SanitizedCultureCode = InCultureCode;
+		{
+			SanitizedCultureCode.GetCharArray().RemoveAll([](const TCHAR InChar)
+			{
+				if (InChar != 0)
+				{
+					const bool bIsValid = (InChar >= TEXT('A') && InChar <= TEXT('Z')) || (InChar >= TEXT('a') && InChar <= TEXT('z')) || (InChar == TEXT('-')) || (InChar == TEXT('_'));
+					return !bIsValid;
+				}
+				return false;
+			});
+		}
+		return SanitizedCultureCode;
+	}
+
+	FString SanitizeTimezoneCode(const FString& InTimezoneCode)
+	{
+		if (InTimezoneCode.IsEmpty())
+		{
+			return InTimezoneCode;
+		}
+
+		// ICU timezone codes (Olson or custom offset codes) may only contain A-Z, a-z, 0-9, :, /, +, -, or _, and each / delimited name can be 14-characters max
+		FString SanitizedTimezoneCode = InTimezoneCode;
+		{
+			int32 NumValidChars = 0;
+			SanitizedTimezoneCode.GetCharArray().RemoveAll([&NumValidChars](const TCHAR InChar)
+			{
+				if (InChar != 0)
+				{
+					if (InChar == TEXT('/'))
+					{
+						NumValidChars = 0;
+						return false;
+					}
+					else
+					{
+						const bool bIsValid = (InChar >= TEXT('A') && InChar <= TEXT('Z')) || (InChar >= TEXT('a') && InChar <= TEXT('z')) || (InChar >= TEXT('0') && InChar <= TEXT('9')) || (InChar == TEXT(':')) || (InChar == TEXT('+')) || (InChar == TEXT('-')) || (InChar == TEXT('_'));
+						return !bIsValid || ++NumValidChars > 14;
+					}
+				}
+				return false;
+			});
+		}
+		return SanitizedTimezoneCode;
+	}
+
+	FString SanitizeCurrencyCode(const FString& InCurrencyCode)
+	{
+		if (InCurrencyCode.IsEmpty())
+		{
+			return InCurrencyCode;
+		}
+
+		// ICU currency codes (ISO 4217) may only contain A-Z or a-z, and should be 3-characters
+		FString SanitizedCurrencyCode = InCurrencyCode;
+		{
+			int32 NumValidChars = 0;
+			SanitizedCurrencyCode.GetCharArray().RemoveAll([&NumValidChars](const TCHAR InChar)
+			{
+				if (InChar != 0)
+				{
+					const bool bIsValid = (InChar >= TEXT('A') && InChar <= TEXT('Z')) || (InChar >= TEXT('a') && InChar <= TEXT('z'));
+					return !bIsValid || ++NumValidChars > 3;
+				}
+				return false;
+			});
+		}
+		return SanitizedCurrencyCode;
+	}
 }
 #endif

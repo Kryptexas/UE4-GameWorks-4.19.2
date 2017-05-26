@@ -129,6 +129,24 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 
 		{
 			FNumberFormattingOptions NumberFormattingOptions;
+			NumberFormattingOptions.MinimumIntegralDigits = 5;
+			NumberFormattingOptions.MaximumIntegralDigits = 5;
+			NumberFormattingOptions.UseGrouping = true;
+
+			Test(this, TEXT("Convert a 5 digit int to 5 grouped integral digits formatted correct for en-US"), FText::AsNumber(12345, &NumberFormattingOptions), FText::FromString(TEXT("12,345")));
+		}
+
+		{
+			FNumberFormattingOptions NumberFormattingOptions;
+			NumberFormattingOptions.MinimumIntegralDigits = 6;
+			NumberFormattingOptions.MaximumIntegralDigits = 6;
+			NumberFormattingOptions.UseGrouping = true;
+
+			Test(this, TEXT("Convert a 5 digit int to 6 grouped integral digits formatted correct for en-US"), FText::AsNumber(12345, &NumberFormattingOptions), FText::FromString(TEXT("012,345")));
+		}
+
+		{
+			FNumberFormattingOptions NumberFormattingOptions;
 			NumberFormattingOptions.MinimumIntegralDigits = 1;
 			NumberFormattingOptions.MaximumIntegralDigits = 1;
 			NumberFormattingOptions.MinimumFractionalDigits = 0;

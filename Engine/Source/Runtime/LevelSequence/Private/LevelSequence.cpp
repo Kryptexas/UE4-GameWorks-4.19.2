@@ -113,7 +113,7 @@ void ULevelSequence::ConvertPersistentBindingsToDefault(UObject* FixupContext)
 		{
 			FGuid ObjectId;
 			FGuid::Parse(Pair.Key, ObjectId);
-			ObjectReferences.CreateBinding(ObjectId, Object, FixupContext);
+			BindingReferences.AddBinding(ObjectId, Object, FixupContext);
 		}
 	}
 	PossessedObjects_DEPRECATED.Empty();
@@ -123,13 +123,8 @@ void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Posse
 {
 	if (Context)
 	{
-		ObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
+		BindingReferences.AddBinding(ObjectId, &PossessedObject, Context);
 	}
-}
-
-void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, const FLevelSequenceObjectReference& ObjectReference)
-{
-	ObjectReferences.CreateBinding(ObjectId, ObjectReference);
 }
 
 bool ULevelSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
@@ -139,12 +134,14 @@ bool ULevelSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContex
 
 void ULevelSequence::LocateBoundObjects(const FGuid& ObjectId, UObject* Context, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
 {
-	// @todo: support multiple bindings
+	// Handle legacy object references
 	UObject* Object = Context ? ObjectReferences.ResolveBinding(ObjectId, Context) : nullptr;
 	if (Object)
 	{
 		OutObjects.Add(Object);
 	}
+
+	BindingReferences.ResolveBinding(ObjectId, Context, OutObjects);
 }
 
 UMovieScene* ULevelSequence::GetMovieScene() const
@@ -176,5 +173,8 @@ bool ULevelSequence::CanRebindPossessable(const FMovieScenePossessable& InPosses
 
 void ULevelSequence::UnbindPossessableObjects(const FGuid& ObjectId)
 {
-	ObjectReferences.RemoveBinding(ObjectId);
+	BindingReferences.RemoveBinding(ObjectId);
+
+	// Legacy object references
+	ObjectReferences.Map.Remove(ObjectId);
 }

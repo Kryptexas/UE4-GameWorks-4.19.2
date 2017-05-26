@@ -120,7 +120,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 	{
 		FProjectedShadowInfo* RESTRICT ProjectedShadowInfo = WholeSceneShadow;
 
-		if (ProjectedShadowInfo->bReflectiveShadowmap && !PrimitiveSceneInfoCompact.bAffectDynamicIndirectLighting)
+		if (ProjectedShadowInfo->bReflectiveShadowmap && !PrimitiveProxy->AffectsDynamicIndirectLighting())
 		{
 			return bFoundCSMReceiver;
 		}

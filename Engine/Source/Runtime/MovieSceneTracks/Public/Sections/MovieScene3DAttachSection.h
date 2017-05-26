@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
 #include "Sections/MovieScene3DConstraintSection.h"
 #include "MovieScene3DAttachSection.generated.h"
 
@@ -20,13 +21,6 @@ class UMovieScene3DAttachSection
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	/**
-	 * Evaluates the attach track
-	 *
-	 * @param Time The position in time within the movie scene
-	 */
-	void Eval(USceneComponent* SceneComponent, float Time, AActor* Actor, FVector& OutTranslation, FRotator& OutRotation) const;
 
 	/** 
 	 * Adds an attach to the section
@@ -46,20 +40,20 @@ public:
 	FName AttachComponentName;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainTx:1;
+	EAttachmentRule AttachmentLocationRule;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainTy:1;
+	EAttachmentRule AttachmentRotationRule;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainTz:1;
+	EAttachmentRule AttachmentScaleRule;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainRx:1;
+	EDetachmentRule DetachmentLocationRule;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainRy:1;
+	EDetachmentRule DetachmentRotationRule;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
-	uint32 bConstrainRz:1;
+	EDetachmentRule DetachmentScaleRule;
 };

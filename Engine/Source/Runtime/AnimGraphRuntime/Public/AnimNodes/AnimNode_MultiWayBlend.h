@@ -7,7 +7,7 @@
 #include "AnimNode_MultiWayBlend.generated.h"
 
 // This represents a baked transition
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_MultiWayBlend : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

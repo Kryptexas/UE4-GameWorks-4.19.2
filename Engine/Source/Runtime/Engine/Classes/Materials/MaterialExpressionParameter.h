@@ -26,6 +26,12 @@ class UMaterialExpressionParameter : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionParameter)
 	FName Group;
 
+#if WITH_EDITORONLY_DATA
+	/** Controls where the this parameter is displayed in a material instance parameter list.  The lower the number the higher up in the parameter list. */
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionParameter)
+	int32 SortPriority;
+#endif
+
 	//~ Begin UMaterialExpression Interface
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 

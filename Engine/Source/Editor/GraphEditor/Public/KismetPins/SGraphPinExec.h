@@ -21,9 +21,8 @@ protected:
 	virtual const FSlateBrush* GetPinIcon() const override;
 	//~ End SGraphPin Interface
 
-protected:
-	mutable bool bWasEventPin;
+	void CachePinIcons();
 
-	mutable const FSlateBrush* CachedImg_Pin_ConnectedHovered;
-	mutable const FSlateBrush* CachedImg_Pin_DisconnectedHovered;
+	const FSlateBrush* CachedImg_Pin_ConnectedHovered;
+	const FSlateBrush* CachedImg_Pin_DisconnectedHovered;
 };

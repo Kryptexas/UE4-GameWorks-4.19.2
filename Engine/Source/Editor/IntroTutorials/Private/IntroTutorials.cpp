@@ -327,14 +327,18 @@ bool FIntroTutorials::MaybeOpenWelcomeTutorial()
 		}
 
 		// Try project startup tutorial
-		TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.ToString(), NULL, LOAD_None, NULL);
-		if(ProjectStartupTutorialClass != nullptr)
+		const FString ProjectStartupTutorialPathStr = GetDefault<UTutorialSettings>()->StartupTutorial.ToString();
+		if (!ProjectStartupTutorialPathStr.IsEmpty())
 		{
-			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *ProjectStartupTutorialPathStr, NULL, LOAD_None, NULL);
+			if (ProjectStartupTutorialClass != nullptr)
 			{
-				LaunchTutorial(Tutorial);
-				return true;
+				UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+				if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+				{
+					LaunchTutorial(Tutorial);
+					return true;
+				}
 			}
 		}
 	}

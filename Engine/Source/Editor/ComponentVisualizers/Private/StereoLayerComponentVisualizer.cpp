@@ -17,15 +17,15 @@ void FStereoLayerComponentVisualizer::DrawVisualization( const UActorComponent* 
             const FVector2D QuadSize = StereoLayerComp->GetQuadSize() / 2.0f;
             const FBox QuadBox(FVector(0.0f, -QuadSize.X, -QuadSize.Y), FVector(0.0f, QuadSize.X, QuadSize.Y));
 
-            DrawWireBox(PDI, StereoLayerComp->ComponentToWorld.ToMatrixWithScale(), QuadBox, YellowColor, 0);
+            DrawWireBox(PDI, StereoLayerComp->GetComponentTransform().ToMatrixWithScale(), QuadBox, YellowColor, 0);
         }
         else if(StereoLayerComp->StereoLayerShape == EStereoLayerShape::SLSH_CylinderLayer)
         {
             float ArcAngle = StereoLayerComp->CylinderOverlayArc * 180 / (StereoLayerComp->CylinderRadius * PI);
             
-            FVector X = StereoLayerComp->ComponentToWorld.GetUnitAxis(EAxis::Type::X);
-            FVector Y = StereoLayerComp->ComponentToWorld.GetUnitAxis(EAxis::Type::Y);
-            FVector Base = StereoLayerComp->ComponentToWorld.GetLocation();
+            FVector X = StereoLayerComp->GetComponentTransform().GetUnitAxis(EAxis::Type::X);
+            FVector Y = StereoLayerComp->GetComponentTransform().GetUnitAxis(EAxis::Type::Y);
+            FVector Base = StereoLayerComp->GetComponentTransform().GetLocation();
             FVector HalfHeight = FVector(0, 0, StereoLayerComp->CylinderHeight/2);
             
             FVector LeftVertex = Base + StereoLayerComp->CylinderRadius * ( FMath::Cos(ArcAngle/2 * (PI/180.0f)) * X + FMath::Sin(ArcAngle/2 * (PI/180.0f)) * Y );

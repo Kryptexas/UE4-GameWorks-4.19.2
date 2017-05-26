@@ -173,8 +173,6 @@ public:
 	/** Destruct all snapshots */
 	void DestroyAllSnapshots();
 
-	static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled;
-
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 
@@ -246,21 +244,23 @@ public:
 	/** Binds the appropriate shadow depth cube map for rendering. */
 	void BeginRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
 
+	/** Begin rendering translucency in the scene color. */
 	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View, bool bFirstTimeThisFrame = true);
-
+	/** Begin rendering translucency in a separate (offscreen) buffer. This can be any translucency pass. */
 	void BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
-	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList);
+	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
+
 	void FreeSeparateTranslucency()
 	{
 		SeparateTranslucencyRT.SafeRelease();
 		check(!SeparateTranslucencyRT);
 	}
 
-	void FreeSeparateTranslucencyDepth()
+	void FreeDownsampledTranslucencyDepth()
 	{
-		if (SeparateTranslucencyDepthRT.GetReference())
+		if (DownsampledTranslucencyDepthRT.GetReference())
 		{
-			SeparateTranslucencyDepthRT.SafeRelease();
+			DownsampledTranslucencyDepthRT.SafeRelease();
 		}
 	}
 
@@ -286,24 +286,25 @@ public:
 		DefaultDepthClear = DepthClear;
 	}
 
-	void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale)
+	FORCEINLINE void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale) const
 	{
 		OutScaledSize = SeparateTranslucencyBufferSize;
 		OutScale = SeparateTranslucencyScale;
 	}
 
+	/** Separate translucency buffer can be downsampled or not (as it is used to store the AfterDOF translucency) */
 	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size);
 
-	bool IsSeparateTranslucencyDepthValid()
+	bool IsDownsampledTranslucencyDepthValid()
 	{
-		return SeparateTranslucencyDepthRT != nullptr;
+		return DownsampledTranslucencyDepthRT != nullptr;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size);
+	TRefCountPtr<IPooledRenderTarget>& GetDownsampledTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size);
 
-	const FTexture2DRHIRef& GetSeparateTranslucencyDepthSurface()
+	const FTexture2DRHIRef& GetDownsampledTranslucencyDepthSurface()
 	{
-		return (const FTexture2DRHIRef&)SeparateTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
+		return (const FTexture2DRHIRef&)DownsampledTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
 	}
 
 	/**
@@ -514,13 +515,7 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
-
-	bool IsSeparateTranslucencyActive(const FViewInfo& View) const;
-
-	bool IsSeparateTranslucencyPass()
-	{
-		return bSeparateTranslucencyPass;
-	}
+	FORCEINLINE bool IsSeparateTranslucencyPass() const { return bSeparateTranslucencyPass; }
 	
 	// Can be called when the Scene Color content is no longer needed. As we create SceneColor on demand we can make sure it is created with the right format.
 	// (as a call to SetSceneColor() can override it with a different format)
@@ -608,7 +603,8 @@ public:
 
 	/** ONLY for snapshots!!! this is a copy of the SeparateTranslucencyRT from the view state. */
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
-	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyDepthRT;
+	/** Downsampled depth used when rendering translucency in smaller resolution. */
+	TRefCountPtr<IPooledRenderTarget> DownsampledTranslucencyDepthRT;
 
 	// todo: free ScreenSpaceAO so pool can reuse
 	bool bScreenSpaceAOIsValid;

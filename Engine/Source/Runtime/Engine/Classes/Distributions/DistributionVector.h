@@ -55,7 +55,7 @@ struct FVector4Distribution
 #endif
 
 USTRUCT()
-struct FRawDistributionVector : public FRawDistribution
+struct ENGINE_API FRawDistributionVector : public FRawDistribution
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -93,7 +93,7 @@ public:
 	/**
 	* Initialize a raw distribution from the original Unreal distribution
 	*/
-	ENGINE_API void Initialize();
+	void Initialize();
 #endif
 
 	/**
@@ -104,7 +104,7 @@ public:
 	/**
 	* Get the value at the specified F
 	*/
-	ENGINE_API FVector GetValue(float F=0.0f, UObject* Data=NULL, int32 LastExtreme=0, struct FRandomStream* InRandomStream = NULL);
+	FVector GetValue(float F=0.0f, UObject* Data=NULL, int32 LastExtreme=0, struct FRandomStream* InRandomStream = NULL);
 
 	/**
 	* Get the min and max values

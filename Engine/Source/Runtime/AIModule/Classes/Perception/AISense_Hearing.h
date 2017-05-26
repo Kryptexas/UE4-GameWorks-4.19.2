@@ -11,7 +11,7 @@
 class UAISenseConfig_Hearing;
 class UAISenseEvent;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FAINoiseEvent
 {	
 	GENERATED_USTRUCT_BODY()
@@ -100,8 +100,8 @@ public:
 	 * @param MaxRange Max range at which the sound can be heard, multiplied by Loudness. Values <= 0 mean no limit (still limited by listener's range however).
 	 * @param Tag Identifier for the event.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContext"))
-	static void ReportNoiseEvent(UObject* WorldContext, FVector NoiseLocation, float Loudness = 1.f, AActor* Instigator = nullptr, float MaxRange = 0.f, FName Tag = NAME_None);
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContextObject"))
+	static void ReportNoiseEvent(UObject* WorldContextObject, FVector NoiseLocation, float Loudness = 1.f, AActor* Instigator = nullptr, float MaxRange = 0.f, FName Tag = NAME_None);
 
 protected:
 	virtual float Update() override;

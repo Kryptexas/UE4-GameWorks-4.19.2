@@ -101,7 +101,7 @@ public partial class Project : CommandUtils
 		var CrashReportPlatforms = new HashSet<UnrealTargetPlatform>();
 
 		// Setup editor targets
-		if (Params.HasEditorTargets && !Automation.IsEngineInstalled() && (TargetMask & ProjectBuildTargets.Editor) == ProjectBuildTargets.Editor)
+		if (Params.HasEditorTargets && (!Params.SkipBuildEditor) && !Automation.IsEngineInstalled() && (TargetMask & ProjectBuildTargets.Editor) == ProjectBuildTargets.Editor)
 		{
 			// @todo Mac: proper platform detection
 			UnrealTargetPlatform EditorPlatform = HostPlatform.Current.HostEditorPlatform;
@@ -135,7 +135,7 @@ public partial class Project : CommandUtils
 		}
 
 		// Setup cooked targets
-		if (Params.HasClientCookedTargets && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
+		if (Params.HasClientCookedTargets && (!Params.SkipBuildClient) && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{
             List<UnrealTargetPlatform> UniquePlatformTypes = Params.ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
 

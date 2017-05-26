@@ -522,7 +522,11 @@ struct FEditorShaderCodeArchive
 	bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir)
 	{
 		bool bOK = false;
-		FString TempPath = GetShaderCodeFilename(FPaths::GameIntermediateDir(), FormatName) / TEXT("NativeLibrary");
+		
+		FString IntermediateFormatPath = GetShaderCodeFilename(FPaths::GameIntermediateDir(), FormatName);
+		FString IntermediateCookedByteCodePath = IntermediateFormatPath / TEXT("NativeCookedByteCode");
+		FString TempPath = IntermediateFormatPath / TEXT("NativeLibrary");
+		
 		EShaderPlatform Platform = ShaderFormatToLegacyShaderPlatform(FormatName);
 		IShaderFormatArchive* Archive = Format->CreateShaderArchive(FormatName, TempPath);
 		if (Archive)
@@ -531,8 +535,23 @@ struct FEditorShaderCodeArchive
 			FString DebugPath = GetShaderCodeFilename(DebugShaderCodeDir, FormatName);
 			bOK = true;
 			
+			//Collect previous native cooked bytecode files into this shader files processing directory - keep the rest of the code simpler, don't overwrite in case dest file is newer
+			{
+				TArray<FString> NativeShaderFiles;
+				IFileManager::Get().FindFiles(NativeShaderFiles, *IntermediateCookedByteCodePath, TEXT("*.ushaderbytecode"));
+				
+				for (FString const& FileName : NativeShaderFiles)
+				{
+					if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
+					{
+						IFileManager::Get().Move(*(OutputPath / FileName), *(IntermediateCookedByteCodePath / FileName), false);
+					}
+				}
+			}
+			
 			TArray<FString> ShaderFiles;
 			IFileManager::Get().FindFiles(ShaderFiles, *OutputPath, TEXT("*.ushaderbytecode"));
+			
 			for (FString const& FileName : ShaderFiles)
 			{
 				if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
@@ -580,9 +599,21 @@ struct FEditorShaderCodeArchive
 			{
 				bOK = Archive->Finalize(ShaderCodeDir, DebugPath, nullptr);
 				
+				//Always delete debug directory
+				IFileManager::Get().DeleteDirectory(*DebugShaderCodeDir, true, true);
+				
+				//Move files to intermediate dir for next iterative cook with overwwrite Move mode
 				if (bOK)
 				{
-					IFileManager::Get().DeleteDirectory(*DebugPath, true, true);
+					for (FString const& FileName : ShaderFiles)
+					{
+						if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
+						{
+							IFileManager::Get().Move(*(IntermediateCookedByteCodePath / FileName), *(OutputPath / FileName), true);
+						}
+					}
+					
+					//We don't want to keep the shader code library shader files for native cooked content
 					IFileManager::Get().DeleteDirectory(*OutputPath, true, true);
 				}
 			}
@@ -655,6 +686,8 @@ public:
 		if(ShaderCodeArchive.IsValid())
 		{
 			bNativeFormat = true;
+			
+			UE_LOG(LogTemp, Display, TEXT("Cooked Context: Loaded Native Format Shared Shader Library"));
 		}
 		else
 		{
@@ -663,6 +696,8 @@ public:
 			{
 				ShaderCodeArchive = new FShaderCodeArchive(ShaderPlatform, Filename);
 				bSupportsPipelines = (ShaderCodeArchive != nullptr);
+				
+				UE_LOG(LogTemp, Display, TEXT("Cooked Context: Using Shared Shader Library"));
 			}
 		}
 		return IsValidRef(ShaderCodeArchive);

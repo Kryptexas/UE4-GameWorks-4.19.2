@@ -1,17 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ViewportDragOperation.h"
+#include "ViewportInteractionTypes.h"
 
-UViewportDragOperationComponent::UViewportDragOperationComponent( const class FObjectInitializer& Initializer ) :
-	Super( Initializer ),
-	DragOperation( nullptr )
+UViewportDragOperationComponent::UViewportDragOperationComponent() : 
+	Super(),
+	DragOperation(nullptr)
 {
 
-}
-
-UViewportDragOperationComponent::~UViewportDragOperationComponent()
-{
-	DragOperation = nullptr;
 }
 
 UViewportDragOperation* UViewportDragOperationComponent::GetDragOperation()
@@ -37,7 +33,7 @@ void UViewportDragOperationComponent::StartDragOperation()
 
 void UViewportDragOperationComponent::ClearDragOperation()
 {
-	if ( DragOperation )
+	if (DragOperation)
 	{
 		DragOperation->MarkPendingKill();
 	}

@@ -88,6 +88,8 @@ UMovieSceneSequence* UK2Node_GetSequenceBinding::GetSequence() const
 
 void UK2Node_GetSequenceBinding::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	UMovieScene* MovieScene = GetObjectMovieScene();
 	if (!MovieScene)
 	{
@@ -105,10 +107,10 @@ void UK2Node_GetSequenceBinding::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UMovieSceneSequence::StaticClass(), false, false, SequencePinName);
+	CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), UMovieSceneSequence::StaticClass(), SequencePinName);
 
 	// Result pin
-	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FMovieSceneObjectBindingID::StaticStruct(), false, false, K2Schema->PN_ReturnValue);
+	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FMovieSceneObjectBindingID::StaticStruct(), K2Schema->PN_ReturnValue);
 	ResultPin->PinFriendlyName = LOCTEXT("SequenceBindingOutput", "Binding");
 
 	Super::AllocateDefaultPins();

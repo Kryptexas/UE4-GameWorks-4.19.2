@@ -50,9 +50,9 @@ void UMaterialGraphNode_Root::CreateInputPins()
 	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GetGraph());
 	const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
 
-	for (int32 Index = 0; Index < MaterialGraph->MaterialInputs.Num(); ++Index)
+	for (const FMaterialInputInfo& MaterialInput : MaterialGraph->MaterialInputs)
 	{
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, Schema->PC_MaterialInput, FString::Printf(TEXT("%d"), (int32)MaterialGraph->MaterialInputs[Index].GetProperty()), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, MaterialGraph->MaterialInputs[Index].GetName().ToString());
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, Schema->PC_MaterialInput, FString::Printf(TEXT("%d"), (int32)MaterialInput.GetProperty()), nullptr, MaterialInput.GetName().ToString());
 	}
 
 }

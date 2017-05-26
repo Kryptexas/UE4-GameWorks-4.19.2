@@ -133,6 +133,18 @@ const FGeometry& SGameLayerManager::GetViewportWidgetHostGeometry() const
 	return WidgetHost->GetCachedGeometry();
 }
 
+const FGeometry& SGameLayerManager::GetPlayerWidgetHostGeometry(ULocalPlayer* Player) const
+{
+	TSharedPtr<FPlayerLayer> PlayerLayer = PlayerLayers.FindRef(Player);
+	if ( PlayerLayer.IsValid() )
+	{
+		return PlayerLayer->Widget->GetCachedGeometry();
+	}
+
+	static FGeometry Identity;
+	return Identity;
+}
+
 void SGameLayerManager::NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer)
 {
 	UpdateLayout();
@@ -166,20 +178,19 @@ void SGameLayerManager::RemoveWidgetForPlayer(ULocalPlayer* Player, TSharedRef<S
 
 void SGameLayerManager::ClearWidgetsForPlayer(ULocalPlayer* Player)
 {
-	TSharedPtr<FPlayerLayer>* PlayerLayerPtr = PlayerLayers.Find(Player);
-	if ( PlayerLayerPtr )
+	TSharedPtr<FPlayerLayer> PlayerLayer = PlayerLayers.FindRef(Player);
+	if ( PlayerLayer.IsValid() )
 	{
-		TSharedPtr<FPlayerLayer> PlayerLayer = *PlayerLayerPtr;
 		PlayerLayer->Widget->ClearChildren();
 	}
 }
 
 TSharedPtr<IGameLayer> SGameLayerManager::FindLayerForPlayer(ULocalPlayer* Player, const FName& LayerName)
 {
-	TSharedPtr<FPlayerLayer>* PlayerLayerPtr = PlayerLayers.Find(Player);
-	if ( PlayerLayerPtr )
+	TSharedPtr<FPlayerLayer> PlayerLayer = PlayerLayers.FindRef(Player);
+	if ( PlayerLayer.IsValid() )
 	{
-		return (*PlayerLayerPtr)->Layers.FindRef(LayerName);
+		return PlayerLayer->Layers.FindRef(LayerName);
 	}
 
 	return TSharedPtr<IGameLayer>();

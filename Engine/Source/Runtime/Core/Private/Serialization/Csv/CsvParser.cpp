@@ -81,10 +81,11 @@ FCsvParser::EParseResult FCsvParser::ParseCell()
 				ReadAt += NumQuotes;
 
 				// Unescape the double quotes
-				// We leave the write pos pointing at the trailing closing quote if present so
-				// it gets overwritten by any subsequent text in the cell
+				// We null terminate and leave the write pos pointing at the trailing closing quote 
+				// if present so it gets overwritten by any subsequent text in the cell
 				NumQuotes /= 2;
 				while(NumQuotes-- > 0) *(WriteAt++) = '"';
+				*WriteAt = '\0';
 
 				continue;
 			}

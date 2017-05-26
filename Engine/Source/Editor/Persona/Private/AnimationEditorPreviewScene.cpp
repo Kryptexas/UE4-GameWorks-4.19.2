@@ -22,6 +22,8 @@
 #include "GameFramework/WorldSettings.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
+#include "AnimPreviewAttacheInstance.h"
+#include "PreviewCollectionInterface.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -53,6 +55,9 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	// Create the preview component
 	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(Actor);
 	AddComponent(SkeletalMeshComponent, FTransform::Identity);
+
+	// set root component, so we can attach to it. 
+	Actor->SetRootComponent(SkeletalMeshComponent);
 
 	InEditableSkeleton->LoadAdditionalPreviewSkeletalMeshes();
 
@@ -134,6 +139,21 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 {
 	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
 
+	// Store off the old skel mesh we are debugging
+	USkeletalMeshComponent* DebuggedSkeletalMeshComponent = nullptr;
+	if(SkeletalMeshComponent->GetAnimInstance())
+	{
+		UAnimBlueprint* SourceBlueprint = Cast<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
+		if(SourceBlueprint)
+		{
+			UAnimInstance* DebuggedAnimInstance = Cast<UAnimInstance>(SourceBlueprint->GetObjectBeingDebugged());
+			if(DebuggedAnimInstance)
+			{
+				DebuggedSkeletalMeshComponent = DebuggedAnimInstance->GetSkelMeshComponent();
+			}
+		}
+	}
+
 	// Make sure the desc is up to date as this may have not come from a call to set the value in the desc
 	PreviewSceneDescription->PreviewMesh = NewPreviewMesh;
 
@@ -177,7 +197,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 		AddComponent(SkeletalMeshComponent, FTransform::Identity);
 		for (auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)
 		{
-			AddComponent((*Iter), FTransform::Identity);
+			AddComponent((*Iter), FTransform::Identity, true);
 		}
 
 		// Set up the mesh for transactions
@@ -196,10 +216,10 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 
 	// Setting the skeletal mesh to in the PreviewScene can change AnimScriptInstance so we must re register it
 	// with the AnimBlueprint
-	if (SkeletalMeshComponent->IsAnimBlueprintInstanced())
+	if (DebuggedSkeletalMeshComponent)
 	{
 		UAnimBlueprint* SourceBlueprint = CastChecked<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
-		SourceBlueprint->SetObjectBeingDebugged(SkeletalMeshComponent->GetAnimInstance());
+		SourceBlueprint->SetObjectBeingDebugged(DebuggedSkeletalMeshComponent->GetAnimInstance());
 	}
 
 	OnPreviewMeshChanged.Broadcast(OldPreviewMesh, NewPreviewMesh);
@@ -232,7 +252,7 @@ void FAnimationEditorPreviewScene::ValidatePreviewAttachedAssets(USkeletalMesh* 
 	}
 }
 
-void FAnimationEditorPreviewScene::SetAdditionalMeshes(class UPreviewMeshCollection* InAdditionalMeshes)
+void FAnimationEditorPreviewScene::SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes)
 {
 	GetEditableSkeleton()->SetAdditionalPreviewSkeletalMeshes(InAdditionalMeshes);
 
@@ -244,13 +264,14 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 	// remove all components
 	for (USkeletalMeshComponent* Component : AdditionalMeshes)
 	{
+		UAnimCustomInstance::UnbindFromSkeletalMeshComponent(Component);
 		RemoveComponent(Component);
 	}
 
 	AdditionalMeshes.Empty();
 
 	// add new components
-	UPreviewMeshCollection* PreviewSceneAdditionalMeshes = GetEditableSkeleton()->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
+	UDataAsset* PreviewSceneAdditionalMeshes = GetEditableSkeleton()->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
 	if (PreviewSceneAdditionalMeshes == nullptr)
 	{
 		PreviewSceneAdditionalMeshes = PreviewSceneDescription->DefaultAdditionalMeshes;
@@ -258,57 +279,25 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 
 	if (PreviewSceneAdditionalMeshes != nullptr)
 	{
-		// While loading our meshes, look for the one with the 'best' bone count.
-		// We will use this in lieu of a master if we have none set
-		int32 BestBoneCount = 0;
-		int32 BestMasterIndex = 0;
 		TArray<USkeletalMesh*> ValidMeshes;
-		for (int32 MeshIndex = 0; MeshIndex < PreviewSceneAdditionalMeshes->SkeletalMeshes.Num(); ++MeshIndex)
+
+		// get preview interface
+		const IPreviewCollectionInterface* PreviewCollection = Cast<IPreviewCollectionInterface>(PreviewSceneAdditionalMeshes);
+		if (PreviewCollection)
 		{
-			FPreviewMeshCollectionEntry& Entry = PreviewSceneAdditionalMeshes->SkeletalMeshes[MeshIndex];
-
-			// Load up our valid skeletal meshes
-			if (Entry.SkeletalMesh.LoadSynchronous())
-			{
-				USkeletalMesh* SkeletalMesh = Entry.SkeletalMesh.Get();
-				
-				int32 BoneCount = SkeletalMesh->RefSkeleton.GetNum();
-				if (BoneCount > BestBoneCount)
-				{
-					BestMasterIndex = ValidMeshes.Num();
-					BestBoneCount = BoneCount;
-				}
-
-				ValidMeshes.Add(SkeletalMesh);
-			}
-		}
-
-		const int32 NumMeshes = ValidMeshes.Num();
-		if (NumMeshes > 0)
-		{
-			// if the master component has no skeletal mesh, we need to set up one of the additional meshes
-			// as the master instead
-			bool bSubstitutedMaster = false;
-			if (SkeletalMeshComponent->SkeletalMesh == nullptr)
-			{
-				SetPreviewMeshInternal(ValidMeshes[BestMasterIndex]);
-				bSubstitutedMaster = true;
-			}
-
+			PreviewCollection->GetPreviewSkeletalMeshes(ValidMeshes);
+			const int32 NumMeshes = ValidMeshes.Num();
 			for (int32 MeshIndex = 0; MeshIndex < NumMeshes; ++MeshIndex)
 			{
-				if (!(bSubstitutedMaster && MeshIndex == BestMasterIndex))
+				USkeletalMesh* SkeletalMesh = ValidMeshes[MeshIndex];
+				if (SkeletalMesh)
 				{
-					USkeletalMesh* SkeletalMesh = ValidMeshes[MeshIndex];
-					if (SkeletalMesh)
-					{
-						USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
-						NewComp->SetMasterPoseComponent(SkeletalMeshComponent);
-						NewComp->SetSkeletalMesh(SkeletalMesh);
-						NewComp->UpdateMasterBoneMap();
-						AddComponent(NewComp, FTransform::Identity);
-						AdditionalMeshes.Add(NewComp);
-					}
+					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
+					NewComp->RegisterComponent();
+					NewComp->SetSkeletalMesh(SkeletalMesh);
+					UAnimCustomInstance::BindToSkeletalMeshComponent<UAnimPreviewAttacheInstance>(NewComp);
+					AddComponent(NewComp, FTransform::Identity, true);
+					AdditionalMeshes.Add(NewComp);
 				}
 			}
 		}
@@ -463,6 +452,12 @@ void FAnimationEditorPreviewScene::RemoveAttachedComponent( bool bRemovePreviewA
 				}
 			}
 
+			// if this component is added by additional meshes, do not remove it. 
+			if (AdditionalMeshes.Contains(ChildComponent))
+			{
+				bRemove = false;
+			}
+
 			if(bRemove)
 			{
 				// PreviewComponet will be cleaned up by PreviewScene, 
@@ -489,6 +484,8 @@ void FAnimationEditorPreviewScene::CleanupComponent(USceneComponent* Component)
 		}
 
 		check(Component->GetAttachChildren().Num() == 0);
+		// make sure to remove from component list
+		RemoveComponent(Component);
 		Component->DestroyComponent();
 	}
 }
@@ -964,11 +961,14 @@ void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 	}
 }
 
-void FAnimationEditorPreviewScene::AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld)
+void FAnimationEditorPreviewScene::AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot /*= false*/)
 {
-	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	if (bAttachToRoot)
 	{
-		SceneComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+		{
+			SceneComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		}
 	}
 
 	Actor->AddOwnedComponent(Component);

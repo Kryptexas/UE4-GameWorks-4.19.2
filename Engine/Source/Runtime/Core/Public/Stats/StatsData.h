@@ -543,7 +543,7 @@ private:
 	/** Reset the state of the regular stats. */
 	void ResetRegularStats();
 
-	/** Prepares fake FGameThreadHudData to display the raw stats memory overhead. */
+	/** Prepares fake FGameThreadStatsData to display the raw stats memory overhead. */
 	void UpdateStatMessagesMemoryUsage();
 
 	/** Generates a list of most memory expensive stats and dump to the log. */
@@ -867,8 +867,8 @@ struct FGroupSort
 };
 
 
-/** Holds stats data used for displayed on the hud. */
-struct FHudGroup
+/** Holds stats data used by various systems like the HUD stats*/
+struct FActiveStatGroupInfo
 {
 	/** Array of all flat aggregates for the last n frames. */
 	TArray<FComplexStatMessage> FlatAggregate;
@@ -896,47 +896,59 @@ struct FHudGroup
 };
 
 /**
-* Information sent from the stats thread to the game thread to render on the HUD
+* Information sent from the stats thread to the game thread to render and be used by other systems
 */
-struct FGameThreadHudData
+struct FGameThreadStatsData
 {
 	/** Initialization constructor. */
-	FGameThreadHudData( bool bInDrawOnlyRawStats )
+	FGameThreadStatsData( bool bInDrawOnlyRawStats, bool bInRenderStats )
 		: bDrawOnlyRawStats(bInDrawOnlyRawStats)
+		, bRenderStats(bInRenderStats)
 	{}
 
-	TIndirectArray<FHudGroup> HudGroups;
+	/** NOTE: the returned pointer is only valid for this frame - do not hold on to it! */
+	const FComplexStatMessage* GetStatData(const FName& StatName ) const
+	{
+		return NameToStatMap.FindRef(StatName);
+	}
+
+	TIndirectArray<FActiveStatGroupInfo> ActiveStatGroups;
 	TArray<FName> GroupNames;
 	TArray<FString> GroupDescriptions;
 	TMap<FPlatformMemory::EMemoryCounterRegion, int64> PoolCapacity;
 	TMap<FPlatformMemory::EMemoryCounterRegion, FString> PoolAbbreviation;
 	FString RootFilter;
 
+	TMap<FName, const FComplexStatMessage*> NameToStatMap;
+
 	/** Whether to display minimal stats for the raw stats mode. */
 	const bool bDrawOnlyRawStats;
+
+	/** Whether to render the stats to HUD */
+	const bool bRenderStats;
 };
 
 /**
-* Singleton that holds the last data sent from the stats thread to the game thread for HUD stats
+* Singleton that holds the last data sent from the stats thread to the game thread for systems to use and display
 */
-struct FHUDGroupGameThreadRenderer 
+struct FLatestGameThreadStatsData 
 {
-	FGameThreadHudData* Latest;
+	FGameThreadStatsData* Latest;
 
-	FHUDGroupGameThreadRenderer()
+	FLatestGameThreadStatsData()
 		: Latest(nullptr)
 	{
 	}
 
-	~FHUDGroupGameThreadRenderer()
+	~FLatestGameThreadStatsData()
 	{
 		delete Latest;
 		Latest = nullptr;
 	}
 
-	void NewData(FGameThreadHudData* Data);
+	void NewData(FGameThreadStatsData* Data);
 
-	CORE_API static FHUDGroupGameThreadRenderer& Get();
+	CORE_API static FLatestGameThreadStatsData& Get();
 };
 
 /**

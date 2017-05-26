@@ -253,10 +253,11 @@ void UKismetArrayLibrary::GenericArray_Get(void* TargetArray, const UArrayProper
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array %s of length %d!"),
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array '%s' of length %d in '%s'!"),
 				Index,
 				*ArrayProp->GetName(),
-				ArrayHelper.Num()),
+				ArrayHelper.Num(),
+				*GetPathNameSafe(ArrayProp->GetOuter())),
 				ELogVerbosity::Warning,
 				GetOutOfBoundsWarning);
 			InnerProp->InitializeValue(Item);

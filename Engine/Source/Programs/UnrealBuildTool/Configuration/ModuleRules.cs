@@ -147,6 +147,11 @@ namespace UnrealBuildTool
 		/// This should only be set for header files that are included by a significant number of other C++ modules.
 		/// </summary>
 		public string SharedPCHHeaderFile;
+		
+		/// <summary>
+		/// Specifies an alternate name for intermediate directories and files for intermediates of this module. Useful when hitting path length limitations.
+		/// </summary>
+		public string ShortName = null;
 
 		/// <summary>
 		/// Precompiled header usage for this module
@@ -463,7 +468,7 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=1");
 				Definitions.Add("WITH_APEX_CLOTHING=1");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
-				Definitions.Add("WITH_PHYSICS_COOKING=1");  // APEX currently relies on cooking even at runtime
+				Definitions.Add("WITH_PHYSX_COOKING=1");  // APEX currently relies on cooking even at runtime
 
 			}
 			else
@@ -471,7 +476,7 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 				Definitions.Add("WITH_APEX_CLOTHING=0");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSICS_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)
@@ -488,15 +493,6 @@ namespace UnrealBuildTool
 			else
 			{
 				Definitions.Add("WITH_NVCLOTH=0");
-			}
-
-			if (Target.bRuntimePhysicsCooking == true)
-			{
-				Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING=1");
-			}
-			else
-			{
-				Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING=0");
 			}
 		}
 

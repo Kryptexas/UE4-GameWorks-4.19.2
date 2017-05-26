@@ -77,8 +77,8 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 
 	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	if (PropertyOwnerClass != nullptr)
@@ -92,11 +92,11 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	UEdGraphPin* SelfPin = NULL;
 	if (bUseSelf)
 	{
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, nullptr, K2Schema->PN_Self);
 	}
 	else
 	{
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), PropertyOwnerClass, false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), PropertyOwnerClass, K2Schema->PN_Self);
 	}
 
 	if(SelfPin)
@@ -136,13 +136,13 @@ UEdGraphPin* UK2Node_BaseMCDelegate::GetDelegatePin() const
 
 FString UK2Node_BaseMCDelegate::GetDocumentationLink() const
 {
-	UClass* ParentClass = NULL;
+	UClass* ParentClass = nullptr;
 	if (DelegateReference.IsSelfContext())
 	{
 		if (HasValidBlueprint())
 		{
 			UField* Delegate = FindField<UField>(GetBlueprint()->GeneratedClass, DelegateReference.GetMemberName());
-			if (Delegate != NULL)
+			if (Delegate)
 			{
 				ParentClass = Delegate->GetOwnerClass();
 			}
@@ -153,12 +153,12 @@ FString UK2Node_BaseMCDelegate::GetDocumentationLink() const
 		ParentClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	}
 
-	if ( ParentClass != NULL )
+	if (ParentClass)
 	{
 		return FString( TEXT("Shared/") ) + ParentClass->GetName();
 	}
 
-	return TEXT("");
+	return FString();
 }
 
 FString UK2Node_BaseMCDelegate::GetDocumentationExcerptName() const
@@ -181,7 +181,7 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 		const bool bProperInputToExpandForEach = 
 			(MultiSelf->LinkedTo.Num()) && 
 			(NULL != MultiSelf->LinkedTo[0]) && 
-			(MultiSelf->LinkedTo[0]->PinType.bIsArray);
+			(MultiSelf->LinkedTo[0]->PinType.IsArray());
 		if(bProperInputToExpandForEach)
 		{
 			if(MultiSelf->LinkedTo.Num() > 1)
@@ -296,7 +296,7 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, true, FK2Node_BaseMCDelegateHelper::DelegatePinName, true))
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, FString(), nullptr, FK2Node_BaseMCDelegateHelper::DelegatePinName, EPinContainerType::None, true, true))
 	{
 		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
@@ -364,7 +364,7 @@ void UK2Node_RemoveDelegate::AllocateDefaultPins()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, true, FK2Node_BaseMCDelegateHelper::DelegatePinName, true))
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, FString(), nullptr, FK2Node_BaseMCDelegateHelper::DelegatePinName, EPinContainerType::None, true, true))
 	{
 		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
@@ -407,7 +407,7 @@ bool UK2Node_CallDelegate::CreatePinsForFunctionInputs(const UFunction* Function
 		const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm);
 		if (bIsFunctionInput)
 		{
-			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Param->GetName());
+			UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Param->GetName());
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType);
 
 			bAllPinsGood = bAllPinsGood && bPinGood;

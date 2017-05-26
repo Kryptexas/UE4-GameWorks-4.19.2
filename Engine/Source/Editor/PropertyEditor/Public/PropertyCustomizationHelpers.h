@@ -18,6 +18,7 @@
 #include "SResetToDefaultMenu.h"
 #include "ActorPickerMode.h"
 #include "SceneDepthPickerMode.h"
+#include "IDetailPropertyRow.h"
 
 class AActor;
 class FAssetData;
@@ -133,6 +134,8 @@ public:
 		SLATE_ARGUMENT(bool, DisplayBrowse)
 		/** Whether to enable the content Picker */
 		SLATE_ARGUMENT(bool, EnableContentPicker)
+		/** A custom reset to default override */
+		SLATE_ARGUMENT(TOptional<FResetToDefaultOverride>, CustomResetToDefault)
 	SLATE_END_ARGS()
 
 	PROPERTYEDITOR_API void Construct( const FArguments& InArgs );

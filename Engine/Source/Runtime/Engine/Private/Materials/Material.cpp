@@ -136,22 +136,26 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	};
 	
 	EMaterialValueType AttributeType = FMaterialAttributeDefinitionMap::GetValueType(Property);
-	FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-	if (Expression && Expression->IsConstant())
+	if (Ret != INDEX_NONE)
 	{
-		// Where possible we want to preserve constant expressions allowing default value checks
-		EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
-		EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
-		EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+		FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-		if (ExactAttributeType == ExactResultType)
+		if (Expression && Expression->IsConstant())
 		{
-			return Ret;
-		}
-		else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
-		{
-			return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
+			// Where possible we want to preserve constant expressions allowing default value checks
+			EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
+			EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
+			EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+
+			if (ExactAttributeType == ExactResultType)
+			{
+				return Ret;
+			}
+			else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
+			{
+				return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
+			}
 		}
 	}
 
@@ -1239,21 +1243,21 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 }
 
 
-bool UMaterial::CheckMaterialUsage(EMaterialUsage Usage, const bool bSkipPrim)
+bool UMaterial::CheckMaterialUsage(EMaterialUsage Usage)
 {
 	check(IsInGameThread());
 	bool bNeedsRecompile = false;
-	return SetMaterialUsage(bNeedsRecompile, Usage, bSkipPrim);
+	return SetMaterialUsage(bNeedsRecompile, Usage);
 }
 
-bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool bSkipPrim) const 
+bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage) const 
 {
 	bool bUsageSetSuccessfully = false;
 	if (NeedsSetMaterialUsage_Concurrent(bUsageSetSuccessfully, Usage))
 	{
 		if (IsInGameThread())
 		{
-			bUsageSetSuccessfully = const_cast<UMaterial*>(this)->CheckMaterialUsage(Usage, bSkipPrim);
+			bUsageSetSuccessfully = const_cast<UMaterial*>(this)->CheckMaterialUsage(Usage);
 		}	
 		else
 		{
@@ -1261,23 +1265,21 @@ bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool b
 			{
 				UMaterial* Material;
 				EMaterialUsage Usage;
-				bool bSkipPrim;
 
-				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
+				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage)
 					: Material(InMaterial)
 					, Usage(InUsage)
-					, bSkipPrim(bInSkipPrim)
 				{
 				}
 
 				void Task()
 				{
-					Material->CheckMaterialUsage(Usage, bSkipPrim);
+					Material->CheckMaterialUsage(Usage);
 				}
 			};
 			UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim));
+			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage));
 			bUsageSetSuccessfully = false;
 
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
@@ -1338,7 +1340,7 @@ bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUs
 	return false;
 }
 
-bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, const bool bSkipPrim)
+bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage)
 {
 	bNeedsRecompile = false;
 
@@ -2420,6 +2422,26 @@ void UMaterial::CacheExpressionTextureReferences()
 	{
 		RebuildExpressionTextureReferences();
 	}
+}
+
+bool UMaterial::AttemptInsertNewGroupName(const FString & InNewName)
+{
+#if WITH_EDITOR
+	FParameterGroupData* ParameterGroupDataElement = ParameterGroupData.FindByPredicate([&InNewName](const FParameterGroupData& DataElement)
+	{
+		return InNewName == DataElement.GroupName;
+	});
+
+	if (ParameterGroupDataElement == nullptr)
+	{
+		FParameterGroupData NewGroupData;
+		NewGroupData.GroupName = InNewName;
+		NewGroupData.GroupSortPriority = 0;
+		ParameterGroupData.Add(NewGroupData);
+		return true;
+	}
+#endif
+	return false;
 }
 
 void UMaterial::RebuildExpressionTextureReferences()
@@ -3540,6 +3562,14 @@ void UMaterial::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
+	{
+		if (DefaultMaterialInstances[InstanceIndex])
+		{
+			BeginReleaseResource(DefaultMaterialInstances[InstanceIndex]);
+		}
+	}
+
 	ReleaseFence.BeginFence();
 }
 
@@ -3676,20 +3706,6 @@ void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, 
 	// Create a material update context so we can safely update materials.
 	{
 		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::Default, ShaderPlatform);
-
-		// Go through all material shader maps and flush the appropriate shaders
-		FMaterialShaderMap::FlushShaderTypes(ShaderTypesToFlush, ShaderPipelineTypesToFlush, VFTypesToFlush);
-
-		// There should be no references to the given material shader types at this point
-		// If there still are shaders of the given types, they may be reused when we call CacheResourceShaders instead of compiling new shaders
-		for (int32 ShaderTypeIndex = 0; ShaderTypeIndex < ShaderTypesToFlush.Num(); ShaderTypeIndex++)
-		{
-			FShaderType* CurrentType = ShaderTypesToFlush[ShaderTypeIndex];
-			if (CurrentType->GetMaterialShaderType() || CurrentType->GetMeshMaterialShaderType())
-			{
-				checkf(CurrentType->GetNumShaders() == 0, TEXT("Type %s, Shaders %u"), CurrentType->GetName(), CurrentType->GetNumShaders());
-			}
-		}
 
 		int32 NumMaterials = 0;
 
@@ -4033,7 +4049,45 @@ bool UMaterial::GetExpressionsInPropertyChain(EMaterialProperty InProperty,
 	return true;
 }
 
-bool UMaterial::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  
+bool UMaterial::GetParameterSortPriority(FName ParameterName, int32& OutSortPriority) const
+{
+#if WITH_EDITOR
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		UMaterialExpressionParameter* Parameter = Cast<UMaterialExpressionParameter>(Expression);
+		if (Parameter && Expression->GetParameterName() == ParameterName)
+		{
+			OutSortPriority = Parameter->SortPriority;
+			return true;
+		}
+		UMaterialExpressionTextureSampleParameter* TextureParameter = Cast<UMaterialExpressionTextureSampleParameter>(Expression);
+		if (TextureParameter && Expression->GetParameterName() == ParameterName)
+		{
+			OutSortPriority = TextureParameter->SortPriority;
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
+bool UMaterial::GetGroupSortPriority(const FString& InGroupName, int32& OutSortPriority) const
+{
+#if WITH_EDITOR
+	const FParameterGroupData* ParameterGroupDataElement = ParameterGroupData.FindByPredicate([&InGroupName](const FParameterGroupData& DataElement)
+	{
+		return InGroupName == DataElement.GroupName;
+	});
+	if (ParameterGroupDataElement != nullptr)
+	{
+		OutSortPriority = ParameterGroupDataElement->GroupSortPriority;
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UMaterial::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,
 	TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)
 {
 	TArray<UMaterialExpression*> ChainExpressions;

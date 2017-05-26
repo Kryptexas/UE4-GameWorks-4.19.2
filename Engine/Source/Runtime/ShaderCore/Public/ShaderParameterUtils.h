@@ -350,60 +350,70 @@ TRHICmdList& RHICmdList,
 	}
 }
 
-template<typename TShaderRHIRef, typename TRHICmdList>
-inline void SetUAVParameterIfCS(TRHICmdList& RHICmdList, TShaderRHIRef, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
+
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FVertexShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
+	return false;
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIParamRef, FRHICommandList>(FRHICommandList& RHICmdList, FComputeShaderRHIParamRef ComputeShader,const FShaderResourceParameter& UAVParameter,FUnorderedAccessViewRHIParamRef UAV)
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FPixelShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
-	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+	return false;
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIRef, FRHICommandList>(FRHICommandList& RHICmdList, FComputeShaderRHIRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FHullShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
-	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+	return false;
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIParamRef, FRHICommandListImmediate>(FRHICommandListImmediate& RHICmdList, FComputeShaderRHIParamRef ComputeShader,const FShaderResourceParameter& UAVParameter,FUnorderedAccessViewRHIParamRef UAV)
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FDomainShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
-	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+	return false;
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIRef, FRHICommandListImmediate>(FRHICommandListImmediate& RHICmdList, FComputeShaderRHIRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FGeometryShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
-	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,UAV);
+	return false;
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIParamRef, FRHIAsyncComputeCommandListImmediate>(FRHIAsyncComputeCommandListImmediate& RHICmdList, FComputeShaderRHIParamRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
+template<typename TRHICmdList>
+inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FComputeShaderRHIParamRef Shader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
 {
-	SetUAVParameter(RHICmdList, ComputeShader, UAVParameter, UAV);
+	SetUAVParameter(RHICmdList, Shader, UAVParameter, UAV);
+	return UAVParameter.IsBound();
 }
 
-template<> inline void SetUAVParameterIfCS<FComputeShaderRHIRef, FRHIAsyncComputeCommandListImmediate>(FRHIAsyncComputeCommandListImmediate& RHICmdList, FComputeShaderRHIRef ComputeShader, const FShaderResourceParameter& UAVParameter, FUnorderedAccessViewRHIParamRef UAV)
-{
-	SetUAVParameter(RHICmdList, ComputeShader, UAVParameter, UAV);
-}
 
 template<typename TShaderRHIRef, typename TRHICmdList>
 inline void FRWShaderParameter::SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBuffer& RWBuffer) const
 {
-	SetSRVParameter(RHICmdList, Shader,SRVParameter,RWBuffer.SRV);
-	SetUAVParameterIfCS(RHICmdList, Shader,UAVParameter,RWBuffer.UAV);
+	if (!SetUAVParameterIfCS(RHICmdList, Shader, UAVParameter, RWBuffer.UAV))
+	{
+		SetSRVParameter(RHICmdList, Shader, SRVParameter, RWBuffer.SRV);
+	}
 }
 
 template<typename TShaderRHIRef, typename TRHICmdList>
 inline void FRWShaderParameter::SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBufferStructured& RWBuffer) const
 {
-	SetSRVParameter(RHICmdList, Shader,SRVParameter,RWBuffer.SRV);
-	SetUAVParameterIfCS(RHICmdList, Shader,UAVParameter,RWBuffer.UAV);
+	if (!SetUAVParameterIfCS(RHICmdList, Shader, UAVParameter, RWBuffer.UAV))
+	{
+		SetSRVParameter(RHICmdList, Shader, SRVParameter, RWBuffer.SRV);
+	}
 }
 
 template<typename TShaderRHIRef, typename TRHICmdList>
 inline void FRWShaderParameter::SetTexture(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FTextureRHIParamRef Texture, FUnorderedAccessViewRHIParamRef UAV) const
 {
-	SetTextureParameter(RHICmdList, Shader,SRVParameter,Texture);
-	SetUAVParameterIfCS(RHICmdList, Shader,UAVParameter,UAV);
+	if (!SetUAVParameterIfCS(RHICmdList, Shader, UAVParameter, UAV))
+	{
+		SetTextureParameter(RHICmdList, Shader, SRVParameter, Texture);
+	}
 }
 
 template<typename TRHICmdList>

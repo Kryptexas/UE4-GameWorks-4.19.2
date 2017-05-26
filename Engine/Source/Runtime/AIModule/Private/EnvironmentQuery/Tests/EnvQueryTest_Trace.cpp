@@ -39,7 +39,7 @@ void UEnvQueryTest_Trace::RunTest(FEnvQueryInstance& QueryInstance) const
 		return;
 	}
 
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(EnvQueryTrace), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
 
 	TArray<AActor*> IgnoredActors;

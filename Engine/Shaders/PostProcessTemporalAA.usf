@@ -281,6 +281,31 @@ void SSRTemporalAAPS(
 #endif
 }
 
+float4 DOFTemporalAACommon(in float2 UV, in float InExposureScale)
+{
+	float4 OutColor = 0;
+
+#if ENABLE_TEMPORAL_AA
+	#define AA_FILTERED 0
+	#define AA_ALPHA 1
+	#define AA_CROSS 4
+	#define AA_DYNAMIC 1
+	#define AA_NAN 1
+	#define AA_BORDER 1
+	#define AA_FORCE_ALPHA_CLAMP 1
+	#define AA_YCOCG 1
+#if COMPUTESHADER
+	#define AA_SINGLE_PASS_RESPONSIVE 1
+#endif
+	#include "PostProcessTemporalCommon.usf"
+
+#else
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
+#endif
+
+	return OutColor;
+}
+
 void DOFTemporalAAPS( 
 	in noperspective float2 UV : TEXCOORD0, 
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1, 
@@ -290,20 +315,8 @@ void DOFTemporalAAPS(
 	float4 SvPosition : SV_POSITION,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
-#if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_FILTERED 0
-	#define AA_ALPHA 1
-	#define AA_CROSS 4
-	#define AA_DYNAMIC 1
-	#define AA_NAN 1
-	#define AA_BORDER 1
-	#define AA_FORCE_ALPHA_CLAMP 1
-	#define AA_YCOCG 1
-	#include "PostProcessTemporalCommon.usf"
-#else 
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
+	OutColor = DOFTemporalAACommon(UV, InExposureScale);
 }
 
 #if COMPUTESHADER
@@ -318,20 +331,8 @@ void DOFTemporalAACS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-#if ENABLE_TEMPORAL_AA
 	float InExposureScale = EyeAdaptationLookup();
-	#define AA_FILTERED 0
-	#define AA_ALPHA 1
-	#define AA_CROSS 4
-	#define AA_DYNAMIC 1
-	#define AA_NAN 1
-	#define AA_BORDER 1
-	#define AA_FORCE_ALPHA_CLAMP 1
-	#define AA_YCOCG 1
-	#include "PostProcessTemporalCommon.usf"
-#else
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
+	OutColor = DOFTemporalAACommon(UV, InExposureScale);
 
 	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
 	OutComputeTex[PixelPos] = OutColor;
@@ -363,23 +364,32 @@ void LightShaftTemporalAAPS(
 // 0.0f or 1.0f (if the RT format is not PF_FloatRGBA)
 float DitherScale;
 
-float4 MainTemporalAACommon(in float2 UV, in float InExposureScale)
+float4 MainTemporalAACommon(in float2 UV, in float4 SvPosition, in float InExposureScale)
 {
 	float4 OutColor = 0;
 
-	#define AA_FILTERED 1
-	#define AA_ALPHA (POST_PROCESS_ALPHA)
-	#define AA_BORDER 1
-	#define AA_CROSS 2
-	#define AA_AABB 1
-	#define AA_YCOCG 1
-	#define AA_BICUBIC 1
-	#define AA_ACCURATE_ALPHA (POST_PROCESS_ALPHA)
-	#define AA_DYNAMIC_ANTIGHOST 1
-#if COMPUTESHADER
-	#define AA_SINGLE_PASS_RESPONSIVE 1
+#if ENABLE_TEMPORAL_AA
+	#if MINIMAL_REPROJECTION_DEBUG
+		OutColor = float4(MinimalReprojectionForDebugging(UV, SvPosition), 0);
+	#else
+		#define AA_FILTERED 1
+		#define AA_ALPHA (POST_PROCESS_ALPHA)
+		#define AA_BORDER 1
+		#define AA_CROSS 2
+		#define AA_AABB 1
+		#define AA_YCOCG 1
+		#define AA_BICUBIC 1
+		#define AA_ACCURATE_ALPHA (POST_PROCESS_ALPHA)
+		#define AA_DYNAMIC_ANTIGHOST 1
+	#if COMPUTESHADER
+		#define AA_SINGLE_PASS_RESPONSIVE 1
+	#endif
+		#include "PostProcessTemporalCommon.usf"
+
+	#endif
+#else
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
 #endif
-	#include "PostProcessTemporalCommon.usf"
 
 	return OutColor;
 }
@@ -394,16 +404,8 @@ void MainTemporalAAPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
-#if ENABLE_TEMPORAL_AA
-	#if MINIMAL_REPROJECTION_DEBUG
-		OutColor = float4(MinimalReprojectionForDebugging(UV, SvPosition), 0);
-	#else
-		float InExposureScale = InExposureScaleVignette.x;
-		OutColor = MainTemporalAACommon(UV, InExposureScale);
-	#endif
-#else
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
+	float InExposureScale = InExposureScaleVignette.x;
+	OutColor = MainTemporalAACommon(UV, SvPosition, InExposureScale);
 }
 
 #if COMPUTESHADER
@@ -419,16 +421,8 @@ void MainTemporalAACS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-#if ENABLE_TEMPORAL_AA
-	#if MINIMAL_REPROJECTION_DEBUG
-		OutColor = float4(MinimalReprojectionForDebugging(UV, SvPosition), 0);
-	#else
-		float InExposureScale = EyeAdaptationLookup();
-		OutColor = MainTemporalAACommon(UV, InExposureScale);
-	#endif
-#else
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
+	float InExposureScale = EyeAdaptationLookup();
+	OutColor = MainTemporalAACommon(UV, SvPosition, InExposureScale);
 
 	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
 	OutComputeTex[PixelPos] = OutColor;
@@ -439,6 +433,7 @@ float4 MainFastTemporalAACommon(in float2 UV, in float InExposureScale)
 {
 	float4 OutColor = 0;
 
+#if ENABLE_TEMPORAL_AA
 	#define AA_FILTERED 1
 	#define AA_ALPHA (POST_PROCESS_ALPHA)
 	#define AA_BORDER 1
@@ -450,6 +445,10 @@ float4 MainFastTemporalAACommon(in float2 UV, in float InExposureScale)
 	#define AA_SINGLE_PASS_RESPONSIVE 1
 #endif
 	#include "PostProcessTemporalCommon.usf"
+
+#else
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
+#endif
 
 	return OutColor;
 }
@@ -463,12 +462,8 @@ void MainFastTemporalAAPS(
 	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
-#if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
 	OutColor = MainFastTemporalAACommon(UV, InExposureScale);
-#else
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
 } 
 
 #if COMPUTESHADER
@@ -483,12 +478,8 @@ void MainFastTemporalAACS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-#if ENABLE_TEMPORAL_AA
 	float InExposureScale = EyeAdaptationLookup();
 	OutColor = MainFastTemporalAACommon(UV, InExposureScale);
-#else
-	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);
-#endif
 
 	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
 	OutComputeTex[PixelPos] = OutColor;

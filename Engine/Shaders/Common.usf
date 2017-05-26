@@ -84,6 +84,11 @@
 
 #endif   
 
+#if COMPILER_HLSLCC
+#define ddx_fine(x) ddx(x)
+#define ddy_fine(y) ddy(y)
+#endif
+
 #if POST_PROCESS_ALPHA
 #define SceneColorLayout float4
 #define CastFloat4ToSceneColorLayout(x) (x)

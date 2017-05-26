@@ -139,7 +139,7 @@ public:
 			hr = pSessionControl2->SetDuckingPreference((::BOOL)bDuckingOptOutChecked);
 			if (FAILED(hr))
 			{
-				UE_LOG(LogVoiceCapture, Display, TEXT("Failed to duck audio endpoint. Error: %0x08x"), hr);
+				UE_LOG(LogVoiceCapture, Display, TEXT("Failed to duck audio endpoint. Error: 0x%08x"), hr);
 			}
 
 			pSessionControl2->Release();
@@ -241,7 +241,7 @@ public:
 
 		if (FAILED(hr))
 		{
-			UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to duck audio endpoint. Error: %0x08x"), hr);
+			UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to duck audio endpoint. Error: 0x%08x"), hr);
 		}
 
 		return SUCCEEDED(hr);

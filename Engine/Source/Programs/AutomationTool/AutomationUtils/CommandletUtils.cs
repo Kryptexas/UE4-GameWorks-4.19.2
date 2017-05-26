@@ -146,7 +146,7 @@ namespace AutomationTool
 				MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps).Trim();
 			}
 
-			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering -SkipSkinVerify {0} {1}", MapsToRebuildLighting, Parameters));
+			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildtexturestreaming -buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering -SkipSkinVerify {0} {1}", MapsToRebuildLighting, Parameters));
 		}
 
         /// <summary>
@@ -449,6 +449,44 @@ namespace AutomationTool
 			{
 				return String.Empty;
 			}
+		}
+
+		/// <summary>
+		/// Converts project name to FileReference used by other commandlet functions
+		/// </summary>
+		/// <param name="ProjectName">Project name.</param>
+		/// <returns>FileReference to project location</returns>
+		public static FileReference GetCommandletProjectFile(string ProjectName)
+		{
+			FileReference ProjectFullPath = null;
+			var OriginalProjectName = ProjectName;
+			ProjectName = ProjectName.Trim(new char[] { '\"' });
+			if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)
+			{
+				ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName, ProjectName + ".uproject");
+			}
+			else if (!FileExists_NoExceptions(ProjectName))
+			{
+				ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName);
+			}
+			if (FileExists_NoExceptions(ProjectName))
+			{
+				ProjectFullPath = new FileReference(ProjectName);
+			}
+			else
+			{
+				var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.BuildHostPlatform.Current.Platform });
+				var GameProj = Branch.FindGame(OriginalProjectName);
+				if (GameProj != null)
+				{
+					ProjectFullPath = GameProj.FilePath;
+				}
+				if (!FileExists_NoExceptions(ProjectFullPath.FullName))
+				{
+					throw new AutomationException("Could not find a project file {0}.", ProjectName);
+				}
+			}
+			return ProjectFullPath;
 		}
 
 		#endregion

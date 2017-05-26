@@ -152,6 +152,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
 #include "MaterialUtilities.h"
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -279,7 +280,6 @@ void UEditorEngine::RedrawAllViewports(bool bInvalidateHitProxies)
 		FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
 		if ( ViewportClient && ViewportClient->Viewport )
 		{
-			ViewportClient->RequestRealTimeFrames(1);
 			if ( bInvalidateHitProxies )
 			{
 				// Invalidate hit proxies and display pixels.
@@ -3055,91 +3055,9 @@ public:
 void UEditorEngine::MoveSelectedActorsToLevel( ULevel* InDestLevel )
 {
 	// do the actual work...
-	DoMoveSelectedActorsToLevel( InDestLevel );
+	UEditorLevelUtils::MoveSelectedActorsToLevel( InDestLevel );
 }
 
-void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
-{
-	// Can't move into a locked level
-	if (FLevelUtils::IsLevelLocked(InDestLevel))
-	{
-		FNotificationInfo Info(NSLOCTEXT("UnrealEd", "CannotMoveIntoLockedLevel", "Cannot move the selected actors into a locked level"));
-		Info.bUseThrobber = false;
-		FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
-		return;
-	}
-
-	// Find actors that are already in the destination level and deselect them
-	{
-		TArray<AActor*> ActorsToDeselect;
-		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
-		{
-			AActor* Actor = static_cast<AActor*>(*It);
-			if ( Actor && Actor->GetLevel() == InDestLevel )
-			{
-				ActorsToDeselect.Add(Actor);
-			}
-		}
-
-		for ( auto* Actor : ActorsToDeselect )
-		{
-			const bool bInSelected = false;
-			const bool bNotify = false;
-			SelectActor(Actor, bInSelected, bNotify);
-		}
-	}
-
-	if (GetSelectedActorCount() <= 0)
-	{
-		// Nothing to move, probably source level was hidden and actors lost selection mark or all actors were already in the destination level
-		return;
-	}
-
-	// Start the transaction
-	GEditor->Trans->Begin( NULL, NSLOCTEXT("UnrealEd", "MoveSelectedActorsToSelectedLevel", "Move Actors To Level"));
-	
-	// Get a world context
-	UWorld* World = InDestLevel->OwningWorld;
-
-	// Cache the old level
-	ULevel* OldCurrentLevel = World->GetCurrentLevel();	
-
-	// Grab the location of the first selected actor.  Even though there may be many actors selected
-	// we'll make sure we find an appropriately destination level for the first actor.  The other
-	// actors will be moved to their appropriate levels automatically afterwards.
-	FVector FirstSelectedActorLocation = FVector::ZeroVector;
-	AActor* FirstActor = Cast< AActor >( *GetSelectedActorIterator() );
-	if ( FirstActor )
-	{
-		FirstSelectedActorLocation = FirstActor->GetActorLocation();
-	}
-
-	// Copy the actors we have selected to the clipboard
-	CopySelectedActorsToClipboard( World, true );
-
-	// Set the new level and force it visible while we do the paste
-	World->SetCurrentLevel( InDestLevel );
-	const bool bLevelVisible = InDestLevel->bIsVisible;
-	if (!bLevelVisible)
-	{
-		EditorLevelUtils::SetLevelVisibility(InDestLevel, true, false);
-	}
-
-	// Paste the actors into the new level
-	edactPasteSelected( World, false, false, false );
-
-	// Restore new level visibility to previous state
-	if (!bLevelVisible)
-	{
-		EditorLevelUtils::SetLevelVisibility(InDestLevel, false, false);
-	}
-
-	// Restore the original current level
-	World->SetCurrentLevel( OldCurrentLevel );
-
-	// End the transaction
-	GEditor->Trans->End();
-}
 
 TArray<UFoliageType*> UEditorEngine::GetFoliageTypesInWorld(UWorld* InWorld)
 {
@@ -3544,11 +3462,11 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 
 					AActor* ParentActor = Actor->GetAttachParentActor();
 					FName SocketName = Actor->GetAttachParentSocketName();
-					Actor->DetachRootComponentFromParent(true);
+					Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 					AttachData.Emplace(ParentActor, SocketName);
 
 					// If this actor is in a group, add it to the list
-					if (GEditor->bGroupingActive)
+					if (UActorGroupingUtils::IsGroupingActive())
 					{
 						AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
 						if (ActorGroupRoot)
@@ -3576,7 +3494,7 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				SetPivot( SingleActor->GetActorLocation(), false, true );
 
 				// If grouping is active, go through the unique group actors and update the group actor location
-				if (GEditor->bGroupingActive)
+				if (UActorGroupingUtils::IsGroupingActive())
 				{
 					for (AGroupActor* GroupActor : GroupActors)
 					{
@@ -4963,7 +4881,7 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 	// Do the actual actor->world check.  We try to collide against the world, straight down from our current position.
 	// If we hit anything, we will move the actor to a position that lets it rest on the floor.
 	FHitResult Hit(1.0f);
-	FCollisionQueryParams Params(FName(TEXT("MoveActorToTrace")), false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MoveActorToTrace), false);
 	if( Object.Actor )
 	{
 		Params.AddIgnoredActor( Object.Actor );
@@ -6950,7 +6868,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 			UStaticMeshComponent* Component = MergeComponents[ComponentIndex];
 
 			// calculate a matrix to go from my component space to the owner's component's space
-			FMatrix TransformToOwnerSpace = Component->ComponentToWorld.ToMatrixWithScale() * OwnerComponent->ComponentToWorld.ToMatrixWithScale().Inverse();
+			FMatrix TransformToOwnerSpace = Component->GetComponentTransform().ToMatrixWithScale() * OwnerComponent->GetComponentTransform().ToMatrixWithScale().Inverse();
 
 			// if we have negative scale, we need to munge the matrix and scaling
 			if (TransformToOwnerSpace.Determinant() < 0.0f)

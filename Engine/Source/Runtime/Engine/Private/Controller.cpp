@@ -223,8 +223,7 @@ bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAl
 		GetActorEyesViewPoint(ViewPoint, ViewRotation);
 	}
 
-	static FName NAME_LineOfSight = FName(TEXT("LineOfSight"));
-	FCollisionQueryParams CollisionParms(NAME_LineOfSight, true, Other);
+	FCollisionQueryParams CollisionParms(SCENE_QUERY_STAT(LineOfSight), true, Other);
 	CollisionParms.AddIgnoredActor(this->GetPawn());
 	FVector TargetLocation = Other->GetTargetLocation(Pawn);
 	bool bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, TargetLocation, ECC_Visibility, CollisionParms);

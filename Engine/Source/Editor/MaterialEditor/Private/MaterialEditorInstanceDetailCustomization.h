@@ -69,6 +69,9 @@ private:
 	/** Reset to default implementation.  Resets Parameter to default */
 	void ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter);
 
+	/** If reset to default button should show */
+	bool ShouldShowResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter);
+
 	/** Returns true if the refraction options should be displayed */
 	EVisibility ShouldShowMaterialRefractionSettings() const;
 

@@ -64,7 +64,14 @@ private:
 	TRefCountPtr<HHitProxy> CurrentHitProxy;
 };
 
-void FPrimitiveSceneInfoCompact::Init(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
+FPrimitiveFlagsCompact::FPrimitiveFlagsCompact(const FPrimitiveSceneProxy* Proxy)
+	: bCastDynamicShadow(Proxy->CastsDynamicShadow())
+	, bStaticLighting(Proxy->HasStaticLighting())
+	, bCastStaticShadow(Proxy->CastsStaticShadow())
+{}
+
+FPrimitiveSceneInfoCompact::FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPrimitiveSceneInfo) :
+	PrimitiveFlagsCompact(InPrimitiveSceneInfo->Proxy)
 {
 	PrimitiveSceneInfo = InPrimitiveSceneInfo;
 	Proxy = PrimitiveSceneInfo->Proxy;
@@ -73,14 +80,6 @@ void FPrimitiveSceneInfoCompact::Init(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
 	MaxDrawDistance = PrimitiveSceneInfo->Proxy->GetMaxDrawDistance();
 
 	VisibilityId = PrimitiveSceneInfo->Proxy->GetVisibilityId();
-
-	bHasViewDependentDPG = Proxy->HasViewDependentDPG();
-	bCastDynamicShadow = PrimitiveSceneInfo->Proxy->CastsDynamicShadow();
-
-	bAffectDynamicIndirectLighting = PrimitiveSceneInfo->Proxy->AffectsDynamicIndirectLighting();
-	LpvBiasMultiplier = PrimitiveSceneInfo->Proxy->GetLpvBiasMultiplier();
-	
-	StaticDepthPriorityGroup = bHasViewDependentDPG ? 0 : Proxy->GetStaticDepthPriorityGroup();
 }
 
 FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene* InScene):
@@ -158,6 +157,12 @@ void FPrimitiveSceneInfo::AddStaticMeshes(FRHICommandListImmediate& RHICmdList)
 		Scene->StaticMeshes[SceneArrayAllocation.Index] = &Mesh;
 		Mesh.Id = SceneArrayAllocation.Index;
 
+		if (Mesh.bRequiresPerElementVisibility)
+		{
+			// Use a separate index into StaticMeshBatchVisibility, since most meshes don't use it
+			Mesh.BatchVisibilityId = Scene->StaticMeshBatchVisibility.AddUninitialized().Index;
+		}
+
 		// By this point, the index buffer render resource must be initialized
 		// Add the static mesh to the appropriate draw lists.
 		Mesh.AddToDrawLists(RHICmdList, Scene);
@@ -196,16 +201,11 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	}
 
 	// create potential storage for our compact info
-	FPrimitiveSceneInfoCompact LocalCompactPrimitiveSceneInfo;
-	FPrimitiveSceneInfoCompact* CompactPrimitiveSceneInfo = &LocalCompactPrimitiveSceneInfo;
-
-	// if we are being added directly to the Octree, initialize the temp compact scene info,
-	// and let the Octree make a copy of it
-	LocalCompactPrimitiveSceneInfo.Init(this);
+	FPrimitiveSceneInfoCompact CompactPrimitiveSceneInfo(this);
 
 	// Add the primitive to the octree.
 	check(!OctreeId.IsValidId());
-	Scene->PrimitiveOctree.AddElement(LocalCompactPrimitiveSceneInfo);
+	Scene->PrimitiveOctree.AddElement(CompactPrimitiveSceneInfo);
 	check(OctreeId.IsValidId());
 
 	if (Proxy->CastsDynamicIndirectShadow())
@@ -213,14 +213,16 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 		Scene->DynamicIndirectCasterPrimitives.Add(this);
 	}
 
+	Scene->PrimitiveSceneProxies[PackedIndex] = Proxy;
+
 	// Set bounds.
 	FPrimitiveBounds& PrimitiveBounds = Scene->PrimitiveBounds[PackedIndex];
 	FBoxSphereBounds BoxSphereBounds = Proxy->GetBounds();
-	PrimitiveBounds.Origin = BoxSphereBounds.Origin;
-	PrimitiveBounds.SphereRadius = BoxSphereBounds.SphereRadius;
-	PrimitiveBounds.BoxExtent = BoxSphereBounds.BoxExtent;
+	PrimitiveBounds.BoxSphereBounds = BoxSphereBounds;
 	PrimitiveBounds.MinDrawDistanceSq = FMath::Square(Proxy->GetMinDrawDistance());
 	PrimitiveBounds.MaxDrawDistance = Proxy->GetMaxDrawDistance();
+
+	Scene->PrimitiveFlagsCompact[PackedIndex] = FPrimitiveFlagsCompact(Proxy);
 
 	// Store precomputed visibility ID.
 	int32 VisibilityBitIndex = Proxy->GetVisibilityId();
@@ -276,7 +278,7 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 			LightIt.Advance())
 		{
 			const FLightSceneInfoCompact& LightSceneInfoCompact = LightIt.GetCurrentElement();
-			if (LightSceneInfoCompact.AffectsPrimitive(*CompactPrimitiveSceneInfo))
+			if (LightSceneInfoCompact.AffectsPrimitive(CompactPrimitiveSceneInfo.Bounds, CompactPrimitiveSceneInfo.Proxy))
 			{
 				FLightPrimitiveInteraction::Create(LightSceneInfoCompact.LightSceneInfo,this);
 			}

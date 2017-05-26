@@ -3,7 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
 #include "ISourceControlRevision.h"
+#include "TextProperty.h"
+#include "SourceControlHelpers.generated.h"
+
 
 class ISourceControlProvider;
 
@@ -16,61 +21,70 @@ class ISourceControlProvider;
  */
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnPostCheckOut, const FString& /*InDestFile*/, const FText& /*InFileDescription*/, FText& /*OutFailReason*/);
 
-namespace SourceControlHelpers
+// For backwards compatibility
+typedef class USourceControlHelpers SourceControlHelpers;
+
+UCLASS(transient)
+class USourceControlHelpers : public UObject
 {
+	GENERATED_BODY()
+public:
 	/**
 	 * Helper function to get the ini filename for storing source control settings
 	 * @return the filename
 	 */
-	SOURCECONTROL_API extern const FString& GetSettingsIni();
+	static SOURCECONTROL_API const FString& GetSettingsIni();
 
 	/**
 	 * Helper function to get the ini filename for storing global source control settings
 	 * @return the filename
 	 */
-	SOURCECONTROL_API extern const FString& GetGlobalSettingsIni();
+	static SOURCECONTROL_API const FString& GetGlobalSettingsIni();
 
 	/**
 	 * Helper function to get a filename for a package name.
 	 * @param	InPackageName	The package name to get the filename for
 	 * @return the filename
 	 */
-	SOURCECONTROL_API extern FString PackageFilename( const FString& InPackageName );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API FString PackageFilename( const FString& InPackageName );
 
 	/**
 	 * Helper function to get a filename for a package.
 	 * @param	InPackage	The package to get the filename for
 	 * @return the filename
 	 */
-	SOURCECONTROL_API extern FString PackageFilename( const UPackage* InPackage );
+	static SOURCECONTROL_API FString PackageFilename( const UPackage* InPackage );
 
 	/**
 	 * Helper function to convert package array into filename array.
 	 * @param	InPackages	The package array
 	 * @return an array of filenames
 	 */
-	SOURCECONTROL_API extern TArray<FString> PackageFilenames( const TArray<UPackage*>& InPackages );
+	static SOURCECONTROL_API TArray<FString> PackageFilenames( const TArray<UPackage*>& InPackages );
 
 	/**
 	 * Helper function to convert package name array into a filename array.
 	 * @param	InPackageNames	The package name array
 	 * @return an array of filenames
 	 */
-	SOURCECONTROL_API extern TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames );
 	
 	/**
 	 * Helper function to convert a filename array to absolute paths.
 	 * @param	InFileNames	The filename array
 	 * @return an array of filenames, transformed into absolute paths
 	 */
-	SOURCECONTROL_API extern TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames );
 
 	/**
 	 * Helper function to get a list of files that are unchanged & revert them. This runs synchronous commands.
 	 * @param	InProvider	The provider to use
 	 * @param	InFiles		The files to operate on
 	 */
-	SOURCECONTROL_API extern void RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FString>& InFiles );
+	static SOURCECONTROL_API void RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FString>& InFiles );
 
 	/**
 	 * Helper function to annotate a file using a label
@@ -80,7 +94,7 @@ namespace SourceControlHelpers
 	 * @param	OutLines	Output array of annotated lines
 	 * @returns true if successful
 	 */
-	SOURCECONTROL_API extern bool AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, const FString& InFile, TArray<FAnnotationLine>& OutLines );
+	static SOURCECONTROL_API bool AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, const FString& InFile, TArray<FAnnotationLine>& OutLines );
 
 	/**
 	 * Helper function to annotate a file using a changelist/checkin identifier
@@ -90,21 +104,23 @@ namespace SourceControlHelpers
 	 * @param	OutLines				Output array of annotated lines
 	 * @returns true if successful
 	 */
-	SOURCECONTROL_API extern bool AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier, const FString& InFile, TArray<FAnnotationLine>& OutLines );
+	static SOURCECONTROL_API bool AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier, const FString& InFile, TArray<FAnnotationLine>& OutLines );
 
 	/**
 	 * Helper function to check out a file
 	 * @param	InFile		The file path to check in
 	 * @return	Success or failure of the checkout operation
 	 */
-	SOURCECONTROL_API extern bool CheckOutFile( const FString& InFile );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API bool CheckOutFile( const FString& InFile );
 
 	/**
 	 * Helper function to mark a file for add. Does nothing (and returns true) if the file is already under SC
 	 * @param	InFile		The file path to check in
 	 * @return	Success or failure of the mark for add operation
 	 */
-	SOURCECONTROL_API extern bool MarkFileForAdd( const FString& InFile );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API bool MarkFileForAdd( const FString& InFile );
 
 	/**
 	 * Helper function perform an operation on files in our 'source controlled' directories, handling checkout/add etc.
@@ -114,7 +130,7 @@ namespace SourceControlHelpers
 	 * @param	OutFailReason		Text describing why the operation failed
 	 * @return	Success or failure of the operation
 	 */
-	SOURCECONTROL_API extern bool CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescription, const FOnPostCheckOut& OnPostCheckOut, FText& OutFailReason );
+	static SOURCECONTROL_API bool CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescription, const FOnPostCheckOut& OnPostCheckOut, FText& OutFailReason );
 
 	/**
 	 * Helper function to copy a file into our 'source controlled' directories, handling checkout/add etc.
@@ -124,7 +140,8 @@ namespace SourceControlHelpers
 	 * @param	OutFailReason		Text describing why the operation failed
 	 * @return	Success or failure of the operation
 	 */
-	SOURCECONTROL_API extern bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason );
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Source Control Helpers")
+	static SOURCECONTROL_API bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason );
 
 	/**
 	 * Helper function to branch/integrate packages from one location to another
@@ -132,8 +149,8 @@ namespace SourceControlHelpers
 	 * @param	SourcePackage		The source package
 	 * @return true if the file packages were successfully branched.
 	 */
-	SOURCECONTROL_API extern bool BranchPackage( UPackage* DestPackage, UPackage* SourcePackage );
-}
+	static SOURCECONTROL_API bool BranchPackage( UPackage* DestPackage, UPackage* SourcePackage );
+};
 
 /** 
  * Helper class that ensures FSourceControl is properly initialized and shutdown by calling Init/Close in

@@ -120,31 +120,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						{
 							check((*Term)->bIsLiteral);
 						
-							int32 LatentUUID = INDEX_NONE;
-							UEdGraphNode* AssociatedNode = LatentInfoPin->GetOwningNode();
-							if (AssociatedNode && AssociatedNode->NodeGuid.IsValid())
-							{
-								LatentUUID = GetTypeHash(AssociatedNode->NodeGuid);
-
-								UEdGraphNode* ResultNode = AssociatedNode;
-								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(AssociatedNode));
-								while (SourceNode && SourceNode != ResultNode)
-								{
-									if (SourceNode->NodeGuid.IsValid())
-									{
-										LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
-									}
-									ResultNode = SourceNode;
-									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(ResultNode));
-								}
-							}
-							else
-							{
-								static int32 FallbackUUID = 0;
-								LatentUUID = FallbackUUID++;
-
-								CompilerContext.MessageLog.Warning(*LOCTEXT("UUIDDeterministicCookWarn", "Failed to produce a deterministic UUID for a node's latent action: @@. Cooking this Blueprint (@@) asset will non-deterministic.").ToString(), LatentInfoPin, Context.Blueprint);
-							}							
+							int32 LatentUUID = CompilerContext.MessageLog.CalculateStableIdentifierForLatentActionManager(LatentInfoPin->GetOwningNode());
 
 							const FString ExecutionFunctionName = CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Context.Blueprint->GetName();
 							(*Term)->Name = FString::Printf(TEXT("(Linkage=%s,UUID=%s,ExecutionFunction=%s,CallbackTarget=None)"), *FString::FromInt(INDEX_NONE), *FString::FromInt(LatentUUID), *ExecutionFunctionName);

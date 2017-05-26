@@ -68,6 +68,7 @@ TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPan
 SGraphPin::SGraphPin()
 	: GraphPinObj(nullptr)
 	, bShowLabel(true)
+	, bOnlyShowDefaultValue(false)
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
 	, CachedNodeOffset(FVector2D::ZeroVector)
@@ -302,15 +303,13 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 
 TSharedRef<SWidget>	SGraphPin::GetDefaultValueWidget()
 {
-	return SNew(SBox);
+	return SNullWidget::NullWidget;
 }
-
 
 void SGraphPin::SetIsEditable(TAttribute<bool> InIsEditable)
 {
 	IsEditable = InIsEditable;
 }
-
 
 FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent )
 {
@@ -662,7 +661,10 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 				bool bOkIcon = false;
 				FString TooltipText;
-				Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->AssetData, GraphPinObj, TooltipText, bOkIcon);
+				if (AssetOp->HasAssets())
+				{
+					Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->GetAssets(), GraphPinObj, TooltipText, bOkIcon);
+				}
 				const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
 				AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 			}
@@ -761,8 +763,10 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 		if(Node != NULL && Node->GetSchema() != NULL)
 		{
 			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-
-			Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
+			if (AssetOp->HasAssets())
+			{
+				Node->GetSchema()->DroppedAssetsOnPin(AssetOp->GetAssets(), DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
+			}
 		}
 		return FReply::Handled();
 	}
@@ -827,22 +831,17 @@ EEdGraphPinDirection SGraphPin::GetDirection() const
 
 bool SGraphPin::IsArray() const
 {
-	return GraphPinObj->PinType.bIsArray;
+	return GraphPinObj->PinType.IsArray();
 }
 
 bool SGraphPin::IsSet() const
 {
-	return GraphPinObj->PinType.bIsSet;
+	return GraphPinObj->PinType.IsSet();
 }
 
 bool SGraphPin::IsMap() const
 {
-	return GraphPinObj->PinType.bIsMap;
-}
-
-bool SGraphPin::IsByRef() const
-{
-	return GraphPinObj->PinType.bIsReference;
+	return GraphPinObj->PinType.IsMap();
 }
 
 bool SGraphPin::IsByMutableRef() const
@@ -854,11 +853,6 @@ bool SGraphPin::IsDelegate() const
 {
 	const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
 	return Schema && Schema->IsDelegateCategory(GraphPinObj->PinType.PinCategory);
-}
-
-bool SGraphPin::IsByConstRef() const
-{
-	return GraphPinObj->PinType.bIsReference && GraphPinObj->PinType.bIsConst;
 }
 
 /** @return whether this pin is connected to another pin */
@@ -927,7 +921,7 @@ const FSlateBrush* SGraphPin::GetPinIcon() const
 
 const FSlateBrush* SGraphPin::GetSecondaryPinIcon() const
 {
-	if( !GraphPinObj->IsPendingKill() && GraphPinObj->PinType.bIsMap )
+	if( !GraphPinObj->IsPendingKill() && GraphPinObj->PinType.IsMap() )
 	{
 		return CachedImg_MapPinValue;
 	}
@@ -944,7 +938,7 @@ const FSlateBrush* SGraphPin::GetPinBorder() const
 		bIsMarkedPin = (OwnerPanelPtr->MarkedPin.Pin() == SharedThis(this));
 	}
 
-	return (IsHovered() || bIsMarkedPin || GraphPinObj->bIsDiffing) ? CachedImg_Pin_BackgroundHovered : CachedImg_Pin_Background;
+	return (IsHovered() || bIsMarkedPin || GraphPinObj->bIsDiffing || bOnlyShowDefaultValue) ? CachedImg_Pin_BackgroundHovered : CachedImg_Pin_Background;
 }
 
 
@@ -1044,6 +1038,12 @@ FReply SGraphPin::ClickedOnPinStatusIcon()
 
 EVisibility SGraphPin::GetDefaultValueVisibility() const
 {
+	// If this is only for showing default value, always show
+	if (bOnlyShowDefaultValue)
+	{
+		return EVisibility::Visible;
+	}
+
 	// First ask schema
 	const UEdGraphSchema* Schema = !GraphPinObj->IsPendingKill() ? GraphPinObj->GetSchema() : nullptr;
 	if (Schema == nullptr || Schema->ShouldHidePinDefaultValue(GraphPinObj))
@@ -1071,6 +1071,11 @@ EVisibility SGraphPin::GetDefaultValueVisibility() const
 void SGraphPin::SetShowLabel(bool bNewShowLabel)
 {
 	bShowLabel = bNewShowLabel;
+}
+
+void SGraphPin::SetOnlyShowDefaultValue(bool bNewOnlyShowDefaultValue)
+{
+	bOnlyShowDefaultValue = bNewOnlyShowDefaultValue;
 }
 
 FText SGraphPin::GetTooltipText() const

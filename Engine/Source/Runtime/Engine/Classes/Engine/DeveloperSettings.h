@@ -6,7 +6,8 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
-#include "Widgets/SWidget.h"
+class SWidget;
+
 #include "DeveloperSettings.generated.h"
 
 /**
@@ -38,7 +39,7 @@ public:
 #endif
 
 	/** Gets a custom widget for the settings.  This is only for very custom situations. */
-	virtual TSharedPtr<class SWidget> GetCustomSettingsWidget() const;
+	virtual TSharedPtr<SWidget> GetCustomSettingsWidget() const;
 
 protected:
 	/**

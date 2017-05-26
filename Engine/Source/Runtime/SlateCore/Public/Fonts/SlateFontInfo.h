@@ -30,7 +30,7 @@ enum class EFontFallback : uint8
 /**
  * Settings for applying an outline to a font
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FFontOutlineSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -71,6 +71,8 @@ struct SLATECORE_API FFontOutlineSettings
 	bool operator==(const FFontOutlineSettings& Other) const
 	{
 		return OutlineSize == Other.OutlineSize
+			&& OutlineMaterial == Other.OutlineMaterial
+			&& OutlineColor == Other.OutlineColor
 			&& bSeparateFillAlpha == Other.bSeparateFillAlpha;
 	}
 
@@ -78,6 +80,8 @@ struct SLATECORE_API FFontOutlineSettings
 	{
 		uint32 Hash = 0;
 		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineSize));
+		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineMaterial));
+		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.OutlineColor));
 		Hash = HashCombine(Hash, GetTypeHash(OutlineSettings.bSeparateFillAlpha));
 		return Hash;
 	}

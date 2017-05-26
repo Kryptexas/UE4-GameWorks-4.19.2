@@ -313,7 +313,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 #endif
 
 	/** The Lightmass settings for this object. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lighting)
+	UPROPERTY(EditAnywhere, Category=Lighting)
 	struct FLightmassPrimitiveSettings LightmassSettings;
 
 	virtual ~UStaticMeshComponent();

@@ -831,7 +831,7 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 		InstanceData = StaticMeshInstanceData = new FInstancedStaticMeshComponentInstanceData(*this);	
 
 		// Fill in info (copied from UStaticMeshComponent::GetComponentInstanceData)
-		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+		StaticMeshInstanceData->CachedStaticLighting.Transform = GetComponentTransform();
 
 		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 		{
@@ -864,7 +864,7 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 
 	// Check for any instance having moved as that would invalidate static lighting
 	if (PerInstanceSMData.Num() == InstancedMeshData->PerInstanceSMData.Num() &&
-		InstancedMeshData->CachedStaticLighting.Transform.Equals(ComponentToWorld))
+		InstancedMeshData->CachedStaticLighting.Transform.Equals(GetComponentTransform()))
 	{
 		bMatch = true;
 
@@ -949,7 +949,7 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 	check(BodySetup);
 
 	// Get transform of the instance
-	FTransform InstanceTransform = FTransform(PerInstanceSMData[InstanceIdx].Transform) * ComponentToWorld;
+	FTransform InstanceTransform = FTransform(PerInstanceSMData[InstanceIdx].Transform) * GetComponentTransform();
 	
 	InstanceBodyInstance->CopyBodyInstancePropertiesFrom(&BodyInstance);
 	InstanceBodyInstance->InstanceBodyIndex = InstanceIdx; // Set body index 
@@ -985,7 +985,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 	    Transforms.Reserve(NumBodies);
 	    for (int32 i = 0; i < NumBodies; ++i)
 	    {
-			const FTransform InstanceTM = FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld;
+			const FTransform InstanceTM = FTransform(PerInstanceSMData[i].Transform) * GetComponentTransform();
 			if (InstanceTM.GetScale3D().IsNearlyZero())
 			{
 				InstanceBodies[i] = nullptr;
@@ -1401,7 +1401,7 @@ int32 UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTrans
 int32 UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
  {
 	// Transform from world space to local space
-	FTransform RelativeTM = WorldTransform.GetRelativeTransform(ComponentToWorld);
+	FTransform RelativeTM = WorldTransform.GetRelativeTransform(GetComponentTransform());
 	return AddInstance(RelativeTM);
 }
 
@@ -1453,7 +1453,7 @@ bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FT
 	OutInstanceTransform = FTransform(InstanceData.Transform);
 	if (bWorldSpace)
 	{
-		OutInstanceTransform = OutInstanceTransform * ComponentToWorld;
+		OutInstanceTransform = OutInstanceTransform * GetComponentTransform();
 	}
 
 	return true;
@@ -1472,7 +1472,7 @@ void UInstancedStaticMeshComponent::OnUpdateTransform(EUpdateTransformFlags Upda
 		for (int32 i = 0; i < PerInstanceSMData.Num(); i++)
 		{
 			const FTransform InstanceTransform(PerInstanceSMData[i].Transform);
-			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
+			UpdateInstanceTransform(i, InstanceTransform * GetComponentTransform(), /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
 		}
 	}
 }
@@ -1495,13 +1495,13 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 	// Should find some way around this for performance.
     
 	// Render data uses local transform of the instance
-	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
+	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(GetComponentTransform()) : NewInstanceTransform;
 	InstanceData.Transform = LocalTransform.ToMatrixWithScale();
 
 	if (bPhysicsStateCreated)
 	{
 		// Physics uses world transform of the instance
-		FTransform WorldTransform = bWorldSpace ? NewInstanceTransform : (LocalTransform * ComponentToWorld);
+		FTransform WorldTransform = bWorldSpace ? NewInstanceTransform : (LocalTransform * GetComponentTransform());
 		FBodyInstance*& InstanceBodyInstance = InstanceBodies[InstanceIndex];
 #if WITH_PHYSX
 		if (NewInstanceTransform.GetScale3D().IsNearlyZero())
@@ -1552,7 +1552,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 	FSphere Sphere(Center, Radius);
 	if (bSphereInWorldSpace)
 	{
-		Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
+		Sphere = Sphere.TransformBy(GetComponentTransform().Inverse());
 	}
 
 	float StaticMeshBoundsRadius = GetStaticMesh()->GetBounds().SphereRadius;
@@ -1578,7 +1578,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 	FBox Box(InBox);
 	if (bBoxInWorldSpace)
 	{
-		Box = Box.TransformBy(ComponentToWorld.Inverse());
+		Box = Box.TransformBy(GetComponentTransform().Inverse());
 	}
 
 	FVector StaticMeshBoundsExtent = GetStaticMesh()->GetBounds().BoxExtent;
@@ -1782,7 +1782,7 @@ void UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBo
 		const FTransform InstanceToComponent(InstancedData.Transform);
 		if (!InstanceToComponent.GetScale3D().IsZero())
 		{
-			InstanceData.Add(InstanceToComponent*ComponentToWorld);
+			InstanceData.Add(InstanceToComponent*GetComponentTransform());
 		}
 	}
 }

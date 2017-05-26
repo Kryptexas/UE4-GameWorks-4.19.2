@@ -23,6 +23,10 @@ class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
 	FGameplayTargetDataFilterHandle Filter;
 	FGameplayTagRequirements SourceTagRequirements;
 	FGameplayTagRequirements TargetTagRequirements;
+
+	FGameplayTagQuery SourceTagQuery;
+	FGameplayTagQuery TargetTagQuery;
+
 	bool TriggerOnce;
 	bool ListenForPeriodicEffects;
 

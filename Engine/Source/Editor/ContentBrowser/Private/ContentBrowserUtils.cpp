@@ -2,6 +2,7 @@
 
 
 #include "ContentBrowserUtils.h"
+#include "ContentBrowserSingleton.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
@@ -36,6 +37,8 @@
 #include "AssetRegistryModule.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "NativeClassHierarchy.h"
+#include "EmptyFolderVisibilityManager.h"
 
 #include "Toolkits/AssetEditorManager.h"
 #include "PackagesDialog.h"
@@ -346,9 +349,6 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 			}
 		}
 	}
- 
-	// prompt and load assets
-	GetUnloadedAssets(ObjectPaths, UnloadedObjectPaths);
 
 	// Make sure all selected objects are loaded, where possible
 	if ( UnloadedObjectPaths.Num() > 0 )
@@ -796,6 +796,10 @@ bool ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, 
 		FString Destination = DestPath + TEXT("/") + SubFolderName;
 
 		// Add the new path to notify sources views
+		{
+			TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+			EmptyFolderVisibilityManager->SetAlwaysShowPath(Destination);
+		}
 		AssetRegistryModule.Get().AddPath(Destination);
 
 		// If any assets were in this path...
@@ -847,6 +851,10 @@ bool ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, 
 		const FString Destination = DestPathWithTrailingSlash + SubFolderName;
 
 		// Add the new path to notify sources views
+		{
+			TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+			EmptyFolderVisibilityManager->SetAlwaysShowPath(Destination);
+		}
 		AssetRegistryModule.Get().AddPath(Destination);
 
 		// If any assets were in this path...
@@ -888,9 +896,6 @@ bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 		}
 	}
 
-	TArray<FString> UnloadedObjects;
-	GetUnloadedAssets(ObjectPathsToWarnAbout, UnloadedObjects);
-
 	GWarn->BeginSlowTask(LOCTEXT("FolderDragDrop_Loading", "Loading folders"), true);
 
 	// For every source path, load every package in the path (if necessary) and keep track of the assets that were loaded
@@ -925,7 +930,6 @@ bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 		{
 			UObject* Asset = *AssetIt;
 			if ( (Asset->GetClass() != UObjectRedirector::StaticClass() &&				// Skip object redirectors
-				 !Asset->GetOutermost()->ContainsMap() &&								// Skip assets in maps
 				 !AllFoundObjects.Contains(Asset)										// Skip assets we have already found to avoid processing them twice
 				) )
 			{
@@ -1296,6 +1300,22 @@ bool ContentBrowserUtils::DoesFolderExist(const FString& FolderPath)
 		{
 			return true;
 		}
+	}
+
+	return false;
+}
+
+bool ContentBrowserUtils::IsEmptyFolder(const FString& FolderPath, const bool bRecursive)
+{
+	if (ContentBrowserUtils::IsClassPath(FolderPath))
+	{
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+		return !NativeClassHierarchy->HasClasses(*FolderPath, bRecursive);
+	}
+	else
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		return !AssetRegistryModule.Get().HasAssets(*FolderPath, bRecursive);
 	}
 
 	return false;

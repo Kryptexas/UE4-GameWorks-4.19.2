@@ -97,9 +97,9 @@ FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) c
 
 void UCapsuleComponent::CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const 
 {
-	const float Scale = ComponentToWorld.GetMaximumAxisScale();
+	const float Scale = GetComponentTransform().GetMaximumAxisScale();
 	const float CapsuleEndCapCenter = FMath::Max(CapsuleHalfHeight - CapsuleRadius, 0.f);
-	const FVector ZAxis = ComponentToWorld.TransformVectorNoScale(FVector(0.f, 0.f, CapsuleEndCapCenter * Scale));
+	const FVector ZAxis = GetComponentTransform().TransformVectorNoScale(FVector(0.f, 0.f, CapsuleEndCapCenter * Scale));
 	
 	const float ScaledRadius = CapsuleRadius * Scale;
 	
@@ -165,7 +165,7 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 	if (bPhysicsStateCreated)
 	{
 		// Update physics engine collision shapes
-		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
+		BodyInstance.UpdateBodyScale(GetComponentTransform().GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

@@ -33,31 +33,8 @@ struct FUserPinInfo
 	UPROPERTY()
 	FString PinDefaultValue;
 
-	friend FArchive& operator <<(FArchive& Ar, FUserPinInfo& Info)
-	{
-		Ar << Info.PinName;
+	friend FArchive& operator <<(FArchive& Ar, FUserPinInfo& Info);
 
-		if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_PINTYPE_CONST)
-		{
-			Info.PinType.Serialize(Ar);
-			Ar << Info.DesiredPinDirection;
-		}
-		else
-		{
-			Ar << Info.PinType.bIsArray;
-			Ar << Info.PinType.bIsReference;
-
-			Ar << Info.PinType.PinCategory;
-			Ar << Info.PinType.PinSubCategory;
-
-			Ar << Info.PinType.PinSubCategoryObject;
-		}
-		
-		Ar << Info.PinDefaultValue;
-
-		return Ar;
-	}
-	
 };
 
 // This structure describes metadata associated with a user declared function or macro
@@ -120,6 +97,7 @@ class UK2Node_EditablePinBase : public UK2Node
 
 	// UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
+	BLUEPRINTGRAPH_API virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

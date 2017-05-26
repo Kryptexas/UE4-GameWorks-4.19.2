@@ -2926,7 +2926,7 @@ namespace ObjectTools
 		{
 			if(bMoveRedirectorFailed)
 			{
-				ErrorMessage += FText::Format( NSLOCTEXT("UnrealEd", "Error_CouldntRenameObjectRedirectorF", "Couldn't rename '{0}' object because there is an object redirector of the same name, please run FixupRedirects.\n"),
+				ErrorMessage += FText::Format( NSLOCTEXT("UnrealEd", "Error_CouldntRenameObjectRedirectorF", "Couldn't rename '{0}' object because there is an object redirector of the same name, please fixup redirect from editor by enabling Show Redirects in content browser.\n"),
 					FText::FromString(Object->GetFullName()) ).ToString();
 			}
 			else
@@ -4120,10 +4120,13 @@ namespace ThumbnailTools
 	{
 		FObjectThumbnail* FoundThumbnail = NULL;
 
+		FString PackageName = InPackageFileName;
+		FPackageName::TryConvertFilenameToLongPackageName(PackageName, PackageName);
+
 		// First check to see if the package is already in memory.  If it is, some or all of the thumbnails
 		// may already be loaded and ready.
 		UObject* PackageOuter = NULL;
-		UPackage* Package = FindPackage( PackageOuter, *FPackageName::PackageFromPath( *InPackageFileName ) );
+		UPackage* Package = FindPackage( PackageOuter, *PackageName);
 		if( Package != NULL )
 		{
 			FoundThumbnail = FindCachedThumbnailInPackage( Package, InObjectFullName );

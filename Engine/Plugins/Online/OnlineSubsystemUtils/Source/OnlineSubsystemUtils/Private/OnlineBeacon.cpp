@@ -13,6 +13,7 @@ AOnlineBeacon::AOnlineBeacon(const FObjectInitializer& ObjectInitializer) :
 	BeaconState(EBeaconState::DenyRequests)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
+	bRelevantForNetworkReplays = false;
 }
 
 bool AOnlineBeacon::InitBase()

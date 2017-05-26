@@ -44,16 +44,31 @@ struct FStructVariableDescription
 	FEdGraphTerminalType PinValueType;
 
 	UPROPERTY()
-	bool bIsArray;
+	EPinContainerType ContainerType;
 
+	// DEPRECATED(4.17)
 	UPROPERTY()
-	bool bIsSet;
+	uint8 bIsArray_DEPRECATED:1;
 
+	// DEPRECATED(4.17)
 	UPROPERTY()
-	bool bIsMap;
+	uint8 bIsSet_DEPRECATED:1;
+
+	// DEPRECATED(4.17)
+	UPROPERTY()
+	uint8 bIsMap_DEPRECATED:1;
 
 	UPROPERTY(Transient)
-	bool bInvalidMember;
+	uint8 bInvalidMember:1;
+
+	UPROPERTY()
+	uint8 bDontEditoOnInstance:1;
+
+	UPROPERTY()
+	uint8 bEnableMultiLineText:1;
+
+	UPROPERTY()
+	uint8 bEnable3dWidget:1;
 
 	// CurrentDefaultValue stores the actual default value, after the DefaultValue was changed, and before the struct was recompiled
 	UPROPERTY()
@@ -62,28 +77,32 @@ struct FStructVariableDescription
 	UPROPERTY()
 	FString ToolTip;
 
-	UPROPERTY()
-	bool bDontEditoOnInstance;
-
-	UPROPERTY()
-	bool bEnableMultiLineText;
-
-	UPROPERTY()
-	bool bEnable3dWidget;
-
 	UNREALED_API bool SetPinType(const struct FEdGraphPinType& VarType);
 
 	UNREALED_API FEdGraphPinType ToPinType() const;
 
+	// DEPRECATED(4.17)
+	void PostSerialize(const FArchive& Ar);
+
 	FStructVariableDescription()
-		: bIsArray(false)
-		, bIsSet(false)
-		, bIsMap(false)
+		: ContainerType(EPinContainerType::None)
+		, bIsArray_DEPRECATED(false)
+		, bIsSet_DEPRECATED(false)
+		, bIsMap_DEPRECATED(false)
 		, bInvalidMember(false)
 		, bDontEditoOnInstance(false)
 		, bEnableMultiLineText(false)
 		, bEnable3dWidget(false)
 	{ }
+};
+
+template<>
+struct TStructOpsTypeTraits< FStructVariableDescription > : public TStructOpsTypeTraitsBase2< FStructVariableDescription >
+{
+	enum 
+	{
+		WithPostSerialize = true,
+	};
 };
 
 class FStructOnScopeMember : public FStructOnScope

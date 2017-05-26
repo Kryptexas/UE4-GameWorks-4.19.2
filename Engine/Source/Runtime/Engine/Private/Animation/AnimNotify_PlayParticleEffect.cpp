@@ -46,7 +46,7 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 	{
 		if (PSTemplate->IsImmortal())
 		{
-			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim %s tried to spawn infinitely looping particle system %s. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
+			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim '%s' tried to spawn infinitely looping particle system '%s'. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
 			return;
 		}
 
@@ -65,7 +65,7 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 	}
 	else
 	{
-		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Null PSTemplate for particle notify in anim: %s"), *GetNameSafe(Animation));
+		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Particle system is null for particle notify '%s' in anim: '%s'"), *GetNotifyName(), *GetPathNameSafe(Animation));
 	}
 }
 

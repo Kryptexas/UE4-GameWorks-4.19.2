@@ -1016,6 +1016,28 @@ void UPartyGameState::SetAcceptingMembers(bool bIsAcceptingMembers, EJoinPartyDe
 	}
 }
 
+bool UPartyGameState::IsAcceptingMembers(EJoinPartyDenialReason* const DenialReason /*= nullptr*/) const
+{
+	if (CurrentConfig.bIsAcceptingMembers)
+	{
+		// Accepting members
+		if (DenialReason != nullptr)
+		{
+			*DenialReason = EJoinPartyDenialReason::NoReason;
+		}
+		return true;
+	}
+	else
+	{
+		// Not accepting members
+		if (DenialReason != nullptr)
+		{
+			*DenialReason = static_cast<EJoinPartyDenialReason>(CurrentConfig.NotAcceptingMembersReason);
+		}
+		return false;
+	}
+}
+
 bool UPartyGameState::IsInJoinableGameState() const
 {
 	bool bInGame = false;
@@ -1095,6 +1117,8 @@ void UPartyGameState::OnUpdatePartyConfigComplete(const FUniqueNetId& LocalUserI
 	{
 		CurrentConfig = *OssParty->Config;
 		bDebugAcceptingMembers = CurrentConfig.bIsAcceptingMembers;
+
+		OnPartyConfigurationChanged().Broadcast(CurrentConfig);
 	}
 }
 

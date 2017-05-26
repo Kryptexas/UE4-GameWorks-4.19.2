@@ -462,6 +462,11 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		// Registration of the game viewport to that messages are correctly received.
 		// Could be a re-register, however it's necessary after the window is set.
 		FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
+
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().SetAllUserFocusToGameViewport(EFocusCause::SetDirectly);
+		}
 	}
 }
 
@@ -539,6 +544,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	FixedFrameRate = 30.f;
 
 	bIsVanillaProduct = false;
+
+	GameScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
@@ -736,7 +743,8 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 
 	// If the prefixed path matches the world package name or the name of a streaming level,
 	// return the prefixed name.
-	const FString PackageNameOnly = FPackageName::PackageFromPath(*Str);
+	FString PackageNameOnly = Str;
+	FPackageName::TryConvertFilenameToLongPackageName(PackageNameOnly, PackageNameOnly);
 
 	const FString PrefixedFullName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
 	const FString PrefixedPackageName = UWorld::ConvertToPIEPackageName(PackageNameOnly, Context.PIEInstance);
@@ -1128,6 +1136,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			TickWorldTravel(Context, DeltaSeconds);
 		}
 
+		if (!bIdleMode)
+		{
+			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
+
+			// Tick the world.
+			GameCycles=0;
+			CLOCK_CYCLES(GameCycles);
+			Context.World()->Tick( LEVELTICK_All, DeltaSeconds );
+			UNCLOCK_CYCLES(GameCycles);
+		}
+
 		if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_CheckCaptures);
@@ -1141,16 +1160,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			}
 		}
 
-		if (!bIdleMode)
-		{
-			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
-
-			// Tick the world.
-			GameCycles=0;
-			CLOCK_CYCLES(GameCycles);
-			Context.World()->Tick( LEVELTICK_All, DeltaSeconds );
-			UNCLOCK_CYCLES(GameCycles);
-		}
+		
 
 		// Issue cause event after first tick to provide a chance for the game to spawn the player and such.
 		if( Context.World()->bWorldWasLoadedThisTick )

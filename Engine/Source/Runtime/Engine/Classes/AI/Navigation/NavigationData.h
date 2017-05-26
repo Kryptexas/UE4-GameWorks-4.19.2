@@ -586,6 +586,7 @@ public:
 
 	bool CanBeMainNavData() const { return bCanBeMainNavData; }
 	bool CanSpawnOnRebuild() const { return bCanSpawnOnRebuild; }
+	bool NeedsRebuildOnLoad() const { return bForceRebuildOnLoad; }
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }

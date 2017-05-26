@@ -59,12 +59,14 @@ namespace Audio
 		virtual bool StartAudioStream() override;
 		virtual bool StopAudioStream() override;
 		virtual bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
+		virtual void ResumePlaybackOnNewDevice() override;
 		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
-		virtual void SubmitBuffer(const TArray<float>& Buffer) override;
+		virtual void SubmitBuffer(const uint8* Buffer) override;
 		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) override;
 		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
 		virtual FString GetDefaultDeviceName() override;
+		virtual FAudioPlatformSettings GetPlatformSettings() const override;
 		//~ End IAudioMixerPlatformInterface
 
 		//~ Begin IAudioMixerDeviceChangedLister

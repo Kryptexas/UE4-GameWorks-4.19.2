@@ -6,6 +6,7 @@
 #include "EditorModeRegistry.h"
 #include "EditorModes.h"
 #include "LevelCollectionCommands.h"
+#include "LevelFolders.h"
 
 #include "Engine/WorldComposition.h"
 #include "StreamingLevels/StreamingLevelEdMode.h"
@@ -36,10 +37,14 @@ void FWorldBrowserModule::StartupModule()
 	}
 
 	UWorldComposition::WorldCompositionChangedEvent.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
+
+	FLevelFolders::Init();
 }
 
 void FWorldBrowserModule::ShutdownModule()
 {
+	FLevelFolders::Cleanup();
+
 	if (GEngine)
 	{
 		GEngine->OnWorldAdded().RemoveAll(this);

@@ -26,7 +26,7 @@ FBoxSphereBounds USphereComponent::CalcBounds(const FTransform& LocalToWorld) co
 
 void USphereComponent::CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const
 {
-	CylinderRadius = SphereRadius * ComponentToWorld.GetMaximumAxisScale();
+	CylinderRadius = SphereRadius * GetComponentTransform().GetMaximumAxisScale();
 	CylinderHalfHeight = CylinderRadius;
 }
 
@@ -87,7 +87,7 @@ void USphereComponent::SetSphereRadius( float InSphereRadius, bool bUpdateOverla
 	if (bPhysicsStateCreated)
 	{
 		// Update physics engine collision shapes
-		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
+		BodyInstance.UpdateBodyScale(GetComponentTransform().GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

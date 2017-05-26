@@ -75,6 +75,16 @@ enum EEdGraphPinDirection
 	EGPD_MAX,
 };
 
+/** Enum used to define what container type a pin represents. */
+UENUM()
+enum class EPinContainerType : uint8
+{
+	None,
+	Array,
+	Set,
+	Map
+};
+
 /** Enum to indicate what sort of title we want. */
 UENUM()
 namespace ENodeTitleType
@@ -176,20 +186,61 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	int32 NodeHeight;
 
+	/** Enum to indicate if a node has advanced-display-pins, and if they are shown */
+	UPROPERTY()
+	TEnumAsByte<ENodeAdvancedPins::Type> AdvancedPinDisplay;
+
+	/** Indicates in what state the node is enabled, which may eliminate it from being compiled */
+	UPROPERTY()
+	ENodeEnabledState EnabledState;
+
+	/** Indicates whether or not the user explicitly set the enabled state */
+	UPROPERTY()
+	uint8 bUserSetEnabledState:1;
+
+protected:
+	/** (DEPRECATED) Value used for AllowSplitPins(). Do not override. */
+	uint8 bAllowSplitPins_DEPRECATED:1;
+
+private:
+	/** (DEPRECATED) FALSE if the node is a disabled, which eliminates it from being compiled */
+	UPROPERTY()
+	uint8 bIsNodeEnabled_DEPRECATED:1;
+
+public:
+
 #if WITH_EDITORONLY_DATA
 	/** If true, this node can be resized and should be drawn with a resize handle */
 	UPROPERTY()
-	uint32 bCanResizeNode:1;
+	uint8 bCanResizeNode:1;
+
 #endif // WITH_EDITORONLY_DATA
 
+private:
+	/** Whether the node was created as part of an expansion step */
+	uint8 bIsIntermediateNode : 1;
+
+public:
 	/** Flag to check for compile error/warning */
 	UPROPERTY()
-	uint32 bHasCompilerMessage:1;
+	uint8 bHasCompilerMessage:1;
+
+	/** Comment bubble pinned state */
+	UPROPERTY()
+	uint8 bCommentBubblePinned:1;
+
+	/** Comment bubble visibility */
+	UPROPERTY()
+	uint8 bCommentBubbleVisible:1;
+
+	/** Make comment bubble visible */
+	UPROPERTY(Transient)
+	uint8 bCommentBubbleMakeVisible:1;
 
 #if WITH_EDITORONLY_DATA
 	/** If true, this node can be renamed in the editor */
 	UPROPERTY()
-	uint32 bCanRenameNode:1;
+	uint8 bCanRenameNode:1;
 
 	/** Note for a node that lingers until saved */
 	UPROPERTY(Transient)
@@ -199,18 +250,6 @@ class ENGINE_API UEdGraphNode : public UObject
 	/** Comment string that is drawn on the node */
 	UPROPERTY()
 	FString NodeComment;
-
-	/** Comment bubble pinned state */
-	UPROPERTY()
-	bool bCommentBubblePinned;
-
-	/** Comment bubble visibility */
-	UPROPERTY()
-	bool bCommentBubbleVisible;
-
-	/** Make comment bubble visible */
-	UPROPERTY(Transient)
-	bool bCommentBubbleMakeVisible;
 
 	/** Flag to store node specific compile error/warning*/
 	UPROPERTY()
@@ -223,23 +262,6 @@ class ENGINE_API UEdGraphNode : public UObject
 	/** GUID to uniquely identify this node, to facilitate diffing versions of this graph */
 	UPROPERTY()
 	FGuid NodeGuid;
-
-	/** Enum to indicate if a node has advanced-display-pins, and if they are shown */
-	UPROPERTY()
-	TEnumAsByte<ENodeAdvancedPins::Type> AdvancedPinDisplay;
-
-	/** Indicates in what state the node is enabled, which may eliminate it from being compiled */
-	UPROPERTY()
-	ENodeEnabledState EnabledState;
-
-	/** Indicates whether or not the user explicitly set the enabled state */
-	UPROPERTY()
-	bool bUserSetEnabledState;
-
-private:
-	/** (DEPRECATED) FALSE if the node is a disabled, which eliminates it from being compiled */
-	UPROPERTY()
-	bool bIsNodeEnabled_DEPRECATED;
 
 public:
 	/** Enables this node. */
@@ -290,6 +312,7 @@ public:
 	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
+	DEPRECATED(4.17, "Use version that takes PinContainerType instead of separate booleans for array, set, and map")
 	UEdGraphPin* CreatePin(
 		EEdGraphPinDirection Dir, 
 		const FString& PinCategory, 
@@ -302,6 +325,19 @@ public:
 		int32 Index = INDEX_NONE, 
 		bool bIsSet = false, 
 		bool bIsMap = false,
+		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+
+	/** Create a new pin on this node using the supplied info, and return the new pin */
+	UEdGraphPin* CreatePin(
+		EEdGraphPinDirection Dir, 
+		const FString& PinCategory, 
+		const FString& PinSubCategory, 
+		UObject* PinSubCategoryObject, 
+		const FString& PinName, 
+		EPinContainerType PinContainerType = EPinContainerType::None,
+		bool bIsReference = false, 
+		bool bIsConst = false, 
+		int32 Index = INDEX_NONE, 
 		const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	/** Create a new pin on this node using the supplied pin type, and return the new pin */
@@ -324,6 +360,9 @@ public:
 
 	/** Find a pin on this node with the supplied name and remove it, returns TRUE if successful */
 	bool RemovePin(UEdGraphPin* Pin);
+
+	/** Returns whether the node was created by UEdGraph::CreateIntermediateNode. */
+	bool IsIntermediateNode() const { return bIsIntermediateNode; }
 
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
@@ -475,7 +514,7 @@ public:
 	/**
 	 * Returns the link used for external documentation for the graph node
 	 */
-	virtual FString GetDocumentationLink() const { return TEXT(""); }
+	virtual FString GetDocumentationLink() const { return FString(); }
 
 	/**
 	 * Returns the name of the excerpt to display from the specified external documentation link for the graph node
@@ -645,11 +684,18 @@ protected:
 
 #endif // WITH_EDITOR
 
-protected:
-
-	/** (DEPRECATED) Value used for AllowSplitPins(). Do not override. */
-	bool bAllowSplitPins_DEPRECATED;
+	friend struct FSetAsIntermediateNode;
 };
 
+struct FSetAsIntermediateNode
+{
+	friend UEdGraph;
+
+private:
+	FSetAsIntermediateNode(UEdGraphNode* GraphNode)
+	{
+		GraphNode->bIsIntermediateNode = true;
+	}
+};
 
 

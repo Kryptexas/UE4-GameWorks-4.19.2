@@ -44,6 +44,7 @@ public:
 	virtual IOnlinePresencePtr GetPresenceInterface() const override;
 	virtual IOnlineChatPtr GetChatInterface() const override;
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
+	virtual FText GetOnlineServiceName() const override;
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
@@ -72,10 +73,16 @@ PACKAGE_SCOPE:
 	FOnlineSubsystemGoogleCommon();
 	FOnlineSubsystemGoogleCommon(FName InInstanceName);
 
+	/** @return the backend server client id */
+	FString GetServerClientId() const { return ServerClientId; }
+
 protected:
 
 	/** The client id given to us by Google Dashboard */
 	FString ClientId;
+
+	/** Server client id that this client will be engaging with */
+	FString ServerClientId;
 
 	/** Google implementation of identity interface */
 	FOnlineIdentityGoogleCommonPtr GoogleIdentity;

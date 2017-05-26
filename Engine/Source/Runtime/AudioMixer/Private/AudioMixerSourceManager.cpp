@@ -9,7 +9,7 @@
 
 DEFINE_STAT(STAT_AudioMixerHRTF);
 
-static int32 DisableParallelSourceProcessingCvar = 0;
+static int32 DisableParallelSourceProcessingCvar = 1;
 FAutoConsoleVariableRef CVarDisableParallelSourceProcessing(
 	TEXT("au.DisableParallelSourceProcessing"),
 	DisableParallelSourceProcessingCvar,
@@ -114,6 +114,8 @@ namespace Audio
 		: MixerDevice(InMixerDevice)
 		, NumActiveSources(0)
 		, NumTotalSources(0)
+		, NumOutputFrames(0)
+		, NumOutputSamples(0)
 		, NumSourceWorkers(4)
 		, bInitialized(false)
 	{
@@ -145,6 +147,9 @@ namespace Audio
 		AUDIO_MIXER_CHECK(MixerDevice->GetSampleRate() > 0);
 
 		NumTotalSources = InitParams.NumSources;
+
+		NumOutputFrames = MixerDevice->PlatformSettings.CallbackBufferFrameSize;
+		NumOutputSamples = NumOutputFrames * MixerDevice->GetNumDeviceChannels();
 
 		MixerSources.Init(nullptr, NumTotalSources);
 
@@ -179,7 +184,7 @@ namespace Audio
 			//SourceInfo.SourceEffects
 			//SourceInfo.SourceEffectPresets
 
-			SourceInfo.SourceEnvelopeFollower = Audio::FEnvelopeFollower(AUDIO_SAMPLE_RATE, 10, 100, Audio::EPeakMode::Peak);
+			SourceInfo.SourceEnvelopeFollower = Audio::FEnvelopeFollower(MixerDevice->SampleRate, 10, 100, Audio::EPeakMode::Peak);
 			SourceInfo.SourceEnvelopeValue = 0.0f;
 			SourceInfo.bEffectTailsDone = false;
 			//SourceInfo.SourceEffectInputData
@@ -219,13 +224,12 @@ namespace Audio
 		}
 
 		// Initialize the source buffer memory usage to max source scratch buffers (num frames times max source channels)
-		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
 			FSourceInfo& SourceInfo = SourceInfos[SourceId];
 
-			SourceInfo.SourceBuffer.Reset(NumFrames * 8);
-			SourceInfo.AudioPluginOutputData.AudioBuffer.Reset(NumFrames * 2);
+			SourceInfo.SourceBuffer.Reset(NumOutputFrames * 8);
+			SourceInfo.AudioPluginOutputData.AudioBuffer.Reset(NumOutputFrames * 2);
 		}
 
 		// Setup the source workers
@@ -242,7 +246,7 @@ namespace Audio
 				StartId = EndId;
 			}
 		}
-		AUDIO_MIXER_CHECK(SourceWorkers.Num() == NumSourceWorkers);
+		NumSourceWorkers = SourceWorkers.Num();
 
 		bInitialized = true;
 		bPumpQueue = false;
@@ -509,13 +513,13 @@ namespace Audio
 				SourceInfo.bEffectTailsDone = !InitParams.bPlayEffectChainTails;
 
 				FSoundEffectSourceInitData InitData;
-				InitData.SampleRate = AUDIO_SAMPLE_RATE;
+				InitData.SampleRate = MixerDevice->SampleRate;
 				InitData.NumSourceChannels = InitParams.NumInputChannels;
 				InitData.AudioClock = MixerDevice->GetAudioTime();
 
 				if (InitParams.NumInputFrames != INDEX_NONE)
 				{
-					InitData.SourceDuration = (float)InitParams.NumInputFrames / AUDIO_SAMPLE_RATE;
+					InitData.SourceDuration = (float)InitParams.NumInputFrames / MixerDevice->SampleRate;
 				}
 				else
 				{
@@ -915,8 +919,6 @@ namespace Audio
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceBuffers);
 
-		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
-
 		// Local variable used for sample values
 		float SampleValue = 0.0f;
 
@@ -933,10 +935,10 @@ namespace Audio
 
 			// Fill array with elements all at once to avoid sequential Add() operation overhead.
 			const int32 NumSourceChannels = SourceInfo.NumInputChannels;
-			SourceInfo.SourceBuffer.AddUninitialized(NumFrames * NumSourceChannels);
+			SourceInfo.SourceBuffer.AddUninitialized(NumOutputFrames * NumSourceChannels);
 			int32 SampleIndex = 0;
 
-			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
+			for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
 			{
 				// If the source is done, then we'll just write out 0s
 				if (!SourceInfo.bIsDone)
@@ -1003,7 +1005,6 @@ namespace Audio
 	void FMixerSourceManager::ComputePostSourceEffectBufferForIdRange(const int32 SourceIdStart, const int32 SourceIdEnd)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceEffectBuffers);
-		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 
 		const bool bIsDebugModeEnabled = DebugSoloSources.Num() > 0;
 
@@ -1026,7 +1027,7 @@ namespace Audio
 			// Process the per-source LPF if the source hasn't actually been finished
 			if (!SourceInfo.bIsDone)
 			{
-				for (int32 Frame = 0; Frame < NumFrames; ++Frame)
+				for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
 				{
 					FSourceParam& LPFFrequencyParam = SourceInfo.LPFCutoffFrequencyParam;
 
@@ -1207,7 +1208,7 @@ namespace Audio
 				AudioPluginInputData.SpatializationParams = &SourceInfo.SpatParams;
 
 				SourceInfo.AudioPluginOutputData.AudioBuffer.Reset();
-				SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(2 * NumFrames);
+				SourceInfo.AudioPluginOutputData.AudioBuffer.AddZeroed(2 * NumOutputFrames);
 
 				SpatializationPlugin->ProcessAudio(AudioPluginInputData, SourceInfo.AudioPluginOutputData);
 
@@ -1231,11 +1232,9 @@ namespace Audio
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AudioMixerSourceOutputBuffers);
 
-		const int32 NumFrames = MixerDevice->GetNumOutputFrames();
 		const int32 NumOutputChannels = MixerDevice->GetNumDeviceChannels();
 
 		// Reset the dry/wet buffers for all the sources
-		const int32 NumOutputSamples = NumFrames * NumOutputChannels;
 
 		for (int32 SourceId = SourceIdStart; SourceId < SourceIdEnd; ++SourceId)
 		{
@@ -1257,7 +1256,7 @@ namespace Audio
 				continue;
 			}
 
-			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
+			for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
 			{
 				const int32 PostEffectChannels = SourceInfo.NumPostEffectChannels;
 				AUDIO_MIXER_CHECK(SourceInfo.ChannelMapParam.ChannelValues.Num() == PostEffectChannels * NumOutputChannels);
@@ -1319,6 +1318,8 @@ namespace Audio
 
 	void FMixerSourceManager::UpdateDeviceChannelCount(const int32 InNumOutputChannels)
 	{
+		NumOutputSamples = NumOutputFrames * MixerDevice->GetNumDeviceChannels();
+
 		// Update all source's to appropriate channel maps
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
@@ -1356,7 +1357,8 @@ namespace Audio
 		{
 			FSoundEffectSourceInitData InitData;
 			InitData.AudioClock = MixerDevice->GetAudioClock();
-			InitData.SampleRate = AUDIO_SAMPLE_RATE;
+			InitData.SampleRate = MixerDevice->SampleRate;
+
 			for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 			{
 				FSourceInfo& SourceInfo = SourceInfos[SourceId];
@@ -1397,7 +1399,7 @@ namespace Audio
 
 						if (SourceInfo.NumInputFrames != INDEX_NONE)
 						{
-							InitData.SourceDuration = (float)SourceInfo.NumInputFrames / AUDIO_SAMPLE_RATE;
+							InitData.SourceDuration = (float)SourceInfo.NumInputFrames / InitData.SampleRate;
 						}
 						else
 						{

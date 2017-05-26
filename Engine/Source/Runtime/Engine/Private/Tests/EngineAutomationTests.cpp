@@ -547,9 +547,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		Test->TestTrue(FString::Printf(TEXT("Child world rotation was incorrect after attachment (was %s, should be %s)"), *ChildActor->GetActorQuat().ToString(), *LegacyExpectedChildTransforms[LocationInteger][0].GetRotation().ToString()), ChildActor->GetActorQuat().Equals(LegacyExpectedChildTransforms[LocationInteger][0].GetRotation(), KINDA_SMALL_NUMBER));
 		Test->TestTrue(FString::Printf(TEXT("Child world scale was incorrect after attachment (was %s, should be %s)"), *ChildActor->GetActorScale3D().ToString(), *LegacyExpectedChildTransforms[LocationInteger][0].GetScale3D().ToString()), ChildActor->GetActorScale3D().Equals(LegacyExpectedChildTransforms[LocationInteger][0].GetScale3D(), KINDA_SMALL_NUMBER));
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		ChildActor->DetachRootComponentFromParent(true);
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		ChildActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 		// check we have expected values after detachment
 		Test->TestEqual<FVector>(TEXT("Parent location was affected by detachment"), ParentActor->GetActorLocation(), AttachTestConstants::ParentLocation);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Guid.h"
 
 class ILiveLinkClient;
 
@@ -10,7 +11,7 @@ class ILiveLinkSource
 {
 public:
 	virtual ~ILiveLinkSource() {}
-	virtual void ReceiveClient(ILiveLinkClient* InClient) = 0;
+	virtual void ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid) = 0;
 
 	virtual bool IsSourceStillValid() = 0;
 

@@ -12,6 +12,7 @@
 #include "Sound/AudioVolume.h"
 #include "Sound/SoundConcurrency.h"
 #include "Sound/SoundMix.h"
+#include "Sound/AudioSettings.h"
 #include "AudioDeviceManager.h"
 #include "EngineGlobals.h"
 
@@ -994,7 +995,7 @@ public:
 	float GetSampleRate() const { return SampleRate; }
 
 	/** Returns the buffer length of the audio device. */
-	int32 GetBufferLength() const { return DeviceOutputBufferLength; }
+	int32 GetBufferLength() const { return PlatformSettings.CallbackBufferFrameSize; }
 
 	/** Whether or not there's a spatialization plugin enabled. */
 	bool IsSpatializationPluginEnabled() const
@@ -1167,6 +1168,9 @@ private:
 		return Adjuster * InterpValue + 1.0f - InterpValue;
 	}
 
+	/** Allow platforms to optionally specify low-level audio platform settings. */
+	virtual FAudioPlatformSettings GetPlatformSettings() const { return FAudioPlatformSettings(); }
+
 public:
 
 	/**
@@ -1331,14 +1335,11 @@ public:
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
-	/** The number of worker threads to use to process sources. (audio mixer feature) */
-	int32 NumSourceWorkers;
-
-	/** The sample rate of the audio device */
+	/** The sample rate of all the audio devices */
 	int32 SampleRate;
 
-	/** The length of output callback buffer */
-	int32 DeviceOutputBufferLength;
+	/** The platform specific audio settings. */
+	FAudioPlatformSettings PlatformSettings;
 
 	/** The length of output callback buffer */
 

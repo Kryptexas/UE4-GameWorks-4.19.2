@@ -1277,7 +1277,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -1433,7 +1433,7 @@ public:
 			FAOSampleData2 AOSampleData;
 
 			TArray<FVector, TInlineAllocator<9> > SampleDirections;
-			GetSpacedVectors(SampleDirections);
+			GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 			for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 			{

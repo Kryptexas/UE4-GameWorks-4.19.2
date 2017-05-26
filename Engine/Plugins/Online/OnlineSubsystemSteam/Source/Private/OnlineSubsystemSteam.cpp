@@ -768,3 +768,8 @@ FString FOnlineSubsystemSteam::GetAppId() const
 {
 	return FString::Printf(TEXT("%d"),GetSteamAppId());
 }
+
+FText FOnlineSubsystemSteam::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemSteam", "OnlineServiceName", "Steam");
+}

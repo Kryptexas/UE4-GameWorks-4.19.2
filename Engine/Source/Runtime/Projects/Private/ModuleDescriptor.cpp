@@ -172,6 +172,28 @@ bool FModuleDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 		}
 	}
 
+	// Read the whitelisted targets
+	TSharedPtr<FJsonValue> WhitelistTargetsValue = Object.TryGetField(TEXT("WhitelistTargets"));
+	if (WhitelistTargetsValue.IsValid() && WhitelistTargetsValue->Type == EJson::Array)
+	{
+		const TArray< TSharedPtr< FJsonValue > >& TargetsArray = WhitelistTargetsValue->AsArray();
+		for (int Idx = 0; Idx < TargetsArray.Num(); Idx++)
+		{
+			WhitelistTargets.Add(TargetsArray[Idx]->AsString());
+		}
+	}
+
+	// Read the blacklisted targets
+	TSharedPtr<FJsonValue> BlacklistTargetsValue = Object.TryGetField(TEXT("BlacklistTargets"));
+	if (BlacklistTargetsValue.IsValid() && BlacklistTargetsValue->Type == EJson::Array)
+	{
+		const TArray< TSharedPtr< FJsonValue > >& TargetsArray = BlacklistTargetsValue->AsArray();
+		for (int Idx = 0; Idx < TargetsArray.Num(); Idx++)
+		{
+			BlacklistTargets.Add(TargetsArray[Idx]->AsString());
+		}
+	}
+
 	// Read the additional dependencies
 	TSharedPtr<FJsonValue> AdditionalDependenciesValue = Object.TryGetField(TEXT("AdditionalDependencies"));
 	if (AdditionalDependenciesValue.IsValid() && AdditionalDependenciesValue->Type == EJson::Array)
@@ -244,6 +266,24 @@ void FModuleDescriptor::Write(TJsonWriter<>& Writer) const
 		}
 		Writer.WriteArrayEnd();
 	}
+	if (WhitelistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("WhitelistTargets"));
+		for (int Idx = 0; Idx < WhitelistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(WhitelistTargets[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
+	if (BlacklistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("BlacklistTargets"));
+		for (int Idx = 0; Idx < BlacklistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(BlacklistTargets[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
 	if (AdditionalDependencies.Num() > 0)
 	{
 		Writer.WriteArrayStart(TEXT("AdditionalDependencies"));
@@ -282,6 +322,20 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 
 	// Check the platform is not blacklisted
 	if(BlacklistPlatforms.Num() > 0 && BlacklistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	static FString UBTTarget(FPlatformMisc::GetUBTTarget());
+
+	// Check the target is whitelisted
+	if (WhitelistTargets.Num() > 0 && !WhitelistTargets.Contains(UBTTarget))
+	{
+		return false;
+	}
+
+	// Check the target is not blacklisted
+	if (BlacklistTargets.Num() > 0 && BlacklistTargets.Contains(UBTTarget))
 	{
 		return false;
 	}

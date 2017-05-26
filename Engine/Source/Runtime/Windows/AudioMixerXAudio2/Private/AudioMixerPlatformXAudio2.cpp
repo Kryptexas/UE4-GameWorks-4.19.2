@@ -33,6 +33,7 @@
 		return false;										\
 	}
 
+
 namespace Audio
 {
 	void FXAudio2VoiceCallback::OnBufferEnd(void* BufferContext)
@@ -89,12 +90,14 @@ namespace Audio
 			case HRESULT(XAUDIO2_E_XMA_DECODER_ERROR):		return TEXT("XAUDIO2_E_XMA_DECODER_ERROR");
 			case HRESULT(XAUDIO2_E_XAPO_CREATION_FAILED):	return TEXT("XAUDIO2_E_XAPO_CREATION_FAILED");
 			case HRESULT(XAUDIO2_E_DEVICE_INVALIDATED):		return TEXT("XAUDIO2_E_DEVICE_INVALIDATED");
+#if PLATFORM_WINDOWS
 			case REGDB_E_CLASSNOTREG:						return TEXT("REGDB_E_CLASSNOTREG");
 			case CLASS_E_NOAGGREGATION:						return TEXT("CLASS_E_NOAGGREGATION");
 			case E_NOINTERFACE:								return TEXT("E_NOINTERFACE");
 			case E_POINTER:									return TEXT("E_POINTER");
 			case E_INVALIDARG:								return TEXT("E_INVALIDARG");
 			case E_OUTOFMEMORY:								return TEXT("E_OUTOFMEMORY");
+#endif
 			default:										return TEXT("UKNOWN");
 		}
 	}
@@ -111,7 +114,9 @@ namespace Audio
 		// Load ogg and vorbis dlls if they haven't been loaded yet
 		LoadVorbisLibraries();
 
+#if PLATFORM_WINDOWS
 		bIsComInitialized = FWindowsPlatformMisc::CoInitialize();
+#endif
 
 		XAUDIO2_RETURN_ON_FAIL(XAudio2Create(&XAudio2System, 0, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()));
 
@@ -130,10 +135,13 @@ namespace Audio
 
 		SAFE_RELEASE(XAudio2System);
 
+#if PLATFORM_WINDOWS
 		if (bIsComInitialized)
 		{
 			FWindowsPlatformMisc::CoUninitialize();
 		}
+#endif
+
 		bIsInitialized = false;
 
 		return true;
@@ -152,8 +160,12 @@ namespace Audio
 			return false;
 		}
 
+#if PLATFORM_WINDOWS
 		check(XAudio2System);
 		XAUDIO2_RETURN_ON_FAIL(XAudio2System->GetDeviceCount(&OutNumOutputDevices));
+#else
+		OutNumOutputDevices = 1;
+#endif
 		return true;
 	}
 
@@ -164,6 +176,8 @@ namespace Audio
 			AUDIO_PLATFORM_ERROR(TEXT("XAudio2 was not initialized."));
 			return false;
 		}
+
+#if PLATFORM_WINDOWS
 
 		check(XAudio2System);
 
@@ -238,6 +252,25 @@ namespace Audio
 				UE_LOG(LogAudioMixerDebug, Log, TEXT("%d: %s"), i, EAudioMixerChannel::ToString(OutInfo.OutputChannelArray[i]));
 			}
 		}
+#else // #if PLATFORM_WINDOWS
+
+		OutInfo.bIsSystemDefault = true;
+		OutInfo.SampleRate = 44100;
+		OutInfo.DeviceId = 0;
+		OutInfo.Format = EAudioMixerStreamDataFormat::Float;
+		OutInfo.Latency = 0;
+		OutInfo.Name = TEXT("XBoxOne Audio Device.");
+		OutInfo.NumChannels = 8;
+
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::FrontLeft);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::FrontRight);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::FrontCenter);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::LowFrequency);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::BackLeft);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::BackRight);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::SideLeft);
+		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::SideRight);
+#endif // #else // #if PLATFORM_WINDOWS
 
 		return true;
 	}
@@ -268,11 +301,14 @@ namespace Audio
 
 		WAVEFORMATEX Format = { 0 };
 
+		OpenStreamParams = Params;
+
 		AudioStreamInfo.Reset();
 
-		AudioStreamInfo.OutputDeviceIndex = Params.OutputDeviceIndex;
-		AudioStreamInfo.NumOutputFrames = Params.NumFrames;
-		AudioStreamInfo.AudioMixer = Params.AudioMixer;
+		AudioStreamInfo.OutputDeviceIndex = OpenStreamParams.OutputDeviceIndex;
+		AudioStreamInfo.NumOutputFrames = OpenStreamParams.NumFrames;
+		AudioStreamInfo.NumBuffers = OpenStreamParams.NumBuffers;
+		AudioStreamInfo.AudioMixer = OpenStreamParams.AudioMixer;
 
 		if (!GetOutputDeviceInfo(AudioStreamInfo.OutputDeviceIndex, AudioStreamInfo.DeviceInfo))
 		{
@@ -285,21 +321,15 @@ namespace Audio
 			OriginalAudioDeviceId = AudioStreamInfo.DeviceInfo.DeviceId;
 		}
 
-		AudioStreamInfo.DeviceInfo.NumFrames = Params.NumFrames;
-		AudioStreamInfo.DeviceInfo.NumSamples = AudioStreamInfo.DeviceInfo.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels;
-
 		HRESULT Result = XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.DeviceInfo.SampleRate, 0, AudioStreamInfo.OutputDeviceIndex, nullptr);
 		XAUDIO2_CLEANUP_ON_FAIL(Result);
-
-		// Xaudio2 on windows, no need for byte swap
-		AudioStreamInfo.bPerformByteSwap = false;
 
 		// Start the xaudio2 engine running, which will now allow us to start feeding audio to it
 		XAudio2System->StartEngine();
 
 		// Setup the format of the output source voice
 		Format.nChannels = AudioStreamInfo.DeviceInfo.NumChannels;
-		Format.nSamplesPerSec = AUDIO_SAMPLE_RATE;
+		Format.nSamplesPerSec = Params.SampleRate;
 		Format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 		Format.nAvgBytesPerSec = Format.nSamplesPerSec * sizeof(float) * Format.nChannels;
 		Format.nBlockAlign = sizeof(float) * Format.nChannels;
@@ -389,16 +419,16 @@ namespace Audio
 
 		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
 		{
+			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
+			{
+				StopGeneratingAudio();
+			}
+
 			// Signal that the thread that is running the update that we're stopping
 			if (OutputAudioStreamSourceVoice)
 			{
 				OutputAudioStreamSourceVoice->DestroyVoice();
 				OutputAudioStreamSourceVoice = nullptr;
-			}
-
-			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
-			{
-				StopGeneratingAudio();
 			}
 
 			check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
@@ -485,16 +515,13 @@ namespace Audio
 		// Get the output device info at this new index
 		GetOutputDeviceInfo(AudioStreamInfo.OutputDeviceIndex, AudioStreamInfo.DeviceInfo);
 
-		// Update the num samples param based on results
-		AudioStreamInfo.DeviceInfo.NumSamples = AudioStreamInfo.DeviceInfo.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels;
-
 		// Create a new master voice
 		XAUDIO2_RETURN_ON_FAIL(XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.DeviceInfo.SampleRate, 0, AudioStreamInfo.OutputDeviceIndex, nullptr));
 
 		// Setup the format of the output source voice
 		WAVEFORMATEX Format = { 0 };
 		Format.nChannels = AudioStreamInfo.DeviceInfo.NumChannels;
-		Format.nSamplesPerSec = AUDIO_SAMPLE_RATE;
+		Format.nSamplesPerSec = OpenStreamParams.SampleRate;
 		Format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 		Format.nAvgBytesPerSec = Format.nSamplesPerSec * sizeof(float) * Format.nChannels;
 		Format.nBlockAlign = sizeof(float) * Format.nChannels;
@@ -506,30 +533,41 @@ namespace Audio
 		// Start the xaudio2 system back up
 		XAudio2System->StartEngine();
 
-		// Clear the output buffers with zero's and submit one
-		for (int32 Index = 0; Index < NumMixerBuffers; ++Index)
-		{
-			OutputBuffers[Index].Reset();
-			OutputBuffers[Index].AddZeroed(AudioStreamInfo.DeviceInfo.NumSamples);
-		}
+		const int32 NewNumSamples = OpenStreamParams.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels;
 
-		CurrentBufferIndex = 0;
-		SubmitBuffer(OutputBuffers[CurrentBufferIndex]);
-		
-		// Start the voice streaming
-		OutputAudioStreamSourceVoice->Start();
+		// Clear the output buffers with zero's and submit one
+ 		for (int32 Index = 0; Index < OutputBuffers.Num(); ++Index)
+ 		{
+ 			OutputBuffers[Index].Reset(NewNumSamples);
+ 		}
 
 		bAudioDeviceChanging = false;
 
 		return true;
 	}
 
-	void FMixerPlatformXAudio2::SubmitBuffer(const TArray<float>& Buffer)
+	void FMixerPlatformXAudio2::ResumePlaybackOnNewDevice()
+	{
+		if (OutputAudioStreamSourceVoice)
+		{
+			CurrentBufferReadIndex = 0;
+			CurrentBufferWriteIndex = 1;
+
+			SubmitBuffer(OutputBuffers[CurrentBufferReadIndex].GetBufferData());
+
+			AudioRenderEvent->Trigger();
+
+			// Start the voice streaming
+			OutputAudioStreamSourceVoice->Start();
+		}
+	}
+
+	void FMixerPlatformXAudio2::SubmitBuffer(const uint8* Buffer)
 	{
 		// Create a new xaudio2 buffer submission
 		XAUDIO2_BUFFER XAudio2Buffer = { 0 };
-		XAudio2Buffer.AudioBytes = AudioStreamInfo.DeviceInfo.NumSamples * sizeof(float);
-		XAudio2Buffer.pAudioData = (const BYTE*)Buffer.GetData();
+		XAudio2Buffer.AudioBytes = OpenStreamParams.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels * sizeof(float);
+		XAudio2Buffer.pAudioData = (const BYTE*)Buffer;
 		XAudio2Buffer.pContext = this;
 
 		// Submit buffer to the output streaming voice
@@ -578,6 +616,11 @@ namespace Audio
 	{
 		//GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
 		return FString();
+	}
+
+	FAudioPlatformSettings FMixerPlatformXAudio2::GetPlatformSettings() const
+	{
+		return FAudioPlatformSettings::GetPlatformSettings(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"));
 	}
 
 }

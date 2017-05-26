@@ -156,13 +156,11 @@ void UK2Node_CommutativeAssociativeBinaryOperator::AddInputPinInner(int32 Additi
 		InputType.PinCategory, 
 		InputType.PinSubCategory, 
 		InputType.PinSubCategoryObject.Get(), 
-		InputType.bIsArray, 
-		InputType.bIsReference, 
 		*GetNameForPin(AdditionalPinIndex + BinaryOperatorInputsNum),
+		InputType.ContainerType, 
+		InputType.bIsReference, 
 		false,
 		INDEX_NONE,
-		InputType.bIsSet,
-		InputType.bIsMap,
 		InputType.PinValueType
 	);
 }
@@ -278,7 +276,7 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 				continue;
 			}
 
-			UK2Node_CommutativeAssociativeBinaryOperator* NewOperator = SourceGraph->CreateBlankNode<UK2Node_CommutativeAssociativeBinaryOperator>();
+			UK2Node_CommutativeAssociativeBinaryOperator* NewOperator = SourceGraph->CreateIntermediateNode<UK2Node_CommutativeAssociativeBinaryOperator>();
 			NewOperator->SetFromFunction(Function);
 			NewOperator->AllocateDefaultPins();
 			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(NewOperator, this);

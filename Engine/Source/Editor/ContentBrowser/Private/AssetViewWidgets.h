@@ -89,8 +89,7 @@ class SAssetViewItem : public SCompoundWidget
 	friend class SAssetViewItemToolTip;
 
 public:
-	DECLARE_DELEGATE_TwoParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const FString& /*DestinationPath*/);
-	DECLARE_DELEGATE_TwoParams( FOnPathsDragDropped, const TArray<FString>& /*PathNames*/, const FString& /*DestinationPath*/);
+	DECLARE_DELEGATE_ThreeParams( FOnAssetsOrPathsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TArray<FString>& /*AssetPaths*/, const FString& /*DestinationPath*/);
 	DECLARE_DELEGATE_TwoParams( FOnFilesDragDropped, const TArray<FString>& /*FileNames*/, const FString& /*DestinationPath*/);
 
 	SLATE_BEGIN_ARGS( SAssetViewItem )
@@ -122,11 +121,8 @@ public:
 		/** The string in the title to highlight (used when searching by string) */
 		SLATE_ATTRIBUTE(FText, HighlightText)
 
-		/** Delegate for when assets are dropped on this item, if it is a folder */
-		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
-
-		/** Delegate for when asset paths are dropped on this folder, if it is a folder  */
-		SLATE_EVENT( FOnPathsDragDropped, OnPathsDragDropped )
+		/** Delegate for when assets or asset paths are dropped on this item, if it is a folder */
+		SLATE_EVENT( FOnAssetsOrPathsDragDropped, OnAssetsOrPathsDragDropped )
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
@@ -231,8 +227,8 @@ protected:
 	/** Cache the package name from the asset we are representing */
 	void CachePackageName();
 
-	/** Cache the tags that should appear in the tooltip for this item */
-	void CacheToolTipTags();
+	/** Cache the display tags for this item */
+	void CacheDisplayTags();
 
 	/** Whether this item is a folder */
 	bool IsFolder() const;
@@ -250,18 +246,20 @@ protected:
 	virtual float GetNameTextWrapWidth() const { return 0.0f; }
 
 protected:
-	/** Data for a cached tag used in the tooltip for this item */
-	struct FToolTipTagItem
+	/** Data for a cached display tag for this item (used in the tooltip, and also as the display string in column views) */
+	struct FTagDisplayItem
 	{
-		FToolTipTagItem(FText InKey, FText InValue, const bool InImportant)
-			: Key(MoveTemp(InKey))
-			, Value(MoveTemp(InValue))
+		FTagDisplayItem(FName InTagKey, FText InDisplayKey, FText InDisplayValue, const bool InImportant)
+			: TagKey(InTagKey)
+			, DisplayKey(MoveTemp(InDisplayKey))
+			, DisplayValue(MoveTemp(InDisplayValue))
 			, bImportant(InImportant)
 		{
 		}
 
-		FText Key;
-		FText Value;
+		FName TagKey;
+		FText DisplayKey;
+		FText DisplayValue;
 		bool bImportant;
 	};
 
@@ -282,8 +280,8 @@ protected:
 	/** The cached filename of the package containing the asset that this item represents */
 	FString CachedPackageFileName;
 
-	/** The cached tags that should appear in the tooltip for this item */
-	TArray<FToolTipTagItem> CachedToolTipTags;
+	/** The cached display tags for this item */
+	TArray<FTagDisplayItem> CachedDisplayTags;
 
 	/** Delegate for when an asset name has entered a rename state */
 	FOnRenameBegin OnRenameBegin;
@@ -330,11 +328,8 @@ protected:
 	/** Delay timer before we request a source control state update, to prevent spam */
 	float SourceControlStateDelay;
 
-	/** Delegate for when a list of assets is dropped on this item, if it is a folder */
-	FOnAssetsDragDropped OnAssetsDragDropped;
-
-	/** Delegate for when a list of folder paths is dropped on this item, if it is a folder */
-	FOnPathsDragDropped OnPathsDragDropped;
+	/** Delegate for when a list of assets or asset paths are dropped on this item, if it is a folder */
+	FOnAssetsOrPathsDragDropped OnAssetsOrPathsDragDropped;
 
 	/** Delegate for when a list of files is dropped on this item (if it is a folder) from an external source */
 	FOnFilesDragDropped OnFilesDragDropped;
@@ -411,11 +406,8 @@ public:
 		/** Whether the item is selected in the view */
 		SLATE_ARGUMENT( FIsSelected, IsSelected )
 
-		/** Delegate for when assets are dropped on this item, if it is a folder */
-		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
-
-		/** Delegate for when asset paths are dropped on this folder, if it is a folder  */
-		SLATE_EVENT( FOnPathsDragDropped, OnPathsDragDropped )
+		/** Delegate for when assets or asset paths are dropped on this item, if it is a folder */
+		SLATE_EVENT( FOnAssetsOrPathsDragDropped, OnAssetsOrPathsDragDropped )
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
@@ -522,11 +514,8 @@ public:
 		/** Whether the item is selected in the view */
 		SLATE_ARGUMENT( FIsSelected, IsSelected )
 
-		/** Delegate for when assets are dropped on this item, if it is a folder */
-		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
-
-		/** Delegate for when asset paths are dropped on this folder, if it is a folder  */
-		SLATE_EVENT( FOnPathsDragDropped, OnPathsDragDropped )
+		/** Delegate for when assets or asset paths are dropped on this item, if it is a folder */
+		SLATE_EVENT( FOnAssetsOrPathsDragDropped, OnAssetsOrPathsDragDropped )
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
@@ -602,11 +591,8 @@ public:
 		/** The string in the title to highlight (used when searching by string) */
 		SLATE_ATTRIBUTE( FText, HighlightText )
 
-		/** Delegate for when assets are dropped on this item, if it is a folder */
-		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
-
-		/** Delegate for when asset paths are dropped on this folder, if it is a folder  */
-		SLATE_EVENT( FOnPathsDragDropped, OnPathsDragDropped )
+		/** Delegate for when assets or asset paths are dropped on this item, if it is a folder */
+		SLATE_EVENT( FOnAssetsOrPathsDragDropped, OnAssetsOrPathsDragDropped )
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )

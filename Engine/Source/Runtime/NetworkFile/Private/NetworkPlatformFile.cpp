@@ -46,6 +46,20 @@ FNetworkPlatformFile::FNetworkPlatformFile()
 	, FinishedAsyncWriteUnsolicitedFiles(NULL)
 	, Transport(NULL)
 {
+
+
+	
+	TotalWriteTime = 0.0; // total non async time spent writing to disk
+	TotalNetworkSyncTime = 0.0; // total non async time spent syncing to network
+	TotalTimeSpentInUnsolicitedPackages = 0.0; // total time async processing unsolicited packages
+	TotalWaitForAsyncUnsolicitedPackages = 0.0; // total time spent waiting for unsolicited packages
+	TotalFilesSynced = 0; // total number files synced from network
+	TotalFilesFoundLocally = 0;
+	TotalUnsolicitedPackages = 0; // total number unsolicited files synced  
+	UnsolicitedPackagesHits = 0; // total number of hits from waiting on unsolicited packages
+	UnsolicitedPackageWaits = 0; // total number of waits on unsolicited packages
+	
+
 }
 
 bool FNetworkPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
@@ -1089,40 +1103,68 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	float ThisTime;
 	StartTime = FPlatformTime::Seconds();
 
-	FScopeLock ScopeLock(&SynchronizationObject);
-	// have we already cached this file? 
-	if (CachedLocalFiles.Find(Filename) != NULL)
+	UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("Searching for %s locally "), *Filename);
+
 	{
-		return;
+		FScopeLock ScopeLock(&SynchronizationObject);
+		// have we already cached this file? 
+		if (CachedLocalFiles.Find(Filename) != NULL)
+		{
+			return;
+		}
 	}
 
-
+	bool bIncrimentedPackageWaits = false;
 	if (FinishedAsyncNetworkReadUnsolicitedFiles)
 	{
+		if (FinishedAsyncNetworkReadUnsolicitedFiles->Get() == 0)
+		{
+			++UnsolicitedPackageWaits;
+			bIncrimentedPackageWaits = true;
+		}
 		delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
 		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
 	}
 	if (FinishedAsyncWriteUnsolicitedFiles)
 	{
+		if (bIncrimentedPackageWaits == false && FinishedAsyncNetworkReadUnsolicitedFiles->Get() == 0)
+		{
+			++UnsolicitedPackageWaits;
+		}
 		delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing to disk
 		FinishedAsyncWriteUnsolicitedFiles = NULL;
 	}
 
+	FScopeLock ScopeLock(&SynchronizationObject);
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+	TotalWaitForAsyncUnsolicitedPackages += ThisTime;
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Lock and wait for old async writes %6.2fms"), ThisTime);
+
+	if (CachedLocalFiles.Find(Filename) != NULL)
+	{
+		++UnsolicitedPackagesHits;
+		return;
+	}
+
+	UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("Attempting to get %s from server"), *Filename);
 
 	// even if an error occurs later, we still want to remember not to try again
 	CachedLocalFiles.Add(Filename);
 	UE_LOG(LogNetworkPlatformFile, Warning, TEXT("Cached file %s"), *Filename)
-
 	StartTime = FPlatformTime::Seconds();
 
 	// no need to read it if it already exists 
 	// @todo: Handshake with server to delete files that are out of date
 	if (InnerPlatformFile->FileExists(*Filename))
 	{
+		++TotalFilesFoundLocally;
+		UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("File %s exists locally but wasn't in cache"), *Filename);
 		return;
 	}
+
+	++TotalFilesSynced;
+
+	
 
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Check for local file %6.2fms - %s"), ThisTime, *Filename);
@@ -1137,6 +1179,9 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	{
 		// Uncomment this to have the server file list dumped
 		// the first time a file requested is not found.
+
+		UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("Didn't find %s in server files list"), *Filename);
+
 #if 0
 		static bool sb_DumpedServer = false;
 		if (sb_DumpedServer == false)
@@ -1170,6 +1215,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 		return;
 	}
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+	TotalNetworkSyncTime += ThisTime;
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Send and receive %6.2fms"), ThisTime);
 
 	StartTime = FPlatformTime::Seconds();
@@ -1183,6 +1229,15 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	FDateTime ServerTimeStamp;
 	Response << ServerTimeStamp;
 
+	if (ServerTimeStamp != FDateTime::MinValue())  // if the file didn't actually exist on the server, don't create a zero byte file
+	{
+		UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("Succeeded in getting %s from server"), *Filename);
+	}
+	else
+	{
+		UE_LOG(LogNetworkPlatformFile, Verbose, TEXT("File not found %s from server"), *Filename);
+	}
+
 	// write the file in chunks, synchronously
 	SyncWriteFile(&Response, ReplyFile, ServerTimeStamp, *InnerPlatformFile);
 
@@ -1191,6 +1246,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	if (NumUnsolictedFiles)
 	{
+		TotalUnsolicitedPackages += NumUnsolictedFiles;
 		check( FinishedAsyncNetworkReadUnsolicitedFiles == NULL );
 		check( FinishedAsyncWriteUnsolicitedFiles == NULL );
 		FinishedAsyncNetworkReadUnsolicitedFiles = new FScopedEvent;
@@ -1199,6 +1255,7 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	}
 	
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+	TotalWriteTime += ThisTime;
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Write file to local %6.2fms"), ThisTime);
 }
 
@@ -1367,6 +1424,41 @@ void FNetworkPlatformFile::Tick()
 			PerformHeartbeat();
 		}
 	}
+}
+
+bool FNetworkPlatformFile::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	if (FParse::Command(&Cmd, TEXT("networkfile")))
+	{
+		if ( FParse::Command(&Cmd, TEXT("stats")))
+		{
+
+			Ar.Logf(TEXT("Network platform file %s stats\n"
+				"TotalWriteTime \t%fms \n"
+				"TotalNetworkSyncTime \t%fms \n"
+				"TotalTimeSpentInUnsolicitedPackages \t%fms \n"
+				"TotalWaitForAsyncUnsolicitedPackages \t%fms \n"
+				"TotalFilesSynced \t%d \n"
+				"TotalFilesFoundLocally \t%d\n"
+				"TotalUnsolicitedPackages \t%d \n"
+				"UnsolicitedPackagesHits \t%d \n"
+				"UnsolicitedPackageWaits \t%d \n"),
+				GetTypeName(),
+				TotalWriteTime,
+				TotalNetworkSyncTime,
+				TotalTimeSpentInUnsolicitedPackages,
+				TotalWaitForAsyncUnsolicitedPackages,
+				TotalFilesSynced,
+				TotalFilesFoundLocally,
+				TotalUnsolicitedPackages, 
+				UnsolicitedPackagesHits,
+				UnsolicitedPackageWaits);
+
+			// there could be multiple network platform files so let them all report their stats
+			return false;
+		}
+	}
+	return false;
 }
 
 /**

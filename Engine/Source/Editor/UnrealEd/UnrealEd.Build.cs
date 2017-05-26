@@ -25,11 +25,9 @@ public class UnrealEd : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] 
 			{
-				"AssetTools",
 				"BehaviorTreeEditor",
 				"ClassViewer",
 				"ContentBrowser",
-				"CrashTracker",
 				"DerivedDataCache",
 				"DesktopPlatform",
 				"EnvironmentQueryEditor",
@@ -164,7 +162,6 @@ public class UnrealEd : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] 
 			{
-				"CrashTracker",
 				"FontEditor",
 				"StaticMeshEditor",
 				"TextureEditor",
@@ -218,7 +215,6 @@ public class UnrealEd : ModuleRules
 				"UndoHistory",
 				"SourceCodeAccess",
 				"ReferenceViewer",
-				"EditorLiveStreaming",
 				"HotReload",
 				"IOSPlatformEditor",
 				"HTML5PlatformEditor",
@@ -258,7 +254,8 @@ public class UnrealEd : ModuleRules
 				"CollectionManager",
 				"BlueprintGraph",
 				"AddContentDialog",                
-				"MeshUtilities"
+				"MeshUtilities",
+                "AssetTools",
 			}
 			);
 

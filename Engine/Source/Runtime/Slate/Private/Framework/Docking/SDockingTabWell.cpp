@@ -129,10 +129,11 @@ int32 SDockingTabWell::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 	int32 MaxLayerId = LayerId;
 
 	TSharedPtr<SDockTab> ForegroundTab = GetForegroundTab();
-	FArrangedWidget* ForegroundTabGeometry = NULL;
+	FArrangedWidget* ForegroundTabGeometry = nullptr;
 	
-	// Draw all inactive tabs first
-	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
+	// Draw all inactive tabs first, from last, to first, so that the inactive tabs
+	// that come later, are drawn behind tabs that come before it.
+	for (int32 ChildIndex = ArrangedChildren.Num() - 1; ChildIndex >= 0; --ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		if (CurWidget.Widget == ForegroundTab)

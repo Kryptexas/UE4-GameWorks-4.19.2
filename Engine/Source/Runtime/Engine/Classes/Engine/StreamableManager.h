@@ -297,7 +297,7 @@ private:
 	UObject* GetStreamed(const FStringAssetReference& Target) const;
 	void CheckCompletedRequests(const FStringAssetReference& Target, struct FStreamable* Existing);
 
-	void OnPostGarbageCollect();
+	void OnPreGarbageCollect();
 	void AsyncLoadCallback(FStringAssetReference Request);
 
 	/** Map of paths to streamable objects, this will be the post-redirector name */

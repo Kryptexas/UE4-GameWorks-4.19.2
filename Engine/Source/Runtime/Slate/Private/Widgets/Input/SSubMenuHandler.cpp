@@ -20,7 +20,7 @@ void SSubMenuHandler::Construct(const FArguments& InArgs, TWeakPtr<SMenuOwner> I
 		if (InArgs._OnGetMenuContent.IsBound() || InArgs._MenuContent.IsValid())
 		{
 			ChildSlotWidget = SAssignNew(MenuAnchor, SMenuAnchor)
-				.Placement(EMenuPlacement::MenuPlacement_MenuRight)
+				.Placement(InArgs._Placement)
 				.OnGetMenuContent(InArgs._OnGetMenuContent)
 				.MenuContent(InArgs._MenuContent)
 				[

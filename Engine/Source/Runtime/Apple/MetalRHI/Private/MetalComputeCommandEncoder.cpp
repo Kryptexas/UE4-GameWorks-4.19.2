@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation FMetalDebugComputeCommandEncoder
 
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
+
 @synthesize Inner;
 @synthesize Buffer;
 @synthesize Pipeline;

@@ -25,6 +25,7 @@
 #include "Misc/EngineVersion.h"
 #include "Misc/EngineBuildSettings.h"
 #include "Modules/ModuleManager.h"
+#include "ScopeLock.h"
 
 #if WITH_EDITOR
 
@@ -83,7 +84,7 @@ static FString GSplashPath;
 static FString GIconPath;
 static IImageWrapperPtr GSplashImageWrapper;
 static IImageWrapperPtr GIconImageWrapper;
-
+static FCriticalSection GSplashScreenTextCriticalSection;
 
 static int32 SplashWidth = 0, SplashHeight = 0;
 static unsigned char *ScratchSpace = nullptr;
@@ -367,7 +368,7 @@ static void DrawCharacter(int32 penx, int32 peny, FT_GlyphSlot Glyph, int32 CurT
 		for (int x=0; x<cwidth; x++)
 		{
 			// find pixel position in splash image
-			int xpos = penx + x;
+			int xpos = penx + x + (Glyph->metrics.horiBearingX >> 6);
 			int ypos = peny + y - (Glyph->metrics.horiBearingY >> 6);
 			
 			// make sure pixel is in drawing rectangle
@@ -444,61 +445,64 @@ static int RenderString (GLuint tex_idx)
 		peny += Font->Face->descender >> 6;
 
 		// convert strings to glyphs and place them in bitmap.
-		FString Text = GSplashScreenText[CurTypeIndex].ToString();
-			
-		for (int i=0; i<Text.Len(); i++)
 		{
-			FT_ULong charcode;
-			
-			// fetch next glyph
-			if (bRightJustify)
-			{
-				charcode = (Uint32)(Text[Text.Len() - i - 1]);
-			}
-			else
-			{
-				charcode = (Uint32)(Text[i]);				
-			}
-						
-			FT_UInt glyph_idx = FT_Get_Char_Index(Font->Face, charcode);
-			FT_Load_Glyph(Font->Face, glyph_idx, FT_LOAD_DEFAULT);
+			FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
 
-			
-			if (Font->Face->glyph->format != FT_GLYPH_FORMAT_BITMAP)
-			{
-				FT_Render_Glyph(Font->Face->glyph, FT_RENDER_MODE_NORMAL);
-			}
+			FString Text = GSplashScreenText[CurTypeIndex].ToString();
 
-
-			// pen advance and kerning
-			if (bRightJustify)
+			for (int i=0; i<Text.Len(); i++)
 			{
-				if (last_glyph != 0)
-				{
-					FT_Get_Kerning(Font->Face, glyph_idx, last_glyph, FT_KERNING_DEFAULT, &kern);
-				}
+				FT_ULong charcode;
 				
-				penx -= (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;	
-			}
-			else
-			{
-				if (last_glyph != 0)
+				// fetch next glyph
+				if (bRightJustify)
 				{
-					FT_Get_Kerning(Font->Face, last_glyph, glyph_idx, FT_KERNING_DEFAULT, &kern);
-				}	
-			}
+					charcode = (Uint32)(Text[Text.Len() - i - 1]);
+				}
+				else
+				{
+					charcode = (Uint32)(Text[i]);				
+				}
+							
+				FT_UInt glyph_idx = FT_Get_Char_Index(Font->Face, charcode);
+				FT_Load_Glyph(Font->Face, glyph_idx, FT_LOAD_DEFAULT);
 
-			last_glyph = glyph_idx;
+				
+				if (Font->Face->glyph->format != FT_GLYPH_FORMAT_BITMAP)
+				{
+					FT_Render_Glyph(Font->Face->glyph, FT_RENDER_MODE_NORMAL);
+				}
 
-			// draw character
-			DrawCharacter(penx, peny, Font->Face->glyph,CurTypeIndex, red, green, blue);
-						
-			if (!bRightJustify)
-			{
-				penx += (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;
+
+				// pen advance and kerning
+				if (bRightJustify)
+				{
+					if (last_glyph != 0)
+					{
+						FT_Get_Kerning(Font->Face, glyph_idx, last_glyph, FT_KERNING_DEFAULT, &kern);
+					}
+					
+					penx -= (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;	
+				}
+				else
+				{
+					if (last_glyph != 0)
+					{
+						FT_Get_Kerning(Font->Face, last_glyph, glyph_idx, FT_KERNING_DEFAULT, &kern);
+					}	
+				}
+
+				last_glyph = glyph_idx;
+
+				// draw character
+				DrawCharacter(penx, peny, Font->Face->glyph,CurTypeIndex, red, green, blue);
+							
+				if (!bRightJustify)
+				{
+					penx += (Font->Face->glyph->metrics.horiAdvance - kern.x) >> 6;
+				}
 			}
 		}
-				
 		// store rendered text as texture
 		glBindTexture(GL_TEXTURE_2D, tex_idx);
 		
@@ -830,7 +834,7 @@ static int StartSplashScreenThread(void *ptr)
 		if (ThreadState > 0)
 		{
 			RenderString(texture);
-			ThreadState--;
+			FPlatformAtomics::InterlockedDecrement(&ThreadState);
 		}
 
 		// Set stream positions and draw.
@@ -883,7 +887,7 @@ static int StartSplashScreenThread(void *ptr)
 	FMemory::Free(ScratchSpace);
 
 	// set the thread state to -1 to let the caller know we're done (FIXME: can be done without busy-loops)
-	ThreadState = -1;
+	FPlatformAtomics::InterlockedExchange(&ThreadState, -1);
 
 	return 0;
 }
@@ -899,6 +903,8 @@ static int StartSplashScreenThread(void *ptr)
 static void StartSetSplashText( const SplashTextType::Type InType, const FText& InText )
 {
 #if WITH_EDITOR
+	FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
+
 	// Update splash text
 	GSplashScreenText[ InType ] = InText;
 #endif
@@ -1028,7 +1034,7 @@ void FLinuxPlatformSplash::Show( )
 	else
 	{
 		SDL_DetachThread(GSplashThread);
-		ThreadState = 1;
+		FPlatformAtomics::InterlockedExchange(&ThreadState, 1);
 	}
 #endif //WITH_EDITOR
 }
@@ -1043,7 +1049,8 @@ void FLinuxPlatformSplash::Hide()
 	// signal thread it's time to quit
 	if (ThreadState >= 0)	// if there's a thread at all...
 	{
-		ThreadState = -99;
+		FPlatformAtomics::InterlockedExchange(&ThreadState, -99);
+
 		// wait for the thread to be done before tearing it tearing it down (it will set the ThreadState to 0)
 		while (ThreadState != -1)
 		{
@@ -1076,6 +1083,8 @@ void FLinuxPlatformSplash::SetSplashText( const SplashTextType::Type InType, con
 	{
 		bool bWasUpdated = false;
 		{
+			FScopeLock ScopeLock(&GSplashScreenTextCriticalSection);
+
 			// Update splash text
 			if (FCString::Strcmp( InText, *GSplashScreenText[ InType ].ToString() ) != 0)
 			{
@@ -1086,7 +1095,7 @@ void FLinuxPlatformSplash::SetSplashText( const SplashTextType::Type InType, con
 
 		if (bWasUpdated && GSplashThread && ThreadState >= 0)
 		{
-			ThreadState++;
+			FPlatformAtomics::InterlockedIncrement(&ThreadState);
 		}
 	}
 #endif //WITH_EDITOR

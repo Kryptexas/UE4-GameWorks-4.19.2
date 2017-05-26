@@ -162,6 +162,9 @@ private:
 	/**	Refresh the viewport and property window */
 	void Refresh();
 
+	/** Refreshes the preview asset */
+	void RefreshPreviewAsset();
+
 	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo( bool bSuccess ) override;
 	virtual void PostRedo( bool bSuccess ) override;

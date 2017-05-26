@@ -39,6 +39,9 @@ DECLARE_CYCLE_STAT(TEXT("GetFlatAggregates"),STAT_GetFlatAggregates,STATGROUP_St
 
 static float DumpCull = 1.0f;
 
+//Whether or not we render stats in certain modes
+bool GRenderStats = true;
+
 
 void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 {
@@ -715,15 +718,15 @@ static bool HandleToggleCommandBroadcast(const FName& InStatName, bool& bOutCurr
 
 #if STATS
 
-void FHUDGroupGameThreadRenderer::NewData(FGameThreadHudData* Data)
+void FLatestGameThreadStatsData::NewData(FGameThreadStatsData* Data)
 {
 	delete Latest;
 	Latest = Data;
 }
 
-FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
+FLatestGameThreadStatsData& FLatestGameThreadStatsData::Get()
 {
-	static FHUDGroupGameThreadRenderer Singleton;
+	static FLatestGameThreadStatsData Singleton;
 	return Singleton;
 }
 
@@ -998,7 +1001,7 @@ struct FHUDGroupManager
 
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FLatestGameThreadStatsData::Get(), &FLatestGameThreadStatsData::NewData, (FGameThreadStatsData*)nullptr),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsToGame), nullptr, ENamedThreads::GameThread
 			);
 		}
@@ -1233,7 +1236,7 @@ struct FHUDGroupManager
 		check(NumFrames <= Params.MaxHistoryFrames.Get());
 		if( NumFrames > 0 )
 		{
-			FGameThreadHudData* ToGame = new FGameThreadHudData(false);
+			FGameThreadStatsData* ToGame = new FGameThreadStatsData(false, GRenderStats);
 			ToGame->RootFilter = RootString;
 
 			// Copy the total stats stack to the history stats stack and clear all nodes' data and set data type to none.
@@ -1315,8 +1318,8 @@ struct FHUDGroupManager
 				FInternalGroup& InternalGroup = GroupIt.Value();
 
 				// Create a new hud group.
-				new(ToGame->HudGroups) FHudGroup();
-				FHudGroup& HudGroup = ToGame->HudGroups.Last();
+				new(ToGame->ActiveStatGroups) FActiveStatGroupInfo();
+				FActiveStatGroupInfo& HudGroup = ToGame->ActiveStatGroups.Last();
 
 				ToGame->GroupNames.Add( GroupName );
 				ToGame->GroupDescriptions.Add( InternalGroup.GroupDescription );
@@ -1419,13 +1422,25 @@ struct FHUDGroupManager
 				}
 			}
 
+			{
+				const TIndirectArray<FActiveStatGroupInfo>& ActiveGroups = ToGame->ActiveStatGroups;
+				for(const FActiveStatGroupInfo& GroupInfo : ActiveGroups)
+				{
+					for(const FComplexStatMessage& StatMessage : GroupInfo.FlatAggregate)
+					{
+						const FName StatName = StatMessage.GetShortName();
+						ToGame->NameToStatMap.Add(StatName, &StatMessage);
+					}
+				}
+			}
+
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatsHierToGame"),
 				STAT_FSimpleDelegateGraphTask_StatsHierToGame,
 				STATGROUP_TaskGraphTasks);
 
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 			(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame),
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FLatestGameThreadStatsData::Get(), &FLatestGameThreadStatsData::NewData, ToGame),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_StatsHierToGame), nullptr, ENamedThreads::GameThread
 			);
 		}	
@@ -1898,7 +1913,7 @@ static void StatCmd(FString InCmd, bool bStatCommand, FOutputDevice* Ar /*= null
 			// Disable displaying the raw stats memory overhead.
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 				(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, (FGameThreadHudData*)nullptr),
+				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FLatestGameThreadStatsData::Get(), &FLatestGameThreadStatsData::NewData, (FGameThreadStatsData*)nullptr),
 				TStatId(), nullptr, ENamedThreads::GameThread
 				);
 		}
@@ -1981,6 +1996,8 @@ static void StatCmd(FString InCmd, bool bStatCommand, FOutputDevice* Ar /*= null
 				FStatParams Params(Cmd);
 				Params.Group.Set(MaybeGroupFName);
 				FHUDGroupManager::Get(Stats).HandleCommand(Params, bHierarchy);
+
+				GRenderStats = !FParse::Command(&Cmd, TEXT("-nodisplay"));	//allow us to hide the rendering of stats
 #else
 				// If stats aren't enabled, broadcast so engine stats can still be triggered
 				bool bCurrentEnabled, bOthersEnabled;
@@ -2196,7 +2213,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			}
 
 			// make sure these are initialized on the game thread
-			FHUDGroupGameThreadRenderer::Get();
+			FLatestGameThreadStatsData::Get();
 			FStatGroupGameThreadNotifier::Get();
 
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.StatCmd"),

@@ -8,7 +8,7 @@
 #include "Animation/InputScaleBias.h"
 #include "AnimNode_ApplyAdditive.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_ApplyAdditive : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

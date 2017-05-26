@@ -63,7 +63,7 @@ void UMultiLineEditableText::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+	TAttribute<FText> HintTextBinding = PROPERTY_BINDING(FText, HintText);
 
 	MyMultiLineEditableText->SetTextStyle(&WidgetStyle);
 	MyMultiLineEditableText->SetText(Text);

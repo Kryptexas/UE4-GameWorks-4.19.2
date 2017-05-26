@@ -26,14 +26,13 @@ DEFINE_LOG_CATEGORY(LogCollision);
 /** Collision stats */
 
 
+DEFINE_STAT(STAT_Collision_SceneQueryTotal);
 DEFINE_STAT(STAT_Collision_RaycastAny);
 DEFINE_STAT(STAT_Collision_RaycastSingle);
 DEFINE_STAT(STAT_Collision_RaycastMultiple);
 DEFINE_STAT(STAT_Collision_GeomSweepAny);
 DEFINE_STAT(STAT_Collision_GeomSweepSingle);
 DEFINE_STAT(STAT_Collision_GeomSweepMultiple);
-DEFINE_STAT(STAT_Collision_GeomOverlapAny);
-DEFINE_STAT(STAT_Collision_GeomOverlapSingle);
 DEFINE_STAT(STAT_Collision_GeomOverlapMultiple);
 DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapMulti);
 DEFINE_STAT(STAT_Collision_FBodyInstance_OverlapTest);
@@ -47,8 +46,8 @@ FCollisionResponseContainer FCollisionResponseContainer::DefaultResponseContaine
 /* This is default response param that's used by trace query **/
 FCollisionResponseParams		FCollisionResponseParams::DefaultResponseParam;
 FCollisionObjectQueryParams		FCollisionObjectQueryParams::DefaultObjectQueryParam;
-FCollisionQueryParams			FCollisionQueryParams::DefaultQueryParam(TEXT("DefaultQueryParam"),true);   
-FComponentQueryParams			FComponentQueryParams::DefaultComponentQueryParams(TEXT("DefaultComponentQueryParam"));
+FCollisionQueryParams			FCollisionQueryParams::DefaultQueryParam(SCENE_QUERY_STAT(DefaultQueryParam), true);
+FComponentQueryParams			FComponentQueryParams::DefaultComponentQueryParams(SCENE_QUERY_STAT(DefaultComponentQueryParams));
 FCollisionShape					FCollisionShape::LineShape;
 
 // default being the 0. That isn't invalid, but ObjectQuery param overrides this 

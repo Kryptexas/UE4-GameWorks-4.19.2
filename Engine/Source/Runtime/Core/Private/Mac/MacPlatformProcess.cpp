@@ -9,6 +9,7 @@
 #include "Misc/App.h"
 #include "Misc/Paths.h"
 #include "MacApplication.h"
+#include "HAL/FileManager.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
@@ -755,10 +756,24 @@ void FMacPlatformProcess::CleanFileCache()
 	bShouldCleanShaderWorkingDirectory = GIsFirstInstance;
 #endif
 
-	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
-	{
-		FPlatformProcess::CleanShaderWorkingDir();
-	}
+    if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
+    {
+        // get shader path, and convert it to the userdirectory
+        for (FString Dir : FPlatformProcess::AllShaderDirs())
+        {
+            FString ShaderDir = FString(FPlatformProcess::BaseDir()) / Dir;
+            FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
+            FPaths::CollapseRelativeDirectories(ShaderDir);
+            
+            // make sure we don't delete from the source directory
+            if (ShaderDir != UserShaderDir)
+            {
+                IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+            }
+        }
+        
+        FPlatformProcess::CleanShaderWorkingDir();
+    }
 }
 
 const TCHAR* FMacPlatformProcess::BaseDir()

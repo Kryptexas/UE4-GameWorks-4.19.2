@@ -56,9 +56,6 @@ public:
 	/** Default constructor */
 	UVREditorMode();
 
-	/** Cleans up this mode, called when the editor is shutting down */
-	virtual ~UVREditorMode();
-
 	/** Initialize the VREditor */
 	virtual void Init() override;
 
@@ -465,6 +462,9 @@ public:
 
 	/** Runtime and plugin modules can force VR Editor to refresh using this function */
 	void RefreshVREditorSequencer(class ISequencer* InCurrentSequencer);
+
+	/** Refresh the current actor preview widget on an in-world UI panel */
+	void RefreshActorPreviewWidget(TSharedRef<SWidget> InWidget);
 
 	/** Returns the currently active sequencer */
 	class ISequencer* GetCurrentSequencer();

@@ -131,7 +131,7 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 						SphereTransform *= PreviewSkelMeshComp->GetComponentSpaceTransforms()[DrivingBoneIdx];
 					}
 
-					DrawSphere(PDI, SphereTransform.GetLocation(), FVector(SphericalLimit.LimitRadius), 24, 6, GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
+					DrawSphere(PDI, SphereTransform.GetLocation(), FRotator::ZeroRotator, FVector(SphericalLimit.LimitRadius), 24, 6, GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
 					DrawWireSphere(PDI, SphereTransform, FLinearColor::Black, SphericalLimit.LimitRadius, 24, SDPG_World);
 				}
 			}

@@ -517,6 +517,9 @@ public:
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
 
+	/** Rebinds all possessable references in the current sequence to update them to the latest referencing mechanism. */
+	void RebindPossessableReferences();
+
 	/** Moves all time data for the current scene onto a valid frame. */
 	void FixFrameTiming();
 
@@ -643,6 +646,7 @@ public:
 	virtual bool IsReadOnly() const override;
 	virtual void ExternalSelectionHasChanged() override { SynchronizeSequencerSelectionWithExternalSelection(); }
 	virtual USequencerSettings* GetSequencerSettings() override { return Settings; }
+	virtual TSharedPtr<class ITimeSlider> GetTopTimeSliderWidget() const override;
 
 public:
 

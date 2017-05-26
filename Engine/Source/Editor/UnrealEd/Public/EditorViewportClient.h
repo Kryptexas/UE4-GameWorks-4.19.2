@@ -1054,6 +1054,9 @@ public:
 	/** Returns the map allowing to convert from the viewmode param to a name. */
 	TMap<int32, FName>& GetViewModeParamNameMap() { return ViewModeParamNameMap; }
 
+	/** Show or hide the widget. */
+	void ShowWidget(const bool bShow);
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1082,7 +1085,7 @@ protected:
 		/** Should the software cursor be visible */
 		bool	bSoftwareCursorVisible;
 
-		/** Should the hardware be visible */
+		/** Should the hardware cursor be visible */
 		bool	bHardwareCursorVisible;
 
 		/** Should the software cursor position be reset to pre-drag */
@@ -1369,6 +1372,9 @@ protected:
 	FEditorModeTools*		ModeTools;
 
 	FWidget*				Widget;
+
+	/** Whether the widget should be drawn. */
+	bool bShowWidget;
 
 	FMouseDeltaTracker*		MouseDeltaTracker;
 		

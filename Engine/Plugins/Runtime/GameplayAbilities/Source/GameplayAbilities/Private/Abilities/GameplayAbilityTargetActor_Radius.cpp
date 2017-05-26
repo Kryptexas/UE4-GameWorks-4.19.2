@@ -49,10 +49,9 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Radius::MakeTargetD
 
 TArray<TWeakObjectPtr<AActor> >	AGameplayAbilityTargetActor_Radius::PerformOverlap(const FVector& Origin)
 {
-	static FName RadiusTargetingOverlap = FName(TEXT("RadiusTargetingOverlap"));
 	bool bTraceComplex = false;
 	
-	FCollisionQueryParams Params(RadiusTargetingOverlap, bTraceComplex);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(RadiusTargetingOverlap), bTraceComplex);
 	Params.bReturnPhysicalMaterial = false;
 	Params.bTraceAsyncScene = false;
 

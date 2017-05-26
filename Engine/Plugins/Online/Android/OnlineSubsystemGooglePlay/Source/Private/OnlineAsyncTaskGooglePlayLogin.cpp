@@ -64,12 +64,14 @@ void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 
 void FOnlineAsyncTaskGooglePlayLogin::Finalize()
 {
+	UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin: Finalize."));
 	// Async task manager owns the task and is responsible for cleaning it up.
 	Subsystem->CurrentLoginTask = nullptr;
 }
 
 void FOnlineAsyncTaskGooglePlayLogin::TriggerDelegates()
 {
+	UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin: TriggerDelegates. %d"), bWasSuccessful);
 	Delegate.ExecuteIfBound();
 }
 

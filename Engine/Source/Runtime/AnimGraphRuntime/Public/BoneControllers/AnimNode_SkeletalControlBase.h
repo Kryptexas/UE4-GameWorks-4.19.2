@@ -16,7 +16,7 @@
 
 class USkeletalMeshComponent;
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_SkeletalControlBase : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

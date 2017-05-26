@@ -210,10 +210,10 @@ private:
 	template<typename T, typename... ArgsType>
 	void InitializeFrom(ArgsType&&... Args)
 	{
-		bInline = sizeof(T) <= MaxInlineSize && ALIGNOF(T) <= DefaultAlignment;
+		bInline = sizeof(T) <= MaxInlineSize && alignof(T) <= DefaultAlignment;
 
 		// Allocate the object
-		ConditionallyAllocateObject(sizeof(T), ALIGNOF(T));
+		ConditionallyAllocateObject(sizeof(T), alignof(T));
 		bIsValid = true;
 
 		// Placement new our value into the structure

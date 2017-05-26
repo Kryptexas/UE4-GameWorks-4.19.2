@@ -81,17 +81,20 @@ protected:
 	/** Ignore package version changelist **/
 	bool bIgnoreChangelist;
 
-	// Running count of packages that got modified and will need to be resaved
+	/** Running count of packages that got modified and will need to be resaved */
 	int32 PackagesRequiringResave;
 
 	/** Only collect garbage after N packages */
 	int32 GarbageCollectionFrequency;
 
-	// List of files to submit
+	/** List of files to submit */
 	TArray<FString> FilesToSubmit;
 
-	// The list of switches that were passed on the commandline
+	/** The list of switches that were passed on the commandline */
 	TArray<FString> Switches;
+
+	/** List of redirector packages that should be fixed up at the end */
+	TArray<FString> RedirectorsToFixup;
 
 	/**
 	 * Evaluates the command-line to determine which maps to check.  By default all maps are checked
@@ -104,11 +107,14 @@ protected:
 	 */
 	virtual int32 InitializeResaveParameters( const TArray<FString>& Tokens, TArray<FString>& MapPathNames );
 
-	// Loads and saves a single package
+	/** Loads and saves a single package */
 	virtual void LoadAndSaveOnePackage(const FString& Filename);
 
-	// Checks to see if a package should be skipped
+	/** Checks to see if a package should be skipped */
 	virtual bool ShouldSkipPackage(const FString& Filename);
+
+	/** Deletes a single package */
+	virtual void DeleteOnePackage(const FString& Filename);
 
 	/**
 	 * Allow the commandlet to perform any operations on the export/import table of the package before all objects in the package are loaded.

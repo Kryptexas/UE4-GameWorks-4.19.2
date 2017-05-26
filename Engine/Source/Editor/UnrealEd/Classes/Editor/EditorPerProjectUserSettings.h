@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "EditorPerProjectUserSettings.generated.h"
 
 // Fbx export compatibility
@@ -95,6 +96,14 @@ class UEditorPerProjectUserSettings : public UObject
 	/** If enabled, the compile message log window will open if there is a compiler error on Hot Reload */
 	UPROPERTY(EditAnywhere, config, Category=HotReload)
 	uint32 bShowCompilerLogOnCompileError : 1;
+
+	/** If enabled, the fbx option dialog will show when user re-import a fbx */
+	UPROPERTY(EditAnywhere, config, Category = Import)
+	uint32 bShowImportDialogAtReimport : 1;
+
+	/** Specify a project data source folder to store relative source file path to ease the re-import process*/
+	UPROPERTY(EditAnywhere, config, Category = Import)
+	FDirectoryPath DataSourceFolder;
 
 	/** If enabled, export level with attachment hierarchy set */
 	UPROPERTY(EditAnywhere, config, Category=Export)

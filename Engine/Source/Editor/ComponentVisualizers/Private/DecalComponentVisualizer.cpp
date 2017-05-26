@@ -11,7 +11,7 @@ void FDecalComponentVisualizer::DrawVisualization( const UActorComponent* Compon
 	const UDecalComponent* DecalComponent = Cast<const UDecalComponent>(Component);
 	if(DecalComponent)
 	{
-		const FMatrix LocalToWorld = DecalComponent->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix LocalToWorld = DecalComponent->GetComponentTransform().ToMatrixWithScale();
 		
 		const FLinearColor DrawColor = FColor(0, 157, 0, 255);
 

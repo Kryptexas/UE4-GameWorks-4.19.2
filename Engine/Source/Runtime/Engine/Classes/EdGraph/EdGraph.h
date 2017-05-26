@@ -136,9 +136,18 @@ public:
 	 * a FGraphNodeCreator builder.
 	 */
 	template <typename NodeClass>
+	DEPRECATED(4.17, "Use CreateIntermediateNode instead.")
 	NodeClass* CreateBlankNode()
 	{
-		return (NodeClass*)CreateNode(NodeClass::StaticClass());
+		return CreateIntermediateNode<NodeClass>();
+	}
+
+	template <typename NodeClass>
+	NodeClass* CreateIntermediateNode()
+	{
+		NodeClass* Node = (NodeClass*)CreateNode(NodeClass::StaticClass());
+		FSetAsIntermediateNode SetAsIntermediate(Node);
+		return Node;
 	}
 
 	/** 

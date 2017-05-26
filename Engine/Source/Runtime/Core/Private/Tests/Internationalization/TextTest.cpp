@@ -979,6 +979,72 @@ bool FTextFormatArgModifierTest::RunTest(const FString& Parameters)
 
 #if UE_ENABLE_ICU
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUSanitizationTest, "System.Core.Misc.ICUSanitization", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+
+bool FICUSanitizationTest::RunTest(const FString& Parameters)
+{
+	// Validate culture code sanitization
+	{
+		auto TestCultureCodeSanitization = [this](const FString& InCode, const FString& InExpectedCode)
+		{
+			const FString SanitizedCode = ICUUtilities::SanitizeCultureCode(InCode);
+			if (SanitizedCode != InExpectedCode)
+			{
+				AddError(FString::Printf(TEXT("SanitizeCultureCode did not produce the expected result (got '%s', expected '%s')"), *SanitizedCode, *InExpectedCode));
+			}
+		};
+
+		TestCultureCodeSanitization(TEXT("en-US"), TEXT("en-US"));
+		TestCultureCodeSanitization(TEXT("en_US_POSIX"), TEXT("en_US_POSIX"));
+		TestCultureCodeSanitization(TEXT("en-US{}%"), TEXT("en-US"));
+		TestCultureCodeSanitization(TEXT("en{}%-US"), TEXT("en-US"));
+	}
+
+	// Validate timezone code sanitization
+	{
+		auto TestTimezoneCodeSanitization = [this](const FString& InCode, const FString& InExpectedCode)
+		{
+			const FString SanitizedCode = ICUUtilities::SanitizeTimezoneCode(InCode);
+			if (SanitizedCode != InExpectedCode)
+			{
+				AddError(FString::Printf(TEXT("SanitizeTimezoneCode did not produce the expected result (got '%s', expected '%s')"), *SanitizedCode, *InExpectedCode));
+			}
+		};
+
+		TestTimezoneCodeSanitization(TEXT("Etc/Unknown"), TEXT("Etc/Unknown"));
+		TestTimezoneCodeSanitization(TEXT("America/Sao_Paulo"), TEXT("America/Sao_Paulo"));
+		TestTimezoneCodeSanitization(TEXT("America/Sao_Paulo{}%"), TEXT("America/Sao_Paulo"));
+		TestTimezoneCodeSanitization(TEXT("America/Sao{}%_Paulo"), TEXT("America/Sao_Paulo"));
+		TestTimezoneCodeSanitization(TEXT("Antarctica/DumontDUrville"), TEXT("Antarctica/DumontDUrville"));
+		TestTimezoneCodeSanitization(TEXT("Antarctica/DumontDUrville{}%"), TEXT("Antarctica/DumontDUrville"));
+		TestTimezoneCodeSanitization(TEXT("Antarctica/Dumont{}%DUrville"), TEXT("Antarctica/DumontDUrville"));
+		TestTimezoneCodeSanitization(TEXT("Antarctica/DumontD'Urville"), TEXT("Antarctica/DumontDUrville"));
+		TestTimezoneCodeSanitization(TEXT("Antarctica/DumontDUrville_Dumont"), TEXT("Antarctica/DumontDUrville"));
+		TestTimezoneCodeSanitization(TEXT("GMT-8:00"), TEXT("GMT-8:00"));
+		TestTimezoneCodeSanitization(TEXT("GMT-8:00{}%"), TEXT("GMT-8:00"));
+		TestTimezoneCodeSanitization(TEXT("GMT-{}%8:00"), TEXT("GMT-8:00"));
+	}
+
+	// Validate currency code sanitization
+	{
+		auto TestCurrencyCodeSanitization = [this](const FString& InCode, const FString& InExpectedCode)
+		{
+			const FString SanitizedCode = ICUUtilities::SanitizeCurrencyCode(InCode);
+			if (SanitizedCode != InExpectedCode)
+			{
+				AddError(FString::Printf(TEXT("SanitizeCurrencyCode did not produce the expected result (got '%s', expected '%s')"), *SanitizedCode, *InExpectedCode));
+			}
+		};
+
+		TestCurrencyCodeSanitization(TEXT("USD"), TEXT("USD"));
+		TestCurrencyCodeSanitization(TEXT("USD{}%"), TEXT("USD"));
+		TestCurrencyCodeSanitization(TEXT("U{}%SD"), TEXT("USD"));
+		TestCurrencyCodeSanitization(TEXT("USDUSD"), TEXT("USD"));
+	}
+
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUTextTest, "System.Core.Misc.ICUText", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
 
 bool FICUTextTest::RunTest (const FString& Parameters)

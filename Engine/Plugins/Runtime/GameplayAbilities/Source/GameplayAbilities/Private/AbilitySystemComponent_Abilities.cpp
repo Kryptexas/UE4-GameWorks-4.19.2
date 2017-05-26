@@ -31,6 +31,8 @@
 #include "TickableAttributeSetInterface.h"
 #include "GameplayTagResponseTable.h"
 #include "Engine/DemoNetDriver.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Character.h"
 
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
@@ -1016,6 +1018,29 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Abil
 
 		ABILITY_LOG(Log, TEXT("Can't activate LocalOnly or LocalPredicted ability %s when not local."), *Ability->GetName());
 		return false;
+	}
+
+	//Flush any remaining server moves before activating the ability.
+	//	Flushing the server moves prevents situations where previously pending move's DeltaTimes are figured into montages that are about to play and update.
+	//	When this happened, clients would have a smaller delta time than the server which meant the server would get ahead and receive their notifies before the client, etc.
+	//	The system depends on the server not getting ahead, so it's important to send along any previously pending server moves here.
+	if (ActorInfo && ActorInfo->AvatarActor.Get() && !ActorInfo->IsNetAuthority())
+	{
+		AActor* MyActor = ActorInfo->AvatarActor.Get();
+
+		if (MyActor)
+		{
+			ACharacter* MyCharacter = Cast<ACharacter>(MyActor);
+			if (MyCharacter)
+			{
+				UCharacterMovementComponent* CharMoveComp = Cast<UCharacterMovementComponent>(MyCharacter->GetMovementComponent());
+
+				if (CharMoveComp)
+				{
+					CharMoveComp->FlushServerMoves();
+				}
+			}
+		}
 	}
 
 	if (NetMode != ROLE_Authority && (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated))
@@ -2408,7 +2433,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 		if( RepAnimMontageInfo.AnimMontage )
 		{
 			// New Montage to play
-			bool ReplicatedPlayBit = bool(RepAnimMontageInfo.ForcePlayBit);
+			const bool ReplicatedPlayBit = bool(RepAnimMontageInfo.ForcePlayBit);
 			if ((LocalAnimMontageInfo.AnimMontage != RepAnimMontageInfo.AnimMontage) || (LocalAnimMontageInfo.PlayBit != ReplicatedPlayBit))
 			{
 				LocalAnimMontageInfo.PlayBit = ReplicatedPlayBit;
@@ -2441,13 +2466,13 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			}
 			else
 			{
-				int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
-				int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
+				const int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
+				const int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
 		
 				// And NextSectionID for the replicated SectionID.
 				if( RepSectionID != INDEX_NONE )
 				{
-					int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
+					const int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
 
 					// If NextSectionID is different than the replicated one, then set it.
 					if( NextSectionID != RepNextSectionID )
@@ -2456,7 +2481,7 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 					}
 
 					// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
-					int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
+					const int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
 					if ((CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID))
 					{
 						// Client is in a wrong section, teleport him into the begining of the right section
@@ -2466,16 +2491,25 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 				}
 
 				// Update Position. If error is too great, jump to replicated position.
-				float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
-				int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(CurrentPosition);
+				const float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+				const int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(CurrentPosition);
+				const float DeltaPosition = RepAnimMontageInfo.Position - CurrentPosition;
+
 				// Only check threshold if we are located in the same section. Different sections require a bit more work as we could be jumping around the timeline.
-				if ((CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) && RepAnimMontageInfo.IsStopped == 0)
+				// And therefore DeltaPosition is not as trivial to determine.
+				if ((CurrentSectionID == RepSectionID) && (FMath::Abs(DeltaPosition) > MONTAGE_REP_POS_ERR_THRESH) && (RepAnimMontageInfo.IsStopped == 0))
 				{
 					// fast forward to server position and trigger notifies
 					if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(RepAnimMontageInfo.AnimMontage))
 					{
-						MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
-						AnimInstance->TriggerAnimNotifies(0.f);
+						// Skip triggering notifies if we're going backwards in time, we've already triggered them.
+						const float DeltaTime = !FMath::IsNearlyZero(RepAnimMontageInfo.PlayRate) ? (DeltaPosition / RepAnimMontageInfo.PlayRate) : 0.f;
+						if (DeltaTime >= 0.f)
+						{
+							MontageInstance->UpdateWeight(DeltaTime);
+							MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
+							AnimInstance->TriggerAnimNotifies(DeltaTime);
+						}
 					}
 					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
 				}

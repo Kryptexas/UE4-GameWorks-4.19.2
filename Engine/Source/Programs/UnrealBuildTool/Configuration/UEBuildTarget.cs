@@ -690,6 +690,17 @@ namespace UnrealBuildTool
 			else
 			{
 				RulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
+
+				if (RulesAssembly.GetTargetFileName(Desc.TargetName) == null)
+				{
+					// Target isn't part of the engine assembly, try the enterprise assembly
+					RulesAssembly EnterpriseRulesAssembly = RulesCompiler.CreateEnterpriseRulesAssembly();
+
+					if (EnterpriseRulesAssembly != null)
+					{
+						RulesAssembly = EnterpriseRulesAssembly;
+					}
+				}
 			}
 			if (Desc.ForeignPlugins != null)
 			{
@@ -1366,7 +1377,14 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				ProjectDirectory = UnrealBuildTool.EngineDirectory;
+				if (TargetCsFilename.IsUnderDirectory(UnrealBuildTool.EnterpriseDirectory))
+				{
+					ProjectDirectory = UnrealBuildTool.EnterpriseDirectory;
+				}
+				else
+				{
+					ProjectDirectory = UnrealBuildTool.EngineDirectory;
+				}
 			}
 
 			// Build the project intermediate directory
@@ -3223,7 +3241,7 @@ namespace UnrealBuildTool
 				{
 					bFound = true;
 
-					string FunctionName = "EmptyLinkFunctionForGeneratedCode" + Path.GetFileName(CppFile).Replace(".generated.cpp", "").Replace(".", "_");
+					string FunctionName = "EmptyLinkFunctionForGeneratedCode" + Path.GetFileName(CppFile).Replace(".gen.cpp", "").Replace(".", "_");
 					if (AlreadyAddedEmptyLinkFunctions.Add(FunctionName))
 					{
 						Result.Add("    extern void " + FunctionName + "();");
@@ -3743,9 +3761,12 @@ namespace UnrealBuildTool
 				{
 					if(Plugin.Descriptor.bEnabledByDefault && !NameToReference.ContainsKey(Plugin.Name))
 					{
-						PluginReferenceDescriptor PluginReference = new PluginReferenceDescriptor(Plugin.Name, null, true);
-						PluginReference.bOptional = true;
-						NameToReference[Plugin.Name] = PluginReference;
+						if (Plugin.Descriptor.bCanContainContent || Plugin.Descriptor.Modules.Any(x => x.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData)))
+						{
+							PluginReferenceDescriptor PluginReference = new PluginReferenceDescriptor(Plugin.Name, null, true);
+							PluginReference.bOptional = true;
+							NameToReference[Plugin.Name] = PluginReference;
+						}
 					}
 				}
 			}
@@ -4043,7 +4064,7 @@ namespace UnrealBuildTool
 
 			ToolChain.SetUpGlobalEnvironment(Rules);
 
-			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
+			// @Hack: This to prevent UHT from listing CoreUObject.init.gen.cpp as its dependency.
 			// We flag the compile environment when we build UHT so that we don't need to check
 			// this for each file when generating their dependencies.
 			GlobalCompileEnvironment.bHackHeaderGenerator = (GetAppName() == "UnrealHeaderTool");
@@ -4457,7 +4478,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				if (UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory))
 				{
 					if (RulesObject.Type == ModuleRules.ModuleType.External)
 					{
@@ -4472,7 +4493,14 @@ namespace UnrealBuildTool
 
 						if (!ModuleType.HasValue)
 						{
-							ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(ModuleFileName);
+							if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+							{
+								ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(UnrealBuildTool.EngineSourceDirectory, ModuleFileName);
+							}
+							else if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EnterpriseSourceDirectory))
+							{
+								ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(UnrealBuildTool.EnterpriseSourceDirectory, ModuleFileName);
+							}
 						}
 					}
 				}
@@ -4577,7 +4605,7 @@ namespace UnrealBuildTool
 					}
 
 					// So all we care about are the game module and/or plugins.
-					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory)))
+					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory)))
 					{
 						List<FileReference> SourceFilePaths = new List<FileReference>();
 
@@ -4664,7 +4692,7 @@ namespace UnrealBuildTool
 		public void AddDefaultIncludePathsToModuleRules(FileReference ModuleFile, bool IsGameModule, PluginInfo Plugin, ModuleRules RulesObject)
 		{
 			// Get the base source directory for this module. This may be the project source directory, engine source directory, or plugin source directory.
-			if (!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
+			if (!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory) && !ModuleFile.IsUnderDirectory(UnrealBuildTool.EnterpriseSourceDirectory))
 			{
 				// Add the module source directory 
 				DirectoryReference BaseSourceDirectory;

@@ -372,9 +372,29 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = LaunchImages, meta = (DisplayName = "Show launch image"))
 	bool bShowLaunchImage;
 
-	/** Android Audio encoding options */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
+	/** Android encoding options. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Audio, meta = (DisplayName = "Encoding Format"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
+
+	/** Sample rate to run the audio mixer with. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", Meta = (DisplayName = "Audio Mixer Sample Rate"))
+	int32 AudioSampleRate;
+
+	/** The amount of audio to compute each callback block. Lower values decrease latency but may increase CPU cost. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "512", ClampMax = "4096", DisplayName = "Callback Buffer Size"))
+	int32 AudioCallbackBufferFrameSize;
+
+	/** The number of buffers to keep enqueued. More buffers increases latency, but can compensate for variable compute availability in audio callbacks on some platforms. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "2", UIMin = "2", DisplayName = "Number of Buffers To Enqueue"))
+	int32 AudioNumBuffersToEnqueue;
+
+	/** The max number of channels (voices) to limit for this platform. The max channels used will be the minimum of this value and the global audio quality settings. A value of 0 will not apply a platform channel count max. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "0", UIMin = "0", DisplayName = "Max Channels"))
+	int32 AudioMaxChannels;
+
+	/** The number of workers to use to compute source audio. Will only use up to the max number of sources. Will evenly divide sources to each source worker. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "0", UIMin = "0", DisplayName = "Number of Source Workers"))
+	int32 AudioNumSourceWorkers;
 
 	// Several Android graphics debuggers require configuration changes to be made to your application in order to operate. Choosing an option from this menu will configure your project to work with that graphics debugger. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)

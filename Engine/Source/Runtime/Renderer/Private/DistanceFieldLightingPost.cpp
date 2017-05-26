@@ -20,6 +20,14 @@ FAutoConsoleVariableRef CVarAOUseHistory(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GAOClearHistory = 0;
+FAutoConsoleVariableRef CVarAOClearHistory(
+	TEXT("r.AOClearHistory"),
+	GAOClearHistory,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+	);
+
 int32 GAOHistoryStabilityPass = 1;
 FAutoConsoleVariableRef CVarAOHistoryStabilityPass(
 	TEXT("r.AOHistoryStabilityPass"),
@@ -426,10 +434,15 @@ void UpdateHistory(
 	{
 		const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 
+		FIntPoint BufferSize = GetBufferSizeForAO();
+
 		if (*BentNormalHistoryState 
 			&& !View.bCameraCut 
 			&& !View.bPrevTransformsReset 
-			&& (!bUseDistanceFieldGI || (IrradianceHistoryState && *IrradianceHistoryState)))
+			&& (!bUseDistanceFieldGI || (IrradianceHistoryState && *IrradianceHistoryState))
+			&& !GAOClearHistory
+			// If the scene render targets reallocate, toss the history so we don't read uninitialized data
+			&& (*BentNormalHistoryState)->GetDesc().Extent == BufferSize)
 		{
 			// Reuse a render target from the pool with a consistent name, for vis purposes
 			TRefCountPtr<IPooledRenderTarget> NewBentNormalHistory;

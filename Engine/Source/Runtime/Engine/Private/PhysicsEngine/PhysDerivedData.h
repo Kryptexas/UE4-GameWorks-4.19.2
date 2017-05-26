@@ -6,17 +6,21 @@
 #include "Misc/Guid.h"
 #include "EngineDefines.h"
 #include "PhysXIncludes.h"
+#include "Stats/Stats.h"
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#if WITH_PHYSX/* && WITH_EDITOR*/ //TODO: sync and async cooking should not use the derived data cooker - existing paths exist just need hooking up
 #include "DerivedDataPluginInterface.h"
-#include "IPhysXFormat.h"
+#include "IPhysXCooking.h"
 #endif
 
 class UBodySetup;
 struct FBodyInstance;
 struct FBodySetupUVInfo;
+struct FTriMeshCollisionData;
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PhysX Cooking"), STAT_PhysXCooking, STATGROUP_Physics, );
+
+#if WITH_PHYSX/* && WITH_EDITOR*/ //TODO: sync and async cooking should not use the derived data cooker - existing paths exist just need hooking up
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
@@ -31,7 +35,7 @@ private:
 	bool bGenerateMirroredMesh;
 	bool bGenerateUVInfo;
 	EPhysXMeshCookFlags RuntimeCookFlags;
-	const class IPhysXFormat* Cooker;
+	const class IPhysXCooking* Cooker;
 	FGuid DataGuid;
 	FString MeshId;
 
@@ -92,8 +96,8 @@ public:
 private:
 
 	void InitCooker();
-	bool BuildConvex( TArray<uint8>& OutData, bool InMirrored, int32& NumConvexCooked );
-	bool BuildTriMesh( TArray<uint8>& OutData, bool InUseAllTriData, FBodySetupUVInfo* UVInfo, int32& NumTriMeshCooked);
+	bool BuildConvex( TArray<uint8>& OutData, bool bDeformableMesh, bool InMirrored, const TArray<TArray<FVector>>& Elements, EPhysXMeshCookFlags CookFlags, int32& NumConvexCooked);
+	bool BuildTriMesh( TArray<uint8>& OutData, const FTriMeshCollisionData& TriangleMeshDesc, EPhysXMeshCookFlags CookFlags, FBodySetupUVInfo* UVInfo, int32& NumTriMeshCooked);
 	bool ShouldGenerateTriMeshData(bool InUseAllTriData);
 };
 
@@ -108,7 +112,7 @@ private:
 	const TArray<class UPhysicalMaterial*>& PhysicalMaterials;
 	FName Format;
 	FGuid DataGuid;
-	const class IPhysXFormat* Serializer;
+	const class IPhysXCooking* Serializer;
 	int64 PhysXDataStart;	//important to keep track of this for alignment requirements
 	
 public:

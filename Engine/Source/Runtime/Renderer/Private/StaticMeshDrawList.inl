@@ -59,16 +59,17 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove(const bool b
 
 	checkSlow(LocalDrawingPolicyLink->SetId == SetId);
 
-	check(LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy);
-	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy->SetUnreferencedInDrawList();
+	check(LocalDrawingPolicyLink->Elements[LocalElementIndex].Mesh->MaterialRenderProxy);
+	LocalDrawingPolicyLink->Elements[LocalElementIndex].Mesh->MaterialRenderProxy->SetUnreferencedInDrawList();
 
 	// Unlink the mesh from this draw list. Not necessary if the mesh is being destroyed
 	if (bUnlinkMesh)
 	{
 		// Expensive (Order N). Spins through whole list
-		LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->UnlinkDrawList(this);
+		LocalDrawingPolicyLink->Elements[LocalElementIndex].Mesh->UnlinkDrawList(this);
 	}
-	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh = NULL;
+	//from this point on the memory the this pointer point to might be gone (e.g. if we unlink ourselves)
+	LocalDrawingPolicyLink->Elements[LocalElementIndex].Mesh = NULL;
 
 	checkSlow(LocalDrawingPolicyLink->Elements.Num() == LocalDrawingPolicyLink->CompactElements.Num());
 
@@ -355,7 +356,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
 					int32 SubCount = Element.Mesh->Elements.Num();
 					// Avoid the cache miss looking up batch visibility if there is only one element.
-					uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*BatchVisibilityArray)[Element.Mesh->Id] : ((1ull << SubCount) - 1);
+					uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId] : ((1ull << SubCount) - 1);
 					Count += DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, DrawRenderState, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
@@ -363,24 +364,24 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 			// Stereo pair, we need to test both eyes
 			else
 			{
-				const TArray<uint64, SceneRenderingAllocator>* ResolvedVisiblityArray = nullptr;
+				const TArray<uint64, SceneRenderingAllocator>* ResolvedBatchVisiblityArray = nullptr;
 
 				if (StereoView->LeftViewVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 				{
-					ResolvedVisiblityArray = StereoView->LeftViewBatchVisibilityArray;
+					ResolvedBatchVisiblityArray = StereoView->LeftViewBatchVisibilityArray;
 				}
 				else if (StereoView->RightViewVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 				{
-					ResolvedVisiblityArray = StereoView->RightViewBatchVisibilityArray;
+					ResolvedBatchVisiblityArray = StereoView->RightViewBatchVisibilityArray;
 				}
 
-				if (ResolvedVisiblityArray != nullptr)
+				if (ResolvedBatchVisiblityArray != nullptr)
 				{
 					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
 						int32 SubCount = Element.Mesh->Elements.Num();
 					// Avoid the cache miss looking up batch visibility if there is only one element.
-					uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedVisiblityArray)[Element.Mesh->Id] : ((1ull << SubCount) - 1);
+					uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedBatchVisiblityArray)[Element.Mesh->BatchVisibilityId] : ((1ull << SubCount) - 1);
 					Count += DrawElement<InstancedStereo>(RHICmdList, View, PolicyContext, DrawRenderState, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
@@ -603,19 +604,19 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 								const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 								const int32 SubCount = Element.Mesh->Elements.Num();
 
-								// Avoid the cache miss looking up batch visibility if there is only one element.
-								if (SubCount == 1)
+								// Avoid the cache miss looking up batch visibility if it's not needed
+								if (!Element.Mesh->bRequiresPerElementVisibility)
 								{
-									++Count;
+									Count += SubCount;
 								}
 								else if (!bIsInstancedStereo)
 								{
-									Count += CountBits((*BatchVisibilityArray)[Element.Mesh->Id]);
+									Count += CountBits((*BatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
 								}
 								else
 								{
-									const int32 LeftCount = CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->Id]);
-									const int32 RightCount = CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->Id]);
+									const int32 LeftCount = CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
+									const int32 RightCount = CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->BatchVisibilityId]);
 									Count += (LeftCount > RightCount) ? LeftCount : RightCount;
 								}
 							}
@@ -878,7 +879,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBackInner(
 		const TArray<uint64, SceneRenderingAllocator>* const ResolvedVisiblityArray = (InstancedStereo == InstancedStereoPolicy::Disabled) ? BatchVisibilityArray : ElementVisibility[SortedIndex];
 
 		// Avoid the cache miss looking up batch visibility if there is only one element.
-		uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedVisiblityArray)[Element.Mesh->Id] : ((1ull << Element.Mesh->Elements.Num()) - 1);
+		uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedVisiblityArray)[Element.Mesh->BatchVisibilityId] : ((1ull << Element.Mesh->Elements.Num()) - 1);
 		DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, DrawRenderState, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 		NumDraws++;
 	}

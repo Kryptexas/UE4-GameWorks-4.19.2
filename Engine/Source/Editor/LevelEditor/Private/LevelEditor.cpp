@@ -619,7 +619,8 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExportSelected_CanExecute ) );
 
 	ActionList.MapAction( Commands.Build,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ) );
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_CanExecute ) );
 
 	ActionList.MapAction(
 		Commands.ConnectToSourceControl,

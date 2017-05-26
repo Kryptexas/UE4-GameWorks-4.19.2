@@ -34,9 +34,12 @@ public:
 
 	virtual bool HandleBrowserUrlChanged(const FText& Url) override
 	{
-		if (OnRedirectURL.IsBound())
+		if (0) // HandleBeforeBrowse seems to do all that is required atm
 		{
-			return OnRedirectURL.Execute(Url.ToString());
+			if (OnRedirectURL.IsBound())
+			{
+				return OnRedirectURL.Execute(Url.ToString());
+			}
 		}
 		return false;
 	}

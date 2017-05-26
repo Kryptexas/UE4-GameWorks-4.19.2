@@ -147,7 +147,7 @@ private:
 		}
 	}
 
-	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool bInIsReadOnly ) override
+	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, TAttribute<bool> bInIsReadOnly ) override
 	{
 		check(InCreateData);
 
@@ -160,7 +160,7 @@ private:
 		}
 
 		// If the creation data says read only, then it must be read only
-		bIsReadOnly = InCreateData->bIsReadOnly || bInIsReadOnly;
+		bIsReadOnly = InCreateData->bIsReadOnly || bInIsReadOnly.Get();
 
 		InlineRenameWidget =
 			SAssignNew(DisplayWidget, SInlineEditableTextBlock)
@@ -173,10 +173,7 @@ private:
 			.IsSelected( InCreateData->IsRowSelectedDelegate )
 			.IsReadOnly(this, &SBehaviorTreeBlackboardItem::IsReadOnly);
 
-		if(!bIsReadOnly)
-		{
-			InCreateData->OnRenameRequest->BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
-		}
+		InCreateData->OnRenameRequest->BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 
 		return DisplayWidget.ToSharedRef();
 	}

@@ -316,7 +316,13 @@ RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platfor
 
 RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform);
 
-RENDERCORE_API bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel);
+inline bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel)
+{
+	extern RENDERCORE_API int32 bUseForwardShading;
+	return bUseForwardShading
+		// Culling uses compute shader
+		&& FeatureLevel >= ERHIFeatureLevel::SM5;
+}
 
 inline bool IsAnyForwardShadingEnabled(EShaderPlatform Platform)
 {

@@ -147,6 +147,9 @@ public:
 	/** The index of the mesh in the scene's static meshes array. */
 	int32 Id;
 
+	/** Index of the mesh into the scene's StaticMeshBatchVisibility array. */
+	int32 BatchVisibilityId;
+
 	// Constructor/destructor.
 	FStaticMesh(
 		FPrimitiveSceneInfo* InPrimitiveSceneInfo,
@@ -157,7 +160,8 @@ public:
 		FMeshBatch(InMesh),
 		ScreenSize(InScreenSize),
 		PrimitiveSceneInfo(InPrimitiveSceneInfo),
-		Id(INDEX_NONE)
+		Id(INDEX_NONE),
+		BatchVisibilityId(INDEX_NONE)
 	{
 		BatchHitProxyId = InHitProxyId;
 	}
@@ -188,7 +192,8 @@ private:
 		FMeshBatch(InStaticMesh),
 		ScreenSize(InStaticMesh.ScreenSize),
 		PrimitiveSceneInfo(InStaticMesh.PrimitiveSceneInfo),
-		Id(InStaticMesh.Id)
+		Id(InStaticMesh.Id),
+		BatchVisibilityId(InStaticMesh.BatchVisibilityId)
 	{}
 };
 

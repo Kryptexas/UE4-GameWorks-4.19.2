@@ -6,9 +6,12 @@
 namespace Audio
 {
 	FSampleBuffer::FSampleBuffer()
-		: AudioDevice(nullptr)
-		, SoundWave(nullptr)
-		, bIsLoading(false)
+		: RawPCMData(nullptr)
+		, NumSamples(0)	
+		, NumFrames(0)
+		, NumChannels(0)
+		, SampleRate(0)
+		, SampleDuration(0.0f)
 	{
 	}
 
@@ -16,117 +19,126 @@ namespace Audio
 	{
 	}
 
-	void FSampleBuffer::Init(FAudioDevice* InAudioDevice)
-	{
-		AudioDevice = InAudioDevice;
-	}
-
-	void FSampleBuffer::LoadSoundWave(USoundWave* InSoundWave, const bool bLoadAsync)
-	{
-		check(InSoundWave);
-
-		if (AudioDevice)
-		{
-			// finish loading any other sound waves before flushing this
-			if (bIsLoading)
-			{
-				check(SoundWave);
-				if (SoundWave->AudioDecompressor)
-				{	
-					SoundWave->AudioDecompressor->EnsureCompletion();
-					delete SoundWave->AudioDecompressor;
-					SoundWave->AudioDecompressor = nullptr;
-				}
-			}
-
-			SoundWave = InSoundWave;
-
-			bIsLoaded = false;
-			bIsLoading = true;
-
-			// Precache the sound wave and force it to be fully decompressed
-			AudioDevice->Precache(SoundWave, !bLoadAsync, true, true);
-
-			// If we synchronously loaded then we're good
-			if (!bLoadAsync)
-			{
-				check(SoundWave->RawPCMData);
-				bIsLoading = false;
-				bIsLoaded = true;
-			}
-		}
-	}
-
-	void FSampleBuffer::UpdateLoading()
-	{
-		if (bIsLoading)
-		{
-			check(SoundWave);
-
-			if (SoundWave->AudioDecompressor && SoundWave->AudioDecompressor->IsDone())
-			{
-				bIsLoading = false;
-				bIsLoaded = true;
-
-				delete SoundWave->AudioDecompressor;
-				SoundWave->AudioDecompressor = nullptr;
-			}
-		}
-	}
-
-	bool FSampleBuffer::IsLoaded() const
-	{
-		return bIsLoaded;
-	}
-
-	bool FSampleBuffer::IsLoading() const
-	{
-		return bIsLoading;
-	}
-
 	const int16* FSampleBuffer::GetData() const
 	{
-		if (bIsLoaded)
-		{
-			return (int16*)SoundWave->RawPCMData;
-		}
-		return nullptr;
+		return RawPCMData;
 	}
 
 	int32 FSampleBuffer::GetNumSamples() const
 	{
-		if (bIsLoaded)
-		{
-			return SoundWave->RawPCMDataSize / sizeof(int16);
-		}
-		return 0;
+		return NumSamples;
 	}
 	
 	int32 FSampleBuffer::GetNumFrames() const
 	{
-		if (bIsLoaded)
-		{
-			return GetNumSamples() / GetNumChannels();
-		}
-		return 0;
+		return NumFrames;
 	}
 
 	int32 FSampleBuffer::GetNumChannels() const
 	{
-		if (bIsLoaded)
-		{
-			return SoundWave->NumChannels;
-		}
-		return 0;
+		return NumChannels;
 	}
 
 	int32 FSampleBuffer::GetSampleRate() const
 	{
-		if (bIsLoaded)
+		return SampleRate;
+	}
+
+	FSoundWavePCMLoader::FSoundWavePCMLoader()
+		: AudioDevice(nullptr)
+		, SoundWave(nullptr)
+		, bIsLoading(false)
+		, bIsLoaded(false)
+	{
+	}
+
+	void FSoundWavePCMLoader::Init(FAudioDevice* InAudioDevice)
+	{
+		AudioDevice = InAudioDevice;
+	}
+
+	void FSoundWavePCMLoader::LoadSoundWave(USoundWave* InSoundWave)
+	{
+		if (!AudioDevice || !InSoundWave)
 		{
-			return SoundWave->SampleRate;
+			return;
 		}
-		return 0;
+
+		// If we're already loading a sound wave, finish it before trying to load a new one
+		if (bIsLoading)
+		{
+			check(SoundWave);
+			if (SoundWave->AudioDecompressor)
+			{
+				SoundWave->AudioDecompressor->EnsureCompletion();
+				delete SoundWave->AudioDecompressor;
+				SoundWave->AudioDecompressor = nullptr;
+			}
+		}
+
+		// Queue existing sound wave reference so it can be
+		// cleared when the audio thread gets newly loaded audio data. 
+		// Don't want to kill the sound wave PCM data while it's playing on audio thread.
+		if (SoundWave)
+		{
+			PendingStoppingSoundWaves.Enqueue(SoundWave);
+		}
+
+		SoundWave = InSoundWave;
+		if (!SoundWave->RawPCMData)
+		{
+			bIsLoaded = false;
+			bIsLoading = true;
+
+			// Kick off a decompression/precache of the sound wave
+			AudioDevice->Precache(SoundWave, false, true, true);
+		}
+		else
+		{
+			bIsLoading = true;
+			bIsLoaded = true;
+		}
+	}
+
+	bool FSoundWavePCMLoader::Update()
+	{
+		if (bIsLoading)
+		{
+			check(SoundWave);
+	
+			if (bIsLoaded || (SoundWave->AudioDecompressor && SoundWave->AudioDecompressor->IsDone()))
+			{
+				bIsLoading = false;
+				bIsLoaded = true;
+
+				if (SoundWave->AudioDecompressor)
+				{
+					delete SoundWave->AudioDecompressor;
+					SoundWave->AudioDecompressor = nullptr;
+				}
+
+				SampleBuffer.RawPCMData = (int16*)SoundWave->RawPCMData;
+				SampleBuffer.NumSamples = SoundWave->RawPCMDataSize / sizeof(int16);
+				SampleBuffer.NumChannels = SoundWave->NumChannels;
+				SampleBuffer.NumFrames = SampleBuffer.NumSamples / SoundWave->NumChannels;
+				SampleBuffer.SampleRate = SoundWave->SampleRate;
+				SampleBuffer.SampleDuration = (float)SampleBuffer.NumFrames / SampleBuffer.SampleRate;
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void FSoundWavePCMLoader::GetSampleBuffer(FSampleBuffer& OutSampleBuffer)
+	{
+		OutSampleBuffer = SampleBuffer;
+	}
+
+	void FSoundWavePCMLoader::Reset()
+	{
+		PendingStoppingSoundWaves.Empty();
 	}
 }
 

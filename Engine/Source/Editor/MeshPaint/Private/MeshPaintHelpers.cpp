@@ -1458,23 +1458,23 @@ FColor MeshPaintHelpers::PickVertexColorFromTextureData(const uint8* MipData, co
 	return VertexColor;
 }
 
-bool MeshPaintHelpers::ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adapter, const FVector& CameraPosition, const FVector& HitPosition, const UPaintBrushSettings* Settings, FPerVertexPaintAction Action)
+bool MeshPaintHelpers::ApplyPerVertexPaintAction(FPerVertexPaintActionArgs& InArgs, FPerVertexPaintAction Action)
 {
 	// Retrieve components world matrix
-	const FMatrix& ComponentToWorldMatrix = Adapter->GetComponentToWorldMatrix();
+	const FMatrix& ComponentToWorldMatrix = InArgs.Adapter->GetComponentToWorldMatrix();
 	
 	// Compute the camera position in actor space.  We need this later to check for back facing triangles.
-	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(CameraPosition));
-	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitPosition));
+	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
+	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.HitResult.Location));
 
 	// @todo MeshPaint: Input vector doesn't work well with non-uniform scale
-	const float BrushRadius = Settings->GetBrushRadius();
+	const float BrushRadius = InArgs.BrushSettings->GetBrushRadius();
 	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(BrushRadius, 0.0f, 0.0f)).Size();
 	const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
 
 	// Get a list of unique vertices indexed by the influenced triangles
 	TSet<int32> InfluencedVertices;
-	Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, Settings->bOnlyFrontFacingTriangles, InfluencedVertices);
+	InArgs.Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, InArgs.BrushSettings->bOnlyFrontFacingTriangles, InfluencedVertices);
 
 
 	const int32 NumParallelFors = 4;
@@ -1488,14 +1488,14 @@ bool MeshPaintHelpers::ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adap
 		
 		for (int32 VertexIndex = Start; VertexIndex < End; ++VertexIndex)
 		{
-			Action.Execute(Adapter, VertexIndex);
+			Action.ExecuteIfBound(Adapter, VertexIndex);
 		}
 	});*/
 		
 	for (int32 VertexIndex : InfluencedVertices)
 	{
-		// Apply the action!			
-		Action.Execute(Adapter, VertexIndex);
+		// Apply the action!
+		Action.ExecuteIfBound(InArgs, VertexIndex);
 	}
 
 	return (InfluencedVertices.Num() > 0);

@@ -361,7 +361,7 @@ public:
 	 * second is normal tick. This tick has to happen later when all node ticks
 	 * to accumulate and update curve data/notifies/branching points
 	 */
-	void UpdateWeight(float DeltaTime);
+	ENGINE_API void UpdateWeight(float DeltaTime);
 	//~ @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync?
 	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. */
 	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;

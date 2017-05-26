@@ -736,7 +736,6 @@ public:
 	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& InOverlappingComponents) const;
 
 	/** Returns list of components this component is overlapping. */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	const TArray<FOverlapInfo>& GetOverlapInfos() const;
 
 	/** 
@@ -1591,7 +1590,7 @@ protected:
 	 * accelerate simulation
 	 *
 	 * @param : UseBI - root body instsance
-	 * @return : New ComponentToWorld to use
+	 * @return : New GetComponentTransform() to use
 	 */
 	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI);
 public:

@@ -96,7 +96,6 @@ namespace UnrealBuildTool
 			Target.bCompilePhysX = true;
 			Target.bCompileAPEX = false;
 			Target.bCompileNvCloth = false;
-			Target.bRuntimePhysicsCooking = false;
 
 			Target.bBuildEditor = false;
 			Target.bBuildDeveloperTools = false;

@@ -65,10 +65,10 @@ protected:
 	void WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UEdGraphPin* TunnelPin, FCompilerResultsLog& MessageLog);
 
 	/** Wires up the entry boundries */
-	void WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& EntryPins, FCompilerResultsLog& MessageLog);
+	void WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, const TArray<UEdGraphPin*>& EntryPins, FCompilerResultsLog& MessageLog);
 
 	/** Wires up the exit boundries */
-	void WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& ExitPins, FCompilerResultsLog& MessageLog);
+	void WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, const TArray<UEdGraphPin*>& ExitPins, FCompilerResultsLog& MessageLog);
 
 	/** Create base node name */
 	void CreateBaseNodeName(UEdGraphNode* SourceNode);

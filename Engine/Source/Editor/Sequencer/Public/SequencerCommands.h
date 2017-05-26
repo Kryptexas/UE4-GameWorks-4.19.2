@@ -268,6 +268,9 @@ public:
 	/** Attempts to fix broken actor references. */
 	TSharedPtr< FUICommandInfo > FixActorReferences;
 
+	/** Rebinds all possessable references with their current bindings. */
+	TSharedPtr< FUICommandInfo > RebindPossessableReferences;
+
 	/** Attempts to move all time data for this sequence on to a valid frame */
 	TSharedPtr< FUICommandInfo > FixFrameTiming;
 

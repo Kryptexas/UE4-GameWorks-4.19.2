@@ -413,16 +413,6 @@ public:
 	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
 
 	/**
-	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
-	 * 
-	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
-	 * @param	ScreenScaling	How much to downscale the desktop size
-	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
-	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
-	 */
-	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
-
-	/**
 	 * Copies all slate windows out to a buffer at half resolution with debug information
 	 * like the mouse cursor and any keypresses.
 	 */

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Interfaces/INetworkFileSystemModule.h"
+#include "CoreMisc.h"
 
 class FSandboxPlatformFile;
 class ITargetPlatform;
@@ -11,7 +12,7 @@ class ITargetPlatform;
 /**
  * This class processes all incoming messages from the client.
  */
-class FNetworkFileServerClientConnection
+class FNetworkFileServerClientConnection : public FSelfRegisteringExec
 {
 public:
 
@@ -162,6 +163,10 @@ protected:
 	 * @param Filename of the file which has been modified
 	 */
 	void FileModifiedCallback( const FString& Filename );
+	
+	
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+
 
 	/**
 	 * Convert a path to a sandbox path and translate so the client can understand it 
@@ -234,4 +239,18 @@ private:
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;
+
+
+	//////////////////////////////////////////////////////////////////////////
+	//stats
+	double FileRequestDelegateTime;
+	double PackageFileTime;
+	double UnsolicitedFilesTime;
+
+	int32 FileRequestCount;
+	int32 UnsolicitedFilesCount;
+	int32 PackageRequestsSucceeded;
+	int32 PackageRequestsFailed;
+	int32 FileBytesSent;
+	
 };

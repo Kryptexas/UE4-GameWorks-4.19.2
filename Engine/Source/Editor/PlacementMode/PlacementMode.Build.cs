@@ -6,7 +6,7 @@ public class PlacementMode : ModuleRules
 {
     public PlacementMode(ReadOnlyTargetRules Target) : base(Target)
     {
-        PrivateIncludePathModuleNames.Add("AssetTools");
+		PrivateIncludePathModuleNames.Add("AssetTools");
 
         PrivateDependencyModuleNames.AddRange( 
             new string[] { 

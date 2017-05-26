@@ -7,15 +7,14 @@
 #include "Engine/Selection.h"
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
-#include "VREditorButton.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"
 #include "ActorTransformer.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
-UVREditorInteractor::UVREditorInteractor( const FObjectInitializer& Initializer ) :
-	Super( Initializer ),
+UVREditorInteractor::UVREditorInteractor() :
+	Super(),
 	VRMode( nullptr ),
 	bIsModifierPressed( false ),
 	SelectAndMoveTriggerValue( 0.0f ),
@@ -29,11 +28,6 @@ UVREditorInteractor::UVREditorInteractor( const FObjectInitializer& Initializer 
 	HelpLabelShowOrHideStartTime( FTimespan::MinValue() )
 {
 
-}
-
-UVREditorInteractor::~UVREditorInteractor()
-{
-	Shutdown();
 }
 
 void UVREditorInteractor::Init( UVREditorMode* InVRMode )
@@ -115,7 +109,6 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 		ObjectsInFrontOfGizmo = &PriorityOverGizmoObjects;
 	}
 
-	ObjectsInFrontOfGizmo->Add( AVREditorButton::StaticClass() );
 	ObjectsInFrontOfGizmo->Add( AVREditorDockableWindow::StaticClass() );
 	ObjectsInFrontOfGizmo->Add( AVREditorFloatingUI::StaticClass() );
 

@@ -10,7 +10,7 @@
 #include "Animation/AnimNodeBase.h"
 #include "AnimNode_SaveCachedPose.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

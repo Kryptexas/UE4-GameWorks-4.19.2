@@ -52,7 +52,7 @@ public:
 	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) override;
 	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
 	virtual void LoadAdditionalPreviewSkeletalMeshes() override;
-	virtual void SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes) override;
+	virtual void SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset) override;
 	virtual void RenameRetargetSource(const FName& InOldName, const FName& InNewName) override;
 	virtual void AddRetargetSource(const FName& InName, USkeletalMesh* InReferenceMesh) override;
 	virtual void DeleteRetargetSources(const TArray<FName>& InRetargetSourceNames) override;

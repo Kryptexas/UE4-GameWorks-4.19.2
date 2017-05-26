@@ -33,22 +33,13 @@ FArchive& FObjectWriter::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 
 FArchive& FObjectWriter::operator<<( class FAssetPtr& AssetPtr )
 {
-	FStringAssetReference ID = AssetPtr.GetUniqueID();
-	ID.Serialize(*this);
-	return *this;
+	AssetPtr.ResetWeakPtr();
+	return *this << AssetPtr.GetUniqueID();
 }
 
 FArchive& FObjectWriter::operator<<(FStringAssetReference& Value)
 {
-	FString Path = Value.ToString();
-
-	*this << Path;
-
-	if (IsLoading())
-	{
-		Value.SetPath(MoveTemp(Path));
-	}
-
+	Value.SerializePath(*this);
 	return *this;
 }
 

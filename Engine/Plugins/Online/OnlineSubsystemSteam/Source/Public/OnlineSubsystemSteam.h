@@ -242,7 +242,8 @@ public:
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	FString GetAppId() const override;
+	virtual FString GetAppId() const override;
+	virtual FText GetOnlineServiceName() const override;
 
 	// FTickerObjectBase
 

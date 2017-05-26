@@ -2871,8 +2871,8 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 			ensure(bChunkHashesMatch);
 			if (!ensure(bChunkHashesMatch))
 			{
-				UE_LOG(LogPakFile, Fatal, TEXT("Pak chunk signing mismatch! Pak file has been corrupted or tampered with!"));
-				FPlatformMisc::RequestExit(true);
+				UE_LOG(LogPakFile, Warning, TEXT("Pak chunk signing mismatch! Pak file has been corrupted or tampered with!"));
+				//FPlatformMisc::RequestExit(true);
 			}
 		}
 

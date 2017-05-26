@@ -11,6 +11,7 @@ UBTComposite_SimpleParallel::UBTComposite_SimpleParallel(const FObjectInitialize
 	NodeName = "Simple Parallel";
 	bUseChildExecutionNotify = true;
 	bUseNodeDeactivationNotify = true;
+	bUseDecoratorsDeactivationCheck = true;
 	OnNextChild.BindUObject(this, &UBTComposite_SimpleParallel::GetNextChildHandler);
 }
 
@@ -73,6 +74,10 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent& O
 		else if (MyMemory->bMainTaskIsActive)
 		{
 			MyMemory->bMainTaskIsActive = false;
+			
+			// notify decorators on main task, ignore observers updates in FakeSearchData - they are not allowed by parallel composite
+			FBehaviorTreeSearchData FakeSearchData(OwnerComp);
+			NotifyDecoratorsOnDeactivation(FakeSearchData, ChildIdx, NodeResult);
 
 			const int32 MyInstanceIdx = OwnerComp.FindInstanceContainingNode(this);
 
@@ -140,6 +145,22 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData
 			}
 		}
 	}
+}
+
+bool UBTComposite_SimpleParallel::CanNotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+{
+	// don't pass deactivation to decorators when parallel is just switching to background tree
+	// decorators on running main task will be notified when their task finishes execution
+	if (ChildIdx == EBTParallelChild::MainTask)
+	{
+		FBTParallelMemory* MyMemory = GetNodeMemory<FBTParallelMemory>(SearchData);
+		if (MyMemory->bMainTaskIsActive)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 uint16 UBTComposite_SimpleParallel::GetInstanceMemorySize() const

@@ -316,11 +316,11 @@ bool UNavLocalGridManager::FindPath(const FVector& Start, const FVector& End, TA
 	return false;
 }
 
-int32 UNavLocalGridManager::AddLocalNavigationGridForPoint(UObject* WorldContext, const FVector& Location, const int32 Radius2D, const float Height, bool bRebuildGrids)
+int32 UNavLocalGridManager::AddLocalNavigationGridForPoint(UObject* WorldContextObject, const FVector& Location, const int32 Radius2D, const float Height, bool bRebuildGrids)
 {
 	int32 GridId = 0;
 
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		FNavLocalGridData GridData(Location, UNavLocalGridManager::GridCellSize * Radius2D);
@@ -333,11 +333,11 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForPoint(UObject* WorldContext
 	return GridId;
 }
 
-int32 UNavLocalGridManager::AddLocalNavigationGridForPoints(UObject* WorldContext, const TArray<FVector>& Locations, const int32 Radius2D, const float Height, bool bRebuildGrids)
+int32 UNavLocalGridManager::AddLocalNavigationGridForPoints(UObject* WorldContextObject, const TArray<FVector>& Locations, const int32 Radius2D, const float Height, bool bRebuildGrids)
 {
 	int32 GridId = 0;
 
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		const FBox Bounds(Locations);
@@ -357,11 +357,11 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForPoints(UObject* WorldContex
 	return GridId;
 }
 
-int32 UNavLocalGridManager::AddLocalNavigationGridForBox(UObject* WorldContext, const FVector& Location, FVector Extent, FRotator Rotation, const int32 Radius2D, const float Height, bool bRebuildGrids)
+int32 UNavLocalGridManager::AddLocalNavigationGridForBox(UObject* WorldContextObject, const FVector& Location, FVector Extent, FRotator Rotation, const int32 Radius2D, const float Height, bool bRebuildGrids)
 {
 	int32 GridId = 0;
 
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		FNavLocalGridData GridData(Location, FVector2D(Extent.X + UNavLocalGridManager::GridCellSize * Radius2D, Extent.Y + UNavLocalGridManager::GridCellSize * Radius2D));
@@ -374,11 +374,11 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForBox(UObject* WorldContext, 
 	return GridId;
 }
 
-int32 UNavLocalGridManager::AddLocalNavigationGridForCapsule(UObject* WorldContext, const FVector& Location, float CapsuleRadius, float CapsuleHalfHeight, const int32 Radius2D, const float Height, bool bRebuildGrids)
+int32 UNavLocalGridManager::AddLocalNavigationGridForCapsule(UObject* WorldContextObject, const FVector& Location, float CapsuleRadius, float CapsuleHalfHeight, const int32 Radius2D, const float Height, bool bRebuildGrids)
 {
 	int32 GridId = 0;
 
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		FNavLocalGridData GridData(Location, FVector2D(CapsuleRadius + UNavLocalGridManager::GridCellSize * Radius2D, CapsuleRadius + UNavLocalGridManager::GridCellSize * Radius2D));
@@ -391,18 +391,18 @@ int32 UNavLocalGridManager::AddLocalNavigationGridForCapsule(UObject* WorldConte
 	return GridId;
 }
 
-void UNavLocalGridManager::RemoveLocalNavigationGrid(UObject* WorldContext, int32 GridId, bool bRebuildGrids)
+void UNavLocalGridManager::RemoveLocalNavigationGrid(UObject* WorldContextObject, int32 GridId, bool bRebuildGrids)
 {
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		GridManager->RemoveGridData(GridId, bRebuildGrids);
 	}
 }
 
-bool UNavLocalGridManager::FindLocalNavigationGridPath(UObject* WorldContext, const FVector& Start, const FVector& End, TArray<FVector>& PathPoints)
+bool UNavLocalGridManager::FindLocalNavigationGridPath(UObject* WorldContextObject, const FVector& Start, const FVector& End, TArray<FVector>& PathPoints)
 {
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		return GridManager->FindPath(Start, End, PathPoints);
@@ -411,9 +411,9 @@ bool UNavLocalGridManager::FindLocalNavigationGridPath(UObject* WorldContext, co
 	return false;
 }
 
-bool UNavLocalGridManager::SetLocalNavigationGridDensity(UObject* WorldContext, float CellSize)
+bool UNavLocalGridManager::SetLocalNavigationGridDensity(UObject* WorldContextObject, float CellSize)
 {
-	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContext);
+	UNavLocalGridManager* GridManager = UNavLocalGridManager::GetCurrent(WorldContextObject);
 	if (GridManager)
 	{
 		return GridManager->SetCellSize(CellSize);

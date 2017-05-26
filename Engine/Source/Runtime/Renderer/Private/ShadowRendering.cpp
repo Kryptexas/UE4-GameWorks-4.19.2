@@ -78,6 +78,20 @@ static FAutoConsoleVariableRef CVarStencilOptimization(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarFilterMethod(
+	TEXT("r.Shadow.FilterMethod"),
+	0,
+	TEXT("Chooses the shadow filtering method.\n")
+	TEXT(" 0: Uniform PCF (default)\n")
+	TEXT(" 1: PCSS (experimental)\n"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMaxSoftKernelSize(
+	TEXT("r.Shadow.MaxSoftKernelSize"),
+	40,
+	TEXT("Mazimum size of the softening kernels in pixels."),
+	ECVF_RenderThreadSafe);
+
 DECLARE_FLOAT_COUNTER_STAT(TEXT("ShadowProjection"), Stat_GPU_ShadowProjection, STATGROUP_GPU);
 
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
@@ -144,15 +158,15 @@ TGlobalResource<StencilingGeometry::FStencilConeVertexBuffer> StencilingGeometry
 TGlobalResource<StencilingGeometry::FStencilConeIndexBuffer> StencilingGeometry::GStencilConeIndexBuffer;
 
 /*-----------------------------------------------------------------------------
-	FShadowProjectionVS
+	FShadowVolumeBoundProjectionVS
 -----------------------------------------------------------------------------*/
 
-bool FShadowProjectionVS::ShouldCache(EShaderPlatform Platform)
+bool FShadowVolumeBoundProjectionVS::ShouldCache(EShaderPlatform Platform)
 {
 	return true;
 }
 
-void FShadowProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
+void FShadowVolumeBoundProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo)
 {
 	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(),View.ViewUniformBuffer);
 	
@@ -176,7 +190,7 @@ void FShadowProjectionVS::SetParameters(FRHICommandList& RHICmdList, const FScen
 
 IMPLEMENT_SHADER_TYPE(,FShadowProjectionNoTransformVS,TEXT("ShadowProjectionVertexShader"),TEXT("Main"),SF_Vertex);
 
-IMPLEMENT_SHADER_TYPE(,FShadowProjectionVS,TEXT("ShadowProjectionVertexShader"),TEXT("Main"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FShadowVolumeBoundProjectionVS,TEXT("ShadowProjectionVertexShader"),TEXT("Main"),SF_Vertex);
 
 /**
  * Implementations for TShadowProjectionPS.  
@@ -199,6 +213,8 @@ IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(2,true);
 IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(3,true);
 IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(4,true);
 IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5,true);
+
+#undef IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER
 #endif
 
 // Implement a pixel shader for rendering modulated shadow projections.
@@ -220,7 +236,15 @@ IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<1>,TEXT("Shadow
 IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<2>,TEXT("ShadowProjectionPixelShader"),TEXT("MainOnePassPointLightPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<3>,TEXT("ShadowProjectionPixelShader"),TEXT("MainOnePassPointLightPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<4>,TEXT("ShadowProjectionPixelShader"),TEXT("MainOnePassPointLightPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<5>,TEXT("ShadowProjectionPixelShader"),TEXT("MainOnePassPointLightPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TOnePassPointShadowProjectionPS<5>, TEXT("ShadowProjectionPixelShader"), TEXT("MainOnePassPointLightPS"), SF_Pixel);
+
+// Implements a pixel shader for directional light PCSS.
+#define IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(Quality,UseFadePlane) \
+	typedef TDirectionalPercentageCloserShadowProjectionPS<Quality, UseFadePlane> TDirectionalPercentageCloserShadowProjectionPS##Quality##UseFadePlane; \
+	IMPLEMENT_SHADER_TYPE(template<>,TDirectionalPercentageCloserShadowProjectionPS##Quality##UseFadePlane,TEXT("ShadowProjectionPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5,false);
+IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5,true);
+#undef IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER
 
 void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)
 {
@@ -247,88 +271,100 @@ void StencilingGeometry::DrawCone(FRHICommandList& RHICmdList)
 		FStencilConeIndexBuffer::NumVerts, 0, StencilingGeometry::GStencilConeIndexBuffer.GetIndexCount() / 3, 1);
 }
 
-template <uint32 Quality>
-static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo, bool bMobileModulatedProjections)
+static void GetShadowProjectionShaders(
+	int32 Quality, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo, bool bMobileModulatedProjections,
+	FShadowProjectionVertexShaderInterface** OutShadowProjVS, FShadowProjectionPixelShaderInterface** OutShadowProjPS)
 {
+	check(!*OutShadowProjVS);
+	check(!*OutShadowProjPS);
+
 	if (ShadowInfo->bTranslucentShadow)
 	{
-		// Get the Shadow Projection Vertex Shader (with transforms)
-		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
+		*OutShadowProjVS = View.ShaderMap->GetShader<FShadowVolumeBoundProjectionVS>();
 
-		// Get the translucency pixel shader
-		FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<Quality> >();
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(ShadowProjVS);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-		// Set shader parameters
-		ShadowProjVS->SetParameters(RHICmdList, View, ShadowInfo);
-		ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+		switch (Quality)
+		{
+		case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<1> >(); break;
+		case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<2> >(); break;
+		case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<3> >(); break;
+		case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<4> >(); break;
+		case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionFromTranslucencyPS<5> >(); break;
+		default:
+			check(0);
+		}
 	}
 	else if (ShadowInfo->IsWholeSceneDirectionalShadow())
 	{
-		// Get the Shadow Projection Vertex Shader which does not use a transform
-		FShadowProjectionNoTransformVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionNoTransformVS>();
+		*OutShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionNoTransformVS>();
 
-		// Get the Shadow Projection Pixel Shader for PSSM
-		if (ShadowInfo->CascadeSettings.FadePlaneLength > 0)
+		if (CVarFilterMethod.GetValueOnRenderThread() == 1)
 		{
-			// This shader fades the shadow towards the end of the split subfrustum.
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, true> >();
-
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(ShadowProjVS);
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
-
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+			if (ShadowInfo->CascadeSettings.FadePlaneLength > 0)
+				*OutShadowProjPS = View.ShaderMap->GetShader<TDirectionalPercentageCloserShadowProjectionPS<5, true> >();
+			else
+				*OutShadowProjPS = View.ShaderMap->GetShader<TDirectionalPercentageCloserShadowProjectionPS<5, false> >();
+		}
+		else if (ShadowInfo->CascadeSettings.FadePlaneLength > 0)
+		{
+			switch (Quality)
+			{
+			case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<1, true> >(); break;
+			case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<2, true> >(); break;
+			case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<3, true> >(); break;
+			case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<4, true> >(); break;
+			case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<5, true> >(); break;
+			default:
+				check(0);
+			}
 		}
 		else
 		{
-			// Do not use the fade plane shader if the fade plane region length is 0 (avoids divide by 0).
-			FShadowProjectionPixelShaderInterface* ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
-
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(ShadowProjVS);
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
-
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+			switch (Quality)
+			{
+			case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<1, false> >(); break;
+			case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<2, false> >(); break;
+			case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<3, false> >(); break;
+			case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<4, false> >(); break;
+			case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<5, false> >(); break;
+			default:
+				check(0);
+			}
 		}
-
-		ShadowProjVS->SetParameters(RHICmdList, View.ViewUniformBuffer);
 	}
 	else
 	{
-		// Get the Shadow Projection Vertex Shader
-		FShadowProjectionVS* ShadowProjVS = View.ShaderMap->GetShader<FShadowProjectionVS>();
+		*OutShadowProjVS = View.ShaderMap->GetShader<FShadowVolumeBoundProjectionVS>();
 
-		// Get the Shadow Projection Pixel Shader
-		// This shader is the ordinary projection shader used by point/spot lights.		
-		FShadowProjectionPixelShaderInterface* ShadowProjPS;
 		if(bMobileModulatedProjections)
 		{
-			ShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<Quality> >();
+			switch (Quality)
+			{
+			case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<1> >(); break;
+			case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<2> >(); break;
+			case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<3> >(); break;
+			case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<4> >(); break;
+			case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TModulatedShadowProjection<5> >(); break;
+			default:
+				check(0);
+			}
 		}
 		else
 		{
-			ShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<Quality, false> >();
+			switch (Quality)
+			{
+			case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<1, false> >(); break;
+			case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<2, false> >(); break;
+			case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<3, false> >(); break;
+			case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<4, false> >(); break;
+			case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<5, false> >(); break;
+			default:
+				check(0);
+			}
 		}
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(ShadowProjVS);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-		ShadowProjVS->SetParameters(RHICmdList, View, ShadowInfo);
-		ShadowProjPS->SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 	}
+
+	check(*OutShadowProjVS);
+	check(*OutShadowProjPS);
 }
 
 void FProjectedShadowInfo::SetBlendStateForProjection(
@@ -607,7 +643,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 								*View,
 								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 								StaticMesh,
-								StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
+								StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] : ((1ull << StaticMesh.Elements.Num() )- 1),
 								true,
 								DrawRenderState,
 								ReceiverPrimitiveSceneInfo->Proxy,
@@ -631,7 +667,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 					*View,
 					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 					StaticMesh,
-					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
+					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] : ((1ull << StaticMesh.Elements.Num() )- 1),
 					true,
 					DrawRenderState,
 					StaticMesh.PrimitiveSceneInfo->Proxy,
@@ -746,7 +782,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 		// Find the projection shaders.
-		TShaderMapRef<FShadowProjectionVS> VertexShader(View->ShaderMap);
+		TShaderMapRef<FShadowVolumeBoundProjectionVS> VertexShader(View->ShaderMap);
 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
@@ -910,16 +946,19 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			}
 		}
 
-		switch(LocalQuality)
-		{
-			case 1: SetShadowProjectionShaderTemplNew<1>(RHICmdList, GraphicsPSOInit, ViewIndex, *View, this, bMobileModulatedProjections); break;
-			case 2: SetShadowProjectionShaderTemplNew<2>(RHICmdList, GraphicsPSOInit, ViewIndex, *View, this, bMobileModulatedProjections); break;
-			case 3: SetShadowProjectionShaderTemplNew<3>(RHICmdList, GraphicsPSOInit, ViewIndex, *View, this, bMobileModulatedProjections); break;
-			case 4: SetShadowProjectionShaderTemplNew<4>(RHICmdList, GraphicsPSOInit, ViewIndex, *View, this, bMobileModulatedProjections); break;
-			case 5: SetShadowProjectionShaderTemplNew<5>(RHICmdList, GraphicsPSOInit, ViewIndex, *View, this, bMobileModulatedProjections); break;
-			default:
-				check(0);
-		}
+		FShadowProjectionVertexShaderInterface* ShadowProjVS = nullptr;
+		FShadowProjectionPixelShaderInterface* ShadowProjPS = nullptr;
+
+		GetShadowProjectionShaders(LocalQuality, *View, this, bMobileModulatedProjections, &ShadowProjVS, &ShadowProjPS);
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(ShadowProjVS);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+		ShadowProjVS->SetParameters(RHICmdList, *View, this);
+		ShadowProjPS->SetParameters(RHICmdList, ViewIndex, *View, this);
 	}
 
 	if (IsWholeSceneDirectionalShadow())
@@ -949,7 +988,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		// Clear the stencil buffer to 0.
 		if (!GStencilOptimization)
 		{
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 1);
+			DrawClearQuad(RHICmdList, false, FLinearColor::Transparent, false, 0, true, 1);
 		}
 	}
 }
@@ -958,7 +997,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 template <uint32 Quality>
 static void SetPointLightShaderTempl(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, int32 ViewIndex, const FViewInfo& View, const FProjectedShadowInfo* ShadowInfo)
 {
-	TShaderMapRef<FShadowProjectionVS> VertexShader(View.ShaderMap);
+	TShaderMapRef<FShadowVolumeBoundProjectionVS> VertexShader(View.ShaderMap);
 	TShaderMapRef<TOnePassPointShadowProjectionPS<Quality> > PixelShader(View.ShaderMap);
 
 	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();

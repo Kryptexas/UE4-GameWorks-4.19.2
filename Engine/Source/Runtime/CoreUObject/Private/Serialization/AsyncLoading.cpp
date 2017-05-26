@@ -37,6 +37,7 @@
 #include "UniquePtr.h"
 #include "Serialization/BufferReader.h"
 #include "TaskGraphInterfaces.h"
+#include "Blueprint/BlueprintSupport.h"
 
 #define FIND_MEMORY_STOMPS (1 && (PLATFORM_WINDOWS || PLATFORM_LINUX) && !WITH_EDITORONLY_DATA)
 
@@ -3108,10 +3109,19 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 					// Do this for all subobjects created in the native constructor.
 					if (!Export.Object->HasAnyFlags(RF_LoadCompleted))
 					{
-							UE_LOG(LogStreaming, VeryVerbose, TEXT("Note2: %s was constructed during load and is an export and so needs loading."), *Export.Object->GetFullName());
-							UE_CLOG(!Export.Object->HasAllFlags(RF_WillBeLoaded), LogStreaming, Fatal, TEXT("%s was found in memory and is an export but does not have all load flags."), *Export.Object->GetFullName());
-						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
-							Export.Object->ClearFlags(RF_WillBeLoaded);
+						UE_LOG(LogStreaming, VeryVerbose, TEXT("Note2: %s was constructed during load and is an export and so needs loading."), *Export.Object->GetFullName());
+						UE_CLOG(!Export.Object->HasAllFlags(RF_WillBeLoaded), LogStreaming, Fatal, TEXT("%s was found in memory and is an export but does not have all load flags."), *Export.Object->GetFullName());
+						if(Export.Object->HasAnyFlags(RF_ClassDefaultObject))
+						{
+							// never call PostLoadSubobjects on class default objects, this matches the behavior of the old linker where
+							// StaticAllocateObject prevents setting of RF_NeedPostLoad and RF_NeedPostLoadSubobjects, but FLinkerLoad::Preload
+							// assigns RF_NeedPostLoad for blueprint CDOs:
+							Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_WasLoaded);
+						}
+						else
+						{
+							Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
+						}
 					}
 				}
 			}
@@ -4178,7 +4188,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 	double TickStartTime = FPlatformTime::Seconds();
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	FScopedRecursionNotAllowed RecursionGuard;
+		FScopedRecursionNotAllowed RecursionGuard;
 #endif
 
 	if (GEventDrivenLoaderEnabled)
@@ -4551,6 +4561,11 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 	if (Result == EAsyncPackageState::Complete)
 	{
+#if WITH_EDITORONLY_DATA
+		// This needs to happen after loading new blueprints in the editor, and this is handled in EndLoad for synchronous loads
+		FBlueprintSupport::FlushReinstancingQueue();
+#endif
+
 		// We're not done until all packages have been deleted
 		Result = PackagesToDelete.Num() ? EAsyncPackageState::PendingImports : EAsyncPackageState::Complete;
 	}

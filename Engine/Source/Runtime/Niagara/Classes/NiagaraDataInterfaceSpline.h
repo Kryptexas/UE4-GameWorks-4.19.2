@@ -60,7 +60,7 @@ private:
 	//Cached ptr to component we sample from. 
 	USplineComponent* Component;
 		
-	//Cached ComponentToWorld.
+	//Cached GetComponentTransform().
 	FMatrix Transform;
 	//InverseTranspose of above for transforming normals/tangents.
 	FMatrix TransformInverseTransposed;

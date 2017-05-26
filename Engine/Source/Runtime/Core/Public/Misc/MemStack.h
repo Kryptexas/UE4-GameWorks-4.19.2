@@ -5,7 +5,6 @@
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 #include "HAL/UnrealMemory.h"
-#include "Templates/AlignOf.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "Math/UnrealMathUtility.h"
 #include "Templates/AlignmentTemplates.h"
@@ -299,7 +298,7 @@ public:
 				// Allocate memory from the stack.
 				Data = (ElementType*)FMemStack::Get().PushBytes(
 					NumElements * NumBytesPerElement,
-					FMath::Max(Alignment,(uint32)ALIGNOF(ElementType))
+					FMath::Max(Alignment,(uint32)alignof(ElementType))
 					);
 
 				// If the container previously held elements, copy them into the new allocation.

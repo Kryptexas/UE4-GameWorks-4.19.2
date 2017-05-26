@@ -47,6 +47,7 @@ namespace VREd
 UVREditorPlacement::UVREditorPlacement() : 
 	Super(),
 	VRMode( nullptr ),
+	ViewportWorldInteraction(nullptr),
 	FloatingUIAssetDraggedFrom( nullptr ),
 	PlacingMaterialOrTextureAsset( nullptr )
 {
@@ -145,7 +146,7 @@ void UVREditorPlacement::StartDraggingMaterialOrTexture( UViewportInteractor* In
 
 		InteractorData.DraggingTransformGizmoComponent = nullptr;
 	
-		InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
+		InteractorData.DragOperationComponent.Reset();
 		InteractorData.GizmoStartTransform = FTransform::Identity;
 		InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
 		InteractorData.GizmoStartLocalBounds = FBox(EForceInit::ForceInit);
@@ -170,7 +171,7 @@ void UVREditorPlacement::OnAssetDragStartedFromContentBrowser( const TArray<FAss
 		// @todo vreditor placement: This logic could misfire.  Ideally we would be routed information from the pointer event, so we can determine the hand.
 		UVREditorInteractor* PlacingWithInteractor = nullptr;
 
-		TArray<UViewportInteractor*>& Interactors = ViewportWorldInteraction->GetInteractors();
+		const TArray<UViewportInteractor*>& Interactors = ViewportWorldInteraction->GetInteractors();
 		for( UViewportInteractor* Interactor : Interactors )
 		{
 			UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );

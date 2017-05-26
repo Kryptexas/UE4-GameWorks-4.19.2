@@ -13,6 +13,9 @@
 #include "Editor.h"
 #include "PropertyHandle.h"
 #include "DetailWidgetRow.h"
+#include "IPropertyTypeCustomization.h"
+#include "IPropertyUtilities.h"
+#include "NotifyHook.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagQueryCustomization"
 
@@ -20,7 +23,9 @@ void FGameplayTagQueryCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
-	RefreshQueryDescription();
+	PropertyUtilities = StructCustomizationUtils.GetPropertyUtilities();
+	
+	RefreshQueryDescription(); // will call BuildEditableQueryList();
 
 	bool const bReadOnly = StructPropertyHandle->GetProperty() ? StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst) : false;
 
@@ -182,8 +187,8 @@ FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 			.ClientSize(FVector2D(600, 400))
 			[
 				SNew(SGameplayTagQueryWidget, EditableQueries)
-				.OnSaveAndClose(this, &FGameplayTagQueryCustomization::CloseWidgetWindow)
-				.OnCancel(this, &FGameplayTagQueryCustomization::CloseWidgetWindow)
+				.OnSaveAndClose(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, false)
+				.OnCancel(this, &FGameplayTagQueryCustomization::CloseWidgetWindow, true)
 				.ReadOnly(bReadOnly)
 			];
 
@@ -220,16 +225,33 @@ void FGameplayTagQueryCustomization::BuildEditableQueryList()
 
 		TArray<UObject*> OuterObjects;
 		StructPropertyHandle->GetOuterObjects(OuterObjects);
+		
 
 		for (int32 Idx = 0; Idx < RawStructData.Num(); ++Idx)
 		{
-			EditableQueries.Add(SGameplayTagQueryWidget::FEditableGameplayTagQueryDatum(OuterObjects.IsValidIndex(Idx) ? OuterObjects[Idx] : nullptr, (FGameplayTagQuery*)RawStructData[Idx]));
+			// Null outer objects may mean that we are inside a UDataTable. This is ok though. We can still dirty the data table via FNotify Hook. (see ::CloseWidgetWindow). However undo will not work.
+			UObject* Obj = OuterObjects.IsValidIndex(Idx) ? OuterObjects[Idx] : nullptr;
+			EditableQueries.Add(SGameplayTagQueryWidget::FEditableGameplayTagQueryDatum(Obj, (FGameplayTagQuery*)RawStructData[Idx]));
 		}
 	}	
 }
 
-void FGameplayTagQueryCustomization::CloseWidgetWindow()
+void FGameplayTagQueryCustomization::CloseWidgetWindow(bool WasCancelled)
 {
+	// Notify change. This is required for these to work inside of UDataTables
+	if (!WasCancelled && PropertyUtilities.IsValid())
+	{
+		UProperty* TheProperty = StructPropertyHandle->GetProperty();
+
+		FEditPropertyChain PropertyChain;
+		PropertyChain.AddHead(TheProperty);
+		PropertyChain.SetActivePropertyNode(TheProperty);
+
+		FPropertyChangedEvent ChangeEvent(StructPropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
+		FNotifyHook* NotifyHook = PropertyUtilities->GetNotifyHook();
+		NotifyHook->NotifyPostChange(ChangeEvent, &PropertyChain);
+	}
+
  	if( GameplayTagQueryWidgetWindow.IsValid() )
  	{
  		GameplayTagQueryWidgetWindow->RequestDestroyWindow();

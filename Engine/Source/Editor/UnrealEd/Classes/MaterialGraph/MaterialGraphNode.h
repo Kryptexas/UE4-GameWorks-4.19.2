@@ -82,7 +82,7 @@ public:
 	//~ End UMaterialGraphNode_Base Interface
 
 	/** Will return the shorten pin name to use based on long pin name */
-	FString UNREALED_API GetShortenPinName(const FString& PinName);
+	static FString UNREALED_API GetShortenPinName(const FString& PinName);
 
 private:
 	/** Make sure the MaterialExpression is owned by the Material */

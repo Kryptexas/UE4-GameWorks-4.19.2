@@ -22,7 +22,7 @@ struct FConvertedAssetRecord
 
 public:
 	FConvertedAssetRecord() {}
-	FConvertedAssetRecord(const FAssetData& AssetInfo, const FBlueprintNativeCodeGenPaths& TargetPaths);
+	FConvertedAssetRecord(const FAssetData& AssetInfo, const FBlueprintNativeCodeGenPaths& TargetPaths, const FCompilerNativizationOptions& NativizationOptions);
 
 	/**
 	 * @return 

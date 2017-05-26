@@ -19,7 +19,7 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 	bCanProcessAsync = true;
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
-	SampleRate = AUDIO_SAMPLE_RATE;
+	SampleRate = InSynthComponent->GetAudioDevice()->SampleRate;
 }
 
 bool USynthSound::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
@@ -101,13 +101,15 @@ void USynthComponent::OnRegister()
 	{
 		bIsInitialized = true;
 
+		const int32 SampleRate = GetAudioDevice()->SampleRate;
+
 #if SYNTH_GENERATOR_TEST_TONE
 		NumChannels = 2;
-		TestSineLeft.Init(AUDIO_SAMPLE_RATE, 440.0f, 0.5f);
-		TestSineRight.Init(AUDIO_SAMPLE_RATE, 220.0f, 0.5f);
+		TestSineLeft.Init(SampleRate, 440.0f, 0.5f);
+		TestSineRight.Init(SampleRate, 220.0f, 0.5f);
 #else	
 		// Initialize the synth component
-		this->Init(AUDIO_SAMPLE_RATE);
+		this->Init(SampleRate);
 
 		if (NumChannels < 0 || NumChannels > 2)
 		{

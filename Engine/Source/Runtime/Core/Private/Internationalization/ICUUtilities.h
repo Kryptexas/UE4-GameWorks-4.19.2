@@ -62,5 +62,14 @@ namespace ICUUtilities
 	/** Given an FString, count how many characters it would be if converted to an icu::UnicodeString (as FString may not always be UTF-16) */
 	int32 GetUnicodeStringLength(const FString& Source);
 	int32 GetUnicodeStringLength(const TCHAR* Source, const int32 InSourceStartIndex, const int32 InSourceLength);
+
+	/** Sanitize the given culture code so that it is safe to use with ICU */
+	FString SanitizeCultureCode(const FString& InCultureCode);
+
+	/** Sanitize the given timezone code so that it is safe to use with ICU */
+	FString SanitizeTimezoneCode(const FString& InTimezoneCode);
+
+	/** Sanitize the given currency code so that it is safe to use with ICU */
+	FString SanitizeCurrencyCode(const FString& InCurrencyCode);
 }
 #endif

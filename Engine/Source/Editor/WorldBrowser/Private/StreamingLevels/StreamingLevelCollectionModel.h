@@ -36,11 +36,13 @@ public:
 	/** FLevelCollection interface */
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) override;
 	virtual void AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList) override;
-	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
+	virtual TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> CreateDragDropOp() const override;
+	virtual TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> CreateDragDropOp(const FLevelModelList& InLevels) const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  override;
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;
+	virtual bool HasFolderSupport() const override { return true; }
 
 private:
 	virtual void Initialize(UWorld* InWorld) override;

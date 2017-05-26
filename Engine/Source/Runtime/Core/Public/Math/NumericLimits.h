@@ -73,17 +73,17 @@ struct TNumericLimits<uint8>
 {
 	typedef uint8 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_uint8;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_uint8;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -95,17 +95,17 @@ struct TNumericLimits<uint16>
 {
 	typedef uint16 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_uint16;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_uint16;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -117,17 +117,17 @@ struct TNumericLimits<uint32>
 {
 	typedef uint32 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_uint32;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_uint32;
 	}
 	
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -139,17 +139,17 @@ struct TNumericLimits<uint64>
 {
 	typedef uint64 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_uint64;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_uint64;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -161,17 +161,17 @@ struct TNumericLimits<int8>
 {
 	typedef int8 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_int8;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_int8;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -183,17 +183,17 @@ struct TNumericLimits<int16>
 {
 	typedef int16 NumericType;
 
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_int16;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_int16;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -205,17 +205,17 @@ struct TNumericLimits<int32>
 {
 	typedef int32 NumericType;
 
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_int32;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_int32;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -227,17 +227,17 @@ struct TNumericLimits<int64>
 {
 	typedef int64 NumericType;
 	
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_int64;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_int64;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return Min();
 	}
@@ -249,17 +249,17 @@ struct TNumericLimits<float>
 {
 	typedef float NumericType;
 
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_flt;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_flt;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return -Max();
 	}
@@ -271,17 +271,17 @@ struct TNumericLimits<double>
 {
 	typedef double NumericType;
 
-	static NumericType Min()
+	static constexpr NumericType Min()
 	{
 		return MIN_dbl;
 	}
 
-	static NumericType Max()
+	static constexpr NumericType Max()
 	{
 		return MAX_dbl;
 	}
 
-	static NumericType Lowest()
+	static constexpr NumericType Lowest()
 	{
 		return -Max();
 	}

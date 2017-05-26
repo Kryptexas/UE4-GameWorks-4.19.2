@@ -4,10 +4,19 @@
 #include "OnlineSubsystem.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemUtils.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Engine/NetConnection.h"
 
 UOnlineEngineInterfaceImpl::UOnlineEngineInterfaceImpl(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, VoiceSubsystemNameOverride(NAME_None)
+	, DefaultSubsystemName(NAME_None)
 {
+	FString DefaultSubsystemNameString;
+	if (GConfig->GetString(TEXT("OnlineSubsystem"), TEXT("DefaultPlatformService"), DefaultSubsystemNameString, GEngineIni))
+	{
+		DefaultSubsystemName = FName(*DefaultSubsystemNameString);
+	}
 }
 
 bool UOnlineEngineInterfaceImpl::IsLoaded(FName OnlineIdentifier)
@@ -53,6 +62,37 @@ void UOnlineEngineInterfaceImpl::ShutdownOnlineSubsystem(FName OnlineIdentifier)
 void UOnlineEngineInterfaceImpl::DestroyOnlineSubsystem(FName OnlineIdentifier)
 {
 	IOnlineSubsystem::Destroy(OnlineIdentifier);
+}
+
+#if OSS_DEDICATED_SERVER_VOICECHAT
+FName UOnlineEngineInterfaceImpl::GetDefaultOnlineSubsystemName() const
+{
+	return DefaultSubsystemName;
+}
+#endif
+
+FName UOnlineEngineInterfaceImpl::GetDedicatedServerSubsystemNameForSubsystem(const FName Subsystem) const
+{
+	// For console platforms with their own online subsystem, there may be a separate
+	// online system that can run on dedicated servers, since the console one typically
+	// won't compile/run on dedicated server platforms. The console and server OSSs should
+	// maintain compatibility with serialized data, such as voice packets, so that the server
+	// OSS can properly forward them to other clients using the console OSS.
+
+	// Clients may send their platform subsystem name via the "OnlinePlatform=" login URL option,
+	// then the server can pass the value of that option to this function to get the name of
+	// the corresponding server OSS for that client, if one exists.
+
+	if (Subsystem == LIVE_SUBSYSTEM)
+	{
+		return LIVESERVER_SUBSYSTEM;
+	}
+	else if (Subsystem == PS4_SUBSYSTEM)
+	{
+		return PS4SERVER_SUBSYSTEM;
+	}
+
+	return NAME_None;
 }
 
 TSharedPtr<const FUniqueNetId> UOnlineEngineInterfaceImpl::CreateUniquePlayerId(const FString& Str)
@@ -304,7 +344,7 @@ bool UOnlineEngineInterfaceImpl::GetResolvedConnectString(UWorld* World, FName S
 
 TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::GetLocalPacket(UWorld* World, uint8 LocalUserNum)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(LocalUserNum);
@@ -314,19 +354,37 @@ TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::GetLocalPacket(UWorld* Worl
 	return nullptr;
 }
 
-TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::SerializeRemotePacket(UWorld* World, FArchive& Ar)
+#if OSS_DEDICATED_SERVER_VOICECHAT
+TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::SerializeRemotePacket(UWorld* World, const UNetConnection* const RemoteConnection, FArchive& Ar)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	FName VoiceSubsystemName = VoiceSubsystemNameOverride;
+	if (RemoteConnection && RemoteConnection->Driver && RemoteConnection->Driver->GetNetMode() == NM_DedicatedServer)
+	{
+		VoiceSubsystemName = GetDedicatedServerSubsystemNameForSubsystem(RemoteConnection->GetPlayerOnlinePlatformName());
+	}
+
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemName);
 	if (VoiceInt.IsValid())
 	{
 		return VoiceInt->SerializeRemotePacket(Ar);
 	}
 	return nullptr;
 }
+#else
+TSharedPtr<FVoicePacket> UOnlineEngineInterfaceImpl::SerializeRemotePacket(UWorld* World, FArchive& Ar)
+{
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
+	if (VoiceInt.IsValid())
+	{
+		return VoiceInt->SerializeRemotePacket(Ar);
+	}
+	return nullptr;
+}
+#endif
 
 void UOnlineEngineInterfaceImpl::StartNetworkedVoice(UWorld* World, uint8 LocalUserNum)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		VoiceInt->StartNetworkedVoice(LocalUserNum);
@@ -335,7 +393,7 @@ void UOnlineEngineInterfaceImpl::StartNetworkedVoice(UWorld* World, uint8 LocalU
 
 void UOnlineEngineInterfaceImpl::StopNetworkedVoice(UWorld* World, uint8 LocalUserNum)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		VoiceInt->StopNetworkedVoice(LocalUserNum);
@@ -344,7 +402,7 @@ void UOnlineEngineInterfaceImpl::StopNetworkedVoice(UWorld* World, uint8 LocalUs
 
 void UOnlineEngineInterfaceImpl::ClearVoicePackets(UWorld* World)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		VoiceInt->ClearVoicePackets();
@@ -353,7 +411,7 @@ void UOnlineEngineInterfaceImpl::ClearVoicePackets(UWorld* World)
 
 bool UOnlineEngineInterfaceImpl::MuteRemoteTalker(UWorld* World, uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		return VoiceInt->MuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
@@ -363,7 +421,7 @@ bool UOnlineEngineInterfaceImpl::MuteRemoteTalker(UWorld* World, uint8 LocalUser
 
 bool UOnlineEngineInterfaceImpl::UnmuteRemoteTalker(UWorld* World, uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		return VoiceInt->UnmuteRemoteTalker(LocalUserNum, PlayerId, bIsSystemWide);
@@ -373,7 +431,7 @@ bool UOnlineEngineInterfaceImpl::UnmuteRemoteTalker(UWorld* World, uint8 LocalUs
 
 int32 UOnlineEngineInterfaceImpl::GetNumLocalTalkers(UWorld* World)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World, VoiceSubsystemNameOverride);
 	if (VoiceInt.IsValid())
 	{
 		return VoiceInt->GetNumLocalTalkers();

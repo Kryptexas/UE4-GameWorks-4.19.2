@@ -584,3 +584,17 @@ protected:
 	/** custom user data: flags */
 	int32 UserFlags;
 };
+
+UENUM()
+enum class EGenericAICheck : uint8
+{
+	Less,
+	LessOrEqual,
+	Equal,
+	NotEqual,
+	GreaterOrEqual,
+	Greater,
+	IsTrue,
+
+	MAX UMETA(Hidden)
+};

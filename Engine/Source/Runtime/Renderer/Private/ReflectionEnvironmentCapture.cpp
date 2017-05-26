@@ -187,6 +187,10 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 			SetRenderTarget(RHICmdList, Cubemap.TargetableTexture, MipIndex, CubeFace, NULL, true);
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
+			//this is a weired place but at the end of the scope it will not be good enough as SetRendertarget sets it to writable 
+			//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
+
 			const FIntRect ViewRect(0, 0, MipSize, MipSize);
 			RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
 
@@ -222,11 +226,9 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 				FIntPoint(ViewRect.Width(), ViewRect.Height()),
 				FIntPoint(MipSize, MipSize),
 				*VertexShader);
-
-			//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
 		}
 	}
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &CubeRef, 1);
 }
 
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */

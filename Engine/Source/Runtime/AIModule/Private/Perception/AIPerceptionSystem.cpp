@@ -574,12 +574,12 @@ void UAIPerceptionSystem::RegisterAllPawnsAsSourcesForSense(FAISenseID SenseID)
 	}
 }
 
-bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContext, TSubclassOf<UAISense> Sense, AActor* Target)
+bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContextObject, TSubclassOf<UAISense> Sense, AActor* Target)
 {
 	bool bResult = false;
 	if (Sense && Target)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		if (World && World->GetAISystem())
 		{
 			UAISystem* AISys = Cast<UAISystem>(World->GetAISystem());
@@ -617,10 +617,10 @@ void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(AActor* Actor, EEndPl
 	bStimuliSourcesRefreshRequired = true;
 }
 
-TSubclassOf<UAISense> UAIPerceptionSystem::GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus)
+TSubclassOf<UAISense> UAIPerceptionSystem::GetSenseClassForStimulus(UObject* WorldContextObject, const FAIStimulus& Stimulus)
 {
 	TSubclassOf<UAISense> Result = nullptr;
-	UAIPerceptionSystem* PercSys = GetCurrent(WorldContext);
+	UAIPerceptionSystem* PercSys = GetCurrent(WorldContextObject);
 	if (PercSys && PercSys->Senses.IsValidIndex(Stimulus.Type) && PercSys->Senses[Stimulus.Type] != nullptr)
 	{
 		Result = PercSys->Senses[Stimulus.Type]->GetClass();
@@ -650,9 +650,9 @@ void UAIPerceptionSystem::ReportEvent(UAISenseEvent* PerceptionEvent)
 	}
 }
 
-void UAIPerceptionSystem::ReportPerceptionEvent(UObject* WorldContext, UAISenseEvent* PerceptionEvent)
+void UAIPerceptionSystem::ReportPerceptionEvent(UObject* WorldContextObject, UAISenseEvent* PerceptionEvent)
 {
-	UAIPerceptionSystem* PerceptionSys = GetCurrent(WorldContext);
+	UAIPerceptionSystem* PerceptionSys = GetCurrent(WorldContextObject);
 	if (PerceptionSys != nullptr)
 	{
 		PerceptionSys->ReportEvent(PerceptionEvent);

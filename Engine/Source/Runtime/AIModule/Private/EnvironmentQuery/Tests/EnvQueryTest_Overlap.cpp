@@ -23,7 +23,7 @@ void UEnvQueryTest_Overlap::RunTest(FEnvQueryInstance& QueryInstance) const
 
 	bool bWantsHit = BoolValue.GetValue();
 	
-	FCollisionQueryParams OverlapParams(TEXT("EnvQueryOverlap"), OverlapData.bOverlapComplex);
+	FCollisionQueryParams OverlapParams(SCENE_QUERY_STAT(EnvQueryOverlap), OverlapData.bOverlapComplex);
 	OverlapParams.bTraceAsyncScene = true;
 	
 	const ECollisionChannel OverlapCollisionChannel = OverlapData.OverlapChannel;

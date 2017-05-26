@@ -3,6 +3,7 @@
 #include "Animation/SmartName.h"
 #include "UObject/FrameworkObjectVersion.h"
 #include "Animation/Skeleton.h"
+#include "AnimPhysObjectVersion.h"
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -361,8 +362,13 @@ void FSmartNameContainer::InitializeCurveMetaData(class USkeleton* Skeleton)
 ///////////////////////////////////////////////////////////////////////
 bool FSmartName::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
 	Ar << DisplayName;
-	Ar << UID;
+	if (Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::RemoveUIDFromSmartNameSerialize)
+	{
+		SmartName::UID_Type TempUID;
+		Ar << TempUID;
+	}
 
 	// only save if it's editor build and not cooking
 #if WITH_EDITORONLY_DATA

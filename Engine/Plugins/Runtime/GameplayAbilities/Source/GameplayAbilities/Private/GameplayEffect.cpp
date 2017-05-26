@@ -356,8 +356,22 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 			break;
 
 			case EGameplayEffectMagnitudeCalculation::SetByCaller:
-				OutCalculatedMagnitude = InRelevantSpec.GetSetByCallerMagnitude(SetByCallerMagnitude.DataName, WarnIfSetByCallerFail, DefaultSetbyCaller);
-				break;
+			{
+				if (SetByCallerMagnitude.DataTag.IsValid())
+				{
+					OutCalculatedMagnitude = InRelevantSpec.GetSetByCallerMagnitude(SetByCallerMagnitude.DataTag, WarnIfSetByCallerFail, DefaultSetbyCaller);
+				}
+				else
+				{
+					PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+					OutCalculatedMagnitude = InRelevantSpec.GetSetByCallerMagnitude(SetByCallerMagnitude.DataName, WarnIfSetByCallerFail, DefaultSetbyCaller);
+
+					PRAGMA_ENABLE_DEPRECATION_WARNINGS
+				}
+			}
+			break;
+
 			default:
 				ABILITY_LOG(Error, TEXT("Unknown MagnitudeCalculationType %d in AttemptCalculateMagnitude"), (int32)MagnitudeCalculationType);
 				OutCalculatedMagnitude = 0.f;
@@ -642,7 +656,8 @@ FGameplayEffectSpec::FGameplayEffectSpec(FGameplayEffectSpec&& Other)
 	, bCompletedTargetAttributeCapture(Other.bCompletedTargetAttributeCapture)
 	, bDurationLocked(Other.bDurationLocked)
 	, GrantedAbilitySpecs(MoveTemp(Other.GrantedAbilitySpecs))
-	, SetByCallerMagnitudes(MoveTemp(Other.SetByCallerMagnitudes))
+	, SetByCallerNameMagnitudes(MoveTemp(Other.SetByCallerNameMagnitudes))
+	, SetByCallerTagMagnitudes(MoveTemp(Other.SetByCallerTagMagnitudes))
 	, EffectContext(Other.EffectContext)
 	, Level(Other.Level)
 {
@@ -668,7 +683,8 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(FGameplayEffectSpec&& Other)
 	bCompletedTargetAttributeCapture = Other.bCompletedTargetAttributeCapture;
 	bDurationLocked = Other.bDurationLocked;
 	GrantedAbilitySpecs = MoveTemp(Other.GrantedAbilitySpecs);
-	SetByCallerMagnitudes = MoveTemp(Other.SetByCallerMagnitudes);
+	SetByCallerNameMagnitudes = MoveTemp(Other.SetByCallerNameMagnitudes);
+	SetByCallerTagMagnitudes = MoveTemp(Other.SetByCallerTagMagnitudes);
 	EffectContext = Other.EffectContext;
 	Level = Other.Level;
 	return *this;
@@ -693,7 +709,8 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(const FGameplayEffectSpec& O
 	bCompletedTargetAttributeCapture = Other.bCompletedTargetAttributeCapture;
 	bDurationLocked = Other.bDurationLocked;
 	GrantedAbilitySpecs =  Other.GrantedAbilitySpecs;
-	SetByCallerMagnitudes = Other.SetByCallerMagnitudes;
+	SetByCallerNameMagnitudes = Other.SetByCallerNameMagnitudes;
+	SetByCallerTagMagnitudes = Other.SetByCallerTagMagnitudes;
 	EffectContext = Other.EffectContext;
 	Level = Other.Level;
 	return *this;
@@ -1110,15 +1127,33 @@ void FGameplayEffectSpec::GetAllAssetTags(OUT FGameplayTagContainer& Container) 
 	}
 }
 
+
 void FGameplayEffectSpec::SetSetByCallerMagnitude(FName DataName, float Magnitude)
 {
-	SetByCallerMagnitudes.FindOrAdd(DataName) = Magnitude;
+	if (DataName != NAME_None)
+	{
+		SetByCallerNameMagnitudes.FindOrAdd(DataName) = Magnitude;
+	}
+}
+
+void FGameplayEffectSpec::SetSetByCallerMagnitude(FGameplayTag DataTag, float Magnitude)
+{
+	if (DataTag.IsValid())
+	{
+		SetByCallerTagMagnitudes.FindOrAdd(DataTag) = Magnitude;
+	}
 }
 
 float FGameplayEffectSpec::GetSetByCallerMagnitude(FName DataName, bool WarnIfNotFound, float DefaultIfNotFound) const
 {
 	float Magnitude = DefaultIfNotFound;
-	const float* Ptr = SetByCallerMagnitudes.Find(DataName);
+	const float* Ptr = nullptr;
+	
+	if (DataName != NAME_None)
+	{
+		Ptr = SetByCallerNameMagnitudes.Find(DataName);
+	}
+	
 	if (Ptr)
 	{
 		Magnitude = *Ptr;
@@ -1126,6 +1161,28 @@ float FGameplayEffectSpec::GetSetByCallerMagnitude(FName DataName, bool WarnIfNo
 	else if (WarnIfNotFound)
 	{
 		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::GetMagnitude called for Data %s on Def %s when magnitude had not yet been set by caller."), *DataName.ToString(), *Def->GetName());
+	}
+
+	return Magnitude;
+}
+
+float FGameplayEffectSpec::GetSetByCallerMagnitude(FGameplayTag DataTag, bool WarnIfNotFound, float DefaultIfNotFound) const
+{
+	float Magnitude = DefaultIfNotFound;
+	const float* Ptr = nullptr;
+
+	if (DataTag.IsValid())
+	{
+		Ptr = SetByCallerTagMagnitudes.Find(DataTag);
+	}
+
+	if (Ptr)
+	{
+		Magnitude = *Ptr;
+	}
+	else if (WarnIfNotFound)
+	{
+		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::GetMagnitude called for Data %s on Def %s when magnitude had not yet been set by caller."), *DataTag.ToString(), *Def->GetName());
 	}
 
 	return Magnitude;
@@ -2205,6 +2262,8 @@ bool FActiveGameplayEffectsContainer::ShouldUseMinimalReplication()
 
 void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float ServerValue)
 {
+	float OldValue = Owner->GetNumericAttribute(Attribute);
+
 	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
 	if (RefPtr && RefPtr->Get())
 	{
@@ -2217,9 +2276,22 @@ void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGame
 	else
 	{
 		// No aggregators on the client but still broadcast the dirty delegate
-		if (FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute))
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		if (FOnGameplayAttributeChange* LegacyDelegate = AttributeChangeDelegates.Find(Attribute))
 		{
-			Delegate->Broadcast(ServerValue, nullptr);
+			LegacyDelegate->Broadcast(ServerValue, nullptr);
+		}
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+		if (FOnGameplayAttributeValueChange* Delegate = AttributeValueChangeDelegates.Find(Attribute))
+		{
+			FOnAttributeChangeData CallbackData;
+			CallbackData.Attribute = Attribute;
+			CallbackData.NewValue = ServerValue;
+			CallbackData.OldValue = OldValue;
+			CallbackData.GEModData = nullptr;
+
+			Delegate->Broadcast(CallbackData);
 		}
 	}
 }
@@ -2334,21 +2406,37 @@ void FActiveGameplayEffectsContainer::CaptureAttributeForGameplayEffect(OUT FGam
 void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData, bool bFromRecursiveCall)
 {
 	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewValue);
+
+	float OldValue = Owner->GetNumericAttribute(Attribute);
 	Owner->SetNumericAttribute_Internal(Attribute, NewValue);
 	
 	if (!bFromRecursiveCall)
 	{
-		FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute);
-		if (Delegate)
+		// We should only have one: either cached CurrentModcallbackData, or explicit callback data passed directly in.
+		if (ModData && CurrentModcallbackData)
 		{
-			// We should only have one: either cached CurrentModcallbackData, or explicit callback data passed directly in.
-			if (ModData && CurrentModcallbackData)
-			{
-				ABILITY_LOG(Warning, TEXT("Had passed in ModData and cached CurrentModcallbackData in FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute. For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName() );
-			}
+			ABILITY_LOG(Warning, TEXT("Had passed in ModData and cached CurrentModcallbackData in FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute. For attribute %s on %s."), *Attribute.GetName(), *Owner->GetFullName() );
+		}
+		
+		const FGameplayEffectModCallbackData* DataToShare = ModData ? ModData : CurrentModcallbackData;
 
-			// Broadcast dirty delegate. If we were given explicit mod data then pass it. 
-			Delegate->Broadcast(NewValue, ModData ? ModData : CurrentModcallbackData);
+		// DEPRECATED Delegate
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		if (FOnGameplayAttributeChange* LegacyDelegate = AttributeChangeDelegates.Find(Attribute))
+		{
+			LegacyDelegate->Broadcast(NewValue, DataToShare);
+		}
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+		// NEW Delegate
+		if (FOnGameplayAttributeValueChange* NewDelegate = AttributeValueChangeDelegates.Find(Attribute))
+		{
+			FOnAttributeChangeData CallbackData;
+			CallbackData.Attribute = Attribute;
+			CallbackData.NewValue = NewValue;
+			CallbackData.OldValue = OldValue;
+			CallbackData.GEModData = DataToShare;
+			NewDelegate->Broadcast(CallbackData);
 		}
 	}
 	CurrentModcallbackData = nullptr;
@@ -2539,6 +2627,9 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 
 		FGameplayEffectSpec& ExistingSpec = ExistingStackableGE->Spec;
 		StartingStackCount = ExistingSpec.StackCount;
+
+		// This is now the global "being applied GE"
+		UAbilitySystemGlobals::Get().SetCurrentAppliedGE(&ExistingSpec);
 		
 		// How to apply multiple stacks at once? What if we trigger an overflow which can reject the application?
 		// We still want to apply the stacks that didnt push us over, but we also want to call HandleActiveGameplayEffectStackOverflow.
@@ -2642,6 +2733,9 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 			AppliedActiveGE = new(GameplayEffects_Internal) FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey);
 		}
 	}
+
+	// This is now the global "being applied GE"
+	UAbilitySystemGlobals::Get().SetCurrentAppliedGE(&AppliedActiveGE->Spec);
 
 	FGameplayEffectSpec& AppliedEffectSpec = AppliedActiveGE->Spec;
 	UAbilitySystemGlobals::Get().GlobalPreGameplayEffectSpecApply(AppliedEffectSpec, Owner);
@@ -2917,10 +3011,9 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			{
 				for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
 				{
-					// Note: minimal replication does not replicate the effect context with the gameplay cue parameters.
-					// This is just a choice right now. If needed, it may be better to convert the effect context to GC parameters *here*
-					// and pass those into this function
-					Owner->AddGameplayCue_MinimalReplication(CueTag);
+					// We are now replicating the EffectContext in minimally replicated cues. It may be worth allowing this be determined on a per cue basis one day.
+					// (not sending the EffectContext can make things wrong. E.g, the EffectCauser becomes the target of the GE rather than the source)
+					Owner->AddGameplayCue_MinimalReplication(CueTag, Effect.Spec.GetEffectContext());
 				}
 			}
 		}
@@ -3861,7 +3954,14 @@ int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FGameplayEffec
 
 FOnGameplayAttributeChange& FActiveGameplayEffectsContainer::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return AttributeChangeDelegates.FindOrAdd(Attribute);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+FOnGameplayAttributeValueChange& FActiveGameplayEffectsContainer::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)
+{
+	return AttributeValueChangeDelegates.FindOrAdd(Attribute);
 }
 
 bool FActiveGameplayEffectsContainer::HasReceivedEffectWithPredictedKey(FPredictionKey PredictionKey) const

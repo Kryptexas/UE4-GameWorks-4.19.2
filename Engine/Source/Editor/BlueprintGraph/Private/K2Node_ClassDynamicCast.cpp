@@ -42,24 +42,24 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 	if (!bIsPureCast)
 	{
 		// Input - Execution Pin
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 		// Output - Execution Pins
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastSucceeded);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastFailed);
 	}
 
 	// Input - Source type Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Class, TEXT(""), UObject::StaticClass(), false, false, FClassDynamicCastHelper::GetClassToCastName());
+	CreatePin(EGPD_Input, K2Schema->PC_Class, FString(), UObject::StaticClass(), FClassDynamicCastHelper::GetClassToCastName());
 
 	// Output - Data Pin
 	if (TargetType != NULL)
 	{
 		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
-		CreatePin(EGPD_Output, K2Schema->PC_Class, TEXT(""), *TargetType, false, false, CastResultPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Class, FString(), *TargetType, CastResultPinName);
 	}
 
-	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false, FClassDynamicCastHelper::CastSuccessPinName);
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, FClassDynamicCastHelper::CastSuccessPinName);
 	BoolSuccessPin->bHidden = !bIsPureCast;
 
 	UK2Node::AllocateDefaultPins();

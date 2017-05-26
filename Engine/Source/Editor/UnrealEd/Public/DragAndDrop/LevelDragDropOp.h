@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "Engine/Level.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Input/DragAndDrop.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
 #include "Engine/LevelStreaming.h"
 #include "EditorStyleSet.h"
 #include "UObject/Package.h"
@@ -12,10 +12,10 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 
-class FLevelDragDropOp : public FDragDropOperation
+class FLevelDragDropOp : public FDecoratedDragDropOp
 {
 public:
-	DRAG_DROP_OPERATOR_TYPE(FLevelDragDropOp, FDragDropOperation)
+	DRAG_DROP_OPERATOR_TYPE(FLevelDragDropOp, FDecoratedDragDropOp)
 
 	/** The levels to be dropped. */
 	TArray<TWeakObjectPtr<ULevel>> LevelsToDrop;
@@ -25,27 +25,31 @@ public:
 
 	/** Whether content is good to drop on current site, used by decorator */
 	bool bGoodToDrop;
-		
+	
+	/** Inits the tooltip */
+	void Init()
+	{
+		FString DefaultLevel(TEXT("None"));
+
+		if (LevelsToDrop.Num() > 0 && LevelsToDrop[0].IsValid())
+		{
+			DefaultLevel = LevelsToDrop[0]->GetOutermost()->GetName();
+		}
+		else if (StreamingLevelsToDrop.Num() > 0 && StreamingLevelsToDrop[0].IsValid())
+		{
+			DefaultLevel = StreamingLevelsToDrop[0]->GetWorldAssetPackageName();
+		}
+
+		CurrentHoverText = FText::FromString(DefaultLevel);
+
+		bGoodToDrop = LevelsToDrop.Num() > 0 || StreamingLevelsToDrop.Num() > 0;
+
+		SetupDefaults();
+	}
+
 	/** The widget decorator to use */
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
-		FString LevelName(TEXT("None"));
-		
-		if (LevelsToDrop.Num())
-		{
-			if (LevelsToDrop[0].IsValid())
-			{
-				LevelName = LevelsToDrop[0]->GetOutermost()->GetName();
-			}
-		}
-		else if (StreamingLevelsToDrop.Num())
-		{
-			if (StreamingLevelsToDrop[0].IsValid())
-			{
-				LevelName = StreamingLevelsToDrop[0]->GetWorldAssetPackageName();
-			}
-		}
-		
 		return SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
 			.Content()
@@ -55,7 +59,7 @@ public:
 				.AutoWidth()
 					[
 						SNew(STextBlock) 
-						.Text( FText::FromString(LevelName) )
+						.Text( this, &FDecoratedDragDropOp::GetHoverText )
 					]
 			];
 	}
@@ -64,7 +68,7 @@ public:
 	{
 		TSharedRef<FLevelDragDropOp> Operation = MakeShareable(new FLevelDragDropOp);
 		Operation->StreamingLevelsToDrop.Append(LevelsToDrop);
-		Operation->bGoodToDrop = true;
+		Operation->Init();
 		Operation->Construct();
 		return Operation;
 	}
@@ -73,7 +77,7 @@ public:
 	{
 		TSharedRef<FLevelDragDropOp> Operation = MakeShareable(new FLevelDragDropOp);
 		Operation->LevelsToDrop.Append(LevelsToDrop);
-		Operation->bGoodToDrop = true;
+		Operation->Init();
 		Operation->Construct();
 		return Operation;
 	}

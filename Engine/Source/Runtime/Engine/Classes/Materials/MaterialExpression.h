@@ -93,7 +93,7 @@ struct FExpressionOutput
 };
 #endif
 
-UCLASS(abstract, hidecategories=Object)
+UCLASS(abstract, BlueprintType, hidecategories=Object)
 class ENGINE_API UMaterialExpression : public UObject
 {
 	GENERATED_UCLASS_BODY()

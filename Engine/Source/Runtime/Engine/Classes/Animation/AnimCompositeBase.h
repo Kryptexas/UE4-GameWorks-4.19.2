@@ -60,26 +60,26 @@ struct FAnimSegment
 	GENERATED_USTRUCT_BODY()
 
 	/** Anim Reference to play - only allow AnimSequence or AnimComposite **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	UAnimSequenceBase* AnimReference;
 
 	/** Start Pos within this AnimCompositeBase */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(VisibleAnywhere, Category=AnimSegment)
 	float	StartPos;
 
 	/** Time to start playing AnimSequence at. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimStartTime;
 
 	/** Time to end playing the AnimSequence at. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimEndTime;
 
 	/** Playback speed of this animation. If you'd like to reverse, set -1*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimPlayRate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	int32		LoopingCount;
 
 	FAnimSegment()
@@ -187,7 +187,7 @@ struct FAnimTrack
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimTrack, EditFixedSize)
+	UPROPERTY(EditAnywhere, Category=AnimTrack, EditFixedSize)
 	TArray<FAnimSegment>	AnimSegments;
 
 	FAnimTrack() {}

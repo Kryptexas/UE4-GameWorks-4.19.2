@@ -13,6 +13,17 @@
 
 #define LOCTEXT_NAMESPACE "Parties"
 
+namespace PartyConsoleVariables
+{
+	// CVars
+	TAutoConsoleVariable<int32> CVarPartyEnableAutoRejoin(
+		TEXT("Party.CVarEnableAutoRejoin"),
+		1,
+		TEXT("Enable automatic rejoining of parties\n")
+		TEXT("1 Enables. 0 disables."),
+		ECVF_Default);
+}
+
 UParty::UParty(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	bLeavingPersistentParty(false)
@@ -556,7 +567,8 @@ void UParty::PartyStateChanged(const FUniqueNetId& LocalUserId, const FOnlinePar
 		if (State == EPartyState::Disconnected)
 		{
 			// If we have other members in our party, then we will try to rejoin this when we come back online
-			if (ShouldCacheDisconnectedPersistentPartyForRejoin(PartyState))
+			if (PartyConsoleVariables::CVarPartyEnableAutoRejoin.GetValueOnGameThread() &&
+				ShouldCacheDisconnectedPersistentPartyForRejoin(PartyState))
 			{
 				UE_LOG(LogParty, Log, TEXT("PartyStateChanged: [%s] Caching party for rejoin"), *InPartyId.ToString());
 				TArray<TSharedRef<const FUniqueNetId>> MemberIds;

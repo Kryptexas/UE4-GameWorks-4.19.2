@@ -1333,7 +1333,7 @@ public:
 	template <typename T>
 	FORCEINLINE_DEBUGGABLE void* Alloc()
 	{
-		return MemManager.Alloc(sizeof(T), ALIGNOF(T));
+		return MemManager.Alloc(sizeof(T), alignof(T));
 	}
 
 	FSlateBatchData& GetBatchData() { return BatchData; }

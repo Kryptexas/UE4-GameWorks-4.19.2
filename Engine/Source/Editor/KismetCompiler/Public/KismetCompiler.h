@@ -30,6 +30,8 @@ enum class EInternalCompilerFlags
 	None = 0x0,
 
 	PostponeLocalsGenerationUntilPhaseTwo = 0x1,
+	PostponeDefaultObjectAssignmentUntilReinstancing = 0x2,
+	SkipRefreshExternalBlueprintDependencyNodes = 0x4,
 };
 ENUM_CLASS_FLAGS(EInternalCompilerFlags)
 
@@ -151,7 +153,7 @@ public:
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) == nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -170,7 +172,7 @@ public:
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) != nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -216,13 +218,16 @@ public:
 	 */
 	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+	DEPRECATED(4.17, "Use version that takes PinContainerType instead of separate booleans for array, set, and map")
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = FString(), UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	bool UsePersistentUberGraphFrame() const;
 
 	FString GetGuid(const UEdGraphNode* Node) const;
 
-	static TUniquePtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
+	static TSharedPtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 	
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();
@@ -332,11 +337,17 @@ protected:
 	/** Creates user defined local variables for function */
 	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation);
 
+	/** Helper function for CreateUserDefinedLocalVariablesForFunction and compilation manager's FastGenerateSkeletonClass: */
+	static UProperty* CreateUserDefinedLocalVariableForFunction(const FBPVariableDescription& Variable, UFunction* Function, UBlueprintGeneratedClass* OwningClass, UField**& FunctionPropertyStorageLocation, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
+
 	/** Adds a default value entry into the DefaultPropertyValueMap for the property specified */
 	void SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value);
 
 	/** Copies default values cached for the terms in the DefaultPropertyValueMap to the final CDO */
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject);
+
+	/** Non virtual wrapper to encapsulate functions that occur when the CDO is ready for values: */
+	void PropagateValuesToCDO(UObject* NewCDO, UObject* OldCDO);
 
 	/** 
 	 * Function works only if subclass of AActor or UActorComponent.
@@ -427,6 +438,8 @@ protected:
 	 * Handles final post-compilation setup, flags, creates cached values that would normally be set during deserialization, etc...
 	 */
 	void FinishCompilingFunction(FKismetFunctionContext& Context);
+
+	static void SetCalculatedMetaDataAndFlags(UFunction* Function, UK2Node_FunctionEntry* EntryNode, const UEdGraphSchema_K2* Schema );
 
 	/**
 	 * Handles adding the implemented interface information to the class

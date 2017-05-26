@@ -1977,8 +1977,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	EditorLODSetting = 0;
 #endif // WITH_EDITORONLY_DATA
 	FixedRelativeBoundingBox.Min = FVector(-1.0f, -1.0f, -1.0f);
-
 	FixedRelativeBoundingBox.Max = FVector(1.0f, 1.0f, 1.0f);
+	FixedRelativeBoundingBox.IsValid = true;
 
 	LODMethod = PARTICLESYSTEMLODMETHOD_Automatic;
 	LODDistanceCheckTime = 0.25f;
@@ -3468,18 +3468,15 @@ void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeReso
 bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams)
 {
 	check(GetWorld());
-	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
-
 	if ( HalfExtent.IsZero() )
 	{
-		FCollisionQueryParams QueryParams(NAME_ParticleCollision, true, SourceActor);
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ParticleCollision), true, SourceActor);
 		QueryParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, QueryParams);
 	}
 	else
 	{
-		FCollisionQueryParams BoxParams;
-		BoxParams.TraceTag = NAME_ParticleCollision;
+		FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(ParticleCollision));
 		BoxParams.AddIgnoredActor(SourceActor);
 		BoxParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(HalfExtent), BoxParams);
@@ -3849,7 +3846,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 
 	if (Template)
 	{
-		ParticleDynamicData->SystemPositionForMacroUVs = ComponentToWorld.TransformPosition(Template->MacroUVPosition);
+		ParticleDynamicData->SystemPositionForMacroUVs = GetComponentTransform().TransformPosition(Template->MacroUVPosition);
 		ParticleDynamicData->SystemRadiusForMacroUVs = Template->MacroUVRadius;
 	}
 
@@ -4053,6 +4050,24 @@ void UParticleSystemComponent::SetMaterial(int32 ElementIndex, UMaterialInterfac
 		}
 		EmitterMaterials[ElementIndex] = Material;
 		bIsViewRelevanceDirty = true;
+
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+		{
+			if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
+			{
+				if (!Inst->Tick_MaterialOverrides())
+				{
+					if (EmitterMaterials.IsValidIndex(EmitterIndex))
+					{
+						if (EmitterMaterials[EmitterIndex])
+						{
+							Inst->CurrentMaterial = EmitterMaterials[EmitterIndex];
+						}
+					}
+				}
+			}
+		}
+		MarkRenderDynamicDataDirty();
 	}
 }
 
@@ -4166,7 +4181,7 @@ void UParticleSystemComponent::OrientZAxisTowardCamera()
 		DirToCamera.Normalize();
 
 		// Convert the camera direction to local space
-		DirToCamera = ComponentToWorld.InverseTransformVectorNoScale(DirToCamera);
+		DirToCamera = GetComponentTransform().InverseTransformVectorNoScale(DirToCamera);
 		
 		// Local Z axis
 		const FVector LocalZAxis = FVector(0,0,1);
@@ -4611,7 +4626,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_Marshall)
 		bAsyncDataCopyIsValid = true;
 		check(!bParallelRenderThreadUpdate);
-		AsyncComponentToWorld = ComponentToWorld;
+		AsyncComponentToWorld = GetComponentTransform();
 		AsyncInstanceParameters.Reset();
 		AsyncInstanceParameters.Append(InstanceParameters);
 			AsyncBounds = Bounds;

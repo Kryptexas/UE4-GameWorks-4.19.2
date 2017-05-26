@@ -254,7 +254,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-		DrawClearQuad(RHICmdList, SceneRenderer->FeatureLevel, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
+		DrawClearQuad(RHICmdList, true, FLinearColor::Black, false, 0, false, 0, Target->GetSizeXY(), ViewRect);
 
 		// Render the scene normally
 		{
@@ -278,8 +278,10 @@ static void UpdateSceneCaptureContent_RenderThread(
 	const FName OwnerName,
 	const FResolveParams& ResolveParams)
 {
+	FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+
 	switch (SceneRenderer->Scene->GetShadingPath())
-			{
+	{
 		case EShadingPath::Mobile:
 		{
 			UpdateSceneCaptureContentMobile_RenderThread(
@@ -391,7 +393,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		Scene,
 		SceneCaptureComponent->ShowFlags)
 		.SetResolveScene(!bCaptureSceneColor)
-		.SetRealtimeUpdate(bIsPlanarReflection));
+		.SetRealtimeUpdate(bIsPlanarReflection || SceneCaptureComponent->bCaptureEveryFrame));
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 	{

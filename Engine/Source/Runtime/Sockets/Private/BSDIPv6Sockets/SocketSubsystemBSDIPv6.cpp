@@ -72,10 +72,12 @@ ESocketErrors FSocketSubsystemBSDIPv6::GetHostByName(const ANSICHAR* HostName, F
 				if (IPv6SockAddr != nullptr)
 				{
 					static_cast<FInternetAddrBSDIPv6&>(OutAddr).SetIp(IPv6SockAddr->sin6_addr);
+					freeaddrinfo(AddrInfo);
 					return SE_NO_ERROR;
 				}
 			}
 		}
+		freeaddrinfo(AddrInfo);
 		return SE_HOST_NOT_FOUND;
 	}
 	return SocketError;

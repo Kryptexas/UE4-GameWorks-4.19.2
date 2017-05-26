@@ -237,6 +237,11 @@ public:
 			&& ((TargetableFlags & TexCreate_UAV) == 0 || GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5);
 	}
 
+	FIntVector GetSize() const
+	{
+		return FIntVector(Extent.X, Extent.Y, Depth);
+	}
+
 	/** 
 	 * for debugging purpose
 	 * @return e.g. (2D 128x64 PF_R8)

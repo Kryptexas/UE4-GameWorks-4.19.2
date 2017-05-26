@@ -66,6 +66,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Global callback that can handle game-specific code that needs to run before applying a gameplay effect spec */
 	virtual void GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent);
 
+	// Stubs for WIP feature that will come to engine
+	virtual void PushCurrentAppliedGE(const FGameplayEffectSpec* Spec, UAbilitySystemComponent* AbilitySystemComponent) { }
+	virtual void SetCurrentAppliedGE(const FGameplayEffectSpec* Spec) { }
+	virtual void PopCurrentAppliedGE() { }
+
 	/** Returns true if the ability system should try to predict gameplay effects applied to non local targets */
 	bool ShouldPredictTargetGameplayEffects() const
 	{
@@ -342,4 +347,17 @@ public:
 	//...for finding assets directly from the game.
 	void Notify_FindAssetInEditor(FString AssetName, int AssetType);
 	FOnAbilitySystemAssetFoundDelegate AbilityFindAssetInEditorCallbacks;
+};
+
+
+struct FScopeCurrentGameplayEffectBeingApplied
+{
+	FScopeCurrentGameplayEffectBeingApplied(const FGameplayEffectSpec* Spec, UAbilitySystemComponent* AbilitySystemComponent)
+	{
+		UAbilitySystemGlobals::Get().PushCurrentAppliedGE(Spec, AbilitySystemComponent);
+	}
+	~FScopeCurrentGameplayEffectBeingApplied()
+	{
+		UAbilitySystemGlobals::Get().PopCurrentAppliedGE();
+	}
 };

@@ -26,7 +26,7 @@ public:
 	{
 		SGraphPin::Construct(SGraphPin::FArguments().PinLabelStyle(FName("Graph.Node.DefaultPinName")), InPin);
 
-		bWasEventPin = false;
+		CachePinIcons();
 	}
 };
 

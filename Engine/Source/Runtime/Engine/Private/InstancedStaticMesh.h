@@ -688,7 +688,7 @@ public:
 		: FStaticMeshStaticLightingMesh(InPrimitive, LODIndex, InRelevantLights)
 	{
 		// override the local to world to combine the per instance transform with the component's standard transform
-		SetLocalToWorld(InPrimitive->PerInstanceSMData[InstanceIndex].Transform * InPrimitive->ComponentToWorld.ToMatrixWithScale());
+		SetLocalToWorld(InPrimitive->PerInstanceSMData[InstanceIndex].Transform * InPrimitive->GetComponentTransform().ToMatrixWithScale());
 	}
 };
 

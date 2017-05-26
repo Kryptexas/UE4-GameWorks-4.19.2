@@ -1032,7 +1032,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 	uint8* Parms = (uint8*)FMemory_Alloca(Function->ParmsSize);
 	FMemory::Memzero( Parms, Function->ParmsSize );
 
-	const uint32 ExportFlags = PPF_Localized;
+	const uint32 ExportFlags = PPF_None;
 	bool Failed = 0;
 	int32 NumParamsEvaluated = 0;
 	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It, NumParamsEvaluated++ )
@@ -1385,7 +1385,7 @@ void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 
 	if (VarProperty == nullptr || !IsA((UClass*)VarProperty->GetOuter()))
 	{
-		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingProperty", "Attempted to access missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, FText::Format(LOCTEXT("MissingProperty", "Attempted to access missing property '{0}'. If this is a packaged/cooked build, are you attempting to use an editor-only property?"), FText::FromString(GetNameSafe(VarProperty))));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = nullptr;

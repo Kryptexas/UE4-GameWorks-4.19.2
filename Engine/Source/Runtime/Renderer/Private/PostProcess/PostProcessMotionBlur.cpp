@@ -18,6 +18,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
+#include "SpriteIndexBuffer.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
@@ -212,32 +213,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 }
 
 
-class FScatterQuadIndexBuffer : public FIndexBuffer
-{
-public:
-	virtual void InitRHI() override
-	{
-		const uint32 Size = sizeof(uint16) * 6 * 8;
-		const uint32 Stride = sizeof(uint16);
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer( Stride, Size, BUF_Static, CreateInfo, Buffer );
-		uint16* Indices = (uint16*)Buffer;
-		for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
-		{
-			Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
-			Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
-			Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
-			Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
-		}
-		RHIUnlockIndexBuffer( IndexBufferRHI );
-	}
-};
-
-TGlobalResource< FScatterQuadIndexBuffer > GScatterQuadIndexBuffer;
-
+TGlobalResource< FSpriteIndexBuffer<8> > GScatterQuadIndexBuffer;
 
 class FPostProcessVelocityScatterVS : public FGlobalShader
 {
@@ -862,7 +838,7 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 		// Is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 		Context.SetViewportAndCallRHI(SrcRect);
 	
@@ -1084,7 +1060,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 

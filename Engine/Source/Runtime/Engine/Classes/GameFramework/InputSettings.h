@@ -105,30 +105,49 @@ class ENGINE_API UInputSettings
 	virtual void PostInitProperties() override;
 	// End of UObject interface
 
+	/** Returns the game local machine settings (resolution, windowing mode, scalability settings, etc...) */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	static UInputSettings* GetInputSettings();
+
 	/** Programmatically add an action mapping to the project defaults */
-	void AddActionMapping(const FInputActionKeyMapping& KeyMapping);
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void AddActionMapping(const FInputActionKeyMapping& KeyMapping, bool bForceRebuildKeymaps = true);
+
+	UFUNCTION(BlueprintPure, Category = Settings)
+	void GetActionMappingByName(const FName InActionName, TArray<FInputActionKeyMapping>& OutMappings) const;
 
 	/** Programmatically remove an action mapping to the project defaults */
-	void RemoveActionMapping(const FInputActionKeyMapping& KeyMapping);
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void RemoveActionMapping(const FInputActionKeyMapping& KeyMapping, bool bForceRebuildKeymaps = true);
 
 	/** Programmatically add an axis mapping to the project defaults */
-	void AddAxisMapping(const FInputAxisKeyMapping& KeyMapping);
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void AddAxisMapping(const FInputAxisKeyMapping& KeyMapping, bool bForceRebuildKeymaps = true);
+
+	/** Retrieve all axis mappings by a certain name. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	void GetAxisMappingByName(const FName InAxisName, TArray<FInputAxisKeyMapping>& OutMappings) const;
 
 	/** Programmatically remove an axis mapping to the project defaults */
-	void RemoveAxisMapping(const FInputAxisKeyMapping& KeyMapping);
+	UFUNCTION(BlueprintCallable, Category = Settings)
+	void RemoveAxisMapping(const FInputAxisKeyMapping& KeyMapping, bool bForceRebuildKeymaps = true);
 
 	/** Flush the current mapping values to the config file */
+	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SaveKeyMappings();
 
 	/** Populate a list of all defined action names */
+	UFUNCTION(BlueprintCallable, Category = Settings)
 	void GetActionNames(TArray<FName>& ActionNames) const;
 
 	/** Populate a list of all defined axis names */
+	UFUNCTION(BlueprintCallable, Category = Settings)
 	void GetAxisNames(TArray<FName>& AxisNames) const;
 
-private:
 	/** When changes are made to the default mappings, push those changes out to PlayerInput key maps */
+	UFUNCTION(BlueprintCallable, Category = Settings)
 	void ForceRebuildKeymaps();
 
+private:
 	void PopulateAxisConfigs();
 };

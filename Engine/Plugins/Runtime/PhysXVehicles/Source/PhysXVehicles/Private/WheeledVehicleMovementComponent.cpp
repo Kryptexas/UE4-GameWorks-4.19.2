@@ -150,6 +150,12 @@ void UWheeledVehicleMovementComponent::SetUpdatedComponent(USceneComponent* NewU
 	//Skip PawnMovementComponent and simply set PawnOwner to null if we don't have a PawnActor as owner
 	UNavMovementComponent::SetUpdatedComponent(NewUpdatedComponent);
 	PawnOwner = NewUpdatedComponent ? Cast<APawn>(NewUpdatedComponent->GetOwner()) : nullptr;
+
+	if(USkeletalMeshComponent* SKC = Cast<USkeletalMeshComponent>(NewUpdatedComponent))
+	{
+		//TODO: this is a hack until we get proper local space kinematic support
+		SKC->bLocalSpaceKinematics = true;
+	}
 }
 
 bool UWheeledVehicleMovementComponent::CanCreateVehicle() const

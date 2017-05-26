@@ -54,6 +54,8 @@ public:
 	TRefCountPtr<IPooledRenderTarget> PerlinNoiseGradient;
 	// used by the material expression Noise (faster version, should replace old version), todo: move out of SceneRenderTargets
 	TRefCountPtr<IPooledRenderTarget> PerlinNoise3D;
+	// Sobol sampling texture, the first sample points for four sobol dimensions in RGBA
+	TRefCountPtr<IPooledRenderTarget> SobolSampling;
 	/** SSAO randomization */
 	TRefCountPtr<IPooledRenderTarget> SSAORandomization;
 	/** Preintegrated GF for single sample IBL */
@@ -65,7 +67,7 @@ public:
 	// float4(0,1,0,1)
 	TRefCountPtr<IPooledRenderTarget> GreenDummy;
 	// float4(0.5,0.5,0.5,1)
-	TRefCountPtr<IPooledRenderTarget> MidGrayDummy;
+	TRefCountPtr<IPooledRenderTarget> DefaultNormal8Bit;
 
 protected:
 	/** Maximum feature level that the textures have been initialized up to */

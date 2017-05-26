@@ -375,9 +375,25 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FCullObjectsToGridCS,TEXT("GlobalDistanceField"),TEXT("CullObjectsToGridCS"),SF_Compute);
 
-const int32 CompositeTileSize = 4;
+enum EFlattenedDimension
+{
+	Flatten_XAxis = 0,
+	Flatten_YAxis = 1,
+	Flatten_ZAxis = 2,
+	Flatten_None
+};
 
-template<bool bUseParentDistanceField>
+int32 GetCompositeTileSize(int32 Dimension, EFlattenedDimension FlattenedDimension)
+{
+	if (FlattenedDimension == Flatten_None)
+	{
+		return 4;
+	}
+
+	return Dimension == (int32)FlattenedDimension ? 1 : 8;
+}
+
+template<bool bUseParentDistanceField, EFlattenedDimension FlattenedDimension>
 class TCompositeObjectDistanceFieldsCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TCompositeObjectDistanceFieldsCS,Global)
@@ -391,7 +407,9 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("COMPOSITE_THREADGROUP_SIZE"), CompositeTileSize);
+		OutEnvironment.SetDefine(TEXT("COMPOSITE_THREADGROUP_SIZEX"), GetCompositeTileSize(0, FlattenedDimension));
+		OutEnvironment.SetDefine(TEXT("COMPOSITE_THREADGROUP_SIZEY"), GetCompositeTileSize(1, FlattenedDimension));
+		OutEnvironment.SetDefine(TEXT("COMPOSITE_THREADGROUP_SIZEZ"), GetCompositeTileSize(2, FlattenedDimension));
 		OutEnvironment.SetDefine(TEXT("CULL_GRID_TILE_SIZE"), GCullGridTileSize);
 		OutEnvironment.SetDefine(TEXT("MAX_GRID_CULLED_DF_OBJECTS"), GMaxGridCulledObjects);
 		OutEnvironment.SetDefine(TEXT("USE_PARENT_DISTANCE_FIELD"), bUseParentDistanceField ? 1 : 0);
@@ -505,8 +523,19 @@ private:
 	FShaderParameter AOGlobalMaxSphereQueryRadius;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TCompositeObjectDistanceFieldsCS<true>,TEXT("GlobalDistanceField"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TCompositeObjectDistanceFieldsCS<false>,TEXT("GlobalDistanceField"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
+#define IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(bUseParentDistanceField, FlattenedDimension) \
+	typedef TCompositeObjectDistanceFieldsCS<bUseParentDistanceField, FlattenedDimension> TCompositeObjectDistanceFieldsCS##bUseParentDistanceField##FlattenedDimension; \
+	IMPLEMENT_SHADER_TYPE(template<>,TCompositeObjectDistanceFieldsCS##bUseParentDistanceField##FlattenedDimension,TEXT("GlobalDistanceField"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
+
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_None);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_XAxis);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_YAxis);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_ZAxis);
+
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(false, Flatten_None);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(false, Flatten_XAxis);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(false, Flatten_YAxis);
+IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(false, Flatten_ZAxis);
 
 const int32 HeightfieldCompositeTileSize = 8;
 
@@ -1285,7 +1314,7 @@ void UpdateGlobalDistanceFieldVolume(
 
 				for (int32 ClipmapIndex = 0; ClipmapIndex < Clipmaps.Num(); ClipmapIndex++)
 				{
-					SCOPED_DRAW_EVENTF(RHICmdList, Clipmap, TEXT("CacheType %u Clipmap %u"), CacheType, ClipmapIndex);
+					SCOPED_DRAW_EVENTF(RHICmdList, Clipmap, TEXT("CacheType %s Clipmap %u"), CacheType == GDF_MostlyStatic ? TEXT("MostlyStatic") : TEXT("Movable"), ClipmapIndex);
 
 					FGlobalDistanceFieldClipmap& Clipmap = Clipmaps[ClipmapIndex];
 
@@ -1300,7 +1329,7 @@ void UpdateGlobalDistanceFieldVolume(
 
 								// Cull the global objects to the volume being updated
 								{
-									ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
+									ClearUAV(RHICmdList, GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
 
 									TShaderMapRef<FCullObjectsForVolumeCS> ComputeShader(View.ShaderMap);
 									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -1330,28 +1359,98 @@ void UpdateGlobalDistanceFieldVolume(
 							{
 								SCOPED_DRAW_EVENTF(RHICmdList, TileCullAndComposite, TEXT("TileCullAndComposite %ux%ux%u"), UpdateRegion.CellsSize.X, UpdateRegion.CellsSize.Y, UpdateRegion.CellsSize.Z);
 
-								//@todo - match typical update sizes.  Camera movement creates narrow slabs.
-								const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, CompositeTileSize);
-								const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, CompositeTileSize);
-								const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, CompositeTileSize);
+								int32 MinDimension = 2;
+
+								if (UpdateRegion.CellsSize.X < UpdateRegion.CellsSize.Y && UpdateRegion.CellsSize.X < UpdateRegion.CellsSize.Z)
+								{
+									MinDimension = 0;
+								}
+								else if (UpdateRegion.CellsSize.Y < UpdateRegion.CellsSize.X && UpdateRegion.CellsSize.Y < UpdateRegion.CellsSize.Z)
+								{
+									MinDimension = 1;
+								}
+
+								int32 MinSize = UpdateRegion.CellsSize[MinDimension];
+								int32 MaxSize = FMath::Max(UpdateRegion.CellsSize.X, FMath::Max(UpdateRegion.CellsSize.Y, UpdateRegion.CellsSize.Z));
+								const EFlattenedDimension FlattenedDimension = MaxSize >= MinSize * 8 ? (EFlattenedDimension)MinDimension : Flatten_None;
+
+								const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, GetCompositeTileSize(0, FlattenedDimension));
+								const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, GetCompositeTileSize(1, FlattenedDimension));
+								const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, GetCompositeTileSize(2, FlattenedDimension));
 
 								IPooledRenderTarget* ParentDistanceField = GlobalDistanceFieldInfo.MostlyStaticClipmaps[ClipmapIndex].RenderTarget;
 
 								if (CacheType == GDF_Full && GAOGlobalDistanceFieldCacheMostlyStaticSeparately && ParentDistanceField)
 								{
-									TShaderMapRef<TCompositeObjectDistanceFieldsCS<true>> ComputeShader(View.ShaderMap);
-									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-									ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
-									DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-									ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									if (FlattenedDimension == Flatten_None)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<true, Flatten_None>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else if (FlattenedDimension == Flatten_XAxis)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<true, Flatten_XAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else if (FlattenedDimension == Flatten_YAxis)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<true, Flatten_YAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else
+									{
+										check(FlattenedDimension == Flatten_ZAxis);
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<true, Flatten_ZAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
 								}
 								else
 								{
-									TShaderMapRef<TCompositeObjectDistanceFieldsCS<false>> ComputeShader(View.ShaderMap);
-									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-									ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
-									DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-									ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									if (FlattenedDimension == Flatten_None)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<false, Flatten_None>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else if (FlattenedDimension == Flatten_XAxis)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<false, Flatten_XAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else if (FlattenedDimension == Flatten_YAxis)
+									{
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<false, Flatten_YAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
+									else
+									{
+										check(FlattenedDimension == Flatten_ZAxis);
+										TShaderMapRef<TCompositeObjectDistanceFieldsCS<false, Flatten_ZAxis>> ComputeShader(View.ShaderMap);
+										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
+										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+									}
 								}
 							}
 						}

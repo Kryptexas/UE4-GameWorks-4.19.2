@@ -5,9 +5,9 @@
 
 #define LOCTEXT_NAMESPACE "ResetToDefaultPropertyEditor"
 
-void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const TSharedRef<FPropertyEditor>& InPropertyEditor )
+void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const TSharedPtr<IPropertyHandle>& InPropertyHandle )
 {
-	PropertyEditor = InPropertyEditor;
+	PropertyHandle = InPropertyHandle;
 	NonVisibleState = InArgs._NonVisibleState;
 	bValueDiffersFromDefault = false;
 	OptionalCustomResetToDefault = InArgs._CustomResetToDefault;
@@ -53,7 +53,7 @@ void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const T
 	UpdateDiffersFromDefaultState();
 }
 
-void SResetToDefaultPropertyEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SResetToDefaultPropertyEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	UpdateDiffersFromDefaultState();
 }
@@ -63,9 +63,9 @@ FText SResetToDefaultPropertyEditor::GetResetToolTip() const
 	FString Tooltip;
 	Tooltip = NSLOCTEXT("PropertyEditor", "ResetToDefaultToolTip", "Reset to Default").ToString();
 
-	if( !PropertyEditor->IsEditConst() && PropertyEditor->ValueDiffersFromDefault() )
+	if( PropertyHandle.IsValid() && !PropertyHandle->IsEditConst() && PropertyHandle->DiffersFromDefault() )
 	{
-		FString DefaultLabel = PropertyEditor->GetResetToDefaultLabel().ToString();
+		FString DefaultLabel = PropertyHandle->GetResetToDefaultLabel().ToString();
 
 		if (DefaultLabel.Len() > 0)
 		{
@@ -79,27 +79,34 @@ FText SResetToDefaultPropertyEditor::GetResetToolTip() const
 
 FReply SResetToDefaultPropertyEditor::OnDefaultResetClicked()
 {
-	PropertyEditor->ResetToDefault();
-
+	if (PropertyHandle.IsValid())
+	{
+		PropertyHandle->ResetToDefault();
+	}
 	return FReply::Handled();
 }
 
 FReply SResetToDefaultPropertyEditor::OnCustomResetClicked()
 {
-	PropertyEditor->CustomResetToDefault(OptionalCustomResetToDefault.GetValue());
-
+	if (PropertyHandle.IsValid())
+	{
+		PropertyHandle->CustomResetToDefault(OptionalCustomResetToDefault.GetValue());
+	}
 	return FReply::Handled();
 }
 
 void SResetToDefaultPropertyEditor::UpdateDiffersFromDefaultState()
 {
-	if(OptionalCustomResetToDefault.IsSet())
+	if (PropertyHandle.IsValid())
 	{
-		bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyEditor->GetPropertyHandle());
-	}
-	else
-	{
-		bValueDiffersFromDefault = PropertyEditor->IsResetToDefaultAvailable();
+		if (OptionalCustomResetToDefault.IsSet())
+		{
+			bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyHandle.ToSharedRef());
+		}
+		else
+		{
+			bValueDiffersFromDefault = PropertyHandle->IsResetToDefaultAvailable();
+		}
 	}
 }
 

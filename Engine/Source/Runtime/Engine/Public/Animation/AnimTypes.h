@@ -188,7 +188,7 @@ public:
  * Triggers an animation notify.  Each AnimNotifyEvent contains an AnimNotify object
  * which has its Notify method called and passed to the animation.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAnimNotifyEvent : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
@@ -343,7 +343,7 @@ FORCEINLINE bool FAnimNotifyEvent::operator<(const FAnimNotifyEvent& Other) cons
 	}
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAnimSyncMarker
 {
 	GENERATED_USTRUCT_BODY()

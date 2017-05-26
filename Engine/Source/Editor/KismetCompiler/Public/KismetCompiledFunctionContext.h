@@ -54,7 +54,7 @@ public:
 	TArray<UEdGraphNode*> LinearExecutionList;
 
 	FCompilerResultsLog& MessageLog;
-	UEdGraphSchema_K2* Schema;
+	const UEdGraphSchema_K2* Schema;
 
 	// An UNORDERED listing of all statements (used for cleaning up the dynamically allocated statements)
 	TArray< FBlueprintCompiledStatement* > AllGeneratedStatements;
@@ -105,7 +105,7 @@ public:
 	//Does this function use requires FlowStack ?
 	bool bUseFlowStack;
 public:
-	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation);
+	FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation);
 	
 	~FKismetFunctionContext();
 

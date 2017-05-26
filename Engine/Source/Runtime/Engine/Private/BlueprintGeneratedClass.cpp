@@ -24,6 +24,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintCompilationManager.h"
+#include "Engine/LevelScriptBlueprint.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -302,6 +303,17 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			{
 				GeneratingBP->SkeletonGeneratedClass->StaticLink(true);
 			}
+		}
+	}
+}
+
+void UBlueprintGeneratedClass::FlushCompilationQueueForLevel()
+{
+	if(GBlueprintUseCompilationManager)
+	{
+		if(Cast<ULevelScriptBlueprint>(ClassGeneratedBy))
+		{
+			FBlueprintCompilationManager::FlushCompilationQueue();
 		}
 	}
 }
@@ -1296,7 +1308,12 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 
 bool UBlueprintGeneratedClass::NeedsLoadForServer() const
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	// This logic can't be used for targets that use editor content because UBlueprint::NeedsLoadForEditorGame
+	// returns true and forces all UBlueprints to be loaded for -game or -server runs. The ideal fix would be
+	// to remove UBlueprint::NeedsLoadForEditorGame, after that it would be nice if we could just implement
+	// UBlueprint::NeedsLoadForEditorGame here, but we can't because then our CDO doesn't get loaded. We *could*
+	// fix that behavior, but instead I'm just abusing IsRunningCommandlet() so that this logic only runs during cook:
+	if (IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForServer())
 		{
@@ -1312,7 +1329,12 @@ bool UBlueprintGeneratedClass::NeedsLoadForServer() const
 
 bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	// This logic can't be used for targets that use editor content because UBlueprint::NeedsLoadForEditorGame
+	// returns true and forces all UBlueprints to be loaded for -game or -server runs. The ideal fix would be
+	// to remove UBlueprint::NeedsLoadForEditorGame, after that it would be nice if we could just implement
+	// UBlueprint::NeedsLoadForEditorGame here, but we can't because then our CDO doesn't get loaded. We *could*
+	// fix that behavior, but instead I'm just abusing IsRunningCommandlet() so that this logic only runs during cook:
+	if (IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForClient())
 		{
@@ -1324,6 +1346,11 @@ bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 		}
 	}
 	return Super::NeedsLoadForClient();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForEditorGame() const
+{
+	return true;
 }
 
 bool UBlueprintGeneratedClass::CanBeClusterRoot() const
@@ -1423,10 +1450,34 @@ protected:
 			Object = nullptr;
 		}
 #endif
+		if (Object)
+		{
+			bool bWeakRef = false;
 
-		const bool bWeakRef = Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
-		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
-		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
+			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
+			{
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
+
+				if (ObjectProperty)
+				{
+					bWeakRef = true;
+				}
+			}
+
+			if (bWeakRef)
+			{
+				// This was a raw UObject * serialized by UObjectProperty, so just save the address
+				Collector.MarkWeakObjectReferenceForClearing(&Object);				
+			}
+			else
+			{
+				// This is a hard reference or we don't know what's serializing it, so serialize it normally
+				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			}
+		}
+
+		return *this;
 	}
 };
 
@@ -1446,9 +1497,6 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 					checkSlow(BPGC->UberGraphFunction);
 					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
-
-					// Reset the ShouldHandleAsWeakRef state, before the collector is used by a different archive.
-					Collector.SetShouldHandleAsWeakRef(false);
 				}
 			}
 		}

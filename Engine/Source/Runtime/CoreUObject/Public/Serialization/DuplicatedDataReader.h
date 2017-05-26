@@ -7,7 +7,6 @@
 #include "UObject/UObjectAnnotation.h"
 #include "Serialization/DuplicatedObject.h"
 
-class FAssetPtr;
 class FLazyObjectPtr;
 struct FStringAssetReference;
 
@@ -31,7 +30,6 @@ private:
 	virtual FArchive& operator<<(FName& N);
 	virtual FArchive& operator<<(UObject*& Object);
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr);
-	virtual FArchive& operator<<(FAssetPtr& AssetPtr);
 	virtual FArchive& operator<<(FStringAssetReference& StringAssetReference);
 	
 	void SerializeFail();

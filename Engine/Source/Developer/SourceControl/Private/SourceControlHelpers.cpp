@@ -16,10 +16,7 @@
 
 #define LOCTEXT_NAMESPACE "SourceControlHelpers"
 
-namespace SourceControlHelpers
-{
-
-const FString& GetSettingsIni()
+const FString& USourceControlHelpers::GetSettingsIni()
 {
 	if(ISourceControlModule::Get().GetUseGlobalSettings())
 	{
@@ -37,7 +34,7 @@ const FString& GetSettingsIni()
 	}
 }
 
-const FString& GetGlobalSettingsIni()
+const FString& USourceControlHelpers::GetGlobalSettingsIni()
 {
 	static FString SourceControlGlobalSettingsIni;
 	if(SourceControlGlobalSettingsIni.Len() == 0)
@@ -73,12 +70,12 @@ static FString PackageFilename_Internal( const FString& InPackageName )
 	return Filename;
 }
 
-FString PackageFilename( const FString& InPackageName )
+FString USourceControlHelpers::PackageFilename( const FString& InPackageName )
 {
 	return FPaths::ConvertRelativePathToFull(PackageFilename_Internal(InPackageName));
 }
 
-FString PackageFilename( const UPackage* InPackage )
+FString USourceControlHelpers::PackageFilename( const UPackage* InPackage )
 {
 	FString Filename;
 	if(InPackage != NULL)
@@ -88,7 +85,7 @@ FString PackageFilename( const UPackage* InPackage )
 	return Filename;
 }
 
-TArray<FString> PackageFilenames( const TArray<UPackage*>& InPackages )
+TArray<FString> USourceControlHelpers::PackageFilenames( const TArray<UPackage*>& InPackages )
 {
 	TArray<FString> OutNames;
 	for (int32 PackageIndex = 0; PackageIndex < InPackages.Num(); PackageIndex++)
@@ -99,7 +96,7 @@ TArray<FString> PackageFilenames( const TArray<UPackage*>& InPackages )
 	return OutNames;
 }
 
-TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames )
+TArray<FString> USourceControlHelpers::PackageFilenames( const TArray<FString>& InPackageNames )
 {
 	TArray<FString> OutNames;
 	for (int32 PackageIndex = 0; PackageIndex < InPackageNames.Num(); PackageIndex++)
@@ -110,7 +107,7 @@ TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames )
 	return OutNames;
 }
 
-TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames )
+TArray<FString> USourceControlHelpers::AbsoluteFilenames( const TArray<FString>& InFileNames )
 {
 	TArray<FString> AbsoluteFiles;
 	for(const auto& FileName : InFileNames)
@@ -130,7 +127,7 @@ TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames )
 	return AbsoluteFiles;
 }
 
-void RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FString>& InFiles )
+void USourceControlHelpers::RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FString>& InFiles )
 {
 	// Make sure we update the modified state of the files
 	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
@@ -156,7 +153,7 @@ void RevertUnchangedFiles( ISourceControlProvider& InProvider, const TArray<FStr
 	}
 }
 
-bool AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, const FString& InFile, TArray<FAnnotationLine>& OutLines )
+bool USourceControlHelpers::AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, const FString& InFile, TArray<FAnnotationLine>& OutLines )
 {
 	TArray< TSharedRef<ISourceControlLabel> > Labels = InProvider.GetLabels( InLabel );
 	if(Labels.Num() > 0)
@@ -177,7 +174,7 @@ bool AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, c
 	return false;
 }
 
-bool AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier, const FString& InFile, TArray<FAnnotationLine>& OutLines )
+bool USourceControlHelpers::AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier, const FString& InFile, TArray<FAnnotationLine>& OutLines )
 {
 	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
 	UpdateStatusOperation->SetUpdateHistory(true);
@@ -204,7 +201,7 @@ bool AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier
 	return false;
 }
 
-bool MarkFileForAdd( const FString& InFilePath )
+bool USourceControlHelpers::MarkFileForAdd( const FString& InFilePath )
 {
 	if (InFilePath.IsEmpty())
 	{
@@ -252,7 +249,7 @@ bool MarkFileForAdd( const FString& InFilePath )
 	return true;
 }
 
-bool CheckOutFile( const FString& InFilePath )
+bool USourceControlHelpers::CheckOutFile( const FString& InFilePath )
 {
 	if ( InFilePath.IsEmpty() )
 	{
@@ -342,7 +339,7 @@ bool CheckOutFile( const FString& InFilePath )
 	return bSuccessfullyCheckedOut;
 }
 
-bool CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescription, const FOnPostCheckOut& OnPostCheckOut, FText& OutFailReason )
+bool USourceControlHelpers::CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescription, const FOnPostCheckOut& OnPostCheckOut, FText& OutFailReason )
 {
 	bool bSucceeded = true;
 
@@ -395,7 +392,7 @@ bool CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescrip
 	return bSucceeded;
 }
 
-bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason)
+bool USourceControlHelpers::CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason)
 {
 	struct Local
 	{
@@ -416,7 +413,7 @@ bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSou
 	return CheckoutOrMarkForAdd(InDestFile, InFileDescription, FOnPostCheckOut::CreateStatic(&Local::CopyFile, InSourceFile), OutFailReason);
 }
 
-bool BranchPackage( UPackage* DestPackage, UPackage* SourcePackage )
+bool USourceControlHelpers::BranchPackage( UPackage* DestPackage, UPackage* SourcePackage )
 {
 	if(ISourceControlModule::Get().IsEnabled())
 	{
@@ -437,7 +434,6 @@ bool BranchPackage( UPackage* DestPackage, UPackage* SourcePackage )
 	return false;
 }
 
-}
 
 FScopedSourceControl::FScopedSourceControl()
 {

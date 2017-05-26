@@ -24,10 +24,10 @@ void UK2Node_Knot::AllocateDefaultPins()
 	const FString InputPinName(TEXT("InputPin"));
 	const FString OutputPinName(TEXT("OutputPin"));
 
-	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, /*bIsArray=*/ false, /*bIsReference=*/ false, InputPinName);
+	UEdGraphPin* MyInputPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, InputPinName);
 	MyInputPin->bDefaultValueIsIgnored = true;
 
-	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, /*bIsArray=*/ false, /*bIsReference=*/ false, OutputPinName);
+	UEdGraphPin* MyOutputPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, OutputPinName);
 }
 
 FText UK2Node_Knot::GetTooltipText() const

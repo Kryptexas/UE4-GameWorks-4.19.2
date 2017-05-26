@@ -6,6 +6,8 @@ namespace UnrealBuildTool.Rules
 	{
         public AndroidDeviceProfileSelector(ReadOnlyTargetRules Target) : base(Target)
 		{
+			ShortName = "AndroidDPS";
+
 			PublicIncludePaths.AddRange(
 				new string[] {
                     "Runtime/AndroidDeviceProfileSelector/Public",

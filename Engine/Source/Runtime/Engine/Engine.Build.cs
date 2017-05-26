@@ -80,17 +80,6 @@ public class Engine : ModuleRules
             }
         );
 
-		if (Target.Type == TargetType.Editor)
-		{
-			PrivateIncludePathModuleNames.AddRange(new string[] { "CrashTracker" });
-			DynamicallyLoadedModuleNames.AddRange(new string[] { "CrashTracker" });
-			PublicDependencyModuleNames.AddRange(
-				new string[] {
-			}
-			);
-		}
-
-
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "AppFramework",
@@ -287,8 +276,7 @@ public class Engine : ModuleRules
         {
 		    DynamicallyLoadedModuleNames.AddRange(
 			    new string[] {
-				    "ImageWrapper",
-					"GameLiveStreaming"
+				    "ImageWrapper"
 			    }
 		    );
         }
@@ -330,13 +318,15 @@ public class Engine : ModuleRules
             DynamicallyLoadedModuleNames.Add("HierarchicalLODUtilities");
 
             DynamicallyLoadedModuleNames.Add("AnimationModifiers");
+
+            PrivateIncludePathModuleNames.Add("AssetTools");
+            DynamicallyLoadedModuleNames.Add("AssetTools");
         }
 
 		SetupModulePhysXAPEXSupport(Target);
-        if(UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bRuntimePhysicsCooking))
+        if(UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bCompileAPEX))
         {
-            DynamicallyLoadedModuleNames.Add("PhysXFormats");
-            PrivateIncludePathModuleNames.Add("PhysXFormats");
+            DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }
             
         if(UEBuildConfiguration.bCompilePhysX)

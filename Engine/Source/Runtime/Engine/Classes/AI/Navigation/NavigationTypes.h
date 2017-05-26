@@ -421,7 +421,7 @@ typedef TSharedPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedPt
 typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 
 /** Movement capabilities, determining available movement options for Pawns and used by AI for reachability tests. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
@@ -457,7 +457,7 @@ struct FMovementProperties
 };
 
 /** Properties of representation of an 'agent' (or Pawn) used by AI navigation/pathfinding. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FNavAgentProperties : public FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
@@ -522,7 +522,7 @@ inline uint32 GetTypeHash(const FNavAgentProperties& A)
 	return ((int16(A.AgentRadius) << 16) | int16(A.AgentHeight)) ^ int32(A.AgentStepHeight);
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 {
 	GENERATED_USTRUCT_BODY()

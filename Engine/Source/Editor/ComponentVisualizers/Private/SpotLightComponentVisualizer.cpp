@@ -13,7 +13,7 @@ void FSpotLightComponentVisualizer::DrawVisualization( const UActorComponent* Co
 		const USpotLightComponent* SpotLightComp = Cast<const USpotLightComponent>(Component);
 		if(SpotLightComp != NULL)
 		{
-			FTransform TransformNoScale = SpotLightComp->ComponentToWorld;
+			FTransform TransformNoScale = SpotLightComp->GetComponentTransform();
 			TransformNoScale.RemoveScaling();
 
 			// Draw point light source shape

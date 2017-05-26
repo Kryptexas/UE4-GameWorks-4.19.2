@@ -239,7 +239,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -454,7 +454,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -613,7 +613,7 @@ void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Con
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -795,7 +795,7 @@ void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -1102,7 +1102,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 		else
 		{
 			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-			DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+			DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 		}
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -1305,7 +1305,7 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -1468,7 +1468,7 @@ void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -1718,7 +1718,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -1924,7 +1924,7 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -2164,7 +2164,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -2367,7 +2367,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -2523,7 +2523,7 @@ void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -2726,7 +2726,7 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
@@ -2987,7 +2987,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 		else
 		{
 			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
-			DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+			DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 		}
 	}
 	else

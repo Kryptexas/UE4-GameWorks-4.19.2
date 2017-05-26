@@ -39,7 +39,7 @@ void USlider::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
+	TAttribute<float> ValueBinding = PROPERTY_BINDING(float, Value);
 	
 	MySlider->SetOrientation(Orientation);
 	MySlider->SetSliderBarColor(SliderBarColor);

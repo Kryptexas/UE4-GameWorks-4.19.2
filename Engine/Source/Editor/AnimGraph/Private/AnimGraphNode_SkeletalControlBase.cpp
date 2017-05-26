@@ -73,7 +73,7 @@ FText UAnimGraphNode_SkeletalControlBase::GetTooltipText() const
 void UAnimGraphNode_SkeletalControlBase::CreateOutputPins()
 {
 	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), FComponentSpacePoseLink::StaticStruct(), /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("Pose"));
+	CreatePin(EGPD_Output, Schema->PC_Struct, FString(), FComponentSpacePoseLink::StaticStruct(), TEXT("Pose"));
 }
 
 
@@ -86,7 +86,7 @@ void UAnimGraphNode_SkeletalControlBase::ConvertToComponentSpaceTransform(const 
 	case BCS_WorldSpace:
 	{
 		OutCSTransform = InTransform;
-		OutCSTransform.SetToRelativeTransform(SkelComp->ComponentToWorld);
+		OutCSTransform.SetToRelativeTransform(SkelComp->GetComponentTransform());
 	}
 		break;
 
@@ -254,7 +254,7 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeleta
 
 		switch (Space)
 		{
-			// ComponentToWorld must be Identity in preview window so same as ComponentSpace
+			// GetComponentTransform() must be Identity in preview window so same as ComponentSpace
 		case BCS_WorldSpace:
 		case BCS_ComponentSpace:
 		{

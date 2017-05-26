@@ -31,6 +31,13 @@ public:
 		TagAtLastTest = 0;
 	}
 
+	/** Resets the weak ptr only, call this when ObjectId may change */
+	FORCEINLINE void ResetWeakPtr()
+	{
+		WeakPtr.Reset();
+		TagAtLastTest = 0;
+	}
+
 	/** Construct from another pointer of the same type */
 	FORCEINLINE TPersistentObjectPtr(const TPersistentObjectPtr& Other)
 	{

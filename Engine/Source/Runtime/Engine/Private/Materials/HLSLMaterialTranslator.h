@@ -514,9 +514,9 @@ public:
 
 			if (Domain == MD_Surface)
 			{
-				if (Material->GetBlendMode() == BLEND_Modulate && Material->IsSeparateTranslucencyEnabled())
+				if (Material->GetBlendMode() == BLEND_Modulate && Material->IsTranslucencyAfterDOFEnabled())
 				{
-					Errorf(TEXT("Separate translucency with BLEND_Modulate is not supported. Consider using BLEND_Translucent with black emissive"));
+					Errorf(TEXT("Translucency after DOF with BLEND_Modulate is not supported. Consider using BLEND_Translucent with black emissive"));
 				}
 			}
 
@@ -3113,7 +3113,7 @@ protected:
 	
 		if(MipValueMode == TMVM_None)
 		{
-			SampleCode += FString(TEXT("(%s,")) + SamplerStateCode + TEXT(",%s)");
+			SampleCode += TEXT("(%s,") + SamplerStateCode + TEXT(",%s)");
 		}
 		else if(MipValueMode == TMVM_MipLevel)
 		{
@@ -3126,11 +3126,11 @@ protected:
 				return INDEX_NONE;
 			}
 
-			SampleCode += TEXT("Level(%s,%sSampler,%s,%s)");
+			SampleCode += TEXT("Level(%s,") + SamplerStateCode + TEXT(",%s,%s)");
 		}
 		else if(MipValueMode == TMVM_MipBias)
 		{
-			SampleCode += TEXT("Bias(%s,%sSampler,%s,%s)");
+			SampleCode += TEXT("Bias(%s,") + SamplerStateCode + TEXT(",%s,%s)");
 		}
 		else if(MipValueMode == TMVM_Derivative)
 		{
@@ -3143,7 +3143,7 @@ protected:
 				return Errorf(TEXT("Missing DDY(UVs) parameter"));
 			}
 
-			SampleCode += TEXT("Grad(%s,%sSampler,%s,%s,%s)");
+			SampleCode += TEXT("Grad(%s,") + SamplerStateCode + TEXT(",%s,%s,%s)");
 
 			MipValue0Code = CoerceParameter(MipValue0Index, UVsType);
 			MipValue1Code = CoerceParameter(MipValue1Index, UVsType);
@@ -4716,6 +4716,25 @@ protected:
 		return AddCodeChunk(MCT_Float, 
 			TEXT("MaterialExpressionDepthOfFieldFunction(%s, %d)"), 
 			*GetParameterCode(Depth), FunctionValueIndex);
+	}
+
+	virtual int32 Sobol(int32 Cell, int32 Index, int32 Seed) override
+	{
+		return AddCodeChunk(MCT_Float2,
+			TEXT("floor(%s) + float2(DirectSobol(PixelSobol(uint2(%s), uint(%s) & 7u), uint(%s) >> 3u).xy ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			*GetParameterCode(Cell),
+			*GetParameterCode(Cell),
+			*GetParameterCode(Index),
+			*GetParameterCode(Index),
+			*GetParameterCode(Seed));
+	}
+
+	virtual int32 TemporalSobol(int32 Index, int32 Seed) override
+	{
+		return AddCodeChunk(MCT_Float2,
+			TEXT("float2(DirectSobol(PixelSobol(uint2(Parameters.SvPosition.xy), View.FrameNumber), uint(%s)).xy ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			*GetParameterCode(Index),
+			*GetParameterCode(Seed));
 	}
 
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) override

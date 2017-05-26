@@ -39,6 +39,7 @@ DECLARE_DELEGATE_OneParam( FOnGetNativeNotifyClasses, TArray<UClass*>&)
 
 class SAnimNotifyNode;
 class SAnimNotifyTrack;
+class SNotifyEdTrack;
 class FNotifyDragDropOp;
 
 namespace ENotifyPasteMode
@@ -191,9 +192,19 @@ public:
 
 	void SetSequence(class UAnimSequenceBase *	InSequence);
 
+	// Generate a new track name (smallest integer number that isn't currently used)
+	FName GetNewTrackName() const;
+
 	FReply InsertTrack(int32 TrackIndexToInsert);
 	FReply DeleteTrack(int32 TrackIndexToDelete);
 	bool CanDeleteTrack(int32 TrackIndexToDelete);
+
+	/** Widget timer function to trigger notify track rename (cannot do it directly from add track code) */
+	EActiveTimerReturnType TriggerRename(double InCurrentTime, float InDeltaTime, int32 TrackIndex);
+	
+	// Handler function for renaming a notify track
+	void OnCommitTrackName(const FText& InText, ETextCommit::Type CommitInfo, int32 TrackIndexToName);
+
 	void Update();
 
 	/** Returns the position of the notify node currently being dragged. Returns -1 if no node is being dragged */
@@ -255,6 +266,9 @@ private:
 
 	/** Cached list of anim tracks for notify node drag drop */
 	TArray<TSharedPtr<SAnimNotifyTrack>> NotifyAnimTracks;
+
+	/** Cached list of Notify editor tracks */
+	TArray<TSharedPtr<SNotifyEdTrack>> NotifyEditorTracks;
 
 	// this just refresh notify tracks - UI purpose only
 	// do not call this from here. This gets called by asset. 

@@ -179,14 +179,19 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 {
 	check(Struct);
 	const FString StructName = FEmitHelper::GetCppName(Struct);
-	Context.Header.AddLine(FString::Printf(TEXT("static %s GetDefaultValue()"), *StructName));
-	Context.Header.AddLine(TEXT("{"));
 
-	Context.Header.IncreaseIndent();
-	Context.Header.AddLine(FString::Printf(TEXT("FStructOnScope StructOnScope(%s::StaticStruct());"), *StructName));
-	Context.Header.AddLine(FString::Printf(TEXT("%s& DefaultData__ = *((%s*)StructOnScope.GetStructMemory());"), *StructName, *StructName));
+	// Declaration
+	Context.Header.AddLine(FString::Printf(TEXT("static %s GetDefaultValue();"), *StructName));
+
+	// Definition
+	Context.Body.AddLine(FString::Printf(TEXT("%s %s::GetDefaultValue()"), *StructName, *StructName));
+	Context.Body.AddLine(TEXT("{"));
+
+	Context.Body.IncreaseIndent();
+	Context.Body.AddLine(FString::Printf(TEXT("FStructOnScope StructOnScope(%s::StaticStruct());"), *StructName));
+	Context.Body.AddLine(FString::Printf(TEXT("%s& DefaultData__ = *((%s*)StructOnScope.GetStructMemory());"), *StructName, *StructName));
 	{
-		TGuardValue<FCodeText*> OriginalDefaultTarget(Context.DefaultTarget, &Context.Header);
+		TGuardValue<FCodeText*> OriginalDefaultTarget(Context.DefaultTarget, &Context.Body);
 		FStructOnScope StructData(Struct);
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
 		FStructOnScope RawDefaultStructOnScope(Struct);
@@ -195,10 +200,10 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 			OuterGenerate(Context, Property, TEXT("DefaultData__"), StructData.GetStructMemory(), RawDefaultStructOnScope.GetStructMemory(), EPropertyAccessOperator::Dot);
 		}
 	}
-	Context.Header.AddLine(TEXT("return DefaultData__;"));
-	Context.Header.DecreaseIndent();
+	Context.Body.AddLine(TEXT("return DefaultData__;"));
+	Context.Body.DecreaseIndent();
 
-	Context.Header.AddLine(TEXT("}"));
+	Context.Body.AddLine(TEXT("}"));
 }
 
 void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
@@ -1124,6 +1129,7 @@ struct FFakeImportTableHelper
 					if (Subobject)
 					{
 						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass());
+						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass()->GetDefaultObject());
 					}
 				}
 			};
@@ -1545,12 +1551,6 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *StructConstructor));
 	}
 
-	ensure(0 == Context.MiscConvertedSubobjects.Num());
-	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
-	{
-		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
-	}
-
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 	// Gather all CT from SCS and IH, the remaining ones are generated for class..
 	if (auto SCS = BPGC->SimpleConstructionScript)
@@ -1580,6 +1580,12 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	}
 
 	Context.AddLine(TEXT("FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(InDynamicClass, &__StaticDependencies_DirectlyUsedAssets);"));
+
+	ensure(0 == Context.MiscConvertedSubobjects.Num());
+	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
+	{
+		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
+	}
 
 	auto CreateAndInitializeClassSubobjects = [&](bool bCreate, bool bInitialize)
 	{

@@ -376,6 +376,9 @@ public:
 	/** Returns the margins used for the window border. This varies based on whether it's maximized or not. */
 	FMargin GetWindowBorderSize( bool bIncTitleBar = false ) const;
 
+	/** Returns the margins used for the window border if it's not maximized */
+	FMargin GetNonMaximizedWindowBorderSize() const;
+
 	/** Relocate the window to a screenspace position specified by NewPosition */
 	void MoveWindowTo( FVector2D NewPosition );
 	/** Relocate the window to a screenspace position specified by NewPosition and resize it to NewSize */

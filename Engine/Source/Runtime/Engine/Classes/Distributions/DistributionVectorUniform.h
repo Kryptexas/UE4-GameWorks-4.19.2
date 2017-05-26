@@ -8,8 +8,8 @@
 #include "Distributions/DistributionVector.h"
 #include "DistributionVectorUniform.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
-class UDistributionVectorUniform : public UDistributionVector
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew)
+class ENGINE_API UDistributionVectorUniform : public UDistributionVector
 {
 	GENERATED_UCLASS_BODY()
 

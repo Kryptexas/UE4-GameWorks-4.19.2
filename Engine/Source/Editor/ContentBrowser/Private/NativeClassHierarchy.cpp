@@ -65,9 +65,41 @@ FNativeClassHierarchy::~FNativeClassHierarchy()
 	}
 }
 
+bool FNativeClassHierarchy::HasClasses(const FName InClassPath, const bool bRecursive) const
+{
+	TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>> NodesToSearch;
+	GatherMatchingNodesForPaths(TArrayView<const FName>(&InClassPath, 1), NodesToSearch);
+
+	for(const auto& NodeToSearch : NodesToSearch)
+	{
+		if(HasClassesRecursive(NodeToSearch, bRecursive))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FNativeClassHierarchy::HasFolders(const FName InClassPath, const bool bRecursive) const
+{
+	TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>> NodesToSearch;
+	GatherMatchingNodesForPaths(TArrayView<const FName>(&InClassPath, 1), NodesToSearch);
+
+	for(const auto& NodeToSearch : NodesToSearch)
+	{
+		if(HasFoldersRecursive(NodeToSearch, bRecursive))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FNativeClassHierarchy::GetMatchingClasses(const FNativeClassHierarchyFilter& Filter, TArray<UClass*>& OutClasses) const
 {
-	TArray<TSharedRef<FNativeClassHierarchyNode>> NodesToSearch;
+	TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>> NodesToSearch;
 	GatherMatchingNodesForPaths(Filter.ClassPaths, NodesToSearch);
 
 	for(const auto& NodeToSearch : NodesToSearch)
@@ -78,7 +110,7 @@ void FNativeClassHierarchy::GetMatchingClasses(const FNativeClassHierarchyFilter
 
 void FNativeClassHierarchy::GetMatchingFolders(const FNativeClassHierarchyFilter& Filter, TArray<FString>& OutFolders) const
 {
-	TArray<TSharedRef<FNativeClassHierarchyNode>> NodesToSearch;
+	TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>> NodesToSearch;
 	GatherMatchingNodesForPaths(Filter.ClassPaths, NodesToSearch);
 
 	for(const auto& NodeToSearch : NodesToSearch)
@@ -106,6 +138,42 @@ void FNativeClassHierarchy::GetClassFolders(TArray<FName>& OutClassRoots, TArray
 			GetFoldersRecursive(RootNode.Value.ToSharedRef(), OutClassFolders);
 		}
 	}
+}
+
+bool FNativeClassHierarchy::HasClassesRecursive(const TSharedRef<FNativeClassHierarchyNode>& HierarchyNode, const bool bRecurse)
+{
+	for(const auto& ChildNode : HierarchyNode->Children)
+	{
+		if(ChildNode.Value->Type == ENativeClassHierarchyNodeType::Class)
+		{
+			return true;
+		}
+
+		if(bRecurse && HasClassesRecursive(ChildNode.Value.ToSharedRef()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FNativeClassHierarchy::HasFoldersRecursive(const TSharedRef<FNativeClassHierarchyNode>& HierarchyNode, const bool bRecurse)
+{
+	for(const auto& ChildNode : HierarchyNode->Children)
+	{
+		if(ChildNode.Value->Type == ENativeClassHierarchyNodeType::Folder)
+		{
+			return true;
+		}
+
+		if(bRecurse && HasFoldersRecursive(ChildNode.Value.ToSharedRef()))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FNativeClassHierarchy::GetClassesRecursive(const TSharedRef<FNativeClassHierarchyNode>& HierarchyNode, TArray<UClass*>& OutClasses, const bool bRecurse)
@@ -140,7 +208,7 @@ void FNativeClassHierarchy::GetFoldersRecursive(const TSharedRef<FNativeClassHie
 	}
 }
 
-void FNativeClassHierarchy::GatherMatchingNodesForPaths(const TArray<FName>& InClassPaths, TArray<TSharedRef<FNativeClassHierarchyNode>>& OutMatchingNodes) const
+void FNativeClassHierarchy::GatherMatchingNodesForPaths(const TArrayView<const FName>& InClassPaths, TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>>& OutMatchingNodes) const
 {
 	if(InClassPaths.Num() == 0)
 	{

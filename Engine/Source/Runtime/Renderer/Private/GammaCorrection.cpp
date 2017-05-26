@@ -102,7 +102,7 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 		else
 		{
 			SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+			DrawClearQuad(RHICmdList, FLinearColor::Black);
 		}
 		ViewFamily.bDeferClear = false;
 	}

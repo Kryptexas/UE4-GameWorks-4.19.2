@@ -182,7 +182,7 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	if(Schema && StructType)
 	{
 		PreloadObject(StructType);
-		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, StructType->GetName(), true);
+		CreatePin(EGPD_Input, Schema->PC_Struct, FString(), StructType, StructType->GetName(), EPinContainerType::None, true, true);
 		
 		struct FBreakStructPinManager : public FStructOperationOptionalPinManager
 		{

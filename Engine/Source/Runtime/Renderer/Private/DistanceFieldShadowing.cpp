@@ -44,14 +44,6 @@ FAutoConsoleVariableRef CVarFullResolutionDFShadowing(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
-int32 GAsyncComputeDFShadowing = 0;
-FAutoConsoleVariableRef CVarAsyncComputeDFShadowing(
-	TEXT("r.DFShadowAsyncCompute"),
-	GAsyncComputeDFShadowing,
-	TEXT("Whether to use async compute for ray marching distance fields."),
-	ECVF_Scalability | ECVF_RenderThreadSafe
-	);
-
 int32 GShadowScatterTileCulling = 1;
 FAutoConsoleVariableRef CVarShadowScatterTileCulling(
 	TEXT("r.DFShadowScatterTileCulling"),
@@ -687,7 +679,7 @@ void CullDistanceFieldObjectsForLight(
 		}
 
 		{
-			ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
+			ClearUAV(RHICmdList, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
 
 			TShaderMapRef<FCullObjectsForShadowCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -920,42 +912,19 @@ void FProjectedShadowInfo::BeginRenderRayTracedDistanceFieldProjection(FRHIComma
 			SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
-			if (GAsyncComputeDFShadowing)
-			{
-				FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
-				static const FName RTShadowBeginComputeName(TEXT("RTShadowComputeBegin"));
-				static const FName RTShadowComputeEndName(TEXT("RTShadowComputeEnd"));
-				FComputeFenceRHIRef BeginFence = RHICmdList.CreateComputeFence(RTShadowBeginComputeName);
-				RayTracedShadowsEndFence = RHICmdList.CreateComputeFence(RTShadowComputeEndName);
-
-				RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, BeginFence);
-				RHICmdListComputeImmediate.WaitComputeFence(BeginFence);
-
-				RayTraceShadows(RHICmdListComputeImmediate, View, this, TileIntersectionResources);
-
-				RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, nullptr, 0, RayTracedShadowsEndFence);
-
-				FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
-			}
-			else
-			{
-				RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
-			}
+			RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
 		}
 	}
 }
 
 void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bProjectingForForwardShading) 
 {
+	BeginRenderRayTracedDistanceFieldProjection(RHICmdList, View);
+
 	if (RayTracedShadowsRT)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
 		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow);
-
-		if (GAsyncComputeDFShadowing)
-		{
-			RHICmdList.WaitComputeFence(RayTracedShadowsEndFence);
-		}
 
 		FIntRect ScissorRect;
 

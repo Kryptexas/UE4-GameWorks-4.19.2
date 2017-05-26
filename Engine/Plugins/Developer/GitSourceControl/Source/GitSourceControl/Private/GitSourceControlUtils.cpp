@@ -231,11 +231,9 @@ FString FindGitBinaryPath()
 
 bool CheckGitAvailability(const FString& InPathToGitBinary, FGitVersion *OutVersion)
 {
-	bool bGitAvailable = false;
-
 	FString InfoMessages;
 	FString ErrorMessages;
-	bGitAvailable = RunCommandInternalRaw(TEXT("version"), InPathToGitBinary, FString(), TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+	bool bGitAvailable = RunCommandInternalRaw(TEXT("version"), InPathToGitBinary, FString(), TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
 	if(bGitAvailable)
 	{
 		if(!InfoMessages.Contains("git"))
@@ -246,6 +244,7 @@ bool CheckGitAvailability(const FString& InPathToGitBinary, FGitVersion *OutVers
 		{
 			ParseGitVersion(InfoMessages, OutVersion);
 			FindGitCapabilities(InPathToGitBinary, OutVersion);
+			FindGitLfsCapabilities(InPathToGitBinary, OutVersion);
 		}
 	}
 
@@ -284,6 +283,22 @@ void FindGitCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersi
 	if (InfoMessages.Contains("--filters"))
 	{
 		OutVersion->bHasCatFileWithFilters = true;
+	}
+}
+
+void FindGitLfsCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersion)
+{
+	FString InfoMessages;
+	FString ErrorMessages;
+	bool bGitLfsAvailable = RunCommandInternalRaw(TEXT("lfs version"), InPathToGitBinary, FString(), TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+	if(bGitLfsAvailable)
+	{
+		OutVersion->bHasGitLfs = true;
+
+		if(0 <= InfoMessages.Compare(TEXT("git-lfs/2.0.0")))
+		{
+			OutVersion->bHasGitLfsLocking = true; // Git LFS File Locking workflow introduced in "git-lfs/2.0.0"
+		}
 	}
 }
 
@@ -355,7 +370,7 @@ void GetUserConfig(const FString& InPathToGitBinary, const FString& InRepository
 	}
 }
 
-void GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName)
+bool GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName)
 {
 	bool bResults;
 	TArray<FString> InfoMessages;
@@ -380,7 +395,13 @@ void GetBranchName(const FString& InPathToGitBinary, const FString& InRepository
 			OutBranchName = "HEAD detached at ";
 			OutBranchName += InfoMessages[0];
 		}
+		else
+		{
+			bResults = false;
+		}
 	}
+
+	return bResults;
 }
 
 bool RunCommand(const FString& InCommand, const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InParameters, const TArray<FString>& InFiles, TArray<FString>& OutResults, TArray<FString>& OutErrorMessages)

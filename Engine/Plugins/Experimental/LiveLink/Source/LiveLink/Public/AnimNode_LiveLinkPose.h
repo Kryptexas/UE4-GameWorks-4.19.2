@@ -10,7 +10,7 @@ class ILiveLinkClient;
 
 #include "AnimNode_LiveLinkPose.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

@@ -20,9 +20,6 @@
 PxFoundation*			GPhysXFoundation = NULL;
 PxPvd*					GPhysXVisualDebugger = NULL;
 PxPhysics*				GPhysXSDK = NULL;
-#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-PxCooking*				GPhysXCooking = NULL;
-#endif
 FPhysXAllocator*		GPhysXAllocator = NULL;
 
 #if WITH_APEX
@@ -575,9 +572,9 @@ void FPhysXSimEventCallback::onSleep(PxActor** Actors, PxU32 Count)
 
 
 //////////////////////////////////////////////////////////////////////////
-// FPhysXFormatDataReader
+// FPhysXCookingDataReader
 
-FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData, FBodySetupUVInfo* UVInfo )
+FPhysXCookingDataReader::FPhysXCookingDataReader( FByteBulkData& InBulkData, FBodySetupUVInfo* UVInfo )
 {
 	// Read cooked physics data
 	uint8* DataPtr = (uint8*)InBulkData.Lock( LOCK_READ_ONLY );
@@ -622,7 +619,7 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData, FBody
 	InBulkData.Unlock();
 }
 
-PxConvexMesh* FPhysXFormatDataReader::ReadConvexMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
+PxConvexMesh* FPhysXCookingDataReader::ReadConvexMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
 {
 	PxConvexMesh* CookedMesh = NULL;
 	uint8 IsMeshCooked = false;
@@ -637,7 +634,7 @@ PxConvexMesh* FPhysXFormatDataReader::ReadConvexMesh( FBufferReader& Ar, uint8* 
 	return CookedMesh;
 }
 
-PxTriangleMesh* FPhysXFormatDataReader::ReadTriMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
+PxTriangleMesh* FPhysXCookingDataReader::ReadTriMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
 {
 	FPhysXInputStream Buffer( InBulkDataPtr + Ar.Tell(), InBulkDataSize - Ar.Tell() );
 	PxTriangleMesh* CookedMesh = GPhysXSDK->createTriangleMesh(Buffer);

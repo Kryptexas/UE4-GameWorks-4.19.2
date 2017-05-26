@@ -68,11 +68,11 @@ void UK2Node_AssignmentStatement::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
-	CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Then);
+	CreatePin(EGPD_Input, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
+	CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, Schema->PN_Then);
 
-	UEdGraphPin* VariablePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, TEXT(""), NULL, false, false, VariablePinName);
-	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, TEXT(""), NULL, false, false, ValuePinName);
+	UEdGraphPin* VariablePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, VariablePinName);
+	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, ValuePinName);
 
 	Super::AllocateDefaultPins();
 }

@@ -94,6 +94,7 @@ public:
 private:
 
 	bool CanImport() const;
+	FText GetImportTypeDisplayText() const;
 
 private:
 	UFbxImportUI*	ImportUI;

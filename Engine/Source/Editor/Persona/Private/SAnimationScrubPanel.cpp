@@ -575,8 +575,8 @@ void SAnimationScrubPanel::OnReZeroAnimSequence(int32 FrameIndex)
 				FVector ApplyTranslation = -1.f * FrameTransform;
 
 				// Convert into world space
-				FVector WorldApplyTranslation = PreviewSkelComp->ComponentToWorld.TransformVector(ApplyTranslation);
-				ApplyTranslation = PreviewSkelComp->ComponentToWorld.InverseTransformVector(WorldApplyTranslation);
+				FVector WorldApplyTranslation = PreviewSkelComp->GetComponentTransform().TransformVector(ApplyTranslation);
+				ApplyTranslation = PreviewSkelComp->GetComponentTransform().InverseTransformVector(WorldApplyTranslation);
 
 				for(int32 i=0; i<RawTrack.PosKeys.Num(); i++)
 				{

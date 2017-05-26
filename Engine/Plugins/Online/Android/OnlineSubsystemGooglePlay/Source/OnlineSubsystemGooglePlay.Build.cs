@@ -5,7 +5,7 @@ using UnrealBuildTool;
 public class OnlineSubsystemGooglePlay : ModuleRules
 {
 	public OnlineSubsystemGooglePlay(ReadOnlyTargetRules Target) : base(Target)
-	{
+    {
 		Definitions.Add("ONLINESUBSYSTEMGOOGLEPLAY_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 

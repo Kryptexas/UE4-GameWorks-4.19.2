@@ -48,7 +48,7 @@ private:
 
 	FText GetQueryDescText() const;
 
-	void CloseWidgetWindow();
+	void CloseWidgetWindow(bool WasCancelled);
 
 	/** Build List of Editable Queries */
 	void BuildEditableQueryList();
@@ -63,5 +63,7 @@ private:
 	TSharedPtr<SWindow> GameplayTagQueryWidgetWindow;
 
 	FString QueryDescription;
+
+	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 };
 

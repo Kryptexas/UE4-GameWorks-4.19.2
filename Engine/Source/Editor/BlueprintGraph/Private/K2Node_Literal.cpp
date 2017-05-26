@@ -77,7 +77,7 @@ void UK2Node_Literal::AllocateDefaultPins()
 {
 	// The literal node only has one pin:  an output of the desired value, on a wildcard pin type
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), NULL, false, false, *ValuePinName);
+	CreatePin(EGPD_Output, Schema->PC_Object, FString(), nullptr, *ValuePinName);
 
 	// After allocating the pins, try to coerce pin type
 	SetObjectRef( ObjectRef );
@@ -268,7 +268,7 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 		{
 			ValuePin->Modify();
 			ValuePin->PinType.PinCategory = Schema->PC_Object;
-			ValuePin->PinType.PinSubCategory = TEXT("");
+			ValuePin->PinType.PinSubCategory.Reset();
 			ValuePin->PinType.PinSubCategoryObject = ObjectRef->GetClass();
 		}
 	}

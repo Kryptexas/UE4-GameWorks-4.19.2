@@ -254,6 +254,11 @@ void FMetalEventNode::StopDraw(void)
 	}
 }
 #endif
+
+bool MetalGPUProfilerIsInSafeThread()
+{
+	return IsInRHIThread() || IsInActualRenderingThread();
+}
 	
 /** Start this frame of per tracking */
 void FMetalEventNodeFrame::StartFrame()
@@ -295,12 +300,18 @@ void FMetalGPUProfiler::Cleanup()
 
 void FMetalGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
-	FGPUProfiler::PushEvent(Name, Color);
+	if(MetalGPUProfilerIsInSafeThread())
+	{
+		FGPUProfiler::PushEvent(Name, Color);
+	}
 }
 
 void FMetalGPUProfiler::PopEvent()
 {
-	FGPUProfiler::PopEvent();
+	if(MetalGPUProfilerIsInSafeThread())
+	{
+		FGPUProfiler::PopEvent();
+	}
 }
 
 //TGlobalResource<FVector4VertexDeclaration> GMetalVector4VertexDeclaration;
@@ -314,6 +325,11 @@ void FMetalGPUProfiler::BeginFrame()
 		CurrentEventNodeFrame = new FMetalEventNodeFrame(Context, GTriggerGPUProfile);
 		CurrentEventNodeFrame->StartFrame();
 		
+		if(GNumActiveGPUsForRendering > 1)
+		{
+			GTriggerGPUProfile = false;
+		}
+
 		if(GTriggerGPUProfile)
 		{
 			bTrackingEvents = true;
@@ -373,7 +389,10 @@ void FMetalGPUProfiler::BeginFrame()
 			}*/
 		}
 		
-		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
+		if(GEmitDrawEvents)
+		{
+			PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
+		}
 	}
 	NumNestedFrames++;
 }
@@ -382,7 +401,10 @@ void FMetalGPUProfiler::EndFrame()
 {
 	if(--NumNestedFrames == 0)
 	{
-		PopEvent();
+		if(GEmitDrawEvents)
+		{
+			PopEvent();
+		}
 		
 #if PLATFORM_MAC
 		FPlatformMisc::UpdateDriverMonitorStatistics(GetMetalDeviceContext().GetDeviceIndex());
@@ -444,7 +466,7 @@ void FMetalGPUProfiler::EndFrame()
 
 void FMetalGPUProfiler::StartGPUWork(uint32 StartPoint, uint32 EndPoint, uint32 NumPrimitives, uint32 NumVertices)
 {
-	if(CurrentEventNode)
+	if(CurrentEventNode && MetalGPUProfilerIsInSafeThread())
 	{
 		RegisterGPUWork(NumPrimitives, NumVertices);
 #if METAL_STATISTICS
@@ -457,7 +479,7 @@ void FMetalGPUProfiler::StartGPUWork(uint32 StartPoint, uint32 EndPoint, uint32 
 void FMetalGPUProfiler::FinishGPUWork(void)
 {
 #if METAL_STATISTICS
-	if(CurrentEventNode)
+	if(CurrentEventNode && MetalGPUProfilerIsInSafeThread())
 	{
 		FMetalEventNode* EventNode = (FMetalEventNode*)CurrentEventNode;
 		EventNode->StopDraw();

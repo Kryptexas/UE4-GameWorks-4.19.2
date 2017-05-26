@@ -18,29 +18,29 @@ class USkeletalMeshComponent;
  * This is used so characters of different proportions can handle the same props.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_HandIKRetargeting : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Bone for Right Hand FK */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
+	UPROPERTY(EditAnywhere, Category = "HandIKRetargeting")
 	FBoneReference RightHandFK;
 
 	/** Bone for Left Hand FK */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
+	UPROPERTY(EditAnywhere, Category = "HandIKRetargeting")
 	FBoneReference LeftHandFK;
 
 	/** Bone for Right Hand IK */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
+	UPROPERTY(EditAnywhere, Category = "HandIKRetargeting")
 	FBoneReference RightHandIK;
 
 	/** Bone for Left Hand IK */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
+	UPROPERTY(EditAnywhere, Category = "HandIKRetargeting")
 	FBoneReference LeftHandIK;
 
 	/** IK Bones to move. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
+	UPROPERTY(EditAnywhere, Category = "HandIKRetargeting")
 	TArray<FBoneReference> IKBonesToMove;
 
 	/** Which hand to favor. 0.5 is equal weight for both, 1 = right hand, 0 = left hand. */

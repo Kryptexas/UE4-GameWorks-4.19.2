@@ -83,6 +83,10 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Options)
 	bool bAllowMeshSectionSelection;
 
+	/** The number of folder filters to allow at any one time in the animation tool's asset browser */
+	UPROPERTY(EditAnywhere, config, Category = Options, meta=(ClampMin ="1", ClampMax = "10", UIMin = "1", UIMax = "10"))
+	uint32 NumFolderFiltersInAssetBrowser;
+
 public:
 	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);
 	void SetShowGrid( bool bInShowGrid );

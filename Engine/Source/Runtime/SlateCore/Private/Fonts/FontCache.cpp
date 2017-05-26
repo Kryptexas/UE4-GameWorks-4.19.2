@@ -47,13 +47,15 @@ FShapedGlyphEntryKey::FShapedGlyphEntryKey(const FShapedGlyphFaceData& InFontFac
 	: FontFace(InFontFaceData.FontFace)
 	, FontSize(InFontFaceData.FontSize)
 	, OutlineSize(InOutlineSettings.OutlineSize)
+	, OutlineSizeSeparateFillAlpha(InOutlineSettings.bSeparateFillAlpha)
 	, FontScale(InFontFaceData.FontScale)
 	, GlyphIndex(InGlyphIndex)
 	, KeyHash(0)
 {
 	KeyHash = HashCombine(KeyHash, GetTypeHash(FontFace));
 	KeyHash = HashCombine(KeyHash, GetTypeHash(FontSize));
-	KeyHash = HashCombine(KeyHash, GetTypeHash(InOutlineSettings));
+	KeyHash = HashCombine(KeyHash, GetTypeHash(OutlineSize));
+	KeyHash = HashCombine(KeyHash, GetTypeHash(OutlineSizeSeparateFillAlpha));
 	KeyHash = HashCombine(KeyHash, GetTypeHash(FontScale));
 	KeyHash = HashCombine(KeyHash, GetTypeHash(GlyphIndex));
 }

@@ -204,6 +204,15 @@ public:
 	/**	@return Whether this model has in descendants specified level model */
 	bool HasDescendant(const TSharedPtr<FLevelModel>& InLevel) const;
 	
+	/** Returns the folder path that the level should use when displayed in the world hierarchy */
+	virtual FName GetFolderPath() const { return NAME_None; }
+
+	/** Sets the folder path that the level should use when displayed in the world hierarchy */
+	virtual void SetFolderPath(const FName& InFolderPath) {}
+
+	/** Returns true if the level model can be added to hierarchy folders */
+	virtual bool HasFolderSupport() const { return false; }
+
 	/**	@return Handles drop operation */
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op);
 	

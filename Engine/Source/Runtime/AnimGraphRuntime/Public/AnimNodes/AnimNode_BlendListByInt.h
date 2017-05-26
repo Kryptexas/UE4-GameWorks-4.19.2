@@ -8,7 +8,7 @@
 #include "AnimNode_BlendListByInt.generated.h"
 
 // Blend list node; has many children
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_BlendListByInt : public FAnimNode_BlendListBase
 {
 	GENERATED_USTRUCT_BODY()

@@ -857,7 +857,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
+				DrawClearQuad(RHICmdList, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
 			}
 
 			if (CurrentStage == DRS_BeforeBasePass)
@@ -915,6 +915,11 @@ void FDecalRenderTargetManager::ResolveTargets()
 	{
 		TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] = SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture;
 	}
+
+	//those have been cleared or rendered to and need to be resolved
+	TargetsToResolve[FDecalRenderTargetManager::DBufferAIndex] = SceneContext.DBufferA ? SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture : nullptr;
+	TargetsToResolve[FDecalRenderTargetManager::DBufferBIndex] = SceneContext.DBufferB ? SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture : nullptr;
+	TargetsToResolve[FDecalRenderTargetManager::DBufferCIndex] = SceneContext.DBufferC ? SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture : nullptr;
 
 	// resolve the targets we wrote to.
 	FResolveParams ResolveParams;

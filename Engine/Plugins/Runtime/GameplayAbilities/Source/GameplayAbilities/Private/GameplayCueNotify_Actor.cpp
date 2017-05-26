@@ -344,7 +344,7 @@ bool AGameplayCueNotify_Actor::Recycle()
 	// Clear owner, hide, detach from parent
 	SetOwner(nullptr);
 	SetActorHiddenInGame(true);
-	DetachRootComponentFromParent();
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	return true;
 }

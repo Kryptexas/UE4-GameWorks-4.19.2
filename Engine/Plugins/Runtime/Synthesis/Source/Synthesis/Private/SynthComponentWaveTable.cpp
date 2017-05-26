@@ -11,9 +11,6 @@ USynthSamplePlayer::USynthSamplePlayer(const FObjectInitializer& ObjInitializer)
 	, SoundWave(nullptr)
 	, SampleDurationSec(0.0f)
 	, SamplePlaybackProgressSec(0.0F)
-	, bTransferPendingToSound(false)
-	, bIsLoaded(false)
-	, bIsLoadedBroadcast(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -27,7 +24,7 @@ void USynthSamplePlayer::Init(const int32 SampleRate)
 	NumChannels = 2;
 
 	SampleBufferReader.Init(SampleRate);
-	bIsLoaded = false;
+	SoundWaveLoader.Init(GetAudioDevice());
 }
 
 void USynthSamplePlayer::SetPitch(float InPitch, float InTimeSec)
@@ -86,7 +83,7 @@ float USynthSamplePlayer::GetSampleDuration() const
 
 bool USynthSamplePlayer::IsLoaded() const
 {
-	return bIsLoaded;
+	return SoundWaveLoader.IsSoundWaveLoaded();
 }
 
 float USynthSamplePlayer::GetCurrentPlaybackProgressTime() const
@@ -105,17 +102,11 @@ float USynthSamplePlayer::GetCurrentPlaybackProgressPercent() const
 
 void USynthSamplePlayer::SetSoundWave(USoundWave* InSoundWave)
 {
-	PendingSoundWaveSet = DuplicateObject<USoundWave>(InSoundWave, GetTransientPackage());
-	PendingSoundWaveSet->AddToRoot();
+	SoundWaveLoader.LoadSoundWave(InSoundWave);
 
 	SynthCommand([this]()
 	{
 		SampleBufferReader.ClearBuffer();
-
-		SampleBuffer.Init(GetAudioDevice());
-		SampleBuffer.LoadSoundWave(PendingSoundWaveSet);
-
-		bTransferPendingToSound = true;
 	});
 }
 
@@ -125,68 +116,47 @@ void USynthSamplePlayer::OnRegister()
 
 	SetComponentTickEnabled(true);
 	RegisterComponent();
-
-	if (SoundWave)
-	{
-		SoundWaveCopy = DuplicateObject<USoundWave>(SoundWave, GetTransientPackage());
-		SoundWaveCopy->AddToRoot();
-
-		// Load the sound wave right here synchronously
-		SampleBuffer.Init(GetAudioDevice());
-		SampleBuffer.LoadSoundWave(SoundWaveCopy);
-	}
 }
 
 void USynthSamplePlayer::OnUnregister()
 {
 	Super::OnUnregister();
-
-	if (IsValid(SoundWaveCopy))
-	{
-		SoundWaveCopy->RemoveFromRoot();
-		SoundWaveCopy = nullptr;
-	}
 }
 
 void USynthSamplePlayer::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	if (bIsLoaded && !bIsLoadedBroadcast)
+	if (SoundWaveLoader.Update())
 	{
-		bIsLoadedBroadcast = true;
 		OnSampleLoaded.Broadcast();
+
+		Audio::FSampleBuffer NewSampleBuffer;
+		SoundWaveLoader.GetSampleBuffer(NewSampleBuffer);
+
+		SynthCommand([this, NewSampleBuffer]()
+		{
+			SampleBuffer = NewSampleBuffer;
+
+			// Clear the pending sound waves queue since we've now loaded a new buffer of data
+			SoundWaveLoader.Reset();
+		});
 	}
 
 	OnSamplePlaybackProgress.Broadcast(GetCurrentPlaybackProgressTime(), GetCurrentPlaybackProgressPercent());
-
-	if (bTransferPendingToSound)
-	{
-		bTransferPendingToSound = false;
-		check(PendingSoundWaveSet);
-		if (SoundWaveCopy)
-		{
-			SoundWaveCopy->RemoveFromRoot();
-		}
-		SoundWaveCopy = PendingSoundWaveSet;
-		PendingSoundWaveSet = nullptr;
-	}
 }
 
 void USynthSamplePlayer::OnGenerateAudio(TArray<float>& OutAudio)
 {
-	SampleBuffer.UpdateLoading();
-
-	if (SampleBuffer.IsLoaded() && !SampleBufferReader.HasBuffer())
+	if (SampleBuffer.GetData() && !SampleBufferReader.HasBuffer())
 	{
 		const int16* BufferData = SampleBuffer.GetData();
 		const int32 BufferNumSamples = SampleBuffer.GetNumSamples();
 		const int32 BufferNumChannels = SampleBuffer.GetNumChannels();
 		const int32 BufferSampleRate = SampleBuffer.GetSampleRate();
 		SampleBufferReader.SetBuffer(&BufferData, BufferNumSamples, BufferNumChannels, BufferSampleRate);
-		SampleDurationSec = (float)(BufferNumSamples) / BufferSampleRate;
-		bIsLoaded = true;
+		SampleDurationSec = BufferNumSamples / BufferSampleRate;
 	}
 
-	if (bIsLoaded)
+	if (SampleBufferReader.HasBuffer())
 	{
 		const int32 NumFrames = OutAudio.Num() / NumChannels;
 		SampleBufferReader.Generate(OutAudio, NumFrames, NumChannels, true);

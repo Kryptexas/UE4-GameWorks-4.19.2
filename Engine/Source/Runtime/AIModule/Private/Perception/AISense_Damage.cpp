@@ -127,9 +127,9 @@ void UAISense_Damage::RegisterWrappedEvent(UAISenseEvent& PerceptionEvent)
 	}
 }
 
-void UAISense_Damage::ReportDamageEvent(UObject* WorldContext, AActor* DamagedActor, AActor* Instigator, float DamageAmount, FVector EventLocation, FVector HitLocation)
+void UAISense_Damage::ReportDamageEvent(UObject* WorldContextObject, AActor* DamagedActor, AActor* Instigator, float DamageAmount, FVector EventLocation, FVector HitLocation)
 {
-	UAIPerceptionSystem* PerceptionSystem = UAIPerceptionSystem::GetCurrent(WorldContext);
+	UAIPerceptionSystem* PerceptionSystem = UAIPerceptionSystem::GetCurrent(WorldContextObject);
 	if (PerceptionSystem)
 	{
 		FAIDamageEvent Event(DamagedActor, Instigator, DamageAmount, EventLocation, HitLocation);

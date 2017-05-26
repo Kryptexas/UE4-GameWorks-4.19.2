@@ -190,7 +190,7 @@ void FRenderTargetPool::TransitionTargetsWritable(FRHICommandListImmediate& RHIC
 	if (TransitionTargets.Num() > 0)
 	{
 		RHICmdList.TransitionResourceArrayNoCopy(EResourceTransitionAccess::EWritable, TransitionTargets);
-		if (GRHIThread)
+		if (IsRunningRHIInSeparateThread())
 		{
 			TransitionFence = RHICmdList.RHIThreadFence(false);
 		}
@@ -494,17 +494,17 @@ Done:
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{
 				SetRenderTarget(RHICmdList, Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(1000, 1000, 1000, 1000));
+				DrawClearQuad(RHICmdList, FLinearColor(1000, 1000, 1000, 1000));
 			}
 			else if(Found->GetDesc().TargetableFlags & TexCreate_UAV)
 			{
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, Found->RenderTargetItem, FLinearColor(1000, 1000, 1000, 1000));
+				ClearUAV(RHICmdList, Found->RenderTargetItem, FLinearColor(1000, 1000, 1000, 1000));
 			}
 
 			if(Desc.TargetableFlags & TexCreate_DepthStencilTargetable)
 			{
 				SetRenderTarget(RHICmdList, FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Black, true, 0, false, 0);
+				DrawClearQuad(RHICmdList, false, FLinearColor::Black, true, 0.0f, true, 0);
 			}
 		}
 	}

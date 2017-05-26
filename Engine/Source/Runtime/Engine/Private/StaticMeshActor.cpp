@@ -181,7 +181,7 @@ void AStaticMeshActor::CheckForErrors()
 	}
 	else
 	{
-		FCollisionQueryParams SphereParams(FName(TEXT("CheckForErrors")), false, this);
+		FCollisionQueryParams SphereParams(SCENE_QUERY_STAT(CheckForErrors), false, this);
 
 		TArray<FOverlapResult> Overlaps;
 		GetWorld()->OverlapMultiByChannel(Overlaps, GetActorLocation(), FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(1.f), SphereParams);

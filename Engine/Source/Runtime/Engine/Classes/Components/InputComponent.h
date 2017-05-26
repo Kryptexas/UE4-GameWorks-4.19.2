@@ -523,30 +523,6 @@ struct FInputGestureBinding : public FInputBinding
 };
 
 
-// -----------------------------------------------------------------
-// Helper macros to make setting up axis bindings more readable in native code. 
-//
-
-/** Creates and adds a new axis binding. */
-#define BIND_AXIS(Comp, AxisName, Delegate)	\
-	EMIT_DEPRECATED_WARNING_MESSAGE("BIND_AXIS macro is deprecated. Please use UInputComponent::BindAxis function instead.") \
-	Comp->BindAxis(AxisName, this, Delegate)
-
-/** Creates and adds a new action binding. */
-#define BIND_ACTION(Comp, ActionName, KeyEvent, Delegate)	\
-	EMIT_DEPRECATED_WARNING_MESSAGE("BIND_ACTION macro is deprecated. Please use UInputComponent::BindAction function instead.") \
-	Comp->BindAction(ActionName, KeyEvent, this, Delegate);
-
-/** Creates and adds a new axis binding. */
-#define BIND_AXIS_OBJ(Comp, AxisName, Delegate, DelegateObj)	\
-	EMIT_DEPRECATED_WARNING_MESSAGE("BIND_AXIS_OBJ macro is deprecated. Please use UInputComponent::BindAxis function instead.") \
-	Comp->BindAxis(AxisName, DelegateObj, Delegate)
-
-/** Same as BIND_ACTION, except can be used to bind to a delegate in a specific object. */
-#define BIND_ACTION_OBJ(Comp, ActionName, KeyEvent, Delegate, DelegateObj)	\
-	EMIT_DEPRECATED_WARNING_MESSAGE("BIND_ACTION_OBJ macro is deprecated. Please use UInputComponent::BindAction function instead.") \
-	Comp->BindAction(ActionName, KeyEvent, DelegateObj, Delegate);
-
 
 UENUM()
 namespace EControllerAnalogStick

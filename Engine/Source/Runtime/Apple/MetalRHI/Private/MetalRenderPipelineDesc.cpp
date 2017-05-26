@@ -206,7 +206,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	
 	NSError* Error = nil;
 	
-	if(GUseRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex.Mutex);
@@ -224,7 +224,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	FMetalShaderPipeline* statePack = MetalPipelineCache.FindRef(ComparableDesc);
 	if(statePack == nil)
 	{
-		if(GUseRHIThread)
+		if(IsRunningRHIInSeparateThread())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 			int Err = pthread_rwlock_unlock(&MetalPipelineMutex.Mutex);
@@ -540,7 +540,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			statePack.FragmentSource = BSS->PixelShader ? BSS->PixelShader->GlslCodeNSString : nil;
 #endif
 			
-			if(GUseRHIThread)
+			if(IsRunningRHIInSeparateThread())
 			{
 				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_wrlock(&MetalPipelineMutex.Mutex);
@@ -558,7 +558,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 				statePack = ExistingPipeline;
 			}
 			
-			if(GUseRHIThread)
+			if(IsRunningRHIInSeparateThread())
 			{
 				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_unlock(&MetalPipelineMutex.Mutex);
@@ -585,7 +585,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			return nil;
 		}
 	}
-	else if(GUseRHIThread)
+	else if(IsRunningRHIInSeparateThread())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_unlock(&MetalPipelineMutex.Mutex);

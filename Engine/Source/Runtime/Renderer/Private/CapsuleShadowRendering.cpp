@@ -771,7 +771,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				
 				AllocateCapsuleTileIntersectionCountsBuffer(GroupSize, View.ViewState);
 
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
+				ClearUAV(RHICmdList, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
 
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, TiledCapsuleShadowing);
@@ -945,7 +945,7 @@ void FDeferredShadingSceneRenderer::CreateIndirectCapsuleShadows()
 	}
 }
 
-void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes, int32& NumMeshDistanceFieldCasters) const
+void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes, int32& NumMeshesWithCapsules, int32& NumMeshDistanceFieldCasters) const
 {
 	const float CosFadeStartAngle = FMath::Cos(GCapsuleShadowFadeAngleFromVertical);
 	const FSkyLightSceneProxy* SkyLight = Scene ? Scene->SkyLight : NULL;
@@ -1054,6 +1054,8 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 			{
 				DistanceFieldCasterLightSourceData.Add(PackedLightDirection);
 			}
+
+			NumMeshesWithCapsules++;
 		}
 	}
 
@@ -1198,8 +1200,9 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
+					int32 NumMeshesWithCapsules = 0;
 					int32 NumMeshDistanceFieldCasters = 0;
-					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes, NumMeshDistanceFieldCasters);
+					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes, NumMeshesWithCapsules, NumMeshDistanceFieldCasters);
 
 					if (NumCapsuleShapes > 0 || NumMeshDistanceFieldCasters > 0)
 					{
@@ -1213,10 +1216,10 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				
 						AllocateCapsuleTileIntersectionCountsBuffer(GroupSize, View.ViewState);
 
-						ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
+						ClearUAV(RHICmdList, View.ViewState->CapsuleTileIntersectionCountsBuffer, 0);
 
 						{
-							SCOPED_DRAW_EVENT(RHICmdList, TiledCapsuleShadowing);
+							SCOPED_DRAW_EVENTF(RHICmdList, TiledCapsuleShadowing, TEXT("TiledCapsuleShadowing %u capsules among %u meshes"), NumCapsuleShapes, NumMeshesWithCapsules);
 
 							FSceneRenderTargetItem& RayTracedShadowsRTI = RayTracedShadowsRT->GetRenderTargetItem();
 							{
@@ -1406,8 +1409,9 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
+					int32 NumMeshesWithCapsules = 0;
 					int32 NumMeshDistanceFieldCasters = 0;
-					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes, NumMeshDistanceFieldCasters);
+					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes, NumMeshesWithCapsules, NumMeshDistanceFieldCasters);
 
 					if (NumCapsuleShapes > 0 || NumMeshDistanceFieldCasters > 0)
 					{
@@ -1420,7 +1424,7 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 							uint32 GroupSizeY = FMath::DivideAndRoundUp(ScissorRect.Size().Y / GAODownsampleFactor, GShadowShapeTileSize);
 
 							{
-								SCOPED_DRAW_EVENT(RHICmdList, TiledCapsuleShadowing);
+								SCOPED_DRAW_EVENTF(RHICmdList, TiledCapsuleShadowing, TEXT("TiledCapsuleShadowing %u capsules among %u meshes"), NumCapsuleShapes, NumMeshesWithCapsules);
 
 								FSceneRenderTargetItem& RayTracedShadowsRTI = NewBentNormal->GetRenderTargetItem();
 								{

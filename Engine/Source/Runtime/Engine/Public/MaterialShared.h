@@ -530,8 +530,9 @@ class FMeshMaterialShaderMap : public TShaderMap<FMeshMaterialShaderType>
 {
 public:
 
-	FMeshMaterialShaderMap(FVertexFactoryType* InVFType) :
-		VertexFactoryType(InVFType)
+	FMeshMaterialShaderMap(EShaderPlatform InPlatform, FVertexFactoryType* InVFType) 
+		: TShaderMap<FMeshMaterialShaderType>(InPlatform)
+		, VertexFactoryType(InVFType)
 	{}
 
 	/**
@@ -620,7 +621,8 @@ public:
 	 */
 	static void LoadFromDerivedDataCache(const FMaterial* Material, const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform, TRefCountPtr<FMaterialShaderMap>& InOutShaderMap);
 
-	FMaterialShaderMap();
+	inline FMaterialShaderMap() : FMaterialShaderMap(EShaderPlatform::SP_NumPlatforms) {}
+	FMaterialShaderMap(EShaderPlatform InPlatform);
 
 	// Destructor.
 	~FMaterialShaderMap();
@@ -743,7 +745,6 @@ public:
 	// Accessors.
 	ENGINE_API const FMeshMaterialShaderMap* GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const;
 	const FMaterialShaderMapId& GetShaderMapId() const { return ShaderMapId; }
-	EShaderPlatform GetShaderPlatform() const { return Platform; }
 	const FString& GetFriendlyName() const { return FriendlyName; }
 	uint32 GetCompilingId() const { return CompilingId; }
 	bool IsCompilationFinalized() const { return bCompilationFinalized; }
@@ -793,9 +794,6 @@ private:
 
 	/** The material's user friendly name, typically the object name. */
 	FString FriendlyName;
-
-	/** The platform this shader map was compiled with */
-	EShaderPlatform Platform;
 
 	/** The static parameter set that this shader map was compiled with */
 	FMaterialShaderMapId ShaderMapId;
@@ -1060,7 +1058,7 @@ public:
 	virtual float GetTranslucentSelfShadowSecondDensityScale() const { return 1.0f; }
 	virtual float GetTranslucentSelfShadowSecondOpacity() const { return 1.0f; }
 	virtual float GetTranslucentBackscatteringExponent() const { return 1.0f; }
-	virtual bool IsSeparateTranslucencyEnabled() const { return false; }
+	virtual bool IsTranslucencyAfterDOFEnabled() const { return false; }
 	virtual bool IsMobileSeparateTranslucencyEnabled() const { return false; }
 	virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const { return FLinearColor::White; }
 	virtual float GetTranslucentShadowStartOffset() const { return 0.0f; }
@@ -1493,6 +1491,7 @@ public:
 
 	ENGINE_API static const TSet<FMaterialRenderProxy*>& GetMaterialRenderProxyMap() 
 	{
+		check(!FPlatformProperties::RequiresCookedData());
 		return MaterialRenderProxyMap;
 	}
 
@@ -1522,6 +1521,13 @@ public:
 #endif
 	}
 
+	ENGINE_API static void UpdateDeferredCachedUniformExpressions();
+
+	static inline bool HasDeferredUniformExpressionCacheRequests() 
+	{
+		return DeferredUniformExpressionCacheRequests.Num() > 0;
+	}
+
 private:
 
 	/** true if the material is selected. */
@@ -1542,6 +1548,8 @@ private:
 	 * This is used to propagate new shader maps to materials being used for rendering.
 	 */
 	ENGINE_API static TSet<FMaterialRenderProxy*> MaterialRenderProxyMap;
+
+	ENGINE_API static TSet<FMaterialRenderProxy*> DeferredUniformExpressionCacheRequests;
 };
 
 /**
@@ -1710,7 +1718,7 @@ public:
 	ENGINE_API virtual float GetTranslucentSelfShadowSecondDensityScale() const override;
 	ENGINE_API virtual float GetTranslucentSelfShadowSecondOpacity() const override;
 	ENGINE_API virtual float GetTranslucentBackscatteringExponent() const override;
-	ENGINE_API virtual bool IsSeparateTranslucencyEnabled() const override;
+	ENGINE_API virtual bool IsTranslucencyAfterDOFEnabled() const override;
 	ENGINE_API virtual bool IsMobileSeparateTranslucencyEnabled() const override;
 	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;

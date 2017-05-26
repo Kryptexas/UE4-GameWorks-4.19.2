@@ -27,6 +27,12 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExp
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSampleParameter)
 	FName Group;
 
+#if WITH_EDITORONLY_DATA
+	/** Controls where the this parameter is displayed in a material instance parameter list.  The lower the number the higher up in the parameter list. */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSampleParameter)
+	int32 SortPriority;
+#endif
+
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;

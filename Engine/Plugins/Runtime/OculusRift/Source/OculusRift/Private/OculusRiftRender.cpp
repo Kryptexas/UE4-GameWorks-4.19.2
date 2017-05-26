@@ -64,7 +64,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
 		
 		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+		DrawClearQuad(RHICmdList, FLinearColor::Black);
 	}
 
 	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
@@ -249,7 +249,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 		if (bNoAlphaWrite)
 		{
 			// for quads, write RGB, RGB = src.rgb * 1 + dst.rgb * 0
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
+			DrawClearQuad(RHICmdList, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
 			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		}
 		else
@@ -262,7 +262,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	{
 		if (bNoAlphaWrite)
 		{
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+			DrawClearQuad(RHICmdList, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
 			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB>::GetRHI();
 		}
 		else
@@ -405,7 +405,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			if( DstViewRect != BackBufferRect )
 			{
 				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0, false, 0, BackBufferRect.Max, DstViewRect);
+				DrawClearQuad(RHICmdList, true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0, false, 0, BackBufferRect.Max, DstViewRect);
 			}
 
 			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, false);

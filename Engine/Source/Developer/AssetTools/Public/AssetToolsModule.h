@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
+#include "IAssetTools.h"
 
-class IAssetTools;
 
 class FAssetToolsModule : public IModuleInterface
 {
@@ -29,6 +29,6 @@ public:
 	}
 
 private:
-	IAssetTools* AssetTools;
+	TWeakObjectPtr<class UAssetToolsImpl> AssetToolsPtr;
 	class FAssetToolsConsoleCommands* ConsoleCommands;
 };

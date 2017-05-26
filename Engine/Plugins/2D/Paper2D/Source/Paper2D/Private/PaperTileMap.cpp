@@ -277,10 +277,8 @@ void UPaperTileMap::UpdateBodySetup()
 	}
 
 	// Finalize the BodySetup
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	BodySetup->InvalidatePhysicsData();
 	BodySetup->CreatePhysicsMeshes();
-#endif
 }
 
 void UPaperTileMap::GetTileToLocalParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const

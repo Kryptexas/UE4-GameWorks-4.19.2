@@ -17,7 +17,7 @@ enum class ESuperSearchEnginePlacement : uint8
 	None,
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SUPERSEARCH_API FSuperSearchStyle : public FSlateWidgetStyle
 {
 	GENERATED_USTRUCT_BODY()

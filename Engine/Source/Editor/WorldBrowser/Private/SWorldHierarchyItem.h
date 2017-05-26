@@ -12,9 +12,12 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 
+#include "IWorldTreeItem.h"
+
 class FLevelCollectionModel;
 class FLevelModel;
 class SButton;
+class SWorldHierarchyImpl;
 
 namespace HierarchyColumns
 {
@@ -34,25 +37,32 @@ namespace HierarchyColumns
 
 /** A single item in the levels hierarchy tree. Represents a level model */
 class SWorldHierarchyItem 
-	: public SMultiColumnTableRow<TSharedPtr<FLevelModel>>
+	: public SMultiColumnTableRow<WorldHierarchy::FWorldTreeItemPtr>
 {
 public:
-	DECLARE_DELEGATE_TwoParams( FOnNameChanged, const TSharedPtr<FLevelModel>& /*TreeItem*/, const FVector2D& /*MessageLocation*/);
+	DECLARE_DELEGATE_TwoParams( FOnNameChanged, const WorldHierarchy::FWorldTreeItemPtr& /*TreeItem*/, const FVector2D& /*MessageLocation*/);
 
 	SLATE_BEGIN_ARGS( SWorldHierarchyItem )
 		: _IsItemExpanded( false )
+		, _FoldersOnlyMode( false )
 	{}
 		/** Data for the world */
 		SLATE_ARGUMENT(TSharedPtr<FLevelCollectionModel>, InWorldModel)
 	
 		/** Item model this widget represents */
-		SLATE_ARGUMENT(TSharedPtr<FLevelModel>, InItemModel)
+		SLATE_ARGUMENT(WorldHierarchy::FWorldTreeItemPtr, InItemModel)
+
+		/** The hierarchy that this item belongs to */
+		SLATE_ARGUMENT(TSharedPtr<SWorldHierarchyImpl>, InHierarchy)
 
 		/** True when this item has children and is expanded */
 		SLATE_ATTRIBUTE(bool, IsItemExpanded)
 
 		/** The string in the title to highlight */
 		SLATE_ATTRIBUTE(FText, HighlightText)
+
+		/** If true, folders cannot be renamed and no other widget information is shown */
+		SLATE_ARGUMENT(bool, FoldersOnlyMode)
 
 	SLATE_END_ARGS()
 
@@ -62,9 +72,13 @@ public:
 	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 	FReply OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override { return FReply::Handled(); }
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+
+protected:
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& Event) override;
 
 private:
 	/** Operations buttons enabled/disabled state */
@@ -120,24 +134,36 @@ private:
 	void OnColorPickerInteractiveBegin();
 	void OnColorPickerInteractiveEnd();
 
+	/** Whether the lighting scenario button should be visible */
+	EVisibility GetLightingScenarioVisibility() const;
+
 	/** Whether color button should be visible, depends on whether sub-level is loaded */
 	EVisibility GetColorButtonVisibility() const;
 	
+	/** Gets the tooltip for the visibility toggle */
+	FText GetVisibilityToolTip() const;
+
+	/** Gets the tooltip for the save button */
+	FText GetSaveToolTip() const;
+
+	/** Gets the tooltip text for the Kismet button */
+	FText GetKismetToolTip() const;
+
 	/**
 	 *  @return The text of level name while it is not being edited
 	 */
-	FText GetLevelDisplayNameText() const;
+	FText GetDisplayNameText() const;
 
 	/**
 	*  @return The tooltip of level name (shows the full path of the asset package)
 	*/
-	FText GetLevelDisplayNameTooltip() const;
+	FText GetDisplayNameTooltip() const;
 
 	/** */
-	FSlateFontInfo GetLevelDisplayNameFont() const;
+	FSlateFontInfo GetDisplayNameFont() const;
 	
 	/** */
-	FSlateColor GetLevelDisplayNameColorAndOpacity() const;
+	FSlateColor GetDisplayNameColorAndOpacity() const;
 
 	/**
 	 *	@return	The SlateBrush representing level icon
@@ -198,22 +224,25 @@ private:
 	/** */
 	const FSlateBrush* GetSCCStateImage() const;
 
+	bool OnVerifyItemLabelChanged(const FText& InLabel, FText& OutErrorMessage);
+
+	void OnLabelCommitted(const FText& InLabel, ETextCommit::Type InCommitInfo);
+
 private:
 	/** The world data */
 	TSharedPtr<FLevelCollectionModel>	WorldModel;
 
 	/** The data for this item */
-	TSharedPtr<FLevelModel>			LevelModel;
+	WorldHierarchy::FWorldTreeItemPtr	WorldTreeItem;
+
+	/** The hierarchy for this item */
+	TWeakPtr<SWorldHierarchyImpl> Hierarchy;
 	
 	/** The string to highlight in level display name */
 	TAttribute<FText>				HighlightText;
 
 	/** True when this item has children and is expanded */
 	TAttribute<bool>				IsItemExpanded;
-
-	/** Brushes for the different streaming level types */
-	const FSlateBrush*				StreamingLevelAlwaysLoadedBrush;
-	const FSlateBrush*				StreamingLevelKismetBrush;
 
 	/**	The visibility button for the Level */
 	TSharedPtr<SButton>				VisibilityButton;
@@ -232,4 +261,7 @@ private:
 
 	/**	The color button for the Level */
 	TSharedPtr<SButton>				ColorButton;
+
+	/** If true, folders cannot be renamed and only folder names are ever shown */
+	bool bFoldersOnlyMode;
 };

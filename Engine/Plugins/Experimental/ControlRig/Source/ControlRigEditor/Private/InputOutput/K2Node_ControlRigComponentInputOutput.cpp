@@ -39,7 +39,7 @@ void UK2Node_ControlRigComponentInputOutput::AllocateDefaultPins()
 	// Optionally create input pin for ControlRig
 	if (IsInActor())
 	{
-		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, TEXT(""), UControlRigComponent::StaticClass(), false, true,  ControlRigComponentPinName);
+		CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, FString(), UControlRigComponent::StaticClass(), ControlRigComponentPinName, EPinContainerType::None, true);
 	}
 }
 
@@ -52,6 +52,8 @@ bool UK2Node_ControlRigComponentInputOutput::IsCompatibleWithGraph(UEdGraph cons
 
 void UK2Node_ControlRigComponentInputOutput::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::EarlyValidation(MessageLog);
+
 	if (IsInActor())
 	{
 		if (ControlRigType.Get() == nullptr)

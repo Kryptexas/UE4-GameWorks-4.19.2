@@ -28,7 +28,7 @@ class UDataTable;
 /**
  * Base class for all table row structs to inherit from.
  */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -333,7 +333,7 @@ struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraits
 };
 
 /** Handle to a particular row in a table*/
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FDataTableCategoryHandle
 {
 	GENERATED_USTRUCT_BODY()

@@ -6,6 +6,7 @@
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "NetworkMessage.h"
 #include "ServerTOC.h"
+#include "CoreMisc.h" // included for FSelfRegisteringExec
 
 class FScopedEvent;
 
@@ -14,7 +15,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 /**
  * Wrapper to redirect the low level file system to a server
  */
-class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
+class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile, public FSelfRegisteringExec
 {
 	friend class FAsyncFileSync;
 	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
@@ -148,6 +149,12 @@ public:
 
 	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
 
+
+	//////////////////////////////////////////////////////////////////////////
+	// FSelfRegisteringExec interface
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
+
+
 protected:
 
 	/**
@@ -240,6 +247,21 @@ protected:
 	FCriticalSection	LocalDirectoriesCriticalSection;
 	bool				bIsUsable;
 	int32				FileServerPort;
+
+
+
+	// some stats for messuring network platform file performance
+	double TotalWriteTime; // total non async time spent writing to disk
+	double TotalNetworkSyncTime; // total non async time spent syncing to network
+	int32 TotalFilesSynced; // total number files synced from network
+	int32 TotalUnsolicitedPackages; // total number unsolicited files synced  
+	int32 TotalFilesFoundLocally;
+	int32 UnsolicitedPackagesHits; // total number of hits from waiting on unsolicited packages
+	int32 UnsolicitedPackageWaits; // total number of waits on unsolicited packages
+	double TotalTimeSpentInUnsolicitedPackages; // total time async processing unsolicited packages
+	double TotalWaitForAsyncUnsolicitedPackages; // total time spent waiting for unsolicited packages
+
+
 
 private:
 

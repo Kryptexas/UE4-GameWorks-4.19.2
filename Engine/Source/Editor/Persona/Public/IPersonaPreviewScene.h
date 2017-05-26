@@ -60,7 +60,7 @@ public:
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const = 0;
 
 	/** Set the additional meshes used by this preview scene (sets the additional meshes on the skeleton) */
-	virtual void SetAdditionalMeshes(class UPreviewMeshCollection* InAdditionalMeshes) = 0;
+	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) = 0;
 
 	/** Refreshes the additional meshes displayed in this preview scene */
 	virtual void RefreshAdditionalMeshes() = 0;

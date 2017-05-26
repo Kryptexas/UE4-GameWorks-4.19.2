@@ -18,9 +18,10 @@ class FReflectionMetaData : public ISlateMetaData
 public:
 	SLATE_METADATA_TYPE(FReflectionMetaData, ISlateMetaData)
 
-	FReflectionMetaData(FName InName, UClass* InClass, const UObject* InAsset)
+	FReflectionMetaData(FName InName, UClass* InClass, UObject* InSourceObject, const UObject* InAsset)
 		: Name(InName)
 		, Class(InClass)
+		, SourceObject(InSourceObject)
 		, Asset(InAsset)
 	{
 	}
@@ -30,6 +31,9 @@ public:
 	
 	/** The class the constructed the slate widget. */
 	TWeakObjectPtr<UClass> Class;
+
+	/** The UObject wrapper that creates the widget, this is expected to be a UWidget. */
+	TWeakObjectPtr<UObject> SourceObject;
 
 	/** The asset that owns the widget and is responsible for its specific existence. */
 	TWeakObjectPtr<const UObject> Asset;

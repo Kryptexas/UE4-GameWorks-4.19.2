@@ -5,6 +5,8 @@
 
 #include "Features/IModularFeatures.h"
 
+#include "AnimInstanceProxy.h"
+
 #define LOCTEXT_NAMESPACE "LiveLinkAnimNode"
 
 void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Context)
@@ -19,25 +21,32 @@ void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Conte
 
 void FAnimNode_LiveLinkPose::Evaluate(FPoseContext& Output)
 {
-	FLiveLinkRefSkeleton RefSkeleton;
-	TArray<FTransform> BoneTransforms;
-	
 	Output.ResetToRefPose();
 
-	if(LiveLinkClient && LiveLinkClient->GetSubjectData(SubjectName, BoneTransforms, RefSkeleton))
+	if (!LiveLinkClient)
 	{
-		const TArray<FName>& BoneNames = RefSkeleton.GetBoneNames();
+		return;
+	}
 
-		if ((BoneNames.Num() == 0) || (BoneTransforms.Num() == 0) || (BoneNames.Num() != BoneTransforms.Num()))
+	FLiveLinkRefSkeleton RefSkeleton;
+	TArray<FTransform> BoneTransforms;
+	FLiveLinkCurveKey CurveKey;
+	TArray<FOptionalCurveElement> Curves;
+
+	if(const FLiveLinkSubjectFrame* Subject = LiveLinkClient->GetSubjectData(SubjectName))
+	{
+		const TArray<FName>& BoneNames = Subject->RefSkeleton.GetBoneNames();
+
+		if ((BoneNames.Num() == 0) || (Subject->Transforms.Num() == 0) || (BoneNames.Num() != Subject->Transforms.Num()))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), BoneNames.Num(), BoneTransforms.Num());
+			UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), BoneNames.Num(), Subject->Transforms.Num());
 			return;
 		}
 
 		for (int32 i = 0; i < BoneNames.Num(); ++i)
 		{
 			FName BoneName = BoneNames[i];
-			FTransform BoneTransform = BoneTransforms[i];
+			FTransform BoneTransform = Subject->Transforms[i];
 
 			int32 MeshIndex = Output.Pose.GetBoneContainer().GetPoseBoneIndexForBoneName(BoneName);
 			if (MeshIndex != INDEX_NONE)
@@ -46,6 +55,23 @@ void FAnimNode_LiveLinkPose::Evaluate(FPoseContext& Output)
 				if (CPIndex != INDEX_NONE)
 				{
 					Output.Pose[CPIndex] = BoneTransform;
+				}
+			}
+		}
+
+		USkeleton* Skeleton = Output.AnimInstanceProxy->GetSkeleton();
+
+		for (int32 CurveIdx = 0; CurveIdx < Subject->CurveKeyData.CurveNames.Num(); ++CurveIdx)
+		{
+			const FOptionalCurveElement& Curve = Subject->Curves[CurveIdx];
+			if(Curve.IsValid())
+			{
+				FName CurveName = Subject->CurveKeyData.CurveNames[CurveIdx];
+
+				SmartName::UID_Type UID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, CurveName);
+				if (UID != SmartName::MaxUID)
+				{
+					Output.Curve.Set(UID, Curve.Value);
 				}
 			}
 		}

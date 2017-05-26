@@ -37,6 +37,15 @@ struct FLoginFlowResult
 		const bool bError = !Error.bSucceeded && Error.NumericErrorCode;
 		return bSuccess || bError;
 	}
+
+	FString ToDebugString() const
+	{
+#if UE_BUILD_SHIPPING
+		return FString::Printf(TEXT("Token: [REDACTED] Error: %s"), Error.ToLogString());
+#else
+		return FString::Printf(TEXT("Token: %s Error: %s"), *Token, Error.ToLogString());
+#endif
+	}
 };
 
 /**

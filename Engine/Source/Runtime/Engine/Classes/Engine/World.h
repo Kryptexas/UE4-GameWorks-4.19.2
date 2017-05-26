@@ -1152,6 +1152,16 @@ public:
 	/** When non-'None', all line traces where the TraceTag match this will be drawn */
 	FName    DebugDrawTraceTag;
 
+	/** When set to true, all scene queries will be drawn */
+	bool bDebugDrawAllTraceTags;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bool DebugDrawSceneQueries(const FName& UsedTraceTag) const
+	{
+		return (bDebugDrawAllTraceTags || ((DebugDrawTraceTag != NAME_None) && (DebugDrawTraceTag == UsedTraceTag))) && IsInGameThread();
+	}
+#endif
+
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
@@ -2182,7 +2192,7 @@ public:
 	ULevel* GetActiveLightingScenario() const;
 
 	/** Propagates a change to the active lighting scenario. */
-	void PropagateLightingScenarioChange();
+	void PropagateLightingScenarioChange(bool bLevelWasMadeVisible);
 
 	/**
 	 * Associates the passed in level with the world. The work to make the level visible is spread across several frames and this

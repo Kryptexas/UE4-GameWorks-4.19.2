@@ -22,6 +22,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "EnumProperty.h"
+#include "IDetailPropertyRow.h"
 
 #define LOCTEXT_NAMESPACE "PropertyHandleImplementation"
 
@@ -2218,6 +2219,20 @@ TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode() const
 	return Implementation->GetPropertyNode();
 }
 
+void FPropertyHandleBase::OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault)
+{
+	if (OnCustomResetToDefault.OnResetToDefaultClicked().IsBound())
+	{
+		Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
+
+		OnCustomResetToDefault.OnResetToDefaultClicked().Execute(SharedThis(this));
+
+		// Call PostEditchange on all the objects
+		FPropertyChangedEvent ChangeEvent(Implementation->GetPropertyNode()->GetProperty());
+		Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+	}
+}
+
 int32 FPropertyHandleBase::GetIndexInArray() const
 {
 	if( Implementation->GetPropertyNode().IsValid() )
@@ -2791,6 +2806,23 @@ TArray<TSharedPtr<IPropertyHandle>> FPropertyHandleBase::AddChildStructure( TSha
 	PropertyNode->AddChildNode(StructPropertyNode);
 
 	return PropertyHandles;
+}
+
+bool FPropertyHandleBase::IsResetToDefaultAvailable()
+{
+	UProperty* Property = GetProperty();
+
+	// Should not be able to reset fixed size arrays
+	const bool bFixedSized = Property && Property->PropertyFlags & CPF_EditFixedSize;
+	const bool bCanResetToDefault = !(Property && Property->PropertyFlags & CPF_Config);
+
+	return Property && bCanResetToDefault && !bFixedSized && DiffersFromDefault();
+}
+
+void FPropertyHandleBase::CustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault)
+{
+	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
+	Implementation->GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateLambda([this, InOnCustomResetToDefault]() { OnCustomResetToDefault(InOnCustomResetToDefault); }));
 }
 
 /** Implements common property value functions */

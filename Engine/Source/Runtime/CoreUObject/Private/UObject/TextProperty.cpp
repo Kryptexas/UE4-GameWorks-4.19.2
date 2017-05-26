@@ -122,7 +122,7 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 
 	FString PackageNamespace;
 #if USE_STABLE_LOCALIZATION_KEYS
-	if (GIsEditor && !(PortFlags & PPF_DuplicateForPIE))
+	if (GIsEditor && !(PortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 	{
 		PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Parent);
 	}

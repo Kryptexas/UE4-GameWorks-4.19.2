@@ -28,7 +28,7 @@ enum class ESnapshotSourceMode : uint8
 };
 
 /** Provide a snapshot pose, either from the internal named pose cache or via a supplied snapshot */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_PoseSnapshot : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

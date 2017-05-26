@@ -1,15 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AssetData.h"
 #include "IAssetRegistry.h"
 #include "AssetRegistryState.h"
-#include "Runtime/AssetRegistry/Private/PathTree.h"
-#include "Runtime/AssetRegistry/Private/PackageDependencyData.h"
-#include "Runtime/AssetRegistry/Private/AssetDataGatherer.h"
+#include "PathTree.h"
+#include "PackageDependencyData.h"
+#include "AssetDataGatherer.h"
+#include "BackgroundGatherResults.h"
 
 class FDependsNode;
 struct FARFilter;
@@ -26,6 +26,7 @@ public:
 	virtual ~FAssetRegistry();
 
 	// IAssetRegistry implementation
+	virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const override;
 	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const override;
 	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false, bool bIncludeOnlyOnDiskAssets = false) const override;
 	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const override;
@@ -38,6 +39,7 @@ public:
 	virtual bool GetReferencers(const FAssetIdentifier& AssetIdentifier, TArray<FAssetIdentifier>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::All) const override;
 	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::Packages) const override;
 	virtual const FAssetPackageData* GetAssetPackageData(FName PackageName) const override;
+	virtual FName GetRedirectedObjectPath(const FName ObjectPath) const override;
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const override;
 	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const override;
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const override;
@@ -55,8 +57,9 @@ public:
 	virtual void ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan = false) override;
 	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual uint32 GetAllocatedSize(bool bLogDetailed = false) const override;
 	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const override;
-	virtual void InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, const TMap<FName, FAssetData*>& OverrideData = TMap<FName, FAssetData*>()) const override;
+	virtual void InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, bool bRefreshExisting = false, const TMap<FName, FAssetData*>& OverrideData = TMap<FName, FAssetData*>()) const override;
 	virtual void InitializeSerializationOptions(FAssetRegistrySerializationOptions& Options, const FString& PlatformIniName = FString()) const override;
 
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
@@ -117,16 +120,16 @@ private:
 	void ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode, TArray<FName>* OutFoundAssets, TArray<FName>* OutFoundPaths);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
-	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);
+	void AssetSearchDataGathered(const double TickStartTime, TBackgroundGatherResults<FAssetData*>& AssetResults);
 
 	/** Called every tick when data is retrieved by the background path search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
-	void PathDataGathered(const double TickStartTime, TArray<FString>& PathResults);
+	void PathDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& PathResults);
 
 	/** Called every tick when data is retrieved by the background dependency search */
-	void DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults);
+	void DependencyDataGathered(const double TickStartTime, TBackgroundGatherResults<FPackageDependencyData>& DependsResults);
 
 	/** Called every tick when data is retrieved by the background search for cooked packages that do not contain asset data */
-	void CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults);
+	void CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& CookedPackageNamesWithoutAssetDataResults);
 
 	/** Adds an asset to the empty package list which contains packages that have no assets left in them */
 	void AddEmptyPackage(FName PackageName);
@@ -174,6 +177,9 @@ private:
 
 	/** Process Loaded Assets to update cache */
 	void ProcessLoadedAssetsToUpdateCache(const double TickStartTime);
+
+	/** Update Redirect collector with redirects loaded from asset registry */
+	void UpdateRedirectCollector();
 #endif // WITH_EDITOR
 
 	/**
@@ -193,6 +199,9 @@ private:
 	 * @param	FileSystemPath	The filesystem path that the AssetPath is mapped to
 	 */
 	void OnContentPathDismounted( const FString& AssetPath, const FString& FileSystemPath );
+
+	/** Called to refresh the native classes list, called at end of engine initialization */
+	void RefreshNativeClasses();
 
 	/** Returns the names of all subclasses of the class whose name is ClassName */
 	void GetSubClasses(const TArray<FName>& InClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& SubClassNames) const;
@@ -225,10 +234,10 @@ private:
 	TSharedPtr< class FAssetDataGatherer > BackgroundAssetSearch;
 
 	/** A list of results that were gathered from the background thread that are waiting to get processed by the main thread */
-	TArray<class FAssetData*> BackgroundAssetResults;
-	TArray<FString> BackgroundPathResults;
-	TArray<class FPackageDependencyData> BackgroundDependencyResults;
-	TArray<FString> BackgroundCookedPackageNamesWithoutAssetDataResults;
+	TBackgroundGatherResults<FAssetData*> BackgroundAssetResults;
+	TBackgroundGatherResults<FString> BackgroundPathResults;
+	TBackgroundGatherResults<FPackageDependencyData> BackgroundDependencyResults;
+	TBackgroundGatherResults<FString> BackgroundCookedPackageNamesWithoutAssetDataResults;
 
 	/** The max number of results to process per tick */
 	float MaxSecondsPerFrame;

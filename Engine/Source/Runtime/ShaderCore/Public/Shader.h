@@ -1417,13 +1417,18 @@ class TShaderMap
 	TArray<FShader*> SerializedShaders;
 	/** List of serialzied shader pipeline stages to be processed and registered on the game thread */
 	TArray<FSerializedShaderPipeline*> SerializedShaderPipelines;
+protected:
+	/** The platform this shader map was compiled with */
+	EShaderPlatform Platform;
+private:
 	/** Flag that makes sure this shader map isn't used until all shaders have been registerd */
 	bool bHasBeenRegistered;
 
 public:
 	/** Default constructor. */
-	TShaderMap()
-		: bHasBeenRegistered(true)
+	TShaderMap(EShaderPlatform InPlatform)
+		: Platform(InPlatform)
+		, bHasBeenRegistered(true)
 	{}
 
 	/** Destructor ensures pipelines cleared up. */
@@ -1432,13 +1437,15 @@ public:
 		EmptyShaderPipelines();
 	}
 
+	EShaderPlatform GetShaderPlatform() const { return Platform; }
+
 	/** Finds the shader with the given type.  Asserts on failure. */
 	template<typename ShaderType>
 	ShaderType* GetShader() const
 	{
 		check(bHasBeenRegistered);
 		const TRefCountPtr<FShader>* ShaderRef = Shaders.Find(&ShaderType::StaticType);
-		checkf(ShaderRef != NULL && *ShaderRef != nullptr, TEXT("Failed to find shader type %s"), ShaderType::StaticType.GetName());
+		checkf(ShaderRef != NULL && *ShaderRef != nullptr, TEXT("Failed to find shader type %s in Platform %s"), ShaderType::StaticType.GetName(), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
 		return (ShaderType*)((*ShaderRef)->GetShaderChecked());
 	}
 

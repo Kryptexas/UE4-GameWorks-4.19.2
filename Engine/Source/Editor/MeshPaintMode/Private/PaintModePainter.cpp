@@ -66,6 +66,7 @@ void FPaintModePainter::Init()
 	FPaintModeCommands::Register();
 	CachedLODIndex = PaintSettings->VertexPaintSettings.LODIndex;
 	bCachedForceLOD = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD;
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FPaintModePainter::UpdatePaintTargets);
 }
 
 FPaintModePainter::FPaintModePainter()
@@ -81,6 +82,7 @@ FPaintModePainter::FPaintModePainter()
 
 FPaintModePainter::~FPaintModePainter()
 {
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	ComponentToAdapterMap.Empty();
 	ComponentToTexturePaintSettingsMap.Empty();
 }
@@ -775,8 +777,7 @@ const FHitResult FPaintModePainter::GetHitResult(const FVector& Origin, const FV
 			// Ray trace
 			FHitResult TraceHitResult(1.0f);
 
-			static FName DoPaintName(TEXT("Paint"));
-			if (MeshAdapter->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(DoPaintName, true)))
+			if (MeshAdapter->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(SCENE_QUERY_STAT(Paint), true)))
 			{
 				// Find the closest impact
 				if ((BestTraceResult.GetComponent() == nullptr) || (TraceHitResult.Time < BestTraceResult.Time))
@@ -907,8 +908,7 @@ bool FPaintModePainter::PaintInternal(const FVector& InCameraOrigin, const FVect
 			// Ray trace
 			FHitResult TraceHitResult(1.0f);
 
-			static FName DoPaintName(TEXT("Paint"));
-			if (MeshAdapter->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(DoPaintName, true)))
+			if (MeshAdapter->LineTraceComponent(TraceHitResult, TraceStart, TraceEnd, FCollisionQueryParams(SCENE_QUERY_STAT(Paint), true)))
 			{
 				// Find the closest impact
 				if ((BestTraceResult.GetComponent() == nullptr) || (TraceHitResult.Time < BestTraceResult.Time))
@@ -1024,7 +1024,15 @@ bool FPaintModePainter::PaintInternal(const FVector& InCameraOrigin, const FVect
 			if (PaintSettings->PaintMode == EPaintMode::Vertices && MeshAdapter->SupportsVertexPaint())
 			{
 				MeshAdapter->PreEdit();
-				bPaintApplied |= MeshPaintHelpers::ApplyPerVertexPaintAction(MeshAdapter, InCameraOrigin, BestTraceResult.Location, BrushSettings, FPerVertexPaintAction::CreateRaw(this, &FPaintModePainter::ApplyVertexColor, Params));
+
+				FPerVertexPaintActionArgs Args;
+				Args.Adapter = MeshAdapter;
+				Args.CameraPosition = InCameraOrigin;
+				Args.HitResult = BestTraceResult;
+				Args.BrushSettings = BrushSettings;
+				Args.Action = PaintAction;
+
+				bPaintApplied |= MeshPaintHelpers::ApplyPerVertexPaintAction(Args, FPerVertexPaintAction::CreateRaw(this, &FPaintModePainter::ApplyVertexColor, Params));
 				MeshAdapter->PostEdit();
 			}
 			else if (PaintSettings->PaintMode == EPaintMode::Textures&& MeshAdapter->SupportsTexturePaint())
@@ -1076,16 +1084,16 @@ bool FPaintModePainter::PaintInternal(const FVector& InCameraOrigin, const FVect
 	return bPaintApplied;
 }
 
-void FPaintModePainter::ApplyVertexColor(IMeshPaintGeometryAdapter* Adapter, int32 VertexIndex, FMeshPaintParameters Parameters)
+void FPaintModePainter::ApplyVertexColor(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMeshPaintParameters Parameters)
 {
 	/** Retrieve vertex position and color for applying vertex painting */
 	FColor PaintColor;
 	FVector Position;
-	Adapter->GetVertexPosition(VertexIndex, Position);
-	Position = Adapter->GetComponentToWorldMatrix().TransformPosition(Position);
-	Adapter->GetVertexColor(VertexIndex, PaintColor, true);			
+	InArgs.Adapter->GetVertexPosition(VertexIndex, Position);
+	Position = InArgs.Adapter->GetComponentToWorldMatrix().TransformPosition(Position);
+	InArgs.Adapter->GetVertexColor(VertexIndex, PaintColor, true);			
 	MeshPaintHelpers::PaintVertex(Position, Parameters, PaintColor);
-	Adapter->SetVertexColor(VertexIndex, PaintColor, true);
+	InArgs.Adapter->SetVertexColor(VertexIndex, PaintColor, true);
 }
 
 void FPaintModePainter::GatherTextureTriangles(IMeshPaintGeometryAdapter* Adapter, int32 TriangleIndex, const int32 VertexIndices[3], TArray<FTexturePaintTriangleInfo>* TriangleInfo, TArray<FTexturePaintMeshSectionInfo>* SectionInfos, int32 UVChannelIndex)
@@ -2083,6 +2091,16 @@ void FPaintModePainter::ApplyForcedLODIndex(int32 ForcedLODIndex)
 	}
 }
 
+void FPaintModePainter::UpdatePaintTargets(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent)
+{
+	AActor* Actor = Cast<AActor>(InObject);
+	if (InPropertyChangedEvent.Property && 
+		InPropertyChangedEvent.Property->GetName() == GET_MEMBER_NAME_CHECKED(USceneComponent, bVisible).ToString())
+	{
+		Refresh();
+	}
+}
+
 void FPaintModePainter::Refresh()
 {
 	// Ensure that we call OnRemoved while adapter/components are still valid
@@ -2178,7 +2196,7 @@ void FPaintModePainter::CacheSelectionData()
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
 		TSharedPtr<IMeshPaintGeometryAdapter> MeshAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintLODIndex);
-		if (MeshAdapter.IsValid() && MeshAdapter->IsValid())
+		if (MeshComponent->IsVisible() && MeshAdapter.IsValid() && MeshAdapter->IsValid())
 		{
 			PaintableComponents.Add(MeshComponent);
 			ComponentToAdapterMap.Add(MeshComponent, MeshAdapter);

@@ -46,6 +46,7 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 
 	/**
 	 * If this component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
+	 * When disabled, the component will revert to using the stored RelativeRotation of the component.
 	 * @see APawn::GetViewRotation()
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)

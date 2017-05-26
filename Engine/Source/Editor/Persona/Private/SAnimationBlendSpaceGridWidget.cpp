@@ -488,7 +488,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
-				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 				OnSampleAdded.ExecuteIfBound(Animation, SampleValue);
 			}	
 		}
@@ -498,7 +498,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
-				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 				OnSampleAnimationChanged.ExecuteIfBound(Animation, SampleValue);
 			}
 		}
@@ -1502,7 +1502,7 @@ const bool SBlendSpaceGridWidget::IsValidDragDropOperation(const FDragDropEvent&
 	if (DragDropOperation.IsValid())
 	{
 		// Check whether or not this animation is compatible with the blend space
-		DragDropAnimationSequence = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+		DragDropAnimationSequence = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 		if (DragDropAnimationSequence)
 		{
 			bResult = ValidateAnimationSequence(DragDropAnimationSequence, InvalidOperationText);

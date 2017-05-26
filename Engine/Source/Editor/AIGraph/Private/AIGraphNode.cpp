@@ -28,8 +28,10 @@ void UAIGraphNode::InitializeInstance()
 
 void UAIGraphNode::PostPlacedNewNode()
 {
+	// NodeInstance can be already spawned by paste operation, don't override it
+
 	UClass* NodeClass = ClassData.GetClass(true);
-	if (NodeClass)
+	if (NodeClass && (NodeInstance == nullptr))
 	{
 		UEdGraph* MyGraph = GetGraph();
 		UObject* GraphOwner = MyGraph ? MyGraph->GetOuter() : nullptr;

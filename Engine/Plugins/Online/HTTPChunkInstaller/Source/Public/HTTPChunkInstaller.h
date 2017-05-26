@@ -130,6 +130,8 @@ public:
 
 	void SetPreloaded(bool bPreload) { bPreloaded = bPreload; }
 
+	void FlushPakMount();
+
 private:
 
 	void InitialiseSystem(const FString& InBaseUrl, const FString& InManifestData);
@@ -244,6 +246,7 @@ private:
 #endif
 	FCriticalSection											ReadFileGuard;
 	TArray<FCloudFileHeader>									PendingReads;
+	TArray<FCloudFileHeader>									NeedsRead;
 	FPlatformChunkInstallErrorMultiDelegate						ErrorDelegate;
 	bool														bEnabled;
 	bool														bNeedsRetry;
@@ -251,4 +254,10 @@ private:
 	double														StartTime;
 	FPlatformChunkInstallRetryMultiDelegate						RetryDelegate;
 	bool														bPreloaded;
+	struct MountTask
+	{
+		FString DestDir;
+		IBuildManifestPtr BuildManifest;
+	};
+	TArray<MountTask>											PaksToMount;
 };

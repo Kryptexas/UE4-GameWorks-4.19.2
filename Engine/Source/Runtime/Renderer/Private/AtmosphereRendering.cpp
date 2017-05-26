@@ -1737,7 +1737,7 @@ FAtmosphericFogSceneInfo::FAtmosphericFogSceneInfo(UAtmosphericFogComponent* InC
 	RenderFlag |= (InComponent->bDisableGroundScattering) ? EAtmosphereRenderFlag::E_DisableGroundScattering : EAtmosphereRenderFlag::E_EnableAll;
 	// Should be same as UpdateAtmosphericFogTransform
 	GroundOffset += InComponent->GetComponentLocation().Z;
-	FMatrix WorldToLight = InComponent->ComponentToWorld.ToMatrixNoScale().InverseFast();
+	FMatrix WorldToLight = InComponent->GetComponentTransform().ToMatrixNoScale().InverseFast();
 	DefaultSunDirection = FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]);
 
 #if WITH_EDITORONLY_DATA

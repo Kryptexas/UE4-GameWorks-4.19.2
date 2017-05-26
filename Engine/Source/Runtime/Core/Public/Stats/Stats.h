@@ -391,6 +391,7 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId)
 #define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition)
 #define RETURN_QUICK_DECLARE_CYCLE_STAT(StatId,GroupId) return TStatId();
+#define QUICK_USE_CYCLE_STAT(StatId,GroupId) TStatId()
 #define DECLARE_CYCLE_STAT(CounterName,StatId,GroupId)
 #define DECLARE_FLOAT_COUNTER_STAT(CounterName,StatId,GroupId)
 #define DECLARE_DWORD_COUNTER_STAT(CounterName,StatId,GroupId)

@@ -156,8 +156,11 @@ public:
 
 	void					AddNewSection(float StartTime, FString SectionName);
 	void					RemoveSection(int32 SectionIndex);
-
 	FString					GetSectionName(int32 SectionIndex) const;
+
+	// Set the time of the supplied section
+	void					SetSectionTime(int32 SectionIndex, float NewTime);
+
 	void					RenameSlotNode(int32 SlotIndex, FString NewSlotName);
 
 	void					AddNewMontageSlot(FString NewSlotName);

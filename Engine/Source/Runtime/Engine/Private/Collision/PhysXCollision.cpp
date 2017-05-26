@@ -628,8 +628,8 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	}
 
 	// Check if the shape is the right complexity for the trace 
-	PxFilterData ShapeFilter = shape->getQueryFilterData();
-	PxFilterData ShapeSimFilter = shape->getSimulationFilterData();	//This is a bit of a hack. We do this because word2 has our component ID
+	const PxFilterData ShapeFilter = shape->getQueryFilterData();
+
 #define ENABLE_PREFILTER_LOGGING 0
 #if ENABLE_PREFILTER_LOGGING
 	static bool bLoggingEnabled=false;
@@ -675,10 +675,17 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	// If not already rejected, check ignore actor and component list.
 	if (Result != PxQueryHitType::eNONE)
 	{
-		// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID) or the component (word2 of shape sim filter data is componentID)
-		if (IgnoreActors.Contains(ShapeFilter.word0) || IgnoreComponents.Contains(ShapeSimFilter.word2))
+		// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID)
+		if (IgnoreActors.Contains(ShapeFilter.word0))
 		{
 			//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
+			Result = PxQueryHitType::eNONE;
+		}
+
+		// We usually don't have ignore components so we try to avoid the virtual getSimulationFilterData() call below. 'word2' of shape sim filter data is componentID.
+		if (IgnoreComponents.Num() > 0 && IgnoreComponents.Contains(shape->getSimulationFilterData().word2))
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Ignoring Component: %d"), shape->getSimulationFilterData().word2);
 			Result = PxQueryHitType::eNONE;
 		}
 	}
@@ -904,7 +911,9 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 	{
 		return false;
 	}
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_RaycastAny);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	bool bHaveBlockingHit = false; // Track if we get any 'blocking' hits
@@ -959,7 +968,7 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 
 	TArray<FHitResult> Hits;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag) && IsInGameThread())
+	if(World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		DrawLineTraces(World, Start, End, Hits, DebugLineLifetime);
 	}
@@ -971,7 +980,9 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 
 bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_RaycastSingle);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	OutHit = FHitResult();
@@ -1074,7 +1085,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag) && IsInGameThread())
+	if (World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveBlockingHit)
@@ -1143,7 +1154,9 @@ public:
 
 bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_RaycastMultiple);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	OutHits.Reset();
@@ -1285,7 +1298,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if(World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		DrawLineTraces(World, Start, End, OutHits, DebugLineLifetime);
 	}
@@ -1396,7 +1409,9 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 	{
 		return false;
 	}
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepAny);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	bool bHaveBlockingHit = false; // Track if we get any 'blocking' hits
@@ -1443,7 +1458,7 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if(World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, Hits, DebugLineLifetime);
@@ -1467,7 +1482,9 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 
 bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, FHitResult& OutHit, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepSingle);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	OutHit = FHitResult();
@@ -1564,7 +1581,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if (World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveBlockingHit)
@@ -1596,7 +1613,9 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 	bool bBlockingHit = false;
 
@@ -1684,7 +1703,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag) && IsInGameThread())
+	if (World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> OnlyMyHits(OutHits);
 		OnlyMyHits.RemoveAt(0, InitialHitCount, false); // Remove whatever was there initially.
@@ -1707,8 +1726,6 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 
 bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);
-
 	OutHits.Reset();
 
 	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
@@ -1751,7 +1768,9 @@ namespace EQueryInfo
 template <EQueryInfo::Type InfoType>
 bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
+	FScopeCycleCounter Counter(Params.StatId);
 	STARTQUERYTIMER();
 
 	bool bHaveBlockingHit = false;
@@ -1837,7 +1856,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 			}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag) && IsInGameThread())
+			if (World->DebugDrawSceneQueries(Params.TraceTag))
 			{
 				DrawGeomOverlaps(World, PGeom, PGeomPose, OutOverlaps, DebugLineLifetime);
 			}

@@ -15,7 +15,7 @@ class UMaterialInterface;
 class UPaperSpriteAtlas;
 
 //@TODO: Should have some nice UI and enforce unique names, etc...
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FPaperSpriteSocket
 {
 	GENERATED_USTRUCT_BODY()

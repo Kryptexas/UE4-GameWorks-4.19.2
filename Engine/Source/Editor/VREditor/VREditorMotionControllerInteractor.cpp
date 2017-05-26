@@ -58,6 +58,7 @@ namespace VREd
 
 	static FAutoConsoleVariable TrackpadAbsoluteDragSpeed( TEXT( "VREd.TrackpadAbsoluteDragSpeed" ), 40.0f, TEXT( "How fast objects move toward or away when you drag on the touchpad while carrying them" ) );
 	static FAutoConsoleVariable TrackpadRelativeDragSpeed( TEXT( "VREd.TrackpadRelativeDragSpeed" ), 8.0f, TEXT( "How fast objects move toward or away when you hold a direction on an analog stick while carrying them" ) );
+	static FAutoConsoleVariable TrackpadStopImpactAtLaserBuffer( TEXT( "VREd.TrackpadStopImpactAtLaserBuffer" ), 0.4f, TEXT( "Required amount to slide with input to stop transforming to end of laser" ) );
 	static FAutoConsoleVariable InvertTrackpadVertical( TEXT( "VREd.InvertTrackpadVertical" ), 1, TEXT( "Toggles inverting the touch pad vertical axis" ) );
 	static FAutoConsoleVariable MinVelocityForInertia( TEXT( "VREd.MinVelocityForMotionControllerInertia" ), 1.0f, TEXT( "Minimum velocity (in cm/frame in unscaled room space) before inertia will kick in when releasing objects (or the world)" ) );
 	static FAutoConsoleVariable MinTrackpadOffsetBeforeRadialMenu( TEXT( "VREd.MinTrackpadOffsetBeforeRadialMenu" ), 0.5f, TEXT( "How far you have to hold the trackpad upward before you can placing objects instantly by pulling the trigger" ) );
@@ -99,8 +100,8 @@ namespace SteamVRControllerKeyNames
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
-UVREditorMotionControllerInteractor::UVREditorMotionControllerInteractor( const FObjectInitializer& Initializer ) :
-	Super( Initializer ),
+UVREditorMotionControllerInteractor::UVREditorMotionControllerInteractor() :
+	Super(),
 	MotionControllerComponent( nullptr ),
 	HandMeshComponent( nullptr ),
 	LaserPointerMID( nullptr ),
@@ -127,13 +128,6 @@ UVREditorMotionControllerInteractor::UVREditorMotionControllerInteractor( const 
 	InitialTouchPosition(FVector2D::ZeroVector)
 {
 }
-
-
-UVREditorMotionControllerInteractor::~UVREditorMotionControllerInteractor()
-{
-	Shutdown();
-}
-
 
 void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 {
@@ -386,11 +380,6 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 			HandMeshComponent->SetVisibility( false );
 		}
 
-		// Offset the beginning of the laser pointer a bit, so that it doesn't overlap the hand mesh
-		const float LaserPointerStartOffset =
-			WorldScaleFactor *
-			( GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerStartOffset->GetFloat() : VREd::ViveLaserPointerStartOffset->GetFloat() );
-
 		// The laser pointer needs to stay the same size relative to our tracking space, so we inverse compensate for world to meters scale here
 		float LaserPointerRadius = VREd::LaserPointerRadius->GetFloat() * WorldScaleFactor;
 		float HoverMeshRadius = VREd::LaserPointerHoverBallRadius->GetFloat() * WorldScaleFactor;
@@ -464,13 +453,18 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		// Update the curved laser. No matter if we actually show the laser it needs to update, 
 		// so if in the next frame it needs to be visible it won't interpolate from a previous location.
 		{
+			// Offset the beginning of the laser pointer a bit, so that it doesn't overlap the hand mesh
+			const float LaserPointerStartOffset = WorldScaleFactor *
+				(GetVRMode().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerStartOffset->GetFloat() : VREd::ViveLaserPointerStartOffset->GetFloat());
+
 			// Get the hand transform and forward vector.
 			FTransform InteractorTransform;
 			FVector InteractorForwardVector;
 			GetTransformAndForwardVector( /* Out */ InteractorTransform, /* Out */ InteractorForwardVector);
-
+			InteractorForwardVector.Normalize();
+			
 			// Offset the start point of the laser.
-			LaserPointerStart = InteractorTransform.GetLocation() + (InteractorForwardVector * FVector(LaserPointerStartOffset, 0.0f, 0.0f));
+			LaserPointerStart = InteractorTransform.GetLocation() + (InteractorForwardVector * LaserPointerStartOffset);
 
 			UpdateSplineLaser(LaserPointerStart, LaserPointerEnd, InteractorForwardVector);
 		}
@@ -569,6 +563,8 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 
 		if ( !FMath::IsNearlyZero( SlideDelta ) )
 		{
+
+
 			InOutDragRayLength += SlideDelta;
 
 			InOutDragRayVelocity = 0.0f;
@@ -588,6 +584,12 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 			{
 				InOutDragRayLength = 0.0f;
 				InOutDragRayVelocity = 0.0f;
+			}			
+			
+			// Stop transforming object to laser impact point when trying to slide with touchpad or analog stick.
+			if (InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact && !FMath::IsNearlyZero(SlideDelta, VREd::TrackpadStopImpactAtLaserBuffer->GetFloat()))
+			{
+				InteractorData.DraggingMode = EViewportInteractionDraggingMode::TransformablesFreely;
 			}
 		}
 	}

@@ -78,13 +78,13 @@ int32 UBoolProperty::GetMinAlignment() const
 	switch(ElementSize)
 	{
 	case sizeof(uint8):
-		Alignment = ALIGNOF(uint8); break;
+		Alignment = alignof(uint8); break;
 	case sizeof(uint16):
-		Alignment = ALIGNOF(uint16); break;
+		Alignment = alignof(uint16); break;
 	case sizeof(uint32):
-		Alignment = ALIGNOF(uint32); break;
+		Alignment = alignof(uint32); break;
 	case sizeof(uint64):
-		Alignment = ALIGNOF(uint64); break;
+		Alignment = alignof(uint64); break;
 	default:
 		UE_LOG(LogProperty, Fatal, TEXT("Unsupported UBoolProperty %s size %d."), *GetName(), (int32)ElementSize);
 	}

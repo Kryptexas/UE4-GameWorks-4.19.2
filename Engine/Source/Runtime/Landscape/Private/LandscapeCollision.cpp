@@ -43,7 +43,7 @@
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceConstant.h"
 #if WITH_EDITOR
-	#include "IPhysXFormat.h"
+	#include "IPhysXCooking.h"
 #endif
 
 #if ENABLE_COOK_STATS
@@ -241,6 +241,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 				HeightFieldShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 				HeightFieldActorSync->attachShape(*HeightFieldShapeSync);
+
+				// attachShape holds its own ref(), so release this here.
 				HeightFieldShapeSync->release();
 
 				if (bCreateSimpleCollision)
@@ -262,6 +264,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeSimpleSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorSync->attachShape(*HeightFieldShapeSimpleSync);
+
+					// attachShape holds its own ref(), so release this here.
 					HeightFieldShapeSimpleSync->release();
 				}
 
@@ -287,6 +291,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldEdShapeSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 
 						HeightFieldActorSync->attachShape(*HeightFieldEdShapeSync);
+
+						// attachShape holds its own ref(), so release this here.
 						HeightFieldEdShapeSync->release();
 					}
 				}
@@ -310,6 +316,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorAsync->attachShape(*HeightFieldShapeAsync);
+
+					// attachShape holds its own ref(), so release this here.
 					HeightFieldShapeAsync->release();
 
 					if (bCreateSimpleCollision)
@@ -332,6 +340,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldShapeSimpleAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 						HeightFieldActorAsync->attachShape(*HeightFieldShapeSimpleAsync);
+
+						// attachShape holds its own ref(), so release this here.
 						HeightFieldShapeSimpleAsync->release();
 					}
 				}
@@ -598,7 +608,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 
 	UPhysicalMaterial* DefMaterial = Proxy->DefaultPhysMaterial ? Proxy->DefaultPhysMaterial : GEngine->DefaultPhysMaterial;
 
-	// ComponentToWorld might not be initialized at this point, so use landscape transform
+	// GetComponentTransform() might not be initialized at this point, so use landscape transform
 	const FVector LandscapeScale = Proxy->GetRootComponent()->RelativeScale3D;
 	const bool bIsMirrored = (LandscapeScale.X*LandscapeScale.Y*LandscapeScale.Z) < 0.f;
 
@@ -649,7 +659,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 	TArray<uint8> OutData;
 
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
+	const IPhysXCooking* Cooker = TPM->FindPhysXCooking(Format);
 	bool Result = Cooker->CookHeightField(Format, HFSize, Samples.GetData(), Samples.GetTypeSize(), OutData);
 
 	if (Result && bGenerateSimpleCollision)
@@ -856,7 +866,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	bool bFlipNormals = true;
 	TArray<uint8> OutData;
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
+	const IPhysXCooking* Cooker = TPM->FindPhysXCooking(Format);
 	bool Result = Cooker->CookTriMesh(Format, EPhysXMeshCookFlags::Default, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
 
 	if (Result)
@@ -1291,7 +1301,7 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 			if (InstanceSet)
 			{
 				float TraceExtentSize = Bounds.SphereRadius * 2.f + 10.f; // extend a little
-				FVector TraceVector = GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
+				FVector TraceVector = GetOwner()->GetRootComponent()->GetComponentTransform().GetUnitAxis(EAxis::Z) * TraceExtentSize;
 
 				bool bFirst = true;
 				TArray<int32> InstancesToRemove;
@@ -1317,12 +1327,11 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 						FVector Start = TestLocation + TraceVector;
 						FVector End = TestLocation - TraceVector;
 
-						static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
 						TArray<FHitResult> Results;
 						UWorld* World = GetWorld();
 						check(World);
 						// Editor specific landscape heightfield uses ECC_Visibility collision channel
-						World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
+						World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(SCENE_QUERY_STAT(FoliageSnapToLandscape), true));
 
 						bool bFoundHit = false;
 						for (const FHitResult& Hit : Results)
@@ -1544,7 +1553,7 @@ bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FN
 #if WITH_PHYSX
 	if (IsValidRef(HeightfieldRef) && HeightfieldRef->RBHeightfield)
 	{
-		FTransform HFToW = ComponentToWorld;
+		FTransform HFToW = GetComponentTransform();
 		if (HeightfieldRef->RBHeightfieldSimple)
 		{
 			const float SimpleCollisionScale = CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads;
@@ -1566,7 +1575,7 @@ void ULandscapeHeightfieldCollisionComponent::GatherGeometrySlice(FNavigableGeom
 	// note that this function can get called off game thread
 	if (CachedHeightFieldSamples.IsEmpty() == false)
 	{
-		FTransform HFToW = ComponentToWorld;
+		FTransform HFToW = GetComponentTransform();
 		HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
 
 		GeomExport.ExportHeightFieldSlice(CachedHeightFieldSamples, HeightfieldRowsCount, HeightfieldColumnsCount, HFToW, SliceBox);
@@ -1620,7 +1629,7 @@ bool ULandscapeMeshCollisionComponent::DoCustomNavigableGeometryExport(FNavigabl
 #if WITH_PHYSX
 	if (IsValidRef(MeshRef) && MeshRef->RBTriangleMesh != nullptr)
 	{
-		FTransform MeshToW = ComponentToWorld;
+		FTransform MeshToW = GetComponentTransform();
 		MeshToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, 1.f));
 
 		if (MeshRef->RBTriangleMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::e16_BIT_INDICES)

@@ -56,17 +56,6 @@ AVREditorTeleporter::AVREditorTeleporter():
 {
 }
 
-AVREditorTeleporter::~AVREditorTeleporter()
-{
-	TeleportDirectionMeshComponent = nullptr;
-	HMDMeshComponent = nullptr;
-	LeftMotionControllerMeshComponent = nullptr;
-	RightMotionControllerMeshComponent = nullptr;
-	TeleportMID = nullptr;
-	InteractorTryingTeleport = nullptr;
-	VRMode = nullptr;
-}
-
 void AVREditorTeleporter::Init(UVREditorMode* InMode)
 {
 	VRMode = InMode;

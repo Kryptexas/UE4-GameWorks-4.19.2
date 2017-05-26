@@ -9,6 +9,7 @@
 #include "UObject/ScriptMacros.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
+
 #include "GameplayTagsManager.generated.h"
 
 class UGameplayTagsList;
@@ -208,6 +209,12 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	FGameplayTag RequestGameplayTag(FName TagName, bool ErrorIfNotFound=true) const;
 
 	/**
+	 *	Searches for a gameplay tag given a partial string. This is slow and intended mainly for console commands/utilities to make
+	 *	developer life's easier. This will attempt to match as best as it can. If you pass "A.b" it will match on "A.b." before it matches "a.b.c".
+	 */
+	FGameplayTag FindGameplayTagFromPartialString_Slow(FString PartialString) const;
+
+	/**
 	 * Registers the given name as a gameplay tag, and tracks that it is being directly referenced from code
 	 * This can only be called during engine initialization, the table needs to be locked down before replication
 	 *
@@ -219,6 +226,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 	/** Call to flush the list of native tags, once called it is unsafe to add more */
 	void DoneAddingNativeTags();
+
+	static FSimpleMulticastDelegate& OnLastChanceToAddNativeTags();
 
 	/**
 	 * Gets a Tag Container containing the supplied tag and all of it's parents as explicit tags
@@ -380,6 +389,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Gets a Filtered copy of the GameplayRootTags Array based on the comma delimited filter string passed in */
 	void GetFilteredGameplayRootTags(const FString& InFilterString, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const;
 
+	/** Returns "Categories" meta property from given handle, used for filtering by tag wiodget */
+	FString GetCategoriesMetaFromPropertyHandle(TSharedPtr<class IPropertyHandle> PropertyHandle) const;
+
+	FString GetCategoriesMetaFromFunction(UFunction* Func) const;
+
 	/** Gets a list of all gameplay tag nodes added by the specific source */
 	void GetAllTagsFromSource(FName TagSource, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const;
 
@@ -394,6 +408,25 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 	/** Gets a Tag Container containing the all tags in the hierarchy that are children of this tag, and were explicitly added to the dictionary */
 	FGameplayTagContainer RequestGameplayTagChildrenInDictionary(const FGameplayTag& GameplayTag) const;
+
+	/** This is called when EditorRefreshGameplayTagTree. Useful if you need to do anything editor related when tags are added or removed */
+	static FSimpleMulticastDelegate OnEditorRefreshGameplayTagTree;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayTagDoubleClickedEditor, FGameplayTag, FSimpleMulticastDelegate& /* OUT */)
+	FOnGameplayTagDoubleClickedEditor OnGatherGameplayTagDoubleClickedEditor;
+
+	/** Chance to dynamically change filter string based on a property handle */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGetCategoriesMetaFromPropertyHandle, TSharedPtr<IPropertyHandle>, FString& /* OUT */)
+	FOnGetCategoriesMetaFromPropertyHandle OnGetCategoriesMetaFromPropertyHandle;
+
+	/** Allows dynamic hiding of gameplay tags in SGameplayTagWidget. Allows higher order structs to dynamically change which tags are visible based on its own data */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnFilterGameplayTagChildren, const FString&  /** FilterString */, TSharedPtr<FGameplayTagNode>& /* TagNode */, bool& /* OUT OutShouldHide */)
+	FOnFilterGameplayTagChildren OnFilterGameplayTagChildren;
+	
+	void NotifyGameplayTagDoubleClickedEditor(FString TagName);
+	
+	bool ShowGameplayTagAsHyperLinkEditor(FString TagName);
+
 
 #endif //WITH_EDITOR
 
@@ -418,6 +451,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 		}
 		return bResult;
 	}
+
+	void PrintReplicationIndices();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Mechanism for tracking what tags are frequently replicated */

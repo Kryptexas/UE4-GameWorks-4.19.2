@@ -23,7 +23,7 @@ enum class EInterpToBehaviourType : uint8
 	PingPong
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInterpControlPoint
 {
 	GENERATED_USTRUCT_BODY()

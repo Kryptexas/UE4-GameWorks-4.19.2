@@ -11,6 +11,7 @@
 #include "ClothingAsset.generated.h"
 
 class UClothingAsset;
+class UPhysicsAsset;
 struct FClothPhysicalMeshData;
 
 namespace nvidia
@@ -43,11 +44,26 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothParameterMask_PhysMesh
 {
 	GENERATED_BODY();
 
+	FClothParameterMask_PhysMesh()
+		: MaskName(NAME_None)
+		, CurrentTarget(MaskTarget_PhysMesh::None)
+		, MaxValue(-MAX_flt)
+		, MinValue(MAX_flt)
+		, bEnabled(false)
+	{}
+
 	/** 
 	 * Initialize the mask based on the specified mesh data
 	 * @param InMeshData the mesh to initialize against
 	 */
 	void Initialize(const FClothPhysicalMeshData& InMeshData);
+
+	/** 
+	 * Copies the specified parameter from a physical mesh
+	 * @param InMeshData The mesh to copy from
+	 * @param InTarget The target parameter to copy
+	 */
+	void CopyFromPhysMesh(const FClothPhysicalMeshData& InMeshData, MaskTarget_PhysMesh InTarget);
 
 	/** 
 	 * Set a value in the mask
@@ -62,11 +78,15 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothParameterMask_PhysMesh
 	 */
 	float GetValue(int32 InVertexIndex) const;
 	
-#if WITH_EDITOR
+	/** 
+	* Read only version of the array holding the mask values
+	*/
+	const TArray<float>& GetValueArray() const;
 
-	/** Calculates Min/Max values based on values. Call before querying colors */
+	/** Calculates Min/Max values based on values. */
 	void CalcRanges();
 
+#if WITH_EDITOR
 	/** 
 	 * Get a value represented as a preview color for painting
 	 * @param InVertexIndex the value/vertex index to retrieve
@@ -99,6 +119,10 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothParameterMask_PhysMesh
 	/** The actual values stored in the mask */
 	UPROPERTY()
 	TArray<float> Values;
+
+	/** Whether this mask is enabled and able to effect final mesh values */
+	UPROPERTY()
+	bool bEnabled;
 };
 
 // Bone data for a vertex
@@ -131,6 +155,9 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 	GENERATED_BODY()
 
 	void Reset(const int32 InNumVerts);
+
+	// Clear out any target properties in this physical mesh
+	void ClearParticleParameters();
 
 	// Positions of each simulation vertex
 	UPROPERTY(EditAnywhere, Category = SimMesh)
@@ -178,7 +205,7 @@ struct CLOTHINGSYSTEMRUNTIME_API FClothPhysicalMeshData
 };
 
 USTRUCT()
-struct FClothLODData
+struct CLOTHINGSYSTEMRUNTIME_API FClothLODData
 {
 	GENERATED_BODY()
 
@@ -194,6 +221,10 @@ struct FClothLODData
 	// Parameter masks defining the physics mesh masked data
 	UPROPERTY(EditAnywhere, Category = Masks)
 	TArray<FClothParameterMask_PhysMesh> ParameterMasks;
+
+	// Get all available parameter masks for the specified target
+	void GetParameterMasksForTarget(const MaskTarget_PhysMesh& InTarget, TArray<FClothParameterMask_PhysMesh*>& OutMasks);
+
 #endif
 
 	// Skinning data for transitioning from a higher detail LOD to this one
@@ -488,12 +519,12 @@ public:
 
 	UClothingAsset(const FObjectInitializer& ObjectInitializer);
 
-#if WITH_EDITOR
 	// UClothingAssetBase Interface ////////////////////////////////////////////
+	virtual void RefreshBoneMapping(USkeletalMesh* InSkelMesh) override;
+#if WITH_EDITOR
 	virtual bool BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex, int32 InSectionIndex, int32 InAssetLodIndex) override;
 	virtual void UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh) override;
 	virtual void UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshLodIndex) override;
-	virtual void RefreshBoneMapping(USkeletalMesh* InSkelMesh) override;
 	virtual void InvalidateCachedData() override;
 	virtual bool IsValidLod(int32 InLodIndex) override;
 	virtual int32 GetNumLods() override;
@@ -505,9 +536,17 @@ public:
 	*	in exactly the same way the render mesh is skinned to create a smooth swap
 	*/
 	void BuildLodTransitionData();
+
+	/** 
+	 * Applies the painted parameter masks to the final parameters in the physical mesh
+	 */
+	void ApplyParameterMasks();
 #endif
 
+	// UObject Interface //////////////////////////////////////////////////////
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
+	// End UObject Interface //////////////////////////////////////////////////
 
 	/** 
 	 * Builds self collision data
@@ -518,6 +557,10 @@ public:
 
 	// Calculates the prefered root bone for the simulation
 	void CalculateReferenceBoneIndex();
+
+	// The physics asset to extract collisions from when building a simulation
+	UPROPERTY(EditAnywhere, Category = Config)
+	UPhysicsAsset* PhysicsAsset;
 
 	// Configuration of the cloth, contains all the parameters for how the clothing behaves
 	UPROPERTY(EditAnywhere, Category = Config)

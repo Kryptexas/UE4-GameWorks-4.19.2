@@ -56,17 +56,17 @@ enum EBloomMethod
 	BM_MAX,
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWeightedBlendable
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** 0:no effect .. 1:full effect */
-	UPROPERTY(interp, BlueprintReadWrite, Category=FWeightedBlendable, meta=(ClampMin = "0.0", ClampMax = "1.0", Delta = "0.01"))
+	UPROPERTY(interp, Category=FWeightedBlendable, meta=(ClampMin = "0.0", ClampMax = "1.0", Delta = "0.01"))
 	float Weight;
 
 	/** should be of the IBlendableInterface* type but UProperties cannot express that */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FWeightedBlendable, meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
+	UPROPERTY(EditAnywhere, Category=FWeightedBlendable, meta=( AllowedClasses="BlendableInterface", Keywords="PostProcess" ))
 	UObject* Object;
 
 	// default constructor
@@ -91,7 +91,7 @@ struct FWeightedBlendables
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="PostProcessSettings", meta=( Keywords="PostProcess" ))
+	UPROPERTY(EditAnywhere, Category="PostProcessSettings", meta=( Keywords="PostProcess" ))
 	TArray<FWeightedBlendable> Array;
 };
 
@@ -269,7 +269,7 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_BloomSizeScale:1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_BloomConvolutionTexture : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
@@ -428,7 +428,7 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_LPVEmissiveInjectionIntensity:1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_LPVFadeRange : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
@@ -716,9 +716,7 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Bloom", AdvancedDisplay, meta=(editcondition = "bOverride_Bloom6Tint", DisplayName = "#6 Tint", HideAlphaChannel))
 	FLinearColor Bloom6Tint;
 
-	/**
-	* Texture that defines the convolution for bloom.
-	*/
+	/** Texture to replace default convolution bloom kernel */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lens|Bloom", meta = (editcondition = "bOverride_BloomConvolutionTexture", DisplayName = "Convolution Kernel"))
 	class UTexture2D* BloomConvolutionTexture;
 
@@ -745,11 +743,11 @@ struct FPostProcessSettings
 	class UTexture* BloomDirtMask;	
 	
 	/** BloomDirtMask intensity */
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Dirt Mask", meta = (ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(ClampMin = "0.0", UIMax = "8.0", editcondition = "bOverride_BloomDirtMaskIntensity", DisplayName = "Dirt Mask Intensity"))
 	float BloomDirtMaskIntensity;
 
 	/** BloomDirtMask tint color */
-	UPROPERTY(interp, BlueprintReadWrite, Category = "Lens|Dirt Mask", meta = (editcondition = "bOverride_BloomDirtMaskTint", DisplayName = "Dirt Mask Tint", HideAlphaChannel))
+	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Dirt Mask", meta=(editcondition = "bOverride_BloomDirtMaskTint", DisplayName = "Dirt Mask Tint", HideAlphaChannel))
 	FLinearColor BloomDirtMaskTint;
 
 	/** AmbientCubemap tint color */
@@ -1261,7 +1259,7 @@ struct FPostProcessSettings
 		Bloom6Size = 64.0f;
 		BloomConvolutionSize = 1.f;
 		BloomConvolutionCenterUV = FVector2D(0.5f, 0.5f);
-		BloomConvolutionPreFilter = FVector(0.f, -1.f, 1.f);
+		BloomConvolutionPreFilter = FVector(7.f, 15000.f, 15.f);
 		BloomConvolutionBufferScale = 0.133f;
 		BloomDirtMaskIntensity = 0.0f;
 		BloomDirtMaskTint = FLinearColor(0.5f, 0.5f, 0.5f);

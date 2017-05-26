@@ -29,6 +29,9 @@ protected:
 	virtual TSharedRef<SWidget> GenerateAssetPicker() override;
 	virtual FText GetDefaultComboText() const override;
 	virtual FOnClicked GetOnUseButtonDelegate() override;
+	virtual const FAssetData& GetAssetData(bool bRuntimePath) const override;
 	//~ End SGraphPinObject Interface
 
+	/** Cached AssetData without the _C */
+	mutable FAssetData CachedEditorAssetData;
 };

@@ -780,7 +780,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	}
 
 	// Use only instance translation as a component transform
-	Component->SetWorldTransform(InIFA->GetRootComponent()->ComponentToWorld);
+	Component->SetWorldTransform(InIFA->GetRootComponent()->GetComponentTransform());
 
 	// Add the new component to the transaction buffer so it will get destroyed on undo
 	Component->Modify();
@@ -1254,7 +1254,7 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 	}
 
 	if (Component != nullptr)
-	{
+	{	
 		Component->BuildTreeIfOutdated(true, true);
 	}
 }
@@ -2355,7 +2355,7 @@ void AInstancedFoliageActor::MapRebuild()
 					FVector End(InstanceToWorld.TransformPosition(Down));
 
 					FHitResult Result;
-					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None, true));
+					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true));
 
 					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
@@ -2844,7 +2844,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 #if WITH_EDITOR
 bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, const FFoliageTraceFilterFunc& FilterFunc)
 {
-	FCollisionQueryParams QueryParams(InTraceTag, true);
+	FCollisionQueryParams QueryParams(InTraceTag, SCENE_QUERY_STAT_ONLY(IFA_FoliageTrace), true);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
 
 	//It's possible that with the radius of the shape we will end up with an initial overlap which would place the instance at the top of the procedural volume.

@@ -659,8 +659,6 @@ public:
 		FMemory::Memzero(OutData);
 	}
 
-	// 1060 paintbrush drive sunnyvale
-
 	/**
 	* User profile structure.
 	*/

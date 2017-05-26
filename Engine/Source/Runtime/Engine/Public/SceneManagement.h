@@ -668,9 +668,11 @@ private:
 	TPendingTextureType* PendingTexture;
 	FThreadSafeCounter& Counter;
 	ULevel* LightingScenario;
+	class ITextureCompressorModule* Compressor;
+
 public:
 
-	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter, ITextureCompressorModule* InCompressor) : PendingTexture(nullptr), Counter(InCounter), Compressor(InCompressor)
 	{
 		LightingScenario = InLightingScenario;
 		PendingTexture = InPendingTexture;
@@ -678,13 +680,13 @@ public:
 
 	void Abandon()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 
 	void DoThreadedWork()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 };
@@ -1920,7 +1922,7 @@ private:
 // 10x10 tessellated plane at x=-1..1 y=-1...1 z=0
 extern ENGINE_API void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWorld,float Radii,FVector2D UVMin, FVector2D UVMax,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority);
 extern ENGINE_API void DrawBox(class FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority);
-extern ENGINE_API void DrawSphere(class FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling=false);
+extern ENGINE_API void DrawSphere(class FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotator& Orientation,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling=false);
 extern ENGINE_API void DrawCone(class FPrimitiveDrawInterface* PDI,const FMatrix& ConeToWorld, float Angle1, float Angle2, int32 NumSides, bool bDrawSideLines, const FLinearColor& SideLineColor, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority);
 
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI,const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,

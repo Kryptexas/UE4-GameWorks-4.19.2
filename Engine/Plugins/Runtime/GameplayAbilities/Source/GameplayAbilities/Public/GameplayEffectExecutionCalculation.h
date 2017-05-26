@@ -15,7 +15,7 @@
 class UAbilitySystemComponent;
 
 /** Struct representing parameters for a custom gameplay effect execution. Should not be held onto via reference, used just for the scope of the execution */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectCustomExecutionParameters
 {
 	GENERATED_USTRUCT_BODY()
@@ -125,7 +125,7 @@ private:
 };
 
 /** Struct representing the output of a custom gameplay effect execution. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectCustomExecutionOutput
 {
 	GENERATED_USTRUCT_BODY()

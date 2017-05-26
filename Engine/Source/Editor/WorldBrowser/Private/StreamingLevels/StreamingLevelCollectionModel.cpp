@@ -230,23 +230,29 @@ void FStreamingLevelCollectionModel::BindCommands()
 
 }
 
-TSharedPtr<FLevelDragDropOp> FStreamingLevelCollectionModel::CreateDragDropOp() const
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FStreamingLevelCollectionModel::CreateDragDropOp() const
+{
+	return CreateDragDropOp(SelectedLevelsList);
+}
+
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FStreamingLevelCollectionModel::CreateDragDropOp(const FLevelModelList& InLevels) const
 {
 	TArray<TWeakObjectPtr<ULevelStreaming>> LevelsToDrag;
 
-	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
+	for (auto It = InLevels.CreateConstIterator(); It; ++It)
 	{
+		check(AllLevelsList.Contains(*It));
 		TSharedPtr<FStreamingLevelModel> TargetModel = StaticCastSharedPtr<FStreamingLevelModel>(*It);
-		
+
 		if (TargetModel->GetLevelStreaming().IsValid())
 		{
-			LevelsToDrag.Add(TargetModel->GetLevelStreaming());
+			LevelsToDrag.AddUnique(TargetModel->GetLevelStreaming());
 		}
 	}
 
 	if (LevelsToDrag.Num())
 	{
-		return FLevelDragDropOp::New(LevelsToDrag);
+		return WorldHierarchy::FWorldBrowserDragDropOp::New(LevelsToDrag);
 	}
 	else
 	{
@@ -410,7 +416,7 @@ const FLevelModelList& FStreamingLevelCollectionModel::GetInvalidSelectedLevels(
 //levels
 void FStreamingLevelCollectionModel::CreateEmptyLevel_Executed()
 {
-	EditorLevelUtils::CreateNewLevel( CurrentWorld.Get(), false, AddedLevelStreamingClass );
+	EditorLevelUtils::CreateNewStreamingLevelForWorld( *CurrentWorld, AddedLevelStreamingClass, TEXT(""), false);
 
 	// Force a cached level list rebuild
 	PopulateLevelsList();
@@ -553,7 +559,7 @@ void FStreamingLevelCollectionModel::HandleAddExistingLevelCancelled()
 
 void FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed()
 {
-	EditorLevelUtils::CreateNewLevel( CurrentWorld.Get(), true, AddedLevelStreamingClass );
+	EditorLevelUtils::CreateNewStreamingLevelForWorld( *CurrentWorld, AddedLevelStreamingClass, TEXT(""), true);
 
 	// Force a cached level list rebuild
 	PopulateLevelsList();
@@ -601,11 +607,13 @@ void FStreamingLevelCollectionModel::MergeSelectedLevels_Executed()
 	SelectActors_Executed();
 
 	//Create a new level with the selected actors
-	ULevel* NewLevel = EditorLevelUtils::CreateNewLevel(CurrentWorld.Get(),  true, AddedLevelStreamingClass);
+	ULevelStreaming* NewStreamingLevel = EditorLevelUtils::CreateNewStreamingLevelForWorld(*CurrentWorld, AddedLevelStreamingClass, TEXT(""), true);
 
 	//If the new level was successfully created (ie the user did not cancel)
-	if ((NewLevel != NULL) && (CurrentWorld.IsValid()))
+	if ((NewStreamingLevel != nullptr) && (CurrentWorld.IsValid()))
 	{
+		ULevel* NewLevel = NewStreamingLevel->GetLoadedLevel();
+
 		if (CurrentWorld->SetCurrentLevel(NewLevel))
 		{
 			FEditorDelegates::NewCurrentLevel.Broadcast();

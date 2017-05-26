@@ -115,11 +115,7 @@ FOculusRiftHMD::D3D12Bridge::D3D12Bridge(const FOvrSessionSharedPtr& InOvrSessio
 	check(IsInGameThread());
 
 	// Disable RHI thread
-	if(GRHISupportsRHIThread && GIsThreadedRendering && GUseRHIThread)
-	{
-		FSuspendRenderingThread SuspendRenderingThread(true);
-		GUseRHIThread = false;
-	}
+	SetRHIThreadEnabled(false, false);
 }
 
 bool FOculusRiftHMD::D3D12Bridge::IsUsingGraphicsAdapter(const ovrGraphicsLuid& luid)

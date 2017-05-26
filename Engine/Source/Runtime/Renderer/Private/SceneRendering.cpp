@@ -160,14 +160,6 @@ static TAutoConsoleVariable<int32> CVarMaxMobileShadowCascades(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 );
 
-static TAutoConsoleVariable<int32> CVarForwardShading(
-	TEXT("r.ForwardShading"),
-	0,
-	TEXT("Whether to use forward shading on desktop platforms - requires Shader Model 5 hardware.\n")
-	TEXT("Forward shading has lower constant cost, but fewer features supported. 0:off, 1:on\n")
-	TEXT("This rendering path is a work in progress with many unimplemented features, notably only a single reflection capture is applied per object and no translucency dynamic shadow receiving."),
-	ECVF_RenderThreadSafe | ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
 	TEXT("r.SupportSimpleForwardShading"),
 	0,
@@ -598,6 +590,13 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 	}
 	check(ViewUniformShaderParameters.PerlinNoise3DTexture);
 	ViewUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	if (GSystemTextures.SobolSampling.GetReference())
+	{
+		ViewUniformShaderParameters.SobolSamplingTexture = (FTexture2DRHIRef&)GSystemTextures.SobolSampling->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack2DIfNull(ViewUniformShaderParameters.SobolSamplingTexture);
+	}
+	check(ViewUniformShaderParameters.SobolSamplingTexture);
 }
 
 /** Creates the view's uniform buffers given a set of view transforms. */
@@ -936,7 +935,7 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 	}
 	else
 	{
-		Result = (FViewInfo*)FMemory::Malloc(sizeof(FViewInfo), ALIGNOF(FViewInfo));
+		Result = (FViewInfo*)FMemory::Malloc(sizeof(FViewInfo), alignof(FViewInfo));
 	}
 	FMemory::Memcpy(*Result, *this);
 
@@ -1930,6 +1929,12 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			World->SendAllEndOfFrameUpdates();
 		}
 	}
+
+	ENQUEUE_RENDER_COMMAND(UpdateDeferredCachedUniformExpressions)(
+		[](FRHICommandList& RHICmdList)
+		{
+			FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+		});
 
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();

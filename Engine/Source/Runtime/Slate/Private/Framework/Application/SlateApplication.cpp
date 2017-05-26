@@ -989,7 +989,9 @@ FSlateApplication::FSlateApplication()
 	FTabCommands::Register();
 
 	NormalExecutionGetter.BindRaw( this, &FSlateApplication::IsNormalExecution );
-	PointerIndexLastPositionMap.Add(CursorPointerIndex, FVector2D::ZeroVector);
+
+	PointerIndexPositionMap.Add(FUserAndPointer(0, CursorPointerIndex), FVector2D::ZeroVector);
+	PointerIndexLastPositionMap.Add(FUserAndPointer(0, CursorPointerIndex), FVector2D::ZeroVector);
 
 	// Add the standard 'default' user because there's always 1 user.
 	RegisterUser(MakeShareable(new FSlateUser(0, false)));
@@ -1062,12 +1064,14 @@ FVector2D FSlateApplication::GetCursorPos() const
 		return Cursor->GetPosition();
 	}
 
-	return FVector2D( 0, 0 );
+	const int32 UserIndex = 0;
+	return PointerIndexPositionMap.FindRef(FUserAndPointer(UserIndex, CursorPointerIndex));
 }
 
 FVector2D FSlateApplication::GetLastCursorPos() const
 {
-	return PointerIndexLastPositionMap[CursorPointerIndex];
+	const int32 UserIndex = 0;
+	return PointerIndexLastPositionMap.FindRef(FUserAndPointer(UserIndex, CursorPointerIndex));
 }
 
 void FSlateApplication::SetCursorPos( const FVector2D& MouseCoordinate )
@@ -1467,9 +1471,9 @@ void FSlateApplication::FinishedInputThisFrame()
 {
 	const float DeltaTime = GetDeltaTime();
 
-	if (InputPreProcessor.IsValid() && PlatformApplication->Cursor.IsValid())
+	if (PlatformApplication->Cursor.IsValid())
 	{
-		InputPreProcessor->Tick(DeltaTime, *this, PlatformApplication->Cursor.ToSharedRef());
+		InputPreProcessors.Tick(DeltaTime, *this, PlatformApplication->Cursor.ToSharedRef());
 	}
 
 	// All the input events have been processed.
@@ -1505,7 +1509,7 @@ void FSlateApplication::FinishedInputThisFrame()
 		}
 	}
 
-	// Any widgets that may have recieved key events
+	// Any widgets that may have received key events
 	// are given a chance to process accumulated values.
 	ForEachUser([&] (FSlateUser* User) {
 		const FSlateUser::FUserFocusEntry& UserFocusEntry = User->Focus;
@@ -3010,7 +3014,8 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		if (RequestedMousePos.IsSet())
 		{
 			const FVector2D Position = RequestedMousePos.GetValue();
-			PointerIndexLastPositionMap.Add(CursorPointerIndex, Position);
+			PointerIndexPositionMap.Add(FUserAndPointer(UserIndex, PointerIndex), Position);
+			PointerIndexLastPositionMap.Add(FUserAndPointer(UserIndex, PointerIndex), Position);
 			SetCursorPos(Position);
 		}
 
@@ -3863,16 +3868,44 @@ void FSlateApplication::SetDragTriggerDistance( float ScreenPixels )
 	DragTriggerDistance = ScreenPixels;
 }
 
-void FSlateApplication::SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor)
+void FSlateApplication::SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor /*= nullptr*/)
 {
-	if (bEnable && NewInputProcessor.IsValid())
+	if (bEnable)
 	{
-		InputPreProcessor = NewInputProcessor;
+		RegisterInputPreProcessor(NewInputProcessor);
 	}
 	else
 	{
-		InputPreProcessor.Reset();
+		if ( NewInputProcessor.IsValid() )
+		{
+			UnregisterInputPreProcessor(NewInputProcessor);
+		}
+		else
+		{
+			UnregisterAllInputPreProcessors();
+		}
 	}
+}
+
+bool FSlateApplication::RegisterInputPreProcessor(TSharedPtr<IInputProcessor> InputProcessor, const int32 Index /*= INDEX_NONE*/)
+{
+	bool bResult = false;
+	if ( InputProcessor.IsValid() )
+	{
+		bResult = InputPreProcessors.Add(InputProcessor, Index);
+	}
+
+	return bResult;
+}
+
+void FSlateApplication::UnregisterInputPreProcessor(TSharedPtr<IInputProcessor> InputProcessor)
+{
+	InputPreProcessors.Remove(InputProcessor);
+}
+
+void FSlateApplication::UnregisterAllInputPreProcessors()
+{
+	InputPreProcessors.RemoveAll();
 }
 
 void FSlateApplication::SetCursorRadius(float NewRadius)
@@ -3885,7 +3918,7 @@ float FSlateApplication::GetCursorRadius() const
 	return CursorRadius;
 }
 
-FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
+FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
 {
 	FVector2D CalculatedPopUpWindowPosition( 0, 0 );
 
@@ -3902,7 +3935,7 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 		PopUpOrientation =  EPopUpOrientation::Vertical;
 	}
 
-	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
+	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
 	{
 		return CalculatedPopUpWindowPosition;
 	}
@@ -3922,10 +3955,15 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 			PlatformWorkArea.Left+(PlatformWorkArea.Right - PlatformWorkArea.Left), 
 			PlatformWorkArea.Top+(PlatformWorkArea.Bottom - PlatformWorkArea.Top) );
 
-		// Assume natural left-to-right, top-to-bottom flow; position popup below and to the right.
-		const FVector2D ProposedPlacement(
-			Orientation == Orient_Horizontal ? AnchorRect.Right : AnchorRect.Left,
-			Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
+		FVector2D ProposedPlacement = InProposedPlacement;
+
+		if (ProposedPlacement.IsZero())
+		{
+			// Assume natural left-to-right, top-to-bottom flow; position popup below and to the right.
+			ProposedPlacement = FVector2D(
+				Orientation == Orient_Horizontal ? AnchorRect.Right : AnchorRect.Left,
+				Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
+		}
 
 		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+InSize), Orientation, WorkAreaRect);
 	}
@@ -4558,7 +4596,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 	QueueSynthesizedMouseMove();
 
 	// Analog cursor gets first chance at the input
-	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleKeyDownEvent(*this, InKeyEvent))
+	if (InputPreProcessors.HandleKeyDownEvent(*this, InKeyEvent))
 	{
 		return true;
 	}
@@ -4663,7 +4701,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 	QueueSynthesizedMouseMove();
 
 	// Analog cursor gets first chance at the input
-	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleKeyUpEvent(*this, InKeyEvent))
+	if (InputPreProcessors.HandleKeyUpEvent(*this, InKeyEvent))
 	{
 		return true;
 	}
@@ -4706,11 +4744,12 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 	FReply Reply = FReply::Unhandled();
 
 	// Analog cursor gets first chance at the input
-	if (InputPreProcessor.IsValid() && InputPreProcessor->HandleAnalogInputEvent(*this, InAnalogInputEvent))
+	if (InputPreProcessors.HandleAnalogInputEvent(*this, InAnalogInputEvent))
 	{
 		Reply = FReply::Handled();
 	}
-	else
+	
+	if (!Reply.IsEventHandled())
 	{
 		// Bubble the key event
 		if ( FSlateUser* User = GetOrCreateUser(InAnalogInputEvent.GetUserIndex()) )
@@ -4840,8 +4879,8 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	}
 	PressedMouseButtons.Add( MouseEvent.GetEffectingButton() );
 
-	// Input preprocessor gets first chance at the input
-	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonDownEvent( *this, MouseEvent ) )
+	// Input preprocessors get the first chance at the input
+	if (InputPreProcessors.HandleMouseButtonDownEvent(*this, MouseEvent))
 	{
 		return true;
 	}
@@ -4915,7 +4954,6 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 		}
 	}
 
-	PointerIndexLastPositionMap.Add(MouseEvent.GetPointerIndex(), MouseEvent.GetScreenSpacePosition());
 	return true;
 }
 
@@ -5128,6 +5166,8 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 {
 	TScopeCounter<int32> BeginInput(ProcessingInput);
 
+	PointerIndexPositionMap.Add(FUserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()), PointerEvent.GetScreenSpacePosition());
+
 	bool bHandled = false;
 
 	FWeakWidgetPath LastWidgetsUnderCursor;
@@ -5136,11 +5176,13 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 	bool bDragDetected = false;
 	bool bShouldStartDetectingDrag = true;
 
+#if WITH_EDITOR
 	//@TODO VREDITOR - Remove and move to interaction component
 	if (OnDragDropCheckOverride.IsBound())
 	{
 		bShouldStartDetectingDrag = OnDragDropCheckOverride.Execute();
 	}
+#endif 
 
 	if ( !bIsSynthetic && bShouldStartDetectingDrag )
 	{
@@ -5338,7 +5380,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 
 		LOG_EVENT( IsDragDropping() ? EEventLog::DragOver : EEventLog::MouseMove, Reply )
 
-			bHandled = Reply.IsEventHandled();
+		bHandled = Reply.IsEventHandled();
 	}
 
 	// Give the current drag drop operation a chance to do something
@@ -5347,12 +5389,14 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 	{
 		FDragDropEvent DragDropEvent( PointerEvent, DragDropContent );
 		//@TODO VREDITOR - Remove and move to interaction component
+#if WITH_EDITOR
 		if (OnDragDropCheckOverride.IsBound() && DragDropEvent.GetOperation().IsValid())
 		{
 			DragDropEvent.GetOperation()->SetDecoratorVisibility(false);
 			DragDropEvent.GetOperation()->SetCursorOverride(EMouseCursor::None);
 			DragDropContent->SetCursorOverride(EMouseCursor::None);
 		}
+#endif
 		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderPointer );
 		DragDropContent->OnDragged( DragDropEvent );
 
@@ -5385,9 +5429,9 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 		DragDropWindowPtr = nullptr;
 	}
 
-	WidgetsUnderCursorLastEvent.Add( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ), FWeakWidgetPath( WidgetsUnderPointer ) );
+	WidgetsUnderCursorLastEvent.Add(FUserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()), FWeakWidgetPath(WidgetsUnderPointer));
+	PointerIndexLastPositionMap.Add(FUserAndPointer(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()), PointerEvent.GetScreenSpacePosition());
 
-	PointerIndexLastPositionMap.Add(PointerEvent.GetPointerIndex(), PointerEvent.GetScreenSpacePosition());
 	return bHandled;
 }
 
@@ -5440,8 +5484,6 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 
 	FReply Reply = RoutePointerDoubleClickEvent( WidgetsUnderCursor, InMouseEvent );
 
-	PointerIndexLastPositionMap.Add(InMouseEvent.GetPointerIndex(), InMouseEvent.GetScreenSpacePosition());
-	
 	return Reply.IsEventHandled();
 }
 
@@ -5504,8 +5546,8 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
 
-	// Input preprocessor gets first chance at the input
-	if( InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseButtonUpEvent( *this, MouseEvent ) )
+	// Input preprocessors get the first chance at the input
+	if (InputPreProcessors.HandleMouseButtonUpEvent(*this, MouseEvent))
 	{
 		return true;
 	}
@@ -5638,8 +5680,8 @@ bool FSlateApplication::OnMouseMove()
 			0,
 			PlatformApplication->GetModifierKeys()
 			);
-
-		if (InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseMoveEvent(*this, MouseEvent))
+		
+		if (InputPreProcessors.HandleMouseMoveEvent(*this, MouseEvent))
 		{
 			return true;
 		}
@@ -5668,7 +5710,7 @@ bool FSlateApplication::OnRawMouseMove( const int32 X, const int32 Y )
 			PlatformApplication->GetModifierKeys()
 		);
 
-		if (InputPreProcessor.IsValid() && InputPreProcessor->HandleMouseMoveEvent(*this, MouseEvent))
+		if (InputPreProcessors.HandleMouseMoveEvent(*this, MouseEvent))
 		{
 			return true;
 		}
@@ -5905,8 +5947,9 @@ void FSlateApplication::ProcessTouchStartedEvent( const TSharedPtr< FGenericWind
 
 bool FSlateApplication::OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 {
-	FVector2D LastLocation = PointerIndexLastPositionMap.Contains(TouchIndex) ? 
-		PointerIndexLastPositionMap[TouchIndex] : Location;
+	const FVector2D* LastLocationPtr = PointerIndexLastPositionMap.Find(FUserAndPointer(ControllerId, TouchIndex));
+	const FVector2D LastLocation = LastLocationPtr ? *LastLocationPtr : Location;
+
 	FPointerEvent PointerEvent(
 		ControllerId,
 		TouchIndex,
@@ -5962,7 +6005,7 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 	
 	if ( FSlateUser* User = GetOrCreateUser(MotionEvent.GetUserIndex()) )
 	{
-		if (InputPreProcessor.IsValid() && InputPreProcessor->HandleMotionDetectedEvent(*this, MotionEvent))
+		if (InputPreProcessors.HandleMotionDetectedEvent(*this, MotionEvent))
 		{
 			return;
 		}
@@ -6458,7 +6501,8 @@ bool FSlateApplication::ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered
 	FReply TriggerDragDropReply = FReply::Handled().BeginDragDrop( DragDropEvent.GetOperation().ToSharedRef() );
 	ProcessReply( WidgetsUnderCursor, TriggerDragDropReply, &WidgetsUnderCursor, &DragDropEvent );
 
-	PointerIndexLastPositionMap.Add(DragDropEvent.GetPointerIndex(), DragDropEvent.GetScreenSpacePosition());
+	PointerIndexLastPositionMap.Add(FUserAndPointer(DragDropEvent.GetUserIndex(), DragDropEvent.GetPointerIndex()), DragDropEvent.GetScreenSpacePosition());
+
 	return true;
 }
 
@@ -6529,7 +6573,7 @@ EDropEffect::Type FSlateApplication::OnDragDrop( const TSharedPtr< FGenericWindo
 		// User dropped into a Slate window. Slate is already in drag and drop mode.
 		// It knows what to do based on a mouse up.
 		if ( ProcessMouseButtonUpEvent( MouseEvent ) )
-{
+		{
 			Result = EDropEffect::Copy;
 		}
 	}
@@ -6627,6 +6671,135 @@ void FSlateApplication::NavigateFromWidgetUnderCursor(const uint32 InUserIndex, 
 			}
 		}
 	}
+}
+
+void FSlateApplication::InputPreProcessorsHelper::Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		InputPreProcessor->Tick(DeltaTime, SlateApp, Cursor);
+	}
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleKeyDownEvent(SlateApp, InKeyEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor.IsValid())
+		{
+			if (InputPreProcessor->HandleKeyUpEvent(SlateApp, InKeyEvent))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleAnalogInputEvent(SlateApp, InAnalogInputEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleMouseMoveEvent(SlateApp, MouseEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleMouseButtonDownEvent(SlateApp, MouseEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleMouseButtonUpEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleMouseButtonUpEvent(SlateApp, MouseEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::HandleMotionDetectedEvent(FSlateApplication& SlateApp, const FMotionEvent& MotionEvent)
+{
+	for (TSharedPtr<IInputProcessor> InputPreProcessor : InputPreProcessorList)
+	{
+		if (InputPreProcessor->HandleMotionDetectedEvent(SlateApp, MotionEvent))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSlateApplication::InputPreProcessorsHelper::Add(TSharedPtr<IInputProcessor> InputProcessor, const int32 Index /*= INDEX_NONE*/)
+{
+	bool bResult = false;
+	if (Index == INDEX_NONE)
+	{
+		InputPreProcessorList.AddUnique(InputProcessor);
+		bResult = true;
+	}
+	else if (!InputPreProcessorList.Find(InputProcessor))
+	{
+		InputPreProcessorList.Insert(InputProcessor, Index);
+		bResult = true;
+	}
+
+	return bResult;
+}
+
+void FSlateApplication::InputPreProcessorsHelper::Remove(TSharedPtr<IInputProcessor> InputProcessor)
+{
+	InputPreProcessorList.Remove(InputProcessor);
+}
+
+void FSlateApplication::InputPreProcessorsHelper::RemoveAll()
+{
+	InputPreProcessorList.Reset();
 }
 
 #undef SLATE_HAS_WIDGET_REFLECTOR

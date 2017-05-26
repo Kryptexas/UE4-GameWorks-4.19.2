@@ -410,11 +410,6 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 	::RegisterRawInputDevices( &RawInputDevice, 1, sizeof( RAWINPUTDEVICE ) );
 }
 
-bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
-{
-	return false;
-}
-
 FPlatformRect FWindowsApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
 {
 	RECT WindowsWindowDim;

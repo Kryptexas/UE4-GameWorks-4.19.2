@@ -175,7 +175,7 @@ struct TStructOpsTypeTraits< FNavigationLinkBase > : public TStructOpsTypeTraits
 	};
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -183,7 +183,7 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
 	FVector Left;
 
-	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
 	FVector Right;
 
 	FNavigationLink()
@@ -242,16 +242,16 @@ struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
 	FVector LeftStart;
 
-	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
 	FVector LeftEnd;
 
-	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
 	FVector RightStart;
 
-	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
+	UPROPERTY(EditAnywhere, Category=Default, meta=(MakeEditWidget=""))
 	FVector RightEnd;
 
 	FNavigationSegmentLink() 

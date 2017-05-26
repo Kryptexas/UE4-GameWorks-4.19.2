@@ -11,7 +11,7 @@
 class UBlendSpaceBase;
 
 //@TODO: Comment
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_BlendSpacePlayer : public FAnimNode_AssetPlayerBase
 {
 	GENERATED_USTRUCT_BODY()

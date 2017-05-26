@@ -3998,9 +3998,9 @@ void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR*
 
 			FVector Normal, TangentX, TangentY;
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
-			Normal /= Component->ComponentToWorld.GetScale3D(); Normal.Normalize();
-			TangentX /= Component->ComponentToWorld.GetScale3D(); TangentX.Normalize();
-			TangentY /= Component->ComponentToWorld.GetScale3D(); TangentY.Normalize();
+			Normal /= Component->GetComponentTransform().GetScale3D(); Normal.Normalize();
+			TangentX /= Component->GetComponentTransform().GetScale3D(); TangentX.Normalize();
+			TangentY /= Component->GetComponentTransform().GetScale3D(); TangentY.Normalize();
 			FbxVector4 FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z); FbxNormal.Normalize();
 			Normals.SetAt(BaseVertIndex + VertIndex, FbxNormal);
 			FbxVector4 FbxTangent = FbxVector4(TangentX.X, -TangentX.Y, TangentX.Z); FbxTangent.Normalize();

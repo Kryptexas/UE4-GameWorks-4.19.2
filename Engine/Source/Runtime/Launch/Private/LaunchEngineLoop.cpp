@@ -329,7 +329,7 @@ static void RHIExitAndStopRHIThread()
 	RHIExit();
 
 	// Stop the RHI Thread
-	if (GUseRHIThread)
+	if (GRHIThread_InternalUseOnly)
 	{
 		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
 		FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RHIThread);
@@ -337,6 +337,8 @@ static void RHIExitAndStopRHIThread()
 	}
 }
 #endif
+
+extern void DeferredPhysResourceCleanup();
 
 
 /**
@@ -885,6 +887,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
+#if WITH_ENGINE
+	FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(DeferredPhysResourceCleanup);
+#endif
+
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
@@ -1022,6 +1028,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	TCHAR* CommandLineCopy			= new TCHAR[ CommandLineSize ];
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
 	const TCHAR* ParsedCmdLine	= CommandLineCopy;
+
+	// Add the default engine shader dir
+	FGenericPlatformProcess::AddShaderDir(FGenericPlatformProcess::ShaderDir());
 
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 
@@ -1712,14 +1721,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			if(GRHISupportsRHIThread)
 			{
 				const bool DefaultUseRHIThread = true;
-				GUseRHIThread = DefaultUseRHIThread;
+				GUseRHIThread_InternalUseOnly = DefaultUseRHIThread;
 				if(FParse::Param(FCommandLine::Get(), TEXT("rhithread")))
 				{
-					GUseRHIThread = true;
+					GUseRHIThread_InternalUseOnly = true;
 				}
 				else if(FParse::Param(FCommandLine::Get(), TEXT("norhithread")))
 				{
-					GUseRHIThread = false;
+					GUseRHIThread_InternalUseOnly = false;
 				}
 			}
 
@@ -1846,14 +1855,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if (GRHISupportsRHIThread)
 		{
 			const bool DefaultUseRHIThread = true;
-			GUseRHIThread = DefaultUseRHIThread;
+			GUseRHIThread_InternalUseOnly = DefaultUseRHIThread;
 			if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
 			{
-				GUseRHIThread = true;
+				GUseRHIThread_InternalUseOnly = true;
 			}
 			else if (FParse::Param(FCommandLine::Get(),TEXT("norhithread")))
 			{
-				GUseRHIThread = false;
+				GUseRHIThread_InternalUseOnly = false;
 			}
 		}
 		StartRenderingThread();
@@ -2042,6 +2051,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Log, TEXT("Initializing Game Engine Completed"));
 				}
 			}
+
+			// Call init callbacks
+			FCoreDelegates::OnPostEngineInit.Broadcast();
 
 			// Load all the post-engine init modules
 			ensure(IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit));
@@ -2439,7 +2451,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Load runtime client modules (which are also needed at cook-time)
 	if( !IsRunningDedicatedServer() )
 	{
-		FModuleManager::Get().LoadModule(TEXT("GameLiveStreaming"));
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
@@ -2585,7 +2596,11 @@ int32 FEngineLoop::Init()
 
 	GEngine->Init(this);
 
+	// Call init callbacks
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	UEngine::OnPostEngineInit.Broadcast();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FCoreDelegates::OnPostEngineInit.Broadcast();
 
 	SlowTask.EnterProgressFrame(30);
 
@@ -2714,6 +2729,13 @@ void FEngineLoop::Exit()
 		FEngineFontServices::Destroy();
 	}
 #endif
+
+#if WITH_EDITOR
+	// This module must be shut down first because other modules may try to access it during shutdown.
+	// Accessing this module at shutdown causes instability since the object system will have been shut down and this module uses uobjects internally.
+	FModuleManager::Get().UnloadModule("AssetTools", true);
+#endif // WITH_EDITOR
+
 
 #if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();

@@ -19,7 +19,7 @@ bool FMovieSceneSequencePlaybackSettings::SerializeFromMismatchedTag( const FPro
 
 UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& Init)
 	: Super(Init)
-	, bIsPlaying(false)
+	, Status(EMovieScenePlayerStatus::Stopped)
 	, bReversePlayback(false)
 	, bIsEvaluating(false)
 	, Sequence(nullptr)
@@ -32,7 +32,7 @@ UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& I
 
 EMovieScenePlayerStatus::Type UMovieSceneSequencePlayer::GetPlaybackStatus() const
 {
-	return bIsPlaying ? EMovieScenePlayerStatus::Playing : EMovieScenePlayerStatus::Stopped;
+	return Status;
 }
 
 FMovieSceneSpawnRegister& UMovieSceneSequencePlayer::GetSpawnRegister()
@@ -76,7 +76,7 @@ void UMovieSceneSequencePlayer::PlayLooping(int32 NumLoops)
 
 void UMovieSceneSequencePlayer::PlayInternal()
 {
-	if (!bIsPlaying)
+	if (!IsPlaying())
 	{
 		// Start playing
 		StartPlayingNextTick();
@@ -113,7 +113,7 @@ void UMovieSceneSequencePlayer::PlayInternal()
 
 void UMovieSceneSequencePlayer::StartPlayingNextTick()
 {
-	if (bIsPlaying || !Sequence || !CanPlay())
+	if (IsPlaying() || !Sequence || !CanPlay())
 	{
 		return;
 	}
@@ -129,12 +129,12 @@ void UMovieSceneSequencePlayer::StartPlayingNextTick()
 	OnStartedPlaying();
 
 	bPendingFirstUpdate = true;
-	bIsPlaying = true;
+	Status = EMovieScenePlayerStatus::Playing;
 }
 
 void UMovieSceneSequencePlayer::Pause()
 {
-	if (bIsPlaying)
+	if (IsPlaying())
 	{
 		if (bIsEvaluating)
 		{
@@ -142,7 +142,7 @@ void UMovieSceneSequencePlayer::Pause()
 			return;
 		}
 
-		bIsPlaying = false;
+		Status = EMovieScenePlayerStatus::Stopped;
 
 		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly
 		{
@@ -168,9 +168,22 @@ void UMovieSceneSequencePlayer::Pause()
 	}
 }
 
+void UMovieSceneSequencePlayer::Scrub()
+{
+	// @todo Sequencer playback: Should we recreate the instance every time?
+	// We must not recreate the instance since it holds stateful information (such as which objects it has spawned). Recreating the instance would break any 
+	// @todo: Is this still the case now that eval state is stored (correctly) in the player?
+	if (!RootTemplateInstance.IsValid())
+	{
+		RootTemplateInstance.Initialize(*Sequence, *this);
+	}
+
+	Status = EMovieScenePlayerStatus::Scrubbing;
+}
+
 void UMovieSceneSequencePlayer::Stop()
 {
-	if (bIsPlaying)
+	if (IsPlaying())
 	{
 		if (bIsEvaluating)
 		{
@@ -178,7 +191,7 @@ void UMovieSceneSequencePlayer::Stop()
 			return;
 		}
 
-		bIsPlaying = false;
+		Status = EMovieScenePlayerStatus::Stopped;
 		TimeCursorPosition = bReversePlayback ? GetLength() : 0.f;
 		CurrentNumLoops = 0;
 
@@ -200,6 +213,13 @@ void UMovieSceneSequencePlayer::Stop()
 	}
 }
 
+void UMovieSceneSequencePlayer::StopAndGoToEnd()
+{
+	Stop();
+
+	SetPlaybackPosition(GetLength());
+}
+
 float UMovieSceneSequencePlayer::GetPlaybackPosition() const
 {
 	return TimeCursorPosition;
@@ -210,9 +230,14 @@ void UMovieSceneSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 	UpdateTimeCursorPosition(NewPlaybackPosition);
 }
 
+void UMovieSceneSequencePlayer::JumpToPosition(float NewPlaybackPosition)
+{
+	UpdateTimeCursorPosition(NewPlaybackPosition, EMovieScenePlayerStatus::Scrubbing);
+}
+
 bool UMovieSceneSequencePlayer::IsPlaying() const
 {
-	return bIsPlaying;
+	return Status == EMovieScenePlayerStatus::Playing;
 }
 
 float UMovieSceneSequencePlayer::GetLength() const
@@ -241,13 +266,16 @@ void UMovieSceneSequencePlayer::SetPlaybackRange( const float NewStartTime, cons
 bool UMovieSceneSequencePlayer::ShouldStopOrLoop(float NewPosition) const
 {
 	bool bShouldStopOrLoop = false;
-	if (!bReversePlayback)
+	if (IsPlaying())
 	{
-		bShouldStopOrLoop = NewPosition >= GetLength();
-	}
-	else
-	{
-		bShouldStopOrLoop = NewPosition < 0.f;
+		if (!bReversePlayback)
+		{
+			bShouldStopOrLoop = NewPosition >= GetLength();
+		}
+		else
+		{
+			bShouldStopOrLoop = NewPosition < 0.f;
+		}
 	}
 
 	return bShouldStopOrLoop;
@@ -276,14 +304,14 @@ void UMovieSceneSequencePlayer::Initialize(UMovieSceneSequence* InSequence, cons
 
 void UMovieSceneSequencePlayer::Update(const float DeltaSeconds)
 {
-	if (bIsPlaying)
+	if (IsPlaying())
 	{
 		float PlayRate = bReversePlayback ? -PlaybackSettings.PlayRate : PlaybackSettings.PlayRate;
 		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlayRate);
 	}
 }
 
-void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
+void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus)
 {
 	float Length = GetLength();
 
@@ -313,7 +341,7 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 				SpawnRegister->ForgetExternallyOwnedSpawnedObjects(State, *this);
 			}
 
-			UpdateMovieSceneInstance(Range);
+			UpdateMovieSceneInstance(Range, OptionalStatus);
 
 			OnLooped();
 		}
@@ -326,6 +354,10 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 			// When playback stops naturally, the time cursor is put at the boundary that was crossed to make ping-pong playback easy
 			TimeCursorPosition = bReversePlayback ? 0.f : GetLength();
 			PlayPosition.Reset(TimeCursorPosition);
+
+			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
+
+			UpdateMovieSceneInstance(Range, OptionalStatus);
 		}
 	}
 	else
@@ -334,15 +366,15 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 		TimeCursorPosition = NewPosition;
 
 		FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition + StartTime, FixedFrameInterval);
-		UpdateMovieSceneInstance(Range);
+		UpdateMovieSceneInstance(Range, OptionalStatus);
 	}
 }
 
-void UMovieSceneSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange)
+void UMovieSceneSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus)
 {
 	bIsEvaluating = true;
 
-	const FMovieSceneContext Context(InRange, GetPlaybackStatus());
+	const FMovieSceneContext Context(InRange, OptionalStatus.Get(GetPlaybackStatus()));
 	RootTemplateInstance.Evaluate(Context, *this);
 
 #if WITH_EDITOR

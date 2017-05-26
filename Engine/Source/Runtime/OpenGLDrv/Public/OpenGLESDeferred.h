@@ -54,6 +54,7 @@ struct FOpenGLESDeferred : public FOpenGLBase
 	static FORCEINLINE bool SupportsSamplerObjects()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMobileMultiView()					{ return false; }
+	static FORCEINLINE bool SupportsImageExternal()						{ return false; }
 	static FORCEINLINE bool SupportsTextureLODBias()					{ return false; }
 	static FORCEINLINE bool SupportsTextureCompare()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsTextureBaseLevel()					{ return !bES2Fallback; }

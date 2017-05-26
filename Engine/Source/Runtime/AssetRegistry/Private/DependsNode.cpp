@@ -72,11 +72,18 @@ void FDependsNode::GetReferencers(TArray<FDependsNode*>& OutReferencers, EAssetR
 	}
 }
 
-void FDependsNode::AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType)
+void FDependsNode::AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType, bool bGuaranteedUnique)
 {
-	IterateOverDependencyArrays([InDependency](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type)
+	IterateOverDependencyArrays([InDependency,&bGuaranteedUnique](TArray<FDependsNode*>& InArray, EAssetRegistryDependencyType::Type)
 	{
-		InArray.AddUnique(InDependency);
+		if (bGuaranteedUnique)
+		{
+			InArray.Add(InDependency);
+		}
+		else
+		{
+			InArray.AddUnique(InDependency);
+		}
 	}, InDependencyType);
 }
 

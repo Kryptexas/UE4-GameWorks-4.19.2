@@ -33,21 +33,21 @@ namespace EInterpolationBlend
 /**
  *	Simple controller that make a bone to look at the point or another bone
  */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
+	UPROPERTY(EditAnywhere, Category=SkeletalControl) 
 	FBoneReference BoneToModify;
 
 	/** Target Bone to look at - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Target)
+	UPROPERTY(EditAnywhere, Category=Target)
 	FBoneReference LookAtBone;
 
 	/** Target socket to look at. Used if LookAtBone is empty. - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target)
+	UPROPERTY(EditAnywhere, Category = Target)
 	FName LookAtSocket;
 
 	/** Target Offset. It's in world space if LookAtBone is empty or it is based on LookAtBone or LookAtSocket in their local space*/
@@ -62,11 +62,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY()
 	FVector	CustomLookAtAxis_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	UPROPERTY(EditAnywhere, Category = SkeletalControl)
 	FAxis LookAt_Axis;
 
 	/** Whether or not to use Look up axis */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
+	UPROPERTY(EditAnywhere, Category=SkeletalControl)
 	bool bUseLookUpAxis;
 
 	/** Look up axis in local space */
@@ -77,7 +77,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY()
 	FVector	CustomLookUpAxis_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	UPROPERTY(EditAnywhere, Category = SkeletalControl)
 	FAxis LookUp_Axis;
 
 	/** Look at Clamp value in degree - if you're look at axis is Z, only X, Y degree of clamp will be used*/

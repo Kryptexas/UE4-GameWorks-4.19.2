@@ -10,7 +10,7 @@
 class FPendingLatentAction;
 
 // Latent action info
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FLatentActionInfo
 {
 	GENERATED_USTRUCT_BODY()

@@ -19,12 +19,16 @@ class FSerializedPropertyScope
 	void PopEditorOnlyProperty();
 #endif
 public:
-	FSerializedPropertyScope(FArchive& InAr, UProperty* InProperty)
+	FSerializedPropertyScope(FArchive& InAr, UProperty* InProperty, const UProperty* OnlyIfOldProperty = nullptr)
 		: Ar(InAr)
 		, Property(InProperty)
 	{
 		OldProperty = Ar.GetSerializedProperty();
-		Ar.SetSerializedProperty(Property);
+		if (!OnlyIfOldProperty || OldProperty == OnlyIfOldProperty)
+		{
+			Ar.SetSerializedProperty(Property);
+		}
+		
 #if WITH_EDITORONLY_DATA
 		PushEditorOnlyProperty();
 #endif

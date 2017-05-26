@@ -720,17 +720,23 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 		}
 	}
 
-	if (Mode == FNavigationSystemRunMode::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
+	if (Mode == FNavigationSystemRunMode::EditorMode)
 	{
-		UWorld* MyWorld = GetWorld();
-		// gather enforcers manually to be able to see the results in editor as well
-		for (TObjectIterator<UNavigationInvokerComponent> It; It; ++It)
+		// update navigation invokers
+		if (bGenerateNavigationOnlyAroundNavigationInvokers)
 		{
-			if (MyWorld == It->GetWorld())
+			for (TObjectIterator<UNavigationInvokerComponent> It; It; ++It)
 			{
-				It->RegisterWithNavigationSystem(*this);
+				if (World == It->GetWorld())
+				{
+					It->RegisterWithNavigationSystem(*this);
+				}
 			}
 		}
+
+		// update navdata after loading world
+		const bool bIsLoadTime = true;
+		RebuildAll(bIsLoadTime);
 	}
 
 	bWorldInitDone = true;
@@ -1325,7 +1331,7 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	}
 }
 
-UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldContext, const FVector& PathStart, AActor* GoalActor, float TetherDistance, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
+UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldContextObject, const FVector& PathStart, AActor* GoalActor, float TetherDistance, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	if (GoalActor == NULL)
 	{
@@ -1333,7 +1339,7 @@ UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldC
 	}
 
 	INavAgentInterface* NavAgent = Cast<INavAgentInterface>(GoalActor);
-	UNavigationPath* GeneratedPath = FindPathToLocationSynchronously(WorldContext, PathStart, NavAgent ? NavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation(), PathfindingContext, FilterClass);
+	UNavigationPath* GeneratedPath = FindPathToLocationSynchronously(WorldContextObject, PathStart, NavAgent ? NavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation(), PathfindingContext, FilterClass);
 	if (GeneratedPath != NULL && GeneratedPath->GetPath().IsValid() == true)
 	{
 		GeneratedPath->GetPath()->SetGoalActorObservation(*GoalActor, TetherDistance);
@@ -1342,13 +1348,13 @@ UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldC
 	return GeneratedPath;
 }
 
-UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
+UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* WorldContextObject, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	UWorld* World = NULL;
 
-	if (WorldContext != NULL)
+	if (WorldContextObject != NULL)
 	{
-		World = GEngine->GetWorldFromContextObject(WorldContext);
+		World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	}
 	if (World == NULL && PathfindingContext != NULL)
 	{
@@ -3369,7 +3375,7 @@ void UNavigationSystem::RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuild
 	}
 }
 
-void UNavigationSystem::RebuildAll()
+void UNavigationSystem::RebuildAll(bool bIsLoadTime)
 {
 	const bool bIsInGame = GetWorld()->IsGameWorld();
 	
@@ -3391,7 +3397,7 @@ void UNavigationSystem::RebuildAll()
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
 				
-		if (NavData && (!bIsInGame || NavData->SupportsRuntimeGeneration()))
+		if (NavData && (!bIsLoadTime || NavData->NeedsRebuildOnLoad()) && (!bIsInGame || NavData->SupportsRuntimeGeneration()))
 		{
 			NavData->RebuildAll();
 		}
@@ -3712,14 +3718,14 @@ void UNavigationSystem::DiscardNavigationDataChunks(UWorld* InWorld)
 //----------------------------------------------------------------------//
 // Blueprint functions
 //----------------------------------------------------------------------//
-UNavigationSystem* UNavigationSystem::GetNavigationSystem(UObject* WorldContext)
+UNavigationSystem* UNavigationSystem::GetNavigationSystem(UObject* WorldContextObject)
 {
-	return GetCurrent(WorldContext);
+	return GetCurrent(WorldContextObject);
 }
 
-bool UNavigationSystem::K2_ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, FVector& ProjectedLocation, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass, const FVector QueryExtent)
+bool UNavigationSystem::K2_ProjectPointToNavigation(UObject* WorldContextObject, const FVector& Point, FVector& ProjectedLocation, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass, const FVector QueryExtent)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 
 	ProjectedLocation = Point;
@@ -3732,7 +3738,7 @@ bool UNavigationSystem::K2_ProjectPointToNavigation(UObject* WorldContext, const
 		if (UseNavData)
 		{
 			bResult = NavSys->ProjectPointToNavigation(Point, OutNavLocation, QueryExtent, NavData
-				, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+				, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 			ProjectedLocation = OutNavLocation.Location;
 		}
 	}
@@ -3740,19 +3746,19 @@ bool UNavigationSystem::K2_ProjectPointToNavigation(UObject* WorldContext, const
 	return bResult;
 }
 
-bool UNavigationSystem::K2_GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+bool UNavigationSystem::K2_GetRandomReachablePointInRadius(UObject* WorldContextObject, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation RandomPoint(Origin);
 	bool bResult = false;
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			bResult = NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			bResult = NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 			RandomLocation = RandomPoint.Location;
 		}
 	}
@@ -3760,19 +3766,19 @@ bool UNavigationSystem::K2_GetRandomReachablePointInRadius(UObject* WorldContext
 	return bResult;
 }
 
-bool UNavigationSystem::K2_GetRandomPointInNavigableRadius(UObject* WorldContext, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+bool UNavigationSystem::K2_GetRandomPointInNavigableRadius(UObject* WorldContextObject, const FVector& Origin, FVector& RandomLocation, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation RandomPoint(Origin);
 	bool bResult = false;
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			bResult = NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			bResult = NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 			RandomLocation = RandomPoint.Location;
 		}
 	}
@@ -4183,36 +4189,36 @@ FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject,
 	return ProjectedPoint.Location;
 }
 
-FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContextObject, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation RandomPoint;
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 
 	return RandomPoint.Location;
 }
 
-FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
+FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContextObject, const FVector& Origin, float Radius, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation RandomPoint;
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
+			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 

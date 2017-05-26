@@ -30,7 +30,7 @@ private:
 	FReply OnPickContent(TSharedRef<IPropertyHandle> PropertyHandle) ;
 
 	/** Delegate used to display a directory picker */
-	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths, const bool bLongPackageName) const;
+	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths) const;
 
 	/** Check whether that the chosen path is valid */
 	bool IsValidPath(const FString& AbsolutePath, const bool bRelativeToGameContentDir, FText* const OutReason = nullptr) const;

@@ -9,6 +9,7 @@
 
 #include "LiveLinkProvider.h"
 #include "LiveLinkRefSkeleton.h"
+#include "LiveLinkTypes.h"
 #include "OutputDevice.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlankMayaPlugin, Log, All);
@@ -143,29 +144,37 @@ TArray<FStreamHierarchy> JointsToStream;
 
 double LastStreamSeconds = 0.f;
 
+MTime CurrentTime;
+
+bool bNeedsHierarchy = true;
+
+void BuildStreamHierarchyData();
+
 void StreamJoints()
 {
+	if (bNeedsHierarchy)
+	{
+		BuildStreamHierarchyData();
+	}
+
+	CurrentTime = MAnimControl::currentTime();
+
 	double NewSeconds = FPlatformTime::Seconds();
-	if (NewSeconds - LastStreamSeconds < (1.f / 90.f))
+	if (NewSeconds - LastStreamSeconds < (1.0 / 90.0))
 	{
 		return;
 	}
 	LastStreamSeconds = NewSeconds;
 
 	TArray<FTransform> JointTransforms;
-	JointTransforms.Reserve(JointTransforms.Num());
+	JointTransforms.Reserve(JointsToStream.Num());
 
 	TArray<MMatrix> InverseScales;
-	InverseScales.Reserve(JointTransforms.Num());
-
-	TArray<FName> JointNames;
-	JointNames.Reserve(JointTransforms.Num());
+	InverseScales.Reserve(JointsToStream.Num());
 
 	for (int32 Idx = 0; Idx < JointsToStream.Num(); ++Idx)
 	{
 		FStreamHierarchy& H = JointsToStream[Idx];
-
-		JointNames.Add(H.JointName);
 
 		MTransformationMatrix::RotationOrder RotOrder = H.JointObject.rotationOrder();
 
@@ -230,8 +239,38 @@ void StreamJoints()
 		JointTransforms.Add(UETrans);
 	}
 
-	const FString SubjectName(TEXT("Subject"));
-	LiveLinkProvider->SendSubject(SubjectName, JointNames, JointTransforms);
+	TArray<FLiveLinkCurveElement> Curves;
+	const FName SubjectName(TEXT("Maya"));
+
+#if 0
+	double CurFrame = CurrentTime.value();
+	double CurveValue = CurFrame / 200.0;
+
+	Curves.AddDefaulted();
+	Curves[0].CurveName = FName(TEXT("Test"));
+	Curves[0].CurveValue = static_cast<float>(FMath::Clamp(CurveValue, 0.0, 1.0));
+
+	if (CurFrame > 100.0)
+	{
+		double Curve2Value = (CurFrame - 100.0) / 100.0;
+		Curves.AddDefaulted();
+		Curves[1].CurveName = FName(TEXT("Test2"));
+		Curves[1].CurveValue = static_cast<float>(FMath::Clamp(Curve2Value, 0.0, 1.0));
+	}
+	//MGlobal::displayInfo(MString("CURVE TEST:") + CurFrame + " " + CurveValue);
+
+	if (CurFrame > 201.0)
+	{
+		LiveLinkProvider->ClearSubject(SubjectName);
+		bNeedsHierarchy = true;
+	}
+	else
+	{
+		LiveLinkProvider->UpdateSubjectFrame(SubjectName, JointTransforms, Curves, FPlatformTime::Seconds(), CurrentTime.value());
+	}
+#else
+	LiveLinkProvider->UpdateSubjectFrame(SubjectName, JointTransforms, Curves, FPlatformTime::Seconds(), CurrentTime.value());
+#endif
 }
 
 void OnDagChangedAll(MObject& transformNode, MDagMessage::MatrixModifiedFlags& modified, void *clientData)
@@ -246,6 +285,8 @@ MCallbackIdArray StreamHierarchyCallbackIds;
 
 void BuildStreamHierarchyData()
 {
+	bNeedsHierarchy = false;
+
 	if (StreamHierarchyCallbackIds.length() != 0)
 	{
 		// Make sure we remove all the callbacks we added
@@ -261,6 +302,9 @@ void BuildStreamHierarchyData()
 
 	MStatus status;
 	MItDag dagIterator(traversalType, filter, &status);
+
+	TArray<FName> JointNames;
+	TArray<int32> JointParents;
 
 	for (; !dagIterator.isDone(); dagIterator.next())
 	{
@@ -315,8 +359,13 @@ void BuildStreamHierarchyData()
 			StreamHierarchyCallbackIds.append(NewCB);
 
 			JointsToStream.Add(FStreamHierarchy(FName(SA[LastName].asChar()), JointPath, ParentIndex));
+			JointNames.Add(FName(SA[LastName].asChar()));
+			JointParents.Add(ParentIndex);
 		}
 	}
+
+	const FName SubjectName(TEXT("Maya"));
+	LiveLinkProvider->UpdateSubject(SubjectName, JointNames, JointParents);
 
 }
 void RecurseJoint(MFnDagNode& Joint, const MMatrix& ParentInverseScale, TArray<FName>& JointNames, TArray<FTransform>& JointTransform)
@@ -421,8 +470,6 @@ void RecurseJoint(MFnDagNode& Joint, const MMatrix& ParentInverseScale, TArray<F
 	}
 }
 
-MTime CurrentTime;
-
 double Seconds=0.f;
 
 void OnTimeChanged(void* clientData) {
@@ -474,9 +521,9 @@ void OnTimeChanged(void* clientData) {
 		break;
 	}
 
-	const FString SubjectName(TEXT("Subject"));
+	const FString SubjectName(TEXT("Maya"));
 
-	LiveLinkProvider->SendSubject(SubjectName, JointNames, JointTransforms);
+	//LiveLinkProvider->UpdateSubjectFrame(SubjectName, JointNames, JointTransforms);
 	return;
 }
 

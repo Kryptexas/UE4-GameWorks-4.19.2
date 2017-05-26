@@ -146,6 +146,9 @@ private:
 	/** Get the current state of the Keep Checked Out checkbox  */
 	ECheckBoxState GetKeepCheckedOut() const;
 
+	/** Check if Provider can checkout files */
+	bool CanCheckOut() const;
+
 	/** Called by SListView to get a widget corresponding to the supplied item */
 	TSharedRef<ITableRow> OnGenerateRowForList(TSharedPtr<FSubmitItem> SubmitItemData, const TSharedRef<STableViewBase>& OwnerTable);
 

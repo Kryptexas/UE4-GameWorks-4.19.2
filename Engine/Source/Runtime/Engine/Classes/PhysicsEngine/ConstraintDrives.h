@@ -77,11 +77,11 @@ struct ENGINE_API FLinearDriveConstraint
 	
 
 	/** Target position the linear drive.*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor)
+	UPROPERTY(EditAnywhere, Category = LinearMotor)
 	FVector PositionTarget;
 
 	/** Target velocity the linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor)
+	UPROPERTY(EditAnywhere, Category = LinearMotor)
 	FVector VelocityTarget;
 
 	UPROPERTY(EditAnywhere, Category = LinearMotor)
@@ -142,15 +142,15 @@ struct ENGINE_API FAngularDriveConstraint
 	FConstraintDrive SlerpDrive;
 	
 	/** Target orientation relative to the the body reference frame.*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor)
+	UPROPERTY(EditAnywhere, Category = AngularMotor)
 	FRotator OrientationTarget;
 
 	/** Target angular velocity relative to the body reference frame. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor)
+	UPROPERTY(EditAnywhere, Category = AngularMotor)
 	FVector AngularVelocityTarget;
 
 	/** Whether motors use SLERP (spherical lerp) or decompose into a Swing motor (cone constraints) and Twist motor (roll constraints). NOTE: SLERP will NOT work if any of the angular constraints are locked. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor)
+	UPROPERTY(EditAnywhere, Category = AngularMotor)
 	TEnumAsByte<enum EAngularDriveMode::Type> AngularDriveMode;
 
 	FAngularDriveConstraint();

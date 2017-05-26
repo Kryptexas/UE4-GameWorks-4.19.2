@@ -207,15 +207,15 @@ void FShaderCompilerOutput::GenerateOutputHash()
 */
 static void AddShaderSourceFileEntry( TArray<FString>& ShaderSourceFiles, const FString& ShaderFilename)
 {
-	FString ShaderFilenameBase( FPaths::GetBaseFilename(ShaderFilename) );
+	FString ShaderRelativeFilename = FindShaderRelativePath(ShaderFilename);
 
 	// get the filename for the the vertex factory type
-	if( !ShaderSourceFiles.Contains(ShaderFilenameBase) )
+	if( !ShaderSourceFiles.Contains(ShaderRelativeFilename) )
 	{
-		ShaderSourceFiles.Add(ShaderFilenameBase);
+		ShaderSourceFiles.Add(ShaderRelativeFilename);
 
 		TArray<FString> ShaderIncludes;
-		GetShaderIncludes(*ShaderFilenameBase,ShaderIncludes);
+		GetShaderIncludes(*ShaderRelativeFilename,ShaderIncludes);
 		for( int32 IncludeIdx=0; IncludeIdx < ShaderIncludes.Num(); IncludeIdx++ )
 		{
 			ShaderSourceFiles.AddUnique(ShaderIncludes[IncludeIdx]);
@@ -448,8 +448,10 @@ void GetShaderIncludes(const TCHAR* Filename, TArray<FString>& IncludeFilenames,
 					// ignore the header if it's optional and doesn't exist
 					if (bIsOptionalInclude)
 					{
-						FString ShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *ExtractedIncludeFilename);
-						if (!FPaths::FileExists(ShaderFilename))
+						// Search in the default engine shader folder and in the same folder as the shader (in case its a project or plugin shader)
+						FString EngineShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *ExtractedIncludeFilename);
+						FString LocalShaderFilename = FPaths::Combine(FPaths::GetPath(Filename), *ExtractedIncludeFilename);
+						if (!FPaths::FileExists(EngineShaderFilename) && !FPaths::FileExists(LocalShaderFilename))
 						{
 							bIgnoreInclude = true;
 						}
@@ -458,10 +460,9 @@ void GetShaderIncludes(const TCHAR* Filename, TArray<FString>& IncludeFilenames,
 					//vertex factories need to be handled separately
 					if (!bIgnoreInclude)
 					{
-						GetShaderIncludes(*ExtractedIncludeFilename, IncludeFilenames, DepthLimit - 1);
-						// maintain subdirectory info, but strip the extension
-						ExtractedIncludeFilename = FPaths::GetBaseFilename(ExtractedIncludeFilename, false);
-						IncludeFilenames.AddUnique(ExtractedIncludeFilename);
+						FString RelativeFilename = FindShaderRelativePath(ExtractedIncludeFilename);
+						GetShaderIncludes(*RelativeFilename, IncludeFilenames, DepthLimit - 1);
+						IncludeFilenames.AddUnique(RelativeFilename);
 					}
 				}
 			}
@@ -483,7 +484,8 @@ static void UpdateSingleShaderFilehash(FSHA1& InOutHashState, const TCHAR* Filen
 {
 	// Get the list of includes this file contains
 	TArray<FString> IncludeFilenames;
-	GetShaderIncludes(Filename, IncludeFilenames);
+	FString RelativeFilename = FindShaderRelativePath(Filename);
+	GetShaderIncludes(*RelativeFilename, IncludeFilenames);
 
 	for (int32 IncludeIndex = 0; IncludeIndex < IncludeFilenames.Num(); IncludeIndex++)
 	{
@@ -495,7 +497,7 @@ static void UpdateSingleShaderFilehash(FSHA1& InOutHashState, const TCHAR* Filen
 
 	// Load the source file and hash it
 	FString FileContents;
-	LoadShaderSourceFileChecked(Filename, FileContents);
+	LoadShaderSourceFileChecked(*RelativeFilename, FileContents);
 	InOutHashState.UpdateWithString(*FileContents, FileContents.Len());
 }
 
@@ -571,6 +573,49 @@ const FSHAHash& GetShaderFilesHash(const TArray<FString>& Filenames)
 		INC_FLOAT_STAT_BY(STAT_ShaderCompiling_HashingShaderFiles, (float)HashTime);
 		return NewHash;
 	}
+}
+
+extern SHADERCORE_API FString FindShaderRelativePath(const FString Filename)
+{
+	bool bHadExtension = true;
+	FString ShaderFilename = Filename;
+	if (FPaths::GetExtension(ShaderFilename) == TEXT(""))
+	{
+		bHadExtension = false;
+		ShaderFilename += TEXT(".usf");
+	}
+
+	bool bFound = false;
+	FString ShaderPath;
+	for (FString ShaderDir : FPlatformProcess::AllShaderDirs())
+	{
+		FString Path = FPaths::Combine(FPlatformProcess::BaseDir(), ShaderDir, ShaderFilename);
+		if (FPaths::FileExists(Path))
+		{
+			ShaderPath = Path;
+			FPaths::MakePathRelativeTo(ShaderPath, *FPaths::Combine(FPlatformProcess::ShaderDir(), TEXT("/")));
+			bFound = true;
+			break;
+		}
+	}
+	if (!bFound)
+	{
+		UE_LOG(LogShaders, Fatal, TEXT("Couldn't find shader file \'%s\'"), *Filename);
+		UE_LOG(LogShaders, Fatal, TEXT("Known shader dirs:"));
+		for (FString ShaderDir : FPlatformProcess::AllShaderDirs())
+		{
+			UE_LOG(LogShaders, Fatal, TEXT("   %s"), *ShaderDir);
+		}
+	}
+
+	// If the filename didn't provide an extension, remove extension in returned path
+	// Extension are added in many places, don't want to end up with double extensions
+	if (!bHadExtension)
+	{
+		ShaderPath = FPaths::SetExtension(ShaderPath, TEXT(""));
+	}
+
+	return ShaderPath;
 }
 
 void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& ShaderFileToUniformBufferVariables)
@@ -685,8 +730,9 @@ void GenerateReferencedUniformBuffers(
 	TMap<const TCHAR*,FCachedUniformBufferDeclaration>& UniformBufferEntries)
 {
 	TArray<FString> FilesToSearch;
-	GetShaderIncludes(SourceFilename, FilesToSearch);
-	FilesToSearch.Add(SourceFilename);
+	FString ShaderRelativeFilename = FindShaderRelativePath(SourceFilename);
+	GetShaderIncludes(*ShaderRelativeFilename, FilesToSearch);
+	FilesToSearch.Add(ShaderRelativeFilename);
 
 	for (int32 FileIndex = 0; FileIndex < FilesToSearch.Num(); FileIndex++)
 	{

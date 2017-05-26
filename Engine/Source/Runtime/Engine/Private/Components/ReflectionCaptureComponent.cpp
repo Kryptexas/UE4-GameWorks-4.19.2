@@ -1310,7 +1310,7 @@ void UReflectionCaptureComponent::UpdatePreviewShape()
 {
 	if (CaptureOffsetComponent)
 	{
-		CaptureOffsetComponent->RelativeLocation = CaptureOffset / ComponentToWorld.GetScale3D();
+		CaptureOffsetComponent->RelativeLocation = CaptureOffset / GetComponentTransform().GetScale3D();
 	}
 }
 
@@ -1699,7 +1699,7 @@ void UBoxReflectionCaptureComponent::UpdatePreviewShape()
 {
 	if (PreviewCaptureBox)
 	{
-		PreviewCaptureBox->InitBoxExtent(((ComponentToWorld.GetScale3D() - FVector(BoxTransitionDistance)) / ComponentToWorld.GetScale3D()).ComponentMax(FVector::ZeroVector));
+		PreviewCaptureBox->InitBoxExtent(((GetComponentTransform().GetScale3D() - FVector(BoxTransitionDistance)) / GetComponentTransform().GetScale3D()).ComponentMax(FVector::ZeroVector));
 	}
 
 	Super::UpdatePreviewShape();
@@ -1707,7 +1707,7 @@ void UBoxReflectionCaptureComponent::UpdatePreviewShape()
 
 float UBoxReflectionCaptureComponent::GetInfluenceBoundingRadius() const
 {
-	return (ComponentToWorld.GetScale3D() + FVector(BoxTransitionDistance)).Size();
+	return (GetComponentTransform().GetScale3D() + FVector(BoxTransitionDistance)).Size();
 }
 
 #if WITH_EDITOR
@@ -1741,7 +1741,7 @@ void UPlaneReflectionCaptureComponent::UpdatePreviewShape()
 
 float UPlaneReflectionCaptureComponent::GetInfluenceBoundingRadius() const
 {
-	return FVector2D(ComponentToWorld.GetScale3D().Y, ComponentToWorld.GetScale3D().Z).Size() * InfluenceRadiusScale;
+	return FVector2D(GetComponentTransform().GetScale3D().Y, GetComponentTransform().GetScale3D().Z).Size() * InfluenceRadiusScale;
 }
 
 FReflectionCaptureProxy::FReflectionCaptureProxy(const UReflectionCaptureComponent* InComponent)
@@ -1779,7 +1779,7 @@ FReflectionCaptureProxy::FReflectionCaptureProxy(const UReflectionCaptureCompone
 	Component = InComponent;
 	SM4FullHDRCubemap = InComponent->SM4FullHDRCubemapTexture;
 	EncodedHDRCubemap = InComponent->EncodedHDRCubemapTexture;
-	SetTransform(InComponent->ComponentToWorld.ToMatrixWithScale());
+	SetTransform(InComponent->GetComponentTransform().ToMatrixWithScale());
 	InfluenceRadius = InComponent->GetInfluenceBoundingRadius();
 	Brightness = InComponent->Brightness;
 	Guid = GetTypeHash( Component->GetPathName() );

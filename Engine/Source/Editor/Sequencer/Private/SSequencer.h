@@ -307,10 +307,13 @@ private:
 	/** Makes the auto-key menu for the toolbar. */
 	TSharedRef<SWidget> MakeAutoKeyMenu();
 
-public:
+public:	
 
 	/** Makes a time range widget with the specified inner content */
 	TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange);
+
+	/** Gets the top time sliders widget. */
+	TSharedPtr<ITimeSlider> GetTopTimeSliderWidget() const;
 
 private:
 
@@ -468,6 +471,9 @@ private:
 
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> SequencerPtr;
+
+	/** The top time slider widget */
+	TSharedPtr<ITimeSlider> TopTimeSlider;
 
 	/** Cached settings provided to the sequencer itself on creation */
 	USequencerSettings* Settings;

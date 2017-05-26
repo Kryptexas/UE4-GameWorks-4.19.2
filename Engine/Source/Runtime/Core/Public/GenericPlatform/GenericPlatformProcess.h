@@ -577,6 +577,19 @@ struct CORE_API FGenericPlatformProcess
 	 * Checks if we're the first instance. An instance can become first if the previous first instance quits before it.
 	 */
 	static bool IsFirstInstance();
+
+	/**
+	 * Returns the list of all shader dirs that were added with AddShaderDir
+	 */
+	static const TArray<FString>& AllShaderDirs();
+
+	/**
+	 * Add a shader to the list of shader dirs
+	 */
+	static void AddShaderDir(const FString& InShaderDir);
+
+	private:
+	static TArray<FString> ShaderDirs;
 };
 
 

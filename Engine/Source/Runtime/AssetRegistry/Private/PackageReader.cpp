@@ -159,11 +159,11 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		if (bLegacyPackage || bNoMapAsset)
 		{
 			FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-			AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(), MoveTemp(FName(*AssetName)), FName(TEXT("World")), TMap<FName, FString>(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+			AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*AssetName)), FName(TEXT("World")), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 		}
 	}
 
-	// UAsset files only have one object, but legacy or map packages may have more.
+	// UAsset files usually only have one asset, maps and redirectors have multiple
 	for(int32 ObjectIdx = 0; ObjectIdx < ObjectCount; ++ObjectIdx)
 	{
 		FString ObjectPath;
@@ -173,7 +173,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		*this << ObjectClassName;
 		*this << TagCount;
 
-		TMap<FName, FString> TagsAndValues;
+		FAssetDataTagMap TagsAndValues;
 		TagsAndValues.Reserve(TagCount);
 
 		for(int32 TagIdx = 0; TagIdx < TagCount; ++TagIdx)
@@ -183,20 +183,25 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 			*this << Key;
 			*this << Value;
 
-			TagsAndValues.Add(FName(*Key), Value);
+			if (!Key.IsEmpty() && !Value.IsEmpty())
+			{
+				TagsAndValues.Add(FName(*Key), Value);
+			}
 		}
 
-		FString GroupNames;
-		FString AssetName;
+		if (ObjectPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive))
+		{
+			// This should never happen, it means that package A has an export with an outer of package B
+			UE_LOG(LogAssetRegistry, Warning, TEXT("Package %s has invalid export %s, resave source package!"), *PackageName, *ObjectPath);
+			continue;
+		}
 
-		if ( ObjectPath.Contains(TEXT("."), ESearchCase::CaseSensitive))
+		if (!ensureMsgf(!ObjectPath.Contains(TEXT("."), ESearchCase::CaseSensitive), TEXT("Cannot make FAssetData for sub object %s!"), *ObjectPath))
 		{
-			ObjectPath.Split(TEXT("."), &GroupNames, &AssetName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+			continue;
 		}
-		else
-		{
-			AssetName = ObjectPath;
-		}
+
+		FString AssetName = ObjectPath;
 
 		// Before world were RF_Public, other non-public assets were added to the asset data table in map packages.
 		// Here we simply skip over them
@@ -209,7 +214,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		}
 
 		// Create a new FAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*GroupNames)), MoveTemp(FName(*AssetName)), MoveTemp(FName(*ObjectClassName)), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*AssetName)), MoveTemp(FName(*ObjectClassName)), MoveTemp(TagsAndValues), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -254,17 +259,13 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FAssetData*>& AssetD
 		FString GroupNames;
 		FString AssetName;
 
-		if ( ObjectPathWithoutPackageName.Contains(TEXT("."), ESearchCase::CaseSensitive) )
+		if (!ensureMsgf(!ObjectPathWithoutPackageName.Contains(TEXT("."), ESearchCase::CaseSensitive), TEXT("Cannot make FAssetData for sub object %s!"), *ObjectPathWithoutPackageName))
 		{
-			ObjectPathWithoutPackageName.Split(TEXT("."), &GroupNames, &AssetName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-		}
-		else
-		{
-			AssetName = ObjectPathWithoutPackageName;
+			continue;
 		}
 
 		// Create a new FAssetData for this asset and update it with the gathered data
-		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*GroupNames)), MoveTemp(FName(*AssetName)), MoveTemp(FName(*AssetClassName)), TMap<FName, FString>(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
+		AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), MoveTemp(FName(*ObjectPathWithoutPackageName)), MoveTemp(FName(*AssetClassName)), FAssetDataTagMap(), PackageFileSummary.ChunkIDs, PackageFileSummary.PackageFlags));
 	}
 
 	return true;
@@ -295,10 +296,6 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 			{
 				if (Export.bIsAsset)
 				{
-					FString GroupNames; // Not used for anything
-					TMap<FName, FString> Tags; // Not used for anything
-					TArray<int32> ChunkIDs; // Not used for anything
-
 					// We need to get the class name from the import/export maps
 					FName ObjectClassName;
 					if (Export.ClassIndex.IsNull())
@@ -316,7 +313,7 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 						ObjectClassName = ClassImport.ObjectName;
 					}
 
-					AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags()));
+					AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), Export.ObjectName, ObjectClassName, FAssetDataTagMap(), TArray<int32>(), GetPackageFlags()));
 					bFoundAtLeastOneAsset = true;
 				}
 			}

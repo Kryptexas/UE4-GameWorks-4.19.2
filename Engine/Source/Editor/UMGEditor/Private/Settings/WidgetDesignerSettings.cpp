@@ -2,11 +2,11 @@
 
 #include "Settings/WidgetDesignerSettings.h"
 
-UWidgetDesignerSettings::UWidgetDesignerSettings(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UWidgetDesignerSettings::UWidgetDesignerSettings()
 {
 	GridSnapEnabled = true;
 	GridSnapSize = 4;
 	bShowOutlines = true;
 	bExecutePreConstructEvent = true;
+	bRespectLocks = true;
 }

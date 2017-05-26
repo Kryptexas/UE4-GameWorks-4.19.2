@@ -372,7 +372,7 @@ void PlaceVPLs(
 	GVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
 	{
-		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GVPLResources.VPLParameterBuffer, 0);
+		ClearUAV(RHICmdList, GVPLResources.VPLParameterBuffer, 0);
 	}
 
 	const FLightSceneProxy* DirectionalLightProxy = NULL;
@@ -530,7 +530,7 @@ void PlaceVPLs(
 			{
 				GCulledVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GCulledVPLResources.VPLParameterBuffer, 0);
+				ClearUAV(RHICmdList, GCulledVPLResources.VPLParameterBuffer, 0);
 
 				TShaderMapRef<FCullVPLsForViewCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -863,7 +863,7 @@ void UpdateVPLs(
 			}
 			else
 			{
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux, 0);
+				ClearUAV(RHICmdList, Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux, 0);
 			}
 		}
 		else
@@ -922,7 +922,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -1181,8 +1181,8 @@ void ComputeIrradianceForScreenGrid(
 	const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 	const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 
-	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.HeightfieldIrradiance, 0);
-	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.SurfelIrradiance, 0);
+	ClearUAV(RHICmdList, ScreenGridResources.HeightfieldIrradiance, 0);
+	ClearUAV(RHICmdList, ScreenGridResources.SurfelIrradiance, 0);
 
 	View.HeightfieldLightingViewInfo.
 		ComputeIrradianceForScreenGrid(View, RHICmdList, DistanceFieldNormal, ScreenGridResources, Parameters);

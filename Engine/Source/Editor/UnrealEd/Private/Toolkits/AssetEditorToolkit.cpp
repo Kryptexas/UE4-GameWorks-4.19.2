@@ -28,6 +28,9 @@
 #include "IIntroTutorials.h"
 #include "SuperSearchModule.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -103,6 +106,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			.TabRole(ETabRole::MajorTab)
 			.ToolTip(IDocumentation::Get()->CreateToolTip(ToolTipText, nullptr, DocLink, GetToolkitFName().ToString()))
 			.Icon( this, &FAssetEditorToolkit::GetDefaultTabIcon )
+			.TabColorScale( this, &FAssetEditorToolkit::GetDefaultTabColor )
 			.Label( Label );
 
 		{
@@ -636,12 +640,38 @@ const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 		}
 		else if (IconBrush != ThisAssetBrush)
 		{
-			// Different types
-			return nullptr;
+			// Fallback icon
+			return FEditorStyle::GetBrush(TEXT("ClassIcon.Default"));
 		}
 	}
 
 	return IconBrush;
+}
+
+FLinearColor FAssetEditorToolkit::GetDefaultTabColor() const
+{
+	FLinearColor TabColor = FLinearColor::Transparent;
+	if (EditingObjects.Num() == 0 || !GetDefault<UEditorStyleSettings>()->bEnableColorizedEditorTabs)
+	{
+		return TabColor;
+	}
+
+	FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+	IAssetTools& AssetTools = AssetToolsModule.Get();
+	for (auto ObjectIt = EditingObjects.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetTools.GetAssetTypeActionsForClass((*ObjectIt)->GetClass());
+		if (AssetTypeActions.IsValid())
+		{
+			const FLinearColor ThisAssetColor = AssetTypeActions.Pin()->GetTypeColor();
+			if (ThisAssetColor != FLinearColor::Transparent)
+			{
+				return ThisAssetColor;
+			}
+		}
+	}
+
+	return TabColor;
 }
 
 FAssetEditorModeManager* FAssetEditorToolkit::GetAssetEditorModeManager() const

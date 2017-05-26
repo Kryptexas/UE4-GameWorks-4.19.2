@@ -614,7 +614,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 							}
 
 							RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
-							DrawClearQuad(RHICmdList, FeatureLevel, true, FLinearColor(1, 1, 1, 1), false, 0, false, 0);
+							DrawClearQuad(RHICmdList, true, FLinearColor(1, 1, 1, 1), false, 0, false, 0);
 						}
 					}
 
@@ -717,7 +717,7 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 		FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+		DrawClearQuad(RHICmdList, FLinearColor::Black);
 
 		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->Lights);
 
@@ -1029,7 +1029,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	if (bStencilDirty)
 	{
 		// Clear the stencil buffer to 0.
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 1);
+		DrawClearQuad(RHICmdList, false, FLinearColor::Transparent, false, 0, true, 1);
 	}
 }
 

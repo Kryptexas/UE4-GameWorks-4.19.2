@@ -223,6 +223,8 @@ static void GetContentBrowserSelectionFactoryMenuEntries( FAssetData& TargetAsse
 	TArray<FAssetData> SelectedAssets;
 	AssetSelectionUtils::GetSelectedAssets( SelectedAssets );
 
+	bool bPlaceable = true;
+
 	if ( SelectedAssets.Num() > 0 )
 	{
 		TargetAssetData = SelectedAssets.Top();
@@ -232,13 +234,43 @@ static void GetContentBrowserSelectionFactoryMenuEntries( FAssetData& TargetAsse
 	{
 		UClass* Class = Cast<UClass>( TargetAssetData.GetAsset() );
 
-		if ( !AssetSelectionUtils::IsClassPlaceable( Class ) )
+		bPlaceable = AssetSelectionUtils::IsClassPlaceable( Class );
+	}
+	else if ( TargetAssetData.GetClass() == UBlueprint::StaticClass() )
+	{
+		// For blueprints, attempt to determine placeability from its tag information
+
+		const FName NativeParentClassTag = TEXT("NativeParentClass");
+		const FName ClassFlagsTag = TEXT("ClassFlags");
+
+		FString TagValue;
+
+		if ( TargetAssetData.GetTagValue( NativeParentClassTag, TagValue ) && !TagValue.IsEmpty() )
 		{
-			return;
+			// If the native parent class can't be placed, neither can the blueprint
+
+			UObject* Outer = nullptr;
+			ResolveName( Outer, TagValue, false, false );
+			UClass* NativeParentClass = FindObject<UClass>( ANY_PACKAGE, *TagValue );
+
+			bPlaceable = AssetSelectionUtils::IsClassPlaceable( NativeParentClass );
+		}
+		
+		if ( bPlaceable && TargetAssetData.GetTagValue( ClassFlagsTag, TagValue ) && !TagValue.IsEmpty() )
+		{
+			// Check to see if this class is placeable from its class flags
+
+			const int32 NotPlaceableFlags = CLASS_NotPlaceable | CLASS_Deprecated | CLASS_Abstract;
+			uint32 ClassFlags = FCString::Atoi( *TagValue );
+
+			bPlaceable = ( ClassFlags & NotPlaceableFlags ) == CLASS_None;
 		}
 	}
 
-	FActorFactoryAssetProxy::GenerateActorFactoryMenuItems( TargetAssetData, &AssetMenuOptions, true );
+	if ( bPlaceable )
+	{
+		FActorFactoryAssetProxy::GenerateActorFactoryMenuItems( TargetAssetData, &AssetMenuOptions, true );
+	}
 }
 
 

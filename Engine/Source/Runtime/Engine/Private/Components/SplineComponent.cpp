@@ -185,7 +185,7 @@ void FSplineCurves::UpdateSpline(bool bClosedLoop, bool bStationaryEndpoints, in
 
 void USplineComponent::UpdateSpline()
 {
-	SplineCurves.UpdateSpline(bClosedLoop, bStationaryEndpoints, ReparamStepsPerSegment, bLoopPositionOverride, LoopPosition, ComponentToWorld.GetScale3D());
+	SplineCurves.UpdateSpline(bClosedLoop, bStationaryEndpoints, ReparamStepsPerSegment, bLoopPositionOverride, LoopPosition, GetComponentTransform().GetScale3D());
 
 #if !UE_BUILD_SHIPPING
 	if (bDrawDebug)
@@ -264,7 +264,7 @@ float FSplineCurves::GetSegmentLength(const int32 Index, const float Param, bool
 
 float USplineComponent::GetSegmentLength(const int32 Index, const float Param) const
 {
-	return SplineCurves.GetSegmentLength(Index, Param, bClosedLoop, ComponentToWorld.GetScale3D());
+	return SplineCurves.GetSegmentLength(Index, Param, bClosedLoop, GetComponentTransform().GetScale3D());
 }
 
 float USplineComponent::GetSegmentParamFromLength(const int32 Index, const float Length, const float SegmentLength) const
@@ -322,7 +322,7 @@ FVector USplineComponent::GetLocationAtSplineInputKey(float InKey, ESplineCoordi
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		Location = ComponentToWorld.TransformPosition(Location);
+		Location = GetComponentTransform().TransformPosition(Location);
 	}
 
 	return Location;
@@ -335,7 +335,7 @@ FVector USplineComponent::GetTangentAtSplineInputKey(float InKey, ESplineCoordin
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		Tangent = ComponentToWorld.TransformVector(Tangent);
+		Tangent = GetComponentTransform().TransformVector(Tangent);
 	}
 
 	return Tangent;
@@ -348,7 +348,7 @@ FVector USplineComponent::GetDirectionAtSplineInputKey(float InKey, ESplineCoord
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		Direction = ComponentToWorld.TransformVectorNoScale(Direction);
+		Direction = GetComponentTransform().TransformVectorNoScale(Direction);
 	}
 
 	return Direction;
@@ -373,7 +373,7 @@ FQuat USplineComponent::GetQuaternionAtSplineInputKey(float InKey, ESplineCoordi
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		Rot = ComponentToWorld.GetRotation() * Rot;
+		Rot = GetComponentTransform().GetRotation() * Rot;
 	}
 
 	return Rot;
@@ -387,7 +387,7 @@ FVector USplineComponent::GetUpVectorAtSplineInputKey(float InKey, ESplineCoordi
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		UpVector = ComponentToWorld.TransformVectorNoScale(UpVector);
+		UpVector = GetComponentTransform().TransformVectorNoScale(UpVector);
 	}
 
 	return UpVector;
@@ -401,7 +401,7 @@ FVector USplineComponent::GetRightVectorAtSplineInputKey(float InKey, ESplineCoo
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		RightVector = ComponentToWorld.TransformVectorNoScale(RightVector);
+		RightVector = GetComponentTransform().TransformVectorNoScale(RightVector);
 	}
 
 	return RightVector;
@@ -418,7 +418,7 @@ FTransform USplineComponent::GetTransformAtSplineInputKey(float InKey, ESplineCo
 
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		Transform = Transform * ComponentToWorld;
+		Transform = Transform * GetComponentTransform();
 	}
 
 	return Transform;
@@ -589,7 +589,7 @@ void USplineComponent::AddPoints(const TArray<FSplinePoint>& InSplinePoints, boo
 void USplineComponent::AddSplinePoint(const FVector& Position, ESplineCoordinateSpace::Type CoordinateSpace, bool bUpdateSpline)
 {
 	const FVector TransformedPosition = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-		ComponentToWorld.InverseTransformPosition(Position) : Position;
+		GetComponentTransform().InverseTransformPosition(Position) : Position;
 
 	// Add the spline point at the end of the array, adding 1.0 to the current last input key.
 	// This continues the former behavior in which spline points had to be separated by an interval of 1.0.
@@ -613,7 +613,7 @@ void USplineComponent::AddSplinePoint(const FVector& Position, ESplineCoordinate
 void USplineComponent::AddSplinePointAtIndex(const FVector& Position, int32 Index, ESplineCoordinateSpace::Type CoordinateSpace, bool bUpdateSpline)
 {
 	const FVector TransformedPosition = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-		ComponentToWorld.InverseTransformPosition(Position) : Position;
+		GetComponentTransform().InverseTransformPosition(Position) : Position;
 
 	int32 NumPoints = SplineCurves.Position.Points.Num();
 
@@ -689,7 +689,7 @@ void USplineComponent::SetSplinePoints(const TArray<FVector>& Points, ESplineCoo
 	for (const auto& Point : Points)
 	{
 		const FVector TransformedPoint = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformPosition(Point) : Point;
+			GetComponentTransform().InverseTransformPosition(Point) : Point;
 
 		SplineCurves.Position.Points.Emplace(InputKey, TransformedPoint, FVector::ZeroVector, FVector::ZeroVector, CIM_CurveAuto);
 		SplineCurves.Rotation.Points.Emplace(InputKey, FQuat::Identity, FQuat::Identity, FQuat::Identity, CIM_CurveAuto);
@@ -714,7 +714,7 @@ void USplineComponent::SetLocationAtSplinePoint(int32 PointIndex, const FVector&
 	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		const FVector TransformedLocation = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformPosition(InLocation) : InLocation;
+			GetComponentTransform().InverseTransformPosition(InLocation) : InLocation;
 
 		SplineCurves.Position.Points[PointIndex].OutVal = TransformedLocation;
 
@@ -733,7 +733,7 @@ void USplineComponent::SetTangentAtSplinePoint(int32 PointIndex, const FVector& 
 	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		const FVector TransformedTangent = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformVector(InTangent) : InTangent;
+			GetComponentTransform().InverseTransformVector(InTangent) : InTangent;
 
 		SplineCurves.Position.Points[PointIndex].LeaveTangent = TransformedTangent;
 		SplineCurves.Position.Points[PointIndex].ArriveTangent = TransformedTangent;
@@ -754,9 +754,9 @@ void USplineComponent::SetTangentsAtSplinePoint(int32 PointIndex, const FVector&
 	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		const FVector TransformedArriveTangent = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformVector(InArriveTangent) : InArriveTangent;
+			GetComponentTransform().InverseTransformVector(InArriveTangent) : InArriveTangent;
 		const FVector TransformedLeaveTangent = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformVector(InLeaveTangent) : InLeaveTangent;
+			GetComponentTransform().InverseTransformVector(InLeaveTangent) : InLeaveTangent;
 
 		SplineCurves.Position.Points[PointIndex].ArriveTangent = TransformedArriveTangent;
 		SplineCurves.Position.Points[PointIndex].LeaveTangent = TransformedLeaveTangent;
@@ -777,7 +777,7 @@ void USplineComponent::SetUpVectorAtSplinePoint(int32 PointIndex, const FVector&
 	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		const FVector TransformedUpVector = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformVector(InUpVector.GetSafeNormal()) : InUpVector.GetSafeNormal();
+			GetComponentTransform().InverseTransformVector(InUpVector.GetSafeNormal()) : InUpVector.GetSafeNormal();
 
 		FQuat Quat = FQuat::FindBetween(DefaultUpVector, TransformedUpVector);
 		SplineCurves.Rotation.Points[PointIndex].OutVal = Quat;
@@ -827,7 +827,7 @@ FVector USplineComponent::GetLocationAtSplinePoint(int32 PointIndex, ESplineCoor
 	const int32 NumPoints = SplineCurves.Position.Points.Num();
 	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
 	const FVector Location = SplineCurves.Position.Points[ClampedIndex].OutVal;
-	return (CoordinateSpace == ESplineCoordinateSpace::World) ? ComponentToWorld.TransformPosition(Location) : Location;
+	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformPosition(Location) : Location;
 }
 
 
@@ -836,7 +836,7 @@ FVector USplineComponent::GetDirectionAtSplinePoint(int32 PointIndex, ESplineCoo
 	const int32 NumPoints = SplineCurves.Position.Points.Num();
 	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
 	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent.GetSafeNormal();
-	return (CoordinateSpace == ESplineCoordinateSpace::World) ? ComponentToWorld.TransformVector(Direction) : Direction;
+	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
@@ -845,7 +845,7 @@ FVector USplineComponent::GetTangentAtSplinePoint(int32 PointIndex, ESplineCoord
 	const int32 NumPoints = SplineCurves.Position.Points.Num();
 	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
 	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent;
-	return (CoordinateSpace == ESplineCoordinateSpace::World) ? ComponentToWorld.TransformVector(Direction) : Direction;
+	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
@@ -854,7 +854,7 @@ FVector USplineComponent::GetArriveTangentAtSplinePoint(int32 PointIndex, ESplin
 	const int32 NumPoints = SplineCurves.Position.Points.Num();
 	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
 	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].ArriveTangent;
-	return (CoordinateSpace == ESplineCoordinateSpace::World) ? ComponentToWorld.TransformVector(Direction) : Direction;
+	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
@@ -863,7 +863,7 @@ FVector USplineComponent::GetLeaveTangentAtSplinePoint(int32 PointIndex, ESpline
 	const int32 NumPoints = SplineCurves.Position.Points.Num();
 	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
 	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent;
-	return (CoordinateSpace == ESplineCoordinateSpace::World) ? ComponentToWorld.TransformVector(Direction) : Direction;
+	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
@@ -969,7 +969,7 @@ void USplineComponent::SetDefaultUpVector(const FVector& UpVector, ESplineCoordi
 {
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		DefaultUpVector = ComponentToWorld.InverseTransformVector(UpVector);
+		DefaultUpVector = GetComponentTransform().InverseTransformVector(UpVector);
 	}
 	else
 	{
@@ -984,7 +984,7 @@ FVector USplineComponent::GetDefaultUpVector(ESplineCoordinateSpace::Type Coordi
 {
 	if (CoordinateSpace == ESplineCoordinateSpace::World)
 	{
-		return ComponentToWorld.TransformVector(DefaultUpVector);
+		return GetComponentTransform().TransformVector(DefaultUpVector);
 	}
 	else
 	{
@@ -1289,7 +1289,7 @@ FVector USplineComponent::GetScaleAtTime(float Time, bool bUseConstantVelocity) 
 
 float USplineComponent::FindInputKeyClosestToWorldLocation(const FVector& WorldLocation) const
 {
-	const FVector LocalLocation = ComponentToWorld.InverseTransformPosition(WorldLocation);
+	const FVector LocalLocation = GetComponentTransform().InverseTransformPosition(WorldLocation);
 	float Dummy;
 	return SplineCurves.Position.InaccurateFindNearest(LocalLocation, Dummy);
 }

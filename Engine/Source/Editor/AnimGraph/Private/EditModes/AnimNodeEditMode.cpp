@@ -364,7 +364,7 @@ void FAnimNodeEditMode::ConvertToComponentSpaceTransform(const USkeletalMeshComp
 	case BCS_WorldSpace:
 	{
 		OutCSTransform = InTransform;
-		OutCSTransform.SetToRelativeTransform(SkelComp->ComponentToWorld);
+		OutCSTransform.SetToRelativeTransform(SkelComp->GetComponentTransform());
 	}
 	break;
 
@@ -433,7 +433,7 @@ void FAnimNodeEditMode::ConvertToBoneSpaceTransform(const USkeletalMeshComponent
 	{
 		case BCS_WorldSpace:
 		{
-			OutBSTransform = InCSTransform * SkelComp->ComponentToWorld;
+			OutBSTransform = InCSTransform * SkelComp->GetComponentTransform();
 			break;
 		}
 		
@@ -609,7 +609,7 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* S
 
 	switch (Space)
 	{
-		// ComponentToWorld must be Identity in preview window so same as ComponentSpace
+		// GetComponentTransform() must be Identity in preview window so same as ComponentSpace
 	case BCS_WorldSpace:
 	case BCS_ComponentSpace:
 	{

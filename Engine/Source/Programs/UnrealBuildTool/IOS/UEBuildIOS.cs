@@ -461,7 +461,6 @@ namespace UnrealBuildTool
 			Target.bBuildEditor = false;
 			Target.bBuildDeveloperTools = false;
 			Target.bCompileAPEX = false;
-			Target.bRuntimePhysicsCooking = false;
 			Target.bCompileSimplygon = false;
             Target.bCompileSimplygonSSF = false;
 			Target.bBuildDeveloperTools = false;

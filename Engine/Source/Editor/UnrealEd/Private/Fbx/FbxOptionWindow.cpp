@@ -21,7 +21,8 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 	bIsObjFormat = InArgs._IsObjFormat;
 
 	check (ImportUI);
-
+	
+	TSharedPtr<SBox> ImportTypeDisplay;
 	TSharedPtr<SBox> InspectorBox;
 	this->ChildSlot
 	[
@@ -30,6 +31,12 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 		.MaxDesiredWidth(InArgs._MaxWindowWidth)
 		[
 			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SAssignNew(ImportTypeDisplay, SBox)
+			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(2)
@@ -112,7 +119,40 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 	TSharedPtr<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 
 	InspectorBox->SetContent(DetailsView->AsShared());
+
+	if (ImportUI->bIsReimport)
+	{
+		ImportTypeDisplay->SetContent(
+			SNew(SBorder)
+			.Padding(FMargin(3))
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(this, &SFbxOptionWindow::GetImportTypeDisplayText)
+				]
+			]
+		);
+	}
+
 	DetailsView->SetObject(ImportUI);
+}
+
+FText SFbxOptionWindow::GetImportTypeDisplayText() const
+{
+	switch (ImportUI->MeshTypeToImport)
+	{
+	case EFBXImportType::FBXIT_Animation :
+		return LOCTEXT("FbxOptionWindow_ImportTypeAnim", "Reimport Animation");
+	case EFBXImportType::FBXIT_SkeletalMesh:
+		return LOCTEXT("FbxOptionWindow_ImportTypeSK", "Reimport Skeletal Mesh");
+	case EFBXImportType::FBXIT_StaticMesh:
+		return LOCTEXT("FbxOptionWindow_ImportTypeSM", "Reimport Static Mesh");
+	}
+	return FText::GetEmpty();
 }
 
 bool SFbxOptionWindow::CanImport()  const

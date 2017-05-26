@@ -113,6 +113,7 @@ class COREUOBJECT_API FClassNetCacheMgr
 {
 public:
 	FClassNetCacheMgr() : bDebugChecksum( false ), DebugChecksumIndent( 0 ) { }
+	~FClassNetCacheMgr() { ClearClassNetCache(); }
 
 	/** get the cached field to index mappings for the given class */
 	const FClassNetCache*	GetClassNetCache( const UClass* Class );

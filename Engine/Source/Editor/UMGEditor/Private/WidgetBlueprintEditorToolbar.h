@@ -23,9 +23,14 @@ public:
 	 */
 	void AddWidgetBlueprintEditorModesToolbar(TSharedPtr<FExtender> Extender);
 
+	void AddWidgetReflector(TSharedPtr<FExtender> Extender);
+
 public:
 	/**  */
 	void FillWidgetBlueprintEditorModesToolbar(FToolBarBuilder& ToolbarBuilder);
+
+	/**  */
+	void FillWidgetReflectorToolbar(FToolBarBuilder& ToolbarBuilder);
 
 	TWeakPtr<FWidgetBlueprintEditor> WidgetEditor;
 };

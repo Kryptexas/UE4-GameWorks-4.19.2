@@ -32,19 +32,23 @@ public:
 	explicit FMcppFileLoader(const FShaderCompilerInput& InShaderInput)
 		: ShaderInput(InShaderInput)
 	{
-		FString ShaderDir = FPlatformProcess::ShaderDir();
-
-		InputShaderFile = ShaderDir / FPaths::GetCleanFilename(ShaderInput.SourceFilename);
+		// SourceFilename is expected to be relative to the engine shader folder 
+		InputShaderFile = ShaderInput.SourceFilename;
+		
+		// If there is no extension then we can end up with an extra version of this file
 		if (FPaths::GetExtension(InputShaderFile) != TEXT("usf"))
 		{
 			InputShaderFile += TEXT(".usf");
 		}
 
+		// Attempt to keep filename reference and map add logic the same as the file contents callback
+		FString Filename = GetRelativeShaderFilename(InputShaderFile);
 		FString InputShaderSource;
-		if (LoadShaderSourceFile(*ShaderInput.SourceFilename,InputShaderSource))
+		
+		if (LoadShaderSourceFile(*Filename, InputShaderSource))
 		{
 			InputShaderSource = FString::Printf(TEXT("%s\n#line 1\n%s"), *ShaderInput.SourceFilePrefix, *InputShaderSource);
-			CachedFileContents.Add(GetRelativeShaderFilename(InputShaderFile),StringToArray<ANSICHAR>(*InputShaderSource, InputShaderSource.Len()));
+			CachedFileContents.Add(Filename, StringToArray<ANSICHAR>(*InputShaderSource, InputShaderSource.Len()));
 		}
 	}
 

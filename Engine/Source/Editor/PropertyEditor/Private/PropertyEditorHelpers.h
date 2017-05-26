@@ -58,9 +58,11 @@ class SPropertyValueWidget : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SPropertyValueWidget )
-		: _ShowPropertyButtons( true )
+		: _ShowPropertyButtons( true ),
+		_OptionalResetWidget(SNullWidget::NullWidget)
 	{}
 		SLATE_ARGUMENT( bool, ShowPropertyButtons )
+		SLATE_ARGUMENT( TSharedRef<SWidget>, OptionalResetWidget)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, TSharedPtr<FPropertyEditor> InPropertyEditor, TSharedPtr<IPropertyUtilities> InPropertyUtilities );
@@ -71,14 +73,19 @@ public:
 	/** @return The maximum desired with if this property value */
 	float GetMaxDesiredWidth() const { return MaxDesiredWidth; }
 
+	/** @return Whether this widget handles its own reset button */
+	bool CreatedResetButton() const { return bCreatedResetButton; }
+
 private:
-	TSharedRef<SWidget> ConstructPropertyEditorWidget( TSharedPtr<FPropertyEditor>& PropertyEditor, TSharedPtr<IPropertyUtilities> InPropertyUtilities );
+	TSharedRef<SWidget> ConstructPropertyEditorWidget( TSharedPtr<FPropertyEditor>& PropertyEditor, TSharedPtr<IPropertyUtilities> InPropertyUtilities, TSharedRef<SWidget> InOptionalResetDefaultWidget = SNullWidget::NullWidget);
 private:
 	TSharedPtr< SWidget > ValueEditorWidget;
 	/** The minimum desired with if this property value */
 	float MinDesiredWidth;
 	/** The maximum desired with if this property value */
 	float MaxDesiredWidth;
+	/** Whether or not this value widget handled its own reset button */
+	bool bCreatedResetButton;
 };
 
 

@@ -182,7 +182,7 @@ void FUObjectClusterContainer::DissolveClusterAndMarkObjectsAsUnreachable(const 
 		ClusterObjectItem->SetOwnerIndex(0);
 		if (ClusterObjectIndex < CurrentIndex)
 		{
-			ClusterObjectItem->SetFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+			ClusterObjectItem->SetFlags(EInternalObjectFlags::Unreachable);
 		}
 	}
 
@@ -201,7 +201,7 @@ void FUObjectClusterContainer::DissolveClusterAndMarkObjectsAsUnreachable(const 
 		{
 			if (ReferencedByClusterRootIndex < CurrentIndex)
 			{
-				ReferencedByClusterRootItem->SetFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+				ReferencedByClusterRootItem->SetFlags(EInternalObjectFlags::Unreachable);
 			}
 			DissolveClusterAndMarkObjectsAsUnreachable(CurrentIndex, ReferencedByClusterRootItem);
 		}
@@ -377,106 +377,6 @@ static FAutoConsoleCommand FindStaleClustersCommand(
 	);
 
 #endif // !UE_BUILD_SHIPPING
-
-/**
-* Pool for reducing allocations when constructing clusters
-*/
-class FClusterArrayPool
-{
-public:
-
-	/**
-	* Gets the singleton instance of the FObjectArrayPool
-	* @return Pool singleton.
-	*/
-	FORCEINLINE static FClusterArrayPool& Get()
-	{
-		static FClusterArrayPool Singleton;
-		return Singleton;
-	}
-
-	/**
-	* Gets an event from the pool or creates one if necessary.
-	*
-	* @return The array.
-	* @see ReturnToPool
-	*/
-	FORCEINLINE TArray<UObject*>* GetArrayFromPool()
-	{
-		TArray<UObject*>* Result = Pool.Pop();
-		if (!Result)
-		{
-			Result = new TArray<UObject*>();
-		}
-		check(Result);
-#if UE_BUILD_DEBUG
-		NumberOfUsedArrays.Increment();
-#endif // UE_BUILD_DEBUG
-		return Result;
-	}
-
-	/**
-	* Returns an array to the pool.
-	*
-	* @param Array The array to return.
-	* @see GetArrayFromPool
-	*/
-	FORCEINLINE void ReturnToPool(TArray<UObject*>* Array)
-	{
-#if UE_BUILD_DEBUG
-		const int32 CheckUsedArrays = NumberOfUsedArrays.Decrement();
-		checkSlow(CheckUsedArrays >= 0);
-#endif // UE_BUILD_DEBUG
-		check(Array);
-		Array->Reset();
-		Pool.Push(Array);
-	}
-
-	/** Performs memory cleanup */
-	void Cleanup()
-	{
-#if UE_BUILD_DEBUG
-		const int32 CheckUsedArrays = NumberOfUsedArrays.GetValue();
-		checkSlow(CheckUsedArrays == 0);
-#endif // UE_BUILD_DEBUG
-
-		uint32 FreedMemory = 0;
-		TArray< TArray<UObject*>* > AllArrays;
-		Pool.PopAll(AllArrays);
-		for (TArray<UObject*>* Array : AllArrays)
-		{
-			FreedMemory += Array->GetAllocatedSize();
-			delete Array;
-		}
-		UE_LOG(LogObj, Log, TEXT("Freed %ub from %d cluster array pools."), FreedMemory, AllArrays.Num());
-	}
-
-#if UE_BUILD_DEBUG
-	void CheckLeaks()
-	{
-		// This function is called after cluster has been created so at this point there should be no
-		// arrays used by cluster creation code and all should be returned to the pool
-		const int32 LeakedPoolArrays = NumberOfUsedArrays.GetValue();
-		checkSlow(LeakedPoolArrays == 0);
-	}
-#endif
-
-private:
-
-	/** Holds the collection of recycled arrays. */
-	TLockFreePointerListLIFO< TArray<UObject*> > Pool;
-
-#if UE_BUILD_DEBUG
-	/** Number of arrays currently acquired from the pool by clusters */
-	FThreadSafeCounter NumberOfUsedArrays;
-#endif // UE_BUILD_DEBUG
-};
-
-/** Called on shutdown to free cluster memory */
-void CleanupClusterArrayPools()
-{
-	FClusterArrayPool::Get().Cleanup();
-}
 
 /**
  * Handles UObject references found by TFastReferenceCollector
@@ -679,24 +579,24 @@ template <class TProcessor>
 class TClusterCollector : public FReferenceCollector
 {
 	TProcessor& Processor;
-	TArray<UObject*>& ObjectArray;
+	FGCArrayStruct& ObjectArrayStruct;
 
 public:
-	TClusterCollector(TProcessor& InProcessor, TArray<UObject*>& InObjectArray)
+	TClusterCollector(TProcessor& InProcessor, FGCArrayStruct& InObjectArrayStruct)
 		: Processor(InProcessor)
-		, ObjectArray(InObjectArray)
+		, ObjectArrayStruct(InObjectArrayStruct)
 	{
 	}
 	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
 	{
-		Processor.HandleTokenStreamObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, INDEX_NONE, false);
+		Processor.HandleTokenStreamObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, INDEX_NONE, false);
 	}
 	virtual void HandleObjectReferences(UObject** InObjects, const int32 ObjectNum, const UObject* ReferencingObject, const UProperty* InReferencingProperty) override
 	{
 		for (int32 ObjectIndex = 0; ObjectIndex < ObjectNum; ++ObjectIndex)
 		{
 			UObject*& Object = InObjects[ObjectIndex];
-			Processor.HandleTokenStreamObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, INDEX_NONE, false);
+			Processor.HandleTokenStreamObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, INDEX_NONE, false);
 		}
 	}
 	virtual bool IsIgnoringArchetypeRef() const override
@@ -735,13 +635,14 @@ void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFro
 		if (!bAddAsMutableObject)
 		{
 			FClusterReferenceProcessor Processor(ClusterRootIndex, *Cluster);
-			TFastReferenceCollector<false, FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool, true> ReferenceCollector(Processor, FClusterArrayPool::Get());
-			TArray<UObject*> ObjectsToProcess;
+			TFastReferenceCollector<false, FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FGCArrayPool, true> ReferenceCollector(Processor, FGCArrayPool::Get());
+			FGCArrayStruct ArrayStruct;
+			TArray<UObject*>& ObjectsToProcess = ArrayStruct.ObjectsToSerialize;
 			UObject* ThisObject = static_cast<UObject*>(this);
 			Processor.HandleTokenStreamObjectReference(ObjectsToProcess, static_cast<UObject*>(ClusterRootOrObjectFromCluster), ThisObject, INDEX_NONE, true);
 			if (ObjectsToProcess.Num())
 			{
-				ReferenceCollector.CollectReferences(ObjectsToProcess);
+				ReferenceCollector.CollectReferences(ArrayStruct);
 			}
 		}
 		else
@@ -793,12 +694,13 @@ void UObjectBaseUtility::CreateCluster()
 
 	// Collect all objects referenced by cluster root and by all objects it's referencing
 	FClusterReferenceProcessor Processor(InternalIndex, Cluster);
-	TFastReferenceCollector<false, FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool, true> ReferenceCollector(Processor, FClusterArrayPool::Get());
-	TArray<UObject*> ObjectsToProcess;
+	TFastReferenceCollector<false, FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FGCArrayPool, true> ReferenceCollector(Processor, FGCArrayPool::Get());
+	FGCArrayStruct ArrayStruct;
+	TArray<UObject*>& ObjectsToProcess = ArrayStruct.ObjectsToSerialize;
 	ObjectsToProcess.Add(static_cast<UObject*>(this));
-	ReferenceCollector.CollectReferences(ObjectsToProcess);
+	ReferenceCollector.CollectReferences(ArrayStruct);
 #if UE_BUILD_DEBUG
-	FClusterArrayPool::Get().CheckLeaks();
+	FGCArrayPool::Get().CheckLeaks();
 #endif
 
 	if (Cluster.Objects.Num())
@@ -995,9 +897,10 @@ bool VerifyClusterAssumptions(UObject* ClusterRootObject)
 {
 	// Collect all objects referenced by cluster root and by all objects it's referencing
 	FClusterVerifyReferenceProcessor Processor(ClusterRootObject);
-	TFastReferenceCollector<false, FClusterVerifyReferenceProcessor, TClusterCollector<FClusterVerifyReferenceProcessor>, FClusterArrayPool> ReferenceCollector(Processor, FClusterArrayPool::Get());
-	TArray<UObject*> ObjectsToProcess;
+	TFastReferenceCollector<false, FClusterVerifyReferenceProcessor, TClusterCollector<FClusterVerifyReferenceProcessor>, FGCArrayPool> ReferenceCollector(Processor, FGCArrayPool::Get());
+	FGCArrayStruct ArrayStruct;
+	TArray<UObject*>& ObjectsToProcess = ArrayStruct.ObjectsToSerialize;
 	ObjectsToProcess.Add(ClusterRootObject);
-	ReferenceCollector.CollectReferences(ObjectsToProcess);
+	ReferenceCollector.CollectReferences(ArrayStruct);
 	return Processor.NoExternalReferencesFound();
 }

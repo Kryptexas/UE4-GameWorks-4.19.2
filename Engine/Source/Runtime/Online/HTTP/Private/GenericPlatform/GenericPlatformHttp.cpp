@@ -3,7 +3,8 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Paths.h"
-
+#include "EngineVersion.h"
+#include "App.h"
 
 /**
  * A generic http request
@@ -238,4 +239,10 @@ FString FGenericPlatformHttp::GetMimeType(const FString& FilePath)
 	}
 
 	return TEXT("application/unknown");
+}
+
+FString FGenericPlatformHttp::GetDefaultUserAgent()
+{
+	static FString CachedUserAgent = FString::Printf(TEXT("game=%s, engine=UE4, version=%s, platform=%s, osver=%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString(), *FString(FPlatformProperties::IniPlatformName()), *FPlatformMisc::GetOSVersion());
+	return CachedUserAgent;
 }

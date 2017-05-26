@@ -251,6 +251,7 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			TempElementStorage = (uint8*)FMemory::Malloc(SetLayout.Size);
 			ElementProp->InitializeValue(TempElementStorage);
 
+			FSerializedPropertyScope SerializedProperty(Ar, ElementProp, this);
 			for (; NumElementsToRemove; --NumElementsToRemove)
 			{
 				// Read key into temporary storage
@@ -275,6 +276,7 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			ElementProp->InitializeValue(TempElementStorage);
 		}
 
+		FSerializedPropertyScope SerializedProperty(Ar, ElementProp, this);
 		// Read remaining items into container
 		for (; Num; --Num)
 		{
@@ -323,9 +325,12 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 		// Write out the removed elements
 		int32 RemovedElementsNum = Indices.Num();
 		Ar << RemovedElementsNum;
-		for (int32 Index : Indices)
 		{
-			ElementProp->SerializeItem(Ar, DefaultsHelper.GetElementPtr(Index));
+			FSerializedPropertyScope SerializedProperty(Ar, ElementProp, this);
+			for (int32 Index : Indices)
+			{
+				ElementProp->SerializeItem(Ar, DefaultsHelper.GetElementPtr(Index));
+			}
 		}
 
 		// Write out added elements
@@ -351,6 +356,8 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			// Write out differences from defaults
 			int32 Num = Indices.Num();
 			Ar << Num;
+
+			FSerializedPropertyScope SerializedProperty(Ar, ElementProp, this);
 			for (int32 Index : Indices)
 			{
 				uint8* ElementPtr = SetHelper.GetElementPtrWithoutCheck(Index);
@@ -362,6 +369,8 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 		{
 			int32 Num = SetHelper.Num();
 			Ar << Num;
+
+			FSerializedPropertyScope SerializedProperty(Ar, ElementProp, this);
 			for (int32 Index = 0; Num; ++Index)
 			{
 				if (SetHelper.IsValidIndex(Index))

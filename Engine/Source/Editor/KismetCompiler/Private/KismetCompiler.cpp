@@ -287,7 +287,8 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 
 	// Set properties we need to regenerate the class with
 	ClassToClean->PropertyLink = ParentClass->PropertyLink;
-	ClassToClean->ClassWithin = ParentClass;
+	ClassToClean->SetSuperStruct(ParentClass);
+	ClassToClean->ClassWithin = ParentClass->ClassWithin ? ParentClass->ClassWithin : UObject::StaticClass();
 	ClassToClean->ClassConfigName = ClassToClean->IsNative() ? FName(ClassToClean->StaticConfigName()) : ParentClass->ClassConfigName;
 	ClassToClean->DebugData = FBlueprintDebugData();
 }
@@ -547,6 +548,7 @@ void FKismetCompilerContext::ValidateVariableNames()
 			if (OldVarName != NewVarName)
 			{
 				MessageLog.Warning(*FString::Printf(*LOCTEXT("MemberVariableConflictWarning", "Found a member variable with a conflicting name (%s) - changed to %s.").ToString(), *VarNameStr, *NewVarName.ToString()));
+				TGuardValue<bool> LockDependencies(Blueprint->bCachedDependenciesUpToDate, Blueprint->bCachedDependenciesUpToDate);
 				FBlueprintEditorUtils::RenameMemberVariable(Blueprint, OldVarName, NewVarName);
 			}
 		}
@@ -672,7 +674,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType TimelinePinType(Schema->PC_Object, FString(), UTimelineComponent::StaticClass(), EPinContainerType::None, false, FEdGraphTerminalType());
 
 		// Previously UTimelineComponent object has exactly the same name as UTimelineTemplate object (that obj was in blueprint)
 		const FString TimelineVariableName = UTimelineTemplate::TimelineTemplateNameToVariableName(Timeline->GetFName());
@@ -685,30 +687,30 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			TimelineToMemberVariableMap.Add(Timeline, TimelineProperty);
 		}
 
-		FEdGraphPinType DirectionPinType(Schema->PC_Byte, TEXT(""), FTimeline::GetTimelineDirectionEnum(), false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType DirectionPinType(Schema->PC_Byte, FString(), FTimeline::GetTimelineDirectionEnum(), EPinContainerType::None, false, FEdGraphTerminalType());
 		CreateVariable(Timeline->GetDirectionPropertyName(), DirectionPinType);
 
-		FEdGraphPinType FloatPinType(Schema->PC_Float, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->FloatTracks.Num(); i++)
+		FEdGraphPinType FloatPinType(Schema->PC_Float, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
+		for (const FTTFloatTrack& FloatTrack : Timeline->FloatTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->FloatTracks[i].TrackName), FloatPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(FloatTrack.TrackName), FloatPinType);
 		}
 
-		FEdGraphPinType VectorPinType(Schema->PC_Struct, TEXT(""), VectorStruct, false, false, false, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->VectorTracks.Num(); i++)
+		FEdGraphPinType VectorPinType(Schema->PC_Struct, FString(), VectorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
+		for (const FTTVectorTrack& VectorTrack : Timeline->VectorTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->VectorTracks[i].TrackName), VectorPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(VectorTrack.TrackName), VectorPinType);
 		}
 
-		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, TEXT(""), LinearColorStruct, false, false, false, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->LinearColorTracks.Num(); i++)
+		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, FString(), LinearColorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
+		for (const FTTLinearColorTrack& LinearColorTrack : Timeline->LinearColorTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->LinearColorTracks[i].TrackName), LinearColorPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(LinearColorTrack.TrackName), LinearColorPinType);
 		}
 	}
 
 	// Create a class property for any simple-construction-script created components that should be exposed
-	if (Blueprint->SimpleConstructionScript != NULL)
+	if (Blueprint->SimpleConstructionScript)
 	{
 		// Ensure that nodes have valid templates (This will remove nodes that have had the classes the inherited from removed
 		Blueprint->SimpleConstructionScript->ValidateNodeTemplates(MessageLog);
@@ -723,9 +725,8 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				FName VarName = Node->GetVariableName();
 				if ((VarName != NAME_None) && (Node->ComponentClass != nullptr))
 				{
-					FEdGraphPinType Type(Schema->PC_Object, TEXT(""), Node->ComponentClass, false, false, false, false, FEdGraphTerminalType());
-					UProperty* NewProperty = CreateVariable(VarName, Type);
-					if (NewProperty != NULL)
+					FEdGraphPinType Type(Schema->PC_Object, FString(), Node->ComponentClass, EPinContainerType::None, false, FEdGraphTerminalType());
+					if (UProperty* NewProperty = CreateVariable(VarName, Type))
 					{
 						const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
 					
@@ -740,11 +741,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 
 void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& PropertyStorageLocation, TIndirectArray<FBPTerminal>& Terms, uint64 PropertyFlags, bool bPropertiesAreLocal, bool bPropertiesAreParameters)
 {
-	for (int32 i = 0; i < Terms.Num(); ++i)
+	for (FBPTerminal& Term : Terms)
 	{
-		FBPTerminal& Term = Terms[i];
-
-		if(NULL != Term.AssociatedVarProperty)
+		if (Term.AssociatedVarProperty)
 		{
 			if(Term.Context && !Term.Context->IsObjectContextType())
 			{
@@ -758,11 +757,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			MessageLog.Error(*FString::Printf(*LOCTEXT("PropertyForLiteral_Error", "Cannot create property for a literal: %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
-		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
-		if (NewProperty != NULL)
+		if (UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog))
 		{
-			NewProperty->PropertyFlags |= PropertyFlags;
-
 			if (bPropertiesAreParameters && Term.Type.bIsConst)
 			{
 				NewProperty->SetPropertyFlags(CPF_ConstParm);
@@ -1021,30 +1017,36 @@ void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetF
 	for (int32 i = 0; i < Context.EntryPoint->LocalVariables.Num(); ++i)
 	{
 		FBPVariableDescription& Variable = Context.EntryPoint->LocalVariables[Context.EntryPoint->LocalVariables.Num() - (i + 1)];
-
-		// Create the property based on the variable description, scoped to the function
-		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Context.Function, Variable.VarName, Variable.VarType, NewClass, 0, Schema, MessageLog);
-		if (NewProperty != NULL)
-		{
-			// Link this object to the tail of the list (so properties remain in the desired order)
-			*FunctionPropertyStorageLocation = NewProperty;
-			FunctionPropertyStorageLocation = &(NewProperty->Next);
-		}
+		UProperty* NewProperty = CreateUserDefinedLocalVariableForFunction(Variable, Context.Function, NewClass, FunctionPropertyStorageLocation, Schema, MessageLog);
 
 		if (NewProperty != NULL)
 		{
-			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
-			NewProperty->SetMetaData(TEXT("FriendlyName"), *Variable.FriendlyName);
-			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
-			NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
-			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
-
 			if(!Variable.DefaultValue.IsEmpty())
 			{
 				SetPropertyDefaultValue(NewProperty, Variable.DefaultValue);
 			}
 		}
 	}
+}
+
+UProperty* FKismetCompilerContext::CreateUserDefinedLocalVariableForFunction(const FBPVariableDescription& Variable, UFunction* Function, UBlueprintGeneratedClass* OwningClass, UField**& FunctionPropertyStorageLocation, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
+{
+	UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Function, Variable.VarName, Variable.VarType, OwningClass, 0, Schema, MessageLog);
+	
+	if(NewProperty)
+	{
+		// Link this object to the tail of the list (so properties remain in the desired order)
+		*FunctionPropertyStorageLocation = NewProperty;
+		FunctionPropertyStorageLocation = &(NewProperty->Next);
+		
+		NewProperty->SetPropertyFlags(Variable.PropertyFlags);
+		NewProperty->SetMetaData(TEXT("FriendlyName"), *Variable.FriendlyName);
+		NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
+		NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
+		NewProperty->SetPropertyFlags(Variable.PropertyFlags);
+	}
+	
+	return NewProperty;
 }
 
 void FKismetCompilerContext::SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value)
@@ -1086,6 +1088,13 @@ void FKismetCompilerContext::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 			}
 		}			
 	}
+}
+
+void FKismetCompilerContext::PropagateValuesToCDO(UObject* InNewCDO, UObject* InOldCDO)
+{
+	ensure(InNewCDO);
+	CopyTermDefaultsToDefaultObject(InNewCDO);
+	SetCanEverTick();
 }
 
 void FKismetCompilerContext::PrintVerboseInfoStruct(UStruct* Struct) const
@@ -1981,7 +1990,16 @@ void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context
  */
 void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Context)
 {
-	UFunction* Function = Context.Function;
+	SetCalculatedMetaDataAndFlags( Context.Function, CastChecked<UK2Node_FunctionEntry>(Context.EntryPoint), Schema );
+}
+
+void FKismetCompilerContext::SetCalculatedMetaDataAndFlags(UFunction* Function, UK2Node_FunctionEntry* EntryNode, const UEdGraphSchema_K2* K2Schema)
+{
+	if(!ensure(Function) || !ensure(EntryNode))
+	{
+		return;
+	}
+
 	Function->Bind();
 	Function->StaticLink(true);
 
@@ -2012,15 +2030,32 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		{
 			if (!Property->HasAnyPropertyFlags(CPF_ZeroConstructor))
 			{
-			Function->FirstPropertyToInit = Property;
-			Function->FunctionFlags |= FUNC_HasDefaults;
+				Function->FirstPropertyToInit = Property;
+				Function->FunctionFlags |= FUNC_HasDefaults;
 				break;
-		}
+			}
 		}
 	}
 
+	FKismetUserDeclaredFunctionMetadata& FunctionMetaData = EntryNode->MetaData;
+	if (!FunctionMetaData.Category.IsEmpty())
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category.ToString());
+	}
+
+	// Set up the function keywords
+	if (!FunctionMetaData.Keywords.IsEmpty())
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *FunctionMetaData.Keywords.ToString());
+	}
+
+	// Set up the function compact node title
+	if (!FunctionMetaData.CompactNodeTitle.IsEmpty())
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *FunctionMetaData.CompactNodeTitle.ToString());
+	}
+
 	// Add in any extra user-defined metadata, like tooltip
-	UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Context.EntryPoint);
 	if (!EntryNode->MetaData.ToolTip.IsEmpty())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip.ToString());
@@ -2038,14 +2073,20 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		UEdGraphPin* EntryPin = EntryNode->Pins[EntryPinIndex];
 		// No defaults for object/class pins
-		if(	!Schema->IsMetaPin(*EntryPin) && 
-			(EntryPin->PinType.PinCategory != Schema->PC_Object) && 
-			(EntryPin->PinType.PinCategory != Schema->PC_Class) && 
-			(EntryPin->PinType.PinCategory != Schema->PC_Interface) && 
+		if(	!K2Schema->IsMetaPin(*EntryPin) && 
+			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Object) && 
+			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Class) && 
+			(EntryPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Interface) && 
 			!EntryPin->DefaultValue.IsEmpty() )
 		{
 			Function->SetMetaData(*EntryPin->PinName, *EntryPin->DefaultValue);
 		}
+	}
+
+	if(UFunction* OverriddenFunction = Function->GetSuperFunction())
+	{
+		// Copy metadata from parent function as well
+		UMetaData::CopyMetadata(OverriddenFunction, Function);
 	}
 }
 
@@ -2096,7 +2137,6 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		Class->ClassFlags &= ~CLASS_RecompilerClear;
 		Class->ClassFlags |= (ParentClass->ClassFlags & CLASS_ScriptInherit);//@TODO: ChangeParentClass had this, but I don't think I want it: | UClass::StaticClassFlags;  // will end up with CLASS_Intrinsic
 		Class->ClassCastFlags |= ParentClass->ClassCastFlags;
-		Class->ClassWithin = ParentClass->ClassWithin ? ParentClass->ClassWithin : UObject::StaticClass();
 		Class->ClassConfigName = ParentClass->ClassConfigName;
 
 		// If the Blueprint was marked as deprecated, then flag the class as deprecated.
@@ -2413,7 +2453,7 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 				// This might fail if this is the first compile after adding the timeline (property doesn't exist yet) - in that case, manually add the output pin
 				if (TimelineVarPin == NULL)
 				{
-					TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false, TimelineNode->TimelineName.ToString());
+					TimelineVarPin = GetTimelineNode->CreatePin(EGPD_Output, Schema->PC_Object, FString(), UTimelineComponent::StaticClass(), TimelineNode->TimelineName.ToString());
 				}
 
 				if (bPlayPinConnected)
@@ -2504,9 +2544,14 @@ FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGra
 
 UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet, bool bIsMap, const FEdGraphTerminalType& ValueTerminalType)
 {
+	return SpawnInternalVariable(SourceNode, MoveTemp(Category), MoveTemp(SubCategory), SubcategoryObject, FEdGraphPinType::ToPinContainerType(bIsArray, bIsSet, bIsMap), ValueTerminalType);
+}
+
+UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, EPinContainerType PinContainerType, const FEdGraphTerminalType& ValueTerminalType)
+{
 	UK2Node_TemporaryVariable* Result = SpawnIntermediateNode<UK2Node_TemporaryVariable>(SourceNode);
 
-	Result->VariableType = FEdGraphPinType(Category, SubCategory, SubcategoryObject, bIsArray, false, bIsSet, bIsMap, ValueTerminalType);
+	Result->VariableType = FEdGraphPinType(MoveTemp(Category), MoveTemp(SubCategory), SubcategoryObject, PinContainerType, false, ValueTerminalType);
 	Result->AllocateDefaultPins();
 
 	return Result;
@@ -3245,7 +3290,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				if (Pin)
 				{
 					// Since we don't support array literals, drop a make array node on any unconnected array pins, which will allow macro expansion to succeed even if disconnected
-					if (Pin->PinType.bIsArray
+					if (Pin->PinType.IsArray()
 					&& (Pin->Direction == EGPD_Input)
 					&& (Pin->LinkedTo.Num() == 0))
 					{
@@ -3427,7 +3472,8 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool
 	//       been added to the class yet, etc.)
 	if ((CompileOptions.CompileType == EKismetCompileType::SkeletonOnly) || ValidateGraphIsWellFormed(FunctionGraph))
 	{
-		FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
+		const UEdGraphSchema_K2* FunctionGraphSchema = CastChecked<const UEdGraphSchema_K2>(FunctionGraph->GetSchema());
+		FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, FunctionGraphSchema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
 		Context.SourceGraph = FunctionGraph;
 
 		if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
@@ -3442,7 +3488,7 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool
 		}
 
 		bool bEnforceConstCorrectness = true;
-		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
+		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Context.Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
 		{
 			Context.MarkAsConstFunction(bEnforceConstCorrectness);
 		}
@@ -3712,8 +3758,7 @@ void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalF
 	NewClass->ClassGeneratedBy = Blueprint;
 	
 	// Set class metadata as needed
-	UClass* ParentClass = NewClass->ClassWithin;
-	NewClass->SetSuperStruct(ParentClass);
+	UClass* ParentClass = NewClass->GetSuperClass();
 	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
 	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
 	
@@ -3776,7 +3821,7 @@ void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalF
 	if (UsePersistentUberGraphFrame() && UbergraphContext)
 	{
 		//UBER GRAPH PERSISTENT FRAME
-		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType Type(TEXT("struct"), FString(), FPointerToUberGraphFrame::StaticStruct(), EPinContainerType::None, false, FEdGraphTerminalType());
 		UProperty* Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
 		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
 	}
@@ -3791,7 +3836,12 @@ void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalF
 
 void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFlags)
 {
+	// This is phase two, so we want to generated locals if PostponeLocalsGenerationUntilPhaseTwo is set:
 	const bool bGenerateLocals = !!(InternalFlags & EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo);
+	// Don't propagate values to CDO if we're going to do that in reinstancing:
+	const bool bPropagateValuesToCDO = !(InternalFlags & EInternalCompilerFlags::PostponeDefaultObjectAssignmentUntilReinstancing);
+	// Don't RefreshExternalBlueprintDependencyNodes if the calling code has done so already:
+	const bool bSkipRefreshExternalBlueprintDependencyNodes = !!(InternalFlags & EInternalCompilerFlags::SkipRefreshExternalBlueprintDependencyNodes);
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	if( bGenerateLocals )
@@ -3926,9 +3976,10 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 				Blueprint->PRIVATE_InnermostPreviousCDO = OldCDO;
 			}
 		}
-		else
+
+		if(bPropagateValuesToCDO)
 		{
-			if( NewCDO )
+			if( !Blueprint->HasAnyFlags(RF_BeingRegenerated) )
 			{
 				// Propagate the old CDO's properties to the new
 				if( OldCDO )
@@ -3963,10 +4014,9 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 				}
 				// <<< End Backwards Compatibility
 			}
-		}
 
-		CopyTermDefaultsToDefaultObject(NewCDO);
-		SetCanEverTick();
+			PropagateValuesToCDO(NewCDO, OldCDO);
+		}
 
 		// Note: The old->new CDO copy is deferred when regenerating, so we skip this step in that case.
 		if (!Blueprint->HasAnyFlags(RF_BeingRegenerated))
@@ -4105,7 +4155,7 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
-	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
+	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad && !bSkipRefreshExternalBlueprintDependencyNodes )
 	{
 		TArray<UBlueprint*> DependentBlueprints;
 		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
@@ -4255,7 +4305,7 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 
 					if (UClass* AsClass = Cast<UClass>(Struct))
 					{
-						Ar << AsClass->ClassFlags;
+						Ar << (uint32&)AsClass->ClassFlags;
 						Ar << AsClass->Interfaces;
 					}
 
@@ -4425,15 +4475,15 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	return Ret.ToString();
 }
 
-TUniquePtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+TSharedPtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
 {
 	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
 	{
-		return TUniquePtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
+		return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
 	}
 	else
 	{
-		return TUniquePtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+		return TSharedPtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
 	}
 }
 

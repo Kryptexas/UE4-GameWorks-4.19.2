@@ -251,9 +251,9 @@ void UCineCameraComponent::UpdateDebugFocusPlane()
 #if WITH_EDITORONLY_DATA
 	if (FocusSettings.bDrawDebugFocusPlane && DebugFocusPlaneMesh && DebugFocusPlaneComponent)
 	{
-		FVector const CamLocation = ComponentToWorld.GetLocation();
-		FVector const CamDir = ComponentToWorld.GetRotation().Vector();
-		FVector const FocusPoint = ComponentToWorld.GetLocation() + CamDir * GetDesiredFocusDistance(CamLocation);
+		FVector const CamLocation = GetComponentTransform().GetLocation();
+		FVector const CamDir = GetComponentTransform().GetRotation().Vector();
+		FVector const FocusPoint = GetComponentTransform().GetLocation() + CamDir * GetDesiredFocusDistance(CamLocation);
 		DebugFocusPlaneComponent->SetWorldLocation(FocusPoint);
 	}
 #endif

@@ -391,8 +391,16 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 	CustomProjectionMatrix.SetIdentity();
 	ClipPlaneNormal = FVector(0, 0, 1);
-	// previous behavior was to capture 2d scene captures before cube scene captures.
-	CaptureSortPriority = 1;
+	
+	// Legacy initialization.
+	{
+		// previous behavior was to capture 2d scene captures before cube scene captures.
+		CaptureSortPriority = 1;
+
+		// previous behavior was not exposing MotionBlur and Temporal AA in scene capture 2d.
+		ShowFlags.TemporalAA = false;
+		ShowFlags.MotionBlur = false;
+	}
 }
 
 void USceneCaptureComponent2D::OnRegister()
@@ -522,9 +530,15 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if(Ar.IsLoading())
+	if (Ar.IsLoading())
 	{
 		PostProcessSettings.OnAfterLoad();
+
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MotionBlurAndTAASupportInSceneCapture2d)
+		{
+			ShowFlags.TemporalAA = false;
+			ShowFlags.MotionBlur = false;
+		}
 	}
 }
 

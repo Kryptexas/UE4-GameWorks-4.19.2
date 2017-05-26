@@ -908,7 +908,10 @@ FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEven
 			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 			bool bOkIcon = false;
 			FString TooltipText;
-			GraphObj->GetSchema()->GetAssetsGraphHoverMessage(AssetOp->AssetData, GraphObj, TooltipText, bOkIcon);
+			if (AssetOp->HasAssets())
+			{
+				GraphObj->GetSchema()->GetAssetsGraphHoverMessage(AssetOp->GetAssets(), GraphObj, TooltipText, bOkIcon);
+			}
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
 			AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 		}

@@ -2,6 +2,8 @@
 
 
 #include "CoreMinimal.h"
+
+#include "BlueprintCompilationManager.h"
 #include "Misc/CoreMisc.h"
 #include "Stats/StatsMisc.h"
 #include "Stats/Stats.h"
@@ -88,6 +90,8 @@ DECLARE_CYCLE_STAT(TEXT("Refresh Dependent Blueprints"), EKismetCompilerStats_Re
 DECLARE_CYCLE_STAT(TEXT("Validate Generated Class"), EKismetCompilerStats_ValidateGeneratedClass, STATGROUP_KismetCompiler);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
+
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 //////////////////////////////////////////////////////////////////////////
 // FArchiveInvalidateTransientRefs
@@ -740,6 +744,12 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBlueprintCompileOptions CompileFlags, FCompilerResultsLog* pResults)
 {
+	if(GBlueprintUseCompilationManager)
+	{
+		FBlueprintCompilationManager::CompileSynchronously(FBPCompileRequest(BlueprintObj, CompileFlags, pResults));
+		return;
+	}
+
 	const bool bIsRegeneratingOnLoad		= (CompileFlags & EBlueprintCompileOptions::IsRegeneratingOnLoad		) != EBlueprintCompileOptions::None;
 	const bool bSkipGarbageCollection		= (CompileFlags & EBlueprintCompileOptions::SkipGarbageCollection		) != EBlueprintCompileOptions::None;
 	const bool bSaveIntermediateProducts	= (CompileFlags & EBlueprintCompileOptions::SaveIntermediateProducts	) != EBlueprintCompileOptions::None;
@@ -997,6 +1007,12 @@ bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded,  EBlueprintBytecodeRecompileOptions Flags)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
+
+	if(FBlueprintEditorUtils::IsCompileOnLoadDisabled(BlueprintObj))
+	{
+		return;
+	}
+
 	bool bBatchCompile = (Flags & EBlueprintBytecodeRecompileOptions::BatchCompile) != EBlueprintBytecodeRecompileOptions::None;
 	bool bSkipReinstancing = (Flags & EBlueprintBytecodeRecompileOptions::SkipReinstancing) != EBlueprintBytecodeRecompileOptions::None;
 
@@ -2144,7 +2160,7 @@ bool FKismetEditorUtilities::CanBlueprintImplementInterface(UBlueprint const* Bl
 	bool bCanImplementInterface = false;
 
 	// if the class is an actual implementable interface
-	if (IsClassABlueprintInterface(Class) && !Class->GetCppTypeInfo()->IsAbstract() && !Class->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint))
+	if (IsClassABlueprintInterface(Class) && !Class->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint))
 	{
 		bCanImplementInterface = true;
 

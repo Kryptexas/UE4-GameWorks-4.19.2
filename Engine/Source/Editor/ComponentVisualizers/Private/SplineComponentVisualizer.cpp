@@ -550,11 +550,11 @@ bool FSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* 
 			check(SelectedTangentHandleType != ESelectedTangentHandle::None);
 			if (SelectedTangentHandleType == ESelectedTangentHandle::Leave)
 			{
-				OutLocation = SplineComp->ComponentToWorld.TransformPosition(Point.OutVal + Point.LeaveTangent);
+				OutLocation = SplineComp->GetComponentTransform().TransformPosition(Point.OutVal + Point.LeaveTangent);
 			}
 			else if (SelectedTangentHandleType == ESelectedTangentHandle::Arrive)
 			{
-				OutLocation = SplineComp->ComponentToWorld.TransformPosition(Point.OutVal - Point.ArriveTangent);
+				OutLocation = SplineComp->GetComponentTransform().TransformPosition(Point.OutVal - Point.ArriveTangent);
 			}
 
 			return true;
@@ -565,7 +565,7 @@ bool FSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* 
 			check(LastKeyIndexSelected < Position.Points.Num());
 			check(SelectedKeys.Contains(LastKeyIndexSelected));
 			const auto& Point = Position.Points[LastKeyIndexSelected];
-			OutLocation = SplineComp->ComponentToWorld.TransformPosition(Point.OutVal);
+			OutLocation = SplineComp->GetComponentTransform().TransformPosition(Point.OutVal);
 			return true;
 		}
 	}
@@ -625,17 +625,17 @@ bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewpor
 				{
 					if (SelectedTangentHandleType == ESelectedTangentHandle::Leave)
 					{
-						EditedPoint.LeaveTangent += SplineComp->ComponentToWorld.InverseTransformVector(DeltaTranslate);
+						EditedPoint.LeaveTangent += SplineComp->GetComponentTransform().InverseTransformVector(DeltaTranslate);
 					}
 					else
 					{
-						EditedPoint.ArriveTangent += SplineComp->ComponentToWorld.InverseTransformVector(-DeltaTranslate);
+						EditedPoint.ArriveTangent += SplineComp->GetComponentTransform().InverseTransformVector(-DeltaTranslate);
 					}
 				}
 				else
 				{
 					const FVector Delta = (SelectedTangentHandleType == ESelectedTangentHandle::Leave) ? DeltaTranslate : -DeltaTranslate;
-					const FVector Tangent = EditedPoint.LeaveTangent + SplineComp->ComponentToWorld.InverseTransformVector(Delta);
+					const FVector Tangent = EditedPoint.LeaveTangent + SplineComp->GetComponentTransform().InverseTransformVector(Delta);
 
 					EditedPoint.LeaveTangent = Tangent;
 					EditedPoint.ArriveTangent = Tangent;
@@ -671,11 +671,11 @@ bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewpor
 				if (!DeltaTranslate.IsZero())
 				{
 					// Find key position in world space
-					const FVector CurrentWorldPos = SplineComp->ComponentToWorld.TransformPosition(EditedPoint.OutVal);
+					const FVector CurrentWorldPos = SplineComp->GetComponentTransform().TransformPosition(EditedPoint.OutVal);
 					// Move in world space
 					const FVector NewWorldPos = CurrentWorldPos + DeltaTranslate;
 					// Convert back to local space
-					EditedPoint.OutVal = SplineComp->ComponentToWorld.InverseTransformPosition(NewWorldPos);
+					EditedPoint.OutVal = SplineComp->GetComponentTransform().InverseTransformPosition(NewWorldPos);
 				}
 
 				if (!DeltaRotate.IsZero())
@@ -684,16 +684,16 @@ bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewpor
 					EditedPoint.InterpMode = CIM_CurveUser;
 
 					// Rotate tangent according to delta rotation
-					FVector NewTangent = SplineComp->ComponentToWorld.GetRotation().RotateVector(EditedPoint.LeaveTangent); // convert local-space tangent vector to world-space
+					FVector NewTangent = SplineComp->GetComponentTransform().GetRotation().RotateVector(EditedPoint.LeaveTangent); // convert local-space tangent vector to world-space
 					NewTangent = DeltaRotate.RotateVector(NewTangent); // apply world-space delta rotation to world-space tangent
-					NewTangent = SplineComp->ComponentToWorld.GetRotation().Inverse().RotateVector(NewTangent); // convert world-space tangent vector back into local-space
+					NewTangent = SplineComp->GetComponentTransform().GetRotation().Inverse().RotateVector(NewTangent); // convert world-space tangent vector back into local-space
 					EditedPoint.LeaveTangent = NewTangent;
 					EditedPoint.ArriveTangent = NewTangent;
 
 					// Rotate spline rotation according to delta rotation
-					FQuat NewRot = SplineComp->ComponentToWorld.GetRotation() * EditedRotPoint.OutVal; // convert local-space rotation to world-space
+					FQuat NewRot = SplineComp->GetComponentTransform().GetRotation() * EditedRotPoint.OutVal; // convert local-space rotation to world-space
 					NewRot = DeltaRotate.Quaternion() * NewRot; // apply world-space rotation
-					NewRot = SplineComp->ComponentToWorld.GetRotation().Inverse() * NewRot; // convert world-space rotation to local-space
+					NewRot = SplineComp->GetComponentTransform().GetRotation().Inverse() * NewRot; // convert world-space rotation to local-space
 					EditedRotPoint.OutVal = NewRot;
 				}
 
@@ -894,7 +894,7 @@ void FSplineComponentVisualizer::OnAddKey()
 
 	FInterpCurvePoint<FVector> NewPoint(
 		SelectedSegmentIndex,
-		SplineComp->ComponentToWorld.InverseTransformPosition(SelectedSplinePosition),
+		SplineComp->GetComponentTransform().InverseTransformPosition(SelectedSplinePosition),
 		FVector::ZeroVector,
 		FVector::ZeroVector,
 		CIM_CurveAuto);

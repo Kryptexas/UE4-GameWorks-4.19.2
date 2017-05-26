@@ -420,6 +420,9 @@ struct FBehaviorTreeSearchData
 	/** assign unique Id number */
 	void AssignSearchId();
 
+	/** clear state of search */
+	void Reset();
+
 	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) 
 		: OwnerComp(InOwnerComp), bPostponeSearch(false), bSearchInProgress(false)
 	{}

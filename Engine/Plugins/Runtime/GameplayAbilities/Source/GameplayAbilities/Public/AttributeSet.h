@@ -125,6 +125,9 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	UPROPERTY(Category = GameplayAttribute, VisibleAnywhere, BlueprintReadOnly)
 	FString AttributeName;
 
+	// In editor, this will filter out properties with meta tag "HideInDetailsView" or equal to FilterMetaStr. In non editor, it returns all properties.
+	static void GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr=FString());
+
 private:
 	friend class FAttributePropertyDetails;
 

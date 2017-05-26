@@ -122,7 +122,7 @@ FVulkanTexture2D* FVulkanViewport::GetBackBuffer(FRHICommandList& RHICmdList)
 		RenderingBackBuffer = new FVulkanBackBuffer(*Device, PixelFormat, SizeX, SizeY, VK_NULL_HANDLE, TexCreate_Presentable | TexCreate_RenderTargetable);
 		check(RHICmdList.IsImmediate());
 
-		if (RHICmdList.Bypass() || !GRHIThread)
+		if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 		{
 			FRHICommandAcquireBackBuffer Cmd(this, RenderingBackBuffer);
 			Cmd.Execute(RHICmdList);
@@ -707,7 +707,7 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 
 	{
 		FRHICommandList& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		if (RHICmdList.Bypass() || !GRHIThread)
+		if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 		{
 			FRHICommandProcessDeferredDeletionQueue Cmd(Device);
 			Cmd.Execute(RHICmdList);

@@ -411,15 +411,15 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		// Deferred store actions make life a bit easier...
 		static bool bSupportsDeferredStore = GetMetalDeviceContext().GetCommandQueue().SupportsFeature(EMetalFeaturesDeferredStoreActions);
 		
-		if (bSupportsDeferredStore)
+		//Create local store action states if we support deferred store 
+		MTLStoreAction NewColorStore[MaxMetalRenderTargets];
+		for (uint32 i = 0; i < MaxMetalRenderTargets; ++i)
 		{
-			for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
-			{
-				ColorStore[i] = MTLStoreActionUnknown;
-			}
-			DepthStore = MTLStoreActionUnknown;
-			StencilStore = MTLStoreActionUnknown;
+			NewColorStore[i] = MTLStoreActionUnknown;
 		}
+		
+		MTLStoreAction NewDepthStore = MTLStoreActionUnknown;
+		MTLStoreAction NewStencilStore = MTLStoreActionUnknown;
 		
 		// back this up for next frame
 		RenderTargetsInfo = InRenderTargets;
@@ -533,8 +533,8 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					// set up an MSAA attachment
 					ColorAttachment.texture = Surface.MSAATexture;
-					ColorStore[RenderTargetIndex] = MTLStoreActionMultisampleResolve;
-					ColorAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : ColorStore[RenderTargetIndex];
+					NewColorStore[RenderTargetIndex] = MTLStoreActionMultisampleResolve;
+					ColorAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : NewColorStore[RenderTargetIndex];
 					ColorAttachment.resolveTexture = Surface.Texture;
 					PipelineDesc.SampleCount = Surface.MSAATexture.sampleCount;
 	
@@ -545,8 +545,8 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					// set up non-MSAA attachment
 					ColorAttachment.texture = Surface.Texture;
-					ColorStore[RenderTargetIndex] = GetMetalRTStoreAction(RenderTargetView.StoreAction);
-					ColorAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : ColorStore[RenderTargetIndex];
+					NewColorStore[RenderTargetIndex] = GetMetalRTStoreAction(RenderTargetView.StoreAction);
+					ColorAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : NewColorStore[RenderTargetIndex];
 					PipelineDesc.SampleCount = 1;
 				}
 				
@@ -744,8 +744,8 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				
 				bNeedsClear |= (DepthAttachment.loadAction == MTLLoadActionClear);
 				
-				DepthStore = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction);
-				DepthAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : DepthStore;
+				NewDepthStore = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction);
+				DepthAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : NewDepthStore;
 				DepthAttachment.clearDepth = DepthClearValue;
 
 				PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = DepthAttachment.texture.pixelFormat;
@@ -756,7 +756,7 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				
 				bHasValidRenderTarget = true;
 
-				bCanRestartRenderPass &= (PipelineDesc.SampleCount <= 1) && ((RenderTargetsInfo.DepthStencilRenderTarget.Texture == FallbackDepthStencilSurface) || ((DepthAttachment.loadAction == MTLLoadActionLoad) && (!RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsDepthWrite() || (RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::EStore))));
+				bCanRestartRenderPass &= (PipelineDesc.SampleCount <= 1) && ((RenderTargetsInfo.DepthStencilRenderTarget.Texture == FallbackDepthStencilSurface) || ((DepthAttachment.loadAction == MTLLoadActionLoad) && (!RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsDepthWrite() || (RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::ENoAction) || (RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::EStore))));
 				
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
@@ -778,8 +778,8 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				
 				bNeedsClear |= (StencilAttachment.loadAction == MTLLoadActionClear);
 				
-				StencilStore = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
-				StencilAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : StencilStore;
+				NewStencilStore = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
+				StencilAttachment.storeAction = bSupportsDeferredStore ? MTLStoreActionUnknown : NewStencilStore;
 				StencilAttachment.clearStencil = StencilClearValue;
 
 				PipelineDesc.PipelineDescriptor.stencilAttachmentPixelFormat = StencilAttachment.texture.pixelFormat;
@@ -800,6 +800,17 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				UNTRACK_OBJECT(STAT_MetalRenderPassStencilAttachmentDescriptorCount, StencilAttachment);
 				[StencilAttachment release];
 			}
+		}
+		
+		//Update deferred store states if required otherwise they're already set directly on the Metal Attachement Descriptors
+		if (bSupportsDeferredStore)
+		{
+			for (uint32 i = 0; i < MaxMetalRenderTargets; ++i)
+			{
+				ColorStore[i] = NewColorStore[i];
+			}
+			DepthStore = NewDepthStore;
+			StencilStore = NewStencilStore;
 		}
 		
 		bHasValidRenderTarget |= (InRenderTargets.NumUAVs > 0);
@@ -1556,16 +1567,6 @@ void FMetalStateCache::SetRenderStoreActions(FMetalCommandEncoder& CommandEncode
 
 void FMetalStateCache::SetRenderState(FMetalCommandEncoder& CommandEncoder, FMetalCommandEncoder* PrologueEncoder)
 {
-    if (RasterBits & EMetalRenderFlagPipelineState)
-    {
-    	check(PipelineState);
-        CommandEncoder.SetRenderPipelineState(PipelineState);
-		if (PipelineState.ComputePipelineState)
-		{
-			check(PrologueEncoder);
-    		PrologueEncoder->SetComputePipelineState(PipelineState);
-    	}
-    }
     if (RasterBits & EMetalRenderFlagViewport)
     {
         CommandEncoder.SetViewport(Viewport);
@@ -1610,6 +1611,17 @@ void FMetalStateCache::SetRenderState(FMetalCommandEncoder& CommandEncoder, FMet
     {
         CommandEncoder.SetVisibilityResultMode(VisibilityMode, VisibilityOffset);
     }
+	// Some Intel drivers need RenderPipeline state to be set after DepthStencil state to work properly
+	if (RasterBits & EMetalRenderFlagPipelineState)
+	{
+		check(PipelineState);
+		CommandEncoder.SetRenderPipelineState(PipelineState);
+		if (PipelineState.ComputePipelineState)
+		{
+			check(PrologueEncoder);
+			PrologueEncoder->SetComputePipelineState(PipelineState);
+		}
+	}
    	RasterBits = 0;
 }
 

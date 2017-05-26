@@ -90,10 +90,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 
-	/** This feature allows you to broadcast to a live streaming service directly from the editor.  This requires you to have a live streaming plugin installed. */
-	UPROPERTY(EditAnywhere, config, Category=Tools)
-	bool bLiveStreamingFromEditor;
-
 	/** Enable late joining in PIE */
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
 	bool bAllowLateJoinInPIE;
@@ -125,6 +121,10 @@ public:
 	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bClothingTools;
+
+	/** Allow animation blueprints to be recompiled while a PIE session is running */
+	UPROPERTY(EditAnywhere, config, Category = Tools)
+	bool bEnableLiveRecompilationOfAnimationBlueprints;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

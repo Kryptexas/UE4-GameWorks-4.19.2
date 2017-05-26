@@ -38,6 +38,7 @@ UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	, SyncSceneSmoothingFactor(0.0f)
 	, AsyncSceneSmoothingFactor(0.99f)
 	, InitialAverageFrameRate(1.f / 60.f)
+	, PhysXTreeRebuildRate(10)
 {
 	SectionName = TEXT("Physics");
 }

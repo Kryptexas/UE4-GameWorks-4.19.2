@@ -98,6 +98,7 @@ public:
 	static FORCEINLINE bool SupportsSamplerObjects()					{ return true; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return true; }
 	static FORCEINLINE bool SupportsMobileMultiView()					{ return false; }
+	static FORCEINLINE bool SupportsImageExternal()						{ return false; }
 	static FORCEINLINE bool SupportsTextureLODBias()					{ return true; }
 	static FORCEINLINE bool SupportsTextureCompare()					{ return true; }
 	static FORCEINLINE bool SupportsTextureBaseLevel()					{ return true; }

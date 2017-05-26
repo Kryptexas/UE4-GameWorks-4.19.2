@@ -120,6 +120,11 @@ bool FPlugin::IsEnabled() const
 	return bEnabled;
 }
 
+bool FPlugin::IsHidden() const
+{
+	return Descriptor.bIsHidden;
+}
+
 bool FPlugin::CanContainContent() const
 {
 	return Descriptor.bCanContainContent;
@@ -209,6 +214,7 @@ void FPluginManager::ReadAllPlugins(TMap<FString, TSharedRef<FPlugin>>& Plugins,
 #if (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
 	// Find "built-in" plugins.  That is, plugins situated right within the Engine directory.
 	ReadPluginsInDirectory(FPaths::EnginePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
+	ReadPluginsInDirectory(FPaths::EnterprisePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
 
 	// Find plugins in the game project directory (<MyGameProject>/Plugins). If there are any engine plugins matching the name of a game plugin,
 	// assume that the game plugin version is preferred.
@@ -419,6 +425,17 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			const FPlugin& Plugin = *PluginPair.Value;
 			if (Plugin.bEnabled)
 			{
+				// Plugins can have their own shaders
+				// Add potential plugin shader directory only if the plugin is loaded in PostConfigInit. Not supported otherwise
+				for (const FModuleDescriptor& Module : Plugin.GetDescriptor().Modules)
+				{
+					if (Module.LoadingPhase == ELoadingPhase::PostConfigInit)
+					{
+						FGenericPlatformProcess::AddShaderDir(FPaths::Combine(*Plugin.GetBaseDir(), TEXT("Shaders")));
+						break;
+					}
+				}
+
 				// Build the list of content folders
 				if (Plugin.Descriptor.bCanContainContent)
 				{
@@ -664,11 +681,11 @@ bool FPluginManager::PromptToDisableMissingPlugin(const FString& PluginName, con
 	FText Message;
 	if (PluginName == MissingPluginName)
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which could not be found.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_NotFound", "This project requires the '{0}' plugin, which could not be found.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
 	}
 	else
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which has a missing dependency on the '{1}' plugin.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(MissingPluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_MissingDependency", "This project requires the '{0}' plugin, which has a missing dependency on the '{1}' plugin.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(MissingPluginName));
 	}
 
 	FText Caption(LOCTEXT("DisablePluginCaption", "Missing Plugin"));
@@ -680,11 +697,11 @@ bool FPluginManager::PromptToDisableIncompatiblePlugin(const FString& PluginName
 	FText Message;
 	if (PluginName == IncompatiblePluginName)
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_IncompatibleEngineVersion", "This project requires the '{0}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
 	}
 	else
 	{
-		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which has a dependency on the '{1}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(IncompatiblePluginName));
+		Message = FText::Format(LOCTEXT("DisablePluginMessage_IncompatibleDependency", "This project requires the '{0}' plugin, which has a dependency on the '{1}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(IncompatiblePluginName));
 	}
 
 	FText Caption(LOCTEXT("DisablePluginCaption", "Missing Plugin"));

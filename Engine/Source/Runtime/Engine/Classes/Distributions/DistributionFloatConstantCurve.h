@@ -8,8 +8,8 @@
 #include "Distributions/DistributionFloat.h"
 #include "DistributionFloatConstantCurve.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew,MinimalAPI)
-class UDistributionFloatConstantCurve : public UDistributionFloat
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew)
+class ENGINE_API UDistributionFloatConstantCurve : public UDistributionFloat
 {
 	GENERATED_UCLASS_BODY()
 

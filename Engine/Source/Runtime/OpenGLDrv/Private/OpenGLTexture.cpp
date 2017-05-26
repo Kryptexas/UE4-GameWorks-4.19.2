@@ -237,7 +237,7 @@ bool FOpenGLDynamicRHI::RHIGetTextureMemoryVisualizeData( FColor* /*TextureData*
 
 
 
-FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, bool bCubeTexture, bool bArrayTexture, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 ArraySize, uint32 Flags, const FClearValueBinding& InClearValue, FResourceBulkDataInterface* BulkData)
+FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, bool bCubeTexture, bool bArrayTexture, bool bIsExternal, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 ArraySize, uint32 Flags, const FClearValueBinding& InClearValue, FResourceBulkDataInterface* BulkData)
 {
 	VERIFY_GL_SCOPE();
 
@@ -245,9 +245,9 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 
 	bool bAllocatedStorage = false;
 
-	if(NumMips == 0)
+	if (NumMips == 0)
 	{
-		if(NumSamples <= 1)
+		if (NumSamples <= 1)
 		{
 			NumMips = FindMaxMipmapLevel(SizeX, SizeY);
 		}
@@ -258,8 +258,8 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	}
 
 #if UE_BUILD_DEBUG
-	check( !( NumSamples > 1 && bCubeTexture) );
-	check( bArrayTexture != (ArraySize == 1));
+	check(!(NumSamples > 1 && bCubeTexture));
+	check(bArrayTexture != (ArraySize == 1));
 #endif
 
 	// Move NumSamples to on-chip MSAA if supported
@@ -278,7 +278,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		// Some android devices does not support BGRA as a color attachment
 		Format = PF_R8G8B8A8;
 	}
-		
+
 	if (bNoSRGBSupport)
 	{
 		// Remove sRGB read flag when not supported
@@ -289,9 +289,9 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	FOpenGL::GenTextures(1, &TextureID);
 
 	GLenum Target = GL_NONE;
-	if(bCubeTexture)
+	if (bCubeTexture)
 	{
-		if ( FOpenGL::SupportsTexture3D() )
+		if (FOpenGL::SupportsTexture3D())
 		{
 			Target = bArrayTexture ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_CUBE_MAP;
 		}
@@ -302,6 +302,20 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		}
 		check(SizeX == SizeY);
 	}
+#if PLATFORM_ANDROID
+	else if (bIsExternal)
+	{
+		if (FOpenGL::SupportsImageExternal())
+		{
+			Target = GL_TEXTURE_EXTERNAL_OES;
+		}
+		else
+		{
+			// Fall back to a regular 2d texture if we don't have support. Texture samplers in the shader will also fall back to a regular sampler2D.
+			Target = GL_TEXTURE_2D;
+		}
+	}
+#endif
 	else
 	{
 		Target =  (NumSamples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
@@ -1466,7 +1480,20 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 */
 FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& Info)
 {
-	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,Format,NumMips,NumSamples,1,Flags,Info.ClearValueBinding,Info.BulkData);
+	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,false,Format,NumMips,NumSamples,1,Flags,Info.ClearValueBinding,Info.BulkData);
+}
+
+/**
+* Creates a 2D RHI texture external resource
+* @param SizeX - width of the texture to create
+* @param SizeY - height of the texture to create
+* @param Format - EPixelFormat texture format
+* @param NumMips - number of mips to generate or 0 for full mip pyramid
+* @param Flags - ETextureCreateFlags creation flags
+*/
+FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTextureExternal2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& Info)
+{
+	return (FRHITexture2D*)CreateOpenGLTexture(SizeX, SizeY, false, false, true, Format, NumMips, NumSamples, 1, Flags, Info.ClearValueBinding, Info.BulkData);
 }
 
 FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips)
@@ -2008,7 +2035,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPar
 	FOpenGLTexture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	// Allocate a new texture.
-	FOpenGLTexture2D* NewTexture2D = (FOpenGLTexture2D*)CreateOpenGLTexture(NewSizeX,NewSizeY,false,false, Texture2D->GetFormat(),NewMipCount,1,1, Texture2D->GetFlags(), Texture2DRHI->GetClearBinding());
+	FOpenGLTexture2D* NewTexture2D = (FOpenGLTexture2D*)CreateOpenGLTexture(NewSizeX,NewSizeY,false,false,false, Texture2D->GetFormat(),NewMipCount,1,1, Texture2D->GetFlags(), Texture2DRHI->GetClearBinding());
 	
 	const uint32 BlockSizeX = GPixelFormats[Texture2D->GetFormat()].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[Texture2D->GetFormat()].BlockSizeY;
@@ -2246,7 +2273,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCube( uint32 Size, uint8 F
 	// not yet supported
 	check(!CreateInfo.BulkData);
 
-	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, false, Format, NumMips, 1, 1, Flags, CreateInfo.ClearValueBinding);
+	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, false, false, Format, NumMips, 1, 1, Flags, CreateInfo.ClearValueBinding);
 }
 
 FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo )
@@ -2254,7 +2281,7 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, ui
 	// not yet supported
 	check(!CreateInfo.BulkData);
 
-	return (FRHITextureCube*)CreateOpenGLTexture(Size, Size, true, true, Format, NumMips, 1, 6 * ArraySize, Flags, CreateInfo.ClearValueBinding);
+	return (FRHITextureCube*)CreateOpenGLTexture(Size, Size, true, true, false, Format, NumMips, 1, 6 * ArraySize, Flags, CreateInfo.ClearValueBinding);
 }
 
 void* FOpenGLDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)

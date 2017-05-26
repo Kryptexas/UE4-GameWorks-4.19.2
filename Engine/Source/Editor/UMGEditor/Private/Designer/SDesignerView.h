@@ -200,6 +200,9 @@ private:
 	bool InTransaction() const;
 	void EndTransaction(bool bCancel);
 
+	UWidget* GetWidgetInDesignScopeFromSlateWidget(TSharedRef<SWidget>& InWidget);
+	bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus, bool bIgnoreLockedState);
+
 private:
 	struct FWidgetHitResult
 	{
@@ -238,6 +241,9 @@ private:
 
 	void ToggleShowingOutlines();
 	bool IsShowingOutlines() const;
+
+	void ToggleRespectingLocks();
+	bool IsRespectingLocks() const;
 
 	void ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, const bool bIsPreview);
 

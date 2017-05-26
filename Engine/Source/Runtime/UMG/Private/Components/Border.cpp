@@ -57,7 +57,7 @@ void UBorder::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 	
-	TAttribute<FLinearColor> ContentColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ContentColorAndOpacity);
+	TAttribute<FLinearColor> ContentColorAndOpacityBinding = PROPERTY_BINDING(FLinearColor, ContentColorAndOpacity);
 	TAttribute<FSlateColor> BrushColorBinding = OPTIONAL_BINDING_CONVERT(FLinearColor, BrushColor, FSlateColor, ConvertLinearColorToSlateColor);
 	TAttribute<const FSlateBrush*> ImageBinding = OPTIONAL_BINDING_CONVERT(FSlateBrush, Background, const FSlateBrush*, ConvertImage);
 	

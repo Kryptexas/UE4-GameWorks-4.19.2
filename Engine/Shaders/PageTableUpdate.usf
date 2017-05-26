@@ -1,0 +1,110 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "Common.usf"
+
+uint PageTableSize;
+uint FirstUpdate;
+uint NumUpdates;
+
+struct FPageUpdatePacked
+{
+	uint	vAddress;
+	uint	pAddress;
+};
+
+struct FPageUpdate
+{
+	uint	vAddress;
+	uint	pAddress;
+	uint	vLevel;
+	uint	vLogSize;
+};
+
+StructuredBuffer< FPageUpdatePacked > UpdateBuffer;
+
+uint ReverseMortonCode2( uint x )
+{
+	x &= 0x55555555;
+	x = (x ^ (x >> 1)) & 0x33333333;
+	x = (x ^ (x >> 2)) & 0x0f0f0f0f;
+	x = (x ^ (x >> 4)) & 0x00ff00ff;
+	x = (x ^ (x >> 8)) & 0x0000ffff;
+	return x;
+}
+
+void PageTableUpdateVS(
+	uint VertexID : SV_VertexID,
+	uint InstanceID : SV_InstanceID,
+	out nointerpolation float4 OutColor : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
+{
+	OutPosition =  float4(0, 0, 0, 1);
+	OutColor = 0;
+
+	// needs to be the same on C++ side (faster on NVIDIA and AMD)
+	uint QuadsPerInstance = 8;
+	uint UpdateIndex = FirstUpdate + InstanceID * QuadsPerInstance + (VertexID >> 2);
+
+	BRANCH
+	if( UpdateIndex - FirstUpdate >= NumUpdates )
+	{
+		return;
+	}
+
+	FPageUpdatePacked UpdatePacked = UpdateBuffer[ UpdateIndex ];
+
+	// Little Endian
+	FPageUpdate Update;
+	Update.vAddress	= UpdatePacked.vAddress;
+	Update.pAddress	= ( UpdatePacked.pAddress >> 0  ) & 0xffff;
+	Update.vLevel	= ( UpdatePacked.pAddress >> 16 ) & 0xff;
+	Update.vLogSize	= ( UpdatePacked.pAddress >> 24 ) & 0xff;
+
+	uint vSize = 1 << Update.vLogSize;
+
+	uint2 vPage;
+	vPage.x = ReverseMortonCode2( Update.vAddress );
+	vPage.y = ReverseMortonCode2( Update.vAddress >> 1 );
+
+	uint2 pPage;
+	pPage.x = ReverseMortonCode2( Update.pAddress );
+	pPage.y = ReverseMortonCode2( Update.pAddress >> 1 );
+	
+	uint2 CornerOffset = uint2(
+		(VertexID >> 0) & 1,
+		(VertexID >> 1) & 1
+	);
+	
+	uint2 vCorner = vPage + vSize * CornerOffset;
+	OutPosition.xy = ( (float2)vCorner / PageTableSize ) *  float2( 2, -2 ) + float2( -1, 1 );
+
+#if 0
+	// Pack 16bit 6:6:4
+	// 64 x 64 physical pages
+	// 16 mip levels
+	uint Page;
+	Page  = pPage.x << 0;
+	Page |= pPage.y << 6;
+	Page |= Update.vLevel << 12;
+
+	OutColor = (float)Page;
+#else
+	// 8:8:8:8 page table format
+	// [van Waveren 2012, "Software Virtual Textures"]
+	uint Scale = ( PageTableSize * 16 ) >> Update.vLevel;
+	OutColor.r = pPage.x;
+	OutColor.g = pPage.y;
+	OutColor.b = Scale & 0xff;
+	OutColor.a = Scale >> 8;
+	OutColor *= (1.0 / 255.0);
+#endif
+}
+
+void PageTableUpdatePS(
+	nointerpolation float4 InColor : TEXCOORD0,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = InColor;
+}

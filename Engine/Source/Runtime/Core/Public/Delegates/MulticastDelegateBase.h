@@ -31,7 +31,7 @@ public:
 			DelegateBaseRef.Unbind();
 		}
 
-		CompactInvocationList();
+		CompactInvocationList(false);
 	}
 
 	/**
@@ -78,18 +78,50 @@ public:
 	 */
 	void RemoveAll( const void* InUserObject )
 	{
-		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+		if (InvocationListLockCount > 0)
 		{
-			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
-
-			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
-			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
+			bool NeedsCompacted = false;
+			for (FDelegateBase& DelegateBaseRef : InvocationList)
 			{
-				DelegateBaseRef.Unbind();
+				IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
+				if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
+				{
+					// Manually unbind the delegate here so the compaction will find and remove it.
+					DelegateBaseRef.Unbind();
+					NeedsCompacted = true;
+				}
+			}
+
+			// can't compact at the moment, but set out threshold to zero so the next add will do it
+			if (NeedsCompacted)
+			{
+				CompactionThreshold = 0;
 			}
 		}
+		else
+		{
+			// compact us while shuffling in later delegates to fill holes
+			for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num();)
+			{
+				FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
 
-		CompactInvocationList();
+				IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
+				if (DelegateInstance == nullptr
+					|| DelegateInstance->HasSameObject(InUserObject)
+					|| DelegateInstance->IsCompactable())
+				{
+					InvocationList.RemoveAtSwap(InvocationListIndex, 1, false);
+				}
+				else
+				{
+					InvocationListIndex++;
+				}
+			}
+
+			CompactionThreshold = FMath::Max(2, 2 * InvocationList.Num());
+
+			InvocationList.Shrink();
+		}
 	}
 
 protected:
@@ -109,6 +141,8 @@ protected:
 	 */
 	inline FDelegateHandle AddInternal(FDelegateBase&& NewDelegateBaseRef)
 	{
+		// compact but obey threshold of when this will trigger
+		CompactInvocationList(true);
 		FDelegateHandle Result = NewDelegateBaseRef.GetHandle();
 		InvocationList.Add(MoveTemp(NewDelegateBaseRef));
 		return Result;
@@ -119,26 +153,46 @@ protected:
 	 *
 	 * @see RequestCompaction
 	 */
-	void CompactInvocationList( )
+	void CompactInvocationList(bool CheckThreshold=false)
 	{
-		if ((InvocationList.Num() < CompactionThreshold) || (InvocationListLockCount != 0))
+		// if locked and no object, just return
+		if (InvocationListLockCount > 0)
 		{
 			return;
 		}
 
-		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+		// if checking threshold, obey but decay. This is to ensure that even infrequently called delegates will
+		// eventually compact during an Add()
+		if (CheckThreshold 	&& --CompactionThreshold > InvocationList.Num())
+		{
+			return;
+		}
+
+		int32 OldNumItems = InvocationList.Num();
+
+		// Find anything null or compactable and remove it
+		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num();)
 		{
 			FDelegateBase& DelegateBaseRef = InvocationList[InvocationListIndex];
 
 			IDelegateInstance* DelegateInstance = DelegateBaseRef.GetDelegateInstanceProtected();
-
-			if ((DelegateInstance == nullptr) || DelegateInstance->IsCompactable())
+			if (DelegateInstance == nullptr	|| DelegateInstance->IsCompactable())
 			{
 				InvocationList.RemoveAtSwap(InvocationListIndex);
+			}
+			else
+			{
+				InvocationListIndex++;
 			}
 		}
 
 		CompactionThreshold = FMath::Max(2, 2 * InvocationList.Num());
+
+		if (OldNumItems > CompactionThreshold)
+		{
+			// would be nice to shrink down to threshold, but reserve only grows..?
+			InvocationList.Shrink();
+		}
 	}
 
 	/**

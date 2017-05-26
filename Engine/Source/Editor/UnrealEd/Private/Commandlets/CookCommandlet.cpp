@@ -39,6 +39,7 @@
 #include "ShaderCompiler.h"
 #include "HAL/MemoryMisc.h"
 #include "ProfilingDebugging/CookStats.h"
+#include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -475,13 +476,15 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 		uint32 CookedPkgCount = 0;
 		uint32 TickResults = CookOnTheFlyServer->TickCookOnTheSide(/*TimeSlice =*/10.f, CookedPkgCount);
 
+		// Flush the asset registry before GC
+		FAssetRegistryModule::TickAssetRegistry(-1.0f);
+
 		CookOnTheFlyGCController.Update(CookedPkgCount, (UCookOnTheFlyServer::ECookOnTheSideResult)TickResults);
 		CookOnTheFlyGCController.ConditionallyCollectGarbage(CookOnTheFlyServer);
 
 		// force at least a tick shader compilation even if we are requesting stuff
 		CookOnTheFlyServer->TickRecompileShaderRequests();
 		GShaderCompilingManager->ProcessAsyncResults(true, false);
-
 
 		while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
 		{
@@ -930,6 +933,9 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 					GShaderCompilingManager->ProcessAsyncResults(true, false);
 				}
 				
+				// Flush the asset registry before GC
+				FAssetRegistryModule::TickAssetRegistry(-1.0f);
+
 				auto DumpMemStats = []()
 				{
 					FGenericMemoryStats MemStats;

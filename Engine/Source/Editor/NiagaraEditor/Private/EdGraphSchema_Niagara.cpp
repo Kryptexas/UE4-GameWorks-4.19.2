@@ -571,7 +571,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					}
 				};
 
-				GenSwizzles(TEXT(""));
+				GenSwizzles(FString());
 
 				for (FString Swiz : Swizzles)
 				{
@@ -773,7 +773,7 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 	}
 	else
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
+		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, FString());
 	}
 }
 
@@ -1051,12 +1051,12 @@ FEdGraphPinType UEdGraphSchema_Niagara::TypeDefinitionToPinType(FNiagaraTypeDefi
 {
 	if (TypeDef.GetClass())
 	{
-		return FEdGraphPinType(PinCategoryClass, TEXT(""), const_cast<UClass*>(TypeDef.GetClass()), false, false, false, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryClass, FString(), const_cast<UClass*>(TypeDef.GetClass()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 	else
 	{
 		//TODO: Are base types better as structs or done like BPS as a special name?
-		return FEdGraphPinType(PinCategoryType, TEXT(""), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), false, false, false, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryType, FString(), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 }
 
@@ -1099,7 +1099,7 @@ void UEdGraphSchema_Niagara::GetBreakLinkToSubMenuActions(class FMenuBuilder& Me
 		UEdGraphPin* Pin = *Links;
 		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString(TitleString);
-		if (Pin->PinName != TEXT(""))
+		if (!Pin->PinName.IsEmpty())
 		{
 			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
 

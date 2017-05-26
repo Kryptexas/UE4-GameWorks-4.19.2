@@ -508,8 +508,7 @@ void UCableComponent::PerformCableCollision()
 	if (World && GetCollisionEnabled() != ECollisionEnabled::NoCollision)
 	{
 		// Get collision settings from component
-		static FName CableCollisionName(TEXT("CableCollision"));
-		FCollisionQueryParams Params(CableCollisionName);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(CableCollision));
 
 		ECollisionChannel TraceChannel = GetCollisionObjectType();
 		FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
@@ -675,6 +674,13 @@ void UCableComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	// Call this because bounds have changed
 	UpdateComponentToWorld();
 };
+
+void UCableComponent::CreateRenderState_Concurrent()
+{
+	Super::CreateRenderState_Concurrent();
+
+	SendRenderDynamicData_Concurrent();
+}
 
 void UCableComponent::SendRenderDynamicData_Concurrent()
 {

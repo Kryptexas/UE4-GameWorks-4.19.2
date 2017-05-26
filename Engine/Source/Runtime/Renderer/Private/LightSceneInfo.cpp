@@ -104,7 +104,7 @@ void FLightSceneInfo::AddToScene()
  */
 void FLightSceneInfo::CreateLightPrimitiveInteraction(const FLightSceneInfoCompact& LightSceneInfoCompact, const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact)
 {
-	if(	LightSceneInfoCompact.AffectsPrimitive(PrimitiveSceneInfoCompact))
+	if(	LightSceneInfoCompact.AffectsPrimitive(PrimitiveSceneInfoCompact.Bounds, PrimitiveSceneInfoCompact.Proxy))
 	{
 		// create light interaction and add to light/primitive lists
 		FLightPrimitiveInteraction::Create(this,PrimitiveSceneInfoCompact.PrimitiveSceneInfo);
@@ -218,14 +218,14 @@ FORCEINLINE bool AreSpheresNotIntersecting(
 * @param CompactPrimitiveSceneInfo - The primitive to test.
 * @return True if the light affects the primitive.
 */
-bool FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact& CompactPrimitiveSceneInfo) const
+bool FLightSceneInfoCompact::AffectsPrimitive(const FBoxSphereBounds& PrimitiveBounds, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const
 {
 	// Check if the light's bounds intersect the primitive's bounds.
 	if(AreSpheresNotIntersecting(
 		BoundingSphereVector,
 		VectorReplicate(BoundingSphereVector,3),
-		VectorLoadFloat3(&CompactPrimitiveSceneInfo.Bounds.Origin),
-		VectorLoadFloat1(&CompactPrimitiveSceneInfo.Bounds.SphereRadius)
+		VectorLoadFloat3(&PrimitiveBounds.Origin),
+		VectorLoadFloat1(&PrimitiveBounds.SphereRadius)
 		))
 	{
 		return false;
@@ -233,17 +233,17 @@ bool FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact& 
 
 	// Cull based on information in the full scene infos.
 
-	if(!LightSceneInfo->Proxy->AffectsBounds(CompactPrimitiveSceneInfo.Bounds))
+	if(!LightSceneInfo->Proxy->AffectsBounds(PrimitiveBounds))
 	{
 		return false;
 	}
 
-	if (LightSceneInfo->Proxy->CastsShadowsFromCinematicObjectsOnly() && !CompactPrimitiveSceneInfo.Proxy->CastsCinematicShadow())
+	if (LightSceneInfo->Proxy->CastsShadowsFromCinematicObjectsOnly() && !PrimitiveSceneProxy->CastsCinematicShadow())
 	{
 		return false;
 	}
 
-	if (!(LightSceneInfo->Proxy->GetLightingChannelMask() & CompactPrimitiveSceneInfo.Proxy->GetLightingChannelMask()))
+	if (!(LightSceneInfo->Proxy->GetLightingChannelMask() & PrimitiveSceneProxy->GetLightingChannelMask()))
 	{
 		return false;
 	}

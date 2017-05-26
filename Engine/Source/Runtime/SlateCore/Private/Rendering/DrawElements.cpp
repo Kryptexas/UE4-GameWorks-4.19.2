@@ -21,7 +21,7 @@ void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& Eleme
 	int32 StartIndex = FMath::Min<int32>(InStartIndex, Count - 1);
 	int32 EndIndex = FMath::Min<int32>(InEndIndex, Count - 1);
 	Count = 1 + ((EndIndex > StartIndex) ? EndIndex - StartIndex : 0);
-	ImmutableText = (TCHAR*)ElementList.Alloc(sizeof(TCHAR) * Count, ALIGNOF(TCHAR));
+	ImmutableText = (TCHAR*)ElementList.Alloc(sizeof(TCHAR) * Count, alignof(TCHAR));
 	if (Count > 1)
 	{
 		FCString::Strncpy(ImmutableText, InText.GetCharArray().GetData() + StartIndex, Count);

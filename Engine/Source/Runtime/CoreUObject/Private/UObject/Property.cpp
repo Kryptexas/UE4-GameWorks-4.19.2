@@ -493,9 +493,7 @@ bool UProperty::ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorHandl
 	// we should not allow config/localized properties to be imported here
 	if ((PortFlags & PPF_RestrictImportTypes) && (PropertyFlags & CPF_Config))
 	{
-		FString PropertyType = (PropertyFlags & CPF_Config) ? TEXT("config") : TEXT("localized");
-
-		FString ErrorMsg = FString::Printf(TEXT("Import failed for '%s': property is %s (Check to see if the property is listed in the DefaultProperties.  It should only be listed in the specific .ini/.int file)"), *GetName(), *PropertyType);
+		FString ErrorMsg = FString::Printf(TEXT("Import failed for '%s': property is config (Check to see if the property is listed in the DefaultProperties.  It should only be listed in the specific .ini file)"), *GetName());
 
 		if (ErrorHandler)
 		{

@@ -119,6 +119,7 @@ void SClothPaintTab::UpdatePaintTools()
 		FClothingPaintEditMode* PaintMode = (FClothingPaintEditMode*)SkeletalMeshEditor->GetAssetEditorModeManager()->FindMode(PaintModeID);
 		if (PaintMode)
 		{
+			PaintMode->GetMeshPainter()->Reset();
 			ModeWidget = PaintMode->GetMeshPainter()->GetWidget();
 			PaintMode->SetPersonaToolKit(SkeletalMeshEditor->GetPersonaToolkit());
 

@@ -38,12 +38,10 @@ const uint32	cSampleBufferSizeMask = cSampleBufferSize - 1;
 namespace Audio
 {	
 	FMixerPlatformAudioUnit::FMixerPlatformAudioUnit()
-	:
-	//SuspendCounter(0),
-	bInitialized(false),
-	bInCallback(false),
-	sampleBufferHead(0),
-	sampleBufferTail(0)
+		: bInitialized(false),
+		  bInCallback(false),
+		  sampleBufferHead(0),
+		  sampleBufferTail(0)
 	{
 		sampleBuffer = (SInt16*)FMemory::Malloc(cSampleBufferSize);
 	}
@@ -62,7 +60,6 @@ namespace Audio
 		}
 	}
 
-	//~ Begin IAudioMixerPlatformInterface
 	bool FMixerPlatformAudioUnit::InitializeHardware()
 	{
 		if (bInitialized)
@@ -82,14 +79,10 @@ namespace Audio
 		
 		DeviceInfo.NumChannels = 2;
 		DeviceInfo.SampleRate = (int32)GraphSampleRate;
-		DeviceInfo.DefaultSampleRate = DeviceInfo.SampleRate;
-		DeviceInfo.NumFrames = cAudioMixerBufferSize;
-		DeviceInfo.NumSamples = DeviceInfo.NumFrames * DeviceInfo.NumChannels;
 		DeviceInfo.Format = EAudioMixerStreamDataFormat::Int16;
 		DeviceInfo.OutputChannelArray.SetNum(2);
 		DeviceInfo.OutputChannelArray[0] = EAudioMixerChannel::FrontLeft;
 		DeviceInfo.OutputChannelArray[1] = EAudioMixerChannel::FrontRight;
-		DeviceInfo.Latency = 0;
 		DeviceInfo.bIsSystemDefault = true;
 		AudioStreamInfo.DeviceInfo = DeviceInfo;
 
@@ -309,10 +302,10 @@ namespace Audio
 		return AudioStreamInfo.DeviceInfo;
 	}
 
-	void FMixerPlatformAudioUnit::SubmitBuffer(const TArray<float>& Buffer)
+	void FMixerPlatformAudioUnit::SubmitBuffer(const uint8* Buffer)
 	{
-		int32			sampleCount = Buffer.Num();
-		float const*	curSample = Buffer.GetData();
+		int32			sampleCount = AudioStreamInfo.NumOutputFrames * AudioStreamInfo.DeviceInfo.NumChannels;
+		float const*	curSample = (const float*)Buffer;
 		float const*	lastSample = curSample + sampleCount;
 		
 		while(curSample < lastSample)
@@ -349,44 +342,11 @@ namespace Audio
 	{
 		return FString();
 	}
-	//~ End IAudioMixerPlatformInterface
 
-	//~ Begin IAudioMixerDeviceChangedLister
-	void FMixerPlatformAudioUnit::RegisterDeviceChangedListener()
+	FAudioPlatformSettings FMixerPlatformAudioUnit::GetPlatformSettings() const
 	{
-
+		return FAudioPlatformSettings();
 	}
-
-	void FMixerPlatformAudioUnit::UnRegisterDeviceChangedListener()
-	{
-
-	}
-
-	void FMixerPlatformAudioUnit::OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAudioUnit::OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAudioUnit::OnDeviceAdded(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAudioUnit::OnDeviceRemoved(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformAudioUnit::OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState)
-	{
-		
-	}
-	//~ End IAudioMixerDeviceChangedLister
 
 	void FMixerPlatformAudioUnit::ResumeContext()
 	{

@@ -23,7 +23,6 @@
 
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
-	PreviousVREditorMode( nullptr ),
 	bEnableVRRequest( false ),
 	HMDWornState( EHMDWornState::Unknown ),
 	TimeSinceHMDChecked( 0.0f )
@@ -33,7 +32,6 @@ FVREditorModeManager::FVREditorModeManager() :
 FVREditorModeManager::~FVREditorModeManager()
 {
 	CurrentVREditorMode = nullptr;
-	PreviousVREditorMode = nullptr;
 }
 
 void FVREditorModeManager::Tick( const float DeltaTime )
@@ -173,18 +171,15 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 	UVREditorMode* VRMode = nullptr;
 	{
 		UWorld* World = GEditor->bIsSimulatingInEditor ? GEditor->PlayWorld : GWorld;
-		UEditorWorldExtensionCollection* Collection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
-		check(Collection != nullptr);
+		UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
+		check(ExtensionCollection != nullptr);
 		
-		// Create viewport world interaction.
-		UViewportWorldInteraction* ViewportWorldInteraction = NewObject<UViewportWorldInteraction>();
-		check(ViewportWorldInteraction != nullptr);
-		Collection->AddExtension(ViewportWorldInteraction);
+		UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->AddExtension(UViewportWorldInteraction::StaticClass()));
 
 		// Create vr editor mode.
 		VRMode = NewObject<UVREditorMode>();
 		check(VRMode != nullptr);
-		Collection->AddExtension(VRMode);
+		ExtensionCollection->AddExtension(VRMode);
 	}
 
 	// Tell the level editor we want to be notified when selection changes
@@ -209,13 +204,13 @@ void FVREditorModeManager::CloseVREditor( const bool bShouldDisableStereo )
 
 	if( CurrentVREditorMode != nullptr )
 	{
+		UViewportWorldInteraction* WorldInteraction = &CurrentVREditorMode->GetWorldInteraction();
 		CurrentVREditorMode->Exit( bShouldDisableStereo );
-		PreviousVREditorMode = CurrentVREditorMode;
 
 		UEditorWorldExtensionCollection* Collection = CurrentVREditorMode->GetOwningCollection();
 		check(Collection != nullptr);
-		Collection->RemoveExtension(Collection->FindExtension(UVREditorMode::StaticClass()));
-		Collection->RemoveExtension(Collection->FindExtension(UViewportWorldInteraction::StaticClass()));
+		Collection->RemoveExtension(CurrentVREditorMode);
+		Collection->RemoveExtension(WorldInteraction);
 
 		CurrentVREditorMode = nullptr;
 	}

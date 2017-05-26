@@ -135,6 +135,7 @@ public:
 
 	/* Returns the game viewport */
 	FSceneViewport* GetGameViewport();
+	const FSceneViewport* GetGameViewport() const;
 
 	/* Returns the widget for this viewport */
 	TSharedPtr<SViewport> GetGameViewportWidget();
@@ -561,6 +562,10 @@ public:
 
 	bool SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot);
 
+	/** 
+	 * @return @true if this viewport is currently being used for simulate in editors
+	 */
+	bool IsSimulateInEditorViewport() const;
 public:
 	/** The show flags used by the viewport's players. */
 	FEngineShowFlags EngineShowFlags;

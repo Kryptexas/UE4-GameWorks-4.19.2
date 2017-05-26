@@ -4,31 +4,40 @@ using UnrealBuildTool;
 
 public class FunctionalTesting : ModuleRules
 {
-	public FunctionalTesting(ReadOnlyTargetRules Target) : base(Target)
-	{
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"Core",
-				"CoreUObject",
-				"Engine",
+    public FunctionalTesting(ReadOnlyTargetRules Target) : base(Target)
+    {
+        PrivateDependencyModuleNames.AddRange(
+            new string[] {
+                "Core",
+                "CoreUObject",
+                "Engine",
                 "ShaderCore",
-				"Slate",
+                "Slate",
                 "MessageLog",
                 "AIModule",
                 "RenderCore",
                 "AssetRegistry",
                 "RHI",
-				"UMG"
-			}
-			);
+                "UMG"
+            }
+        );
 
-		PrivateIncludePaths.AddRange(
-			new string[] 
-			{
-				"MessageLog/Public",
-				"Stats/Public",
-				"Developer/FunctionalTesting/Private",
-			}
-		);
-	}
+        PrivateIncludePaths.AddRange(
+            new string[]
+            {
+                "MessageLog/Public",
+                "Stats/Public",
+                "Developer/FunctionalTesting/Private",
+            }
+        );
+
+        if (UEBuildConfiguration.bBuildEditor == true)
+        {
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "SourceControl"
+                }
+            );
+        }
+    }
 }

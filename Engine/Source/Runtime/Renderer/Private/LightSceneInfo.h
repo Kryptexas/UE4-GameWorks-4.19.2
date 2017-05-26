@@ -58,7 +58,7 @@ public:
 	 * @param CompactPrimitiveSceneInfo - The primitive to test.
 	 * @return True if the light affects the primitive.
 	 */
-	bool AffectsPrimitive(const FPrimitiveSceneInfoCompact& CompactPrimitiveSceneInfo) const;
+	bool AffectsPrimitive(const FBoxSphereBounds& PrimitiveBounds, const FPrimitiveSceneProxy* PrimitiveSceneProxy) const;
 };
 
 /** Information for sorting lights. */
@@ -91,6 +91,12 @@ struct FSortedLightSceneInfo
 	{
 		SortKey.Packed = 0;
 	}
+};
+
+template <>
+struct TUseBitwiseSwap<FSortedLightSceneInfo>
+{
+	enum { Value = false };
 };
 
 /** The type of the octree used by FScene to find lights. */

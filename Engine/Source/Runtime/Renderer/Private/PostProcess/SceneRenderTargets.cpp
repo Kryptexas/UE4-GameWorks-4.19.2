@@ -230,7 +230,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, EditorPrimitivesColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesColor))
 	, EditorPrimitivesDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesDepth))
 	, SeparateTranslucencyRT(SnapshotSource.SeparateTranslucencyRT)
-	, SeparateTranslucencyDepthRT(SnapshotSource.SeparateTranslucencyDepthRT)
+	, DownsampledTranslucencyDepthRT(SnapshotSource.DownsampledTranslucencyDepthRT)
 	, bScreenSpaceAOIsValid(SnapshotSource.bScreenSpaceAOIsValid)
 	, bCustomDepthIsValid(SnapshotSource.bCustomDepthIsValid)
 	, GBufferRefCount(SnapshotSource.GBufferRefCount)
@@ -591,7 +591,7 @@ void FSceneRenderTargets::SetQuadOverdrawUAV(FRHICommandList& RHICmdList, bool b
 			Info.UnorderedAccessView[Info.NumUAVs++] = QuadOverdrawBuffer->GetRenderTargetItem().UAV;
 
 			// Clear to default value
-			ClearUAV(RHICmdList, GMaxRHIFeatureLevel, QuadOverdrawBuffer->GetRenderTargetItem(), FLinearColor::Transparent);
+			ClearUAV(RHICmdList, QuadOverdrawBuffer->GetRenderTargetItem(), FLinearColor::Transparent);
 			RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToGfx, QuadOverdrawBuffer->GetRenderTargetItem().UAV);
 		}
 	}
@@ -669,7 +669,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 				Textures[i] = RenderTargets[i].Texture;
 			}
 			//depth/stencil should have been handled by the fast clear.  only color for RT0 can get changed.
-			DrawClearQuadMRT(RHICmdList, GMaxRHIFeatureLevel, true, MRTCount, ClearColors, false, 0, false, 0);
+			DrawClearQuadMRT(RHICmdList, true, MRTCount, ClearColors, false, 0, false, 0);
 		}
 
 		//bind any clear data that won't be bound automatically by the preceding SetRenderTargetsAndClear
@@ -1318,7 +1318,7 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmd
 		TransitionSetRenderTargetsHelper(RHICmdList, GetLightAttenuationSurface(), GetSceneDepthSurface(), FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 		FRHIRenderTargetView View = FRHIRenderTargetView(GetLightAttenuationSurface(), ERenderTargetLoadAction::EClear);
-		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView(GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction));
+		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView(GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil::DepthRead_StencilWrite));
 		RHICmdList.SetRenderTargetsAndClear(Info);
 	}
 	else
@@ -1352,16 +1352,16 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSeparateTranslucency(
 	return SeparateTranslucencyRT;
 }
 
-TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size)
+TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetDownsampledTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size)
 {
-	if (!SeparateTranslucencyDepthRT || SeparateTranslucencyDepthRT->GetDesc().Extent != Size)
+	if (!DownsampledTranslucencyDepthRT || DownsampledTranslucencyDepthRT->GetDesc().Extent != Size)
 	{
 		// Create the SeparateTranslucency depth render target 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_DepthStencil, FClearValueBinding::None, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyDepthRT, TEXT("SeparateTranslucencyDepth"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledTranslucencyDepthRT, TEXT("SeparateTranslucencyDepth"));
 	}
-	return SeparateTranslucencyDepthRT;
+	return DownsampledTranslucencyDepthRT;
 }
 
 void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame)
@@ -1373,7 +1373,7 @@ void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList
 	{
 		// Clear the stencil buffer for ResponsiveAA
 		const FTexture2DRHIRef& DepthSurface = GetSceneDepthSurface();
-		DrawClearQuad(RHICmdList, CurrentFeatureLevel, false, FLinearColor(), false, 0, true, 0, FIntPoint(DepthSurface->GetSizeX(), DepthSurface->GetSizeY()), View.ViewRect);
+		DrawClearQuad(RHICmdList, false, FLinearColor(), false, 0, true, 0, FIntPoint(DepthSurface->GetSizeX(), DepthSurface->GetSizeY()), View.ViewRect);
 	}
 		
 	// viewport to match view size
@@ -1382,13 +1382,7 @@ void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList
 
 void FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame)
 {
-	check(IsSeparateTranslucencyActive(View));
-
 	bSeparateTranslucencyPass = true;
-
-	FIntPoint ScaledSize;
-	float Scale = 1.0f;
-	GetSeparateTranslucencyDimensions(ScaledSize, Scale);
 
 	SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
 
@@ -1400,9 +1394,9 @@ void FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 	}
 	else
 	{
-		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
+		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, SeparateTranslucencyBufferSize);
 	}
-	const FTexture2DRHIRef &SeparateTranslucencyDepth = Scale < 1.0f ? (const FTexture2DRHIRef&)GetSeparateTranslucencyDepth(RHICmdList, ScaledSize)->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
+	const FTexture2DRHIRef &SeparateTranslucencyDepth = SeparateTranslucencyScale < 1.0f ? (const FTexture2DRHIRef&)GetDownsampledTranslucencyDepth(RHICmdList, SeparateTranslucencyBufferSize)->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
 
 	check((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture->GetClearColor() == FLinearColor::Black);
 	// clear the render target the first time, re-use afterwards
@@ -1416,10 +1410,10 @@ void FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 		RHICmdList.BindClearMRTValues(true, false, true);
 	}
 
-	RHICmdList.SetViewport(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, 0.0f, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale, 1.0f);
+	RHICmdList.SetViewport(View.ViewRect.Min.X * SeparateTranslucencyScale, View.ViewRect.Min.Y * SeparateTranslucencyScale, 0.0f, View.ViewRect.Max.X * SeparateTranslucencyScale, View.ViewRect.Max.Y * SeparateTranslucencyScale, 1.0f);
 }
 
-void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, FinishSeparateTranslucency);
 
@@ -1429,19 +1423,23 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 	{
 		check(SeparateTranslucencyRT.GetReference());
 		SeparateTranslucency = &SeparateTranslucencyRT;
-		SeparateTranslucencyDepth = &SeparateTranslucencyDepthRT;
+		SeparateTranslucencyDepth = SeparateTranslucencyScale < 1.f ? &DownsampledTranslucencyDepthRT : &SceneDepthZ;
 	}
 	else
 	{
-		FIntPoint ScaledSize;
-		float Scale = 1.0f;
-		GetSeparateTranslucencyDimensions(ScaledSize, Scale);
-		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
-		SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, ScaledSize);
+		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, SeparateTranslucencyBufferSize);
+		SeparateTranslucencyDepth = SeparateTranslucencyScale < 1.f ? &GetDownsampledTranslucencyDepth(RHICmdList, SeparateTranslucencyBufferSize) : &SceneDepthZ;
 	}
 
-	RHICmdList.CopyToResolveTarget((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucency)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-	RHICmdList.CopyToResolveTarget((*SeparateTranslucencyDepth)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucencyDepth)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+	const FResolveRect SeparateResolveRect(
+		View.ViewRect.Min.X * SeparateTranslucencyScale, 
+		View.ViewRect.Min.Y * SeparateTranslucencyScale, 
+		View.ViewRect.Max.X * SeparateTranslucencyScale, 
+		View.ViewRect.Max.Y * SeparateTranslucencyScale
+		);
+
+	RHICmdList.CopyToResolveTarget((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucency)->GetRenderTargetItem().ShaderResourceTexture, true, SeparateResolveRect);
+	RHICmdList.CopyToResolveTarget((*SeparateTranslucencyDepth)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucencyDepth)->GetRenderTargetItem().ShaderResourceTexture, true, SeparateResolveRect);
 
 	bSeparateTranslucencyPass = false;
 }
@@ -1538,24 +1536,6 @@ const FTexture2DRHIRef& FSceneRenderTargets::GetEditorPrimitivesDepth(FRHIComman
 	}
 
 	return (const FTexture2DRHIRef&)EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture;
-}
-
-TAutoConsoleVariable<int32> FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled(
-	TEXT("r.SeparateTranslucency"),
-	1,
-	TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
-	TEXT("after DOF, if not specified otherwise in the material).\n")
-	TEXT(" 0: off (translucency is affected by depth of field)\n")
-	TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Field. (default)"),
-	ECVF_RenderThreadSafe);
-
-bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) const
-{	
-	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
-
-	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
-		&& (View.Family->EngineShowFlags.PostProcessing || View.Family->EngineShowFlags.ShaderComplexity)
-		&& View.Family->EngineShowFlags.SeparateTranslucency;
 }
 
 void FSceneRenderTargets::InitEditorPrimitivesColor(FRHICommandList& RHICmdList)
@@ -2428,7 +2408,7 @@ void FSceneTextureShaderParameters::Set(
 		{
 			const FTexture2DRHIRef* DepthTexture = SceneContext.GetActualDepthTexture();
 
-			if (SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsSeparateTranslucencyDepthValid())
+			if (SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsDownsampledTranslucencyDepthValid())
 			{
 				FIntPoint OutScaledSize;
 				float OutScale;
@@ -2436,7 +2416,7 @@ void FSceneTextureShaderParameters::Set(
 
 				if (OutScale < 1.0f)
 				{
-					DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
+					DepthTexture = &SceneContext.GetDownsampledTranslucencyDepthSurface();
 				}
 			}
 
@@ -2725,7 +2705,7 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 	if (IsDBufferEnabled())
 	{
 		IPooledRenderTarget* DBufferA = SceneContext.DBufferA ? SceneContext.DBufferA : GSystemTextures.BlackAlphaOneDummy;
-		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.MidGrayDummy;
+		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.DefaultNormal8Bit;
 		IPooledRenderTarget* DBufferC = SceneContext.DBufferC ? SceneContext.DBufferC : GSystemTextures.GreenDummy;
 
 		// todo: optimize out when not needed

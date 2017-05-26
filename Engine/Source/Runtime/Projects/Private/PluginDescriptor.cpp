@@ -18,6 +18,7 @@ FPluginDescriptor::FPluginDescriptor()
 	, bIsMod(false)
 	, bInstalled(false)
 	, bRequiresBuildPlatform(true)
+	, bIsHidden(false)
 { 
 }
 
@@ -122,6 +123,7 @@ bool FPluginDescriptor::Read(const FString& Text, bool bPluginTypeEnabledByDefau
 	{
 		bRequiresBuildPlatform = true;
 	}
+	Object.TryGetBoolField(TEXT("Hidden"), bIsHidden);
 
 	PreBuildSteps.Read(Object, TEXT("PreBuildSteps"));
 	PostBuildSteps.Read(Object, TEXT("PostBuildSteps"));
@@ -192,6 +194,11 @@ void FPluginDescriptor::Write(FString& Text, bool bPluginTypeEnabledByDefault) c
 	if(!bRequiresBuildPlatform)
 	{
 		Writer.WriteValue(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
+	}
+
+	if (bIsHidden)
+	{
+		Writer.WriteValue(TEXT("Hidden"), bIsHidden);
 	}
 
 	if(!PreBuildSteps.IsEmpty())

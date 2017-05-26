@@ -20,6 +20,8 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Slate/SceneViewport.h"
+#include "Slate/SGameLayerManager.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -101,10 +103,30 @@ float UWidgetLayoutLibrary::GetViewportScale(UGameViewportClient* ViewportClient
 	return UserResolutionScale;
 }
 
+FVector2D UWidgetLayoutLibrary::GetMousePositionOnPlatform()
+{
+	if ( FSlateApplication::IsInitialized() )
+	{
+		return FSlateApplication::Get().GetCursorPos();
+	}
+
+	return FVector2D(0, 0);
+}
+
+FVector2D UWidgetLayoutLibrary::GetMousePositionOnViewport(UObject* WorldContextObject)
+{
+	if ( FSlateApplication::IsInitialized() )
+	{
+		FVector2D MousePosition = FSlateApplication::Get().GetCursorPos();
+		FGeometry ViewportGeometry = GetViewportWidgetGeometry(WorldContextObject);
+		return ViewportGeometry.AbsoluteToLocal(MousePosition);
+	}
+
+	return FVector2D(0, 0);
+}
+
 bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY)
 {
-	// TODO NDarnell We should deprecate this function, it's not super useful.
-
 	if ( Player && Player->GetMousePosition(LocationX, LocationY) )
 	{
 		float Scale = UWidgetLayoutLibrary::GetViewportScale(Player);
@@ -131,6 +153,42 @@ FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 	}
 
 	return FVector2D(1, 1);
+}
+
+FGeometry UWidgetLayoutLibrary::GetViewportWidgetGeometry(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+			if ( LayerManager.IsValid() )
+			{
+				return LayerManager->GetViewportWidgetHostGeometry();
+			}
+		}
+	}
+
+	return FGeometry();
+}
+
+FGeometry UWidgetLayoutLibrary::GetPlayerScreenWidgetGeometry(APlayerController* PlayerController)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(PlayerController);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+			if ( LayerManager.IsValid() )
+			{
+				return LayerManager->GetPlayerWidgetHostGeometry(PlayerController->GetLocalPlayer());
+			}
+		}
+	}
+
+	return FGeometry();
 }
 
 UBorderSlot* UWidgetLayoutLibrary::SlotAsBorderSlot(UWidget* Widget)

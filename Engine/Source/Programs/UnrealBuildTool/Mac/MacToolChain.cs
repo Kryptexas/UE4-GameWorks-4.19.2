@@ -846,7 +846,7 @@ namespace UnrealBuildTool
 				else
 				{
 					string EnginePath = ConvertPath(Path.GetDirectoryName(Directory.GetCurrentDirectory()));
-					string InputFileRelativePath = InputFile.AbsolutePath.Replace(EnginePath, "..");
+					string InputFileRelativePath = InputFile.AbsolutePath.Replace(EnginePath + "/", "../");
 					InputFileNames.Add(string.Format("\"{0}\"", InputFileRelativePath));
 				}
 				LinkAction.PrerequisiteItems.Add(InputFile);

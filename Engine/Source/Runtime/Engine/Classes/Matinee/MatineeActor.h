@@ -47,10 +47,10 @@ struct FInterpGroupActorInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
+	UPROPERTY(EditAnywhere, Category=InterpGroupActorInfo)
 	FName ObjectName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
+	UPROPERTY(EditAnywhere, Category=InterpGroupActorInfo)
 	TArray<class AActor*> Actors;
 
 };

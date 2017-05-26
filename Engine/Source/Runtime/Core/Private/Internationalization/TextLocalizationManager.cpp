@@ -163,14 +163,17 @@ void EndInitTextLocalization()
 		ReadSettingsFromCommandLine();
 #if WITH_EDITOR
 		// Read setting specified in editor configuration.
-		if(GIsEditor)
+		if (GIsEditor)
 		{
 			ReadSettingsFromConfig(TEXT("editor"), GEditorSettingsIni);
 		}
 #endif // WITH_EDITOR
 		// Read setting specified in game configurations.
-		ReadSettingsFromConfig(TEXT("game user settings"), GGameUserSettingsIni);
-		ReadSettingsFromConfig(TEXT("game"), GGameIni);
+		if (!GIsEditor)
+		{
+			ReadSettingsFromConfig(TEXT("game user settings"), GGameUserSettingsIni);
+			ReadSettingsFromConfig(TEXT("game"), GGameIni);
+		}
 		// Read setting specified in engine configuration.
 		ReadSettingsFromConfig(TEXT("engine"), GEngineIni);
 		// Read defaults

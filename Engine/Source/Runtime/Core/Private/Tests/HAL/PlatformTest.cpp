@@ -4,7 +4,6 @@
 #include "Misc/AssertionMacros.h"
 #include "GenericPlatform/GenericPlatformMath.h"
 #include "Math/UnrealMathUtility.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Containers/UnrealString.h"
 #include "UObject/NameTypes.h"
@@ -95,14 +94,14 @@ bool FPlatformVerificationTest::RunTest (const FString& Parameters)
 
 	check(FString(FPlatformProperties::PlatformName()).Len() > 0); 
 
-	static_assert(ALIGNOF(int32) == 4, "Align of int32 is not 4."); //Hmmm, this would be very strange, ok maybe, but strange
+	static_assert(alignof(int32) == 4, "Align of int32 is not 4."); //Hmmm, this would be very strange, ok maybe, but strange
 
 	MS_ALIGN(16) struct FTestAlign
 	{
 		uint8 Test;
 	} GCC_ALIGN(16);
 
-	static_assert(ALIGNOF(FTestAlign) == 16, "Align of FTestAlign is not 16.");
+	static_assert(alignof(FTestAlign) == 16, "Align of FTestAlign is not 16.");
 
 	FName::AutoTest();
 

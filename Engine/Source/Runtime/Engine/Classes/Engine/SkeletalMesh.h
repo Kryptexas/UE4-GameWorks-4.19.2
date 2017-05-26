@@ -427,7 +427,7 @@ struct FClothingAssetData_Legacy
 };
 
 //~ Begin Material Interface for USkeletalMesh - contains a material and a shadow casting flag
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSkeletalMaterial
 {
 	GENERATED_USTRUCT_BODY()
@@ -466,7 +466,7 @@ struct FSkeletalMaterial
 	ENGINE_API friend bool operator==( const FSkeletalMaterial& LHS, const UMaterialInterface& RHS );
 	ENGINE_API friend bool operator==( const UMaterialInterface& LHS, const FSkeletalMaterial& RHS );
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category=SkeletalMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMesh)
 	class UMaterialInterface *	MaterialInterface;
 	UPROPERTY()
 	bool						bEnableShadowCasting_DEPRECATED;

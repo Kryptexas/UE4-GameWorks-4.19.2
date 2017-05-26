@@ -1588,7 +1588,7 @@ void FCascade::Tick(float DeltaTime)
 			Position.X = MotionModeRadius * FMath::Sin(AccumulatedMotionTime);
 			Position.Y = MotionModeRadius * FMath::Cos(AccumulatedMotionTime);
 			Position.Z = 0.0f;
-			ParticleSystemComponent->ComponentToWorld = FTransform(Position);
+			ParticleSystemComponent->SetComponentToWorld(FTransform(Position));
 		}
 
 		if (ParticleSystemComponent->IsComponentTickEnabled())
@@ -3444,6 +3444,9 @@ void FCascade::AddLOD(bool bBeforeCurrent)
 				Emitter->CreateLODLevel(CurrentLODIndex);
 			}
 		}
+
+		//This should probably have fixed size and behave like LODDistances but for now just avoid the crash.
+		ParticleSystem->LODSettings.SetNumZeroed(FMath::Max(CurrentLODIndex, ParticleSystem->LODSettings.Num()));
 
 		ParticleSystem->LODDistances.InsertZeroed(CurrentLODIndex, 1);
 		if (CurrentLODIndex == 0)

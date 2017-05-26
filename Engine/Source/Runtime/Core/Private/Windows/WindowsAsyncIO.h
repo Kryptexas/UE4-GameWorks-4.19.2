@@ -36,6 +36,7 @@ HANDLE GetIOPooledEvent()
 
 void FreeIOPooledEvent(HANDLE ToFree)
 {
+	check(ToFree != INVALID_HANDLE_VALUE && (void*)(UPTRINT)ToFree); //awkwardly using void* to store handles, hope we don't ever have a zero handle :)
 	ResetEvent(ToFree);
 	WindowsAsyncIOEventPool.Push((void*)(UPTRINT)ToFree);
 }
@@ -67,6 +68,7 @@ public:
 		, TempMemory(nullptr)
 	{
 		FMemory::Memzero(OverlappedIO);
+		OverlappedIO.hEvent = INVALID_HANDLE_VALUE;
 		check(Offset >= 0 && BytesToRead > 0);
 		if (BytesToRead == MAX_int64)
 		{
@@ -92,12 +94,12 @@ public:
 				if (NumMessages < 10)
 				{
 					NumMessages++;
-					UE_LOG(LogTemp, Warning, TEXT("FWindowsReadRequest request was not aligned. This is expected with loose files, but not a pak file."));
+					UE_LOG(LogTemp, Log, TEXT("FWindowsReadRequest request was not aligned. This is expected with loose files, but not a pak file."));
 				}
 				else if (NumMessages == 10)
 				{
 					NumMessages++;
-					UE_LOG(LogTemp, Warning, TEXT("LAST NOTIFICATION THIS RUN: FWindowsReadRequest request was not aligned."));
+					UE_LOG(LogTemp, Log, TEXT("LAST NOTIFICATION THIS RUN: FWindowsReadRequest request was not aligned."));
 				}
 				TempMemory = (uint8*)FMemory::Malloc(AlignedBytesToRead);
 				INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, AlignedBytesToRead);
@@ -144,7 +146,7 @@ public:
 		}
 #endif
 		check(AlignedOffset <= Offset);
-		int64 BytesRead;
+		int64 BytesRead = 0L;
 		if (!GetOverlappedResult(FileHandle, &OverlappedIO, (LPDWORD)&BytesRead, TRUE))
 		{
 			uint32 ErrorCode = GetLastError();

@@ -96,7 +96,7 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 	.ValueContent()
 	[
 		SAssignNew(NewComboButton, SComboButton)
-		.ContentPadding(0)
+		.ContentPadding(FMargin(2.0f, 2.0f))
 		.ButtonContent()
 		[
 			SAssignNew(NewEditBox, SEditableText)
@@ -118,6 +118,9 @@ void FMaterialExpressionParameterDetails::CustomizeDetails( IDetailLayoutBuilder
 		]
 	];
 
+
+	Category.AddProperty("SortPriority");
+
 	GroupComboButton = NewComboButton;
 	GroupEditBox = NewEditBox;
 	GroupListView = NewListView;
@@ -127,6 +130,9 @@ void FMaterialExpressionParameterDetails::PopulateGroups()
 {
 	TArray<FString> Groups;
 	CollectGroupsDelegate.ExecuteIfBound(&Groups);
+	Groups.Sort([&](const FString& A, const FString& B) {
+		return A.ToLower() < B.ToLower();
+	});
 
 	GroupsSource.Empty();
 	for (int32 GroupIdx = 0; GroupIdx < Groups.Num(); ++GroupIdx)

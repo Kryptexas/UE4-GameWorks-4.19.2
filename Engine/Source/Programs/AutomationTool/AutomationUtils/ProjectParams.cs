@@ -234,11 +234,14 @@ namespace AutomationTool
 			this.ServerTargetPlatforms = InParams.ServerTargetPlatforms;
             this.ServerDependentPlatformMap = InParams.ServerDependentPlatformMap;
 			this.Build = InParams.Build;
+			this.SkipBuildClient = InParams.SkipBuildClient;
+			this.SkipBuildEditor = InParams.SkipBuildEditor;
 			this.Run = InParams.Run;
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
 			this.IterateSharedCookedBuild = InParams.IterateSharedCookedBuild;
-            this.CookAll = InParams.CookAll;
+			this.IterateSharedBuildUsePrecompiledExe = InParams.IterateSharedBuildUsePrecompiledExe;
+			this.CookAll = InParams.CookAll;
 			this.CookPartialGC = InParams.CookPartialGC;
 			this.CookInEditor = InParams.CookInEditor; 
 			this.CookOutputDir = InParams.CookOutputDir;
@@ -283,6 +286,7 @@ namespace AutomationTool
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
 			this.ServerCommandline = InParams.ServerCommandline;
+            this.ClientCommandline = InParams.ClientCommandline;
             this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.DeployFolder = InParams.DeployFolder;
@@ -361,6 +365,8 @@ namespace AutomationTool
 			List<TargetPlatformDescriptor> ServerTargetPlatforms = null,
             Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ServerDependentPlatformMap = null,
 			bool? Build = null,
+			bool? SkipBuildClient = null,
+			bool? SkipBuildEditor = null,
 			bool? Cook = null,
 			bool? Run = null,
 			bool? SkipServer = null,
@@ -369,6 +375,7 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
 			bool? IterateSharedCookedBuild = null,
+			bool? IterateSharedBuildUsePrecompiledExe = null,
 			bool? CookAll = null,
 			bool? CookPartialGC = null,
 			bool? CookInEditor = null,
@@ -511,6 +518,8 @@ namespace AutomationTool
             this.ServerTargetPlatforms = SetupTargetPlatforms(ref this.ServerDependentPlatformMap, Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
 
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
+			this.SkipBuildClient = GetParamValueIfNotSpecified(Command, SkipBuildClient, this.SkipBuildEditor, "skipbuildclient");
+			this.SkipBuildEditor = GetParamValueIfNotSpecified(Command, SkipBuildEditor, this.SkipBuildEditor, "skipbuildeditor");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
 			this.Cook = GetParamValueIfNotSpecified(Command, Cook, this.Cook, "cook");
 			this.CreateReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, CreateReleaseVersionBasePath, "createreleaseversionroot", String.Empty);
@@ -568,7 +577,8 @@ namespace AutomationTool
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
 			this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" });
 			this.IterateSharedCookedBuild = GetParamValueIfNotSpecified(Command, IterateSharedCookedBuild, this.IterateSharedCookedBuild, new string[] { "IterateSharedCookedBuild"});
-			
+			this.IterateSharedBuildUsePrecompiledExe = GetParamValueIfNotSpecified(Command, IterateSharedBuildUsePrecompiledExe, this.IterateSharedBuildUsePrecompiledExe, new string[] { "IterateSharedBuildUsePrecompiledExe" });
+
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
 			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
 			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
@@ -633,6 +643,8 @@ namespace AutomationTool
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
 			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
 			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.ClientCommandline = ParseParamValueIfNotSpecified(Command, ClientCommandline, "clientcmdline");
+            this.ClientCommandline = this.ClientCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
             this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
@@ -1140,6 +1152,16 @@ namespace AutomationTool
 		public bool Build { private set; get; }
 
 		/// <summary>
+		/// SkipBuildClient if true then don't build the client exe
+		/// </summary>
+		public bool SkipBuildClient { private set; get; }
+
+		/// <summary>
+		/// SkipBuildEditor if true then don't build the editor exe
+		/// </summary>
+		public bool SkipBuildEditor { private set; get; }
+
+		/// <summary>
 		/// Build: True if XGE should NOT be used for building.
 		/// </summary>
 		[Help("noxge", "True if XGE should NOT be used for building")]
@@ -1362,10 +1384,16 @@ namespace AutomationTool
 		public bool IterativeCooking;
 
 		/// <summary>
-		/// Cook: Iterate from a shared cooked build 
+		/// Cook: Iterate from a build on the network
 		/// </summary>
 		[Help("Iteratively cook from a shared cooked build")]
 		public bool IterateSharedCookedBuild;
+
+		/// <summary>
+		/// Build: Don't build the game instead use the prebuild exe (requires iterate shared cooked build
+		/// </summary>
+		[Help("Iteratively cook from a shared cooked build")]
+		public bool IterateSharedBuildUsePrecompiledExe;
 
 		/// <summary>
 		/// Cook: Only cook maps (and referenced content) instead of cooking everything only affects -cookall flag
@@ -1589,6 +1617,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("servercmdline", "Additional command line arguments for the program")]
 		public string ServerCommandline;
+
+        /// <summary>
+		/// Run: Override command line arguments to pass to the client, if set it will not try to guess at IPs or settings
+		/// </summary>
+		[Help("clientcmdline", "Override command line arguments to pass to the client")]
+        public string ClientCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline
@@ -2321,6 +2355,8 @@ namespace AutomationTool
 				CommandUtils.LogLog("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.LogLog("BaseStageDirectory={0}", BaseStageDirectory);
 				CommandUtils.LogLog("Build={0}", Build);
+				CommandUtils.LogLog("SkipBuildClient={0}", SkipBuildClient);
+				CommandUtils.LogLog("SkipBuildEditor={0}", SkipBuildEditor);
 				CommandUtils.LogLog("Cook={0}", Cook);
 				CommandUtils.LogLog("Clean={0}", Clean);
 				CommandUtils.LogLog("Client={0}", Client);
@@ -2353,6 +2389,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
 				CommandUtils.LogLog("IterateSharedCookedBuild={0}", IterateSharedCookedBuild);
+				CommandUtils.LogLog("IterateSharedBuildUsePrecompiledExe={0}", IterateSharedBuildUsePrecompiledExe);
 				CommandUtils.LogLog("CookAll={0}", CookAll);
 				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
 				CommandUtils.LogLog("CookInEditor={0}", CookInEditor);

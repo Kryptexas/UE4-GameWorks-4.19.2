@@ -1259,7 +1259,7 @@ bool SCollectionView::ValidateDragDropOnCollectionItem(TSharedRef<FCollectionIte
 	{
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 		OutIsKnownDragOperation = true;
-		bIsValidDrag = DragDropOp->AssetData.Num() > 0;
+		bIsValidDrag = DragDropOp->HasAssets();
 	}
 
 	// Set the default slashed circle if this drag is invalid and a drag operation hasn't set NewDragCursor to something custom
@@ -1304,10 +1304,11 @@ FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionIte
 	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-			
+		const TArray<FAssetData>& DroppedAssets = DragDropOp->GetAssets();
+
 		TArray<FName> ObjectPaths;
-		ObjectPaths.Reserve(DragDropOp->AssetData.Num());
-		for (const FAssetData& AssetData : DragDropOp->AssetData)
+		ObjectPaths.Reserve(DroppedAssets.Num());
+		for (const FAssetData& AssetData : DroppedAssets)
 		{
 			ObjectPaths.Add(AssetData.ObjectPath);
 		}
@@ -1316,10 +1317,10 @@ FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionIte
 		FText Message;
 		if (CollectionManagerModule.Get().AddToCollection(CollectionItem->CollectionName, CollectionItem->CollectionType, ObjectPaths, &NumAdded))
 		{
-			if (DragDropOp->AssetData.Num() == 1)
+			if (DroppedAssets.Num() == 1)
 			{
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("AssetName"), FText::FromName(DragDropOp->AssetData[0].AssetName));
+				Args.Add(TEXT("AssetName"), FText::FromName(DroppedAssets[0].AssetName));
 				Args.Add(TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName));
 				Message = FText::Format(LOCTEXT("CollectionAssetAdded", "Added {AssetName} to {CollectionName}"), Args);
 			}

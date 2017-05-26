@@ -11,6 +11,7 @@
 #include "Serialization/BulkData.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "PhysicsEngine/AggregateGeom.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "BodySetup.generated.h"
 
 class ITargetPlatform;
@@ -18,6 +19,8 @@ class UPhysicalMaterial;
 class UPrimitiveComponent;
 struct FShapeData;
 enum class EPhysXMeshCookFlags : uint8;
+
+DECLARE_DELEGATE(FOnAsyncPhysicsCookFinished);
 
 namespace physx
 {
@@ -28,6 +31,7 @@ namespace physx
 	class PxBoxGeometry;
 	class PxCapsuleGeometry;
 	class PxConvexMeshGeometry;
+	class PxConvexMesh;
 	class PxTriangleMesh;
 	class PxTriangleMeshGeometry;
 }
@@ -58,7 +62,51 @@ struct FBodySetupUVInfo
 	SIZE_T GetResourceSize() const;
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
 	SIZE_T GetResourceSizeBytes() const;
+
+	void FillFromTriMesh(const FTriMeshCollisionData& TriMeshCollisionData);
 };
+
+/** Helper struct to indicate which geometry needs to be cooked */
+struct ENGINE_API FCookBodySetupInfo
+{
+	/** Trimesh data for cooking */
+	FTriMeshCollisionData TriangleMeshDesc;
+
+	/** Trimesh cook flags */
+	EPhysXMeshCookFlags TriMeshCookFlags;
+
+	/** Convex cook flags */
+	EPhysXMeshCookFlags ConvexCookFlags;
+
+	/** Vertices of NonMirroredConvex hulls */
+	TArray<TArray<FVector>> NonMirroredConvexVertices;
+
+	/** Vertices of NonMirroredConvex hulls */
+	TArray<TArray<FVector>> MirroredConvexVertices;
+
+	/** Debug name helpful for runtime cooking warnings */
+	FString OuterDebugName;
+
+	/** Whether to cook the regular convex hulls */
+	bool bCookNonMirroredConvex;
+
+	/** Whether to cook the mirror convex hulls */
+	bool bCookMirroredConvex;
+
+	/** Whether the convex being cooked comes from a deformable mesh */
+	bool bConvexDeformableMesh;
+
+	/** Whether to cook trimesh collision*/
+	bool bCookTriMesh;
+
+	/** Whether to support UV from hit results */
+	bool bSupportUVFromHitResults;
+
+	/** Error generating cook info for trimesh*/
+	bool bTriMeshError;
+};
+
+struct FAsyncPhysicsCookHelper;
 
 /**
  * BodySetup contains all collision information that is associated with a single asset.
@@ -172,7 +220,7 @@ private:
 	FFormatContainer CookedFormatDataRuntimeOnlyOptimization;
 #endif
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#if WITH_PHYSX
 	/** Get cook flags for 'runtime only' cooked physics data */
 	EPhysXMeshCookFlags GetRuntimeOnlyCookOptimizationFlags() const;
 #endif 
@@ -226,6 +274,20 @@ public:
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX). Must be called before the BodySetup is destroyed */
 	ENGINE_API virtual void CreatePhysicsMeshes();
 
+	/** Create Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) from cooked data async (useful for runtime cooking as it can go wide off the game thread) */
+	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX). Must be called before the BodySetup is destroyed */
+	/** NOTE: You cannot use the body setup until this operation is done. You must create the physics state (call CreatePhysicsState, or InitBody, etc..) , this does not automatically update the BodyInstance state for you */
+	ENGINE_API void CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
+
+private:
+	/** Finalize game thread data before calling back user's delegate */
+	void FinishCreatePhysicsMeshesAsync(FAsyncPhysicsCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished);
+
+	/** Finish creating the physics meshes and update the body setup data with cooked data */
+	void FinishCreatingPhysicsMeshes(const TArray<physx::PxConvexMesh*>& ConvexMeshes, const TArray<physx::PxConvexMesh*>& ConvexMeshesNegX, const TArray<physx::PxTriangleMesh*>& TriMeshes);
+
+public:
+
 	/** Returns the volume of this element */
 	ENGINE_API virtual float GetVolume(const FVector& Scale) const;
 
@@ -238,7 +300,6 @@ public:
 	/** Returns the physics material used for this body. If none, specified, returns the default engine material. */
 	ENGINE_API class UPhysicalMaterial* GetPhysMaterial() const;
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	/** Clear all simple collision */
 	ENGINE_API void RemoveSimpleCollision();
 
@@ -262,8 +323,6 @@ public:
 	 * @return								true on success, false on failure because of vertex count overflow.
 	 */
 	ENGINE_API void CreateFromModel(class UModel* InModel, bool bRemoveExisting);
-
-#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 	/**
 	 * Converts the skinned data of a skeletal mesh into a tri mesh collision. This is used for per poly scene queries and is quite expensive.
@@ -302,6 +361,13 @@ public:
 	 * @return Cooked data or NULL of the data was not found.
 	 */
 	FByteBulkData* GetCookedData(FName Format, bool bRuntimeOnlyOptimizedVersion = false);
+
+	/**
+	* Generates the information needed for cooking geometry.
+	* @param	OutCookInfo				Info needed during cooking
+	* @param	InCookFlags				Any flags desired for TriMesh cooking
+	*/
+	ENGINE_API void GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlags InCookFlags) const;
 
 	/** 
 	 *	Given a location in body space, and face index, find the UV of the desired UV channel.

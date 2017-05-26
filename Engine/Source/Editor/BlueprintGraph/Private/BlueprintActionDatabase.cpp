@@ -755,12 +755,7 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 
 		for (UK2Node_FunctionEntry* FunctionEntry : GraphEntryNodes)
 		{
-			// Find the initial place where the function was defined, so we use the most generous scope
 			UFunction* SkeletonFunction = FindField<UFunction>(Blueprint->SkeletonGeneratedClass, FunctionGraph->GetFName());
-			for (UFunction* ParentFunction = SkeletonFunction; ParentFunction != nullptr; ParentFunction = ParentFunction->GetSuperFunction())
-			{
-				SkeletonFunction = ParentFunction;
-			}
 
 			// Create entries for function parameters
 			if (SkeletonFunction != nullptr)

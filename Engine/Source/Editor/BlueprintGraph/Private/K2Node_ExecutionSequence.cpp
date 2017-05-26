@@ -163,13 +163,11 @@ void UK2Node_ExecutionSequence::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 	// Add two default pins
-	for (int32 i = 0; i < 2; ++i)
-	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, GetPinNameGivenIndex(i));
-	}
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, GetPinNameGivenIndex(0));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, GetPinNameGivenIndex(1));
 
 	Super::AllocateDefaultPins();
 }
@@ -216,7 +214,7 @@ FString UK2Node_ExecutionSequence::GetUniquePinName()
 void UK2Node_ExecutionSequence::AddPinToExecutionNode()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, GetUniquePinName());
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, GetUniquePinName());
 }
 
 void UK2Node_ExecutionSequence::RemovePinFromExecutionNode(UEdGraphPin* TargetPin) 
@@ -272,7 +270,7 @@ void UK2Node_ExecutionSequence::ReallocatePinsDuringReconstruction(TArray<UEdGra
 
 	// Create the execution input pin
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 	// Create a new pin for each old execution output pin, and coerce the names to match on both sides
 	int32 ExecOutPinCount = 0;
@@ -288,7 +286,7 @@ void UK2Node_ExecutionSequence::ReallocatePinsDuringReconstruction(TArray<UEdGra
 			TestPin->PinName = NewPinName;
 
 			// Create the new output pin to match
-			CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, NewPinName);
+			CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, NewPinName);
 		}
 	}
 }

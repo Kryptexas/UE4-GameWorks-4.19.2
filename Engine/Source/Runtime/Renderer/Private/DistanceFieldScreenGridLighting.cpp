@@ -141,7 +141,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -288,7 +288,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -424,7 +424,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -779,7 +779,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceGlobal);
 
 		float ConeVisibilityClearValue = 1.0f;
-		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources->ScreenGridConeVisibility, *(uint32*)&ConeVisibilityClearValue);
+		ClearUAV(RHICmdList, ScreenGridResources->ScreenGridConeVisibility, *(uint32*)&ConeVisibilityClearValue);
 
 		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
 		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);

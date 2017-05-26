@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
 #include "UObject/Class.h"
+#include "HAL/ThreadSingleton.h"
 
 /**
  * A struct that contains a string reference to an asset on disk.
@@ -14,13 +15,7 @@
  */
 struct COREUOBJECT_API FStringAssetReference
 {
-	/** Asset path */
-	DEPRECATED(4.9, "Please don't use AssetLongPathname directly. Instead use SetPath and ToString methods.")
-	FString AssetLongPathname;
-	
-	FStringAssetReference()
-	{
-	}
+	FStringAssetReference() {}
 
 	/** Construct from another asset reference */
 	FStringAssetReference(const FStringAssetReference& Other)
@@ -37,9 +32,6 @@ struct COREUOBJECT_API FStringAssetReference
 	/** Construct from an existing object in memory */
 	FStringAssetReference(const UObject* InObject);
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	
-	/** Destructor, in deprecation block to avoid warnings */
 	~FStringAssetReference() {}
 
 	/** Returns string representation of reference, in form /package/path.assetname[.objectname] */
@@ -47,8 +39,6 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	{
 		return AssetLongPathname;		
 	}
-
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** Returns /package/path, leaving off the asset name */
 	FString GetLongPackageName() const
@@ -113,6 +103,15 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
 	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 
+	/** Serializes the internal path and also handles save/PIE fixups. Call this from the archiver overrides */
+	void SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize = false);
+
+	/** Fixes up string asset reference for saving, call if saving with a method that skips SerializePath. This can modify the path */
+	void PreSavePath();
+
+	/** Handles when a string asset reference has been loaded, call if loading with a method that skips SerializePath. This does not modify path but might call callbacks */
+	void PostLoadPath() const;
+
 	FORCEINLINE friend uint32 GetTypeHash(FStringAssetReference const& This)
 	{
 		return GetTypeHash(This.ToString());
@@ -136,6 +135,9 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	static void ClearPackageNamesBeingDuplicatedForPIE();
 
 private:
+	/** Asset path */
+	FString AssetLongPathname;
+
 	/** Fixes up this StringAssetReference to add or remove the PIE prefix depending on what is currently active */
 	void FixupForPIE();
 
@@ -144,5 +146,66 @@ private:
 
 	/** Package names currently being duplicated, needed by FixupForPIE */
 	static TArray<FString> PackageNamesBeingDuplicatedForPIE;
+
+	friend COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FStringAssetReference();
 };
 
+enum class EStringAssetReferenceCollectType : uint8
+{
+	/** References is not tracked in any situation, transient reference */
+	NeverCollect,
+	/** Editor only reference, this is tracked for redirector fixup but not for cooking */
+	EditorOnlyCollect,
+	/** Game reference, this is gathered for both redirector fixup and cooking */
+	AlwaysCollect,
+};
+
+class COREUOBJECT_API FStringAssetReferenceThreadContext : public TThreadSingleton<FStringAssetReferenceThreadContext>
+{
+	friend TThreadSingleton<FStringAssetReferenceThreadContext>;
+	friend struct FStringAssetReferenceSerializationScope;
+
+	FStringAssetReferenceThreadContext() {}
+
+	struct FSerializationOptions
+	{
+		FName PackageName;
+		FName PropertyName;
+		EStringAssetReferenceCollectType CollectType;
+
+		FSerializationOptions() : CollectType(EStringAssetReferenceCollectType::AlwaysCollect) {}
+		FSerializationOptions(FName InPackageName, FName InPropertyName, EStringAssetReferenceCollectType InCollectType) : PackageName(InPackageName), PropertyName(InPropertyName), CollectType(InCollectType) {}
+	};
+
+	TArray<FSerializationOptions> OptionStack;
+public:
+	/** 
+	 * Returns the current serialization options that were added using SerializationScope or LinkerLoad
+	 *
+	 * @param OutPackageName Package that this string asset belongs to
+	 * @param OutPropertyName Property that this string asset reference belongs to
+	 * @param OutCollectType Type of collecting that should be done
+	 */
+	bool GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, EStringAssetReferenceCollectType& OutCollectType) const;
+};
+
+/** Helper class to set and restore serialization options for string asset references */
+struct FStringAssetReferenceSerializationScope
+{
+	/** 
+	 * Create a new serialization scope, which affects the way that string asset references are saved
+	 *
+	 * @param SerializingPackageName Package that this string asset belongs to
+	 * @param SerializingPropertyName Property that this string asset reference belongs to
+	 * @param CollectType Set type of collecting that should be done, can be used to disable tracking entirely
+	 */
+	FStringAssetReferenceSerializationScope(FName SerializingPackageName, FName SerializingPropertyName, EStringAssetReferenceCollectType CollectType)
+	{
+		FStringAssetReferenceThreadContext::Get().OptionStack.Emplace(SerializingPackageName, SerializingPropertyName, CollectType);
+	}
+
+	~FStringAssetReferenceSerializationScope()
+	{
+		FStringAssetReferenceThreadContext::Get().OptionStack.Pop();
+	}
+};

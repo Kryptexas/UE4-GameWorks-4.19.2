@@ -156,9 +156,6 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderIn In, inout FPixelShaderOut Out
 	// make SvPosition appear to be rasterized with the depth from the depth buffer
 	In.SvPosition.z = LookupDeviceZ(ScreenUV);
 
-	// default to no shadows, good for volumetric decals
-	Out.MRT[4] = 1;
-
 	const bool bVolumetric = DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC;
 
 	float3 OSPosition;
@@ -302,7 +299,7 @@ void FPixelShaderInOut_MainPS(inout FPixelShaderIn In, inout FPixelShaderOut Out
 	GBufferData.Roughness = GetMaterialRoughness(PixelMaterialInputs);
 	GBufferData.CustomData = 0;
 	GBufferData.IndirectIrradiance = 0;
-	GBufferData.PrecomputedShadowFactors = 0;
+	GBufferData.PrecomputedShadowFactors = 1;
 	GBufferData.GBufferAO = 1;
 	GBufferData.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	GBufferData.SelectiveOutputMask = 0;

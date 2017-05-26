@@ -345,7 +345,7 @@ void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename
 	InOutFilename = TypeName;
 	if (!TypeName.Contains(TEXT("/")))
 	{
-		InOutFilename = FPaths::ScreenShotDir() / TypeName;
+		InOutFilename = GetDefault<UEngine>()->GameScreenshotSaveDirectory.Path / TypeName;
 	}
 }
 

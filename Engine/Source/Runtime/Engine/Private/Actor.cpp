@@ -53,6 +53,10 @@ DECLARE_CYCLE_STAT(TEXT("PostActorConstruction"), STAT_PostActorConstruction, ST
 
 FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(&AActor::MakeNoiseImpl);
 
+#if WITH_EDITOR
+FUObjectAnnotationSparseBool GSelectedActorAnnotation;
+#endif
+
 #if !UE_BUILD_SHIPPING
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
@@ -949,7 +953,20 @@ void AActor::CallPreReplication(UNetDriver* NetDriver)
 		return;
 	}
 
-	PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get());
+	IRepChangedPropertyTracker* const ActorChangedPropertyTracker = NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get();
+
+	// PreReplication is only called on the server, except when we're recording a Client Replay.
+	// In that case we call PreReplication on the locally controlled Character as well.
+	if ((Role == ROLE_Authority) || ((Role == ROLE_AutonomousProxy) && GetWorld()->IsRecordingClientReplay()))
+	{
+		PreReplication(*ActorChangedPropertyTracker);
+	}
+
+	// If we're recording a replay, call this for everyone (includes SimulatedProxies).
+	if (ActorChangedPropertyTracker->IsReplay())
+	{
+		PreReplicationForReplay(*ActorChangedPropertyTracker);
+	}
 
 	// Call PreReplication on all owned components that are replicated
 	for (UActorComponent* Component : ReplicatedComponents)
@@ -960,6 +977,10 @@ void AActor::CallPreReplication(UNetDriver* NetDriver)
 			Component->PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(Component).Get());
 		}
 	}
+}
+
+void AActor::PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
 }
 
 void AActor::PostActorCreated()
@@ -1121,7 +1142,7 @@ FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) co
 			// Only use collidable components to find collision bounding box.
 			if( PrimComp->IsRegistered() && ( bNonColliding || PrimComp->IsCollisionEnabled() ) )
 			{
-				const FTransform ComponentToActor = PrimComp->ComponentToWorld * WorldToActor;
+				const FTransform ComponentToActor = PrimComp->GetComponentTransform() * WorldToActor;
 				FBoxSphereBounds ActorSpaceComponentBounds = PrimComp->CalcBounds( ComponentToActor );
 
 				Box += ActorSpaceComponentBounds.GetBox();
@@ -1576,7 +1597,7 @@ void AActor::SnapRootComponentTo(AActor* InParentActor, FName InSocketName/* = N
 		USceneComponent* ParentDefaultAttachComponent = InParentActor->GetDefaultAttachComponent();
 		if (ParentDefaultAttachComponent)
 		{
-			RootComponent->SnapTo(ParentDefaultAttachComponent, InSocketName);
+			RootComponent->AttachToComponent(ParentDefaultAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, InSocketName);
 		}
 	}
 }
@@ -1614,14 +1635,13 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 
 void AActor::DetachAllSceneComponents(USceneComponent* InParentComponent, const FDetachmentTransformRules& DetachmentRules)
 {
-	if (InParentComponent != NULL)
+	if (InParentComponent)
 	{
 		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
-		for (int32 Index = 0; Index < Components.Num(); ++Index)
+		for (USceneComponent* SceneComp : Components)
 		{
-			USceneComponent* SceneComp = Components[Index];
 			if (SceneComp->GetAttachParent() == InParentComponent)
 			{
 				SceneComp->DetachFromComponent(DetachmentRules);
@@ -1925,6 +1945,26 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			EndPlay(EndPlayReason);
 		}
+
+		// Behaviors specific to an actor being unloaded due to a streaming level removal
+		if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
+		{
+			ClearComponentOverlaps();
+
+			bActorInitialized = false;
+			if (World)
+			{
+				World->RemoveNetworkActor(this);
+			}
+		}
+
+		// Clear any ticking lifespan timers
+		if (TimerHandle_LifeSpanExpired.IsValid())
+		{
+			SetLifeSpan(0.f);
+		}
+
+		UNavigationSystem::OnActorUnregistered(this);
 	}
 
 	UninitializeComponents();
@@ -1951,23 +1991,6 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 			}
 		}
 	}
-
-	// Behaviors specific to an actor being unloaded due to a streaming level removal
-	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
-	{
-		ClearComponentOverlaps();
-
-		bActorInitialized = false;
-		GetWorld()->RemoveNetworkActor(this);
-	}
-
-	// Clear any ticking lifespan timers
-	if (TimerHandle_LifeSpanExpired.IsValid())
-	{
-		SetLifeSpan(0.f);
-	}
-
-	UNavigationSystem::OnActorUnregistered(this);
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -2466,7 +2489,10 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
 
-	Modify();
+	// Note: we do not mark dirty here because this can be called when in editor when modifying transient components
+	// if a component is added during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway
+	const bool bMarkDirty = false;
+	Modify(bMarkDirty);
 
 	bool bAlreadyInSet = false;
 	OwnedComponents.Add(Component, &bAlreadyInSet);
@@ -2678,6 +2704,12 @@ void AActor::PostEditImport()
 
 	DispatchOnComponentsCreated(this);
 }
+
+bool AActor::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedActorAnnotation.Get(this);
+}
+
 #endif
 
 /** Util that sets up the actor's component hierarchy (when users forget to do so, in their native ctor) */
@@ -2838,7 +2870,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 	{
 		bHasFinishedSpawning = true;
 
-		FTransform FinalRootComponentTransform = (RootComponent ? RootComponent->ComponentToWorld : UserTransform);
+		FTransform FinalRootComponentTransform = (RootComponent ? RootComponent->GetComponentTransform() : UserTransform);
 
 		// see if we need to adjust the transform (i.e. in deferred cases where the caller passes in a different transform here 
 		// than was passed in during the original SpawnActor call)
@@ -2857,7 +2889,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 					// caller passed a different transform!
 					// undo the original spawn transform to get back to the template transform, so we can recompute a good
 					// final transform that takes into account the template's transform
-					FTransform const TemplateTransform = RootComponent->ComponentToWorld * OriginalSpawnTransform->Inverse();
+					FTransform const TemplateTransform = RootComponent->GetComponentTransform() * OriginalSpawnTransform->Inverse();
 					FinalRootComponentTransform = TemplateTransform * UserTransform;
 				}
 			}

@@ -9,7 +9,7 @@
 #include "DistributionFloatParameterBase.generated.h"
 
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
-class UDistributionFloatParameterBase : public UDistributionFloatConstant
+class ENGINE_API UDistributionFloatParameterBase : public UDistributionFloatConstant
 {
 	GENERATED_UCLASS_BODY()
 

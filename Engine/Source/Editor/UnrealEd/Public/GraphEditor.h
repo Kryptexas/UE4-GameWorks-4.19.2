@@ -261,6 +261,16 @@ public:
 		}
 	}
 
+	/** Register an active timer on the graph editor. */
+	virtual TSharedRef<FActiveTimerHandle> RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)
+	{
+		if (Implementation.IsValid())
+		{
+			return Implementation->RegisterActiveTimer(TickPeriod, TickFunction);
+		}
+		return TSharedPtr<FActiveTimerHandle>().ToSharedRef();
+	}
+
 	/** @return a reference to the list of selected graph nodes */
 	virtual const TSet<class UObject*>& GetSelectedNodes() const
 	{

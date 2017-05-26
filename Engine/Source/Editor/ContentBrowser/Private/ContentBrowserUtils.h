@@ -37,7 +37,7 @@ namespace ContentBrowserUtils
 	bool OpenEditorForAsset(const TArray<UObject*>& Assets);
 
 	/**
-	  * Makes sure the specified assets are loaded into memory.6666
+	  * Makes sure the specified assets are loaded into memory.
 	  * 
 	  * @param ObjectPaths The paths to the objects to load.
 	  * @param LoadedObjects The returned list of objects that were already loaded or loaded by this method.
@@ -172,6 +172,12 @@ namespace ContentBrowserUtils
 
 	/** Returns true if the path specified exists as a folder in the asset registry */
 	bool DoesFolderExist(const FString& FolderPath);
+
+	/**
+	 * @return true if the path specified is an empty folder (contains no assets or classes).
+	 * @note Does *not* test whether the folder is empty on disk, so do not use it to validate filesystem deletion!
+	 */
+	bool IsEmptyFolder(const FString& FolderPath, const bool bRecursive = false);
 
 	/** Check to see whether the given path is a root directory (either for asset or classes) */
 	bool IsRootDir(const FString& FolderPath);

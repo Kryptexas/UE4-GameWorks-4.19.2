@@ -21,5 +21,5 @@ public:
 	virtual FText GetSourceTooltip() const PURE_VIRTUAL(ULiveLinkSourceFactory::GetSourceTooltip, return FText(); );
 
 	virtual TSharedPtr<SWidget> CreateSourceCreationPanel() PURE_VIRTUAL(ULiveLinkSourceFactory::CreateSourceCreationPanel, return nullptr;);
-	virtual ILiveLinkSource*	OnSourceCreationPanelClosed(bool bCreateSource) PURE_VIRTUAL(ULiveLinkSourceFactory::OnSourceCreationPanelClosed, return nullptr;);
+	virtual TSharedPtr<ILiveLinkSource> OnSourceCreationPanelClosed(bool bCreateSource) PURE_VIRTUAL(ULiveLinkSourceFactory::OnSourceCreationPanelClosed, return nullptr;);
 };

@@ -120,20 +120,14 @@ void FALSoundSource::Update( void )
 	SetFilterFrequency();
 
 	FVector Location;
-	FVector	Velocity;
 
 	// See file header for coordinate system explanation.
 	Location.X = WaveInstance->Location.X;
 	Location.Y = WaveInstance->Location.Z; // Z/Y swapped on purpose, see file header
 	Location.Z = WaveInstance->Location.Y; // Z/Y swapped on purpose, see file header
 
-	Velocity.X = WaveInstance->Velocity.X;
-	Velocity.Y = WaveInstance->Velocity.Z; // Z/Y swapped on purpose, see file header
-	Velocity.Z = WaveInstance->Velocity.Y; // Z/Y swapped on purpose, see file header
-
 	// Convert to meters.
 	Location *= AUDIO_DISTANCE_FACTOR;
-	Velocity *= AUDIO_DISTANCE_FACTOR;
 
 	// We're using a relative coordinate system for un- spatialized sounds.
 	FVector RelativeDirection = FVector::ZeroVector;
@@ -156,7 +150,6 @@ void FALSoundSource::Update( void )
 	alSourcef(SourceId, AL_PITCH, Pitch);
 
 	alSourcefv(SourceId, AL_POSITION, (ALfloat*)&EmitterPosition);
-	alSourcefv(SourceId, AL_VELOCITY, (ALfloat*)&Velocity);
 }
 
 /**

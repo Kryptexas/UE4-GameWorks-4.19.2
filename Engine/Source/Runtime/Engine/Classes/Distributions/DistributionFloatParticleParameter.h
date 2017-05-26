@@ -8,8 +8,8 @@
 #include "Distributions/DistributionFloatParameterBase.h"
 #include "DistributionFloatParticleParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
-class UDistributionFloatParticleParameter : public UDistributionFloatParameterBase
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew)
+class ENGINE_API UDistributionFloatParticleParameter : public UDistributionFloatParameterBase
 {
 	GENERATED_UCLASS_BODY()
 

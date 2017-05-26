@@ -381,9 +381,9 @@ FReply FSkeletonTreeBoneItem::HandleDrop(const FDragDropEvent& DragDropEvent)
 		if (DragDropOp.IsValid())
 		{
 			//Do we have some assets to attach?
-			if (DragDropOp->AssetData.Num() > 0)
+			if (DragDropOp->HasAssets())
 			{
-				GetSkeletonTree()->AttachAssets(SharedThis(this), DragDropOp->AssetData);
+				GetSkeletonTree()->AttachAssets(SharedThis(this), DragDropOp->GetAssets());
 			}
 			return FReply::Handled();
 		}

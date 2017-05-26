@@ -89,13 +89,6 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GRHIAdapterName = TEXT("Metal");
 	GRHIVendorId = 1; // non-zero to avoid asserts
 	
-	// Disable RHI CommandList State Caching: MetalRHI needs to do this itself internally to function.
-	static auto CVarRHICmdStateCacheEnable = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmdStateCacheEnable"));
-	if(CVarRHICmdStateCacheEnable && CVarRHICmdStateCacheEnable->GetInt() != 0)
-	{
-		CVarRHICmdStateCacheEnable->Set(0);
-	}
-	
 	bool const bRequestedFeatureLevel = (RequestedFeatureLevel != ERHIFeatureLevel::Num);
 	bool bSupportsPointLights = false;
 	bool bSupportsRHIThread = false;

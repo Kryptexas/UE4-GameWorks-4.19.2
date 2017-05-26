@@ -86,6 +86,9 @@ private:
 	// List of collisions that were injected from an external source
 	FClothCollisionData ExternalCollisions;
 
+	// Collisions extracted from our physics asset
+	FClothCollisionData ExtractedCollisions;
+
 	// Whether or not we need to rebuild our collisions on the next simulation setp
 	bool bCollisionsDirty;
 
@@ -158,7 +161,7 @@ private:
 	// Update the LOD for the current actors, this is more complex than just updating a LOD value,
 	// we need to skin the incoming simulation mesh to the outgoing mesh (the weighting data should have been
 	// built in the asset already) to make sure it matches up without popping
-	void UpdateLod(FClothingSimulationContextNv* InContext);
+	void UpdateLod(int32 InPredictedLod, const FTransform& ComponentToWorld, const TArray<FTransform>& CSTransforms, bool bForceNoRemap = false);
 
 	// The core simulation is only solving unoriented particles, so we need to compute normals after the
 	// simulation runs
@@ -167,6 +170,10 @@ private:
 	// Given a clothing config from an asset, apply it to the provided actor. Currently
 	// this is only used from CreateActor, but could be exposed for runtime changes
 	void ApplyClothConfig(FClothConfig &Config, FClothingActorNv &InActor, USkeletalMeshComponent* InOwnerComponent);
+
+	// Extract collisions from the physics asset inside Asset and apply them to InActor
+	// Not safe to call from workers (i.e. inside the simulation).
+	void ExtractActorCollisions(USkeletalMeshComponent* InOwnerComponent, UClothingAsset* Asset, FClothingActorNv &InActor);
 
 	// The current LOD index for the owning skeletal mesh component
 	int32 CurrentMeshLodIndex;

@@ -54,6 +54,7 @@
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "SPinTypeSelector.h"
+#include "NodeFactory.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
@@ -775,15 +776,15 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				OriginalProperty = VariableProperty;
 			}
 
-			if (OriginalProperty == NULL || bVariableRenamed)
+			if (OriginalProperty == nullptr || bVariableRenamed)
 			{
 				// Prevent editing the default value of a skeleton property
-				VariableProperty = NULL;
+				VariableProperty = nullptr;
 			}
-			else  if (auto StructProperty = Cast<const UStructProperty>(OriginalProperty))
+			else if (const UStructProperty* StructProperty = Cast<const UStructProperty>(OriginalProperty))
 			{
 				// Prevent editing the default value of a stale struct
-				auto BGStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct);
+				const UUserDefinedStruct* BGStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct);
 				if (BGStruct && (EUserDefinedStructureStatus::UDSS_UpToDate != BGStruct->Status))
 				{
 					VariableProperty = nullptr;
@@ -792,7 +793,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		}
 
 		// Find the class containing the variable
-		UClass* VariableClass = (VariableProperty != NULL) ? VariableProperty->GetTypedOuter<UClass>() : nullptr;
+		UClass* VariableClass = (VariableProperty ? VariableProperty->GetTypedOuter<UClass>() : nullptr);
 
 		FText ErrorMessage;
 		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value"));
@@ -842,7 +843,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
 
 				UK2Node_FunctionEntry* FuncEntry = EntryNodes[0];
-				for(auto& LocalVar : FuncEntry->LocalVariables)
+				for (const FBPVariableDescription& LocalVar : FuncEntry->LocalVariables)
 				{
 					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
 					{
@@ -1354,11 +1355,11 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 		}
 	}
 
-	CategorySource.Empty();
+	CategorySource.Reset();
 	CategorySource.Add(MakeShareable(new FText(LOCTEXT("Default", "Default"))));
 	for (int32 i = 0; i < VisibleVariables.Num(); ++i)
 	{
-		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i], NULL);
+		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i], nullptr);
 		if (!Category.IsEmpty() && !Category.EqualTo(FText::FromString(Blueprint->GetName())))
 		{
 			bool bNewCategory = true;
@@ -1395,7 +1396,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 			}
 		}
 
-		auto EntryNode = FBlueprintEditorUtils::GetEntryNode(FunctionGraph);
+		UK2Node_EditablePinBase* EntryNode = FBlueprintEditorUtils::GetEntryNode(FunctionGraph);
 		if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode))
 		{
 			for (FBPVariableDescription& Variable : FunctionEntryNode->LocalVariables)
@@ -1415,7 +1416,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 
 	for (UEdGraph* MacroGraph : Blueprint->MacroGraphs)
 	{
-		auto EntryNode = FBlueprintEditorUtils::GetEntryNode(MacroGraph);
+		UK2Node_EditablePinBase* EntryNode = FBlueprintEditorUtils::GetEntryNode(MacroGraph);
 		if (UK2Node_Tunnel* TypedEntryNode = ExactCast<UK2Node_Tunnel>(EntryNode))
 		{
 			bool bNewCategory = true;
@@ -1989,7 +1990,7 @@ bool FBlueprintVarActionDetails::IsConfigCheckBoxEnabled() const
 		if (UProperty* VariableProperty = CachedVariableProperty.Get())
 		{
 			// meant to match up with UHT's FPropertyBase::IsObject(), which it uses to block object properties from being marked with CPF_Config
-			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || 
+			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || VariableProperty->IsA<UAssetObjectProperty>() ||
 				(!VariableProperty->IsA<UObjectPropertyBase>() && !VariableProperty->IsA<UInterfaceProperty>());
 		}
 	}
@@ -2511,10 +2512,14 @@ void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyCha
 			UK2Node_FunctionEntry* FuncEntry = Cast<UK2Node_FunctionEntry>(InEntryNode.Get());
 
 			// Search out the correct local variable in the Function Entry Node and set the default value
-			for(auto& LocalVar : FuncEntry->LocalVariables)
+			for (FBPVariableDescription& LocalVar : FuncEntry->LocalVariables)
 			{
-				if(LocalVar.VarName == DirectProperty->GetFName())
+				if (LocalVar.VarName == DirectProperty->GetFName() && LocalVar.DefaultValue != DefaultValueString)
 				{
+					const FScopedTransaction Transaction(LOCTEXT("ChangeDefaults", "Change Defaults"));
+
+					FuncEntry->Modify();
+					GetBlueprintObj()->Modify();
 					LocalVar.DefaultValue = DefaultValueString;
 					FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
 					break;
@@ -2701,22 +2706,39 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 {
 	if (bHasDefaultValue)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
-		.NameContent()
-		[
-			SNew(STextBlock)
-				.Text( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
-				.ToolTipText( LOCTEXT("FunctionArgDetailsDefaultValueParamTooltip", "The default value of the parameter.") )
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-		]
-		.ValueContent()
-		[
-			SNew(SEditableTextBox)
-				.Text( this, &FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText )
-				.OnTextCommitted( this, &FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted )
-				.IsEnabled(!ShouldPinBeReadOnly())
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-		];
+		if (UEdGraphPin* FoundPin = GetPin())
+		{
+			// Certain types are outlawed at the compiler level
+			bool bTypeWithNoDefaults = (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
+
+			if (!FoundPin->PinType.bIsReference && !bTypeWithNoDefaults)
+			{
+				DefaultValuePinWidget = FNodeFactory::CreatePinWidget(FoundPin);
+				DefaultValuePinWidget->SetOnlyShowDefaultValue(true);
+				TSharedRef<SWidget> DefaultValueWidget = DefaultValuePinWidget->GetDefaultValueWidget();
+
+				if (DefaultValueWidget != SNullWidget::NullWidget)
+				{
+					ChildrenBuilder.AddChildContent(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
+						.NameContent()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
+							.ToolTipText(LOCTEXT("FunctionArgDetailsDefaultValueParamTooltip", "The default value of the parameter."))
+							.Font(IDetailLayoutBuilder::GetDetailFont())
+						]
+						.ValueContent()
+						.MaxDesiredWidth(512)
+						[
+							DefaultValueWidget
+						];
+				}
+				else
+				{
+					DefaultValuePinWidget.Reset();
+				}
+			}
+		}
 
 		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
 		.NameContent()
@@ -2738,11 +2760,11 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 	
 }
 
-namespace {
-
+namespace 
+{
 	static TArray<UK2Node_EditablePinBase*> GatherAllResultNodes(UK2Node_EditablePinBase* TargetNode)
 	{
-		if (auto ResultNode = Cast<UK2Node_FunctionResult>(TargetNode))
+		if (UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(TargetNode))
 		{
 			return (TArray<UK2Node_EditablePinBase*>)ResultNode->GetAllResultNodes();
 		}
@@ -2758,14 +2780,14 @@ namespace {
 
 void FBlueprintGraphArgumentLayout::OnRemoveClicked()
 {
-	auto ParamItem = ParamItemPtr.Pin();
+	TSharedPtr<FUserPinInfo> ParamItem = ParamItemPtr.Pin();
 	if (ParamItem.IsValid())
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "RemoveParam", "Remove Parameter" ) );
 
-		auto GraphActionDetails = GraphActionDetailsPtr.Pin();
-		auto TargetNodes = GatherAllResultNodes(TargetNode);
-		for (auto Node : TargetNodes)
+		TSharedPtr<FBaseBlueprintGraphActionDetails> GraphActionDetails = GraphActionDetailsPtr.Pin();
+		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+		for (UK2Node_EditablePinBase* Node : TargetNodes)
 		{
 			Node->Modify();
 			Node->RemoveUserDefinedPinByName(ParamItem->PinName);
@@ -2785,13 +2807,13 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveUp()
 	if (ThisParamIndex != INDEX_NONE && NewParamIndex >= 0)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("K2_MovePinUp", "Move Pin Up") );
-		auto TargetNodes = GatherAllResultNodes(TargetNode);
-		for (auto Node : TargetNodes)
+		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+		for (UK2Node_EditablePinBase* Node : TargetNodes)
 		{
 			Node->Modify();
 			Node->UserDefinedPins.Swap(ThisParamIndex, NewParamIndex);
 
-			auto GraphActionDetails = GraphActionDetailsPtr.Pin();
+			TSharedPtr<FBaseBlueprintGraphActionDetails> GraphActionDetails = GraphActionDetailsPtr.Pin();
 			if (GraphActionDetails.IsValid())
 			{
 				GraphActionDetails->OnParamsChanged(Node, true);
@@ -2808,13 +2830,13 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveDown()
 	if (ThisParamIndex != INDEX_NONE && NewParamIndex < TargetNode->UserDefinedPins.Num())
 	{
 		const FScopedTransaction Transaction( LOCTEXT("K2_MovePinDown", "Move Pin Down") );
-		auto TargetNodes = GatherAllResultNodes(TargetNode);
-		for (auto Node : TargetNodes)
+		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+		for (UK2Node_EditablePinBase* Node : TargetNodes)
 		{
 			Node->Modify();
 			Node->UserDefinedPins.Swap(ThisParamIndex, NewParamIndex);
 			
-			auto GraphActionDetails = GraphActionDetailsPtr.Pin();
+			TSharedPtr<FBaseBlueprintGraphActionDetails> GraphActionDetails = GraphActionDetailsPtr.Pin();
 			if (GraphActionDetails.IsValid())
 			{
 				GraphActionDetails->OnParamsChanged(Node, true);
@@ -2926,6 +2948,15 @@ FEdGraphPinType FBlueprintGraphArgumentLayout::OnGetPinInfo() const
 	return FEdGraphPinType();
 }
 
+UEdGraphPin* FBlueprintGraphArgumentLayout::GetPin() const
+{
+	if (ParamItemPtr.IsValid() && TargetNode)
+	{
+		return TargetNode->FindPin(ParamItemPtr.Pin()->PinName, ParamItemPtr.Pin()->DesiredPinDirection);
+	}
+	return nullptr;
+}
+
 ECheckBoxState FBlueprintGraphArgumentLayout::IsRefChecked() const
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
@@ -2936,9 +2967,9 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InStat
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
 	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
-	// Note: Array types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
-	//  treated as being redundant on array inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
-	PinType.bIsConst = (PinType.bIsArray || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
+	// Note: Container types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
+	//  treated as being redundant on container inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
+	PinType.bIsConst = (PinType.IsContainer() || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
 	PinInfoChanged(PinType);
 }
 
@@ -2962,7 +2993,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 				{
 					if (Node)
 					{
-						auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+						TSharedPtr<FUserPinInfo>* UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
 						{
 							return UDPin.IsValid() && (UDPin->PinName == PinName);
 						});
@@ -2970,8 +3001,11 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 						{
 							(*UDPinPtr)->PinType = PinType;
 
-							// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
-							(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node->IsA<UK2Node_CustomEvent>();
+							// Container types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+							(*UDPinPtr)->PinType.bIsConst = PinType.IsContainer() && Node->IsA<UK2Node_CustomEvent>();
+
+							// Reset default value, it probably doesn't match
+							(*UDPinPtr)->PinDefaultValue.Reset();
 						}
 						GraphActionDetailsPinned->OnParamsChanged(Node);
 					}
@@ -2983,10 +3017,10 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 
 void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& PinType)
 {
-	if( !ShouldPinBeReadOnly(true))
+	if (!ShouldPinBeReadOnly(true))
 	{
-		auto TargetNodes = GatherAllResultNodes(TargetNode);
-		for (auto Node : TargetNodes)
+		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+		for (UK2Node_EditablePinBase* Node : TargetNodes)
 		{
 			if (Node)
 			{
@@ -2995,33 +3029,6 @@ void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& Pi
 		}
 	}
 }
-
-FText FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText() const
-{
-	if (ParamItemPtr.IsValid())
-	{
-		return FText::FromString(ParamItemPtr.Pin()->PinDefaultValue);
-	}
-	return FText();
-}
-
-void FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
-{
-	auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
-	if (!NewText.IsEmpty() 
-		&& !ShouldPinBeReadOnly() 
-		&& (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) 
-		&& ParamItemPtr.IsValid() 
-		&& GraphActionDetailsPinned.IsValid())
-	{
-		bool bSuccess = TargetNode->ModifyUserDefinedPinDefaultValue(ParamItemPtr.Pin(), NewText.ToString());
-		if (bSuccess)
-		{
-			GraphActionDetailsPinned->OnParamsChanged(TargetNode);
-		}
-	}
-}
-
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
@@ -3513,6 +3520,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			];
 		}
 	}
+
+	if (bHasAGraph)
+	{
+		MyRegisteredGraphChangedDelegateHandle = GetGraph()->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateSP(this, &FBaseBlueprintGraphActionDetails::OnGraphChanged));
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -3595,6 +3607,21 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 		FunctionResultNodePtr = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(FunctionEntryNodePtr.Get());
 	}
 	return FunctionResultNodePtr.IsValid();
+}
+
+FBaseBlueprintGraphActionDetails::~FBaseBlueprintGraphActionDetails()
+{
+	UEdGraph* MyGraph = GetGraph();
+	if (MyRegisteredGraphChangedDelegateHandle.IsValid() && MyGraph)
+	{
+		MyGraph->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
+	}
+}
+
+void FBaseBlueprintGraphActionDetails::OnGraphChanged(const FEdGraphEditAction& Action)
+{
+	/** Graph changed, need to refresh inputs in case pin UI changed */
+	RegenerateInputsChildrenDelegate.ExecuteIfBound();
 }
 
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
@@ -3932,7 +3959,7 @@ void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> Fun
 		{
 			while (FunctionEntryNode->UserDefinedPins.Num())
 			{
-				auto Pin = FunctionEntryNode->UserDefinedPins[0];
+				TSharedPtr<FUserPinInfo> Pin = FunctionEntryNode->UserDefinedPins[0];
 				FunctionEntryNode->RemoveUserDefinedPin(Pin);
 			}
 
@@ -3962,28 +3989,10 @@ void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* 
 
 		// Reconstruct the entry/exit definition and recompile the blueprint to make sure the signature has changed before any fixups
 		TargetNode->ReconstructNode();
-		FParamsChangedHelper ParamsChangedHelper;
-		ParamsChangedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
-		ParamsChangedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		for (auto GraphIt = ParamsChangedHelper.ModifiedGraphs.CreateIterator(); GraphIt; ++GraphIt)
-		{
-			if(UEdGraph* ModifiedGraph = *GraphIt)
-			{
-				ModifiedGraph->NotifyGraphChanged();
-			}
-		}
-
-		// Now update all the blueprints that got modified
-		for (auto BlueprintIt = ParamsChangedHelper.ModifiedBlueprints.CreateIterator(); BlueprintIt; ++BlueprintIt)
-		{
-			if(UBlueprint* Blueprint = *BlueprintIt)
-			{
-				Blueprint->BroadcastChanged();
-			}
-		}
+		K2Schema->HandleParameterDefaultValueChanged(TargetNode);
 	}
 }
 
@@ -4028,8 +4037,8 @@ bool FBaseBlueprintGraphActionDetails::OnVerifyPinRename(UK2Node_EditablePinBase
 	if (InTargetNode)
 	{
 		// Check if the name conflicts with any of the other internal UFunction's property names (local variables and parameters).
-		const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(InTargetNode);
-		const auto ExistingProperty = FindField<const UProperty>(FoundFunction, *InNewName);
+		const UFunction* FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(InTargetNode);
+		const UProperty* ExistingProperty = FindField<const UProperty>(FoundFunction, *InNewName);
 		if (ExistingProperty)
 		{
 			OutErrorMessage = LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!");
@@ -4056,12 +4065,12 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 
 		const FScopedTransaction Transaction(LOCTEXT("RenameParam", "Rename Parameter"));
 
-		auto TerminalNodes = GatherAllResultNodes(FunctionResultNodePtr.Get());
-		if (auto EntryNode = FunctionEntryNodePtr.Get())
+		TArray<UK2Node_EditablePinBase*> TerminalNodes = GatherAllResultNodes(FunctionResultNodePtr.Get());
+		if (UK2Node_EditablePinBase* EntryNode = FunctionEntryNodePtr.Get())
 		{
 			TerminalNodes.Add(EntryNode);
 		}
-		for (auto TerminalNode : TerminalNodes)
+		for (UK2Node_EditablePinBase* TerminalNode : TerminalNodes)
 		{
 			TerminalNode->Modify();
 			PinRenamedHelper.NodesToRename.Add(TerminalNode);
@@ -4073,24 +4082,23 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		PinRenamedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
 
 		// TEST
-		for(auto NodeIter = PinRenamedHelper.NodesToRename.CreateIterator(); NodeIter; ++NodeIter)
+		for (UK2Node* NodeToRename : PinRenamedHelper.NodesToRename)
 		{
-			if(ERenamePinResult::ERenamePinResult_NameCollision == (*NodeIter)->RenameUserDefinedPin(OldName, NewName, true))
+			if (ERenamePinResult::ERenamePinResult_NameCollision == NodeToRename->RenameUserDefinedPin(OldName, NewName, true))
 			{
-				// log 
 				return false;
 			}
 		}
 
 		// UPDATE
-		for(auto NodeIter = PinRenamedHelper.NodesToRename.CreateIterator(); NodeIter; ++NodeIter)
+		for (UK2Node* NodeToRename : PinRenamedHelper.NodesToRename)
 		{
-			(*NodeIter)->RenameUserDefinedPin(OldName, NewName, false);
+			NodeToRename->RenameUserDefinedPin(OldName, NewName, false);
 		}
 
-		for (auto TerminalNode : TerminalNodes)
+		for (UK2Node_EditablePinBase* TerminalNode : TerminalNodes)
 		{
-			auto UDPinPtr = TerminalNode->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& Pin)
+			TSharedPtr<FUserPinInfo>* UDPinPtr = TerminalNode->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& Pin)
 			{
 				return Pin.IsValid() && (Pin->PinName == OldName);
 			});
@@ -4228,7 +4236,7 @@ void FBlueprintGraphActionDetails::OnTooltipTextCommitted(const FText& NewText, 
 	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 	{
 		Metadata->ToolTip = NewText;
-		if(auto Function = FindFunction())
+		if (UFunction* Function = FindFunction())
 		{
 			Function->Modify();
 			Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *NewText.ToString());
@@ -4273,7 +4281,7 @@ void FBlueprintGraphActionDetails::OnCategoryTextCommitted(const FText& NewText,
 				Metadata->Category = CategoryName;
 			}
 
-			if(auto Function = FindFunction())
+			if (UFunction* Function = FindFunction())
 			{
 				Function->Modify();
 				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *CategoryName.ToString());
@@ -4291,7 +4299,7 @@ void FBlueprintGraphActionDetails::OnCategorySelectionChanged( TSharedPtr<FText>
 		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
 		{
 			Metadata->Category = *ProposedSelection.Get();
-			if(auto Function = FindFunction())
+			if (UFunction* Function = FindFunction())
 			{
 				Function->Modify();
 				Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *ProposedSelection.Get()->ToString());
@@ -4337,7 +4345,7 @@ void FBlueprintGraphActionDetails::OnKeywordsTextCommitted(const FText& NewText,
 			{
 				Metadata->Keywords = Keywords;
 
-				if(auto Function = FindFunction())
+				if (UFunction* Function = FindFunction())
 				{
 					Function->Modify();
 					Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *Keywords.ToString());
@@ -4372,7 +4380,7 @@ void FBlueprintGraphActionDetails::OnCompactNodeTitleTextCommitted(const FText& 
 			{
 				Metadata->CompactNodeTitle = CompactNodeTitle;
 
-				if(auto Function = FindFunction())
+				if (UFunction* Function = FindFunction())
 				{
 					Function->Modify();
 
@@ -4479,7 +4487,7 @@ void FBlueprintGraphActionDetails::OnAccessSpecifierSelected( TSharedPtr<FAccess
 		const FScopedTransaction Transaction( LOCTEXT( "ChangeAccessSpecifier", "Change Access Specifier" ) );
 
 		FunctionEntryNode->Modify();
-		auto Function = FindFunction();
+		UFunction* Function = FindFunction();
 		if(Function)
 		{
 			Function->Modify();
@@ -4642,9 +4650,9 @@ bool FBlueprintGraphActionDetails::IsPureFunctionVisible() const
 void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ECheckBoxState NewCheckedState )
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	auto Function = FindFunction();
-	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
-	if(EntryNode && Function)
+	UFunction* Function = FindFunction();
+	UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	if (EntryNode && Function)
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "ChangePure", "Change Pure" ) );
 		EntryNode->Modify();
@@ -4659,8 +4667,8 @@ void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ECheckBoxStat
 
 ECheckBoxState FBlueprintGraphActionDetails::GetIsPureFunction() const
 {
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
+	UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
 	if(!EntryNode)
 	{
 		return ECheckBoxState::Undetermined;
@@ -4686,8 +4694,8 @@ bool FBlueprintGraphActionDetails::IsConstFunctionVisible() const
 void FBlueprintGraphActionDetails::OnIsConstFunctionModified( const ECheckBoxState NewCheckedState )
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	auto Function = FindFunction();
-	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	UFunction* Function = FindFunction();
+	UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
 	if(EntryNode && Function)
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "ChangeConst", "Change Const" ) );
@@ -4703,8 +4711,8 @@ void FBlueprintGraphActionDetails::OnIsConstFunctionModified( const ECheckBoxSta
 
 ECheckBoxState FBlueprintGraphActionDetails::GetIsConstFunction() const
 {
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
+	UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
 	if(!EntryNode)
 	{
 		return ECheckBoxState::Undetermined;
@@ -4807,13 +4815,13 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 		}
 
 		const FString NewPinName = FunctionResultNode->CreateUniquePinName(TEXT("NewParam"));
-		auto TargetNodes = GatherAllResultNodes(FunctionResultNode);
+		TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(FunctionResultNode);
 		bool bAllChanged = TargetNodes.Num() > 0;
-		for (auto Node : TargetNodes)
+		for (UK2Node_EditablePinBase* Node : TargetNodes)
 		{
 			Node->Modify();
-			auto NewPin = Node->CreateUserDefinedPin(NewPinName, PinType, EGPD_Input, false);
-			bAllChanged &= nullptr != NewPin;
+			UEdGraphPin* NewPin = Node->CreateUserDefinedPin(NewPinName, PinType, EGPD_Input, false);
+			bAllChanged &= (nullptr != NewPin);
 
 			if (bAllChanged)
 			{
@@ -4867,10 +4875,9 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	if (!bShowsInheritedInterfaces)
 	{
 		// Generate a list of interfaces already implemented
-		for (TArray<FBPInterfaceDescription>::TConstIterator It(Blueprint->ImplementedInterfaces); It; ++It)
+		for (const FBPInterfaceDescription& ImplementedInterface : Blueprint->ImplementedInterfaces)
 		{
-			auto Interface = (*It).Interface;
-			if (Interface)
+			if (const TSubclassOf<UInterface> Interface = ImplementedInterface.Interface)
 			{
 				Interfaces.AddUnique(FInterfaceName(Interface->GetFName(), Interface->GetDisplayNameText()));
 			}
@@ -6043,14 +6050,6 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 			}
 		}
 
-
-		auto TemplatesVisible = [](const TArray<TWeakObjectPtr<UObject>>& WeakObjects)
-		{
-			bool bResult = true;
-			
-			return bResult;
-		};
-
 		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
 		DetailBuilder.GetObjectsBeingCustomized(ObjectsBeingCustomized);
 
@@ -6226,9 +6225,9 @@ TSharedRef<SWidget> FBlueprintDocumentationDetails::GenerateExcerptList()
 		TArray<FExcerpt> Excerpts;
 		DocumentationPage->GetExcerpts( Excerpts );
 
-		for( auto ExcerptIter = Excerpts.CreateConstIterator(); ExcerptIter; ++ExcerptIter )
+		for (const FExcerpt& Excerpt : Excerpts)
 		{
-			ExcerptList.Add( MakeShareable( new FString( ExcerptIter->Name )));
+			ExcerptList.Add( MakeShareable( new FString( Excerpt.Name )));
 		}
 	}
 

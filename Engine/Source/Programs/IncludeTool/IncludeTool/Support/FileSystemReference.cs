@@ -84,7 +84,7 @@ namespace IncludeTool.Support
 						if (Length == 0)
 						{
 							// Multiple directory separators in a row; illegal.
-							throw new ArgumentException("Path fragment '{0}' contains invalid directory separators.");
+							throw new ArgumentException(String.Format("Path fragment '{0}' contains invalid directory separators.", Fragment));
 						}
 						else if (Length == 2 && Fragment[StartIdx] == '.' && Fragment[StartIdx + 1] == '.')
 						{

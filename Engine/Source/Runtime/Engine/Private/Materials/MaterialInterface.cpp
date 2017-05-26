@@ -14,6 +14,7 @@
 #include "Engine/Texture2D.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "Engine/TextureStreamingTypes.h"
+#include "Algo/BinarySearch.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Components.h"
 
@@ -32,6 +33,8 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bMobileSeparateTranslucencyRelevance = bMobileSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
+	OutViewRelevance.bUsesSceneColorCopy = bUsesSceneColorCopy;
+	OutViewRelevance.bDisableOffscreenRendering = bDisableOffscreenRendering;
 	OutViewRelevance.ShadingModelMaskRelevance = ShadingModelMask;
 	OutViewRelevance.bUsesGlobalDistanceField = bUsesGlobalDistanceField;
 	OutViewRelevance.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
@@ -88,7 +91,8 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 	if(Material)
 	{
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(InFeatureLevel);
-		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
+		const EBlendMode BlendMode = (EBlendMode)GetBlendMode();
+		const bool bIsTranslucent = IsTranslucentBlendMode(BlendMode);
 
 		EMaterialShadingModel ShadingModel = GetShadingModel();
 		EMaterialDomain Domain = (EMaterialDomain)MaterialResource->GetMaterialDomain();
@@ -112,7 +116,9 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 			MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 			MaterialRelevance.bMobileSeparateTranslucency = bIsTranslucent && Material->bEnableMobileSeparateTranslucency;
 			MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
-			MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;		
+			MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;	
+			MaterialRelevance.bUsesSceneColorCopy = bIsTranslucent && MaterialResource->RequiresSceneColorCopy_GameThread();
+			MaterialRelevance.bDisableOffscreenRendering = BlendMode == BLEND_Modulate; // Blend Modulate must be rendered directly in the scene color.
 			MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;	
 			MaterialRelevance.bUsesGlobalDistanceField = MaterialResource->UsesGlobalDistanceField_GameThread();
 			MaterialRelevance.bUsesWorldPositionOffset = MaterialResource->UsesWorldPositionOffset_GameThread();
@@ -429,35 +435,6 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 	}
 }
 
-namespace Algo
-{
-	template<typename T, typename PredType>
-	int32 BinarySearch(const TArray<T>& Container, PredType Pred)
-	{
-		int32 Min = 0; // Min is included
-		int32 Max = Container.Num(); // Max is excluded
-
-		while (Min != Max)
-		{
-			const int32 Curr = (Min + Max) / 2;
-			const int32 Comp = Pred(Container[Curr]);
-			if (Comp < 0) // Pred < Ele
-			{
-				Max = Curr;
-			}
-			else if (Comp > 0) // Pred > Ele
-			{
-				Min = Curr + 1;
-			}
-			else // Pred == Ele
-			{
-				return Curr;
-			}
-		}
-		return INDEX_NONE;
-	}
-}
-
 bool FMaterialTextureInfo::IsValid(bool bCheckTextureIndex) const
 { 
 #if WITH_EDITORONLY_DATA
@@ -507,13 +484,6 @@ extern 	TAutoConsoleVariable<int32> CVarStreamingUseMaterialData;
 
 bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, int32& LowerIndex, int32& HigherIndex) const
 {
-	struct FNameSearch
-	{
-		FName Name;
-		FNameSearch(FName InName) : Name(InName) {}
-		FORCEINLINE int32 operator()(const FMaterialTextureInfo& Rhs) const { return Name.Compare(Rhs.TextureName); }
-	};
-
 #if WITH_EDITORONLY_DATA
 	// Because of redirectors (when textures are renammed), the texture names might be invalid and we need to udpate the data at every load.
 	// Normally we would do that in the post load, but since the process needs to resolve the StringAssetReference, this is forbidden at that place.
@@ -526,17 +496,13 @@ bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, i
 		return false;
 	}
 
-	const int32 MatchingIndex = Algo::BinarySearch(TextureStreamingData, FNameSearch(TextureName));
+	const int32 MatchingIndex = Algo::BinarySearchBy(TextureStreamingData, TextureName, &FMaterialTextureInfo::TextureName);
 	if (MatchingIndex != INDEX_NONE)
 	{
 		// Find the range of entries for this texture. 
 		// This is possible because the same texture could be bound to several register and also be used with different sampling UV.
 		LowerIndex = MatchingIndex;
 		HigherIndex = MatchingIndex;
-		while (LowerIndex > 0 && TextureStreamingData[LowerIndex - 1].TextureName == TextureName)
-		{
-			--LowerIndex;
-		}
 		while (HigherIndex + 1 < TextureStreamingData.Num() && TextureStreamingData[HigherIndex + 1].TextureName == TextureName)
 		{
 			++HigherIndex;

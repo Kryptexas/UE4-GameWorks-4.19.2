@@ -16,16 +16,33 @@ USelection::USelection(const FObjectInitializer& ObjectInitializer)
 :	UObject(ObjectInitializer)
 ,	SelectionMutex( 0 )
 ,	bIsBatchDirty(false)
+,	SelectionAnnotation(nullptr)
+,	bOwnsSelectionAnnotation(false)
 {
+
 }
 
+
+void USelection::Initialize(FUObjectAnnotationSparseBool* InSelectionAnnotation)
+{
+	if (InSelectionAnnotation)
+	{
+		SelectionAnnotation = InSelectionAnnotation;
+		bOwnsSelectionAnnotation = false;
+	}
+	else
+	{
+		SelectionAnnotation = new FUObjectAnnotationSparseBool;
+		bOwnsSelectionAnnotation = true;
+	}
+}
 
 void USelection::Select(UObject* InObject)
 {
 	check( InObject );
 
-	const bool bSelectionChanged = !InObject->IsSelected();
-	GSelectedAnnotation.Set(InObject);
+	const bool bSelectionChanged = !SelectionAnnotation->Get(InObject);
+	SelectionAnnotation->Set(InObject);
 
 	if(bSelectionChanged)
 	{
@@ -59,7 +76,7 @@ void USelection::Deselect(UObject* InObject)
 	check( InObject );
 
 	const bool bSelectionChanged = InObject->IsSelected();
-	GSelectedAnnotation.Clear(InObject);
+	SelectionAnnotation->Clear(InObject);
 
 	// Remove from selected list.
 	SelectedObjects.Remove( InObject );
@@ -137,7 +154,7 @@ void USelection::DeselectAll( UClass* InClass )
 			// if the object is of type InClass then all objects of that same type will be removed
 			RemovedClasses.Add(FSelectedClassInfo(Object->GetClass()));
 
-			GSelectedAnnotation.Clear(Object);
+			SelectionAnnotation->Clear(Object);
 			SelectedObjects.RemoveAt( i );
 
 			// Call this after the item has been removed from the selection set.
@@ -200,13 +217,13 @@ void USelection::Serialize(FArchive& Ar)
 		// The set of selected objects may have changed, so make sure our annotations exactly match the list, otherwise
 		// UObject::IsSelected() could return a result that was different from the list of objects returned by GetSelectedObjects()
 		// This needs to happen in serialize because other code may check the selection state in PostEditUndo and the order of PostEditUndo is indeterminate.
-		GSelectedAnnotation.ClearAll();
+		SelectionAnnotation->ClearAll();
 
 		for(TWeakObjectPtr<UObject>& ObjectPtr : SelectedObjects)
 		{
 			if (UObject* Object = ObjectPtr.Get(true))
 			{
-				GSelectedAnnotation.Set(Object);
+				SelectionAnnotation->Set(Object);
 			}
 		}
 	}
@@ -226,3 +243,15 @@ bool USelection::Modify(bool bAlwaysMarkDirty/* =true */)
 
 	return Super::Modify(bAlwaysMarkDirty);
 }
+
+void USelection::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (bOwnsSelectionAnnotation)
+	{
+		delete SelectionAnnotation;
+		SelectionAnnotation = nullptr;
+	}
+}
+

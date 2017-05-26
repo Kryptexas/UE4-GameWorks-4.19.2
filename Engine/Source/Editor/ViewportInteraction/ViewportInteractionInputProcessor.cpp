@@ -3,16 +3,16 @@
 #include "ViewportInteractionInputProcessor.h"
 #include "Input/Events.h"
 #include "Misc/App.h"
-#include "ViewportWorldInteractionManager.h"
+#include "ViewportWorldInteraction.h"
 
-FViewportInteractionInputProcessor::FViewportInteractionInputProcessor( FViewportWorldInteractionManager* InWorldInteractionManager )
-	: WorldInteractionManager( InWorldInteractionManager )
+FViewportInteractionInputProcessor::FViewportInteractionInputProcessor(UViewportWorldInteraction* InWorldInteraction)
+	: WorldInteraction(InWorldInteraction)
 {
 }
 
 FViewportInteractionInputProcessor::~FViewportInteractionInputProcessor()
 {
-	WorldInteractionManager = nullptr;
+	WorldInteraction = nullptr;
 }
 
 void FViewportInteractionInputProcessor::Tick( const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor )
@@ -21,17 +21,17 @@ void FViewportInteractionInputProcessor::Tick( const float DeltaTime, FSlateAppl
 
 bool FViewportInteractionInputProcessor::HandleKeyDownEvent( FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent )
 {
-	return WorldInteractionManager->PreprocessedInputKey( InKeyEvent.GetKey(), InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed );
+	return WorldInteraction != nullptr ? WorldInteraction->PreprocessedInputKey( InKeyEvent.GetKey(), InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed ) : false;
 }
 
 bool FViewportInteractionInputProcessor::HandleKeyUpEvent( FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent )
 {
-	return WorldInteractionManager->PreprocessedInputKey( InKeyEvent.GetKey(), IE_Released );
+	return WorldInteraction != nullptr ? WorldInteraction->PreprocessedInputKey( InKeyEvent.GetKey(), IE_Released ) : false;
 }
 
 bool FViewportInteractionInputProcessor::HandleAnalogInputEvent( FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent )
 {
-	return WorldInteractionManager->PreprocessedInputAxis( InAnalogInputEvent.GetUserIndex(), InAnalogInputEvent.GetKey(), InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime() );
+	return WorldInteraction != nullptr ? WorldInteraction->PreprocessedInputAxis( InAnalogInputEvent.GetUserIndex(), InAnalogInputEvent.GetKey(), InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime() ) : false;
 }
 
 bool FViewportInteractionInputProcessor::HandleMouseMoveEvent( FSlateApplication& SlateApp, const FPointerEvent& MouseEvent )

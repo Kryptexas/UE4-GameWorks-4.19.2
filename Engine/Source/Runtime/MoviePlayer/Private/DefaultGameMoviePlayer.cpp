@@ -476,8 +476,8 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		{
 			GameEngine->SwitchGameWindowToUseGameViewport();
 		}
-
 	}
+
 }
 
 bool FDefaultGameMoviePlayer::IsLoadingFinished() const

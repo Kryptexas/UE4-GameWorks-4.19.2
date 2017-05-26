@@ -234,7 +234,7 @@ public:
 	}
 };
 
-extern void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors);
+extern void GetSpacedVectors(uint32 FrameNumber, TArray<FVector, TInlineAllocator<9> >& OutVectors);
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FAOSampleData2,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SampleDirections,[NumConeSampleDirections])

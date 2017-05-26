@@ -72,6 +72,7 @@ public:
 		const FVertexFactory* VertexFactory,
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FViewInfo& View, 
+		const FVolumetricFogIntegrationParameterData& IntegrationData,
 		const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer,
 		FVector2D Jitter)
 	{
@@ -79,7 +80,7 @@ public:
 
 		if (!RHISupportsGeometryShaders(View.GetShaderPlatform()))
 		{
-			VolumetricFogParameters.Set(RHICmdList, GetVertexShader(), View, NULL, NULL, NULL);
+			VolumetricFogParameters.Set(RHICmdList, GetVertexShader(), View, IntegrationData);
 
 			FMatrix ProjectionMatrix = View.ViewMatrices.ComputeProjectionNoAAMatrix();
 
@@ -157,11 +158,12 @@ public:
 		const FVertexFactory* VertexFactory,
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FViewInfo& View, 
+		const FVolumetricFogIntegrationParameterData& IntegrationData,
 		const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer,
 		FVector2D Jitter)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, (FGeometryShaderRHIParamRef)GetGeometryShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, VoxelizeViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
-		VolumetricFogParameters.Set(RHICmdList, GetGeometryShader(), View, NULL, NULL, NULL);
+		VolumetricFogParameters.Set(RHICmdList, GetGeometryShader(), View, IntegrationData);
 
 		FMatrix ProjectionMatrix = View.ViewMatrices.ComputeProjectionNoAAMatrix();
 
@@ -221,10 +223,16 @@ protected:
 
 public:
 	
-	void SetParameters(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FViewInfo& View, const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer)
+	void SetParameters(
+		FRHICommandList& RHICmdList, 
+		const FVertexFactory* VertexFactory,
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FViewInfo& View, 
+		const FVolumetricFogIntegrationParameterData& IntegrationData,
+		const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, VoxelizeViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
-		VolumetricFogParameters.Set(RHICmdList, GetPixelShader(), View, NULL, NULL, NULL);
+		VolumetricFogParameters.Set(RHICmdList, GetPixelShader(), View, IntegrationData);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FDrawingPolicyRenderState& DrawRenderState)
@@ -276,6 +284,7 @@ public:
 	void SetSharedState(
 		FRHICommandList& RHICmdList, 
 		const FViewInfo& View, 
+		const FVolumetricFogIntegrationParameterData& IntegrationData,
 		const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer, 
 		FVector2D Jitter, 
 		const ContextDataType PolicyContext, 
@@ -334,6 +343,7 @@ FDrawingPolicyMatchResult FVoxelizeVolumeDrawingPolicy::Matches(
 void FVoxelizeVolumeDrawingPolicy::SetSharedState(
 	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
+	const FVolumetricFogIntegrationParameterData& IntegrationData,
 	const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer,
 	FVector2D Jitter,
 	const ContextDataType PolicyContext,
@@ -343,12 +353,12 @@ void FVoxelizeVolumeDrawingPolicy::SetSharedState(
 	// Set shared mesh resources
 	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, &View, PolicyContext);
 
-	VertexShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, VoxelizeViewUniformBuffer, Jitter);
+	VertexShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, IntegrationData, VoxelizeViewUniformBuffer, Jitter);
 	if (GeometryShader)
 	{
-		GeometryShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, VoxelizeViewUniformBuffer, Jitter);
+		GeometryShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, IntegrationData, VoxelizeViewUniformBuffer, Jitter);
 	}
-	PixelShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, VoxelizeViewUniformBuffer);
+	PixelShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View, IntegrationData, VoxelizeViewUniformBuffer);
 }
 
 FBoundShaderStateInput FVoxelizeVolumeDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
@@ -387,6 +397,7 @@ void FVoxelizeVolumeDrawingPolicy::SetMeshRenderState(
 void VoxelizeVolumePrimitive(
 	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
+	const FVolumetricFogIntegrationParameterData& IntegrationData,
 	const TUniformBufferRef<FViewUniformShaderParameters>& VoxelizeViewUniformBuffer,
 	FVector2D Jitter,
 	FIntVector VolumetricFogGridSize,
@@ -408,7 +419,7 @@ void VoxelizeVolumePrimitive(
 		FDrawingPolicyRenderState DrawRenderState(View);
 		DrawingPolicy.SetupPipelineState(DrawRenderState, View);
 		CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderState, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, View, VoxelizeViewUniformBuffer, Jitter, FVoxelizeVolumeDrawingPolicy::ContextDataType(), DrawRenderState);
+		DrawingPolicy.SetSharedState(RHICmdList, View, IntegrationData, VoxelizeViewUniformBuffer, Jitter, FVoxelizeVolumeDrawingPolicy::ContextDataType(), DrawRenderState);
 
 		FBoxSphereBounds Bounds = PrimitiveSceneProxy->GetBounds();
 		//@todo - compute NumSlices based on the largest particle size.  Bounds is overly conservative in most cases.
@@ -442,11 +453,10 @@ void VoxelizeVolumePrimitive(
 void FDeferredShadingSceneRenderer::VoxelizeFogVolumePrimitives(
 	FRHICommandListImmediate& RHICmdList, 
 	const FViewInfo& View,
+	const FVolumetricFogIntegrationParameterData& IntegrationData,
 	FIntVector VolumetricFogGridSize,
 	FVector GridZParams,
-	float VolumetricFogDistance,
-	IPooledRenderTarget* VBufferA,
-	IPooledRenderTarget* VBufferB)
+	float VolumetricFogDistance)
 {
 	if (View.VolumetricPrimSet.NumPrims() > 0
 		&& DoesPlatformSupportVolumetricFogVoxelization(View.GetShaderPlatform()))
@@ -466,13 +476,12 @@ void FDeferredShadingSceneRenderer::VoxelizeFogVolumePrimitives(
 
 		TUniformBufferRef<FViewUniformShaderParameters> VoxelizeViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(VoxelizeParameters, UniformBuffer_SingleFrame);
 
-		FVector JitterOffset = VolumetricFogTemporalRandom(View.Family->FrameNumber);
-		FVector2D Jitter(JitterOffset.X / VolumetricFogGridSize.X, JitterOffset.Y / VolumetricFogGridSize.Y);
+		FVector2D Jitter(IntegrationData.FrameJitterOffsetValues[0].X / VolumetricFogGridSize.X, IntegrationData.FrameJitterOffsetValues[0].Y / VolumetricFogGridSize.Y);
 
 		FTextureRHIParamRef RenderTargets[2] =
 		{
-			VBufferA->GetRenderTargetItem().TargetableTexture,
-			VBufferB->GetRenderTargetItem().TargetableTexture
+			IntegrationData.VBufferARenderTarget->GetRenderTargetItem().TargetableTexture,
+			IntegrationData.VBufferBRenderTarget->GetRenderTargetItem().TargetableTexture
 		};
 
 		SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 0, NULL);
@@ -499,7 +508,7 @@ void FDeferredShadingSceneRenderer::VoxelizeFogVolumePrimitives(
 						checkSlow(MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy);
 
 						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-						VoxelizeVolumePrimitive(RHICmdList, View, VoxelizeViewUniformBuffer, Jitter, VolumetricFogGridSize, GridZParams, PrimitiveSceneProxy, MeshBatch);
+						VoxelizeVolumePrimitive(RHICmdList, View, IntegrationData, VoxelizeViewUniformBuffer, Jitter, VolumetricFogGridSize, GridZParams, PrimitiveSceneProxy, MeshBatch);
 					}
 				}
 
@@ -511,7 +520,7 @@ void FDeferredShadingSceneRenderer::VoxelizeFogVolumePrimitives(
 
 						if (View.StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							VoxelizeVolumePrimitive(RHICmdList, View, VoxelizeViewUniformBuffer, Jitter, VolumetricFogGridSize, GridZParams, PrimitiveSceneProxy, StaticMesh);
+							VoxelizeVolumePrimitive(RHICmdList, View, IntegrationData, VoxelizeViewUniformBuffer, Jitter, VolumetricFogGridSize, GridZParams, PrimitiveSceneProxy, StaticMesh);
 						}
 					}
 				}

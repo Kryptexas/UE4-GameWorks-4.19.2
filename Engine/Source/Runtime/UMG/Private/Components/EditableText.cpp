@@ -66,8 +66,8 @@ void UEditableText::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
-	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+	TAttribute<FText> TextBinding = PROPERTY_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = PROPERTY_BINDING(FText, HintText);
 
 	MyEditableText->SetText(TextBinding);
 	MyEditableText->SetHintText(HintTextBinding);

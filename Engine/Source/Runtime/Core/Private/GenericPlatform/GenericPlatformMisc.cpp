@@ -297,6 +297,11 @@ void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& 
 }
 
 
+FString FGenericPlatformMisc::GetOSVersion()
+{
+	return FString();
+}
+
 bool FGenericPlatformMisc::GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes )
 {
 	// Not implemented cross-platform. Each platform may or may not choose to implement this.

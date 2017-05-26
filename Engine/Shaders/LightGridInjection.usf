@@ -18,7 +18,7 @@ float ComputeDepthFromZSlice(uint ZSlice)
 {
 	float SliceDepth = (exp2(ZSlice / ForwardGlobalLightData.LightGridZParams.z) - ForwardGlobalLightData.LightGridZParams.y) / ForwardGlobalLightData.LightGridZParams.x;
 
-	if (ZSlice == ForwardGlobalLightData.CulledGridSize.z)
+	if (ZSlice == (uint)ForwardGlobalLightData.CulledGridSize.z)
 	{
 		// Extend the last slice depth max out to world max
 		// This allows clamping the depth range to reasonable values, 
@@ -53,25 +53,47 @@ void ComputeCellViewAABB(uint3 GridCoordinate, out float3 ViewTileMin, out float
 	float4 MaxDepthCorner2 = mul(float4(UnitPlaneTileMin.x, UnitPlaneTileMax.y, MaxTileDeviceZ, 1), View.ClipToView);
 	float4 MaxDepthCorner3 = mul(float4(UnitPlaneTileMax.x, UnitPlaneTileMin.y, MaxTileDeviceZ, 1), View.ClipToView);
 
-	//@todo - derive min and max from quadrant
-	ViewTileMin.xy = min(MinDepthCorner0.xy / MinDepthCorner0.w, MinDepthCorner1.xy / MinDepthCorner1.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MinDepthCorner2.xy / MinDepthCorner2.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MinDepthCorner3.xy / MinDepthCorner3.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MaxDepthCorner0.xy / MaxDepthCorner0.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MaxDepthCorner1.xy / MaxDepthCorner1.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MaxDepthCorner2.xy / MaxDepthCorner2.w);
-	ViewTileMin.xy = min(ViewTileMin.xy, MaxDepthCorner3.xy / MaxDepthCorner3.w);
+	float2 ViewMinDepthCorner0 = MinDepthCorner0.xy / MinDepthCorner0.w;
+	float2 ViewMinDepthCorner1 = MinDepthCorner1.xy / MinDepthCorner1.w;
+	float2 ViewMinDepthCorner2 = MinDepthCorner2.xy / MinDepthCorner2.w;
+	float2 ViewMinDepthCorner3 = MinDepthCorner3.xy / MinDepthCorner3.w;
+	float2 ViewMaxDepthCorner0 = MaxDepthCorner0.xy / MaxDepthCorner0.w;
+	float2 ViewMaxDepthCorner1 = MaxDepthCorner1.xy / MaxDepthCorner1.w;
+	float2 ViewMaxDepthCorner2 = MaxDepthCorner2.xy / MaxDepthCorner2.w;
+	float2 ViewMaxDepthCorner3 = MaxDepthCorner3.xy / MaxDepthCorner3.w;
 
-	ViewTileMax.xy = max(MinDepthCorner0.xy / MinDepthCorner0.w, MinDepthCorner1.xy / MinDepthCorner1.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MinDepthCorner2.xy / MinDepthCorner2.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MinDepthCorner3.xy / MinDepthCorner3.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MaxDepthCorner0.xy / MaxDepthCorner0.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MaxDepthCorner1.xy / MaxDepthCorner1.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MaxDepthCorner2.xy / MaxDepthCorner2.w);
-	ViewTileMax.xy = max(ViewTileMax.xy, MaxDepthCorner3.xy / MaxDepthCorner3.w);
+	//@todo - derive min and max from quadrant
+	ViewTileMin.xy = min(ViewMinDepthCorner0, ViewMinDepthCorner1);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner2);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMinDepthCorner3);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner0);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner1);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner2);
+	ViewTileMin.xy = min(ViewTileMin.xy, ViewMaxDepthCorner3);
+
+	ViewTileMax.xy = max(ViewMinDepthCorner0, ViewMinDepthCorner1);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner2);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMinDepthCorner3);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner0);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner1);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner2);
+	ViewTileMax.xy = max(ViewTileMax.xy, ViewMaxDepthCorner3);
 
 	ViewTileMin.z = MinTileZ;
-	ViewTileMax.z = MaxTileZ;
+	ViewTileMax.z = MaxTileZ; 
+}
+
+bool IntersectConeWithSphere(float3 ConeVertex, float3 ConeAxis, float ConeRadius, float2 CosSinAngle, float4 SphereToTest)
+{
+    float3 ConeVertexToSphereCenter = SphereToTest.xyz - ConeVertex;
+    float ConeVertexToSphereCenterLengthSq = dot(ConeVertexToSphereCenter, ConeVertexToSphereCenter);
+    float SphereProjectedOntoConeAxis = dot(ConeVertexToSphereCenter, -ConeAxis);
+    float DistanceToClosestPoint = CosSinAngle.x * sqrt(ConeVertexToSphereCenterLengthSq - SphereProjectedOntoConeAxis * SphereProjectedOntoConeAxis) - SphereProjectedOntoConeAxis * CosSinAngle.y;
+ 
+    bool bSphereTooFarFromCone = DistanceToClosestPoint > SphereToTest.w;
+    bool bSpherePastConeEnd = SphereProjectedOntoConeAxis > SphereToTest.w + ConeRadius;
+    bool bSphereBehindVertex = SphereProjectedOntoConeAxis < -SphereToTest.w;
+	return !(bSphereTooFarFromCone || bSpherePastConeEnd || bSphereBehindVertex);
 }
 
 [numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
@@ -82,7 +104,7 @@ void LightGridInjectionCS(
 {
 	uint3 GridCoordinate = DispatchThreadId;
 
-	if (all(GridCoordinate < ForwardGlobalLightData.CulledGridSize))
+	if (all(GridCoordinate < (uint3)ForwardGlobalLightData.CulledGridSize))
 	{
 		uint GridIndex = (GridCoordinate.z * ForwardGlobalLightData.CulledGridSize.y + GridCoordinate.y) * ForwardGlobalLightData.CulledGridSize.x + GridCoordinate.x;
 
@@ -95,6 +117,8 @@ void LightGridInjectionCS(
 
 		float3 ViewTileCenter = .5f * (ViewTileMin + ViewTileMax);
 		float3 ViewTileExtent = ViewTileMax - ViewTileCenter;
+		float3 WorldTileCenter = mul(float4(ViewTileCenter, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation;
+		float4 WorldTileBoundingSphere = float4(WorldTileCenter, length(ViewTileExtent));
 
 		uint NumAvailableLinks = ForwardGlobalLightData.NumGridCells * ForwardGlobalLightData.MaxCulledLightsPerCell * NUM_CULLED_GRID_PRIMITIVE_TYPES;
 
@@ -104,14 +128,19 @@ void LightGridInjectionCS(
 			uint LocalLightBaseIndex = LocalLightIndex * LOCAL_LIGHT_DATA_STRIDE;
 			float4 LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
 			float LightRadius = 1.0f / LightPositionAndInvRadius.w;
+			bool bPassSpotlightTest = true;
 
 			#define REFINE_SPOTLIGHT_BOUNDS 1
 			#if REFINE_SPOTLIGHT_BOUNDS
 				float CosOuterCone = ForwardLocalLightBuffer[LocalLightBaseIndex + 3].x;
-			
+
 				if (CosOuterCone > -2.0f)
 				{
+					float2 CosSinAngle = float2(CosOuterCone, sqrt(1 - CosOuterCone * CosOuterCone));
 					float3 LightDirection = ForwardLocalLightBuffer[LocalLightBaseIndex + 2].xyz;
+
+					bPassSpotlightTest = IntersectConeWithSphere(LightPositionAndInvRadius.xyz, LightDirection, LightRadius, CosSinAngle, WorldTileBoundingSphere);
+
 					LightPositionAndInvRadius.xyz -= .5f * LightDirection * LightRadius;
 					// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
 					LightRadius = sqrt(1.25f * LightRadius * LightRadius - LightRadius * LightRadius * CosOuterCone);
@@ -122,7 +151,7 @@ void LightGridInjectionCS(
 
 			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(ViewTileCenter, ViewTileExtent, ViewSpaceLightPosition);
 
-			if (BoxDistanceSq < LightRadius * LightRadius)
+			if (BoxDistanceSq < LightRadius * LightRadius && bPassSpotlightTest)
 			{
 				#if USE_LINKED_CULL_LIST
 					uint NextLink;

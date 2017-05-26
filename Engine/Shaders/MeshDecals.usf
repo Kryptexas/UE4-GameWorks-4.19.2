@@ -8,9 +8,23 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
+// Additional guard to remove all struct usage if empty to avoid platform conflicts.
+// This define can be removed if additional data is added to the interpolants struct
+#define NEED_MESH_DECAL_INTERPOLATORS	USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+
+struct FMeshDecalInterpolants
+{
+#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+	float3 PixelPositionExcludingWPO : TEXCOORD8; // Arbitrary free slot
+#endif
+};
+
 struct FMeshDecalVSToPS
 {
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
+#if NEED_MESH_DECAL_INTERPOLATORS
+	FMeshDecalInterpolants MeshDecalInterpolants;
+#endif
 	float4	Position		: SV_POSITION;
 };
 
@@ -18,6 +32,9 @@ struct FMeshDecalVSToPS
 	struct FMeshDecalVSToDS
 	{
 		FVertexFactoryInterpolantsVSToDS FactoryInterpolants;
+	#if NEED_MESH_DECAL_INTERPOLATORS
+		FMeshDecalInterpolants MeshDecalInterpolants;
+	#endif
 		float4 Position : VS_To_DS_Position;
 		OPTIONAL_VertexID_VS_To_DS
 	};
@@ -38,6 +55,10 @@ struct FMeshDecalVSToPS
 		
 		O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
 
+	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+		INTERPOLATE_MEMBER(MeshDecalInterpolants.PixelPositionExcludingWPO);
+	#endif
+
 		return O;
 	}
 
@@ -48,6 +69,10 @@ struct FMeshDecalVSToPS
 		FMeshDecalVSToPS O;
 		
 		O.FactoryInterpolants = VertexFactoryAssignInterpolants(Interpolants.FactoryInterpolants);
+
+	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+		O.MeshDecalInterpolants.PixelPositionExcludingWPO = Interpolants.MeshDecalInterpolants.PixelPositionExcludingWPO;
+	#endif
 		
 		// Finally, transform position to clip-space
 		O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
@@ -72,8 +97,12 @@ void MainVS(
 	ResolvedView = ResolveView();
 
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
-	float4	WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
+	float4 WorldPosition = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
+
+#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+	Output.MeshDecalInterpolants.PixelPositionExcludingWPO = WorldPosition.xyz;
+#endif
 
 	FMaterialVertexParameters VertexParameters = GetMaterialVertexParameters(Input, VFIntermediates, WorldPosition.xyz, TangentToLocal);
 	// Isolate instructions used for world position offset on xbox 360, 
@@ -115,23 +144,35 @@ void MainVS(
 
 // is called in MainPS() from PixelShaderOutputCommon.usf
 void FPixelShaderInOut_MainPS(
-	FVertexFactoryInterpolantsVSToPS Interpolants,
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants,
+#if NEED_MESH_DECAL_INTERPOLATORS
+	FMeshDecalInterpolants MeshDecalInterpolants,
+#endif
 	inout FPixelShaderIn In,
 	inout FPixelShaderOut Out)
 {
 #if INSTANCED_STEREO
-	ResolvedView = ResolveView(GetEyeIndex(Interpolants.PackedEyeIndex));
+	ResolvedView = ResolveView(GetEyeIndex(FactoryInterpolants.PackedEyeIndex));
 #else
 	ResolvedView = ResolveView();
 #endif
 
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, In.SvPosition);
-
-	// default to no shadows, good for volumetric decals
-	Out.MRT[4] = 1;
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, In.SvPosition);
 
 	FPixelMaterialInputs PixelMaterialInputs;
-	CalcPixelMaterialInputs(MaterialParameters, PixelMaterialInputs);
+#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+	{
+		float4 ScreenPosition = SvPositionToResolvedScreenPosition(In.SvPosition);
+		float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(In.SvPosition);
+		CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, MeshDecalInterpolants.PixelPositionExcludingWPO);
+	}
+#else
+	{
+		float4 ScreenPosition = SvPositionToResolvedScreenPosition(In.SvPosition);
+		float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(In.SvPosition);
+		CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, In.SvPosition, ScreenPosition, In.bIsFrontFace, TranslatedWorldPosition, TranslatedWorldPosition);
+	}
+#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
@@ -165,7 +206,7 @@ void FPixelShaderInOut_MainPS(
 	GBufferData.Roughness = GetMaterialRoughness(PixelMaterialInputs);
 	GBufferData.CustomData = 0;
 	GBufferData.IndirectIrradiance = 0;
-	GBufferData.PrecomputedShadowFactors = 0;
+	GBufferData.PrecomputedShadowFactors = 1;
 	GBufferData.GBufferAO = 1;
 	GBufferData.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	GBufferData.SelectiveOutputMask = 0;
@@ -175,6 +216,7 @@ void FPixelShaderInOut_MainPS(
 }
 
 
+#define PIXELSHADEROUTPUT_MESHDECALPASS NEED_MESH_DECAL_INTERPOLATORS
 #define PIXELSHADEROUTPUT_INTERPOLANTS 1
 #define PIXELSHADEROUTPUT_MRT0 (DECAL_RENDERTARGET_COUNT > 0)
 #define PIXELSHADEROUTPUT_MRT1 (DECAL_RENDERTARGET_COUNT > 1 && (BIND_RENDERTARGET1 || COMPILER_METAL))

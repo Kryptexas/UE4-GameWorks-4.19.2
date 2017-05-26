@@ -63,6 +63,11 @@ UUpdateManager::UUpdateManager()
 	, UpdateStateEnum(nullptr)
 	, UpdateCompletionEnum(nullptr)
 {
+#if !PLATFORM_PS4
+	// PS4 needs to detect its environment via a call to login
+	bPlatformEnvironmentDetected = true;
+#endif
+
 	LastUpdateCheck[0] = LastUpdateCheck[1] = FDateTime(0);
 	LastCompletionResult[0] = LastCompletionResult[1] = EUpdateCompletionStatus::UpdateUnknown;
 	if (!HasAnyFlags(RF_ClassDefaultObject))
@@ -99,6 +104,9 @@ UUpdateManager::EUpdateStartResult UUpdateManager::StartCheckInternal(bool bInCh
 	{
 		UE_LOG(LogHotfixManager, Display, TEXT("Update checks disabled!"));
 		bInitialUpdateFinished = true;
+
+		// Move to the pending state until the delayed response can fire, to more closely match non-editor behavior.
+		SetUpdateState(EUpdateState::UpdatePending);
 
 		auto StartDelegate = [this]()
 		{

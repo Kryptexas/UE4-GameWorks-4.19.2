@@ -66,6 +66,10 @@ FAutoConsoleVariableRef GTickComponentLatentActionsWithTheComponentCVar(
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
+#if WITH_EDITOR
+FUObjectAnnotationSparseBool GSelectedComponentAnnotation;
+#endif
+
 /** Static var indicating activity of reregister context */
 int32 FGlobalComponentReregisterContext::ActiveGlobalReregisterContextCount = 0;
 
@@ -626,6 +630,11 @@ void UActorComponent::PostEditUndo()
 		}
 	}
 	Super::PostEditUndo();
+}
+
+bool UActorComponent::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedComponentAnnotation.Get(this);
 }
 
 void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)
@@ -1684,7 +1693,7 @@ void UActorComponent::DetermineUCSModifiedProperties()
 
 			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
 			{
-				return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+				return (    InProperty->HasAnyPropertyFlags(CPF_Transient)
 						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
 			}
 		} PropertySkipper;

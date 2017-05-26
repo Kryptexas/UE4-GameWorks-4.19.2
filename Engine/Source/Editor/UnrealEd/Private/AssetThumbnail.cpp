@@ -987,14 +987,17 @@ void FAssetThumbnailPool::Tick( float DeltaTime )
 								}
 							});
 
-							//@todo: this should be done on the GPU only but it is not supported by thumbnail tools yet
-							ThumbnailTools::RenderThumbnail(
-								Asset,
-								InfoRef->Width,
-								InfoRef->Height,
-								ThumbnailTools::EThumbnailTextureFlushMode::NeverFlush,
-								InfoRef->ThumbnailRenderTarget
-								);
+							if (InfoRef->LastUpdateTime <= 0.0f || RenderInfo->Renderer->AllowsRealtimeThumbnails(Asset))
+							{
+								//@todo: this should be done on the GPU only but it is not supported by thumbnail tools yet
+								ThumbnailTools::RenderThumbnail(
+									Asset,
+									InfoRef->Width,
+									InfoRef->Height,
+									ThumbnailTools::EThumbnailTextureFlushMode::NeverFlush,
+									InfoRef->ThumbnailRenderTarget
+									);
+							}
 
 							bLoadedThumbnail = true;
 

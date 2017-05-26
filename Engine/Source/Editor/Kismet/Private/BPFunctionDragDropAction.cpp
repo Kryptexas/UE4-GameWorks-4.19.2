@@ -221,26 +221,44 @@ void FKismetFunctionDragDropAction::HoverTargetChanged()
 
 //------------------------------------------------------------------------------
 FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph)
-{	
+{
+	return DroppedOnPin(ScreenPosition, GraphPosition);
+}
+
+//------------------------------------------------------------------------------
+FReply FKismetFunctionDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
+{
 	FReply Reply = FReply::Unhandled();
 
+	UEdGraph* Graph = GetHoveredGraph();
+	check(Graph);
+
 	// The ActionNode set during construction points to the Graph, this is suitable for displaying the mouse decorator but needs to be more complete based on the current graph
-	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = GetDropAction(Graph);
+	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = GetDropAction(*Graph);
 
 	if (FunctionNodeSpawner)
 	{
 		FText CannotDropReason = FText::GetEmpty();
-		if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(nullptr, GetHoveredGraph(), CannotDropReason))
+		if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(nullptr, Graph, CannotDropReason))
 		{
 			UFunction const* Function = GetFunctionProperty();
 			if ((Function != NULL) && UEdGraphSchema_K2::CanUserKismetCallFunction(Function))
 			{
 				AnalyticCallback.ExecuteIfBound();
 
-				const FScopedTransaction Transaction( LOCTEXT("KismetFunction_DroppedOnPanel", "Function Dropped on Graph") );
+				const FScopedTransaction Transaction(LOCTEXT("KismetFunction_DroppedOnPanel", "Function Dropped on Graph"));
 
 				IBlueprintNodeBinder::FBindingSet Bindings;
-				FunctionNodeSpawner->Invoke(&Graph, Bindings, GraphPosition);
+				UEdGraphNode* ResultNode = FunctionNodeSpawner->Invoke(Graph, Bindings, GraphPosition);
+
+				// Autowire the node if we were dragging on top of a pin
+				if (ResultNode != nullptr)
+				{
+					if (UEdGraphPin* FromPin = GetHoveredPin())
+					{
+						ResultNode->AutowireNewNode(FromPin);
+					}
+				}
 
 				Reply = FReply::Handled();
 			}

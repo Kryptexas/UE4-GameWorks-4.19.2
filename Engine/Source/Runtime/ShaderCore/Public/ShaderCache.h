@@ -709,10 +709,10 @@ private:
 	bool bBatchingPaused;
 	
 	//Thread access mutual exclusion
-	mutable FRWMutex ShaderCacheGlobalStateMutex;
-	mutable FRWMutex PipelineStateMutex;
-	mutable FRWMutex DrawLogMutex;
-	mutable FRWMutex ContextCacheStatesMutex;
+	mutable FRWLock ShaderCacheGlobalStateMutex;
+	mutable FRWLock PipelineStateMutex;
+	mutable FRWLock DrawLogMutex;
+	mutable FRWLock ContextCacheStatesMutex;
 	
 	//List of states per RHI context with a default state
 	FShaderCacheState* DefaultCacheState;

@@ -138,12 +138,6 @@ public:
 			SizeParam = FStretch( StretchCoefficient );
 			return *this;
 		}
-
-		DEPRECATED( 4.5, "AspectRatio() property is no longer supported; it did not behave correctly to begin with and was rarely used." )
-		FSlot& AspectRatio()
-		{
-			return *this;
-		}
 		
 		FSlot& Padding( float Uniform )
 		{
