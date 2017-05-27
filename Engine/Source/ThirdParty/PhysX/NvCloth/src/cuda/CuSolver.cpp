@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -64,27 +64,27 @@ void CUPTIAPI bufferCompleted(CUcontext context, uint32_t streamId, uint8_t* buf
 {
 	CUpti_Activity* record = NULL;
 	uint64_t totalTime = 0, numRecords = 0;
-	while(CUPTI_SUCCESS == cuptiActivityGetNextRecord(buffer, validSize, &record))
+	while (CUPTI_SUCCESS == cuptiActivityGetNextRecord(buffer, validSize, &record))
 	{
-		if(record->kind != CUPTI_ACTIVITY_KIND_KERNEL)
+		if (record->kind != CUPTI_ACTIVITY_KIND_KERNEL)
 			continue;
 
 		CUpti_ActivityKernel3* kernel = (CUpti_ActivityKernel3*)record;
-		if(strcmp(kernel->name, cloth::getKernelFunctionName()))
+		if (strcmp(kernel->name, cloth::getKernelFunctionName()))
 			continue;
 
 		totalTime += kernel->end - kernel->start;
 		++numRecords;
 	}
 
-	if(numRecords)
+	if (numRecords)
 	{
 		printf("%u kernel records, average runtime is %u ns\n", unsigned(numRecords), unsigned(totalTime / numRecords));
 	}
 
 	size_t dropped;
 	cuptiActivityGetNumDroppedRecords(context, streamId, &dropped);
-	if(dropped)
+	if (dropped)
 	{
 		printf("Dropped %u activity records\n", unsigned(dropped));
 	}
@@ -112,7 +112,7 @@ struct CuptiEventProfiler
 		cuptiUnsubscribe(mSubscriber);
 		cuptiEventGroupRemoveEvent(mEventGroup, mEventId);
 		cuptiEventGroupDestroy(mEventGroup);
-		if(mNumEvents)
+		if (mNumEvents)
 		{
 			printf("%u kernel events, average active cycles is %u\n", unsigned(mNumEvents),
 			       unsigned(mActiveCycles / mNumEvents));
@@ -134,7 +134,7 @@ struct CuptiEventProfiler
 	{
 		// on entry, enable all the event groups being collected this pass,
 		// for metrics we collect for all instances of the event
-		if(cbInfo->callbackSite == CUPTI_API_ENTER)
+		if (cbInfo->callbackSite == CUPTI_API_ENTER)
 		{
 			cuCtxSynchronize();
 			cuptiSetEventCollectionMode(cbInfo->context, CUPTI_EVENT_COLLECTION_MODE_KERNEL);
@@ -142,7 +142,7 @@ struct CuptiEventProfiler
 		}
 
 		// on exit, read and record event values
-		if(cbInfo->callbackSite == CUPTI_API_EXIT)
+		if (cbInfo->callbackSite == CUPTI_API_EXIT)
 		{
 			cuCtxSynchronize();
 			uint64_t activeCycles = 0;
@@ -249,7 +249,7 @@ cloth::CuSolver::CuSolver(CuFactory& factory)
 
 	NV_CLOTH_ASSERT(CuProfileZoneIds::NUMZONES == PX_ARRAY_SIZE(gCuProfileZoneNames));
 
-	if(mCudaError)
+	if (mCudaError)
 	{
 		CuContextLock::release();
 		return;
@@ -293,10 +293,10 @@ cloth::CuSolver::~CuSolver()
 
 	CuDeviceAllocator<uint32_t>(mFactory.mContext).deallocate(mClothIndex.get());
 
-	if(mStream)
+	if (mStream)
 		checkSuccess(cuStreamDestroy(mStream));
 
-	if(mInterCollisionScratchMem)
+	if (mInterCollisionScratchMem)
 		NV_CLOTH_FREE(mInterCollisionScratchMem);
 
 	mFactory.mSolverCount--;
@@ -326,7 +326,7 @@ struct ClothSimCostGreater
 
 void cloth::CuSolver::addCloth(Cloth* cloth)
 {
-	CuCloth& cuCloth = static_cast<CuClothImpl&>(*cloth).mCloth;
+	CuCloth& cuCloth = *static_cast<CuCloth*>(cloth);
 
 	NV_CLOTH_ASSERT(mCloths.find(&cuCloth) == mCloths.end());
 
@@ -348,12 +348,12 @@ void cloth::CuSolver::addCloth(Cloth* cloth)
 
 void cloth::CuSolver::removeCloth(Cloth* cloth)
 {
-	CuCloth& cuCloth = static_cast<CuClothImpl&>(*cloth).mCloth;
+	CuCloth& cuCloth = static_cast<CuCloth&>(*cloth);
 
 	ClothVector::Iterator begin = mCloths.begin(), end = mCloths.end();
 	ClothVector::Iterator it = mCloths.find(&cuCloth);
 
-	if(it == end)
+	if (it == end)
 		return; // not found
 
 	uint32_t index = uint32_t(it - begin);
@@ -364,9 +364,21 @@ void cloth::CuSolver::removeCloth(Cloth* cloth)
 	mClothDataDirty = true;
 }
 
+int cloth::CuSolver::getNumCloths() const
+{
+	return mCloths.size();
+}
+cloth::Cloth * const * cloth::CuSolver::getClothList() const
+{
+	if(getNumCloths())
+		return reinterpret_cast<Cloth* const*>(&mCloths[0]);
+	else
+		return nullptr;
+}
+
 bool cloth::CuSolver::beginSimulation(float dt)
 {
-	if(mCloths.empty())
+	if (mCloths.empty())
 		return false;
 	mFrameDt = dt;
 	beginFrame();
@@ -406,10 +418,10 @@ void cloth::CuSolver::beginFrame()
 	// update cloth data
 	ClothVector::Iterator cIt, cEnd = mCloths.end();
 	CuHostVector<CuClothData>::Type::Iterator dIt = mClothDataHostCopy.begin();
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++dIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++dIt)
 		mClothDataDirty |= (*cIt)->updateClothData(*dIt);
 
-	if(mClothDataDirty)
+	if (mClothDataDirty)
 	{
 		/* find optimal number of cloths per SM */
 
@@ -429,17 +441,17 @@ void cloth::CuSolver::beginFrame()
 		// try all possible number of cloths per SM and estimate performance
 		float maxWeightSum = 0.0f;
 		uint32_t numClothsPerSM = 0;
-		for(uint32_t i = 1; i <= maxClothsPerSM; ++i)
+		for (uint32_t i = 1; i <= maxClothsPerSM; ++i)
 		{
 			uint32_t sharedMemoryLimit = (sharedMemoryPerBlock / i) - mKernelSharedMemorySize;
 
 			float weightSum = 0.0f;
-			for(cIt = mCloths.begin(); cIt != cEnd; ++cIt)
+			for (cIt = mCloths.begin(); cIt != cEnd; ++cIt)
 			{
 				uint32_t sharedMemorySize = (*cIt)->mSharedMemorySize;
 				uint32_t positionsSize = (*cIt)->mNumParticles * sizeof(PxVec4);
 
-				if(sharedMemorySize > sharedMemoryLimit)
+				if (sharedMemorySize > sharedMemoryLimit)
 					break;
 
 				uint32_t numSharedPositions = std::min(2u, (sharedMemoryLimit - sharedMemorySize) / positionsSize);
@@ -449,7 +461,7 @@ void cloth::CuSolver::beginFrame()
 			// tuning parameter: inverse performance for running i cloths per SM
 			weightSum *= 2.0f + i;
 
-			if(cIt == cEnd && weightSum > maxWeightSum)
+			if (cIt == cEnd && weightSum > maxWeightSum)
 			{
 				maxWeightSum = weightSum;
 				numClothsPerSM = i;
@@ -459,7 +471,7 @@ void cloth::CuSolver::beginFrame()
 
 		// update block size
 		uint32_t numThreadsPerBlock = mFactory.mMaxThreadsPerBlock / numClothsPerSM & ~31;
-		if(mFactory.mNumThreadsPerBlock != numThreadsPerBlock)
+		if (mFactory.mNumThreadsPerBlock != numThreadsPerBlock)
 		{
 			checkSuccess(
 			    cuFuncSetBlockShape(mKernelFunction, int(mFactory.mNumThreadsPerBlock = numThreadsPerBlock), 1, 1));
@@ -470,7 +482,7 @@ void cloth::CuSolver::beginFrame()
 	}
 
 	uint32_t maxSharedMemorySize = 0;
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt)
 	{
 		CuCloth& cloth = **cIt;
 
@@ -486,7 +498,7 @@ void cloth::CuSolver::beginFrame()
 
 		mFrameData.pushBack(CuFrameData(cloth, numSharedPositions, state, mIterationDataBegin + mIterationData.size()));
 
-		while(state.mRemainingIterations)
+		while (state.mRemainingIterations)
 		{
 			mIterationData.pushBack(CuIterationData(state));
 			state.update();
@@ -497,14 +509,14 @@ void cloth::CuSolver::beginFrame()
 	// add dummy element because we read past the end
 	mIterationData.pushBack(CuIterationData());
 
-	if(&mIterationData.front() != iterationDataBegin)
+	if (&mIterationData.front() != iterationDataBegin)
 	{
 		// mIterationData grew, update pointers
 		iterationDataBegin = getDevicePointer(mIterationData);
 
 		ptrdiff_t diff = (char*)iterationDataBegin - (char*)mIterationDataBegin;
 		CuHostVector<CuFrameData>::Type::Iterator fIt = mFrameData.begin(), fEnd;
-		for(fEnd = mFrameData.end(); fIt != fEnd; ++fIt)
+		for (fEnd = mFrameData.end(); fIt != fEnd; ++fIt)
 			reinterpret_cast<const char*&>(fIt->mIterationData) += diff;
 
 		mIterationDataBegin = iterationDataBegin;
@@ -526,14 +538,14 @@ void cloth::CuSolver::executeKernel()
 /*#if PX_PROFILE //We don't have a gpu distapcher anymore
 	// Note: The profile buffer is valid only within the cuda launch context
 	void* profileBuffer = getDispatcher().getCurrentProfileBuffer();
-	if(mProfileBuffer != profileBuffer && mProfileBaseId + 1)
+	if (mProfileBuffer != profileBuffer && mProfileBaseId + 1)
 	{
 		mProfileBuffer = profileBuffer;
 		updateKernelData();
 	}
 #endif*/
 
-	if(mClothDataDirty)
+	if (mClothDataDirty)
 	{
 		NV_CLOTH_ASSERT(mClothDataHostCopy.size() == mClothData.size());
 		size_t numBytes = mClothData.size() * sizeof(CuClothData);
@@ -543,7 +555,7 @@ void cloth::CuSolver::executeKernel()
 
 #if 0
 	static int frame = 0;
-	if(++frame == 100)
+	if (++frame == 100)
 		record(*this);
 #endif
 
@@ -563,7 +575,7 @@ void cloth::CuSolver::executeKernel()
 
 	// mark the solver as being in an error state
 	// all cloth instances should be migrated to software
-	if(result != CUDA_SUCCESS)
+	if (result != CUDA_SUCCESS)
 		mCudaError = true;
 }
 
@@ -573,7 +585,7 @@ void cloth::CuSolver::endFrame()
 
 	CuHostVector<CuFrameData>::Type::ConstIterator fIt = mFrameData.begin();
 	ClothVector::Iterator cIt, cEnd = mCloths.end();
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++fIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++fIt)
 	{
 		CuCloth& cloth = **cIt;
 
@@ -586,25 +598,25 @@ void cloth::CuSolver::endFrame()
 		cloth.mSeparationConstraints.pop();
 		cloth.mSeparationConstraints.mHostCopy.resize(0);
 
-		if(!cloth.mTargetCollisionSpheres.empty())
+		if (!cloth.mTargetCollisionSpheres.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionSpheres, cloth.mTargetCollisionSpheres);
 			cloth.mTargetCollisionSpheres.resize(0);
 		}
 
-		if(!cloth.mTargetCollisionPlanes.empty())
+		if (!cloth.mTargetCollisionPlanes.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionPlanes, cloth.mTargetCollisionPlanes);
 			cloth.mTargetCollisionPlanes.resize(0);
 		}
 
-		if(!cloth.mTargetCollisionTriangles.empty())
+		if (!cloth.mTargetCollisionTriangles.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionTriangles, cloth.mTargetCollisionTriangles);
 			cloth.mTargetCollisionTriangles.resize(0);
 		}
 
-		for(uint32_t i = 0; i < 3; ++i)
+		for (uint32_t i = 0; i < 3; ++i)
 		{
 			float upper = fIt->mParticleBounds[i * 2 + 0];
 			float negativeLower = fIt->mParticleBounds[i * 2 + 1];
@@ -623,9 +635,9 @@ void cloth::CuSolver::endFrame()
 
 void cloth::CuSolver::interCollision()
 {
-	if(!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
+	if (!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
 		return;
-	if(mInterCollisionFilter == nullptr)
+	if (mInterCollisionFilter == nullptr)
 	{
 		NV_CLOTH_LOG_WARNING("Inter collision will not work unless an inter collision filter is set using Solver::setInterCollisionFilter.");
 		return;
@@ -635,7 +647,7 @@ void cloth::CuSolver::interCollision()
 
 	// rebuild cloth instance array
 	mInterCollisionInstances.resize(0);
-	for(uint32_t i = 0, n = mCloths.size(); i < n; ++i)
+	for (uint32_t i = 0, n = mCloths.size(); i < n; ++i)
 	{
 		CuCloth& cloth = *mCloths[i];
 
@@ -643,7 +655,7 @@ void cloth::CuSolver::interCollision()
 		NV_CLOTH_ASSERT(!cloth.mHostParticlesDirty);
 		PxVec4* particles = cloth.mParticlesHostCopy.begin();
 		uint32_t* indices = NULL, numIndices = cloth.mNumParticles;
-		if(!cloth.mSelfCollisionIndices.empty())
+		if (!cloth.mSelfCollisionIndices.empty())
 		{
 			indices = cloth.mSelfCollisionIndicesHost.begin();
 			numIndices = uint32_t(cloth.mSelfCollisionIndices.size());
@@ -660,9 +672,9 @@ void cloth::CuSolver::interCollision()
 		&mInterCollisionInstances[0], uint32_t(mInterCollisionInstances.size())));
 
 	// realloc temp memory if necessary
-	if(mInterCollisionScratchMemSize < requiredTempMemorySize)
+	if (mInterCollisionScratchMemSize < requiredTempMemorySize)
 	{
-		if(mInterCollisionScratchMem)
+		if (mInterCollisionScratchMem)
 			NV_CLOTH_FREE(mInterCollisionScratchMem);
 
 		mInterCollisionScratchMem = NV_CLOTH_ALLOC(requiredTempMemorySize, "cloth::SwSolver::mInterCollisionScratchMem");

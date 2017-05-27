@@ -7416,7 +7416,10 @@ int32 UMaterialExpressionFresnel::Compile(class FMaterialCompiler* Compiler, int
 	int32 MaxArg = Compiler->Max(Compiler->Constant(0.f),DotArg);
 	int32 MinusArg = Compiler->Sub(Compiler->Constant(1.f),MaxArg);
 	int32 ExponentArg = ExponentIn.GetTracedInput().Expression ? ExponentIn.Compile(Compiler) : Compiler->Constant(Exponent);
-	int32 PowArg = Compiler->Power(MinusArg,ExponentArg);
+	// Compiler->Power got changed to call PositiveClampedPow instead of ClampedPow
+	// Manually implement ClampedPow to maintain backwards compatibility in the case where the input normal is not normalized (length > 1)
+	int32 AbsBaseArg = Compiler->Abs(MinusArg);
+	int32 PowArg = Compiler->Power(AbsBaseArg,ExponentArg);
 	int32 BaseReflectFractionArg = BaseReflectFractionIn.GetTracedInput().Expression ? BaseReflectFractionIn.Compile(Compiler) : Compiler->Constant(BaseReflectFraction);
 	int32 ScaleArg = Compiler->Mul(PowArg, Compiler->Sub(Compiler->Constant(1.f), BaseReflectFractionArg));
 	

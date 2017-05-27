@@ -24,7 +24,7 @@ protected:
 	{
 		if (ScriptStruct.IsValid())
 		{
-			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
+			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize() ? ScriptStruct->GetStructureSize() : 1);
 			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
 			OwnsMemory = true;
 		}

@@ -246,16 +246,6 @@ float GShadowmapStreamingFactor = 0.09f;
 */
 bool GNeverStreamOutTextures = false;
 
-/**
- * Checks whether a UTexture2D is supposed to be streaming.
- * @param Texture	Texture to check
- * @return			true if the UTexture2D is supposed to be streaming
- */
-bool IsStreamingTexture( const UTexture2D* Texture2D )
-{
-	return Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > Texture2D->GetNumNonStreamingMips();
-}
-
 
 void FTextureStreamingStats::Apply()
 {

@@ -11,6 +11,7 @@
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
 
 class UMovieSceneSequence;
+struct FDelayedPreAnimatedStateRestore;
 
 /**
  * An instance of an evaluation template. Fast to initialize and evaluate.
@@ -210,7 +211,7 @@ private:
 	/**
 	 * Process entities that are newly evaluated, and those that are no longer being evaluated
 	 */
-	void CallSetupTearDown(IMovieScenePlayer& Player);
+	void CallSetupTearDown(IMovieScenePlayer& Player, FDelayedPreAnimatedStateRestore* DelayedRestore = nullptr);
 
 	/**
 	 * Evaluate a particular group of a segment

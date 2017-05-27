@@ -324,8 +324,9 @@ private:
 	void CreateCurveList(const FString& SearchText = FString());
 
 	void ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const;
-	void RefreshCachePreviewInstance();
-	void OnAssetChanged(UAnimationAsset* NewAsset);
+
+	/** Get the anim instance we are viewing */
+	UAnimInstance* GetAnimInstance() const;
 
 	/** Pointer to the preview scene we are viewing */
 	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
@@ -353,9 +354,6 @@ private:
 
 	/** A list of animation curve. Used by the PoseListView. */
 	TArray< TSharedPtr<FDisplayedCurveInfo> > CurveList;
-
-	/** The skeletal mesh that we grab the animation curve from */
-	TWeakObjectPtr<UAnimSingleNodeInstance> CachedPreviewInstance;
 
 	/** Current text typed into NameFilterBox */
 	FText FilterText;

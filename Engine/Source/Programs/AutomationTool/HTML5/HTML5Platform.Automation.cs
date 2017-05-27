@@ -16,6 +16,7 @@ public class HTML5Platform : Platform
 	// ini configurations
 	static bool Compressed = false;
 	static bool targetingWasm = true;
+	static bool targetWebGL2 = true;
 	static bool enableIndexedDB = false; // experimental for now...
 
 	public HTML5Platform()
@@ -40,9 +41,14 @@ public class HTML5Platform : Platform
 		// ini configurations
 		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
 		bool targetingAsmjs = false; // inverted checked - this will be going away soon...
+		bool targetWebGL1 = false; // inverted checked - this will be going away soon...
 		if ( ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
 		{
 			targetingWasm = !targetingAsmjs;
+		}
+		if ( ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL1", out targetWebGL1) )
+		{
+			targetWebGL2  = !targetWebGL1;
 		}
 
 		// Debug and Development builds are not uncompressed to:
@@ -57,6 +63,7 @@ public class HTML5Platform : Platform
 			ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableIndexedDB", out enableIndexedDB);
 		}
 		Log("HTML5Platform.Automation: TargetWasm = "       + targetingWasm   );
+		Log("HTML5Platform.Automation: TargetWebGL2 = "     + targetWebGL2    );
 		Log("HTML5Platform.Automation: Compressed = "       + Compressed      );
 		Log("HTML5Platform.Automation: EnableIndexedDB = "  + enableIndexedDB );
 
@@ -134,7 +141,7 @@ public class HTML5Platform : Platform
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
 		}
 
-		if (FullGameExePath != FullPackageGameExePath)
+		if (FullGameExePath != FullPackageGameExePath) // TODO: remove this check
 		{
 			File.Copy(FullGameExePath + ".symbols", FullPackageGameExePath + ".symbols", true);
 			if (targetingWasm)
@@ -146,7 +153,6 @@ public class HTML5Platform : Platform
 			{
 				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
 				File.Copy(FullGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.js", true);
-				File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm
 			}
 		}
 
@@ -160,6 +166,7 @@ public class HTML5Platform : Platform
 		{
 			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
 			File.SetAttributes(FullPackageGameBasePath + ".asm.js", FileAttributes.Normal);
+			File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm // UE-45058
 			File.SetAttributes(ASMJS_FullPackageGameExePath, FileAttributes.Normal);
 		}
 
@@ -370,6 +377,16 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("%UE4CMDLINE%", ArgumentString);
 				}
 
+				if (!targetingWasm && LineStr.Contains("const explicitlyLoadedAsmJs"))
+				{
+					LineStr = "const explicitlyLoadedAsmJs = true;";
+				}
+
+				if (!targetWebGL2 && LineStr.Contains("const explicitlyUseWebGL1"))
+				{
+					LineStr = "const explicitlyUseWebGL1 = true;";
+				}
+
 				outputContents.AppendLine(LineStr);
 			}
 		}
@@ -576,11 +593,25 @@ public class HTML5Platform : Platform
 
 		if (LowerBrowserPath.Contains("chrome"))
 		{
-			BrowserCommandline  += "  " + String.Format("--user-data-dir=\\\"{0}\\\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
+			ProfileDirectory = Path.Combine(ProfileDirectory, "chrome");
+			// removing [--enable-logging] otherwise, chrome breaks with a bunch of the following errors:
+			// > ERROR:process_info.cc(631)] range at 0x7848406c00000000, size 0x1a4 fully unreadable
+			// leaving this note here for future reference: UE-45078
+			BrowserCommandline  += "  " + String.Format("--user-data-dir=\\\"{0}\\\"   --no-first-run", ProfileDirectory);
 		}
 		else if (LowerBrowserPath.Contains("firefox"))
 		{
-			BrowserCommandline += "  " +  String.Format("-no-remote -profile \\\"{0}\\\"", Path.Combine(ProfileDirectory, "firefox"));
+			ProfileDirectory = Path.Combine(ProfileDirectory, "firefox");
+			BrowserCommandline += "  " +  String.Format("-no-remote -profile \\\"{0}\\\"", ProfileDirectory);
+		}
+
+		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
+		{
+			// TODO: test on other platforms to remove this if() check
+			if (!Directory.Exists(ProfileDirectory))
+			{
+				Directory.CreateDirectory(ProfileDirectory);
+			}
 		}
 
 		string LauncherArguments = string.Format(" -Browser=\"{0}\" + -BrowserCommandLine=\"{1}\" -ServerPort=\"{2}\" -ServerRoot=\"{3}\" ",

@@ -85,7 +85,7 @@ public:
 
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		FSamplerStateRHIRef SamplerStateRHIRef = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		PostProcessParameters.SetPS(ShaderRHI, Context, SamplerStateRHIRef);

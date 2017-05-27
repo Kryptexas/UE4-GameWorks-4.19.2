@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -42,7 +42,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 	__m128 sOne = _mm_set1_ps(1.0f);
 
 	__m128 stretchLimit, compressionLimit, multiplier;
-	if(useMultiplier)
+	if (useMultiplier)
 	{
 		stretchLimit = _mm_shuffle_ps(stiffnessEtc, stiffnessEtc, 0xff);
 		compressionLimit = _mm_shuffle_ps(stiffnessEtc, stiffnessEtc, 0xaa);
@@ -51,7 +51,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 	__m128 stiffness = _mm_shuffle_ps(stiffnessEtc, stiffnessEtc, 0x00);
 	bool useStiffnessPerConstraint = nullptr != stIt;
 
-	for(; rIt != rEnd; rIt += 4, stIt+=4, iIt += 8)
+	for (; rIt != rEnd; rIt += 4, stIt += 4, iIt += 8)
 	{
 		float* p0i = posIt + iIt[0] * 4;
 		float* p0j = posIt + iIt[1] * 4;
@@ -97,7 +97,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 		__m128 mask = _mm_cmpnle_ps(rij, gSimd4fEpsilon);
 		__m128 erij = _mm_and_ps(_mm_sub_ps(sOne, _mm_mul_ps(rij, _mm_rsqrt_ps(e2ij))), mask);
 
-		if(useMultiplier)
+		if (useMultiplier)
 		{
 			erij = _mm_sub_ps(erij, _mm_mul_ps(multiplier, _mm_max_ps(compressionLimit, _mm_min_ps(erij, stretchLimit))));
 		}

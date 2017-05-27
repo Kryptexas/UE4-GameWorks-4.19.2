@@ -475,17 +475,14 @@ bool UWidgetInteractionComponent::PressKey(FKey Key, bool bRepeat)
 		return false;
 	}
 
-	const uint32* KeyCodePtr;
-	const uint32* CharCodePtr;
-	FInputKeyManager::Get().GetCodesFromKey(Key, KeyCodePtr, CharCodePtr);
-
-	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
-	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+	bool bHasKeyCode, bHasCharCode;
+	uint32 KeyCode, CharCode;
+	GetKeyAndCharCodes(Key, bHasKeyCode, KeyCode, bHasCharCode, CharCode);
 
 	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat, KeyCode, CharCode);
 	bool DownResult = FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 
-	if ( CharCodePtr )
+	if (bHasCharCode)
 	{
 		FCharacterEvent CharacterEvent(CharCode, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat);
 		return FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
@@ -501,15 +498,46 @@ bool UWidgetInteractionComponent::ReleaseKey(FKey Key)
 		return false;
 	}
 
+	bool bHasKeyCode, bHasCharCode;
+	uint32 KeyCode, CharCode;
+	GetKeyAndCharCodes(Key, bHasKeyCode, KeyCode, bHasCharCode, CharCode);
+
+	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), false, KeyCode, CharCode);
+	return FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
+}
+
+void UWidgetInteractionComponent::GetKeyAndCharCodes(const FKey& Key, bool& bHasKeyCode, uint32& KeyCode, bool& bHasCharCode, uint32& CharCode)
+{
 	const uint32* KeyCodePtr;
 	const uint32* CharCodePtr;
 	FInputKeyManager::Get().GetCodesFromKey(Key, KeyCodePtr, CharCodePtr);
 
-	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
-	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+	bHasKeyCode = KeyCodePtr ? true : false;
+	bHasCharCode = CharCodePtr ? true : false;
 
-	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), false, KeyCode, CharCode);
-	return FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
+	KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
+	CharCode = CharCodePtr ? *CharCodePtr : 0;
+
+	// These special keys are not handled by the platform layer, and while not printable
+	// have character mappings that several widgets look for, since the hardware sends them.
+	if (CharCodePtr == nullptr)
+	{
+		if (Key == EKeys::Tab)
+		{
+			CharCode = '\t';
+			bHasCharCode = true;
+		}
+		else if (Key == EKeys::BackSpace)
+		{
+			CharCode = '\b';
+			bHasCharCode = true;
+		}
+		else if (Key == EKeys::Enter)
+		{
+			CharCode = '\n';
+			bHasCharCode = true;
+		}
+	}
 }
 
 bool UWidgetInteractionComponent::PressAndReleaseKey(FKey Key)

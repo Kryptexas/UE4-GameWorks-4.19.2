@@ -29,31 +29,42 @@ static const FString SequencePinName(TEXT("Sequence"));
 
 void EnsureFullyLoaded(UObject* Object)
 {
-	if (!Object || Object->HasAnyFlags(RF_LoadCompleted))
+	if (!Object)
 	{
 		return;
 	}
 
-	check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
-	Object->SetFlags(RF_NeedLoad);
-	if (FLinkerLoad* Linker = Object->GetLinker())
+	bool bLoadInternalReferences = false;
+
+	if (Object->HasAnyFlags(RF_NeedLoad))
 	{
-		Linker->Preload(Object);
+		FLinkerLoad* Linker = Object->GetLinker();
+		if (ensure(Linker))
+		{
+			Linker->Preload(Object);
+			bLoadInternalReferences = true;
+			check(!Object->HasAnyFlags(RF_NeedLoad));
+		}
 	}
+
+	bLoadInternalReferences = bLoadInternalReferences || Object->HasAnyFlags(RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
 
 	Object->ConditionalPostLoad();
 	Object->ConditionalPostLoadSubobjects();
-
-	// Collect a list of all things this element owns
-	TArray<UObject*> ObjectReferences;
-	FReferenceFinder(ObjectReferences, nullptr, false, true, false, true).FindReferences(Object);
-
-	// Iterate over the list, and preload everything so it is valid for refreshing
-	for (UObject* Reference : ObjectReferences)
+	
+	if (bLoadInternalReferences)
 	{
-		if (Reference->IsA<UMovieSceneSequence>() || Reference->IsA<UMovieScene>() || Reference->IsA<UMovieSceneTrack>() || Reference->IsA<UMovieSceneSection>())
+		// Collect a list of all things this element owns
+		TArray<UObject*> ObjectReferences;
+		FReferenceFinder(ObjectReferences, nullptr, false, true, false, true).FindReferences(Object);
+
+		// Iterate over the list, and preload everything so it is valid for refreshing
+		for (UObject* Reference : ObjectReferences)
 		{
-			EnsureFullyLoaded(Reference);
+			if (Reference->IsA<UMovieSceneSequence>() || Reference->IsA<UMovieScene>() || Reference->IsA<UMovieSceneTrack>() || Reference->IsA<UMovieSceneSection>())
+			{
+				EnsureFullyLoaded(Reference);
+			}
 		}
 	}
 }

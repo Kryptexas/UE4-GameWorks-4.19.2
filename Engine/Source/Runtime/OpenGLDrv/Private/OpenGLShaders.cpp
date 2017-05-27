@@ -2856,10 +2856,22 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 
 			case CrossCompiler::PACKED_TYPEINDEX_INT:
 				FOpenGL::ProgramUniform4iv(LinkedProgram->Config.Shaders[Stage].Resource, Location, NumDirtyVectors, (GLint*)UniformData);
-				break;
+			break;
 
 			case CrossCompiler::PACKED_TYPEINDEX_UINT:
+#if PLATFORM_ANDROID || PLATFORM_IOS
+				if (FOpenGL::GetFeatureLevel() == ERHIFeatureLevel::ES2)
+				{
+					// uint is not supported with ES2, set as int type.
+					FOpenGL::ProgramUniform4iv(LinkedProgram->Config.Shaders[Stage].Resource, Location, NumDirtyVectors, (GLint*)UniformData);
+				}
+				else
+				{
+					FOpenGL::ProgramUniform4uiv(LinkedProgram->Config.Shaders[Stage].Resource, Location, NumDirtyVectors, (GLuint*)UniformData);
+				}
+#else
 				FOpenGL::ProgramUniform4uiv(LinkedProgram->Config.Shaders[Stage].Resource, Location, NumDirtyVectors, (GLuint*)UniformData);
+#endif
 				break;
 			}
 
@@ -2943,9 +2955,9 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 
 				// Upload the split buffers to the program
 				const auto& UniformBufferUploadInfoList = PackedUniformBufferInfos[BufferIndex];
-				auto& UBInfo = Bindings.PackedUniformBuffers[BufferIndex];
 				for (int32 InfoIndex = 0; InfoIndex < UniformBufferUploadInfoList.Num(); ++InfoIndex)
 				{
+					auto& UBInfo = Bindings.PackedUniformBuffers[BufferIndex];
 					const auto& UniformInfo = UniformBufferUploadInfoList[InfoIndex];
 					const void* RESTRICT UniformData = PackedUniformsScratch[UniformInfo.Index];
 					int32 NumVectors = UBInfo[InfoIndex].Size / SizeOfFloat4;
@@ -2963,7 +2975,19 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 						break;
 
 					case CrossCompiler::PACKED_TYPEINDEX_UINT:
+#if PLATFORM_ANDROID || PLATFORM_IOS
+						if (FOpenGL::GetFeatureLevel() == ERHIFeatureLevel::ES2)
+						{
+							// uint is not supported with ES2, set as int type.
+							FOpenGL::ProgramUniform4iv(LinkedProgram->Config.Shaders[Stage].Resource, UniformInfo.Location, NumVectors, (GLint*)UniformData);
+						}
+						else
+						{
+							FOpenGL::ProgramUniform4uiv(LinkedProgram->Config.Shaders[Stage].Resource, UniformInfo.Location, NumVectors, (GLuint*)UniformData);
+						}
+#else
 						FOpenGL::ProgramUniform4uiv(LinkedProgram->Config.Shaders[Stage].Resource, UniformInfo.Location, NumVectors, (GLuint*)UniformData);
+#endif
 						break;
 					}
 				}

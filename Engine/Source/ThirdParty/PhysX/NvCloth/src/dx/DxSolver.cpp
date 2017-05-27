@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -36,7 +36,6 @@
 #include "../IterationState.h"
 #include <PsSort.h>
 #include <foundation/PxProfiler.h>
-#include <PsFoundation.h>
 
 #if NV_CLOTH_ENABLE_DX11
 
@@ -67,11 +66,11 @@ cloth::DxSolver::DxSolver(DxFactory& factory)
 , mComputeError(false)
 {
 	ID3D11Device* device = mFactory.mContextManager->getDevice();
-	if(device->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
+	if (device->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
 		D3D11_FEATURE_DATA_D3D10_X_HARDWARE_OPTIONS hwopts = { 0 };
 		device->CheckFeatureSupport(D3D11_FEATURE_D3D10_X_HARDWARE_OPTIONS, &hwopts, sizeof(hwopts));
-		if(!hwopts.ComputeShaders_Plus_RawAndStructuredBuffers_Via_Shader_4_x)
+		if (!hwopts.ComputeShaders_Plus_RawAndStructuredBuffers_Via_Shader_4_x)
 		{
 			NV_CLOTH_LOG_WARNING("DirectCompute is not supported by this device\n");
 			mComputeError = true;
@@ -94,10 +93,10 @@ cloth::DxSolver::~DxSolver()
 
 	DxContextLock::acquire();
 
-	if(mSyncQuery)
+	if (mSyncQuery)
 		mSyncQuery->Release();
 
-	if(mInterCollisionScratchMem)
+	if (mInterCollisionScratchMem)
 		NV_CLOTH_FREE(mInterCollisionScratchMem);
 }
 
@@ -114,7 +113,7 @@ struct ClothSimCostGreater
 
 void cloth::DxSolver::addCloth(Cloth* cloth)
 {
-	DxCloth& dxCloth = static_cast<DxClothImpl&>(*cloth).mCloth;
+	DxCloth& dxCloth = static_cast<DxCloth&>(*cloth);
 
 	NV_CLOTH_ASSERT(mCloths.find(&dxCloth) == mCloths.end());
 
@@ -154,8 +153,8 @@ void cloth::DxSolver::addCloth(Cloth* cloth)
 			DxDeviceVector<uint32_t> _SortElems(mFactory.mContextManager);
 			DxDeviceVector<uint32_t> _SortElemsHostCopy(mFactory.mContextManager, DxStagingBufferPolicy());
 			Vector<uint32_t>::Type _SortElemsRef;
-			_SortElems.reserve(SortMaxN*2);
-			_SortElemsHostCopy.reserve(SortMaxN*2);
+			_SortElems.reserve(SortMaxN * 2);
+			_SortElemsHostCopy.reserve(SortMaxN * 2);
 			_SortElemsRef.reserve(SortMaxN);
 
 			context->CSSetShader(mSortComputeShader, NULL, 0);
@@ -166,8 +165,8 @@ void cloth::DxSolver::addCloth(Cloth* cloth)
 				_SortDataHostCopy[0].mCount = n;
 				_SortData = _SortDataHostCopy;
 
-				_SortElems.resize(n*2);
-				_SortElemsHostCopy.resize(n*2);
+				_SortElems.resize(n * 2);
+				_SortElemsHostCopy.resize(n * 2);
 				_SortElemsRef.resize(n);
 
 				srand(95123);
@@ -211,12 +210,12 @@ void cloth::DxSolver::addCloth(Cloth* cloth)
 
 void cloth::DxSolver::removeCloth(Cloth* cloth)
 {
-	DxCloth& cuCloth = static_cast<DxClothImpl&>(*cloth).mCloth;
+	DxCloth& dxCloth = static_cast<DxCloth&>(*cloth);
 
 	ClothVector::Iterator begin = mCloths.begin(), end = mCloths.end();
-	ClothVector::Iterator it = mCloths.find(&cuCloth);
+	ClothVector::Iterator it = mCloths.find(&dxCloth);
 
-	if(it == end)
+	if (it == end)
 		return; // not found
 
 	uint32_t index = uint32_t(it - begin);
@@ -227,9 +226,21 @@ void cloth::DxSolver::removeCloth(Cloth* cloth)
 	mClothDataDirty = true;
 }
 
+int cloth::DxSolver::getNumCloths() const
+{
+	return mCloths.size();
+}
+cloth::Cloth * const * cloth::DxSolver::getClothList() const
+{
+	if(getNumCloths())
+		return reinterpret_cast<Cloth* const*>(&mCloths[0]);
+	else
+		return nullptr;
+}
+
 bool cloth::DxSolver::beginSimulation(float dt)
 {
-	if(mCloths.empty())
+	if (mCloths.empty())
 		return false;
 	mFrameDt = dt;
 	DxSolver::beginFrame();
@@ -269,12 +280,12 @@ void cloth::DxSolver::beginFrame()
 	// update cloth data
 	ClothVector::Iterator cIt, cEnd = mCloths.end();
 	Vector<DxClothData>::Type::Iterator dIt = mClothDataHostCopy.begin();
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++dIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++dIt)
 		mClothDataDirty |= (*cIt)->updateClothData(*dIt);
 
 	uint32_t maxSharedMemorySize = 0;
 	DxFrameData* frameDataIt = mFrameDataHostCopy.map(D3D11_MAP_WRITE);
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt)
 	{
 		DxCloth& cloth = **cIt;
 
@@ -290,13 +301,13 @@ void cloth::DxSolver::beginFrame()
 
 		*(frameDataIt++) = DxFrameData(cloth, numSharedPositions, state, mIterationDataHostCopy.size());
 
-		while(state.mRemainingIterations)
+		while (state.mRemainingIterations)
 		{
 			mIterationDataHostCopy.pushBack(DxIterationData(state));
 			state.update();
 		}
 
-		if(cloth.mDeviceParticlesDirty)
+		if (cloth.mDeviceParticlesDirty)
 			cloth.mParticles = cloth.mParticlesHostCopy;
 
 		// copy to device
@@ -329,7 +340,7 @@ void cloth::DxSolver::executeKernel()
 {
 	DxContextLock contextLock(mFactory);
 
-	if(mClothDataDirty)
+	if (mClothDataDirty)
 	{
 		NV_CLOTH_ASSERT(mClothDataHostCopy.size() == mClothData.size());
 		mClothData = mClothDataHostCopy;
@@ -340,24 +351,25 @@ void cloth::DxSolver::executeKernel()
 	{
 		context->CSSetShader(mFactory.mSolverKernelComputeShader, NULL, 0);
 
-		ID3D11ShaderResourceView* resourceViews[17] = {
+		ID3D11ShaderResourceView* resourceViews[18] = {
 			mClothData.mBuffer.resourceView(), /*mFrameData.mBuffer.resourceView()*/NULL,
 			mIterationData.mBuffer.resourceView(), mFactory.mPhaseConfigs.mBuffer.resourceView(),
 			mFactory.mConstraints.mBuffer.resourceView(), mFactory.mTethers.mBuffer.resourceView(),
 			mFactory.mCapsuleIndicesDeviceCopy.resourceView(), mFactory.mCollisionSpheresDeviceCopy.resourceView(),
 			mFactory.mConvexMasksDeviceCopy.resourceView(), mFactory.mCollisionPlanesDeviceCopy.resourceView(),
-			mFactory.mCollisionTriangles.mBuffer.resourceView(),
+			mFactory.mCollisionTrianglesDeviceCopy.resourceView(),
 			mFactory.mMotionConstraints.mBuffer.resourceView(),
 			mFactory.mSeparationConstraints.mBuffer.resourceView(),
 			mFactory.mParticleAccelerations.mBuffer.resourceView(),
 			mFactory.mRestPositionsDeviceCopy.resourceView(),
 			mFactory.mSelfCollisionIndices.mBuffer.resourceView(),
-			mFactory.mStiffnessValues.mBuffer.resourceView()
+			mFactory.mStiffnessValues.mBuffer.resourceView(),
+			mFactory.mTriangles.mBuffer.resourceView()
 		};
-		context->CSSetShaderResources(0, 17, resourceViews);
+		context->CSSetShaderResources(0, 18, resourceViews);
 
 		ID3D11UnorderedAccessView* accessViews[4] = {
-			mFactory.mParticles.mBuffer.accessView(),
+			mFactory.mParticles.mBuffer.accessViewRaw(),
 			mFactory.mSelfCollisionParticles.mBuffer.accessView(),
 			mFactory.mSelfCollisionData.mBuffer.accessView(),
 			mFrameData.mBuffer.accessView()
@@ -401,7 +413,7 @@ void cloth::DxSolver::executeKernel()
 	}
 
 	// copy particle data from device to host
-	for(auto it : mCloths)
+	for (auto it : mCloths)
 	{
 		it->mParticlesHostCopy = it->mParticles;
 	}
@@ -411,7 +423,7 @@ void cloth::DxSolver::executeKernel()
 #if PX_DEBUG
 	// cpu synchronization
 	context->End(mSyncQuery);
-	while(context->GetData(mSyncQuery, nullptr, 0, 0));
+	while (context->GetData(mSyncQuery, nullptr, 0, 0));
 #endif
 }
 
@@ -421,7 +433,7 @@ void cloth::DxSolver::endFrame()
 
 	DxFrameData* fIt = mFrameDataHostCopy.map(D3D11_MAP_READ);
 	ClothVector::Iterator cIt, cEnd = mCloths.end();
-	for(cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++fIt)
+	for (cIt = mCloths.begin(); cIt != cEnd; ++cIt, ++fIt)
 	{
 		DxCloth& cloth = **cIt;
 
@@ -436,25 +448,25 @@ void cloth::DxSolver::endFrame()
 		// don't clear host copy because nothing is being uploaded yet
 		// cloth.mSeparationConstraints.mHostCopy.resize(0);
 
-		if(!cloth.mTargetCollisionSpheres.empty())
+		if (!cloth.mTargetCollisionSpheres.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionSpheres, cloth.mTargetCollisionSpheres);
 			cloth.mTargetCollisionSpheres.resize(0);
 		}
 
-		if(!cloth.mTargetCollisionPlanes.empty())
+		if (!cloth.mTargetCollisionPlanes.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionPlanes, cloth.mTargetCollisionPlanes);
 			cloth.mTargetCollisionPlanes.resize(0);
 		}
 
-		if(!cloth.mTargetCollisionTriangles.empty())
+		if (!cloth.mTargetCollisionTriangles.empty())
 		{
 			shdfnd::swap(cloth.mStartCollisionTriangles, cloth.mTargetCollisionTriangles);
 			cloth.mTargetCollisionTriangles.resize(0);
 		}
 
-		for(uint32_t i = 0; i < 3; ++i)
+		for (uint32_t i = 0; i < 3; ++i)
 		{
 			float upper = fIt->mParticleBounds[i * 2 + 0];
 			float negativeLower = fIt->mParticleBounds[i * 2 + 1];
@@ -480,9 +492,9 @@ void cloth::DxSolver::endFrame()
 
 void cloth::DxSolver::interCollision()
 {
-	if(!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
+	if (!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
 		return;
-	if(mInterCollisionFilter == nullptr)
+	if (mInterCollisionFilter == nullptr)
 	{
 		NV_CLOTH_LOG_WARNING("Inter collision will not work unless an inter collision filter is set using Solver::setInterCollisionFilter.");
 		return;
@@ -493,7 +505,7 @@ void cloth::DxSolver::interCollision()
 	// rebuild cloth instance array
 	mInterCollisionInstances.resize(0);
 	DxFrameData* frameData = mFrameDataHostCopy.map(D3D11_MAP_READ);
-	for(uint32_t i = 0, n = mCloths.size(); i < n; ++i)
+	for (uint32_t i = 0, n = mCloths.size(); i < n; ++i)
 	{
 		DxCloth& cloth = *mCloths[i];
 
@@ -502,7 +514,7 @@ void cloth::DxSolver::interCollision()
 		NV_CLOTH_ASSERT(!cloth.mHostParticlesDirty);
 		PxVec4* particles = cloth.mParticlesMapPointer;
 		uint32_t* indices = NULL, numIndices = cloth.mNumParticles;
-		if(!cloth.mSelfCollisionIndices.empty())
+		if (!cloth.mSelfCollisionIndices.empty())
 		{
 			indices = cloth.mSelfCollisionIndicesHost.begin();
 			numIndices = uint32_t(cloth.mSelfCollisionIndices.size());
@@ -520,9 +532,9 @@ void cloth::DxSolver::interCollision()
 	    SwInterCollision::estimateTemporaryMemory(&mInterCollisionInstances[0], mInterCollisionInstances.size()));
 
 	// realloc temp memory if necessary
-	if(mInterCollisionScratchMemSize < requiredTempMemorySize)
+	if (mInterCollisionScratchMemSize < requiredTempMemorySize)
 	{
-		if(mInterCollisionScratchMem)
+		if (mInterCollisionScratchMem)
 			NV_CLOTH_FREE(mInterCollisionScratchMem);
 
 		mInterCollisionScratchMem = NV_CLOTH_ALLOC(requiredTempMemorySize, "cloth::SwSolver::mInterCollisionScratchMem");
@@ -535,7 +547,7 @@ void cloth::DxSolver::interCollision()
 	SwInterCollision(mInterCollisionInstances.begin(), mInterCollisionInstances.size(), mInterCollisionDistance,
 	                 mInterCollisionStiffness, mInterCollisionIterations, mInterCollisionFilter, allocator)();
 
-	for(uint32_t i = 0, n = mCloths.size(); i < n; ++i)
+	for (uint32_t i = 0, n = mCloths.size(); i < n; ++i)
 		mCloths[i]->unmapParticles();
 }
 

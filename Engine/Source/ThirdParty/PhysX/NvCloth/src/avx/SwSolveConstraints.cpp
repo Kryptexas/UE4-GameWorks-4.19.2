@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -94,7 +94,7 @@ __m256 exp2(const __m256& v)
 	__m256i ix = _mm256_loadu2_m128i(&ix0,&ix1);
 	fx = _mm256_sub_ps(x,_mm256_cvtepi32_ps(ix));
 
-	// exp2(fx) ~ 1 + 2*P(fx) / (Q(fx) - P(fx))
+	// exp2(fx) ~ 1 + 2 * P(fx) / (Q(fx) - P(fx))
 
 	__m256 fx2 = _mm256_mul_ps(fx,fx);
 
@@ -143,7 +143,7 @@ __m256 exp2<2>(const __m256& v)
 	__m256i ix = _mm256_sub_epi32(_mm256_cvttps_epi32(fx), _mm256_srli_epi32(_mm256_castps_si256(fx), 31));
 	fx = _mm256_sub_ps(x,_mm256_cvtepi32_ps(ix));
 
-	// exp2(fx) ~ 1 + 2*P(fx) / (Q(fx) - P(fx))
+	// exp2(fx) ~ 1 + 2 * P(fx) / (Q(fx) - P(fx))
 
 	__m256 fx2 = _mm256_mul_ps(fx,fx);
 
@@ -183,7 +183,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 {
 	__m256 stiffness, stretchLimit, compressionLimit, multiplier;
 
-	if(useMultiplier)
+	if (useMultiplier)
 	{
 		//	  A0          A1            A2              A3            B0          B1            B2              B3
 		// (stiffness, multiplier, compressionLimit, stretchLimit, stiffness, multiplier, compressionLimit, stretchLimit)
@@ -201,7 +201,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 
 	bool useStiffnessPerConstraint = stIt!=nullptr;
 
-	for(; rIt < rEnd; rIt += 8, iIt += 16, stIt+=8)
+	for (; rIt < rEnd; rIt += 8, iIt += 16, stIt += 8)
 	{
 		float* p0i = posIt + iIt[0] * 4;
 		float* p4i = posIt + iIt[8] * 4;
@@ -272,7 +272,7 @@ void solveConstraints(float* __restrict posIt, const float* __restrict rIt, cons
 		__m256 mask = _mm256_cmp_ps(rij, sEpsilon, _CMP_GT_OQ);
 		__m256 erij = _mm256_and_ps(fnmadd_ps<avx>(rij, _mm256_rsqrt_ps(e2ij), sOne), mask);
 
-		if(useMultiplier)
+		if (useMultiplier)
 		{
 			erij = fnmadd_ps<avx>(multiplier, _mm256_max_ps(compressionLimit, _mm256_min_ps(erij, stretchLimit)), erij);
 		}

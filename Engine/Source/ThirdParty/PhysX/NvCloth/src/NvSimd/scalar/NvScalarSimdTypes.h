@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -85,7 +85,7 @@ union Scalar4f
 		f4[3] = other.f4[3];
 	}
 
-	Scalar4f& operator=(const Scalar4f& other)
+	Scalar4f& operator = (const Scalar4f& other)
 	{
 		f4[0] = other.f4[0];
 		f4[1] = other.f4[1];
@@ -138,7 +138,7 @@ union Scalar4i
 		u4[3] = other.u4[3];
 	}
 
-	Scalar4i& operator=(const Scalar4i& other)
+	Scalar4i& operator = (const Scalar4i& other)
 	{
 		u4[0] = other.u4[0];
 		u4[1] = other.u4[1];

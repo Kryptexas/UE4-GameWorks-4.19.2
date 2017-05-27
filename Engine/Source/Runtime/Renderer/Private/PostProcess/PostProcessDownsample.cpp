@@ -64,7 +64,7 @@ public:
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		// filter only if needed for better performance
 		FSamplerStateRHIParamRef Filter = (Method == 2) ? 
@@ -204,7 +204,7 @@ public:
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 
 		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, Filter);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), DestUAV);
 		
 		const float PixelScale = (Method == 2) ? 0.5f : 1.0f;

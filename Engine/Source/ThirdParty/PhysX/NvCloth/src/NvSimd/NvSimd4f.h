@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -62,7 +62,7 @@ struct Simd4fScalarFactory
 	explicit Simd4fScalarFactory(const float& s) : value(s)
 	{
 	}
-	Simd4fScalarFactory& operator=(const Simd4fScalarFactory&); // not implemented
+	Simd4fScalarFactory& operator = (const Simd4fScalarFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 
@@ -76,14 +76,20 @@ struct Simd4fTupleFactory
 	Simd4fTupleFactory(float x, float y, float z, float w)
 	// c++11: : tuple{ x, y, z, w }
 	{
-		tuple[0] = x, tuple[1] = y, tuple[2] = z, tuple[3] = w;
+		tuple[0] = x;
+		tuple[1] = y;
+		tuple[2] = z;
+		tuple[3] = w;
 	}
 	Simd4fTupleFactory(unsigned x, unsigned y, unsigned z, unsigned w)
 	{
 		unsigned* ptr = reinterpret_cast<unsigned*>(tuple);
-		ptr[0] = x, ptr[1] = y, ptr[2] = z, ptr[3] = w;
+		ptr[0] = x;
+		ptr[1] = y;
+		ptr[2] = z;
+		ptr[3] = w;
 	}
-	Simd4fTupleFactory& operator=(const Simd4fTupleFactory&); // not implemented
+	Simd4fTupleFactory& operator = (const Simd4fTupleFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	NV_SIMD_ALIGN(16, float) tuple[4];
@@ -96,7 +102,7 @@ struct Simd4fLoadFactory
 	explicit Simd4fLoadFactory(const float* p) : ptr(p)
 	{
 	}
-	Simd4fLoadFactory& operator=(const Simd4fLoadFactory&); // not implemented
+	Simd4fLoadFactory& operator = (const Simd4fLoadFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	const float* const ptr;
@@ -109,7 +115,7 @@ struct Simd4fAlignedLoadFactory
 	explicit Simd4fAlignedLoadFactory(const float* p) : ptr(p)
 	{
 	}
-	Simd4fAlignedLoadFactory& operator=(const Simd4fAlignedLoadFactory&); // not implemented
+	Simd4fAlignedLoadFactory& operator = (const Simd4fAlignedLoadFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	const float* const ptr;
@@ -122,7 +128,7 @@ struct Simd4fLoad3Factory
 	explicit Simd4fLoad3Factory(const float* p) : ptr(p)
 	{
 	}
-	Simd4fLoad3Factory& operator=(const Simd4fLoad3Factory&); // not implemented
+	Simd4fLoad3Factory& operator = (const Simd4fLoad3Factory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	const float* const ptr;
@@ -136,7 +142,7 @@ struct Simd4fLoad3SetWFactory
 	explicit Simd4fLoad3SetWFactory(const float* p, const float wComponent) : ptr(p), w(wComponent)
 	{
 	}
-	Simd4fLoad3SetWFactory& operator=(const Simd4fLoad3SetWFactory&); // not implemented
+	Simd4fLoad3SetWFactory& operator = (const Simd4fLoad3SetWFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	const float* const ptr;
@@ -150,7 +156,7 @@ struct Simd4fOffsetLoadFactory
 	Simd4fOffsetLoadFactory(const float* p, unsigned int off) : ptr(p), offset(off)
 	{
 	}
-	Simd4fOffsetLoadFactory& operator=(const Simd4fOffsetLoadFactory&); // not implemented
+	Simd4fOffsetLoadFactory& operator = (const Simd4fOffsetLoadFactory&); // not implemented
 	inline operator Simd4f() const;
 	inline operator Scalar4f() const;
 	const float* const ptr;
@@ -177,18 +183,18 @@ struct ProductExpr
 	const Simd4f v0, v1;
 
   private:
-	ProductExpr& operator=(const ProductExpr&); // not implemented
+	ProductExpr& operator = (const ProductExpr&); // not implemented
 };
 #else  // NV_SIMD_FUSE_MULTIPLY_ADD
 typedef Simd4f ProductExpr;
 #endif // NV_SIMD_FUSE_MULTIPLY_ADD
 
 // multiply-add expression templates
-inline Simd4f operator+(const ProductExpr&, const Simd4f&);
-inline Simd4f operator+(const Simd4f&, const ProductExpr&);
-inline Simd4f operator+(const ProductExpr&, const ProductExpr&);
-inline Simd4f operator-(const Simd4f&, const ProductExpr&);
-inline Simd4f operator-(const ProductExpr&, const ProductExpr&);
+inline Simd4f operator + (const ProductExpr&, const Simd4f&);
+inline Simd4f operator + (const Simd4f&, const ProductExpr&);
+inline Simd4f operator + (const ProductExpr&, const ProductExpr&);
+inline Simd4f operator - (const Simd4f&, const ProductExpr&);
+inline Simd4f operator - (const ProductExpr&, const ProductExpr&);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // operators
@@ -200,7 +206,7 @@ inline Simd4f operator-(const ProductExpr&, const ProductExpr&);
 * \return Vector of per element result mask (all bits set for 'true', none set for 'false').
 * \note QNaNs aren't handled on SPU: comparing two QNaNs will return true.
 * \relates Simd4f */
-inline Simd4f operator==(const Simd4f& v0, const Simd4f& v1);
+inline Simd4f operator == (const Simd4f& v0, const Simd4f& v1);
 
 // no operator!= because VMX128 does not support it, use ~operator== and handle QNaNs
 
@@ -214,7 +220,7 @@ inline Simd4f operator<(const Simd4f& v0, const Simd4f& v1);
 * \return Vector of per element result mask (all bits set for 'true', none set for 'false').
 * \note QNaNs aren't handled on SPU: comparisons against QNaNs don't necessarily return false.
 * \relates Simd4f */
-inline Simd4f operator<=(const Simd4f& v0, const Simd4f& v1);
+inline Simd4f operator <= (const Simd4f& v0, const Simd4f& v1);
 
 /*! \brief Greater-compare all elements of two vectors.
 * \return Vector of per element result mask (all bits set for 'true', none set for 'false').
@@ -226,7 +232,7 @@ inline Simd4f operator>(const Simd4f& v0, const Simd4f& v1);
 * \return Vector of per element result mask (all bits set for 'true', none set for 'false').
 * \note QNaNs aren't handled on SPU: comparisons against QNaNs don't necessarily return false.
 * \relates Simd4f */
-inline Simd4f operator>=(const Simd4f& v0, const Simd4f& v1);
+inline Simd4f operator >= (const Simd4f& v0, const Simd4f& v1);
 
 /*! \brief Vector bit-wise NOT operator
 * \return A vector holding the bit-negate of \a v.
@@ -273,22 +279,22 @@ inline Simd4f operator>>(const Simd4f& v, const Simd4f& shift);
 /*! \brief Unary vector addition operator.
 * \return A vector holding the component-wise copy of \a v.
 * \relates Simd4f */
-inline Simd4f operator+(const Simd4f& v);
+inline Simd4f operator + (const Simd4f& v);
 
 /*! \brief Vector addition operator
 * \return A vector holding the component-wise sum of \a v0 and \a v1.
 * \relates Simd4f */
-inline Simd4f operator+(const Simd4f& v0, const Simd4f& v1);
+inline Simd4f operator + (const Simd4f& v0, const Simd4f& v1);
 
 /*! \brief Unary vector negation operator.
 * \return A vector holding the component-wise negation of \a v.
 * \relates Simd4f */
-inline Simd4f operator-(const Simd4f& v);
+inline Simd4f operator - (const Simd4f& v);
 
 /*! \brief Vector subtraction operator.
 * \return A vector holding the component-wise difference of \a v0 and \a v1.
 * \relates Simd4f */
-inline Simd4f operator-(const Simd4f& v0, const Simd4f& v1);
+inline Simd4f operator - (const Simd4f& v0, const Simd4f& v1);
 
 /*! \brief Vector multiplication.
 * \return Element-wise product of \a v0 and \a v1.

@@ -10,9 +10,6 @@
 #include "Misc/ScopeLock.h"
 #include "Misc/CommandLine.h"
 
-// UE4 has a Max of 8 RTs, but we can spend less time looping with 6
-const uint32 MaxMetalRenderTargets = 6;
-
 // Requirement for vertex buffer offset field
 const uint32 BufferOffsetAlignment = 256;
 

@@ -74,7 +74,7 @@
 #endif
 
 #if PX_NX
-#include "nx/NpMiddlewareInfo.h"
+#include "Switch/NpMiddlewareInfo.h"
 #endif
 
 using namespace physx;

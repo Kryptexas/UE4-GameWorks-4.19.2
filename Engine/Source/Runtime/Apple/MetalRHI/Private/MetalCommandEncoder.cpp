@@ -38,7 +38,7 @@ FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 	
 	RingBuffer = MakeShareable(new FRingBuffer(CommandList.GetCommandQueue().GetDevice(), ResOptions, EncoderRingBufferSize, BufferOffsetAlignment));
 	
-	for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+	for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 	{
 		ColorStoreActions[i] = MTLStoreActionUnknown;
 	}
@@ -84,7 +84,7 @@ void FMetalCommandEncoder::Reset(void)
 	static bool bDeferredStoreActions = CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesDeferredStoreActions);
 	if (bDeferredStoreActions)
 	{
-		for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+		for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 		{
 			ColorStoreActions[i] = MTLStoreActionUnknown;
 		}
@@ -350,7 +350,7 @@ id<MTLFence> FMetalCommandEncoder::EndEncoding(void)
 			{
 				check(RenderPassDesc);
 				
-				for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+				for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 				{
 					if (ColorStoreActions[i] != MTLStoreActionUnknown && RenderPassDesc.colorAttachments[i].storeAction == MTLStoreActionUnknown)
 					{
@@ -562,7 +562,7 @@ void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* cons
 		static bool bDeferredStoreActions = CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesDeferredStoreActions);
 		if (bDeferredStoreActions)
 		{
-			for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+			for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 			{
 				ColorStoreActions[i] = MTLStoreActionUnknown;
 			}
@@ -581,7 +581,7 @@ void FMetalCommandEncoder::SetRenderPassStoreActions(MTLStoreAction const* const
 	static bool bDeferredStoreActions = CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesDeferredStoreActions);
 	if (bDeferredStoreActions)
 	{
-		for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+		for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 		{
 			ColorStoreActions[i] = ColorStore[i];
 		}

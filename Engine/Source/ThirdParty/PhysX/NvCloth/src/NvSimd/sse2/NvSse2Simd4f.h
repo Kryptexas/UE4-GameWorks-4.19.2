@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -115,7 +115,7 @@ inline Simd4f operator&(const Simd4f& v, const ComplementExpr<Simd4f>& complemen
 // operator implementations
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Simd4f operator==(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator == (const Simd4f& v0, const Simd4f& v1)
 {
 	return _mm_cmpeq_ps(v0, v1);
 }
@@ -125,7 +125,7 @@ Simd4f operator<(const Simd4f& v0, const Simd4f& v1)
 	return _mm_cmplt_ps(v0, v1);
 }
 
-Simd4f operator<=(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator <= (const Simd4f& v0, const Simd4f& v1)
 {
 	return _mm_cmple_ps(v0, v1);
 }
@@ -135,7 +135,7 @@ Simd4f operator>(const Simd4f& v0, const Simd4f& v1)
 	return _mm_cmpgt_ps(v0, v1);
 }
 
-Simd4f operator>=(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator >= (const Simd4f& v0, const Simd4f& v1)
 {
 	return _mm_cmpge_ps(v0, v1);
 }
@@ -170,22 +170,22 @@ Simd4f operator>>(const Simd4f& v, int shift)
 	return _mm_castsi128_ps(_mm_srli_epi32(_mm_castps_si128(v), shift));
 }
 
-Simd4f operator+(const Simd4f& v)
+Simd4f operator + (const Simd4f& v)
 {
 	return v;
 }
 
-Simd4f operator+(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator + (const Simd4f& v0, const Simd4f& v1)
 {
 	return _mm_add_ps(v0, v1);
 }
 
-Simd4f operator-(const Simd4f& v)
+Simd4f operator - (const Simd4f& v)
 {
 	return _mm_xor_ps(_mm_castsi128_ps(_mm_set1_epi32(0x80000000)), v);
 }
 
-Simd4f operator-(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator - (const Simd4f& v0, const Simd4f& v1)
 {
 	return _mm_sub_ps(v0, v1);
 }
@@ -295,7 +295,7 @@ Simd4f recip(const Simd4f& v)
 {
 	Simd4f two = simd4f(2.0f);
 	Simd4f r = recip(v);
-	for(int i = 0; i < n; ++i)
+	for (int i = 0; i < n; ++i)
 		r = r * (two - v * r);
 	return r;
 }
@@ -316,7 +316,7 @@ Simd4f rsqrt(const Simd4f& v)
 	Simd4f halfV = v * simd4f(0.5f);
 	Simd4f threeHalf = simd4f(1.5f);
 	Simd4f r = rsqrt(v);
-	for(int i = 0; i < n; ++i)
+	for (int i = 0; i < n; ++i)
 		r = r * (threeHalf - halfV * r * r);
 	return r;
 }
@@ -334,7 +334,7 @@ Simd4f exp2(const Simd4f& v)
 	Simd4i ix = _mm_sub_epi32(_mm_cvttps_epi32(fx), _mm_srli_epi32(_mm_castps_si128(fx), 31));
 	fx = x - Simd4f(_mm_cvtepi32_ps(ix));
 
-	// exp2(fx) ~ 1 + 2*P(fx) / (Q(fx) - P(fx))
+	// exp2(fx) ~ 1 + 2 * P(fx) / (Q(fx) - P(fx))
 
 	Simd4f fx2 = fx * fx;
 

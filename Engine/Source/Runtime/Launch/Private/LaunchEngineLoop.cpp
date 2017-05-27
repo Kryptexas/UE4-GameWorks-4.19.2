@@ -3814,6 +3814,11 @@ void FEngineLoop::AppPreExit( )
 
 void FEngineLoop::AppExit( )
 {
+#if !WITH_ENGINE
+	// when compiled WITH_ENGINE, this will happen in FEngineLoop::Exit()
+	FTaskGraphInterface::Shutdown();
+#endif // WITH_ENGINE
+
 	UE_LOG(LogExit, Log, TEXT("Exiting."));
 
 	FPlatformMisc::PlatformTearDown();

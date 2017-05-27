@@ -489,7 +489,7 @@ struct PxPackValidation
 };
 #endif
 // clang that we use for Linux cannot align doubles on 8 byte boundary (as of version 3.9) when compiling for Intel 32 bit target
-#if !PX_APPLE_FAMILY && !PX_EMSCRIPTEN && !(PX_LINUX && PX_X86)
+#if !PX_APPLE_FAMILY && !PX_EMSCRIPTEN && !(PX_CLANG && PX_LINUX_FAMILY && PX_X86)
 PX_COMPILE_TIME_ASSERT(PX_OFFSET_OF(PxPackValidation, a) == 8);
 #endif
 
@@ -532,6 +532,12 @@ protected:                                                                      
 #endif
 
 #define PX_SUPPORT_COMPUTE_PHYSX 0
+
+#ifndef PX_SUPPORT_EXTERN_TEMPLATE
+#define PX_SUPPORT_EXTERN_TEMPLATE ((!PX_ANDROID) && (PX_VC != 11))
+#else
+#define PX_SUPPORT_EXTERN_TEMPLATE 0
+#endif
 
 /** @} */
 #endif // #ifndef PXFOUNDATION_PXPREPROCESSOR_H

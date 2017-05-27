@@ -317,7 +317,8 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 #if WITH_EDITOR
 	if (GIsEditor && HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		GLevelEditorModeTools().OnEditorModeChanged().AddUObject(this, &UNavigationSystem::OnEditorModeChanged);
+		FEditorDelegates::EditorModeEnter.AddUObject(this, &UNavigationSystem::OnEditorModeChanged, true);
+		FEditorDelegates::EditorModeExit.AddUObject(this, &UNavigationSystem::OnEditorModeChanged, false);
 	}
 #endif // WITH_EDITOR
 }
@@ -329,7 +330,8 @@ UNavigationSystem::~UNavigationSystem()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
-		GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+		FEditorDelegates::EditorModeEnter.RemoveAll(this);
+		FEditorDelegates::EditorModeExit.RemoveAll(this);
 	}
 #endif // WITH_EDITOR
 }

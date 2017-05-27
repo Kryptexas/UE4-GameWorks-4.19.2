@@ -3229,6 +3229,8 @@ FGuid FSequencer::AddSpawnable(UObject& Object)
 
 	FGuid NewGuid = OwnerMovieScene->AddSpawnable(NewSpawnable.Name, *NewSpawnable.ObjectTemplate);
 
+	ForceEvaluate();
+
 	UpdateRuntimeInstances();
 	
 	return NewGuid;
@@ -3521,7 +3523,7 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 			{
 				FMovieSceneSpawnable* Spawnable = ConvertToSpawnableInternal(PossessableGuid);
 
-				UpdateRuntimeInstances();
+				ForceEvaluate();
 
 				for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Spawnable->GetGuid(), ActiveTemplateIDs.Top()))
 				{
@@ -3560,7 +3562,7 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 				{
 					FMovieSceneSpawnable* Spawnable = ConvertToSpawnableInternal(NewCameraGuid);
 
-					UpdateRuntimeInstances();
+					ForceEvaluate();
 
 					for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Spawnable->GetGuid(), ActiveTemplateIDs.Top()))
 					{
@@ -4832,7 +4834,7 @@ void FSequencer::ConvertSelectedNodesToSpawnables()
 
 			if (Spawnable)
 			{
-				UpdateRuntimeInstances();
+				ForceEvaluate();
 
 				for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Spawnable->GetGuid(), ActiveTemplateIDs.Top()))
 				{
@@ -4987,7 +4989,7 @@ void FSequencer::ConvertSelectedNodesToPossessables()
 			{
 				FMovieScenePossessable* Possessable = ConvertToPossessableInternal(Spawnable->GetGuid());
 
-				UpdateRuntimeInstances();
+				ForceEvaluate();
 
 				for (TWeakObjectPtr<> WeakObject : FindBoundObjects(Possessable->GetGuid(), ActiveTemplateIDs.Top()))
 				{

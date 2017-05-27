@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -55,7 +55,7 @@ class StackAllocator
 	};
 
 	StackAllocator(const StackAllocator&);
-	StackAllocator& operator=(const StackAllocator&);
+	StackAllocator& operator = (const StackAllocator&);
 
   public:
 	StackAllocator(void* buffer, size_t bufferSize)
@@ -71,7 +71,7 @@ class StackAllocator
 	void* allocate(size_t numBytes)
 	{
 		// this is non-standard
-		if(!numBytes)
+		if (!numBytes)
 			return 0;
 
 		uintptr_t unalignedStart = uintptr_t(mFreeStart) + sizeof(Header);
@@ -95,14 +95,14 @@ class StackAllocator
 
 	void deallocate(void* p)
 	{
-		if(!p)
+		if (!p)
 			return;
 
 		Header* h = getHeader(p);
 		h->mFree = true;
 
 		// unwind the stack to the next live alloc
-		while(mTop && mTop->mFree)
+		while (mTop && mTop->mFree)
 		{
 			mFreeStart = reinterpret_cast<byte*>(mTop);
 			mTop = mTop->mPrev;
@@ -126,7 +126,7 @@ class StackAllocator
 	{
 		size_t total = 0;
 		Header* iter = mTop;
-		while(iter)
+		while (iter)
 		{
 			total += iter->mSize;
 			iter = iter->mPrev;

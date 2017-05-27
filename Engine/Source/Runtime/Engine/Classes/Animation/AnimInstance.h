@@ -710,14 +710,6 @@ private:
 	/** Used to guard against recursive calls to UpdateAnimation */
 	bool bPostUpdatingAnimation;
 
-#if WITH_EDITOR
-	/** Delegate for custom animation curve addition */
-	TArray<FOnAddCustomAnimationCurves> OnAddAnimationCurves;
-public:
-	/** Add custom curve delegates */
-	void AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
-	void RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
-#endif // editor only for now
 public:
 
 	/** Is this animation currently running post update */

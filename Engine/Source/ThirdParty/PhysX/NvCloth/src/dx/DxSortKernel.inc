@@ -75,7 +75,7 @@ uint32_t reduceWarps(uint32_t threadIdx, uint32_t laneIdx, uint32_t warpIdx, uin
 #endif
 		{
 			uint32_t bits = ((keyDigit & 1) - 1 ^ ballot[0]) & (!!(keyDigit & 2) - 1 ^ ballot[1]) & (!!(keyDigit & 4) - 1 ^ ballot[2]) & (!!(keyDigit & 8) - 1 ^ ballot[3]);
-			index = sortShared.getScan(scanOut + warpIdx + keyDigit*WarpsPerBlock) + countbits(bits & laneMask);
+			index = sortShared.getScan(scanOut + warpIdx + keyDigit * WarpsPerBlock) + countbits(bits & laneMask);
 		}
 		if (threadPos < threadEnd)
 		{
@@ -88,7 +88,7 @@ uint32_t reduceWarps(uint32_t threadIdx, uint32_t laneIdx, uint32_t warpIdx, uin
 #endif
 			if (laneIdx < 16)
 			{
-				int scanIdx = scanOut + warpIdx + laneIdx*WarpsPerBlock;
+				int scanIdx = scanOut + warpIdx + laneIdx * WarpsPerBlock;
 				sortShared.setScan(scanIdx, sortShared.getScan(scanIdx) + countbits((mask1 ^ ballot[0]) & (mask2 ^ ballot[1]) & (mask4 ^ ballot[2]) & (mask8 ^ ballot[3])));
 			}
 	}
@@ -137,7 +137,7 @@ void radixSort_BitCount(uint32_t threadIdx, uint32_t n, ISortElements sortElemen
 
 		if (laneIdx < 16)
 		{
-			sortShared.setScan(1 + warpIdx + laneIdx*WarpsPerBlock, warpCount);
+			sortShared.setScan(1 + warpIdx + laneIdx * WarpsPerBlock, warpCount);
 		}
 		GroupMemoryBarrierWithGroupSync();
 
@@ -152,7 +152,7 @@ void radixSort_BitCount(uint32_t threadIdx, uint32_t n, ISortElements sortElemen
 		uint32_t scanOut = 2 + ScanCount;
 
 		//if (threadIdx < ScanCount)
-		//	bSortElements[n*2 + threadIdx] = gScan[scanIn + threadIdx];
+		//	bSortElements[n * 2 + threadIdx] = gScan[scanIn + threadIdx];
 
 		{
 			[unroll]
@@ -174,7 +174,7 @@ void radixSort_BitCount(uint32_t threadIdx, uint32_t n, ISortElements sortElemen
 		}
 
 		//if (threadIdx < ScanCount)
-		//	bSortElements[n*2 + ScanCount + threadIdx] = gScan[scanIn + threadIdx];
+		//	bSortElements[n * 2 + ScanCount + threadIdx] = gScan[scanIn + threadIdx];
 
 		scanIn -= 1; //make scan exclusive!
 		// split indices

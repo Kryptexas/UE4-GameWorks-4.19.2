@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -42,24 +42,24 @@ cloth::TripletScheduler::TripletScheduler(Range<const uint32_t[4]> triplets)
 // SSE version
 void cloth::TripletScheduler::simd(uint32_t numParticles, uint32_t simdWidth)
 {
-	if(mTriplets.empty())
+	if (mTriplets.empty())
 		return;
 
 	Vector<uint32_t>::Type mark(numParticles, uint32_t(-1));
 
 	uint32_t setIndex = 0, setSize = 0;
-	for(TripletIter tIt = mTriplets.begin(), tEnd = mTriplets.end(); tIt != tEnd; ++setIndex)
+	for (TripletIter tIt = mTriplets.begin(), tEnd = mTriplets.end(); tIt != tEnd; ++setIndex)
 	{
 		TripletIter tLast = tIt + std::min(simdWidth, uint32_t(tEnd - tIt));
 		TripletIter tSwap = tEnd;
 
-		for(; tIt != tLast && tIt != tSwap; ++tIt, ++setSize)
+		for (; tIt != tLast && tIt != tSwap; ++tIt, ++setSize)
 		{
 			// swap from tail until independent triplet found
-			while((mark[tIt->x] == setIndex || mark[tIt->y] == setIndex || mark[tIt->z] == setIndex) && tIt != --tSwap)
+			while ((mark[tIt->x] == setIndex || mark[tIt->y] == setIndex || mark[tIt->z] == setIndex) && tIt != --tSwap)
 				std::iter_swap(tIt, tSwap);
 
-			if(tIt == tSwap)
+			if (tIt == tSwap)
 				break; // no independent triplet found
 
 			// mark vertices to be used in simdIndex
@@ -68,9 +68,9 @@ void cloth::TripletScheduler::simd(uint32_t numParticles, uint32_t simdWidth)
 			mark[tIt->z] = setIndex;
 		}
 
-		if(tIt == tSwap) // remaining triplets depend on current set
+		if (tIt == tSwap) // remaining triplets depend on current set
 		{
-			if(setSize > simdWidth) // trim set to multiple of simdWidth
+			if (setSize > simdWidth) // trim set to multiple of simdWidth
 			{
 				uint32_t overflow = setSize % simdWidth;
 				setSize -= overflow;
@@ -122,13 +122,13 @@ struct GreaterSum
 template <typename Iter>
 void prefixSum(Iter first, Iter last, Iter dest)
 {
-	if(first == last)
+	if (first == last)
 		return;
 	else
 	{
 		*(dest++) = *(first++);
 
-		for(; first != last; ++first, ++dest)
+		for (; first != last; ++first, ++dest)
 			*dest = *(dest - 1) + *first;
 	}
 }
@@ -139,7 +139,7 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 {
 	// NV_CLOTH_ASSERT(warpWidth == 32 || warpWidth == 16);
 
-	if(mTriplets.empty())
+	if (mTriplets.empty())
 		return;
 
 	TripletIter tIt, tEnd = mTriplets.end();
@@ -147,8 +147,8 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 
 	// count number of triplets per particle
 	Vector<uint32_t>::Type adjacentCount(numParticles + 1, uint32_t(0));
-	for(tIt = mTriplets.begin(); tIt != tEnd; ++tIt)
-		for(int i = 0; i < 3; ++i)
+	for (tIt = mTriplets.begin(); tIt != tEnd; ++tIt)
+		for (int i = 0; i < 3; ++i)
 			++adjacentCount[(*tIt)[i]];
 
 	/* neither of those were really improving number of batches:
@@ -166,8 +166,8 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 	// initialize adjacencies (for each particle, collect touching triplets)
 	// also converts partial sum in adjacentCount from inclusive to exclusive
 	Vector<uint32_t>::Type adjacencies(adjacentCount.back());
-	for(tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++tripletIndex)
-		for(int i = 0; i < 3; ++i)
+	for (tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++tripletIndex)
+		for (int i = 0; i < 3; ++i)
 			adjacencies[--adjacentCount[(*tIt)[i]]] = tripletIndex;
 
 	uint32_t warpMask = warpWidth - 1;
@@ -179,39 +179,42 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 
 	// color triplets (assign to sets)
 	Vector<uint32_t>::Type::ConstIterator aBegin = adjacencies.begin(), aIt, aEnd;
-	for(tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++tripletIndex)
+	for (tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++tripletIndex)
 	{
 		// mark sets of adjacent triplets
-		for(int i = 0; i < 3; ++i)
+		for (int i = 0; i < 3; ++i)
 		{
 			uint32_t particleIndex = (*tIt)[i];
 			aIt = aBegin + adjacentCount[particleIndex];
 			aEnd = aBegin + adjacentCount[particleIndex + 1];
-			for(uint32_t setIndex; aIt != aEnd; ++aIt)
-				if(numSets > (setIndex = setIndices[*aIt]))
+			for (uint32_t setIndex; aIt != aEnd; ++aIt)
+				if (numSets > (setIndex = setIndices[*aIt]))
 					sets[setIndex].mMark = tripletIndex;
 		}
 
 		// find valid set with smallest number of bank conflicts
 		uint32_t bestIndex = numSets;
 		uint32_t minReplays = 4;
-		for(uint32_t setIndex = 0; setIndex < numSets && minReplays; ++setIndex)
+		for (uint32_t setIndex = 0; setIndex < numSets && minReplays; ++setIndex)
 		{
 			const TripletSet& set = sets[setIndex];
 
-			if(set.mMark == tripletIndex)
+			if (set.mMark == tripletIndex)
 				continue; // triplet collision
 
 			uint32_t numReplays = 0;
-			for(uint32_t i = 0; i < 3; ++i)
+			for (uint32_t i = 0; i < 3; ++i)
 				numReplays += set.mNumReplays[i] == set.mNumConflicts[i][warpMask & (*tIt)[i]];
 
-			if(minReplays > numReplays)
-				minReplays = numReplays, bestIndex = setIndex;
+			if (minReplays > numReplays)
+			{
+				minReplays = numReplays;
+				bestIndex = setIndex;
+			}
 		}
 
 		// add new set if none found
-		if(bestIndex == numSets)
+		if (bestIndex == numSets)
 		{
 			sets.pushBack(TripletSet());
 			mSetSizes.pushBack(0);
@@ -220,8 +223,8 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 
 		// increment bank conflicts or reset if warp filled
 		TripletSet& set = sets[bestIndex];
-		if(++mSetSizes[bestIndex] & warpMask)
-			for(uint32_t i = 0; i < 3; ++i)
+		if (++mSetSizes[bestIndex] & warpMask)
+			for (uint32_t i = 0; i < 3; ++i)
 				set.mNumReplays[i] = std::max(set.mNumReplays[i], ++set.mNumConflicts[i][warpMask & (*tIt)[i]]);
 		else
 			set = TripletSet();
@@ -235,7 +238,7 @@ void cloth::TripletScheduler::warp(uint32_t numParticles, uint32_t warpWidth)
 
 	Vector<Vec4u>::Type triplets(mTriplets.size());
 	Vector<uint32_t>::Type::ConstIterator iIt = setIndices.begin();
-	for(tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++iIt)
+	for (tIt = mTriplets.begin(), tripletIndex = 0; tIt != tEnd; ++tIt, ++iIt)
 		triplets[--setOffsets[*iIt]] = *tIt;
 
 	mTriplets.swap(triplets);

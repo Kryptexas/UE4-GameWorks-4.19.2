@@ -878,7 +878,6 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 		UpdateGLVersionWarning();
 	}
-	ITargetPlatform* TargetPlatform = FModuleManager::GetModuleChecked<ITargetPlatformModule>("IOSTargetPlatform").GetTargetPlatform();
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);

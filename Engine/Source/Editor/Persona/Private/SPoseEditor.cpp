@@ -301,18 +301,13 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 	EditableSkeletonPtr = InEditableSkeleton;
 	PoseAssetPtr = InArgs._PoseAsset;
 
-	CachedPreviewInstance = nullptr;
-
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
-	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SPoseViewer::OnAssetChanged));
 
 	OnDelegatePoseListChangedDelegateHandle = PoseAssetPtr->RegisterOnPoseListChanged(UPoseAsset::FOnPoseListChanged::CreateSP(this, &SPoseViewer::OnPoseAssetModified));
 
 	// Register and bind all our menu commands
 	FPoseEditorCommands::Register();
 	BindCommands();
-
-	RefreshCachePreviewInstance();
 
 	ChildSlot
 	[
@@ -398,34 +393,8 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 	CreateCurveList();
 }
 
-void SPoseViewer::OnAssetChanged(UAnimationAsset* NewAsset) 
-{
-	// this is odd that we're adding delegate
-	// this is because we're caching anim instance here
-	// and that change won't make it when this is constructed
-	// but so this is to refresh cached anim instance
-	RefreshCachePreviewInstance();
-}
-
-void SPoseViewer::RefreshCachePreviewInstance()
-{
-	if (CachedPreviewInstance.IsValid() && OnAddAnimationCurveDelegate.IsBound())
-	{
-		CachedPreviewInstance.Get()->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-	CachedPreviewInstance = Cast<UAnimSingleNodeInstance>(PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance());
-
-	if (CachedPreviewInstance.IsValid())
-	{
-		OnAddAnimationCurveDelegate.Unbind();
-		OnAddAnimationCurveDelegate.BindRaw(this, &SPoseViewer::ApplyCustomCurveOverride);
-		CachedPreviewInstance.Get()->AddDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-}
-
 void SPoseViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
-	RefreshCachePreviewInstance();
 	CreatePoseList(NameFilterBox->GetText().ToString());
 	CreateCurveList(NameFilterBox->GetText().ToString());
 }
@@ -773,9 +742,10 @@ void SPoseViewer::AddCurveOverride(const FName& Name, float Weight)
 	float& Value = OverrideCurves.FindOrAdd(Name);
 	Value = Weight;
 
-	if (CachedPreviewInstance.IsValid())
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
+	if (SingleNodeInstance)
 	{
-		CachedPreviewInstance->SetPreviewCurveOverride(Name, Value, false);
+		SingleNodeInstance->SetPreviewCurveOverride(Name, Value, false);
 	}
 }
 
@@ -783,9 +753,10 @@ void SPoseViewer::RemoveCurveOverride(FName& Name)
 {
 	OverrideCurves.Remove(Name);
 
-	if (CachedPreviewInstance.IsValid())
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
+	if (SingleNodeInstance)
 	{
-		CachedPreviewInstance->SetPreviewCurveOverride(Name, 0.f, true);
+		SingleNodeInstance->SetPreviewCurveOverride(Name, 0.f, true);
 	}
 }
 
@@ -793,14 +764,6 @@ SPoseViewer::~SPoseViewer()
 {
 	if (PreviewScenePtr.IsValid())
 	{
-		// @Todo: change this in curve editor
-		// and it won't work with this one delegate idea, so just think of a better way to do
-		// if persona isn't there, we probably don't have the preview mesh either, so no valid anim instance
-		if (CachedPreviewInstance.IsValid() && OnAddAnimationCurveDelegate.IsBound())
-		{
-			CachedPreviewInstance.Get()->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-		}
-
 		PreviewScenePtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PreviewScenePtr.Pin()->UnregisterOnAnimChanged(this);
 	}
@@ -844,6 +807,11 @@ void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
 		// @todo we might want to save original curve flags? or just change curve to apply flags only
 		AnimInstance->AddCurveValue(Iter.Key(), Iter.Value());
 	}
+}
+
+UAnimInstance* SPoseViewer::GetAnimInstance() const
+{
+	return PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance();
 }
 
 bool SPoseViewer::ModifyName(FName OldName, FName NewName, bool bSilence)

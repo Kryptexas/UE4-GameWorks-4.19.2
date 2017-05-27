@@ -51,7 +51,7 @@ public class OpenVR : ModuleRules
 			string OpenVRBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/OpenVR/OpenVR{0}/osx32/", OpenVRVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(OpenVRBinariesDir + "libopenvr_api.dylib"));
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 		{
 			PublicLibraryPaths.Add(LibraryPath + "linux64");
 			PublicAdditionalLibraries.Add("openvr_api");

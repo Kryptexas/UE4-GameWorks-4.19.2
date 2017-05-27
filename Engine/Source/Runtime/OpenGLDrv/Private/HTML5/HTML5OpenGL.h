@@ -125,7 +125,12 @@ struct FHTML5OpenGL : public FOpenGLES2
 
 	static FORCEINLINE void BlitFramebuffer(GLint SrcX0, GLint SrcY0, GLint SrcX1, GLint SrcY1, GLint DstX0, GLint DstY0, GLint DstX1, GLint DstY1, GLbitfield Mask, GLenum Filter)
 	{
-		glBlitFramebuffer(SrcX0, SrcY0, SrcX1, SrcY1, DstX0, DstY0, DstX1, DstY1, Mask, Filter);
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glBlitFramebuffer(SrcX0, SrcY0, SrcX1, SrcY1, DstX0, DstY0, DstX1, DstY1, Mask, Filter);
+		}
+#endif
 	}
 
 	static FORCEINLINE void DrawArraysInstanced(GLenum Mode, GLint First, GLsizei Count, GLsizei InstanceCount)
@@ -154,17 +159,32 @@ struct FHTML5OpenGL : public FOpenGLES2
 
 	static FORCEINLINE void ClearBufferfv(GLenum Buffer, GLint DrawBufferIndex, const GLfloat* Value)
 	{
-		glClearBufferfv(Buffer, DrawBufferIndex, Value);
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glClearBufferfv(Buffer, DrawBufferIndex, Value);
+		}
+#endif
 	}
 
 	static FORCEINLINE void ClearBufferfi(GLenum Buffer, GLint DrawBufferIndex, GLfloat Depth, GLint Stencil)
 	{
-		glClearBufferfi(Buffer, DrawBufferIndex, Depth, Stencil);
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glClearBufferfi(Buffer, DrawBufferIndex, Depth, Stencil);
+		}
+#endif
 	}
 
 	static FORCEINLINE void ClearBufferiv(GLenum Buffer, GLint DrawBufferIndex, const GLint* Value)
 	{
-		glClearBufferiv(Buffer, DrawBufferIndex, Value);
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glClearBufferiv(Buffer, DrawBufferIndex, Value);
+		}
+#endif
 	}
 
 	static FORCEINLINE void BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
@@ -179,7 +199,12 @@ struct FHTML5OpenGL : public FOpenGLES2
 
 	static FORCEINLINE void BindBufferRange(GLenum Target, GLuint Index, GLuint Buffer, GLintptr Offset, GLsizeiptr Size)
 	{
-		glBindBufferRange(Target, Index, Buffer, Offset, Size);
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glBindBufferRange(Target, Index, Buffer, Offset, Size);
+		}
+#endif
 	}
 
 	static FORCEINLINE GLuint GetUniformBlockIndex(GLuint Program, const GLchar* UniformBlockName)
@@ -206,7 +231,15 @@ struct FHTML5OpenGL : public FOpenGLES2
 	// TODO: Make this true or false depending on whether WebGL 2 is available or not.
 	static FORCEINLINE bool UseES30ShadingLanguage() { return false;}
 
-	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value) { glUniform4uiv(Location, Count, Value); }
+	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value)
+	{
+#ifdef UE4_HTML5_TARGET_WEBGL2
+		if (bIsWebGL2)
+		{
+			glUniform4uiv(Location, Count, Value);
+		}
+#endif
+	}
 
 	static FORCEINLINE GLsizei GetLabelObject(GLenum Type, GLuint Object, GLsizei BufferSize, ANSICHAR* OutName)
 	{

@@ -10,7 +10,7 @@
 
 class USkeleton;
 
-UCLASS(Blueprintable, config = Editor, defaultconfig)
+UCLASS(Blueprintable, Experimental, config = Editor, defaultconfig)
 class ANIMATIONMODIFIERS_API UAnimationModifier : public UObject
 {
 	GENERATED_BODY()

@@ -4649,8 +4649,11 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelEditor.MeshPaintMode.Selected.Small", new IMAGE_BRUSH( "Icons/icon_Mode_Meshpaint_selected_40x", Icon20x20 ) );
 
 		Set("LevelEditor.MeshPaintMode.TexturePaint", new IMAGE_BRUSH("Icons/TexturePaint_40x", Icon40x40));
+		Set("LevelEditor.MeshPaintMode.TexturePaint.Small", new IMAGE_BRUSH("Icons/TexturePaint_40x", Icon20x20));
 		Set("LevelEditor.MeshPaintMode.ColorPaint", new IMAGE_BRUSH("Icons/VertexColorPaint_40x", Icon40x40));
+		Set("LevelEditor.MeshPaintMode.ColorPaint.Small", new IMAGE_BRUSH("Icons/VertexColorPaint_40x", Icon20x20));
 		Set("LevelEditor.MeshPaintMode.WeightPaint", new IMAGE_BRUSH("Icons/WeightPaint_40x", Icon40x40));
+		Set("LevelEditor.MeshPaintMode.WeightPaint.Small", new IMAGE_BRUSH("Icons/WeightPaint_40x", Icon20x20));
 
 		Set( "LevelEditor.LandscapeMode", new IMAGE_BRUSH( "Icons/icon_Mode_Landscape_40x", Icon40x40 ) );
 		Set( "LevelEditor.LandscapeMode.Small", new IMAGE_BRUSH( "Icons/icon_Mode_Landscape_40x", Icon20x20 ) );

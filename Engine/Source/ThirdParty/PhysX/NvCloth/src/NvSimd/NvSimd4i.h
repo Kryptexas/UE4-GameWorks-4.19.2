@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -48,7 +48,7 @@ struct Simd4iScalarFactory
 	explicit Simd4iScalarFactory(const int& s) : value(s)
 	{
 	}
-	Simd4iScalarFactory& operator=(const Simd4iScalarFactory&); // not implemented
+	Simd4iScalarFactory& operator = (const Simd4iScalarFactory&); // not implemented
 	inline operator Simd4i() const;
 	inline operator Scalar4i() const;
 	const int value;
@@ -61,9 +61,12 @@ struct Simd4iTupleFactory
 	Simd4iTupleFactory(int x, int y, int z, int w)
 	// c++11: : tuple{ x, y, z, w }
 	{
-		tuple[0] = x, tuple[1] = y, tuple[2] = z, tuple[3] = w;
+		tuple[0] = x;
+		tuple[1] = y;
+		tuple[2] = z;
+		tuple[3] = w;
 	}
-	Simd4iTupleFactory& operator=(const Simd4iTupleFactory&); // not implemented
+	Simd4iTupleFactory& operator = (const Simd4iTupleFactory&); // not implemented
 	inline operator Simd4i() const;
 	inline operator Scalar4i() const;
 	NV_SIMD_ALIGN(16, int) tuple[4];
@@ -76,7 +79,7 @@ struct Simd4iLoadFactory
 	explicit Simd4iLoadFactory(const int* p) : ptr(p)
 	{
 	}
-	Simd4iLoadFactory& operator=(const Simd4iLoadFactory&); // not implemented
+	Simd4iLoadFactory& operator = (const Simd4iLoadFactory&); // not implemented
 	inline operator Simd4i() const;
 	inline operator Scalar4i() const;
 	const int* const ptr;
@@ -89,7 +92,7 @@ struct Simd4iAlignedLoadFactory
 	explicit Simd4iAlignedLoadFactory(const int* p) : ptr(p)
 	{
 	}
-	Simd4iAlignedLoadFactory& operator=(const Simd4iAlignedLoadFactory&); // not implemented
+	Simd4iAlignedLoadFactory& operator = (const Simd4iAlignedLoadFactory&); // not implemented
 	inline operator Simd4i() const;
 	inline operator Scalar4i() const;
 	const int* const ptr;
@@ -102,7 +105,7 @@ struct Simd4iOffsetLoadFactory
 	Simd4iOffsetLoadFactory(const int* p, unsigned int off) : ptr(p), offset(off)
 	{
 	}
-	Simd4iOffsetLoadFactory& operator=(const Simd4iOffsetLoadFactory&); // not implemented
+	Simd4iOffsetLoadFactory& operator = (const Simd4iOffsetLoadFactory&); // not implemented
 	inline operator Simd4i() const;
 	inline operator Scalar4i() const;
 	const int* const ptr;
@@ -176,7 +179,7 @@ inline Simd4i operator>>(const Simd4i& v, const Simd4i& shift);
 /*! \brief Test for equality of two vectors.
 * \return Vector of per element result mask (all bits set for 'true', none set for 'false').
 * \relates Simd4i */
-inline Simd4i operator==(const Simd4i& v0, const Simd4i& v1);
+inline Simd4i operator == (const Simd4i& v0, const Simd4i& v1);
 
 // no !=, <=, >= because VMX128/SSE don't support it, use ~operator== etc.
 
@@ -193,22 +196,22 @@ inline Simd4i operator>(const Simd4i& v0, const Simd4i& v1);
 /*! \brief Unary vector addition operator.
 * \return A vector holding the component-wise copy of \a v.
 * \relates Simd4i */
-inline Simd4i operator+(const Simd4i& v);
+inline Simd4i operator + (const Simd4i& v);
 
 /*! \brief Vector addition operator
 * \return A vector holding the component-wise sum of \a v0 and \a v1.
 * \relates Simd4i */
-inline Simd4i operator+(const Simd4i& v0, const Simd4i& v1);
+inline Simd4i operator + (const Simd4i& v0, const Simd4i& v1);
 
 /*! \brief Unary vector negation operator.
 * \return A vector holding the component-wise negation of \a v.
 * \relates Simd4i */
-inline Simd4i operator-(const Simd4i& v);
+inline Simd4i operator - (const Simd4i& v);
 
 /*! \brief Vector subtraction operator.
 * \return A vector holding the component-wise difference of \a v0 and \a v1.
 * \relates Simd4i */
-inline Simd4i operator-(const Simd4i& v0, const Simd4i& v1);
+inline Simd4i operator - (const Simd4i& v0, const Simd4i& v1);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // functions

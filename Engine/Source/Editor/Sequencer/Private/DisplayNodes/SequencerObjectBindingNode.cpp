@@ -326,8 +326,15 @@ FLinearColor FSequencerObjectBindingNode::GetDisplayNameColor() const
 {
 	FSequencer& Sequencer = ParentTree.GetSequencer();
 	
-	const bool bHasObjects = Sequencer.FindBoundObjects(ObjectBinding, Sequencer.GetFocusedTemplateID()).Num() != 0;
-	return bHasObjects ? FSequencerDisplayNode::GetDisplayNameColor() : FLinearColor::Red;
+	for (TWeakObjectPtr<> BoundObject : Sequencer.FindBoundObjects(ObjectBinding, Sequencer.GetFocusedTemplateID()))
+	{
+		if (BoundObject.IsValid())
+		{
+			return FSequencerDisplayNode::GetDisplayNameColor();
+		}
+	}
+
+	return FLinearColor::Red;
 }
 
 FText FSequencerObjectBindingNode::GetDisplayNameToolTipText() const

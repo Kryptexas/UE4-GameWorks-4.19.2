@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -37,7 +37,6 @@
 #include "../TripletScheduler.h"
 #include "../ClothBase.h"
 #include <foundation/PxMat44.h>
-#include <PsFoundation.h>
 
 using namespace physx;
 
@@ -163,7 +162,7 @@ void cloth::CuCloth::notifyChanged()
 bool cloth::CuCloth::updateClothData(CuClothData& clothData)
 {
 	// test particle pointer to detect when cloth data array has been reordered
-	if(!mClothDataDirty && clothData.mParticles == array(*mParticles.begin().get()))
+	if (!mClothDataDirty && clothData.mParticles == array(*mParticles.begin().get()))
 	{
 		NV_CLOTH_ASSERT(mSharedMemorySize == getSharedMemorySize());
 		return false;
@@ -171,7 +170,7 @@ bool cloth::CuCloth::updateClothData(CuClothData& clothData)
 
 	mSharedMemorySize = getSharedMemorySize();
 
-	if(mSelfCollisionData.empty() && isSelfCollisionEnabled(*this))
+	if (mSelfCollisionData.empty() && isSelfCollisionEnabled(*this))
 	{
 		uint32_t numSelfCollisionIndices =
 		    mSelfCollisionIndices.empty() ? mNumParticles : uint32_t(mSelfCollisionIndices.size());
@@ -215,14 +214,14 @@ uint32_t cloth::CuCloth::getSharedMemorySize() const
 	return phaseConfigSize + sizeof(float) * (continuousCollisionSize + std::max(selfCollisionSize, discreteCollisionSize));
 }
 
-void cloth::CuCloth::setPhaseConfig(Range<const PhaseConfig> configs)
+void cloth::CuCloth::setPhaseConfigInternal(Range<const PhaseConfig> configs)
 {
 	mHostPhaseConfigs.assign(configs.begin(), configs.end());
 
 	Vector<CuPhaseConfig>::Type deviceConfigs;
 	deviceConfigs.reserve(configs.size());
 	const PhaseConfig* cEnd = configs.end();
-	for(const PhaseConfig* cIt = configs.begin(); cIt != cEnd; ++cIt)
+	for (const PhaseConfig* cIt = configs.begin(); cIt != cEnd; ++cIt)
 	{
 		CuPhaseConfig config;
 
@@ -246,18 +245,18 @@ void cloth::CuCloth::setPhaseConfig(Range<const PhaseConfig> configs)
 
 cloth::Range<PxVec4> cloth::CuCloth::push(cloth::CuConstraints& constraints)
 {
-	if(!constraints.mTarget.capacity())
+	if (!constraints.mTarget.capacity())
 	{
 		CuContextLock contextLock(mFactory);
 		constraints.mTarget.reserve(mNumParticles);
 	}
-	if(constraints.mHostCopy.empty())
+	if (constraints.mHostCopy.empty())
 		constraints.mTarget.resize(mNumParticles);
 
-	if(constraints.mStart.empty()) // initialize start first
+	if (constraints.mStart.empty()) // initialize start first
 		constraints.mStart.swap(constraints.mTarget);
 
-	if(!constraints.mHostCopy.capacity())
+	if (!constraints.mHostCopy.capacity())
 	{
 		CuContextLock contextLock(mFactory);
 		constraints.mHostCopy.reserve(mNumParticles);
@@ -277,7 +276,7 @@ void cloth::CuCloth::clear(cloth::CuConstraints& constraints)
 
 void cloth::CuCloth::syncDeviceParticles()
 {
-	if(mDeviceParticlesDirty)
+	if (mDeviceParticlesDirty)
 	{
 		CuContextLock contextLock(mFactory);
 		checkSuccess(
@@ -288,7 +287,7 @@ void cloth::CuCloth::syncDeviceParticles()
 
 void cloth::CuCloth::syncHostParticles()
 {
-	if(mHostParticlesDirty)
+	if (mHostParticlesDirty)
 	{
 		CuContextLock contextLock(mFactory);
 		checkSuccess(cuMemcpyDtoH(mParticlesHostCopy.begin(), mParticles.begin().dev(), 2 * mNumParticles * sizeof(PxVec4)));
@@ -302,7 +301,7 @@ cloth::Range<const PxVec3> cloth::CuCloth::clampTriangleCount(Range<const PxVec3
 	uint32_t removedSize = mStartCollisionTriangles.size() - replaceSize;
 	const PxVec3* clamp = range.begin() + 1500 - removedSize;
 
-	if(range.end() > clamp)
+	if (range.end() > clamp)
 	{
 		NV_CLOTH_LOG_WARNING("Too many collision triangles specified for cloth, dropping all but first 500.\n");
 	}
@@ -317,128 +316,115 @@ namespace nv
 namespace cloth
 {
 
-// ClothImpl<CuCloth>::clone() implemented in CuClothClone.cpp
+// CuCloth::clone() implemented in CuClothClone.cpp
 
-template <>
-uint32_t ClothImpl<CuCloth>::getNumParticles() const
+uint32_t CuCloth::getNumParticles() const
 {
-	return mCloth.mNumParticles;
+	return mNumParticles;
 }
 
-template <>
-void ClothImpl<CuCloth>::lockParticles() const
+void CuCloth::lockParticles() const
 {
-	const_cast<CuCloth&>(mCloth).syncHostParticles();
+	const_cast<CuCloth&>(*this).syncHostParticles();
 }
 
-template <>
-void ClothImpl<CuCloth>::unlockParticles() const
+void CuCloth::unlockParticles() const
 {
 }
 
-template <>
-MappedRange<PxVec4> ClothImpl<CuCloth>::getCurrentParticles()
+MappedRange<PxVec4> CuCloth::getCurrentParticles()
 {
-	mCloth.wakeUp();
+	wakeUp();
 	lockParticles();
-	mCloth.mDeviceParticlesDirty = true;
-	return getMappedParticles(mCloth.mParticlesHostCopy.begin());
+	mDeviceParticlesDirty = true;
+	return getMappedParticles(mParticlesHostCopy.begin());
 }
 
-template <>
-MappedRange<const PxVec4> ClothImpl<CuCloth>::getCurrentParticles() const
+MappedRange<const PxVec4> CuCloth::getCurrentParticles() const
 {
 	lockParticles();
-	return getMappedParticles(mCloth.mParticlesHostCopy.begin());
+	return getMappedParticles(mParticlesHostCopy.begin());
 }
 
-template <>
-MappedRange<PxVec4> ClothImpl<CuCloth>::getPreviousParticles()
+MappedRange<PxVec4> CuCloth::getPreviousParticles()
 {
-	mCloth.wakeUp();
+	wakeUp();
 	lockParticles();
-	mCloth.mDeviceParticlesDirty = true;
-	return getMappedParticles(mCloth.mParticlesHostCopy.begin() + mCloth.mNumParticles);
+	mDeviceParticlesDirty = true;
+	return getMappedParticles(mParticlesHostCopy.begin() + mNumParticles);
 }
 
-template <>
-MappedRange<const PxVec4> ClothImpl<CuCloth>::getPreviousParticles() const
+MappedRange<const PxVec4> CuCloth::getPreviousParticles() const
 {
 	lockParticles();
-	return getMappedParticles(mCloth.mParticlesHostCopy.begin() + mCloth.mNumParticles);
+	return getMappedParticles(mParticlesHostCopy.begin() + mNumParticles);
 }
 
-template <>
-GpuParticles ClothImpl<CuCloth>::getGpuParticles()
+GpuParticles CuCloth::getGpuParticles()
 {
-	mCloth.syncDeviceParticles();
-	mCloth.mHostParticlesDirty = true;
-	PxVec4* particles = mCloth.mParticles.begin().get();
-	GpuParticles result = { particles, particles + mCloth.mNumParticles, 0 };
+	syncDeviceParticles();
+	mHostParticlesDirty = true;
+	PxVec4* particles = mParticles.begin().get();
+	GpuParticles result = { particles, particles + mNumParticles, 0 };
 	return result;
 }
 
-template <>
-void ClothImpl<CuCloth>::setPhaseConfig(Range<const PhaseConfig> configs)
+void CuCloth::setPhaseConfig(Range<const PhaseConfig> configs)
 {
 	Vector<PhaseConfig>::Type transformedConfigs;
 	transformedConfigs.reserve(configs.size());
 
 	// transform phase config to use in solver
-	for(; !configs.empty(); configs.popFront())
-		if(configs.front().mStiffness > 0.0f)
+	for (; !configs.empty(); configs.popFront())
+		if (configs.front().mStiffness > 0.0f)
 			transformedConfigs.pushBack(transform(configs.front()));
 
-	mCloth.setPhaseConfig(Range<const PhaseConfig>(transformedConfigs.begin(), transformedConfigs.end()));
-	mCloth.notifyChanged();
-	mCloth.wakeUp();
+	setPhaseConfigInternal(Range<const PhaseConfig>(transformedConfigs.begin(), transformedConfigs.end()));
+	notifyChanged();
+	wakeUp();
 }
 
-template <>
-void ClothImpl<CuCloth>::setSelfCollisionIndices(Range<const uint32_t> indices)
+void CuCloth::setSelfCollisionIndices(Range<const uint32_t> indices)
 {
-	ContextLockType lock(mCloth.mFactory);
-	mCloth.mSelfCollisionIndices.assign(indices.begin(), indices.end());
-	mCloth.mSelfCollisionIndicesHost.assign(indices.begin(), indices.end());
-	mCloth.notifyChanged();
-	mCloth.wakeUp();
+	ContextLockType lock(mFactory);
+	mSelfCollisionIndices.assign(indices.begin(), indices.end());
+	mSelfCollisionIndicesHost.assign(indices.begin(), indices.end());
+	notifyChanged();
+	wakeUp();
 }
 
-template <>
-uint32_t ClothImpl<CuCloth>::getNumVirtualParticles() const
+uint32_t CuCloth::getNumVirtualParticles() const
 {
-	return uint32_t(mCloth.mVirtualParticleIndices.size());
+	return uint32_t(mVirtualParticleIndices.size());
 }
 
-template <>
-Range<PxVec4> ClothImpl<CuCloth>::getParticleAccelerations()
+Range<PxVec4> CuCloth::getParticleAccelerations()
 {
-	if(mCloth.mParticleAccelerations.empty())
+	if (mParticleAccelerations.empty())
 	{
-		CuContextLock contextLock(mCloth.mFactory);
-		mCloth.mParticleAccelerations.resize(mCloth.mNumParticles);
+		CuContextLock contextLock(mFactory);
+		mParticleAccelerations.resize(mNumParticles);
 	}
 
-	if(!mCloth.mParticleAccelerationsHostCopy.capacity())
+	if (!mParticleAccelerationsHostCopy.capacity())
 	{
-		CuContextLock contextLock(mCloth.mFactory);
-		mCloth.mParticleAccelerationsHostCopy.reserve(mCloth.mNumParticles);
+		CuContextLock contextLock(mFactory);
+		mParticleAccelerationsHostCopy.reserve(mNumParticles);
 	}
-	mCloth.mParticleAccelerationsHostCopy.resizeUninitialized(mCloth.mNumParticles);
+	mParticleAccelerationsHostCopy.resizeUninitialized(mNumParticles);
 
-	mCloth.wakeUp();
+	wakeUp();
 
-	PxVec4* data = mCloth.mParticleAccelerationsHostCopy.begin();
-	return Range<PxVec4>(data, mCloth.mParticleAccelerationsHostCopy.end());
+	PxVec4* data = mParticleAccelerationsHostCopy.begin();
+	return Range<PxVec4>(data, mParticleAccelerationsHostCopy.end());
 }
 
-template <>
-void ClothImpl<CuCloth>::clearParticleAccelerations()
+void CuCloth::clearParticleAccelerations()
 {
-	CuContextLock contextLock(mCloth.mFactory);
-	CuDeviceVector<PxVec4>(mCloth.mFactory.mContext).swap(mCloth.mParticleAccelerations);
-	CuHostVector<PxVec4, CU_MEMHOSTALLOC_DEVICEMAP>::Type().swap(mCloth.mParticleAccelerationsHostCopy);
-	mCloth.wakeUp();
+	CuContextLock contextLock(mFactory);
+	CuDeviceVector<PxVec4>(mFactory.mContext).swap(mParticleAccelerations);
+	CuHostVector<PxVec4, CU_MEMHOSTALLOC_DEVICEMAP>::Type().swap(mParticleAccelerationsHostCopy);
+	wakeUp();
 }
 
 namespace
@@ -469,19 +455,18 @@ namespace
 	}
 }
 
-template <>
-void ClothImpl<CuCloth>::setVirtualParticles(Range<const uint32_t[4]> indices, Range<const PxVec3> weights)
+void CuCloth::setVirtualParticles(Range<const uint32_t[4]> indices, Range<const PxVec3> weights)
 {
 	// shuffle indices to form independent SIMD sets
 	TripletScheduler scheduler(indices);
-	scheduler.warp(mCloth.mNumParticles, 32);
+	scheduler.warp(mNumParticles, 32);
 
 	// convert to 16bit indices
 	Vector<Vec4us>::Type hostIndices;
 	hostIndices.reserve(indices.size());
 	TripletScheduler::ConstTripletIter tIt = scheduler.mTriplets.begin();
 	TripletScheduler::ConstTripletIter tEnd = scheduler.mTriplets.end();
-	for(; tIt != tEnd; ++tIt)
+	for (; tIt != tEnd; ++tIt)
 		hostIndices.pushBack(Vec4us(*tIt));
 
 	// printf("num sets = %u, num replays = %u\n", scheduler.mSetSizes.size(),
@@ -490,22 +475,22 @@ void ClothImpl<CuCloth>::setVirtualParticles(Range<const uint32_t[4]> indices, R
 	// add normalization weight
 	Vector<PxVec4>::Type hostWeights;
 	hostWeights.reserve(weights.size());
-	for(; !weights.empty(); weights.popFront())
+	for (; !weights.empty(); weights.popFront())
 	{
 		PxVec3 w = reinterpret_cast<const PxVec3&>(weights.front());
 		float scale = 1 / w.magnitudeSquared();
 		hostWeights.pushBack(PxVec4( w.x, w.y, w.z, scale ));
 	}
 
-	CuContextLock contextLock(mCloth.mFactory);
+	CuContextLock contextLock(mFactory);
 
 	// todo: 'swap' these to force reallocation?
-	mCloth.mVirtualParticleIndices = hostIndices;
-	mCloth.mVirtualParticleSetSizes = scheduler.mSetSizes;
-	mCloth.mVirtualParticleWeights = hostWeights;
+	mVirtualParticleIndices = hostIndices;
+	mVirtualParticleSetSizes = scheduler.mSetSizes;
+	mVirtualParticleWeights = hostWeights;
 
-	mCloth.notifyChanged();
-	mCloth.wakeUp();
+	notifyChanged();
+	wakeUp();
 }
 
 } // namespace cloth

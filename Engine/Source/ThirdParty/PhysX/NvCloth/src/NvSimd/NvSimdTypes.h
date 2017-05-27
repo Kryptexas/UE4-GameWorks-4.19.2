@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -60,7 +60,7 @@ void foo(const float* ptr)
     Simd4f d = a * b + gSimd4fOne; // maps to FMA on NEON
     Simd4f mask, e;
     // same result as e = max(c, d);
-    if(anyGreater(c, d, mask))
+    if (anyGreater(c, d, mask))
         e = select(mask, c, d);
     Simd4f f = splat<2>(d) - rsqrt(e);
     printf("%f\n", array(f)[0]);
@@ -72,8 +72,16 @@ void foo(const float* ptr)
 * Define Simd4f and Simd4i, which map to four 32bit float or integer tuples.
 * */
 // note: ps4 compiler defines _M_X64 without value
-#define NV_SIMD_SSE2 (defined _M_IX86 || defined _M_X64 || defined __i386__ || defined __x86_64__)
-#define NV_SIMD_NEON (defined _M_ARM || defined __ARM_NEON__)
+#if defined (_M_IX86) || defined (_M_X64) || defined (__i386__) || defined (__x86_64__) || PX_EMSCRIPTEN
+#define NV_SIMD_SSE2 1
+#else
+#define NV_SIMD_SSE2 0
+#endif
+#if defined (_M_ARM) || defined (__ARM_NEON__) || defined (__ARM_NEON)
+#define NV_SIMD_NEON 1
+#else
+#define NV_SIMD_NEON 0
+#endif
 #define NV_SIMD_SIMD (NV_SIMD_SSE2 || NV_SIMD_NEON)
 
 /*! \def NV_SIMD_SCALAR
@@ -90,7 +98,11 @@ void foo(const float* ptr)
 // support shift by vector operarations
 #define NV_SIMD_SHIFT_BY_VECTOR (NV_SIMD_NEON)
 // support inline assembler
-#define NV_SIMD_INLINE_ASSEMBLER !(defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__)
+#if defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__ || defined __aarch64__
+#define NV_SIMD_INLINE_ASSEMBLER 0
+#else
+#define NV_SIMD_INLINE_ASSEMBLER 1
+#endif
 
 /*! \def NV_SIMD_USE_NAMESPACE
 * \brief Set to 1 to define the SIMD library types and functions inside the nvidia::simd namespace.
@@ -160,7 +172,7 @@ struct ComplementExpr
 	inline explicit ComplementExpr(T const& v_) : v(v_)
 	{
 	}
-	ComplementExpr& operator=(const ComplementExpr&); // not implemented
+	ComplementExpr& operator = (const ComplementExpr&); // not implemented
 	inline operator T() const;
 	const T v;
 };

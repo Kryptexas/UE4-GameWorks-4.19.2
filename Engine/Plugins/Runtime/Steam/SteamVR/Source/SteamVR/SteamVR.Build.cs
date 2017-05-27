@@ -43,7 +43,7 @@ namespace UnrealBuildTool.Rules
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
                 PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });     //@todo steamvr: multiplatform
             }
-			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");

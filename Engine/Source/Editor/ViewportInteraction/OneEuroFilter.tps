@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder />
+  <LicenseFolder>None</Location>
 </TpsData>

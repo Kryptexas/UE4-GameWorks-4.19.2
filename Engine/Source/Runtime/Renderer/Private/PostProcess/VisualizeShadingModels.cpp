@@ -56,7 +56,7 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		static FLinearColor SoftBits[sizeof(InShadingModelMaskInView) * 8] = {};	// init with 0.0f
 

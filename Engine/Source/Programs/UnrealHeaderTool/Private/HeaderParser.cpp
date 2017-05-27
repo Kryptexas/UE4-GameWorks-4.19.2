@@ -7141,7 +7141,24 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	RequireSymbol( TEXT(";"), TEXT("'variable declaration'") );
 
 	// Skip redundant semi-colons
-	while (MatchSymbol(TEXT(";")));
+	for (;;)
+	{
+		int32 CurrInputPos  = InputPos;
+		int32 CurrInputLine = InputLine;
+
+		FToken Token;
+		if (!GetToken(Token, /*bNoConsts=*/ true))
+		{
+			break;
+		}
+
+		if (Token.TokenType != TOKEN_Symbol || FCString::Stricmp(Token.Identifier, TEXT(";")))
+		{
+			InputPos  = CurrInputPos;
+			InputLine = CurrInputLine;
+			break;
+		}
+	}
 }
 
 //

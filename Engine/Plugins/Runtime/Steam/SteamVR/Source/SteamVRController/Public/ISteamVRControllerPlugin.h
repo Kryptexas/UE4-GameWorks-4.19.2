@@ -6,7 +6,7 @@
 #include "ModuleManager.h"
 #include "IInputDeviceModule.h"
 
-#define STEAMVRCONTROLLER_SUPPORTED_PLATFORMS (PLATFORM_LINUX || (PLATFORM_WINDOWS && WINVER > 0x0502))
+#define STEAMVRCONTROLLER_SUPPORTED_PLATFORMS ((PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && PLATFORM_64BITS) || (PLATFORM_WINDOWS && WINVER > 0x0502))
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 

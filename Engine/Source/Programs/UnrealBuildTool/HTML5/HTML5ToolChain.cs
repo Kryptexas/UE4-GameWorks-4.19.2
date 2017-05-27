@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 	class HTML5ToolChain : VCToolChain
 	{
 		// ini configurations
-		static bool targetingWasm = true;
+		static bool targetingWasm = false;
 		static bool targetWebGL2 = true; // Currently if this is set to true, UE4 can still fall back to WebGL 1 at runtime if browser does not support WebGL 2.
 		static bool enableSIMD = false;
 		static bool enableMultithreading = false;
@@ -37,7 +37,7 @@ namespace UnrealBuildTool
 			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDir, UnrealTargetPlatform.HTML5);
 
 			// these will be going away...
-			bool targetingAsmjs = false; // inverted check
+			bool targetingAsmjs = true; // inverted check
 			bool targetWebGL1 = false; // inverted check
 			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
 			{
@@ -152,6 +152,24 @@ namespace UnrealBuildTool
 			}
 
 			// --------------------------------------------------------------------------------
+			// normally, these option are for linking -- but it using here to force recompile when
+			if (targetingWasm) // flipping between asmjs and wasm
+			{
+				Result += " -s BINARYEN=1";
+			}
+			else
+			{
+				Result += " -s BINARYEN=0";
+			}
+			if (targetWebGL2) // flipping between webgl1 and webgl2
+			{
+				Result += " -s USE_WEBGL2=1";
+			}
+			else
+			{
+				Result += " -s USE_WEBGL2=0";
+			}
+			// --------------------------------------------------------------------------------
 
 			// Expect that Emscripten SDK has been properly set up ahead in time (with emsdk and prebundled toolchains this is always the case)
 			// This speeds up builds a tiny bit.
@@ -162,6 +180,12 @@ namespace UnrealBuildTool
 //			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 //			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 
+			// Linux builds needs this - or else system clang will be attempted to be picked up instead of UE4's
+			// TODO: test on other platforms to remove this if() check
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
+			{
+				Environment.SetEnvironmentVariable(HTML5SDKInfo.PLATFORM_USER_HOME, HTML5SDKInfo.HTML5Intermediatory);
+			}
 			return Result;
 		}
 
@@ -671,6 +695,7 @@ namespace UnrealBuildTool
 				{
 					BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
 					BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("asm.js"), BuildProductType.RequiredResource);
+					// TODO: add "_asm.js"
 				}
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}

@@ -1,3 +1,33 @@
+// This code contains NVIDIA Confidential Information and is disclosed to you
+// under a form of NVIDIA software license agreement provided separately to you.
+//
+// Notice
+// NVIDIA Corporation and its licensors retain all intellectual property and
+// proprietary rights in and to this software and related documentation and
+// any modifications thereto. Any use, reproduction, disclosure, or
+// distribution of this software and related documentation without an express
+// license agreement from NVIDIA Corporation is strictly prohibited.
+//
+// ALL NVIDIA DESIGN SPECIFICATIONS, CODE ARE PROVIDED "AS IS.". NVIDIA MAKES
+// NO WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
+// THE MATERIALS, AND EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES OF NONINFRINGEMENT,
+// MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE.
+//
+// Information and code furnished is believed to be accurate and reliable.
+// However, NVIDIA Corporation assumes no responsibility for the consequences of use of such
+// information or for any infringement of patents or other rights of third parties that may
+// result from its use. No license is granted by implication or otherwise under any patent
+// or patent rights of NVIDIA Corporation. Details are subject to change without notice.
+// This code supersedes and replaces all information previously supplied.
+// NVIDIA Corporation products are not authorized for use as critical
+// components in life support devices or systems without express written approval of
+// NVIDIA Corporation.
+//
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
+// Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
+
+
 #include "DxClothData.h"
 
 #ifndef FLT_MAX
@@ -11,7 +41,7 @@ struct IndexPair
 	uint32_t second;
 };
 
-RWStructuredBuffer<float4> bParticles : register(u0);
+RWByteAddressBuffer bParticles : register(u0); //contains float4 data
 RWStructuredBuffer<float4> bSelfCollisionParticles : register(u1);
 RWStructuredBuffer<uint32_t> bSelfCollisionData : register(u2);
 
@@ -43,6 +73,9 @@ StructuredBuffer<int32_t> bSelfCollisionIndices : register(t15);
 
 StructuredBuffer<float> bPerConstraintStiffness : register(t16);
 
+//cloth mesh triangle information for air drag/lift
+//Note that the buffer actually contains uint16_t values
+StructuredBuffer<uint32_t> bTriangles : register(t17);
 
 groupshared DxClothData gClothData;
 groupshared DxFrameData gFrameData;
@@ -64,12 +97,13 @@ interface IParticles
 {
 	float4 get(uint32_t index);
 	void set(uint32_t index, float4 value);
+	void atomicAdd(uint32_t index, float3 value);
 };
 
 
 void integrateParticles(IParticles curParticles, IParticles prevParticles, uint32_t threadIdx)
 {
-	for(uint32_t i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
+	for (uint32_t i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
 	{
 		float4 curPos = curParticles.get(i);
 
@@ -80,16 +114,16 @@ void integrateParticles(IParticles curParticles, IParticles prevParticles, uint3
 
 		float4 prevPos = prevParticles.get(i);
 
-		if(nextW == 0.0f)
+		if (nextW == 0.0f)
 			nextW = prevPos.w;
 
-		if(nextW > 0.0f)
+		if (nextW > 0.0f)
 		{
 			float prevX = prevPos.x;
 			float prevY = prevPos.y;
 			float prevZ = prevPos.z;
 
-			if(gIterData.mIsTurning)
+			if (gIterData.mIsTurning)
 			{
 				nextX = nextX + gIterData.mIntegrationTrafo[3] + curX * gIterData.mIntegrationTrafo[15] +
 				        prevX * gIterData.mIntegrationTrafo[6] + curY * gIterData.mIntegrationTrafo[16] +
@@ -154,6 +188,99 @@ void accelerateParticles(IParticles curParticles, uint32_t threadIdx)
 	GroupMemoryBarrierWithGroupSync();
 }
 
+float rsqrt_2(const float v)
+{
+	float halfV = v * 0.5f;
+	float threeHalf = 1.5f;
+	float r = rsqrt(v);
+	for(int i = 0; i < 10; ++i)
+		r = r * (threeHalf - halfV * r * r);
+	return r;
+}
+
+void applyWind(IParticles curParticles, IParticles prevParticles, uint32_t threadIdx)
+{
+	const float dragCoefficient = gFrameData.mDragCoefficient;
+	const float liftCoefficient = gFrameData.mLiftCoefficient;
+
+	if(dragCoefficient == 0.0f && liftCoefficient == 0.0f)
+		return;
+
+	const float oneThird = 1.0f / 3.0f;
+	float3 wind = float3(gIterData.mWind[0], gIterData.mWind[1], gIterData.mWind[2]);
+
+	GroupMemoryBarrierWithGroupSync();
+
+	uint32_t triangleOffset = gClothData.mStartTriangleOffset;
+
+	for(uint32_t i = threadIdx; i < gClothData.mNumTriangles; i += blockDim.x)
+	{
+		uint32_t i0 = bTriangles[triangleOffset + ((i * 3 + 0) >> 1)];
+		uint32_t i1 = bTriangles[triangleOffset + ((i * 3 + 1) >> 1)];
+		uint32_t i2 = bTriangles[triangleOffset + ((i * 3 + 2) >> 1)];
+
+		if((i * 3) & 1)
+		{
+			i0 = (i0 & 0xFFFF0000) >> 16;
+			i1 = (i1 & 0x0000FFFF);
+			i2 = (i2 & 0xFFFF0000) >> 16;
+		}
+		else
+		{
+			i0 = (i0 & 0x0000FFFF);
+			i1 = (i1 & 0xFFFF0000) >> 16;
+			i2 = (i2 & 0x0000FFFF);
+		}
+
+		float4 c0 = curParticles.get(i0);
+		float4 c1 = curParticles.get(i1);
+		float4 c2 = curParticles.get(i2);
+
+		float4 p0 = prevParticles.get(i0);
+		float4 p1 = prevParticles.get(i1);
+		float4 p2 = prevParticles.get(i2);
+
+		float3 cur = oneThird * (c0.xyz + c1.xyz + c2.xyz);
+		float3 prev = oneThird * (p0.xyz + p1.xyz + p2.xyz);
+
+		float3 delta = cur - prev + wind;
+
+		if(gIterData.mIsTurning)
+		{
+			const float3 rot[3] = {
+				float3(gFrameData.mRotation[0], gFrameData.mRotation[1], gFrameData.mRotation[2]),
+				float3(gFrameData.mRotation[3], gFrameData.mRotation[4], gFrameData.mRotation[5]),
+				float3(gFrameData.mRotation[6], gFrameData.mRotation[7], gFrameData.mRotation[8])
+			};
+			float3 d = wind - prev;
+			delta = cur + d.x * rot[0] + d.y * rot[1] + d.z * rot[2];
+		}
+
+		float3 normal = cross(c2.xyz - c0.xyz, c1.xyz - c0.xyz);
+
+		float doubleArea = sqrt(dot(normal, normal));
+
+		float invSqrScale = dot(delta, delta);
+		float scale = rsqrt(invSqrScale);
+
+		float cosTheta = dot(normal, delta) * scale / doubleArea;
+		float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
+
+		float3 liftDir = cross(cross(delta, normal), scale * delta);
+
+		float3 lift = liftCoefficient * cosTheta * sinTheta * liftDir;
+		float3 drag = dragCoefficient * abs(cosTheta) * doubleArea * delta;
+
+		float3 impulse = invSqrScale < 1.192092896e-07F ? float3(0.0f, 0.0f, 0.0f) : lift + drag;
+
+		curParticles.atomicAdd(i0, -impulse * c0.w);
+		curParticles.atomicAdd(i1, -impulse * c1.w);
+		curParticles.atomicAdd(i2, -impulse * c2.w);
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+}
+
 void constrainMotion(IParticles curParticles, uint32_t threadIdx, float alpha)
 {
 	if (gFrameData.mStartMotionConstrainsOffset == -1)
@@ -195,7 +322,7 @@ void constrainMotion(IParticles curParticles, uint32_t threadIdx, float alpha)
 
 void constrainTether(IParticles curParticles, uint32_t threadIdx)
 {
-	if(0.0f == gFrameData.mTetherConstraintStiffness || !gClothData.mNumTethers)
+	if (0.0f == gFrameData.mTetherConstraintStiffness || !gClothData.mNumTethers)
 		return;
 
 	uint32_t numParticles = gClothData.mNumParticles;
@@ -204,7 +331,7 @@ void constrainTether(IParticles curParticles, uint32_t threadIdx)
 	float stiffness = numParticles * gFrameData.mTetherConstraintStiffness / numTethers;
 	float scale = gClothData.mTetherConstraintScale;
 
-	for(uint32_t i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
+	for (uint32_t i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
 	{
 		float4 curPos = curParticles.get(i);
 		float posX = curPos.x;
@@ -215,7 +342,7 @@ void constrainTether(IParticles curParticles, uint32_t threadIdx)
 		float offsetY = 0.0f;
 		float offsetZ = 0.0f;
 
-		for(uint32_t j = i; j < numTethers; j += gClothData.mNumParticles)
+		for (uint32_t j = i; j < numTethers; j += gClothData.mNumParticles)
 		{
 			uint32_t tether = bTetherConstraints[gClothData.mTetherOffset + j].mValue;
 
@@ -230,7 +357,7 @@ void constrainTether(IParticles curParticles, uint32_t threadIdx)
 			float radius = (tether >> 16) * scale;
 			float slack = 1.0f - radius * rsqrt(sqrLength);
 
-			if(slack > 0.0f)
+			if (slack > 0.0f)
 			{
 				offsetX += deltaX * slack;
 				offsetY += deltaY * slack;
@@ -248,7 +375,7 @@ void constrainTether(IParticles curParticles, uint32_t threadIdx)
 
 void solveFabric(IParticles curParticles, uint32_t threadIdx)
 {
-	for(uint32_t i = 0; i < gClothData.mNumPhases; ++i)
+	for (uint32_t i = 0; i < gClothData.mNumPhases; ++i)
 	{
 		DxPhaseConfig phaseConfig = bPhaseConfigs[i + gClothData.mPhaseConfigOffset];
 
@@ -262,7 +389,7 @@ void solveFabric(IParticles curParticles, uint32_t threadIdx)
 
 		GroupMemoryBarrierWithGroupSync();
 
-		for(uint32_t j = threadIdx; j < phaseConfig.mNumConstraints; j += blockDim)
+		for (uint32_t j = threadIdx; j < phaseConfig.mNumConstraints; j += blockDim)
 		{
 			DxConstraint constraint = bConstraints[firstConstraint + j];
 
@@ -293,7 +420,7 @@ void solveFabric(IParticles curParticles, uint32_t threadIdx)
 			                        max(phaseConfig.mCompressionLimit, min(-negErij, phaseConfig.mStretchLimit));
 
 			float stiffness = useStiffnessPerConstraint?
-								1.0f - exp2(bPerConstraintStiffness[firstStiffnessValue+j] * exponent)
+								1.0f - exp2(bPerConstraintStiffness[firstStiffnessValue + j] * exponent)
 								:
 								phaseConfig.mStiffness;
 			float negExij = negErij * stiffness / (FLT_EPSILON + vwi + vwj);
@@ -457,7 +584,7 @@ struct TriangleData
 };
 
 
-void collideTriangles(IParticles curParticles, int32_t i)
+void collideParticleTriangles(IParticles curParticles, int32_t i, float alpha)
 {
 	float4 curPos = curParticles.get(i);
 	float3 pos = curPos.xyz;
@@ -465,12 +592,20 @@ void collideTriangles(IParticles curParticles, int32_t i)
 	float4 normal = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float minSqrLength = FLT_MAX;
 
-	for (uint32_t i = 0; i < gClothData.mNumCollisionTriangles; ++i)
+	for (uint32_t j = 0; j < gClothData.mNumCollisionTriangles; ++j)
 	{
+		// start + (target - start) * alpha
+		float3 startBase = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * j];
+		float3 targetBase = bCollisionTriangles[gFrameData.mTargetCollisionTrianglesOffset + 3 * j];
+		float3 startEdge0 = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * j + 1];
+		float3 targetEdge0 = bCollisionTriangles[gFrameData.mTargetCollisionTrianglesOffset + 3 * j + 1];
+		float3 startEdge1 = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * j + 2];
+		float3 targetEdge1 = bCollisionTriangles[gFrameData.mTargetCollisionTrianglesOffset + 3 * j + 2];
+
 		TriangleData tIt;
-		tIt.base = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * i];
-		tIt.edge0 = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * i + 1];
-		tIt.edge1 = bCollisionTriangles[gFrameData.mStartCollisionTrianglesOffset + 3 * i + 2];
+		tIt.base = startBase + (targetBase - startBase) * alpha;
+		tIt.edge0 = startEdge0 + (targetEdge0 - startEdge0) * alpha;
+		tIt.edge1 = startEdge1 + (targetEdge1 - startEdge1) * alpha;
 
 		tIt.initialize();
 
@@ -496,11 +631,8 @@ void collideTriangles(IParticles curParticles, int32_t i)
 		t = max(0.0f, min(1.0f - s, t));
 
 		delta -= (tIt.edge0 * s + tIt.edge1 * t);
-	//	dx = dx - tIt->edge0X * s - tIt->edge1X * t;
-	//	dy = dy - tIt->edge0Y * s - tIt->edge1Y * t;
-	//	dz = dz - tIt->edge0Z * s - tIt->edge1Z * t;
 
-		float sqrLength = dot(delta, delta); // dx * dx + dy * dy + dz * dz;
+		float sqrLength = dot(delta, delta);
 
 		if (0.0f > deltaDotNormal)
 			sqrLength *= 1.0001f;
@@ -516,7 +648,8 @@ void collideTriangles(IParticles curParticles, int32_t i)
 
 	if (normal.w < 0.0f)
 	{
-		curParticles.set(uint32_t((pos - normal.xyz * normal.w).x), i);
+		curPos.xyz = pos - normal.xyz * normal.w;
+		curParticles.set(i, curPos);
 	}
 }
 
@@ -537,14 +670,14 @@ void collideTriangles(IParticles curParticles, uint32_t threadIdx, float alpha)
 //		mCurData.mSphereX[offset] = start + (target - start) * alpha;
 //	}
 //
-//	GroupMemoryBarrierWithGroupSync();
+	GroupMemoryBarrierWithGroupSync();
 
 	for (uint32_t j = threadIdx; j < gClothData.mNumParticles; j += blockDim)
 	{
 	//	float4 curPos = curParticles.get(j);
 
 	//	float3 delta;
-		collideTriangles(curParticles, j);
+		collideParticleTriangles(curParticles, j, alpha);
 	//	if (numCollisions > 0)
 	//	{
 	//		float scale = 1.0f / numCollisions;
@@ -858,7 +991,7 @@ uint32_t collideCapsules(float3 curPos, float3 prevPos, float alpha, float prevA
 
 	//		float curHalfLength = axisLength; // ?
 			float3 curConeAxis = curAxis.xyz * invAxisLength;
-			float3 curScaledAxis = curAxis * curHalfLength;
+			float3 curScaledAxis = curAxis.xyz * curHalfLength;
 
 			float4 prevAxis = (prevSphere1 - prevSphere0) * 0.5f;
 			float3 prevConeCenter = (prevSphere1.xyz + prevSphere0.xyz) * 0.5f;
@@ -876,7 +1009,7 @@ uint32_t collideCapsules(float3 curPos, float3 prevPos, float alpha, float prevA
 
 			float prevHalfLength = prevAxisLength;
 
-			float3 deltaScaledAxis = curScaledAxis - prevAxis * prevHalfLength;
+			float3 deltaScaledAxis = curScaledAxis - prevAxis.xyz * prevHalfLength;
 
 			float oneMinusToi = 1.0f - toi;
 
@@ -906,7 +1039,7 @@ uint32_t collideCapsules(float3 curPos, float3 prevPos, float alpha, float prevA
 
 				curDelta += delta * oneMinusToi;
 
-				curDot = dot(curDelta, curAxis);
+				curDot = dot(curDelta, curAxis.xyz);
 				float curConeRadius = (curAxis.w + sphere0.w) * invConeLength * axisLength;
 
 				curRadius = max(curDot * curSlope + curConeRadius, 0.0f);    // Duplicate?
@@ -973,7 +1106,7 @@ uint32_t collideCapsules(float3 curPos, float3 prevPos, float alpha, float prevA
 		/*
 		if (abs(base) < halfLength)
 		{
-			float3 delta = curPos - base * curAxis;
+			float3 delta = curPos - base * curAxis.xyz;
 
 			float sine = axis.w * invAxisLength; // Remove?
 			float sqrCosine = 1.f - sine * sine;
@@ -1045,7 +1178,7 @@ uint32_t collideCapsules(float3 curPos, float3 prevPos, float alpha, float prevA
 				float oneMinusToi = 1.0f - toi;
 
 				// reduce ccd impulse if (clamped) particle trajectory stays in cone skin,
-				// i.e. scale by exp2(-k) or 1/(1+k) with k = (tmin - toi) / (1 - toi)
+				// i.e. scale by exp2(-k) or 1/(1 + k) with k = (tmin - toi) / (1 - toi)
 				float minusK = sqrtD / (minusA * oneMinusToi);
 				oneMinusToi = oneMinusToi / (1.f - minusK);
 
@@ -1120,7 +1253,7 @@ void collideContinuousCapsules(IParticles curParticles, IParticles prevParticles
 void collideParticles(IParticles curParticles, IParticles prevParticles, uint32_t threadIdx, float alpha, float prevAlpha)
 {
 	collideConvexes(curParticles, prevParticles, threadIdx, alpha);
-	collideTriangles(curParticles, alpha);
+	collideTriangles(curParticles, threadIdx, alpha);
 	if (gClothData.mEnableContinuousCollision)
 		collideContinuousCapsules(curParticles, prevParticles, threadIdx, alpha, prevAlpha);
 	else
@@ -1498,12 +1631,12 @@ void computeParticleBounds(IParticles curParticles, uint32_t threadIdx)
 		}
 	}
 	GroupMemoryBarrierWithGroupSync();
-	if (threadIdx < 192-16)
+	if (threadIdx < 192 - 16)
 	{
 		gBounds[threadIdx] = max(gBounds[threadIdx], gBounds[threadIdx + 16]);
 	}
 	GroupMemoryBarrierWithGroupSync();
-	if (threadIdx < 192-16)
+	if (threadIdx < 192 - 16)
 	{
 		gBounds[threadIdx] = max(gBounds[threadIdx], gBounds[threadIdx + 8]);
 	}
@@ -1544,6 +1677,7 @@ void simulateCloth(IParticles curParticles, IParticles prevParticles, uint32_t t
 
 		integrateParticles(curParticles, prevParticles, threadIdx);
 		accelerateParticles(curParticles, threadIdx);
+		applyWind(curParticles, prevParticles, threadIdx);
 		constrainMotion(curParticles, threadIdx, alpha);
 		constrainTether(curParticles, threadIdx);
 		// note: GroupMemoryBarrierWithGroupSync at beginning of each fabric phase
@@ -1576,6 +1710,21 @@ class ParticlesInSharedMem : IParticles
 		gCurParticles[index + MaxParticlesInSharedMem * 2] = asuint(value.z);
 		gCurParticles[index + MaxParticlesInSharedMem * 3] = asuint(value.w);
 	}
+	void atomicAdd(uint32_t index, float3 value)
+	{
+		interlockedAddFloat(index + MaxParticlesInSharedMem * 0, value.x);
+		interlockedAddFloat(index + MaxParticlesInSharedMem * 1, value.y);
+		interlockedAddFloat(index + MaxParticlesInSharedMem * 2, value.z);
+	}
+
+	void interlockedAddFloat(uint addr, float value)
+	{
+		uint comp, original = gCurParticles[addr];
+		[allow_uav_condition]do
+		{
+			InterlockedCompareExchange(gCurParticles[addr], comp = original, asuint(asfloat(original) + value), original);
+		} while(original != comp);
+	}
 };
 
 class ParticlesInGlobalMem : IParticles
@@ -1584,18 +1733,33 @@ class ParticlesInGlobalMem : IParticles
 
 	float4 get(uint32_t index)
 	{
-		return bParticles[_offset + index];
+		return asfloat(bParticles.Load4((_offset + index)*16));
 	}
 	void set(uint32_t index, float4 value)
 	{
-		bParticles[_offset + index] = value;
+		bParticles.Store4((_offset + index) * 16, asuint(value));
+	}
+	void atomicAdd(uint32_t index, float3 value)
+	{
+		interlockedAddFloat((_offset + index) * 16 + 0, value.x);
+		interlockedAddFloat((_offset + index) * 16 + 4, value.y);
+		interlockedAddFloat((_offset + index) * 16 + 8, value.z);
+	}
+
+	void interlockedAddFloat(uint addr, float value)
+	{
+		uint comp, original = bParticles.Load(addr);
+		[allow_uav_condition]do
+		{
+			bParticles.InterlockedCompareExchange(addr, comp = original, asuint(asfloat(original) + value), original);
+		} while(original != comp);
 	}
 };
 
 
 [numthreads(blockDim, 1, 1)] void main(uint32_t blockIdx : SV_GroupID, uint32_t threadIdx : SV_GroupThreadID)
 {
-	if(!threadIdx)
+	if (!threadIdx)
 	{
 		gClothData = bClothData[blockIdx];
 		gFrameData = bFrameData[blockIdx];
@@ -1612,14 +1776,14 @@ class ParticlesInGlobalMem : IParticles
 		uint32_t i;
 		for (i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
 		{
-			curParticles.set(i, bParticles[gClothData.mParticlesOffset + i]);
+			curParticles.set(i, asfloat(bParticles.Load4((gClothData.mParticlesOffset + i) * 16)));
 		}
 
 		simulateCloth(curParticles, prevParticles, threadIdx);
 
 		for (i = threadIdx; i < gClothData.mNumParticles; i += blockDim)
 		{
-			bParticles[gClothData.mParticlesOffset + i] = curParticles.get(i);
+			bParticles.Store4((gClothData.mParticlesOffset + i) * 16, asuint(curParticles.get(i)));
 		}
 	}
 	else
@@ -1630,7 +1794,7 @@ class ParticlesInGlobalMem : IParticles
 		simulateCloth(curParticles, prevParticles, threadIdx);
 	}
 
-	if(!threadIdx)
+	if (!threadIdx)
 	{
 		bFrameData[blockIdx] = gFrameData;
 	}

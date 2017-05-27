@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "ShaderParameters.h"
+#include "MaterialShared.h"
 
 class FSceneView;
 class FShaderParameterMap;
@@ -40,6 +41,7 @@ public:
 		TRHICmdList& RHICmdList,
 		const ShaderRHIParamRef& ShaderRHI,
 		const FSceneView& View,
+		const EDeferredParamStrictness ParamStrictness = EDeferredParamStrictness::ELoose,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures,
 		ESamplerFilter ColorFilter = SF_Point
 	) const;
@@ -84,6 +86,7 @@ public:
 		TRHICmdList& RHICmdList,
 		const ShaderRHIParamRef ShaderRHI,
 		const FSceneView& View,
+		EMaterialDomain MaterialDomain,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures
 	) const;
 

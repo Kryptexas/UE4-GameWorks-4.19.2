@@ -1173,22 +1173,6 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 	}
 
-	// @todo: delete me later when james g's change goes in
-	// this won't work well because pose needs to be handled in evaluate
-	// the question is that if we'd like to support preview in anim graph
-	// that will need better handling of the curves - currently UI curves are inserted to 
-	// SignleNodeInstance->PreviewOverride
-// #if WITH_EDITOR
-// 	// if we're supporting this in-game, this code has to change to work with UID
-// 	for (auto& AddAnimCurveDelegate : OnAddAnimationCurves)
-// 	{
-// 		if (AddAnimCurveDelegate.IsBound())
-// 		{
-// 			AddAnimCurveDelegate.Execute(this);
-// 		}
-// 	}
-// 
-// #endif
 	// update curves to component
 	UpdateCurvesToComponents(GetOwningComponent());
 }
@@ -2753,29 +2737,5 @@ void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const 
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
 }
-
-#if WITH_EDITOR
-void UAnimInstance::AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
-{
-	if (InOnAddCustomAnimationCurves.IsBound())
-	{
-		OnAddAnimationCurves.Add(InOnAddCustomAnimationCurves);
-	}
-}
-
-void UAnimInstance::RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
-{
-	for (int32 DelegateId = 0; DelegateId < OnAddAnimationCurves.Num(); ++DelegateId)
-	{
-		if (InOnAddCustomAnimationCurves.GetHandle() == OnAddAnimationCurves[DelegateId].GetHandle())
-		{
-			InOnAddCustomAnimationCurves.Unbind();
-			OnAddAnimationCurves.RemoveAt(DelegateId);
-			break;
-		}
-	}
-}
-
-#endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE 

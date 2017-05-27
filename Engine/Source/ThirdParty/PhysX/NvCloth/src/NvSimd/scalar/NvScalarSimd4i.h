@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -123,7 +123,7 @@ inline Scalar4i operator>>(const Scalar4i& v, int shift)
 	return Scalar4i(v.u4[0] >> shift, v.u4[1] >> shift, v.u4[2] >> shift, v.u4[3] >> shift);
 }
 
-inline Scalar4i operator==(const Scalar4i& v0, const Scalar4i& v1)
+inline Scalar4i operator == (const Scalar4i& v0, const Scalar4i& v1)
 {
 	return Scalar4i(v0.i4[0] == v1.i4[0], v0.i4[1] == v1.i4[1], v0.i4[2] == v1.i4[2], v0.i4[3] == v1.i4[3]);
 }
@@ -138,22 +138,22 @@ inline Scalar4i operator>(const Scalar4i& v0, const Scalar4i& v1)
 	return Scalar4i(v0.i4[0] > v1.i4[0], v0.i4[1] > v1.i4[1], v0.i4[2] > v1.i4[2], v0.i4[3] > v1.i4[3]);
 }
 
-inline Scalar4i operator+(const Scalar4i& v)
+inline Scalar4i operator + (const Scalar4i& v)
 {
 	return v;
 }
 
-inline Scalar4i operator+(const Scalar4i& v0, const Scalar4i& v1)
+inline Scalar4i operator + (const Scalar4i& v0, const Scalar4i& v1)
 {
 	return Scalar4i(v0.i4[0] + v1.i4[0], v0.i4[1] + v1.i4[1], v0.i4[2] + v1.i4[2], v0.i4[3] + v1.i4[3]);
 }
 
-inline Scalar4i operator-(const Scalar4i& v)
+inline Scalar4i operator - (const Scalar4i& v)
 {
 	return Scalar4i(-v.i4[0], -v.i4[1], -v.i4[2], -v.i4[3]);
 }
 
-inline Scalar4i operator-(const Scalar4i& v0, const Scalar4i& v1)
+inline Scalar4i operator - (const Scalar4i& v0, const Scalar4i& v1)
 {
 	return Scalar4i(v0.i4[0] - v1.i4[0], v0.i4[1] - v1.i4[1], v0.i4[2] - v1.i4[2], v0.i4[3] - v1.i4[3]);
 }

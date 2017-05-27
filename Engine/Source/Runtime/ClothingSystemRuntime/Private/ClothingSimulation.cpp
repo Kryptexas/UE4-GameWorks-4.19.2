@@ -2,17 +2,27 @@
 
 #include "ClothingSimulation.h"
 
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ClothingSimulationInterface.h"
 #include "ClothingSystemRuntimeModule.h"
-#include "Components/SkeletalMeshComponent.h"
-
 #include "ClothingAsset.h"
 
+
 DECLARE_CYCLE_STAT(TEXT("Skin Physics Mesh"), STAT_ClothSkinPhysMesh, STATGROUP_Physics);
+
+FClothingSimulationBase::FClothingSimulationBase()
+{
+	MaxPhysicsDelta = UPhysicsSettings::Get()->MaxPhysicsDeltaTime;
+}
 
 void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FTransform& RootBoneTransform, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ClothSkinPhysMesh);
+
+	// Ignore any user scale. It's already accounted for in our skinning matrices
+	FTransform RootBoneTransformInternal = RootBoneTransform;
+	RootBoneTransformInternal.SetScale3D(FVector(1.0f));
 
 	const uint32 NumVerts = InMesh.Vertices.Num();
 
@@ -121,8 +131,8 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 			}
 		}
 
-		OutPosition = RootBoneTransform.InverseTransformPosition(OutPosition);
-		OutNormal = RootBoneTransform.InverseTransformVector(OutNormal);
+		OutPosition = RootBoneTransformInternal.InverseTransformPosition(OutPosition);
+		OutNormal = RootBoneTransformInternal.InverseTransformVector(OutNormal);
 		OutNormal = OutNormal.GetUnsafeNormal();
 	}
 }
@@ -133,24 +143,44 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	BaseContext->ComponentToWorld = InComponent->GetComponentTransform();
 	BaseContext->PredictedLod = InComponent->PredictedLODLevel;
 	InComponent->GetWindForCloth_GameThread(BaseContext->WindVelocity, BaseContext->WindAdaption);
-	
+	USkeletalMesh* SkelMesh = InComponent->SkeletalMesh;
+
 	if(USkinnedMeshComponent* MasterComponent = InComponent->MasterPoseComponent.Get())
 	{
 		const int32 NumBones = InComponent->MasterBoneMap.Num();
-		
+
 		BaseContext->BoneTransforms.Empty(NumBones);
 		BaseContext->BoneTransforms.AddDefaulted(NumBones);
 
 		for(int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 		{
+			bool bFoundMaster = false;
 			if(InComponent->MasterBoneMap.IsValidIndex(BoneIndex))
 			{
-				const int32 ParentIndex = InComponent->MasterBoneMap[BoneIndex];
-				BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[ParentIndex];
+				const int32 MasterIndex = InComponent->MasterBoneMap[BoneIndex];
+
+				if(MasterIndex != INDEX_NONE)
+				{
+					BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[MasterIndex];
+					bFoundMaster = true;
+				}
 			}
-			else
+
+			if(!bFoundMaster)
 			{
-				BaseContext->BoneTransforms[BoneIndex] = FTransform::Identity;
+				if(SkelMesh)
+				{
+					const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
+
+					if(ParentIndex != INDEX_NONE)
+					{
+						BaseContext->BoneTransforms[BoneIndex] = BaseContext->BoneTransforms[ParentIndex] * SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+					}
+					else
+					{
+						BaseContext->BoneTransforms[BoneIndex] = SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+					}
+				}
 			}
 		}
 	}
@@ -162,7 +192,7 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	UWorld* ComponentWorld = InComponent->GetWorld();
 	check(ComponentWorld);
 
-	BaseContext->DeltaSeconds = ComponentWorld->GetDeltaSeconds();
+	BaseContext->DeltaSeconds = FMath::Min(ComponentWorld->GetDeltaSeconds(), MaxPhysicsDelta);
 
 	BaseContext->TeleportMode = InComponent->ClothTeleportMode;
 

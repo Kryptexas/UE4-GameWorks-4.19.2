@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -66,22 +66,22 @@ __device__ void scanWarp(Pointer<Shared, int32_t> counts)
 {
 	volatile int32_t* ptr = generic(counts);
 	const int32_t laneIdx = threadIdx.x & warpSize - 1;
-	if(laneIdx >= 1)
+	if (laneIdx >= 1)
 		*ptr += ptr[-stride];
-	if(laneIdx >= 2)
+	if (laneIdx >= 2)
 		*ptr += ptr[-2 * stride];
-	if(laneIdx >= 4)
+	if (laneIdx >= 4)
 		*ptr += ptr[-4 * stride];
-	if(laneIdx >= 8)
+	if (laneIdx >= 8)
 		*ptr += ptr[-8 * stride];
-	if(laneIdx >= 16)
+	if (laneIdx >= 16)
 		*ptr += ptr[-16 * stride];
 }
 #endif
 
 // sorts array by upper 16bits
-// [keys] must be at least 2*n in length, in/out in first n elements
-// [histogram] must be at least 34*16 = 544 in length
+// [keys] must be at least 2 * n in length, in/out in first n elements
+// [histogram] must be at least 34 * 16 = 544 in length
 __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> histogram)
 {
 	const int32_t numWarps = blockDim.x >> 5;
@@ -105,11 +105,11 @@ __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> his
 	Pointer<Shared, int32_t> pIt = histogram + 16 * laneIdx + 16;
 	Pointer<Shared, int32_t> tIt = histogram + 16 * numWarps + laneIdx;
 
-	for(int32_t p = 16; p < 32; p += 4) // radix passes (4 bits each)
+	for (int32_t p = 16; p < 32; p += 4) // radix passes (4 bits each)
 	{
 		// gather bucket histograms per warp
 		int32_t warpCount = 0;
-		for(int32_t i = startIndex; i < endIndex; i += 32)
+		for (int32_t i = startIndex; i < endIndex; i += 32)
 		{
 			int32_t key = i < n ? srcKeys[i] >> p : 15;
 			uint32_t ballot1 = __ballot(key & 1);
@@ -119,19 +119,19 @@ __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> his
 			warpCount += __popc((mask1 ^ ballot1) & (mask2 ^ ballot2) & (mask4 ^ ballot4) & (mask8 ^ ballot8));
 		}
 
-		if(laneIdx >= 16)
+		if (laneIdx >= 16)
 			hIt[laneIdx] = warpCount;
 
 		__syncthreads();
 
 		// prefix sum of histogram buckets
-		for(int32_t i = warpIdx; i < 16; i += numWarps)
+		for (int32_t i = warpIdx; i < 16; i += numWarps)
 			scanWarp<16>(pIt + i);
 
 		__syncthreads();
 
 		// prefix sum of bucket totals (exclusive)
-		if(threadIdx.x < 16)
+		if (threadIdx.x < 16)
 		{
 			*tIt = tIt[-1] & !threadIdx.x - 1;
 			scanWarp<1>(tIt);
@@ -140,11 +140,11 @@ __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> his
 
 		__syncthreads();
 
-		if(laneIdx < 16)
+		if (laneIdx < 16)
 			hIt[laneIdx] += *tIt;
 
 		// split indices
-		for(int32_t i = startIndex; i < endIndex; i += 32)
+		for (int32_t i = startIndex; i < endIndex; i += 32)
 		{
 			int32_t key = i < n ? srcKeys[i] >> p : 15;
 			uint32_t ballot1 = __ballot(key & 1);
@@ -155,10 +155,10 @@ __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> his
 			                (!!(key & 8) - 1 ^ ballot8);
 			int32_t index = hIt[key & 15] + __popc(bits & laneMask);
 
-			if(i < n)
+			if (i < n)
 				dstKeys[index] = srcKeys[i];
 
-			if(laneIdx < 16)
+			if (laneIdx < 16)
 				hIt[laneIdx] += __popc((mask1 ^ ballot1) & (mask2 ^ ballot2) & (mask4 ^ ballot4) & (mask8 ^ ballot8));
 		}
 
@@ -168,7 +168,7 @@ __device__ void radixSort(int32_t* keys, int32_t n, Pointer<Shared, int32_t> his
 	}
 
 #ifndef NDEBUG
-	for(int32_t i = threadIdx.x; i < n; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < n; i += blockDim.x)
 		assert(!i || keys[i - 1] >> 16 <= keys[i] >> 16);
 #endif
 }
@@ -199,12 +199,12 @@ __shared__ uninitialized<CuSelfCollision> gSelfCollideParticles;
 template <typename CurrentT>
 __device__ void CuSelfCollision::operator()(CurrentT& current)
 {
-	if(min(gClothData.mSelfCollisionDistance, gFrameData.mSelfCollisionStiffness) <= 0.0f)
+	if (min(gClothData.mSelfCollisionDistance, gFrameData.mSelfCollisionStiffness) <= 0.0f)
 		return;
 
 	ProfileDetailZone zone(cloth::CuProfileZoneIds::SELFCOLLIDE);
 
-	if(threadIdx.x < 3)
+	if (threadIdx.x < 3)
 	{
 		float upper = gFrameData.mParticleBounds[threadIdx.x * 2];
 		float negativeLower = gFrameData.mParticleBounds[threadIdx.x * 2 + 1];
@@ -222,7 +222,7 @@ __device__ void CuSelfCollision::operator()(CurrentT& current)
 
 		// calculate shortest axis
 		int32_t shortestAxis = edgeLength[0] > edgeLength[1];
-		if(edgeLength[shortestAxis] > edgeLength[2])
+		if (edgeLength[shortestAxis] > edgeLength[2])
 			shortestAxis = 2;
 
 		uint32_t writeAxis = threadIdx.x - shortestAxis;
@@ -241,7 +241,7 @@ __device__ void CuSelfCollision::operator()(CurrentT& current)
 
 	buildAcceleration(current);
 
-	if(gFrameData.mRestPositions)
+	if (gFrameData.mRestPositions)
 		collideParticles<true>(current);
 	else
 		collideParticles<false>(current);
@@ -265,7 +265,7 @@ __device__ void CuSelfCollision::buildAcceleration(const CurrentT& current)
 	float colScale = mPosScale[2], colBias = mPosBias[2];
 
 	// calculate keys
-	for(int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
 	{
 		int32_t index = indices ? indices[i] : i;
 		assert(index < gClothData.mNumParticles);
@@ -289,11 +289,11 @@ __device__ void CuSelfCollision::buildAcceleration(const CurrentT& current)
 	radixSort(sortedKeys, numIndices, buffer);
 
 	// mark cell start if keys are different between neighboring threads
-	for(int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
 	{
 		int32_t key = sortedKeys[i] >> 16;
 		int32_t prevKey = i ? sortedKeys[i - 1] >> 16 : key - 1;
-		if(key != prevKey)
+		if (key != prevKey)
 		{
 			cellStart[key] = i;
 			cellStart[prevKey + 1] = i;
@@ -324,7 +324,7 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 	float* wPtr = sortedParticles + 3 * numParticles;
 
 	// copy current particles to temporary array
-	for(int32_t i = threadIdx.x; i < numParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numParticles; i += blockDim.x)
 	{
 		xPtr[i] = current(i, 0);
 		yPtr[i] = current(i, 1);
@@ -334,7 +334,7 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 	__syncthreads();
 
 	// copy only sorted (indexed) particles to shared mem
-	for(int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
 	{
 		int32_t index = sortedKeys[i] & UINT16_MAX;
 		current(i, 0) = xPtr[index];
@@ -351,13 +351,13 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 	float rowScale = mPosScale[1], rowBias = mPosBias[1];
 	float colScale = mPosScale[2], colBias = mPosBias[2];
 
-	for(int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
 	{
 		const int32_t index = sortedKeys[i] & UINT16_MAX;
 		assert(index < gClothData.mNumParticles);
 
 		float restX, restY, restZ;
-		if(useRestPositions)
+		if (useRestPositions)
 		{
 			const float* restIt = gFrameData.mRestPositions + index * 4;
 			restX = restIt[0];
@@ -384,11 +384,11 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 		assert(key <= 0x4080);
 
 		// check cells in 3 columns
-		for(int32_t keyEnd = key + 256; key <= keyEnd; key += 128)
+		for (int32_t keyEnd = key + 256; key <= keyEnd; key += 128)
 		{
 			// cellStart keys of unoccupied cells have a value of -1
-			uint32_t startIndex; // min<unsigned>(cellStart[key+0..2])
-			uint32_t endIndex;   // max<signed>(0, cellStart[key+1..3])
+			uint32_t startIndex; // min<unsigned>(cellStart[key + 0..2])
+			uint32_t endIndex;   // max<signed>(0, cellStart[key + 1..3])
 
 			asm volatile("{\n\t"
 			             "	.reg .u32 start1, start2;\n\t"
@@ -406,19 +406,19 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 			             : POINTER_CONSTRAINT(cellStart + key));
 
 			// comparison must be unsigned to skip cells with negative startIndex
-			for(uint32_t j = startIndex; j < endIndex; ++j)
+			for (uint32_t j = startIndex; j < endIndex; ++j)
 			{
-				if(j != i) // avoid same particle
+				if (j != i) // avoid same particle
 				{
 					float dx = posX - current(j, 0);
 					float dy = posY - current(j, 1);
 					float dz = posZ - current(j, 2);
 
 					float distSqr = dx * dx + dy * dy + dz * dz;
-					if(distSqr > cdistSq)
+					if (distSqr > cdistSq)
 						continue;
 
-					if(useRestPositions)
+					if (useRestPositions)
 					{
 						const int32_t jndex = sortedKeys[j] & UINT16_MAX;
 						assert(jndex < gClothData.mNumParticles);
@@ -429,7 +429,7 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 						float ry = restY - restJt[1];
 						float rz = restZ - restJt[2];
 
-						if(rx * rx + ry * ry + rz * rz <= cdistSq)
+						if (rx * rx + ry * ry + rz * rz <= cdistSq)
 							continue;
 					}
 
@@ -459,7 +459,7 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 
 	// copy temporary particle array back to shared mem
 	// (need to copy whole array)
-	for(int32_t i = threadIdx.x; i < numParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numParticles; i += blockDim.x)
 	{
 		current(i, 0) = xPtr[i];
 		current(i, 1) = yPtr[i];
@@ -468,7 +468,7 @@ __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 	}
 
 	// unmark occupied cells to empty again (faster than clearing all the cells)
-	for(int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < numIndices; i += blockDim.x)
 	{
 		int32_t key = sortedKeys[i] >> 16;
 		cellStart[key] = 0xffff;

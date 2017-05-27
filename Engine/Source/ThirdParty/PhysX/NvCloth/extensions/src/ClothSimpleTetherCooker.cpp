@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -105,7 +105,10 @@ void ClothSimpleTetherCooker::createTetherData(const ClothMeshDesc &desc)
 			float sqrDist = (reinterpret_cast<const PxVec3&>(
 				particles[*aIt]) - position).magnitudeSquared();
 			if(minSqrDist > sqrDist)
-				minSqrDist = sqrDist, minIndex = *aIt;
+			{
+				minSqrDist = sqrDist;
+				minIndex = *aIt;
+			}
 		}
 
 		mTetherAnchors.pushBack(minIndex);

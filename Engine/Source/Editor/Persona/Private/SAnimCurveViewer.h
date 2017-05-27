@@ -265,7 +265,6 @@ private:
 	void CreateAnimCurveTypeList(TSharedRef<SHorizontalBox> HorizontalBox);
 
 	void ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const;
-	void RefreshCachePreviewInstance();
 
 	void OnDeleteNameClicked();
 	bool CanDelete();
@@ -289,6 +288,9 @@ private:
 
 	/** Get the SmartNameMapping for anim curves */
 	const struct FSmartNameMapping* GetAnimCurveMapping();
+
+	/** Get the anim instance we are viewing */
+	UAnimInstance* GetAnimInstance() const;
 
 	/** Pointer to the preview scene we are bound to */
 	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
@@ -322,9 +324,6 @@ private:
 
 	/** Commands that are bound to delegates*/
 	TSharedPtr<FUICommandList> UICommandList;
-
-	/** Curve delegate */
-	FOnAddCustomAnimationCurves OnAddAnimationCurveDelegate;
 
 	friend class SAnimCurveListRow;
 	friend class SAnimCurveTypeList;

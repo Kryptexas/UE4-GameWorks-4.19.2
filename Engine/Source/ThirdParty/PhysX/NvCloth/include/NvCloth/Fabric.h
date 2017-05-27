@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -45,7 +45,7 @@ class Fabric : public UserAllocated
 {
 protected:
 	Fabric(const Fabric&);
-	Fabric& operator=(const Fabric&);
+	Fabric& operator = (const Fabric&);
 
 protected:
 	Fabric() : mRefCount(1)
@@ -54,45 +54,67 @@ protected:
 
 	virtual ~Fabric()
 	{
-		NV_CLOTH_ASSERT(0==mRefCount);
+		NV_CLOTH_ASSERT(0 == mRefCount);
 	}
 
 public:
-
+	/** \brief Returns the Factory used to create this Fabric.*/
 	virtual Factory& getFactory() const = 0;
 
+	/** \brief Returns the number of constraint solve phases stored.
+		Phases are groups of constraints that make up the general structure of the fabric.
+		Cloth instances can have different configuration settings per phase (see Cloth::setPhaseConfig()).
+		Phases are usually split by type (horizontal, vertical, bending, shearing), depending on the cooker used.
+		*/
 	virtual uint32_t getNumPhases() const = 0;
+
+	/** \brief Returns the number of rest lengths stored.
+		Each constraint uses the rest value to determine if the two connected particles need to be pulled together or pushed apart.
+	*/
 	virtual uint32_t getNumRestvalues() const = 0;
+
+	/** \brief Returns the number of constraint stiffness values stored.
+		It is optional for a Fabric to have per constraint stiffness values provided.
+		This function will return 0 if no values are stored.
+		Stiffness per constraint values stored here can be used if more fine grain control is required (as opposed to the values stored in the cloth's phase configuration).
+		The Cloth 's phase configuration stiffness values will be ignored if stiffness per constraint values are used.
+	*/
 	virtual uint32_t getNumStiffnessValues() const = 0;
 
+
+	/** \brief Returns the number of sets stored.
+		Sets connect a phase to a range of indices.
+	*/
 	virtual uint32_t getNumSets() const = 0;
+
+	/** \brief Returns the number of indices stored.
+		Each constraint has a pair of indices that indicate which particles it connects.
+	*/
 	virtual uint32_t getNumIndices() const = 0;
-
+	/// Returns the number of particles.
 	virtual uint32_t getNumParticles() const = 0;
-
+	/// Returns the number of Tethers stored.
 	virtual uint32_t getNumTethers() const = 0;
-
+	/// Returns the number of triangles that make up the cloth mesh.
 	virtual uint32_t getNumTriangles() const = 0;
 
+	/** Scales all constraint rest lengths.*/
 	virtual void scaleRestvalues(float) = 0;
+	/** Scales all tether lengths.*/
 	virtual void scaleTetherLengths(float) = 0;
 
-	int32_t getRefCount() const
-	{
-		return mRefCount;
-	}
 	void incRefCount()
 	{
 		physx::shdfnd::atomicIncrement(&mRefCount);
 		NV_CLOTH_ASSERT(mRefCount > 0);
 	}
 
-	///returns true if the object is destroyed
+	/// Returns true if the object is destroyed
 	bool decRefCount()
 	{
 		NV_CLOTH_ASSERT(mRefCount > 0);
 		int result = physx::shdfnd::atomicDecrement(&mRefCount);
-		if(result == 0)
+		if (result == 0)
 		{
 			delete this;
 			return true;

@@ -1877,6 +1877,7 @@ class Building:
     undefs = []
     commons = []
     for line in output.split('\n'):
+      line = line.rstrip('\r') # EPIC EDIT -- nick.shin 2017.05.15 -- if symbol files has DOS line endings, this is needed for Linux/OSX builds [UE-44779]
       if len(line) == 0: continue
       if ':' in line: continue # e.g.  filename.o:  , saying which file it's from
       parts = filter(lambda seg: len(seg) > 0, line.split(' '))

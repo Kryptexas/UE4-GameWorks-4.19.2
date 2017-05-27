@@ -23,13 +23,14 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
 #pragma once
 
 #include "NvCloth/Allocator.h"
+#include "PsArray.h"
 
 namespace nv
 {
@@ -47,21 +48,45 @@ class Solver : public UserAllocated
   protected:
 	Solver() {}
 	Solver(const Solver&);
-	Solver& operator=(const Solver&);
+	Solver& operator = (const Solver&);
 
   public:
 	virtual ~Solver() {}
 
-	/// add cloth object, returns true if successful
-	virtual void addCloth(Cloth*) = 0;
+	/// Adds cloth object.
+	virtual void addCloth(Cloth* cloth) = 0;
 
-	/// remove cloth object
-	virtual void removeCloth(Cloth*) = 0;
+	/// Removes cloth object.
+	virtual void removeCloth(Cloth* cloth) = 0;
+
+	/// Returns the numer of cloths added to the solver.
+	virtual int getNumCloths() const = 0;
+
+	/// Returns the pointer to the first cloth added to the solver
+	virtual Cloth * const * getClothList() const = 0;
 
 	// functions executing the simulation work.
+	/**	\brief Begins a simulation frame.
+		Returns false if there is nothing to simulate.
+		Use simulateChunk() after calling this function to do the computation.
+		@param dt The delta time for this frame.
+	*/
 	virtual bool beginSimulation(float dt) = 0;
+
+	/**	\brief Do the computationally heavy part of the simulation.
+		Call this function getSimulationChunkCount() times to do the entire simulation.
+		This function can be called from multiple threads in parallel.
+		All Chunks need to be simulated before ending the frame.
+	*/
 	virtual void simulateChunk(int idx) = 0;
+
+	/** \brief Finishes up the simulation.
+		This function can be expensive if inter-collision is enabled.
+	*/
 	virtual void endSimulation() = 0;
+
+	/** \brief Returns the number of chunks that need to be simulated this frame.
+	*/
 	virtual int getSimulationChunkCount() const = 0;
 
 	// inter-collision parameters
@@ -73,7 +98,7 @@ class Solver : public UserAllocated
 	virtual uint32_t getInterCollisionNbIterations() const = 0;
 	virtual void setInterCollisionFilter(InterCollisionFilter filter) = 0;
 
-	/// returns true if an unrecoverable error has occurred
+	/// Returns true if an unrecoverable error has occurred.
 	virtual bool hasError() const = 0;
 };
 

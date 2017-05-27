@@ -39,7 +39,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #else
-#include <ps4/PsPS4Socket.h>
+#include <PS4/PsPS4Socket.h>
 #endif
 #include <fcntl.h>
 #include <errno.h>
