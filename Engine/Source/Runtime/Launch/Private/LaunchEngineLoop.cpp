@@ -126,6 +126,7 @@
 #if !UE_SERVER
 	#include "IHeadMountedDisplayModule.h"
 	#include "HeadMountedDisplay.h"
+	#include "MRMeshModule.h"
 	#include "Interfaces/ISlateRHIRendererModule.h"
 	#include "Interfaces/ISlateNullRendererModule.h"
 	#include "EngineFontServices.h"
@@ -2357,6 +2358,14 @@ bool FEngineLoop::LoadStartupCoreModules()
 	{
 		FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
 	}
+
+	// Init Scene Reconstruction support
+#if !UE_SERVER
+	if (!IsRunningDedicatedServer())
+	{
+		FModuleManager::LoadModuleChecked<IMRMeshModule>("MRMesh");
+	}
+#endif
 
 	SlowTask.EnterProgressFrame(10);
 #if WITH_EDITOR

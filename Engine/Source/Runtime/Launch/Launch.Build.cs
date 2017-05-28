@@ -54,6 +54,7 @@ public class Launch : ModuleRules
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"HeadMountedDisplay",
+					"MRMesh",
 				}
 			);
 

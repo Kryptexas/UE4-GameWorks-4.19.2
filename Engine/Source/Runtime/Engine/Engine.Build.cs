@@ -26,6 +26,7 @@ public class Engine : ModuleRules
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
+				"MRMesh",
 				"Advertising",
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
@@ -171,7 +172,8 @@ public class Engine : ModuleRules
 				"MovieSceneCapture",
 				"MovieSceneTracks",
 				"HeadMountedDisplay",
-				"StreamingPauseRendering",
+                "MRMesh",
+                "StreamingPauseRendering",
                 "Niagara",
 			}
 		);

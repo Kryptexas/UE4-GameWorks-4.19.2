@@ -38,7 +38,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	}
 
 	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
-	int WindowMirrorMode = FMath::Clamp(CVarMirrorMode->GetValueOnRenderThread(), 0 ,2);
+	const int WindowMirrorMode = CVarMirrorMode->GetValueOnRenderThread();
 
 	if (WindowMirrorMode != 0)
 	{
@@ -101,6 +101,56 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 				*VertexShader,
 				EDRF_Default);
 		}
+		else
+		{
+			// Defaulting all unknown modes to 'single eye cropped'.
+			// aka WindowMirrorMode == 5
+
+			// These numbers define rectangle of the whole eye texture we slice out.
+			// They are pretty much what looked good to whoever came up with them.
+			const float SrcUSize = 0.3f;
+			const float SrcVSize = 0.6f;
+
+			check(ViewportWidth > 0);
+			check(ViewportHeight > 0);
+			const float SrcAspect = (float)SrcUSize / (float)SrcVSize;
+			const float DstAspect = (float)ViewportWidth / (float)ViewportHeight;
+
+			float USize = SrcUSize;
+			float VSize = SrcVSize;
+			if (DstAspect > SrcAspect)
+			{
+				// src is narrower, crop top and bottom
+				// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
+				VSize = (USize * 2.0f) / DstAspect;
+			}
+			else if (SrcAspect > DstAspect)
+			{
+				// src is wider, crop left and right
+				// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
+				USize = (VSize* 0.5f) * DstAspect;
+			}
+			else
+			{
+				check(SrcAspect == DstAspect);
+			}
+
+			// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
+			const float UStart = (0.5f - USize) * 0.5f;
+			const float VStart = (1.0f - VSize) * 0.5f;
+
+			RendererModule->DrawRectangle(
+				RHICmdList,
+				0, 0,
+				ViewportWidth, ViewportHeight,
+				UStart, VStart,
+				USize, VSize,
+				FIntPoint(ViewportWidth, ViewportHeight),
+				FIntPoint(1, 1),
+				*VertexShader,
+				EDRF_Default);
+		}
+
 	}
 }
 
