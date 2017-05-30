@@ -668,7 +668,7 @@ FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::CopyOnWriteDataInterface(FNa
 		return nullptr;
 	}
 
-	if (SrcVariable->DataInterface == nullptr || !SrcVariable->DataInterface->GetClass()->IsChildOf(RequiredClass))
+	if (!SrcVariable->DataInterface->GetClass()->IsChildOf(RequiredClass))
 	{
 		UE_LOG(LogNiagara, Warning, TEXT("%s FNiagaraScriptDataInterfaceInfo exists, but class is %s, not %s."), *VarName.ToString(), *SrcVariable->DataInterface->GetClass()->GetName(), *RequiredClass->GetName());
 		return nullptr;
