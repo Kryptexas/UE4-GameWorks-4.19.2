@@ -1444,6 +1444,18 @@ namespace AutomationTool
 						{
 							Args += " /StopOnErrors";
 						}
+
+						// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
+						string XGEVersion = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Xoreax\IncrediBuild\Builder", "Version", null) as string;
+						if (XGEVersion != null)
+						{
+							// Per Xoreax support, subtract 1001000 from the registry value to get the build number of the installed XGE.
+							int XGEBuildNumber;
+							if (Int32.TryParse(XGEVersion, out XGEBuildNumber) && XGEBuildNumber - 1001000 >= 1659)
+							{
+								Args += " /no_watchdog_thread";
+							}
+						}
 					}
 
 					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))
