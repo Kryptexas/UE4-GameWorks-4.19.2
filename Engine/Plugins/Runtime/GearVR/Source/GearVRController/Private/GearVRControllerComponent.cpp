@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "MotionControllerComponent.h"
+#include "ModuleManager.h"
 
 UGearVRControllerComponent::UGearVRControllerComponent()
 : ControllerMesh(nullptr)
@@ -14,8 +15,10 @@ UGearVRControllerComponent::UGearVRControllerComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;
 
-
-	ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GearVR/Meshes/GearVRController")));
+	if (FModuleManager::Get().IsModuleLoaded("GearVR"))
+	{
+		ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GearVR/Meshes/GearVRController")));
+	}
 }
 
 UMotionControllerComponent* UGearVRControllerComponent::GetMotionController() const
