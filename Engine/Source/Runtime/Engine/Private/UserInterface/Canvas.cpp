@@ -23,7 +23,6 @@
 #include "OneColorShader.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
-#include "ShaderCompiler.h"
 
 #include "StereoRendering.h"
 #include "Debug/ReporterGraph.h"
@@ -262,12 +261,6 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 
 void FCanvas::Construct()
 {
-	if (GShaderCompilingManager)
-	{
-		//::Clear uses global shaders make sure they finish compiling
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
-	}
-
 	check(RenderTarget);
 
 	CachedOrthoProjection[0] = CachedOrthoProjection[1] = FMatrix::Identity;
