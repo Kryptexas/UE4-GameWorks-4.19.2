@@ -116,10 +116,32 @@ struct FMacApplicationInfo
 
 		RunningOnMavericks = OSXVersion.majorVersion == 10 && OSXVersion.minorVersion == 9;
 
+		XcodeVersion.majorVersion = XcodeVersion.minorVersion = XcodeVersion.patchVersion = 0;
+
 		FPlatformProcess::ExecProcess(TEXT("/usr/bin/xcode-select"), TEXT("--print-path"), nullptr, &XcodePath, nullptr);
 		if (XcodePath.Len() > 0)
 		{
 			XcodePath.RemoveAt(XcodePath.Len() - 1); // Remove \n at the end of the string
+			if (IFileManager::Get().DirectoryExists(*XcodePath))
+			{
+				FString XcodeAppPath = XcodePath.Left(XcodePath.Find(TEXT(".app/")) + 4);
+				NSBundle* XcodeBundle = [NSBundle bundleWithPath:XcodeAppPath.GetNSString()];
+				if (XcodeBundle)
+				{
+					NSString* XcodeVersionString = (NSString*)[XcodeBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+					if (XcodeVersionString)
+					{
+						NSArray<NSString*>* VersionComponents = [XcodeVersionString componentsSeparatedByString:@"."];
+						XcodeVersion.majorVersion = [[VersionComponents objectAtIndex:0] integerValue];
+						XcodeVersion.minorVersion = VersionComponents.count > 1 ? [[VersionComponents objectAtIndex:1] integerValue] : 0;
+						XcodeVersion.patchVersion = VersionComponents.count > 2 ? [[VersionComponents objectAtIndex:2] integerValue] : 0;
+					}
+				}
+			}
+			else
+			{
+				XcodePath.Empty();
+			}
 		}
 
 		char TempSysCtlBuffer[PATH_MAX] = {};
@@ -351,6 +373,7 @@ struct FMacApplicationInfo
 	NSOperatingSystemVersion OSXVersion;
 	FGuid RunUUID;
 	FString XcodePath;
+	NSOperatingSystemVersion XcodeVersion;
 	NSPipe* StdErrPipe;
 	static PLCrashReporter* CrashReporter;
 	static FMacMallocCrashHandler* CrashMalloc;
@@ -422,6 +445,17 @@ void FMacPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
 	
 	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
+
+#if WITH_EDITOR
+	if (GMacAppInfo.XcodePath.Len())
+	{
+		UE_LOG(LogInit, Log, TEXT("Xcode developer folder path: %s, version %d.%d.%d"), *GMacAppInfo.XcodePath, GMacAppInfo.XcodeVersion.majorVersion, GMacAppInfo.XcodeVersion.minorVersion, GMacAppInfo.XcodeVersion.patchVersion);
+	}
+	else
+	{
+		UE_LOG(LogInit, Log, TEXT("No Xcode installed"));
+	}
+#endif
 }
 
 void FMacPlatformMisc::PlatformPostInit()
@@ -1802,6 +1836,13 @@ FString FMacPlatformMisc::GetOperatingSystemId()
 FString FMacPlatformMisc::GetXcodePath()
 {
 	return GMacAppInfo.XcodePath;
+}
+
+// @todo: It's not a member of FMacPlatformMisc to avoid changing public headers in 4.16.1, but ideally we should add FMacPlatformMisc::XcodeVersionCompare that will replace this
+bool IsSupportedXcodeVersionInstalled()
+{
+	// We need Xcode 8.2 or newer to be able to compile Metal shaders correctly
+	return GMacAppInfo.XcodeVersion.majorVersion > 8 || (GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2);
 }
 
 float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
