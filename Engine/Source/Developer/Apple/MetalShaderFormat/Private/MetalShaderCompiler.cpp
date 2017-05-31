@@ -558,7 +558,18 @@ static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
 	return true;
 }
 
+#if PLATFORM_MAC
+
 extern bool IsSupportedXcodeVersionInstalled();
+
+#else
+
+bool IsSupportedXcodeVersionInstalled()
+{
+	return false;
+}
+
+#endif
 
 /**
  * Construct the final microcode from the compiled and verified shader source.
