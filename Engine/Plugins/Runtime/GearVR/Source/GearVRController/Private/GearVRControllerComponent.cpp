@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "MotionControllerComponent.h"
+#include "ModuleManager.h"
 
 UGearVRControllerComponent::UGearVRControllerComponent()
 : ControllerMesh(nullptr)
@@ -14,8 +15,14 @@ UGearVRControllerComponent::UGearVRControllerComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;
 
-
-	ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GearVR/Meshes/GearVRController")));
+	// GearVR plugin is enabled by default, so it is built into the executable for content projects.
+	// If you disable the plugin the mesh content will be missing, and when the default object is 
+	// constructed you get a fatal load error.
+	// This check avoids that error.
+	if (FModuleManager::Get().IsModuleLoaded("GearVR"))
+	{
+		ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GearVR/Meshes/GearVRController")));
+	}
 }
 
 UMotionControllerComponent* UGearVRControllerComponent::GetMotionController() const
