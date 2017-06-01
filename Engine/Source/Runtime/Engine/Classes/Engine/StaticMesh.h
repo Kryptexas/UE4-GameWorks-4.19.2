@@ -616,6 +616,11 @@ public:
 	/** Pre-build navigation collision */
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
+    
+    /** Properties for the associated Flex object */
+    UPROPERTY(EditAnywhere, Instanced, Category = Flex)
+    class UFlexAsset* FlexAsset;
+
 public:
 	/**
 	 * Default constructor
@@ -642,6 +647,9 @@ public:
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
+	
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);					   
+
 	//~ End UObject Interface.
 
 	/**

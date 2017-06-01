@@ -21,8 +21,9 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "FbxImporter.h"
+#include "PhysicsEngine/FlexAsset.h"
 
+#include "FbxImporter.h"
 
 bool GBuildStaticMeshCollision = 1;
 
@@ -913,6 +914,7 @@ struct ExistingStaticMeshData
 
 	UModel*						ExistingCollisionModel;
 	UBodySetup*					ExistingBodySetup;
+	UFlexAsset*				ExistingFlexAsset;
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
@@ -1053,6 +1055,7 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, Un
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingMesh->ThumbnailInfo;
 
 		ExistingMeshDataPtr->ExistingBodySetup = ExistingMesh->BodySetup;
+		ExistingMeshDataPtr->ExistingFlexAsset = ExistingMesh->FlexAsset;
 
 		ExistingMeshDataPtr->LpvBiasMultiplier = ExistingMesh->LpvBiasMultiplier;
 		ExistingMeshDataPtr->bHasNavigationData = ExistingMesh->bHasNavigationData;
@@ -1524,6 +1527,12 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 		
 
 	NewMesh->ThumbnailInfo = ExistingMeshDataPtr->ExistingThumbnailInfo.Get();
+
+
+		if (ExistingMeshDataPtr->ExistingFlexAsset)
+		{
+			NewMesh->FlexAsset = ExistingMeshDataPtr->ExistingFlexAsset;
+		}
 
 	// If we already had some collision info...
 	if(ExistingMeshDataPtr->ExistingBodySetup)

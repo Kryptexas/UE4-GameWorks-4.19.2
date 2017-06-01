@@ -327,6 +327,21 @@ public:
 	/** true if the emitter has no active particles and will no longer spawn any in the future */
 	bool bEmitterIsDone;
 
+#if WITH_FLEX
+	/** The offset to the index of the associated flex particle			*/
+	int32 FlexDataOffset;
+	/** Set if anisotropy data is available for rendering				*/
+	uint32 bFlexAnisotropyData : 1;
+	/** The container instance to emit into								*/
+	struct FFlexParticleEmitterInstance* FlexEmitterInstance;
+	/** Registered fluid surface component								*/
+	class UFlexFluidSurfaceComponent* FlexFluidSurfaceComponent;
+	/** Replace the FlexFluidSurfaceComponent for material overrides	*/
+	void RegisterNewFlexFluidSurfaceComponent(class UFlexFluidSurface* NewFlexFluidSurface);
+	/** Attach a component to the Flex particles in this emitter instance */
+	void AttachFlexToComponent(USceneComponent* InComponent, float InRadius);
+#endif // WITH_FLEX
+
 	/** The number of triangles to render								*/
 	int32	TrianglesToRender;
 	int32 MaxVertexIndex;

@@ -45,6 +45,10 @@ class ENGINE_API URadialForceComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Destructible)
 	float DestructibleDamage;
 
+	/** If true the force field will act as a rigid attachment for flex particles within the field radius. The field should be deleted to release particles. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Flex)
+	bool FlexAttach;
+
 	/** Fire a single impulse */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
 	virtual void FireImpulse();

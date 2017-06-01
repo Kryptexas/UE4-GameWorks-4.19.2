@@ -531,6 +531,9 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowBinormals);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowVertices);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawUVs);
+#if WITH_FLEX
+				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawFlexPreview);
+#endif
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawAdditionalData);
 			}
 			ToolbarBuilder.EndSection();
@@ -1968,6 +1971,14 @@ void FStaticMeshEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyC
 	{
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 	}
+
+#if WITH_FLEX
+	//update preview flex mesh post UFlexAsset::ReImport
+	if (PropertyThatChanged->GetOwnerClass()->IsChildOf(UFlexAsset::StaticClass()) || *PropertyThatChanged->GetName() == FName(TEXT("FlexAsset")))
+	{
+		Viewport->UpdateFlexPreviewComponent();
+	}
+#endif
 }
 
 void FStaticMeshEditor::UndoAction()
@@ -2018,6 +2029,10 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		RefreshTool();
 	}
+
+#if WITH_FLEX
+	Viewport->UpdateFlexPreviewComponent();
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

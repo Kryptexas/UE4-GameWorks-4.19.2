@@ -828,6 +828,18 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(NSLOCTEXT("UnrealEd", "MeshSectionsHiddenWarning",  "Mesh Sections Hidden")));
 	}
 
+	if (StaticMesh->FlexAsset)
+	{
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Particles: {0}")), FText::AsNumber(StaticMesh->FlexAsset->Particles.Num()))));
+
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Shapes: {0}")), FText::AsNumber(StaticMesh->FlexAsset->ShapeCenters.Num()))));
+
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(FText::FromString(TEXT("Flex Num Springs: {0}")), FText::AsNumber(StaticMesh->FlexAsset->SpringCoefficients.Num()))));
+	}
+
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
 
 	if(bDrawUVs && StaticMesh->RenderData->LODResources.Num() > 0)

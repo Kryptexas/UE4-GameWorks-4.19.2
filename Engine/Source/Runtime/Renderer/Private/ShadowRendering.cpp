@@ -574,6 +574,23 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 
 		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
+#if WITH_FLEX
+		bool bFlexDepthMasking = GFlexFluidSurfaceRenderer.IsDepthMaskingRequired(ParentSceneInfo->Proxy);
+
+		if (!bFlexDepthMasking)
+		{
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
+			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
+			}
+		}
+		else
+		{
+			GFlexFluidSurfaceRenderer.RenderDepth(RHICmdList, ParentSceneInfo->Proxy, *View);
+		}
+#else
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
@@ -581,6 +598,7 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 
 			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
 		}
+#endif
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
 		// Note that self-shadow pre-shadows still mask by receiver elements.
@@ -776,6 +794,9 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
 			{
 				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];
+#if WITH_FLEX
+		if (!MeshBatchAndRelevance.PrimitiveSceneProxy->IsFlexFluidSurface())
+		{
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
@@ -797,6 +818,11 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 				);
 			}
 		}
+#else
+		const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+		FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+#endif
+	}
 	}
 }
 
@@ -1334,6 +1360,7 @@ bool FDeferredShadingSceneRenderer::InjectReflectiveShadowMaps(FRHICommandListIm
 extern int32 GCapsuleShadows;
 
 bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bProjectingForForwardShading, bool bMobileModulatedProjections)
+
 {
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);

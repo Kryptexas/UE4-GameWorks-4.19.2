@@ -108,6 +108,12 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "AutomatedAssetImportData.h"
 
+#if WITH_FLEX
+#include "AssetTypeActions/AssetTypeActions_FlexContainer.h"
+#include "AssetTypeActions/AssetTypeActions_FlexFluidSurface.h"
+#endif
+
+
 #define LOCTEXT_NAMESPACE "AssetTools"
 
 FAssetTools::FAssetTools()
@@ -191,6 +197,8 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorField) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldAnimated) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_FlexContainer));
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_FlexFluidSurface));
 
 	// Note: Please don't add any more actions here!  They belong in an editor-only module that is more tightly
 	// coupled to your new system, and you should not create a dependency on your new system from AssetTools.

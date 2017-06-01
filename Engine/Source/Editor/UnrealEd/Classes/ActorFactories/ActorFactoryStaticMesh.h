@@ -22,6 +22,11 @@ class UActorFactoryStaticMesh : public UActorFactory
 	virtual void PostCreateBlueprint( UObject* Asset, AActor* CDO ) override;
 	virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance) override;
 	virtual FQuat AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const override;
+
+#if WITH_FLEX
+	virtual AActor* SpawnActor(UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name) override;
+#endif // WITH_FLEX
+
 	//~ End UActorFactory Interface
 };
 
