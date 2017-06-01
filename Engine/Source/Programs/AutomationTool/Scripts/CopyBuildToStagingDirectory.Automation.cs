@@ -850,6 +850,14 @@ public partial class Project : CommandUtils
 		List<string> Blacklist = null;
 		if (SC.StageTargetConfigurations.Count == 1)
 		{
+			// automatically add DefaultBloomKernel to blacklist for mobile platforms (hotfix version)
+			if (SC.PlatformDir == "Android" || SC.PlatformDir == "IOS" || SC.PlatformDir == "TVOS" || SC.PlatformDir == "HTML5")
+			{
+				Blacklist = new List<string>();
+				Blacklist.Add("../../../Engine/Content/EngineMaterials/DefaultBloomKernel.uasset");
+				Blacklist.Add("../../../Engine/Content/EngineMaterials/DefaultBloomKernel.uexp");
+			}
+
 			var PakBlacklistFilename = CombinePaths(SC.ProjectRoot, "Build", SC.PlatformDir, string.Format("PakBlacklist-{0}.txt", SC.StageTargetConfigurations[0].ToString()));
 			if (File.Exists(PakBlacklistFilename))
 			{
