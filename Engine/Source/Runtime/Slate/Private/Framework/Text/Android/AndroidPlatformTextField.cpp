@@ -70,11 +70,11 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 	switch (GAndroidNewKeyboard)
 	{
 		case 1:
-			GAndroidNewKeyboard = true;
+			bIsUsingIntegratedKeyboard = true;
 			break;
 
 		case 2:
-			GAndroidNewKeyboard = false;
+			bIsUsingIntegratedKeyboard = false;
 			break;
 
 		default:
