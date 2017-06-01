@@ -3876,13 +3876,18 @@ void FSequencer::AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors)
 void FSequencer::OnSelectedOutlinerNodesChanged()
 {
 	SynchronizeExternalSelectionWithSequencerSelection();
+
 	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
-	AActor* NewlySelectedActor = GEditor->GetSelectedActors()->GetTop<AActor>();
-	// If we selected an Actor or a node for an Actor that is a potential autokey candidate, clean up any existing mesh trails
-	if (NewlySelectedActor && !NewlySelectedActor->IsEditorOnly())
+	if (SequencerEdMode != nullptr)
 	{
-		SequencerEdMode->CleanUpMeshTrails();
+		AActor* NewlySelectedActor = GEditor->GetSelectedActors()->GetTop<AActor>();
+		// If we selected an Actor or a node for an Actor that is a potential autokey candidate, clean up any existing mesh trails
+		if (NewlySelectedActor && !NewlySelectedActor->IsEditorOnly())
+		{
+			SequencerEdMode->CleanUpMeshTrails();
+		}
 	}
+
 	OnSelectionChangedObjectGuidsDelegate.Broadcast(Selection.GetBoundObjectsGuids());
 	OnSelectionChangedTracksDelegate.Broadcast(Selection.GetSelectedTracks());
 }

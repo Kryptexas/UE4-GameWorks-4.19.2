@@ -132,7 +132,7 @@ bool MeshPaintHelpers::PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 L
 	else
 	{
 		// If there's no raw mesh data, don't try to do any fixup here
-		if (SrcModel.RawMeshBulkData->IsEmpty())
+		if (SrcModel.RawMeshBulkData->IsEmpty() || ComponentLODInfo.OverrideMapBuildData == nullptr)
 		{
 			return false;
 		}
@@ -1491,11 +1491,15 @@ bool MeshPaintHelpers::ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adap
 			Action.Execute(Adapter, VertexIndex);
 		}
 	});*/
-		
-	for (int32 VertexIndex : InfluencedVertices)
+	if (InfluencedVertices.Num())
 	{
-		// Apply the action!			
-		Action.Execute(Adapter, VertexIndex);
+		Adapter->PreEdit();
+		for (const int32 VertexIndex : InfluencedVertices)
+		{
+			// Apply the action!			
+			Action.Execute(Adapter, VertexIndex);
+		}
+		Adapter->PostEdit();
 	}
 
 	return (InfluencedVertices.Num() > 0);

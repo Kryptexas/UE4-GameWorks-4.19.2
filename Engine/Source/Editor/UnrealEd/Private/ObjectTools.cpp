@@ -3841,6 +3841,11 @@ namespace ThumbnailTools
 		}
 		check( RenderTargetResource != NULL );
 
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->ProcessAsyncResults(false, true);
+		}
+
 		// Create a canvas for the render target and clear it to black
 		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel );
 		Canvas.Clear( FLinearColor::Black );
@@ -3850,10 +3855,6 @@ namespace ThumbnailTools
 		FThumbnailRenderingInfo* RenderInfo =
 			GUnrealEd->GetThumbnailManager()->GetRenderingInfo( InObject );
 
-		if (GShaderCompilingManager)
-		{
-			GShaderCompilingManager->ProcessAsyncResults(false, true);
-		}
 		// Wait for all textures to be streamed in before we render the thumbnail
 		// @todo CB: This helps but doesn't result in 100%-streamed-in resources every time! :(
 		if( InFlushMode == EThumbnailTextureFlushMode::AlwaysFlush )

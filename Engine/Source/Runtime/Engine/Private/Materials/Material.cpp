@@ -136,22 +136,26 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	};
 	
 	EMaterialValueType AttributeType = FMaterialAttributeDefinitionMap::GetValueType(Property);
-	FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-	if (Expression && Expression->IsConstant())
+	if (Ret != INDEX_NONE)
 	{
-		// Where possible we want to preserve constant expressions allowing default value checks
-		EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
-		EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
-		EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+		FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-		if (ExactAttributeType == ExactResultType)
+		if (Expression && Expression->IsConstant())
 		{
-			return Ret;
-		}
-		else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
-		{
-			return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
+			// Where possible we want to preserve constant expressions allowing default value checks
+			EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
+			EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
+			EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+
+			if (ExactAttributeType == ExactResultType)
+			{
+				return Ret;
+			}
+			else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
+			{
+				return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
+			}
 		}
 	}
 

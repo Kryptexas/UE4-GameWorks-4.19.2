@@ -104,8 +104,8 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::InitializeVertexData()
 
 void FMeshPaintGeometryAdapterForStaticMeshes::PostEdit()
 {
-	// Recreate all component states using the referenced static mesh
-	TUniquePtr<FStaticMeshComponentRecreateRenderStateContext> RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>(ReferencedStaticMesh);
+	// Lighting does not need to be invalidated when mesh painting
+	const bool bUnbuildLighting = false;
 	const bool bUsingInstancedVertexColors = true;
 
 	// Update gpu resource data 
@@ -116,6 +116,9 @@ void FMeshPaintGeometryAdapterForStaticMeshes::PostEdit()
 	}
 	else
 	{
+		// Recreate all component states using the referenced static mesh
+		TUniquePtr<FStaticMeshComponentRecreateRenderStateContext> RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>(ReferencedStaticMesh, bUnbuildLighting);
+
 		// Reinitialize the static mesh's resources.
 		ReferencedStaticMesh->InitResources();
 	}

@@ -351,12 +351,11 @@ namespace AutomationTool
 						// Not all account types can access /Library/Logs/DiagnosticReports
 					}
 				}
-				
-				// Dump them all to the log
+
+				// Dump all those that we recognize to the log
 				foreach(FileInfo CrashFileInfo in CrashFileInfos)
 				{
-					// snmpd seems to often crash (suspect due to it being starved of CPU cycles during cooks)
-					if(!CrashFileInfo.Name.StartsWith("snmpd_"))
+					if(CrashFileInfo.Name.StartsWith("Unreal", StringComparison.InvariantCultureIgnoreCase) || CrashFileInfo.Name.StartsWith("UE4", StringComparison.InvariantCultureIgnoreCase) || CrashFileInfo.Name.StartsWith("ShaderCompileWorker", StringComparison.InvariantCultureIgnoreCase))
 					{
 						CommandUtils.Log("Found crash log - {0}", CrashFileInfo.FullName);
 						try

@@ -558,6 +558,19 @@ static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
 	return true;
 }
 
+#if PLATFORM_MAC
+
+extern bool IsSupportedXcodeVersionInstalled();
+
+#else
+
+bool IsSupportedXcodeVersionInstalled()
+{
+	return false;
+}
+
+#endif
+
 /**
  * Construct the final microcode from the compiled and verified shader source.
  * @param ShaderOutput - Where to store the microcode and parameter map.
@@ -977,10 +990,17 @@ static void BuildMetalShaderOutput(
 					GMetalLoggedRemoteCompileNotConfigured = true;
 				}
 				bRemoteBuildingConfigured = false;
+				bSucceeded = true;
+			}
+			else if (IsSupportedXcodeVersionInstalled())
+			{
+				bCompileAtRuntime = false;
+				bSucceeded = true;
 			}
 			else
 			{
-				bCompileAtRuntime = false;
+				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Installed Xcode's metal shader compiler is too old, please update Xcode on this Mac. Falling back to online compiled text shaders which will be slower."));
+				bCompileAtRuntime = true;
 				bSucceeded = true;
 			}
 		}
