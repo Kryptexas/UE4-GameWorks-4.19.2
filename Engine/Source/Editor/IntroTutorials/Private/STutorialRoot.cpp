@@ -320,7 +320,8 @@ void STutorialRoot::GoToPreviousStage()
 				TSubclassOf<UEditorTutorial> PreviousTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->PreviousTutorial.ToString(), NULL, LOAD_None, NULL);
 				if (PreviousTutorialClass != nullptr)
 				{
-					LaunchTutorial(PreviousTutorialClass->GetDefaultObject<UEditorTutorial>(), IIntroTutorials::ETutorialStartType::TST_LASTSTAGE, nullptr, FSimpleDelegate(), FSimpleDelegate());
+					UEditorTutorial* PrevTutorial = NewObject<UEditorTutorial>((UObject*)GetTransientPackage(), PreviousTutorialClass);
+					LaunchTutorial(PrevTutorial, IIntroTutorials::ETutorialStartType::TST_LASTSTAGE, nullptr, FSimpleDelegate(), FSimpleDelegate());
 				}
 				else
 				{
@@ -386,7 +387,8 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 				TSubclassOf<UEditorTutorial> NextTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->NextTutorial.ToString(), NULL, LOAD_None, NULL);
 				if (NextTutorialClass != nullptr)
 				{
-					LaunchTutorial(NextTutorialClass->GetDefaultObject<UEditorTutorial>(), IIntroTutorials::ETutorialStartType::TST_RESTART, InNavigationWindow, FSimpleDelegate(), FSimpleDelegate());
+					UEditorTutorial* NextTutorial = NewObject<UEditorTutorial>((UObject*)GetTransientPackage(), NextTutorialClass);
+					LaunchTutorial(NextTutorial, IIntroTutorials::ETutorialStartType::TST_RESTART, InNavigationWindow, FSimpleDelegate(), FSimpleDelegate());
 				}
 				else
 				{
