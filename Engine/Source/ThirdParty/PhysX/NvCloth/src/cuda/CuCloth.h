@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -43,8 +43,6 @@
 #include <foundation/PxVec3.h>
 #include <foundation/PxTransform.h>
 #include "NvCloth/Allocator.h"
-#include "ClothImpl.h"
-#include "CuFactory.h"
 
 namespace nv
 {
@@ -52,6 +50,7 @@ namespace cloth
 {
 
 class CuFabric;
+class CuFactory;
 struct CuClothData;
 
 struct CuConstraints
@@ -63,7 +62,7 @@ struct CuConstraints
 
 	void pop()
 	{
-		if (!mTarget.empty())
+		if(!mTarget.empty())
 		{
 			mStart.swap(mTarget);
 			mTarget.resize(0);
@@ -75,23 +74,12 @@ struct CuConstraints
 	CuHostVector<physx::PxVec4, CU_MEMHOSTALLOC_DEVICEMAP>::Type mHostCopy;
 };
 
-class CuCloth;
-
-template<>
-class ClothTraits<CuCloth>
-{
-public:
-	typedef CuFactory FactoryType;
-	typedef CuFabric FabricType;
-	typedef CuContextLock ContextLockType;
-};
-
-class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
+class CuCloth : protected CuContextLock
 {
 	CuCloth(); // not implemented
 
   public:
-	CuCloth& operator = (const CuCloth&);
+	CuCloth& operator=(const CuCloth&);
 	typedef CuFactory FactoryType;
 	typedef CuFabric FabricType;
 	typedef CuContextLock ContextLockType;
@@ -106,24 +94,14 @@ class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
 	~CuCloth(); // not virtual on purpose
 
   public:
-	virtual Cloth* clone(Factory& factory) const;
-	uint32_t getNumParticles() const;
-
-	void lockParticles() const;
-	void unlockParticles() const;
-
-	MappedRange<physx::PxVec4> getCurrentParticles();
-	MappedRange<const physx::PxVec4> getCurrentParticles() const;
-	MappedRange<physx::PxVec4> getPreviousParticles();
-	MappedRange<const physx::PxVec4> getPreviousParticles() const;
-	GpuParticles getGpuParticles();
-	void setPhaseConfig(Range<const PhaseConfig> configs);
-
-	void setSelfCollisionIndices(Range<const uint32_t> indices);
-	uint32_t getNumVirtualParticles() const;
-	Range<physx::PxVec4> getParticleAccelerations();
-	void clearParticleAccelerations();
-	void setVirtualParticles(Range<const uint32_t[4]> indices, Range<const physx::PxVec3> weights);
+	bool isSleeping() const
+	{
+		return mSleepPassCounter >= mSleepAfterCount;
+	}
+	void wakeUp()
+	{
+		mSleepPassCounter = 0;
+	}
 
 	void notifyChanged();
 
@@ -131,7 +109,7 @@ class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
 	uint32_t getSharedMemorySize() const; // without particle data
 
 	// expects transformed configs, doesn't call notifyChanged()
-	void setPhaseConfigInternal(Range<const PhaseConfig>);
+	void setPhaseConfig(Range<const PhaseConfig>);
 
 	Range<physx::PxVec4> push(CuConstraints&);
 	void clear(CuConstraints&);
@@ -155,6 +133,27 @@ class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
 	bool mDeviceParticlesDirty;
 	bool mHostParticlesDirty;
 
+	physx::PxVec3 mParticleBoundsCenter;
+	physx::PxVec3 mParticleBoundsHalfExtent;
+
+	physx::PxVec3 mGravity;
+	physx::PxVec3 mLogDamping;
+	physx::PxVec3 mLinearLogDrag;
+	physx::PxVec3 mAngularLogDrag;
+	physx::PxVec3 mLinearInertia;
+	physx::PxVec3 mAngularInertia;
+	physx::PxVec3 mCentrifugalInertia;
+	float mSolverFrequency;
+	float mStiffnessFrequency;
+
+	physx::PxTransform mTargetMotion;
+	physx::PxTransform mCurrentMotion;
+	physx::PxVec3 mLinearVelocity;
+	physx::PxVec3 mAngularVelocity;
+
+	float mPrevIterDt;
+	MovingAverage mIterDtAvg;
+
 	CuDeviceVector<CuPhaseConfig> mPhaseConfigs; // transformed!
 	Vector<PhaseConfig>::Type mHostPhaseConfigs; // transformed!
 
@@ -174,6 +173,11 @@ class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
 	// particle acceleration stuff
 	CuDeviceVector<physx::PxVec4> mParticleAccelerations;
 	CuHostVector<physx::PxVec4, CU_MEMHOSTALLOC_DEVICEMAP>::Type mParticleAccelerationsHostCopy;
+
+	// wind
+	physx::PxVec3 mWind;
+	float mDragLogCoefficient;
+	float mLiftLogCoefficient;
 
 	// collision stuff
 	CuHostVector<IndexPair, CU_MEMHOSTALLOC_DEVICEMAP>::Type mCapsuleIndices;
@@ -203,6 +207,13 @@ class CuCloth : protected CuContextLock, public ClothImpl<CuCloth>
 
 	// 4 (position) + 2 (key) per particle + cellStart (8322)
 	CuDeviceVector<float> mSelfCollisionData;
+
+	// sleeping (see SwCloth for comments)
+	uint32_t mSleepTestInterval;
+	uint32_t mSleepAfterCount;
+	float mSleepThreshold;
+	uint32_t mSleepPassCounter;
+	uint32_t mSleepTestCounter;
 
 	uint32_t mSharedMemorySize;
 

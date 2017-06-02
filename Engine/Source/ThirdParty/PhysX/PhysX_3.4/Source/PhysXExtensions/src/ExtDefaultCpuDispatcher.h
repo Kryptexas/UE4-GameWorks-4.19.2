@@ -37,7 +37,6 @@
 #include "PsSList.h"
 #include "PxDefaultCpuDispatcher.h"
 #include "ExtSharedQueueEntryPool.h"
-#include "task/PxTask.h"
 
 namespace physx
 {

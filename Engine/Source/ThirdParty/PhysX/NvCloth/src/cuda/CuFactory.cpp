@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -35,6 +35,7 @@
 #include "CuCheckSuccess.h"
 #include "CuContextLock.h"
 #include <cuda.h>
+#include <PsFoundation.h>
 #include "CuSolverKernelBlob.h"
 
 #if PX_VC
@@ -57,7 +58,7 @@ typedef Vec4T<uint32_t> Vec4u;
 
 void cloth::checkSuccessImpl(CUresult err, const char* file, const int line)
 {
-	if (err != CUDA_SUCCESS)
+	if(err != CUDA_SUCCESS)
 	{
 		const char* code = "Unknown";
 		switch(err)
@@ -120,9 +121,9 @@ uint32_t getMaxThreadsPerBlock(CUcontext context)
 
 	checkSuccess(cuCtxPopCurrent(nullptr));
 
-	if (major >= 3)
+	if(major >= 3)
 		return 1024;
-	if (major >= 2)
+	if(major >= 2)
 		return 512;
 	return 192; // Should be the same logic as APEX used
 }
@@ -154,14 +155,14 @@ cloth::Fabric* cloth::CuFactory::createFabric(uint32_t numParticles, Range<const
 
 cloth::Cloth* cloth::CuFactory::createCloth(Range<const PxVec4> particles, Fabric& fabric)
 {
-	return NV_CLOTH_NEW(CuCloth)(*this, static_cast<CuFabric&>(fabric), particles);
+	return NV_CLOTH_NEW(CuClothImpl)(*this, fabric, particles);
 }
 
 cloth::Solver* cloth::CuFactory::createSolver()
 {
 	CuSolver* solver = NV_CLOTH_NEW(CuSolver)(*this);
 
-	if (solver->hasError())
+	if(solver->hasError())
 	{
 		NV_CLOTH_DELETE(solver);
 		return NULL;
@@ -187,35 +188,35 @@ void cloth::CuFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 
 	const CuFabric& cuFabric = static_cast<const CuFabric&>(fabric);
 
-	if (!phaseIndices.empty())
+	if(!phaseIndices.empty())
 	{
 		NV_CLOTH_ASSERT(phaseIndices.size() == cuFabric.mPhases.size());
 		const uint32_t* devicePhases = cuFabric.mPhases.begin().get();
 		copyToHost(devicePhases, devicePhases + cuFabric.mPhases.size(), phaseIndices.begin());
 	}
 
-	if (!restvalues.empty())
+	if(!restvalues.empty())
 	{
 		NV_CLOTH_ASSERT(restvalues.size() == cuFabric.mRestvalues.size());
 		const float* deviceRestvalues = cuFabric.mRestvalues.begin().get();
 		copyToHost(deviceRestvalues, deviceRestvalues + cuFabric.mRestvalues.size(), restvalues.begin());
 	}
 
-	if (!stiffnessValues.empty())
+	if(!stiffnessValues.empty())
 	{
 		NV_CLOTH_ASSERT(stiffnessValues.size() == cuFabric.mStiffnessValues.size());
 		const float* deviceStiffnessValues = cuFabric.mStiffnessValues.begin().get();
 		copyToHost(deviceStiffnessValues, deviceStiffnessValues + cuFabric.mStiffnessValues.size(), stiffnessValues.begin());
 	}
 
-	if (!sets.empty())
+	if(!sets.empty())
 	{
 		NV_CLOTH_ASSERT(sets.size() == cuFabric.mSets.size() - 1);
 		const uint32_t* deviceSets = cuFabric.mSets.begin().get();
 		copyToHost(deviceSets + 1, deviceSets + cuFabric.mSets.size(), sets.begin());
 	}
 
-	if (!indices.empty())
+	if(!indices.empty())
 	{
 		NV_CLOTH_ASSERT(indices.size() == cuFabric.mIndices.size());
 		const uint16_t* deviceIndices = cuFabric.mIndices.begin().get();
@@ -223,11 +224,11 @@ void cloth::CuFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 		copyToHost(deviceIndices, deviceIndices + cuFabric.mIndices.size(), hostIndices);
 
 		// convert from 16bit to 32bit indices
-		for (uint32_t i = indices.size(); 0 < i--;)
+		for(uint32_t i = indices.size(); 0 < i--;)
 			indices[i] = hostIndices[i];
 	}
 
-	if (!anchors.empty() || !tetherLengths.empty())
+	if(!anchors.empty() || !tetherLengths.empty())
 	{
 		uint32_t numTethers = uint32_t(cuFabric.mTethers.size());
 		Vector<CuTether>::Type tethers(numTethers, CuTether(0, 0));
@@ -235,15 +236,15 @@ void cloth::CuFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 		copyToHost(deviceTethers, deviceTethers + numTethers, tethers.begin());
 
 		NV_CLOTH_ASSERT(anchors.empty() || anchors.size() == tethers.size());
-		for (uint32_t i = 0; !anchors.empty(); ++i, anchors.popFront())
+		for(uint32_t i = 0; !anchors.empty(); ++i, anchors.popFront())
 			anchors.front() = tethers[i].mAnchor;
 
 		NV_CLOTH_ASSERT(tetherLengths.empty() || tetherLengths.size() == tethers.size());
-		for (uint32_t i = 0; !tetherLengths.empty(); ++i, tetherLengths.popFront())
+		for(uint32_t i = 0; !tetherLengths.empty(); ++i, tetherLengths.popFront())
 			tetherLengths.front() = tethers[i].mLength * cuFabric.mTetherLengthScale;
 	}
 
-	if (!triangles.empty())
+	if(!triangles.empty())
 	{
 		// todo triangles
 	}
@@ -254,7 +255,7 @@ void cloth::CuFactory::extractCollisionData(const Cloth& cloth, Range<PxVec4> sp
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 
 	NV_CLOTH_ASSERT(spheres.empty() || spheres.size() == cuCloth.mStartCollisionSpheres.size());
 	NV_CLOTH_ASSERT(capsules.empty() || capsules.size() == cuCloth.mCapsuleIndices.size() * 2);
@@ -263,21 +264,21 @@ void cloth::CuFactory::extractCollisionData(const Cloth& cloth, Range<PxVec4> sp
 	NV_CLOTH_ASSERT(triangles.empty() || triangles.size() == cuCloth.mStartCollisionTriangles.size());
 
 	// collision spheres are in pinned memory, so memcpy directly
-	if (!cuCloth.mStartCollisionSpheres.empty() && !spheres.empty())
+	if(!cuCloth.mStartCollisionSpheres.empty() && !spheres.empty())
 		memcpy(spheres.begin(), &cuCloth.mStartCollisionSpheres.front(),
 		       cuCloth.mStartCollisionSpheres.size() * sizeof(PxVec4));
 
-	if (!cuCloth.mCapsuleIndices.empty() && !capsules.empty())
+	if(!cuCloth.mCapsuleIndices.empty() && !capsules.empty())
 		memcpy(capsules.begin(), &cuCloth.mCapsuleIndices.front(), cuCloth.mCapsuleIndices.size() * sizeof(IndexPair));
 
-	if (!cuCloth.mStartCollisionPlanes.empty() && !planes.empty())
+	if(!cuCloth.mStartCollisionPlanes.empty() && !planes.empty())
 		memcpy(planes.begin(), &cuCloth.mStartCollisionPlanes.front(),
 		       cuCloth.mStartCollisionPlanes.size() * sizeof(PxVec4));
 
-	if (!cuCloth.mConvexMasks.empty() && !convexes.empty())
+	if(!cuCloth.mConvexMasks.empty() && !convexes.empty())
 		memcpy(convexes.begin(), &cuCloth.mConvexMasks.front(), cuCloth.mConvexMasks.size() * sizeof(uint32_t));
 
-	if (!cuCloth.mStartCollisionTriangles.empty() && !triangles.empty())
+	if(!cuCloth.mStartCollisionTriangles.empty() && !triangles.empty())
 		memcpy(triangles.begin(), &cuCloth.mStartCollisionTriangles.front(),
 		       cuCloth.mStartCollisionTriangles.size() * sizeof(PxVec3));
 }
@@ -286,9 +287,9 @@ void cloth::CuFactory::extractMotionConstraints(const Cloth& cloth, Range<PxVec4
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 
-	if (cuCloth.mMotionConstraints.mHostCopy.size())
+	if(cuCloth.mMotionConstraints.mHostCopy.size())
 	{
 		NV_CLOTH_ASSERT(destConstraints.size() == cuCloth.mMotionConstraints.mHostCopy.size());
 
@@ -313,9 +314,9 @@ void cloth::CuFactory::extractSeparationConstraints(const Cloth& cloth, Range<Px
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 
-	if (cuCloth.mSeparationConstraints.mHostCopy.size())
+	if(cuCloth.mSeparationConstraints.mHostCopy.size())
 	{
 		NV_CLOTH_ASSERT(destConstraints.size() == cuCloth.mSeparationConstraints.mHostCopy.size());
 
@@ -340,9 +341,9 @@ void cloth::CuFactory::extractParticleAccelerations(const Cloth& cloth, Range<Px
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 
-	if (cuCloth.mParticleAccelerationsHostCopy.size())
+	if(cuCloth.mParticleAccelerationsHostCopy.size())
 	{
 		NV_CLOTH_ASSERT(destAccelerations.size() == cuCloth.mParticleAccelerationsHostCopy.size());
 
@@ -358,9 +359,9 @@ void cloth::CuFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 
 	CuContextLock contextLock(*this);
 
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 
-	if (destWeights.size() > 0)
+	if(destWeights.size() > 0)
 	{
 		uint32_t numWeights = cloth.getNumVirtualParticleWeights();
 
@@ -372,13 +373,13 @@ void cloth::CuFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 		PxVec3* destIt = reinterpret_cast<PxVec3*>(destWeights.begin());
 		Vector<PxVec4>::Type::ConstIterator srcIt = hostWeights.begin();
 		Vector<PxVec4>::Type::ConstIterator srcEnd = srcIt + numWeights;
-		for (; srcIt != srcEnd; ++srcIt, ++destIt)
+		for(; srcIt != srcEnd; ++srcIt, ++destIt)
 			*destIt = reinterpret_cast<const PxVec3&>(*srcIt);
 
 		NV_CLOTH_ASSERT(destIt <= destWeights.end());
 	}
 
-	if (destIndices.size() > 0)
+	if(destIndices.size() > 0)
 	{
 		uint32_t numIndices = cloth.getNumVirtualParticles();
 
@@ -390,7 +391,7 @@ void cloth::CuFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 		Vec4u* destIt = reinterpret_cast<Vec4u*>(destIndices.begin());
 		Vector<Vec4us>::Type::ConstIterator srcIt = hostIndices.begin();
 		Vector<Vec4us>::Type::ConstIterator srcEnd = srcIt + numIndices;
-		for (; srcIt != srcEnd; ++srcIt, ++destIt)
+		for(; srcIt != srcEnd; ++srcIt, ++destIt)
 			*destIt = Vec4u(*srcIt);
 
 		NV_CLOTH_ASSERT(&array(*destIt) <= destIndices.end());
@@ -399,7 +400,7 @@ void cloth::CuFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 
 void cloth::CuFactory::extractSelfCollisionIndices(const Cloth& cloth, Range<uint32_t> destIndices) const
 {
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 	NV_CLOTH_ASSERT(destIndices.size() == cuCloth.mSelfCollisionIndices.size());
 	copyToHost(cuCloth.mSelfCollisionIndices.begin().get(), cuCloth.mSelfCollisionIndices.end().get(),
 	           destIndices.begin());
@@ -407,7 +408,7 @@ void cloth::CuFactory::extractSelfCollisionIndices(const Cloth& cloth, Range<uin
 
 void cloth::CuFactory::extractRestPositions(const Cloth& cloth, Range<PxVec4> destRestPositions) const
 {
-	const CuCloth& cuCloth = static_cast<const CuCloth&>(cloth);
+	const CuCloth& cuCloth = static_cast<const CuClothImpl&>(cloth).mCloth;
 	NV_CLOTH_ASSERT(destRestPositions.size() == cuCloth.mRestPositions.size());
 	copyToHost(cuCloth.mRestPositions.begin().get(), cuCloth.mRestPositions.end().get(), destRestPositions.begin());
 }

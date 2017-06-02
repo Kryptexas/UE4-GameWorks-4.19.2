@@ -58,16 +58,20 @@ namespace Gu
 	class CapsuleV;
 
 
-	PX_FORCE_INLINE void CalculateBoxMargin(const Ps::aos::Vec3VArg extent, PxReal& minExtent, PxReal& minMargin, PxReal& sweepMargin,
-		 const PxReal minMarginR = BOX_MIN_MARGIN_RATIO)
+	PX_FORCE_INLINE void CalculateBoxMargin(const Ps::aos::Vec3VArg extent, PxReal& margin, PxReal& minMargin, PxReal& sweepMargin,
+		const PxReal marginR = BOX_MARGIN_RATIO, const PxReal minMarginR = BOX_MIN_MARGIN_RATIO)
 	{
 		using namespace Ps::aos;
 
 		const FloatV min = V3ExtractMin(extent);
-		FStore(min, &minExtent);
 
-		minMargin = minExtent * minMarginR;
-		sweepMargin = minExtent * BOX_SWEEP_MARGIN_RATIO;
+		const FloatV margin_ = FMul(min, FLoad(marginR));
+		const FloatV minMargin_ = FMul(min, FLoad(minMarginR));
+		const FloatV sweepMargin_ = FMul(min, FLoad(BOX_SWEEP_MARGIN_RATIO));
+
+		FStore(margin_, &margin);
+		FStore(minMargin_, &minMargin);
+		FStore(sweepMargin_, &sweepMargin);
 	}
 
 	PX_FORCE_INLINE Ps::aos::FloatV CalculateBoxTolerance(const Ps::aos::Vec3VArg extent)
@@ -102,9 +106,8 @@ namespace Gu
 		PX_FORCE_INLINE BoxV(const Ps::aos::Vec3VArg origin, const Ps::aos::Vec3VArg extent) : 
 			ConvexV(ConvexType::eBOX, origin), extents(extent)
 		{
-			CalculateBoxMargin(extent, minExtent, minMargin, sweepMargin);
+			CalculateBoxMargin(extent, margin, minMargin, sweepMargin);
 			marginDif = Ps::aos::FZero();
-			margin = 0.f;
 		}
 																		
 		PX_FORCE_INLINE BoxV(const PxGeometry& geom) : ConvexV(ConvexType::eBOX, Ps::aos::V3Zero())
@@ -113,9 +116,8 @@ namespace Gu
 			const PxBoxGeometry& boxGeom = static_cast<const PxBoxGeometry&>(geom);
 			const Vec3V extent = Ps::aos::V3LoadU(boxGeom.halfExtents);
 			extents = extent;
-			CalculateBoxMargin(extent, minExtent, minMargin, sweepMargin, BOX_MIN_MARGIN_CCD_RATIO);
+			CalculateBoxMargin(extent, margin, minMargin, sweepMargin, BOX_MARGIN_CCD_RATIO, BOX_MIN_MARGIN_CCD_RATIO);
 			marginDif = Ps::aos::FZero();
-			margin = 0.f;
 		}
 
 		/**
@@ -206,7 +208,6 @@ namespace Gu
 
 		Ps::aos::Vec3V  extents;
 		Ps::aos::FloatV marginDif;
-		PxReal			minExtent;
 	};
 }	//PX_COMPILE_TIME_ASSERT(sizeof(Gu::BoxV) == 96);
 

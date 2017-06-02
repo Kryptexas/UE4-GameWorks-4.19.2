@@ -79,6 +79,7 @@ namespace local
 		void init(PxU32 preallocateSize)
 		{
 			PX_ASSERT(preallocateSize);
+			PX_ASSERT(mPreallocateSize == 0);
 			mPreallocateSize = preallocateSize;
 			T* block = reinterpret_cast<T*>(PX_ALLOC_TEMP(sizeof(T)*preallocateSize, "Quickhull MemBlock"));
 			if(useIndexing)
@@ -99,20 +100,6 @@ namespace local
 				PX_FREE(mBlocks[i]);
 			}
 			mBlocks.clear();
-		}
-
-		void reset()
-		{
-			for (PxU32 i = 0; i < mBlocks.size(); i++)
-			{
-				PX_FREE(mBlocks[i]);
-			}
-			mBlocks.clear();
-
-			mCurrentBlock = 0;
-			mCurrentIndex = 0;
-
-			init(mPreallocateSize);
 		}
 
 		T* getItem(PxU32 index)
@@ -336,7 +323,7 @@ namespace local
 		}
 
 		// merge adjacent face
-		bool	mergeAdjacentFace(QuickHullHalfEdge* halfEdge, QuickHullFaceArray& discardedFaces);
+		void	mergeAdjacentFace(QuickHullHalfEdge* halfEdge, QuickHullFaceArray& discardedFaces);
 
 		// check face consistency
 		bool	checkFaceConsistency();
@@ -408,7 +395,7 @@ namespace local
 		QuickHullVertex* nextPointToAdd(QuickHullFace*& eyeFace);
 
 		// adds point to the hull
-		bool addPointToHull(const QuickHullVertex* vertex, QuickHullFace& face, bool& addFailed);
+		bool addPointToHull(const QuickHullVertex* vertex, QuickHullFace& face);
 
 		// creates new face from given triangles 
 		QuickHullFace* createTriangle(const QuickHullVertex& v0, const QuickHullVertex& v1, const QuickHullVertex& v2);
@@ -426,7 +413,7 @@ namespace local
 		void addNewFacesFromHorizon(const QuickHullVertex* eyePoint, const QuickHullHalfEdgeArray& horizon, QuickHullFaceArray& newFaces);
 
 		// merge adjacent face
-		bool doAdjacentMerge(QuickHullFace& face, bool mergeWrtLargeFace, bool& mergeFailed);
+		bool doAdjacentMerge(QuickHullFace& face, bool mergeWrtLargeFace);
 
 		// merge adjacent face doing normal test
 		bool doPostAdjacentMerge(QuickHullFace& face, const float minAngle);
@@ -455,8 +442,6 @@ namespace local
 			return mFreeHalfEdges.getFreeItem();
 		}
 
-		PX_FORCE_INLINE PxU32 getNbHullVerts() { return mOutputNumVertices; }
-
 	protected:
 		friend class physx::QuickHullConvexHullLib;
 
@@ -466,9 +451,7 @@ namespace local
 		PxVec3					mInteriorPoint;		// interior point for int/ext tests
 
 		PxU32					mMaxVertices;		// maximum number of vertices (can be different as we may add vertices during the cleanup
-		PxU32					mNumVertices;		// actual number of input vertices
-		PxU32					mOutputNumVertices;	// num vertices of the computed hull
-		PxU32					mTerminalVertex;	// in case we failed to generate hull in a regular run we set the terminal vertex and rerun
+		PxU32					mNumVertices;		// actual number of vertices
 
 		QuickHullVertex*		mVerticesList;		// vertices list preallocated
 		MemBlock<QuickHullHalfEdge, false>	mFreeHalfEdges;	// free half edges
@@ -505,8 +488,7 @@ namespace local
 	// 1. set new half edges
 	// 2. connect the new half edges - check we did not produced redundant triangles, discard them
 	// 3. recompute the plane and check consistency
-	// Returns false if merge failed
-	bool QuickHullFace::mergeAdjacentFace(QuickHullHalfEdge* hedgeAdj, QuickHullFaceArray& discardedFaces)
+	void QuickHullFace::mergeAdjacentFace(QuickHullHalfEdge* hedgeAdj, QuickHullFaceArray& discardedFaces)
 	{
 		QuickHullFace* oppFace = hedgeAdj->getOppositeFace();
 
@@ -521,31 +503,17 @@ namespace local
 		QuickHullHalfEdge* hedgeOppNext = hedgeOpp->next;
 
 		// check if we are lining up with the face in adjPrev dir
-		QuickHullHalfEdge* breakEdge = hedgeAdjPrev;
 		while (hedgeAdjPrev->getOppositeFace() == oppFace)
 		{
 			hedgeAdjPrev = hedgeAdjPrev->prev;
 			hedgeOppNext = hedgeOppNext->next;
-
-			// Edge case merge face is degenerated and we need to abort merging
-			if (hedgeAdjPrev == breakEdge)
-			{
-				return false;
-			}
 		}
 
 		// check if we are lining up with the face in adjNext dir
-		breakEdge = hedgeAdjNext;
 		while (hedgeAdjNext->getOppositeFace() == oppFace)
 		{
 			hedgeOppPrev = hedgeOppPrev->prev;
 			hedgeAdjNext = hedgeAdjNext->next;
-
-			// Edge case merge face is degenerated and we need to abort merging
-			if (hedgeAdjNext == breakEdge)
-			{
-				return false;
-			}
 		}
 
 		QuickHullHalfEdge* hedge;
@@ -579,8 +547,6 @@ namespace local
 
 		computeNormalAndCentroid();
 		PX_ASSERT(checkFaceConsistency());
-
-		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -692,7 +658,7 @@ namespace local
 	//////////////////////////////////////////////////////////////////////////
 
 	QuickHull::QuickHull(const PxCookingParams& params, const PxConvexMeshDesc& desc)
-		: mCookingParams(params), mConvexDesc(desc), mOutputNumVertices(0), mTerminalVertex(0xFFFFFFFF), mVerticesList(NULL), mNumHullFaces(0), mPrecomputedMinMax(false),
+		: mCookingParams(params), mConvexDesc(desc), mVerticesList(NULL), mNumHullFaces(0), mPrecomputedMinMax(false),
 		mTolerance(-1.0f), mPlaneTolerance(-1.0f)
 	{
 	}
@@ -1155,46 +1121,21 @@ namespace local
 		}
 
 		// add points to the hull
-		PxU32 numVerts = 4; // initial vertex count - simplex vertices		
-		while ((eyeVtx = nextPointToAdd(eyeFace)) != NULL && eyeVtx->index != mTerminalVertex)
+		PxU32 numVerts = 4; // initial vertex count - simplex vertices
+		while ((eyeVtx = nextPointToAdd(eyeFace)) != NULL)
 		{
 			// if plane shifting vertex limit, we need the reduced hull
 			if((mConvexDesc.flags & PxConvexFlag::ePLANE_SHIFTING) && (numVerts >= mConvexDesc.vertexLimit))
 				break;
 
-			bool addFailed = false;
 			PX_ASSERT(eyeFace);
-			if (!addPointToHull(eyeVtx, *eyeFace, addFailed))
+			if (!addPointToHull(eyeVtx, *eyeFace))
 			{
-				mOutputNumVertices = numVerts;
 				// we hit the polygons hard limit
 				return QuickHullResult::ePOLYGONS_LIMIT_REACHED;
 			}
-			// We failed to add the vertex, store the vertex as terminal vertex and re run the hull generator
-			if(addFailed)
-			{
-				// set the terminal vertex
-				mTerminalVertex = eyeVtx->index;
-
-				// reset the edges/faces memory
-				mFreeHalfEdges.reset();
-				mFreeFaces.reset();
-
-				// reset the hull state
-				mHullFaces.clear();
-				mNumHullFaces = 0;
-				mUnclaimedPoints.clear();
-				mHorizon.clear();
-				mNewFaces.clear();
-				mRemovedFaces.clear();
-				mDiscardedFaces.clear();
-
-				// rerun the hull generator
-				return buildHull();
-			}
 			numVerts++;
 		}
-		mOutputNumVertices = numVerts;
 
 		// vertex limit has been reached. We did not stopped the iteration, since we
 		// will use the produced hull to compute OBB from it and use the planes
@@ -1235,13 +1176,9 @@ namespace local
 
 	//////////////////////////////////////////////////////////////////////////
 	// adds vertex to the hull
-	// sets addFailed to true if we failed to add a point because the merging failed
-	// this can happen as the face plane equation changes and some faces might become concave
 	// returns false if the new faces count would hit the hull face hard limit (255)
-	bool QuickHull::addPointToHull(const QuickHullVertex* eyeVtx, QuickHullFace& eyeFace, bool& addFailed)
+	bool QuickHull::addPointToHull(const QuickHullVertex* eyeVtx, QuickHullFace& eyeFace)
 	{
-		addFailed = false;
-
 		// removes the eyePoint from the conflict list
 		removeEyePointFromFace(eyeFace, eyeVtx);
 
@@ -1263,7 +1200,6 @@ namespace local
 		// adds new faces from given horizon and eyePoint
 		addNewFacesFromHorizon(eyeVtx, mHorizon, mNewFaces);
 
-		bool mergeFailed = false;
 		// first merge pass ... merge faces which are non-convex
 		// as determined by the larger face
 		for (PxU32 i = 0; i < mNewFaces.size(); i++)
@@ -1273,13 +1209,8 @@ namespace local
 			if (face.state == QuickHullFace::eVISIBLE)
 			{
 				PX_ASSERT(face.checkFaceConsistency());
-				while (doAdjacentMerge(face, true, mergeFailed));
+				while (doAdjacentMerge(face, true));
 			}
-		}
-		if (mergeFailed)
-		{
-			addFailed = true;
-			return true;
 		}
 
 		// second merge pass ... merge faces which are non-convex
@@ -1290,13 +1221,8 @@ namespace local
 			if (face.state == QuickHullFace::eNON_CONVEX)
 			{
 				face.state = QuickHullFace::eVISIBLE;
-				while (doAdjacentMerge(face, false, mergeFailed));
+				while (doAdjacentMerge(face, false));
 			}
-		}
-		if (mergeFailed)
-		{
-			addFailed = true;
-			return true;
 		}
 
 		resolveUnclaimedPoints(mNewFaces);
@@ -1312,10 +1238,9 @@ namespace local
 	// merge adjacent faces
 	// We merge 2 adjacent faces if they lie on the same thick plane defined by the mTolerance
 	// we do this in 2 steps to ensure we dont leave non-convex faces
-	bool QuickHull::doAdjacentMerge(QuickHullFace& face, bool mergeWrtLargeFace, bool& mergeFailed)
+	bool QuickHull::doAdjacentMerge(QuickHullFace& face, bool mergeWrtLargeFace)
 	{
 		QuickHullHalfEdge* hedge = face.edge;
-		mergeFailed = false;
 
 		bool convex = true;
 		do
@@ -1364,11 +1289,7 @@ namespace local
 			if (merge)
 			{
 				mDiscardedFaces.clear();
-				if (!face.mergeAdjacentFace(hedge, mDiscardedFaces))
-				{
-					mergeFailed = true;
-					return false;
-				}
+				face.mergeAdjacentFace(hedge, mDiscardedFaces);
 				mNumHullFaces -= mDiscardedFaces.size();
 				for (PxU32 i = 0; i < mDiscardedFaces.size(); i++)
 				{
@@ -1876,15 +1797,7 @@ PxConvexMeshCookingResult::Enum QuickHullConvexHullLib::createConvexHull()
 		res = PxConvexMeshCookingResult::eSUCCESS;		
 		break;
 	case local::QuickHullResult::ePOLYGONS_LIMIT_REACHED:
-		if(mQuickHull->getNbHullVerts() > mConvexMeshDesc.vertexLimit)
-		{
-			// expand the hull
-			if(mConvexMeshDesc.flags & PxConvexFlag::ePLANE_SHIFTING)
-				res = expandHull();
-			else
-				res = expandHullOBB();
-		}
-		res = PxConvexMeshCookingResult::ePOLYGONS_LIMIT_REACHED;		
+		res = PxConvexMeshCookingResult::ePOLYGONS_LIMIT_REACHED;
 		break;
 	case local::QuickHullResult::eVERTEX_LIMIT_REACHED:
 		{

@@ -92,7 +92,7 @@ namespace Gu
 		return M33MulM33(trans, rot);
 	}
 
-	PX_SUPPORT_FORCE_INLINE void ConstructSkewMatrix(const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg rotation, Ps::aos::Mat33V& vertex2Shape, Ps::aos::Mat33V& shape2Vertex, Ps::aos::Vec3V& center, const bool idtScale) 
+	PX_SUPPORT_FORCE_INLINE void ConstructSkewMatrix(const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg rotation, Ps::aos::Mat33V& vertex2Shape, Ps::aos::Mat33V& shape2Vertex, const bool idtScale) 
 	{
 		using namespace Ps::aos;
 
@@ -142,9 +142,6 @@ namespace Gu
 
 				//shape2Vertex = M33Inverse(vertex2Shape);
 			}
-
-			//transform center to shape space
-			center = M33MulV3(vertex2Shape, center);
 		}
 	}
 
@@ -197,7 +194,7 @@ namespace Gu
 			verts = tempVerts;
 			numVerts = _hullData->mNbHullVertices;
 			CalculateConvexMargin( _hullData, margin, minMargin, sweepMargin, scale);
-			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, center, idtScale);
+			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, idtScale);
 			/*skewScale = Mat33V temp(V3Scale(trans.col0, V3GetX(scale)), V3Scale(trans.col1, V3GetY(scale)), V3Scale(trans.col2, V3GetZ(scale)));
 			skewRot = QuatGetMat33V(scaleRot);*/
 
@@ -219,7 +216,7 @@ namespace Gu
 			verts = tempVerts;
 			numVerts = hData->mNbHullVertices;
 			CalculateConvexMargin( hData, margin, minMargin, sweepMargin, vScale);
-			ConstructSkewMatrix(vScale, vRot, vertex2Shape, shape2Vertex, center, idtScale);
+			ConstructSkewMatrix(vScale, vRot, vertex2Shape, shape2Vertex, idtScale);
 
 			data = hData->mBigConvexRawData;
 		}
@@ -230,7 +227,7 @@ namespace Gu
 			
 			const PxVec3* tempVerts = _hullData->getHullVertices();
 			CalculateConvexMargin(_hullData, margin, minMargin, sweepMargin, scale);
-			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, center, idtScale);
+			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, idtScale);
 
 			verts = tempVerts;
 			numVerts = _hullData->mNbHullVertices;

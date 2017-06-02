@@ -42,6 +42,7 @@ using namespace physx;
 using namespace Gu;
 using namespace Ps::aos;
 
+
 	//Precompute the convex data
 	//     7+------+6			0 = ---
 	//     /|     /|			1 = +--
@@ -565,6 +566,7 @@ namespace Gu
 		}
 	}
 
+
 	bool generateFullContactManifold(PolygonalData& polyData0, PolygonalData& polyData1, SupportLocal* map0, SupportLocal* map1,  PersistentContact* manifoldContacts, PxU32& numContacts,
 		const FloatVArg contactDist, const Vec3VArg normal, const Vec3VArg closestA, const Vec3VArg closestB, const FloatVArg marginA, const FloatVArg marginB, const bool doOverlapTest, 
 		Cm::RenderOutput* renderOutput, const Ps::aos::FloatVArg toleranceScale)
@@ -657,14 +659,15 @@ EdgeTest:
 		}
 		else
 		{
-			const FloatV eps = FLoad(PCM_WITNESS_POINT_SCALE);
-			const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_LOWER_EPS));
+			const FloatV eps = FLoad(PCM_WITNESS_POINT_EPS);
+			const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_ABSOLUTE_EPS));
 			const FloatV toleranceA = FMax(FMul(marginA, eps), lowerEps);
 			
 			const FloatV toleranceB = FMax(FMul(marginB, eps), lowerEps);
 
-			const PxU32 faceIndex1 = getWitnessPolygonIndex(polyData1, map1, V3Neg(normal), closestB, toleranceB);
-			const PxU32 faceIndex0 = getWitnessPolygonIndex(polyData0, map0, transform0To1V.rotateInv(normal), transform0To1V.transformInv(closestA), toleranceA);
+			//use gjk normal to get the faceIndex(status == GJK_CONTACT)
+			const PxU32 faceIndex1 = getWitnessPolygonIndex(polyData1, map1, V3Neg(normal), closestB, toleranceA);
+			const PxU32 faceIndex0 = getWitnessPolygonIndex(polyData0, map0, transform0To1V.rotateInv(normal), transform0To1V.transformInv(closestA), toleranceB);
 
 			const HullPolygonData& referencePolygon = polyData1.mPolygons[faceIndex1];
 			const HullPolygonData& incidentPolygon = polyData0.mPolygons[faceIndex0];

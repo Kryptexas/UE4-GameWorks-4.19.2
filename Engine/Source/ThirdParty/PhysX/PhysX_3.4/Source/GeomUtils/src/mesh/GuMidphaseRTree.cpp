@@ -41,7 +41,6 @@
 #include "GuIntersectionTriangleBox.h"
 #include "GuSIMDHelpers.h"
 #include "GuTriangleVertexPointers.h"
-#include "GuRTree.h"
 #include "GuTriangleMeshRTree.h"
 #include "GuInternal.h"
 

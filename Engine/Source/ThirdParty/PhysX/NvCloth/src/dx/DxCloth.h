@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -40,15 +40,14 @@
 #include <foundation/PxVec4.h>
 #include <foundation/PxVec3.h>
 #include <foundation/PxTransform.h>
-#include "DxFactory.h"
-#include "DxFabric.h"
-#include "ClothImpl.h"
 
 namespace nv
 {
 namespace cloth
 {
 
+class DxFabric;
+class DxFactory;
 struct DxClothData;
 
 struct DxConstraints
@@ -60,7 +59,7 @@ struct DxConstraints
 
 	void pop()
 	{
-		if (!mTarget.empty())
+		if(!mTarget.empty())
 		{
 			mStart.swap(mTarget);
 			mTarget.resize(0);
@@ -72,19 +71,10 @@ struct DxConstraints
 	Vector<physx::PxVec4>::Type mHostCopy;
 };
 
-template<>
-class ClothTraits<DxCloth>
-{
-public:
-	typedef DxFactory FactoryType;
-	typedef DxFabric FabricType;
-	typedef DxContextLock ContextLockType;
-};
-
-class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
+class DxCloth : protected DxContextLock
 {
 	DxCloth(const DxCloth&); // not implemented
-	DxCloth& operator = (const DxCloth&); // not implemented
+	DxCloth& operator=(const DxCloth&); // not implemented
 
   public:
 	typedef DxFactory FactoryType;
@@ -104,24 +94,14 @@ class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
 	~DxCloth(); // not virtual on purpose
 
   public:
-	virtual Cloth* clone(Factory& factory) const;
-	uint32_t getNumParticles() const;
-
-	void lockParticles() const;
-	void unlockParticles() const;
-
-	MappedRange<physx::PxVec4> getCurrentParticles();
-	MappedRange<const physx::PxVec4> getCurrentParticles() const;
-	MappedRange<physx::PxVec4> getPreviousParticles();
-	MappedRange<const physx::PxVec4> getPreviousParticles() const;
-	GpuParticles getGpuParticles();
-
-	void setPhaseConfig(Range<const PhaseConfig> configs);
-	void setSelfCollisionIndices(Range<const uint32_t> indices);
-	uint32_t getNumVirtualParticles() const;
-	Range<physx::PxVec4> getParticleAccelerations();
-	void clearParticleAccelerations();
-	void setVirtualParticles(Range<const uint32_t[4]> indices, Range<const physx::PxVec3> weights);
+	bool isSleeping() const
+	{
+		return mSleepPassCounter >= mSleepAfterCount;
+	}
+	void wakeUp()
+	{
+		mSleepPassCounter = 0;
+	}
 
 	void notifyChanged();
 
@@ -129,7 +109,7 @@ class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
 	uint32_t getSharedMemorySize() const; // without particle data
 
 	// expects transformed configs, doesn't call notifyChanged()
-	void setPhaseConfigInternal(Range<const PhaseConfig>);
+	void setPhaseConfig(Range<const PhaseConfig>);
 
 	Range<physx::PxVec4> push(DxConstraints&);
 	void clear(DxConstraints&);
@@ -156,6 +136,27 @@ class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
 	bool mDeviceParticlesDirty;
 	bool mHostParticlesDirty;
 
+	physx::PxVec3 mParticleBoundsCenter;
+	physx::PxVec3 mParticleBoundsHalfExtent;
+
+	physx::PxVec3 mGravity;
+	physx::PxVec3 mLogDamping;
+	physx::PxVec3 mLinearLogDrag;
+	physx::PxVec3 mAngularLogDrag;
+	physx::PxVec3 mLinearInertia;
+	physx::PxVec3 mAngularInertia;
+	physx::PxVec3 mCentrifugalInertia;
+	float mSolverFrequency;
+	float mStiffnessFrequency;
+
+	physx::PxTransform mTargetMotion;
+	physx::PxTransform mCurrentMotion;
+	physx::PxVec3 mLinearVelocity;
+	physx::PxVec3 mAngularVelocity;
+
+	float mPrevIterDt;
+	MovingAverage mIterDtAvg;
+
 	DxBatchedVector<DxPhaseConfig> mPhaseConfigs;
 	Vector<PhaseConfig>::Type mHostPhaseConfigs;
 
@@ -175,6 +176,11 @@ class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
 	// particle acceleration stuff
 	DxBatchedVector<physx::PxVec4> mParticleAccelerations;
 	Vector<physx::PxVec4>::Type mParticleAccelerationsHostCopy;
+
+	// wind
+	physx::PxVec3 mWind;
+	float mDragLogCoefficient;
+	float mLiftLogCoefficient;
 
 	// collision stuff
 	DxBatchedVector<IndexPair> mCapsuleIndices;
@@ -207,6 +213,13 @@ class DxCloth : protected DxContextLock, public ClothImpl<DxCloth>
 	DxBatchedVector<uint32_t> mSelfCollisionData;
 
 	bool mInitSelfCollisionData;
+
+	// sleeping
+	uint32_t mSleepTestInterval; // how often to test for movement
+	uint32_t mSleepAfterCount;   // number of tests to pass before sleep
+	float mSleepThreshold;       // max movement delta to pass test
+	uint32_t mSleepPassCounter;  // how many tests passed
+	uint32_t mSleepTestCounter;  // how many iterations since tested
 
 	uint32_t mSharedMemorySize;
 

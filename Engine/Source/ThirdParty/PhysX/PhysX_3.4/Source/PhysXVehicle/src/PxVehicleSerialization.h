@@ -31,12 +31,15 @@
 #define PX_VEHICLE_SERIALIZATION_H
 
 #include "extensions/PxRepXSimpleType.h"
-#include "SnRepXSerializerImpl.h"
 
 namespace physx
 {
 	class PxRepXSerializer;
 	class PxSerializationRegistry;
+	
+	template<typename TLiveType>
+	struct RepXSerializerImpl;
+	
 	class XmlReader;
 	class XmlMemoryAllocator;
 	class XmlWriter;
@@ -55,14 +58,6 @@ namespace physx
 		virtual void objectToFileImpl( const TVehicleType* , PxCollection* , XmlWriter& , MemoryBuffer& , PxRepXInstantiationArgs& );
 		virtual TVehicleType* allocateObject( PxRepXInstantiationArgs& ) { return NULL; }
 	};
-
-#if PX_SUPPORT_EXTERN_TEMPLATE
-	// explicit template instantiation declarations
-	extern template struct PxVehicleRepXSerializer<PxVehicleDrive4W>;
-	extern template struct PxVehicleRepXSerializer<PxVehicleDriveTank>;
-	extern template struct PxVehicleRepXSerializer<PxVehicleDriveNW>;
-	extern template struct PxVehicleRepXSerializer<PxVehicleNoDrive>;
-#endif
 
 }
 

@@ -35,7 +35,7 @@
 #if PX_WINDOWS_FAMILY
 #include <crtdbg.h>
 #elif PX_NX
-#include "Switch/PsNXAbort.h"
+#include "nx/PsNXAbort.h"
 #endif
 
 namespace

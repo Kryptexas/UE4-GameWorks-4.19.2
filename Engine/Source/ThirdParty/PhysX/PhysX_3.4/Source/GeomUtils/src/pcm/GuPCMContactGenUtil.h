@@ -36,10 +36,8 @@
 #include "GuVecCapsule.h"
 #include "GuConvexSupportTable.h"
 
-//Percentage of margin
-#define	PCM_WITNESS_POINT_SCALE			1e-1f
-//The smallest epsilon we will permit (scaled by PxTolerancesScale.length)
-#define	PCM_WITNESS_POINT_LOWER_EPS		1e-3f
+#define	PCM_WITNESS_POINT_EPS				1e-1f
+#define	PCM_WITNESS_POINT_ABSOLUTE_EPS		1e-5f
 
 namespace physx
 {

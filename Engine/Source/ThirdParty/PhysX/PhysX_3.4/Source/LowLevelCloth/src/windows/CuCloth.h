@@ -74,9 +74,8 @@ struct CuConstraints
 
 class CuCloth : protected CuContextLock
 {
+  public:
 	CuCloth& operator=(const CuCloth&);
-
-public:
 	typedef CuFactory FactoryType;
 	typedef CuFabric FabricType;
 	typedef CuContextLock ContextLockType;

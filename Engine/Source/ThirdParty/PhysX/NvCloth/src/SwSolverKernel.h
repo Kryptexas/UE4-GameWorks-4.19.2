@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -41,7 +41,7 @@ namespace cloth
 class SwCloth;
 struct SwClothData;
 
-template <typename T4f>
+template <typename Simd4f>
 class SwSolverKernel
 {
   public:
@@ -71,23 +71,14 @@ class SwSolverKernel
 	SwClothData& mClothData;
 	SwKernelAllocator& mAllocator;
 
-	SwCollision<T4f> mCollision;
-	SwSelfCollision<T4f> mSelfCollision;
-	IterationState<T4f> mState;
+	SwCollision<Simd4f> mCollision;
+	SwSelfCollision<Simd4f> mSelfCollision;
+	IterationState<Simd4f> mState;
 
   private:
-	SwSolverKernel<T4f>& operator = (const SwSolverKernel<T4f>&);
+	SwSolverKernel<Simd4f>& operator=(const SwSolverKernel<Simd4f>&);
 	template <typename AccelerationIterator>
-	void integrateParticles(AccelerationIterator& accelIt, const T4f&);
+	void integrateParticles(AccelerationIterator& accelIt, const Simd4f&);
 };
-
-//explicit template instantiation declaration
-#if NV_SIMD_SIMD
-extern template class SwSolverKernel<Simd4f>;
-#endif
-#if NV_SIMD_SCALAR
-extern template class SwSolverKernel<Scalar4f>;
-#endif
-
 }
 }

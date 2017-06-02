@@ -39,7 +39,7 @@
 #elif PX_XBOXONE
 #include "XboxOne/PsXboxOneIntrinsics.h"
 #elif PX_NX
-#include "Switch/PsNXIntrinsics.h"
+#include "nx/PsNXIntrinsics.h"
 #else
 #error "Platform not supported!"
 #endif

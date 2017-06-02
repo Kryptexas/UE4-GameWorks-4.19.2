@@ -280,7 +280,7 @@ public class PhysX : ModuleRules
 			string[] StaticLibrariesAndroid = new string[] {
 				"PhysX3{0}",
 				"PhysX3Extensions{0}",
-				// "PhysX3Cooking{0}", // not needed until Apex
+				"PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
 				//"PhysXVisualDebuggerSDK{0}",
 				"PxFoundation{0}",

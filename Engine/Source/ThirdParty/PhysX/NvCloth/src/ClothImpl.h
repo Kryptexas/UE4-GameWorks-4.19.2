@@ -1,29 +1,13 @@
-// This code contains NVIDIA Confidential Information and is disclosed to you
-// under a form of NVIDIA software license agreement provided separately to you.
-//
-// Notice
-// NVIDIA Corporation and its licensors retain all intellectual property and
-// proprietary rights in and to this software and related documentation and
-// any modifications thereto. Any use, reproduction, disclosure, or
-// distribution of this software and related documentation without an express
-// license agreement from NVIDIA Corporation is strictly prohibited.
-//
-// ALL NVIDIA DESIGN SPECIFICATIONS, CODE ARE PROVIDED "AS IS.". NVIDIA MAKES
-// NO WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
-// THE MATERIALS, AND EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES OF NONINFRINGEMENT,
-// MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE.
-//
-// Information and code furnished is believed to be accurate and reliable.
-// However, NVIDIA Corporation assumes no responsibility for the consequences of use of such
-// information or for any infringement of patents or other rights of third parties that may
-// result from its use. No license is granted by implication or otherwise under any patent
-// or patent rights of NVIDIA Corporation. Details are subject to change without notice.
-// This code supersedes and replaces all information previously supplied.
-// NVIDIA Corporation products are not authorized for use as critical
-// components in life support devices or systems without express written approval of
-// NVIDIA Corporation.
-//
-// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
+/*
+ * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * NVIDIA CORPORATION and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA CORPORATION is strictly prohibited.
+ */
+
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -41,11 +25,6 @@ namespace nv
 namespace cloth
 {
 
-template<typename T>
-class ClothTraits
-{
-};
-
 // SwCloth or CuCloth aggregate implementing the Cloth interface
 // Member specializations are implemented in Sw/CuCloth.cpp
 template <typename T>
@@ -54,19 +33,29 @@ class ClothImpl : public Cloth
 	ClothImpl(const ClothImpl&);
 
   public:
-	ClothImpl() {}
+	ClothImpl& operator=(const ClothImpl&);
+
 	typedef T ClothType;
-	typedef typename ClothTraits<ClothType>::FactoryType FactoryType;
-	typedef typename ClothTraits<ClothType>::FabricType FabricType;
-	typedef typename ClothTraits<ClothType>::ContextLockType ContextLockType;
+	typedef typename ClothType::FactoryType FactoryType;
+	typedef typename ClothType::FabricType FabricType;
+	typedef typename ClothType::ContextLockType ContextLockType;
 
-	ClothImpl& operator = (const ClothImpl&);
+	ClothImpl(Factory&, Fabric&, Range<const physx::PxVec4>);
+	ClothImpl(Factory&, const ClothImpl&);
 
-	ClothType* getChildCloth() { return static_cast<T*>(this); }
-	ClothType const* getChildCloth() const { return static_cast<T const*>(this); }
+	virtual Cloth* clone(Factory& factory) const;
 
 	virtual Fabric& getFabric() const;
 	virtual Factory& getFactory() const;
+
+	virtual uint32_t getNumParticles() const;
+	virtual void lockParticles() const;
+	virtual void unlockParticles() const;
+	virtual MappedRange<physx::PxVec4> getCurrentParticles();
+	virtual MappedRange<const physx::PxVec4> getCurrentParticles() const;
+	virtual MappedRange<physx::PxVec4> getPreviousParticles();
+	virtual MappedRange<const physx::PxVec4> getPreviousParticles() const;
+	virtual GpuParticles getGpuParticles();
 
 	virtual void setTranslation(const physx::PxVec3& trans);
 	virtual void setRotation(const physx::PxQuat& rot);
@@ -103,6 +92,8 @@ class ClothImpl : public Cloth
 	virtual void setAcceleationFilterWidth(uint32_t);
 	virtual uint32_t getAccelerationFilterWidth() const;
 
+	virtual void setPhaseConfig(Range<const PhaseConfig> configs);
+
 	virtual void setSpheres(Range<const physx::PxVec4>, uint32_t first, uint32_t last);
 	virtual uint32_t getNumSpheres() const;
 
@@ -127,6 +118,8 @@ class ClothImpl : public Cloth
 	virtual void setFriction(float friction);
 	virtual float getFriction() const;
 
+	virtual void setVirtualParticles(Range<const uint32_t[4]>, Range<const physx::PxVec3>);
+	virtual uint32_t getNumVirtualParticles() const;
 	virtual uint32_t getNumVirtualParticleWeights() const;
 
 	virtual void setTetherConstraintScale(float scale);
@@ -149,6 +142,8 @@ class ClothImpl : public Cloth
 
 	virtual void clearInterpolation();
 
+	virtual Range<physx::PxVec4> getParticleAccelerations();
+	virtual void clearParticleAccelerations();
 	virtual uint32_t getNumParticleAccelerations() const;
 
 	virtual void setWindVelocity(physx::PxVec3);
@@ -163,6 +158,7 @@ class ClothImpl : public Cloth
 	virtual void setSelfCollisionStiffness(float);
 	virtual float getSelfCollisionStiffness() const;
 
+	virtual void setSelfCollisionIndices(Range<const uint32_t>);
 	virtual uint32_t getNumSelfCollisionIndices() const;
 
 	virtual void setRestPositions(Range<const physx::PxVec4>);
@@ -180,7 +176,6 @@ class ClothImpl : public Cloth
 	virtual uint32_t getSleepPassCount() const;
 	virtual bool isAsleep() const;
 	virtual void putToSleep();
-	virtual bool isSleeping() const;
 	virtual void wakeUp();
 
 	virtual void setUserData(void*);
@@ -190,125 +185,116 @@ class ClothImpl : public Cloth
 	template <typename U>
 	MappedRange<U> getMappedParticles(U* data) const;
 
-public: //Fields shared between all cloth classes
-	physx::PxVec3 mParticleBoundsCenter;
-	physx::PxVec3 mParticleBoundsHalfExtent;
-
-	physx::PxVec3 mGravity;
-	physx::PxVec3 mLogDamping;
-	physx::PxVec3 mLinearLogDrag;
-	physx::PxVec3 mAngularLogDrag;
-	physx::PxVec3 mLinearInertia;
-	physx::PxVec3 mAngularInertia;
-	physx::PxVec3 mCentrifugalInertia;
-	float mSolverFrequency;
-	float mStiffnessFrequency;
-
-	physx::PxTransform mTargetMotion;
-	physx::PxTransform mCurrentMotion;
-	physx::PxVec3 mLinearVelocity;
-	physx::PxVec3 mAngularVelocity;
-
-	float mPrevIterDt;
-	MovingAverage mIterDtAvg;
-
-	// wind
-	physx::PxVec3 mWind;
-	float mDragLogCoefficient;
-	float mLiftLogCoefficient;
-
-	// sleeping
-	uint32_t mSleepTestInterval; // how often to test for movement
-	uint32_t mSleepAfterCount;   // number of tests to pass before sleep
-	float mSleepThreshold;       // max movement delta to pass test
-	uint32_t mSleepPassCounter;  // how many tests passed
-	uint32_t mSleepTestCounter;  // how many iterations since tested
+	ClothType mCloth;
 };
+
+class SwCloth;
+typedef ClothImpl<SwCloth> SwClothImpl;
+
+class CuCloth;
+typedef ClothImpl<CuCloth> CuClothImpl;
+
+class DxCloth;
+typedef ClothImpl<DxCloth> DxClothImpl;
+
+template <typename T>
+ClothImpl<T>::ClothImpl(Factory& factory, Fabric& fabric, Range<const physx::PxVec4> particles)
+: mCloth(static_cast<FactoryType&>(factory), static_cast<FabricType&>(fabric), particles)
+{
+	// fabric and cloth need to be created by the same factory
+	NV_CLOTH_ASSERT(&fabric.getFactory() == &factory);
+}
+
+template <typename T>
+ClothImpl<T>::ClothImpl(Factory& factory, const ClothImpl& impl)
+: mCloth(static_cast<FactoryType&>(factory), impl.mCloth)
+{
+}
 
 template <typename T>
 inline Fabric& ClothImpl<T>::getFabric() const
 {
-	return getChildCloth()->mFabric;
+	return mCloth.mFabric;
 }
 
 template <typename T>
 inline Factory& ClothImpl<T>::getFactory() const
 {
-	return getChildCloth()->mFactory;
+	return mCloth.mFactory;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setTranslation(const physx::PxVec3& trans)
 {
 	physx::PxVec3 t = reinterpret_cast<const physx::PxVec3&>(trans);
-	if (t == mTargetMotion.p)
+	if(t == mCloth.mTargetMotion.p)
 		return;
 
-	mTargetMotion.p = t;
-	wakeUp();
+	mCloth.mTargetMotion.p = t;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline void ClothImpl<T>::setRotation(const physx::PxQuat& q)
 {
-	if ((q - mTargetMotion.q).magnitudeSquared() == 0.0f)
+	if((q - mCloth.mTargetMotion.q).magnitudeSquared() == 0.0f)
 		return;
 
-	mTargetMotion.q = q;
-	wakeUp();
+	mCloth.mTargetMotion.q = q;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline const physx::PxVec3& ClothImpl<T>::getTranslation() const
 {
-	return mTargetMotion.p;
+	return mCloth.mTargetMotion.p;
 }
 
 template <typename T>
 inline const physx::PxQuat& ClothImpl<T>::getRotation() const
 {
-	return mTargetMotion.q;
+	return mCloth.mTargetMotion.q;
 }
 
 template <typename T>
 inline void ClothImpl<T>::clearInertia()
 {
-	mCurrentMotion = mTargetMotion;
-	mLinearVelocity = physx::PxVec3(0.0);
-	mAngularVelocity = physx::PxVec3(0.0);
+	mCloth.mCurrentMotion = mCloth.mTargetMotion;
+	mCloth.mLinearVelocity = physx::PxVec3(0.0);
+	mCloth.mAngularVelocity = physx::PxVec3(0.0);
 
-	wakeUp();
+	mCloth.wakeUp();
 }
 
 // Fixed 4505:local function has been removed
 template <typename T>
 inline void ClothImpl<T>::teleport(const physx::PxVec3& delta)
 {
-	mCurrentMotion.p += delta;
-	mTargetMotion.p += delta;
+	mCloth.mCurrentMotion.p += delta;
+	mCloth.mTargetMotion.p += delta;
 }
 
 template <typename T>
 inline float ClothImpl<T>::getPreviousIterationDt() const
 {
-	return mPrevIterDt;
+	return mCloth.mPrevIterDt;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setGravity(const physx::PxVec3& gravity)
 {
 	physx::PxVec3 value = gravity;
-	if (value == mGravity)
+	if(value == mCloth.mGravity)
 		return;
 
-	mGravity = value;
-	wakeUp();
+	mCloth.mGravity = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getGravity() const
 {
-	return mGravity;
+	return mCloth.mGravity;
 }
 
 inline float safeLog2(float x)
@@ -323,7 +309,7 @@ inline physx::PxVec3 safeLog2(const physx::PxVec3& v)
 
 inline float safeExp2(float x)
 {
-	if (x <= -FLT_MAX_EXP)
+	if(x <= -FLT_MAX_EXP)
 		return 0.0f;
 	else
 		return physx::shdfnd::exp2(x);
@@ -338,148 +324,148 @@ template <typename T>
 inline void ClothImpl<T>::setDamping(const physx::PxVec3& damping)
 {
 	physx::PxVec3 value = safeLog2(physx::PxVec3(1.f) - damping);
-	if (value == mLogDamping)
+	if(value == mCloth.mLogDamping)
 		return;
 
-	mLogDamping = value;
-	wakeUp();
+	mCloth.mLogDamping = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getDamping() const
 {
-	return physx::PxVec3(1.f) - safeExp2(mLogDamping);
+	return physx::PxVec3(1.f) - safeExp2(mCloth.mLogDamping);
 }
 
 template <typename T>
 inline void ClothImpl<T>::setLinearDrag(const physx::PxVec3& drag)
 {
 	physx::PxVec3 value = safeLog2(physx::PxVec3(1.f) - drag);
-	if (value == mLinearLogDrag)
+	if(value == mCloth.mLinearLogDrag)
 		return;
 
-	mLinearLogDrag = value;
-	wakeUp();
+	mCloth.mLinearLogDrag = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getLinearDrag() const
 {
-	return physx::PxVec3(1.f) - safeExp2(mLinearLogDrag);
+	return physx::PxVec3(1.f) - safeExp2(mCloth.mLinearLogDrag);
 }
 
 template <typename T>
 inline void ClothImpl<T>::setAngularDrag(const physx::PxVec3& drag)
 {
 	physx::PxVec3 value = safeLog2(physx::PxVec3(1.f) - drag);
-	if (value == mAngularLogDrag)
+	if(value == mCloth.mAngularLogDrag)
 		return;
 
-	mAngularLogDrag = value;
-	wakeUp();
+	mCloth.mAngularLogDrag = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getAngularDrag() const
 {
-	return physx::PxVec3(1.f) - safeExp2(mAngularLogDrag);
+	return physx::PxVec3(1.f) - safeExp2(mCloth.mAngularLogDrag);
 }
 
 template <typename T>
 inline void ClothImpl<T>::setLinearInertia(const physx::PxVec3& inertia)
 {
 	physx::PxVec3 value = inertia;
-	if (value == mLinearInertia)
+	if(value == mCloth.mLinearInertia)
 		return;
 
-	mLinearInertia = value;
-	wakeUp();
+	mCloth.mLinearInertia = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getLinearInertia() const
 {
-	return mLinearInertia;
+	return mCloth.mLinearInertia;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setAngularInertia(const physx::PxVec3& inertia)
 {
 	physx::PxVec3 value = inertia;
-	if (value == mAngularInertia)
+	if(value == mCloth.mAngularInertia)
 		return;
 
-	mAngularInertia = value;
-	wakeUp();
+	mCloth.mAngularInertia = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getAngularInertia() const
 {
-	return mAngularInertia;
+	return mCloth.mAngularInertia;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setCentrifugalInertia(const physx::PxVec3& inertia)
 {
 	physx::PxVec3 value = inertia;
-	if (value == mCentrifugalInertia)
+	if (value == mCloth.mCentrifugalInertia)
 		return;
 
-	mCentrifugalInertia = value;
-	wakeUp();
+	mCloth.mCentrifugalInertia = value;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getCentrifugalInertia() const
 {
-	return mCentrifugalInertia;
+	return mCloth.mCentrifugalInertia;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSolverFrequency(float frequency)
 {
-	if (frequency == mSolverFrequency)
+	if (frequency == mCloth.mSolverFrequency)
 		return;
 
-	mSolverFrequency = frequency;
-	getChildCloth()->mClothCostDirty = true;
-	mIterDtAvg.reset();
-	wakeUp();
+	mCloth.mSolverFrequency = frequency;
+	mCloth.mClothCostDirty = true;
+	mCloth.mIterDtAvg.reset();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getSolverFrequency() const
 {
-	return mSolverFrequency;
+	return mCloth.mSolverFrequency;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setStiffnessFrequency(float frequency)
 {
-	if (frequency == mStiffnessFrequency)
+	if (frequency == mCloth.mStiffnessFrequency)
 		return;
 
-	mStiffnessFrequency = frequency;
-	wakeUp();
+	mCloth.mStiffnessFrequency = frequency;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getStiffnessFrequency() const
 {
-	return mStiffnessFrequency;
+	return mCloth.mStiffnessFrequency;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setAcceleationFilterWidth(uint32_t n)
 {
-	mIterDtAvg.resize(n);
+	mCloth.mIterDtAvg.resize(n);
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getAccelerationFilterWidth() const
 {
-	return mIterDtAvg.size();
+	return mCloth.mIterDtAvg.size();
 }
 
 // move a subarray
@@ -489,12 +475,12 @@ void move(Iter it, uint32_t first, uint32_t last, uint32_t result)
 	if (result > first)
 	{
 		result += last - first;
-		while (first < last)
+		while(first < last)
 			it[--result] = it[--last];
 	}
 	else
 	{
-		while (first < last)
+		while(first < last)
 			it[result++] = it[first++];
 	}
 }
@@ -508,7 +494,7 @@ inline bool updateIndex(uint32_t& index, uint32_t first, int32_t delta)
 template <typename T>
 inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_t first, uint32_t last)
 {
-	uint32_t oldSize = uint32_t(getChildCloth()->mStartCollisionSpheres.size());
+	uint32_t oldSize = uint32_t(mCloth.mStartCollisionSpheres.size());
 	uint32_t newSize = uint32_t(spheres.size()) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(newSize <= 32);
@@ -516,7 +502,7 @@ inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_
 	NV_CLOTH_ASSERT(last <= oldSize);
 
 #if PX_DEBUG
-	for (const physx::PxVec4* it = spheres.begin(); it < spheres.end(); ++it)
+	for(const physx::PxVec4* it = spheres.begin(); it < spheres.end(); ++it)
 		NV_CLOTH_ASSERT(it->w >= 0.0f);
 #endif
 
@@ -525,22 +511,22 @@ inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_
 
 	if (!oldSize)
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mStartCollisionSpheres.assign(spheres.begin(), spheres.end());
-		getChildCloth()->notifyChanged();
+		ContextLockType contextLock(mCloth.mFactory);
+		mCloth.mStartCollisionSpheres.assign(spheres.begin(), spheres.end());
+		mCloth.notifyChanged();
 	}
 	else
 	{
-		if (std::max(oldSize, newSize) >
-		   std::min(getChildCloth()->mStartCollisionSpheres.capacity(), getChildCloth()->mTargetCollisionSpheres.capacity()))
+		if(std::max(oldSize, newSize) >
+		   std::min(mCloth.mStartCollisionSpheres.capacity(), mCloth.mTargetCollisionSpheres.capacity()))
 		{
-			ContextLockType contextLock(getChildCloth()->mFactory);
-			getChildCloth()->mStartCollisionSpheres.reserve(newSize);
-			getChildCloth()->mTargetCollisionSpheres.reserve(std::max(oldSize, newSize));
+			ContextLockType contextLock(mCloth.mFactory);
+			mCloth.mStartCollisionSpheres.reserve(newSize);
+			mCloth.mTargetCollisionSpheres.reserve(std::max(oldSize, newSize));
 		}
 
-		typename T::MappedVec4fVectorType start = getChildCloth()->mStartCollisionSpheres;
-		typename T::MappedVec4fVectorType target = getChildCloth()->mTargetCollisionSpheres;
+		typename T::MappedVec4fVectorType start = mCloth.mStartCollisionSpheres;
+		typename T::MappedVec4fVectorType target = mCloth.mTargetCollisionSpheres;
 
 		// fill target from start
 		for (uint32_t i = uint32_t(target.size()); i < oldSize; ++i)
@@ -557,11 +543,11 @@ inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_
 			move(target.begin(), last, oldSize, last + delta);
 
 			// fill new elements from spheres
-			for (uint32_t i = last; i < last + delta; ++i)
+			for(uint32_t i = last; i < last + delta; ++i)
 				start[i] = spheres[i - first];
 
 			// adjust capsule indices
-			typename T::MappedIndexVectorType indices = getChildCloth()->mCapsuleIndices;
+			typename T::MappedIndexVectorType indices = mCloth.mCapsuleIndices;
 			Vector<IndexPair>::Type::Iterator cIt, cEnd = indices.end();
 			for (cIt = indices.begin(); cIt != cEnd;)
 			{
@@ -580,7 +566,7 @@ inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_
 			start.resize(newSize);
 			target.resize(newSize);
 
-			getChildCloth()->notifyChanged();
+			mCloth.notifyChanged();
 		}
 
 		// fill target elements with spheres
@@ -588,20 +574,20 @@ inline void ClothImpl<T>::setSpheres(Range<const physx::PxVec4> spheres, uint32_
 			target[first + i] = spheres[i];
 	}
 
-	getChildCloth()->wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumSpheres() const
 {
-	return uint32_t(getChildCloth()->mStartCollisionSpheres.size());
+	return uint32_t(mCloth.mStartCollisionSpheres.size());
 }
 
 // Fixed 4505:local function has been removed
 template <typename T>
 inline void ClothImpl<T>::setCapsules(Range<const uint32_t> capsules, uint32_t first, uint32_t last)
 {
-	uint32_t oldSize = uint32_t(getChildCloth()->mCapsuleIndices.size());
+	uint32_t oldSize = uint32_t(mCloth.mCapsuleIndices.size());
 	uint32_t newSize = uint32_t(capsules.size() / 2) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(newSize <= 32);
@@ -610,16 +596,16 @@ inline void ClothImpl<T>::setCapsules(Range<const uint32_t> capsules, uint32_t f
 
 	const IndexPair* srcIndices = reinterpret_cast<const IndexPair*>(capsules.begin());
 
-	if (getChildCloth()->mCapsuleIndices.capacity() < newSize)
+	if (mCloth.mCapsuleIndices.capacity() < newSize)
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mCapsuleIndices.reserve(newSize);
+		ContextLockType contextLock(mCloth.mFactory);
+		mCloth.mCapsuleIndices.reserve(newSize);
 	}
 
 	// resize to larger of oldSize and newSize
-	getChildCloth()->mCapsuleIndices.resize(std::max(oldSize, newSize));
+	mCloth.mCapsuleIndices.resize(std::max(oldSize, newSize));
 
-	typename T::MappedIndexVectorType dstIndices = getChildCloth()->mCapsuleIndices;
+	typename T::MappedIndexVectorType dstIndices = mCloth.mCapsuleIndices;
 
 	if (uint32_t delta = newSize - oldSize)
 	{
@@ -627,30 +613,30 @@ inline void ClothImpl<T>::setCapsules(Range<const uint32_t> capsules, uint32_t f
 		move(dstIndices.begin(), last, oldSize, last + delta);
 
 		// fill new elements from capsules
-		for (uint32_t i = last; i < last + delta; ++i)
+		for(uint32_t i = last; i < last + delta; ++i)
 			dstIndices[i] = srcIndices[i - first];
 
 		dstIndices.resize(newSize);
-		getChildCloth()->notifyChanged();
+		mCloth.notifyChanged();
 	}
 
 	// fill existing elements from capsules
 	for (uint32_t i = first; i < last; ++i)
 		dstIndices[i] = srcIndices[i - first];
 
-	getChildCloth()->wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumCapsules() const
 {
-	return uint32_t(getChildCloth()->mCapsuleIndices.size());
+	return uint32_t(mCloth.mCapsuleIndices.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t first, uint32_t last)
 {
-	uint32_t oldSize = uint32_t(getChildCloth()->mStartCollisionPlanes.size());
+	uint32_t oldSize = uint32_t(mCloth.mStartCollisionPlanes.size());
 	uint32_t newSize = uint32_t(planes.size()) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(newSize <= 32);
@@ -658,19 +644,19 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 	NV_CLOTH_ASSERT(last <= oldSize);
 #if PX_DEBUG || PX_CHECKED
 	int logCount = 0;
-	for (int i = 0; i<static_cast<int>(planes.size()); i++)
+	for(int i = 0; i<static_cast<int>(planes.size()); i++)
 	{
-        if (fabsf(planes[i].getXYZ().magnitudeSquared() - 1.0f) > 0.01f)
+        if(fabsf(planes[i].getXYZ().magnitudeSquared() - 1.0f) > 0.01f)
 		{
-			if (logCount == 0)
+			if(logCount == 0)
 				NV_CLOTH_LOG_INVALID_PARAMETER("The plane normals passed to Cloth::setPlanes are not normalized. First error encounterd at plane %d (%f, %f, %f, %f)",
 					i, static_cast<double>(planes[i].x), static_cast<double>(planes[i].y), static_cast<double>(planes[i].z), static_cast<double>(planes[i].w));
 			logCount++;
 		}
 	}
-	if (logCount>1)
+	if(logCount>1)
 	{
-		NV_CLOTH_LOG_INVALID_PARAMETER("This error was encountered %d more times.", logCount-1);
+		NV_CLOTH_LOG_INVALID_PARAMETER("This error was encounered %d more times.", logCount-1);
 	}
 #endif
 
@@ -679,22 +665,22 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 
 	if (!oldSize)
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mStartCollisionPlanes.assign(planes.begin(), planes.end());
-		getChildCloth()->notifyChanged();
+		ContextLockType contextLock(mCloth.mFactory);
+		mCloth.mStartCollisionPlanes.assign(planes.begin(), planes.end());
+		mCloth.notifyChanged();
 	}
 	else
 	{
-		if (std::max(oldSize, newSize) >
-		   std::min(getChildCloth()->mStartCollisionPlanes.capacity(), getChildCloth()->mTargetCollisionPlanes.capacity()))
+		if(std::max(oldSize, newSize) >
+		   std::min(mCloth.mStartCollisionPlanes.capacity(), mCloth.mTargetCollisionPlanes.capacity()))
 		{
-			ContextLockType contextLock(getChildCloth()->mFactory);
-			getChildCloth()->mStartCollisionPlanes.reserve(newSize);
-			getChildCloth()->mTargetCollisionPlanes.reserve(std::max(oldSize, newSize));
+			ContextLockType contextLock(mCloth.mFactory);
+			mCloth.mStartCollisionPlanes.reserve(newSize);
+			mCloth.mTargetCollisionPlanes.reserve(std::max(oldSize, newSize));
 		}
 
-		typename T::MappedVec4fVectorType start = getChildCloth()->mStartCollisionPlanes;
-		typename T::MappedVec4fVectorType target = getChildCloth()->mTargetCollisionPlanes;
+		typename T::MappedVec4fVectorType start = mCloth.mStartCollisionPlanes;
+		typename T::MappedVec4fVectorType target = mCloth.mTargetCollisionPlanes;
 
 		// fill target from start
 		for (uint32_t i = target.size(); i < oldSize; ++i)
@@ -704,7 +690,7 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 		start.resize(std::max(oldSize, newSize), physx::PxVec4(0.0f));
 		target.resize(std::max(oldSize, newSize), physx::PxVec4(0.0f));
 
-		if (int32_t delta = int32_t(newSize - oldSize))
+		if(int32_t delta = int32_t(newSize - oldSize))
 		{
 			// move past-range elements to new place
 			move(start.begin(), last, oldSize, last + delta);
@@ -716,7 +702,7 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 
 			// adjust convex indices
 			uint32_t mask = (uint32_t(1) << (last + std::min(delta, 0))) - 1;
-			typename T::MappedMaskVectorType masks = getChildCloth()->mConvexMasks;
+			typename T::MappedMaskVectorType masks = mCloth.mConvexMasks;
 			Vector<uint32_t>::Type::Iterator cIt, cEnd = masks.end();
 			for (cIt = masks.begin(); cIt != cEnd;)
 			{
@@ -737,7 +723,7 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 			start.resize(newSize);
 			target.resize(newSize);
 
-			getChildCloth()->notifyChanged();
+			mCloth.notifyChanged();
 		}
 
 		// fill target elements with planes
@@ -745,66 +731,66 @@ inline void ClothImpl<T>::setPlanes(Range<const physx::PxVec4> planes, uint32_t 
 			target[first + i] = planes[i];
 	}
 
-	wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumPlanes() const
 {
-	return uint32_t(getChildCloth()->mStartCollisionPlanes.size());
+	return uint32_t(mCloth.mStartCollisionPlanes.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setConvexes(Range<const uint32_t> convexMasks, uint32_t first, uint32_t last)
 {
-	uint32_t oldSize = uint32_t(getChildCloth()->mConvexMasks.size());
+	uint32_t oldSize = uint32_t(mCloth.mConvexMasks.size());
 	uint32_t newSize = uint32_t(convexMasks.size()) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(newSize <= 32);
 	NV_CLOTH_ASSERT(first <= oldSize);
 	NV_CLOTH_ASSERT(last <= oldSize);
 #if PX_DEBUG || PX_CHECKED
-	for (int i = 0; i<static_cast<int>(convexMasks.size()); i++)
+	for(int i = 0; i<static_cast<int>(convexMasks.size()); i++)
 	{
-		if (convexMasks[i] == 0)
+		if(convexMasks[i] == 0)
 		{
-			NV_CLOTH_LOG_INVALID_PARAMETER("Cloth::setConvexes expects bit masks of the form (1<<planeIndex1)|(1<<planeIndex2). 0 is not a valid mask/plane index. Error found in location %d", i);
+			NV_CLOTH_LOG_INVALID_PARAMETER("Cloth::setConvexes excpects bit masks of the form (1<<planeIndex1)|(1<<planeIndex2). 0 is not a valid mask/plane index. Error found in location %d", i);
 			continue;
 		}
 	}
 #endif
 
-	if (getChildCloth()->mConvexMasks.capacity() < newSize)
+	if (mCloth.mConvexMasks.capacity() < newSize)
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mConvexMasks.reserve(newSize);
+		ContextLockType contextLock(mCloth.mFactory);
+		mCloth.mConvexMasks.reserve(newSize);
 	}
 
 	// resize to larger of oldSize and newSize
-	getChildCloth()->mConvexMasks.resize(std::max(oldSize, newSize));
+	mCloth.mConvexMasks.resize(std::max(oldSize, newSize));
 
 	if (uint32_t delta = newSize - oldSize)
 	{
-		typename T::MappedMaskVectorType masks = getChildCloth()->mConvexMasks;
+		typename T::MappedMaskVectorType masks = mCloth.mConvexMasks;
 
 		// move past-range elements to new place
 		move(masks.begin(), last, oldSize, last + delta);
 
 		// fill new elements from capsules
-		for (uint32_t i = last; i < last + delta; ++i)
+		for(uint32_t i = last; i < last + delta; ++i)
 			masks[i] = convexMasks[i - first];
 
 		masks.resize(newSize);
-		getChildCloth()->notifyChanged();
+		mCloth.notifyChanged();
 	}
 
-	wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumConvexes() const
 {
-	return uint32_t(getChildCloth()->mConvexMasks.size());
+	return uint32_t(mCloth.mConvexMasks.size());
 }
 
 template <typename T>
@@ -814,10 +800,10 @@ inline void ClothImpl<T>::setTriangles(Range<const physx::PxVec3> triangles, uin
 	first *= 3;
 	last *= 3;
 
-	triangles = getChildCloth()->clampTriangleCount(triangles, last - first);
+	triangles = mCloth.clampTriangleCount(triangles, last - first);
 	NV_CLOTH_ASSERT(0 == triangles.size() % 3);
 
-	uint32_t oldSize = uint32_t(getChildCloth()->mStartCollisionTriangles.size());
+	uint32_t oldSize = uint32_t(mCloth.mStartCollisionTriangles.size());
 	uint32_t newSize = uint32_t(triangles.size()) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(first <= oldSize);
@@ -828,22 +814,22 @@ inline void ClothImpl<T>::setTriangles(Range<const physx::PxVec3> triangles, uin
 
 	if (!oldSize)
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mStartCollisionTriangles.assign(triangles.begin(), triangles.end());
-		getChildCloth()->notifyChanged();
+		ContextLockType contextLock(mCloth.mFactory);
+		mCloth.mStartCollisionTriangles.assign(triangles.begin(), triangles.end());
+		mCloth.notifyChanged();
 	}
 	else
 	{
 		if (std::max(oldSize, newSize) >
-			std::min(getChildCloth()->mStartCollisionTriangles.capacity(), getChildCloth()->mTargetCollisionTriangles.capacity()))
+			std::min(mCloth.mStartCollisionTriangles.capacity(), mCloth.mTargetCollisionTriangles.capacity()))
 		{
-			ContextLockType contextLock(getChildCloth()->mFactory);
-			getChildCloth()->mStartCollisionTriangles.reserve(newSize);
-			getChildCloth()->mTargetCollisionTriangles.reserve(std::max(oldSize, newSize));
+			ContextLockType contextLock(mCloth.mFactory);
+			mCloth.mStartCollisionTriangles.reserve(newSize);
+			mCloth.mTargetCollisionTriangles.reserve(std::max(oldSize, newSize));
 		}
 
-		typename T::MappedVec3fVectorType start = getChildCloth()->mStartCollisionTriangles;
-		typename T::MappedVec3fVectorType target = getChildCloth()->mTargetCollisionTriangles;
+		typename T::MappedVec3fVectorType start = mCloth.mStartCollisionTriangles;
+		typename T::MappedVec3fVectorType target = mCloth.mTargetCollisionTriangles;
 
 		// fill target from start
 		for (uint32_t i = target.size(); i < oldSize; ++i)
@@ -859,59 +845,59 @@ inline void ClothImpl<T>::setTriangles(Range<const physx::PxVec3> triangles, uin
 			move(start.begin(), last, oldSize, last + delta);
 			move(target.begin(), last, oldSize, last + delta);
 
-			// fill new elements from triangles
+			// fill new elements from planes
 			for (uint32_t i = last; i < last + delta; ++i)
 				start[i] = triangles[i - first];
 
 			start.resize(newSize);
 			target.resize(newSize);
 
-			getChildCloth()->notifyChanged();
+			mCloth.notifyChanged();
 		}
 		//////////////////////
 
 	//	if (std::max(oldSize, newSize) >
-	//	   std::min(getChildCloth()->mStartCollisionTriangles.capacity(), getChildCloth()->mTargetCollisionTriangles.capacity()))
+	//	   std::min(mCloth.mStartCollisionTriangles.capacity(), mCloth.mTargetCollisionTriangles.capacity()))
 	//	{
-	//		ContextLockType contextLock(getChildCloth()->mFactory);
-	//		getChildCloth()->mStartCollisionTriangles.reserve(newSize);
-	//		getChildCloth()->mTargetCollisionTriangles.reserve(std::max(oldSize, newSize));
+	//		ContextLockType contextLock(mCloth.mFactory);
+	//		mCloth.mStartCollisionTriangles.reserve(newSize);
+	//		mCloth.mTargetCollisionTriangles.reserve(std::max(oldSize, newSize));
 	//	}
 	//
 	//	// fill target from start
-	//	for (uint32_t i = getChildCloth()->mTargetCollisionTriangles.size(); i < oldSize; ++i)
-	//		getChildCloth()->mTargetCollisionTriangles.pushBack(getChildCloth()->mStartCollisionTriangles[i]);
+	//	for(uint32_t i = mCloth.mTargetCollisionTriangles.size(); i < oldSize; ++i)
+	//		mCloth.mTargetCollisionTriangles.pushBack(mCloth.mStartCollisionTriangles[i]);
 	//
 	//	// resize to larger of oldSize and newSize
-	//	getChildCloth()->mStartCollisionTriangles.resize(std::max(oldSize, newSize));
-	//	getChildCloth()->mTargetCollisionTriangles.resize(std::max(oldSize, newSize));
+	//	mCloth.mStartCollisionTriangles.resize(std::max(oldSize, newSize));
+	//	mCloth.mTargetCollisionTriangles.resize(std::max(oldSize, newSize));
 	//
 	//	if (uint32_t delta = newSize - oldSize)
 	//	{
 	//		// move past-range elements to new place
-	//		move(getChildCloth()->mStartCollisionTriangles.begin(), last, oldSize, last + delta);
-	//		move(getChildCloth()->mTargetCollisionTriangles.begin(), last, oldSize, last + delta);
+	//		move(mCloth.mStartCollisionTriangles.begin(), last, oldSize, last + delta);
+	//		move(mCloth.mTargetCollisionTriangles.begin(), last, oldSize, last + delta);
 	//
 	//		// fill new elements from triangles
 	//		for (uint32_t i = last; i < last + delta; ++i)
-	//			getChildCloth()->mStartCollisionTriangles[i] = triangles[i - first];
+	//			mCloth.mStartCollisionTriangles[i] = triangles[i - first];
 	//
-	//		getChildCloth()->mStartCollisionTriangles.resize(newSize);
-	//		getChildCloth()->mTargetCollisionTriangles.resize(newSize);
+	//		mCloth.mStartCollisionTriangles.resize(newSize);
+	//		mCloth.mTargetCollisionTriangles.resize(newSize);
 	//
-	//		notifyChanged();
+	//		mCloth.notifyChanged();
 	//	}
 
 		// fill target elements with triangles
 		//	for (uint32_t i = 0; i < triangles.size(); ++i)
-		//		getChildCloth()->mTargetCollisionTriangles[first + i] = triangles[i];
+		//		mCloth.mTargetCollisionTriangles[first + i] = triangles[i];
 
-		// fill target elements with triangles
+		// fill target elements with planes
 		for (uint32_t i = 0; i < triangles.size(); ++i)
 			target[first + i] = triangles[i];
 	}
 
-	wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
@@ -923,12 +909,12 @@ inline void ClothImpl<T>::setTriangles(Range<const physx::PxVec3> startTriangles
 	// convert from triangle to vertex count
 	first *= 3;
 
-	uint32_t last = uint32_t(getChildCloth()->mStartCollisionTriangles.size());
+	uint32_t last = uint32_t(mCloth.mStartCollisionTriangles.size());
 
-	startTriangles = getChildCloth()->clampTriangleCount(startTriangles, last - first);
-	targetTriangles = getChildCloth()->clampTriangleCount(targetTriangles, last - first);
+	startTriangles = mCloth.clampTriangleCount(startTriangles, last - first);
+	targetTriangles = mCloth.clampTriangleCount(targetTriangles, last - first);
 
-	uint32_t oldSize = uint32_t(getChildCloth()->mStartCollisionTriangles.size());
+	uint32_t oldSize = uint32_t(mCloth.mStartCollisionTriangles.size());
 	uint32_t newSize = uint32_t(startTriangles.size()) + oldSize - last + first;
 
 	NV_CLOTH_ASSERT(first <= oldSize);
@@ -937,240 +923,250 @@ inline void ClothImpl<T>::setTriangles(Range<const physx::PxVec3> startTriangles
 	if (!oldSize && !newSize)
 		return;
 
-	if (newSize > std::min(getChildCloth()->mStartCollisionTriangles.capacity(), getChildCloth()->mTargetCollisionTriangles.capacity()))
+	if (newSize > std::min(mCloth.mStartCollisionTriangles.capacity(), mCloth.mTargetCollisionTriangles.capacity()))
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		getChildCloth()->mStartCollisionTriangles.assign(startTriangles.begin(), startTriangles.end());
-		getChildCloth()->mTargetCollisionTriangles.assign(targetTriangles.begin(), targetTriangles.end());
-		getChildCloth()->notifyChanged();
+		ContextLockType contextLock(mCloth.mFactory);
+	//	mCloth.mStartCollisionTriangles.reserve(newSize);
+	//	mCloth.mTargetCollisionTriangles.reserve(newSize);
+
+
+		mCloth.mStartCollisionTriangles.assign(startTriangles.begin(), startTriangles.end());
+		mCloth.mTargetCollisionTriangles.assign(targetTriangles.begin(), targetTriangles.end());
+		mCloth.notifyChanged();
 	}
 	else
 	{
 		uint32_t retainSize = oldSize - last + first;
-		getChildCloth()->mStartCollisionTriangles.resize(retainSize);
-		getChildCloth()->mTargetCollisionTriangles.resize(retainSize);
+		mCloth.mStartCollisionTriangles.resize(retainSize);
+		mCloth.mTargetCollisionTriangles.resize(retainSize);
 
-		getChildCloth()->mStartCollisionTriangles.assign(startTriangles.begin(), startTriangles.end());
-		getChildCloth()->mTargetCollisionTriangles.assign(targetTriangles.begin(), targetTriangles.end());
+		mCloth.mStartCollisionTriangles.assign(startTriangles.begin(), startTriangles.end());
+		mCloth.mTargetCollisionTriangles.assign(targetTriangles.begin(), targetTriangles.end());
+
+	//	for (uint32_t i = 0, n = startTriangles.size(); i < n; ++i)
+	//	{
+	//		mCloth.mStartCollisionTriangles.pushBack(startTriangles[i]);
+	//		mCloth.mTargetCollisionTriangles.pushBack(targetTriangles[i]);
+	//	}
 
 		if (newSize - oldSize)
-			getChildCloth()->notifyChanged();
+			mCloth.notifyChanged();
 	}
 
-	wakeUp();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumTriangles() const
 {
-	return uint32_t(getChildCloth()->mStartCollisionTriangles.size()) / 3;
+	return uint32_t(mCloth.mStartCollisionTriangles.size()) / 3;
 }
 
 template <typename T>
 inline bool ClothImpl<T>::isContinuousCollisionEnabled() const
 {
-	return getChildCloth()->mEnableContinuousCollision;
+	return mCloth.mEnableContinuousCollision;
 }
 
 template <typename T>
 inline void ClothImpl<T>::enableContinuousCollision(bool enable)
 {
-	if (enable == getChildCloth()->mEnableContinuousCollision)
+	if(enable == mCloth.mEnableContinuousCollision)
 		return;
 
-	getChildCloth()->mEnableContinuousCollision = enable;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mEnableContinuousCollision = enable;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getCollisionMassScale() const
 {
-	return getChildCloth()->mCollisionMassScale;
+	return mCloth.mCollisionMassScale;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setCollisionMassScale(float scale)
 {
-	if (scale == getChildCloth()->mCollisionMassScale)
+	if (scale == mCloth.mCollisionMassScale)
 		return;
 
-	getChildCloth()->mCollisionMassScale = scale;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mCollisionMassScale = scale;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline void ClothImpl<T>::setFriction(float friction)
 {
-	getChildCloth()->mFriction = friction;
-	getChildCloth()->notifyChanged();
+	mCloth.mFriction = friction;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getFriction() const
 {
-	return getChildCloth()->mFriction;
+	return mCloth.mFriction;
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumVirtualParticleWeights() const
 {
-	return uint32_t(getChildCloth()->mVirtualParticleWeights.size());
+	return uint32_t(mCloth.mVirtualParticleWeights.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setTetherConstraintScale(float scale)
 {
-	if (scale == getChildCloth()->mTetherConstraintScale)
+	if (scale == mCloth.mTetherConstraintScale)
 		return;
 
-	getChildCloth()->mTetherConstraintScale = scale;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mTetherConstraintScale = scale;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getTetherConstraintScale() const
 {
-	return getChildCloth()->mTetherConstraintScale;
+	return mCloth.mTetherConstraintScale;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setTetherConstraintStiffness(float stiffness)
 {
 	float value = safeLog2(1 - stiffness);
-	if (value == getChildCloth()->mTetherConstraintLogStiffness)
+	if(value == mCloth.mTetherConstraintLogStiffness)
 		return;
 
-	getChildCloth()->mTetherConstraintLogStiffness = value;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mTetherConstraintLogStiffness = value;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getTetherConstraintStiffness() const
 {
-	return 1.f - safeExp2(getChildCloth()->mTetherConstraintLogStiffness);
+	return 1.f - safeExp2(mCloth.mTetherConstraintLogStiffness);
 }
 
 template <typename T>
 inline Range<physx::PxVec4> ClothImpl<T>::getMotionConstraints()
 {
-	wakeUp();
-	return getChildCloth()->push(getChildCloth()->mMotionConstraints);
+	mCloth.wakeUp();
+	return mCloth.push(mCloth.mMotionConstraints);
 }
 
 template <typename T>
 inline void ClothImpl<T>::clearMotionConstraints()
 {
-	getChildCloth()->clear(getChildCloth()->mMotionConstraints);
-	wakeUp();
+	mCloth.clear(mCloth.mMotionConstraints);
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumMotionConstraints() const
 {
-	return uint32_t(getChildCloth()->mMotionConstraints.mStart.size());
+	return uint32_t(mCloth.mMotionConstraints.mStart.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setMotionConstraintScaleBias(float scale, float bias)
 {
-	if (scale == getChildCloth()->mMotionConstraintScale && bias == getChildCloth()->mMotionConstraintBias)
+	if(scale == mCloth.mMotionConstraintScale && bias == mCloth.mMotionConstraintBias)
 		return;
 
-	getChildCloth()->mMotionConstraintScale = scale;
-	getChildCloth()->mMotionConstraintBias = bias;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mMotionConstraintScale = scale;
+	mCloth.mMotionConstraintBias = bias;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getMotionConstraintScale() const
 {
-	return getChildCloth()->mMotionConstraintScale;
+	return mCloth.mMotionConstraintScale;
 }
 
 template <typename T>
 inline float ClothImpl<T>::getMotionConstraintBias() const
 {
-	return getChildCloth()->mMotionConstraintBias;
+	return mCloth.mMotionConstraintBias;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setMotionConstraintStiffness(float stiffness)
 {
 	float value = safeLog2(1 - stiffness);
-	if (value == getChildCloth()->mMotionConstraintLogStiffness)
+	if(value == mCloth.mMotionConstraintLogStiffness)
 		return;
 
-	getChildCloth()->mMotionConstraintLogStiffness = value;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mMotionConstraintLogStiffness = value;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getMotionConstraintStiffness() const
 {
-	return 1.f - safeExp2(getChildCloth()->mMotionConstraintLogStiffness);
+	return 1.f - safeExp2(mCloth.mMotionConstraintLogStiffness);
 }
 
 template <typename T>
 inline Range<physx::PxVec4> ClothImpl<T>::getSeparationConstraints()
 {
-	wakeUp();
-	return getChildCloth()->push(getChildCloth()->mSeparationConstraints);
+	mCloth.wakeUp();
+	return mCloth.push(mCloth.mSeparationConstraints);
 }
 
 template <typename T>
 inline void ClothImpl<T>::clearSeparationConstraints()
 {
-	getChildCloth()->clear(getChildCloth()->mSeparationConstraints);
-	wakeUp();
+	mCloth.clear(mCloth.mSeparationConstraints);
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline void ClothImpl<T>::clearInterpolation()
 {
-	if (!getChildCloth()->mTargetCollisionSpheres.empty())
+	if(!mCloth.mTargetCollisionSpheres.empty())
 	{
-		ContextLockType contextLock(getChildCloth()->mFactory);
-		physx::shdfnd::swap(getChildCloth()->mStartCollisionSpheres, getChildCloth()->mTargetCollisionSpheres);
-		getChildCloth()->mTargetCollisionSpheres.resize(0);
+		ContextLockType contextLock(mCloth.mFactory);
+		physx::shdfnd::swap(mCloth.mStartCollisionSpheres, mCloth.mTargetCollisionSpheres);
+		mCloth.mTargetCollisionSpheres.resize(0);
 	}
-	getChildCloth()->mMotionConstraints.pop();
-	getChildCloth()->mSeparationConstraints.pop();
-	wakeUp();
+	mCloth.mMotionConstraints.pop();
+	mCloth.mSeparationConstraints.pop();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumSeparationConstraints() const
 {
-	return uint32_t(getChildCloth()->mSeparationConstraints.mStart.size());
+	return uint32_t(mCloth.mSeparationConstraints.mStart.size());
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumParticleAccelerations() const
 {
-	return uint32_t(getChildCloth()->mParticleAccelerations.size());
+	return uint32_t(mCloth.mParticleAccelerations.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setWindVelocity(physx::PxVec3 wind)
 {
-	if (wind == mWind)
+	if(wind == mCloth.mWind)
 		return;
 
-	mWind = wind;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mWind = wind;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline physx::PxVec3 ClothImpl<T>::getWindVelocity() const
 {
-	return mWind;
+	return mCloth.mWind;
 }
 
 template <typename T>
@@ -1179,18 +1175,18 @@ inline void ClothImpl<T>::setDragCoefficient(float coefficient)
 	NV_CLOTH_ASSERT(coefficient < 1.f);
 
 	float value = safeLog2(1.f - coefficient);
-	if (value == mDragLogCoefficient)
+	if (value == mCloth.mDragLogCoefficient)
 		return;
 
-	mDragLogCoefficient = value;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mDragLogCoefficient = value;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getDragCoefficient() const
 {
-	return 1.f - safeExp2(mDragLogCoefficient);
+	return 1.f - safeExp2(mCloth.mDragLogCoefficient);
 }
 
 template <typename T>
@@ -1199,24 +1195,24 @@ inline void ClothImpl<T>::setLiftCoefficient(float coefficient)
 	NV_CLOTH_ASSERT(coefficient < 1.f);
 
 	float value = safeLog2(1.f - coefficient);
-	if (value == mLiftLogCoefficient)
+	if (value == mCloth.mLiftLogCoefficient)
 		return;
 
-	mLiftLogCoefficient = value;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mLiftLogCoefficient = value;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getLiftCoefficient() const
 {
-	return 1.f - safeExp2(mLiftLogCoefficient);
+	return 1.f - safeExp2(mCloth.mLiftLogCoefficient);
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumSelfCollisionIndices() const
 {
-	return uint32_t(getChildCloth()->mSelfCollisionIndices.size());
+	return uint32_t(mCloth.mSelfCollisionIndices.size());
 }
 
 // Fixed 4505:local function has been removed
@@ -1224,155 +1220,149 @@ template <typename T>
 inline void ClothImpl<T>::setRestPositions(Range<const physx::PxVec4> restPositions)
 {
 	NV_CLOTH_ASSERT(restPositions.empty() || restPositions.size() == getNumParticles());
-	ContextLockType contextLock(getChildCloth()->mFactory);
-	getChildCloth()->mRestPositions.assign(restPositions.begin(), restPositions.end());
-	wakeUp();
+	ContextLockType contextLock(mCloth.mFactory);
+	mCloth.mRestPositions.assign(restPositions.begin(), restPositions.end());
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getNumRestPositions() const
 {
-	return uint32_t(getChildCloth()->mRestPositions.size());
+	return uint32_t(mCloth.mRestPositions.size());
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSelfCollisionDistance(float distance)
 {
-	if (distance == getChildCloth()->mSelfCollisionDistance)
+	if(distance == mCloth.mSelfCollisionDistance)
 		return;
 
-	getChildCloth()->mSelfCollisionDistance = distance;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mSelfCollisionDistance = distance;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getSelfCollisionDistance() const
 {
-	return getChildCloth()->mSelfCollisionDistance;
+	return mCloth.mSelfCollisionDistance;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSelfCollisionStiffness(float stiffness)
 {
 	float value = safeLog2(1 - stiffness);
-	if (value == getChildCloth()->mSelfCollisionLogStiffness)
+	if(value == mCloth.mSelfCollisionLogStiffness)
 		return;
 
-	getChildCloth()->mSelfCollisionLogStiffness = value;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mSelfCollisionLogStiffness = value;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getSelfCollisionStiffness() const
 {
-	return 1.f - safeExp2(getChildCloth()->mSelfCollisionLogStiffness);
+	return 1.f - safeExp2(mCloth.mSelfCollisionLogStiffness);
 }
 
 template <typename T>
 inline const physx::PxVec3& ClothImpl<T>::getBoundingBoxCenter() const
 {
-	return getChildCloth()->mParticleBoundsCenter;
+	return mCloth.mParticleBoundsCenter;
 }
 
 template <typename T>
 inline const physx::PxVec3& ClothImpl<T>::getBoundingBoxScale() const
 {
-	return getChildCloth()->mParticleBoundsHalfExtent;
+	return mCloth.mParticleBoundsHalfExtent;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSleepThreshold(float threshold)
 {
-	if (threshold == mSleepThreshold)
+	if(threshold == mCloth.mSleepThreshold)
 		return;
 
-	mSleepThreshold = threshold;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mSleepThreshold = threshold;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline float ClothImpl<T>::getSleepThreshold() const
 {
-	return mSleepThreshold;
+	return mCloth.mSleepThreshold;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSleepTestInterval(uint32_t interval)
 {
-	if (interval == mSleepTestInterval)
+	if(interval == mCloth.mSleepTestInterval)
 		return;
 
-	mSleepTestInterval = interval;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mSleepTestInterval = interval;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getSleepTestInterval() const
 {
-	return mSleepTestInterval;
+	return mCloth.mSleepTestInterval;
 }
 
 template <typename T>
 inline void ClothImpl<T>::setSleepAfterCount(uint32_t afterCount)
 {
-	if (afterCount == mSleepAfterCount)
+	if(afterCount == mCloth.mSleepAfterCount)
 		return;
 
-	mSleepAfterCount = afterCount;
-	getChildCloth()->notifyChanged();
-	wakeUp();
+	mCloth.mSleepAfterCount = afterCount;
+	mCloth.notifyChanged();
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getSleepAfterCount() const
 {
-	return mSleepAfterCount;
+	return mCloth.mSleepAfterCount;
 }
 
 template <typename T>
 inline uint32_t ClothImpl<T>::getSleepPassCount() const
 {
-	return mSleepPassCounter;
+	return mCloth.mSleepPassCounter;
 }
 
 template <typename T>
 inline bool ClothImpl<T>::isAsleep() const
 {
-	return isSleeping();
+	return mCloth.isSleeping();
 }
 
 template <typename T>
 inline void ClothImpl<T>::putToSleep()
 {
-	mSleepPassCounter = mSleepAfterCount;
-}
-
-template <typename T>
-inline bool ClothImpl<T>::isSleeping() const
-{
-	return mSleepPassCounter >= mSleepAfterCount;
+	mCloth.mSleepPassCounter = mCloth.mSleepAfterCount;
 }
 
 template <typename T>
 inline void ClothImpl<T>::wakeUp()
 {
-	mSleepPassCounter = 0;
+	mCloth.wakeUp();
 }
 
 template <typename T>
 inline void ClothImpl<T>::setUserData(void* data)
 {
-	getChildCloth()->mUserData = data;
+	mCloth.mUserData = data;
 }
 
 template <typename T>
 inline void* ClothImpl<T>::getUserData() const
 {
-	return getChildCloth()->mUserData;
+	return mCloth.mUserData;
 }
 
 template <typename T>
