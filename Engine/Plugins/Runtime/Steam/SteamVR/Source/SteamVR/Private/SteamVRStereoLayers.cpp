@@ -129,6 +129,15 @@ void FSteamVRHMD::UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool 
 		return;
 	}
 
+	if (Layer.LayerDesc.Flags & IStereoLayers::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL)
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Unsupported StereoLayer flag. SteamVR StereoLayers do not support disabling alpha renderding. Make the texture opaque instead."));
+	}
+	if (Layer.LayerDesc.ShapeType != IStereoLayers::QuadLayer)
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Unsupported StereoLayer shape. SteamVR StereoLayers can only be Quads."));
+	}
+
 	// UVs
 	vr::VRTextureBounds_t TextureBounds;
     TextureBounds.uMin = Layer.LayerDesc.UVRect.Min.X;
@@ -199,13 +208,19 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 		return;
 	}
 
+	static const auto CVarMixLayerPriorities = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.StereoLayers.bMixLayerPriorities"));
+	const bool bUpdateLayerPriorities = (CVarMixLayerPriorities->GetValueOnRenderThread() == 0) && GetStereoLayersDirty();
+	
+	typedef TTuple<vr::VROverlayHandle_t, int32, bool /* bIsFaceLocked */> LayerPriorityInfo;
+	TArray<LayerPriorityInfo> LayerPriorities;
+
 	const float WorldToMeterScale = GetWorldToMetersScale();
 	check(WorldToMeterScale > 0.f);
 	FQuat AdjustedPlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
 	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, PlayerLocation).Inverse();
 
 	// We have loop through all layers every frame, in case we have world locked layers or continuously updated textures.
-	ForEachLayer([=](uint32 /* unused */, FSteamVRLayer& Layer)
+	ForEachLayer([&](uint32 /* unused */, FSteamVRLayer& Layer)
 	{
 		if (Layer.OverlayHandle != vr::k_ulOverlayHandleInvalid)
 		{
@@ -237,8 +252,50 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 
 				Layer.bUpdateTexture = false;
 			}
+
+			if (bUpdateLayerPriorities)
+			{
+				LayerPriorities.Add(LayerPriorityInfo(Layer.OverlayHandle, Layer.LayerDesc.Priority, Layer.LayerDesc.PositionType == FaceLocked));
+			}
 		}
 	});
+
+	if (bUpdateLayerPriorities && LayerPriorities.Num() > 0)
+	{
+		auto SortLayersPredicate = [&](const LayerPriorityInfo& A, const LayerPriorityInfo& B)
+		{
+			const bool bAisFaceLocked = A.Get<2>();
+			const bool bBisFaceLocked = B.Get<2>();
+
+			if (bAisFaceLocked != bBisFaceLocked)
+			{
+				return bBisFaceLocked;
+			}
+			else
+			{
+				return A.Get<1>() < B.Get<1>();
+			}
+		};
+
+		LayerPriorities.Sort(SortLayersPredicate);
+
+		uint32 SortOrder = 0;
+		int32 PrevPriority = LayerPriorities[0].Get<1>();
+		bool PrevWasFaceLocked = LayerPriorities[0].Get<2>();
+
+		for (LayerPriorityInfo Info : LayerPriorities)
+		{
+			// If multiple layers have the same priority, assign same sort order to them as well.
+			if (PrevPriority != Info.Get<1>() || PrevWasFaceLocked != Info.Get<2>())
+			{
+				PrevPriority = Info.Get<1>();
+				PrevWasFaceLocked = Info.Get<2>();
+				SortOrder++;
+			}
+			OVR_VERIFY(VROverlay->SetOverlaySortOrder(Info.Get<0>(), SortOrder));
+		}
+
+	}
 }
 
 //=============================================================================

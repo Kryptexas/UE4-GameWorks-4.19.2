@@ -28,6 +28,9 @@
 	"LogMac:Warning: dlopen failed:.*libsteam_api.dylib.*: image not found",
 	"LogOnline:Warning: STEAM:.*libraries not present.*failed to load!",
 	
+	# Some doxygen output can confuse the post-processor, because it lists a symbol containing "Warning::"
+	"doxygen>.*Warning::.*",
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",

@@ -30,10 +30,14 @@ public:
 
 	enum ELayerFlags
 	{
-		LAYER_FLAG_TEX_CONTINUOUS_UPDATE	= 0x00000001, // Internally copies the texture on every frame for video, etc.
-		LAYER_FLAG_TEX_NO_ALPHA_CHANNEL		= 0x00000002, // Ignore the textures alpha channel, this makes the stereo layer opaque
-		LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO	= 0x00000004, // Quad Y component will be calculated based on the texture dimensions
-		LAYER_FLAG_SUPPORT_DEPTH			= 0x00000008, // The layer will intersect with the scene's depth
+		// Internally copies the texture on every frame for video, etc.
+		LAYER_FLAG_TEX_CONTINUOUS_UPDATE	= 0x00000001,
+		// Ignore the textures alpha channel, this makes the stereo layer opaque. Flag is ignored on Steam VR.
+		LAYER_FLAG_TEX_NO_ALPHA_CHANNEL		= 0x00000002,
+		// Quad Y component will be calculated based on the texture dimensions
+		LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO	= 0x00000004,
+		// The layer will intersect with the scene's depth. Currently only supported on Oculus platforms.
+		LAYER_FLAG_SUPPORT_DEPTH			= 0x00000008,
 	};
 
 	/**
@@ -41,17 +45,26 @@ public:
 	 */
 	struct FLayerDesc
 	{
-		FTransform			Transform	 = FTransform::Identity;									// View space transform
-		FVector2D			QuadSize	 = FVector2D(1.0f, 1.0f);									// Size of rendered quad
-		FBox2D				UVRect		 = FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));	// UVs of rendered quad
-		int32				Priority	 = 0;														// Render order priority, higher priority render on top of lower priority
-		ELayerType			PositionType = ELayerType::FaceLocked;									// Which space the layer is locked within
-		ELayerShape			ShapeType	 = ELayerShape::QuadLayer;                                  // which shape of layer it is
+		// View space transform
+		FTransform			Transform	 = FTransform::Identity;
+		// Size of rendered quad
+		FVector2D			QuadSize	 = FVector2D(1.0f, 1.0f);
+		// UVs of rendered quad
+		FBox2D				UVRect		 = FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
+		// Render order priority, higher priority render on top of lower priority. Face-Locked layers are rendered on top of other layer types regardless of priority. 
+		int32				Priority	 = 0;
+		// Which space the layer is locked within
+		ELayerType			PositionType = ELayerType::FaceLocked;
+		// which shape of layer it is. ELayerShape::QuadLayer is the only shape supported by all VR platforms.
+		ELayerShape			ShapeType	 = ELayerShape::QuadLayer;
 		FVector2D			CylinderSize = FVector2D(1.0f, 1.0f);
 		float				CylinderHeight = 1.0f;
-		FTextureRHIRef		Texture		 = nullptr;													// Texture mapped for right eye (if one texture provided, mono assumed)
-		FTextureRHIRef		LeftTexture  = nullptr;													// Texture mapped for left eye (if one texture provided, mono assumed)
-		uint32				Flags		 = 0;														// Uses LAYER_FLAG_...
+		// Texture mapped for right eye (if one texture provided, mono assumed)
+		FTextureRHIRef		Texture		 = nullptr;	
+		// Texture mapped for left eye (if one texture provided, mono assumed)
+		FTextureRHIRef		LeftTexture  = nullptr;
+		// Uses LAYER_FLAG_... -- See: ELayerFlags
+		uint32				Flags		 = 0;
 	};
 
 	virtual ~IStereoLayers() { }

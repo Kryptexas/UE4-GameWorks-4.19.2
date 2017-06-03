@@ -2251,7 +2251,12 @@ namespace AutomationTool
 	/// </summary>
 	public enum TelemetryUnits
 	{
+		Count,
+		Milliseconds,
+		Seconds,
 		Minutes,
+		Bytes,
+		Megabytes,
 	}
 
 	/// <summary>

@@ -38,6 +38,13 @@ static TAutoConsoleVariable<int32> CVarEnableDevOverrides(
 	0,
 	*LOCTEXT("CVarText_EnableDevOverrides", "Enables or disables console commands that modify various developer-only settings.").ToString());
 
+static TAutoConsoleVariable<int32> CVarMixLayerPriorities(
+	TEXT("vr.StereoLayers.bMixLayerPriorities"),
+	0,
+	*LOCTEXT("CVarText_MixLayerPriorities", "By default, Face-Locked Stereo Layers are always rendered on top of any other layer position types.\nSet this to a non-zero value to disable this behavior (not supported on all platforms.)").ToString(),
+	ECVF_RenderThreadSafe);
+
+
 
 #if !UE_BUILD_SHIPPING
 static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController* PlayerController, UWorld* World)
