@@ -32,7 +32,7 @@ namespace UnrealBuildTool
 		/// When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
 		/// </summary>
 		[XmlConfigFile(Category = "BuildConfiguration")]
-		bool bStopXGECompilationAfterErrors = false;
+		bool bStopXGECompilationAfterErrors = true;
 
 		private const string ProgressMarkupPrefix = "@action";
 
