@@ -40,6 +40,7 @@
 #include "GuPCMContactGen.h"
 #include "GuContactBuffer.h"
 
+
 namespace physx
 {
 
@@ -220,11 +221,12 @@ bool pcmContactConvexConvex(GU_CONTACT_METHOD_ARGS)
 	const Gu::ConvexHullData* hullData0 = shapeConvex0.hullData;
 	const Gu::ConvexHullData* hullData1 = shapeConvex1.hullData;
 
-	const FloatV convexMargin0 = Gu::CalculatePCMConvexMargin(hullData0, vScale0);
-	const FloatV convexMargin1 = Gu::CalculatePCMConvexMargin(hullData1, vScale1);
+	const PxReal toleranceLength = params.mToleranceLength;
+	const FloatV convexMargin0 = Gu::CalculatePCMConvexMargin(hullData0, vScale0, toleranceLength);
+	const FloatV convexMargin1 = Gu::CalculatePCMConvexMargin(hullData1, vScale1, toleranceLength);
 	
 	const PxU32 initialContacts = manifold.mNumContacts;
-	
+
 	const FloatV minMargin = FMin(convexMargin0, convexMargin1);
 	const FloatV projectBreakingThreshold = FMul(minMargin, FLoad(0.8f));
 	
@@ -246,6 +248,7 @@ bool pcmContactConvexConvex(GU_CONTACT_METHOD_ARGS)
 
 		Gu::ShrunkConvexHullV convexHull0(hullData0, V3LoadU(hullData0->mCenterOfMass), vScale0, vQuat0, idtScale0);
 		Gu::ShrunkConvexHullV convexHull1(hullData1, V3LoadU(hullData1->mCenterOfMass), vScale1, vQuat1, idtScale1);
+
 	
 		Vec3V closestA(zeroV), closestB(zeroV), normal(zeroV); // from a to b
 		FloatV penDep =  FZero();
@@ -316,7 +319,5 @@ bool pcmContactConvexConvex(GU_CONTACT_METHOD_ARGS)
 	return false;
 	
 }
-
-
 }
 }

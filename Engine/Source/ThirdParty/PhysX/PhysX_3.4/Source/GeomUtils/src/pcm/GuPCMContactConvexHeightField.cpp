@@ -208,24 +208,22 @@ bool Gu::pcmContactConvexHeightField(GU_CONTACT_METHOD_ARGS)
 	const bool idtScaleConvex = getPCMConvexData(shape0, convexScaling, hullAABB, polyData);
 
 	const Vec3V vScale = V3LoadU_SafeReadW(shapeConvex.scale.scale);	// PT: safe because 'rotation' follows 'scale' in PxMeshScale
-	const FloatV convexMargin = Gu::CalculatePCMConvexMargin(hullData, vScale);
-	const FloatV epsilon = FLoad(GU_PCM_MESH_MANIFOLD_EPSILON);
-	const FloatV toleranceLength = FLoad(params.mToleranceLength);
-	const FloatV toleranceMargin = FMul(epsilon, toleranceLength);
-	const FloatV minMargin = FMin(convexMargin, toleranceMargin);
+	
+	const PxReal toleranceLength = params.mToleranceLength;
+	const FloatV minMargin = Gu::CalculatePCMConvexMargin(hullData, vScale, toleranceLength, GU_PCM_MESH_MANIFOLD_EPSILON);
 
 	const QuatV vQuat = QuatVLoadU(&shapeConvex.scale.rotation.x);
 	Gu::ConvexHullV convexHull(hullData, V3Zero(), vScale, vQuat, shapeConvex.scale.isIdentity());
 
 	if(idtScaleConvex)
 	{
-		SupportLocalShrunkImpl<Gu::ConvexHullNoScaleV, Gu::ShrunkConvexHullNoScaleV> convexMap(static_cast<ConvexHullNoScaleV&>(convexHull), convexTransform, convexHull.vertex2Shape, convexHull.shape2Vertex, idtScaleConvex);
+		SupportLocalImpl<Gu::ConvexHullNoScaleV> convexMap(static_cast<ConvexHullNoScaleV&>(convexHull), convexTransform, convexHull.vertex2Shape, convexHull.shape2Vertex, idtScaleConvex);
 		return Gu::PCMContactConvexHeightfield(polyData, &convexMap, minMargin, hullAABB, shapHeightField, transform0, transform1, params.mContactDistance, contactBuffer, convexScaling, 
 			idtScaleConvex, multiManifold, renderOutput);
 	}
 	else
 	{
-		SupportLocalShrunkImpl<Gu::ConvexHullV, Gu::ShrunkConvexHullV> convexMap(convexHull, convexTransform, convexHull.vertex2Shape, convexHull.shape2Vertex, idtScaleConvex);
+		SupportLocalImpl<Gu::ConvexHullV> convexMap(convexHull, convexTransform, convexHull.vertex2Shape, convexHull.shape2Vertex, idtScaleConvex);
 		return Gu::PCMContactConvexHeightfield(polyData, &convexMap, minMargin, hullAABB, shapHeightField, transform0, transform1, params.mContactDistance, contactBuffer, convexScaling, 
 			idtScaleConvex, multiManifold, renderOutput);
 	}
@@ -249,12 +247,9 @@ bool Gu::pcmContactBoxHeightField(GU_CONTACT_METHOD_ARGS)
 	const Vec3V p0 = V3LoadA(&transform0.p.x);
 
 	const Vec3V boxExtents = V3LoadU(shapeBox.halfExtents);
-	const FloatV boxMargin = Gu::CalculatePCMBoxMargin(boxExtents);
 
-	const FloatV epsilon = FLoad(GU_PCM_MESH_MANIFOLD_EPSILON);
-	const FloatV toleranceLength = FLoad(params.mToleranceLength);
-	const FloatV toleranceMargin = FMul(epsilon, toleranceLength);
-	const FloatV minMargin = FMin(boxMargin, toleranceMargin);
+	const PxReal toranceLength = params.mToleranceLength;
+	const FloatV minMargin = Gu::CalculatePCMBoxMargin(boxExtents, toranceLength, GU_PCM_MESH_MANIFOLD_EPSILON);
 
 	Gu::BoxV boxV(V3Zero(), boxExtents);
 
@@ -266,7 +261,7 @@ bool Gu::pcmContactBoxHeightField(GU_CONTACT_METHOD_ARGS)
 
 	Mat33V identity =  M33Identity();
 	//SupportLocalImpl<Gu::BoxV> boxMap(boxV, boxTransform, identity, identity);
-	SupportLocalShrunkImpl<Gu::BoxV, Gu::ShrunkBoxV> boxMap(boxV, boxTransform, identity, identity, true);
+	SupportLocalImpl<Gu::BoxV> boxMap(boxV, boxTransform, identity, identity, true);
 
 	return Gu::PCMContactConvexHeightfield(polyData, &boxMap, minMargin, hullAABB, shapHeightField, transform0, transform1, params.mContactDistance, contactBuffer, 
 		idtScaling, true, multiManifold, renderOutput);

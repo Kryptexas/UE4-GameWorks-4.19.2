@@ -52,78 +52,6 @@ namespace Gu
 		{
 		}
 
-		PX_SUPPORT_INLINE ConvexHullNoScaleV(const Gu::ConvexHullData* _hullData, const Ps::aos::Vec3VArg _center, const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg scaleRot)												
-		{
-			PX_UNUSED(scaleRot);
-			PX_UNUSED(_center);
-
-			using namespace Ps::aos;
-
-			hullData = _hullData;	
-			const PxVec3* PX_RESTRICT tempVerts = _hullData->getHullVertices();
-			verts = tempVerts;
-			numVerts = _hullData->mNbHullVertices;
-			CalculateConvexMargin( _hullData, margin, minMargin, sweepMargin, scale);
-			data = _hullData->mBigConvexRawData;
-
-			PxU8* startAddress = reinterpret_cast<PxU8*>(_hullData->mPolygons);
-			PxI32 totalPrefetchBytes = PxI32((_hullData->getFacesByVertices8() + _hullData->mNbHullVertices * 3) - startAddress);
-
-			//Prefetch core data
-			
-			while(totalPrefetchBytes > 0)
-			{
-				totalPrefetchBytes -= 128;
-				Ps::prefetchLine(startAddress);
-				startAddress += 128;
-			}
-
-			if(data)
-			{
-				PxI32 totalSize = PxI32(data->mNbSamples + data->mNbVerts * sizeof(Gu::Valency) + data->mNbAdjVerts);
-				startAddress = data->mSamples;
-				while(totalSize > 0)
-				{
-					totalSize -= 128;
-					Ps::prefetchLine(startAddress);
-					startAddress += 128;
-				}
-			}
-			
-		}
-
-
-	/*	PX_SUPPORT_INLINE ConvexHullNoScaleV(const Gu::ConvexHullData* _hullData, const Ps::aos::Vec3VArg _center, const Ps::aos::FloatVArg _margin, const Ps::aos::FloatVArg _minMargin, const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg scaleRot)
-		{
-			PX_UNUSED(scaleRot);
-			PX_UNUSED(_center);
-			PX_UNUSED(scale);
-
-			using namespace Ps::aos;
-
-			hullData = _hullData;
-			margin = _margin;
-			minMargin = _minMargin;
-	
-			const PxVec3* tempVerts = _hullData->getHullVertices();
-			const PxU8* PX_RESTRICT polyInds = _hullData->getFacesByVertices8();
-			const HullPolygonData* PX_RESTRICT polygons = _hullData->mPolygons;
-			verts = tempVerts;
-			numVerts = _hullData->mNbHullVertices;
-
-			Ps::prefetchLine(tempVerts);
-			Ps::prefetchLine(tempVerts,128);
-			Ps::prefetchLine(tempVerts,256);
-
-			Ps::prefetchLine(polyInds);
-			Ps::prefetchLine(polyInds,128);
-
-			Ps::prefetchLine(polygons);
-			Ps::prefetchLine(polygons, 128);
-			Ps::prefetchLine(polygons, 256);
-		}*/
-
-
 		PX_FORCE_INLINE Ps::aos::Vec3V supportPoint(const PxI32 index, Ps::aos::FloatV* /*marginDif*/)const
 		{
 			using namespace Ps::aos;
@@ -131,7 +59,7 @@ namespace Gu
 		}
 
 
-		// PT: TODO: is there a difference between 'originalVerts' and the 'verts' class member? Also why is this a member function at all?
+		//This funcation is just to load the PxVec3 to Vec3V. However, for GuVecConvexHul.h, this is used to transform all the verts from vertex space to shape space
 		PX_SUPPORT_INLINE void populateVerts(const PxU8* inds, PxU32 numInds, const PxVec3* originalVerts, Ps::aos::Vec3V* verts_)const
 		{
 			using namespace Ps::aos;
@@ -163,7 +91,6 @@ namespace Gu
 			using namespace Ps::aos;
 		
 			//transform dir into the shape space
-//			const Vec3V _dir = aTob.rotateInv(dir);//relTra.rotateInv(dir);
 			const Vec3V _dir = aTobT.rotate(dir);//relTra.rotateInv(dir);
 			const Vec3V maxPoint = supportLocal(_dir);
 			//translate maxPoint from shape space of a back to the b space
@@ -189,7 +116,6 @@ namespace Gu
 			using namespace Ps::aos;
 
 			//transform dir from b space to the shape space of a space
-//			const Vec3V _dir = aTob.rotateInv(dir);//relTra.rotateInv(dir);//M33MulV3(skewInvRot, dir);
 			const Vec3V _dir = aTobT.rotate(dir);//relTra.rotateInv(dir);//M33MulV3(skewInvRot, dir);
 			const Vec3V p = supportLocal(_dir, index, marginDif);
 			//transfrom from a to b space
