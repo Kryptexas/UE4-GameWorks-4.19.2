@@ -369,12 +369,16 @@ bool FFreeTypeAdvanceCache::FindOrCache(FT_Face InFace, const uint32 InGlyphInde
 		}
 	}
 
-	FreeTypeUtils::ApplySizeAndScale(InFace, InFontSize, InFontScale);
+	FreeTypeUtils::ApplySizeAndScale(InFace, InFontSize, 1.0f);
 
 	// No cached data, go ahead and add an entry for it...
 	FT_Error Error = FT_Get_Advance(InFace, InGlyphIndex, InLoadFlags, &OutCachedAdvance);
 	if (Error == 0)
 	{
+		// We apply our own scaling as FreeType doesn't always produce the correct results for all fonts when applying the scale via the transform matrix
+		const FT_Long FixedFontScale = FreeTypeUtils::ConvertPixelTo16Dot16<FT_Long>(InFontScale);
+		OutCachedAdvance = FT_MulFix(OutCachedAdvance, FixedFontScale);
+
 		CachedAdvanceMap.Add(CachedAdvanceKey, OutCachedAdvance);
 		return true;
 	}

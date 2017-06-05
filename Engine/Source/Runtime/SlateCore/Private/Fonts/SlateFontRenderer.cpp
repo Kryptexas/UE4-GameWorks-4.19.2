@@ -199,7 +199,7 @@ FFreeTypeFaceGlyphData FSlateFontRenderer::GetFontFaceForCharacter(const FFontDa
 	}
 
 	// If the requested glyph doesn't exist, use the localization fallback font
-	if (Char != 0 && ReturnVal.GlyphIndex == 0)
+	if (!ReturnVal.FaceAndMemory.IsValid() || (Char != 0 && ReturnVal.GlyphIndex == 0))
 	{
 		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LocalizedFallback;
 
@@ -221,7 +221,7 @@ FFreeTypeFaceGlyphData FSlateFontRenderer::GetFontFaceForCharacter(const FFontDa
 	}
 
 	// If the requested glyph doesn't exist, use the last resort fallback font
-	if (Char != 0 && ReturnVal.GlyphIndex == 0)
+	if (!ReturnVal.FaceAndMemory.IsValid() || (Char != 0 && ReturnVal.GlyphIndex == 0))
 	{
 		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LastResortFallback;
 
