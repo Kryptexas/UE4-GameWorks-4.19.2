@@ -1237,7 +1237,7 @@ void UBlendSpaceBase::UpdatePreviewBasePose()
 	{
 		for (const FBlendSample& BlendSample : SampleData)
 		{
-			if (BlendSample.Animation->RefPoseSeq)
+			if (BlendSample.Animation && BlendSample.Animation->RefPoseSeq)
 			{
 				PreviewBasePose = BlendSample.Animation->RefPoseSeq;
 				break;

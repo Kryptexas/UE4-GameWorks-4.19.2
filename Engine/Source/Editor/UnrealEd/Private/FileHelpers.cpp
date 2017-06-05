@@ -1107,7 +1107,7 @@ void FEditorFileUtils::Import(const FString& InFilename)
 
 	if (SceneFactory)
 	{
-		FString Path = "";
+		FString Path = "/Game";
 
 		//Ask the user for the root path where they want to any content to be placed
 		if(SceneFactory->ImportsAssets())

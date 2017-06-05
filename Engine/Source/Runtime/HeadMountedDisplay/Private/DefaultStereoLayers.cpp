@@ -204,8 +204,11 @@ void FDefaultStereoLayers::PostRenderView_RenderThread(FRHICommandListImmediate&
 	{
 		return;
 	}
-	const FMatrix& ProjectionMatrix = InView.ViewMatrices.GetProjectionMatrix();
-	const FMatrix& ViewProjectionMatrix = InView.ViewMatrices.GetViewProjectionMatrix();
+
+	FViewMatrices ModifiedViewMatrices = InView.ViewMatrices;
+	ModifiedViewMatrices.HackRemoveTemporalAAProjectionJitter();
+	const FMatrix& ProjectionMatrix = ModifiedViewMatrices.GetProjectionMatrix();
+	const FMatrix& ViewProjectionMatrix = ModifiedViewMatrices.GetViewProjectionMatrix();
 
 	// Calculate a view matrix that only adjusts for eye position, ignoring head position, orientation and world position.
 	FVector EyeShift = FVector(0, (InView.StereoPass == EStereoscopicPass::eSSP_LEFT_EYE ? .5 : -.5) * IPD * InView.WorldToMetersScale, 0);	

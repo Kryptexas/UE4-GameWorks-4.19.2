@@ -23,6 +23,11 @@
 	".*OnlineSubsystemPS4.*warning:.*\\[-Wdeprecated-declarations\\]",
 	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]",
 	
+	# Missing Steam DLLs/Dylibs when building samples
+	"STEAM: Steam API disabled!",
+	"LogMac:Warning: dlopen failed:.*libsteam_api.dylib.*: image not found",
+	"LogOnline:Warning: STEAM:.*libraries not present.*failed to load!",
+	
 	# Some doxygen output can confuse the post-processor, because it lists a symbol containing "Warning::"
 	"doxygen>.*Warning::.*",
 	
@@ -173,7 +178,7 @@ unshift @::gMatchers, (
     },
     {
         id =>               "genericWarning",
-        pattern =>          q{WARNING:|[Ww]arning:(?!:)},
+        pattern =>          q{WARNING:|[Ww]arning:},
         action =>           q{incValue("warnings"); diagnostic("", "warning", 0)},
     },
 );

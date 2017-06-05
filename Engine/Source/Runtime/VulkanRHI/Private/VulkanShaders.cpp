@@ -278,7 +278,7 @@ inline void FVulkanDescriptorSetWriter::SetupDescriptorWrites(const FNEWVulkanSh
 	}
 }
 
-inline void FVulkanLayout::AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader)
+void FVulkanLayout::AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader)
 {
 	//#todo-rco: Mobile assumption!
 	int32 DescriptorSetIndex = (int32)DescSet;

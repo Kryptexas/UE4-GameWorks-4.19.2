@@ -713,7 +713,42 @@ public:
 	}
 
 	template <bool IsCompute = false>
-	void SetPipelineState(FD3D12PipelineState* PipelineState);
+	D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO)
+	{
+		// Save the PSO
+		if (PSO)
+		{
+			if (IsCompute)
+			{
+				PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
+				check(!PipelineState.Compute.bNeedRebuildPSO);
+			}
+			else
+			{
+				PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
+				check(!PipelineState.Graphics.bNeedRebuildPSO);
+			}
+		}
+
+		// See if we need to set our PSO:
+		// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
+		// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
+		bool bNeedSetPSO = PipelineState.Common.bNeedSetPSO;
+		auto& CurrentPSO = PipelineState.Common.CurrentPipelineStateObject;
+		auto& RequiredPSO = IsCompute ? PipelineState.Compute.CurrentPipelineStateObject : PipelineState.Graphics.CurrentPipelineStateObject;
+		if (CurrentPSO != RequiredPSO)
+		{
+			CurrentPSO = RequiredPSO;
+			bNeedSetPSO = true;
+		}
+
+		// Set the PSO on the command list if necessary.
+		if (bNeedSetPSO)
+		{
+			CmdContext->CommandListHandle->SetPipelineState(CurrentPSO);
+			PipelineState.Common.bNeedSetPSO = false;
+		}
+	}
 
 	void SetComputeShader(FD3D12ComputeShader* Shader);
 

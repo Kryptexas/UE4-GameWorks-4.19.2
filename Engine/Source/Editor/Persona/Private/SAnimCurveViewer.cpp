@@ -538,8 +538,6 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 
 	ContainerName = USkeleton::AnimCurveMappingName;
 
-	CachedPreviewInstance = nullptr;
-
 	PreviewScenePtr = InPreviewScene;
 	EditableSkeletonPtr = InEditableSkeleton;
 
@@ -555,8 +553,6 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 
 	// @todo fix this to be filtered
 	CurrentCurveFlag = ACEF_DriveMorphTarget | ACEF_DriveMaterial | ACEF_DriveAttribute;
-
-	RefreshCachePreviewInstance();
 	 
 	TSharedPtr<SHorizontalBox> AnimTypeBoxContainer = SNew(SHorizontalBox);
 
@@ -635,11 +631,6 @@ SAnimCurveViewer::~SAnimCurveViewer()
 {
 	if (PreviewScenePtr.IsValid() )
 	{
-		if (CachedPreviewInstance && OnAddAnimationCurveDelegate.IsBound())
-		{
-			CachedPreviewInstance->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-		}
-
 		PreviewScenePtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PreviewScenePtr.Pin()->UnregisterOnAnimChanged(this);
 	}
@@ -705,24 +696,8 @@ void SAnimCurveViewer::BindCommands()
 		FCanExecuteAction());
 }
 
-void SAnimCurveViewer::RefreshCachePreviewInstance()
-{
-	if (CachedPreviewInstance && OnAddAnimationCurveDelegate.IsBound())
-	{
-		CachedPreviewInstance->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-	CachedPreviewInstance = Cast<UAnimInstance>(PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance());
-
-	if (CachedPreviewInstance)
-	{
-		OnAddAnimationCurveDelegate.BindRaw(this, &SAnimCurveViewer::ApplyCustomCurveOverride);
-		CachedPreviewInstance->AddDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-}
-
 void SAnimCurveViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
-	RefreshCachePreviewInstance();
 	RefreshCurveList();
 }
 
@@ -836,6 +811,11 @@ void SAnimCurveViewer::CreateNewNameEntry(const FText& CommittedText, ETextCommi
 const FSmartNameMapping* SAnimCurveViewer::GetAnimCurveMapping()
 {
 	return EditableSkeletonPtr.Pin()->GetSkeleton().GetSmartNameContainer(ContainerName);
+}
+
+UAnimInstance* SAnimCurveViewer::GetAnimInstance() const
+{
+	return PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance();
 }
 
 int32 FindIndexOfAnimCurveInfo(TArray<TSharedPtr<FDisplayedAnimCurveInfo>>& AnimCurveInfos, const FName& CurveName)
@@ -999,7 +979,7 @@ void SAnimCurveViewer::AddAnimCurveOverride( FName& Name, float Weight)
 	float& Value = OverrideCurves.FindOrAdd(Name);
 	Value = Weight;
 
-	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(CachedPreviewInstance);
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
 	if (SingleNodeInstance)
 	{
 		SingleNodeInstance->SetPreviewCurveOverride(Name, Value, false);
@@ -1010,7 +990,7 @@ void SAnimCurveViewer::RemoveAnimCurveOverride(FName& Name)
 {
 	OverrideCurves.Remove(Name);
 
-	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(CachedPreviewInstance);
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
 	if (SingleNodeInstance)
 	{
 		SingleNodeInstance->SetPreviewCurveOverride(Name, 0.f, true);

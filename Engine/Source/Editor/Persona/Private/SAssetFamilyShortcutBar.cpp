@@ -52,6 +52,7 @@ public:
 		AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SAssetShortcut::HandleFilesLoaded);
 		AssetRegistryModule.Get().OnAssetAdded().AddSP(this, &SAssetShortcut::HandleAssetAdded);
 		AssetRegistryModule.Get().OnAssetRemoved().AddSP(this, &SAssetShortcut::HandleAssetRemoved);
+		AssetRegistryModule.Get().OnAssetRenamed().AddSP(this, &SAssetShortcut::HandleAssetRenamed);
 
 		FAssetEditorManager::Get().OnAssetEditorRequestedOpen().AddSP(this, &SAssetShortcut::HandleAssetOpened);
 		AssetFamily->GetOnAssetOpened().AddSP(this, &SAssetShortcut::HandleAssetOpened);
@@ -178,6 +179,7 @@ public:
 			AssetRegistryModule.Get().OnFilesLoaded().RemoveAll(this);
 			AssetRegistryModule.Get().OnAssetAdded().RemoveAll(this);
 			AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+			AssetRegistryModule.Get().OnAssetRenamed().RemoveAll(this);
 		}
 
 		AssetFamily->GetOnAssetOpened().RemoveAll(this);
@@ -187,9 +189,12 @@ public:
 
 	void HandleOpenAssetShortcut(ECheckBoxState InState)
 	{
-		TArray<UObject*> Assets;
-		Assets.Add(AssetData.GetAsset());
-		FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		if(AssetData.IsValid())
+		{
+			TArray<UObject*> Assets;
+			Assets.Add(AssetData.GetAsset());
+			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		}
 	}
 
 	FText GetAssetText() const
@@ -315,6 +320,19 @@ public:
 		}
 	}
 
+	void HandleAssetRenamed(const FAssetData& InAssetData, const FString& InOldObjectPath)
+	{
+		if (AssetFamily->IsAssetCompatible(InAssetData))
+		{
+			if(InOldObjectPath == AssetData.ObjectPath.ToString())
+			{
+				AssetData = InAssetData;
+
+				RegenerateThumbnail();
+			}
+		}
+	}
+
 	void HandleAssetAdded(const FAssetData& InAssetData)
 	{
 		if (AssetFamily->IsAssetCompatible(InAssetData))
@@ -376,7 +394,14 @@ public:
 		{
 			AssetData = NewAssetData;
 
-			// regenerate thumbnail
+			RegenerateThumbnail();
+		}
+	}
+
+	void RegenerateThumbnail()
+	{
+		if(AssetData.IsValid())
+		{
 			AssetThumbnail = MakeShareable(new FAssetThumbnail(AssetData, AssetShortcutConstants::ThumbnailSize, AssetShortcutConstants::ThumbnailSize, ThumbnailPoolPtr.Pin()));
 			AssetThumbnailSmall = MakeShareable(new FAssetThumbnail(AssetData, AssetShortcutConstants::ThumbnailSizeSmall, AssetShortcutConstants::ThumbnailSizeSmall, ThumbnailPoolPtr.Pin()));
 

@@ -736,16 +736,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (DevelopmentOnly, UnsafeDuringActorConstruction = "true"))
 	void SetUpdateAnimationInEditor(const bool NewUpdateState);
 
+#if WITH_EDITOR
 	/**
 	 * return true if currently updating in editor is true
 	 * this is non BP because this is only used for slave component to detect master component ticking state
 	 */
-#if WITH_EDITORONLY_DATA
 	bool GetUpdateAnimationInEditor() const 
 	{		
 		return bUpdateAnimationInEditor;	
 	}
-#endif // WITH_EDITORONLY_DATA
+#endif 
 
 	/** We detach the Component once we are done playing it.
 	 *

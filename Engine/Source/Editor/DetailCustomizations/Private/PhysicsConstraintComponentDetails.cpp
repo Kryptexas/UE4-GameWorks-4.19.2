@@ -58,7 +58,7 @@ namespace ConstraintDetails
 
 			return false;
 		})));
-		
+
 		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -81,13 +81,12 @@ namespace ConstraintDetails
 			// and will cause GetValue to fail. Skip checking the values in that case.
 			if (Prop1->GetNumPerObjectValues())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Running Get"));
 				float Val1, Val2, Val3;
 
 				ensure(Prop1->GetValue(Val1) != FPropertyAccess::Fail);
 				ensure(Prop2->GetValue(Val2) != FPropertyAccess::Fail);
 				ensure(Prop3->GetValue(Val3) != FPropertyAccess::Fail);
-			
+
 				if (Val1 == Val2 && Val2 == Val3)
 				{
 					return TOptional<float>(Val1);
@@ -177,7 +176,7 @@ void FPhysicsConstraintComponentDetails::AddConstraintBehaviorProperties(IDetail
 	ConstraintCat.AddProperty(ProfilePropertiesProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintProfileProperties, bDisableCollision)));
 	ConstraintCat.AddProperty(ProfilePropertiesProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintProfileProperties, bEnableProjection)));
 
-	
+
 	//Add the rest
 	uint32 NumProfileProperties = 0;
 	ProfilePropertiesProperty->GetNumChildren(NumProfileProperties);
@@ -284,7 +283,7 @@ void FPhysicsConstraintComponentDetails::AddLinearLimits(IDetailLayoutBuilder& D
 					]
 			];
 	}
-	
+
 	auto IsLinearMotionLimited = [LinearXMotionProperty, LinearYMotionProperty, LinearZMotionProperty]()
 	{
 		uint8 XMotion, YMotion, ZMotion;
@@ -464,9 +463,9 @@ void FPhysicsConstraintComponentDetails::AddLinearDrive(IDetailLayoutBuilder& De
 	TSharedPtr<IPropertyHandle> LinearDriveProperty = ProfilePropertiesProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintProfileProperties, LinearDrive));
 
 	IDetailGroup& PositionGroup = LinearMotorCat.AddGroup("Linear Position Drive", LOCTEXT("LinearPositionDrive", "Linear Position Drive"), false, true);
-	
+
 	TSharedRef<IPropertyHandle> LinearPositionTargetProperty = LinearDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, PositionTarget)).ToSharedRef();
-	
+
 	TSharedPtr<IPropertyHandle> XDriveProperty = LinearDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, XDrive));
 	TSharedPtr<IPropertyHandle> YDriveProperty = LinearDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, YDrive));
 	TSharedPtr<IPropertyHandle> ZDriveProperty = LinearDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, ZDrive));
@@ -522,7 +521,7 @@ void FPhysicsConstraintComponentDetails::AddLinearDrive(IDetailLayoutBuilder& De
 	[
 		StiffnessWidget
 	];
-	
+
 	// VELOCITY
 
 	IDetailGroup& VelocityGroup = LinearMotorCat.AddGroup("Linear Velocity Drive", LOCTEXT("LinearVelocityDrive", "Linear Velocity Drive"), false, true);
@@ -615,7 +614,7 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 	TSharedPtr<IPropertyHandle> SwingVelocityDriveProperty = SwingDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, bEnableVelocityDrive));
 	TSharedPtr<IPropertyHandle> TwistPositionDriveProperty = TwistDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, bEnablePositionDrive));
 	TSharedPtr<IPropertyHandle> TwistVelocityDriveProperty = TwistDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, bEnableVelocityDrive));
-		
+
 	auto IsAngularMode = [AngularDriveModeProperty](EAngularDriveMode::Type CheckMode)
 	{
 		uint8 DriveMode;
@@ -667,7 +666,7 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 	{
 		return VelocityEnabled() || OrientationEnabled();
 	};
-	
+
 	AngularMotorCat.AddProperty(AngularDriveModeProperty);
 
 	IDetailGroup& OrientationGroup = AngularMotorCat.AddGroup("Orientation Drive", LOCTEXT("OrientrationDrive", "Orientation Drive"), false, true);
@@ -822,7 +821,7 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 	[
 		DampingSlerpWidget
 	];
-	
+
 	// max force limit
 	TSharedPtr<IPropertyHandle> MaxForcePropertySlerp = SlerpDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce));
 	TSharedRef<SWidget> MaxForceWidget = ConstraintDetails::CreateTriFloatWidget(MaxForcePropertySlerp, TwistDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce)), SwingDriveProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce)), LOCTEXT("EditMaxForce", "Edit Max Force"));
@@ -838,7 +837,7 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 		MaxForceWidget
 	];
 
-	
+
 }
 
 void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
@@ -873,13 +872,13 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 	DetailBuilder.EditCategory("Constraint");	//Create this category first so it's at the top
 	DetailBuilder.EditCategory("Constraint Behavior");	//Create this category first so it's at the top
-	
+
 	TSharedPtr<IPropertyHandle> ProfileInstance = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, ProfileInstance));
 	AddLinearLimits(DetailBuilder, ConstraintInstance, ProfileInstance);
 	AddAngularLimits(DetailBuilder, ConstraintInstance, ProfileInstance);
 	AddLinearDrive(DetailBuilder, ConstraintInstance, ProfileInstance);
 	AddAngularDrive(DetailBuilder, ConstraintInstance, ProfileInstance);
-	
+
 	AddConstraintBehaviorProperties(DetailBuilder, ConstraintInstance, ProfileInstance);	//Now we've added all the complex UI, just dump the rest into Constraint category
 }
 
@@ -905,7 +904,7 @@ bool FPhysicsConstraintComponentDetails::IsPropertyEnabled( EPropertyType::Type 
 		case EPropertyType::AngularSwingLimit:		return ConstraintDetails::IsAngularPropertyEqual(AngularSwing1MotionProperty, ACM_Limited) || ConstraintDetails::IsAngularPropertyEqual(AngularSwing2MotionProperty, ACM_Limited);
 		case EPropertyType::AngularTwistLimit:		return ConstraintDetails::IsAngularPropertyEqual(AngularTwistMotionProperty, ACM_Limited);
 		case EPropertyType::AngularAnyLimit:		return ConstraintDetails::IsAngularPropertyEqual(AngularSwing1MotionProperty, ACM_Limited) || ConstraintDetails::IsAngularPropertyEqual(AngularSwing2MotionProperty, ACM_Limited) || ConstraintDetails::IsAngularPropertyEqual(AngularTwistMotionProperty, ACM_Limited);
-	}	
+	}
 
 	return bIsVisible;
 }

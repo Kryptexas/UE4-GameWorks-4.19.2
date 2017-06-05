@@ -766,6 +766,9 @@ public:
 	}
 
 private:
+	/** Resets the platform type shape to nullptr, to restore it to the OS default. */
+	void ResetHardwareCursorStates();
+
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
 	 */
@@ -923,8 +926,6 @@ private:
 	/** Whether or not this audio device is in audio-focus */
 	bool bHasAudioFocus;
 
-	bool bMouseEnter;
+	/** Is the mouse currently over the viewport client */
+	bool bIsMouseOverClient;
 };
-
-
-

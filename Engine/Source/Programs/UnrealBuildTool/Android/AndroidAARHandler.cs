@@ -137,7 +137,76 @@ namespace UnrealBuildTool
 
 			return null;
 		}
-		
+
+		private bool HasAnyVersionCharacters(string InValue)
+		{
+			for (int Index = 0; Index < InValue.Length; Index++)
+			{
+				char c = InValue[Index];
+				if (c == '.' || (c >= '0' && c <= '9'))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private bool HasOnlyVersionCharacters(string InValue)
+		{
+			for (int Index = 0; Index < InValue.Length; Index++)
+			{
+				char c = InValue[Index];
+				if (c != '.' && !(c >= '0' && c <= '9'))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// clean up the version (Maven version info here: https://docs.oracle.com/middleware/1212/core/MAVEN/maven_version.htm)
+		// only going to handle a few cases, not proper ranges (keeps the rightmost valid version which should be highest)
+		// will still return something but will include an error in log, but don't want to throw an exception
+		private string CleanupVersion(string Filename, string InVersion)
+		{
+			string WorkVersion = InVersion;
+
+			// if has commas, keep the rightmost part with actual numbers
+			if (WorkVersion.Contains(","))
+			{
+				string[] CommaParts = WorkVersion.Split(',');
+				WorkVersion = "";
+				for (int Index = CommaParts.Length - 1; Index >= 0; Index--)
+				{
+					if (HasAnyVersionCharacters(CommaParts[Index]))
+					{
+						WorkVersion = CommaParts[Index];
+						break;
+					}
+				}
+			}
+
+			// if not left with a possibly valid number, stop
+			if (!HasAnyVersionCharacters(WorkVersion))
+			{
+				Log.TraceError("AAR Dependency file {0} version unknown! {1}", Filename, InVersion);
+				return InVersion;
+			}
+
+			// just remove any parens or brackets left
+			WorkVersion = WorkVersion.Replace("(", "").Replace(")", "").Replace("[", "").Replace("]", "");
+
+			// just return it if now looks value
+			if (HasOnlyVersionCharacters(WorkVersion))
+			{
+				return WorkVersion;
+			}
+
+			// give an error, not likely going to work, though
+			Log.TraceError("AAR Dependency file {0} version unknown! {1}", Filename, InVersion);
+			return InVersion;
+		}
+
 		/// <summary>
 		/// Adds a new required JAR file and resolves dependencies
 		/// </summary>
@@ -237,7 +306,7 @@ namespace UnrealBuildTool
 			{
 				string DepGroupId = GetElementValue(DependNode, GroupIdName, "");
 				string DepArtifactId = GetElementValue(DependNode, ArtifactIdName, "");
-				string DepVersion = GetElementValue(DependNode, VersionName, "");
+				string DepVersion = CleanupVersion(DependencyFilename + "." + DepGroupId + "." + DepArtifactId, GetElementValue(DependNode, VersionName, ""));
 				string DepScope = GetElementValue(DependNode, ScopeName, "compile");
 				string DepType = GetElementValue(DependNode, TypeName, "jar");
 
@@ -360,7 +429,7 @@ namespace UnrealBuildTool
 			{
 				string DepGroupId = GetElementValue(DependNode, GroupIdName, "");
 				string DepArtifactId = GetElementValue(DependNode, ArtifactIdName, "");
-				string DepVersion = GetElementValue(DependNode, VersionName, "");
+				string DepVersion = CleanupVersion(DependencyFilename + "." + DepGroupId + "." + DepArtifactId, GetElementValue(DependNode, VersionName, ""));
 				string DepScope = GetElementValue(DependNode, ScopeName, "compile");
 				string DepType = GetElementValue(DependNode, TypeName, "jar");
 

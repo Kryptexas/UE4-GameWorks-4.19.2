@@ -524,6 +524,13 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 		bAmdWorkaround = true;
 #endif
 	}
+#if PLATFORM_LINUX
+	else if (VendorName.Contains(TEXT("X.Org")))
+	{
+		GRHIVendorId = 0x1002;
+		bAmdWorkaround = true;
+	}
+#endif
 	else if (VendorName.Contains(TEXT("Intel ")) || VendorName == TEXT("Intel"))
 	{
 		GRHIVendorId = 0x8086;

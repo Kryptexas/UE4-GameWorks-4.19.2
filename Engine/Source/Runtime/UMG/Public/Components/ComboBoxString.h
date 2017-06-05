@@ -136,6 +136,7 @@ public:
 	//~ End UVisual Interface
 
 	//~ Begin UObject Interface
+	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	//~ End UObject Interface
 

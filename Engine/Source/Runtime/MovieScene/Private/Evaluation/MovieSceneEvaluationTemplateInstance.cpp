@@ -12,6 +12,38 @@ DECLARE_CYCLE_STAT(TEXT("Gather Entries For Frame"), MovieSceneEval_GatherEntrie
 DECLARE_CYCLE_STAT(TEXT("Call Setup() and TearDown()"), MovieSceneEval_CallSetupTearDown, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Evaluate Group"), MovieSceneEval_EvaluateGroup, STATGROUP_MovieSceneEval);
 
+/** Scoped helper class that facilitates the delayed restoration of preanimated state for specific evaluation keys */
+struct FDelayedPreAnimatedStateRestore
+{
+	FDelayedPreAnimatedStateRestore(IMovieScenePlayer& InPlayer)
+		: Player(InPlayer)
+	{}
+
+	~FDelayedPreAnimatedStateRestore()
+	{
+		RestoreNow();
+	}
+
+	void Add(FMovieSceneEvaluationKey Key)
+	{
+		KeysToRestore.Add(Key);
+	}
+
+	void RestoreNow()
+	{
+		for (FMovieSceneEvaluationKey Key : KeysToRestore)
+		{
+			Player.PreAnimatedState.RestorePreAnimatedState(Player, Key);
+		}
+		KeysToRestore.Reset();
+	}
+
+private:
+	/** The movie scene player to restore with */
+	IMovieScenePlayer& Player;
+	/** The array of keys to restore */
+	TArray<FMovieSceneEvaluationKey> KeysToRestore;
+};
 
 FMovieSceneEvaluationTemplateInstance::FMovieSceneEvaluationTemplateInstance(UMovieSceneSequence& InSequence, const FMovieSceneEvaluationTemplate& InTemplate)
 	: Sequence(&InSequence)
@@ -208,9 +240,12 @@ void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Cont
 		}
 	}
 
+	// Cause stale tracks to not restore until after evaluation. This fixes issues when tracks that are set to 'Restore State' are regenerated, causing the state to be restored then re-animated by the new track
+	FDelayedPreAnimatedStateRestore DelayedRestore(Player);
+
 	// Run the post root evaluate steps which invoke tear downs for anything no longer evaluated.
 	// Do this now to ensure they don't undo any of the current frame's execution tokens 
-	CallSetupTearDown(Player);
+	CallSetupTearDown(Player, &DelayedRestore);
 
 	// Ensure any null objects are not cached
 	Player.State.InvalidateExpiredObjects();
@@ -363,7 +398,7 @@ void FMovieSceneRootEvaluationTemplateInstance::EvaluateGroup(const FMovieSceneE
 	}
 }
 
-void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePlayer& Player)
+void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePlayer& Player, FDelayedPreAnimatedStateRestore* DelayedRestore)
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_CallSetupTearDown);
 
@@ -385,6 +420,7 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 		}
 
 		const FMovieSceneEvaluationTrack* Track = Instance->Template->FindTrack(Key.TrackIdentifier);
+		const bool bStaleTrack = Instance->Template->IsTrackStale(Key.TrackIdentifier);
 
 		// Track data key may be required by both tracks and sections
 		PersistentDataProxy.SetTrackKey(Key.AsTrack());
@@ -395,8 +431,7 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 			{
 				Track->OnEndEvaluation(PersistentDataProxy, Player);
 			}
-			
-			Player.PreAnimatedState.RestorePreAnimatedState(Player, Key);
+
 			PersistentDataProxy.ResetTrackData();
 		}
 		else
@@ -406,9 +441,17 @@ void FMovieSceneRootEvaluationTemplateInstance::CallSetupTearDown(IMovieScenePla
 			{
 				Track->GetChildTemplate(Key.SectionIdentifier).OnEndEvaluation(PersistentDataProxy, Player);
 			}
-
-			Player.PreAnimatedState.RestorePreAnimatedState(Player, Key);
+			
 			PersistentDataProxy.ResetSectionData();
+		}
+
+		if (bStaleTrack && DelayedRestore)
+		{
+			DelayedRestore->Add(Key);
+		}
+		else
+		{
+			Player.PreAnimatedState.RestorePreAnimatedState(Player, Key);
 		}
 	}
 

@@ -138,7 +138,11 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 
 					for(PxShape* PShape : PShapes)	//The reason we iterate is we may have multiple scenes and thus multiple shapes, but they are all pointing to the same geometry
 					{
-						SetShapeToNewGeom<ShapeElemType>(PShape);
+						//Update shape with the new body setup. Make sure to only update shapes owned by this body instance
+						if(BodyInstance.IsShapeBoundToBody(PShape))
+						{
+							SetShapeToNewGeom<ShapeElemType>(PShape);
+						}
 					}
 				});
 #endif

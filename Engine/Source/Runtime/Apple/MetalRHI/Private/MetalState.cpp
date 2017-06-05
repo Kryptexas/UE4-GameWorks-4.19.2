@@ -273,7 +273,7 @@ FCriticalSection FMetalBlendState::Mutex;
 
 FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 {
-	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
+	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets; ++RenderTargetIndex)
 	{
 		// which initializer to use
 		const FBlendStateInitializerRHI::FRenderTarget& Init =
@@ -329,7 +329,7 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 
 FMetalBlendState::~FMetalBlendState()
 {
-	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
+	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets; ++RenderTargetIndex)
 	{
 		UNTRACK_OBJECT(STAT_MetalRenderPipelineColorAttachmentDescriptor, RenderTargetStates[RenderTargetIndex].BlendState);
 		[RenderTargetStates[RenderTargetIndex].BlendState release];

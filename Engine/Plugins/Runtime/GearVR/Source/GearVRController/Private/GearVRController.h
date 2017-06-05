@@ -6,9 +6,9 @@
 #include "IMotionController.h"
 #include "HeadMountedDisplay.h"
 #include "../../GearVR/Private/GearVR.h"
-#include "VrApi_Input.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
+#include "VrApi_Input.h"
 
 /**
  * Unreal Engine support for Oculus motion controller devices

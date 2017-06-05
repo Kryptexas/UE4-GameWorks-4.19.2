@@ -137,7 +137,7 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
-	, bMouseEnter(false)
+	, bIsMouseOverClient(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -217,14 +217,13 @@ UGameViewportClient::~UGameViewportClient()
 		delete StatHitchesData;
 		StatHitchesData = NULL;
 	}
+
 	if (StatUnitData)
 	{
 		delete StatUnitData;
 		StatUnitData = NULL;
 	}
-
 }
-
 
 void UGameViewportClient::PostInitProperties()
 {
@@ -247,10 +246,10 @@ void UGameViewportClient::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-
 void UGameViewportClient::DetachViewportClient()
 {
 	ViewportConsole = NULL;
+	ResetHardwareCursorStates();
 	RemoveAllViewportWidgets();
 	RemoveFromRoot();
 }
@@ -614,7 +613,7 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 		}
 	}
 
-	bMouseEnter = true;
+	bIsMouseOverClient = true;
 }
 
 void UGameViewportClient::MouseLeave(FViewport* InViewport)
@@ -635,25 +634,29 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 
 #if WITH_EDITOR
 
-	bMouseEnter = true;
-
 	// NOTE: Only do this in editor builds where the editor is running.
 	// We don't care about bothering to clear them otherwise, and it may negatively impact
 	// things like drag/drop, since those would 'leave' the viewport.
 	if ( !FSlateApplication::Get().IsDragDropping() )
 	{
-		// clear all the overridden hardware cursors
-		TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
-		if ( ICursor* Cursor = PlatformCursor.Get() )
-		{
-			for ( auto& Entry : HardwareCursors )
-			{
-				Cursor->SetTypeShape(Entry.Key, nullptr);
-			}
-		}
+		bIsMouseOverClient = false;
+		ResetHardwareCursorStates();
 	}
 
 #endif
+}
+
+void UGameViewportClient::ResetHardwareCursorStates()
+{
+	// clear all the overridden hardware cursors
+	TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
+	if (ICursor* Cursor = PlatformCursor.Get())
+	{
+		for (auto& Entry : HardwareCursors)
+		{
+			Cursor->SetTypeShape(Entry.Key, nullptr);
+		}
+	}
 }
 
 bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
@@ -3270,9 +3273,8 @@ bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FNam
 
 	HardwareCursors.Add(CursorShape, HardwareCursor);
 
-	if ( bMouseEnter )
+	if ( bIsMouseOverClient )
 	{
-		// clear all the overridden hardware cursors
 		TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
 		if ( ICursor* Cursor = PlatformCursor.Get() )
 		{

@@ -62,6 +62,12 @@ void UPhysicsConstraintTemplate::Serialize(FArchive& Ar)
 }
 
 #if WITH_EDITOR
+void UPhysicsConstraintTemplate::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	DefaultInstance.ProfileInstance.SyncChangedConstraintProperties(PropertyChangedEvent);
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+
 void UPhysicsConstraintTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	//If anything changes, update the profile instance

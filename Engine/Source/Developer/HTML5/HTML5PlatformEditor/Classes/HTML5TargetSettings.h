@@ -44,7 +44,7 @@ public:
 	 * NOTE 1: to ensure this fits in memory space, build this for "Shipping"
 	 * NOTE 2: ASMJS will be going away in future UE4 releases.
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "asmjs Build (else build WASM)"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "asmjs Build (else build WASM [EXPERIMENTAL])"))
 	bool TargetAsmjs;
 
 	/**
@@ -57,7 +57,7 @@ public:
 	/**
 	 * Use IndexedDB storage
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage (WASM only - during shipping packaging)"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage (WASM only - during shipping packaging [EXPERIMENTAL])"))
 	bool EnableIndexedDB;
 
 	/**

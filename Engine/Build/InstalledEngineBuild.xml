@@ -382,7 +382,7 @@
 
 			<!-- Strip and Sign the rebuilt binaries -->
 			<Tag Files="#StrippedUAT" Filter="$(Win64StripFilter)" Except="$(Win64StripExceptions)" With="#UnstrippedUAT"/>
-			<Strip Files="#UnstrippedUAT" Platform="Win64"/>
+			<Strip Files="#UnstrippedUAT" Platform="Win64" If="'$(HostPlatform)' == 'Win64'"/>
 			<Do If="'$(SignExecutables)' == true">
 				<Tag Files="#StrippedUAT" Filter="$(WindowsSignFilter)" Except="$(SignExceptions)" With="#UnsignedUAT"/>
 				<Sign Files="#UnsignedUAT"/>

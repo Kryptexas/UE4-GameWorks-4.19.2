@@ -110,6 +110,13 @@ enum EMaterialCommonBasis
 	MCB_MAX,
 };
 
+//when setting deferred scene resources whether to throw warnings when we fall back to defaults.
+enum struct EDeferredParamStrictness
+{
+	ELoose, // no warnings
+	EStrict, // throw warnings
+};
+
 /** Defines the domain of a material. */
 UENUM()
 enum EMaterialDomain

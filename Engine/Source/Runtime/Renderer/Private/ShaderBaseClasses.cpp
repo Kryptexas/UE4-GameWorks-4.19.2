@@ -319,7 +319,7 @@ void FMaterialShader::SetParameters(
 		}
 	}
 
-	DeferredParameters.Set(RHICmdList, ShaderRHI, View, TextureMode);
+	DeferredParameters.Set(RHICmdList, ShaderRHI, View, Material.GetMaterialDomain(), TextureMode);
 
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{

@@ -47,6 +47,7 @@ struct FMovieSceneSegmentCompilerRules
 	}
 
 	/**
+	 * Implementation function to insert empty space between two other segments or at the start/end
 	 *
 	 * @param Range					The time range for the potential new segment
 	 * @param PreviousSegment		A pointer to the previous segment if there is one. Null if the empty space is before the first segment.

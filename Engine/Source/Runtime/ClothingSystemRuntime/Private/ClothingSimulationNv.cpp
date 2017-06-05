@@ -715,6 +715,7 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 			NvClothSupport::ClothParticleScopeLock ParticleLock(Actor.LodData[CurrentClothingLod].Cloth);
 
 			FTransform RootBoneTransform = InOverrideComponent ? InOverrideComponent->GetComponentSpaceTransforms()[Asset->ReferenceBoneIndex] : InOwnerComponent->GetComponentSpaceTransforms()[Asset->ReferenceBoneIndex];
+			RootBoneTransform.SetScale3D(FVector(1.0f));
 			RootBoneTransform *= OwnerTransform;
 
 			const uint32 NumParticles = Actor.LodData[CurrentClothingLod].Cloth->getNumParticles();
@@ -854,7 +855,7 @@ void FClothingSimulationNv::UpdateLod(int32 InPredictedLod, const FTransform& Co
 				continue;
 			}
 
-			bool bOldLodMapped = LodMap.IsValidIndex(CurrentMeshLodIndex);
+			bool bOldLodMapped = LodMap.IsValidIndex(CurrentMeshLodIndex) && LodMap[CurrentMeshLodIndex] != INDEX_NONE;
 
 			// Get the clothing LOD mapped from the mesh predicted LOD
 			const int32 PredictedClothingLod = LodMap[InPredictedLod];
@@ -1009,6 +1010,7 @@ void FClothingSimulationNv::DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComp
 
 
 		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
+		RootBoneTransform.SetScale3D(FVector(1.0f));
 
 		NvClothSupport::ClothParticleScopeLock ParticleLoc(CurrentCloth);
 

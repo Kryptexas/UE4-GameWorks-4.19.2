@@ -18,13 +18,7 @@
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 #if NV_AFTERMATH
-int32 GDX11NVAfterMathEnabled = 1;
-static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
-	TEXT("r.DX11NVAfterMathEnabled"),
-	GDX11NVAfterMathEnabled,
-	TEXT("Use NV Aftermath for GPU crash analysis"),
-	ECVF_ReadOnly
-);
+int32 GDX11NVAfterMathEnabled = 0;
 #endif
 
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
@@ -1116,6 +1110,12 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 
 #if NV_AFTERMATH
+			static IConsoleVariable* GPUCrashDebugging = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUCrashDebugging"));
+			if (GPUCrashDebugging)
+			{
+				GDX11NVAfterMathEnabled = GPUCrashDebugging->GetInt();
+			}
+
 			if (GDX11NVAfterMathEnabled)
 			{
 				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);

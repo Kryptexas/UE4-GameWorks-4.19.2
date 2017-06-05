@@ -154,7 +154,7 @@ public:
 			LightSceneInfo->Proxy->GetLightFunctionDisabledBrightness(),
 			bRenderingPreviewShadowIndicator ? 1.0f : 0.0f));
 
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View, MD_LightFunction);
 
 		auto DeferredLightParameter = GetUniformBufferParameter<FDeferredLightUniformStruct>();
 

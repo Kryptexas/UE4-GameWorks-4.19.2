@@ -17,6 +17,8 @@
 #include "PhysicsEngine/SphereElem.h"
 #include "ComponentReregisterContext.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "ClothingAssetFactory"
 DEFINE_LOG_CATEGORY(LogClothingAssetFactory)
@@ -383,6 +385,31 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh*
 	{
 		PhysMesh.Indices[IndexIndex] = IndexData.Indices[BaseIndex + IndexIndex] - BaseVertexIndex;
 		PhysMesh.Indices[IndexIndex] = IndexRemap[PhysMesh.Indices[IndexIndex]];
+	}
+
+	// Validate the generated triangles. If the source mesh has colinear triangles then clothing simulation will fail
+	const int32 NumTriangles = PhysMesh.Indices.Num() / 3;
+	for(int32 TriIndex = 0; TriIndex < NumTriangles; ++TriIndex)
+	{
+		FVector A = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 0]];
+		FVector B = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 1]];
+		FVector C = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 2]];
+
+		FVector TriNormal = (B - A) ^ (C - A);
+		if(TriNormal.SizeSquared() <= SMALL_NUMBER)
+		{
+			// This triangle is colinear
+			FText ErrorText = FText::Format(LOCTEXT("Colinear_Error", "Failed to generate clothing sim mesh due to degenerate triangle, found conincident vertices in triangle A={0} B={1} C={2}"), FText::FromString(A.ToString()), FText::FromString(B.ToString()), FText::FromString(C.ToString()));
+
+			FNotificationInfo Info(ErrorText);
+			Info.bFireAndForget = true;
+			Info.ExpireDuration = 5.0f;
+
+			FSlateNotificationManager::Get().AddNotification(Info);
+			UE_LOG(LogClothingAssetFactory, Warning, TEXT("%s"), *ErrorText.ToString());
+
+			return nullptr;
+		}
 	}
 
 	// Set asset guid

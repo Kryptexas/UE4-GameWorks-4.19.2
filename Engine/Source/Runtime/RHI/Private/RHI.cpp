@@ -217,6 +217,13 @@ static TAutoConsoleVariable<float> GGPUHitchThresholdCVar(
 	TEXT("Threshold for detecting hitches on the GPU (in milliseconds).")
 	);
 
+static TAutoConsoleVariable<int32> CVarGPUCrashDebugging(
+	TEXT("r.GPUCrashDebugging"),
+	0,
+	TEXT("Enable vendor specific GPU crash analysis tools"),
+	ECVF_ReadOnly
+	);
+
 namespace RHIConfig
 {
 	bool ShouldSaveScreenshotAfterProfilingGPU()

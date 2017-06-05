@@ -2,6 +2,9 @@
 //
 #include "CoreMinimal.h"
 #include "SteamVRPrivate.h"
+
+#if STEAMVR_SUPPORTED_PLATFORMS
+
 #include "SteamVRHMD.h"
 
 #include "RendererPrivate.h"
@@ -16,8 +19,6 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #endif
-
-#if STEAMVR_SUPPORTED_PLATFORMS
 
 static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
 
@@ -315,7 +316,6 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		LeftBounds.vMin = 0.0f;
 		LeftBounds.vMax = 1.0f;
 
-
 		vr::VRTextureBounds_t RightBounds;
 		RightBounds.uMin = 0.5f;
 		RightBounds.uMax = 1.0f;
@@ -339,6 +339,7 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		Plugin->VRCompositor->Submit(vr::Eye_Left, &texture, &LeftBounds);
 		Plugin->VRCompositor->Submit(vr::Eye_Right, &texture, &RightBounds);
 
+		ImmediateContext.GetCommandBufferManager()->SubmitUploadCmdBuffer(false);
 	}
 }
 

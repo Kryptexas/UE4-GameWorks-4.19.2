@@ -95,13 +95,14 @@ struct FSequenceBindingTree
 		ActiveSequence = InActiveSequence;
 		Hierarchy.Reset();
 
-		TopLevelNode = nullptr;
 		ActiveSequenceNode = nullptr;
 
 		// Create a node for the root sequence
 		FMovieSceneObjectBindingID RootSequenceID;
 		TSharedRef<FSequenceBindingNode> RootSequenceNode = MakeShared<FSequenceBindingNode>(FText(), RootSequenceID, FSlateIcon());
 		Hierarchy.Add(RootSequenceID, RootSequenceNode);
+
+		TopLevelNode = RootSequenceNode;
 
 		if (InSequence)
 		{
@@ -132,10 +133,6 @@ struct FSequenceBindingTree
 
 				TopLevelNode->Children.Add(ActiveSequenceNode.ToSharedRef());
 				TopLevelNode->Children.Add(RootSequenceNode);
-			}
-			else
-			{
-				TopLevelNode = RootSequenceNode;
 			}
 		}
 	}

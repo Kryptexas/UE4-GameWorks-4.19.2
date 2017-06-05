@@ -101,6 +101,10 @@ struct ENGINE_API FConstraintProfileProperties
 	/** Updates physx joint flag based on profile properties */
 	void UpdatePhysXConstraintFlags_AssumesLocked(physx::PxD6Joint* Joint) const;
 #endif
+
+#if WITH_EDITOR
+	void SyncChangedConstraintProperties(struct FPropertyChangedChainEvent& PropertyChangedEvent);
+#endif
 };
 
 

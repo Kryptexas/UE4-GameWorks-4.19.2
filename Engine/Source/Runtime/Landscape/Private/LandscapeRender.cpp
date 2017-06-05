@@ -2681,6 +2681,9 @@ public:
 			FName(TEXT("TDepthOnlyVS<false>")),
 			FName(TEXT("TDepthOnlyVS<true>")),
 			FName(TEXT("FDepthOnlyPS")),
+			// UE-44519, masked material with landscape layers requires FHitProxy shaders.
+			FName(TEXT("FHitProxyVS")),
+			FName(TEXT("FHitProxyPS")),
 		};
 		return AllowedShaderTypes;
 	}
@@ -2696,8 +2699,6 @@ public:
 			FName(TEXT("FConvertToUniformMeshGS")),
 			FName(TEXT("FVelocityVS")),
 			FName(TEXT("FVelocityPS")),
-			FName(TEXT("FHitProxyVS")),
-			FName(TEXT("FHitProxyPS")),
 			FName(TEXT("TLightMapDensityVSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityPSFNoLightMapPolicy")),
 			FName(TEXT("TLightMapDensityVSFDummyLightMapPolicy")),

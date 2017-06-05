@@ -107,7 +107,7 @@ FMetalStateCache::FMetalStateCache(bool const bInImmediate)
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
 	Scissor.x = Scissor.y = Scissor.width = Scissor.height;
 	
-	for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+	for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 	{
 		ColorStore[i] = MTLStoreActionUnknown;
 	}
@@ -217,7 +217,7 @@ void FMetalStateCache::Reset(void)
 	[RenderPassDesc release];
 	RenderPassDesc = nil;
 	
-	for (uint32 i = 0; i < MaxMetalRenderTargets; i++)
+	for (uint32 i = 0; i < MaxSimultaneousRenderTargets; i++)
 	{
 		ColorStore[i] = MTLStoreActionUnknown;
 	}
@@ -290,7 +290,7 @@ void FMetalStateCache::SetBlendState(FMetalBlendState* InBlendState)
 		BlendState = InBlendState;
 		if(InBlendState)
 		{
-			for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
+			for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets; ++RenderTargetIndex)
 			{
 				MTLRenderPipelineColorAttachmentDescriptor* Blend = BlendState->RenderTargetStates[RenderTargetIndex].BlendState;
 				MTLRenderPipelineColorAttachmentDescriptor* Dest = [PipelineDesc.PipelineDescriptor.colorAttachments objectAtIndexedSubscript:RenderTargetIndex];
@@ -410,16 +410,17 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		// Deferred store actions make life a bit easier...
 		static bool bSupportsDeferredStore = GetMetalDeviceContext().GetCommandQueue().SupportsFeature(EMetalFeaturesDeferredStoreActions);
-		
+
 		//Create local store action states if we support deferred store 
-		MTLStoreAction NewColorStore[MaxMetalRenderTargets];
-		for (uint32 i = 0; i < MaxMetalRenderTargets; ++i)
+		MTLStoreAction NewColorStore[MaxSimultaneousRenderTargets];
+		for (uint32 i = 0; i < MaxSimultaneousRenderTargets; ++i)
 		{
 			NewColorStore[i] = MTLStoreActionUnknown;
 		}
 		
 		MTLStoreAction NewDepthStore = MTLStoreActionUnknown;
 		MTLStoreAction NewStencilStore = MTLStoreActionUnknown;
+		
 		
 		// back this up for next frame
 		RenderTargetsInfo = InRenderTargets;
@@ -457,7 +458,7 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		bCanRestartRenderPass = true;
 		
-		for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
+		for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxSimultaneousRenderTargets; RenderTargetIndex++)
 		{
 			// default to invalid
 			uint8 FormatKey = 0;
@@ -805,7 +806,7 @@ bool FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		//Update deferred store states if required otherwise they're already set directly on the Metal Attachement Descriptors
 		if (bSupportsDeferredStore)
 		{
-			for (uint32 i = 0; i < MaxMetalRenderTargets; ++i)
+			for (uint32 i = 0; i < MaxSimultaneousRenderTargets; ++i)
 			{
 				ColorStore[i] = NewColorStore[i];
 			}

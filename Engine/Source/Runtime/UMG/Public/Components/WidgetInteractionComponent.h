@@ -248,6 +248,9 @@ public:
 
 protected:
 
+	// Gets the key and char codes for sending keys for the platform.
+	void GetKeyAndCharCodes(const FKey& Key, bool& bHasKeyCode, uint32& KeyCode, bool& bHasCharCode, uint32& CharCode);
+
 	/** Is it safe for this interaction component to run?  Might not be in a server situation with no slate application. */
 	bool CanSendInput();
 

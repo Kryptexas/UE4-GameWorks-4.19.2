@@ -156,13 +156,18 @@ UObject* UUSDSceneImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 
 						Asset = USDImporter->ImportSingleMesh(ImportContext, ImportOptions->MeshImportType, PrimToAssetName.PrimData);
 
-						FAssetRegistryModule::AssetCreated(Asset);
-						Package->MarkPackageDirty();
+						if(Asset)
+						{
+							FAssetRegistryModule::AssetCreated(Asset);
+							Package->MarkPackageDirty();
+						}
+					}
+	
+					if(Asset)
+					{
+						ImportContext.PrimToAssetMap.Add(PrimToAssetName.PrimData.Prim, Asset);
 					}
 
-					check(Asset);
-
-					ImportContext.PrimToAssetMap.Add(PrimToAssetName.PrimData.Prim, Asset);
 					++MeshCount;
 				}
 			}

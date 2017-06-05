@@ -83,7 +83,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetPixelShader(), View.ViewUniformBuffer);
-		DeferredParameters.Set(RHICmdList, GetPixelShader(), View);
+		DeferredParameters.Set(RHICmdList, GetPixelShader(), View, MD_PostProcess);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

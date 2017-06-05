@@ -124,7 +124,7 @@ struct FNiagaraTypeLayoutInfo
 *  Can convert a UStruct with fields of base types only (float, int... - will likely add native vector types here as well)
 *	to an FNiagaraTypeDefinition (internal representation)
 */
-class FNiagaraTypeHelper
+class NIAGARA_API FNiagaraTypeHelper
 {
 public:
 	static FString ToString(const uint8* ValueData, const UScriptStruct* Struct);

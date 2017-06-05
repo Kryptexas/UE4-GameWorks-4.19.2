@@ -8,7 +8,7 @@ void SGraphPinExec::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 {
 	SGraphPin::Construct(SGraphPin::FArguments(), InPin);
 
-	// Call utility function so inheritors can also call it since arguments can be passed through
+	// Call utility function so inheritors can also call it since arguments can't be passed through
 	CachePinIcons();
 }
 

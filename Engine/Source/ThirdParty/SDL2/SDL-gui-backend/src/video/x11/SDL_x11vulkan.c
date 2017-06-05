@@ -6,7 +6,7 @@
 #include "SDL_assert.h"
 #include "SDL_x11vulkan.h"
 
-#define DEFAULT_VULKAN  "libvulkan.so"
+#define DEFAULT_VULKAN  "libvulkan.so.1"
 #define VULKAN_REQUIRES_DLOPEN
 #if defined(VULKAN_REQUIRES_DLOPEN) && defined(SDL_LOADSO_DLOPEN)
 #include <dlfcn.h>

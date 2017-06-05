@@ -378,6 +378,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use a GPU-based method on Shader Model 5 hardware."))
 	uint32 bUseGPUMorphTargets : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Debugging, meta = (
+		ConsoleVariable = "r.GPUCrashDebugging", DisplayName = "Enable vendor specific GPU crash analysis tools",
+		ToolTip = "Enables vendor specific GPU crash analysis tools.  Currently only supports NVIDIA Aftermath on DX11.",
+		ConfigRestartRequired = true))
+		uint32 bNvidiaAftermathEnabled : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
 		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
 		ToolTip="Enable instanced stereo rendering (only available for D3D SM5 or PS4).",

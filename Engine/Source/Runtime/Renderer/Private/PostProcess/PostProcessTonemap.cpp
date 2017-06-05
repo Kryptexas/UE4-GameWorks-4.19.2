@@ -1240,7 +1240,6 @@ public:
 	}
 };
 
-// #define avoids a lot of code duplication
 #define VARIATION1(A)																	\
 	typedef FPostProcessTonemapPS<A,true> FPostProcessTonemapPS_EyeAdaptation##A;		\
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS_EyeAdaptation##A, SF_Pixel);			\

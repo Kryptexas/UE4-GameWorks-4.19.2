@@ -33,6 +33,7 @@
 #pragma pack(pop)
 #pragma warning(pop)
 
+#define D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER D3D12_RESOURCE_FLAG_NONE
 
 #include "../Public/D3D12Util.h"
 #include "WindowsD3D12DiskCache.h"

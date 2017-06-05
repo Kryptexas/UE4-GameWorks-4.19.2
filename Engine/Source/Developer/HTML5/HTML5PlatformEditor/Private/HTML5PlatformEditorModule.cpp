@@ -7,6 +7,7 @@
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "HTML5TargetSettings.h"
+#include "HTML5TargetSettingsCustomization.h"
 #include "ISettingsModule.h"
 #include "HTML5SDKSettings.h"
 
@@ -43,6 +44,13 @@ class FHTML5PlatformEditorModule
 		// register settings
 		static FName PropertyEditor("PropertyEditor");
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+		PropertyModule.RegisterCustomClassLayout(
+			"HTML5TargetSettings",
+			FOnGetDetailCustomizationInstance::CreateStatic(&FHTML5TargetSettingsCustomization::MakeInstance)
+			);
+
+		PropertyModule.NotifyCustomizationModuleChanged();
+
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)

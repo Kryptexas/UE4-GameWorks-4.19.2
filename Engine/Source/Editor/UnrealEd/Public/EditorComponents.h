@@ -46,7 +46,7 @@ class FEditorCommonDrawHelper
 public:
 
 	UNREALED_API FEditorCommonDrawHelper();
-	virtual ~FEditorCommonDrawHelper();
+	virtual UNREALED_API ~FEditorCommonDrawHelper();
 
 	/** Renders the grid, pivot, and base info. */
 	virtual void UNREALED_API Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI);

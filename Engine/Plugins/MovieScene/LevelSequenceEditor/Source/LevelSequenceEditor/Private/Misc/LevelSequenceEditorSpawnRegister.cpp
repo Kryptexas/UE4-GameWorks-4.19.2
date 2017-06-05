@@ -316,15 +316,12 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNew
 
 void FLevelSequenceEditorSpawnRegister::SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings)
 {
-	if (SpawnedObject)
+	for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
 	{
-		for (TSharedPtr<IMovieSceneObjectSpawner> MovieSceneObjectSpawner : MovieSceneObjectSpawners)
+		if (MovieSceneObjectSpawner->CanSetupDefaultsForSpawnable(SpawnedObject))
 		{
-			if (MovieSceneObjectSpawner->CanSetupDefaultsForSpawnable(SpawnedObject))
-			{
-				MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
-				return;
-			}
+			MovieSceneObjectSpawner->SetupDefaultsForSpawnable(SpawnedObject, Guid, TransformData, Sequencer, Settings);
+			return;
 		}
 	}
 }
