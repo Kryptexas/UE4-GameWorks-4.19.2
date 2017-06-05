@@ -7,7 +7,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Components/SkeletalMeshComponent.h"
 
-#define LOCTEXT_NAMESPACE "A3Nodes"
+#define LOCTEXT_NAMESPACE "PoseDriver"
 
 struct FPoseDriverCustomVersion
 {
