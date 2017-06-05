@@ -1595,7 +1595,7 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 			{
 				bool bSuppressWarningOnEmptyMorphTargetAnimation = false;
 				GConfig->GetBool(TEXT("/Script/Engine.Engine"), TEXT("bSuppressWarningOnEmptyMorphTargetAnimation"), bSuppressWarningOnEmptyMorphTargetAnimation, GEngineIni);
-				UE_CLOG(!bSuppressWarningOnEmptyMorphTargetAnimation, LogSkeletalMesh, Warning, TEXT("Empty MorphTarget Animation found in %s at index %i"), *MorphTarget->GetName(), AnimIdx);
+				UE_CLOG(!bSuppressWarningOnEmptyMorphTargetAnimation, LogSkeletalMesh, Warning, TEXT("PerformanceWarning: Empty MorphTarget Animation found in %s at index %i. Check if this asset should contain any morphs and reimport without them or remove the empty targets if possible."), *MorphTarget->GetFullName(), AnimIdx);
 			}
 			MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Add(MorphTargetSize);
 			MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Add(FVector4(MaximumValues[0], MaximumValues[1], MaximumValues[2], MaximumValues[3]));
