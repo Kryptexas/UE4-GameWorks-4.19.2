@@ -920,6 +920,29 @@ public:
 	/** Whether or not HRTF spatialization is enabled for all. */
 	bool IsHRTFEnabledForAll() const;
 
+	void SetHRTFEnabledForAll(bool InbHRTFEnabledForAll)
+	{
+		const bool bNewHRTFEnabledForAll = InbHRTFEnabledForAll;
+
+		bHRTFEnabledForAll_OnGameThread = bNewHRTFEnabledForAll;
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, bNewHRTFEnabledForAll]()
+		{
+			AudioDevice->bHRTFEnabledForAll = bNewHRTFEnabledForAll;
+
+		});
+	}
+
+	void SetSpatializationInterfaceEnabled(bool InbSpatializationInterfaceEnabled)
+	{
+		FAudioThread::SuspendAudioThread();
+
+		bSpatializationInterfaceEnabled = InbSpatializationInterfaceEnabled;
+
+		FAudioThread::ResumeAudioThread();
+	}
+
 	bool IsAudioDeviceMuted() const;
 
 	void SetDeviceMuted(bool bMuted);

@@ -932,27 +932,14 @@ bool FAudioDevice::HandleResetSoundStateCommand(const TCHAR* Cmd, FOutputDevice&
 
 bool FAudioDevice::HandleToggleSpatializationExtensionCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	FAudioThread::SuspendAudioThread();
-
-	bSpatializationInterfaceEnabled = !bSpatializationInterfaceEnabled;
-
-	FAudioThread::ResumeAudioThread();
+	SetSpatializationInterfaceEnabled(!bSpatializationInterfaceEnabled);
 
 	return true;
 }
 
 bool FAudioDevice::HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	const bool bNewHRTFEnabledForAll = !bHRTFEnabledForAll_OnGameThread;
-
-	bHRTFEnabledForAll_OnGameThread = bNewHRTFEnabledForAll;
-
-	FAudioDevice* AudioDevice = this;
-	FAudioThread::RunCommandOnAudioThread([AudioDevice, bNewHRTFEnabledForAll]()
-	{
-		AudioDevice->bHRTFEnabledForAll = bNewHRTFEnabledForAll;
-
-	});
+	SetHRTFEnabledForAll(!bHRTFEnabledForAll_OnGameThread);
 
 	return true;
 }
