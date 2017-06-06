@@ -785,6 +785,18 @@ public:
 		} while (!Queue.QuitForShutdown && FPlatformProcess::SupportsMultithreading()); // @Hack - quit now when running with only one thread.
 	}
 
+	virtual void ProcessTasksUntilIdle(int32 QueueIndex) override
+	{
+		if (!FPlatformProcess::SupportsMultithreading())
+		{
+			ProcessTasks();
+		}
+		else
+		{
+			check(0);
+		}
+	}
+
 	// Calls meant to be called from any thread.
 
 	/**
@@ -870,13 +882,14 @@ private:
 #endif
 
 				TestRandomizedThreads();
+				if (FPlatformProcess::SupportsMultithreading())
 				{
 					FScopeCycleCounter Scope(StallStatId);
 					Queue.StallRestartEvent->Wait(MAX_uint32, bCountAsStall);
 				}
-				if (Queue.QuitForShutdown)
+				if (Queue.QuitForShutdown || !FPlatformProcess::SupportsMultithreading())
 				{
-					return;
+					break;
 				}
 
 				TestRandomizedThreads();
