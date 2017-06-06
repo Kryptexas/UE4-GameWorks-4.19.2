@@ -2090,7 +2090,11 @@ void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, in
 		{
 			if (MeshInfo->Component)
 			{
-				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
+				if (MeshInfo->Component->GetStaticMesh() != nullptr)
+				{
+					MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
+				}
+
 				MeshInfo->Component->ClearInstances();
 				MeshInfo->Component->SetFlags(RF_Transactional);
 				MeshInfo->Component->Modify();
