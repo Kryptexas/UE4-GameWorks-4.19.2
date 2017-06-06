@@ -763,7 +763,8 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected(const 
 
 			if (TargetDisplayOrderList != nullptr)
 			{
-				int32 DisplayOrderLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex]);
+				FName ShownTargetName = LandscapeEdMode->UISettings->ShowUnusedLayers && TargetShownList.IsValidIndex(SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()) ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex];
+				int32 DisplayOrderLayerIndex = TargetDisplayOrderList->Find(ShownTargetName);
 
 				if (TargetDisplayOrderList->IsValidIndex(DisplayOrderLayerIndex))
 				{
