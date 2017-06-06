@@ -1153,11 +1153,12 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		SCOPED_SCENE_WRITE_LOCK(GetPhysXSceneFromIndex(BodyInstance.SceneIndexSync));
 
 		int32 CollisionSizeVerts = CollisionSizeQuads + 1;
+		int32 SimpleCollisionSizeVerts = SimpleCollisionSizeQuads > 0 ? SimpleCollisionSizeQuads + 1 : 0;
 
 		bool bIsMirrored = GetComponentToWorld().GetDeterminant() < 0.f;
 
 		uint16* Heights = (uint16*)CollisionHeightData.Lock(LOCK_READ_ONLY);
-		check(CollisionHeightData.GetElementCount() == FMath::Square(CollisionSizeVerts));
+		check(CollisionHeightData.GetElementCount() == (FMath::Square(CollisionSizeVerts) + FMath::Square(SimpleCollisionSizeVerts)));
 
 		// PhysX heightfield has the X and Y axis swapped, and the X component is also inverted
 		int32 HeightfieldX1 = ComponentY1;
