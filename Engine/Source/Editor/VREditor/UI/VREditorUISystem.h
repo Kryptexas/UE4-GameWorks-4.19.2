@@ -25,6 +25,7 @@ class UVREditorInteractor;
 class FMenuBuilder;
 class FUICommandList;
 class UVREditorWidgetComponent;
+class UWidgetComponent;
 
 typedef FName VREditorPanelID;
 
