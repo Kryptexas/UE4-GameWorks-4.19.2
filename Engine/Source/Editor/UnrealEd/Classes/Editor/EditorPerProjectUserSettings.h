@@ -194,7 +194,9 @@ public:
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
 	//~ Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+#endif
 	virtual void PostInitProperties() override;
 	//~ End UObject Interface
 

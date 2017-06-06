@@ -4,7 +4,7 @@
 #include "OculusRiftHMD.h"
 #if !UE_BUILD_SHIPPING
 #include "SceneCubemapCapturer.h"
-static void CubemapCommandHandler(const TArray<FString>&, UWorld*, FOutputDevice&);
+static void CubemapCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 #endif
 
 
@@ -24,6 +24,7 @@ static void CubemapCommandHandler(const TArray<FString>&, UWorld*, FOutputDevice
 	}\
 	Ar.Logf(ConsoleName TEXT(" = %s"), (FieldExpr) ? TEXT("On") : TEXT("Off"));
 
+/// @cond DOXYGEN_WARNINGS
 
 FOculusRiftConsoleCommands::FOculusRiftConsoleCommands(class FOculusRiftHMD* InHMDPtr)
 	: PixelDensityCommand(TEXT("vr.oculus.PixelDensity"),
@@ -71,6 +72,8 @@ FOculusRiftConsoleCommands::FOculusRiftConsoleCommands(class FOculusRiftHMD* InH
 {
 }
 
+/// @endcond
+
 // Translate between legacy mirror mode values to the new ones
 static EMirrorWindowMode TranslateMirrorMode(int32 ObsoleteMode)
 {
@@ -90,6 +93,8 @@ static EMirrorWindowMode TranslateMirrorMode(int32 ObsoleteMode)
 		return EMirrorWindowMode::Disabled;
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 /**
 Clutch to support setting the r.ScreenPercentage and make the equivalent change to PixelDensity
@@ -283,6 +288,8 @@ void FOculusRiftHMD::GridCommandHandler(const TArray<FString>& Args, UWorld*, FO
 	BOOLEAN_COMMAND_HANDLER_BODY(TEXT("vr.oculus.Debug.bDrawGrid"), Settings->Flags.bDrawGrid)
 }
 
+/// @endcond
+
 const uint32 CaptureHeight = 2048;
 static void CubemapCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
 {
@@ -313,6 +320,8 @@ static void CubemapCommandHandler(const TArray<FString>& Args, UWorld* World, FO
 	}
 	CubemapCapturer->StartCapture(World, bCreateGearVRCubemap ? CaptureHeight / 2 : CaptureHeight);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void FOculusRiftHMD::EnforceHeadTrackingCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
 {
@@ -568,5 +577,7 @@ void FOculusRiftHMD::SaveToIni()
 	}
 #endif // #if !UE_BUILD_SHIPPING
 }
+
+/// @endcond
 
 #endif

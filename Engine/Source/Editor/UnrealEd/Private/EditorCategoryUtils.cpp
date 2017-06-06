@@ -40,7 +40,7 @@ namespace FEditorCategoryUtilsImpl
 	 * @param  Key	The key you want a category path for.
 	 * @return The category display string associated with the specified key (an empty string if an entry wasn't found).
 	 */
-	FText const& GetCategory(const FString& Key);
+	const FText& GetCategory(const FString& Key);
 
 	/**
 	 * Performs a lookup into the category key table, retrieving a fully 
@@ -51,7 +51,7 @@ namespace FEditorCategoryUtilsImpl
 	 * @param  DocExcerpt			Name of the excerpt within the document page for this category
 	 * @return						The tooltip (if any) stored at the doc path
 	 */
-	FText GetTooltipForCategory(FString const& CategoryDisplayName, FString const& DocLink, FString const& DocExcerpt);
+	FText GetTooltipForCategory(const FString& CategoryDisplayName, const FString& DocLink, const FString& DocExcerpt);
 
 	/** Metadata tags */
 	const FName ClassHideCategoriesMetaKey(TEXT("HideCategories"));
@@ -103,7 +103,7 @@ FEditorCategoryUtilsImpl::FCategoryInfoMap& FEditorCategoryUtilsImpl::GetCategor
 }
 
 //------------------------------------------------------------------------------
-FText const& FEditorCategoryUtilsImpl::GetCategory(const FString& Key)
+const FText& FEditorCategoryUtilsImpl::GetCategory(const FString& Key)
 {
 	if (FEditorCategoryUtilsImpl::FCategoryInfo const* FoundCategory = GetCategoryTable().Find(Key))
 	{
@@ -113,7 +113,7 @@ FText const& FEditorCategoryUtilsImpl::GetCategory(const FString& Key)
 }
 
 //------------------------------------------------------------------------------
-FText FEditorCategoryUtilsImpl::GetTooltipForCategory(FString const& CategoryDisplayName, FString const& DocLink, FString const& DocExcerpt)
+FText FEditorCategoryUtilsImpl::GetTooltipForCategory(const FString& CategoryDisplayName, const FString& DocLink, const FString& DocExcerpt)
 {
 	FText Tooltip;
 
@@ -157,7 +157,7 @@ FText FEditorCategoryUtilsImpl::GetTooltipForCategory(FString const& CategoryDis
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& Category, FText const& Tooltip)
+void FEditorCategoryUtils::RegisterCategoryKey(const FString& Key, const FText& Category, const FText& Tooltip)
 {
 	FEditorCategoryUtilsImpl::FCategoryInfo& CategoryInfo = FEditorCategoryUtilsImpl::GetCategoryTable().Add(Key);
 
@@ -167,7 +167,7 @@ void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& 
 	CategoryInfo.Tooltip = (Tooltip.IsEmpty() ? FEditorCategoryUtilsImpl::GetTooltipForCategory(CategoryInfo.DisplayName.ToString(), CategoryInfo.DocLink, CategoryInfo.DocExcerpt) : Tooltip);
 }
 
-void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& Category, FString const& DocLink, FString const& DocExcerpt)
+void FEditorCategoryUtils::RegisterCategoryKey(const FString& Key, const FText& Category, const FString& DocLink, const FString& DocExcerpt)
 {
 	FEditorCategoryUtilsImpl::FCategoryInfo& CategoryInfo = FEditorCategoryUtilsImpl::GetCategoryTable().Add(Key);
 
@@ -178,7 +178,7 @@ void FEditorCategoryUtils::RegisterCategoryKey(FString const& Key, FText const& 
 }
 
 //------------------------------------------------------------------------------
-FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory::EValue CategoryId)
+const FText& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory::EValue CategoryId)
 {
 	static TMap<FCommonEditorCategory::EValue, FString> CommonCategoryKeys;
 	if (CommonCategoryKeys.Num() == 0)
@@ -220,11 +220,11 @@ FText const& FEditorCategoryUtils::GetCommonCategory(const FCommonEditorCategory
 }
 
 //------------------------------------------------------------------------------
-FText FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::EValue RootId, FText const& SubCategory)
+FText FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::EValue RootId, const FText& SubCategory)
 {
 	FText ConstructedCategory;
 
-	FText const& RootCategory = GetCommonCategory(RootId);
+	const FText& RootCategory = GetCommonCategory(RootId);
 	if (RootCategory.IsEmpty())
 	{
 		ConstructedCategory = SubCategory;
@@ -243,13 +243,13 @@ FText FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::EValue Ro
 }
 
 //------------------------------------------------------------------------------
-FText FEditorCategoryUtils::GetCategoryDisplayString(FText const& UnsanitizedCategory)
+FText FEditorCategoryUtils::GetCategoryDisplayString(const FText& UnsanitizedCategory)
 {
 	return FText::FromString(GetCategoryDisplayString(UnsanitizedCategory.ToString()));
 }
 
 //------------------------------------------------------------------------------
-FString FEditorCategoryUtils::GetCategoryDisplayString(FString const& UnsanitizedCategory)
+FString FEditorCategoryUtils::GetCategoryDisplayString(const FString& UnsanitizedCategory)
 {
 	FString DisplayString = UnsanitizedCategory;
 
@@ -285,14 +285,14 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(FString const& Unsanitize
 }
 
 //------------------------------------------------------------------------------
-void FEditorCategoryUtils::GetClassHideCategories(UClass const* Class, TArray<FString>& CategoriesOut, bool bHomogenize)
+void FEditorCategoryUtils::GetClassHideCategories(const UClass* Class, TArray<FString>& CategoriesOut, bool bHomogenize)
 {
 	CategoriesOut.Empty();
 
 	using namespace FEditorCategoryUtilsImpl;
 	if (Class->HasMetaData(ClassHideCategoriesMetaKey))
 	{
-		FString const& HideCategories = Class->GetMetaData(ClassHideCategoriesMetaKey);
+		const FString& HideCategories = Class->GetMetaData(ClassHideCategoriesMetaKey);
 
 		HideCategories.ParseIntoArray(CategoriesOut, TEXT(" "), /*InCullEmpty =*/true);
 		
@@ -307,14 +307,14 @@ void FEditorCategoryUtils::GetClassHideCategories(UClass const* Class, TArray<FS
 }
 
 //------------------------------------------------------------------------------
-void  FEditorCategoryUtils::GetClassShowCategories(UClass const* Class, TArray<FString>& CategoriesOut)
+void  FEditorCategoryUtils::GetClassShowCategories(const UClass* Class, TArray<FString>& CategoriesOut)
 {
 	CategoriesOut.Empty();
 
 	using namespace FEditorCategoryUtilsImpl;
 	if (Class->HasMetaData(ClassShowCategoriesMetaKey))
 	{
-		FString const& ShowCategories = Class->GetMetaData(ClassShowCategoriesMetaKey);
+		const FString& ShowCategories = Class->GetMetaData(ClassShowCategoriesMetaKey);
 		ShowCategories.ParseIntoArray(CategoriesOut, TEXT(" "), /*InCullEmpty =*/true);
 
 		for (FString& Category : CategoriesOut)
@@ -325,19 +325,19 @@ void  FEditorCategoryUtils::GetClassShowCategories(UClass const* Class, TArray<F
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FCommonEditorCategory::EValue CategoryId)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, FCommonEditorCategory::EValue CategoryId)
 {
 	return IsCategoryHiddenFromClass(Class, GetCommonCategory(CategoryId));
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FText const& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, const FText& Category)
 {
 	return IsCategoryHiddenFromClass(Class, Category.ToString());
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FString const& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, const FString& Category)
 {
 	TArray<FString> ClassHideCategories;
 	GetClassHideCategories(Class, ClassHideCategories);
@@ -345,12 +345,12 @@ bool FEditorCategoryUtils::IsCategoryHiddenFromClass(UClass const* Class, FStrin
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, UClass const* Class, const FString& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, const UClass* Class, const FString& Category)
 {
 	bool bIsHidden = false;
 
 	// run the category through sanitization so we can ensure compares will hit
-	FString const DisplayCategory = GetCategoryDisplayString(Category);
+	const FString DisplayCategory = GetCategoryDisplayString(Category);
 
 	for (const FString& HideCategory : ClassHideCategories)
 	{
@@ -368,7 +368,7 @@ bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& Clas
 			DisplayCategory.ParseIntoArray(SubCategoryList, TEXT("|"), /*InCullEmpty =*/true);
 
 			FString FullSubCategoryPath;
-			for (FString const& SubCategory : SubCategoryList)
+			for (const FString& SubCategory : SubCategoryList)
 			{
 				FullSubCategoryPath += SubCategory;
 				if ((HideCategory == SubCategory) || (HideCategory == FullSubCategoryPath))
@@ -410,7 +410,7 @@ void FEditorCategoryUtils::GetCategoryTooltipInfo(const FString& Category, FText
 }
 
 //------------------------------------------------------------------------------
-TSet<FString> FEditorCategoryUtils::GetHiddenCategories(UClass const* Class)
+TSet<FString> FEditorCategoryUtils::GetHiddenCategories(const UClass* Class)
 {
 	TArray<FString> ClassHiddenCategories;
 	GetClassHideCategories(Class, ClassHiddenCategories);

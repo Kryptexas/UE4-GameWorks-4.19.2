@@ -39,6 +39,8 @@ template TD3D12Texture2D<FD3D12BaseTextureCube>::TD3D12Texture2D(class FD3D12Dev
 #endif
 	);
 
+/// @cond DOXYGEN_WARNINGS
+
 template void FD3D12TextureStats::D3D12TextureAllocated(TD3D12Texture2D<FD3D12BaseTexture2D>& Texture);
 template void FD3D12TextureStats::D3D12TextureAllocated(TD3D12Texture2D<FD3D12BaseTexture2DArray>& Texture);
 template void FD3D12TextureStats::D3D12TextureAllocated(TD3D12Texture2D<FD3D12BaseTextureCube>& Texture);
@@ -46,6 +48,8 @@ template void FD3D12TextureStats::D3D12TextureAllocated(TD3D12Texture2D<FD3D12Ba
 template void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<FD3D12BaseTexture2D>& Texture);
 template void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<FD3D12BaseTexture2DArray>& Texture);
 template void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<FD3D12BaseTextureCube>& Texture);
+
+/// @endcond
 
 struct FRHICommandUpdateTexture : public FRHICommand<FRHICommandUpdateTexture>
 {

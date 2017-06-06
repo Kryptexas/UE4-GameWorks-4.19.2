@@ -49,6 +49,8 @@ void UAnimNotifyState::BranchingPointNotifyEnd(FBranchingPointNotifyPayload& Bra
 	NotifyEnd(BranchingPointPayload.SkelMeshComponent, BranchingPointPayload.SequenceAsset);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 FString UAnimNotifyState::GetNotifyName_Implementation() const
 {
 	UObject* ClassGeneratedBy = GetClass()->ClassGeneratedBy;
@@ -69,6 +71,8 @@ FString UAnimNotifyState::GetNotifyName_Implementation() const
 	
 	return NotifyName;
 }
+
+/// @endcond
 
 void UAnimNotifyState::PostLoad()
 {

@@ -8,6 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "EditorPerProjectUserSettings"
 
+/// @cond DOXYGEN_WARNINGS
+
 UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -36,6 +38,7 @@ void UEditorPerProjectUserSettings::PostInitProperties()
 	MaterialQualityLevelVar->Set(MaterialQualityLevel, ECVF_SetByScalability);
 }
 
+#if WITH_EDITOR
 void UEditorPerProjectUserSettings::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -56,6 +59,8 @@ void UEditorPerProjectUserSettings::PostEditChangeProperty( FPropertyChangedEven
 
 	UserSettingChangedEvent.Broadcast(Name);
 }
+#endif
 
+/// @endcond
 
 #undef LOCTEXT_NAMESPACE

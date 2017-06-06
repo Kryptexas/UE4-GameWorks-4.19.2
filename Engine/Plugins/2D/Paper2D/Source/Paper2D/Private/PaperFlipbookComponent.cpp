@@ -313,12 +313,16 @@ void UPaperFlipbookComponent::TickFlipbook(float DeltaTime)
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void UPaperFlipbookComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UPaperFlipbookComponent, SourceFlipbook);
 }
+
+/// @endcond
 
 void UPaperFlipbookComponent::OnRep_SourceFlipbook(class UPaperFlipbook* OldFlipbook)
 {

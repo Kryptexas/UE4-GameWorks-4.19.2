@@ -12,6 +12,8 @@
 
 class FMovieSceneAnimationSectionRecorder;
 class UMovieSceneSkeletalAnimationSection;
+class UActorRecording;
+struct FActorRecordingSettings;
 
 class FMovieSceneAnimationSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
 {
@@ -20,10 +22,10 @@ public:
 
 	virtual bool CanRecordObject(class UObject* InObjectToRecord) const override;
 
-	TSharedPtr<class FMovieSceneAnimationSectionRecorder> CreateSectionRecorder(class UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const;
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> CreateSectionRecorder(UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const;
 
 private:
-	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const override;
+	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const override;
 };
 
 class FMovieSceneAnimationSectionRecorder : public IMovieSceneSectionRecorder

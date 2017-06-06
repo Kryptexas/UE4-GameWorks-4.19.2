@@ -181,6 +181,8 @@ float AGameState::GetPlayerRespawnDelay(class AController* Controller) const
 	return Super::GetPlayerRespawnDelay(Controller);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
@@ -188,3 +190,5 @@ void AGameState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME( AGameState, MatchState );
 	DOREPLIFETIME_CONDITION( AGameState, ElapsedTime,	COND_InitialOnly );
 }
+
+/// @endcond

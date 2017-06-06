@@ -1024,6 +1024,8 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool UWheeledVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 InCurrentGear)
 {
 	return true;
@@ -1048,6 +1050,8 @@ void UWheeledVehicleMovementComponent::ServerUpdateState_Implementation(float In
 	ReplicatedState.HandbrakeInput = InHandbrakeInput;
 	ReplicatedState.CurrentGear = InCurrentGear;
 }
+
+/// @endcond
 
 float UWheeledVehicleMovementComponent::CalcSteeringInput()
 {
@@ -1718,6 +1722,7 @@ void UWheeledVehicleMovementComponent::PostEditChangeProperty( FPropertyChangedE
 
 #endif // WITH_EDITOR
 
+/// @cond DOXYGEN_WARNINGS
 
 void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
@@ -1725,6 +1730,8 @@ void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLife
 
 	DOREPLIFETIME( UWheeledVehicleMovementComponent, ReplicatedState );
 }
+
+/// @endcond
 
 void UWheeledVehicleMovementComponent::ComputeConstants()
 {

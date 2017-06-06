@@ -127,10 +127,14 @@ TSubclassOf<AGameSession> AGameModeBase::GetGameSessionClass() const
 	return AGameSession::StaticClass();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 UClass* AGameModeBase::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
 	return DefaultPawnClass;
 }
+
+/// @endcond
 
 int32 AGameModeBase::GetNumPlayers()
 {
@@ -290,10 +294,14 @@ void AGameModeBase::Reset()
 	InitGameState();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool AGameModeBase::ShouldReset_Implementation(AActor* ActorToReset)
 {
 	return true;
 }
+
+/// @endcond
 
 void AGameModeBase::ResetLevel()
 {
@@ -799,11 +807,15 @@ bool AGameModeBase::ShouldStartInCinematicMode(APlayerController* Player, bool& 
 	return false;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameModeBase::InitializeHUDForPlayer_Implementation(APlayerController* NewPlayer)
 {
 	// Tell client what HUD class to use
 	NewPlayer->ClientSetHUD(HUDClass);
 }
+
+/// @endcond
 
 void AGameModeBase::UpdateGameplayMuteList(APlayerController* aPlayer)
 {
@@ -966,6 +978,8 @@ void AGameModeBase::Logout(AController* Exiting)
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameModeBase::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
 {
 	// If players should start as spectators, leave them in the spectator state
@@ -1037,10 +1051,14 @@ AActor* AGameModeBase::ChoosePlayerStart_Implementation(AController* Player)
 	return FoundPlayerStart;
 }
 
+/// @endcond
+
 bool AGameModeBase::ShouldSpawnAtStartSpot(AController* Player)
 {
 	return (Player != nullptr && Player->StartSpot != nullptr);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 AActor* AGameModeBase::FindPlayerStart_Implementation(AController* Player, const FString& IncomingName)
 {
@@ -1087,10 +1105,14 @@ AActor* AGameModeBase::FindPlayerStart_Implementation(AController* Player, const
 	return BestStart;
 }
 
+/// @endcond
+
 AActor* AGameModeBase::K2_FindPlayerStart(AController* Player, const FString& IncomingName)
 {
 	return FindPlayerStart(Player, IncomingName);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 bool AGameModeBase::PlayerCanRestart_Implementation(APlayerController* Player)
 {
@@ -1127,6 +1149,8 @@ APawn* AGameModeBase::SpawnDefaultPawnAtTransform_Implementation(AController* Ne
 	}
 	return ResultPawn;
 }
+
+/// @endcond
 
 void AGameModeBase::RestartPlayer(AController* NewPlayer)
 {
@@ -1260,10 +1284,15 @@ void AGameModeBase::FinishRestartPlayer(AController* NewPlayer, const FRotator& 
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameModeBase::InitStartSpot_Implementation(AActor* StartSpot, AController* NewPlayer)
 {
 
 }
+
+/// @endcond
+
 
 void AGameModeBase::SetPlayerDefaults(APawn* PlayerPawn)
 {

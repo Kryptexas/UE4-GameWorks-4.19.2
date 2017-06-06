@@ -345,6 +345,8 @@ void AController::Reset()
 	StartSpot = NULL;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AController::ClientSetLocation_Implementation( FVector NewLocation, FRotator NewRotation )
 {
 	ClientSetRotation(NewRotation);
@@ -362,6 +364,8 @@ void AController::ClientSetRotation_Implementation( FRotator NewRotation, bool b
 		Pawn->FaceRotation( NewRotation, 0.f );
 	}
 }
+
+/// @endcond
 
 void AController::RemovePawnTickDependency(APawn* InOldPawn)
 {

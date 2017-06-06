@@ -74,7 +74,7 @@ namespace FEditorCategoryUtils
 	 * @param  Category	The qualified category path that you want the key expanded to.
 	 * @param  Tooltip  An optional tooltip text to use for the category.  If not specified an attempt to find it from the NodeCategories UDN file will be made
 	 */
-	UNREALED_API void RegisterCategoryKey(FString const& Key, FText const& Category, FText const& Tooltip = FText::GetEmpty());
+	UNREALED_API void RegisterCategoryKey(const FString& Key, const FText& Category, const FText& Tooltip = FText::GetEmpty());
 
 	/**
 	 * @param  Key			A string key that people will use in metadata to reflect this category mapping.
@@ -82,7 +82,7 @@ namespace FEditorCategoryUtils
 	 * @param  DocLink		Path to the document page that contains the excerpt for this category
 	 * @param  DocExcerpt	Name of the excerpt within the document page for this category
 	 */
-	UNREALED_API void RegisterCategoryKey(FString const& Key, FText const& Category, FString const& DocLink, FString const& DocExcerpt);
+	UNREALED_API void RegisterCategoryKey(const FString& Key, const FText& Category, const FString& DocLink, const FString& DocExcerpt);
 
 	/**
 	 * Retrieves a qualified category path for the desired common category.
@@ -90,7 +90,7 @@ namespace FEditorCategoryUtils
 	 * @param  CategoryId	The common category you want a path for.
 	 * @return A text string, (empty if the common category was not registered)
 	 */
-	UNREALED_API FText const& GetCommonCategory(const FCommonEditorCategory::EValue CategoryId);
+	UNREALED_API const FText& GetCommonCategory(const FCommonEditorCategory::EValue CategoryId);
 
 	/**
 	 * Utility function that concatenates the supplied sub-category with one 
@@ -100,7 +100,7 @@ namespace FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixed to the root category.
 	 * @return A concatenated text string, with the two categories separated by a pipe, '|', character.
 	 */
-	UNREALED_API FText BuildCategoryString(const FCommonEditorCategory::EValue RootCategory, FText const& SubCategory);
+	UNREALED_API FText BuildCategoryString(const FCommonEditorCategory::EValue RootCategory, const FText& SubCategory);
 
 	/**
 	 * Expands any keys found in the category string (any terms found in square 
@@ -110,7 +110,7 @@ namespace FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixing the result.
 	 * @return A concatenated text string, with the two categories separated by a pipe, '|', character.
 	 */
-	UNREALED_API FText GetCategoryDisplayString(FText const& UnsanitizedCategory);
+	UNREALED_API FText GetCategoryDisplayString(const FText& UnsanitizedCategory);
 
 	/**
 	 * Expands any keys found in the category string (any terms found in square 
@@ -120,7 +120,7 @@ namespace FEditorCategoryUtils
 	 * @param  SubCategory	A sub-category that you want postfixing the result.
 	 * @return A concatenated string, with the two categories separated by a pipe, '|', character.
 	 */
-	UNREALED_API FString GetCategoryDisplayString(FString const& UnsanitizedCategory);
+	UNREALED_API FString GetCategoryDisplayString(const FString& UnsanitizedCategory);
 
 	/**
 	 * Parses out the class's "HideCategories" metadata, and returns it 
@@ -130,7 +130,7 @@ namespace FEditorCategoryUtils
 	 * @param  CategoriesOut	An array that will be filled with a list of hidden categories.
 	 * @param  bHomogenize		Determines if the categories should be ran through expansion and display sanitation (useful even when not being displayed, for comparisons)
 	 */
-	UNREALED_API void GetClassHideCategories(UClass const* Class, TArray<FString>& CategoriesOut, bool bHomogenize = true);
+	UNREALED_API void GetClassHideCategories(const UClass* Class, TArray<FString>& CategoriesOut, bool bHomogenize = true);
 
 	/**
 	 * Parses out the class's "ShowCategories" metadata, and returns it 
@@ -139,7 +139,7 @@ namespace FEditorCategoryUtils
 	 * @param  Class			The class you want to pull data from.
 	 * @param  CategoriesOut	An array that will be filled with a list of shown categories.
 	 */
-	UNREALED_API void GetClassShowCategories(UClass const* Class, TArray<FString>& CategoriesOut);
+	UNREALED_API void GetClassShowCategories(const UClass* Class, TArray<FString>& CategoriesOut);
 
 	/**
 	 * Checks to see if the category associated with the supplied common 
@@ -149,7 +149,7 @@ namespace FEditorCategoryUtils
 	 * @param  CategoryId	An id associated with a category that you want to check.
 	 * @return True if the common category is hidden, false if not.
 	 */
-	UNREALED_API bool IsCategoryHiddenFromClass(UClass const* Class, const FCommonEditorCategory::EValue CategoryId);
+	UNREALED_API bool IsCategoryHiddenFromClass(const UClass* Class, const FCommonEditorCategory::EValue CategoryId);
 
 	/**
 	 * Checks to see if the specified category is hidden from the supplied class.
@@ -178,7 +178,7 @@ namespace FEditorCategoryUtils
 	 * @param  Category A category path that you want to check.
 	 * @return True if the category is hidden, false if not.
 	 */
-	UNREALED_API bool IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, UClass const* Class, const FString& Category);
+	UNREALED_API bool IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, const UClass* Class, const FString& Category);
 	/**
 	 * Returns tooltip information for the specified category
 	 * 
@@ -198,5 +198,5 @@ namespace FEditorCategoryUtils
 	 * @param  Class		The class you want to query.
 	 * @return  The set of categories that should be hidden.
 	 */
-	UNREALED_API TSet<FString> GetHiddenCategories(UClass const* Class);
+	UNREALED_API TSet<FString> GetHiddenCategories(const UClass* Class);
 };

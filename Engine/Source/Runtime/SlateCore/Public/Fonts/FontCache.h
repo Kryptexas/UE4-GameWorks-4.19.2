@@ -228,7 +228,7 @@ public:
 		int32 TextLen;
 	};
 
-	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const struct FFontOutlineSettings& InOutlineSettings, const FSourceTextRange& InSourceTextRange);
+	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FFontOutlineSettings& InOutlineSettings, const FSourceTextRange& InSourceTextRange);
 	~FShapedGlyphSequence();
 
 	/** Get the amount of memory allocated to this sequence */

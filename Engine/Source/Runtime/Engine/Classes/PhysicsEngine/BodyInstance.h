@@ -1276,13 +1276,15 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-//~ APIDOCTOOL: Document=Off
+/// @cond DOXYGEN_WARNINGS
+
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const FComponentQueryParams& Params, const FCollisionResponseParams& ResponseParams, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);
 }
-//~ APIDOCTOOL: Document=On
+
+/// @endcond
 
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const
 {

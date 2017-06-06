@@ -12,6 +12,7 @@
 class FMovieScene3DTransformSectionRecorder;
 class UMovieScene3DTransformSection;
 class UMovieScene3DTransformTrack;
+struct FActorRecordingSettings;
 
 class FMovieScene3DTransformSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
 {
@@ -24,7 +25,7 @@ public:
 	TSharedPtr<class FMovieScene3DTransformSectionRecorder> CreateSectionRecorder(bool bRecordTransforms, TSharedPtr<class FMovieSceneAnimationSectionRecorder> InAnimRecorder) const;
 
 private:
-	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const override;
+	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const override;
 };
 
 /** Structure used to buffer up transform keys. Keys are inserted into tracks in FinalizeSection() */

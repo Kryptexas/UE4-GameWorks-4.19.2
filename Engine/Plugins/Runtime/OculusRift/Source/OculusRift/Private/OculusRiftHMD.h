@@ -445,7 +445,7 @@ private:
 	FAutoConsoleCommand CubemapCommand;
 #endif // !UE_BUILD_SHIPPING
 	// Exec handler that aliases old deprecated Oculus Rift console commands to the new ones.
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 };
 
 

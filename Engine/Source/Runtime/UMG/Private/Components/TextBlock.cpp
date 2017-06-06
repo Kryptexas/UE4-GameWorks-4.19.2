@@ -163,6 +163,8 @@ void UTextBlock::SynchronizeProperties()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 FText UTextBlock::GetText() const
 {
 	if (MyTextBlock.IsValid())
@@ -172,6 +174,8 @@ FText UTextBlock::GetText() const
 
 	return Text;
 }
+
+/// @endcond
 
 void UTextBlock::SetText(FText InText)
 {

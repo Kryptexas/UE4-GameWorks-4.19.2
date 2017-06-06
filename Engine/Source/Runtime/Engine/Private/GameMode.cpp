@@ -169,6 +169,8 @@ void AGameMode::HandleMatchIsWaitingToStart()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool AGameMode::ReadyToStartMatch_Implementation()
 {
 	// If bDelayed Start is set, wait for a manual match start
@@ -187,6 +189,8 @@ bool AGameMode::ReadyToStartMatch_Implementation()
 	}
 	return false;
 }
+
+/// @endcond
 
 void AGameMode::StartMatch()
 {
@@ -249,11 +253,15 @@ void AGameMode::HandleMatchHasStarted()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool AGameMode::ReadyToEndMatch_Implementation()
 {
 	// By default don't explicitly end match
 	return false;
 }
+
+/// @endcond
 
 void AGameMode::EndMatch()
 {

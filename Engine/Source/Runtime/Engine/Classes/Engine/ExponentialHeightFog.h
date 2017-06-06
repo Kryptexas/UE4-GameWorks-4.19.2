@@ -16,6 +16,8 @@ class AExponentialHeightFog
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 private_subobject:
 	/** @todo document */
 	DEPRECATED_FORGAME(4.6, "Component should not be accessed directly, please use GetComponent() function instead. Component will soon be private and your code will not compile.")

@@ -60,6 +60,8 @@ class ENGINE_API AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** The matinee data used by this actor*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MatineeActor, replicated, meta=(ForceRebuildProperty = "GroupActorInfos"))
 	class UInterpData* MatineeData;

@@ -438,9 +438,13 @@ private:
 	float MaxContactOffset;
 };
 
+/// @cond DOXYGEN_WARNINGS
+
 //Explicit export of template instantiation 
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphereElem>&, TFunctionRef<void(const FKSphereElem&, const physx::PxSphereGeometry&, const physx::PxTransform& , float )>) const;
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKBoxElem>&, TFunctionRef<void(const FKBoxElem&, const physx::PxBoxGeometry&, const physx::PxTransform&, float)>) const;
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphylElem>&, TFunctionRef<void(const FKSphylElem&, const physx::PxCapsuleGeometry&, const physx::PxTransform&, float)>) const;
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKConvexElem>&, TFunctionRef<void(const FKConvexElem&, const physx::PxConvexMeshGeometry&, const physx::PxTransform&, float)>) const;
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<physx::PxTriangleMesh*>&,TFunctionRef<void (physx::PxTriangleMesh* const &, const physx::PxTriangleMeshGeometry&, const physx::PxTransform&,float)>) const;
+
+/// @endcond

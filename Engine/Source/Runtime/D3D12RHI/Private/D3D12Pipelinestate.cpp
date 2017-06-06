@@ -7,6 +7,8 @@
 //-----------------------------------------------------------------------------
 #include "D3D12RHIPrivate.h"
 
+/// @cond DOXYGEN_WARNINGS
+
 void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGraphicsPipelineStateDesc& Desc)
 {
 	FMemory::Memzero(&Desc, sizeof(Desc));
@@ -45,6 +47,7 @@ void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGra
 	Desc.Desc.DepthStencilState = DepthStencilState ? *DepthStencilState : CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 }
 
+/// @endcond
 
 FORCEINLINE uint32 SSE4_CRC32(void* Data, SIZE_T NumBytes)
 {

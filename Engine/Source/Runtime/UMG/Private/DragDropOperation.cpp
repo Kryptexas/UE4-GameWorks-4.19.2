@@ -11,6 +11,8 @@ UDragDropOperation::UDragDropOperation(const FObjectInitializer& ObjectInitializ
 	Pivot = EDragPivot::CenterCenter;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void UDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEvent)
 {
 	OnDrop.Broadcast(this);
@@ -25,3 +27,5 @@ void UDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEven
 {
 	OnDragged.Broadcast(this);
 }
+
+/// @endcond

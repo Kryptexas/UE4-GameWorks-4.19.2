@@ -469,6 +469,8 @@ bool AGameplayDebuggerCategoryReplicator::IsNetRelevantFor(const AActor* RealVie
 	return (RealViewer == OwnerPC);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameplayDebuggerCategoryReplicator::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -528,6 +530,8 @@ void AGameplayDebuggerCategoryReplicator::ServerSendExtensionInputEvent_Implemen
 {
 	SendExtensionInputEvent(ExtensionId, HandlerId);
 }
+
+/// @endcond
 
 void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket)
 {

@@ -290,9 +290,13 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	return bSuccess;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FColor>(const FString& File, const TArray<FColor>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
 template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FFloat16Color>(const FString& File, const TArray<FFloat16Color>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
 template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FLinearColor>(const FString& File, const TArray<FLinearColor>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
+
+/// @endcond
 
 FHighResScreenshotConfig::FImageWriter::FImageWriter(const TSharedPtr<class IImageWrapper>& InWrapper)
 	: ImageWrapper(InWrapper)

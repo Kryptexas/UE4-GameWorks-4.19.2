@@ -102,9 +102,14 @@ struct FNamedLensPreset
 UENUM()
 enum class ECameraFocusMethod : uint8
 {
-	None,					/** Disables DoF entirely. */
-	Manual,					/** Allows for specifying or animating exact focus distances. */
-	Tracking,				/** Locks focus to specific object. */
+	/** Disables DoF entirely. */
+	None,
+
+	/** Allows for specifying or animating exact focus distances. */
+	Manual,
+
+	/** Locks focus to specific object. */
+	Tracking,
 };
 
 /** Settings to control tracking-focus mode. */
@@ -149,8 +154,8 @@ struct FCameraFocusSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracking Focus Settings")
 	FCameraTrackingFocusSettings TrackingFocusSettings;
 
-// TODO: Make this editor only again once UE-43122 has been completed.
-//#if WITH_EDITORONLY_DATA
+//~ TODO: Make this editor only again once UE-43122 has been completed.
+//~	#if WITH_EDITORONLY_DATA
 	/** True to draw a translucent plane at the current focus depth, for easy tweaking. */
 	UPROPERTY(Transient, EditAnywhere, Category = "Focus Settings")
 	uint8 bDrawDebugFocusPlane : 1;
@@ -158,7 +163,7 @@ struct FCameraFocusSettings
 	/** For customizing the focus plane color, in case the default doesn't show up well in your scene. */
 	UPROPERTY(EditAnywhere, Category = "Focus Settings", meta = (EditCondition = "bDrawDebugFocusPlane"))
 	FColor DebugFocusPlaneColor;
-//#endif 
+//~	#endif 
 
 	/** True to use interpolation to smooth out changes in focus distance, false for focus distance changes to be instantaneous. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Focus Settings")
@@ -188,14 +193,7 @@ struct FCameraFocusSettings
 /**
  * A specialized version of a camera component, geared toward cinematic usage.
  */
-UCLASS(
-	HideCategories = (CameraSettings), 
-	HideFunctions = (SetFieldOfView, SetAspectRatio, SetConstraintAspectRatio), 
-	Blueprintable, 
-	ClassGroup = Camera, 
-	meta = (BlueprintSpawnableComponent), 
-	Config = Engine
-	)
+UCLASS(HideCategories = (CameraSettings), HideFunctions = (SetFieldOfView, SetAspectRatio, SetConstraintAspectRatio), Blueprintable, ClassGroup = Camera, meta = (BlueprintSpawnableComponent), Config = Engine)
 class CINEMATICCAMERA_API UCineCameraComponent : public UCameraComponent
 {
 	GENERATED_BODY()
@@ -261,7 +259,12 @@ protected:
 	/** Set to true to skip any interpolations on the next update. Resets to false automatically. */
 	uint8 bResetInterpolation : 1;
 
+	/// @cond DOXYGEN_WARNINGS
+	
 	virtual void PostLoad() override;
+	
+	/// @endcond
+	
 	virtual void PostInitProperties() override;
 	virtual void OnRegister() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

@@ -698,7 +698,10 @@ public:
 
 	// Pre-computed filter in spectral (i.e. FFT) domain along with data to determine if we need to up date it
 	struct {
+		/// @cond DOXYGEN_WARNINGS
 		void SafeRelease() { Spectral.SafeRelease(); CenterWeight.SafeRelease(); }
+		/// @endcond
+
 		// The 2d fourier transform of the physical space texture.
 		TRefCountPtr<IPooledRenderTarget> Spectral;
 		TRefCountPtr<IPooledRenderTarget> CenterWeight; // a 1-pixel buffer that holds blend weights for half-resolution fft.

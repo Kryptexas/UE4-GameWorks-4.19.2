@@ -17,6 +17,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
+/// @cond DOXYGEN_WARNINGS
+
 UCineCameraComponent::UCineCameraComponent()
 {
 	// Super 35mm 4 Perf
@@ -56,7 +58,6 @@ UCineCameraComponent::UCineCameraComponent()
 	}
 #endif
 }
-
 
 void UCineCameraComponent::PostInitProperties()
 {
@@ -109,6 +110,7 @@ void UCineCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 }
 
 #if WITH_EDITORONLY_DATA
+
 void UCineCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	RecalcDerivedData();
@@ -146,8 +148,8 @@ void UCineCameraComponent::ResetProxyMeshTransform()
 		ProxyMeshComponent->SetRelativeLocation(FVector(-46.f, 0, -24.f));
 	}
 }
-#endif	// WITH_EDITORONLY_DATA
 
+#endif	// WITH_EDITORONLY_DATA
 
 float UCineCameraComponent::GetHorizontalFieldOfView() const
 {
@@ -199,6 +201,8 @@ void UCineCameraComponent::RecalcDerivedData()
 	CurrentHorizontalFOV = FieldOfView;			// informational variable only, for editor users
 #endif
 }
+
+/// @endcond
 
 float UCineCameraComponent::GetDesiredFocusDistance(const FVector& InLocation) const
 {

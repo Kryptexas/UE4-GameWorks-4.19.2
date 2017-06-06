@@ -40,19 +40,19 @@ void FBasicToken::Clone(const FBasicToken& Other)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicToken::Matches(TCHAR const* Str, ESearchCase::Type SearchCase) const
+bool FBasicToken::Matches(const TCHAR* Str, ESearchCase::Type SearchCase) const
 {
 	return (TokenType==TOKEN_Identifier || TokenType==TOKEN_Symbol) && ((SearchCase == ESearchCase::CaseSensitive) ? !FCString::Strcmp(Identifier, Str) : !FCString::Stricmp(Identifier, Str));
 }
 
 //------------------------------------------------------------------------------
-bool FBasicToken::Matches(FName const& Name) const
+bool FBasicToken::Matches(const FName& Name) const
 {
 	return TokenType==TOKEN_Identifier && TokenName==Name;
 }
 
 //------------------------------------------------------------------------------
-bool FBasicToken::StartsWith(TCHAR const* Str, bool bCaseSensitive) const
+bool FBasicToken::StartsWith(const TCHAR* Str, bool bCaseSensitive) const
 {
 	const int32 StrLength = FCString::Strlen(Str);
 	return (TokenType==TOKEN_Identifier || TokenType==TOKEN_Symbol) && (bCaseSensitive ? (!FCString::Strncmp(Identifier, Str, StrLength)) : (!FCString::Strnicmp(Identifier, Str, StrLength)));
@@ -284,7 +284,7 @@ namespace BasicTokenParserImpl
 }
 
 //------------------------------------------------------------------------------
-void FBasicTokenParser::ResetParser(TCHAR const* SourceBuffer, int32 StartingLineNumber)
+void FBasicTokenParser::ResetParser(const TCHAR* SourceBuffer, int32 StartingLineNumber)
 {
 	Input     = SourceBuffer;
 	InputLen  = FCString::Strlen(Input);
@@ -706,7 +706,7 @@ bool FBasicTokenParser::GetSymbol(FBasicToken& Token)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::GetConstInt(int32& Result, TCHAR const* ErrorContext)
+bool FBasicTokenParser::GetConstInt(int32& Result, const TCHAR* ErrorContext)
 {
 	FBasicToken Token;
 	if (GetToken(Token))
@@ -910,7 +910,7 @@ bool FBasicTokenParser::MatchIdentifier(FName Match)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::MatchIdentifier(TCHAR const* Match)
+bool FBasicTokenParser::MatchIdentifier(const TCHAR* Match)
 {
 	FBasicToken Token;
 	if (GetToken(Token))
@@ -953,7 +953,7 @@ bool FBasicTokenParser::PeekIdentifier(const TCHAR* Match)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::MatchSymbol(TCHAR const* Match)
+bool FBasicTokenParser::MatchSymbol(const TCHAR* Match)
 {
 	FBasicToken Token;
 
@@ -973,7 +973,7 @@ bool FBasicTokenParser::MatchSymbol(TCHAR const* Match)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::PeekSymbol(TCHAR const* Match)
+bool FBasicTokenParser::PeekSymbol(const TCHAR* Match)
 {
 	FBasicToken Token;
 	if (!GetToken(Token, true))
@@ -986,7 +986,7 @@ bool FBasicTokenParser::PeekSymbol(TCHAR const* Match)
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::RequireIdentifier(FName Match, TCHAR const* ErrorContext)
+bool FBasicTokenParser::RequireIdentifier(FName Match, const TCHAR* ErrorContext)
 {
 	if (!MatchIdentifier(Match))
 	{
@@ -997,7 +997,7 @@ bool FBasicTokenParser::RequireIdentifier(FName Match, TCHAR const* ErrorContext
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::RequireIdentifier(TCHAR const* Match, TCHAR const* ErrorContext)
+bool FBasicTokenParser::RequireIdentifier(const TCHAR* Match, const TCHAR* ErrorContext)
 {
 	if (!MatchIdentifier(Match))
 	{
@@ -1008,7 +1008,7 @@ bool FBasicTokenParser::RequireIdentifier(TCHAR const* Match, TCHAR const* Error
 }
 
 //------------------------------------------------------------------------------
-bool FBasicTokenParser::RequireSymbol(TCHAR const* Match, TCHAR const* ErrorContext)
+bool FBasicTokenParser::RequireSymbol(const TCHAR* Match, const TCHAR* ErrorContext)
 {
 	if (!MatchSymbol(Match))
 	{

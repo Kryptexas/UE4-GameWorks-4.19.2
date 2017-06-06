@@ -208,6 +208,8 @@ UStaticMeshComponent::~UStaticMeshComponent()
 	// Empty, but required because we don't want to have to include LightMap.h and ShadowMap.h in StaticMeshComponent.h, and they are required to compile FLightMapRef and FShadowMapRef
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -216,6 +218,8 @@ void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty 
 	DOREPLIFETIME( UStaticMeshComponent, StaticMesh );
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
+
+/// @endcond
 
 void UStaticMeshComponent::OnRep_StaticMesh(class UStaticMesh *OldStaticMesh)
 {

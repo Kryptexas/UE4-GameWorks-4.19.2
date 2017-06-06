@@ -346,6 +346,8 @@ FVector FRepMovement::RebaseOntoZeroOrigin(const struct FVector& Location, const
 	return RebaseOntoZeroOrigin(Location, WorldContextActor->GetWorld()->OriginLocation);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 /** Rebase zero-origin position onto local world origin value based on an actor component's world. */
 FVector FRepMovement::RebaseOntoLocalOrigin(const struct FVector& Location, const UActorComponent* const WorldContextActorComponent)
 {
@@ -367,3 +369,5 @@ FVector FRepMovement::RebaseOntoZeroOrigin(const struct FVector& Location, const
 
 	return RebaseOntoZeroOrigin(Location, WorldContextActorComponent->GetWorld()->OriginLocation);
 }
+
+/// @endcond

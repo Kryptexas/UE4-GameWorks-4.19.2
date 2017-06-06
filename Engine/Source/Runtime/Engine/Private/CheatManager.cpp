@@ -605,6 +605,8 @@ void UCheatManager::BeginDestroy()
 	Super::BeginDestroy();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool UCheatManager::ServerToggleAILogging_Validate()
 {
 	return true;
@@ -646,6 +648,8 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 	}
 #endif
 }
+
+/// @endcond
 
 void UCheatManager::ToggleAILogging()
 {

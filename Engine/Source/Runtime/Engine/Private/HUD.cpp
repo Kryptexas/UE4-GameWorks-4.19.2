@@ -590,6 +590,8 @@ void AHUD::DrawDebugTextList()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 AActor* SrcActor,
 										 float Duration,
@@ -681,6 +683,8 @@ void AHUD::RemoveAllDebugStrings_Implementation()
 {
 	DebugTextList.Reset();
 }
+
+/// @endcond
 
 void AHUD::NotifyHitBoxClick(FName BoxName)
 {

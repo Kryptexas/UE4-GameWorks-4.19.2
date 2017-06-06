@@ -1332,6 +1332,8 @@ public:
 	virtual void SetPawn(APawn* InPawn) override;
 	//~ End AController Interface
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
 	 * most commonly because the desired Actor's archetype couldn't be serialized
 	 * the default is to do nothing (Actor simply won't exist on the client), but this function gives the game code

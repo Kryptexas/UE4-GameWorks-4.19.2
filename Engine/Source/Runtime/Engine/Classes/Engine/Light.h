@@ -21,6 +21,8 @@ private_subobject:
 	class ULightComponent* LightComponent;
 public:
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** replicated copy of LightComponent's bEnabled property */
 	UPROPERTY(replicatedUsing=OnRep_bEnabled)
 	uint32 bEnabled:1;

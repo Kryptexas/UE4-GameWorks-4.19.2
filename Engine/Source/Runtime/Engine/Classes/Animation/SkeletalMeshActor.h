@@ -24,6 +24,8 @@ class ENGINE_API ASkeletalMeshActor : public AActor, public IMatineeAnimInterfac
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** Whether or not this actor should respond to anim notifies - CURRENTLY ONLY AFFECTS PlayParticleEffect NOTIFIES**/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, AdvancedDisplay)
 	uint32 bShouldDoAnimNotifies:1;

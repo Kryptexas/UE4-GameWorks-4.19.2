@@ -345,10 +345,14 @@ bool UCameraShake::IsFinished() const
 		);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool UCameraShake::ReceiveIsFinished_Implementation() const
 {
 	return true;
 }
+
+/// @endcond
 
 bool UCameraShake::IsLooping() const
 {

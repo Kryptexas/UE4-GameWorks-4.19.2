@@ -279,6 +279,8 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** DEFAULT BASIC PHYSICS SETTINGS **/
 
 	/** If true, enables CheckStillInWorld checks */

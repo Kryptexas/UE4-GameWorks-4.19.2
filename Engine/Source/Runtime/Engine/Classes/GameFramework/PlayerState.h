@@ -197,6 +197,8 @@ public:
 	/** return true if PlayerState is primary (ie. non-splitscreen) player */
 	virtual bool IsPrimaryPlayer() const;
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** calls OverrideWith and triggers OnOverrideWith for BP extension */
 	void DispatchOverrideWith(APlayerState* PlayerState);
 

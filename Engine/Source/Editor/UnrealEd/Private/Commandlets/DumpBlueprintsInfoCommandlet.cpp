@@ -382,7 +382,7 @@ DumpBlueprintsInfo commandlet params: \n\
 	 * actions available to that pin (as if you dragged and spawned a context 
 	 * menu from it).
 	 */
-	static void DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, FEdGraphPinType const& PinType, FArchive* FileOutWriter);
+	static void DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, const FEdGraphPinType& PinType, FArchive* FileOutWriter);
 	
 	/**
 	 * Generic function that takes a contextual GraphActionList and calls down 

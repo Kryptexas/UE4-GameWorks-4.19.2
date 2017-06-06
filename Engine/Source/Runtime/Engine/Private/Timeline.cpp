@@ -939,12 +939,16 @@ void UTimelineComponent::OnRep_Timeline()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void UTimelineComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( UTimelineComponent, TheTimeline );
 }
+
+/// @endcond
 
 void UTimelineComponent::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
 {

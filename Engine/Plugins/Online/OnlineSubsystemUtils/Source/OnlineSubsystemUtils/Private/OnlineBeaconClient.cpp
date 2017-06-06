@@ -141,6 +141,9 @@ void AOnlineBeaconClient::OnFailure()
 	Super::OnFailure();
 }
 
+
+/// @cond DOXYGEN_WARNINGS
+
 void AOnlineBeaconClient::ClientOnConnected_Implementation()
 {
 	SetConnectionState(EBeaconConnectionState::Open);
@@ -156,6 +159,8 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 	// Call the overloaded function for this client class
 	OnConnected();
 }
+
+/// @endcond
 
 bool AOnlineBeaconClient::UseShortConnectTimeout() const
 {

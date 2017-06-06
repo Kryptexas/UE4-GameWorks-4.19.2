@@ -26,6 +26,8 @@
 	#define WITH_CASE_PRESERVING_NAME WITH_EDITORONLY_DATA
 #endif
 
+class FText;
+
 /** Maximum size of name. */
 enum {NAME_SIZE	= 1024};
 
@@ -664,7 +666,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	static bool IsValidXName( const FString& InName, const FString& InInvalidChars, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr );
+	static bool IsValidXName( const FString& InName, const FString& InInvalidChars, FText* OutReason = nullptr, const FText* InErrorCtx = nullptr );
 
 	/**
 	 * Checks to see that a FName follows the rules that Unreal requires.
@@ -675,7 +677,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( const FString& InInvalidChars = INVALID_NAME_CHARACTERS, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr ) const
+	bool IsValidXName( const FString& InInvalidChars = INVALID_NAME_CHARACTERS, FText* OutReason = nullptr, const FText* InErrorCtx = nullptr ) const
 	{
 		return IsValidXName(ToString(), InInvalidChars, OutReason, InErrorCtx);
 	}
@@ -688,7 +690,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( class FText& OutReason, const FString& InInvalidChars = INVALID_NAME_CHARACTERS ) const
+	bool IsValidXName( FText& OutReason, const FString& InInvalidChars = INVALID_NAME_CHARACTERS ) const
 	{
 		return IsValidXName(ToString(), InInvalidChars, &OutReason);
 	}
@@ -700,7 +702,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidObjectName( class FText& OutReason ) const
+	bool IsValidObjectName( FText& OutReason ) const
 	{
 		return IsValidXName(ToString(), INVALID_OBJECTNAME_CHARACTERS, &OutReason);
 	}
@@ -713,7 +715,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidGroupName( class FText& OutReason, bool bIsGroupName=false ) const
+	bool IsValidGroupName( FText& OutReason, bool bIsGroupName=false ) const
 	{
 		return IsValidXName(ToString(), INVALID_LONGPACKAGE_CHARACTERS, &OutReason);
 	}

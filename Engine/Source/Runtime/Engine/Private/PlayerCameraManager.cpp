@@ -59,6 +59,8 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	DefaultModifiers.Add(UCameraModifier_CameraShake::StaticClass());
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerCameraManager::PhotographyCameraModify_Implementation(const FVector NewCameraLocation, const FVector PreviousCameraLocation, const FVector OriginalCameraLocation, FVector& OutCameraLocation)
 {	// let proposed camera through unmodified by default
 	OutCameraLocation = NewCameraLocation;
@@ -79,6 +81,8 @@ void APlayerCameraManager::OnPhotographyMultiPartCaptureStart_Implementation()
 void APlayerCameraManager::OnPhotographyMultiPartCaptureEnd_Implementation()
 {	// do nothing by default
 }
+
+/// @endcond
 
 
 APlayerController* APlayerCameraManager::GetOwningPlayerController() const

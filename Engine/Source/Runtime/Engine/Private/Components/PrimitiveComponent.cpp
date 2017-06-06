@@ -2164,7 +2164,7 @@ bool UPrimitiveComponent::ComputePenetration(FMTDResult& OutMTD, const FCollisio
 	return false;
 }
 
-bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* OtherComp) const
+bool UPrimitiveComponent::IsOverlappingComponent(const UPrimitiveComponent* OtherComp) const
 {
 	for (int32 i=0; i < OverlappingComponents.Num(); ++i)
 	{
@@ -2176,7 +2176,7 @@ bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* Othe
 	return false;
 }
 
-bool UPrimitiveComponent::IsOverlappingComponent( const FOverlapInfo& Overlap ) const
+bool UPrimitiveComponent::IsOverlappingComponent(const FOverlapInfo& Overlap) const
 {
 	return OverlappingComponents.Find(Overlap) != INDEX_NONE;
 }

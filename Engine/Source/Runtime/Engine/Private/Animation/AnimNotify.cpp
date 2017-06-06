@@ -36,6 +36,8 @@ class UWorld* UAnimNotify::GetWorld() const
 	return (MeshContext ? MeshContext->GetWorld() : NULL);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 FString UAnimNotify::GetNotifyName_Implementation() const
 {
 	UObject* ClassGeneratedBy = GetClass()->ClassGeneratedBy;
@@ -56,6 +58,8 @@ FString UAnimNotify::GetNotifyName_Implementation() const
 	
 	return NotifyName;
 }
+
+/// @endcond
 
 void UAnimNotify::PostLoad()
 {

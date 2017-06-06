@@ -390,7 +390,7 @@ bool UWorld::OverlapMultiByProfile(TArray<struct FOverlapResult>& OutOverlaps, c
 }
 
 
-bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FQuat& Quat, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FQuat& Quat, const FComponentQueryParams& Params, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	if (PrimComp)
 	{
@@ -419,7 +419,7 @@ bool UWorld::ComponentOverlapMultiByChannel(TArray<struct FOverlapResult>& OutOv
 	}
 }
 
-bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FQuat& Quat, const struct FComponentQueryParams& Params) const
+bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FQuat& Quat, const FComponentQueryParams& Params) const
 {
 	if (GetPhysicsScene() == NULL)
 	{

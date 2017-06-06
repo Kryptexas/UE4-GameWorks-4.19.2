@@ -15,6 +15,8 @@ void ATestBeaconClient::OnFailure()
 	Super::OnFailure();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void ATestBeaconClient::ClientPing_Implementation()
 {
 #if !UE_BUILD_SHIPPING
@@ -39,3 +41,5 @@ void ATestBeaconClient::ServerPong_Implementation()
 	ClientPing();
 #endif
 }
+
+/// @endcond

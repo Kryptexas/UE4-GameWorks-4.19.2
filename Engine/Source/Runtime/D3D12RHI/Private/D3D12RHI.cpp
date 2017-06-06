@@ -21,7 +21,11 @@ TAutoConsoleVariable<int32> CVarD3D12ZeroBufferSizeInMB(
 	ECVF_ReadOnly
 	);
 
+/// @cond DOXYGEN_WARNINGS
+
 FD3D12FastAllocator* FD3D12DynamicRHI::HelperThreadDynamicHeapAllocator = nullptr;
+
+/// @endcond
 
 FD3D12DynamicRHI* FD3D12DynamicRHI::SingleD3DRHI = nullptr;
 
