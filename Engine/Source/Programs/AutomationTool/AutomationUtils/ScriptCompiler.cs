@@ -321,6 +321,17 @@ namespace AutomationTool
 		{
 			CommandUtils.LogVerbose("Cleaning up script DLL folder");
 			CommandUtils.DeleteDirectory(GetScriptAssemblyFolder());
+
+			// Bug in PortalPublishingTool caused these DLLs to be copied into Engine/Binaries/DotNET. Delete any files left over.
+			DirectoryReference BinariesDir = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "DotNET");
+			foreach (FileReference FileToDelete in DirectoryReference.EnumerateFiles(BinariesDir, "*.automation.dll"))
+			{
+				CommandUtils.DeleteFile(FileToDelete.FullName);
+			}
+			foreach (FileReference FileToDelete in DirectoryReference.EnumerateFiles(BinariesDir, "*.automation.pdb"))
+			{
+				CommandUtils.DeleteFile(FileToDelete.FullName);
+			}
 		}
 
 		private static string GetScriptAssemblyFolder()
