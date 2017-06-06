@@ -904,15 +904,15 @@ public partial class Project : CommandUtils
 				}
 			}
 
-			// special case DefaultEngine.ini to strip passwords
-			if (Path.GetFileName(Src).Equals("DefaultEngine.ini"))
+			// Do a filtered copy of all ini files to allow stripping of values that we don't want to distribute
+			if (Path.GetExtension(Src).Equals(".ini"))
 			{
 				string SrcDirectoryPath = Path.GetDirectoryName(Src);
 				string ConfigDirectory = "Config";
 				int ConfigRootIdx = SrcDirectoryPath.LastIndexOf(ConfigDirectory);
 				string SubpathUnderConfig = (ConfigRootIdx != -1) ? SrcDirectoryPath.Substring(ConfigRootIdx + ConfigDirectory.Length) : "Unknown";
 
-				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, "DefaultEngine.ini");
+				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, Path.GetFileName(Src));
 				InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(NewIniFilename), true);
 				InternalUtils.SafeCopyFile(Src, NewIniFilename, bFilterSpecialLinesFromIniFiles:true);
 				Src = NewIniFilename;
