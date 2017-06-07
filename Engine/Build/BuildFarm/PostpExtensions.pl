@@ -29,7 +29,7 @@
 	"LogOnline:Warning: STEAM:.*libraries not present.*failed to load!",
 	
 	# Some doxygen output can confuse the post-processor, because it lists a symbol containing "Warning::"
-	"doxygen>.*Warning::.*",
+	"doxygen>.*(Warning|Error)::.*",
 	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
@@ -120,6 +120,11 @@ unshift @::gMatchers, (
         id =>               "clangWarning",
         pattern =>          q{([^:]+):[\d:]+ warning:},
         action =>           q{incValue("warnings"); diagnostic($1, "warning", backWhile(": In function"), 0)},
+    },
+    {
+        id =>               "genericDoctoolError",
+        pattern =>          q{Error:},
+        action =>           q{incValue("errors"); diagnostic("", "error")}
     },
     {
         id =>               "ubtFailedToProduceItem",
