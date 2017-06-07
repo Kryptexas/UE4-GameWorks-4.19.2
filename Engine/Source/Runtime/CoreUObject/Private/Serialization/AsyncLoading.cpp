@@ -3122,6 +3122,7 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 						{
 							Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
 						}
+						Export.Object->ClearFlags(RF_WillBeLoaded);
 					}
 				}
 			}
