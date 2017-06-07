@@ -462,6 +462,11 @@ void InitGamePhysPostRHI()
 		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
 		desc.computeType = bD3D12 ? eNvFlexD3D12 : eNvFlexD3D11;
 		GFlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc, &desc);
+		
+		if (GFlexLib)
+		{
+			UE_LOG(LogInit, Display, TEXT("Initialized Flex with GPU: %s"), ANSI_TO_TCHAR(NvFlexGetDeviceName(GFlexLib)));
+		}
 	}
 
 	if (GFlexLib != NULL)
