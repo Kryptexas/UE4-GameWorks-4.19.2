@@ -41,6 +41,12 @@ namespace AutomationTool
 		public string Arguments;
 
 		/// <summary>
+		/// Whether to allow using XGE for compilation
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool AllowXGE = true;
+
+		/// <summary>
 		/// Whether to allow using the parallel executor for this compile
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -67,6 +73,11 @@ namespace AutomationTool
 		/// Mapping of receipt filename to its corresponding tag name
 		/// </summary>
 		Dictionary<UE4Build.BuildTarget, string> TargetToTagName = new Dictionary<UE4Build.BuildTarget,string>();
+
+		/// <summary>
+		/// Whether to allow using XGE for this job
+		/// </summary>
+		bool bAllowXGE = true;
 
 		/// <summary>
 		/// Whether to allow using the parallel executor for this job
@@ -97,13 +108,18 @@ namespace AutomationTool
 
 			if(Targets.Count > 0)
 			{
-				if(!bAllowParallelExecutor || !CompileTask.Parameters.AllowParallelExecutor)
+				if (bAllowXGE != CompileTask.Parameters.AllowXGE)
+				{
+					return false;
+				}
+				if (!bAllowParallelExecutor || !CompileTask.Parameters.AllowParallelExecutor)
 				{
 					return false;
 				}
 			}
 
 			CompileTaskParameters Parameters = CompileTask.Parameters;
+			bAllowXGE &= Parameters.AllowXGE;
 			bAllowParallelExecutor &= Parameters.AllowParallelExecutor;
 
 			UE4Build.BuildTarget Target = new UE4Build.BuildTarget { TargetName = Parameters.Target, Platform = Parameters.Platform, Config = Parameters.Configuration, UBTArgs = "-nobuilduht " + (Parameters.Arguments ?? "") };
@@ -135,7 +151,7 @@ namespace AutomationTool
 			try
 			{
 				bool bCanUseParallelExecutor = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 && bAllowParallelExecutor);	// parallel executor is only available on Windows as of 2016-09-22
-				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: bCanUseParallelExecutor, InTargetToManifest: TargetToManifest);
+				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: !bAllowXGE, InUseParallelExecutor: bCanUseParallelExecutor, InTargetToManifest: TargetToManifest);
 			}
 			catch (CommandUtils.CommandFailedException)
 			{
