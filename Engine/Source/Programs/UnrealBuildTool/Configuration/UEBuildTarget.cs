@@ -2407,8 +2407,8 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Add global definitions for project-specific binaries
-			if(!bUseSharedBuildEnvironment)
+			// Add global definitions for project-specific binaries. HACK: Also defining for monolithic builds in binary releases. Might be better to set this via command line instead?
+			if(!bUseSharedBuildEnvironment || bCompileMonolithic)
 			{
 				UEBuildBinary ExecutableBinary = AppBinaries[0];
 
