@@ -343,11 +343,15 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			GatherSimpleLights(ViewFamily, Views, SimpleLights);
 		}
 
+		TArray<FForwardGlobalLightData, TInlineAllocator<2>> GlobalLightDataForAllViews;
+		GlobalLightDataForAllViews.Empty(Views.Num());
+		GlobalLightDataForAllViews.AddDefaulted(Views.Num());
+
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			FViewInfo& View = Views[ViewIndex];
 
-			FForwardGlobalLightData GlobalLightData;
+			FForwardGlobalLightData& GlobalLightData = GlobalLightDataForAllViews[ViewIndex];
 			TArray<FForwardLocalLightData, SceneRenderingAllocator> ForwardLocalLightData;
 			float FurthestLight = 1000;
 
@@ -599,6 +603,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			FViewInfo& View = Views[ViewIndex];
+			const FForwardGlobalLightData& GlobalLightData = GlobalLightDataForAllViews[ViewIndex];
 
 			const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
 			const int32 NumCells = LightGridSizeXY.X * LightGridSizeXY.Y * GLightGridSizeZ * NumCulledGridPrimitiveTypes;
@@ -620,7 +625,12 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			const FIntVector NumGroups = FIntVector::DivideAndRoundUp(FIntVector(LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ), LightGridInjectionGroupSize);
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, CullLights);
+				SCOPED_DRAW_EVENTF(RHICmdList, CullLights, TEXT("CullLights %ux%ux%u NumLights %u NumCaptures %u"), 
+					GlobalLightData.CulledGridSize.X, 
+					GlobalLightData.CulledGridSize.Y,
+					GlobalLightData.CulledGridSize.Z,
+					GlobalLightData.NumLocalLights,
+					GlobalLightData.NumReflectionCaptures);
 
 				TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<6>> OutUAVs;
 				OutUAVs.Add(View.ForwardLightingResources->NumCulledLightsGrid.UAV);
