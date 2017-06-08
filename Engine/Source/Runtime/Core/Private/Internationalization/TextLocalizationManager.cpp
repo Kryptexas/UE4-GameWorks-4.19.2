@@ -727,15 +727,19 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 		// The editor cheats and loads the native culture's localizations.
 		if (GIsEditor)
 		{
-			FString NativeCultureName;
-			GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeCultureName, GEditorSettingsIni );
+			FString NativeLanguageName;
+			if (!GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameLanguage"), NativeLanguageName, GEditorSettingsIni))
+			{
+				// Legacy setting
+				GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeLanguageName, GEditorSettingsIni);
+			}
 
-			if (!NativeCultureName.IsEmpty() && GameLocalizationPaths.Num() > 0)
+			if (!NativeLanguageName.IsEmpty() && GameLocalizationPaths.Num() > 0)
 			{
 				FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
 				for (const FString& LocalizationPath : GameLocalizationPaths)
 				{
-					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeCultureName));
+					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeLanguageName));
 					if (Entry)
 					{
 						const FString CulturePath = LocalizationPath / (*Entry);
