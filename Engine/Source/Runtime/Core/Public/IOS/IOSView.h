@@ -11,6 +11,19 @@
 #import <QuartzCore/CAMetalLayer.h>
 #endif
 
+struct FKeyboardConfig
+{
+	UIKeyboardType KeyboardType;
+	UITextAutocorrectionType AutocorrectionType;
+	UITextAutocapitalizationType AutocapitalizationType;
+	BOOL bSecureTextEntry;
+	
+	FORCEINLINE FKeyboardConfig() :
+		KeyboardType(UIKeyboardTypeDefault),
+		AutocorrectionType(UITextAutocorrectionTypeNo),
+		AutocapitalizationType(UITextAutocapitalizationTypeNone),
+		bSecureTextEntry(NO) {}
+};
 
 @interface FIOSView : UIView  <UIKeyInput, UITextInput>
 {
@@ -52,6 +65,13 @@
 
 	// caches for the TextInput
 	NSString* CachedMarkedText;
+	
+	UIKeyboardType KeyboardType;
+	UITextAutocorrectionType AutocorrectionType;
+	UITextAutocapitalizationType AutocapitalizationType;
+	BOOL bSecureTextEntry;
+	
+	volatile int32 KeyboardShowCount;
 }
 
 
@@ -80,6 +100,8 @@
 //// KEYBOARD FUNCTIONALITY
 -(void)InitKeyboard;
 -(void)ActivateKeyboard:(bool)bInSendEscapeOnClose;
+-(void)ActivateKeyboard:(bool)bInSendEscapeOnClose keyboardConfig:(FKeyboardConfig)KeyboardConfig;
+-(void)DeactivateKeyboard;
 @end
 
 

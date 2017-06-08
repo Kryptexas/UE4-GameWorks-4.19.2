@@ -704,96 +704,6 @@ void UMovieScene::UpgradeTimeRanges()
 #endif
 }
 
-
-void UMovieScene::UpgradeTrackRows()
-{
-	int32 NumMasterTracks = MasterTracks.Num();
-	for (int32 MasterTrackIndex = 0; MasterTrackIndex < NumMasterTracks; ++MasterTrackIndex)
-	{
-		UpgradeTrackRow(MasterTracks[MasterTrackIndex]);
-	}
-
-	for (auto& Binding : ObjectBindings)
-	{
-		int32 NumTracks = Binding.GetTracks().Num();
-		for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
-		{
-			UpgradeTrackRow(Binding.GetTracks()[TrackIndex]);
-		}
-	}
-}
-
-void UMovieScene::UpgradeTrackRow(UMovieSceneTrack* InTrack)
-{
-	if (GetLinkerCustomVersion(FSequencerObjectVersion::GUID) >= FSequencerObjectVersion::ConvertMultipleRowsToTracks)
-	{
-		return;
-	}
-
-	// Skeletal animation tracks and audio tracks went through a brief period of expanding their rows out to multiple tracks
-	// but that upgrade path was short-lived since we added better support for such tracks in the sequencer front-end.
-	// it was impossible to reliably implement such upgrades due the legacy 'evaluate nearest section' behavior on each of the duplicated tracks
-	static const FName SkeletalAnimationTrack("MovieSceneSkeletalAnimationTrack");
-	static const FName AudioTrack("MovieSceneAudioTrack");
-
-	FName TrackName = InTrack->GetClass()->GetFName();
-	if (TrackName != SkeletalAnimationTrack && TrackName != AudioTrack)
-	{
-		return;
-	}
-
-	// Even still, there is a small amount of upgrade to be done to ensure that blending does not occur on sections that were
-	// previously overridden by another, so we upgrade these cases by weighting such areas with keys at 0 or 1
-
-	// If there aren't sections on multiple rows, disregard
-	auto ContainsMultipleRows = [](UMovieSceneSection* InSection){ return InSection->GetRowIndex() > 0; };
-	if (!InTrack->GetAllSections().ContainsByPredicate(ContainsMultipleRows))
-	{
-		return;
-	}
-
-	// Deal with overlapping sections. For example, skeletal animation sections should be weighted along their evaluation bounds.
-	//
-	// For example,
-	//
-	//          [----A----]
-	// [-----B-----]
-	//
-	//
-	// Evaluation segments result in:
-	//
-	//          [----A----]
-	// [---B---]
-	//
-	// OR (depending upon order in the original track):
-	//
-	//              [--A--]
-	// [------B----]
-	//
-
-	TInlineValue<FMovieSceneSegmentCompilerRules> RowCompilerRules = InTrack->GetRowCompilerRules();
-	FMovieSceneTrackCompiler::FRows TrackRows(InTrack->GetAllSections(), RowCompilerRules.GetPtr(nullptr));
-	FMovieSceneTrackEvaluationField EvaluationField = FMovieSceneTrackCompiler().Compile(TrackRows.Rows, InTrack->GetTrackCompilerRules().GetPtr(nullptr));
-
-	for (const FMovieSceneSegment& EvalSegment : EvaluationField.Segments)
-	{
-		if (EvalSegment.Range.IsDegenerate() || EvalSegment.Range.IsEmpty())
-		{
-			continue;
-		}
-
-		for (FSectionEvaluationData EvalData : EvalSegment.Impls)
-		{
-			UMovieSceneSection* Section = InTrack->GetAllSections()[EvalData.ImplIndex];
-			Section->ConditionalPostLoad();
-			Section->PostLoadUpgradeTrackRow(EvalSegment.Range);
-		}
-	}
-
-	InTrack->MarkAsChanged();
-}
-
-
 /* UObject interface
  *****************************************************************************/
 
@@ -813,7 +723,6 @@ void UMovieScene::PostLoad()
 	}
 
 	UpgradeTimeRanges();
-	UpgradeTrackRows();
 
 	for (FMovieSceneSpawnable& Spawnable : Spawnables)
 	{

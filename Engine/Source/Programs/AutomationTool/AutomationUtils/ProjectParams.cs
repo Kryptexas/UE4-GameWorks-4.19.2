@@ -607,7 +607,12 @@ namespace AutomationTool
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty, true);
 			this.ChunkInstallVersionString = ParseParamValueIfNotSpecified(Command, ChunkInstallVersionString, "chunkinstallversion", String.Empty, true);
-			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
+            this.ChunkInstallReleaseString = ParseParamValueIfNotSpecified(Command, ChunkInstallReleaseString, "chunkinstallrelease", String.Empty, true);
+            if (string.IsNullOrEmpty(this.ChunkInstallReleaseString))
+            {
+                this.ChunkInstallReleaseString = this.ChunkInstallVersionString;
+            }
+            this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty, true);
 			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
@@ -1066,10 +1071,15 @@ namespace AutomationTool
 		/// </summary>
 		public string ChunkInstallVersionString { set; get; }
 
-		/// <summary>
-		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
-		/// </summary>	
-		public string BaseStageDirectory
+        /// <summary>
+        /// Shared: Release string to use for built chunk install data, command line: -chunkinstallrelease=
+        /// </summary>
+        public string ChunkInstallReleaseString { set; get; }
+
+        /// <summary>
+        /// Shared: Directory to copy the client to, command line: -stagingdirectory=
+        /// </summary>	
+        public string BaseStageDirectory
 		{
 			get
 			{

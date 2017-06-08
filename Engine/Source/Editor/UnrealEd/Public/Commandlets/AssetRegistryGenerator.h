@@ -257,7 +257,7 @@ private:
 			}
 		}
 
-		if ( StartupPackages.Contains(PackageFName ))
+		if (StartupPackages.Contains(PackageFName))
 		{
 			ExistingChunkIDs.AddUnique(0);
 		}

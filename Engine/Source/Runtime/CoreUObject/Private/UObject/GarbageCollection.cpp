@@ -1405,8 +1405,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		{
 			const double StartTime = FPlatformTime::Seconds();
 			FRealtimeGC TagUsedRealtimeGC;
-			TagUsedRealtimeGC.PerformReachabilityAnalysis(KeepFlags, bForceSingleThreadedGC);
-			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
+			TagUsedRealtimeGC.PerformReachabilityAnalysis( KeepFlags, bForceSingleThreadedGC );
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000 );
 		}
 
 		// Reconstruct clusters if needed
@@ -1431,8 +1431,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 			FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.Broadcast();
 
-			// This nulls all weak references to unreachable objects
-			FGCArrayPool::Get().ClearWeakReferences();
+			// This nulls all weak references to unreachable objects, and may clear the pools
+			FGCArrayPool::Get().ClearWeakReferences(bPerformFullPurge);
 
 			// Unhash all unreachable objects.
 			const double StartTime = FPlatformTime::Seconds();

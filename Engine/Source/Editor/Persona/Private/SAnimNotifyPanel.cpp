@@ -1607,7 +1607,7 @@ void SAnimNotifyNode::UpdateSizeAndPosition(const FGeometry& AllottedGeometry)
 	
 	if(EndMarkerNodeOverlay.IsValid())
 	{
-		FVector2D OverlaySize = EndMarkerNodeOverlay->ComputeDesiredSize(1.0f);
+		FVector2D OverlaySize = EndMarkerNodeOverlay->GetDesiredSize();
 		WidgetSize.X += OverlaySize.X;
 	}
 
@@ -1648,7 +1648,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	// Paint marker node if we have one
 	if(EndMarkerNodeOverlay.IsValid())
 	{
-		FVector2D MarkerSize = EndMarkerNodeOverlay->ComputeDesiredSize(1.0f);
+		FVector2D MarkerSize = EndMarkerNodeOverlay->GetDesiredSize();
 		FVector2D MarkerOffset(NotifyDurationSizeX + MarkerSize.X * 0.5f + 5.0f, (NotifyHeight - MarkerSize.Y) * 0.5f);
 		EndMarkerNodeOverlay->Paint(Args.WithNewParent(this), AllottedGeometry.MakeChild(MarkerOffset, MarkerSize, 1.0f), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}

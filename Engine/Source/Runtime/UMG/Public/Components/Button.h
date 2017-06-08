@@ -103,6 +103,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Button")
 	bool IsPressed() const;
 
+	UFUNCTION(BlueprintCallable, Category="Button")
+	void SetClickMethod(EButtonClickMethod::Type InClickMethod);
+
+	UFUNCTION(BlueprintCallable, Category="Button")
+	void SetTouchMethod(EButtonTouchMethod::Type InTouchMethod);
+
+	//UFUNCTION(BlueprintCallable, Category="Button")
+	//void SetPressMethod(EButtonPressMethod::Type InPressMethod);
+
 public:
 
 	//~ Begin UWidget Interface

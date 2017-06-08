@@ -92,7 +92,7 @@ float3 SimpleElementFrameBufferBlendOp(float4 Source)
 float4 SimpleElementEncodeFor32BPPHDR(float4 OutColor)
 {
 #if ES2_PROFILE && USE_32BPP_HDR
-	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBE)
 	{
 		OutColor.rgb = SimpleElementFrameBufferBlendOp(OutColor);
 	}

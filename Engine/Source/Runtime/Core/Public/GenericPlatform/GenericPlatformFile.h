@@ -95,6 +95,11 @@ public:
 	**/
 	virtual bool		Write(const uint8* Source, int64 BytesToWrite) = 0;
 
+	/**
+	 * Flushes file.
+	**/
+	virtual void		Flush() { };
+
 public:
 	/////////// Utility Functions. These have a default implementation that uses the pure virtual operations.
 

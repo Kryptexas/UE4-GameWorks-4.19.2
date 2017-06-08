@@ -628,9 +628,9 @@ void Main(
 	OutColor *= ClipForEditorPrimitives(MaterialParameters);
 	clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 #else
-	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE
+	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE && !MATERIALDOMAIN_UI
 		half Mode = GetHDR32bppEncodeMode();
-		if (Mode == HDR_ENCODE_RGBA)
+		if (Mode == HDR_ENCODE_RGBE)
 		{
 			OutColor.rgb = FrameBufferBlendOp(OutColor);
 			OutColor = RGBTEncode8BPC(OutColor.rgb, DEFAULT_32BPPHDR_ENCODED_RANGE);

@@ -2389,6 +2389,7 @@ void FWindowsApplication::QueryConnectedMice()
 		TUniquePtr<char[]> Name;
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
+
 		//Force the use of ANSI versions of these calls
 		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) == static_cast<UINT>(-1))
 			continue;
@@ -2400,6 +2401,7 @@ void FWindowsApplication::QueryConnectedMice()
 		Name[NameLen] = 0;
 		FString WName = ANSI_TO_TCHAR(Name.Get());
 		WName.ReplaceInline(TEXT("#"), TEXT("\\"), ESearchCase::CaseSensitive);
+
 		/*
 		 * Name XP starts with \??\, vista+ starts \\?\ 
 		 * In the device list exists a fake Mouse device with the device name of RDP_MOU
@@ -2411,6 +2413,17 @@ void FWindowsApplication::QueryConnectedMice()
 		}
 
 		++MouseCount;
+	}
+
+	// If the session is a remote desktop session - assume that a mouse is present, it seems that you can end up
+	// in a situation where RDP mice don't have a valid name, so the code above fails to locate a valid mouse, 
+	// even though one is present.
+	if ( MouseCount == 0 )
+	{
+		if ( GetSystemMetrics(SM_REMOTESESSION) )
+		{
+			MouseCount++;
+		}
 	}
 
 	bIsMouseAttached = MouseCount > 0;

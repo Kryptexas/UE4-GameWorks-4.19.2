@@ -51,6 +51,7 @@ void FIOSWindow::Initialize( class FIOSApplication* const Application, const TSh
 			else
 #endif
 			{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 				UIAlertView* AlertView = [[UIAlertView alloc] initWithTitle:@""
 											message:@"Error: Only one UIWindow may be created on iOS."
 											delegate:nil
@@ -59,6 +60,7 @@ void FIOSWindow::Initialize( class FIOSApplication* const Application, const TSh
 
 				[AlertView show];
 				[AlertView release];
+#endif
 			}
 		} );
 	}

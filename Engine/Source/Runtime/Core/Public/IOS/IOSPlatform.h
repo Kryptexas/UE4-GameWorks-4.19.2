@@ -50,6 +50,9 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_USES_ES2								1
 #define PLATFORM_HAS_TOUCH_MAIN_SCREEN					1
 #endif
+#define PLATFORM_UI_HAS_MOBILE_SCROLLBARS				1
+#define PLATFORM_UI_NEEDS_TOOLTIPS						0
+#define PLATFORM_UI_NEEDS_FOCUS_OUTLINES				0
 
 // @todo iOS: temporarily use Ansi allocator as wxWidgets cause problems with MallocTBB
 #define FORCE_ANSI_ALLOCATOR 1

@@ -9,6 +9,7 @@
 #include "Internationalization/BreakIterator.h"
 #include "Framework/Text/ShapedTextCache.h"
 
+DECLARE_CYCLE_STAT(TEXT("Text Layout"), STAT_SlateTextLayout, STATGROUP_Slate);
 
 static TAutoConsoleVariable<int32> CVarDefaultTextFlowDirection(
 	TEXT("Slate.DefaultTextFlowDirection"),
@@ -1115,6 +1116,8 @@ void FTextLayout::UpdateIfNeeded()
 
 void FTextLayout::UpdateLayout()
 {
+	SCOPE_CYCLE_COUNTER(STAT_SlateTextLayout);
+
 	ClearView();
 	BeginLayout();
 
@@ -2405,17 +2408,20 @@ void FTextLayout::SetMargin( const FMargin& InMargin )
 
 void FTextLayout::SetScale( float Value )
 {
-	if ( Scale == Value )
+	if (FMath::IsNaN(Value))
 	{
-		return;
+		Value = 0.0;
 	}
 
-	Scale = Value;
-	DirtyFlags |= ETextLayoutDirtyState::Layout;
+	if (Scale != Value)
+	{
+		Scale = Value;
+		DirtyFlags |= ETextLayoutDirtyState::Layout;
 
-	// Changing the scale will affect the wrapping information for *all lines*
-	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::ShapingCache);
+		// Changing the scale will affect the wrapping information for *all lines*
+		// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
+		DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::ShapingCache);
+	}
 }
 
 void FTextLayout::SetTextShapingMethod( const ETextShapingMethod InTextShapingMethod )

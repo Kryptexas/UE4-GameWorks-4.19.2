@@ -488,9 +488,12 @@ void FShaderResource::Serialize(FArchive& Ar)
 	{
 		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
-		
-		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
 
+		if (FShaderCache::GetShaderCache())
+		{
+			FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
+		}
+		
 		// The shader resource has been serialized in, so this shader resource is now initialized.
 		check(Canary != FShader::ShaderMagic_CleaningUp);
 		Canary = FShader::ShaderMagic_Initialized;

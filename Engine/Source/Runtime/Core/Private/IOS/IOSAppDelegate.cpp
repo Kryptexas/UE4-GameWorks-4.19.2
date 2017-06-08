@@ -15,6 +15,11 @@
 #include "Misc/CommandLine.h"
 #include "IOS/IOSPlatformFramePacer.h"
 #include "IOS/IOSAsyncTask.h"
+#include "Misc/ConfigCacheIni.h"
+#include "IOSPlatformCrashContext.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <AVFoundation/AVAudioSession.h>
@@ -77,10 +82,34 @@ void InstallSignalHandlers()
 	sigaction(SIGSYS, &Action, NULL);
 }
 
+void EngineCrashHandler(const FGenericCrashContext& GenericContext)
+{
+    const FIOSCrashContext& Context = static_cast<const FIOSCrashContext&>(GenericContext);
+    
+    Context.ReportCrash();
+    if (GLog)
+    {
+        GLog->SetCurrentThreadAsMasterThread();
+        GLog->Flush();
+    }
+    if (GWarn)
+    {
+        GWarn->Flush();
+    }
+    if (GError)
+    {
+        GError->Flush();
+        GError->HandleError();
+    }
+    return Context.GenerateCrashInfo();
+}
+
 @implementation IOSAppDelegate
 
 #if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 	@synthesize ConsoleAlert;
+#endif
 #ifdef __IPHONE_8_0
     @synthesize ConsoleAlertController;
 #endif
@@ -98,6 +127,8 @@ void InstallSignalHandlers()
 @synthesize IOSController;
 @synthesize SlateController;
 @synthesize timer;
+@synthesize IdleTimerEnableTimer;
+@synthesize IdleTimerEnablePeriod;
 
 -(void) ParseCommandLineOverrides
 {
@@ -144,13 +175,17 @@ void InstallSignalHandlers()
 	}
 
 
+
 	// Look for overrides specified on the command-line
 	[self ParseCommandLineOverrides];
 
 	FAppEntry::Init();
+	
+	[self InitIdleTimerSettings];
 
 	bEngineInit = true;
-    GShowSplashScreen = false;
+	// @PJS - need a better way to allow the game to turn off the splash screen
+//    GShowSplashScreen = false;
 
 	while( !GIsRequestingExit )
 	{
@@ -196,10 +231,51 @@ void InstallSignalHandlers()
     }
 }
 
--(void)EnableIdleTimer:(bool)bEnabled
+-(void)RecordPeakMemory
+{
+    FIOSPlatformMemory::GetStats();
+}
+
+-(void)InitIdleTimerSettings
+{
+	float TimerDuration = 0.0F;
+	GConfig->GetFloat(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("IdleTimerEnablePeriod"), TimerDuration, GEngineIni);
+	IdleTimerEnablePeriod = TimerDuration;
+	
+	self.IdleTimerEnableTimer = nil;
+}
+
+-(void)DeferredEnableIdleTimer
 {
 	[UIApplication sharedApplication].idleTimerDisabled = NO;
-	[UIApplication sharedApplication].idleTimerDisabled = (bEnabled ? NO : YES);
+	self.IdleTimerEnableTimer = nil;
+}
+
+-(void)EnableIdleTimer:(bool)bEnabled
+{
+	dispatch_async(dispatch_get_main_queue(),^
+	{
+		if (bEnabled)
+		{
+			// Nothing needs to be done, if the enable timer is already running.
+			if (self.IdleTimerEnableTimer == nil)
+			{
+				self.IdleTimerEnableTimer = [NSTimer scheduledTimerWithTimeInterval:IdleTimerEnablePeriod target:self selector:@selector(DeferredEnableIdleTimer) userInfo:nil repeats:NO];
+			}
+		}
+		else
+		{
+			// Ensure pending attempts to enable the idle timer are cancelled.
+			if (self.IdleTimerEnableTimer != nil)
+			{
+				[self.IdleTimerEnableTimer invalidate];
+				self.IdleTimerEnableTimer = nil;
+			}
+
+			[UIApplication sharedApplication].idleTimerDisabled = NO;
+			[UIApplication sharedApplication].idleTimerDisabled = YES;
+		}
+	});
 }
 
 -(void)NoUrlCommandLine
@@ -382,16 +458,34 @@ void InstallSignalHandlers()
 
 - (int)GetBatteryLevel
 {
-	UIDevice *myDevice = [UIDevice currentDevice];
-
 #if PLATFORM_TVOS
 	// TVOS does not have a battery, return fully charged
 	return 100;
 #else
-	//must enable battery monitoring in order to get a valid value here
-	[myDevice setBatteryMonitoringEnabled : YES];
-	//battery level is from 0.0 to 1.0, get it in terms of 0-100
-	return ((int)([myDevice batteryLevel] * 100));
+	UIDevice* Device = [UIDevice currentDevice];
+	Device.batteryMonitoringEnabled = YES;
+	
+	// Battery level is from 0.0 to 1.0, get it in terms of 0-100
+	int Level = ((int)([Device batteryLevel] * 100));
+	
+	Device.batteryMonitoringEnabled = NO;
+	return Level;
+#endif
+}
+
+- (bool)IsRunningOnBattery
+{
+#if PLATFORM_TVOS
+	// TVOS does not have a battery, return plugged in
+	return false;
+#else
+	UIDevice* Device = [UIDevice currentDevice];
+	Device.batteryMonitoringEnabled = YES;
+
+	UIDeviceBatteryState State = Device.batteryState;
+
+	Device.batteryMonitoringEnabled = NO;
+	return State == UIDeviceBatteryStateUnplugged || State == UIDeviceBatteryStateUnknown;
 #endif
 }
 
@@ -455,7 +549,7 @@ void InstallSignalHandlers()
 	OSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
 	if (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash)
 	{
-		InstallSignalHandlers();
+        FPlatformMisc::SetCrashHandler(EngineCrashHandler);
 	}
 
 	// create the main landscape window object
@@ -476,6 +570,7 @@ void InstallSignalHandlers()
     [path setString: [[NSBundle mainBundle] resourcePath]];
     UIImageOrientation orient = UIImageOrientationUp;
     NSMutableString* ImageString = [[NSMutableString alloc]init];
+	NSMutableString* PngString = [[NSMutableString alloc] init];
     [ImageString appendString:@"Default"];
 
 	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
@@ -520,11 +615,7 @@ void InstallSignalHandlers()
         
         if (NativeScale > 1.0f)
         {
-            [ImageString appendString:@"@2x.png"];
-        }
-        else
-        {
-            [ImageString appendString:@".png"];
+            [ImageString appendString:@"@2x"];
         }
 	}
 	else
@@ -538,7 +629,7 @@ void InstallSignalHandlers()
 		{
 			orient = UIImageOrientationRight;
 		}
-		else if (MainFrame.size.height == 568)
+        else if (MainFrame.size.height == 568 || Device == FPlatformMisc::IOS_IPodTouch6)
 		{
 			[ImageString appendString:@"-568h"];
 		}
@@ -558,17 +649,23 @@ void InstallSignalHandlers()
         
         if (NativeScale > 1.0f)
         {
-            [ImageString appendString:@"@2x.png"];
-        }
-        else
-        {
-            [ImageString appendString:@".png"];
+            [ImageString appendString:@"@2x"];
         }
 	}
 
+	[PngString appendString : ImageString];
+	[PngString appendString : @".png"];
+	[ImageString appendString : @".jpg"];
     [path setString: [path stringByAppendingPathComponent:ImageString]];
     UIImage* image = [[UIImage alloc] initWithContentsOfFile: path];
-    [path release];
+	if (image == nil)
+	{
+        [path setString: [[NSBundle mainBundle] resourcePath]];
+		[path setString : [path stringByAppendingPathComponent : PngString]];
+		image = [[UIImage alloc] initWithContentsOfFile:path];
+	}
+	[path release];
+	
     UIImage* imageToDisplay = [UIImage imageWithCGImage: [image CGImage] scale: 1.0 orientation: orient];
     UIImageView* imageView = [[UIImageView alloc] initWithImage: imageToDisplay];
     imageView.frame = MainFrame;
@@ -597,6 +694,8 @@ void InstallSignalHandlers()
 #endif
 	
     timer = [NSTimer scheduledTimerWithTimeInterval: 0.05f target:self selector:@selector(timerForSplashScreen) userInfo:nil repeats:YES];
+    
+    self.PeakMemoryTimer = [NSTimer scheduledTimerWithTimeInterval:0.1f target:self selector:@selector(RecordPeakMemory) userInfo:nil repeats:YES];
     
 	// create a new thread (the pointer will be retained forever)
 	NSThread* GameThread = [[NSThread alloc] initWithTarget:self selector:@selector(MainAppThread:) object:launchOptions];
@@ -794,6 +893,15 @@ void InstallSignalHandlers()
 	Token.AddUninitialized([deviceToken length]);
 	memcpy(Token.GetData(), [deviceToken bytes], [deviceToken length]);
 
+	const char *data = (const char*)([deviceToken bytes]);
+	NSMutableString *token = [NSMutableString string];
+
+	for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+		[token appendFormat : @"%02.2hhX", data[i]];
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("Device Token: %s"), *FString(token));
+
     FFunctionGraphTask::CreateAndDispatchWhenReady([Token]()
     {
 		FCoreDelegates::ApplicationRegisteredForRemoteNotificationsDelegate.Broadcast(Token);
@@ -824,18 +932,35 @@ void InstallSignalHandlers()
 	}
 	
 	FString	jsonFString(JsonString);
-	
-    FFunctionGraphTask::CreateAndDispatchWhenReady([jsonFString]()
+	int AppState;
+	if (application.applicationState == UIApplicationStateInactive)
+	{
+		AppState = 1; // EApplicationState::Inactive;
+	}
+	else if (application.applicationState == UIApplicationStateBackground)
+	{
+		AppState = 2; // EApplicationState::Background;
+	}
+	else
+	{
+		AppState = 3; // EApplicationState::Active;
+	}
+
+    FFunctionGraphTask::CreateAndDispatchWhenReady([jsonFString, AppState]()
     {
-		FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(jsonFString);
+		FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(jsonFString, AppState);
     }, TStatId(), NULL, ENamedThreads::GameThread);
 }
 
-- (NSUInteger)application:(UIApplication*)application supportedInterfaceOrientationsForWindow:(UIWindow*)window
+#endif
+
+#if !PLATFORM_TVOS
+// the below code breaks all of the plist specifying what to support
+/*- (NSUInteger)application:(UIApplication*)application supportedInterfaceOrientationsForWindow:(UIWindow*)window
 {
  	// UIImagePickerController or GameCenter might have portrait-only variant and will throw exception if portrait is not supported here
  	return UIInterfaceOrientationMaskAll;
-}
+}*/
 
 - (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification
 {
@@ -846,9 +971,23 @@ void InstallSignalHandlers()
 		FString	activationEventFString(activationEvent);
 		int32	fireDate = [notification.fireDate timeIntervalSince1970];
 		
-		FFunctionGraphTask::CreateAndDispatchWhenReady([activationEventFString, fireDate]()
+		int AppState;
+		if (application.applicationState == UIApplicationStateInactive)
 		{
-			FCoreDelegates::ApplicationReceivedLocalNotificationDelegate.Broadcast(activationEventFString, fireDate);
+			AppState = 1;// EApplicationState::Inactive;
+		}
+		else if (application.applicationState == UIApplicationStateBackground)
+		{
+			AppState = 2; // EApplicationState::Background;
+		}
+		else
+		{
+			AppState = 3; // EApplicationState::Active;
+		}
+
+		FFunctionGraphTask::CreateAndDispatchWhenReady([activationEventFString, fireDate, AppState]()
+		{
+			FCoreDelegates::ApplicationReceivedLocalNotificationDelegate.Broadcast(activationEventFString, fireDate, AppState);
 		}, TStatId(), NULL, ENamedThreads::GameThread);
 	}
 	else

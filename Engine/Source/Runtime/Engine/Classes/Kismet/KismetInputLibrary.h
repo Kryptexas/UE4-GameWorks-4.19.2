@@ -10,6 +10,17 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetInputLibrary.generated.h"
 
+UENUM(BlueprintType)
+enum class ESlateGesture : uint8
+{
+	None,
+	Scroll,
+	Magnify,
+	Swipe,
+	Rotate,
+	LongPress
+};
+
 UCLASS()
 class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 {
@@ -238,11 +249,9 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Touch Event" ), Category="Utilities|PointerEvent")
 	static bool PointerEvent_IsTouchEvent(const FPointerEvent& Input);
 
-	//TODO UMG Support GetGestureType()
-
-	///** @return The type of touch gesture */
-	//UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Gesture Type" ), Category="Utilities|PointerEvent")
-	//static EGestureEvent::Type PointerEvent_GetGestureType(const FPointerEvent& Input);
+	/** @return The type of touch gesture */
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetGestureType" ), Category="Utilities|PointerEvent")
+	static ESlateGesture PointerEvent_GetGestureType(const FPointerEvent& Input);
 
 	/** @return The change in gesture value since the last gesture event of the same type. */
 	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Gesture Delta" ), Category="Utilities|PointerEvent")

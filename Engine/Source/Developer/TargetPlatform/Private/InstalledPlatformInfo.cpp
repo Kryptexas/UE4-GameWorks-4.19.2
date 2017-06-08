@@ -8,6 +8,8 @@
 #include "PlatformInfo.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "InstalledPlatformInfo"
 
@@ -199,8 +201,9 @@ bool FInstalledPlatformInfo::IsPlatformMissingRequiredFile(const FString& Platfo
 bool FInstalledPlatformInfo::OpenInstallerOptions()
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-	if (DesktopPlatform != nullptr)
+	if (DesktopPlatform != nullptr && LauncherPlatform != nullptr)
 	{
 		FString CurrentIdentifier = DesktopPlatform->GetCurrentEngineIdentifier();
 		if (DesktopPlatform->IsStockEngineRelease(CurrentIdentifier))
@@ -210,7 +213,7 @@ bool FInstalledPlatformInfo::OpenInstallerOptions()
 				// TODO: Ensure that this URL opens the launcher correctly before this is included in a release
 				FString InstallerURL = FString::Printf(TEXT("ue/library/engines/UE_%s/installer"), *DesktopPlatform->GetEngineDescription(CurrentIdentifier));
 				FOpenLauncherOptions OpenOptions(InstallerURL);
-				if (DesktopPlatform->OpenLauncher(OpenOptions))
+				if (LauncherPlatform->OpenLauncher(OpenOptions))
 				{
 					return true;
 				}

@@ -169,13 +169,11 @@ public:
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FReply OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
-	virtual FReply OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
 	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
-	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent);
+	virtual void OnMouseCaptureLost() override;
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 	// End of SWidget interface
 
 private:
@@ -222,7 +220,7 @@ private:
 	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @return Whether or not the scroll was fully handled
 	 */
-	bool ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll = true);
+	bool ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll);
 
 	/** Invoked when the user scroll via the scrollbar */
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );
@@ -239,6 +237,10 @@ private:
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
 	bool CanUseInertialScroll(float ScrollAmount) const;
 
+	void BeginInertialScrolling();
+
+	void EndInertialScrolling();
+
 private:
 
 	/** The panel which stacks the child slots */
@@ -251,10 +253,13 @@ private:
 	float TickScrollDelta;
 
 	/** Did the user start an interaction in this list? */
-	bool bStartedTouchInteraction;
+	TOptional<int32> bFingerOwningTouchInteraction;
 
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
+
+	/** The current deviation we've accumulated on scrol, once it passes the trigger amount, we're going to begin scrolling. */
+	float PendingScrollTriggerAmount;
 
 	/** Helper object to manage inertial scrolling */
 	FInertialScrollManager InertialScrollManager;
@@ -292,6 +297,10 @@ private:
 	/** Where we should scroll the descendant to */
 	EDescendantScrollDestination DestinationScrollingWidgetIntoView;
 
+	TSharedPtr<FActiveTimerHandle> UpdateInertialScrollHandle;
+
+	double LastScrollTime;
+
 	/** Whether we should scroll the widget into view over time. */
 	bool bAnimateScrollingWidgetIntoView : 1;
 
@@ -312,4 +321,7 @@ private:
 
 	/** Whether the active timer to update the inertial scroll is registered */
 	bool bIsScrollingActiveTimerRegistered : 1;
+
+	/**  */
+	bool bTouchPanningCapture : 1;
 };

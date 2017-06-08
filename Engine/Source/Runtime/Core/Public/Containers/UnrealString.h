@@ -2205,4 +2205,14 @@ public:
  */
 CORE_API int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch = 0);
 
+/**
+* Given a display label string, generates an FString slug that only contains valid characters for an FName.
+* For example, "[MyObject]: Object Label" becomes "MyObjectObjectLabel" FName slug.
+*
+* @param DisplayLabel The label string to convert to an FName
+*
+* @return	The slugged string
+*/
+CORE_API FString SlugStringForValidName(const FString& DisplayString);
+
 #include "Misc/StringFormatArg.h"

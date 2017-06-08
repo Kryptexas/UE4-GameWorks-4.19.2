@@ -174,7 +174,6 @@ private:
 	/** Identical to SearchForWidgetRecursively, but iterates in reverse order */
 	template<typename MatchRuleType>
 	static bool SearchForWidgetRecursively_Reverse( const MatchRuleType& MatchRule, const FArrangedWidget& InCandidate, FArrangedChildren& OutReversedPath, EVisibility VisibilityFilter = EVisibility::Visible );
-
 };
 
 
@@ -204,6 +203,13 @@ public:
 	 */
 	FWidgetPath ToWidgetPath( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
 
+	/**
+	 * Make a non-weak WidgetPath out of this WeakWidgetPath. Do this by computing all the relevant geometries and converting the weak pointers to TSharedPtr.
+	 *
+	 * @param InterruptedPathHandling  Should interrupted paths result in a truncated path or an invalid path
+	 */
+	TSharedRef<FWidgetPath> ToWidgetPathRef( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
+
 	struct EPathResolutionResult
 	{
 		enum Result
@@ -228,7 +234,7 @@ public:
 	 * 
 	 * @return The widget path to the resulting widget
 	 */
-	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType);
+	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType) const;
 
 	/**
 	 * @param NavigationType      Direction in which to move the focus (only for use with EUINavigation::Next and EUINavigation::Previous).
@@ -237,7 +243,7 @@ public:
 	 * 
 	 * @return The widget path to the resulting widget
 	 */
-	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget);
+	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget) const;
 	
 	/** Get the last (leaf-most) widget in this path; assumes path is valid */
 	TWeakPtr< SWidget > GetLastWidget() const

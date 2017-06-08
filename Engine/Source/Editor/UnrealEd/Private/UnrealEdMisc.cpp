@@ -78,6 +78,8 @@
 #include "UserActivityTracking.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "IVREditorModule.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 #define USE_UNIT_TESTS 0
 
@@ -1788,12 +1790,12 @@ void FUnrealEdMisc::OpenMarketplace(const FString& CustomLocation)
 	}
 	else
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-		if(DesktopPlatform != nullptr)
+		if(LauncherPlatform != nullptr)
 		{
 			FOpenLauncherOptions OpenOptions(Location);
-			if(DesktopPlatform->OpenLauncher(OpenOptions))
+			if(LauncherPlatform->OpenLauncher(OpenOptions))
 			{
 				EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
 			}
@@ -1804,7 +1806,7 @@ void FUnrealEdMisc::OpenMarketplace(const FString& CustomLocation)
 				if(EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 				{
 					FOpenLauncherOptions InstallOptions(true, Location);
-					if(!DesktopPlatform->OpenLauncher(InstallOptions))
+					if(!LauncherPlatform->OpenLauncher(InstallOptions))
 					{
 						EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
 						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));

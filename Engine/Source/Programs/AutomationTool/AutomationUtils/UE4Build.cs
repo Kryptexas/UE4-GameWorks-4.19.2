@@ -49,7 +49,7 @@ namespace AutomationTool
 		public void AddBuildProduct(string InFile)
 		{
 			string File = CommandUtils.CombinePaths(InFile);
-			if (!CommandUtils.FileExists(File))
+			if (!CommandUtils.FileExists(File) && !CommandUtils.DirectoryExists(File))
 			{
 				throw new AutomationException("BUILD FAILED specified file to AddBuildProduct {0} does not exist.", File);
 			}
@@ -116,7 +116,7 @@ namespace AutomationTool
 			UnrealBuildTool.BuildManifest Manifest = CommandUtils.ReadManifest(ManifestName);
 			foreach (string Item in Manifest.BuildProducts)
 			{
-				if (!CommandUtils.FileExists_NoExceptions(Item))
+				if (!CommandUtils.FileExists_NoExceptions(Item) && !CommandUtils.DirectoryExists_NoExceptions(Item))
 				{
 					throw new AutomationException("BUILD FAILED {0} was in manifest but was not produced.", Item);
 				}
@@ -1523,7 +1523,7 @@ namespace AutomationTool
 				{
 					foreach (var Product in BuildProductFiles)
 					{
-						if (!CommandUtils.FileExists(Product))
+						if (!CommandUtils.FileExists(Product) && !CommandUtils.DirectoryExists(Product))
 						{
 							throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
 						}

@@ -1295,10 +1295,10 @@ void FAssetRegistryGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 		}
 	}
 
-	if (!CheckChunkAssetsAreNotInChild(*ChunkDepGraph))
+/*	if (!CheckChunkAssetsAreNotInChild(*ChunkDepGraph))
 	{
-		UE_LOG(LogAssetRegistryGenerator, Error, TEXT("Second Scan of chunks found duplicate asset entries in children."));
-	}
+		UE_LOG(LogAssetRegistryGenerator, Log, TEXT("Second Scan of chunks found duplicate asset entries in children."));
+	}*/
 
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
 	{

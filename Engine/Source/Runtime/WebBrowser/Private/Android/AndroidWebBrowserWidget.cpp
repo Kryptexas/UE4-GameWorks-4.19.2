@@ -49,8 +49,7 @@ void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
 	HistorySize = 0;
 	HistoryPosition = 0;
 
-	JWebView.Emplace("com/epicgames/ue4/WebViewControl", "(JZ)V", reinterpret_cast<jlong>(this), !(UE_BUILD_SHIPPING || UE_BUILD_TEST) );
-
+	JWebView.Emplace("com/epicgames/ue4/WebViewControl", "(JZZ)V", reinterpret_cast<jlong>(this), !(UE_BUILD_SHIPPING || UE_BUILD_TEST), Args._UseTransparency);
 	JWebView_Update = JWebView->GetClassMethod("Update", "(IIII)V");
 	JWebView_ExecuteJavascript = JWebView->GetClassMethod("ExecuteJavascript", "(Ljava/lang/String;)V");
 	JWebView_LoadURL = JWebView->GetClassMethod("LoadURL", "(Ljava/lang/String;)V");
@@ -371,7 +370,6 @@ JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ViewClient_onPageLoad
 
 JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ViewClient_onReceivedError(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jint ErrorCode, jstring Description, jstring JUrl)
 {
-	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
 	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
 	if (Widget.IsValid())
 	{
@@ -381,7 +379,6 @@ JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ViewClient_onReceived
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsAlert(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jobject Result)
 {
-	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
 	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
 	if (Widget.IsValid())
 	{
@@ -395,7 +392,6 @@ JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJs
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsBeforeUnload(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jobject Result)
 {
-	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
 	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
 	if (Widget.IsValid())
 	{

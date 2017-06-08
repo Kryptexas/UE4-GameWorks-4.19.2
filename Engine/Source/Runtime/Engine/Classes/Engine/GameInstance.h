@@ -199,6 +199,8 @@ public:
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) { return false; }
 
+	virtual void LoadComplete(const float LoadTime, const FString& MapName) {}
+
 	/** Local player access */
 
 	/**
@@ -352,4 +354,8 @@ public:
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 	/** @return delegate fired when client travel occurs */
 	FOnPreClientTravel& OnNotifyPreClientTravel() { return NotifyPreClientTravelDelegates; }
+
+protected:
+	/** Called when the game instance is started either normally or through PIE. */
+	virtual void OnStart();
 };

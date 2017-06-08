@@ -107,8 +107,7 @@ FString FAndroidPlatformProcess::GetGameBundleId()
 TAutoConsoleVariable<FString> CVarAndroidDefaultThreadAffinity(
 	TEXT("android.DefaultThreadAffinity"), 
 	TEXT(""), 
-	TEXT("Sets the thread affinity for Android platform. Pairs of args [GT|RT] [Hex affinity], ex: android.DefaultThreadAffinity GT 0x01 RT 0x02"),
-	ECVF_ReadOnly);
+	TEXT("Sets the thread affinity for Android platform. Pairs of args [GT|RT] [Hex affinity], ex: android.DefaultThreadAffinity GT 0x01 RT 0x02"));
 
 static void AndroidSetAffinityOnThread()
 {
@@ -122,10 +121,10 @@ static void AndroidSetAffinityOnThread()
 	}
 }
 
-void AndroidSetupDefaultThreadAffinity()
+static void ApplyDefaultThreadAffinity(IConsoleVariable* Var)
 {
 	FString AffinityCmd = CVarAndroidDefaultThreadAffinity.GetValueOnAnyThread();
-	
+
 	TArray<FString> Args;
 	if (AffinityCmd.ParseIntoArrayWS(Args) > 0)
 	{
@@ -137,7 +136,7 @@ void AndroidSetupDefaultThreadAffinity()
 				UE_LOG(LogAndroid, Display, TEXT("Parsed 0 for affinity, using 0xFFFFFFFFFFFFFFFF instead"));
 				Aff = 0xFFFFFFFFFFFFFFFF;
 			}
-			
+
 			if (Args[Index] == TEXT("GT"))
 			{
 				FAndroidAffinity::GameThreadMask = Aff;
@@ -153,7 +152,7 @@ void AndroidSetupDefaultThreadAffinity()
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),
 				TStatId(), NULL, ENamedThreads::RenderThread);
-		
+
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&AndroidSetAffinityOnThread),
 				TStatId(), NULL, ENamedThreads::GameThread);
@@ -163,4 +162,12 @@ void AndroidSetupDefaultThreadAffinity()
 			AndroidSetAffinityOnThread();
 		}
 	}
+}
+
+void AndroidSetupDefaultThreadAffinity()
+{
+	ApplyDefaultThreadAffinity(nullptr);
+
+	// Watch for CVar update
+	CVarAndroidDefaultThreadAffinity->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&ApplyDefaultThreadAffinity));
 }

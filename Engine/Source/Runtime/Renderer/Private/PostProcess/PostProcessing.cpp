@@ -804,6 +804,7 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 			// Only bloom this down-sampled input if the bloom size is non-zero
 			if (Op.BloomSize > SMALL_NUMBER)
 			{
+
 				BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize * Settings.BloomSizeScale, Tint, BloomOutput);
 			}
 		}
@@ -813,7 +814,6 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 			// Bloom was disabled by setting bloom size to zero in the post process.
 			// No bloom, provide substitute source for lens flare.
 			BloomOutput = PostProcessDownsamples[0];
-
 		}
 	}
 
@@ -2160,8 +2160,9 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 		if( View.Family->EngineShowFlags.PostProcessing )
 		{
-			bool bUseMosaic = IsMobileHDRMosaic();
-			bool bUseEncodedHDR = bMobileHDR32bpp && !bUseMosaic;
+			const EMobileHDRMode HDRMode = GetMobileHDRMode();
+			bool bUseEncodedHDR = HDRMode == EMobileHDRMode::EnabledRGBE;
+			bool bHDRModeAllowsPost = bUseEncodedHDR || HDRMode == EMobileHDRMode::EnabledFloat16;
 
 			bool bUseSun = !bUseEncodedHDR && View.bLightShaftUse;
 			bool bUseDof = !bUseEncodedHDR && GetMobileDepthOfFieldScale(View) > 0.0f && !Context.View.Family->EngineShowFlags.VisualizeDOF;
@@ -2180,7 +2181,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			bool bUsePost = bUseSun | bUseDof | bUseBloom | bUseVignette;
 
 			// Post is not supported on ES2 devices using mosaic.
-			bUsePost &= !bUseMosaic;
+			bUsePost &= bHDRModeAllowsPost;
 			bUsePost &= IsMobileHDR();
 
 			if(bUsePost)
@@ -2433,6 +2434,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && !bMobileHDR32bpp && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
 
+
 		static const auto VarTonemapperUpscale = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileTonemapperUpscale"));
 		bool bDisableUpscaleInTonemapper = Context.View.Family->bUseSeparateRenderTarget || IsMobileHDRMosaic() || !VarTonemapperUpscale || VarTonemapperUpscale->GetValueOnRenderThread() == 0;
 
@@ -2472,7 +2474,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 					bDisableUpscaleInTonemapper = true;
 				}
 			}
-	
+
 			if (bUseAa)
 			{
 				// Double buffer post output.

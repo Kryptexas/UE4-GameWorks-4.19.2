@@ -148,8 +148,9 @@
 #include "Interfaces/IProjectManager.h"
 #include "Misc/RemoteConfigIni.h"
 
-#include "IDesktopPlatform.h"
-#include "DesktopPlatformModule.h"
+#include "AssetToolsModule.h"
+#include "ObjectTools.h"
+#include "MessageLogModule.h"
 
 #include "ActorEditorUtils.h"
 #include "SnappingUtils.h"
@@ -185,6 +186,11 @@
 #include "SourceCodeNavigation.h"
 #include "GameProjectUtils.h"
 #include "ActorGroupingUtils.h"
+
+#include "DesktopPlatformModule.h"
+
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -575,11 +581,11 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping"))
 		))
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if ( DesktopPlatform != NULL )
+		ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
+		if (LauncherPlatform != NULL )
 		{
 			FOpenLauncherOptions SilentOpen;
-			DesktopPlatform->OpenLauncher(SilentOpen);
+			LauncherPlatform->OpenLauncher(SilentOpen);
 		}
 	}
 
@@ -3323,6 +3329,7 @@ struct FConvertStaticMeshActorInfo
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
 	TArray<UMaterialInterface*>			OverrideMaterials;
+	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
 
@@ -3345,7 +3352,7 @@ struct FConvertStaticMeshActorInfo
 	 * We don't want to simply copy all properties, because classes with different defaults will have
 	 * their defaults hosed by other types.
 	 */
-	bool bComponentPropsDifferFromDefaults[6];
+	bool bComponentPropsDifferFromDefaults[7];
 
 	AGroupActor* ActorGroup;
 
@@ -6461,22 +6468,6 @@ void UEditorEngine::UpdateAutoLoadProject()
 			else
 			{
 				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of macOS for best performance."));
-			}
-		}
-		
-		if(!FPlatformMisc::HasPlatformFeature(TEXT("Metal")))
-		{
-			if(FSlateApplication::IsInitialized())
-			{
-				FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("MessageDialog", "MessageMacOpenGLDeprecated","Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."), NSLOCTEXT("MessageDialog", "TitleMacOpenGLDeprecated", "WARNING: OpenGL on macOS Deprecated"), TEXT("MacOpenGLDeprecated"), GEditorSettingsIni );
-				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSuppressInTheFuture = true;
-				FSuppressableWarningDialog OSUpdateWarning( Info );
-				OSUpdateWarning.ShowModal();
-			}
-			else
-			{
-				UE_LOG(LogEditor, Warning, TEXT("Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."));
 			}
 		}
 		

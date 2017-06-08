@@ -272,13 +272,8 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 	return false;
 }
 
-//template bool FJsonObjectConverter::UStructToJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
-
-namespace
-{
-
-/** Convert a JSON object into a culture invariant string based on current locale */
-bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
+//static
+bool FJsonObjectConverter::GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
 {
 	// get the prioritized culture name list
 	FCultureRef CurrentCulture = FInternationalization::Get().GetCurrentCulture();
@@ -298,6 +293,11 @@ bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
 	// no luck, is this possibly an unrelated json object?
 	return false;
 }
+
+//template bool FJsonObjectConverter::UStructToJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
+
+namespace
+{
 
 /** Convert JSON to property, assuming either the property is not an array or the value is an individual array element */
 bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
@@ -487,7 +487,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 
 			// import the subvalue as a culture invariant string
 			FText Text;
-			if (!GetTextFromObject(Obj.ToSharedRef(), Text))
+			if (!FJsonObjectConverter::GetTextFromObject(Obj.ToSharedRef(), Text))
 			{
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import FText from JSON object with invalid keys for property %s"), *Property->GetNameCPP());
 				return false;

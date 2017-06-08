@@ -253,7 +253,7 @@ void Main(
 		OutColor.a = 0;
 #if (ES2_PROFILE || ES3_1_PROFILE) && ( (COMPILER_GLSL_ES2) || (MOBILE_EMULATION) )
 		// Do decal blending if encoding requires it.
-		if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+		if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBE)
 		{
 			OutColor.rgb = ModulatedShadowBlendOp(OutColor.rgb);
 			// do 32bpp hdr encoding for mobile if required.

@@ -131,9 +131,8 @@ void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry
 				const bool bIsVerticalStretch = Anchors.Minimum.Y != Anchors.Maximum.Y;
 
 				const FVector2D SlotSize = FVector2D(Offset.Right, Offset.Bottom);
-				const FVector2D WidgetDesiredSize = CurWidget->GetDesiredSize();
 
-				const FVector2D Size = AutoSize ? WidgetDesiredSize : SlotSize;
+				const FVector2D Size = AutoSize ? CurWidget->GetDesiredSize() : SlotSize;
 
 				// Calculate the offset based on the pivot position.
 				FVector2D AlignmentOffset = Size * Alignment;
@@ -252,11 +251,10 @@ FVector2D SConstraintCanvas::ComputeDesiredSize( float ) const
 			const FAnchors Anchors = CurChild.AnchorsAttr.Get();
 
 			const FVector2D SlotSize = FVector2D(Offset.Right, Offset.Bottom);
-			const FVector2D WidgetDesiredSize = Widget->GetDesiredSize();
 
 			const bool AutoSize = CurChild.AutoSizeAttr.Get();
 
-			const FVector2D Size = AutoSize ? WidgetDesiredSize : SlotSize;
+			const FVector2D Size = AutoSize ? Widget->GetDesiredSize() : SlotSize;
 
 			const bool bIsDockedHorizontally = ( Anchors.Minimum.X == Anchors.Maximum.X ) && ( Anchors.Minimum.X == 0 || Anchors.Minimum.X == 1 );
 			const bool bIsDockedVertically = ( Anchors.Minimum.Y == Anchors.Maximum.Y ) && ( Anchors.Minimum.Y == 0 || Anchors.Minimum.Y == 1 );

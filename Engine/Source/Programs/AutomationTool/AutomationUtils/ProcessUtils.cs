@@ -818,7 +818,7 @@ namespace AutomationTool
 			{
 				Result.WaitForExit();
 				var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-				AddRunTime(App, (int)(BuildDuration));
+				//AddRunTime(App, (int)(BuildDuration));
 				Result.ExitCode = Proc.ExitCode;
 				if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand) || Options.HasFlag(ERunOptions.LoggingOfRunDuration))
                 {

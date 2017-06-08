@@ -1588,6 +1588,56 @@ USaveGame* UGameplayStatics::CreateSaveGameObjectFromBlueprint(UBlueprint* SaveG
 	return nullptr;
 }
 
+bool UGameplayStatics::SaveGameToMemory(USaveGame* SaveGameObject, TArray<uint8>& OutSaveData )
+{
+	FMemoryWriter MemoryWriter(OutSaveData, true);
+
+	// write file type tag. identifies this file type and indicates it's using proper versioning
+	// since older UE4 versions did not version this data.
+	int32 FileTypeTag = UE4_SAVEGAME_FILE_TYPE_TAG;
+	MemoryWriter << FileTypeTag;
+
+	// Write version for this file format
+	int32 SavegameFileVersion = FSaveGameFileVersion::LatestVersion;
+	MemoryWriter << SavegameFileVersion;
+
+	// Write out engine and UE4 version information
+	int32 PackageFileUE4Version = GPackageFileUE4Version;
+	MemoryWriter << PackageFileUE4Version;
+	FEngineVersion SavedEngineVersion = FEngineVersion::Current();
+	MemoryWriter << SavedEngineVersion;
+
+	// Write out custom version data
+	ECustomVersionSerializationFormat::Type const CustomVersionFormat = ECustomVersionSerializationFormat::Latest;
+	int32 CustomVersionFormatInt = static_cast<int32>(CustomVersionFormat);
+	MemoryWriter << CustomVersionFormatInt;
+	FCustomVersionContainer CustomVersions = FCustomVersionContainer::GetRegistered();
+	CustomVersions.Serialize(MemoryWriter, CustomVersionFormat);
+
+	// Write the class name so we know what class to load to
+	FString SaveGameClassName = SaveGameObject->GetClass()->GetName();
+	MemoryWriter << SaveGameClassName;
+
+	// Then save the object state, replacing object refs and names with strings
+	FObjectAndNameAsStringProxyArchive Ar(MemoryWriter, false);
+	SaveGameObject->Serialize(Ar);
+
+	return true; // Not sure if there's a failure case here.
+}
+
+bool UGameplayStatics::SaveDataToSlot(const TArray<uint8>& InSaveData, const FString& SlotName, const int32 UserIndex)
+{
+	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+
+	if (SaveSystem && InSaveData.Num() > 0 && SlotName.Len() > 0)
+	{
+		// Stuff that data into the save system with the desired file name
+		return SaveSystem->SaveGame(false, *SlotName, UserIndex, InSaveData);
+	}
+
+	return false;
+}
+
 bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex)
 {
 	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();

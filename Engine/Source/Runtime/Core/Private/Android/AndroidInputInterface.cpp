@@ -860,17 +860,17 @@ void FAndroidInputInterface::SendControllerEvents()
 		ControllerId = (ControllerId == -1) ? 0 : ControllerId;
 
 		// send input to handler
-		if (Touch.Type == TouchBegan)
+		switch ( Touch.Type )
 		{
-			MessageHandler->OnTouchStarted(NULL, Touch.Position, Touch.Handle, ControllerId);
-		}
-		else if (Touch.Type == TouchEnded)
-		{
+		case TouchBegan:
+			MessageHandler->OnTouchStarted(nullptr, Touch.Position, Touch.Handle, ControllerId);
+			break;
+		case TouchEnded:
 			MessageHandler->OnTouchEnded(Touch.Position, Touch.Handle, ControllerId);
-		}
-		else
-		{
+			break;
+		case TouchMoved:
 			MessageHandler->OnTouchMoved(Touch.Position, Touch.Handle, ControllerId);
+			break;
 		}
 	}
 

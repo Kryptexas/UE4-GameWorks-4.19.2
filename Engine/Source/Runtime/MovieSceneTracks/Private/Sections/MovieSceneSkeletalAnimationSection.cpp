@@ -128,27 +128,6 @@ FMovieSceneEvalTemplatePtr UMovieSceneSkeletalAnimationSection::GenerateTemplate
 	return FMovieSceneSkeletalAnimationSectionTemplate(*this);
 }
 
-void UMovieSceneSkeletalAnimationSection::PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange)
-{
-	if (!Params.Weight.IsKeyHandleValid(Params.Weight.FindKey(GetStartTime())))
-	{
-		FKeyHandle StartKeyHandle = Params.Weight.UpdateOrAddKey(GetStartTime(), 1.f);
-		Params.Weight.SetKeyInterpMode(StartKeyHandle, RCIM_Constant);
-	}
-
-	if (InEvaluationRange.HasLowerBound())
-	{
-		FKeyHandle EvalInKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetLowerBoundValue(), 1.f);
-		Params.Weight.SetKeyInterpMode(EvalInKeyHandle, RCIM_Constant);
-	}
-
-	if (InEvaluationRange.HasUpperBound())
-	{
-		FKeyHandle EvalOutKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetUpperBoundValue(), 0.f);
-		Params.Weight.SetKeyInterpMode(EvalOutKeyHandle, RCIM_Constant);
-	}
-}
-
 void UMovieSceneSkeletalAnimationSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::MoveSection(DeltaTime, KeyHandles);

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CoreMinimal.h"
+#include "CoreDelegates.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ScopeLock.h"
 #include "Stats/Stats.h"

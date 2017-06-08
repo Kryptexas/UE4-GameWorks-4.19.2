@@ -324,7 +324,7 @@ FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) c
 #if WITH_EDITOR
 void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 {
-	static_assert(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
+	static_assert(EGestureEvent::Count == 6, "If the number of gestures changes you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> GestureAttributes;
 	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));

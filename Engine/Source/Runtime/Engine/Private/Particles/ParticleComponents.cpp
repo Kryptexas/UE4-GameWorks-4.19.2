@@ -115,8 +115,8 @@ int32 GParticleLODBias = 0;
 FAutoConsoleVariableRef CVarParticleLODBias(
 	TEXT("r.ParticleLODBias"),
 	GParticleLODBias,
-	TEXT("LOD bias for particle systems. Development feature, default is 0"),
-	ECVF_Cheat
+	TEXT("LOD bias for particle systems, default is 0"),
+	ECVF_Scalability
 	);
 
 /** Whether to allow particle systems to perform work. */
@@ -5365,10 +5365,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		{
 			FVector EffectPosition = GetComponentLocation();
 			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			if (DesiredLODLevel != LODLevel)
-			{
-				SetLODLevel(DesiredLODLevel);
-			}
+			SetLODLevel(DesiredLODLevel);
 		}
 		else
 		{
@@ -6232,11 +6229,12 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		return 0;
 	}
 
-	// Don't bother if we only have 1 LOD level...
-	if (Template->LODDistances.Num() <= 1)
+	// Don't bother if we only have 1 LOD level... Or if we want to ignore distance comparisons.
+	if (Template->LODDistances.Num() <= 1 || Template->LODMethod == PARTICLESYSTEMLODMETHOD_DirectSet)
 	{
 		return 0;
 	}
+
 	check(IsInGameThread());
 	int32 Retval = 0;
 	
@@ -6267,10 +6265,10 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		// This will now put everything in LODLevel 0 (high detail) by default
 		float LODDistanceSqr = (PlayerViewLocations.Num() ? FMath::Square(WORLD_MAX) : 0.0f);
 		for (const FVector& ViewLocation : PlayerViewLocations)
-			{
+		{
 			const float DistanceToEffectSqr = FVector(ViewLocation - EffectLocation).SizeSquared();
 			if (DistanceToEffectSqr < LODDistanceSqr)
-				{
+			{
 				LODDistanceSqr = DistanceToEffectSqr;
 			}
 		}
@@ -6303,7 +6301,7 @@ void UParticleSystemComponent::SetLODLevel(int32 InLODLevel)
 		return;
 	}
 
-	int32 NewLODLevel = FMath::Clamp(InLODLevel + GParticleLODBias,0,Template->GetLODLevelCount()-1);
+	int32 NewLODLevel = FMath::Clamp(InLODLevel + GParticleLODBias, 0, Template->GetLODLevelCount() - 1);
 	if (LODLevel != NewLODLevel)
 	{
 		MarkRenderStateDirty();

@@ -92,13 +92,20 @@ SWidget::SWidget()
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
 	, DesiredSize(FVector2D::ZeroVector)
-	, EnabledState( true )
-	, Visibility( EVisibility::Visible )
-	, RenderTransform( )
-	, RenderTransformPivot( FVector2D::ZeroVector )
+#if SLATE_DEFERRED_DESIRED_SIZE
+	, DesiredSizeScaleMultiplier(0.0f)
+#endif
+	, EnabledState(true)
+	, Visibility(EVisibility::Visible)
+	, RenderTransform()
+	, RenderTransformPivot(FVector2D::ZeroVector)
+#if SLATE_DEFERRED_DESIRED_SIZE
+	, bCachedDesiredSize(false)
+	, bUpdatingDesiredSize(false)
+#endif
 	, Cursor( TOptional<EMouseCursor::Type>() )
 	, ToolTip()
-	, LayoutCache(nullptr)
+	, LayoutCache(nullptr)	
 {
 	if (GIsRunning)
 	{
@@ -447,7 +454,7 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 	//SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlatePrepass, GetType());
 
 	// TODO Figure out a better way than to just reset the pointer.  This causes problems when we prepass
-	// volatile widgets, who still need to know about their invalidation panel incase they vanish themselves.
+	// volatile widgets, who still need to know about their invalidation panel in case they vanish themselves.
 
 	// Reset the layout cache object each pre-pass to ensure we never access a stale layout cache object 
 	// as this widget could have been moved in and out of a panel that was invalidated between frames.
@@ -458,7 +465,7 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 		// Cache child desired sizes first. This widget's desired size is
 		// a function of its children's sizes.
 		FChildren* MyChildren = this->GetChildren();
-		int32 NumChildren = MyChildren->Num();
+		const int32 NumChildren = MyChildren->Num();
 		for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
 			const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
@@ -472,14 +479,19 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 		}
 	}
 
+#if SLATE_DEFERRED_DESIRED_SIZE
+	// Invalidate this widget's desired size.
+	InvalidateDesiredSize(LayoutScaleMultiplier);
+#else
 	// Cache this widget's desired size.
 	CacheDesiredSize(LayoutScaleMultiplier);
+#endif
 }
 
 void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 {
 	// Cache this widget's desired size.
-	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
+	Advanced_SetDesiredSize(ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
 void SWidget::CachePrepass(const TWeakPtr<ILayoutCache>& InLayoutCache)
@@ -487,7 +499,7 @@ void SWidget::CachePrepass(const TWeakPtr<ILayoutCache>& InLayoutCache)
 	if ( bCanHaveChildren )
 	{
 		FChildren* MyChildren = this->GetChildren();
-		int32 NumChildren = MyChildren->Num();
+		const int32 NumChildren = MyChildren->Num();
 		for ( int32 ChildIndex=0; ChildIndex < NumChildren; ++ChildIndex )
 		{
 			const TSharedRef<SWidget>& Child = MyChildren->GetChildAt(ChildIndex);
@@ -775,6 +787,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// Paint the geometry of this widget.
 	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
+#if PLATFORM_UI_NEEDS_FOCUS_OUTLINES
 	// Check if we need to show the keyboard focus ring, this is only necessary if the widget could be focused.
 	if ( bCanSupportFocus && SupportsKeyboardFocus() )
 	{
@@ -797,6 +810,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 			}
 		}
 	}
+#endif
 
 	if ( OutDrawElements.ShouldResolveDeferred() )
 	{

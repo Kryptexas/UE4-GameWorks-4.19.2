@@ -6,6 +6,36 @@
 #include "Widgets/Input/IVirtualKeyboardEntry.h"
 #include "IOS/IOSAsyncTask.h"
 
+namespace
+{
+	void GetKeyboardConfig(EKeyboardType TargetKeyboardType, FKeyboardConfig& KeyboardConfig)
+	{
+		KeyboardConfig.KeyboardType = UIKeyboardTypeDefault;
+		KeyboardConfig.bSecureTextEntry = NO;
+		
+		switch (TargetKeyboardType)
+		{
+		case EKeyboardType::Keyboard_Email:
+			KeyboardConfig.KeyboardType = UIKeyboardTypeEmailAddress;
+			break;
+		case EKeyboardType::Keyboard_Number:
+			KeyboardConfig.KeyboardType = UIKeyboardTypeDecimalPad;
+			break;
+		case EKeyboardType::Keyboard_Web:
+			KeyboardConfig.KeyboardType = UIKeyboardTypeURL;
+			break;
+		case EKeyboardType::Keyboard_AlphaNumeric:
+			KeyboardConfig.KeyboardType = UIKeyboardTypeASCIICapable;
+			break;
+		case EKeyboardType::Keyboard_Password:
+			KeyboardConfig.bSecureTextEntry = YES;
+		case EKeyboardType::Keyboard_Default:
+		default:
+			KeyboardConfig.KeyboardType = UIKeyboardTypeDefault;
+			break;
+		}
+	}
+}
 
 FIOSPlatformTextField::FIOSPlatformTextField()
 	: TextField( nullptr )
@@ -30,9 +60,16 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 	{
 		if (bShow)
 		{
-			dispatch_async(dispatch_get_main_queue(),^ {
-				[View ActivateKeyboard:false];
-			});
+			EKeyboardType TargetKeyboardType = (TextEntryWidget.IsValid()) ? TextEntryWidget->GetVirtualKeyboardType() : Keyboard_Default;
+			
+			FKeyboardConfig KeyboardConfig;
+			GetKeyboardConfig(TargetKeyboardType, KeyboardConfig);
+			
+			[View ActivateKeyboard:false keyboardConfig:KeyboardConfig];
+		}
+		else
+		{
+			[View DeactivateKeyboard];
 		}
 	}
 	else
@@ -76,10 +113,12 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
     else
 #endif
     {
-        if(AlertView != nil)
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
+		if (AlertView != nil)
         {
             [AlertView dismissWithClickedButtonIndex: 0 animated: YES]; //0 is the cancel button
         }
+#endif
     }
     
     TextWidget = nullptr;
@@ -144,33 +183,17 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 						{
 							AlertTextField.clearsOnBeginEditing = NO;
 							AlertTextField.clearsOnInsertion = NO;
-							AlertTextField.autocorrectionType = UITextAutocorrectionTypeNo;
-							AlertTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
 							AlertTextField.text = [NSString stringWithFString : TextWidget->GetText().ToString()];
 							AlertTextField.placeholder = [NSString stringWithFString : TextWidget->GetHintText().ToString()];
+		 
+							EKeyboardType TargetKeyboardType = (TextWidget.IsValid()) ? TextWidget->GetVirtualKeyboardType() : Keyboard_Default;
+							FKeyboardConfig KeyboardConfig;
+							GetKeyboardConfig(TargetKeyboardType, KeyboardConfig);
 
-							// set up the keyboard styles not supported in the AlertViewStyle styles
-							switch (TextWidget->GetVirtualKeyboardType())
-							{
-							case EKeyboardType::Keyboard_Email:
-								AlertTextField.keyboardType = UIKeyboardTypeEmailAddress;
-								break;
-							case EKeyboardType::Keyboard_Number:
-								AlertTextField.keyboardType = UIKeyboardTypeDecimalPad;
-								break;
-							case EKeyboardType::Keyboard_Web:
-								AlertTextField.keyboardType = UIKeyboardTypeURL;
-								break;
-							case EKeyboardType::Keyboard_AlphaNumeric:
-								AlertTextField.keyboardType = UIKeyboardTypeASCIICapable;
-								break;
-							case EKeyboardType::Keyboard_Password:
-								AlertTextField.secureTextEntry = YES;
-							case EKeyboardType::Keyboard_Default:
-							default:
-								AlertTextField.keyboardType = UIKeyboardTypeDefault;
-								break;
-							}
+							AlertTextField.keyboardType = KeyboardConfig.KeyboardType;
+							AlertTextField.autocorrectionType = KeyboardConfig.AutocorrectionType;
+							AlertTextField.autocapitalizationType = KeyboardConfig.AutocapitalizationType;
+							AlertTextField.secureTextEntry = KeyboardConfig.bSecureTextEntry;
 						}
 		];
 		[[IOSAppDelegate GetDelegate].IOSController presentViewController : AlertController animated : YES completion : nil];
@@ -178,6 +201,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 	else
 #endif
 	{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 		AlertView = [[UIAlertView alloc] initWithTitle:@""
 									message:@""
 									delegate:self
@@ -233,9 +257,11 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 		[AlertView show];
 
 		[AlertView release];
+#endif
 	}
 }
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
 	UITextField* AlertTextField = [alertView textFieldAtIndex : 0];
@@ -256,6 +282,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
     };
     [AsyncTask FinishedTask];
 }
+#endif
 
 @end
 

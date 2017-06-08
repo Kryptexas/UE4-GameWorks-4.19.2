@@ -82,9 +82,14 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_LocalNotificationGetLaunchNotification = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LocalNotificationGetLaunchNotification", "()Lcom/epicgames/ue4/GameActivity$LaunchNotification;", bIsOptional);
 	//AndroidThunkJava_LocalNotificationDestroyIfExists = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LocalNotificationDestroyIfExists", "(I)Z", bIsOptional);
 	AndroidThunkJava_HasActiveWiFiConnection = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_HasActiveWiFiConnection", "()Z", bIsOptional);
+	AndroidThunkJava_GetAndroidId = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetAndroidId", "()Ljava/lang/String;", bIsOptional);
 
 	// this is optional - only inserted if GearVR plugin enabled
 	AndroidThunkJava_IsGearVRApplication = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", true);
+
+	// this is optional - only inserted if GCM plugin enabled
+	AndroidThunkJava_RegisterForRemoteNotifications = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_RegisterForRemoteNotifications", "()V", true);
+	AndroidThunkJava_UnregisterForRemoteNotifications = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UnregisterForRemoteNotifications", "()V", true);
 
 	// get field IDs for InputDeviceInfo class members
 	jclass localInputDeviceInfoClass = FindClass(Env, "com/epicgames/ue4/GameActivity$InputDeviceInfo", bIsOptional);
@@ -132,6 +137,7 @@ void FJavaWrapper::FindGooglePlayMethods(JNIEnv* Env)
 	AndroidThunkJava_IsInterstitialAdAvailable = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IsInterstitialAdAvailable", "()Z", bIsOptional);
 	AndroidThunkJava_IsInterstitialAdRequested = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IsInterstitialAdRequested", "()Z", bIsOptional);
 	AndroidThunkJava_ShowInterstitialAd = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_ShowInterstitialAd", "()V", bIsOptional);
+	AndroidThunkJava_GetAdvertisingId = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GetAdvertisingId", "()Ljava/lang/String;", bIsOptional);
 	AndroidThunkJava_GoogleClientConnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientConnect", "()V", bIsOptional);
 	AndroidThunkJava_GoogleClientDisconnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientDisconnect", "()V", bIsOptional);
 }
@@ -269,12 +275,15 @@ jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataBoolean;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataInt;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataString;
 jmethodID FJavaWrapper::AndroidThunkJava_IsGearVRApplication;
+jmethodID FJavaWrapper::AndroidThunkJava_RegisterForRemoteNotifications;
+jmethodID FJavaWrapper::AndroidThunkJava_UnregisterForRemoteNotifications;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowHiddenAlertDialog;
 jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationScheduleAtTime;
 jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationClearAll;
 jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationGetLaunchNotification;
 //jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationDestroyIfExists;
 jmethodID FJavaWrapper::AndroidThunkJava_HasActiveWiFiConnection;
+jmethodID FJavaWrapper::AndroidThunkJava_GetAndroidId;
 
 jclass FJavaWrapper::InputDeviceInfoClass;
 jfieldID FJavaWrapper::InputDeviceInfo_VendorId;
@@ -293,6 +302,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_LoadInterstitialAd;
 jmethodID FJavaWrapper::AndroidThunkJava_IsInterstitialAdAvailable;
 jmethodID FJavaWrapper::AndroidThunkJava_IsInterstitialAdRequested;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowInterstitialAd;
+jmethodID FJavaWrapper::AndroidThunkJava_GetAdvertisingId;
 jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientConnect;
 jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientDisconnect;
 
@@ -511,6 +521,30 @@ bool AndroidThunkCpp_IsGearVRApplication()
 	return IsGearVRApplication == 1;
 }
 
+// call optional remote notification registration
+void AndroidThunkCpp_RegisterForRemoteNotifications()
+{
+	if (FJavaWrapper::AndroidThunkJava_RegisterForRemoteNotifications)
+	{
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		{
+			FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_RegisterForRemoteNotifications);
+		}
+	}
+}
+
+// call optional remote notification unregistration
+void AndroidThunkCpp_UnregisterForRemoteNotifications()
+{
+	if (FJavaWrapper::AndroidThunkJava_UnregisterForRemoteNotifications)
+	{
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		{
+			FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_UnregisterForRemoteNotifications);
+		}
+	}
+}
+
 void AndroidThunkCpp_ShowConsoleWindow()
 {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
@@ -574,7 +608,29 @@ void AndroidThunkCpp_HideVirtualKeyboardInputDialog()
         
         // call the java side
         FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_HideVirtualKeyboardInputDialog);
-    }
+
+		if (FTaskGraphInterface::IsRunning())
+		{
+			FGraphEventRef VirtualKeyboardShown = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
+			{
+				FAndroidApplication::Get()->OnVirtualKeyboardHidden().Broadcast();
+			}, TStatId(), NULL, ENamedThreads::GameThread);
+		}
+	}
+}
+
+// This is called from the ViewTreeObserver.OnGlobalLayoutListener in GameActivity
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardShown(JNIEnv* jenv, jobject thiz, jint left, jint top, jint right, jint bottom)
+{
+	FPlatformRect ScreenRect(left, top, right, bottom);
+
+	if (FTaskGraphInterface::IsRunning())
+	{
+		FGraphEventRef VirtualKeyboardShown = FFunctionGraphTask::CreateAndDispatchWhenReady([ScreenRect]()
+		{
+			FAndroidApplication::Get()->OnVirtualKeyboardShown().Broadcast(ScreenRect);
+		}, TStatId(), NULL, ENamedThreads::GameThread);
+	}
 }
 
 void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
@@ -616,20 +672,6 @@ void AndroidThunkCpp_HideVirtualKeyboardInput()
 				FAndroidApplication::Get()->OnVirtualKeyboardHidden().Broadcast();
 			}, TStatId(), NULL, ENamedThreads::GameThread );
 		}
-	}
-}
-
-// This is called from the ViewTreeObserver.OnGlobalLayoutListener in GameActivity
-JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardShown(JNIEnv* jenv, jobject thiz, jint left, jint top, jint right, jint bottom)
-{
-	FPlatformRect ScreenRect( left, top, right, bottom );
-
-	if( FTaskGraphInterface::IsRunning() )
-	{
-		FGraphEventRef VirtualKeyboardShown = FFunctionGraphTask::CreateAndDispatchWhenReady( [ScreenRect]()
-		{
-			FAndroidApplication::Get()->OnVirtualKeyboardShown().Broadcast( ScreenRect );
-		}, TStatId(), NULL, ENamedThreads::GameThread );
 	}
 }
 
@@ -764,6 +806,42 @@ void AndroidThunkCpp_ShowInterstitialAd()
 	{
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_ShowInterstitialAd);
 	}
+}
+
+FString AndroidThunkCpp_GetAdvertisingId()
+{
+	FString adIdResult = FString("");
+
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jstring adId =(jstring)FJavaWrapper::CallObjectMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_GetAdvertisingId);
+		if (!Env->IsSameObject(adId, NULL))
+		{
+			const char *nativeAdIdString = Env->GetStringUTFChars(adId, 0);
+			adIdResult = FString(nativeAdIdString);
+			Env->ReleaseStringUTFChars(adId, nativeAdIdString);
+			Env->DeleteLocalRef(adId);
+		}
+	}
+	return adIdResult;
+}
+
+FString AndroidThunkCpp_GetAndroidId()
+{
+	FString androidIdResult = FString("");
+
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jstring androidId = (jstring)FJavaWrapper::CallObjectMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_GetAndroidId);
+		if (!Env->IsSameObject(androidId, NULL))
+		{
+			const char *nativeandroidIdString = Env->GetStringUTFChars(androidId, 0);
+			androidIdResult = FString(nativeandroidIdString);
+			Env->ReleaseStringUTFChars(androidId, nativeandroidIdString);
+			Env->DeleteLocalRef(androidId);
+		}
+	}
+	return androidIdResult;
 }
 
 void AndroidThunkCpp_GoogleClientConnect()

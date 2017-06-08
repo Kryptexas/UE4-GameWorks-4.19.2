@@ -144,7 +144,6 @@
 #include "ShaderCompiler.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "DesktopPlatformModule.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
@@ -153,6 +152,8 @@
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
 #include "MaterialUtilities.h"
 #include "ActorGroupingUtils.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -177,12 +178,12 @@ namespace
 		FWaveCluster(const TCHAR* InName)
 			:	Name( InName )
 			,	Num( 0 )
-			,	Size( )
+			,	Size( 0 )
 		{}
 
 		FString Name;
 		int32 Num;
-		FResourceSizeEx Size;
+		int32 Size;
 	};
 
 	struct FAnimSequenceUsageInfo
@@ -601,37 +602,6 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 			GetSelectedObjects()->Select( StaticMesh );
 		}
 	}
-	else if (FParse::Command(&Str, TEXT("FORCELODGROUP")))	// STATICMESH FORCELODGROUP <name>
-	{
-		FName NewGroup(Str);
-		if (NewGroup != NAME_None)
-		{
-			// get the selected meshes
-			TArray<UStaticMesh*> SelectedMeshes;
-			for (FSelectionIterator Iter(GetSelectedActorIterator()); Iter; ++Iter)
-			{
-				TInlineComponentArray<UStaticMeshComponent*> SMComps(CastChecked<AActor>(*Iter));
-				for (UStaticMeshComponent* SMC : SMComps)
-				{
-					if (SMC->GetStaticMesh())
-					{
-						SelectedMeshes.AddUnique(SMC->GetStaticMesh());
-					}
-				}
-
-			}
-
-			// look at all loaded static meshes
-			for (UStaticMesh* SM : SelectedMeshes)
-			{
-				// update any mesh not already in a group
-				if (!SM->IsTemplate() && SM->LODGroup == NAME_None)
-				{
-					SM->SetLODGroup(NewGroup);
-				}
-			}
-		}
-	}
 #endif // UE_BUILD_SHIPPING
 	return bResult;
 }
@@ -811,10 +781,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 				InWorld->GetModel()->Modify();
 				NewBrush->Modify();
-				FlushRenderingCommands();
-				ABrush::GGeometryRebuildCause = TEXT("Add Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), DWord1, Brush_Add, CSG_None, true, true, true );
-				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -898,10 +865,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			{
 				NewBrush->Modify();
 				InWorld->GetModel()->Modify();
-				FlushRenderingCommands();
-				ABrush::GGeometryRebuildCause = TEXT("Subtract Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), 0, Brush_Subtract, CSG_None, true, true, true );
-				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -1234,13 +1198,13 @@ void UEditorEngine::CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttr
 {
 	Super::CreateStartupAnalyticsAttributes( StartSessionAttributes );
 
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	if(DesktopPlatform != nullptr)
+	ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
+	if(LauncherPlatform != nullptr)
 	{
 		// If this is false, CanOpenLauncher will only return true if the launcher is already installed on the users machine
 		const bool bIncludeLauncherInstaller = false;
 
-		bool bIsLauncherInstalled = DesktopPlatform->CanOpenLauncher(bIncludeLauncherInstaller);
+		bool bIsLauncherInstalled = LauncherPlatform->CanOpenLauncher(bIncludeLauncherInstaller);
 		StartSessionAttributes.Add(FAnalyticsEventAttribute(TEXT("IsLauncherInstalled"), bIsLauncherInstalled));
 	}
 }
@@ -1750,9 +1714,6 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	const int32 NumVectors = Model->Vectors.Num();
 	const int32 NumSurfs = Model->Surfs.Num();
 
-	// Debug purposes only; an attempt to catch the cause of UE-36265
-	ABrush::GGeometryRebuildCause = TEXT("RebuildModelFromBrushes");
-
 	Model->Modify();
 	Model->EmptyModel(1, 1);
 
@@ -1842,9 +1803,6 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 		FBSPOps::csgPrepMovingBrush(DynamicBrush);
 	}
-
-	// Debug purposes only; an attempt to catch the cause of UE-36265
-	ABrush::GGeometryRebuildCause = nullptr;
 
 	FBspPointsGrid::GBspPoints = nullptr;
 	FBspPointsGrid::GBspVectors = nullptr;
@@ -1948,9 +1906,7 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 		DefaultBrush->Modify();
 		InWorld->GetModel()->Modify();
 		FinishAllSnaps();
-		ABrush::GGeometryRebuildCause = TEXT("BSPIntersectionHelper");
 		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
-		ABrush::GGeometryRebuildCause = nullptr;
 	}
 }
 
@@ -2567,8 +2523,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 				World->WorldType = EWorldType::Editor;
 
-				Context.World()->PersistentLevel->HandleLegacyMapBuildData();
-
 				// Parse requested feature level if supplied
 				int32 FeatureLevelIndex = (int32)GMaxRHIFeatureLevel;
 				FParse::Value(Str, TEXT("FEATURELEVEL="), FeatureLevelIndex);
@@ -2997,9 +2951,7 @@ public:
 				*OutClipboardContents = *ScratchData;
 			}
 
-			// Do not warn if we are only copying not pasint as we are not actually deleting anything from the real level
-			const bool bWarnAboutReferencedActors = !bCopyOnly;
-			GEditor->edactDeleteSelected( World, false, bWarnAboutReferencedActors);
+			GEditor->edactDeleteSelected( World, false );
 		}
 
 		if( DestLevel )
@@ -6269,14 +6221,15 @@ bool UEditorEngine::HandleBugItGoCommand( const TCHAR* Str, FOutputDevice& Ar )
 bool UEditorEngine::HandleTagSoundsCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	int32 NumObjects = 0;
-	SIZE_T TotalSize = 0;
+	int32 TotalSize = 0;
 	for( FObjectIterator It(USoundWave::StaticClass()); It; ++It )
 	{
 		++NumObjects;
 		DebugSoundAnnotation.Set(*It);
 
 		USoundWave* Wave = static_cast<USoundWave*>(*It);
-		TotalSize += Wave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+		const SIZE_T Size = Wave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+		TotalSize += Size;
 	}
 	UE_LOG(LogEditorServer, Log,  TEXT("Marked %i sounds %10.2fMB"), NumObjects, ((float)TotalSize) /(1024.f*1024.f) );
 	return true;
@@ -6315,20 +6268,19 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 		const int32 NumCoreClusters = Clusters.Num();
 
 		// Output information.
+		int32 TotalSize = 0;
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s"), TEXT("Wave Name"), TEXT("Size") );
 		for ( int32 WaveIndex = 0 ; WaveIndex < WaveList.Num() ; ++WaveIndex )
 		{
 			USoundWave* Wave = WaveList[WaveIndex];
+			const SIZE_T WaveSize = Wave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 			UPackage* WavePackage = Wave->GetOutermost();
 			const FString PackageName( WavePackage->GetName() );
 
-			FResourceSizeEx WaveResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
-			Wave->GetResourceSizeEx(WaveResourceSize);
-
 			// Totals.
 			Clusters[0].Num++;
-			Clusters[0].Size += WaveResourceSize;
+			Clusters[0].Size += WaveSize;
 
 			// Core clusters
 			for ( int32 ClusterIndex = 1 ; ClusterIndex < NumCoreClusters ; ++ClusterIndex )
@@ -6337,7 +6289,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				if ( PackageName.Find( Cluster.Name ) != -1 )
 				{
 					Cluster.Num++;
-					Cluster.Size += WaveResourceSize;
+					Cluster.Size += WaveSize;
 				}
 			}
 
@@ -6350,7 +6302,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				{
 					// Found a cluster with this package name.
 					Cluster.Num++;
-					Cluster.Size += WaveResourceSize;
+					Cluster.Size += WaveSize;
 					bFoundMatch = true;
 					break;
 				}
@@ -6360,17 +6312,17 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				// Create a new cluster with the package name.
 				FWaveCluster NewCluster( *PackageName );
 				NewCluster.Num = 1;
-				NewCluster.Size = WaveResourceSize;
+				NewCluster.Size = WaveSize;
 				Clusters.Add( NewCluster );
 			}
 
 			// Dump bulk sound list.
-			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveResourceSize.GetTotalMemoryBytes())/1024.f );
+			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveSize)/1024.f );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s %10s"), TEXT("Cluster Name"), TEXT("Num"), TEXT("Size") );
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		FResourceSizeEx TotalClusteredSize;
+		int32 TotalClusteredSize = 0;
 		for ( int32 ClusterIndex = 0 ; ClusterIndex < Clusters.Num() ; ++ClusterIndex )
 		{
 			const FWaveCluster& Cluster = Clusters[ClusterIndex];
@@ -6379,10 +6331,10 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				UE_LOG(LogEditorServer, Log,  TEXT("---------------------------------------------------------------------------------") );
 				TotalClusteredSize += Cluster.Size;
 			}
-			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size.GetTotalMemoryBytes())/(1024.f*1024.f) );
+			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size)/(1024.f*1024.f) );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize.GetTotalMemoryBytes())/(1024.f*1024.f) );
+		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize)/(1024.f*1024.f) );
 		return true;
 }
 
@@ -6657,7 +6609,7 @@ bool IsComponentMergable(UStaticMeshComponent* Component)
 	}
 
 	// we need a static mesh to work
-	if (Component->GetStaticMesh() == nullptr || Component->GetStaticMesh()->RenderData == nullptr)
+	if (Component->GetStaticMesh() == NULL || Component->GetStaticMesh()->RenderData == NULL)
 	{
 		return false;
 	}

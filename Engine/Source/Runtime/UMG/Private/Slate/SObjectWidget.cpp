@@ -462,3 +462,13 @@ FNavigationReply SObjectWidget::OnNavigation(const FGeometry& MyGeometry, const 
 
 	return Reply;
 }
+
+void SObjectWidget::OnMouseCaptureLost()
+{
+	SCompoundWidget::OnMouseCaptureLost();
+
+	if ( CanRouteEvent() )
+	{
+		return WidgetObject->NativeOnMouseCaptureLost();
+	}
+}

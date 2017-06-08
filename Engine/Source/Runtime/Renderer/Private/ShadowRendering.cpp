@@ -460,7 +460,7 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 		{
 			if (bMobileModulatedProjections)
 			{
-				bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+				bool bEncodedHDR = GetMobileHDRMode() == EMobileHDRMode::EnabledRGBE;
 				if (bEncodedHDR)
 				{
 					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();

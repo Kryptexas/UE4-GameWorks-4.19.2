@@ -622,9 +622,34 @@ public:
 	 */
 	void SlatePrepass(float LayoutScaleMultiplier);
 
+#if SLATE_DEFERRED_DESIRED_SIZE
+	private:
+	FORCEINLINE void InvalidateDesiredSize(float LayoutScaleMultiplier)
+	{
+		bCachedDesiredSize = false;
+		DesiredSizeScaleMultiplier = LayoutScaleMultiplier;
+	}
+
 	public:
 	/** @return the DesiredSize that was computed the last time CacheDesiredSize() was called. */
+	FORCEINLINE const FVector2D& GetDesiredSize() const
+	{
+		if ( !bCachedDesiredSize && ensureMsgf(!bUpdatingDesiredSize, TEXT("The layout is cyclically dependent.  A child widget can not ask the desired size of a parent while the parent is asking the desired size of its children.")) )
+		{
+			bUpdatingDesiredSize = true;
+
+			// Cache this widget's desired size.
+			const_cast<SWidget*>(this)->CacheDesiredSize(DesiredSizeScaleMultiplier);
+
+			bUpdatingDesiredSize = false;
+		}
+
+		return DesiredSize;
+	}
+#else
+	public:
 	FORCEINLINE const FVector2D& GetDesiredSize() const { return DesiredSize; }
+#endif
 
 	/**
 	 * The system calls this method. It performs a breadth-first traversal of every visible widget and asks
@@ -636,7 +661,13 @@ public:
 	 * Explicitly set the desired size. This is highly advanced functionality that is meant
 	 * to be used in conjunction with overriding CacheDesiredSize. Use ComputeDesiredSize() instead.
 	 */
-	protected: void Advanced_SetDesiredSize(const FVector2D& InDesiredSize) { DesiredSize = InDesiredSize; }
+	protected: void Advanced_SetDesiredSize(const FVector2D& InDesiredSize)
+	{
+		DesiredSize = InDesiredSize;
+#if SLATE_DEFERRED_DESIRED_SIZE
+		bCachedDesiredSize = true;
+#endif
+	}
 
 	/**
 	 * Compute the ideal size necessary to display this widget. For aggregate widgets (e.g. panels) this size should include the
@@ -1276,6 +1307,10 @@ private:
 	/** The list of active timer handles for this widget. */
 	TArray<TSharedRef<FActiveTimerHandle>> ActiveTimers;
 
+#if SLATE_DEFERRED_DESIRED_SIZE
+	float DesiredSizeScaleMultiplier;
+#endif
+
 protected:
 
 	/** Whether or not this widget is enabled */
@@ -1291,6 +1326,13 @@ protected:
 	TAttribute< FVector2D > RenderTransformPivot;
 
 protected:
+#if SLATE_DEFERRED_DESIRED_SIZE
+	/** Has the desired size of the widget been cached? */
+	bool bCachedDesiredSize : 1;
+
+	/** Are we currently updating the desired size? */
+	mutable bool bUpdatingDesiredSize : 1;
+#endif
 
 	/** Debugging information on the type of widget we're creating for the Widget Reflector. */
 	FName TypeOfWidget;

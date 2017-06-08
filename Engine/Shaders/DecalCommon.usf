@@ -36,7 +36,7 @@ void DecalCommonOutput(inout FPixelShaderIn In, inout FPixelShaderOut Out, float
 #if (ES2_PROFILE || ES3_1_PROFILE)
 #if (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) || (MOBILE_EMULATION)
 	// Do decal blending if encoding requires it.
-	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBA)
+	if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBE)
 	{
 		Out.MRT[0].rgb = FrameBufferDecalBlendOp(Out.MRT[0]);
 	}

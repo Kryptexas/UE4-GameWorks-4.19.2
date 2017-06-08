@@ -223,7 +223,7 @@ public:
 	// End of SWidget interface
 
 protected:
-	// SWidget interface
+	// Begin SWidget overrides.
 	virtual bool ComputeVolatility() const override;
 	// End of SWidget interface
 

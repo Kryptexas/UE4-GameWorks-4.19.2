@@ -138,7 +138,12 @@ namespace UnrealBuildTool
                     BuildProducts.Add(AssetFile, BuildProductType.Executable);
                 }
 			}
-		}
+            if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && ProjectSettings.bGenerateCrashReportSymbols && Binary.Config.Type == UEBuildBinaryType.Executable)
+            {
+                FileReference DebugFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".udebugsymbols");
+                BuildProducts.Add(DebugFile, BuildProductType.SymbolFile);
+            }
+        }
 
 		/// <summary>
 		/// Adds a build product and its associated debug file to a receipt.
@@ -681,7 +686,7 @@ namespace UnrealBuildTool
 				}
 
 				string AllArgs = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
-				string SourceText = System.IO.File.ReadAllText(SourceFile.AbsolutePath);
+/*				string SourceText = System.IO.File.ReadAllText(SourceFile.AbsolutePath);
 				if (CompileEnvironment.bOptimizeForSize && (SourceFile.AbsolutePath.Contains("ElementBatcher.cpp") || SourceText.Contains("ElementBatcher.cpp") || SourceFile.AbsolutePath.Contains("AnimationRuntime.cpp") || SourceText.Contains("AnimationRuntime.cpp")
 					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp") || SourceFile.AbsolutePath.Contains("TextRenderComponent.cpp") || SourceText.Contains("TextRenderComponent.cpp")
 					|| SourceFile.AbsolutePath.Contains("SWidget.cpp") || SourceText.Contains("SWidget.cpp") || SourceFile.AbsolutePath.Contains("SCanvas.cpp") || SourceText.Contains("SCanvas.cpp") || SourceFile.AbsolutePath.Contains("ShaderCore.cpp") || SourceText.Contains("ShaderCore.cpp")
@@ -690,7 +695,7 @@ namespace UnrealBuildTool
 					Console.WriteLine("Forcing {0} to --O3!", SourceFile.AbsolutePath);
 
 					AllArgs = AllArgs.Replace("-Oz", "-O3");
-				}
+				}*/
 
 				// RPC utility parameters are in terms of the Mac side
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
@@ -946,7 +951,10 @@ namespace UnrealBuildTool
 
             FileItem OutputFile;
             OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+            FileItem ZipOutputFile;
+            ZipOutputFile = FileItem.GetItemByPath(FullDestPathRoot + ".zip");
             FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
+            FileItem ZipDestFile = LocalToRemoteFileItem(ZipOutputFile, false);
 
             // Make the compile action
             Action GenDebugAction = ActionGraph.Add(ActionType.GenerateDebugInfo);
@@ -963,22 +971,75 @@ namespace UnrealBuildTool
 					Executable.AbsolutePath,
                     DestFile.AbsolutePath,
 					Path.GetFileName(FullDestPathRoot));
-			}
-			else
+                GenDebugAction.ProducedItems.Add(ZipDestFile);
+                Log.TraceInformation("Zip file: " + ZipDestFile.AbsolutePath);
+            }
+            else
 			{
 				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; /usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
 						Executable.AbsolutePath,
 						DestFile.AbsolutePath);
 			}
 			GenDebugAction.PrerequisiteItems.Add(Executable);
-			GenDebugAction.ProducedItems.Add(DestFile);
-			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
+            GenDebugAction.ProducedItems.Add(DestFile);
+            GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
 			GenDebugAction.bCanExecuteRemotely = false;
 
-			return DestFile;
+			return (ProjectSettings.bGeneratedSYMBundle ? ZipDestFile : DestFile);
 		}
 
-		private static void PackageStub(string BinaryPath, string GameName, string ExeName)
+        /// <summary>
+        /// Generates pseudo pdb info for a given executable
+        /// </summary>
+        /// <param name="Executable">FileItem describing the executable to generate debug info for</param>
+		/// <param name="ActionGraph"></param>
+        public FileItem GeneratePseudoPDB(FileItem Executable, ActionGraph ActionGraph)
+        {
+            // Make a file item for the source and destination files
+            FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
+            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".udebugsymbols");
+            string FulldSYMPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM");
+            string PathToDWARF = Path.Combine(FulldSYMPathRoot, "Contents", "Resources", "DWARF", Path.GetFileName(LocalExecutable.AbsolutePath));
+
+            FileItem dSYMFile;
+            dSYMFile = FileItem.GetItemByPath(FulldSYMPathRoot);
+            FileItem dSYMOutFile = LocalToRemoteFileItem(dSYMFile, false);
+
+            FileItem DWARFFile;
+            DWARFFile = FileItem.GetItemByPath(PathToDWARF);
+            FileItem DWARFOutFile = LocalToRemoteFileItem(DWARFFile, false);
+
+            FileItem OutputFile;
+            OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+            FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
+
+            // Make the compile action
+            Action GenDebugAction = ActionGraph.Add(ActionType.GenerateDebugInfo);
+            GenDebugAction.WorkingDirectory = GetMacDevEngineRoot() + "/Binaries/Mac/";
+            if (!Utils.IsRunningOnMono)
+            {
+                GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
+                FileItem DsymExporter = FileItem.GetItemByPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/")) + "/Binaries/Mac/" + "DsymExporter");
+                QueueFileForBatchUpload(DsymExporter);
+                QueueDirectoryForBatchUpload(DirectoryReference.MakeFromNormalizedFullPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/")) + "Binaries/ThirdParty/ICU/icu4c-53_1/Mac/"));
+                QueueDirectoryForBatchUpload(DirectoryReference.MakeFromNormalizedFullPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/")) + "Content/Internationalization/"));
+            }
+
+            GenDebugAction.CommandPath = "sh";
+            GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; dwarfdump --uuid {3} | cut -d\" \" -f2; chmod 777 ./DsymExporter; ./DsymExporter -UUID=$(dwarfdump --uuid {3} | cut -d\" \" -f2) \"{0}\" \"{2}\"'",
+                    DWARFOutFile.AbsolutePath,
+                    DestFile.AbsolutePath,
+                    Path.GetDirectoryName(DestFile.AbsolutePath),
+                    dSYMOutFile.AbsolutePath);
+            GenDebugAction.PrerequisiteItems.Add(dSYMOutFile);
+            GenDebugAction.ProducedItems.Add(DestFile);
+            GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
+            GenDebugAction.bCanExecuteRemotely = false;
+
+            return DestFile;
+        }
+
+        private static void PackageStub(string BinaryPath, string GameName, string ExeName)
 		{
 			// create the ipa
 			string IPAName = BinaryPath + "/" + ExeName + ".stub";
@@ -1231,6 +1292,10 @@ namespace UnrealBuildTool
 			if (ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true || BinaryLinkEnvironment.bUsePDBFiles == true)
             {
                 OutputFiles.Add(GenerateDebugInfo(Executable, ActionGraph));
+                if (ProjectSettings.bGenerateCrashReportSymbols)
+                {
+                    OutputFiles.Add(GeneratePseudoPDB(Executable, ActionGraph));
+                }
             }
 
             // for tvOS generate the asset catalog
@@ -1302,12 +1367,19 @@ namespace UnrealBuildTool
 
 					string SchemeName = AppName;
 
-					// generate the dummy project so signing works
-					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
+                    // ensure the plist, entitlements, and provision files are properly copied
+                    var DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                    DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
+
+                    // generate the dummy project so signing works
+                    if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
 						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=" + (Target.Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", (Target.Platform == UnrealTargetPlatform.IOS ? "-iosdeployonly" : "-tvosdeployonly"), "-ignorejunk" });
 						Project = Path.GetFullPath("../..") + "/UE4_" + (Target.Platform == UnrealTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcworkspace";
-						SchemeName = "UE4";
+                        if (AppName == "UE4Game" || AppName == "UE4Client")
+                        {
+                            SchemeName = "UE4";
+                        }
 					}
 					else
 					{
@@ -1318,7 +1390,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
                         // ensure the plist, entitlements, and provision files are properly copied
-                        var DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                        DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
                         DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
 						var ConfigName = Target.Configuration.ToString();
@@ -1455,8 +1527,13 @@ namespace UnrealBuildTool
 								DSYMExt = ".dSYM";
 							}
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
-						}
-					}
+                            if (ProjectSettings.bGenerateCrashReportSymbols)
+                            {
+                                RPCUtilHelper.CopyFile(RemoteExecutablePath + ".udebugsymbols", FilePath.FullName + ".udebugsymbols", false);
+                            }
+
+                        }
+                    }
 				}
 
 				// Generate the stub

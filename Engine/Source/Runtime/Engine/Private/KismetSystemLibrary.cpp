@@ -2434,6 +2434,11 @@ void UKismetSystemLibrary::RegisterForRemoteNotifications()
 	FPlatformMisc::RegisterForRemoteNotifications();
 }
 
+void UKismetSystemLibrary::UnregisterForRemoteNotifications()
+{
+	FPlatformMisc::UnregisterForRemoteNotifications();
+}
+
 void UKismetSystemLibrary::SetUserActivity(const FUserActivity& UserActivity)
 {
 	FUserActivityTracking::SetActivity(UserActivity);

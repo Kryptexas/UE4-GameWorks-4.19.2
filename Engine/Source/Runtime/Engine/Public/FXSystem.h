@@ -79,6 +79,8 @@ namespace FXConsoleVariables
 	extern float GPUCollisionDepthBounds;
 	/** Specify a sorting test to run. */
 	extern TAutoConsoleVariable<int32> TestGPUSort;
+	/** true if GPU particles are allowed. */
+	extern int32 bAllowGPUParticles;
 }
 
 /**
@@ -99,7 +101,8 @@ inline bool SupportsGPUParticles(EShaderPlatform Platform)
 // RHI on the current hardware is able to support GPU particles.
 inline bool RHISupportsGPUParticles()
 {
-	return GSupportsMultipleRenderTargets 
+	return FXConsoleVariables::bAllowGPUParticles
+		&& GSupportsMultipleRenderTargets 
 		&& GSupportsWideMRT
 		&& GPixelFormats[PF_G32R32F].Supported 
 		&& GSupportsTexture3D 

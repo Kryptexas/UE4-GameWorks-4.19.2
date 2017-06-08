@@ -25,7 +25,12 @@ template<typename TCmd> struct FRHICommand;
 const uint32 NumDrawBuffers = 3;
 
 // Enable to visualize overdraw in Slate
-#define DEBUG_OVERDRAW 0
+#define WITH_SLATE_VISUALIZERS 0 //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+#if WITH_SLATE_VISUALIZERS
+extern TAutoConsoleVariable<int32> CVarShowSlateOverdraw;
+extern TAutoConsoleVariable<int32> CVarShowSlateBatching;
+#endif
 
 class FSlateBackBuffer : public FRenderTarget
 {

@@ -123,6 +123,33 @@ bool UButton::IsPressed() const
 	return false;
 }
 
+void UButton::SetClickMethod(EButtonClickMethod::Type InClickMethod)
+{
+	ClickMethod = InClickMethod;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetClickMethod(ClickMethod);
+	}
+}
+
+void UButton::SetTouchMethod(EButtonTouchMethod::Type InTouchMethod)
+{
+	TouchMethod = InTouchMethod;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetTouchMethod(TouchMethod);
+	}
+}
+
+//void UButton::SetPressMethod(EButtonPressMethod::Type InPressMethod)
+//{
+//	PressMethod = InPressMethod;
+//	if ( MyButton.IsValid() )
+//	{
+//		MyButton->SetPressMethod(PressMethod);
+//	}
+//}
+
 void UButton::PostLoad()
 {
 	Super::PostLoad();

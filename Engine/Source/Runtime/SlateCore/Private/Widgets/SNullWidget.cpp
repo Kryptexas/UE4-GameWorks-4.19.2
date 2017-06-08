@@ -57,11 +57,6 @@ public:
 		return LayerId;
 	}
 
-	virtual FVector2D ComputeDesiredSize(float) const override final
-	{
-		return FVector2D(0.0f, 0.0f);
-	}
-
 	virtual FChildren* GetChildren( ) override final
 	{
 		return &NullWidgetNoChildren;
@@ -71,6 +66,12 @@ public:
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override final
 	{
 		// Nothing to arrange; Null Widgets do not have children.
+	}
+
+protected:
+	virtual FVector2D ComputeDesiredSize(float) const override final
+	{
+		return FVector2D(0.0f, 0.0f);
 	}
 
 	// End of SWidget interface

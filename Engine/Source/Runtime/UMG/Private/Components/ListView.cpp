@@ -61,6 +61,7 @@ TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TShare
 		];
 }
 
+
 #if WITH_EDITOR
 
 const FText UListView::GetPaletteCategory()

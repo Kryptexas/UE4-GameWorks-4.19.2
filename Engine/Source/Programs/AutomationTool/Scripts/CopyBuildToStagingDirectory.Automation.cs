@@ -134,7 +134,8 @@ public partial class Project : CommandUtils
         }
 		CmdLine += " -multiprocess"; // Prevents warnings about being unable to write to config files
 		CmdLine += PlatformOptions;
-		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+        string UnrealPakLogFileName = "UnrealPak_" + PakName;
+        RunAndLog(CmdEnv, UnrealPakExe, CmdLine, LogName: UnrealPakLogFileName, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
 	}
 
@@ -540,6 +541,16 @@ public partial class Project : CommandUtils
                 SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, bRemap);
             }
 
+			// shader cache
+			{
+				string ShaderCache = CombinePaths(SC.ProjectRoot, "Content/DrawCache.ushadercache");
+				if (File.Exists(ShaderCache))
+				{
+					SC.StageFile(StagedFileType.UFS, ShaderCache);
+				}
+			}
+
+			// eliminate the sand box
 			// eliminate the sand box
 			if (Params.CookInEditor)
 			{
@@ -1192,31 +1203,31 @@ public partial class Project : CommandUtils
 		}
 		foreach (var StagingFile in StagingManifestResponseFile)
 		{
-			bool bAddedToChunk = false;
-			for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
-			{
-                		string OriginalFilename = StagingFile.Key;
-                		string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
-                		string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
-                		string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
+            bool bAddedToChunk = false;
+            for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
+            {
+                string OriginalFilename = StagingFile.Key;
+                string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
+                string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
+                string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
 
-				if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) || 
-                		    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
-		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
-		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
-				{
-					PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
-					bAddedToChunk = true;
-				}
-			}
-			if (!bAddedToChunk)
-			{
-				//Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
-				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
-			}
-		}
+                if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) ||
+                            ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
+                            ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
+                            ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
+                {
+                    PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
+                    bAddedToChunk = true;
+                }
+            }
+            if (!bAddedToChunk)
+            {
+                //Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
+                PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
+            }
+        }
 
-		if (Params.CreateChunkInstall)
+        if (Params.CreateChunkInstall)
 		{
 			string ManifestDir = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform, "ManifestDir");
 			if (InternalUtils.SafeDirectoryExists(ManifestDir))
@@ -1234,18 +1245,23 @@ public partial class Project : CommandUtils
 		}
 
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
-	
+
+        System.Threading.Tasks.ParallelOptions Options = new System.Threading.Tasks.ParallelOptions();
+        Options.MaxDegreeOfParallelism = 1;
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
-			CreatePak(Params, SC, PakPair.Item1, ChunkName);
+            if (PakPair.Item1.Count > 0)
+            {
+                CreatePak(Params, SC, PakPair.Item1, ChunkName);
+            }
 		});
 
-		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());
+        String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());
 		String OutputChunkLayerFilename = Path.Combine(SC.ProjectRoot, "Build", SC.FinalCookPlatform, "ChunkLayerInfo", GetChunkPakLayerListName());
 		Directory.CreateDirectory(Path.GetDirectoryName(OutputChunkLayerFilename));
 		File.Copy(ChunkLayerFilename, OutputChunkLayerFilename, true);
-	}
+    }
 
 	private static bool DoesChunkPakManifestExist(ProjectParams Params, DeploymentContext SC)
 	{

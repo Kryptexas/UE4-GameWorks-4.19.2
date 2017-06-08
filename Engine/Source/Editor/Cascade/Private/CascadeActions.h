@@ -70,6 +70,10 @@ public:
 	TSharedPtr<FUICommandInfo> AddLODBeforeCurrent;
 	TSharedPtr<FUICommandInfo> JumpToLowerLOD;
 	TSharedPtr<FUICommandInfo> JumpToLowestLOD;
+	TSharedPtr<FUICommandInfo> JumpToLOD0;
+	TSharedPtr<FUICommandInfo> JumpToLOD1;
+	TSharedPtr<FUICommandInfo> JumpToLOD2;
+	TSharedPtr<FUICommandInfo> JumpToLOD3;
 	TSharedPtr<FUICommandInfo> DeleteLOD;
 	TSharedPtr<FUICommandInfo> DeleteModule;
 	TSharedPtr<FUICommandInfo> RefreshModule;

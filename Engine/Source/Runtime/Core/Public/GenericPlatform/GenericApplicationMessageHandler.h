@@ -202,6 +202,7 @@ namespace EGestureEvent
 		Magnify,
 		Swipe,
 		Rotate,
+		LongPress,
 		Count
 	};
 }
@@ -353,6 +354,11 @@ public:
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 	{
 		return false;
+	}
+
+	virtual void ShouldSimulateGesture(EGestureEvent::Type Gesture, bool bEnable)
+	{
+
 	}
 
 	virtual bool OnMotionDetected( const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId )

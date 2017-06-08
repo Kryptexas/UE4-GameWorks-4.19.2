@@ -17,7 +17,7 @@
  * * Single Child
  * * Aspect Ratio
  */
-UCLASS()
+UCLASS(config=Engine)
 class UMG_API UScaleBox : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -39,6 +39,16 @@ public:
 	/** Optional bool to ignore the inherited scale. Applies inverse scaling to counteract parents before applying the local scale operation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stretching")
 	bool IgnoreInheritedScale;
+
+	/**
+	 * Only perform a single layout pass, if you do this, it can save a considerable
+	 * amount of time, however, some things like text may not look correct.  You may also
+	 * see the UI judder between frames.  This generally is caused by not explicitly
+	 * sizing the widget, and instead allowing it to layout based on desired size along
+	 * which won't work in Single Layout Pass mode.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category = "Performance")
+	bool bSingleLayoutPass;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Appearance")

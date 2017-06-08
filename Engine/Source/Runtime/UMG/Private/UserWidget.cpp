@@ -1593,6 +1593,11 @@ FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, cons
 	return FCursorReply::Unhandled();
 }
 
+void UUserWidget::NativeOnMouseCaptureLost()
+{
+	OnMouseCaptureLost();
+}
+
 bool UUserWidget::ShouldSerializeWidgetTree(const ITargetPlatform* TargetPlatform) const
 {
 	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )

@@ -1571,10 +1571,17 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Requests permission to send remote notifications to the user's device.
-	 * (iOS only)
+	 * (Android and iOS only)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void RegisterForRemoteNotifications();
+
+	/**
+	* Requests Requests unregistering from receiving remote notifications to the user's device.
+	* (Android only)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void UnregisterForRemoteNotifications();
 
 	/**
 	 * Tells the engine what the user is doing for debug, analytics, etc.

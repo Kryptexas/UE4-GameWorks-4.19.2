@@ -156,33 +156,27 @@ public:
 	/** See ButtonStyle attribute */
 	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 
+	void SetClickMethod(EButtonClickMethod::Type InClickMethod);
+	void SetTouchMethod(EButtonTouchMethod::Type InTouchMethod);
+	void SetPressMethod(EButtonPressMethod::Type InPressMethod);
+
 public:
 
 	// SWidget overrides
-
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-
 	virtual bool SupportsKeyboardFocus() const override;
-
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
-
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
-	
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	
 	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
-
+	virtual void OnMouseCaptureLost() override;
 	virtual bool IsInteractable() const override;
+	// SWidget
 
 protected:
 
@@ -203,6 +197,9 @@ protected:
 
 	/** True if this button is currently in a pressed state */
 	bool bIsPressed;
+
+	/** The location in screenspace the button was pressed */
+	FVector2D PressedScreenSpacePosition;
 
 	/** The delegate to execute when the button is clicked */
 	FOnClicked OnClicked;

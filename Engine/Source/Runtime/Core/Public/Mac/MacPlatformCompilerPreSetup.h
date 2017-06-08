@@ -143,6 +143,8 @@
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #pragma clang diagnostic ignored "-Wundefined-bool-conversion"
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
+#pragma clang diagnostic ignored "-Wconstant-logical-operand"
+#pragma clang diagnostic ignored "-Wreserved-user-defined-literal"
 
 // Apple LLVM 8.1.0 (Xcode 8.3) introduced -Wundefined-var-template
 #if (__clang_major__ > 8) || (__clang_major__ == 8 && __clang_minor__ >= 1)

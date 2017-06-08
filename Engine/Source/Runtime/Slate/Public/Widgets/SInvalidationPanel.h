@@ -83,6 +83,7 @@ private:
 #else
 	FORCEINLINE bool IsCachingNeeded() const { return bNeedsCaching; }
 #endif
+	
 
 	bool IsCachingNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect) const;
 

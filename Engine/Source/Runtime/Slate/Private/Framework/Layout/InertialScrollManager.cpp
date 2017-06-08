@@ -2,27 +2,28 @@
 
 #include "Framework/Layout/InertialScrollManager.h"
 
+float FInertialScrollManager::FrictionCoefficient = 2.0f;
+float FInertialScrollManager::StaticVelocityDrag = 100;
 
-FInertialScrollManager::FInertialScrollManager(float InScrollDecceleration, double InSampleTimeout)
+FInertialScrollManager::FInertialScrollManager(double InSampleTimeout)
 	: ScrollVelocity(0.f)
-	, ScrollDecceleration(InScrollDecceleration)
 	, SampleTimeout(InSampleTimeout)
 {
 }
 
 void FInertialScrollManager::AddScrollSample(float Delta, double CurrentTime)
 {
-	new( this->ScrollSamples ) FScrollSample(Delta, CurrentTime);
+	new( ScrollSamples ) FScrollSample(Delta, CurrentTime);
 
 	float Total = 0;
 	double OldestTime = 0;
-	for ( int32 VelIdx = this->ScrollSamples.Num() - 1; VelIdx >= 0; --VelIdx )
+	for ( int32 VelIdx = ScrollSamples.Num() - 1; VelIdx >= 0; --VelIdx )
 	{
-		const double SampleTime = this->ScrollSamples[VelIdx].Time;
-		const float SampleDelta = this->ScrollSamples[VelIdx].Delta;
+		const double SampleTime = ScrollSamples[VelIdx].Time;
+		const float SampleDelta = ScrollSamples[VelIdx].Delta;
 		if ( CurrentTime - SampleTime > SampleTimeout )
 		{
-			this->ScrollSamples.RemoveAt(VelIdx);
+			ScrollSamples.RemoveAt(VelIdx);
 		}
 		else
 		{
@@ -39,29 +40,30 @@ void FInertialScrollManager::AddScrollSample(float Delta, double CurrentTime)
 	const double Duration = (OldestTime > 0) ? (CurrentTime - OldestTime) : 0;
 	if ( Duration > 0 )
 	{
-		this->ScrollVelocity = Total / Duration;
+		ScrollVelocity = Total / Duration;
 	}
 	else
 	{
-		this->ScrollVelocity = 0;
+		ScrollVelocity = 0;
 	}
 }	
 
 void FInertialScrollManager::UpdateScrollVelocity(const float InDeltaTime)
 {
-	if ( this->ScrollVelocity > 0 )
+	const float VelocityLostPerSecond = ScrollVelocity > 0 ? StaticVelocityDrag : -StaticVelocityDrag;
+	const float DeltaVelocity = FrictionCoefficient * ScrollVelocity * InDeltaTime + VelocityLostPerSecond * InDeltaTime;
+
+	if ( ScrollVelocity > 0 )
 	{
-		this->ScrollVelocity -= ScrollDecceleration * InDeltaTime;
-		this->ScrollVelocity = FMath::Max<float>(0.f, this->ScrollVelocity);
+		ScrollVelocity = FMath::Max<float>(0.f, ScrollVelocity - DeltaVelocity);
 	}
-	else if ( this->ScrollVelocity < 0 )
+	else if ( ScrollVelocity < 0 )
 	{
-		this->ScrollVelocity += ScrollDecceleration * InDeltaTime;
-		this->ScrollVelocity = FMath::Min<float>(0.f, this->ScrollVelocity);
+		ScrollVelocity = FMath::Min<float>(0.f, ScrollVelocity - DeltaVelocity);
 	}
 }
 
 void FInertialScrollManager::ClearScrollVelocity()
 {
-	this->ScrollVelocity = 0;
+	ScrollVelocity = 0;
 }

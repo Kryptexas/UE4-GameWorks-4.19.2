@@ -234,9 +234,9 @@ public class IOSPlatform : Platform
 		IOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out TeamUUID, out bAutomaticSigning);
     }
 
-	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+	public virtual bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, out bool bSupportsPortrait, out bool bSupportsLandscape)
 	{
-		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
+		return IOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, out bSupportsPortrait, out bSupportsLandscape);
 	}
 
     protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -823,11 +823,6 @@ public class IOSPlatform : Platform
 	{
 		//		if (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 		{
-			// copy the icons/launch screens from the engine
-			{
-				string SourcePath = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "Graphics");
-				SC.StageFiles(StagedFileType.NonUFS, SourcePath, "*.png", false, null, "", true, false);
-			}
 
 			// copy any additional framework assets that will be needed at runtime
 			{
@@ -838,17 +833,12 @@ public class IOSPlatform : Platform
 				}
 			}
 
-			// copy the icons/launch screens from the game (may stomp the engine copies)
-			{
-				string SourcePath = CombinePaths(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
-				SC.StageFiles(StagedFileType.NonUFS, SourcePath, "*.png", false, null, "", true, false);
-			}
 
 			// copy the plist (only if code signing, as it's protected by the code sign blob in the executable and can't be modified independently)
 			if (GetCodeSignDesirability(Params))
 			{
-				string SourcePath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), "Intermediate", PlatformName);
-				string TargetPListFile = Path.Combine(SourcePath, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + "-Info.plist");
+//				string SourcePath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), "Intermediate", PlatformName);
+//				string TargetPListFile = Path.Combine(SourcePath, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + "-Info.plist");
 //				if (!File.Exists(TargetPListFile))
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
@@ -864,6 +854,8 @@ public class IOSPlatform : Platform
                     }
 
                     var TargetConfiguration = SC.StageTargetConfigurations[0];
+                    bool bSupportsPortrait = false;
+                    bool bSupportsLandscape = false;
 
                     DeployGeneratePList(
 							SC.RawProjectPath,	
@@ -872,10 +864,80 @@ public class IOSPlatform : Platform
                             !SC.IsCodeBasedProject,
                             (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"),
                             SC.ShortProjectName, SC.LocalRoot + "/Engine",
-                            (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+                            (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app",
+                            out bSupportsPortrait,
+                            out bSupportsLandscape);
+
+                    // copy the icons/launch screens from the engine
+                    {
+                        string DataPath = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "Graphics");
+                        if (bSupportsPortrait)
+                        {
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.jpg", false, null, "", true, false);
+                        }
+                        if (bSupportsLandscape)
+                        {
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.jpg", false, null, "", true, false);
+                        }
+ //                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.jpg", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.jpg", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, "", true, false);
+                    }
+
+                    // copy the icons/launch screens from the game (may stomp the engine copies)
+                    {
+                        string DataPath = CombinePaths(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
+                        if (bSupportsPortrait)
+                        {
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.jpg", false, null, "", true, false);
+//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.jpg", false, null, "", true, false);
+//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.jpg", false, null, "", true, false);
+                        }
+                        if (bSupportsLandscape)
+                        {
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.jpg", false, null, "", true, false);
+ //                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.jpg", false, null, "", true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.jpg", false, null, "", true, false);
+                        }
+ //                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.jpg", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.jpg", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, "", true, false);
+                        SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, "", true, false);
+                    }
                 }
 
-                SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
+                // copy the udebugsymbols if they exist
+                {
+                    ConfigHierarchy PlatformGameConfig;
+                    bool bIncludeSymbols = false;
+                    if (Params.EngineConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
+                    {
+                        PlatformGameConfig.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateCrashReportSymbols", out bIncludeSymbols);
+                    }
+                    if (bIncludeSymbols)
+                    {
+                        string DebugSymbolPath = CombinePaths((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "\\Engine"), "Binaries", "IOS");
+                        string SymbolFileName = SC.StageExecutables[0] + ".udebugsymbols";
+						SC.StageFiles(StagedFileType.NonUFS, DebugSymbolPath, SymbolFileName, false, null, "", true, true, (Params.ShortProjectName + ".udebugsymbols").ToLowerInvariant());
+                    }
+                }
 			}
 		}
         {
@@ -908,9 +970,13 @@ public class IOSPlatform : Platform
 
 		if (bXCArchive && Utils.IsRunningOnMono)
 		{
-			// Always put the archive in the current user's Library/Developer/Xcode/Archives path
+			// Always put the archive in the current user's Library/Developer/Xcode/Archives path if not on the build machine
 			WindowsIdentity id = WindowsIdentity.GetCurrent(); 
 			string ArchivePath = "/Users/" + id.Name + "/Library/Developer/Xcode/Archives";
+            if (IsBuildMachine)
+            {
+                ArchivePath = Params.ArchiveDirectoryParam;
+            }
 			if (!DirectoryExists(ArchivePath))
 			{
 				CreateDirectory(ArchivePath);
@@ -942,13 +1008,23 @@ public class IOSPlatform : Platform
 			// copy in the dSYM if found
 			var ProjectExe = MakeExeFileName( TargetConfiguration, Params );
 			string dSYMName = (SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game") + ".dSYM";
-			string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
+            string dSYMDestName = AppName + ".dSYM";
+            string dSYMSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName);
+            string dSYMZipSrcPath = Path.Combine(SC.ProjectBinariesFolder, dSYMName + ".zip");
+            if (File.Exists(dSYMZipSrcPath))
+            {
+                // unzip the dsym
+                using (ZipFile Zip = new ZipFile(dSYMZipSrcPath))
+                {
+                    Zip.ExtractAll(SC.ProjectBinariesFolder, ExtractExistingFileAction.OverwriteSilently);
+                }
+            }
 
 			if(DirectoryExists(dSYMSrcPath))
 			{
 				// Create the dsyms archive folder
 				CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
-				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
+				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMDestName);
 				// /Volumes/MacOSDrive1/pfEpicWorkspace/Dev-Platform/Samples/Sandbox/PlatformShowcase/Binaries/IOS/PlatformShowcase.dSYM/Contents/Resources/DWARF/PlatformShowcase
 				CopyFile_NoExceptions(Path.Combine(dSYMSrcPath, "Contents", "Resources", "DWARF", SC.IsCodeBasedProject ? Path.GetFileNameWithoutExtension(ProjectExe) : "UE4Game"), dSYMDstPath);
 			}
@@ -956,7 +1032,7 @@ public class IOSPlatform : Platform
 			{
 				// Create the dsyms archive folder
 				CreateDirectory(Path.Combine(ArchiveName, "dSYMs"));
-				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMName);
+				string dSYMDstPath = Path.Combine(ArchiveName, "dSYMs", dSYMDestName);
 				CopyFile_NoExceptions(dSYMSrcPath, dSYMDstPath);
 			}
 
@@ -1037,8 +1113,8 @@ public class IOSPlatform : Platform
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 			File.WriteAllText(Path.Combine(ArchiveName, "Info.plist"), Text.ToString());
-		}
-		else if (bXCArchive && !Utils.IsRunningOnMono)
+        }
+        else if (bXCArchive && !Utils.IsRunningOnMono)
 		{
 			LogWarning("Can not produce an XCArchive on windows");
 		}
@@ -1204,7 +1280,7 @@ public class IOSPlatform : Platform
 	}
     public override List<string> GetDebugFileExtentions()
     {
-        return new List<string> { ".dsym" };
+        return new List<string> { ".dsym", ".udebugsymbols" };
     }
 	
 // 	void MobileDeviceConnected(object sender, ConnectEventArgs args)

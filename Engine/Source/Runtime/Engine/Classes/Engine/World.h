@@ -3167,6 +3167,20 @@ public:
 		return OwningGameInstance;
 	}
 
+	/** Returns the OwningGameInstance cast to the template type. */
+	template<class T>
+	T* GetGameInstance() const
+	{
+		return Cast<T>(OwningGameInstance);
+	}
+
+	/** Returns the OwningGameInstance cast to the template type, asserting that it is of the correct type. */
+	template<class T>
+	T* GetGameInstanceChecked() const
+	{
+		return CastChecked<T>(OwningGameInstance);
+	}
+
 	/** Retrieves information whether all navigation with this world has been rebuilt */
 	bool IsNavigationRebuilt() const;
 

@@ -1166,7 +1166,7 @@ static void BuildMetalShaderOutput(
 
 			ShaderOutput.bSucceeded = bSucceeded || ShaderOutput.bSucceeded;
 		}
-		
+
 		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
 		{
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping

@@ -29,7 +29,7 @@ const uint32 MaxMetalStreams = 31;
 #define BUFFER_MANAGED_MEM 0
 #define BUFFER_STORAGE_MODE MTLStorageModeShared
 #define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeShared
-#define BUFFER_DYNAMIC_REALLOC BUF_Volatile
+#define BUFFER_DYNAMIC_REALLOC BUF_AnyDynamic
 // How many possible vertex streams are allowed
 const uint32 MaxMetalStreams = 30;
 #endif

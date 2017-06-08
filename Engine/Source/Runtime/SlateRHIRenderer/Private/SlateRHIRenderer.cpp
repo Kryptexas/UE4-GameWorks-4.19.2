@@ -56,6 +56,22 @@ static TAutoConsoleVariable<float> CVarDrawToVRRenderTarget(
 	TEXT("If enabled while in VR. Slate UI will be drawn into the render target texture where the VR imagery for either eye was rendered, allow the viewer of the HMD to see the UI (for better or worse.)  This render target will then be cropped/scaled into the back buffer, if mirroring is enabled.  When disabled, Slate UI will be drawn on top of the backbuffer (not to the HMD) after the mirror texture has been cropped/scaled into the backbuffer."),
 	ECVF_RenderThreadSafe);
 
+#if WITH_SLATE_VISUALIZERS
+
+TAutoConsoleVariable<int32> CVarShowSlateOverdraw(
+	TEXT("Slate.ShowOverdraw"),
+	0,
+	TEXT("0: Don't show overdraw, 1: Show Overdraw"),
+	ECVF_Default
+);
+
+TAutoConsoleVariable<int32> CVarShowSlateBatching(
+	TEXT("Slate.ShowBatching"),
+	0,
+	TEXT("0: Don't show batching, 1: Show Batching"),
+	ECVF_Default
+);
+#endif
 
 void FSlateRHIRenderer::FViewportInfo::InitRHI()
 {
@@ -692,9 +708,23 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), bClear ? ESimpleRenderTargetMode::EClearColorAndDepth : ESimpleRenderTargetMode::EExistingColorAndDepth);
 		}
 
-#if DEBUG_OVERDRAW
-		DrawClearQuad(RHICmdList, FLinearColor::Black);
+#if WITH_SLATE_VISUALIZERS
+		if ( CVarShowSlateBatching.GetValueOnRenderThread() != 0 || CVarShowSlateOverdraw.GetValueOnRenderThread() != 0 )
+		{
+			if (ViewportInfo.bRequiresStencilTest)
+			{
+				// Reset the backbuffer as our color render target and also set a depth stencil buffer
+				FRHIRenderTargetView ColorView(BackBuffer, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+				RHICmdList.SetRenderTargetsAndClear(Info);
+			}
+			else
+			{
+				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			}
+		}
 #endif
+
 		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			SCOPE_CYCLE_COUNTER(STAT_SlateRTDrawBatches);

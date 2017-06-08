@@ -5,8 +5,11 @@
 =============================================================================*/
 
 #include "IOSPlatformMisc.h"
+#include "Misc/App.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
+#include "EngineVersion.h"
+#include "IOSMallocZone.h"
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
@@ -15,11 +18,33 @@
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Apple/ApplePlatformDebugEvents.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
+#include "IOSPlatformCrashContext.h"
+#if !PLATFORM_TVOS
+#include "PLCrashReporter.h"
+#include "PLCrashReport.h"
+#include "PLCrashReportTextFormatter.h"
+#endif
+#include "HAL/PlatformOutputDevices.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
+
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/Culture.h"
+
+#if !PLATFORM_TVOS
+#include <AdSupport/ASIdentifierManager.h> 
+#endif
 
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <netinet/in.h>
+
+//#include <libproc.h>
+#include <mach-o/dyld.h>
 
 /** Amount of free memory in MB reported by the system at startup */
 CORE_API int32 GStartupFreeMemoryMB;
@@ -72,7 +97,7 @@ void FIOSPlatformMisc::PlatformInit()
 
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
-    GShowSplashScreen = ShowSplashScreen;
+//    GShowSplashScreen = ShowSplashScreen;
 }
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()
@@ -372,6 +397,11 @@ int FIOSPlatformMisc::GetBatteryLevel()
 	return [[IOSAppDelegate GetDelegate] GetBatteryLevel];
 }
 
+bool FIOSPlatformMisc::IsRunningOnBattery()
+{
+	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
+}
+
 int32 FIOSPlatformMisc::NumberOfCores()
 {
 	// cache the number of cores
@@ -422,6 +452,29 @@ bool FIOSPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
 }
 
+FString GetIOSDeviceIDString()
+{
+	static FString CachedResult;
+	static bool bCached = false;
+	if (!bCached)
+	{
+		// get the device hardware type string length
+		size_t DeviceIDLen;
+		sysctlbyname("hw.machine", NULL, &DeviceIDLen, NULL, 0);
+
+		// get the device hardware type
+		char* DeviceID = (char*)malloc(DeviceIDLen);
+		sysctlbyname("hw.machine", DeviceID, &DeviceIDLen, NULL, 0);
+
+		CachedResult = ANSI_TO_TCHAR(DeviceID);
+		bCached = true;
+
+		free(DeviceID);
+	}
+
+	return CachedResult;
+}
+
 FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 {
 	// default to unknown
@@ -433,24 +486,13 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		return DeviceType;
 	}
 
-	// get the device hardware type string length
-	size_t DeviceIDLen;
-	sysctlbyname("hw.machine", NULL, &DeviceIDLen, NULL, 0);
-
-	// get the device hardware type
-	char* DeviceID = (char*)malloc(DeviceIDLen);
-	sysctlbyname("hw.machine", DeviceID, &DeviceIDLen, NULL, 0);
-
-	// convert to NSStringt
-	NSString *DeviceIDString= [NSString stringWithCString:DeviceID encoding:NSUTF8StringEncoding];
-    FString DeviceIDFstring = FString(DeviceIDString);
-	free(DeviceID);
+	const FString DeviceIDString = GetIOSDeviceIDString();
 
 	// iPods
-	if ([DeviceIDString hasPrefix:@"iPod"])
+	if (DeviceIDString.StartsWith(TEXT("iPod")))
 	{
 		// get major revision number
-        int Major = FCString::Atoi(&DeviceIDFstring[4]);
+        int Major = FCString::Atoi(&DeviceIDString[4]);
 
 		if (Major == 5)
 		{
@@ -462,11 +504,12 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		}
 	}
 	// iPads
-	else if ([DeviceIDString hasPrefix:@"iPad"])
+	else if (DeviceIDString.StartsWith(TEXT("iPad")))
 	{
 		// get major revision number
-		int Major = FCString::Atoi(&DeviceIDFstring[4]);
-		int Minor = FCString::Atoi(&DeviceIDFstring[([DeviceIDString rangeOfString:@","].location + 1)]);
+		const int Major = FCString::Atoi(&DeviceIDString[4]);
+		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 4);
+		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
 
 		// iPad2,[1|2|3] is iPad 2 (1 - wifi, 2 - gsm, 3 - cdma)
 		if (Major == 2)
@@ -536,10 +579,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		}
 	}
 	// iPhones
-	else if ([DeviceIDString hasPrefix:@"iPhone"])
+	else if (DeviceIDString.StartsWith(TEXT("iPhone")))
 	{
-        int Major = FCString::Atoi(&DeviceIDFstring[6]);
-        int Minor = FCString::Atoi(&DeviceIDFstring[([DeviceIDString rangeOfString:@","].location + 1)]);
+        const int Major = FCString::Atoi(&DeviceIDString[6]);
+		const int CommaIndex = DeviceIDString.Find(TEXT(","), ESearchCase::CaseSensitive, ESearchDir::FromStart, 6);
+		const int Minor = FCString::Atoi(&DeviceIDString[CommaIndex + 1]);
 
 		if (Major == 3)
 		{
@@ -610,12 +654,12 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
         }
 	}
 	// tvOS
-	else if ([DeviceIDString hasPrefix:@"AppleTV"])
+	else if (DeviceIDString.StartsWith(TEXT("AppleTV")))
 	{
 		DeviceType = IOS_AppleTV;
 	}
 	// simulator
-	else if ([DeviceIDString hasPrefix:@"x86"])
+	else if (DeviceIDString.StartsWith(TEXT("x86")))
 	{
 		// iphone
 		if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
@@ -642,7 +686,6 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			}
 		}
 	}
-
 
 	// if this is unknown at this point, we have a problem
 	if (DeviceType == IOS_Unknown)
@@ -727,26 +770,54 @@ FString FIOSPlatformMisc::GetOSVersion()
 	return FString([[UIDevice currentDevice] systemVersion]);
 }
 
+
+/**
+* Returns a unique string for advertising identification
+*
+* @return the unique string generated by this platform for this device
+*/
+FString FIOSPlatformMisc::GetUniqueAdvertisingId()
+{
+#if !PLATFORM_TVOS
+	// Check to see if this OS has this function
+	if ([[ASIdentifierManager sharedManager] respondsToSelector:@selector(advertisingIdentifier)])
+	{
+		NSString* IdfaString = [[[ASIdentifierManager sharedManager] advertisingIdentifier] UUIDString];
+		FString IDFA(IdfaString);
+		return IDFA;
+	}
+#endif
+	return FString();
+}
+
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 {
 	static IPlatformChunkInstall* ChunkInstall = nullptr;
-	if (!ChunkInstall)
+	static bool bIniChecked = false;
+	if (!ChunkInstall || !bIniChecked)
 	{
 		FString ProviderName;
-		GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), ProviderName, GEngineIni);
-		if (ProviderName == TEXT("HTTPChunkInstaller"))
+		IPlatformChunkInstallModule* PlatformChunkInstallModule = nullptr;
+		if (!GEngineIni.IsEmpty())
 		{
-			IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
-			if (PlatformChunkInstallModule != NULL)
+			FString InstallModule;
+			GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), InstallModule, GEngineIni);
+			FModuleStatus Status;
+			if (FModuleManager::Get().QueryModule(*InstallModule, Status))
 			{
-				// Attempt to grab the platform installer
-				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+				PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>(*InstallModule);
+				if (PlatformChunkInstallModule != nullptr)
+				{
+					// Attempt to grab the platform installer
+					ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+				}
 			}
-		}
-		else if (ProviderName == TEXT("IOSChunkInstaller"))
-		{
-			static FIOSChunkInstall Singleton;
-			ChunkInstall = &Singleton;
+			else if (ProviderName == TEXT("IOSChunkInstaller"))
+			{
+				static FIOSChunkInstall Singleton;
+				ChunkInstall = &Singleton;
+			}
+			bIniChecked = true;
 		}
 		if (!ChunkInstall)
 		{
@@ -1029,3 +1100,913 @@ void FIOSPlatformMisc::EndNamedEvent()
 	FApplePlatformDebugEvents::EndNamedEvent();
 }
 #endif
+
+FString FIOSPlatformMisc::GetCPUVendor()
+{
+	return TEXT("Apple");
+}
+
+FString FIOSPlatformMisc::GetCPUBrand()
+{
+	return GetIOSDeviceIDString();
+}
+
+void FIOSPlatformMisc::GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel)
+{
+#if PLATFORM_TVOS
+	out_OSVersionLabel = TEXT("TVOS");
+#else
+	out_OSVersionLabel = TEXT("IOS");
+#endif
+	NSOperatingSystemVersion IOSVersion;
+	IOSVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
+	out_OSSubVersionLabel = FString::Printf(TEXT("%ld.%ld.%ld"), IOSVersion.majorVersion, IOSVersion.minorVersion, IOSVersion.patchVersion);
+}
+
+int32 FIOSPlatformMisc::IOSVersionCompare(uint8 Major, uint8 Minor, uint8 Revision)
+{
+	NSOperatingSystemVersion IOSVersion;
+	IOSVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
+	uint8 TargetValues[3] = { Major, Minor, Revision };
+	NSInteger ComponentValues[3] = { IOSVersion.majorVersion, IOSVersion.minorVersion, IOSVersion.patchVersion };
+
+	for (uint32 i = 0; i < 3; i++)
+	{
+		if (ComponentValues[i] < TargetValues[i])
+		{
+			return -1;
+		}
+		else if (ComponentValues[i] > TargetValues[i])
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+EScreenPhysicalAccuracy FIOSPlatformMisc::ComputePhysicalScreenDensity(int32& ScreenDensity)
+{
+	EIOSDevice Device = GetIOSDeviceType();
+	static_assert( EIOSDevice::IOS_Unknown == 25, "Every device needs to be handled here." );
+
+	ScreenDensity = 0;
+	EScreenPhysicalAccuracy Accuracy = EScreenPhysicalAccuracy::Unknown;
+
+	// look up what the device can support
+	const float NativeScale =[[UIScreen mainScreen] scale];
+
+	switch ( Device )
+	{
+	case IOS_IPhoneSE:
+	case IOS_IPhone4:
+	case IOS_IPhone4S:
+	case IOS_IPhone5:
+	case IOS_IPhone5S:
+	case IOS_IPodTouch5:
+	case IOS_IPodTouch6:
+	case IOS_IPhone6:
+	case IOS_IPhone6S:
+	case IOS_IPhone7:
+		ScreenDensity = 326;
+		Accuracy = EScreenPhysicalAccuracy::Truth;
+		break;
+	case IOS_IPhone6Plus:
+	case IOS_IPhone6SPlus:
+	case IOS_IPhone7Plus:
+		ScreenDensity = 401;
+		Accuracy = EScreenPhysicalAccuracy::Truth;
+		break;
+	case IOS_IPadMini:
+	case IOS_IPadMini2: // also the iPadMini3
+	case IOS_IPadMini4:
+		ScreenDensity = 401;
+		Accuracy = EScreenPhysicalAccuracy::Truth;
+		break;
+	case IOS_IPad2:
+	case IOS_IPad3:
+	case IOS_IPad4:
+	case IOS_IPadAir:
+	case IOS_IPadAir2:
+	case IOS_IPadPro_97:
+		ScreenDensity = 264;
+		Accuracy = EScreenPhysicalAccuracy::Truth;
+		break;
+	case IOS_IPadPro:
+	case IOS_IPadPro_129:
+		ScreenDensity = 264;
+		Accuracy = EScreenPhysicalAccuracy::Truth;
+		break;
+	case IOS_AppleTV:
+		Accuracy = EScreenPhysicalAccuracy::Unknown;
+		break;
+	default:
+		// If we don't know, assume that the density is a multiple of the 
+		// native Content Scaling Factor.  Won't be exact, but should be close enough.
+		ScreenDensity = 163 * NativeScale;
+		Accuracy = EScreenPhysicalAccuracy::Approximation;
+		break;
+	}
+
+	// look up the current scale factor
+	UIView* View = [IOSAppDelegate GetDelegate].IOSView;
+	const float ContentScaleFactor = View.contentScaleFactor;
+
+	if ( ContentScaleFactor != 0 )
+	{
+		ScreenDensity = ScreenDensity * ( ContentScaleFactor / NativeScale );
+	}
+
+	return Accuracy;
+}
+
+/*------------------------------------------------------------------------------
+ FIOSApplicationInfo - class to contain all state for crash reporting that is unsafe to acquire in a signal.
+ ------------------------------------------------------------------------------*/
+
+/**
+ * Information that cannot be obtained during a signal-handler is initialised here.
+ * This ensures that we only call safe functions within the crash reporting handler.
+ */
+struct FIOSApplicationInfo
+{
+    void Init()
+    {
+        SCOPED_AUTORELEASE_POOL;
+        
+        AppName = FApp::GetGameName();
+        FCStringAnsi::Strcpy(AppNameUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*AppName));
+        
+        ExecutableName = FPlatformProcess::ExecutableName();
+        
+        AppPath = FString([[NSBundle mainBundle] executablePath]);
+        
+        AppBundleID = FString([[NSBundle mainBundle] bundleIdentifier]);
+        
+        NumCores = FPlatformMisc::NumberOfCores();
+        
+        LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
+        
+        PrimaryGPU = FPlatformMisc::GetPrimaryGPUBrand();
+        
+        RunUUID = RunGUID();
+        
+        OSXVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
+        OSVersion = FString::Printf(TEXT("%ld.%ld.%ld"), OSXVersion.majorVersion, OSXVersion.minorVersion, OSXVersion.patchVersion);
+        FCStringAnsi::Strcpy(OSVersionUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*OSVersion));
+        
+        // macOS build number is only accessible on non-sandboxed applications as it resides outside the accessible sandbox
+        if(!bIsSandboxed)
+        {
+            NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
+            OSBuild = FString((NSString*)[SystemVersion objectForKey: @"ProductBuildVersion"]);
+        }
+        
+        char TempSysCtlBuffer[PATH_MAX] = {};
+        size_t TempSysCtlBufferSize = PATH_MAX;
+        
+        sysctlbyname("kern.osrelease", TempSysCtlBuffer, &TempSysCtlBufferSize, NULL, 0);
+        BiosRelease = TempSysCtlBuffer;
+        uint32 KernelRevision = 0;
+        TempSysCtlBufferSize = 4;
+        sysctlbyname("kern.osrevision", &KernelRevision, &TempSysCtlBufferSize, NULL, 0);
+        BiosRevision = FString::Printf(TEXT("%d"), KernelRevision);
+        TempSysCtlBufferSize = PATH_MAX;
+        sysctlbyname("kern.uuid", TempSysCtlBuffer, &TempSysCtlBufferSize, NULL, 0);
+        BiosUUID = TempSysCtlBuffer;
+        TempSysCtlBufferSize = PATH_MAX;
+        sysctlbyname("hw.model", TempSysCtlBuffer, &TempSysCtlBufferSize, NULL, 0);
+        MachineModel = TempSysCtlBuffer;
+        TempSysCtlBufferSize = PATH_MAX+1;
+        sysctlbyname("machdep.cpu.brand_string", MachineCPUString, &TempSysCtlBufferSize, NULL, 0);
+        
+        gethostname(MachineName, ARRAY_COUNT(MachineName));
+        
+       BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
+        
+        // Get the paths that the files will actually have been saved to
+        FString LogDirectory = FPaths::GameLogDir();
+        TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
+        
+        // Use the log file specified on the commandline if there is one
+        CommandLine = FCommandLine::Get();
+        FString LogPath = FGenericPlatformOutputDevices::GetAbsoluteLogFilename();
+        LogPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogPath);
+        FCStringAnsi::Strcpy(AppLogPath, PATH_MAX + 1, TCHAR_TO_UTF8(*LogPath));
+        
+        // Cache & create the crash report folder.
+        FString ReportPath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%s"), *(FPaths::GameAgnosticSavedDir() / TEXT("Crashes"))));
+        IFileManager::Get().MakeDirectory(*ReportPath, true);
+        ReportPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ReportPath);
+        FCStringAnsi::Strcpy(CrashReportPath, PATH_MAX+1, TCHAR_TO_UTF8(*ReportPath));
+        
+        NSString* PLCrashReportFile = [TemporaryCrashReportFolder().GetNSString() stringByAppendingPathComponent:TemporaryCrashReportName().GetNSString()];
+        [PLCrashReportFile getCString:PLCrashReportPath maxLength:PATH_MAX encoding:NSUTF8StringEncoding];
+    }
+    
+    ~FIOSApplicationInfo()
+    {
+#if !PLATFORM_TVOS
+        if (CrashReporter)
+        {
+            [CrashReporter release];
+            CrashReporter = nil;
+        }
+#endif
+    }
+    
+    static FGuid RunGUID()
+    {
+        static FGuid Guid;
+        if (!Guid.IsValid())
+        {
+            FPlatformMisc::CreateGuid(Guid);
+        }
+        return Guid;
+    }
+    
+    static FString TemporaryCrashReportFolder()
+    {
+        static FString PLCrashReportFolder;
+        if (PLCrashReportFolder.IsEmpty())
+        {
+            SCOPED_AUTORELEASE_POOL;
+            
+            NSArray* Paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+            NSString* CacheDir = [Paths objectAtIndex: 0];
+            
+            NSString* BundleID = [[NSBundle mainBundle] bundleIdentifier];
+            if (!BundleID)
+            {
+                BundleID = [[NSProcessInfo processInfo] processName];
+            }
+            check(BundleID);
+            
+            NSString* PLCrashReportFolderPath = [CacheDir stringByAppendingPathComponent: BundleID];
+            PLCrashReportFolder = FString(PLCrashReportFolderPath);
+        }
+        return PLCrashReportFolder;
+    }
+    
+    static FString TemporaryCrashReportName()
+    {
+        static FString PLCrashReportFileName(RunGUID().ToString() + TEXT(".plcrash"));
+        return PLCrashReportFileName;
+    }
+    
+    bool bIsSandboxed;
+    int32 NumCores;
+    char AppNameUTF8[PATH_MAX+1];
+    char AppLogPath[PATH_MAX+1];
+    char CrashReportPath[PATH_MAX+1];
+    char PLCrashReportPath[PATH_MAX+1];
+    char OSVersionUTF8[PATH_MAX+1];
+    char MachineName[PATH_MAX+1];
+    char MachineCPUString[PATH_MAX+1];
+    FString AppPath;
+    FString AppName;
+    FString AppBundleID;
+    FString OSVersion;
+    FString OSBuild;
+    FString MachineUUID;
+    FString MachineModel;
+    FString BiosRelease;
+    FString BiosRevision;
+    FString BiosUUID;
+    FString ParentProcess;
+    FString LCID;
+    FString CommandLine;
+    FString BranchBaseDir;
+    FString PrimaryGPU;
+    FString ExecutableName;
+    NSOperatingSystemVersion OSXVersion;
+    FGuid RunUUID;
+    FString XcodePath;
+#if !PLATFORM_TVOS
+    static PLCrashReporter* CrashReporter;
+#endif
+    static FIOSMallocCrashHandler* CrashMalloc;
+};
+
+static FIOSApplicationInfo GIOSAppInfo;
+#if !PLATFORM_TVOS
+PLCrashReporter* FIOSApplicationInfo::CrashReporter = nullptr;
+#endif
+FIOSMallocCrashHandler* FIOSApplicationInfo::CrashMalloc = nullptr;
+
+void (*GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
+
+// good enough default crash reporter
+static void DefaultCrashHandler(FIOSCrashContext const& Context)
+{
+    Context.ReportCrash();
+    if (GLog)
+    {
+        GLog->SetCurrentThreadAsMasterThread();
+        GLog->Flush();
+    }
+    if (GWarn)
+    {
+        GWarn->Flush();
+    }
+    if (GError)
+    {
+        GError->Flush();
+        GError->HandleError();
+    }
+    return Context.GenerateCrashInfo();
+}
+
+// number of stack entries to ignore in backtrace
+static uint32 GIOSStackIgnoreDepth = 6;
+
+// true system specific crash handler that gets called first
+static void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
+{
+    FIOSCrashContext CrashContext;
+    CrashContext.IgnoreDepth = GIOSStackIgnoreDepth;
+    CrashContext.InitFromSignal(Signal, Info, Context);
+    
+    // switch to crash handler malloc to avoid malloc reentrancy
+    check(FIOSApplicationInfo::CrashMalloc);
+    FIOSApplicationInfo::CrashMalloc->Enable(&CrashContext, FPlatformTLS::GetCurrentThreadId());
+    
+    if (GCrashHandlerPointer)
+    {
+        GCrashHandlerPointer(CrashContext);
+    }
+    else
+    {
+        // call default one
+        DefaultCrashHandler(CrashContext);
+    }
+}
+
+static void PLCrashReporterHandler(siginfo_t* Info, ucontext_t* Uap, void* Context)
+{
+    PlatformCrashHandler((int32)Info->si_signo, Info, Uap);
+}
+
+// handles graceful termination.
+static void GracefulTerminationHandler(int32 Signal, siginfo_t* Info, void* Context)
+{
+    // make sure we write out as much as possible
+    if (GLog)
+    {
+        GLog->Flush();
+    }
+    if (GWarn)
+    {
+        GWarn->Flush();
+    }
+    if (GError)
+    {
+        GError->Flush();
+    }
+    
+    if (!GIsRequestingExit)
+    {
+        GIsRequestingExit = 1;
+    }
+    else
+    {
+        _Exit(0);
+    }
+}
+
+void FIOSPlatformMisc::PlatformPreInit()
+{
+    FGenericPlatformMisc::PlatformPreInit();
+    
+    GIOSAppInfo.Init();
+    
+    // turn off SIGPIPE crashes
+    signal(SIGPIPE, SIG_IGN);
+}
+
+void FIOSPlatformMisc::SetGracefulTerminationHandler()
+{
+    struct sigaction Action;
+    FMemory::Memzero(&Action, sizeof(struct sigaction));
+    Action.sa_sigaction = GracefulTerminationHandler;
+    sigemptyset(&Action.sa_mask);
+    Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+    sigaction(SIGINT, &Action, NULL);
+    sigaction(SIGTERM, &Action, NULL);
+    sigaction(SIGHUP, &Action, NULL);
+}
+
+void FIOSPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context))
+{
+    SCOPED_AUTORELEASE_POOL;
+    
+    GCrashHandlerPointer = CrashHandler;
+    
+#if !PLATFORM_TVOS
+    if (!FIOSApplicationInfo::CrashReporter && !FIOSApplicationInfo::CrashMalloc)
+    {
+        // configure the crash handler malloc zone to reserve a little memory for itself
+        FIOSApplicationInfo::CrashMalloc = new FIOSMallocCrashHandler(128*1024);
+        
+        PLCrashReporterConfig* Config = [[[PLCrashReporterConfig alloc] initWithSignalHandlerType: PLCrashReporterSignalHandlerTypeBSD symbolicationStrategy: PLCrashReporterSymbolicationStrategyNone crashReportFolder: FIOSApplicationInfo::TemporaryCrashReportFolder().GetNSString() crashReportName: FIOSApplicationInfo::TemporaryCrashReportName().GetNSString()] autorelease];
+        FIOSApplicationInfo::CrashReporter = [[PLCrashReporter alloc] initWithConfiguration: Config];
+        
+        PLCrashReporterCallbacks CrashReportCallback = {
+            .version = 0,
+            .context = nullptr,
+            .handleSignal = PLCrashReporterHandler
+        };
+        
+        [FIOSApplicationInfo::CrashReporter setCrashCallbacks: &CrashReportCallback];
+        
+        NSError* Error = nil;
+        if ([FIOSApplicationInfo::CrashReporter enableCrashReporterAndReturnError: &Error])
+        {
+            GIOSStackIgnoreDepth = 0;
+        }
+        else
+        {
+            UE_LOG(LogIOS, Log, TEXT("Failed to enable PLCrashReporter: %s"), *FString([Error localizedDescription]));
+            UE_LOG(LogIOS, Log, TEXT("Falling back to native signal handlers"));
+ 
+            struct sigaction Action;
+            FMemory::Memzero(&Action, sizeof(struct sigaction));
+            Action.sa_sigaction = PlatformCrashHandler;
+            sigemptyset(&Action.sa_mask);
+            Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+            sigaction(SIGQUIT, &Action, NULL);
+            sigaction(SIGILL, &Action, NULL);
+            sigaction(SIGEMT, &Action, NULL);
+            sigaction(SIGFPE, &Action, NULL);
+            sigaction(SIGBUS, &Action, NULL);
+            sigaction(SIGSEGV, &Action, NULL);
+            sigaction(SIGSYS, &Action, NULL);
+            sigaction(SIGABRT, &Action, NULL);
+        }
+    }
+#endif
+}
+
+void FIOSCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
+{
+    int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
+    if (ReportFile != -1)
+    {
+        TCHAR Line[PATH_MAX] = {};
+        
+        // write BOM
+        static uint16 ByteOrderMarker = 0xFEFF;
+        write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
+        
+        WriteLine(ReportFile, TEXT("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
+        WriteLine(ReportFile, TEXT("<WERReportMetadata>"));
+        
+        WriteLine(ReportFile, TEXT("\t<OSVersionInformation>"));
+        WriteUTF16String(ReportFile, TEXT("\t\t<WindowsNTVersion>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSVersion);
+        WriteLine(ReportFile, TEXT("</WindowsNTVersion>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Build>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSVersion);
+        WriteUTF16String(ReportFile, TEXT(" ("));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSBuild);
+        WriteLine(ReportFile, TEXT(")</Build>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Product>(0x30): IOS "));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSVersion);
+        WriteLine(ReportFile, TEXT("</Product>"));
+        
+        WriteLine(ReportFile, TEXT("\t\t<Edition>IOS</Edition>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<BuildString>IOS "));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSVersion);
+        WriteUTF16String(ReportFile, TEXT(" ("));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSBuild);
+        WriteLine(ReportFile, TEXT(")</BuildString>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Revision>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.OSBuild);
+        WriteLine(ReportFile, TEXT("</Revision>"));
+        
+        WriteLine(ReportFile, TEXT("\t\t<Flavor>Multiprocessor Free</Flavor>"));
+        WriteLine(ReportFile, TEXT("\t\t<Architecture>X64</Architecture>"));
+        WriteUTF16String(ReportFile, TEXT("\t\t<LCID>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.LCID);
+        WriteLine(ReportFile, TEXT("</LCID>"));
+        WriteLine(ReportFile, TEXT("\t</OSVersionInformation>"));
+        
+        WriteLine(ReportFile, TEXT("\t<ParentProcessInformation>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<ParentProcessId>"));
+        WriteUTF16String(ReportFile, ItoTCHAR(getppid(), 10));
+        WriteLine(ReportFile, TEXT("</ParentProcessId>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<ParentProcessPath>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.ParentProcess);
+        WriteLine(ReportFile, TEXT("</ParentProcessPath>"));
+        
+        WriteLine(ReportFile, TEXT("\t\t<ParentProcessCmdLine></ParentProcessCmdLine>"));	// FIXME: supply valid?
+        WriteLine(ReportFile, TEXT("\t</ParentProcessInformation>"));
+        
+        WriteLine(ReportFile, TEXT("\t<ProblemSignatures>"));
+        WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter0>UE4-"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.AppName);
+        WriteLine(ReportFile, TEXT("</Parameter0>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter1>"));
+        WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMajor(), 10));
+        WriteUTF16String(ReportFile, TEXT("."));
+        WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetMinor(), 10));
+        WriteUTF16String(ReportFile, TEXT("."));
+        WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetPatch(), 10));
+        WriteLine(ReportFile, TEXT("</Parameter1>"));
+        
+        // App time stamp
+        WriteLine(ReportFile, TEXT("\t\t<Parameter2>528f2d37</Parameter2>"));													// FIXME: supply valid?
+        
+        Dl_info DLInfo;
+        if(Info && Info->si_addr != 0 && dladdr(Info->si_addr, &DLInfo) != 0)
+        {
+            // Crash Module name
+            WriteUTF16String(ReportFile, TEXT("\t\t<Parameter3>"));
+            if (DLInfo.dli_fname && FCStringAnsi::Strlen(DLInfo.dli_fname))
+            {
+                FMemory::Memzero(Line, PATH_MAX * sizeof(TCHAR));
+                FUTF8ToTCHAR_Convert::Convert(Line, PATH_MAX, DLInfo.dli_fname, FCStringAnsi::Strlen(DLInfo.dli_fname));
+                WriteUTF16String(ReportFile, Line);
+            }
+            else
+            {
+                WriteUTF16String(ReportFile, TEXT("Unknown"));
+            }
+            WriteLine(ReportFile, TEXT("</Parameter3>"));
+            
+            // Check header
+            uint32 Version = 0;
+            uint32 TimeStamp = 0;
+            struct mach_header_64* Header = (struct mach_header_64*)DLInfo.dli_fbase;
+            struct load_command *CurrentCommand = (struct load_command *)( (char *)Header + sizeof(struct mach_header_64) );
+            if( Header->magic == MH_MAGIC_64 )
+            {
+                for( int32 i = 0; i < Header->ncmds; i++ )
+                {
+                    if( CurrentCommand->cmd == LC_LOAD_DYLIB )
+                    {
+                        struct dylib_command *DylibCommand = (struct dylib_command *) CurrentCommand;
+                        Version = DylibCommand->dylib.current_version;
+                        TimeStamp = DylibCommand->dylib.timestamp;
+                        Version = ((Version & 0xff) + ((Version >> 8) & 0xff) * 100 + ((Version >> 16) & 0xffff) * 10000);
+                        break;
+                    }
+                    
+                    CurrentCommand = (struct load_command *)( (char *)CurrentCommand + CurrentCommand->cmdsize );
+                }
+            }
+            
+            // Module version
+            WriteUTF16String(ReportFile, TEXT("\t\t<Parameter4>"));
+            WriteUTF16String(ReportFile, ItoTCHAR(Version, 10));
+            WriteLine(ReportFile, TEXT("</Parameter4>"));
+            
+            // Module time stamp
+            WriteUTF16String(ReportFile, TEXT("\t\t<Parameter5>"));
+            WriteUTF16String(ReportFile, ItoTCHAR(TimeStamp, 16));
+            WriteLine(ReportFile, TEXT("</Parameter5>"));
+            
+            // MethodDef token -> no equivalent
+            WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000001</Parameter6>"));
+            
+            // IL Offset -> Function pointer
+            WriteUTF16String(ReportFile, TEXT("\t\t<Parameter7>"));
+            WriteUTF16String(ReportFile, ItoTCHAR((uint64)Info->si_addr, 16));
+            WriteLine(ReportFile, TEXT("</Parameter7>"));
+        }
+        
+        // Command line, must match the Windows version.
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter8>!"));
+        WriteUTF16String(ReportFile, FCommandLine::GetOriginal());
+        WriteLine(ReportFile, TEXT("!</Parameter8>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter9>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.BranchBaseDir);
+        WriteLine(ReportFile, TEXT("</Parameter9>"));
+        
+        WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
+        
+        WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter1>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.BiosUUID);
+        WriteLine(ReportFile, TEXT("</Parameter1>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<Parameter2>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.LCID);
+        WriteLine(ReportFile, TEXT("</Parameter2>"));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted)));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
+        WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
+        
+        WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
+        
+        WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<MID>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.MachineUUID);
+        WriteLine(ReportFile, TEXT("</MID>"));
+        
+        WriteLine(ReportFile, TEXT("\t\t<SystemManufacturer>Apple Inc.</SystemManufacturer>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<SystemProductName>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.MachineModel);
+        WriteLine(ReportFile, TEXT("</SystemProductName>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<BIOSVersion>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.BiosRelease);
+        WriteUTF16String(ReportFile, TEXT("-"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.BiosRevision);
+        WriteLine(ReportFile, TEXT("</BIOSVersion>"));
+        
+        WriteUTF16String(ReportFile, TEXT("\t\t<GraphicsCard>"));
+        WriteUTF16String(ReportFile, *GIOSAppInfo.PrimaryGPU);
+        WriteLine(ReportFile, TEXT("</GraphicsCard>"));
+        
+        WriteLine(ReportFile, TEXT("\t</SystemInformation>"));
+        
+        WriteLine(ReportFile, TEXT("</WERReportMetadata>"));
+        
+        close(ReportFile);
+    }
+}
+
+void FIOSCrashContext::CopyMinidump(char const* OutputPath, char const* InputPath) const
+{
+#if !PLATFORM_TVOS
+    NSError* Error = nil;
+    NSString* Path = FString(ANSI_TO_TCHAR(InputPath)).GetNSString();
+    NSData* CrashData = [NSData dataWithContentsOfFile: Path options: NSMappedRead error: &Error];
+    if (CrashData && !Error)
+    {
+        PLCrashReport* CrashLog = [[PLCrashReport alloc] initWithData: CrashData error: &Error];
+        if (CrashLog && !Error)
+        {
+            NSString* Report = [PLCrashReportTextFormatter stringValueForCrashReport: CrashLog withTextFormat: PLCrashReportTextFormatiOS];
+            FString CrashDump = FString(Report);
+            [Report writeToFile: Path atomically: YES encoding: NSUTF8StringEncoding error: &Error];
+        }
+        else
+        {
+            NSLog(@"****UE4 %@", [Error localizedDescription]);
+        }
+    }
+    else
+    {
+        NSLog(@"****UE4 %@", [Error localizedDescription]);
+    }
+    int ReportFile = open(OutputPath, O_CREAT|O_WRONLY, 0766);
+    int DumpFile = open(InputPath, O_RDONLY, 0766);
+    if (ReportFile != -1 && DumpFile != -1)
+    {
+        char Data[PATH_MAX];
+        
+        int Bytes = 0;
+        while((Bytes = read(DumpFile, Data, PATH_MAX)) > 0)
+        {
+            write(ReportFile, Data, Bytes);
+        }
+        
+        close(DumpFile);
+        close(ReportFile);
+        
+        unlink(InputPath);
+    }
+#endif
+}
+
+void FIOSCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool bIsEnsure) const
+{
+    // create a crash-specific directory
+    char CrashInfoFolder[PATH_MAX] = {};
+    FCStringAnsi::Strncpy(CrashInfoFolder, InfoFolder, PATH_MAX);
+    
+    if(!mkdir(CrashInfoFolder, 0766))
+    {
+        char FilePath[PATH_MAX] = {};
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/report.wer");
+        int ReportFile = open(FilePath, O_CREAT|O_WRONLY, 0766);
+        if (ReportFile != -1)
+        {
+            // write BOM
+            static uint16 ByteOrderMarker = 0xFEFF;
+            write(ReportFile, &ByteOrderMarker, sizeof(ByteOrderMarker));
+            
+            WriteUTF16String(ReportFile, TEXT("\r\nAppPath="));
+            WriteUTF16String(ReportFile, *GIOSAppInfo.AppPath);
+            WriteLine(ReportFile, TEXT("\r\n"));
+            
+            close(ReportFile);
+        }
+        
+        // generate "WER"
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/wermeta.xml");
+        GenerateWindowsErrorReport(FilePath, bIsEnsure);
+        
+        // generate "minidump" (Apple crash log format)
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/minidump.dmp");
+        CopyMinidump(FilePath, GIOSAppInfo.PLCrashReportPath);
+        
+        // generate "info.txt" custom data for our server
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/info.txt");
+        ReportFile = open(FilePath, O_CREAT|O_WRONLY, 0766);
+        if (ReportFile != -1)
+        {
+            WriteUTF16String(ReportFile, TEXT("GameName UE4-"));
+            WriteLine(ReportFile, *GIOSAppInfo.AppName);
+            
+            WriteUTF16String(ReportFile, TEXT("BuildVersion 1.0."));
+            WriteUTF16String(ReportFile, ItoTCHAR(FEngineVersion::Current().GetChangelist() >> 16, 10));
+            WriteUTF16String(ReportFile, TEXT("."));
+            WriteLine(ReportFile, ItoTCHAR(FEngineVersion::Current().GetChangelist() & 0xffff, 10));
+            
+            WriteUTF16String(ReportFile, TEXT("CommandLine "));
+            WriteLine(ReportFile, *GIOSAppInfo.CommandLine);
+            
+            WriteUTF16String(ReportFile, TEXT("BaseDir "));
+            WriteLine(ReportFile, *GIOSAppInfo.BranchBaseDir);
+            
+            WriteUTF16String(ReportFile, TEXT("MachineGuid "));
+            WriteLine(ReportFile, *GIOSAppInfo.MachineUUID);
+            
+            close(ReportFile);
+        }
+        
+        // Introduces a new runtime crash context. Will replace all Windows related crash reporting.
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
+        //SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for macOS
+        
+        // copy log
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, (!GIOSAppInfo.AppName.IsEmpty() ? GIOSAppInfo.AppNameUTF8 : "UE4"));
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, ".log");
+        
+        int LogSrc = open(GIOSAppInfo.AppLogPath, O_RDONLY);
+        int LogDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
+        
+        char Data[PATH_MAX] = {};
+        int Bytes = 0;
+        while((Bytes = read(LogSrc, Data, PATH_MAX)) > 0)
+        {
+            write(LogDst, Data, Bytes);
+        }
+        
+        // If present, include the crash report config file to pass config values to the CRC
+        FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+        FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashConfigFileNameA);
+        int ConfigSrc = open(TCHAR_TO_ANSI(GetCrashConfigFilePath()), O_RDONLY);
+        int ConfigDst = open(FilePath, O_CREAT | O_WRONLY, 0766);
+        
+        while ((Bytes = read(ConfigSrc, Data, PATH_MAX)) > 0)
+        {
+            write(ConfigDst, Data, Bytes);
+        }
+        
+        close(ConfigDst);
+        close(ConfigSrc);
+        
+        close(LogDst);
+        close(LogSrc);
+        // best effort, so don't care about result: couldn't copy -> tough, no log
+    }
+    else
+    {
+        NSLog(@"******* UE4 - Failed to make folder: %s", CrashInfoFolder);
+    }
+}
+
+void FIOSCrashContext::GenerateCrashInfo() const
+{
+    // create a crash-specific directory
+    char CrashInfoFolder[PATH_MAX] = {};
+    FCStringAnsi::Strncpy(CrashInfoFolder, GIOSAppInfo.CrashReportPath, PATH_MAX);
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "/CrashReport-UE4-");
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, GIOSAppInfo.AppNameUTF8);
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "-pid-");
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(getpid(), 10));
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, "-");
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GIOSAppInfo.RunUUID.A, 16));
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GIOSAppInfo.RunUUID.B, 16));
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GIOSAppInfo.RunUUID.C, 16));
+    FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GIOSAppInfo.RunUUID.D, 16));
+        
+    const bool bIsEnsure = false;
+    GenerateInfoInFolder(CrashInfoFolder, bIsEnsure);
+        
+    // for IOS we will need to send the report on the next run
+    
+    // Sandboxed applications re-raise the signal to trampoline into the system crash reporter as suppressing it may fall foul of Apple's Mac App Store rules.
+    // @todo Submit an application to the MAS & see whether Apple's reviewers highlight our crash reporting or trampolining to the system reporter.
+    if(GIOSAppInfo.bIsSandboxed)
+    {
+        struct sigaction Action;
+        FMemory::Memzero(&Action, sizeof(struct sigaction));
+        Action.sa_handler = SIG_DFL;
+        sigemptyset(&Action.sa_mask);
+        sigaction(SIGQUIT, &Action, NULL);
+        sigaction(SIGILL, &Action, NULL);
+        sigaction(SIGEMT, &Action, NULL);
+        sigaction(SIGFPE, &Action, NULL);
+        sigaction(SIGBUS, &Action, NULL);
+        sigaction(SIGSEGV, &Action, NULL);
+        sigaction(SIGSYS, &Action, NULL);
+        sigaction(SIGABRT, &Action, NULL);
+        sigaction(SIGTRAP, &Action, NULL);
+        
+        raise(Signal);
+    }
+    
+    _Exit(0);
+}
+
+void FIOSCrashContext::GenerateEnsureInfo() const
+{
+    // Prevent CrashReportClient from spawning another CrashReportClient.
+    const bool bCanRunCrashReportClient = FCString::Stristr( *(GIOSAppInfo.ExecutableName), TEXT( "CrashReportClient" ) ) == nullptr;
+    
+#if !PLATFORM_TVOS
+    if(bCanRunCrashReportClient)
+    {
+        SCOPED_AUTORELEASE_POOL;
+        
+        // Write the PLCrashReporter report to the expected location
+        NSData* CrashReport = [FIOSApplicationInfo::CrashReporter generateLiveReport];
+        [CrashReport writeToFile:[NSString stringWithUTF8String:GIOSAppInfo.PLCrashReportPath] atomically:YES];
+        
+        // Use a slightly different output folder name to not conflict with a subequent crash
+        const FGuid Guid = FGuid::NewGuid();
+        FString GameName = FApp::GetGameName();
+        FString EnsureLogFolder = FString(GIOSAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
+        
+        const bool bIsEnsure = true;
+        GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
+        
+        FString Arguments;
+        if (IsInteractiveEnsureMode())
+        {
+            Arguments = FString::Printf(TEXT("\"%s/\""), *EnsureLogFolder);
+        }
+        else
+        {
+            Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
+        }
+        
+        FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
+        FPlatformProcess::ExecProcess(*ReportClient, *Arguments, nullptr, nullptr, nullptr);
+    }
+#endif
+}
+
+static FCriticalSection EnsureLock;
+static bool bReentranceGuard = false;
+
+void NewReportEnsure( const TCHAR* ErrorMessage )
+{
+    // Simple re-entrance guard.
+    EnsureLock.Lock();
+    
+    if( bReentranceGuard )
+    {
+        EnsureLock.Unlock();
+        return;
+    }
+    
+    bReentranceGuard = true;
+    
+#if !PLATFORM_TVOS
+    if(FIOSApplicationInfo::CrashReporter != nil)
+    {
+        siginfo_t Signal;
+        Signal.si_signo = SIGTRAP;
+        Signal.si_code = TRAP_TRACE;
+        Signal.si_addr = __builtin_return_address(0);
+        
+        FIOSCrashContext EnsureContext;
+        EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
+        EnsureContext.GenerateEnsureInfo();
+    }
+#endif
+    
+    bReentranceGuard = false;
+    EnsureLock.Unlock();
+}

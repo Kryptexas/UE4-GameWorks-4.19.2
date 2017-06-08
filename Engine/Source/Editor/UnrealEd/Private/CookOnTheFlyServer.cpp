@@ -4437,6 +4437,7 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		bIgnoreMarkupPackageAlreadyLoaded = false;
 	}
 
+	AllCookedPackages.StableSort();
 
 	TSet<FName> ProcessedCookedPackages; // keep track of which packages are processed
 	for (const FName& Package : AllCookedPackages)
@@ -4607,7 +4608,10 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 			}
 	*/
 
-	for (const FName& EditorOnlyPackage : UncookedEditorPackages)
+	TArray<FName> SortedUncookedEditorPackages = UncookedEditorPackages;
+	SortedUncookedEditorPackages.StableSort();
+
+	for (const auto& EditorOnlyPackage : SortedUncookedEditorPackages)
 	{
 		const FString& RelativePath = EditorOnlyPackage.ToString();
 

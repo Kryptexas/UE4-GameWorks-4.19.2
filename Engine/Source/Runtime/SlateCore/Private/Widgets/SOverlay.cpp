@@ -36,7 +36,7 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 
 			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
 				CurChild.GetWidget(),
-				FVector2D(XResult.Offset,YResult.Offset),
+				FVector2D(XResult.Offset, YResult.Offset),
 				FVector2D(XResult.Size, YResult.Size)
 			) );
 		}

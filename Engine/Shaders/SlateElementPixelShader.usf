@@ -29,7 +29,7 @@ half3 GammaCorrect(half3 InColor)
 {
 	half3 CorrectedColor = InColor;
 
-#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS || METAL_PROFILE //  Metal supports sRGB textures
+#if SOURCE_IN_LINEAR_SPACE
 	FLATTEN if( GammaValues.y != 1.0f )
 	{
 		CorrectedColor = ApplyGammaCorrection(CorrectedColor, GammaValues.x);
@@ -141,7 +141,7 @@ half4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 	// Make no assumptionn of what vertex color does in a custom material shader
 	FinalColor = BaseColor;
 #else
-	FinalColor = BaseColor*InVertex.Color;
+    FinalColor = BaseColor * InVertex.Color;
 #endif
 
 	return FinalColor;
@@ -295,13 +295,18 @@ half4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 #endif
 
 #if DRAW_DISABLED_EFFECT
-	//desaturate
-	half3 LumCoeffs = half3( 0.3, 0.59, .11 );
+    #if SOURCE_IN_LINEAR_SPACE
+        half3 LumCoeffs = half3( 0.3, 0.59, .11 );
+        half3 Grayish = half3(.1, .1, .1);
+    #else
+        // These are just the linear space values above converted to sRGB space.
+        half3 LumCoeffs = float3( 0.5843, 0.7921, 0.3647 );
+        half3 Grayish = float3(0.349, 0.349, 0.349);
+    #endif
+    
+    //desaturate
 	half Lum = dot( LumCoeffs, OutColor.rgb );
-	OutColor.rgb = lerp( OutColor.rgb, half3(Lum,Lum,Lum), .8 );
-	
-	half3 Grayish = {.1, .1, .1};
-
+	OutColor.rgb = lerp( OutColor.rgb, float3(Lum,Lum,Lum), .8 );
 	OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );
 #endif
 
@@ -341,4 +346,21 @@ float4 DebugOverdrawMain( VertexToPixelInterpolants VIn ) : SV_Target0
 #endif
 
 	return .1;
+}
+
+/** Batch Color */
+float4 BatchColor;
+
+float4 DebugBatchingMain(VertexToPixelInterpolants VIn) : SV_Target0
+{
+
+#if !DEBUG_CLIPPING
+	// Clip pixels which are outside of the clipping rect
+    float2 ClipOrigin = VIn.ClipOriginAndPos.xy;
+    float2 WindowPos = VIn.ClipOriginAndPos.zw;
+    float4 ClipTest = PointInParallelogram(WindowPos, ClipOrigin, VIn.ClipExtents);
+    clip(ClipTest);
+#endif
+
+    return BatchColor;
 }

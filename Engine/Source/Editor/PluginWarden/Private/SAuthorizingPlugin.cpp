@@ -11,12 +11,13 @@
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Images/SThrobber.h"
-#include "IDesktopPlatform.h"
-#include "DesktopPlatformModule.h"
 
 #include "IPortalServiceLocator.h"
 #include "Account/IPortalUserLogin.h"
 #include "Application/IPortalApplicationWindow.h"
+
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginWarden"
 
@@ -138,15 +139,15 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 		case EPluginAuthorizationState::StartLauncher:
 		{
 			WaitingTime = 0;
-			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+			ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-			if ( DesktopPlatform != nullptr )
+			if (LauncherPlatform != nullptr )
 			{
 				if ( !FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher")) &&
 					 !FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping")) )
 				{
 					FOpenLauncherOptions SilentOpen;
-					if ( DesktopPlatform->OpenLauncher(SilentOpen) )
+					if (LauncherPlatform->OpenLauncher(SilentOpen) )
 					{
 						CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
 					}
@@ -396,12 +397,12 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 
 void SAuthorizingPlugin::ShowStorePageForPlugin()
 {
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-	if ( DesktopPlatform != nullptr )
+	if (LauncherPlatform != nullptr )
 	{
 		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/content/")) + PluginOfferId);
-		DesktopPlatform->OpenLauncher(StorePageOpen);
+		LauncherPlatform->OpenLauncher(StorePageOpen);
 	}
 }
 

@@ -17,6 +17,10 @@
 	#define NUM_SLATE_TEXCOORDS 1
 #endif
 
+// On mobile renderers we don't convert textures into linear space when slate is rendering.
+// since the final output is a gamma space render target.
+// Metal iOS supports sampling from sRGB textures
+#define SOURCE_IN_LINEAR_SPACE !(ES2_PROFILE || ES3_1_PROFILE) || USE_MATERIALS || METAL_PROFILE
 
 /** Shader types (mirrored from ESlateShader::Type in RenderingCommon.h */
 #define ST_Default		0

@@ -208,6 +208,7 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 	if (IsEnabled() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent()))
 	{
 		Press();
+		PressedScreenSpacePosition = MouseEvent.GetScreenSpacePosition();
 		
 		if( ClickMethod == EButtonClickMethod::MouseDown )
 		{
@@ -221,11 +222,12 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 		{
 			// do not capture the pointer for precise taps or clicks
 			// 
+			Reply = FReply::Handled();
 		}
 		else
 		{
 			//we need to capture the mouse for MouseUp events
-			Reply =  FReply::Handled().CaptureMouse( AsShared() );
+			Reply = FReply::Handled().CaptureMouse( AsShared() );
 		}
 	}
 
@@ -234,7 +236,6 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 	//return the constructed reply
 	return Reply;
 }
-
 
 FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -247,35 +248,40 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 	const bool bMustBePressed = ClickMethod == EButtonClickMethod::DownAndUp || IsPreciseTapOrClick(MouseEvent);
 	const bool bMeetsPressedRequirements = (!bMustBePressed || (bIsPressed && bMustBePressed));
 
-	if (bMeetsPressedRequirements && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )
+	if (bMeetsPressedRequirements && ( ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent())))
 	{
 		Release();
 
-		if( ClickMethod == EButtonClickMethod::MouseDown )
+		if ( IsEnabled() )
 		{
-			// NOTE: If we're configured to click on mouse-down/precise-tap, then we never capture the mouse thus
-			//       may never receive an OnMouseButtonUp() call.  We make sure that our bIsPressed
-			//       state is reset by overriding OnMouseLeave().
-		}
-		else
-		{
-			bool bEventOverButton = IsHovered();
-			if (!bEventOverButton && MouseEvent.IsTouchEvent())
+			if ( ClickMethod == EButtonClickMethod::MouseDown )
 			{
-				bEventOverButton = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
+				// NOTE: If we're configured to click on mouse-down/precise-tap, then we never capture the mouse thus
+				//       may never receive an OnMouseButtonUp() call.  We make sure that our bIsPressed
+				//       state is reset by overriding OnMouseLeave().
 			}
-			if (bEventOverButton)
+			else
 			{
-				// If we asked for a precise tap, all we need is for the user to have not moved their pointer very far.
-				const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);
+				bool bEventOverButton = IsHovered();
 
-				// If we were asked to allow the button to be clicked on mouse up, regardless of whether the user
-				// pressed the button down first, then we'll allow the click to proceed without an active capture
-				const bool bTriggerForMouseEvent = ( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() );
-
-				if( (bTriggerForTouchEvent || bTriggerForMouseEvent) && OnClicked.IsBound() == true )
+				if ( !bEventOverButton && MouseEvent.IsTouchEvent() )
 				{
-					Reply = OnClicked.Execute();
+					bEventOverButton = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
+				}
+
+				if ( bEventOverButton )
+				{
+					// If we asked for a precise tap, all we need is for the user to have not moved their pointer very far.
+					const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);
+
+					// If we were asked to allow the button to be clicked on mouse up, regardless of whether the user
+					// pressed the button down first, then we'll allow the click to proceed without an active capture
+					const bool bTriggerForMouseEvent = ( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() );
+
+					if ( ( bTriggerForTouchEvent || bTriggerForMouseEvent ) && OnClicked.IsBound() == true )
+					{
+						Reply = OnClicked.Execute();
+					}
 				}
 			}
 		}
@@ -302,11 +308,11 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	const float SlateDragStartDistance = FSlateApplication::Get().GetDragTriggerDistance();
-	if ( IsPreciseTapOrClick(MouseEvent) && MouseEvent.GetCursorDelta().SizeSquared() > ( SlateDragStartDistance*SlateDragStartDistance ) )
+	if ( IsPressed() && IsPreciseTapOrClick(MouseEvent) && FSlateApplication::Get().HasTraveledFarEnoughToTriggerDrag(MouseEvent, PressedScreenSpacePosition) )
 	{
 		Release();
 	}
+
 	return FReply::Unhandled();
 }
 
@@ -341,14 +347,17 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	Invalidate(EInvalidateWidget::Layout);
 }
 
+void SButton::OnMouseCaptureLost()
+{
+	Release();
+}
+
 void SButton::Press()
 {
 	if ( !bIsPressed )
 	{
 		bIsPressed = true;
-
 		PlayPressedSound();
-
 		OnPressed.ExecuteIfBound();
 	}
 }
@@ -442,4 +451,19 @@ void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 
 	HoveredSound = Style->HoveredSlateSound;
 	PressedSound = Style->PressedSlateSound;
+}
+
+void SButton::SetClickMethod(EButtonClickMethod::Type InClickMethod)
+{
+	ClickMethod = InClickMethod;
+}
+
+void SButton::SetTouchMethod(EButtonTouchMethod::Type InTouchMethod)
+{
+	TouchMethod = InTouchMethod;
+}
+
+void SButton::SetPressMethod(EButtonPressMethod::Type InPressMethod)
+{
+	PressMethod = InPressMethod;
 }

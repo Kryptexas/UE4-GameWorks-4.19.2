@@ -243,6 +243,13 @@ FWidgetPath FWeakWidgetPath::ToWidgetPath(EInterruptedPathHandling::Type Interru
 	return WidgetPath;
 }
 
+TSharedRef<FWidgetPath> FWeakWidgetPath::ToWidgetPathRef(EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent) const
+{
+	TSharedRef<FWidgetPath> WidgetPath = MakeShareable(new FWidgetPath());
+	ToWidgetPath(WidgetPath.Get(), InterruptedPathHandling, PointerEvent);
+	return WidgetPath;
+}
+
 FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent ) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_ToWidgetPath);
@@ -291,7 +298,7 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 				{					
 					FArrangedWidget& ArrangedWidget = ArrangedChildren[SearchIndex];
 
-					if ( ArrangedWidget.Widget == WidgetPtrs[WidgetIndex+1] )
+					if ( ArrangedWidget.Widget == WidgetPtrs[WidgetIndex + 1] )
 					{
 						if( PointerEvent && !VirtualPointerPos.IsValid() )
 						{
@@ -332,12 +339,12 @@ bool FWeakWidgetPath::ContainsWidget( const TSharedRef< const SWidget >& SomeWid
 	return false;
 }
 
-FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType)
+FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType) const
 {
 	return ToNextFocusedPath(NavigationType, FNavigationReply::Escape(), FArrangedWidget::NullWidget);
 }
 
-FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget)
+FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget) const
 {
 	check(NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous);
 

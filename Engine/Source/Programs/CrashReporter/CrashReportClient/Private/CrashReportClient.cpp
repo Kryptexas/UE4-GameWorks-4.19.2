@@ -7,8 +7,8 @@
 #include "CrashReportClientConfig.h"
 #include "Templates/UniquePtr.h"
 #include "Async/TaskGraphInterfaces.h"
-#include "IDesktopPlatform.h"
-#include "DesktopPlatformModule.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -107,9 +107,9 @@ FReply FCrashReportClient::SubmitAndRestart()
 		if (!FPaths::GetCleanFilename(CrashedAppPath).StartsWith(TEXT("UE4Editor")))
 		{
 			// We'll restart Launcher-run processes by having the installed Launcher handle it
-			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+			ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-			if (DesktopPlatform != nullptr)
+			if (LauncherPlatform != nullptr)
 			{
 				// Split the path so we can format it as a URI
 				TArray<FString> PathArray;
@@ -128,7 +128,7 @@ FReply FCrashReportClient::SubmitAndRestart()
 				// Re-run the application via the Launcher
 				FOpenLauncherOptions OpenOptions(FString::Printf(TEXT("apps/%s"), *CrashedAppPathUri));
 				OpenOptions.bSilent = true;
-				if (DesktopPlatform->OpenLauncher(OpenOptions))
+				if (LauncherPlatform->OpenLauncher(OpenOptions))
 				{
 					bLauncherRestarted = true;
 				}

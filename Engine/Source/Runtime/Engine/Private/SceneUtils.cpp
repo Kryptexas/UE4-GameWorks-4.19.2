@@ -106,10 +106,43 @@ bool IsMobileHDRMosaic()
 		case 1:
 			return true;
 		case 2:
+		case 3:
 			return false;
 		default:
 			return !(GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
 	}
+}
+
+ENGINE_API EMobileHDRMode GetMobileHDRMode()
+{
+	EMobileHDRMode HDRMode = EMobileHDRMode::EnabledFloat16;
+
+	if (IsMobileHDR() == false)
+	{
+		HDRMode = EMobileHDRMode::Disabled;
+	}
+	
+	if (IsMobileHDR32bpp())
+	{
+		static auto* MobileHDR32bppMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+		switch (MobileHDR32bppMode->GetValueOnAnyThread())
+		{
+			case 1:
+				HDRMode = EMobileHDRMode::EnabledMosaic;
+				break;
+			case 2:
+				HDRMode = EMobileHDRMode::EnabledRGBE;
+				break;
+			case 3:
+				HDRMode = EMobileHDRMode::EnabledRGBA8;
+				break;
+			default:
+				HDRMode = (GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch) ? EMobileHDRMode::EnabledRGBE : EMobileHDRMode::EnabledMosaic;
+				break;
+		}
+	}
+
+	return HDRMode;
 }
 
 #if HAS_GPU_STATS

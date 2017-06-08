@@ -185,18 +185,6 @@ bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FStri
 	return false;
 }
 
-bool FDesktopPlatformLinux::CanOpenLauncher(bool Install)
-{
-	// TODO: no launcher support at the moment
-	return false;
-}
-
-bool FDesktopPlatformLinux::OpenLauncher(const FOpenLauncherOptions& Options)
-{
-	// TODO: support launcher for realz
-	return true;
-}
-
 bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
 #if WITH_LINUX_NATIVE_DIALOGS

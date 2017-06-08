@@ -2437,6 +2437,22 @@ void FCascade::BindCommands()
 		FExecuteAction::CreateSP(this, &FCascade::OnDeleteLOD));
 
 	ToolkitCommands->MapAction(
+		Commands.JumpToLOD0,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 0));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD1,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 1));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD2,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 2));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD3,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 3));
+
+	ToolkitCommands->MapAction(
 		Commands.DeleteModule,
 		FExecuteAction::CreateSP(this, &FCascade::OnDeleteModule, true));
 
@@ -4292,7 +4308,30 @@ void FCascade::OnJumpToHighestLOD()
 
 	SetLODValue(Value);
 	SetSelectedModule(SelectedEmitter, SelectedModule);
-	
+
+	if (PreviewViewport.IsValid())
+	{
+		PreviewViewport->RefreshViewport();
+	}
+
+	if (EmitterCanvas.IsValid())
+	{
+		EmitterCanvas->RefreshViewport();
+	}
+}
+
+void FCascade::OnJumpToLODIndex(int32 LODLevel)
+{
+	if (ParticleSystem->Emitters.Num() == 0)
+	{
+		return;
+	}
+
+	int32 Value = FMath::Clamp(LODLevel, 0, ParticleSystem->Emitters[0]->LODLevels.Num() - 1);
+
+	SetLODValue(Value);
+	SetSelectedModule(SelectedEmitter, SelectedModule);
+
 	if (PreviewViewport.IsValid())
 	{
 		PreviewViewport->RefreshViewport();

@@ -967,11 +967,14 @@ public:
 #endif
 				default:
 				{
-					check(false);
+					Tex.Type = SCTT_Invalid;
 				}
 			}
-		
-			FShaderCache::LogTexture(Tex, this);
+			
+			if (Tex.Type != SCTT_Invalid)
+			{
+				FShaderCache::LogTexture(Tex, this);
+			}
 		}
 	}
 

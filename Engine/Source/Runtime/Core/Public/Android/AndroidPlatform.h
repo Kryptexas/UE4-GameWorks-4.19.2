@@ -46,6 +46,9 @@ typedef FAndroidTypes FPlatformTypes;
 #define PLATFORM_HAS_TOUCH_MAIN_SCREEN				1
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
 #define PLATFORM_NUM_AUDIODECOMPRESSION_PRECACHE_BUFFERS 1
+#define PLATFORM_UI_HAS_MOBILE_SCROLLBARS			1
+#define PLATFORM_UI_NEEDS_TOOLTIPS					0
+#define PLATFORM_UI_NEEDS_FOCUS_OUTLINES			0
 
 // Function type macros.
 #define VARARGS													/* Functions with variable arguments */

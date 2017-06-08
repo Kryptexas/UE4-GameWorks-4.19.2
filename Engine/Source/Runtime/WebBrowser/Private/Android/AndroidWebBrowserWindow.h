@@ -204,6 +204,9 @@ private:
 	/** Optional text to load as a web page. */
 	TOptional<FString> ContentsToLoad;
 
+	/** Whether to enable background transparency */
+	bool bUseTransparency;
+
 	/** Delegate for broadcasting load state changes. */
 	FOnDocumentStateChanged DocumentStateChangedEvent;
 

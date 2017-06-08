@@ -3008,25 +3008,28 @@ EConvertibleLaptopMode FWindowsPlatformMisc::GetConvertibleLaptopMode()
 IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 {
 	static IPlatformChunkInstall* ChunkInstall = nullptr;
-	if (!ChunkInstall)
+	static bool bIniChecked = false;
+	if (!ChunkInstall || !bIniChecked)
 	{
-#if !(WITH_EDITORONLY_DATA || IS_PROGRAM)
-
 		IPlatformChunkInstallModule* PlatformChunkInstallModule = nullptr;
-
-		FModuleStatus Status;
-		if (FModuleManager::Get().QueryModule("HTTPChunkInstaller", Status))
+		if (!GEngineIni.IsEmpty())
 		{
-			PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
-			if (PlatformChunkInstallModule != nullptr)
-		{
-			// Attempt to grab the platform installer
-			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
-		}
+			FString InstallModule;
+			GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), InstallModule, GEngineIni);
+			FModuleStatus Status;
+			if (FModuleManager::Get().QueryModule(*InstallModule, Status))
+			{
+				PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>(*InstallModule);
+				if (PlatformChunkInstallModule != nullptr)
+				{
+					// Attempt to grab the platform installer
+					ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+				}
+			}
+			bIniChecked = true;
 		}
 
 		if (PlatformChunkInstallModule == nullptr)
-#endif
 		{
 			// Placeholder instance
 			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();

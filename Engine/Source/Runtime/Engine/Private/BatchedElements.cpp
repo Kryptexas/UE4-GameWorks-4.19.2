@@ -524,7 +524,7 @@ void FBatchedElements::PrepareShaders(
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );
 
 	// bEncodedHDR requires that blend states are disabled.
-	bool bEncodedHDR = bEnableHDREncoding && Is32BppHDREncoded(View, FeatureLevel);
+	bool bEncodedHDR = /*bEnableHDREncoding &&*/ Is32BppHDREncoded(View, FeatureLevel);
 
 	float GammaToUse = Gamma;
 

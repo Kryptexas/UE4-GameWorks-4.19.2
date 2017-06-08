@@ -4,7 +4,7 @@
 ConsoleManager.cpp: console command handling
 =============================================================================*/
 
-#include "HAL/ConsoleManager.h"
+#include "ConsoleManager.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/Paths.h"
 #include "Stats/Stats.h"
@@ -1857,9 +1857,10 @@ static TAutoConsoleVariable<int32> CVarMobileAllowMovableDirectionalLights(
 static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
 	TEXT("r.MobileHDR32bppMode"),
 	0,
-	TEXT("0: If 32bpp is required mobile HDR will use best suited 32 bpp mode. (default)")
-	TEXT("1: Force Mobile 32bpp HDR to use mosaic encoding.\n")
-	TEXT("2: Force Mobile 32bpp HDR to use RGBA encoding mode."),
+	TEXT("0: If 32bpp is required mobile HDR will use best suited 32 bpp mode. (default)\n")
+	TEXT("1: Force Mobile 32bpp HDR with mosaic encoding.\n")
+	TEXT("2: Force Mobile 32bpp HDR with RGBE encoding mode. (device must support framebuffer fetch)\n")
+	TEXT("3: Force Mobile 32bpp HDR with direct RGBA8 rendering."),
 	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
@@ -1964,6 +1965,16 @@ static TAutoConsoleVariable<int32> CVarSceneColorFormat(
 	TEXT(" 3: PF_FloatRGB 32Bit\n")
 	TEXT(" 4: PF_FloatRGBA 64Bit (default, might be overkill, especially if translucency is mostly using SeparateTranslucency)\n")
 	TEXT(" 5: PF_A32B32G32R32F 128Bit (unreasonable but good for testing)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileSceneColorFormat(
+	TEXT("r.Mobile.SceneColorFormat"),
+	0,
+	TEXT("Overrides the memory layout (RGBA) used for the scene color of the mobile renderer.\nUnsupported overridden formats silently use default")
+	TEXT(" 0: (default) Automatically select the appropriate format depending on project settings and device support.\n")
+	TEXT(" 1: PF_FloatRGBA 64Bit \n")
+	TEXT(" 2: PF_FloatR11G11B10 32Bit\n")
+	TEXT(" 3: PF_B8G8R8A8 32Bit"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarPostProcessingColorFormat(
@@ -2391,3 +2402,4 @@ static TAutoConsoleVariable<int32> GLSLCvar(
 	0,
 	TEXT("2 to use ES GLSL\n1 to use GLSL\n0 to use SPIRV")
 );
+

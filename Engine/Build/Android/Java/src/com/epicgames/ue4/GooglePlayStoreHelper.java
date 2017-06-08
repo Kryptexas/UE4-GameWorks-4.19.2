@@ -160,9 +160,9 @@ public class GooglePlayStoreHelper implements StoreHelper
 					prices.add(price);
 					Log.debug("[GooglePlayStoreHelper] - price: " + price);
 
-					Float priceRaw = (float) object.getInt("price_amount_micros") / 1000000.0f;
-					pricesRaw.add(priceRaw);
-					Log.debug("[GooglePlayStoreHelper] - price_amount_micros: " + priceRaw.toString());
+					double priceRaw = object.getDouble("price_amount_micros") / 1000000.0;
+					pricesRaw.add((float)priceRaw);
+					Log.debug("[GooglePlayStoreHelper] - price_amount_micros: " + priceRaw);
 
 					String currencyCode = object.getString("price_currency_code");
 					currencyCodes.add(currencyCode);

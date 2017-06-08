@@ -146,51 +146,6 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 	return bSuccess;
 }
 
-bool FDesktopPlatformWindows::CanOpenLauncher(bool Install)
-{
-	FRegistryRootedKey UriProtocolKey(HKEY_CLASSES_ROOT, TEXT("com.epicgames.launcher"));
-
-	// Check if the launcher exists, or (optionally) if the installer exists
-	FString Path;
-	return UriProtocolKey.Exists() || (Install && GetLauncherInstallerPath(Path));
-}
-
-bool FDesktopPlatformWindows::OpenLauncher(const FOpenLauncherOptions& Options)
-{
-	FRegistryRootedKey UriProtocolKey(HKEY_CLASSES_ROOT, TEXT("com.epicgames.launcher"));
-	FString InstallerPath;
-
-	// Try to launch it directly
-	if (UriProtocolKey.Exists())
-	{
-		FString LauncherUriRequest = Options.GetLauncherUriRequest();
-
-		FString Error;
-		FPlatformProcess::LaunchURL(*LauncherUriRequest, nullptr, &Error);
-		return true;
-	}
-	// Otherwise see if we can install it
-	else if(Options.bInstall && GetLauncherInstallerPath(InstallerPath))
-	{
-		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
-		return true;
-	}
-
-	return false;
-}
-
-bool FDesktopPlatformWindows::GetLauncherInstallerPath(FString& OutInstallerPath)
-{
-	FString InstallerPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Extras/UnrealEngineLauncher/EpicGamesLauncherInstaller.msi")));
-	if (FPaths::FileExists(InstallerPath))
-	{
-		OutInstallerPath = InstallerPath;
-		return true;
-	}
-
-	return false;
-}
-
 CA_SUPPRESS(6262)
 
 bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)

@@ -289,11 +289,7 @@ float UGameUserSettings::FindResolutionQualityForScreenSize(float Width, float H
 
 void UGameUserSettings::SetFrameRateLimitCVar(float InLimit)
 {
-	static IConsoleVariable* MaxFPSCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
-	if (ensure(MaxFPSCVar))
-	{
-		MaxFPSCVar->Set(FMath::Max(InLimit, 0.0f), ECVF_SetByGameSetting);
-	}
+	GEngine->SetMaxFPS(FMath::Max(InLimit, 0.0f));
 }
 
 float UGameUserSettings::GetEffectiveFrameRateLimit()

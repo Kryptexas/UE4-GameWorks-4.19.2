@@ -15,7 +15,8 @@ int32 RunDsymExporter(int32 ArgC, TCHAR* Argv[])
 	if( ArgC < 2 )
 	{
 		UE_LOG( LogInit, Error, TEXT( "DsymExporter - not enough parameters." ) );
-		UE_LOG( LogInit, Error, TEXT( " ... usage: DsymExporter <Mach-O Binary Path> [Output Folder]" ) );
+		UE_LOG( LogInit, Error, TEXT( " ... usage: DsymExporter [-UUID=ID] <Mach-O Binary Path> [Output Folder]" ) );
+        UE_LOG( LogInit, Error, TEXT( "[-UUID=ID]: This is the UUID of the Mach-O Binary at the provided path. This for use by IOS because Core Symbolication is not properly finding it." ) );
 		UE_LOG( LogInit, Error, TEXT( "<Mach-O Binary Path>: This is an absolute path to a Mach-O binary containing symbols, which may be the payload binary within an application, framework or dSYM bundle, an executable or dylib." ) );
 		UE_LOG( LogInit, Error, TEXT( "[Output Folder]: The folder to write the new symbol database to, the database will take the filename of the input plus the .udebugsymbols extension." ) );
 		return 1;
@@ -26,17 +27,30 @@ int32 RunDsymExporter(int32 ArgC, TCHAR* Argv[])
 #endif
 	
 	FPlatformSymbolDatabase Symbols;
-	FString Signature;
-	bool bOK = FPlatformSymbolication::LoadSymbolDatabaseForBinary(TEXT(""), Argv[1], Signature, Symbols);
+    FString PathArg = Argv[1];
+    FString SigArg;
+    bool bHaveSigArg = false;
+    if (PathArg[0] == L'-')
+    {
+        SigArg = Argv[1];
+        PathArg = Argv[2];
+        bHaveSigArg = true;
+    }
+	FString Signature = SigArg.RightChop(6);
+	bool bOK = FPlatformSymbolication::LoadSymbolDatabaseForBinary(TEXT(""), PathArg, Signature, Symbols);
 	if(bOK)
 	{
 		FString OutputFolder = FPaths::GetPath(Argv[1]);
-		if(ArgC == 3)
+		if(ArgC == 3 && !bHaveSigArg)
 		{
 			OutputFolder = Argv[2];
 		}
+        else if (ArgC == 4)
+        {
+            OutputFolder = Argv[3];
+        }
 		
-		if(FPlatformSymbolication::SaveSymbolDatabaseForBinary(OutputFolder, FPaths::GetBaseFilename(Argv[1]), Symbols))
+		if(FPlatformSymbolication::SaveSymbolDatabaseForBinary(OutputFolder, FPaths::GetBaseFilename(PathArg), Signature, Symbols))
 		{
 			return 0;
 		}

@@ -27,6 +27,9 @@ FPlatformMemoryStats FIOSPlatformMemory::GetStats()
 {
 	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
 
+    static SIZE_T PeakUsedPhysical = 0;
+    static SIZE_T PeakUsedVirtual = 0;
+
 	FPlatformMemoryStats MemoryStats;
 
 	// Gather system-wide memory stats.
@@ -41,11 +44,22 @@ FPlatformMemoryStats FIOSPlatformMemory::GetStats()
 	mach_msg_type_number_t InfoSize = sizeof(Info);
 	task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&Info, &InfoSize);
 
+    if (Info.resident_size > PeakUsedPhysical)
+    {
+        PeakUsedPhysical = Info.resident_size;
+    }
+    if (Info.virtual_size > PeakUsedVirtual)
+    {
+        PeakUsedVirtual = Info.virtual_size;
+    }
+    
 	MemoryStats.AvailablePhysical = FreeMem;
 	MemoryStats.AvailableVirtual = 0;
 	MemoryStats.UsedPhysical = Info.resident_size;
 	MemoryStats.UsedVirtual = Info.virtual_size;
-
+    MemoryStats.PeakUsedPhysical = PeakUsedPhysical;
+    MemoryStats.PeakUsedVirtual = PeakUsedVirtual;
+    
 	return MemoryStats;
 }
 

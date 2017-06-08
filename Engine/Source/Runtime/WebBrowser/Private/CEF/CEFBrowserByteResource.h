@@ -34,16 +34,8 @@ class FCEFBrowserByteResource
 public:
 	/**
 	 */
-	FCEFBrowserByteResource(const void* InBuffer, int32 InSize) : Position(0), Size(InSize)
-	{
-		Buffer = new unsigned char[Size];
-		FMemory::Memcpy(Buffer, InBuffer, Size);
-	}
-	
-	~FCEFBrowserByteResource()
-	{
-		delete[] Buffer;
-	}
+	FCEFBrowserByteResource(const CefRefPtr<CefPostDataElement>& PostData, const FString& InMimeType);
+	~FCEFBrowserByteResource();
 	
 	// CefResourceHandler interface
 	virtual void Cancel() override;
@@ -55,6 +47,7 @@ private:
 	int32 Position;
 	int32 Size;
 	unsigned char* Buffer;
+	FString MimeType;
 	
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FCEFBrowserByteResource);

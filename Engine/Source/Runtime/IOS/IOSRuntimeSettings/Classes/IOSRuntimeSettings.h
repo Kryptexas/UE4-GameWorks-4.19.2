@@ -372,7 +372,11 @@ public:
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.
     UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Max. Metal Shader Standard To Target", ConfigRestartRequired = true))
-	uint8 MaxShaderLanguageVersion;
+    uint8 MaxShaderLanguageVersion;
+	
+	// Whether or not the keyboard should be usable on it's own without a UITextField
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Input)
+	bool bUseIntegratedKeyboard;
 
 	/** Sample rate to run the audio mixer with. */
 	UPROPERTY(config, EditAnywhere, Category = "Audio", Meta = (DisplayName = "Audio Mixer Sample Rate"))

@@ -249,6 +249,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bUseDownsizedOcclusionQueries(SnapshotSource.bUseDownsizedOcclusionQueries)
 	, CurrentGBufferFormat(SnapshotSource.CurrentGBufferFormat)
 	, CurrentSceneColorFormat(SnapshotSource.CurrentSceneColorFormat)
+	, CurrentMobileSceneColorFormat(SnapshotSource.CurrentMobileSceneColorFormat)
 	, bAllowStaticLighting(SnapshotSource.bAllowStaticLighting)
 	, CurrentMaxShadowResolution(SnapshotSource.CurrentMaxShadowResolution)
 	, CurrentRSMResolution(SnapshotSource.CurrentRSMResolution)
@@ -447,6 +448,8 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 		SceneColorFormat = CVar->GetValueOnRenderThread();
 	}
+
+	EPixelFormat MobileSceneColorFormat = GetDesiredMobileSceneColorFormat();
 		
 	bool bNewAllowStaticLighting;
 	{
@@ -491,6 +494,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 		(BufferSize.Y != DesiredBufferSize.Y) ||
 		(CurrentGBufferFormat != GBufferFormat) ||
 		(CurrentSceneColorFormat != SceneColorFormat) ||
+		(CurrentMobileSceneColorFormat != MobileSceneColorFormat) ||
 		(bAllowStaticLighting != bNewAllowStaticLighting) ||
 		(bUseDownsizedOcclusionQueries != bDownsampledOcclusionQueries) ||
 		(CurrentMaxShadowResolution != MaxShadowResolution) ||
@@ -503,6 +507,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	{
 		CurrentGBufferFormat = GBufferFormat;
 		CurrentSceneColorFormat = SceneColorFormat;
+		CurrentMobileSceneColorFormat = MobileSceneColorFormat;
 		bAllowStaticLighting = bNewAllowStaticLighting;
 		bUseDownsizedOcclusionQueries = bDownsampledOcclusionQueries;
 		CurrentMaxShadowResolution = MaxShadowResolution;
@@ -516,7 +521,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 		// Reinitialize the render targets for the given size.
 		SetBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
 
-		UE_LOG(LogRenderer, Log, TEXT("Reallocating scene render targets to support %ux%u NumSamples %u (Frame:%u)."), BufferSize.X, BufferSize.Y, CurrentMSAACount, ViewFamily.FrameNumber);
+		UE_LOG(LogRenderer, Log, TEXT("Reallocating scene render targets to support %ux%u Format %u NumSamples %u (Frame:%u)."), BufferSize.X, BufferSize.Y, (uint32)GetSceneColorFormat(), CurrentMSAACount, ViewFamily.FrameNumber);
 
 		UpdateRHI();
 	}
@@ -1913,18 +1918,41 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 	}
 }
 
+EPixelFormat FSceneRenderTargets::GetDesiredMobileSceneColorFormat() const
+{
+	EPixelFormat DefaultColorFormat = (!IsMobileHDR() || IsMobileHDR32bpp() || !GSupportsRenderTargetFormat_PF_FloatRGBA) ? PF_B8G8R8A8 : PF_FloatRGBA;
+	check(GPixelFormats[DefaultColorFormat].Supported);
+
+	EPixelFormat MobileSceneColorBufferFormat = DefaultColorFormat;
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.SceneColorFormat"));
+	int32 MobileSceneColor = CVar->GetValueOnRenderThread();
+	switch (MobileSceneColor)
+	{
+		case 1:
+			MobileSceneColorBufferFormat = PF_FloatRGBA; break;
+		case 2:
+			MobileSceneColorBufferFormat = PF_FloatR11G11B10; break;
+		case 3:
+			MobileSceneColorBufferFormat = PF_B8G8R8A8; break;
+		default:
+		break;
+	}
+
+	return GPixelFormats[MobileSceneColorBufferFormat].Supported ? MobileSceneColorBufferFormat : DefaultColorFormat;
+}
+
+EPixelFormat FSceneRenderTargets::GetMobileSceneColorFormat() const
+{
+	return CurrentMobileSceneColorFormat;
+}
+
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
 	if (CurrentFeatureLevel < ERHIFeatureLevel::SM4)
 	{
-		// Potentially allocate an alpha channel in th -fe scene color texture to store the resolved scene depth.
-		SceneColorBufferFormat = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
-		if (!IsMobileHDR() || IsMobileHDR32bpp()) 
-		{
-			SceneColorBufferFormat = PF_B8G8R8A8;
-		}
+		return GetMobileSceneColorFormat();
 	}
 	else
     {

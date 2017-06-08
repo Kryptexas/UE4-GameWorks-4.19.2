@@ -28,7 +28,7 @@ VertexToPixelInterpolants Main(
 	// save off the original input position value, Line AA will require this
 	VOut.OriginalPosition = WorldPosition;
 
-#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS || METAL_PROFILE
+#if SOURCE_IN_LINEAR_SPACE
 	InColor.rgb = sRGBToLinear(InColor.rgb);
 #endif
 
@@ -40,7 +40,7 @@ VertexToPixelInterpolants Main(
 	VOut.Color = FinalVertexColor;
 	VOut.TextureCoordinates[0] = InTextureCoordinates;
 
-#if USE_MATERIALS 
+#if USE_MATERIALS
 	FMaterialVertexParameters VertexParameters = (FMaterialVertexParameters)0;
 	VertexParameters.WorldPosition = WorldPosition.xyz;
 
@@ -49,7 +49,7 @@ VertexToPixelInterpolants Main(
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 
 #if !USE_SLATE_INSTANCING
-	// pass along local screen space size 
+	// pass along local screen space size
 	// To look this up in a material you use uv channel 3
 	float4 InstanceParam = float4(0,0, PixelSize);
 #endif

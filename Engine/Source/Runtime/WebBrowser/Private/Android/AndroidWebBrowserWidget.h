@@ -14,10 +14,13 @@ class SAndroidWebBrowserWidget : public SLeafWidget
 {
 	SLATE_BEGIN_ARGS(SAndroidWebBrowserWidget)
 		: _InitialURL("about:blank")
+		, _UseTransparency(false)
 	{ }
 
 		SLATE_ARGUMENT(FString, InitialURL);
+		SLATE_ARGUMENT(bool, UseTransparency);
 		SLATE_ARGUMENT(TSharedPtr<FAndroidWebBrowserWindow>, WebBrowserWindow);
+
 	SLATE_END_ARGS()
 
 public:

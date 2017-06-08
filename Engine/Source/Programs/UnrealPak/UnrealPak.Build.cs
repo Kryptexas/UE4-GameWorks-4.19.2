@@ -8,8 +8,19 @@ public class UnrealPak : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "PakFile", "Projects" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "PakFile", "Json", "Projects" });
 
-		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
-	}
+		PrivateIncludePaths.Add("Runtime/Launch/Private");      // For LaunchEngineLoop.cpp include
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "AssetRegistry",
+                "Json"
+        });
+
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "AssetRegistry"
+        });
+    }
 }

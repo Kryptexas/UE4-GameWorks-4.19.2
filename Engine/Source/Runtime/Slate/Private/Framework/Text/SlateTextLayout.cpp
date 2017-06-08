@@ -11,6 +11,15 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Framework/Text/SlatePasswordRun.h"
 
+#if !UE_BUILD_SHIPPING
+
+TAutoConsoleVariable<int32> ShowDebugTextLayout(
+	TEXT("Slate.ShowDebugTextLayout"),
+	false,
+	TEXT("Whether to show debuging visulization for text layout in Slate."));
+
+#endif
+
 TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaultTextStyle)
 {
 	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout(MoveTemp(InDefaultTextStyle)) );
@@ -53,7 +62,12 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	static bool ShowDebug = false;
+#if UE_BUILD_SHIPPING
+	const bool bShowDebug = false;
+#else
+	const bool bShowDebug = ShowDebugTextLayout.GetValueOnAnyThread() != 0;
+#endif
+	
 	FLinearColor BlockHue( 0, 1.0f, 1.0f, 0.5 );
 	int32 HighestLayerId = LayerId;
 
@@ -77,7 +91,7 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		// Render every block for this line
 		for (const TSharedRef< ILayoutBlock >& Block : LineView.Blocks)
 		{
-			if ( ShowDebug )
+			if ( bShowDebug )
 			{
 				BlockHue.R += 50.0f;
 

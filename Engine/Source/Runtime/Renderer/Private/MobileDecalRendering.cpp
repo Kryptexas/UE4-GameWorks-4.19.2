@@ -48,7 +48,7 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 
 			TOptional<EDecalBlendMode> LastDecalBlendMode;
 			TOptional<bool> LastDecalDepthState;
-			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
+			bool bEncodedHDR = GetMobileHDRMode() == EMobileHDRMode::EnabledRGBE;
 			if (bEncodedHDR)
 			{
 				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();

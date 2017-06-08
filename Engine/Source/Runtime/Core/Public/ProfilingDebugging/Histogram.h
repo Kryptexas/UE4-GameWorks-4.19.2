@@ -14,6 +14,7 @@
 #include "Containers/UnrealString.h"
 #include "Containers/Map.h"
 #include "Logging/LogMacros.h"
+#include "Containers/ArrayView.h"
 
 struct FHistogramBuilder;
 
@@ -29,6 +30,9 @@ struct CORE_API FHistogram
 
 	/** Inits histogram to mimic our existing hitch buckets */
 	void InitHitchTracking();
+
+	/** Inits histogram with the specified bin boundaries, with the final bucket extending to infinity (e.g., passing in 0,5 creates a [0..5) bucket and a [5..infinity) bucket) */
+	void InitFromArray(TArrayView<double> Thresholds);
 
 	/** Resets measurements, without resetting the configured bins. */
 	void Reset();

@@ -765,15 +765,15 @@ void MainPS_ES2(
 		#if (USE_BLOOM || USE_LIGHT_SHAFTS || USE_VIGNETTE)
 		{
 			half4 CombinedBloomSunVignette = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, FullViewUV.xy);
-			if (GetHDR32bppEncodeMode() != HDR_ENCODE_MOSAIC)
-			{
-				#if USE_32BPP_HDR
+			#if USE_32BPP_HDR
+				if (GetHDR32bppEncodeMode() == HDR_ENCODE_RGBE)
+				{
 					CombinedBloomSunVignette.rgb = Decode32BPPHDR(CombinedBloomSunVignette).rgb;
 					LinearColor.rgb = LinearColor.rgb + CombinedBloomSunVignette.rgb;
-				#else
-					LinearColor.rgb = LinearColor.rgb * CombinedBloomSunVignette.a + CombinedBloomSunVignette.rgb;
-				#endif
-			}
+				}
+			#else
+				LinearColor.rgb = LinearColor.rgb * CombinedBloomSunVignette.a + CombinedBloomSunVignette.rgb;
+			#endif
 		}
 		#endif
 

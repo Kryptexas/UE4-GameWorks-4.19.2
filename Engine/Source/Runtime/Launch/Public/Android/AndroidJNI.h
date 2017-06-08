@@ -46,6 +46,7 @@ public:
 	static jmethodID AndroidThunkJava_LocalNotificationGetLaunchNotification;
 	//static jmethodID AndroidThunkJava_LocalNotificationDestroyIfExists; - This is not needed yet but will be soon so just leaving commented out for now
 	static jmethodID AndroidThunkJava_HasActiveWiFiConnection;
+	static jmethodID AndroidThunkJava_GetAndroidId;
 
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;
@@ -66,8 +67,13 @@ public:
 	static jmethodID AndroidThunkJava_IsInterstitialAdAvailable;
 	static jmethodID AndroidThunkJava_IsInterstitialAdRequested;
 	static jmethodID AndroidThunkJava_ShowInterstitialAd;
+	static jmethodID AndroidThunkJava_GetAdvertisingId;
 	static jmethodID AndroidThunkJava_GoogleClientConnect;
 	static jmethodID AndroidThunkJava_GoogleClientDisconnect;
+
+	// Optionally added if GCM plugin (or other remote notification system) enabled
+	static jmethodID AndroidThunkJava_RegisterForRemoteNotifications;
+	static jmethodID AndroidThunkJava_UnregisterForRemoteNotifications;
 
 	// In app purchase functionality
 	static jclass JavaStringClass;

@@ -199,16 +199,37 @@ bool UKismetInputLibrary::PointerEvent_IsTouchEvent(const FPointerEvent& Input)
 	return Input.IsTouchEvent();
 }
 
-//EGestureEvent::Type UKismetInputLibrary::PointerEvent_GetGestureType(const FPointerEvent& Input)
-//{
-//	return Input.GetGestureType();
-//}
+ESlateGesture UKismetInputLibrary::PointerEvent_GetGestureType(const FPointerEvent& Input)
+{
+	static_assert( (int32)EGestureEvent::None == (int32)ESlateGesture::None, "EGestureEvent == ESlateGesture" );
+	static_assert( (int32)EGestureEvent::Scroll == (int32)ESlateGesture::Scroll, "EGestureEvent == ESlateGesture" );
+	static_assert( (int32)EGestureEvent::Magnify == (int32)ESlateGesture::Magnify, "EGestureEvent == ESlateGesture" );
+	static_assert( (int32)EGestureEvent::Swipe == (int32)ESlateGesture::Swipe, "EGestureEvent == ESlateGesture" );
+	static_assert( (int32)EGestureEvent::Rotate == (int32)ESlateGesture::Rotate, "EGestureEvent == ESlateGesture" );
+	static_assert( (int32)EGestureEvent::LongPress == (int32)ESlateGesture::LongPress, "EGestureEvent == ESlateGesture" );
+
+	switch ( Input.GetGestureType() )
+	{
+	case EGestureEvent::Scroll:
+		return ESlateGesture::Scroll;
+	case EGestureEvent::Magnify:
+		return ESlateGesture::Magnify;
+	case EGestureEvent::Swipe:
+		return ESlateGesture::Swipe;
+	case EGestureEvent::Rotate:
+		return ESlateGesture::Rotate;
+	case EGestureEvent::LongPress:
+		return ESlateGesture::LongPress;
+	case EGestureEvent::None:
+	default:
+		return ESlateGesture::None;
+	}
+}
 
 FVector2D UKismetInputLibrary::PointerEvent_GetGestureDelta(const FPointerEvent& Input)
 {
 	return Input.GetGestureDelta();
 }
-
 
 FKey UKismetInputLibrary::ControllerEvent_GetEffectingButton(const FControllerEvent& Input)
 {

@@ -69,7 +69,6 @@ public:
 
 	//~ Begin SPanel Interface	
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
 	//~ End SPanel Interface
 
@@ -99,6 +98,11 @@ public:
 
 	/** Removes all slots from the panel */
 	void ClearChildren();
+
+protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
 
 private:
 	TPanelChildren<FSlot> Children;

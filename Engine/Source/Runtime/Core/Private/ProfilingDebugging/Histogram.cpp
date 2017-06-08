@@ -12,6 +12,8 @@ void FHistogram::InitLinear(double MinTime, double MaxTime, double BinSize)
 	SumOfAllMeasures = 0.0;
 	CountOfAllMeasures = 0;
 
+	Bins.Empty();
+
 	double CurrentBinMin = MinTime;
 	while (CurrentBinMin < MaxTime)
 	{
@@ -44,6 +46,26 @@ void FHistogram::InitHitchTracking()
 	Bins.Add(FBin(2000.0, 2500.0));
 	Bins.Add(FBin(2500.0, 5000.0));
 	Bins.Add(FBin(5000.0));
+}
+
+void FHistogram::InitFromArray(TArrayView<double> Thresholds)
+{
+	SumOfAllMeasures = 0.0;
+	CountOfAllMeasures = 0;
+	Bins.Empty();
+
+	for (int32 Index = 0; Index < Thresholds.Num(); ++Index)
+	{
+		const int32 NextIndex = Index + 1;
+		if (NextIndex == Thresholds.Num())
+		{
+			Bins.Emplace(Thresholds[Index]);
+		}
+		else
+		{
+			Bins.Emplace(Thresholds[Index], Thresholds[NextIndex]);
+		}
+	}
 }
 
 void FHistogram::Reset()

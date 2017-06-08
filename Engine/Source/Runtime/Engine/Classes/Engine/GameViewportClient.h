@@ -253,6 +253,11 @@ public:
 	void RemoveAllViewportWidgets();
 
 	/**
+	 * Recreates cursor widgets from UISettings class.
+	 */
+	void RebuildCursors();
+
+	/**
 	 * Cleans up all rooted or referenced objects created or managed by the GameViewportClient.  This method is called
 	 * when this GameViewportClient has been disassociated with the game engine (i.e. is no longer the engine's GameViewport).
 	 */

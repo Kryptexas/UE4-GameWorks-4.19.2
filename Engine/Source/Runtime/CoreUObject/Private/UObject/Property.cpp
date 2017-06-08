@@ -1296,7 +1296,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
 					{
-						Warn->Logf(ELogVerbosity::Warning, TEXT("Invalid property value in defaults: %s"), Start);
+						UE_SUPPRESS(LogExec, Verbose, Warn->Logf(TEXT("Unknown property in %s: %s "), *ObjectStruct->GetName(), Start));
 					}
 					// in the failure case, don't return NULL so the caller can potentially skip less and get values further in the string
 					if (Result != NULL)

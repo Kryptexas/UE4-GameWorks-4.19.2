@@ -22,6 +22,7 @@ namespace {
 FAndroidWebBrowserWindow::FAndroidWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency, bool bInJSBindingToLoweringEnabled)
 	: CurrentUrl(MoveTemp(InUrl))
 	, ContentsToLoad(MoveTemp(InContentsToLoad))
+	, bUseTransparency(InUseTransparency)
 	, DocumentState(EWebBrowserDocumentState::NoDocument)
 	, ErrorCode(0)
 	, Scripting(new FAndroidJSScripting(bInJSBindingToLoweringEnabled))
@@ -47,6 +48,7 @@ TSharedRef<SWidget> FAndroidWebBrowserWindow::CreateWidget()
 {
 	TSharedRef<SAndroidWebBrowserWidget> BrowserWidgetRef =
 		SNew(SAndroidWebBrowserWidget)
+		.UseTransparency(bUseTransparency)
 		.InitialURL(CurrentUrl)
 		.WebBrowserWindow(SharedThis(this));
 

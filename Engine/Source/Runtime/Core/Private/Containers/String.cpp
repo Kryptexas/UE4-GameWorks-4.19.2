@@ -1356,3 +1356,20 @@ int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 St
 
 	return INDEX_NONE;
 }
+
+FString SlugStringForValidName(const FString& DisplayString)
+{
+	FString GeneratedName = DisplayString;
+
+	// Convert the display label, which may consist of just about any possible character, into a
+	// suitable name for a UObject (remove whitespace, certain symbols, etc.)
+	{
+		for ( int32 BadCharacterIndex = 0; BadCharacterIndex < ARRAY_COUNT(INVALID_OBJECTNAME_CHARACTERS) - 1; ++BadCharacterIndex )
+		{
+			const TCHAR TestChar[2] = { INVALID_OBJECTNAME_CHARACTERS[BadCharacterIndex], 0 };
+			const int32 NumReplacedChars = GeneratedName.ReplaceInline(TestChar, TEXT(""));
+		}
+	}
+
+	return GeneratedName;
+}

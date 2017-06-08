@@ -612,7 +612,7 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 		MaterialInstance = nullptr;
 	}
 
-	if ( Space != EWidgetSpace::Screen && WidgetRenderer.IsValid() )
+	if ( Space != EWidgetSpace::Screen && WidgetRenderer.IsValid() && WidgetClass.Get() != nullptr )
 	{
 		// Create a new MID for the current base material
 		{
@@ -628,8 +628,60 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 
 		return new FWidget3DSceneProxy(this, *WidgetRenderer->GetSlateRenderer());
 	}
-	
-	return nullptr;
+
+	// make something so we can see this component in the editor
+	class FWidgetBoxProxy : public FPrimitiveSceneProxy
+	{
+	public:
+		FWidgetBoxProxy(const UWidgetComponent* InComponent)
+			: FPrimitiveSceneProxy(InComponent)
+			, BoxExtents(1.f, InComponent->GetDrawSize().X / 2.0f, InComponent->GetDrawSize().Y / 2.0f)
+		{
+			bWillEverBeLit = false;
+		}
+
+		virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_BoxSceneProxy_GetDynamicMeshElements);
+
+			const FMatrix& LocalToWorld = GetLocalToWorld();
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+
+					const FLinearColor DrawColor = GetViewSelectionColor(FColor::White, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected());
+
+					FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+					DrawOrientedWireBox(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis(EAxis::X), LocalToWorld.GetScaledAxis(EAxis::Y), LocalToWorld.GetScaledAxis(EAxis::Z), BoxExtents, DrawColor, SDPG_World);
+				}
+			}
+		}
+
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+		{
+			FPrimitiveViewRelevance Result;
+			if (!View->bIsGameView)
+			{
+				// Should we draw this because collision drawing is enabled, and we have collision
+				const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
+				Result.bDrawRelevance = IsShown(View) || bShowForCollision;
+				Result.bDynamicRelevance = true;
+				Result.bShadowRelevance = IsShadowCast(View);
+				Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
+			}
+			return Result;
+		}
+		virtual uint32 GetMemoryFootprint(void) const override { return(sizeof(*this) + GetAllocatedSize()); }
+		uint32 GetAllocatedSize(void) const { return(FPrimitiveSceneProxy::GetAllocatedSize()); }
+
+	private:
+		const FVector	BoxExtents;
+	};
+
+	return new FWidgetBoxProxy(this);
 }
 
 FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const

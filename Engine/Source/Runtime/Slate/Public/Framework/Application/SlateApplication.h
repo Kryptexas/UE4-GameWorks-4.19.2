@@ -28,6 +28,8 @@
 #include "Framework/Application/MenuStack.h"
 #include "Framework/SlateDelegates.h"
 
+#include "GestureDetector.h"
+
 class FNavigationConfig;
 class IInputInterface;
 class IInputProcessor;
@@ -122,6 +124,33 @@ public:
 
 	TSharedPtr<SWidget> GetFocusedWidget() const;
 
+	FGestureDetector GestureDetector;
+
+private:
+	FORCEINLINE bool HasValidFocusPath() const
+	{
+		return FocusWidgetPathWeak.IsValid();
+	}
+
+	FORCEINLINE const FWeakWidgetPath& GetWeakFocusPath() const
+	{
+		return FocusWidgetPathWeak;
+	}
+
+	FORCEINLINE TSharedRef<FWidgetPath> GetFocusPath() const
+	{
+		if ( !FocusWidgetPathStrong.IsValid() )
+		{
+			FocusWidgetPathStrong = FocusWidgetPathWeak.ToWidgetPathRef();
+		}
+
+		return FocusWidgetPathStrong.ToSharedRef();
+	}
+
+	void SetFocusPath(const FWidgetPath& InWidgetPath, EFocusCause InCause, bool InShowFocus);
+
+	void FinishFrame();
+
 private:
 	/** The index the user was assigned. */
 	int32 UserIndex;
@@ -129,17 +158,17 @@ private:
 	/** Is this a virtual user?  Virtual users are generally ignored in most operations that affect all users. */
 	bool bVirtualUser;
 
-	struct FUserFocusEntry
-	{
-		/** A weak path to the widget currently focused by a user, if any. */
-		FWeakWidgetPath WidgetPath;
-		/** Reason a widget was focused by a user, if any. */
-		EFocusCause FocusCause;
-		/** If we should show this focus */
-		bool ShowFocus;
-	};
+	/** A weak path to the widget currently focused by a user, if any. */
+	FWeakWidgetPath FocusWidgetPathWeak;
 
-	FUserFocusEntry Focus;
+	/** A strong widget path to a widget, this is cleared after the end of pumping messages. */
+	mutable TSharedPtr<FWidgetPath> FocusWidgetPathStrong;
+
+	/** Reason a widget was focused by a user, if any. */
+	EFocusCause FocusCause;
+
+	/** If we should show this focus */
+	bool ShowFocus;
 
 	friend class FSlateApplication;
 };
@@ -966,11 +995,16 @@ protected:
 	 */
 	void GetAllVisibleChildWindows(TArray< TSharedRef<SWindow> >& OutWindows, TSharedRef<SWindow> CurrentWindow);
 
-
 	/** Engages or disengages application throttling based on user behavior */
 	void ThrottleApplicationBasedOnMouseMovement();
 
 	virtual FWidgetPath LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const override;
+
+	/**
+	 * Sets up any values that need to be based on the physical dimensions of the device.  
+	 * Such as dead zones associated with precise tapping...etc
+	 */
+	void SetupPhysicalSensitivities();
 
 public:
 
@@ -1179,8 +1213,12 @@ public:
 	/** @return true if mouse events are being turned into touch events, and touch UI should be forced on */
 	bool IsFakingTouchEvents() const;
 
+#if PLATFORM_DESKTOP
+	
 	/** Sets whether the application is treating mouse events as imitating touch events.  Optional CursorLocation can be supplied to override the platform's belief of where the cursor is */
 	void SetGameIsFakingTouchEvents(const bool bIsFaking, FVector2D* CursorLocation = nullptr);
+
+#endif
 
 	/** Sets the handler for otherwise unhandled key down events. This is used by the editor to provide a global action list, if the key was not consumed by any widget. */
 	void SetUnhandledKeyDownEventHandler( const FOnKeyEvent& NewHandler );
@@ -1194,6 +1232,12 @@ public:
 
 	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
 	float GetDragTriggerDistance() const;
+
+	/** @return the deadzone size squared for dragging in screen pixels (aka virtual desktop pixels) */
+	float GetDragTriggerDistanceSquared() const;
+
+	/** @return true if the difference between the ScreenSpaceOrigin and the ScreenSpacePosition is larger than the trigger distance for dragging in Slate. */
+	bool HasTraveledFarEnoughToTriggerDrag(const FPointerEvent& PointerEvent, const FVector2D ScreenSpaceOrigin) const;
 
 	/** Set the size of the deadzone for dragging in screen pixels */
 	void SetDragTriggerDistance( float ScreenPixels );
@@ -1226,6 +1270,9 @@ public:
 
 	/** Getter for the cursor radius */
 	float GetCursorRadius() const;
+
+	void SetAllowTooltips(bool bCanShow);
+	bool GetAllowTooltips() const;
 	
 public:
 
@@ -1339,6 +1386,7 @@ public:
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
+	virtual void ShouldSimulateGesture(EGestureEvent::Type Gesture, bool bEnable) override;
 	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) override;
 	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) override;
 	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
@@ -1669,7 +1717,7 @@ private:
 		 * @param EventPath		The path to the event.
 		 * @param Widget		The widget that wants to capture the mouse.
 		 */
-		void SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
+		bool SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
 
 		/** Invalidates all current mouse captors. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
 		void InvalidateCaptureForAllPointers();
@@ -1740,8 +1788,6 @@ private:
 	 * Weak pointers to the allocated virtual users.
 	 */
 	TArray<TWeakPtr<FSlateVirtualUser>> VirtualUsers;
-
-	typedef FSlateUser::FUserFocusEntry FUserFocusEntry;
 
 	/**
 	 * Application throttling
@@ -1900,14 +1946,13 @@ private:
 
 	/** Direction that tool-tip is being repelled from a force field in.  We cache this to avoid tool-tips
 	    teleporting between different offset directions as the user moves the mouse cursor around. */
-	struct EToolTipOffsetDirection
+	enum class EToolTipOffsetDirection : uint8
 	{
-		enum Type
-		{
-			Undetermined, Down, Right
-		};
+		Undetermined,
+		Down,
+		Right
 	};
-	EToolTipOffsetDirection::Type ToolTipOffsetDirection;
+	EToolTipOffsetDirection ToolTipOffsetDirection;
 
 	/** The top of the Style tree. */
 	const class FStyleNode* RootStyleNode;
@@ -2023,6 +2068,9 @@ private:
 
 	/** Configured fkeys to control navigation */
 	TSharedRef<FNavigationConfig> NavigationConfig;
+
+	/**  */
+	TBitArray<FDefaultBitArrayAllocator> SimulateGestures;
 
 	/** Delegate for pre slate tick */
 	FSlateTickEvent PreTickEvent;

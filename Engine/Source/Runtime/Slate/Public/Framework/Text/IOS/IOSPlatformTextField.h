@@ -35,7 +35,9 @@ typedef FIOSPlatformTextField FPlatformTextField;
 #ifdef __IPHONE_8_0
     UIAlertController* AlertController;
 #endif
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
     UIAlertView* AlertView;
+#endif
 }
 
 -(void)show:(TSharedPtr<IVirtualKeyboardEntry>)InTextWidget;

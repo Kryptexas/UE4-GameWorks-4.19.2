@@ -95,6 +95,8 @@ class UMG_API SObjectWidget : public SCompoundWidget, public FGCObject
 
 	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 
+	virtual void OnMouseCaptureLost() override;
+
 protected:
 
 	/** The UWidget that created this SObjectWidget who needs to be kept alive. */

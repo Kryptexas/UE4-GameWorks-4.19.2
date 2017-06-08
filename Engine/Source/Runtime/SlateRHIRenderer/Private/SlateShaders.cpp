@@ -14,6 +14,7 @@ IMPLEMENT_SHADER_TYPE(, FSlatePostProcessBlurPS, TEXT("SlatePostProcessPixelShad
 
 IMPLEMENT_SHADER_TYPE(, FSlatePostProcessDownsamplePS, TEXT("SlatePostProcessPixelShader"), TEXT("DownsampleMain"), SF_Pixel);
 
+IMPLEMENT_SHADER_TYPE(, FSlateDebugBatchingPS, TEXT("SlateElementPixelShader"), TEXT("DebugBatchingMain"), SF_Pixel );
 
 #define IMPLEMENT_SLATE_PIXELSHADER_TYPE(ShaderType, bDrawDisabledEffect, bUseTextureAlpha) \
 	typedef TSlateElementPS<ESlateShader::ShaderType,bDrawDisabledEffect,bUseTextureAlpha> TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha##A; \

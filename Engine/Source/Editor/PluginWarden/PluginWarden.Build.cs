@@ -17,13 +17,13 @@ public class PluginWarden : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-                "InputCore",
+				"InputCore",
 				"Slate",
 				"SlateCore",
-                "EditorStyle",
-                "UnrealEd",
-                "PortalServices",
-                "DesktopPlatform",
+				"EditorStyle",
+				"UnrealEd",
+				"PortalServices",
+				"LauncherPlatform",
 			}
 		);
 

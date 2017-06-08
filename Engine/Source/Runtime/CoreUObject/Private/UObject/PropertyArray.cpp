@@ -377,7 +377,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	if (*Buffer == TCHAR('\0') || *Buffer == TCHAR(')') || *Buffer == TCHAR(','))
 	{
 		ArrayHelper.EmptyValues();
-		return NULL;
+		return Buffer;
 	}
 
 	if ( *Buffer++ != TCHAR('(') )

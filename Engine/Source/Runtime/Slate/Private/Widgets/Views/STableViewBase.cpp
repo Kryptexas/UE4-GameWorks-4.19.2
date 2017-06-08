@@ -556,6 +556,8 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 
 			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
+			ScrollBar->BeginScrolling();
+
 			// The user has moved the list some amount; they are probably
 			// trying to scroll. From now on, the list assumes the user is scrolling
 			// until they lift their finger.
@@ -571,9 +573,10 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 
 FReply STableViewBase::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
-
 	AmountScrolledWhileRightMouseDown = 0;
 	bStartedTouchInteraction = false;
+
+	ScrollBar->EndScrolling();
 
 	if (HasMouseCapture())
 	{

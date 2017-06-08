@@ -19,6 +19,9 @@ import android.util.Log;
 
 import android.os.Vibrator;
 import android.os.SystemClock;
+//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
+import android.os.Handler;
+//@HSL_END
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -46,6 +49,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.FeatureInfo;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.provider.Settings.Secure;
 import android.content.pm.PackageInfo;
 
 
@@ -53,6 +57,9 @@ import android.media.AudioManager;
 import android.util.DisplayMetrics;
 
 import android.view.InputDevice;
+//@HSL_BEGIN - chance.lyon - Adding KeyEvent for Sticky window callbacks
+import android.view.KeyEvent;
+//@HSL_END
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -83,6 +90,8 @@ import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.ads.identifier.AdvertisingIdClient;
+import com.google.android.gms.ads.identifier.AdvertisingIdClient.Info;
 
 import com.google.android.gms.plus.Plus;
 
@@ -243,6 +252,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	/** Whether this application is for distribution */
 	private boolean IsForDistribution = false;
+	
 
 	/** Application build configuration */
 	private String BuildConfiguration = "";
@@ -668,8 +678,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			{
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
-
-			if (bundle.containsKey("com.epicgames.ue4.GameActivity.BuildConfiguration"))
+			if(bundle.containsKey("com.epicgames.ue4.GameActivity.BuildConfiguration"))
 			{
 				BuildConfiguration = bundle.getString("com.epicgames.ue4.GameActivity.BuildConfiguration");
 				Log.debug( "BuildConfiguration set to " + BuildConfiguration);
@@ -971,6 +980,64 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
+
+//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
+	private Handler mRestoreImmersiveModeHandler = new Handler();
+	private Runnable restoreImmersiveModeRunnable = new Runnable()
+	{
+		public void run() 
+		{
+			restoreTransparentBars();
+		}
+	};
+
+	public void restoreTranslucentBarsDelayed()
+	{
+		// we restore it now and after 500 ms!
+		restoreTransparentBars();
+		mRestoreImmersiveModeHandler.postDelayed(restoreImmersiveModeRunnable, 500);
+	}
+
+	public void restoreTransparentBars()
+	{
+		if(android.os.Build.VERSION.SDK_INT >= 19) {
+			try {
+				View decorView = getWindow().getDecorView(); 
+
+				Log.debug("=== Restoring Transparent Bars ===");
+				// Clear the flag and then restore it
+				decorView.setSystemUiVisibility(
+								View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+							| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+							| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+							| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+							| View.SYSTEM_UI_FLAG_FULLSCREEN
+							/*| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY*/);
+				
+				decorView.setSystemUiVisibility(
+								View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+							| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+							| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+							| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+							| View.SYSTEM_UI_FLAG_FULLSCREEN
+							| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+				
+			} catch (Exception e) {}
+		}
+	}
+
+	@Override 
+	public boolean onKeyDown(int keyCode, KeyEvent event) 
+	{
+		if(keyCode == KeyEvent.KEYCODE_BACK ||keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
+		{
+			Log.debug("=== Restoring Transparent Bars due to KeyCode ===");
+			restoreTranslucentBarsDelayed();
+		}
+
+		return super.onKeyDown(keyCode, event);
+	}
+//@HSL_END
 	
 	@Override
 	public void onResume()
@@ -983,45 +1050,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		// only do this on KitKat and above
 		if (ShouldHideUI)
 		{ 
-		
+//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
+			restoreTransparentBars();
 			View decorView = getWindow().getDecorView(); 
-			if(android.os.Build.VERSION.SDK_INT >= 19) {
-				decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-											| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-											| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-											| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-											| View.SYSTEM_UI_FLAG_FULLSCREEN
-											| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); 
-			} /*else {
-				decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-											| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-											| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-											| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-											| View.SYSTEM_UI_FLAG_FULLSCREEN);
 
-			}*/
-			
 			decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
-				@Override public void onSystemUiVisibilityChange(int visibility) {
-							View decorView = getWindow().getDecorView(); 
-							if(android.os.Build.VERSION.SDK_INT >= 19) {
-								decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-															| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-															| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-															| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-															| View.SYSTEM_UI_FLAG_FULLSCREEN
-															| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); 
-							} /*else {
-								decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-															| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-															| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-															| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-															| View.SYSTEM_UI_FLAG_FULLSCREEN);
+				@Override 
+				public void onSystemUiVisibilityChange(int visibility) 
+				{
+					Log.debug("=== Restoring Transparent Bars due to Visibility Change ===");
+					restoreTransparentBars();
+				}
+			});
 
-							}*/
-						}
+			decorView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+				@Override
+				public void onFocusChange(View v, boolean hasFocus) 
+				{
+					Log.debug("=== Restoring Transparent Bars due to Focus Change ===");
+					restoreTransparentBars();
+				}
 			});
 		}
+//@HSL_END
 		
 		if(HasAllFiles)
 		{
@@ -1390,23 +1441,56 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		        }
 		    }
 	    });
+		// @HSL_END - Josh.May - 3/28/2017
  	}
 	
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{
+		Log.debug("[JAVA} AndroidThunkJava_LaunchURL: URL = " + URL);
+		if (!URL.contains("://"))
+		{
+			URL = "http://" + URL;
+			Log.debug("[JAVA} AndroidThunkJava_LaunchURL: corrected URL = " + URL);
+		}
 		try
 		{
 			Intent BrowserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(URL));
-			startActivity(BrowserIntent);
+
+			// open browser on its own task
+			BrowserIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+			BrowserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+			
+			// make sure there is a web browser to handle the URL before trying to start activity (or may crash!)
+			if (BrowserIntent.resolveActivity(getPackageManager()) != null)
+			{
+				Log.debug("[JAVA} AndroidThunkJava_LaunchURL: Starting activity");
+				startActivity(BrowserIntent);
+			}
+			else
+			{
+				Log.debug("[JAVA} AndroidThunkJava_LaunchURL: Could not find an application to receive the URL intent");
+			}
 		}
 		catch (Exception e)
 		{
-			Log.debug("LaunchURL failed with exception " + e.getMessage());
+			Log.debug("[JAVA} AndroidThunkJava_LaunchURL: Failed with exception " + e.getMessage());
 		}
+	}
+
+	public String AndroidThunkJava_GetAndroidId()
+	{
+		try {
+			String androidId = Secure.getString(getApplicationContext().getContentResolver(), Secure.ANDROID_ID);
+			return androidId;
+		} catch (Exception e) {
+			Log.debug("GetAndroidId failed: " + e.getMessage());
+		}
+		return null;
 	}
 
 	public void AndroidThunkJava_ResetAchievements()
 	{
+		/* Disable so don't need GET_ACCOUNTS - we don't need this
 		try
         {
 			String accesstoken = GetAccessToken();
@@ -1439,6 +1523,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         {
             Log.debug("AndroidThunkJava_ResetAchievements failed: " + e.getMessage());
         }
+		*/
+		Log.debug("AndroidThunkJava_ResetAchievements: disabled");
 	}
 
 	// TODO: replace this with non-depreciated method (OK now for up to API-25)
@@ -1664,6 +1750,17 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 	}
 
+	public String AndroidThunkJava_GetAdvertisingId()
+	{
+		try {
+	        AdvertisingIdClient.Info adInfo = AdvertisingIdClient.getAdvertisingIdInfo(getApplicationContext());
+		    return adInfo.getId();
+		} catch (Exception e) {
+			Log.debug("GetAdvertisingId failed: " + e.getMessage());
+		}
+		return null;
+	}
+
 	public void AndroidThunkJava_GoogleClientConnect()
 	{
 		if (googleClient != null)
@@ -1690,6 +1787,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			{
 				public void run()
 				{
+					/* Don't do this since deprecated and don't want to request GET_ACCOUNTS permission
 					try
 					{
 						String accesstoken = GetAccessToken();
@@ -1710,6 +1808,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 						nativeGoogleClientConnectCompleted(false, "");
 					}
+					*/
+					nativeGoogleClientConnectCompleted(true, "NOT_ACQUIRED");
 				}
 			}).start();
 		}

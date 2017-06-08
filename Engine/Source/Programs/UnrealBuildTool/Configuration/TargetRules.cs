@@ -423,10 +423,16 @@ namespace UnrealBuildTool
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE")]
 		public bool bCompileLeanAndMeanUE = false;
 
-		/// <summary>
-		/// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
+        /// <summary>
+		/// Whether to utilize cache freed OS allocs with MallocBinned
 		/// </summary>
-		public bool bCompileAgainstEngine = true;
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bUseCacheFreedOSAllocs")]
+        public bool bUseCacheFreedOSAllocs = true;
+
+        /// <summary>
+        /// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
+        /// </summary>
+        public bool bCompileAgainstEngine = true;
 
 		/// <summary>
 		/// Enabled for all builds that include the CoreUObject project.  Disabled only when building standalone apps that only link with Core.
@@ -1549,7 +1555,12 @@ namespace UnrealBuildTool
 			get { return Inner.bCompileLeanAndMeanUE; }
 		}
 
-		public bool bCompileAgainstEngine
+        public bool bUseCacheFreedOSAllocs
+        {
+            get { return Inner.bUseCacheFreedOSAllocs; }
+        }
+
+        public bool bCompileAgainstEngine
 		{
 			get { return Inner.bCompileAgainstEngine; }
 		}

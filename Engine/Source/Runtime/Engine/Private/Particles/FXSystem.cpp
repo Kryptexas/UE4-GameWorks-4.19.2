@@ -130,6 +130,12 @@ namespace FXConsoleVariables
 		TEXT("Allow emitters to be culled."),
 		ECVF_Cheat
 		);
+	int32 bAllowGPUParticles = true;
+	FAutoConsoleVariableRef CVarAllowGPUParticles(
+		TEXT("FX.AllowGPUParticles"),
+		bAllowGPUParticles,
+		TEXT("If true, allow the usage of GPU particles.")
+	);
 }
 
 /*------------------------------------------------------------------------------

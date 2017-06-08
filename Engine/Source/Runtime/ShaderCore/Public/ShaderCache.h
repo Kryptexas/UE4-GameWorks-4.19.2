@@ -721,6 +721,7 @@ private:
 	static FShaderCache* Cache;
 	static int32 GameVersion;
 	static int32 bUseShaderCaching;
+	static int32 bUseUserShaderCache;
 	static int32 bUseShaderPredraw;
 	static int32 bUseShaderDrawLog;
 	static int32 PredrawBatchTime;
@@ -733,6 +734,7 @@ private:
 	static uint32 MaxTextureSamplers;
 	static uint8 MaxResources;
 	static FAutoConsoleVariableRef CVarUseShaderCaching;
+	static FAutoConsoleVariableRef CVarUseUserShaderCache;
 	static FAutoConsoleVariableRef CVarUseShaderPredraw;
 	static FAutoConsoleVariableRef CVarUseShaderDrawLog;
 	static FAutoConsoleVariableRef CVarPredrawBatchTime;

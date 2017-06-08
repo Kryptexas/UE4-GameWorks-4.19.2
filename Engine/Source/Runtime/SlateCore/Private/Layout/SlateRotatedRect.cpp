@@ -68,4 +68,3 @@ FSlateRotatedRect FSlateRotatedRect::MakeSnappedRotatedRect(const FSlateRect& Cl
 		SnappedTopRight - SnappedTopLeft,
 		SnappedBottomLeft - SnappedTopLeft);
 }
-

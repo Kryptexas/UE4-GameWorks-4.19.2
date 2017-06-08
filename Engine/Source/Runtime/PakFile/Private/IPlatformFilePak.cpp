@@ -901,7 +901,7 @@ class FPakPrecacher
 			{
 				CacheBlocks[IndexInner] = IntervalTreeInvalidIndex;
 			}
-			uint64 StartingLastByte = FMath::Max((uint64)TotalSize, (uint64)PAK_CACHE_GRANULARITY);
+			uint64 StartingLastByte = FMath::Max((uint64)TotalSize, (uint64)PAK_CACHE_GRANULARITY+1);
 			StartingLastByte--;
 
 			{
@@ -932,7 +932,7 @@ class FPakPrecacher
 				}
 				MaxNode = MAX_uint64 >> StartShift;
 				check(MaxNode >= StartingLastByte && (MaxNode >> 1) < StartingLastByte);
-				//UE_LOG(LogTemp, Warning, TEXT("Test %d %llX %llX "), MaxShift, (uint64(PAK_CACHE_GRANULARITY) << (MaxShift + 1)), (uint64(PAK_CACHE_GRANULARITY) << MaxShift));
+//				UE_LOG(LogTemp, Warning, TEXT("Test %d %llX %llX "), MaxShift, (uint64(PAK_CACHE_GRANULARITY) << (MaxShift + 1)), (uint64(PAK_CACHE_GRANULARITY) << MaxShift));
 				check(MaxShift && (uint64(PAK_CACHE_GRANULARITY) << (MaxShift + 1)) == 0 && (uint64(PAK_CACHE_GRANULARITY) << MaxShift) != 0);
 			}
 		}

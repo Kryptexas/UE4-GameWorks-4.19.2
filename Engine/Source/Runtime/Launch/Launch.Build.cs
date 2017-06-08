@@ -48,6 +48,10 @@ public class Launch : ModuleRules
             PrivateDependencyModuleNames.Add("LauncherCheck");
             Definitions.Add("WITH_LAUNCHERCHECK=1");
 		}
+        else
+        {
+            Definitions.Add("WITH_LAUNCHERCHECK=0");
+        }
 
 		if (Target.Type != TargetType.Server)
 		{

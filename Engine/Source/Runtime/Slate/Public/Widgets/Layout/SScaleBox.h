@@ -82,6 +82,7 @@ public:
 	, _Stretch(EStretch::None)
 	, _UserSpecifiedScale(1.0f)
 	, _IgnoreInheritedScale(false)
+	, _SingleLayoutPass(false)
 	{}
 		/** Slot for this designers content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
@@ -104,6 +105,15 @@ public:
 		/** Undo any inherited scale factor before applying this scale box's scale */
 		SLATE_ATTRIBUTE(bool, IgnoreInheritedScale)
 
+		/**
+		 * Only perform a single layout pass, if you do this, it can save a considerable 
+		 * amount of time, however, some things like text may not look correct. You may also
+		 * see the UI judder between frames.  This generally is caused by not explicitly
+		 * sizing the widget, and instead allowing it to layout based on desired size along
+		 * which won't work in Single Layout Pass mode.
+		 */
+		SLATE_ARGUMENT(bool, SingleLayoutPass)
+
 	SLATE_END_ARGS()
 
 	/** Constructor */
@@ -119,7 +129,6 @@ public:
 	
 	// SWidget interface
 	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
-	virtual FVector2D ComputeDesiredSize(float InScale) const override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	// End SWidget of interface
 
@@ -145,7 +154,10 @@ public:
 	void SetIgnoreInheritedScale(bool InIgnoreInheritedScale);
 	
 protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float InScale) const override;
 	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
+	// End SWidget overrides.
 
 	float GetLayoutScale() const;
 	void RefreshSafeZoneScale();
@@ -168,4 +180,30 @@ protected:
 
 	/** Delegate handle to unhook the safe frame changed. */
 	FDelegateHandle OnSafeFrameChangedHandle;
+
+	/**
+	 * Determines if this scale box should attempt to layout everything using only a 
+	 * single pass each frame.  This is a MUCH more efficient mode, since invalidating 
+	 * text during prepass is expensive, however for that very reason this mode may not 
+	 * work always, but for large pieces of UI with a restricted size you should try it.
+	 */
+	bool bSingleLayoutPass;
+
+	/**  */
+	mutable TOptional<FVector2D> LastContentDesiredSize;
+
+	/**  */
+	mutable FVector2D LastAreaSize;
+
+	/**  */
+	mutable float LastIncomingScale;
+
+	/**  */
+	mutable TOptional<float> LastFinalScale;
+
+	/**  */
+	mutable FVector2D LastFinalOffset;
+
+	/**  */
+	mutable FVector2D LastSlotWidgetDesiredSize;
 };

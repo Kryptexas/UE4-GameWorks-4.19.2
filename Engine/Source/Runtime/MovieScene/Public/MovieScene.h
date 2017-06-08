@@ -588,10 +588,6 @@ protected:
 	/** Perform legacy upgrade of time ranges */
 	void UpgradeTimeRanges();
 
-	/** Perform legacy upgrade of track rows */
-	void UpgradeTrackRows();
-	void UpgradeTrackRow(UMovieSceneTrack*);
-
 private:
 
 	// Small value added for fixed frame interval calculations to make up for consistency in

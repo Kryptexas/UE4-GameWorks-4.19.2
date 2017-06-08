@@ -781,6 +781,21 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	static USaveGame* CreateSaveGameObjectFromBlueprint(UBlueprint* SaveGameBlueprint);
 
 	/** 
+	 *	Serialize our USaveGame object into a given array of bytes
+	 *	@param SaveGameObject	Object that contains data about the save game that we want to write out
+	 *	@return					Whether we successfully wrote data
+	 */
+	static bool SaveGameToMemory(USaveGame * SaveGameObject, TArray<uint8>& OutSaveData);
+
+	/** 
+	 *	Save the contents of the buffer to a slot/file
+	 *	@param InSaveData		Data to save
+	 *	@param SlotName			Name of save game slot to save to.
+	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
+	 */
+	static bool SaveDataToSlot(const TArray<uint8> & InSaveData, const FString & SlotName, const int32 UserIndex);
+
+	/** 
 	 *	Save the contents of the SaveGameObject to a slot.
 	 *	@param SaveGameObject	Object that contains data about the save game that we want to write out
 	 *	@param SlotName			Name of save game slot to save to.

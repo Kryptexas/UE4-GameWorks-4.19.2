@@ -5394,7 +5394,12 @@ void SSCSEditor::PasteNodes()
 		Blueprint->Modify();
 		SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
 
+		// stop allowing tree updates
+		bool bRestoreAllowTreeUpdates = bAllowTreeUpdates;
+		bAllowTreeUpdates = false;
+
 		// Create a new tree node for each new (pasted) component
+		FSCSEditorTreeNodePtrType FirstNode;
 		TMap<FName, FSCSEditorTreeNodePtrType> NewNodeMap;
 		for (const TPair<FName, UActorComponent*>& NewObjectPair : NewObjectMap)
 		{
@@ -5416,6 +5421,11 @@ void SSCSEditor::PasteNodes()
 
 					// Update the selection to include the new node
 					SCSTreeWidget->SetItemSelection(NewNodePtr, true);
+
+					if (!FirstNode.IsValid())
+					{
+						FirstNode = NewNodePtr;
+					}
 				}
 			}
 		}
@@ -5437,6 +5447,15 @@ void SSCSEditor::PasteNodes()
 					SCSTreeWidget->SetItemExpansion(NewNodeMap[ParentName], true);
 				}
 			}
+		}
+
+		// allow tree updates again
+		bAllowTreeUpdates = bRestoreAllowTreeUpdates;
+
+		// scroll the first node into view
+		if (FirstNode.IsValid())
+		{
+			SCSTreeWidget->RequestScrollIntoView(FirstNode);
 		}
 
 		// Modify the Blueprint generated class structure (this will also call UpdateTree() as a result)

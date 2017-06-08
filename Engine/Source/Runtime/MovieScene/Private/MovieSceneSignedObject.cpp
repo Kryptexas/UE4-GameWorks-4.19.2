@@ -8,13 +8,14 @@ UMovieSceneSignedObject::UMovieSceneSignedObject(const FObjectInitializer& Init)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		MarkAsChanged();
+		Signature = FGuid::NewGuid();
 	}
 }
 
 void UMovieSceneSignedObject::MarkAsChanged()
 {
 	Signature = FGuid::NewGuid();
+
 	OnSignatureChangedEvent.Broadcast();
 	
 	UObject* Outer = GetOuter();

@@ -815,10 +815,25 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	{
 		// Enables HDR encoding mode selection without recompile of all PC shaders during ES2 emulation.
-		ViewUniformShaderParameters.HDR32bppEncodingMode = 0;
+		ViewUniformShaderParameters.HDR32bppEncodingMode = 0.0f;
 		if (IsMobileHDR32bpp())
 		{
-			ViewUniformShaderParameters.HDR32bppEncodingMode = IsMobileHDRMosaic() ? 1.0f : 2.0f;
+			EMobileHDRMode MobileHDRMode = GetMobileHDRMode();
+			switch (MobileHDRMode)
+			{
+				case EMobileHDRMode::EnabledMosaic:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 1.0f;
+				break;
+				case EMobileHDRMode::EnabledRGBE:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 2.0f;
+				break;
+				case EMobileHDRMode::EnabledRGBA8:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 3.0f;
+					break;
+				default:
+					checkNoEntry();
+				break;
+			}
 		}
 	}
 

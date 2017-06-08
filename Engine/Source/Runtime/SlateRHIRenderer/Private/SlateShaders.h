@@ -254,6 +254,53 @@ public:
 private:
 };
 
+/** 
+ * Pixel shader for debugging Slate overdraw
+ */
+class FSlateDebugBatchingPS : public FSlateElementPS
+{	
+	DECLARE_SHADER_TYPE(FSlateDebugBatchingPS, Global );
+public:
+	/** Indicates that this shader should be cached */
+	static bool ShouldCache( EShaderPlatform Platform ) 
+	{ 
+		return true; 
+	}
+
+	FSlateDebugBatchingPS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlateDebugBatchingPS( const ShaderMetaType::CompiledShaderInitializerType& Initializer )
+		: FSlateElementPS( Initializer )
+	{
+		BatchColor.Bind(Initializer.ParameterMap, TEXT("BatchColor"));
+	}
+
+	/**
+	* Sets shader params used by the shader
+	*
+	* @param InShaderParams Shader params to use
+	*/
+	void SetBatchColor(FRHICommandList& RHICmdList, const FLinearColor& InBatchColor)
+	{
+		SetShaderValue(RHICmdList, GetPixelShader(), BatchColor, InBatchColor);
+	}
+
+	virtual bool Serialize( FArchive& Ar ) override
+	{
+		bool bShaderHasOutdatedParameters = FSlateElementPS::Serialize( Ar );
+
+		Ar << BatchColor;
+
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FShaderParameter BatchColor;
+};
+
 const int32 MAX_BLUR_SAMPLES = 127;
 
 class FSlatePostProcessBlurPS : public FSlateElementPS

@@ -39,7 +39,6 @@ public:
 
 	// SWidget interface
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FVector2D ComputeDesiredSize(float) const override;
 	// End of SWidget interface
 
 	FVector2D GetSize() const
@@ -52,6 +51,10 @@ public:
 		SpacerSize = InSpacerSize;
 	}
 
+protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
 
 private:
 	TAttribute<FVector2D> SpacerSize;

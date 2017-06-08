@@ -627,19 +627,19 @@ namespace UnrealBuildTool
 						OutputFileName = NewOutputFileName;
 					}
 
-					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
-					if (!Entry.IsDirectory)
-					{
-						using (FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
-						{
-							Entry.Extract(OutputStream);
-						}
-						OutputFileNames.Add(OutputFileName);
-					}
-				}
-				return OutputFileNames;
-			}
-		}
+                    Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
+                    if (!Entry.IsDirectory)
+                    {
+                        using (FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+                        {
+                            Entry.Extract(OutputStream);
+                        }
+                        OutputFileNames.Add(OutputFileName);
+                    }
+                }
+                return OutputFileNames;
+            }
+        }
 
-	}
+    }
 }

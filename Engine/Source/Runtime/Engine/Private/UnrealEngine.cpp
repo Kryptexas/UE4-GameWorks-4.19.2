@@ -272,6 +272,15 @@ static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	ECVF_Cheat);
 #endif // !UE_BUILD_SHIPPING
 
+// Should we show errors and warnings (when DurationOfErrorsAndWarningsOnHUD is greater than zero), or only errors?
+int32 GSupressWarningsInOnScreenDisplay = 0;
+static FAutoConsoleVariableRef GSupressWarningsInOnScreenDisplayCVar(
+	TEXT("Engine.SupressWarningsInOnScreenDisplay"),
+	GSupressWarningsInOnScreenDisplay,
+	TEXT("0: Show both errors and warnings on screen, 1: Show only errors on screen (in either case only when DurationOfErrorsAndWarningsOnHUD is greater than zero)"),
+	ECVF_Default
+);
+
 /** Whether texture memory has been corrupted because we ran out of memory in the pool. */
 bool GIsTextureMemoryCorrupted = false;
 
@@ -7045,7 +7054,11 @@ float UEngine::GetMaxFPS() const
 void UEngine::SetMaxFPS(const float MaxFPS)
 {
 	IConsoleVariable* ConsoleVariable = CVarMaxFPS.AsVariable();
-	ConsoleVariable->Set(MaxFPS);
+
+	const EConsoleVariableFlags LastSetReason = (EConsoleVariableFlags)(ConsoleVariable->GetFlags() & ECVF_SetByMask);
+	const EConsoleVariableFlags ThisSetReason = (LastSetReason == ECVF_SetByConstructor) ? ECVF_SetByScalability : LastSetReason;
+
+	ConsoleVariable->Set(MaxFPS, ThisSetReason);
 }
 
 /**
@@ -7186,13 +7199,13 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 		{
 			if (bNewerOnTop)
 			{
-			FScreenMessageString* NewMessage = new(PriorityScreenMessages)FScreenMessageString();
-			check(NewMessage);
-			NewMessage->Key = Key;
-			NewMessage->ScreenMessage = DebugMessage;
-			NewMessage->DisplayColor = DisplayColor;
-			NewMessage->TimeToDisplay = TimeToDisplay;
-			NewMessage->CurrentTimeDisplayed = 0.0f;
+				FScreenMessageString* NewMessage = new(PriorityScreenMessages)FScreenMessageString();
+				check(NewMessage);
+				NewMessage->Key = Key;
+				NewMessage->ScreenMessage = DebugMessage;
+				NewMessage->DisplayColor = DisplayColor;
+				NewMessage->TimeToDisplay = TimeToDisplay;
+				NewMessage->CurrentTimeDisplayed = 0.0f;
 				NewMessage->TextScale = TextScale;
 			}
 			else
@@ -7241,12 +7254,12 @@ UEngine::FErrorsAndWarningsCollector::FErrorsAndWarningsCollector()
 
 void UEngine::FErrorsAndWarningsCollector::Initialize()
 {
-	DisplayTime = 0;
+	DisplayTime = 0.0f;
 	GConfig->GetFloat(TEXT("/Script/Engine.Engine"), TEXT("DurationOfErrorsAndWarningsOnHUD"), DisplayTime, GEngineIni);
 
-	if (DisplayTime > 0)
+	if (DisplayTime > 0.0f)
 	{
-		SetVerbosity(ELogVerbosity::Warning);
+		SetVerbosity((GSupressWarningsInOnScreenDisplay != 0) ? ELogVerbosity::Error : ELogVerbosity::Warning);
 		TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &UEngine::FErrorsAndWarningsCollector::Tick), DisplayTime);
 		FOutputDeviceRedirector::Get()->AddOutputDevice(this);
 	}
@@ -7263,6 +7276,9 @@ UEngine::FErrorsAndWarningsCollector::~FErrorsAndWarningsCollector()
 
 bool UEngine::FErrorsAndWarningsCollector::Tick(float Seconds)
 {
+	// Set this each tick, in case the cvar is changed at runtime
+	SetVerbosity((GSupressWarningsInOnScreenDisplay != 0) ? ELogVerbosity::Error : ELogVerbosity::Warning);
+
 	if (BufferedLines.Num())
 	{
 		int DupeCount = 0;
@@ -7303,9 +7319,8 @@ bool UEngine::FErrorsAndWarningsCollector::Tick(float Seconds)
 		{
 			Msg = FString::Printf(TEXT("%s (x%d)"), *Msg, DupeCount);
 		}
-	
-		FColor LineColor = Verbosity <= ELogVerbosity::Error ? FColor::Red : FColor::Yellow;
 
+		const FColor LineColor = Verbosity <= ELogVerbosity::Error ? FColor::Red : FColor::Yellow;
 		GEngine->AddOnScreenDebugMessage(-1, DisplayTime, LineColor, Msg);
 	}
 
@@ -10326,6 +10341,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	UE_LOG(LogLoad, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
 	FLoadTimeTracker::Get().DumpRawLoadTimes();
+	WorldContext.OwningGameInstance->LoadComplete(StopTime - StartTime, *URL.Map);
 
 	// Successfully started local level.
 	return true;

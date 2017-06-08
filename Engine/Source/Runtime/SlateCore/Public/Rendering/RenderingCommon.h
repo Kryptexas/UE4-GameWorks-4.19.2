@@ -358,6 +358,11 @@ struct FShortRect
 	uint16 Bottom;
 };
 
+static FVector2D RoundToInt(const FVector2D& Vec)
+{
+	return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
+}
+
 /**
  * Viewport implementation interface that is used by SViewport when it needs to draw and processes input.                   
  */

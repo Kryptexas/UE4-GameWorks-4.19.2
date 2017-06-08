@@ -17,6 +17,9 @@ public:
 	/** FName case insensitivity can make the casing of UPROPERTIES unpredictable. Attempt to standardize output. */
 	static FString StandardizeCase(const FString &StringIn);
 
+	/** Parse an FText from a json object (assumed to be of the form where keys are culture codes and values are strings) */
+	static bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut);
+
 public: // UStruct -> JSON
 
 	/**

@@ -91,6 +91,8 @@ public:
 		Pool.PopAll(AllArrays);
 		for (FGCArrayStruct* ArrayStruct : AllArrays)
 		{
+			// If we are cleaning up with active weak references the weak references will get corrupted
+			checkSlow(ArrayStruct->WeakReferences.Num() == 0);
 			FreedMemory += ArrayStruct->ObjectsToSerialize.GetAllocatedSize();
 			FreedMemory += ArrayStruct->WeakReferences.GetAllocatedSize();
 			delete ArrayStruct;
@@ -99,7 +101,7 @@ public:
 	}
 
 	/** Clears weak references for everything in the pool */
-	void ClearWeakReferences()
+	void ClearWeakReferences(bool bClearPools)
 	{
 		TArray<FGCArrayStruct*> AllArrays;
 		Pool.PopAll(AllArrays);
@@ -114,8 +116,15 @@ public:
 				}
 			}
 			ArrayStruct->WeakReferences.Reset();
-
-			Pool.Push(ArrayStruct);
+			
+			if (bClearPools)
+			{
+				delete ArrayStruct;
+			}
+			else
+			{
+				Pool.Push(ArrayStruct);
+			}
 		}
 	}
 

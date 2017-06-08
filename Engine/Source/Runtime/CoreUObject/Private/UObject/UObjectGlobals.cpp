@@ -1796,17 +1796,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName InBaseName/*=N
  */
 FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName CurrentObjectName)
 {
-	FString GeneratedName = DisplayLabel;
-
-	// Convert the display label, which may consist of just about any possible character, into a
-	// suitable name for a UObject (remove whitespace, certain symbols, etc.)
-	{
-		for( int32 BadCharacterIndex = 0; BadCharacterIndex < ARRAY_COUNT( INVALID_OBJECTNAME_CHARACTERS ) - 1; ++BadCharacterIndex )
-		{
-			const TCHAR TestChar[2] = { INVALID_OBJECTNAME_CHARACTERS[ BadCharacterIndex ], 0 };
-			const int32 NumReplacedChars = GeneratedName.ReplaceInline( TestChar, TEXT( "" ) );
-		}
-	}
+	FString GeneratedName = SlugStringForValidName(DisplayLabel);
 
 	// If the current object name (without a number) already matches our object's name, then use the existing name
 	if( CurrentObjectName.GetPlainNameString() == GeneratedName )

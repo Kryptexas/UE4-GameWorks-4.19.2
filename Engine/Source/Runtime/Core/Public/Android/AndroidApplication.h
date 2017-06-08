@@ -47,6 +47,7 @@ public:
 	static void DetachJavaEnv();
 	static bool CheckJavaException();
 	
+
 	static FAndroidApplication* Get() { return _application; }
 
 public:	

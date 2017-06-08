@@ -26,6 +26,10 @@ void FCascadeCommands::RegisterCommands()
 	UI_COMMAND(JumpToLowerLOD, "Lower LOD", "Select Lower LOD", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(JumpToLowestLOD, "Lowest LOD", "Select Lowest LOD", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND(DeleteLOD, "Delete LOD", "Delete Selected LOD", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(JumpToLOD0, "Jump To LOD0", "LOD0", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::M));
+	UI_COMMAND(JumpToLOD1, "Jump To LOD1", "LOD1", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::Comma));
+	UI_COMMAND(JumpToLOD2, "Jump To LOD2", "LOD2", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::Period));
+	UI_COMMAND(JumpToLOD3, "Jump To LOD3", "LOD3", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::Slash));
 
 	UI_COMMAND(ToggleOriginAxis, "Origin Axis", "Display Origin Axis", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND(View_ParticleCounts, "Particle Counts", "Display Particle Counts", EUserInterfaceActionType::ToggleButton, FInputChord());

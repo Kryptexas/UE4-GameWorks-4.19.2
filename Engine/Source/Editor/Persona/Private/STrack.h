@@ -150,8 +150,7 @@ public:
 	bool HitTest(const FGeometry& AllottedGeometry, FVector2D MouseLocalPose) const;
 
 	virtual FVector2D GetSize() const;
-	virtual FVector2D ComputeDesiredSize(float) const override;
-
+	
 	float GetDataStartPos() const;
 
 	/** Return whether this node should snap to the tracks draggable bars when being dragged */
@@ -168,6 +167,9 @@ public:
 	bool IsBeingDragged() const {return bBeingDragged;}
 
 protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
 	
 	FSlateColor GetNodeColor() const;
 

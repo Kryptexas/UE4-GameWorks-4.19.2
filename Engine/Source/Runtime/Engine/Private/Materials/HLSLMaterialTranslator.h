@@ -4468,6 +4468,11 @@ protected:
 		
 		CodeStr.ReplaceInline(TEXT("<A>"), *GetParameterCode(A));
 
+		if (ShaderFrequency != SF_Vertex && (DestCoordBasis == MCB_Tangent || SourceCoordBasis == MCB_Tangent))
+		{
+			bUsesTransformVector = true;
+		}
+
 		return AddCodeChunk(
 			MCT_Float3,
 			*CodeStr

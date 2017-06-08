@@ -85,16 +85,15 @@ public:
 public:
 
 	// Begin SWidget overrides.
-
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
-	
-	virtual FVector2D ComputeDesiredSize(float) const;
-
-	virtual FChildren* GetChildren();
-
+	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
+	virtual FChildren* GetChildren() override;
 	// End SWidget overrides.
 
 protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
+
 	/**
 	 * A Box Panel's orientation cannot be changed once it is constructed..
 	 *

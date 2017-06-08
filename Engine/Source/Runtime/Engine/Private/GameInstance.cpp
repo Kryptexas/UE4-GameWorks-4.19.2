@@ -246,6 +246,8 @@ bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance, b
 
 FGameInstancePIEResult UGameInstance::StartPlayInEditorGameInstance(ULocalPlayer* LocalPlayer, const FGameInstancePIEParameters& Params)
 {
+	OnStart();
+
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 	ULevelEditorPlaySettings const* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
@@ -456,6 +458,13 @@ void UGameInstance::StartGameInstance()
 		FPlatformMisc::RequestExit(false);
 		return;
 	}
+
+	OnStart();
+}
+
+void UGameInstance::OnStart()
+{
+
 }
 
 bool UGameInstance::HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)

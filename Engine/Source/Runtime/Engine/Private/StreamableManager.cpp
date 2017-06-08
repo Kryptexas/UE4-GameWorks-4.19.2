@@ -1164,7 +1164,7 @@ bool FStreamableManager::GetActiveHandles(const FStringAssetReference& Target, T
 {
 	check(IsInGameThread());
 	FStreamable* Existing = FindStreamable(Target);
-	if (Existing)
+	if (Existing && Existing->ActiveHandles.Num() > 0)
 	{
 		for (TWeakPtr<FStreamableHandle> WeakHandle : Existing->ActiveHandles)
 		{

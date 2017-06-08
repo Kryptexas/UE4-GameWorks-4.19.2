@@ -21,5 +21,17 @@ public class PLCrashReporter : ModuleRules
 				PublicAdditionalLibraries.Add(PLCrashReporterPath + "Mac/Release/libCrashReporter-MacOSX-Static.a");
 			}
 		}
-	}
+        else if (Target.Platform == UnrealTargetPlatform.IOS)
+        {
+            PublicSystemIncludePaths.Add(PLCrashReporterPath + "Source");
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            {
+                PublicAdditionalLibraries.Add(PLCrashReporterPath + "IOS/Debug/libCrashReporter-iphoneos.a");
+            }
+            else
+            {
+                PublicAdditionalLibraries.Add(PLCrashReporterPath + "IOS/Release/libCrashReporter-iphoneos.a");
+            }
+        }
+    }
 }

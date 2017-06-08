@@ -17,7 +17,7 @@
 @synthesize NextURL;
 @synthesize NextContent;
 
--(void)create:(TSharedPtr<SIOSWebBrowserWidget>)InWebBrowserWidget;
+-(void)create:(TSharedPtr<SIOSWebBrowserWidget>)InWebBrowserWidget useTransparency:(bool)InUseTransparency;
 {
 	WebBrowserWidget = InWebBrowserWidget;
 	NextURL = nil;
@@ -29,6 +29,16 @@
 	{
 		WebView = [[UIWebView alloc]initWithFrame:CGRectMake(1, 1, 100, 100)];
 		WebView.delegate = self;
+
+		if (InUseTransparency)
+		{
+			[self.WebView setOpaque:NO];
+			[self.WebView setBackgroundColor:[UIColor clearColor]];
+		}
+		else
+		{
+			[self.WebView setOpaque:YES];
+		}
 	});
 #endif
 }
@@ -97,7 +107,7 @@
 {
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
-		NextURL = InURL;
+		self.NextURL = InURL;
 	});
 }
 
@@ -105,8 +115,8 @@
 {
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
-		NextContent = InString;
-		NextURL = InURL;
+		self.NextContent = InString;
+		self.NextURL = InURL;
 	});
 }
 
@@ -116,8 +126,12 @@ class SIOSWebBrowserWidget : public SLeafWidget
 {
 	SLATE_BEGIN_ARGS(SIOSWebBrowserWidget)
 		: _InitialURL("about:blank")
+		, _UseTransparency(false)
 	{ }
+	
 		SLATE_ARGUMENT(FString, InitialURL);
+		SLATE_ARGUMENT(bool, UseTransparency);
+	
 	SLATE_END_ARGS()
 
 	SIOSWebBrowserWidget()
@@ -127,7 +141,7 @@ class SIOSWebBrowserWidget : public SLeafWidget
 	void Construct(const FArguments& Args)
 	{
 		WebViewWrapper = [IOSWebViewWrapper alloc];
-		[WebViewWrapper create: TSharedPtr<SIOSWebBrowserWidget>(this)];
+		[WebViewWrapper create: TSharedPtr<SIOSWebBrowserWidget>(this) useTransparency:Args._UseTransparency];
 		LoadURL(Args._InitialURL);
 	}
 
@@ -202,6 +216,7 @@ protected:
 FWebBrowserWindow::FWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: CurrentUrl(MoveTemp(InUrl))
 	, ContentsToLoad(MoveTemp(InContentsToLoad))
+	, bUseTransparency(InUseTransparency)
 {
 }
 
@@ -224,6 +239,7 @@ TSharedRef<SWidget> FWebBrowserWindow::CreateWidget()
 {
 	TSharedRef<SIOSWebBrowserWidget> BrowserWidgetRef =
 		SNew(SIOSWebBrowserWidget)
+		.UseTransparency(bUseTransparency)
 		.InitialURL(CurrentUrl);
 
 	BrowserWidget = BrowserWidgetRef;

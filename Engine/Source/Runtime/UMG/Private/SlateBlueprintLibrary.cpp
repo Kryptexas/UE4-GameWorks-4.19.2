@@ -42,6 +42,11 @@ FVector2D USlateBlueprintLibrary::GetLocalSize(const FGeometry& Geometry)
 	return Geometry.GetLocalSize();
 }
 
+FVector2D USlateBlueprintLibrary::GetAbsoluteSize(const FGeometry& Geometry)
+{
+	return TransformVector(Geometry.GetAccumulatedRenderTransform(), Geometry.GetLocalSize());
+}
+
 bool USlateBlueprintLibrary::EqualEqual_SlateBrush(const FSlateBrush& A, const FSlateBrush& B)
 {
 	return A == B;

@@ -24,7 +24,7 @@ void FCachedWidgetNode::Initialize(const FPaintArgs& Args, TSharedRef<SWidget> I
 	Children.Reset();
 }
 
-void FCachedWidgetNode::RecordHittestGeometry(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId)
+void FCachedWidgetNode::RecordHittestGeometry(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId, FVector2D DynamicOffset)
 {
 	if ( RecordedVisibility.AreChildrenHitTestVisible() )
 	{
@@ -36,25 +36,25 @@ void FCachedWidgetNode::RecordHittestGeometry(FHittestGrid& Grid, int32 LastHitt
 			const int32 ChildCount = Children.Num();
 			for ( int32 i = 0; i < ChildCount; i++ )
 			{
-				Children[i]->RecordHittestGeometryInternal(Grid, LastHittestIndex, LayerId);
+				Children[i]->RecordHittestGeometryInternal(Grid, LastHittestIndex, LayerId, DynamicOffset);
 			}
 		}
 	}
 }
 
-void FCachedWidgetNode::RecordHittestGeometryInternal(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId)
+void FCachedWidgetNode::RecordHittestGeometryInternal(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId, FVector2D DynamicOffset)
 {
 	if ( RecordedVisibility.AreChildrenHitTestVisible() )
 	{
 		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
 		if ( SafeWidget.IsValid() )
 		{
-			LastRecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(SafeWidget.ToSharedRef(), Geometry), WindowOffset, ClippingRect, LayerId);
+			LastRecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(SafeWidget.ToSharedRef(), Geometry), WindowOffset + DynamicOffset, ClippingRect, LayerId);
 
 			const int32 ChildCount = Children.Num();
 			for ( int32 i = 0; i < ChildCount; i++ )
 			{
-				Children[i]->RecordHittestGeometryInternal(Grid, LastRecordedHittestIndex, LayerId);
+				Children[i]->RecordHittestGeometryInternal(Grid, LastRecordedHittestIndex, LayerId, DynamicOffset);
 			}
 		}
 	}

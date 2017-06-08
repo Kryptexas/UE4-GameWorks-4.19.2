@@ -8,6 +8,7 @@ if "%VS140COMNTOOLS%" neq "" (
   set FoundVSInstance=1
   mkdir "%USERPROFILE%\Documents\Visual Studio 2015\Visualizers"
   copy UE4.natvis "%USERPROFILE%\Documents\Visual Studio 2015\Visualizers"
+  copy UE4_Android_Nsight.dat "%VS140COMNTOOLS%\..\IDE\Extensions\NVIDIA\Nsight Tegra\3.4\Debuggers\Visualizers"
   echo Installed visualizers for Visual Studio 2015
 )
 

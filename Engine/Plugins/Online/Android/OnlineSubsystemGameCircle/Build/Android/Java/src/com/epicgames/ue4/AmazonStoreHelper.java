@@ -53,10 +53,6 @@ public class AmazonStoreHelper implements StoreHelper, PurchasingListener
 	// Save the product ID that was most recently purchased
 	private String MostRecentPurchaseSku;
 
-	// Keep track of purchases that are in progress
-	private ArrayList<InAppPurchase> InProgressPurchases;
-
-	
 	public enum EAmazonResponseStatus
 	{
 		Successful,
@@ -80,8 +76,6 @@ public class AmazonStoreHelper implements StoreHelper, PurchasingListener
 		Log.debug("Registering PurchasingListener");
 		PurchasingService.registerListener(gameActivity.getApplicationContext(), this);
 		Log.debug("IS_SANDBOX_MODE = " + PurchasingService.IS_SANDBOX_MODE);
-
-		InProgressPurchases = new ArrayList<InAppPurchase>();
 	}
 
 	public void OnServiceInitialized()
@@ -92,7 +86,7 @@ public class AmazonStoreHelper implements StoreHelper, PurchasingListener
 
 
 	//~ Begin StoreHelper interface
-	public boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
+	public boolean QueryInAppPurchases(String[] ProductIDs)
 	{
 		if(ProductSkus != null)
 		{
@@ -113,13 +107,12 @@ public class AmazonStoreHelper implements StoreHelper, PurchasingListener
 		return true;
 	}
 
-	public boolean BeginPurchase(String ProductID, boolean bConsumable)
+	public boolean BeginPurchase(String ProductID)
 	{
-		Log.debug("AmazonStoreHelper.BeginPurchase - " + ProductID + ", bConsumable = " + bConsumable);
+		Log.debug("AmazonStoreHelper.BeginPurchase - " + ProductID);
 
 		final RequestId requestId = PurchasingService.purchase(ProductID);
 		Log.debug("AmazonStoreHelper.BeginPurchase RequestId = " + requestId);
-		InProgressPurchases.add(new InAppPurchase(ProductID, bConsumable));
 		return true;
 	}
 
@@ -211,16 +204,6 @@ public class AmazonStoreHelper implements StoreHelper, PurchasingListener
 				final Receipt receipt = purchaseResponse.getReceipt();
 
 				LocalUserData = purchaseResponse.getUserData();
-
-				for(int Idx = 0; Idx < InProgressPurchases.size(); ++Idx)
-				{
-					if( receipt.getSku().equals( InProgressPurchases.get(Idx).ProductId ) )
-					{
-						Log.debug("Found InProgressPurchase for Product " + receipt.getSku() + " bConsumable = " + InProgressPurchases.get(Idx).bConsumable);
-						InProgressPurchases.remove(Idx);
-						break;
-					}
-				}
 
 				nativePurchaseComplete(EAmazonResponseStatus.Successful.ordinal(), receipt.getSku(), receipt.toJSON().toString(), receipt.getReceiptId());
 

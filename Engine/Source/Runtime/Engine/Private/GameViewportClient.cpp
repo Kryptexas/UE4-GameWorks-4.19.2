@@ -367,6 +367,22 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 	}
 }
 
+void UGameViewportClient::RebuildCursors()
+{
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	// Set all the software cursors.
+	for (auto& Entry : UISettings->SoftwareCursors)
+	{
+		AddSoftwareCursor(Entry.Key, Entry.Value);
+	}
+
+	// Set all the hardware cursors.
+	for (auto& Entry : UISettings->HardwareCursors)
+	{
+		SetHardwareCursor(Entry.Key, Entry.Value.CursorPath, Entry.Value.HotSpot);
+	}
+}
+
 UWorld* UGameViewportClient::GetWorld() const
 {
 	return World;
@@ -573,10 +589,12 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 
 void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
 {
+#if PLATFORM_DESKTOP
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(!bInIsSimulateInEditorViewport);
 	}
+#endif
 
 	for (ULocalPlayer* LocalPlayer : GetOuterUEngine()->GetGamePlayers(this))
 	{
@@ -598,10 +616,12 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 {
 	Super::MouseEnter(InViewport, x, y);
 
+#if PLATFORM_DESKTOP
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
+#endif
 
 	// Replace all the cursors.
 	TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
@@ -627,8 +647,11 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 		{
 			FIntPoint LastViewportCursorPos;
 			InViewport->GetMousePos(LastViewportCursorPos, false);
+
+#if PLATFORM_DESKTOP
 			FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
 			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+#endif
 		}
 	}
 
@@ -1208,7 +1231,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	bool bBufferCleared = false;
 	if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
 	{
-		SceneCanvas->DrawTile(0,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+		SceneCanvas->Clear(FLinearColor::Black);
 		bBufferCleared = true;
 	}
 
@@ -1358,7 +1381,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		PostRender(DebugCanvasObject);
 		
 		// Render the console.
-		if (ViewportConsole)
+		if (ViewportConsole && DebugCanvas)
 		{
 			// Reset the debug canvas to be full-screen before drawing the console
 			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
@@ -1538,10 +1561,12 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
+#if PLATFORM_DESKTOP
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && GetGameViewport() && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
+#endif
 
 	if (GEngine && GEngine->GetAudioDeviceManager())
 	{ 
@@ -1574,7 +1599,9 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 {
 	check(InViewport == Viewport);
 
+#if PLATFORM_DESKTOP
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
+#endif
 	
 	// broadcast close request to anyone that registered an interest
 	CloseRequestedDelegate.Broadcast(InViewport);

@@ -1445,7 +1445,7 @@ protected:
 			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
 			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL") ))
 		{
-			// clear the property value (it's garbage)... the ubergraph-frame 
+			// clear the property value (it's garbage)... the ubergraph-frame
 			// has just lost a reference to whatever it was attempting to hold onto
 			Object = nullptr;
 		}

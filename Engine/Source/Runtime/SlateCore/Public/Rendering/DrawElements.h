@@ -500,6 +500,7 @@ public:
 	{
 		return Inverse(FSlateLayoutTransform(Scale, Position));
 	}
+	
 
 	/**
 	 * Update element cached position with an arbitrary offset

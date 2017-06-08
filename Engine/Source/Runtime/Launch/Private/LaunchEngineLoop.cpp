@@ -3616,11 +3616,13 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
+	// Put the command line and config info into the suppression system (before plugins start loading)
+	FLogSuppressionInterface::Get().ProcessConfigAndCommandLine();
+
 	// NOTE: This is the earliest place to init the online subsystems (via plugins)
 	// Code needs GConfigFile to be valid
 	// Must be after FThreadStats::StartThread();
-	// Must be before Render/RHI subsystem D3DCreate()
-	// For platform services that need D3D hooks like Steam
+	// Must be before Render/RHI subsystem D3DCreate() for platform services that need D3D hooks like Steam
 
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
@@ -3635,9 +3637,6 @@ bool FEngineLoop::AppInit( )
 	});
 
 	PreInitHMDDevice();
-
-	// Put the command line and config info into the suppression system
-	FLogSuppressionInterface::Get().ProcessConfigAndCommandLine();
 
 	// after the above has run we now have the REQUIRED set of engine .INIs  (all of the other .INIs)
 	// that are gotten from .h files' config() are not requires and are dynamically loaded when the .u files are loaded

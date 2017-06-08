@@ -2009,18 +2009,24 @@ bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVec
 
 bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative) const
 {
-	FVector2D ScreenLoc2D;
-	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D, bPlayerViewportRelative))
+	// find distance
+	ULocalPlayer const* const LP = GetLocalPlayer();
+	if (LP && LP->ViewportClient)
 	{
-		// find distance
-		ULocalPlayer const* const LP = GetLocalPlayer();
-		if (LP && LP->ViewportClient)
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 		{
-			// get the projection data
-			FSceneViewProjectionData ProjectionData;
-			if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+			FVector2D ScreenPosition2D;
+			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
+			if ( FSceneView::ProjectWorldToScreen(WorldLocation, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition2D) )
 			{
-				ScreenLocation = FVector(ScreenLoc2D.X, ScreenLoc2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
+				if ( bPlayerViewportRelative )
+				{
+					ScreenPosition2D -= FVector2D(ProjectionData.GetConstrainedViewRect().Min);
+				}
+
+				ScreenLocation = FVector(ScreenPosition2D.X, ScreenPosition2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
 
 				return true;
 			}

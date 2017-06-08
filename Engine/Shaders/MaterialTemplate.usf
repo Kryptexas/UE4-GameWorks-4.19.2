@@ -768,9 +768,10 @@ MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 		TextureValue.rgb = pow(TextureValue.rgb, 1.0f / 2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
 	}
 	#endif
-
-	// sRGB read approximation
-	TextureValue.rgb *= TextureValue.rgb;
+	// sRGB read approximation (in highp if possible)
+	float3 LinRGB = TextureValue.rgb;
+	LinRGB *= LinRGB; 
+	return MaterialFloat4(LinRGB, TextureValue.a);
 #endif 
 	return TextureValue;
 }
@@ -790,8 +791,10 @@ MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
 	}
 	#endif
-	// sRGB read approximation
-	TextureValue *= TextureValue;
+	// sRGB read approximation (in highp if possible)
+	float LinValue = TextureValue;
+	LinValue *= LinValue;
+	return MaterialFloat(LinValue);
 #endif 
 	return TextureValue;
 }

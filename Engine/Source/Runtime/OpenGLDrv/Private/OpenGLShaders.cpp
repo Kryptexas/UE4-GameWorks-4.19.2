@@ -13,6 +13,7 @@
 #include "OpenGLDrvPrivate.h"
 #include "Shader.h"
 #include "GlobalShader.h"
+#include "SceneUtils.h"
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
@@ -826,22 +827,28 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
-			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA || !IsMobileHDR())
+			const ANSICHAR * EncodeModeDefine = nullptr;
+
+			switch (GetMobileHDRMode())
 			{
-				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
+				case EMobileHDRMode::Disabled:
+				case EMobileHDRMode::EnabledFloat16:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 0.0\n";
+					break;
+				case EMobileHDRMode::EnabledMosaic:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 1.0\n";
+					break;
+				case EMobileHDRMode::EnabledRGBE:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 2.0\n";
+					break;
+				case EMobileHDRMode::EnabledRGBA8:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 3.0\n";
+					break;
+				default:
+					checkNoEntry();
+					break;
 			}
-			else
-			{
-				if (!Capabilities.bSupportsShaderFramebufferFetch)
-				{
-					// mosaic
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
-				}
-				else
-				{
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
-				}
-			}
+			AppendCString(GlslCode, EncodeModeDefine);
 
 			if (Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef && TypeEnum == GL_FRAGMENT_SHADER)
 			{

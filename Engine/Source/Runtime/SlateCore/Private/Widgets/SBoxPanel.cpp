@@ -63,17 +63,18 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 				}
 				else
 				{
+					FVector2D ChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+
 					// Auto-sized children contribute their desired size to the fixed space requirement
-					float ChildSize = (Orientation == Orient_Vertical)
-					? CurChild.GetWidget()->GetDesiredSize().Y
-					: CurChild.GetWidget()->GetDesiredSize().X;
+					const float ChildSize = (Orientation == Orient_Vertical)
+						? ChildDesiredSize.Y
+						: ChildDesiredSize.X;
 
 					// Clamp to the max size if it was specified
 					float MaxSize = CurChild.MaxSize.Get();
 					FixedTotal += MaxSize > 0 ? FMath::Min( MaxSize, ChildSize ) : ChildSize ;
 				}
 			}
-
 		}
 
 		// The space available for SizeRule_Stretch widgets is any space that wasn't taken up by fixed-sized widgets.
@@ -89,9 +90,7 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 		{
 			const SBoxPanel::FSlot& CurChild = Children[ChildIndex];
 			const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
-
-			FVector2D ChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
-			
+	
 			// Figure out the area allocated to the child in the direction of BoxPanel
 			// The area allocated to the slot is ChildSize + the associated margin.
 			float ChildSize = 0;
@@ -105,6 +104,8 @@ static void ArrangeChildrenAlong( const TPanelChildren<SBoxPanel::FSlot>& Childr
 				}
 				else
 				{
+					FVector2D ChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+
 					// Auto-sized widgets get their desired-size value
 					ChildSize = (Orientation == Orient_Vertical)
 						? ChildDesiredSize.Y

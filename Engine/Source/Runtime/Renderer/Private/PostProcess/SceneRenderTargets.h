@@ -192,6 +192,7 @@ protected:
 		bUseDownsizedOcclusionQueries(true),
 		CurrentGBufferFormat(0),
 		CurrentSceneColorFormat(0),
+		CurrentMobileSceneColorFormat(EPixelFormat::PF_Unknown),
 		bAllowStaticLighting(true),
 		CurrentMaxShadowResolution(0),
 		CurrentRSMResolution(0),
@@ -477,6 +478,9 @@ public:
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
 	EPixelFormat GetSceneColorFormat() const;
+	EPixelFormat GetDesiredMobileSceneColorFormat() const;
+	EPixelFormat GetMobileSceneColorFormat() const;
+
 
 	// changes depending at which part of the frame this is called
 	bool IsSceneColorAllocated() const;
@@ -725,6 +729,8 @@ private:
 	int32 CurrentGBufferFormat;
 	/** To detect a change of the CVar r.SceneColorFormat */
 	int32 CurrentSceneColorFormat;
+	/** To detect a change of the mobile scene color format */
+	EPixelFormat CurrentMobileSceneColorFormat;
 	/** Whether render targets were allocated with static lighting allowed. */
 	bool bAllowStaticLighting;
 	/** To detect a change of the CVar r.Shadow.MaxResolution */

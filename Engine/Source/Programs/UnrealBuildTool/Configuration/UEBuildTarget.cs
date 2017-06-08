@@ -4249,7 +4249,16 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Definitions.Add("WITH_LOGGING_TO_MEMORY=0");
 			}
 
-			if (Rules.bUseChecksInShipping)
+            if (Rules.bUseCacheFreedOSAllocs)
+            {
+                GlobalCompileEnvironment.Definitions.Add("USE_CACHE_FREED_OS_ALLOCS=1");
+            }
+            else
+            {
+                GlobalCompileEnvironment.Definitions.Add("USE_CACHE_FREED_OS_ALLOCS=0");
+            }
+
+            if (Rules.bUseChecksInShipping)
 			{
 				GlobalCompileEnvironment.Definitions.Add("USE_CHECKS_IN_SHIPPING=1");
 			}

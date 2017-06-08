@@ -1087,7 +1087,8 @@ MaterialFloat3 RGBTDecode8BPC(MaterialFloat4 RGBT, MaterialFloat Range)
 
 #define HDR_ENCODE_NONE 0.0		// 64bpp HDR
 #define HDR_ENCODE_MOSAIC 1.0	// 32bpp HDR using Mosaic encoding
-#define HDR_ENCODE_RGBA 2.0		// 32bpp HDR using RGBA encoding
+#define HDR_ENCODE_RGBE 2.0		// 32bpp HDR using RGBE encoding
+#define HDR_ENCODE_RGBA8 3.0	// 32bpp HDR mode without any actual encoding.
 
 half GetHDR32bppEncodeMode()
 {
@@ -1112,12 +1113,13 @@ MaterialFloat4 Encode32BPPHDR(MaterialFloat4 Color, float2 SvPosition)
 	{ 
 		return MaterialFloat4(HdrMosaic(Color.rgb, SvPosition), Color.a);
 	}
-	else if (Mode == HDR_ENCODE_RGBA)
+	else if (Mode == HDR_ENCODE_RGBE)
 	{ 
 		return RGBTEncode8BPC(Color.rgb, DEFAULT_32BPPHDR_ENCODED_RANGE);
 	}
-	else 
-	{ 
+	else
+	{
+		// Mode == HDR_ENCODE_NONE || Mode == HDR_ENCODE_RGBA8
 		return Color;
 	}
 }
@@ -1129,12 +1131,13 @@ MaterialFloat4 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncode
 	{
 		return MaterialFloat4(HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition), 0.0f);
 	}
-	if (Mode == HDR_ENCODE_RGBA)
+	if (Mode == HDR_ENCODE_RGBE)
 	{ 
 		return MaterialFloat4(RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE), 0.0f);
 	}
-	else 
+	else
 	{
+		// Mode == HDR_ENCODE_NONE || Mode == HDR_ENCODE_RGBA8
 		return Encoded; 
 	}
 }
