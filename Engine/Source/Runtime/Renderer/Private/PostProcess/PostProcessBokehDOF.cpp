@@ -620,6 +620,8 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFSetup::ComputeOutputDesc(EPass
 	Ret.DebugName = TEXT("BokehDOFSetup");
 	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+
 	return Ret;
 }
 
@@ -952,6 +954,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOF::ComputeOutputDesc(EPassOutpu
 	uint32 FullRes = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY().Y;
 	uint32 HalfRes = FMath::DivideAndRoundUp(FullRes, (uint32)2);
 
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	// we need space for the front part and the back part
 	Ret.Extent.Y = HalfRes * 2 + SafetyBorder;
 	Ret.DebugName = TEXT("BokehDOF");

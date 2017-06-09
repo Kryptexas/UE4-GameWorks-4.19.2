@@ -624,7 +624,7 @@ public partial class Project : CommandUtils
 		ClientRunFlags = ERunOptions.AllowSpew | ERunOptions.AppMustExist;
 		ClientApp = "";
 		ClientCmdLine = "";
-		string TempCmdLine = "";
+		string TempCmdLine = SC.ProjectArgForCommandLines + " ";
 		var PlatformName = Params.ClientTargetPlatforms[0].ToString();
 		if (Params.Cook || Params.CookOnTheFly)
 		{
@@ -820,7 +820,6 @@ public partial class Project : CommandUtils
 		else
 		{
 			ClientApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries", PlatformName, "UE4Editor.exe");
-			TempCmdLine += SC.ProjectArgForCommandLines + " ";
 			if (!Params.EditorTest)
 			{
 				TempCmdLine += "-game " + Params.MapToRun + " ";

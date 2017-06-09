@@ -812,6 +812,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
 			}
 
@@ -846,6 +847,14 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 				BentNormalOutput, 
 				IrradianceOutput);
 
+			if ( IsTransientResourceBufferAliasingEnabled() )
+			{
+				GAOCulledObjectBuffers.Buffers.DiscardTransientResource();
+
+				FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
+				TileIntersectionResources->DiscardTransientResource();
+			}
+
 			RenderCapsuleShadowsForMovableSkylight(RHICmdList, BentNormalOutput);
 
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalOutput);
@@ -857,8 +866,10 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			else
 			{
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
-				// Make sure we get a signed format
-				Desc.Format = PF_FloatRGBA;
+				Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
+				// Bent normals are signed so we will have to pack / unpack
+				Desc.Format = PF_FloatR11G11B10;
+				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
 
 				if (bUseDistanceFieldGI)

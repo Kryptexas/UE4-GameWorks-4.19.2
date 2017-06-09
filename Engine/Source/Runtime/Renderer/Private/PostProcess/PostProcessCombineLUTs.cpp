@@ -1032,7 +1032,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 			Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
 			Ret.Depth = GLUTSize;
 		}
-		
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("CombineLUTs");
 	}
 

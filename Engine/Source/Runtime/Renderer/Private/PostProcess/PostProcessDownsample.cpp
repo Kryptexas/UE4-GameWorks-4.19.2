@@ -443,6 +443,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOut
 
 	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.AutoWritable = false;
 	Ret.DebugName = DebugName;
 

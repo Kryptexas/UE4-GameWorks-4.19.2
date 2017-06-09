@@ -385,6 +385,7 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 	Ret.Reset();
 	Ret.DebugName = TEXT("Upscale");
 	Ret.Extent = OutputExtent;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 
 	return Ret;
 }

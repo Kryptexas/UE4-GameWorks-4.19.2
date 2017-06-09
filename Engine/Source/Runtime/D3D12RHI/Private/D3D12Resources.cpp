@@ -157,7 +157,6 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 	, Desc(InDesc)
 	, PlaneCount(::GetPlaneCount(Desc.Format))
 	, SubresourceCount(0)
-	, pResourceState(nullptr)
 	, DefaultResourceState(D3D12_RESOURCE_STATE_TBD)
 	, bRequiresResourceStateTracking(true)
 	, bDepthStencil(false)
@@ -183,12 +182,6 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 
 FD3D12Resource::~FD3D12Resource()
 {
-	if (pResourceState)
-	{
-		delete pResourceState;
-		pResourceState = nullptr;
-	}
-
 	if (D3DX12Residency::IsInitialized(ResidencyHandle))
 	{
 		D3DX12Residency::EndTrackingObject(GetParentDevice()->GetResidencyManager(), ResidencyHandle);
@@ -368,6 +361,7 @@ FD3D12ResourceLocation::FD3D12ResourceLocation(FD3D12Device* Parent)
 	, OffsetFromBaseOfResource(0)
 	, Allocator(nullptr)
 	, FD3D12DeviceChild(Parent)
+	, bTransient(false)
 {
 	FMemory::Memzero(AllocatorData);
 }

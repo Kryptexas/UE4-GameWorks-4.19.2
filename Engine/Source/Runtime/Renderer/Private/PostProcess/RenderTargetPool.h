@@ -17,11 +17,13 @@ class FViewInfo;
 /** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
 struct FPooledRenderTarget : public IPooledRenderTarget
 {
-	FPooledRenderTarget(const FPooledRenderTargetDesc& InDesc) 
+	FPooledRenderTarget(const FPooledRenderTargetDesc& InDesc, class FRenderTargetPool* InRenderTargetPool) 
 		: NumRefs(0)
 		, UnusedForNFrames(0)
 		, Desc(InDesc)
 		, bSnapshot(false)
+		, RenderTargetPool(InRenderTargetPool)
+		, FrameNumberLastDiscard(-1)
 	{
 	}
 	/* Constructor that makes a snapshot */
@@ -30,6 +32,8 @@ struct FPooledRenderTarget : public IPooledRenderTarget
 		, UnusedForNFrames(0)
 		, Desc(SnaphotSource.Desc)
 		, bSnapshot(true)
+		, RenderTargetPool(SnaphotSource.RenderTargetPool)
+		, FrameNumberLastDiscard(-1)
 	{
 		check(IsInRenderingThread());
 		RenderTargetItem = SnaphotSource.RenderTargetItem;
@@ -55,9 +59,17 @@ struct FPooledRenderTarget : public IPooledRenderTarget
 	// interface IPooledRenderTarget --------------
 
 	virtual uint32 AddRef() const override final;
-	virtual uint32 Release() const override final;
+	virtual uint32 Release() override final;
 	virtual uint32 GetRefCount() const override final;
 	virtual bool IsFree() const override final;
+	virtual uint32 HasBeenDiscardedThisFrame() const
+	{
+		return GFrameNumberRenderThread == FrameNumberLastDiscard;
+	}
+	bool IsTransient() const
+	{
+		return !!(Desc.Flags & TexCreate_Transient);
+	}
 	virtual void SetDebugName(const TCHAR *InName);
 	virtual const FPooledRenderTargetDesc& GetDesc() const;
 	virtual uint32 ComputeMemorySize() const;
@@ -75,6 +87,12 @@ private:
 	FPooledRenderTargetDesc Desc;
 	/** Snapshots are sortof fake pooled render targets, they don't own anything and can outlive the things that created them. These are for threaded rendering. */
 	bool bSnapshot;
+
+	/** Pointer back to the pool for render targets which are actually pooled, otherwise NULL. */
+	FRenderTargetPool* RenderTargetPool;
+
+	/** Keeps track of the last frame we unmapped physical memory for this resource. We can't map again in the same frame if we did that */
+	uint32 FrameNumberLastDiscard;
 
 	/** @return true:release this one, false otherwise */
 	bool OnFrameStart();
@@ -213,7 +231,7 @@ public:
 	/** Destruct all snapshots, this must be done after all outstanding async tasks are done. It is important because they hold ref counted texture pointers etc **/
 	void DestructSnapshots();
 
-
+	void OnRenderTargetUnreferenced(IPooledRenderTarget* RenderTarget);
 
 	/** Only to get statistics on usage and free elements. Normally only called in renderthread or if FlushRenderingCommands was called() */
 	void GetStats(uint32& OutWholeCount, uint32& OutWholePoolInKB, uint32& OutUsedInKB) const;

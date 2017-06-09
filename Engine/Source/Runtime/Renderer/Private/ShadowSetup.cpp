@@ -923,7 +923,18 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 						else
 						{
 							FLODMask LODToRender;
-							int32 ForcedLODLevel = (CurrentView.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
+							int32 ForcedLODLevel = 0;
+
+							if (CurrentView.Family->EngineShowFlags.LOD)
+							{
+								// Shadow specific setting is highest priority
+								ForcedLODLevel = GetCVarForceLODShadow();
+
+								if (ForcedLODLevel == -1)
+								{
+									ForcedLODLevel = GetCVarForceLOD();
+								}
+							}
 
 							// Add the primitive's static mesh elements to the draw lists.
 							if (bForceLowestDetailLevel) 

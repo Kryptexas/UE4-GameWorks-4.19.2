@@ -237,6 +237,11 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 				}
 			}
 
+			if ( IsTransientResourceBufferAliasingEnabled())
+			{
+				GAOCulledObjectBuffers.Buffers.DiscardTransientResource();
+			}
+
 			{
 				FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
 

@@ -1096,6 +1096,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		ServiceLocalQueue();
 
+		DynamicBentNormalAO = NULL;
+
 		// Post-lighting composition lighting stage
 		// e.g. ScreenSpaceSubsurfaceScattering
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)

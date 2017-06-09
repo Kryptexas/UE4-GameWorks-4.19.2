@@ -22,6 +22,7 @@ enum class CommandListState
 	kFinished
 };
 
+
 struct FD3D12CommandListPayload
 {
 	FD3D12CommandListPayload() : NumCommandLists(0)
@@ -148,7 +149,7 @@ class FD3D12CommandListManager : public FD3D12DeviceChild, public FD3D12SingleNo
 {
 public:
 	FD3D12CommandListManager(FD3D12Device* InParent, D3D12_COMMAND_LIST_TYPE CommandListType);
-	~FD3D12CommandListManager();
+	virtual ~FD3D12CommandListManager();
 
 	void Create(const TCHAR* Name, uint32 NumCommandLists = 0, uint32 Priority = 0);
 	void Destroy();
@@ -165,7 +166,7 @@ public:
 	void ReleaseCommandList(FD3D12CommandListHandle& hList);
 
 	void ExecuteCommandList(FD3D12CommandListHandle& hList, bool WaitForCompletion = false);
-	void ExecuteCommandLists(TArray<FD3D12CommandListHandle>& Lists, bool WaitForCompletion = false);
+	virtual void ExecuteCommandLists(TArray<FD3D12CommandListHandle>& Lists, bool WaitForCompletion = false);
 
 	uint32 GetResourceBarrierCommandList(FD3D12CommandListHandle& hList, FD3D12CommandListHandle& hResourceBarrierList);
 
@@ -193,7 +194,7 @@ public:
 
 	void ReleaseResourceBarrierCommandListAllocator();
 
-private:
+protected:
 	// Returns signaled Fence
 	uint64 ExecuteAndIncrementFence(FD3D12CommandListPayload& Payload, FD3D12Fence &Fence);
 	FD3D12CommandListHandle CreateCommandListHandle(FD3D12CommandAllocator& CommandAllocator);

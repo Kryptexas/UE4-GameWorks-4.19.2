@@ -175,7 +175,7 @@ public:
 		auto LhsFlags = Flags;
 		auto RhsFlags = rhs.Flags;
 
-		if (!bExact || !FPlatformProperties::SupportsFastVRAMMemory())
+		if (!bExact || !FPlatformMemory::SupportsFastVRAMMemory())
 		{
 			LhsFlags &= (~TexCreate_FastVRAM);
 			RhsFlags &= (~TexCreate_FastVRAM);
@@ -276,6 +276,11 @@ public:
 			FlagsString += TEXT(" VRam");
 		}
 
+		if (LocalFlags & TexCreate_Transient)
+		{
+			FlagsString += TEXT(" Transient");
+		}
+
 		FString ArrayString;
 
 		if(IsArray())
@@ -342,7 +347,7 @@ public:
 	/** Whether the shader-resource and targetable texture must be separate textures. */
 	bool bForceSeparateTargetAndShaderResource;
 	/** only set a pointer to memory that never gets released */
-	const TCHAR *DebugName;
+	const TCHAR* DebugName;
 	/** automatically set to writable via barrier during */
 	bool AutoWritable;
 	/** create render target write mask (supported only on specific platforms) */
@@ -398,10 +403,12 @@ struct FSceneRenderTargetItem
 };
 
 /**
- * Render thread side, use TRefCountPtr<IPooledRenderTarget>, allows to use sharing and VisualizeTexture
+ * Render thread side, use TRefCountPtr<IPooledRenderTarget>, allows sharing and VisualizeTexture
  */
-struct IPooledRenderTarget : public IRefCountedObject
+struct IPooledRenderTarget
 {
+	virtual ~IPooledRenderTarget() {}
+
 	/** Checks if the reference count indicated that the rendertarget is unused and can be reused. */
 	virtual bool IsFree() const = 0;
 	/** Get all the data that is needed to create the render target. */
@@ -418,7 +425,21 @@ struct IPooledRenderTarget : public IRefCountedObject
 	/** Get the low level internals (texture/surface) */
 	inline const FSceneRenderTargetItem& GetRenderTargetItem() const { return RenderTargetItem; }
 
+	// Refcounting
+	virtual uint32 AddRef() const = 0;
+	virtual uint32 Release() = 0;
+	virtual uint32 GetRefCount() const = 0;
+
 protected:
+
+	/** For pool management (only if NumRef == 0 the element can be reused) */
+	mutable int32 NumRefs;
+
+	/** Snapshots are sortof fake pooled render targets, they don't own anything and can outlive the things that created them. These are for threaded rendering. */
+	bool bSnapshot;
+
+	/** Pointer back to the pool for render targets which are actually pooled, otherwise NULL. */
+	class FRenderTargetPool* RenderTargetPool;
 
 	/** The internal references to the created render target */
 	FSceneRenderTargetItem RenderTargetItem;

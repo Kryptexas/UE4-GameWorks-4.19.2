@@ -11,7 +11,7 @@
 
 class FDistanceFieldAOParameters;
 
-extern void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, EPixelFormat Format);
+extern void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, EPixelFormat Format, uint32 Flags = 0);
 
 extern void UpdateHistory(
 	FRHICommandList& RHICmdList,

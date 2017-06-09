@@ -191,6 +191,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		Ret.Format = PF_FloatR11G11B10;
 		Ret.TargetableFlags |= TexCreate_UAV;
 		Ret.TargetableFlags |= TexCreate_RenderTargetable;
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("VelocityFlat");
 
 		return Ret;
@@ -205,7 +206,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		FIntPoint TileCount = GetNumTiles16x16(PixelExtent);
 
 		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(TileCount, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("MaxVelocity");
 
 		return Ret;
@@ -493,6 +494,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityGather::ComputeOutputDesc(EPas
 
 	Ret.TargetableFlags |= TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("ScatteredMaxVelocity");
 
 	return Ret;
@@ -929,6 +931,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOut
 	{
 		Ret.Format = PF_FloatRGB;
 	}
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("MotionBlur");
 	Ret.AutoWritable = false;
 

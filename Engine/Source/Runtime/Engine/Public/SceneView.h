@@ -24,7 +24,6 @@ class FSceneViewStateInterface;
 class FViewElementDrawer;
 class ISceneViewExtension;
 class FSceneViewFamily;
-class FForwardLightingViewResources;
 class FVolumetricFogViewResources;
 
 // Projection data for a FSceneView

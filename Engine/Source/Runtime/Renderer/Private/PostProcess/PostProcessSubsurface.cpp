@@ -342,7 +342,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
-
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceVisualize");
 	// alpha is used to store depth and renormalize (alpha==0 means there is no subsurface scattering)
@@ -546,7 +546,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
-
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");
 	// alpha is used to store depth and renormalize (alpha==0 means there is no subsurface scattering)

@@ -310,6 +310,7 @@ protected:
 		uint32 InUsage,
 		FRHIResourceCreateInfo& CreateInfo,
 		uint32 Alignment,
+		FD3D12TransientResource& TransientResource,
 		FD3D12ResourceLocation& ResourceLocation);
 
 	// Creates default root and execute indirect signatures

@@ -597,6 +597,13 @@ void FD3D12Device::Initialize()
 
 }
 
+void FD3D12Device::InitPlatformSpecific()
+{
+	CommandListManager = new FD3D12CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	CopyCommandListManager = new FD3D12CommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY);
+	AsyncCommandListManager = new FD3D12CommandListManager(this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+}
+
 void FD3D12Device::CreateSamplerInternal(const D3D12_SAMPLER_DESC& Desc, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor)
 {
 	GetDevice()->CreateSampler(&Desc, Descriptor);

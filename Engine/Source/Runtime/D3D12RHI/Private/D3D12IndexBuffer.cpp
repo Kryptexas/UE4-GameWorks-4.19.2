@@ -45,6 +45,11 @@ FIndexBufferRHIRef FD3D12DynamicRHI::RHICreateIndexBuffer(uint32 Stride, uint32 
 	const uint32 Alignment = 4;
 
 	FD3D12IndexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12IndexBuffer>(nullptr, Desc, Alignment, Stride, Size, InUsage, CreateInfo, false);
+	if (Buffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 
 	UpdateBufferStats(&Buffer->ResourceLocation, true, D3D12_BUFFER_TYPE_INDEX);
 
@@ -67,6 +72,11 @@ FIndexBufferRHIRef FD3D12DynamicRHI::CreateIndexBuffer_RenderThread(class FRHICo
 	const uint32 Alignment = 4;
 
 	FD3D12IndexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12IndexBuffer>(&RHICmdList, Desc, Alignment, Stride, Size, InUsage, CreateInfo, false);
+	if (Buffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 
 	UpdateBufferStats(&Buffer->ResourceLocation, true, D3D12_BUFFER_TYPE_INDEX);
 
@@ -94,6 +104,11 @@ FIndexBufferRHIRef FD3D12DynamicRHI::CreateAndLockIndexBuffer_RenderThread(class
 
 	const bool bIsDynamic = (InUsage & BUF_AnyDynamic) ? true : false;
 	FD3D12IndexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12IndexBuffer>(&RHICmdList, Desc, Alignment, Stride, Size, InUsage, CreateInfo, bIsDynamic);
+	if (Buffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 
 	OutDataBuffer = LockIndexBuffer_RenderThread(RHICmdList, Buffer, 0, Size, RLM_WriteOnly);
 

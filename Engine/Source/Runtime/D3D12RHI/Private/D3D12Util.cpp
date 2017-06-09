@@ -741,8 +741,11 @@ DEFINE_STAT(STAT_D3D12TexturesReleased);
 DEFINE_STAT(STAT_D3D12CreateTextureTime);
 DEFINE_STAT(STAT_D3D12LockTextureTime);
 DEFINE_STAT(STAT_D3D12UnlockTextureTime);
+DEFINE_STAT(STAT_D3D12CreateBufferTime);
 DEFINE_STAT(STAT_D3D12LockBufferTime);
 DEFINE_STAT(STAT_D3D12UnlockBufferTime);
+DEFINE_STAT(STAT_D3D12CommitTransientResourceTime);
+DEFINE_STAT(STAT_D3D12DecommitTransientResourceTime);
 
 DEFINE_STAT(STAT_D3D12NewBoundShaderStateTime);
 DEFINE_STAT(STAT_D3D12CreateBoundShaderStateTime);

@@ -1741,6 +1741,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	Ret.Format = bHDROutput ? GRHIHDRDisplayOutputFormat : Ret.Format;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 
 	// Mobile needs to override the extent
 	if (bDoScreenPercentageInTonemapper && View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)

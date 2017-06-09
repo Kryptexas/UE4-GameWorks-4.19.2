@@ -32,6 +32,7 @@ public:
 	FRHIResource(bool InbDoNotDeferDelete = false)
 		: MarkedForDelete(0)
 		, bDoNotDeferDelete(InbDoNotDeferDelete)
+		, bCommitted(true)
 	{
 	}
 	virtual ~FRHIResource() 
@@ -87,10 +88,25 @@ public:
 
 	static bool Bypass();
 
+	// Transient resource tracking
+	// We do this at a high level so we can catch errors even when transient resources are not supported
+	void SetCommitted(bool bInCommitted) 
+	{ 
+		check(IsInRenderingThread()); 
+		bCommitted = bInCommitted;
+	}
+	bool IsCommitted() const 
+	{ 
+		check(IsInRenderingThread());
+		return bCommitted;
+	}
+
 private:
 	mutable FThreadSafeCounter NumRefs;
 	mutable int32 MarkedForDelete;
 	bool bDoNotDeferDelete;
+	bool bCommitted;
+
 	static TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
 

@@ -19,6 +19,8 @@
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE 1
 
+#define BATCH_COPYPAGEMAPPINGS 1
+
 #ifndef WITH_DX_PERF
 #define WITH_DX_PERF 0
 #endif
@@ -73,7 +75,7 @@ typedef FD3D12StateCacheBase FD3D12StateCache;
 #define EXECUTE_DEBUG_COMMAND_LISTS 0
 #define ENABLE_PLACED_RESOURCES 0 // Disabled due to a couple of NVidia bugs related to placed resources. Works fine on Intel
 #define REMOVE_OLD_QUERY_BATCHES 1  // D3D12: MSFT: TODO: Works around a suspected UE4 InfiltratorDemo bug where a query is never released
-#define NAME_OBJECTS !UE_BUILD_SHIPPING	// Name objects in all builds except shipping
+#define NAME_OBJECTS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)	// Name objects in all builds except shipping
 
 //@TODO: Improve allocator efficiency so we can increase these thresholds and improve performance
 // We measured 149MB of wastage in 340MB of allocations with DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE set to 512KB
@@ -122,6 +124,12 @@ bool GIsDoingQuery = false;
 #define DEBUG_EXECUTE_COMMAND_CONTEXT(context) 
 #define DEBUG_RHI_EXECUTE_COMMAND_LIST(scope) 
 #endif
+
+template< typename t_A, typename t_B >
+inline t_A RoundUpToNextMultiple(const t_A& a, const t_B& b)
+{
+	return ((a - 1) / b + 1) * b;
+}
 
 using namespace D3D12RHI;
 
@@ -299,7 +307,6 @@ public:
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
-
 	// FD3D12DynamicRHI interface.
 	virtual uint32 GetDebugFlags();
 	virtual ID3D12CommandQueue* RHIGetD3DCommandQueue();
@@ -312,6 +319,7 @@ public:
 	//
 
 	virtual FVertexBufferRHIRef CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual FStructuredBufferRHIRef CreateStructuredBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
 	virtual void* LockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
 	virtual void UnlockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer);
 	virtual FVertexBufferRHIRef CreateAndLockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, void*& OutDataBuffer);
@@ -1052,3 +1060,4 @@ private:
 		}
 	}
 };
+

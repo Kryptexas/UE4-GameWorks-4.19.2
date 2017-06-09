@@ -153,14 +153,6 @@ protected:
 
 private:
 
-	/** Callback for handling new frames from the video sampler. */
-	void HandleVideoSamplerFrame(int32 StreamIndex, const uint8* Data, const FTimespan& Time);
-
-	/** Callback for when the video sampler reaches the end of the stream. */
-	void HandleVideoSamplerDone(int32 StreamIndex);
-
-private:
-
 	/** The currently used audio sink. */
 	IMediaAudioSink* AudioSink;
 
@@ -212,8 +204,8 @@ private:
 	/** The source reader to use. */
 	TComPtr<IMFSourceReader> SourceReader;
 
-	/** Video sampler. */
-	class FMfMediaVideoSampler* VideoSampler;
+	/** Whether the video track has reached the end. */
+	bool VideoDone;
 };
 
 

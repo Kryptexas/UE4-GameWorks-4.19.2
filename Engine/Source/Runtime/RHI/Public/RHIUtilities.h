@@ -49,21 +49,47 @@ struct FRWBuffer
 	FShaderResourceViewRHIRef SRV;
 	uint32 NumBytes;
 
-	FRWBuffer(): NumBytes(0) {}
+	FRWBuffer()
+		: NumBytes(0)
+	{}
+
+	~FRWBuffer()
+	{
+		Release();
+	}
 
 	// @param AdditionalUsage passed down to RHICreateVertexBuffer(), get combined with "BUF_UnorderedAccess | BUF_ShaderResource" e.g. BUF_Static
-	void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0)
+	void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0, const TCHAR* InDebugName = NULL)
 	{
 		check(GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5);
+		// Provide a debug name if using Fast VRAM so the allocators diagnostics will work
+		ensure(!((AdditionalUsage & BUF_FastVRAM) && !InDebugName));
 		NumBytes = BytesPerElement * NumElements;
 		FRHIResourceCreateInfo CreateInfo;
+		CreateInfo.DebugName = InDebugName;
 		Buffer = RHICreateVertexBuffer(NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
 		UAV = RHICreateUnorderedAccessView(Buffer, Format);
 		SRV = RHICreateShaderResourceView(Buffer, BytesPerElement, Format);
 	}
 
+	void AcquireTransientResource()
+	{
+		RHIAcquireTransientResource(Buffer);
+	}
+	void DiscardTransientResource()
+	{
+		RHIDiscardTransientResource(Buffer);
+	}
+
 	void Release()
 	{
+		int32 BufferRefCount = Buffer ? Buffer->GetRefCount() : -1;
+
+		if (BufferRefCount == 1)
+		{
+			DiscardTransientResource();
+		}
+
 		NumBytes = 0;
 		Buffer.SafeRelease();
 		UAV.SafeRelease();
@@ -107,11 +133,20 @@ struct FRWBufferStructured
 
 	FRWBufferStructured(): NumBytes(0) {}
 
-	void Initialize(uint32 BytesPerElement, uint32 NumElements, uint32 AdditionalUsage = 0, bool bUseUavCounter = false, bool bAppendBuffer = false)
+	~FRWBufferStructured()
+	{
+		Release();
+	}
+
+	void Initialize(uint32 BytesPerElement, uint32 NumElements, uint32 AdditionalUsage = 0, const TCHAR* InDebugName = NULL, bool bUseUavCounter = false, bool bAppendBuffer = false)
 	{
 		check(GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5);
+		// Provide a debug name if using Fast VRAM so the allocators diagnostics will work
+		ensure(!((AdditionalUsage & BUF_FastVRAM) && !InDebugName));
+
 		NumBytes = BytesPerElement * NumElements;
 		FRHIResourceCreateInfo CreateInfo;
+		CreateInfo.DebugName = InDebugName;
 		Buffer = RHICreateStructuredBuffer(BytesPerElement, NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
 		UAV = RHICreateUnorderedAccessView(Buffer, bUseUavCounter, bAppendBuffer);
 		SRV = RHICreateShaderResourceView(Buffer);
@@ -119,10 +154,26 @@ struct FRWBufferStructured
 
 	void Release()
 	{
+		int32 BufferRefCount = Buffer ? Buffer->GetRefCount() : -1;
+
+		if (BufferRefCount == 1)
+		{
+			DiscardTransientResource();
+		}
+
 		NumBytes = 0;
 		Buffer.SafeRelease();
 		UAV.SafeRelease();
 		SRV.SafeRelease();
+	}
+
+	void AcquireTransientResource()
+	{
+		RHIAcquireTransientResource(Buffer);
+	}
+	void DiscardTransientResource()
+	{
+		RHIDiscardTransientResource(Buffer);
 	}
 };
 
@@ -797,7 +848,6 @@ private:
 
 extern RHI_API void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix);
 extern RHI_API void DisableDepthBoundsTest(FRHICommandList& RHICmdList);
-
 struct FRHILockTracker
 {
 	struct FLockParams

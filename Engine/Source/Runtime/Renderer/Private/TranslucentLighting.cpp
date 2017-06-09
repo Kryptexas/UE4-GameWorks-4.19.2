@@ -1606,8 +1606,7 @@ void FDeferredShadingSceneRenderer::InjectTranslucentVolumeLightingArray(FRHICom
 	for (int32 LightIndex = 0; LightIndex < NumLights; LightIndex++)
 	{
 		const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-		const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-		const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+		const FLightSceneInfo* const LightSceneInfo = SortedLightInfo.LightSceneInfo;
 
 		AddLightForInjection(*this, *LightSceneInfo, NULL, LightInjectionData);
 	}

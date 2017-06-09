@@ -152,6 +152,13 @@ public:
 	/** Called when the user accepts an invitation to the current game */
 	static FOnInviteAccepted OnInviteAccepted;
 
+	// Called at the beginning of a frame
+	static FSimpleMulticastDelegate OnBeginFrame;
+
+	// Called at the end of a frame
+	static FSimpleMulticastDelegate OnEndFrame;
+
+
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */
 	static FWorldOriginOffset PreWorldOriginOffset;

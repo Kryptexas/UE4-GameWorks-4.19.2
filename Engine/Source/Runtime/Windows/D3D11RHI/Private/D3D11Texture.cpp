@@ -622,7 +622,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	FVRamAllocation VRamAllocation;
 
-	if (FPlatformProperties::SupportsFastVRAMMemory())
+	if (FPlatformMemory::SupportsFastVRAMMemory())
 	{
 		if (Flags & TexCreate_FastVRAM)
 		{
@@ -939,7 +939,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	FVRamAllocation VRamAllocation;
 
-	if (FPlatformProperties::SupportsFastVRAMMemory())
+	if (FPlatformMemory::SupportsFastVRAMMemory())
 	{
 		if (Flags & TexCreate_FastVRAM)
 		{

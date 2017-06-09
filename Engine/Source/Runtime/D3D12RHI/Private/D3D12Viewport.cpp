@@ -220,7 +220,7 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	RTVDesc.Texture2D.MipSlice = 0;
 
 	FD3D12RenderTargetView* BackBufferRenderTargetView = new FD3D12RenderTargetView(Parent, &RTVDesc, &NewTexture->ResourceLocation);
-	NewTexture->SetRenderTargetView(BackBufferRenderTargetView, 0);
+	NewTexture->SetRenderTargetView(BackBufferRenderTargetView);
 
 	// create a shader resource view to allow using the backbuffer as a texture
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};

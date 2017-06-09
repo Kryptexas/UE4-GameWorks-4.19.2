@@ -298,8 +298,9 @@ private:
 
 	/** Renders capsule shadows for all per-object shadows using it for the given light. */
 	bool RenderCapsuleDirectShadows(
-		const FLightSceneInfo& LightSceneInfo,
 		FRHICommandListImmediate& RHICmdList, 
+		const FLightSceneInfo& LightSceneInfo, 
+		IPooledRenderTarget* ScreenShadowMaskTexture,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows, 
 		bool bProjectingForForwardShading) const;
 
@@ -316,7 +317,7 @@ private:
 	void RenderCapsuleShadowsForMovableSkylight(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& BentNormalOutput) const;
 
 	/** Render deferred projections of shadows for a given light into the light attenuation buffer. */
-	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool& bInjectedTranslucentVolume);
+	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume);
 
 	/** Render shadow projections when forward rendering. */
 	void RenderForwardShadingShadowProjections(FRHICommandListImmediate& RHICmdList);
@@ -327,15 +328,16 @@ private:
 	  * @param LightSceneInfo Represents the current light
 	  * @param LightIndex The light's index into FScene::Lights
 	  */
-	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared, bool bProjectingForForwardShading);
+	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bLightAttenuationCleared, bool bProjectingForForwardShading);
 
 	/** Renders a light function indicating that whole scene shadowing being displayed is for previewing only, and will go away in game. */
-	bool RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
+	bool RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bLightAttenuationCleared);
 
 	/** Renders a light function with the given material. */
 	bool RenderLightFunctionForMaterial(
 		FRHICommandListImmediate& RHICmdList, 
 		const FLightSceneInfo* LightSceneInfo, 
+		IPooledRenderTarget* ScreenShadowMaskTexture,
 		const FMaterialRenderProxy* MaterialProxy, 
 		bool bLightAttenuationCleared,
 		bool bProjectingForForwardShading, 
@@ -348,7 +350,7 @@ private:
 	  * @param LightIndex The light's index into FScene::Lights
 	  * @return true if anything got rendered
 	  */
-	void RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
+	void RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bRenderOverlap, bool bIssueDrawEvent);
 
 	/** Renders an array of simple lights using standard deferred shading. */
 	void RenderSimpleLightsStandardDeferred(FRHICommandListImmediate& RHICmdList, const FSimpleLightArray& SimpleLights);

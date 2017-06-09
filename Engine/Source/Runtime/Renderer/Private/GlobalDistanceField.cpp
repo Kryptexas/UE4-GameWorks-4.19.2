@@ -11,7 +11,7 @@
 
 int32 GAOGlobalDistanceField = 1;
 FAutoConsoleVariableRef CVarAOGlobalDistanceField(
-	TEXT("r.AOGlobalDistanceField"),
+	TEXT("r.AOGlobalDistanceField"), 
 	GAOGlobalDistanceField,
 	TEXT("Whether to use a global distance field to optimize occlusion cone traces.\n")
 	TEXT("The global distance field is created by compositing object distance fields into clipmaps as the viewer moves through the level."),
@@ -1288,13 +1288,15 @@ void UpdateGlobalDistanceFieldVolume(
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, UpdateGlobalDistanceFieldVolume);
 
-			if (GGlobalDistanceFieldCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
+			if (!GGlobalDistanceFieldCulledObjectBuffers.IsInitialized()
+				|| GGlobalDistanceFieldCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
 				|| GGlobalDistanceFieldCulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 			{
 				GGlobalDistanceFieldCulledObjectBuffers.Buffers.MaxObjects = Scene->DistanceFieldSceneData.NumObjectsInBuffer * 5 / 4;
-				GGlobalDistanceFieldCulledObjectBuffers.Buffers.Release();
-				GGlobalDistanceFieldCulledObjectBuffers.Buffers.Initialize();
+				GGlobalDistanceFieldCulledObjectBuffers.ReleaseResource();
+				GGlobalDistanceFieldCulledObjectBuffers.InitResource();
 			}
+			GGlobalDistanceFieldCulledObjectBuffers.Buffers.AcquireTransientResource();
 
 			const uint32 MaxCullGridDimension = GAOGlobalDFResolution / GCullGridTileSize;
 
@@ -1410,11 +1412,11 @@ void UpdateGlobalDistanceFieldVolume(
 									{
 										check(FlattenedDimension == Flatten_ZAxis);
 										TShaderMapRef<TCompositeObjectDistanceFieldsCS<true, Flatten_ZAxis>> ComputeShader(View.ShaderMap);
-										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
-										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
-									}
+									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+									ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, ParentDistanceField, ClipmapIndex, UpdateRegion);
+									DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+									ComputeShader->UnsetParameters(RHICmdList, Clipmap);
+								}
 								}
 								else
 								{
@@ -1442,17 +1444,17 @@ void UpdateGlobalDistanceFieldVolume(
 										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
 										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
 									}
-									else
-									{
+								else
+								{
 										check(FlattenedDimension == Flatten_ZAxis);
 										TShaderMapRef<TCompositeObjectDistanceFieldsCS<false, Flatten_ZAxis>> ComputeShader(View.ShaderMap);
-										RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-										ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
-										DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-										ComputeShader->UnsetParameters(RHICmdList, Clipmap);
-									}
+									RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+									ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo.ParameterData, Clipmap, NULL, ClipmapIndex, UpdateRegion);
+									DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+									ComputeShader->UnsetParameters(RHICmdList, Clipmap);
 								}
 							}
+						}
 						}
 
 						if (UpdateRegion.UpdateType & VUT_Heightfields)
@@ -1461,6 +1463,11 @@ void UpdateGlobalDistanceFieldVolume(
 						}
 					}
 				}
+			}
+
+			if ( IsTransientResourceBufferAliasingEnabled() )
+			{
+				GGlobalDistanceFieldCulledObjectBuffers.Buffers.DiscardTransientResource();
 			}
 		}
 	}

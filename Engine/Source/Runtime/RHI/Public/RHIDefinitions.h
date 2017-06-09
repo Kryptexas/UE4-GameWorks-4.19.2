@@ -492,6 +492,8 @@ static_assert(PT_Num <= (1 << PT_NumBits), "PT_NumBits is too small");
  */
 enum EBufferUsageFlags
 {
+	BUF_None			  = 0x0000,
+
 	// Mutually exclusive write-frequency flags
 	BUF_Static            = 0x0001, // The buffer will be written to once.
 	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
@@ -526,8 +528,11 @@ enum EBufferUsageFlags
 	 */
 	BUF_ZeroStride        = 0x0800,
 
-	/** Buffer should go in fast vram (hint only) */
+	/** Buffer should go in fast vram (hint only). Requires BUF_Transient */
 	BUF_FastVRAM          = 0x1000,
+
+	/** Buffer should be allocated from transient memory. */
+	BUF_Transient		  = 0x2000,
 
 	// Helper bit-masks
 	BUF_AnyDynamic = (BUF_Dynamic | BUF_Volatile),
@@ -630,7 +635,9 @@ enum ETextureCreateFlags
 	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
 	TexCreate_AFRManual = 1 << 29,
 	// Workaround for 128^3 volume textures getting bloated 4x due to tiling mode on PS4
-	TexCreate_ReduceMemoryWithTilingMode = 1 << 30
+	TexCreate_ReduceMemoryWithTilingMode = 1 << 30,
+	/** Texture should be allocated from transient memory. */
+	TexCreate_Transient = 1 << 31
 };
 
 enum EAsyncComputePriority

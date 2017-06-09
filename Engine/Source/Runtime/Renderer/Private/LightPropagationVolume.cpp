@@ -823,13 +823,13 @@ FLightPropagationVolume::FLightPropagationVolume() :
 	int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
 	int32 GvListBufferSize = RSMResolution * RSMResolution * 16; // Allow 16 layers of depth per every pixel of the RSM (on average) 
 	int32 VplListBufferSize = RSMResolution * RSMResolution * 4; // Allow 4 layers of depth per pixel in the RSM (1 for the RSM injection + 3 for light injection)
-	mVplListBuffer->Initialize( sizeof( VplListEntry ), VplListBufferSize, 0, true, false );
+	mVplListBuffer->Initialize( sizeof( VplListEntry ), VplListBufferSize, 0, TEXT("mVplListBuffer"), true, false );
 	mVplListHeadBuffer = new FRWBufferByteAddress();
 	mVplListHeadBuffer->Initialize( LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES*4, BUF_ByteAddressBuffer );
 
 	// Geometry volume buffers
 	GvListBuffer = new FRWBufferStructured();
-	GvListBuffer->Initialize( sizeof( VplListEntry ), GvListBufferSize, 0, true, false );
+	GvListBuffer->Initialize( sizeof( VplListEntry ), GvListBufferSize, 0, TEXT("GvListBuffer"), true, false );
 	GvListHeadBuffer = new FRWBufferByteAddress();
 	GvListHeadBuffer->Initialize( LPV_GRIDRES*LPV_GRIDRES*LPV_GRIDRES*4, BUF_ByteAddressBuffer );
 

@@ -14,6 +14,7 @@
 #include "RHIStaticStates.h"
 #include "DistanceFieldAtlas.h"
 #include "UniquePtr.h"
+#include "SceneRendering.h"
 
 class FLightSceneProxy;
 class FMaterialRenderProxy;
@@ -291,15 +292,37 @@ public:
 	{
 		if (MaxObjects > 0)
 		{
+			const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? ( BUF_FastVRAM | BUF_Transient ) : BUF_None;
+
 			ObjectIndirectArguments.Initialize(sizeof(uint32), 5, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			ObjectIndirectDispatch.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
-			Bounds.Initialize(sizeof(FVector4), MaxObjects, BUF_Static);
-			Data.Initialize(sizeof(FVector4), MaxObjects * ObjectDataStride, BUF_Static);
+			Bounds.Initialize(sizeof(FVector4), MaxObjects, BUF_Static | FastVRamFlag, TEXT("FDistanceFieldCulledObjectBuffers::Bounds"));
+			Data.Initialize(sizeof(FVector4), MaxObjects * ObjectDataStride, BUF_Static | FastVRamFlag, TEXT("FDistanceFieldCulledObjectBuffers::Data"));
 
 			if (bWantBoxBounds)
 			{
-				BoxBounds.Initialize(sizeof(FVector4), MaxObjects * ObjectBoxBoundsStride, BUF_Static);
+				BoxBounds.Initialize(sizeof(FVector4), MaxObjects * ObjectBoxBoundsStride, BUF_Static | FastVRamFlag, TEXT("FDistanceFieldCulledObjectBuffers::BoxBounds"));
 			}
+		}
+	}
+
+	void AcquireTransientResource()
+	{
+		Bounds.AcquireTransientResource();
+		Data.AcquireTransientResource();
+		if (bWantBoxBounds)
+		{
+			BoxBounds.AcquireTransientResource();
+		}
+	}
+
+	void DiscardTransientResource()
+	{
+		Bounds.DiscardTransientResource();
+		Data.DiscardTransientResource();
+		if (bWantBoxBounds)
+		{
+			BoxBounds.DiscardTransientResource();
 		}
 	}
 

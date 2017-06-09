@@ -177,6 +177,7 @@ class FFeedbackContext;
 	#if ENABLE_VISUAL_LOG
 		#include "VisualLogger/VisualLogger.h"
 	#endif
+	#include "CsvProfiler.h"
 #endif
 
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
@@ -1391,6 +1392,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	LoadPreInitModules();
 
+#if WITH_ENGINE && CSV_PROFILER 
+	FCsvProfiler::Get()->Init();
+#endif
+
 	// Start the application
 	if(!AppInit())
 	{
@@ -2321,6 +2326,7 @@ void FEngineLoop::LoadPreInitModules()
 	// compress asynchronously and that can lead to a race condition.
 	FModuleManager::Get().LoadModule(TEXT("TextureCompressor"));
 #endif
+
 #endif // WITH_ENGINE
 
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -3034,6 +3040,8 @@ void FEngineLoop::Tick()
 			RHICmdList.BeginFrame();
 		});
 
+		FCoreDelegates::OnBeginFrame.Broadcast();
+
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_FlushThreadedLogs);
 			// Flush debug output which has been buffered by other threads.
@@ -3297,6 +3305,8 @@ void FEngineLoop::Tick()
 
 			GEngine->TickDeferredCommands();		
 		}
+
+		FCoreDelegates::OnEndFrame.Broadcast();
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			EndFrame,

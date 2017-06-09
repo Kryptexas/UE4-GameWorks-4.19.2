@@ -729,6 +729,8 @@ public:
 
 	FForwardLightingViewResources ForwardLightingResources;
 
+	FForwardLightingCullingResources ForwardLightingCullingResources;
+
 	TRefCountPtr<IPooledRenderTarget> LightScatteringHistory;
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
@@ -1051,6 +1053,7 @@ public:
 		TranslucencyTimer.Release();
 		SeparateTranslucencyTimer.Release();
 		ForwardLightingResources.Release();
+		ForwardLightingCullingResources.Release();
 		LightScatteringHistory.SafeRelease();
 	}
 

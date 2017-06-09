@@ -164,7 +164,7 @@ FPooledRenderTargetDesc FRCPassPostProcessHistogramReduce::ComputeOutputDesc(EPa
 
 	// for quality float4 to get best quality for smooth eye adaptation transitions
 	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_A32B32G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-	
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("HistogramReduce");
 	
 	return Ret;

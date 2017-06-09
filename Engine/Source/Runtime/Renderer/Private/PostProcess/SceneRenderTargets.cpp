@@ -92,31 +92,25 @@ static TAutoConsoleVariable<int32> CVarGBufferFormat(
 	ECVF_RenderThreadSafe);
 
 // Fast VRam Settings. These should be tuned based on title requirements and resolution
-// Note: Currently, changing these settings at runtime does not cause buffers to be reallocated 
-static TAutoConsoleVariable<int32> CVarFastVRamGBufferCount(
-	TEXT("r.FastVRamGBufferCount"),
-	4,
-	TEXT("Number of fast VRAM GBuffers, in order A-E. May not be optimal on platforms with limited fast VRAM. Adjust based on resolution"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarFastVRamFillWithGBuffers(
+	TEXT("r.FastVRamStaticLayoutFillWithGBuffers"),
+	1,
+	TEXT("Whether to fill ESRAM with GBuffers, all pass temporaries will fail to allocate.  Games with mostly static lighting will benefit more from filling ESRAM with GBuffers instead of pass temporaries.\n")
+	TEXT("NOTE: Only applies if r.FastVRamDynamicAllocation is disabled."),
+	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarFastVRamSceneColor(
 	TEXT("r.FastVRamSceneColor"),
 	1,
 	TEXT("Whether to store scene color in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
+	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarFastVRamSceneDepth(
 	TEXT("r.FastVRamSceneDepth"),
 	1,
 	TEXT("Whether to store scene depth in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarFastVRamLightAttenuation(
-	TEXT("r.FastVRamLightAttenuation"),
-	1,
-	TEXT("Whether to store light attenuation in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
+	ECVF_RenderThreadSafe);
 
 /** The global render targets used for scene rendering. */
 static TGlobalResource<FSceneRenderTargets> SceneRenderTargetsSingleton;
@@ -784,7 +778,6 @@ void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmd
 		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
-		Desc.Flags |= TexCreate_FastVRAM;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.ArraySize = 2;
 		Desc.bIsArray = true;
@@ -865,10 +858,6 @@ void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
-		if (CVarFastVRamLightAttenuation.GetValueOnRenderThread() >= 1)
-		{
-			Desc.Flags |= TexCreate_FastVRAM;
-		}
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAttenuation, TEXT("LightAttenuation"));
 	}
@@ -914,11 +903,6 @@ void FSceneRenderTargets::GetGBufferADesc(FPooledRenderTargetDesc& Desc) const
 			NormalGBufferFormat = PF_FloatRGBA;
 		}
 
-		if (CVarFastVRamGBufferCount.GetValueOnRenderThread() >= 1)
-		{
-			Desc.Flags |= TexCreate_FastVRAM;
-		}
-
 		Desc = FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false);
 	}
 }
@@ -957,10 +941,7 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 			const EPixelFormat SpecularGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamGBufferCount.GetValueOnRenderThread() >= 2)
-			{
 				Desc.Flags |= TexCreate_FastVRAM;
-			}
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferB, TEXT("GBufferB"));
 		}
 
@@ -968,9 +949,9 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 		{
 			const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, FClearValueBinding::Transparent, TexCreate_SRGB, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamGBufferCount.GetValueOnRenderThread() >= 3)
+			if (CVarFastVRamFillWithGBuffers.GetValueOnRenderThread() >= 1)
 			{
-				Desc.Flags |= TexCreate_FastVRAM;
+				Desc.Flags |= GetTextureFastVRamFlag_StaticLayout();
 			}
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferC, TEXT("GBufferC"));
 		}
@@ -978,9 +959,9 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 		// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamGBufferCount.GetValueOnRenderThread() >= 4)
+			if (CVarFastVRamFillWithGBuffers.GetValueOnRenderThread() >= 1)
 			{
-				Desc.Flags |= TexCreate_FastVRAM;
+				Desc.Flags |= GetTextureFastVRamFlag_StaticLayout();
 			}
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferD, TEXT("GBufferD"));
 		}
@@ -988,10 +969,6 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 		if (bAllowStaticLighting)
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamGBufferCount.GetValueOnRenderThread() >= 5)
-			{
-				Desc.Flags |= TexCreate_FastVRAM;
-			}
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferE, TEXT("GBufferE"));
 		}
 

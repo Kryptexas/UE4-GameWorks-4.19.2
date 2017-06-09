@@ -685,10 +685,6 @@ public:
 	FDynamicReadBuffer ForwardLocalLightBuffer;
 	FRWBuffer NumCulledLightsGrid;
 	FRWBuffer CulledLightDataGrid;
-	FRWBuffer NextCulledLightLink;
-	FRWBuffer StartOffsetGrid;
-	FRWBuffer CulledLightLinks;
-	FRWBuffer NextCulledLightData;
 
 	void Release()
 	{
@@ -696,6 +692,19 @@ public:
 		ForwardLocalLightBuffer.Release();
 		NumCulledLightsGrid.Release();
 		CulledLightDataGrid.Release();
+	}
+};
+
+class FForwardLightingCullingResources
+{
+public:
+	FRWBuffer NextCulledLightLink;
+	FRWBuffer StartOffsetGrid;
+	FRWBuffer CulledLightLinks;
+	FRWBuffer NextCulledLightData;
+
+	void Release()
+	{
 		NextCulledLightLink.Release();
 		StartOffsetGrid.Release();
 		CulledLightLinks.Release();
@@ -1350,7 +1359,7 @@ protected:
 
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
 
-	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bProjectingForForwardShading, bool bMobileModulatedProjections);
+	bool RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections);
 
 	/** Finds a matching cached preshadow, if one exists. */
 	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
@@ -1593,3 +1602,23 @@ inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 		SetBlack2DIfNull(Tex);
 	}
 }
+
+extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets;
+extern TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers;
+
+FORCEINLINE bool IsTransientResourceBufferAliasingEnabled()
+{
+	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_Buffers.GetValueOnRenderThread() != 0);
+}
+
+// Helper functions for fast vram to handle dynamic/static allocation
+FORCEINLINE uint32 GetTextureFastVRamFlag_DynamicLayout()
+{
+	return (GSupportsTransientResourceAliasing && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() > 0) ? ( TexCreate_FastVRAM | TexCreate_Transient ) : 0;
+}
+
+FORCEINLINE uint32 GetTextureFastVRamFlag_StaticLayout()
+{
+	return (GSupportsTransientResourceAliasing == false && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() == 0) ? TexCreate_FastVRAM : 0;
+}
+

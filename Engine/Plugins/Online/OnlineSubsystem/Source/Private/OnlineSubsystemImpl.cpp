@@ -10,6 +10,12 @@
 #include "Interfaces/OnlineFriendsInterface.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 
+#if UE_BUILD_SHIPPING
+#include "JsonObject.h"
+#include "JsonReader.h"
+#include "JsonSerializer.h"
+#endif
+
 namespace OSSConsoleVariables
 {
 	// CVars

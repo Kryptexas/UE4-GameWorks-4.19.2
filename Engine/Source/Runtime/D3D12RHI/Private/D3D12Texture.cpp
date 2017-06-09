@@ -673,7 +673,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 
 	// The state this resource will be in when it leaves this function
 	const FD3D12Resource::FD3D12ResourceTypeHelper Type(TextureDesc, D3D12_HEAP_TYPE_DEFAULT);
-	const D3D12_RESOURCE_STATES DestinationState = Type.GetOptimalInitialState();
+	const D3D12_RESOURCE_STATES DestinationState = Type.GetOptimalInitialState(false);
 
 	TD3D12Texture2D<BaseResourceType>* D3D12TextureOut = Adapter->CreateLinkedObject<TD3D12Texture2D<BaseResourceType>>([&](FD3D12Device* Device)
 	{
@@ -703,10 +703,13 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 
 		if (bCreateRTV)
 		{
+			const bool bCreateRTVsPerSlice = (Flags & TexCreate_TargetArraySlicesIndependently) && (bTextureArray || bCubeTexture);
+			NewTexture->SetNumRenderTargetViews(bCreateRTVsPerSlice ? NumMips * TextureDesc.DepthOrArraySize : NumMips);
+
 			// Create a render target view for each mip
 			for (uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 			{
-				if ((Flags & TexCreate_TargetArraySlicesIndependently) && (bTextureArray || bCubeTexture))
+				if (bCreateRTVsPerSlice)
 				{
 					NewTexture->SetCreatedRTVsPerSlice(true, TextureDesc.DepthOrArraySize);
 
@@ -721,7 +724,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 						RTVDesc.Texture2DArray.MipSlice = MipIndex;
 						RTVDesc.Texture2DArray.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 
-						NewTexture->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
+						NewTexture->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
 					}
 				}
 				else
@@ -744,7 +747,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 						RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 					}
 
-					NewTexture->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
+					NewTexture->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), RTVIndex++);
 				}
 			}
 		}
@@ -967,7 +970,7 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 
 	// The state this resource will be in when it leaves this function
 	const FD3D12Resource::FD3D12ResourceTypeHelper Type(TextureDesc, D3D12_HEAP_TYPE_DEFAULT);
-	const D3D12_RESOURCE_STATES DestinationState = Type.GetOptimalInitialState();
+	const D3D12_RESOURCE_STATES DestinationState = Type.GetOptimalInitialState(false);
 
 	FD3D12Adapter* Adapter = &GetAdapter();
 
@@ -989,7 +992,7 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D12Texture3D(uint32 SizeX, uint32 Siz
 			RTVDesc.Texture3D.FirstWSlice = 0;
 			RTVDesc.Texture3D.WSize = SizeZ;
 
-			Texture3D->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Texture3D->ResourceLocation, RTVDesc), 0);
+			Texture3D->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Texture3D->ResourceLocation, RTVDesc));
 		}
 
 		// Create a shader resource view for the texture.
@@ -2114,6 +2117,8 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 		
 		if (bCreateRTV)
 		{
+			Texture2D->SetCreatedRTVsPerSlice(false, NumMips);
+
 			// Create a render target view for each mip
 			for (uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 			{
@@ -2124,7 +2129,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 				RTVDesc.Texture2D.MipSlice = MipIndex;
 				RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 
-				Texture2D->SetRenderTargetView(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), MipIndex);
+				Texture2D->SetRenderTargetViewIndex(FD3D12RenderTargetView::CreateRenderTargetView(Device, &Location, RTVDesc), MipIndex);
 			}
 		}
 

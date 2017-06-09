@@ -324,6 +324,12 @@ void FilterHistoryPS(
 #define IRRADIANCE_TARGET SV_Target1
 #endif
 
+// Pack into [0-1] for PF_FloatR11G11B10
+float3 EncodeBentNormal(float3 BentNormal)
+{
+	return BentNormal * .5f + .5f;
+}
+
 Texture2D SpecularOcclusionTexture;
 SamplerState SpecularOcclusionSampler;
 
@@ -430,13 +436,13 @@ void AOUpsamplePS(
 #if OUTPUT_AO
 
 	#if PASS_THROUGH_DEBUG_VALUE
-		OutBentNormal = float4(BentNormal, 1);
+		OutBentNormal = float4(EncodeBentNormal(BentNormal), 1);
 	#else
 		OutBentNormal = float4(length(BentNormal).xxx, 1);
 	#endif
 #else
 	#if OUTPUT_BENT_NORMAL
-		OutBentNormal = float4(BentNormal, SpecularOcclusion);
+		OutBentNormal = float4(EncodeBentNormal(BentNormal), SpecularOcclusion);
 		#if SUPPORT_IRRADIANCE
 			OutIrradiance = float4(Irradiance, 1);
 		#endif

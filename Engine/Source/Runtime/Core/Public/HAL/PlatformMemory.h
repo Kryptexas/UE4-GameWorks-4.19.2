@@ -7,7 +7,13 @@
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsPlatformMemory.h"
 #elif PLATFORM_PS4
+
+#if USE_NEW_PS4_MEMORY_SYSTEM
+#include "PS4/PS4Memory2.h"
+#else
 #include "PS4/PS4Memory.h"
+#endif
+
 #elif PLATFORM_XBOXONE
 #include "XboxOne/XboxOneMemory.h"
 #elif PLATFORM_MAC

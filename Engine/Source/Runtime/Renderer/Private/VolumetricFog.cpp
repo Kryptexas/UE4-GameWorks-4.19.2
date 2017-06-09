@@ -597,25 +597,25 @@ void FDeferredShadingSceneRenderer::RenderLocalLightsForVolumetricFog(
 				}
 				else
 				{
-					if (bDynamicallyShadowed)
+				if (bDynamicallyShadowed)
+				{
+					if (bInverseSquared)
 					{
-						if (bInverseSquared)
-						{
 							SetInjectShadowedLocalLightShaders<true, true, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
-						}
-						else
-						{
-							SetInjectShadowedLocalLightShaders<true, false, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
-						}
 					}
 					else
 					{
-						if (bInverseSquared)
-						{
+							SetInjectShadowedLocalLightShaders<true, false, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
+					}
+				}
+				else
+				{
+					if (bInverseSquared)
+					{
 							SetInjectShadowedLocalLightShaders<false, true, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
-						}
-						else
-						{
+					}
+					else
+					{
 							SetInjectShadowedLocalLightShaders<false, false, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
 						}
 					}
@@ -1077,8 +1077,10 @@ void FDeferredShadingSceneRenderer::ComputeVolumetricFog(FRHICommandListImmediat
 
 			const uint32 Flags = TexCreate_ShaderResource | TexCreate_RenderTargetable | TexCreate_UAV | TexCreate_ReduceMemoryWithTilingMode;
 			FPooledRenderTargetDesc VolumeDesc(FPooledRenderTargetDesc::CreateVolumeDesc(VolumetricFogGridSize.X, VolumetricFogGridSize.Y, VolumetricFogGridSize.Z, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, Flags, false));
-			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDesc, VBufferA, TEXT("VBufferA"));
-			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDesc, VBufferB, TEXT("VBufferB"));
+			FPooledRenderTargetDesc VolumeDescFastVRAM = VolumeDesc;
+			VolumeDescFastVRAM.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDescFastVRAM, VBufferA, TEXT("VBufferA"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDescFastVRAM, VBufferB, TEXT("VBufferB"));
 
 			IntegrationData.VBufferARenderTarget = VBufferA.GetReference();
 			IntegrationData.VBufferBRenderTarget = VBufferB.GetReference();
@@ -1119,7 +1121,7 @@ void FDeferredShadingSceneRenderer::ComputeVolumetricFog(FRHICommandListImmediat
 			}
 
 			TRefCountPtr<IPooledRenderTarget> LocalShadowedLightScattering = NULL;
-			RenderLocalLightsForVolumetricFog(RHICmdList, View, bUseTemporalReprojection, IntegrationData, FogInfo, VolumetricFogGridSize, GridZParams, VolumeDesc, LocalShadowedLightScattering);
+			RenderLocalLightsForVolumetricFog(RHICmdList, View, bUseTemporalReprojection, IntegrationData, FogInfo, VolumetricFogGridSize, GridZParams, VolumeDescFastVRAM, LocalShadowedLightScattering);
 
 			TRefCountPtr<IPooledRenderTarget> LightScattering;
 			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDesc, LightScattering, TEXT("LightScattering"));
@@ -1208,6 +1210,7 @@ void FDeferredShadingSceneRenderer::ComputeVolumetricFog(FRHICommandListImmediat
 
 			VBufferA = NULL;
 			VBufferB = NULL;
+			LightFunctionTexture = NULL;
 
 			GRenderTargetPool.FindFreeElement(RHICmdList, VolumeDesc, View.VolumetricFogResources.IntegratedLightScattering, TEXT("IntegratedLightScattering"));
 

@@ -207,7 +207,7 @@ void DrawDebugSolidBox(const UWorld* InWorld, FBox const& Box, FColor const& Col
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
 	{
 		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistent, LifeTime, false );
-		if(LineBatcher != nullptr)
+		if(LineBatcher != NULL)
 		{
 			float const ActualLifetime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
 			LineBatcher->DrawSolidBox(Box, Transform, Color, DepthPriority, ActualLifetime);
@@ -461,52 +461,55 @@ void DrawDebugSphere(const UWorld* InWorld, FVector const& Center, float Radius,
 	{
 		// this means foreground lines can't be persistent 
 		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistentLines, LifeTime, (DepthPriority == SDPG_Foreground) );
-		float LineLifeTime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
-
-		// Need at least 4 segments
-		Segments = FMath::Max(Segments, 4);
-
-		FVector Vertex1, Vertex2, Vertex3, Vertex4;
-		const float AngleInc = 2.f * PI / float(Segments);
-		int32 NumSegmentsY = Segments;
-		float Latitude = AngleInc;
-		int32 NumSegmentsX;
-		float Longitude;
-		float SinY1 = 0.0f, CosY1 = 1.0f, SinY2, CosY2;
-		float SinX, CosX;
-
-		TArray<FBatchedLine> Lines;
-		Lines.Empty(NumSegmentsY * Segments * 2);
-		while( NumSegmentsY-- )
+		if (LineBatcher != NULL)
 		{
-			SinY2 = FMath::Sin(Latitude);
-			CosY2 = FMath::Cos(Latitude);
+			float LineLifeTime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
 
-			Vertex1 = FVector(SinY1, 0.0f, CosY1) * Radius + Center;
-			Vertex3 = FVector(SinY2, 0.0f, CosY2) * Radius + Center;
-			Longitude = AngleInc;
+			// Need at least 4 segments
+			Segments = FMath::Max(Segments, 4);
 
-			NumSegmentsX = Segments;
-			while( NumSegmentsX-- )
+			FVector Vertex1, Vertex2, Vertex3, Vertex4;
+			const float AngleInc = 2.f * PI / float(Segments);
+			int32 NumSegmentsY = Segments;
+			float Latitude = AngleInc;
+			int32 NumSegmentsX;
+			float Longitude;
+			float SinY1 = 0.0f, CosY1 = 1.0f, SinY2, CosY2;
+			float SinX, CosX;
+
+			TArray<FBatchedLine> Lines;
+			Lines.Empty(NumSegmentsY * Segments * 2);
+			while (NumSegmentsY--)
 			{
-				SinX = FMath::Sin(Longitude);
-				CosX = FMath::Cos(Longitude);
+				SinY2 = FMath::Sin(Latitude);
+				CosY2 = FMath::Cos(Latitude);
 
-				Vertex2 = FVector((CosX * SinY1), (SinX * SinY1), CosY1) * Radius + Center;
-				Vertex4 = FVector((CosX * SinY2), (SinX * SinY2), CosY2) * Radius + Center;
+				Vertex1 = FVector(SinY1, 0.0f, CosY1) * Radius + Center;
+				Vertex3 = FVector(SinY2, 0.0f, CosY2) * Radius + Center;
+				Longitude = AngleInc;
 
-				Lines.Add(FBatchedLine(Vertex1, Vertex2, Color, LineLifeTime, Thickness, DepthPriority));
-				Lines.Add(FBatchedLine(Vertex1, Vertex3, Color, LineLifeTime, Thickness, DepthPriority));
+				NumSegmentsX = Segments;
+				while (NumSegmentsX--)
+				{
+					SinX = FMath::Sin(Longitude);
+					CosX = FMath::Cos(Longitude);
 
-				Vertex1 = Vertex2;
-				Vertex3 = Vertex4;
-				Longitude += AngleInc;
+					Vertex2 = FVector((CosX * SinY1), (SinX * SinY1), CosY1) * Radius + Center;
+					Vertex4 = FVector((CosX * SinY2), (SinX * SinY2), CosY2) * Radius + Center;
+
+					Lines.Add(FBatchedLine(Vertex1, Vertex2, Color, LineLifeTime, Thickness, DepthPriority));
+					Lines.Add(FBatchedLine(Vertex1, Vertex3, Color, LineLifeTime, Thickness, DepthPriority));
+
+					Vertex1 = Vertex2;
+					Vertex3 = Vertex4;
+					Longitude += AngleInc;
+				}
+				SinY1 = SinY2;
+				CosY1 = CosY2;
+				Latitude += AngleInc;
 			}
-			SinY1 = SinY2;
-			CosY1 = CosY2;
-			Latitude += AngleInc;
+			LineBatcher->DrawLines(Lines);
 		}
-		LineBatcher->DrawLines(Lines);
 	}
 }
 
@@ -573,54 +576,58 @@ void DrawDebugAltCone(const UWorld* InWorld, FVector const& Origin, FRotator con
 
 	// this means foreground lines can't be persistent 
 	ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistentLines, LifeTime, (DepthPriority == SDPG_Foreground) );
-	float const LineLifeTime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
+	if (LineBatcher != NULL)
+	{
 
-	FVector const EndPoint = Origin + AxisX * Length;
-	FVector const Up = FMath::Tan(AngleHeight * 0.5f) * AxisZ * Length;
-	FVector const Right = FMath::Tan(AngleWidth * 0.5f) * AxisY * Length;
-	FVector const HalfUp = Up * 0.5f;
-	FVector const HalfRight = Right * 0.5f;
+		float const LineLifeTime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
 
-	TArray<FBatchedLine> Lines;
-	Lines.Empty();
+		FVector const EndPoint = Origin + AxisX * Length;
+		FVector const Up = FMath::Tan(AngleHeight * 0.5f) * AxisZ * Length;
+		FVector const Right = FMath::Tan(AngleWidth * 0.5f) * AxisY * Length;
+		FVector const HalfUp = Up * 0.5f;
+		FVector const HalfRight = Right * 0.5f;
 
-	FVector A = EndPoint + Up - Right;
-	FVector B = EndPoint + Up + Right;
-	FVector C = EndPoint - Up + Right;
-	FVector D = EndPoint - Up - Right;
+		TArray<FBatchedLine> Lines;
+		Lines.Empty();
 
-	// Corners
-	Lines.Add(FBatchedLine(Origin, A, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, B, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, C, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, D, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		FVector A = EndPoint + Up - Right;
+		FVector B = EndPoint + Up + Right;
+		FVector C = EndPoint - Up + Right;
+		FVector D = EndPoint - Up - Right;
 
-	// Further most plane/frame
-	Lines.Add(FBatchedLine(A, B, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(B, C, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(C, D, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(D, A, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		// Corners
+		Lines.Add(FBatchedLine(Origin, A, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, B, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, C, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, D, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	// Mid points
-	Lines.Add(FBatchedLine(Origin, EndPoint + Up, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint - Up, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint + Right, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint - Right, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		// Further most plane/frame
+		Lines.Add(FBatchedLine(A, B, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(B, C, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(C, D, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(D, A, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	// Inbetween
-	Lines.Add(FBatchedLine(Origin, EndPoint + Up - HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint + Up + HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		// Mid points
+		Lines.Add(FBatchedLine(Origin, EndPoint + Up, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint - Up, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint + Right, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint - Right, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	Lines.Add(FBatchedLine(Origin, EndPoint - Up - HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint - Up + HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		// Inbetween
+		Lines.Add(FBatchedLine(Origin, EndPoint + Up - HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint + Up + HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	Lines.Add(FBatchedLine(Origin, EndPoint + Right - HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint + Right + HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint - Up - HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint - Up + HalfRight, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	Lines.Add(FBatchedLine(Origin, EndPoint - Right - HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
-	Lines.Add(FBatchedLine(Origin, EndPoint - Right + HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint + Right - HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint + Right + HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
 
-	LineBatcher->DrawLines(Lines);
+		Lines.Add(FBatchedLine(Origin, EndPoint - Right - HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
+		Lines.Add(FBatchedLine(Origin, EndPoint - Right + HalfUp, DrawColor, LineLifeTime, Thickness, DepthPriority));
+
+		LineBatcher->DrawLines(Lines);
+	}
 }
 
 void DrawDebugCone(const UWorld* InWorld, FVector const& Origin, FVector const& Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FColor const& DrawColor, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness)

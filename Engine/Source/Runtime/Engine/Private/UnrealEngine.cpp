@@ -1381,6 +1381,9 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		double ActualWaitTime = 0.f;
 		if( WaitTime > 0 )
 		{
+			// track all this waiting so that Game Thread is correct
+			FThreadIdleStats::FScopeIdle Scope;
+			
 			FSimpleScopeSecondsCounter ActualWaitTimeCounter(ActualWaitTime);
 			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
 
@@ -7199,13 +7202,13 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 		{
 			if (bNewerOnTop)
 			{
-				FScreenMessageString* NewMessage = new(PriorityScreenMessages)FScreenMessageString();
-				check(NewMessage);
-				NewMessage->Key = Key;
-				NewMessage->ScreenMessage = DebugMessage;
-				NewMessage->DisplayColor = DisplayColor;
-				NewMessage->TimeToDisplay = TimeToDisplay;
-				NewMessage->CurrentTimeDisplayed = 0.0f;
+			FScreenMessageString* NewMessage = new(PriorityScreenMessages)FScreenMessageString();
+			check(NewMessage);
+			NewMessage->Key = Key;
+			NewMessage->ScreenMessage = DebugMessage;
+			NewMessage->DisplayColor = DisplayColor;
+			NewMessage->TimeToDisplay = TimeToDisplay;
+			NewMessage->CurrentTimeDisplayed = 0.0f;
 				NewMessage->TextScale = TextScale;
 			}
 			else

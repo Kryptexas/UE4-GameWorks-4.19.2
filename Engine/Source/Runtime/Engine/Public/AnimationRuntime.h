@@ -37,10 +37,7 @@ namespace ETransformBlendMode
 }
 
 template<int32>
-void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	check(false); /// should never call this
-}
+FORCEINLINE void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight);
 
 template<>
 FORCEINLINE void BlendTransform<ETransformBlendMode::Overwrite>(const FTransform& Source, FTransform& Dest, const float BlendWeight)

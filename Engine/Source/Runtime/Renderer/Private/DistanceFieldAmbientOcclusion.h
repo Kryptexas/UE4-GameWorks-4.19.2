@@ -77,6 +77,8 @@ public:
 
 	virtual void InitDynamicRHI() override;
 
+	
+
 	virtual void ReleaseDynamicRHI() override
 	{
 		TileConeAxisAndCos.Release();
@@ -86,6 +88,24 @@ public:
 		CulledTilesStartOffsetArray.Release();
 		CulledTileDataArray.Release();
 		ObjectTilesIndirectArguments.Release();
+	}
+
+	void AcquireTransientResource()
+	{
+		TileConeAxisAndCos.AcquireTransientResource();
+		TileConeDepthRanges.AcquireTransientResource();
+		NumCulledTilesArray.AcquireTransientResource();
+		CulledTilesStartOffsetArray.AcquireTransientResource();
+		CulledTileDataArray.AcquireTransientResource();
+	}
+
+	void DiscardTransientResource()
+	{
+		TileConeAxisAndCos.DiscardTransientResource();
+		TileConeDepthRanges.DiscardTransientResource();
+		NumCulledTilesArray.DiscardTransientResource();
+		CulledTilesStartOffsetArray.DiscardTransientResource();
+		CulledTileDataArray.DiscardTransientResource();
 	}
 
 	size_t GetSizeBytes() const
@@ -211,6 +231,28 @@ public:
 		StepBentNormal.Release();
 		SurfelIrradiance.Release();
 		HeightfieldIrradiance.Release();
+	}
+
+	void AcquireTransientResource()
+	{
+		ScreenGridConeVisibility.AcquireTransientResource();
+		if (bAllocateResourceForGI)
+		{
+			StepBentNormal.AcquireTransientResource();
+			SurfelIrradiance.AcquireTransientResource();
+			HeightfieldIrradiance.AcquireTransientResource();
+		}
+	}
+
+	void DiscardTransientResource()
+	{
+		ScreenGridConeVisibility.DiscardTransientResource();
+		if (bAllocateResourceForGI)
+		{
+			StepBentNormal.DiscardTransientResource();
+			SurfelIrradiance.DiscardTransientResource();
+			HeightfieldIrradiance.DiscardTransientResource();
+		}
 	}
 
 	FIntPoint ScreenGridDimensions;

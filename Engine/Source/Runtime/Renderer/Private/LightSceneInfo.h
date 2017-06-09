@@ -82,12 +82,12 @@ struct FSortedLightSceneInfo
 		/** Sort key bits packed into an integer. */
 		int32 Packed;
 	} SortKey;
-	/** The compact light scene info. */
-	FLightSceneInfoCompact SceneInfo;
+
+	const FLightSceneInfo* LightSceneInfo;
 
 	/** Initialization constructor. */
-	explicit FSortedLightSceneInfo(const FLightSceneInfoCompact& InSceneInfo)
-		: SceneInfo(InSceneInfo)
+	explicit FSortedLightSceneInfo(const FLightSceneInfo* InLightSceneInfo)
+		: LightSceneInfo(InLightSceneInfo)
 	{
 		SortKey.Packed = 0;
 	}

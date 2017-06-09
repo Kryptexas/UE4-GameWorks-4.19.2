@@ -51,7 +51,7 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,uint32 I
 		Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 	}
 
-	if (FPlatformProperties::SupportsFastVRAMMemory())
+	if (FPlatformMemory::SupportsFastVRAMMemory())
 	{
 		if (InUsage & BUF_FastVRAM)
 		{

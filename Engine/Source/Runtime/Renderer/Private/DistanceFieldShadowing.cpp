@@ -669,14 +669,16 @@ void CullDistanceFieldObjectsForLight(
 	SCOPED_DRAW_EVENT(RHICmdList, CullObjectsForLight);
 
 	{
-		if (GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
+		if (!GShadowCulledObjectBuffers.IsInitialized()
+			|| GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
 			|| GShadowCulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 		{
 			GShadowCulledObjectBuffers.Buffers.bWantBoxBounds = true;
 			GShadowCulledObjectBuffers.Buffers.MaxObjects = Scene->DistanceFieldSceneData.NumObjectsInBuffer * 5 / 4;
-			GShadowCulledObjectBuffers.Buffers.Release();
-			GShadowCulledObjectBuffers.Buffers.Initialize();
+			GShadowCulledObjectBuffers.ReleaseResource();
+			GShadowCulledObjectBuffers.InitResource();
 		}
+		GShadowCulledObjectBuffers.Buffers.AcquireTransientResource();
 
 		{
 			ClearUAV(RHICmdList, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
@@ -906,18 +908,19 @@ void FProjectedShadowInfo::BeginRenderRayTracedDistanceFieldProjection(FRHIComma
 			{
 				const FIntPoint BufferSize = GetBufferSizeForDFShadows();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
 			}
 
 			SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
-			RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
+				RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
+			}
 		}
-	}
 }
 
-void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bProjectingForForwardShading) 
+void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading )
 {
 	BeginRenderRayTracedDistanceFieldProjection(RHICmdList, View);
 
@@ -933,14 +936,19 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 			ScissorRect = View.ViewRect;
 		}
 
+		if ( IsTransientResourceBufferAliasingEnabled() )
 		{
-			FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
+			GShadowCulledObjectBuffers.Buffers.DiscardTransientResource();
+		}
+
+		{
+			SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, FSceneRenderTargets::Get(RHICmdList).GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 			SCOPED_DRAW_EVENT(RHICmdList, Upsample);
 
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
+    
 			RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
 			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();

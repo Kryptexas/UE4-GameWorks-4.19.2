@@ -180,6 +180,9 @@ extern RHI_API bool GSupportsHDR32bppEncodeModeIntrinsic;
 /** True if the RHI supports getting the result of occlusion queries when on a thread other than the renderthread */
 extern RHI_API bool GSupportsParallelOcclusionQueries;
 
+/** true if the RHI supports aliasing of transient resources */
+extern RHI_API bool GSupportsTransientResourceAliasing;
+
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
 
@@ -823,7 +826,7 @@ struct FVRamAllocation
 	{
 	}
 
-	bool IsValid() { return AllocationSize > 0; }
+	bool IsValid() const { return AllocationSize > 0; }
 
 	// in bytes
 	uint32 AllocationStart;
@@ -946,6 +949,7 @@ struct FRHIResourceCreateInfo
 		: BulkData(nullptr)
 		, ResourceArray(nullptr)
 		, ClearValueBinding(FLinearColor::Transparent)
+		, DebugName(NULL)
 	{}
 
 	// for CreateTexture calls
@@ -953,6 +957,7 @@ struct FRHIResourceCreateInfo
 		: BulkData(InBulkData)
 		, ResourceArray(nullptr)
 		, ClearValueBinding(FLinearColor::Transparent)
+		, DebugName(NULL)
 	{}
 
 	// for CreateVertexBuffer/CreateStructuredBuffer calls
@@ -960,12 +965,14 @@ struct FRHIResourceCreateInfo
 		: BulkData(nullptr)
 		, ResourceArray(InResourceArray)
 		, ClearValueBinding(FLinearColor::Transparent)
+		, DebugName(NULL)
 	{}
 
 	FRHIResourceCreateInfo(const FClearValueBinding& InClearValueBinding)
 		: BulkData(nullptr)
 		, ResourceArray(nullptr)
 		, ClearValueBinding(InClearValueBinding)
+		, DebugName(NULL)
 	{
 	}
 
@@ -976,6 +983,7 @@ struct FRHIResourceCreateInfo
 
 	// for binding clear colors to rendertargets.
 	FClearValueBinding ClearValueBinding;
+	const TCHAR* DebugName;
 };
 
 // Forward-declaration.

@@ -79,17 +79,17 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		SetParametersBase(RHICmdList, ShaderRHI, View, LightSceneInfo->Proxy->GetIESTextureResource());
+		SetParametersBase(RHICmdList, ShaderRHI, View, ScreenShadowMaskTexture, LightSceneInfo->Proxy->GetIESTextureResource());
 		SetDeferredLightParameters(RHICmdList, ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
 	}
 
 	void SetParametersSimpleLight(FRHICommandList& RHICmdList, const FSceneView& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		SetParametersBase(RHICmdList, ShaderRHI, View, NULL);
+		SetParametersBase(RHICmdList, ShaderRHI, View, NULL, NULL);
 		SetSimpleDeferredLightParameters(RHICmdList, ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), SimpleLight, SimpleLightPerViewData, View);
 	}
 
@@ -110,7 +110,7 @@ public:
 
 private:
 
-	void SetParametersBase(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI, const FSceneView& View, FTexture* IESTextureResource)
+	void SetParametersBase(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI, const FSceneView& View, IPooledRenderTarget* ScreenShadowMaskTexture, FTexture* IESTextureResource)
 	{
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI,View.ViewUniformBuffer);
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View, MD_PostProcess);
@@ -125,7 +125,7 @@ private:
 				LightAttenuationTexture,
 				LightAttenuationTextureSampler,
 				TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
-				SceneRenderTargets.GetEffectiveLightAttenuationTexture(true)
+				ScreenShadowMaskTexture ? ScreenShadowMaskTexture->GetRenderTargetItem().ShaderResourceTexture : GWhiteTexture->TextureRHI
 				);
 		}
 
@@ -350,7 +350,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			{
 				if (LightSceneInfo->ShouldRenderLight(Views[ViewIndex]))
 				{
-					FSortedLightSceneInfo* SortedLightInfo = new(SortedLights) FSortedLightSceneInfo(LightSceneInfoCompact);
+					FSortedLightSceneInfo* SortedLightInfo = new(SortedLights) FSortedLightSceneInfo(LightSceneInfo);
 
 					// Check for shadows and light functions.
 					SortedLightInfo->SortKey.Fields.LightType = LightSceneInfoCompact.LightType;
@@ -426,7 +426,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights);
 			INC_DWORD_STAT_BY(STAT_NumUnshadowedLights, AttenuationLightStart);
-			SceneContext.SetLightAttenuationMode(false);
 
 			int32 StandardDeferredStart = 0;
 
@@ -470,11 +469,10 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				for (int32 LightIndex = StandardDeferredStart; LightIndex < AttenuationLightStart; LightIndex++)
 				{
 					const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-					const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-					const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+					const FLightSceneInfo* const LightSceneInfo = SortedLightInfo.LightSceneInfo;
 
 					// Render the light to the scene color buffer, using a 1x1 white texture as input 
-					RenderLight(RHICmdList, LightSceneInfo, false, false);
+					RenderLight(RHICmdList, LightSceneInfo, NULL, false, false);
 				}
 			}
 
@@ -506,8 +504,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
 			{
 				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-				const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
+				const FLightSceneInfo& LightSceneInfo = *SortedLightInfo.LightSceneInfo;
 				// Render any reflective shadow maps (if necessary)
 				if ( LightSceneInfo.Proxy && LightSceneInfo.Proxy->NeedsLPVInjection() )
 				{
@@ -526,8 +523,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				for (int32 LightIndex = 0; LightIndex < SortedLights.Num(); LightIndex++)
 				{
 					const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-					const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-					const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+					const FLightSceneInfo* const LightSceneInfo = SortedLightInfo.LightSceneInfo;
 
 					// Render any reflective shadow maps (if necessary)
 					if ( LightSceneInfo && LightSceneInfo->Proxy && LightSceneInfo->Proxy->NeedsLPVInjection() )
@@ -566,17 +562,27 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 
 			bool bDirectLighting = ViewFamily.EngineShowFlags.DirectLighting;
 
+			TRefCountPtr<IPooledRenderTarget> ScreenShadowMaskTexture;
+
 			// Draw shadowed and light function lights
 			for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
 			{
 				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-				const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
+				const FLightSceneInfo& LightSceneInfo = *SortedLightInfo.LightSceneInfo;
 				bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
 				bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
+				bool bDrawPreviewIndicator = ViewFamily.EngineShowFlags.PreviewShadowsIndicator && !LightSceneInfo.IsPrecomputedLightingValid() && LightSceneInfo.Proxy->HasStaticShadowing();
 				bool bInjectedTranslucentVolume = false;
-				bool bUsedLightAttenuation = false;
+				bool bUsedShadowMaskTexture = false;
 				FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
+
+				if ((bDrawShadows || bDrawLightFunction || bDrawPreviewIndicator) && !ScreenShadowMaskTexture.IsValid())
+				{
+					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
+					Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+					Desc.NumSamples = SceneContext.GetNumSceneColorMSAASamples(SceneContext.GetCurrentFeatureLevel());
+					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ScreenShadowMaskTexture, TEXT("ScreenShadowMaskTexture"));
+				}
 
 				FString LightNameWithLevel;
 				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
@@ -593,11 +599,11 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					}
 
 					// Clear light attenuation for local lights with a quad covering their extents
-					const bool bClearLightScreenExtentsOnly = SortedLightInfo.SceneInfo.LightType != LightType_Directional;
-
+					const bool bClearLightScreenExtentsOnly = SortedLightInfo.SortKey.Fields.LightType != LightType_Directional;
 					// All shadows render with min blending
 					bool bClearToWhite = !bClearLightScreenExtentsOnly;
-					SceneContext.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
+
+					SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), bClearToWhite ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 					if (bClearLightScreenExtentsOnly)
 					{
@@ -618,9 +624,9 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 						}
 					}
 
-					RenderShadowProjections(RHICmdList, &LightSceneInfo, bInjectedTranslucentVolume);
+					RenderShadowProjections(RHICmdList, &LightSceneInfo, ScreenShadowMaskTexture, bInjectedTranslucentVolume);
 
-					bUsedLightAttenuation = true;
+					bUsedShadowMaskTexture = true;
 				}
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -632,14 +638,15 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				// Render light function to the attenuation buffer.
 				if (bDirectLighting)
 				{
-					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows, false);
-					bUsedLightAttenuation |= bLightFunctionRendered;
-
-					if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
-						&& !LightSceneInfo.IsPrecomputedLightingValid() 
-						&& LightSceneInfo.Proxy->HasStaticShadowing())
+					if (bDrawLightFunction)
 					{
-						RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
+						const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, ScreenShadowMaskTexture, bDrawShadows, false);
+						bUsedShadowMaskTexture |= bLightFunctionRendered;
+					}
+
+					if (bDrawPreviewIndicator)
+					{
+						RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, ScreenShadowMaskTexture, bUsedShadowMaskTexture);
 					}
 
 					if (!bDrawShadows)
@@ -648,10 +655,9 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					}
 				}
 			
-				if( bUsedLightAttenuation )
+				if (bUsedShadowMaskTexture)
 				{
-					// Resolve light attenuation buffer
-					SceneContext.FinishRenderingLightAttenuation(RHICmdList);
+					RHICmdList.CopyToResolveTarget(ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, ScreenShadowMaskTexture->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
 				}
 			
 				if(bDirectLighting && !bInjectedTranslucentVolume)
@@ -661,19 +667,14 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 				}
 
-				SceneContext.SetLightAttenuationMode(bUsedLightAttenuation);
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 				// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
 				if(bDirectLighting)
 				{
-					RenderLight(RHICmdList, &LightSceneInfo, false, true);
+					RenderLight(RHICmdList, &LightSceneInfo, ScreenShadowMaskTexture, false, true);
 				}
 			}
-
-			// Restore the default mode
-			SceneContext.SetLightAttenuationMode(true);
-
 		}
 	}
 }
@@ -705,7 +706,7 @@ void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(FRHIComma
 			&& !LightSceneInfo->Proxy->HasStaticLighting()
 			&& LightSceneInfo->Proxy->CastsStaticShadow())
 		{
-			RenderLight(RHICmdList, LightSceneInfo, true, false);
+			RenderLight(RHICmdList, LightSceneInfo, NULL, true, false);
 		}
 	}
 }
@@ -764,7 +765,8 @@ static void SetShaderTemplLighting(
 	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	const FViewInfo& View,
 	FShader* VertexShader,
-	const FLightSceneInfo* LightSceneInfo)
+	const FLightSceneInfo* LightSceneInfo, 
+	IPooledRenderTarget* ScreenShadowMaskTexture)
 {
 	if(View.Family->EngineShowFlags.VisualizeLightCulling)
 	{
@@ -773,7 +775,7 @@ static void SetShaderTemplLighting(
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-		PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
+		PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture);
 	}
 	else
 	{
@@ -784,7 +786,7 @@ static void SetShaderTemplLighting(
 			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
+			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture);
 		}
 		else
 		{
@@ -793,7 +795,7 @@ static void SetShaderTemplLighting(
 			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
+			PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, ScreenShadowMaskTexture);
 		}
 	}
 }
@@ -865,7 +867,7 @@ void CalculateLightNearFarDepthFromBounds(const FViewInfo& View, const FSphere &
  * @param LightIndex The light's index into FScene::Lights
  * @return true if anything got rendered
  */
-void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent)
+void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bRenderOverlap, bool bIssueDrawEvent)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT(STAT_NumLightsUsingStandardDeferred);
@@ -922,11 +924,11 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			{
 				if(bUseIESTexture)
 				{
-					SetShaderTemplLighting<true, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+					SetShaderTemplLighting<true, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 				}
 				else
 				{
-					SetShaderTemplLighting<false, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+					SetShaderTemplLighting<false, false, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 				}
 			}
 
@@ -966,22 +968,22 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 				{
 					if(bUseIESTexture)
 					{
-						SetShaderTemplLighting<true, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+						SetShaderTemplLighting<true, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 					}
 					else
 					{
-						SetShaderTemplLighting<false, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+						SetShaderTemplLighting<false, true, true>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 					}
 				}
 				else
 				{
 					if(bUseIESTexture)
 					{
-						SetShaderTemplLighting<true, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+						SetShaderTemplLighting<true, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 					}
 					else
 					{
-						SetShaderTemplLighting<false, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo);
+						SetShaderTemplLighting<false, true, false>(RHICmdList, GraphicsPSOInit, View, *VertexShader, LightSceneInfo, ScreenShadowMaskTexture);
 					}
 				}
 			}

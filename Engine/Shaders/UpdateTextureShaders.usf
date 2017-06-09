@@ -47,7 +47,10 @@ Texture2D<int4> SrcTexture;
 [numthreads(8,8,1)]
 void CopyTexture2DCS( uint3 ThreadId : SV_DispatchThreadID )
 {
-	DestTexture[ThreadId.xy] = SrcTexture.Load(int3(ThreadId.x, ThreadId.y, 0));
+	if (all(ThreadId.xy >= DestPosSize.xy) && all(ThreadId.xy < DestPosSize.zw))
+	{
+		DestTexture[ThreadId.xy] = SrcTexture.Load(int3(ThreadId.x, ThreadId.y, 0));
+	}
 }
 
 Buffer<uint4> SrcCopyBuffer;

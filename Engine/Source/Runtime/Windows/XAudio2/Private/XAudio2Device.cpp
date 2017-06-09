@@ -31,6 +31,10 @@ THIRD_PARTY_INCLUDES_END
 #include "XAudio2Support.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
+#if WITH_XMA2
+#include "XMAAudioInfo.h"
+#endif
+
 DEFINE_LOG_CATEGORY(LogXAudio2);
 
 class FXAudio2DeviceModule : public IAudioDeviceModule
@@ -90,8 +94,10 @@ bool FXAudio2Device::InitializeHardware()
 	DeviceProperties->XAudio2 = nullptr;
 	DeviceProperties->MasteringVoice = nullptr;
 
+#if WITH_OGGVORBIS
 	// Load ogg and vorbis dlls if they haven't been loaded yet
 	LoadVorbisLibraries();
+#endif
 
 	SampleRate = UE4_XAUDIO2_SAMPLERATE;
 
@@ -121,11 +127,16 @@ bool FXAudio2Device::InitializeHardware()
 	uint32 Flags = 0;
 #endif
 
+#if WITH_XMA2
+	// We don't use all of the SHAPE processor, so this flag prevents wasted resources
+	Flags |= XAUDIO2_DO_NOT_USE_SHAPE;
+#endif
+
 	// Create a new XAudio2 device object instance
 	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()) != S_OK)
 	{
-		UE_LOG(LogInit, Log, TEXT( "Failed to create XAudio2 interface" ) );
-		return( false );
+		UE_LOG(LogInit, Log, TEXT("Failed to create XAudio2 interface"));
+		return(false);
 	}
 
 	check(DeviceProperties->XAudio2 != nullptr);
@@ -257,6 +268,10 @@ bool FXAudio2Device::InitializeHardware()
 	// Now initialize the audio clock voice after xaudio2 is initialized
 	DeviceProperties->InitAudioClockVoice();
 
+#if WITH_XMA2
+	FXMAAudioInfo::Initialize();
+#endif
+
 	return true;
 }
 
@@ -310,7 +325,7 @@ FSoundSource* FXAudio2Device::CreateSoundSource()
 
 bool FXAudio2Device::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 {
-#if WITH_OGGVORBIS
+#if WITH_OGGVORBIS || WITH_XMA2
 	return true;
 #else
 	return false;
@@ -338,14 +353,23 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 		}
 		return CompressedInfo;
 	}
-	else
-	{
-		return nullptr;
-	}
-#else
-	return nullptr;
 #endif
-	
+
+#if WITH_XMA2
+	static const FName NAME_XMA(TEXT("XMA"));
+	if (FPlatformProperties::RequiresCookedData() ? SoundWave->HasCompressedData(NAME_XMA) : (SoundWave->GetCompressedData(NAME_XMA) != nullptr))
+	{
+		ICompressedAudioInfo* CompressedInfo = new FXMAAudioInfo();
+		if (!CompressedInfo)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Failed to create new FXMAAudioInfo for SoundWave %s: out of memory."), *SoundWave->GetName());
+			return nullptr;
+		}
+		return CompressedInfo;
+	}
+#endif
+
+	return nullptr;
 }
 
 /**  
@@ -532,6 +556,7 @@ bool FXAudio2Device::GetOutputMatrix( uint32 ChannelMask, uint32 NumChannels )
 /** Test decompress a vorbis file */
 void FXAudio2Device::TestDecompressOggVorbis( USoundWave* Wave )
 {
+#if WITH_OGGVORBIS
 	FVorbisAudioInfo	OggInfo;
 	FSoundQualityInfo	QualityInfo = { 0 };
 
@@ -551,6 +576,7 @@ void FXAudio2Device::TestDecompressOggVorbis( USoundWave* Wave )
 
 		FMemory::Free( Wave->RawPCMData );
 	}
+#endif
 }
 
 #if !UE_BUILD_SHIPPING

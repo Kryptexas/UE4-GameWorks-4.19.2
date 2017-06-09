@@ -1710,6 +1710,13 @@ FVertexBufferRHIRef FDynamicRHI::CreateVertexBuffer_RenderThread(class FRHIComma
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
 	return GDynamicRHI->RHICreateVertexBuffer(Size, InUsage, CreateInfo);
 }
+
+FStructuredBufferRHIRef FDynamicRHI::CreateStructuredBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	FScopedRHIThreadStaller StallRHIThread(RHICmdList);
+	return GDynamicRHI->RHICreateStructuredBuffer(Stride, Size, InUsage, CreateInfo);
+}
+
 FIndexBufferRHIRef FDynamicRHI::CreateIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	FScopedRHIThreadStaller StallRHIThread(RHICmdList);

@@ -898,7 +898,7 @@ void FOpenGLFrontend::BuildShaderOutput(
 	Header.ShaderName = CCHeader.Name;
 
 	// perform any post processing this frontend class may need to do
-	ShaderOutput.bSucceeded = PostProcessShaderSource(Version, Frequency, USFSource, SourceLen + 1 - (USFSource - InShaderSource), ParameterMap, BindingNameMap, ShaderOutput.Errors);
+	ShaderOutput.bSucceeded = PostProcessShaderSource(Version, Frequency, USFSource, SourceLen + 1 - (USFSource - InShaderSource), ParameterMap, BindingNameMap, ShaderOutput.Errors, ShaderInput);
 
 	// Build the SRT for this shader.
 	{

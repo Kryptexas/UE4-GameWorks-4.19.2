@@ -2703,17 +2703,37 @@ void UStaticMesh::PostLoad()
 		CalculateExtendedBounds();
 	}
 
-	if (SectionInfoMap.Map.Num() == 0)
+	//Always redo the whole SectionInfoMap to be sure it contain only valid data
+	//This will reuse everything valid from the just serialize SectionInfoMap.
+	FMeshSectionInfoMap TempOldSectionInfoMap = SectionInfoMap;
+	SectionInfoMap.Clear();
+	for (int32 LODResourceIndex = 0; LODResourceIndex < RenderData->LODResources.Num(); ++LODResourceIndex)
 	{
-		// Before this serialization issue was fixed, some assets were resaved and permanently lost their section info map.
-		// This attempts to recreate it based on the render data.
-		SectionInfoMap.Clear();
-		for (int32 LODResourceIndex = 0; LODResourceIndex < RenderData->LODResources.Num(); ++LODResourceIndex)
+		FStaticMeshLODResources& LOD = RenderData->LODResources[LODResourceIndex];
+		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 		{
-			FStaticMeshLODResources& LOD = RenderData->LODResources[LODResourceIndex];
-			const int32 NumSections = LOD.Sections.Num();
-			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+			if (TempOldSectionInfoMap.IsValidSection(LODResourceIndex, SectionIndex))
 			{
+				FMeshSectionInfo Info = TempOldSectionInfoMap.Get(LODResourceIndex, SectionIndex);
+				if (StaticMaterials.IsValidIndex(Info.MaterialIndex))
+				{
+					//Reuse the valid data that come from the serialize
+					SectionInfoMap.Set(LODResourceIndex, SectionIndex, Info);
+				}
+				else
+				{
+					//Use the render data material index, but keep the flags (collision, shadow...)
+					const int32 MaterialIndex = LOD.Sections[SectionIndex].MaterialIndex;
+					if (StaticMaterials.IsValidIndex(MaterialIndex))
+					{
+						Info.MaterialIndex = MaterialIndex;
+						SectionInfoMap.Set(LODResourceIndex, SectionIndex, Info);
+					}
+				}
+			}
+			else
+			{
+				//Create a new SectionInfoMap from the render data
 				const int32 MaterialIndex = LOD.Sections[SectionIndex].MaterialIndex;
 				if (StaticMaterials.IsValidIndex(MaterialIndex))
 				{

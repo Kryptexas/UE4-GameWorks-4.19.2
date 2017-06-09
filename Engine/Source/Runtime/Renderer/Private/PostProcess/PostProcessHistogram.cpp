@@ -161,7 +161,7 @@ FPooledRenderTargetDesc FRCPassPostProcessHistogram::ComputeOutputDesc(EPassOutp
 
 	// format can be optimized later
 	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("Histogram");
 
 	return Ret;

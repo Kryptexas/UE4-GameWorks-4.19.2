@@ -76,7 +76,8 @@ protected:
 
 	// Allow a subclass to perform additional work on the cross compiled source code
 	virtual bool PostProcessShaderSource(GLSLVersion Version, EShaderFrequency Frequency, const ANSICHAR* ShaderSource,
-		uint32 SourceLen, class FShaderParameterMap& ParameterMap, TMap<FString, FString>& BindingNameMap, TArray<struct FShaderCompilerError>& Errors)
+		uint32 SourceLen, class FShaderParameterMap& ParameterMap, TMap<FString, FString>& BindingNameMap, TArray<struct FShaderCompilerError>& Errors,
+		const FShaderCompilerInput& ShaderInput)
 	{
 		return true;
 	}

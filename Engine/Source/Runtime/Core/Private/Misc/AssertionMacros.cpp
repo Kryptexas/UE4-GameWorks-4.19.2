@@ -371,3 +371,27 @@ void VARARGS LowLevelFatalErrorHandler(const ANSICHAR* File, int32 Line, const T
 
 	StaticFailDebug(TEXT("LowLevelFatalError"), File, Line, DescriptionString, false);
 }
+
+void FDebug::DumpStackTraceToLog()
+{
+#if !NO_LOGGING
+	// Walk the stack and dump it to the allocated memory.
+	const SIZE_T StackTraceSize = 65535;
+	ANSICHAR* StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
+
+	{
+#if STATS
+		FString StackWalkPerfMessage = FString::Printf(TEXT("FPlatformStackWalk::StackWalkAndDump"));
+		SCOPE_LOG_TIME_IN_SECONDS(*StackWalkPerfMessage, nullptr)
+#endif
+		StackTrace[0] = 0;
+		FPlatformStackWalk::StackWalkAndDumpEx(StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH, FGenericPlatformStackWalk::EStackWalkFlags::FlagsUsedWhenHandlingEnsure);
+	}
+
+	// Dump the error and flush the log.
+	// ELogVerbosity::Error to make sure it gets printed in log for conveniency.
+	OutputMultiLineCallstack(__FILE__, __LINE__, LogOutputDevice.GetCategoryName(), TEXT("=== FDebug::DumpStackTrace(): ==="), ANSI_TO_TCHAR(StackTrace), ELogVerbosity::Error);
+	GLog->Flush();
+	FMemory::SystemFree(StackTrace);
+#endif
+}

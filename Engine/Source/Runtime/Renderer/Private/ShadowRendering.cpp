@@ -1372,7 +1372,7 @@ bool FDeferredShadingSceneRenderer::InjectReflectiveShadowMaps(FRHICommandListIm
 	
 extern int32 GCapsuleShadows;
 
-bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bProjectingForForwardShading, bool bMobileModulatedProjections)
+bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading, bool bMobileModulatedProjections)
 {
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -1383,8 +1383,8 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 	}
 	else
 	{
-		// Normal deferred shadows render to light attenuation
-		SceneContext.BeginRenderingLightAttenuation(RHICmdList);
+		// Normal deferred shadows render to the shadow mask
+		SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 	}
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -1406,7 +1406,7 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 
 			if (ProjectedShadowInfo->bRayTracedDistanceField)
 			{
-				ProjectedShadowInfo->RenderRayTracedDistanceFieldProjection(RHICmdList, View, bProjectingForForwardShading);
+				ProjectedShadowInfo->RenderRayTracedDistanceFieldProjection(RHICmdList, View, ScreenShadowMaskTexture, bProjectingForForwardShading);
 			}
 			else if (ProjectedShadowInfo->bAllocated)
 			{
@@ -1421,11 +1421,6 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 					{
 						ProjectedShadowInfo->RenderProjection(RHICmdList, ViewIndex, &View, bProjectingForForwardShading, bMobileModulatedProjections);
 					}
-
-					if (!bMobileModulatedProjections)
-					{
-						GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.GetLightAttenuation());
-					}
 				}
 			}
 		}
@@ -1437,7 +1432,7 @@ bool FSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdLis
 	return true;
 }
 	
-bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool& bInjectedTranslucentVolume)
+bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool& bInjectedTranslucentVolume)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
@@ -1445,7 +1440,7 @@ bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmed
 
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
-	FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, false);
+	FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, ScreenShadowMaskTexture, false, false);
 
 	for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.ShadowsToProject.Num(); ShadowIndex++)
 	{
@@ -1467,7 +1462,7 @@ bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmed
 		}
 	}
 
-	RenderCapsuleDirectShadows(*LightSceneInfo, RHICmdList, VisibleLightInfo.CapsuleShadowsToProject, false);
+	RenderCapsuleDirectShadows(RHICmdList, *LightSceneInfo, ScreenShadowMaskTexture, VisibleLightInfo.CapsuleShadowsToProject, false);
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -1505,7 +1500,7 @@ void FMobileSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmed
 		{
 			TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
 			SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
-			FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+			FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, NULL, false, true);
 		}
 	}
 }

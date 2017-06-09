@@ -2970,7 +2970,7 @@ void UWorld::ConditionallyBuildStreamingData()
 
 bool UWorld::IsVisibilityRequestPending() const
 {
-	return (CurrentLevelPendingVisibility != nullptr && CurrentLevelPendingInvisibility != nullptr);
+	return (CurrentLevelPendingVisibility != nullptr || CurrentLevelPendingInvisibility != nullptr);
 }
 
 bool UWorld::AreAlwaysLoadedLevelsLoaded() const

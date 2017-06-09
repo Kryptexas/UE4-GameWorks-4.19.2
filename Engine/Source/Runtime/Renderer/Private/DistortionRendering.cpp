@@ -37,12 +37,6 @@ static TAutoConsoleVariable<int32> CVarDisableDistortion(
 														 TEXT("Prevents distortion effects from rendering.  Saves a full-screen framebuffer's worth of memory."),
 														 ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarFastVRamDistortion(
-	TEXT("r.FastVRamDistortion"),
-	0,
-	TEXT("Whether to store distortion in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 /**
 * A pixel shader for rendering the full screen refraction pass
 */
@@ -1062,10 +1056,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-		    if (CVarFastVRamDistortion.GetValueOnRenderThread() >= 1)
-		    {
-			    Desc.Flags |= TexCreate_FastVRAM;
-		    }
+			Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 			Desc.NumSamples = MSAACount;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistortionRT, TEXT("Distortion"));
 
@@ -1127,12 +1118,11 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture);
 		
-// OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
+		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
+		Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, NewSceneColor, TEXT("DistortedSceneColor"));
 		const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
-// OCULUS END
 
 		// Apply distortion and store off-screen
 		SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
@@ -1209,7 +1199,9 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		TRefCountPtr<IPooledRenderTarget> SceneColorDistorted;
-		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), SceneColorDistorted, TEXT("SceneColorDistorted"));
+		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
+		Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneColorDistorted, TEXT("SceneColorDistorted"));
 		const FSceneRenderTargetItem& DistortedRenderTarget = SceneColorDistorted->GetRenderTargetItem();
 
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;

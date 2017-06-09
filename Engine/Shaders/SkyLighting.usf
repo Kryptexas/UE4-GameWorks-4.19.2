@@ -13,6 +13,12 @@
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
+// Unpack from [0-1] PF_FloatR11G11B10
+float3 DecodeBentNormal(float3 EncodedBentNormal)
+{
+	return EncodedBentNormal * 2 - 1;
+}
+
 Texture2D IrradianceTexture;
 SamplerState IrradianceSampler;
 
@@ -43,7 +49,7 @@ void SkyLightDiffusePS(
 		float3 DiffuseIrradiance = 0;
 
 #if APPLY_SHADOWING
-		float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV, 0).xyz;
+		float3 BentNormal = DecodeBentNormal(Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV, 0).xyz);
 
 		#define USE_DIRECTIONAL_OCCLUSION_ON_SKY_DIFFUSE 1
 

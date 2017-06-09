@@ -931,7 +931,7 @@ void ProcessPrimitiveUpdate(
 
 					if (GAOLogGlobalDistanceFieldModifiedPrimitives)
 					{
-						UE_LOG(LogDistanceField,Warning,TEXT("Global Distance Field primitive %s %s %s bounding radius %.1f"), (bIsAddOperation ? TEXT("add") : TEXT("update")), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString(), BoundingRadius);
+						UE_LOG(LogDistanceField,Log,TEXT("Global Distance Field %s primitive %s %s %s bounding radius %.1f"), PrimitiveSceneInfo->Proxy->IsOftenMoving() ? TEXT("CACHED") : TEXT("Movable"), (bIsAddOperation ? TEXT("add") : TEXT("update")), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString(), BoundingRadius);
 					}
 				}
 				else if (bIsAddOperation)

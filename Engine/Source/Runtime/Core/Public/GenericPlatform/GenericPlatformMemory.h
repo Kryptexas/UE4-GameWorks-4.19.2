@@ -451,6 +451,17 @@ public:
 	 */
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 
+	/**
+	*	Gets whether this platform supports Fast VRAM memory
+	*		Ie, whether TexCreate_FastVRAM flags actually mean something or not
+	*
+	*	@return	bool		true if supported, false if not
+	*/
+	static FORCEINLINE bool SupportsFastVRAMMemory()
+	{
+		return false;
+	}
+
 protected:
 	friend struct FGenericStatsUpdater;
 

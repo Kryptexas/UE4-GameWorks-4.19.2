@@ -250,21 +250,21 @@ bool FDeferredShadingSceneRenderer::CheckForLightFunction( const FLightSceneInfo
  *
  * @param LightSceneInfo Represents the current light
  */
-bool FDeferredShadingSceneRenderer::RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared, bool bProjectingForForwardShading)
+bool FDeferredShadingSceneRenderer::RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bLightAttenuationCleared, bool bProjectingForForwardShading)
 {
 	if (ViewFamily.EngineShowFlags.LightFunctions)
 	{
-		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, bProjectingForForwardShading, false);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, ScreenShadowMaskTexture, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, bProjectingForForwardShading, false);
 	}
 	
 	return false;
 }
 
-bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
+bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, IPooledRenderTarget* ScreenShadowMaskTexture, bool bLightAttenuationCleared)
 {
 	if (GEngine->PreviewShadowsIndicatorMaterial)
 	{
-		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, false, true);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, ScreenShadowMaskTexture, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, false, true);
 	}
 
 	return false;
@@ -273,6 +273,7 @@ bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(FRHICommandLis
 bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 	FRHICommandListImmediate& RHICmdList, 
 	const FLightSceneInfo* LightSceneInfo, 
+	IPooledRenderTarget* ScreenShadowMaskTexture,
 	const FMaterialRenderProxy* MaterialProxy, 
 	bool bLightAttenuationCleared, 
 	bool bProjectingForForwardShading, 
@@ -280,9 +281,10 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 {
 	bool bRenderedLightFunction = false;
 
-	if (MaterialProxy && MaterialProxy->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction())
+	check(ScreenShadowMaskTexture);
+	if (MaterialProxy && MaterialProxy->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction() )
 	{
-		FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
+		SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, FSceneRenderTargets::Get(RHICmdList).GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 		bRenderedLightFunction = true;
 

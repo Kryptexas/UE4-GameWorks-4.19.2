@@ -359,7 +359,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 				Format = PF_G16R16;
 			}
 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, FClearValueBinding::None, 0, TexCreate_None, false));
 			Desc.AutoWritable = false;
 			if (bReference)
 			{

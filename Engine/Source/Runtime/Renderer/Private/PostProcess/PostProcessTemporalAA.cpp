@@ -1121,6 +1121,7 @@ void FRCPassPostProcessTemporalAA::DispatchCS(TRHICmdList& RHICmdList, FRenderin
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	//regardless of input type, PF_FloatRGBA is required to properly accumulate between frames for a good result.
 	Ret.Format = PF_FloatRGBA;

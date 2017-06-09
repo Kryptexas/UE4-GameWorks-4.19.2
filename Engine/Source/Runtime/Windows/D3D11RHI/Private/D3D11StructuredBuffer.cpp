@@ -53,7 +53,7 @@ FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 
 	Desc.StructureByteStride = Stride;
 
-	if (FPlatformProperties::SupportsFastVRAMMemory())
+	if (FPlatformMemory::SupportsFastVRAMMemory())
 	{
 		if (InUsage & BUF_FastVRAM)
 		{

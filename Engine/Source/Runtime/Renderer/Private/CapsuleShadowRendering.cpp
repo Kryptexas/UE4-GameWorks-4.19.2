@@ -670,8 +670,9 @@ void AllocateCapsuleTileIntersectionCountsBuffer(FIntPoint GroupSize, FSceneView
 }
 
 bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
-	const FLightSceneInfo& LightSceneInfo,
 	FRHICommandListImmediate& RHICmdList, 
+	const FLightSceneInfo& LightSceneInfo,
+	IPooledRenderTarget* ScreenShadowMaskTexture,
 	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows, 
 	bool bProjectingForForwardShading) const
 {
@@ -837,7 +838,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 					SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("Upsample %dx%d"),
 						ScissorRect.Width(), ScissorRect.Height());
 						
-					FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
+					SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, FSceneRenderTargets::Get(RHICmdList).GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 					FGraphicsPipelineStateInitializer GraphicsPSOInit;
 					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);

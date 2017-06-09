@@ -139,8 +139,6 @@ public:
 			static FName NAME_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
 			static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
 			static FName NAME_OPENGL_150_ES3_1(TEXT("GLSL_150_ES31"));
-			static FName NAME_OPENGL_SWITCH(TEXT("GLSL_SWITCH"));
-			static FName NAME_OPENGL_SWITCH_FORWARD(TEXT("GLSL_SWITCH_FORWARD"));
 			static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
@@ -150,8 +148,6 @@ public:
 			OutFormats.AddUnique(NAME_VULKAN_ES31);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES2);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES3_1);
-			OutFormats.AddUnique(NAME_OPENGL_SWITCH_FORWARD);
-			OutFormats.AddUnique(NAME_OPENGL_SWITCH);
 			OutFormats.AddUnique(NAME_VULKAN_SM4);
 		}
 	}

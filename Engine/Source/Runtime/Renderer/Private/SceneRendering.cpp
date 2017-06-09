@@ -233,6 +233,20 @@ static TAutoConsoleVariable<int32> CVarWideCustomResolve(
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
+TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets(
+	TEXT("r.TransientResourceAliasing.RenderTargets"),
+	1,
+	TEXT("0 : Disabled\n")
+	TEXT("1 : enable transient resource aliasing for fastVRam rendertargets\n")
+	TEXT("2 : enable transient resource aliasing for ALL rendertargets (experimental!)\n"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers(
+	TEXT("r.TransientResourceAliasing.Buffers"),
+	1,
+	TEXT("If true, enable transient resource aliasing for buffers"),
+	ECVF_ReadOnly);
+
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
 DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);

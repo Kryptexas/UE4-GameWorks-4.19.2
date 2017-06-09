@@ -108,16 +108,16 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View)
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
-		NextCulledLightLink.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NextCulledLightLink);
-		StartOffsetGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->StartOffsetGrid);
-		CulledLightLinks.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->CulledLightLinks);
-		NextCulledLightData.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NextCulledLightData);
+		NextCulledLightLink.SetBuffer(RHICmdList, ShaderRHI, ForwardLightingCullingResources.NextCulledLightLink);
+		StartOffsetGrid.SetBuffer(RHICmdList, ShaderRHI, ForwardLightingCullingResources.StartOffsetGrid);
+		CulledLightLinks.SetBuffer(RHICmdList, ShaderRHI, ForwardLightingCullingResources.CulledLightLinks);
+		NextCulledLightData.SetBuffer(RHICmdList, ShaderRHI, ForwardLightingCullingResources.NextCulledLightData);
 	}
 
 	template<typename ShaderRHIParamRef>
-	void UnsetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View)
+	void UnsetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
 		NextCulledLightLink.UnsetUAV(RHICmdList, ShaderRHI);
 		StartOffsetGrid.UnsetUAV(RHICmdList, ShaderRHI);
@@ -128,22 +128,22 @@ public:
 
 		if (NextCulledLightLink.IsUAVBound())
 		{
-			OutUAVs.Add(View.ForwardLightingResources->NextCulledLightLink.UAV);
+			OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightLink.UAV);
 		}
 
 		if (StartOffsetGrid.IsUAVBound())
 		{
-			OutUAVs.Add(View.ForwardLightingResources->StartOffsetGrid.UAV);
+			OutUAVs.Add(ForwardLightingCullingResources.StartOffsetGrid.UAV);
 		}
 
 		if (CulledLightLinks.IsUAVBound())
 		{
-			OutUAVs.Add(View.ForwardLightingResources->CulledLightLinks.UAV);
+			OutUAVs.Add(ForwardLightingCullingResources.CulledLightLinks.UAV);
 		}
 
 		if (NextCulledLightData.IsUAVBound())
 		{
-			OutUAVs.Add(View.ForwardLightingResources->NextCulledLightData.UAV);
+			OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightData.UAV);
 		}
 
 		if (OutUAVs.Num() > 0)
@@ -204,18 +204,18 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
-		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, View);
+		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, ForwardLightingCullingResources);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
 		ForwardLightingParameters.UnsetParameters(RHICmdList, GetComputeShader(), View);
-		ForwardCullingParameters.UnsetParameters(RHICmdList, GetComputeShader(), View);
+		ForwardCullingParameters.UnsetParameters(RHICmdList, GetComputeShader(), ForwardLightingCullingResources);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -265,18 +265,18 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
-		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, View);
+		ForwardCullingParameters.Set(RHICmdList, ShaderRHI, ForwardLightingCullingResources);
 	}
 
-	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
+	void UnsetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FForwardLightingCullingResources& ForwardLightingCullingResources)
 	{
 		ForwardLightingParameters.UnsetParameters(RHICmdList, GetComputeShader(), View);
-		ForwardCullingParameters.UnsetParameters(RHICmdList, GetComputeShader(), View);
+		ForwardCullingParameters.UnsetParameters(RHICmdList, GetComputeShader(), ForwardLightingCullingResources);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -611,15 +611,33 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			if (View.ForwardLightingResources->NumCulledLightsGrid.NumBytes != NumCells * NumCulledLightsGridStride * sizeof(uint32))
 			{
 				View.ForwardLightingResources->NumCulledLightsGrid.Initialize(sizeof(uint32), NumCells * NumCulledLightsGridStride, PF_R32_UINT);
-				View.ForwardLightingResources->NextCulledLightLink.Initialize(sizeof(uint32), 1, PF_R32_UINT);
-				View.ForwardLightingResources->StartOffsetGrid.Initialize(sizeof(uint32), NumCells, PF_R32_UINT);
-				View.ForwardLightingResources->NextCulledLightData.Initialize(sizeof(uint32), 1, PF_R32_UINT);
 			}
 
 			if (View.ForwardLightingResources->CulledLightDataGrid.NumBytes != NumCells * GMaxCulledLightsPerCell * sizeof(FLightIndexType))
 			{
 				View.ForwardLightingResources->CulledLightDataGrid.Initialize(sizeof(FLightIndexType), NumCells * GMaxCulledLightsPerCell, sizeof(FLightIndexType) == sizeof(uint16) ? PF_R16_UINT : PF_R32_UINT);
-				View.ForwardLightingResources->CulledLightLinks.Initialize(sizeof(uint32), NumCells * GMaxCulledLightsPerCell * LightLinkStride, PF_R32_UINT);
+			}
+
+			const bool bShouldCacheTemporaryBuffers = View.ViewState != nullptr;
+			FForwardLightingCullingResources LocalCullingResources;
+			FForwardLightingCullingResources& ForwardLightingCullingResources = bShouldCacheTemporaryBuffers ? View.ViewState->ForwardLightingCullingResources : LocalCullingResources;
+
+			if (ForwardLightingCullingResources.CulledLightLinks.NumBytes != NumCells * GMaxCulledLightsPerCell * LightLinkStride)
+			{
+				const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? (BUF_FastVRAM | BUF_Transient) : BUF_None;
+				ForwardLightingCullingResources.CulledLightLinks.Initialize(sizeof(uint32), NumCells * GMaxCulledLightsPerCell * LightLinkStride, PF_R32_UINT, FastVRamFlag, TEXT("CulledLightLinks"));
+				ForwardLightingCullingResources.NextCulledLightLink.Initialize(sizeof(uint32), 1, PF_R32_UINT, FastVRamFlag, TEXT("NextCulledLightLink"));
+				ForwardLightingCullingResources.StartOffsetGrid.Initialize(sizeof(uint32), NumCells, PF_R32_UINT, FastVRamFlag, TEXT("StartOffsetGrid"));
+				ForwardLightingCullingResources.NextCulledLightData.Initialize(sizeof(uint32), 1, PF_R32_UINT, FastVRamFlag, TEXT("NextCulledLightData"));
+			}
+
+			if (IsTransientResourceBufferAliasingEnabled())
+			{
+				// Acquire resources
+				ForwardLightingCullingResources.CulledLightLinks.AcquireTransientResource();
+				ForwardLightingCullingResources.NextCulledLightLink.AcquireTransientResource();
+				ForwardLightingCullingResources.StartOffsetGrid.AcquireTransientResource();
+				ForwardLightingCullingResources.NextCulledLightData.AcquireTransientResource();
 			}
 
 			const FIntVector NumGroups = FIntVector::DivideAndRoundUp(FIntVector(LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ), LightGridInjectionGroupSize);
@@ -635,23 +653,23 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<6>> OutUAVs;
 				OutUAVs.Add(View.ForwardLightingResources->NumCulledLightsGrid.UAV);
 				OutUAVs.Add(View.ForwardLightingResources->CulledLightDataGrid.UAV);
-				OutUAVs.Add(View.ForwardLightingResources->NextCulledLightLink.UAV);
-				OutUAVs.Add(View.ForwardLightingResources->StartOffsetGrid.UAV);
-				OutUAVs.Add(View.ForwardLightingResources->CulledLightLinks.UAV);
-				OutUAVs.Add(View.ForwardLightingResources->NextCulledLightData.UAV);
+				OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightLink.UAV);
+				OutUAVs.Add(ForwardLightingCullingResources.StartOffsetGrid.UAV);
+				OutUAVs.Add(ForwardLightingCullingResources.CulledLightLinks.UAV);
+				OutUAVs.Add(ForwardLightingCullingResources.NextCulledLightData.UAV);
 				RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, OutUAVs.GetData(), OutUAVs.Num());
 
 				if (GLightLinkedListCulling)
 				{
-					ClearUAV(RHICmdList, View.ForwardLightingResources->StartOffsetGrid, 0xFFFFFFFF);
-					ClearUAV(RHICmdList, View.ForwardLightingResources->NextCulledLightLink, 0);
-					ClearUAV(RHICmdList, View.ForwardLightingResources->NextCulledLightData, 0);
+					ClearUAV(RHICmdList, ForwardLightingCullingResources.StartOffsetGrid, 0xFFFFFFFF);
+					ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightLink, 0);
+					ClearUAV(RHICmdList, ForwardLightingCullingResources.NextCulledLightData, 0);
 
 					TShaderMapRef<TLightGridInjectionCS<true> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-					ComputeShader->SetParameters(RHICmdList, View);
+					ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
 					DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);
 				}
 				else
 				{
@@ -659,9 +677,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 					TShaderMapRef<TLightGridInjectionCS<false> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-					ComputeShader->SetParameters(RHICmdList, View);
+					ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
 					DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
-					ComputeShader->UnsetParameters(RHICmdList, View);
+					ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);
 				}
 			}
 
@@ -671,9 +689,16 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 				TShaderMapRef<FLightGridCompactCS> ComputeShader(View.ShaderMap);
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-				ComputeShader->SetParameters(RHICmdList, View);
+				ComputeShader->SetParameters(RHICmdList, View, ForwardLightingCullingResources);
 				DispatchComputeShader(RHICmdList, *ComputeShader, NumGroups.X, NumGroups.Y, NumGroups.Z);
-				ComputeShader->UnsetParameters(RHICmdList, View);
+				ComputeShader->UnsetParameters(RHICmdList, View, ForwardLightingCullingResources);
+			}
+			if (IsTransientResourceBufferAliasingEnabled())
+			{
+				ForwardLightingCullingResources.CulledLightLinks.DiscardTransientResource();
+				ForwardLightingCullingResources.NextCulledLightLink.DiscardTransientResource();
+				ForwardLightingCullingResources.StartOffsetGrid.DiscardTransientResource();
+				ForwardLightingCullingResources.NextCulledLightData.DiscardTransientResource();
 			}
 		}
 	}
@@ -717,14 +742,14 @@ void FDeferredShadingSceneRenderer::RenderForwardShadingShadowProjections(FRHICo
 
 			if (VisibleLightInfo.ShadowsToProject.Num() > 0)
 			{
-				FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, true, false);
+				FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, SceneRenderTargets.GetLightAttenuation(), true, false);
 			}
 
-			RenderCapsuleDirectShadows(*LightSceneInfo, RHICmdList, VisibleLightInfo.CapsuleShadowsToProject, true);
+			RenderCapsuleDirectShadows(RHICmdList, *LightSceneInfo, SceneRenderTargets.GetLightAttenuation(), VisibleLightInfo.CapsuleShadowsToProject, true);
 
 			if (LightSceneInfo->GetDynamicShadowMapChannel() >= 0 && LightSceneInfo->GetDynamicShadowMapChannel() < 4)
 			{
-				RenderLightFunction(RHICmdList, LightSceneInfo, true, true);
+				RenderLightFunction(RHICmdList, LightSceneInfo, SceneRenderTargets.GetLightAttenuation(), true, true);
 			}
 		}
 

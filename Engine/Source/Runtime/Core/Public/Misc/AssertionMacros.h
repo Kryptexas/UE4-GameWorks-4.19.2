@@ -18,6 +18,9 @@ struct CORE_API FDebug
 	/** Records the calling of AssertFailed() */
 	static bool bHasAsserted;
 
+	/** Dumps the stack trace into the log, meant to be used for debugging purposes. */
+	static void DumpStackTraceToLog();
+
 #if DO_CHECK || DO_GUARD_SLOW
 	/** Failed assertion handler.  Warning: May be called at library startup time. */
 	static void VARARGS LogAssertFailedMessage( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format=TEXT(""), ... );

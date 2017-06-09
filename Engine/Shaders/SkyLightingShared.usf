@@ -19,6 +19,12 @@ float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float 
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
+// Unpack from [0-1] PF_FloatR11G11B10
+float3 DecodeBentNormal(float3 EncodedBentNormal)
+{
+	return EncodedBentNormal * 2 - 1;
+}
+
 float ApplyBentNormalAO;
 float InvSkySpecularOcclusionStrength;
 float4 OcclusionTintAndMinOcclusion;
@@ -32,8 +38,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 	BRANCH
 	if (ApplyBentNormalAO > 0)
 	{
-		float4 TextureValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0);
-		float3 BentNormalAO = TextureValue.xyz;
+		float3 BentNormalAO = DecodeBentNormal(Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz);
 		float BentNormalLength = length(BentNormalAO);
 
 		BRANCH
@@ -68,7 +73,7 @@ void GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVecto
 
 float GetDynamicSkyIndirectIrradiance(float2 ScreenUV, float3 WorldNormal)
 {
-	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
+	float3 BentNormal = DecodeBentNormal(Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz);
 	float SkyVisibility = length(BentNormal);
 	float3 DiffuseLookup = GetSkySHDiffuse(WorldNormal) * View.SkyLightColor.rgb;
 	return Luminance(DiffuseLookup) * SkyVisibility;
