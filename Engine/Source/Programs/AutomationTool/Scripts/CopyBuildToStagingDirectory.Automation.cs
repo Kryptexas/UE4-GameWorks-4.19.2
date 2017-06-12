@@ -907,12 +907,8 @@ public partial class Project : CommandUtils
 			// Do a filtered copy of all ini files to allow stripping of values that we don't want to distribute
 			if (Path.GetExtension(Src).Equals(".ini"))
 			{
-				string SrcDirectoryPath = Path.GetDirectoryName(Src);
-				string ConfigDirectory = "Config";
-				int ConfigRootIdx = SrcDirectoryPath.LastIndexOf(ConfigDirectory);
-				string SubpathUnderConfig = (ConfigRootIdx != -1) ? SrcDirectoryPath.Substring(ConfigRootIdx + ConfigDirectory.Length) : "Unknown";
-
-				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, Path.GetFileName(Src));
+				string SubFolder = Pair.Value.Replace('/', Path.DirectorySeparatorChar);
+				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubFolder);
 				InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(NewIniFilename), true);
 				InternalUtils.SafeCopyFile(Src, NewIniFilename, bFilterSpecialLinesFromIniFiles:true);
 				Src = NewIniFilename;
