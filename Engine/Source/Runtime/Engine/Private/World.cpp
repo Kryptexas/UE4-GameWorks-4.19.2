@@ -5718,6 +5718,11 @@ bool UWorld::IsGameWorld() const
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE || WorldType == EWorldType::GamePreview;
 }
 
+bool UWorld::IsEditorWorld() const
+{
+	return WorldType == EWorldType::Editor || WorldType == EWorldType::EditorPreview || WorldType == EWorldType::PIE;
+}
+
 bool UWorld::IsPreviewWorld() const
 {
 	return WorldType == EWorldType::EditorPreview || WorldType == EWorldType::GamePreview;

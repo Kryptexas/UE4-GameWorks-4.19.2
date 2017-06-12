@@ -205,6 +205,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
 	FOnMovieSceneSequencePlayerEvent OnPause;
 
+	/** Event triggered when the level sequence player finishes naturally (without explicitly calling stop) */
+	UPROPERTY(BlueprintAssignable, Category = "Game|Cinematic")
+	FOnMovieSceneSequencePlayerEvent OnFinished;
+
 
 public:
 

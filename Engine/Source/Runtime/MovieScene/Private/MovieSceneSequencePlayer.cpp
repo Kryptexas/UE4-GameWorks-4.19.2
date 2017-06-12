@@ -349,15 +349,20 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 		// stop playback
 		else
 		{
+			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
+
+			UpdateMovieSceneInstance(Range, OptionalStatus);
+
 			Stop();
 
 			// When playback stops naturally, the time cursor is put at the boundary that was crossed to make ping-pong playback easy
 			TimeCursorPosition = bReversePlayback ? 0.f : GetLength();
 			PlayPosition.Reset(TimeCursorPosition);
 
-			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
-
-			UpdateMovieSceneInstance(Range, OptionalStatus);
+			if (OnFinished.IsBound())
+			{
+				OnFinished.Broadcast();
+			}
 		}
 	}
 	else

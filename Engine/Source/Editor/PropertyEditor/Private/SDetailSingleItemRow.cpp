@@ -490,6 +490,12 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 
 const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 {
+	/*bool UseDarkTheme = false;
+	if (Customization->GetWidgetRow().IsDarkThemeAttr.IsSet())
+	{
+		UseDarkTheme = Customization->GetWidgetRow().IsDarkThemeAttr.Get();
+	}*/
+
 	if( IsHighlighted() )
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");

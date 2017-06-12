@@ -19,6 +19,7 @@
 #include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
 #include "HighResScreenshot.h"
+#include "GameFramework/GameUserSettings.h"
 
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -799,7 +800,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	ViewportClient(InViewportClient),
 	SizeX(0),
 	SizeY(0),
-	WindowMode(EWindowMode::Windowed),
+	WindowMode(IsRunningGame() ? GEngine->GetGameUserSettings()->GetDefaultWindowMode() : EWindowMode::Windowed),
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),

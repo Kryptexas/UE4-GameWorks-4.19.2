@@ -3029,7 +3029,10 @@ public:
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
-	/** Returns true if this world is a preview game world (blueprint editor) */
+	/** Returns true if this world is any kind of editor world (including editor preview worlds) */
+	bool IsEditorWorld() const;
+
+	/** Returns true if this world is a preview game world (editor or game) */
 	bool IsPreviewWorld() const;
 
 	/** Returns true if this world should look at game hidden flags instead of editor hidden flags for the purposes of rendering */

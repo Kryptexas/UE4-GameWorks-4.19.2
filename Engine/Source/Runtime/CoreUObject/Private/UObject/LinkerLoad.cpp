@@ -2263,7 +2263,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 						if (DependsList.Contains(ImportPackageIndex))
 						{
 							TokenizedMessage->AddToken(FTextToken::Create(
-								FText::Format(LOCTEXT("ImportFailureExportReference", "Referenced by export {ExportClass}"),
+								FText::Format(LOCTEXT("ImportFailureExportReference", "Referenced by export {0}"),
 									FText::FromName(GetExportClassName(CurrentExportIndex)))));
 							TokenizedMessage->AddToken(FAssetNameToken::Create(GetExportPathName(CurrentExportIndex)));
 						}

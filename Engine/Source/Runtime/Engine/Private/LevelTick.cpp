@@ -1172,21 +1172,19 @@ void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, con
 				// If it is tickable and in this world
 				if (TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World))
 				{
-					// If this is a game world or the object is tickable in editor
 					const bool bIsGameWorld = InTickType == LEVELTICK_All || (World && World->IsGameWorld());
-
-					if (bIsGameWorld || (GIsEditor && TickableObject->IsTickableInEditor()))
+					// If we are in editor and it is editor tickable, always tick
+					// If this is a game world then tick if we are not doing a time only (paused) update and we are not paused or the object is tickable when paused
+					if ((GIsEditor && TickableObject->IsTickableInEditor()) ||
+						(bIsGameWorld && ((!bIsPaused && TickType != LEVELTICK_TimeOnly) || (bIsPaused && TickableObject->IsTickableWhenPaused()))))
 					{
-						// Then tick if we are not doing a time only (paused) update and we are not paused or the object is tickable when paused
-						if ((!bIsPaused && TickType != LEVELTICK_TimeOnly) || (bIsPaused && TickableObject->IsTickableWhenPaused()))
-						{
-							STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
-							TickableObject->Tick(DeltaSeconds);
+						STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
+						TickableObject->Tick(DeltaSeconds);
 
-							if (TickableObjects[i] == nullptr)
-							{
-								bNeedsCleanup = true;
-							}
+						// In case it was removed during tick
+						if (TickableObjects[i] == nullptr)
+						{
+							bNeedsCleanup = true;
 						}
 					}
 				}
