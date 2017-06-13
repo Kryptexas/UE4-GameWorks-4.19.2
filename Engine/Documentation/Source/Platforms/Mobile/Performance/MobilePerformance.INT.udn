@@ -150,9 +150,38 @@ Inside of this file, you can specify what will happen to the resolution of your 
 
 In the following image, you can see an example of the Mobile Content Scale Factor in action using the command listed above.
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
 [![](T_MCF_INI_File.png)(w:358 h:505)](T_MCF_INI_File.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](T_MCF_INI_File_Mac.png)(w:358 h:505)](T_MCF_INI_File_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [REGION:caption]
 Click for full image.
 [/REGION]
@@ -227,9 +256,38 @@ Please note that 1 for high and 2 for medium **IS** correct and not a typo!
 **From Device Profiles**: You can also adjust the Material Quality by doing the following:
 
 1. From the Main Toolbar go to **Windows** > **Developer Tools** and then click on **Device Profiles**.  
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
 	[![](MQS_Device_Profiles.png)(w:217 h:371)](MQS_Device_Profiles.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MQS_Device_Profiles_Mac.png)(w:217 h:371)](MQS_Device_Profiles_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 	[REGION:caption]
 	Click for full image.
 	[/REGION]
@@ -300,10 +358,37 @@ These two properties can be enabled to help reduce the rendering cost of that Ma
 ### Mobile Material Rendering Overrides
 You can override the available rendering option a platform will use by adjusting the **ES2 Quality Settings**. You can find the ES2 Quality Setting for both Android and iOS by going to your **Project Settings** > **Platforms** and then selecting either **Android ES2 Quality** or **iOS ES2 Quality Settings**. To use the overrides, you must first click on the **Enable Quality Override** option and then select the option you want to override by clicking on it. Once all of the options you want have been selected, press the **Update preview shaders** button to re-compile all Materials to work with the options you have specified. 
 
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
 [![](MQS_Rendering_Overrides.png)(w:613 h:330)](MQS_Rendering_Overrides.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](MQS_Rendering_Overrides_Mac.png)(w:613 h:330)](MQS_Rendering_Overrides_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [REGION:caption]
 Click for full image.
 [/REGION]
@@ -314,14 +399,67 @@ Inside of your **Project's Settings** menu under the **Mobile** section you will
 ### Accessing your Project Settings
 To access your project settings you will first need to go to the **Main Toolbar** and then select **Edit** > **Project Settings**. 
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](MRO_Project_Settings.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MRO_Project_Settings_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Once the Project Settings menu is open, locate the **Engine** section and then click on the **Rendering** category and look for the **Mobile** heading. 
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
 [![](MRO_Rendering_Settings.png)(w:430)](MRO_Rendering_Settings.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](MRO_Rendering_Settings_Mac.png)(w:430)](MRO_Rendering_Settings_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [REGION:caption]
 Click for full image.
 [/REGION]

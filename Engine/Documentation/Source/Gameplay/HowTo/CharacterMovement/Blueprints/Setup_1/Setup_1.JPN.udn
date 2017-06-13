@@ -1,29 +1,18 @@
-﻿INTSourceChangelist:2740691
+﻿INTSourceChangelist:3429254
 Availability:Public
-Title:1.キャラクター設定
+Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:キャラクターを設定し、このガイドで後に必要となるアセットを幾つか作成します。 
+Description:キャラクターに設定を行い、このガイドで後に必要となるアセットを幾つか作成します。 
 Version:4.9
 SkillLevel:Advanced
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
+type:how-to
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクター移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints\)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input\:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-手始めに、キャラクターで使うアセットを幾つか作成します。まず最初にキャラクターのアニメーションを操作するための **Animation ブループリント** (このシリーズで後ほど実装していきます) を作成し、次にキャラクターのアクションや入力への反応方法のロジックを扱う **Character ブループリント** を作成します。 
+手始めに、キャラクターで使うアセットを幾つか作成します。まず最初にキャラクターのアニメーションを操作するための **Animation ブループリント** (このシリーズで後ほど実装していきます) を作成し、次にキャラクターのアクションや入力への反応方法のロジックを司る **Character ブループリント** を作成します。 
 
 [REGION:note]
 このプロジェクトでは **Animation Starter Pack** を使用します。 **マーケットプレイス** から無料でご利用いただけます。Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project]** ボタンで既存プロジェクト (できれば新規のブランク プロジェクト) に追加します。これで、アセットを追加するプロジェクトを指定することができます。 
@@ -47,7 +36,7 @@ SkillLevel:Advanced
 
 1.	「 **MyCharacter** 」などの名前を付けて開きます。 
 
-1.	[Component] ウィンドウで、 **Mesh** コンポーネントをクリックします。 
+1.	**[Component]** ウィンドウで、 **Mesh** コンポーネントをクリックします。 
 
 	![](ClickMesh.png)
 
@@ -87,15 +76,14 @@ SkillLevel:Advanced
 
 	![](Characters_7.png)
 
-	好きな値に設定することができますが、適切な値を選んでください。 
+	お好きな値に設定することができますが、適切な値を選んでください。 
 
 1.	**[MyBlueprint]** ウィンドウで **[Create Variable]** ボタンをクリックし、 **JogPressed** という **Bool** を作成します。 
 
-1.	次の 4 つの **Bool** 変数を作成します。**CrouchPressed** 、 **PronePressed** 、 **JumpPressed** 、 **DisableMovement**。 
+1.	次の 4 つの **Bool** 変数を作成します。**CrouchPressed** 、 **PronePressed** 、 **JumpPressed** 、 **DisableMovement** 
 
 	![](Characters_8.png)
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
-%Steps%
-
+[NAV]

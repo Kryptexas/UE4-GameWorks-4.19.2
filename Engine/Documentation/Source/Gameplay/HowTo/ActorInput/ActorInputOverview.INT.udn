@@ -4,23 +4,17 @@ Crumbs: %ROOT%, Gameplay
 Description:A How To Guide to Setting up Input for an Actor in Unreal Engine 4. 
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Intermediate
+type:overview
 order:9
 
 When developing your game, there may be instances when you want to allow the player to perform some form of **Input** on an Actor in your level. For example, perhaps you have a treasure chest that you want the player to be able to open when they approach it, or a light you want them to be able to turn on/off, or some other form of interactable object you want to affect in some way when the player presses a button. 
 
 Setting up Input for an Actor gives you a level of control over how and when the Actor responds to player input. For more information, see the link provided in the **Setup** section below. 
 
-## Setup
+## Implementation Guides
 
-To learn more about **Setting up Input for an Actor** using Blueprints, follow the link below:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\ActorInput\Blueprints)
-<!--
-* [](Gameplay\HowTo\ActorInput\Code)
--->
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/ActorInput" org:"hierarchy" end:"1")]
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:アニメーション エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -13,6 +13,7 @@ Related:Engine/Content/FBX/Animations
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
+tags:Tools
 
 [EXCERPT:Overview]
 **アニメーション エディタ** では、スケルタルメッシュで利用できる様々なAnimation アセットに簡単にアクセスできます。 

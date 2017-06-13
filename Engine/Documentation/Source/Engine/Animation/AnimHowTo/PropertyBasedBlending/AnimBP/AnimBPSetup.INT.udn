@@ -1,4 +1,4 @@
-Availability: Public
+Availability: docs
 Title:2. Setting up the Animation Blueprint
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:In this step we set up the Animation Blueprint and State Machine to use our Blend Space

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:5.Sound Cue とDialogue
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,13 +6,14 @@ Description:より複雑なダイアログ マネージャ システムを構築
 version:4.13
 parent:Engine/Audio/Dialogue
 order:5
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

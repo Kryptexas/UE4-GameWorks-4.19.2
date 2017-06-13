@@ -47,11 +47,63 @@ To set the Texture LOD settings per-device you will need to do the following.
 
 1. From the main Tool Bar open the **Devices Profiles** manager by going to **Windows** > **Developer Tools** and then clicking on **Device Profiles**.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Device_Profiles_Manager.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. After clicking on the **Device Profiles** option the following menu will be displayed.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_DPM.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Device_Profiles_Manager_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. From this menu select the device you want to edit and then click on the three dots that are to the left of the device name to open that devices profile.
 

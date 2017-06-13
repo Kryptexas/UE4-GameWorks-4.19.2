@@ -1,4 +1,5 @@
-﻿Availability: Public
+﻿INTSourceChangelist:0
+Availability: Public
 Title:4. 放置Actor
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:放置及操作Actor是构建任何关卡的基础。
@@ -79,7 +80,7 @@ Description:放置及操作Actor是构建任何关卡的基础。
 
 	![](rotateStart.png)
 
-1. 在 **模式面板** 中，切换到 **Volumes（视觉效果）** 类别。
+1. 在 **模式面板** 中，切换到 **Volumes** 类别。
 1. 放置一个 **Lightmass Importance Volume(Lightmass 重要体积)** 到关卡中。
 
 	[REGION:raw]

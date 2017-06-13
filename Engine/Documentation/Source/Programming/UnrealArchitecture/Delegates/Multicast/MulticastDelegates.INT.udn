@@ -37,7 +37,7 @@ Multicast delegates can have multiple functions bound that all get called when t
 `RemoveAll()` will remove all registered delegates bound to the provided pointer. Keep in mind that Raw delegates that are not bound to an object pointer will not be removed by this function!
 [/REGION]
 
-See `DelegateSignatureImpl.inl` (located in `..\UE4\Engine\Source\Runtime\Core\Public\Templates\`) for the variations, arguments, and implementations of these functions.
+See `DelegateSignatureImpl.inl` (located in `..\UE4\Engine\Source\Runtime\Core\Public\Delegates\`) for the variations, arguments, and implementations of these functions.
 
 ## Multi-Cast Execution
 

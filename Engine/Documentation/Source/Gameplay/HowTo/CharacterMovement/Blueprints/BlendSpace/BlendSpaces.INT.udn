@@ -3,25 +3,13 @@ Title:4. Creating Blend Spaces
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:In this step we are going to set up Blend Spaces for our movement states so we can blend between animations when moving in different directions.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel: Advanced 
+type:how-to
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 The next thing we will do to create movement for our character is to create **Blend Spaces** for each of our movement states (Walking, Jogging, and Crouch Walking). Blend Spaces are special assets that allow for blending of animations based on the values of two inputs. In our case, we will blend between forwards/backwards and left/right movement based on the character's movement Speed or Direction. 
 
@@ -120,5 +108,4 @@ The steps below will show you how to set up the movement Blend Spaces:
 1.	**Save** then close the **Crouch_BS** Blend Space window. 
 
 
-%Steps%
-
+[NAV]

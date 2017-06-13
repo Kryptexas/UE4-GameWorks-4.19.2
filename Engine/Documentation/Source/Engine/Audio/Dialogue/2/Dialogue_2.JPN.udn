@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3255731
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:2.Dialogue Waves のビルド
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,13 +6,14 @@ Description:ダイアログ データを保存するための Dialogue Waves を
 version:4.13
 parent:Engine/Audio/Dialogue
 order:2
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

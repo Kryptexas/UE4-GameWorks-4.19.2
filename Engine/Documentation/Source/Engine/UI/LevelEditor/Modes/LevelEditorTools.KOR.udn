@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:레벨 에디터 모드
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:현재 레벨 에디터 모드 설정, 빌더 브러시 모양 변경, BSP 지오메트리와 볼륨을 새로 만드는 데 사용되는 툴 세트입니다.
 Version: 4.9
+topic-image:LevelEditorModes_topic.png
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]

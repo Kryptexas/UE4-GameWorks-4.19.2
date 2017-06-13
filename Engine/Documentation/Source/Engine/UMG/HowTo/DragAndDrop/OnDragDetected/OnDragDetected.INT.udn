@@ -1,11 +1,18 @@
-Availability: Docs
+Availability: Public
 Title:3. On Drag Detected
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:In this step we set up what happens when drag is detected.
+SkillLevel: Intermediate
+Version: 4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:3
+checkpoint: editorqs
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-SkillLevel: Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

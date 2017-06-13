@@ -3,6 +3,9 @@ Title:Audio System Overview
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Overview of the audio system used for playing in-game sounds, including the use of SoundCues node-based audio assets.
 version: 4.12
+parent:Engine/Audio
+type:overview
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -9,6 +9,7 @@ version: 4.14
 type:overview
 topic-image:AnimationToolsTopic.png
 tags:Animation
+tags:Getting Started
 
 
 [TOC(start:2 end:2)]
@@ -27,113 +28,60 @@ The purpose of this document is to offer a high-level overview of UE4's animatio
 We will start by identifying the primary terms and concepts of UE4's animation system (click each header to view more documentation):
 
 (#Skeleton)
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationToolsTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Persona/Modes)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:Engine/Animation/Persona/Modes#overview]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Persona/Modes:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Skeleton)
-	[/PARAM]
-	[PARAM:description]
-		A **Skeleton** is a hierarchy of bone locations and rotations used to deform a Skeletal Mesh. In UE4, Skeletons are abstracted from Skeletal Meshes in their own asset. This means that animations are applied to the Skeleton, rather than the Skeletal Mesh. By using the same Skeleton, multiple Skeletal Meshes can share animations.
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Persona/Modes:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationSeqTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences#Intro]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Persona/Modes#overview]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimNotifiesTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences/Notifies)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Skeleton:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationBlueprintTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Skeleton:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](BlendSpaceTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Blendspaces)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Blendspaces#Intro]
-	[/PARAM]
-[/OBJECT]
+A **Skeleton** is a hierarchy of bone locations and rotations used to deform a Skeletal Mesh. In UE4, Skeletons are abstracted from Skeletal Meshes in their own asset. This means that animations are applied to the Skeleton, rather than the Skeletal Mesh. By using the same Skeleton, multiple Skeletal Meshes can share animations.
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](MontageTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimMontage)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimMontage#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Sequences:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonControlTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/NodeReference/SkeletalControls)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Sequences:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](StateMachineTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/StateMachines)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/StateMachines#overview]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Sequences#Intro]
+
+### %Engine/Animation/Sequences/Notifies:title%
+
+%Engine/Animation/Sequences/Notifies:topiccompact%
+
+[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+
+### %Engine/Animation/AnimBlueprints:title%
+
+%Engine/Animation/AnimBlueprints:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+### %Engine/Animation/Blendspaces:title%
+
+%Engine/Animation/Blendspaces:topiccompact%
+
+[INCLUDE:Engine/Animation/Blendspaces#Intro]
+
+### %Engine/Animation/AnimMontage:title%
+
+%Engine/Animation/AnimMontage:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimMontage#Intro]
+
+### %Engine/Animation/NodeReference/SkeletalControls:title%
+
+%Engine/Animation/NodeReference/SkeletalControls:topiccompact%
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+
+### %Engine/Animation/StateMachines:title%
+
+%Engine/Animation/StateMachines:topiccompact%
+
+[INCLUDE:Engine/Animation/StateMachines#Intro]
+
 
 [REGION:note]
 Examples of some of the animation features can also be found in the [Content Examples](https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/) project available for free from the **Learn Tab** of the Epic Games Launcher. 

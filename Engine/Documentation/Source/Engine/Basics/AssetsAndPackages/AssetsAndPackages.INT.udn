@@ -3,26 +3,11 @@ Title: Assets and Packages
 Crumbs: %ROOT%, Engine
 Description:Overview of the asset and package system used in Unreal Engine 4.
 version: 4.9
+topic-image:Engine/Content/content_topic.png
+Parent:Engine
+type:overview
+order:22
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Basics/AssetsAndPackages:title%](Engine/Content/content_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/AssetsAndPackages:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/AssetsAndPackages:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/AssetsAndPackages]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2 end:3)]
 

@@ -1,7 +1,14 @@
-﻿Availability:Public
-Title:Blendables
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Blendables assets can be smoothly interpolated and used to affecting the rendering (e.g. post processing, fog, Ambient Cubemap, ambient occlusion). 
+﻿Availability: Public
+Crumbs: %ROOT%
+Title: Blendables
+Description: Blendables assets can be smoothly interpolated and used to affecting the rendering (e.g. post processing, fog, Ambient Cubemap, ambient occlusion).
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:3
+Tags:Post Process
+Topic-image:Blendables_topic.png
 
 [EXCERPT:Blendables_Desc]
 A **Blendable** is an asset that has properties which can be smoothly interpolated (blended) with other blendables. We mostly used blendables for PostProcessMaterials but the system

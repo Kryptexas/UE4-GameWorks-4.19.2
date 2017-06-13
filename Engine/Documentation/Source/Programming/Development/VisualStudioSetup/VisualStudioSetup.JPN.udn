@@ -1,18 +1,24 @@
-﻿INTSourceChangelist:2874484
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:UE4 に Visual Studio を設定する方法
-Crumbs: %ROOT%, Programming, Programming\Development
 Description:UE4 を使用した開発で Visual Studio を設定するためのヒントやテクニック
-Version:4.9
+Crumbs: %ROOT%
+Parent:Programming/Development
+Order:
+Version:4.16
+type:overview
+tags:Visual Studio
+skilllevel:Beginner
+topic-image:SettingUpVSForUE4_topic.png
 
-[TOC(start:2)]
+[TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 
 UE4 は、Visual Studio とスムーズな統合ができるように設計されています。プロジェクトで迅速かつ簡単にコード変更を行い、コンパイルしてその結果を直ちに確認することができます。 
 Visual Studioを UE4 と連携させるように設定することで、デベロッパーの効率と全体的なユーザー体験を向上させることができます。
 
-このドキュメントでは、UE4 と VS2013 ワークフローの設定の基礎について取り上げます。
+このドキュメントでは、UE4 と VS2013 ワークフローの設定の基礎についても取り上げます。
 [/EXCERPT:Intro]
 
 ## UE4 と VS のワークフローを設定する前に
@@ -24,7 +30,8 @@ Visual Studio 2015 をインストール済みの場合は、**File > New > Proj
 
 | アンリアル エンジンのバージョン | Visual Studio のバージョン |
 | ------------------------- | --------------------- |
-| **4.10 以降**         | VS2015                |
+| **4.15 以降**         | VS2017                |
+| **4.10 から 4.14**          | VS2015                |
 | **4.2 から 4.9**            | VS2013                |
 
 UE4 のオープン ソース バージョン (GitHub および P4 から入手可能) は、VS2013 と統合されています。Visual Studio のこれより古いバージョンと統合されている、UE4 の古いバージョンについては、このドキュメントでは扱いません。
@@ -36,33 +43,32 @@ UE4 のオープン ソース バージョン (GitHub および P4 から入手�
 [EXCERPT:BasicVSFormat]
 
 1. 以下の手順に従い、Solution Configurations ドロップダウン メニューの幅を広げます。
-	1. ツールバーを右クリックして、表示されるメニューの下部の **[カスタマイズ]** を選択します。
-
+	1. ツールバーを右クリックして、表示されるメニュー下部の **[カスタマイズ]** を選択します。
 		![](SelectingCustomize.png)
+
 	1. **[コマンド]** タブをクリックします。
-
 		![](ClickCommandsTab.png)
+
 	1. **[ツールバー]** ラジオボタンを選択します。
-
 		![](SelectToolbarRadioButton.png)
+
 	1. **ツールバー** の横のドロップダウンから、**[Standard]** を選択します。
-
 		![](SelectStandard.png)
+
 	1. 下にある **コントロール** リストから **Solution Configurations** コントロールを選びます。
-
 		![](SelectSolutionConfigControl.png)
+
 	1. 右側の **[Modify Selection]** を選択します。
-
 		![](ClickModifySelection.png)
+
 	1. **幅** を '200' に設定します。
-
 		![](SetWidth_200.png)
-	1. **[Close]** をクリックします。ツールバーが直ちに更新されます。
 
+	1. **[Close]** をクリックします。ツールバーが直ちに更新されます。
 		![](ClickClosetoUpdateToolbar.png)
+
 1. 以下の手順に従い、Solution Platforms ドロップダウンを追加します。
 	1. 標準ツールバーの右端のボタンで、ツールバーのボタンを追加 / 削除するドロップダウン メニューが開きます。
-
 		![](SelectDropDownButton.png)
 
 	1. ドロップダウン ボタンをクリックして、**[Add or Remove Buttons]** 上にカーソルを合わせて、**[Solution Platforms]** をクリックしてツールバーにメニューを追加します。
@@ -72,11 +78,13 @@ UE4 のオープン ソース バージョン (GitHub および P4 から入手�
 	1. 開いている場合は **[Error List]** ウィンドウを閉じます。 
 	1. **[ツール]** メニューから **[オプション]**ダイアログを開きます。
 		![](OpenOptionsDialog.png)
+
 	1. **[Projects and Solutions (プロジェクトとソリューション)]** を選択して **[Always show error list if build finishes with error (ビルドがエラーで終わった場合、常にエラー リストを表示する)]** のチェックを外します。
 		![](UncheckErrorsListOption.png)
-	1. **[OK]** をクリックします。
 
-[/EXCERPT:BasicVSFormat]
+	1. **[OK]** をクリックします。
+		[/EXCERPT:BasicVSFormat]
+
 
 [REGION:tip]
 他に役立つ設定手順として以下があります。
@@ -88,9 +96,25 @@ UE4 のオープン ソース バージョン (GitHub および P4 から入手�
 * インテリセンス (IntelliSense) をオンにします。([Intellisense、 Live Errors、 および Squiggles](#Intellisense) を参照してください。)
 [/REGION]
 
-###Visual Assist X ユーザー向けの推奨
+###Visual Assist X ユーザー
 Visual Assist X がインストールされている場合は以下を行います。
 * **Format After Paste** (**VAssistX > Visual Assist X Options > Advanced > Corrections**) を無効にします。このオプションを無効にしないと 「Visual Assist X 」がソース コードを自動的にフォーマットしてしまいます。その結果、ドキュメントが適切にフォーマットされないおそれがあります。
+
+###Visual Studio 2017 ユーザー
+
+Visual Studio を初めてインストールする場合、以下のオプションを有効にしてください。
+
+####UE4 インストーラーあり
+
+以下のオプションでは、Visual Studio 2017 のインストールの一部として UE4 インストーラーをダウンロードします。
+
+![](VS2017_SettingsInstaller.png)
+
+####UE4 インストーラーなし
+
+以下のオプションでは、Visual Studio 2017 のインストールの一部としてUE4 インストーラーをダウンロードしません。
+
+![](VS2017_SettingsNoInstaller.png)
 
 (#Intellisense)
 ## Intellisense、 Live Errors、 および Squiggles
@@ -110,7 +134,7 @@ Squiggles に加えて、閲覧しているファイルのエラー リストに
 ![Error List](error_list.png)
 
 Squiggles は UE4 プロジェクトで動作しなかったため、既に無効に設定されているかもしれません。[C/C++ Advanced] タブを押して、 
-下記のような設定必ずしてください。
+下記のような設定を必ずしてください。
 
 ![VC++ Advanced Options](intellisense_options.png)
 
@@ -126,7 +150,7 @@ C++ ファイルを開いたとき、以下のアイコンが表示されるこ�
     * IntelliSense コンパイラー (EDG) は、MSVC コンパイラーよりも厳格です。
     * IntelliSense では、通常のビルド時とは異なる「#defines」の設定がいくつかあります。
     * IntelliSense でコンパイルされる C++ は、常に 32 ビットで生成されます。 
-* 絶対に必要ならば、コードを「`#ifdef __INTELLISENSE__`」でラップして Squiggle を非表示にすることが出来ます。
+* どうしても必要ならば、コードを「`#ifdef __INTELLISENSE__`」でラップして Squiggle を非表示にすることが出来ます。
 * IntelliSense エラーは、VC++ コンパイラーのエラーとは若干異なる表現法が使用されます。単にそのような設定となっています。
 * ヘッダファイルの Squiggles は、ヘッダをインクルードする「.cpp」に対して、ヘッダをコンパイルすることによって機能します。
     * 時々 IntelliSense はこれに失敗し、 Squiggles がヘッダに含まれている場合があります。

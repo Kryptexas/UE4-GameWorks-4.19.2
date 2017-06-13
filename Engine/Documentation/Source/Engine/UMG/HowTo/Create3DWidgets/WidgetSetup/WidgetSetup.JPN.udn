@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3343833
+﻿INTSourceChangelist:3478014
 Availability:Docs
 Title:1.Widget ブループリントの設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:3D ゲームワールドで表示する Widget ブループリントを作成します。 
+Parent:Engine/UMG/HowTo/Create3DWidgets
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
@@ -10,6 +11,7 @@ Version:4.10
 SkillLevel:Intermediate
 checkpoint: umg_create_3d_howto
 tags:UMG UI Designer
+Order:1
 
 [VAR:Steps]
 [OBJECT:Navigation]

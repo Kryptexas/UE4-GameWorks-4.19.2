@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3219745
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:애니메이션 시퀀스
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,26 +10,9 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.14
+tags:Assets
+topic-image:Engine/Animation/Overview/AnimationSeqTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Sequences:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Sequences:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Sequences:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Sequences]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 
@@ -169,7 +152,7 @@ Qo4hH0h9ZZA
 
 [REGION:note]
 루트 모션 관련해서, 네트워킹 게임에 루트 모션의 리플리케이션 필요 여부 등 고려해야 할 상황이 몇 가지 있습니다. 루트 모션의 리플리케이션이 필요한 경우, [애니메이션 몽타주](Engine\Animation\AnimMontage) 를 사용해야 할 것입니다. 
-자세한 정보는 [루트 모션 켜기](Engine\Animation\RootMotion#enablingrootmotion) 문서를 참고하세요.
+자세한 정보는 [루트 모션 켜기](Engine\Animation\RootMotion) 문서를 참고하세요.
 [/REGION]
 
 ### 임포트 세팅

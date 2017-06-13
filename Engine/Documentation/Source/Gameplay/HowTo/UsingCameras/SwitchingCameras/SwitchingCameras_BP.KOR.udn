@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:여러 카메라 전환
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -9,6 +9,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 이번 비법에서는 레벨에 **카메라** 액터를 다수 추가한 뒤 플레이어가 레벨에 배치된 **Trigger Volume** 에 들어서면 그 카메라 액터를 전환하도록 하겠습니다. 이 튜토리얼을 마치고 나면, 직접 다중 카메라 기반 게임 구성 및 각 카메라 사용 시기를 정의할 수 있을 것입니다.
 

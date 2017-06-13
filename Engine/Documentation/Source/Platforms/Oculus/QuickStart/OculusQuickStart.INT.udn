@@ -6,6 +6,7 @@ Version: 4.11
 SkillLevel: Intermediate
 parent:Platforms/Oculus
 type:quick start
+type:landing
 tags:VR
 tags:Oculus Rift
 

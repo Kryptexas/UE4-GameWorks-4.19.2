@@ -1,15 +1,18 @@
 Availability: Public
-Title:Console Manager: Console Variables in C++
+Title:Console Variables in C++
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:Overview of the Console Manager and implementation details for creating console variables.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development/Tools
+Order:
+topic-image:consoleVar_topicImage.png
 
 [TOC(start:2)]
 
 
 
 
-A **console command** is simply a user input string that is sent to the engine and the engine can react is some way (e.g. console/log response, changing internal state).
+A **console command** is a user input string that is sent to the engine and the engine can react is some way (e.g. console/log response, changing internal state).
 A **console variable** additionally stores some state that can be changed through the console. By registering console commands and variables in the console manager you get
 auto completion and enumeration to get a list of all console objects (console command Help or DumpConsoleVariables). Because of this, you should avoid the old Exec
 interface. The console manager in the central point to control all those things and more (e.g. user input history).

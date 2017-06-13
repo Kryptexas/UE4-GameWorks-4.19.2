@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/ReferenceAssets
 Description:A How To Guide for referencing Actors in Blueprints. 
 Version: 4.9
 SkillLevel: Advanced
+type:how-to
 
 [TOC (start:2)]
 

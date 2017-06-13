@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2713275
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:スタティック カメラの使用
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -9,8 +9,9 @@ Related:Engine/Matinee
 Related:Engine/Blueprints
 SkillLevel:Beginner
 Version:4.9
+type:how-to
 
-この操作ガイドでは、スタティック (すなわち固定) カメラ のアングルを作成します。このアングルは、ゲームプレイ中のプレイヤーの視点のために使用します。このチュートリアルを終了すると、ここで使用したプロセスを用いて、それをご自身の独自のゲームに適用して、プレイヤーからゲームを見る固定視点をセットアップすることができます。 
+この操作ガイドでは、スタティック (すなわち固定) カメラのアングルを作成します。このアングルは、ゲームプレイ中のプレイヤーの視点のために使用します。このチュートリアルを終了すると、ここで使用したプロセスを用いて、それをご自身の独自のゲームに適用して、プレイヤーからゲームを見る固定視点をセットアップすることができます。 
 
 [REGION:note]
  ここでは **スターター コンテンツ** を有効にした状態で **Blueprint Third Person Template** プロジェクトを使います。

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3482370
 Availability:Public
 Title:도움말 & 답변 찾기
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -39,7 +39,33 @@ version: 4.9
 
 이 **도움말 아이콘** 을 클릭하면 연결된 오브젝트 관련 외부 문서로 이동됩니다.
 
-![](HelpIcon_2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DetailsPanelHelpIcon_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DetailsPanelHelpIcon_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 위에서, 레벨의 **브러시** 액터를 클릭한 다음 **디테일** 패널에서 **?** 도움말 아이콘을 클릭하면 **지오메트리 브러시 액터** 관련 문서가 자동으로 열립니다. 오브젝트가 무엇인지 잘 몰라 그에 대해 자세히 알고싶은데, 공식 문서에서 무엇을 찾아봐야 할 지 잘 모르겠는 경우에 좋습니다.
 
@@ -67,7 +93,33 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 에디터 창 좌상단 구석에 있는 것이 **메뉴 바** 이며, 마지막에 있는 옵션이 **도움말** 옵션입니다.
 
-![](HelpMenu.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 **도움말** 버튼을 클릭하면, 드롭다운 메뉴에 사용가능 옵션이 여러가지 나타납니다.
 
@@ -91,15 +143,93 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 **F1** 키는 공식 문서 페이지를 띄우는 키보드 단축키입니다. **F1 도움말** 버튼은 맥락에 따라 달라지는, 즉 에디터 내 어디서 눌렀는다게 따라 다른 도움말 페이지가 제공될 수 있다는 뜻입니다. 예를 들어, 메인 에디터 뷰에서 **F1** 키를 눌러 홈 문서 페이지의 도움말을 표시한 것입니다.
 
-![](F1_1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](F1_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](F1_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 **블루프린트** 창이 열려있을 때 **F1** 키를 눌렀다면, 블루프린트 관련 도움말이 표시되는 문서가 열립니다.
 
-![](F1_2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](BlueprintHelp_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](BlueprintHelp_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 아니면 **머티리얼 에디터** 에 있었던 경우, **머티리얼** 관련 페이지가 표시됩니다.
 
-![](F1_3.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialHelp_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialHelp_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 새 에디터 창에서 작업 방법을 잘 모르겠다면, **F1** 키를 눌러 도움말을 참고해 보세요.
 
@@ -107,7 +237,33 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 메인 에디터 창 우상단 구석에 위치한 **도움말 검색창** 에서도 도움말을 검색할 수 있습니다.
 
-![](HelpSearch.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 검색창 안에 원하는 주제를 입력할 수 있으며, 글자를 입력하기 시작하면 거기에 관련된 결과가 표시되는 팝업창이 뜹니다.
 
@@ -141,23 +297,153 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 위에 언급한 **추가 튜토리얼** 을 클릭하거나, 메뉴 바의 **도움말** - **튜토리얼** 을 선택하여 에디터내 튜토리얼 허브를 접할 수 있습니다.
 
-![](Tutorial_4.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 에디터내 튜토리얼 허브를 열면, 튜토리얼 목록이 범주별로 나타납니다.
 
-![](Tutorial_7.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Tutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Tutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 완료했던 에디터내 튜토리얼은 그 아이콘 옆에 녹색 체크표시가 붙습니다.
 
-![](Tutorial_8.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](TutorialSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](TutorialSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 새로운 에디터내 튜토리얼이 가능한 에디터내 특정 부분에 들어서면, 우상단 구석에 아이콘이 깜빡입니다.
 
-![](Tutorial_5.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](SubEditorTutorial_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](SubEditorTutorial_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 깜빡이는 아이콘을 클릭하면 현재 들어와 있는 영역에 관련된 에디터내 튜토리얼이 시작됩니다.
 
-![](Tutorial_6.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](StaticMeshTutorial_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](StaticMeshTutorial_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 위에서 **스태틱 메시** 애셋을 연 다음 에디터내 튜토리얼 아이콘을 클릭했더니 **스태틱 메시 에디터** 튜토리얼이 시작되었습니다.
 
@@ -179,7 +465,33 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 에디터의 특정 기능 및 부분에 대해 배우고자 할 때는, [공식 문서](https://docs.unrealengine.com/latest/KOR/index.html) 가 시작하기 딱 좋은 곳입니다.
 
-![](Documentation1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExtraHelpDocumentation_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExtraHelpDocumentation_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 검색창을 통해 얻고자 하는 정보를 검색하거나, **빠른 검색어** 를 통해 자주 검색되는 주제를 둘러볼 수 있습니다. 추가적으로, 주제를 통해 문서를 둘러볼 수 있습니다. 언리얼 엔진 4 에 처음이신 분들은, **시작하기** 부터 시작해 보시면 좋습니다.
 
@@ -189,13 +501,65 @@ _이미지를 클릭하면 원래 크기로 보입니다._
 
 공식 문서에서 원하는 것을 찾지 못했거나 특정한 질문이 있으신 경우, [Answer Hub](https://answers.unrealengine.com/index.html) 를 검색해 보면 에픽 직원이나 언리얼 엔진 커뮤니티에서 질문/답변이 되었는지 확인해 볼 수 있습니다.
 
-![](AnswerHUB1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHub_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHub_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 검색칸에 주제나 질문을 입력하여 전에 질문/답변이 있었는지 확인할 수 있습니다.
 
 아래에는 **Multiplayer Games** 를 입력하여 검색어에 일치한 주제를 확인한 것입니다.
 
-![](AnswerHUB2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHubSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHubSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 멀티플레이어 게임 관련 질문/답변 결과가 나와 찾는 질문이 이미 있었는지 둘러보며 확인할 수 있습니다.
 
@@ -210,16 +574,69 @@ Answer Hub 가 처음이신 경우, [Quick Start Guide](https://answers.unrealen
 
 [공식 언리얼 엔진 4 Forums](https://forums.unrealengine.com/forum.php) 역시도 또하나의 도움말 참고 자료입니다. 
 
-![](Forums.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Forums_Windows.png)
+[/PARAM]
+[/OBJECT]
 
-포럼은 **애니메이션**, **블루프린트**, **C++ 게임플레이 프로그래밍**, **안드로이드** 나 **iOS** 개발, **커뮤니티 콘텐츠, 툴, 튜토리얼** 등등 여러 범주별로 나뉘어 있습니다. 포럼은 크게 커뮤니티 기반으로 이루어지나, 에픽의 직원들 역시도 포럼 게시물에 답변하는 등 기여를 많이 합니다. **Answer Hub** 가 일회성 질문 답변에 초점을 맞춘 반면, 포럼은 언리얼 엔진 4 의 특정 주제나 무언가를 만드는 접근법에 대한 논의를 시작하기 좋은 곳입니다.
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Forums_Mac.png)
+[/PARAM]
+[/OBJECT]
+
+포럼은 **애니메이션**, **블루프린트**, **C++ 게임플레이 프로그래밍**, **안드로이드** 나 **iOS** 개발, **커뮤니티 콘텐츠, 툴, 튜토리얼** 등등 여러 범주별로 나뉘어 있습니다. 포럼은 크게 커뮤니티 기반으로 이루어지나, 에픽의 직원들 역시도 포럼 게시물에 답변하는 등 기여를 많이 합니다. **Answer Hub** 가 일회성 질문 답변에 초점을 맞춘 반면, 포럼은 언리얼 엔진 4 의 특정 주제나 무언가를 만드는 접근법에 대한 
+논의를 시작하기 좋은 곳입니다.
 
 
 ## 외부 도움말: 위키
 
 [공식 언리얼 엔진 4 위키](https://wiki.unrealengine.com/Main_Page) 는 더 많은 튜토리얼, 샘플 프로젝트, 코드 샘플을 찾을 수 있는 곳입니다.
 
-![](Wiki.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Wiki_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Wiki_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 위키는 커뮤니티 주도형 학습 자료 사이트로, 사용자가 다른 이가 보고 배울 수 있도록 튜토리얼을 올리는 곳입니다. 종종 게임 개발에 있어 시행착오를 통한 개선이 무언가를 배우는 데는 최선의 방법이며, 위키를 통해 여러분과 비슷한 무언가를 겪었을 다른 이들로부터 무언가를 배울 수 있습니다.
 

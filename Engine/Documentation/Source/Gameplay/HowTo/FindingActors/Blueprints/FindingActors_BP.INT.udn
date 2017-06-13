@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
 Description:A How To Guide for Finding Actors in Blueprints. 
 Version: 4.9
 SkillLevel: Intermediate
+type:how-to
 
 [TOC (start:2 end:2)]
 

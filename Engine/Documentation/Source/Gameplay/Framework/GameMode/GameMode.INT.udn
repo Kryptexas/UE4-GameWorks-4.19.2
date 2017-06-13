@@ -3,11 +3,12 @@ Title: Game Mode and Game State
 Crumbs:%ROOT%, Gameplay/Framework
 Description: Overview of the Game Mode and Game State
 Version: 4.14
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:5
+order:2
 tags:Gameplay Framework
 Related:Gameplay/Framework/Controller/PlayerController
+topic-image:Gameplay/Framework/gamemode_lander.png
 
 [TOC (start:2 end:2)]
 

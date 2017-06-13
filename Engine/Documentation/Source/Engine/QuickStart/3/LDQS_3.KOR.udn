@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:3 - 새 레벨 생성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -35,11 +35,63 @@ checkpoint: editorqs
 
 1. 언리얼 에디터 안에서, **파일 메뉴** 옵션을 선택한 다음 **새 레벨...** 을 선택합니다.
 
-	![](ContentBrowserLevel.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	그러면 **새 레벨** 대화창이 열립니다.
 
-	![](level_new.png)(w:550)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	위의 **디폴트** 레벨에는 레벨 제작시 흔히 사용되는 애셋이 약간 포함되어 있고, **VR-Basic** 레벨에는 VR 에디터로 레벨을 제작할 때 쓰이는 애셋이 포함되어 있으며, **공백 레벨** 은 애셋 없이 완전히 비어있는 레벨입니다. 이 가이드의 목적상 완전히 비어있는 레벨에서 시작하도록 하겠습니다.
 

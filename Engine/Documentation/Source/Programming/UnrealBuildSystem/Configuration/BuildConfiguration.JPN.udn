@@ -1,29 +1,27 @@
-﻿INTSourceChangelist:3188564
+﻿INTSourceChangelist:3372845
 Availability:Public
 Title:アンリアルビルドシステムの設定
-Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem
-Description:エンジンのビルドを制御するアンリアル ビルド システムの設定
+Crumbs:
+Description:エンジンのビルドを制御するアンリアル ビルド システムの設定方法
 Version:4.14
+tags:Programming
+tags:Unreal Build System
+level:Intermediate
+parent:Programming/UnrealBuildSystem
+topic-image:topic_buildConfigProps.png
+
+[TOC(start:2 end:4)]
 
 UnrealBuildTool は、以下の場所に保存されている XML コンフィギュレーション ファイルから設定を読み取ります。
 
-    * Engine/Programs/NotForLicensees/UnrealBuildTool/BuildConfiguration.xml
 	* Engine/Saved/UnrealBuildTool/BuildConfiguration.xml
 	* *User Folder/AppData*/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
 	* *My Documents*/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
 
-デフォルト設定は、参照として Engine/Programs/UnrealBuildTool/BuildConfiguration.xml へ書き出されます。このファイルは  UnrealBuildTool の実行先に生成され、ここで変更した設定は上書きされます。
+これらのファイルは「Config/UnrealBuildTool」フォルダに作成された UE4 プロジェクトに追加されます。
 
-## UnrealBuldTool 設定プロパティ
+## UnrealBuldTool コンフィギュレーション プロパティ
 
-$ bStopXGECompilationAfterErrors :True の場合、エラーが発生すると XGL のコンパイルが停止します。
-    * コンパイルを継続すると、古いエラーの修復後に後続コンパイルの実行速度がかなり速くなります。
-    * ビルド終了前に、全てのファイルのコンパイルエラーを表示します。
-    * 失敗したビルドを中断するには **Ctrl + Break** キーを使用します。
-$ bOmitPCDebugInfoInDevelopment :true の場合、Development 設定におけるビルド時はデバッグ情報が含まれません。
-    * 常にデバッグ情報を含むには False に設定します。
-    * デバッグ情報を含むとコンパイル速度が減速しますが、Development ビルドのライン番号やスタック情報が加わります。
-$ bUseUnityBuild :エンジン全体を再ビルドする時は True に設定します。高速のイタレーション モードを使用する時は無効にします。
-$ bEnableFastIteration :true の場合、コンパイルおよびリンク時間が飛躍的に減少します。ユニティビルドの実行時は無効にします。
-    * _true_ に設定すると高速なイタレーション時間となります。
-    * 「RPC」や「PDB」など変わったエラーが発生した場合、`ValidateConfiguration()` を `bUseIncrementalLinking=false` に設定します。
+これらのプロパティは、ビルド コンフィギュレーションの設定とカスタマイズに役立ちます。
+
+[INCLUDE:Programming/UnrealBuildSystem/Configuration/BuildConfigProperties]

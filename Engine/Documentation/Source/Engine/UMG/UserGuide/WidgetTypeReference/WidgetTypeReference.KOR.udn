@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3345453
+﻿INTSourceChangelist:3372539
 Availability:Public
 Title: 위젯 유형 참고서
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -29,7 +29,7 @@ tags:UMG UI Designer
 | **Button** | 버튼 - 단일 자손 클릭 가능 프리미티브 위젯으로, 기본적인 상호작용에 쓰입니다. 버튼 안에 다른 위젯을 배치하여 UI 에 좀 더 복잡하고 재미난 클릭가능 요소를 만들 수 있습니다. |
 | **Check Box** | 체크 박스 - 'unchecked' 체크해제 / 'checked' 체크됨 / 'indeterminable' 확인불가 세 가지 토글 상태를 표시할 수 있습니다. 체크 박스는 고전 체크 박스, 토글 버튼, 동글 버튼으로 사용할 수 있습니다. |
 | **Image** | 이미지 - 이미지 위젯으로 UI 에 슬레이트 브러시, 텍스처, 스프라이트, 머티리얼을 표시할 수 있습니다. [REGION:note]같은 텍스처 아틀라스에 들어있는 스프라이트는, 렌더링할 때 같은 레이어를 공유하는 경우 슬레이트에 일괄 배치시킬 수 있습니다. 즉 드로 콜 수 예산이 빠듯한 플랫폼에서는 Paper2D 스프라이트를 브러시 입력으로 사용하는 경우 UMG 와 슬레이트 위젯의 렌더링 효율이 크게 향상된다는 뜻입니다.[/REGION] |
-| [Named Slot](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | 네임드 슬롯 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
+| [**Named Slot**](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | 네임드 슬롯 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
 | **Progress Bar** | 진행상황 바 - 진행상황 바 위젯은 경험치, 생명력, 점수와 같은 여러가지 용도에 맞도록 스타일 조정이 가능한, 단순한 바 입니다. |
 | **Slider** | 슬라이더 - 0-1 사이 값 조절이 가능한 핸들이 있는 미닫이 바가 표시되는 단순 위젯입니다. |
 | **Text** | 텍스트 - 화면상에 텍스트를 표시하는 기본적인 방법으로, 옵션이나 기타 UI 요소에 대한 텍스트 설명에 사용할 수도 있습니다. |
@@ -89,7 +89,7 @@ tags:UMG UI Designer
 | **Uniform Grid Panel** | 균등 그리드 패널 - 자손 모두와 남은 공간을 균등하게 나누는 패널입니다. |
 | **Vertical Box** | 세로 박스 - 자손 위젯이 자동으로 세로로 배치되도록 하는 위젯입니다. 위젯끼리 세로 정렬을 유지하면서 서로 쌓이도록 하는 데 좋습니다. |
 | **Widget Switcher** | 위젯 전환기 - 자체적으로 만들 수 있는 탭은 없으나 탭처럼 제어되는 것으로, 이와 함꼐 하여 탭 효과를 낼 수 있습니다. 한 번에 최대 하나의 위젯만 보입니다. |
-| [Wrap Box](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | 줄바꿈 박스 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
+| [**Wrap Box**](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | 줄바꿈 박스 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
 
 
 ## 프리미티브
@@ -103,7 +103,7 @@ tags:UMG UI Designer
 | **Circular Throbber** | 원형 트로버 - 회전하는 원형 이미지로 (주로 로드중임을) 나타내는 트로버 위젯입니다. |
 | **Editable Text** | 편집가능 텍스트 - 박스 배경 없이 사용자 입력이 가능한 글상자입니다. 편집가능 텍스트 한 줄만 지원합니다. |
 | **Editable Text (Multi-Line)** | 편집가능 텍스트 (여러줄) - **Editable Text** 와 비슷하나 한 줄이 아닌 여러줄 텍스트를 지원합니다. |
-| [Menu Anchor](Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor) | 메뉴 앵커 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor#desc] |
+| [**Menu Anchor**](Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor) | 메뉴 앵커 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor#desc] |
 | **Native Widget Host** | 네이티브 위젯 호스트 - 하나의 자손 슬레이트 위젯을 포함할 수 있는 컨테이너 위젯입니다. UMG 위젯 안에 네이티브 위젯을 중첩시키기만 하면 되는 경우에 사용합니다. |
 | **Spacer** | 스페이서 - 다른 위젯 사이에 임의의 여백을 제공해 주는 위젯입니다. 스페이서는 시각적 표시가 없어 게임에서 보이지 않습니다. |
 | **Throbber** | 트로버 - 연속해서 여러개 확대되는 원으로 보이는 애니메이션 트로버 위젯입니다 (주로 로딩중임을 나타낼 때 사용됩니다). |
@@ -117,7 +117,7 @@ tags:UMG UI Designer
 
 | 옵션 | 설명 |
 | -------- | ----------- |
-| [Background Blur](Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur) | 배경 블러 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur#desc] |
+| [**Background Blur**](Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur) | 배경 블러 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur#desc] |
 
 ## 미분류
 
@@ -148,7 +148,7 @@ User Created Widget (사용자 생성 위젯)은 미리 생성해 둔 **위젯 �
 
 | 옵션 | 설명 |
 | -------- | ----------- |
-| [Web Browser](Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser) | 웹 브라우저 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser#desc] |
+| [**Web Browser**](Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser) | 웹 브라우저 - [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser#desc] |
 
 
 

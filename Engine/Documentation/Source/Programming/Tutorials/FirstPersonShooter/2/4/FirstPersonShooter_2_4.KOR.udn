@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3388666
 Availability: Public
 Title: 2.4 - 마우스 카메라 콘트롤 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: 일인칭 슈팅 캐릭터에 대한 마우스 카메라 콘트롤 구현법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -73,23 +73,23 @@ Version: 4.11
 
 1.	`FPSCharacter.cpp` 의 `SetupPlayerInputComponent` 에 다음 줄을 추가합니다.
 		// "look" 바인딩 구성
-		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+		PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+		PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
 1.	`SetupPlayerInputComponent` 함수는 이제 다음과 같아 보일 것입니다:
 
 		// 함수성을 입력에 바인딩하기 위해 호출됩니다.
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// "movement" 바인딩을 구성합니다.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-		
-			// "loom" 바인딩을 구성합니다.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+
+			// "look" 바인딩을 구성합니다.
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}
 
 ## 마우스 카메라 콘트롤 테스트

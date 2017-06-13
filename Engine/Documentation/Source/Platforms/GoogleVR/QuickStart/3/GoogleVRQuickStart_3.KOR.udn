@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3155346
+﻿INTSourceChangelist:3477690
 Availability:Public
 Title:3. 구글 VR 프로젝트 패키징 & 개발
 Crumbs:%ROOT%, Platforms/GoogleVR
 Description:구글 VR 사용이 가능한 UE4 프로젝트 패키지 및 디플로이 방법 안내입니다.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.12
+Version: 4.16
 Parent:Platforms/GoogleVR/QuickStart
 order:3
 type:multi-step
@@ -34,7 +34,13 @@ tags:Google VR
 	패키징 도중 일어나는 작업에 대한 상세 내용은, **출력 로그** 창을 클릭하세요.
 	[/region]
 
-	![](GVRQS_Package_Progress_00.png)
+	[REGION:lightbox]
+	[![](GVRQS_Package_Progress_00.png)(w:645)](GVRQS_Package_Progress_00.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
 
 1. 프로젝트 패키징이 완료되면, Androids_Builds 폴더에 들어가 **Install_GVR_QS_Development-armv7-es2.bat** 파일을 실행시켜 안드로이드 스마트폰에 프로젝트를 설치합니다.
 	[region:warning]
@@ -52,12 +58,20 @@ tags:Google VR
 
 1. GVR_QS 프로젝트를 VR 헤드셋으로 보면, 다음 그림과 비슷한 것이 보일 것입니다.
 
-	![](GVRQS_HMD_View_00.png)
+	[REGION:lightbox]
+	[![](GVRQS_HMD_View_00.png)(w:720)](GVRQS_HMD_View_00.png)
+	[/REGION]
+
+	[REGION:caption]
+	클릭하면 이미지 원본을 확인합니다.
+	[/REGION]
 
 	[region:note]
 	앱 실행중 표시되는 **기어** 아이콘을 클릭하여 폰과 UE4 가 제대로 환경설정 되었는지 확인하시기 바랍니다.
+
 	![](GVRQS_HMD_Options_00.png)
-	이 메뉴에서 VR 디바이스 측면의 QR 코드를 스캔하면 UE4 가 VR 디바이스와 호환되는 이미지를 출력하도록 해 줄 것입니다.
+
+	표시되는 메뉴에서 VR 디바이스 측면의 QR 코드를 스캔하면 UE4 가 VR 디바이스와 호환되는 이미지를 출력하도록 해 줄 것입니다.
 	[/region]
 
 [NAV]

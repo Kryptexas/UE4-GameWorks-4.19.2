@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3464910
 Availability: Public
 Title:소스 콘트롤
-Crumbs:%ROOT%, Engine, Engine/UI
+Crumbs:
 Description:소스 콘트롤 기능에 대한 개요서입니다.
-Version: 4.9
+Version: 4.16
+parent:Engine/UI
+type:overview
+skilllevel:Beginner
+tags:User Interface
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -20,7 +24,6 @@ Version: 4.9
 [/VAR]
 
 [TOC(start:2)]
-
 
 
 언리얼 에디터는 소스 콘트롤을 지원, 팀의 조직적인 게임 개발 및 디자인 작업을 지원함은 물론, 버전 관리도 해 줍니다.
@@ -67,7 +70,6 @@ Version: 4.9
 콘텐츠 브라우저에는 애셋 **우측 상단에** 특수 아이콘으로 소스 콘트롤 상태를 표시합니다. 아래는 표시되는 아이콘과 그 의미입니다:
 
 
-
 [REGION:imagetable]
 | ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![notInDepot.png](notInDepot.png)(w:178) | ![NotHadRevision.png](NotHadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
@@ -97,13 +99,21 @@ Version: 4.9
 * 완료되면 **OK** 를 클릭합니다.
 
 
-
 ![ChangelistDescription.png](ChangelistDescription.png)
 
 [REGION:note]
 	Changelist 의 설명은 필수이므로, 입력하지 않으면 *OK* 버튼은 나타나지 않습니다.
 [/REGION]
 
+## 콘텐츠 핫 리로드
+
+**Content Hot Reloading** (콘텐츠 핫 리로드)는 소스 콘트롤 작업에 의해 콘텐츠가 변경되었을 때 에디터내 소스 콘트롤에서 콘텐츠를 자동으로 리로드해 주는 신기능입니다. 자동 리로드는 현재 에디터내 통합된 소스 콘트롤을 통해서 소스 콘트롤 작업을 할 때만 작동하며, 외부에서는 변경해도 리로드가 발동되지 않습니다. 앞으로의 엔진 버전에서는 이러한 요건을 제거하여 외부에서 변경해도 핫 리로드가 발동되도록 할 계획입니다.
+
+콘텐츠 핫 리로드는 명령이 있을 때 애셋의 지난 번 저장 상태에서 리로드하는 기능도 제공합니다. 콘텐츠 브라우저에서 애셋에 우클릭하고 "애셋 액션" 그룹 아래 "리로드" 옵션을 선택하면 됩니다. 애셋에 저장하지 않은 변경사항을 버리고 디스크에 있는 버전으로 되돌리고자 할 때 매우 유용합니다.
+
+![ContentHotReload.png](ContentHotReload.png)
+
+[REGION:note]이 기능은 현재 프로젝트에 소스 콘트롤이 활성화된 상태여야 합니다. 이러한 요건은 앞으로의 엔진 버전에서 제거될 예정입니다.[/REGION:note]
 
 ## 소스 콘트롤 비활성화
 

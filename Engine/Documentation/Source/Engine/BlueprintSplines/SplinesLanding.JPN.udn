@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3155346
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title:ブループリント スプライン
 Crumbs: %ROOT%, Engine
 Description:ブループリント スプラインとスプライン メッシュ コンポーネントのランディング ページ
 Navigation:topic
 parent:Engine
-order:10
+order:14
 social-image:Engine/BlueprintSplines/Overview/BPSC_1.png
 related:Engine/Landscape/Editing/Splines/
 version:4.13

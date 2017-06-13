@@ -44,6 +44,104 @@ The **Add** expression takes two inputs, adds them together and outputs the resu
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/VectorOps#AppendVector]
 
 
+## ArcSine 
+
+[REGION:lightbox]
+[![](MEN_ArcSine.png)(w:469)](MEN_ArcSine.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **Arcsine** expression outputs the inverse sine function. This is an expensive operation that is not reflected by the instruction count.
+
+## ArcSineFast
+
+[REGION:lightbox]
+[![](MEN_ArcSineFast.png)(w:469)](MEN_ArcSineFast.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **ArcsineFast** expression outputs the approximate inverse sine function. Input must be between -1 and 1.
+
+## ArcCosine
+
+[REGION:lightbox]
+[![](MEN_ArcCosine.png)(w:469)](MEN_ArcCosine.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **Arccosine** expression outputs the inverse cosine function. This is an expensive operation that is not reflected by the instruction count.
+
+## ArcCosineFast
+
+[REGION:lightbox]
+[![](MEN_ArcCosineFast.png)(w:469)](MEN_ArcCosineFast.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+
+The **ArccosineFast** expression outputs the approximate inverse cosine function. Input must be between -1 and 1.	
+
+## ArcTangent
+
+[REGION:lightbox]
+[![](MEN_ArcTangent.png)(w:469)](MEN_ArcTangent.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **Arctangent** expression outputs the inverse tangent function. This is an expensive operation that is not reflected by the instruction count.
+
+## ArcTragnetFast
+
+[REGION:lightbox]
+[![](MEN_ArcTangentFast.png)(w:469)](MEN_ArcTangentFast.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **ArctangentFast** expression outputs the approximate inverse tangent function.
+
+## ArcTangent2
+
+[REGION:lightbox]
+[![](MEN_ArcTangent2.png)(w:469)](MEN_ArcTangent2.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+
+The **Arctangent2** expression uses inverse tangent of x / y where input signs are used to determine quadrant. This is an expensive operation that is not reflected by the instruction count.
+
+## ArcrTangent2Fast
+
+[REGION:lightbox]
+[![](MEN_ArcTangent2Fast.png)(w:469)](MEN_ArcTangent2Fast.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **Arctangent2Fast** expression is an approximate inverse tangent of X / Y where input signs are used to determine quadrant.
+
 ## Ceil
 
 The **Ceil** expression takes in value(s), rounds them **up** to the next integer, and outputs the result.  See also [Floor](#Floor) and [Frac](#Frac).
@@ -241,8 +339,6 @@ In the example above, A is "0" and B is "1"; therefore, "0" (black) is the resul
 | **B** | Takes in the second value(s) to compare. |
 
 
-
-
 ## Multiply
 
 The **Multiply** expression takes two inputs, multiplies them together, and outputs the result. Similar to Photoshop's multiply layer blend.  Multiplication happens per channel, meaning that the R channel of the first is multiplied by the R channel of the second; the G chanWnel of the first is multiplied by the G channel of the second, and so on. Both inputs must have the same number of values unless one of the values is a single float value.
@@ -319,6 +415,33 @@ The **Power** expression takes two inputs, raises Base to the Exp power, and out
 ![PowerExample.png](PowerExample.png)
 
 
+## Round
+
+The **Round** expression rounds the value up to the next whole number if the fractional part is greater than or equal to half, else rounds down.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before Round](RoundExample_00.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![After Round](RoundExample_01.png)
+	[/PARAM]
+[/OBJECT]
+
+**Examples:** 
+* A value of 1.1 will be Round down to a value of 1.
+* A value of 1.4 will be Round down to a value of 1.
+* A value of 1.5 will be Round up to a value of 2.
+* A value of 1.85 will be Round up to a value of  2.
+
+## Saturate
+
+The **Saturate** node clamps the value between 0 and 1. The instruction cost of Saturate is almost free on most modern graphics hardware.
+
+![](SaturateExample_00.png)
+
+**Example Usage:** This node should be used whenever you need to clamp an output or input value between 0 and 1.
+
 ## Sine
 
 The **Sine** expression outputs the value of a Sine wave over the input range of [0, 1] and the output range of [-1, 1], both repeating. The difference between this and the output of the [Cosine](#Cosine) expression is the output waveform is offset by one-quarter of the period, meaning that `Cos(X)` is equal to `Sin(X + 0.25)`. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input, but it can also be used to create ripples in worldspace or screenspace, or any other application where a continuous, smooth cycle is needed. A visual representation of the wave is shown below, scaled to the [0, 1] output range:
@@ -363,3 +486,34 @@ The **Subtract** node takes in two inputs, subtracts the second input from the f
 
 ![SubtractExample.png](SubtractExample.png)(w:900)
 
+## Tangent
+
+[REGION:lightbox]
+[![](MEN_Tangent.png)(w:469)](MEN_Tangent.png)
+[/REGION]
+
+[REGION:caption]
+Click for full image.
+[/REGION]
+
+The **Tangent** node outputs the tangent of the specified value. 
+
+## Truncate
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before Truncate](TruncateExample_00.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![After Truncate](TruncateExample_01.png)
+	[/PARAM]
+[/OBJECT]
+
+
+The **Truncate** node truncates a value by discarding the fractional part while leaving the whole number untouched.
+
+**Examples:** 
+* A value of 1.1 will be Truncated to a value of 1.
+* A value of 1.4 will be Truncated to a value of 1.
+* A value of 2.5 will be Truncated to a value of 2.
+* A value of 3.1 will be Truncated to a value of 3.

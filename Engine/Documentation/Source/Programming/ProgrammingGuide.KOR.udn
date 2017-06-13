@@ -1,87 +1,14 @@
-﻿INTSourceChangelist:3351664
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:프로그래밍 가이드
 Crumbs: %ROOT%
 Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보입니다.
-Related: Programming/Development/VisualStudioSetup
-Related: Programming/Development/BuildingUnrealEngine
-Related: Programming/Development/CompilingProjects
-Related: Programming/Development/CodingStandard
-Related: Programming/Development/ManagingGameCode
-Related: Programming/Development/Tools
-Related: Programming/Development/BuildConfiguration
-Related: Programming/Development/BuildGraph
-Related: Programming/Development/InstalledBuildReference
 version: 4.9
 parent:%ROOT%
 order:4
 type:landing
-
-[VAR:Params]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_role_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Programming:title%
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	Programmers
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicRole]
-[OBJECT:Role]
-%homeparams%
-[PARAMLITERAL:id]
-programmer
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-programming
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-icon:%ROOT%/prog_icon.png
+Topic-image:ProgrammingGuide_topic.png
 
 언리얼 엔진 4 는 프로그래머용으로 두 가지 툴세트를 제공하며, 이 둘을 같이 사용했을 때 개발 작업방식이 빨라질 수도 있습니다. 새로운 게임플레이 클래스, Slate 와 Canvas 유저 인터페이스 요소, 
 에디터 함수성을 C++ 로 작성한 이후, 변경된 내용을 Visual Studio 나 XCode 로 컴파일하면 그 내용이 언리얼 에디터에 바로 반영됩니다. Blueprint (블루프린트) 비주얼 스크립팅 시스템은 
@@ -91,178 +18,61 @@ C++ 클래스는 Blueprint 클래스에 대한 베이스 클래스로 사용될 
 
 ## 시작하기
 
-[REGION:features third]
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		프로그래밍 퀵 스타트
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/QuickStart:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		quickstart
-	[/PARAMLITERAL]
-[/OBJECT]
+%Programming/QuickStart:role%
+%Programming/Introduction:role%
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		언리얼 C++ 입문
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Introduction]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Introduction:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		intro
-	[/PARAMLITERAL]
-[/OBJECT]
+## 개발 구성
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_role_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Tutorials:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Tutorials]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Tutorials:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		tutorials
-	[/PARAMLITERAL]
-[/OBJECT]
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"!BuildGraph")]
+
+## 언리얼 엔진 아키텍처
+
+C++ 로 프로그래밍을 하든, 블루프린트로 하든, 그 둘을 조합하든, 내재된 언리얼 아키텍처는 동일합니다.
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture/Reference" org:"hierarchy" end:"1")]
+
+## 게임플레이 아키텍처
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture" org:"hierarchy" end:"1")]
+
+## 게임플레이 가이드
+
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Beginner")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Intermediate")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Advanced")]
+
+## 언리얼 엔진 API 레퍼런스
+
+%API:role%
+%API/Runtime/Core:role%
+%API/Runtime/CoreUObject:role%
+%API/Runtime/Engine:role%
+
+## 시스템 가이드
+
+%Programming/Animation/AnimNodes:role%
+%Programming/Automation:role%
+%Engine/Blueprints/TechnicalGuide:role%
+%Programming/Online:role%
+%Programming/Online/Steam:role%
+%Programming/Rendering:role%
+%Programming/Slate:role%
+%Programming/UnrealBuildSystem:role%
+
+## 자동화 빌드
+
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"BuildGraph")]
+
+## 애셋 처리 레퍼런스 가이드
+
+[REGION:buttonlist]
+%Programming/Assets/AsyncLoading:role%
+[PUBLISH:Docs]
+%Programming/Assets/CustomImporters:role%
+%Programming/Assets/CustomExporters:role%
+[/PUBLISH:Docs]
+%Programming/Assets/Registry:role%
+[PUBLISH:Docs]
+%Programming/Assets/ThumbnailRendering:role%
+[/PUBLISH:Docs]
 [/REGION]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		언리얼 엔진 개발 구성
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Development "%Programming/Development:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/api_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Unreal Engine API Reference
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [Unreal Engine API](https://docs.unrealengine.com/latest/INT/API/index.html)
-		* [Core API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
-		* [Core UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
-		* [Engine API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		언리얼 엔진 아키텍처
-	[/PARAM]
-	[PARAM:description]
-		C++ 로 프로그래밍을 하든, 블루프린트로 하든, 그 둘을 조합하든, 내재된 언리얼 아키텍처는 동일합니다.
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/UnrealArchitecture "%Programming/UnrealArchitecture:description%")
-		* [](Programming/UnrealArchitecture/Objects "%Programming/UnrealArchitecture/Objects:description%")
-			* [](Programming/UnrealArchitecture/Objects/Optimizations "%Programming/UnrealArchitecture/Objects/Optimizations:description%")
-			* [](Programming/UnrealArchitecture/Objects/Creation "%Programming/UnrealArchitecture/Objects/Creation:description%")
-		* [](Programming/UnrealArchitecture/Actors "%Programming/UnrealArchitecture/Actors:description%")
-			* [](Programming/UnrealArchitecture/Actors/Components "%Programming/UnrealArchitecture/Actors/Components:description%")
-			* [](Programming/UnrealArchitecture/Actors/Spawning "%Programming/UnrealArchitecture/Actors/Spawning:description%")
-	* [](Programming/UnrealArchitecture/Reference "%Programming/UnrealArchitecture/Reference:description%")
-		* [](Programming/UnrealArchitecture/Reference/Classes "%Programming/UnrealArchitecture/Reference/Classes:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Functions "%Programming/UnrealArchitecture/Reference/Functions:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Properties "%Programming/UnrealArchitecture/Reference/Properties:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Structs "%Programming/UnrealArchitecture/Reference/Structs:Description%")
-		* [](Programming/UnrealArchitecture/TArrays "%Programming/UnrealArchitecture/TArrays:Description%")
-		* [](Programming/UnrealArchitecture/TMap "%Programming/UnrealArchitecture/TMap:Description%")
-		* [](Programming/UnrealArchitecture/TSubclassOf "%Programming/UnrealArchitecture/TSubclassOf:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description%")
-	* [](Programming/Modules/Gameplay "%Programming/Modules/Gameplay:description%")
-	* [](Programming/Plugins "%Programming/Plugins:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		언리얼 게임플레이
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Gameplay "%Gameplay:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/engine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		시스템 가이드
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
-		* [](Programming/Automation "%Programming/Automation:description%")
-		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
-		* [](Programming/Online "%Programming/Online:description%")
-		* [](Programming/Online/Steam "%Programming/Online/Steam:description%")
-		* [](Programming/Rendering "%Programming/Rendering:description%")
-		* [](Programming/Slate "%Programming/Slate:description%")
-		* [](Programming/UnrealBuildSystem "%Programming/UnrealBuildSystem:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		애셋 처리 참고 안내서
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Assets/AsyncLoading "%Programming/Assets/AsyncLoading:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/CustomImporters "%Programming/Assets/CustomImporters:description%")
-		* [](Programming/Assets/CustomExporters "%Programming/Assets/CustomExporters:description%")
-		[/PUBLISH:Docs]
-		* [](Programming/Assets/Registry "%Programming/Assets/Registry:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/ThumbnailRendering "%Programming/Assets/ThumbnailRendering:description%")
-		[/PUBLISH:Docs]
-	[/PARAM]
-[/OBJECT]

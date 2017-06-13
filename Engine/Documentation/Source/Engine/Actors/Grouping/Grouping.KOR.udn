@@ -1,49 +1,13 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability: Public
 Title:액터 그룹
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:언리얼 에디터에서 액터 그룹 관련 작업을 하는 방법 안내서입니다.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+parent:Engine/Actors
+type:overview
+order:5
+topic-image:actorgrouping_topic.png
 
 
 [TOC(start:2)]

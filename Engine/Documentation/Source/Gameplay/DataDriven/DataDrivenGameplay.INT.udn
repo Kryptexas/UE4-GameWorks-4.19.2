@@ -1,10 +1,12 @@
 Availability:Public
 Title: Data Driven Gameplay Elements
-Crumbs:%ROOT%, Gameplay
+Crumbs:%ROOT%
 Description:Driving gameplay elements using externally stored data.
 version: 4.9
+type:reference
+tags:Gameplay
 
-[TOC(start:2)]
+[toc(start:2 end:2)]
 
 Data driven gameplay helps mitigate the amount of work and complexity involved, as well as providing 
 the ability to visualize and parameterize data creation and progression, for games that have an extended 

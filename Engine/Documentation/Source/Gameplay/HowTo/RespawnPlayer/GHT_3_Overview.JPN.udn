@@ -1,25 +1,19 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429254
 Availability:Public
-Title:プレイヤーを再スポーンするための操作ガイド
+Title:プレイヤーを再スポーンする
 Crumbs: %ROOT%, Gameplay
 Description:UE4 でプレイヤー キャラクターを再スポーンするための操作ガイド 
+Version:4.9
+Parent:Gameplay
+SkillLevel:Advanced
+type:overview
+order:2
 
+ほとんどのゲームでは、プレイヤー キャラクターがキルされ、ワールドに再スポーンするときがやってきます。この操作ガイドでは、シングル プレイヤー用途での簡単な再スポーン システムのセットアップ方法について説明します。 
 
-## 概要
+## 実装ガイド
 
-ほとんどのゲームでは、プレイヤー キャラクターがキルされ、ワールドに再スポーンするときがやってきます。この **操作ガイド** では、シングル プレイヤー用途での簡単な再スポーン システムのセットアップ方法について説明します。 
-
-## セットアップ
-
-ブループリントを使った **プレイヤーの再スポーン** については、以下をご覧ください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\RespawnPlayer\Blueprints)
-<!--
-* [](Gameplay\HowTo\RespawnPlayer\Code)
--->
-[/REGION]
-
+[DIR(output:"role" parent:"Gameplay/HowTo/RespawnPlayer" org:"hierarchy" end:"1")]
 
 
 

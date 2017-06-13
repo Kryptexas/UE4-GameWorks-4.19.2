@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3313485
-Availability:Docs
+﻿INTSourceChangelist:3457813
+Availability:Public
 Title:1 - 必要な設定
-Crumbs:
+Crumbs:%ROOT%
 Description: Linux で UE4 を使ってモバイル ゲーム開発用 Android SDK のインストールおよび設定方法を説明します。
 Version:4.14
 type:quick start
@@ -10,31 +10,37 @@ order:1
 tags:Linux
 SkillLevel:Intermediate
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [nav]
 
 [EXCERPT:AndroidLinux_1]
-アンリアル エンジン (UE4) は CodeWorks for Android 1R5 という Android ソフトウェア開発キット (SDK) の 
-特別バージョンを採用しています。CodeWorks for Android の特別バージョンを使うと、 
-UE4 で Android プロジェクトを開発するために必要な SDK および Native Development Kit (NDK) の設定を一番簡単に行うことができます。違うバージョンの Android SDK (あるいは、CodeWorks for Android の古いバージョン) をインストールしている場合は、 
-それをアンインストールして、UE4 が配布している CodeWorks for Android インストーラーを使って、 
-CodeWorks for Android (https://developer.nvidia.com/codeworks-android) をインストールすることを推奨します。  
+アンリアル エンジン (UE4) は CodeWorks for Android という Android ソフトウェア開発キット (SDK) の 
+特別バージョンです。CodeWorks for Android を使うと、 
+UE4 で Android プロジェクトを開発するために必要な SDK および Native Development Kit (NDK) の設定を一番簡単に行うことができます。Android SDK の古いバージョン (1R5 より前) をインストールしている場合 (または CodeWorks for Android の古いバージョン) は、 
+それをアンインストールし、UE4 が配布している CodeWorks for Android インストーラーを使って、 
+[CodeWorks for Android](https://developer.nvidia.com/codeworks-android) をインストールすることを推奨します。  
 
 [REGION:note]
-UE4 に込みこまれている CodeWorks for Android インストーラーを使えば、必ずアンリアル エンジンと互換性のある Android SDK がインストールされることに注目してください。 
+CodeWorks for Android インストーラは UE4 とセットになっているので、アンリアル エンジンと互換性のある Android SDK が必ずインストールされます。 
+アンリアル エンジン 4.16 では、CodeWorks for Android 1R6u1 が組み込まれていますので、十分に注意してください。
 [/REGION]
 
 ## CodeWorks for Android のインストール手順
 
+Linux で Android を開始する手順を説明するために、アンリアル エンジン 4.14 で CodeWorks for Android 1R5 を使用します。
+CodeWorks for Android 1R5 をインストールする前に UE4 を終了してください。また、Java Development Kit 8 (JDK 8) が、Java Development Kit (JDK) の正しいバージョンに設定された `JAVA_HOME` 環境変数でインストールされていることも確認してください。
+`JAVA_HOME` の設定が正しいか確認するには、ターミナルに `echo $JAVA_HOME` と入力します。正しい JDK のバージョンが表示されない場合は、`JAVA_HOME` 環境変数を新しくインストールした JDK に設定されていることを確認しながら [download JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html) から Linux コンピューターにインストールします。
+
 [REGION:warning]
-CodeWorks for Android 1R5 をインストールする前に UE4 を終了してください。また、Java Development Kit 8 (JDK 8) がインストールされていることも確認してください。
+先へ進む前に、Android Vulkan は Linux ではまだサポートされていないことにご注意ください。
 [/REGION]
 
 1.	はじめに、Terminal を開き、コンパイルされたエンジンが入っている `[UE4Root]` フォルダを開きます (`cd` コマンドを使ってシェル作業ディレクトリを変更します)。
 
 	![](LinuxAndroid_Step0.png)(w:900)
 
-1.	ターミナルに以下のコマンドを入力して、`[UE4Root]` フォルダの中から CodeWorks for Android 1R5 バイナリ ファイル (**CodeWorksforAndroid-1R5-linux-x64.run**) を開きます: `cd Engine/Extras/AndroidWorks/Linux`
+1.	ターミナルにコマンド `cd Engine/Extras/AndroidWorks/Linux` を入力して、`[UE4Root]` フォルダの中から CodeWorks for Android 1R5 バイナリ ファイル (**CodeWorksforAndroid-1R5-linux-x64.run**) を開きます。
 
 	![](LinuxAndroid_Step1.png)(w:900)
 
@@ -42,7 +48,7 @@ CodeWorks for Android 1R5 をインストールする前に UE4 を終了して�
 
 	![](LinuxAndroid_Step2.png)(w:900)
 
-	**CodeWorksforAndroid-1R5-linux-x64.run** がまだ実行ができる状態ではないことがファイルの許可設定に表示されます。
+	**CodeWorksforAndroid-1R5-linux-x64.run** がまだ実行可能な状態でないことがファイルの許可設定に表示されます。
 	CodeWorks for android 1R5 binary を実行可能な状態にするには、'execute' が許可されるようにファイルのアクセス権を変更する必要があります。
 
 1.	`CodeWorksforAndroid-1R5-linux-x64.run` のファイル許可設定を変更するには、ターミナルに `chmod +x CodeWorksforAndroid-1R5-linux-x64.run` と入力して、通常の実行ファイルのように実行可能にします。
@@ -107,12 +113,12 @@ CodeWorks for Android 1R5 をインストールする前に UE4 を終了して�
 
 	![](LinuxAndroid_Step15.png)(w:900)
 
-1.	次のステップへ進むまえにコンピュータを必ず再起動してください。
+1.	次のステップへ進む前に、コンピュータを必ず再起動してください。
 
 	![](LinuxAndroid_Note16.png)(w:900)
 
 	[REGION:tip]
-	Ubuntu の GUI を使いたくなければ、ターミナルに `sudo reboot` と入力してコンユーターを再起動します。 
+	Ubuntu の GUI を使わない場合は、ターミナルに `sudo reboot` と入力してからコンピューターを再起動します。 
 	<!-- 
 	![](LinuxAndroid_Step16.png)(w:900)
 	-->
@@ -121,7 +127,7 @@ CodeWorks for Android 1R5 をインストールする前に UE4 を終了して�
 
 ## 結果
 
-ここまでで、Linux で UE4 を使ったモバイル ゲーム開発の最初の準備となる Android SDK のインストールが完了しました。 
+このステップで、Linux で UE4 を使ったモバイル ゲーム開発の最初の準備となる Android SDK のインストールが完了しました。 
 次のステップでは、Android デバイスに開発環境を設定する方法を説明します。 
 
 [nav]

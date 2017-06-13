@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3321713
+﻿INTSourceChangelist:3469804
 Availability:Public
 Title: 리눅스용 크로스 컴파일 (레거시)
-Crumbs:
+Crumbs:%ROOT%
 Description:엔진 4.14 미만 버전에서 리눅스 플랫폼용 크로스 플랫폼 구성 방법을 알려드립니다.
 Version: 4.14
 SkillLevel: Advanced
@@ -18,7 +18,7 @@ topic-image:LegacyRef_Topic.png
 
 [TOC(start:2 end:3)]
 
-4.14 이전 릴리즈된 언리얼 엔진 4 버전의 크로스 컴파일 툴체인 구성을 하는 사용자를 위한 참고서입니다.
+4.14 이전 릴리즈된 언리얼 엔진 4 (UE4) 버전의 크로스 컴파일 툴체인 구성을 하는 사용자를 위한 참고서입니다.
 
 [REGION:note]
 언리얼 엔진 4.14 (이상) 버전으로 프로젝트를 개발하시는 경우, [](Platforms/Linux/GettingStarted) 문서를 참고해 보시기 바랍니다.
@@ -29,20 +29,23 @@ topic-image:LegacyRef_Topic.png
 
 **크로스 컴파일** 덕에 윈도우 중심으로 작업하는 게임 개발자들이 리눅스를 타겟으로 개발할 수 있습니다. 현재 크로스 컴파일은 윈도우에만 지원됩니다.
 맥 사용자들은 [네이티브 컴파일](https://wiki.unrealengine.com/Building_On_Linux) 에 의존해야 합니다. Linux-x86_64 플랫폼용 라이브러이와 툴체인을 지원, 테스트, 제공해 드리고 있습니다.
-[/EXCERPT:Why_XC]
+
 ## 툴체인 구하기
 
 다음 표를 통해 적합한 툴체인을 다운로드할 수 있습니다:
 
-| 언리얼 엔진 4 (UE4) 버전 | 툴체인 | 
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | 
-| **<= 4.8**                      | -v4 [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 
-| **4.9 and 4.10**                | -v6 [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 
-| **4.11 thru 4.13**              | -v7 [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 
-| **4.14**                        | -v8 [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         |
+| 툴체인                                                                                                                           | UE4 버전 | 
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | <= 4.8         | 
+| **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 and 4.10   | 
+| **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
+| **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 and 4.15  |
+| **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
-Linux ARM (원본 Raspberry Pi 이상) 용 컴파일을 위한 라이브러이와 툴체인도 제공해 드리고 있습니다만, 이를 위해서는 
-[언리얼 빌드 툴](Programming/UnrealBuildSystem) (UBT) 에서 약간의 코드 수정을 가해야 할 것입니다.
+
+[Linux ARM](https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) (원본 Raspberry Pi 이상) 용 컴파일을 위한 라이브러이와 툴체인도 제공해 드리고 있습니다만, 
+이를 위해서는 [언리얼 빌드 툴](Programming/UnrealBuildSystem) (UBT) 에서 약간의 코드 수정을 가해야 할 것입니다.
+[/EXCERPT:Why_XC]
 
 아래 대부분은 (툴체인이 다르다는 것만 제외하면) ARM 컴파일에도 적용되지만, 여기서는 x86_64 리눅스를 타겟으로 삼는다 가정하겠습니다. 
 참고로 다른 버전의 툴이나 다른 아키텍처를 타겟으로 삼고자 하는 경우, [툴체인을 직접 빌드](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) 할 수도 있습니다.

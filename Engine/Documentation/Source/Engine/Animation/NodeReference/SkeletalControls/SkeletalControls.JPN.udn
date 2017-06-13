@@ -1,27 +1,30 @@
-﻿INTSourceChangelist:3068762
-Availability:Public
+﻿INTSourceChangelist:3477876
+Availability:Docs
+Crumbs: %ROOT%
 Title:スケルタル制御
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:ターゲット スケルトンのボーンを直接操作し、ソルバを適用できるアニメーション ノードについて説明します。
-version:4.12
+Type:Landing
+Version:4.16
+Parent:Engine/Animation/NodeReference
+Order:1
+Tags:Animation
+Tags:Animation Blending
+Tags:Skeletal Controls
+topic-image:SkeletalControlTopicCompact.png
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**SkeletalControls (スケルタル制御)** (**SkelControls** とも呼ばれます) を使用すると、スケルトン内のボーンを直接制御することができます。個々のボーンの制御、IK チェーンの作成などのために 
-Animation ブループリント内で使用します。下層スケルトンを直接制御することで、 
-プロシージャルで動的に動くアニメーションを作成することができます。あるボーンの **トランスフォーム** を別のボーンを動かすために使用したり、 
-通常の歩くアニメーションの再生中に、トレースを使用してキャラクターの足と地面を 
-同調させることができます。アニメーション シーケンスで適用したボーンのトランスフォームを微調整したり、 
-完全にオーバーライドするために、どのような種類の修正でも使用できます。
+**SkeletalControls (スケルタル制御)** (**SkelControls** とも呼ばれます) を使用すると、[Skeleton](Engine/Animation/Skeleton) アセット内のボーンを直接制御することができます。[Animation ブループリント](Engine/Animation/AnimBlueprints) 内でスケルタル制御を使って、個々のボーンの制御、IK チェーンの作成などを行うことができます。基本となるスケルトンを直接制御することで、プロシージャルな動的に動くアニメーションを作成することができます。あるボーンの **トランスフォーム** を使って、他のボーンを操作したり、歩行アニメーションの再生中に、キャラクターの足と地面を 
+同調させることができます。何らかの変更を加えて [アニメーション シーケンス](Engine/Animation/Sequences) で適用したボーンのトランスフォームを微調整したり、完全にオーバーライドすることができます。
 [/EXCERPT:Intro]
 
 
 ## 共通のピンとプロパティ
 
-全てのスケルタル制御で以下のように共通のピンとプロパティがあります。
+利用可能なプロパティは主にノード自体によって決まりますが、以下のように一部のピンやプロパティはすべてのスケルタル制御で共通になっています。 
 
 | ピン | 説明 |
 | --- | ----------- |
@@ -29,14 +32,14 @@ Animation ブループリント内で使用します。下層スケルトンを�
 | **Component Pose** | トランスフォームさせる入力ポーズです。 |
 | **Alpha** | スケルタル制御で適用されるトランスフォームの重み付けを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
-| **Pose (Blank)** | トランスフォーム適用後の最終ポーズ |
+| **Pose (Blank)** | トランスフォーム適用後の最終ポーズです。 |
 
 [EXCERPT:LODThresh]
 ![](perf.png)
 
 | プロパティ | 説明 |
 | --- | --- |
-| **LOD Threshold** | このノードで実行が認められている最高 LOD (Level of Detail) (**LOD**) です。例えば、LOD Threshold を **2** に設定すると、**LOD 2** になるまでは実行しますが、コンポーネントの LOD が **3** になると無効になります。 |
+| **LOD Threshold** | このノードで実行が認められている最高 LOD (Level of Detail) です。例えば、LOD Threshold を 2 に設定すると、LOD 2 になるまでは実行しますが、コンポーネントの LOD が 3 になると無効になります。 |
 [/EXCERPT]
 
 
@@ -57,7 +60,7 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Skeletal Control
+	スケルタル制御
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
@@ -66,12 +69,15 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\SplineIK "%Engine\Animation\NodeReference\SkeletalControls\SplineIK:description%")	
 		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ModifyCurve "%Engine\Animation\NodeReference\SkeletalControls\ModifyCurve:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
 		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
-		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")	
+		* [](Engine\Animation\NodeReference\SkeletalControls\RigidBody "%Engine\Animation\NodeReference\SkeletalControls\RigidBody:description%")			
 	[/PARAM]
 [/OBJECT]
 

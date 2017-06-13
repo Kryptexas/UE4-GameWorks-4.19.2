@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3275207
+﻿INTSourceChangelist:3455315
 Availability:Public
 Title:背景のライティング
 Crumbs: %ROOT%, Engine
-Description:ライティングとシャドウイング ジオメトリの使用、グローバル イルミネーションの使用、リフレクションの設定
+Description:ライティングとシャドウイング ジオメトリの使用方法、グローバル イルミネーションの使用方法、リフレクションの設定方法
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Version:4.9
@@ -81,12 +81,14 @@ type:landing
 %Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
 %Engine/Rendering/LightingAndShadows/ContactShadows:Topic%
+%Engine/Rendering/LightingAndShadows/CapsuleShadows:Topic%
 [/REGION]
 
 ## 全般
 
 [REGION:topics third]
 
+%Engine/Rendering/LightingAndShadows/VolumetricFog:Topic%
 %Engine/Rendering/LightingAndShadows/AmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/LightShafts:Topic%
 %Engine/Rendering/LightingAndShadows/AmbientCubemap:Topic%

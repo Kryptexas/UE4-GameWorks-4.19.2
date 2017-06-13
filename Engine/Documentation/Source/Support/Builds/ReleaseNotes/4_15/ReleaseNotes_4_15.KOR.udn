@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3303749
+﻿INTSourceChangelist:3403469
 Availability:Public
 Title: 언리얼 엔진 4.15 릴리즈 노트
 Description: Release Notes for Unreal Engine 4.15
@@ -2785,3 +2785,4 @@ Platform-specific release notes for PS4, XBoxOne, and Switch are available in th
 **Google Daydream**
 
 * Daydream apps require android-24.  This is not installed by default, but can be manually installed with NVPACK\Chooser.exe.
+

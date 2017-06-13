@@ -44,7 +44,7 @@ In your .h file (e.g. `ReactToTriggerInterface.h`):
 
     public:
 		/** React to a trigger volume activating this object. Return true if the reaction succeeds. */
-        UFUNCTION(BlueprintCallable, BlueprintCallable, Category="Trigger Reaction")
+        UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category="Trigger Reaction")
         bool ReactToTrigger() const;
     };
 

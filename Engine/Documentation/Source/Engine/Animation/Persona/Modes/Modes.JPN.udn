@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:アニメーション ツール
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -14,6 +14,7 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
+tags:Tools
 
 [EXCERPT:Overview]
 UE4 でアニメートされたキャラクターを作成する場合、様々なアニメーション ツール (エディタ) を使用することになります。それぞれがアニメーションの異なる側面に重点を置いています。 

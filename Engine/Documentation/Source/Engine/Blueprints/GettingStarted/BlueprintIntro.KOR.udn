@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3482294
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -151,9 +151,38 @@ _레벨 블루프린트_ 와 _블루프린트 클래스_ 에 대한 설명 다�
 
 _레벨 블루프린트_ 나 _블루프린트 클래스_ 를 만들 때는 [](Engine/Blueprints/Editor) 에서 [블루프린트 요소](Engine/Blueprints\UserGuide) 들을 조합하게 됩니다.
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
-	[![](Engine/Blueprints/Editor/blueprint_editor_example.png)(w:480)](Engine/Blueprints/Editor/blueprint_editor_example.png)
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 
 작업중인 블루프린트 유형에 따라 사용할 수 있는 블루프린트 에디터 유형이 달라집니다. **블루프린트 에디터** 의 가장 핵심적인 기능은 **그래프** 모드로, 중앙의 **그래프** 탭은 
@@ -166,6 +195,7 @@ _레벨 블루프린트_ 나 _블루프린트 클래스_ 를 만들 때는 [](En
 * [](Resources/Showcases/BlueprintExamples)
 * [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
 * [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+
 
 
 

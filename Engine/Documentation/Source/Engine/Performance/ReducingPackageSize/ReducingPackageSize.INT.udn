@@ -58,7 +58,33 @@ To turn on package compression, you need to do the following in the UE4 Editor.
 
 1. First, open up the project's settings by going to the Main Toolbar and selecting the **Edit** option, then selecting **Project Settings**.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Project_Settings_Menu.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Project_Settings_Menu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Under the Project section, click on the **Packaging** section to show the options for how the project will be packaged.
 
@@ -81,7 +107,33 @@ To set which level (or levels) should be used for this type of interaction, you 
 
 1. First, on the **Main Toolbar** go to  **Edit** > **Project Settings**.
 
-	 ![](T_Project_Settings.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Project_Settings_Menu.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Project_Settings_Menu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Then, under **Project** in the **Maps & Modes** section look for the **Default Maps** section.
 
@@ -102,7 +154,33 @@ If you do not specify which maps should be cooked then all maps will be cooked i
 
 1. First, open up the project's settings by going to the **Main Toolbar** and selecting **Edit** > **Project Settings**.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Project_Settings_Menu.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Project_Settings_Menu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Then, under **Project** in the **Packaging** section look for the **Packaging** option.
 
@@ -149,13 +227,65 @@ You can find the Cooked folder by going to **(ProjectName)\Saved\Cooked** and th
 Please note that you will only be able to see the content in the **Cooked** folder after you complete your first cook. 
 [/region]
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](T_Cooked_Content_Folder.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](T_Cooked_Content_Folder_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 The image below shows the Texture folder from the Match 3 sample game. 
 The content in the folder has been sorted by size, so it is easier to see what assets are the biggest.
 Once the biggest assets have been determined, you can then examine the assets inside of UE4 to see if in fact they can be reduced in size without sacrificing the integrity of the asset.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](T_Cooked_Content.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](T_Cooked_Content_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 ## Development VS Shipping Build Size
 When trying to figure out the final size your project will be, keep in mind that the Development version of your project will be slightly larger than your Shipping build size.
@@ -175,7 +305,33 @@ When you do try and delete something from your project, the **Delete Assets** me
 This is the preferred method of deleting objects in UE4 and should be used over just simply deleting/removing the assets from their location in the content folder.
 [/region]
 
-![](T_Delete_Menu.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DeleteAssets_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DeleteAssets_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 The Delete Assets menu will inform you if the asset you are trying to delete is referenced by another asset. 
 If it is not referenced, you can simply delete it, however if it is referenced by other assets, you can use the **Replace References** option to replace the reference to that asset to another asset that is supposed to be packaged in your project.
@@ -193,7 +349,33 @@ To disable a plug-in inside of UE4, you need to do the following:
 
 1. First, open up the Plug-ins Manager by going to the **Main Toolbar** and clicking on the **Window** option and then selecting the **Plug-in** option.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Open_Plugins_Browser.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Open_Plugins_Browser_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. From the Plug-in Browser, select the different sections and disable any plug-ins you are not using by un-checking the check mark box next to **Enabled**.
   When you have disabled all the plug-ins, you will need to re-start the UE4 Editor and then make sure to re-package your project.
@@ -216,13 +398,65 @@ Projects can have multiple Black List files for Debug, Development, Test, and Sh
 You can even have different Black List files for each platform your project supports like one for Android, one for iOS, ect. 
 Here is an example of what the Black List files would look like for Tappy Chicken on Android. 
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](T_Blacklist_Packages.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](T_Blacklist_Packages_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Here is an example from Tappy Chicken where the cooker is told to not include the following files when the game is cooked and packaged.
 
 * **Blacklist Text File Location & Name:** TappyChicken/Build/Android/**PakBlacklist-Shipping.txt**:
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](T_Black_List.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](T_Black_List_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 The first three entries should be safe for any project, but there may be cases were the **AssetRegistry.bin** is needed at runtime (depending on your project).
 It is highly recommended that you thoroughly test to ensure that the content you are removing will not negatively impact your project.

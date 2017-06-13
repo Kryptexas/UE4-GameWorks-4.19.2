@@ -8,6 +8,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.9
+type:how-to
 
 In this How-to we take a look at creating a static (or fixed) camera angle that is used for a player's perspective during gameplay. Once completing this tutorial, you can take the process used here and apply it to your own game to set up a fixed perspective for a player to view your game from. 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3372845
 Availability:NoPublish
 Title:FBodyInstance RTTs
 Crumbs:
@@ -61,7 +61,10 @@ Engine/Physics/PhysicsBodies#physics
 
 ![](PhAT_COM.png)
 
-현재로써는 질량 중심의 실제 위치를 확인할 수 있는 방법이 없지만, 조절하려는 바디의 선형 제동(Linear Damping)을 늘려주면 바디가 낙하할 때 질량 중심으로부터 흔들리는 것을 보고 알 수 있습니다. 레벨에 스켈레탈 메시를 배치하고 피직스를 켜 줘야 실제 느낌이 날 수 있습니다.
+Mass Properties (질량 프로퍼티) 표시 플래그는 이동가능 또는 시뮬레이션 바디에 대한 Center of Mass (질량 중심) 및 Inertia Frame (관성 좌표계)를 시각화합니다. 질량 중심은 보통 지오메트리에 삽입되어 있으므로 와이어프레임 렌더링 모드를 켜줘야 합니다.
+
+![](COM_Geom.png)
+
 [VAR:ToolTipFullLink]
 Engine/Physics/PhysicsBodies#physics
 [/VAR]

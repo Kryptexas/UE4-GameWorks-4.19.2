@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3372149
 Availability:Public
 Title:ショットとテイクを作成する
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Crumbs:
 Description:ショットを並び替えるノンリニア編集とテイクを使ったショットのバリエーションについて説明します。 
 Version:4.12
 SkillLevel:Intermediate
@@ -9,7 +9,7 @@ parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
-Related:Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/ReferenceEditor
 tags:Sequencer
 
 従来の映像エディタと同様に、**Shot (ショット) トラック** ではレベル シーケンスを追加、配置、再配置し、配置した順序で再生することができます。

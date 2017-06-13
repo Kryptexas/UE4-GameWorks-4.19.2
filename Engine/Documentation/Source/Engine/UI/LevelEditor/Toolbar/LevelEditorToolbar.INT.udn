@@ -3,6 +3,7 @@ Title:Level Editor Toolbar
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Collection of commands that provide quick access to commonly used tools and operations.
 Version: 4.9
+topic-image:LevelEditorToolbar_topic.png
 
 The **Toolbar** panel, like in most applications, is a group of commands providing quick access to commonly used tools and operations.
 

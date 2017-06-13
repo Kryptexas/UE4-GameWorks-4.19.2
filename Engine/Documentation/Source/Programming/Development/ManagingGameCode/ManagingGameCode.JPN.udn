@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2722969
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:ゲームコードの管理
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:コードの追加とプロジェクトファイルの生成 
-Version:4.9
+Version:4.16
+Parent:Programming/Development
+Order:
+type:overview
 
 %Globals:OSSelect%
 
@@ -26,7 +29,7 @@ Version:4.9
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	コードファイルは Visual Studio で作成され、通常の方法で 
+	コード ファイルは Visual Studio で作成され、通常の方法で 
 	**Solution Explorer** からゲームプロジェクトへ追加されます。Visual Studio 外部の適切なフォルダへコードファイルを追加したり、 
 	ソリューションやプロジェクトファイルを自動的に再ビルドすることができます。オペレーティングシステムの UI を通じてたくさんのファイルを素早く簡単に追加可能になり、 
 	チームメンバー間でソリューションやプロジェクトファイルの同期も不要となるためチームの作業が容易になります。各自が、 
@@ -131,7 +134,7 @@ Version:4.9
 1. `UE4`のルートディレクトリに格納されている 「GenerateProjectFiles.bat batch」 バッチファイルを実行します。
 1. `UE4`のルートディレクトリに格納されている UE4.sln Visual Studio ソリューションを開きます。
 
-[](Programming/UnrealBuildSystem/ProjectFileGenerator) の詳細オプションが利用可能です。このオプションは出荷、追加のプラットフォーム、またはVisual Studio 2013 に対応するプロジェクトファイルの生成に使用することができます。 
+[](Programming/UnrealBuildSystem/ProjectFileGenerator) の詳細オプションが利用可能です。このオプションは出荷 (または追加のプラットフォーム) に対応するプロジェクトファイルの生成に使用することができます。
 
 [/PUBLISH:Licensee]
 
@@ -155,8 +158,9 @@ Version:4.9
 	[PARAM:content]
 	1. Windows Explorer で [ProjectName].uproject の保存場所へ移動します。
 	1. 「[ProjectName].uproject」ファイルを **右クリック** して **[Generate Visual Studio Files]** を選択します。
-	
-		![](Generate_Visual_Studio_Files.png)
+
+	![](Generate_Visual_Studio_Files.png)
+
 
 	1. UnrealbuildTool が、Intellisense データの生成も含めてプロジェクト ファイルとソリューションを更新します。
 

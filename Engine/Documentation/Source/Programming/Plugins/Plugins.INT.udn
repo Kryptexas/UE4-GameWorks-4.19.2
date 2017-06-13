@@ -1,9 +1,9 @@
 Availability:Public
 Title:Plugins
 Crumbs:
-Parent:Programming
 Description:How to create Unreal Engine plugins.
 Version: 4.9
+Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
 

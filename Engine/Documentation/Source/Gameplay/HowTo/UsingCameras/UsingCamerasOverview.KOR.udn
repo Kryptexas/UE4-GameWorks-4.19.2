@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:카메라 사용법
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 씬에 있는 액터를 찾는 법에 대한 비법입니다.
 version: 4.9
 Parent:Gameplay
-type:how-to
+skilllevel:Beginner
+type:overview
 order:12
 
 언리얼 엔진 4 의 **카메라** 작업 및 배치 방법에 대해 다루는 "비법" 시리즈입니다. **카메라** 는 레벨에 바로 배치하여 그 자체로 사용할 수고 있고, **블루프린트** 의 일부로 (비행기 조종이나 자동차 운전 및 캐릭터 제어시 플레이어의 시점을 제공해 준다든가 하는 용도로) 사용할 수도 있습니다.
@@ -61,16 +62,9 @@ order:12
 레벨에 **카메라 액터** 를 배치하는 법과 그 모양을 변경하는 법이 약간 이해가 되셨을 테니, 아래 **셋업** 섹션으로 가서 카메라 작업 방법 및 카메라를 플레이어 시점으로 활용하는 법, **블루프린트** 의 일부로써 **카메라 컴포넌트** 를 사용하는 법, (전형적으로 삼인칭 시점 제작에 쓰이는) **카메라 컴포넌트** 와 **스프링 암 컴포넌트** 사용법, 게임플레이 도중의 카메라 사이 전환법도 배워 보시기 바랍니다.
 
 
-## 사용 예제
+## 구현 안내
 
-아래 각 링크에서 단계별 사용 예제를 참고하시기 바랍니다.
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\UsingCameras\Blueprints)
-* [](Gameplay\HowTo\UsingCameras\SwitchingCameras)
-* [](Gameplay\HowTo\UsingCameras\CameraComponents)
-* [](Gameplay\HowTo\UsingCameras\SpringArmComponents)
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/UsingCameras" org:"hierarchy" end:"1")]
 
 
 

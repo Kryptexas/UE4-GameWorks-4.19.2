@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:UMG を使ったユーザー インターフェース
 Crumbs:%ROOT%, GettingStarted
 Description:UMG を使ったシンプルなメニュー システム
 version:4.14
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

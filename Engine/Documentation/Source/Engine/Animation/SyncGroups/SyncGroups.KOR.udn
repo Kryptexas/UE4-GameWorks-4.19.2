@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 싱크 그룹
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Sync Group, 싱크 그룹은 길이가 다른 애니메이션간의 동기화 상태를 유지시켜줍니다.
 version: 4.9
-
+topic-image:SyncGroups_topic.png
 
 [EXCERPT:Intro]
 Sync Group (싱크 그룹)은 길이가 다를 수 있는 _관련된_ 애니메이션의 동기화 상태를 유지시켜줍니다. 예를 들어 걷는 주기와 달리는 주기를 서로 블렌딩하여 캐릭터가 부드럽게 가속 내지 감속되도록 하고 싶습니다. 그런데 그 애니메이션의 길이가 다르다면? 걷기가 달리기보다 현저하게 길다든지 말이죠? 그러한 경우에 그 둘을 직접 블렌딩하면, 발 애니메이션 전환시 추하게 펄떡거린다든가 하는 자연스럽지 못한 결과가 나게 됩니다.

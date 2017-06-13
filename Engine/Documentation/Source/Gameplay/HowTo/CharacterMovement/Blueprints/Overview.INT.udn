@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement
 Description:A How To Guide for Setting Up Character Movement in Blueprints. 
 Version: 4.9
 SkillLevel: Advanced
+type:how-to
+type:landing
 
  
 This "How To" series covers all the steps needed to create a fully playable and animated character through **Blueprints**. By the end of this How To series, you will have a character that can Walk, Run, Crouch and Crouch Walk, Go Prone, Jump from a stationary standing position, or Jump while moving. 
@@ -28,25 +30,10 @@ For this series, we are using the **Animation Starter Pack**, which is available
 
 To get started, follow the steps below. 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone\:description%")
-	[/PARAM]
-[/OBJECT]
+## Steps
 
+[DIR(output:"checkpoint" parent:"Gameplay/HowTo/CharacterMovement/Blueprints")]
+
+[REGION:call_to_action]
+[Click to Start](Gameplay/HowTo/CharacterMovement/Blueprints/Setup_1)
+[/REGION]

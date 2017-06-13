@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275208
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:Android ゲームの開発
 Crumbs:%ROOT%, Platforms
@@ -10,6 +10,7 @@ tags:Android
 tags:Mobile
 parent:Platforms/Mobile
 type:landing
+Topic-image:AndroidGameDevelopment_topic.png
 
 ## はじめよう
 

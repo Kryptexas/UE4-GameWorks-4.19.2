@@ -3,7 +3,7 @@ Title: 1.5 - Setting the Default Game Mode
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: Learn how to set the default game mode for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -55,7 +55,7 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
 			#pragma once
 			
 			#include "GameFramework/GameModeBase.h"
-			#include "FPSGameMode.generated.h"
+			#include "FPSProjectGameMode.generated.h"
 			
 			/**
 			 * 

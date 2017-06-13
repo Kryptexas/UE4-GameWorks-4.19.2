@@ -42,10 +42,37 @@ For this How To guide, we will be using a new project using the **Blueprint Thir
 
 1.	When the Actor is placed, the **Details** panel in the lower-right porition of the editor will become populated. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Details2.png)](Details2.png)
-	_Click for full view._
+	[![](DetailsPanel_Windows.png)](DetailsPanel_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](DetailsPanel_Mac.png)](DetailsPanel_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1.	Inside the **Details** panel under **Transform**, click the lock icon for **Scale** and set the **XYZ** values to **3.0**. 
 

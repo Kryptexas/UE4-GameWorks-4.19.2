@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2735882
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:アクタを参照する
 Crumbs: %ROOT%, Gameplay
 Description:UE4 でアクタを参照するための操作ガイド 
 Version:4.9
 Parent:Gameplay
-type:how-to
+SkillLevel:Advanced
+type:overview
 order:5
 
 [EXCERPT:ReferenceOverview]
@@ -16,18 +17,11 @@ order:5
 アクタへの適切な参照を取得することは、アクタ間のやりとりでも重要です。参照を誤って指定するとやりとりに失敗して望ましくない結果を招くからです。 
 [/EXCERPT:ReferenceOverview]
 
-[Setup] セクションの下の方にあるリンクで、ブループリントを使用してアクタを参照する方法を紹介しています。
+以下のリンクの [Setup] セクションで、ブループリントを使用してアクタを参照する方法を紹介しています。
 
-## セットアップ
+## 実装ガイド
 
-ブループリントでアクタを参照する方法については、以下を参照してください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\ReferenceAssets\Blueprints)
-<!--
-* [](Gameplay\HowTo\ReferenceAssets\Code)
--->
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/ReferenceAssets" org:"hierarchy" end:"1")]
 
 
 

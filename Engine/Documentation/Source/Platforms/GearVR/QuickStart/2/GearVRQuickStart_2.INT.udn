@@ -2,7 +2,7 @@ Availability:Public
 Title:2. Gear VR Project Setup
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
-Version: 4.9
+Version: 4.16
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR
@@ -15,26 +15,32 @@ Checkpoint:GearVRQS
 
 ## Steps
 
-1. Once the project has finished being created and compiled, Visual Studio 2015 will automatically open (if already installed) along with the editor.
+1. Once the project has finished being created and compiled, Visual Studio will automatically open (if already installed) along with the editor.
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio 2015 will not open up as it is not needed. 
+	If you are using Unreal Engine 4.8 or later and a Blueprint based project, Visual Studio will not open up as it is not needed. 
 	[/region]
 
 1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu. 
-
+	
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	eo79kj2i2bc
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		eo79kj2i2bc
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
 1. From the **Plugins** menu, go to the **Head Mounted Displays** section, **disable** the **Oculus** option, and **enable** the **Gear VR** option. Then, click the **Restart Now** button to re-start the editor so the changes can take place. 
@@ -44,18 +50,24 @@ Checkpoint:GearVRQS
 1. Once the Editor has re-started, select **Edit** from the **Main Toolbar**, select **Project Settings** and click the **Configure Now** button for Android support in the **APKPacking** section.
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	If_vSzD5h3w
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		If_vSzD5h3w
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Next, change the **Minimum SDK Version** from **9** to **19**.
+1. Next, change the **Minimum SDK Version** and the **Target SDK Version** from **9** to **19**. 
 
 	![](GVR_Android_SDK_Version.png)
 
@@ -71,7 +83,7 @@ Checkpoint:GearVRQS
 	You can find the needed folders in the location where you installed the Tegra files. 
 	
 	[Region:note]
-	If you have already installed CodeWorks for Android 1R4, this information should be already filled in for you. The only reason that you should change something here is if the information is missing or pointing to the wrong location.
+	If you have already installed CodeWorks for Android 1R6, this information should be already filled in for you. The only reason that you should change something here is if the information is missing or pointing to the wrong location.
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
@@ -83,26 +95,23 @@ Checkpoint:GearVRQS
 	[/region]
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	29oB5aowElQ
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		29oB5aowElQ
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-	<!-- This was step six, removed based on Josh Adams advice.
-	1. Next in the **Android Package Name** section give your project a name. For this example we will be using the following name **com.Company.GearVR_QS**. 
-
-	![](GVR_Android_Game_Name.png)
-
-	[REGION:note]
-	If using UE 4.7.0 or earlier the name that is used here must match the name that is used for the project or you app could have issues running on your Smartphone.
-	[/region]
-	-->
 
 [nav]
 

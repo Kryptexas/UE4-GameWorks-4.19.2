@@ -150,9 +150,38 @@ You have read about Level Blueprints and Blueprint Classes, listed below are a h
 
 Whether you are building a Level Blueprint or a Blueprint Class, you will be using [Blueprint Elements](Engine/Blueprints\UserGuide) assembled in a [Blueprint Editor](Engine/Blueprints/Editor).  
 
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
-	[![](Engine/Blueprints/Editor/blueprint_editor_example.png)(w:480)](Engine/Blueprints/Editor/blueprint_editor_example.png)
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Windows.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+	[![](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)(w:480)](Engine/Blueprints/Editor/BlueprintEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 
 Different types of **Blueprint Editor** are available depending on the type of Blueprint you are working with. The core feature of most **Blueprint Editors** is the **Graph** mode, with its central **Graph** tab 

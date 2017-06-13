@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:2.3- キャラクターの Movement 関数を実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターの Movement 関数の実装方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -31,14 +31,14 @@ Version:4.11
 
 ## Movement 関数のインターフェース
 
-`FPSCharacter` の軸マッピングをセットアップしたので、Visual Studio でご自身のプロジェクトに切り替えることができます。
+`FPSCharacter` の軸マッピングをセットアップしたので、Visual Studio のご自身のプロジェクトに切り替えることができます。
 
 1.	 `FPSCharacter.h` で、以下の関数の宣言を`SetupPlayerInputComponent` の下に追加します。
 
-		// Handles input for moving forward and backward. (前後方向の移動の入力を処理します) 
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 		UFUNCTION()
 		void MoveForward(float Value);
-		// Handles input for moving right and left. (左右の移動の入力を処理します) 
+		// Handles input for moving right and left. (左右の移動の入力を処理) 
 
 		UFUNCTION()
 		void MoveRight(float Value);
@@ -60,22 +60,24 @@ Version:4.11
 			GENERATED_BODY()
 		public:
 
-			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定します)
+			// Sets default values for this character's properties. (このキャラクターのプロパティのデフォルト値を設定) 
 			AFPSCharacter();
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		protected:
 
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
-			// Called every frame (フレームごとに呼ばれます) 
+			public:
 
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-		// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		// Handles input for moving forward and backward. (前後方向の移動の入力を処理します) 
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 
 			UFUNCTION()
 			void MoveForward(float Value);
-		// Handles input for moving right and left. (左右の移動の入力を処理します) 
+		// Handles input for moving right and left. (左右の移動の入力を処理) 
 
 			UFUNCTION()
 			void MoveRight(float Value);
@@ -84,25 +86,25 @@ Version:4.11
 
 ## Movement 関数の実装
 
-典型的な FPS 制御スキームでは、キャラクターの移動軸はカメラに対して相対的です。つまり、「forward (前方) 」の動きは「カメラが向いている方向」を意味し、「right (右) 」はカメラが向いている方向の右を意味します。`PlayerController` を使用してキャラクターの回転の制御を取得します。上下方向を向いている間も地面に沿った動作になるように、`MoveForward` 関数は回転制御のピッチ コンポーネントを無視して、入力を XY プレーンに制限します。
+典型的な FPS 制御スキームでは、キャラクターの移動軸はカメラに対して相対的です。つまり、「forward (前方) 」の動きは「カメラが向いている方向」を意味し、「right (右) 」はカメラが向いている右方向を意味します。`PlayerController` を使用してキャラクターの回転の制御を取得します。上下方向を向いている間も地面に沿った動作になるように、`MoveForward` 関数は回転制御のピッチ コンポーネントを無視して、入力を XY プレーンに制限します。
 
-1.	 `FPSCharacter.cpp` で、以下の行を `Super::SetupPlayerInputComponent(InputComponent)` の下の `SetupPlayerInputComponent` 関数に追加します。
+1.	 `FPSCharacter.cpp` で、以下の行を `Super::SetupPlayerInputComponent(PlayerInputComponent)` の下の `SetupPlayerInputComponent` 関数に追加します。
 
-		// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
-			// Set up "movement" bindings. (移動のバインディングをセットアップします) 
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
+			// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 
 	[REGION:note]
 	`InputComponent` は、入力データの処理方法を定義するコンポーネントです。`InputComponent` は、入力を受けさせたいアクタにアタッチすることができます。
 	[/REGION]
 
-1.	以下の `MoveForward` 関数定義を `FPSCharacter.cpp` に追加します。
+1.	以下の `MoveForward` 関数定義を `FPSCharacter.cpp` に『追加します。
 
 		void AFPSCharacter::MoveForward(float Value)
 		{
@@ -130,11 +132,11 @@ Version:4.11
 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	//  Set this character to call Tick() every frame. (このポーンがフレーム毎に Tick() を呼び出すように設定します) 必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
 		}
 
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSCharacter::BeginPlay()
 		{
@@ -146,22 +148,22 @@ Version:4.11
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
-		// Called every frame (フレームごとに呼ばれます) 
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		}
 
-		// Called to bind functionality to input (機能を入力にバインドするために呼ばれます) 
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
-		// Set up "movement" bindings. (移動のバインディングをセットアップします) 
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
+		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
@@ -186,13 +188,13 @@ Version:4.11
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
 1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、**[Play (プレイ)]** ボタンをクリックします。ここまでで、前方、後方、左右への移動ができるようになったはずです。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。ここまでで、前方、後方、左右への移動ができるようになったはずです。
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 

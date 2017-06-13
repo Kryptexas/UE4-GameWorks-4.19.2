@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:에디터내 테스팅 (플레이 & 시뮬레이트)
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -97,9 +97,37 @@ $ Viewport 뷰포트 : 게임플레이가 활성 레벨 에디터 뷰포트에 �
 
 	**클릭하면 원래 크기 그림으로 볼 수 있습니다:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_viewport.png)(w:300)](PIE_viewport.png)
-	[/REGION:lightbox]
+	[![](PIEViewport_Windows.png)(w:500)](PIEViewport_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PIEViewport_Mac.png)(w:500)](PIEViewport_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 	
 	**빙의** / **탈출** 버튼으로 _에디터에서 플레이_ / _에디터에서 시뮬레이트_ 모드의 토글이 가능한 유일한 디스플레이 유형입니다. **뷰포트** 모드에서는 **Pause** (일시정지)와 **Stop** (중지) 버튼으로 게임플레이를 중단시킬 수도 있습니다.
 
@@ -124,9 +152,37 @@ $ New Window 새 창 : 게임플레이가 새 창에 나타납니다. 새 창의
 
 	**클릭하면 원래 크기 그림으로 볼 수 있습니다:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_newwindow.png)(w:300)](PIE_newwindow.png)
-	[/REGION:lightbox]
+	[![](NewWindow_Windows.png)(w:500)](NewWindow_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](NewWindows_Mac.png)(w:500)](NewWindows_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 	
 	새 창에서 게임 프리뷰 플레이시에는 _에디터에서 시뮬레이트_ 세션으로 전환할 수 없습니다. 그러나 툴바 버튼으로 게임플레이의 일시정지나 중지는 가능합니다.
 
@@ -138,9 +194,37 @@ $ Standalone Game 독립형 게임 : 게임플레이가 별도의 프로세스�
 
 	**클릭하면 원래 크기 그림으로 볼 수 있습니다:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_standalone.png)(w:300)](PIE_standalone.png)
-	[/REGION:lightbox]
+	[![](Standalone_Windows.png)(w:500)](Standalone_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Standalone_Mac.png)(w:500)](Standalone_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	이 디스플레이 유형은 별도의 프로세스에서 게임이 플레이되기 때문에, 게임 일시정지나 중지는 불가능합니다. _에디터에서 시뮬레이트_ 로의 전환도 불가능합니다. 결과적으로, 독립형 게임 프리뷰 플레이시에는 툴바 버튼이 바뀌지 않습니다.
 

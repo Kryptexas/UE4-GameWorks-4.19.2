@@ -9,7 +9,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
 version: 4.9
-
+topic-image:IKSetups_topic.png
 
 [REGION:fullwidth]
 ![](IKWithWithout.png)

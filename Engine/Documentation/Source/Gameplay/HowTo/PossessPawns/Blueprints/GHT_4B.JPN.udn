@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2701420
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでポーンを所有する
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
 Description:ブループリントで Possess ノードを使って、複数のキャラクター間で切り替えて、制御する方法を説明します。 
 Version:4.8
 SkillLevel:Intermediate
+type:how-to
 Related:Engine/Blueprints
 Related:Gameplay/Framework/Pawn
 Related:Gameplay/Framework/Pawn/Character
@@ -58,7 +59,6 @@ Related:Gameplay/Framework/Controller/PlayerController
 	![](Pawns7b.png)(w:640)
 
 	これにより、プレイヤー コントローラーに対して、どのターゲット ポーンを所有し、制御するかを指示します。**Possess** 関数が呼び出されると、ポーンが現在制御されているかを自動的にチェックし、まずそれを **UnPossess (所有を解除)** してから、新しいポーンを所有しようとします。 
-
 	プレイヤーのポーンの制御を解除させて、例えばプレイ可能なキャラクターを直接制御しないステートのスペクテーター (観戦者) タイプにする場合には、 UnPossess 関数を使用することができます。 
 
 1. あと 2 つ **Possess** ノードを作成して、以下のように **1**、**2**、および **3** の Keyboard Event を接続します。 

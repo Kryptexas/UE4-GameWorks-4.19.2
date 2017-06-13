@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3367477
 Title: 언리얼 엔진 4.1 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
 version: 4.1
+parent:Support/Builds
 order:1
 
 [TOC(start:2 end:2)]
@@ -313,7 +314,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 	* **Unreal Editor Manual**
 		* New: [Blueprint Cheat Sheet](Engine/Blueprints/UserGuide/CheatSheet)
 		* New: [Light Propagation Volumes](Engine/Rendering/LightingAndShadows/LightPropagationVolumes)
-		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#previewshadows)
+		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows)
 		* New: [Pivot Painter](Engine/Content/Tools/PivotPainter)
 		* New: [Mac Viewport Controls Quick Reference](Engine/UI/LevelEditor/Viewports/ViewportControls)
 	* **Programming Guide** 

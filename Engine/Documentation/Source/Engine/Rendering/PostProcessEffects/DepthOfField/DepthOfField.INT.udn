@@ -1,8 +1,17 @@
-Availability:Public
-Title:Depth of Field
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Simulating focus by blurring the scene depending on depth.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Depth of Field
+Description: Simulating focus by blurring the scene depending on depth.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:5
+Tags:Post Process
+Topic-image:DoF_topic.png
+
+
+
 
 [REGION:fullwidth]
 ![Depth of Field](dof.png)

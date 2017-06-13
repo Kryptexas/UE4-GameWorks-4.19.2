@@ -3,10 +3,11 @@ Title:Camera
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:The Camera represents the player's point of view; how the player sees the world.
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:6
+order:5
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/camera_lander.png
 
 The **Camera** represents the player's point of view; how the player sees the world. For this reason, 
 cameras only have relevance to human-controlled players. The **PlayerController** specifies a camera class 

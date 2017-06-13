@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2686179
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:5.岩を破壊する 
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:OnHit に結合されている Bind Event を使って、ヒットすると岩が破壊するようにしてみましょう。
-Version:4.9
+version:4.9
+tags:Blueprints
 
 
 [VAR:Steps]
@@ -165,7 +166,7 @@ Version:4.9
 
 1. **コンパイル** し **保存** してから、ブループリントを終了します。 
 
-1. 「 **Game/Blueprints** 」フォルダから **MyCharacter** ブループリントを開きます。 
+1. 「**Game/Blueprints**」フォルダから **MyCharacter** ブループリントを開きます。 
 
 1. ツールバーの **[Blueprint Props]** ボタンをクリックします。 
 
@@ -213,13 +214,13 @@ Version:4.9
 
 	![](BPHT5_16.png)
 
-1. **[MyBlueprint]** ウィンドウから **Point Light 1** をドラッグし、 **Set Brightness** ノードと **Set Light Color** ノードに接続し、 **False** に接続します。 
+1. **[MyBlueprint]** ウィンドウから **Point Light 1** をドラッグし、**Set Brightness** ノードと **Set Light Color** ノードに接続し、**False** に接続します。 
 
 	![](BPHT5_17.png)
 
 	_**New Brightness** を好きなように設定し (デフォルトは 1700) 炎が燃え移っていない時は **New Light Color** に表示する色を設定します。_
 
-1. **Point Light 1** 、 **Set Brightness** および **Set Light Color** ノードをコピーして、それらを **True** に接続し、好きな値に変更します。 
+1. **Point Light 1**、**Set Brightness** および **Set Light Color** ノードをコピーして、それらを **True** に接続し、好きな値に変更します。 
 
 	![](BPHT5_18.png)
 
@@ -235,9 +236,9 @@ Version:4.9
 
 1. 「**Game/Blueprints**」フォルダの **Blueprint_Effect_Sparks** を開きます。 
 
-1. **[Blueprint Props]** ボタンをクリックし、 **[Details]** パネルで **BP_Interface** を追加します。 
+1. **[Blueprint Props]** ボタンをクリックし、**[Details]** パネルで **BP_Interface** を追加します。 
 
-1. グラフ内でこれまでと同様に **PlayerCondition** 関数を実装し、 **Branch** から **Sparks** を **Activate** および **Deactivate** します。 
+1. グラフ内でこれまでと同様に **PlayerCondition** 関数を実装し、**Branch** から **Sparks** を **Activate** および **Deactivate** します。 
 
 	![](BPHT5_20.png)(w:820)
 
@@ -249,7 +250,7 @@ Version:4.9
 
 1. グラフ上で **テキスト ブロック** の再配置 / リサイズを行い、好きな場所に配置します。 
 
-1. **Text** の **[Text Block]** の **[Details]** パネルで、 「 **You're On Fire** 」のように入力します。 
+1. **Text** の **[Text Block]** の **[Details]** パネルで、「**You're On Fire**」のように入力します。 
 
 	![](BPHT5_21.png)(w:640)
 
@@ -267,9 +268,9 @@ Version:4.9
 
 1. ウィンドウの右上隅の **[Graph]** タブ ボタンをクリックします。 
 
-1. **[Blueprint Props]** ボタンをクリックし、 **[Details]** パネルで **BP_Interface** を追加します。 
+1. **[Blueprint Props]** ボタンをクリックし、**[Details]** パネルで **BP_Interface** を追加します。 
 
-1. グラフ内で、これまでどおり、 **PlayerCondition** 関数を実装します。 
+1. グラフ内で、これまでどおり、**PlayerCondition** 関数を実装します。 
 
 1. **Branch** から **Set Visibility** ノードを使って、 **In Visibility** のドロップダウンで **Visible** を **True** そして **Hidden** を **False** に設定します。
 

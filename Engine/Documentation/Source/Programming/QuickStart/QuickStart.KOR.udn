@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3351664
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title:프로그래밍 퀵스타트
 Crumbs:%ROOT%, Programming
@@ -8,6 +8,9 @@ prereq:Programming/Development/VisualStudioSetup
 prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.9
+type:quick start
+tags:Getting Started
+tags:Programming
 
 [VAR:Topic]
 [OBJECT:Topic]

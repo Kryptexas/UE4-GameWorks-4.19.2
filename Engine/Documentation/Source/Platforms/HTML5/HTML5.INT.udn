@@ -8,6 +8,8 @@ Version: 4.9
 type:landing
 parent:Platforms
 tags:HTML5
+tags:Desktop
+Topic-image:HTML5Development_topic.png
 
 HTML5 uses the emscripten tool chain from [Mozilla](https://www.mozilla.org/en-US/) to cross-compile C++ into Javascript. 
 

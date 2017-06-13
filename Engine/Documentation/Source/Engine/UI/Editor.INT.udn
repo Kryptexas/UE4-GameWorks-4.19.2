@@ -6,64 +6,11 @@ Navigation:topic
 Version: 4.9
 parent:Engine/Editor
 order:1
+topic-image:UserInterfaceTopic.png
+topic-icon:%ROOT%/editor_icon.png
+
 
 [EXCERPT:LevelEditor]
-
-[VAR:Params]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%homeparams%
-[/OBJECT]
-[/VAR]
-
-
 ## The Basics
 
 
@@ -86,7 +33,33 @@ If you are new to the editor, it will be useful to acquaint yourself with a few 
 Not every part of Unreal Editor is exposed by default, as it would simply require too much screen space to show everything. Some parts only show themselves when you attempt to edit a certain type of asset. Others become available when trying to change specific types of properties. Still others exist as ways to make it easier to perform certain operations, such as bringing assets into your levels and environments.
 
 [REGION:raw]
-![](OpenParticleSystem.png)(w:930)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Mac.png)
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 

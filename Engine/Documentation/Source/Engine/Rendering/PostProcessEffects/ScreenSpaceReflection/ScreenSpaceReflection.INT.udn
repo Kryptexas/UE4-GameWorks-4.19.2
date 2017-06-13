@@ -1,8 +1,15 @@
-Availability:Public
-Title:Screen Space Reflection
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Effect which alters the reflection that appear on the surface of materials.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Screen Space Reflections
+Description: Effect which alters the reflection that appear on the surface of materials within scene view.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:10
+Tags:Post Process
+Topic-image:SSR_topic.png
+
 
 [REGION:fullwidth]
 ![](GlossyScreenSpaceReflection.png)

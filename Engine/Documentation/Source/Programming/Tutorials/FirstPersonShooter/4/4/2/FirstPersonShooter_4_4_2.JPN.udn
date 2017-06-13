@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:4.4.2 - Idle から Jump Start への遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
-Description:FPS キャラクターのアニメーション ステートマシンに Idle から Jump Start へのステート遷移を追加する方法を学びます。
+Description:FPS キャラクターのアニメーション ステートマシーンに Idle から Jump Start へのステート遷移を追加する方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +24,7 @@ Version:4.11
 
 %Steps%
 
-このステップでは、キャラクターがアイドルからジャンプ スタートする機能を追加します。
+このステップでは、キャラクターがアイドル ステートからジャンプ スタートする機能を追加します。
 
 1.	**[Arms State Machine]** グラフへ戻って、 **Idle** ステートから **JumpStart** ステートへワイヤーをドラッグします。
 

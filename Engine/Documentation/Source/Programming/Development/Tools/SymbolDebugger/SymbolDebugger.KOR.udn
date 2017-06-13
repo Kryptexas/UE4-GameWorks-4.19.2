@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3426963
+Availability:NoPublish
 Title: 심볼 디버거
-Crumbs: %ROOT%, Engine, Programming, Programming/Development/Tools
+Crumbs: %ROOT%
 Description: 엔진 크래시에서 생성된 미니덤프 파일을 디버깅하는 데 사용되는 툴입니다.
 Version: 4.9
 

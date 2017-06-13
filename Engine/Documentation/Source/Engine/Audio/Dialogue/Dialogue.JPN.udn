@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability:Public
-Title:Dialogue Voice と Dialogue Wave
+Title:Dialogue Voice と Dialogue Wave を使用する
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:様々なリスナー向けおよびダイアログのコンテキストで、ダイアログを設定する例です。
 version:4.13
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
-type:quick start
+type:how-to
+type:landing
 parent:Engine/Audio
+skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference

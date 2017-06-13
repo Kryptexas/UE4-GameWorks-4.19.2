@@ -3,7 +3,7 @@ Title: 2.8 - Add a First Person Mesh to your Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to add a first person mesh to your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -43,7 +43,7 @@ During this step, we're going to add a first person mesh to our character.
 		// Only the owning player sees this mesh.
 		FPSMesh->SetOnlyOwnerSee(true);
 		// Attach the FPS mesh to the FPS camera.
-		FPSMesh->AttachTo(FPSCameraComponent);
+		FPSMesh->SetupAttachment(FPSCameraComponent);
 		// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 		FPSMesh->bCastDynamicShadow = false;
 		FPSMesh->CastShadow = false;
@@ -170,7 +170,7 @@ Before continuing, download and extract our sample mesh from the following link:
 				virtual void Tick( float DeltaSeconds ) override;
 			
 				// Called to bind functionality to input
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+				virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 			
 				// Handles input for moving forward and backward.
 				UFUNCTION()
@@ -212,7 +212,7 @@ Before continuing, download and extract our sample mesh from the following link:
 				// Create a first person camera component.
 				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 				// Attach the camera component to our capsule component.
-				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera slightly above the eyes.
 				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 				// Allow the pawn to control camera rotation.
@@ -223,7 +223,7 @@ Before continuing, download and extract our sample mesh from the following link:
 				// Only the owning player sees this mesh.
 				FPSMesh->SetOnlyOwnerSee(true);
 				// Attach the FPS mesh to the FPS camera.
-				FPSMesh->AttachTo(FPSCameraComponent);
+				FPSMesh->SetupAttachment(FPSCameraComponent);
 				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 				FPSMesh->bCastDynamicShadow = false;
 				FPSMesh->CastShadow = false;
@@ -252,21 +252,21 @@ Before continuing, download and extract our sample mesh from the following link:
 			}
 			
 			// Called to bind functionality to input
-			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 			{
-				Super::SetupPlayerInputComponent(InputComponent);
+				Super::SetupPlayerInputComponent(PlayerInputComponent);
 			
 				// Set up "movement" bindings.
-				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+				PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 			
 				// Set up "look" bindings.
-				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+				PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 			
 				// Set up "action" bindings.
-				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+				PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 			}
 			
 			void AFPSCharacter::MoveForward(float Value)

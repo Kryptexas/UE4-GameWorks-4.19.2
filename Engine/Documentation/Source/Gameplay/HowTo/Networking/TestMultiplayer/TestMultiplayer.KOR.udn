@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:멀티플레이어 테스트
 Crumbs: %ROOT%, Gameplay
@@ -6,6 +6,7 @@ Description:멀티플레이어 게임 테스트용으로 언리얼 에디터를 
 Related: Resources/ContentExamples/Networking
 Version: 4.9
 Parent:Gameplay
+SkillLevel: Advanced
 type:how-to
 order:18
 

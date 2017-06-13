@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3477690
 Availability:Public
-Title:4.レベルをデプロイする
+Title:4.レベルのデプロイ方法
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description: ワンクリック デプロイでレベルを起動する
+version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -31,8 +32,8 @@ Android ベースのデバイスとサポートしているテクスチャ フ�
 	どのテクスチャ フォーマットがサポートされているのか不確かな場合は、ゲームを実行して以下の操作を行うと確認できます。
 
 	1. 画面を指 4 本で一度にタップすると、ダイアログが表示されます。
-	1. これは、コンソールコマンド (stat fps などの) の入力に通常使用するダイアログ ボックスですが、ユーザーのデバイスがサポートしているフォーマットも表示します。 
-	1. リストが表示されたら、これを活用してデプロイおよびパッケージングに最も適したタイプを選択します。
+	1. このダイアログ ボックスは通常コンソールコマンド (stat fps などの) の入力に使用しますが、ユーザーのデバイスがサポートしているフォーマットも表示します。 
+	1. 表示されたリストの中からデプロイおよびパッケージングに最も適したタイプを選択します。
 
 	![](Available_Texture_Formats.png)
 
@@ -40,12 +41,12 @@ Android ベースのデバイスとサポートしているテクスチャ フ�
 
 ## ステップ
 
-1.	Android ベースのデバイス上のレベルをテストするには、テスト対象のレベルが開いていることをまず確認してください。 
-	このサンプルでは、最後のステップで作成したブループリント ベースのプロジェクトから **ThirdPersonExampleMap** レベルを使用します。
+1.	Android ベースのデバイス上でレベルのテストを行うには、テスト対象のレベルが開いていることをまず確認してください。 
+	最後のステップで作成したブループリント ベースのプロジェクトの **ThirdPersonExampleMap** レベルを使って説明します。
 
 	![](Correct_Level_Open.png)
 
-1.	**ThirdPersonExampleMap** を開いたら、**メイン ツールバー** の **[Launch]** アイコンの横にある三角をクリックして、さらにオプションを表示します。
+1.	**ThirdPersonExampleMap** を開いたら、**メイン ツールバー** の **[Launch]** アイコンの横にある三角をクリックしてオプションを展開します。
 
 	![](Level_Deploy_Options.png)
 
@@ -57,14 +58,20 @@ Android ベースのデバイスとサポートしているテクスチャ フ�
  プロジェクトが正常にデバイスにデプロイされると、その旨のメッセージが表示されます。
 
 	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		afagQeEvf4Q
+		[/PARAMLITERAL]
 		[PARAMLITERAL:width]
 		640
 		[/PARAMLITERAL]
 		[PARAMLITERAL:height]
 		360
 		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		afagQeEvf4Q
+		[PARAMLITERAL:units]
+		px
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
 		[/PARAMLITERAL]
 	[/OBJECT]
 

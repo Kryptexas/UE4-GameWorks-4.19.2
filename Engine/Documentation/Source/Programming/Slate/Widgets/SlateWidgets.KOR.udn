@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3372845
 Availability:Public
 Title:슬레이트 위젯 예제
 Crumbs:%ROOT%, Programming, Programming/Slate, Programming/Slate/Widgets
@@ -176,18 +176,18 @@ SWrapBox 는 줄바꿈 상자, 즉 일정 폭까지 위젯이 가로로 배치�
 
 	...
 
-	ESlateCheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
+	ECheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	...
 
-	void OnRadioChanged( ERadioChoice RadioThatChanged, ESlateCheckBoxState::Type NewRadioState )
+	void OnRadioChanged( ERadioChoice RadioThatChanged, ECheckBoxState::Type NewRadioState )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 		}

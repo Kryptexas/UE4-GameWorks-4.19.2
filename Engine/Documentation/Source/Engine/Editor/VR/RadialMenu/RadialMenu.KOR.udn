@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: 원형 메뉴
 Description: Radial menu, 원형 메뉴는 VR 모드에서 복사/붙여넣기, 되돌리기처럼 자주 사용되는 기능을 쉽게 접할 수 있도록 해줍니다.
 Crumbs:
@@ -11,7 +11,7 @@ version: 4.15
 skilllevel: intermediate
 topic-image:radialmenu.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 

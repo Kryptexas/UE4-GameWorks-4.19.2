@@ -1,11 +1,18 @@
-Availability: Docs
+Availability: Public
 Title:5. Finishing Up
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:We finish by configuring our drag widget, adding our Health Bar to our Main HUD for display and testing everything out.
+SkillLevel: Intermediate
+Version: 4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:5
+checkpoint: editorqs
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-SkillLevel: Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -71,16 +78,23 @@ We then tell our Character Blueprint to add the **HUD** Widget Blueprint to the 
 When you play in the Editor, you can **Left-click** and drag the health bar on screen then drop it in a new location. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kYkhxuJsVs4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	kYkhxuJsVs4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 This is just an example of the elements you will need to start the Drag and Drop process. 
 Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 

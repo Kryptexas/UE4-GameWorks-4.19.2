@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275566
+﻿INTSourceChangelist:3432707
 Title:구글 VR 개발
 Crumbs:%ROOT%, Platforms
 Description:
@@ -13,6 +13,9 @@ tags:Google VR
 tags:Platform
 prereq: Platforms/Android/GettingStarted/
 social-image:googlevr_social.png
+topic-image:GoogleVR_Topic_Image.png
+
+![](googlevr_social.png)
 
 [region:note]
 Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것들이 총망라된 매우 자세한 문서를 제공하고 있습니다. [공식 Google Daydream Unreal](https://developers.google.com/vr/unreal/) 도움말 사이트에서 문서를 찾아보실 수 있습니다.
@@ -22,13 +25,13 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 
 GoogleVR 퀵스타트는 PC 와 안드로이드 기반 스마트폰에서 UE4 와 Google VR (구글 VR) 이 작동하도록 하기 위한 준비작업을 안내해 드립니다.
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"quick start" parent:"Platforms/GoogleVR")]
 
 ## 구글 VR 데이드림
 
 Daydream (데이드림)은 구글 VR 의 일부로, 몇 가지 렌더링 최적화 기능 및 모션 콘트롤러 사용을 지원합니다.
 
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"overview" parent:"Platforms/GoogleVR")]
 
 
-
+ 

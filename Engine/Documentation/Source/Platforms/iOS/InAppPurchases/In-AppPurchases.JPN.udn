@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3081127
-Title:iOS でアプリ内課金を使用する
+﻿INTSourceChangelist:3150518
+Title:iOS でのアプリ内課金の使用方法
 Description:iOS ゲームのアプリ内課金を使ってゲームに追加の有料コンテンツを提供する
 Crumbs:
 Availability:Public
 Parent:Platforms/iOS
 order:1
-type:howto
+type:how-to
 Related:
 
 ## コンフィギュレーション
@@ -13,14 +13,14 @@ Related:
 1. iTunes Connect でアプリ内課金を設定するためのステップを説明します。
 
     [REGION:note]
-	Google Play の id はすべて小文字でなければなりません。さらに、iOS と Android の ID を一致させておくとブループリントの設定がとても楽になります。
+	Google Play の id にはすべて小文字を使用します。また、iOS と Android の ID を同じにしておくと、ブループリントをとても楽に設定することができます。
 	[/REGION]
 
 	![image alt text](image_1.png)
 
-1. 使用する ID およびアイテムが消費型かそうでないかをメモしておきましょう。
+1. 使用する ID およびアイテムが消費型か非消費型かをメモしておきます。
 
-1. ブループリント プロジェクトであれば設定の必要はありません。コード プロジェクトのためオンライン システムを使う設定が必要な場合は、プロジェクトの Build.cs ファイルに次のブロックを加えてください。 
+1. ブループリント プロジェクトの場合は、そのままで大丈夫です。コード プロジェクト用にオンライン システムを使う設定にするには、プロジェクトの Build.cs ファイルに次のブロックを加えてください。 
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

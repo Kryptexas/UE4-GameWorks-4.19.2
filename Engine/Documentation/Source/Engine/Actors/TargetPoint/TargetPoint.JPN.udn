@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:Target Point アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Target アクタの作成と使用に関するガイド
 Related:Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
 version:4.9
+Parent:Engine/Actors/Types
+order:9
+type:overview
 
 ![](Target_Point_Actors.png)
 

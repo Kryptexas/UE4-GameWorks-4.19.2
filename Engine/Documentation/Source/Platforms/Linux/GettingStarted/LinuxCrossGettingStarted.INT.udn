@@ -1,6 +1,6 @@
 Availability:Public
 Title: Cross-Compiling for Linux
-Crumbs:
+Crumbs:%ROOT%
 Description:Learn how to set up a cross-compilation toolchain in Windows, targeting the Linux platform.
 Version: 4.15
 SkillLevel: Advanced
@@ -17,7 +17,7 @@ prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
 <!--- %Globals:BinarySourceSelectVar% --->
 
-[TOC(start:2 end:4)]
+[TOC(start:2 end:3)]
 
 ![](LinuxXC_Banner.png)(w:1200)
 
@@ -46,7 +46,7 @@ Internet connection, downloading the toolchain can take anywhere from a few minu
 
 ### Downloading the Toolchain
 
-1.	Click the [link](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip) to download our Clang 3.9.0 based toolchain.
+1.	Please download the cross-toolchain appropriate for your engine version.
 	
 1.	Now, create a new folder, naming it `Linux_CrossCompileToolChain`.
 
@@ -82,14 +82,14 @@ Internet connection, downloading the toolchain can take anywhere from a few minu
 
 	#### Supported Platforms
 
-	Refer to the following table to see which platforms can be targeted with your version of UE4: 
+	Refer to the following table to download the appropriate toolchain for your version of UE4:
 
-	| **Architecture**                                                    | **Sub-Architecture** | **Vendor** | **System** | **Application Binary Interface (abi)** | UE 4.14 Support | UE 4.15 Support  |
-	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- | --------------- | ---------------- |
-	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | N/A                  | Unknown    | Linux      | gnueabi                                | &#x2717;        | &#x2713;         |
-	| **[ARM](https://developer.arm.com/)**                               | N/A                  | Unknown    | Linux      | gnueabihf                              | &#x2717;        | &#x2713;         |
-	| **[i686](https://software.intel.com/en-us/)**                       | N/A                  | Unknown    | Linux      | gnu                                    | &#x2717;        | &#x2717;         |
-	| **[x86_64](http://developer.amd.com/)**                             | N/A                  | Unknown    | Linux      | gnu                                    | &#x2713;        | &#x2713;         |
+	| **Architecture**                                                    | **Sub-Architecture** | **Vendor** | **System** | **Application Binary Interface (abi)** |
+	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- |
+	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | N/A                  | Unknown    | Linux      | gnueabi                                |
+	| **[ARM](https://developer.arm.com/)**                               | N/A                  | Unknown    | Linux      | gnueabihf                              |
+	| **[i686](https://software.intel.com/en-us/)**                       | N/A                  | Unknown    | Linux      | gnu                                    |
+	| **[x86_64](http://developer.amd.com/)**                             | N/A                  | Unknown    | Linux      | gnu                                    |
 	
 	[REGION:note]
 	Please note that we haven't yet added Engine libraries for the i686 platform.

@@ -5,7 +5,7 @@ Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.16
 prereq: Engine\Blueprints\GettingStarted
 type:overview
 parent:Platforms/GearVR
@@ -15,11 +15,11 @@ tags:GearVR
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 
 [REGION:warning]
-Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later.
+Developing for the Gear VR Headset requires **Unreal Engine 4.7.4** or later. Also, Codeworks for Android 1R6 supports Android-24, however, you will still need to use Android-19 or Android-21 when targeting the GearVR.
 [/REGION]
 
-With the 4.7 release of Unreal Engine 4 (UE4), you can now build Virtual Reality (VR) projects for the Samsung Gear VR Headset that can transform your Samsung Galaxy Note 4, Galaxy S6, and Galaxy S6 Edge Smartphone into an immersive VR device. 
-In the following sections, we will go over everything you need to know to get your Samsung Galaxy Note 4 Smartphone properly setup so that it can work with the Samsung Gear VR headset.
+With the 4.7 release of Unreal Engine 4 (UE4), you can now build Virtual Reality (VR) projects for the Samsung Gear VR Headset that can transform your supported Samsung Galaxy Smartphone into an immersive VR device. 
+In the following sections, we will go over everything you need to know to get your Samsung Galaxy Smartphone properly setup so that it can work with the Samsung Gear VR headset.
 
 ## Gear VR Official Documentation
 
@@ -28,35 +28,34 @@ For a more in-depth look at how the Gear VR SDK works or for more information on
 * [Oculus Mobile Software Development Kit(SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)
 * [Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)
 
-## Gear VR Headset Pre-requisites 
+## Gear VR Headset Prerequisites 
 
 Before we can get into UE4 Gear VR development, we first must make sure that the following prerequisites are fulfilled because if we don't, we run the risk of having Gear VR projects not working with the Gear VR Headset. 
 
-* Make sure you have the USB cord used for charging your Samsung Galaxy Note 4 Smartphone available and plugged into a USB port on the PC you are developing on. 
+* Make sure you have the USB cord used for charging your Samsung Galaxy Smartphone available and plugged into a USB port on the PC you are developing on. 
 The USB cord is of vital importance, as this is how you transfer data between your development PC and your Smartphone.
 
 * Only certain types of Samsung Galaxy Smartphones will work with the Gear VR Headset. 
 	The [Oculus website](https://support.oculus.com/help/oculus/1099393013405406/?ref=hc_fnav) has a list of phone models that will work with the Gear VR Headset.
-	Make sure to double check that the Samsung Galaxy Note 4 Smartphone you are buying is the correct model that will work with the Gear VR Headset.
+	Make sure to double check that the Samsung Galaxy Smartphone you are buying is the correct model that will work with the Gear VR Headset.
 
 
-* Make sure to download and install the specific USB drivers for your Galaxy Note 4 from the [Samsung Website](http://www.samsung.com/us/support/downloads). 
+* Make sure to download and install the specific USB drivers for your Galaxy Smartphone from the [Samsung Website](http://www.samsung.com/us/support/downloads). 
 
-* Download Unreal Engine version **4.7.4** or later from the [UE4 Launcher](https://www.unrealengine.com/) or [Github](https://www.unrealengine.com/ue4-on-github). 
+* Download Unreal Engine version **4.16** or later from the [UE4 Launcher](https://www.unrealengine.com/) or [Github](https://www.unrealengine.com/ue4-on-github). 
 
-* Install the **CodeWorks for Android 1R4**, which can be found in **Engine\Extras\Android**.  
+* Install the **CodeWorks for Android 1R6**, which can be found in **Engine\Extras\Android**.  
 
-* Check to see if [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) has been enabled on your Samsung Galaxy Note 4 Smartphone and if not, enable it. 
+* Check to see if [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) has been enabled on your Samsung Galaxy Smartphone and if not, enable it. 
 
-* Also, make sure to check that USB Debugging has been enabled to ensure that you can load data onto the Smartphone from your PC.
+* Also, make sure to check that **USB Debugging** has been enabled to ensure that you can load data onto the Smartphone from your PC.
 	
-	![](Platforms\GearVR\GVR_Dev_Options_Enabled.png)
-
+	![](USB_Debugging_Enabled.png)(w:350)
 * With your Smartphone plugged into your development PC via USB, make sure to accept the RSA Fingerprint key from your PC.
-This way, your development PC and Smartphone can send data back and forth.
-Also, make sure to check **Always allow this computer** to ensure that your development PC can always interact with this Smartphone when plugged in. 
+This way, your development PC and Smartphone can send data back and forth. Also, make sure to check **Always allow this computer** 
+to ensure that your development PC can always interact with this Smartphone when plugged in. 
 
-	![](Platforms\GearVR\GVR_USB_Debuging.png)
+	![](RSA_Check.png)(w:300)
 
 * Generate and download the **OSIG File** for your Samsung Smartphone using your Smartphone's Device ID and the [Oculus](https://developer.oculus.com/tools/osig/) website.
 If you are not sure how to get your Smartphone's **Device ID**, the [Oculus website](https://developer.oculus.com/tools/osig/) has detailed directions on how to do this.

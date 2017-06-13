@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2620011
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:ゲーム制御のカメラ
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:さまざまなビューパースペクティブ間のアクティベートおよび切り替えを学びます。
+Description:さまざまなビュー パースペクティブ間のアクティベートおよび切り替えを学びます。
 version:4.9
+type:how-to
+type:landing
+skilllevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +42,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
+このチュートリアルでは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -58,7 +61,7 @@ version:4.9
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		 ステップ
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

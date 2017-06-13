@@ -1,21 +1,22 @@
 Availability: Public
 Title:Input
-Crumbs:%ROOT%, Gameplay
+Crumbs:%ROOT%
 Description:The Input object is responsible for converting input from the player into data in a form Actors can understand and make use of.
 version: 4.15
 skilllevel:Beginner
 Parent:Engine/Gameplay
+order:
 type:overview
+tags:Input
 
+[TOC (start:2 end:4)]
 
-The **PlayerInput** object is responsible for converting input from the player into data in a form that Actors, like PlayerControllers or Pawns, 
+The **PlayerInput** Object is responsible for converting input from the player into data that Actors (like PlayerControllers or Pawns) 
 can understand and make use of. It is part of an input processing flow that translates hardware input from players into game events and movement with PlayerInput mappings and InputComponents.
 
 [REGION:note]
 For an example of setting up Input, refer to the [](Gameplay\HowTo\SetUpInput) documentation.
 [/REGION]
-
-[TOC (start:2 end:4)]
 
 ## Hardware Input
 Hardware input from a player is very straightforward.  It most commonly includes key presses, mouse clicks or mouse movement, and controller button presses or joystick movement. Specialized input devices that don't conform to standard axis or button indices, or that have unusual input ranges, can be configured manually by using the [](Gameplay\Input\RawInput).
@@ -44,7 +45,7 @@ is currently zero.  This allows for smooth transitions in movement or other game
 
 ### Setting Input Mappings
 
-Input mappings are stored in configuration files, but can be set easily through the Project Settings tab in the Level Editor.
+Input mappings are stored in configuration files, and can be edited in the Input section of Project Settings.
 
 1. In the Level Editor, select **Edit > Project Settings**.
 
@@ -66,20 +67,18 @@ In this window, you can:
 [/EXCERPT:PlayerInput]
 
 ## InputComponent
-InputComponents are most commonly present in Pawns and Controllers, although they can be set in other Actors and Level Scripts if desired.  The InputComponent links the AxisMappings and ActionMappings in your
+**InputComponents** are most commonly present in Pawns and Controllers, although they can be set in other Actors and Level Scripts if desired.  The InputComponent links the AxisMappings and ActionMappings in your
 project to game actions, usually functions, set up either in C++ code or Blueprint graphs.  
 
 The priority stack for input handling by InputComponents is as follows (highest priority first):
 
-1. The Actor with the most-recently enabled "Accepts input" - this can be anything from a door to a pickup item.
-	1. Input handling proceeds through all Actors with "Accepts input" enabled, from most-recently enabled to least-recently enabled.
-
+1. Actors with "Accepts input" enabled, from most-recently enabled to least-recently enabled.
 	[REGION:tip]
 	If you want a particular Actor to always be the first one considered for input handling, you can re-enable its "Accepts input" and it will be moved to the top of the stack. 
 	[/REGION:tip]
-1. Controller
-1. Level Script
-1. Pawn
+1. Controllers.
+1. Level Script.
+1. Pawns.
 
 If one InputComponent takes the input, it is not available further down the stack.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 물리 기반 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,6 +9,7 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.9
+topic-image:PhysicsBasedAnimation_topic.png
 
 [REGION:fullwidth]
 ![](PhysicsBlend.png)

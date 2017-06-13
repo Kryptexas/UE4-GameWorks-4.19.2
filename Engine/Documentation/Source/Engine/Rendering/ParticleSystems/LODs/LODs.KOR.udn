@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 파티클 시스템 레벨 오브 디테일 (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:언제든지 십만 단위의 파티클이 가능한 GPU 파티클 시뮬레이션 입니다.
 Version: 4.9
 tags:Particles
+topic-image:ParticleSystemLOD_topic.png
 
 [TOC(start:2 end:3)]
 

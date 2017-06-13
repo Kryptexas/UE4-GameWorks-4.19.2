@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3067170
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:頂点アニメーション ツール
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -7,13 +7,15 @@ Related:Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related:Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
 SkillLevel:Advanced
 Version:4.9
+tags:Tools
+topic-image:VertexAnimationTool_topic.png
 
 [TOC(start:2 end:3)]
 
 
 2D テクスチャやメッシュ UV に複雑なアニメーション データを保存することは、アニメーションが必要とするルック アンド フィールを維持しながら、アニメーションのオーバーヘッドを削減する優れた方法です。 
 これまで同じ操作を行うために [モーフターゲット](https://docs.unrealengine.com/latest/INT/Engine/Content/FBX/MorphTargets/index.html) を使用したかもしれませんが、この新しい手法にはモーフターゲットにはない利点がいくつかあります。
-利点の一つとして、システム内で複雑なアニメーションデータの使用が可能になります。そうでなければ、カスケード パーティクル エディタのように、モーフターゲットの利用ができません。
+利点の一つとして、システム内で複雑なアニメーションデータの使用が可能になります。そうでなければ、カスケード パーティクル エディタのようなモーフターゲットの利用ができません。
 このガイドでは、このスクリプトを利用した UE4 プロジェクトのコンテンツの作成方法について説明します。
 
 ## 前提条件
@@ -119,9 +121,9 @@ UE4 ではセンチメートル (CM) をデフォルト単位として使用す�
 ひとつは頂点の位置を 2D テクスチャに保存する方法で、もうひとつは頂点の位置データをメッシュの UV に保存する方法です。 
 以下に上記の 2 種類の設定と使用方法を示すリンクを紹介します。
 
-[キーフレーム](Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes) - この方法は 3D パッケージからエクスポートして 3Ds Max へインポート可能な個々のキーフレームを使用します。情報はメッシュ UV に保存されます。    
+[キーフレーム](Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes) - 3D パッケージからエクスポートして 3Ds Max へインポート可能な個々のキーフレームを使用します。情報はメッシュ UV に保存されます。    
 
-[アニメーション タイムライン](Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes) - この方法は 3Ds Max アニメーション タイムラインを使用して、結果を 2D テクスチャにエンコードします。
+[アニメーション タイムライン](Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes) - 3Ds Max アニメーション タイムラインを使用して、結果を 2D テクスチャにエンコードします。
 
  
 ## ヒントとコツ
@@ -180,7 +182,7 @@ UE4 ではセンチメートル (CM) をデフォルト単位として使用す�
 32 ビット画像の方が正確ですが、ほとんどの FX 作業には 16 ビットで十分です。 
 しかし、オフセット頂点位置は静止している場所から離れるにつれて精度が低下します。 
 
-スクリプトのテクスチャーは最近傍法を使ってサンプリングすることにも注意してください。
+スクリプトのテクスチャは最近傍法を使ってサンプリングすることにも注意してください。
 
 ### メモリ使用量
 頂点ごとの各フレームのメモリ使用量は以下の通りです。

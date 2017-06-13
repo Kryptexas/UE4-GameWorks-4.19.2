@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3349969
+﻿INTSourceChangelist:3410507
 Availability:Public
 Title: 시퀀서 개요
-Crumbs: 
+Crumbs:%ROOT%
 Description:시퀀서란 언리얼 엔진 4 에서 시네마틱 시퀀스를 실시간 미리보면서 만드는 데 사용되는 멀티 트랙 에디터입니다.
 Navigation:topic
 parent:Engine/Sequencer
@@ -11,6 +11,7 @@ Related: Engine/Sequencer/ReferenceEditor
 Related: Engine/Sequencer/HowTo
 tags:Sequencer
 type:overview
+SkillLevel:Intermediate
 
 [TOC(start:2 end:2)]
 
@@ -34,7 +35,6 @@ Sequencer (시퀀서)는 [**마티네**](Engine\Matinee\) 차기 버전으로, �
 레벨 시퀀스 생성 두 번째 방법은 **콘텐츠 브라우저** 에서 **신규 추가** 버튼을 클릭하고 _애니메이션_ 아래 **레벨 시퀀스** 를 선택하는 것입니다. 이런 식으로 하면 레벨 시퀀스 애셋 생성은 되지만, 레벨에 배치되지는 않습니다.
 
 ![](LevelSequence_B.png)
-
 
 ## 시퀀서에 트랙 추가
 
@@ -91,7 +91,6 @@ KoksbI7ZOTM
 자세한 정보는 [](Engine\Sequencer\HowTo\Spawnables\) 문서를 참고하세요.
 [/REGION]
 
-
 ## 씬 키프레임 작업
 
 다른 애니메이션 툴에 익숙한 분이라면, 키프레임을 사용하여 콘텐츠를 구동시킨다는 개념에도 익숙할 것입니다. 그렇지 않은 경우, 요약하자면 시퀀서에서는 ("키프레임" 이라는 작업을 통해) **키** 를 추가하고 타임라인 상의 원하는 위치에 정의된 프로퍼티대로 콘텐츠를 조작할 수 있습니다.
@@ -112,7 +111,7 @@ dVDNJkQxlRk
 [/OBJECT]
 
 [REGION:caption]
-위에서 시작 위치에 키프레임을 하나, 끝 위치에 **위치** 트랙 키프레임을 하나 추가했습니다.
+위의 **Location** (위치) 트랙에 대해, 시작 위치에 키프레임을 하나, 끝 위치에 키프레임을 하나 추가했습니다.
 [/REGION]
 
 키프레임 추가 방법은, 트랙을 선택하고 **Enter** 키를 치거나, 각 트랙에 있는 키프레임 추가 버튼을 클릭하면 됩니다.
@@ -151,9 +150,6 @@ Kd3CwzMwTLs
 [/PARAMLITERAL]
 [/OBJECT]
 
-
-
-
 ### 재생 범위
 
 시퀀서는 정의된 시작 / 정지 재생 범위에 따라 (아래 초록/빨강 마커) 씬을 재생합니다.
@@ -181,7 +177,6 @@ Kd3CwzMwTLs
 50 에서 100 프레임까지 회색으로 탈색된 것은 평가되지 않는다는 것을 나타냅니다.
 길이 차이에 대한 처리를 위해서는, 샷 레벨에서 평가되는 프레임 양을 100 으로 늘리거나, 마스터 시퀀스 레벨에서 샷의 길이를 50 프레임으로 줄이면 됩니다.
 
-
 ##전문 뷰포트
 
 시퀀서에서는 전문 뷰포트를 사용하여 편집 프로세스를 간편화시킬 수 있습니다.
@@ -196,7 +191,7 @@ Kd3CwzMwTLs
 
 ![](CineTools.png)
 
-이들 중 아무거나 레벨에 끌어 놓은 뒤 시퀀서에 추가하거나, 시퀀서에 바로 끌어 놓아도 (스포너블이) 됩니다.
+이들 시네마틱 액터 중 아무거나 레벨에 끌어 놓은 뒤 시퀀서에 추가하거나, 시퀀서에 바로 끌어 놓아도 (스포너블이) 됩니다.
 
 ### 카메라 릭 크레인
 
@@ -237,7 +232,6 @@ Cine Camera (시네 카메라) 액터는 기본 카메라 액터와 비슷합니
 [REGION:note]
 자세한 정보는 [](Engine\Sequencer\HowTo\CineCameraActors) 문서를 참고하세요.
 [/REGION]
-
 
 ##시퀀스 녹화
 
@@ -293,7 +287,6 @@ EDL (Edit Decision List, 편집 결정 목록) 익스포트 작업의 일부분�
 [REGION:note]
 EDL 사용법 단계별 안내는 [](Engine/Sequencer/HowTo/ImportExportEDLs) 문서를 참고하세요.
 [/REGION]
-
 
 ### 커스텀 렌더 패스
 

@@ -3,25 +3,13 @@ Title:7. Animation Blueprint - Jog State
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:This section focuses on setting up the Jog States for our Character. 
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Continuing in the **Animation Blueprint** and **State Machine**, this section we set up the **Jog** state and transitions to/from it. 
 
@@ -98,4 +86,4 @@ Continuing in the **Animation Blueprint** and **State Machine**, this section we
 1.	**Compile** and **Save** the Animation Blueprint. 
 
 
-%Steps%
+[NAV]

@@ -1,28 +1,21 @@
-﻿INTSourceChangelist:2735882
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ゲームモードをセットアップする
 Crumbs: %ROOT%, Gameplay
 Description:UE4 でゲームモードをセットアップする操作手順 
 Version:4.9
 Parent:Gameplay
-type:how-to
+SkillLevel:Advanced
+type:overview
 order:7
 
 **GameMode** は、ゲームのルール セットを定義します。このルールには、プレイヤーがどのようにゲームに参加するか、ゲームの一時停止、レベルの移行、および勝利条件などのゲーム固有の動作が含まれます。ゲーム モードは、各レベルに対して設定され、複数レベルで再利用できます。 
 
 以下のセットアップ セクションにあるリンク先では、ブループリントを使用したゲームモードのセットアップ方法の例を示します。 
 
-## セットアップ
+## 実装ガイド
 
-ブループリントを使用したゲームモードの設定方法については、以下のリンクをご覧ください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\SettingUpAGameMode\Blueprints)
-<!--
-* [](Gameplay\HowTo\SettingUpAGameMode\Code)
--->
-[/REGION]
-
+[DIR(output:"role" parent:"Gameplay/HowTo/SettingUpAGameMode" org:"hierarchy" end:"1")]
 
 
 

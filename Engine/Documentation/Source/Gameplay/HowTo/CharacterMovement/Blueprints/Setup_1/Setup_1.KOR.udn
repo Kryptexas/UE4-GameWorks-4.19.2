@@ -1,27 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:1. 캐릭터 셋업
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필요해질 애셋을 만들어 주겠습니다.
 Version: 4.9
 SkillLevel: Advanced
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
+type:how-to
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints\)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input\:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 먼저 캐릭터에 사용할 애셋을 만들겠습니다. 우선 캐릭터의 애니메이션 구동에 사용할 **애니메이션 블루프린트** 를 만든 다음 (나중 시리즈에서 채우겠습니다), 캐릭터의 동작 배후 로직과 입력에 대한 캐릭터의 반응이 저장되는 **캐릭터 블루프린트** 를 만들겠습니다.
 
@@ -97,5 +86,4 @@ SkillLevel: Advanced
 
 1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
 
-%Steps%
-
+[NAV]

@@ -32,9 +32,7 @@ You can set default values for the variables after the Blueprint is compiled.
 _This is a snapshot of the entire saving setup. You can click the image to enlarge it._
 
 [REGION:fullwidth]
-First, create an instance, or copy, of your SaveGame object, using the **Create Save Game Object** node. Make sure you set the Save Game Class dropdown to the name of your new SaveGame object Blueprint, 
-in this case, **MySaveGame**. Because the Create Save Game Object node creates a generic SaveGame object copy, you have to drag off of the **Return Value** pin and **Cast to MySaveGame**. Save
-the result of the casting to a variable by using **Promote to Variable** so that you can reuse the SaveGame object easily later on.
+First, create an instance, or copy, of your SaveGame object, using the **Create Save Game Object** node. Make sure you set the Save Game Class dropdown to the name of your new Blueprint, in this case, **MySaveGame**. The Create Save Game Object node will automatically change its output pin type to match the type you specify with the Save Game Class input, enabling you to use it directly, without a Cast To node. Save the resulting object to a variable by using **Promote to Variable** so that you can reuse the MySaveGame object you just created later on.
 
 ![](SaveGameBP_1.png)
 
@@ -63,8 +61,7 @@ can be read from it. Again, this may not apply in all game implementations.
 
 ![](LoadGameBP_1.png)
 
-You can use the **Load Game From Slot** node to create an instance of your SaveGame object Blueprint. Just like when you created a SaveGame object for saving information, you need to cast to your specific 
-SaveGame object Blueprint so that you can save the result to a variable for easy access later.
+You can use the **Load Game From Slot** node to create an instance of your SaveGame object Blueprint. A Cast To node will be needed to treat the resulting object as a MySaveGame, which you will want to do so that you can store it in a variable for easy access later.
 
 ![](LoadGameBP_2.png)
 

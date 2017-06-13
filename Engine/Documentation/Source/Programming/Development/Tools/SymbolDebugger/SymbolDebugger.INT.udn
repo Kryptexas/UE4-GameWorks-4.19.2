@@ -1,6 +1,6 @@
-Availability:Public
+Availability:NoPublish
 Title: Symbol Debugger
-Crumbs: %ROOT%, Engine, Programming, Programming/Development/Tools
+Crumbs: %ROOT%
 Description: Tools used to debug minidump files generated from engine crashes.
 Version: 4.9
 

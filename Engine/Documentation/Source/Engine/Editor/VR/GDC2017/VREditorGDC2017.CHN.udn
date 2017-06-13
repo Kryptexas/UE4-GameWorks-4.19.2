@@ -1,240 +1,247 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: VR & Mesh Editor GDC 2017 Features Preview
+﻿INTSourceChangelist:3350329
+Availability:Public
+Title: GDC 2017 VR 和网格体编辑器功能前瞻
 Crumbs:
-Description:
+Description: 预览部分在 GDC 2017 展出的 VR 和网格体编辑器功能。
 Parent:Engine/Editor/VR
+type: reference
+order: 1000
+topic-image:gdp_topic.png
 reference-image:snapping.gif
 reference-image:vr_contentBrowser.gif
 reference-image:vr_contextOption.gif
 reference-image:vr_radialMenu.gif
+prereq:Engine/Editor/VR/ActivateVRMode
+prereq:Engine/Editor/VR/Setup
+
+[TOC(start:1 end:4)]
 
 
-We are so excited about the latest additions to the VR Editor and Mesh Editor, we couldn't wait to get it into your hands! So, we have made the GDC 2017 Features Branch available in an experimental build through GitHub! This builds contains all of the VR Editor and Mesh Editor features demonstrated at the **State of Unreal** keynote at the 2017 Game Developers Conference.
+VR 编辑器和网格体编辑器的最新更新让人激动万分，我们已经迫不及待把它们送到您手中！因此我们通过 GitHub 发布了一个内带 GDC 2017 功能分支的实验性版本！此版本包含 GDC 2017 **State of Unreal** 主题演讲中展示的所有 VR 编辑器和网格体编辑器。
 
 ![image alt text](image_0.gif)(h:320) ![](poly_extrude.png)(h:320) ![](poly_extrude_subd.png)(h:320)
 
 [REGION:note]
-The VR Editor and Mesh Editor are experimental features. For this particular release, features were tested exclusively on Windows, so there may be complications compiling for Mac or Linux.
+VR 编辑器和网格体编辑器为实验性功能。此特殊版本中的功能只针对 Windows 进行了测试，因此针对 Mac 或 Linux 进行编译时可能出现问题。
 [/REGION]
 
-## Major Features
+## 主要功能
 
-* Mesh Editor Mode enables manipulating Static Meshes within Unreal Editor, including using subdivision surfaces!
-* The Sequencer non-linear editing tool is now available in VR Mode
-* Redesigned Radial Menu with context sensitive actions
-* Smart Snapping allows for quickly and accurately placing objects relative to other assets in the level
-* Ability to save Static Mesh changes made during Simulate Mode
+* 网格体编辑器模式（Mesh Editor Mode）在虚幻编辑器中启用了静态网格体的操作，包括细分表面的使用！
+* Sequencer 非线性编辑工具现在 VR 模式中可用
+* 用上下文相关的操作重新设计了圆形菜单
+* Smart Snapping 可快速而准确地相对于关卡中的其他资源放置物体
+* 可保存在模拟模式中进行的静态网格体修改
 
-## Downloading the Dev-Geometry GDC 2017 Features Branch
+## 下载 Dev-Geometry GDC 2017 功能分支
 
-To download the Dev-Geometry GDC 2017 Features Branch:
+下载 Dev-Geometry GDC 2017 功能分支的步骤：
 
-1. [Associated your GitHub account with your EpicID](https://www.unrealengine.com/ue4-on-github). 
+1. [将 GitHub 账户与 Epic ID 关联](https://www.unrealengine.com/ue4-on-github)。 
 
-1. Download the build from our GitHub repository: [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry)
+1. 从 GitHub 元库下载版本： [Dev-Geometry](https://github.com/EpicGames/UnrealEngine/tree/dev-geometry)
 
-1. [Compile](Programming/Development/BuildingUnrealEngine) and [run Unreal Editor](GettingStarted/RunningUnrealEngine).
+1. [编译](Programming/Development/BuildingUnrealEngine) 并 [运行虚幻编辑器](GettingStarted/RunningUnrealEngine)。
 
 
-## Mesh Editor
+## 网格体编辑器
 
-The **Mesh Editor** mode is a new geometry editing toolset designed to enable designers to quickly create and modify Static Mesh geometry in the Level Editor viewport. In addition to a low-poly toolset, Mesh Editor mode adds the ability to work with subdivision surfaces, enabling artists and designers to create smooth, organic surfaces directly in Unreal Editor.
+**网格体编辑器（Mesh Editor）** 模式是一个全新几何体编辑工具集。其设计理念是便于设计师在关卡编辑器视口中快速创建和修改静态网格体几何体。除一个低多边形工具集外，网格体编辑器模式还添加了使用细分表面的功能，便于美术师和设计师直接在虚幻编辑器中创建平滑的有机表面。
 
 ![](poly_extrude.png) ![](poly_extrude_subd.png)
 [REGION:note]
-The Mesh Editor mode is an extremely early access feature.
+网格体编辑器模式的功能尚在早期开发中。
 [/REGION]
 
-To edit a mesh using the Mesh Editor mode:
+使用网格体编辑器模式编辑网格体的方法：
 
-1. In the **Modes** panel, select the **Mesh Editor** mode.
+1. 在 **Modes** 面板中选中 **Mesh Editor** 模式。
 
-1. Choose an editing mode depending on what elements - Vertices, Edges, Polygons, All - of the mesh you want to edit.
+1. 根据需要编辑的网格体元素选择编辑模式——顶点、边缘、多边形等。
 
-1. Select a mesh in the viewport. The elements corresponding to the mode highlight when the cursor is over them.
+1. 在视口中选择一个网格体。鼠标悬停在与模式相关的元素上时将高亮显示。
 
-1. Select an element to edit it.
+1. 选择一个元素进行编辑。
 
 
-### Selection Modes
+### 选择模式
 
-#### Vertices
+#### 顶点
 
-The **Vertices** selection mode limits editing to vertices of the mesh.
+**Vertices** 选择模式限制对网格体顶点的编辑。
 
 ![](vert_mode.png)(w:400)
 
-### Vertex Tools
+### 顶点工具
 
 [REGION:imagetable]
 | ![](vert_move.png)(w:295) | ![](vert_extend.png)(w:295) |
 | --- | --- |
-| Move | Extend |
+| 移动 | 延展 |
 [/REGION]
 
-#### Edges
+#### 边缘
 
-The **Edges** selection mode limits editing to edges of the mesh.
+**Edges** 选择模式限制对网格体边缘的编辑。
 
 ![](edge_mode.png)(w:400)
 
-### Edge Tools
+### 边缘工具
 
 [REGION:imagetable]
 | ![](edge_move.png)(w:235) | ![](edge_split.png)(w:235) | ![](edge_split_drag.png)(w:235) | ![](edge_loop.png)(w:235) | ![](edge_extend.png)(w:235) |
 | --- | --- | --- | --- | --- |
-| Move | Split | Split and Drag Vert | Add Loop | Extend |
+| 移动 | 分解 | 分解并拖动顶点 | 添加循环 | 延展 |
 [/REGION]
 
-#### Polygons
+#### 多边形
 
-The **Polygon** selection mode limits editing to polygon faces of the mesh.
+**Polygon** 选择模式限制对网格体多边形面的编辑。
 
 ![](poly_mode.png)(w:400)
 
-### Polygon Tools
+### 多边形工具
 
 [REGION:imagetable]
 | ![](poly_move.png)(w:295) | ![](poly_extrude.png)(w:295) | ![](poly_inset.png)(w:295) | ![](poly_bevel.png)(w:295)
 | --- | --- | --- | --- |
-| Move | Extrude | Inset | Bevel |
+| 移动 | 挤出 | 嵌入 | 斜切 |
 [/REGION]
 
 #### Any
 
-The **Any** selection mode changes to match the selected element - Vertex, Edge, Polygon, etc. This is essentially a free editing mode that enables you to quickly jump between the other modes just by selecting a different type of element.
+**Any** 选择模式进行修改，匹配选中的元素——顶点、边缘、多边形等。这实际上是一个自由编辑模式，选择不同类型的元素即可在其他模式之间快速切换。
 
 [REGION:imagetable]
 | ![](vert_mode.png)(w:295) | ![](edge_mode.png)(w:295) | ![](poly_mode.png)(w:295)
 | --- | --- | --- |
-| Vertices | Edges | Polygons |
+| 顶点 | 边缘 | 多边形 |
 [/REGION]
 
-### Source vs Instance
+### 源与实例
 
-Mesh editing can be done on a per-instance basis, which only affects the mesh of the placed Actor in the level; or editing can be applied directly to the source mesh asset, propagating changes you make to all instances of that mesh asset. By default, editing is applied to the source mesh asset. To enable per-instance editing, press the **Per Instance** button in the Mesh Editor mode panel.
+网格体编辑可以每个实例为基础，只影响关卡中所放置 Actor 的网格体；或将编辑直接应用到源网格体资源，将执行的修改传播到该网格体资源的所有实例。编辑默认应用到源网格体资源。在网格体编辑器模式面板中按下 **Per Instance** 即可启用每个实例的编辑。
 
 ![](per_instance.png)
 
-### Subdivision Surfaces
+### 细分表面
 
-Add or Remove Subdivisions from any of the four submodes
+四个子模式中添加或移除细分。
 
-#### Subdivision Levels
+#### 细分关卡
 
 [REGION:imagetable]
 | ![](mesh_subd_0.png)(w:295) | ![](mesh_subd_1.png)(w:295) | ![](mesh_subd_2.png)(w:295) | ![](mesh_subd_3.png)(w:295) |
 | --- | --- | --- | --- |
-| Original | SubD Level 1 | SubD Level 2 |  SubD Level 3 |
+| 原始 | 细分关卡 1 | 细分关卡 2 | 细分关卡 3 |
 [/REGION]
 
-#### Editing Tools with Subdivision Surfaces
+#### 带细分表面的编辑工具
 
-The editing tools always act on the elements of the low-poly mesh, and the subdivision is applied on top of those edits.
+编辑工具固定作用于低多边形网格体的元素，细分则应用到这些编辑之上。
 
 [REGION:imagetable]
 | ![](poly_inset.png)(w:295) | ![](poly_extrude.png)(w:295) | ![](poly_inset_subd.png)(w:295) | ![](poly_extrude_subd.png)(w:295) |
 | --- | --- | --- | --- |
-| Inset | Extrude | Inset w/ SubD |  Extrude w/ SubD |
+| 嵌入 | 挤出 | 带细分嵌入 | 带细分挤出 |
 [/REGION]
 
-#### Corner Sharpness
+#### 角落锐度
 
-Corner sharpness enables you to control how closely the subdivision surface follows the low-poly mesh at specific locations, which provides the ability to create hard edges on subdivision surfaces.
+通过角度锐度可以控制细分表面对特定位置低多边形网格体的遵照程度，可在细分表面上创建硬边缘。
 
 [REGION:imagetable]
-| Vertex Sharpness |||
+| 顶点锐度 |||
 | --- | --- | --- |
 | ![](vert_sharp_0.png)(w:295) | ![](vert_sharp_1.png)(w:295) | ![](vert_sharp_2.png)(w:295)
-| Soft | Sharper | Sharpest |
+| 钝 | 较锐 | 极锐 |
 [/REGION]
 
 
 [REGION:imagetable]
-| Edge Sharpness |||
+| 边缘锐度 |||
 | --- | --- | --- |
 | ![](edge_sharp_0.png)(w:295) | ![](edge_sharp_1.png)(w:295) | ![](edge_sharp_2.png)(w:295)
-| Soft | Sharper | Sharpest |
+| 钝 | 较锐 | 极锐 |
 [/REGION]
 
-## VR Editor Controls
+## VR 编辑器控制
 
-VR Mode is enabled by default in this build, and you can enter with the hotkey (**Alt + ~**) or via the button on the Level Editor Toolbar. In addition, auto-entry will take you into VR Mode when the Oculus or Vive Headset is on.
+VR 模式在此版本中默认启用，可通过热键（**Alt + ~**）或关卡编辑器工具栏上的按钮进入。此外，Oculus 或 Vive 头戴显示器开启后将自动进入 VR 模式。
 
-[REGION:note]Auto-entry can be enabled or disabled in the **Editor Preferences** under **Experimental > VR Editor**.[/REGION]
+[REGION:note]可在 **Experimental > VR Editor** 下的 **Editor Preferences** 中启用或禁用自动进入。[/REGION]
 
-Controllers are now Asynchronous on both Vive and Oculus. The left controller is used for access to menus and options, while the right controller is used to select and manipulate items.
+现版本中 Vive 和 Oculus 的控制器均为异步。左控制器用于访问菜单和选项，而右控制器用于选择和操作物品。
 
 ![](controllers.png)(w:640)
 
-Teleportation no longer grays out the world and automatically resets the World Scale back to 1:1.
+传送不再使世界场景变灰，并自动将世界比例重设回 1:1。
 
-Half-trigger press options have been removed. Interacting with the world is now done via full trigger presses.
+半按扳机选项已移除。和世界场景的互动现在通过扳机全按实现。
 
-**OCULUS ONLY**: A "hard reset / Panic Button" has been added. Clicking in the left thumbstick will perform the following actions at once:
+**仅针对 OCULUS**：已添加一个“强行重置/恐慌按钮”。点击左操纵杆将同时执行以下操作：
 
-* Deselect all selected items
-* Close all open windows / Asset Editors
-* Cancel Simulate 
-* Place the user in Actor / Selection Mode
+* 取消选择所有选中的物品
+* 关闭所有打开的窗口/资源编辑器
+* 取消模拟 
+* 把用户放置在 Actor/选择模式中
 
-Options to Undo/Redo have been assigned to the right thumbstick/touchpad.
-
-[REGION:simpletable]
-| Command | Action |
-| --- | --- |
-| Undo | Press left on the thumbstick/touchpad |
-| Redo | Press right on the thumbstick/touchpad |
-[/REGION]
-
-Options to quickly place an asset currently selected in the Content Browser have been assigned to the right thumbstick / touchpad. This functionality is also present in Simulate mode.
-
-With an asset selected in the Content Browser:
+撤销/重新执行的选项已指定到右操纵杆/触控板。
 
 [REGION:simpletable]
-| Platform | Action |
+| 命令 | 操作 |
 | --- | --- |
-| **Oculus** | Press and hold Up on the right thumbstick. Click in the world with the right trigger. |
-| **Vive** | Click and hold Up on the right touchpad. Click in the world with the right trigger. |
+| **撤销** | 在操纵杆/触控板上按左 |
+| **重新执行** | 在操纵杆/触控板上按右 |
 [/REGION]
 
-Transformation Gizmos have been updated for consistency with Desktop Editor.
+快速放置当前在 Content Browser 中选中资源的选项已指定到右操作杆/触控板。此功能在模拟模式中同样存在。
 
-Rotation Gizmo now has an indicator for the asset's original position.
+在 Content Browser 中选中资源后：
 
-## Editor Windows
+[REGION:simpletable]
+| 平台 | 操作 |
+| --- | --- |
+| **Oculus** | 按下并长按右操作杆的上键。用右扳机键在世界场景中点击。|
+| **Vive** | 点击并按住右触控板的上。用右扳机键在世界场景中点击。|
+[/REGION]
 
-Windows are no longer docked to the Controller when opened. Instead, they open slightly offset from the left controller. The Close button is now nested beside the interaction bar underneath each window
+变形小工具已更新与桌面编辑器一致。
 
-When opening a window, if you keep the trigger depressed, you will see a preview of where the window will be placed.
+此版本中旋转小工具拥有资源原始位置的指示器。
+
+## 编辑器窗口
+
+窗口打开后将不会和控制器形成对接。现在窗口将稍微偏离左控制器。关闭按钮现处于每个窗口下方的交互条旁。
+
+打开窗口时，如果一直按下扳机键，将会看到窗口放置之处的预览。
 
 [REGION:asyncgif]
 ![](vr_contentBrowser.gif)(w:322)
 [/REGION]
 
 [REGION:note]
-The **Toggle All UI** option has been removed.
+**Toggle All UI** 选项已被移除。
 [/REGION]
 
-## Radial Menu
+## 圆形菜单
 
-The new Radial Menu provides a redesigned interface that enables the user to quickly reach all functions of VR Mode, including the Modes Panels, Asset Editors, Simulate and Play in VR, consolidating the functionality of the old Radial Menu and the Quick Menu into one intuitive user interface.
+全新的圆形菜单拥有新设计的界面，可帮助用户快捷地访问 VR 模式中的所有功能，包括模式面板、资源编辑器、在 VR 中模拟和游戏，将旧圆形菜单和快捷菜单中的功能整合到一个直观的用户界面中。
 	
 [REGION:asyncgif]
 ![](vr_radialMenu.gif)(w:388)
 [/REGION]
 
-**To open the Radial Menu:**
+**打开圆形菜单：**
 
 [REGION:simpletable]
-| Platform | Action |
+| 平台 | 操作 |
 | --- | --- |
-| **Oculus** | Interact with the left thumbstick |
-| **Vive** | Interact with the left touchpad |
+| **Oculus** | I用作操作杆进行互动 |
+| **Vive** | I用作触控板进行互动 |
 [/REGION]
 
-A context-sensitive option has been added to the Radial Main Menu. This menu option offers quick access to additional features available within different tools.
+一个上下文相关的选项已添加到圆形主菜单。此菜单选项可快速访问不同工具中可用的额外功能。
 
 [REGION:asyncgif]
 ![](vr_contextOption.gif)(w:344)

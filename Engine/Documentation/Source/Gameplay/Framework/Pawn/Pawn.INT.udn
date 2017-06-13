@@ -6,10 +6,11 @@ Related: Gameplay/Framework\Pawn\Character
 Related: Gameplay/Framework/Controller
 Related: Gameplay/Framework/GameMode
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
 order:3
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/pawn_lander.png
 
 
 ![](pawn_ball.png)(w:300)

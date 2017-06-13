@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
 Description:Illustrates using the Possess node in Blueprints to switch between and control multiple characters. 
 Version: 4.8
 SkillLevel: Intermediate
+type:how-to
 Related: Engine/Blueprints
 Related: Gameplay/Framework/Pawn
 Related: Gameplay/Framework/Pawn/Character

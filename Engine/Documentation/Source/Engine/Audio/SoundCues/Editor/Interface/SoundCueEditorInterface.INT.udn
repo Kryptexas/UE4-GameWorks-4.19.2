@@ -3,10 +3,11 @@ Title:Sound Cue Editor UI
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
 Description:Guide to using the tools available for setting up and editing SoundCue node-based audio assets.
 version: 4.9
+parent:Engine/Audio/SoundCues/Editor
+type:reference
+order:1
+
 [TOC(start:2)]
-
-
-
 
 The **Sound Cue Editor** is divided into the following regions:
 

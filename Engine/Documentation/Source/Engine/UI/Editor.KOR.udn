@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title: 언리얼 에디터 인터페이스
 Crumbs:%ROOT%, Engine
@@ -7,64 +7,11 @@ Navigation:topic
 Version: 4.9
 parent:Engine/Editor
 order:1
+topic-image:UserInterfaceTopic.png
+topic-icon:%ROOT%/editor_icon.png
+
 
 [EXCERPT:LevelEditor]
-
-[VAR:Params]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%homeparams%
-[/OBJECT]
-[/VAR]
-
-
 ## 기초
 
 
@@ -87,7 +34,33 @@ order:1
 언리얼 에디터의 모든 부분이 기본적으로 노출되어 있지는 않은데, 전부 표시하기에는 화면 공간이 부족하기 때문입니다. 특정 유형의 애셋을 편집할 때만 나타나는 것도, 특정 유형의 프로퍼티를 변경하고자 할 때만 나타나는 것도 있고, 레벨이나 환경에 애셋을 들여온다든가 하는 특정 작업을 편하게 하기 위한 수단으로 존재하는 것도 있습니다.
 
 [REGION:raw]
-![](OpenParticleSystem.png)(w:930)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenParticleSystem_Mac.png)
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 

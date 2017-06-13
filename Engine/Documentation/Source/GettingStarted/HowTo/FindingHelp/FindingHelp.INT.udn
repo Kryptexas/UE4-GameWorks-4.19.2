@@ -38,7 +38,33 @@ Some aspects of the Editor may have a **?** icon next to them.
 
 This **Help Icon** when clicked will take you to relevant external documentation related to object it is linked to. 
 
-![](HelpIcon_2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DetailsPanelHelpIcon_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](DetailsPanelHelpIcon_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Above we have clicked on a **Brush** Actor in our level, then in the **Details** panel, clicked the **?** Help Icon which automatically opened a documentation page on **Geometry Brush Actors**. This is useful when you are not sure what an object does or want to learn more about the object, but not sure where to look on the official documentation pages. 
 
@@ -66,7 +92,33 @@ _Click for full image._
 
 Located in the upper-left corner of an Editor Window is the **Menu Bar** and the **Help** option. 
 
-![](HelpMenu.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 When clicking the **Help** button, several options are available in the dropdown menu. 
 
@@ -90,15 +142,93 @@ Inside the **Help Menu** noted above, next to **Documentation...** you may have 
 
 Pressing **F1** is a keyboard shortcut to bringing up an Official Documentation page. The **F1 Help** button is context sensitive, meaning that depending on where you are in the Editor, a different help page may be presented to you. For example, below we are in the Main Editor View and pressing **F1** for help displays the home documentation page. 
 
-![](F1_1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](F1_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](F1_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 With a **Blueprint** window open, if we were to press **F1** here a different documentation page is displayed for help regarding Blueprints. 
 
-![](F1_2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](BlueprintHelp_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](BlueprintHelp_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Or if we were in the **Material Editor**, a page on **Materials** is displayed. 
 
-![](F1_3.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialHelp_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialHelp_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Whenever you are in a new Editor window and not sure what it is or how to work with it, try pressing **F1** for help. 
 
@@ -106,7 +236,33 @@ Whenever you are in a new Editor window and not sure what it is or how to work w
 
 You can also search for help by using the **Help Search** bar located in the upper-right corner of the Main Editor Window. 
 
-![](HelpSearch.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Inside the search bar, you can enter any topic and as you start to enter text, a popup window will display results related to your entry. 
 
@@ -140,23 +296,153 @@ These options will allow you to **Exit** the tutorial, proceed to the ***Next** 
 
 You can access the In-Editor Tutorial hub by clicking the **More Tutorials** option noted above, or by clicking **Help** from the Menu Bar and selecting **Tutorials**. 
 
-![](Tutorial_4.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](HelpTutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 When you open the In-Editor Tutorial hub, a list of tutorials will be presented by category. 
 
-![](Tutorial_7.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Tutorials_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Tutorials_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Any In-Editor Tutorials that you have completed will be denoted by a green checkmark next to its icon. 
 
-![](Tutorial_8.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](TutorialSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](TutorialSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Any time you enter an area inside the Editor where a new In-Editor Tutorial is available, an icon will blink in the upper right corner. 
 
-![](Tutorial_5.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](SubEditorTutorial_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](SubEditorTutorial_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Click the blinking icon to start an In-Editor Tutorial covering the area you are currently in. 
 
-![](Tutorial_6.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](StaticMeshTutorial_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](StaticMeshTutorial_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Above we opened a Static Mesh asset, then clicked the In-Editor Tutorial icon and a **Static Mesh Editor** tutorial was started. 
 
@@ -178,7 +464,33 @@ For more information, see the [Content Examples](Resources/ContentExamples) docu
 
 When you want to learn about a particular feature or aspect of the Editor, the [Official Documentation](https://docs.unrealengine.com/latest/INT/index.html) is the place to start. 
 
-![](Documentation1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExtraHelpDocumentation_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExtraHelpDocumentation_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 You can use the search field to search for the information you want to retrieve, or you can use the **Quick Search Terms** to browse commonly searched topics. Additionally, you can browse the documentation by topic. If you are new to Unreal Engine 4, **Getting Started** is a fine place to start. 
 
@@ -188,13 +500,65 @@ For those that want a more hands-on learning experience, you can take a look at 
 
 If you cannot find what you are looking for in the Official Documentation or have a specific question, you can search [Answer Hub](https://answers.unrealengine.com/index.html) to see if your question has been asked/answered by Epic Staff or the Unreal Engine community. 
 
-![](AnswerHUB1.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHub_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHub_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 You can enter your topic or question in the search field to see if it has been asked or answered before. 
 
 Below we searched for **Multiplayer Games** to see what topics came up related to our keyword search. 
 
-![](AnswerHUB2.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHubSearch_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](AnswerHubSearch_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Any questions/answers related to Multiplayer Games are returned so that we can browse and see if our particular questions regarding Multiplayer have been asked. 
 
@@ -209,7 +573,33 @@ If you are new to Answer Hub, there is a Quick Start guide to using it which you
 
 Another resource for help is the [Official Unreal Engine 4 Forums](https://forums.unrealengine.com/forum.php). 
 
-![](Forums.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Forums_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Forums_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 The forums are broken up into several categories from Animation, Blueprints, and C++ Gameplay Programming to Android or iOS development or even Community Content, Tools, and Tutorials. The forums are largely community driven but Epic Staff does contribute to and respond to posts in the forums quite a bit. While Answer Hub is geared toward one-off questions and answers, the forums is a good place to start a discussion on a particular topic or how to 
 approach creating something in Unreal Engine 4. 
@@ -219,7 +609,33 @@ approach creating something in Unreal Engine 4.
 
 The [Official Unreal Engine 4 Wiki](https://wiki.unrealengine.com/Main_Page) is a place you can go for more Tutorials, Sample Projects, or Code samples. 
 
-![](Wiki.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Wiki_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](Wiki_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 The wiki is a community driven learning resource where users can post their own tutorials for others to use and learn from. Often times in Game Development, trial-and-error is the best method in which to learn something and with the wiki, you can learn from others who may have went through similar stumbling blocks as you. 
 

@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:2945303
-Title:Google Play のアチーブメントを使用する
-Description:プレイヤーのエンゲージメントを高めるためにGoogle Play のアチーブメントを使用する 
+﻿Title:Google Play のアチーブメントの使用方法
+Description:プレイヤーのエンゲージメントを高めるために Google Play のアチーブメントを使用する 
 Crumbs:
 Availability:Public
 version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -68,7 +67,7 @@ type:howto
 
 	![](Platforms\Mobile\Achievements\androidSetup.png)
 
-	これらの値はすべてお持ちの App と Game Service 用の Google Play Developer Console で利用できます。
+	これらの値はすべてお持ちのアプリケーションとゲーム サービス用の Google Play Developer Console で利用できます。
 
 [REGION:tip]
 Achievement Map の **Name** 値は Google Play Services **Achievement ID** のためのマッピングで、iOS は **Achievement Reference** によって直接参照されます。Android と iOS の両方のプラットフォームを使っている場合は、iOS Game Center 設定から Achievement Reference に **Name** を入力すれば、プラットフォームに関係なく 1 つのノードだけを呼び出せばよくなります。

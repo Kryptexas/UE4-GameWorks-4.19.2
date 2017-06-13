@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:2.5 - キャラクターのジャンプを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターのジャンプの実装方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -31,7 +31,7 @@ Version:4.11
 
 ## ジャンプ アクションのマッピング
 
-1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリック します。
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリックします。
 
 1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、 **[Input]** をクリックします。
 
@@ -85,17 +85,19 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 			GENERATED_BODY()
 		public:
 
-			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定) 
+			// Sets default values for this character's properties. (このキャラクターのプロパティのデフォルト値を設定) 
 			AFPSCharacter();
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		protected:
 
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
-			// Called every frame (フレームごとに呼ばれます) 
+			public:
 
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 
 			UFUNCTION()
@@ -129,8 +131,8 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 1.	以下のコードを `SetupPlayerInputComponent` に追加し、ジャンプ アクションを新しく記述した関数にバインドします。
 
 		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
-		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+		PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+		PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
@@ -146,7 +148,7 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 			PrimaryActorTick.bCanEverTick = true;
 		}
 
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSCharacter::BeginPlay()
 		{
@@ -158,30 +160,30 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
-		// Called every frame (フレームごとに呼ばれます) 
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		}
 
-		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		// Set up "look" bindings. (look のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
 
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
@@ -216,13 +218,13 @@ FPSCharacter クラスにコードを追加するには、Visual Studio に戻�
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	[FPSProject] 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
-1.	ビルドが終了したらアンリアル エディタでご自身の **FPSProject** を開きます。
+1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。マップ全体でジャンプできるようになります。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。マップ全体でジャンプできるようになります。
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 

@@ -1,4 +1,4 @@
-Availability: Public
+Availability: docs
 Title:1. Setting up the Blend Space
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:In this first step we create the Blend Space that will be used to blend our character animations.

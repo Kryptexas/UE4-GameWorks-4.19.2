@@ -3,8 +3,10 @@ Title: First Person Shooter Tutorial
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
 Description: Learn how to implement mechanics for a First Person Shooter game.
 prereq:Programming/Development/VisualStudioSetup
-SkillLevel: Beginner
-Version: 4.11
+type:how-to
+type:landing
+skilllevel:Beginner
+Version: 4.15
 
 ![](FPS_CoverImage.png)
 _This is what you'll see at the end of this tutorial._

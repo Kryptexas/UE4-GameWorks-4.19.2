@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title:4.ゲーム モードの設定
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -39,7 +39,6 @@ version:4.14
 1. ゲーム内にマウスカーソルを表示するには、Game Mode で作成したように、**Player Controller** のブループリントを作成しなくてはいけません。
 
 	* **コンテンツ ブラウザ** で再度 **[Add (追加)]** ボタンをクリックします。
-
 	* [Common Classes] セクションから [Player Controller] を選びます。
 
 	* ブループリントに「MenuPlayerController」と名前を付けます。
@@ -84,7 +83,7 @@ version:4.14
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -99,7 +98,7 @@ version:4.14
 					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
-					//Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
+					// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {
@@ -112,7 +111,7 @@ version:4.14
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -129,14 +128,14 @@ version:4.14
 				GENERATED_BODY()
 
 			public:
-				/** ゲーム開始時に呼び出されます */
-				virtual void BeginPlay() override;
-
 				/** 現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
+				/** Called when the game starts. (ゲーム開始時に呼び出されます) */
+				virtual void BeginPlay() override;
+
 				/** ゲーム開始時にメニューとして使用するウィジェット クラスです */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
@@ -147,7 +146,7 @@ version:4.14
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -174,8 +173,7 @@ version:4.14
 					}
 				}
 			}
-
-			**HowTo_UMGPlayerController.h**
+		**HowTo_UMGPlayerController.h**
 			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
@@ -191,7 +189,7 @@ version:4.14
 			{
 				GENERATED_BODY()
 
-				public:
+			public:
 				virtual void BeginPlay() override;
 			};
 

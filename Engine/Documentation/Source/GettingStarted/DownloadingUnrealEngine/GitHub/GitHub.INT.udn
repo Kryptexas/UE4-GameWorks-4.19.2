@@ -1,10 +1,12 @@
-﻿Availability:Public
+﻿Availability:NoPublish
 Title:Forking and Cloning Unreal from GitHub
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:Forking and cloning the Unreal Engine source code from GitHub.
 Prereq: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
-Version: 4.8
+Parent:GettingStarted
+Order:
+Version: 4.16
 SkillLevel: Advanced
 
 Forking and cloning our source code from GitHub is a great way to get started with Unreal.

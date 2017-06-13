@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/Parti
 Description:An overview of vector fields and how they work with GPU sprites.
 Version: 4.9
 tags:Particles
+topic-image:VectorFields_topic.png
 
 
 

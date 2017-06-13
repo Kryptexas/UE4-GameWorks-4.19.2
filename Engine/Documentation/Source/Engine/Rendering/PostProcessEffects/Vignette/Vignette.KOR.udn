@@ -1,9 +1,17 @@
-﻿INTSourceChangelist:3200686
-Availability:Public
-Title:비녜트 (Vignette)
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:뷰포트 중심에서부터의 거리가 멀어져감에 따라 밝기를 감소시키는 이펙트입니다.
-Version: 4.9
+﻿Availability: Public
+Availability: Public
+Crumbs: %ROOT%
+Title: 비녜트 (Vignette)
+Description: 뷰포트 중심에서부터의 거리가 멀어져감에 따라 밝기를 감소시키는 이펙트입니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:11
+Tags:Post Process
+Topic-image:Vignette_topic.png
+
+
 
 [REGION:fullwidth]
 ![Vignette Effect](vignette.png)

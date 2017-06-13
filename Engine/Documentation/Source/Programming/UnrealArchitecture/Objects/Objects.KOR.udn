@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3405846
 Availability:Public
-Title: 오브젝트 (Object)
+Title: 오브젝트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:기본 게임플레이 요소인 Actor 와 Object 에 대한 설명입니다.
 Version: 4.11
@@ -44,7 +44,7 @@ new `UObject` 인스턴스는 물론 그 표준 `new` 연산자를 만드는 데
 
 모든 경우에 이 시스템을 사용하는 것이 필수적이지도 심지어 적절하지도 않지만, 그렇게 해 주면 다음과 같은 장점이 있습니다:
 
-*	가비지 콜렉션
+*	가비지 컬렉션
 *	레퍼런스 업데이트
 *	리플렉션
 *	시리얼라이제이션
@@ -92,7 +92,7 @@ UObject 파생 유형은 준수해야 하는 특정 구조체가 있는데, 그�
 	UCLASS()
 
 
-UCLASS 매크로는 UMyObject 를 언리얼 엔진 4 에 보이도록 만듭니다. 이 매크로는 다양한 인수를 지원하여, 클래스에 어떤 기능은 끄고 켤 지를 결정할 수 있습니다 (UClass 인수에 대한 페이지 링크)
+UCLASS 매크로는 UMyObject 를 언리얼 엔진 4 에 보이도록 만듭니다. 이 매크로는 다양한 [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/) 지원을 통해 클래스에 어떤 기능을 켜고 끌 지 결정할 수 있습니다.
 
 
 	class MYPROJECT_API UMyObject : public UObject
@@ -115,4 +115,4 @@ Tick (틱)이란 언리얼 엔진에서 오브젝트가 어떻게 업데이트�
 
 ## 오브젝트 소멸
 
-오브젝트 소멸 처리는 오브젝트가 엔진에 더이상 레퍼런스되지 않을 때 가비지 콜렉션 시스템에 의해 자동으로 이루어집니다. 즉 어떤 UPROPERTY 포인터나, 엔진 컨테이너나, (`TArray<UObject*>` 또는 `TWeakPtr<UObject*>` 와 같은) 스마트 포인터 클래스도 포인터를 갖지 않는 액터에 대해 일어난다는 뜻입니다. 가비지 콜렉터가 실행되면, 검색된 것 중 레퍼런스가 없는 오브젝트는 삭제될 것입니다. 추가로, `MarkPendingKill()` 함수를 오브젝트에서 바로 호출할 수 있는데, 그러면 해당 오브젝트로의 모든 포인터는 NULL 로 설정되고 글로벌 검색에서도 제거됩니다. 마찬가지로 이 오브젝트는 다음 가비지 콜렉션 패스에서 완전히 삭제될 것입니다.
+오브젝트 소멸 처리는 오브젝트가 엔진에 더이상 레퍼런스되지 않을 때 가비지 컬렉션 시스템에 의해 자동으로 이루어집니다. 즉 어떤 UPROPERTY 포인터나, 엔진 컨테이너나, (`TArray<UObject*>` 또는 `TWeakPtr<UObject*>` 와 같은) 스마트 포인터 클래스도 포인터를 갖지 않는 액터에 대해 일어난다는 뜻입니다. 가비지 컬렉터가 실행되면, 검색된 것 중 레퍼런스가 없는 오브젝트는 삭제될 것입니다. 추가로, `MarkPendingKill()` 함수를 오브젝트에서 바로 호출할 수 있는데, 그러면 해당 오브젝트로의 모든 포인터는 NULL 로 설정되고 글로벌 검색에서도 제거됩니다. 마찬가지로 이 오브젝트는 다음 가비지 컬렉션 패스에서 완전히 삭제될 것입니다.

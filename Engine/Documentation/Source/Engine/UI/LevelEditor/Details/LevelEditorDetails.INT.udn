@@ -59,7 +59,33 @@ Above, we checked two options as **Favorites**, indicated by the star icon next 
 
 1. In the **Edit** menu, select **Editor Preferences**.
 
-	![](EditorPrefs.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Under **Experimental**, check the **Enable Details Panel Favorites** option. 
 

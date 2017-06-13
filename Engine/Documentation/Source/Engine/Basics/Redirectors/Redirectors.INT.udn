@@ -3,9 +3,11 @@ Title:Redirectors
 Crumbs:%ROOT%, Engine
 Description:Objects that are placed in packages to redirect references to moved assets to their current locations.
 version: 4.9
+Parent:Engine
+type:overview
+order:27
+
 [TOC (start:2 end:3)]
-
-
 
 Moving or renaming an asset in UE4 leaves a **Redirector** in its old location. This is so that packages that are not currently loaded, but reference this asset, will know where to find it in its new location. Choosing a naming system early on and sticking with it will avoid many of the problems experienced with Redirectors.
 

@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:3069483
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:FPS チュートリアル
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
 Description:FPS ゲームにメカニクスを実装する方法を学びます。
 prereq:Programming/Development/VisualStudioSetup
-SkillLevel:Beginner
-Version:4.11
+type:how-to
+type:landing
+skilllevel:Beginner
+Version:4.15
 
 ![](FPS_CoverImage.png)
 _このチュートリアルの最後まで終了すると、この画面のようになります。_

@@ -41,7 +41,7 @@ When all the robots in the wave have been recalled and the level is complete, yo
 
 	![](controller.png)
 
-1. Drag off the exec output of the ReturnToHub event and choose **execute Console Command**. Enter _open hub_evn_ in the **Command** property. This will send a command to open the Hub level. Connect the **Specific Player** input to the **As Player Controller** output on the cast node.
+1. Drag off the exec output of the ReturnToHub event and choose **execute Console Command**. Enter _open hub_env_ in the **Command** property. This will send a command to open the Hub level. Connect the **Specific Player** input to the **As Player Controller** output on the cast node.
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]

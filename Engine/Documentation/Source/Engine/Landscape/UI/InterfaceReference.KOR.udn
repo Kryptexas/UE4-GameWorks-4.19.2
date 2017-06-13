@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3473556
 Availability: Public
 Title:랜드스케이프 UI 참고서
 Crumbs:%ROOT%, Engine, Engine/Landscape
@@ -146,6 +146,10 @@ order:4
 ![](Engine/Landscape\icon_Landscape_Tool_Copy_40x.png)(convert:false) | **Copy/Paste** | 복사/붙여넣기 - 랜드스케이프 한 영역에서 터레인 데이터를 복사하여 다른 영역에 붙여넣을 수 있습니다. 복사/붙여넣기 데이터를 다른 랜드스케이프에서 사용할 수 있도록 저장하는 것도 가능합니다. |
 [/VAR]
 
+[VAR:MirrorTool]
+![](Engine/Landscape\icon_Mirror_Tool_40x.png)(convert:false) | **Mirror Tool** | 미러 툴 - 랜드스케이프 한 쪽 면을 다른 쪽으로 복사하여 랜드스케이프 지오메트리를 쉽게 미러링 또는 회전시킬 수 있도록 해주는 툴입니다. |
+[/VAR]
+
 [VAR:NewLand]
 ![](Engine/Landscape\icon_Landscape_New_Landscape_40x.png)(convert:false) | **New Landscape** | 새 랜드스케이프 - New Landscape (새 랜드스케이프) 카테고리의 파라미터를 사용하여 랜드스케이프를 새로 만듭니다. |
 [/VAR]
@@ -209,6 +213,7 @@ order:4
 %Ind% %VisTool%
 %Ind% %SelectTool%
 %Ind% %CopyTool%
+%Ind% %MirrorTool%
 [/REGION]
 [/EXCERPT:LSREF002]
 

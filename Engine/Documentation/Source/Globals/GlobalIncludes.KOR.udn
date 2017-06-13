@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3309591
+﻿INTSourceChangelist:3433106
 Availability:NoPublish
 Title:
 Crumbs:
@@ -150,7 +150,7 @@ Description:
 		active_button
 		[/PARAMLITERAL]
 		[PARAM:label]
-		에픽 게임스 런처
+		에픽 게임즈 런처
 		[/PARAM]
 	[/OBJECT]
 	[OBJECT:ToggleButton]
@@ -235,6 +235,67 @@ Description:
 		[/PARAMLITERAL]
 		[PARAM:label]
 		iOS
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
+[VAR:VRSelect]
+[REGION:section]
+	[REGION:titlesection]
+	VR 플랫폼을 선택하세요:
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		googlevr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Google VR
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		oculus
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Oculus Rift
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		gearvr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Samsung Gear VR
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		steamvr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Steam VR
 		[/PARAM]
 	[/OBJECT]
 [/REGION]

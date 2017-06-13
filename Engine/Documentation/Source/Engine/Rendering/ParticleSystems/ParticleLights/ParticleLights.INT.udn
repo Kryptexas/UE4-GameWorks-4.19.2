@@ -4,45 +4,10 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Particle Lights are another weapon in the VFX artist's arsenal.
 Version: 4.9
 tags:Particles
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/ParticleLights:title%](particleLights_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/ParticleLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/ParticleLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/ParticleLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/ParticleLights:title%](particleLights_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/ParticleLights:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/ParticleLights:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/ParticleLights]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+parent:Engine/Rendering/ParticleSystems
+order:6
+type:overview
+topic-image:particleLights_topic.png
 
 [TOC(start:2 end:2)]
 

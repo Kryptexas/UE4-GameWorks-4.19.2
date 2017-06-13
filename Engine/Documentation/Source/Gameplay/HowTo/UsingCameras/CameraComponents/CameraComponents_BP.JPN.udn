@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615116
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:Camera コンポーネントの作業
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -10,6 +10,7 @@ Related:Engine/Matinee
 Related:Engine/Blueprints
 SkillLevel:Beginner
 Version:4.8
+type:how-to
 
 この操作ガイドでは、レベル内のプレイ可能な、あるいはプレイ不可能なキャラクターに対してサードパーソン視点を作るために使用する **Camera ** コンポーネントを **ブループリント** に追加する方法を説明します。このチュートリアルの最後まで進むと、Camera コンポーネントを Character ブループリントに追加し、二種類の視点間で切り替える機能をキャラクターに対してセットアップするプロセスを学ぶことになります。 
 

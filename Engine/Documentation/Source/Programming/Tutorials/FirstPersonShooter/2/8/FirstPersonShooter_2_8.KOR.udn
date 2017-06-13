@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3388666
 Availability: Public
 Title: 2.8 - 캐릭터에 일인칭 메시 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: 일인칭 슈팅 캐릭터에 일인칭 메시를 추가하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -44,7 +44,7 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 		// 소유 플레이어만 이 메시를 볼 수 있습니다.
 		FPSMesh->SetOnlyOwnerSee(true);
 		// FPS 메시를 FPS 카메라에 붙입니다.
-		FPSMesh->AttachTo(FPSCameraComponent);
+		FPSMesh->SetupAttachment(FPSCameraComponent);
 		// 일부 환경 섀도잉을 꺼 메시가 하나인 듯 보이는 느낌을 유지합니다.
 		FPSMesh->bCastDynamicShadow = false;
 		FPSMesh->CastShadow = false;
@@ -171,7 +171,7 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 				virtual void Tick( float DeltaSeconds ) override;
 			
 				// Called to bind functionality to input
-				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+				virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 			
 				// Handles input for moving forward and backward.
 				UFUNCTION()
@@ -213,7 +213,7 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 				// Create a first person camera component.
 				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 				// Attach the camera component to our capsule component.
-				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera slightly above the eyes.
 				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 				// Allow the pawn to control camera rotation.
@@ -224,7 +224,7 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 				// Only the owning player sees this mesh.
 				FPSMesh->SetOnlyOwnerSee(true);
 				// Attach the FPS mesh to the FPS camera.
-				FPSMesh->AttachTo(FPSCameraComponent);
+				FPSMesh->SetupAttachment(FPSCameraComponent);
 				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 				FPSMesh->bCastDynamicShadow = false;
 				FPSMesh->CastShadow = false;
@@ -253,21 +253,21 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 			}
 			
 			// Called to bind functionality to input
-			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 			{
-				Super::SetupPlayerInputComponent(InputComponent);
+				Super::SetupPlayerInputComponent(PlayerInputComponent);
 			
 				// Set up "movement" bindings.
-				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+				PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 			
 				// Set up "look" bindings.
-				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+				PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 			
 				// Set up "action" bindings.
-				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+				PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 			}
 			
 			void AFPSCharacter::MoveForward(float Value)

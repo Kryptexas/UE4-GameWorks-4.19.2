@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2395232
+﻿INTSourceChangelist:3429254
 Availability:Docs
 Title:コードでアクタに入力を設定する方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
@@ -8,11 +8,11 @@ Description:コードでアクタに入力を設定するためのガイド
 
 ## 概要
 
-## アクタ入力を有効にする
+## アクタの入力を有効にする
 
-## アクタ入力を無効にする
+## アクタの入力を無効にする
 
-## 入力使用を有効 / 無効にする
+## 入力の使用を有効/無効にする
 
 ### 入力の詳細
 

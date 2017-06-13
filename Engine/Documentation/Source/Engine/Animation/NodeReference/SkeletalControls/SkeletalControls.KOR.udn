@@ -1,21 +1,18 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3464851
 Availability:Public
 Title:스켈레탈 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
-Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용이 가능한 애니메이션 노드입니다.
-version: 4.12
+Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버를 적용시킬 수 있는 애니메이션 노드입니다.
+version: 4.16
+topic-image:Engine/Animation/Overview/SkeletonControlTopic.png
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
 [/REGION]
 
 [EXCERPT:Intro]
-**_SkeletalControl_** (스켈레탈 콘트롤) (또는 _SkelControl_ (스켈 콘트롤))을 통해 스켈레톤에 있는 본을 직접 제어할 
-수 있습니다. _Animation Blueprint_ (애니메이션 블루프린트) 안에서 사용되며, 개별 본 제어, IK 체인 생성 등의 작업에 쓰입니다.
-내재된 _스켈레톤_ 에 대한 직접 제어할 수 있다는 것은, 절차적이고 동적으로 구동되는 애니메이션을 만들 수 있다는 
-것입니다. 하나의 본에 대한 _Transform_ (트랜스폼) 작업이 다른 본을 움직일 수도 있고, 캐릭터에 일반적인 걷기 애니메이션을 
-재생할 때 땅에 발을 일치시킬 수도 있습니다. _AnimationSequence_ (애니메이션 시퀀스)에 의해 적용된 
-본 _트랜스폼_ 을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
+**SkeletalControl** (스켈레탈 콘트롤) (또는 SkelControl (스켈 콘트롤))을 통해 스켈레톤에 있는 본을 직접 제어할 수 있습니다. Animation Blueprint (애니메이션 블루프린트) 안에서 사용되며, 개별 본 제어, IK 체인 생성 등의 작업에 쓰입니다.내재된 스켈레톤에 대한 직접 제어할 수 있다는 것은, 절차적이고 동적으로 구동되는 애니메이션을 만들 수 있다는 것입니다. 하나의 본에 대한 Transform(트랜스폼) 작업이 다른 본을 움직일 수도 있고, 캐릭터에 걷기 애니메이션을 재생할 때 땅에 발을 일치시킬 수도 있습니다. 
+AnimationSequence (애니메이션 시퀀스)에 의해 적용된 본 트랜스폼을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
 [/EXCERPT:Intro]
 
 
@@ -36,7 +33,7 @@ version: 4.12
 
 | 프로퍼티 | 설명 |
 | --- | --- |
-| **LOD Threshold** | LOD 한계치 - 이 노드의 실행 대상이 될 수 있는 최대 레벨 오브 디테일 (**LOD**) 입니다. 예: LOD 한계치가 **2** 로 설정된 경우, **LOD 2** 까지만 실행되고, 컴포넌트의 LOD 가 **3** 이 되면 스스로 꺼집니다. |
+| **LOD Threshold** | LOD 한계치 - 이 노드의 실행 대상이 될 수 있는 최대 레벨 오브 디테일 (LOD) 입니다. 예: LOD 한계치가 2 로 설정된 경우, LOD 2 까지만 실행되고, 컴포넌트의 LOD 가 3 이 되면 스스로 꺼집니다. |
 [/EXCERPT]
 
 
@@ -66,7 +63,9 @@ version: 4.12
 		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\SplineIK "%Engine\Animation\NodeReference\SkeletalControls\SplineIK:description%")	
 		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ModifyCurve "%Engine\Animation\NodeReference\SkeletalControls\ModifyCurve:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
 		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
 		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")

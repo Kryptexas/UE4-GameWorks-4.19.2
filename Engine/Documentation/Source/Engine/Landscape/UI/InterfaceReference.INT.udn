@@ -145,6 +145,10 @@ This document contains references to all of the icons for the **Landscape** syst
 ![](Engine/Landscape\icon_Landscape_Tool_Copy_40x.png)(convert:false) | **Copy/Paste** | Copy and Paste allows you to copy terrain data from one area of the Landscape and paste it to another area of the Landscape. You can even save out the copy paste data to use in other Landscapes. |
 [/VAR]
 
+[VAR:MirrorTool]
+![](Engine/Landscape\icon_Mirror_Tool_40x.png)(convert:false) | **Mirror Tool** | This tool enables you to copy one side of a landscape to the other side so that you can easily mirror or rotate the landscape geometry.  |
+[/VAR]
+
 [VAR:NewLand]
 ![](Engine/Landscape\icon_Landscape_New_Landscape_40x.png)(convert:false) | **New Landscape** | Creates a new Landscape using the parameters in the New Landscape category. |
 [/VAR]
@@ -208,6 +212,7 @@ This document contains references to all of the icons for the **Landscape** syst
 %Ind% %VisTool%
 %Ind% %SelectTool%
 %Ind% %CopyTool%
+%Ind% %MirrorTool%
 [/REGION]
 [/EXCERPT:LSREF002]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3429260
 Title:오큘러스 리프트 퀵스타트
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:오큘러스 리프트용 게임 셋업 및 실행 관련 안내입니다.
@@ -7,6 +7,7 @@ Version: 4.11
 SkillLevel: Intermediate
 parent:Platforms/Oculus
 type:quick start
+type:landing
 tags:VR
 tags:Oculus Rift
 

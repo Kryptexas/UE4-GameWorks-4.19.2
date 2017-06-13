@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability:Docs
+﻿INTSourceChangelist:3478014
+Availability:Public
 Title:3.On Drag Detected
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:ドラッグが検知された場合に、何を起こるかを設定します。
+SkillLevel:Intermediate
+Version:4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:3
+checkpoint: editorqs
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
-SkillLevel:Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

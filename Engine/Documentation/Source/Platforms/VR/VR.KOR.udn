@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3340158
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:가상 현실 개발
 Crumbs:%ROOT%, Platforms
@@ -6,63 +6,21 @@ Description:가상 현실 플랫폼용 개발에 관련된 정보입니다.
 Navigation:platform
 Version: 4.9
 Type:landing
+tags:VR
+tags:Platform
 parent:Platforms
 order:2
-
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/VR:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/platform_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/VR:title%
-[/PARAM]
-[PARAM:description]
-	%Platforms/VR:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/VR]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-vr
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-
-## 시작하기
-
-[DIR(output:"topic" type:"quick start" tags:"vr")]
+topic-icon:%ROOT%/platform_icon.png
+topic-image:VirtualRealityDevelopment_topic.png
 
 ## 가상 현실 플랫폼
 
-[DIR(end:"1" output:"listbutton" type:"landing" tags:"platform" parent:"Platforms/VR")]
+[DIR(end:"1" output:"topic" type:"landing" tags:"platform" parent:"Platforms/VR")]
 
 ## 가상 현실 토픽
 
-[DIR(end:"1" output:"listbutton" parent:"Platforms/VR" tags:"!platform")]
+[DIR(end:"1" output:"topic" parent:"Platforms/VR" tags:"!platform")]
 
 ## 교육 자료
 
-[REGION:topics third]
 [DIR(output:"video" type:"video" tags:"Virtual Reality")]
-[/REGION]

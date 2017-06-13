@@ -1,6 +1,6 @@
 Availability:Public
 Title: Cross-Compiling for Linux (Legacy)
-Crumbs:
+Crumbs:%ROOT%
 Description:For engine versions older than 4.14, this page shows users how to set up cross-compilation for the Linux Platform.
 Version: 4.14
 SkillLevel: Advanced
@@ -17,7 +17,7 @@ topic-image:LegacyRef_Topic.png
 
 [TOC(start:2 end:3)]
 
-This reference is an archive for users who need to set up their cross-compilation toolchains in Unreal Engine 4 versions that were released prior to 4.14. 
+This reference is an archive for users who need to set up their cross-compilation toolchains in Unreal Engine 4 (UE4) versions that were released prior to 4.14. 
 
 [REGION:note]
 If you're developing your project with Unreal Engine, version 4.14 (or newer), you'll want to refer to our [](Platforms/Linux/GettingStarted) documentation.
@@ -28,20 +28,23 @@ If you're developing your project with Unreal Engine, version 4.14 (or newer), y
 
 **Cross-compilation** makes it possible for game developers, working in a Windows-centric workflow, to target Linux. At this time, cross-compilation is only supported for Windows. 
 Mac users currently have to resort to [native compilation](https://wiki.unrealengine.com/Building_On_Linux). We support, test, and provide the libraries and toolchains for the Linux-x86_64 platform. 
-[/EXCERPT:Why_XC]
+
 ## Getting the Toolchain
 
 Please use the following table to download the appropriate toolchain: 
 
-| Unreal Engine 4 (UE4) Version   | Toolchain                                                                                                                   | 
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | 
-| **<= 4.8**                      | -v4 [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 
-| **4.9 and 4.10**                | -v6 [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 
-| **4.11 thru 4.13**              | -v7 [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 
-| **4.14**                        | -v8 [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         |
+| Toolchain                                                                                                                           | UE4 Version    | 
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | <= 4.8         | 
+| **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 and 4.10   | 
+| **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
+| **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 and 4.15  |
+| **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
-We also provide the libraries and toolchains that allow you to compile for Linux ARM as well (original Raspberry Pi and up). Although, this will require you to make a (minor) code 
-change in [Unreal Build Tool](Programming/UnrealBuildSystem) (UBT).
+
+We also provide the libraries and toolchains that allow you to compile for [Linux ARM](https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) as well (original Raspberry Pi and up). 
+Although, this will require you to make a (minor) code change in [Unreal Build Tool](Programming/UnrealBuildSystem) (UBT).
+[/EXCERPT:Why_XC]
 
 From this point on, we assume that you are targeting x86_64 Linux, though most of the following information will apply to compiling for ARM as well (except for the different toolchain). 
 Note that you can [build your own toolchain](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) if you want different versions of the tools, or if you want to target a different architecture.

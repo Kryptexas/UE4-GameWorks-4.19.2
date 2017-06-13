@@ -2,69 +2,53 @@ Availability:Public
 Title: Unreal Object Handling
 Crumbs: %ROOT%
 Description:Overview of the features of the UObject system.
-Version: 4.9
+type:overview
+skilllevel:Beginner
+Version: 4.16
+parent:UnrealArchitecture
+order:
+tags:Architecture
+
 
 [TOC (start:2 end:2)]
 
-Marking classes, properties, and functions with the appropriate macros turns them into UClasses, UProperties, and UFunctions. This gives Unreal Engine access to them, which allows for a 
-number of under-the-hood handling features to be implemented.
+Marking classes, properties, and functions with the appropriate macros turns them into `UClasses`, `UProperties`, and `UFunctions`. This gives Unreal Engine access to them, which allows for a number of under-the-hood handling features to be implemented.
 
-## Garbage Collection
+## Automatic Property Initialization
 
-Unreal implements a garbage collection scheme where UObjects that are no longer referenced or have been explicitly flagged for destruction will be periodically cleaned up. The engine builds a 
-reference graph to determine which Objects are still in use and which ones are orphaned. At the root of this graph is a set of Objects designated as the "root set". Any Object can be added 
-to the root set. When garbage collection occurs, the engine can track all referenced Objects by searching the tree of known UObject references starting from the root set. Any unreferenced 
-Objects will be assumed to be no longer needed, and will be removed. 
+`UObjects` are automatically zeroed on initialization, before the constructor is called. This happens for the whole class, `UProperties` and native members alike. Members can subsequently be initialized with custom values in the class constructor.
 
-One practical implication here is that you typically need to maintain a UPROPERTY reference to an Object you wish to keep alive. Actors are frequently an exception to this, since they are 
-usually referenced by an Object that links back to the root set, such as the level to which they belong. Actors can be explicitly marked for destruction with `Destroy()`.
+[REGION:note]The constructor of a `UObject` will only run when the engine is first started, as a **Class Default Object** (or "CDO") is created. After that, instantiation of Objects (such as spawning Actors) will involve copying the CDO into the new Actor's memory without re-running the constructor.[/REGION]
 
 ## Automatic Updating of References
 
-When a UActorComponent or AActor is cleaned up via garbage collection due to level unload, any UPROPERTY references to it are automatically updated to NULL. This is beneficial in that it prevents dangling pointers from persisting 
-and causing trouble down the road, but it also means that your UActorComponent or AActor pointers can sometimes unexpectedly go NULL if the Object they point to was explicitly marked for destruction. So be sure to test 
-before dereferencing.
+When an `AActor` or `UActorComponent` is destroyed or otherwise removed from play, all references to it that are visible to the reflection system (`UProperty` pointers and pointers stored in Unreal Engine container classes such as `TArray`) are automatically nulled. This is beneficial in that it prevents dangling pointers from persisting and causing trouble down the road, but it also means that `AActor` and `UActorComponent` pointers can become null if some other piece of code destroys them. The ultimate advantage of this is that null-checking is more reliable, as it detects both standard-case null pointers and cases where a non-null pointer would have been pointing at deleted memory.
 
-It is important to realize that this feature applies only to UActorComponent or AActor references marked with UPROPERTY. An Object reference stored in a raw pointer will be unknown to Unreal, and will not be 
-automatically nulled or prevent garbage collection. Note this does not mean that all UObject* variables must be UProperties. If you want a non-UProperty Object pointer, consider using TWeakObjectPtr<>. 
-This is a weak pointer, so it will not prevent garbage collection, but it can be queried for validity before being accessed.
+It is important to realize that this feature applies only to `UActorComponent` or `AActor` references marked with `UPROPERTY` or stored in an Unreal Engine container class. An Object reference stored in a raw pointer will be unknown to the Unreal Engine, and will not be automatically nulled, nor will it prevent garbage collection. Note this does not mean that all `UObject*` variables must be `UProperties`. If you want an Object pointer that is not a `UProperty`, consider using `TWeakObjectPtr`. This is a "weak" pointer, meaning it will not prevent garbage collection, but it can be queried for validity before being accessed and will be set to null if the Object it points to is destroyed.
 
 ## Serialization
 
-When a UObject is serialized, all UProperty values are automatically written or read unless explicitly marked as "transient". For example, you could place an AEnemy instance in a level, set its 
-Health to 500, save it and successfully reload it without writing a single line of code beyond the UClass definition.
+When a `UObject` is serialized, all UProperty values are automatically written or read unless explicitly marked as "transient". For example, you could place an `AEnemy` instance in a level, set its Health to 500, save it and successfully reload it without writing a single line of code beyond the `UClass` definition.
 
 When UProperties are added or removed, loading pre-existing content is handled seamlessly. New properties get default values copied from the new CDO. Removed properties are silently ignored.
 
-If you want custom behavior, it is possible to write custom serialization and versioning code if the need arises, but this is not common in practice.
+If you want custom behavior, it is possible to write custom serialization and versioning code, but this is not common in practice.
 
 ## Updating of Property Values
 
-When the CDO of a UClass has changed, the engine will try to intelligently apply those changes to all instances of the class when they are loaded. For a given Object instance, if the updated 
-variable was unchanged from the previous default, it will be updated to the new default Object. If the variable had been changed somehow, the assumption is that that value was set intentionally 
-and those changes will not be undone.
+When the CDO of a `UClass` has changed, the engine will try to apply those changes to all instances of the class when they are loaded. For a given Object instance, if the updated variable's value matches the value in the old CDO, it will be updated to the value it holds in the new CDO. If the variable has any other value, the assumption is that the value was set intentionally, and those changes will be preserved.
 
-As an example, let us say you saved a level with several of your AEnemy Objects placed in it, and you had set the default value to Health to be 100 in the AEnemy constructor. Let us also assume you set
- the health for Enemy_3 to 500, because he is particularly tough.
-
-Now assume you changed your mind and increased the default value of Health to 150. When you next load your level, Unreal will realize you have changed the CDO and will update all instances of AEnemy 
-except Enemy_3 to have a health of 150. Enemy_3's health will remain at 500.
+As an example, let us say you saved a level with several of your `AEnemy` Objects placed in it, and you had set the default Health value in the `AEnemy` constructor to 100. Let us also assume you set the health for Enemy_3 to 500, because he is particularly tough. Now imagine you changed your mind and increased the default value of Health to 150. When you next load your level, Unreal will realize you have changed the CDO and will update all instances of `AEnemy` with the old default Health value (100) to have a Health value of 150. Enemy_3's Health will remain at 500 because it wasn't using the old default value.
  
-## Automatic Property Initialization
-
-UObjects are automatically zeroed on initialization, before the constructor is called. This happens for the whole class, UProperties and native members alike. Members can subsequently be 
-initialized with custom values in the class constructor.
-
 ## Editor Integration
 
-UObjects and UProperties are understood by the editor, and the editor can expose these values automatically for editing without the need to write special code. This can optionally include 
-integration into the Blueprint visual scripting system. There are many options to control the accessibility and exposure of variables and functions.
+`UObjects` and `UProperties` are understood by the editor, and the editor can expose these values automatically for editing without the need to write special code. This can optionally include integration into the Blueprint visual scripting system. There are many options to control the accessibility and exposure of variables and functions.
 
 ## Type Information at Runtime
 
-UObjects always know what UClass they are, and type-related decisions can be made at runtime. 
+`UObjects` always know what `UClass` they are, and type-related decisions can be made at runtime.
 
-In native code, every UObject class has a custom "Super" typedef set to its parent class, which allows easy control of overriding behavior. As an example:
+In native code, every `UObject` class has a custom `Super` typedef set to its parent class, which allows easy control of overriding behavior. As an example:
 
 
 	class AEnemy : public ACharacter
@@ -84,9 +68,9 @@ In native code, every UObject class has a custom "Super" typedef set to its pare
 		}
 	};
 
-As you can see, calling Speak() will result in the MegaBoss saying "Powering up! Time to fight!".
+As you can see, calling `Speak` will result in the MegaBoss saying "Powering up! Time to fight!".
 
-Also, you can safely cast an Object from a base class to a more derived class using the templated Cast function, or query if an Object is of a particular class using IsA(). A quick example:
+Also, you can safely cast an Object from a base class to a more derived class using the templated Cast function, or query if an Object is of a particular class using `IsA`. A quick example:
 
 	class ALegendaryWeapon : public AWeapon
 	{
@@ -106,15 +90,30 @@ Also, you can safely cast an Object from a base class to a more derived class us
 		}
 	};
 
-Here we have used Cast<> to try and cast the AEnemy to an AMegaBoss. If the Object in question is not actually a AMegaBoss (or a child class thereof), the cast will return NULL and we can react 
-appropriately. In this case, the legendary weapon is not effective.
+Here we have used `Cast` to attempt to cast the `AEnemy` to an `AMegaBoss`. If the Object in question is not actually an `AMegaBoss` (or a child class thereof), the cast will return a null pointer and we can react appropriately. In the code above, the `Incinerate` function will only be called against the MegaBoss.
+
+## Garbage Collection
+
+Unreal implements a garbage collection scheme whereby `UObjects` that are no longer referenced or have been explicitly flagged for destruction will be cleaned up at regular intervals. The engine builds a reference graph to determine which `UObjects` are still in use and which ones are orphaned. At the root of this graph is a set of `UObjects` designated as the "root set". Any `UObject` can be added to the root set. When garbage collection occurs, the engine can track all referenced `UObjects` by searching the tree of known `UObject` references, starting from the root set. Any unreferenced `UObjects`, meaning those which are not found in the tree search, will be assumed to be unneeded, and will be removed.
+
+One practical implication here is that you typically need to maintain a `UPROPERTY` reference to any Object you wish to keep alive, or store a pointer to it in a `TArray` or other Unreal Engine container class. Actors and their Components are frequently an exception to this, since the Actors are usually referenced by an Object that links back to the root set, such as the Level to which they belong, and the Actor's Components are referenced by the Actor itself. Actors can be explicitly marked for destruction by calling their `Destroy` function, which is the standard way to remove an Actor from an in-progress game. Components can be destroyed explicitly with the `DestroyComponent` function, but they are usually destroyed when their owning Actor is removed from the game.
+
+Garbage collection in Unreal Engine 4 is fast and efficient, and has a number of built-in features designed to minimize overhead, such as multithreaded reachability analysis to identify orphaned Objects, and unhashing code optimized to remove Actors from containers as quickly as possible. There are other features that can be adjusted to gain more precise control over how and when garbage collection is performed, most of which are found in **Project Settings** under **Engine - Garbage Collection**. The following settings are commonly used to tune garbage collector performance for a project:
+| Setting(s) | Feature Description |
+| --- | --- |
+| **Create Garbage Collector UObject Clusters** | This can be turned on or off (it is on by default) in the project's settings. If turned on, related Objects will be grouped together in a garbage collection cluster, so that only the cluster itself needs to be checked, rather than each individual Object. This means that reachability is performed faster because an entire cluster can be treated as one object, but it also means that individual items in that cluster will be deleted all at once instead of potentially spreading out over many frames. In the general case, cluster creation improves garbage collection performance. |
+| **Merge GC Clusters** | Cluster merging can be enabled to cause clustered objects to join together when appropriate. **Create Garbage Collector UObject Clusters** must also be turned on for this feature to work. This will lead to a smaller number of garbage collection events, but they will be more frequent. In addition, there may be some cases where garbage collection will not happen with merged clusters when it would have happened without them. This can result in decreased Object creation time, as the Objects that weren't cleared out are still around and can be reused rather than being recreated.
+| **Actor Clustering Enabled** | Actors can be put into clusters by turning on this option in **Project Settings**, and by either setting the `bCanBeInCluster` variable to `true`, or overriding the `CanBeInCluster` function in code so that it returns `true`. This feature is useful for grouping Actors that are expected to be destroyed all at once. |
+| **Blueprint Clustering Enabled** | Blueprint-based Actors can be clustered just like regular Actors by turning this setting on. The **Can Be In Cluster** checkbox in the Blueprint's settings must also be checked. |
+| **Time Between Purging Pending Kill Objects** | The frequency of garbage collection activity can be adjusted in the project's settings. This high-level control is especially useful in preventing hitches. By shortening the time between collections, you decrease the likely amount of destroyed Actors waiting for collection, and can avoid the hitches that can happen when a lot of Actors are cleaned up at the same time. |
+
+![ProjectSettingsGarbageCollection.png](ProjectSettingsGarbageCollection.png)
+[REGION:caption]The Garbage Collection settings within Project Settings.[/REGION]
 
 ## Network Replication
 
-The UObject system includes a robust set of functionality to facilitate network communication and multiplayer games.
+The `UObject` system includes a robust set of functionality to facilitate network communication and multiplayer games.
 
-UProperties can be tagged to tell the Engine to replicate their data during network play. A common model here is that a variable gets changed on the server, and the Engine then detects this change 
-and sends it reliably to all clients. Clients can optionally receive a callback function when the variable changes via replication.
+`UProperties` can be tagged to tell the Engine to replicate their data during network play. A common model here is that a variable gets changed on the server, and the Engine then detects this change and sends it reliably to all clients. Clients can optionally receive a callback function when the variable changes via replication.
 
-UFunctions can also be tagged to execute on a remote machine. A "server" function, for example, when called on a client machine will cause the function to actually execute on the server machine 
-for the server's version of the Actor. A "client" function on the other hand, can be called from the server and will run on the owning client's version of that Actor.
+`UFunctions` can also be tagged to execute on a remote machine. A "server" function, for example, when called on a client machine, will cause the function to execute on the server machine for the server's version of the Actor. A "client" function, on the other hand, can be called from the server and will run on the owning client's version of that Actor.

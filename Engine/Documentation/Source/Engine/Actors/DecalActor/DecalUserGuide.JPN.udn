@@ -1,50 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:Decal アクタの操作ガイド
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Deferred Decal アクタの操作ガイド
 Version:4.9
+Parent:Engine/Actors/Types
+order:6
+type:overview
+topic-image:decal_topic.png
 
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/DecalActor:title%](Engine/Actors/DecalActor/decal_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/DecalActor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/DecalActor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/DecalActor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/DecalActor:title%](Engine/Actors/DecalActor/decal_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/DecalActor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/DecalActor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/DecalActor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 [TOC(start:2)]
 
 

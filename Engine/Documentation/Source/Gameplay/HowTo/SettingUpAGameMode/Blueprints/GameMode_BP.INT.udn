@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
 Description:A How To Guide for Setting Up a Game Mode in Blueprints.
 Version: 4.14
 SkillLevel: Advanced
+type:how-to
 
 [TOC (start:2 end:2)]
 

@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Creation
 Description:Guide to creating new Landscape import formats via plugin.
 version: 4.15
 parent:Engine/Landscape
+topic-image:CreatingCustomLandscapeImporters_topic.png
+order:8
 
 Creating your own heightmap and weightmap formats for importing landscape data is accomplished by writing a plugin. The plugin will add your new format to the engine, as well as importing the data from your files.
 

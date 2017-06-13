@@ -3,7 +3,7 @@ Title: 3.1 - Adding Projectiles to your Game
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to add projectiles to your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -399,7 +399,7 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// Handles input for moving forward and backward.
 			UFUNCTION()
@@ -434,7 +434,7 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 
 1.	In `FPSCharacter.cpp`, add the following code to `SetupPlayerInputComponent` to bind the `OnFire` function:
 
-		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+		PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 
 1.	Now, add the following function definition to `FPSCharacter.cpp`:
 
@@ -458,7 +458,7 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Create a first person camera component.
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 			// Attach the camera component to our capsule component.
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 			// Position the camera slightly above the eyes.
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 			// Allow the pawn to control camera rotation.
@@ -469,7 +469,7 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Only the owning player sees this mesh.
 			FPSMesh->SetOnlyOwnerSee(true);
 			// Attach the FPS mesh to the FPS camera.
-			FPSMesh->AttachTo(FPSCameraComponent);
+			FPSMesh->SetupAttachment(FPSCameraComponent);
 			// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
@@ -498,22 +498,22 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
 			// Set up "look" bindings.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// Set up "action" bindings.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
@@ -607,7 +607,7 @@ Ultimately, you'll be able to calculate an initial location for the projectile b
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// Handles input for moving forward and backward.
 			UFUNCTION()

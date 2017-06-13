@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:4.2 - Event Graph のセットアップ
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS キャラクターの Event Graph をセットアップする方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -47,31 +47,31 @@ Version:4.11
 
 	![](TryGetPawnOwnerBP_Node.png)
 
-1.	出力ピンを引き出して、**コンテキスト メニュー** から **[Cast to Character]** を選択します。
+1.	出力ピンからドラッグして、**コンテキスト メニュー** から **Cast to Character** を選択します。
 
 	![](CastToCharacterContextMenu.png)
 
-1.	 **Event Blueprint Update Animation** の出力実行ピンを **Cast to Character** の入力実行ピンと接続します。
+1.	**Event Blueprint Update Animation** の出力実行ピンを **Cast to Character** の入力実行ピンに接続します。
 
 	![](ConnectedCastToCharacterNode.png)
 
-1.	**As Character** の出力ピンを引き出して、**[Get Character Movement]** を選択します。
+1.	**As Character** 出力ピンからドラッグして **Get Character Movement** を選択します。
 
 	![](GetCharacterMovementNode.png)
 
-1.	**Character Movement** の出力ピンを引き出して、**[Get Movement Mode]** を選択します。
+1.	**Character Movement** 出力ピンからドラッグして **Get Movement Mode** を選択します。
 
 	![](GetMovementMode.png)
 
-## キャラクターの移動をクエリする
+## キャラクターの移動のクエリー
 
-1. 	 **Movement Mode** の出力ピンを引き出して**[Equal (Enum)]** を選択します。
+1. 	 **Movement Mode** 出力ピンからドラッグして **Equal (Enum)** を選択します。
 
 	![](EqualEnumNode.png)
 
 ## キャラクターが落下しているかを判定する
 
-1.	**Equal (Enum)** ノードのドロップダウンの値を **[Falling]** に設定します。
+1.	**Equal (Enum)** ノードのドロップダウンの値を **Falling** に設定します。
 
 	![](ConnectedIsFalling.png)
 
@@ -79,17 +79,17 @@ Version:4.11
 
 	![](IsFalling.png)
 
-1.	**Cast to Character** ノードのラベル付けされていない出力実行ピンを、 **Set Is Falling** ノードの入力実行ピンと接続します。そして **Equal (Enum)** の出力 Boolean データピンを **Set Is Falling** ノードの入力 Boolean データピンに接続します。
+1.	**Cast to Character** ノードのラベル付けされていない出力実行ピンを **Set Is Falling** ノードの入力実行ピンと接続します。そして **Equal (Enum)** ノードの出力 Boolean データ ピンを、**Set Is Falling** ノードの入力 Boolean データ ピンに接続します。
 
 	![](ConnectedIsFalling.png)
 
 ## キャラクターが走っているかを判定する
 
-1.	**Cast To Character** ノードへ戻って、 **As Character** ピンを再び引き出します。今度は、 **Get Velocity** ノードを選択します。
+1.	**Cast To Character** ノードに戻り、再度 **As Character** ピンからドラッグします。今回は **Get Velocity** ノードから選択します。
 
 	![](GetVelocityNode.png)
 
-1.	キャラクターが静止状態でない場合、キャラクターのべロシティ ベクトルの長さは 0 より大きくなります。そのため、**Return Value** ベクター出力ピンを引き出して、**Vector Length** を選択して、そのノードをグラフへ追加します。
+1.	キャラクターが静止していない場合、ベロシティ ベクターの長さはゼロよりも大きくなります。従って **Return Value** ベクター出力ピンからドラッグして **Vector Length** を選択し、そのノードをグラフに追加します。
 
 	![](VectorLength.png)
 

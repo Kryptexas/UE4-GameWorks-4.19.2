@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트로 플레이어 리스폰
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
 Description:언리얼 엔진 4 에서 블루프린트를 통해 플레이어 캐릭터를 리스폰하는 비법 안내서입니다.
 Version: 4.9
 SkillLevel: Advanced
+type:how-to
 
 [TOC (start:2)]
 

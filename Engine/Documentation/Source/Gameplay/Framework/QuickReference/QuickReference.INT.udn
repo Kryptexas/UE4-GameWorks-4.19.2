@@ -3,9 +3,9 @@ Title:Gameplay Framework Quick Reference
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:Short overview of classes for game rules, characters, controllers, user interfaces, etc., that make up the framework for the game.
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:2
+order:0
 tags:Gameplay Framework
 
 The basic gameplay classes include functionality for representing players, allies, and enemies, as well as for controlling these avatars with player input or AI logic. There are also classes for creating 
@@ -15,90 +15,43 @@ These classes all create types of Actors, which can either be placed into your l
 
 
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/pawn_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		Representing Players, Friends, and Foes in the World
-	[/PARAM]
-	[PARAM:description]
-		**Pawn**
-		
-		A [](Gameplay/Framework/Pawn) is an Actor that can be an "agent" within the world. Pawns can be possessed by a Controller, they are set up to easily accept input, and they can do various and sundry other player-like things. Note that a Pawn is not assumed to be humanoid.
+## Representing Players, Friends, and Foes in the World
 
-		**Character**
-		
-		A [](Gameplay/Framework/Pawn/Character) is a humanoid-style Pawn. It comes with a CapsuleComponent for collision and a CharacterMovementComponent by default. It can do basic human-like movement, it can replicate movement smoothly across the network, and it has some animation-related functionality. 
+![](Gameplay/Framework/pawn_lander.png)(w:300)
 
-	[/PARAM]
-[/OBJECT]
+|||
+| --- | --- |
+| **Pawn** | A [](Gameplay/Framework/Pawn) is an Actor that can be an "agent" within the world. Pawns can be possessed by a Controller, they are set up to easily accept input, and they can do various and sundry other player-like things. Note that a Pawn is not assumed to be humanoid. |
+| **Character** | A [](Gameplay/Framework/Pawn/Character) is a humanoid-style Pawn. It comes with a CapsuleComponent for collision and a CharacterMovementComponent by default. It can do basic human-like movement, it can replicate movement smoothly across the network, and it has some animation-related functionality.  |
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/controller_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		Controlling Pawns With Player Input or AI Logic
-	[/PARAM]
-	[PARAM:description]
+## Controlling Pawns With Player Input or AI Logic
+
+![](Gameplay/Framework/controller_lander.png)(w:300)
 	
-		**Controller** 
-		
-		A [](Gameplay/Framework/Controller) is an Actor that is responsible for directing a Pawn. They typically come in 2 flavors, AIController and PlayerController. A controller can "possess" a Pawn to take control of it.
+|||
+| --- | --- |
+| **Controller** | [](Gameplay/Framework/Controller) is an Actor that is responsible for directing a Pawn. They typically come in 2 flavors, AIController and PlayerController. A controller can "possess" a Pawn to take control of it. |
+| **PlayerController** | A [](Gameplay/Framework/Controller/PlayerController) is the interface between the Pawn and the human player controlling it. The PlayerController essentially represents the human player's will. |
+| **AIController** | An AIController is what it sounds like; a simulated "will" that can control a Pawn. |
 
-		**PlayerController** 
-		
-		A [](Gameplay/Framework/Controller/PlayerController) is the interface between the Pawn and the human player controlling it. The PlayerController essentially represents the human player's will.
+## Displaying Information to Players
 
-		**AIController** 
-		
-		An AIController is what it sounds like; a simulated "will" that can control a Pawn.
+![](Gameplay/Framework/camera_lander.png)(w:300)
+	
+|||
+| --- | --- |
+| **HUD** | A [HUD](Gameplay/Framework/UIAndHUD) is a "heads-up display", or the 2D on-screen display that is common in many games. Think health, ammo, gun reticle, etc. Each PlayerController typically has one of these. |
+| **Camera** | The PlayerCameraManager is the "eyeball" for a player and manages how it behaves.  Each PlayerController typically has one of these as well. For more, see the [camera workflow](Gameplay/Framework/Camera) page. |
 
-	[/PARAM]
-[/OBJECT]
+## Setting and Tracking the Rules of the Game
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/camera_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		Displaying Information to Players
-	[/PARAM]
-	[PARAM:description]
-		**HUD** 
+![](Gameplay/Framework/hud_lander.png)(w:300)
 
-		A [HUD](Gameplay/Framework/UIAndHUD) is a "heads-up display", or the 2D on-screen display that is common in many games. Think health, ammo, gun reticle, etc. Each PlayerController typically has one of these.
-
-		**Camera** 
-
-		The PlayerCameraManager is the "eyeball" for a player and manages how it behaves.  Each PlayerController typically has one of these as well. For more, see the [camera workflow](Gameplay/Framework/Camera) page.
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/hud_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		Setting and Tracking the Rules of the Game
-	[/PARAM]
-	[PARAM:description]
-
-		**GameMode** 
-		
-		The concept of a "game" is split into 2 classes. The [](Gameplay/Framework/GameMode) is the definition of the game, including things like the game rules and win conditions. It only exists on the server. It typically should not have much data that changes during play, and it definitely should not have transient data that clients need to know about.
-
-		**GameState** 
-		
-		The [](Gameplay/Framework/GameState) contains the state of the game, which could include things like the list of connected players, the score, where the pieces are in a chess game, or the list of what missions you have completed in an open world game. The GameState exists on the server and all clients and can replicate freely to keep all machines up to date.
-
-		**PlayerState** 
-		
-		A **PlayerState** is the state of a participant in the game, such as a human player or a bot that is simulating a player. Non-player AI that exists as part of the game would not have a PlayerState. Example data that would be appropriate in a PlayerState include player name, score, in-match level for something like a MOBA, or whether the player is currently carrying the flag in a CTF game. PlayerStates for all players exist on all machines (unlike PlayerControllers) and can replicate freely to keep things in sync.
-
-	[/PARAM]
-[/OBJECT]
+|||
+| --- | --- |
+| **GameMode** | The concept of a "game" is split into 2 classes. The [](Gameplay/Framework/GameMode) is the definition of the game, including things like the game rules and win conditions. It only exists on the server. It typically should not have much data that changes during play, and it definitely should not have transient data that clients need to know about. |
+| **GameState** | The [GameState](Gameplay/Framework/GameMode#GameState) contains the state of the game, which could include things like the list of connected players, the score, where the pieces are in a chess game, or the list of what missions you have completed in an open world game. The GameState exists on the server and all clients and can replicate freely to keep all machines up to date. |
+| **PlayerState** | A **PlayerState** is the state of a participant in the game, such as a human player or a bot that is simulating a player. Non-player AI that exists as part of the game would not have a PlayerState. Example data that would be appropriate in a PlayerState include player name, score, in-match level for something like a MOBA, or whether the player is currently carrying the flag in a CTF game. PlayerStates for all players exist on all machines (unlike PlayerControllers) and can replicate freely to keep things in sync. |
 
 ## Framework Class Relationships
 

@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3454520
 Availability: Public
 Title: 분포 (Distributions)
 Crumbs: %ROOT%, Engine
 Description:상수값, 일정 범위 내 난수값, 곡선을 따라 보간되는 값, 파라미터로 구동되는 값 등의 유연성이 제공되는 데이터 유형입니다.
 version: 4.9
+Parent:Engine
+type:overview
+order:26
 
 [TOC (start:2 end:3)]
-
-
 
 
 분포(distribution)란 상수 값, 범위 내 임의의 값, 커브를 따라 보간되는 값, 파라미터에 물려주는 값 등 데이터 유연함을 더해주는 유형 그룹을 말합니다. 보통 파티클 시스템과 사운드큐에서 노드의 프로퍼티에 사용됩니다.

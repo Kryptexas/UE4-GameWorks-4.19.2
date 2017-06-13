@@ -3,46 +3,10 @@ Title:Grouping Actors
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Guide to creating and working with groups of actors within Unreal Editor.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+parent:Engine/Actors
+type:overview
+order:5
+topic-image:actorgrouping_topic.png
 
 
 [TOC(start:2)]

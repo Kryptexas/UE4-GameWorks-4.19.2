@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3477690
 Availability:Public
 Title:Android ゲームの開発のリファレンス
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:異なる Android SDK のインストール方法、環境変数の設定方法、テクスチャ フォーマットの扱い方
-Version:4.12
+Version:4.16
 SkillLevel:Intermediate
 Parent:Platforms/Android
 tags:Mobile
@@ -52,7 +52,7 @@ UE4 での Android 向けゲーム開発要件は、現在以下となってい�
 
 コンポーネントを取得する方法は何通りかあります。コンポーネントのうち既に幾つかをインストール済みの場合、対応するセクションで追加用件をご確認ください。
 
-### CodeWorks for Android 1R4
+### CodeWorks for Android 1R6
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -85,24 +85,26 @@ UE4 での Android 向けゲーム開発要件は、現在以下となってい�
 <!--
 [EXCERPT:TADPWindowsSetup]
 
-CodeWorks for Android 1R4 (NVIDIA 製) は、Android 開発の必要品のワンストップ ショップです。CodeWorks for Android 1R4 をインストールすれば、Android 開発要件をすべて満たすことができます。
+CodeWorks for Android 1R6 (NVIDIA 製) は、Android 開発の必要品のワンストップ ショップです。CodeWorks for Android 1R6 をインストールすれば、Android 開発要件をすべて満たすことができます。
 
-CodeWorks for Android 1R4 のインストーラーは、Windows 向けアンリアル エンジン 4 に含まれています。場所はこちらです。 
+CodeWorks for Android 1R6 のインストーラは、Windows 向けアンリアル エンジン 4 に含まれています。場所はこちらです。 
 
-	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R4-windows.exe
+	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R6-windows.exe
 
 以下が重要な構成要素になります。
 
 * Android SDK (ベース、プラットフォーム、ツール、ビルドツール)
 * Android 4.4.2 (API 19) - SDK プラットフォーム
 * Android 5.0.1 (API 21) - SDK プラットフォーム
+* Android 6.0.0 (API 23) - SDK プラットフォーム
+* Android N     (API 24) - SDK プラットフォーム
 * Android SDK サポート ライブラリ
 * Android ツールチェーン 
-	* Android NDK 11c
+	* Android NDK 12b
 	* Java SDK
 	* Apache Ant
 	* USB ドライバー
-	* オプションのインストール品 
+	* オプション インストール 
 		* Gradle
 * 開発ツール (オプション)
 * Nsight Tegra、 Visual Studio Edition
@@ -110,7 +112,7 @@ CodeWorks for Android 1R4 のインストーラーは、Windows 向けアンリ�
 	デフォルトのインストール セットで、最低限のコンポーネントがインストールされます。インストールをカスタマイズすると、さらにアイテムを追加できます (プロファイラなど)。インストール中は、 
 
 サブインストーラが 1 つか 2 つ表示されたままになる場合がありますが、やがて完了します。インストールの所要時間は 30 分から 45 分ほどです。コードを書く予定がないのであれば、**[Customize (カスタマイズ)]** を選択すると良いでしょう。 
-これは、SDK、Ant、Java のみインストールされるので (NDK と Nsight デバッガを抜かして)、インストールが非常に早くなります。CodeWorks for Android 1R4 の Nsight は、デバイス上で Android ゲームをデバッグするために使用されます。 
+これは、SDK、Ant、Java のみインストールされるので (NDK と Nsight デバッガを抜かして)、インストールが非常に早くなります。CodeWorks for Android 1R6 の Nsight は、デバイス上で Android ゲームをデバッグするために使用されます。 
 C++ コードのコンパイルは必要ありません。
 
 ![](TADPSetup.png)
@@ -118,20 +120,22 @@ C++ コードのコンパイルは必要ありません。
 [/EXCERPT:TADPWindowsSetup]
 
 [EXCERPT:TADPMacOSSetup]
-CodeWorks for Android 1R4 (NVIDIA 製) は、Android 開発の必要品のワンストップ ショップです。CodeWorks for Android 1R4 をインストールすれば、Android 開発要件をすべて満たすことができます。
+CodeWorks for Android 1R6 (NVIDIA 製) は、Android 開発の必要品のワンストップ ショップです。CodeWorks for Android 1R6 をインストールすれば、Android 開発要件をすべて満たすことができます。
 
-CodeWorks for Android 1R4 のインストーラーは、Mac 向けアンリアル エンジン 4 に含まれています。保存場所はこちらです。 
+CodeWorks for Android 1R6 のインストーラは、Mac 向けアンリアル エンジン 4 に含まれています。保存場所はこちらです。 
 
-	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R1-osx.dmg
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R6-osx.dmg
 
 以下が重要な構成要素になります。
 
 * Android SDK (ベース、プラットフォーム、ツール、ビルドツール)
 * Android 4.4.2 (API 19) - SDK プラットフォーム
 * Android 5.0.1 (API 21) - SDK プラットフォーム
+* Android 6.0.0 (API 23) - SDK プラットフォーム
+* Android N     (API 24) - SDK プラットフォーム
 * Android SDK サポート ライブラリ
 * Android ツールチェーン 
-	* Android NDK 11c
+	* Android NDK 12b
 	* Java SDK
 	* Apache Ant
 	* USB ドライバー
@@ -143,7 +147,7 @@ CodeWorks for Android 1R4 のインストーラーは、Mac 向けアンリア�
 
 デフォルトのインストール セットで、最低限のコンポーネントがインストールされます。 
 インストールをカスタマイズすると、さらにアイテムを追加できます (プロファイラなど)。インストール中は、サブインストーラが 1 つか 2 つ表示されたままになる場合がありますが、やがて完了します。PC によっては、インストールに 30 分から 45 分ほどかかる場合があります。 
-コードの記述をする予定がなければ **[Customize (カスタマイズ)]** を選択する方法もあります。(NDK と Nsigh デバッガを抜いて) SDK、 Ant と Java のみをインストールするので、インストールが非常に早くなります。CodeWorks for Android 1R4 の Nsight は、デバイス上で Android ゲームをデバッグするためのものなので、C++ コードのコンパイルは必要ありません。
+コードの記述をする予定がなければ **[Customize (カスタマイズ)]** を選択する方法もあります。(NDK と Nsight デバッガを飛ばして) SDK、Ant と Java のみ をインストールするので、インストールが非常に早くなります。CodeWorks for Android 1R6 の Nsight は、デバイス上で Android ゲームをデバッグするためのものなので、C++ コードのコンパイルは必要ありません。
 
 ![](TADP_Mac_OS.png)
 
@@ -188,10 +192,10 @@ CodeWorks for Android 1R4 のインストーラーは、Mac 向けアンリア�
 <!--
 [EXCERPT:ENVWindowsSetup]
 
-備え付けの UE4 インストーラーから CodeWorks for Android 1R4 をインストールしていない場合は、環境変数が正しく設定されているか確認する必要があります。 
+備え付けの UE4 インストーラから CodeWorks for Android 1R6 をインストールしていない場合は、環境変数が正しく設定されているか確認する必要があります。 
 
 [REGION:note]
-(System Control パネルで環境変数を設定、または CodeWorks for Android 1R4 をインストールして) インストールが完了したら、 
+(System Control パネルで環境変数を設定、または CodeWorks for Android 1R6 をインストールして) インストールが完了したら、 
 エディタとランチャーの両方のアプリケーションを再起動が必要になります。Windows アプリケーションによる環境変数の格納方法および開始したアプリケーションに合わせて古いバージョンをパスするためです。 
 
 Android SDK が正しくインストールされていないことを示すメッセージが表示され続ける場合は、端末の再起動を推奨します。
@@ -217,7 +221,7 @@ Android SDK が正しくインストールされていないことを示すメ�
 * `platform-tools` というディレクトリを含まなければなりません。
 
 **JAVA_HOME**
-* JDK がインストールされている場所に設定します。ファイル名は `jdk1.6.0_24` のようにします。
+* JDK がインストールされている場所に設定します。`jdk1.8.0_121` のようなファイル名になっています。
 * その中に `javac.exe` がついた `bin` というディレクトリを含まなければなりません。
 
 **ANT_HOME**
@@ -226,16 +230,16 @@ Android SDK が正しくインストールされていないことを示すメ�
 
 **NDKROOT** 
 * NDK を解凍した場所に設定します。`android-ndk-r11c` のようなファイル名が付きます。
-* `ndk-build.cmd`という名前のファイルを含まなければなりません。
+* `ndk-build.cmd` という名前のファイルを含まなければなりません。
 
 [/EXCERPT:ENVWindowsSetup]
 
 [EXCERPT:ENVMacOSSetup]
-CodeWorks for Android 1R4 をインストールしていない場合は、環境変数が正しく設定されているか確認する必要があります。 
+CodeWorks for Android 1R6 をインストールしていない場合は、環境変数が正しく設定されているか確認する必要があります。 
 
-[region:note]
-(.bash_profile ファイルを編集、または CodeWorks for Android 1R4 をインストールして) インストールが完了したら、エディタもしくはランチャー アプリケーションを再起動する必要があります。
-[/region]
+[REGION:note]
+(.bash_profile ファイルを編集、または CodeWorks for Android 1R6 をインストールして) インストールが完了したら、エディタもしくはランチャー アプリケーションを再起動する必要があります。
+[/REGION]
 
 環境変数を設定するには、ホーム ディレクトリで **.bash_profile** ファイルを編集しなければなりません。 
 ファイルは [Finder (ファインダー)] の中に隠れているので、編集用に開くにはターミナルを使用します。 
@@ -247,7 +251,7 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 1. 以下の行をファイルにコピーして (SDK とツールをインストールした場所を示すパスを置き換えて) 保存します。
 
 	* export ANDROID_HOME="/Users/epicgames/Devel/NVPACK/android-sdk-macosx"
-	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r11c"
+	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r12b"
 	* export ANT_HOME="/Users/epicgames/Devel/NVPACK/apache-ant-1.8.2"
 
 以下は、依存する変数名と、それが示す場所です。
@@ -259,7 +263,7 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 	* ANT を解凍した場所に設定します。
 	* その中に ANT という名前のファイルが入っている「bin」というディレクトリが含まれなければなりません。
 * **NDKROOT** 
-	* NDK を解凍した場所に設定し、**android-ndk-r11c** に似た名前のファイルを探します。
+	* NDK を解凍した場所に設定し、**android-ndk-r12b** のような名前のファイルを探します。
 	* **「ndk-build」** というファイルを含まなければなりません。
 
 [/EXCERPT:ENVMacOSSetup]
@@ -313,7 +317,7 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 
 最後の行は `adb uninstall`を呼び出していることを示しています。 
 - 上記の通り、 `cmd.exe` を使って `adb devices` コマンドを実行します。 
-- デバイスが表示されているのに権限がないと表示される場合は、PC を許可するかデバイスに尋ねさせる必要があります。 
+- デバイスが表示されても権限がないと表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。 
 - デバイスを表示させるためには、デバイスを一旦抜いて再接続する必要があるかもしれません。 
 - **[Always allow (常に許可)]** チェックボックスにチェックを入れておくことを推奨します。 
 [/EXCERPT:ATTWindowsSetup]
@@ -323,15 +327,15 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 * 数秒おいてから再度確認する。接続デバイスのバックグラウンド スキャンはデバイスの登録にほとんど時間がかかりません。 
 * USB デバッグ接続がすべて動作していることを確認する。
 * ターミナル アプリケーションを開いて、以下を試してみる。
-	* コマンド `adb devices をターミナルに入力する。
+	* コマンド `adb devices` をターミナルに入力する。
 	* USB ドライバーが正しくインストールされていないと、デバイスが何も表示されません。ドライバーのインストール方法は Android デバイスのモデルによって異なります。使用するデバイス モデルと **USB ドライバ** をオンライン検索して、必要なドライバーをインストールします。 
 	* さらに、使用するデバイスの Developer モードと USB デバッグがそれぞれオンになっていることを確認してください。詳細は [ハードウェア デバイスを使う Android デベロッパーのためのガイド](http://developer.android.com/tools/device.html) (特に 2 項と 3 項) を参照してください。
 	* その後で、`adb devices` コマンドの動作確認をします。これを行わないと、エンジンが使用する Android デバイスと機能できなくなってしまいます。
 
-使用するデバイスが **[Launch] メニュー** に表示されているのにデバイスに展開できない場合は、デバイスが Mac に承認されていないため通信不可能になっていることが多いです。 
-プログレス バーの **Show Log** 行をクリックして、最後のラインが `adb uninstall`の呼び出しになっていたら、以下の操作をしてください。
+使用するデバイスが **[Launch] メニュー** に表示されてもデバイスに展開できない場合は、デバイスが Mac に承認されていないため通信不可能になっていることが多いです。 
+プログレス バーの **Show Log** 行をクリックして、最後のラインが `adb uninstall` の呼び出しになっていたら、以下の操作をしてください。
 * ターミナル アプリケーションを開いて `adb devices` コマンドを実行する 
-* デバイスが表示されているのに権限がないと表示される場合は、Mac を許可するかデバイスに尋ねさせる必要があります。 
+* デバイスが表示されても権限がない場合は、認証させるかどうかをデバイスが Mac に確認する必要があります。 
 * **[Always allow (常に許可)]** チェックボックスにチェックを入れて、常に Mac とデバイスが通信できる状態にしておくことを推奨します。
 
 [/EXCERPT:ATTMacOSSetup]
@@ -339,7 +343,7 @@ Unix ターミナル コマンドがよく分からない場合は、以下の�
 -->
 
 ## Android テクスチャ フォーマット
-Android デバイスはすべて同じ構成をしているわけではありません。特に、レンダリングハードウェアは 4 種類あります。それぞれが異なるフォーマットの圧縮テクスチャをサポートしています。 
+Android デバイスはすべて同じ構成をしているわけではありません。特に、レンダリング ハードウェアは 4 種類あります。それぞれが異なるフォーマットの圧縮テクスチャをサポートしています。 
 
 [EXCERPT:AndroidFormats]
 | フォーマット | 説明 |
@@ -359,12 +363,12 @@ Android プラットフォーム向けにゲームをデプロイまたはパッ
 最初の (**Android**) は、事実上すべてのフォーマットを取り込んで、これらをクックしてパッケージへまとめます。処理時間は多少長めで、作成されるパッケージ サイズも大きくなりますが、 
 ランタイム時に最適のフォーマットを選択すれば、使用メモリは必要最低限に確実に抑えられます。すべてのデバイスに機能します (**Android (ETC1)**のように)。
 
-[region:note]
+[REGION:note]
 アンリアル エンジン 4.8 以降のバージョンで、**ES31** および **AEP** レンダリングを Tegra K1 デバイス上で使用できるようになりました。 
 現在 ES31 と AEP レンダリングをサポートしているデバイス数が限られているため、現段階ではパフォーマンスおよび互換性テストがほとんど完了していないことに留意してください。
 これらのデバイスのどれかを使用する場合、プロジェクトの中でデバイスが期待する動きをするように、拡張パフォーマンスと互換テストを行うことを推奨します。 
-[/region]
+[/REGION]
 
 ### フォーマットの選択
-ユーザーのみなさんは、おそらく使用デバイスに最適なフォーマットを選択されるでしょう。デバイスに搭載されている GPU のタイプがわかる場合、上記の表を参照してフォーマットを選択してください。タイプがわからない場合、**[Android]** または **[Android (ETC1)]** を選択します。ゲームの実行時にスクリーンを指 4 本で一度にタップすると、ダイアログが表示されます。これは、コンソールコマンド (stat fps などの) の入力に通常使用するダイアログ ボックスですが、ユーザーのデバイスがサポートしているフォーマットも表示します。リストが表示されたら、これを活用してデプロイおよびパッケージングに最も適したタイプを選択します。対象デバイスでサポートしていないフォーマットが選択された場合、読み込みが失敗します。 
+ユーザーのみなさんは、おそらく使用デバイスに最適なフォーマットを選択されるでしょう。デバイスに搭載されている GPU のタイプがわかる場合、上記の表を参照してフォーマットを選択してください。タイプがわからない場合、**[Android]** または **[Android (ETC1)]** を選択します。ゲームの実行時にスクリーンを指 4 本で一度にタップすると、ダイアログが表示されます。このダイアログ ボックスは通常コンソールコマンド (stat fps などの) の入力に使用しますが、ユーザーのデバイスがサポートしているフォーマットも表示します。表示されたリストの中からデプロイおよびパッケージングにより適したタイプを選択します。対象デバイスでサポートしていないフォーマットが選択された場合、読み込みが失敗します。 
 

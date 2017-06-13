@@ -375,7 +375,7 @@ A **Previous Frame Switch** node has been added to support complex vertex animat
 	YbjqiNZr4K4
 	[/PARAMLITERAL]
 	[PARAMLITERAL:width]
-	720		
+	720
 	[/PARAMLITERAL]
 	[PARAMLITERAL:height]
 	408
@@ -384,7 +384,7 @@ A **Previous Frame Switch** node has been added to support complex vertex animat
 	simple
 	[/PARAMLITERAL]
 [/OBJECT]
-
+th
 Material vertex animations that are only a function of time already work without modification but cannot account for other variables, such as material parameters, that affect the animation. The previous frame switch enables artists to solve this problem manually when they can track how these parameters change, for instance in a blueprint.
 
 Note that using this feature requires Accurate velocities from Vertex Deformation to be enabled.

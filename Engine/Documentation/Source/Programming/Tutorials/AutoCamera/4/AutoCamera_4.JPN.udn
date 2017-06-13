@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2727277
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:4.応用編
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
-Description:応用的な考え方を検討します。
+Description:実践してみましょう。
 version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,13 +23,13 @@ version:4.9
 
 ここまでで学んだ知識を活かして、以下の操作をしてみましょう。
 
-* クレーンまたはドリーショットを作成するためにカメラを移動するアクタにアタッチします。
-* [配列](Programming/UnrealArchitecture/TArrays) 変数を 1 つだけ使って CameraOne と CameraTwo ではなくご自分のカメラを保存すれば、2 以外の数字をカメラの台数に使うことができます。
-* カメラの保存には、[アクタ](Programming/UnrealArchitecture/Actors) ポインタを使わずに、ビューの変更前の時間とポインタを含む [構造体](Programming/UnrealArchitecture/Reference/Structs) を作成し、新しいビューに対して時間をブレンドします。
+* クレーンまたはドリーのショットを作成するために動くアクタにカメラをアタッチします。
+* CameraOne と CameraTwo ではなく [配列](Programming/UnrealArchitecture/TArrays) 変数を 1 つだけ使ってカメラを保存すれば、2 以外の数字をカメラの台数に使うことができます。
+* カメラの保存には、[アクタ](Programming/UnrealArchitecture/Actors) ポインタを使わずに、ポインタとビューの変更前の時間を保持する [構造体](Programming/UnrealArchitecture/Reference/Structs) を作成し、新しいビューに対して時間をブレンドします。
 
 以下はこのチュートリアルの内容の詳しい情報のリンク先です。
 
-* カメラとその操作に関する詳細は [カメラ](Gameplay/Framework/Camera) フレームワークページ、または [%Programming/Tutorials/PlayerCamera:title%](Programming/Tutorials/PlayerCamera) を参照してください。
+* カメラとその操作に関する詳細は [カメラ](Gameplay/Framework/Camera) フレームワークのページ、または [%Programming/Tutorials/PlayerCamera:title%](Programming/Tutorials/PlayerCamera) のチュートリアルをご覧ください。
 * 詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページをご覧ください。
 
 

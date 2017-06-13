@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: VR 모드에서 월드 이동
 Description: VR 모드 작업이 월드를 이동하는 방법을 배워봅니다.
 Crumbs:
@@ -8,11 +8,11 @@ type:how-to
 order: 3
 tags: VR
 tags: Level Editing
-version: 4.11
+version: 4.15
 skilllevel: intermediate
 topic-image:worldinteraction.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 

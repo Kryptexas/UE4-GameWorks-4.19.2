@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3388665
 Availability: Public
 Title: 4.4.6 - Jump End -> Idle 트랜지션 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description: 일인칭 슈팅 캐릭터의 애니메이션 스테이트 머신에 점프 끝에서 빈둥 상태로의 전환 추가법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]

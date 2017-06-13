@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2988432
+﻿INTSourceChangelist:3376720
 Availability:Public
 Title:2 - AnimDynamics を適用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
-Description:このステップでは動きに反応できるようにキャラクターが運んでいるものに AnimDynamics を適用します。
+Description:このステップでは、動きに反応できるようにキャラクターが運んでいるものに AnimDynamics を適用します。
 version:4.12
 skilllevel:Advanced
+Order:2
 
 [VAR:Steps]
 [OBJECT:Navigation]

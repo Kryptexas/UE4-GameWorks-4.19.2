@@ -3,7 +3,7 @@ Title: 2.3 - Implementing Character Movement Functions
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement movement functions for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -71,7 +71,7 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// Handles input for moving forward and backward.
 			UFUNCTION()
@@ -87,16 +87,16 @@ Now that you've set-up Axis mappings for your `FPSCharacter`, you can switch to 
 
 In a typical FPS control scheme, the character's movement axes are relative to the camera. "Forward" movement means "the direction that the camera is pointing" and "right" means "to the right of the direction that the camera is pointing." You are going to use the `PlayerController` to get the character's control rotation. Also, your `MoveForward` function will ignore the pitch component of the control rotation and restrict your input to the XY plane so as to guarantee that your character will move along the ground while you are looking up or down.
 
-1.	In `FPSCharacter.cpp`, add the following lines to the `SetupPlayerInputComponent` function under `Super::SetupPlayerInputComponent(InputComponent)`:
+1.	In `FPSCharacter.cpp`, add the following lines to the `SetupPlayerInputComponent` function under `Super::SetupPlayerInputComponent(PlayerInputComponent)`:
 
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 			
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 
 	[REGION:note]
@@ -156,13 +156,13 @@ In a typical FPS control scheme, the character's movement axes are relative to t
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)

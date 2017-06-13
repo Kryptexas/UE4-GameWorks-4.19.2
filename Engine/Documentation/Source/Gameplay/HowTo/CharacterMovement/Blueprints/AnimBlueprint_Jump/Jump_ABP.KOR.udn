@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:8. 애니메이션 블루프린트 - 점프 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:애니메이션 블루프린트 셋업을 이어, 점프에 대한 조건을 구성해 줍니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:8
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 다음으로 **스테이트 머신** 안에서 **Jump** (점프) 상태를 구성하겠습니다. 두 가지 점프 상태를 만들텐데, 하나는 플레이어가 가만히 서있는 상태에서 점프 키를 눌렀을 때, 다른 하나는 플레이어가 움직이는 (조깅, 웅크려 걷기, 걷기) 상태에서 눌렀을 때 입니다. 애니메이션도 정지 상태와 이동 상태 두 가지를 사용하도록 하겠습니다.
 
@@ -88,4 +76,4 @@ SkillLevel:Advanced
 
 1.	애니메이션 블루프린트를 **컴파일** 하고 **저장** 합니다.
 
-%Steps%
+[NAV]

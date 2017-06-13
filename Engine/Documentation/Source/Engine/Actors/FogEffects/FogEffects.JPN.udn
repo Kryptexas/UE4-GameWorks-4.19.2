@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429227
+Availability:Public
 Title:フォグ エフェクト
 Crumbs: %ROOT%, Engine
 Description:フォグを使用してワールドの周囲の環境を加えて背景の雰囲気を作ります。

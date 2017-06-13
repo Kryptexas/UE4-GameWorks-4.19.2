@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3343618
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:파생 데이터 캐시
 Crumbs:%ROOT%, Engine
 Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되는 포맷의 애셋 저장에 대한 개요입니다.
 version: 4.9
+Parent:Engine
+type:overview
+order:24
 
 **Derived Data Cache** (DDC, 파생 데이터 캐시)는 여러 버전의 애셋을 엔진과 그 타겟 플랫폼에서 
 사용되는 포맷으로 저장하는 기능입니다. 아티스트가 만들어서 에디터로 임포트하여 .uasset 파일로 
@@ -25,7 +28,7 @@ version: 4.9
 것이 더 빠르기에 시간 낭비가 되고 맙니다.
 [/REGION]
 
-공유 DDC 구성을 위해서는, 게임의 DefaultEngine.ini 에서 (에픽 게임스 런처의 바이너리 버전을 사용하는지 소스 컴파일 버전을 사용하는지에 따라) `[InstalledDerivedDataBackendGraph]` 또는 `[DerivedDataBackendGraph]` 섹션을 선언하여 
+공유 DDC 구성을 위해서는, 게임의 DefaultEngine.ini 에서 (에픽 게임즈 런처의 바이너리 버전을 사용하는지 소스 컴파일 버전을 사용하는지에 따라) `[InstalledDerivedDataBackendGraph]` 또는 `[DerivedDataBackendGraph]` 섹션을 선언하여 
 그에 대한 경로를 덮어씁니다. 이 섹션은 원래 BaseEngine.ini 에 선언되며, 기본적으로 에픽의 내부 DDC 
 공유 경로로 설정되어 있습니다. 다른 네트워크 공유 경로로 설정하려면 이 섹션을 다시 선언하고 
 경로를 (Path=\\mystudio.net\DDC 식으로) 바꿔 주어야 합니다.

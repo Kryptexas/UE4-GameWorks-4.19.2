@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3388780
 Title:UE4 の C++ プログラミング入門
 Crumbs:
 Description:C++ プログラマー向け入門ガイド
 Availability:Public
-Version:4.9
+version:4.9
 
 ![image alt text](image_0.png)
 
@@ -34,6 +34,7 @@ Version:4.9
 次に、ウィザードに生成したいクラス名を入力します。ここではデフォルト名を使っています。
 
 ![image alt text](image_2.png)
+
 クラスの作成を選択すると、ウィザードがファイルを生成して、開発環境が開き、編集ができるようになります。生成されたクラス定義がこちらになります。クラス ウィザードについては、こちらの [リンク](Programming/Development/ManagingGameCode/CppClassWizard) をご覧ください。
 
 	#include "GameFramework/Actor.h"
@@ -48,7 +49,7 @@ Version:4.9
 		// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定)
 		AMyActor();
 
-		// Called every frame (フレームごとに呼び出される)
+		// Called every frame　(フレームごとに呼び出される)
 		virtual void Tick( float DeltaSeconds ) override;
 
 	protected:
@@ -76,8 +77,9 @@ Version:4.9
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
+	public:
 
-		UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere)
 		int32 TotalDamage;
 
 		...
@@ -103,6 +105,7 @@ Version:4.9
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
+	public:
 
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 		int32 TotalDamage;
@@ -280,9 +283,9 @@ AActor はそれぞれ独自のビヘイビア (継承による指定) があり
 
 AActors では AActor のライフサイクル中に一連のイベントが呼び出されます。ライフサイクルを説明するイベントを簡単にまとめると、このようになります。
 
-* BeginPlay - オブジェクトが初めてゲームプレイに存在すると呼び出されます。
-* Tick - 徐々に作業を行うために 1 フレームにつき 1 回呼び出されます。
-* EndPlay - オブジェクトがゲームプレイ空間を去る時に呼び出されます。
+* `BeginPlay` - オブジェクトが初めてゲームプレイに存在すると呼び出されます。
+* `Tick` - 徐々に作業を行うために 1 フレームにつき 1 回呼び出されます。
+* `EndPlay` - オブジェクトがゲームプレイ空間を去る時に呼び出されます。
 
 AActor の詳細については、 [](Programming/UnrealArchitecture/Actors) を参照してください。
 
@@ -358,32 +361,32 @@ Gameplay クラスは特別なマークアップを使っているので、ま�
 
 まず最初に "MyClass.generated.h" をインクルードしていることが分かります。アンリアルは、リフレクション データをすべて生成し、それをこのファイルに入れます。タイプを宣言するヘッダファイルの中で、このファイルを一番最後にインクルードします。
 
-マークアップに識別子を追加することも可能なことが分かります。デモ用に、もっと一般的な識別子もいくつか追加しておきました。タイプがもつ特定のビヘイビアを指定することができます。
+例の中の UCLASS、UPROPERTY、UFUNCTION マークアップは、追加の指定子をインクルードします。必要ではありませんが、ここではデモ目的のために共通の指定子を追加しています。これらの指定子により、所定のビヘイビアやプロパティを指定することができます。
 
 * **Blueprintable** - ブループリントから拡張可能なクラスです。
-* **BlueprintReadOnly **- ブループリントからの読み取りのみ可能で、書き込みは不可能なプロパティです。
-* **Category** - エディタの [Details (詳細)] ビューでこのプロパティを表示する場所を定義します。整理する目的で使用します。
+* **BlueprintReadOnly **- ブループリントからの読み取りは可能ですが、書き込みはできないプロパティです。
+* **Category** - エディタの [Details (詳細)] ビューでこのプロパティを表示する場所を定義します。整理に役立つプロパティです。
 * **BlueprintCallable **- ブループリントから呼び出し可能な関数です。
 
-識別子の数は非常に多いので、ここにまとめることはできません。以下のリンクをご覧ください。
+指定子の数は非常に多いので、ここにまとめることはできません。以下のリンクをご覧ください。
 
 [UCLASS 指定子一覧](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
 
-[UPROPERTY 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Properties/Specifiers/index.html)
+[UPROPERTY 指定子リスト](Programming/UnrealArchitecture/Reference/Properties/Specifiers)
 
-[UFUNCTION 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Functions/Specifiers/index.html)
+[UFUNCTION 指定子リスト](Programming/UnrealArchitecture/Reference/Functions/Specifiers)
 
-[USTRUCT 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Structs/Specifiers/index.html)
+[USTRUCT 指定子リスト](Programming/UnrealArchitecture/Reference/Structs/Specifiers)
 
 ### Object/Actor Iterators
 
 特定の UObject タイプのすべてのインスタンスおよびそのサブクラスをイタレートする非常に便利なツールです。
 
-	// Will find ALL current UObjects instances
+	// Will find ALL current UObject instances (すべての Uobject インスタンスを見つけます)
 	for (TObjectIterator<UObject> It; It; ++It)
 	{
 		UObject* CurrentObject = *It;
-		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject.GetName());
+		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject->GetName());
 	}
 
 イテレータでタイプをさらに細かく指定すると、検索範囲を絞ることができます。UObject から派生した UMyClass というクラスがあると仮定します。そのクラスのすべてのインスタンス (およびそこから派生したインスタンス) をこのように見つけることができます。
@@ -556,7 +559,6 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 
 	// In GameUI.cpp
 	#define LOCTEXT_NAMESPACE "Game UI"
-
 	//...
 	FText MyText = LOCTEXT("Health Warning Message", "Low Health!")
 	//...

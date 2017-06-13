@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:1. 필수 구성
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -38,7 +38,33 @@ checkpoint: editorqs
 
 1. **새 프로젝트** 탭을 클릭한 다음 **공백** 블루프린트 템플릿을 선택하고, 저장 위치와 이름을 입력한 뒤, **프로젝트 생성** 을 클릭합니다.
 
-	![](ProjectBrowser1.png)(w:720)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewProject_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewProject_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	**새 프로젝트** 탭에서는 여러가지 템플릿 유형을 기반으로 새 프로젝트를 생성할 수 있는 반면, **프로젝트** 탭에는 기존에 생성된 프로젝트 또는 다운로드한 샘플이 표시됩니다.
 
@@ -47,8 +73,35 @@ checkpoint: editorqs
 
 프로젝트 생성 이후, 언리얼 에디터 로딩이 끝나면 메인 에디터 인터페이스가 아래와 같이 표시될 것입니다.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](ExampleLevel.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExampleLevel_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 다음 단계에서는 언리얼 에디터 안에서의 기본적인 뷰포트 조작법을 다루도록 하겠습니다.
 
 %Steps%
+

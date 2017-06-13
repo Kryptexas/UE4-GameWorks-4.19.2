@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title: 언리얼 아키텍처
 Crumbs:%ROOT%, Programming
 Description:게임플레이 클래스 생성 및 구현 관련 참고서입니다.
 Version: 4.9
+Parent:Programming
 
 C++ 코드를 사용하여 게임플레이 요소를 프로그래밍할 때, 각 모듈은 다수의 C++ 클래스를 포함할 수 있습니다.
 
@@ -17,7 +18,7 @@ C++ 코드를 사용하여 게임플레이 요소를 프로그래밍할 때, 각
 
 언리얼 엔진으로 프로그래밍할 때는, 표준 C++ 클래스, 함수, 변수를 가질 수 있습니다. 이들은 표준 C++ 문법으로 정의됩니다. 그러나 `UCLASS()`, `UFUNCTION()`, `UPROPERTY()` 매크로를 
 사용하여 언리얼 엔진에 새로운 클래스, 함수, 변수를 인식시킬 수 있습니다. 예를 들어 `UPROPERTY()` 매크로가 선행된 선언부의 변수는 
-엔진의 가비지 콜렉션 대상이 되며, 언리얼 에디터 안에서 표시 및 편집도 가능합니다. `UINTERFACE()` 와 `USTRUCT()` 매크로도 있으며, 각 매크로에 키워드를 사용하여 
+엔진의 가비지 컬렉션 대상이 되며, 언리얼 에디터 안에서 표시 및 편집도 가능합니다. `UINTERFACE()` 와 `USTRUCT()` 매크로도 있으며, 각 매크로에 키워드를 사용하여 
 언리얼 엔진과 언리얼 에디터 안에서 [클래스](Programming\UnrealArchitecture\Reference\Classes\Specifiers) 의, [함수](Programming\UnrealArchitecture\Reference\Functions\Specifiers) 의, [프로퍼티](Programming\UnrealArchitecture\Reference\Properties\Specifiers) 의, 
  [인터페이스](Programming\UnrealArchitecture\Reference\Interfaces\Specifiers) 의, [구조체](Programming\UnrealArchitecture\Reference\Structs\Specifiers) 의 작동방식을 지정할 수 있습니다.
 

@@ -1,10 +1,10 @@
 Availability:Public
 Title:Advanced Blueprint Nativization
-Crumbs:
+Crumbs:%ROOT%
 Description:Technical guide for programmers exposing gameplay elements to Blueprints.
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent: Engine/Blueprints/TechnicalGuide
-Version:4.15
+Version:4.16
 type:reference
 tags:Blueprints
 SkillLevel:Advanced
@@ -40,8 +40,7 @@ the following implementations aren't supported:
 
 ## Technical Details
 
-Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015; however, Visual Studio 2015 is strongly recommended because it was developed 
-to handle large projects. If you encounter a compiler or linker error (such as LNK1000 or LNK1248), try reducing the amount of nativized Blueprints from your project,
+If you encounter a compiler or linker error (such as LNK1000 or LNK1248), try reducing the amount of nativized Blueprints from your project,
 by excluding Blueprint types, or specific Blueprints, in the `DefaultEngine.ini` configuration settings file. For more information about excluding Blueprints 
 from nativization, refer to our [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) documentation.
 

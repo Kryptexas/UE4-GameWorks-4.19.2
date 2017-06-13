@@ -1,86 +1,91 @@
-﻿INTSourceChangelist:2997698
+﻿INTSourceChangelist:3439587
 Availability:Public
-Title:生成角色动画
-Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:说明如何在 Sequencer 中对骨骼网格 Actor 应用动画
-Version:4.12
+Title:动画和动画混合
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:说明如何在 Sequencer 中将动画应用到骨架网格体并混合动画。 
+Version:4.15
 SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
-在创建过场动画序列时，您有时可能希望让一个角色在场景中四处移动，或演出某些类型的动画。 
-在 **Sequencer** 中要做到这一点，可以将骨骼网格 Actor 添加到关卡序列，然后添加一条动画子轨道，并指定您希望该 Actor 演出的动画。 
-重复此过程，为 Actor 添加不同类型的演出动画，就能让您的角色在过场动画序列中栩栩如生！ 
+创建影片序列时，有时可能需要角色在场景中四处移动，或者执行一些动画。
+在 **Sequencer** 实现这种效果的方法是为关卡序列添加一个骨架网格体 Actor，然后添加一个动画子轨迹，并指定 Actor 需要执行的动画。
+重复此流程，为 Actor 添加不同类型的动画，使影片序列中的角色活灵活现！
 
-在本指南中我们将创建一个小场景，通过应用不同动画让其中的角色跳上跳下。 
+我们将在此指南中创建一个小场景，其中的角色将以行走开始，然后混合到跳跃动画中。 
 
 ## 步骤
 
 [REGION:note]
-在本操作指南中，我们使用 **Blueprint Third Person Template** 项目，并 **启用了起步内容**。 
+在此指南中，我们使用的是启用了 **Starter Content** 的 **Blueprint Third Person Template** 项目。 
 [/REGION]
 
-1. 	在项目打开的情况下，在关卡中选择 **ThirdPersonCharacter**，然后按 **Delete** 删除它。 
+1.	点击项目中工具栏下的 **Cinematics** 按钮和 **Add Level Sequence**。 
 
 	![](CharacterAnim_01.png)
 
-	这是您在运行此模板附带的游戏时使用的 **角色蓝图**，我们并不需要它。 
-
-1. 	在 **内容浏览器** 中的 **Content/Mannequin/Character/Mesh** 下，将 **SK_Mannequin** 资产拖动到关卡视口中。 
+1.	在 **Content Browser** 下的 **Content/Mannequin/Character/Mesh** 中，将 **SK_Mannequin** 拖入关卡。 
 
 	![](CharacterAnim_02.png)
 
-1. 	在 **工具栏** 中单击 **过场动画（Cinematics）**下拉选项，再选择 **添加关卡序列（Add Level Sequence）**。 
+1.	保持 **SK_Mannequin** 的选中状态，点击 Sequencer 中的 **Add** 按钮将其添加到关卡序列。 
 
 	![](CharacterAnim_03.png)
 
-	当系统提示时，为新的关卡序列选择保存名称和保存位置。 
-
-1. 	在关卡中选择 **SK_Mannequin**。
-
-1. 	在 **Sequencer** 窗口中，单击 **添加（Add）**按钮并选择 **添加 Actor 到 Sequencer（Add Actor To Sequencer）**，然后选择 **添加 SK_Mannequin（Add SK_Mannequin）**。 
+1.	点击新骨架网格体轨迹中的 **Animation** 按钮，指定 **ThirdPersonWalk** 动画。 
 
 	![](CharacterAnim_04.png)
 
-	这会将一条用于 SK_Mannequin 的 **轨道** 添加到 Sequencer，然后我们可以用它操纵场景中的 Actor。 
-
-	![](CharacterAnim_04b.png)
-
-1. 	在 **动画（Animation）**子轨道上单击 **+** 调出快捷菜单，然后选择 **ThirdPersonIdle**。  
+1.	展开 **Animation**，然后将 **时间轴** 拖至第 **30** 帧处。 
 
 	![](CharacterAnim_05.png)
 
-	选中 Actor 后，它会摆出闲散的姿态，动画将添加到动画轨道。 
-
-	![](CharacterAnim_05b.png)
-
-1. 	选择 **动画（Animation）**轨道，然后 **左键单击** 时间轴标记将它拖动到闲散动画的结束处，按 **Enter**。 
+1.	再次点击 **Animation** 按钮并添加 **ThirdPersonJump_Start** 动画。 
 
 	![](CharacterAnim_06.png)
 
-	这将会在序列中的该时间点添加一个新的 **关键帧**，还会出现一个快捷菜单，您可在其中选择其他动画。 
+	现在播放动画会发现两个动画之间存在跳动。 
 
-1. 	添加 **ThirdPersonJump_Start** 动画。 
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	oHjDpYPAdCo
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	添加动画时，可以使用加权值在多个动画之间进行混合。这就是处理动画之间跳动的方法。 
+
+1.	将下方的 **ThirdPersonJump_Start** 动画拖至行走动画下方，并回到序列的第 **25** 帧。 
 
 	![](CharacterAnim_07.png)
 
-	在我们当前的设置下，在播放闲散动画后会继续播放开始跳跃动画。您可以将时间轴标记沿着时间轴前后拖动或按视口中的 **播放（Play）**按钮来播放我们当前的场景，预览这段动画。 
-
-1. 	在跳跃开始动画结束时（选中动画轨道的情况下），按 **Enter** 并添加 **ThirdPersonJump_End**。 
+1.	展开两个子动画轨迹并点击行走轨迹上的 **add key** 按钮，为跳跃开始动画的值设为 **1.0** 和 **0.0**。 
 
 	![](CharacterAnim_08.png)
 
-1. 	在跳跃结束动画结束时（选中动画轨道的情况下），按 **Enter** 并添加 **ThirdPersonIdle** 动画。
+	这将关闭跳跃开始动画的播放，因其权重值为 0.0。 
+
+1.	拖至第 **30** 帧并分别在行走和跳跃动画上添加 **0.0** 和 **1.0** 的键。 
 
 	![](CharacterAnim_09.png)
+
+	这将混入跳跃开始动画，混出行走动画。 
+
+1.	点击 **Preview Play** 按钮观看动画混合。 
 
 
 ## 最终结果
 
-当您在视口中单击 **播放（Play）**按钮时，将看到角色跳上跳下。 
+现在序列便包含骨架网格体和多个顺畅混合的动画，动画之间不会出现跳动。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -90,44 +95,8 @@ Related:Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-FMZG4yGriqc
+kVotxriT1Y4
 [/PARAMLITERAL]
 [/OBJECT]
 
-我们在上面看到了过场动画序列在编辑器中显示的效果。如果我们现在运行游戏，将不会看到任何内容，因为我们还没有向关卡序列本身发出开始播放的命令。 
-与 **Matinee** Actor 类似，你可以在关卡中选择关卡序列，然后在 **细节（Details）**面板中选中 **自动播放（Auto Play）**复选框，使序列在加载关卡时播放。 
-
-![](CharacterAnim_10.png)
-
-在视频中，您也可以看到在 Sequencer 中是如何处理播放的。只有包含在 **片段边界** 内的内容（绿色和红色标记之间）才会播放。 
-您可以拖动这些标记来扩大/缩小序列的边界，或者通过 **Sequencer** 选项，启用 **使播放范围保持在片段边界中（Keep Playback Range In Section Bounds）**选项（如下图所示）来确保播放范围包括所有内容。 
-
-![](CharacterAnim_11.png)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+还可在此例基础上进行拓展：加入跳跃循环和跳跃结束动画，并将它们混入，使角色能够跳跃和落地。 

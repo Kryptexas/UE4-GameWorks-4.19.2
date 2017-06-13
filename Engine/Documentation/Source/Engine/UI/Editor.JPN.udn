@@ -1,71 +1,18 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429250
 Availability:Public
-Title:エディタの UI
+Title:エディタの主要なユーザー インターフェース
 Crumbs:%ROOT%, Engine
-Description:エディタの主要なユーザーインターフェース
+Description:エディタの基本原理とアンリアル エディタ ユーザーインターフェース各部の概要
 Navigation:topic
 Version:4.9
-parent:Engine/Editor
+parent:Engine/Editor/Content
 order:1
+topic-image:UserInterfaceTopic.png
+topic-icon:%ROOT%/editor_icon.png
+
 
 [EXCERPT:LevelEditor]
-
-[VAR:Params]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/UI:title%
-[/PARAM]
-[PARAM:description]
-	%Engine/UI:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/UI]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%homeparams%
-[/OBJECT]
-[/VAR]
-
-
-## エディタのUIの基本
+## エディタ UI の基本
 
 
 エディタに慣れていない方は、まずユーザーインターフェースの使い方の流れを見て行きましょう。エディタを初めて使われる方は、以下の大事なトピックから見て行きましょう。 
@@ -82,7 +29,7 @@ order:1
 
 
 
-## エディタ・コンテンツブラウザ・ツール
+## エディタ、コンテンツ ブラウザ、ツール
 
 エディタには様々な種類があり、その全てがはじめから表示されているわけではありません。ある種類のアセットの編集を開始すると、それに対応した種類のエディタが開きます。コンテンツブラウザから何かをダブルクリックしてみましょう。それの種類に対応したエディタが開くかと思います。各エディタには特定のオペーレーションを行うツールが備わっています。
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3376720
 Availability:Public
 Title:2.Widget ブループリントの設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:レベルに現れるキーパッドとキーパッド表示ウィジェットを作成します。 
 SkillLevel:Advanced
 tags:UMG UI Designer
+Order:2
 
 [VAR:Steps]
 [OBJECT:Navigation]

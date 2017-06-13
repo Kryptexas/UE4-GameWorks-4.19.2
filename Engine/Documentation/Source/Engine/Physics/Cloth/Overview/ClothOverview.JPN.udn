@@ -1,0 +1,193 @@
+﻿INTSourceChangelist:3473461
+Availability:Public
+Crumbs:
+Title:クロス ツールの概要
+Description:UE4 のインエディタ ツールを使ったクロス作成の概要
+Type:Overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Physics
+Order:1
+Tags:Cloth
+Tags:Physics
+reference-image:SectionSelection.gif
+reference-image:PaintingCloth.gif
+Topic-image:Clothing_Topic.png
+
+
+
+[REGION:warning]
+これは実験的機能であり、将来のバージョンで変更される可能性があります。このツールを使用するには、最初に [Editor Preferences (エディタの環境設定)] で有効にする必要があります。これはメイン メニューで、 **Edit** > **Editor Preferences** > **Experimental** > の順に進み、 
+**[Clothing Tool]** ツールの隣のチェックボックスを有効にして行います。
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+アンリアル エンジンのバージョン 4.16 では APEX Cloth がNVIDIA の NvCloth ソルバーと置き換わりました。これはローレベルのクロス (布) ソルバーであり、クロスを実行するパーティクル シミュレーションを 
+行います。このクロス ソルバーの統合は軽量であり、データへの直接アクセスが可能なため拡張性が高くなっています。シミュレーションとレンダリングの両方を処理するオールインワンの SDK である 
+APEX Clothing とは異なります。 
+
+![](OverviewImage.png)(w:1200)
+
+1. **[Section Selection (セクション選択)] -** クロスをペイントするために使う Material ID を選択します。 
+1. **[Cloth Paint] タブ -** クロスをペイントする場合に必要なツールやプロパティがすべてあります。 
+
+エディタでクロス ツールを利用できるようになり、ワークフローが再定義されました。直接アンリアル エンジンで作業して、外部ツールに依存せずに 
+コンテンツをオーサリングできるようになりました。 
+
+[REGION:imagetable]
+| [INCLUDE:#oldworkflow] | [INCLUDE:#newworkflow] |
+| --- | --- |
+| クロスの旧ワークフロー | クロスの新規ワークフロー |
+| [INCLUDE:#clickimage] | [INCLUDE:#clickimage] |
+[/REGION]
+
+APEX Cloth を用いた「旧」ワークフローでは、外部プログラム (NVIDIA のクロス ツール) を使ってアンリアル外部ですべてのアセットを作成するか、特定のソフトウェア (3DS Max/Maya) を必要とする DCC プラグインを使う
+必要がありました。開発の最終段階でのみ、オーサリングしたコンテンツをアンリアル エンジンに取り込んで、メッシュに割り当てます。つまり、何かを変更する必要があれば、
+プログラムに戻り、エディタ外部でコンテンツを再オーサリングしなければなりませんでした。 
+
+「新規」ワークフローでは、コンテンツを作成したら、すべてのクロスの作成、編集を直接アンリアル エンジン内で行います。これにより、コンテンツの作成およびテストするコンテンツのイタレーションが迅速になり、
+クロス シミュレーションがゲームのようにリアルタイムで起こり、編集がすべて見えることで、
+コンテンツの作成場所と使用場所との間でずれがなくなります。
+
+
+## Cloth Section アセットを作成する
+
+新規 Cloth アセットを作成するには、以下の操作を行います。
+
+1. メイン ツールバーで、**[Section Selection (セクション選択)]** ボタンをクリックします。これでスケルタルメッシュの様々なマテリアル エレメントを選択することができます。
+	[REGION:asyncgif]
+
+	![](SectionSelection.gif)(w:500)
+	[/REGION]
+1. セクションを選択した状態で、ハイライトしたエレメント上で右クリックして **[Cloth Asset]** オプション メニューを表示させます。
+
+	![](ClothAssetContextMenu.png)(w:450)
+
+1. **[Create Cloth Asset from Selection (選択したものから Cloth アセットを作成)]** にマウスをかざして、以下のエリアに情報を入力します。
+
+	![](CreateClothContextMenu.png)(w:350)
+
+	* **Asset Name** - 後で簡単に見つけられるようにアセットに名前を付けてください。
+	* **Remove from Mesh** - クロスとして関連付けたい別個のジオメトリのメッシュの構成要素があれば、このオプションを有効にします。そうでなければ、チェックを入れずにこのままにします。
+	* **Physics Asset** - Cloth アセットがキャラクター用ならば、その Physics アセットを使ってクロス シミュレーションに適切なコリジョンが生じるようにします。 
+
+1. 前のステップで情報を設定したら、**[Create]** ボタンをクリックします。
+
+	![](CreateClothButton.png)(w:350)
+
+## Cloth Section アセットを割り当てる
+
+セクションに Cloth アセットを割り当てるには以下の手順に従います。
+
+1. セクション エレメントを選択した状態で、ハイライトしたエレメント上で右クリックして **[Cloth Asset]** オプション メニューを表示させます。**[Apply Clothing Asset (Clothing アセットを適用)]** にマウスをかざして、適用する利用可能な 
+Cloth アセットを選択します。これにより作成した Cloth アセットをこのマテリアル エレメント ジオメトリに関連付けます。
+
+	![](ClothSectionAssignment.png)(w:450)
+
+## クロスのウェイトをペイントする
+
+クロスのウェイトのペイントを開始するには、以下のステップに従います。
+
+1. メイン メニューに進み、**[Window]** を選択し、**[Cloth Paint]** を探してクリックします。クロスのペイント パネルが開きます。このパネルで、**[Enable Paint Tools]** ボタンをクリックすると、
+クロスのウェイトをジオメトリにペイントするための様々なオプションを利用することができます。 
+
+	![](ClothPanelEnabled.png)(w:350)
+
+1. ペイントを開始するには、割り当てた Cloth アセットを **[Assets]** ウィンドウから選択します。
+
+	![](HighlightClothAsset.png)(w:550)
+
+1. Cloth Painting セクションで、**[Paint Value]** を設定します。次に左クリックして、選択したクロス ジオメトリのサーフェス上をブラシでドラッグします。
+
+	[REGION:asyncgif]
+	![](PaintingCloth.gif)(w:500)
+	[/REGION]
+
+	[REGION:note]
+	3DS Max または Maya で APEX クロス ツールや一般的な類似ペイント ツールを使ったことがあれば、こうした操作に馴染みがあるはずです。 
+	[/REGION]
+
+### Paint ツールのメソッド
+
+**Paint Tool** の選択では、ブラシあるいはグラデーションを使ってクロスのウェイトのペイント方法を選ぶことができます。 
+
+#### ブラシ
+
+**Brush** ツールは、手動でウェイト値を直接クロスにペイントすることができます。 
+
+![](BrushTools.png)(w:350)
+
+ウェイト値をペイントするには、 **[Paint Value]** を設定し、左クリックしてクロスのジオメトリ上をマウスオーバーします。 
+
+![](Paint_Brush.png)(w:500)
+
+
+#### グラデーション
+
+**[Gradient]** ツールを使って、選択したポイント間でペイントするウェイト値を設定することができます。こうした選択ポイント間で、**[Gradient Start Value (グラデーションの開始値)]** から **[Gradient End Value (グラデーション終了値)]** に値が増えていく 
+グラデーションをペイントします。 
+
+![](GradientTools.png)(w:350)
+
+ウェイト値をペイントするには、最初に **[Gradient Start Value]** と **[Gradient End Value]** を設定します。次に左クリックしてクロスのメッシュに沿ってドラッグして開始値をペイントします。
+これは緑色で表示されます。このように行ったら、**Enter** (Return) キーを押して切り替えて終了値をペイントします。
+これは頂点上にペイントされる赤色で表示されます。
+
+グラデーション値のペイント終了後、再度 **Enter** (Return) キーを押すと以下の例のようにペイントされたグラデーションが表示されます。
+
+![](Paint_Gradient.png)(w:500)
+
+
+
+[REGION:note]
+または、グラデーションの開始ポイントと終了ポイントでブラシを使用する場合、**[Use Regular Brush for Gradient]** のオプションを有効にすることができます。次にブラシ セクションで、**Radius** ツールを使ってブラシの半径を設定します。
+[/REGION]
+
+
+
+## Cloth アセットをマテリアルに割り当てる
+
+Cloth アセットをスケルタルメッシュのマテリアル エレメントに割り当てるには、以下の手順に従います。
+
+1. **[Asset Details]** パネルに移動して **[Clothing]** セクションを見つけます。ここで割り当てることのできる Cloth アセットを探します。クロスの様々なプロパティを調整するには、
+**[Clothing Properties]** を展開します。
+
+	![](AssetDetailsCloth.png)(w:350)
+1. **[LOD]** セクションでクロスのウェイトのペイントにも使った **Material Element (マテリアル エレメント)** を探します。**[Clothing]** のドロップダウンの選択肢を使って利用可能な Cloth アセットの中から選択します。
+
+	![](AssignClothToMaterial.png)(w:350)
+
+	[REGION:note]
+	Clothing アセットは、マテリアル エレメントが使用するために作成され、ペイントされた Clothing アセットを持つマテリアル エレメントだけに割り当てられます。 
+	[/REGION]
+
+
+
+
+
+
+
+<!---
+
+[EXCERPT:oldworkflow]
+[REGION:lightbox]
+[![](OldWorkflow.png)(w:575)](OldWorkflow.png)
+[/REGION]
+[/EXCERPT:oldworkflow]
+
+[EXCERPT:newworkflow]
+[REGION:lightbox]
+[![](NewWorkflow.png)(w:575)](NewWorkflow.png)
+[/REGION]
+[/EXCERPT:newworkflow]
+
+
+[INCLUDE:#clickimage]
+[EXCERPT:clickimage]
+[REGION:caption]
+_画像をクリックしてフルサイズで表示_
+[/REGION]
+[/EXCERPT:clickimage]
+
+--->

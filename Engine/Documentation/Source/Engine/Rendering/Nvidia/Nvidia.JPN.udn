@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:3435012
+Availability:Docs
+Title:NVIDIA 機能のサポート
+Description:使用する NVIDIA 技術の統合およびサポート
+Crumbs:
+Parent:Engine/Rendering
+Order:101
+type:landing
+version:4.16
+topic-image:NVIDIA_logo_Topic.png
+
+
+[REGION:raw]
+![](nvidia_logo_horizontal.png)(w:700)
+[/REGION]
+
+
+ゲームで使用できる NVIDIA の統合技術と関連情報です。 
+
+
+%Engine\Nvidia\NVAlternateFrameRendering:Topic%
+%Engine\Nvidia\NVAftermath:Topic%
+
+

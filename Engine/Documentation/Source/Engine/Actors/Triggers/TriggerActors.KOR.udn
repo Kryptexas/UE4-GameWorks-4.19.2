@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title: 트리거 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:활성화되면 레벨에 이벤트가 발생하도록 하는 액터입니다.
 version: 4.9
+Parent:Engine/Actors/Types
+order:7
+type:overview
 
 [TOC(start:2)]
 

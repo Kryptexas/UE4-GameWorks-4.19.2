@@ -3,6 +3,8 @@ Title: Animation Composite
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation Composites serve as a way to combine multiple animations together and treat them as a single unit.
 version: 4.9
+tags:Assets
+topic-image:AnimationgComposite_topic.png
 
 [REGION:fullwidth]
 ![](AnimationCompositeHeader.png)

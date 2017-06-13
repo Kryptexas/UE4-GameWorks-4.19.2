@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\AddingComponents
 Description:A How To Guide for Adding Components in Blueprints. 
 Version: 4.9
 SkillLevel: Intermediate
+type:how-to
 
 [TOC (start:2 end:2)]
 

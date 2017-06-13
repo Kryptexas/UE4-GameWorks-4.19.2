@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:スケルトン エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -13,6 +13,7 @@ topic-image:skeletonEdtior_topic.png
 tags:Skeleton
 tags:Skeletal Mesh
 tags:Animation
+tags:Tools
 
 [EXCERPT:Overview]
 **スケルトン エディタ** は、UE4 内の [](Engine/Animation/Skeleton) で作業するために使うツールです。 

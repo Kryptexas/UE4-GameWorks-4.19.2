@@ -3,6 +3,9 @@ Title:Player-Controlled Cameras
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:Learn to manipulate a Camera and a Pawn at the same time, using player input.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

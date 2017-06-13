@@ -1,46 +1,54 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Refraction Mode: Pixel Normal Offset
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:How to use the Refraction mode for Pixel Normal Offset in your Materials.
-Related: Engine/REndering/Materials/HowTo/Refraction
-Version: 4.13
-SkillLevel: Intermediate
+﻿INTSourceChangelist:3378497
+Availability:Public
+Title:折射模式：像素法线偏移
+Crumbs:
+Description:材质中像素法线偏移折射模式总览。
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/HowTo/Refraction
+Version:4.14
+SkillLevel:Intermediate
+Parent:Engine/Rendering/Materials
+Order:13
+type:overview
+tags:Materials
+topic-image:PNO_Topic.png
+
+[TOC(start:2 end:2)]
+
+在虚幻引擎 4 的当前版本中，我们使用了折射的非物理模型 **像素法线偏移（Pixel Normal Offset）**。内嵌代码使用 **Index of Refraction** 的折射物理模型，以光线在媒介之间的折射方式为基础，可能导致大量穿帮（因为场景颜色在屏幕外读取）。可用于玻璃罐之类的小型物体（效果不甚明显），但在平面上存在问题。**像素法线偏移（Pixel Normal Offset）** 可为水面之类的大型平面启用折射，此处常量偏移不会从远离屏幕之外之处进行读取。它以顶点法线作为参考，然后通过逐像素法线和顶点法线之间的差别计算折射偏移，使这些平面不会移位。
+
+## 折射的物理和非物理模型
+
+在下方的对比中，**Index of Refraction** 物理模型的折射模式和 **Pixel Normal Offset** 的非物理模型展示了材质中
+法线读取方式的差异。 
+
+[REGION:note]
+可阅读 [使用折射](Engine/Rendering/Materials/HowTo/Refraction) 页面，了解折射物理模型的更多内容，以及如何结合材质使用。 
+[/REGION]
+
+[REGION:imagetable]
+| [INCLUDE:#IORWithoutNormals] | [INCLUDE:#PNOWithoutNormals]  |
+| ![](RefractionSettingIOR.png)(w:400) | ![](RefractionSettingPNO.png)(w:400) |
+|---|---|
+| 折射物理模型：无法线贴图 Index of Refraction| 折射非物理模型：无法线贴图 Pixel Normal Offset |
+[/REGION]
+
+在此处对比 **Index of Refraction** 模式和 **Pixel Normal Offset** 模式（不从屏幕过远的地方进行读取）后，即可发现图像出现移位。**Index of Refraction** 无需法线贴图插入材质即可使用；而 **Pixel Normal Offset** 没有法线贴图则无法获得折射。
 
 
-[TOC(start:2 end:3)]
+[REGION:imagetable]
+| [INCLUDE:#IORWithNormals] | [INCLUDE:#PNOWithNormals] |
+| ![](RefractionSettingIOR.png)(w:400) | ![](RefractionSettingPNO.png)(w:400) |
+|---|---|
+| 带法线贴图的物理模型 | 带法线贴图的非物理模型 |
+[/REGION] 
 
+添加法线贴图到材质时，大于 1 的折射值插入 Refraction 输入；使用 **Pixel Normal Offset** 后法线将沿表面平移。
+然而您会注意到使用 **Index of Refraction** 后仍然会从屏幕外读取偏移，对使用折射的平面而言并非理想效果。
 
+## 最终结果
 
-The Refraction in Unreal Engine 4 is based on how light rays refract as they are transferred between mediums with different Indices of Refraction that acts as a physical model
-for refraction, which can have unforeseen artifacts for large surfaces. In Unreal Engine 4.13 and higher, you now can select a non-physical refraction model that uses the vertex 
-normal as a reference and then computes the difference to have better results for large surfaces, like water or glass panes. 
-
-
-## Steps
-
-To use the Refraction Mode for Pixel Offset Normal select the main material inputs node then in the Detail's panel use the drop-down selection for Refraction Mode to select between the
-built-in **Index of Refraction** or the **Pixel Normal Offset** model.
-
-1. Select the **Main Material Node** and in the **Detail's** panel scroll down to the section named **Refraction**. Use the drop-down next to **Refraction Mode** to choose
-between the Index of Refraction and Pixel Normal Offset. 
-
-	![](RefractionSettingsSelection.png)(w:350)
-
-	Select **Pixel Normal Offset**.
-
-	![](RefractionSettingPNO.png)(w:350)
-
-2. In the Material Graph, use the following setup to control the amount of refraction for your material. Use a **Scalar Parameter** plugged into the **Lerp's** input **B** to 
-control the amount of refraction.
-
-	[REGION:lightbox]
-	[![](RefractionInput.png)(w:350)](RefractionInput.png)
-	[/REGION]
-	_You can use a constant value or a Lerp node to get a nice variation between the surface detail and defined Index of Refraction._
-
-By using a Scalar Parameter that can be dynamically adjusted, the [Index of Refraction](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Refraction/#indexofrefractionorior)
-can easily be controlled like the example here that uses a sliding range between 1.0 and 10.0. 
+在此例中，折射量在值 1.0（完全无折射）到 2.0 之间调整，使用 **Pixel Normal Offset** 时沿表面形成一些折射而不使图像发生移位。 
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -50,48 +58,37 @@ can easily be controlled like the example here that uses a sliding range between
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	6UnuWlr0C5Y
+	H8FGf4iZdn0
 	[/PARAMLITERAL]
 [/OBJECT]
 
 
-## Key Benefits
 
-The benefit of using the Refraction Mode for Pixel Normal Offset can instantly be seen when using large flat surfaces where refraction is used since it is not going to read from outside
-the scene. This provides a leap in quality for fluid water surfaces over the built-in model that is really good for smaller objects, like glassware.
 
-![](2_Ref1.5_Default.png)(w:640)
-[REGION:caption]
-_Index of Refraction model with artist defined value of 1.5_
+<!---
+
+[EXCERPT:IORWithoutNormals]
+[REGION:lightbox]
+[![](IOR_WithoutNormals.png)(w:550)](IOR_WithoutNormals.png)
 [/REGION]
+[/EXCERPT:IORWithoutNormals]
 
-In this example, the built-in Refraction model for **Index of Refraction** causes an offset that is based on the camera angle and an artist defined value. This is a physical model of 
-Refraction that is well suited for smaller objects where the offset is needed. 
-
-![](4_Ref1.5_PNO.png)(w:640)
-[REGION:caption]
-_Pixel Normal Offset model with artist defined value of 1.5_
+[EXCERPT:PNOWithoutNormals]
+[REGION:lightbox]
+[![](PNO_WithoutNormals.png)(w:550)](PNO_WithoutNormals.png)
 [/REGION]
+[/EXCERPT:PNOWithoutNormals]
 
-In this example, the Refraction model for **Pixel Normal Offset** doesn't reach outside of the scene when calculating the refraction and is controlled by an artist defined value. 
-This is a non-physical model of refraction that is more accurate for large flat surfaces like the water in this scene.
+[EXCERPT:IORWithNormals]
+[REGION:lightbox]
+[![](IOR_WithNormals.png)(w:550)](IOR_WithNormals.png)
+[/REGION]
+[/EXCERPT:IORWithNormals]
 
+[EXCERPT:PNOWithNormals]
+[REGION:lightbox]
+[![](PNO_WithNormals.png)(w:550)](PNO_WithNormals.png)
+[/REGION]
+[/EXCERPT:PNOWithNormals]
 
-## Final Result
-
-The Material's Refraction input has been defined by a constant to show the visual difference that you can have with no refraction and by using the [Index of Refraction](https://docs.unrealengine.com/latest/INT/Engine/Rendering/Materials/HowTo/Refraction/#indexofrefractionorior) 
-for water of 1.33 when it is not reading information from offscreen. The subtle differences in the values shifting can help better define flat surfaces that make use of Refraction
-in your game.
-
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Pixel Normal Offset = 1.0](NoRefraction.png)(w:700)
-	[/PARAM]
-	[PARAM:after]
-	![Pixel Normal Offset = 1.33](Refraction133.png)(w:700)
-	[/PARAM]
-[/OBJECT]
-
-
-
+--->

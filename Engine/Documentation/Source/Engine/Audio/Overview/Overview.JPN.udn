@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3148741
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:オーディオ システムの概要
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:SoundCues ノードベースのオーディオ アセット使用などのゲーム内のサウンド再生に使用するオーディオ システムの概要
 version:4.12
+parent:Engine/Audio
+type:overview
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

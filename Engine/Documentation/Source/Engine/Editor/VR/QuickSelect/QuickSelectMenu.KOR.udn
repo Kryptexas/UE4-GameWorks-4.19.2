@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: 빠른 선택 메뉴
 Description: 빠른 선택 메뉴로 VR 모드에서 에디터 패널과 창을 쉽게 접근할 수 있습니다.
 Crumbs:
@@ -11,7 +11,7 @@ version: 4.15
 skilllevel: intermediate
 topic-image:quickselect_topic.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 

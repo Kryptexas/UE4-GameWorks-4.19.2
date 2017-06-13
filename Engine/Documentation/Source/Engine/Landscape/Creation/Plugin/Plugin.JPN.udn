@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:3347993
+﻿INTSourceChangelist:3480877
 Availability:Public
 Title:カスタム ランドスケープ インポータの作成
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Creation
 Description:ランドスケープ インポート フォーマットをプラグインで新規作成する方法
 version:4.15
 parent:Engine/Landscape
+topic-image:CreatingCustomLandscapeImporters_topic.png
+order:8
 
 プラグインを書き出して、ランドスケープ データのインポート用に独自のハイトマップおよびウェイトマップを作成することができます。プラグインによって、ファイルからデータがインポートされるだけでなく、エンジンに新規フォーマットが追加されます。
 

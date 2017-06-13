@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability: Docs
+﻿INTSourceChangelist:3478014
+Availability: Public
 Title:4. 드롭 시
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:이번 단계에서는 플레이어 드래그중인 위젯을 드롭했을 때 벌어지는 일을 설정합니다.
+SkillLevel: Intermediate
+Version: 4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:4
+checkpoint: editorqs
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-SkillLevel: Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -80,4 +87,5 @@ HUD 가 드래그중인 위젯 드롭을 처리하고 Health Bar 를 표시하�
 이 튜토리얼 다음 및 최종 단계에서는, Dragged Widget 을 Health Bar 모양과 비슷하게 구성하고 캐릭터 블루프린트에게 HUD 를 뷰포트에 추가하도록 할 것입니다.
 
 %Steps%
+
 

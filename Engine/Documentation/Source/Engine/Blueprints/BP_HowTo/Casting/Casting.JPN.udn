@@ -1,28 +1,30 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
-Title:ブループリント キャスティングのサンプル
+Title:Blueprint Casting の例
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:ブループリント キャスティングを使って、1 つのブループリントから複数のブループリント通信してみましょう。 
+Description:Blueprint Casting を使って、1 つのブループリントから複数のブループリントに通信してみましょう。 
 Related:Engine/Blueprints/UserGuide/CastNodes
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
 skilllevel:Advanced
 version:4.9
-Parent:Engine/Blueprints
-tags:Handling Objects and Actors
+Parent:Engine/Blueprints/HowTo
+type:how-to
+tags:Data Types
+tags:Blueprints
 order:3
 
-ブループリント キャスティングを使って異なるブループリントと通信して情報を共有する方法を説明します。このサンプルでは、プレイヤーはオブジェクトを撃ち、ヒットするたびにオブジェクトを小さくすることができます。そして、オブジェクトはヒットのたびに Character ブループリントに通知し、プレイヤーの移動速度を加速します。 
+このガイドでは、Blueprint Casting を使って異なるブループリントと通信して情報を共有する方法を説明します。プレイヤーはオブジェクトを撃ち、ヒットした分だけオブジェクトを小さくすることができます。そして、オブジェクトはヒットされるたびに Character ブループリントに通知し、プレイヤーの移動速度を加速します。 
 
 [REGION:note]
-このガイドでは、**Starter Content** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
+このガイドでは、**スターターコンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
 1. **ビューポート** で、**EditorCube** メッシュのひとつ選択し、次に **[Details (詳細)]** パネルの **[Blueprint/Add Script (ブループリント/スクリプトを追加)]** ボタンをクリックします。 
 
 	![](Casting1.png)
 
-1. 表示された確認ウィンドウで名前を  LargeCube_Blueprint に変更し、**[Ok]** をクリックして名前変更を確定してブループリントを作成します。 
+1. 表示された確認ウィンドウで名前を「LargeCube_Blueprint」に変更し、**[Ok]** をクリックして名前変更を確定してブループリントを作成します。 
 
 1. **コンテンツ ブラウザ** の **Content/FirstPersonBP/Blueprints** で **FirstPersonProjectile** ブループリントを開きます。 
 
@@ -34,7 +36,7 @@ order:3
 
 	![](Casting3.png)(w:800)
 
-	**Event Hit** ノード上で、**Other** ピンはヒットした別のアクタを参照します。**Cast To** ノードを使うと、これが本当にヒットした別のアクタである **LargeCube_Blueprint** なのかを確認しています。そうである場合、それにアクセスしてブループリント内のイベントや関数を実行したり、その中にある変数を変更したり、あるいはブループリント内のコンポーネントのプロパティを変更することができます。 
+	**Event Hit** ノード上で、**Other** ピンはヒットした別のアクタを参照します。**Cast To** ノードを使うと、実はヒットした別のアクタである **LargeCube_Blueprint** かどうかを確認します。そうである場合、それにアクセスしてブループリント内のイベントや関数を実行したり、その中にある変数を変更したり、あるいはブループリント内のコンポーネントのプロパティを変更することができます。 
 
 1.	**As Large Cube Blueprint** ピンを引き出して **Get Static Mesh Component** 、次に **Set World Scale 3D** に接続します。
 
@@ -42,7 +44,7 @@ order:3
 
 	**Add Impulse at Location** に接続したら、Large Cube Blueprint へキャストし、その中の Static Mesh Component (実際の Cube) を取得し、それに対して新しく World Scale 3D の値を設定します。今、New Scale は 0 に設定されていますが、ヒットするたびに Large Cube Blueprint のサイズを小さくしていきます。 
 
-1.	**Static Mesh Component** を引き出して、 **Get World Scale** を使い、 **Vector * Float** ピン (**0.5** に設定) へ接続し、次に **New Scale** へつなぎます。 
+1.	**Static Mesh Component** を引き出して、**Get World Scale** を使い、**Vector * Float** ピン (**0.5** に設定) へ接続し、次に **New Scale** へつなぎます。 
 
 	![](Casting5.png)
 
@@ -84,7 +86,7 @@ order:3
 
 	_画像をクリックしてフルサイズで表示_
 
-	ここでは分かりやすいように **Reroute Nodes** を使ってワイヤーのフローを調整しますが、接続は同じにしてください。 
+	ここでは分かりやすいように **Reroute ノード** を使ってワイヤーのフローを調整しますが、接続は同じにしてください。 
 
 1.	**[Compile]** と **[Save]** をクリックしたら **[Play]** ボタンをクリックしてエディタで再生します。 
 
@@ -102,4 +104,4 @@ order:3
 
 	Large Cube ブループリントを撃つたびに小さくなり、キャラクターの移動が速くなります。 
 
-	**キャスティング** とユースケースの詳細については、以下の **Related Topics** セクションを参照してください。 
+	**Casting** とユースケースの詳細については、以下の **Related Topics** セクションを参照してください。 

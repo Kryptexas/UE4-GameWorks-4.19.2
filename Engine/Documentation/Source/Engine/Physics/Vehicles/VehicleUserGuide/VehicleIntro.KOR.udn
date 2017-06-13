@@ -1,336 +1,89 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3453053
 Availability:Public
 Title:비히클 사용 안내서
-Crumbs:%ROOT%
+crumbs:%ROOT%
 Description:언리얼 엔진 4 블루프린트 비히클 사용 안내서입니다.
-Navigation:topic
-Version: 4.9
+Type:how-to
 SkillLevel: Advanced
+Version:4.15
+Parent:Engine/Physics/Vehicles
+Prereq:Engine/Physics/Vehicles/VehcileContentCreation
+Order:1
+checkpoint:vehicleuserguideHT
+Tags:Vehicles
+topic-image:Vechicle_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Gameplay/Framework/Vehicle:title%](vehicle_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Gameplay/Framework/Vehicle:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Gameplay/Framework/Vehicle:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Gameplay/Framework/Vehicle]
-	[/PARAM]
+
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	pYelGtIMQpk
+	[/PARAMLITERAL]
 [/OBJECT]
-[/VAR]
 
-[TOC(start:2 end:3)]
+이 글을 마칠 즈음이면 다른 게임 프로젝트에서도 사용할 수 있을 만큼 완벽히 동작하는 비히클이 완성되어 있을 것입니다!
 
+## 목적
 
+여기서는 새로운 공백 프로젝트에서 **Wheeled Vehicle** 블루프린트 클래스를 사용하여 비히클을 만드는 법을 다루겠습니다. 정상 작동하는 비히클을 만드는 데 필요한 
+모든 에디터내 아이템 제작 프로세스를 안내해 드리겠지만, 별도의 **스켈레탈 메시** 와 **피직스 애셋** 이 준비되어 있다 가정합니다. 이 글을 마칠 즈음이면 
+비히클 게임 또는 비히클 템플릿에 있는 것과 비슷한 정상 작동 비히클이 완성되어 있을 것입니다.
 
-빈 프로젝트에서 **Wheeled Vehicle** 블루프린트 클래스를 사용하여 블루프린트를 만드는 방법에 대해 다루는 문서입니다. 이 프로세스를 통해 에디터내 필수 항목 전체를 생성해 보지만, 
-비히클에 쓸 **스켈레탈 메시** 와 **피직스 애셋** 은 갖고있다 가정합니다.
-
+[REGION:note]
 비히클 **스켈레탈 메시** 와 **피직스 애셋** 을 엔진에 임포트하는 법에 대한 정보가 필요하다면, [](Engine/Physics/Vehicles/VehcileContentCreation) 문서를 참고하세요. 
-또는 **비히클 템플릿** 이나 **비히클 게임** 을 통해 미리 만들어진 **스켈레탈 메시** 나 **피직스 애셋** 에서 작업할 수도 있습니다.
+또는 **비히클 템플릿** 이나 **비히클 게임** 프로젝트를 통해 미리 만들어진 **스켈레탈 메시** 나 **피직스 애셋** 에서 작업할 수도 있습니다.
+**비히클 템플릿** 은 **언리얼 프로젝트 브라우저** 의 **새 프로젝트** 메뉴에 있으며, **비히클 게임** 은 **에픽 게임스 런처** 의 **학습** 탭에 있습니다.
+[/REGION]
 
+## 목표
 
-## 콘텐츠
+이 튜토리얼 전반에 걸쳐 언리얼 엔진 4 (UE4) 의 비히클을 이루는 핵심 컴포넌트를 생성하게 됩니다. 이 중 일부는 UE4 외부에서 애셋을 만들어야 하는 반면 컴포넌트 대부분은 
+에디터 안에서 바로 만들 수 있습니다!
 
-언리얼 엔진 4 의 비히클은 다수의 애셋으로 구성되어 있습니다:
+우리가 만들 비히클을 이루는 애셋을 개별 단위로 나누어 보면 이렇습니다:
 
 * **스켈레탈 메시** 하나.
 * **피직스 애셋** 하나.
 * **애니메이션 블루프린트** 하나.
 * Vehicle (비히클) 블루프린트 하나.
 * Wheel (휠) 블루프린트 하나 이상.
-* TireType (타이어 타입) **데이터 애셋** 하나.
+* TireConfig **데이터 애셋** 하나.
 
 [REGION:raw]
 ![](overview.png)(convert:false)
 [/REGION]
 
-[REGION:note]
-이 문서에서는 언리얼 엔진 4 에서 작동하는 비히클을 만드는 데 필요한 블루프린트 셋업에 대해 다루며, 이미 작업할 비히클 애셋이 있다고 가정합니다. 
-**스켈레탈 메시** 와 **피직스 애셋** 셋업 관련 상세 정보는 [](Engine/Physics/Vehicles/VehcileContentCreation) 문서를 참고하시기 바랍니다.
+이 글을 마칠 즈음이면 이들 애셋 유형 각각을 구성하는 방법과, 비히클에 생동감을 불어넣기 위한 조합 방법을 확인할 수 있을 것입니다!
+
+* TireConfig 데이터 애셋 환경설정 방법
+* 앞/뒤 휠에 대한 휠 블루프린트 환경설정 방법
+* 비히클 전용 애니메이션 블루프린트 구성 방법
+* 스켈레탈 메시, 애니메이션 블루프린트, 휠 블루프린트로 비히클 블루프린트 환경설정 방법
+* 축 매핑 및 바인딩으로 비히클 제어 방법
+* 비히클 스폰을 위한 새 게임 모드 생성 및 할당 방법
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine/Physics/Vehicles/VehicleUserGuide/1 "%Engine/Physics/Vehicles/VehicleUserGuide/1:title%")
 [/REGION]
-
-## 비히클 블루프린트 만들기
-
-**비히클 블루프린트** 를 새로 만들려면, **콘텐츠 브라우저** 에서 **신규 추가** -> **블루프린트** 버튼을 누른 다음 "vehicle" 을 검색하여 리스트에서 **WheeledVehicle** 을 클릭합니다.
-
-[REGION:raw]
-![](newVehicle.png)(convert:false)
-[/REGION]
-
-## 휠 블루프린트 만들기
-
-**휠 블루프린트** 를 새로 만들려면, **콘텐츠 브라우저** 에서 **추가** -> **블루프린트** 버튼을 누른 다음 "wheel" 을 검색하여 리스트에서 **VehicleWheel** 을 선택합니다. 
-앞바퀴와 뒷바퀴 유형을 만들려면 이 작업을 최소 한 번 더 반복해 줍니다.
-
-[REGION:raw]
-![](newWheels.png)(convert:false)
-[/REGION]
-
-대부분의 경우 바퀴 유형은 스티어링에 영향받는 것과 받지 않는 것, 최소 두 가지일 것입니다. 또한 반경, 질량, 폭, 핸드브레이크 이펙트, 
-서스펜션, 기타 프로퍼티를 설정하여 비히클에 원하는 핸들링 감을 낼 수 있습니다.
-
-
-## TireType 데이터 애셋 만들기
-
-**TypeType 데이터 애셋** 을 새로 만들려면, **콘텐츠 브라우저** 에서 **신규 추가** -> **기타** -> **데이터 애셋** -> **TireType** 선택 -> **선택** 버튼을 클릭합니다.
-
-[REGION:raw]
-![](newDataAsset.png)(convert:false)
-[/REGION]
-
-[EXCERPT:frictionScale]
-**TireType 데이터 애셋** 에는 값이 **Friction Scale** (마찰 스케일) 하나뿐입니다. 이 값은 바퀴의 원래 마찰에 영향을 끼칠 뿐만 아니라, 급선회(hard turn)시 바퀴가 얼마나 안 
-(또는 잘) 미끄러지는지 결정하는 값에 대한 스케일을 조절하기도 합니다.
-[/EXCERPT:frictionScale]
-
-**VehicleWheel** 블루프린트 유형에 **TireType 데이터 애셋** 에 대한 프로퍼티 슬롯이 있습니다.
-
-## 애니메이션 블루프린트 만들기
-
-**애니메이션 블루프린트** 를 새로 만들려면, **콘텐츠 브라우저** 에서 **신규 추가** -> **애니메이션** -> 목록에서 비히클에 대한 **스켈레톤** 선택 -> **Ok** 버튼을 누릅니다.
-
-[REGION:raw]
-![](newAnimBP.png)(convert:false)
-[/REGION]
-
-
-## 애니메이션 블루프린트 편집하기
-
-**콘텐츠 브라우저** 에서 **애니메이션 블루프린트** 를 더블클릭하면 페르소나에서 비히클 애니메이션 블루프린트를 편집할 수 있습니다. 비히클에 대한 **애님 그래프** 가 
-4.2 릴리즈에서 크게 단순화되었습니다:
-
-1. **애님 그래프** 에 우클릭하고, 맥락 메뉴에서 **Mesh Space Ref Pose** 노드를 검색한 다음 선택하여 생성합니다.
-
-	[REGION:raw]
-	![](meshSpace.png)
-	[/REGION]
-
-1. **애님 그래프** 에 우클릭하고, 맥락 메뉴에서 **Whell Handler** 노드를 검색한 다음 선택하여 생성합니다.
-
-	[REGION:raw]
-	![](wheelHandler01.png)
-	[/REGION]
-
-1. **Mesh Space Ref Pose** 노드를 **Wheel Handler** 노드에 연결합니다.
-1. **Wheel Handler** 노드를 **Final Animation Pose** 노드에 연결합니다.
-
-
-![](animBPPreAnimGraph.png)
-
-그러면 끝! **Component to Local** 변환 노드는 자동 생성되며, 이제 애니메이션 블루프린트가 비히클의 바퀴를 구동시킵니다.
-
-![](animBPanimGraph.png)
-
-### Wheel Handler 노드
-
-![](wheelHandler02.png)
-
-**Wheel Handler** 노드는 휠에 필요한 모든 애니메이션: 스핀, 스티어, 핸드브레이크, 서스펜션을 처리해 줍니다. 추가적인 셋업은 없으며, 
-그냥 휠에서 필수 정보를 (스핀은 얼마나 빠른지, 스티어링은 가능한지, 핸드브레이크에 영향받는지, 이 휠에 대한 서스펜션 세팅은 어떠한지) 
-전부 뽑아 휠이 연결되어 있는 본의 애니메이션으로 전환합니다.
-
-여기서 별도의 받침대(strut)나 서스펜션이 추가로 필요한 경우, 해당 폴리곤에 영향을 끼치는 조인트 처리를 위한 노드를 애님 그래프에 추가해 줘야 합니다. 
-비히클 게임의 비히클에는 휠에 대한 악셀 연결을 제어하는 조인트가 추가로 몇 개 더 있습니다. 이들은 단순한 **Look At** 노드로 구동됩니다:
-
-![](fullVehGameAnimBP.png)
-
-비히클 게임의 비히클 애님 그래프에 추가되어 있는 노드는 단순히 받침대 조인트가 휠 조인트를 가리키도록 하기 위함입니다. 휠 조인트가 Wheel Handler 
-노드로 구동된다고 할 때, **Look At** 노드는 서스펜션이 휠에 확실히 붙어있도록 해 줍니다.
-
-## TireType 데이터 애셋 편집하기
-
-**콘텐츠 브라우저** 에서 **TireType 데이터 애셋** 을 더블클릭합니다.
-
-![](tires02.png)
-
-[INCLUDE:#frictionscale]
-
-
-## 휠 블루프린트 편집하기
-
-**콘텐츠 브라우저** 에서 **휠 블루프린트** 를 더블클릭하여 **블루프린트 에디터** 를 띄웁니다.
-
-
-1. 블루프린트 에디터를 디폴트 편집 모드로 전환합니다:
-
-	![](defaultsMode.png)
-
-1. 초기 설정이 필요한 프로퍼티는 다음과 같습니다:
-	
-	* Shape Radius - 셰이프 반경
-	* Shape Width - 셰이프 폭
-	* Affected by Handbrake - 핸드브레이크에 영향받음 (보통 뒤쪽 휠에 한정됨)
-	* Steer Angle - 스티어 각도 (보통 앞쪽 휠만)
-
-		[REGION:raw]
-		![](wheelProps.png)
-		[/REGION]
-
-1. 마지막으로 '타이어 타입'을 설정해 줘야 합니다.
-
-	[REGION:raw]
-	![](tireType.png)
-	[/REGION]
-
-
-각 휠마다 바꿔줘야 하는 것이 다섯 가지 있습니다. 나머지 프로퍼티는 비히클 작동 방식에 변화를 주며, 비히클 테스트를 시작하면서 미세조정 
-가능합니다.
-
-## 비히클 블루프린트 편집하기
-
-이 곳에서 비히클이 실제로 조립되기 시작합니다. 아트가 준비되고 휠 셋업이 완료되었다면, 이제 정상 작동하는 비히클을 만들어낼 수 있을 것입니다.
-
-**콘텐츠 브라우저** 에서 **비히클 블루프린트** 를 더블클릭하여 **블루프린트 에디터** 를 띄웁니다.
-
-1. "Mesh" 라는 **스켈레탈 메시 컴포넌트** 를 클릭하고 그 디테일 패널에서, **스켈레탈 메시** 프로퍼티를 비히클에 쓸 스켈레탈 메시 애셋으로 설정합니다.
-
-	![](componentsMode.png)
-
-1. **Anim Blueprint Generated Class** (애님 블루프린트 생성 클래스)를 비히클 애니메이션 블루프린트로 설정합니다.
-
-	[REGION:raw]
-	![](AnimBPandSkelMesh.png)
-	[/REGION]
-
-1. **컴포넌트** 패널로 돌아가 **카메라 컴포넌트** 를 추가합니다.
-
-	[REGION:raw]
-	![](addCamera.png)
-	[/REGION]
-
-1. 이 카메라 컴포넌트 위치는 원하는대로 잡습니다. 아래 그림에서는, 비히클 뒤에 놨습니다.
-
-	![](cameraPlacement.png)
-
-1. **Camera Settings** (카메라 세팅) -> **Use Controller View Rotation** (콘트롤러 뷰 로테이션 사용) 옵션을 끕니다. 그러면 카메라를 플레이어 콘트롤러 방향이 아닌 카메라의 시야 방향으로 고정시킵니다.
-
-	![](cameraControllerOff.png)
-
-1. **Vehicle Movement Component** (비히클 무브먼트 컴포넌트)를 선택하고 **Vehicle Setup** (비히클 셋업) 카테고리의 **Wheel Setups** (휠 셋업)을 펼칩니다.
-
-	![](defaultsMode.png)
-
-1. 각 (0-3 번) 휠에 대해:
-	1. **Wheel Class** (휠 클래스)를 이미 만들어 둔 휠 블루프린트 중 하나로 설정합니다.
-	1. **Bone Name** (본 이름)을 휠의 제어를 받는 조인트 이름으로 설정합니다.
-
-		[REGION:raw]
-		![](wheelsSetup.png)
-		[/REGION]
-
-		_위 그림에서 **Bone Name** 은 이 스켈레탈 메시에 한정된 것입니다._
-
-	휠을 할당하는 순서는 앞 휠이든 뒷 휠이든 관계가 없으며, **Bone Name** 과 **Wheel Class** 만 영향을 끼칩니다.
-
-	[REGION:note]
-	휠이 네 개 이상 필요한 경우, **Wheel Setups** 프로퍼티 옆의 "**+**" 아이콘을 클릭하여 추가할 수 있습니다.
-	[/REGION]
-
-이쯤에서 미니밴보다 너무 크기 않은 비히클이라 가정하고 기본값을 넣어 주면 테스트를 시작하기 좋은 지점이 됩니다.
-
-
-## 테스팅
-
-테스트용 비히클 셋업 방법은 몇 가지 있으며, 몇몇 셋업은 처음 시작한 템플릿에 따라 달라집니다.
-
-1. 콘트롤
-
-	[REGION:raw]
-	![](input.png)
-	[/REGION]
-
-	1. **Project Settings** (프로젝트 세팅) -> **Input** (입력)
-	1. **Axis Mapping** (축 매핑)을 추가합니다. **Axis Mappings** 프로퍼티 옆의 "**+**" 부호를 클릭하면 됩니다.
-	1. Axis Mappings 를 펼칩니다.
-	1. 축 매핑 이름을 **Forward** 로 변경합니다.
-	1. **Forward** 축 매핑 옆의 "**+**" 부호를 클릭합니다.
-	1. **Forward** 축 매핑을 펼칩니다.
-	1. 첫 번째 "None" 을 "**W**" 로 설정합니다.
-	1. 두 번째 "None" 을 "**S**" 로 설정합니다.
-	1. "**S**" 매핑의 Scale 을 "-1.0" 으로 설정합니다.
-	1. **축 매핑** 을 하나 더 추가합니다. **Axis Mappings** (축 매핑) 프로퍼티 옆의 "**+**" 부호를 클릭하면 됩니다.
-	1. 새로운 축 매핑 이름을 **Right** 로 변경합니다.
-	1. **Right** 축 매핑을 펼칩니다.
-	1. 첫 번째 "None" 을 "**D**" 로 설정합니다.
-	1. 두 번째 "None" 을 "**A**" 로 설정합니다.
-	1. "**A**" 매핑의 스케일을 "-1.0" 으로 설정합니다.
-	1. 그리고 **Action Mapping** (액션 매핑)을 추가합니다. Action Mappings 프로퍼티 옆의 "**+**" 부호를 클릭하면 됩니다.
-	1. **Action Mappings** 프로퍼티를 펼칩니다.
-	1. 액션 매핑 이름을 "**Handbrake**" 로 변경합니다.
-	1. **Handbrake** 액션 매핑을 펼칩니다.
-	1. "None" 을 "**Space Bar**" 로 설정합니다.
-1. 새 게임 모드
-	1. 게임 모드 블루프린트를 새로 만듭니다.
-
-		[REGION:raw]
-		![](newGameMode.png)
-		[/REGION]
-
-	1. 새로 만든 게임 모드 블루프린트를 더블클릭하여 편집합니다.
-
-	1. **Game Mode** 카테고리 -> **Default Pawn Class** -> "None" 을 만들어둔 비히클 블루프린트로 변경합니다.
-
-		[REGION:raw]
-		![](defaultPawnClass.png)
-		[/REGION]
-
-1. **월드 세팅** -> **Game Mode** -> **GameMode Override** 를 만들어둔 게임 모드로 설정합니다.
-
-	[REGION:raw]
-	![](setGameMode.png)
-	[/REGION]
-
-1. 이제 비히클의 블루프린트에서, **Project Settings Input** 카테고리에 생성한 축 및 액션 이벤트상에서 호출할 수 있습니다.
-	1. 비히클 블루프린트를 편집, **이벤트 그래프** 를 엽니다.
-
-		![](graphMode.png)
-
-	1. 스로틀
-	
-		![](throttleBP.png)
-
-	1. 스티어링
-
-		![](steeringBP.png)
-
-	1. 핸드브레이크
-
-		![](handbrakeBP.png)
-
-1. 플레이어 스타트
-	* 월드에 **Player Start** (플레이어 스타트) 액터가 없는 경우, **모드 패널** -> **배치 모드** -> **기본** -> **Player Start** (플레이어 스타트)를 끌어 
-	월드에 놓으면 됩니다.
-
-	[REGION:raw]
-	![](playerStart.png)
-	[/REGION]
-
-	또는 현재 카메라 위치에서 '에디터에서 플레이' 기능으로 플레이해도 됩니다.
-1. 마지막으로 모든 것의 셋업을 마치면, **에디터에서 플레이** 기능으로 비히클 테스트가 가능합니다.
-
-	[REGION:raw]
-	![](Play.png)
-	[/REGION]
-
-	위의 축 및 액션 바인딩 셋업 상태에서, **W** 는 액셀러레이터, **S** 는 브레이크, **A** 는 좌회전, **D** 는 우회전, 
-	**Space Bar** 는 핸드브레이크입니다.
-
-
-
-
-
-
-
-
-
-
 

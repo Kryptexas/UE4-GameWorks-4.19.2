@@ -1,8 +1,9 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:3367475
+Availability:Docs
 Title:アンリアル エンジン入門
 Crumbs:
 DoIndex:false
-Description:アンリアル エンジン PDF ジェネレータ入門
+Description:アンリアル エンジン入門
 Template:PDF.html
 
 [REGION:banner]
@@ -17,12 +18,12 @@ Template:PDF.html
 * [UDN](https://udn.unrealengine.com/index.html) はユーザーと Epic を接続するインターフェースとして機能し、問題発生時に特定の質問を投稿することができます。[UDN ドキュメント入門](https://udn.unrealengine.com/docs/ue4/INT/Support/UDNGettingStarted/index.html) を参照して UDN についてさらに学ぶことができます。 
 
 
-## ハードウェア＆ソフトウェア要件
+## ハードウェアおよびソフトウェア要件
 
 [INCLUDE:GettingStarted/RecommendedSpecifications#Main(offset:1)]
 
 
-##アンリアルエンジンの取得
+##アンリアル エンジンの取得
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine#Main(offset:1)]
 

@@ -18,7 +18,7 @@ In addition to running traces by Objects or Trace Channel, you can run your Trac
 To learn more about Raycasts using Blueprints , follow the link below:
 
 [REGION:buttonlist]
-* [](Gameplay\HowTo\UseRaycasts\Blueprints)
+* [](Engine/Physics/Tracing/HowTo)
 [PUBLISH:Docs]
 * [](Gameplay\HowTo\UseRaycasts\Code)
 * [](Gameplay/HowTo/UseRaycasts/UVCoordsFromTrace)

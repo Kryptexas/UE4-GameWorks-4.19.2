@@ -29,92 +29,15 @@ to pages with overviews of each class and information about how they can be set 
 ## Basic Framework Elements
 
 [EXCERPT:LandingBoxes]
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](gameflow_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	%Gameplay/Framework/GameFlow:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework/GameFlow]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework/GameFlow:description%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](gamemode_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	%Gameplay/Framework\GameMode:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework\GameMode]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework\GameMode:description%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](pawn_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	Pawns
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework\Pawn]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework\Pawn:description% 
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](controller_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	%Gameplay/Framework\Controller:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework\Controller]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework\Controller:description%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](camera_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	%Gameplay/Framework\Camera:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework\Camera]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework\Camera:description%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-	![](hud_lander.png)
-	[/PARAM]
-	[PARAM:title]
-	%Gameplay/Framework\UIAndHUD:title%
-	[/PARAM]
-	[PARAM:path]
-	[RELATIVE:Gameplay/Framework\UIAndHUD]
-	[/PARAM]
-	[PARAM:description]
-	%Gameplay/Framework\UIAndHUD:description%
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+[DIR(output:"topic" parent:"Gameplay/Framework" org:"hierarchy" end:"1")]
+<!--
+%Gameplay/Framework/GameFlow:topic%
+%Gameplay/Framework/GameMode:topic%
+%Gameplay/Framework/Pawn:topic%
+%Gameplay/Framework/Controller:topic%
+%Gameplay/Framework/Camera:topic%
+%Gameplay/Framework/UIAndHUD:topic%
+-->
 [/EXCERPT:LandingBoxes]
 
 

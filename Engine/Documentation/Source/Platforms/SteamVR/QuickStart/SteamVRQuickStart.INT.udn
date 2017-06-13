@@ -5,6 +5,7 @@ Availability:public
 Navigation:platform
 Platform:SteamVR
 type:quick start
+type:landing
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR

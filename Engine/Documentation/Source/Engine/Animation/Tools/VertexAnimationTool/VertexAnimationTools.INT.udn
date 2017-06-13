@@ -6,6 +6,8 @@ Related: Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related: Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
 SkillLevel:Advanced
 Version: 4.9
+tags: Tools
+topic-image:VertexAnimationTool_topic.png
 
 [TOC(start:2 end:3)]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 타임라인
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,6 +7,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
+topic-image:timeline_topic.png
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 

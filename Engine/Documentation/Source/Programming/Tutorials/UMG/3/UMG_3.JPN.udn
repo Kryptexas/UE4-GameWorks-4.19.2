@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title:3.Menu Widget ブループリントの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -57,7 +57,7 @@ version:4.14
 	* Position を (600, 100) に設定します。
 	* [QuitText] 用のボタン名を設定します。
 
-1. その後、ボタンをクリックするとコードを実行するようにボタンに **イベント** を追加することができます。**[Details (詳細)] パネル** で、適切なイベント名の横にある "+" を検索し、クリックして追加します。この例では、**OnClicked** が唯一使用できるイベントです。このイベントを [NewGameButton] と [QuitButton] ウィジェットの両方に作成します。
+1. その後、ボタンをクリックするとコードを実行するようにボタンに **イベント** を追加することができます。**[Details (詳細)] パネル** で、適切なイベント名の横にある "+" を検索し、クリックして追加します。この例では、**OnClicked** が唯一使用できるイベントです。このイベントを [NewGameButton] ウィジェットと [QuitButton] ウィジェットの両方に作成します。
 
 	[![](CreateOnClickedEvent.png)](CreateOnClickedEvent.png)
 
@@ -88,7 +88,7 @@ version:4.14
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -102,8 +102,8 @@ version:4.14
 
 					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 
+					//  Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {
@@ -116,7 +116,7 @@ version:4.14
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -133,25 +133,25 @@ version:4.14
 				GENERATED_BODY()
 
 			public:
-				/** Called when the game starts. */
-				virtual void BeginPlay() override;
-
 				/** Remove the current menu widget and create a new one from the specified class, if provided. */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
-				/** The widget class we will use as our menu when the game starts. */
+				/** Called when the game starts. (ゲーム開始時に呼び出されます) */
+				virtual void BeginPlay() override;
+
+				/** The widget class we will use as our menu when the game starts. (ゲーム開始時にメニューとして使用するウィジェット クラスです) */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
 
-				/** The widget instance that we are using as our menu. */
+				/** The widget instance that we are using as our menu.  (メニューとして使用するウィジェット インスタンスです) */
 				UPROPERTY()
 				UUserWidget* CurrentWidget;
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"
@@ -194,8 +194,8 @@ version:4.14
 			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
 			{
 				GENERATED_BODY()
-				public:
 
+			public:
 				virtual void BeginPlay() override;
 			};
 
@@ -210,8 +210,8 @@ version:4.14
 				Super::BeginPlay();
 				SetInputMode(FInputModeGameAndUI());
 			}
-			[/PARAM]
 
+	[/PARAM]
 [/OBJECT]
 
 %Steps%

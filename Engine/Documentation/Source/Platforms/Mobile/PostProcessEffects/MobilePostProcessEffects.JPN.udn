@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:3345705
-Availability:Public
-Title:モバイル プラットフォームでポストプロセス エフェクトを使う
+﻿Availability:Public
+Title:モバイル プラットフォームでのポストプロセス エフェクトの使用方法
 Crumbs:
 Description:モバイル ゲームでのポストプロセス エフェクトの使用方法
 Platform:Mobile
@@ -14,8 +13,8 @@ reference-image:Mobile_PostProcessEffect.gif
 
 [TOC(start:2)]
 
-モバイルのポストプロセスは、 PC / コンソールでのポストプロセスとは別のコードパスとして実施されます。その結果、依存するテクスチャの読み取り速度の低下、ハードウェア機能の不足、余分なレンダリング ターゲットの転換負荷、全般的なパフォーマンスの低下につながります。 
-**[Project Settings (プロジェクト設定)]** で **[Mobile HDR]** を必ず有効にしてください。以下にあげるほとんどの設定ではエフェクトを使うためにこの設定を有効にする必要があります。
+モバイルのポストプロセスは、 PC / コンソールでのポストプロセスとは別のコードパスとして実行されます。その結果、依存テクスチャの読み取り速度の低下、ハードウェア機能不足、高いレンダリング負荷、そしてパフォーマンス全般の低下につながります。 
+**[Project Settings (プロジェクト設定)]** で **[Mobile HDR]** を必ず有効にしてください。これから説明する設定では、この設定を有効にしないとエフェクトが機能しません。
 
 [region: lightbox]
 [![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
@@ -25,8 +24,8 @@ reference-image:Mobile_PostProcessEffect.gif
 クリックしてフルサイズで表示
 [/region]
 
-## モバイル デバイス用にトーンマッパを有効にする
-モバイル デバイスで Tonemapper Post Processing オプションを使うためには、**r.tonemapperfilm** の値をデフォルト値の **0** から **1** へ変更する必要があります。アンリアル エンジン (UE4) でトーンマッパの変更や有効無効の切り替えを行うには、以下の手順に従います。 
+## モバイル デバイスのトーンマッパを有効にする
+モバイル デバイスで Tonemapper Post Processing オプションを使うためには、**r.tonemapperfilm** をデフォルト値の **0** から **1** へ変更する必要があります。アンリアル エンジン (UE4) でトーンマッパの変更や有効無効の切り替えを行うには、以下の手順に従います。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -42,11 +41,11 @@ reference-image:Mobile_PostProcessEffect.gif
 トーンマッパを有効にするには、まず **Backtick key(`)** を押してコンソールを開いてから、トーンマッパを有効にする以下のコマンドを入力します。
 * **r.tonemapperfilm 1** 
 
-トーンマッパを無効にするには、コンソールを開いてトーンマッパを無効にする以下のコマンドを入力します。
+トーンマッパを無効にするには、コンソールを開いて、以下のコマンドを入力します。
 *  **r.tonemapperfilm 0** 
 
 [region:note]
-このメソッドでは、このセッションのみにトーンマッパを有効にします。常にトーンマッパを有効にしておきたい場合は、使用したいトーンマッパ設定を DefaultEngine.INI に追加する必要があります。
+このメソッドでは、このセッションのみにトーンマッパを有効にします。常にトーンマッパを有効にするには、使用するトーンマッパ設定を DefaultEngine.INI に追加する必要があります。
 [/region]
 
 [REGION:lightbox]
@@ -77,7 +76,7 @@ reference-image:Mobile_PostProcessEffect.gif
 [/REGION]
 
 ### モバイル デバイス上でトーンマッパを有効にする
-モバイル デバイス上でトーンマッパを有効にするには、**4 本の指** で同時に画面をタップして **コンソール ウィンドウ** を立ち上げ、次に **r.tonemapperfilm 1** を入力してトーンマッパを有効にする、または **r.tonemapperfilm 0** を入力してトーンマッパを無効にします。
+モバイル デバイス上でトーンマッパを有効にするには、**4 本の指** で同時に画面をタップして **コンソール ウィンドウ** を立ち上げます。有効にするには **r.tonemapperfilm 1**、無効にするには **r.tonemapperfilm 0** を入力します。
 
 [REGION:lightbox]
 [![](TM_Phone_Console.png)(w:640 h:360)](TM_Phone_Console.png)
@@ -88,7 +87,7 @@ reference-image:Mobile_PostProcessEffect.gif
 [/REGION]
 
 ## モバイルでサポートされているポストプロセス エフェクトと設定
-次のセクションでは、モバイル デバイスでサポートされているポストプロセス エフェクトと設定、およびトーンマッパを有効にする必要があるかどうかを説明します。
+次のセクションでは、モバイル デバイスでサポートされているポストプロセス エフェクトと設定方法、およびトーンマッパを有効にする必要性について説明します。
 
 [REGION:lightbox]
 [![](TM_PostProcess_Settings.png)(w:275 h:355)](TM_PostProcess_Settings.png)
@@ -225,8 +224,8 @@ reference-image:Mobile_PostProcessEffect.gif
 [/REGION]
 
 モバイル アプリケーションにエフェクトを追加するには、カスタム ポストプロセス マテリアルの開発が必要です。その際、 
-いくつか重要な点を考慮する必要があります。特に、モバイル アプリケーション向けのカスタム ポストプロセス マテリアルは、 
-以下の **Blendable Locations** で PostProcessInput0 (Scene Color) からのみフェッチ可能です。これは重要ですので留意してください。
+いくつか重要な点を考慮する必要があります。その中でも特に重要なのは、モバイル アプリケーション向けのカスタム ポストプロセス マテリアルは、 
+以下の **Blendable Locations** で PostProcessInput0 (Scene Color) からのみフェッチ可能という点です。
 
 * **Before Tonemapping**
 * **After Tonemapping**
@@ -240,7 +239,7 @@ Blendable Locations の詳細は、[](Engine/Rendering/PostProcessEffects/PostPr
 
 ![](Custom_Scene_Depth.png)
 
-この機能が正しく動作するには **Mobile HDR** を有効にしておく必要があります。Mobile HDR を有効にするには、**[Project Settings]** > **[Engine]** > **[Rendering]** > **[Mobile]** で **[Mobile HDR]** にチェックが入っていることを確認してください。
+この機能が正しく動作するためには、**Mobile HDR** を有効にしておく必要があります。Mobile HDR は、**[Project Settings]** > **[Engine]** > **[Rendering]** > **[Mobile]** で **[Mobile HDR]** にチェックが入っていれば有効です。
 
 [region: lightbox]
 [![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
@@ -251,7 +250,7 @@ Blendable Locations の詳細は、[](Engine/Rendering/PostProcessEffects/PostPr
 [/region]
 
 [region:warning]
-ただし、この機能は **Mobile MSAA** が有効にされていると正しく動作しません。デバイス上でエフェクトを表示するには Mobile MSAA を無効にしてください。
+ただし、この機能は **Mobile MSAA** が有効な場合、正しく動作しません。デバイス上でエフェクトを表示するには Mobile MSAA を無効にしてください。
 [/region]
 
 ## ポストプロセス パフォーマンス全般におけるヒント

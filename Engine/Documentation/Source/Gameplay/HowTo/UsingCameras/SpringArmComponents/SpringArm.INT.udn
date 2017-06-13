@@ -8,6 +8,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 [REGION:warning]
 You can use your own character for this tutorial provided it has a **Camera** component assigned to it. If you do not have a character, it is recommended that you complete the [](Gameplay\HowTo\UsingCameras\CameraComponents) tutorial in order to create the basic character being used in this guide first. 

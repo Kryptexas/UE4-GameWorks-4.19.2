@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability: Docs
+﻿INTSourceChangelist:3478014
+Availability: Public
 Title:3. 드래그 감지 시
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:이번 단계에서는 드래그를 감지했을 때 어떤 일이 벌어질지 구성합니다.
+SkillLevel: Intermediate
+Version: 4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:3
+checkpoint: editorqs
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-SkillLevel: Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -71,5 +78,6 @@ tags:UMG UI Designer
 또한 메인 HUD 위젯 블루프린트에 HealthBar 위젯을 추가하고 표시하도록 해 줘야 모든 것을 테스트할 수 있을 것입니다.
 
 %Steps%
+
 
 

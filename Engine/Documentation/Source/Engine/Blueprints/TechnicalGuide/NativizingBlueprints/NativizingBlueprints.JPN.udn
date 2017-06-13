@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3324139
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:ブループリントのネイティブ化
 Crumbs:
@@ -10,26 +10,27 @@ tags:Blueprints
 Skilllevel:Intermediate
 Related:Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced
 social-image:social_bp_nativization.png
+topic-image:NativizingBlueprints_topic.png
 
 [TOC(start:1 end:4)]
 
-ブループリントでゲームプレイをスクリプト化する時、ネイティブ C++ (CPP) コードを書いたりコンパイルをせずにチームは UClasses を新規作成できます。ネイティブ CPP プログラマーの専門知識がなくても使えるので、 
-ブループリントはチームで重宝されています。プログラマー以外の人がブループリントがうまく使いこなせる理由は、 
-ブループリントが仮想マシン (VM) で、ネイティブ CPP 関数の呼び出しが可能だからです。残念なことに、VM はブループリントをネイティブ CPP コードに変換するため、使用すると負荷がかかります。 
-そうすると、想像できると思いますが、Blueprint ノードからネイティブ CPP 関数への変換はフレームあたりのゲーム パフォーマンスを落としてしまう可能性があります。 
+ゲームプレイのスクリプトを作成する場合、ブループリントを使えばネイティブ C++ コードの書き出しやコンパイルをせずに UClasses を作成することが可能です。つまり、ネイティブ CPP プログラマーのような専門知識がなくても使えるので、 
+ブループリントはゲーム開発を行うチームに最適です。ブループリントは仮想マシン (VM) であり、ネイティブ CPP 関数の呼び出しが可能なため、 
+プログラマー以外の人でも問題なく使いこなせることができるのです。ただ残念なことに、ブループリントをネイティブ C++ コードに変換する VM に依存するため負荷がかかります。 
+従って、Blueprint ノードからネイティブ C++ 関数への変換はフレームあたりのゲーム パフォーマンスに影響が出ることはご想像の通りです。 
 
-ブループリントの実行負荷が VM では気にならない程度であれば VM オーバーヘッドは許容範囲ですが、 
-ゲームの実行速度をできるだけ速くしたいは (特にハードウェア性能に制限があるデバイスを出荷する時)、アンリアル エンジンの Blueprint Nativization ツールが役に立ちます。 
+ブループリントの実行負荷が VM で気にならない程度であれば VM オーバーヘッドは許容範囲となりますが、 
+ゲームの実行速度をできるだけ速くするためには (特にハードウェア性能に制限があるデバイスを出荷する時)、アンリアル エンジンの Blueprint Nativization ツールが役に立ちます。 
 
 [REGION:note]
-エピックでは、新しい VR タイトル [Robo Recall](https://www.epicgames.com/roborecall/en-US/home) の開発においてこの Blueprint Nativization ツールが大活躍しました。
+この Blueprint Nativization ツールは、エピックの新しい VR タイトル [Robo Recall](https://www.epicgames.com/roborecall/en-US/home) の開発において大活躍しました。
 [/REGION]
 
-##VM オーバーヘッドの削減
+##VM オーバーヘッドを削減する
 
-Blueprint Nativization の主な目的は、プロジェクトのブループリントからネイティブ CPP コードを生成して、プロジェクトのランタイムでの VM オーバーヘッドを削減することです。一般的に、 
-Blueprint クラスはすべて、新しく生成された CPP クラスに置き換えられ、[クック処理](Engine/Deployment/Cooking) 中にプロジェクトにコンパイルされます。 
-テキスト エディタから変換した CPP コードは読み取り可能ですが、コードのフォーマットは再利用目的はフォーマット化されていません (または「読みやすい」ようには作成されていません)。
+Blueprint Nativization の主な目的は、プロジェクトのブループリントからネイティブ C++ コードを生成して、プロジェクトのランタイムでの VM オーバーヘッドを削減することです。一般的に、 
+Blueprint クラスはすべて、新しく生成された C++ クラスに置き換えられ、[クック処理](Engine/Deployment/Cooking) 中にプロジェクトにコンパイルされます。 
+テキスト エディタから変換した C++ コードは読み取り可能ですが、コードは再利用可能なように (または「読みやすい」ように) はフォーマット化されていません。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -42,10 +43,10 @@ Blueprint クラスはすべて、新しく生成された CPP クラスに置�
 
 _Player Character プループリントとネイティブ化されたコードの比較です。_
 
-このページで、プロジェクトのブループリントのネイティブ化を始めましょう。ブループリント専用プロジェクトであれば理解しやすいです。まず始めに、 
+このページで、プロジェクトのブループリントのネイティブ化を行います。ブループリントのみプロジェクトであれば理解しやすいタスクです。まず始めに、 
 Blueprint Nativization の有効無効を切り替えるユーザー インターフェース (UI) を探しましょう。
 
-##Blueprint Nativization を無効にする
+## ブループリントのネイティブ化を有効にする
 
 プロジェクトを初めて作成する時、Blueprint Nativization はデフォルトで無効になっています。Blueprint Nativization 設定は、 
 アンリアル エディタの **[Project Settings (プロジェクト設定)]** メニューの左欄で**[Packaging]** を選択し、**[Project - Packaging]** メニューの **[Blueprints]** ドロップダウン メニューの中にあります。
@@ -74,7 +75,7 @@ Blueprint Nativization の有効無効を切り替えるユーザー インタ�
 ![](BPNativization_InclusiveUI.png)(w:900)
 
 **[Inclusive]** ネイティブ化メソッドが選択されると、 
-アンリアル エンジン ツール (UAT) は[パッケージ化プロセス](Engine/Basics/Projects/Packaging) 中にサポート対象の以下の Blueprint アセットをネイティブ化します。これは重要なことです。
+アンリアル エンジン ツール (UAT) は[パッケージ化プロセス](Engine/Basics/Projects/Packaging) 中にサポート対象の以下の Blueprint アセットをネイティブ化することに注目してください。
 
 * Blueprint クラス
 * ブループリント関数ライブラリ
@@ -85,12 +86,12 @@ Blueprint Nativization の有効無効を切り替えるユーザー インタ�
 * ユーザー定義の Enum
 
 [REGION:note]
-この時、Level ブループリントと Bluepint マクロは Blueprint Nativization ツールのサポート対象外なので、ネイティブ CPP コードには変換されません。 
+この時、Level ブループリントと Bluepint マクロは Blueprint Nativization ツールのサポート対象外なので、ネイティブ C++ コードには変換されません。 
 [/REGION]
 
 ### ブループリントを変換対象から除外する
 
-Blueprint Nativization ツールが Blueprint ノードをネイティブ CPP コードに変換すると、 
+Blueprint Nativization ツールが Blueprint ノードをネイティブ C++ コードに変換すると、 
 出来上がった実行ファイルには、変換をサポートするための端末命令、依存、埋め込みメタデータが追加されます。 
 
 [REGION:warning]
@@ -108,7 +109,7 @@ Blueprint Nativization ツールが Blueprint ノードをネイティブ CPP �
 
 ![](DefaultEngineINI.png)(w:900)
 
-Blueprint アセットはパッケージ化の処理中にネイティブ化されることに注意してください。これはとても重要です。従って、クック処理する Blueprint アセットあるいはマップを何も指定しないと、 
+Blueprint アセットは、パッケージ化プロセスの一部としてクックされる場合のみネイティブ化されることに注意してくだださい。従って、クック処理する Blueprint アセットあるいはマップを何も指定しないと、 
 アンリアル エンジンは **Content** ディレクトリの中にあるすべてのものをクックします。**Inclusive** メソッドを選択して、使っていない Blueprint がネイティブ化されていたら、 
 **[Exclusive]** Blueprint Nativization Method を選択した方がよいかもしれません。
 
@@ -131,10 +132,10 @@ Blueprint アセットはパッケージ化の処理中にネイティブ化さ�
 * ループの最適化が必要なブループリント
 * 複雑な演算処理を実行するブループリント 
 
-###ネイティブ化するブループリントの選択
+###ネイティブ化するブループリントを選択する
 
 [REGION:note]
-Blueprint アセットを含むプロジェクトを作っていない場合、いずれかのプロジェクト テンプレートを使用して新規作成してください。ここでは図説に便利な  
+Blueprint アセットを含むプロジェクトを作っていない場合、いずれかのプロジェクト テンプレートを使用して新規作成してください。ここでは説明しやすいように  
 **Puzzle** Project テンプレートを使用しています。
 [/REGION]
 
@@ -188,7 +189,6 @@ Blueprint アセットを含むプロジェクトを作っていない場合、�
 
 	[REGION:caption]
 		クリックしてフルサイズで表示
-
 	[/REGION]
 
 	この配列には、ネイティブ化を明示的に選択できる Blueprint アセットのリストが入ります。
@@ -254,7 +254,11 @@ Blueprint アセットを含むプロジェクトを作っていない場合、�
 		クリックしてフルサイズで表示
 	[/REGION]
 
-これで **Exclusive** Blueprint Nativization Method を使ったプロジェクトのクックとパッケージ化処理の準備ができました。 
+これで **Exclusive** Blueprint Nativization Method を使ったプロジェクトのクックとパッケージ化処理の準備ができました。
+
+[REGION:note]
+ネイティブ化するブループリントをビルドするために必要なすべてのサポート対象の依存性もネイティブのためにフラグ付けされることに注目してください。 
+[/REGION]
 
 ##ネイティブ コードの場所
 
@@ -274,6 +278,6 @@ Blueprint アセットを含むプロジェクトを作っていない場合、�
 	クリックしてフルサイズで表示
 [/REGION]
 
-このフラグは、コマンド ラインからプロジェクトをビルド / クックできる上級ユーザー向けです (サーバー側のビルド エンジニアなど)。**[Project Settings]** メニューでネイティブ化が有効になっている時にこのフラグも有効にすると、 
-コマンドラインからネイティブ化フラグを使用してビルド / クックを行わないと基本的には警告が出されます。コマンドラインからネイティブ化スイッチを使う方法は、 
+このフラグは、コマンド ラインからプロジェクトをビルド / クックできる上級ユーザー向けです (サーバー側のビルド エンジニアなど)。**[Project Settings]** メニューでネイティブ化を有効にしている間にこのフラグを有効にすると、 
+コマンドラインからネイティブ化フラグを使用せずにビルド / クックを実行した時に通常は警告が出されます。コマンドラインからネイティブ化スイッチを使用する方法については、 
 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) を参照してください。

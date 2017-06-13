@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3481084
 Availability:Public
-Title: マテリアル エディタ UI
+Title:マテリアル エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
 Description:マテリアル エディタ UI のユーザーガイド
 Version:4.9
+tags:Materials
 
 
 [TOC(start:2)]
@@ -12,7 +13,33 @@ Version:4.9
 
 マテリアルエディタ UI は、メニューバー、ツールバー、そしてデフォルト設定では 4 つのオープンパネルで構成されています。
 
-![](UpdatedUI.jpg)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 1. [メニューバー](#メニューバー) - 現在のマテリアルのメニューオプションをリスト表示します。
 1. [ツールバー](#ツールバー) - マテリアルの作業に使用するツールを収容しています。
@@ -21,12 +48,12 @@ Version:4.9
 1. [グラフパネル](#グラフパネル) - マテリアルのシェーダー命令を作成するマテリアル式と関数ノードを表示します。
 1. [パレットパネル](#パレットパネル) - 利用可能なマテリアル式と関数ノード全てをリスト表示します。
 [REGION:note]
-HLSL コードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、**[Window]** メニューで **[HLSLコード]** をクリックします。詳細は、[HLSLコードパネル](#HLSLコードパネル) を参照してください。
+HLSL コードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、**[Window]** メニューで **[HLSL Code]** をクリックします。詳細は、[HLSLコードパネル](#HLSLコードパネル) を参照してください。
 [/REGION]
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems#UITabTips]
 
-##メニューバー
+## メニューバー
 
 ### ファイル
 
@@ -68,13 +95,13 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 | --- | --- |
 | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
 | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
-| ![toolbar_apply.png](toolbar_apply.png)| マテリアルエディタで行った変更を、オリジナルのマテリアルとワールドでこのマテリアルを使用している箇所へ適用します。|
+| ![toolbar_apply.png](toolbar_apply.png)| ツールバー上の [Apply] ボタンでマテリアルエディタで行った変更を、オリジナルのマテリアルとワールドでこのマテリアルを使用している箇所へ適用します。 |
 |![toolbar_search.png](Material_Toolbar_Button_Search.png) | 現在のマテリアルの表現式とコメントを検索します。 |
 | ![toolbar_home.png](toolbar_home.png)| ベースのマテリアル ノードを **[Graph (グラフ)]** パネルの中央に置きます。 |
 | ![toolbar_clean.png](toolbar_clean.png)| マテリアルと接続していないマテリアルノードを全て削除します。|
 | ![toolbar_show.png](toolbar_show.png)| 何にも接続していないマテリアルノードを表示または非表示にします。|
-| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| 有効になると、それぞれのマテリアルノードのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。[Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#ライブノードとライブアップデート) セクションも参照してください。|
-| ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|有効になると、ノードが追加、削除、接続、非接続、またはプロパティ値に変更があるたびに全ての副次式のシェーダーがコンパイルされます。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。[Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#ライブノードとライブアップデート) セクションも参照してください。|
+| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| 有効になると、それぞれのマテリアルノードのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。[Live Preview、Live Nodes、Live Update](Engine/Rendering/Materials/Editor/#LivePreview、LiveNodes、LiveUpdate) セクションも参照してください。|
+| ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|有効になると、ノードが追加、削除、接続、非接続、またはプロパティ値に変更があるたびに全ての副次式のシェーダーがコンパイルされます。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。[Live Preview、Live Nodes、Live Update](Engine/Rendering/Materials/Editor/#LivePreview、LiveNodes、LiveUpdate) セクションも参照してください。|
 | ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| **[Graph (グラフ)]** パネルにマテリアル統計値を表示または非表示にします。 |
 | ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| 統計情報の報告に使用するリリースまたは開発シェーダーを切り替えます。 |
 | ![toolbar_built_in_stats](Material_Toolbar_Button_Built_In_Stats.png)| 空のマテリアルの統計情報の表示を切り替えます。グラフでコスト変更の特定に役立ちます。|
@@ -115,7 +142,7 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 このパネルは、現在選択されているマテリアル式と関数ノード全てのプロパティ ウィンドウを収容しています。ノードが何も選択されていない場合、 
 編集中のプロパティが表示されます。
 
-全マテリアルプロパティの説明は、 [](Engine/Rendering/Materials/MaterialProperties) 
+すべてのマテリアル プロパティの説明は、[](Engine/Rendering/Materials/MaterialProperties) 
  を参照してください。
 
 ## グラフ パネル
@@ -127,7 +154,7 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 
 ![Material Editor Material Node](MaterialEditor_MaterialNode.png)
 
-ベースとなるマテリアル ノードの各種入力に関する詳細は、 [](Engine/Rendering/Materials\MaterialInputs) を 
+ベースとなるマテリアル ノードの各種入力に関する詳細は、[](Engine/Rendering/Materials\MaterialInputs) を 
 参照してください。
 
 ## パレット パネル
@@ -146,7 +173,7 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 
 ![](StatsPanel.jpg)
 
-マテリアルで使用されているシェーダー インストラクション数だけでなく、[コンパイラーエラー](Engine/Rendering/Materials/Editor/#コンパイラエラー) もこのパネルに表示されます。シェーダー インストラクション数が少ないほど、マテリアルの処理コストが低下します。ベースとなる 
+マテリアルで使用されているシェーダー インストラクション数だけでなく、[コンパイル エラー](Engine/Rendering/Materials/Editor/#コンパイルエラー) もこのパネルに表示されます。シェーダー インストラクション数が少ないほど、マテリアルの処理コストが低下します。ベースとなる 
 マテリアルノードに接続していないマテリアル式ノードは、 
 マテリアルのインストラクション数 (コスト) にはカウントされません。
 
@@ -167,7 +194,7 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 ## グラフ制御
 
 マテリアルエディタの制御です。アンリアルエディタの別のツール制御とほとんどの場合一致します。例えば、 
-マテリアル式グラフをその他とリンクしたオブジェクトエディタのようにナビゲートしたり、マテリアルプレビューメッシュをその他のメッシュツールのように 
+マテリアル式グラフをその他とリンクしたオブジェクト エディタのようにナビゲートしたり、マテリアル プレビュー メッシュをその他のメッシュ ツールのように 
 位置づけたりすることができます。
 
 
@@ -186,10 +213,10 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 | **コネクターをマウスの左ボタンでドラッグ** | 接続を作成します (コネクタを解放)  |
 | **接続からマウスの左ボタンをドラッグ** | 接続を移動します (同一タイプのコネクタを解放)  |
 | **Shift + コネクタの上でマウスの左ボタンをクリック**  | コネクタに印をつけます。印をつけたコネクタにアクションをもう一度実行すると、2 つのコネクタ間に接続が作成されます。距離が離れているノード間の接続を最も速く作成する方法です。 |
-| **背景でマウスの右ボタンをクリック**  | **[New Expression]*** メニューを開きます  |
+| **背景でマウスの右ボタンをクリック**  | **[New Expression]** メニューを開きます  |
 | **オブジェクトで右マウスボタンをクリック**  | **[Object (オブジェクト)]** メニューを開きます  |
 | **コネクタでマウスの右ボタンをクリック**  | **[Object (オブジェクト)]** メニューを開きます  |
-| **Alt + コネクタでマウスの左ボタンをクリック**  | コネクターの接続全てを切断します  |
+| **Alt + コネクタでマウスの左ボタンをクリック**  | コネクタのすべての接続を切断します  |
 
 
 ### キーボードの操作
@@ -204,7 +231,7 @@ HLSL コードパネルもありますが、デフォルトでは非表示にな
 | **Ctrl + Y** | やり直し  |
 | **Ctrl + Z**  | 元に戻す  |
 | **Delete**  | 選択対象を削除します。  |
-| **Spacebar**  | マテリアル表現式のプレビューを強制的に全て更新します |
+| **Spacebar**  | マテリアル表現式のプレビューをすべて強制的に更新します |
 | **Enter**   | (クリックして「適用」と同じです) |
 
 

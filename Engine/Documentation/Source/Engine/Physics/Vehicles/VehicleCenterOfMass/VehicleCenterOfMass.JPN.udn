@@ -1,45 +1,53 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Vehicle Center of Mass
-Description: An overview of how Center of Mass works with Vehicles.
-Type: Reference
-Parent: Engine/Physics/Vehicles/
+﻿INTSourceChangelist:3469385
+Crumbs:%ROOT%
+Title:ビークルの重心
+Description:重心がビークルに及ぼす作用の概要
+Availability:public
+Type:Reference
+Version:4.15
+Parent:Engine/Physics/Vehicles/
 Order: 
-Version: 4.15
-Tags: Vehicles
-SkillLevel: Beginner
+Tags:Vehicles
 
 
-Weight distribution of a vehicle is important to its control by affecting a variety of its characteristics, like handling, acceleration, and traction. 
-Different vehicle types will require different weight distributions depending on their intended use. For the purposes of game development, these characteristics 
-can also define what style of game you’re making, whether that is an arcade-style racer, a simulation, or even a hybrid of the two. **Center of Mass**, in real
-life and simulated ones, enables you to shift part of this control in handling, acceleration, and traction based on the weight distribution of the vehicle. 
+[TOC (start:1)]
 
-In games, the primary use of Center of Mass is for vehicles, but it can also be used for large Physics Bodies that encompass an irregular shape. In your 
-[Physics Asset](Engine/Physics/PhAT), you will often use one large Physics Body to define the majority of the Mass for the vehicle or large object. The 
-Center of Mass will be generated at the center of this Physics Body, which can make the vehicle handle oddly, so you can adjust the Center of Mass to 
-account for where the mass of the vehicle is really located. 
+ビークルのウェイト分布は、制御上重要です。ハンドリング、加速、トラクションなどの様々な特性に影響を及ぼすからです。ビークルの種類が違うと、用途に応じて異なる重心分布が必要になります。ゲーム制作では、こうした特性によって制作しているゲームのスタイルが決まります。アーケード スタイルのレーシング ゲーム、シミュレーター、またはこの 2 つを組み合わせたものなどがあります。**Center of Mass (重心)** を変更すると、ビークルのウェイト分布を変更することができます。
 
-[![](CenterOfMass.png)(w:400)](CenterOfmass.png)
+ゲームでは、重心の主な用途はビークルですが、不規則な形状を囲む大きな物理ボディに対しても使用することができます。[Physics アセット](Engine/Physics/PhAT) では、 
+ひとつの大きな物理ボディを使って、ビークル (または大きなオブジェクト) の質量の大部分を定義することが多いでしょう。重心は 
+こうした物理ボディの中心で生成されますが、ビークルの操作が不自然になることがあります。そのため、ビークルの質量が実際にある場所を考慮して 
+重心を調整します。 
 
-Depending on where the Center of Mass is located for your vehicle, you can shift it to be predominantly front-heavy where the vehicle will have a tendency to 
-**understeer** causing it to not turn enough when going around corners, or the vehicle can be rear-heavy causing it to **oversteer** where it will 
-turn more sharply than intended. In most cases, it is ideal to find a neutral balance for your center of mass so that the vehicle is more easily controlled. 
+[![](CenterofMass.png)(w:400)](CenterofMass.png)
 
+##アンダーステアリングとオーバーステアリング
+
+重心の位置に応じて、主に前側を重くするようにシフトし、ビークルが **アンダーステアリング** (コーナーを回るときに十分に曲がらない) 傾向を持つようにしたり、主に後部側を重くするようにして、**オーバーステアリング** (意図したよりも曲がる) 傾向になるようにします。ほとんどの場合、ビークルの制御が簡単になるように重心のニュートラル バランスを見つけるのが理想です。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Understeering](Understeering.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Oversteering](Oversteering.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+<!---
 [REGION:imagetable]
 | ![Understeer](Understeering.png)(w:450) | ![Oversteer](Oversteering.png)(w:450) |
 | --- | --- |
 | Understeer | Oversteer |
 [/REGION]
+--->
 
-Also, when you consider where to place the Center of Mass, it can have an effect on how your vehicle handles in the air. In this example, the Center of Mass has been
-lowered and moved closer to the rear of the car. Since it's low to the ground and can get to high speed quickly, the lower rear center of mass helps stabilize the car, especially
-with jumps!
+重心をどこに置くかを検討する場合、ビークルが宙に浮いたときの処理に影響を及ぼすことを覚えておいてください。この例では重心は低くなっていて車の後部に近くなっています。地面から低いため、簡単に高速になり、重心が後部の低い場所にあるということは車を安定させます。特にジャンプの場合はそうです。
 
 [REGION:imagetable]
 | [INCLUDE:#originalCoM] | [INCLUDE:#adjustedCoM] |
 | --- | --- |
-| blah | blah2|
+| 重心:X:0, Y:0, Z:0 | 重心:X: -25, Y:0, Z: -10 |
 [/REGION]
 
 <!--- 
@@ -73,17 +81,19 @@ with jumps!
 [/EXCERPT:adjustedCoM]
 --->
 
-## Debugging Center of Mass
+## 重心のデバッグ
 
-To help you better debug mass properties  and inertia tensor associated with physics object while in the Level Editor, you can enable the showflag 
-by going to **Show** > **Advanced** > **Mass Properties**. 
+レベル エディタで物理オブジェクトに関連する質量のプロパティと慣性テンソルをデバッグするために **[Show** > **Advanced** > **Mass Properties]** の順に進んで `Show` フラグを有効にします。 
 
-[REGION:imagetable]
-| ![](VehicleCoM1.png)(w:500) | ![](VehicleCoM2.png)(w:500) |
-| --- | --- |
-| CoM: X: 0, Y: 0, Z: 0 | CoM: X: -25, Y: 0, Z: -10 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Center of Mass: X: 0, Y: 0, Z: 0](VehicleCoM1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Center of Mass: X: -25, Y: 0, Z: -10](VehicleCoM2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-The thickness of each axis indicates the moment of inertia magnitude along that axis. 
+各軸の太さは軸に沿った慣性モーメントの大きさを示しています。 
 
 

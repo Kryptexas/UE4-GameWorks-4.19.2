@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3264165
+﻿INTSourceChangelist:3467293
 availability:Public
 title: 렌더 타겟
 description:언리얼 엔진 4 에서 렌더 타겟 사용하는 법입니다.
@@ -9,6 +9,7 @@ parent:Engine/Rendering
 order:7
 Navigation:topic
 tags: Render Targets
+topic-image:RenderTargets_topic.png
 
 ![](BlueprintRenderTarget.png)
 

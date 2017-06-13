@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3231203
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:애니메이션 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,6 +10,7 @@ version: 4.14
 type:overview
 topic-image:AnimationToolsTopic.png
 tags:Animation
+tags:Getting Started
 
 
 [TOC(start:2 end:2)]
@@ -28,116 +29,63 @@ tags:Animation
 먼저 UE4 의 애니메이션 시스템에 대한 주요 용어와 개념을 알아보는 것으로 시작하겠습니다 (각 제목을 클릭하면 상세 문서를 확인할 수 있습니다):
 
 (#Skeleton)
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationToolsTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Persona/Modes)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:Engine/Animation/Persona/Modes]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Persona/Modes:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Skeleton)
-	[/PARAM]
-	[PARAM:description]
-		**Skeleton** (스켈레톤) 이란 계층으로 나타낸 본의 위치와 회전값으로, 스켈레탈 메시의 변형(deform)에 사용됩니다. UE4 에서의 스켈레톤은 스켈레탈 메시에서 별도의 애셋으로 추출해 내었습니다. 즉 애니메이션은 스켈레탈 메시가 아니라 스켈레톤에 저장된다는 뜻입니다. 같은 스켈레톤을 사용하면 다수의 스켈레탈 메시에 애니메이션을 공유할 수 있습니다.
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Persona/Modes:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationSeqTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Persona/Modes#overview]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimNotifiesTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences/Notifies)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Skeleton:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationBlueprintTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Skeleton:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](BlendSpaceTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Blendspaces)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Blendspaces#Intro]
-	[/PARAM]
-[/OBJECT]
+**Skeleton** (스켈레톤) 이란 본의 위치와 회전값을 계층구조로 나타낸 것으로, 스켈레탈 메시의 변형(deform)에 사용됩니다. UE4 에서 스켈레톤은 스켈레탈 메시에서 추출하여 별도의 애셋으로 만들었습니다. 즉 애니메이션은 스켈레탈 메시가 아니라 스켈레톤에 저장된다는 뜻입니다. 같은 스켈레톤을 사용하면 한 애니메이션을 다수의 스켈레탈 메시에 공유할 수 있습니다.
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](MontageTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimMontage)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimMontage#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Sequences:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonControlTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/NodeReference/SkeletalControls)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Sequences:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](StateMachineTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/StateMachines)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/StateMachines#overview]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Sequences#Intro]
+
+### %Engine/Animation/Sequences/Notifies:title%
+
+%Engine/Animation/Sequences/Notifies:topiccompact%
+
+[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+
+### %Engine/Animation/AnimBlueprints:title%
+
+%Engine/Animation/AnimBlueprints:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+### %Engine/Animation/Blendspaces:title%
+
+%Engine/Animation/Blendspaces:topiccompact%
+
+[INCLUDE:Engine/Animation/Blendspaces#Intro]
+
+### %Engine/Animation/AnimMontage:title%
+
+%Engine/Animation/AnimMontage:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimMontage#Intro]
+
+### %Engine/Animation/NodeReference/SkeletalControls:title%
+
+%Engine/Animation/NodeReference/SkeletalControls:topiccompact%
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+
+### %Engine/Animation/StateMachines:title%
+
+%Engine/Animation/StateMachines:topiccompact%
+
+[INCLUDE:Engine/Animation/StateMachines#Intro]
+
 
 [REGION:note]
-일부 애니메이션 기능에 대한 예제는 에픽 게임스 런처의 **학습 탭** 에서 무료로 받을 수 있는 [Content Examples](Resources/ContentExamples/) (콘텐츠 예제) 프로젝트에서도 확인할 수 있습니다.
+일부 애니메이션 기능에 대한 예제는 에픽 게임즈 런처의 **학습 탭** 에서 무료로 받을 수 있는 [Content Examples](Resources/ContentExamples/) (콘텐츠 예제) 프로젝트에서도 확인할 수 있습니다.
 [/REGION]
 
 ## 시스템 분해도

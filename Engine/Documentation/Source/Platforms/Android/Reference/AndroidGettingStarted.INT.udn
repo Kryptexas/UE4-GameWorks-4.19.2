@@ -2,7 +2,7 @@
 Title: Android Development Reference
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:How to install different Android SDKs, set environment variables, and work with texture formats.
-Version: 4.12
+Version: 4.16
 SkillLevel: Intermediate
 Parent:Platforms/Android
 tags:Mobile
@@ -51,7 +51,7 @@ Here is what we currently require for Android game development in UE4:
 
 There are several methods for getting the components. If you have already installed one of these, look in the corresponding section for additional requirements:
 
-### CodeWorks for Android 1R4
+### CodeWorks for Android 1R6
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
 	OS
@@ -84,20 +84,22 @@ There are several methods for getting the components. If you have already instal
 <!--
 [EXCERPT:TADPWindowsSetup]
 
-CodeWorks for Android 1R4 (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R6 (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6, all of your requirements to develop for Android will be met.
 
-The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Windows. It can be found here: 
+The installer for CodeWorks for Android 1R6 is included with Unreal Engine 4 for Windows. It can be found here: 
 
-	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R4-windows.exe
+	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\CodeWorksforAndroid-1R6-windows.exe
 
 The important pieces are:
 
 * Android SDK (Base, Platform Tools, Build Tools)
 * Android 4.4.2 (API 19) - SDK Platform
 * Android 5.0.1 (API 21) - SDK Platform
+* Android 6.0.0 (API 23) - SDK Platform
+* Android N     (API 24) - SDK Platform
 * Android SDK Support Library
 * Android Toolchain 
-	* Android NDK 11c
+	* Android NDK 12b
 	* Java SDK
 	* Apache Ant
 	* USB Driver
@@ -109,7 +111,7 @@ The important pieces are:
 	
 If you use the default installation set, a pretty minimal set of components will be installed. If you customize the install, you can add more items (like profilers, etc). Note that during installation, 
 one or two of the sub-installers may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes. If you never plan to write code, you may want to 
-select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R4 is used for debugging an Android game on a device. 
+select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6 is used for debugging an Android game on a device. 
 It is not required to compile C++ code.
 
 ![](TADPSetup.png)
@@ -117,20 +119,22 @@ It is not required to compile C++ code.
 [/EXCERPT:TADPWindowsSetup]
 
 [EXCERPT:TADPMacOSSetup]
-CodeWorks for Android 1R4, (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R4, all of your requirements to develop for Android will be met.
+CodeWorks for Android 1R6, (by NVIDIA) is a one-stop shop for Android development needs. If you install CodeWorks for Android 1R6, all of your requirements to develop for Android will be met.
 
-The installer for CodeWorks for Android 1R4 is included with Unreal Engine 4 for Mac and can be found here: 
+The installer for CodeWorks for Android 1R6 is included with Unreal Engine 4 for Mac and can be found here: 
 
-	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R1-osx.dmg
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/AndroidWorks-1R6-osx.dmg
 
 The important pieces are:
 
 * Android SDK (Base, Platform Tools, Build Tools)
 * Android 4.4.2 (API 19) - SDK Platform
 * Android 5.0.1 (API 21) - SDK Platform
+* Android 6.0.0 (API 23) - SDK Platform
+* Android N     (API 24) - SDK Platform
 * Android SDK Support Library
 * Android Toolchain 
-	* Android NDK 11c
+	* Android NDK 12b
 	* Java SDK
 	* Apache Ant
 	* USB Driver
@@ -142,7 +146,7 @@ The important pieces are:
 
 If you use the default installation set, a pretty minimal set of components will be installed. 
 If you customize the install, you can add more items (like profilers, etc). Note that during installation, one or two of the sub-installer may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes on some computers. 
-If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsigh debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R4 is used for debugging an Android game on a device so it is not required to compile C++ code.
+If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of CodeWorks for Android 1R6 is used for debugging an Android game on a device so it is not required to compile C++ code.
 
 ![](TADP_Mac_OS.png)
 
@@ -187,10 +191,10 @@ If you never plan to write code, you may want to select **Customize**, and only 
 <!--
 [EXCERPT:ENVWindowsSetup]
 
-Unless you installed CodeWorks for Android 1R4 from the provided UE4 installer, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R6 from the provided UE4 installer, you will need to verify that some environment variables are set properly. 
 
 [REGION:note]
-Once you have completed the installation (either by setting environment variables in the System Control Panel or by installing CodeWorks for Android 1R4), you will need to restart both the Editor and Launcher 
+Once you have completed the installation (either by setting environment variables in the System Control Panel or by installing CodeWorks for Android 1R6), you will need to restart both the Editor and Launcher 
 applications. This is due to how Windows applications store environment variables and then pass the old versions along to applications they start. 
 
 If you continue seeing the message about the Android SDK not being installed properly, it is recommended that you reboot your computer.
@@ -216,7 +220,7 @@ Here are the variables that we depend on, and where they should point:
 * It must contain a directory called `platform-tools`.
 
 **JAVA_HOME**
-* Set this to where the JDK is installed. It will probably be called something like `jdk1.6.0_24`.
+* Set this to where the JDK is installed. It will probably be called something like `jdk1.8.0_121`.
 * It must contain a directory called `bin` with `javac.exe` in it.
 
 **ANT_HOME**
@@ -230,11 +234,11 @@ Here are the variables that we depend on, and where they should point:
 [/EXCERPT:ENVWindowsSetup]
 
 [EXCERPT:ENVMacOSSetup]
-Unless you installed CodeWorks for Android 1R4, you will need to verify that some environment variables are set properly. 
+Unless you installed CodeWorks for Android 1R6, you will need to verify that some environment variables are set properly. 
 
-[region:note]
-Once you have completed the installation (either by editing your .bash_profile file or by installing CodeWorks for Android 1R4), you will need to restart both the Editor and Launcher applications.
-[/region]
+[REGION:note]
+Once you have completed the installation (either by editing your .bash_profile file or by installing CodeWorks for Android 1R6), you will need to restart both the Editor and Launcher applications.
+[/REGION]
 
 To set an environment variable you need to edit the **.bash_profile** file in your home directory. 
 The file is hidden in Finder, so you’ll need to use Terminal to open it for editing. 
@@ -246,7 +250,7 @@ If you’re not familiar with Unix terminal commands please do the following.
 1. Copy the following lines to the file (replacing paths to point to where you installed SDK and tools) and save it:
 
 	* export ANDROID_HOME="/Users/epicgames/Devel/NVPACK/android-sdk-macosx"
-	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r11c"
+	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r12b"
 	* export ANT_HOME="/Users/epicgames/Devel/NVPACK/apache-ant-1.8.2"
 
 Here are the name of the variables that we depend on and where they should point to.
@@ -258,7 +262,7 @@ Here are the name of the variables that we depend on and where they should point
 	* Set this to where you unzipped Ant.
 	* It must contain a directory called bin with a file called ANT in it.
 * **NDKROOT** 
-	* Set this to where you unzipped the NDK and look for something similar to **android-ndk-r11c**.
+	* Set this to where you unzipped the NDK and look for something similar to **android-ndk-r12b**.
 	* It must contain a file called **ndk-build**.
 
 [/EXCERPT:ENVMacOSSetup]
@@ -358,11 +362,11 @@ compressed formats, you have a choice of what format you want to be cooked. In t
 The first one (**Android**) actually takes all formats and puts them into the cooked packages. This will take longer, and will make larger packages, but will guarantee the minimal memory usage by choosing 
 the best format at runtime. It will work on any device (as will **Android (ETC1)**).
 
-[region:note]
+[REGION:note]
 Unreal Engine version 4.8 and later will now support the use of **ES31** and **AEP** rendering on Tegra K1 devices. 
 Please note that due to the limited number of devices that currently support ES31 and AEP rendering, very little performance and compatibility testing has been completed at this time.
 If you are developing a project that is aimed at using one of these devices, it is highly recommended that you perform extensive performance and compatibility testing to ensure that the device delivers your project in the manner you intended. 
-[/region]
+[/REGION]
 
 ### Choosing a Format
 You most likely will want to choose an optimal format for your device. If you know the type of GPU in your device, you can look at the table above to choose a format. However, if you do not know, then you can choose **Android** or **Android (ETC1)**. When you run the game, if you tap the screen with 4 fingers at once, a dialog will pop up. This dialog is usually used to enter a console command (like `stat fps`), but it will also display the formats that your device supports. Once you have that list, you can use that to choose an ideal type when deploying/packaging. If you choose a format that your device does not support, it will fail to load. 

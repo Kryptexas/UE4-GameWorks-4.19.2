@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3356804
-Availability: Public
+﻿INTSourceChangelist:3358550
+Availability:Docs
 Title: BuildGraph 스크립트 태스크
 Crumbs:
 Description: BuildGraph 로 커스텀 태스크를 쉽게 만드는 법을 배워봅니다.
 version: 4.13
 parent:Programming/Development/BuildGraph
-type:Reference
+type:overview
 tags:Programming
 tags:BuildGraph
 

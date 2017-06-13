@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:C++ 클래스 마법사
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:UE4 의 C++ 클래스 마법사 개요입니다.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development/ManagingGameCode
+Order:
+type:overview
 
 %Globals:OSSelect%
 
@@ -14,7 +17,7 @@ _C++ 클래스 마법사_ (C++ Class Wizard)는 자신만의 함수성을 원하
 클래스를 쉽고 빠르게 추가시켜 줍니다. 콘텐츠 전용 프로젝트를 코드 프로젝트로 변환해 주기도 하구요. C++ 클래스 마법사를 여는 방법은 다음과 같습니다:
 
 [REGION:note]
-계속하기 전, 윈도우에서는 Visual Studio 2013 Professional / Express for Windows Desktop 버전이 설치되었는지, 맥에서는 Xcode 가 설치되었는지 확인해 주시기 바랍니다.
+윈도우에서는 Visual Studio 2015 이상, 맥에서는 Xcode 8 이상 버전이 설치되었는지 확인해 주시기 바랍니다.
 [/REGION:note]
 
 
@@ -52,7 +55,7 @@ _C++ 클래스 마법사_ (C++ Class Wizard)는 자신만의 함수성을 원하
 		active_button_content
 		[/PARAMLITERAL]
 		[PARAM:content]
-		코드가 _Visual Studio 2013_ 에서 바로 편집 가능한 상태로 열릴 것입니다.
+		코드가 Visual Studio 에서 바로 편집 가능한 상태로 열릴 것입니다.
 	
 		![](CodeEditing.png)
 

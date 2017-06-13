@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3285322
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 애니메이션 리타게팅 (다른 스켈레톤)
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:스켈레톤이 다른 경우에 사용하는 애니메이션 리타게팅 입니다.
 Version: 4.9
+Topic-image:AnimRetargetingDiffSkeleton_topic.png
 
 [REGION:fullwidth]
 ![](Retarget1_1.jpg)

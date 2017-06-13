@@ -1,15 +1,19 @@
-﻿INTSourceChangelist:3281495
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:インターフェース
-Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Crumbs:
 Description:インターフェースの作成および実装に関するリファレンス
-Tags:Programming
+tags:Programming
 Version:4.14
+Parent:Programming/UnrealArchitecture/Reference
+Order:
+SkillLevel:Intermediate
+Type:overview
 
 [TOC(start:2)]
 
 
-Interface クラスを使うと、関連性のない一連のクラスに共通の関数を確実に実装しやすくなります。あるゲーム機能が、それ以外は類似性がない大きく複雑なクラスによって共有される場合に非常に便利です。例えば、ゲームではトリガー ボリュームに入るとトラップがアクティベートし、敵が警戒したり、プレイヤーにポイントを報酬として与えるなどのシステムがあります。これはトラップ、敵、ポイント付与の "ReactToTrigger" 関数によって実装されることがあります。ただし、トラップは `AActor`から、敵は特殊な `APawn` または `ACharacter`サブクラスから、ポイント付与は `UDataAsset` から派生することがあります。こうしたクラスはすべて共有の機能を必要としますが、`UObject` 以外は共通の 祖先 (ancestor) がありません。この場合、インターフェースをお勧めします。
+Interface クラスは関連性のない一連のクラスが共通の関数を確実に実装するために役立ちます。これはあるゲーム機能が、それ以外は類似性がない大きく複雑なクラスによって共有される場合に非常に便利です。例えば、ゲームではトリガー ボリュームに入るとトラップがアクティベートし、敵が警戒したり、プレイヤーにポイントを報酬として与えるなどのシステムがあります。これはトラップ、敵、ポイント付与の "ReactToTrigger" 関数によって実装されることがあります。ただし、トラップは `AActor`から、敵は特殊な `APawn` または `ACharacter`サブクラスから、ポイント付与は `UDataAsset` から派生することがあります。こうしたクラスはすべて共有の機能を必要としますが、`UObject` 以外は共通の 祖先 (ancestor) がありません。この場合、インターフェースをお勧めします。
 
 ## インターフェースの宣言
 
@@ -40,16 +44,16 @@ Interface クラスを使うと、関連性のない一連のクラスに共通�
 		GENERATED_BODY()
 
     public:
-		/** React to a trigger volume activating this object.Return true if the reaction succeeds. */
-        UFUNCTION(BlueprintCallable, BlueprintCallable, Category="Trigger Reaction")
+		/** React to a trigger volume activating this object. (このオブジェクトをアクティベートするトリガー ボリュームに反応。) Return true if the reaction succeeds. (反応が成功したら true を戻す。)  */
+        UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category="Trigger Reaction")
         bool ReactToTrigger() const;
     };
 
-関数は直接ヘッダー ファイルに書き込まれますが、これは関数がデフォルトで行われるか、または false、ゼロ、空の文字列、または類似のものを戻すなどの自明なビヘイビアを持つ場合に行われます。より複雑な関数は、コンパイル時間を短縮するために .cpp ファイルに書き込まれます。純粋仮想関数がサポートされています。サンプルの関数は自明であり、ヘッダー ファイルに書き込むことができますが、.cpp ファイルに書き込みます。.cpp ファイル (例、 `ReactToTriggerInterface.cpp`) には以下が含まれます。:
+関数は直接ヘッダー ファイルに書き込まれますが、これは関数がデフォルトで行われるか、または false、ゼロ、空の文字列、または類似のものを戻すなどの自明なビヘイビアを持つ場合に行われます。コンパイル時間を短縮するためにより複雑な関数を、 .cpp ファイルに書き込むことができます。純粋仮想関数がサポートされます。サンプルの関数は自明であり、ヘッダー ファイルに書き込むことができますが、.cpp ファイルに書き込みます。.cpp ファイル (例、 `ReactToTriggerInterface.cpp`) には以下が含まれます。:
 
     #include "ReactToTriggerInterface.h"
-
 	bool IReactToTriggerInterface::ReactToTrigger() const
+
 	{
 		return false;
 	}

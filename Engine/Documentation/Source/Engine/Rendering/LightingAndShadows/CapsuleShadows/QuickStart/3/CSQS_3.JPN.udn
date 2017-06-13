@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3348703
-Availability:Docs
+﻿INTSourceChangelist:3454749
+Availability:Public
 Title:3 - キャラクターの作成 - 物理アセットを割り当てる
 Crumbs:
 Description:このステップでは、この新しい物理アセットをスケルタルメッシュ キャラクターに割り当てます。 
@@ -19,7 +19,7 @@ tags:Lighting
 
 ## ステップ
 
-1. **コンテンツ ブラウザ** の中にフォルダ階層を使って **「Mannequin」** > **「Mesh」** フォルダを開きます。**SK_Mannequin** アセットを選択しダブルクリックして開きます。 
+1. **コンテンツ ブラウザ** の中にフォルダ階層を使って **[Mannequin]** > **「Mesh」** フォルダを開きます。**SK_Mannequin** アセットを選択しダブルクリックして開きます。 
 
 	![](CB_Mannequin.png)(w:400)
 

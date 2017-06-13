@@ -2,6 +2,7 @@ Availability:Public
 Title:4. Deploy Your Level
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Launch your level with one-click deploying.
+version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -54,16 +55,22 @@ The chart below shows you which Texture formats work with which Android based de
 
 1. While your level is being launched on your device the progress will be displayed in the bottom right-hand corner of the screen. 
  When the project has been successfully deployed to your device you will see a message telling you so.
-
+	
 	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		afagQeEvf4Q
+		[/PARAMLITERAL]
 		[PARAMLITERAL:width]
 		640
 		[/PARAMLITERAL]
 		[PARAMLITERAL:height]
 		360
 		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		afagQeEvf4Q
+		[PARAMLITERAL:units]
+		px
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
 		[/PARAMLITERAL]
 	[/OBJECT]
 

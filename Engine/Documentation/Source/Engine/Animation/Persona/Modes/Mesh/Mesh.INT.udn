@@ -1,17 +1,21 @@
-Availability: Public
-Title:Skeletal Mesh Editor
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Title:Skeletal Mesh Editor
 Description:Highlights the core features of the Skeletal Mesh Editor in Unreal Engine 4. 
-version: 4.14
-Related: Engine\Animation\Persona\Modes\Skeleton
-Related: Engine\Animation\Persona\Modes\Animation
-Related: Engine\Animation\Persona\Modes\Graph
-Related: Engine/Content/FBX/SkeletalMeshes
-type:landing
-topic-image:skelMeshEditor_topic.png
+Type: Landing
+version: 4.16
+Parent: Engine/Animation/Persona/Modes
+Order: 1
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
+tags:Tools
+topic-image:skelMeshEditor_topic.png
+
+[REGION:banner]
+![](SkeletalMeshEditorBanner.png)
+[/REGION]
+
 
 [EXCERPT:Overview]
 Whenever you open a **Skeletal Mesh** asset inside the **Content Browser** (or from the **Editor Toolbar**), the **Skeletal Mesh Editor** will open. 
@@ -20,11 +24,13 @@ This editor includes windows that can be found in some of the other Animation To
 
 [/EXCERPT:Overview]
 
+Please refer to each section below for a breakdown of the Skeletal Mesh Editor user interface: 
+
 [REGION:fullwidth]
 ![](SkeletalMeshEditor.png)
 [/REGION]
 
-Please refer to each section below for a breakdown of the Skeletal Mesh Editor user interface: 
+
 
 ## 1. Toolbar
 
@@ -45,5 +51,7 @@ From the Viewport, you can also assign a preview animation for the Skeletal Mesh
 ## 4. Morph Target Preview
 
 The Morph Target Preview tab lets you preview any [Morph Targets](Engine/Animation/Persona/MorphTargetPreviewer) (or Blend Shapes) available for the current Skeletal Mesh. 
+
+Also located in this section is a tab for [Preview Settings](Engine\Animation\Persona\PreviewSettings) which enable the ability to define the viewport settings such as the **Animation Mode** or **Animation** to use as a preview, switch **Skeletal Meshes** that are used for the preview, as well as viewport lighting and Post Process settings applied so you can preview your settings with various lighting applied. 
 
 

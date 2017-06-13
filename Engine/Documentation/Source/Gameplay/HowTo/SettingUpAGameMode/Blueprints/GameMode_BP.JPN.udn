@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2697210
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでゲームモードをセットアップする操作手順
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
 Description:ブループリントでゲームモードをセットアップする操作手順
-Version:4.9
+Version:4.14
 SkillLevel:Advanced
+type:how-to
 
 [TOC (start:2 end:2)]
 
@@ -18,13 +19,13 @@ _以下の例では、**Blueprint Third Person Template** を使用しますが�
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation#CreateBP1]
 
-**[Pick Parent Class]** ウィンドウで、**Game Mode** クラスを選択します。 
+**[Pick Parent Class]** ウィンドウで、**Game Mode Base** クラスを選択します。これは Game Mode の親クラスです。
 
 ## Game Mode のデフォルトを編集する
 
 1.	Game Mode のデフォルトを開くには、そのブループリント上で **ダブル クリック** して **Class Defaults (クラスのデフォルト)** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、**[詳細]** パネルでブループリント デフォルトを開きます。
 
-1.	**ゲーム モード** には、ゲームのデフォルト設定として使用可能ないくつかのオプションがあります (デフォルトのキャラクター、HUD など)。 
+1.	**Game Mode** には、ゲームのデフォルト設定として使用可能ないくつかのオプションがあります (デフォルトのキャラクター、HUD など)。 
 
 	![](GameMode_5.png)
 
@@ -53,7 +54,7 @@ _以下の例では、**Blueprint Third Person Template** を使用しますが�
 
 	これで、プロジェクトが読み込まれるたびに選択した **GameMode** が、**Default Game Mode** として割り当てられます。 
 
-1.	**Selected GameMode** の隣にある矢印をクリックすると、割り当てられた **GameMode** で使用する現在の設定が表示されます。 
+1.	**Selected GameMode** の隣にある矢印をクリックすると、割り当てられた **GameMode** が使用する現在の設定を見ることができます。 
 
 	![](GameMode_9.png)
 

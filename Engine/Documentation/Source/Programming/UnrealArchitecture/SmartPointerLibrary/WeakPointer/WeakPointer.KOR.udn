@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3485038
 Availability:Public
 Title:약 포인터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:약 레퍼런스를 보관, 오브젝트의 소멸을 막지 않는 스마트 포인터입니다.
+Type:reference
 Version: 4.9
+Parent:Programming/UnrealArchitecture/SmartPointerLibrary
+Order:
+Tags:Programming
 
 [TOC(start:2)]
 
@@ -17,15 +21,15 @@ Version: 4.9
 
 약 포인터는 항상 공유 포인터/레퍼런스나 다른 약 포인터에서 생성됩니다.
 
-	// Allocate a new tree node  새 트리 노드 할당
+	// Allocate a new tree node  새 트리 노드를 할당합니다.
 	TSharedRef<FTreeNode> NodeOwner( new FTreeNode() );
 
-	// Create a weak pointer to the new tree node  새 트리 노드로의 약 포인터 생성
+	// Create a weak pointer to the new tree node  새 트리 노드로의 약 포인터를 생성합니다.
 	TWeakPtr<FTreenode> NodeObserver( NodeOwner );
 
 기억하실 것은, 약 포인터는 오브젝트의 소멸을 막지 못합니다. NodeOwner 가 리셋되면, NodeObserver 가 여전히 영역 안에 있을 지라도 오브젝트는 삭제됩니다:
 
-	// Destroy the node  노드 소멸
+	// Destroy the node  노드를 소멸시킵니다.
 	NodeOwner.Reset();
 
 약 포인터는 공유 포인터와 마찬가지로 안전하게 복사할 수 있습니다.
@@ -38,18 +42,19 @@ Version: 4.9
 
 ## 레퍼런스 해제와 접근
 
-약 포인터의 오브젝트에 접근하려면 먼저 `Lock()` 메소드를 호출하여 공유 포인터로 승격시킵니다.
+약 포인터의 오브젝트에 접근하려면 먼저 `Pin()` 메소드를 호출하여 공유 포인터로 승격시킵니다.
 
 	// Get access to the node through the weak pointer  약 포인터를 통해 노드에 접근합니다.
-	TSharedPtr<TFreeNode> LockedObserver( NodeObserver.Lock() );
+	TSharedPtr<TFreeNode> LockedObserver( NodeObserver.Pin() );
 
+	// 약 레퍼런스에서 공유 레퍼런스를 생성하는 데 성공했는지 확인합니다.
 	If( LockedObserver.IsValid() )
 	{
-		//Object still exists, so it can be accessed  오브젝트가 여전히 존재, 접근 가능한지.
+		// Object still exists, so it can be accessed  오브젝트가 여전히 존재, 접근 가능한지.
 		LockedObserver->ListChildren();
 	}
 
-`Lock()` 은 빠릅니다. Lock 이라 불리우는 이유는 약 포인터가 임시 접근하는 동안 오브젝트가 소멸되지 않도록 하기 때문입니다.
+`Pin()` 은 빠릅니다. Pin 이라 불리우는 이유는 약 포인터가 임시 접근하는 동안 오브젝트가 소멸되지 않도록 하기 때문입니다.
 
 약 포인터는 오브젝트가 소멸되면 자동으로 알기에, 이러한 경우는 `IsValid()` 메소드를 사용하여 안전하게 처리 가능합니다.
 

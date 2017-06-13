@@ -1,38 +1,22 @@
-Availability:Public
+Availability: Docs
+Crumbs: %ROOT%
 Title: Blend Spaces
-Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Blend Spaces are assets that allow any number of animations to be blended between based on the values of multiple inputs.
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Content/FBX/Animations
-Related: Engine/Animation/AnimMontage
-Related: Engine\Animation\AnimHowTo\BlendSpace
-Related: Engine/Animation/NodeReference/Blend
-Related: Engine/Animation/StateMachines
-Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
+Type: Landing
+Version: 4.16
+Parent: Engine/Animation
+Order: 1
+tags:Blend Space
+tags:Animation Blending
+tags:Animation
+topic-image:BlendTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Blend Spaces:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Blend Spaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Blend Spaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Blend Spaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[REGION:banner]
+![](BlendBanner.png)
+[/REGION]
 
 [EXCERPT:Intro]
-**Blend Spaces** are special assets which can be sampled in AnimGraphs that allow for blending of 
+**Blend Spaces** are special assets which can be sampled in **AnimGraphs** that allow for blending of 
 animations based on the values of two inputs. Simple blending between two animations based on a 
 single input can be performed using one of the standard [Blend nodes](Engine/Animation/NodeReference/Blend) 
 available in [Animation Blueprints](Engine/Animation/AnimBlueprints). Blend Spaces provide a means of doing more complex blending 

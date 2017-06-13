@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:변수 리플리케이트
 Crumbs: %ROOT%, Gameplay
 Description:멀티플레이어 게임에서 변수를 리플리케이트하는 방법 안내입니다.
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Advanced
+type:overview
 order:17
 
 [EXCERPT:Overview]
@@ -14,13 +15,9 @@ order:17
 변수에 **Replicated** 설정을 하면, 그 변수는 서버에서 클라이언트로 리플리케이트되는 변수의 1:1 사본을 만든다는 뜻입니다. 또는 **RepNotify** 를 사용하면, **Replicated** 의 역할에 추가로 붙어있는 변수가 업데이트될 때마다 서버와 클라이언트 머신 양쪽에서 실행되는 함수가 제공되기도 합니다.
 [/EXCERPT:Overview]
 
-## 구성
+## 구현 안내
 
-블루프린트를 사용한 **리플리케이티드 변수** 구성 방법에 대해서는, 다음 링크를 참고하세요:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\Networking\ReplicateVariable\Blueprints)
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/Networking/ReplicateVariable" org:"hierarchy" end:"1")]
 
 
 

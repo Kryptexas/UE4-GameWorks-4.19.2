@@ -5,48 +5,10 @@ Description:Sequencer is Unreal Engine 4's mult-track editor used for creating a
 Navigation:topic
 parent:Engine
 order:4
+topic-image:sequencer_topic.png
 social-image:sequencer_social.png
 related: Engine/Matinee
 tags:Sequencer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Sequencer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Sequencer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![](SequencerBanner.png)(convert:false)
@@ -61,9 +23,19 @@ If you are new to Sequencer, it is recommended that you check out the **Essentia
 
 The Sequencer Subway example project, available from the Learn tab in the Epic Games Launcher, shows how to create film-quality cinematic sequences using Unreal Engine 4's Sequencer Editor. 
 
+## Starting Out
+
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" tags:"Getting Started")]
+
 ## Essentials
 
-[DIR(output:"listbutton" parent:"Engine/Sequencer" org:"hierarchy" end:"1")]
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" tags:"!Getting Started" path:"!Engine/Sequencer/HowTo")]
+
+## Guides
+
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Beginner")]
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Intermediate")]
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Advanced")]
 
 
 ## Samples

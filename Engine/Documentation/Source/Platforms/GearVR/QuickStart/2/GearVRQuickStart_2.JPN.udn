@@ -1,8 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3477690
+Availability:Public
 Title:2.Gear VR プロジェクトの設定
 Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの設定方法
-Version:4.9
+Version:4.16
 Skilllevel:Intermediate
 tags:VR
 tags:GearVR
@@ -15,51 +16,63 @@ Checkpoint:GearVRQS
 
 ## ステップ
 
-1. プロジェクトの作成とコンパイルが終了したら、Visual Studio 2015 が (既にインストールされている場合は) エディタと一緒に自動的に開きます。
+1. プロジェクトの作成とコンパイルが終了したら、Visual Studio が (既にインストールされている場合は) エディタと一緒に自動的に開きます。
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	使用するアンリアル エンジンが 4.8 以降の場合、ブループリント ベースのプロジェクト Visual Studio 2015 は必要ないので開きません。 
+	使用するアンリアル エンジンが 4.8 以降の場合、ブループリント ベースのプロジェクト Visual Studio は必要ないので開きません。 
 	[/region]
 
 1. UE4 エディタをロードしたら、**メインのツールバー** から **[Windows]** タブを開いて **[Plugins]** メニューを選択します。 
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	eo79kj2i2bc
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		eo79kj2i2bc
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. プラグイン メニューから **[Head Mounted Displays]** セクションへ移動して、**[Oculus]** オプションを **無効** に、**[Gear VR]** オプションを **有効** にします。エディタを再起動するために**[Restart Now (今すぐ再起動)]** ボタンをクリックして、変更を反映させます。 
+1. プラグイン メニューから **[Head Mounted Displays]** セクションへ移動して、**[Oculus]** オプションを **無効** に、**[Gear VR]** オプションを **有効** にします。エディタを再起動するために **[Restart Now (今すぐ再起動)]** ボタンをクリックして、変更を反映させます。 
 
 	![](GVR_Plugin_Options_Toggle.png)
 
-1. エディタが再起動したら **メイン ツールバー** から **[Edit (編集)]** を選択して、次に **[Project Settings (プロジェクト設定)]** を選択します。その後 **[APKPacking]**  セクションから Android プラットフォームの **[Configure Now (今すぐ設定)]** ボタンをクリックします。
+1. エディタが再起動したら **メイン ツールバー** から **[Edit (編集)]** を選択して、次に **[Project Settings (プロジェクト設定)]** を選択します。その後 **[APKPacking]** セクションから Android プラットフォームの **[Configure Now (今すぐ設定)]** ボタンをクリックします。
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	If_vSzD5h3w
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		If_vSzD5h3w
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. 次に **[Minimum SDK Version]** を **9** から **19** に変更します。
+1. 次に **[Minimum SDK Version]** と **[Target SDK Version]** を **9** から **19** に変更します。 
 
 	![](GVR_Android_SDK_Version.png)
 
-1. **[Configure the Android Manifest for deployment to Gear VR (Gear VR にデプロイする Android Manifest の設定]** チェックボックスが表示されるまでスクロールダウンして、これを有効にします。 
+1. **[Configure the Android Manifest for deployment to Gear VR]** チェックボックスが表示されるまでスクロールダウンして、これを有効にします。 
 
 	[Region:note]
 	これを設定しないと Gear VR ヘッドセットでプロジェクトが実行しないので、とても重要な手順です。
@@ -69,9 +82,9 @@ Checkpoint:GearVRQS
 
 1. 次に **[Android SDK]** セクションを選択して、必要な Android SDK ファイルの場所を開発用 PC に入力します。 
 	必要なフォルダは Tegra ファイルをインストールした場所を参照してください。 
-	[Region:note]
 
-	Android 1R4 用の CodeWorks がインストール済みであれば、ここで行う作業は特にありません。情報が足りなかったり、別の場所に関連づいている場合のみ修正してください。
+	[Region:note]
+	Android 1R6 用の CodeWorks がインストール済みであれば、ここで行う作業は特にありません。情報が足りなかったり、別の場所に関連づいている場合のみ修正してください。
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
@@ -83,26 +96,23 @@ Checkpoint:GearVRQS
 	[/region]
 
 	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	29oB5aowElQ
-	[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		29oB5aowElQ
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 	[/OBJECT]
 
-	<!-- This was step six, removed based on Josh Adams advice.
-	1. 次に **[Android Package Name (Android パッケージ名)]** セクションでプロジェクトに名前を付けます。ここの例では、**「com.Company.GearVR_QS」** を使用します。 
-
-	![](GVR_Android_Game_Name.png)
-
-	[REGION:note]
-	UE4 の 4.7.0 以前のバージョンを使用している場合は、ここで付ける名前とプロジェクトに付けた名前を一致させなくてはいけません。そうしないとスマートフォン上でのアプリの実行に問題が生じます。
-	[/region]
-	-->
 
 [nav]
 

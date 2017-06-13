@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3388666
 Availability: Public
 Title: 3.4 - 월드와 상호작용하는 프로젝타일
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: 일인칭 슈팅 프로젝트에서 프로젝타일이 월드와 상호작용하도록 하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -34,7 +34,7 @@ Version: 4.11
 
 		// 프로젝타일이 무언가에 맞으면 호출되는 함수입니다.
 		UFUNCTION()
-		void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
 1.	`FPSProjectile.h` 는 이제 다음과 같을 것입니다:
 
@@ -74,7 +74,7 @@ Version: 4.11
 			void FireInDirection(const FVector& ShootDirection);
 		
 			// 프로젝타일에 무언가 맞으면 호출되는 함수입니다.
-			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+			void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 CPP 파일을 찾고 `FPSProjectile.cpp` 를 열고 다음 코드를 추가합니다:

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3235148
+﻿INTSourceChangelist:3467293
 Title:SteamVR の開発
 Crumbs:%ROOT%, Platforms
-Description:SteamVR 入門
+Description:SteamVR をはじめよう
 Availability:Public
 Navigation:platform
 Platform:SteamVR
@@ -10,6 +10,7 @@ parent:Platforms/VR
 tags:VR
 tags:SteamVR
 tags:Platform
+Topic-image:SteamVRDevelopment_topic.png
 
 ![](T_Vive_HMD.png)
 

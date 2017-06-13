@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3150518
-Availability: Public
+﻿INTSourceChangelist:3452142
+Availability: docs
 Title:3. 캐릭터 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:마지막으로 플레이어가 키를 눌러 블렌드 스페이스의 Speed 파라미터를 변경할 수 있는 방편을 마련합니다.

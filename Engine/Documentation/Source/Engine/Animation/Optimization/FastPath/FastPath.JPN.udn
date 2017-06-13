@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2926677
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:アニメーションのファストパスによる最適化
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:パフォーマンスを高めるためにアニメーション グラフの構造に適用できる最適化について説明します。
 version:4.11
+topic-image:AnimationFastPathOptimization_topic.png
 
 [EXCERPT:Intro]
 Animation ブループリントはアニメーション システムを構築する非常にフレキシブルな方法です。ただし、ブループリント ベースのロジックの実行に伴うパフォーマンス オーバーヘッドは、 

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3150518
-Availability: Public
+﻿INTSourceChangelist:3452142
+Availability: docs
 Title:2. 애니메이션 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:블렌드 스페이스에서 사용할 애니메이션 블루프린트와 스테이트 머신을 구성합니다.

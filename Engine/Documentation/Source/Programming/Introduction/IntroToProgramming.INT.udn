@@ -3,6 +3,8 @@ Crumbs:
 Description:Introductory guide for C++ programmers new to Unreal Engine
 Availability:Public
 Version:4.9
+tags:Getting Started
+tags:Programming
 
 ![image alt text](image_0.png)
 
@@ -43,7 +45,7 @@ Once you choose to create the class, the wizard will generate the files and open
 	{
 		GENERATED_BODY()
 		
-	public:	
+	public:
 		// Sets default values for this actor's properties
 		AMyActor();
 	
@@ -75,7 +77,8 @@ We have our class created, so now let us create some properties that can be set 
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
-
+	public:
+	
 		UPROPERTY(EditAnywhere)
 		int32 TotalDamage;
 
@@ -102,7 +105,8 @@ Before continuing to the section below, let us add a couple of properties to thi
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
-
+	public:
+	
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 		int32 TotalDamage;
 
@@ -279,9 +283,9 @@ AActors have their own behaviors (specialization through inheritance), but they 
 
 AActors have a series of events that are called during the lifecycle of the AActor. The list below is a simplified set of the events that illustrate the lifecycle.
 
-* BeginPlay - called when the object first comes into gameplay existence
-* Tick - called once per frame to do work over time
-* EndPlay - called when the object is leaving the gameplay space
+* `BeginPlay` - called when the object first comes into gameplay existence.
+* `Tick` - called once per frame to do work over time.
+* `EndPlay` - called when the object is leaving the gameplay space.
 
 See [](Programming/UnrealArchitecture/Actors) for a more detailed discussion on AActor.
 
@@ -330,11 +334,11 @@ Alright, it is clear you want to know more. Let us keep on going deeper into how
 
 Gameplay classes make use of special markup, so before we go over them, let us cover some of the basics of the Unreal property system.  UE4 uses its own implementation of reflection that enables dynamic features such as garbage collection, serialization, network replication, and Blueprint/C++ communication.  These features are opt-in, meaning you have to add the correct markup to your types, otherwise Unreal will ignore them and not generate the reflection data for them.  Here is a quick overview of the basic markup:
 
-* **UCLASS() **- Used to tell Unreal to generate reflection data for a class.  The class must derive from UObject. 
-* **USTRUCT() **- Used to tell Unreal to generate reflection data for a struct.
+* **UCLASS()** - Used to tell Unreal to generate reflection data for a class.  The class must derive from UObject. 
+* **USTRUCT()** - Used to tell Unreal to generate reflection data for a struct.
 * **GENERATED_BODY()** - UE4 replaces this with all the necessary boilerplate code that gets generated for the type.
-* **UPROPERTY() **- Enables a member variable of a UCLASS or a USTRUCT to be used as a  UPROPERTY.  A UPROPERTY has many uses.  It can allow the variable to be replicated, serialized, and accessed from Blueprints.  They are also used by the garbage collector to keep track of how many references there are to a UObject.
-* **UFUNCTION() **- Enables a class method of a UCLASS or a USTRUCT to be used as a UFUNCTION.  A UFUNCTION can allow the class method to be called from Blueprints and used as RPCs, among other things.
+* **UPROPERTY()** - Enables a member variable of a UCLASS or a USTRUCT to be used as a  UPROPERTY.  A UPROPERTY has many uses.  It can allow the variable to be replicated, serialized, and accessed from Blueprints.  They are also used by the garbage collector to keep track of how many references there are to a UObject.
+* **UFUNCTION()** - Enables a class method of a UCLASS or a USTRUCT to be used as a UFUNCTION.  A UFUNCTION can allow the class method to be called from Blueprints and used as RPCs, among other things.
 
 Here is an example declaration of a UCLASS:
 
@@ -357,32 +361,32 @@ Here is an example declaration of a UCLASS:
 
 You'll first notice the inclusion of "MyClass.generated.h".  Unreal will generate all the reflection data and put it into this file.  You must include this file as the last include in the header file that declares your type.
 
-You'll also have noticed that we can also add additional specifiers to the markup.  I've added some of the more common ones for demonstration.  These allow us to specify certain behavior that our types have.
+The UCLASS, UPROPERTY, and UFUNCTION markups in this example include additional specifiers. These are not required, but some common specifiers have been added for demonstration purposes. These allow us to specify certain behaviors or properties.
 
 * **Blueprintable** - This class can be extended by a Blueprint.
-* **BlueprintReadOnly **- This property can only be read from a Blueprint, and not written to.
-* **Category** - Defines what section this property appears under in the Details view of the Editor.  For organizational purposes.
-* **BlueprintCallable **- This function can be called from Blueprints.
+* **BlueprintReadOnly** - This property can be read from a Blueprint, but not written to.
+* **Category** - Defines what section this property appears under in the Details view of the Editor. This is helpful for organizational purposes.
+* **BlueprintCallable** - This function can be called from Blueprints.
 
 There are too many specifiers to list here, but the following links can be used as reference:
 
 [List of UCLASS Specifiers](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
 
-[List of UPROPERTY Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Properties/Specifiers/index.html)
+[List of UPROPERTY Specifiers](Programming/UnrealArchitecture/Reference/Properties/Specifiers)
 
-[List of UFUNCTION Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Functions/Specifiers/index.html)
+[List of UFUNCTION Specifiers](Programming/UnrealArchitecture/Reference/Functions/Specifiers)
 
-[List of USTRUCT Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Structs/Specifiers/index.html)
+[List of USTRUCT Specifiers](Programming/UnrealArchitecture/Reference/Structs/Specifiers)
 
 ### Object/Actor Iterators
 
 Object iterators are a very useful tool to iterate over all instances of a particular UObject type and its subclasses.
 
-	// Will find ALL current UObjects instances
+	// Will find ALL current UObject instances
 	for (TObjectIterator<UObject> It; It; ++It)
 	{
 		UObject* CurrentObject = *It;
-		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject.GetName());
+		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject->GetName());
 	}
 
 You can limit the scope of the search by providing a more specific type to the iterator.  Suppose you had a class called UMyClass that derived from UObject.  You could find all instances of that class (and those that derive from it) like this:

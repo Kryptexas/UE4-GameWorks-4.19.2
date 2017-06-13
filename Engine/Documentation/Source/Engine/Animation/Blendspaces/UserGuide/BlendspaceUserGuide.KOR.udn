@@ -1,36 +1,29 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3358386
 Availability:Public
 Title: 블렌드 스페이스 사용하기
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
-Description:애니메이션 블루프린트 애셋에서 블렌드 스페이스를 사용하여 데이터를 입력하고 애니메이션 포즈 출력 샘플을 뽑는 법 안내서입니다.
-version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Blendspaces/UserGuide:title%](Engine/Animation/Blendspaces/Using.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Blendspaces/UserGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Blendspaces/UserGuide:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Blendspaces/UserGuide]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[TOC(start:2)]
-
+Description:Describes Blend Spaces are used within Animation Blueprints resulting in an output pose. 
+Related: Engine\Animation\AnimHowTo\BlendSpace
+Related: Engine/Animation/StateMachines
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/AnimBlueprints/AnimGraph
+version: 4.15
+type:overview
+topic-image:userguidetopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
 
 [EXCERPT:Intro]
-Blend Space (블렌드 스페이스)는 애니메이션 블루프린트의 AnimGraph (애님 그래프)에 노드를 배치하는 방식으로 사용됩니다. 이 노드는 블렌드 스페이스가 최종 블렌딩 포즈를 만드는 데 사용되는 애니메이션을 결정하는 데이터를 받습니다.
+Blend Space (블렌드 스페이스)는 [애니메이션 블루프린트](Engine/Animation/AnimBlueprints) 의 AnimGraph (애님 그래프)에 노드를 배치하는 방식으로 사용됩니다. 이 노드는 값 데이터를 받아 애니메이션 블렌딩 및 최종 애니메이션 포즈를 구동합니다.
 [/EXCERPT:Intro]
+
+[REGION:note]
+보행이동 블렌딩용 블렌드 스페이스 구성 안내는 [](Engine\Animation\AnimHowTo\BlendSpace) 문서를 참고하세요.
+[/REGION]
+
+
+[TOC(start:2)]
 
 ## 블렌드 스페이스 노드 추가하기
 
@@ -38,7 +31,7 @@ Blend Space (블렌드 스페이스)는 애니메이션 블루프린트의 AnimG
  
 **드래그 앤 드롭으로 블렌드 스페이스 노드 놓기:**
 
-1. 애님블루프린트 에디터에서, 샘플링하려는 블렌드 스페이스를 **애셋 브라우저** 에서 찾습니다.
+1. **애니메이션 블루프린트** 의 [](Engine/Animation/AnimBlueprints/AnimGraph) 내 **애셋 브라우저** 에서 샘플링하려는 블렌드 스페이스를 찾습니다.
 
 	![](SelectBlendSpace.png)
 
@@ -46,40 +39,36 @@ Blend Space (블렌드 스페이스)는 애니메이션 블루프린트의 AnimG
 
 	![](DragDropBlendSpace.png)(w:720)
 
-1. 왼쪽 마우스 버튼을 놓아 블렌드 스페이스를 놓습니다.
+1. 왼쪽 마우스 버튼을 놓아 그래프에 블렌드 스페이스를 놓습니다.
 
 	![](BlendSpaceNodeAdded.png)
 
 
 **맥락 메뉴로 블렌드 스페이스 노드 놓기:**
 
-1. 애님그래프에 우클릭한 후 **Animation** 을 펼쳐 호환 블렌드 스페이스 목록을 전부 확인합니다.
+1. **애님 그래프** 에 **우클릭** 하고 **블렌드 스페이스** 를 펼쳐 샘플링하고자 하는 블렌드 스페이스를 선택합니다.
 
 	![](AnimationContextMenu.png)
 
-1. 샘플링하려는 블렌드 스페이스에 클릭합니다.
-
-	![](BlendSpaceContextSelection.png)
-
-1. 블렌드 스페이스 노드가 놓입니다.
+1. 그래프에 블렌드 스페이스 노드가 배치됩니다.
 
 	![](BlendSpaceNodeAdded.png)
 
 
-## 데이터 입력하기
+## 파라미터 샘플링
 
-블렌드 스페이스는 샘플 파라미터에 전달되는 데이터에 의존하여 애니메이션 블렌딩을 합니다. 각 블렌드 스페이스 노드에는 각 샘플 파라미터에 대한 입력 데이터 핀이 있습니다. 다른 노드에서의 변수나 출력을 이 핀에 연결하여 블렌드 스페이스에 필요한 데이터를 전해줄 수 있습니다.
+블렌드 스페이스는 샘플 파라미터에 전달되는 데이터에 의존하여 애니메이션 블렌딩을 합니다. 
+각 블렌드 스페이스 노드에는 [](Engine\Animation\Blendspaces\Editor) 프로세스 도중 생성되는 각 샘플 파라미터에 대한 입력 데이터 핀이 있습니다. 
+다른 노드에서의 변수나 출력을 이 핀에 연결하여 블렌드 스페이스에 필요한 데이터를 전해주고 샘플 포즈 블렌딩을 구동시킬 수 있습니다.
 
-![변수 입력 데이터](bs_input_variables.png)
+![Variable Input Data](bs_input_variables.png)
 
-[REGION:note]
-블렌드 스페이스 편집은 현재 사용할 수 있는 입력이 두 개로 제한되어 있어서, 셋째 입력 핀은 사용되지 않습니다.
-[/REGION]
+블렌드 스페이스로 전달되는 값은 보통 이벤트그래프의 업데이트 사이클 도중이나 게임플레이 코드를 통해 계산되는 변수입니다. 
 
-블렌드 스페이스로 전달되는 값은 보통 이벤트그래프의 업데이트 사이클 도중이나 게임플레이 코드를 통해 계산되는 변수입니다. 애니메이션 블루프린트의 이벤트그래프 안에서 계산되고 있는 Direction 과 Speed 변수 예제는 아래와 같습니다.
-
-[REGION:fullwidth]
 ![Variable Input Data - Update Cycle](bs_input_calc.png)
+
+[REGION:caption]
+애니메이션 블루프린트의 **이벤트 그래프** 안에서 계산되고 있는 Direction 과 Speed 변수 예제는 위와 같습니다.
 [/REGION]
 
 ## 출력 포즈

@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3429247
 Availability:Public
 Title:カスケード パーティクル エディタのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:カスケード エディタの各 UI の概説
 Version:4.9
 tags:Particles
+parent:Engine/Rendering/ParticleSystems
+order:2
+type:reference
+topic-image:cascade_topic.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -32,7 +36,7 @@ tags:Particles
 
 
 
-## カスケードを開く
+## カスケードの開き方
 
 カスケード パーティクル エディタは、いずれかのパーティクル システム アセットをダブルクリック、もしくは **コンテンツブラウザ** 内のパーティクル システム アセットのコンテキスト メニューを右クリックして開きます。カスケード内の特定のパーティクル システムの編集が可能になります。
 
@@ -50,7 +54,7 @@ tags:Particles
 1. [ビューポート パネル](#ビューポートパネル) - 現在のパーティクル システムを表示します (そのシステムにあるすべてのエミッタを含みます)。_Sim_ ツールバーのオプション設定のシミュレーション速度で制御します。
 1. [Emitters パネル](#Emittersパネル) -現在のパーティクル システム内にあるすべてのエミッタのリストと、これらのエミッタ内のすべてのモジュールのリストがあります。
 1. [詳細パネル](#詳細パネル) -現在のパーティクル システム、パーティクル エミッタ、パーティクル モジュールを表示したり、修正できます。
-1. [カーブ エディタ](#カーブエディタ) -このグラフ エディタでは、相対時間または絶対時間のいずれかで修正されているプロパティが表示されます。グラフ エディタにはモジュールが追加されるので、表示コントロールがあります (このドキュメントの後半で説明します)。
+1. [カーブ エディタ](#カーブエディタ) - 相対時間または絶対時間のいずれかで修正されたプロパティを表示するグラフ エディタです。グラフ エディタにはモジュールが追加と、表示を調節できます (このドキュメントの後半で説明します)。
 
 
 
@@ -64,7 +68,7 @@ tags:Particles
 | ------- | ----------- |
 | [REGION:tablesection]**ロードと保存**[/REGION] ||
 | **Save** | 現在のパーティクル システムのアセットを保存します。|
-| **Save All** | 全てのアセットを保存します。|
+| **Save All** | すべてのアセットを保存します。|
 | **Choose Files to Save** | アセットの保存オプションを付けてダイアログを開きます。 |
 | [REGION:tablesection]**アプリケーション**[/REGION] ||
 | **Switch Project** | 使用可能なすべてのゲーム プロジェクトを切り替えます。 |
@@ -91,7 +95,7 @@ tags:Particles
 
 | コマンド | 説明 |
 | ------- | ----------- |
-| [REGION:tablesection]**Asset Editor TabsEditor Tabs**[/REGION] ||
+| [REGION:tablesection]**アセット エディタ TabsEditor タブ**[/REGION] ||
 | **Viewport** | [ビューポートパネル] (#ビューポートパネル) タブを開きます。このタブには、結果として得られるパーティクル システムが表示されます。 |
 | **Emitters** | [エミッタ リスト](#Emittersパネル) タブを開きます。このタブで、各種エミッタをパーティクル システムに追加できます。 |
 | **Details** | [詳細パネル](#詳細パネル) タブを開きます。このタブで、各パーティクル モジュールのプロパティを編集できます。|
@@ -119,17 +123,17 @@ tags:Particles
 | ![Cascade_Toolbar_Redo.png](Cascade_Toolbar_Redo.png)| **Redo** | 直前の元に戻した操作をやり直します。**Ctrl + Y** を使用しても同じ操作を行うことができます。。 |
 | ![Cascade_Toolbar_Thumbnail.png](Cascade_Toolbar_Thumbnail.png)| **Save Thumbnail Image** | コンテンツ ブラウザのパーティクル システムのサムネイルとして、ビューポート ペインのカメラからビューポートを保存します。 |
 |![](Cascade_Toolbar_Bounds.png)|**Toggle Bounds**| ビューポート ペインで、パーティクル システムの現在の境界の表示を切り替えます。|
-|![](Cascade_Toolbar_BoundsOptions.png)|**Bounds Options**| クリックすると、GPU スプライトパーティクル システムに対する固定の境界をセットアップできます。固定された境界が GPU スプライト パーティクルの移動可能距離を制限します。|
+|![](Cascade_Toolbar_BoundsOptions.png)|**Bounds Options**| クリックすると、GPU スプライトパーティクル システムに対して固定の境界をセットアップできます。固定された境界が GPU スプライト パーティクルの移動可能距離を制限します。|
 |![](Cascade_Toolbar_OriginAxis.png)|**Toggle Origin Axis**| パーティクル ビューポート ウィンドウで、原点軸の表示、非表示を切り替えます。 |
 | ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)| **Regenerate lowest LOD duplicating highest** | 最高 LOD を複製して最低 LOD を再生成します。 |
-| ![Cascade_Toolbar_RegenLODPer.png](Cascade_Toolbar_RegenLODPer.png)| **Regenerate lowest LOD** | 最高 LOD の値のプリセットしたパーセント値を使用して、最低 LOD を再生成します。 |
+| ![Cascade_Toolbar_RegenLODPer.png](Cascade_Toolbar_RegenLODPer.png)| **Regenerate lowest LOD** | 最高 LOD 値の設定済みパーセントである値を使って最低 LOD を再生成します。 |
 | ![Cascade_Toolbar_HighestLOD.png](Cascade_Toolbar_HighestLOD.png)| **Jump to Highest LOD Level** | 最高 LOD をロードします。 |
 | ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)| **Add LOD before current** | 現在ロードした LOD の直前に新しい LOD を追加します。 |
 | ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)| **Add LOD after current** | 現在ロードした LOD の直後に新しい LODを追加します。 |
 | ![Cascade_Toolbar_LowerLOD.png](Cascade_Toolbar_LowerLOD.png)| **Jump to Lower LOD Level** | 次に低い LOD をロードします。 |
 | ![Cascade_Toolbar_LowestLOD.png](Cascade_Toolbar_LowestLOD.png)| **Jump to Lowest LOD Level** |最低 LOD をロードします。 |
 | ![Cascade_Toolbar_DeleteLOD.png](Cascade_Toolbar_DeleteLOD.png)| **Delete LOD** | 現在ロードした LOD を削除します。 |
-| ![Cascade_Toolbar_CurrentLOD.png](Cascade_Toolbar_CurrentLOD.png)| **Current LOD Slider** | プレビューしたい現在の LOD を選択できます。値を手入力、もしくはマウスをドラッグして数字を編集します。
+| ![Cascade_Toolbar_CurrentLOD.png](Cascade_Toolbar_CurrentLOD.png)| **Current LOD Slider** | プレビューする LOD を選択できます。値を手入力、もしくはマウスをドラッグして数字を編集します。
 
 
 
@@ -164,7 +168,7 @@ tags:Particles
 
 ![ViewMenu.png](ViewMenu.png)
 
-[View (表示)] メニューでは、ビューポート ペインの様々な診断と可視化機能を表示、非表示にすることができます。[View (表示)] メニューには以下のオプションが含まれます。
+[View (表示)] メニューでは、ビューポート ペインの様々な診断と可視化機能の表 / 非表示が可能になります。[View (表示)] メニューには以下のオプションが含まれます。
 
 
 | アイテム | 説明 |
@@ -218,13 +222,13 @@ tags:Particles
 
 ###### Unlit (ライティング無し)
 
-[Unlit] ビューモードでは、ライティングまたはポストプロセスなしのパーティクルの結果が表示されます。
+[Unlit] ビューモードでは、ライティングまたはポストプロセスなしのパーティクルが表示されます。
 
 ![Unlit.png](Unlit.png)
 
 ###### Lit (ライティング有り) 
 
-[Unlit] ビューモードでは、ライティングまたはポストプロセスなしのパーティクルの結果が表示されます。
+[Lit] ビューモードでは、ライティングまたはポストプロセスが付いたパーティクルが表示されます。
 
 ![Lit.png](Lit.png)
 
@@ -268,11 +272,11 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 ![EmitterList.png](EmitterList.png)(w:700)
 
-**[Emitters]** パネルには、カスケードで現在開いているパーティクル システム内の各パーティクル エミッタがあります。ユーザーは、パーティクル システムの外観と挙動を制御する様々なパーティクル モジュールをここで追加、選択、作業を行います。 
+**[Emitters]** パネルには、カスケードで現在開いているパーティクル システム内の各パーティクル エミッタがあります。ユーザーは、パーティクル システムの外観とビヘイビアを制御する様々なパーティクル モジュールをここで追加、選択、作業を行います。 
 
 エミッタ リストには、現在のパーティクル システム内のすべてのエミッタが横方向に配置されています。パーティクル システムあたりのエミッタ数に制限はなく、エフェクト全体でそれぞれが別々の側面を処理するのが一般的です。
 
-1 カラムで 1 つのパーティクル エミッタを表します。上部にエミッタブロック、その下に任意の数のモジュールブロックが表示されます。エミッタ ブロックには、エミッタの名前、タイプなどのエミッタの主要なプロパティが含まれます。その下にあるモジュールは、それぞれパーティクルの動作の様々な側面を制御します。
+1 カラムにつきパーティクル エミッタ 1 つを表します。上部にエミッタブロック、その下に任意の数のモジュールブロックが表示されます。エミッタ ブロックには、エミッタの名前、タイプなどのエミッタの主要なプロパティが含まれます。その下にあるモジュールは、それぞれパーティクルの動作の様々な側面を制御します。
 
 エミッタ リストのインターフェイスは、比較的簡単なものですが、右マウスボタンからアクセスできるコンテキスト依存のメニューもあります。 
 
@@ -390,7 +394,7 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 カスケード インターフェイスには、標準のアンリアル エディタの [Curve Editor (カーブ エディタ)] ウィンドウが含まれます。このウィンドウで、ユーザーはパーティクルの寿命中またはエミッタの寿命中に変更すべき値も調整が可能です。つまり、時間の経過に伴い変化する値を定義します。カーブ エディタ内でプロパティを (一般的にパーティクル モジュール内から) 編集可能にするには、そのプロパティはカーブを利用する DistributionFloatConstantCurve などの Distribution タイプでなければなりません。Distributions (ディストリビューション) の操作については、[ディストリビューションのセクション](Engine/Basics/Distributions) を参照してください。
 
-詳細は [カーブ エディタのユーザーガイド](Engine/UI/CurveEditor) ドキュメントを参照してください。 
+詳細は [カーブ エディタのユーザーガイド](Engine/UI/CurveEditor) ドキュメントを参照してください。
 
 [REGION:note]
 	カーブ エディタにモジュールを追加するには、モジュールの左側に表示される緑色のボックスをクリックしてください。グラフ エディタに表示されるモジュールの色は、モジュール作成時にランダムに決定されます。色を変更するには、各モジュールの [Property] ウィンドウの Module Editor Color プロパティを開いて行います。  
@@ -425,7 +429,7 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 グラフエディタで点を作成するには、目的の値に対するスプラインを **Ctrl + 左クリック** します。一番簡単な方法は、前述のチェックボックスを使い他のモジュールをすべてオフにすることです。すべてのモジュールは、時間 0 の単一キーとしてゼロの位置から開始します。タイムライン内でスプラインの任意の位置を **Ctrl + 左クリック** すると、そこに点が作成されます。この点は自由自在にドラッグできますが、既に述べたようにスプラインがベクトル (XYZ) を表す場合は、そのベクトルの 3 つのキーすべての時間が移動するのに対し、値は変動しません。
 
-キーポイントを **右クリック** するとメニューが表示され、そこでキーポイントの時間と値を手動で入力することができます。キーがカラーカーブ内にある場合は、カラーピッカーを使って色を選択できます。
+キーポイントを **右クリック** して表示されるメニューに、キーポイントの時間と値を手動で入力することができます。キーがカラーカーブ内にある場合は、カラーピッカーを使って色を選択できます。
 
 モジュールが ColorOverLife の場合、描かれるスプラインはその時点の色を反映しますが、点はそのスプラインの特定のチャネルを反映する色で描かれます。
 
@@ -456,9 +460,9 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 ディストリビューション (Distribution) は特殊なデータ型であり、非常に専門的な方法で数を定めるように設計されています。パーティクル モジュール内で利用可能な主要プロパティのほとんどは、割り当てられたディストリビューションを持ちます。こうしたディストリビューションは、プロパティが単一の値、範囲を持つ、またはカーブに沿って補間されるものとして定義する場合があります。
 
-使用するディストリビューションのタイプは、プロパティに基づき変わります。例として、すべてのパーティクルのライフタイムを 5 秒にしたい場合、 _DistributionFloatConstant_ のディストリビューションでは、単一の値を保持できます。しかし、パーティクルのライフタイムを 2 秒から 5 秒の間のランダムな値にしたい場合、 そうした範囲を指定できる DistributionFloatUniform に切り替えます。 
+使用するディストリビューションのタイプは、プロパティに基づき変わります。例として、すべてのパーティクルのライフタイムを 5 秒にするには、_DistributionFloatConstant_ のディストリビューションで単一の値を保持することができます。パーティクルのライフタイムを 2 秒から 5 秒の間のランダムな値にするのであれば、そうした範囲の指定が可能な _DistributionFloatUniform_ に切り替えます。 
 
-新規ユーザーにとっては、最初は分布はわかりずらいと感じるかもしれません。しかし、パーティクル システム内で様々なプロパティを扱ううえで分布がもたらす自由度の高さをすぐに実感するでしょう。詳細は [ディストリビューションのリファレンス](Engine/Basics/Distributions) ページを参照してください。
+新規ユーザーはディストリビューションが最初は複雑に感じるかもしれません。しかし、パーティクル システム内で各種プロパティの使用によって自由度が増す事にすぐ気が付くでしょう。詳細は [ディストリビューションのリファレンス](Engine/Basics/Distributions) ページを参照してください。
 
 (#PartileSystemLODs)
 

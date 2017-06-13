@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:3447015
+Availability:Public
+Title:Modify Curve
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
+Description:アニメーション グラフ内の任意のロジックでアニメーション カーブを修正するために使う Modify Curve ノードについて説明します。 
+Related:Engine/Animation/Sequences
+Related:Engine/Animation/NodeReference/SkeletalControls
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/AnimBlueprints/AnimGraph
+Related:Engine/Animation/StateMachines
+version:4.15
+type:reference
+topic-image:ModifyCurveNode.png
+tags:Animation
+tags:Animation Blueprint
+tags:Animation Curves
+tags:Skeletal Controls
+
+
+**Modify Curve** 制御を使って、 [アニメーション カーブ](Engine/Animation/Sequences/Curves) データを公開し、任意のロジックを使って変更し、アニメーションをより動的に操作することができます。 
+
+![](ModifyCurveNode.png)
+
+以下では、Modify Curve ノードを使って、**Eye Glow Intensity** というカーブを操作し、時間経過に従い、クマの目が光るようにします。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	tYN-osmLeKE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[](Engine/Animation/AnimBlueprints) の [](Engine/Animation/AnimBlueprints/AnimGraph) で、**右クリック** して、**Modify Curve** ノードを探して追加します。
+
+追加したらノード上で **右クリック** して、**Add Curve Pin** を選択し、変更する関連カーブを選択します。 
+
+![](AddCurvePin.png)
+
+ピンを取り除くには、再度ノード上で **右クリック** して、**[Remove Curve Pin]** を選択するか、ピンの上で **右クリック** して、**[Remove This Curve Pin]** を選択します。
+
+公開された float ピンを使って、値を操作するためのロジックを定義することができます (以下のロジックでは時間経過に従いクマの目が光るのを調整しています)。
+
+![](CurveLogic.png)

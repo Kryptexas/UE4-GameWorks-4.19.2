@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title:플레이어 입력 및 폰
 Crumbs:%ROOT%, GettingStarted
 Description:Pawn 클래스를 확장하여 플레이어 입력에 반응시킵니다.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]

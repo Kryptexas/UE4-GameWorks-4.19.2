@@ -3,6 +3,9 @@ Title:Player Input and Pawns
 Crumbs:%ROOT%, GettingStarted
 Description:React to player input by extending the Pawn class.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]

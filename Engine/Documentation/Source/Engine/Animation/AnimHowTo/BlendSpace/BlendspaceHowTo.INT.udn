@@ -1,34 +1,28 @@
-Availability:Public
-Title:Locomotion Based Blending
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Title:Locomotion Based Blending
 Description:Example of a Blend Space used to blend a character's animations from walking and jogging. 
-version: 4.15
+Type: how-to
 skilllevel: Intermediate
-type:how-to
+version: 4.16
+Parent: Engine\Animation\AnimHowTo
+Order: 1
 tags:Animation
 tags:Blend Space
+topic-image:BlendSpaceTopicCompact.png
 Related: Engine/Animation/Blendspaces
 Related: Engine/Animation/AimOffset
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/Skeleton
 
+
 [Blend Spaces](Engine/Animation/Blendspaces) are special assets which can be sampled in **AnimGraphs** that allow for blending of animations based on the values of two inputs. 
 Simple blending between two animations based on a single input can be performed using one of the standard [Blend Nodes](Engine/Animation/NodeReference/Blend) available in Animation Blueprints. 
 Blend Spaces provide a means of doing more complex blending between multiple animations based on multiple values (currently limited to two).
 
-In this How-to, we use a Blend Space to blend between walking and jogging animations based on the character's movement speed and movement direction similar to below. 
+In this How-to, we use a Blend Space to blend between walking and jogging animations based on the character's movement speed and movement direction. 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-jVtczzmNwQ4
-[/PARAMLITERAL]
-[/OBJECT]
+![](EndResultImage.png)
 
 ## Steps
 
@@ -53,7 +47,7 @@ You can download the Animation Starter pack for free through the **Marketplace**
 
 	We need to delete this character from the level in order to spawn in as the character from the previous step. 
 
-1.	In the **Content/AnimStarterPack/UE4_Mannequin/Mesh** folder, **Right-click** on the **UE4_Mannequin** and under **Create**, select **Blend Space** and give it a name.
+1.	In the **Content/AnimStarterPack/UE4_Mannequin/Mesh** folder, right-click on the **UE4_Mannequin** and under **Create**, select **Blend Space** and give it a name.
 
 	![](BlendSpace3.png)
 
@@ -141,7 +135,7 @@ You can download the Animation Starter pack for free through the **Marketplace**
 
 	By default, the Animation Starter Pack has bindings created for crouch which our project does not. For this example, we will remove the ability to crouch walk. 
 
-1.	**Right-click** in the graph and add a **Left Shift** Key Event, then drag the **CharacterMovement** into the graph from the **Components** tab. 
+1.	Right-click in the graph and add a **Left Shift** Key Event, then drag the **CharacterMovement** into the graph from the **Components** tab. 
 
 	![](BlendSpace15.png)
 
@@ -151,7 +145,7 @@ You can download the Animation Starter pack for free through the **Marketplace**
 
 	![](BlendSpace17.png)
 
-	We are changing our movement speed based on if Left Shift is held and will alter our character's movement speed in game. 
+	We are changing our movement speed based on if Left Shift is held and will alter our character's movement speed in-game. 
 
 1.	Click the **CharacterMovement** component, then in the **Details** panel set the **Max Walk Speed** to **100**. 
 
@@ -163,7 +157,7 @@ You can download the Animation Starter pack for free through the **Marketplace**
 
 	![](BlendSpace18.png)
 
-	This will turn off the collision capsule debug display in game. 
+	This will turn off the collision capsule debug display in-game. 
 
 1.	Click **Compile** then click the **Play** in editor button from the Toolbar. 
 
@@ -171,15 +165,21 @@ You can download the Animation Starter pack for free through the **Marketplace**
 ## End Result
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-jVtczzmNwQ4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	jVtczzmNwQ4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 When playing in the Editor, using **WASD** to move around, the character will now walk by default and blend between walking animations when changing directions. 
@@ -193,6 +193,7 @@ While standing, pressing and holding **Left Shift** while using WASD will cause 
 
 
 	
+
 
 
 

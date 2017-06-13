@@ -1,6 +1,6 @@
-Availability: Docs
+Availability: Public
 Title: 2 - Setting up your Android Device
-Crumbs:
+Crumbs:%ROOT%
 Description:Learn how to enable an Android's development environment.
 Version: 4.14
 type:quick start
@@ -46,8 +46,9 @@ Make sure you have access to a USB cable prior to commencing the following steps
 	[/REGION]	
 
 	[REGION:note]
-	If you don't see this item, you'll need to enable **Developer Options** on your device. For instructions on how to enable Developer Options on Android devices, 
-	visit [Android's User Guide](https://developer.android.com/studio/run/device.html).
+	If you don't see this item, you'll need to enable **Developer Options** on your device. To enable **Developer Options**, open the **Settings** application, scroll to the bottom and select **About phone**. 
+	After selecting **About phone** scroll to the bottom and tap **Build number** seven (7) times.
+	For additional instructions on how to enable Developer Options on Android devices, visit [Android's User Guide](https://developer.android.com/studio/debug/dev-options.html).
 	[/REGION]
 
 ## Enabling USB Debugging

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3377213
 Availability: Public
 Title:머티리얼 - 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,7 +8,7 @@ prereq: Engine/Rendering/Materials/MaterialInputs
 prereq: Engine/Rendering/Materials/Editor
 prereq: Engine/Rendering/Materials/IntroductionToMaterials
 prereq: Engine/Rendering/Materials/MaterialProperties
-Version: 4.9
+Version: 4.15
 parent:Engine/Rendering/Materials
 order:3
 type:landing

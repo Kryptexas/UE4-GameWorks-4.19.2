@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2701189
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでアクタを検索する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
 Description:ブループリントでアクタを検索するための操作ガイド 
 Version:4.9
 SkillLevel:Intermediate
+type:how-to
 
 [TOC (start:2 end:2)]
 
@@ -69,7 +70,7 @@ SkillLevel:Intermediate
 
 ## 特定のアクタを取得する
 
-前のセクションで、 **Get All Actors of Class** ノードを使うと指定したクラスのアクタの配列が作成されることを理解できたと思います。このセクションでは、様々な基準に合わせて得た配列結果にフィルタを適用して、その配列から特定の複数のアクタを取得、あるいはアクタを 1 つだけ取得する方法を紹介します。 
+前のセクションで、 **Get All Actors of Class** ノードを使うと、指定したクラスのアクタの配列が作成されることを理解できたと思います。このセクションでは、様々な基準に合わせて得た配列結果にフィルタを適用して、その配列から特定の複数のアクタを取得、あるいはアクタを 1 つだけ取得する方法を紹介します。 
 
 まずひとつめは、アクタで **タグ** を使う方法です。 
 
@@ -103,7 +104,7 @@ SkillLevel:Intermediate
 
 	![](Actors12.png)(w:800)
 
-1.	**ForEachLoop** ピンの **Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を get して、**Deactivate** ノードへ接続します。 
+1.	**ForEachLoop** ピンの **Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を取得して、**Deactivate** ノードへ接続します。 
 
 	[REGION:lightbox]
 	[![](Actors13.png)(w:800)](Actors13.png)

@@ -1,49 +1,13 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:액터 선택
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨 에디터 뷰포트에서 액터를 선택하는 데 사용할 수 있는 방법에 대한 개요입니다.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Selection:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Selection:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Selection]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Selection:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Selection:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Selection]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+Parent:Engine/Actors
+type:overview
+order:2
+topic-image:actorselection_topic.png
 
 
 [TOC(start:2)]

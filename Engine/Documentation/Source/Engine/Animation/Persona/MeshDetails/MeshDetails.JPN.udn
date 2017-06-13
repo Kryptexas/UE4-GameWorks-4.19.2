@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3273317
+﻿INTSourceChangelist:3467891
 Availability:Public
 Title:Skeletal Mesh アセットの詳細
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -8,14 +8,14 @@ Related:Engine/Rendering/Materials
 Related:Engine/Content/Types/StaticMeshes/HowTo/LODCollision
 Related:Resources/ContentExamples/Cloth
 Related:Engine/Content/FBX/SkeletalMeshes
-version:4.14
+version:4.16
 type:reference
 topic-image:SkeletalMeshAssetDetails.png
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 
-[TOC (start:2)]
+[TOC (start:2 end:2)]
 
 ![](MeshDetails.png)(w:940)
 
@@ -34,7 +34,7 @@ APEX Clothing を割り当てて調整したり、ラグドール タイプの�
 
 ![](MaterialsTable.png)
 
-[REGION:note]
+[REGION:tip]
 LOD セクション (ベース LOD は除く) をオーバーライドするために使用可能な **マテリアル スロット** を追加することができます。
 [/REGION]
 
@@ -74,7 +74,7 @@ LOD プレビューアを使って、LOD 間の見た目の違いを確認でき
 	[/PARAM]
 [/OBJECT]
 
-シャドウ キャストを有効または無効にすることもできます。 
+エレメント毎、LOD ベースでシャドウのキャストのオン、オフを切り替えることができます (一部のエリアではシャドウをキャストする必要がないかもしれません)。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -85,7 +85,37 @@ LOD プレビューアを使って、LOD 間の見た目の違いを確認でき
 	[/PARAM]
 [/OBJECT]
 
-_エレメント毎、LOD ベースでシャドウのキャストのオン、オフを切り替えることができます (一部のエリアではシャドウをキャストする必要がないかもしれません)。_ 
+## 削減の設定
+
+[REGION:warning]
+こうしたオプションでは、Simplygon を使う必要があります。LOD と Reduction Settings (削減設定)の詳細については、 [](Engine/Content/Types/StaticMeshes/LOD) ページをご覧ください。 
+[/REGION]
+
+上記のオプションに加えて、生成した各 LOD (Level of Detail) では最適化のために **Reduction Settings (削減設定)** を定義することができます。 
+
+![](ReductionSettings.png)
+
+アンリアル エンジン 4.16 時点では、**Bake Pose** 削減設定を使ってポーズを LOD にベイクすることもできます。この設定は、結果の LOD メッシュに適用される単一フレーム アニメーション シーケンスに対して設定することができます。 
+以下の動画のようにボーンを削除してもポーズを維持したい場合、便利です。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4vcmZwpzV74
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
 
 ## クロス
 
@@ -98,7 +128,10 @@ Apex ファイルをインポートしたら望ましい結果になるように
 
 ![](OwenApexCloth.png)
 
-_例えば、キャラクターには 2 つの Apex ファイルが関連付けられています。ひとつはキャラクターのネクタイに、もうひとつはキャラクターのコートに関連付けられています。_
+[REGION:caption]
+例えば、キャラクターには 2 つの Apex ファイルが関連付けられています。ひとつはキャラクターのネクタイに、もうひとつはキャラクターのコートに関連付けられています。
+[/REGION]
+
 
 ## メッシュ
 
@@ -149,22 +182,31 @@ Post Process Animation ブループリントを割り当てるには、ドロッ
 このサンプル映像では、ゲームプレイ中にスケルタルメッシュで Post Process Anim ブループリントがどのように機能するかを示しています。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-uroFU3M_-C4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	uroFU3M_-C4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 複数の Animation ブループリントを使用する複雑なセットアップのアニメーションがある場合、Post Process Anim ブループリントに **Sub-Graph Input** ノードを含める必要があるかもしれません。 
 
 ![](SubGraphInput.png)
 
-_これでスケルタルメッシュのベースポーズを使用するのではなく、親の Animation ブループリント (該当する場合) からポーズ情報を取得することができます。_
+[REGION:caption]
+これでスケルタルメッシュのベースポーズを使用するのではなく、親の Animation ブループリント (該当する場合) からポーズ情報を取得することができます。
+[/REGION]
 
 ## トランスフォーム
 

@@ -3,6 +3,8 @@ Title:Using Timers in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
 Description:A How To Guide for using timers in Blueprints. 
 version: 4.9
+type:how-to
+skilllevel:Intermediate
 
 [TOC (start:2 end:2)]
 

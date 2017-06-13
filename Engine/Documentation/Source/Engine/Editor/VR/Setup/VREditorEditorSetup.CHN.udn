@@ -1,49 +1,18 @@
-﻿INTSourceChangelist:2939982
+﻿INTSourceChangelist:3360829
 Title:从 GitHub 设置 VR 编辑器
 Description:从 GitHub 下载并配置虚幻引擎 VR 编辑器预览
 Crumbs:
 Availability: public
 parent:Engine/Editor/VR
-type: howto
-order:1
-tags:VR
-tags:GitHub
-version:4.11
+type:how-to
+order: 2
+tags: VR
+tags: GitHub
+version: 4.15
 skilllevel: intermediate
+topic-image:vreditor_setup.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/Setup:title%](Engine/Editor/VR/Setup/vreditor_setup.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/Setup:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/Setup]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/Setup:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:main]
 

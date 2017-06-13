@@ -1,7 +1,7 @@
 Availability:Public
 Title: Aim Offset
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:An **Aim Offset** is an asset that stores a blendable series of poses to help a character aim a weapon.
+Description:An Aim Offset is an asset that stores a blendable series of poses to help a character aim a weapon.
 Related: Engine/Content/FBX/Animations
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Animation/PhysicallyDrivenAnimation
@@ -9,6 +9,8 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.9
+tags:Assets
+topic-image:AimOffset_topic.png
 
 [REGION:fullwidth]
 ![](AimOffset.png)

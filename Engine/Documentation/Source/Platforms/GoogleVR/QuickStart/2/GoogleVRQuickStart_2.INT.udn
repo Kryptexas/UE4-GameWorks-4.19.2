@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Setting up a UE4 project to work with Google VR.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.12
+Version: 4.16
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:multi-step
@@ -25,7 +25,13 @@ Google has a provided a very detailed document that goes over everything you nee
 
 1. Inside of the Plugins menu, go the **Virtual Reality** section and make sure that **Google VR** is enabled.
 
-    ![](GVRQS_Pligin_GVR_Enabled_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_Pligin_GVR_Enabled_00.png)(w:500)](GVRQS_Pligin_GVR_Enabled_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
     [region:note]
     The Google VR plugin should be enabled by default. If it is not enabled, it can be enabled by clicking on the checkmark box next to **Enabled**. When you do this will be prompted to restart the UE4 Editor so that the changes can take place. Failing to re-start the UE4 editor after enabling the Google VR plugin could result in the plugin not working correctly.
@@ -62,21 +68,32 @@ Google has a provided a very detailed document that goes over everything you nee
 
 1. Under the **Input** section in the **Mobile** category, remove the **DefaultVirtualJoysticks** from the **Default Touch Interface** by clicking on the small white triangle next to the DefaultVirtualJoysticks and selecting the **Clear** option from the drop-down list.
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    -Ylbi1TCKZs
-    [/PARAMLITERAL]
-    [/OBJECT]
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		-Ylbi1TCKZs
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		50
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 
-1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can package properly.
+1. In the **Platforms** section under the **Android** section press the **Configure Now** button in the **APKPackaging** and **Google Play Services** sections to ensure that our project can package correctly.
 
-    ![](GVRQS_Config_Now_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_Config_Now_00.png)(w:500)](GVRQS_Config_Now_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
 1. In the **APKPackaging** section make sure you have the following options set:
 
@@ -84,29 +101,50 @@ Google has a provided a very detailed document that goes over everything you nee
      * **Disable verify OBB on first start/update:** Checked
      * **Enable FullScreen Immersive on KitKat and above devices:** Checked 
 
-    ![](GVRQS_SDK_Version_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_SDK_Version_00.png)(w:500)](GVRQS_SDK_Version_00.png)
+    [/REGION]
 
-1. Locate the **Build** section and uncheck the **Support armv7 [aka armeabi-v7a]** option and make sure that both **Support arm64[aka arm64-v8a]** and **Support OpenGL ES2** are checked.
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
-	![](GVRQS_Build_arm64_Support_00.png)
+1. Locate the **Build** section set the following:
+
+	* **Support armv7 (aka armeabi-v7a):** Disabled
+	* **Support arm64 (aka arm64-v8a):** Enabled
+	* **Support OpenGL ES2:** Enabled 
+
+    [REGION:lightbox]
+    [![](GVRQS_Build_arm64_Support_00.png)(w:500)](GVRQS_Build_arm64_Support_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
 1. Next, in the **Advanced APKPackaging** section and enable the following options:
 
-    * **Configure for deployment to Daydream:** Checked
     * **Configure GoogleVR Deployment Mode:** Daydream & Cardboard
-    * **Configure GoogleVR for sustained performance mode:** Checked
+    * **Configure GoogleVR for sustained-performance mode:** Checked
 
-    ![](GVRQS_GoogleVR_Options_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_GoogleVR_Options_00.png)(w:500)](GVRQS_GoogleVR_Options_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    Click for full image.
+    [/REGION]
 
     [region:note]
-    The Configure GoogleVR Deployment Mode has several options that when selected will do that following.
+    The Configure GoogleVR Deployment Mode has several options that when selected will do the following:
     * **Cardboard:** Configure GoogleVR to run in Cardboard-only mode.
     * **Daydream:** Configure GoogleVR to run in Daydream-only mode. In this mode, the app won't be able to run on NonDaydream-ready phones.
     * **Daydream & Cardboard:** Configure GoogleVR to run in Daydream mode on Daydream-ready phones and fallback to Cardboard mode on NonDaydream-ready phones.
 
     [/region]
 
-1. In the **Android SDK** section under the **SDKConfig** section set both the **SDK API Level** and **NDK API Level** to **android-24** instead of their defaults to ensure that your project will be compiled against the most recent Android SDK.
+1. In the **Android SDK** section under the **SDKConfig** section set the **SDK API Level** to **matchndk**. Then set the **NDK API Level** to **android-24** to ensure that your project will be compiled against the most recent Android SDK.
 
     ![](GVRQS_Android_SDK_Options_00.png)
 
@@ -118,6 +156,6 @@ Google has a provided a very detailed document that goes over everything you nee
     [/region]
 
 
-In the next section of the Google VR Quick Start, we will go over what you have to do to package your UE4 project, so it will run on a Google VR device.
+In the next section of the Google VR Quick Start, we will go over what you have to do to package your UE4 project so that it will run on a Google VR device.
 
 [NAV]

@@ -1,0 +1,26 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Crumbs:
+Title: NVIDIA Aftermath
+Description: Integration of Nvidia's Aftermath technology that enabls post-mortem GPU crash analysis on NVIDIA GeForce based GPUs. 
+Type:Overview
+Version:4.15
+Parent:Engine/Nvidia
+Order:1
+topic-image:Aftermath_Topic.png
+Tags:Nvidia
+
+
+[REGION:fullwidth raw]
+![](Aftermath_Banner.png)(w:900)
+[/REGION]
+
+As of version 4.15.2, Unreal Engine supports Nvidia's **Aftermath** C++ library for Windows-based developers, which provides additional data from Nvidia GeForce-based GPUs after a crash occurs. 
+This data contains crucial information about what the GPU was doing when the crash occurred, enabling you to track down what's happening with the GPU in your own projects.
+
+Aftermath is a lightweight tool that is unobtrusive and reduces the performance footprint needed by some debugging tools. In fact, it's lightweight enough that it can even ship with finished 
+games to provide the data you need from your customers' machines. Aftermath enables programmers to insert markers into their code that assist in tracking the root causes of crashes. This is 
+now being used in the Unreal Engine Editor to track down and fix reported or captured issues.
+
+For additional information and how to use it in your own project, visit [Nvidia's Aftermath documentation](https://developer.nvidia.com/nvidia-aftermath) page.
+

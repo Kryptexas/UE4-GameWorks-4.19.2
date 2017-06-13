@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: VR 에서의 액터 트랜스폼
 Description: VR 에서 액터 이동, 회전, 스케일 조절에 사용되는 트랜스폼 위젯입니다.
 Crumbs:
@@ -7,11 +7,11 @@ parent: Engine/Editor/VR
 type: reference
 order: 4
 tags: VR
-version: 4.13
+version: 4.15
 skilllevel: intermediate
 topic-image:universalgizmo_topic.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 

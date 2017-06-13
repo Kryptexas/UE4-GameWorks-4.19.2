@@ -5,71 +5,42 @@ Description:A guide that overviews the design and construction of game levels an
 Version: 4.9
 parent:Engine/Editor
 order:3
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Feature]
-[OBJECT:Feature]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Editor_Topic.png
+topic-icon:%ROOT%/editor_icon.png
 
 
 [REGION:fullwidth]
-![](UE4Interface_5.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -92,7 +63,37 @@ At its most basic level, creating levels boils down to placing items in a map in
 Since the interface for Unreal Editor is highly customizable, it is possible that what you see may change from one launch to the next. Below, you can see the default interface layout:
 
 [REGION:raw]
-![](UEDInterface.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -109,7 +110,37 @@ Since the interface for Unreal Editor is highly customizable, it is possible tha
 
 The Level Editor has a tab along the top providing the name of the level currently being edited. Tabs from other editor windows may be docked alongside this tab for quick and easy navigation, similar to a web browser.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
 ![](TabBar.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](TabBar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 The name of the tab itself will reflect the level currently being edited. This is a pattern consistent throughout the editor - editor tabs will be named after the current asset being edited.
 
@@ -122,7 +153,38 @@ To the right of the Tab Bar is the name of the current project.
 
 [INCLUDE:Engine/UI/LevelEditor/MenuBar#Intro]
 
-![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MainMenubar.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MenuBar_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/Menubar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 See the [**Menu Bar**](Engine/UI/LevelEditor/MenuBar) page for descriptions of each menu and its contents.
 

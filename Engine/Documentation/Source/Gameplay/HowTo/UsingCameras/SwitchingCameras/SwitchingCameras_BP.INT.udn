@@ -8,6 +8,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 In this How-to we add multiple **Camera** Actors to our level and switch between them as the player enters **Trigger** Volumes that we have placed in the level. After completing this tutorial, you will have the ability to set up your own multi-camera based game and define when each camera is used. 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:レベル エディタ
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -6,71 +6,42 @@ Description:ゲームレベルや背景のデザインならびに構築の概�
 Version:4.9
 parent:Engine/Editor
 order:3
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Feature]
-[OBJECT:Feature]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Editor_Topic.png
+topic-icon:%ROOT%/editor_icon.png
 
 
 [REGION:fullwidth]
-![](UE4Interface_5.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -93,7 +64,37 @@ order:3
 エディタのインターフェースは高度なカスタマイズが可能であるため、ある時立ち上げた時に表示されていたものを次の起動までに変更することができます。以下はデフォルト インターフェースのレイアウトです。
 
 [REGION:raw]
-![](UEDInterface.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -110,7 +111,37 @@ order:3
 
 レベル エディタの上端に沿ったタブに、現在編集しているレベルの名前が表示されます。別のエディタ ウィンドウのタブをこのタブにドッキングして、ウェブ ブラウザのように素早くかつ簡単にナビゲーションすることができます。
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
 ![](TabBar.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](TabBar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 タブの名前には、現在編集中のレベルが反映されます。これはエディタ全体で共通のパターンです。エディタ タブは、現在編集中のアセット名から名前が付けられます。
 
@@ -123,7 +154,38 @@ order:3
 
 [INCLUDE:Engine/UI/LevelEditor/MenuBar#Intro]
 
-![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MainMenubar.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MenuBar_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/Menubar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 各メニューとコンテンツの詳細は、 [メニュー バー](Engine/UI/LevelEditor/MenuBar) ページを参照してください。
 

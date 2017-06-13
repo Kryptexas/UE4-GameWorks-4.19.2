@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:3367470
 Title:2014 年 3 月リリースノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Licensee
+Parent:Support/Builds
+Order:-1
 
 [TOC(start:2 end:2)]
 
@@ -12,10 +14,10 @@ Availability:Licensee
 [REGION:simpletable]
 | アイテム | 情報 |
 | ---- | ---- |
-| **Labels** | [INCLUDE:#labels] |
+| **ラベル** | [INCLUDE:#labels] |
 | **Built from Changelist #** |  (//depot/UE4-QA/Promotable-CL-) |
 | **Branched from Changelist #** |  (//depot/UE4/Promoted-CL-) |
-| **Visual Studio バージョン** |  |
+| **Visual Studio Version** |  |
 | **DirectX** | June 2010 |
 [/REGION]
 
@@ -34,11 +36,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	これにより、March QA ビルドが遅れる結果となり、**UE4-Releases/4.0/** のコンテンツは現時点で有効なコンソールに含まれていません。現在 **//depot/UE4-QA-Unstable/** ( *which was branched from Releases* ) に保存されているコンソールを、認証から安全に作業ができるブランチへ戻す作業をしています。   **//depot/UE4-QA/** へすぐにブランチしますが、コンソール ゲームを行う場合は、April QA ビルドで最低 1 つコンソールの認証ビルド、May QA では両方のビルドが含まれるようにします。 
 
 * 現時点のエンジン開発ロードマップ: [UE4 Roadmaps](https://udn.unrealengine.com/questions/topics/roadmap.html)
-* 修正されたバグ: [UE4 Fixed Bugs March 2014]
-* 周知の問題: [UE4 Known Issues March 2014]
+* 修正されたバグ： [UE4 Fixed Bugs March 2014]
+* 周知のバグ： [UE4 Known Issues March 2014]
  
 
-## 主な新機能
+## 主要な新機能
 
 #### ブループリント
 
@@ -52,7 +54,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 		![](MacroDebugging01.png)
 
-		_実行は Gate マクログラフ内部の Enter 出力に適用されたシーケンス ノード上でブレークします。マクロ内部の Branch ノード上にブレークポイントを設定し、[Resume(再開)] をクリックすると_
+		_実行は Gate マクログラフ内部の Enter 出力に適用されたシーケンス ノード上でブレークします。マクロ内部の Branch ノード上にブレークポイントを設定し、[Resume (再開)] をクリックすると_
 
 		![](MacroDebugging02.png)
 
@@ -152,11 +154,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 		1 アンリアル単位 = 1 センチ (cm)
 
-	* 新しいスナップサイズです:		
+	* 新しいスナップサイズです。		
 
 		![](DecimalIntervals01.png)
 
-	* 環境設定の Viewports->Grid Snapping で、ゲームに対するスナップ設定をべき乗に戻すことができます:
+	* 環境設定の Viewports->Grid Snapping で、ゲームに対するスナップ設定をべき乗に戻すことができます。
 
 		![](DecimalIntervals02.png)
 
@@ -198,7 +200,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 	* プレースメント ブラウザが全く新しいデザインで生まれ変わりました！  
 
-		新しいプレースメント ブラウザでは、ライト、トリガー、ボリューム、全てのクラスへの迅速なアクセスだけでなく、最近配置したアセットの非常に長いリストにもアクセスできます。
+	新しいプレースメント ブラウザでは、ライト、トリガー、ボリューム、全てのクラスへの迅速なアクセスだけでなく、最近配置したアセットの非常に長いリストにもアクセスできます。
 
 	* Editor モードがすべて [Tools] タブの中に統合されました。		
 
@@ -210,14 +212,14 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 * **[Details] パネルのヘッダがスリムになり、 C++ ファイルを開けるようになりました**
 
-	* 2 本だったヘッダー行がシンプルな 1 行に圧縮されました。アイコン ツールチップがクラス名を表示するようになりました (Scene Outliner など)。   
+	* 2 行だった詳細ヘッダーがシンプルに 1 行に圧縮されました。アイコン ツールチップがクラス名を表示するようになりました (Scene Outliner など)。   
 
 	* C++ コードのあるアクタの場合は、ヘッダファイルのハイパーリンクをクリックればコードを開くことができます (VS または Xcode をインストールしている場合のみ表示されます)。
 
 		![](DetailsPanel01.png)
 
+	* これまではアクタ クラス名にブループリント エディタへ飛ぶハイパーリンクが付いていました。それが今度は別のボタンとなりました。
 
-	これまではアクタ クラス名にブループリント エディタへ飛ぶハイパーリンクが付いていました。それが今度は別のボタンとなりました。
 		![](DetailsPanel02.png)
 
 	* ビューポートの右クリック メニューに C++ ファイルへのアクセスも追加しました (コンパイラをインストールしている場合に限ります)。  
@@ -238,11 +240,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 #### レンダリング
 
-* **光沢のあるスクリーン空間の反射**
+* **光沢のある Screen Space Reflections**
 
-	* マテリアルのラフネスをサポートするスクリーン空間の反射が追加され、デフォルトで有効になりました！
+	* マテリアルのラフネスをサポートする Screen Space Reflections (スクリーン スペース反射) が追加され、デフォルトで有効になりました！
+		Screen Space Reflections を使用したくない場合は、ポストプロセス設定でこの機能を弱める / 無効にすることができます。 
 
-		スクリーン空間の反射を使用したくない場合は、ポストプロセス設定でこの機能を弱める / 無効にすることができます。 
 		マイナーな調整が必要なマテリアルもありますが、それらは他の反射に対しても正しい表示はされません。 
 		Image Based Lighting と 法線 (解析的) 光源を一致させました。
 
@@ -268,9 +270,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 #### アニメーション
 
-* **一様でないスケール アニメーション**
+* **不均等なスケール アニメーション**
 
-	* 一様でないスケール アニメーションがサポートされるようになりました。オプションは必要ありません。アニメーションをインポートすると、スケールが存在する場合、それもインポートされます。 
+	* 不均等なスケール アニメーションがサポートされるようになりました。オプションは必要ありません。アニメーションをインポートすると、スケールが存在する場合、それもインポートされます。 
 
 		全てのアニメーションに対してスケールを保存するわけではありませんので、メモリの心配もありません。1 ではないスケールをもつアニメーションのみを保存します。 
 
@@ -283,11 +285,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 		[![](Keridan_Facial_Compound.png)](Keridan_Facial_Compound.wmv)
 
 
-## 新機能の追加 
+## 新規追加 
 
 #### エディタとツール
 * 新しいサウンド ノードがサウンドキュー エディタで選択済みのノードへ自動接続されるようになりました。
-* Placement Browser が全く新しいデザインになって戻ってきました！コンテンツ ブラウザの [Clasees] ビューが取り除かれました。
+* Placement Browser が全く新しいデザインになって戻ってきました！コンテンツ ブラウザの [Classes] ビューが取り除かれました。
 * JPEG インポートがエディタでサポートされるようになりました。基本の 8bit RGB と Gray JPEG 形式に対応します。
 * コンテンツ ブラウザのスレート ブラシにカスタム仕様のサムネイル レンダラーを追加しました。
 * [C] キーでマテリアルとサウンドキュー エディタ用にコメントを作成するようになりました。
@@ -298,9 +300,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * **ランドスケープ**
 	* ランドスケープ平坦化ツールに、高さに合わせて平坦化するオプションが追加されました。
 	* ランドスケープ エディタに傾斜ツールが追加されました。
-* カメラ アニメーションの作成と編集が Matinee で可能になりました。
+* カメラ アニメーションの作成と編集がマチネで可能になりました。
 * ソース コントロール設定がグローバルとプロジェクト別で切り替え可能になりました。
-* アクタを複数の Matinee で同時に制御できるようになりました。
+* アクタを複数のマチネで同時に制御できるようになりました。
 * 使用時にユニコードがサポートされるようになりました。また、正しく機能しなかった同期が修正されました。
 * ブループリントの関数コールをダブルクリックすると、それぞれのブループリントが開くようになりました。
 * エディタを再起動すると、[Asset] タブがリストアされるようになりました。
@@ -318,7 +320,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* FEditorStyle はスレート コアには存在しなくなりました。
 	* FEditorStyle は Slate モジュールではなく EditorStyle に存在するようになりました。
 	* FEditorStyle を使用する場合、「EditorStyle」を .Build.cs ファイルにリンクしているモジュール リストに追加する必要があります。
-	* ゲームスタイルに FEditorStyle の使用はお勧めしません。 推奨されるゲームスタイルの設定方法については、ShooterGame または StrategyGame サンプルの例をご覧ください。
+	* ゲームスタイルに FEditorStyle の使用はお勧めしません。推奨されるゲームスタイルの設定方法については、ShooterGame または StrategyGame サンプルの例をご覧ください。
 * SRichTextBlock がスレートに追加されました。SRichTextBlock には、複数のタイプのフォント、サイズ、カラー、ウィジェットを混ぜることができ、テキスト ドキュメント内で全てが画像化されます。
 * ペルソナの通知ステートに、リミットハンドルをドラッグで編集される継続時間が付きました。
 * マテリアル エレメントのスケルタル メッシュへの追加および削除が可能になり、 LOD マテリアルが定義できるようになりました。
@@ -328,10 +330,10 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * マウスボタンが押されていれば、 WASD が常に可能になりました。
 * Perspective (透視図法) ビューポート マーキー選択は、マーキー ボックス内部に可視ピクセルを持つオブジェクトのみを考慮するようになりました。
 * [Detail] パネルのプロパティに copy/paste が追加されました。
-* プロジェクトとワールド設定の GameMode の作成 / 選択 / 編集用に新しい UI が追加されました。
+* Project Settings と World Settings の GameMode の作成 / 選択 / 編集用に新しい UI が追加されました。
 * **物理アセット ツール** 
 	* PhAT は複数選択が可能です。
-	* PhAT に、ボディのあるボーンを表示のみする新しい階層フィルタができました。
+	* PhAT に、ボディのあるボーンのみを表示する新しい階層フィルタができました。
 	* PhAT に Selected Simulation と呼ばれる新しいシミュレーション モードができました。
 
 #### ブループリント
@@ -358,14 +360,14 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * GetActorUp/Right/ForwardVector が追加されました。
 
 #### レンダリング
-* ボリューム ライティング サンプルと事前計算済みのビジビリティ セルの表示フラグが可視化されました。
+* ボリューム ライティング サンプルと事前計算されたビジビリティ セルの表示フラグが可視化されました。
 * プレビュー シャドウ インジケータ テキストはプレビューに使用されたシーン シャドウをまるどとレンダリングします。
 	* Visualize カテゴリの表示フラグで無効にすることができます。
 	* ビルドされていない指向性ライトの Preview CSM はゲームと整合させるため、 PIE には適用されなくなりました。
 * ES2 のシェーダーで、 詳細情報およびエラーがマテリアルおよび MIC エディタ内で表示できるようになりました。
-* スクリーン空間の反射に対してラフネスがサポートされるようになりました。
+* スクリーン スペースの反射に対してラフネスがサポートされるようになりました。
 * WIP LightPropagationVolumes (Microsoft/Lionhead から統合) が追加されました。
-* Matinee をセットアップせずにレンダリング パスに対して異なるビューポートの状況をテストするために r.ViewportTest が追加されました (ゲームのみで機能)。
+* マチネをセットアップせずにレンダリング パスに対して異なるビューポートの状況をテストするために r.ViewportTest が追加されました (ゲームのみで機能)。
 * HLSL 「View.GeneralPurposeTweak」にアクセス可能なcvar 「r.GeneralPurposeTweak」がシェーダー開発用に追加されました。
 * ステートが簡単に管理できるように (デバイス プロファイルのオーバーライドなど) Scalability settings cvars が作成されました。
 * 全ての 2D テクスチャの LOD バイアスをオーバーライドするための r.MipMapLODBias コンソール変数が追加されました。
@@ -378,7 +380,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * navmesh 生成用の領域が新しく分割されました。ChunkyMonotone
 	* タイルを長方形のチャンクに分割し (デフォルト：2X2)単調分割を実行します。
 	* デフォルト モードに比べて明らかに速いです (watershed による)。
-	* チャンクを分割することで長くて細いポリゴンが作成されるのを防ぎますが、生成されるポリゴン数が他のメソッドに比べて若干多くなります。
+	* チャンクを分割すると細長いポリゴンの作成を防ぐことができますが、生成されるポリゴン数が他のメソッドに比べて若干多くなります。
 	* [Partitioning method selection] が RecastNavMesh の Generation カテゴリの [Advanced display] へ移動しました。
 * 動的な障害物 (デフォルトで歩行可能なものに類似) 用にデフォルトのナビゲーション エリアが追加されました。これはゲーム専用の設定でオーバーライドすることができます。
 * EQS デバッグ描画ツールが GameplayDebuggingComponent の表示に追加されました。
@@ -391,7 +393,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * アニメーション ノード選択時に構造体をカスタマイズするサポートが、ペルソナの詳細パネルに追加されました。 
 * スケルトンのプレビュー メッシュとペルソナの現在のプレビュー メッシュを別々に設定する機能が追加されました。
 * プロパティのデフォルトとは別にプレビュー インスタンス上のプロパティをユーザーが編集できる新しいパネルがペルソナに追加されました。
-* コンテクスト オプション メニューが Animation Blueprint ノードに追加され、ユーザーは関連するアセットを開けるようになりました。
+* コンテキスト オプション メニューが Animation Blueprint ノードに追加され、ユーザーは関連するアセットを開けるようになりました。
 * dirty marker がペルソナの Mode Widget に追加されました。
 * Save context menu オプションがペルソナのアセット ブラウザに追加されました。
 * インゲームのボーン描画を showdebug コマンドで切り替えられるようになりました。
@@ -409,7 +411,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * Shootergame にテキストチャットが追加されました。
 * クラス ビューアのネイティブ クラスをダブルクリックすると IDE 内でヘッダ ファイルが開きます。
 * エディタ ヘルプ メニューに API ドキュメントに対するショートカットが付きました。
-* 直近のプロジェクトを自動で読み込むためのオプションがプロジェクト ブラウザに追加されました。
+* 直近プロジェクトの自動読み込みオプションがプロジェクト ブラウザに追加されました。
 * コリジョン：コリジョン チャンネル設定が Project Setting/Collision で可能になりました。
 * PhysicalSurface :Physical Surface の設定が Project Setting/Physics で可能になりました。
 * 自動化テストのコンフィギュレーション：各種自動化テスト アセットを Editor Setting/Automation に追加することができるようになりました。
@@ -421,7 +423,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * マテリアルごとのグループ化できるアクタ マージ ユーティリティが追加されました (Experimental->Actor Merging の中にあります)。
 * デディケイテッド サーバーは、サーバー自体の ini ファイル (DedicatedServer*.ini) を同じディレクトリ内に Default*.ini として格納できるようになりました。
 * UBT:TargetInfo クラスに Type プロパティと IsCooked プロパティが追加されました。これにより、クックされたターゲットのバイナリをビルドする場合、モジュールに条件付のビルド規則を設定することができます。 
-* アセット レジストリ データとゲームコールバックに基いた、複数のパッケージファイルのビルド作成用の機能が追加されました (ゲーム ダウンロードのチャンキングに便利)。
+* アセット レジストリ データとゲームコールバックに基いた、複数の pak ファイルのビルド作成用の機能が追加されました (ゲーム ダウンロードのチャンキングに便利)。
 * nullptr と 0 が BlueprintCallableFunctions ポインタのデフォルト引数として受け取られるようになりました。
 * Interface UFunctions はフィールド イタレーションで検索できます。
 * 新規の TFieldRange クラスは TFieldIterator と同じように使用されますが、使用対象は for (`UFunction* Func :TFieldRange<UFunction>(Class)`).
@@ -449,7 +451,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * 最適化：SkeletalMeshes 向けの CachedLocalBounds 最適化が全てに対して有効にされました。		
 * **アニメーションは再保存が必要です**
 	* GUID が Skeleton アセットに追加されたので、 アニメーションがバージョンをトラックできるようになりました。全てのアニメーションを再保存することを推奨します。再保存しない場合、アニメーションはゲームのロード時に圧縮されます。
-* 一様でないスケール アニメーションのサポーはスケーリングの適用時のみ使用できます (1,1,1 ではない場合など)
+* 不均等なスケール アニメーションのサポーはスケーリングの適用時のみ使用できます (1,1,1 ではない場合など)
 	* スケールのインポートがうまくいかない場合は、[Preserve Local Transform] を有効にします。
 	* 湾曲 / 共有はサポート外となります。情報は削除され、ソースデータとは異なる結果が作成されることにご注意ください。
 
@@ -457,387 +459,387 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 ## アップグレード ノート
 
 #### エディタとツール
-* コンテクスト メニューに Actors Delta Transform が選択されました。
-* シーンアウトライナーにキャッシュされていない静的ライトのビルド情報が表示されます。
-* 表示されるアクタをダンプするためのコンソール コマンド (DumpVisibleActors) が追加されました。
-* Atmospheric fog：Precompute 変数に対してブループリントのアクセスが追加されました (エディタのみ有効です)。
-* 10 進法のスナップグリッドがデフォルトで有効になり、スナップサイズが 10 cm になりました。以前のビヘイビアにリバートするためには、ビューポート設定でべき乗のスナップグリッドを有効にする必要があります。
-* エンジン コンテンツがコンテンツ ブラウザでデフォルトで無効にされました。コンテンツ ブラウザでのビュー設定でこれを再度有効にすることができます。
-* VirtualJoystick:UTouchInterface から値を継承します。
-	* ジョイスティックのリセンタリングを防ぐ bPreventRecenter が追加されました。
-	* 画面の外への移動を防ぎ、ThumbPosition が画面内になるようにクランプします。
-	* 起動遅延が追加されました。
-	* ジョイスティックごとに速度制御する InputScale が追加されました。
-* もう少し使いやすくするために ProjectileMovementComponent Velocity のデフォルトが (1,0,0) に設定されました。
-* GameModeForPIE を削除しました。 
-* 含まれているウィジェットの親階層が有効化どうかを判断する SEnableBox が作成されました。
-* チェックアウト / 追加などを内部処理する外部画像参照ウィジェットができました。
-* アセット タイプ アクションがツールチップの別セクションにアセットのユーザーの説明を表示する機能を追加しました。
-* ストリーミング レベルのあるマップの新規プロセスでの起動と再生を修正するためにレベル ストリーミングをリファクタリングします。
-* ズーム レベルの鮮明度を維持し、カードカラーで原線を表示するように、グラフ パネル グリッドのレンダリング メソッドが変更されました。
+* Selected Actors Delta Transform for context menu.
+* Show Uncached static Lighting build info in SceneOutliner.
+* Added Console Command to dump visible actors ("DumpVisibleActors").
+* Atmospheric fog:Added Blueprint access for Precompute variables (only valid for editor).
+* Decimal snap grid is now enabled by default and the snap size is now 10 cm.You will need to enable the power of two snap grid in the viewport settings to revert to the old behavior.
+* Engine content has been disabled by default in the content browser.You can enable this again in the content browsers view settings.
+* VirtualJoystick:Inherits values from UTouchInterface.
+	* Added bPreventRecenter, which prevents Joystick re-centering.
+	* Prevent moving outside of screen, clamp ThumbPosition to be inside screen.
+	* Added Activation Delay.
+	* Added InputScale to control each Joystick's speed.
+* Default ProjectileMovementComponent Velocity to (1,0,0) to make it a bit simpler to use.
+* Remove GameModeForPIE. 
+* Created SEnableBox, which lies to the contained widget about whether the parent hierarchy is enabled or not.
+* Created an external image reference widget, which internally handles checkout/add/etc...
+* Added the ability for asset type actions to provide a user description of the asset, showing up in a separate section of the tooltip.
+* Level streaming refactoring to fix Launch and Play in new process for maps with streaming levels.
+* Changed graph panel grid rendering method to keep sharpness at all zoom levels and show origin lines in a third color.
 
 #### レンダリング
-* SSAO がさらに繊細になるようにデフォルトが変更されました。
-* Light プロパティをクリーンアップしました。大きな変更点：点 / スポットライトがデフォルトで逆2乗フォールオフを使うようになりました。Brightness が ライトのタイプごとに新しいデフォルトの Intensity に変更されました。Radius は AttenuationRadius に名前変更されました。
-* 今後のシェーダー最適化に備えて、パラメータを設定する前にシェーダーをグローバルステートにバインドすることが必要になりました。現在バインドされていないパラメータをシェーダーに設定しようとすると作成され確保されます。
-* SystemSettings からほぼ全ての設定が外され、同等のコンソール変数に置き換えられました。これには、GSystemResolution.ResX と GSystemResolution.ResY 経由でコードからのアクセスが可能になったシステム解像度 (GSystemSettings.ResX/ResY) が含まれます。新規コンソール変数 (r.setres) も以前の "setres" コマンドに置き換えるために追加されました。
-* クリッピング平面付近のデフォルトが 10cm に設定されました。そのため、ゲームでかなり長い表示距離を使用すると Z ファイティングが発生する場合があります。詳細は r.SetNearClipPlane を参照してください。
-* PostprocessAmbient が純粋に加算になり、環境感謝やその他のもの (SSAO 以外) にオクルードされなくなりました。遥か遠くのスカイボックス テクスチャではなく、もっと面白いアンビエント (コンテンツは再調整する必要があるかも知れません) を作成するためのものになりました。
-* TextRender デフォルト マテリアルが不透明に変更されました (TemporalAA クオリティの改善により、このオプションが可能になりました)。
-* ScreenPercentage を使うと、コンソールのメモリ使用量が少なります。複数のフレーム上で劇的に変更したい場合には、このメソッドは向いていません。必要であれば、cvars 設定を使って、プラットフォーム / ゲーム プロパティにすることができます。
-* 表示フラグのユーザビリティの変更： ゲームおよびおエディタの表示フラグ ステートを適切に切り替えられるようになりました (2 つのステートを保存および切り替えます)。
-* エディタで TemporalAA がデフォルトになりました (エディタ プリミティブによる点滅が若干予想されます)。
-* ScalabilitySetting パーシステンスをゲームとエディタに分けました (別々の ini ファイル)。そのため、設定の早めのロード (ゲームがまだない状態でも) が可能で、サブシステムの再初期化を防ぎます。
+* Changed SSAO defaults to be more subtle.
+* Light properties cleanup.Major changes: point / spot lights use inverse squared falloff by default, Brightness changed to Intensity with new defaults per light type, Radius renamed to AttenuationRadius.
+* To prepare for future shader optimisations, it is now a requirement to bind shaders to the global state BEFORE setting any parameters.Trying to set parameters on a shader which isn't currently bound will produce and ensure.
+* Almost all settings have been removed from SystemSettings, and replaced with equivalent console variables.This includes system resolution (GSystemSettings.ResX/ResY) which are now accessible from code via GSystemResolution.ResX and GSystemResolution.ResY.A new console variable (r.setres) has also been added to replace the old "setres" command.
+* The default near clipping plane has been set to 10cm.This may cause z-fighting if your game uses very long view distances.See r.SetNearClipPlane.
+* Made PostprocessAmbient purely additive, not occluded by environment reflections or other things (other than SSAO), now it's meant to make an more interesting ambient (content might need to retweaked) not a infinitly far away skybox texture.
+* Changed TextRender default material to be opaque (TemporalAA quality improvements now make this the better option).
+* Consoles now use less memory when using ScreenPercentage.In case the game wants to dynamically change it over multiple frames this is not the right method.If needed we can use the cvars settings and make it a platform/game property.
+* Usability change of showflags: game and editor showflag state now allows proper toggle (2 states are stored and toggled).
+* Allow TemporalAA in editor by default (minor flickering with editor primitives is expected).
+* Split ScalabilitySetting persistence into game and editor (different ini files).This allows early loading of the settings (even game isn't there yet) and avoid reinit of subsystems.
 
 #### ゲームプレイとフレームワーク
-* Oculus integration が更新され、レイテンシーが改善され、ポジション トラッキング デバイスがサポートされました。注記:この機能を利用するには、ポジション トラッキングの LibOVR SDK を Oculus から購入しなければなりません。
-* コンポーネント配列が取り除かれました。
-	* コンポーネント配列が取り除かれ、配列に新規コンポーネントを追加する必要はなくなりました。作成したコンポーネントを登録した場合は、 bAutoRegister を false に設定します。コンポーネント配列へは  AActor::GetComponents 関数でアクセスします。コンポーネントがアクタとは無関係に作成された場合を除き、そのコンポーネントはアクタの直接外側にならなければなりません。通常、アクタ以外のサブオブジェクトであるコンポーネントを持つことはできません。 
-* 入力バインディングの変更
-	* キー バインディングが列挙型変数ではなく名前で行えるようになりました。新しい struct FKey により名前がカプセル化され、ヘルパー関数が数多く提供されます。ヘルパー関数の使用は IsGamePadKey などへを推奨しますが、EKeys::IsGamepadKey 関数も移行しやすいと定義されます。
-	* EKeys 列挙型変数が削除されました。EKeys::Type または EKey を使用した部分は、通常 FKey に変更する必要があります。
-	* EKeys を使った列挙型変数の入力 (例えば EKeys::MouseX) は全てEKeys struct の static const メンバへ変換されているのでキー名を使用してもまだ機能しますが、struct なので Key の値をつけることはできなくなりました。
-	* 入力設定の多くは Engine.PlayerInput から Engine.InputSettings へ移されました。最も重要な注釈：AxisConfig、ActionMappings、AxisMappings です。
-* WorldFromContextGetter が削除されました。その代わり、UObjects はすべて GetWorld() というバーチャル関数を実行できるようになりました。
-* APlayerCamera が APlayerCameraManager に名前変更されました。
-* AxisMappings MoveForward、MoveRight、MoveUp、Lookup、Turn、 ActionMapping PushToTalk が  BaseInput.ini から削除されました。特定のゲームで必要な場合は DefaultInput.ini に追加しなければなりません。
-* SoundNodeGroupControl が距離を考慮しなくなりました。その代わり、バケットごとの最大サウンド数が次のバケットに行く前に再生されることを確実します。
-* SoundNode NotifyFinished の接続が再構築されました。複数のノードがウェーブ インスタンスの完了通知を要求できるようになりました。
-* UMETA がその他のマークアップ マクロと整合性が取れました。特にデリミターとしてパイプではなくコンマを使うようになりました。
-* Visual Studio 2013 がデフォルトで使用できるようになりました。
-	* デベロッパー (and users of packaged builds) は Visual C++ 2013 Redistribution をインストールする必要があります。
-	* 必要に応じて Visual Studio 2012 も使用できます (詳細は以下および CL # 1989640 をご覧ください)。
-	* 特定のプラットフォームにはデバッグ用アドインが付いており、新しい IDE とは機能しません。  
-		* これらのプラットフォームが検出され、プロジェクト ファイル フォーマットが自動的に 2012 にされます。
-		* GenerateProjectFiles コマンド ライン上に '-2012' あるいは '-2013' を渡せば、いつでもビヘイビアをオーバーライドできます。
-	* その他の特別なユースケース：
-		* すべてに VS 2012 を使いたい場合は (VS 2013 をまだお持ちでないため)、UEBuildWindows.cs. で WindowsPlatform.Compiler をローカルで変更してください。
-		* VS 2012 IDE はそのまま使い続けて VS 2013 にコンパイルする場合は、必ず VS 2013 がインストールされていることを確認して '-2012' を GenerateProjectFiles に渡してください。
-		* VS 2013 IDE を使ってVS 2012 でコンパイルする場合、 WindowsPlatform.Compiler を 2012 に設定しますが、'-2013' を GenerateProjectFiles に送ります。
-* Windows Desktop Visual Studio 2013 Express for Windows Desktop が完全にサポートされるようになりました！
-* DirectX SDK の前提条件がソースも含まれています！
-	エンジンをビルドするために DirectX SDK を PC にインストールする必要はなくなりました。
-* Visual Studio と Xcode プロジェクト ファイルの変更
-	* プロジェクト ファイルが全てのプラットフォームに対してデフォルトで生成されるようになり、 「AllPlatforms" .bat」ファイルは削除されました。
-		* -CurrentPlatform を渡せば、以前のビヘイビアにもどすことができます。
-	* プロジェクト ファイル：シッピング コンフィギュレーションがデフォルトで含まれるようになりました。
-		* シッピング コンフィギュレーションを省くためには "-NoShippingConfigs" を渡します (プロジェクト ファイルをさらに小さく / 速くなります)。
-* デバッグ ビルドがデフォルトでは CRT デバッグ (またはサードパーティ デバッグ ライブラリ) を使わなくなりました。
-	* 新しい UnrealBuildTool オプションである bDebugBuildsActuallyUseDebugCRT  (BuildConfiguration.cs) が追加されました。
-	* bDebugBuildsActuallyUseDebugCRT:CRT デバッグとサードパーティ デバッグ ライブラリへ依存してデバッグ ビルドをコンパイルする場合に当てはあります。そうでない場合は、実際にリリース CRT に対してコンパイルしますが、最適化はオフのままなので、デバッグは簡単です。  
-	* この設定を有効にすると、デバッグでのコンパイル時にサードパーティの stats ライブラリの実際の Debug バージョンが必要になります。
-* Shipping PhysX バイナリとライブラリが削除されました。
-	* デフォルトですべてのコンフィギュレーションの PROFILE バージョンとリンクするようになりました。
-* デフォルトのストリーム ファイルをバイナリから削除しました (steam_appid.txt) 。
-	* プロジェクト用の一意の Steamworks ID でゲーム プロジェクト用に  steam_appid.txt を作成してください。
-* Shipping ビルドの場合でも、デフォルトで Link-Time-Code-Generation (LTCG) が無効になりました。
-* (重要) DebugGame ビルド コンフィギュレーションが開発コンフィギュレーションとエンジン バイナリを共有するようになりました。
-	* DebugGame により、ゲーム モジュールが UE_BUILD_DEVELOPMENT でコンパイルされますが、最適化は無効化されます。 
-	* -debug をコマンドライン上にパスして、エディタに DebugGame ゲーム モジュールをロードするように命令します。
-	* Intermediate\ProjectFiles からユーザー コンフィギュレーション ファイルを削除して、UBT が正しいコマンドラインをプロジェクト設定に自動記入するようにしました。
-* インストールされたビルドの Config 設定は、マイドキュメントではなくユーザーの AppData フォルダに格納されるようになりました。
-* テンプレート プロジェクトに再び .uproject 拡張子が付きました。
-* エンジンのバージョンにチェンジリスト番号に加えて Major.Minor.Hotfix コンポーネントが追加されました (FEngineVersion)。このバージョンは帯域外ホットフィックスを可能にするためにパッケージ内に保存されます。
-	* エンジンがモジュールをロードするには、PCLaunch.rc から正しいバージョンの文字列でモジュールを再コンパイルする必要があります。
-* config ファイルでプラグイン リストを有効化すると、モノリシック (単一) ビルドでプラグインをコンパイルするための決定がフィルタされるようになります。
-* LevelEditor: 機能がまだ完全に実装されていないので、"Mobile Preview" メニューは非表示にされています。
-* LevelEditor: "-PlatformTools" コマンドライン スイッチが削除されました。それに依存していた残りの機能は Editor Preferences の [Experimental] セクションから利用できます。
-* 設定: エディタ ユーザー設定のほとんどが新規クラスへ移動され、Settings UI の別のセクションとしてエクスポーズされました。 ローカル設定を再度適用する必要があるかもしれません。
-* メッセージング：UDP メッセージ送信がデフォルトでロードされるプラグイン (UdpMessaging) になりましたが、Shipping ビルドとスタンドアローン型ゲームでアクティベートするための "-messaging" コマンドライン スイッチはまだ必要です。このプロトタイプ実装がプロダクション品質に対して書き換えられています。
+* Oculus integration has been updated with improvements to latency, and support for positional tracking devices.Note:LibOVR SDK for positional tracking must be procured from Oculus in order to use the functionality
+* Components Array removal
+	* The components array has been removed, it is no longer necessary to add newly created components to any array.If you do not wish a created component to be registered set bAutoRegister to false.Access to the components array is via the AActor::GetComponents function.Unless a component is created independently of an Actor, the component must have a direct outer of the Actor.In general, you cannot have components that are subobjects of a non-actor. 
+* Input binding changes
+	* Key bindings are now done by name instead of enum.A new struct FKey encapsulates the name and provides a number of helper functions.It is encouraged to use these helper functions for things such as IsGamePadKey, however, the EKeys::IsGamepadKey functions are still defined to make migration easier.
+	* EKeys enum has been eliminated.Places that used EKeys::Type or EKey will generally need to be changed to FKey
+	* All EKeys enum entries (e.g. EKeys::MouseX) have been translated in to static const members of an EKeys struct so most usages of key names will still work, however, because it is a struct you can no longer switch on a Key's value.
+	* Many Input settings have been moved out of Engine.PlayerInput and in to Engine.InputSettings.Of most significant note:AxisConfig, ActionMappings, and AxisMappings.
+* WorldFromContextGetter has been removed.All UObjects can now implement a virtual GetWorld() function instead.
+* APlayerCamera has been renamed APlayerCameraManager.
+* AxisMappings MoveForward, MoveRight, MoveUp, Lookup, and Turn and ActionMapping PushToTalk have been removed from BaseInput.ini.They must be supplied in the DefaultInput.ini for your specific game if required.
+* SoundNodeGroupControl no longer considers distance.Instead it simply ensures that the maximum number of sounds for each 'bucket' is playing before falling to the next 'bucket'.
+* SoundNode NotifyFinished hooks have been restructured.It is now possible for multiple nodes to request notification of the wave instance completing.
+* UMETA is now consistent with other markup macros, in particular it uses comma instead of pipe as delimeter.
+* Visual Studio 2013 is now used by default
+	* Remember that your developers (and users of packaged builds) will need the Visual C++ 2013 redist installed.
+	* You can still use Visual Studio 2012 if you need to (see below for more info, and CL # 1989640).
+	* Certain platforms have debugging add-ins that do not work with the new IDE yet.  
+		* We detect these platforms and force the project file format to 2012 automatically.
+		* You can always override behavior by passing '-2012' or '-2013' on the GenerateProjectFiles command line.
+	* Other special use cases:
+		* If you want to use VS 2012 for everything (because you don't have VS 2013 yet), locally modify WindowsPlatform.Compiler in UEBuildWindows.cs.
+		* If you want to keep using VS 2012 IDE but compile with VS 2013, make sure you have VS 2013 installed and pass '-2012' to GenerateProjectFiles.
+		* If you want to use the VS 2013 IDE but compile with VS 2012, you can set WindowsPlatform.Compiler to 2012, but pass '-2013' to GenerateProjectFiles.
+* Visual Studio 2013 Express for Windows Desktop is now fully supported!
+* DirectX SDK prerequisites are now included along with the source!
+	You no longer need to have the DirectX SDK installed on your PC to build the engine.
+* Visual Studio and Xcode project file changes
+	* Project files now generate for all platforms by default; Removed "AllPlatforms" .bat file.
+		* You can pass "-CurrentPlatform" to get the old behavior if you want.
+	* Project files:'Shipping' configuration is now included by default.
+		* You can pass "-NoShippingConfigs" to omit Shipping config (smaller/faster project files).
+* Debug builds no longer use the Debug CRT (or Debug third party libraries) by default
+	* Added new UnrealBuildTool option:  bDebugBuildsActuallyUseDebugCRT  (BuildConfiguration.cs)
+	* bDebugBuildsActuallyUseDebugCRT:This is true if we should compile Debug builds using Debug CRT libs and Debug third party dependencies.Otherwise, we'll actually compile against the Release CRT but leave optimizations turned off, so that it is still easy to debug.  
+	* If you enable this setting, actual Debug versions of third party static libraries will be needed when compiling in Debug.
+* Removed 'Shipping' PhysX binaries and libraries
+	* We now link with PROFILE versions in all configurations by default.
+* Removed default Steam file from binaries (steam_appid.txt)
+	* You should create your own steam_appid.txt for your game project with a unique Steamworks ID for your project.
+* Disable Link-Time-Code-Generation (LTCG) by default, even in Shipping builds
+* (IMPORTANT) The DebugGame build configuration now shares engine binaries with the Development configuration.
+	* DebugGame causes game modules to be compiled with UE_BUILD_DEVELOPMENT, but optimization disabled. 
+	* Pass -debug on the command line to tell the editor to load DebugGame game modules.
+	* Delete user configuration files from Intermediate\ProjectFiles to have UBT automatically fill in the correct command line in your project settings.
+* Config settings for installed builds are now stored in the user's AppData folder, rather than My Documents.
+* Template projects now have a .uproject extension again.
+* The engine version now has a Major.Minor.Hotfix component as well as changelist number (FEngineVersion).This version is saved into packages to allow for out of band hotfixes.
+	* Modules will need to be recompiled with the correct version strings from PCLaunch.rc for the engine to load them.
+* Decision to compile plugins in monolithic builds is filtered by the enabled plugin list in config files.
+* LevelEditor: the "Mobile Preview" menu has been hidden, because the functionality isn't fully implemented yet
+* LevelEditor: the "-PlatformTools" command line switch has been removed; the remaining features that depended on it are now accessible in the 'Experimental' section of the Editor Preferences
+* Settings: many Editor User Settings have been moved into new classes and exposed as separate sections in the Settings UI; your local settings changes may have to be reapplied
+* Messaging:UDP message transport is now a plug-in (UdpMessaging) that is loaded by default, but still requires "-messaging" command line switch to activate in Shipping builds and standalone games; we are planning to get rid of the switch after this prototype implementation has been rewritten for production quality; no ETA yet
 
 #### アニメーション
-* anim sequence プロパティと blendspace プロパティがグラフのピンとしてエクスポーズされました。
-* 既存の Anim ブループリント (デフォルトとイベント グラフはオーバーライドが可能ですが、アニメーション グラフは不可能です) から継承するためのサポートが追加されました。
-* 利用可能なスペースが改善され、レベル エディタと同様に振舞うように、ペルソナのビューポートのツールバーとウィジェットがリファクタリングされました。
-* Anim ブループリントのデバッグ中の各種バグが修正されました。
-* ボーン名に対するスケルトン ツリー ピッカーを表示する FBoneReference 構造体のカスタマイズが追加されました。
-* Animation Player ノード上のアセット ピッカーにフィルタリング ロジックが追加されたので、(スケルトンに基いて) 互換性のあるアセットのみが表示されます。
+* Allowed anim sequence and blendspace properties to be exposed as a pin in the graph.
+* Added support for inheriting from an existing Anim Blueprint (allowing overriding the defaults and event graph, but not the anim graph).
+* Refactored the Persona viewport toolbar and widgets, improving real estate usage and behaving similar to the level editor.
+* Various bug fixes for Anim Blueprint debugging.
+* Added a customization for FBoneReference structures, showing a skeleton tree picker for the bone name.
+* Added filtering logic to asset pickers on anim player nodes so that only compatible assets (based on skeleton) are shown.
 
 #### コア
-* プラットフォームごとに中間ファイルが生成されるようになりました。
-	* 生成されたファイルに対して何らかの処理を行うツールがあれば、それらは新しい場所へ変更する必要があります。
-* C++ の const_cast とは別物で紛らわしい ConstCast が削除されました。
-	* `ConstCast<T>` は `Cast<const T>` で置き換えてください。
-* ガーベッジの収集にシリアル化を使用しないため誤解されやすいので、UObjectSerializer は UGCObjectReferencer に、 FSerializableObject は FGCObject に名前が変更されました。
-* ライセンシーからのアクションを必要とするコードのリファクタリングを行いました：
-	* GIsUCC は IsRunningCommandlet() (ほぼ) に名前が変更されました。
-	* USpriteComponent は UBillboardComponent に名前が変更されました。
-	* UMaterialSpriteComponent は UMaterialBillboardComponent に名前が変更されました。
+* Intermediate generated files are now per-platform.
+	* If you have tools which do any kind of processing on generated files, then these will need to be updated to the new locations.
+* ConstCast has been removed, because it's confusingly unlike C++'s const_cast.
+	* `ConstCast<T>` should be replaced with `Cast<const T>`.
+* Renamed UObjectSerializer to UGCObjectReferencer and FSerializableObject to FGCObject as they do not use serialization to collect garbage anymore and may be misleading.
+* Code refactoring that requires action from licensees:
+	* Renamed GIsUCC to IsRunningCommandlet() (mostly)
+	* Renamed USpriteComponent to UBillboardComponent
+	* Renamed UMaterialSpriteComponent to UMaterialBillboardComponent
 
 #### プラットフォーム
-* **モバイル**
-	* タッチ入力インターフェース プロパティがエクスポーズされ Setting UI で編集可能になりました。
-	* Android 向けのプラットフォーム固有のコンフィギュレーション ファイルのコピーが [Setting] パネル経由で追加されました。
-	* [Project Settings] でのアイコン、起動画面、デバイスの方向の編集機能が追加されました。
-	* クックされたゲーム用の様々なパッケージ サイズの最適化を行いました。
+* **Moblie**
+	* Exposed touch input interface properties to be editable in the Settings UI.
+	* Added copying of platform-specific configuration files for Android and iOS via the Settings panel.
+	* Added editing for icons, launch screens, and device orientation in Project Settings.
+	* Various packaging size optimizations for cooked games.
 * **Android**
-	* Package と Launch でエディタから直接 Android のサポートが有効にされました (別名 One Click Deploy) 。
-	* Android をパッケージすると、 .apk の隣に .obb ファイルが作成され、 .bat がインストールされます。
-	* Packaging in Distribution には SigningConfig.xml が適切に設定されなければなりません (サンプルは Engine/Build/Android/Java をご覧ください)。
-	* java ファイルの .so が変更された場合のみ、.apk が生成されるようになりました。
+	* Enabled Android support directly from the editor with Package and Launch (aka One Click Deploy).
+	* Packaging Android will create a .obb file next to the .apk, with a .bat to install it.
+	* Packaging in Distribution needs SigningConfig.xml to be setup properly (see sample in Engine/Build/Android/Java).
+	* .apk generation now only happens if .so of java files have changed.
 * **Mac**
-	* Mac エディタは機能しますが、 ビルド済みのバイナリは本リリースには含まれません。
-		* 今のところ、Mac でエディタを動かすためには、バイナリのコンパイルが必要になります。
-		* 本件については次回の QA ビルドで解決します。
-	* Unreal Frontend は Mac 上で機能します。			
+	* Mac editor works but pre-built binaries are not included with this release.
+		* For now, you must compile the binaries in order to run the editor on Mac.
+		* This will be resolved for the next QA build.
+	* Unreal Frontend works on Mac.			
 	**iOS**
-	* iOS ビルドおよびパッケージングは Mac 上で行えます。
-	* GameCenter OSS に対して様々な修正や改善が行われました。
-	* 実験的な iAD サポートが iOS に追加されました。
-	* iOS6で出てしまうアイコンの gloass effect が修正されました。
-	* Shipping iOS ビルド向けに常にシンボル ストリップするようにしました。
-	* PC iOS デプロイメント ワークフローに対し様々な改善が行われました (エディタからコードを署名し、環境変数 uebp_CodeSignWhenStaging=1 を設定しますが、 PC にインストールしたプロビジョニング ファイルに対し有効な認証が必要となります)。
-	* UE3 からの iPhonePackager の各種変更点 (ファット バイナリ、スタブに事前割り当てされたサイズを超えるコード署名の修正など) がマージされました。
+	* iOS build and packaging works on Mac.
+	* Various fixes and improvements to GameCenter OSS.
+	* Added experimental iAD support for iOS.
+	* Fixed icon glossy effect showing up on iOS6 incorrectly.
+	* Forced symbol stripping to always be on for Shipping iOS builds.
+	* Various improvements to the PC iOS deployment workflow (to code sign from the editor, set environment variable uebp_CodeSignWhenStaging=1, but you will have to have a valid certificate for your provision installed on the PC).
+	* Merged various iPhonePackager changes from UE3 (fat binary support, fix for code signing extending beyond the preallocated size in the stub, etc...).
+	#### Networking
 
-#### ネットワーキング
-* 新しい bool 型変数の bReplicates が追加されました。アクタをリプリケートするために、ブループリントと C++ コンストラクタ に設定してください。手書きで RemoteRole=ROLE_SimulatedProxy を設定する必要がなくなりました。 
+* A new bool has been added, bReplicates.This should be set in blueprints and C++ constructors to make an actor replicate.Setting RemoteRole=ROLE_SimulatedProxy manually is no longer necessary. 
 
 
-## 今後の追加事項と継続事項
+## 今後の追加事項と継続項目
 
 #### エディタとツール
-* エフェクトのない Material プロパティが正しくグレーアウトされました。
-* 新規マテリアル エディタ内で一番互換性のない接続がされないようにしました。
-* イタレーション中にスポーンされたアクタがそのイタレーションに正しく含まれることを確実にしました。
-* SoundNode 入力の削除が元にもどせることを確実にしました。
-* 入力マッピングの表示が改善されました。
-* Static Switch パラメータが Material Attribute 入力を出力するようになりました。
-* 入力プロジェクト設定に充実したツールチップが追加されました。
-* アセットのドラッグ＆ドロップ時にはカーソル インジケータが、アクタ上へのテキストのドロップ時には警告が追加されました。
-* アクタの移動をロックすれば、プロパティ マトリクスにおいて変形の編集ができないようになりました。
-* カラーピッカーの再生成時にテーマがリセットされます。
-* 新規プロジェクトの作成時に表示されるメッセージに IDE 名が追加されました。
-* コンテンツ ブラウザ スプリッタのサイズがセッション間で維持されるようになりました。
-* アセットの正しい名称を Matinee が表示するようになりました。
-* SETRES コンソール コマンドがスタンドアローン ゲームの PIE で (およびコマンドライン上で ResX/ResY が指定された場合) 動くようになりました。
-* アセット名を変更する場合、 `*\<>?` 文字が入力できないようになりました。
-* 「コンテンツ ブラウザで検索」が直前にクリックしたコンテンツ ブラウザを使用するようになりました。
-* [Play From Here] オプションがシーンアウトライナーから利用できるようになりました。
-* RF_Transactional でシリアル化されている場合、アセットに RF_MarkPendingKill を追加できないようになりました。
-	* オブジェクトを間違ってアンドゥ バッファへ挿入できないようにしました。
-* Key struct カスタマイズのサイズ設定がより合理的になりました。
-* 新しく作成されたエディタはデフォルトが Subversion のソースコントロールではなくなりました。
-* 現在の BP エディタ モードのブループリント チュートリアル フロー＆オートランの適切なチュートリアルが再調整されました。
-* CTRL+Backspace と CTRL+Delete (delete-to-word-boundary) ホットキーがテキストボックスで機能するようになりました。
-* CTRL を押下したままマウスをキーの上に置かなくても、ユーザーは選択したキーをカーブエディタで移動できるようになりました。
-* BSP ブラシがエディタの可視性設定を順守するようになりました。
-* リプリケートされる設定のブループリント変数ノードにアイコンが追加されました。
-* シーンアウトライナーのフッターに選択されたアクタ数が表示されるようになりました。
-* [Escape Now] を押すとすべてのポップアップ ウィンドウが閉じ、 ドラッグ - スピン操作とアクタ ビューポート ドラッグ操作が取り消されます。
-* ファイルパスを再インポートすると、関連したパッケージに相対して格納されるようになりました。
-* 正投影ビューポート上のスケールにビジュアル キューが追加されました。
-* [Reset] ボタンで [Details] パネル上でのアクタ変形を終了できるようになりました。
-* Mesh Paint モードでバケツを選択対象の周りに表示させることができなくなりました。
-* サーベイをキャンセルするとすぐに消えてなくなるようになりました。
-* [Matinee track] メニューのオプションがトラック名と一致するようになりました。
-* InterpTrack クラスに不足していた meta タグが追加されました。
-* プロジェクト ブラウザの説明にプロジェクト作成が含まれなくなりました。
-* 共有の interp データを使用しても Matinee がクラッシュしなくなりました。
-* 新しいエディタ版からプロジェクトを開くと、見事に失敗します。
-* オブジェクト名に「`」を含むことができなくなりました。
-* サウンド キューの「Stop」がストップのシンボルのようになりました。
-* [Show Folder] オプションはコンテンツ ブラウザ以外では無効にされました。
-* スタティック メッシュ エディタの LOD メッセージが LOD Index を正しく表示するようになりました。
-* シーン アウトライナーのソートの矢印がはっきり表示されるようになりました。
-* デフォルトのキーバインディングがユーザー設定に正しく表示されるようになりました。
-* アセットがロードされるとフィルタがアセットとして優先されるように、コンテンツ ブラウザのアセットが更新されました。
-* 正投影ビューポートがビューモードを正しく表示するようになりました。
-* 言語 / 地域を変更するとユーザーに再起動を促すようになりました。
-* スケルタル メッシュ アクタのクラス ピッカーがスケルトンによる選択プールを正しく制限するようになりました。
-* Anim graph ノードの [Details] パネルが子も一緒に正確にプロパティを表示するようになりました。
-* FBX window のツールチップが改善されました。
-* ペルソナでモーフターゲットの取り消しができるようになりました。
-* スケルタル メッシュの情報がペルソナ ビューポートにデフォルトで表示される設定になりました。 
-* ペルソナでの通知がエディタの削除コマンドに反応するようになりました。
-* Blendspace シーケンス アセットはペルソナのサンプルから直接開けるようになりました。
-* FBX エクスポート ファイルの位置選択が改善されました。
-* Blendspace ノードの削除と取り消しが正常に機能するようになりました。
-* アニメーション グラフのステートマシンはコピーされた時に名前を維持するようになりました。
-* 充実したツールチップが多くの Animation graph ノードに追加されました。
-* 再生タイムラインは重複したフレーム番号を表示しなくなりました。
-* ブループリント エディタとペルソナのカラーピッカーが改善されはっきり見えるようになりました。
-* 頂点アニメーションはフィルタ機能がなくなりました。
-* PhAT でのフライト制御は 変形モード選択とのコンフリクトを発生しなくなりました。
-* 基本ポーズがリターゲット ソースと呼ばれるようになりました。
-* UnrealVS は VS2012 Pro と VS2013 Pro 向けにビルドされるようになりました。Engine/Extras でそれぞれ専用のフォルダで別々にビルドされます。
-* アンリアル エディタ プラグインのベータ版フラグはアンプラグ ファイルでプラグイン デベロッパーが設定することができます。
-	* ベータ版のプラグインはプラグイン マネージャで有効にされると警告が表示されます。
-	* ベータ版の情報はプラグイン マネージャでバージョン番号と一緒に表示されます。
+* Material Properties are now correctly greyed out when they have no effect.
+* Prevented most incompatible connections in the new Material Editor.
+* Made sure actors spawned during iteration are correctly included in the iteration.
+* Made sure deletion of SoundNode inputs can be undone correctly.
+* Improved display of Input mappings.
+* Static Switch Parameters now output any Material Attribute inputs.
+* Added rich tooltips for the Input Project Settings.
+* Added cursor indicator when drag-dropping assets & a warning when dropping textures on actors.
+* Locking actor movement now prevents editing of transform in Property Matrix.
+* Reset themes menu when color picker is re-created.
+* Added IDE name to message displayed when new project is created.
+* Content Browser splitter sizes are now preserved between sessions.
+* Matinee now displays correct name for asset.
+* SETRES console command now works in PIE in standalone game (and when specifying ResX/ResY on the command line).
+* Asset rename now prevents `*\<>?` characters from being entered.
+* "Find In Content Browser" now uses the last content browser that was clicked.
+* "Play From Here" option is now not available from Scene Outliner.
+* Prevented assets from getting RF_MarkPendingKill added when they have been serialized with RF_Transactional.
+	* Prevents some objects being wrongly inserted into the undo buffer.
+* Key struct customization is now sized more reasonably.
+* A newly-created editor no longer defaults to Subversion source control.
+* Rearranged Blueprint tutorial flow & auto-run appropriate tutorial for current BP editor mode.
+* CTRL+Backspace and CTRL+Delete (delete-to-word-boundary) hotkeys now work in text boxes
+* Users can now move selected keys in the curve editor without having the mouse over a key by holding CTRL.
+* BSP brushes now respect editor visibility settings
+* Added an icon to blueprint variable nodes that are set to be replicated.
+* Scene outliner now displays the number of selected actors in its footer.
+* Pressing escape now closes any popup windows, cancels drag-spinning and actor viewport dragging operations.
+* Reimport file paths are now stored relative to their associated packages, where this makes sense.
+* Added visual cue for scale on orthographic viewports.
+* Reset buttons now exist for actor transforms on the details panel.
+*  Mesh Paint mode no longer forces backets to be displayed around the selection.
+* Cancelling survey now fades away instantly.
+* Matinee track menu options now match their track names.
+* Added missing meta tags for InterpTrack classes.
+* Project browser description no longer mentions creating a project.
+* Matinee no longer crashes when using shared interp data.
+* Opening projects from newer editor versions now fails gracefully.
+* Object names can no longer contain the letter `.
+* Sound Cue 'Stop' now looks like a stop symbol.
+* Show Folder options is now disabled except for the Content Browser.
+* Static Mesh Editor LOD Message now correctly displays the LOD Index.
+* Scene outliner sorting arrow is now more visible.
+* Default keybinding now appears correctly in Preferences.
+* Content Browser assets update to respect filters as assets are loaded.
+* Ortho viewport now display the correct viewmode.
+* Changing language/region now prompts user to restart.
+* Class picker in skeletal mesh actors now correctly restricts selection pool by skeleton.
+* Anim graph node details panel now correctly shows properties with children.
+* Improvements to FBX window tooltips.
+* Morph target deletion in Persona can now be undone.
+* Skeletal mesh stats set to default appear in Persona viewport.
+* Notifies in Persona now respond to editor delete command.
+* Blendspace sequence assets can be opened directly from the samples in Persona.
+* Improvements to FBX export file location selection.
+* Deleting and undoing blendspace nodes now works correctly.
+* State machines in animation graphs preserve their name when copied.
+* Rich tooltips added to many animation graph nodes.
+* Playback timeline no longer shows duplicate frame numbers.
+* Colour pickers in the blueprint editor and Persona improved to be more visible.
+* Vertex anims no longer filterable.
+* Flight controls in PhAT no longer conflict with transform mode selection.
+* Base pose now called Retarget Source.
+* UnrealVS is now built for VS2012 Pro and VS2013 Pro, with separate builds in their own folders in Engine/Extras.
+* Beta version flag in Unreal Editor plugins can be set by plugin developers in the uplugin file.
+	* Beta plugins display a warning when enabled in the plugin manager.
+	* Beta version info is displayed with the version number in the plugin manager.
 * **ランドスケープ**
-	* カメラを動かしている間、ランドスケープ ブラシは非表示になりました。
-	* デフォルトのランドスケープのスケールが 100、100、100 に変更されました。
-* シューティング ゲームのスポーン ポイントを調整してボットがもっと広まるようにしました。
-* シューティング ゲームのボットのビヘイビアが修正され、発砲できるようになりました。
-* シューティング ゲームのスコアボードに修正をいろいろ加えました。
-* ビークル ゲームでブースト ピックアップが再スポーンされるように変更されました。
-* ビークル ゲームの hovership におけるゲーム インターフェースの使い方がリファクタリングされました。
-* スレート：スレート コア内部のウィジェットが FEditorStyle に依存しなくなりました。
-* ShooterGame、StrategyGame、VehicleGame：Slate Widget Style アセットを使用するように変換され、 FEditorStyle に全く依存しなくなりました。
-* インポート：FBX ログメッセージが Log ウィンドウに送られるようになりました。 
-* TextureEditor: テクスチャ エディタのツールバーからテクスチャを再インポートできるようになりました。
-* エディタの翻訳 (作業進行中): 
-	* 取り消し / やり直しがサポートされます。
-	* 実際にデータが変更された時のみファイルへ保存されます。
-	* 列の挿入/削除/複製ができないようになりました (array UProperty 上に EditFixedSize タグが必要でした)。
-	* 履歴がロードできない、またはソース コントロールが無効だとエラーが表示されます (トースト機能 + メッセージログですが、メッセージログは表示されません)。
-	* 現在のマニフェストやアーカイブがロードできないとエラーが表示されます (トースト機能 + メッセージログで、メッセージログが表示されます)。
-	* ファイルのチェックアウト / 保存に失敗するとエラーメッセージ、成功すると通知が表示されます。
-	* 保存のたびにパーフォース上のアーカイブをチェックアウトするのではなく、私達がチェックアウトしていることを覚えておいてください。
-	* [Find in Content Browser] とメニューアイテムが削除されました。
-	* タブの名前を「TranslationDataObject_1」から「Language Name - Project Name - Translation Editor」に修正しました。
+	* Landscape brush is now hidden while moving the camera.
+	* Default landscape scale has been changed to 100,100,100.
+* Adjusted shootergame spawn points to spread bots out more.
+* Revised shootergame bot behaviour to allow them to fire up/down.
+* Made various revisions to scoreboard in shootergame.
+* Revised boost pickups in vehicle game to make them respawn.
+* Refactored game interface usage in vehicle game, hovership.
+* Slate:Widgets inside the Slate core no longer depend on FEditorStyle.
+* ShooterGame, StrategyGame, and VehicleGame:Converted over to use Slate Widget Style assets, and now has no dependency on FEditorStyle.
+* IMPORT:FBX Log messages now goes to Log window. 
+* TextureEditor: textures can now be reimported from the Texture Editor's toolbar.
+* Translation Editor (Work in progress): 
+	* Undo/Redo support
+	* Only save to file when data has actually changed
+	* Prevent insertion/deletion/duplication of rows (needed EditFixedSize tag on array UProperty).
+	* Show error if history can't be loaded, or source control disabled (toast + message log, but don't display message log).
+	* Show error if can't load current manifest or archive (toast + message log, show message log).
+	* Show error if check-out/save file failed, or notification if it succeeded.
+	* Don't try to check out the archive on the perforce server every time we save, but instead remember that we checked it out.
+	* Remove "Find in Content Browser" button and menu item.
+	* Correct tab title from "TranslationDataObject_1" to "Language Name - Project Name - Translation Editor."
 
 #### レンダリング
-* 反射環境とスカイ スペキュラ上の最小ミップが削除され、ラフなマテリアルが完全にディフューズされないようになりました。
-* 反射環境が機能レベル SM4 に対応しました。
-* LightAsIfStatic が可動スタティック メッシュ上で再び使用できるようになりました。
-* スカイライトがコンストラクション スクリプトにおいて正しく再キャプチャするようになりました。
-* 選択された BSP サーフェスが、エディタの中の他のオブジェクトのビジュアル化と一致してビジュアル化されるようになりました。
-* 実験的な機能だった TemporalUpsample が削除されました (既存フレームから中割りフレームの再構築)。
-* 実験的な機能だった r.MSAA.DeferredMode が削除されました (メモリ インテンシブ  AA ソリューション)。
-* BlurGBuffer 機能が削除されました (TemporalAA add NormalRoughnessToAlpha はほとんど必要なかったため、使用することもほとんどありませんでした)。この機能はStereoRendering では動きませんでした。
-* EngineShowflags 定義コードがリファクタリングされました。
-	* フラグが特定のビルド コンフィギュレーションに固定されている場合、コンパイラの最適化が可能になります。 
-* **最適化** 
-	* プリミティブがオブジェクト シャドウごとにキャストする必要がある場合のみ、可動指向性ライトに対するプリミティブ / ライトのインタラクションが作成されます。
-	* シングルスレッド処理のレンダリング パフォーマンスに対して、マイナーな改善がいろいろなされました。
-	* グローバルな動的頂点とインデックス バッファからの割り当ては、小さめのバッファのプールを使って強化されました。
-	* モバイル向けシェーダーが多数最適化されました。
-	* 描画リストが描画ポリシー内で手前から奥に向かってソートできるようになりました。これにより、 非表示のサーフェスを削除しなくてもモバイルデバイス上でのパフォーマンスが大幅に改善されます。
+* Removed min mip on reflection environment and sky specular - was preventing rough materials from going all the way diffuse.
+* Reflection environment support for Feature Level SM4.
+* LightAsIfStatic is now usable on movable static meshes again.
+* Sky lights now recapture properly in construction scripts.
+* Visualization of selected BSP surfaces now matches that of other objects in the editor.
+* Removed experimental TemporalUpsample feature (reconstructing inbetween frames from existing frames).
+* Removed experimental feature r.MSAA.DeferredMode (memory intensive AA solution).
+* Removed BlurGBuffer feature (rarely used, since TemporalAA add NormalRoughnessToAlpha barely needed), feature didn't work with StereoRendering.
+* Refactored EngineShowflags definition code.
+	* Allows compiler optimizations when flags are fixed for certain build configurations. 
+* **Optimization** 
+	* Primitive/light interactions for movable directional lights are only created if the primitive needs to cast a per-object shadow.
+	* Numerous small improvements to single threaded rendering performance.
+	* Allocations from the global dynamic vertex and index buffers are now backed using a pool of smaller buffers.
+	* Numerous mobile shader optimizations.
+	* Draw lists can now be sorted front-to-back within a drawing policy, greatly increases performance on mobile devices without hidden surface removal.
 * **Android** 
-	* Android デバイス上でモザイク フォールバックを使用すると、 画面解像度が 1024 にクランプされます。精度に限界のある GlFragCoord では、これが必要となります。
-	* Kindle Fire HDX と Galaxy S4 が FP16 レンダー ターゲットを使用するようになりました。
+	* Clamp screen resolution to 1024 when using the mosaic fallback on Android devices.This is necessary due to limited precision in glFragCoord.
+	* Kindle Fire HDX and Galaxy S4 now use FP16 render targets.
 
 #### ブループリント
-* ブループリント パレット / コンテクスト メニュー内のブループリント ノードの分類が改善されました。
-	* ノード分類を整理するための初回パスを作成しました (ノードはより見つけやすくしつつカテゴリ数を減らす目的)。完全ではありませんが、イタレートし続けているので徐々に良くなっています。
-* ブループリント コンポーネント 変数が Default カテゴリに割り当てられるようになりました。
-* 配列のエレメントをオブジェクト インスタンスへシリアル化する前に内部タイプ情報が完全にロードされていることを配列プロパティが確認するようになりました。
-* ブループリント アセットの取り込み中、無駄なアサートが取り除かれました。
-* ブループリントの [Variable Details] パネルに Transient および Save Game フラグが追加されました。
-* BlueprintType が継承されないように、NotBlueprintType のサポートが UClass headers に追加されました。
+* Better categorizing of blueprint nodes in the blueprint palette/context menu.
+	* We've made an initial pass to clean up the node categorization (aiming to slim down the number of categories, while making nodes more discoverable)� while it's not perfect, we continue to iterate on it, bettering it as we go.
+* Blueprint component variables are now assigned to the "Default" category.
+* Array properties will now ensure that internal type information has been fully loaded prior to serializing elements of the array into an object instance.
+* Removed an unnecessary assertion during Blueprint asset loading.
+* Added "Transient" and "Save Game" flag to variable details panel in Blueprints.
+* "NotBlueprintType" support added to UClass headers to stop inheritence of "BlueprintType."
 
 #### ゲームプレイとフレームワーク
-* DeferStartupPrecache と PrecacheStartupSounds が FAudioDevice に追加されました。これにより、設定の読み込みが可能になるまで、ゲームは起動サウンドのキャッシュを遅らせます。実行時に AudioDevice の MaxChannels を修正するために SetMaxChannels が追加されました。
-* Engine.ini においてサブストリング列挙型変数のリダイレクトを実行する機能が追加されました。例: 
+* Add DeferStartupPrecache and PrecacheStartupSounds to FAudioDevice, which lets a game delay the caching of startup sounds until after settings can be read.Add SetMaxChannels to modify MaxChannels of AudioDevice at runtime
+* Add ability to do substring enum redirects in Engine.ini.Example:
 
 		+EnumRedirects=(EnumName="ENewEnum",OldEnumSubstring="EOldEnum::",NewEnumSubstring="ENewEnum::")
 
-* 使用しないコマンドレットを多数削除しました。
-* UWorlds が RF_Public と RF_Standalone になりました。UWorlds をアセットのように処理し、コンテンツ ブラウザ内で管理するための準備です。
-* ライトマップが [World settings details] パネル経由で表示可能になりました。 
-* レプリケーション システムの安定性が若干改善されました。
-* Navmesh の安定性が若干改善されました。
-* ブループリントの CDO はロード時に再生成された後、 PostLoad を呼び出させるようになりました。
-* オーディオ ハードウェアが見つからない、または初期化に失敗すると、オーディオ デバイスが削除されるようになりました。さらに、オーディオ デバイスはコマンドレット内では初期化されなくなりました。
-* ブループリントの再コンパイルのパフォーマンスが若干改善されました。
-*クロスの安定性が若干改善されました。
-* ペルソナの Anim ノードのツールチップが追加されました。
-* ペルソナ ビューポートの [Show] メニューを整理しました。
-* GetSocketLocalTransfrom と GetSocketWorldTransform をマージしました。
-* オブジェクトの置き換え時にエディタが手動でオブジェクト参照をリフレッシュできるイベントが追加されました。
-* [Create Anim Blueprint] ウィンドウに磨きをかけました (デザインの変更)。
-* [Assign skeleton] ウィンドウに磨きをかけました (スケルトン選択を変更して、プレーンなリストボックスではなくアセット ピッカーを使用するようにしました)。
-* "Retarget Anim Blueprints" に磨きをかけました (何が起こっているのかをユーザーにさらに伝えやすくするための通知が追加されました)。
-* ブループリント ツリーが変更され、オブジェクト名ではなく表示名が使用されるようになりました。
-* 小さいゲーム モジュール用のシングル ソース ファイル上での反復コンパイル時間が短縮されました。
-	* ゲーム モジュールが常にプリコンパイルされたヘッダを使用するようになりました (イタレーションの高速化)。
-	* これまでは、モジュール数が 8 ユニット ソース ファイルを超えるゲームのみで使用されてきました。
-		* このための新規設定：BuildConfiguration.bForcePrecompiledHeaderForGameModules.
-	* 小さなゲーム モジュールではユニティ ビルドは使用しなくなりました (イタレーションの高速化)。
-		* ソース ファイルが 32 未満のゲーム モジュールは強制的にユニティ モード以外になります。
-		* このための新規設定：BuildConfiguration.MinGameModuleSourceFilesForUnityBuild.
-* プログラム モジュールのデフォルトでは、共有の PCHs は使用されなくなりました (PCHUsageMode を使ったオーバーライドが可能)。
-* CodeView が実験的なエディタ設定に変更されました。デフォルトでは無効です。
-	* クラス名上でダブルクリックすると CodeView が C++ コードへジャンプするようになりました。
-* UnrealBuildTool:ユーザーの CPU コア以上のプロセスをスポーンしないでください　(ローカル プログラムのみ)。
-	* これによりシステム リソースが自由に使えるようになりますが、ビルド時間が短縮できる場合もあります。その他の場合、ビルド時間は実際改善されます。
-* ほとんどのエディタ ウィンドウ アニメーションはデフォルトで無効になっています ([Editor Look and Feel] セクションで切り替えできます)。
-* エディタの [New Project] と [Open Project] ダイアログが大幅に改善されました。
-* スカイボックスを修正し、合成された Lightmass importance volumes が含まれるようになりました。
-	* Automatic importance volume 用の境界を計算する場合、軸に対して 10000 を超えるメッシュは無視されるようになりました。
-* コンテンツブラウザ：テクスチャがサムネイル プレビュー シーンにストリームしないように修正されました。
-* Visual Studio がない場合のエラーヘルプが改善されました。
-* DeviceManager: 各種アップグレードにより新機能が追加されユーザービリティが向上しました。デバイス検出が見直されました。
-* DeviceManager: Windows デバイス向けにデバイス シャットダウンが実装されました。  ローカル PC の再起動 / シャットダウン時にユーザーに警告を出します。
-* SessionFrontend: ユーザビリティがいろいろ改善されました。
-* SessionFrontend: [Game Launcher] タブは Session Frontend から削除され、Window メニューからアクセス可能な主要タブとなりました。
-* Messaging: メッセージ エンドポイントをゲーム以外のスレッドから安全に破棄するために FMessageEndpoint::SafeRelease() が追加されました。使用サンプルのコードベースを検索します。
-* MessagingDebugger: 各種アップグレードにより新機能が追加されユーザービリティが向上しました。
-* MessagingDebugger: 現在、Messaging Debugger UI はスタンドアローン UFE からアクセスできなくなっています。次回のリリースで修正されます。
-* PlayInEditor: PIE 設定の前定義されたスクリーン解像度が INI で設定可能になりました。
-* PlayInEditor: レベル エディタの "Launch on Device" 機能が整理され安定しました。
-* PlayInEditor: モバイル エミュレータを使ってスタンドアローン プロセスでゲームを起動する [Mobile Preview] オプションが追加されました。
-* ColorPicker: 各種ユーザビリティが改善され、直近のステートが記憶されるようになりました。
-* Slate: SSlider ウィジェットの性能 (垂直方向のスライダ、ノブの字下げなど) が改善されました。
-* General: 選択した C++11 機能を使用するためのコード変換を継続しました (NULL -> nullptr、auto in for-loops など)。
-* 出力ログで選択された行が読めるようになりました。 
+* Deleted many unused commandlets.
+* UWorlds are now RF_Public and RF_Standalone.This is in preparation of treating them like assets and managing them in the content browser.
+* Lightmaps are now viewable via the world settings details panel. 
+* Minor stability improvements to the replication system
+* Minor navmesh stability improvements.
+* CDOs for blueprints now get PostLoad called on them after they are regenerated at load time.
+* If audio hardware is not found or fails to initialize, the audio device is now deleted.Also, audio devices are no longer initialized in commandlets.
+* Minor performance improvements for recompiling Blueprints.
+* Minor cloth stability improvements.
+* Added tooltips for anim nodes in Persona.
+* Rearranged Show menu in Personas viewport.
+* Merged GetSocketLocalTransfrom with GetSocketWorldTransform.
+* Added an event to allow editors to manually refresh object references when objects are replaced.
+* Polished "Create Anim Blueprint" window (redesign).
+* Polished "Assign skeleton" window (changed skeleton selection to use asset pickers instead of plain list box).
+* Polished "Retarget Anim Blueprints" (Added notifications to better inform user of what is happening).
+* Changed blueprint tree display to use display names instead of object names.
+* Better iterative compile times on single source files for small game modules.
+	* Game modules now always get a precompiled header (faster iteration).
+	* Previously, only game modules with more than 8 unity source files would get one.
+		* New setting for this:BuildConfiguration.bForcePrecompiledHeaderForGameModules.
+	* Small game modules no longer use unity build (faster iteration).
+		* Now, game modules with less than 32 source files force non-unity mode.
+		* New setting for this:BuildConfiguration.MinGameModuleSourceFilesForUnityBuild.
+* Program modules no longer use shared PCHs by default (can be overridden using PCHUsageMode).
+* Changed CodeView to be an experimental editor setting; disabled by default.
+	* Added double-clicking on Class names to CodeView to jump to C++ code.
+* UnrealBuildTool:Don't spawn more processes than the user has CPU cores (local executor only).
+	* This frees up system resources but can reduce build times in some cases; In other cases it can actually improve build times.
+* Disabled most editor window animations by default (can be toggled under "Editor Look and Feel" section).
+* Editor's 'New Project' and 'Open Project' dialogs have been significantly improved.
+* Fixed skyboxes included in synthesized Lightmass importance volumes.
+	* Meshes larger than 10,000m along any axis are now ignored when calculating bounds for automatic importance volume.
+* Content Browser:Fixed textures not streaming for thumbnail preview scenes.
+* Improved error help when Visual Studio appears to be missing.
+* DeviceManager: various burst upgrades to add new features and improve usability; device discovery has been overhauled.
+* DeviceManager: implemented device shutdown for Windows devices; warning users if rebooting/shutting down local PC.
+* SessionFrontend: various usability improvements.
+* SessionFrontend: the Game Launcher tab has been removed from the Session Frontend and is now its own major tab accessible from the Window menu.
+* Messaging: added FMessageEndpoint::SafeRelease() for safely destroying message endpoints from non-Game threads; search code base for usage examples.
+* MessagingDebugger: various burst upgrades to add new features and improve usability
+* MessagingDebugger: the Messaging Debugger UI is currently inaccessible from standalone UFE; this will be fixed next release.
+* PlayInEditor: the pre-defined screen resolutions for PIE settings are now configurable in the INI.
+* PlayInEditor: the "Launch on Device" feature in the Level Editor has been cleaned up and stabilized.
+* PlayInEditor: added "Mobile Preview" option that will launch the game in a standalone process with mobile emulation.
+* ColorPicker: various usability improvements and now remembers its last state.
+* Slate: improved capabilities of SSlider widget (vertical sliders, indented knobs etc.)
+* General: continued conversion of code to use selected C++11 features (NULL -> nullptr, auto in for-loops etc.)
+* Selected lines in Output Log are now readable. 
 
 #### コア
-* Added LOD レベルの生成が World Browser に追加され、Simplygon が必要になりました。
-* TCircularQueue の実装が完了しました。
-* Opus ボイス コーデックがアップグレードして v1.1 になりました。
-* エンジン外部の深いインストールパスとプロジェクトパスの処理に対し一層努力しています。
-* Const-correctness が修正されました。
-* TArray と TIndirectArray のビヘイビアをさらに統一するための新機能と修正が追加されました。
-* UnrealHeaderTool からのエラー ハンドリングとエラー メッセージが改善されました。
-* UnrealHeaderTool パースのいくつか修正されました。
-* ビルドが高速化しました。
-* StringCast がヌル ポインタを処理するようになりました。
-* TMap/TSet/TMultiMap イタレーションが修正されました。
-* リダイレクト初期化コードが、.ini ファイルから無くなっている CoreUObject.Metadata セクションを処理するようになりました。
-* UnrealHeaderTool で生成したインクルードがノーマライズされました。
-* ツールチップのパースが改善されて、====== や ------ のみの行などの余分な '境界' が除外されました。
-* ツールチップは、これまでなかったプロパティ タイプに対してパースされます。
+* Added LOD levels generation to World Browser, requires Simplygon.
+* Finished implementation of TCircularQueue
+* Upgraded Opus voice codec to v1.1
+* More efforts to handle deep install paths and project paths outside of the engine.
+* Const-correctness fixes.
+* New functions and fixes to further unify the behavior of TArray and TIndirectArray.
+* Improvements to error handling and error messages from UnrealHeaderTool.
+* Some UnrealHeaderTool parsing fixes.
+* Build speed improvements.
+* StringCast now handles null pointers.
+* TMap/TSet/TMultiMap iteration fixes.
+* Redirect initialization code now handles the CoreUObject.Metadata section being missing from the .ini file.
+* UnrealHeaderTool generated includes are now normalized.
+* Improved tooltip parsing to eliminate superfluous 'borders', e.g. lines containing all ======, ------ etc.
+* Tooltips are now parsed for more property types which were previously being missed.
 
-#### ネットワーキング
-* 古い / 破損した ping コードは取り除かれました。
-* サーバー認証の ping コードが新しく追加されました。
-	* クライアントの ping を計算するのに低レベルのネット ドライバーの ACK を使用し、値で不正行為をする能力を減らすバリデーションが追加されました。
-	* 新しい ping コードで作業しやすくするために、高レベルのプレイヤー ステート コードで ping のスムージングを調整しました。
+#### Networking
+* Removed old/broken ping code
+* Added new server-authoritative ping code
+	* Uses low level net driver acks, to calculate client ping, and adds validation to reduce ability to tamper with values
+	* Adjusted ping smoothing in high-level player state code, to work better with new ping code
 
 #### プラットフォーム
 * **Mac**
-	* OS X でのプロジェクト作業にコードが追加されました。
-	* ファイルを検知する場合、Finder で親フォルダを開きそのファイルを選択するか、フォルダに対してそれらを開きます。
-	* リンカのサイレント障害が原因でMac 上でクラッシュする C++ タイプ のいくつかを明確にしました。 
-	* Mac OS X 出力ログを新規のエントリまでスクロールするようにしました。
-	* Mac OS X でズームされたウィンドウの状態をキャッシュします。 エディタを起動すると   isZoomed 用の objc_msgsend がプロファイラの一番上にきます！
-	* Mac 上でウィンドウ タブがデタッチしやすくなりました。
-	* Mac OS X 上でのエディタ起動時にウィンドウが表示されるようになりました。
-	* Mac OS X 上で最小化されたウィンドウがマウス イベントを横取りしないようにしました。
-	* OS X 上でウィンドウを再形成しようしてもクラッシュしなくなりました。
-	* OS X 上でプロンプト ウィンドウを閉じた後でもクラッシュしなくなりました。
-	* MacApplication がない場合でも、出力ログ ウィンドウが OS X 上でコンテンツを開き表示することが確認されました。
-	* サブ エディタを使用しても、レベル ビューポート グラフィックが OS X から消えてしまわなくなりました。
-	* 一時的なスクリーン空間の反射のレンダリング時に破損が起きないようにしました。
-		* GLSL で異なる NAN/INF の条件に対応するために、Mac OS X 上で NAN の抑制を有効化しなければなりません。
-	* パーティクルのレンダリング時に、テクスチャ バッファのクラッシュを避けるために、低いシェーダー モデルに対してもバインドされます。
-	* glMapBuffer と CPU & GL の同期を避けて新しい拡張子が使えない場合、PBO unpack の後に PBO pack を使用してテクスチャ ミップをコピーします。
-	* エディタにマウスをかざすと遅くなる原因の 1 つが解決されました。
-	* OpenGL に対して非常に遅い glReadPixels パスを取る RHIReadSurfaceData を呼び出すかわりに、バイト バッファへヒット プロキシ データをキャッシュするようにしました。
-	* それらをサポートしているすべての GL 上でシームレスなキューブマップが有効になりました。
-	* Mac OS X 上で SSR を使用する時のビューポート エッジの歪みを解消しました。 
-	* CPU のリードバックテクスチャのロックの高速化、Mac OS X 上で一般的なテクスチャのリードバックおよび HZB パフォーマンスに対応対処しました。
+	* Make adding code to projects work on OS X.
+	* When exploring to a file, open the parent folder in Finder and select that file, or for folders just open them.
+	* Disambiguate some C++ types that were causing crashes on Mac due to silent linker failure.
+	* Make Mac OS X output log scroll to new entries.
+	* Cache the window's zoomed state on Mac OS X - the objc_msgsend for isZoomed is sitting top of the profiler when running the editor!
+	* Make it easier to detach window tabs on the Mac.
+	* Make windows appear on editor restart on Mac OS X.
+	* Stop minimized windows stealing mouse events on Mac OS X.
+	* Stop crashing when trying to reshape windows on OS X.
+	* Stop crashing after closing prompt windows on OS X.
+	* Make sure that the output log window opens & displays content on OS X even when there's no MacApplication.
+	* Stop the level viewport graphics from fading on OS X when using sub-editors.
+	* Avoid corruption when rendering temporal screen space reflections
+		* Must enable NAN suppression on Mac OS X to handle differing NAN/INF conditions in GLSL.
+	* When rendering particles ensure a texture buffer is bound even for lower shader models to avoid a crash.
+	* Use a PBO pack, followed by a PBO unpack to copy texture mips when newer extensions aren't available to avoid synchronising the CPU & GL with glMapBuffer.
+	* Eliminate one cause of slowdown when mousing over the editor.
+	* Cache the hit proxy data into a byte buffer rather than calling RHIReadSurfaceData which takes a very slow glReadPixels path for OpenGL..
+	* Enable seamless cube maps on all GL's that support them.
+	* Eliminate distortions at viewport edge when using SSR on Mac OS X. 
+	* Speed-up locking CPU readback textures and general texture readback on Mac OS X + address HZB performance.
 * **Android**
-	* Android の場合、バックバッファの形式は、R5G6B5 よりも R8G8B8 の方が好ましくなりました。
-	* Android がマルチスレッドになりました (起動時に適切な CPU コア数をチェックします)。
-	* ハイエンドな Qualcomm Adreno GPU に OpenGL ES 3.0 シェーダーが使用されています。
-	* GPU のフレーム時間が `STAT UNIT` で測定可能になりました。ドライバーに問題のあるデバイスもあるためデフォルトでは無効になっていますが、 CVar `r.DisjointTimerQueries` を 1 に設定すれば有効になります。
-	* Android のコントローラーとキーボードが初めてサポートされました。
-	* Android の一時停止 / 再開のビヘイビアが整理されました。　
-	* Android のビルドはユーザーが生成したスタンドアローン型のツールチェーンに依存しなくなりました。UBT は NDK ツールチェーンを直接呼び出します。
-	* NSight 1.5 以降がインストールされていると、Android デバッグ スタブ プロジェクトは作成されなくなりました。
+	* Android now prefers R8G8B8 backbuffer format instead of R5G6B5.
+	* Android is now multithreaded (using proper CPU core count check at startup).
+	* Now using OpenGL ES 3.0 shaders for high-end Qualcomm Adreno GPUs.
+	* GPU frametime can now be measured in `STAT UNIT`.It's disabled by default due to driver issues on some devices, but can be enabled by setting the CVar `r.DisjointTimerQueries` to 1.
+	* Initial Android controller and keyboard support is in.
+	* Android pause/resume behavior has been cleaned up.
+	* Android builds no longer rely on a user generated standalone toolchain.UBT calls directly into the NDK toolchains.
+	* Android debug stub projects are no longer generated if NSight 1.5 or later is installed.
 
 #### アニメーション
-* **アニメーション**
-	* スケルトン：様々な印を汚れの問題として修正したので、正当な原因以外ではスケルトンは汚れないはずです。 
-		* 新規のアニメーション通知がアニメーションに追加された場合、スケルトンを保存する必要がなくなりました。
-	* ModifyBone SkeletalControl 名を明確にするために TransformBone に変更しました。
+* **Animation issues**
+	* Skeleton:Fixed various marking as dirty issues, so you shouldn't see skeleton getting dirty anymore without a proper cause. 
+		* You also don't have to save skeleton anymore when new anim notify is added to the animation.
+	* ModifyBone SkeletalControl name changed to TransformBone for clarify.
 
 
-## 周知の問題
+## 既知の問題
 
-* Mac エディタは機能しますが、 ビルド済みのバイナリは本リリースには含まれません。今のところ、Mac でエディタを動かすためには、バイナリのコンパイルが必要になります。
+* Mac editor works but pre-built binaries are not included with this release.For now, you must compile the binaries in order to run the editor on Mac.
 
 
 

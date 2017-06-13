@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3313485
-Availability:Docs
+﻿INTSourceChangelist:3457813
+Availability:Public
 Title:2 - Android デバイスを設定する
-Crumbs:
+Crumbs:%ROOT%
 Description:Android の開発環境を有効にする方法を説明します。
 Version:4.14
 type:quick start
@@ -10,10 +10,11 @@ order:2
 tags:Linux
 SkillLevel:Intermediate
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [nav]
 
-Linux コンピューターに Android SDK をインストールが完了しました。 
+Linux コンピューターへの Android SDK のインストールが完了しました。 
 Android デバイス向けモバイル ゲームの開発環境まであと少しです。ただし、Android デバイスでアンリアル エンジンによるゲームを実行するためには、 
 Android の開発環境を有効にする必要があります。
 
@@ -21,7 +22,7 @@ Android の開発環境を有効にする必要があります。
 次のステップを開始する前に、USB ケーブルへアクセス可能なことを確認してください。
 [/REGION]
 
-## Android の Developer Options
+## Android の Developer Options を有効にする方法
 [EXCERPT:AndroidLinux_2]
 1.	Android デバイスを USB ケーブルで Linux コンピューターに接続します。
 
@@ -46,11 +47,12 @@ Android の開発環境を有効にする必要があります。
 	[/REGION]	
 
 	[REGION:note]
-	このメニューが表示されない場合は、デバイスの [Developer Options] を有効にしてください。Android デバイスの Developer Option を有効にする方法については、 
-	[Android ユーザーガイド](https://developer.android.com/studio/run/device.html) をご覧ください。
+	このメニューが表示されない場合は、デバイスの [Developer Options] を有効にしてください。**[Developer Options]** を有効にするには、**[Settings]** アプリケーションを開き、下までスクロールして **[About phone]** を選択します。 
+	**[About phone]** を選択したら、一番下までスクロールし、**[Build number]** を 7 回タップします。
+	Android デバイスで Developer Option を有効にする方法については、[Android ユーザーガイド](https://developer.android.com/studio/debug/dev-options.html) をご覧ください。
 	[/REGION]
 
-## USB デバッグを有効にする
+## USB デバッグを有効にする方法
 
 1.	**[Developer Options]** メニューの **[USB debugging]** を有効にします。
 
@@ -62,7 +64,7 @@ Android の開発環境を有効にする必要があります。
 		クリックしてフルサイズで表示
 	[/REGION]
 
-1.	ウィンドウが表示されたら、USB debugging を有効にする選択がされていることを確認します。表示された内容を確認したら **[OK]** ボタンをタップします。
+1.	ウィンドウが表示されたら USB デバッグの有効化を確定します。表示された内容を確認したら **[OK]** ボタンをタップします。
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step20.png)(w:180)](LinuxAndroid_Step20.png)
@@ -72,10 +74,10 @@ Android の開発環境を有効にする必要があります。
 		クリックしてフルサイズで表示
 	[/REGION]
 
-	これで USB debugging が有効になりました。  
+	これで USB デバッグが有効になりました。  
 	![](LinuxAndroid_Step20Note.png)
 
-1.	Android デバイスを USB ケーブルから外して、数秒おいて、再度接続します。デバイスが Android 4.2.2 以上で実行されている場合、以下のダイアログが表示され、Linux コンピューターでデバッグを可能にする RSA キーを許可するか聞かれます。**OK** ボタンをタップする前に **[Always allow from this computer (このコンピューターを常に許可する)]** の横のチェックボックスが選択されていることを確認してください。 
+1.	Android デバイスを USB ケーブルから外して、数秒待ってから再度接続します。デバイスが Android 4.2.2 以上で実行されている場合、以下のダイアログが表示され、Linux コンピューターでデバッグを可能にする RSA キーを許可するか聞かれます。**OK** ボタンをタップする前に **[Always allow from this computer (このコンピューターを常に許可する)]** の横のチェックボックスが選択されていることを確認してください。 
 
 	[REGION:lightbox]
 		[![](LinuxAndroid_Step21.png)(w:180)](LinuxAndroid_Step21.png)
@@ -97,9 +99,9 @@ Linux コンピューターにつながっているデバイスの一覧が表�
 [REGION:note]
 	ターミナルに `adb devices` と入力してもデバイスが表示されない場合、Linux コンピューターに adb を設定する必要があるかもしれません。[Android Debug Bridge ユーザーガイド](https://developer.android.com/studio/command-line/adb.html) を参照してください。 
 	adb の詳細、コンピューターにプログラムを設定する方法が説明されています。 
-	コンピューターに確かに adb をインストールおよび設定を行っている場合は、以下のトラブルシューティングを試してください。
+	コンピューターに adb を確実にインストールおよび設定している場合は、以下のトラブルシューティングをお試しください。
 
-	* コンピューターから Android デバイスを一旦外して、再度接続する。 
+	* コンピューターから一旦 Android デバイスを外して、再度接続する。 
 	* **[Always allow from this computer (このコンピューターを常に許可する)]** の横のチェックボックスが選択されていることを確認してください。 
 	* デバイスが許可されていないと表示される場合、Android デバイスに Linux コンピューターに USB debugging の権限を与える必要があるかもしれません。 
 	* Media Transfer Protocol (MTP) を使ったメディア デバイスとして接続されている場合、正しく設定してもデバイスが表示されない場合があります。 

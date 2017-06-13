@@ -2,6 +2,9 @@ Availability:Public
 Title: Common Actor Types
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Listing and descriptions of common types of Actors used in levels.
+parent:Engine/Actors
+type:overview
+order:0
 
 Below is a quick rundown of some of the Actors you will most commonly use or come across while developing games with 
 Unreal Engine to familiarize you with what they are and why you would use them.

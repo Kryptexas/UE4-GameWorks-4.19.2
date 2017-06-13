@@ -3,9 +3,12 @@ Title:Taking Screenshots
 Crumbs:%ROOT%, Engine
 Description:Guide to taking in-game screenshots of environments and gameplay.
 version: 4.9
+Parent:Engine
+type:overview
+order:28
+topic-image:TakingScreenshots_Topic.png
+
 [TOC (start:2 end:3)]
-
-
 
 Unreal Engine 4 (UE4) offers users a multitude of different ways of taking in-game screenshots of your project. 
 This document will not only cover which tools are available for taking screenshots in UE4 but also how you can use the tools. 

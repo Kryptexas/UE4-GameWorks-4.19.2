@@ -2,6 +2,7 @@ Availability:Docs
 Title:2. Setting up the Actor Blueprint
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:Here we use an Actor Blueprint with a Widget Component to display our Widget Blueprint in 3D world space. 
+Parent:Engine/UMG/HowTo/Create3DWidgets
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Related: Engine/Blueprints
@@ -9,6 +10,7 @@ Version: 4.10
 SkillLevel: Intermediate
 checkpoint: umg_create_3d_howto
 tags:UMG UI Designer
+Order: 2
 
 [VAR:Steps]
 [OBJECT:Navigation]

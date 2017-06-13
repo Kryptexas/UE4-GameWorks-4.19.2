@@ -3,25 +3,13 @@ Title:8. Animation Blueprint - Jump States
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Moving on in our Animation Blueprint setup, here we set up the conditions for Jumping. 
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:8
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Next, we configure the **Jump** states inside the **State Machine**. We are going to have two Jump states, one for when the player is standing still and presses the Jump key and another for when the player is moving (Jogging, Crouch Walking, or Walking). We will use two different animations, one for stationary and one for movement. 
 
@@ -87,4 +75,4 @@ Next, we configure the **Jump** states inside the **State Machine**. We are goin
 
 1.	**Compile** and **Save** the Animation Blueprint.
 
-%Steps%
+[NAV]

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3219745
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:アニメーション シーケンス
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:単一のアニメーションを構成するすべての変形データを含む個々のアセット
+Description:単一のアニメーションを構成するすべてのトランスフォーム データを含む個々のアセット
 Related:Engine/Content/FBX/Animations
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Animation/PhysicallyDrivenAnimation
@@ -10,26 +10,9 @@ Related:Engine/Animation/StateMachines
 Related:Gameplay/AI
 Related:Engine/Content/Tools/MayaRiggingTool
 version:4.14
+tags:Assets
+topic-image:Engine/Animation/Overview/AnimationSeqTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Sequences:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Sequences:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Sequences:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Sequences]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

@@ -5,6 +5,7 @@ Description:Demonstrates how you can set up the Unreal Editor for testing multip
 Related: Resources/ContentExamples/Networking
 Version: 4.9
 Parent:Gameplay
+SkillLevel: Advanced
 type:how-to
 order:18
 

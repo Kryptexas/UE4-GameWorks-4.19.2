@@ -1,20 +1,23 @@
-﻿INTSourceChangelist:2722940
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:C++ クラス ウィザード
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:UE4 の C++ クラス ウィザードの概要
-Version:4.9
+Version:4.16
+Parent:Programming/Development/ManagingGameCode
+Order:
+type:overview
 
 %Globals:OSSelect%
 
 [EXCERPT:main]
 
 
-**C++ Class Wizard** は独自の機能で拡張するために、ネイティブ C++ コードクラスを 
-素早く簡単にプロジェクトへ追加します。ウィザードを用いてコンテンツのみのプロジェクトをコードプロジェクトへ変換することができます。C++ クラスウィザードへは以下のようにアクセスします。
+**C++ Class Wizard** では、独自の機能で拡張するために、ネイティブ C++ コードクラスを 
+高速かつ簡単に追加することができます。コンテンツのみのプロジェクトをコードプロジェクトへ変換することができます。C++ Class Wizard を利用することができます。
 
 [REGION:note]
-Windowsで、Visual Studio 2013 Express、 Community、または Professional for Windows Desktop がインストール済であることを確認してから作業を進めてください。Mac では、Xcode 6.1 以降をインストール済みであることを確認してください。
+作業を開始する前に、インストールされている Visual Studio 2015 (以降) for Windows Desktop を実行していることを確認してください。Mac を使用している場合、Xcode 8 以降をインストール済みであることを確認してください。
 [/REGION:note]
 
 
@@ -22,7 +25,7 @@ Windowsで、Visual Studio 2013 Express、 Community、または Professional fo
 
 	![](FileCPP.png)
 
-1.  **[C++ Class Wizard]** に一般的に追加されるクラスを表示されます。探しているクラスが見つからない場合、クラスの階層リスト全体を表示する必要があります。ウィンドウの右上隅にある **[Show All Classes]** チェックボックスをクリックします。 
+1. **[C++ Class Wizard]** に一般的に追加されるクラスが表示されます。探しているクラスが見つからない場合、クラスの階層リスト全体を表示する必要があります。ウィンドウの右上隅にある **[Show All Classes]** チェックボックスをクリックします。 
 
 	[REGION:imagetable]
 		| [REGION:lightbox][![](CppClassWizard.png)(w:430)](CppClassWizard.png)[/REGION] | [REGION:lightbox][![](AllClasses.png)(w:430)](AllClasses.png)[/REGION] |
@@ -33,8 +36,8 @@ Windowsで、Visual Studio 2013 Express、 Community、または Professional fo
 	追加したいクラスを選択して **Next >** ボタンをクリックします。
 
 1. 新しいクラスの **名前** の入力を求められます。名前を入力して **[Create Class]** ボタンをクリックします。ヘッダファイル (.h) とソースファイル (.cpp) が作成されました。
-
 	[REGION:lightbox]
+
 		[![](NameNewActor.png)(w:600)](NameNewActor.png)
 	[/REGION]
 	[REGION:note]
@@ -52,9 +55,9 @@ Windowsで、Visual Studio 2013 Express、 Community、または Professional fo
 		active_button_content
 		[/PARAMLITERAL]
 		[PARAM:content]
-		Visual Studio 2013 で直接コードが開いて編集が可能となります。
+		Visual Studio で直接コードが開いて編集が可能となります。
 
-	![](CodeEditing.png)
+		![](CodeEditing.png)
 
 		[/PARAM]
 	[/OBJECT]

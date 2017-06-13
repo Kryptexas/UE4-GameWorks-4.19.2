@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3336767
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:高度なブループリントのネイティブ化
-Crumbs:
+Crumbs:%ROOT%
 Description:ゲームプレイ要素をブループリントに公開するテクニカル ガイド (ゲームプレイ プログラマー向け)
 Related:Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent:Engine/Blueprints/TechnicalGuide
-Version:4.15
+Version:4.16
 type:reference
 tags:Blueprints
 SkillLevel:Advanced
@@ -41,8 +41,7 @@ Unreal Automation ツールでのビルド中にコマンドラインからブ�
 
 ## 技術的な詳細
 
-ブループリントのネイティブ化は Visual Studio 2013 と Visual Studio 2015 で使用できますが、 
-大規模プロジェクトに対応可能な 2015 を推奨します。コンパイル エラーまたはリンク エラー (LNK1000 や LNK1248) になった場合、ブループリント タイプまたは特定のブループリントを `DefaultEngine.ini` 設定ファイルから排除して、
+コンパイル エラーまたはリンク エラー (LNK1000 や LNK1248) になった場合、ブループリント タイプまたは特定のブループリントを `DefaultEngine.ini` 設定ファイルから排除して、
 プロジェクトでネイティブ化したブループリント数を減らしてみてください。ブループリントを変換対象から除外する方法は、 
 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) を参照してください。
 

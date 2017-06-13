@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:4.5- Animation ブループリントと Character ブループリントを関連付ける
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS プロジェクトでAnimation ブループリントと Character ブループリントを関連付ける方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -43,13 +43,13 @@ Version:4.11
 
 1.	ブループリントをコンパイルおよび保存してから閉じます。
 
-1.	**レベル エディタのツールバー** で、**[Play (プレイ)]** ボタンをクリックします。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。
 
 	![](FinalShot.png)
 
 	_アニメーションのステートマシンでまとめて接続したアニメーションの遷移に従い、アームがアニメートされます。_
 
-これで終わりです！以下について学習しました。
+これで終わりです！ 以下について学習しました。
 
 &#x2713; プロジェクトのセットアップ  
 &#x2713; キャラクターの実装  

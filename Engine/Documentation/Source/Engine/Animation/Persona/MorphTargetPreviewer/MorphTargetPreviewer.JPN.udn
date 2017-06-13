@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429233
+Availability:Public
 Title:モーフ ターゲット プレビューア
 Crumbs:
 Description:アニメーション エディタで利用可能な編集モードのユーザーガイド
@@ -9,14 +10,12 @@ Related:Engine/Content/Types/StaticMeshes/MorphTargets
 Related:Resources/ContentExamples/MorphTargets
 version:4.14
 type:reference
-topic-image:MorphTargetSmall.png
 tags:Animation
 tags:Morph Target
 tags:Skeletal Mesh
 tags:FBX Importing
 SkillLevel:Intermediate
 Parent:Engine/Animation/Persona
-Order:
 
 [TOC (start:2)]
 

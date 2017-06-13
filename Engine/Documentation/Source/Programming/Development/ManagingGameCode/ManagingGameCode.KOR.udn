@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:게임 코드 관리
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:코드를 추가하고 프로젝트 파일을 생성하는 법입니다.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development
+Order:
+type:overview
 
 %Globals:OSSelect%
 
@@ -131,7 +134,7 @@ Version: 4.9
 1. `UE4` 루트 디렉토리에 위치한 `GenerateProjectFiles.bat` 배치 파일을 실행합니다.
 1. `UE4` 루트 디렉토리에 위치한 `UE4.sln` Visual Studio 솔루션 파일을 엽니다.
 
-[](Programming/UnrealBuildSystem/ProjectFileGenerator) 용 고급 옵션을 통해 발매용, 추가적인 플랫폼용, Visual Studio 2013 용 프로젝트 파일을 생성할 수 있습니다.
+[](Programming/UnrealBuildSystem/ProjectFileGenerator) 용 고급 옵션을 통해 발매용 (또는 추가 플랫폼용) 프로젝트 파일을 생성할 수 있습니다.
 
 [/PUBLISH:Licensee]
 

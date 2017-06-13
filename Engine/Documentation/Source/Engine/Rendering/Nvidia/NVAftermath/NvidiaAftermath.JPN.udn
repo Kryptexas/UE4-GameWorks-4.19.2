@@ -1,0 +1,26 @@
+﻿INTSourceChangelist:3435012
+Availability:Docs
+Crumbs:
+Title:NVIDIA Aftermath
+Description:NVIDIA GeForce GPU に対するクラッシュ発生後の分析を可能にする Nvidia Aftermath 技術の統合 
+Type:Overview
+Version:4.15
+Parent:Engine/Nvidia
+Order:1
+topic-image:Aftermath_Topic.png
+Tags:Nvidia
+
+
+[REGION:fullwidth raw]
+![](Aftermath_Banner.png)(w:900)
+[/REGION]
+
+アンリアル エンジン 4.15.2 では、Windows 使用のデベロッパー向けに Nvidia の **Aftermath** C++ ライブラリをサポートしています。これにより、クラッシュ発生後に Nvidia GeForce-based GPUwhich からの追加データを提供します。 
+このデータにはクラッシュ時に GPU が何を行っていたかという重要な情報が含まれ、プロジェクトの GPU に起きている問題の追跡が可能になります。
+
+Aftermath は、他のデバッグツールに比べてパフォーマンス使用料が控えめで負荷の少ないツールです。完成品のゲームと一緒に出荷して、 
+カスタマーのマシンから必要なデータの追加が可能なほど低負荷です。Aftermath は、プログラマーがクラッシュの主要因の追跡を支援するマーカーをコードに挿入できるようにします。Aftermath は現在アンリアル エンジン エディタにおいて、 
+問題の追跡し、レポートあるいは発見された問題を修正のために使用されています。
+
+詳細およびプロジェクトでの使用方法に関しては、[Nvidia's Aftermath documentation](https://developer.nvidia.com/nvidia-aftermath) ページをご覧ください。
+

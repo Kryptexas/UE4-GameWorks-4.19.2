@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3348703
-Availability:Docs
+﻿INTSourceChangelist:3454749
+Availability:Public
 Title:1 - 必要な設定
 Crumbs:
 Description:プロジェクト ブラウザを使って新規プロジェクトを作成してみましょう。
@@ -13,7 +13,7 @@ tags:Lighting
  
 [Nav]
 
-まず最初に、このガイドでの作業で使用する新規プロジェクトを作成する必要があります。 
+まず最初に、このガイドの作業で使用する新規プロジェクトを作成する必要があります。 
 以降のステップでは、アンリアル エンジン 4 のプロジェクト ブラウザを使ってプロジェクトを作成していきます。このステップを終えると、 
 今後のプロジェクトにビルドできるテンプレートが完成します。 
 
@@ -28,7 +28,7 @@ tags:Lighting
 ## 結果
 
 プロジェクト作成後、アンリアル エディタでの取り込みが完了すると、以下のメイン エディタ インターフェースが表示されます。コンテンツ ブラウザの中には、 
-次からのステップで使用する Blueprint Third Person Template の各種フォルダが入っています。
+次からのステップで使用する Blueprint Third Person テンプレート用の各種フォルダが入っています。
 
 [REGION:lightbox]
 [![](LoadedProject.png)(w:800)](LoadedProject.png)

@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability:Docs
+﻿INTSourceChangelist:3478014
+Availability:Public
 Title:5.仕上げ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:ドラッグ ウィジェットを設定し、ヘルスバーをメインの HUD に追加して表示させ、すべてのものをテストします。
+SkillLevel:Intermediate
+Version:4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:5
+checkpoint: editorqs
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
-SkillLevel:Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,19 +79,25 @@ tags:UMG UI Designer
 エディタでプレイする場合、**左クリック** して画面上のヘルスバーをドラッグして、新しい位置にドロップします。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kYkhxuJsVs4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	kYkhxuJsVs4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
 
+これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
 プレイヤーがセーフゾーンの外側にウィジェットをドラッグしないように、または他のウィジェットの上に重ならないようにさらにチェックが必要になることがあります。 
 
 %Steps%

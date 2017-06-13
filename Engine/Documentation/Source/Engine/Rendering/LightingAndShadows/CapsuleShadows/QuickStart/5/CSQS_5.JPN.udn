@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3348703
-Availability:Docs
+﻿INTSourceChangelist:3454749
+Availability:Public
 Title:5 - 応用編
 Crumbs:
 Description:サンプル シーンを使っていくつかの作業を試してみましょう。追加情報へのリンクも示します。
@@ -25,6 +25,6 @@ tags:Lighting
 
 * カプセルシャドウに関する詳細は、[カプセルシャドウの概要](Engine/Rendering/LightingAndShadows/CapsuleShadows/Overview) ページをご覧ください。
 * 物理アセット ツールのプロパティに関する情報は、[物理セットツール (PhAT)](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhAT/) を参照してください。
-* ライティングに関する情報は、[背景のライティング(https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/) を参照してください。
+* ライティングに関する情報は、[背景のライティング](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/) を参照してください。
 
 [Nav]

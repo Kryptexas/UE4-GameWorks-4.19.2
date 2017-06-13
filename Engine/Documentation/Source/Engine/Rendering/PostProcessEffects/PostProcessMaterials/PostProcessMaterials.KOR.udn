@@ -1,9 +1,16 @@
-﻿INTSourceChangelist:3151927
-Availability:Public
+﻿INTSourceChangelist:3474032
+Availability: Public
+Crumbs: %ROOT%
 Title:포스트 프로세스 머티리얼
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:포스트 프로세스 패스를 만들어 머티리얼 에디터에 블렌딩하는 법입니다.
-Version: 4.9
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:8
+Tags:Post Process
+Topic-image:PPMaterials_Topic.png
+
 
 ![](Teaser3.png)
 ![](Teaser0.png)
@@ -169,7 +176,7 @@ Version: 4.9
 
 GBuffer 는 (서브서피스/스페큘러 컬러, 러프니스 등의) 머티리얼과 (노멀, 뎁스 등의) 오브젝트 특성을 저장하는 텍스처 다수로 구성되어 있습니다.
 셰이딩 (빛과 머티리얼의 상호작용) 계산을 위한 라이팅 없이요. 디퍼드 렌더러에서는 먼저 GBuffer 를 렌더링한 다음 모든 라이팅을 GBuffer 특성과 함께 (deffered, 
-나중에 몰아서) 계산합니다. UE4 가 (DirectX 11 또는 고사양 OpenGL) 디퍼드 셰이딩 패쓰를 사용한다면 포스트 프로세싱 도중 해당 버퍼들에 접근할 수 있습니다.
+나중에 몰아서) 계산합니다. UE4 가 (DirectX 11 또는 고사양 OpenGL) 디퍼드 셰이딩 패스를 사용한다면 포스트 프로세싱 도중 해당 버퍼들에 접근할 수 있습니다.
 
 안티-앨리어싱의 경우 이 작업이 약간 더 어려워 지는데, GBuffer 픽셀/텍셀과 출력 픽셀이 더이상 1:1 상관 관계에 있지 않기 때문입니다 (아래 섹션 참고).
 

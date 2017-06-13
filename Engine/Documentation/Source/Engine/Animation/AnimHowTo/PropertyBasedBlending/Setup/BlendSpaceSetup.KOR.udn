@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3150518
-Availability: Public
+﻿INTSourceChangelist:3452142
+Availability: docs
 Title:1. 블렌드 스페이스 구성
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:먼저 캐릭터 애니메이션 블렌딩에 사용할 블렌드 스페이스를 만듭니다.

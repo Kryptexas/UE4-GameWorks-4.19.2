@@ -6,6 +6,7 @@ version: 4.9
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
+topic-image:timeline_topic.png
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 

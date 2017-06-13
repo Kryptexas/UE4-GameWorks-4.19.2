@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2646570
+﻿INTSourceChangelist:3151855
 Availability:Docs
-Title:マテリアル表現式の技術ガイド
+Title:マテリアル式のテクニカル ガイド
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:マテリアル エディタで使用するマテリアル式の新規作成ガイド
-バージョン：4.9
+Version:4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 
@@ -13,7 +14,7 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 
 ## 宣言
 
-まず、 MaterialExpression から抽出した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br> 
+まず、 MaterialExpression から派生した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br> 
 
 	MaterialExpressionSquare.h
 
@@ -45,7 +46,7 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 	UMaterialExpressionSquare::UMaterialExpressionSquare(const FObjectInitializer& ObjectInitializer)
 		:Super(ObjectInitializer)
 	{
-		// Structure to hold one-time initialization
+		// Structure to hold one-time initialization (一度きりの初期化を保持する構造体)
 		struct FConstructorStatics
 		{
 			FName NAME_Particles;
@@ -58,7 +59,7 @@ UE4 でマテリアル式を新規作成する方法は単純です。例とし�
 		};
 		static FConstructorStatics ConstructorStatics;
 
-		// Property initialization
+		// Property initialization (プロパティの初期化)
 		MenuCategories.Add(ConstructorStatics.NAME_Particles);
 		MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	}

@@ -3,6 +3,9 @@ Title:Components and Collision
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:Learn how Components can enable Pawns to interact with physics, use particle effects, and more.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

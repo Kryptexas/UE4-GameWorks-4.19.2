@@ -1,18 +1,21 @@
-﻿INTSourceChangelist:3345453
+﻿INTSourceChangelist:3372539
 Availability:Public
-Title:Background Blur
-Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
+Title:Background Blur ウィジェット
+Crumbs:%ROOT%
 Description:単一の子ウィジェットの下にあるオブジェクトをぼかす Background Blur ウィジェットの使用方法を説明します。 
 Related:Engine/UMG/UserGuide
 version:4.15
 tags:UMG UI Designer
+Parent:Engine/UMG/UserGuide/WidgetTypeReference
+Order:
+Type:reference
 
 [TOC(start:2 end:2)]
 
-## 説明
+##説明
 
 [EXCERPT:desc]
-このウィジェットには子ウィジェットをひとつ含めることが可能であり、調整可能なパディングで周囲を囲み、そのウィジェットの下のすべてのコンテンツにポストプロセスのガウス ブラーを適用することができます。
+**Background Blur ウィジェット** には子ウィジェットをひとつ含めることが可能であり、調整可能なパディングで周囲を囲み、そのウィジェットの下にあるすべてのコンテンツにポストプロセスのガウス ブラーを適用することができます。
 [/EXCERPT:desc]
 
 ## 詳細
@@ -28,11 +31,11 @@ tags:UMG UI Designer
 | **Low-Quality Fallback Brush** | Low-Quality Override モードが有効な場合に、ぼかしを適用するかわりに描画する画像です。バックグラウンド ブラーの Low-Quality Mode を有効にするには、 cvar `Slate.ForceBackgroundBlurLowQualityOverride` を **1** に設定します。これは通常、プロジェクトの scalability (拡張性) の設定で行います。
 | **Blur Radius** | ブラー計算時に任意のピクセルから各方向にウェイトをかけるピクセル数です。値が大きくなると負荷は高くなりますが、ぼかしは強くなります。 |
 
-上記の各プロパティは、ブループリントのスクリプトでランタイムに設定または変更することもできます。 
+前述の各プロパティは、ブループリントのスクリプトでランタイムに設定 (または変更) することもできます。 
 
 ![](BackgroundBlurBP.png)
 
-Horizontal Alignment、 Vertical Alignment (水平方向、垂直方向のアライメント) や、ウィジェット周囲のパディングも定義することができます。 
+他の外観を設定する機能 (水平方向、垂直方向のアライメント) や、ウィジェット周囲のパディングも定義することができます。 
 
 ## 使用例
 
@@ -50,7 +53,7 @@ RUD047Z00bU
 [/PARAMLITERAL]
 [/OBJECT]
 
-ここでは、単純なメニューに Blur Widget を加えて、**Blur Strength** 値を使って適用するバックグラウンド ブラーのレベルを決めます。  
+ここでは、単純なメニューに Blur Widget を加えて、**Blur Strength** 値を使って適用するバックグラウンド ブラーの強度を決めます。  
 
 ![](BlurWidgetDesigner.png)
 
@@ -58,8 +61,8 @@ Menu Widget Blueprint のグラフでは、ボタンのクリックにメニュ�
 
 ![](BlurWidgetGraph.png)
 
-上の画面では、ウィジェットを構築する場合、マウス カーソルをオンにしています。Resume ボタンを押すとカーソルが非表示になり、ゲームの一時停止が解除され、表示されているメニューが取り除かれます。 
-Quit を押すと、ゲームが終了します。プレイヤー キャラクターのブループリント (以下) で、キーが押されたときに、この場合、**P** が押されるたびに、メニューを作成、表示する、ゲームを一時停止するスクリプトを追加しました。 
+上の画面では、ウィジェットを構築する場合、マウス カーソルをオンにしています。**Resume** ボタンを押すとカーソルが非表示になり、ゲームの一時停止が解除され、表示されているメニューが取り除かれます。 
+**Quit** を押すと、ゲームが終了します。プレイヤー キャラクターのブループリント (以下) で、キーが押されたときに、メニューを作成、表示するスクリプトを追加しました。この場合、P が押されるたびに、メニューが表示されると、ゲームを一時停止します。
 
 ![](CharacterBlueprint.png)
 

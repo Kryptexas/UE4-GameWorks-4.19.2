@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physics Bodies Reference
+﻿INTSourceChangelist:3262203
+Availability:Public
+Title:物理形体参考
 Crumbs: %ROOT%
-Description:Physics Body, or Body Instance, property reference.
+Description:物理形体、或形体实例、属性参考。
 topic-image:Engine/Physics/physics_topic.png
 
-This page contains a reference listing of properties in the Physics and Collision categories of properties. If you are looking for reference on Collision Responses or Collision Presets please see: [](Engine/Physics/Collision/Reference).
+本页参考列出了属性下 Physics and Collision 类目中的所有属性。如需了解碰撞响应或碰撞预设的参考，请查阅[碰撞响应](Engine/Physics/Collision/Reference)。
 
 
-## Properties
+## 属性
 
-Below are the properties for Physics Bodies (Body Instances) separated by major category.
+以下是按主要类目区分的物理形体（形体实例）属性。
 
 [EXCERPT:PropPhysicsCat]
 [OBJECT:modulesectionexpanded]
@@ -30,17 +30,17 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](physicsProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Simulate Physics** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bSimulatePhysics" output:"block")] |
-| **Mass in KG** || Mass of the body in KG. |
+| **Mass in KG** || 形体的质量按千克计。|
 | **Angular Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:AngularDamping" output:"block")] |
 | **Linear Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:LinearDamping" output:"block")] |
 | **Enable Gravity** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bEnableGravity" output:"block")] |
-|[REGION:tablesection]**Constraints**[/REGION]|||
+|[REGION:tablesection]**约束**[/REGION]|||
 | **Lock Position** || [INCLUDE:#lockpos] |
 | **Lock Rotation** || [INCLUDE:#lockrot] |
-| **Mode** || [INCLUDE:#mode] |
+| **模式** || [INCLUDE:#mode] |
 [/REGION]
 
 ### Advanced
@@ -48,8 +48,8 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](physicsPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Auto Weld** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bAutoWeld" output:"block")] |
 | **Start Awake** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bStartAwake" output:"block")] |
 | **Center Of Mass Offset** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:COMNudge" output:"block")] |
@@ -59,7 +59,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 | **Override Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideMaxDepenetrationVelocity" output:"block")] |
 | **Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MaxDepenetrationVelocity" output:"block")] |
 | **Override Walkable Slope on Instance** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideWalkableSlopeOnInstance" output:"block")] |
-| **Walkable Slope Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodySetup:WalkableSlopeOverride" output:"block")] See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
+| **Walkable Slope Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodySetup:WalkableSlopeOverride" output:"block")] 查阅 **[](Engine/Physics/WalkableSlope)** 文档中的使用信息。|
 | **Walkable Slope Behavior** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeBehavior" output:"block")] |
 | **Walkable Slope Angle** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeAngle" output:"block")] |
 | **Sleep Family** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:SleepFamily" output:"block")] |
@@ -89,12 +89,12 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](collisionProps.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Simulation Generates Hit Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bNotifyRigidBodyCollision" output:"block")] |
 | **Phys Material Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:PhysMaterialOverride" output:"block")] |
 | **Generate Overlap Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bGenerateOverlapEvents" output:"block")] |
-| **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
+| **Collision Responses** || 查阅 **[](Engine/Physics/Collision/Reference)** 文档中的详细内容。|
 [/REGION]
 
 ### Advanced
@@ -102,15 +102,15 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 ![](collisionPropsAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
+| 属性 | %spacer% | 描述 |
+| --- | :---:| :--- |
 | **Use CCD** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bUseCCD" output:"block")] |
 | **Always Create Physics State** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bAlwaysCreatePhysicsState" output:"block")] |
 | **Multi Body Overlap** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bMultiBodyOverlap" output:"block")] | 
 | **Check Async Scene On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bCheckAsyncSceneOnMove" output:"block")] |
 | **Trace Complex On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bTraceComplexOnMove" output:"block")] |
 | **Return Material On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bReturnMaterialOnMove" output:"block")] |
-| **Can Ever Affect Navigation** || Whether this component can potentially influence navigation |
+| **Can Ever Affect Navigation** || 确定该组件是否对导航存在潜在影响 |
 
 [/REGION]
 
@@ -126,7 +126,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockTranslation" output:"block")]
 
 [REGION:simpletable]
-| Property | Description |
+| 属性 | 描述 |
 | --- | :--- |
 | **Lock X Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXTranslation" output:"block")] |
 | **Lock Y Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYTranslation" output:"block")] |
@@ -139,7 +139,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockRotation" output:"block")]
 
 [REGION:simpletable]
-| Property | Description |
+| 属性 | 描述 |
 | --- | :--- |
 | **Lock X Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXRotation" output:"block")] |
 | **Lock Y Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYRotation" output:"block")] |
@@ -152,15 +152,15 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:DOFMode" output:"block")]
 
 [REGION:simpletable]
-| Property | Description |
+| 属性 | 描述 |
 | --- | :--- |
-| **Default** | Inherits the degrees of freedom from the project settings. |
-| **Six DOF** | Specifies which axis to freeze rotation and movement along. |
-| **YZPlane** | Allows 2D movement along the Y-Z plane. |
-| **XZPlane** | Allows 2D movement along the X-Z plane. |
-| **XYPlane** | Allows 2D movement along the X-Y plane. |
-| **Custom Plane** | Allows 2D movement along the plane of a given normal. |
-| **None** | No constraints. |
+| **Default** | 从项目设置继承自由度。|
+| **Six DOF** | 指定冻结旋转和运动所沿的轴。|
+| **YZPlane** |允许沿 Y-Z 面的 2D 运动。|
+| **XZPlane** | 允许沿 X-Z 面的 2D 运动。|
+| **XYPlane** | 允许沿 X-Y 面的 2D 运动。|
+| **Custom Plane** | 允许沿特定法线面的 2D 运动。|
+| **None** | 无约束。|
 [/REGION]
 [/EXCERPT]
 -->

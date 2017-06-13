@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:2. 입력 및 게임 모드
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:여기서는 우리 캐릭터 제어를 위한 입력 구성 및 조종할 수 있는 캐릭터인 디폴트 폰을 설정합니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 여기서는 **입력** (게임 콘트롤)을 구성하여 캐릭터를 제어하고 우리 캐릭터를 사용하는 **게임 모드** 를 만들도록 하겠습니다.
 
@@ -72,5 +60,4 @@ SkillLevel:Advanced
 
 1.	입력과 게임 모드 세팅 설정을 마친 이후에는, 프로젝트 세팅 창을 닫습니다.
 
-
-%Steps%
+[NAV]

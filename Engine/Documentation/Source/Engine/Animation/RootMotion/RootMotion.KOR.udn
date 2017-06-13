@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3206317
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:루트 모션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,6 +10,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
 version: 4.9
+topic-image:RootMotion_topic.png
 
 [TOC(start:2 end:2)]
 

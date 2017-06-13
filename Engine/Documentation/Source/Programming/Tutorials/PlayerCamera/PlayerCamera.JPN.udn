@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2620011
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:プレイヤー制御のカメラ
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:プレイヤー入力でカメラとポーンを同時に操作する方法を学ぶ
-バージョン:4.9
+Description:プレイヤー入力でカメラとポーンを同時に操作してみましょう。
+version:4.9
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +42,7 @@ Description:プレイヤー入力でカメラとポーンを同時に操作す�
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
+このチュートリアルでは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -58,7 +61,7 @@ Description:プレイヤー入力でカメラとポーンを同時に操作す�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

@@ -10,7 +10,7 @@ Related: Engine/Animation/CharacterSetupOverview
 Related: Gameplay/HowTo/CharacterMovement
 Version: 4.9
 
-With the addition of a `CharacterMovementComponent`, a `CapsuleComponent`, and a **Skeletal Mesh**, the **Pawn** class is extended into the highly-featured **Character** class.
+With the addition of a `CharacterMovementComponent`, a `CapsuleComponent`, and a `SkeletalMeshComponent`, the [Pawn](Gameplay/Framework/Controller) class is extended into the highly-featured **Character** class.
 A Character is designed for a vertically-oriented player representation that can walk, run, jump, fly, and swim through the world. This class also contains 
 implementations of basic networking and input models.  
 

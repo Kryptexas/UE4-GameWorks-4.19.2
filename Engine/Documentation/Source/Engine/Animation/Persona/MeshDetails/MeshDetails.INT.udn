@@ -7,14 +7,14 @@ Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/StaticMeshes/HowTo/LODCollision
 Related: Resources/ContentExamples/Cloth
 Related: Engine/Content/FBX/SkeletalMeshes
-version: 4.14
+version: 4.16
 type:reference
 topic-image:SkeletalMeshAssetDetails.png
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 
-[TOC (start:2)]
+[TOC (start:2 end:2)]
 
 ![](MeshDetails.png)(w:940)
 
@@ -33,7 +33,7 @@ Materials will appear inside of the Skeletal Mesh Editor under the **Materials**
 
 ![](MaterialsTable.png)
 
-[REGION:note]
+[REGION:tip]
 You can add **Material Slots**, which can be used to override an LOD's section (excluding the base LOD).
 [/REGION]
 
@@ -73,7 +73,7 @@ Using the LOD Previewer, you can inspect the visual differences between LODs. Al
 	[/PARAM]
 [/OBJECT]
 
-You can also enable or disable shadow casting. 
+You can turn on/off casting shadows on a per element, per LOD basis (some areas might not require shadow casting).
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -84,7 +84,37 @@ You can also enable or disable shadow casting.
 	[/PARAM]
 [/OBJECT]
 
-_You can turn on/off casting shadows on a per element, per LOD basis (some areas might not require shadow casting)._ 
+## Reduction Settings
+
+[REGION:warning]
+These options require the use of Simplygon. For more information on LODs and Reduction settings, please see the [](Engine/Content/Types/StaticMeshes/LOD) page for more information. 
+[/REGION]
+
+In addition to the options outlined above, each generated LOD allows for defining the **Reduction Settings** for optimization. 
+
+![](ReductionSettings.png)
+
+As of Unreal Engine 4.16, you can also bake a pose into an LOD using the **Bake Pose** reduction setting. This can be set to a single frame animation sequence which will be applied to the resulting LOD mesh. 
+This is useful when removing bones and still wanting to retain a pose, similar to the example video shown below. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4vcmZwpzV74
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
 
 ## Clothing
 
@@ -97,7 +127,10 @@ Once you've imported your Apex file, you can adjust its [Physics Properties](Eng
 
 ![](OwenApexCloth.png)
 
-_For example, this character has two Apex files associated with it; one for the character's tie, and the other for the character's coat._
+[REGION:caption]
+For example, this character has two Apex files associated with it; one for the character's tie, and the other for the character's coat.
+[/REGION]
+
 
 ## Mesh
 
@@ -148,22 +181,31 @@ To assign a Post Process Anim Blueprint, select the drop-down menu and specify y
 The example video illustrates how the Post Process Anim Blueprint is run during gameplay on a Skeletal Mesh. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-uroFU3M_-C4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	uroFU3M_-C4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 If you have a more complex animation setup that uses multiple Animation Blueprints, you may need to include a **Sub-Graph Input** node to the Post Process Anim Blueprint. 
 
 ![](SubGraphInput.png)
 
-_This will allow you to get the pose information from a parent Animation Blueprint (if applicable) rather than using the Skeletal Mesh's base pose._
+[REGION:caption]
+This will allow you to get the pose information from a parent Animation Blueprint (if applicable) rather than using the Skeletal Mesh's base pose.
+[/REGION]
 
 ## Transform
 

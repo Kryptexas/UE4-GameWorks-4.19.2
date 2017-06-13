@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744014
+﻿INTSourceChangelist:3367473
 Availability:Public
 Title:レベル デザイナー向けクイックスタート
 Crumbs: %ROOT%, GettingStarted
@@ -10,6 +10,7 @@ Version:4.9
 parent:Engine/Editor
 order:1
 checkpoint: editorqs
+type:quick start
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,7 @@ checkpoint: editorqs
 
 ![](Finished.png)
 
-_このガイドを終える頃には、上図のような部屋が出来上がります。_
+_このガイドを完了すると、上図のような部屋が作成されます。_
 
 ## 目標
 
@@ -55,7 +56,7 @@ _このガイドを終える頃には、上図のような部屋が出来上が�
 
 ## 目的
 
-このチュートリアルでは、以下の習得を目指します。
+このチュートリアルでは以下を習得します。
 
 *	ビューポートのナビゲーション方法
 *	新規レベルの作成方法
@@ -77,5 +78,5 @@ _このガイドを終える頃には、上図のような部屋が出来上が�
 [/OBJECT]
 
 [REGION:call_to_action]
-	[クイックスタートへ](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+	[クリックしてスタート](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
 [/REGION]

@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
 Description:A How To Guide for respawning a player character through Blueprints in Unreal Engine 4. 
 Version: 4.9
 SkillLevel: Advanced
+type:how-to
 
 [TOC (start:2)]
 

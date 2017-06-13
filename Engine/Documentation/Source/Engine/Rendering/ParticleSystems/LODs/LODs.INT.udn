@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:GPU-simulation of particles that allows for hundreds of thousands of particles at any time.
 Version: 4.9
 tags:Particles
+topic-image:ParticleSystemLOD_topic.png
 
 [TOC(start:2 end:3)]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3277768
+﻿INTSourceChangelist:3482378
 Availability:Public
 Title:メッシュのプレビュー シーン
 Crumbs: %ROOT%, Engine
@@ -74,19 +74,19 @@ tags:User Interface
 1. **[Scene Profile Settings]** のドロップダウン メニューからプロファイルを選択します。
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection.png)(w:350)](RemoveProfileSelection.png) 
 	[/REGION]
 
 1. 現在選択しているプロファイルを完全に削除するには、**[Remove Profile]** ボタンをクリックします。
 
 	[REGION:lightbox]
-	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileButton.png)(w:350)](RemoveProfileButton.png) 
 	[/REGION]
 
 1. プロファイルが取り除かれて、デフォルト プロファイルと以前設定されたプロファイルがあればそれが残っているのがわかります。 
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection1.png)(w:350)](RemoveProfileSelection1.png) 
 	[/REGION]
 
 

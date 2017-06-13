@@ -1,61 +1,64 @@
-﻿INTSourceChangelist:3007759
+﻿INTSourceChangelist:3322057
 Availability:Public
-Title:记录游戏
-Crumbs:%ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:用序列记录器记录您的游戏运行操作，并将该数据用于 Sequencer 中。
-Version:4.12
+Title:录制到 Sequencer
+Crumbs:
+Description:使用 Sequence Recorder 录制动作，然后在 Sequencer 中使用数据。
+Version:4.14
 SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
-Related:Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/ReferenceEditor
+tags:Sequencer
+type:how-to
 
-**序列记录器** 允许您在游戏运行中捕获指定的 Actor，然后将其另存为新的 **关卡序列**，并可在 **Sequencer** 中编辑。 
-这对于快速捕获场景的内容很有用，因为您可以让一个可操纵的角色在游戏运行时执行一些操作，同时用序列记录器进行记录，然后将该数据输入 Sequencer 中，围绕它创建一段过场动画。 
+利用 **Sequence Recorder** 可捕捉关卡编辑或游戏进程中的特定 Actor，可另存为新的 **关卡序列**，并在 **Sequencer** 中进行编辑。 
+这可用于快速捕捉场景中的内容。可选取一个可操作角色，在游戏进程中执行一些操作，同时使用 Sequence Recorder 进行录制，然后将数据导入 Sequencer，以此创建动画。
 
-在这个示例中，我们将使用序列记录器记录我们的可操纵角色的运动，随后我们可以对其进行编辑。 
-
+在此例中，我们将使用 Sequence Recorder 记录可操作角色的动作，然后进行对其进行编辑。
 
 ## 步骤
 
 [REGION:note]
-在本操作指南中，我们使用 **Blueprint Third Person Template** 项目，并 **启用了起步内容**。 
+在此指南中，我们使用的是启用 **Starter Content** 的 **Blueprint Third Person Template** 项目。 
 [/REGION]
 
-1. 	从 **菜单栏（Menu Bar）**中的 **窗口（Window）**下方，选择 **序列记录器（Sequence Recorder）**。 
+1.	在 **窗口** 下的 **菜单栏** 中选中 **Sequence Recorder**。 
 
 	![](RecorderStep1.png)
-	
-	“序列记录器”（Sequence Recorder）窗口将自动打开。 
-	**序列记录（Sequence Recording）** 下的一些选项可确定新关卡序列资产的保存方式及保存位置。 
-	您可以选择记录产生的 Actor（例如粒子效果和其他角色等等），确定命名约定和保存位置，以及更改其他设置（例如记录持续时间或开始记录前的延迟）。 
-	
-1. 	在主编辑器工具栏中，单击 **运行（Play）**开始在编辑器会话中运行。 
 
-1. 	进入游戏后，按 **Shift+F1** 取得鼠标控制权。 
+	Sequence Recorder 窗口将自动打开。**Sequence Recording** 有多个选项，将决定新关卡序列资源的保存方式和路径。可选择记录生成的 Actor（如粒子效果、其他角色等），确定命名规则和保存路径，并变更其他设置（如录制时长或开始录制前的延迟）。
+	
+1.	在主编辑器工具栏中，点击 **Play** 按钮开始一个编辑器中进行游戏（PIE）会话。 
 
-1. 	在 **序列记录器（Sequence Recorder）**窗口上，单击 **添加（Add）**按钮。 
+1.	在游戏中按下 **Shift+F1** 组合键进行鼠标控制。 
+
+1.	点击 **Sequence Recorder** 窗口上的 **Add** 按钮。 
 	
 	![](SequenceRecorderAdd.png)
 
-1. 	单击新记录，然后对于 **要记录的 Actor（Actor to Record）**单击下拉菜单并选择 **ThirdPersonCharacter**。 
+1.	点击新录制（为 **空**），然后点击 **Actor to Record** 的下拉菜单并选择 **ThirdPersonCharacter**。 
 
 	![](ActorToRecord.png)
 
-	这是开始记录过程前我们指定哪个 Actor 是记录目标的位置。 
+	开始录制进程前，我们在此处指定设为目标的 Actor，如上图所示更新 UI。
 
-1. 	单击 **记录（Record）**按钮。 
+1.	此外可选择录制音频并沿录制片段设置音频增益级。 
+
+	![](RecordAudio.png)
+
+	音频录制需要附带麦克风，将在开始录制序列时同时进行录制。 
+
+1.	点击 **Record** 按钮。4 秒后（受 Sequence Recording 部分下的 **Record Delay** 选项影响），录制进程开始。 
 
 	![](RecordStart.png)
 
-	4 秒钟后（这是“序列记录”（Sequence Recording）部分的 **记录延迟（Record Delay）**选项所设定的），记录过程将开始。 
-
 	[REGION:note]
-	单击 **记录（Record）**按钮时，还将记录列表中所有已设置为受追踪的 Actor。 
+	点击 **Record** 按钮，列表中所有设为被追踪的 Actor 也将被录制。 
 	[/REGION]
 
-1. 	使用 **WASD** 和 **空格** 键使角色移动和跳跃，完成后按 **ESC** 键。
+1.	使用 **WASD** 和**空格** 键移动角色并控制其跳跃，然后在完成时按下 **ESC**。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -65,22 +68,17 @@ Related:Engine\Sequencer\ReferenceEditor\
 	360
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
-	xo5JRkV3_nI
+	9mZI75qBsx8
 	[/PARAMLITERAL]
-	[/OBJECT]
+	[/OBJECT] 
 
-	以上是我们记录的序列。但是，如果您的角色还能攻击或执行其他操作，您大可让其做出这些操作。 
+	一个新文件夹将在 **Content Browser** 中被创建，其中包含与录制序列相关的资源。 
 
-1. 	在 **内容浏览器** 中将创建一个新的文件夹，其中包含与所记录序列相关的资产。 
-
-	![](RecordedAssets.png)
-
-	记录完成后，将创建一个包含过场动画数据的 **关卡序列** 资产以及包含动画数据的 **动画序列**。 
-	 
+ 
 
 ## 最终结果
 
-现在您可以打开 **RecordedSequence** 资产，并开始像编辑普通关卡序列一样进行编辑。 
+可打开 **RecordedSequence** 资源进行编辑，方法和普通关卡序列并无区别。下方即是我们录制的序列，我们可为其添加镜头和 [镜头切换](Engine/Sequencer/HowTo/TracksCameraCut) 轨迹，构成多个角度、音乐、效果，或需要添加的任意内容。甚至我们还能将此序列作为 [镜头轨迹](Engine/Sequencer/HowTo/TracksShot) 的一部分嵌入其他序列中。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -90,22 +88,28 @@ Related:Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-hR5zBjYO5Oc
+1nFX_bpWfy0
 [/PARAMLITERAL]
 [/OBJECT]
 
-以上是我们记录的序列，我们可以在其中添加摄像机和 [**镜头切换**](Engine/Sequencer/HowTo/TracksCameraCut) 轨道，以提供多个角度、音乐、效果或者我们所需的任何内容。 
-我们甚至可以将此序列作为 [**镜头轨道**] (Engine/Sequencer/HowTo/TracksShot) 的一部分嵌入到另一个序列中。 
+除录制游戏进程外，还可指定一个需要录制的 Actor，录制关卡编辑中的操作。 
 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+fMzumqLk7IQ
+[/PARAMLITERAL]
+[/OBJECT]
 
+在上方的视频中，我们在关卡中放置了一个立方体，并指示 Sequence Recorder 对立方体进行录制。 
+然后四处移动立方体，Sequence Recorder 将通过新建关卡序列中的关键帧捕捉输入的动作。 
+回放关卡序列时，关卡序列中将创建一个新的立方体 Actor（作为可生成物），这是序列启动时为何存在第二个立方体的原因。
 
-
-
-
-
-
-
-
-
-	
-
+[REGION:note]
+仅限可在关卡编辑进行录制时设置关键帧、进行捕捉和录制的属性。 
+[/REGION]

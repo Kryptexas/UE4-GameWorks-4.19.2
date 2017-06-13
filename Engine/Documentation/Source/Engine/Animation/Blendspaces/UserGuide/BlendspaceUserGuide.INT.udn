@@ -1,17 +1,22 @@
-Availability:Public
-Title: Using Blend Spaces
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Title: Using Blend Spaces
 Description:Describes Blend Spaces are used within Animation Blueprints resulting in an output pose. 
+Type: Overview
+SkillLevel: Beginner
+Version: 4.16		
+Parent: Engine/Animation/Blendspaces
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:userguidetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
-type:overview
-topic-image:userguidetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
+
+[TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
 Blend Spaces are used by placing nodes in the **AnimGraphs** of [Animation Blueprints](Engine/Animation/AnimBlueprints) which take in value data to drive the blending of animations and the final animation pose. 
@@ -20,9 +25,6 @@ Blend Spaces are used by placing nodes in the **AnimGraphs** of [Animation Bluep
 [REGION:note]
 For a full walk-through of setting up a Blend Space for locomotion blending, see the [](Engine\Animation\AnimHowTo\BlendSpace) how-to page. 
 [/REGION]
-
-
-[TOC(start:2)]
 
 ## Adding Blend Space Nodes
 
@@ -34,22 +36,22 @@ Blend Space nodes provide access to the sample parameter data and output pose of
 
 	![](SelectBlendSpace.png)
 
-1. **Left-click** on it and drag the mouse into the **AnimGraph**.
+1. Left-click on it and drag the mouse into the **AnimGraph**.
 
 	![](DragDropBlendSpace.png)(w:720)
 
-1. Release the **Left Mouse Button** to place the Blend Space node in the graph. 
+1. Release the **Left Mouse Button** to place the **Blend Space** node in the graph. 
 
 	![](BlendSpaceNodeAdded.png)
 
 
 **To place a Blend Space node using the context menu:**
 
-1. **Right-click** in the **AnimGraph** and expand **Blend Spaces** and select the Blend Space you want to sample. 
+1. Right-click in the **AnimGraph** and expand **Blend Spaces** and select the **Blend Space** you want to sample. 
 
 	![](AnimationContextMenu.png)
 
-1. The Blend Space node is placed in the graph. 
+1. The **Blend Space** node is placed in the graph. 
 
 	![](BlendSpaceNodeAdded.png)
 
@@ -79,4 +81,5 @@ The **Pose** output pin of the Blend Space node can be wired to the **Pose** inp
 Or, it can be wired to any other input pin that accepts an animation pose as an input when a more complex animation chain is necessary.
 
 ![Output Pose - Blend](bs_output_blend.png)
+
 

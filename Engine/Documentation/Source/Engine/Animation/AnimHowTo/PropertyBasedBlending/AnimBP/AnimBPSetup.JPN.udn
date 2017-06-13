@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3150518
-Availability:Public
+﻿INTSourceChangelist:3452142
+Availability: docs
 Title:2.Animation ブループリントをセットアップする
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:Animation ブループリントとステートマシンを設定してブレンドスペースを使用します。

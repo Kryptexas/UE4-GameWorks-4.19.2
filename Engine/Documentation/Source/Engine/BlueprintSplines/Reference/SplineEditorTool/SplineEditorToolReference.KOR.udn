@@ -135,6 +135,7 @@ tags:Splines
 | **Add Spline Point Here** || 여기에 스플라인 포인트 추가 - 커서 위치에 스플라인 포인트를 새로 추가합니다. |
 | **Reset to Default** || 기본으로 리셋 - 스플라인을 아키타입 기본으로 리셋시킵니다. |
 | **Visualize Roll and Scale** || 롤 및 스케일 시각화 - 에디터에 스플라인의 롤 및 스케일 시각화 여부를 결정합니다. |
-| **Allow Discontinous Splines** | 비연속 스플라인 허용 - 시각화에서 **Arrive** (도착) 및 **Leave** (출발) 탄젠트의 별도 설정 여부를 결정합니다. |
+| **Allow Discontinous Splines** || 비연속 스플라인 허용 - 시각화에서 **Arrive** (도착) 및 **Leave** (출발) 탄젠트의 별도 설정 여부를 결정합니다. |
 [/REGION]
+
 

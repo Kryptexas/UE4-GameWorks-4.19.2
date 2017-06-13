@@ -3,6 +3,9 @@ Title:Directory Structure
 Crumbs: %ROOT%, Engine
 Description:Overview of the directories that make up the engine and game projects.
 version: 4.9
+Parent:Engine
+type:overview
+order:25
 
 [TOC(start:2)]
 

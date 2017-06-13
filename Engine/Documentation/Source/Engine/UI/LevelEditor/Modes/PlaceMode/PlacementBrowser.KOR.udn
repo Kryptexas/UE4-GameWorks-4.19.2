@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:배치 모드
 Crumbs:%ROOT%, Engine
@@ -47,7 +47,33 @@ SkillLevel:Beginner
 
 
 [REGION:fullwidth]
-	![](PlacementBrowser_Title.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](PlaceMode_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](PlaceMode_mac.png)
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 

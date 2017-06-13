@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title:UMG 와 유저 인터페이스
 Crumbs:%ROOT%, GettingStarted
 Description:UMG 를 사용해서 간단한 메뉴 시스템을 만듭니다.
 version:4.14
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

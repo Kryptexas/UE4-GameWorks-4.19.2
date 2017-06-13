@@ -1,0 +1,130 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Crumbs:
+Title:Volumetric Fog
+Description: An overview of the Volumetric Fog features available when using Exponential Height Fog. 
+Type:Overview
+Version:4.16
+Parent:Engine/Rendering/LightingAndShadows
+Order:
+Tags:Rendering
+Tags:Lighting
+Topic-Image:VolumetricFog_Topic.png
+Social-Image:VolumetricFog_Social.png
+
+
+With Unreal Engine, version 4.16, we now have support for Volumetric Fog. This method computes participating media density and lighting at every point in the camera frustum, so we can 
+support varying densities and any number of lights affecting the fog. 
+
+[REGION:fullwidth raw]
+![](VolumetricFog.png)(w:1339)
+[/REGION]
+
+## Global Controls
+
+To control Volumetric Fog, you can adjust the properties in your Exponential Height Fog and on each light to control the light's contribution amount. 
+
+### Exponential Height Fog
+
+Volumetric Fog controls can be found in the Exponential Height Fog component under the **Volumetric Fog** section. The exponential height distribution provides a global density for Volumetric Fog.
+
+![](VolumetricFogProperties.png)
+
+| Property | Description |
+| --- | --- |
+| Scattering Distribution | This determines how directional the volumetric scattering is; a value of 0, means light scatters equally in all directions, while a value close to 1 causes scattering predominantly in the direction of the light (you have to be looking at the light to see its scattering). |
+| Albedo | This is the overall reflectiveness of the participating media. Clouds, fog, and mist, which are based on water particles, have an Albedo close to 1. |
+| Extinction Scale | Controls how much the participating media blocks light. |
+| View Distance | The distance from the camera over which Volumetric Fog will be computed. There are a limited number of Z slices in the volume texture, so pushing out the View Distance will increase under-sampling artifacts near the camera. |
+| Override Light Colors with Fog Inscattering Colors | When enabled, uses the **Fog Inscattering Color**, **Directional Inscattering Color**, and **Inscattering Texture** properties to override the light color with Volumetric Fog. |
+
+### Lights
+
+Each light's contribution amount to the scene and whether it shadows the fog can be controlled using the following properties.
+
+![](VolumetricFogLightProperties.png)
+
+| Property | Description |
+| --- | --- |
+| Volumetric Scattering Intensity | Controls how much this light will contribute to the Volumetric Fog. When set to 0 there is no contribution. |
+| Cast Volumetric Shadow | Whether to cast a volumetric shadow for lights contributing to Volumetric Fog. When enabled, Point and Spot lights are ~3x more expensive than non-shadow casting lights. |
+
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volumetric Scattering Intensity: 1 (Default)](VolumetricFogEnabled.png)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![Volumetric Scattering Intensity: 0 ](VolumetricFogDisabled.png)(w:800)
+	[/PARAM]
+[/OBJECT]
+
+In this example, the Spot light's contribution to the Volumetric Fog has been disabled by setting the **Volumetric Scattering Intensity** to 0.
+
+## Local Controls
+
+Materials using the **Volume** domain describe Albedo, Emissive, and Extinction for a given point in space. Albedo is in the range [0-1] while Emissive and Extinction are world space densities with
+any value greater than 0. 
+
+
+![](VolumetricFogParticleMaterial.png)(w:700)
+[REGION:caption]
+This is an example of the simplest Volume material for a Particle System.
+[/REGION]
+
+[REGION:note]
+Volume materials currently only work on particles and only positions inside of the particle radius are valid, which is usually handled by a SphereMask. 
+[/REGION]
+
+Placing a single Particle System with the material causes a sphere of density to be added to the Volumetric Fog. The effect is fully 3D with no billboards involved. 
+
+![](VF_ParticleInGame.png)(w:700)
+
+Taking this approach a step further, you could use multiple spherical fog particle with noise from textures to limit fog to a certain area of your scene. 
+
+## Temporal Reprojection
+
+The volume textures used by Volumetric Fog are relatively low-resolution and aligned to the camera frustum. Volumetric Fog uses a heavy temporal reprojection filter with a different sub-voxel jitter
+each frame to smooth out the aliasing. As a side-effect, fast-changing lights like flashlights and muzzle flashes leave lighting trails. Disable the contribution of these lights by setting
+**Volumetric Scattering Intensity** set to 0.
+
+## Performance
+
+The GPU cost of Volumetric Fog is primarily controlled by the volume texture resolution, which is set from the Engine Shadow Scalability level. Volumetric Fog costs 1ms on PlayStation 4 at High Settings,
+and 3ms on an Nvidia 970 GTX on Epic settings, which has 8x more voxels to operate on.
+
+* Particles using **Volume** domain can add a significant GPU cost, depending on their 3D overdraw and instruction count. Use the console command `profilegpu` to inspect this cost.
+* Point and Spot Lights that have **Cast Volumetric Shadow** enabled cost ~3x more than unshadowed Point and Spot Lights. 
+
+## Currently Supported Features
+
+This list comprises the currently supported features of Volumetric Fog:
+* A single Directional Light, with shadowing from Cascaded Shadow Maps or static shadowing, with a Light Function.
+* Any number of Point and Spot Lights, with dynamic or static shadowing if **Cast Volumetric Shadowing** is enabled.
+* A single Skylight, with shadowing from Distance Field Ambient Occlusion, if enabled. 
+* Particle Lights, if **Volumetric Scattering Intensity** is greater than 0.
+
+Also, translucency is properly affected by Volumetric Fog, depending on its position in the scene. By default, translucency computes fog at vertices, so water planes with low tessellation can 
+introduce artifacts. These materials can be set to compute fogging per-pixel to solve this with **Compute Fog Per-Pixel** enabled in the Material Details.
+
+## Known Issues & Common Questions
+
+The following features are **not yet supported** while using Volumetric Fog:
+* Precomputed Global Illumination.
+* Shadowing of Stationary Skylights.
+* IES profiles and Light Functions on Point and Spot Lights. 
+* Shadowing from Ray Traced Distance Field Shadows.
+* Shadowing from Volumetric Fog itself.
+* Source Radius on Point and Spot lights.
+* Some settings in the Exponential Height Fog, like Fog Cutoff Distance, Start Distance, and Fog Max Opacity.
+
+Below are some common questions/issues that may arise when using Volumetric Fog. 
+
+* **How can one achieve stronger light shafts without heavy global fog?**
+	* When the global density of fog is increased you get denser fog, so you only notice light shafts (shadows of light) if the fog is dense enough to have everything heavily fogged. There are two ways to go about having stronger light shafts without heavy fog:
+		* Keep the global fog density low, but use a higher **Volumetric Scattering Intensity** for the Directional Light. Also, adjust the **Scattering Distritbution** to near **0.9** in your Exponential Height Fog actor.
+		* Keep the global fog density low, but increase it in certain areas with Volume particles.
+* **Can Exponential Height Fog and Volumetric Fog be used at the same time?** 
+	* Right now, Volumetric Fog replaces **Fog Inscattering Color** within the Volumetric Fog **View Distance**. Because Volumetric Fog is physically-based and Exponential Height Fog is not, it's impossible to match these precisely in the distance. This means that some settings in the Exponential Height Fog will have no effect on Volumetric Fog.
+* **Can Volumetric Fog's center be decoupled from the camera, which would be ideal for top-down games?**
+	* Not currently, though, a standalone volume would be ideal for this. However, it's hard to integrate them with translucency efficiently.

@@ -9,6 +9,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 In this How-to we take a look at adding a **Camera** Component to a **Blueprint** which can be used to create third person perspectives for playable or non-playable characters in your levels. By the end of this tutorial you will have gone through the process of adding a Camera Component to a Character Blueprint and set up the ability to toggle between two different perspectives for a character. 
 

@@ -1,23 +1,26 @@
-﻿INTSourceChangelist:3361084
-Availability:Public
-Title:ブレンド スペースの編集
+﻿INTSourceChangelist:3477699
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Title:ブレンド スペースの編集
 Description:Blend Space アセットを操作するパラメータを編集し、セットアップする方法についての概要
+Type:Reference
+version:4.16
+Parent:Engine/Animation/Blendspaces
+Order:1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:editblendspacetopic.png
 Related:Engine\Animation\AnimHowTo\BlendSpace
 Related:Engine\Animation\Blendspaces\Creation
 Related:Engine/Animation/StateMachines
 Related:Engine/Animation/AnimBlueprints
 Related:Engine/Animation/AnimBlueprints/AnimGraph
-version:4.15
-type:reference
-topic-image:editblendspacetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
-
-[ブレンドスペース作成](Engine\Animation\Blendspaces\Creation) 後、アセットを開いたら、ブレンドを操作するプロパティを定義し、サンプリングするアニメーションも指定する必要があります。 
 
 [TOC(start:2 end:2)]
+
+[ブレンドスペース作成](Engine\Animation\Blendspaces\Creation) 後、アセットを開いたら、**Axis Settings (軸の設定)** (ブレンドを操作するプロパティ) を定義し、**Sample Poses** として使用するアニメーションも指定する必要があります。 
+こうした 2 つのエレメントを定義した状態で、**[Blend Space Asset Details (ブレンドスペースのアセット詳細)]** パネル内のプロパティを変更することでブレンドスペースをさらに調整することができます。 
 
 ## 軸の設定
 
@@ -25,7 +28,7 @@ tags:Blend Space
 
 ![](AxisSettings.png)
 
-通常の Blend Space アセットでは、入力として **Horizontal Axis** と **Vertical Axis** を定義することができますが、Blend Space 1D アセットでは水平軸のみを使用します。 
+通常の  [Blend Space](Engine\Animation\AnimHowTo\BlendSpace) アセットでは、入力として **Horizontal Axis** と **Vertical Axis** を定義することができますが、Blend Space 1D アセットでは水平軸のみを使用します。 
 
 いずれの軸でも定義可能なプロパティは同じで以下のとおりです。 
 
@@ -60,7 +63,11 @@ tags:Blend Space
 
 ![](RightClickSamplePoint.png)
 
-軸の値を調整、アニメーションを変更、または **[Rate Scale]** (またはアニメーションの再生速度)を調整してサンプルの位置を変更することができます。 
+軸の値  (上のケースでは、 Direction または Speed) を調整、アニメーションを変更、または **[Rate Scale]** を調整してサンプルの位置を変更することができます。 
+
+[REGION:tip]
+ブレンドスペース グリッドの左上にあるサンプルの数値入力ボックスを使ってサンプル値を編集することもできます。
+[/REGION]
 
 展開メニューを使って軸値のプロパティを変更してサンプルを移動する以外に、サンプルをグリッド上の新しい位置にドラッグ＆ドロップすることができます。 
 
@@ -68,48 +75,67 @@ tags:Blend Space
 
 グリッドからサンプルを取り除くには、サンプルを選択し、**[Delete]** キーを押します。 
 
+既存サンプルの上に新規サンプルをドラッグ＆ドロップしてサンプルを置き換えることもできます。 
+
+![](ChangeSample.png)
+
 ### ブレンドスペースのプレビュー
 
 グリッドにいくつかのサンプル ポーズがある場合、**[Shift]** キーを押しながら緑のダイヤ型アイコンをドラッグしてポーズ間のブレンドを見ることができます。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-Kh3EubQ1IWM
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	G46ZWMJHkDA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
+**Shift** キーを押しながら、**Ctrl** キーを押してプレビュー中に実際のサンプル値を表示させることができます。 
+
+![](ControlDownPreview.png)
 
 **Shift** キーを放すと、緑のダイヤ型アイコンがその位置にとどまり、ビューポート内でカメラを自由に動かし、様々なアングルからポーズを見ることができます。 
 
 ![](StickyKey.png)
 
+
+
 ### グリッドのオプション
 
-ブレンドスペース エディタのグリッド内で、**Show Triangulation (トライアングル化を表示)** したり、**Stretch** 設定を調整することもできます。 
+ブレンドスペース エディタのグリッド内で、**Show Triangulation (トライアングル化を表示)**、 **Show Animation Names (アニメーション名を表示)**、**Stretch** 設定を調整することもできます。 
 
 ![](GridOptionsImage.png)
 
-以下の動画は、両方のオプションの効果を示しています。必要な結果が得られるようにいろいろ試すことができます。 
+以下の動画は、各オプションの効果を示しています。必要な結果が得られるように各オプションを使って試すことができます。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-rmTo7dcN6k4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eeiHXdHuZTo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
-
-
-
 
 ## Blend Space アセットの詳細
 
@@ -159,11 +185,10 @@ rmTo7dcN6k4
 
 このセクションでは、ブレンドスペースが使用するモードを定義し、どの [アニメーション通知](Engine/Animation/Sequences/Notifies) を発行するかを決めます。 
 
-通知トリガー モードには以下があります。 
-
-* **All Animations** - すべての通知イベントが発行します。 
-* **Highest Weighted Animation** - 一番高いウェイトのアニメーションからのみ通知イベントが発行します。 
-* **None** - どのアニメーションからも通知イベントは発行しません。 
+|---|---|
+|**All Animations**| すべての通知イベントが発行します。 |
+|**Highest Weighted Animation**| 一番高いウェイトのアニメーションからのみ通知イベントが発行します。  |
+|**None**| - どのアニメーションからも通知イベントは発行しません。  |
 
 ### Meta Data
 
@@ -173,5 +198,6 @@ rmTo7dcN6k4
 
 このセクションでは、
  **コンテンツ ブラウザ** に表示されるアセットのサムネイル内の表示の視点を調整します。
+
 
 

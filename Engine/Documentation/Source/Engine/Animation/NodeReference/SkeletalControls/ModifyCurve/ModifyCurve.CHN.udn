@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Modify Curve
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
+Description:Describes the Modify Curve node which can be used to modify animation curves with arbitrary logic inside Animation Graphs. 
+Related: Engine/Animation/Sequences/Curves
+Related: Engine/Animation/NodeReference/SkeletalControls
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/AnimBlueprints/AnimGraph
+Related: Engine/Animation/StateMachines
+version: 4.15
+type:reference
+topic-image:ModifyCurveNode.png
+tags:Animation
+tags:Animation Blueprint
+tags:Animation Curves
+tags:Skeletal Controls
+
+
+The **Modify Curve** control can be used to expose [Animation Curve](Engine/Animation/Sequences/Curves) data which can be modified using arbitrary logic to enable more dynamically-driven animations. 
+
+![](ModifyCurveNode.png)
+
+Below, the Modify Curve node is used to drive a curve called **Eye Glow Intensity** where the bear's eyes glow brighter over time. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	tYN-osmLeKE
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+Inside the [](Engine/Animation/AnimBlueprints/AnimGraph) of your [](Engine/Animation/AnimBlueprints), **Right-click** and search for and add the **Modify Curve** node
+
+Once added, **Right-click** on the node and select **Add Curve Pin** and any associated curves you wish to modify. 
+
+![](AddCurvePin.png)
+
+Pins can be removed by **Right-clicking** on the node again and selecting **Remove Curve Pin** or by **Right-clicking** on the pin itself and selecting **Remove This Curve Pin**.
+
+With the exposed float pin, you can define any logic you wish to drive the value (the logic below adjusts the glow of our bear's eyes over time).
+
+![](CurveLogic.png)

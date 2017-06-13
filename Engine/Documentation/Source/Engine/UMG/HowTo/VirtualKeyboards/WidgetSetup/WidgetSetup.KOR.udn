@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3376720
 Availability: Public
 Title:2. 위젯 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:여기서는 레벨에 표시할 키패드와 키패드 디스플레이 위젯을 생성합니다.
 SkillLevel: Advanced
 tags:UMG UI Designer
+Order: 2
 
 [VAR:Steps]
 [OBJECT:Navigation]

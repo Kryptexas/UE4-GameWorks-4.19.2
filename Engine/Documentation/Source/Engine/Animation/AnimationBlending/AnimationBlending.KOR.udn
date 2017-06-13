@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 블렌드 스페이스
 Crumbs: %ROOT%, Engine, Engine/Animation
 description:하나의 스켈레탈 메시에 두 개이 애니메이션을 부드럽게 전환하는 방법입니다.
 version: 4.9
+topic-image:BlendingAnimations_topic.png
 
 
 애니메이션 블렌딩이란, 개념적으로, 하나의 캐릭터 또는 스켈레탈 메시에 둘 이상의 애니메이션이 부드럽게 전환되도록 만드는 것입니다. 언리얼 엔진 4 에서는 그러한 블렌딩을 적용할 수 있는 방법이 여러가지 있습니다. 이 문서에서는 그 각각을 개괄적으로 살펴보고 캐릭터에 적용할 수 있는 방법을 알아보도록 하겠습니다.

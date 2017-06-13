@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:개발자 툴
 Crumbs: %ROOT%, Engine
 Description:개발자 툴 파일 메뉴 아래에서 찾을 수 있는 옵션에 대한 설명입니다.
 version: 4.12
+parent:Engine/Editor
+type:overview
+order:30
+Topic-image:DeveloperTools_topic.png
 
 [REGION:raw]
 ![](DeveloperTools2.png)

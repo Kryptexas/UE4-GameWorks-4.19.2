@@ -1,17 +1,24 @@
-Availability:Public
-Title: AnimGraph Pose Nodes
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
+Title: AnimGraph Pose Nodes
 Description:Describes how Pose Assets, Animation Blueprints, and Pose Nodes can be used to play curve driven animation at runtime.
+Type: Reference
+Version: 4.16
+Parent: Engine/Animation
+Order: 1
+topic-image:PoseNodeTopic.png
 Related: Engine\Animation\AnimHowTo\CreatePoseAsset
 Related: Engine\Animation\Persona\AnimCurves
 Related: Engine\Animation\Sequences\Curves
 Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\NodeReference\SkeletalControls
-version: 4.14
-
-[Pose Assets](Engine\Animation\AnimPose) can be driven at runtime with **Animation Blueprints** as the **AnimGraph** supports a few different Pose Nodes. 
+Tags:Animation
+Tags:Animation Blueprint
+Tags:Animation Blending
 
 [TOC (start:2 end:2)]
+
+[Pose Assets](Engine\Animation\AnimPose) can be driven at runtime with **Animation Blueprints** as the **AnimGraph** supports a few different Pose Nodes. 
 
 ## Pose by Name / Pose Blender Nodes
 
@@ -23,23 +30,30 @@ One way of driving **Pose Assets** is through the **Pose by Name** and **Pose Bl
 In the example below, we have a face that uses a **Pose Asset** to smile when the player is close and frown when moving away. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-d3oGXxq2ekw
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	d3oGXxq2ekw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 Our State Machine inside our Animation Blueprint is set up with three states: 
 
 ![](StateMachine.png)
 
 Our default **State** which is our neutral expression, our **Smile** state which is entered when the player enters a trigger volume and our **Frown** state when the player leaves the trigger volume. 
-In this example, we only move between smiling and frowning states after triggering the first smile. Inside each state we use the **Pose Blender** and our animation sequence to apply the curve driven animation. 
+In this example, we only move between smiling and frowning states after triggering the first smile. Inside each state, we use the **Pose Blender** and our animation sequence to apply the curve driven animation. 
 
 ![](PoseBlender.png)
 
@@ -53,7 +67,7 @@ Additionally, using just a Pose Blender without supplying any incoming curve dat
 
 ![](NoCurveData.png)
 
-You can also convert a Pose Blender node to a **Pose by Name** (which can also be converted to a Pose Blender node) through the **Right-click** context menu. 
+You can also convert a Pose Blender node to a **Pose by Name** (which can also be converted to a Pose Blender node) through the right-click context menu. 
 
 ![](PoseByName.png)
 
@@ -76,18 +90,24 @@ One use for this node would be to create a pose space deformer to drive correcti
 For example, in the clip below, clavicle bone poses are being used to move the shoulder relative to the arm bone's movement. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-tJSYgPmzoKc
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tJSYgPmzoKc
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-To achieve this, an **RBF (Radial Basis Function)** interpolates driven values based on the orientation of a target bone. 
+To achieve this, a **RBF (Radial Basis Function)** interpolates driven values based on the orientation of a target bone. 
 You will need to create a **Pose Asset** and define the target poses for the bone and the desired curve values at each pose. 
 
 On the **Pose Driver** node itself, you have the following options: 
@@ -114,18 +134,28 @@ On the **Pose Driver** node itself, you have the following options:
 -->
 
 For additional information see the Unreal Engine Live Stream on Animation Topics which include a **Pose Driver** example:
- 
+
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-h2egrj1pXzw
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	h2egrj1pXzw
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+ 
+
+
+
 
 
 

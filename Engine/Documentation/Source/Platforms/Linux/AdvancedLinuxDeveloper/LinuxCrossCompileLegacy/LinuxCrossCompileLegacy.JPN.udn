@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3321713
+﻿INTSourceChangelist:3469804
 Availability:Public
 Title:Linux (レガシー) のクロス コンパイル
-Crumbs:
+Crumbs:%ROOT%
 Description:4.14 より前のバージョンのエンジン ユーザー向けに、Linux プラットフォーム用クロスコンパイルの設定方法を説明します。
 Version:4.14
 SkillLevel:Advanced
@@ -18,7 +18,7 @@ topic-image:LegacyRef_Topic.png
 
 [TOC(start:2 end:3)]
 
-このリファレンスは、4.14 よりも古いアンリアル エンジン 4 のクロスコンパイル ツールの設定が必要なユーザー向けのアーカイブです。 
+このリファレンスは、4.14 よりも古いアンリアル エンジン 4 (UE4) のクロスコンパイル ツールの設定が必要なユーザー向けのアーカイブです。 
 
 [REGION:note]
 ご使用のアンリアル エンジンが 4.14 以降の場合は、[](Platforms/Linux/GettingStarted) を参照してください。
@@ -29,27 +29,30 @@ topic-image:LegacyRef_Topic.png
 
 **クロスコンパイル** をすると、ゲーム デベロッパーは Linux をターゲットにしつつ、Windows を中心にしたワークフローで作業できるようになります。今回、クロスコンパイルは Windows のみのサポートとなりますので、 
 Mac ユーザーは現在 [native compilation](https://wiki.unrealengine.com/Building_On_Linux) を使用する必要があります。Linux-x86_64 プラットフォーム向けに、ライブラリおよびツールチェーンのサポート、テスト、提供をしています。 
-[/EXCERPT:Why_XC]
+
 ## ツールチェーンの取得
 
 以下の表を使って適切なツールチェーンをダウンロードしてください。 
 
-| アンリアル エンジン 4 (UE4) バージョン   | ツールチェーン                                                                                                                   | 
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | 
-| **<= 4.8**                      | -v4 [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | 
-| **4.9 and 4.10**                | -v6 [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 
-| **4.11 thru 4.13**              | -v7 [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 
-| **4.14**                        | -v8 [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         |
+| ツールチェーン                                                                                                                           | UE4 バージョン    | 
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- | 
+| **-v4** [clang-3.5.0-based](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)                            | <= 4.8         | 
+| **-v6** [clang-3.6.0-based](https://s3.amazonaws.com/unrealengine/qfe/v6_clang-3.6.0_ld-2.24_glibc-2.12.2.zip)                  | 4.9 and 4.10   | 
+| **-v7** [clang-3.7.0-based](https://s3.amazonaws.com/unrealengine/CrossToolchain_Linux/v7_clang-3.7.0_ld-2.24_glibc-2.12.2.zip) | 4.11 thru 4.13 | 
+| **-v8** [clang-3.9.0-based](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip)                                         | 4.14 and 4.15  |
+| **-v9** [clang-4.0.0-based](http://cdn.unrealengine.com/CrossToolchain_Linux/v9_clang-4.0.0-centos7.zip)                        | 4.16           |
 
-ライブラリとツールチェーン (clang-3.5.0-arm) を提供していますので、Linux ARM (オリジナルの Rasberry Pi 以上) のコンパイルが可能です。ただし、[Unreal Build Tool](Programming/UnrealBuildSystem) (UBT) で 
-少しだけコード変更が必要になります。
 
-以下の情報のほとんどは ARM のコンパイル (別のツールチェーンを除く) にも通用しますが、ここから先は x86_64 Linux をターゲットに開発を行うユーザーを想定しています。 
-異なるバージョンのツールや別のアーキテクチャをターゲットとする場合は、[独自のツールチェーンをビルド](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) することができます。
+Linux ARM (https://s3.amazonaws.com/unrealengine/qfe/arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13.zip) 並びに (original Raspberry Pi and up) のコンパイルが可能なライブラリとツールチェーンも提供しています。 
+ただし、[Unreal Build Tool](Programming/UnrealBuildSystem) (UBT) で (マイナーな) コード変更が必要になります。
+[/EXCERPT:Why_XC]
+
+これより先は x86_64 Linux をターゲットに開発を行うユーザーを想定していますが、ほとんどの情報は ARM のコンパイル (別のツールチェーンを除く) にも適用できます。 
+異なるバージョンのツールや別のアーキテクチャをターゲットとする場合は、[独自のツールチェーンのビルド](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) が可能です。
 
 ## ツールチェーンの設定 
 
-[Control Panel (コントロールパネル)]->[System (システム)]->[Advanced system settings (詳細システム設定)]->[Advanced (詳細)]->[Environment variables (環境変数)] の順に選んで、`LINUX_ROOT` という名前の環境変数を追加します。この値はツールチェーンの後に続くバックスラッシュなしの絶対パスです。
+[Control Panel (コントロールパネル)]->[System (システム)]->[Advanced system settings (詳細システム設定)]->[Advanced (詳細)]->[Environment variables (環境変数)] の順に選んで、`LINUX_ROOT` という名前の環境変数を追加します。この値はツールチェーンの絶対パスです (バックスラッシュはありません)。
 
 [REGION:raw]
 ![](EnvironmentVar.png)
@@ -110,8 +113,8 @@ Windows 向け:
 
 ## Linux 向けのパッケージング
 
-エディタでパッケージ プロジェクトを開いて、[File]->[Package To]->[Linux] の順に選択する方法が最も簡単なパッケージの作成手段です (前の手順でクロスツールチェーンをインストール済みで、 Linux ターゲットモジュールが対象エディタ用にビルドされていることが前提です。リストに 「Linux」 が表示されない場合は、 
-いずれかの手順が終了してない可能性があります。上記を参照してください)。サンプリングしばらくすると (対象プロジェクトに依存、サンプル プロジェクトはいくらか短時間)、 
+最も簡単なパッケージ作成方法は、エディタでパッケージ プロジェクトを開いて、[File]->[Package To]->[Linux] の順に選択します  
+(その前にクロスツールチェーンをインストールしておくこと、Linux ターゲットモジュールが対象エディタ用にビルドされていることが前提です。リストに 「Linux」 が表示されない場合は、いずれかの手順が終了してない可能性があります。上記を参照してください)。サンプリングしばらくすると (対象プロジェクトに依存、サンプル プロジェクトはいくらか短時間)、 
 パッケージを作成するディレクトリにゲームアセットとバイナリが表示されます。
 
 パッケージ作成のプロセスに関する詳細は、**Show Output Log** リンクから参照してください。プロセスが「unable to find UnrealPak or ShaderCompileWorker (UnrealPak または ShaderCompileWorker が見つかりません)」のエラーメッセージで失敗した場合は、ホスト (Windows) プラットフォーム向けのパッケージのビルド方法を上記で参照してください。

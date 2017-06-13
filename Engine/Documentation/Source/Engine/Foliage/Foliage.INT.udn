@@ -336,21 +336,105 @@ In Order to use the Foliage Painting mode, your level must contain either a Land
 
 1. Once FT_Box is opened, expand the **Mesh** and **Scalability** sections.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_02.png)(w:405 h:223)](Foliage_Scalability_02.png)
+	[![](Foliage_Scalability_02_Windows.png)(w:405)](Foliage_Scalability_02_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_02_Mac.png)(w:405)](Foliage_Scalability_02_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. In the **Content Browser** select a Static Mesh (for this example we are using the **Shape_Cube** that comes with the Starter Content). In the FT_Box Foliage Type, under the **Mesh** section, drag the **Shape_Cube** from the Content Browser to the **Mesh** option.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_03.png)(w:405 h:223)](Foliage_Scalability_03.png)
+	[![](Foliage_Scalability_03_Windows.png)(w:405)](Foliage_Scalability_03_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_03_Mac.png)(w:405)](Foliage_Scalability_03_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. In the **Scalability** section of the FT_Box Foliage Type, click on the box that is next to **Enable Density Scaling** to allow the Scalability System access to this Static Mesh.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_04.png)(w:405 h:223)](Foliage_Scalability_04.png)
+	[![](Foliage_Scalability_04_Windows.png)(w:405)](Foliage_Scalability_04_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_04_Mac.png)(w:405)](Foliage_Scalability_04_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	The **Enable Density Scaling** option should typically only be **enabled** for detail foliage without collision such as small rocks and bushes. It should be **disabled** for Foliage Types with collision such as trees as the collision for removed instances will continue to exist in the game.

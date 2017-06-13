@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3376720
 Availability: Public
 Title:1. 캐릭터 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:여기서는 캐릭터에 Widget Interaction 컴포넌트를 추가하고 필요한 다른 애셋을 생성합니다.
 SkillLevel: Advanced
 tags:UMG UI Designer
+Order: 1
 
 [VAR:Steps]
 [OBJECT:Navigation]

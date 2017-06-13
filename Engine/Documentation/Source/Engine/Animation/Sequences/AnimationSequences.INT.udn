@@ -9,26 +9,9 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.14
+tags:Assets
+topic-image:Engine/Animation/Overview/AnimationSeqTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Sequences:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Sequences:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Sequences:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Sequences]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2 end:2)]
 

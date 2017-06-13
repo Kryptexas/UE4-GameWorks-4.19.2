@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3309591
+﻿INTSourceChangelist:3433106
 Availability:NoPublish
 Title:
 Crumbs:
@@ -235,6 +235,67 @@ Description:
 		[/PARAMLITERAL]
 		[PARAM:label]
 		iOS
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
+[VAR:VRSelect]
+[REGION:section]
+	[REGION:titlesection]
+	VR プラットフォームを選択してください。
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		googlevr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Google VR
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		oculus
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Oculus Rift
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		gearvr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Samsung Gear VR
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		VRPlatform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		steamvr
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Steam VR
 		[/PARAM]
 	[/OBJECT]
 [/REGION]

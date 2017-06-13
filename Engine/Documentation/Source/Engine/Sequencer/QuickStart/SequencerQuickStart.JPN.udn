@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244012
+﻿INTSourceChangelist:3429249
 Availability:Public
 Title:シーケンサー クイック スタート
 Crumbs: %ROOT%, Engine
@@ -10,40 +10,8 @@ Version:4.12
 type:quick start
 checkpoint:sequencerqs
 tags:Sequencer
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](sequencerQS_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Sequencer/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](sequencerQS_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer/QuickStart:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-	%Engine/Sequencer/QuickStart:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+tags:Getting Started
+topic-image:sequencerQS_topic.png
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

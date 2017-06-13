@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:5. 다음 단계: 사운드 큐와 다이얼로그
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,13 +6,14 @@ Description:보다 복잡한 대화 관리 시스템을 만들어보는 분기�
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:5
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

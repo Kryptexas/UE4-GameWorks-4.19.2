@@ -2,6 +2,7 @@ Availability:Docs
 Title:1. Setting up the Widget Blueprint
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:Here we create the Widget Blueprint that we want to display in the 3D game world. 
+Parent:Engine/UMG/HowTo/Create3DWidgets
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Related: Engine/Blueprints
@@ -9,6 +10,7 @@ Version: 4.10
 SkillLevel: Intermediate
 checkpoint: umg_create_3d_howto
 tags:UMG UI Designer
+Order: 1
 
 [VAR:Steps]
 [OBJECT:Navigation]

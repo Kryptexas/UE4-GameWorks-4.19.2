@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:StaticMesh アクタ
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:背景にワールド ジオメトリを作成するために StaticMesh アクタを配置し使用するためのガイド
 version:4.9
+Parent:Engine/Actors/Types
+order:2
+type:overview
 
 [TOC(start:2)]
 
@@ -51,7 +54,9 @@ StaticMesh アクタ は一般的なアクタ配置方法でマップに配置�
 
 1. **[プロパティ]** ウィンドウに表示されているように、StaticMesh が StaticMesh アクタとしてマップに配置されました。 
   
-## StaticMesh アクタを可動にする
+	## StaticMesh アクタを可動にする
+
+
 
 プレイ中に StaticMesh アクタを移動、回転、スケーリングするためには、必ず最初に StaticMesh アクタ を **Movable (可動)** にする必要があります。これを行うには、StaticMesh アクタを選択し、**[Details]** パネルの **[Mobility]** から **[Moveable]** を選択します。
 

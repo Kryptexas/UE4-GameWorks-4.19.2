@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:4. 블렌드 스페이스 만들기
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:이번 단계에서는 다양한 방향 이동시의 애니메이션 블렌딩이 가능하도록 이동 상태에 대한 블렌드 스페이스 구성을 해 보도록 하겠습니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel: Advanced 
+type:how-to
+type:multi-step
+order:4
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 다음 우리 캐릭터의 동작을 만드는 데 해 줄 작업은, 각각의 동작 (걷기, 조깅, 웅크려 걷기) 상태에 대한 **블렌드 스페이스** 를 만드는 것입니다. 블렌드 스페이스란 두 입력값에 따라 애니메이션을 블렌딩할 수 있도록 해 주는 특수 애셋으로, 여기서는 캐릭터의 이동 속도와 방향에 따라 전방/후방 및 좌/우 동작을 블렌딩하도록 하겠습니다.
 
@@ -121,5 +109,4 @@ SkillLevel: Advanced
 1.	**저장** 후 **Crouch_BS** 블렌드 스페이스 창을 닫습니다.
 
 
-%Steps%
-
+[NAV]

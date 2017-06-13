@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2974295
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ノードを接続する
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Scripting
@@ -11,6 +11,7 @@ version:4.9
 skilllevel:Beginner
 parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 order:5
 
 このページでは、ブループリントのグラフでノードを接続する様々な方法について説明します。 
@@ -35,7 +36,7 @@ order:5
 
 ![](ColorCoded.png)
 
-2 つの異なるタイプのピンを接続できる場合もありますが、その場合は **Conversion Node** が作成されます。 
+2 つの異なるタイプのピンを接続できる場合もありますが、その場合は **Conversion ノード** が作成されます。 
 
 ![](ConversionNode1.png)
 

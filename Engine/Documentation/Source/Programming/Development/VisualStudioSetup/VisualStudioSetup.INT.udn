@@ -1,17 +1,23 @@
 Availability:Public
 Title:Setting Up Visual Studio for UE4
-Crumbs: %ROOT%, Programming, Programming\Development
 Description:Tips, tricks, and techniques for setting up Visual Studio for development with Unreal Engine 4.
-Version: 4.9
+Crumbs: %ROOT%
+Parent:Programming/Development
+Order:
+Version: 4.16
+type:overview
+tags:Visual Studio
+skilllevel:Beginner
+topic-image:SettingUpVSForUE4_topic.png
 
-[TOC(start:2)]
+[TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
 
 Unreal Engine 4 (UE4) is designed to integrate smoothly with Visual Studio, allowing you to quickly and easily make code changes in your projects to immediately see results upon compilation. 
 Setting up Visual Studio to work with UE4 can help improve efficiency and the overall user experience for developers using UE4.
 
-In this document, we'll cover the basics for setting up your UE4-to-VS2013 workflow.
+In this document, we'll also cover the basics for setting up your UE4-to-VS2013 workflow.
 [/EXCERPT:Intro]
 
 ## Before Setting-up your UE4-to-VS Workflow
@@ -23,7 +29,8 @@ The following table lists which versions of Visual Studio are integrated with th
 
 | Unreal Engine Version     | Visual Studio Version |
 | ------------------------- | --------------------- |
-| **4.10 or Later**         | VS2015                |
+| **4.15 or Later**         | VS2017                |
+| **4.10 to 4.14**          | VS2015                |
 | **4.2 to 4.9**            | VS2013                |
 
 Open source versions of UE4 (available via GitHub and P4) are integrated with VS2013. Also, earlier versions of UE4 integrated with older versions of Visual Studio aren't covered in this document.
@@ -88,9 +95,25 @@ Other configuration steps you may find useful are:
 * Turn on IntelliSense. (See [Intellisense, Live Errors, and Squiggles](#Intellisense))
 [/REGION]
 
-###Recommendation for Visual Assist X Users
+###Visual Assist X Users
 If you have Visual Assist X installed:
 * Turn off **Format After Paste** (**VAssistX > Visual Assist X Options > Advanced > Corrections**). If you don't disable this option, Visual Assist X automatically formats your source code, potentially resulting in poorly formatted documents.
+
+###Visual Studio 2017 Users
+
+If you're installing Visual Studio for the first time, you'll want to make sure that you have the following options enabled.
+
+####With the UE4 Installer
+
+The following options will download the UE4 installer as part of your Visual Studio 2017 installation.
+
+![](VS2017_SettingsInstaller.png)
+
+####Without the UE4 Installer
+
+The following options won't download the UE4 installer as part of your Visual Studio 2017 installation.
+
+![](VS2017_SettingsNoInstaller.png)
 
 (#Intellisense)
 ## Intellisense, Live Errors, and Squiggles

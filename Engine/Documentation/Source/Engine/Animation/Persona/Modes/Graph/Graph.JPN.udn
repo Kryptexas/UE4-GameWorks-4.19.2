@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:Animation ブループリント エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -13,6 +13,7 @@ type:landing
 topic-image:AnimGraphEditor_topic.png
 tags:Animation
 tags:Blueprints
+tags:Tools
 
 
 [REGION:fullwidth]

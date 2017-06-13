@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429239
 Availability:Public
 Title:컴포넌트
 Crumbs:%ROOT%, Engine
@@ -6,40 +6,8 @@ Description:Component, 컴포넌트란 액터 안에 서브 오브젝트로 사�
 version: 4.9
 parent:Engine/Editor
 order:6
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](components_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Components:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Components]
-	[/PARAM]
-	[PARAM:description]
-	%Engine\Components:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](components_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine\Components:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine\Components]
-	[/PARAM]
-	[PARAM:description]
-	%Engine\Components:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+type:landing
+topic-image:components_topic.png
 
 
 [INCLUDE:Shared\Glossary\C#glossary_component]
@@ -66,24 +34,7 @@ order:6
 
 액터에 추가할 수 있는 컴포넌트 유형은 여러가지 있으며, 자세한 정보는 아래 링크를 참고하세요:
 
-[OBJECT:TopicButtonList]
-	[PARAM:links] 
-		* [](Engine\Components\AI "%Engine\Components\AI:description%")
-		* [](Engine\Components\Audio "%Engine\Components\Audio:description%") 
-		* [](Engine\Components\Camera "%Engine\Components\Camera:description%") 
-		* [](Engine\Components\Lights "%Engine\Components\Lights:description%") 
-		* [](Engine\Components\Movement "%Engine\Components\Movement:description%") 
-		* [](Engine/Components/Navigation "%Engine/Components/Navigation:description%") 
-		* [](Engine\Components\Paper2D "%Engine\Components\Paper2D:description%") 
-		* [](Engine\Components\Physics "%Engine\Components\Physics:description%") 
-		* [](Engine\Components\Rendering "%Engine\Components\Rendering:description%") 
-		* [](Engine\Components\Shapes "%Engine\Components\Shapes:description%") 
-		* [](Engine\Components\SkeletalMesh "%Engine\Components\SkeletalMesh:description%") 
-		* [](Engine\Components\StaticMesh "%Engine\Components\StaticMesh:description%") 
-		* [](Engine\Components\Utility "%Engine\Components\Utility:description%") 
-		* [](Engine\Components\Widget "%Engine\Components\Widget:description%") 
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Components" org:"hierarchy" end:"1")]
 
 [REGION:note]
 다른 컴포넌트에 대한 정보는 [Unreal Engine API Reference](https://docs.unrealengine.com/latest/INT/API/index.html) 의 [Components](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Components/index.html) 섹션을 참고하세요.

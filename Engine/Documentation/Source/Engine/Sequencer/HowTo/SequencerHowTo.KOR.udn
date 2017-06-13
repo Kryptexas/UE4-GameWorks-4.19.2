@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3348041
+﻿INTSourceChangelist:3446912
 Availability: Public
 Title: 시퀀서 - 안내서
 Crumbs: %ROOT%, Engine, Engine\Sequencer
 Description:시퀀서 에디터로 시네마틱 시퀀스를 제작하는 법에 대한 안내서입니다.
 Related: Engine\Sequencer
-version: 4.11
+version: 4.15
 tags:Sequencer
 
 
@@ -28,6 +28,7 @@ tags:Sequencer
 [](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksMaterialParameter "%Engine\Sequencer\HowTo\TracksMaterialParameter:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
 [](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
@@ -40,6 +41,7 @@ tags:Sequencer
 ## 고급
 [REGION:wrapper transparent]
 [](FANCY:Engine\Sequencer\HowTo\AnimateDynamicObjects "%Engine\Sequencer\HowTo\AnimateDynamicObjects:description%")
+[](FANCY:Engine\Sequencer\HowTo\ActorSequence "%Engine\Sequencer\HowTo\ActorSequence:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")

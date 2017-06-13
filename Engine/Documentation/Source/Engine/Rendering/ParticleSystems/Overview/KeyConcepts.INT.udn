@@ -4,6 +4,12 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:Critical concepts for working with particles in Unreal and the Cascade particle editor.
 Version: 4.9
 tags:Particles
+tags:Getting Started
+parent:Engine/Rendering/ParticleSystems
+order:1
+type:overview
+topic-image:Engine/Rendering/ParticleSystems/particles_topic.png
+
 
 [TOC(start:2 end:3)]
 

@@ -142,7 +142,7 @@ UFactory-파생형은 대부분, 팩토리 클래스의 StaticConstructor() 오�
 
 		// 지원되는 클래스가 없다고 선언하면
         // Import Dialog 에서 'OK'가 선택되어 닫힐 때 
-        // 임포트 패쓰에서 ResolveSupportedClass() 호출
+        // 임포트 패스에서 ResolveSupportedClass() 호출
         SupportedClass = NULL;
 
         // 이 팩토리가 .ABC 파일에 관심있다고 등록

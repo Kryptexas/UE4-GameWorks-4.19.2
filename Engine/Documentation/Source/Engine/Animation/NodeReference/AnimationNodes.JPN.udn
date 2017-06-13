@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3114699
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:Animation ノードの参照
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation ブループリントに使用できる各種 Animation ノードの説明
 version:4.9
+topic-image:AnimationgNodeReference_topic.png
 
 [EXCERPT:Intro]
 Animation ブループリントは、ブレンディング、直接的な骨格操作など、入力ポーズのオペレーションを実行するために、 

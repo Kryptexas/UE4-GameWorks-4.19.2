@@ -34,11 +34,63 @@ While there are several different ways in which you can create a new Level, we w
 
 1. Inside the Unreal Editor, click the **File Menu** option then select **New Level...**. 
 
-	![](ContentBrowserLevel.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	This will open the **New Level** dialog window:
 
-	![](level_new.png)(w:550)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	Above the **Default** level includes some of the commonly used assets for constructing levels, there is also a **VR-Basic** level which includes some assets for constructing levels with the VR Editor and **Empty Level** is a completely blank level with no assets. For the purposes of this guide we are going to start from scratch with a completely blank slate. 
 

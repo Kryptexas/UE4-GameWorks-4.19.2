@@ -1,15 +1,17 @@
-﻿INTSourceChangelist:2754176
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:Aim Offset
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Aim Offset は、キャラクターが武器の照準を合わせやすいように、ブレンド可能な様々なポーズを格納しているアセットです。
-Related: Engine/Content/FBX/Animations
-Related: Engine/Content/Types/SkeletalMeshes
-Related: Engine/Animation/PhysicallyDrivenAnimation
-Related: Engine/Animation/StateMachines
-Related: Gameplay/AI
-Related: Engine/Content/Tools/MayaRiggingTool
+Related:Engine/Content/FBX/Animations
+Related:Engine/Content/Types/SkeletalMeshes
+Related:Engine/Animation/PhysicallyDrivenAnimation
+Related:Engine/Animation/StateMachines
+Related:Gameplay/AI
+Related:Engine/Content/Tools/MayaRiggingTool
 version:4.9
+tags:Assets
+topic-image:AimOffset_topic.png
 
 [REGION:fullwidth]
 ![](AimOffset.png)
@@ -29,7 +31,7 @@ Aim Offset をキャラクターに適用した例として、セクション 1.
 
 ## Aim Offset を作成する
 
-他のアセットと同様に、Aim Offset は **[コンテンツ ブラウザ]** で作成します。**右クリック** または ![](New_Asset_Button.png) ボタンを使ってコンテキスト メニューから **[Animation] > [Aim Offset]** を選択します。 お気づきのように、** Aim Offset 1D** というオプションもあります。これは Aim Offset と同じですが、ブレンドを制御するために標準の Aim Offset が 2 つの変数からの入力をサポートするのに対し、 1 つの変数からの入力のみをサポートします。
+他のアセットと同様に、Aim Offset は **[コンテンツ ブラウザ]** で作成します。**右クリック** または ![](New_Asset_Button.png) ボタンを使ってコンテキストメニューから **[Animation] > [Aim Offset]** の順に選択します。 お気づきのように、**Aim Offset 1D** というオプションもあります。これは Aim Offset と同じですが、ブレンドを制御するために標準の Aim Offset が 2 つの変数からの入力をサポートするのに対し、 1 つの変数からの入力のみをサポートします。
 
 Aim Offset を新規作成する場合、スケルトン アセットを指定します。Aim Offset で使用したいスケルタル メッシュで使うものと同じアセットを選択するようにしてください。
 
@@ -98,8 +100,10 @@ Aim Offset はメッシュ空間では Additive Aim Type のみアニメーシ�
 
 メッシュ空間はアニメーション シーケンスのプロパティとして設定されます。**[Additive Settings]** カテゴリに **[Additive Anim Type]** プロパティがあります。これをメッシュ空間に設定すると、説明したとおりのメッシュ座標空間が使用されます。このブレンディング操作はかなり負荷が高くなります。そのため、Aim Offset のケースのように、アニメーションを一定方向に移動させる必要があると分かっている特定のタイプのブレンド スペースのみで使用するのが一般的です。
 
+## パフォーマンス
 
+![](animOffsetNode.png)
 
+Aim Offset ノードを **Anim Graph** に配置すると、4.11 で導入された **LOD Threshold** プロパティを使ってパフォーマンスを調整することができます。この設定は、**Aim Offset** ノードの [Details (詳細)] パネルにあります。
 
-
-
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

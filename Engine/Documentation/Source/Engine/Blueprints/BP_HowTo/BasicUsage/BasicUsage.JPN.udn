@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2975314
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ブループリントの基本ユーザーガイド
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -11,6 +11,7 @@ Related:Gameplay
 Version:4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Class Blueprints
+tags:Blueprints
 
 
 [TOC(start:2 end:2)]
@@ -94,19 +95,19 @@ Tags:Class Blueprints
 <!--
 ## ブループリントを編集する
 
-作業しているブループリントのタイプに応じて様々なブループリント モードを利用して作業し、ブループリントが何を行うか、どのように機能するかを決めることができます。このセクションでは上記の方法で作成したブループリントに焦点をあてます。様々なタイプのブループリントに関する詳しい情報は、以下のリンクを参照してください。 
+使用するブループリントのタイプによって、ブループリントの実行内容や機能を設定する **ブループリント モード** も異なります。このセクションでは、上記の方法で作成したブループリントに焦点をあてます。ブループリントの各種タイプの詳細に関しては、以下のリンクを参照してください。 
 
 * Animation ブループリントについては、 [](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。 
 * UMG UI エディタで使用する Widget ブループリントについては、 [](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
 * Level ブループリント、ブループリント インターフェース、マクロ ライブラリ、またはその他のタイプについては、 [](Engine/Blueprints/UserGuide) のドキュメントをご覧ください。 
 
-ブループリントを作成したらその上で **ダブルクリック** して **ブループリント エディタ** を開き、以下の 3 つのタブのどれかで作業することができます。  
+ブループリントを作成すると、**ダブルクリック** して **ブループリント エディタ** を開き、以下の 3 つのいずれかのタブで作業することができます。  
 
 ### Components モード
 
 ![](ComponentsTab.png)(w:740)
 
-**Components モード** では、ブループリントを構築に使用する構成要素を定義します。**[Components]** ウィンドウでは様々なタイプの **コンポーネント** の追加が可能であり、こうしたコンポーネントが最終的にブループリントを構成します。コンポーネントは **カメラ** や **スタティックメッシュ** 、 **パーティクル エフェクト** や **サウンドキュー** に至るまで何でも可能です。
+**Components モード** では、ブループリントを構築に使用する構成要素を定義します。**[Components]** ウィンドウでは様々なタイプの **コンポーネント** の追加が可能であり、こうしたコンポーネントが最終的にブループリントを構成します。**カメラ** や **スタティックメッシュ**、**パーティクル エフェクト** や **サウンドキュー** まで、すべてのものがコンポーネントになれます。
 
 * Components モードのウィンドウとオプションについては、 [](Engine/Blueprints/Editor/Modes/Components) をご覧ください。 
 * Components モードでの **コンポーネント** の操作については [](Engine/Blueprints/UserGuide/Components) もご覧ください。  
@@ -115,16 +116,16 @@ Tags:Class Blueprints
 
 ![](GraphTab.png)(w:740)
 
-**Graph モード** はブループリントの中心と考えられます。ブループリントのロジックを定義するビジュアル ネットワークでブループリントのノードを追加し、接続することでブループリントに命を吹き込む場所がグラフ モードです。上の例では、 **Character ブループリント** があり、グラフ内でキャラクタの動きに影響を与えるロジックがレイアウトされています。 
+**グラフ モード** はブループリントの中心と考えられます。ブループリントのロジックを定義するビジュアル ネットワークでブループリントのノードを追加し、接続することでブループリントに命を吹き込む場所がグラフ モードです。上の例では、 **Character ブループリント** があり、グラフ内でキャラクタの動きに影響を与えるロジックがレイアウトされています。 
 
 * Graph モードのウィンドウとオプションについては、 [](Engine/Blueprints/Editor/Modes/GraphPanel) をご覧ください。 
-* Graph モードで **[Graph] ウィンドウ** 内での作業に関しては、 [](Engine\Blueprints\BP_HowTo\NavigatingGraphs) もご覧ください。  
+* Graph モードで **[Graph] ウィンドウ** 内での作業に関しては、[](Engine\Blueprints\BP_HowTo\NavigatingGraphs) もご覧ください。  
 
 ### Defaults モード
 
 ![](DefaultsTab.png)(w:740)
 
-**Defaults モード** は、ブループリントに含まれるデフォルトの設定値およびプロパティ (変数) が何でもそろう場所です。このモードから直接オプションを修正し、 **[Search (検索)]** オプションを使用して修正する特定の設定を検索することができます。 
+**Defaults モード** は、ブループリントに含まれるデフォルトの設定値およびプロパティ (変数) が何でもそろう場所です。このモードから直接オプションを修正し、**[Search (検索)]** オプションを使用して修正する特定の設定を検索することができます。 
 
 * **Defaults モード** をナビゲーションする詳しい情報については、 [](Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab) をご覧ください。 
 -->
@@ -151,7 +152,7 @@ Tags:Class Blueprints
 * 追加のノードベースのアクションとショートカットに関する情報は、 [](Engine/Blueprints/UserGuide/CheatSheet) をご覧ください。 
 
 
-## 変数を作成する
+## 変数の作成手順
 
 [INCLUDE:Engine/Blueprints/UserGuide/Variables#intro]
 

@@ -1,10 +1,17 @@
-﻿INTSourceChangelist:3143336
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 네트워킹과 멀티플레이
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:멀티플레이용 네트워크 게임 구성 방법입니다.
 version: 4.9
+Parent:Engine
+type:landing
+order:20
+topic-image:NetworkingAndMultiplayer_Topic.png
 
+[DIR(output:"listbutton" parent:"Gameplay/Networking" org:"hierarchy")]
+
+<!--
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -37,4 +44,4 @@ version: 4.9
 		
 	[/PARAM]
 [/OBJECT]
-
+-->

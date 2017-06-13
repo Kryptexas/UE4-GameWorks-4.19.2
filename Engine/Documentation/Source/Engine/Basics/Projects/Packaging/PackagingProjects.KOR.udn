@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3336763
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:프로젝트 패키징
 Crumbs:
@@ -37,13 +37,37 @@ parent:Engine/Basics/Projects
 ![](Project_Settings_MapsNModes.png)
 
 
-
-
 ## 패키지 만들기
 
 프로젝트를 특정 플랫폼용 패키지로 만들려면, 에디터의 메인 메뉴에서 **파일 > 프로젝트 패키지 > [플랫폼 이름]** 을 선택합니다.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](packaging_menu.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](packaging_menu_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 타겟 디렉토리를 선택하라는 대화창이 뜹니다. 패키징이 성공적으로 끝나면, 그 디렉토리에 패키징된 프로젝트가 들어갑니다.
 
@@ -123,9 +147,48 @@ iOS 에서는 애플의 개발자 웹사이트에서 배포 Certificate 와 Mobi
 [/PUBLISH:Licensee]
 
 
-
 ## 콘텐츠 쿠킹
 
 개발자로서 새 게임이나 변경된 게임에 대한 반복작업을 할 때, 모든 것을 스테이징 디렉토리에 패키징하여 넣은 다음 거기서 그것을 실행하는 지루한 프로세스 전체를 항상 반복하고 싶지는 않을 것입니다. 그래서 **파일 > 콘텐츠 쿠킹 > [플랫폼 이름]** 을 선택하면 패키징 없이 특정 타겟 플랫폼용 콘텐츠만 쿠킹하는 것도 가능합니다.
 
 이 기능은 프로젝트의 로컬 디벨로퍼 워크스페이스에 있는 콘텐츠를 업데이트할 뿐, 스테이징 디렉토리에 애셋을 복사하지는 않는다는 점 유념해 주시기 바랍니다. 로컬 디벨로퍼 워크스페이스에서 게임을 바로 실행하여 빠른 반복작업을 할 수 있습니다.
+
+
+## 로드 시간 최적화
+
+로드 시간을 짧게 하는 것은 오픈 월드 게임에 필수지만, 어떤 게임에도 좋은 일입니다. 언리얼 엔진에서는 패키지 프로세스 도중 프로젝트 로드 시간을 최적화시키는 메소드를 다수 제공하고 있습니다. 게임 로드 시간을 줄이는 실전적인 방법을 몇 가지 소개합니다. 프로젝트 패키지를 만드는 방법에 대해서는, [](Engine/Deployment) 문서를 참고하세요.
+
+### 이벤트 주도형 로더 (EDL) 및 비동기 로딩 스레드 (ALT) 사용
+
+* **Asynchronous Loading Thread** (ALT, 비동기 로딩 스레드)는 기본으로 꺼져있는 옵션이지만, 프로젝트 세팅 - 엔진 - Streaming (스트리밍)에서 켤 수 있습니다. 엔진에 변경을 가한 경우 약간의 미세 조정이 필요할 수 있지만, 일반적으로 ALT 는 게임의 "최초" (up-front) 로드 시간과 지속적인 데이터 스트리밍 시간을 포함한 전반적인 로드 시간을 배가시켜 줍니다. ALT 작동 방식은 시리얼라이즈와 포스트 로딩 코드를 두 개의 별도 스레드에 동시 실행시키는 방식으로 작동하므로, 그에 따라 게임 코드의 `UObject` 클래스 생성자, `PostInitProperties` 함수, `Serialize` 함수는 반드시 스레드 안전성을 확보(thread-safe)해야 합니다. 이 ALT 기능이 가동되면 로드 속도는 두 배가 됩니다. 비동기 로딩 메소드 (C++) 사용 관련 상세 정보는 [](Programming\Assets\AsyncLoading) 문서를 참고하세요.
+
+* **Event-Driven Loader** (이벤트 주도형 로더)는 기본적으로 켜져있지만, 프로젝트 세팅 - 엔진 - Streaming (스트리밍) 섹션에서 끌 수 있습니다. 대부분의 프로젝트의 경우 EDL 을 사용하면 로드 시간이 절반으로 줄어듭니다. EDL 은 안정적이며 언리얼 엔진 구버전에 하위 포팅, 또는 수정 및 커스터마이징된 엔진 버전에 맞게 미세 조정 가능합니다.
+
+![](EngineStreamingSettings.png)
+
+### .pak 파일 압축
+
+* 프로젝트에 .pak 파일 압축을 사용하려면, 프로젝트 세팅 - Packing (패키징) 섹션을 찾습니다. 거기서 Packaging (패키징) 제목줄의 고급 옵션 부분을 열면 나타나는 Create compressed cooked packages (압축 쿠킹 패키지 생성) 옵션을 체크합니다.
+
+* 대부분의 플랫폼에서는 자동 압축을 제공하지 않기에, .pak 파일을 압축하면 일반적으로 로드 시간이 단축되지만, 고려해야 할 상황이 몇 가지 있습니다:
+
+| 플랫폼 | 추천 |
+| -- | -- |
+| Sony PlayStation 4 | 모든 PlayStation4 타이틀에 자동 적용되는 압축과 .pak 파일 압축은 중복되어 사실상 파일 크기가 줄어드는 혜택 없이 압축 작업만 중복하게 됩니다. 그러므로 PlayStation 4 릴리즈의 경우 .pak 파일 압축은 하지 않는 것이 좋습니다. |
+| Nintendo Switch | 압축된 파일 로드가 더 빠를 수도 있지만, 데이터 압축을 푸는 데 걸리는 시간이 더 오래 걸릴 수도 있습니다. Switch 타이틀의 경우 타이틀 별로 직접 테스트해 보고 결정하는 것이 좋습니다. |
+| Microsoft XBoxOne | 자동 압축되지만, 시스템에서는 압축된 .pak 파일이 추가 압축 혜택을 받지 못한다고 인식을 할 것입니다. 그에 따라 시스템에서는 압축된 .pak 파일을 다시 압축하지 않고 있는 그대로 놔둡니다. 결국 XBoxOne 릴리즈용 .pak 파일은 압축을 해도 최종 제품에 심각한 영향을 끼치지 않습니다. |
+| Steam | 사용자가 다운로드하는 도중 파일을 압축하므로, 다운로드 시간은 압축중인 게임의 .pak 파일에 영향받지 않습니다. 하지만 미압축 파일의 경우 Steam 의 차등 패치 시스템이 나을 것입니다. 압축된 .pak 파일은 소비자 시스템의 디스크 공간을 절약해 주지만, 패치할 때 다운로드 시간은 길어집니다. |
+
+![Project Settings - Compress Pak 옵션](Project_Settings_PakCompression.png)
+[REGION:caption]이 박스를 체크하면 .pak 파일의 압축을 켤 수 있습니다.[/REGION]
+
+### .pak 파일 순서
+
+* 로드 시간 단축을 위해서는 .pak 파일 순서를 잘 지정하는 것이 중요합니다. .pak 파일 최적의 순서를 지정하는 데 도움을 드리기 위해, 언리얼 엔진에서는 데이터 애셋의 필요 순서를 알아내어 더욱 빠른 로딩 패키지를 제작하기 위한 툴 세트가 제공됩니다. 개념적으로, 이 프로세스는 프로파일 주도형 최적화와 비슷합니다. .pak 파일 순서 지정 방법은 다음과 같습니다:
+
+1. -fileopenlog 명령줄 옵션으로 패키지 게임을 빌드하고 실행시켜, 엔진이 파일을 여는 순서를 기록하도록 하는 것입니다.
+1. 게임 주요 영역을 전부 확인하세요. 모든 레벨, 모든 플레이가능 캐릭터, 모든 무기, 모든 비히클 등을 로드하세요. 모든 것이 로드했으면, 게임을 종료합니다.
+1. 디플로이된 게임에 보면 .pak 파일 순서 최적화에 필요한 정보가 들어있는 `GameOpenOrder.log` 라는 파일이 있습니다. 예를 들어 윈도우 빌드의 경우, 이 파일은 `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/` 에 있습니다. 이 파일을 `/Build/WindowsNoEditor/FileOpenOrder/` 아래 개발 디렉토리에 복사하세요.
+1. 로그 파일을 배치하고, .pak 파일을 리빌드합니다. 그러면 이번 것과 앞으로 생성되는 모든 .pak 파일은 로그 파일에 나타난 파일 순서를 사용할 것입니다.
+
+* 프로덕션 환경에서는, 이 로그 파일을 소스 콘트롤에 체크 인 하고, 주기적으로 -fileopenlog 를 붙여 실행한 뒤 주기적으로 업데이트해 주는 것은 물론, 게임 발매 준비가 되면 마지막으로 한 번 더 실행시킨 뒤 포함시켜 줘야 할 것입니다.

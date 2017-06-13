@@ -51,7 +51,7 @@ In this step you will be finishing off the GrenadeGunPistol Blueprint by adding 
 
 8. From the output execution pin of that node, add a **Spawn Sound at Location** node.
 
-9. Set its **Sound** to `GrendaeExplosion_C_Cue`
+9. Set its **Sound** to `GrenadeExplosion_C_Cue`
 
 	![image alt text](image_7.png)(w:662 h:242 convert:false)
 

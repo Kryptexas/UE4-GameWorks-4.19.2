@@ -9,14 +9,12 @@ Related: Engine/Content/Types/StaticMeshes/MorphTargets
 Related: Resources/ContentExamples/MorphTargets
 version: 4.14
 type:reference
-topic-image:MorphTargetSmall.png
 tags:Animation
 tags:Morph Target
 tags:Skeletal Mesh
 tags:FBX Importing
 SkillLevel:Intermediate
 Parent:Engine/Animation/Persona
-Order:
 
 [TOC (start:2)]
 

@@ -3,6 +3,8 @@ Availability:Public
 Title:虚幻引擎 4.14 版本信息
 Description:虚幻引擎 4.14 版本信息说明
 Crumbs:%ROOT%, Engine
+Parent:Support/Builds
+Order:14
 reference-image:image_6.gif
 reference-image:image_7.gif
 reference-image:image_9.gif

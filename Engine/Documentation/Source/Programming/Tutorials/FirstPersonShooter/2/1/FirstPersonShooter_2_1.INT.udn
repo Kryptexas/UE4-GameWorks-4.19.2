@@ -3,7 +3,7 @@ Title: 2.1 - Making a New Character
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to make a new character for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -95,9 +95,9 @@ Although you can manually add \*.h and \*.cpp files to your Visual Studio soluti
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 		}
 

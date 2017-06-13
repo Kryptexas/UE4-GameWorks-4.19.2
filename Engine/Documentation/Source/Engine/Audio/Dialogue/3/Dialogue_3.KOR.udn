@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:3. 컨텍스트 설정
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,13 +6,14 @@ Description:별도의 청자와 화자로 구성된 컨텍스트 세트를 만�
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:3
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

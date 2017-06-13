@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3227381
+﻿INTSourceChangelist:3484556
 Availability:Public
 Title:アニメーション ツールバー
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -7,7 +7,7 @@ Related:Engine/Animation/Persona/Modes/Skeleton
 Related:Engine/Animation/Persona/Modes/Mesh
 Related:Engine/Animation/Persona/Modes/Animation
 Related:Engine/Animation/Persona/Modes/Graph
-version:4.14
+version:4.16
 type:reference
 topic-image:Engine/Animation/animation_topic.png
 tags:animation
@@ -39,6 +39,7 @@ tags:animation
 | ![](animnotifiesIcon.png) | 現在のスケルトンのすべてのカスタム アニメーション通知を表示する [Anim Notifies](Engine/Animation/Persona/AnimationNotifies) ウィンドウを開きます。 |
 | ![](retargetmanagerIcon.png) | [](Engine/Animation/Persona/BasePoseManager) を開きます。リターゲット ソースの管理、リグの設定、アニメーションのリターゲットで使用するためのリターゲットしたベース ポーズを定義することができます。 |
 | ![](importmeshIcon.png) | [](Engine/Content/FBX/SkeletalMeshes) を開始し、現在のスケルトンに対して新しいスケルタルメッシュをインポートすることができます。  |
+| ![](PreviewMesh.png) | 現在のアセットに対して新しいプレビュー スケルタルメッシュを設定します (アニメーション毎またはスケルトン毎に保存)。 |
 | ![](makestaticmeshIcon.png) | 現在のプレビュー ポーズから **スタティックメッシュ** を作成することができます。 |
 
 ### スケルタルメッシュ エディタのツールバー
@@ -52,6 +53,7 @@ tags:animation
 | ![](saveIcon.png) | 現在の Skeletal Mesh アセットに加えた変更を保存します。  |
 | ![](findincbIcon.png) | **コンテンツ ブラウザ** を開き、現在のSkeletal Mesh アセットに自動的に移動します。 |
 | ![](reimportmeshIcon.png) | 現在のスケルタルメッシュを再インポートし、FBX インポート プロセスを開始することができます。  |
+| ![](SectionSelection.png) | ビューポートでメッシュ セクションを選択できるようにします (物理形状を使ってボーンの選択を無効にします)。 |
 | ![](makestaticmeshIcon.png) | 現在のプレビュー ポーズから **スタティックメッシュ** を作成することができます。 |
 
 ### アニメーション エディタのツールバー
@@ -64,10 +66,13 @@ tags:animation
 | ------- | ------------ |
 | ![](saveIcon.png) | 現在の Animation アセットに加えた変更を保存します。  |
 | ![](findincbIcon.png) | **コンテンツ ブラウザ** を開き、現在の Animation アセットに自動的に移動します。 |
-| ![](createassetIcon.png) | 現在の Skeleton アセットに基づき新規 Animation アセットを作成することができます。 |
+| ![](createassetIcon.png) | 新規 Animation アセットを作成します (アニメーション、アニメーション アセット、ブレンドスペース、Aim Offset)。アニメーション作成時に **Reference Pose**、 **Current Pose**、または現在のアニメーションの **Animation Data** または **Preview Mesh** に基づきます。プレビュー メッシュを使用する場合、作成したアニメーションには、物理シミュレーションの Anim Dynamics など、スケルタルメッシュに割り当てられたポストプロセスのグラフから生成された追加のアニメーション データが含まれます。   |
+| ![](ReimportAnimation.png) | 現在のアニメーションを再インポートします。 |
 | ![](compressionIcon.png) | 様々な [圧縮](Engine/Animation/Sequences) 設定をアニメーション (アニメーション シーケンスに対して利用可能) に適用することができます。 |
+| ![](ExportAsset.png) | 現在のアニメーション ソース データまたは現在のプレビュー メッシュで再生している現在のアニメーションをエクスポートします (リターゲット、ポストプロセス グラフ、プレビュー メッシュに適用されるその他の設定を含む)。   |
 | ![](keyIcon.png) | 選択したボーンの現在のボーン トランスフォームを [加算レイヤー トラック](Engine/Animation/AnimHowTo/LayerEditing) に追加することができます。  |
 | ![](applyIcon.png) | [加算レイヤー トラック](Engine/Animation/AnimHowTo/LayerEditing) を Runtime Animation Data に適用します。 |
+| ![](PreviewMesh.png) | 現在のアセットに対して新しいプレビュー スケルタルメッシュを設定します (アニメーション毎またはスケルトン毎に保存)。 |
 | ![](makestaticmeshIcon.png) | 現在のプレビュー ポーズから **スタティックメッシュ** を作成することができます。 |
 
 ### Animation ブループリント エディタのツールバー
@@ -88,17 +93,17 @@ Animation ブループリント エディタのツールバーは [](Engine/Anim
 
 現在開いているエディタがハイライトされます。 
   
- ![](skeletoneditoropen.png)
+ ![](SkeletonToolbar.png)
  
  他のエディタのひとつをクリックすると新しいタブが開き、新しいエディタがハイライトされます。 
 
- ![](mesheditoropen.png)
+ ![](MeshToolbar.png)
 
  **アニメーション エディタ** には、アイコンの隣にアニメーション選択のドロップダウン ボタンがあります。これは、プレビュー アニメーションを迅速に変更するためのものです。 
 
 ![](animationdropdownmenu.png)
 
-アイコンの左下隅にある ** * ** 記号は、そのアセットに保存されていない変更があることを表しています。 
+アイコンの左下隅にある ** * (アスタリスク)** 記号は、そのアセットに保存されていない変更があることを表しています。 
 
 ![](unsavedasset.png)
 
@@ -108,4 +113,5 @@ Animation ブループリント エディタのツールバーは [](Engine/Anim
 
 ![](limitedtoolbar.png)
 
-関連スケルトンと共に Animation ブループリントを作成し、スケルトンにリンクされているアニメーションをインポートすると、そのアセットのために他のエディタにアクセスすることができます。 
+関連スケルトンと共に Animation ブループリントを作成し、スケルトンにリンクされているアニメーションをインポートすると、そのアセットを他のエディタで利用することができます。 
+

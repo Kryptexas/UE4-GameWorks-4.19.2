@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:비트마스크 블루프린트 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -8,6 +8,7 @@ skilllevel:Intermediate
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
+Topic-image:BitmaskBlueprintVariables_topic.png
 
 [TOC (start:2)]
 

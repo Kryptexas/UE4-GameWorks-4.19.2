@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:Pawn
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -7,18 +7,19 @@ Related:Gameplay/Framework\Pawn\Character
 Related:Gameplay/Framework/Controller
 Related:Gameplay/Framework/GameMode
 Version:4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
 order:3
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/pawn_lander.png
 
 
 ![](pawn_ball.png)(w:300)
 
 
-**Pawn** クラスはプレイヤーまたは AI によって制御可能な、すべてのアクタのベースクラスです。ポーンは、ワールド内のプレイヤーまたは AI エンティティの物理的な実体です。 
+**Pawn** クラスはプレイヤーまたは AI によって制御可能な、すべてのアクタの基本クラスです。ポーンは、ワールド内のプレイヤーまたは AI エンティティの物理的な実体です。 
 ポーンは、プレイヤーまたは AI エンティティの視覚的な表現のみならず、コリジョンや物理的インタラクションにおいて、これらのワールド内における相互作用方法を 
-決定します。ゲームの種類によっては、ゲーム内に表示されるメッシュまたはアバターが存在しないため、特定の状況下では混乱を招く場合もあります。いずれにせよ、 
+決定します。これは、特定の状況下では混乱を招く場合もあります。ゲームの種類によっては、ゲーム内に表示されるプレイヤーのメッシュやアバターが存在しないためです。いずれにせよ、 
 Pawn はゲーム内のプレイヤーまたはエンティティの物理的な位置、回転を表します。[Character](Gameplay\Framework\Pawn\Character) は、歩行能力を持つ特別な種類のポーンです。  
 
 デフォルトで、[コントローラー](Gameplay/Framework/Controller) とポーンは 1 対 1 の関係です。つまり、各コントローラーは常にポーンを 1 つだけ管理します。また、ゲームプレイ中にスポーンされたポーンは 
@@ -39,7 +40,7 @@ DefaultPawn クラスには、ネイティブの _DefaultPawnMovementComponent_ 
 
 ### DefaultPawnMovementComponent
 
-_DefaultPawnMovementComponent_ には、無重力の飛行スタイルが設定されています。通常の _MovementComponent_ 変数の他に、`MaxSpeed` 、 `Acceleration` 、 `Deceleration` の浮動小数点値が含まれています。こうした 3 つの変数は、
+_DefaultPawnMovementComponent_ には、無重力の飛行スタイルが設定されています。通常の _MovementComponent_ 変数の他に、`MaxSpeed` 、 `Acceleration` 、 `Deceleration` の浮動小数点値が含まれています。これらは、
 DefaultPawn から派生したブループリントでもアクセスが可能です。
 
 ### Spectator Pawn

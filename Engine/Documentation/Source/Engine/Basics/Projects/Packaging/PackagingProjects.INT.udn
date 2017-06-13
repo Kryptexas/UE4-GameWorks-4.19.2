@@ -36,13 +36,37 @@ To set the Game Default Map click on **Edit > Project Settings > Maps & Modes** 
 ![](Project_Settings_MapsNModes.png)
 
 
-
-
 ## Creating Packages
 
 To package a project for a specific platform, click on **File > Package Project > [PlatformName]** in the Editor's main menu:
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](packaging_menu.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](packaging_menu_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 You will be presented with a dialog for selecting the target directory. If packaging completes successfully, this directory will then contain the packaged project.
 
@@ -122,9 +146,48 @@ Clicking **File > Package Project > Packaging Settings...** or **Edit > Project 
 [/PUBLISH:Licensee]
 
 
-
 ## Content Cooking
 
 As a developer, when iterating over new or modified game content, you may not always want to go through the lengthy process of packaging everything into the staging directory and then running it from there. It is therefore possible to only cook the content for a particular target platform without packaging it by clicking **File > Cook Content > [PlatformName]**.
 
 Please note that this feature will update the content in your project's local developer workspace, and it will not copy out any assets to the staging directory. You can run your game directly from your local developer workspace for fast iteration.
+
+
+## Optimizing Load Times
+
+Short loading times are essential for open-world games, but are valuable in every type of game. The Unreal Engine provides several methods to optimize your project's loading time during the packaging process. Here are some recommended practices to descrease the loading time in your games. For information on how to package your project, see the [](Engine/Deployment) section.
+
+### Using the Event Driven Loader (EDL) and the Asyncronous Loading Thread (ALT)
+
+* The **Asynchronous Loading Thread** (ALT) is turned off by default, but can be turned on in the Project Settings menu under the Engine - Streaming section. For modified engines, some tweaks may be needed, but in general, ALT should double the speed of loading, including games with "up-front" loading times and games that constantly stream data. The ALT works by running serialization and post-loading code concurrently on two separate threads, and as a result, it adds the requirement that `UObject` class constructors, `PostInitProperties` functions, and `Serialize` functions in your game code must be thread-safe. When activated, ALT doubles loading speed. For further information about using asynchronous loading methods (in C++), see the [](Programming\Assets\AsyncLoading) page.
+
+* The **Event-Driven Loader** is activated by default, but can be deactivated in the Project Settings menu under the Engine - Streaming section. For most projects, the EDL will cut load times in half. The EDL is stable and can be back-ported to older versions of the Unreal Engine, or can be tweaked for modified or customized engine versions.
+
+![](EngineStreamingSettings.png)
+
+### Compress your .pak file.
+
+* To use .pak file compression in your project, open Project Settings and find the Packaging section. In that section, open the advanced part of the Packaging heading and check the box labeled "Create compressed cooked packages" that appears.
+
+* Most platforms don't provide automatic compression, and compressing your .pak files will generally decrease loading times, but there are a few special cases to consider:
+
+| Platform | Recommendation |
+| -- | -- |
+| Sony PlayStation 4 | Compressing the .pak file will be redundant with the compression automatically applied to every PlayStation 4 title, and will actually result in longer load times without decreased file size. It is therefore not advised to compress .pak files for PlayStation 4 releases. |
+| Nintendo Switch | Compressed .pak files on the Switch will sometimes load more slowly due to the processor time it takes to decompress the data, but will sometimes load faster from compressed files. The recommendation for Switch titles is to test out the load times with each individual title and make a case-by-case decision. |
+| Microsoft XBoxOne | Files on this platform are compressed automatically, but the system will recognize that a compressed .pak file does not benefit from additional compression. As a result, the system will leave the compressed .pak file as-is, instead of applying compression to it. Ultimately, compressing the .pak file for an XBoxOne release has no significant impact on the final product. |
+| Steam | Steam compresses files while they are being downloaded by users, so initial download times will not be affected by your game's .pak file being compressed. However, Steam's differential patch system will generally work better with uncompressed files. Compressed .pak files save space on the customer's system, but will take longer to download when patching. |
+
+![Project Settings - Compress Pak option](Project_Settings_PakCompression.png)
+[REGION:caption]Check this box to enable compression in your .pak files.[/REGION]
+
+### Order your .pak file.
+
+* A well-ordered .pak file is critical to reducing load times. To assist with ordering your .pak file optimally, the Unreal Engine provides a set of tools to discover the order in which your data assets are needed, and build faster-loading packages. Conceptually, this process is similar to profile-guided optimization. Follow this method to order our .pak file:
+
+1. Build and run the packaged game with the "-fileopenlog" command-line option, which causes the engine to log the order in which it opens files.
+1. Exercise all major areas of the game. Load every level, every playable character, every weapon, every vehicle, and so on. Once everything has been loaded, quit the game.
+1. There will be a file in your deployed game called `GameOpenOrder.log` that contains the information needed to optimize your .pak file order. For example, on Windows builds, the file will be found in `WindowsNoEditor/(YourGame)/Build/WindowsNoEditor/FileOpenOrder/`. Copy this file to your development directory under the `/Build/WindowsNoEditor/FileOpenOrder/` path.
+1. With the log file in place, rebuild the .pak file. This and all future .pak files produced will use the file order indicated in the log file.
+
+* In a production environment, the log file should be checked into source control and updated periodically with the results of new "-fileopenlog" runs, including a final run when the game is ready to ship.

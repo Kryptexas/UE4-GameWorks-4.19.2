@@ -4,9 +4,9 @@ Title:游戏架构快速指南
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:关于构成游戏架构的游戏规则、角色、控制器、用户界面等类的概述。
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:2
+order:0
 tags:Gameplay Framework
 
 基本游戏类包括表示玩家、盟友、敌人的功能以及使用玩家输入或AI逻辑控制这些角色的功能。还有一些类用于为玩家创建 
@@ -74,7 +74,7 @@ $ Camera（相机） : PlayerCameraManager是玩家的眼睛，管理玩家如�
 
 $ GameMode（游戏模式） : 游戏这个概念划分为两个类。[](Gameplay/Framework/GameMode)是游戏的定义，包括像游戏规则及获胜条件这样的内容。它仅存在于服务器上。它一般在游戏过程中不会有太多数据改变，并且它一定不应该具有客户端需要的临时数据。
 
-$ GameState（游戏状态） : [](Gameplay/Framework/GameState)包含了游戏状态，这包括像关联玩家的列表、分数、象棋游戏中的象棋位置或者在开放世界游戏中已经完成的任务列表。GameState存在于服务器和所有客户端上，可以自由地进行复制来保持同步。
+$ GameState（游戏状态） : [GameState](Gameplay/Framework/GameMode#GameState) 包含了游戏状态，这包括像关联玩家的列表、分数、象棋游戏中的象棋位置或者在开放世界游戏中已经完成的任务列表。GameState存在于服务器和所有客户端上，可以自由地进行复制来保持同步。
 
 $ PlayerState（玩家状态） : PlayerState是游戏中的一个参与者的状态，比如人类玩家或者模拟人类玩家的机器人。作为游戏一部分存在的非人类玩家AI没有PlayerState。PlayerState中适合包含的示例数据有：玩家姓名、分数、像多人在线竞技场这样的比赛中的级别、或在夺旗模式游戏中玩家当前是否正占领旗帜。所有玩家的PlayerStates在所有机器上都存在(和PlayerControllers不同)，并且可以自由地进行复制来保持同步。
 

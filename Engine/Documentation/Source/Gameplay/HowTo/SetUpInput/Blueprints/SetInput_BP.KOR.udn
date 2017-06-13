@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트 입력 구성 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
 Description:블루프린트에 입력을 구성하는 비법 안내입니다.
 Version: 4.9
 SkillLevel: Intermediate
+type:how-to
 
 [TOC (start:2 end:2)]
 

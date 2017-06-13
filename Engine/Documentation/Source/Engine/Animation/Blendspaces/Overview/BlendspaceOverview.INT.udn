@@ -1,18 +1,21 @@
-Availability:Docs
-Title: Blend Spaces Overview
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation
+Title: Blend Spaces Overview
 Description:Describes how Blend Space assets are used and the different types of Blend Space assets.
+Type: Overview
+SkillLevel: Intermediate
+Version: 4.16
+Parent: Engine/Animation
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:blendspacetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine/Animation/Blendspaces/Editor
 Related: Engine/Animation/Blendspaces/UserGuide
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
-version: 4.15
-type:overview
-topic-image:blendspacetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
 
 [TOC (start:2 end:2)]
 
@@ -45,15 +48,21 @@ As an example, take the typical blending between directional run animations and 
 the direction and speed of the movement of the player.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-HzgiW2mZomU
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	WhfIvH1Uxpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 In Unreal Engine 3, this was performed using the directional blending node in combination with a speed 
@@ -81,15 +90,21 @@ An example use case for a Blend Space 1D would be when you have a character that
 If the character cannot sidestep or move in multiple directions, a Blend Space 1D could be used to blend from an Idle to a Walk and ultimately Run based on a single **Speed** value (as shown in the example below). 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-2g_IxGNE0T4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	KMl7-qkgs9g
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 [REGION:note]

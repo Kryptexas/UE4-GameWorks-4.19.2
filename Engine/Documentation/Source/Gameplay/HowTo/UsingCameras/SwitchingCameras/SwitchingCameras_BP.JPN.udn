@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2615116
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:複数の固定カメラ間で切り替える
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -9,6 +9,7 @@ Related:Engine/Matinee
 Related:Engine/Blueprints
 SkillLevel:Beginner
 Version:4.8
+type:how-to
 
 この操作ガイドでは、複数の **Camera** アクタをレベルに追加して、プレイヤーがレベルに配置された **Trigger** ボリュームに入るとアクタ間を切り替えます。このチュートリアルの最後まで進むと、ご自身で複数のカメラを使ったゲームをセットアップして、各カメラをいつ使用するかを定義できるようになります。 
 
@@ -24,7 +25,7 @@ Version:4.8
 	[/REGION]
 	_拡大表示するにはここをクリック_
 
-	使用するアングルが異なる 3 台のカメラを配置しました。 
+	使用するアングルが異なる 3 台のカメラを配置しました。
 
 1.	**[Modes]** メニューの **Basic** で、配置したカメラの番号と一致する **Box Trigger** の番号をドラッグしてきます。 
 
@@ -36,7 +37,7 @@ Version:4.8
 	カメラの変更をプレイヤーにトリガーさせたい場所へ **Box Trigger** を移動させます。 
 
 	[REGION:tip]
-	Box Trigger を選択した状態で、**W** (平行移動モード), **E** (回転モード)、または **R** (スケーリング モード) を押して、アクタを操作して、必要な位置、回転、スケーリングになるようにします。詳細は、 [](GettingStarted/HowTo/ManipulatingActors) を参照してください。 
+	Box Trigger を選択した状態で、**W** (平行移動モード)、 **E** (回転モード)、または **R** (スケーリング モード) を押して、アクタを操作して、必要な位置、回転、スケーリングになるようにします。詳細は、 [](GettingStarted/HowTo/ManipulatingActors) を参照してください。 
 	[/REGION]
 
 1.	それぞれのカメラを選んだ状態で、 **[Blueprints]** ボタンをクリックして **[Open Level Blueprint]** を選びます。 

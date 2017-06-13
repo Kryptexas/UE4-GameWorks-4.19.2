@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2684983
+﻿INTSourceChangelist:3244370
 Availability:Public
-Title:2.必要なキャラクターの設定
+Title:2.必要なキャラクターを設定する
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:プレイ可能なキャラクターのゲーム設定を正しく行ってみましょう。 
 version:4.9
+tags:Blueprints
 
 
 [VAR:Steps]
@@ -26,7 +27,7 @@ version:4.9
 
 本ページでは、このガイドの後半で HUD に渡す変数を追加して、Character ブループリントで操作します。条件を追加して、起動した 1 つの岩に対してプレイヤーが発射できる回数を定義します。 
 
-## Character の設定 
+## キャラクターの設定 
 
 Character ブループリントを使います。 
 
@@ -40,7 +41,7 @@ Character ブループリントを使います。
 
 	このサンプル ゲームで必要なのは、プレイヤーが振り向いて撃つことだけなので、その他のスクリプトは削除してブループリントを整理します。 
 
-1.	再びグラフ内を **右クリック** して、 **Event Begin Play** ノードを検索して追加します。 
+1.	再びグラフ内を **右クリック** して、**Event Begin Play** ノードを検索して追加します。 
 
 	![](EventBeginPlay.png)
 
@@ -60,17 +61,17 @@ Character ブループリントを使います。
 
 	![](AddVariable.png)
 
-1.	作成された変数を選択して **[Details (詳細)]** パネルで名前を「 **isActive** 」に変更し、 **Boolean** 型であることを確認します。 
+1.	作成された変数を選択して **[Details (詳細)]** パネルで名前を「**isActive**」に変更し、**Boolean** 型であることを確認します。 
 
 	![](NewVariable1.png)
 
-1.	もう 1 つ変数を作成し、名前を「**SpawnLocation**」に変えて、 **Transform** 型であることを確認します。 
+1.	もう 1 つ変数を作成し、名前を「**SpawnLocation**」に変えて、**Transform** 型であることを確認します。 
 
 	![](NewVariable2.png)
 
 	この変数はスポーン位置を岩に伝え、レベルから更新されます。 
 
-1.	もう 1 つ変数を作成し、名前を「**Pulls**」に変えて、 **Integer** 型であることを確認します。 
+1.	もう 1 つ変数を作成し、名前を「**Pulls**」に変えて、**Integer** 型であることを確認します。 
 
 	![](NewVariable3.png)
 
@@ -86,12 +87,12 @@ Character ブループリントを使います。
 
 	![](DefaultValuePulls.png)
 
-1.	**[Shots]** の **[Default Value]** を **3** 、そして **[Score]** を **0** に設定します。 
+1.	**[Shots]** の **[Default Value]** を **3**、そして **[Score]** を **0** に設定します。 
 
 
 ## 射撃武器の設定
 
-ここでは、プレイヤーが引き金を 1 回引く毎に発射される回数を少し変更していきます。 
+ここでは、プレイヤーが引き金を 1 回引くあたりの発射数を少し変更していきます。 
 
 1.	**InputAction Fire** event を見つけたら、それを引き出して **Do N** ノードを追加します。 
 
@@ -99,23 +100,23 @@ Character ブループリントを使います。
 
 	このノードは後に続くスクリプトを設定回数実行します (プレイヤーの射撃回数を制御することができます)。 
 
-1.	**N** を **3** に設定したら、 **Alt** を押したまま、それを **[My Blueprint]** ウィンドウから **Shots** 変数にドラッグし、ノードを再接続します。 
+1.	**N** を **3** に設定したら、**Alt** を押したまま、それを **[My Blueprint]** ウィンドウから **Shots** 変数にドラッグし、ノードを再接続します。 
 
 	![](SetDoN.png)
 
-	**Shots** ノードの後に、 **Set** を **Montage Play** ノードに接続します。 
+	**Shots** ノードの後に、**Set** を **Montage Play** ノードに接続します。 
 
-1.	**Control** キーを押しながら、 **Shots** 変数を再度ドラッグして、それを **Integer - Integer** ノード (**1** に設定) に接続してから、以下のように接続します。 
+1.	**Control** キーを押しながら、**Shots** 変数を再度ドラッグして、それを **Integer - Integer** ノード (**1** に設定) に接続してから、以下のように接続します。 
 
 	![](ConnectShots.png)
 
 	ここで、Shots を **Fire** が 1 回押されるごとに 1 減る設定にします。 
 
-1.	**Shots** の横にあるグラフ内を **右クリック** して、 **ResetShots** という **Custom Event** を追加します。 
+1.	**Shots** の横にあるグラフ内を **右クリック** して、**ResetShots** という **カスタム イベント** を追加します。 
 
 	![](CreateCustomEvent.png)
 
-1.	**Alt** を押したまま **Shots** をドラッグして **3** に設定し、 **Custom Event** 、そして **Do N** ノードの **Reset** に接続します。 
+1.	**Alt** を押したまま **Shots** をドラッグして **3** に設定し、**カスタム イベント**、そして **Do N** ノードの **Reset** に接続します。 
 
 	![](ResetEventSet.png)
 
@@ -130,7 +131,7 @@ Character ブループリントを使います。
 		ブループリント / Event Dispatchers をスポーンする
 	[/PARAM]
 	[PARAM:description]
-	**Spawn Actor** ノードを使用して **BP_Rock** ブループリントをスポーンします。岩のスポーン位置を取得するように **Level ブループリント** に命令すつ **Event Dispatcher** も設定していきます。 
+	**Spawn Actor** ノードを使用して **BP_Rock** ブループリントをスポーンします。岩のスポーン位置を取得するように **Level ブループリント** に命令する **Event Dispatcher** も設定していきます。 
 	[/PARAM]
 [/OBJECT]
 
@@ -138,13 +139,13 @@ Character ブループリントを使います。
 
 	![](BPHT1_8.png)
 
-1.	グラフ ウィンドウのどこかを **右クリック** して、「 **F** 」と入力して **F** Key イベントをグラフに追加します。 
+1.	グラフ ウィンドウのどこかを **右クリック** して、「**F**」と入力して **F** Key イベントをグラフに追加します。 
 
 	![](BPHT1_9.png)
 
 	_プレイヤーが **F** キーを押すと、配置したスポーン位置のうちの 1 ヶ所で **BP_Rock** がスポーンされます。_
 
-1.	**左クリック** して **F** key ノードの **Pressed** ピンを引き出して、 **Spawn Actor from Class** ノードを見つけて追加します。 
+1.	**左クリック** して **F** key ノードの **Pressed** ピンを引き出して、**Spawn Actor from Class** ノードを見つけて追加します。 
 
 	![](BPHT1_10.png)
 
@@ -182,7 +183,7 @@ Character ブループリントを使います。
 
 	![](BPHT1_17.png)
 
-1.	**ブループリント** を **コンパイル** して **保存** して終了します。 
+1.	ブループリントを **コンパイル** し **保存** してから終了します。 
 
 [OBJECT:TopicList]
 	[PARAM:title]
@@ -236,7 +237,7 @@ Character ブループリントを使います。
 
 	![](BPHT1_26.png)
 
-	_これにより、 **Bind Event** ノードと **Custom Event** ノードの 2 つノードが自動作成されます。Bind Event は、Character ブループリントで Event Dispatcher が呼ばれた場合は、Level ブループリントでリンクされた Custom Event も実行したいということを述べています。
+	_これにより、 **Bind Event** ノードと **カスタム イベント** ノードの 2 つノードが自動作成されます。Bind Event は、Character ブループリントで Event Dispatcher が呼ばれた場合は、Level ブループリントでリンクされたカスタム イベントも実行したいということを述べています。
 
 	[REGION:note]
 	それが表示されない場合は、 **Compile** をクリックして、もう一度行ってください。 
@@ -248,7 +249,7 @@ Character ブループリントを使います。
 
 	_ここでレベルから **ターゲットポイント** の **配列** を作成します。
 
-1.	**Add pin** アイコンを 3 回クリックして、 3 つのピンをノードに追加します。 
+1.	**[Add pin]** アイコンを 3 回クリックして、 3 つのピンをノードに追加します。 
 
 	![](BPHT1_28.png)
 

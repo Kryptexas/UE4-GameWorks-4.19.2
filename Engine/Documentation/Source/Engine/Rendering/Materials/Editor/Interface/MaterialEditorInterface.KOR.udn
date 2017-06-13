@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3242329
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:머티리얼 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
@@ -13,7 +13,33 @@ tags:Materials
 
 머티리얼 에디터 UI 는 메뉴바, 툴바, 그리고 기본적으로 네 개의 열린 패널로 구성됩니다.
 
-![](UpdatedUI.jpg)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 1. [메뉴 바](#메뉴바) - 현재 머티리얼에 대한 메뉴 옵션이 나열됩니다.
 1. [툴바](#툴바) - 머티리얼 작업시 사용할 수 있는 툴이 들어있습니다.

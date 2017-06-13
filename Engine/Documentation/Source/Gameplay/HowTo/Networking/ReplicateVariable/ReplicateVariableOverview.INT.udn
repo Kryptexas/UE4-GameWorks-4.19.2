@@ -4,7 +4,8 @@ Crumbs: %ROOT%, Gameplay
 Description:Guide for Replicating Variables in Multiplayer Games.
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Advanced
+type:overview
 order:17
 
 [EXCERPT:Overview]
@@ -13,13 +14,9 @@ Just as [Actors](Gameplay\HowTo\Networking\ReplicateActor) and [Functions](Gamep
 You can set a variable to Replicated which means the variable produces a one-to-one copy of the variable that is replicated from the Server to Clients. Or you can use the RepNotify which does everything that Replicated does, but also provides a Function that is called that executes on both the Server and Client machines whenever the variable it is attached to updates. 
 [/EXCERPT:Overview]
 
-## Setup
+## Implementation Guides
 
-To learn how to set up Replicated Variables using Blueprints, follow the link below:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\Networking\ReplicateVariable\Blueprints)
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/Networking/ReplicateVariable" org:"hierarchy" end:"1")]
 
 
 

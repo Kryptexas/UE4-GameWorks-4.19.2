@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:사운드 어테뉴에이션
-Crumbs: %ROOT%, Engine, Engine/Audio
 Description:언리얼 엔진 4 에서 소리의 attenuation, 감쇠 제어에 쓰이는 여러가지 디스턴스 모델에 대한 참고서입니다.
 Crumbs: %ROOT%, Engine, Engine/Audio
 version: 4.9
+Parent:Engine/Audio
+type:overview
+order:4
+
+
 [TOC (start:2 end:2)]
-
-
-
 
 **Sound Attenuation** (사운드 어테뉴에이션, 감쇠)이란 플레이어가 사운드에서 멀어져감에 따라 그 볼륨을 줄여주는 기능입니다. 감쇠는 MinRadius와 MaxRadius의 두 반경을 통해 작동합니다. 사운드의 원점으로부터 MinRadius를 통해 움직일 때 사운드의 볼륨은 100%입니다. 
 MinRadius와 MaxRadius 사이를 통과할 때 볼륨이 100% 에서 고요해질 때까지 선형으로 감쇠됩니다. 

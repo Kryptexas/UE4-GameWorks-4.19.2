@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275878
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:アクタの配置
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -6,47 +6,12 @@ Description:プロップ、ライト、カメラなどのアクタをレベル�
 Related:Engine/UI/ClassViewer
 Related:GettingStarted\HowTo
 version:4.9
+Parent:Engine/Actors
+type:overview
+order:1
+topic-image:actorplacement_topic.png
 track:LevelDesign_Beginner|8
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 最も基本的なレベルでは、 **アクタ** はレベルに配置可能なオブジェクトです。このページではアクタをレベルに配置する様々な方法について説明します。 
 

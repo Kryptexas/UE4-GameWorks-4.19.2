@@ -1,29 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title: 애셋과 패키지
 Crumbs: %ROOT%, Engine
 Description:언리얼 엔진 4 에 사용되는 애셋과 패키지 시스템에 대한 개요입니다.
 version: 4.9
+topic-image:Engine/Content/content_topic.png
+Parent:Engine
+type:overview
+order:22
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Basics/AssetsAndPackages:title%](Engine/Content/content_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Basics/AssetsAndPackages:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Basics/AssetsAndPackages:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Basics/AssetsAndPackages]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC (start:2 end:3)]
 

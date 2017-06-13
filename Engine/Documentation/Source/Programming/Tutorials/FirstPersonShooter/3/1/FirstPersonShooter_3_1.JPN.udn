@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:3.1 - ゲームに発射物を追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description:First Person Shooter プロジェクトに発射物を追加する方法を学びます。
-SkillLevel: Beginner
-Version: 4.11
+SkillLevel:Beginner
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -69,29 +69,31 @@ Version: 4.11
 
 1.	`FPSProjectile.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Actor.h"
-		#include "FPSProjectile.generated.h"
 
+		#include "FPSProjectile.generated.h"
 		UCLASS()
+
 		class FPSPROJECT_API AFPSProjectile : public AActor
 		{
 			GENERATED_BODY()
 			public:
 
-			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
+			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定)
 			AFPSProjectile();
+		protected:
 
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレーム毎に呼ばれます)
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
+		// Sphere collision component (Sphere collision コンポーネント)
 
-			// Sphere collision component (Sphere collision コンポーネント)
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
 		};
@@ -102,9 +104,9 @@ Version: 4.11
 
 		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-		// Set the sphere's collision radius (球体のコリジョン半径を設定します)
+		// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
 		CollisionComponent->InitSphereRadius(15.0f);
-		// Set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
+		// Set the root component to be the collision component. (ルート コンポーネントを collision コンポーネントに設定します)
 		RootComponent = CollisionComponent;
 
 	[REGION:note]
@@ -113,32 +115,33 @@ Version: 4.11
 
 1. `FPSProjectile.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
-		#include "FPSProjectile.h"
 
-		// Sets default values (デフォルト値を設定)
+		#include "FPSProjectile.h"
+		// Sets default values (デフォルト値を設定) 
+
 		AFPSProjectile::AFPSProjectile()
 		{
-
 		 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
+		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 
-			//Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-			// Set the sphere's collision radius (球体のコリジョン半径を設定します)
+			// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
 			CollisionComponent->InitSphereRadius(15.0f);
-			// Set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
+			// Set the root component to be the collision component. (ルート コンポーネントを collision コンポーネントに設定します)
 			RootComponent = CollisionComponent;
 		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
+
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
 			}
 
-		// Called every frame (フレーム毎に呼ばれます)
+		// Called every frame (フレームごとに呼び出される)
+
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
@@ -147,7 +150,7 @@ Version: 4.11
 
 ## Projectile Movement  コンポーネントを追加する
 
-1.	**Solution Explorer** で、`FPSProjectile` クラス ヘッダー ファイルを探して、 `FPSProjectile.h` を開きます。
+1.	**Solution Explorer (ソリューション エクスプローラー)** で、`FPSProjectile` クラス ヘッダ ファイルを探して、 `FPSProjectile.h` を開きます。
 
 1.	次のコードを `FPSProjectile.cpp` に追加します。
 
@@ -157,30 +160,34 @@ Version: 4.11
 
 1.	`FPSProjectile.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Actor.h"
-		#include "FPSProjectile.generated.h"
 
+		#include "FPSProjectile.generated.h"
 		UCLASS()
+
 		class FPSPROJECT_API AFPSProjectile : public AActor
 		{
 			GENERATED_BODY()
 			public:
-			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
+
+			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定)
 			AFPSProjectile();
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		protected:
+
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレーム毎に呼ばれます)
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-
-			// Sphere collision component (Sphere collision コンポーネント)
+		// Sphere collision component (Sphere collision コンポーネント)
 
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-			// Projectile movement component. (Projectile Movement コンポーネント)
+		//Projectile movement component. (Projectile Movement コンポーネント)
 
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
@@ -199,27 +206,27 @@ Version: 4.11
 		ProjectileMovementComponent->bShouldBounce = true;
 		ProjectileMovementComponent->Bounciness = 0.3f;
 
-1.	`FPSProjectile.cpp` は以下のようになります。
+1.	 `FPSProjectile.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
-		#include "FPSProjectile.h"
 
-		// Sets default values (デフォルト値を設定)
+		#include "FPSProjectile.h"
+		// Sets default values (デフォルト値を設定) 
+
 		AFPSProjectile::AFPSProjectile()
 		{
 		 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
-
 		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
-			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-			// Set the sphere's collision radius (球体のコリジョン半径を設定します)
-			CollisionComponent->InitSphereRadius(15.0f);
-			// Set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
-			RootComponent = CollisionComponent;
 
-			// Use this component to drive this projectile's movement. (このコンポーネントを使って発射物の動きを操作します)
+			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+			// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
+			CollisionComponent->InitSphereRadius(15.0f);
+			// Set the root component to be the collision component. (ルート コンポーネントを collision コンポーネントに設定します)
+			RootComponent = CollisionComponent;
+		// Use this component to drive this projectile's movement. (このコンポーネントを使って発射物の動きを操作します)
+
 			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
 			ProjectileMovementComponent->InitialSpeed = 3000.0f;
@@ -228,13 +235,14 @@ Version: 4.11
 			ProjectileMovementComponent->bShouldBounce = true;
 			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
+
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
 			}
 
-		// Called every frame (フレーム毎に呼ばれます)
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
@@ -244,7 +252,7 @@ Version: 4.11
 
 ## 発射物の初期べロシティ（方向付き速度）を設定する
 
-1.	**Solution Explorer** で、`FPSProjectile` クラス ヘッダー ファイルを探して、 `FPSProjectile.h` を開きます。
+1.	**Solution Explorer (ソリューション エクスプローラー)** で、`FPSProjectile` クラス ヘッダ ファイルを探して、 `FPSProjectile.h` を開きます。
 
 1.	`FPSProjectile.h` に以下の関数の宣言を追加します。
 
@@ -255,41 +263,38 @@ Version: 4.11
 
 1.	`FPSProjectile.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Actor.h"
-		#include "FPSProjectile.generated.h"
 
+		#include "FPSProjectile.generated.h"
 		UCLASS()
 
 		class FPSPROJECT_API AFPSProjectile : public AActor
 		{
 			GENERATED_BODY()
 			public:
-			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
+
+			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定)
 			AFPSProjectile();
+		protected:
 
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
-
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレーム毎に呼ばれます)
-
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-
-			// Sphere collision component (Sphere collision コンポーネント)
+		// Sphere collision component (Sphere collision コンポーネント)
 
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-
-			// Projectile movement component. (Projectile Movement コンポーネント)
+		//Projectile movement component. (Projectile Movement コンポーネント)
 
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
-
-			// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
+		// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
 
 			void FireInDirection(const FVector& ShootDirection);
 		};
@@ -308,28 +313,26 @@ Version: 4.11
 	発射物の速度は `ProjectileMovementComponent` によって定義されているため、指定するのは発射方向だけです。
 	[/REGION]
 
-1.	`FPSProjectile.cpp` は以下のようになります。
+1.	 `FPSProjectile.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
-		#include "FPSProjectile.h"
 
-		// Sets default values (デフォルト値を設定)
+		#include "FPSProjectile.h"
+		// Sets default values (デフォルト値を設定) 
 
 		AFPSProjectile::AFPSProjectile()
 		{
 		 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
-
-			//  Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
+		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-			// Set the sphere's collision radius (球体のコリジョン半径を設定します)
+			// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
 			CollisionComponent->InitSphereRadius(15.0f);
-			// Set the root component to be the collision component (ルート コンポーネントを collision コンポーネントに設定します)
+			// Set the root component to be the collision component. (ルート コンポーネントを collision コンポーネントに設定します)
 			RootComponent = CollisionComponent;
-			// Use this component to drive this projectile's movement. (このコンポーネントを使って発射物の動きを操作します)
+		// Use this component to drive this projectile's movement. (このコンポーネントを使って発射物の動きを操作します)
 
 			ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 			ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
@@ -339,14 +342,14 @@ Version: 4.11
 			ProjectileMovementComponent->bShouldBounce = true;
 			ProjectileMovementComponent->Bounciness = 0.3f;
 		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
 			}
 
-		// Called every frame (フレーム毎に呼ばれます)
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
@@ -372,56 +375,58 @@ Version: 4.11
 
 1.	`FPSCharacter.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Character.h"
-		#include "FPSCharacter.generated.h"
 
+		#include "FPSCharacter.generated.h"
 		UCLASS()
+
 		class FPSPROJECT_API AFPSCharacter : public ACharacter
 		{
 			GENERATED_BODY()
 		public:
 
-			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定)
+			// Sets default values for this character's properties. (このキャラクターのプロパティのデフォルト値を設定) 
 			AFPSCharacter();
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		protected:
 
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレーム毎に呼ばれます)
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-			// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
-			// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 			UFUNCTION()
 			void MoveForward(float Value);
+		// Handles input for moving right and left. (左右の移動の入力を処理) 
 
-			// Handles input for moving right and left. (左右の移動の入力を処理) 
 			UFUNCTION()
 			void MoveRight(float Value);
+		// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 
-			// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 			UFUNCTION()
 			void StartJump();
+		// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 
-			// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 			UFUNCTION()
 			void StopJump();
+		// Function that handles firing projectiles. (発射物をアクティベートする関数)
 
-			// Function that handles firing projectiles. (発射物をアクティベートする関数)
 			UFUNCTION()
 			void Fire();
+		// FPS camera (FPS カメラ)
 
-			// FPS camera (FPS カメラ)
 			UPROPERTY(VisibleAnywhere)
 			UCameraComponent* FPSCameraComponent;
+		// First-person mesh (arms), visible only to the owning player. (一人称メッシュ (腕)、所有しているプレイヤーにのみ見えます) 
 
-			// First-person mesh (arms), visible only to the owning player. (一人称メッシュ (腕)、所有しているプレイヤーにのみ見えます) 
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 			USkeletalMeshComponent* FPSMesh;
 		};
@@ -430,7 +435,7 @@ Version: 4.11
 
 1.	 `FPSCharacter.cpp` で以下のコードを `SetupPlayerInputComponent` に追加して `OnFire` 関数をバインドします。
 
-		InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+		PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 
 1.	次の関数定義を `FPSCharacter.cpp` に追加します。
 
@@ -440,43 +445,40 @@ Version: 4.11
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
-		#include "FPSCharacter.h"
 
-		// Sets default values (デフォルト値を設定)
+		#include "FPSCharacter.h"
+		// Sets default values (デフォルト値を設定) 
+
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	// このキャラクターがフレーム毎に Tick() を呼び出すように設定します。You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
-
-			// Create a first person camera component (first person camera コンポーネントを作成)
+		// Create a first person camera component. (first person camera コンポーネントを作成)
 
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-			// Attach the camera component to our capsule component (camera コンポーネントを capsule コンポーネントにアタッチします)
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
-			// Position the camera slightly above the eyes (目の高さより少し上にカメラを設定)
+			// Attach the camera component to our capsule component. (camera コンポーネントを capsule コンポーネントにアタッチします)
+			FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
+			// Position the camera slightly above the eyes. (目の高さより少し上にカメラを設定)
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 			// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
 			FPSCameraComponent->bUsePawnControlRotation = true;
-			// Create a first person mesh component for the owning player. (所有しているプレイヤーのために一人称メッシュを作成) 
+		// Create a first person mesh component for the owning player. (所有しているプレイヤーのために一人称メッシュを作成) 
 
 			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-			// Only the owning player sees this mesh (このメッシュは所有しているプレイヤーだけから見えます)
+			// Only the owning player sees this mesh. (このメッシュは所有しているプレイヤーだけから見えます)
 			FPSMesh->SetOnlyOwnerSee(true);
-			// Attach the FPS mesh to the FPS camera (FPS メッシュを FPS カメラにアタッチします)
-			FPSMesh->AttachTo(FPSCameraComponent);
-			// Disable some environmental shadowing to preserve the illusion of having a single mesh (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
+			// Attach the FPS mesh to the FPS camera. (FPS メッシュを FPS カメラにアタッチします)
+			FPSMesh->SetupAttachment(FPSCameraComponent);
+			// Disable some environmental shadowing to preserve the illusion of having a single mesh. (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
-
-			// The owning player doesn't see the regular (third-person) body mesh. (所有しているプレイヤーは、通常の (三人称視点の) ボディ メッシュは見えません) 
+		// The owning player doesn't see the regular (third-person) body mesh. (所有しているプレイヤーは、通常の (三人称視点の) ボディ メッシュは見えません) 
 
 			GetMesh()->SetOwnerNoSee(true);
 		}
-
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSCharacter::BeginPlay()
 		{
@@ -488,7 +490,7 @@ Version: 4.11
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
-		// Called every frame (フレーム毎に呼ばれます)
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
@@ -496,23 +498,23 @@ Version: 4.11
 		}
 
 		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		// Set up "look" bindings. (look のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
@@ -581,46 +583,48 @@ Version: 4.11
 
 1.	`FPSCharacter.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Character.h"
-		#include "FPSCharacter.generated.h"
 
+		#include "FPSCharacter.generated.h"
 		UCLASS()
+
 		class FPSPROJECT_API AFPSCharacter : public ACharacter
 		{
 			GENERATED_BODY()
 		public:
 
-			// Sets default values for this character's properties (このキャラクターのプロパティのデフォルト値を設定)
+			// Sets default values for this character's properties. (このキャラクターのプロパティのデフォルト値を設定) 
 			AFPSCharacter();
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		protected:
 
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレーム毎に呼ばれます)
-
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-			// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-			// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+		// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
+
 			UFUNCTION()
 			void MoveForward(float Value);
+		// Handles input for moving right and left. (左右の移動の入力を処理) 
 
-			// Handles input for moving right and left. (左右の移動の入力を処理) 
 			UFUNCTION()
 			void MoveRight(float Value);
+		// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 
-			// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 			UFUNCTION()
 			void StartJump();
+		// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 
-			// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 			UFUNCTION()
 			void StopJump();
-
 		// Function that handles firing projectiles. (発射物をアクティベートする関数)
 
 			UFUNCTION()
@@ -634,10 +638,11 @@ Version: 4.11
 			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 			USkeletalMeshComponent* FPSMesh;
 		// Gun muzzle's offset from the camera location. (カメラ位置から銃口のオフセット)
+
 			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 			FVector MuzzleOffset;
-
 		// Projectile class to spawn. (スポーンする Projectile クラス)
+
 			UPROPERTY(EditDefaultsOnly, Category = Projectile)
 			TSubclassOf<class AFPSProjectile> ProjectileClass;
 		};
@@ -650,7 +655,7 @@ Version: 4.11
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildFPSProject.png)
 

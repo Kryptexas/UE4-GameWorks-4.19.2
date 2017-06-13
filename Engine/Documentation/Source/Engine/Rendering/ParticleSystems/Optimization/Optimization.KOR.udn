@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title:VFX 최적화 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:파티클 시스템 최적화를 통한 퍼포먼스 문제 해결하기 입니다.
 Version: 4.9
 tags:Particles
+topic-image:VFXOptimization_topic.png
 
 [TOC (start:2 end:3)]
 

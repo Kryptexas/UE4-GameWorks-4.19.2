@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:3122737
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:액터 병합
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:UE4 에서 다수의 스태틱 메시를 하나로 합치는 데 사용되는 Actor Merge, 액터 병합 툴 사용법입니다.
 Related: Engine/Actors/StaticMeshActor
 Version: 4.12
-
-
+parent:Engine/Actors
+type:overview
+order:6
 
 [TOC(start:2 end:2)]
 
@@ -16,7 +17,33 @@ Merge Actors (액터 병합) 툴은 다수의 스태틱 메시를 하나의 새�
 액터 병합 기능은 4.12 버전 이후로 공식 지원됩니다. 4.8 에서 4.11 까지는 에디터 세팅의 실험단계 탭에서 켜줘야 합니다. 4.12 이전 버전을 사용하시는 경우, 이 기능은 실험단계 기능으로 간주되어 공식 지원되지 않습니다.
 [/REGION]
 
-![](MergeActorsWindow.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 ## 액터 병합 작업방식
 

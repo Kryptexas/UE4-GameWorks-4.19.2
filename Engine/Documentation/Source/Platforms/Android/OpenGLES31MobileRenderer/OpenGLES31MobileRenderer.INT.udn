@@ -2,7 +2,7 @@ Title: Android OpenGL ES 3.1 Mobile Renderer
 Description:Setting up your UE4 Android project to work with the OpenGL ES 3.1 mobile render
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
 Availability:Public
-version:4.12
+version:4.16
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
@@ -23,35 +23,17 @@ While Unreal Engine 4 (UE4) has long supported many OpenGL ES 3.0 and 3.1 featur
 
 In order to preview what OpenGL ES 3.1 will look like in the UE4 Editor, you will need to first enable it by doing the following:
 
-1. From the **Main Toolbar**, go to **Edit** and then select the **Editor Preferences** option.
-
-	![](OGL3_01.png)
-
-1. Under the **General** section, locate the **Experimental** category and then look for the **Rendering** section. Click on the checkbox next to **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** to enable the option to preview OpenGL ES 3.1. 
+1. Go to the **Main Tool Bar**, click on the **Settings** option and go to **Preview Rendering Level** option and select the **High-End Mobile / Metal** and finally **High-End Mobile** option.
 
 	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_03.png)(w:447 h:308)](Platforms\Android\VulkanMobileRenderer\VMP_03.png)
+	[![](OGL3_10.png)(w:391)](OGL3_10.png)
 	[/REGION]
 
 	[REGION:caption]
 	Click for full image.
 	[/REGION]
 
-	[region:note]
-	For a more detailed description on how to enable Metal/Vulkan/High-End previewing in the UE4 Editor, check out the [Enabling Vulkan Preview Rendering in Editor](Platforms/Android/VulkanMobileRenderer/#enablingvulkanpreviewrenderingineditor) document.
-	[/region]
-
-1. Then on the **Main Tool Bar** click on the **Settings** option and go to **Preview Rendering Level** option and select the **High-End Mobile / Metal** option.
-
-	[REGION:lightbox]
-	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)(w:391)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)
-	[/REGION]
-
-	[REGION:caption]
-	Click for full image.
-	[/REGION]
-
-1. Now if you look at the lower right-hand corner of the UE4 Editor viewport, you should see the text **Feature Level: ES3_1** which means you are now previewing the level using OpenGL ES 3.1's feature set.
+1. Once the shaders have recompiled, if you look at the lower right-hand corner of the UE4 Editor viewport, you should see the text **Feature Level: ES3_1** which means you are now previewing the level using OpenGL ES 3.1's feature set.
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)

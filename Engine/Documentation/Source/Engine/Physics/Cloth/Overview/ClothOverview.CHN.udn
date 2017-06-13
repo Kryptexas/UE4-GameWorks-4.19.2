@@ -1,0 +1,190 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Crumbs:
+Title:Clothing Tool Overview
+Description:An overview of Cloth creation using in-editor tools in Unreal Engine 4.
+Type:Overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Physics
+Order:1
+Tags:Cloth
+Tags:Physics
+reference-image:SectionSelection.gif
+reference-image:PaintingCloth.gif
+Topic-image:Clothing_Topic.png
+
+
+
+[REGION:warning]
+This is an experimental feature and may change in later versions. In order to use this tool, you must first enable it in the Editor Preferences. You can do this by doing to the main menu > **Edit** > **Editor Preferences** > **Experimental** > and 
+enabling the checkbox next to **Clothing Tool**.
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+In Unreal Engine, version 4.16, APEX Cloth has now been replaced with the NVIDIA's NvCloth solver. This is a low-level clothing solver that is responsible for the particle simulation that runs 
+clothing. This clothing solver allows integrations to be lightweight and very extensible because we now have direct access to this data. Unlike APEX Clothing, which is a sophisticated SDK that
+is a one-stop shop for clothing simulation that handles both the simulation and the render. 
+
+![](OverviewImage.png)(w:900)
+
+With the Clothing Tools now available within the Editor, the workflow has been redefined to enable developers to work directly in Unreal Engine to author their content without the need for 
+external dependencies. 
+
+[REGION:imagetable]
+| [INCLUDE:#oldworkflow] | [INCLUDE:#newworkflow] |
+| --- | --- |
+| Old Cloth Workflow | New Cloth Workflow |
+| [INCLUDE:#clickimage] | [INCLUDE:#clickimage] |
+[/REGION]
+
+With the "Old" workflow using APEX Cloth, you were required to develop all your assets outside of Unreal using an external program (NVIDIA's Clothing Tool) or DCC Plugins that require specific
+software (3DS Max/Maya) to author this content. Only during the final stage of development would you bring your authored content into Unreal and assign it to your mesh. This meant that if you had
+to correct anything you would have to go back to your program and re-author the content outside of the Editor. 
+
+The "New" workflow enables you to create your content once and then do all the creation editing of the clothing directly inside of Unreal. This makes the creation and iteration of testing content
+that much quicker, and you also avoid any disconnects between where the content was created versus where it's being used by being able to see all of your edits for your clothing simulation
+happening in real-time and as they will appear in your game.
+
+
+## Creating a Cloth Section Asset
+
+To create a new Cloth asset, follow these steps.
+
+1. Click the **Section Selection** button in the main toolbar. This will enable you to select the different Material Elements of your Skeletal Mesh.
+	
+	[REGION:asyncgif]
+	![](SectionSelection.gif)(w:500)
+	[/REGION]
+1. With your section selected, you can right-click anywhere on the highlighted element to bring up the **Cloth Asset** options menu.
+
+	![](ClothAssetContextMenu.png)(w:450)
+
+1. Hover over **Create Cloth Asset from Selection** and then fill in the following areas.
+
+	![](CreateClothContextMenu.png)(w:350)
+
+	* **Asset Name** - Give your asset a name so that you can easily find locate it later.
+	* **Remove from Mesh** - If you've got a separate mesh piece of geometry you want to be associated as cloth, you can enable this option. If not, you can leave this unchecked.
+	* **Physics Asset** - If this cloth asset is for a character, use its Physics Asset here to get proper collision for the cloth simulation. 
+
+1. Once you've set the information from the previous step you can click the **Create** button.
+
+	![](CreateClothButton.png)(w:350)
+
+## Assigning a Cloth Section Asset
+
+To assign a Cloth asset to a section, follow these steps.
+
+1. With your section element selected, you can right-click anywhere on the highlighted element to bring up the **Cloth Asset** options menu. Then hover over **Apply Clothing Asset** and 
+select from the available clothing assets to apply. This will associate the Cloth asset you created  with this Material Element geometry.
+
+	![](ClothSectionAssignment.png)(w:450)
+
+## Painting Cloth Weights
+
+To begin painting your cloth weights, follow these steps.
+
+1. Go to the main menu and select **Window**, then locate and click **Cloth Paint**. This will open the Cloth Paint panel where you can click the **Enable Paint Tools** button to access
+the various options for painting cloth weights to onto your geometry. 
+
+	![](ClothPanelEnabled.png)(w:350)
+
+1. To start painting, select your assigned Cloth Asset from the **Assets** window.
+	
+	![](HighlightClothAsset.png)(w:550)
+
+1. In the Cloth Painting section, set a **Paint Value** and then left-click and drag the brush across the surface of your clothing geometry you've selected.
+	
+	[REGION:asyncgif]
+	![](PaintingCloth.gif)(w:500)
+	[/REGION]
+
+	[REGION:note]
+	If you've used the APEX Clothing Tools for 3DS Max or Maya, or similar painting tools in general, the controls should feel familiar. 
+	[/REGION]
+
+### Paint Tool Methods
+
+The **Paint Tool** selection enables you to choose the way you can paint your cloth weights; using a brush or a gradient. 
+
+#### Brush
+
+The **Brush** tool enables you to manually paint weight values directly to your cloth. 
+
+![](BrushTools.png)(w:350)
+
+To paint your weight values, set a **Paint Value** and left-click and drag the mouse over the cloth geometry. 
+
+![](Paint_Brush.png)(w:500)
+
+
+#### Gradient
+
+The **Gradient** tool enables you to set weight values that will be painted between the selected points. Between these selected points a gradient will be painted that increases from the 
+**Gradient Start Value** to the **Gradient End Value**. 
+
+![](GradientTools.png)(w:350)
+
+To paint your weight values, first set the **Gradient Start Value** and the **Gradient End Value**. Then, left-click and drag along your cloth mesh to paint the start value, which is represented
+by a green color over the painted vertices. Once you've done that, press the **Enter** (Return) key to switch and paint the end value, which is now represented by a red color that is painted over
+the vertices.
+
+Once you're finished painting your gradient values, press the **Enter** (Return) key again and you will see a gradient painted similarly too the example below.
+
+![](Paint_Gradient.png)(w:500)
+
+
+
+[REGION:note]
+Alternatively, if you'd prefer to use a Brush while painting your gradient start and end points you can enable the option **Use Regular Brush for Gradient**. Then in the Brush section, use the **Radius** tool to set your brushes radius.
+[/REGION]
+
+
+
+## Assigning Cloth Assets to their Materials
+
+To assign Cloth assets to the Material Element of your Skeletal Mesh, follow these steps.
+
+1. Navigate to the **Asset Details** panel and locate the **Clothing** section. This is where you'll find your available Cloth assets that can be assigned. You can adjust the various properties of your cloth
+by expanding the **Clothing Properties**.
+	
+	![](AssetDetailsCloth.png)(w:350)
+1. In the **LOD** section, locate the **Material Element** you used to paint your cloth weights to. Use the **Clothing** drop-down selection to pick from the available cloth assets.
+
+	![](AssignClothToMaterial.png)(w:350)
+
+	[REGION:note]
+	Clothing Assets should only be assigned to the Material Elements that has had a clothing asset created and painted for it to use. 
+	[/REGION]
+
+
+
+
+
+
+
+<!---
+
+[EXCERPT:oldworkflow]
+[REGION:lightbox]
+[![](OldWorkflow.png)(w:575)](OldWorkflow.png)
+[/REGION]
+[/EXCERPT:oldworkflow]
+
+[EXCERPT:newworkflow]
+[REGION:lightbox]
+[![](NewWorkflow.png)(w:575)](NewWorkflow.png)
+[/REGION]
+[/EXCERPT:newworkflow]
+
+
+[INCLUDE:#clickimage]
+[EXCERPT:clickimage]
+[REGION:caption]
+_Click image for full size view._
+[/REGION]
+[/EXCERPT:clickimage]
+
+--->

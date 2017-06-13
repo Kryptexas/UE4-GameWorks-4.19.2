@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735882
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:マルチプレイヤー ゲームをテストする
 Crumbs: %ROOT%, Gameplay
@@ -6,6 +6,7 @@ Description:マルチプレイヤー ゲームをテストするためにアン�
 Related:Resources/ContentExamples/Networking
 Version:4.9
 Parent:Gameplay
+SkillLevel:Advanced
 type:how-to
 order:18
 
@@ -17,7 +18,7 @@ order:18
 
 **プレイヤー数を増やすには:**
 
-* **[Play]** ボタンの横にある下向きの矢印をクリックし、 **Number of Players** の値を入力します。 
+* **[Play]** ボタンの横にある下向きの矢印をクリックし、 **[Number of Players]** の値を入力します。 
 
 	[REGION:raw]
 	![](NumberOfPlayers.png)
@@ -34,7 +35,7 @@ order:18
 
 **サーバーのプレイ ウィンドウを調整するには:**
 
-*	**Play** ボタンの隣にある下向き矢印をクリックし、 **New Editor Window** を選択します。 
+*	**[Play]** ボタンの隣にある下向き矢印をクリックし、 **[New Editor Window]** を選択します。 
 
 	[REGION:raw]
 	![](NewEditorWindow.png)
@@ -48,17 +49,17 @@ order:18
 
 **ウィンドウ サイズを調整するには:**
 
-1.	**Play** ボタンの隣にある下向き矢印をクリックし、 **Advanced Settings** を選択します。 
+1.	**[Play]** ボタンの隣にある下向き矢印をクリックし、 **[Advanced Settings]** を選択します。 
 
 	[REGION:raw]
 	![](AdvancedSettings.png)
 	[/REGION]
 
-1.	**Play in New Window** セクションでお好みのウィンドウ サイズに設定します。 
+1.	**[Play in New Window]** セクションでお好みのウィンドウ サイズに設定します。 
 
 	![](WindowSize.png)
 
-	**Play in New Window** サイズ オプションでは、作成されるウィンドウのサイズとデフォルト位置を設定することができます。いくつかのプリセット ウィンドウ サイズから選択するか、ウィンドウ サイズを手動入力できます (ここの例では 640x480 を指定しました)。作成されるウィンドウの **Left** と **Top** の位置を設定するか、**Always center window to screen (画面に対して常にウィンドウを中央に配置)** のチェックボックスをクリックします。 
+	**[Play in New Window]** サイズ オプションでは、作成されるウィンドウのサイズとデフォルト位置を設定することができます。いくつかのプリセット ウィンドウ サイズから選択するか、ウィンドウ サイズを手動入力できます (ここの例では 640x480 を指定しました)。作成されるウィンドウの **Left** と **Top** の位置を設定するか、**[Always center window to screen (画面に対して常にウィンドウを中央に配置)]** のチェックボックスをクリックします。 
 
 ウィンドウ サイズを入力後、エディタで再生すると新しい各ウィンドウは同じサイズになります。 
 
@@ -68,11 +69,11 @@ order:18
 
 ### マルチプレイヤー オプション
 
-**Advanced Settings** 内では、以下のマルチプレイヤーのオプションを追加でセットアップできるセクションがあります。 
+**[Advanced Settings]** 内では、以下のマルチプレイヤーのオプションを追加でセットアップできるセクションがあります。 
 
 ![](MultiplayerOptions.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Number of Players** | 起動時にゲームでスポーンするプレイヤー数を定義します。エディタとリッスン サーバーはプレイヤーとしてカウントされますが、デディケイテッド サーバーはカウントされません。プレイヤーの残りの数はクライアントになります。 |
 | **Server Game Options** | ここで URL パラメータとしてサーバーに渡される追加オプションを指定することができます。 |
@@ -86,7 +87,7 @@ order:18
 
 ![](NoSingleProcess.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Editor Multiplayer Mode** | Play In Editor で使用する NetMode です(**Play Offline**、**Play As Listen Server**、 または **Play As Client**)。|
 | **Command Line Arguments** | スタンドアロンのゲーム インスタンスに渡される追加のコマンドラインオプションを割り当てることができます。 |
@@ -102,7 +103,7 @@ order:18
 
 **デディケイテッド サーバーを実行するには:**
 
-*	**Play** ボタンの隣にある下向き矢印をクリックし、 **Run Dedicated Server** チェックボックスにチェックを入れます。 
+*	**[Play]** ボタンの隣にある下向き矢印をクリックし、 **[Run Dedicated Server]** チェックボックスにチェックを入れます。 
 
 	[REGION:raw]
 	![](DedicatedServer.png)

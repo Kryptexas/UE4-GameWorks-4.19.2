@@ -1,70 +1,89 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3387247
+Availability:Docs
 Crumbs:
-Title: High Dynamic Range Display Output
-Description: Overview for HDR Display Output and available options.
-Type: Overview
-SkillLevel: Intermediate
-Version: 4.15
-Parent: Engine/Rendering/
+Title:High Dynamic Range 対応ディスプレイへの出力
+Description:High Dynamic Range 対応ディスプレイへの出力およびオプションの概要
+Type:Overview
+SkillLevel:Intermediate
+Version:4.15
+Parent:Engine/Rendering/
 Order:
-Tags: Rendering
+Tags:Rendering
 
 
 
-In Unreal Engine 4, you can now output to High Dynamic Range (HDR) displays taking advantage of features such as higher contrast and wider color gamut! The goal here is to give the displayed images the
-characteristics that are more like natural light conditions experienced in the "real world". This is part of the move to the **Academy Color Encoding System** (ACES) standard that is a pipeline to ensure
-consistent color is preserved across multiple formats and displays, and also as a way to _future-proof_ the source material used without having to adjust it for another medium. 
+高いコントラストと幅広い色域などの機能を使って、アンリアル エンジン 4 で High Dynamic Range (HDR) 対応ディスプレイへ出力できるようになりました。表示された画像に
+「現実世界」で体感する自然光の状態ような特性を出すことが目標です。これは、複数のフォーマットとディスプレイ上で、確実に色に整合性を持たせるパイプラインである **Academy Color Encoding System** (ACES) スタンダードへの動きの表れでもあり、
+他の媒体用に色を調節せずに使用されたソース マテリアルが _古くならない_ ようにする手段でもあります。 
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Low Dynamic Range (LDR) ](LDR.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![High Dynamic Range (HDR) ](HDR.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+LDR スクリーンでは HDR の違いを表現できないので、デモ用にシミュレーションした画像です。
+[/REGION]
+
+<!---
 [REGION:fullwidth raw]
 ![](LDR_HDRcomparison.jpg)
 [/REGION]
 [REGION:caption]
-_These are simulated images and are for demonstration purposes only since it is impossible to convey HDR difference on an LDR screen._
+_LDR スクリーンでは HDR の違いを表現できないのでデモ用にシミュレーションした画像です。_
+[/REGION]
+--->
+
+
+現在の実装では、レンダリングされたシーンの処理は、いわゆる **ACES Viewing Transform** がすべて行っています。処理の工程では、シーン基準画像とディスプレイ基準画像が使用されます。
+
+* **シーン リファード (Scene-referred)** 画像は、露出範囲を制限することなくソース マテリアルのオリジナル _リニア ライト_ 値を維持します。 
+* **ディスプレイ リファード (Display-referred)** 画像は、使用中のディスプレイのカラースペースへ変換される最終画像です。 
+
+このパイプラインを使用すると、ディスプレイを変えるたびにオリジナルのソース ファイルを編集しなくても必ず正しい色合いがでます。代わりに、出力先のディスプレイが 
+正しい色空間にマップします。
+
+厳密に言えば、ACES Viewing Transform は、表示パイプラインで以下の順序で機能します。
+
+* **Look Modification Transform (LMT)** - クリエイティブな "外見" (カラー グレーディングおよび補正) を適用した ACES カラー エンコード画像を受け取り、
+Reference Rendering Transform (RRT) および Output Device Transform (ODT) と組み合わせて ACES でレンダリングされた画像を出力します。
+* **Reference Rendering Transform (RRT)** - 次に、シーン リファード画像のカラー値を受け取り、それをディスプレイ リファード画像に変換します。この処理では、レンダリングされた画像を特定のディスプレイだけに依存しないようにします。
+そして、出力先の指定されたディスプレイに合わせて、広めの範囲とダイナミックレンジが保証されます。
+* **Output Device Transform (ODT)** - 最後に、RPT の HDR Data 出力を受け取り、各種デバイスと色空間に一致させます。このため、各ターゲットはそれぞれの ODT を一致させる必要があります 
+(Rec709、Rec2020、DCI-P3 など)。
+
+[REGION:note]
+ACES Viewing Transform の追加情報については、[ACES GitHub](https://github.com/ampas/aces-dev/tree/master/documents) から PDF ドキュメントをダウンロードすることができます。または、本ページの『リファレンス』セクションをご覧ください。
 [/REGION]
 
-with the current implementation, the full processing of the rendered scene is handled through what is known as the **ACES Viewing Transform**. This process works by using scene-referred and display-referred images.
+## HDR Output を有効にする
 
-* **Scene-referred** images maintain the original _linear light_ values of the source materials without limiting the exposure range. 
-* **Display-referred** is the final image transformed into the color space of the display being used. 
-
-By using this pipeline, the original source files do not have to be edited each time they are used with a different display in order to guarantee correct coloring. Instead, the display being output to maps it to the 
-correct color space.
-
-The ACES Viewing Transform, more specifically, works in the following order in the viewing pipeline:
-
-* **Look Modification Transform (LMT)** - This part of the process takes the ACES color-encoded image that has had a creative "look" (color grading and correction) applied to it and then outputs the images rendered with
-ACES in combination with the Reference Rendering Transform (RRT) and an Output Device Transform (ODT).
-* **Reference Rendering Transform (RRT)** - Then, this part takes the scene-referred color values and converts them to display-referred. In this process, it enables the rendered images to not rely on a specific display
-and, instead, can ensure a larger gamut and dynamic range that is correct for the specific display it's being output to, including ones that have yet to be created.
-* **Output Device Transform (ODT)** - Finally, this takes the HDR Data output of the RRT to then match it with the different devices and color spaces they can display. Because of this, each target requires its own
-ODT to be matched against (eg Rec709, Rec2020, DCI-P3, etc.).
-
-
-## Enabling HDR Output
-
-You can enable HDR output at runtime by toggling the console variables or by using the **GameUserSettings** node in Blueprints. 
+HDR 出力はランタイム時にコンソール変数を切り替えるか、ブループリントの **GameUserSettings** ノードを使って有効にします。 
 
 ![](HDRGameUserSettings.png)(w:800)
 
-The **GameUserSettings** controls will automatically clamp to the closest available match for the current output device and set all flags accordingly. Alternatively, you can use the following console variables to enable
-and change the available options for the HDR device and color gamut output need. 
+**GameUserSettings** コントロールは、利用できる最も近くの出力デバイスと一致するように自動的にクランプし、すべてのフラグもそれに合わせて設定します。もしくは、以下のコンソール変数でも、
+HDR デバイスおよび必要なカラー範囲出力のオプションの有効化や変更ができます。 
 
 [REGION:simpletable]
-| Console Variable | Description |
+| コンソール変数 | 説明 |
 | --- | --- |
-| `r.HDR.EnableHDROutput` | When set to 1, this recreates the swap-chain and enables HDR output. |
-| `r.HDR.Display.OutputDevice` | This is the device format of the output display [INCLUDE:#deviceOuptut] |
-| `r.HDR.Display.ColorGamut` | This is the color gamut of the output display. [INCLUDE:#colorGamut] |
+| `r.HDR.EnableHDROutput` | 1 に設定するとスワップ チェーンを作成し、HDR 出力が有効になります。|
+| `r.HDR.Display.OutputDevice` | 出力ディスプレイのデバイス フォーマットです [INCLUDE:#deviceOuptut] |
+| `r.HDR.Display.ColorGamut` | 出力ディスプレイの色域です。 [INCLUDE:#colorGamut] |
 [/REGION]
 
 <!---
 [EXCERPT:deviceOuptut]
 |||
 | --- | --- |
-| 0 | sRGB (LDR) (default) |
+| 0 | sRGB (LDR) (デフォルト) |
 | 1 | Rec709 (LDR) |
-| 2 | Explicit gamma mapping (LDR) |
+| 2 | 明示的なガンマ マッピング (LDR) |
 | 3 | ACES 1000-nit ST-2084 (Dolby PQ) (HDR) |
 | 4 | ACES 2000-nit ST-2084 (Dolby PQ) (HDR) |
 | 5 | ACES 1000-nit ScRGB (HDR) |
@@ -74,7 +93,7 @@ and change the available options for the HDR device and color gamut output need.
 [EXCERPT:colorGamut]
 |||
 | --- | --- |
-| 0 | Rec709 / sRGB, D65 (default) |
+| 0 | Rec709 / sRGB, D65 (デフォルト) |
 | 1 | DCI-P3, D65 |
 | 2 | Rec2020 / BT2020, D65 |
 | 3 | ACES, D60 |
@@ -82,50 +101,59 @@ and change the available options for the HDR device and color gamut output need.
 [/EXCERPT:colorGamut]
 --->
 
-Once you've setup the Blueprint or C++ call for GameUserSettings, you can run any cooked project, use the command line argument `-game mode`, use Standalone game mode, or Play-in-Editor (PIE) in a new window using 
-exclusive fullscreen (press **Alt** + **Enter** or use the command `fullscreen`). Using borderless windowed or windowed mode will not currently work for HDR output. 
-
-
-### Low Dynamic Range (LDR) UI support in HDR
+GameUserSettings のブループリントまたは C++ コールを設定したら、クック済みのプロジェクトの実行、コマンドライン引数 `-game mode`、Standalone ゲームモードの使用、 
+あるいは排他的全画面 (**[Alt]** + **[Enter]** またはコマンド `fullscreen` を押します) での Play-in-Editor (PIE) の使用が可能になります。 
 
 [REGION:note]
-This feature is experimental and may change in a future release.
+現在のところ、縁なしウィンドウあるいはウィンドウ モードは HDR 出力には機能しません。
 [/REGION]
 
-There is support for bringing Low Dynamic Range (LDR) 
 
-When HDR output has been enabled your User Interface (UI) may not look correct. We've added experimental support for LDR UI composition for this reason. It attempts to match the
-LDR look as closely as possible, although, it's recommended to boost the UI slightly to avoid looking washed out next to the vibrancy of the main scene. 
+### HDR での Low Dynamic Range (LDR) UI サポート
 
-To do this, you can use the following console variables:
+[REGION:note]
+この機能は実験的なものであり、今後のリリースにおいて変更される可能性があります。
+[/REGION]
+
+HDR 出力が有効にされていると、ユーザーインターフェース (UI) が正しく表示されないことがあります。このため、LDR UI コンポジションに実験的サポートを追加しました。LDR の見た目をできる限りマッチさせるようにします。
+ただし、メインシーンの活気の影に埋もれてしまわないように UI の強化を推奨します。 
+
+以下のコンソール変数を使って行います。
 
 [REGION:simpletable]
-| Console Variable | Description |
+| コンソール変数 | 説明 |
 | --- | --- |
-| `r.HDR.UI.CompositeMode` | When set to 1, this enables HDR UI composition, which attempts to preserve LDR visuals and blending. |
-| `r.HDR.UI.Level` | This adjusts the brightness of the composited UI. It is recommended to use a value of 1.5 or 2. |
+| `r.HDR.UI.CompositeMode` | 1 に設定すると HDR UI コンポジションが有効になり、LDR のビジュアルとブレンドを維持しようとします。 |
+| `r.HDR.UI.Level` | 合成した UI の輝度を調整します。使用する値は 1.5 または 2 をお勧めします。 |
 [/REGION]
 
 
-## HDR Hardware and Setup Considerations
+## HDR ハードウェアおよびセットアップに関する考慮事項
 
-With the many different types of displays and TVs that are available, along with console and PC considerations, you may find that you need to use a specific piece of hardware or change a setting to get 
-HDR output to work properly. The following are some things to consider when you're running through your setup process:
+ディスプレイやテレビとして利用できる様々な種類がありますが、コンソールや PC の考慮事項と同様に、 
+特定のハードウェア部品の使用や HDR 出力を正しく動かすための設定変更が必要になります。以下は、設定を行う際の考慮事項です。
 
-* Make sure that your system is connected to the HDR display using a high-speed HDMI 2.0 cable so that you can take advantage of the transfers speeds. (HDMI 1.4 may work, but may have issues displaying the content.)
-Not all HDMI ports may accept HDMI 2.0 and HDR. Refer to your display's manual if you're unsure. 
-* Ensure that the TV port is HDR enabled. Sometimes this may be listed in your TV or display settings as "HDMI Deep Color" or "Enhanced Format." Refer to your display's manual if you're unsure.
-* With some consoles, like the PS4, you may need to disable the system setting for **Enable HDCP** for HDR output to work properly.
-* For some displays, you may need to adjust display settings to get the correct output. 
-	* With NVIDIA GPUs, use the NVIDIA Control Panel and adjust the display resolution Output Color Format to use **RGB** and the Output Color Depth to use **10-bit** or **12-bit**.
+* 転送速度を速めるために、お使いの HDR ディスプレイが高速 HDMI 2.0 ケーブルで接続されていることを確認してください。(HDMI 1.4 も使用できますが、コンテンツの表示に問題が生じる可能性があります。)
+すべての HDMI ポートが HDMI 2.0 および HDR に対応しているわけではありません。ディスプレイの取扱説明書で今一度ご確認ください。 
+* TV ポートの HDR は必ず有効にしてください。テレビまたはディスプレイ設定の中に "HDMI Deep Color" や "Enhanced Format" として表示されていることがあります。ディスプレイの取扱説明書で今一度ご確認ください。
+* PS4 など、コンソールによっては HDR 出力を正しく機能させるために **Enable HDCP** を無効にしなければいけない場合があります。
+* ディスプレイによっては、正しく出力するためにディスプレイ設定の調節が必要な場合があります。 
+	* NVIDIA GPU の場合は、NVIDIA コントロール パネルで、ディスプレイ解像度の Output Color Format を **RGB** に、Output Color Depth は **10-bit** または **12-bit** に設定します。ハードウェアによっては、 
+	使用できるオプションが限れている場合があります。ディスプレイの取扱説明書で今一度ご確認ください。
+		[REGION:lightbox]
+		[![](NVControlPanel.png)(w:400)](NVControlPanel.png)
+		[/REGION]
+		[REGION:caption]
+		_画像をクリックしてフルサイズで表示_
+		[/REGION]
 
-## Notes and Limitations
+## 注意事項と考慮事項
 
-* By default, the film-mapping curve is disabled during HDR output due to poor compatibility with LDR controls. 
-* Currently, only paths for 1000-nit and 2000-nit display outputs are implemented. 
-* D3D11 restrictions limit HDR output to exclusive fullscreen support only. With D3D12 support in Windows 10, this can likely be extended to enable individual viewports for HDR Output. The implementation on Mac currently supports this, already.
+* フィルム マップ カーブは LDR コントロールとの相性が悪いため、HDR 出力中はデフォルトで無効されています。 
+* 現在実装されているパスは、1000-nit および 2000-nit ディスプレイ出力用のみです。 
+* D3D11 の場合は、HDR への出力が排他的全画面のみに制限されています。D3D12 がサポートされている Windows 10 では、おそらく HDR 出力の個々のビューポートを有効にできるように拡張されると思われます。Mac では既に実装はサポートされています。
 
-## Reference Material
+## リファレンス
 
 * [http://www.oscars.org/science-technology/sci-tech-projects/aces](http://www.oscars.org/science-technology/sci-tech-projects/aces)
 * [http://www.oscars.org/science-technology/aces/aces-documentation](http://www.oscars.org/science-technology/aces/aces-documentation)

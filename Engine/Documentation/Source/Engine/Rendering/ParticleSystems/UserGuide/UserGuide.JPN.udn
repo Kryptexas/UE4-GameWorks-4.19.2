@@ -1,14 +1,16 @@
-﻿INTSourceChangelist:2750870
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:パーティクル システム ユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description: パーティクル システムとカスケードの一般的な使用方法
 Version:4.9
 SkillLevel:Intermediate
+tags:Particles
+topic-image:ParticleSystemUserGuide_topic.png
 
 [TOC(start:2 end:3)]
 
-このページでは、パーティクル システムとパーティクル システム エディタである **カスケード** を使った作業の最も一般的なワークフローについて説明していきます。さらに詳しいドキュメントは準備が整い次第リンクを提供いたします。
+このページでは、パーティクル システムとパーティクル システム エディタである **カスケード** を使った作業の最も一般的なワークフローについて説明していきます。詳細ドキュメントが整い次第、各文書へのリンクを追加します。
 
 
 ## パーティクル システムの作成
@@ -24,7 +26,7 @@ SkillLevel:Intermediate
 	[/PARAM]
 [/OBJECT]
 
-**パーティクル システム** を作成するには、 **コンテンツ ブラウザ** 上の **[Add New (新規追加)]** ボタンを**左クリック** し **[Particle System]** を選択、あるいは **コンテンツ ブラウザ** の **[Asset View (アセットビュー)]** を**右クリック** し、コンテキスト メニューを使って [Particle System] を選択します。
+**パーティクル システム** を作成するには、**コンテンツ ブラウザ** 上の **[Add New (新規追加)]** ボタンを **クリック** し **[Particle System]** を選択、あるいは **コンテンツ ブラウザ** の **[Asset View (アセットビュー)]** を **右クリック** し、コンテキスト メニューを使って [Particle System] を選択します。
 
 作成された新規パーティクル システムの名前は、新しい名前を入力できるようにハイライトされています。新しい名前を入力するか、別の部分をクリックすると、パーティクル システムのアイコンは [No Image] サムネイルで更新されます。アンリアル エンジン 4 のパーティクル エディタであるカスケードから、サムネイルの作成が可能になります。
 
@@ -42,7 +44,7 @@ SkillLevel:Intermediate
 ![](editSystem.png)
 [/REGION]
 
-## エミッターの追加
+## エミッタの追加
 
 [REGION:raw]
 [INCLUDE:Shared/Tutorials/InParticleSystemEditorTutorial#Stage2.1]
@@ -50,16 +52,16 @@ SkillLevel:Intermediate
 
 
 
-## エミッターの編集
+## エミッタの編集
 
-エミッターを **クリック** すると、**[Details (詳細)] パネル** にプロパティが表示されます。エミッターには僅かなプロパティがあるだけですが、中でも大きなものは **Name** 、 **Detail Mode** 、 **Medium Detail Spawn Rate Scale** です。
+エミッタを **クリック** すると、**[Details (詳細)] パネル** にプロパティが表示されます。エミッタのプロパティはわずかですが、特に重要なプロパティは **Name**、**Detail Mode**、**Medium Detail Spawn Rate Scale** です。
 
 [REGION:raw]
 ![](emitterDetails.png)
 [/REGION]
 
 
-## エミッターの記録
+## エミッタの記録
 
 パーティクル システムでエミッタの順序を変更するには、エミッタを選んで **左矢印キー** と **右矢印キー** を使用します。
 
@@ -74,10 +76,10 @@ SkillLevel:Intermediate
 ![](solo.png)
 [/REGION]
 
-**Solo Mode** は、自分で有効化した Solo Mode 以外の他の全てのパーティクル エミッターを無効にします (Solo Mode が有効にされているエミッターは他にはない前提とします)。こうすることで、そのエミッターだけのエフェクトを表示できるようになります。Solo Mode を 1 つのエミッター上で有効にすることで、別のエミッター上で Solo Mode が有効にされると、Solo Mode に設定されている他のエミッターと一緒にそれがプレビューに追加されます。つまり、特定のエミッターを組み合わせてプレビューすることができるのです。
+**Solo Mode** は、自分で有効化した Solo Mode 以外の他の全てのパーティクル エミッタを無効にします (Solo Mode が有効なエミッタは他にない前提)。こうすることで、そのエミッターだけのエフェクトを表示できるようになります。Solo Mode を 1 つのエミッタ上で有効にすることで、別のエミッター上で Solo Mode が有効にされると、Solo Mode に設定されている他のエミッタと一緒にそれがプレビューに追加されます。つまり、特定のエミッタを組み合わせてプレビューすることができるのです。
 
 [REGION:note]
-Solo Mode を有効にしたエミッターが別のエミッターでのイベントに応じてのみスポーンする場合、何もレンダリングされません。スポーン イベントのあるエミッターも Solo Mode を有効にしておく必要があります。
+Solo Mode が有効のエミッタが別のエミッタでのイベントに応じてスポーンのみする場合、レンダリングは一切されません。スポーン イベントのあるエミッタも Solo Mode を有効にしておく必要があります。
 [/REGION]
 
 
@@ -90,7 +92,7 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 ![](Shared/Tutorials/InParticleSystemEditorTutorial/CascadeTutorial_Modules01.png)
 [/REGION]
 
-個別のモジュールに関する詳細は、 [パーティクル システムのリファレンス](Engine/Rendering/ParticleSystems/Reference#モジュール) を参照してください。
+個別のモジュールに関する詳細は、[パーティクル システムのリファレンス](Engine/Rendering/ParticleSystems/Reference#モジュール) を参照してください。
 
 
 
@@ -103,15 +105,15 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 ここで、簡単なフラグからディストリビューションを使用するプロパティ上の個々のキーの調整に至るまで、モジュールの全てのプロパティの調整ができます。
 
 
-## Distributions (ディストリビューション)
+## Distributions
 
-ディストリビューションは、パーティクルのライフタイムの間、値を調整できるようにします。
+Distributions (ディストリビューション) は、パーティクルのライフタイムにわたり値を調整できるようにします。
 
 [REGION:raw]
 ![](Shared/Tutorials/InParticleSystemEditorTutorial/CascadeTutorial_Details03.png)
 [/REGION]
 
-ディストリビューションは、データ型の集まりであり、定数値、一定範囲内のランダム値、カーブに沿って補間された値、パラメータによって動く値を使用できる柔軟性があります。
+ディストリビューションは、データ タイプのグループです。不変な値、ある範囲内にあるランダムな値、カーブに沿って補間された値、パラメータ主導の値が可能になり、柔軟性を与えます。
 
 ディストリビューションの詳細については、 [ディストリビューション](Engine/Basics/Distributions) ドキュメント ページをご覧ください。
 
@@ -127,7 +129,7 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 ![](Shared/Tutorials/InParticleSystemEditorTutorial/CascadeTutorial_Curves01.png)
 [/REGION]
 
-カーブエディタの左側のセクションには、モジュールにおいて **Distributions** をサポートするプロパティがあります。
+カーブ エディタの左側のセクションには、モジュールで **ディストリビューション** をサポートするプロパティがあります。
 
 [REGION:raw]
 ![](Shared/Tutorials/InParticleSystemEditorTutorial/CascadeTutorial_Curves02.png)
@@ -149,18 +151,18 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 
 ## Type Data
 
-**TypeData** モジュールは、パーティクル エミッターの外観と機能を劇的に変える特殊なモジュールです。エミッターに適用することができる **TypeData** は 1 つだけです。また、エミッター スタックではそのエミッターと他のエミッターの間の黒い空間に表示されます。
+**TypeData** モジュールは、パーティクル エミッタの外観と機能を劇的に変える特殊なモジュールです。エミッタに適用することができる **TypeData** は 1 つだけです。また、エミッタ スタックではそのエミッタと他のエミッタの間の黒い空間に表示されます。
 
 [REGION:raw]
 ![](typeData.png)
 [/REGION]
 
-利用可能な TypeData モジュールに関する詳細は、 [パーティクル システムのリファレンス](Engine/Rendering/ParticleSystems/Reference#TypeDataモジュール) を参照してください。
+利用可能な TypeData モジュールに関する詳細は、[パーティクル システムのリファレンス](Engine/Rendering/ParticleSystems/Reference#TypeDataモジュール) を参照してください。
 
 
-## エミッターとモジュールの削除
+## エミッタとモジュールの削除
 
-エミッターまたはモジュールを削除するには、 **右クリック** して [Delete (削除)] オプションを選びます。エミッターの場合、**[Emitter]** 拡張メニューの中にあります。モジュールの場合はそこにあります。
+エミッタまたはモジュールを削除するには、 **右クリック** して [Delete (削除)] オプションを選びます。エミッタの場合、**[Emitter]** 拡張メニューの中にあります。モジュールの場合はそこにあります。
 
 [REGION:raw]
 ![](deleteEmitter.png)
@@ -170,13 +172,13 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 
 
 
-## 簡易 LOD 設定
+## クイック LOD セットアップ
 
 [REGION:note]
-現在、 **GPU Particles** モジュールを使用している **パーティクル エミッター** は LOD を使うことができません。
+現在、**GPU Particles** モジュールを使用している **パーティクル エミッタ** は LOD を使うことができません。
 [/REGION]
 
-1. **[Add LOD (LOD を追加)]** ボタンを使って新しく LOD を追加します。一番高い LOD は LOD 0 です。ここで一番高いとは、「品質が一番高い」という意味です。
+1. **[Add LOD (LOD を追加)]** ボタンを使って新しい LOD を追加します。一番高い LOD は LOD 0 です。ここで一番高いとは、「品質が一番高い」という意味です。
 
 	* **[Add LOD Before (直前に LOD を追加)]** ![](AddLOD_After_button.png) ボタンを使って、現在の LOD と二番目に高い LOD の間に LOD を挿入します。
 	* **[Add LOD After (直後に LOD を追加)]** ![](AddLOD_Before_button.png) ボタンを使って、現在の LOD と二番目に低い LOD (存在する場合) の間に LOD を挿入します。
@@ -193,7 +195,7 @@ Solo Mode を有効にしたエミッターが別のエミッターでのイベ�
 	[![](LODDetails.png)(w:880)](LODDetails.png)
 	[/REGION]
 
-	1. エミッター リストの最後の黒い部分を **クリック** します。
+	1. エミッタ リストの最後の黒い部分を **クリック** します。
 	1. **[Details (詳細)]** パネルにそのパーティクル システム用の設定が表示されます。
 	1. パーティクル システムの各 LOD の距離設定はLOD カテゴリで変更できます。
 

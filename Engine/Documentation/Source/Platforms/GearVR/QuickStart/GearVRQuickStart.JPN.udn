@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3429260
 Availability:Public
 Title:Samsung Gear VR UE 4 のクイックスタート
 Crumbs:%ROOT%, Platforms/GearVR
@@ -6,8 +6,9 @@ Description:Samsung Gear VR ヘッドセットと使えるようにプロジェ�
 Navigation:platform
 Platform:Gear VR
 Skilllevel:Intermediate
-version:4.9
+Version:4.9
 type:quick start
+type:landing
 parent:Platforms/GearVR
 tags:VR
 tags:GearVR

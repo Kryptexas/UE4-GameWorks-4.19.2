@@ -1,10 +1,12 @@
-Availability:Public
+Availability:NoPublish
 Title:Downloading Unreal as a Zip from GitHub
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:Downloading the Unreal Engine source code as a Zip file.
 Prereq: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
-Version: 4.8
+Parent:GettingStarted
+Order:
+Version: 4.16
 SkillLevel: Advanced
 
 If you prefer to download our source code as a Zip file from GitHub, this page is for you.
@@ -40,7 +42,7 @@ If you prefer to download our source code as a Zip file from GitHub, this page i
 	1.	Decompress 'UnrealEngine-(branch_name).zip' onto your hard disk.
 	1.	If you already haven't done so, install Visual Studio 2013. Although MFC libraries are included in Visual Studio's default installation settings, make sure that MFC libraries are included for ATL support.
 		[REGION:note]
-		Developers build UE4 with all desktop editions of Visual Studio, including Microsoft's free version ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
+		Developers build UE4 with all desktop editions of Visual Studio, including the latest version of [Microsoft's Visual Studio](https://www.visualstudio.com/).
 		[/REGION]
 	1.	Open your source folder in Explorer and run **Setup.bat**.
 		[REGION:note]

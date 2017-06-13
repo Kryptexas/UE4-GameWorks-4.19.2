@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3343833
-Availability:Docs
+﻿Availability:Docs
 Title:2.Actor ブループリントをセットアップする
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:Actor ブループリントを Widget コンポーネントと合わせて使用して、Widget ブループリントを 3D ワールド空間で表示します。 
+Parent:Engine/UMG/HowTo/Create3DWidgets
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
@@ -10,6 +10,7 @@ Version:4.10
 SkillLevel:Intermediate
 checkpoint: umg_create_3d_howto
 tags:UMG UI Designer
+Order:2
 
 [VAR:Steps]
 [OBJECT:Navigation]

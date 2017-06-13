@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3106713
-Availability:Public
+﻿Availability:Public
 Title:ランドスケープ マテリアル
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープ テレインで作業するためのマテリアルを設定
@@ -24,7 +23,7 @@ topic-image:landscape_materials_topic.png
 
 マテリアル エディタの中に、ランドスケープ システムで使える 6 つの特別なノードがあると思います。これらのノードはすべて **コンテキスト** メニューまたは Landscape カテゴリの **[Palette (パレット)]** メニューにあります。 
 
-**コンテキストメニュー**
+** コンテキスト メニュー**
 
 ![Material Editor Context Menu](Landscape_Mat_Context.png)
 
@@ -50,7 +49,7 @@ topic-image:landscape_materials_topic.png
 |番号| プロパティ | 説明 |
 |------------| -------- | ----------- |
 |1:| **Layers** | ノードに含まれるレイヤーのリストです。プラス アイコン (![Plus Sign](icon_Landscape_PlusSign.png)) をクリックすればレイヤーを追加できます。 |
-|2:| **Layer Name** | レイヤーにつけるユニークな名前です。**Layer Name (レイヤー名)** はランドスケープの [Paint モード](Engine\Landscape\Editing\PaintMode\#Layer（レイヤー）) で使用されるレイヤー名に対応します。|
+|2:| **Layer Name** | レイヤーにつけるユニークな名前です。**Layer Name (レイヤー名)** はランドスケープの [Paint モード](Engine\Landscape\Editing\PaintMode\#レイヤー) で使用されるレイヤー名に対応します。|
 |3:| **Blend Type (ブレンドタイプ)** | **LB_AlphaBlend**** 、 **LB_HeightBlend** 、または **LB_WeightBlend.** です。これについては、後ほどこのページで説明します。|
 |4:| **Preview Weight** | マテリアル エディタ内でブレンドをプレビューするための、レイヤーのウェイト値として使用されます。|
 |5:| **Const Layer Input** | テクスチャを使用したくない場合、数値をカラーで提供します。問題がある場合、レイヤーのデバッグのために主に使われます。|
@@ -192,7 +191,7 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 	**[Parameter Name (パラメータ名)]** に入力すると、ノード自体が更新されます。<br/>
 	![](Landscape_Layer_Weight_Named_Layer.png)
 
-1. マテリアルに入れたい各レイヤーに 1 つずつ付くまで **LandscapeLayerWeight** ノードを追加していきます。この例では、**LandscapeLayerWeight** ノードを 2 つ使っていきます。
+1. マテリアルに入れたい各レイヤーに 1 つずつ付くまで **LandscapeLayerWeight** ノードを追加していきます。この例では、 **LandscapeLayerWeight** ノードを 2 つ使っていきます。
 
 1. **Texture Samples** または他のマテリアル ネットワーク表現式を **LandscapeLayerWeight** ノードに追加して接続します。
 
@@ -218,12 +217,12 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 **LandscapeLayerBlend ノードの使用方法:**
 
 1. マテリアル エディタで LandscapeLayerBlend を追加します。
-
 	![](Landscape_LayerBlend_Material_Example_00.png)
 
-1. **[Details (詳細)]** パネルで、 **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
 
+1. **[Details (詳細)]** パネルで、 **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
 	![](Landscape_LayerBlend_Material_Example_01.png)
+
 
 1. レイヤーを展開してプロパティを表示します。
 
