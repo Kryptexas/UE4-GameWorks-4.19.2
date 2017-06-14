@@ -15,7 +15,7 @@
     <!-- only modify AAR imports if enabled -->
     <if condition="GCMEnabled">
       <true>
-        <insert>com.google.android.gms,play-services-gcm,9.2.0</insert>
+        <insert>com.google.android.gms,play-services-gcm,9.8.0</insert>
         <insertNewline/>
       </true>
     </if>

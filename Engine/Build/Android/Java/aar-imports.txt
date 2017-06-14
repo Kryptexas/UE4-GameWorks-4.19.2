@@ -5,5 +5,3 @@ com.google.android.gms,play-services-auth,9.8.0
 com.google.android.gms,play-services-games,9.8.0
 com.google.android.gms,play-services-nearby,9.8.0
 com.google.android.gms,play-services-plus,9.8.0
-com.google.android.gms,play-services-gcm,9.8.0
-com.google.android.gms,play-services-analytics,9.8.0
