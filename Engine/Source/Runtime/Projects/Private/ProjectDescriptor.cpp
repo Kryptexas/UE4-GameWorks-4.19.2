@@ -13,6 +13,7 @@ FProjectDescriptor::FProjectDescriptor()
 {
 	FileVersion = EProjectDescriptorVersion::Latest;
 	EpicSampleNameHash = 0;
+	bIsEnterpriseProject = false;
 }
 
 void FProjectDescriptor::Sign(const FString& FilePath)
@@ -104,6 +105,7 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 	Object.TryGetStringField(TEXT("EngineAssociation"), EngineAssociation);
 	Object.TryGetStringField(TEXT("Category"), Category);
 	Object.TryGetStringField(TEXT("Description"), Description);
+	Object.TryGetBoolField(TEXT("Enterprise"), bIsEnterpriseProject);
 
 	// Read the modules
 	if(!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
@@ -203,6 +205,12 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer, const FString& PathToProje
 	Writer.WriteValue(TEXT("EngineAssociation"), EngineAssociation);
 	Writer.WriteValue(TEXT("Category"), Category);
 	Writer.WriteValue(TEXT("Description"), Description);
+
+	// Write the enterprise flag
+	if (bIsEnterpriseProject)
+	{
+		Writer.WriteValue(TEXT("Enterprise"), bIsEnterpriseProject);
+	}
 
 	// Write the module list
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);

@@ -11,11 +11,15 @@
 #include "Containers/ContainerAllocationPolicies.h"
 #include "Serialization/Archive.h"
 
+#include "Algo/Heapify.h"
+#include "Algo/HeapSort.h"
+#include "Algo/IsHeap.h"
+#include "Algo/Impl/BinaryHeap.h"
+#include "Templates/IdentityFunctor.h"
 #include "Templates/Less.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/Sorting.h"
 
-#define DEBUG_HEAP 0
 
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 	#define TARRAY_RANGED_FOR_CHECKS 0
@@ -233,52 +237,6 @@ private:
 		return Lhs.Iter != Rhs.Iter;
 	}
 };
-
-
-/**
- * TReversePredicateWrapper class used by implicit heaps. 
- * This is similar to TDereferenceWrapper from Sorting.h except it reverses the comparison at the same time
- */
-template <typename ElementType, typename PREDICATE_CLASS>
-class TReversePredicateWrapper
-{
-	const PREDICATE_CLASS& Predicate;
-public:
-	TReversePredicateWrapper( const PREDICATE_CLASS& InPredicate )
-		: Predicate( InPredicate )
-	{}
-
-	FORCEINLINE bool operator()( ElementType& A, ElementType& B ) const { return Predicate( B, A ); }
-	FORCEINLINE bool operator()( const ElementType& A, const ElementType& B ) const { return Predicate( B, A ); }
-};
-
-
-/**
- * Partially specialized version of the above.
- */
-template <typename ElementType, typename PREDICATE_CLASS>
-class TReversePredicateWrapper<ElementType*, PREDICATE_CLASS>
-{
-	const PREDICATE_CLASS& Predicate;
-public:
-	TReversePredicateWrapper( const PREDICATE_CLASS& InPredicate )
-		: Predicate( InPredicate )
-	{}
-
-	FORCEINLINE bool operator()( ElementType* A, ElementType* B ) const 
-	{
-		check( A != nullptr );
-		check( B != nullptr );
-		return Predicate( *B, *A ); 
-	}
-	FORCEINLINE bool operator()( const ElementType* A, const ElementType* B ) const 
-	{
-		check( A != nullptr );
-		check( B != nullptr );
-		return Predicate( *B, *A ); 
-	}
-};
-
 
 namespace UE4Array_Private
 {
@@ -2363,7 +2321,8 @@ public:
 	template <class PREDICATE_CLASS>
 	FORCEINLINE void Heapify(const PREDICATE_CLASS& Predicate)
 	{
-		HeapifyInternal(TDereferenceWrapper<ElementType, PREDICATE_CLASS>(Predicate));
+		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
+		Algo::Heapify(*this, PredicateWrapper);
 	}
 
 	/**
@@ -2396,11 +2355,7 @@ public:
 		// Add at the end, then sift up
 		Add(MoveTemp(InItem));
 		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		int32 Result = AlgoImpl::HeapSiftUp(GetData(), 0, Num() - 1, FIdentityFunctor(), PredicateWrapper);
 
 		return Result;
 	}
@@ -2422,11 +2377,7 @@ public:
 		// Add at the end, then sift up
 		Add(InItem);
 		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		int32 Result = AlgoImpl::HeapSiftUp(GetData(), 0, Num() - 1, FIdentityFunctor(), PredicateWrapper);
 
 		return Result;
 	}
@@ -2480,11 +2431,7 @@ public:
 		RemoveAtSwap(0, 1, bAllowShrinking);
 
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		SiftDown(0, Num(), PredicateWrapper);
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		AlgoImpl::HeapSiftDown(GetData(), 0, Num(), FIdentityFunctor(), PredicateWrapper);
 	}
 
 	/** 
@@ -2507,24 +2454,11 @@ public:
 	 * Verifies the heap.
 	 *
 	 * @param Predicate Predicate class instance.
-	 *
-	 * @note: If your array contains raw pointers, they will be automatically dereferenced during heap verification.
-	 *        Therefore, your predicate will be passed references rather than pointers.
-	 *        The auto-dereferencing behavior does not occur with smart pointers.
 	 */
 	template <class PREDICATE_CLASS>
 	void VerifyHeap(const PREDICATE_CLASS& Predicate)
 	{
-		// Verify Predicate
-		ElementType* Heap = GetData();
-		for (int32 Index = 1; Index < Num(); Index++)
-		{
-			int32 ParentIndex = HeapGetParentIndex(Index);
-			if (Predicate(Heap[Index], Heap[ParentIndex]))
-			{
-				check(false);
-			}
-		}
+		check(Algo::IsHeap(*this, Predicate));
 	}
 
 	/** 
@@ -2542,11 +2476,7 @@ public:
 	{
 		RemoveAtSwap(0, 1, bAllowShrinking);
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		SiftDown(0, Num(), PredicateWrapper);
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		AlgoImpl::HeapSiftDown(GetData(), 0, Num(), FIdentityFunctor(), PredicateWrapper);
 	}
 
 	/** 
@@ -2604,12 +2534,8 @@ public:
 		RemoveAtSwap(Index, 1, bAllowShrinking);
 
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		SiftDown(Index, Num(), PredicateWrapper);
-		SiftUp(0, FPlatformMath::Min(Index, Num() - 1), PredicateWrapper);
-
-#if DEBUG_HEAP
-		VerifyHeap(PredicateWrapper);
-#endif
+		AlgoImpl::HeapSiftDown(GetData(), Index, Num(), FIdentityFunctor(), PredicateWrapper);
+		AlgoImpl::HeapSiftUp(GetData(), 0, FPlatformMath::Min(Index, Num() - 1), FIdentityFunctor(), PredicateWrapper);
 	}
 
 	/**
@@ -2640,31 +2566,8 @@ public:
 	template <class PREDICATE_CLASS>
 	void HeapSort(const PREDICATE_CLASS& Predicate)
 	{
-		TReversePredicateWrapper<ElementType, PREDICATE_CLASS> ReversePredicateWrapper(Predicate);
-		HeapifyInternal(ReversePredicateWrapper);
-
-		ElementType* Heap = GetData();
-		for(int32 Index=Num()-1; Index>0; Index--)
-		{
-			Exchange(Heap[0], Heap[Index]);
-			SiftDown(0, Index, ReversePredicateWrapper);
-		}
-
-#if DEBUG_HEAP
 		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-
-		// Verify Heap Property
-		VerifyHeap(PredicateWrapper);
-
-		// Also verify Array is properly sorted
-		for(int32 Index=1; Index<Num(); Index++)
-		{
-			if (PredicateWrapper(Heap[Index], Heap[Index - 1]))
-			{
-				check(false);
-			}
-		}
-#endif
+		Algo::HeapSort(*this, PredicateWrapper);
 	}
 
 	/**
@@ -2678,115 +2581,6 @@ public:
 	void HeapSort()
 	{
 		HeapSort(TLess<ElementType>());
-	}
-
-private:
-
-	/**
-	 * Gets the index of the left child of node at Index.
-	 *
-	 * @param Index Node for which the left child index is to be returned.
-	 * @returns Index of the left child.
-	 */
-	FORCEINLINE int32 HeapGetLeftChildIndex(int32 Index) const
-	{
-		return Index * 2 + 1;
-	}
-
-	/** 
-	 * Checks if node located at Index is a leaf or not.
-	 *
-	 * @param Index Node index.
-	 * @returns true if node is a leaf, false otherwise.
-	 */
-	FORCEINLINE bool HeapIsLeaf(int32 Index, int32 Count) const
-	{
-		return HeapGetLeftChildIndex(Index) >= Count;
-	}
-
-	/**
-	 * Gets the parent index for node at Index.
-	 *
-	 * @param Index node index.
-	 * @returns Parent index.
-	 */
-	FORCEINLINE int32 HeapGetParentIndex(int32 Index) const
-	{
-		return (Index - 1) / 2;
-	}
-
-private:
-	template <class PREDICATE_CLASS>
-	void HeapifyInternal(const PREDICATE_CLASS& Predicate)
-	{
-		for (int32 Index = HeapGetParentIndex(Num() - 1); Index >= 0; Index--)
-		{
-			SiftDown(Index, Num(), Predicate);
-		}
-
-#if DEBUG_HEAP
-		VerifyHeap(Predicate);
-#endif
-	}
-
-	/**
-	 * Fixes a possible violation of order property between node at Index and a child.
-	 *
-	 * @param Index Node index.
-	 * @param Count Size of the heap (to avoid using Num()).
-	 * @param Predicate Predicate class instance.
-	 */
-	template <class PREDICATE_CLASS>
-	FORCEINLINE void SiftDown(int32 Index, const int32 Count, const PREDICATE_CLASS& Predicate)
-	{
-		ElementType* Heap = GetData();
-		while (!HeapIsLeaf(Index, Count))
-		{
-			const int32 LeftChildIndex = HeapGetLeftChildIndex(Index);
-			const int32 RightChildIndex = LeftChildIndex + 1;
-
-			int32 MinChildIndex = LeftChildIndex;
-			if (RightChildIndex < Count)
-			{
-				MinChildIndex = Predicate(Heap[LeftChildIndex], Heap[RightChildIndex]) ? LeftChildIndex : RightChildIndex;
-			}
-
-			if (!Predicate(Heap[MinChildIndex], Heap[Index]))
-			{
-				break;
-			}
-
-			Exchange(Heap[Index], Heap[MinChildIndex]);
-			Index = MinChildIndex;
-		}
-	}
-
-	/**
-	 * Fixes a possible violation of order property between node at NodeIndex and a parent.
-	 *
-	 * @param RootIndex How far to go up?
-	 * @param NodeIndex Node index.
-	 * @param Predicate Predicate class instance.
-	 *
-	 * @return The new index of the node that was at NodeIndex
-	 */
-	template <class PREDICATE_CLASS>
-	FORCEINLINE int32 SiftUp(int32 RootIndex, int32 NodeIndex, const PREDICATE_CLASS& Predicate)
-	{
-		ElementType* Heap = GetData();
-		while (NodeIndex > RootIndex)
-		{
-			int32 ParentIndex = HeapGetParentIndex(NodeIndex);
-			if (!Predicate(Heap[NodeIndex], Heap[ParentIndex]))
-			{
-				break;
-			}
-
-			Exchange(Heap[NodeIndex], Heap[ParentIndex]);
-			NodeIndex = ParentIndex;
-		}
-
-		return NodeIndex;
 	}
 };
 

@@ -105,11 +105,17 @@ namespace UnrealBuildTool
 		public CustomBuildSteps PostBuildSteps;
 
 		/// <summary>
+		/// Indicates if this project is an Enterprise project
+		/// </summary>
+		public bool IsEnterpriseProject;
+
+		/// <summary>
 		/// Constructor.
 		/// </summary>
 		public ProjectDescriptor()
 		{
 			FileVersion = (int)ProjectDescriptorVersion.Latest;
+			IsEnterpriseProject = false;
 		}
 
 		/// <summary>
@@ -143,6 +149,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("EngineAssociation", out Descriptor.EngineAssociation);
 				RawObject.TryGetStringField("Category", out Descriptor.Category);
 				RawObject.TryGetStringField("Description", out Descriptor.Description);
+				RawObject.TryGetBoolField("Enterprise", out Descriptor.IsEnterpriseProject);
 
 				// Read the modules
 				JsonObject[] ModulesArray;

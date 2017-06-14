@@ -83,6 +83,7 @@ void init_tbbmalloc() {
 }
 
 #if !__TBB_SOURCE_DIRECTLY_INCLUDED
+#if EPIC_DOES_NOT_USE_TBB_AS_DLL
 #if USE_WINTHREAD
 extern "C" BOOL WINAPI DllMain( HINSTANCE /*hInst*/, DWORD callReason, LPVOID )
 {
@@ -112,6 +113,7 @@ struct RegisterProcessShutdownNotification {
 };
 
 static RegisterProcessShutdownNotification reg;
+#endif /* EPIC_DOES_NOT_USE_TBB_AS_DLL */
 #endif /* !USE_WINTHREAD */
 #endif /* !__TBB_SOURCE_DIRECTLY_INCLUDED */
 

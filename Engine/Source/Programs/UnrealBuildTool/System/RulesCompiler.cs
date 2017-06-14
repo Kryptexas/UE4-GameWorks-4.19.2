@@ -300,11 +300,11 @@ namespace UnrealBuildTool
 			RulesAssembly ProjectRulesAssembly;
 			if (!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
 			{
-				// Create the engine rules assembly
-				RulesAssembly Parent;
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName.FullName);
 
-				// When the enterprise folder is available, use it as our parent assembly. It's also a child of the engine assembly.
-				if (DirectoryReference.Exists(UnrealBuildTool.EnterpriseDirectory))
+				// Create the parent assembly
+				RulesAssembly Parent;
+				if (Project.IsEnterpriseProject)
 				{
 					Parent = CreateEnterpriseRulesAssembly();
 				}
@@ -321,7 +321,7 @@ namespace UnrealBuildTool
 
 				// Find all the project plugins
 				List<PluginInfo> ProjectPlugins = new List<PluginInfo>(Plugins.ReadProjectPlugins(ProjectFileName.Directory));
-                ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName.FullName);
+
                 // Add the project's additional plugin directories plugins too
                 ProjectPlugins.AddRange(Plugins.ReadAdditionalPlugins(Project.AdditionalPluginDirectories));
                 Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();

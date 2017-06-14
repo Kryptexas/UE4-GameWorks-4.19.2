@@ -1318,6 +1318,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			UE_LOG(LogInit, Warning, TEXT("Could not find a valid project file, the engine will exit now."));
 			return 1;
 		}
+
+		if (IProjectManager::Get().GetCurrentProject() && IProjectManager::Get().GetCurrentProject()->bIsEnterpriseProject && FPaths::DirectoryExists(FPaths::EnterpriseDir()))
+		{
+			// Add the enterprise binaries directory if we're an enterprise project
+			FModuleManager::Get().AddBinariesDirectory( *FPaths::Combine( FPaths::EnterpriseDir(), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory() ), false );
+		}
 	}
 
 #if !IS_PROGRAM

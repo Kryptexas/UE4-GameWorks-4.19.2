@@ -214,7 +214,6 @@ void FPluginManager::ReadAllPlugins(TMap<FString, TSharedRef<FPlugin>>& Plugins,
 #if (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
 	// Find "built-in" plugins.  That is, plugins situated right within the Engine directory.
 	ReadPluginsInDirectory(FPaths::EnginePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
-	ReadPluginsInDirectory(FPaths::EnterprisePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
 
 	// Find plugins in the game project directory (<MyGameProject>/Plugins). If there are any engine plugins matching the name of a game plugin,
 	// assume that the game plugin version is preferred.
@@ -230,6 +229,12 @@ void FPluginManager::ReadAllPlugins(TMap<FString, TSharedRef<FPlugin>>& Plugins,
 		for (const FString& Dir : Project->GetAdditionalPluginDirectories())
 		{
 			ReadPluginsInDirectory(Dir, EPluginLoadedFrom::Engine, Plugins);
+		}
+
+		// For enterprise projects, add plugins in EnterprisePluginsDir
+		if (Project->bIsEnterpriseProject)
+		{
+			ReadPluginsInDirectory(FPaths::EnterprisePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
 		}
 	}
 

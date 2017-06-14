@@ -91,6 +91,9 @@ struct PROJECTS_API FProjectDescriptor
 	/** Custom steps to execute after building targets in this project */
 	FCustomBuildSteps PostBuildSteps;
 
+	/** Indicates if this project is an Enterprise project */
+	bool bIsEnterpriseProject;
+
 	/** Constructor. */
 	FProjectDescriptor();
 

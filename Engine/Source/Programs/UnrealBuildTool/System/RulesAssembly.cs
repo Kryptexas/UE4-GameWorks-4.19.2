@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -325,7 +325,7 @@ namespace UnrealBuildTool
 		public bool IsGameModule(string InModuleName)
 		{
 			FileReference ModuleFileName = GetModuleFileName(InModuleName);
-			return (ModuleFileName != null && !ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
+			return (ModuleFileName != null && !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory));
 		}
 
 		/// <summary>

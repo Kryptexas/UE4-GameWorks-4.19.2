@@ -25,12 +25,26 @@ public class FBX : ModuleRules
 			FBxLibPath += "x64/release/";
 			PublicLibraryPaths.Add(FBxLibPath);
 
-			PublicAdditionalLibraries.Add("libfbxsdk.lib");
+			if (Target.LinkType != TargetLinkType.Monolithic)
+			{
+				PublicAdditionalLibraries.Add("libfbxsdk.lib");
 
-			// We are using DLL versions of the FBX libraries
-			Definitions.Add("FBXSDK_SHARED"); 
+				// We are using DLL versions of the FBX libraries
+				Definitions.Add("FBXSDK_SHARED");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/libfbxsdk.dll"));
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/libfbxsdk.dll"));
+			}
+			else
+			{
+				if (Target.bUseStaticCRT)
+				{
+					PublicAdditionalLibraries.Add("libfbxsdk-mt.lib");
+				}
+				else
+				{
+					PublicAdditionalLibraries.Add("libfbxsdk-md.lib");
+				}
+			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{

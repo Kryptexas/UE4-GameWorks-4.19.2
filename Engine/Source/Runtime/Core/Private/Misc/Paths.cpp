@@ -150,9 +150,14 @@ FString FPaths::EnginePluginsDir()
 	return FPaths::EngineDir() + TEXT("Plugins/");
 }
 
+FString FPaths::EnterpriseDir()
+{
+	return FPaths::RootDir() + TEXT("Enterprise/");
+}
+
 FString FPaths::EnterprisePluginsDir()
 {
-	return FPaths::RootDir() + TEXT("Enterprise/Plugins/");
+	return EnterpriseDir() + TEXT("Plugins/");
 }
 
 FString FPaths::RootDir()

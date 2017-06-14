@@ -135,9 +135,22 @@ bool FStatsCustomColumn::SupportsProperty( UProperty* Property )
 	return false;
 }
 
-FText FStatsCustomColumn::GetPropertyAsText( const TSharedPtr< IPropertyHandle > PropertyHandle )
+FText FStatsCustomColumn::GetPropertyAsText( const TSharedPtr< IPropertyHandle > PropertyHandle , bool bGetRawValue )
 {
 	FText Text;
+
+	//Create a formatting option that doesn't group digits for readability. This will generate pure number strings.
+	FNumberFormattingOptions RawFormattingOptions;
+	FNumberFormattingOptions *RFOPointer = nullptr;
+
+	RawFormattingOptions.SetUseGrouping(false);
+
+	//Use ungrouped formatting option if requested by user. Leaving the pointer NULL will trigger usage of Locale default settings.
+	if (bGetRawValue)
+	{
+		RFOPointer = &RawFormattingOptions;
+	}
+
 
 	if( PropertyHandle->GetProperty()->IsA( UIntProperty::StaticClass() ) )
 	{
@@ -149,7 +162,7 @@ FText FStatsCustomColumn::GetPropertyAsText( const TSharedPtr< IPropertyHandle >
 		}
 		else
 		{
-			Text = FText::AsNumber( IntValue );
+			Text = FText::AsNumber( IntValue, RFOPointer);
 		}
 	}
 	else if( PropertyHandle->GetProperty()->IsA( UFloatProperty::StaticClass() ) )
@@ -162,7 +175,7 @@ FText FStatsCustomColumn::GetPropertyAsText( const TSharedPtr< IPropertyHandle >
 		}
 		else
 		{
-			Text = FText::AsNumber( FloatValue );
+			Text = FText::AsNumber( FloatValue, RFOPointer);
 		}
 	}
 	else if( PropertyHandle->GetProperty()->IsA( UStructProperty::StaticClass() ) )
@@ -185,7 +198,7 @@ FText FStatsCustomColumn::GetPropertyAsText( const TSharedPtr< IPropertyHandle >
 		}
 	}
 
-	if( PropertyHandle->GetProperty()->HasMetaData("Unit") )
+	if (PropertyHandle->GetProperty()->HasMetaData("Unit") && !bGetRawValue)
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("Value"), Text );

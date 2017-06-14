@@ -7,6 +7,10 @@
 #include "Containers/UnrealString.h"
 #include "Misc/AutomationTest.h"
 #include "Containers/Algo/Copy.h"
+#include "Containers/Algo/Heapify.h"
+#include "Containers/Algo/HeapSort.h"
+#include "Containers/Algo/IsHeap.h"
+#include "Containers/Algo/IsSorted.h"
 #include "Containers/Algo/Transform.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAlgosTest, "System.Core.Misc.Algos", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
@@ -277,6 +281,24 @@ bool FAlgosTest::RunTest(const FString& Parameters)
 		check(Algo::UpperBound(IntArray, 5) == 4);
 		check(Algo::LowerBound(IntArray, 7) == 7);
 		check(Algo::LowerBound(IntArray, 9) == 9);
+	}
+
+	// heapify
+	{
+		TArray<int> TestArray = TestData2;
+		Algo::Heapify(TestArray);
+
+		check(Algo::IsHeap(TestArray));
+	}
+
+	// heap sort
+	{
+		TArray<int> TestArray = TestData2;
+		Algo::HeapSort(TestArray);
+
+		check(Algo::IsHeap(TestArray));
+
+		check(Algo::IsSorted(TestArray));
 	}
 
 	return true;

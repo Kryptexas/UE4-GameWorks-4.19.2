@@ -240,7 +240,7 @@ SStatsViewer::~SStatsViewer()
 }
 
 /** Helper function to get the string of a cell as it is being presented to the user */
-static FString GetCellString( const TSharedPtr<IPropertyTableCell> Cell )
+static FString GetCellString( const TSharedPtr<IPropertyTableCell> Cell, bool bGetRawValue = false )
 {
 	FString String = TEXT("");
 
@@ -262,7 +262,7 @@ static FString GetCellString( const TSharedPtr<IPropertyTableCell> Cell )
 	// not an object, but maybe supported
 	if( FStatsCustomColumn::SupportsProperty(PropertyHandle->GetProperty()) )
 	{
-		String = FStatsCustomColumn::GetPropertyAsText(PropertyHandle).ToString();
+		String = FStatsCustomColumn::GetPropertyAsText(PropertyHandle, bGetRawValue).ToString();
 	}
 
 	// still no name? will have to default to the 'value as string'
@@ -476,7 +476,7 @@ FReply SStatsViewer::OnExportClicked()
 				TSharedRef< IPropertyTableRow > Row = Rows[RowIndex];
 				for( TSharedPtr< IPropertyTableCell > Cell = PropertyTable->GetFirstCellInRow(Row); Cell.IsValid(); Cell = PropertyTable->GetNextCellInRow(Cell.ToSharedRef()) )
 				{
-					FString CellData = GetCellString( Cell );
+					FString CellData = GetCellString( Cell , true );
 					CellData.ReplaceInline( *Delimiter, TEXT(" ") );
 					Data += CellData + Delimiter;
 				}

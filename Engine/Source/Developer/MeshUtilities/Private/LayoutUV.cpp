@@ -3,6 +3,8 @@
 #include "LayoutUV.h"
 #include "DisjointSet.h"
 
+#include "Algo/IntroSort.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Warning, All);
 
 #define CHART_JOINING	1
@@ -147,7 +149,8 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 			return (*DisjointSet)[A] < (*DisjointSet)[B];
 		}
 	};
-	SortedTris.Sort( FCompareTris( &DisjointSet ) );
+
+	Algo::IntroSort( SortedTris, FCompareTris( &DisjointSet ) );
 
 	TMap< uint32, int32 > DisjointSetToChartMap;
 
@@ -708,7 +711,7 @@ void FLayoutUV::ScaleCharts( float UVScale )
 			return ChartRectA.X * ChartRectA.Y > ChartRectB.X * ChartRectB.Y;
 		}
 	};
-	Charts.Sort( FCompareCharts() );
+	Algo::IntroSort( Charts, FCompareCharts() );
 }
 
 bool FLayoutUV::PackCharts()

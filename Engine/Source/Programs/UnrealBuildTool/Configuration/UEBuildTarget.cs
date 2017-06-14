@@ -2383,17 +2383,24 @@ namespace UnrealBuildTool
 				// Check there aren't any engine binaries with dependencies on game modules. This can happen when game-specific plugins override engine plugins.
 				foreach(UEBuildModule Module in Modules.Values)
 				{
-					if(Module.Binary != null && Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+					if(Module.Binary != null && UnrealBuildTool.IsUnderAnEngineDirectory(Module.RulesFile.Directory))
 					{
+						DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
+
+						if (Module.RulesFile.IsUnderDirectory(UnrealBuildTool.EnterpriseDirectory))
+						{
+							RootDirectory = UnrealBuildTool.EnterpriseDirectory;
+						}
+
 						HashSet<UEBuildModule> ReferencedModules = Module.GetDependencies(bWithIncludePathModules: true, bWithDynamicallyLoadedModules: true);
 
-						// Make sure engine modules don't depend on game modules
+						// Make sure engine modules don't depend on enterprise or game modules and that enterprise modules don't depend on game modules
 						foreach(UEBuildModule ReferencedModule in ReferencedModules)
 						{
-							if(ReferencedModule.RulesFile != null && !ReferencedModule.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+							if(ReferencedModule.RulesFile != null && !ReferencedModule.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !ReferencedModule.RulesFile.IsUnderDirectory(RootDirectory))
 							{
 								string EngineModuleRelativePath = Module.RulesFile.MakeRelativeTo(UnrealBuildTool.EngineDirectory.ParentDirectory);
-								string ReferencedModuleRelativePath = ReferencedModule.RulesFile.IsUnderDirectory(ProjectFile.Directory)? ReferencedModule.RulesFile.MakeRelativeTo(ProjectFile.Directory.ParentDirectory) : ReferencedModule.RulesFile.FullName;
+								string ReferencedModuleRelativePath = (ProjectFile != null && ReferencedModule.RulesFile.IsUnderDirectory(ProjectFile.Directory)) ? ReferencedModule.RulesFile.MakeRelativeTo(ProjectFile.Directory.ParentDirectory) : ReferencedModule.RulesFile.FullName;
 								throw new BuildException("Engine module '{0}' should not depend on game module '{1}'", EngineModuleRelativePath, ReferencedModuleRelativePath);
 							}
 						}
@@ -3586,7 +3593,14 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				BaseOutputDirectory = UnrealBuildTool.EngineDirectory;
+				if (Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EnterpriseDirectory))
+				{
+					BaseOutputDirectory = UnrealBuildTool.EnterpriseDirectory;
+				}
+				else
+				{
+					BaseOutputDirectory = UnrealBuildTool.EngineDirectory;
+				}
 			}
 
 			// Get the configuration that this module will be built in. Engine modules compiled in DebugGame will use Development.
