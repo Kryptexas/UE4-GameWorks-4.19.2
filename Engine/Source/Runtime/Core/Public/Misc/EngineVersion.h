@@ -50,6 +50,9 @@ public:
 		return Branch.Replace( TEXT( "+" ), TEXT( "/" ) );
 	}
 
+	const FString& GetBranchDescriptor() const;
+		
+
 private:
 
 	/** Branch name. */

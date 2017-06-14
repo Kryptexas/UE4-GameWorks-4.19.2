@@ -121,7 +121,6 @@ public:
 	/** SWidget interface */
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-
 	void RefreshViewport();
 
 	/**
@@ -137,7 +136,7 @@ public:
 
 	/** LOD model selection checking function*/
 	bool IsLODModelSelected( int32 LODSelectionType ) const;
-	int32 GetLODSelection() const { return LODSelection; };
+	int32 GetLODSelection() const;
 
 	/** Function to set the current playback speed*/
 	void OnSetPlaybackSpeed(int32 PlaybackSpeedMode);
@@ -198,6 +197,7 @@ public:
 
 	/** Function to set LOD model selection*/
 	void OnSetLODModel(int32 LODSelectionType);
+	void OnLODModelChanged();
 
 	/** Get the skeleton tree we are bound to */
 	TSharedRef<class ISkeletonTree> GetSkeletonTree() const { return SkeletonTreePtr.Pin().ToSharedRef(); }

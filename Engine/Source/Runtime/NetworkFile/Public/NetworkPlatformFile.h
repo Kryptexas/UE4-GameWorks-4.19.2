@@ -12,6 +12,7 @@ class FScopedEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 
+
 /**
  * Wrapper to redirect the low level file system to a server
  */
@@ -20,6 +21,7 @@ class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile, public FSelfR
 	friend class FAsyncFileSync;
 	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
 
+protected:
 	/**
 	 * Initialize network platform file give the specified host IP
 	 *
@@ -29,7 +31,10 @@ class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile, public FSelfR
 	 */
 	virtual bool InitializeInternal(IPlatformFile* Inner, const TCHAR* HostIP);
 
+	virtual void OnFileUpdated(const FString& LocalFilename);
+
 public:
+	
 
 	static const TCHAR* GetTypeName()
 	{
@@ -150,6 +155,10 @@ public:
 	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
 
 
+	virtual FString GetVersionInfo() const;
+
+
+
 	//////////////////////////////////////////////////////////////////////////
 	// FSelfRegisteringExec interface
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
@@ -173,9 +182,10 @@ protected:
 	 */
 	virtual void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
 
-	virtual void FillGetFileList(FNetworkFileArchive& Payload, bool bInStreamingFileRequest);
+	virtual void FillGetFileList(FNetworkFileArchive& Payload);
 
-	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion);
+	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32& OutServerPackageVersion, int32& OutServerPackageLicenseeVersion);
+	virtual void ProcessServerCachedFilesResponse(FArrayReader& InReponse, const int32 ServerPackageVersion, const int32 ServerPackageLicenseeVersion );
 
 private:
 
@@ -248,6 +258,11 @@ protected:
 	bool				bIsUsable;
 	int32				FileServerPort;
 
+	// the connection flags are passed to the server during GetFileList
+	// the server may cache them
+	EConnectionFlags	ConnectionFlags;
+	// Frequency to send heartbeats to server in seconds set to negative number to disable
+	float HeartbeatFrequency;
 
 
 	// some stats for messuring network platform file performance

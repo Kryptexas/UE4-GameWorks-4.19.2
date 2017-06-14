@@ -191,6 +191,7 @@
 
 #include "GeneralProjectSettings.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
+#include "ObjectKey.h"
 #include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
@@ -4328,7 +4329,8 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		UE_LOG(LogEngine, Log, TEXT("MemReportDeferred: saving to %s"), *FilenameFull);		
 	}
 
-	ReportAr->Logf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() );
+	ReportAr->Logf(TEXT( "CommandLine Options: %s" ),  FCommandLine::Get() );
+	ReportAr->Logf(TEXT("Time Since Boot: %.02f Seconds") LINE_TERMINATOR, FPlatformTime::Seconds() - GStartTime);
 
 	// Run commands from the ini
 	FConfigSection* CommandsToRun = GConfig->GetSectionPrivate(TEXT("MemReportCommands"), 0, 1, GEngineIni);
@@ -5424,6 +5426,24 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command(&Cmd,TEXT("LIST")) )
 	{
+		static TSet<FObjectKey> ForgottenObjects;
+
+		// "obj list forget" will prevent all current objects from being reported in future "obj list" commands.
+		// "obj list remember" clears that list
+		if (FParse::Command(&Cmd, TEXT("FORGET")))
+		{
+			for (FObjectIterator It; It; ++It)
+			{
+				ForgottenObjects.Add(FObjectKey(*It));
+			}
+			return true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("REMEMBER")))
+		{
+			ForgottenObjects.Empty();
+			return true;
+		}
+
 		FString CmdLineOut = FString::Printf(TEXT("Obj List: %s"), Cmd);
 		Ar.Log( *CmdLineOut );
 		Ar.Log( TEXT("Objects:") );
@@ -5481,6 +5501,10 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 			for( FObjectIterator It; It; ++It )
 			{
+				if (ForgottenObjects.Contains(FObjectKey(*It)))
+				{
+					continue;
+				}
 				if (It->IsTemplate(RF_ClassDefaultObject))
 				{
 					if( !bShouldIncludeDefaultObjects )

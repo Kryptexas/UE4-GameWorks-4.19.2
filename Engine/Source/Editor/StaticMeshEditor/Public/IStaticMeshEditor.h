@@ -11,6 +11,11 @@ class UStaticMesh;
 class UStaticMeshComponent;
 class UStaticMeshSocket;
 
+
+DECLARE_MULTICAST_DELEGATE(FOnSelectedLODChangedMulticaster);
+
+typedef FOnSelectedLODChangedMulticaster::FDelegate FOnSelectedLODChanged;
+
 /**
  * Public interface to Static Mesh Editor
  */
@@ -220,6 +225,11 @@ public:
 
 	/** Get the active view mode */
 	virtual EViewModeIndex GetViewMode() const = 0;
+
+	/* Register callback to be able to be notify when the select LOD is change */
+	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate, bool UnregisterOnRefresh) = 0;
+	/* Unregister callback to free up the ressources */
+	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
 };
 
 

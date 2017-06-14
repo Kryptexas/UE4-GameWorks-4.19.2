@@ -1337,6 +1337,7 @@ void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& Category
 	SectionListDelegates.OnSectionChanged.BindSP(this, &FMeshSectionSettingsLayout::OnSectionChanged);
 	SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection);
 	SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection);
+	SectionListDelegates.OnGenerateLodComboBox.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionList);
 
 	SectionListDelegates.OnCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCopySectionList, LODIndex);
 	SectionListDelegates.OnCanCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCanCopySectionList, LODIndex);
@@ -1345,7 +1346,9 @@ void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& Category
 	SectionListDelegates.OnCanCopySectionItem.BindSP(this, &FMeshSectionSettingsLayout::OnCanCopySectionItem);
 	SectionListDelegates.OnPasteSectionItem.BindSP(this, &FMeshSectionSettingsLayout::OnPasteSectionItem);
 
-	CategoryBuilder.AddCustomBuilder(MakeShareable(new FSectionList(CategoryBuilder.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
+	CategoryBuilder.AddCustomBuilder(MakeShareable(new FSectionList(CategoryBuilder.GetParentLayout(), SectionListDelegates, false, 61, LODIndex)));
+
+	StaticMeshEditor.RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &FMeshSectionSettingsLayout::UpdateLODCategoryVisibility), true);
 }
 
 void FMeshSectionSettingsLayout::OnCopySectionList(int32 CurrentLODIndex)
@@ -1656,9 +1659,10 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSe
 
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection(int32 ForLODIndex, int32 SectionIndex)
 {
-	return SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2, 0, 2, 0)
 		[
 			SNew(SCheckBox)
 				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCastShadow, SectionIndex)
@@ -1669,9 +1673,9 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsFo
 					.Text(LOCTEXT("CastShadow", "Cast Shadow"))
 			]
 		]
-		+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0,2,0,0)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2,0,2,0)
 		[
 			SNew(SCheckBox)
 				.IsEnabled(this, &FMeshSectionSettingsLayout::SectionCollisionEnabled)
@@ -1832,6 +1836,121 @@ void FMeshSectionSettingsLayout::CallPostEditChange(UProperty* PropertyChanged/*
 	StaticMeshEditor.RefreshViewport();
 }
 
+void FMeshSectionSettingsLayout::SetCurrentLOD(int32 NewLodIndex)
+{
+	if (StaticMeshEditor.GetStaticMeshComponent() == nullptr || LodCategoriesPtr == nullptr)
+	{
+		return;
+	}
+	int32 CurrentDisplayLOD = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+	int32 RealCurrentDisplayLOD = CurrentDisplayLOD == 0 ? 0 : CurrentDisplayLOD - 1;
+	int32 RealNewLOD = NewLodIndex == 0 ? 0 : NewLodIndex - 1;
+	
+	if (CurrentDisplayLOD == NewLodIndex || !LodCategoriesPtr->IsValidIndex(RealCurrentDisplayLOD) || !LodCategoriesPtr->IsValidIndex(RealNewLOD))
+	{
+		return;
+	}
+	(*LodCategoriesPtr)[RealCurrentDisplayLOD]->SetCategoryVisibility(false);
+	(*LodCategoriesPtr)[RealNewLOD]->SetCategoryVisibility(true);
+	StaticMeshEditor.GetStaticMeshComponent()->SetForcedLodModel(NewLodIndex);
+
+	//Reset the preview section since we do not edit the same LOD
+	StaticMeshEditor.GetStaticMeshComponent()->SetSectionPreview(INDEX_NONE);
+	StaticMeshEditor.GetStaticMeshComponent()->SelectedEditorSection = INDEX_NONE;
+}
+
+void FMeshSectionSettingsLayout::UpdateLODCategoryVisibility()
+{
+	bool bAutoLod = false;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
+	}
+	int32 CurrentDisplayLOD = bAutoLod ? 0 : StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel - 1;
+
+	if (LodCategoriesPtr != nullptr && LodCategoriesPtr->IsValidIndex(CurrentDisplayLOD) && StaticMeshEditor.GetStaticMesh())
+	{
+		int32 StaticMeshLodNumber = StaticMeshEditor.GetStaticMesh()->GetNumLODs();
+		for (int32 LodCategoryIndex = 0; LodCategoryIndex < StaticMeshLodNumber; ++LodCategoryIndex)
+		{
+			if (!LodCategoriesPtr->IsValidIndex(LodCategoryIndex))
+			{
+				break;
+			}
+			(*LodCategoriesPtr)[LodCategoryIndex]->SetCategoryVisibility(CurrentDisplayLOD == LodCategoryIndex);
+		}
+	}
+}
+
+FText FMeshSectionSettingsLayout::GetCurrentLodName() const
+{
+	bool bAutoLod = false;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
+	}
+	int32 CurrentDisplayLOD = bAutoLod ? 0 : StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel - 1;
+	return FText::FromString(bAutoLod ? FString(TEXT("Auto (LOD0)")) : (FString(TEXT("LOD")) + FString::FromInt(CurrentDisplayLOD)));
+}
+
+FText FMeshSectionSettingsLayout::GetCurrentLodTooltip() const
+{
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr && StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0)
+	{
+		return FText::FromString(TEXT("LOD0 is edit when selecting Auto LOD"));
+	}
+	return FText::GetEmpty();
+}
+
+TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodComboBoxForSectionList(int32 LodIndex)
+{
+	return SNew(SComboButton)
+		.OnGetMenuContent(this, &FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList, LodIndex)
+		.VAlign(VAlign_Center)
+		.ContentPadding(2)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		.Text(this, &FMeshSectionSettingsLayout::GetCurrentLodName)
+		.ToolTipText(this, &FMeshSectionSettingsLayout::GetCurrentLodTooltip)
+		];
+}
+
+TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateLodMenuForSectionList(int32 LodIndex)
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+
+	if (StaticMesh == nullptr)
+	{
+		return SNullWidget::NullWidget;
+	}
+
+	bool bAutoLod = false;
+	if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+	{
+		bAutoLod = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel == 0;
+	}
+	const int32 StaticMeshLODCount = StaticMesh->GetNumLODs();
+	if (StaticMeshLODCount < 2)
+	{
+		return SNullWidget::NullWidget;
+	}
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	FText AutoLodText = FText::FromString((TEXT("Auto LOD")));
+	FUIAction AutoLodAction(FExecuteAction::CreateSP(this, &FMeshSectionSettingsLayout::SetCurrentLOD, 0));
+	MenuBuilder.AddMenuEntry(AutoLodText, LOCTEXT("OnGenerateLodMenuForSectionList_Auto_ToolTip", "LOD0 is edit when selecting Auto LOD"), FSlateIcon(), AutoLodAction);
+	// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
+	for (int32 AllLodIndex = 0; AllLodIndex < StaticMeshLODCount; ++AllLodIndex)
+	{
+		FText LODLevelString = FText::FromString((TEXT("LOD ") + FString::FromInt(AllLodIndex)));
+		FUIAction Action(FExecuteAction::CreateSP(this, &FMeshSectionSettingsLayout::SetCurrentLOD, AllLodIndex + 1));
+		MenuBuilder.AddMenuEntry(LODLevelString, FText::GetEmpty(), FSlateIcon(), Action);
+	}
+
+	return MenuBuilder.MakeWidget();
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshMaterialLayout
@@ -1914,7 +2033,7 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 	MaterialListDelegates.OnCanCopyMaterialItem.BindSP(this, &FMeshMaterialsLayout::OnCanCopyMaterialItem);
 	MaterialListDelegates.OnPasteMaterialItem.BindSP(this, &FMeshMaterialsLayout::OnPasteMaterialItem);
 
-	CategoryBuilder.AddCustomBuilder(MakeShareable(new FMaterialList(CategoryBuilder.GetParentLayout(), MaterialListDelegates)));
+	CategoryBuilder.AddCustomBuilder(MakeShareable(new FMaterialList(CategoryBuilder.GetParentLayout(), MaterialListDelegates, false, true, true)));
 }
 
 void FMeshMaterialsLayout::OnCopyMaterialList()
@@ -1960,7 +2079,16 @@ void FMeshMaterialsLayout::OnPasteMaterialList()
 		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialList", "Pasted material list"));
 		GetStaticMesh().Modify();
 
-		FJsonObjectConverter::JsonValueToUProperty(RootJsonValue, Property, &GetStaticMesh().StaticMaterials, 0, 0);
+		TArray<FStaticMaterial> TempMaterials;
+		FJsonObjectConverter::JsonValueToUProperty(RootJsonValue, Property, &TempMaterials, 0, 0);
+		//Do not change the number of material in the array
+		for (int32 MaterialIndex = 0; MaterialIndex < TempMaterials.Num(); ++MaterialIndex)
+		{
+			if (GetStaticMesh().StaticMaterials.IsValidIndex(MaterialIndex))
+			{
+				GetStaticMesh().StaticMaterials[MaterialIndex].MaterialInterface = TempMaterials[MaterialIndex].MaterialInterface;
+			}
+		}
 
 		CallPostEditChange(Property);
 	}
@@ -2016,7 +2144,9 @@ void FMeshMaterialsLayout::OnPasteMaterialItem(int32 CurrentSlot)
 
 		if (GetStaticMesh().StaticMaterials.IsValidIndex(CurrentSlot))
 		{
-			FJsonObjectConverter::JsonObjectToUStruct(RootJsonObject.ToSharedRef(), FSkeletalMaterial::StaticStruct(), &GetStaticMesh().StaticMaterials[CurrentSlot], 0, 0);
+			FStaticMaterial TmpStaticMaterial;
+			FJsonObjectConverter::JsonObjectToUStruct(RootJsonObject.ToSharedRef(), FStaticMaterial::StaticStruct(), &TmpStaticMaterial, 0, 0);
+			GetStaticMesh().StaticMaterials[CurrentSlot].MaterialInterface = TmpStaticMaterial.MaterialInterface;
 		}
 
 		CallPostEditChange(Property);
@@ -2762,11 +2892,19 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 		{
 			FString CategoryName = FString(TEXT("StaticMeshMaterials"));
 
-			IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory(*CategoryName, LOCTEXT("StaticMeshMaterialsLabel", "Materials"), ECategoryPriority::Important);
+			IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory(*CategoryName, LOCTEXT("StaticMeshMaterialsLabel", "Material Slots"), ECategoryPriority::Important);
 
 			MaterialsLayoutWidget = MakeShareable(new FMeshMaterialsLayout(StaticMeshEditor));
 			MaterialsLayoutWidget->AddToCategory(MaterialsCategory);
 		}
+
+		int32 CurrentLodIndex = 0;
+		
+		if (StaticMeshEditor.GetStaticMeshComponent() != nullptr)
+		{
+			CurrentLodIndex = StaticMeshEditor.GetStaticMeshComponent()->ForcedLodModel;
+		}
+		LodCategories.Empty(StaticMeshLODCount);
 		// Create information panel for each LOD level.
 		for(int32 LODIndex = 0; LODIndex < StaticMeshLODCount; ++LODIndex)
 		{
@@ -2811,27 +2949,10 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FText LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) );
+			FText LODLevelString = FText::FromString(FString(TEXT("LOD Sections (LOD")) + FString::FromInt(LODIndex) + TEXT(")") );
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
-
-			if (LODIndex != 0)
-			{
-				LODCategory.AddCustomRow( LOCTEXT("RemoveLOD", "Remove LOD") )
-				.ValueContent()
-				.HAlign(HAlign_Left)
-				[
-					SNew(SButton)
-					.OnClicked(this, &FLevelOfDetailSettingsLayout::OnRemoveLOD, LODIndex)
-					.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanRemoveLOD, LODIndex)
-					.ToolTipText( LOCTEXT("RemoveLOD_ToolTip", "Removes this LOD from the Static Mesh") )
-					[
-						SNew(STextBlock)
-						.Text( LOCTEXT("RemoveLOD", "Remove LOD") )
-						.Font( DetailBuilder.GetDetailFont() )
-					]
-				];
-			}
+			LodCategories.Add(&LODCategory);
 
 			LODCategory.HeaderContent
 			(
@@ -2868,7 +2989,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			);
 			
 			
-			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex ) );
+			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex, LodCategories) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
 			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize")))
@@ -2900,6 +3021,26 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			{
 				LODCategory.AddCustomBuilder( ReductionSettingsWidgets[LODIndex].ToSharedRef() );
 			}
+
+			if (LODIndex != 0)
+			{
+				LODCategory.AddCustomRow( LOCTEXT("RemoveLOD", "Remove LOD") )
+				.ValueContent()
+				.HAlign(HAlign_Left)
+				[
+					SNew(SButton)
+					.OnClicked(this, &FLevelOfDetailSettingsLayout::OnRemoveLOD, LODIndex)
+					.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanRemoveLOD, LODIndex)
+					.ToolTipText( LOCTEXT("RemoveLOD_ToolTip", "Removes this LOD from the Static Mesh") )
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("RemoveLOD", "Remove LOD") )
+						.Font( DetailBuilder.GetDetailFont() )
+					]
+				];
+			}
+
+			LODCategory.SetCategoryVisibility((CurrentLodIndex == 0 ? 0 : CurrentLodIndex - 1) == LODIndex);
 
 		}
 	}

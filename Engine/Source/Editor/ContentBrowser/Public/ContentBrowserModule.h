@@ -44,7 +44,7 @@ public:
 	virtual IContentBrowserSingleton& Get() const;
 
 	/** Delegates to be called to extend the content browser menus */
-	virtual TArray<FContentBrowserMenuExtender>& GetAllAssetContextMenuExtenders() {return AssetContextMenuExtenders;}
+	virtual TArray<FContentBrowserMenuExtender_SelectedPaths>& GetAllAssetContextMenuExtenders() {return AssetContextMenuExtenders;}
 	virtual TArray<FContentBrowserMenuExtender_SelectedPaths>& GetAllPathViewContextMenuExtenders() {return PathViewContextMenuExtenders;}
 	virtual TArray<FContentBrowserMenuExtender>& GetAllCollectionListContextMenuExtenders() {return CollectionListContextMenuExtenders;}
 	virtual TArray<FContentBrowserMenuExtender>& GetAllCollectionViewContextMenuExtenders() {return CollectionViewContextMenuExtenders;}
@@ -66,7 +66,7 @@ private:
 	TSharedPtr<class FContentBrowserSpawner> ContentBrowserSpawner;
 
 	/** All extender delegates for the content browser menus */
-	TArray<FContentBrowserMenuExtender> AssetContextMenuExtenders;
+	TArray<FContentBrowserMenuExtender_SelectedPaths> AssetContextMenuExtenders;
 	TArray<FContentBrowserMenuExtender_SelectedPaths> PathViewContextMenuExtenders;
 	TArray<FContentBrowserMenuExtender> CollectionListContextMenuExtenders;
 	TArray<FContentBrowserMenuExtender> CollectionViewContextMenuExtenders;

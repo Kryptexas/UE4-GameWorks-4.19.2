@@ -252,9 +252,10 @@ private:
 class FMeshSectionSettingsLayout : public TSharedFromThis<FMeshSectionSettingsLayout>
 {
 public:
-	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex )
+	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex, TArray<class IDetailCategoryBuilder*> &InLodCategories)
 		: StaticMeshEditor( InStaticMeshEditor )
 		, LODIndex( InLODIndex )
+		, LodCategoriesPtr(&InLodCategories)
 	{}
 
 	virtual ~FMeshSectionSettingsLayout();
@@ -319,9 +320,22 @@ private:
 	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
 
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
+
+	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
+	/*
+	* Generate the context menu to choose the LOD we will display the section list
+	*/
+	TSharedRef<SWidget> OnGenerateLodMenuForSectionList(int32 LodIndex);
+	void UpdateLODCategoryVisibility();
+	FText GetCurrentLodName() const;
+	FText GetCurrentLodTooltip() const;
+
+	void SetCurrentLOD(int32 NewLodIndex);
 	
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;
+
+	TArray<class IDetailCategoryBuilder*> *LodCategoriesPtr;
 };
 
 struct FSectionLocalizer
@@ -503,4 +517,6 @@ private:
 	bool bBuildSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bReductionSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bSectionSettingsExpanded[MAX_STATIC_MESH_LODS];
+
+	TArray<class IDetailCategoryBuilder*> LodCategories;
 };

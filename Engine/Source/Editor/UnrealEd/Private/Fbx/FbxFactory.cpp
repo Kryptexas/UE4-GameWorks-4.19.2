@@ -243,7 +243,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	bool bIsAutomated = IsAutomatedImport();
 	bool bShowImportDialog = bShowOption && !bIsAutomated;
 	bool bImportAll = false;
-	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType);
+	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType, ExistingObject);
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )
@@ -890,5 +890,13 @@ void UFbxImportUI::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJso
 	}
 }
 
+void UFbxImportUI::ResetToDefault()
+{
+	ReloadConfig();
+	AnimSequenceImportData->ReloadConfig();
+	StaticMeshImportData->ReloadConfig();
+	SkeletalMeshImportData->ReloadConfig();
+	TextureImportData->ReloadConfig();
+}
 
 #undef LOCTEXT_NAMESPACE

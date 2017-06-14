@@ -522,7 +522,7 @@ class FMaterialList
 	, public TSharedFromThis<FMaterialList>
 {
 public:
-	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false, bool bInShowUsedTextures = true);
+	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false, bool bInShowUsedTextures = true, bool bInDisplayCompactSize = false);
 
 	/**
 	 * @return true if materials are being displayed.                                                          
@@ -598,6 +598,8 @@ private:
 	bool bAllowCollpase;
 	/** Whether or not to use the used textures menu for each material entry */
 	bool bShowUsedTextures;
+	/** Whether or not to display a compact form of material entry*/
+	bool bDisplayCompactSize;
 };
 
 
@@ -636,6 +638,8 @@ DECLARE_DELEGATE_RetVal_TwoParams(TSharedRef<SWidget>, FOnGenerateWidgetsForSect
 
 DECLARE_DELEGATE_TwoParams(FOnResetSectionToDefaultClicked, int32, int32);
 
+DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<SWidget>, FOnGenerateLODComboBox, int32);
+
 DECLARE_DELEGATE_RetVal(bool, FOnCanCopySectionList);
 DECLARE_DELEGATE(FOnCopySectionList);
 DECLARE_DELEGATE(FOnPasteSectionList);
@@ -652,6 +656,7 @@ struct FSectionListDelegates
 		, OnGenerateCustomNameWidgets()
 		, OnGenerateCustomSectionWidgets()
 		, OnResetSectionToDefaultClicked()
+		, OnGenerateLodComboBox()
 	{}
 
 	/** Delegate called to populate the list with Sections */
@@ -664,6 +669,9 @@ struct FSectionListDelegates
 	FOnGenerateWidgetsForSection OnGenerateCustomSectionWidgets;
 	/** Delegate called when a Section list item should be reset to default */
 	FOnResetSectionToDefaultClicked OnResetSectionToDefaultClicked;
+
+	/** Delegate called when a Section list generate the LOD section combo box */
+	FOnGenerateLODComboBox OnGenerateLodComboBox;
 
 	/** Delegate called Copying a section list */
 	FOnCopySectionList OnCopySectionList;
@@ -711,6 +719,9 @@ struct FSectionListItem
 	/* Is this section is using cloth */
 	bool IsSectionUsingCloth;
 
+	/* Size of the preview material thumbnail */
+	int32 ThumbnailSize;
+
 	/** Material being readonly view in the list */
 	TWeakObjectPtr<UMaterialInterface> Material;
 
@@ -723,10 +734,11 @@ struct FSectionListItem
 	TMap<int32, FName> AvailableMaterialSlotName;
 
 
-	FSectionListItem(int32 InLodIndex, int32 InSectionIndex, FName InMaterialSlotName, int32 InMaterialSlotIndex, FName InOriginalMaterialSlotName, const TMap<int32, FName> &InAvailableMaterialSlotName, const UMaterialInterface* InMaterial, bool InIsSectionUsingCloth)
+	FSectionListItem(int32 InLodIndex, int32 InSectionIndex, FName InMaterialSlotName, int32 InMaterialSlotIndex, FName InOriginalMaterialSlotName, const TMap<int32, FName> &InAvailableMaterialSlotName, const UMaterialInterface* InMaterial, bool InIsSectionUsingCloth, int32 InThumbnailSize)
 		: LodIndex(InLodIndex)
 		, SectionIndex(InSectionIndex)
 		, IsSectionUsingCloth(InIsSectionUsingCloth)
+		, ThumbnailSize(InThumbnailSize)
 		, Material(InMaterial)
 		, MaterialSlotName(InMaterialSlotName)
 		, MaterialSlotIndex(InMaterialSlotIndex)
@@ -767,7 +779,7 @@ struct FSectionListItem
 class FSectionList : public IDetailCustomNodeBuilder, public TSharedFromThis<FSectionList>
 {
 public:
-	PROPERTYEDITOR_API FSectionList(IDetailLayoutBuilder& InDetailLayoutBuilder, FSectionListDelegates& SectionListDelegates, bool bInAllowCollapse = false);
+	PROPERTYEDITOR_API FSectionList(IDetailLayoutBuilder& InDetailLayoutBuilder, FSectionListDelegates& SectionListDelegates, bool bInAllowCollapse, int32 InThumbnailSize, int32 InSectionsLodIndex);
 
 	/**
 	* @return true if Sections are being displayed
@@ -828,4 +840,7 @@ private:
 	TSharedRef<class FSectionListBuilder> SectionListBuilder;
 	/** Allow Collapse of Section header row. Right now if you allow collapse, it will initially collapse. */
 	bool bAllowCollpase;
+
+	int32 ThumbnailSize;
+	int32 SectionsLodIndex;
 };

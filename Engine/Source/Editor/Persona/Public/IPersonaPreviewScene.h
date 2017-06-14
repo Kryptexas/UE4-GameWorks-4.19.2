@@ -29,6 +29,10 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMeshClickMulticaster, HActor*, const FVi
 
 typedef FOnMeshClickMulticaster::FDelegate FOnMeshClick;
 
+//The selected LOD changed
+DECLARE_MULTICAST_DELEGATE(FOnSelectedLODChangedMulticaster);
+typedef FOnSelectedLODChangedMulticaster::FDelegate FOnSelectedLODChanged;
+
 /** Modes that the preview scene defaults to (usually depending on asset editor context) */
 enum class EPreviewSceneDefaultAnimationMode : int32
 {
@@ -190,4 +194,11 @@ public:
 
 	/** Set whether or not to ignore mesh hit proxies */
 	virtual void SetAllowMeshHitProxies(bool bState) = 0;
+
+	/** Register callback to be able to be notify when the select LOD is change */
+	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate) = 0;
+	/** Unregister callback to free up the ressources */
+	virtual void UnRegisterOnSelectedLODChanged(void* Thing) = 0;
+	/** Broadcast select LOD changed */
+	virtual void BroadcastOnSelectedLODChanged() = 0;
 };

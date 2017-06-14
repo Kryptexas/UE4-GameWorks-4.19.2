@@ -62,6 +62,49 @@ DECLARE_DELEGATE_RetVal( FString, FSandboxPathDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam( FOnFileModifiedDelegate, const FString& );
 
 
+/**
+ * Delegate which is called when a new connection is made to a file server client
+ * 
+ * @param 1 Version string
+ * @param 2 Platform name
+ * @return return false if the connection should be destroyed
+ */
+DECLARE_DELEGATE_RetVal_TwoParams( bool, FNewConnectionDelegate, const FString&, const FString& );
+
+
+/**
+ * Delegate which returns a list of all the files which should already be deployed to the devkit
+ *
+ * @param 1 IN, Platform to get precooked file list
+ * @param 2 OUT, list of precooked files 
+ */
+typedef TMap<FString,FDateTime> FFileTimeMap;
+DECLARE_DELEGATE_TwoParams( FInitialPrecookedListDelegate, const FString&, FFileTimeMap& );
+
+
+
+// container struct for delegates which the network file system uses
+struct FNetworkFileDelegateContainer
+{
+public:
+	FNetworkFileDelegateContainer() : 
+		NewConnectionDelegate(nullptr), 
+		InitialPrecookedListDelegate(nullptr),
+		SandboxPathOverrideDelegate(nullptr),
+		FileRequestDelegate(nullptr),
+		RecompileShadersDelegate(nullptr),
+		OnFileModifiedCallback(nullptr)
+	{}
+	FNewConnectionDelegate NewConnectionDelegate; 
+	FInitialPrecookedListDelegate InitialPrecookedListDelegate;
+	FSandboxPathDelegate SandboxPathOverrideDelegate;
+	FFileRequestDelegate FileRequestDelegate;
+	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	FOnFileModifiedDelegate* OnFileModifiedCallback; // this is called from other systems to notify the network file system that a file has been modified hence the terminology callback
+};
+
+
 enum ENetworkFileServerProtocol
 {
 	NFSP_Tcp,
@@ -86,7 +129,7 @@ public:
 	 *
 	 * @return The new file server, or nullptr if creation failed.
 	 */
-	virtual INetworkFileServer* CreateNetworkFileServer( bool bLoadTargetPlatforms, int32 Port = -1, const FFileRequestDelegate* InFileRequestDelegate = nullptr, const FRecompileShadersDelegate* InRecompileShadersDelegate = nullptr, const FSandboxPathDelegate* SandboxPathOverrideDelegate = nullptr, FOnFileModifiedDelegate* OnFileModifiedDelegate = nullptr, const ENetworkFileServerProtocol Protocol = NFSP_Tcp ) const = 0;
+	virtual INetworkFileServer* CreateNetworkFileServer( bool bLoadTargetPlatforms, int32 Port = -1, FNetworkFileDelegateContainer InNetworkFileDelegateContainer = FNetworkFileDelegateContainer(), const ENetworkFileServerProtocol Protocol = NFSP_Tcp ) const = 0;
 
 public:
 

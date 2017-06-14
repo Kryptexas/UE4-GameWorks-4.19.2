@@ -25,6 +25,7 @@
 
 extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
+#include "TimeGuard.h"
 
 DEFINE_LOG_CATEGORY(LogEQS);
 
@@ -316,6 +317,7 @@ bool UEnvQueryManager::AbortQuery(int32 RequestID)
 
 void UEnvQueryManager::Tick(float DeltaTime)
 {
+	SCOPE_TIME_GUARD_MS(TEXT("UEnvQueryManager::Tick"), 10);
 	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Tick);
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
 

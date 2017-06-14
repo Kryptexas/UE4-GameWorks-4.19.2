@@ -25,7 +25,7 @@ void FAssetTypeActions_World::OpenAssetEditor( const TArray<UObject*>& InObjects
 				const bool bShowProgress = true;
 				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 			}
-
+			
 			// We can only edit one world at a time... so just break after the first valid world to load
 			break;
 		}

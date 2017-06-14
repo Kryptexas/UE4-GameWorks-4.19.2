@@ -104,9 +104,6 @@ enum EConvertToAdditive
 	CTA_MAX	// Always last one
 };
 
-/** Control animation recompression upon load. */
-extern ENGINE_API bool GDisableAnimationRecompression;
-
 /**
  * A collection of useful functions for skeletal mesh animation.
  */

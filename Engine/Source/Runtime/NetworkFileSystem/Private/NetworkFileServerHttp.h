@@ -48,9 +48,7 @@ class FNetworkFileServerHttp
 {
 
 public:
-	FNetworkFileServerHttp(int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,
-		const FRecompileShadersDelegate* InRecompileShadersDelegate, const FSandboxPathDelegate* SandboxPathOverrideDelegate, 
-		FOnFileModifiedDelegate* OnFileModifiedDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+	FNetworkFileServerHttp(int32 InPort, FNetworkFileDelegateContainer InNetworkFileDelegateContainer, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	// INetworkFileServer Interface.
 
@@ -82,15 +80,7 @@ private:
 	// factory method for creating a new Client Connection.
 	class FNetworkFileServerClientConnectionHTTP* CreateNewConnection();
 
-	// Holds a delegate to be invoked on every sync request.
-	FFileRequestDelegate FileRequestDelegate;
-
-	// Holds a delegate to be invoked when a client requests a shader recompile.
-	FRecompileShadersDelegate RecompileShadersDelegate;
-
-	FSandboxPathDelegate SandboxPathDelegate;
-
-	FOnFileModifiedDelegate* OnFileModifiedCallback;
+	FNetworkFileDelegateContainer NetworkFileDelegates;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;

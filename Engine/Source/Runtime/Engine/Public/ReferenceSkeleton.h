@@ -153,9 +153,13 @@ private:
 
 	int32 GetParentIndexInternal(const int32 BoneIndex, const TArray<FMeshBoneInfo>& BoneInfo) const
 	{
-		// Parent must be valid. Either INDEX_NONE for Root, or before us.
-		checkSlow(((BoneIndex == 0) && (BoneInfo[BoneIndex].ParentIndex == INDEX_NONE)) || ((BoneIndex > 0) && BoneInfo.IsValidIndex(BoneInfo[BoneIndex].ParentIndex)));
-		return BoneInfo[BoneIndex].ParentIndex;
+		const int32 ParentIndex = BoneInfo[BoneIndex].ParentIndex;
+
+		// Parent must be valid. Either INDEX_NONE for Root, or before children for non root bones.
+		checkSlow(((BoneIndex == 0) && (ParentIndex == INDEX_NONE))
+			|| ((BoneIndex > 0) && BoneInfo.IsValidIndex(ParentIndex) && (ParentIndex < BoneIndex)));
+
+		return ParentIndex;
 	}
 
 	void UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose)
@@ -180,8 +184,9 @@ private:
 		// Normalize Quaternion to be safe.
 		RawRefBonePose[BoneIndex].NormalizeRotation();
 
-		// Parent must be valid. Either INDEX_NONE for Root, or before us.
-		check(((BoneIndex == 0) && (BoneInfo.ParentIndex == INDEX_NONE)) || ((BoneIndex > 0) && RawRefBoneInfo.IsValidIndex(BoneInfo.ParentIndex)));
+		// Parent must be valid. Either INDEX_NONE for Root, or before children for non root bones.
+		check(((BoneIndex == 0) && (BoneInfo.ParentIndex == INDEX_NONE)) 
+			|| ((BoneIndex > 0) && RawRefBoneInfo.IsValidIndex(BoneInfo.ParentIndex) && (BoneInfo.ParentIndex < BoneIndex)));
 	}
 
 	// Help us translate a virtual bone source into a raw bone source (for evaluating virtual bone transform)

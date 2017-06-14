@@ -42,6 +42,9 @@ FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
 	, InnerPlatformFile(NULL)
 	, bIsUsable(false)
+	, FileServerPort(0)
+	, ConnectionFlags(EConnectionFlags::None)
+	, HeartbeatFrequency(5.0f)
 	, FinishedAsyncNetworkReadUnsolicitedFiles(NULL)
 	, FinishedAsyncWriteUnsolicitedFiles(NULL)
 	, Transport(NULL)
@@ -199,7 +202,7 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 
 		// send the filenames and timestamps to the server
 		FNetworkFileArchive Payload(NFS_Messages::GetFileList);
-		FillGetFileList(Payload, false);
+		FillGetFileList(Payload);
 
 		// send the directories over, and wait for a response
 		FArrayReader Response;
@@ -214,147 +217,7 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 			int32 ServerPackageVersion = 0;
 			int32 ServerPackageLicenseeVersion = 0;
 			ProcessServerInitialResponse(Response, ServerPackageVersion, ServerPackageLicenseeVersion);
-
-
-			/* The server root content directories */
-			TArray<FString> ServerRootContentDirectories;
-			Response << ServerRootContentDirectories;
-
-			// receive a list of the cache files and their timestamps
-			TMap<FString, FDateTime> ServerCachedFiles;
-			Response << ServerCachedFiles;
-
-			bool bDeleteAllFiles = true;
-			// Check the stored cooked version
-			FString CookedVersionFile = FPaths::GeneratedConfigDir() / TEXT("CookedVersion.txt");
-
-			if (InnerPlatformFile->FileExists(*CookedVersionFile) == true)
-			{
-				IFileHandle* FileHandle = InnerPlatformFile->OpenRead(*CookedVersionFile);
-				if (FileHandle != NULL)
-				{
-					int32 StoredPackageCookedVersion;
-					int32 StoredPackageCookedLicenseeVersion;
-					if (FileHandle->Read((uint8*)&StoredPackageCookedVersion, sizeof(int32)) == true)
-					{
-						if (FileHandle->Read((uint8*)&StoredPackageCookedLicenseeVersion, sizeof(int32)) == true)
-						{
-							if ((ServerPackageVersion == StoredPackageCookedVersion) &&
-								(ServerPackageLicenseeVersion == StoredPackageCookedLicenseeVersion))
-							{
-								bDeleteAllFiles = false;
-							}
-							else
-							{
-								UE_LOG(LogNetworkPlatformFile, Display, 
-									TEXT("Engine version mismatch: Server %d.%d, Stored %d.%d\n"), 
-									ServerPackageVersion, ServerPackageLicenseeVersion,
-									StoredPackageCookedVersion, StoredPackageCookedLicenseeVersion);
-							}
-						}
-					}
-
-					delete FileHandle;
-				}
-			}
-			else
-			{
-				UE_LOG(LogNetworkPlatformFile, Display, TEXT("Cooked version file missing: %s\n"), *CookedVersionFile);
-			}
-
-			if (bDeleteAllFiles == true)
-			{
-				// Make sure the config file exists...
-				InnerPlatformFile->CreateDirectoryTree(*(FPaths::GeneratedConfigDir()));
-				// Update the cooked version file
-				IFileHandle* FileHandle = InnerPlatformFile->OpenWrite(*CookedVersionFile);
-				if (FileHandle != NULL)
-				{
-					FileHandle->Write((const uint8*)&ServerPackageVersion, sizeof(int32));
-					FileHandle->Write((const uint8*)&ServerPackageLicenseeVersion, sizeof(int32));
-					delete FileHandle;
-				}
-			}
-
-			// list of directories to skip
-			TArray<FString> DirectoriesToSkip;
-			TArray<FString> DirectoriesToNotRecurse;
-			// use the timestamp grabbing visitor to get all the content times
-			FLocalTimestampDirectoryVisitor Visitor(*InnerPlatformFile, DirectoriesToSkip, DirectoriesToNotRecurse, false);
-
-			/*TArray<FString> RootContentPaths;
-			FPackageName::QueryRootContentPaths(RootContentPaths); */
-			for (TArray<FString>::TConstIterator RootPathIt(ServerRootContentDirectories); RootPathIt; ++RootPathIt)
-			{
-				/*const FString& RootPath = *RootPathIt;
-				const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);*/
-				const FString& ContentFolder = *RootPathIt;
-				InnerPlatformFile->IterateDirectory( *ContentFolder, Visitor);
-			}
-
-			// delete out of date files using the server cached files
-			for (TMap<FString, FDateTime>::TIterator It(ServerCachedFiles); It; ++It)
-			{
-				bool bDeleteFile = bDeleteAllFiles;
-				FString ServerFile = It.Key();
-
-				// Convert the filename to the client version
-				ConvertServerFilenameToClientFilename(ServerFile);
-
-				// Set it in the visitor file times list
-				// If there is any pathing difference (relative path, or whatever) between the server's filelist and the results
-				// of platform directory iteration then this will Add a new entry rather than override the existing one.  This causes local file deletes
-				// and longer loads as we will never see the benefits of local device caching.
-				Visitor.FileTimes.Add(ServerFile, FDateTime::MinValue());
-
-				if (bDeleteFile == false)
-				{
-					// Check the time stamps...
-					// get local time
-					FDateTime LocalTime = InnerPlatformFile->GetTimeStamp(*ServerFile);
-					// If local time == MinValue than the file does not exist in the cache.
-					if (LocalTime != FDateTime::MinValue())
-					{
-						FDateTime ServerTime = It.Value();
-						// delete if out of date
-						// We will use 1.0 second as the tolerance to cover any platform differences in resolution
-						FTimespan TimeDiff = LocalTime - ServerTime;
-						double TimeDiffInSeconds = TimeDiff.GetTotalSeconds();
-						bDeleteFile = (TimeDiffInSeconds > 1.0) || (TimeDiffInSeconds < -1.0);
-						if (bDeleteFile == true)
-						{
-							if (InnerPlatformFile->FileExists(*ServerFile) == true)
-							{
-								UE_LOG(LogNetworkPlatformFile, Display, TEXT("Deleting cached file: TimeDiff %5.3f, %s"), TimeDiffInSeconds, *It.Key());
-							}
-							else
-							{
-								// It's a directory
-								bDeleteFile = false;
-							}
-						}
-						else
-						{
-							UE_LOG(LogNetworkPlatformFile, Display, TEXT("Keeping cached file: %s, TimeDiff worked out ok"), *ServerFile);
-						}
-					}
-				}
-				if (bDeleteFile == true)
-				{
-					InnerPlatformFile->DeleteFile(*ServerFile);
-				}
-			}
-
-			// Any content files we have locally that were not cached, delete them
-			for (TMap<FString, FDateTime>::TIterator It(Visitor.FileTimes); It; ++It)
-			{
-				if (It.Value() != FDateTime::MinValue())
-				{
-					// This was *not* found in the server file list... delete it
-					UE_LOG(LogNetworkPlatformFile, Display, TEXT("Deleting cached file: %s"), *It.Key());
-					InnerPlatformFile->DeleteFile(*It.Key());
-				}
-			}
+			ProcessServerCachedFilesResponse(Response, ServerPackageVersion, ServerPackageLicenseeVersion);
 
 			// make sure we can sync a file
 			FString TestSyncFile = FPaths::Combine(*(FPaths::EngineDir()), TEXT("Config/BaseEngine.ini"));
@@ -377,6 +240,155 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Network file startup time: %5.3f seconds\n"), NetworkFileStartupTime);
 
+}
+
+void FNetworkPlatformFile::ProcessServerCachedFilesResponse(FArrayReader& Response, const int32 ServerPackageVersion, const int32 ServerPackageLicenseeVersion)
+{
+	/* The server root content directories */
+	TArray<FString> ServerRootContentDirectories;
+	Response << ServerRootContentDirectories;
+
+	// receive a list of the cache files and their timestamps
+	TMap<FString, FDateTime> ServerCachedFiles;
+	Response << ServerCachedFiles;
+
+	bool bDeleteAllFiles = true;
+	// Check the stored cooked version
+	FString CookedVersionFile = FPaths::GeneratedConfigDir() / TEXT("CookedVersion.txt");
+
+	if (InnerPlatformFile->FileExists(*CookedVersionFile) == true)
+	{
+		IFileHandle* FileHandle = InnerPlatformFile->OpenRead(*CookedVersionFile);
+		if (FileHandle != NULL)
+		{
+			int32 StoredPackageCookedVersion;
+			int32 StoredPackageCookedLicenseeVersion;
+			if (FileHandle->Read((uint8*)&StoredPackageCookedVersion, sizeof(int32)) == true)
+			{
+				if (FileHandle->Read((uint8*)&StoredPackageCookedLicenseeVersion, sizeof(int32)) == true)
+				{
+					if ((ServerPackageVersion == StoredPackageCookedVersion) &&
+						(ServerPackageLicenseeVersion == StoredPackageCookedLicenseeVersion))
+					{
+						bDeleteAllFiles = false;
+					}
+					else
+					{
+						UE_LOG(LogNetworkPlatformFile, Display,
+							TEXT("Engine version mismatch: Server %d.%d, Stored %d.%d\n"),
+							ServerPackageVersion, ServerPackageLicenseeVersion,
+							StoredPackageCookedVersion, StoredPackageCookedLicenseeVersion);
+					}
+				}
+			}
+
+			delete FileHandle;
+		}
+	}
+	else
+	{
+		UE_LOG(LogNetworkPlatformFile, Display, TEXT("Cooked version file missing: %s\n"), *CookedVersionFile);
+	}
+
+	if (bDeleteAllFiles == true)
+	{
+		// Make sure the config file exists...
+		InnerPlatformFile->CreateDirectoryTree(*(FPaths::GeneratedConfigDir()));
+		// Update the cooked version file
+		IFileHandle* FileHandle = InnerPlatformFile->OpenWrite(*CookedVersionFile);
+		if (FileHandle != NULL)
+		{
+			FileHandle->Write((const uint8*)&ServerPackageVersion, sizeof(int32));
+			FileHandle->Write((const uint8*)&ServerPackageLicenseeVersion, sizeof(int32));
+			delete FileHandle;
+		}
+	}
+
+	// list of directories to skip
+	TArray<FString> DirectoriesToSkip;
+	TArray<FString> DirectoriesToNotRecurse;
+	// use the timestamp grabbing visitor to get all the content times
+	FLocalTimestampDirectoryVisitor Visitor(*InnerPlatformFile, DirectoriesToSkip, DirectoriesToNotRecurse, false);
+
+	/*TArray<FString> RootContentPaths;
+	FPackageName::QueryRootContentPaths(RootContentPaths); */
+	for (TArray<FString>::TConstIterator RootPathIt(ServerRootContentDirectories); RootPathIt; ++RootPathIt)
+	{
+		/*const FString& RootPath = *RootPathIt;
+		const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);*/
+		const FString& ContentFolder = *RootPathIt;
+		InnerPlatformFile->IterateDirectory(*ContentFolder, Visitor);
+	}
+
+	// delete out of date files using the server cached files
+	for (TMap<FString, FDateTime>::TIterator It(ServerCachedFiles); It; ++It)
+	{
+		bool bDeleteFile = bDeleteAllFiles;
+		FString ServerFile = It.Key();
+
+		// Convert the filename to the client version
+		ConvertServerFilenameToClientFilename(ServerFile);
+
+		// Set it in the visitor file times list
+		// If there is any pathing difference (relative path, or whatever) between the server's filelist and the results
+		// of platform directory iteration then this will Add a new entry rather than override the existing one.  This causes local file deletes
+		// and longer loads as we will never see the benefits of local device caching.
+		Visitor.FileTimes.Add(ServerFile, FDateTime::MinValue());
+
+		if (bDeleteFile == false)
+		{
+			// Check the time stamps...
+			// get local time
+			FDateTime LocalTime = InnerPlatformFile->GetTimeStamp(*ServerFile);
+			// If local time == MinValue than the file does not exist in the cache.
+			if (LocalTime != FDateTime::MinValue())
+			{
+				FDateTime ServerTime = It.Value();
+				// delete if out of date
+				// We will use 1.0 second as the tolerance to cover any platform differences in resolution
+				FTimespan TimeDiff = LocalTime - ServerTime;
+				double TimeDiffInSeconds = TimeDiff.GetTotalSeconds();
+				bDeleteFile = (TimeDiffInSeconds > 1.0) || (TimeDiffInSeconds < -1.0);
+				if (bDeleteFile == true)
+				{
+					if (InnerPlatformFile->FileExists(*ServerFile) == true)
+					{
+						UE_LOG(LogNetworkPlatformFile, Display, TEXT("Deleting cached file: TimeDiff %5.3f, %s"), TimeDiffInSeconds, *It.Key());
+					}
+					else
+					{
+						// It's a directory
+						bDeleteFile = false;
+					}
+				}
+				else
+				{
+					UE_LOG(LogNetworkPlatformFile, Display, TEXT("Keeping cached file: %s, TimeDiff worked out ok"), *ServerFile);
+				}
+			}
+		}
+		if (bDeleteFile == true)
+		{
+			UE_LOG(LogNetworkPlatformFile, Display, TEXT("Deleting cached file: %s"), *ServerFile);
+			InnerPlatformFile->DeleteFile(*ServerFile);
+		}
+	}
+
+	// Any content files we have locally that were not cached, delete them
+	for (TMap<FString, FDateTime>::TIterator It(Visitor.FileTimes); It; ++It)
+	{
+		if ( FCString::Stricmp( *FPaths::GetExtension( It.Key() ), TEXT("pak")) == 0 )
+		{
+			// ignore pak files they won't be mounted anyway 
+			continue;
+		}
+		if (It.Value() != FDateTime::MinValue())
+		{
+			// This was *not* found in the server file list... delete it
+			UE_LOG(LogNetworkPlatformFile, Display, TEXT("Deleting cached file: %s"), *It.Key());
+			InnerPlatformFile->DeleteFile(*It.Key());
+		}
+	}
 }
 
 FNetworkPlatformFile::~FNetworkPlatformFile()
@@ -772,7 +784,7 @@ void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& Filena
 	FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FilenameToConvert, ServerEngineDir, ServerGameDir);
 }
 
-void FNetworkPlatformFile::FillGetFileList(FNetworkFileArchive& Payload, bool bInStreamingFileRequest)
+void FNetworkPlatformFile::FillGetFileList(FNetworkFileArchive& Payload)
 {
 	TArray<FString> TargetPlatformNames;
 	FPlatformMisc::GetValidTargetPlatforms(TargetPlatformNames);
@@ -798,10 +810,13 @@ void FNetworkPlatformFile::FillGetFileList(FNetworkFileArchive& Payload, bool bI
 	Payload << EngineRelPath;
 	Payload << GameRelPath;
 	Payload << Directories;
-	Payload << bInStreamingFileRequest;
+	Payload << ConnectionFlags;
+
+	FString VersionInfo = GetVersionInfo();
+	Payload << VersionInfo;
 }
 
-void FNetworkPlatformFile::ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion)
+void FNetworkPlatformFile::ProcessServerInitialResponse(FArrayReader& InResponse, int32& OutServerPackageVersion, int32& OutServerPackageLicenseeVersion)
 {
 	// Receive the cooked version information.
 	InResponse << OutServerPackageVersion;
@@ -825,6 +840,12 @@ void FNetworkPlatformFile::ProcessServerInitialResponse(FArrayReader& InResponse
 		ConvertServerFilenameToClientFilename(ServerFile);
 		ServerFiles.AddFileOrDirectory(ServerFile, It.Value());
 	}
+}
+
+
+FString FNetworkPlatformFile::GetVersionInfo() const
+{
+	return FString("");
 }
 
 bool FNetworkPlatformFile::SendReadMessage(uint8* Destination, int64 BytesToRead)
@@ -1348,21 +1369,16 @@ void FNetworkPlatformFile::PerformHeartbeat()
 		UE_LOG(LogNetworkPlatformFile, Log, TEXT("Server updated file '%s', deleting local copy %s"), *UpdatedFiles[FileIndex], *LocalFileName);
 
 		FString PackageName;
-		if ( FPackageName::TryConvertFilenameToLongPackageName(LocalFileName, PackageName) )
+		if (FPackageName::TryConvertFilenameToLongPackageName(LocalFileName, PackageName))
 		{
-			PackageNames.Add(PackageName );
+			PackageNames.Add(PackageName);
 		}
 		else
 		{
 			UE_LOG(LogNetworkPlatformFile, Log, TEXT("Unable to convert filename to package name %s"), *LocalFileName);
 		}
 
-		if (InnerPlatformFile->FileExists( *LocalFileName ) && InnerPlatformFile->DeleteFile(*LocalFileName) == false)
-		{
-			UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to delete %s, someone is probably accessing without FNetworkPlatformFile, or we need better thread protection"), *UpdatedFiles[FileIndex]);
-		}
-		CachedLocalFiles.Remove(LocalFileName);
-		ServerFiles.AddFileOrDirectory(LocalFileName, FDateTime::UtcNow());
+		OnFileUpdated(LocalFileName);
 	}
 
 	if ( PackageNames.Num() > 0 )
@@ -1371,7 +1387,15 @@ void FNetworkPlatformFile::PerformHeartbeat()
 	}
 }
 
-
+void FNetworkPlatformFile::OnFileUpdated(const FString& LocalFileName)
+{
+	if (InnerPlatformFile->FileExists(*LocalFileName) && InnerPlatformFile->DeleteFile(*LocalFileName) == false)
+	{
+		UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to delete %s, someone is probably accessing without FNetworkPlatformFile, or we need better thread protection"), *LocalFileName);
+	}
+	CachedLocalFiles.Remove(LocalFileName);
+	ServerFiles.AddFileOrDirectory(LocalFileName, FDateTime::UtcNow());
+}
 
 void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir)
 {
@@ -1391,7 +1415,7 @@ void FNetworkPlatformFile::Tick()
 	static double StartTime = FPlatformTime::Seconds();
 
 	bool bShouldPerformHeartbeat = true;
-	if ((FPlatformTime::Seconds() - StartTime) > 5.0f )
+	if ((FPlatformTime::Seconds() - StartTime) > HeartbeatFrequency && HeartbeatFrequency >= 0 )
 	{
 
 

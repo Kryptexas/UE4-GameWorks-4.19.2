@@ -37,6 +37,7 @@ class ENGINE_API FMallocLeakReporter
 {
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FMallocLeakReportDelegate, const int32, const int32);
 
+public:
 	struct EReportOption
 	{
 		enum
@@ -49,7 +50,6 @@ class ENGINE_API FMallocLeakReporter
 		};
 	};
 
-public:
 	/** Return singleton instance */
 	static FMallocLeakReporter& Get();
 

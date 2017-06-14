@@ -705,7 +705,7 @@ class AIMODULE_API UEnvQueryTypes : public UObject
 
 public:
 	/** special test value assigned to items skipped by condition check */
-	static float SkippedItemValue;
+	static const float SkippedItemValue;
 
 	/** special value used for executing query steps to prevent them from being time sliced */
 	static float UnlimitedStepTime;

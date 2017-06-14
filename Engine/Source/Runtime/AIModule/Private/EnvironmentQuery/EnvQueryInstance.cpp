@@ -15,6 +15,12 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
 #include "AISystem.h"
 
+#if UE_BUILD_SHIPPING
+#define eqs_ensure ensure
+#else
+#define eqs_ensure ensureAlways
+#endif
+
 //----------------------------------------------------------------------//
 // FEnvQueryDebugData
 //----------------------------------------------------------------------//
@@ -543,7 +549,7 @@ void FEnvQueryInstance::FItemIterator::HandleFailedTestResult()
 void FEnvQueryInstance::FItemIterator::StoreTestResult()
 {
 	CheckItemPassed();
-	ensureAlways(FMath::IsNaN(ItemScore) == false);
+	eqs_ensure(FMath::IsNaN(ItemScore) == false);
 
 #if USE_EQS_DEBUGGER
 	Instance.NumProcessedItems++;
@@ -577,7 +583,7 @@ void FEnvQueryInstance::FItemIterator::StoreTestResult()
 		}
 		else if (CachedScoreOp == EEnvTestScoreOperator::AverageScore && !bForced)
 		{
-			ensureAlways(NumPassedForItem != 0);
+			eqs_ensure(NumPassedForItem != 0);
 			ItemScore /= NumPassedForItem;
 		}
 
@@ -893,3 +899,5 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 	return BBox;
 }
+
+#undef eqs_ensure

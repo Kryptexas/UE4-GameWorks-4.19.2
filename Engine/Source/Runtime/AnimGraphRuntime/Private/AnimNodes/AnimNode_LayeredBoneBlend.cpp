@@ -18,7 +18,7 @@ void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& C
 	// initialize children
 	BasePose.Initialize(Context);
 
-	if ( NumPoses > 0 )
+	if (NumPoses > 0)
 	{
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{
@@ -41,7 +41,7 @@ void FAnimNode_LayeredBoneBlend::PostCompile(const class USkeleton* InSkeleton)
 
 void FAnimNode_LayeredBoneBlend::RebuildCacheData(const USkeleton* InSkeleton)
 {
-	// make sure it's inished post load yet, this might cause more things to cache in initialize instead of during cooking
+	// make sure it's Finished post load yet, this might cause more things to cache in initialize instead of during cooking
 	if (InSkeleton && !(InSkeleton->GetFlags() & RF_NeedPostLoad))
 	{
 		FAnimationRuntime::CreateMaskWeights(PerBoneBlendWeights, LayerSetup, InSkeleton);
@@ -64,11 +64,12 @@ void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContain
 	
 	// build desired bone weights
 	const TArray<FBoneIndexType>& RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
-	DesiredBoneBlendWeights.SetNumZeroed(RequiredBoneIndices.Num());
-	for (int32 RequiredBoneIndex = 0; RequiredBoneIndex < RequiredBoneIndices.Num(); ++RequiredBoneIndex)
+	const int32 NumRequiredBones = RequiredBoneIndices.Num();
+	DesiredBoneBlendWeights.SetNumZeroed(NumRequiredBones);
+	for (int32 RequiredBoneIndex=0; RequiredBoneIndex<NumRequiredBones; RequiredBoneIndex++)
 	{
-		int32 SkeletonIndex = RequiredBones.GetSkeletonIndex(FCompactPoseBoneIndex(RequiredBoneIndex));
-		DesiredBoneBlendWeights[RequiredBoneIndex] = PerBoneBlendWeights[SkeletonIndex];
+		const int32 SkeletonBoneIndex = RequiredBones.GetSkeletonIndex(FCompactPoseBoneIndex(RequiredBoneIndex));
+		DesiredBoneBlendWeights[RequiredBoneIndex] = PerBoneBlendWeights[SkeletonBoneIndex];
 	}
 	
 	CurrentBoneBlendWeights.Reset(DesiredBoneBlendWeights.Num());
@@ -136,7 +137,23 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 		{
 			if (bHasRelevantPoses == false)
 			{
-				FAnimationRuntime::UpdateDesiredBoneWeight(DesiredBoneBlendWeights, CurrentBoneBlendWeights, BlendWeights);
+				// If our cache is invalid, attempt to update it.
+				if (IsCacheInvalid(Context.AnimInstanceProxy->GetSkeleton()))
+				{
+					ReinitializeBoneBlendWeights(Context.AnimInstanceProxy->GetRequiredBones(), Context.AnimInstanceProxy->GetSkeleton());
+
+					// If Cache is still invalid, we don't have correct DesiredBoneBlendWeights, so abort.
+					// bHasRelevantPoses == false, will passthrough in evaluate.
+					if (!ensure(IsCacheInvalid(Context.AnimInstanceProxy->GetSkeleton())))
+					{
+						break;
+					}
+				}
+				else
+				{
+					FAnimationRuntime::UpdateDesiredBoneWeight(DesiredBoneBlendWeights, CurrentBoneBlendWeights, BlendWeights);
+				}
+
 				bHasRelevantPoses = true;
 
 				if(bBlendRootMotionBasedOnRootBone)
@@ -192,7 +209,7 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{
-			if (BlendWeights[ChildIndex] > ZERO_ANIMWEIGHT_THRESH)
+			if (FAnimWeight::IsRelevant(BlendWeights[ChildIndex]))
 			{
 				FPoseContext CurrentPoseContext(Output);
 				BlendPoses[ChildIndex].Evaluate(CurrentPoseContext);

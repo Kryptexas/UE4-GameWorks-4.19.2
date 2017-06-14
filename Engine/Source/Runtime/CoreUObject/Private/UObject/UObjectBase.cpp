@@ -934,6 +934,8 @@ static FAutoConsoleVariableRef CMaxObjectsInGame(
 	ECVF_Default
 	);
 
+
+#include "Commandline.h"
 /**
  * Final phase of UObject initialization. all auto register objects are added to the main data structures.
  */
@@ -951,10 +953,20 @@ void UObjectBaseInit()
 	// FPlatformProperties::RequiresCookedData() will be false. Please note that GIsEditor and FApp::IsGame() are not valid at this point.
 	if( FPlatformProperties::RequiresCookedData() )
 	{
-		GConfig->GetInt( TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsNotConsideredByGC"), MaxObjectsNotConsideredByGC, GEngineIni );
+		FString Value;
+		bool bIsCookOnTheFly = FParse::Value(FCommandLine::Get(), TEXT("-filehostip="), Value);
+		if (bIsCookOnTheFly)
+		{
+			extern int32 GCreateGCClusters;
+			GCreateGCClusters = false;
+		}
+		else
+		{
+			GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsNotConsideredByGC"), MaxObjectsNotConsideredByGC, GEngineIni);
 
-		// Not used on PC as in-place creation inside bigger pool interacts with the exit purge and deleting UObject directly.
-		GConfig->GetInt( TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.SizeOfPermanentObjectPool"), SizeOfPermanentObjectPool, GEngineIni );
+			// Not used on PC as in-place creation inside bigger pool interacts with the exit purge and deleting UObject directly.
+			GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.SizeOfPermanentObjectPool"), SizeOfPermanentObjectPool, GEngineIni);
+		}
 
 		// Maximum number of UObjects in cooked game
 		GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsInGame"), MaxUObjects, GEngineIni);

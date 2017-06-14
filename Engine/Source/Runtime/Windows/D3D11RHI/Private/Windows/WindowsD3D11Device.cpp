@@ -561,13 +561,21 @@ static bool SupportsHDROutput(FD3D11DynamicRHI* D3DRHI)
 void FD3D11DynamicRHIModule::StartupModule()
 {	
 #if NV_AFTERMATH
-	FString AftermathBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/");
-	if (LoadLibraryW(*(AftermathBinariesRoot + "GFSDK_Aftermath_Lib.dll")) == nullptr)
-	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("Failed to load GFSDK_Aftermath_Lib.dll"));
-		GDX11NVAfterMathEnabled = 0;
-		return;
-	}
+	// Note - can't check device type here, we'll check for that before actually initializing Aftermath
+
+		FString AftermathBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/");
+		if (LoadLibraryW(*(AftermathBinariesRoot + "GFSDK_Aftermath_Lib.dll")) == nullptr)
+		{
+			UE_LOG(LogD3D11RHI, Warning, TEXT("Failed to load GFSDK_Aftermath_Lib.dll"));
+			GDX11NVAfterMathEnabled = 0;
+			return;
+		}
+		else
+		{
+			UE_LOG(LogD3D11RHI, Log, TEXT("Aftermath initialized"));
+			GDX11NVAfterMathEnabled = 1;
+		}
+	
 #endif
 }
 
@@ -1080,16 +1088,9 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				GSupportsTimestampRenderQueries = false;
 			}
 		}
-
-#if NV_AFTERMATH
-		if (!IsRHIDeviceNVIDIA())
-		{
-			GDX11NVAfterMathEnabled = 0;
-		}
-#endif
 		
 #if PLATFORM_DESKTOP
-		if( IsRHIDeviceNVIDIA() )
+		if (IsRHIDeviceNVIDIA())
 		{
 			GSupportsDepthBoundsTest = true;
 			NV_GET_CURRENT_SLI_STATE SLICaps;
@@ -1108,15 +1109,41 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			{
 				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D_GetCurrentSLIState failed: 0x%x"), (int32)SLIStatus);
 			}
+		}
+		else if( IsRHIDeviceAMD() )
+		{
+			// The AMD shader extensions are currently unused in UE4, but we have to set the associated UAV slot
+			// to something in the call below (default is 7, so just use that)
+			const uint32 AmdShaderExtensionUavSlot = 7;
+
+			// Initialize AGS's driver extensions
+			uint32 AmdSupportedExtensionFlags = 0;
+			auto AmdAgsResult = agsDriverExtensionsDX11_Init(AmdAgsContext, Direct3DDevice, AmdShaderExtensionUavSlot, &AmdSupportedExtensionFlags);
+			if (AmdAgsResult == AGS_SUCCESS && (AmdSupportedExtensionFlags & AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST) != 0)
+			{
+				GSupportsDepthBoundsTest = true;
+			}
+		}
 
 #if NV_AFTERMATH
+		// Two ways to enable aftermath, command line or the r.GPUCrashDebugging variable
+		// Note: If intending to change this please alert game teams who use this for user support.
+		if (FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging")))
+		{
+			GDX11NVAfterMathEnabled = true;
+		}
+		else
+		{
 			static IConsoleVariable* GPUCrashDebugging = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUCrashDebugging"));
 			if (GPUCrashDebugging)
 			{
 				GDX11NVAfterMathEnabled = GPUCrashDebugging->GetInt();
 			}
-
-			if (GDX11NVAfterMathEnabled)
+		}
+			
+		if (GDX11NVAfterMathEnabled)
+		{
+			if (IsRHIDeviceNVIDIA())
 			{
 				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
 				if (Result == GFSDK_Aftermath_Result_Success)
@@ -1134,29 +1161,20 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					GDX11NVAfterMathEnabled = 0;
 				}
 			}
-#endif
-		}
-		else if( IsRHIDeviceAMD() )
-		{
-			// The AMD shader extensions are currently unused in UE4, but we have to set the associated UAV slot
-			// to something in the call below (default is 7, so just use that)
-			const uint32 AmdShaderExtensionUavSlot = 7;
-
-			// Initialize AGS's driver extensions
-			uint32 AmdSupportedExtensionFlags = 0;
-			auto AmdAgsResult = agsDriverExtensionsDX11_Init(AmdAgsContext, Direct3DDevice, AmdShaderExtensionUavSlot, &AmdSupportedExtensionFlags);
-			if (AmdAgsResult == AGS_SUCCESS && (AmdSupportedExtensionFlags & AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST) != 0)
+			else
 			{
-				GSupportsDepthBoundsTest = true;
+				GDX11NVAfterMathEnabled = 0;
+				UE_LOG(LogD3D11RHI, Warning, TEXT("[Aftermath] Skipping aftermath initialization on non-Nvidia device"));
 			}
 		}
+#endif // NV_AFTERMATH
 
 		if (GDX11ForcedGPUs > 0)
 		{
 			GNumActiveGPUsForRendering = GDX11ForcedGPUs;
 			UE_LOG(LogD3D11RHI, Log, TEXT("r.DX11NumForcedGPUs forcing GNumActiveGPUsForRendering to: %i "), GDX11ForcedGPUs);
 		}
-#endif
+#endif // PLATFORM_DESKTOP
 
 		SetupAfterDeviceCreation();
 

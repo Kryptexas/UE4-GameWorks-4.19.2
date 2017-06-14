@@ -16,9 +16,8 @@ class FNetworkFileServerClientConnectionThreaded
 {
 public:
 
-	FNetworkFileServerClientConnectionThreaded(FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& SandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate, SandboxPathOverrideDelegate, InOnFileModifiedCallback, InActiveTargetPlatforms)
+	FNetworkFileServerClientConnectionThreaded(FSocket* InSocket, const FNetworkFileDelegateContainer* NetworkFileDelegates, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( NetworkFileDelegates, InActiveTargetPlatforms)
 		  ,Socket(InSocket)
 	{
 		Running.Set(true);
@@ -102,7 +101,6 @@ public:
 	}
 
 private: 
-	FOnFileModifiedDelegate* OnFileModifiedCallback;
 	FSocket* Socket; 
 	FThreadSafeCounter StopRequested;
 	FThreadSafeCounter Running;
@@ -114,8 +112,7 @@ private:
 /* FNetworkFileServer constructors
  *****************************************************************************/
 
-FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,const FRecompileShadersDelegate* InRecompileShadersDelegate, 
-	const FSandboxPathDelegate* InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback,
+FNetworkFileServer::FNetworkFileServer( int32 InPort, FNetworkFileDelegateContainer InNetworkFileDelegateContainer,
 	const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
@@ -128,22 +125,7 @@ FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate
 	StopRequested.Set(false);
 	UE_LOG(LogFileServer, Warning, TEXT("Unreal Network File Server starting up..."));
 
-	if (InFileRequestDelegate && InFileRequestDelegate->IsBound())
-	{
-		FileRequestDelegate = *InFileRequestDelegate;
-	}
-
-	if (InRecompileShadersDelegate && InRecompileShadersDelegate->IsBound())
-	{
-		RecompileShadersDelegate = *InRecompileShadersDelegate;
-	}
-
-	if ( InSandboxPathOverrideDelegate && InSandboxPathOverrideDelegate->IsBound() )
-	{
-		SandboxPathOverrideDelegate = *InSandboxPathOverrideDelegate;
-	}
-
-	OnFileModifiedCallback = InOnFileModifiedCallback;
+	NetworkFileDelegates = InNetworkFileDelegateContainer;
 
 	// make sure sockets are going
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get();
@@ -265,7 +247,7 @@ uint32 FNetworkFileServer::Run( )
 					}
 				}
 
-				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, SandboxPathOverrideDelegate, OnFileModifiedCallback, ActiveTargetPlatforms);
+				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, &NetworkFileDelegates, ActiveTargetPlatforms);
 				Connections.Add(Connection);
 				UE_LOG(LogFileServer, Display, TEXT( "Client %s connected." ), *Connection->GetDescription() );
 			}

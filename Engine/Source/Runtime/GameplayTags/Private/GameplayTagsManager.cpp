@@ -24,6 +24,7 @@
 #include "PropertyHandle.h"
 FSimpleMulticastDelegate UGameplayTagsManager::OnEditorRefreshGameplayTagTree;
 #endif
+#include "IConsoleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "GameplayTagManager"
@@ -274,11 +275,21 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				FGameplayTag OldTag = RequestGameplayTag(OldTagName, false); //< This only succeeds if OldTag is in the Table!
 				if (OldTag.IsValid())
 				{
-					UE_LOG(LogGameplayTags, Warning,
-						TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
+					FGameplayTagContainer MatchingChildren = RequestGameplayTagChildren(OldTag);
+
+					FString Msg = FString::Printf(TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
 						TEXT("remove the old tags from the table when you are redirecting to new tags, or else users will ")
-						TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString()
-						);
+						TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString());
+
+					if (MatchingChildren.Num() == 0)
+					{
+						UE_LOG(LogGameplayTags, Warning, TEXT("%s"), *Msg);
+					}
+					else
+					{
+						Msg += TEXT("\nSuppressed warning due to redirected tag being a single component that matched other hierarchy elements.");
+						UE_LOG(LogGameplayTags, Log, TEXT("%s"), *Msg);
+					}
 				}
 
 				FGameplayTag NewTag = (NewTagName != NAME_None) ? RequestGameplayTag(NewTagName, false) : FGameplayTag();
@@ -320,6 +331,8 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 	}
 }
 
+int32 PrintNetIndiceAssignment = 0;
+static FAutoConsoleVariableRef CVarPrintNetIndiceAssignment(TEXT("GameplayTags.PrintNetIndiceAssignment"), PrintNetIndiceAssignment, TEXT("Logs GameplayTag NetIndice assignment"), ECVF_Default );
 void UGameplayTagsManager::ConstructNetIndex()
 {
 	NetworkGameplayTagNodeIndex.Empty();
@@ -365,11 +378,21 @@ void UGameplayTagsManager::ConstructNetIndex()
 		NetworkGameplayTagNodeIndex.SetNum(INVALID_TAGNETINDEX - 1);
 	}
 
+
+
+	UE_CLOG(PrintNetIndiceAssignment, LogGameplayTags, Display, TEXT("Assigning NetIndices to %d tags."), NetworkGameplayTagNodeIndex.Num() );
+
 	for (FGameplayTagNetIndex i = 0; i < NetworkGameplayTagNodeIndex.Num(); i++)
 	{
 		if (NetworkGameplayTagNodeIndex[i].IsValid())
 		{
 			NetworkGameplayTagNodeIndex[i]->NetIndex = i;
+
+			UE_CLOG(PrintNetIndiceAssignment, LogGameplayTags, Display, TEXT("Assigning NetIndex (%d) to Tag (%s)"), i, *NetworkGameplayTagNodeIndex[i]->GetCompleteTag().ToString());
+		}
+		else
+		{
+			UE_LOG(LogGameplayTags, Warning, TEXT("TagNode Indice %d is invalid!"), i);
 		}
 	}
 }

@@ -187,6 +187,9 @@ struct FBXImportOptions
 	//This data allow to override some fbx Material(point by the uint64 id) with existing unreal material asset
 	TMap<uint64, class UMaterialInterface*> OverrideMaterials;
 
+	//The importer is importing a preview
+	bool bIsReimportPreview;
+
 	bool ShouldImportNormals()
 	{
 		return NormalImportMethod == FBXNIM_ImportNormals || NormalImportMethod == FBXNIM_ImportNormalsAndTangents;
@@ -468,7 +471,7 @@ private:
 	static FbxAMatrix JointPostConversionMatrix;
 };
 
-FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
+FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh, UObject* ReimportObject = nullptr);
 void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
 struct FImportedMaterialData
@@ -502,6 +505,9 @@ public:
 	 */
 	UNREALED_API static FFbxImporter* GetInstance();
 	static void DeleteInstance();
+
+	static FFbxImporter* GetPreviewInstance();
+	static void DeletePreviewInstance();
 
 	/**
 	 * Detect if the FBX file has skeletal mesh model. If there is deformer definition, then there is skeletal mesh.
@@ -900,6 +906,16 @@ public:
 	 */
 	UNREALED_API FBXImportOptions* GetImportOptions() const;
 
+	/*
+	* This function show a dialog to let the user know what will be change if the fbx is imported
+	*/
+	void ShowFbxReimportPreview(UObject *ReimportObj, UFbxImportUI* ImportUI, const FString& FullPath);
+
+	/*
+	* Function use to retrieve general fbx information for the preview
+	*/
+	void FillGeneralFbxFileInformation(void *GeneralInfoPtr);
+
 	/** helper function **/
 	UNREALED_API static void DumpFBXNode(FbxNode* Node);
 
@@ -1041,6 +1057,24 @@ public:
 	//We cache the hash of the file when we open the file. This is to avoid calculating the hash many time when importing many asset in one fbx file.
 	FMD5Hash Md5Hash;
 
+	struct FFbxMaterial
+	{
+		FbxSurfaceMaterial* FbxMaterial;
+		UMaterialInterface* Material;
+
+		FString GetName() const { return FbxMaterial ? ANSI_TO_TCHAR(FbxMaterial->GetName()) : TEXT("None"); }
+	};
+
+	/**
+	* Make material Unreal asset name from the Fbx material
+	*
+	* @param FbxMaterial Material from the Fbx node
+	* @return Sanitized asset name
+	*/
+	FString GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial);
+
+	FbxGeometryConverter* GetGeometryConverter() { return GeometryConverter; }
+
 protected:
 	enum IMPORTPHASE
 	{
@@ -1050,14 +1084,7 @@ protected:
 	};
 	
 	static TSharedPtr<FFbxImporter> StaticInstance;
-
-	struct FFbxMaterial
-	{
-		FbxSurfaceMaterial* FbxMaterial;
-		UMaterialInterface* Material;
-
-		FString GetName() const { return FbxMaterial ? ANSI_TO_TCHAR( FbxMaterial->GetName() ) : TEXT("None"); }
-	};
+	static TSharedPtr<FFbxImporter> StaticPreviewInstance;
 	
 	//make sure we are not applying two time the option transform to the same node
 	TArray<FbxNode*> TransformSettingsToFbxApply;
@@ -1073,6 +1100,10 @@ protected:
 	FString FileBasePath;
 	TWeakObjectPtr<UObject> Parent;
 	FString FbxFileVersion;
+
+	//Original File Info
+	FbxAxisSystem FileAxisSystem;
+	FbxSystemUnit FileUnitSystem;
 
 	// Flag that the mesh is the first mesh to import in current FBX scene
 	// FBX scene may contain multiple meshes, importer can import them at one time.
@@ -1178,6 +1209,8 @@ protected:
 	*/
     bool FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, 
 										FbxShape* Shape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials, FbxNode *RootNode);
+public:
+
 	/**
 	* Fill FSkeletalMeshIMportData from Fbx Nodes and FbxShape Array if exists.  
 	*
@@ -1189,7 +1222,8 @@ protected:
 	* @returns bool*	true if import successfully.
 	*/
 	bool FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, TArray<FName> &LastImportedMaterialNames);
-	
+
+protected:
 	/**
 	* Fill the Points in FSkeletalMeshIMportData from a Fbx Node and a FbxShape if it exists.
 	*
@@ -1328,14 +1362,6 @@ protected:
 	 * @return int32 material count that created from the Fbx node
 	 */
 	int32 CreateNodeMaterials(FbxNode* FbxNode, TArray<UMaterialInterface*>& outMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh);
-
-	/**
-	 * Make material Unreal asset name from the Fbx material
-	 *
-	 * @param FbxMaterial Material from the Fbx node
-	 * @return Sanitized asset name
-	 */
-	FString GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial);
 
 	/**
 	 * Create Unreal material from Fbx material.

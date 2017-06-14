@@ -623,9 +623,20 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
 		}
 
+		bool bShouldUseCookedIterativeFile = false;
+		if ( !bShouldUseStreamingFile && !NetworkPlatformFile )
+		{
+			NetworkPlatformFile = ConditionallyCreateFileWrapper(TEXT("CookedIterativeFile"), CurrentPlatformFile, CmdLine, &bNetworkFailedToInitialize, &bShouldUseCookedIterativeFile);
+			if (NetworkPlatformFile)
+			{
+				CurrentPlatformFile = NetworkPlatformFile;
+				FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
+			}
+		}
+
 		// if streaming network platform file was tried this loop don't try this one
 		// Network file wrapper (only create if the streaming wrapper hasn't been created)
-		if ( !bShouldUseStreamingFile && !NetworkPlatformFile)
+		if ( !bShouldUseStreamingFile && !bShouldUseCookedIterativeFile && !NetworkPlatformFile)
 		{
 			NetworkPlatformFile = ConditionallyCreateFileWrapper(TEXT("NetworkFile"), CurrentPlatformFile, CmdLine, &bNetworkFailedToInitialize);
 			if (NetworkPlatformFile)

@@ -1099,6 +1099,7 @@ void FStaticMeshEditor::RefreshTool()
 		UpdateLODStats(LODIndex);
 	}
 
+	OnSelectedLODChangedResetOnRefresh.Clear();
 	bool bForceRefresh = true;
 	StaticMeshDetailsView->SetObject( StaticMesh, bForceRefresh );
 
@@ -1206,11 +1207,22 @@ void FStaticMeshEditor::ComboBoxSelectionChanged( TSharedPtr<FString> NewSelecti
 
 void FStaticMeshEditor::LODLevelsSelectionChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type /*SelectInfo*/ )
 {
-	int32 CurrentLOD = GetCurrentLODLevel();
-
+	int32 CurrentLOD = 0;
+	LODLevels.Find(LODLevelCombo->GetSelectedItem(), CurrentLOD);
+	if (GetStaticMeshComponent() != nullptr)
+	{
+		GetStaticMeshComponent()->ForcedLodModel = CurrentLOD;
+	}
 	UpdateLODStats( CurrentLOD > 0? CurrentLOD - 1 : 0 );
-
 	Viewport->ForceLODLevel(CurrentLOD);
+	if (OnSelectedLODChanged.IsBound())
+	{
+		OnSelectedLODChanged.Broadcast();
+	}
+	if (OnSelectedLODChangedResetOnRefresh.IsBound())
+	{
+		OnSelectedLODChangedResetOnRefresh.Broadcast();
+	}
 }
 
 int32 FStaticMeshEditor::GetCurrentUVChannel()
@@ -1225,13 +1237,21 @@ int32 FStaticMeshEditor::GetCurrentLODLevel()
 {
 	int32 Index = 0;
 	LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
+	if (GetStaticMeshComponent() != nullptr)
+	{
+		if (GetStaticMeshComponent()->ForcedLodModel != Index)
+		{
+			LODLevelCombo->SetSelectedItem(LODLevels[GetStaticMeshComponent()->ForcedLodModel]);
+			LODLevels.Find(LODLevelCombo->GetSelectedItem(), Index);
+		}
+	}
 
 	return Index;
 }
 
 int32 FStaticMeshEditor::GetCurrentLODIndex()
 {
-	int32 Index = LODLevels.Find(LODLevelCombo->GetSelectedItem());
+	int32 Index = GetCurrentLODLevel();
 
 	return Index == 0? 0 : Index - 1;
 }

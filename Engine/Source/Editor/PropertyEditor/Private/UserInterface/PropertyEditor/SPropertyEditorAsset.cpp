@@ -76,6 +76,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
+	bool DisplayCompactedSize = InArgs._DisplayCompactSize;
 
 	UProperty* Property = nullptr;
 	if(PropertyEditor.IsValid())
@@ -289,29 +290,62 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			]
 		];
 
-
-		ValueContentBox->AddSlot()
-		[
-			SNew( SBox )
-			.VAlign( VAlign_Center )
+		if(DisplayCompactedSize)
+		{
+			ValueContentBox->AddSlot()
 			[
-				SAssignNew( CustomContentBox, SVerticalBox )
-				+ SVerticalBox::Slot()
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+				SNew( SBox )
+				.VAlign( VAlign_Center )
 				[
-					AssetComboButton.ToSharedRef()
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SAssignNew(ButtonBoxWrapper, SBox)
-					.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+					SAssignNew( CustomContentBox, SVerticalBox )
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 					[
-						ButtonBox
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						[
+							AssetComboButton.ToSharedRef()
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SAssignNew(ButtonBoxWrapper, SBox)
+							.Padding(FMargin(0.0f, 2.0f, 4.0f, 2.0f))
+							[
+								ButtonBox
+							]
+						]
 					]
 				]
-			]
-		];
+			];
+		}
+		else
+		{
+			ValueContentBox->AddSlot()
+			[
+				SNew( SBox )
+				.VAlign( VAlign_Center )
+				[
+					SAssignNew( CustomContentBox, SVerticalBox )
+					+ SVerticalBox::Slot()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						AssetComboButton.ToSharedRef()
+					]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SAssignNew(ButtonBoxWrapper, SBox)
+						.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+						[
+							ButtonBox
+						]
+					]
+				]
+			];
+		}
 	}
 	else
 	{

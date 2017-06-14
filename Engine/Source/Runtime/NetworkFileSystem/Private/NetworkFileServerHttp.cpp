@@ -17,9 +17,8 @@ class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientCo
 {
 
 public:
-	FNetworkFileServerClientConnectionHTTP(const FFileRequestDelegate& InFileRequestDelegate,
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& SandboxFileDelegate, FOnFileModifiedDelegate* OnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate, SandboxFileDelegate, OnFileModifiedCallback,InActiveTargetPlatforms)
+	FNetworkFileServerClientConnectionHTTP(const FNetworkFileDelegateContainer* NetworkFileDelegates, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( NetworkFileDelegates, InActiveTargetPlatforms)
 	{
 	}
 
@@ -81,10 +80,7 @@ static struct lws_protocols Protocols[] = {
 
 FNetworkFileServerHttp::FNetworkFileServerHttp(
 	int32 InPort,
-	const FFileRequestDelegate* InFileRequestDelegate,
-	const FRecompileShadersDelegate* InRecompileShadersDelegate,
-	const FSandboxPathDelegate* InSandboxPathDelegate,
-	FOnFileModifiedDelegate* InOnFileModifiedCallback,
+	FNetworkFileDelegateContainer InNetworkFileDelegateContainer,
 	const TArray<ITargetPlatform*>& InActiveTargetPlatforms
 	)
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
@@ -97,22 +93,7 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 
 	UE_LOG(LogFileServer, Warning, TEXT("Unreal Network Http File Server starting up..."));
 
-	if (InFileRequestDelegate && InFileRequestDelegate->IsBound())
-	{
-		FileRequestDelegate = *InFileRequestDelegate;
-	}
-
-	if (InRecompileShadersDelegate && InRecompileShadersDelegate->IsBound())
-	{
-		RecompileShadersDelegate = *InRecompileShadersDelegate;
-	}
-
-	if ( InSandboxPathDelegate && InSandboxPathDelegate->IsBound())
-	{
-		SandboxPathDelegate = *InSandboxPathDelegate;
-	}
-	OnFileModifiedCallback = InOnFileModifiedCallback;
-
+	NetworkFileDelegates = InNetworkFileDelegateContainer;
 
 	StopRequested.Reset();
 	Ready.Reset();
@@ -258,7 +239,7 @@ FNetworkFileServerHttp::~FNetworkFileServerHttp()
 
 FNetworkFileServerClientConnectionHTTP* FNetworkFileServerHttp::CreateNewConnection()
 {
-	return new FNetworkFileServerClientConnectionHTTP(FileRequestDelegate,RecompileShadersDelegate,SandboxPathDelegate, OnFileModifiedCallback,ActiveTargetPlatforms);
+	return new FNetworkFileServerClientConnectionHTTP(&NetworkFileDelegates,ActiveTargetPlatforms);
 }
 
 // Have a similar process function for the normal tcp connection.

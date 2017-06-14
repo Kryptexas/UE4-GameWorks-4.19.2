@@ -1226,6 +1226,15 @@ void UPrimitiveComponent::SetCastShadow(bool NewCastShadow)
 	}
 }
 
+void UPrimitiveComponent::SetSingleSampleShadowFromStationaryLights(bool bNewSingleSampleShadowFromStationaryLights)
+{
+	if (bNewSingleSampleShadowFromStationaryLights != bSingleSampleShadowFromStationaryLights)
+	{
+		bSingleSampleShadowFromStationaryLights = bNewSingleSampleShadowFromStationaryLights;
+		MarkRenderStateDirty();
+	}
+}
+
 void UPrimitiveComponent::SetTranslucentSortPriority(int32 NewTranslucentSortPriority)
 {
 	if (NewTranslucentSortPriority != TranslucencySortPriority)

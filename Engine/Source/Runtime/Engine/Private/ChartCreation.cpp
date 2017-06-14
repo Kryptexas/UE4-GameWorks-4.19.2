@@ -1099,9 +1099,7 @@ IPerformanceDataConsumer::FFrameData FPerformanceTrackingSystem::AnalyzeFrame(fl
 				// If our frame time is much larger than our last frame time, we'll count this as a hitch!
 				if (DeltaSeconds > (LastDeltaSeconds * HitchMultiplierAmount))
 				{
-					// We have a hitch!
-					GEngine->OnHitchDetectedDelegate.Broadcast(DeltaSeconds);
-
+			
 					// Check to see what we were limited by this frame
 					if (GGameThreadTime >= (MaxThreadTimeValue - EpsilonCycles))
 					{
@@ -1123,6 +1121,9 @@ IPerformanceDataConsumer::FFrameData FPerformanceTrackingSystem::AnalyzeFrame(fl
 						// Not sure what bound us, but we still hitched
 						FrameData.HitchStatus = EFrameHitchType::UnknownUnit;
 					}
+
+					// We have a hitch!
+					GEngine->OnHitchDetectedDelegate.Broadcast(FrameData.HitchStatus, DeltaSeconds);
 
 					LastHitchTime = CurrentTime;
 				}

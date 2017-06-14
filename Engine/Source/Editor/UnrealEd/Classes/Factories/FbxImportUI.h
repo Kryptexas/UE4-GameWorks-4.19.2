@@ -151,6 +151,8 @@ public:
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = Material, meta = (OBJRestrict = "true", ImportType = "Mesh"))
 	uint32 bResetMaterialSlots : 1;
 
+	void ResetToDefault();
+
 	/** UObject Interface */
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
 

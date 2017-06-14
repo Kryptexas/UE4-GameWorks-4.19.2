@@ -973,7 +973,7 @@ private:
 
 	/** Map of platform name to asset registry generators, which hold the state of asset registry data for a platform */
 	TMap<FName, FAssetRegistryGenerator*> RegistryGenerators;
-
+	
 	//////////////////////////////////////////////////////////////////////////
 	// iterative ini settings checking
 	// growing list of ini settings which are accessed over the course of the cook
@@ -996,6 +996,18 @@ private:
 	* used to reset the cached cooked shaders
 	*/
 	void OnTargetPlatformChangedSupportedFormats(const ITargetPlatform* TargetPlatform);
+
+	/**
+	 * Returns the current set of cooking targetplatforms
+	 *  mostly used for cook on the fly or in situations where the cooker can't figure out what the target platform is
+	 * 
+	 * @return Array of target platforms which are can be used
+	 */
+	const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() const;
+
+	/** Cached cooking target platforms from the targetmanager, these are used when we don't know what platforms we should be targeting */
+	mutable TArray<ITargetPlatform*> CookingTargetPlatforms;
+
 public:
 
 	enum ECookOnTheSideResult
@@ -1394,6 +1406,15 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	// cook on the fly specific functions
+
+	/**
+	 * When we get a new connection from the network make sure the version is compatible 
+	 *		Will terminate the connection if return false
+	 * 
+	 * @return return false if not compatible, true if it is
+	 */
+	bool HandleNetworkFileServerNewConnection( const FString& VersionInfo, const FString& PlatformName );
+
 	/**
 	* Cook requests for a package from network
 	*  blocks until cook is complete
@@ -1416,6 +1437,16 @@ private:
 	 * Get the sandbox path we want the network file server to use
 	 */
 	FString HandleNetworkGetSandboxPath();
+
+
+	/**
+	 * HandleNetworkGetPrecookedList 
+	 * this is used specifically for cook on the fly with shared cooked builds
+	 * returns the list of files which are still valid in the pak file which was initially loaded
+	 * 
+	 * @param PrecookedFileList all the files which are still valid in the client pak file
+	 */
+	void HandleNetworkGetPrecookedList( const FString& PlatformName, TMap<FString, FDateTime>& PrecookedFileList );
 
 	//////////////////////////////////////////////////////////////////////////
 	// general functions

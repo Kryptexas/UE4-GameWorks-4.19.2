@@ -5158,7 +5158,7 @@ public:
 			if (ActualPreviewSectionIdx != INDEX_NONE && Sections.IsValidIndex(ActualPreviewSectionIdx))
 			{
 				const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
-				if (PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+				if (PreviewSection.bDisabled && PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
 				{
 					ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
 				}
@@ -5181,7 +5181,7 @@ public:
 				if (ActualPreviewSectionIdx != INDEX_NONE)
 				{
 					const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
-					if (PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+					if (PreviewSection.bDisabled && PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
 					{
 						ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
 					}
@@ -5287,6 +5287,19 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
 
+#if WITH_EDITORONLY_DATA
+		//Find the real editor selected section
+		int32 RealSelectedEditorSection = SkeletalMeshForDebug->SelectedEditorSection;
+		if (RealSelectedEditorSection != INDEX_NONE && LODModel.Sections.IsValidIndex(SkeletalMeshForDebug->SelectedEditorSection))
+		{
+			const FSkelMeshSection& SelectEditorSection = LODModel.Sections[SkeletalMeshForDebug->SelectedEditorSection];
+			if (SelectEditorSection.bDisabled && SelectEditorSection.CorrespondClothSectionIndex != INDEX_NONE && LODModel.Sections.IsValidIndex(SelectEditorSection.CorrespondClothSectionIndex))
+			{
+				RealSelectedEditorSection = SelectEditorSection.CorrespondClothSectionIndex;
+			}
+		}
+#endif
+
 		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
 			const FSkelMeshSection& Section = Iter.GetSection();
@@ -5304,7 +5317,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 			}
 			else
 			{
-				bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
+				bSectionSelected = (RealSelectedEditorSection == SectionIndex);
 			}
 			
 #endif

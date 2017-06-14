@@ -45,6 +45,8 @@
 #include "LevelEditor.h"
 #include "Misc/HotReloadInterface.h"
 #include "EditorReimportHandler.h"
+#include "GameplayEffectCreationMenu.h"
+#include "ISettingsModule.h"
 
 
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
@@ -139,6 +141,17 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	TSharedRef<IAssetTypeActions> GABAction = MakeShareable(new FAssetTypeActions_GameplayAbilitiesBlueprint());
 	RegisterAssetTypeAction(AssetTools, GABAction);
+
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+	{
+		SettingsModule->RegisterSettings("Project", "Project", "Gameplay Effect Parents",
+						NSLOCTEXT("GameplayAbilitiesEditorModule", "GameplayEffectParentName", "Gameplay Effect Parents"),
+						NSLOCTEXT("GameplayAbilitiesEditorModule", "GameplayEffectParentNameDesc", "Data Driven way of specifying common parent Gameplay Effect classes that are accessible through File menu"),
+						GetMutableDefault<UGameplayEffectCreationMenu>()
+						);
+
+		GetDefault<UGameplayEffectCreationMenu>()->AddMenuExtensions();
+	}
 
 	// Register factories for pins and nodes
 	GameplayAbilitiesGraphPanelPinFactory = MakeShareable(new FGameplayAbilitiesGraphPanelPinFactory());

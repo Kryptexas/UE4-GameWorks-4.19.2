@@ -129,6 +129,24 @@ public:
 	/** Get the active view mode */
 	virtual EViewModeIndex GetViewMode() const override;
 
+	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate, bool UnregisterOnRefresh) override
+	{
+		if (!UnregisterOnRefresh)
+		{
+			OnSelectedLODChanged.Add(Delegate);
+		}
+		else
+		{
+			OnSelectedLODChangedResetOnRefresh.Add(Delegate);
+		}
+	}
+	
+	virtual void UnRegisterOnSelectedLODChanged(void* Thing) override
+	{
+		OnSelectedLODChanged.RemoveAll(Thing);
+		OnSelectedLODChangedResetOnRefresh.RemoveAll(Thing);
+	}
+
 private:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
@@ -330,6 +348,9 @@ private:
 	/** Misc consts */
 	const float MinPrimSize;
 	const FVector OverlapNudge;
+
+	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
+	FOnSelectedLODChangedMulticaster OnSelectedLODChangedResetOnRefresh;
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;

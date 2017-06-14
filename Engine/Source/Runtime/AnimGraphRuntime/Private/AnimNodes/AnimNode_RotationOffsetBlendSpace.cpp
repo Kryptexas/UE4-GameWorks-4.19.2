@@ -26,11 +26,13 @@ void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesCo
 
 void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
+	EvaluateGraphExposedInputs.Execute(Context);
+
 	ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 	bIsLODEnabled = IsLODEnabled(Context.AnimInstanceProxy, LODThreshold);
 	if (bIsLODEnabled && FAnimWeight::IsRelevant(ActualAlpha))
 	{
-		FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
+		UpdateInternal(Context);
 	}
 
 	BasePose.Update(Context);
@@ -59,7 +61,7 @@ void FAnimNode_RotationOffsetBlendSpace::GatherDebugData(FNodeDebugData& DebugDa
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	
-	DebugLine += FString::Printf(TEXT("(Play Time: %.3f)"), InternalTimeAccumulator);
+	DebugLine += FString::Printf(TEXT("Alpha (%.1f%%) PlayTime (%.3f)"), ActualAlpha * 100.f, InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine);
 	
 	BasePose.GatherDebugData(DebugData);

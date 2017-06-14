@@ -566,18 +566,18 @@ void UAnimSequence::PostLoad()
 #if WITH_EDITOR
 void ShowResaveMessage(const UAnimSequence* Sequence)
 {
-	if (!IsRunningGame())
+	if (IsRunningCommandlet())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
 
-		static FName NAME_LoadErrors("LoadErrors");
+		/*static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
 		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
-		LoadErrors.Notify();
+		LoadErrors.Notify();*/
 	}
 }
 

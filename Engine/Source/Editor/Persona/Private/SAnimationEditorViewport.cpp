@@ -308,7 +308,6 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	BlueprintEditorPtr = InArgs._BlueprintEditor;
 	bShowTimeline = InArgs._ShowTimeline;
 	OnInvokeTab = InArgs._OnInvokeTab;
-	LODSelection = 0;
 
 	// register delegates for change notifications
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SAnimationEditorViewportTabBody::AnimChanged));
@@ -680,6 +679,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 #endif// #if WITH_APEX_CLOTHING		
 
+	GetPreviewScene()->RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &SAnimationEditorViewportTabBody::OnLODModelChanged));
 	//Bind LOD preview menu commands
 	const FAnimViewportLODCommands& ViewportLODMenuCommands = FAnimViewportLODCommands::Get();
 
@@ -1325,19 +1325,48 @@ void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 	LevelViewportClient->EngineShowFlags.SetMeshEdges(bUseOverlayMaterial || bShowMeshEdgesViewMode);
 }
 
+int32 SAnimationEditorViewportTabBody::GetLODSelection() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent)
+	{
+		return PreviewComponent->ForcedLodModel;
+	}
+	return 0;
+}
+
 bool SAnimationEditorViewportTabBody::IsLODModelSelected(int32 LODSelectionType) const
 {
-	return (LODSelection == LODSelectionType) ? true : false;
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent)
+	{
+		return (PreviewComponent->ForcedLodModel == LODSelectionType) ? true : false;
+	}
+	return false;
 }
 
 void SAnimationEditorViewportTabBody::OnSetLODModel(int32 LODSelectionType)
 {
-	LODSelection = LODSelectionType;
-
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	
 	if( PreviewComponent )
 	{
-		PreviewComponent->ForcedLodModel = LODSelection;
+		LODSelection = LODSelectionType;
+		PreviewComponent->ForcedLodModel = LODSelectionType;
+		PopulateUVChoices();
+		GetPreviewScene()->BroadcastOnSelectedLODChanged();
+	}
+}
+
+void SAnimationEditorViewportTabBody::OnLODModelChanged()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent && LODSelection != PreviewComponent->ForcedLodModel)
+	{
+		LODSelection = PreviewComponent->ForcedLodModel;
 		PopulateUVChoices();
 	}
 }

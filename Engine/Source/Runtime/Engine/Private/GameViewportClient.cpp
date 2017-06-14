@@ -748,26 +748,25 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 
 void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
 {
-	if ( CursorClass.IsValid() )
+	if (ensureMsgf(CursorClass.IsValid(), TEXT("UGameViewportClient::AddCusor: Cursor class is not valid!")))
 	{
 		UClass* Class = CursorClass.TryLoadClass<UUserWidget>();
-		if ( Class )
+		if (Class)
 		{
 			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
-			if ( ensure(UserWidget) )
+			if (UserWidget)
 			{
 				CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
+			}
+			else
+			{
+				UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Could not create cursor widget."));
 			}
 		}
 		else
 		{
-			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
-			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: The cursor class %s was not found, check your custom cursor settings."), *CursorClass.ToString());
+			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Could not load cursor class %s."), *CursorClass.GetAssetName());
 		}
-	}
-	else
-	{
-		UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Attempting to add an invalid cursor class."));
 	}
 }
 
@@ -775,13 +774,20 @@ TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewp
 {
 	if (bUseSoftwareCursorWidgets)
 	{
-		const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
-		if (CursorWidgetPtr != nullptr)
+		if (CursorReply.GetCursorType() != EMouseCursor::None)
 		{
-			return *CursorWidgetPtr;
+			const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+
+			if (CursorWidgetPtr != nullptr)
+			{
+				return *CursorWidgetPtr;
+			}
+			else
+			{
+				UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::MapCursor: Could not find cursor to map to %d."),int32(CursorReply.GetCursorType()));
+			}
 		}
 	}
-
 	return TOptional<TSharedRef<SWidget>>();
 }
 

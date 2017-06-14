@@ -381,6 +381,10 @@ class UNREALED_API UFbxSceneImportFactory : public USceneImportFactory
 	/* Default Options always have the same name "Default" */
 	static FString DefaultOptionName;
 
+public:
+	static TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(void* VoidFbxImporter, void* VoidFbxSceneInfo);
+	static void ExtractMaterialInfo(void* FbxImporterVoid, TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
+
 protected:
 	/** Convert the scene and remake all the transform for the SceneInfo pass in parameter.
 	 *  We need this because EvaluateGlobal and EvaluateLocal are dependent of the scene conversion.
@@ -428,8 +432,6 @@ protected:
 	/** Create a package for the specified node. Package will be the concatenation of UFbxSceneImportFactory::Path and Node->GetName(). */
 	UPackage *CreatePackageForNode(FString PackageName, FString &StaticMeshName);
 
-	static TSharedPtr<FFbxSceneInfo> ConvertSceneInfo(void* VoidFbxImporter, void* VoidFbxSceneInfo);
-	static void ExtractMaterialInfo(void* FbxImporterVoid, TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
 	bool SetStaticMeshComponentOverrideMaterial(class UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo);
 
 	/** The path of the asset to import */

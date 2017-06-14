@@ -27,8 +27,7 @@ public:
 	 * @param InPort The port number to bind to (0 = any available port).
 	 * @param InFileRequestDelegate 
 	 */
-	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
-		const FRecompileShadersDelegate* InRecompileShadersDelegate, const FSandboxPathDelegate* SandboxPathOverrideDelegate, FOnFileModifiedDelegate* OnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+	FNetworkFileServer( int32 InPort, FNetworkFileDelegateContainer InNetworkFileDelegateContainer, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -81,17 +80,7 @@ private:
 
 public:
 
-	// Holds a delegate to be invoked on every sync request.
-	FFileRequestDelegate FileRequestDelegate;
-
-	// Holds a delegate to be invoked when a client requests a shader recompile.
-	FRecompileShadersDelegate RecompileShadersDelegate;
-
-	FSandboxPathDelegate SandboxPathDelegate;
-
-	FSandboxPathDelegate SandboxPathOverrideDelegate;
-
-	FOnFileModifiedDelegate* OnFileModifiedCallback;
+	FNetworkFileDelegateContainer NetworkFileDelegates;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;

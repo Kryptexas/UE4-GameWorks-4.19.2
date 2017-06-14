@@ -379,7 +379,6 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		ViewerOverride					= nullptr;
 		bPrioritizeActors				= false;
 		bPauseRecording					= false;
-		CheckpointSaveMaxMSPerFrame		= 0.0f;
 
 		if ( RelevantTimeout == 0.0f )
 		{

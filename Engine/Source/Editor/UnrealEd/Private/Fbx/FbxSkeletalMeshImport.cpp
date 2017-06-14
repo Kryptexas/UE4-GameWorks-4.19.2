@@ -59,7 +59,7 @@ using namespace UnFbx;
 
 struct ExistingSkelMeshData;
 extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
-extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex, bool bResetMaterialSlots);
+extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex, bool bResetMaterialSlots, bool bIsReimportPreview);
 
 // Get the geometry deformation local to a node. It is never inherited by the
 // children.
@@ -1632,7 +1632,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 
 		if (ExistSkelMeshDataPtr)
 		{
-			RestoreExistingSkelMeshData(ExistSkelMeshDataPtr, SkeletalMesh, ImportSkeletalMeshArgs.LodIndex, ImportOptions->bResetMaterialSlots);
+			RestoreExistingSkelMeshData(ExistSkelMeshDataPtr, SkeletalMesh, ImportSkeletalMeshArgs.LodIndex, ImportOptions->bResetMaterialSlots, ImportOptions->bIsReimportPreview);
 		}
 
 		SkeletalMesh->CalculateInvRefMatrices();
@@ -1681,10 +1681,17 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &
 			bool bToastSaveMessage = false;
 			if(bFirstMesh || (LastMergeBonesChoice != EAppReturnType::NoAll && LastMergeBonesChoice != EAppReturnType::YesAll))
 			{
-				LastMergeBonesChoice = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
-					LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical changes have been made\n"
-						"e.g. inserting a bone between nodes.\nWould you like to regenerate the Skeleton from this mesh?\n\n"
-						"***WARNING: THIS MAY INVALIDATE OR REQUIRE RECOMPRESSION OF ANIMATION DATA.***\n"));
+				if (!ImportOptions->bIsReimportPreview)
+				{
+					LastMergeBonesChoice = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
+						LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical changes have been made\n"
+							"e.g. inserting a bone between nodes.\nWould you like to regenerate the Skeleton from this mesh?\n\n"
+							"***WARNING: THIS MAY INVALIDATE OR REQUIRE RECOMPRESSION OF ANIMATION DATA.***\n"));
+				}
+				else
+				{
+					LastMergeBonesChoice = EAppReturnType::NoAll;
+				}
 				bToastSaveMessage = true;
 			}
 			
@@ -3752,13 +3759,12 @@ public:
 	void ComputeMorphDeltas()
 	{
 		TArray<bool> WasProcessed;
-		WasProcessed.Empty( BaseImportData.Wedges.Num() );
-		WasProcessed.AddZeroed( BaseImportData.Wedges.Num() );
+		WasProcessed.Empty(LODModel->NumVertices );
+		WasProcessed.AddZeroed(LODModel->NumVertices);
 
 		for ( int32 Idx = 0; Idx < BaseIndexData.Indices.Num(); ++Idx )
 		{
 			uint32 BaseVertIdx = BaseIndexData.Indices[Idx];
-
 			// check for duplicate processing
 			if( !WasProcessed[BaseVertIdx] )
 			{
@@ -3770,42 +3776,44 @@ public:
 				{
 					// get the base mesh's original wedge point index
 					uint32 BasePointIdx = BaseWedgePointIndices[ BaseVertIdx ];
-
-					FVector BasePosition = BaseImportData.Points[ BasePointIdx ];
-					FVector TargetPosition = MorphLODPoints[ BasePointIdx ];
-
-					FVector PositionDelta = TargetPosition - BasePosition;
-
-					uint32* VertexIdx = WedgePointToVertexIndexMap.Find( BasePointIdx );
-
-					FVector NormalDeltaZ = FVector::ZeroVector;
-
-					if ( VertexIdx != nullptr )
+					if (BaseImportData.Points.IsValidIndex(BasePointIdx))
 					{
-						FVector BaseNormal = BaseTangentZ[ *VertexIdx ];
-						FVector TargetNormal = TangentZ[ *VertexIdx ];
+						FVector BasePosition = BaseImportData.Points[BasePointIdx];
+						FVector TargetPosition = MorphLODPoints[BasePointIdx];
 
-						NormalDeltaZ = TargetNormal - BaseNormal;
-					}
+						FVector PositionDelta = TargetPosition - BasePosition;
 
-					// check if position actually changed much
-					if( PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR) || 
-						// since we can't get imported morphtarget normal from FBX
-						// we can't compare normal unless it's calculated
-						// this is special flag to ignore normal diff
-						( (ImportOptions->ShouldImportNormals() == false) && NormalDeltaZ.SizeSquared() > 0.01f) )
-					{
-						// create a new entry
-						FMorphTargetDelta NewVertex;
-						// position delta
-						NewVertex.PositionDelta = PositionDelta;
-						// normal delta
-						NewVertex.TangentZDelta = NormalDeltaZ;
-						// index of base mesh vert this entry is to modify
-						NewVertex.SourceIdx = BaseVertIdx;
+						uint32* VertexIdx = WedgePointToVertexIndexMap.Find(BasePointIdx);
 
-						// add it to the list of changed verts
-						MorphTargetDeltas.Add( NewVertex );
+						FVector NormalDeltaZ = FVector::ZeroVector;
+
+						if (VertexIdx != nullptr)
+						{
+							FVector BaseNormal = BaseTangentZ[*VertexIdx];
+							FVector TargetNormal = TangentZ[*VertexIdx];
+
+							NormalDeltaZ = TargetNormal - BaseNormal;
+						}
+
+						// check if position actually changed much
+						if (PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR) ||
+							// since we can't get imported morphtarget normal from FBX
+							// we can't compare normal unless it's calculated
+							// this is special flag to ignore normal diff
+							((ImportOptions->ShouldImportNormals() == false) && NormalDeltaZ.SizeSquared() > 0.01f))
+						{
+							// create a new entry
+							FMorphTargetDelta NewVertex;
+							// position delta
+							NewVertex.PositionDelta = PositionDelta;
+							// normal delta
+							NewVertex.TangentZDelta = NormalDeltaZ;
+							// index of base mesh vert this entry is to modify
+							NewVertex.SourceIdx = BaseVertIdx;
+
+							// add it to the list of changed verts
+							MorphTargetDeltas.Add(NewVertex);
+						}
 					}
 				}
 			}

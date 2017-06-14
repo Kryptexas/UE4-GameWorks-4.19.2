@@ -20,7 +20,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
+const float UEnvQueryTypes::SkippedItemValue = -MAX_flt;
 float UEnvQueryTypes::UnlimitedStepTime = -1.f;
 
 //----------------------------------------------------------------------//

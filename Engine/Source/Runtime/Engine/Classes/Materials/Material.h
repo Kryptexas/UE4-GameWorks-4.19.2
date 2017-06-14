@@ -1199,6 +1199,9 @@ public:
 	 */
 	void CacheExpressionTextureReferences();
 
+	/** Rebuild ExpressionTextureReferences with all textures referenced by expressions in this material. */
+	void RebuildExpressionTextureReferences();
+
 	/** Attempts to add a new group name to the Group Data struct. True if new name was added. */
 	ENGINE_API bool AttemptInsertNewGroupName(const FString& InNewName);
 
@@ -1218,9 +1221,7 @@ private:
 	 * Rebuild the MaterialParameterCollectionInfos array with the current state of the material's parameter collection dependencies.
 	 */
 	void RebuildMaterialParameterCollectionInfo();
-
-	/** Rebuild ExpressionTextureReferences with all textures referenced by expressions in this material. */
-	void RebuildExpressionTextureReferences();
+	
 
 	/** 
 	 * Cache resource shaders for rendering. 

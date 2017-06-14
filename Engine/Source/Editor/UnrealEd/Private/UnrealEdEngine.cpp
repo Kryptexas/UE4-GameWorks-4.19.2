@@ -160,8 +160,14 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? IterativeFlags : ECookInitializationFlags::None;
 		BaseCookingFlags |= CookerSettings->bEnableBuildDDCInBackground ? ECookInitializationFlags::BuildDDCInBackground : ECookInitializationFlags::None;
 
+
 		if (CookerSettings->bEnableCookOnTheSide)
 		{
+			if ( ExperimentalSettings->bSharedCookedBuilds )
+			{
+				BaseCookingFlags |= ECookInitializationFlags::IterateSharedBuild | ECookInitializationFlags::IgnoreIniSettingsOutOfDate;
+			}
+
 			CookServer = NewObject<UCookOnTheFlyServer>();
 			CookServer->Initialize(ECookMode::CookOnTheFlyFromTheEditor, BaseCookingFlags);
 			CookServer->StartNetworkFileServer(false);

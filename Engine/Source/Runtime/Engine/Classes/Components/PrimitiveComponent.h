@@ -1149,6 +1149,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetCastShadow(bool NewCastShadow);
 
+	/** Changes the value of bSingleSampleShadowFromStationaryLights. */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	void SetSingleSampleShadowFromStationaryLights(bool bNewSingleSampleShadowFromStationaryLights);
+
 	/** Changes the value of TranslucentSortPriority. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetTranslucentSortPriority(int32 NewTranslucentSortPriority);

@@ -20,10 +20,9 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InSocket - The client socket to use.
-	 * @param InFileRequestDelegate - A delegate to be invoked when the client requests a file.
+	 * @param NetworkFileDelegates- delegates the client calls when events from the client happen
 	 */
-	FNetworkFileServerClientConnection(const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* OnFileModifiedDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+	FNetworkFileServerClientConnection( const FNetworkFileDelegateContainer* NetworkFileDelegates , const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -227,15 +226,7 @@ private:
 	// Holds the list of directories being watched.
 	TArray<FString> WatchedDirectories;
 
-	// Holds a delegate to be invoked on every sync request.
-	FFileRequestDelegate FileRequestDelegate;
-
-	// Holds a delegate to be invoked when a client requests a shader recompile.
-	FRecompileShadersDelegate RecompileShadersDelegate;
-
-	FSandboxPathDelegate SandboxPathOverrideDelegate;
-
-	FOnFileModifiedDelegate* OnFileModifiedCallback;
+	const FNetworkFileDelegateContainer* NetworkFileDelegates;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;

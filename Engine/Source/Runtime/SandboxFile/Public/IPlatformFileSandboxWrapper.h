@@ -475,7 +475,7 @@ public:
 				// Now convert the sandbox path back to engine path because the sandbox folder should not be exposed
 				// to the engine and remain transparent.
 				LocalFilename = LocalFilename.Mid(SandboxFile.GetSandboxDirectory().Len());
-				if (LocalFilename.StartsWith(TEXT("Engine/")))
+				if (LocalFilename.StartsWith(TEXT("Engine/")) || (FCString::Stricmp( *LocalFilename, TEXT("Engine") ) == 0))
 				{
 					LocalFilename = SandboxFile.GetAbsoluteRootDirectory() / LocalFilename;
 				}

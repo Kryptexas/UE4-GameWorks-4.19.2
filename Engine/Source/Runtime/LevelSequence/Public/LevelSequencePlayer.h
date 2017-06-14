@@ -150,6 +150,9 @@ public:
 	/** Take a snapshot of the current state of this player */
 	void TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const;
 
+	/** Set the offset time for the snapshot */
+	void SetSnapshotOffsetTime(float InTime) {SnapshotOffsetTime = TOptional<float>(InTime); }
+
 private:
 
 	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
@@ -174,6 +177,8 @@ protected:
 
 	/** How to take snapshots */
 	FLevelSequenceSnapshotSettings SnapshotSettings;
+
+	TOptional<float> SnapshotOffsetTime;
 
 	TWeakObjectPtr<UCameraComponent> CachedCameraComponent;
 

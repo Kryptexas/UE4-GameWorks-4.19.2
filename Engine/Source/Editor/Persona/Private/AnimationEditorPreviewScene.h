@@ -118,6 +118,24 @@ public:
 	virtual bool AllowMeshHitProxies() const override;
 	virtual void SetAllowMeshHitProxies(bool bState) override;
 
+	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate) override
+	{
+		OnSelectedLODChanged.Add(Delegate);
+	}
+	
+	virtual void UnRegisterOnSelectedLODChanged(void* Thing) override
+	{
+		OnSelectedLODChanged.RemoveAll(Thing);
+	}
+	
+	virtual void BroadcastOnSelectedLODChanged() override
+	{
+		if (OnSelectedLODChanged.IsBound())
+		{
+			OnSelectedLODChanged.Broadcast();
+		}
+	}
+
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
 	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot = false) override;
@@ -280,4 +298,7 @@ private:
 
 	/** Whether or not mesh section hit proxies should be enabled or not */
 	bool bEnableMeshHitProxies;
+
+	/* Selected LOD changed delegate */
+	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
 };

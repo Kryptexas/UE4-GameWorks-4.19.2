@@ -354,17 +354,8 @@ void FAssetRegistryGenerator::CleanManifestDirectories()
 bool FAssetRegistryGenerator::LoadPreviousAssetRegistry(const FString& Filename)
 {
 	// First try development asset registry
-	FString DevelopmentFilename = Filename.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
 	FArrayReader SerializedAssetData;
-
-	if (IFileManager::Get().FileExists(*DevelopmentFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevelopmentFilename))
-	{
-		FAssetRegistrySerializationOptions Options;
-		Options.ModifyForDevelopment();
-
-		return PreviousState.Serialize(SerializedAssetData, Options);
-	}
-
+	
 	if (IFileManager::Get().FileExists(*Filename) && FFileHelper::LoadFileToArray(SerializedAssetData, *Filename))
 	{
 		FAssetRegistrySerializationOptions Options;
@@ -472,6 +463,8 @@ void FAssetRegistryGenerator::UpdatePackageSourceHashes()
 		TArray<FAssetIdentifier> Dependencies;
 
 		State.GetDependencies(PackageName, Dependencies, EAssetRegistryDependencyType::Hard);
+
+		Dependencies.Sort([&](const FAssetIdentifier& A, const FAssetIdentifier& B) { return A.PackageName > B.PackageName; } );
 
 		for (FAssetIdentifier& Dependency : Dependencies)
 		{
@@ -752,7 +745,7 @@ void FAssetRegistryGenerator::AddAssetToFileOrderRecursive(FAssetData* InAsset, 
 	}
 }
 
-bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
+bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry )
 {
 	UE_LOG(LogAssetRegistryGenerator, Display, TEXT("Saving asset registry."));
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
@@ -771,7 +764,7 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
 
 	AssetRegistry.InitializeTemporaryAssetRegistryState(State, SaveOptions, true);
 
-	if (DevelopmentSaveOptions.bSerializeAssetRegistry)
+	if (DevelopmentSaveOptions.bSerializeAssetRegistry && bSerializeDevelopmentAssetRegistry)
 	{
 		// Create development registry data, used for incremental cook and editor viewing
 		FArrayWriter SerializedAssetRegistry;

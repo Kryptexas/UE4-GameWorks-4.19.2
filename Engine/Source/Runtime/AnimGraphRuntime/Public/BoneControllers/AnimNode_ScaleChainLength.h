@@ -12,8 +12,19 @@
 
 class USkeletalMeshComponent;
 
+UENUM(BlueprintType)
+enum class EScaleChainInitialLength : uint8
+{
+	/** Use the 'DefaultChainLength' input value. */
+	FixedDefaultLengthValue,
+	/** Use distance between 'ChainStartBone' and 'ChainEndBone' (in Component Space) */
+	Distance,
+	/* Use animated chain length (length in local space of every bone from 'ChainStartBone' to 'ChainEndBone' */
+	ChainLength,
+};
+
 /**
- *	
+ *	Scale the length of a chain of bones.
  */
 USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_ScaleChainLength : public FAnimNode_Base
@@ -33,11 +44,17 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_ScaleChainLength : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, Category = ScaleChainLength)
 	FBoneReference ChainEndBone;
 
+	UPROPERTY(EditAnywhere, Category = ScaleChainLength)
+	EScaleChainInitialLength ChainInitialLength;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ScaleChainLength, meta = (PinShownByDefault))
 	FVector TargetLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinShownByDefault))
 	mutable float Alpha;
+
+	UPROPERTY(Transient)
+	float ActualAlpha;
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FInputScaleBias AlphaScaleBias;
@@ -57,4 +74,7 @@ public:
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+protected:
+	float GetInitialChainLength(FCompactPose& InLSPose, FCSPose<FCompactPose>& InCSPose) const;
 };

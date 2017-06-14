@@ -53,9 +53,10 @@ FString FDerivedDataAnimationCompression::GetPluginSpecificCacheKeySuffix() cons
 	char AdditiveType = bCanBakeAdditive ? NibbleToTChar(OriginalAnimSequence->AdditiveAnimType) : '0';
 	char RefType = bCanBakeAdditive ? NibbleToTChar(OriginalAnimSequence->RefPoseType) : '0';
 
-	FString Ret = FString::Printf(TEXT("%i_%i_%s%s%s_%c%c%i_%s_%s"),
+	FString Ret = FString::Printf(TEXT("%i_%i_%i_%s%s%s_%c%c%i_%s_%s"),
 		(int32)UE_ANIMCOMPRESSION_DERIVEDDATA_VER,
 		(int32)CURRENT_ANIMATION_ENCODING_PACKAGE_VERSION,
+		OriginalAnimSequence->CompressCommandletVersion,
 		*OriginalAnimSequence->GetRawDataGuid().ToString(),
 		*OriginalAnimSequence->GetSkeleton()->GetGuid().ToString(),
 		*OriginalAnimSequence->GetSkeleton()->GetVirtualBoneGuid().ToString(),
@@ -67,7 +68,6 @@ FString FDerivedDataAnimationCompression::GetPluginSpecificCacheKeySuffix() cons
 		);
 
 	return Ret;
-
 }
 
 bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )

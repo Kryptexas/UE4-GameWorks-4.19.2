@@ -1023,7 +1023,6 @@ bool FPaintModePainter::PaintInternal(const FVector& InCameraOrigin, const FVect
 
 			if (PaintSettings->PaintMode == EPaintMode::Vertices && MeshAdapter->SupportsVertexPaint())
 			{
-				MeshAdapter->PreEdit();
 
 				FPerVertexPaintActionArgs Args;
 				Args.Adapter = MeshAdapter;
@@ -1033,7 +1032,6 @@ bool FPaintModePainter::PaintInternal(const FVector& InCameraOrigin, const FVect
 				Args.Action = PaintAction;
 
 				bPaintApplied |= MeshPaintHelpers::ApplyPerVertexPaintAction(Args, FPerVertexPaintAction::CreateRaw(this, &FPaintModePainter::ApplyVertexColor, Params));
-				MeshAdapter->PostEdit();
 			}
 			else if (PaintSettings->PaintMode == EPaintMode::Textures&& MeshAdapter->SupportsTexturePaint())
 			{

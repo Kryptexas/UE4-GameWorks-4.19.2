@@ -4076,7 +4076,13 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	//if we are using a fileserver, then dont' mount paks automatically.  We only want to read files from the server.
 	FString FileHostIP;
 	const bool bCookOnTheFly = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), FileHostIP);
-	bMountPaks = !bCookOnTheFly;
+	const bool bPreCookedNetwork = FParse::Param(FCommandLine::Get(), TEXT("precookednetwork") );
+	if (bPreCookedNetwork)
+	{
+		// precooked network builds are dependent on cook on the fly
+		check(bCookOnTheFly);
+	}
+	bMountPaks &= (!bCookOnTheFly || bPreCookedNetwork);
 #endif
 
 	if (bMountPaks)

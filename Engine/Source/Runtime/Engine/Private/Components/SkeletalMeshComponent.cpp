@@ -1541,6 +1541,8 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 {
 	check (MasterPoseComponent.IsValid());
 
+	ResetMorphTargetCurves();
+
 	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
 		// first set any animation-driven curves from the master SMC

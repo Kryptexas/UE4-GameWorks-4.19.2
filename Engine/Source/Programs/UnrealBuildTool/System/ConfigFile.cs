@@ -177,7 +177,7 @@ namespace UnrealBuildTool
 							{
 								if(!TryAddConfigLine(CurrentSection, Line, StartIdx, EndIdx, DefaultAction))
 								{
-									Console.WriteLine("Couldn't parse '{0}'", Line);
+									Console.WriteLine("Couldn't parse '{0}' in {1} of {2}", Line, CurrentSection, Location.FullName);
 								}
 								break;
 							}

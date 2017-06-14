@@ -37,9 +37,11 @@ namespace UnFbx
 
 TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
+TSharedPtr<FFbxImporter> FFbxImporter::StaticPreviewInstance;
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
+
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType, UObject* ReimportObject)
 {
 	OutOperationCanceled = false;
 
@@ -100,10 +102,17 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 
 		TSharedRef<SWindow> Window = SNew(SWindow)
 			.Title(NSLOCTEXT("UnrealEd", "FBXImportOpionsTitle", "FBX Import Options"))
-			.SizingRule( ESizingRule::Autosized )
+			.SizingRule(ESizingRule::Autosized)
 			.AutoCenter(EAutoCenter::None)
 			.ScreenPosition(WindowPosition);
 		
+		auto OnPreviewFbxImportLambda = FOnPreviewFbxImport::CreateLambda([=]
+		{
+			UnFbx::FFbxImporter* PreviewFbxImporter = UnFbx::FFbxImporter::GetPreviewInstance();
+			PreviewFbxImporter->ShowFbxReimportPreview(ReimportObject, ImportUI, FullPath);
+			UnFbx::FFbxImporter::DeletePreviewInstance();
+		});
+
 		TSharedPtr<SFbxOptionWindow> FbxOptionWindow;
 		Window->SetContent
 		(
@@ -115,6 +124,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.IsObjFormat( bIsObjFormat )
 			.MaxWindowHeight(FbxImportWindowHeight)
 			.MaxWindowWidth(FbxImportWindowWidth)
+			.OnPreviewFbxImport(OnPreviewFbxImportLambda)
 		);
 
 		// @todo: we can make this slow as showing progress bar later
@@ -393,6 +403,20 @@ FFbxImporter* FFbxImporter::GetInstance()
 void FFbxImporter::DeleteInstance()
 {
 	StaticInstance.Reset();
+}
+
+FFbxImporter* FFbxImporter::GetPreviewInstance()
+{
+	if (!StaticPreviewInstance.IsValid())
+	{
+		StaticPreviewInstance = MakeShareable(new FFbxImporter());
+	}
+	return StaticPreviewInstance.Get();
+}
+
+void FFbxImporter::DeletePreviewInstance()
+{
+	StaticPreviewInstance.Reset();
 }
 
 //-------------------------------------------------------------------------
@@ -991,10 +1015,6 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 	{
 		UE_LOG(LogFbx, Log, TEXT("FBX Scene Loaded Succesfully"));
 		CurPhase = IMPORTED;
-		
-		// Release importer now as it is unneeded
-		Importer->Destroy();
-		Importer = NULL;
 	}
 	else
 	{
@@ -1011,6 +1031,10 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 
 void FFbxImporter::ConvertScene()
 {
+	//Set the original file information
+	FileAxisSystem = Scene->GetGlobalSettings().GetAxisSystem();
+	FileUnitSystem = Scene->GetGlobalSettings().GetSystemUnit();
+
 	if (GetImportOptions()->bConvertScene)
 	{
 		// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X

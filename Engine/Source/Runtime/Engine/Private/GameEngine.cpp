@@ -1160,7 +1160,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			}
 		}
 
-		
+
 
 		// Issue cause event after first tick to provide a chance for the game to spawn the player and such.
 		if( Context.World()->bWorldWasLoadedThisTick )

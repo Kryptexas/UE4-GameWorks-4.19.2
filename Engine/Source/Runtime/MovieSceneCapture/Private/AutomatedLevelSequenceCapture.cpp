@@ -390,6 +390,9 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 					(float)PlaybackStartFrame / (float)Settings.FrameRate,
 					(float)PlaybackEndFrame / (float)Settings.FrameRate );
 				Actor->SequencePlayer->SetPlaybackPosition(0.f);
+
+				const float WarmupTime = WarmUpFrameCount / CachedState.Settings.FrameRate;
+				Actor->SequencePlayer->SetSnapshotOffsetTime(WarmupTime);
 			}
 		}
 	}

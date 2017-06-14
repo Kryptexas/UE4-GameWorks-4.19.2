@@ -19,10 +19,12 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 	ImportUI = InArgs._ImportUI;
 	WidgetWindow = InArgs._WidgetWindow;
 	bIsObjFormat = InArgs._IsObjFormat;
+	OnPreviewFbxImport = InArgs._OnPreviewFbxImport;
 
 	check (ImportUI);
 	
 	TSharedPtr<SBox> ImportTypeDisplay;
+	TSharedPtr<SHorizontalBox> FbxHeaderButtons;
 	TSharedPtr<SBox> InspectorBox;
 	this->ChildSlot
 	[
@@ -116,29 +118,70 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 	FDetailsViewArgs DetailsViewArgs;
 	DetailsViewArgs.bAllowSearch = false;
 	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-	TSharedPtr<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+	DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 
 	InspectorBox->SetContent(DetailsView->AsShared());
 
-	if (ImportUI->bIsReimport)
-	{
-		ImportTypeDisplay->SetContent(
-			SNew(SBorder)
-			.Padding(FMargin(3))
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+	ImportTypeDisplay->SetContent(
+		SNew(SBorder)
+		.Padding(FMargin(3))
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
+				SNew(STextBlock)
+				.Text(this, &SFbxOptionWindow::GetImportTypeDisplayText)
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Right)
 				[
-					SNew(STextBlock)
-					.Text(this, &SFbxOptionWindow::GetImportTypeDisplayText)
+					SAssignNew(FbxHeaderButtons, SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(2.0f, 0.0f))
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("FbxOptionWindow_ResetOptions", "Reset to Default"))
+						.OnClicked(this, &SFbxOptionWindow::OnResetToDefaultClick)
+					]
 				]
 			]
-		);
+		]
+	);
+
+	if (ImportUI->bIsReimport && OnPreviewFbxImport.IsBound())
+	{
+		FbxHeaderButtons->AddSlot()
+		.AutoWidth()
+		.Padding(FMargin(2.0f, 0.0f))
+		[
+			//Create the fbx import preview button
+			SNew(SButton)
+			.Text(LOCTEXT("FbxOptionWindow_Preview", "Preview..."))
+			.OnClicked(this, &SFbxOptionWindow::OnPreviewClick)
+		];
 	}
 
 	DetailsView->SetObject(ImportUI);
+}
+
+FReply SFbxOptionWindow::OnPreviewClick() const
+{
+	//Pop a preview window to let the user see the content of the fbx file
+	OnPreviewFbxImport.ExecuteIfBound();
+	return FReply::Handled();
+}
+
+FReply SFbxOptionWindow::OnResetToDefaultClick() const
+{
+	ImportUI->ResetToDefault();
+	//Refresh the view to make sure the custom UI are updating correctly
+	DetailsView->SetObject(ImportUI, true);
+	return FReply::Handled();
 }
 
 FText SFbxOptionWindow::GetImportTypeDisplayText() const
@@ -146,11 +189,11 @@ FText SFbxOptionWindow::GetImportTypeDisplayText() const
 	switch (ImportUI->MeshTypeToImport)
 	{
 	case EFBXImportType::FBXIT_Animation :
-		return LOCTEXT("FbxOptionWindow_ImportTypeAnim", "Reimport Animation");
+		return ImportUI->bIsReimport ? LOCTEXT("FbxOptionWindow_ReImportTypeAnim", "Reimport Animation") : LOCTEXT("FbxOptionWindow_ImportTypeAnim", "Import Animation");
 	case EFBXImportType::FBXIT_SkeletalMesh:
-		return LOCTEXT("FbxOptionWindow_ImportTypeSK", "Reimport Skeletal Mesh");
+		return ImportUI->bIsReimport ? LOCTEXT("FbxOptionWindow_ReImportTypeSK", "Reimport Skeletal Mesh") : LOCTEXT("FbxOptionWindow_ImportTypeSK", "Import Skeletal Mesh");
 	case EFBXImportType::FBXIT_StaticMesh:
-		return LOCTEXT("FbxOptionWindow_ImportTypeSM", "Reimport Static Mesh");
+		return ImportUI->bIsReimport ? LOCTEXT("FbxOptionWindow_ReImportTypeSM", "Reimport Static Mesh") : LOCTEXT("FbxOptionWindow_ImportTypeSM", "Import Static Mesh");
 	}
 	return FText::GetEmpty();
 }

@@ -796,18 +796,21 @@ void FCSPose<PoseType>::ConvertToLocalPoses(PoseType& OutPose) const
 	// that doesn't mean this local has to change
 	// go from child to parent since I need parent inverse to go back to local
 	// root is same, so no need to do Index == 0
-	for (const BoneIndexType BoneIndex : Pose.ForEachBoneIndexReverse())
+	const BoneIndexType RootBoneIndex(0);
+	if (ComponentSpaceFlags[RootBoneIndex])
 	{
-		if (!BoneIndex.IsRootBone())
-		{
-			// root is already verified, so root should not come here
-			if (ComponentSpaceFlags[BoneIndex])
-			{
-				const FCompactPoseBoneIndex ParentIndex = Pose.GetParentBoneIndex(BoneIndex);
+		OutPose[RootBoneIndex] = Pose[RootBoneIndex];
+	}
 
-				OutPose[BoneIndex].SetToRelativeTransform(OutPose[ParentIndex]);
-				OutPose[BoneIndex].NormalizeRotation();
-			}
+	const int32 NumBones = Pose.GetNumBones();
+	for (int32 Index = NumBones - 1; Index > 0; Index--)
+	{
+		const BoneIndexType BoneIndex(Index);
+		if (ComponentSpaceFlags[BoneIndex])
+		{
+			const BoneIndexType ParentIndex = Pose.GetParentBoneIndex(BoneIndex);
+			OutPose[BoneIndex].SetToRelativeTransform(OutPose[ParentIndex]);
+			OutPose[BoneIndex].NormalizeRotation();
 		}
 	}
 }

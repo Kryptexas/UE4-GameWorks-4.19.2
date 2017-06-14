@@ -103,6 +103,7 @@ public class Launch : ModuleRules
 				new string[] {
 					"NetworkFile",
 					"StreamingFile",
+					"CookedIterativeFile",
     				"AutomationWorker",
 				}
 			);

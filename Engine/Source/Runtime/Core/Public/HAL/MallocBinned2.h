@@ -50,6 +50,21 @@
 #endif
 
 
+#define BINNED2_ALLOCATOR_STATS 1
+
+
+#if BINNED2_ALLOCATOR_STATS
+extern int64 AllocatedSmallPoolMemory; // memory that's requested to be allocated by the game
+
+
+//////////////////////////////////////////////////////////////////////////
+// the following don't need a critical section because they are covered by the critical section called Mutex
+extern int64 AllocatedOSSmallPoolMemory;
+extern int64 AllocatedLargePoolMemory; // memory requests to the OS which don't fit in the small pool
+extern int64 AllocatedLargePoolMemoryWAlignment; // when we allocate at OS level we need to align to a size
+#endif
+
+
 
 //
 // Optimized virtual memory allocator.
@@ -495,6 +510,10 @@ public:
 	void FreeExternal(void *Ptr);
 	bool GetAllocationSizeExternal(void* Ptr, SIZE_T& SizeOut);
 
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override;
+	/** Dumps current allocator stats to the log. */
+	virtual void DumpAllocatorStats(class FOutputDevice& Ar) override;
+	
 	static uint16 SmallBlockSizesReversed[BINNED2_SMALL_POOL_COUNT]; // this is reversed to get the smallest elements on our main cache line
 	static FMallocBinned2* MallocBinned2;
 	static uint32 Binned2TlsSlot;

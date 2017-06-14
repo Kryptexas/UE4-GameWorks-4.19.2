@@ -95,7 +95,7 @@ TArray<uint32> FBaseMeshPaintGeometryAdapter::SphereIntersectTriangles(const flo
 void FBaseMeshPaintGeometryAdapter::GetInfluencedVertexIndices(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing, TSet<int32> &InfluencedVertices) const
 {
 	// Get a list of (optionally front-facing) triangles that are within a reasonable distance to the brush
-	TArray<uint32> InfluencedTriangles = SphereIntersectTriangles(
+	const TArray<uint32> InfluencedTriangles = SphereIntersectTriangles(
 		ComponentSpaceSquaredBrushRadius,
 		ComponentSpaceBrushPosition,
 		ComponentSpaceCameraPosition,
@@ -106,7 +106,7 @@ void FBaseMeshPaintGeometryAdapter::GetInfluencedVertexIndices(const float Compo
 	check(NumIndexBufferIndices % 3 == 0);
 
 	InfluencedVertices.Reserve(InfluencedTriangles.Num());
-	for (int32 InfluencedTriangle : InfluencedTriangles)
+	for (const int32 InfluencedTriangle : InfluencedTriangles)
 	{
 		for (int32 Index = 0; Index < 3; ++Index)
 		{

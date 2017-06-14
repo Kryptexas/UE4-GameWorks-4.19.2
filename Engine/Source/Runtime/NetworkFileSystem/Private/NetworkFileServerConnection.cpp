@@ -36,34 +36,12 @@ void GetSandboxRootDirectories(FSandboxPlatformFile* Sandbox, FString& SandboxEn
 /* FNetworkFileServerClientConnection structors
  *****************************************************************************/
 
-FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FNetworkFileDelegateContainer* InNetworkFileDelegates, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	: LastHandleId(0)
 	, Sandbox(NULL)
+	, NetworkFileDelegates(InNetworkFileDelegates)
 	, ActiveTargetPlatforms(InActiveTargetPlatforms)
-{
-
-	OnFileModifiedCallback = InOnFileModifiedCallback;
-	if (OnFileModifiedCallback)
-	{
-		OnFileModifiedCallback->AddRaw(this, &FNetworkFileServerClientConnection::FileModifiedCallback);
-	}
-
-	if (InFileRequestDelegate.IsBound())
-	{
-		FileRequestDelegate = InFileRequestDelegate;
-	}
-
-	if (InRecompileShadersDelegate.IsBound())
-	{
-		RecompileShadersDelegate = InRecompileShadersDelegate;
-	}
-
-	if ( InSandboxPathOverrideDelegate.IsBound() )
-	{
-		SandboxPathOverrideDelegate = InSandboxPathOverrideDelegate;
-	}
-	
+{	
 	//stats
 	FileRequestDelegateTime = 0.0;
 	PackageFileTime = 0.0;
@@ -74,12 +52,20 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FF
 	PackageRequestsSucceeded = 0;
 	PackageRequestsFailed = 0;
 	FileBytesSent = 0;
+
+	if ( NetworkFileDelegates && NetworkFileDelegates->OnFileModifiedCallback )
+	{
+		NetworkFileDelegates->OnFileModifiedCallback->AddRaw(this, &FNetworkFileServerClientConnection::FileModifiedCallback);
+	}
 }
 
 
 FNetworkFileServerClientConnection::~FNetworkFileServerClientConnection( )
 {
-	OnFileModifiedCallback->RemoveAll(this);
+	if (NetworkFileDelegates && NetworkFileDelegates->OnFileModifiedCallback)
+	{
+		NetworkFileDelegates->OnFileModifiedCallback->RemoveAll(this);
+	}
 
 	// close all the files the client had opened through us when the client disconnects
 	for (TMap<uint64, IFileHandle*>::TIterator It(OpenFiles); It; ++It)
@@ -395,7 +381,7 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 	}
 
 	TArray<FString> NewUnsolictedFiles;
-	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
+	NetworkFileDelegates->FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
 	int64 ServerFileSize = 0;
@@ -542,7 +528,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileInfo( FArchive& In, FArch
 	if (Info.FileExists)
 	{
 		TArray<FString> NewUnsolictedFiles;
-		FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
+		NetworkFileDelegates->FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 	}
 
 	// get the rest of the info
@@ -728,14 +714,34 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	FString EngineRelativePath;
 	FString GameRelativePath;
 	TArray<FString> RootDirectories;
-	bool bIsStreamingRequest = false;
+	
+	EConnectionFlags ConnectionFlags;
+
+	FString ClientVersionInfo;
 
 	In << TargetPlatformNames;
 	In << GameName;
 	In << EngineRelativePath;
 	In << GameRelativePath;
 	In << RootDirectories;
-	In << bIsStreamingRequest;
+	In << ConnectionFlags;
+	In << ClientVersionInfo;
+
+	if ( NetworkFileDelegates->NewConnectionDelegate.IsBound() )
+	{
+		bool bIsValidVersion = true;
+		for ( const FString& TargetPlatform : TargetPlatformNames )
+		{
+			bIsValidVersion &= NetworkFileDelegates->NewConnectionDelegate.Execute(ClientVersionInfo, TargetPlatform );
+		}
+		if ( bIsValidVersion == false )
+		{
+			return false;
+		}
+	}
+
+	const bool bIsStreamingRequest = (ConnectionFlags & EConnectionFlags::Streaming) == EConnectionFlags::Streaming;
+	const bool bIsPrecookedIterativeRequest = (ConnectionFlags & EConnectionFlags::PreCookedIterative) == EConnectionFlags::PreCookedIterative;
 
 	ConnectedPlatformName = TEXT("");
 
@@ -810,9 +816,9 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	// figure out the sandbox directory
 	// @todo: This should use FPlatformMisc::SavedDirectory(GameName)
 	FString SandboxDirectory;
-	if ( SandboxPathOverrideDelegate.IsBound() )
+	if (NetworkFileDelegates->SandboxPathOverrideDelegate.IsBound() )
 	{
-		SandboxDirectory = SandboxPathOverrideDelegate.Execute();
+		SandboxDirectory = NetworkFileDelegates->SandboxPathOverrideDelegate.Execute();
 		// if the sandbox directory delegate returns a path with the platform name in it then replace it :)
 		SandboxDirectory.ReplaceInline(TEXT("[Platform]"), *ConnectedPlatformName);
 	}
@@ -864,7 +870,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	RecompileData.ShaderPlatform = -1;
 	RecompileData.ModifiedFiles = NULL;
 	RecompileData.MeshMaterialMaps = NULL;
-	RecompileShadersDelegate.ExecuteIfBound(RecompileData);
+	NetworkFileDelegates->RecompileShadersDelegate.ExecuteIfBound(RecompileData);
 
 	UE_LOG(LogFileServer, Display, TEXT("Getting files for %d directories, game = %s, platform = %s"), RootDirectories.Num(), *GameName, *ConnectedPlatformName);
 	UE_LOG(LogFileServer, Display, TEXT("    Sandbox dir = %s"), *SandboxDirectory);
@@ -894,6 +900,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Logs")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Sandboxes")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/Cooked")));
+		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/EditorCooked")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/ShaderDebugInfo")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Saved/StagedBuilds")));
 		DirectoriesToSkip.Add(FString(RootDirectories[DirIndex] / TEXT("Intermediate")));
@@ -1000,6 +1007,18 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		FixedTimes = FixupSandboxPathsForClient(VisitorForCacheDates.FileTimes);
 		Out << FixedTimes;
 	}
+
+
+
+	if ( bIsPrecookedIterativeRequest )
+	{
+		TMap<FString, FDateTime> PrecookedList;
+		NetworkFileDelegates->InitialPrecookedListDelegate.ExecuteIfBound(ConnectedPlatformName, PrecookedList);
+
+		FixedTimes = FixupSandboxPathsForClient(PrecookedList);
+		Out << FixedTimes;
+	}
+
 	return true;
 }
 
@@ -1010,15 +1029,17 @@ void FNetworkFileServerClientConnection::FileModifiedCallback( const FString& Fi
 	// do we care about this file???
 
 	// translation here?
-	ModifiedFiles.Add(Filename);
+	ModifiedFiles.AddUnique(Filename);
 }
 
 void FNetworkFileServerClientConnection::ProcessHeartbeat( FArchive& In, FArchive& Out )
 {
 	TArray<FString> FixedupModifiedFiles;
 	// Protect the array
+	if (Sandbox)
 	{
 		FScopeLock Lock(&ModifiedFilesSection);
+		
 		for (const auto& ModifiedFile : ModifiedFiles)
 		{
 			FixedupModifiedFiles.Add(FixupSandboxPathForClient(ModifiedFile));
@@ -1104,7 +1125,7 @@ void FNetworkFileServerClientConnection::ProcessRecompileShaders( FArchive& In, 
 	In << RecompileData.SerializedShaderResources;
 	In << RecompileData.bCompileChangedShaders;
 
-	RecompileShadersDelegate.ExecuteIfBound(RecompileData);
+	NetworkFileDelegates->RecompileShadersDelegate.ExecuteIfBound(RecompileData);
 
 	// tell other side what to do!
 	Out << RecompileModifiedFiles;
@@ -1131,7 +1152,7 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 
 	TArray<FString> NewUnsolictedFiles;
 
-	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
+	NetworkFileDelegates->FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	FileRequestDelegateTime += 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 	StartTime = FPlatformTime::Seconds();
