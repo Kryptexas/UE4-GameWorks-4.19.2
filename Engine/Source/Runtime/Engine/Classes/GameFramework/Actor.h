@@ -2704,6 +2704,9 @@ public:
 		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to GetComponents must be derived from UActorComponent");
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
 
+		// Empty input array, but don't affect allocated size.
+		OutComponents.Reset(0);
+
 		TArray<UChildActorComponent*> ChildActorComponents;
 
 		for (UActorComponent* OwnedComponent : OwnedComponents)
