@@ -61,7 +61,7 @@ const AMOVIESETUP_MEDIATYPE sudOpPinTypes =
 
 const AMOVIESETUP_PIN sudOutputPinDesktop = 
 {
-	L"Output",      // Obsolete, not used.
+	(LPWSTR)L"Output",      // Obsolete, not used.
 	false,          // Is this pin rendered?
 	true,           // Is it an output pin?
 	false,          // Can the filter create zero instances?

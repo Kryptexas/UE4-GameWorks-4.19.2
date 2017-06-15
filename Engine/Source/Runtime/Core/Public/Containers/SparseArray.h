@@ -556,11 +556,13 @@ public:
 	/** Copy assignment operator. */
 	TSparseArray& operator=(const TSparseArray& InCopy)
 	{
-		if(this != &InCopy)
+		if (this != &InCopy)
 		{
+			int32 SrcMax = InCopy.GetMaxIndex();
+
 			// Reallocate the array.
-			Empty(InCopy.GetMaxIndex());
-			Data.AddUninitialized(InCopy.GetMaxIndex());
+			Empty(SrcMax);
+			Data.AddUninitialized(SrcMax);
 
 			// Copy the other array's element allocation state.
 			FirstFreeIndex  = InCopy.FirstFreeIndex;
@@ -570,26 +572,29 @@ public:
 			// Determine whether we need per element construction or bulk copy is fine
 			if (!TIsTriviallyCopyConstructible<ElementType>::Value)
 			{
-				      FElementOrFreeListLink* SrcData  = (FElementOrFreeListLink*)Data.GetData();
-				const FElementOrFreeListLink* DestData = (FElementOrFreeListLink*)InCopy.Data.GetData();
+				      FElementOrFreeListLink* DestData = (FElementOrFreeListLink*)Data.GetData();
+				const FElementOrFreeListLink* SrcData  = (FElementOrFreeListLink*)InCopy.Data.GetData();
 
 				// Use the inplace new to copy the element to an array element
-				for(int32 Index = 0;Index < InCopy.GetMaxIndex();Index++)
+				for (int32 Index = 0; Index < SrcMax; ++Index)
 				{
-					      FElementOrFreeListLink& DestElement   = SrcData [Index];
-					const FElementOrFreeListLink& SourceElement = DestData[Index];
-					if(InCopy.IsAllocated(Index))
+					      FElementOrFreeListLink& DestElement = DestData[Index];
+					const FElementOrFreeListLink& SrcElement  = SrcData [Index];
+					if (InCopy.IsAllocated(Index))
 					{
-						::new((uint8*)&DestElement.ElementData) ElementType(*(ElementType*)&SourceElement.ElementData);
+						::new((uint8*)&DestElement.ElementData) ElementType(*(const ElementType*)&SrcElement.ElementData);
 					}
-					DestElement.PrevFreeIndex = SourceElement.PrevFreeIndex;
-					DestElement.NextFreeIndex = SourceElement.NextFreeIndex;
+					else
+					{
+						DestElement.PrevFreeIndex = SrcElement.PrevFreeIndex;
+						DestElement.NextFreeIndex = SrcElement.NextFreeIndex;
+					}
 				}
 			}
 			else
 			{
 				// Use the much faster path for types that allow it
-				FMemory::Memcpy(Data.GetData(),InCopy.Data.GetData(),sizeof(FElementOrFreeListLink) * InCopy.GetMaxIndex());
+				FMemory::Memcpy(Data.GetData(), InCopy.Data.GetData(), sizeof(FElementOrFreeListLink) * SrcMax);
 			}
 		}
 		return *this;

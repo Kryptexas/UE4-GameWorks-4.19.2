@@ -1377,7 +1377,7 @@ namespace UnrealBuildTool
 				foreach (FileReference BinaryPath in Binary.Config.OutputFilePaths)
 				{
 					FileReference ApkFile = BinaryPath.ChangeExtension(".apk");
-					BuildProducts.Add(ApkFile, BuildProductType.Executable);
+					BuildProducts.Add(ApkFile, BuildProductType.Package);
 				}
 			}
 		}

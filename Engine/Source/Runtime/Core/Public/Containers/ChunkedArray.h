@@ -8,6 +8,43 @@
 #include "Containers/IndirectArray.h"
 
 
+namespace UE4ChunkedArray_Private
+{
+	template <typename ChunkType, typename ElementType, uint32 NumElementsPerChunk>
+	struct TChunkedArrayIterator
+	{
+		TChunkedArrayIterator(ChunkType** InChunk, ElementType* InElem)
+			: Elem (InElem)
+			, Chunk(InChunk)
+		{
+
+		}
+
+		ElementType* Elem;
+		ChunkType**  Chunk;
+
+		ElementType& operator*() const
+		{
+			return *Elem;
+		}
+
+		void operator++()
+		{
+			++Elem;
+			if (Elem == (*Chunk)->Elements + NumElementsPerChunk)
+			{
+				++Chunk;
+				Elem = (*Chunk)->Elements;
+			}
+		}
+
+		friend bool operator!=(const TChunkedArrayIterator& Lhs, const TChunkedArrayIterator& Rhs)
+		{
+			return Lhs.Elem != Rhs.Elem;
+		}
+	};
+}
+
 /** An array that uses multiple allocations to avoid allocation failure due to fragmentation. */
 template<typename ElementType, uint32 TargetBytesPerChunk = 16384 >
 class TChunkedArray
@@ -235,6 +272,36 @@ protected:
 
 	/** The number of elements in the array. */
 	int32 NumElements;
+
+private:
+	typedef UE4ChunkedArray_Private::TChunkedArrayIterator<      FChunk,       ElementType, NumElementsPerChunk> FIterType;
+	typedef UE4ChunkedArray_Private::TChunkedArrayIterator<const FChunk, const ElementType, NumElementsPerChunk> FConstIterType;
+
+	friend FIterType begin(TChunkedArray& Array)
+	{
+		FChunk** ChunkPtr = Array.Chunks.GetData();
+		return FIterType(ChunkPtr, ChunkPtr ? (*ChunkPtr)->Elements : nullptr);
+	}
+
+	friend FConstIterType begin(const TChunkedArray& Array)
+	{
+		const FChunk** ChunkPtr = Array.Chunks.GetData();
+		return FConstIterType(ChunkPtr, ChunkPtr ? (*ChunkPtr)->Elements : nullptr);
+	}
+
+	friend FIterType end(TChunkedArray& Array)
+	{
+		int32 Num = Array.NumElements;
+		FChunk** ChunkPtr = Array.Chunks.GetData() + (Num / NumElementsPerChunk);
+		return FIterType(ChunkPtr, ChunkPtr ? (*ChunkPtr)->Elements + (Num % NumElementsPerChunk) : nullptr);
+	}
+
+	friend FConstIterType end(const TChunkedArray& Array)
+	{
+		int32 Num = Array.NumElements;
+		const FChunk** ChunkPtr = Array.Chunks.GetData() + (Num / NumElementsPerChunk);
+		return FConstIterType(ChunkPtr, ChunkPtr ? (*ChunkPtr)->Elements + (Num % NumElementsPerChunk) : nullptr);
+	}
 };
 
 

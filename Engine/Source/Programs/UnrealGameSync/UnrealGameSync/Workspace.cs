@@ -93,6 +93,8 @@ namespace UnrealGameSync
 		bool bSyncing;
 		ProgressValue Progress = new ProgressValue();
 
+		static Workspace ActiveWorkspace;
+
 		public event Action<WorkspaceUpdateContext, WorkspaceUpdateResult, string> OnUpdateComplete;
 
 		public Workspace(PerforceConnection InPerforce, string InLocalRootPath, string InSelectedLocalFileName, string InClientRootPath, string InSelectedClientFileName, int InInitialChangeNumber, int InLastBuiltChangeNumber, string InTelemetryProjectPath, TextWriter InLog)
@@ -175,6 +177,7 @@ namespace UnrealGameSync
 				}
 				PendingChangeNumber = CurrentChangeNumber;
 				bSyncing = false;
+				Interlocked.CompareExchange(ref ActiveWorkspace, null, this);
 			}
 		}
 
@@ -204,6 +207,7 @@ namespace UnrealGameSync
 
 			bSyncing = false;
 			PendingChangeNumber = CurrentChangeNumber;
+			Interlocked.CompareExchange(ref ActiveWorkspace, null, this);
 
 			if(OnUpdateComplete != null)
 			{
@@ -213,6 +217,15 @@ namespace UnrealGameSync
 
 		WorkspaceUpdateResult UpdateWorkspaceInternal(WorkspaceUpdateContext Context, out string StatusMessage)
 		{
+			if(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
+			{
+				Log.WriteLine("Waiting for other workspaces to finish...");
+				while(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
+				{
+					Thread.Sleep(100);
+				}
+			}
+
 			string CmdExe = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");
 			if(!File.Exists(CmdExe))
 			{

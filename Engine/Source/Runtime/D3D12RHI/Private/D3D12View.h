@@ -713,7 +713,7 @@ protected:
 
 	void AllocateHeapSlot()
 	{
-		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+		FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->template GetViewDescriptorAllocator<TDesc>();
 		Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
 		check(Descriptor.ptr != 0);
 	}
@@ -722,7 +722,7 @@ protected:
 	{
 		if (Descriptor.ptr)
 		{
-			FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+			FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->template GetViewDescriptorAllocator<TDesc>();
 			DescriptorAllocator.FreeHeapSlot(Descriptor, DescriptorHeapIndex);
 			Descriptor.ptr = 0;
 		}

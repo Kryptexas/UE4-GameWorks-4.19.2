@@ -1488,17 +1488,17 @@ void* TD3D12Texture2D<RHIResourceType>::Lock(class FRHICommandListImmediate* RHI
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
 
 	// Calculate the subresource index corresponding to the specified mip-map.
-	const uint32 Subresource = CalcSubresource(MipIndex, ArrayIndex, GetNumMips());
+	const uint32 Subresource = CalcSubresource(MipIndex, ArrayIndex, this->GetNumMips());
 
 	check(LockedMap.Find(Subresource) == nullptr);
 	FD3D12LockedResource* LockedResource = new FD3D12LockedResource(Device);
 
 	// Calculate the dimensions of the mip-map.
-	const uint32 BlockSizeX = GPixelFormats[GetFormat()].BlockSizeX;
-	const uint32 BlockSizeY = GPixelFormats[GetFormat()].BlockSizeY;
-	const uint32 BlockBytes = GPixelFormats[GetFormat()].BlockBytes;
-	const uint32 MipSizeX = FMath::Max(GetSizeX() >> MipIndex, BlockSizeX);
-	const uint32 MipSizeY = FMath::Max(GetSizeY() >> MipIndex, BlockSizeY);
+	const uint32 BlockSizeX = GPixelFormats[this->GetFormat()].BlockSizeX;
+	const uint32 BlockSizeY = GPixelFormats[this->GetFormat()].BlockSizeY;
+	const uint32 BlockBytes = GPixelFormats[this->GetFormat()].BlockBytes;
+	const uint32 MipSizeX = FMath::Max(this->GetSizeX() >> MipIndex, BlockSizeX);
+	const uint32 MipSizeY = FMath::Max(this->GetSizeY() >> MipIndex, BlockSizeY);
 	const uint32 NumBlocksX = (MipSizeX + BlockSizeX - 1) / BlockSizeX;
 	const uint32 NumBlocksY = (MipSizeY + BlockSizeY - 1) / BlockSizeY;
 
@@ -1652,14 +1652,14 @@ template<typename RHIResourceType>
 void TD3D12Texture2D<RHIResourceType>::UnlockInternal(class FRHICommandListImmediate* RHICmdList, TD3D12Texture2D<RHIResourceType>* Previous, uint32 MipIndex, uint32 ArrayIndex)
 {
 	// Calculate the subresource index corresponding to the specified mip-map.
-	const uint32 Subresource = CalcSubresource(MipIndex, ArrayIndex, GetNumMips());
+	const uint32 Subresource = CalcSubresource(MipIndex, ArrayIndex, this->GetNumMips());
 
 	// Calculate the dimensions of the mip-map.
-	const uint32 BlockSizeX = GPixelFormats[GetFormat()].BlockSizeX;
-	const uint32 BlockSizeY = GPixelFormats[GetFormat()].BlockSizeY;
-	const uint32 BlockBytes = GPixelFormats[GetFormat()].BlockBytes;
-	const uint32 MipSizeX = FMath::Max(GetSizeX() >> MipIndex, BlockSizeX);
-	const uint32 MipSizeY = FMath::Max(GetSizeY() >> MipIndex, BlockSizeY);
+	const uint32 BlockSizeX = GPixelFormats[this->GetFormat()].BlockSizeX;
+	const uint32 BlockSizeY = GPixelFormats[this->GetFormat()].BlockSizeY;
+	const uint32 BlockBytes = GPixelFormats[this->GetFormat()].BlockBytes;
+	const uint32 MipSizeX = FMath::Max(this->GetSizeX() >> MipIndex, BlockSizeX);
+	const uint32 MipSizeY = FMath::Max(this->GetSizeY() >> MipIndex, BlockSizeY);
 
 	TMap<uint32, FD3D12LockedResource*>& Map = (Previous) ? Previous->LockedMap : LockedMap;
 	FD3D12LockedResource* LockedResource = Map[Subresource];
@@ -1732,8 +1732,8 @@ void TD3D12Texture2D<RHIResourceType>::UpdateTexture2D(class FRHICommandListImme
 		UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, 1
 	};
 
-	check(GPixelFormats[GetFormat()].BlockSizeX == 1);
-	check(GPixelFormats[GetFormat()].BlockSizeY == 1);
+	check(GPixelFormats[this->GetFormat()].BlockSizeX == 1);
+	check(GPixelFormats[this->GetFormat()].BlockSizeY == 1);
 
 	const uint32 AlignedSourcePitch = Align(SourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 	const uint32 bufferSize = Align(UpdateRegion.Height*AlignedSourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
@@ -1747,7 +1747,7 @@ void TD3D12Texture2D<RHIResourceType>::UpdateTexture2D(class FRHICommandListImme
 
 		byte* pRowData = (byte*)pData;
 		byte* pSourceRowData = (byte*)SourceData;
-		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[GetFormat()].BlockBytes;
+		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[this->GetFormat()].BlockBytes;
 		check(CopyPitch <= SourcePitch);
 		for (uint32 i = 0; i < UpdateRegion.Height; i++)
 		{
@@ -1760,7 +1760,7 @@ void TD3D12Texture2D<RHIResourceType>::UpdateTexture2D(class FRHICommandListImme
 		SourceSubresource.Depth = 1;
 		SourceSubresource.Height = UpdateRegion.Height;
 		SourceSubresource.Width = UpdateRegion.Width;
-		SourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[GetFormat()].PlatformFormat;
+		SourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[this->GetFormat()].PlatformFormat;
 		SourceSubresource.RowPitch = AlignedSourcePitch;
 		check(SourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
 

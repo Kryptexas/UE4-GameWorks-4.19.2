@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "HAL/ThreadSingleton.h"
 #include "Stats/Stats.h"
+#include "Misc/EnumClassFlags.h"
 
 struct FFrame;
 
@@ -100,9 +101,11 @@ namespace FunctionCallspace
 // Function flags.
 //
 // Note: Please keep ParseFunctionFlags in sync when this enum is modified.
-enum EFunctionFlags
+enum EFunctionFlags : uint32
 {
 	// Function flags.
+	FUNC_None				= 0x00000000,
+
 	FUNC_Final				= 0x00000001,	// Function is final (prebindable, non-overridable function).
 	FUNC_RequiredAPI			= 0x00000002,	// Indicates this function is DLL exported/imported.
 	FUNC_BlueprintAuthorityOnly= 0x00000004,   // Function will only run if the object has network authority
@@ -136,14 +139,22 @@ enum EFunctionFlags
 	FUNC_Const				= 0x40000000,	// function can be called from blueprint code, and only reads state (never writes state)
 	FUNC_NetValidate		= 0x80000000,	// function must supply a _Validate implementation
 
-	// Combinations of flags.
-	FUNC_FuncInherit        = FUNC_Exec | FUNC_Event | FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_BlueprintAuthorityOnly | FUNC_BlueprintCosmetic,
-	FUNC_FuncOverrideMatch	= FUNC_Exec | FUNC_Final | FUNC_Static | FUNC_Public | FUNC_Protected | FUNC_Private,
-	FUNC_NetFuncFlags       = FUNC_Net | FUNC_NetReliable | FUNC_NetServer | FUNC_NetClient | FUNC_NetMulticast,
-	FUNC_AccessSpecifiers	= FUNC_Public | FUNC_Private | FUNC_Protected,
-
 	FUNC_AllFlags		= 0xFFFFFFFF,
 };
+
+FORCEINLINE FArchive& operator<<(FArchive& Ar, EFunctionFlags& Flags)
+{
+	Ar << (uint32&)Flags;
+	return Ar;
+}
+
+ENUM_CLASS_FLAGS(EFunctionFlags)
+
+// Combinations of flags.
+#define FUNC_FuncInherit       ((EFunctionFlags)(FUNC_Exec | FUNC_Event | FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_BlueprintAuthorityOnly | FUNC_BlueprintCosmetic))
+#define FUNC_FuncOverrideMatch ((EFunctionFlags)(FUNC_Exec | FUNC_Final | FUNC_Static | FUNC_Public | FUNC_Protected | FUNC_Private))
+#define FUNC_NetFuncFlags      ((EFunctionFlags)(FUNC_Net | FUNC_NetReliable | FUNC_NetServer | FUNC_NetClient | FUNC_NetMulticast))
+#define FUNC_AccessSpecifiers  ((EFunctionFlags)(FUNC_Public | FUNC_Private | FUNC_Protected))
 
 //
 // Evaluatable expression item types.

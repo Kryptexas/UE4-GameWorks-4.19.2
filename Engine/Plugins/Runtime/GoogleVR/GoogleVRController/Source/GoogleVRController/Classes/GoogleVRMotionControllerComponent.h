@@ -25,8 +25,6 @@ class UGoogleVRPointerInputComponent;
 class UMaterialInterface;
 class UMaterialParameterCollection;
 
-GOOGLEVRCONTROLLER_API DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRMotionController, Log, All);
-
 /**
  * GoogleVRMotionControllerComponent is a customizable Daydream Motion Controller.
  *

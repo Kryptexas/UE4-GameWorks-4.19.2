@@ -17,6 +17,14 @@ namespace UnrealGameSync
 		Development,
 	}
 
+	enum TabLabels
+	{
+		Stream,
+		WorkspaceName,
+		WorkspaceRoot,
+		ProjectFile,
+	}
+
 	class UserWorkspaceSettings
 	{
 		// Settings for the currently synced project in this workspace. CurrentChangeNumber is only valid for this workspace if CurrentProjectPath is the current project.
@@ -63,10 +71,12 @@ namespace UnrealGameSync
 		public bool bShowAllStreams;
 		public bool bKeepInTray;
 		public string LastProjectFileName;
+		public string[] OpenProjectFileNames;
 		public string[] OtherProjectFileNames;
 		public string[] SyncFilter;
 		public LatestChangeType SyncType;
 		public BuildConfig CompiledEditorBuildConfig; // NB: This assumes not using precompiled editor. See CurrentBuildConfig.
+		public TabLabels TabLabels;
 
 		// Window settings
 		public bool bHasWindowSettings;
@@ -83,10 +93,8 @@ namespace UnrealGameSync
 		public List<Tuple<string, bool>> EditorArguments = new List<Tuple<string,bool>>();
 
 		// Project settings
-		public string CurrentWorkspaceKey;
-		public UserWorkspaceSettings CurrentWorkspace;
-		public string CurrentProjectKey;
-		public UserProjectSettings CurrentProject;
+		Dictionary<string, UserWorkspaceSettings> WorkspaceKeyToSettings = new Dictionary<string,UserWorkspaceSettings>();
+		Dictionary<string, UserProjectSettings> ProjectKeyToSettings = new Dictionary<string,UserProjectSettings>();
 
 		// Perforce settings
 		public PerforceSyncOptions SyncOptions = new PerforceSyncOptions();
@@ -111,6 +119,13 @@ namespace UnrealGameSync
 			bShowAllStreams = ConfigFile.GetValue("General.ShowAllStreams", false);
 			bKeepInTray = ConfigFile.GetValue("General.KeepInTray", true);
 			LastProjectFileName = ConfigFile.GetValue("General.LastProjectFileName", null);
+
+			OpenProjectFileNames = ConfigFile.GetValues("General.OpenProjectFileNames", new string[0]);
+			if(LastProjectFileName != null && !OpenProjectFileNames.Any(x => x.Equals(LastProjectFileName, StringComparison.InvariantCultureIgnoreCase)))
+			{
+				OpenProjectFileNames = OpenProjectFileNames.Concat(new string[]{ LastProjectFileName }).ToArray();
+			}
+
 			OtherProjectFileNames = ConfigFile.GetValues("General.OtherProjectFileNames", new string[0]);
 			SyncFilter = ConfigFile.GetValues("General.SyncFilter", new string[0]);
 			if(!Enum.TryParse(ConfigFile.GetValue("General.SyncType", ""), out SyncType))
@@ -123,6 +138,13 @@ namespace UnrealGameSync
 			if(!Enum.TryParse(CompiledEditorBuildConfigName, true, out CompiledEditorBuildConfig))
 			{
 				CompiledEditorBuildConfig = BuildConfig.DebugGame;
+			}
+
+			// Tab names
+			string TabLabelsValue = ConfigFile.GetValue("General.TabLabels", "");
+			if(!Enum.TryParse(TabLabelsValue, true, out TabLabels))
+			{
+				TabLabels = TabLabels.ProjectFile;
 			}
 
 			// Editor arguments
@@ -194,110 +216,111 @@ namespace UnrealGameSync
 			}
 		}
 
-		public void OpenProject(string ClientBranchPath, string ClientProjectFileName)
+		public UserWorkspaceSettings FindOrAddWorkspace(string ClientBranchPath)
 		{
-			CloseProject();
-
 			// Update the current workspace
-			CurrentWorkspaceKey = ClientBranchPath.Trim('/');
-			CurrentWorkspace = new UserWorkspaceSettings();
+			string CurrentWorkspaceKey = ClientBranchPath.Trim('/');
 
-			// Read the workspace settings
-			ConfigSection WorkspaceSection = ConfigFile.FindSection(CurrentWorkspaceKey);
-			if(WorkspaceSection == null)
+			UserWorkspaceSettings CurrentWorkspace;
+			if(!WorkspaceKeyToSettings.TryGetValue(CurrentWorkspaceKey, out CurrentWorkspace))
 			{
-				string LegacyBranchAndClientKey = ClientBranchPath.Trim('/');
+				// Create a new workspace settings object
+				CurrentWorkspace = new UserWorkspaceSettings();
+				WorkspaceKeyToSettings.Add(CurrentWorkspaceKey, CurrentWorkspace);
 
-				int SlashIdx = LegacyBranchAndClientKey.IndexOf('/');
-				if(SlashIdx != -1)
+				// Read the workspace settings
+				ConfigSection WorkspaceSection = ConfigFile.FindSection(CurrentWorkspaceKey);
+				if(WorkspaceSection == null)
 				{
-					LegacyBranchAndClientKey = LegacyBranchAndClientKey.Substring(0, SlashIdx) + "$" + LegacyBranchAndClientKey.Substring(SlashIdx + 1);
-				}
+					string LegacyBranchAndClientKey = ClientBranchPath.Trim('/');
 
-				string CurrentSync = ConfigFile.GetValue("Clients." + LegacyBranchAndClientKey, null);
-				if(CurrentSync != null)
-				{
-					int AtIdx = CurrentSync.LastIndexOf('@');
-					if(AtIdx != -1)
+					int SlashIdx = LegacyBranchAndClientKey.IndexOf('/');
+					if(SlashIdx != -1)
 					{
-						int ChangeNumber;
-						if(int.TryParse(CurrentSync.Substring(AtIdx + 1), out ChangeNumber))
-						{
-							CurrentWorkspace.CurrentProjectIdentifier = CurrentSync.Substring(0, AtIdx);
-							CurrentWorkspace.CurrentChangeNumber = ChangeNumber;
-						}
+						LegacyBranchAndClientKey = LegacyBranchAndClientKey.Substring(0, SlashIdx) + "$" + LegacyBranchAndClientKey.Substring(SlashIdx + 1);
 					}
-				}
 
-				string LastUpdateResultText = ConfigFile.GetValue("Clients." + LegacyBranchAndClientKey + "$LastUpdate", null);
-				if(LastUpdateResultText != null)
-				{
-					int ColonIdx = LastUpdateResultText.LastIndexOf(':');
-					if(ColonIdx != -1)
+					string CurrentSync = ConfigFile.GetValue("Clients." + LegacyBranchAndClientKey, null);
+					if(CurrentSync != null)
 					{
-						int ChangeNumber;
-						if(int.TryParse(LastUpdateResultText.Substring(0, ColonIdx), out ChangeNumber))
+						int AtIdx = CurrentSync.LastIndexOf('@');
+						if(AtIdx != -1)
 						{
-							WorkspaceUpdateResult Result;
-							if(Enum.TryParse(LastUpdateResultText.Substring(ColonIdx + 1), out Result))
+							int ChangeNumber;
+							if(int.TryParse(CurrentSync.Substring(AtIdx + 1), out ChangeNumber))
 							{
-								CurrentWorkspace.LastSyncChangeNumber = ChangeNumber;
-								CurrentWorkspace.LastSyncResult = Result;
+								CurrentWorkspace.CurrentProjectIdentifier = CurrentSync.Substring(0, AtIdx);
+								CurrentWorkspace.CurrentChangeNumber = ChangeNumber;
 							}
 						}
 					}
-				}
 
-				CurrentWorkspace.SyncFilter = new string[0];
-			}
-			else
-			{
-				CurrentWorkspace.CurrentProjectIdentifier = WorkspaceSection.GetValue("CurrentProjectPath");
-				CurrentWorkspace.CurrentChangeNumber = WorkspaceSection.GetValue("CurrentChangeNumber", -1);
-				foreach(string AdditionalChangeNumberString in WorkspaceSection.GetValues("AdditionalChangeNumbers", new string[0]))
-				{
-					int AdditionalChangeNumber;
-					if(int.TryParse(AdditionalChangeNumberString, out AdditionalChangeNumber))
+					string LastUpdateResultText = ConfigFile.GetValue("Clients." + LegacyBranchAndClientKey + "$LastUpdate", null);
+					if(LastUpdateResultText != null)
 					{
-						CurrentWorkspace.AdditionalChangeNumbers.Add(AdditionalChangeNumber);
+						int ColonIdx = LastUpdateResultText.LastIndexOf(':');
+						if(ColonIdx != -1)
+						{
+							int ChangeNumber;
+							if(int.TryParse(LastUpdateResultText.Substring(0, ColonIdx), out ChangeNumber))
+							{
+								WorkspaceUpdateResult Result;
+								if(Enum.TryParse(LastUpdateResultText.Substring(ColonIdx + 1), out Result))
+								{
+									CurrentWorkspace.LastSyncChangeNumber = ChangeNumber;
+									CurrentWorkspace.LastSyncResult = Result;
+								}
+							}
+						}
 					}
-				}
-				Enum.TryParse(WorkspaceSection.GetValue("LastSyncResult", ""), out CurrentWorkspace.LastSyncResult);
-				CurrentWorkspace.LastSyncResultMessage = UnescapeText(WorkspaceSection.GetValue("LastSyncResultMessage"));
-				CurrentWorkspace.LastSyncChangeNumber = WorkspaceSection.GetValue("LastSyncChangeNumber", -1);
 
-				DateTime LastSyncTime;
-				if(DateTime.TryParse(WorkspaceSection.GetValue("LastSyncTime", ""), out LastSyncTime))
+					CurrentWorkspace.SyncFilter = new string[0];
+				}
+				else
 				{
-					CurrentWorkspace.LastSyncTime = LastSyncTime;
+					CurrentWorkspace.CurrentProjectIdentifier = WorkspaceSection.GetValue("CurrentProjectPath");
+					CurrentWorkspace.CurrentChangeNumber = WorkspaceSection.GetValue("CurrentChangeNumber", -1);
+					foreach(string AdditionalChangeNumberString in WorkspaceSection.GetValues("AdditionalChangeNumbers", new string[0]))
+					{
+						int AdditionalChangeNumber;
+						if(int.TryParse(AdditionalChangeNumberString, out AdditionalChangeNumber))
+						{
+							CurrentWorkspace.AdditionalChangeNumbers.Add(AdditionalChangeNumber);
+						}
+					}
+					Enum.TryParse(WorkspaceSection.GetValue("LastSyncResult", ""), out CurrentWorkspace.LastSyncResult);
+					CurrentWorkspace.LastSyncResultMessage = UnescapeText(WorkspaceSection.GetValue("LastSyncResultMessage"));
+					CurrentWorkspace.LastSyncChangeNumber = WorkspaceSection.GetValue("LastSyncChangeNumber", -1);
+
+					DateTime LastSyncTime;
+					if(DateTime.TryParse(WorkspaceSection.GetValue("LastSyncTime", ""), out LastSyncTime))
+					{
+						CurrentWorkspace.LastSyncTime = LastSyncTime;
+					}
+
+					CurrentWorkspace.LastSyncDurationSeconds = WorkspaceSection.GetValue("LastSyncDuration", 0);
+					CurrentWorkspace.LastBuiltChangeNumber = WorkspaceSection.GetValue("LastBuiltChangeNumber", 0);
+					CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);
+
+					CurrentWorkspace.SyncFilter = WorkspaceSection.GetValues("SyncFilter", new string[0]);
 				}
-
-				CurrentWorkspace.LastSyncDurationSeconds = WorkspaceSection.GetValue("LastSyncDuration", 0);
-				CurrentWorkspace.LastBuiltChangeNumber = WorkspaceSection.GetValue("LastBuiltChangeNumber", 0);
-				CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);
-
-				CurrentWorkspace.SyncFilter = WorkspaceSection.GetValues("SyncFilter", new string[0]);
 			}
-
-			// Read the project settings
-			CurrentProjectKey = ClientProjectFileName; 
-			CurrentProject = new UserProjectSettings();
-			ConfigSection ProjectSection = ConfigFile.FindOrAddSection(CurrentProjectKey);
-			CurrentProject.BuildSteps.AddRange(ProjectSection.GetValues("BuildStep", new string[0]).Select(x => new ConfigObject(x)));
+			return CurrentWorkspace;
 		}
 
-		public void CloseProject()
+		public UserProjectSettings FindOrAddProject(string ClientProjectFileName)
 		{
-			if(CurrentWorkspace != null || CurrentProject != null)
+			// Read the project settings
+			UserProjectSettings CurrentProject;
+			if(!ProjectKeyToSettings.TryGetValue(ClientProjectFileName, out CurrentProject))
 			{
-				Save();
-
-				CurrentWorkspace = null;
-				CurrentWorkspaceKey = null;
-
-				CurrentProject = null;
-				CurrentProjectKey = null;
+				CurrentProject = new UserProjectSettings();
+				ProjectKeyToSettings.Add(ClientProjectFileName, CurrentProject);
+	
+				ConfigSection ProjectSection = ConfigFile.FindOrAddSection(ClientProjectFileName);
+				CurrentProject.BuildSteps.AddRange(ProjectSection.GetValues("BuildStep", new string[0]).Select(x => new ConfigObject(x)));
 			}
+			return CurrentProject;
 		}
 
 		public void Save()
@@ -315,6 +338,7 @@ namespace UnrealGameSync
 			GeneralSection.SetValue("ShowLocalTimes", bShowLocalTimes);
 			GeneralSection.SetValue("ShowAllStreams", bShowAllStreams);
 			GeneralSection.SetValue("LastProjectFileName", LastProjectFileName);
+			GeneralSection.SetValues("OpenProjectFileNames", OpenProjectFileNames);
 			GeneralSection.SetValue("KeepInTray", bKeepInTray);
 			GeneralSection.SetValues("OtherProjectFileNames", OtherProjectFileNames);
 			GeneralSection.SetValues("SyncFilter", SyncFilter);
@@ -322,6 +346,9 @@ namespace UnrealGameSync
 
 			// Build configuration
 			GeneralSection.SetValue("BuildConfig", CompiledEditorBuildConfig.ToString());
+
+			// Tab names
+			GeneralSection.SetValue("TabNames", TabLabels.ToString());
 
 			// Editor arguments
 			List<string> EditorArgumentList = new List<string>();
@@ -359,8 +386,11 @@ namespace UnrealGameSync
 			}
 
 			// Current workspace settings
-			if(CurrentWorkspace != null)
+			foreach(KeyValuePair<string, UserWorkspaceSettings> Pair in WorkspaceKeyToSettings)
 			{
+				string CurrentWorkspaceKey = Pair.Key;
+				UserWorkspaceSettings CurrentWorkspace = Pair.Value;
+
 				ConfigSection WorkspaceSection = ConfigFile.FindOrAddSection(CurrentWorkspaceKey);
 				WorkspaceSection.Clear();
 				WorkspaceSection.SetValue("CurrentProjectPath", CurrentWorkspace.CurrentProjectIdentifier);
@@ -383,8 +413,11 @@ namespace UnrealGameSync
 			}
 
 			// Current project settings
-			if(CurrentProject != null)
+			foreach(KeyValuePair<string, UserProjectSettings> Pair in ProjectKeyToSettings)
 			{
+				string CurrentProjectKey = Pair.Key;
+				UserProjectSettings CurrentProject = Pair.Value;
+
 				ConfigSection ProjectSection = ConfigFile.FindOrAddSection(CurrentProjectKey);
 				ProjectSection.Clear();
 				ProjectSection.SetValues("BuildStep", CurrentProject.BuildSteps.Select(x => x.ToString()).ToArray());
@@ -410,7 +443,7 @@ namespace UnrealGameSync
 			ConfigFile.Save(FileName);
 		}
 
-		public string[] GetCombinedSyncFilter()
+		public string[] GetCombinedSyncFilter(UserWorkspaceSettings CurrentWorkspace)
 		{			
 			string[] CombinedSyncFilter = new string[SyncFilter.Length + CurrentWorkspace.SyncFilter.Length];
 			SyncFilter.CopyTo(CombinedSyncFilter, 0);

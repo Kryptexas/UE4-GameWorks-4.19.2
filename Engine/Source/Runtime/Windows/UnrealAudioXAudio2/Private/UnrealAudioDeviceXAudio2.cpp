@@ -386,18 +386,20 @@ namespace UAudio
 		Result = XAudio2Info.XAudio2System->CreateMasteringVoice(&XAudio2Info.MasteringVoice, DeviceInfo.NumChannels, StreamInfo.FrameRate, 0, CreateStreamParams.OutputDeviceIndex, nullptr);
 		CLEANUP_ON_FAIL(Result);
 
-		FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.DeviceInfo;
-		StreamDeviceInfo.DeviceIndex = CreateStreamParams.OutputDeviceIndex;
-		StreamDeviceInfo.bPerformByteSwap = false;
-		StreamDeviceInfo.NumChannels = DeviceInfo.NumChannels;
-		StreamDeviceInfo.DeviceDataFormat = DeviceInfo.StreamFormat;
-		StreamDeviceInfo.FrameRate = DeviceInfo.FrameRate;
-		StreamDeviceInfo.Speakers = DeviceInfo.Speakers;
+		{
+			FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.DeviceInfo;
+			StreamDeviceInfo.DeviceIndex = CreateStreamParams.OutputDeviceIndex;
+			StreamDeviceInfo.bPerformByteSwap = false;
+			StreamDeviceInfo.NumChannels = DeviceInfo.NumChannels;
+			StreamDeviceInfo.DeviceDataFormat = DeviceInfo.StreamFormat;
+			StreamDeviceInfo.FrameRate = DeviceInfo.FrameRate;
+			StreamDeviceInfo.Speakers = DeviceInfo.Speakers;
 
-		uint32 BufferSize = StreamDeviceInfo.NumChannels * StreamInfo.BlockSize * GetNumBytesForFormat(EStreamFormat::FLT);
-		StreamDeviceInfo.UserBuffer.Init(0, BufferSize);
-		XAudio2Info.bDeviceOpen = true;
-		XAudio2Info.XAudio2System->StartEngine();
+			uint32 BufferSize = StreamDeviceInfo.NumChannels * StreamInfo.BlockSize * GetNumBytesForFormat(EStreamFormat::FLT);
+			StreamDeviceInfo.UserBuffer.Init(0, BufferSize);
+			XAudio2Info.bDeviceOpen = true;
+			XAudio2Info.XAudio2System->StartEngine();
+		}
 
 	Cleanup:
 		if (FAILED(Result))

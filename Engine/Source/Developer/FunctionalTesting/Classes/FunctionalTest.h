@@ -256,7 +256,7 @@ class FUNCTIONALTESTING_API AFunctionalTest : public AActor
 public:
 	AFunctionalTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-private_subobject:
+private:
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 

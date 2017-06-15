@@ -82,7 +82,6 @@ UStreamingSettings::UStreamingSettings()
 	TimeLimitExceededMultiplier = 1.5f;
 	TimeLimitExceededMinTime = 0.005f;
 	MinBulkDataSizeForAsyncLoading = 131072;
-	AsyncIOBandwidthLimit = 0;
 	UseBackgroundLevelStreaming = true;
 	AsyncLoadingTimeLimit = 5.0f;
 	AsyncLoadingUseFullTimeLimit = true;

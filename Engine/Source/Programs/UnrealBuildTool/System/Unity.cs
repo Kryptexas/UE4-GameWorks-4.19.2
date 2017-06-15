@@ -291,11 +291,11 @@ namespace UnrealBuildTool
 					{
 						if (Target.bAdaptiveUnityDisablesPCH)
 						{
-							Log.TraceInformation("[Adaptive unity build] Disabling PCH for excluded files due to bAdaptiveUnityDisablesPCH setting.");
+							Log.TraceInformation("[Adaptive unity build] Disabling PCH for excluded files. Set bAdaptiveUnityDisablesPCH to false in BuildConfiguration.xml to change this behavior.");
 						}
 						if (Target.bAdaptiveUnityDisablesOptimizations)
 						{
-							Log.TraceInformation("[Adaptive unity build] Disabling optimizations for excluded files due to bAdaptiveUnityDisablesOptimizations setting.");
+							Log.TraceInformation("[Adaptive unity build] Disabling optimizations for excluded files. Set bAdaptiveUnityDisablesOptimizations to false in BuildConfiguration.xml to change this behavior.");
 						}
 					}
 					Log.TraceInformation(AdaptiveUnityBuildInfoString.ToString());

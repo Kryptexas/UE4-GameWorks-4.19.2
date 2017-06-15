@@ -2,8 +2,6 @@
 
 #include "AsyncLoadingSplash.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogLoadingSplash, Log, All);
-
 FAsyncLoadingSplash::FAsyncLoadingSplash() : 
 	bAutoShow(true)
 	, bInitialized(false)

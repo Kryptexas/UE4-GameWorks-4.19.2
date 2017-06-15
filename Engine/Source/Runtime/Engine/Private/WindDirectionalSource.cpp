@@ -292,9 +292,3 @@ bool UWindDirectionalSourceComponent::GetWindParameters(const FVector& EvaluateP
 	return bFoundWind;
 }
 
-/** Returns Component subobject **/
-UWindDirectionalSourceComponent* AWindDirectionalSource::GetComponent() const { return Component; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* AWindDirectionalSource::GetArrowComponent() const { return ArrowComponent; }
-#endif

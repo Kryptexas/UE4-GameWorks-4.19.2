@@ -174,11 +174,6 @@ public:
 	TArray<FCompressedChunk> CompressedChunks;
 
 	/**
-	* List of additional packages that are needed to be cooked for this package (ie streaming levels)
-	*/
-	TArray<FString>	AdditionalPackagesToCook;
-
-	/**
 	* If true, this file will not be saved with version numbers or was saved without version numbers. In this case they are assumed to be the current version.
 	* This is only used for full cooks for distribution because it is hard to guarantee correctness
 	**/

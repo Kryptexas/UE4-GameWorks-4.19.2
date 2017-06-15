@@ -23,7 +23,12 @@ public:
 	enum
 	{
 		// this is used for the initial precache and should be large enough to find the actual Sum.TotalHeaderSize
+		// the editor packages may not have the AdditionalPackagesToCook array stripped so we need to allocate more memory
+#if WITH_EDITORONLY_DATA
+		MAX_SUMMARY_SIZE = 16384
+#else
 		MAX_SUMMARY_SIZE = 8192
+#endif
 	};
 
 	FArchiveAsync2(const TCHAR* InFileName

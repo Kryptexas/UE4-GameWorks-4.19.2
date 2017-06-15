@@ -80,7 +80,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Path to the generated build receipt.
 		/// </summary>
-		public readonly string BuildReceiptFileName;
+		public readonly FileReference BuildReceiptFileName;
 		
 		/// <summary>
 		/// Whether to output build products to the Engine/Binaries folder.
@@ -109,7 +109,7 @@ namespace UnrealBuildTool
 		public UEBuildDeployTarget(UEBuildTarget Target)
 		{
 			this.ProjectFile = Target.ProjectFile;
-			this.TargetFile = Target.TargetCsFilename;
+			this.TargetFile = Target.TargetRulesFile;
 			this.AppName = Target.AppName;
 			this.TargetName = Target.TargetName;
 			this.TargetType = Target.TargetType;
@@ -118,7 +118,7 @@ namespace UnrealBuildTool
 			this.OutputPaths = new List<FileReference>(Target.OutputPaths);
 			this.EngineIntermediateDirectory = Target.EngineIntermediateDirectory;
 			this.ProjectDirectory = Target.ProjectDirectory;
-			this.BuildReceiptFileName = Target.BuildReceiptFileName;
+			this.BuildReceiptFileName = Target.ReceiptFileName;
 			this.bOutputToEngineBinaries = Target.Rules.bOutputToEngineBinaries;
 			this.bCreateStubIPA = Target.Rules.bCreateStubIPA;
 			this.AndroidArchitectures = Target.Rules.AndroidPlatform.Architectures.ToArray();
@@ -143,7 +143,7 @@ namespace UnrealBuildTool
 				OutputPaths = Reader.ReadList(x => x.ReadFileReference());
 				EngineIntermediateDirectory = Reader.ReadDirectoryReference();
 				ProjectDirectory = Reader.ReadDirectoryReference();
-				BuildReceiptFileName = Reader.ReadString();
+				BuildReceiptFileName = Reader.ReadFileReference();
 				bOutputToEngineBinaries = Reader.ReadBoolean();
 				bCreateStubIPA = Reader.ReadBoolean();
 				AndroidArchitectures = Reader.ReadArray(x => x.ReadString());

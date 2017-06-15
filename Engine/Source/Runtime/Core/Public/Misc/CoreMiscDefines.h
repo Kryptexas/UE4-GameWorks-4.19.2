@@ -112,6 +112,9 @@ const FPlatformUserId PLATFORMUSERID_NONE = INDEX_NONE;
 #define PREPROCESSOR_IF_INNER_1(x, y) x
 #define PREPROCESSOR_IF_INNER_0(x, y) y
 
+// Expands to the parameter list of the macro - used for when you need to pass a comma-separated identifier to another macro as a single parameter
+#define PREPROCESSOR_COMMA_SEPARATED(first, second, ...) first, second, ##__VA_ARGS__
+
 // Expands to nothing - used as a placeholder
 #define PREPROCESSOR_NOTHING
 

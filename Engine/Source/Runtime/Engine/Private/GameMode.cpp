@@ -808,11 +808,6 @@ bool AGameMode::IsHandlingReplays()
 	return bHandleDedicatedServerReplays && GetNetMode() == ENetMode::NM_DedicatedServer;
 }
 
-void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
-{
-	GAsyncIOBandwidthLimit = AsyncIOBandwidthLimit;
-}
-
 void AGameMode::MatineeCancelled() {}
 
 void AGameMode::PreCommitMapChange(const FString& PreviousMapName, const FString& NextMapName) {}

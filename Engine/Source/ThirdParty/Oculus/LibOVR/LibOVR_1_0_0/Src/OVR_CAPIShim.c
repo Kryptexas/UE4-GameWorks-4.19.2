@@ -483,7 +483,7 @@ static ValidateCertificateContentsResult ValidateCertificateContents(Certificate
             pCertData->pCert,
             CERT_NAME_ATTR_TYPE,
             0,
-            szOID_COMMON_NAME,
+            (void*)szOID_COMMON_NAME,
             subjectStr,
             ARRAYSIZE(subjectStr));
 

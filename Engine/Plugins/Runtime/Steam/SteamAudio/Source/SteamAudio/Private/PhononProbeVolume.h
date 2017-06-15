@@ -98,7 +98,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = ProbeVolumeStatistics, meta = (DisplayName = "Detailed Statistics"))
 	TArray<FBakedDataInfo> BakedDataInfo;
 
-private_subobject:
+private:
 	UPROPERTY()
 	class UPhononProbeComponent* PhononProbeComponent;
 
@@ -109,4 +109,7 @@ private:
 
 	UPROPERTY()
 	TArray<uint8> ProbeBatchData;
+
+public:
+	UPhononProbeComponent* GetPhononProbeComponent() { return PhononProbeComponent; }
 };

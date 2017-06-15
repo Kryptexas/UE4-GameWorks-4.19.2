@@ -1713,7 +1713,7 @@ void SLevelViewport::OnCreateCameraActor()
 	ACameraActor* pNewCamera = ViewportClient->GetWorld()->SpawnActor<ACameraActor>();
 	pNewCamera->SetActorLocation( ViewportClient->GetViewLocation(), false );
 	pNewCamera->SetActorRotation( ViewportClient->GetViewRotation() );
-	pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV;
+	pNewCamera->GetCameraComponent()->FieldOfView = ViewportClient->ViewFOV;
 
 	// Deselect any currently selected actors
 	GUnrealEd->SelectNone( true, true );

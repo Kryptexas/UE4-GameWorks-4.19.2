@@ -969,7 +969,7 @@ namespace AutomationTool
 		{
 			// Temporary connection - will use only the currently set env vars to connect to P4
 			var DefaultConnection = new P4Connection(User: null, Client: null);
-			PerforceEnvironment = Automation.IsBuildMachine ? new P4Environment(DefaultConnection, CmdEnv) : new LocalP4Environment(DefaultConnection, CmdEnv);
+			PerforceEnvironment = (Automation.IsBuildMachine && !GlobalCommandLine.ForceLocal) ? new P4Environment(DefaultConnection, CmdEnv) : new LocalP4Environment(DefaultConnection, CmdEnv);
 		}
 
 		/// <summary>

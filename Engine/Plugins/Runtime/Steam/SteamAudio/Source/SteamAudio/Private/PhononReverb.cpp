@@ -264,11 +264,11 @@ namespace SteamAudio
 		switch (GetDefault<USteamAudioSettings>()->ReverbSimulationType)
 		{
 		case EIplSimulationType::BAKED:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, "__reverb__", IPL_SIMTYPE_BAKED, ReverbInputAudioFormat, IndirectOutputAudioFormat,
+			iplCreateConvolutionEffect(EnvironmentalRenderer, (IPLstring)"__reverb__", IPL_SIMTYPE_BAKED, ReverbInputAudioFormat, IndirectOutputAudioFormat,
 				&ReverbConvolutionEffect);
 			break;
 		case EIplSimulationType::REALTIME:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, "__reverb__", IPL_SIMTYPE_REALTIME, ReverbInputAudioFormat, IndirectOutputAudioFormat,
+			iplCreateConvolutionEffect(EnvironmentalRenderer, (IPLstring)"__reverb__", IPL_SIMTYPE_REALTIME, ReverbInputAudioFormat, IndirectOutputAudioFormat,
 				&ReverbConvolutionEffect);
 			break;
 		case EIplSimulationType::DISABLED:

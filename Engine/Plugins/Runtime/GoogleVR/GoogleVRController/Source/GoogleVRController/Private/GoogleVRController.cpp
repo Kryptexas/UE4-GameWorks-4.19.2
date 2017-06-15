@@ -34,6 +34,8 @@ extern gvr_context* GVRAPI;
 extern gvr_user_prefs* GVRUserPrefs;
 #endif // GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 
+DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRController, Log, All);
+
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 #define CONTROLLER_EVENT_FORWARDED_PORT 7003 //Change this port number if it is already taken.
 #define ADB_FORWARD_RETRY_TIME 5.0 //5 seconds
@@ -46,8 +48,6 @@ static bool ExecuteAdbCommand( const FString& CommandLine, FString* OutStdOut, F
 static void GetAdbPath(FString& OutADBPath);
 static bool IsPlayInEditor();
 #endif
-
-DEFINE_LOG_CATEGORY(LogGoogleVRController);
 
 class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 {

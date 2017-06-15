@@ -50,7 +50,3 @@ class UWheeledVehicleMovementComponent* AWheeledVehicle::GetVehicleMovementCompo
 	return VehicleMovement;
 }
 
-/** Returns Mesh subobject **/
-USkeletalMeshComponent* AWheeledVehicle::GetMesh() const { return Mesh; }
-/** Returns VehicleMovement subobject **/
-UWheeledVehicleMovementComponent* AWheeledVehicle::GetVehicleMovement() const { return VehicleMovement; }

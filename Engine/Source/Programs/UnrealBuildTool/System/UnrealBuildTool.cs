@@ -1136,6 +1136,12 @@ namespace UnrealBuildTool
 				bool bIsHotReload = !bNoHotReload && (BuildConfiguration.bHotReloadFromIDE || (TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0));
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
 
+				// Do a gather on hotreload - we don't want old module names from the makefile to be used
+				if (bIsHotReload)
+				{
+					UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
+				}
+
 				if (ProjectFileGenerator.bGenerateProjectFiles)
 				{
 					// Create empty timestamp file to record when was the last time we regenerated projects.
@@ -1262,7 +1268,7 @@ namespace UnrealBuildTool
 										{
 											// Ini files are newer than UBTMakefile
 											UBTMakefile = null;
-											ReasonNotLoaded = "ini files are newer that UBTMakefile";
+											ReasonNotLoaded = "ini files are newer than UBTMakefile";
 											break;
 										}
 									}
@@ -2018,7 +2024,7 @@ namespace UnrealBuildTool
 			// Check if any of the target's Build.cs files are newer than the makefile
 			foreach (UEBuildTarget Target in LoadedUBTMakefile.Targets)
 			{
-				string TargetCsFilename = Target.TargetCsFilename.FullName;
+				string TargetCsFilename = Target.TargetRulesFile.FullName;
 				if (TargetCsFilename != null)
 				{
 					FileInfo TargetCsFile = new FileInfo(TargetCsFilename);

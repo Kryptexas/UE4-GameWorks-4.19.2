@@ -633,11 +633,6 @@ public class HTML5Platform : Platform
 		return HTMLPakAutomation.CanCreateMapPaks(Params) ? " -GenerateDependenciesForMaps " : "";
 	}
 
-	public override bool DeployPakInternalLowerCaseFilenames()
-	{
-		return false;
-	}
-
 	public override PakType RequiresPak(ProjectParams Params)
 	{
 		return HTMLPakAutomation.CanCreateMapPaks(Params) ? PakType.Never : PakType.Always;
@@ -670,10 +665,10 @@ public class HTML5Platform : Platform
 	{
 	}
 
-	public override List<string> GetExecutableNames(DeploymentContext SC, bool bIsRun = false)
+	public override List<FileReference> GetExecutableNames(DeploymentContext SC)
 	{
-		var ExecutableNames = new List<String>();
-		ExecutableNames.Add(Path.Combine(SC.ProjectRoot, "Binaries", "HTML5", SC.ShortProjectName));
+		List<FileReference> ExecutableNames = new List<FileReference>();
+		ExecutableNames.Add(FileReference.Combine(SC.ProjectRoot, "Binaries", "HTML5", SC.ShortProjectName));
 		return ExecutableNames;
 	}
 #endregion

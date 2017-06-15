@@ -633,24 +633,24 @@ namespace UnrealBuildTool
 			List<string> ProjectArches = new List<string>();
 			ProjectArches.Add("None");
 
-            string ReceiptFilename;
+            FileReference ReceiptFilename;
             string BundlePath;
 
             // get the receipt
             if (bIsUE4Game)
             {
-                ReceiptFilename = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.ToString(), "UE4Game", UnrealTargetPlatform.IOS, Config, "");
+                ReceiptFilename = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UE4Game", UnrealTargetPlatform.IOS, Config, "");
                 BundlePath = Path.Combine(UnrealBuildTool.EngineDirectory.ToString(), "Intermediate", "IOS-Deploy", "UE4Game", Config.ToString(), "Payload", "UE4Game.app");
             }
             else
             {
-                ReceiptFilename = TargetReceipt.GetDefaultPath(ProjectDirectory, ProjectName, UnrealTargetPlatform.IOS, Config, "");
+                ReceiptFilename = TargetReceipt.GetDefaultPath(new DirectoryReference(ProjectDirectory), ProjectName, UnrealTargetPlatform.IOS, Config, "");
                 BundlePath = Path.Combine(ProjectDirectory, "Binaries", "IOS", "Payload", ProjectName + ".app");
             }
 
             string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
 
-			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)), ProjectArches, "", "", UnrealTargetPlatform.IOS);
+			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename, UnrealBuildTool.EngineDirectory, new DirectoryReference(ProjectDirectory))), ProjectArches, "", "", UnrealTargetPlatform.IOS);
 
 			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
 			UPL.Init(ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Config.ToString());

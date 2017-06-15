@@ -310,7 +310,7 @@ namespace UnrealBuildTool
 			foreach (FileReference FoundProject in FoundProjects)
 			{
 				VCSharpProjectFile Project = new VCSharpProjectFile(FoundProject);
-				Project.ShouldBuildForAllSolutionTargets = false;
+				Project.ShouldBuildForAllSolutionTargets = true;
 				Project.ShouldBuildByDefaultForSolutionTargets = true;
 				AddExistingProjectFile(Project, bForceDevelopmentConfiguration: false);
 				ProgramsFolder.ChildProjects.Add(Project);
@@ -662,7 +662,7 @@ namespace UnrealBuildTool
 					MasterProjectFolder ProgramsFolder = RootFolder.AddSubFolder( "Programs" );
 
 					// Add UnrealBuildTool to the master project
-					AddUnrealBuildToolProject( ProgramsFolder, new ProjectFile[]{ } );
+					AddUnrealBuildToolProject( ProgramsFolder );
 
 					// Add AutomationTool to the master project
 					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
@@ -1304,16 +1304,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Adds UnrealBuildTool to the master project
 		/// </summary>
-		private void AddUnrealBuildToolProject( MasterProjectFolder ProgramsFolder, IEnumerable<ProjectFile> Dependencies )
+		private void AddUnrealBuildToolProject( MasterProjectFolder ProgramsFolder )
 		{
 			FileReference ProjectFileName = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj" );
 			VCSharpProjectFile UnrealBuildToolProject = new VCSharpProjectFile( ProjectFileName );
 			UnrealBuildToolProject.ShouldBuildForAllSolutionTargets = true;
-
-			foreach (ProjectFile Dependent in Dependencies)
-			{
-				UnrealBuildToolProject.AddDependsOnProject( Dependent );
-			}
 
 			// Store it off as we need it when generating target projects.
 			UBTProject = UnrealBuildToolProject;

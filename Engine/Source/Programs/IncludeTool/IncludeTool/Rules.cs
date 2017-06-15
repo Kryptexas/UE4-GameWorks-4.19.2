@@ -595,7 +595,7 @@ namespace IncludeTool
         /// <returns></returns>
         public static bool AllowSymbol(string Name)
         {
-            if(Name == "FNode" || Name == "FFunctionExpression" || Name == "ITextData")
+            if(Name == "FNode" || Name == "FFunctionExpression" || Name == "ITextData" || Name == "Rect")
             {
                 return false;
             }

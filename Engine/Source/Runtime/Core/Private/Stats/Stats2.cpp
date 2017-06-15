@@ -880,9 +880,9 @@ public:
 			const int32 MaxIncomingMessages = 24*1024*1024/sizeof(FStatMessage);
 			
 			int32 IncomingDataMessages = 0;
-			for( int32 Index = 0; Index < IncomingData.Packets.Num(); ++Index )
+			for( FStatPacket* Packet : IncomingData.Packets )
 			{
-				IncomingDataMessages += IncomingData.Packets[Index]->StatMessages.Num();
+				IncomingDataMessages += Packet->StatMessages.Num();
 			}
 
 			bShouldProcess = IncomingDataMessages > MaxIncomingMessages || IncomingData.Packets.Num() > MaxIncomingPackets;

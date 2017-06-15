@@ -97,14 +97,14 @@ namespace UnrealGameSync
 			InitializeComponent();
 		}
 
-		public static void DoClean(PerforceConnection PerforceClient, string LocalRootPath, string ClientRootPath, IReadOnlyList<string> SyncPaths, TextWriter Log)
+		public static void DoClean(IWin32Window Owner, PerforceConnection PerforceClient, string LocalRootPath, string ClientRootPath, IReadOnlyList<string> SyncPaths, TextWriter Log)
 		{
 			// Figure out which folders to clean
 			FolderToClean RootFolderToClean = new FolderToClean(new DirectoryInfo(LocalRootPath));
 			using(FindFoldersToCleanTask QueryWorkspace = new FindFoldersToCleanTask(PerforceClient, RootFolderToClean, ClientRootPath, SyncPaths, Log))
 			{
 				string ErrorMessage;
-				if(!ModalTaskWindow.Execute(QueryWorkspace, "Clean Workspace", "Querying files in Perforce, please wait...", out ErrorMessage))
+				if(!ModalTaskWindow.Execute(Owner, QueryWorkspace, "Clean Workspace", "Querying files in Perforce, please wait...", out ErrorMessage))
 				{
 					if(!String.IsNullOrEmpty(ErrorMessage))
 					{
@@ -334,7 +334,7 @@ namespace UnrealGameSync
 			}
 
 			string ErrorMessage;
-			if(!ModalTaskWindow.Execute(new DeleteFilesTask(Files, Directories), "Clean Workspace", "Deleting files, please wait...", out ErrorMessage) && !String.IsNullOrEmpty(ErrorMessage))
+			if(!ModalTaskWindow.Execute(this, new DeleteFilesTask(Files, Directories), "Clean Workspace", "Deleting files, please wait...", out ErrorMessage) && !String.IsNullOrEmpty(ErrorMessage))
 			{
 				FailedToDeleteWindow FailedToDelete = new FailedToDeleteWindow();
 				FailedToDelete.FileList.Text = ErrorMessage;

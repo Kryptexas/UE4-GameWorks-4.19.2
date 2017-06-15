@@ -870,9 +870,3 @@ static void AtmosphereRenderSinkFunction()
 
 FAutoConsoleVariableSink CVarAtmosphereRenderSink(FConsoleCommandDelegate::CreateStatic(&AtmosphereRenderSinkFunction));
 
-/** Returns AtmosphericFogComponent subobject **/
-UAtmosphericFogComponent* AAtmosphericFog::GetAtmosphericFogComponent() { return AtmosphericFogComponent; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* AAtmosphericFog::GetArrowComponent() { return ArrowComponent; }
-#endif

@@ -2123,7 +2123,7 @@ public:
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
-	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook) override;
+	virtual bool PreSaveRoot(const TCHAR* Filename) override;
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) override;
 	virtual UWorld* GetWorld() const override;
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;

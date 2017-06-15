@@ -10,7 +10,7 @@
 #define HOSTNAME "http://127.0.0.1"
 #define PORT ":55002"
 
-DEFINE_LOG_CATEGORY(LogSimplygonRESTClient);
+DEFINE_LOG_CATEGORY_STATIC(LogSimplygonRESTClient, Verbose, All);
 
 const TCHAR* SIMPLYGON_SWARM_REQUEST_DEBUG_TEMPALTE = TEXT("Error Processing Request %s");
 

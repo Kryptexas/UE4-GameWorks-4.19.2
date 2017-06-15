@@ -6966,8 +6966,6 @@ struct FExposeOnSpawnValidator
 		case CPT_String:
 		case CPT_Text:
 		case CPT_Name:
-		case CPT_Vector:
-		case CPT_Rotation:
 		case CPT_Interface:
 			ProperNativeType = true;
 		}
@@ -8372,30 +8370,46 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 			Str = *StrLine;
 
 			// Get class or interface name
-			if (const TCHAR* UInterfaceMacroDecl = FCString::Strfind(Str, TEXT("UINTERFACE(")))
+			if (const TCHAR* UInterfaceMacroDecl = FCString::Strfind(Str, TEXT("UINTERFACE")))
 			{
-				FName StrippedInterfaceName;
-				Parser.ParseClassDeclaration(Filename, StartOfLine + (UInterfaceMacroDecl - Str), CurrentLine, TEXT("UINTERFACE"), /*out*/ StrippedInterfaceName, /*out*/ ClassName, /*out*/ BaseClassName, /*out*/ DependentOn, OutParsedClassArray);
-				OutParsedClassArray.Add(FSimplifiedParsingClassInfo(MoveTemp(ClassName), MoveTemp(BaseClassName), CurrentLine, true));
-				if (!bFoundExportedClasses)
+				if (UInterfaceMacroDecl == FCString::Strspn(Str, TEXT("\t ")) + Str)
 				{
-					if (const TSharedRef<FClassDeclarationMetaData>* Found = GClassDeclarations.Find(StrippedInterfaceName))
+					if (UInterfaceMacroDecl[10] != TEXT('('))
 					{
-						bFoundExportedClasses = !((*Found)->ClassFlags & CLASS_NoExport);
+						FFileLineException::Throwf(Filename, CurrentLine, TEXT("Missing open parenthesis after UINTERFACE"));
+					}
+
+					FName StrippedInterfaceName;
+					Parser.ParseClassDeclaration(Filename, StartOfLine + (UInterfaceMacroDecl - Str), CurrentLine, TEXT("UINTERFACE"), /*out*/ StrippedInterfaceName, /*out*/ ClassName, /*out*/ BaseClassName, /*out*/ DependentOn, OutParsedClassArray);
+					OutParsedClassArray.Add(FSimplifiedParsingClassInfo(MoveTemp(ClassName), MoveTemp(BaseClassName), CurrentLine, true));
+					if (!bFoundExportedClasses)
+					{
+						if (const TSharedRef<FClassDeclarationMetaData>* Found = GClassDeclarations.Find(StrippedInterfaceName))
+						{
+							bFoundExportedClasses = !((*Found)->ClassFlags & CLASS_NoExport);
+						}
 					}
 				}
 			}
 
-			if (const TCHAR* UClassMacroDecl = FCString::Strfind(Str, TEXT("UCLASS(")))
+			if (const TCHAR* UClassMacroDecl = FCString::Strfind(Str, TEXT("UCLASS")))
 			{
-				FName StrippedClassName;
-				Parser.ParseClassDeclaration(Filename, StartOfLine + (UClassMacroDecl - Str), CurrentLine, TEXT("UCLASS"), /*out*/ StrippedClassName, /*out*/ ClassName, /*out*/ BaseClassName, /*out*/ DependentOn, OutParsedClassArray);
-				OutParsedClassArray.Add(FSimplifiedParsingClassInfo(MoveTemp(ClassName), MoveTemp(BaseClassName), CurrentLine, false));
-				if (!bFoundExportedClasses)
+				if (UClassMacroDecl == FCString::Strspn(Str, TEXT("\t ")) + Str)
 				{
-					if (const TSharedRef<FClassDeclarationMetaData>* Found = GClassDeclarations.Find(StrippedClassName))
+					if (UClassMacroDecl[6] != TEXT('('))
 					{
-						bFoundExportedClasses = !((*Found)->ClassFlags & CLASS_NoExport);
+						FFileLineException::Throwf(Filename, CurrentLine, TEXT("Missing open parenthesis after UCLASS"));
+					}
+
+					FName StrippedClassName;
+					Parser.ParseClassDeclaration(Filename, StartOfLine + (UClassMacroDecl - Str), CurrentLine, TEXT("UCLASS"), /*out*/ StrippedClassName, /*out*/ ClassName, /*out*/ BaseClassName, /*out*/ DependentOn, OutParsedClassArray);
+					OutParsedClassArray.Add(FSimplifiedParsingClassInfo(MoveTemp(ClassName), MoveTemp(BaseClassName), CurrentLine, false));
+					if (!bFoundExportedClasses)
+					{
+						if (const TSharedRef<FClassDeclarationMetaData>* Found = GClassDeclarations.Find(StrippedClassName))
+						{
+							bFoundExportedClasses = !((*Found)->ClassFlags & CLASS_NoExport);
+						}
 					}
 				}
 			}

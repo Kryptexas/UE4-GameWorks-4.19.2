@@ -28,8 +28,7 @@ public:
 
 	/** Arrow component to indicate forward direction of start */
 #if WITH_EDITORONLY_DATA
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 public:

@@ -23,6 +23,7 @@
 #if VSACCESSOR_HAS_DTE
 	#pragma warning(push)
 	#pragma warning(disable: 4278)
+	#pragma warning(disable: 4471)
 	#pragma warning(disable: 4146)
 	#pragma warning(disable: 4191)
 	#pragma warning(disable: 6244)

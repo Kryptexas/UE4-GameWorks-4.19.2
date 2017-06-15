@@ -358,5 +358,3 @@ void AExponentialHeightFog::OnRep_bEnabled()
 	Component->SetVisibility(bEnabled);
 }
 
-/** Returns Component subobject **/
-UExponentialHeightFogComponent* AExponentialHeightFog::GetComponent() const { return Component; }

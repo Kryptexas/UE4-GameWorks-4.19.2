@@ -262,7 +262,7 @@ namespace SteamAudio
 
 				FBakedDataInfo BakedDataInfo;
 				BakedDataInfo.Name = "__reverb__";
-				BakedDataInfo.Size = iplGetBakedDataSizeByName(ProbeBox, "__reverb__");
+				BakedDataInfo.Size = iplGetBakedDataSizeByName(ProbeBox, (IPLstring)"__reverb__");
 				
 				auto ExistingInfo = PhononProbeVolume->BakedDataInfo.FindByPredicate([=](const FBakedDataInfo& InfoItem)
 				{

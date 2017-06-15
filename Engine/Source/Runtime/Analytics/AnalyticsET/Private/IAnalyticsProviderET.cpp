@@ -14,6 +14,7 @@
 #include "Serialization/JsonWriter.h"
 #include "Modules/ModuleManager.h"
 #include "AnalyticsET.h"
+#include "Analytics.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Interfaces/IHttpRequest.h"
 #include "HttpModule.h"

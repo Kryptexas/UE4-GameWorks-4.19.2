@@ -2180,10 +2180,14 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 				if (!ImportPackage)
 				{
 					ImportPackage = FindObjectFast<UPackage>(NULL, Import.ObjectName, false, false);
-					check(ImportPackage || FLinkerLoad::IsKnownMissingPackage(Import.ObjectName)); // We should have packages created for all imports by now
-					Import.XObject = ImportPackage; // this is an optimization to avoid looking up import packages multiple times, also, later we assume these are already filled in
-					if (Import.XObject)
+					if (!ImportPackage)
 					{
+						Import.bImportFailed = true;
+						UE_CLOG(!FLinkerLoad::IsKnownMissingPackage(Import.ObjectName), LogStreaming, Error, TEXT("Missing native package (%s) for import of package %s"), *Import.ObjectName.ToString(), *Desc.NameToLoad.ToString());
+					}
+					else
+					{
+						Import.XObject = ImportPackage; 
 						AddObjectReference(Import.XObject);
 					}
 				}
@@ -2226,10 +2230,14 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 			if (!ImportPackage)
 			{
 				ImportPackage = FindObjectFast<UPackage>(NULL, OuterMostImport.ObjectName, false, false);
-				check(ImportPackage || FLinkerLoad::IsKnownMissingPackage(OuterMostImport.ObjectName)); // We should have packages created for all imports by now
-				OuterMostImport.XObject = ImportPackage; // this is an optimization to avoid looking up import packages multiple times, also, later we assume these are already filled in
-				if (OuterMostImport.XObject)
+				if (!ImportPackage)
 				{
+					Import.bImportFailed = true;
+					UE_CLOG(!FLinkerLoad::IsKnownMissingPackage(OuterMostImport.ObjectName), LogStreaming, Error, TEXT("Missing native package (%s) for import of %s in %s."), *OuterMostImport.ObjectName.ToString(), *Import.ObjectName.ToString(), *Desc.NameToLoad.ToString());
+				}
+				else
+				{
+					OuterMostImport.XObject = ImportPackage; // this is an optimization to avoid looking up import packages multiple times, also, later we assume these are already filled in
 					AddObjectReference(OuterMostImport.XObject);
 				}
 			}
@@ -2764,8 +2772,12 @@ void FAsyncPackage::LinkImport(int32 LocalImportIndex)
 			FObjectImport& OuterMostImport = Linker->Imp(OuterMostIndex);
 			UPackage* ImportPackage = (UPackage*)OuterMostImport.XObject; // these were filled in a previous step
 
-			check(ImportPackage || FLinkerLoad::IsKnownMissingPackage(OuterMostImport.ObjectName)); // We should have packages created for all imports by now
-			if (ImportPackage)
+			if (!ImportPackage)
+			{
+				Import.bImportFailed = true;
+				UE_CLOG(!FLinkerLoad::IsKnownMissingPackage(OuterMostImport.ObjectName), LogStreaming, Error, TEXT("Missing native package (%s) for import of %s in %s."), *OuterMostImport.ObjectName.ToString(), *Import.ObjectName.ToString(), *Desc.NameToLoad.ToString());
+			}
+			else
 			{
 				if (&OuterMostImport == &Import)
 				{
@@ -5438,6 +5450,12 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		{
 			FGCScopeGuard GCGuard;
 			Package = CreatePackage(nullptr, *Desc.Name.ToString());
+			if (!Package)
+			{
+				UE_LOG(LogStreaming, Error, TEXT("Failed to create package %s requested by async loading code. NameToLoad: %s"), *Desc.Name.ToString(), *Desc.NameToLoad.ToString());
+				bLoadHasFailed = true;
+				return EAsyncPackageState::TimeOut;
+			}
 			AddObjectReference(Package);
 			LinkerRoot = Package;
 		}

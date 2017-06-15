@@ -419,7 +419,7 @@ FString ConvertToResourceStateString(uint32 ResourceState)
 		return FString(TEXT("D3D12_RESOURCE_STATE_COMMON"));
 	}
 
-	TCHAR* ResourceStateNames[] =
+	const TCHAR* ResourceStateNames[] =
 	{
 		TEXT("D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER"),
 		TEXT("D3D12_RESOURCE_STATE_INDEX_BUFFER"),

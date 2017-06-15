@@ -1743,9 +1743,9 @@ static void MirrorActors(const FVector& MirrorScale)
 		Actor->EditorApplyMirror( MirrorScale, PivotLocation );
 
 		ABrush* Brush = Cast< ABrush >(Actor);
-		if (Brush && Brush->BrushComponent)
+		if (Brush && Brush->GetBrushComponent())
 		{
-			Brush->BrushComponent->RequestUpdateBrushCollision();
+			Brush->GetBrushComponent()->RequestUpdateBrushCollision();
 		}
 
 		Actor->InvalidateLightingCache();

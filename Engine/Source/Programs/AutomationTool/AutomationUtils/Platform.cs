@@ -228,75 +228,26 @@ namespace AutomationTool
 			return InExecutableName;
 		}
 
-		public virtual List<string> GetExecutableNames(DeploymentContext SC, bool bIsRun = false)
+		public virtual List<FileReference> GetExecutableNames(DeploymentContext SC)
 		{
-			var ExecutableNames = new List<String>();
-			string Ext = AutomationTool.Platform.GetExeExtension(SC.StageTargetPlatform.TargetPlatformType);
-			if (!String.IsNullOrEmpty(SC.CookPlatform))
+			List<FileReference> ExecutableNames = new List<FileReference>();
+			foreach (StageTarget Target in SC.StageTargets)
 			{
-				if (SC.StageTargets.Count() > 0)
+				foreach (BuildProduct Product in Target.Receipt.BuildProducts)
 				{
-					DirectoryReference ProjectRoot = new DirectoryReference(SC.ProjectRoot);
-					foreach (StageTarget Target in SC.StageTargets)
+					if (Product.Type == BuildProductType.Executable)
 					{
-						foreach (BuildProduct Product in Target.Receipt.BuildProducts)
+						FileReference BuildProductFile = Product.Path;
+						if (BuildProductFile.IsUnderDirectory(SC.ProjectRoot))
 						{
-							if (Product.Type == BuildProductType.Executable)
-							{
-								FileReference BuildProductFile = new FileReference(Product.Path);
-								if (BuildProductFile.IsUnderDirectory(ProjectRoot))
-								{
-									ExecutableNames.Add(CombinePaths(SC.RuntimeProjectRootDir, BuildProductFile.MakeRelativeTo(ProjectRoot)));
-								}
-								else
-								{
-									ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, BuildProductFile.MakeRelativeTo(RootDirectory)));
-								}
-							}
+							ExecutableNames.Add(FileReference.Combine(SC.RuntimeProjectRootDir, BuildProductFile.MakeRelativeTo(SC.ProjectRoot)));
+						}
+						else
+						{
+							ExecutableNames.Add(FileReference.Combine(SC.RuntimeRootDir, BuildProductFile.MakeRelativeTo(RootDirectory)));
 						}
 					}
 				}
-				//@todo, probably the rest of this can go away once everything passes it through
-				else if (SC.DedicatedServer)
-				{
-                    if (!SC.IsCodeBasedProject)
-                    {
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName("UE4Server");
-						ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
-					}
-					else
-					{
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(SC.ShortProjectName + "Server");
-						string ClientApp = CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, ExeName + Ext);
-						var TestApp = CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, SC.ShortProjectName + "Server" + Ext);
-						string Game = "Game";
-						//@todo, this is sketchy, someone might ask what the exe is before it is compiled
-						if (!FileExists_NoExceptions(ClientApp) && !FileExists_NoExceptions(TestApp) && SC.ShortProjectName.EndsWith(Game, StringComparison.InvariantCultureIgnoreCase))
-						{
-							ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(SC.ShortProjectName.Substring(0, SC.ShortProjectName.Length - Game.Length) + "Server");
-							ClientApp = CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, ExeName + Ext);
-						}
-						ExecutableNames.Add(ClientApp);
-					}
-				}
-				else
-				{
-                    if (!SC.IsCodeBasedProject)
-                    {
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName("UE4Game");
-						ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
-					}
-					else
-					{
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(SC.ShortProjectName);
-						ExecutableNames.Add(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, ExeName + Ext));
-					}
-				}
-			}
-			else
-			{
-				string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName("UE4Editor");
-				ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
 			}
 			return ExecutableNames;
 		}
@@ -326,7 +277,7 @@ namespace AutomationTool
 		/// <param name="SC">Deployment Context</param>
 		public virtual void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 		{
-			SC.ArchiveFiles(SC.StageDirectory);
+			SC.ArchiveFiles(SC.StageDirectory.FullName);
 		}
 
 		/// <summary>
@@ -386,15 +337,6 @@ namespace AutomationTool
         {
             return GetCookPlatform(false, false);
         }
-
-		/// <summary>
-		/// return true if we need to change the case of filenames inside of pak files
-		/// </summary>
-		/// <returns></returns>
-		public virtual bool DeployPakInternalLowerCaseFilenames()
-		{
-			return false;
-		}
 
 		/// <summary>
 		/// return true if we need to change the case of filenames outside of pak files
@@ -483,11 +425,11 @@ namespace AutomationTool
 		/// <summary>
 		/// Remaps the given content directory to its final location
 		/// </summary>
-		public virtual string Remap(string Dest)
+		public virtual StagedFileReference Remap(StagedFileReference Dest)
 		{
 			return Dest;
 		}
-
+		
 		/// <summary>
 		/// Tri-state - The intent is to override command line parameters for pak if needed per platform.
 		/// </summary>
@@ -533,14 +475,14 @@ namespace AutomationTool
 			get { return false; }
 		}
 
-		public virtual List<string> GetFilesForCRCCheck()
+		public virtual HashSet<StagedFileReference> GetFilesForCRCCheck()
 		{
 			string CmdLine = "UE4CommandLine.txt";
 			if (DeployLowerCaseFilenames(true))
 			{
 				CmdLine = CmdLine.ToLowerInvariant();
 			}
-			return new List<string>() { CmdLine };
+			return new HashSet<StagedFileReference>() { new StagedFileReference(CmdLine) };
 		}
 
 		public virtual void StripSymbols(FileReference SourceFile, FileReference TargetFile)

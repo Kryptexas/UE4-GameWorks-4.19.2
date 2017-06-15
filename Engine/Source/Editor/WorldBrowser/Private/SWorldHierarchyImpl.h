@@ -44,12 +44,7 @@ namespace WorldHierarchy
 		Rename			= 1 << 2,	/** Item should be renamed */
 	};
 
-	/** Defines bitwise OR for the new item action flags */
-	ENewItemAction operator|(ENewItemAction Flags1, ENewItemAction Flags2);
-
-	/** Defines bitwise AND for the new item action flags */
-	ENewItemAction operator&(ENewItemAction Flags, ENewItemAction Mask);
-
+	ENUM_CLASS_FLAGS(ENewItemAction)
 }	// namespace WorldHierarchy
 
 DECLARE_DELEGATE_OneParam(FOnWorldHierarchyItemPicked, WorldHierarchy::FWorldTreeItemRef);

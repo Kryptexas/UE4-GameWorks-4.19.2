@@ -243,6 +243,13 @@ namespace UnrealBuildTool
 				Arguments.Add("/wd4819");
 			}
 
+			// Disable Microsoft extensions on VS2017+ for improved standards compliance.
+			if (Compiler >= WindowsCompiler.VisualStudio2017)
+			{
+				Arguments.Add("/permissive-");
+				Arguments.Add("/Zc:strictStrings-"); // Have to disable strict const char* semantics due to Windows headers not being compliant.
+			}
+
 			// @todo UWP: UE4 is non-compliant when it comes to use of %s and %S
 			// Previously %s meant "the current character set" and %S meant "the other one".
 			// Now %s means multibyte and %S means wide. %Ts means "natural width".

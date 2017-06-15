@@ -54,16 +54,12 @@ FString FOutputDeviceHelper::FormatLogLine( ELogVerbosity::Type Verbosity, const
 
 	if (bShowCategory)
 	{
+		Format += Category.ToString();
+		Format += TEXT(": ");
+
 		if (Verbosity != ELogVerbosity::Log)
 		{
-			Format += Category.ToString();
-			Format += TEXT(":");
 			Format += VerbosityToString(Verbosity);
-			Format += TEXT(": ");
-		}
-		else
-		{
-			Format += Category.ToString();
 			Format += TEXT(": ");
 		}
 	}

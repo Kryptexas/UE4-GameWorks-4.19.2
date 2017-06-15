@@ -22,6 +22,11 @@ namespace UnrealBuildTool
 		public bool bOptimizeCode;
 
 		/// <summary>
+		/// Whether to enable RTTI
+		/// </summary>
+		public bool bUseRTTI;
+
+		/// <summary>
 		/// The output files for the shared PCH
 		/// </summary>
 		public CPPOutput Output;
@@ -29,10 +34,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public PrecompiledHeaderInstance(FileItem HeaderFile, bool bOptimizeCode, CPPOutput Output)
+		public PrecompiledHeaderInstance(FileItem HeaderFile, bool bOptimizeCode, bool bUseRTTI, CPPOutput Output)
 		{
 			this.HeaderFile = HeaderFile;
 			this.bOptimizeCode = bOptimizeCode;
+			this.bUseRTTI = bUseRTTI;
 			this.Output = Output;
 		}
 
@@ -42,7 +48,7 @@ namespace UnrealBuildTool
 		/// <returns>String representation of the object</returns>
 		public override string ToString()
 		{
-			return String.Format("{0} (Optimized={1})", HeaderFile.Reference.GetFileName(), bOptimizeCode);
+			return String.Format("{0} (Optimized={1}, RTTI={2})", HeaderFile.Reference.GetFileName(), bOptimizeCode, bUseRTTI);
 		}
 	}
 }

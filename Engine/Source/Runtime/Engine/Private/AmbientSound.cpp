@@ -137,5 +137,3 @@ void AAmbientSound::Stop()
 
 #undef LOCTEXT_NAMESPACE
 
-/** Returns AudioComponent subobject **/
-UAudioComponent* AAmbientSound::GetAudioComponent() const { return AudioComponent; }

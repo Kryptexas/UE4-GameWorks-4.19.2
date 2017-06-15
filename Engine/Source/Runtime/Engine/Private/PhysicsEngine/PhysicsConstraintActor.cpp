@@ -67,5 +67,3 @@ void APhysicsConstraintActor::LoadedFromAnotherClass( const FName& OldClassName 
 }
 #endif // WITH_EDITOR
 
-/** Returns ConstraintComp subobject **/
-UPhysicsConstraintComponent* APhysicsConstraintActor::GetConstraintComp() const { return ConstraintComp; }

@@ -121,10 +121,7 @@ const TCHAR* FPropertyBase::GetPropertyTypeText( EPropertyType Type )
 		CASE_TEXT(CPT_Interface);
 		CASE_TEXT(CPT_Name);
 		CASE_TEXT(CPT_Delegate);
-		CASE_TEXT(CPT_Range);
 		CASE_TEXT(CPT_Struct);
-		CASE_TEXT(CPT_Vector);
-		CASE_TEXT(CPT_Rotation);
 		CASE_TEXT(CPT_String);
 		CASE_TEXT(CPT_Text);
 		CASE_TEXT(CPT_MulticastDelegate);

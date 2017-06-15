@@ -49,11 +49,6 @@ protected:
 		ToolTip = "Minimum time the time limit exceeded warning will be triggered by."))
 	int32 MinBulkDataSizeForAsyncLoading;
 
-	UPROPERTY(config, EditAnywhere, Category = IO, meta = (
-		ConsoleVariable = "s.AsyncIOBandwidthLimit", DisplayName = "Asynchronous IO Bandwidth Limit",
-		ToolTip = "Constrain bandwidth if wanted. Value is in MByte/ sec."))
-	float AsyncIOBandwidthLimit;
-
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, meta = (
 		ConsoleVariable = "s.UseBackgroundLevelStreaming", DisplayName = "Use Background Level Streaming",
 		ToolTip = "Whether to allow background level streaming."))

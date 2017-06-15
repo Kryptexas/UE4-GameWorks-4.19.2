@@ -18,7 +18,7 @@ class APlanarReflection : public ASceneCapture
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** Planar reflection component. */
 	UPROPERTY(Category = SceneCapture, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UPlanarReflectionComponent* PlanarReflectionComponent;

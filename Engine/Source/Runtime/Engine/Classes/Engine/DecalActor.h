@@ -24,20 +24,17 @@ class ENGINE_API ADecalActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** The decal component for this decal actor */
-	DEPRECATED_FORGAME(4.6, "Decal should not be accessed directly, please use GetDecal() function instead. Decal will soon be private and your code will not compile.")
 	UPROPERTY(Category = Decal, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Decal,Rendering|Components|Decal", AllowPrivateAccess = "true"))
 	UDecalComponent* Decal;
 
 #if WITH_EDITORONLY_DATA
 	/* Reference to the editor only arrow visualization component */
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UArrowComponent* ArrowComponent;
 
 	/* Reference to the billboard component */
-	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 
@@ -77,11 +74,11 @@ public:
 public:
 
 	/** Returns Decal subobject **/
-	UDecalComponent* GetDecal() const;
+	UDecalComponent* GetDecal() const { return Decal; }
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	UArrowComponent* GetArrowComponent() const;
+	UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 	/** Returns SpriteComponent subobject **/
-	UBillboardComponent* GetSpriteComponent() const;
+	UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
 #endif
 };

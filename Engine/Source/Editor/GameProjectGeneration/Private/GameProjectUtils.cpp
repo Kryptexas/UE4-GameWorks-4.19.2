@@ -1002,7 +1002,7 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalNameCharacters"), FText::FromString( IllegalNameCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ClassNameContainsIllegalCharacters", "The class name may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ClassNameContainsIllegalCharacters", "The class name may not contain the following characters: '{IllegalNameCharacters}'" ), Args );
 		return false;
 	}
 

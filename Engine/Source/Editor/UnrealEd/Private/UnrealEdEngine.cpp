@@ -1228,7 +1228,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 	for (TActorIterator<ABrush> It(World); It; ++It)
 	{
 		ABrush* Brush = *It;
-		if (Brush->BrushComponent && Brush->BrushComponent->HasInvertedPolys())
+		if (Brush->GetBrushComponent() && Brush->GetBrushComponent()->HasInvertedPolys())
 		{
 			Brushes.Add(Brush);
 		}
@@ -1241,7 +1241,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			UE_LOG(LogUnrealEdEngine, Warning, TEXT("Brush '%s' appears to be inside out - fixing."), *Brush->GetName());
 
 			// Invert the polys of the brush
-			for (FPoly& Poly : Brush->BrushComponent->Brush->Polys->Element)
+			for (FPoly& Poly : Brush->GetBrushComponent()->Brush->Polys->Element)
 			{
 				Poly.Reverse();
 				Poly.CalcNormal();
@@ -1256,7 +1256,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			{
 				// Dynamic brushes can be fixed up here
 				FBSPOps::csgPrepMovingBrush(Brush);
-				Brush->BrushComponent->BuildSimpleBrushCollision();
+				Brush->GetBrushComponent()->BuildSimpleBrushCollision();
 			}
 
 			Brush->MarkPackageDirty();

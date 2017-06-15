@@ -25,8 +25,6 @@
 class UGoogleVRPointerInputComponent;
 class UCameraComponent;
 
-GOOGLEVRCONTROLLER_API DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRGazeReticle, Log, All);
-
 /**
  * GoogleVRGazeReticleComponent is a customizable reticle used to interact with
  * actors and widgets by looking at them. Intended for use with Google Cardboard appliations.

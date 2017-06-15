@@ -16,8 +16,7 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	GENERATED_UCLASS_BODY()
 
 	// Cached reference to constraint component
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "ConstraintComp should not be accessed directly, please use GetConstraintComp() function instead. ConstraintComp will soon be private and your code will not compile.")
+private:
 	UPROPERTY(Category = ConstraintActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "JointDrive,Physics|Components|PhysicsConstraint", AllowPrivateAccess = "true"))
 	class UPhysicsConstraintComponent* ConstraintComp;
 public:
@@ -38,7 +37,7 @@ public:
 
 public:
 	/** Returns ConstraintComp subobject **/
-	ENGINE_API class UPhysicsConstraintComponent* GetConstraintComp() const;
+	ENGINE_API class UPhysicsConstraintComponent* GetConstraintComp() const { return ConstraintComp; }
 };
 
 

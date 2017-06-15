@@ -114,22 +114,12 @@ public class AllDesktopPlatform : Platform
 		return "AllDesktop";
 	}
 
-	public override bool DeployPakInternalLowerCaseFilenames()
-	{
-		return false;
-	}
-
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{
 		return false;
 	}
 
 	public override bool IsSupported { get { return true; } }
-
-	public override string Remap(string Dest)
-	{
-		return Dest;
-	}
 
 	public override PakType RequiresPak(ProjectParams Params)
 	{

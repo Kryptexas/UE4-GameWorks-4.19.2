@@ -1545,7 +1545,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		// Inherit extra flags from the entry node
 		if (Context.EntryPoint)
 		{
-			Context.Function->FunctionFlags |= Context.EntryPoint->GetExtraFlags();
+			Context.Function->FunctionFlags |= (EFunctionFlags)Context.EntryPoint->GetExtraFlags();
 		}
 
 		// First try to get the overriden function from the super class
@@ -1692,7 +1692,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		}
 
 		Context.LastFunctionPropertyStorageLocation = FunctionPropertyStorageLocation;
-		Context.Function->FunctionFlags |= Context.GetNetFlags();
+		Context.Function->FunctionFlags |= (EFunctionFlags)Context.GetNetFlags();
 		
 		// Parameter list needs to be linked before signatures are compared. 
 		Context.Function->StaticLink(true);
@@ -1717,7 +1717,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 				MessageLog.Warning(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
 			}
 
-			uint32 const ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
+			EFunctionFlags const ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
 			if (ParentNetFlags != Context.GetNetFlags())
 			{
 				MessageLog.Error(*LOCTEXT("MismatchedNetFlags_Error", "@@ function's net flags don't match parent function's flags").ToString(), Context.EntryPoint);

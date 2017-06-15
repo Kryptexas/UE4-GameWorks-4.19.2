@@ -14,9 +14,8 @@ class ENGINE_API ALight : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** @todo document */
-	DEPRECATED_FORGAME(4.6, "LightComponent should not be accessed directly, please use GetLightComponent() function instead. LightComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|Light", AllowPrivateAccess = "true"))
 	class ULightComponent* LightComponent;
 public:
@@ -79,7 +78,7 @@ public:
 	//~ End AActor Interface.
 
 	/** Returns LightComponent subobject **/
-	class ULightComponent* GetLightComponent() const;
+	class ULightComponent* GetLightComponent() const { return LightComponent; }
 };
 
 

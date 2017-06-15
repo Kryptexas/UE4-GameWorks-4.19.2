@@ -33,8 +33,7 @@ class ENGINE_API ASkeletalMeshActor : public AActor, public IMatineeAnimInterfac
 	UPROPERTY()
 	uint32 bWakeOnLevelStart_DEPRECATED:1;
 
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "SkeletalMeshComponent should not be accessed directly, please use GetSkeletalMeshComponent() function instead. SkeletalMeshComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY(Category = SkeletalMeshActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Components|SkeletalMesh,Animation,Physics", AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* SkeletalMeshComponent;
 public:
@@ -105,7 +104,7 @@ private:
 
 public:
 	/** Returns SkeletalMeshComponent subobject **/
-	class USkeletalMeshComponent* GetSkeletalMeshComponent();
+	class USkeletalMeshComponent* GetSkeletalMeshComponent() { return SkeletalMeshComponent; }
 };
 
 

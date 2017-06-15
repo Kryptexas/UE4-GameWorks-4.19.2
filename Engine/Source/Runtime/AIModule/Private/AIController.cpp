@@ -1062,22 +1062,6 @@ FString AAIController::GetDebugIcon() const
 	return TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
 }
 
-
-/** Returns PathFollowingComponent subobject **/
-UPathFollowingComponent* AAIController::GetPathFollowingComponent() const { return PathFollowingComponent; }
-/** Returns ActionsComp subobject **/
-UPawnActionsComponent* AAIController::GetActionsComp() const { return ActionsComp; }
-
-UAIPerceptionComponent* AAIController::GetAIPerceptionComponent()
-{
-	return PerceptionComponent;
-}
-
-const UAIPerceptionComponent* AAIController::GetAIPerceptionComponent() const 
-{
-	return PerceptionComponent;
-}
-
 void AAIController::OnGameplayTaskResourcesClaimed(FGameplayResourceSet NewlyClaimed, FGameplayResourceSet FreshlyReleased)
 {
 	if (BrainComponent)

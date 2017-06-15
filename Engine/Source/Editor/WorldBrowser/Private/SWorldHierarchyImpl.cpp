@@ -23,21 +23,7 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-namespace WorldHierarchy
-{
-	ENewItemAction operator|(ENewItemAction Flags1, ENewItemAction Flags2)
-	{
-		uint8 CombinedFlags = static_cast<uint8>(Flags1) | static_cast<uint8>(Flags2);
-		return static_cast<ENewItemAction>(CombinedFlags);
-	}
-
-	ENewItemAction operator&(ENewItemAction Flags, ENewItemAction Mask)
-	{
-		uint8 MaskedFlags = static_cast<uint8>(Flags) & static_cast<uint8>(Mask);
-		return static_cast<ENewItemAction>(MaskedFlags);
-	}
-}	// namespace WorldHierarchy
-
+DEFINE_LOG_CATEGORY_STATIC(LogWorldHierarchy, Log, All);
 
 SWorldHierarchyImpl::SWorldHierarchyImpl()
 	: bUpdatingSelection(false)

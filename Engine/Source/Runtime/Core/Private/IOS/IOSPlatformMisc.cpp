@@ -277,6 +277,11 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 			[StringArray addObject:@"No To All"];
 			[StringArray addObject:@"Cancel"];
 			break;
+		case EAppMsgType::YesNoYesAll:
+			[StringArray addObject : @"Yes"];
+			[StringArray addObject : @"No"];
+			[StringArray addObject : @"Yes To All"];
+			break;
 		default:
 			[StringArray addObject:@"Ok"];
 			break;
@@ -341,6 +346,9 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 		break;
 	case EAppMsgType::YesNoYesAllNoAllCancel:
 		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll, 4 for Cancel
+		break;
+	case EAppMsgType::YesNoYesAll:
+		// return 0 for No, 1 for Yes, 2 for YesToAll
 		break;
 	default:
 		Result = EAppReturnType::Ok;

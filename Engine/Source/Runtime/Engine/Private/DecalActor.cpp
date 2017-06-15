@@ -191,11 +191,3 @@ void ADecalActor::PostLoad()
 #endif
 }
 
-/** Returns Decal subobject **/
-UDecalComponent* ADecalActor::GetDecal() const { return Decal; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* ADecalActor::GetArrowComponent() const { return ArrowComponent; }
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* ADecalActor::GetSpriteComponent() const { return SpriteComponent; }
-#endif

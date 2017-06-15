@@ -36,10 +36,10 @@ namespace UnrealGameSync
 			InitializeComponent();
 		}
 
-		public static bool Execute(IModalTask Task, string InTitle, string InMessage, out string ErrorMessage)
+		public static bool Execute(IWin32Window Owner, IModalTask Task, string InTitle, string InMessage, out string ErrorMessage)
 		{
 			ModalTaskWindow Window = new ModalTaskWindow(Task, InTitle, InMessage);
-			Window.ShowDialog();
+			Window.ShowDialog(Owner);
 			ErrorMessage = Window.ErrorMessage;
 			return Window.bSucceeded;
 		}

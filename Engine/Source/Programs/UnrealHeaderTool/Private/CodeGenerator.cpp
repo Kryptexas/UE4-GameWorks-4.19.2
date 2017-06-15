@@ -1072,16 +1072,19 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		{
 			 PropNameDep += TEXT("_DEPRECATED");
 		}
-		UBoolProperty* BoolProperty = Cast<UBoolProperty>(Prop);
-		if (BoolProperty)
+		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Prop))
 		{
-			OutputDevice.Logf(TEXT("%sCPP_BOOL_PROPERTY_BITMASK_STRUCT(%s, %s, %s);\r\n"), 
-				Spaces, 
-				*PropNameDep, 
-				*SourceStruct,
-				*BoolProperty->GetCPPType(NULL, 0));
-			PropMacroOuterClass = FString::Printf(TEXT("FObjectInitializer(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
-				*PropNameDep, *SourceStruct);
+			OutputDevice.Logf(
+				TEXT("%sCPP_BOOL_PROPERTY_BITMASK_STRUCT(%s, %s);\r\n"),
+				Spaces,
+				*PropNameDep,
+				*SourceStruct
+			);
+			PropMacroOuterClass = FString::Printf(
+				TEXT("FObjectInitializer(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
+				*PropNameDep,
+				*SourceStruct
+			);
 		}
 		else
 		{
@@ -1685,15 +1688,15 @@ void FNativeClassHeaderGenerator::ExportFunction(FOutputDevice& Out, const FUnre
 
 	const TCHAR* UFunctionType = bIsDelegate ? TEXT("UDelegateFunction") : TEXT("UFunction");
 	const TCHAR* UFunctionObjectFlags = FClass::IsOwnedByDynamicType(Function) ? TEXT("RF_Public|RF_Transient") : TEXT("RF_Public|RF_Transient|RF_MarkAsNative");
-	CurrentFunctionText.Logf(TEXT("\t\t\tReturnFunction = new(EC_InternalUseOnlyConstructor, Outer, TEXT(\"%s\"), %s) %s(FObjectInitializer(), %s, 0x%08X, %d%s);\r\n"),
+	CurrentFunctionText.Logf(TEXT("\t\t\tReturnFunction = new(EC_InternalUseOnlyConstructor, Outer, TEXT(\"%s\"), %s) %s(FObjectInitializer(), %s, (EFunctionFlags)0x%08X, %d%s);\r\n"),
 		*FNativeClassHeaderGenerator::GetOverriddenName(Function),
 		UFunctionObjectFlags,
 		UFunctionType,
 		*SuperFunctionString,
-		Function->FunctionFlags,
+		(uint32)Function->FunctionFlags,
 		(uint32)Function->RepOffset,
 		*StructureSize
-		);
+	);
 	TheFlagAudit.Add(Function, TEXT("FunctionFlags"), Function->FunctionFlags);
 
 

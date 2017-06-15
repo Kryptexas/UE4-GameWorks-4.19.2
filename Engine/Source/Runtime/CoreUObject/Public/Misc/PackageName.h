@@ -406,6 +406,15 @@ public:
 	*/
 	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
 
+	/**
+	 * Converts a long package name to the case it exists as on disk.
+	 *
+	 * @param LongPackageName The long package name
+	 * @param Extension The extension for this package
+	 * @return True if the long package name was fixed up, false otherwise
+	 */
+	static bool FixPackageNameCase(FString& LongPackageName, const FString& Extension);
+
 	DEPRECATED(4.17, "Deprecated. Call TryConvertLongPackageNameToFilename instead, which also works on nested paths")
 	static bool ConvertRootPathToContentPath(const FString& RootPath, FString& OutContentPath);
 

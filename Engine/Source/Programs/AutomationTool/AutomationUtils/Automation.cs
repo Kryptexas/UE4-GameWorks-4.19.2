@@ -442,9 +442,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 
 			// Get the path to the telemetry file, if present
 			string TelemetryFile = CommandUtils.ParseParamValue(Arguments, "-Telemetry");
-
-			// Check for build machine override (force local)
-			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
+			
 			Log.TraceVerbose("IsBuildMachine={0}", IsBuildMachine);
 			Environment.SetEnvironmentVariable("IsBuildMachine", IsBuildMachine ? "1" : "0");
 

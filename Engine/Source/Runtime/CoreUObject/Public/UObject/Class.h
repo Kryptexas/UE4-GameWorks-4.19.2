@@ -1294,7 +1294,7 @@ class COREUOBJECT_API UFunction : public UStruct
 	DECLARE_WITHIN(UClass)
 public:
 	// Persistent variables.
-	uint32 FunctionFlags;
+	EFunctionFlags FunctionFlags;
 	uint16 RepOffset;
 
 	// Variables in memory only.
@@ -1351,8 +1351,8 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
-	explicit UFunction(UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
+	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
+	explicit UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
 
 	void InitializeDerivedMembers();
 
@@ -1379,7 +1379,7 @@ public:
 	 * @return	true if the passed in flag is set, false otherwise
 	 *			(including no flag passed in, unless the FlagsToCheck is CLASS_AllFlags)
 	 */
-	FORCEINLINE bool HasAnyFunctionFlags( uint32 FlagsToCheck ) const
+	FORCEINLINE bool HasAnyFunctionFlags( EFunctionFlags FlagsToCheck ) const
 	{
 		return (FunctionFlags&FlagsToCheck) != 0 || FlagsToCheck == FUNC_AllFlags;
 	}
@@ -1390,7 +1390,7 @@ public:
 	 * @param FlagsToCheck	Function flags to check for
 	 * @return true if all of the passed in flags are set (including no flags passed in), false otherwise
 	 */
-	FORCEINLINE bool HasAllFunctionFlags( uint32 FlagsToCheck ) const
+	FORCEINLINE bool HasAllFunctionFlags( EFunctionFlags FlagsToCheck ) const
 	{
 		return ((FunctionFlags & FlagsToCheck) == FlagsToCheck);
 	}
@@ -1436,8 +1436,8 @@ class COREUOBJECT_API UDelegateFunction : public UFunction
 	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateFunction, UFunction, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UDelegateFunction)
 	DECLARE_WITHIN(UObject)
 public:
-	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
-	explicit UDelegateFunction(UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
+	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
+	explicit UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
 };
 
 /*-----------------------------------------------------------------------------

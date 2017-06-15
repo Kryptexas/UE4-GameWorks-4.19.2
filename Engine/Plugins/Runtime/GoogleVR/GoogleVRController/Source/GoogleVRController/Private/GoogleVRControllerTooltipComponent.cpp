@@ -21,7 +21,7 @@
 #include "Engine/World.h"
 #include "Materials/MaterialInterface.h"
 
-DEFINE_LOG_CATEGORY(LogGoogleVRControllerTooltip);
+DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRControllerTooltip, Log, All);
 
 UGoogleVRControllerTooltipComponent::UGoogleVRControllerTooltipComponent(const FObjectInitializer& ObjectInitializer)
 : TooltipLocation(EGoogleVRControllerTooltipLocation::TouchPadOutside)

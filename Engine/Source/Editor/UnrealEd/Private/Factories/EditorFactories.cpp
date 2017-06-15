@@ -237,7 +237,7 @@
 #include "Haptics/HapticFeedbackEffect_Buffer.h"
 #include "Haptics/HapticFeedbackEffect_SoundWave.h"
 #include "DataTableEditorUtils.h"
-#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
+#include "KismetCompilerModule.h"
 #include "Factories/SubUVAnimationFactory.h"
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -251,7 +251,7 @@
 
 #include "Editor/EditorPerProjectUserSettings.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
+DEFINE_LOG_CATEGORY(LogEditorFactories);
 
 #define LOCTEXT_NAMESPACE "EditorFactories"
 

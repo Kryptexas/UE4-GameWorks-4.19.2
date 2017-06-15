@@ -294,13 +294,4 @@ bool AEmitter::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 }
 #endif
 
-/** Returns ParticleSystemComponent subobject **/
-UParticleSystemComponent* AEmitter::GetParticleSystemComponent() { return ParticleSystemComponent; }
-#if WITH_EDITORONLY_DATA
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* AEmitter::GetSpriteComponent() const { return SpriteComponent; }
-/** Returns ArrowComponent subobject **/
-UArrowComponent* AEmitter::GetArrowComponent() const { return ArrowComponent; }
-#endif
-
 #undef LOCTEXT_NAMESPACE

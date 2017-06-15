@@ -480,7 +480,7 @@ bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLong
 		{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("IllegalNameCharacters"), FText::FromString(MatchedInvalidChars) );
-			*OutReason = FText::Format( NSLOCTEXT("Core", "PackageNameContainsInvalidCharacters", "Name may not contain the following characters: {IllegalNameCharacters}"), Args );
+			*OutReason = FText::Format( NSLOCTEXT("Core", "PackageNameContainsInvalidCharacters", "Name may not contain the following characters: '{IllegalNameCharacters}'"), Args );
 		}
 		return true;
 	}
@@ -723,6 +723,75 @@ bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilen
 		}
 	}
 
+	return false;
+}
+
+bool FPackageName::FixPackageNameCase(FString& LongPackageName, const FString& Extension)
+{
+	// Visitor which corrects the case of a filename against any matching item in a directory
+	struct FFixCaseVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+		FString Name;
+
+		FFixCaseVisitor(const FString&& InName) : Name(InName)
+		{
+		}
+
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+		{
+			if (Name == FilenameOrDirectory)
+			{
+				Name = FilenameOrDirectory;
+				return false;
+			}
+			return true;
+		}
+	};
+
+	// Find the matching long package root
+	const FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();
+	for (const FPathPair& Pair : Paths.ContentRootToPath)
+	{
+		if (LongPackageName.StartsWith(Pair.RootPath))
+		{
+			// Construct a visitor with this mount point
+			FFixCaseVisitor Visitor(Pair.ContentPath.Left(Pair.ContentPath.Len() - 1));
+
+			// Normalize the extension to begin with a dot
+			FString DotExtension = Extension;
+			if (DotExtension.Len() > 0 && DotExtension[0] != '.')
+			{
+				DotExtension.InsertAt(0, '.');
+			}
+
+			// Iterate through each directory trying to match a file with the correct name
+			int32 BaseIdx = Pair.RootPath.Len();
+			for (;;)
+			{
+				int32 NextIdx = LongPackageName.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, BaseIdx);
+				if(NextIdx == INDEX_NONE)
+				{
+					FString BaseDir = Visitor.Name;
+					Visitor.Name /= LongPackageName.Mid(BaseIdx) + DotExtension;
+					IFileManager::Get().IterateDirectory(*BaseDir, Visitor);
+					break;
+				}
+				else
+				{
+					FString BaseDir = Visitor.Name;
+					Visitor.Name /= LongPackageName.Mid(BaseIdx, NextIdx - BaseIdx);
+					IFileManager::Get().IterateDirectory(*BaseDir, Visitor);
+				}
+				BaseIdx = NextIdx + 1;
+			}
+
+			// Construct the new long package name, and check it matches the original in all but case
+			FString NewLongPackageName = Pair.RootPath / Visitor.Name.Mid(Pair.ContentPath.Len(), Visitor.Name.Len() - DotExtension.Len() - Pair.ContentPath.Len());
+			check(LongPackageName == NewLongPackageName);
+			LongPackageName = MoveTemp(NewLongPackageName);
+			return true;
+		}
+	}
 	return false;
 }
 

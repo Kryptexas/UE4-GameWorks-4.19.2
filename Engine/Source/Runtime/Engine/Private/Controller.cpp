@@ -683,7 +683,4 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 	DOREPLIFETIME_CONDITION_NOTIFY(AController, Pawn, COND_None, REPNOTIFY_Always);
 }
 
-/** Returns TransformComponent subobject **/
-USceneComponent* AController::GetTransformComponent() const { return TransformComponent; }
-
 #undef LOCTEXT_NAMESPACE

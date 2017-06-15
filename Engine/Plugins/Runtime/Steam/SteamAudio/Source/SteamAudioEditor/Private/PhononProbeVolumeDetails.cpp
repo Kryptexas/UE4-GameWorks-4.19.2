@@ -202,7 +202,7 @@ namespace SteamAudio
 			iplDestroyScene(&SceneCopy);
 
 			// Update probe component with new probe locations
-			auto& ProbeLocations = PhononProbeVolumeHandle->PhononProbeComponent->ProbeLocations;
+			auto& ProbeLocations = PhononProbeVolumeHandle->GetPhononProbeComponent()->ProbeLocations;
 			ProbeLocations.Empty();
 			ProbeLocations.SetNumUninitialized(ProbeSpheres.Num());
 			for (auto i = 0; i < ProbeSpheres.Num(); ++i)

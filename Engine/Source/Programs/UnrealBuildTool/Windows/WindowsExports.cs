@@ -21,10 +21,10 @@ namespace UnrealBuildTool
 		/// <param name="InExecutablePaths"></param>
 		/// <param name="EngineDirectory"></param>
 		/// <returns></returns>
-		public static bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> InTargetConfigurations, List<string> InExecutablePaths, string EngineDirectory)
+		public static bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, DirectoryReference ProjectDirectory, List<UnrealTargetConfiguration> InTargetConfigurations, List<FileReference> InExecutablePaths, DirectoryReference EngineDirectory)
 		{
 	        BaseWindowsDeploy Deploy = new BaseWindowsDeploy();
-            return Deploy.PrepForUATPackageOrDeploy(ProjectFile, ProjectName, ProjectDirectory, InTargetConfigurations, InExecutablePaths, EngineDirectory);
+            return Deploy.PrepForUATPackageOrDeploy(ProjectFile, ProjectName, ProjectDirectory.FullName, InTargetConfigurations, InExecutablePaths.Select(x => x.FullName).ToList(), EngineDirectory.FullName);
 		}
 
 		/// <summary>

@@ -353,7 +353,9 @@ class TStaticIndirectArrayThreadSafeRead
 	{
 		int32 ChunkIndex = Index / ElementsPerChunk;
 		int32 WithinChunkIndex = Index % ElementsPerChunk;
-		check(IsValidIndex(Index) && ChunkIndex < NumChunks && Index < MaxTotalElements);
+		checkf(IsValidIndex(Index), TEXT("IsValidIndex(%d)"), Index);
+		checkf(ChunkIndex < NumChunks, TEXT("ChunkIndex (%d) < NumChunks (%d)"), ChunkIndex, NumChunks);
+		checkf(Index < MaxTotalElements, TEXT("Index (%d) < MaxTotalElements (%d)"), Index, MaxTotalElements);
 		ElementType** Chunk = Chunks[ChunkIndex];
 		check(Chunk);
 		return Chunk + WithinChunkIndex;

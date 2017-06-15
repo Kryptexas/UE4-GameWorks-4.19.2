@@ -131,35 +131,37 @@ void FMeshUtilities::UpdateMeshReductionModule()
 			FString String = CVarMeshReductionModule->GetString();
 			bool bIsChoosenModule = ModuleNames[Index].GetPlainNameString().Equals(String);
 
-			IMeshReductionModule& MeshReductionModule = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleNames[Index]);
-
-			// Look for MeshReduction interface
-			if(MeshReductionModule.GetStaticMeshReductionInterface())
+			IMeshReductionModule* MeshReductionModule = FModuleManager::LoadModulePtr<IMeshReductionModule>(ModuleNames[Index]);
+			if (MeshReductionModule != nullptr)
 			{
-				if(bIsChoosenModule || StaticMeshReduction == NULL)
+				// Look for MeshReduction interface
+				if(MeshReductionModule->GetStaticMeshReductionInterface())
 				{
-					StaticMeshReduction = MeshReductionModule.GetStaticMeshReductionInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleNames[Index].ToString());
+					if(bIsChoosenModule || StaticMeshReduction == NULL)
+					{
+						StaticMeshReduction = MeshReductionModule->GetStaticMeshReductionInterface();
+						UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleNames[Index].ToString());
+					}
 				}
-			}
 
-			// Look for MeshReduction interface
-			if(MeshReductionModule.GetSkeletalMeshReductionInterface())
-			{
-				if(bIsChoosenModule || SkeletalMeshReduction == NULL)
+				// Look for MeshReduction interface
+				if(MeshReductionModule->GetSkeletalMeshReductionInterface())
 				{
-					SkeletalMeshReduction = MeshReductionModule.GetSkeletalMeshReductionInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleNames[Index].ToString());
+					if(bIsChoosenModule || SkeletalMeshReduction == NULL)
+					{
+						SkeletalMeshReduction = MeshReductionModule->GetSkeletalMeshReductionInterface();
+						UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleNames[Index].ToString());
+					}
 				}
-			}
 
-			// Look for MeshMerging interface
-			if(MeshReductionModule.GetMeshMergingInterface())
-			{
-				if(bIsChoosenModule || MeshMerging == NULL)
+				// Look for MeshMerging interface
+				if(MeshReductionModule->GetMeshMergingInterface())
 				{
-					MeshMerging = MeshReductionModule.GetMeshMergingInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh merging"), *ModuleNames[Index].ToString());
+					if(bIsChoosenModule || MeshMerging == NULL)
+					{
+						MeshMerging = MeshReductionModule->GetMeshMergingInterface();
+						UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh merging"), *ModuleNames[Index].ToString());
+					}
 				}
 			}
 		}

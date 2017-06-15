@@ -4493,7 +4493,7 @@ void FBlueprintGraphActionDetails::OnAccessSpecifierSelected( TSharedPtr<FAccess
 			Function->Modify();
 		}
 
-		const uint32 ClearAccessSpecifierMask = ~FUNC_AccessSpecifiers;
+		const EFunctionFlags ClearAccessSpecifierMask = ~FUNC_AccessSpecifiers;
 		if(UK2Node_FunctionEntry* EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 		{
 			int32 ExtraFlags = EntryNode->GetExtraFlags();

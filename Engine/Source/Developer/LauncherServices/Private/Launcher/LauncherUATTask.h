@@ -63,7 +63,12 @@ protected:
 
 		// we expect to pass -nocompile to UAT here as we generally expect UAT to be fully compiled. Besides, installed builds don't even have the source to compile UAT scripts.
 		// Only allow UAT to compile scripts dynamically if we pass -development or we have the IsBuildingUAT property set, the latter of which should not allow itself to be set in installed situations.
-		UATCommandLine += (!FPlatformMisc::IsDebuggerPresent() && (FParse::Param( FCommandLine::Get(), TEXT("development") ) || ChainState.Profile->IsBuildingUAT())) ? TEXT("") : TEXT(" -nocompile");
+#if PLATFORM_WINDOWS
+		bool bAllowCompile = !FPlatformMisc::IsDebuggerPresent();
+#else
+		bool bAllowCompile = true;
+#endif
+		UATCommandLine += (bAllowCompile && (FParse::Param( FCommandLine::Get(), TEXT("development") ) || ChainState.Profile->IsBuildingUAT())) ? TEXT("") : TEXT(" -nocompile");
 		// we never want to build the editor when launching from the editor or running with an installed engine (which can't rebuild itself)
 		UATCommandLine += GIsEditor || FApp::IsEngineInstalled() ? TEXT(" -nocompileeditor") : TEXT("");
 		UATCommandLine += FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT("");

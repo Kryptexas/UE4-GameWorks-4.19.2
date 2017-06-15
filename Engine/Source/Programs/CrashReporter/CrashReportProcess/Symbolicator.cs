@@ -148,6 +148,40 @@ namespace Tools.CrashReporter.CrashReportProcess
 			return NewSymbolicatorTask.Result;
 		}
 
+		/// <summary>
+		/// Clear out old MDD logs
+		/// </summary>
+		/// <param name="NumDays">Number of days worth of logs to keep</param>
+		public static void CleanOutOldLogs(int NumDays)
+		{
+			DateTime DeleteTime = DateTime.UtcNow - TimeSpan.FromDays(NumDays);
+			try
+			{
+				DirectoryInfo BaseFolder = new DirectoryInfo(CrashReporterProcessServicer.SymbolicatorLogFolder);
+				if (BaseFolder.Exists)
+				{
+					foreach (DirectoryInfo SubFolder in BaseFolder.EnumerateDirectories())
+					{
+						if (!SubFolder.EnumerateFiles("*", SearchOption.AllDirectories).Any(x => x.LastWriteTimeUtc > DeleteTime))
+						{
+							try
+							{
+								SubFolder.Delete(true);
+							}
+							catch(Exception Ex)
+							{
+								CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Unable to delete {0}: {1}", SubFolder.FullName, Ex.Message));
+							}
+						}
+					}
+				}
+			}
+			catch(Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Failed to delete logs: {0}", Ex.Message));
+			}
+		}
+
 		private Task<bool>[] Tasks;
 
 		public Symbolicator()

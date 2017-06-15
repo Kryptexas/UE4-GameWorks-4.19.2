@@ -405,6 +405,62 @@ namespace UnrealVS
 			return '\"' + UProjectPath + '\"';
 		}
 
+		public static void AddProjects(DirectoryInfo ProjectDir, List<FileInfo> Files)
+		{
+			Files.AddRange(ProjectDir.EnumerateFiles("*.uproject"));
+		}
+
+		/// <summary>
+		/// Enumerate projects under the given directory
+		/// </summary>
+		/// <param name="SolutionDir">Base directory to enumerate</param>
+		/// <returns>List of project files</returns>
+		static List<FileInfo> EnumerateProjects(DirectoryInfo SolutionDir)
+		{
+			// Enumerate all the projects in the same directory as the solution. If there's one here, we don't need to consider any other.
+			List<FileInfo> ProjectFiles = new List<FileInfo>(SolutionDir.EnumerateFiles("*.uproject"));
+			if (ProjectFiles.Count == 0)
+			{
+				// Build a list of all the parent directories for projects. This includes the UE4 root, plus any directories referenced via .uprojectdirs files.
+				List<DirectoryInfo> ParentProjectDirs = new List<DirectoryInfo>();
+				ParentProjectDirs.Add(SolutionDir);
+
+				// Read all the .uprojectdirs files
+				foreach (FileInfo ProjectDirsFile in SolutionDir.EnumerateFiles("*.uprojectdirs"))
+				{
+					foreach (string Line in File.ReadAllLines(ProjectDirsFile.FullName))
+					{
+						string TrimLine = Line.Trim().Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar).Trim(Path.DirectorySeparatorChar);
+						if (TrimLine.Length > 0 && !TrimLine.StartsWith(";"))
+						{
+							try
+							{
+								ParentProjectDirs.Add(new DirectoryInfo(Path.Combine(SolutionDir.FullName, TrimLine)));
+							}
+							catch (Exception Ex)
+							{
+								Logging.WriteLine(String.Format("EnumerateProjects: Exception trying to resolve project directory '{0}': {1}", TrimLine, Ex.Message));
+							}
+						}
+					}
+				}
+
+				// Add projects in any subfolders of the parent directories
+				HashSet<string> CheckedParentDirs = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+				foreach (DirectoryInfo ParentProjectDir in ParentProjectDirs)
+				{
+					if(CheckedParentDirs.Add(ParentProjectDir.FullName) && ParentProjectDir.Exists)
+					{
+						foreach (DirectoryInfo ProjectDir in ParentProjectDir.EnumerateDirectories())
+						{
+							ProjectFiles.AddRange(ProjectDir.EnumerateFiles("*.uproject"));
+						}
+					}
+				}
+			}
+			return ProjectFiles;
+		}
+
 		/// <summary>
 		/// Returns all the .uprojects found under the solution root folder.
 		/// </summary>
@@ -422,11 +478,17 @@ namespace UnrealVS
                 DateTime Start = DateTime.Now;
 
 				CachedUProjectRootFolder = Folder;
-				CachedUProjectPaths = Directory.GetFiles(Folder, "*." + UProjectExtension, SearchOption.AllDirectories);
+				CachedUProjectPaths = EnumerateProjects(new DirectoryInfo(Folder)).Select(x => x.FullName);
 				CachedUProjects = null;
 
                 TimeSpan TimeTaken = DateTime.Now - Start;
-                Logging.WriteLine(string.Format("Directory.GetFiles took {0} sec", TimeTaken.TotalSeconds));
+                Logging.WriteLine(string.Format("GetUProjects: EnumerateProjects took {0} sec", TimeTaken.TotalSeconds));
+
+				foreach (string CachedUProjectPath in CachedUProjectPaths)
+				{
+					Logging.WriteLine(String.Format("GetUProjects: found {0}", CachedUProjectPath));
+				}
+
                 Logging.WriteLine("    DONE");
 			}
 

@@ -15,6 +15,8 @@
 #include <initializer_list>
 #include "Templates/TypeHash.h"
 #include "Containers/SparseArray.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/Decay.h"
 
 /**
  * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
@@ -158,8 +160,8 @@ public:
 	{}
 
 	/** Initialization constructor. */
-	template <typename InitType> FORCEINLINE TSetElement(const InitType&  InValue) : Value(         InValue ) {}
-	template <typename InitType> FORCEINLINE TSetElement(      InitType&& InValue) : Value(MoveTemp(InValue)) {}
+	template <typename InitType, typename = typename TEnableIf<!TAreTypesEqual<TSetElement, typename TDecay<InitType>::Type>::Value>::Type> explicit FORCEINLINE TSetElement(const InitType&  InValue) : Value(         InValue ) {}
+	template <typename InitType, typename = typename TEnableIf<!TAreTypesEqual<TSetElement, typename TDecay<InitType>::Type>::Value>::Type> explicit FORCEINLINE TSetElement(      InitType&& InValue) : Value(MoveTemp(InValue)) {}
 
 	/** Copy/move constructors */
 	FORCEINLINE TSetElement(const TSetElement&  Rhs) : Value(         Rhs.Value ), HashNextId(         Rhs.HashNextId ), HashIndex(Rhs.HashIndex) {}

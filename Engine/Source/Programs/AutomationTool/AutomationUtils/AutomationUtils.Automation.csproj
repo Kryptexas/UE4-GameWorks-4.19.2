@@ -80,6 +80,9 @@
     <Compile Include="ProjectUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScriptCompiler.cs" />
+    <Compile Include="StagedDirectoryReference.cs" />
+    <Compile Include="StagedFileReference.cs" />
+    <Compile Include="StagedFileSystemReference.cs" />
     <Compile Include="ThreadPoolWorkQueue.cs" />
     <Compile Include="UBTUtils.cs" />
     <Compile Include="UE4Build.cs" />

@@ -1923,7 +1923,7 @@ namespace AutomationTool
 				if ( ClientTargetPlatforms.Count > 0 )
 				{
 					var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
-					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type);
+					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type).FullName;
 					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
 				}
 			}
@@ -2078,7 +2078,7 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
+                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot.FullName, "Releases", BasedOnReleaseVersion, Platform);
 			}
 			else
 			{
@@ -2104,7 +2104,7 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);
+				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot.FullName, "Releases", CreateReleaseVersion, Platform);
 			}
 			else
 			{

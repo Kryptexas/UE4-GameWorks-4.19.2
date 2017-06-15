@@ -154,7 +154,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Files which this module depends on at runtime.
 		/// </summary>
-		public RuntimeDependencyList RuntimeDependencies;
+		public List<RuntimeDependency> RuntimeDependencies;
 
 		/// <summary>
 		/// Set of all whitelisted restricted folder references
@@ -169,7 +169,8 @@ namespace UnrealBuildTool
 		/// <param name="InModuleDirectory">Base directory for the module</param>
 		/// <param name="InRules">Rules for this module</param>
 		/// <param name="InRulesFile">Path to the rules file</param>
-		public UEBuildModule(string InName, UHTModuleType InType, DirectoryReference InModuleDirectory, ModuleRules InRules, FileReference InRulesFile)
+		/// <param name="InRuntimeDependencies">List of runtime dependencies</param>
+		public UEBuildModule(string InName, UHTModuleType InType, DirectoryReference InModuleDirectory, ModuleRules InRules, FileReference InRulesFile, List<RuntimeDependency> InRuntimeDependencies)
 		{
 			Name = InName;
 			Type = InType;
@@ -192,7 +193,7 @@ namespace UnrealBuildTool
 			PublicAdditionalBundleResources = InRules.AdditionalBundleResources == null ? new HashSet<UEBuildBundleResource>() : new HashSet<UEBuildBundleResource>(InRules.AdditionalBundleResources);
 			PublicDelayLoadDLLs = HashSetFromOptionalEnumerableStringParameter(InRules.PublicDelayLoadDLLs);
 			PrivateIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PrivateIncludePaths);
-			RuntimeDependencies = (InRules.RuntimeDependencies == null) ? new RuntimeDependencyList() : new RuntimeDependencyList(InRules.RuntimeDependencies);
+			RuntimeDependencies = InRuntimeDependencies;
 			IsRedistributableOverride = InRules.IsRedistributableOverride;
 
 			WhitelistRestrictedFolders = new HashSet<DirectoryReference>(InRules.WhitelistRestrictedFolders.Select(x => DirectoryReference.Combine(ModuleDirectory, x)));
@@ -796,10 +797,10 @@ namespace UnrealBuildTool
 			Writer.WriteArrayEnd();
 
 			Writer.WriteArrayStart("RuntimeDependencies");
-			foreach(RuntimeDependency RuntimeDependency in Rules.RuntimeDependencies)
+			foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
 			{
 				Writer.WriteObjectStart();
-				Writer.WriteValue("Path", RuntimeDependency.Path);
+				Writer.WriteValue("Path", RuntimeDependency.Path.FullName);
 				Writer.WriteValue("Type", RuntimeDependency.Type.ToString());
 				Writer.WriteObjectEnd();
 			}

@@ -64,6 +64,14 @@ namespace UnrealBuildTool
 	public class WindowsTargetRules
 	{
 		/// <summary>
+		/// Constructor
+		/// </summary>
+		public WindowsTargetRules()
+		{
+			XmlConfig.ApplyTo(this);
+		}
+
+		/// <summary>
 		/// Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/WindowsTargetPlatform.WindowsTargetSettings", "CompilerVersion")]
@@ -99,6 +107,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The static analyzer to use
 		/// </summary>
+		[XmlConfigFile(Category = "WindowsPlatform")]
 		[CommandLine("-StaticAnalyzer")]
 		public WindowsStaticAnalyzer StaticAnalyzer = WindowsStaticAnalyzer.None;
 

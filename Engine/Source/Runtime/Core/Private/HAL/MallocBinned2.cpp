@@ -702,6 +702,9 @@ void* FMallocBinned2::MallocExternal(SIZE_T Size, uint32 Alignment)
 	// Use OS for non-pooled allocations.
 	UPTRINT AlignedSize = Align(Size, OsAllocationGranularity);
 	void* Result = CachedOSPageAllocator.Allocate(AlignedSize);
+
+	UE_CLOG(!IsAligned(Result, Alignment) ,LogMemory, Fatal, TEXT("FMallocBinned2 alignment was too large for OS. Alignment=%d   Ptr=%p"), Alignment, Result);
+
 	if (!Result)
 	{
 		Private::OutOfMemory(AlignedSize);
@@ -872,7 +875,7 @@ bool FMallocBinned2::GetAllocationSizeExternal(void* Ptr, SIZE_T& SizeOut)
 	UPTRINT PoolOsBytes = Pool->GetOsAllocatedBytes();
 	uint32 PoolOSRequestedBytes = Pool->GetOSRequestedBytes();
 	checkf(PoolOSRequestedBytes <= PoolOsBytes, TEXT("FMallocBinned2::GetAllocationSizeExternal %d %d"), int32(PoolOSRequestedBytes), int32(PoolOsBytes));
-	SizeOut = PoolOSRequestedBytes;
+	SizeOut = PoolOsBytes;
 	return true;
 }
 

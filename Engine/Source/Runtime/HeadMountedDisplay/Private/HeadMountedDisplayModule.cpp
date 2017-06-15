@@ -13,8 +13,6 @@
 #include "IHeadMountedDisplay.h"
 #include "PrimitiveSceneInfo.h"
 
-DEFINE_LOG_CATEGORY(LogHMD);
-
 void IHeadMountedDisplay::GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives)
 {
 	// If a scene proxy is present, cache it

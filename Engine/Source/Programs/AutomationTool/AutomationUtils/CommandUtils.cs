@@ -101,7 +101,7 @@ namespace AutomationTool
 		/// <returns>Initialized and ready to use BuildEnvironment</returns>
 		static internal void InitCommandEnvironment()
 		{
-			CmdEnvironment = Automation.IsBuildMachine ? new CommandEnvironment() : new LocalCommandEnvironment(); ;
+			CmdEnvironment = (Automation.IsBuildMachine && !GlobalCommandLine.ForceLocal) ? new CommandEnvironment() : new LocalCommandEnvironment();
 		}
 
 		#endregion
@@ -339,6 +339,18 @@ namespace AutomationTool
 			}
 
 			return FoundFiles.ToArray();
+		}
+
+		/// <summary>
+		/// Finds files in specified paths. 
+		/// </summary>
+		/// <param name="SearchPattern">Pattern</param>
+		/// <param name="Recursive">Recursive search</param>
+		/// <param name="Paths">Paths to search</param>
+		/// <returns>An array of files found in the specified paths</returns>
+		public static FileReference[] FindFiles(string SearchPattern, bool Recursive, DirectoryReference PathToSearch)
+		{
+			return FindFiles(SearchPattern, Recursive, PathToSearch.FullName).Select(x => new FileReference(x)).ToArray();
 		}
 
 		/// <summary>
@@ -1309,46 +1321,44 @@ namespace AutomationTool
 		/// <param name="Dest">The full path to the destination file</param>
 		/// <param name="bAllowDifferingTimestamps">If true, will always skip a file if the destination exists, even if timestamp differs; defaults to false</param>
 		/// <returns>True if the operation was successful, false otherwise.</returns>
-		public static void CopyFileIncremental(string Source, string Dest, bool bAllowDifferingTimestamps = false, bool bFilterSpecialLinesFromIniFiles = false)
+		public static void CopyFileIncremental(FileReference Source, FileReference Dest, bool bAllowDifferingTimestamps = false, bool bFilterSpecialLinesFromIniFiles = false)
 		{
-			Source = ConvertSeparators(PathSeparator.Default, Source);
-			Dest = ConvertSeparators(PathSeparator.Default, Dest);
-			if (InternalUtils.SafeFileExists(Dest, true))
+			if (InternalUtils.SafeFileExists(Dest.FullName, true))
 			{
 				if (bAllowDifferingTimestamps == true)
 				{
 					LogVerbose("CopyFileIncremental Skipping {0}, already exists", Dest);
 					return;
 				}
-				TimeSpan Diff = File.GetLastWriteTimeUtc(Dest) - File.GetLastWriteTimeUtc(Source);
+				TimeSpan Diff = File.GetLastWriteTimeUtc(Dest.FullName) - File.GetLastWriteTimeUtc(Source.FullName);
 				if (Diff.TotalSeconds > -1 && Diff.TotalSeconds < 1)
 				{
 					LogVerbose("CopyFileIncremental Skipping {0}, up to date.", Dest);
 					return;
 				}
-				InternalUtils.SafeDeleteFile(Dest);
+				InternalUtils.SafeDeleteFile(Dest.FullName);
 			}
-			else if (!InternalUtils.SafeDirectoryExists(Path.GetDirectoryName(Dest), true))
+			else if (!InternalUtils.SafeDirectoryExists(Path.GetDirectoryName(Dest.FullName), true))
 			{
-				if (!InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(Dest)))
+				if (!InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(Dest.FullName)))
 				{
-					throw new AutomationException("Failed to create directory {0} for copy", Path.GetDirectoryName(Dest));
+					throw new AutomationException("Failed to create directory {0} for copy", Path.GetDirectoryName(Dest.FullName));
 				}
 			}
-			if (InternalUtils.SafeFileExists(Dest, true))
+			if (InternalUtils.SafeFileExists(Dest.FullName, true))
 			{
 				throw new AutomationException("Failed to delete {0} for copy", Dest);
 			}
-			if (!InternalUtils.SafeCopyFile(Source, Dest, bFilterSpecialLinesFromIniFiles:bFilterSpecialLinesFromIniFiles))
+			if (!InternalUtils.SafeCopyFile(Source.FullName, Dest.FullName, bFilterSpecialLinesFromIniFiles:bFilterSpecialLinesFromIniFiles))
 			{
 				throw new AutomationException("Failed to copy {0} to {1}", Source, Dest);
 			}
-			FileAttributes Attributes = File.GetAttributes(Dest);
+			FileAttributes Attributes = File.GetAttributes(Dest.FullName);
 			if ((Attributes & FileAttributes.ReadOnly) != 0)
 			{
-				File.SetAttributes(Dest, Attributes & ~FileAttributes.ReadOnly);
+				File.SetAttributes(Dest.FullName, Attributes & ~FileAttributes.ReadOnly);
 			}
-			File.SetLastWriteTimeUtc(Dest, File.GetLastWriteTimeUtc(Source));
+			File.SetLastWriteTimeUtc(Dest.FullName, File.GetLastWriteTimeUtc(Source.FullName));
 		}
 
 		/// <summary>
@@ -2747,11 +2757,11 @@ namespace AutomationTool
 		/// Will automatically skip signing if -NoSign is specified in the command line.
 		/// </summary>
 		/// <param name="Files">List of files to sign</param>
-		public static void SignMultipleIfEXEOrDLL(BuildCommand Command, List<string> Files)
+		public static void SignMultipleIfEXEOrDLL(BuildCommand Command, IEnumerable<string> Files)
 		{
 			if (!Command.ParseParam("NoSign"))
 			{
-				CommandUtils.Log("Signing up to {0} files...", Files.Count);
+				CommandUtils.Log("Signing up to {0} files...", Files.Count());
 				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.BuildHostPlatform.Current.Platform;
 				if (TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 				{
@@ -2762,12 +2772,12 @@ namespace AutomationTool
 				}
 				else
 				{
-					List<string> FilesToSign = new List<string>();
+					List<FileReference> FilesToSign = new List<FileReference>();
 					foreach (string File in Files)
 					{
 						if (!(Path.GetDirectoryName(File).Replace("\\", "/")).Contains("Binaries/XboxOne"))
 						{
-							FilesToSign.Add(File);
+							FilesToSign.Add(new FileReference(File));
 						}						
 					}
 					SignMultipleFilesIfEXEOrDLL(FilesToSign);
@@ -2775,7 +2785,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CommandUtils.LogLog("Skipping signing {0} files due to -nosign.", Files.Count);
+				CommandUtils.LogLog("Skipping signing {0} files due to -nosign.", Files.Count());
 			}
 		}
 
@@ -2832,7 +2842,7 @@ namespace AutomationTool
 			}
 		}
 
-		public static void SignMultipleFilesIfEXEOrDLL(List<string> Files, bool bIgnoreExtension = false)
+		public static void SignMultipleFilesIfEXEOrDLL(List<FileReference> Files, bool bIgnoreExtension = false)
 		{
 			if (UnrealBuildTool.Utils.IsRunningOnMono)
 			{
@@ -2840,7 +2850,7 @@ namespace AutomationTool
 				return;
 			}
 			List<string> FinalFiles = new List<string>();
-			foreach (string Filename in Files)
+			foreach (string Filename in Files.Select(x => x.FullName))
 			{
 				// Make sure the file isn't read-only
 				FileInfo TargetFileInfo = new FileInfo(Filename);

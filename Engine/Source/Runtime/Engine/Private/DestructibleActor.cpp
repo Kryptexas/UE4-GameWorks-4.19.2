@@ -49,5 +49,3 @@ void ADestructibleActor::PostLoad()
 	}
 }
 
-/** Returns DestructibleComponent subobject **/
-UDestructibleComponent* ADestructibleActor::GetDestructibleComponent() const { return DestructibleComponent; }

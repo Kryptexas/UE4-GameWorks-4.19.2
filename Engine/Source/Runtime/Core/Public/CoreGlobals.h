@@ -368,9 +368,6 @@ extern CORE_API FName GLongCoreUObjectPackageName;
 /** Whether or not a unit test is currently being run. */
 extern CORE_API bool GIsAutomationTesting;
 
-/** Constrain bandwidth if wanted. Value is in MByte/ sec. */
-extern CORE_API float GAsyncIOBandwidthLimit;
-
 /** Whether or not messages are being pumped outside of main loop */
 extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 

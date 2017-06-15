@@ -8,8 +8,6 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogWorldHierarchy, Log, All);
-
 class FLevelCollectionModel;
 struct FSlateBrush;
 

@@ -111,11 +111,11 @@ void FLightMap::FinishCleanup()
 ULightMapTexture2D::ULightMapTexture2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	LODGroup = TEXTUREGROUP_Lightmap;
 }
+
 void ULightMapTexture2D::Serialize(FArchive& Ar)
 {
-	LODGroup = TEXTUREGROUP_Lightmap;
-
 	Super::Serialize(Ar);
 
 	uint32 Flags = LightmapFlags;

@@ -9,6 +9,8 @@
 #include "AnalyticsProviderConfigurationDelegate.h"
 #include "AnalyticsBuildType.h"
 
+ANALYTICS_API DECLARE_LOG_CATEGORY_EXTERN(LogAnalytics, Display, All);
+
 class IAnalyticsProvider;
 
 /**

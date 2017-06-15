@@ -21,23 +21,27 @@ TSharedRef<FTokenizedMessage> FTokenizedMessage::Create(EMessageSeverity::Type I
 FText FTokenizedMessage::ToText() const
 {
 	FText OutMessage;
+	int32 TokenIndex = 0;
 
-	// Dont duplicate starting severity when displaying as string - but display it if it differs (for whatever reason)
+	// Don't duplicate starting severity when displaying as string - but display it if it differs (for whatever reason)
 	if(MessageTokens.Num() > 0 && MessageTokens[0]->GetType() == EMessageToken::Severity)
 	{
 		TSharedRef<FSeverityToken> SeverityToken = StaticCastSharedRef<FSeverityToken>(MessageTokens[0]);
 		if(SeverityToken->GetSeverity() != Severity)
 		{
-			OutMessage = FTokenizedMessage::GetSeverityText( Severity );
+			OutMessage = FText::Format(LOCTEXT("SeverityMessageTokenFormatter", "{0}:"), FTokenizedMessage::GetSeverityText(Severity));
 		}
+
+		// Skip the first token message as the Severity gets added again in FMsg::Logf
+		TokenIndex = 1;
 	}
 	else
 	{
 		OutMessage = FTokenizedMessage::GetSeverityText( Severity );
 	}
-	
+
 	//@todo This is bad and not safe for localization, this needs to be refactored once rich text is implemented [9/24/2013 justin.sargent]
-	for(int TokenIndex = 0; TokenIndex < MessageTokens.Num(); TokenIndex++)
+	for(; TokenIndex < MessageTokens.Num(); TokenIndex++)
 	{
 		if ( !OutMessage.IsEmpty() )
 		{
@@ -46,7 +50,7 @@ FText FTokenizedMessage::ToText() const
 		else
 		{
 			OutMessage = MessageTokens[TokenIndex]->ToText();
-	}
+		}
 	}
 
 	return OutMessage;

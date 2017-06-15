@@ -4394,7 +4394,7 @@ void GetPrivateStaticClassBody(
 	UFunction.
 -----------------------------------------------------------------------------*/
 
-UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
+UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
 : UStruct( ObjectInitializer, InSuperFunction, ParamsSize )
 , FunctionFlags(InFunctionFlags)
 , RepOffset(InRepOffset)
@@ -4408,7 +4408,7 @@ UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InS
 {
 }
 
-UFunction::UFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UFunction::UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UStruct(InSuperFunction, ParamsSize)
 	, FunctionFlags(InFunctionFlags)
 	, RepOffset(InRepOffset)
@@ -4826,13 +4826,13 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	}
 );
 
-UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
 {
 
 }
 
-UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UFunction(InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
 {
 

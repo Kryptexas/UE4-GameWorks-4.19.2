@@ -20,8 +20,7 @@ class ADirectionalLight
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor visualization arrow
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY()
 	UArrowComponent* ArrowComponent;
 #endif
@@ -39,6 +38,6 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	ENGINE_API UArrowComponent* GetArrowComponent() const;
+	ENGINE_API UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };

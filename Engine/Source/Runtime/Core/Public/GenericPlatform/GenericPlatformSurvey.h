@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "CoreTypes.h"
+#include "CoreMinimal.h"
 #include "Containers/ContainersFwd.h"
+
+CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSynthBenchmark, Log, All);
 
 // time and amount of work that was measured
 struct FTimeSample

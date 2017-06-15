@@ -57,7 +57,7 @@ void ACineCameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CameraComponent && ShouldTickForTracking())
+	if (GetCameraComponent() && ShouldTickForTracking())
 	{
 		if (LookatTrackingSettings.bEnableLookAtTracking)
 		{

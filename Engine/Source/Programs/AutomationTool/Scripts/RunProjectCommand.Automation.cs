@@ -628,8 +628,8 @@ public partial class Project : CommandUtils
 		var PlatformName = Params.ClientTargetPlatforms[0].ToString();
 		if (Params.Cook || Params.CookOnTheFly)
 		{
-			List<string> Exes = SC.StageTargetPlatform.GetExecutableNames(SC, true);
-			ClientApp = Exes[0];
+			List<FileReference> Exes = SC.StageTargetPlatform.GetExecutableNames(SC);
+			ClientApp = Exes[0].FullName;
 
             if (!String.IsNullOrEmpty(Params.ClientCommandline))
             {
@@ -806,7 +806,7 @@ public partial class Project : CommandUtils
 			}
 			else if (!Params.Stage)
 			{
-				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir, "Saved", "Cooked", SC.CookPlatform);
+				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir.FullName, "Saved", "Cooked", SC.CookPlatform);
 				if (!SC.StageTargetPlatform.LaunchViaUFE)
 				{
 					TempCmdLine += "-sandbox=" + CommandUtils.MakePathSafeToUseWithCommandLine(SandboxPath) + " ";
@@ -957,8 +957,8 @@ public partial class Project : CommandUtils
 		var ServerApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UE4Editor.exe");
 		if (ServerParams.Cook)
 		{
-			List<string> Exes = SC.StageTargetPlatform.GetExecutableNames(SC);
-			ServerApp = Exes[0];
+			List<FileReference> Exes = SC.StageTargetPlatform.GetExecutableNames(SC);
+			ServerApp = Exes[0].FullName;
 		}
 		var Args = ServerParams.Cook ? "" : (SC.ProjectArgForCommandLines + " ");
 		Console.WriteLine(Params.ServerDeviceAddress);

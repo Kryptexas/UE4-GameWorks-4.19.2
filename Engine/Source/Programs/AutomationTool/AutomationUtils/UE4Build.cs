@@ -468,10 +468,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null, bool? IsPromotedOverride = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
-			bool bIsPromotedBuild = (ParseParamInt("Promoted", 1) != 0);
+			bool bIsPromotedBuild = IsPromotedOverride.HasValue? IsPromotedOverride.Value : (ParseParamInt("Promoted", 1) != 0);
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
 			int ChangelistNumber = 0;
 			if (bDoUpdateVersionFiles)
@@ -484,7 +484,12 @@ namespace AutomationTool
 				CompatibleChangelistNumber = CompatibleChangelistNumberOverride.Value;
 			}
 
-			string Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+			string Branch = OwnerCommand.ParseParamValue("Branch");
+			if (String.IsNullOrEmpty(Branch))
+			{
+				Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+			}
+
 			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bIsPromotedBuild, bDoUpdateVersionFiles);
 		}
 

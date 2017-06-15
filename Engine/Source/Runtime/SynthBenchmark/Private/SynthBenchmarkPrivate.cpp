@@ -10,9 +10,6 @@
 float RayIntersectBenchmark();
 float FractalBenchmark();
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogSynthBenchmark, Log, All);
-
 // to prevent compiler optimizations
 static float GGlobalStateObject = 0.0f;
 

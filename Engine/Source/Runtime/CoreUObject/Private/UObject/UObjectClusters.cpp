@@ -644,6 +644,13 @@ void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFro
 			{
 				ReferenceCollector.CollectReferences(ArrayStruct);
 			}
+
+#if UE_GCCLUSTER_VERBOSE_LOGGING
+			UObject* ClusterRootObject = static_cast<UObject*>(GUObjectArray.IndexToObjectUnsafeForGC(Cluster->RootIndex)->Object);
+			UE_LOG(LogObj, Log, TEXT("Added %s to cluster %s:"), *ThisObject->GetFullName(), *ClusterRootObject->GetFullName());
+
+			DumpClusterToLog(*Cluster, true, false);
+#endif
 		}
 		else
 		{

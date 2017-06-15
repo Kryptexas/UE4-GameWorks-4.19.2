@@ -57,6 +57,51 @@ void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 	}
 }
 
+/**
+ * Predicate to sort stats into reverse order of definition, which historically is how people specified a preferred order.
+ */
+struct FGroupSort
+{
+	FORCEINLINE bool operator()( FStatMessage const& A, FStatMessage const& B ) const
+	{
+		FName GroupA = A.NameAndInfo.GetGroupName();
+		FName GroupB = B.NameAndInfo.GetGroupName();
+		// first sort by group
+		if (GroupA == GroupB)
+		{
+			// cycle stats come first
+			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
+			{
+				return true;
+			}
+			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
+			{
+				return false;
+			}
+			// then memory
+			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
+			{
+				return true;
+			}
+			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
+			{
+				return false;
+			}
+			// otherwise, reverse order of definition
+			return A.NameAndInfo.GetRawName().GetComparisonIndex() > B.NameAndInfo.GetRawName().GetComparisonIndex();
+		}
+		if (GroupA == NAME_None)
+		{
+			return false;
+		}
+		if (GroupB == NAME_None)
+		{
+			return true;
+		}
+		return GroupA.GetComparisonIndex() > GroupB.GetComparisonIndex();
+	}
+};
+
 struct FHUDGroupManager;
 struct FGroupFilter : public IItemFilter
 {
@@ -1676,11 +1721,9 @@ struct FDumpSpam
 	void NewFrame(const FStatPacket* Packet)
 	{
 		NumPackets++;
-		int32 NumMessages = Packet->StatMessages.Num();
-		TotalCount += NumMessages;
-		for( int32 MessageIndex = 0; MessageIndex < NumMessages; ++MessageIndex )
+		TotalCount += Packet->StatMessages.Num();
+		for( const FStatMessage& Message : Packet->StatMessages )
 		{
-			const FStatMessage& Message = Packet->StatMessages[MessageIndex];
 			FName Name = Message.NameAndInfo.GetRawName();
 			int32* Existing = Counts.Find(Name);
 			if (Existing)

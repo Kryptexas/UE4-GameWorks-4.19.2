@@ -599,7 +599,7 @@ namespace UnrealBuildTool
 		/// Disable optimization for files that are in the adaptive non-unity working set.
 		/// </summary>
 		[XmlConfigFile(Category = "BuildConfiguration")]
-		public bool bAdaptiveUnityDisablesOptimizations = false;
+		public bool bAdaptiveUnityDisablesOptimizations = true;
 
 		/// <summary>
 		/// Disables force-included PCHs for files that are in the adaptive non-unity working set.

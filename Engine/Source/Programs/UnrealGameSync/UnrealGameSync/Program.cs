@@ -92,12 +92,28 @@ namespace UnrealGameSync
 				{
 					using(UpdateMonitor UpdateMonitor = new UpdateMonitor(new PerforceConnection(null, null, null), UpdatePath))
 					{
-						MainWindow Window = new MainWindow(UpdateMonitor, SqlConnectionString, DataFolder, ActivateEvent, bRestoreState, UpdateSpawn ?? Assembly.GetExecutingAssembly().Location, ProjectFileName, bUnstable);
-						if(bUnstable)
+						using(BoundedLogWriter Log = new BoundedLogWriter(Path.Combine(DataFolder, "UnrealGameSync.log")))
 						{
-							Window.Text += String.Format(" (UNSTABLE BUILD {0})", Assembly.GetExecutingAssembly().GetName().Version);
+							Log.WriteLine("Application version: {0}", Assembly.GetExecutingAssembly().GetName().Version);
+							Log.WriteLine("Started at {0}", DateTime.Now.ToString());
+
+							UserSettings Settings = new UserSettings(Path.Combine(DataFolder, "UnrealGameSync.ini"));
+							if(!String.IsNullOrEmpty(ProjectFileName))
+							{
+								string FullProjectFileName = Path.GetFullPath(ProjectFileName);
+								if(!Settings.OpenProjectFileNames.Any(x => x.Equals(FullProjectFileName, StringComparison.InvariantCultureIgnoreCase)))
+								{
+									Settings.OpenProjectFileNames = Settings.OpenProjectFileNames.Concat(new string[]{ FullProjectFileName }).ToArray();
+								}
+							}
+
+							MainWindow Window = new MainWindow(UpdateMonitor, SqlConnectionString, DataFolder, ActivateEvent, bRestoreState, UpdateSpawn ?? Assembly.GetExecutingAssembly().Location, ProjectFileName, bUnstable, Log, Settings);
+							if(bUnstable)
+							{
+								Window.Text += String.Format(" (UNSTABLE BUILD {0})", Assembly.GetExecutingAssembly().GetName().Version);
+							}
+							Application.Run(Window);
 						}
-						Application.Run(Window);
 
 						if(UpdateMonitor.IsUpdateAvailable && UpdateSpawn != null)
 						{

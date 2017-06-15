@@ -1381,11 +1381,4 @@ void UTextRenderComponent::ShutdownMIDCache()
 	FTextRenderComponentMIDCache::Shutdown();
 }
 
-/** Returns TextRender subobject **/
-UTextRenderComponent* ATextRenderActor::GetTextRender() const { return TextRender; }
-#if WITH_EDITORONLY_DATA
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* ATextRenderActor::GetSpriteComponent() const { return SpriteComponent; }
-#endif
-
 #undef LOCTEXT_NAMESPACE

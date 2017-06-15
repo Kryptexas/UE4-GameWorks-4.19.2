@@ -1197,7 +1197,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	Ret->ClassGeneratedBy = BP;
 
 	// This is a version of PrecompileFunction that does not require 'terms' and graph cloning:
-	const auto MakeFunction = [Ret, ParentClass, Schema, BP, &MessageLog](FName FunctionNameFName, UField**& InCurrentFieldStorageLocation, UField**& InCurrentParamStorageLocation, bool bIsStaticFunction, uint32 InFunctionFlags, const TArray<UK2Node_FunctionResult*>& ReturnNodes, const TArray<UEdGraphPin*>& InputPins, bool bForceArrayStructRefsConst) -> UFunction*
+	const auto MakeFunction = [Ret, ParentClass, Schema, BP, &MessageLog](FName FunctionNameFName, UField**& InCurrentFieldStorageLocation, UField**& InCurrentParamStorageLocation, bool bIsStaticFunction, EFunctionFlags InFunctionFlags, const TArray<UK2Node_FunctionResult*>& ReturnNodes, const TArray<UEdGraphPin*>& InputPins, bool bForceArrayStructRefsConst) -> UFunction*
 	{
 		if(!ensure(FunctionNameFName != FName())
 			|| FindObjectFast<UFunction>(Ret, FunctionNameFName, true ))
@@ -1369,12 +1369,12 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 				
 				UField** CurrentParamStorageLocation = nullptr;
 				UFunction* NewFunction = MakeFunction(
-					FName(*(Graph->GetName() + FunctionNamePostfix)), 
-					InCurrentFieldStorageLocation, 
-					CurrentParamStorageLocation, 
-					bIsStaticFunction, 
-					EntryNode->GetFunctionFlags() & ~FUNC_Native, 
-					ReturnNodes, 
+					FName(*(Graph->GetName() + FunctionNamePostfix)),
+					InCurrentFieldStorageLocation,
+					CurrentParamStorageLocation,
+					bIsStaticFunction,
+					(EFunctionFlags)(EntryNode->GetFunctionFlags() & ~FUNC_Native),
+					ReturnNodes,
 					EntryNode->Pins,
 					false
 				);
@@ -1452,12 +1452,12 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 			UField** CurrentParamStorageLocation = nullptr;
 
 			UFunction* NewFunction = MakeFunction(
-				EventNodeName, 
-				CurrentFieldStorageLocation, 
-				CurrentParamStorageLocation, 
-				false, 
-				Event->FunctionFlags|FUNC_BlueprintCallable, 
-				TArray<UK2Node_FunctionResult*>(), 
+				EventNodeName,
+				CurrentFieldStorageLocation,
+				CurrentParamStorageLocation,
+				false,
+				(EFunctionFlags)(Event->FunctionFlags|FUNC_BlueprintCallable),
+				TArray<UK2Node_FunctionResult*>(),
 				Event->Pins,
 				true
 			);

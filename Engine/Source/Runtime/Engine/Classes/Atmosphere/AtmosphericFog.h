@@ -17,15 +17,13 @@ class AAtmosphericFog : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** Main fog component */
-	DEPRECATED_FORGAME(4.6, "AtmosphericFogComponent should not be accessed directly, please use GetAtmosphericFogComponent() function instead. AtmosphericFogComponent will soon be private and your code will not compile.")
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Atmosphere, meta = (AllowPrivateAccess = "true"))
 	class UAtmosphericFogComponent* AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Arrow component to indicate default sun rotation */
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 #endif
@@ -37,10 +35,10 @@ public:
 #endif
 
 	/** Returns AtmosphericFogComponent subobject **/
-	ENGINE_API class UAtmosphericFogComponent* GetAtmosphericFogComponent();
+	ENGINE_API class UAtmosphericFogComponent* GetAtmosphericFogComponent() { return AtmosphericFogComponent; }
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	ENGINE_API class UArrowComponent* GetArrowComponent();
+	ENGINE_API class UArrowComponent* GetArrowComponent() { return ArrowComponent; }
 #endif
 };
 

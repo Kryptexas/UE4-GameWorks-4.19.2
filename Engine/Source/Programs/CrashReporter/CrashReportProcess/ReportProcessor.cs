@@ -339,6 +339,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				}
 
 				CrashReporterProcessServicer.Log.CleanOutOldLogs(Config.Default.DeleteWaitingReportsDays);
+
+				Symbolicator.CleanOutOldLogs(Config.Default.DeleteWaitingReportsDays);
 			}
 			catch( Exception Ex )
 			{

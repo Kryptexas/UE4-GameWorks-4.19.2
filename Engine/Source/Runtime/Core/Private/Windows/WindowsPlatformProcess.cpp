@@ -53,7 +53,7 @@ TArray<FString> FWindowsPlatformProcess::DllDirectories;
 
 void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
 {
-	FString NormalizedDirectory = Directory;
+	FString NormalizedDirectory = FPaths::ConvertRelativePathToFull(Directory);
 	FPaths::NormalizeDirectoryName(NormalizedDirectory);
 	FPaths::MakePlatformFilename(NormalizedDirectory);
 	DllDirectories.AddUnique(NormalizedDirectory);
@@ -879,7 +879,7 @@ const TCHAR* FWindowsPlatformProcess::ApplicationSettingsDir()
 
 		// make the base user dir path
 		// @todo rocket this folder should be based on your company name, not just be hard coded to /Epic/
-		WindowsApplicationSettingsDir = FString(ApplictionSettingsPath) + TEXT("/Epic/");
+		WindowsApplicationSettingsDir = FString(ApplictionSettingsPath).Replace(TEXT("\\"), TEXT("/")) + TEXT("/Epic/");
 	}
 	return *WindowsApplicationSettingsDir;
 }

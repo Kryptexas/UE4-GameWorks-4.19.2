@@ -319,7 +319,7 @@ namespace UnrealBuildTool
 		/// Generates a UHTModuleInfo for a particular named module under a directory.
 		/// </summary>
 		/// <returns></returns>
-		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<string> HeaderFilenames, string ModuleName, DirectoryReference ModuleDirectory, UHTModuleType ModuleType, EGeneratedCodeVersion GeneratedCodeVersion)
+		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<FileReference> HeaderFilenames, string ModuleName, DirectoryReference ModuleDirectory, UHTModuleType ModuleType, EGeneratedCodeVersion GeneratedCodeVersion)
 		{
 			DirectoryReference ClassesFolder = DirectoryReference.Combine(ModuleDirectory, "Classes");
 			DirectoryReference PublicFolder = DirectoryReference.Combine(ModuleDirectory, "Public");
@@ -328,19 +328,19 @@ namespace UnrealBuildTool
 			List<FileItem> PublicUObjectHeaders = new List<FileItem>();
 			List<FileItem> PrivateUObjectHeaders = new List<FileItem>();
 
-			foreach (string Header in HeaderFilenames)
+			foreach (FileReference Header in HeaderFilenames)
 			{
 				// Check to see if we know anything about this file.  If we have up-to-date cached information about whether it has
 				// UObjects or not, we can skip doing a test here.
-				FileItem UObjectHeaderFileItem = FileItem.GetExistingItemByPath(Header);
+				FileItem UObjectHeaderFileItem = FileItem.GetExistingItemByFileReference(Header);
 
 				if (CPPHeaders.DoesFileContainUObjects(UObjectHeaderFileItem.AbsolutePath))
 				{
-					if (new FileReference(UObjectHeaderFileItem.AbsolutePath).IsUnderDirectory(ClassesFolder))
+					if (UObjectHeaderFileItem.Reference.IsUnderDirectory(ClassesFolder))
 					{
 						AllClassesHeaders.Add(UObjectHeaderFileItem);
 					}
-					else if (new FileReference(UObjectHeaderFileItem.AbsolutePath).IsUnderDirectory(PublicFolder))
+					else if (UObjectHeaderFileItem.Reference.IsUnderDirectory(PublicFolder))
 					{
 						PublicUObjectHeaders.Add(UObjectHeaderFileItem);
 					}
@@ -547,11 +547,10 @@ namespace UnrealBuildTool
 		{
 			UnrealTargetConfiguration Config = BuildConfiguration.bForceDebugUnrealHeaderTool ? UnrealTargetConfiguration.Debug : UnrealTargetConfiguration.Development;
 
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.FullName, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
-			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
-			Receipt.ExpandPathVariables(UnrealBuildTool.EngineDirectory, UnrealBuildTool.EngineDirectory);
+			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
+			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName, UnrealBuildTool.EngineDirectory, null);
 
-			string HeaderToolPath = Receipt.BuildProducts[0].Path;
+			string HeaderToolPath = Receipt.BuildProducts[0].Path.FullName;
 			return HeaderToolPath;
 		}
 
@@ -566,20 +565,19 @@ namespace UnrealBuildTool
 			using (ScopedTimer TimestampTimer = new ScopedTimer("GetHeaderToolTimestamp"))
 			{
 				// Try to read the receipt for UHT.
-				string ReceiptPath = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.FullName, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
-				if (!File.Exists(ReceiptPath))
+				FileReference ReceiptPath = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
+				if (!FileReference.Exists(ReceiptPath))
 				{
 					Timestamp = DateTime.MaxValue;
 					return false;
 				}
 
 				TargetReceipt Receipt;
-				if (!TargetReceipt.TryRead(ReceiptPath, out Receipt))
+				if (!TargetReceipt.TryRead(ReceiptPath, UnrealBuildTool.EngineDirectory, null, out Receipt))
 				{
 					Timestamp = DateTime.MaxValue;
 					return false;
 				}
-				Receipt.ExpandPathVariables(UnrealBuildTool.EngineDirectory, UnrealBuildTool.EngineDirectory);
 
 				// Check all the binaries exist, and that all the DLLs are built against the right version
 				if (!CheckBinariesExist(Receipt) || !CheckDynamicLibaryVersionsMatch(Receipt))
@@ -607,7 +605,7 @@ namespace UnrealBuildTool
 			{
 				if (BuildProduct.Type == BuildProductType.Executable || BuildProduct.Type == BuildProductType.DynamicLibrary)
 				{
-					if (!File.Exists(BuildProduct.Path))
+					if (!FileReference.Exists(BuildProduct.Path))
 					{
 						Log.TraceWarning("Missing binary: {0}", BuildProduct.Path);
 						bExist = false;
@@ -625,13 +623,13 @@ namespace UnrealBuildTool
 		/// </returns>
 		static bool CheckDynamicLibaryVersionsMatch(TargetReceipt Receipt)
 		{
-			List<Tuple<string, int>> BinaryVersions = new List<Tuple<string, int>>();
+			List<Tuple<FileReference, int>> BinaryVersions = new List<Tuple<FileReference, int>>();
 			foreach (BuildProduct BuildProduct in Receipt.BuildProducts)
 			{
 				if (BuildProduct.Type == BuildProductType.DynamicLibrary)
 				{
-					int Version = BuildHostPlatform.Current.GetDllApiVersion(BuildProduct.Path);
-					BinaryVersions.Add(new Tuple<string, int>(BuildProduct.Path, Version));
+					int Version = BuildHostPlatform.Current.GetDllApiVersion(BuildProduct.Path.FullName);
+					BinaryVersions.Add(new Tuple<FileReference, int>(BuildProduct.Path, Version));
 				}
 			}
 
@@ -639,10 +637,10 @@ namespace UnrealBuildTool
 			if (BinaryVersions.Count > 0 && !BinaryVersions.All(x => x.Item2 == BinaryVersions[0].Item2))
 			{
 				Log.TraceWarning("Detected mismatch in binary versions:");
-				foreach (Tuple<string, int> BinaryVersion in BinaryVersions)
+				foreach (Tuple<FileReference, int> BinaryVersion in BinaryVersions)
 				{
 					Log.TraceWarning("  {0} has API version {1}", BinaryVersion.Item1, BinaryVersion.Item2);
-					File.Delete(BinaryVersion.Item1);
+					FileReference.Delete(BinaryVersion.Item1);
 				}
 				bMatch = false;
 			}
@@ -662,7 +660,7 @@ namespace UnrealBuildTool
 			{
 				if (BuildProduct.Type == BuildProductType.Executable || BuildProduct.Type == BuildProductType.DynamicLibrary)
 				{
-					DateTime WriteTime = File.GetLastWriteTime(BuildProduct.Path);
+					DateTime WriteTime = FileReference.GetLastWriteTime(BuildProduct.Path);
 					if (WriteTime > LatestWriteTime)
 					{
 						LatestWriteTime = WriteTime;

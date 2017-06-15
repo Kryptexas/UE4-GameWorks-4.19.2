@@ -131,11 +131,11 @@ namespace UnrealBuildTool
 			if (Target.bCreateStubIPA && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
 				FileReference StubFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".stub");
-				BuildProducts.Add(StubFile, BuildProductType.Executable);
+				BuildProducts.Add(StubFile, BuildProductType.Package);
                 if (CppPlatform == CppPlatform.TVOS)
                 {
                     FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Assets.car");
-                    BuildProducts.Add(AssetFile, BuildProductType.Executable);
+                    BuildProducts.Add(AssetFile, BuildProductType.RequiredResource);
                 }
 			}
             if ((ProjectSettings.bGeneratedSYMFile == true || ProjectSettings.bGeneratedSYMBundle == true) && ProjectSettings.bGenerateCrashReportSymbols && Binary.Config.Type == UEBuildBinaryType.Executable)

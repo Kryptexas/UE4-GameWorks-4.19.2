@@ -255,7 +255,10 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		Ar << Sum.PackageSource;
 
-		Ar << Sum.AdditionalPackagesToCook;
+		// No longer used: List of additional packages that are needed to be cooked for this package (ie streaming levels)
+		// Keeping the serialization code for backwards compatibility without bumping the package version
+		TArray<FString>	AdditionalPackagesToCook;
+		Ar << AdditionalPackagesToCook;
 
 		if (LegacyFileVersion > -7)
 		{

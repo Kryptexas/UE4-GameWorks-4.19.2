@@ -2381,7 +2381,7 @@ bool UCookOnTheFlyServer::SaveCookedPackages(TArray<UPackage*>& PackagesToSave, 
 			if (StandardFilename != NAME_None)
 			{
 				// mark the package as cooked
-				FFilePlatformCookedPackage FileRequest(StandardFilename, AllTargetPlatformNames, SucceededSavePackage);
+				FFilePlatformCookedPackage FileRequest(StandardFilename, SaveTargetPlatformNames, SucceededSavePackage);
 				bool bWasReferencedOnlyByEditorOnlyData = false;
 				for (const FSavePackageResultStruct& SavePackageResult : SavePackageResults)
 				{
@@ -5902,9 +5902,8 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_TIMER(GenerateAssetRegistryTime);
-#if DEBUG_COOKONTHEFLY
-		UE_LOG(LogCook, Display, TEXT("Creating asset registry [is editor: %d]"), GIsEditor);
-#endif
+		UE_LOG(LogCook, Display, TEXT("Creating asset registry"));
+
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
 		// We want the registry to be fully initialized when generating streaming manifests too.

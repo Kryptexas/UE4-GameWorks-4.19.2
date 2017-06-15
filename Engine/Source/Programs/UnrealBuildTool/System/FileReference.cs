@@ -465,6 +465,27 @@ namespace UnrealBuildTool
 			File.WriteAllLines(Location.FullName, Contents, Encoding);
 		}
 
+		/// <summary>
+		/// Writes the contents of a file
+		/// </summary>
+		/// <param name="Location">Location of the file</param>
+		/// <param name="Contents">Contents of the file</param>
+		public static void WriteAllText(FileReference Location, string Contents)
+		{
+			File.WriteAllText(Location.FullName, Contents);
+		}
+
+		/// <summary>
+		/// Writes the contents of a file
+		/// </summary>
+		/// <param name="Location">Location of the file</param>
+		/// <param name="Contents">Contents of the file</param>
+		/// <param name="Encoding">The encoding to use when parsing the file</param>
+		public static void WriteAllText(FileReference Location, string Contents, Encoding Encoding)
+		{
+			File.WriteAllText(Location.FullName, Contents, Encoding);
+		}
+
 		#endregion
 	}
 

@@ -4,11 +4,11 @@
 #include "Misc/Paths.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/StaticMesh.h"
+#include "Factories.h"
 
 
 
 #define LOCTEXT_NAMESPACE "EditorFactories"
-DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
 
 

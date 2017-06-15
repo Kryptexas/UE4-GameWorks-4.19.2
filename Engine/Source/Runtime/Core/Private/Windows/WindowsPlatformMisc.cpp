@@ -1501,15 +1501,23 @@ int MessageBoxExtInternal( EAppMsgType::Type MsgType, HWND HandleWnd, const TCHA
 	GMessageBoxText = (TCHAR *) Text;
 	GMessageBoxCaption = (TCHAR *) Caption;
 
-	if( MsgType == EAppMsgType::YesNoYesAllNoAll )
+	switch (MsgType)
 	{
-		GCancelButtonEnabled = false;
-		return DialogBox( GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_YESNO2ALL), HandleWnd, MessageBoxDlgProc );
-	}
-	else if( MsgType == EAppMsgType::YesNoYesAllNoAllCancel )
-	{
-		GCancelButtonEnabled = true;
-		return DialogBox( GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_YESNO2ALLCANCEL), HandleWnd, MessageBoxDlgProc );
+		case EAppMsgType::YesNoYesAllNoAll:
+		{
+			GCancelButtonEnabled = false;
+			return DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_YESNO2ALL), HandleWnd, MessageBoxDlgProc);
+		}
+		case EAppMsgType::YesNoYesAllNoAllCancel:
+		{
+			GCancelButtonEnabled = true;
+			return DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_YESNO2ALLCANCEL), HandleWnd, MessageBoxDlgProc);
+		}
+		case EAppMsgType::YesNoYesAll:
+		{
+			GCancelButtonEnabled = false;
+			return DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_YESNOYESTOALL), HandleWnd, MessageBoxDlgProc);
+		}
 	}
 
 	return -1;
@@ -1525,6 +1533,11 @@ EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgT
 	HWND ParentWindow = (HWND)NULL;
 	switch( MsgType )
 	{
+	case EAppMsgType::Ok:
+		{
+			MessageBox(ParentWindow, Text, Caption, MB_OK|MB_SYSTEMMODAL);
+			return EAppReturnType::Ok;
+		}
 	case EAppMsgType::YesNo:
 		{
 			int32 Return = MessageBox( ParentWindow, Text, Caption, MB_YESNO|MB_SYSTEMMODAL );
@@ -1556,8 +1569,14 @@ EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgT
 		//These return codes just happen to match up with ours.
 		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll, 4 for Cancel
 		break;
+
+	case EAppMsgType::YesNoYesAll:
+		return (EAppReturnType::Type)MessageBoxExtInternal(EAppMsgType::YesNoYesAll, ParentWindow, Text, Caption);
+		//These return codes just happen to match up with ours.
+		// return 0 for No, 1 for Yes, 2 for YesToAll
+		break;
+
 	default:
-		MessageBox( ParentWindow, Text, Caption, MB_OK|MB_SYSTEMMODAL );
 		break;
 	}
 	return EAppReturnType::Cancel;

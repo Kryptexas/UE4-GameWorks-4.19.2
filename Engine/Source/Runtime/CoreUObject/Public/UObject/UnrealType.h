@@ -4901,22 +4901,7 @@ inline bool UObject::IsBasedOnArchetype(  const UObject* const SomeObject ) cons
 #define CPP_PROPERTY(name)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(ThisClass, name)
 #define CPP_PROPERTY_BASE(name, base)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(base, name)
 
-/** 
-	The mac does not interpret a pointer to a bool* that is say 0x40 as true!, so we need to use uint8 for that. 
-	this littler helper provides the correct type to use for bitfield determination
-**/
-template<typename T>
-struct FTestType
-{
-	typedef T TestType;
-};
-template<>
-struct FTestType<bool>
-{
-	static_assert(sizeof(bool) == sizeof(uint8), "Bool is not one byte.");
-	typedef uint8 TestType;
-};
-
+static_assert(sizeof(bool) == sizeof(uint8), "Bool is not one byte.");
 
 struct COREUOBJECT_API DetermineBitfieldOffsetAndMask
 {
@@ -4962,26 +4947,21 @@ struct COREUOBJECT_API DetermineBitfieldOffsetAndMask
 	 * 
 	 * @param SizeOf Size of the class with the bitfield.
 	 */
-	template<typename BitfieldType>
 	void DoDetermineBitfieldOffsetAndMask(const SIZE_T SizeOf)
 	{
-		typedef typename FTestType<BitfieldType>::TestType TTestType;
-		static_assert(sizeof(TTestType) == sizeof(BitfieldType), "Wrong size for test type.");
-
-		void* Buffer = AllocateBuffer(SizeOf);
-		TTestType* Test = (TTestType*)Buffer;
+		uint8* Buffer = (uint8*)AllocateBuffer(SizeOf);
 		Offset = 0;
 		BitMask = 0;
 		SetBit(Buffer, true);
 		// Here we are making the assumption that bitfields are aligned in the struct. Probably true. 
 		// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
 		// Have faith.
-		for (uint32 TestOffset = 0; TestOffset < SizeOf / sizeof(BitfieldType); TestOffset++)
+		for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
 		{
-			if (Test[TestOffset])
+			if (Buffer[TestOffset])
 			{
-				Offset = TestOffset * sizeof(BitfieldType);
-				BitMask = (uint32)Test[TestOffset];
+				Offset = TestOffset;
+				BitMask = (uint32)Buffer[TestOffset];
 				check(FMath::RoundUpToPowerOfTwo(uint32(BitMask)) == uint32(BitMask)); // better be only one bit on
 				break;
 			}
@@ -4994,16 +4974,16 @@ protected:
 };
 
 /** build a struct that has a method that will return the bitmask for a bitfield **/
-#define CPP_BOOL_PROPERTY_BITMASK_STRUCT(BitFieldName, ClassName, BitfieldType) \
+#define CPP_BOOL_PROPERTY_BITMASK_STRUCT(BitFieldName, ClassName) \
 	struct FDetermineBitMask_##ClassName##_##BitFieldName : public DetermineBitfieldOffsetAndMask\
 	{ \
 		FDetermineBitMask_##ClassName##_##BitFieldName() \
 		{ \
-			DoDetermineBitfieldOffsetAndMask<BitfieldType>(sizeof(ClassName)); \
+			DoDetermineBitfieldOffsetAndMask(sizeof(ClassName)); \
 		} \
 		virtual void SetBit(void* Scratch, bool Value) \
 		{ \
-			((ClassName*)Scratch)->BitFieldName = (BitfieldType)Value; \
+			((ClassName*)Scratch)->BitFieldName = Value ? 1 : 0; \
 		} \
 	} DetermineBitMask_##ClassName##_##BitFieldName
 

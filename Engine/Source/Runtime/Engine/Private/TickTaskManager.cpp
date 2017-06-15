@@ -1832,6 +1832,10 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 						// stale prereq, delete it
 						Prerequisites.RemoveAtSwap(PrereqIndex--);
 					}
+					else if (StackForCycleDetection.Contains(Prereq))
+					{
+						UE_LOG(LogTick, Warning, TEXT("While processing prerequisites for %s, could use %s because it would form a cycle."), *DiagnosticMessage(), *Prereq->DiagnosticMessage());
+					}
 					else if (Prereq->bRegistered)
 					{
 						// recursive call to make sure my prerequisite is set up so I can use its completion handle

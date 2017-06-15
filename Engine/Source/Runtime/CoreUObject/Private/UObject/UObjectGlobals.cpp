@@ -883,8 +883,11 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 
 		if (!Result)
 		{
-			// now that we have one asset per package, we load the entire package whenever a single object is requested
-			LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
+			if (!InOuter->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+			{
+				// now that we have one asset per package, we load the entire package whenever a single object is requested
+				LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
+			}
 
 			// now, find the object in the package
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);

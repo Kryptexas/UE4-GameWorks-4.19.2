@@ -112,6 +112,12 @@
     <Compile Include="ArchiveManifest.cs" />
     <Compile Include="BuildStep.cs" />
     <Compile Include="ChildProcess.cs" />
+    <Compile Include="Controls\WorkspaceControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\WorkspaceControl.Designer.cs">
+      <DependentUpon>WorkspaceControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\StatusPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -122,6 +128,9 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Controls\LogSplitContainer.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\TabControl.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DeleteFilesTask.cs" />
@@ -242,6 +251,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility.cs" />
+    <EmbeddedResource Include="Controls\WorkspaceControl.resx">
+      <DependentUpon>WorkspaceControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\ArgumentsWindow.resx">
       <DependentUpon>ArgumentsWindow.cs</DependentUpon>
     </EmbeddedResource>

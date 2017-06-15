@@ -305,12 +305,6 @@ void UCameraAnimInst::SetPlaySpace(ECameraAnimPlaySpace::Type NewSpace, FRotator
 }
 
 
-/** Returns InterpGroupInst subobject **/
-UInterpGroupInst* UCameraAnimInst::GetInterpGroupInst() const
-{ 
-	return InterpGroupInst;
-}
-
 void UCameraAnimInst::ApplyToView(FMinimalViewInfo& InOutPOV) const
 {
 	if (CurrentBlendWeight > 0.f)

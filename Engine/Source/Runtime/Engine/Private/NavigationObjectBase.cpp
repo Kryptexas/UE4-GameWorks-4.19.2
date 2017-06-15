@@ -236,9 +236,3 @@ void ANavigationObjectBase::GetMoveGoalReachTest(const AActor* MovingActor, cons
 	GetSimpleCollisionCylinder(GoalRadius, GoalHalfHeight);	
 }
 
-/** Returns CapsuleComponent subobject **/
-UCapsuleComponent* ANavigationObjectBase::GetCapsuleComponent() const { return CapsuleComponent; }
-/** Returns GoodSprite subobject **/
-UBillboardComponent* ANavigationObjectBase::GetGoodSprite() const { return GoodSprite; }
-/** Returns BadSprite subobject **/
-UBillboardComponent* ANavigationObjectBase::GetBadSprite() const { return BadSprite; }

@@ -1367,6 +1367,11 @@ bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 
 bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath, bool bUseMountPoint = false)
 {
+	if ( !IFileManager::Get().FileExists(InPakFilename) )
+	{
+		return false;
+	}
+
 	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
 	if (PakFile.IsValid())
 	{
@@ -1628,6 +1633,11 @@ bool GenerateHashForFile( FString Filename, FFileInfo& FileHash)
 
 bool GenerateHashesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>& FileHashes, bool bUseMountPoint = false)
 {
+	if ( !IFileManager::Get().FileExists(InPakFilename) )
+	{
+		// it's ok if we can't get the hashes from the pak file 
+		return false;
+	}
 	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
 	if (PakFile.IsValid())
 	{
@@ -2221,9 +2231,12 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 					{
 						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath ) == false )
 						{
-							UE_LOG(LogPakFile, Error, TEXT("Unable to extract files from source pak file for patch") );
+							UE_LOG(LogPakFile, Warning, TEXT("Unable to extract files from source pak file for patch") );
 						}
-						CmdLineParameters.SourcePatchDiffDirectory = OutputPath;
+						else
+						{
+							CmdLineParameters.SourcePatchDiffDirectory = OutputPath;
+						}
 					}
 				}
 

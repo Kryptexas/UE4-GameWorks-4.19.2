@@ -116,28 +116,25 @@ namespace BuildGraph.Tasks
 			DirectoryReference TargetProjectDir = DirectoryReference.Combine(TargetDir, ProjectFile.GetFileNameWithoutExtension());
 
 			// Get the path to the receipt
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(SourceProjectDir.FullName, Parameters.Target, Parameters.Platform, Parameters.Configuration, Parameters.Architecture);
+			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(SourceProjectDir, Parameters.Target, Parameters.Platform, Parameters.Configuration, Parameters.Architecture);
 
 			// Try to load it
 			TargetReceipt Receipt;
-			if(!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+			if(!TargetReceipt.TryRead(ReceiptFileName, SourceEngineDir, SourceProjectDir, out Receipt))
 			{
 				CommandUtils.LogError("Couldn't read receipt '{0}'", ReceiptFileName);
 				return false;
 			}
 
-			// Expand all the paths from the receipt
-			Receipt.ExpandPathVariables(SourceEngineDir, SourceProjectDir);
-			
 			// Stage all the build products needed at runtime
 			HashSet<FileReference> SourceFiles = new HashSet<FileReference>();
 			foreach(BuildProduct BuildProduct in Receipt.BuildProducts.Where(x => x.Type != BuildProductType.StaticLibrary && x.Type != BuildProductType.ImportLibrary))
 			{
-				SourceFiles.Add(new FileReference(BuildProduct.Path));
+				SourceFiles.Add(BuildProduct.Path);
 			}
 			foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies.Where(x => x.Type != StagedFileType.UFS))
 			{
-				SourceFiles.UnionWith(CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, new string[]{ ".../*.umap", ".../*.uasset" }));
+				SourceFiles.Add(RuntimeDependency.Path);
 			}
 
 			// Get all the target files

@@ -547,7 +547,7 @@ private:
 	void UpdateStatMessagesMemoryUsage();
 
 	/** Generates a list of most memory expensive stats and dump to the log. */
-	void FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame );
+	void FindAndDumpMemoryExtensiveStats( const FStatPacketArray& Frame );
 
 protected:
 	/** Called in response to SetLongName messages to update ShortNameToLongName and NotClearedEveryFrame **/
@@ -820,52 +820,6 @@ struct FComplexStatUtils
 };
 
 //@todo split header
-
-/**
-* Predicate to sort stats into reverse order of definition, which historically is how people specified a preferred order.
-*/
-struct FGroupSort
-{
-	FORCEINLINE bool operator()( FStatMessage const& A, FStatMessage const& B ) const 
-	{ 
-		FName GroupA = A.NameAndInfo.GetGroupName();
-		FName GroupB = B.NameAndInfo.GetGroupName();
-		// first sort by group
-		if (GroupA == GroupB)
-		{
-			// cycle stats come first
-			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
-			{
-				return true;
-			}
-			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
-			{
-				return false;
-			}
-			// then memory
-			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
-			{
-				return true;
-			}
-			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
-			{
-				return false;
-			}
-			// otherwise, reverse order of definition
-			return A.NameAndInfo.GetRawName().GetComparisonIndex() > B.NameAndInfo.GetRawName().GetComparisonIndex();
-		}
-		if (GroupA == NAME_None)
-		{
-			return false;
-		}
-		if (GroupB == NAME_None)
-		{
-			return true;
-		}
-		return GroupA.GetComparisonIndex() > GroupB.GetComparisonIndex();
-	}
-};
-
 
 /** Holds stats data used by various systems like the HUD stats*/
 struct FActiveStatGroupInfo

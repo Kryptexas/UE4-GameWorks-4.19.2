@@ -117,6 +117,58 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Information about a file which is required by the target at runtime, and must be moved around with it.
+		/// </summary>
+		[Serializable]
+		public class RuntimeDependency
+		{
+			/// <summary>
+			/// The file that should be staged. Should use $(EngineDir) and $(ProjectDir) variables as a root, so that the target can be relocated to different machines.
+			/// </summary>
+			public string Path;
+
+			/// <summary>
+			/// How to stage this file.
+			/// </summary>
+			public StagedFileType Type;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="InPath">Path to the runtime dependency</param>
+			/// <param name="InType">How to stage the given path</param>
+			public RuntimeDependency(string InPath, StagedFileType InType = StagedFileType.NonUFS)
+			{
+				Path = InPath;
+				Type = InType;
+			}
+		}
+
+		/// <summary>
+		/// List of runtime dependencies, with convenience methods for adding new items
+		/// </summary>
+		[Serializable]
+		public class RuntimeDependencyList : List<RuntimeDependency>
+		{
+			/// <summary>
+			/// Default constructor
+			/// </summary>
+			public RuntimeDependencyList()
+			{
+			}
+
+			/// <summary>
+			/// Add a runtime dependency to the list
+			/// </summary>
+			/// <param name="InPath">Path to the runtime dependency. May include wildcards.</param>
+			/// <param name="InType">How to stage this file</param>
+			public void Add(string InPath, StagedFileType InType)
+			{
+				Add(new RuntimeDependency(InPath, InType));
+			}
+		}
+
+		/// <summary>
 		/// Rules for the target that this module belongs to
 		/// </summary>
 		public readonly ReadOnlyTargetRules Target;

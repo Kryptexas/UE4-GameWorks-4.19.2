@@ -14,9 +14,8 @@ class ENGINE_API ASkyLight : public AInfo
 
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 
-private_subobject:
+private:
 	/** @todo document */
-	DEPRECATED_FORGAME(4.6, "LightComponent should not be accessed directly, please use GetLightComponent() function instead. LightComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|SkyLight", AllowPrivateAccess = "true"))
 	class USkyLightComponent* LightComponent;
 public:
@@ -30,7 +29,7 @@ public:
 	virtual void OnRep_bEnabled();
 
 	/** Returns LightComponent subobject **/
-	class USkyLightComponent* GetLightComponent() const;
+	class USkyLightComponent* GetLightComponent() const { return LightComponent; }
 };
 
 

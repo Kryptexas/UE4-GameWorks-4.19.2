@@ -1373,7 +1373,7 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 			UFunction* ParentFunction = Function->GetSuperFunction();
 			if(ParentFunction != nullptr)
 			{
-				const uint32 ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
+				const EFunctionFlags ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
 				if(ParentNetFlags != (Function->FunctionFlags & FUNC_NetFuncFlags))
 				{
 					Function->FunctionFlags &= ~FUNC_NetFuncFlags;

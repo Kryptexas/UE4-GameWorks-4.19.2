@@ -349,9 +349,3 @@ bool ALight::IsToggleable() const
 	return !LightComponent->HasStaticLighting();
 }
 
-/** Returns LightComponent subobject **/
-ULightComponent* ALight::GetLightComponent() const { return LightComponent; }
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* ADirectionalLight::GetArrowComponent() const { return ArrowComponent; }
-#endif

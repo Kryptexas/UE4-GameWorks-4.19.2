@@ -308,6 +308,8 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 	static EAppReturnType::Type ResultsYesNoYesAllNoAllCancel[] = {
 		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
 		EAppReturnType::NoAll, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsYesNoYesAll[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll };
 
 	// TODO: Should we localize button text?
 
@@ -353,6 +355,12 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 		MessageBox.AddButton(TEXT("No To All"));
 		MessageBox.AddButton(TEXT("Cancel"));
 		ResultValues = ResultsYesNoYesAllNoAllCancel;
+		break;
+	case EAppMsgType::YesNoYesAll:
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		ResultValues = ResultsYesNoYesAll;
 		break;
 	default:
 		check(0);

@@ -901,7 +901,7 @@ class FPakPrecacher
 			{
 				CacheBlocks[IndexInner] = IntervalTreeInvalidIndex;
 			}
-			uint64 StartingLastByte = FMath::Max((uint64)TotalSize, (uint64)PAK_CACHE_GRANULARITY+1);
+			uint64 StartingLastByte = FMath::Max((uint64)TotalSize, uint64(PAK_CACHE_GRANULARITY + 1));
 			StartingLastByte--;
 
 			{

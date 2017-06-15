@@ -166,11 +166,10 @@ public:
 	 * PostSaveRoot. This is used to allow objects used as base to perform required actions before saving and cleanup
 	 * afterwards.
 	 * @param Filename: Name of the file being saved to (includes path)
-	 * @param AdditionalPackagesToCook [out] Array of other packages the Root wants to make sure are cooked when this is cooked
 	 *
 	 * @return	Whether PostSaveRoot needs to perform internal cleanup
 	 */
-	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook)
+	virtual bool PreSaveRoot(const TCHAR* Filename)
 	{
 		return false;
 	}

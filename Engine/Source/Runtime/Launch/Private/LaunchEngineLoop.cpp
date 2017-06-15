@@ -1331,6 +1331,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		// Tell the module manager what the game binaries folder is
 		const FString GameBinariesDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Binaries" ), FPlatformProcess::GetBinariesSubdirectory() );
+		FPlatformProcess::AddDllDirectory(*GameBinariesDirectory);
 		FModuleManager::Get().SetGameBinariesDirectory(*GameBinariesDirectory);
 
 		LaunchFixGameNameCase();
@@ -2123,7 +2124,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Display, TEXT("-----------------------------------"));
 
 					const int32 MaxMessagesToShow = (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("DUMPALLWARNINGS"))) ? 
-						FMath::Max(AllErrors.Num(), AllWarnings.Num()) : 50;
+						(AllErrors.Num() + AllWarnings.Num()) : 50;
 					
 					TSet<FString> ShownMessages;					
 					ShownMessages.Empty(MaxMessagesToShow);

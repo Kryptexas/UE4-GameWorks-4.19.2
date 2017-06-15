@@ -13,6 +13,57 @@ public struct StageTarget
 	public bool RequireFilesExist;
 }
 
+public class FilesToStage
+{
+	/// <summary>
+	/// After staging, this is a map from staged file to source file. These file are binaries, etc and can't go into a pak file.
+	/// </summary>
+	public Dictionary<StagedFileReference, FileReference> NonUFSStagingFiles = new Dictionary<StagedFileReference, FileReference>();
+
+	/// <summary>
+	/// After staging, this is a map from staged file to source file. These file are for debugging, and should not go into a pak file.
+	/// </summary>
+	public Dictionary<StagedFileReference, FileReference> NonUFSStagingFilesDebug = new Dictionary<StagedFileReference, FileReference>();
+
+	/// <summary>
+	/// After staging, this is a map from staged file to source file. These file are content, and can go into a pak file.
+	/// </summary>
+	public Dictionary<StagedFileReference, FileReference> UFSStagingFiles = new Dictionary<StagedFileReference, FileReference>();
+
+	/// <summary>
+	/// Adds a file to be staged as the given type
+	/// </summary>
+	/// <param name="FileType">The type of file to be staged</param>
+	/// <param name="StagedFile">The staged file location</param>
+	/// <param name="InputFile">The input file</param>
+	public void Add(StagedFileType FileType, StagedFileReference StagedFile, FileReference InputFile)
+	{
+		if (FileType == StagedFileType.UFS)
+		{
+			AddToDictionary(UFSStagingFiles, StagedFile, InputFile);
+		}
+		else if (FileType == StagedFileType.NonUFS)
+		{
+			AddToDictionary(NonUFSStagingFiles, StagedFile, InputFile);
+		}
+		else if (FileType == StagedFileType.DebugNonUFS)
+		{
+			AddToDictionary(NonUFSStagingFilesDebug, StagedFile, InputFile);
+		}
+	}
+
+	/// <summary>
+	/// Adds a file to be staged to the given dictionary
+	/// </summary>
+	/// <param name="FilesToStage">Dictionary of files to be staged</param>
+	/// <param name="StagedFile">The staged file location</param>
+	/// <param name="InputFile">The input file</param>
+	private void AddToDictionary(Dictionary<StagedFileReference, FileReference> FilesToStage, StagedFileReference StagedFile, FileReference InputFile)
+	{
+		FilesToStage[StagedFile] = InputFile;
+	}
+}
+
 public class DeploymentContext //: ProjectParams
 {
 	/// <summary>
@@ -56,14 +107,19 @@ public class DeploymentContext //: ProjectParams
 	public List<StageTarget> StageTargets;
 
 	/// <summary>
-	///  this is the root directory that contains the engine: d:\a\UE4\
+	/// This is the root directory that contains the engine: d:\a\UE4\
 	/// </summary>
-	public string LocalRoot;
+	public DirectoryReference LocalRoot;
 
 	/// <summary>
-	///  this is the directory that contains the "game": d:\a\UE4\ShooterGame
+	/// This is the directory that contains the engine.
 	/// </summary>
-	public string ProjectRoot;
+	public DirectoryReference EngineRoot;
+
+	/// <summary>
+	/// The directory that contains the project: d:\a\UE4\ShooterGame
+	/// </summary>
+	public DirectoryReference ProjectRoot;
 
 	/// <summary>
 	///  raw name used for platform subdirectories Win32
@@ -71,124 +127,86 @@ public class DeploymentContext //: ProjectParams
 	public string PlatformDir;
 
 	/// <summary>
-	///  this is the directory that contains the "game", staged: d:\stagedir\WindowsNoEditor\ShooterGame
+	/// Directory to put all of the files in: d:\stagedir\WindowsNoEditor
 	/// </summary>
-	public string StageProjectRoot;
+	public DirectoryReference StageDirectory;
 
 	/// <summary>
-	///  Directory to put all of the files in: d:\stagedir\WindowsNoEditor
+	/// Directory name for staged projects
 	/// </summary>
-	public string StageDirectory;
+	public StagedDirectoryReference RelativeProjectRootForStage;
 
 	/// <summary>
-	///  The relative staged project root, what would be tacked on to StageDirectory
-	/// </summary>
-    public string RelativeProjectRootForStage;
-
-    /// <summary>
-    ///  The relative source project root, this will be the short project name for foreign projects, otherwise it is ProjectRoot minus the LocalRoot prefix
-    /// </summary>
-    public string SourceRelativeProjectRoot;
-
-    /// <summary>
-	///  The relative staged project root, used inside the pak file list (different slash convention than above)
-	/// </summary>
-	public string RelativeProjectRootForUnrealPak;
-
-	/// <summary>
-	///  This is what you use to test the engine which uproject you want. Many cases.
+	/// This is what you use to test the engine which uproject you want. Many cases.
 	/// </summary>
 	public string ProjectArgForCommandLines;
 
-    /// <summary>
-    ///  This is the root that the cook source platform would run from
-    /// </summary>
-    public string CookSourceRuntimeRootDir;
-
 	/// <summary>
-	///  This is the root that we are going to run from. Many cases.
+	/// The directory containing the cooked data to be staged. This may be different to the target platform, eg. when creating cooked data for dedicated servers.
 	/// </summary>
-	public string RuntimeRootDir;
+	public DirectoryReference CookSourceRuntimeRootDir;
 
 	/// <summary>
-	///  This is the project root that we are going to run from. Many cases.
+	/// This is the root that we are going to run from. This will be the stage directory if we're staging, or the input directory if not.
 	/// </summary>
-	public string RuntimeProjectRootDir;
+	public DirectoryReference RuntimeRootDir;
 
 	/// <summary>
-	///  This is the executable we are going to run and stage. Filled in by the platform abstraction.
+	/// This is the project root that we are going to run from. Many cases.
 	/// </summary>
-	public string RuntimeExecutable = "";
+	public DirectoryReference RuntimeProjectRootDir;
 
 	/// <summary>
-	///  List of executables we are going to stage
+	/// List of executables we are going to stage
 	/// </summary>
 	public List<string> StageExecutables;
 
 	/// <summary>
-	///  Probably going away, used to construct ProjectArgForCommandLines in the case that we are running staged
+	/// Probably going away, used to construct ProjectArgForCommandLines in the case that we are running staged
 	/// </summary>
-	public string UProjectCommandLineArgInternalRoot = "../../../";
+	public const string UProjectCommandLineArgInternalRoot = "../../../";
 
 	/// <summary>
-	///  Probably going away, used to construct the pak file list
+	/// Probably going away, used to construct the pak file list
 	/// </summary>
 	public string PakFileInternalRoot = "../../../";
 
 	/// <summary>
-	///  Probably going away, and currently unused, this would be used to build the list of files for the UFS server
+	/// List of files to be staged
 	/// </summary>
-	public string UnrealFileServerInternalRoot = "../../../";
+	public FilesToStage FilesToStage = new FilesToStage();
 
 	/// <summary>
-	///  After staging, this is a map from source file to relative file in the stage
-	/// These file are binaries, etc and can't go into a pak file
-	/// </summary>
-	public Dictionary<string, List<string>> NonUFSStagingFiles = new Dictionary<string, List<string>>();
-	/// <summary>
-	///  After staging, this is a map from source file to relative file in the stage
-	/// These file are debug, and can't go into a pak file
-	/// </summary>
-	public Dictionary<string, List<string>> NonUFSStagingFilesDebug = new Dictionary<string, List<string>>();
-	/// <summary>
-	///  After staging, this is a map from source file to relative file in the stage
-	/// These file are content, and can go into a pak file
-	/// </summary>
-	public Dictionary<string, string> UFSStagingFiles = new Dictionary<string, string>();
-	/// <summary>
-	///  List of files to be archived
+	/// List of files to be archived
 	/// </summary>
 	public Dictionary<string, string> ArchivedFiles = new Dictionary<string, string>();
+
 	/// <summary>
 	///  Directory to archive all of the files in: d:\archivedir\WindowsNoEditor
 	/// </summary>
-	public string ArchiveDirectory;
+	public DirectoryReference ArchiveDirectory;
+
 	/// <summary>
 	///  Directory to project binaries
 	/// </summary>
-	public string ProjectBinariesFolder;
+	public DirectoryReference ProjectBinariesFolder;
 
 	/// <summary>
 	/// Filename for the manifest of file changes for iterative deployment.
 	/// </summary>
-	static public readonly string UFSDeployDeltaFileName			= "Manifest_DeltaUFSFiles.txt";	
-	static public readonly string NonUFSDeployDeltaFileName			= "Manifest_DeltaNonUFSFiles.txt";
+	public const string UFSDeployDeltaFileName = "Manifest_DeltaUFSFiles.txt";	
+	public const string NonUFSDeployDeltaFileName = "Manifest_DeltaNonUFSFiles.txt";
 
 	/// <summary>
 	/// Filename for the manifest of files to delete during deployment.
 	/// </summary>
-	static public readonly string UFSDeployObsoleteFileName = "Manifest_ObsoleteUFSFiles.txt";
-	static public readonly string NonUFSDeployObsoleteFileName = "Manifest_ObsoleteNonUFSFiles.txt";
+	public const string UFSDeployObsoleteFileName = "Manifest_ObsoleteUFSFiles.txt";
+	public const string NonUFSDeployObsoleteFileName = "Manifest_ObsoleteNonUFSFiles.txt";
 
 	/// <summary>
 	/// The client connects to dedicated server to get data
 	/// </summary>
 	public bool DedicatedServer;
-
-	/// <summary>
-	/// The dedicated server and client use
-	/// </summary>
-	public bool bUseWebsocketNetDriver;
 
 	/// <summary>
 	/// True if this build is staged
@@ -222,9 +240,9 @@ public class DeploymentContext //: ProjectParams
 
     public DeploymentContext(
 		FileReference RawProjectPathOrName,
-		string InLocalRoot,
-		string BaseStageDirectory,
-		string BaseArchiveDirectory,
+		DirectoryReference InLocalRoot,
+		DirectoryReference BaseStageDirectory,
+		DirectoryReference BaseArchiveDirectory,
 		Platform InSourcePlatform,
         Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
@@ -238,14 +256,13 @@ public class DeploymentContext //: ProjectParams
 		bool InArchive,
 		bool InProgram,
 		bool IsClientInsteadOfNoEditor,
-        bool InForceChunkManifests,
-		bool bInUseWebsocketNetDriver = false
+        bool InForceChunkManifests
 		)
 	{
 		bStageCrashReporter = InStageCrashReporter;
 		RawProjectPath = RawProjectPathOrName;
 		DedicatedServer = InServer;
-		LocalRoot = CommandUtils.CombinePaths(InLocalRoot);
+		LocalRoot = InLocalRoot;
         CookSourcePlatform = InSourcePlatform;
 		StageTargetPlatform = InTargetPlatform;
 		StageTargetConfigurations = new List<UnrealTargetConfiguration>(InTargetConfigurations);
@@ -255,7 +272,6 @@ public class DeploymentContext //: ProjectParams
 		ShortProjectName = ProjectUtils.GetShortProjectName(RawProjectPath);
 		Stage = InStage;
 		Archive = InArchive;
-		bUseWebsocketNetDriver = bInUseWebsocketNetDriver;
 
         if (CookSourcePlatform != null && InCooked)
         {
@@ -285,60 +301,45 @@ public class DeploymentContext //: ProjectParams
 
 		PlatformDir = StageTargetPlatform.PlatformType.ToString();
 
-        StageDirectory = CommandUtils.CombinePaths(BaseStageDirectory, FinalCookPlatform);
-        ArchiveDirectory = CommandUtils.CombinePaths(BaseArchiveDirectory, FinalCookPlatform);
+		if (BaseStageDirectory != null)
+		{
+			StageDirectory = DirectoryReference.Combine(BaseStageDirectory, FinalCookPlatform);
+		}
 
-		if (!CommandUtils.FileExists(RawProjectPath.FullName))
+		if(BaseArchiveDirectory != null)
+		{
+			ArchiveDirectory = DirectoryReference.Combine(BaseArchiveDirectory, FinalCookPlatform);
+		}
+
+		if (!FileReference.Exists(RawProjectPath))
 		{
 			throw new AutomationException("Can't find uproject file {0}.", RawProjectPathOrName);
 		}
 
-		ProjectRoot = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName));
+		EngineRoot = DirectoryReference.Combine(LocalRoot, "Engine");
+		ProjectRoot = RawProjectPath.Directory;
 
-		if (!CommandUtils.DirectoryExists(ProjectRoot))
-		{
-			throw new AutomationException("Project Directory {0} doesn't exist.", ProjectRoot);
-		}
-
-        RelativeProjectRootForStage = ShortProjectName;
+		RelativeProjectRootForStage = new StagedDirectoryReference(ShortProjectName);
 
 		ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(RawProjectPath.FullName);
 		CookSourceRuntimeRootDir = RuntimeRootDir = LocalRoot;
 		RuntimeProjectRootDir = ProjectRoot;
-
-        RelativeProjectRootForUnrealPak = CommandUtils.CombinePaths(RelativeProjectRootForStage).Replace("\\", "/");
-		if (RelativeProjectRootForUnrealPak.StartsWith("/"))
-		{
-			RelativeProjectRootForUnrealPak = RelativeProjectRootForUnrealPak.Substring(1);
-            RelativeProjectRootForStage = RelativeProjectRootForStage.Substring(1);
-		}
-
-        SourceRelativeProjectRoot = RelativeProjectRootForStage; // for foreign projects this doesn't make much sense, but it turns into a noop on staging files
-        if (ProjectRoot.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
-        {
-            SourceRelativeProjectRoot = ProjectRoot.Substring(LocalRoot.Length);
-        }
-        if (SourceRelativeProjectRoot.StartsWith("/") || SourceRelativeProjectRoot.StartsWith("\\"))
-        {
-            SourceRelativeProjectRoot = SourceRelativeProjectRoot.Substring(1);
-        }        
-        
+       
         if (Stage)
 		{
-			CommandUtils.CreateDirectory(StageDirectory);
-            StageProjectRoot = CommandUtils.CombinePaths(StageDirectory, RelativeProjectRootForStage);
+			CommandUtils.CreateDirectory(StageDirectory.FullName);
 
 			RuntimeRootDir = StageDirectory;
-            CookSourceRuntimeRootDir = CommandUtils.CombinePaths(BaseStageDirectory, CookPlatform);
-			RuntimeProjectRootDir = StageProjectRoot;
-			ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(UProjectCommandLineArgInternalRoot + RelativeProjectRootForStage + "/" + ShortProjectName + ".uproject");
+			CookSourceRuntimeRootDir = DirectoryReference.Combine(BaseStageDirectory, CookPlatform);
+			RuntimeProjectRootDir = DirectoryReference.Combine(StageDirectory, RelativeProjectRootForStage.Name);
+			ProjectArgForCommandLines = CommandUtils.MakePathSafeToUseWithCommandLine(UProjectCommandLineArgInternalRoot + RelativeProjectRootForStage.Name + "/" + ShortProjectName + ".uproject");
 		}
 		if (Archive)
 		{
-			CommandUtils.CreateDirectory(ArchiveDirectory);
+			CommandUtils.CreateDirectory(ArchiveDirectory.FullName);
 		}
 		ProjectArgForCommandLines = ProjectArgForCommandLines.Replace("\\", "/");
-		ProjectBinariesFolder = CommandUtils.CombinePaths(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetType.Game, IsCodeBasedProject), PlatformDir);
+		ProjectBinariesFolder = DirectoryReference.Combine(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetType.Game, IsCodeBasedProject), PlatformDir);
 
         // If we were configured to use manifests across the whole project, then this platform should use manifests.
         // Otherwise, read whether we are generating chunks from the ProjectPackagingSettings ini.
@@ -348,7 +349,7 @@ public class DeploymentContext //: ProjectParams
         }
         else
         {
-            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, RawProjectPath.Directory, InTargetPlatform.PlatformType);
+            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, ProjectRoot, InTargetPlatform.PlatformType);
             String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
             bool bSetting = false;
             if (GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
@@ -358,68 +359,43 @@ public class DeploymentContext //: ProjectParams
         }
     }
 
-	public void StageFile(StagedFileType FileType, string InputPath, string OutputPath = null, bool bRemap = true)
+	public void StageFile(StagedFileType FileType, FileReference InputFile, StagedFileReference OutputFile = null, bool bRemap = true)
 	{
-		InputPath = InputPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-		if(OutputPath == null)
+		if(OutputFile == null)
 		{
-			if(InputPath.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
+			if(InputFile.IsUnderDirectory(ProjectRoot))
 			{
-				OutputPath = CommandUtils.CombinePaths(RelativeProjectRootForStage, InputPath.Substring(ProjectRoot.Length).TrimStart('/', '\\'));
+				OutputFile = StagedFileReference.Combine(RelativeProjectRootForStage, InputFile.MakeRelativeTo(ProjectRoot));
 			}
-            else if (InputPath.EndsWith(".uplugin", StringComparison.InvariantCultureIgnoreCase))
+            else if (InputFile.HasExtension(".uplugin"))
             {
-                if (InputPath.StartsWith(CommandUtils.CombinePaths(LocalRoot + "/Engine"), StringComparison.InvariantCultureIgnoreCase))
+                if (InputFile.IsUnderDirectory(EngineRoot))
 				{
-					OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
+					OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
 				}
                 else
 				{
 					// This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
 					// We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
-					int Index = InputPath.LastIndexOf(Path.DirectorySeparatorChar);
-					if (Index != -1)
-					{
-						int PluginDirIndex = InputPath.LastIndexOf(Path.DirectorySeparatorChar, Index - 1);
-						if (PluginDirIndex != -1)
-						{
-							OutputPath = CommandUtils.CombinePaths("RemappedPlugins", InputPath.Substring(PluginDirIndex));
-						}
-					}
-					if (OutputPath == null)
-					{
-						throw new AutomationException("Can't deploy {0} because the plugin path is non-standard, so could not be remapped", InputPath);
-					}
+					OutputFile = new StagedFileReference(String.Format("RemappedPlugins/{0}/{1}", InputFile.GetFileNameWithoutExtension(), InputFile.GetFileName()));
 				}
             }
-            else if (InputPath.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+            else if (InputFile.IsUnderDirectory(LocalRoot))
             {
-                OutputPath = CommandUtils.CombinePaths(InputPath.Substring(LocalRoot.Length).TrimStart('/', '\\'));
+				OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
             }
             else
             {
-				throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputPath, ProjectRoot, LocalRoot);
+				throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputFile, ProjectRoot, LocalRoot);
 			}
 		}
 
 		if(bRemap)
 		{
-			OutputPath = StageTargetPlatform.Remap(OutputPath);
+			OutputFile = StageTargetPlatform.Remap(OutputFile);
 		}
 
-		if (FileType == StagedFileType.UFS)
-		{
-			AddUniqueStagingFile(UFSStagingFiles, InputPath, OutputPath);
-		}
-		else if (FileType == StagedFileType.NonUFS)
-		{
-			AddStagingFile(NonUFSStagingFiles, InputPath, OutputPath);
-		}
-		else if (FileType == StagedFileType.DebugNonUFS)
-		{
-			AddStagingFile(NonUFSStagingFilesDebug, InputPath, OutputPath);
-		}
+		FilesToStage.Add(FileType, OutputFile, InputFile);
 	}
 
 	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool TreatNonShippingBinariesAsDebugFiles)
@@ -428,7 +404,7 @@ public class DeploymentContext //: ProjectParams
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 		{
 			// allow missing files if needed
-			if (RequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
+			if (RequireDependenciesToExist == false && FileReference.Exists(BuildProduct.Path) == false)
 			{
 				continue;
 			}
@@ -446,7 +422,7 @@ public class DeploymentContext //: ProjectParams
 			else if(BuildProduct.Type == BuildProductType.SymbolFile || BuildProduct.Type == BuildProductType.MapFile)
 			{
 				// Symbol files aren't true dependencies so we can skip if they don't exist
-				if (File.Exists(BuildProduct.Path))
+				if (FileReference.Exists(BuildProduct.Path))
 				{
 					StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
 				}
@@ -464,14 +440,11 @@ public class DeploymentContext //: ProjectParams
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
-			foreach(FileReference MatchingFile in CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, ExcludePatterns))
+			// allow missing files if needed
+			if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || FileReference.Exists(RuntimeDependency.Path))
 			{
-				// allow missing files if needed
-				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || FileReference.Exists(MatchingFile))
-				{
-					bool bRemap = RuntimeDependency.Type != StagedFileType.UFS || !bUsingPakFile;
-					StageFile(RuntimeDependency.Type, MatchingFile.FullName, bRemap: bRemap);
-				}
+				bool bRemap = RuntimeDependency.Type != StagedFileType.UFS || !bUsingPakFile;
+				StageFile(RuntimeDependency.Type, RuntimeDependency.Path, bRemap: bRemap);
 			}
 		}
 	}
@@ -546,149 +519,93 @@ public class DeploymentContext //: ProjectParams
 		return true;
 	}
 
-    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
+	bool IsFileForOtherPlatform(FileReference InputFile)
 	{
-		int FilesAdded = 0;
-		// make sure any ..'s are removed
-		CollapseRelativeDirectories(ref InPath);
-
-		if (CommandUtils.DirectoryExists(InPath))
-		{
-			var All = CommandUtils.FindFiles(Wildcard, bRecursive, InPath);
-
-			var Exclude = new HashSet<string>();
-			if (ExcludeWildcard != null)
+        foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
+        {
+			bool bMatchesIniPlatform = (InputFile.HasExtension(".ini") && Plat == StageTargetPlatform.IniPlatformType); // filter ini files for the ini file platform
+			bool bMatchesTargetPlatform = (Plat == StageTargetPlatform.PlatformType || Plat == UnrealTargetPlatform.Unknown); // filter platform files for the target platform
+			if (!bMatchesIniPlatform && !bMatchesTargetPlatform)
 			{
-				foreach (var Excl in ExcludeWildcard)
+				FileSystemName PlatformName = new FileSystemName(Plat.ToString());
+				if (InputFile.IsUnderDirectory(ProjectRoot))
 				{
-					var Remove = CommandUtils.FindFiles(Excl, bRecursive, InPath);
-					foreach (var File in Remove)
+					if (InputFile.ContainsName(PlatformName, ProjectRoot))
 					{
-                        Exclude.Add(CommandUtils.CombinePaths(File));
+						return true;
+					}
+				}
+				else if (InputFile.IsUnderDirectory(LocalRoot))
+				{
+					if (InputFile.ContainsName(PlatformName, LocalRoot))
+					{
+						return true;
 					}
 				}
 			}
-			foreach (var AllFile in All)
+        }
+		return false;
+	}
+
+    public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcards = null, StagedDirectoryReference NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
+	{
+		int FilesAdded = 0;
+
+		if (DirectoryReference.Exists(InputDir))
+		{
+			FileReference[] InputFiles = CommandUtils.FindFiles(Wildcard, bRecursive, InputDir);
+
+			HashSet<FileReference> ExcludeFiles = new HashSet<FileReference>();
+			if (ExcludeWildcards != null)
 			{
-				var FileToCopy = CommandUtils.CombinePaths(AllFile);
-				if (Exclude.Contains(FileToCopy))
+				foreach (string ExcludeWildcard in ExcludeWildcards)
+				{
+					ExcludeFiles.UnionWith(CommandUtils.FindFiles(ExcludeWildcard, bRecursive, InputDir));
+				}
+			}
+
+			foreach (FileReference InputFile in InputFiles)
+			{
+				if (ExcludeFiles.Contains(InputFile))
 				{
 					continue;
 				}
                 
-                if (!bAllowNotForLicenseesFiles && (FileToCopy.Contains("NotForLicensees") || FileToCopy.Contains("NoRedist")))
+				if (bStripFilesForOtherPlatforms && !bIsCombiningMultiplePlatforms && IsFileForOtherPlatform(InputFile))
+                {
+					continue;
+                }
+
+				// Get the staged location for this file
+				StagedFileReference Dest;
+				if (NewPath != null)
+				{
+					// If the specified a new directory, first we deal with that, then apply the other things. This is used to collapse the sandbox, among other things.
+					Dest = StagedFileReference.Combine(NewPath, InputFile.MakeRelativeTo(InputDir));
+                }
+				else if (InputFile.IsUnderDirectory(ProjectRoot))
+				{
+					// Project relative file
+					Dest = StagedFileReference.Combine(RelativeProjectRootForStage, InputFile.MakeRelativeTo(ProjectRoot));
+				}
+				else if (InputFile.IsUnderDirectory(LocalRoot))
+				{
+					// Engine relative file
+					Dest = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
+				}
+				else
+				{
+					throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputFile, ProjectRoot, LocalRoot);
+				}
+
+                if (!bAllowNotForLicenseesFiles && (Dest.ContainsName(new FileSystemName("NotForLicensees")) || Dest.ContainsName(new FileSystemName("NoRedist"))))
                 {
                     continue;
                 }
 
-				if (bStripFilesForOtherPlatforms && !bIsCombiningMultiplePlatforms)
-                {
-                    bool OtherPlatform = false;
-                    foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
-                    {
-						bool bMatchesIniPlatform = (AllFile.EndsWith(".ini") && Plat == StageTargetPlatform.IniPlatformType); // filter ini files for the ini file platform
-						bool bMatchesTargetPlatform = (Plat == StageTargetPlatform.PlatformType || Plat == UnrealTargetPlatform.Unknown); // filter platform files for the target platform
-						if (!bMatchesIniPlatform && !bMatchesTargetPlatform)
-                        {
-                            var Search = FileToCopy;
-                            if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                if (LocalRoot.EndsWith("\\") || LocalRoot.EndsWith("/"))
-                                {
-                                    Search = Search.Substring(LocalRoot.Length - 1);
-                                }
-                                else
-                                {
-                                    Search = Search.Substring(LocalRoot.Length);
-                                }
-                            }
-							if (Search.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
-							{
-								if (ProjectRoot.EndsWith("\\") || ProjectRoot.EndsWith("/"))
-								{
-									Search = Search.Substring(ProjectRoot.Length - 1);
-								}
-								else
-								{
-									Search = Search.Substring(ProjectRoot.Length);
-								}
-							}
-                            if (Search.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                            {
-                                OtherPlatform = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (OtherPlatform)
-                    {
-                        continue;
-                    }
-                }
-
-				string Dest;
-				if (!FileToCopy.StartsWith(InPath))
-				{
-					throw new AutomationException("Can't deploy {0}; it was supposed to start with {1}", FileToCopy, InPath);
-				}
-				string FileToRemap = FileToCopy;
-
-                // If the specified a new directory, first we deal with that, then apply the other things
-                // this is used to collapse the sandbox, among other things
-				if (NewPath != null)
-				{
-					Dest = FileToRemap.Substring(InPath.Length);
-					if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
-					{
-						Dest = Dest.Substring(1);
-					}
-					Dest = CommandUtils.CombinePaths(NewPath, Dest);
-#if false // if the cooker rebases, I don't think we need to ever rebase while staging to a new path
-                    if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
-                    {
-                        Dest = Dest.Substring(1);
-                    }
-                    // project relative stuff in a collapsed sandbox
-                    if (Dest.StartsWith(SourceRelativeProjectRoot, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        Dest = Dest.Substring(SourceRelativeProjectRoot.Length);
-                        if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
-                        {
-                            Dest = Dest.Substring(1);
-                        }
-                        Dest = CommandUtils.CombinePaths(RelativeProjectRootForStage, Dest);
-                    }
-#endif
-                }
-
-                // project relative file
-				else if (FileToRemap.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
-				{
-					Dest = FileToRemap.Substring(ProjectRoot.Length);
-					if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
-					{
-						Dest = Dest.Substring(1);
-					}
-                    Dest = CommandUtils.CombinePaths(RelativeProjectRootForStage, Dest);
-				}
-                // engine relative file
-				else if (FileToRemap.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
-				{
-					Dest = CommandUtils.CombinePaths(FileToRemap.Substring(LocalRoot.Length));
-				}
-				else
-				{
-					throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", FileToRemap, ProjectRoot, LocalRoot);
-				}
-
-				if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
-				{
-					Dest = Dest.Substring(1);
-				}
-
 				if (NewName != null)
 				{
-					Dest = CommandUtils.CombinePaths(Path.GetDirectoryName(Dest), NewName);
+					Dest = StagedFileReference.Combine(Dest.Directory, NewName);
 				}
 
 				if (bRemap)
@@ -696,66 +613,22 @@ public class DeploymentContext //: ProjectParams
 					Dest = StageTargetPlatform.Remap(Dest);
 				}
 
-                if (bConvertToLower)
-                {
-                    Dest = Dest.ToLowerInvariant();
-                }
+				if (bConvertToLower)
+				{
+					Dest = Dest.ToLowerInvariant();
+				}
 
-				if (FileType == StagedFileType.UFS)
-				{
-					AddUniqueStagingFile(UFSStagingFiles, FileToCopy, Dest);
-				}
-				else if (FileType == StagedFileType.NonUFS)
-				{
-					AddStagingFile(NonUFSStagingFiles, FileToCopy, Dest);
-				}
-				else if (FileType == StagedFileType.DebugNonUFS)
-				{
-					AddStagingFile(NonUFSStagingFilesDebug, FileToCopy, Dest);
-				}
+				FilesToStage.Add(FileType, Dest, InputFile);
+
 				FilesAdded++;
 			}
 		}
 
 		if (FilesAdded == 0 && !bAllowNone && !bIsCombiningMultiplePlatforms)
 		{
-			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
+			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InputDir, Wildcard, String.Join(", ", ExcludeWildcards));
 		}
 
-	}
-
-	private void AddUniqueStagingFile(Dictionary<string, string> FilesToStage, string FileToCopy, string Dest)
-	{
-		string ExistingDest;
-		if (FilesToStage.TryGetValue(FileToCopy, out ExistingDest))
-		{
-			// If the file already exists, it must have the same dest
-			if (String.Compare(ExistingDest, Dest, true) != 0)
-			{
-				throw new AutomationException("Attempting to add \"{0}\" to staging map but it already exists with a different destination (existing: \"{1}\", new: \"{2}\"",
-					FileToCopy, ExistingDest, Dest);
-			}
-		}
-		else
-		{
-			FilesToStage.Add(FileToCopy, Dest);
-		}
-	}
-
-	private void AddStagingFile(Dictionary<string, List<string>> FilesToStage, string FileToCopy, string Dest)
-	{
-		List<string> ExistingDest;
-		if (FilesToStage.TryGetValue(FileToCopy, out ExistingDest))
-		{
-			if (!FilesToStage[FileToCopy].Contains(Dest))
-			{
-				FilesToStage[FileToCopy].Add(Dest);
-			}
-		}
-		else
-		{
-			FilesToStage.Add(FileToCopy, new List<string>(){Dest});
-		}
 	}
 
 	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null)
@@ -788,33 +661,21 @@ public class DeploymentContext //: ProjectParams
 
 				if (!bIsCombiningMultiplePlatforms)
 				{
+					FileReference InputFile = new FileReference(FileToCopy);
+
 					bool OtherPlatform = false;
 					foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
 					{
                         if (Plat != StageTargetPlatform.PlatformType && Plat != UnrealTargetPlatform.Unknown)
                         {
                             var Search = FileToCopy;
-                            if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+                            if (InputFile.IsUnderDirectory(LocalRoot))
                             {
-                                if (LocalRoot.EndsWith("\\") || LocalRoot.EndsWith("/"))
-                                {
-                                    Search = Search.Substring(LocalRoot.Length - 1);
-                                }
-                                else
-                                {
-                                    Search = Search.Substring(LocalRoot.Length);
-                                }
+								Search = InputFile.MakeRelativeTo(LocalRoot);
                             }
-							if (Search.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
+							else if (InputFile.IsUnderDirectory(ProjectRoot))
 							{
-								if (ProjectRoot.EndsWith("\\") || ProjectRoot.EndsWith("/"))
-								{
-									Search = Search.Substring(ProjectRoot.Length - 1);
-								}
-								else
-								{
-									Search = Search.Substring(ProjectRoot.Length);
-								}
+								Search = InputFile.MakeRelativeTo(ProjectRoot);
 							}
                             if (Search.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
                             {
@@ -880,7 +741,7 @@ public class DeploymentContext //: ProjectParams
 		//replace the port name in the case of deploy while adb is using wifi
 		string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
-		return Path.Combine(StageDirectory, UFSDeployDeltaFileName + SanitizedDeviceName);
+		return Path.Combine(StageDirectory.FullName, UFSDeployDeltaFileName + SanitizedDeviceName);
 	}
 
 	public String GetNonUFSDeploymentDeltaPath(string DeviceName)
@@ -888,7 +749,7 @@ public class DeploymentContext //: ProjectParams
 		//replace the port name in the case of deploy while adb is using wifi
 		string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
-		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName + SanitizedDeviceName);
+		return Path.Combine(StageDirectory.FullName, NonUFSDeployDeltaFileName + SanitizedDeviceName);
 	}
 
 	public String GetUFSDeploymentObsoletePath(string DeviceName)
@@ -896,7 +757,7 @@ public class DeploymentContext //: ProjectParams
 		//replace the port name in the case of deploy while adb is using wifi
 		string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
-		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName + SanitizedDeviceName);
+		return Path.Combine(StageDirectory.FullName, UFSDeployObsoleteFileName + SanitizedDeviceName);
 	}
 
 	public String GetNonUFSDeploymentObsoletePath(string DeviceName)
@@ -904,7 +765,7 @@ public class DeploymentContext //: ProjectParams
 		//replace the port name in the case of deploy while adb is using wifi
 		string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
-		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName + SanitizedDeviceName);
+		return Path.Combine(StageDirectory.FullName, NonUFSDeployObsoleteFileName + SanitizedDeviceName);
 	}
 
 	public string UFSDeployedManifestFileName

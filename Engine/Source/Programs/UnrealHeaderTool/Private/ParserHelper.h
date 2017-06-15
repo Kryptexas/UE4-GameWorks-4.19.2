@@ -764,26 +764,6 @@ public:
 					return String;
 
 				// unsupported (parsing never produces a constant token of these types)
-				case CPT_Vector:
-				case CPT_Rotation:
-				case CPT_Int8:
-				case CPT_Int16:
-				case CPT_UInt16:
-				case CPT_UInt32:
-				case CPT_UInt64:
-				case CPT_Bool8:
-				case CPT_Bool16:
-				case CPT_Bool32:
-				case CPT_Bool64:
-				case CPT_Range:
-				case CPT_Struct:
-				case CPT_ObjectReference:
-				case CPT_WeakObjectReference:
-				case CPT_LazyObjectReference:
-				case CPT_AssetObjectReference:
-				case CPT_Interface:
-				case CPT_Delegate:
-				case CPT_MulticastDelegate:
 				default:
 					return TEXT("InvalidTypeForAToken");
 			}
@@ -1006,7 +986,7 @@ struct FFuncInfo
 	/** Name of the function or operator. */
 	FToken		Function;
 	/** Function flags. */
-	uint32		FunctionFlags;
+	EFunctionFlags	FunctionFlags;
 	/** Function flags which are only required for exporting */
 	uint32		FunctionExportFlags;
 	/** Number of parameters expected for operator. */
@@ -1041,7 +1021,7 @@ struct FFuncInfo
 	/** Constructor. */
 	FFuncInfo()
 		: Function()
-		, FunctionFlags(0)
+		, FunctionFlags(FUNC_None)
 		, FunctionExportFlags(0)
 		, ExpectParms(0)
 		, FunctionReference(NULL)

@@ -22,7 +22,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
 
-DEFINE_LOG_CATEGORY(LogGoogleVRPointerInput);
+DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRPointerInput, Log, All);
 
 UGoogleVRPointerInputComponent::UGoogleVRPointerInputComponent(const FObjectInitializer& ObjectInitializer)
 : PointerInputMode(EGoogleVRPointerInputMode::Camera)

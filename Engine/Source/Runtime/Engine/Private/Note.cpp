@@ -62,10 +62,3 @@ ANote::ANote(const FObjectInitializer& ObjectInitializer)
 	bHidden = true;
 	bCanBeDamaged = false;
 }
-
-#if WITH_EDITORONLY_DATA
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* ANote::GetSpriteComponent() const { return SpriteComponent; }
-/** Returns ArrowComponent subobject **/
-UArrowComponent* ANote::GetArrowComponent() const { return ArrowComponent; }
-#endif

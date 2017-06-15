@@ -854,23 +854,8 @@ void UWorld::PostLoad()
 }
 
 
-bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook)
+bool UWorld::PreSaveRoot(const TCHAR* Filename)
 {
-	// add any streaming sublevels to the list of extra packages to cook
-	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
-	{
-		ULevelStreaming* StreamingLevel = StreamingLevels[LevelIndex];
-		if (StreamingLevel)
-		{
-			// Load package if found.
-			const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
-			FString PackageFilename;
-			if (FPackageName::DoesPackageExist(WorldAssetPackageName, NULL, &PackageFilename))
-			{
-				AdditionalPackagesToCook.Add(WorldAssetPackageName);
-			}
-		}
-	}
 #if WITH_EDITOR
 	// Rebuild all level blueprints now to ensure no stale data is stored on the actors
 	if( !IsRunningCommandlet() )

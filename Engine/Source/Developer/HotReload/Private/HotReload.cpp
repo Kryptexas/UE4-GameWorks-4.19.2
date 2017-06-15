@@ -1027,12 +1027,11 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 					{
 						UObject* Obj = ObjRef;
 
-						if (Obj && Obj != PotentialReferencer && ReconstructedCDOsMap.Contains(Obj))
+						if (Obj && Obj != PotentialReferencer)
 						{
-							UProperty* SerializedProp = GetSerializedProperty();
-							if (SerializedProp && SerializedProp->IsA<UObjectProperty>())
+							if (UObject* const* FoundObj = ReconstructedCDOsMap.Find(Obj))
 							{
-								ObjRef = ReconstructedCDOsMap[Obj];
+								ObjRef = *FoundObj;
 							}
 						}
 					

@@ -306,11 +306,3 @@ void ARadialForceActor::ToggleForce()
 		ForceComponent->ToggleActive();
 	}
 }
-
-
-/** Returns ForceComponent subobject **/
-URadialForceComponent* ARadialForceActor::GetForceComponent() const { return ForceComponent; }
-#if WITH_EDITORONLY_DATA
-/** Returns SpriteComponent subobject **/
-UBillboardComponent* ARadialForceActor::GetSpriteComponent() const { return SpriteComponent; }
-#endif

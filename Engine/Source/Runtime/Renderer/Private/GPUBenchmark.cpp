@@ -25,8 +25,6 @@ static const uint32 GBenchmarkResolution = 512;
 static const uint32 GBenchmarkPrimitives = 200000;
 static const uint32 GBenchmarkVertices = GBenchmarkPrimitives * 3;
 
-DEFINE_LOG_CATEGORY_STATIC(LogSynthBenchmark, Log, All);
-
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 PsMethod>
 class FPostProcessBenchmarkPS : public FGlobalShader

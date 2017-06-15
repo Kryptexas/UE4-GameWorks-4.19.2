@@ -411,7 +411,10 @@ namespace UnrealBuildTool
 		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, bool bIgnoreSymlinks)
 		{
 			List<FileReference> MatchingFileNames = new List<FileReference>();
-			FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), "", bIgnoreSymlinks, MatchingFileNames);
+			if (DirectoryReference.Exists(DirectoryName))
+			{
+				FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), "", bIgnoreSymlinks, MatchingFileNames);
+			}
 			return MatchingFileNames;
 		}
 
@@ -425,7 +428,10 @@ namespace UnrealBuildTool
 		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, string PrefixPath, bool bIgnoreSymlinks)
 		{
 			List<FileReference> MatchingFileNames = new List<FileReference>();
-			FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), PrefixPath.Replace('\\', '/').TrimEnd('/') + "/", bIgnoreSymlinks, MatchingFileNames);
+			if (DirectoryReference.Exists(DirectoryName))
+			{
+				FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), PrefixPath.Replace('\\', '/').TrimEnd('/') + "/", bIgnoreSymlinks, MatchingFileNames);
+			}
 			return MatchingFileNames;
 		}
 
@@ -446,6 +452,36 @@ namespace UnrealBuildTool
 				}
 			}
 			return Result;
+		}
+
+		/// <summary>
+		/// Resolve an individual wildcard to a set of files
+		/// </summary>
+		/// <param name="Pattern">The pattern to resolve</param>
+		/// <returns>List of files matching the wildcard</returns>
+		public static List<FileReference> ResolveWildcard(string Pattern)
+		{
+			for(int Idx = FindWildcardIndex(Pattern); Idx > 0; Idx--)
+			{
+				if(Pattern[Idx] == '/' || Pattern[Idx] == '\\')
+				{
+					return ResolveWildcard(new DirectoryReference(Pattern.Substring(0, Idx)), Pattern.Substring(Idx + 1));
+				}
+			}
+			return ResolveWildcard(DirectoryReference.GetCurrentDirectory(), Pattern);
+		}
+
+		/// <summary>
+		/// Resolve an individual wildcard to a set of files
+		/// </summary>
+		/// <param name="BaseDir">Base directory for wildcards</param>
+		/// <param name="Pattern">The pattern to resolve</param>
+		/// <returns>List of files matching the wildcard</returns>
+		public static List<FileReference> ResolveWildcard(DirectoryReference BaseDir, string Pattern)
+		{
+			FileFilter Filter = new FileFilter(FileFilterType.Exclude);
+			Filter.AddRule(Pattern);
+			return Filter.ApplyToDirectory(BaseDir, true);
 		}
 
 		/// <summary>

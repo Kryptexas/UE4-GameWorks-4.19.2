@@ -605,7 +605,9 @@
 
 // This is a temporary macro, will be removed when TSubobjectPtr can be safely removed
 #ifndef private_subobject
-#define private_subobject public
+#define private_subobject \
+DEPRECATED_MACRO(4.17, "private_subobject macro is deprecated.  Please use the standard 'private' keyword instead.") \
+private
 #endif
 
 // Console ANSICHAR/TCHAR command line handling

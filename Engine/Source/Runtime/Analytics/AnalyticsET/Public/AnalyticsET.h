@@ -9,7 +9,6 @@
 class IAnalyticsProvider;
 class IAnalyticsProviderET;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAnalytics, Display, All);
 
 
 class IAnalyticsProviderET;

@@ -122,7 +122,7 @@ uint32 FClassNetCacheMgr::GetFunctionChecksum( const UFunction* Function, uint32
 	Checksum = FCrc::StrCrc32( *Function->GetName().ToLower(), Checksum );
 
 	// Evolve the checksum on function flags
-	Checksum = FCrc::StrCrc32( *FString::Printf( TEXT( "%u" ), Function->FunctionFlags ), Checksum );
+	Checksum = FCrc::StrCrc32( *FString::Printf( TEXT( "%u" ), (uint32)Function->FunctionFlags ), Checksum );
 
 #if 0	// This is disabled now that we have backwards compatibility for RPC parameters working in replays 
 	TArray< UProperty * > Parms;

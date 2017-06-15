@@ -679,18 +679,17 @@ void FStatsThreadState::ScanForAdvance(const FStatMessagesArray& Data)
 		static const int32 FramesPerSpew = 300;
 		static TMap<FName, int32> Profile;
 		static uint64 LastFrame = GFrameCounter;
-		for (int32 Index = 0; Index < Data.Num(); Index++)
+		for (const FStatMessage& Item : Data)
 		{
-			FStatMessage const& Item = Data[Index];
 			FName ItemName = Item.NameAndInfo.GetRawName();
 			Profile.FindOrAdd(ItemName)++;
 		}
 		if (GFrameCounter > LastFrame + FramesPerSpew)
 		{
 			LastFrame = GFrameCounter;
-			Profile.ValueSort(TGreater<int32>());
+			Profile.ValueSort(TGreater<>());
 			UE_LOG(LogStats, Log, TEXT("---- stats spam profile -------------"));
-			for (auto Pair : Profile)
+			for (TPair<FName, int32> Pair : Profile)
 			{
 				float PerFrame = float(Pair.Value) / float(FramesPerSpew);
 
@@ -703,9 +702,8 @@ void FStatsThreadState::ScanForAdvance(const FStatMessagesArray& Data)
 			Profile.Reset();
 		}
 	}
-	for (int32 Index = 0; Index < Data.Num(); Index++)
+	for (const FStatMessage& Item : Data)
 	{
-		FStatMessage const& Item = Data[Index];
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 		if (Op == EStatOperation::AdvanceFrameEventGameThread)
 		{
@@ -767,28 +765,27 @@ void FStatsThreadState::ScanForAdvance(FStatPacketArray& NewData)
 	}
 
 	uint32 Count = 0;
-	for (int32 Index = 0; Index < NewData.Packets.Num(); Index++)
+	for (FStatPacket* Packet : NewData.Packets)
 	{
-		const EThreadType::Type ThreadType = NewData.Packets[Index]->ThreadType;
-		FStatPacket* Packet = NewData.Packets[Index];
-		if ( ThreadType == EThreadType::Renderer)
+		switch (Packet->ThreadType)
 		{
-			Packet->AssignFrame( CurrentRenderFrame );
+			case EThreadType::Renderer:
+				Packet->AssignFrame( CurrentRenderFrame );
+				break;
+
+			case EThreadType::Game:
+				Packet->AssignFrame( CurrentGameFrame );
+				break;
+
+			case EThreadType::Other:
+				// @see FThreadStats::DetectAndUpdateCurrentGameFrame 
+				break;
+
+			default:
+				checkf( 0, TEXT( "Unknown thread type" ) );
 		}
-		else if (ThreadType == EThreadType::Game)
-		{
-			Packet->AssignFrame( CurrentGameFrame );
-		}
-		else if (ThreadType == EThreadType::Other)
-		{
-			// @see FThreadStats::DetectAndUpdateCurrentGameFrame 
-		}
-		else
-		{
-			checkf( 0, TEXT( "Unknown thread type" ) );
-		}
-				
-		const FStatMessagesArray& Data = NewData.Packets[Index]->StatMessages;
+
+		const FStatMessagesArray& Data = Packet->StatMessages;
 		ScanForAdvance(Data);
 		Count += Data.Num();
 	}
@@ -816,9 +813,8 @@ void FStatsThreadState::ToggleFindMemoryExtensiveStats()
 
 void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound)
 {
-	for (int32 Index = 0; Index < Data.Num() ; Index++)
+	for (FStatMessage& Item : Data)
 	{
-		FStatMessage& Item = Data[Index];
 		check(Item.NameAndInfo.GetFlag(EStatMetaFlags::DummyAlwaysOne));  // we should never be sending short names to the stats any more
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 		check(Op != EStatOperation::SetLongName);
@@ -856,7 +852,7 @@ void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FNam
 						Item = *Result; // now just write the accumulated value back into the stream
 						check(Item.NameAndInfo.GetField<EStatOperation>() == EStatOperation::Set);
 					}
-				}			
+				}
 			}
 		}
 	}
@@ -878,9 +874,8 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		return;
 	}
 
-	for (int32 Index = 0; Index < NewData.Packets.Num(); Index++)
+	for (FStatPacket* Packet : NewData.Packets)
 	{
-		FStatPacket* Packet = NewData.Packets[Index];
 		int64 FrameNum = Packet->Frame;
 		FStatPacketArray& Frame = History.FindOrAdd(FrameNum);
 		Frame.Packets.Add(Packet);
@@ -902,9 +897,8 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 
 	int64 LatestFinishedFrame = FMath::Min<int64>(CurrentGameFrame, CurrentRenderFrame) - 1;
 
-	for (int32 Index = 0; Index < Frames.Num(); Index++)
+	for (int64 FrameNum : Frames)
 	{
-		int64 FrameNum = Frames[Index];
 		if (LastFullFrameMetaAndNonFrame < 0)
 		{
 			LastFullFrameMetaAndNonFrame = FrameNum - 1;
@@ -921,40 +915,39 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 			}
 
 			TSet<FName> NonFrameStatsFound;
-			for (int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++)
+			for (FStatPacket* Packet : Frame.Packets)
 			{
-				ProcessNonFrameStats(Frame.Packets[PacketIndex]->StatMessages, &NonFrameStatsFound);
-				if (!PacketToCopyForNonFrame && Frame.Packets[PacketIndex]->ThreadType == EThreadType::Game)
+				ProcessNonFrameStats(Packet->StatMessages, &NonFrameStatsFound);
+				if (!PacketToCopyForNonFrame && Packet->ThreadType == EThreadType::Game)
 				{
-					PacketToCopyForNonFrame = Frame.Packets[PacketIndex];
+					PacketToCopyForNonFrame = Packet;
 				}
 			}
 			// was this a good frame
-			if (!BadFrames.Contains(FrameNum) && PacketToCopyForNonFrame)
+			if (PacketToCopyForNonFrame && !BadFrames.Contains(FrameNum))
 			{
 				// add the non frame stats as a new last packet
 
-				check(PacketToCopyForNonFrame);
 				FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
-				FStatMessagesArray* NonFrameMessages = nullptr;
+				FStatPacket* NonFramePacket = nullptr;
 
-				for (TMap<FName, FStatMessage>::TConstIterator It(NotClearedEveryFrame); It; ++It)
+				for (const TPair<FName, FStatMessage>& It : NotClearedEveryFrame)
 				{
-					if (!NonFrameStatsFound.Contains(It.Key())) // don't add stats that are updated during this frame, they would be redundant
+					if (!NonFrameStatsFound.Contains(It.Key)) // don't add stats that are updated during this frame, they would be redundant
 					{
-						if (!NonFrameMessages)
+						if (!NonFramePacket)
 						{
-							const int32 NonFrameIndex = Frame.Packets.Add(new FStatPacket(*PacketToCopyForNonFrame));
-							NonFrameMessages = &Frame.Packets[NonFrameIndex]->StatMessages;
+							NonFramePacket = new FStatPacket(*PacketToCopyForNonFrame);
+							Frame.Packets.Add(NonFramePacket);
 						}
 						
-						new (*NonFrameMessages) FStatMessage(It.Value());	
+						NonFramePacket->StatMessages.AddElement(It.Value);
 					}
 				}
 
-				if(NonFrameMessages)
+				if(NonFramePacket)
 				{
-					NumStatMessages.Add(NonFrameMessages->Num());
+					NumStatMessages.Add(NonFramePacket->StatMessages.Num());
 				}
 
 				GoodFrames.Add(FrameNum);
@@ -1392,10 +1385,8 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 			Stack.Add(ThreadRoot);
 			FRawStatStackNode* Current = Stack.Last();
 
-			const FStatMessagesArray& Data = Packet.StatMessages;
-			for (int32 Index = 0; Index < Data.Num(); Index++)
+			for (FStatMessage const& Item : Packet.StatMessages)
 			{
-				FStatMessage const& Item = Data[Index];
 				check(Item.NameAndInfo.GetFlag(EStatMetaFlags::DummyAlwaysOne));  // we should never be sending short names to the stats anymore
 
 				EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
@@ -1612,9 +1603,8 @@ int64 FStatsThreadState::GetFastThreadFrameTimeInternal( int64 TargetFrame, int3
 		if( Packet.ThreadId == ThreadID || Packet.ThreadType == Thread )
 		{
 			const FStatMessagesArray& Data = Packet.StatMessages;
-			for (int32 Index = 0; Index < Data.Num(); Index++)
+			for (FStatMessage const& Item : Data)
 			{
-				FStatMessage const& Item = Data[Index];
 				EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 				FName LongName = Item.NameAndInfo.GetRawName();
 				if (Op == EStatOperation::CycleScopeStart)
@@ -1778,7 +1768,7 @@ void FStatsThreadState::AddMissingStats(TArray<FStatMessage>& Dest, TSet<FName> 
 	}
 }
 
-void FStatsThreadState::FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame )
+void FStatsThreadState::FindAndDumpMemoryExtensiveStats( const FStatPacketArray& Frame )
 {
 	int32 TotalMessages = 0;
 	TMap<FName,int32> NameToCount;
@@ -1786,9 +1776,9 @@ void FStatsThreadState::FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame
 	// Generate some data statistics.
 	for( const FStatPacket* StatPacket : Frame.Packets )
 	{
-		for( int32 MessageIndex = 0; MessageIndex < StatPacket->StatMessages.Num(); MessageIndex++)
+		for( const FStatMessage& Message : StatPacket->StatMessages )
 		{
-			const FName ShortName = StatPacket->StatMessages[MessageIndex].NameAndInfo.GetShortName();
+			const FName ShortName = Message.NameAndInfo.GetShortName();
 			NameToCount.FindOrAdd(ShortName) += 1;
 			TotalMessages++;
 		}

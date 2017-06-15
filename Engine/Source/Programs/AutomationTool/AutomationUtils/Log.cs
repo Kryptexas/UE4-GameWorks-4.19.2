@@ -173,7 +173,17 @@ namespace AutomationTool
 
 				if (!File.Exists(LogFilename))
 				{
-					break;
+					try
+					{
+						Directory.CreateDirectory(Path.GetDirectoryName(LogFilename));
+						using (FileStream Stream = File.Open(LogFilename, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+						{
+						}
+						break;
+					}
+					catch (IOException)
+					{
+					}
 				}
 
 				++Attempt;

@@ -195,8 +195,8 @@ void ConsoleCommandLibrary_DumpLibraryHTML(UWorld* InWorld, FExec& SubSystem, co
 
 			LazyPrintf.PushParam(*AllData);
 
-			auto AnsiHelp = StringCast<ANSICHAR>(*LazyPrintf.GetResultString());
-			File->Serialize((ANSICHAR*)AnsiHelp.Get(), AnsiHelp.Length());
+			FTCHARToUTF8 UTF8Help(*LazyPrintf.GetResultString());
+			File->Serialize((ANSICHAR*)UTF8Help.Get(), UTF8Help.Length());
 
 			delete File;
 			File = 0;
@@ -296,7 +296,8 @@ bool FParse::Param( const TCHAR* Stream, const TCHAR* Param )
 	{
 		while( (Start=FCString::Strifind(Start+1,Param)) != NULL )
 		{
-			if( Start>Stream && (Start[-1]=='-' || Start[-1]=='/') )
+			if( Start>Stream && (Start[-1]=='-' || Start[-1]=='/') && 
+				(Stream > (Start - 2) || FChar::IsWhitespace(Start[-2]))) // Reject if the character before '-' or '/' is not a whitespace
 			{
 				const TCHAR* End = Start + FCString::Strlen(Param);
 				if ( End == NULL || *End == 0 || FChar::IsWhitespace(*End) )

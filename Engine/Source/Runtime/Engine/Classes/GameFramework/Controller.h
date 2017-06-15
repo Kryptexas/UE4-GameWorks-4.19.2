@@ -62,9 +62,8 @@ public:
 	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
 	class APlayerState* PlayerState;
 
-private_subobject:
+private:
 	/** Component to give controllers a transform and enable attachment if desired. */
-	DEPRECATED_FORGAME(4.6, "TransformComponent should not be accessed directly, please use GetTransformComponent() function instead. TransformComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class USceneComponent* TransformComponent;
 
@@ -368,7 +367,7 @@ private:
 
 protected:
 	/** Returns TransformComponent subobject **/
-	class USceneComponent* GetTransformComponent() const;
+	class USceneComponent* GetTransformComponent() const { return TransformComponent; }
 };
 
 

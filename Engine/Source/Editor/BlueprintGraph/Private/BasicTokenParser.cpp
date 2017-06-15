@@ -136,7 +136,7 @@ FString FBasicToken::GetConstantValue() const
 			return String;
 
 		// unsupported (parsing never produces a constant token of these types:
-		// CPT_Vector, ..., CPT_Int8, CPT_Int16, CPT_Int64, ..., CPT_Bool8, etc)
+		// ..., CPT_Int8, CPT_Int16, CPT_Int64, ..., CPT_Bool8, etc)
 		default:
 			return TEXT("InvalidTypeForAToken");
 		}

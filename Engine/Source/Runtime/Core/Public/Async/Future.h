@@ -894,7 +894,7 @@ public:
 		BaseType::operator=(MoveTemp(Other));
 		FutureRetrieved = MoveTemp(Other.FutureRetrieved);
 
-		return this;
+		return *this;
 	}
 
 public:

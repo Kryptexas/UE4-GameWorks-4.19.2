@@ -3422,15 +3422,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		}
 
 		const bool FilterEditorOnly = InOuter->HasAnyPackageFlags(PKG_FilterEditorOnly);
-		// store a list of additional packages to cook when this is cooked (ie streaming levels)
-		TArray<FString> AdditionalPackagesToCook;
-
 
 		// Route PreSaveRoot to allow e.g. the world to attach components for the persistent level.
 		bool bCleanupIsRequired = false;
 		if (Base)
 		{
-			bCleanupIsRequired = Base->PreSaveRoot(Filename, AdditionalPackagesToCook);
+			bCleanupIsRequired = Base->PreSaveRoot(Filename);
 		}
 
 		const FString BaseFilename = FPaths::GetBaseFilename(Filename);
@@ -4034,10 +4031,6 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					}
 					return ESavePackageResult::Error;
 				}
-
-
-				// store the additional packages for cooking
-				Linker->Summary.AdditionalPackagesToCook = AdditionalPackagesToCook;
 
 				// Write fixed-length file summary to overwrite later.
 				if( Conform )

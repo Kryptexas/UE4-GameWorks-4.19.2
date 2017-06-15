@@ -10,6 +10,8 @@
 #include "UObject/Class.h"
 #include "Animation/MorphTarget.h"
 
+UNREALED_API DECLARE_LOG_CATEGORY_EXTERN(LogEditorFactories, Log, All);
+
 class Error;
 class USkeletalMesh;
 class UStaticMesh;

@@ -201,7 +201,7 @@ TD3D11Texture2D<BaseResourceType>::~TD3D11Texture2D()
 	D3D11TextureDeleted(*this);
 	if (bPooled)
 	{
-		ReturnPooledTexture2D(GetNumMips(), GetFormat(), GetResource());
+		ReturnPooledTexture2D(this->GetNumMips(), this->GetFormat(), this->GetResource());
 	}
 
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
@@ -1423,14 +1423,14 @@ void* TD3D11Texture2D<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,E
 	SCOPE_CYCLE_COUNTER(STAT_D3D11LockTextureTime);
 
 	// Calculate the subresource index corresponding to the specified mip-map.
-	const uint32 Subresource = D3D11CalcSubresource(MipIndex,ArrayIndex,GetNumMips());
+	const uint32 Subresource = D3D11CalcSubresource(MipIndex,ArrayIndex,this->GetNumMips());
 
 	// Calculate the dimensions of the mip-map.
-	const uint32 BlockSizeX = GPixelFormats[GetFormat()].BlockSizeX;
-	const uint32 BlockSizeY = GPixelFormats[GetFormat()].BlockSizeY;
-	const uint32 BlockBytes = GPixelFormats[GetFormat()].BlockBytes;
-	const uint32 MipSizeX = FMath::Max(GetSizeX() >> MipIndex,BlockSizeX);
-	const uint32 MipSizeY = FMath::Max(GetSizeY() >> MipIndex,BlockSizeY);
+	const uint32 BlockSizeX = GPixelFormats[this->GetFormat()].BlockSizeX;
+	const uint32 BlockSizeY = GPixelFormats[this->GetFormat()].BlockSizeY;
+	const uint32 BlockBytes = GPixelFormats[this->GetFormat()].BlockBytes;
+	const uint32 MipSizeX = FMath::Max(this->GetSizeX() >> MipIndex,BlockSizeX);
+	const uint32 MipSizeY = FMath::Max(this->GetSizeY() >> MipIndex,BlockSizeY);
 	const uint32 NumBlocksX = (MipSizeX + BlockSizeX - 1) / BlockSizeX;
 	const uint32 NumBlocksY = (MipSizeY + BlockSizeY - 1) / BlockSizeY;
 	const uint32 MipBytes = NumBlocksX * NumBlocksY * BlockBytes;
@@ -1467,9 +1467,9 @@ void* TD3D11Texture2D<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,E
 		TRefCountPtr<ID3D11Texture2D> StagingTexture;
 		VERIFYD3D11CREATETEXTURERESULT(
 			D3DRHI->GetDevice()->CreateTexture2D(&StagingTextureDesc,NULL,StagingTexture.GetInitReference()),
-			GetSizeX(),
-			GetSizeY(),
-			GetSizeZ(),
+			this->GetSizeX(),
+			this->GetSizeY(),
+			this->GetSizeZ(),
 			StagingTextureDesc.Format,
 			1,
 			0,
@@ -1499,7 +1499,7 @@ void TD3D11Texture2D<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 	SCOPE_CYCLE_COUNTER(STAT_D3D11UnlockTextureTime);
 
 	// Calculate the subresource index corresponding to the specified mip-map.
-	const uint32 Subresource = D3D11CalcSubresource(MipIndex,ArrayIndex,GetNumMips());
+	const uint32 Subresource = D3D11CalcSubresource(MipIndex,ArrayIndex,this->GetNumMips());
 
 	// Find the object that is tracking this lock
 	const FD3D11LockedKey LockedKey(GetResource(),Subresource);

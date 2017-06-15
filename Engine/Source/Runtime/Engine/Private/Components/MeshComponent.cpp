@@ -63,7 +63,7 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 			MarkRenderStateDirty();			
 			if (Material)
 			{
-				Material->AddToCluster(this);
+				Material->AddToCluster(this, true);
 			}
 
 			FBodyInstance* BodyInst = GetBodyInstance();

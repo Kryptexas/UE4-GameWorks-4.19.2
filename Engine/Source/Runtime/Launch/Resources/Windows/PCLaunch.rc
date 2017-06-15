@@ -49,6 +49,16 @@ BEGIN
     LTEXT           "Static",IDC_MESSAGE,16,14,265,66
 END
 
+IDD_YESNOYESTOALL DIALOGEX 0, 0, 297, 126
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Yes",IDC_YES,69,98,50,14
+    PUSHBUTTON      "No",IDC_NO_B,124,98,50,14
+    PUSHBUTTON      "Yes to all",IDC_YESTOALL,178,98,50,14
+    LTEXT           "Static",IDC_MESSAGE,16,14,265,66
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -73,6 +83,10 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 119
     END
+
+	IDD_YESNOYESTOALL, DIALOG
+	BEGIN
+	END
 END
 #endif    // APSTUDIO_INVOKED
 

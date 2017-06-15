@@ -146,13 +146,13 @@ public:
 		}
 #endif
 		check(AlignedOffset <= Offset);
-		int64 BytesRead = 0;
+		uint32 BytesRead = 0;
 		if (!GetOverlappedResult(FileHandle, &OverlappedIO, (LPDWORD)&BytesRead, TRUE))
 		{
 			uint32 ErrorCode = GetLastError();
 			UE_LOG(LogTemp, Fatal, TEXT("FWindowsReadRequest GetOverlappedResult failed code = %x!"), ErrorCode);
 		}
-		if (BytesRead < BytesToRead + (Offset - AlignedOffset))
+		if (int64(BytesRead) < BytesToRead + (Offset - AlignedOffset))
 		{
 			uint32 ErrorCode = GetLastError();
 			UE_LOG(LogTemp, Fatal, TEXT("FWindowsReadRequest Short Read code = %x!"), ErrorCode);

@@ -45,14 +45,12 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY()
 	class UCapsuleComponent* CapsuleComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Editor Preview */
-	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UNavTestRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
@@ -201,10 +199,10 @@ public:
 	virtual FPathFindingQuery BuildPathFindingQuery(const ANavigationTestingActor* Goal) const;
 
 	/** Returns CapsuleComponent subobject **/
-	class UCapsuleComponent* GetCapsuleComponent() const;
+	class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
 #if WITH_EDITORONLY_DATA
 	/** Returns EdRenderComp subobject **/
-	class UNavTestRenderingComponent* GetEdRenderComp() const;
+	class UNavTestRenderingComponent* GetEdRenderComp() const { return EdRenderComp; }
 #endif
 
 protected:

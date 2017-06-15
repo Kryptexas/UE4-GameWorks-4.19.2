@@ -4,9 +4,9 @@
 #include "IAnalyticsProviderET.h"
 
 #include "HttpModule.h"
+#include "Analytics.h"
 
 IMPLEMENT_MODULE( FAnalyticsET, AnalyticsET );
-DEFINE_LOG_CATEGORY(LogAnalytics);
 
 void FAnalyticsET::StartupModule()
 {
