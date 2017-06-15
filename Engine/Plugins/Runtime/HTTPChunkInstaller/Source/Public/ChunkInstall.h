@@ -10,7 +10,7 @@
 #include "Event.h"
 #include "GenericPlatformFile.h"
 #include "Paths.h"
-#include "PlatformFileManager.h"
+#include "PlatformFilemanager.h"
 #include "CoreDelegates.h"
 #include "FileManager.h"
 #include "Stats.h"

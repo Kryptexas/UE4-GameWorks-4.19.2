@@ -8,7 +8,7 @@
 #include "SecureHash.h"
 #include "IHttpRequest.h"
 #include "IHttpResponse.h"
-#include "HTTPModule.h"
+#include "HttpModule.h"
 #include "JsonObject.h"
 #include "JsonReader.h"
 #include "JsonSerializer.h"
