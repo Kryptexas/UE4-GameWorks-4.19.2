@@ -4,8 +4,8 @@
 
 #include "PacketHandler.h"
 
-#include "CryptoPP/5.6.2/include/rsa.h"
-#include "CryptoPP/5.6.2/include/osrng.h"
+#include "CryptoPP/5.6.5/include/rsa.h"
+#include "CryptoPP/5.6.5/include/osrng.h"
 
 /* RSA Encryptor Module Interface */
 class FRSAEncryptorHandlerComponentModuleInterface : public FPacketHandlerComponentModuleInterface
@@ -21,10 +21,7 @@ namespace ERSAEncryptionHandler
 	enum State
 	{
 		UnInitialized,
-		InitializedLocalKeys,
 		InitializedLocalKeysSentLocal,
-		InitializedLocalRemoteKeys,
-		InitializedLocalRemoteKeysSentLocal,
 		Initialized
 	};
 }
@@ -44,6 +41,8 @@ public:
 	/* Initializes the handler component */
 	virtual void Initialize() override;
 
+	virtual void NotifyHandshakeBegin() override;
+
 	/* Whether the handler component is valid */
 	virtual bool IsValid() const override;
 
@@ -52,6 +51,11 @@ public:
 
 	/* Handles any outgoing packets */
 	virtual void Outgoing(FBitWriter& Packet) override;
+
+	virtual int32 GetReservedPacketBits() override
+	{
+		return 0;
+	}
 
 protected:
 	/* Set the state of the handler */
@@ -70,16 +74,16 @@ protected:
 	virtual void UnPackRemoteKey(FBitReader& Packet);
 
 	/* Encrypt outgoing packet with remote connection's public key */
-	virtual void EncryptWithRemotePublic(const TArray<byte>& InPlainText, TArray<byte>& OutCipherText);
+	virtual void EncryptWithRemotePublic(const TArray<uint8>& InPlainText, TArray<uint8>& OutCipherText);
 
 	/* Decrypt incoming packet with local private key */
-	virtual void DecryptWithPrivate(const TArray<byte>& InCipherText, TArray<byte>& OutPlainText);
+	virtual void DecryptWithPrivate(const TArray<uint8>& InCipherText, TArray<uint8>& OutPlainText);
 
 	/* Save the public key's modulus in the provided array */
-	void SavePublicKeyModulus(TArray<byte>& OutModulus);
+	void SavePublicKeyModulus(TArray<uint8>& OutModulus);
 
 	/* Save the public key's exponent in the provided array */
-	void SavePublicKeyExponent(TArray<byte>& OutExponent);
+	void SavePublicKeyExponent(TArray<uint8>& OutExponent);
 
 	/** Maximum plain text length that can be encrypted with private key */
 	uint32 PrivateKeyMaxPlaintextLength;

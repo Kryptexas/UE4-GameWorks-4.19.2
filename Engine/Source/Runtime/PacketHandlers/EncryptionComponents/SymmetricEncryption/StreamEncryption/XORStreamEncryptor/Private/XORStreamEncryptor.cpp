@@ -2,6 +2,8 @@
 
 #include "XORStreamEncryptor.h"
 
+#include "Modules/ModuleManager.h"
+
 IMPLEMENT_MODULE(FXORStreamEncryptorModuleInterface, XORStreamEncryptor);
 
 StreamEncryptor* FXORStreamEncryptorModuleInterface::CreateStreamEncryptorInstance()

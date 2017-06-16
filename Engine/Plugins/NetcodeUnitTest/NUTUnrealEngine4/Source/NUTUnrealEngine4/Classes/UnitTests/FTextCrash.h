@@ -29,10 +29,6 @@ class UFTextCrash : public UClientUnitTest
 {
 	GENERATED_UCLASS_BODY()
 
-private:
-	/** Log message that is sent to the server, so that it will be triggered if the assert is not hit */
-	const TCHAR* ExploitFailLog;
-
 public:
 	virtual void InitializeEnvironmentSettings() override;
 

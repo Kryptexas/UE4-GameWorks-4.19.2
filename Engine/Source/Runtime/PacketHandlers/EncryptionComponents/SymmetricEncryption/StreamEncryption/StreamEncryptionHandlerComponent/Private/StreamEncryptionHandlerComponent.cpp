@@ -3,7 +3,9 @@
 #include "StreamEncryptionHandlerComponent.h"
 #include "XORStreamEncryptor.h"
 
-#include "CryptoPP/5.6.2/include/osrng.h"
+#include "Modules/ModuleManager.h"
+
+#include "CryptoPP/5.6.5/include/osrng.h"
 
 IMPLEMENT_MODULE(FStreamEncryptionHandlerComponentModuleInterface, StreamEncryptionHandlerComponent);
 
@@ -13,6 +15,7 @@ IMPLEMENT_MODULE(FStreamEncryptionHandlerComponentModuleInterface, StreamEncrypt
 
 // Stream Encryption Handler
 StreamEncryptionHandlerComponent::StreamEncryptionHandlerComponent(StreamEncryptor* InEncryptor, uint32 InKeySizeInBytes)
+	: Key()
 {
 	if (InEncryptor != nullptr)
 	{
@@ -141,10 +144,6 @@ void StreamEncryptionHandlerComponent::DecryptStream(FBitReader& Packet)
 }
 
 // MODULE INTERFACE
-TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
-{
-	return MakeShareable(new StreamEncryptionHandlerComponent);
-}
 
 TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {

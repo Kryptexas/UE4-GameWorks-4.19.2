@@ -1055,6 +1055,8 @@ void UNetDriver::InitConnectionlessHandler()
 
 		if (ConnectionlessHandler.IsValid())
 		{
+			ConnectionlessHandler->bConnectionlessHandler = true;
+
 			ConnectionlessHandler->Initialize(Handler::Mode::Server, MAX_PACKET_SIZE, true);
 
 			// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer

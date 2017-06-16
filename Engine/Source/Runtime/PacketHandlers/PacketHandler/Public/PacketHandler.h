@@ -8,10 +8,10 @@
 #include "Modules/ModuleInterface.h"
 #include "Containers/Queue.h"
 
-class HandlerComponent;
-class ReliabilityHandlerComponent;
+/** Temporary version-check macro for BeginHandshaking function, for backwards-compatibility. */
+#define PACKETHANDLER_HAS_BEGINHANDSHAKING 1
 
-DECLARE_LOG_CATEGORY_EXTERN(PacketHandlerLog, Log, All);
+PACKETHANDLER_API DECLARE_LOG_CATEGORY_EXTERN(PacketHandlerLog, Log, All);
 
 
 class HandlerComponent;
@@ -19,8 +19,22 @@ class ReliabilityHandlerComponent;
 
 
 /**
+ * Delegates
+ */
+
+// Delegate for allowing access to LowLevelSend, without a dependency upon Engine
+DECLARE_DELEGATE_ThreeParams(FPacketHandlerLowLevelSend, void* /* Data */, int32 /* CountBytes */, int32 /* CountBits */);
+
+/**
+ * Callback for notifying higher-level code that handshaking has completed, and that packets are now ready to send without buffering
+ */
+DECLARE_DELEGATE(FPacketHandlerHandshakeComplete);
+
+
+/**
  * Enums related to the PacketHandler
  */
+
 namespace Handler
 {
 	/**
@@ -110,6 +124,9 @@ struct PACKETHANDLER_API BufferedPacket
 	/** For connectionless packets, the address to send to (format is abstract, determined by active net driver) */
 	FString Address;
 
+	/** If buffering a packet through 'SendHandlerPacket', track the originating component */
+	HandlerComponent* FromComponent;
+
 
 public:
 	/**
@@ -121,6 +138,7 @@ public:
 		, ResendTime(0.f)
 		, Id(0)
 		, Address()
+		, FromComponent(nullptr)
 	{
 	}
 
@@ -129,6 +147,7 @@ public:
 		, ResendTime(InResendTime)
 		, Id(InId)
 		, Address()
+		, FromComponent(nullptr)
 	{
 		check(InCopyData != nullptr);
 
@@ -182,9 +201,26 @@ public:
 	void Initialize(Handler::Mode Mode, uint32 InMaxPacketBits, bool bConnectionlessOnly=false);
 
 	/**
+	 * Used for external initialization of delegates
+	 *
+	 * @param InLowLevelSendDel		The delegate the PacketHandler should use for triggering packet sends
+	 */
+	void InitializeDelegates(FPacketHandlerLowLevelSend InLowLevelSendDel)
+	{
+		LowLevelSendDel = InLowLevelSendDel;
+	}
+
+	/**
 	 * Triggers initialization of HandlerComponents.
 	 */
 	void InitializeComponents();
+
+
+	/**
+	 * Triggered by the higher level netcode, to begin any required HandlerComponent handshakes
+	 */
+	void BeginHandshaking(FPacketHandlerHandshakeComplete InHandshakeDel=FPacketHandlerHandshakeComplete());
+
 
 	void Tick(float DeltaTime);
 
@@ -320,20 +356,41 @@ protected:
 													FString Address=TEXT(""));
 
 public:
-
-
 	/**
-	 * Triggered when a child HandlerComponen has been initialized
+	 * Send a packet originating from a HandlerComponent - will process through the HandlerComponents chain,
+	 * starting after the triggering component.
+	 * NOTE: Requires that InitializeDelegates is called, with a valid LowLevelSend delegate.
+	 *
+	 * @param Component		The HandlerComponent sending the packet
+	 * @param Writer		The packet being sent
 	 */
-	void HandlerComponentInitialized();
+	void SendHandlerPacket(HandlerComponent* InComponent, FBitWriter& Writer);
+
 
 	/**
-	 * Queue's a packet to be sent when the handler is ticked
-	 * NOTE: Unimplemented.
+	 * Triggered when a child HandlerComponent has been initialized
+	 */
+	void HandlerComponentInitialized(HandlerComponent* InComponent);
+
+	/**
+	 * Queue's a packet to be sent when the handler is ticked (as a raw packet, since it's already been processed)
 	 *
 	 * @param PacketToQueue		The packet to be queued
 	 */
-	void QueuePacketForSending(BufferedPacket* PacketToQueue);
+	FORCEINLINE void QueuePacketForRawSending(BufferedPacket* PacketToQueue)
+	{
+		QueuedRawPackets.Enqueue(PacketToQueue);
+	}
+
+	/**
+	 * Queue's a packet to be sent through 'SendHandlerPacket'
+	 *
+	 * @param PacketToQueue		The packet to be queued
+	 */
+	FORCEINLINE void QueueHandlerPacketForSending(BufferedPacket* PacketToQueue)
+	{
+		QueuedHandlerPackets.Enqueue(PacketToQueue);
+	}
 
 	/**
 	 * Gets a packet from the buffered packet queue for sending
@@ -341,6 +398,13 @@ public:
 	 * @return		The packet to be sent, or nullptr if none are to be sent
 	 */
 	BufferedPacket* GetQueuedPacket();
+
+	/**
+	* Gets a packet from the buffered packet queue for sending (as a raw packet)
+	*
+	* @return		The packet to be sent, or nullptr if none are to be sent
+	*/
+	BufferedPacket* GetQueuedRawPacket();
 
 	/**
 	 * Gets a packet from the buffered connectionless packet queue for sending
@@ -374,6 +438,14 @@ public:
 	FORCEINLINE bool GetRawSend()
 	{
 		return bRawSend;
+	}
+
+	/**
+	 * Whether or not the packet handler is fully initialized, post-handshake etc.
+	 */
+	FORCEINLINE bool IsFullyInitialized()
+	{
+		return State == Handler::State::Initialized;
 	}
 
 
@@ -417,8 +489,17 @@ public:
 	/** Time, updated by Tick */
 	float Time;
 
+	/** Whether or not this PacketHandler handles connectionless (i.e. non-UNetConnection) data */
+	bool bConnectionlessHandler;
 
 private:
+	/** Delegate used for triggering PacketHandler/HandlerComponent-sourced sends */
+	FPacketHandlerLowLevelSend LowLevelSendDel;
+
+	/** Delegate used for notifying that handshaking has completed */
+	FPacketHandlerHandshakeComplete HandshakeCompleteDel;
+
+
 	/** Used for packing outgoing packets */
 	FBitWriter OutgoingPacket;
 
@@ -444,6 +525,12 @@ private:
 	/** Packets that are queued to be sent when handler is ticked */
 	TQueue<BufferedPacket*> QueuedPackets;
 
+	/** Packets that are queued to be sent when handler is ticked (as a raw packet) */
+	TQueue<BufferedPacket*> QueuedRawPackets;
+
+	/** Packets that are queued to be sent through 'SendHandlerPacket' */
+	TQueue<BufferedPacket*> QueuedHandlerPackets;
+
 	/** Packets that are buffered while HandlerComponents are being initialized */
 	TArray<BufferedPacket*> BufferedConnectionlessPackets;
 
@@ -451,11 +538,13 @@ private:
 	TQueue<BufferedPacket*> QueuedConnectionlessPackets;
 
 	/** Reliability Handler Component */
-	// @todo #JohnB: Deprecate?
 	TSharedPtr<ReliabilityHandlerComponent> ReliabilityComponent;
 
 	/** Whether or not outgoing packets bypass the handler */
 	bool bRawSend;
+
+	/** Whether or not component handshaking has begun */
+	bool bBeganHandshaking;
 };
 
 /**
@@ -548,6 +637,13 @@ public:
 	virtual void Initialize() PURE_VIRTUAL(HandlerComponent::Initialize,);
 
 	/**
+	 * Notification to this component that it is ready to begin handshaking
+	 */
+	virtual void NotifyHandshakeBegin()
+	{
+	}
+
+	/**
 	 * Tick functionality should be placed here
 	 */
 	virtual void Tick(float DeltaTime)
@@ -596,6 +692,12 @@ protected:
 	/** Maximum number of Outgoing packet bits supported (automatically calculated to factor in other HandlerComponent reserved bits) */
 	uint32 MaxOutgoingBits;
 
+	/** Whether this handler has to perform a network handshake during initialization (requires waiting on other HandlerComponent's) */
+	bool bRequiresHandshake;
+
+	/** Whether this handler depends upon the ReliabilityHandlerComponent being enabled */
+	bool bRequiresReliability;
+
 private:
 	/** Whether this handler is active, which dictates whether it will receive incoming and outgoing packets. */
 	bool bActive;
@@ -607,10 +709,14 @@ private:
 /**
  * PacketHandler Module Interface
  */
-class FPacketHandlerComponentModuleInterface : public IModuleInterface
+class PACKETHANDLER_API FPacketHandlerComponentModuleInterface : public IModuleInterface
 {
 public:
 	/* Creates an instance of this component */
 	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options)
 		PURE_VIRTUAL(FPacketHandlerModuleInterface::CreateComponentInstance, return TSharedPtr<HandlerComponent>(NULL););
+
+	virtual void StartupModule() override;
+
+	virtual void ShutdownModule() override;
 };

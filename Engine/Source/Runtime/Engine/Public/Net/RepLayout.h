@@ -470,7 +470,7 @@ public:
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 
-	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const;
+	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, UNetConnection* Connection, TArray< uint16 > * OutMerged ) const;
 
 	void SendProperties_BackwardsCompatible_r(
 		FRepState* RESTRICT					RepState,

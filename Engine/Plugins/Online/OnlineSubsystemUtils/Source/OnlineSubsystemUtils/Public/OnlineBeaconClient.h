@@ -70,6 +70,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	bool InitClient(FURL& URL);
 
 	/**
+	 * Send the packet for triggering the initial join
+	 */
+	void SendInitialJoin();
+
+	/**
 	 * Each beacon must have a unique type identifier
 	 *
 	 * @return string representing the type of beacon 

@@ -160,8 +160,15 @@ void UWebSocketConnection::ReceivedRawPacket(void* Data,int32 Count)
 									Driver->ConnectionlessHandler->IncomingConnectionless(LowLevelGetRemoteAddress(true), DataRef, Count);
 	
 			TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = Driver->StatelessConnectComponent.Pin();
+
+			// @todo #JohnB: This is not connectionless. Defeats the purpose of the connectionless handshake? (review this code)
 			if (!UnProcessedPacket.bError && StatelessConnect->HasPassedChallenge(LowLevelGetRemoteAddress(true)))
 			{
+				if (Handler.IsValid())
+				{
+					Handler->BeginHandshaking();
+				}
+
 				bChallengeHandshake = false; // i.e. bPassedChallenge
 				UE_LOG(LogNet, Warning, TEXT("UWebSocketConnection::bChallengeHandshake: %s"), *LowLevelDescribe());
 				Count = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);

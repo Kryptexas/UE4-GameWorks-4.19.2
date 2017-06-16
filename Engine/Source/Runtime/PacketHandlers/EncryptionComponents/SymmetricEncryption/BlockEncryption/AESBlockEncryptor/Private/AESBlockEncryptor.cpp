@@ -11,7 +11,7 @@ BlockEncryptor* FAESBlockEncryptorModuleInterface::CreateBlockEncryptorInstance(
 }
 
 // AES
-void AESBlockEncryptor::Initialize(TArray<byte>* InKey)
+void AESBlockEncryptor::Initialize(TArray<uint8>* InKey)
 {
 	Key = InKey;
 
@@ -26,9 +26,9 @@ void AESBlockEncryptor::Initialize(TArray<byte>* InKey)
 	FixedBlockSize = 16;
 }
 
-void AESBlockEncryptor::EncryptBlock(byte* Block)
+void AESBlockEncryptor::EncryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Encryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;
@@ -36,9 +36,9 @@ void AESBlockEncryptor::EncryptBlock(byte* Block)
 	//UE_LOG(PacketHandlerLog, Log, TEXT("AES Encrypted"));
 }
 
-void AESBlockEncryptor::DecryptBlock(byte* Block)
+void AESBlockEncryptor::DecryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Decryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;

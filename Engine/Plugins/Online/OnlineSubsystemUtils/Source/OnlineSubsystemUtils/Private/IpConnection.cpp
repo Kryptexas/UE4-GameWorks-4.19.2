@@ -15,6 +15,8 @@ Notes:
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
 
+#include "PacketAudit.h"
+
 /*-----------------------------------------------------------------------------
 	Declarations.
 -----------------------------------------------------------------------------*/
@@ -157,6 +159,8 @@ void UIpConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 	{
 		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: CountBytes > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), CountBytes, MaxPacket, *Describe() );
 	}
+
+	FPacketAudit::NotifyLowLevelSend((uint8*)DataToSend, CountBytes, CountBits);
 
 	if (CountBytes > 0)
 	{

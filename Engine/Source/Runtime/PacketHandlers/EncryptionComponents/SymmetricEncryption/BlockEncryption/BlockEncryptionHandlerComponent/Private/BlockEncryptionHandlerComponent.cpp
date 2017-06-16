@@ -3,6 +3,8 @@
 #include "BlockEncryptionHandlerComponent.h"
 #include "XORBlockEncryptor.h"
 
+#include "Modules/ModuleManager.h"
+
 IMPLEMENT_MODULE(FBlockEncryptionHandlerComponentModuleInterface, BlockEncryptionHandlerComponent);
 
 ///////////////////////////////////////////////////
@@ -11,6 +13,7 @@ IMPLEMENT_MODULE(FBlockEncryptionHandlerComponentModuleInterface, BlockEncryptio
 
 // Block Encryption Handler
 BlockEncryptionHandlerComponent::BlockEncryptionHandlerComponent(BlockEncryptor* InEncryptor, uint32 InKeySizeInBytes)
+	: Key()
 {
 	if (InEncryptor != nullptr)
 	{
@@ -32,7 +35,7 @@ void BlockEncryptionHandlerComponent::Initialize()
 		CryptoPP::AutoSeededRandomPool Rng;
 
 		Key.Reserve(KeySizeInBytes);
-		byte* Secret = new byte[KeySizeInBytes];
+		uint8* Secret = new uint8[KeySizeInBytes];
 
 		Rng.GenerateBlock(Secret, KeySizeInBytes);
 
@@ -59,7 +62,7 @@ void BlockEncryptionHandlerComponent::Incoming(FBitReader& Packet)
 		case Handler::Component::State::InitializedOnLocal:
 		case Handler::Component::State::UnInitialized:
 		{
-			TArray<byte> ReceivedKey;
+			TArray<uint8> ReceivedKey;
 			Packet << ReceivedKey;
 
 			// Set key
@@ -131,7 +134,7 @@ void BlockEncryptionHandlerComponent::EncryptBlock(FBitWriter& Packet)
 {
 	uint32 BlockSize = Encryptor->GetFixedBlockSize();
 
-	TArray<byte> Block;
+	TArray<uint8> Block;
 	Block.Reserve((Packet.GetNumBytes() / BlockSize) + 1);
 
 	// Copy data
@@ -171,7 +174,7 @@ void BlockEncryptionHandlerComponent::DecryptBlock(FBitReader& Packet)
 {
 	uint32 BlockSize = Encryptor->GetFixedBlockSize();
 
-	TArray<byte> Block;
+	TArray<uint8> Block;
 	Block.Reserve((Packet.GetNumBytes() / BlockSize) + 1);
 
 	uint32 PacketSizeBeforeEncryption;

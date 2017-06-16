@@ -2493,6 +2493,8 @@ bool FEngineLoop::LoadStartupCoreModules()
 	FModuleManager::Get().LoadModule(TEXT("ClothingSystemEditor"));
 #endif
 
+	FModuleManager::Get().LoadModule(TEXT("PacketHandler"));
+
 
 	return bSuccess;
 }

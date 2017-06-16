@@ -1,8 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Net/UnitTestPackageMap.h"
+
 #include "GameFramework/Actor.h"
 
+#include "MinimalClient.h"
 #include "Net/UnitTestNetConnection.h"
 
 
@@ -17,7 +19,7 @@ UUnitTestPackageMap::UUnitTestPackageMap(const FObjectInitializer& ObjectInitial
 {
 }
 
-bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID* OutNetGUID/*=NULL */)
+bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID* OutNetGUID/*=nullptr*/)
 {
 	bool bReturnVal = false;
 
@@ -47,20 +49,25 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 		// This indicates that SerializeObject has failed to find an existing instance when trying to serialize an actor,
 		// so it will be spawned clientside later on (after the archetype is serialized) instead.
 		// These spawns count as undesired clientside code execution, so filter them through NotifyAllowNetActor.
-		if (InClass == AActor::StaticClass() && Obj == NULL)
+		if (InClass == AActor::StaticClass() && Obj == nullptr)
 		{
 			bPendingArchetypeSpawn = true;
 		}
 		// This indicates that a new actor archetype has just been serialized (which may or may not be during actor channel init);
 		// this is the first place we know the type of a replicated actor (in an actor channel or otherwise), but BEFORE it is spawned
-		else if ((GIsInitializingActorChan || bPendingArchetypeSpawn) && InClass == UObject::StaticClass() && Obj != NULL)
+		else if ((GIsInitializingActorChan || bPendingArchetypeSpawn) && InClass == UObject::StaticClass() && Obj != nullptr)
 		{
 			UUnitTestNetConnection* UnitConn = Cast<UUnitTestNetConnection>(GActiveReceiveUnitConnection);
 			bool bAllowActor = false;
 
-			if (UnitConn != NULL && UnitConn->ReplicatedActorSpawnDel.IsBound())
+			if (UnitConn != nullptr)
 			{
-				bAllowActor = UnitConn->ReplicatedActorSpawnDel.Execute(Obj->GetClass(), GIsInitializingActorChan);
+				UMinimalClient* MinClient = UnitConn->MinClient;
+
+				if (MinClient != nullptr && MinClient->RepActorSpawnDel.IsBound())
+				{
+					bAllowActor = MinClient->RepActorSpawnDel.Execute(Obj->GetClass(), GIsInitializingActorChan);
+				}
 			}
 
 			if (!bAllowActor)
@@ -72,10 +79,10 @@ bool UUnitTestPackageMap::SerializeObject(FArchive& Ar, UClass* InClass, UObject
 						(GIsInitializingActorChan ? TEXT("true") : TEXT("false")), *Obj->GetClass()->GetFullName(),
 						*Obj->GetFullName());
 
-				Obj = NULL;
+				Obj = nullptr;
 
 				// NULL the control channel, to break code that would disconnect the client (control chan is recovered, in ReceivedBunch)
-				Connection->Channels[0] = NULL;
+				Connection->Channels[0] = nullptr;
 			}
 		}
 	}

@@ -108,16 +108,21 @@ void UChannel::Close()
 		UE_LOG(LogNetDormancy, Verbose, TEXT("UChannel::Close: Sending CloseBunch. Dormant: %d, %s"), Dormant, *Describe());
 
 		// Send a close notify, and wait for ack.
-		FOutBunch CloseBunch( this, 1 );
+		PacketHandler* Handler = Connection->Handler.Get();
+
+		if ((Handler == nullptr || Handler->IsFullyInitialized()) && Connection->HasReceivedClientPacket())
+		{
+			FOutBunch CloseBunch( this, 1 );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		CloseBunch.DebugString = FString::Printf(TEXT("%.2f Close: %s"), Connection->Driver->Time, *Describe());
+			CloseBunch.DebugString = FString::Printf(TEXT("%.2f Close: %s"), Connection->Driver->Time, *Describe());
 #endif
-		check(!CloseBunch.IsError());
-		check(CloseBunch.bClose);
-		CloseBunch.bReliable = 1;
-		CloseBunch.bDormant = Dormant;
-		SendBunch( &CloseBunch, 0 );
+			check(!CloseBunch.IsError());
+			check(CloseBunch.bClose);
+			CloseBunch.bReliable = 1;
+			CloseBunch.bDormant = Dormant;
+			SendBunch( &CloseBunch, 0 );
+		}
 	}
 }
 
@@ -605,6 +610,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			{
 				// If we opened the channel, we shouldn't be receiving bOpen commands from the other side
 				checkf(!OpenedLocally, TEXT("Received channel open command for channel that was already opened locally. %s"), *Describe());
+
 				check( OpenPacketId.First == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
 				check( OpenPacketId.Last == INDEX_NONE );	// This should be the first and only assignment of the packet range (we should only receive one bOpen bunch)
 			}
@@ -861,9 +867,9 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	//-----------------------------------------------------
 	FPacketIdRange PacketIdRange;
 
-	bool bOverflowsReliable = (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose);
+	const bool bOverflowsReliable = (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose);
 
-	if (OutgoingBunches.Num() >= CVarNetPartialBunchReliableThreshold->GetInt() && CVarNetPartialBunchReliableThreshold->GetInt() > 0)
+	if (OutgoingBunches.Num() >= CVarNetPartialBunchReliableThreshold->GetInt() && CVarNetPartialBunchReliableThreshold->GetInt() > 0 && !Connection->InternalAck)
 	{
 		if (!bOverflowsReliable)
 		{

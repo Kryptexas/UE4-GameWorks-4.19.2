@@ -1,20 +1,24 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTest.h"
+
+#include "HAL/FileManager.h"
 #include "Containers/ArrayBuilder.h"
 #include "Misc/OutputDeviceHelper.h"
 #include "Misc/FeedbackContext.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 
+#include "UnitTestEnvironment.h"
 #include "UnitTestManager.h"
+#include "NUTUtil.h"
 
 #include "UI/SLogWidget.h"
 #include "UI/SLogWindow.h"
 
 
-FUnitTestEnvironment* UUnitTest::UnitEnv = NULL;
-FUnitTestEnvironment* UUnitTest::NullUnitEnv = NULL;
+FUnitTestEnvironment* UUnitTest::UnitEnv = nullptr;
+FUnitTestEnvironment* UUnitTest::NullUnitEnv = nullptr;
 
 
 /**
@@ -73,6 +77,8 @@ UUnitTest::UUnitTest(const FObjectInitializer& ObjectInitializer)
 	, LogWindow()
 	, LogColor(FSlateColor::UseForeground())
 	, StatusLogSummary()
+	, UnitLog()
+	, UnitLogDir()
 {
 }
 
@@ -107,11 +113,18 @@ bool UUnitTest::UTStartUnitTest()
 {
 	bool bSuccess = false;
 
+	InitializeLogs();
+
 	StartTime = FPlatformTime::Seconds();
 
 	if (bWorkInProgress)
 	{
 		UNIT_LOG(ELogType::StatusWarning, TEXT("WARNING: Unit test marked as 'work in progress', not included in automated tests."));
+	}
+
+	if (UnitEnv != nullptr)
+	{
+		UnitTestTimeout = FMath::Max(UnitTestTimeout, UnitEnv->GetDefaultUnitTestTimeout());
 	}
 
 	bSuccess = ExecuteUnitTest();
@@ -160,7 +173,7 @@ void UUnitTest::EndUnitTest()
 	CleanupUnitTest();
 	bCompleted = true;
 
-	if (GUnitTestManager != NULL)
+	if (GUnitTestManager != nullptr)
 	{
 		GUnitTestManager->NotifyUnitTestComplete(this, bAborted);
 	}
@@ -168,7 +181,7 @@ void UUnitTest::EndUnitTest()
 
 void UUnitTest::CleanupUnitTest()
 {
-	if (GUnitTestManager != NULL)
+	if (GUnitTestManager != nullptr)
 	{
 		GUnitTestManager->NotifyUnitTestCleanup(this);
 	}
@@ -176,6 +189,32 @@ void UUnitTest::CleanupUnitTest()
 	{
 		// Mark for garbage collection
 		MarkPendingKill();
+	}
+}
+
+void UUnitTest::InitializeLogs()
+{
+	if (UnitLogDir.IsEmpty())
+	{
+		UnitLogDir = UUnitTestManager::Get()->GetBaseUnitLogDir() + GetUnitTestName();
+
+		if (FPaths::DirectoryExists(UnitLogDir))
+		{
+			uint32 UnitTestNameCount = 1;
+
+			for (; FPaths::DirectoryExists(UnitLogDir + FString::Printf(TEXT("_%i"), UnitTestNameCount)); UnitTestNameCount++)
+			{
+				UNIT_ASSERT(UnitTestNameCount < 16384);
+			}
+
+			UnitLogDir += FString::Printf(TEXT("_%i"), UnitTestNameCount);
+		}
+
+		UnitLogDir += TEXT("/");
+
+		IFileManager::Get().MakeDirectory(*UnitLogDir);
+
+		UnitLog = MakeUnique<FOutputDeviceFile>(*(UnitLogDir + GetUnitTestName() + TEXT(".log")));
 	}
 }
 
@@ -187,48 +226,63 @@ void UUnitTest::NotifyLocalLog(ELogType InLogType, const TCHAR* Data, ELogVerbos
 
 		ELogType LogOrigin = (InLogType & ELogType::OriginMask);
 
-		if (LogWidget.IsValid() && LogOrigin != ELogType::None && !(LogOrigin & ELogType::OriginVoid))
+		if (LogOrigin != ELogType::None && !(LogOrigin & ELogType::OriginVoid))
 		{
-			if (Verbosity == ELogVerbosity::SetColor)
+			if (UnitLog.IsValid() && Verbosity != ELogVerbosity::SetColor)
 			{
-				// Unimplemented
+				if (LogOrigin == ELogType::OriginNet)
+				{
+					NUTUtil::SpecialLog(UnitLog.Get(), TEXT("[NET]"), Data, Verbosity, Category);
+				}
+				else
+				{
+					UnitLog->Serialize(Data, Verbosity, Category);
+				}
 			}
-			else
+
+			if (LogWidget.IsValid())
 			{
-				FString LogLine = FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes);
-				FSlateColor CurLogColor = FSlateColor::UseForeground();
-
-				// Make unit test logs grey
-				if (LogOrigin == ELogType::OriginUnitTest)
+				if (Verbosity == ELogVerbosity::SetColor)
 				{
-					if (LogColor.IsColorSpecified())
+					// Unimplemented
+				}
+				else
+				{
+					FString LogLine = FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes);
+					FSlateColor CurLogColor = FSlateColor::UseForeground();
+
+					// Make unit test logs grey
+					if (LogOrigin == ELogType::OriginUnitTest)
 					{
-						CurLogColor = LogColor;
+						if (LogColor.IsColorSpecified())
+						{
+							CurLogColor = LogColor;
+						}
+						else
+						{
+							CurLogColor = FLinearColor(0.25f, 0.25f, 0.25f);
+						}
 					}
-					else
+					// Prefix net logs with [NET]
+					else if (LogOrigin == ELogType::OriginNet)
 					{
-						CurLogColor = FLinearColor(0.25f, 0.25f, 0.25f);
+						LogLine = FString(TEXT("[NET]")) + LogLine;
 					}
-				}
-				// Prefix net logs with [NET]
-				else if (LogOrigin == ELogType::OriginNet)
-				{
-					LogLine = FString(TEXT("[NET]")) + LogLine;
-				}
 
-				// Override log color, if a warning or error is being printed
-				if (Verbosity == ELogVerbosity::Error)
-				{
-					CurLogColor = FLinearColor(1.f, 0.f, 0.f);
-				}
-				else if (Verbosity == ELogVerbosity::Warning)
-				{
-					CurLogColor = FLinearColor(1.f, 1.f, 0.f);
-				}
+					// Override log color, if a warning or error is being printed
+					if (Verbosity == ELogVerbosity::Error)
+					{
+						CurLogColor = FLinearColor(1.f, 0.f, 0.f);
+					}
+					else if (Verbosity == ELogVerbosity::Warning)
+					{
+						CurLogColor = FLinearColor(1.f, 1.f, 0.f);
+					}
 
-				bool bRequestFocus = !!(LogOrigin & ELogType::FocusMask);
+					bool bRequestFocus = !!(LogOrigin & ELogType::FocusMask);
 
-				LogWidget->AddLine(InLogType, MakeShareable(new FString(LogLine)), CurLogColor, bRequestFocus);
+					LogWidget->AddLine(InLogType, MakeShareable(new FString(LogLine)), CurLogColor, bRequestFocus);
+				}
 			}
 		}
 	}
@@ -259,7 +313,7 @@ bool UUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FString Comm
 		if (CommandContext == TEXT("Global"))
 		{
 			UNIT_LOG_BEGIN(this, ELogType::OriginConsole);
-			bHandled = GEngine->Exec(NULL, *Command, *GLog);
+			bHandled = GEngine->Exec(nullptr, *Command, *GLog);
 			UNIT_LOG_END();
 		}
 	}
@@ -316,27 +370,7 @@ void UUnitTest::TickIsComplete(float DeltaTime)
 	{
 		if (!bVerificationLogged)
 		{
-			if (VerificationState == EUnitTestVerification::VerifiedNotFixed)
-			{
-				UNIT_LOG(ELogType::StatusFailure, TEXT("Unit test verified as NOT FIXED"));
-			}
-			else if (VerificationState == EUnitTestVerification::VerifiedFixed)
-			{
-				UNIT_LOG(ELogType::StatusSuccess, TEXT("Unit test verified as FIXED"));
-			}
-			else if (VerificationState == EUnitTestVerification::VerifiedUnreliable)
-			{
-				UNIT_LOG(ELogType::StatusWarning, TEXT("Unit test verified as UNRELIABLE"));
-			}
-			else if (VerificationState == EUnitTestVerification::VerifiedNeedsUpdate)
-			{
-				UNIT_LOG(ELogType::StatusWarning | ELogType::StyleBold, TEXT("Unit test NEEDS UPDATE"));
-			}
-			else
-			{
-				// Don't forget to add new verification states
-				UNIT_ASSERT(false);
-			}
+			LogComplete();
 
 			bVerificationLogged = true;
 		}
@@ -345,6 +379,31 @@ void UUnitTest::TickIsComplete(float DeltaTime)
 		{
 			EndUnitTest();
 		}
+	}
+}
+
+void UUnitTest::LogComplete()
+{
+	if (VerificationState == EUnitTestVerification::VerifiedNotFixed)
+	{
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Unit test verified as NOT FIXED"));
+	}
+	else if (VerificationState == EUnitTestVerification::VerifiedFixed)
+	{
+		UNIT_LOG(ELogType::StatusSuccess, TEXT("Unit test verified as FIXED"));
+	}
+	else if (VerificationState == EUnitTestVerification::VerifiedUnreliable)
+	{
+		UNIT_LOG(ELogType::StatusWarning, TEXT("Unit test verified as UNRELIABLE"));
+	}
+	else if (VerificationState == EUnitTestVerification::VerifiedNeedsUpdate)
+	{
+		UNIT_LOG(ELogType::StatusWarning | ELogType::StyleBold, TEXT("Unit test NEEDS UPDATE"));
+	}
+	else
+	{
+		// Don't forget to add new verification states
+		UNIT_ASSERT(false);
 	}
 }
 

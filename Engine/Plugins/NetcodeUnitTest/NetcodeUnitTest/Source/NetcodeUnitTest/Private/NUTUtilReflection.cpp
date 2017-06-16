@@ -103,6 +103,12 @@ FVMReflection::FVMReflection(const FVMReflection& ToCopy)
 {
 }
 
+FVMReflection::FVMReflection(FFuncReflection& InFuncRefl, EVMRefWarning InWarnLevel/*=EVMRefWarning::Warn*/)
+	: FVMReflection(InFuncRefl.ParmsRefl)
+{
+	WarnLevel = InWarnLevel;
+}
+
 FVMReflection& FVMReflection::operator = (const FVMReflection& ToCopy)
 {
 	UNIT_ASSERT(FString(TEXT("This should never be called.")) == TEXT(""));
@@ -219,7 +225,7 @@ FVMReflection& FVMReflection::operator ->*(FString PropertyName)
 
 		// UObjectProperty
 		// This is a special circumstance, context changes to the object, but FieldAddress is kept pointing to the object property
-		if (FieldInstance->IsA(UObjectProperty::StaticClass()))
+		if (IsPropertyObject())
 		{
 			ProcessObjectProperty();
 		}
@@ -294,7 +300,7 @@ FVMReflection& FVMReflection::operator [](int32 ArrayElement)
 
 		// Handle context changes from UObjectProperty
 		// This is a special circumstance, context changes to the object, but FieldAddress is kept pointing to the object property
-		if (FieldInstance->IsA(UObjectProperty::StaticClass()))
+		if (IsPropertyObject())
 		{
 			ProcessObjectProperty();
 		}
@@ -384,6 +390,7 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 
 			ActualFieldTypeStr = ActualFieldType->GetClass()->GetName();
 
+			// @todo #JohnB: Try to do away with these macros, not pretty.
 			#define FIELD_TYPE_CHECK_FIRST(TypeString, TypeProperty) \
 				if (ExpectedFieldType == TypeString) \
 				{ \
@@ -457,9 +464,9 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 						(ExpectedFieldType.Left(1) == TEXT("U") || ExpectedFieldType.Left(1) == TEXT("A")) &&
 						ExpectedFieldType.Right(1) == TEXT("*"))
 			{
-				UObjectProperty* ObjProp = Cast<UObjectProperty>(ActualFieldType);
+				UObjectPropertyBase* ObjProp = Cast<UObjectPropertyBase>(ActualFieldType);
 
-				if (ObjProp != NULL)
+				if (ObjProp != nullptr)
 				{
 					FString ClassName = ExpectedFieldType.Mid(1, ExpectedFieldType.Len()-2);
 
@@ -520,13 +527,13 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 	}
 	else if (!bIsError)
 	{
-		if (FieldInstance == NULL)
+		if (FieldInstance == nullptr)
 		{
-			SetError(TEXT("FieldInstance is NULL."));
+			SetError(TEXT("FieldInstance is nullptr."));
 		}
-		else if (FieldAddress == NULL)
+		else if (FieldAddress == nullptr)
 		{
-			SetError(TEXT("FieldAddress is NULL (should already be pointing to base property address)."));
+			SetError(TEXT("FieldAddress is nullptr (should already be pointing to base property address)."));
 		}
 		else //if (bVerifiedFieldType)
 		{
@@ -545,7 +552,7 @@ void FVMReflection::ProcessObjectProperty()
 		{
 			UObject* PropValue = *(UObject**)FieldAddress;
 
-			if (PropValue != NULL)
+			if (PropValue != nullptr)
 			{
 				BaseAddress = PropValue;
 				FieldInstance = PropValue->GetClass();
@@ -553,7 +560,24 @@ void FVMReflection::ProcessObjectProperty()
 			else
 			{
 				bNextActionMustBeCast = true;
-				NextActionError = FString::Printf(TEXT("UObjectProperty '%s' was NULL."), *FieldInstance->GetFullName());
+				NextActionError = FString::Printf(TEXT("UObjectProperty '%s' was nullptr."), *FieldInstance->GetFullName());
+			}
+		}
+		else if (FieldInstance->IsA(UWeakObjectProperty::StaticClass()))
+		{
+			FWeakObjectPtr& PtrValue = *(FWeakObjectPtr*)FieldAddress;
+
+			if (PtrValue.IsValid())
+			{
+				UObject* PropValue = PtrValue.Get();
+
+				BaseAddress = PropValue;
+				FieldInstance = PropValue->GetClass();
+			}
+			else
+			{
+				bNextActionMustBeCast = true;
+				NextActionError = FString::Printf(TEXT("UWeakObjectProperty '%s' was Invalid."), *FieldInstance->GetFullName());
 			}
 		}
 		else
@@ -1050,6 +1074,25 @@ FVMReflection::operator FScriptArray*()
 	CAST_RETURN(ReturnVal);
 }
 
+FVMReflection::operator TSharedPtr<FScriptArrayHelper>()
+{
+	TSharedPtr<FScriptArrayHelper> ReturnVal = nullptr;
+	FScriptArray* ScriptArray = (FScriptArray*)(*this);
+
+	AddCastHistory(TEXT("(TSharedPtr<FScriptArrayHelper>)"));
+
+	if (ScriptArray != NULL)
+	{
+		ReturnVal = MakeShareable(new FScriptArrayHelper(Cast<UArrayProperty>(FieldInstance), ScriptArray));
+	}
+	else
+	{
+		SetCastError(TEXT("Failed to get script array result."));
+	}
+
+	CAST_RETURN(ReturnVal);
+}
+
 FVMReflection::operator void*()
 {
 	void* ReturnVal = NULL;
@@ -1075,6 +1118,97 @@ FVMReflection::operator void*()
 	}
 
 	CAST_RETURN(ReturnVal);
+}
+
+FVMReflection& FVMReflection::operator = (bool Value)
+{
+	UBoolProperty* BoolProp = Cast<UBoolProperty>(FieldInstance);
+
+	AddHistory(Value ? TEXT(" = true") : TEXT(" = false"));
+
+	if (CanCastProperty())
+	{
+		if (BoolProp != NULL)
+		{
+			BoolProp->SetPropertyValue(FieldAddress, Value);
+		}
+		else
+		{
+			FString Error = FString::Printf(TEXT("FieldInstance is of type '%s', not 'UBoolProperty'."),
+								*FieldInstance->GetClass()->GetName());
+
+			SetError(Error);
+		}
+	}
+	else
+	{
+		SetError(TEXT("Can't cast property."));
+	}
+
+	return *this;
+}
+
+FVMReflection& FVMReflection::operator = (UObject* Value)
+{
+	UObject** ObjRef = (UObject**)(*this);
+
+	if (ObjRef != nullptr)
+	{
+		*ObjRef = Value;
+	}
+
+	return *this;
+}
+
+FVMReflection& FVMReflection::operator = (TCHAR* Value)
+{
+	// @todo #JohnB: This doesn't seem to work. Are UEnumProperty's actually used?
+#if 0
+	bool bAssigningEnum = FieldInstance != nullptr && FieldInstance->IsA<UEnumProperty>();
+
+	if (bAssigningEnum)
+	{
+			UEnumProperty* EnumProp = Cast<UEnumProperty>(FieldInstance);
+			UEnum* TargetEnum = EnumProp->GetEnum();
+
+			if (TargetEnum->IsValidEnumName(EnumFName))
+			{
+				// @todo #JohnB: Test this
+				EnumProp->GetUnderlyingProperty()->SetIntPropertyValue(FieldAddress, (int64)TargetEnum->GetIndexByName(EnumFName));
+			}
+			else
+			{
+				SetError(FString::Printf(TEXT("Name '%s' is not a valid name within enum '%s'."), *EnumName, *TargetEnum->GetName()));
+			}
+	}
+#endif
+
+	UByteProperty* ByteProp = FieldInstance != nullptr ? Cast<UByteProperty>(FieldInstance) : nullptr;
+	UEnum* TargetEnum = ByteProp != nullptr ? ByteProp->Enum : nullptr;
+
+	if (TargetEnum != nullptr)
+	{
+		if (TargetEnum->IsValidEnumName(Value))
+		{
+			*(uint8*)FieldAddress = (uint8)TargetEnum->GetIndexByName(Value);
+		}
+		else
+		{
+			SetError(FString::Printf(TEXT("Name '%s' is not a valid name within enum '%s'."), Value, *TargetEnum->GetName()));
+		}
+	}
+	// Otherwise revert to string assign
+	else
+	{
+		FString* VarRef = (FString*)(*this);
+
+		if (VarRef != nullptr)
+		{
+			*VarRef = Value;
+		}
+	}
+
+	return *this;
 }
 
 TValueOrError<FString, FString> FVMReflection::GetValueAsString()

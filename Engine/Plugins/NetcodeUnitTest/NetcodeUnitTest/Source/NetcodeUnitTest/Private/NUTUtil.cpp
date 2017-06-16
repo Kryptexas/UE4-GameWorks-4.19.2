@@ -5,6 +5,8 @@
 
 #include "UnitTest.h"
 #include "ProcessUnitTest.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Misc/OutputDeviceHelper.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "ClientUnitTest.h"
@@ -107,6 +109,45 @@ void NUTUtil::SortUnitTestClassDefList(TArray<UUnitTest*>& InUnitTestClassDefaul
 
 	// Now sort again, based both on type and date
 	InUnitTestClassDefaults.Sort(FUnitTestTypeDateSort(ListTypes));
+}
+
+void NUTUtil::SpecialLog(FOutputDeviceFile* Ar, const TCHAR* SpecialCategory, const TCHAR* Data, ELogVerbosity::Type Verbosity,
+							const FName& Category)
+{
+	bool bOldEmitTerminator = Ar->GetAutoEmitLineTerminator();
+	bool bOldSuppressEvent = Ar->GetSuppressEventTag();
+
+	Ar->SetAutoEmitLineTerminator(false);
+
+	// Log the timestamp, special category and verbosity/category tag (uses some log system hacks to achieve clean logs)
+	FString SerializeStr = SpecialCategory;
+
+	if (!bOldSuppressEvent)
+	{
+		if (Category != NAME_None)
+		{
+			SerializeStr += Category.ToString() + TEXT(":");
+		}
+
+		if (Verbosity != ELogVerbosity::Log)
+		{
+			SerializeStr += FOutputDeviceHelper::VerbosityToString(Verbosity);
+			SerializeStr += TEXT(": ");
+		}
+		else if (Category != NAME_None)
+		{
+			SerializeStr += TEXT(" ");
+		}
+	}
+
+	Ar->Serialize(*SerializeStr, ELogVerbosity::Log, NAME_None);
+
+	Ar->SetAutoEmitLineTerminator(bOldEmitTerminator);
+	Ar->SetSuppressEventTag(true);
+
+	Ar->Serialize(Data, Verbosity, Category);
+
+	Ar->SetSuppressEventTag(bOldSuppressEvent);
 }
 
 

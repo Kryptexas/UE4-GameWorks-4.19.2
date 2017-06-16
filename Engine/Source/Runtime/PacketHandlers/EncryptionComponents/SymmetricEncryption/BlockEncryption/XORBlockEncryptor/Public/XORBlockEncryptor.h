@@ -17,13 +17,13 @@ class XORBLOCKENCRYPTOR_API XORBlockEncryptor : public BlockEncryptor
 {
 public:
 	/* Initialized the encryptor */
-	void Initialize(TArray<byte>* Key) override;
+	void Initialize(TArray<uint8>* Key) override;
 
 	/* Encrypts outgoing packets */
-	void EncryptBlock(byte* Block) override;
+	void EncryptBlock(uint8* Block) override;
 
 	/* Decrypts incoming packets */
-	void DecryptBlock(byte* Block) override;
+	void DecryptBlock(uint8* Block) override;
 
 	/* Get the default key size for this encryptor */
 	uint32 GetDefaultKeySize() { return 4; }

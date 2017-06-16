@@ -40,18 +40,54 @@ struct ENGINE_API FPacketSimulationSettings
 {
 	GENERATED_USTRUCT_BODY()
 
+	/**
+	 * When set, will cause calls to FlushNet to drop packets.
+	 * Value is treated as % of packets dropped (i.e. 0 = None, 100 = All).
+	 * No general pattern / ordering is guaranteed.
+	 * Clamped between 0 and 100.
+	 *
+	 * Works with all other settings.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLoss;
 
+	/**
+	 * When set, will cause calls to FlushNet to change ordering of packets at random.
+	 * Value is treated as a bool (i.e. 0 = False, anything else = True).
+	 * This works by randomly selecting packets to be delayed until a subsequent call to FlushNet.
+	 *
+	 * Takes precedence over PktDup and PktLag.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktOrder;
 
+	/**
+	 * When set, will cause calls to FlushNet to duplicate packets.
+	 * Value is treated as % of packets duplicated (i.e. 0 = None, 100 = All).
+	 * No general pattern / ordering is guaranteed.
+	 * Clamped between 0 and 100.
+	 *
+	 * Cannot be used with PktOrder or PktLag.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktDup;
 	
+	/**
+	 * When set, will cause calls to FlushNet to delay packets.
+	 * Value is treated as millisecond lag.
+	 *
+	 * Cannot be used with PktOrder.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLag;
 	
+	/**
+	 * When set, will cause PktLag to use variable lag instead of constant.
+	 * Value is treated as millisecond lag range (e.g. -GivenVariance <= 0 <= GivenVariance).
+	 * Clamped between 0 and 100.
+	 *
+	 * Can only be used when PktLag is enabled.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLagVariance;
 

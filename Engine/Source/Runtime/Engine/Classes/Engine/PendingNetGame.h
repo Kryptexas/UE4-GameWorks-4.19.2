@@ -129,6 +129,11 @@ public:
 
 	void	InitNetDriver();
 
+	/**
+	 * Send the packet for triggering the initial join
+	 */
+	void SendInitialJoin();
+
 	//~ Begin FNetworkNotify Interface.
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;

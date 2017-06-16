@@ -3,7 +3,7 @@
 #pragma once
 
 #include "BlockEncryptionHandlerComponent.h"
-#include "CryptoPP/5.6.2/include/twofish.h"
+#include "CryptoPP/5.6.5/include/twofish.h"
 
 /* TwoFish Block Encryptor Module Interface */
 class FTwoFishBlockEncryptorModuleInterface : public FBlockEncryptorModuleInterface
@@ -18,13 +18,13 @@ class TWOFISHBLOCKENCRYPTOR_API TwoFishBlockEncryptor : public BlockEncryptor
 {
 public:
 	/* Initialized the encryptor */
-	void Initialize(TArray<byte>* Key) override;
+	void Initialize(TArray<uint8>* Key) override;
 
 	/* Encrypts outgoing packets */
-	void EncryptBlock(byte* Block) override;
+	void EncryptBlock(uint8* Block) override;
 
 	/* Decrypts incoming packets */
-	void DecryptBlock(byte* Block) override;
+	void DecryptBlock(uint8* Block) override;
 
 	/* Get the default key size for this encryptor */
 	uint32 GetDefaultKeySize() { return 16; }

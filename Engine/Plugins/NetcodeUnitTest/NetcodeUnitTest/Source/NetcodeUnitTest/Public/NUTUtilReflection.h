@@ -9,6 +9,7 @@
 #include "ValueOrError.h"
 
 class FStructOnScope;
+class FFuncReflection;
 
 /**
  * FVMReflection - Reflection Helper
@@ -236,12 +237,28 @@ public:
 	 */
 	explicit FVMReflection(const FVMReflection& ToCopy);
 
+	/**
+	 * FFuncReflection copy constructor - initializing from a function reflection struct instance (shortcut to reference its parameters)
+	 *
+	 * @param InFuncRefl	The function reflection struct to initialize from
+	 * @param InWarnLevel	Whether or not reflection failures (e.g. something major like missing properties) should be logged
+	 */
+	explicit FVMReflection(FFuncReflection& InFuncRefl, EVMRefWarning InWarnLevel=EVMRefWarning::Warn);
+
 
 private:
 	/**
 	 * Copy assignment operator - not supported
 	 */
 	FVMReflection& operator = (const FVMReflection& ToCopy);
+
+	/**
+	 * Member access operator - not used, use ->* instead
+	 */
+	FVMReflection* operator ->()
+	{
+		return nullptr;
+	}
 
 public:
 	/**
@@ -329,7 +346,7 @@ private:
 		explicit operator InType*(); \
 		\
 		/** Also implement the assignment operator, for automatically performing these casts and assigning */ \
-		FVMReflection& operator = (InType Value) \
+		FORCEINLINE FVMReflection& operator = (InType Value) \
 		{ \
 			InType* VarRef = (InType*)(*this); \
 			\
@@ -426,32 +443,12 @@ public:
 	 */
 	explicit operator FScriptArray*();
 
-	// @todo JohnB: Decide whether to keep or remove; I've decided to do array iteration, by reusing the VM reflector instead
-	// @todo JohnB: When you implement array iteration somewhere, and get back to this bit of code, then fully document the iteration
-	//				method that you settle upon.
-#if 0
 	/**
 	 * Cast to an FScriptArrayHelper, which is useful for performing operations on arrays of an uncertain/undefined type
+	 * NOTE: Useful specifically in cases where you need to add to an array, less so for array iteration.
 	 */
-	explicit operator TSharedPtr<FScriptArrayHelper>()
-	{
-		TSharedPtr<FScriptArrayHelper> ReturnVal = NULL;
-		FScriptArray* ScriptArray = (FScriptArray*)this;
+	explicit operator TSharedPtr<FScriptArrayHelper>();
 
-		AddCastHistory(TEXT("(TSharedPtr<FScriptArrayHelper>)"));
-
-		if (ScriptArray != NULL)
-		{
-			ReturnVal = MakeShareable(new FScriptArrayHelper(Cast<UArrayProperty>(FieldInstance), ScriptArray));
-		}
-		else
-		{
-			SetCastError(TEXT("Failed to get script array result."));
-		}
-
-		CAST_RETURN(ReturnVal);
-	}
-#endif
 
 	// @todo JohnB: Perhaps add casts for known array types, the same ones you do type verification on
 
@@ -460,6 +457,27 @@ public:
 	 * Cast operator for structs in general - cast to void*, then cast to StructType*
 	 */
 	explicit operator void*();
+
+
+	/**
+	 * Special assignment operators
+	 */
+
+	/**
+	 * Assign a value to a bool property
+	 */
+	FVMReflection& operator = (bool Value);
+
+	/**
+	 * Assign a value to an object property
+	 */
+	FVMReflection& operator = (UObject* Value);
+
+	/**
+	 * Assign a value to either a string or an enum property (autodetects enums)
+	 * NOTE: Enums must be specified in format: EEnumName::EnumValueName
+	 */
+	FVMReflection& operator = (TCHAR* Value);
 
 
 	#undef GENERIC_POINTER_CAST_ASSIGN
@@ -571,6 +589,17 @@ private:
 		UProperty* CurProp = Cast<UProperty>(FieldInstance);
 
 		return CurProp != NULL && (CurProp->ArrayDim > 1 || Cast<UArrayProperty>(CurProp) != NULL);
+	}
+
+	/**
+	 * Whether or not a property is an object
+	 *
+	 * @return	Returns whether or not the object is an object
+	 */
+	FORCEINLINE bool IsPropertyObject() const
+	{
+		return FieldInstance != nullptr && (FieldInstance->IsA(UObjectProperty::StaticClass()) ||
+				FieldInstance->IsA(UWeakObjectProperty::StaticClass()));
 	}
 
 	/**

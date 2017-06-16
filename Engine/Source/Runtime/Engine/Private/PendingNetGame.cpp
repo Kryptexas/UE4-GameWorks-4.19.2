@@ -47,23 +47,15 @@ void UPendingNetGame::InitNetDriver()
 			UNetConnection* ServerConn = NetDriver->ServerConnection;
 
 			// Kick off the connection handshake
-			if (ServerConn->StatelessConnectComponent.IsValid())
+			if (ServerConn->Handler.IsValid())
 			{
-				ServerConn->StatelessConnectComponent.Pin()->SendInitialConnect();
+				ServerConn->Handler->BeginHandshaking(
+					FPacketHandlerHandshakeComplete::CreateUObject(this, &UPendingNetGame::SendInitialJoin));
 			}
-
-
-			// Send initial message.
-			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
-			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
-			
-			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-
-			UE_LOG( LogNet, Log, TEXT( "UPendingNetGame::InitNetDriver: Sending hello. %s" ), *ServerConn->Describe() );
-
-			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
-
-			ServerConn->FlushNet();
+			else
+			{
+				SendInitialJoin();
+			}
 		}
 		else
 		{
@@ -83,6 +75,28 @@ void UPendingNetGame::InitNetDriver()
 	else
 	{
 		ConnectionError = NSLOCTEXT("Engine", "UsedCheatCommands", "Console commands were used which are disallowed in netplay.  You must restart the game to create a match.").ToString();
+	}
+}
+
+void UPendingNetGame::SendInitialJoin()
+{
+	if (NetDriver != nullptr)
+	{
+		UNetConnection* ServerConn = NetDriver->ServerConnection;
+
+		if (ServerConn != nullptr)
+		{
+			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
+			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
+			
+			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
+			UE_LOG(LogNet, Log, TEXT( "UPendingNetGame::SendInitialJoin: Sending hello. %s" ), *ServerConn->Describe());
+
+			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
+
+			ServerConn->FlushNet();
+		}
 	}
 }
 

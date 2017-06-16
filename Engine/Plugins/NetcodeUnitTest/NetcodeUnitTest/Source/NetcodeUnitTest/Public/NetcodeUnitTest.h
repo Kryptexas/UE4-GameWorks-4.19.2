@@ -262,11 +262,13 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 	UNIT_LOG_VOID_START(); \
 	if ((OptionalFlags(UnitLogTypeFlags) & ELogType::StatusError) == ELogType::StatusError) \
 	{ \
-		UE_LOG(LogUnitTest, Error, TEXT("%s: %s"), *UnitTestObj->GetUnitTestName(), *FString::Printf(Format, ##__VA_ARGS__)); \
+		UE_LOG(LogUnitTest, Error, TEXT("%s: %s"), (UnitTestObj != nullptr ? *(UnitTestObj->GetUnitTestName()) : TEXT("nullptr")), \
+				*FString::Printf(Format, ##__VA_ARGS__)); \
 	} \
 	else if ((OptionalFlags(UnitLogTypeFlags) & ELogType::StatusWarning) == ELogType::StatusWarning) \
 	{ \
-		UE_LOG(LogUnitTest, Warning, TEXT("%s: %s"), *UnitTestObj->GetUnitTestName(), *FString::Printf(Format, ##__VA_ARGS__)); \
+		UE_LOG(LogUnitTest, Warning, TEXT("%s: %s"), (UnitTestObj != nullptr ? *(UnitTestObj->GetUnitTestName()) : TEXT("nullptr")), \
+				*FString::Printf(Format, ##__VA_ARGS__)); \
 	} \
 	UNIT_LOG_VOID_END();
 

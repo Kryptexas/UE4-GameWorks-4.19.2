@@ -14,6 +14,12 @@
 
 #include "UnitTestNetConnection.generated.h"
 
+
+// Forward declarations
+
+class UMinimalClient;
+
+
 /**
  * A net connection for enabling unit testing through barebones/minimal client connections
  */
@@ -46,52 +52,32 @@ class NETCODEUNITTEST_API UUnitTestNetConnection : public UIpConnection
 
 
 	/**
-	 * Delegate for hooking 'LowLevelSend'
+	 * Delegate for hooking the HandlerClientPlayer event
 	 *
-	 * @param Data			The data being sent
-	 * @param Count			The number of bytes being sent
-	 * @param bBlockSend	Whether or not to block the send (defaults to false)
+	 * @param PC			The PlayerController being initialized with the net connection
+	 * @param Connection	The net connection the player is being initialized with
 	 */
-	DECLARE_DELEGATE_ThreeParams(FLowLevelSendDel, void* /*Data*/, int32 /*Count*/, bool& /*bBlockSend*/);
-
-	/**
-	 * Delegate for hooking 'ReceivedRawPacket'
-	 * 
-	 * @param Data		The data received
-	 * @param Count		The number of bytes received
-	 */
-	DECLARE_DELEGATE_TwoParams(FReceivedRawPacketDel, void* /*Data*/, int32& /*Count*/);
-
-	/**
-	 * Delegate for notifying on (and optionally blocking) replicated actor creation
-	 *
-	 * @param ActorClass	The class of the actor being replicated
-	 * @param bActorChannel	Whether or not this actor creation is from an actor channel
-	 * @return				Whether or not to allow creation of the actor
-	 */
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnReplicatedActorSpawn, UClass* /*ActorClass*/, bool /*bActorChannel*/);
+	DECLARE_DELEGATE_TwoParams(FNotifyHandleClientPlayerDelegate, APlayerController* /*PC*/, UNetConnection* /*Connection*/);
 
 
 public:
-	/** Delegate for hooking LowLevelSend */
-	FLowLevelSendDel		LowLevelSendDel;
+	/** The minimal client which owns this net connection */
+	UMinimalClient* MinClient;
 
-	/** Delegate for hooking ReceivedRawPacket */
-	FReceivedRawPacketDel	ReceivedRawPacketDel;
 
-	/** Delegate for notifying on replicated actor creation */
-	FOnReplicatedActorSpawn	ReplicatedActorSpawnDel;
+	/** Hook for HandleClientPlayer event */
+	FNotifyHandleClientPlayerDelegate	NotifyHandleClientPlayerDel;
 
 	/** Socket hook - for hooking socket-level events */
-	FSocketHook				SocketHook;
+	FSocketHook							SocketHook;
 
 	/** Whether or not to override error detection within ValidateSendBuffer */
-	bool					bDisableValidateSend;
+	bool								bDisableValidateSend;
 
 
 public:
 	/** Whether or not newly-created instances of this class, should force-enable packet handlers */
-	static bool				bForceEnableHandler;
+	static bool							bForceEnableHandler;
 };
 
 

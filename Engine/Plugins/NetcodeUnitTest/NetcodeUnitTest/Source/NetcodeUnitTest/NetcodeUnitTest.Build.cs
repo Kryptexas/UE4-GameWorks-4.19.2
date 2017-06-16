@@ -26,7 +26,6 @@ namespace UnrealBuildTool.Rules
 				{
 					"EngineSettings",
 					"InputCore",
-					"OnlineSubsystem",
 					"PacketHandler",
 					"Slate",
 					"SlateCore"

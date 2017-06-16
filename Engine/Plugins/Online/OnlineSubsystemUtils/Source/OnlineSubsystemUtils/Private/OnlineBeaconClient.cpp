@@ -97,9 +97,14 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				BeaconConnection = NetDriver->ServerConnection;
 
 				// Kick off the connection handshake
-				if (BeaconConnection->StatelessConnectComponent.IsValid())
+				bool bSentHandshake = false;
+
+				if (BeaconConnection->Handler.IsValid())
 				{
-					BeaconConnection->StatelessConnectComponent.Pin()->SendInitialConnect();
+					BeaconConnection->Handler->BeginHandshaking(
+						FPacketHandlerHandshakeComplete::CreateUObject(this, &AOnlineBeaconClient::SendInitialJoin));
+
+					bSentHandshake = true;
 				}
 
 				SetConnectionState(EBeaconConnectionState::Pending);
@@ -109,14 +114,12 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				NetDriver->InitialConnectTimeout = BeaconConnectionInitialTimeout;
 				NetDriver->ConnectionTimeout = BeaconConnectionTimeout;
 
-				// Send initial message.
-				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
-				check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 
-				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-				
-				FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion);
-				NetDriver->ServerConnection->FlushNet();
+				if (!bSentHandshake)
+				{
+					SendInitialJoin();
+				}
+
 
 				bSuccess = true;
 			}
@@ -131,6 +134,20 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 	}
 
 	return bSuccess;
+}
+
+void AOnlineBeaconClient::SendInitialJoin()
+{
+	if (ensure(NetDriver != nullptr && NetDriver->ServerConnection != nullptr))
+	{
+		uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
+		check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
+
+		uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+				
+		FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion);
+		NetDriver->ServerConnection->FlushNet();
+	}
 }
 
 void AOnlineBeaconClient::OnFailure()

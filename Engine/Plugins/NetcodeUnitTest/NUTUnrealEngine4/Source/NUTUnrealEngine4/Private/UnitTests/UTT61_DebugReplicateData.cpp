@@ -20,7 +20,6 @@ UClass* UUTT61_DebugReplicateData::RepClass = FindObject<UClass>(ANY_PACKAGE, TE
 UUTT61_DebugReplicateData::UUTT61_DebugReplicateData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Replicator(NULL)
-	, ExploitFailLog(TEXT("Blank exploit fail log message"))
 {
 	UnitTestName = TEXT("ReplicateDataCheck");
 	UnitTestType = TEXT("DevExploit");
@@ -46,7 +45,7 @@ UUTT61_DebugReplicateData::UUTT61_DebugReplicateData(const FObjectInitializer& O
 
 	UnitTestFlags |= (EUnitTestFlags::LaunchServer | EUnitTestFlags::AcceptActors | EUnitTestFlags::NotifyNetActors |
 						EUnitTestFlags::AcceptPlayerController | EUnitTestFlags::RequirePlayerController | EUnitTestFlags::SendRPCs |
-						EUnitTestFlags::ExpectServerCrash);
+						EUnitTestFlags::ExpectServerCrash | EUnitTestFlags::ExpectDisconnect);
 }
 
 void UUTT61_DebugReplicateData::InitializeEnvironmentSettings()
@@ -121,15 +120,24 @@ void UUTT61_DebugReplicateData::ExecuteClientUnitTest()
 
 		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-		uint8 ControlMsg = NMT_NUTControl;
-		uint8 ControlCmd = ENUTControlCommand::Summon;
-		FString Cmd = TEXT("GameplayDebugger.GameplayDebuggingReplicator -ForceBeginPlay -GameplayDebuggerHack");
+		if (ControlChanBunch != nullptr)
+		{
+			uint8 ControlMsg = NMT_NUTControl;
+			uint8 ControlCmd = ENUTControlCommand::Summon;
+			FString Cmd = TEXT("GameplayDebugger.GameplayDebuggingReplicator -ForceBeginPlay -GameplayDebuggerHack");
 
-		*ControlChanBunch << ControlMsg;
-		*ControlChanBunch << ControlCmd;
-		*ControlChanBunch << Cmd;
+			*ControlChanBunch << ControlMsg;
+			*ControlChanBunch << ControlCmd;
+			*ControlChanBunch << Cmd;
 
-		NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+		}
+		else
+		{
+			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send summon command - marking unit test as needing update."));
+
+			VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+		}
 	}
 	// Now execute the exploit on the replicator
 	else
@@ -159,17 +167,7 @@ void UUTT61_DebugReplicateData::ExecuteClientUnitTest()
 		// If the exploit was a failure, the next log message will IMMEDIATELY be the 'ExploitFailLog' message,
 		// as that message is triggered within the same code chain as the RPC above
 		// (and should be blocked, if the above succeeds).
-		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
-
-		uint8 ControlMsg = NMT_NUTControl;
-		uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-		FString Cmd = ExploitFailLog;
-
-		*ControlChanBunch << ControlMsg;
-		*ControlChanBunch << ControlCmd;
-		*ControlChanBunch << Cmd;
-
-		NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+		SendGenericExploitFailLog();
 	}
 }
 
@@ -188,7 +186,7 @@ void UUTT61_DebugReplicateData::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InPr
 				VerificationState = EUnitTestVerification::VerifiedNotFixed;
 				break;
 			}
-			else if (CurLine.Contains(ExploitFailLog))
+			else if (CurLine.Contains(GetGenericExploitFailLog()))
 			{
 				VerificationState = EUnitTestVerification::VerifiedFixed;
 				break;

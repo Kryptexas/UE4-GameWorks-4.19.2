@@ -16,10 +16,10 @@ class UClientUnitTest;
 // Globals
 
 /** Provides a globally accessible trace manager, for easy access to stack trace debugging */
-extern FStackTraceManager GTraceManager;
+extern FStackTraceManager* GTraceManager;
 
 /** Log hook for managing tying of log entry detection to the trace manager */
-extern FLogStackTraceManager GLogTraceManager;
+extern FLogStackTraceManager* GLogTraceManager;
 
 
 // Enable access to FStackTracker.bIsEnabled
@@ -27,6 +27,27 @@ IMPLEMENT_GET_PRIVATE_VAR(FStackTracker, bIsEnabled, bool);
 
 // The depth of stack traces, which the stack tracker should ignore by default
 #define TRACE_IGNORE_DEPTH 7
+
+
+/**
+ * Provides a globally-accessible wrapper for the Exec function, which all modules can use (including those that don't inherit Engine),
+ * for executing console commands - useful for debugging e.g. pre-Engine netcode (such as the PacketHandler code).
+ */
+
+extern "C" DLLEXPORT bool GGlobalExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
+
+// Use this following code snippet, to execute the above function.
+#if 0
+	FModuleStatus MS;
+	void* DH = FModuleManager::Get().QueryModule(TEXT("NetcodeUnitTest"), MS) ? FPlatformProcess::GetDllHandle(*MS.FilePath) : nullptr;
+	void* ExecPtr = DH != nullptr ? FPlatformProcess::GetDllExport(DH, TEXT("GGlobalExec")) : nullptr;
+
+	if (ExecPtr != nullptr)
+	{
+		((bool (*)(void* InWorld, const TCHAR* Cmd, FOutputDevice& Ar))ExecPtr)
+			(nullptr, TEXT("Place console command here."), *GLog);
+	}
+#endif
 
 
 /**
@@ -215,7 +236,7 @@ protected:
 	/** The human-readable name to provide for this stack trace */
 	FString TraceName;
 
-	/** The strack tracker associated with this debug trace */
+	/** The stack tracker associated with this debug trace */
 	FStackTracker Tracker;
 };
 
@@ -226,7 +247,7 @@ protected:
  * Manager for handling multiple debug stack traces on-the-fly, and allowing abstraction of stack traces,
  * so you don't have to manually handle FNUTStackTrace objects (which can be complicated/bug-prone).
  *
- * This is a more intuitive way of handling tracing, you just use a call to 'GTraceManager.AddTrace' wherever needed,
+ * This is a more intuitive way of handling tracing, you just use a call to 'GTraceManager->AddTrace' wherever needed,
  * and add calls to 'Enable'/'Disable' whenever you want to accept/ignore AddTrace calls - then 'Dump' to see the results.
  * No messing with managing instances of above objects.
  *
@@ -408,7 +429,10 @@ public:
 	 */
 	~FLogStackTraceManager()
 	{
-		GLog->RemoveOutputDevice(this);
+		if (GLog != nullptr)
+		{
+			GLog->RemoveOutputDevice(this);
+		}
 	}
 
 	/**
@@ -492,11 +516,11 @@ public:
 		{
 			if (bDump)
 			{
-				GTraceManager.Dump(LogLine, false, false);
+				GTraceManager->Dump(LogLine, false, false);
 			}
 			else
 			{
-				GTraceManager.Clear(LogLine);
+				GTraceManager->Clear(LogLine);
 			}
 		}
 
@@ -519,9 +543,9 @@ public:
 		{
 			for (auto CurEntry : ExactMatches)
 			{
-				if (GTraceManager.ContainsTrace(CurEntry.LogLine))
+				if (GTraceManager->ContainsTrace(CurEntry.LogLine))
 				{
-					GTraceManager.Dump(CurEntry.LogLine, false, false);
+					GTraceManager->Dump(CurEntry.LogLine, false, false);
 				}
 				else
 				{
@@ -531,9 +555,9 @@ public:
 
 			for (auto CurEntry : PartialMatches)
 			{
-				if (GTraceManager.ContainsTrace(CurEntry.LogLine))
+				if (GTraceManager->ContainsTrace(CurEntry.LogLine))
 				{
-					GTraceManager.Dump(CurEntry.LogLine, false, false);
+					GTraceManager->Dump(CurEntry.LogLine, false, false);
 				}
 				else
 				{
@@ -572,7 +596,7 @@ public:
 				if (CurEntry.LogLine == Data)
 				{
 					bWithinLogTrace = true;
-					GTraceManager.AddTrace(CurEntry.LogLine, false, CurEntry.bDump);
+					GTraceManager->AddTrace(CurEntry.LogLine, false, CurEntry.bDump);
 					bWithinLogTrace = false;
 				}
 			}
@@ -585,7 +609,7 @@ public:
 					{
 						// NOTE: Do not use Data for the TraceName, as this makes things much harder to track
 						bWithinLogTrace = true;
-						GTraceManager.AddTrace(CurEntry.LogLine, false, CurEntry.bDump);
+						GTraceManager->AddTrace(CurEntry.LogLine, false, CurEntry.bDump);
 						bWithinLogTrace = false;
 					}
 				}
@@ -745,6 +769,91 @@ struct NETCODEUNITTEST_API NUTDebug
 
 		StringToBytes(InString, InStrBytes);
 		LogHexDump(InStrBytes, bDumpASCII, bDumpOffset, OutLog);
+	}
+
+
+	/**
+	 * Takes an array of bytes, and generates a bit-based/binary dump string out of them, optionally including
+	 * byte offsets also (intended for debugging in the log window)
+	 *
+	 * @param InBytes		The array of bytes to be dumped
+	 * @param bDumpOffset	Whether or not to dump offset margins for bit rows/columns
+	 * @param bLSBFirst		Whether or not the Least Significant Bit should be printed first, instead of last
+	 * @return				Returns the hex dump, including line terminators
+	 */
+	static FString BitDump(const TArray<uint8>& InBytes, bool bDumpOffset=true, bool bLSBFirst=false);
+
+
+	/**
+	 * Version of the above bit-dump function, which takes a byte pointer and length as input
+	 */
+	static inline FString BitDump(const uint8* InBytes, const uint32 InBytesLen, bool bDumpOffset=true, bool bLSBFirst=false)
+	{
+		TArray<uint8> InBytesArray;
+
+		InBytesArray.AddUninitialized(InBytesLen);
+		FMemory::Memcpy(InBytesArray.GetData(), InBytes, InBytesLen);
+
+		return BitDump(InBytesArray, bDumpOffset, bLSBFirst);
+	}
+
+	/**
+	 * Version of the above bit-dump function, which takes a string as input
+	 */
+	static inline FString BitDump(const FString& InString, bool bDumpOffset=false, bool bLSBFirst=false)
+	{
+		TArray<uint8> InStrBytes;
+
+		StringToBytes(InString, InStrBytes);
+
+		return BitDump(InStrBytes, bDumpOffset, bLSBFirst);
+	}
+
+	/**
+	 * Version of the above bit-dump function, which dumps in a format more friendly/readable
+	 * in log text files
+	 */
+	static inline void LogBitDump(const TArray<uint8>& InBytes, bool bDumpOffset=false, bool bLSBFirst=false, FOutputDevice* OutLog=GLog)
+	{
+		FString BitDumpStr = BitDump(InBytes, bDumpOffset, bLSBFirst);
+		TArray<FString> LogLines;
+
+#if TARGET_UE4_CL < CL_STRINGPARSEARRAY
+		BitDumpStr.ParseIntoArray(&LogLines, LINE_TERMINATOR, false);
+#else
+		BitDumpStr.ParseIntoArray(LogLines, LINE_TERMINATOR, false);
+#endif
+
+		for (int32 i=0; i<LogLines.Num(); i++)
+		{
+			// NOTE: It's important to pass it in as a parameter, otherwise there is a crash if the line contains '%s'
+			OutLog->Logf(TEXT(" %s"), *LogLines[i]);
+		}
+	}
+
+	/**
+	 * Version of the above bit-dump logging function, which takes a byte pointer and length as input
+	 */
+	static inline void LogBitDump(const uint8* InBytes, const uint32 InBytesLen, bool bDumpOffset=false, bool bLSBFirst=false,
+							FOutputDevice* OutLog=GLog)
+	{
+		TArray<uint8> InBytesArray;
+
+		InBytesArray.AddUninitialized(InBytesLen);
+		FMemory::Memcpy(InBytesArray.GetData(), InBytes, InBytesLen);
+
+		LogBitDump(InBytesArray, bDumpOffset, bLSBFirst, OutLog);
+	}
+
+	/**
+	 * Version of the above, which takes a string as input
+	 */
+	static inline void LogBitDump(const FString& InString, bool bDumpOffset=false, bool bLSBFirst=false, FOutputDevice* OutLog=GLog)
+	{
+		TArray<uint8> InStrBytes;
+
+		StringToBytes(InString, InStrBytes);
+		LogBitDump(InStrBytes, bDumpOffset, bLSBFirst, OutLog);
 	}
 };
 

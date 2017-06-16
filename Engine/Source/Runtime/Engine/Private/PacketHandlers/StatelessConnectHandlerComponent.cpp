@@ -6,6 +6,7 @@
 #include "EngineStats.h"
 #include "Misc/SecureHash.h"
 #include "Engine/NetConnection.h"
+#include "PacketAudit.h"
 
 
 
@@ -58,6 +59,12 @@ DEFINE_LOG_CATEGORY(LogHandshake);
  *																		Server:
  *																		Ignore, or create UNetConnection.
  *
+ *																		Server - Stateless Handshake Ack
+ *																		[HandshakeBit][SecretIdBit][4:Timestamp][20:Cookie][AlignPad]
+ *																<---
+ * Client:
+ * Handshake Complete.
+ *
  *
  *	- HandshakeBit:		Bit signifying whether a packet is a handshake packet. Applied to all game packets.
  *	- SecretIdBit:		For handshake packets, specifies which HandshakeSecret array was used to generate Cookie.
@@ -106,6 +113,7 @@ DEFINE_LOG_CATEGORY(LogHandshake);
  */
 
 
+
 /**
  * Debug Defines
  */
@@ -129,6 +137,9 @@ DEFINE_LOG_CATEGORY(LogHandshake);
 // The maximum allowed lifetime (in seconds) of any one handshake cookie
 #define MAX_COOKIE_LIFETIME			((SECRET_UPDATE_TIME + SECRET_UPDATE_TIME_VARIANCE) * (float)SECRET_COUNT)
 
+// The minimum amount of possible time a cookie may exist (for calculating when the clientside should timeout a challenge response)
+#define MIN_COOKIE_LIFETIME			SECRET_UPDATE_TIME
+
 
 /**
  * StatelessConnectHandlerComponent
@@ -141,67 +152,75 @@ StatelessConnectHandlerComponent::StatelessConnectHandlerComponent()
 	, ActiveSecret(255)
 	, LastSecretUpdateTimestamp(0.f)
 	, LastChallengeSuccessAddress(TEXT(""))
+	, LastServerSequence(0)
+	, LastClientSequence(0)
 	, LastClientSendTimestamp(0.0)
-	, bConnectConfirmed(false)
+	, LastChallengeTimestamp(0.0)
 	, LastSecretId(0)
 	, LastTimestamp(0.f)
+	, LastCookie()
 {
 	SetActive(true);
+
+	bRequiresHandshake = true;
 }
 
-void StatelessConnectHandlerComponent::SendInitialConnect()
+void StatelessConnectHandlerComponent::NotifyHandshakeBegin()
 {
-	UNetConnection* ServerConn = (Driver != nullptr ? Driver->ServerConnection : NULL);
-
-	if (ServerConn != nullptr)
+	if (Handler->Mode == Handler::Mode::Client)
 	{
-		FBitWriter InitialPacket(HANDSHAKE_PACKET_SIZE_BITS + 1 /* Termination bit */);
-		uint8 bHandshakePacket = 1;
+		UNetConnection* ServerConn = (Driver != nullptr ? Driver->ServerConnection : nullptr);
 
-		InitialPacket.WriteBit(bHandshakePacket);
+		if (ServerConn != nullptr)
+		{
+			FBitWriter InitialPacket(HANDSHAKE_PACKET_SIZE_BITS + 1 /* Termination bit */);
+			uint8 bHandshakePacket = 1;
 
-
-		// In order to prevent DRDoS reflection amplification attacks, clients must pad the packet to match server handshake packet size
-		uint8 SecretIdPad = 0;
-		uint8 PacketSizeFiller[24];
-
-		InitialPacket.WriteBit(SecretIdPad);
-
-		FMemory::Memzero(PacketSizeFiller, ARRAY_COUNT(PacketSizeFiller));
-		InitialPacket.Serialize(PacketSizeFiller, ARRAY_COUNT(PacketSizeFiller));
+			InitialPacket.WriteBit(bHandshakePacket);
 
 
+			// In order to prevent DRDoS reflection amplification attacks, clients must pad the packet to match server packet size
+			uint8 SecretIdPad = 0;
+			uint8 PacketSizeFiller[24];
 
-		CapHandshakePacket(InitialPacket);
+			InitialPacket.WriteBit(SecretIdPad);
+
+			FMemory::Memzero(PacketSizeFiller, ARRAY_COUNT(PacketSizeFiller));
+			InitialPacket.Serialize(PacketSizeFiller, ARRAY_COUNT(PacketSizeFiller));
 
 
-		// Disable PacketHandler parsing, and send the raw packet
-		Handler->SetRawSend(true);
+
+			CapHandshakePacket(InitialPacket);
+
+
+			// Disable PacketHandler parsing, and send the raw packet
+			Handler->SetRawSend(true);
 
 #if !UE_BUILD_SHIPPING && PACKETLOSS_TEST
-		bool bRandFail = FMath::RandBool();
+			bool bRandFail = FMath::RandBool();
 
-		if (bRandFail)
-		{
-			UE_LOG(LogHandshake, Log, TEXT("Triggering random initial connect packet fail."));
-		}
-
-		if (!bRandFail)
-#endif
-		{
-			if (ServerConn->Driver->IsNetResourceValid())
+			if (bRandFail)
 			{
-				ServerConn->LowLevelSend(InitialPacket.GetData(), InitialPacket.GetNumBytes(), InitialPacket.GetNumBits());
+				UE_LOG(LogHandshake, Log, TEXT("Triggering random initial connect packet fail."));
 			}
+
+			if (!bRandFail)
+#endif
+			{
+				if (ServerConn->Driver->IsNetResourceValid())
+				{
+					ServerConn->LowLevelSend(InitialPacket.GetData(), InitialPacket.GetNumBytes(), InitialPacket.GetNumBits());
+				}
+			}
+
+			Handler->SetRawSend(false);
+
+			LastClientSendTimestamp = FPlatformTime::Seconds();
 		}
-
-		Handler->SetRawSend(false);
-
-		LastClientSendTimestamp = FPlatformTime::Seconds();
-	}
-	else
-	{
-		UE_LOG(LogHandshake, Error, TEXT("Tried to send handshake connect packet without a server connection."));
+		else
+		{
+			UE_LOG(LogHandshake, Error, TEXT("Tried to send handshake connect packet without a server connection."));
+		}
 	}
 }
 
@@ -212,7 +231,7 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 		FBitWriter ChallengePacket(HANDSHAKE_PACKET_SIZE_BITS + 1 /* Termination bit */);
 		uint8 bHandshakePacket = 1;
 		float Timestamp = Driver->Time;
-		uint8 Cookie[20];
+		uint8 Cookie[COOKIE_BYTE_SIZE];
 
 		GenerateCookie(ClientAddress, ActiveSecret, Timestamp, Cookie);
 
@@ -230,7 +249,12 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 
 		
 		// Disable PacketHandler parsing, and send the raw packet
-		Handler->SetRawSend(true);
+		PacketHandler* ConnectionlessHandler = Driver->ConnectionlessHandler.Get();
+
+		if (ConnectionlessHandler != nullptr)
+		{
+			ConnectionlessHandler->SetRawSend(true);
+		}
 
 #if !UE_BUILD_SHIPPING && PACKETLOSS_TEST
 		bool bRandFail = FMath::RandBool();
@@ -250,7 +274,10 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 		}
 
 
-		Handler->SetRawSend(false);
+		if (ConnectionlessHandler != nullptr)
+		{
+			ConnectionlessHandler->SetRawSend(false);
+		}
 	}
 	else
 	{
@@ -260,9 +287,9 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 	}
 }
 
-void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, float InTimestamp, uint8 InCookie[20])
+void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, float InTimestamp, uint8 InCookie[COOKIE_BYTE_SIZE])
 {
-	UNetConnection* ServerConn = (Driver != nullptr ? Driver->ServerConnection : NULL);
+	UNetConnection* ServerConn = (Driver != nullptr ? Driver->ServerConnection : nullptr);
 
 	if (ServerConn != nullptr)
 	{
@@ -273,10 +300,10 @@ void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, f
 		ResponsePacket.WriteBit(InSecretId);
 
 		ResponsePacket << InTimestamp;
-		ResponsePacket.Serialize(InCookie, 20);
+		ResponsePacket.Serialize(InCookie, COOKIE_BYTE_SIZE);
 
 #if !UE_BUILD_SHIPPING
-		UE_LOG( LogHandshake, Log, TEXT( "SendChallengeResponse. Timestamp: %f, Cookie: %s" ), InTimestamp, *FString::FromBlob( InCookie, 20 ) );
+		UE_LOG( LogHandshake, Log, TEXT( "SendChallengeResponse. Timestamp: %f, Cookie: %s" ), InTimestamp, *FString::FromBlob( InCookie, COOKIE_BYTE_SIZE ) );
 #endif
 
 		CapHandshakePacket(ResponsePacket);
@@ -304,8 +331,15 @@ void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, f
 
 		Handler->SetRawSend(false);
 
+
+		int16* CurSequence = (int16*)InCookie;
+
 		LastClientSendTimestamp = FPlatformTime::Seconds();
+		LastSecretId = InSecretId;
 		LastTimestamp = InTimestamp;
+		LastServerSequence = *CurSequence & (MAX_PACKETID - 1);
+		LastClientSequence = *(CurSequence + 1) & (MAX_PACKETID - 1);
+
 		FMemory::Memcpy(LastCookie, InCookie, ARRAY_COUNT(LastCookie));
 	}
 	else
@@ -314,9 +348,71 @@ void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, f
 	}
 }
 
+void StatelessConnectHandlerComponent::SendChallengeAck(FString ClientAddress, uint8 InCookie[COOKIE_BYTE_SIZE])
+{
+	if (Driver != nullptr)
+	{
+		FBitWriter AckPacket(HANDSHAKE_PACKET_SIZE_BITS + 1 /* Termination bit */);
+		uint8 bHandshakePacket = 1;
+		float Timestamp  = -1.f;
+
+		AckPacket.WriteBit(bHandshakePacket);
+		AckPacket.WriteBit(bHandshakePacket);	// ActiveSecret
+
+		AckPacket << Timestamp;
+		AckPacket.Serialize(InCookie, COOKIE_BYTE_SIZE);
+
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogHandshake, Log, TEXT("SendChallengeAck. InCookie: %s" ), *FString::FromBlob(InCookie, COOKIE_BYTE_SIZE));
+#endif
+
+		CapHandshakePacket(AckPacket);
+
+		
+		// Disable PacketHandler parsing, and send the raw packet
+		PacketHandler* ConnectionlessHandler = Driver->ConnectionlessHandler.Get();
+
+		if (ConnectionlessHandler != nullptr)
+		{
+			ConnectionlessHandler->SetRawSend(true);
+		}
+
+#if !UE_BUILD_SHIPPING && PACKETLOSS_TEST
+		bool bRandFail = FMath::RandBool();
+
+		if (bRandFail)
+		{
+			UE_LOG(LogHandshake, Log, TEXT("Triggering random challenge ack packet fail."));
+		}
+
+		if (!bRandFail)
+#endif
+		{
+			if (Driver->IsNetResourceValid())
+			{
+				Driver->LowLevelSend(ClientAddress, AckPacket.GetData(), AckPacket.GetNumBits());
+			}
+		}
+
+
+		if (ConnectionlessHandler != nullptr)
+		{
+			ConnectionlessHandler->SetRawSend(false);
+		}
+	}
+	else
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogHandshake, Error, TEXT("Tried to send handshake challenge ack packet without a net driver."));
+#endif
+	}
+}
+
 void StatelessConnectHandlerComponent::CapHandshakePacket(FBitWriter& HandshakePacket)
 {
 	check(HandshakePacket.GetNumBits() == HANDSHAKE_PACKET_SIZE_BITS);
+
+	FPacketAudit::AddStage(TEXT("PostPacketHandler"), HandshakePacket);
 
 	// Add a termination bit, the same as the UNetConnection code does
 	HandshakePacket.WriteBit(1);
@@ -326,9 +422,21 @@ void StatelessConnectHandlerComponent::SetDriver(UNetDriver* InDriver)
 {
 	Driver = InDriver;
 
-	if (Handler->Mode == Handler::Mode::Server && Driver->StatelessConnectComponent.HasSameObject(this))
+	if (Handler->Mode == Handler::Mode::Server)
 	{
-		UpdateSecret();
+		StatelessConnectHandlerComponent* StatelessComponent = Driver->StatelessConnectComponent.Pin().Get();
+
+		if (StatelessComponent != nullptr)
+		{
+			if (StatelessComponent == this)
+			{
+				UpdateSecret();
+			}
+			else
+			{
+				InitFromConnectionless(StatelessComponent);
+			}
+		}
 	}
 }
 
@@ -341,6 +449,14 @@ void StatelessConnectHandlerComponent::Initialize()
 	}
 }
 
+void StatelessConnectHandlerComponent::InitFromConnectionless(StatelessConnectHandlerComponent* InConnectionlessHandler)
+{
+	// Store the cookie/address used for the handshake, to enable server ack-retries
+	LastChallengeSuccessAddress = InConnectionlessHandler->LastChallengeSuccessAddress;
+
+	FMemory::Memcpy(LastCookie, InConnectionlessHandler->LastCookie, ARRAY_COUNT(LastCookie));
+}
+
 void StatelessConnectHandlerComponent::Incoming(FBitReader& Packet)
 {
 	bool bHandshakePacket = !!Packet.ReadBit() && !Packet.IsError();
@@ -349,32 +465,61 @@ void StatelessConnectHandlerComponent::Incoming(FBitReader& Packet)
 	{
 		uint8 SecretId = 0;
 		float Timestamp = 1.f;
-		uint8 Cookie[20];
+		uint8 Cookie[COOKIE_BYTE_SIZE];
 
 		bHandshakePacket = ParseHandshakePacket(Packet, SecretId, Timestamp, Cookie);
-
 
 		if (bHandshakePacket)
 		{
 			if (Handler->Mode == Handler::Mode::Client)
 			{
-				if (State == Handler::Component::State::UnInitialized)
+				if (State == Handler::Component::State::UnInitialized || State == Handler::Component::InitializedOnLocal)
 				{
-					SendChallengeResponse(SecretId, Timestamp, Cookie);
+					// Receiving challenge, verify the timestamp is > 0.0f
+					if (Timestamp > 0.0f)
+					{
+						LastChallengeTimestamp = (Driver != nullptr ? Driver->Time : 0.0);
 
-					// Now finish initializing the handler - flushing the queued packet buffer in the process.
-					Initialized();
+						SendChallengeResponse(SecretId, Timestamp, Cookie);
+
+						// Utilize this state as an intermediary, indicating that the challenge response has been sent
+						SetState(Handler::Component::InitializedOnLocal);
+					}
+					// Receiving challenge ack, verify the timestamp is < 0.0f
+					else if (Timestamp < 0.0f)
+					{
+						UNetConnection* ServerConn = (Driver != nullptr ? Driver->ServerConnection : nullptr);
+
+						// Extract the initial packet sequence from the random Cookie data
+						if (ensure(ServerConn != nullptr))
+						{
+							int16* CurSequence = (int16*)Cookie;
+
+							int32 ServerSequence = *CurSequence & (MAX_PACKETID - 1);
+							int32 ClientSequence = *(CurSequence + 1) & (MAX_PACKETID - 1);
+
+							ServerConn->InitSequence(ServerSequence, ClientSequence);
+						}
+
+						// Now finish initializing the handler - flushing the queued packet buffer in the process.
+						SetState(Handler::Component::Initialized);
+						Initialized();
+					}
 				}
 				else
 				{
 					// Ignore, could be a dupe/out-of-order challenge packet
 				}
 			}
-			else //if (Handler->Mode == Handler::Mode::Server)
+			else if (Handler->Mode == Handler::Mode::Server)
 			{
-				// It's possible for a client to send HandshakeResponsePacket1, and - after a timeout - HandshakeResponsePacket2,
-				// where HandshakeResponsePacket2 triggers connection creation and HandshakeResponsePacket1 arrives out-of-order/lagged.
-				// Just ignore these packets.
+				// The server should not be receiving handshake packets at this stage - resend the ack in case it was lost.
+				// In this codepath, this component is linked to a UNetConnection, and the Last* values below, cache the handshake info.
+#if !UE_BUILD_SHIPPING
+				UE_LOG(LogHandshake, Log, TEXT("Received unexpected post-connect handshake packet - resending ack." ));
+#endif
+
+				SendChallengeAck(LastChallengeSuccessAddress, LastCookie);
 			}
 		}
 		else
@@ -417,7 +562,7 @@ void StatelessConnectHandlerComponent::IncomingConnectionless(FString Address, F
 	{
 		uint8 SecretId = 0;
 		float Timestamp = 1.f;
-		uint8 Cookie[20];
+		uint8 Cookie[COOKIE_BYTE_SIZE];
 
 		bHandshakePacket = ParseHandshakePacket(Packet, SecretId, Timestamp, Cookie);
 
@@ -443,16 +588,27 @@ void StatelessConnectHandlerComponent::IncomingConnectionless(FString Address, F
 					if (bValidCookieLifetime && bValidSecretIdTimestamp)
 					{
 						// Regenerate the cookie from the packet info, and see if the received cookie matches the regenerated one
-						uint8 RegenCookie[20];
+						uint8 RegenCookie[COOKIE_BYTE_SIZE];
 
 						GenerateCookie(Address, SecretId, Timestamp, RegenCookie);
 
-						bChallengeSuccess = FMemory::Memcmp(Cookie, RegenCookie, 20) == 0;
-					}
+						bChallengeSuccess = FMemory::Memcmp(Cookie, RegenCookie, COOKIE_BYTE_SIZE) == 0;
 
-					if (bChallengeSuccess)
-					{
-						LastChallengeSuccessAddress = Address;
+						if (bChallengeSuccess)
+						{
+							int16* CurSequence = (int16*)Cookie;
+
+							LastServerSequence = *CurSequence & (MAX_PACKETID - 1);
+							LastClientSequence = *(CurSequence + 1) & (MAX_PACKETID - 1);
+
+							LastChallengeSuccessAddress = Address;
+
+
+							// Now ack the challenge response, and store the cookie in LastCookie, to enable retries
+							SendChallengeAck(Address, Cookie);
+
+							FMemory::Memcpy(LastCookie, Cookie, ARRAY_COUNT(LastCookie));
+						}
 					}
 				}
 			}
@@ -475,18 +631,18 @@ void StatelessConnectHandlerComponent::IncomingConnectionless(FString Address, F
 }
 
 bool StatelessConnectHandlerComponent::ParseHandshakePacket(FBitReader& Packet, uint8& OutSecretId, float& OutTimestamp,
-															uint8 (&OutCookie)[20])
+															uint8 (&OutCookie)[COOKIE_BYTE_SIZE])
 {
 	bool bValidPacket = false;
 
 	// Only accept handshake packets of precisely the right size
 	if (Packet.GetBitsLeft() == (HANDSHAKE_PACKET_SIZE_BITS - 1))
 	{
-		OutSecretId = (uint8)Packet.ReadBit();
+		OutSecretId = Packet.ReadBit();
 
 		Packet << OutTimestamp;
 
-		Packet.Serialize(OutCookie, 20);
+		Packet.Serialize(OutCookie, COOKIE_BYTE_SIZE);
 
 		bValidPacket = !Packet.IsError();
 	}
@@ -556,23 +712,26 @@ void StatelessConnectHandlerComponent::Tick(float DeltaTime)
 {
 	if (Handler->Mode == Handler::Mode::Client)
 	{
-		if (!bConnectConfirmed && LastClientSendTimestamp != 0.0)
+		if (State != Handler::Component::State::Initialized && LastClientSendTimestamp != 0.0)
 		{
-			UNetConnection* ServerConn = Driver != nullptr ? Driver->ServerConnection : nullptr;
 			double LastSendTimeDiff = FPlatformTime::Seconds() - LastClientSendTimestamp;
 
-			// Confirm a connection, by checking to see if any packets have been acked
-			bConnectConfirmed = ServerConn != nullptr && ServerConn->OutAckPacketId != -1;
-
-			if (!bConnectConfirmed && LastSendTimeDiff > 1.0)
+			if (LastSendTimeDiff > 1.0)
 			{
+				bool bRestartChallenge = Driver != nullptr && ((Driver->Time - LastChallengeTimestamp) > MIN_COOKIE_LIFETIME);
+
+				if (bRestartChallenge)
+				{
+					SetState(Handler::Component::UnInitialized);
+				}
+
 				if (State == Handler::Component::State::UnInitialized)
 				{
 					UE_LOG(LogHandshake, Verbose, TEXT("Initial handshake packet timeout - resending."));
 
-					SendInitialConnect();
+					NotifyHandshakeBegin();
 				}
-				else if (LastTimestamp != 0.f)
+				else if (State == Handler::Component::InitializedOnLocal && LastTimestamp != 0.f)
 				{
 					UE_LOG(LogHandshake, Verbose, TEXT("Challenge response packet timeout - resending."));
 

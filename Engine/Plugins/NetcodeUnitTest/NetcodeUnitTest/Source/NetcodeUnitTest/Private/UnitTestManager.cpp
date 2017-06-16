@@ -1,21 +1,25 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestManager.h"
+
+#include "HAL/FileManager.h"
 #include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/OutputDeviceHelper.h"
 #include "Misc/App.h"
 #include "Misc/FeedbackContext.h"
 #include "UObject/Package.h"
 #include "Engine/NetConnection.h"
-#include "NetcodeUnitTest.h"
-
 #include "UI/LogWindowManager.h"
+#include "Widgets/SWindow.h"
 
+#include "NetcodeUnitTest.h"
+#include "UnitTestEnvironment.h"
 #include "UnitTest.h"
 #include "ProcessUnitTest.h"
 #include "ClientUnitTest.h"
+#include "MinimalClient.h"
 
-#include "Widgets/SWindow.h"
 #include "UI/SLogWidget.h"
 #include "UI/SLogWindow.h"
 #include "UI/SLogDialog.h"
@@ -75,6 +79,8 @@ UUnitTestManager::UUnitTestManager(const FObjectInitializer& ObjectInitializer)
 	, DialogWindows()
 	, StatusWindow()
 	, AbortAllDialog()
+	, StatusLog()
+	, BaseUnitLogDir()
 	, LastMemoryLimitHit(0.0)
 	, MemoryTickCountdown(0)
 	, MemoryUsageUponCountdown(0)
@@ -142,12 +148,142 @@ UUnitTestManager::~UUnitTestManager()
 		LogWindowManager = NULL;
 	}
 
-	GLog->RemoveOutputDevice(this);
+	if (GLog != nullptr)
+	{
+		GLog->RemoveOutputDevice(this);
+	}
+}
+
+void UUnitTestManager::InitializeLogs()
+{
+	static bool bInitializedLogs = false;
+
+	if (!bInitializedLogs)
+	{
+		bInitializedLogs = true;
+
+		// Look for and delete old unit test logs, past a certain date and/or number, based on the main log file cleanup settings
+		class FUnitLogPurger : public IPlatformFile::FDirectoryVisitor
+		{
+			int32 PurgeLogsDays;
+			int32 MaxLogFilesOnDisk;
+			IFileManager& FM;
+
+			TMap<FString, FDateTime> DirList;
+
+		public:
+			FUnitLogPurger()
+				: PurgeLogsDays(INDEX_NONE)
+				, MaxLogFilesOnDisk(INDEX_NONE)
+				, FM(IFileManager::Get())
+			{
+				GConfig->GetInt(TEXT("LogFiles"), TEXT("PurgeLogsDays"), PurgeLogsDays, GEngineIni);
+				GConfig->GetInt(TEXT("LogFiles"), TEXT("MaxLogFilesOnDisk"), MaxLogFilesOnDisk, GEngineIni);
+			}
+
+			void ScanAndPurge()
+			{
+				if (PurgeLogsDays != INDEX_NONE || MaxLogFilesOnDisk != INDEX_NONE)
+				{
+					FM.IterateDirectory(*FPaths::GameLogDir(), *this);
+
+					DirList.ValueSort(TLess<FDateTime>());
+
+					// First purge directories older than a certain date
+					if (PurgeLogsDays != INDEX_NONE)
+					{
+						for (TMap<FString, FDateTime>::TIterator It(DirList); It; ++It)
+						{
+							if ((FDateTime::Now() -  It.Value()).GetDays() > PurgeLogsDays)
+							{
+								UE_LOG(LogUnitTest, Log, TEXT("Deleting old unit test log directory: %s"), *It.Key());
+
+								FM.DeleteDirectory(*It.Key(), true, true);
+
+								It.RemoveCurrent();
+							}
+						}
+					}
+
+					// Now see how many directories are remaining, and if over the log file limit, purge the oldest ones first
+					if (MaxLogFilesOnDisk != INDEX_NONE && DirList.Num() > MaxLogFilesOnDisk)
+					{
+						int32 RemoveCount = DirList.Num() - MaxLogFilesOnDisk;
+
+						for (TMap<FString, FDateTime>::TIterator It(DirList); It && RemoveCount > 0; ++It, RemoveCount--)
+						{
+							UE_LOG(LogUnitTest, Log, TEXT("Deleting old unit test log directory: %s"), *It.Key());
+
+							FM.DeleteDirectory(*It.Key(), true, true);
+						}
+					}
+				}
+			}
+
+			bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+			{
+				if (bIsDirectory)
+				{
+					FString DirName = FilenameOrDirectory;
+					int32 UnitDirIdx = DirName.Find(TEXT("/UnitTests"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+					FString UnitDirName = (UnitDirIdx != INDEX_NONE ? DirName.Mid(UnitDirIdx+1) : TEXT(""));
+					bool bValidUnitDir = !UnitDirName.Contains(TEXT("/")) &&
+											(UnitDirName.EndsWith(TEXT("UnitTests")) || UnitDirName.Contains(TEXT("UnitTests_")));
+
+					if (bValidUnitDir)
+					{
+						FFileStatData DirStats = FM.GetStatData(*DirName);
+
+						if (DirStats.bIsValid)
+						{
+							DirList.Add(DirName, DirStats.CreationTime);
+						}
+					}
+				}
+
+				return true;
+			}
+		};
+
+		FUnitLogPurger Purger;
+
+		Purger.ScanAndPurge();
+
+
+		// Determine if the log folder already exists, and if so, advance the session count until there is an empty directory
+		BaseUnitLogDir = FPaths::GameLogDir() + TEXT("UnitTests");
+
+		for (int32 DirCount=0; FPaths::DirectoryExists(BaseUnitLogDir + FString::Printf(TEXT("_%i"), UnitTestSessionCount)); DirCount++)
+		{
+			UNIT_ASSERT(DirCount < 16384);
+			UnitTestSessionCount++;
+		}
+
+		if (UnitTestSessionCount > 0 || FPaths::DirectoryExists(BaseUnitLogDir))
+		{
+			BaseUnitLogDir += FString::Printf(TEXT("_%i"), UnitTestSessionCount);
+		}
+
+		BaseUnitLogDir += TEXT("/");
+
+
+		// Create the directory and logfile
+		IFileManager::Get().MakeDirectory(*BaseUnitLogDir);
+
+		StatusLog = MakeUnique<FOutputDeviceFile>(*(BaseUnitLogDir + TEXT("UnitTestStatus.log")));
+
+
+		UnitTestSessionCount++;
+		SaveConfig();
+	}
 }
 
 bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=false*/)
 {
 	bool bSuccess = false;
+
+	InitializeLogs();
+
 
 	// Before anything else, open up the unit test status window (but do not pop up again if closed, for re-queued unit tests)
 	if (!bRequeued && !FApp::IsUnattended())
@@ -291,15 +427,19 @@ void UUnitTestManager::PollUnitTestQueue()
 
 			UUnitTest* CurUnitTestDefault = Cast<UUnitTest>(CurUnitTestClass->GetDefaultObject());
 
-			if (CurUnitTestDefault != NULL)
+			if (CurUnitTestDefault != nullptr)
 			{
 				auto CurUnitTest = NewObject<UUnitTest>(GetTransientPackage(), CurUnitTestClass);
 
-				if (CurUnitTest != NULL)
+				if (CurUnitTest != nullptr)
 				{
-					if (UUnitTest::UnitEnv != NULL)
+					if (UUnitTest::UnitEnv != nullptr)
 					{
+						UUnitTest::UnitEnv->UnitTest = CurUnitTest;
+
 						CurUnitTest->InitializeEnvironmentSettings();
+
+						UUnitTest::UnitEnv->UnitTest = nullptr;
 					}
 
 					// Remove from PendingUnitTests, and add to ActiveUnitTests
@@ -502,16 +642,6 @@ bool UUnitTestManager::WithinUnitTestLimits(UClass* PendingUnitTest/*=NULL*/)
 
 		bReturnVal = MaxPhysicalMem > EstimatedPeakPhysicalMem;
 	}
-
-
-	// @todo #JohnBFeature: How to improve unit test memory estimates:
-	// NOTE: Not to be done, unless above implementation proves problematic (seems to provide decent estimates so-far)
-	//	- Can improve future-memory-usage estimation, by storing time-series stats, mapping the memory usage of each unit test
-	//		- Problem here though, is this is liable to vary over time, so perhaps only do this for each unit tests 'most recent run'
-	//	- Can improve timing of estimations, by tracking the unit tests current memory usage, and marking at what stage of
-	//		the above time-series stats it is at; check the difference between how long it took the unit test to get to that
-	//		position in the time series stat, and the timing of that original stat, then scale all time estimates based on that
-
 
 	return bReturnVal;
 }
@@ -1400,9 +1530,10 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 			UUnitTest** AbortUnitTestRef = ActiveUnitTests.FindByPredicate(
 				[&InWorld](const UUnitTest* InElement)
 				{
-					auto CurUnitTest = Cast<UClientUnitTest>(InElement);
+					const UClientUnitTest* CurUnitTest = Cast<UClientUnitTest>(InElement);
+					UMinimalClient* CurMinClient = (CurUnitTest != nullptr ? CurUnitTest->MinClient : nullptr);
 
-					return CurUnitTest != NULL && CurUnitTest->UnitWorld == InWorld;
+					return CurMinClient != nullptr && CurMinClient->GetUnitWorld() == InWorld;
 				});
 
 			UUnitTest* AbortUnitTest = (AbortUnitTestRef != NULL ? *AbortUnitTestRef : NULL);
@@ -1424,8 +1555,9 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 			[&InWorld](const UUnitTest* InElement)
 			{
 				auto CurUnitTest = Cast<UClientUnitTest>(InElement);
+				UMinimalClient* CurMinClient = (CurUnitTest != nullptr ? CurUnitTest->MinClient : nullptr);
 
-				return CurUnitTest != NULL && CurUnitTest->UnitWorld == InWorld;
+				return CurMinClient != nullptr && CurMinClient->GetUnitWorld() == InWorld;
 			})
 			: NULL);
 
@@ -1590,6 +1722,11 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 {
 	if (bStatusLog)
 	{
+		if (StatusLog.IsValid())
+		{
+			StatusLog.Get()->Serialize(Data, Verbosity, NAME_None);
+		}
+
 		if (StatusWindow.IsValid())
 		{
 			TSharedPtr<SLogWidget>& LogWidget = StatusWindow->LogWidget;
@@ -1703,8 +1840,9 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 				for (auto CurUnitTest : ActiveUnitTests)
 				{
 					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
+					UMinimalClient* CurMinClient = (CurClientUnitTest != nullptr ? CurClientUnitTest->MinClient : nullptr);
 
-					if (CurClientUnitTest != NULL && CurClientUnitTest->UnitWorld == GActiveLogWorld)
+					if (CurMinClient != nullptr && CurMinClient->GetUnitWorld() == GActiveLogWorld)
 					{
 						SourceUnitTest = CurUnitTest;
 						break;
@@ -1805,17 +1943,17 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 			bool bKeepTraceHistory = FParse::Param(Cmd, TEXT("KEEPHISTORY"));
 			bool bStopTracking = FParse::Param(Cmd, TEXT("STOP"));
 
-			GTraceManager.DumpAll(bKeepTraceHistory, !bStopTracking);
+			GTraceManager->DumpAll(bKeepTraceHistory, !bStopTracking);
 		}
 		else if (FParse::Token(Cmd, TraceName, true))
 		{
 			if (FParse::Command(&Cmd, TEXT("Enable")))
 			{
-				GTraceManager.Enable(TraceName);
+				GTraceManager->Enable(TraceName);
 			}
 			else if (FParse::Command(&Cmd, TEXT("Disable")))
 			{
-				GTraceManager.Disable(TraceName);
+				GTraceManager->Disable(TraceName);
 			}
 			else if (FParse::Command(&Cmd, TEXT("Add")))
 			{
@@ -1823,17 +1961,17 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 				bool bDump = FParse::Param(Cmd, TEXT("DUMP"));
 				bool bStartDisabled = FParse::Param(Cmd, TEXT("STARTDISABLED"));
 
-				GTraceManager.AddTrace(TraceName, bLogAdd, bDump, bStartDisabled);
+				GTraceManager->AddTrace(TraceName, bLogAdd, bDump, bStartDisabled);
 			}
 			else if (FParse::Command(&Cmd, TEXT("Dump")))
 			{
-				GTraceManager.Dump(TraceName);
+				GTraceManager->Dump(TraceName);
 			}
 			// If no subcommands above are specified, assume this is a once-off stack trace dump
 			// @todo #JohnB: This will also capture mistyped commands, so find a way to detect that
 			else
 			{
-				GTraceManager.TraceAndDump(TraceName);
+				GTraceManager->TraceAndDump(TraceName);
 			}
 		}
 		else
@@ -1873,25 +2011,25 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 
 		if (FParse::Command(&Cmd, TEXT("Add")) && (LogLine = Cmd).Len() > 0)
 		{
-			GLogTraceManager.AddLogTrace(LogLine, false);
+			GLogTraceManager->AddLogTrace(LogLine, false);
 		}
 		else if (FParse::Command(&Cmd, TEXT("AddPartial")) && (LogLine = Cmd).Len() > 0)
 		{
-			GLogTraceManager.AddLogTrace(LogLine, true);
+			GLogTraceManager->AddLogTrace(LogLine, true);
 		}
 		else if (FParse::Command(&Cmd, TEXT("Dump")) && (LogLine = Cmd).Len() > 0)
 		{
-			GLogTraceManager.ClearLogTrace(LogLine, true);
+			GLogTraceManager->ClearLogTrace(LogLine, true);
 		}
 		else if (FParse::Command(&Cmd, TEXT("Clear")) && (LogLine = Cmd).Len() > 0)
 		{
-			GLogTraceManager.ClearLogTrace(LogLine, false);
+			GLogTraceManager->ClearLogTrace(LogLine, false);
 		}
 		else if (FParse::Command(&Cmd, TEXT("ClearAll")))
 		{
 			bool bDump = FParse::Param(Cmd, TEXT("DUMP"));
 
-			GLogTraceManager.ClearAll(bDump);
+			GLogTraceManager->ClearAll(bDump);
 		}
 		// If LogLine is now zero-length instead of 'NotSet', that means a valid command was encountered, but no LogLine specified
 		else if (LogLine.Len() == 0)
@@ -1917,7 +2055,7 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			uint8* Data = (uint8*)PointerVal;
 
-			if (Data != nullptr && DataLen > 0)
+			if (Data != nullptr || DataLen == 0)
 			{
 				NUTDebug::LogHexDump(Data, DataLen);
 			}
@@ -1936,6 +2074,39 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		}
 
 		bReturnVal = true;
+	}
+	/**
+	 * As above, except for bit-based-logging
+	 *
+	 * Usage: (copy-paste into code, at location desired, Pointer is the pointer, Length is the length of data Pointer references)
+	 *	GEngine->Exec(NULL, *FString::Printf(TEXT("LogBits -Data=%llu -DataLen=%u"), (uint64)Pointer, Length));
+	 */
+	else if (FParse::Command(&Cmd, TEXT("LogBits")))
+	{
+		uint64 PointerVal = 0;
+		uint32 DataLen = 0;
+
+		if (FParse::Value(Cmd, TEXT("Data="), PointerVal) && FParse::Value(Cmd, TEXT("DataLen="), DataLen))
+		{
+			uint8* Data = (uint8*)PointerVal;
+
+			if (Data != nullptr || DataLen == 0)
+			{
+				NUTDebug::LogBitDump(Data, DataLen);
+			}
+			else if (Data == nullptr)
+			{
+				Ar.Logf(TEXT("Invalid Data parameter."));
+			}
+			else // if (DataLen == 0)
+			{
+				Ar.Logf(TEXT("Invalid DataLen parameter."));
+			}
+		}
+		else
+		{
+			Ar.Logf(TEXT("Need to specify '-Data=DatAddress' and '-DataLen=Len'."));
+		}
 	}
 	/**
 	 * Watches for the specified assert log, and then blocks it to prevent the game from crashing.

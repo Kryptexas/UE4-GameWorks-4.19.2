@@ -43,9 +43,6 @@ private:
 	/** Once the GameplayDebuggingReplicator is received, cache it */
 	TWeakObjectPtr<AActor> Replicator;
 
-	/** Log message that is sent to the server, so that it will be triggered if the assert is not hit */
-	const TCHAR* ExploitFailLog;
-
 public:
 	virtual void InitializeEnvironmentSettings() override;
 

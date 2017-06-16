@@ -11,7 +11,7 @@ BlockEncryptor* FBlowFishBlockEncryptorModuleInterface::CreateBlockEncryptorInst
 }
 
 // BLOWFISH
-void BlowFishBlockEncryptor::Initialize(TArray<byte>* InKey)
+void BlowFishBlockEncryptor::Initialize(TArray<uint8>* InKey)
 {
 	Key = InKey;
 
@@ -26,9 +26,9 @@ void BlowFishBlockEncryptor::Initialize(TArray<byte>* InKey)
 	FixedBlockSize = 8;
 }
 
-void BlowFishBlockEncryptor::EncryptBlock(byte* Block)
+void BlowFishBlockEncryptor::EncryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Encryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;
@@ -36,9 +36,9 @@ void BlowFishBlockEncryptor::EncryptBlock(byte* Block)
 	//UE_LOG(PacketHandlerLog, Log, TEXT("BlowFish Encrypted"));
 }
 
-void BlowFishBlockEncryptor::DecryptBlock(byte* Block)
+void BlowFishBlockEncryptor::DecryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Decryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;

@@ -8,6 +8,7 @@
 
 #include "INetcodeUnitTest.h"
 #include "NUTUtil.h"
+#include "NUTUtilDebug.h"
 #include "UnitTestEnvironment.h"
 
 
@@ -92,6 +93,24 @@ public:
 	 */
 	virtual void ShutdownModule() override
 	{
+		// Eliminate active global variables
+		GUnitTestManager = nullptr;
+
+		if (GTraceManager != nullptr)
+		{
+			delete GTraceManager;
+
+			GTraceManager = nullptr;
+		}
+
+		if (GLogTraceManager != nullptr)
+		{
+			delete GLogTraceManager;
+
+			GLogTraceManager = nullptr;
+		}
+		
+
 		FLogWidgetCommands::Unregister();
 		FUnitTestEnvironment::Unregister();
 	}

@@ -79,17 +79,6 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
 
 
-	// @todo #JohnBLowPri: Steam detection doesn't seem to work this early on, but does work further down the line;
-	//				try to find a way, to detect it as early as possible
-
-	// NetcodeUnitTest is not compatible with Steam; if Steam is running/detected, abort immediately
-	// @todo #JohnBLowPri: Add support for Steam
-	if (NUTNet::IsSteamNetDriverAvailable())
-	{
-		UE_LOG(LogUnitTest, Log, TEXT("NetcodeUnitTest does not currently support Steam. Close Steam before running."));
-		GIsRequestingExit = true;
-	}
-
 	UE_LOG(LogUnitTest, Log, TEXT("NetcodeUnitTest built to target mainline CL '%i'."), TARGET_UE4_CL);
 
 	if (!GIsRequestingExit)

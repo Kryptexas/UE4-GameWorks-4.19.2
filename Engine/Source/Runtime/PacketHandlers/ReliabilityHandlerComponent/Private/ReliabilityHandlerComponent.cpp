@@ -2,6 +2,7 @@
 
 #include "ReliabilityHandlerComponent.h"
 #include "Modules/ModuleManager.h"
+#include "PacketAudit.h"
 
 IMPLEMENT_MODULE(FReliabilityHandlerComponentModuleInterface, ReliabilityHandlerComponent);
 
@@ -11,7 +12,8 @@ ReliabilityHandlerComponent::ReliabilityHandlerComponent()
 , LocalPacketIDACKED(0)
 , RemotePacketID(0)
 , RemotePacketIDACKED(0)
-, ResendResolutionTime(0.5f)
+, ResendResolutionTime(0.1f)
+, LastResendTime(0.0f)
 {
 }
 
@@ -33,38 +35,23 @@ void ReliabilityHandlerComponent::Outgoing(FBitWriter& Packet)
 	{
 		case Handler::Component::State::Initialized:
 		{
+			check(IsActive() && IsValid());
+
 			FBitWriter Local;
 			Local.AllowAppend(true);
 			Local.SetAllowResize(true);
 
-			if (IsActive() && IsValid())
-			{
-				bool PacketHasData = Packet.GetNumBytes() > 0;
+			check(Packet.GetNumBytes() > 0);
 
-				Local.Serialize(&PacketHasData, sizeof(bool));
-				Local.SerializeIntPacked(RemotePacketID);
+			Local.SerializeIntPacked(RemotePacketID);
+			Local.SerializeIntPacked(LocalPacketID);
+			Local.SerializeBits(Packet.GetData(), Packet.GetNumBits());
 
-				// Save packet for reliability
-				if (PacketHasData)
-				{
-					Local.SerializeIntPacked(LocalPacketID);
-					Local.Serialize(Packet.GetData(), Packet.GetNumBytes());
-					++LocalPacketID;
+			Packet = Local;
 
-					BufferedPacket* ReliablePacket = new BufferedPacket;
+			FPacketAudit::AddStage(TEXT("PostReliability"), Packet);
 
-					uint8* Data = new uint8[Packet.GetNumBytes()];
-					memcpy(Data, Packet.GetData(), Packet.GetNumBytes());
-					ReliablePacket->Data = Data;
-					ReliablePacket->Id = LocalPacketID;
-					ReliablePacket->CountBits = Packet.GetNumBits();
-					ReliablePacket->ResendTime = Handler->Time + ResendResolutionTime;
-					BufferedPackets.Enqueue(ReliablePacket);
-				}
-
-				Packet = Local;
-				break;
-			}
+			break;
 		}
 		default:
 		{
@@ -81,44 +68,34 @@ void ReliabilityHandlerComponent::Incoming(FBitReader& Packet)
 		{
 			if (IsActive() && IsValid())
 			{
-				bool PacketHasData = false;
-				Packet.Serialize(&PacketHasData, sizeof(bool));
+				FPacketAudit::CheckStage(TEXT("PostReliability"), Packet);
 
-				// ACK
+				// Read ACK
 				uint32 IncomingLocalPacketIDACK;
 				Packet.SerializeIntPacked(IncomingLocalPacketIDACK);
 
-				// Invalid ACK
-				if (IncomingLocalPacketIDACK > LocalPacketID)
+				// Read Remote ID
+				uint32 IncomingRemotePacketID;
+				Packet.SerializeIntPacked(IncomingRemotePacketID);
+
+				// Out of sequence or duplicate packet, ignore
+				if (RemotePacketID + 1 != IncomingRemotePacketID)
 				{
-					Packet.Seek(Packet.GetNumBytes());
-					break;
+					FBitReader Copy(nullptr, 0);
+					Packet = Copy;
+					return;
 				}
 
-				// Set latest ACK
+				// Set latest ID
+				RemotePacketID = IncomingRemotePacketID;
+
+				check(IncomingLocalPacketIDACK >= LocalPacketIDACKED);
+
+				// We don't record the latest ACK unless this packet is in-order, since we can't trust the ACK without further modifications
 				LocalPacketIDACKED = IncomingLocalPacketIDACK;
 
-				if (PacketHasData)
-				{
-					// Remote ID
-					uint32 IncomingRemotePacketID;
-					Packet.SerializeIntPacked(IncomingRemotePacketID);
-
-					// Out of sequence or duplicate packet, seek to end
-					// meaning no more bytes will be read from the packet
-					if (RemotePacketID + 1 != IncomingRemotePacketID)
-					{
-						Packet.Seek(Packet.GetNumBytes());
-						return;
-					}
-
-					// Set latest ID
-					RemotePacketID = IncomingRemotePacketID;
-				}
-
-				// Remove header from reader
-				FBitReader Copy(Packet.GetData() + (Packet.GetNumBytes() - Packet.GetBytesLeft()), Packet.GetBitsLeft());
-				Packet = Copy;
+				// Do not realign the remaining packet here, let the PacketHandler do that.
+				// Previous code from here, had a bug that added an extra byte in some circumstances.
 			}
 			break;
 		}
@@ -131,47 +108,48 @@ void ReliabilityHandlerComponent::Incoming(FBitReader& Packet)
 
 void ReliabilityHandlerComponent::Tick(float DeltaTime)
 {
-	float CurrentTime = Handler->Time;
+	const float CurrentTime = Handler->Time;
 
-	// Resend UNACKED packets
-	while (BufferedPackets.IsEmpty() == false)
+	if (CurrentTime - LastResendTime < ResendResolutionTime)
 	{
-		BufferedPacket* Packet;
-		BufferedPackets.Peek(Packet);
-
-		// Resend
-		if (Packet->ResendTime > CurrentTime)
-		{
-			BufferedPackets.Dequeue(Packet);
-
-			// Id has not been ACKED
-			if (Packet->Id < LocalPacketIDACKED)
-			{
-				Handler->QueuePacketForSending(Packet);
-			}
-			// ID has been ACKED
-			else
-			{
-				delete Packet;
-			}
-		}
-		// No packets to resend this frame
-		else
-		{
-			break;
-		}
+		return;
 	}
 
-	// Need to send ACK, queue a packet
-	if (IsActive() && RemotePacketID > RemotePacketIDACKED)
+	LastResendTime = CurrentTime;
+
+	// Resend UNACKED packets
+	// We resend all packets just to make sure
+	// This is very inefficient and wastes bandwidth, we will want to implement NAK version at some point
+	for (int i = 0; i < BufferedPackets.Num(); i++)
 	{
-		Handler->QueuePacketForSending(new BufferedPacket);
+		BufferedPacket* Packet = BufferedPackets[i];
+
+		check(Packet->Id >= 1);
+
+		if (LocalPacketIDACKED < Packet->Id)
+		{
+			// Send this as a raw packet, since it's already been processed
+			Handler->QueuePacketForRawSending(Packet);
+		}
+		else
+		{
+			// This packet was ACK'd, we can remove
+			check(i == 0);
+			BufferedPackets.RemoveAt(i);
+			i--;
+			delete Packet;
+		}
 	}
 }
 
 void ReliabilityHandlerComponent::QueuePacketForResending(uint8* Packet, int32 CountBits)
 {
-	BufferedPackets.Enqueue(new BufferedPacket(Packet, CountBits, Handler->Time + ResendResolutionTime, LocalPacketID));
+	BufferedPackets.Add(new BufferedPacket(Packet, CountBits, Handler->Time + ResendResolutionTime, LocalPacketID++));
+}
+
+int32 ReliabilityHandlerComponent::GetReservedPacketBits()
+{
+	return 64;
 }
 
 // MODULE INTERFACE

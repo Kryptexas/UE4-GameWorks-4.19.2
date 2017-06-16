@@ -1,26 +1,26 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+
 #include "Net/UnitTestChannel.h"
+
 #include "Engine/NetConnection.h"
+
+#include "MinimalClient.h"
 #include "NetcodeUnitTest.h"
 
 
-
-
 /**
- * Default constructor
+ * UUNitTestChannel
  */
+
 UUnitTestChannel::UUnitTestChannel(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ReceivedBunchDel()
+	, MinClient(nullptr)
 	, bVerifyOpen(false)
 {
 	ChType = CHTYPE_MAX;
 }
 
-/**
- * @todo #JohnBDoc
- */
 void UUnitTestChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally)
 {
 	// If the channel type is still default, assume this is a control channel (since that is the only time ChType should be default)
@@ -37,18 +37,14 @@ void UUnitTestChannel::Init(UNetConnection* InConnection, int32 InChIndex, bool 
 	Super::Init(InConnection, InChIndex, InOpenedLocally);
 }
 
-/**
- * @todo #JohnBDoc
- */
 void UUnitTestChannel::ReceivedBunch(FInBunch& Bunch)
 {
-	// Pass on to delegate
-	ReceivedBunchDel.ExecuteIfBound(Bunch);
+	if (MinClient != nullptr)
+	{
+		MinClient->ReceivedControlBunchDel.ExecuteIfBound(Bunch);
+	}
 }
 
-/**
- * @todo #JohnBDoc
- */
 void UUnitTestChannel::Tick()
 {
 	Super::Tick();

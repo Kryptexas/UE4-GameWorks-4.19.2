@@ -9,6 +9,7 @@
 
 class FInBunch;
 class UNetConnection;
+class UMinimalClient;
 
 /**
  * A net channel for overriding the implementation of traditional net channels,
@@ -26,16 +27,9 @@ class UUnitTestChannel : public UChannel
 	virtual void Tick() override;
 
 
-	/**
-	 * Delegate for hooking 'ReceivedBunch'
-	 *
-	 * @param Bunch		The received bunch
-	 */
-	DECLARE_DELEGATE_OneParam(FReceivedBunchDel, FInBunch&/* Bunch*/);
-
 public:
-	/** Delegate for passed on received-bunch calls */
-	FReceivedBunchDel	ReceivedBunchDel;
+	/** The minimal client which may require received bunch notifications */
+	UMinimalClient* MinClient;
 
 	/** Whether or not this channel should verify it has been opened (resends initial packets until acked, like control channel) */
 	bool bVerifyOpen;

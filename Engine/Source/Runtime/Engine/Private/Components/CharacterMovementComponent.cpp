@@ -119,6 +119,13 @@ namespace CharacterMovementCVars
 		TEXT( "" ),
 		ECVF_Default);
 
+	static int32 FixReplayOverSampling = 1;
+	FAutoConsoleVariableRef CVarFixReplayOverSampling(
+		TEXT( "p.FixReplayOverSampling" ),
+		FixReplayOverSampling,
+		TEXT( "If 1, remove invalid replay samples that can occur due to oversampling (sampling at higher rate than physics is being ticked)" ),
+		ECVF_Default);
+
 #if !UE_BUILD_SHIPPING
 
 	static int32 NetShowCorrections = 0;
@@ -174,7 +181,6 @@ namespace CharacterMovementCVars
 		TEXT("Whether to log detailed Movement Time Discrepancy values for testing")
 		TEXT("0: Disable, 1: Enable Detection logging, 2: Enable Detection and Resolution logging"),
 		ECVF_Cheat);
-
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -7019,7 +7025,7 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 			FReplayExternalDataArray* ExternalReplayData = MyWorld->DemoNetDriver->GetExternalDataArrayForObject( CharacterOwner );
 
 			// Grab any samples available, deserialize them, then clear originals
-			if ( ExternalReplayData )
+			if ( ExternalReplayData && ExternalReplayData->Num() > 0 )
 			{
 				for ( int i = 0; i < ExternalReplayData->Num(); i++ )
 				{
@@ -7030,6 +7036,24 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 					ReplaySample.Time = ( *ExternalReplayData )[i].TimeSeconds;
 
 					ClientData->ReplaySamples.Add( ReplaySample );
+				}
+
+				if ( CharacterMovementCVars::FixReplayOverSampling > 0 )
+				{
+					// Remove invalid replay samples that can occur due to oversampling (sampling at higher rate than physics is being ticked)
+					// We detect this by finding samples that have the same location but have a velocity that says the character should be moving
+					// If we don't do this, then characters will look like they are skipping around, which looks really bad
+					for ( int i = 1; i < ClientData->ReplaySamples.Num(); i++ )
+					{
+						if ( ClientData->ReplaySamples[i].Location.Equals( ClientData->ReplaySamples[i - 1].Location, KINDA_SMALL_NUMBER ) )
+						{
+							if ( ClientData->ReplaySamples[i - 1].Velocity.SizeSquared() > FMath::Square( KINDA_SMALL_NUMBER ) && ClientData->ReplaySamples[i].Velocity.SizeSquared() > FMath::Square( KINDA_SMALL_NUMBER ) )
+							{
+								ClientData->ReplaySamples.RemoveAt( i );
+								i--;
+							}
+						}
+					}
 				}
 
 				ExternalReplayData->Empty();
@@ -7161,7 +7185,7 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 						}
 
 						DrawCircle( GetWorld(), Location, FVector( 1, 0, 0 ), FVector( 0, 1, 0 ), FColor( 255, 0, 0, 255 ), Radius, Sides, false, 0.0f );
-						
+
 						if ( CharacterMovementCVars::NetVisualizeSimulatedCorrections >= 2 )
 						{
 							DrawDebugDirectionalArrow( GetWorld(), Location, Location + ClientData->ReplaySamples[i].Velocity, 20.0f, FColor( 255, 0, 0, 255 ) );

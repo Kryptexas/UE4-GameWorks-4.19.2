@@ -13,6 +13,7 @@ Notes:
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "UObject/Package.h"
+#include "PacketAudit.h"
 #include "PacketHandlers/StatelessConnectHandlerComponent.h"
 #include "Engine/NetConnection.h"
 #include "Engine/ChildConnection.h"
@@ -250,6 +251,8 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 			{
 				break;
 			}
+
+			FPacketAudit::NotifyLowLevelReceive(DataRef, BytesRead);
 		}
 		else
 		{
@@ -365,12 +368,13 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 					UE_LOG( LogNet, Log, TEXT( "NotifyAcceptingConnection accepted from: %s" ), *FromAddr->ToString( true ) );
 
 					bool bPassedChallenge = false;
+					TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect;
 
 					bIgnorePacket = true;
 
 					if (ConnectionlessHandler.IsValid() && StatelessConnectComponent.IsValid())
 					{
-						TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = StatelessConnectComponent.Pin();
+						StatelessConnect = StatelessConnectComponent.Pin();
 						FString IncomingAddress = FromAddr->ToString(true);
 
 						const ProcessedPacket UnProcessedPacket =
@@ -411,7 +415,25 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 						Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
 						check(Connection);
+
+						// Set the initial packet sequence from the handshake data
+						if (StatelessConnect.IsValid())
+						{
+							int32 ServerSequence = 0;
+							int32 ClientSequence = 0;
+
+							StatelessConnect->GetChallengeSequence(ServerSequence, ClientSequence);
+
+							Connection->InitSequence(ClientSequence, ServerSequence);
+						}
+
 						Connection->InitRemoteConnection( this, Socket,  FURL(), *FromAddr, USOCK_Open);
+
+						if (Connection->Handler.IsValid())
+						{
+							Connection->Handler->BeginHandshaking();
+						}
+
 						Notify->NotifyAcceptedConnection( Connection );
 						AddClientConnection(Connection);
 					}
@@ -475,11 +497,14 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 
 
 		int32 BytesSent = 0;
+		uint32 CountBytes = FMath::DivideAndRoundUp(CountBits, 8);
+
+		FPacketAudit::NotifyLowLevelSend((uint8*)Data, CountBytes, CountBits);
 
 		if (CountBits > 0)
 		{
 			CLOCK_CYCLES(SendCycles);
-			Socket->SendTo(DataToSend, FMath::DivideAndRoundUp(CountBits, 8), BytesSent, *RemoteAddr);
+			Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
 			UNCLOCK_CYCLES(SendCycles);
 		}
 

@@ -294,7 +294,6 @@ class COREUOBJECT_API FNetBitReader : public FBitReader
 {
 public:
 	FNetBitReader( UPackageMap* InPackageMap=NULL, uint8* Src=NULL, int64 CountBits=0 );
-	FNetBitReader( int64 InMaxBits );
 
 	class UPackageMap * PackageMap;
 

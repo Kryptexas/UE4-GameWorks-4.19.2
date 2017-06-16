@@ -7,7 +7,9 @@
 IMPLEMENT_MODULE(FEncryptionHandlerComponentModuleInterface, EncryptionHandlerComponent);
 
 // ENCRYPTION PROCESSOR
-EncryptionHandlerComponent::EncryptionHandlerComponent(HandlerComponent* InSymmetricHandlerComponent, HandlerComponent* InAsymmetricHandlerComponent)
+EncryptionHandlerComponent::EncryptionHandlerComponent(HandlerComponent* InSymmetricHandlerComponent,
+														HandlerComponent* InAsymmetricHandlerComponent)
+	: State(EEncryptionHandler::State::UnInitialized)
 {
 	if (InSymmetricHandlerComponent != nullptr)
 	{

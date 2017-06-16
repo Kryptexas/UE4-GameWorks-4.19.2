@@ -3,6 +3,7 @@
 #include "NUTUtilDebug.h"
 
 #include "ClientUnitTest.h"
+#include "MinimalClient.h"
 #include "NUTActor.h"
 
 #include "Net/NUTUtilNet.h"
@@ -13,8 +14,14 @@
  * Globals
  */
 
-FStackTraceManager GTraceManager;
-FLogStackTraceManager GLogTraceManager;
+FStackTraceManager* GTraceManager = new FStackTraceManager();
+FLogStackTraceManager* GLogTraceManager = new FLogStackTraceManager();
+
+
+bool GGlobalExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	return GEngine != nullptr ? GEngine->Exec(InWorld, Cmd, Ar) : false;
+}
 
 
 /**
@@ -31,22 +38,22 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 	// If you want to do remote logging, you MUST specify the client unit test doing the logging
 	if (bRemoteLogging)
 	{
-		UNIT_ASSERT(UnitTest != NULL);
-		UNIT_ASSERT(UnitTest->UnitConn != NULL);
+		UNIT_ASSERT(UnitTest != nullptr);
+		UNIT_ASSERT(UnitTest->UnitConn != nullptr);
 	}
 
 
-	UNetConnection* UnitConn = (UnitTest != NULL ? UnitTest->UnitConn : NULL);
+	UNetConnection* UnitConn = (UnitTest != nullptr ? UnitTest->UnitConn : nullptr);
 
 	// Flush all current packets, so the log messages only relate to scoped code
-	if (UnitConn != NULL)
+	if (UnitConn != nullptr)
 	{
 		UnitConn->FlushNet();
 	}
 
 
 	// If specified, enable logs remotely
-	if (bRemoteLogging)
+	if (bRemoteLogging && UnitTest != nullptr)
 	{
 		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(UnitTest->ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
@@ -76,12 +83,13 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 
 	// Now enable local logging
 	FString Cmd = TEXT("");
+	UWorld* UnitWorld = (UnitTest != nullptr && UnitTest->MinClient != nullptr) ? UnitTest->MinClient->GetUnitWorld() : nullptr;
 
 	for (auto CurCategory : LogCategories)
 	{
 		Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
 
-		GEngine->Exec((UnitTest != NULL ? UnitTest->UnitWorld : NULL), *Cmd);
+		GEngine->Exec(UnitWorld, *Cmd);
 	}
 }
 
@@ -98,12 +106,13 @@ FScopedLog::~FScopedLog()
 
 	// Reset local logging
 	FString Cmd = TEXT("");
+	UWorld* UnitWorld = (UnitTest != nullptr && UnitTest->MinClient != nullptr) ? UnitTest->MinClient->GetUnitWorld() : nullptr;
 
 	for (int32 i=LogCategories.Num()-1; i>=0; i--)
 	{
 		Cmd = TEXT("Log ") + LogCategories[i] + TEXT(" Default");
 
-		GEngine->Exec((UnitTest != nullptr ? UnitTest->UnitWorld : nullptr), *Cmd);
+		GEngine->Exec(UnitWorld, *Cmd);
 	}
 
 
@@ -394,7 +403,7 @@ FString NUTDebug::HexDump(const TArray<uint8>& InBytes, bool bDumpASCII/*=true*/
 	if (bDumpOffset)
 	{
 		// Spacer for row offsets
-		ReturnValue += TEXT("        ");
+		ReturnValue += TEXT("Offset  ");
 
 		// Spacer between offsets and hex
 		ReturnValue += TEXT("  ");
@@ -485,6 +494,85 @@ FString NUTDebug::HexDump(const TArray<uint8>& InBytes, bool bDumpASCII/*=true*/
 		}
 
 		ReturnValue += LINE_TERMINATOR;
+	}
+
+	return ReturnValue;
+}
+
+FString NUTDebug::BitDump(const TArray<uint8>& InBytes, bool bDumpOffset/*=true*/, bool bLSBFirst/*=false*/)
+{
+	FString ReturnValue;
+
+	if (bDumpOffset)
+	{
+		// Spacer for row offsets
+		ReturnValue += TEXT("Offset  ");
+
+		// Spacer between offsets and bits
+		ReturnValue += TEXT("  ");
+
+		// Top line offsets
+		ReturnValue += TEXT("      00       01       02       03        04       05       06       07");
+
+		ReturnValue += LINE_TERMINATOR LINE_TERMINATOR;
+	}
+
+	for (int32 ByteRow=0; ByteRow<((InBytes.Num()-1) / 8)+1; ByteRow++)
+	{
+		FString BitRowStr;
+
+		for (int32 ByteColumn=0; ByteColumn<8; ByteColumn++)
+		{
+			int32 ByteElement = (ByteRow*8) + ByteColumn;
+			uint8 CurByte = (ByteElement < InBytes.Num() ? InBytes[ByteElement] : 0);
+
+			if (ByteElement < InBytes.Num())
+			{
+				if (bLSBFirst)
+				{
+					BitRowStr += FString::Printf(TEXT("%u%u%u%u%u%u%u%u"), !!(CurByte & 0x01), !!(CurByte & 0x02), !!(CurByte & 0x04),
+													!!(CurByte & 0x08), !!(CurByte & 0x10), !!(CurByte & 0x20), !!(CurByte & 0x40),
+													!!(CurByte & 0x80));
+				}
+				else
+				{
+					BitRowStr += FString::Printf(TEXT("%u%u%u%u%u%u%u%u"), !!(CurByte & 0x80), !!(CurByte & 0x40), !!(CurByte & 0x20),
+													!!(CurByte & 0x10), !!(CurByte & 0x08), !!(CurByte & 0x04), !!(CurByte & 0x02),
+													!!(CurByte & 0x01));
+				}
+			}
+			else
+			{
+				BitRowStr += TEXT("  ");
+			}
+
+
+			// Add padding
+			if (ByteColumn < 7)
+			{
+				if (ByteColumn > 0 && ((ByteColumn + 1) % 4) == 0)
+				{
+					BitRowStr += TEXT("  ");
+				}
+				else
+				{
+					BitRowStr += TEXT(" ");
+				}
+			}
+		}
+
+
+		// Add left-hand offset
+		if (bDumpOffset)
+		{
+			ReturnValue += FString::Printf(TEXT("%08X"), ByteRow*8);
+
+			// Spacer between offsets and bits
+			ReturnValue += TEXT("  ");
+		}
+
+		// Add bits row
+		ReturnValue += BitRowStr + LINE_TERMINATOR;
 	}
 
 	return ReturnValue;
