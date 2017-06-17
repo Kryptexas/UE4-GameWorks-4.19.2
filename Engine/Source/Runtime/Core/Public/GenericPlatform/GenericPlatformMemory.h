@@ -23,11 +23,11 @@ struct FGenericMemoryStats;
  */
 struct FGenericPlatformMemoryConstants
 {
-	/** The amount of actual physical memory, in bytes. */
-	SIZE_T TotalPhysical;
+	/** The amount of actual physical memory, in bytes (needs to handle >4GB for 64-bit devices running 32-bit code). */
+	uint64 TotalPhysical;
 
 	/** The amount of virtual memory, in bytes. */
-	SIZE_T TotalVirtual;
+	uint64 TotalVirtual;
 
 	/** The size of a physical page, in bytes. This is also the granularity for PageProtect(), commitment and properties (e.g. ability to access) of the physical RAM. */
 	SIZE_T PageSize;
@@ -86,22 +86,22 @@ typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
 struct FGenericPlatformMemoryStats : public FPlatformMemoryConstants
 {
 	/** The amount of physical memory currently available, in bytes. */
-	SIZE_T AvailablePhysical;
+	uint64 AvailablePhysical;
 
 	/** The amount of virtual memory currently available, in bytes. */
-	SIZE_T AvailableVirtual;
+	uint64 AvailableVirtual;
 
 	/** The amount of physical memory used by the process, in bytes. */
-	SIZE_T UsedPhysical;
+	uint64 UsedPhysical;
 
 	/** The peak amount of physical memory used by the process, in bytes. */
-	SIZE_T PeakUsedPhysical;
+	uint64 PeakUsedPhysical;
 
 	/** Total amount of virtual memory used by the process. */
-	SIZE_T UsedVirtual;
+	uint64 UsedVirtual;
 
 	/** The peak amount of virtual memory used by the process. */
-	SIZE_T PeakUsedVirtual;
+	uint64 PeakUsedVirtual;
 	
 	/** Default constructor, clears all variables. */
 	FGenericPlatformMemoryStats();

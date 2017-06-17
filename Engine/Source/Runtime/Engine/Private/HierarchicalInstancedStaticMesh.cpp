@@ -893,6 +893,16 @@ public:
 	{
 	}
 
+	virtual void ApplyWorldOffset(FVector InOffset) override
+	{
+		FInstancedStaticMeshSceneProxy::ApplyWorldOffset(InOffset);
+		
+		for (FBoxSphereBounds& Item : OcclusionBounds)
+		{
+			Item.Origin+= InOffset;
+		}
+	}
+
 	void FillDynamicMeshElements(FMeshElementCollector& Collector, const FFoliageElementParams& ElementParams, const FFoliageRenderInstanceParams& Instances) const;
 
 	template<bool TUseVector>

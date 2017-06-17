@@ -760,7 +760,7 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
-#if (ES2_PROFILE || ES3_1_PROFILE) && !METAL_PROFILE // Metal supports sRGB textures
+#if (FEATURE_LEVEL == FEATURE_LEVEL_ES2) // ES2 does not support sRGB sampling
 	#if MOBILE_EMULATION
 	if( View.MobilePreviewMode > 0.5f)
 	{
@@ -783,7 +783,7 @@ MaterialFloat4 ProcessMaterialLinearColorTextureLookup(MaterialFloat4 TextureVal
 
 MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
-#if (ES2_PROFILE || ES3_1_PROFILE) && !METAL_PROFILE // Metal supports R8 sRGB
+#if (FEATURE_LEVEL == FEATURE_LEVEL_ES2) || COMPILER_GLSL_ES3_1 // ES2 and OpenGLES3.1 does not support sRGB sampling from R8
 	#if MOBILE_EMULATION
 	if( View.MobilePreviewMode > 0.5f )
 	{

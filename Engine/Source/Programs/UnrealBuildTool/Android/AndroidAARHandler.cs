@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 {
 	class AndroidAARHandler
 	{
-		class AndroidAAREntry
+		public class AndroidAAREntry
 		{
 			public string BaseName;
 			public string Version;
@@ -41,8 +41,8 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private List<string> Repositories = null;
-		private List<AndroidAAREntry> AARList = null;
+		public List<string> Repositories = null;
+		public List<AndroidAAREntry> AARList = null;
 		private List<AndroidAAREntry> JARList = null;
 
 		/// <summary>
@@ -137,7 +137,7 @@ namespace UnrealBuildTool
 
 			return null;
 		}
-
+		
 		private bool HasAnyVersionCharacters(string InValue)
 		{
 			for (int Index = 0; Index < InValue.Length; Index++)
@@ -335,8 +335,16 @@ namespace UnrealBuildTool
 		/// <param name="PackageName">Name of the package the AAR belongs to in repository</param>
 		/// <param name="BaseName">Directory in repository containing the AAR</param>
 		/// <param name="Version">Version of the AAR to use</param>
-		public void AddNewAAR(string PackageName, string BaseName, string Version)
+		/// <param name="HandleDependencies">Optionally process POM file for dependencies (default)</param>
+		public void AddNewAAR(string PackageName, string BaseName, string Version, bool HandleDependencies = true)
 		{
+			if (!HandleDependencies)
+			{
+				AndroidAAREntry NewAAREntry = new AndroidAAREntry(BaseName, Version, PackageName);
+				AARList.Add(NewAAREntry);
+				return;
+			}
+
 			string BasePath = FindPackageFile(PackageName, BaseName, Version);
 			if (BasePath == null)
 			{
@@ -395,6 +403,11 @@ namespace UnrealBuildTool
 			//Log.TraceInformation("AAR: {0}", BaseName);
 			AndroidAAREntry AAREntry = new AndroidAAREntry(BaseName, Version, BaseFilename);
 			AARList.Add(AAREntry);
+
+			if (!HandleDependencies)
+			{
+				return;
+			}
 
 			// Check for dependencies
 			XDocument DependsXML;
@@ -627,19 +640,19 @@ namespace UnrealBuildTool
 						OutputFileName = NewOutputFileName;
 					}
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
-                    if (!Entry.IsDirectory)
-                    {
-                        using (FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
-                        {
-                            Entry.Extract(OutputStream);
-                        }
-                        OutputFileNames.Add(OutputFileName);
-                    }
-                }
-                return OutputFileNames;
-            }
-        }
+					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
+					if (!Entry.IsDirectory)
+					{
+						using (FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+						{
+							Entry.Extract(OutputStream);
+						}
+						OutputFileNames.Add(OutputFileName);
+					}
+				}
+				return OutputFileNames;
+			}
+		}
 
-    }
+	}
 }

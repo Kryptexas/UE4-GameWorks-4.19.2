@@ -997,6 +997,8 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 					}
 
 					Ar << FullHDRData->CompressedCapturedData;
+
+					INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRData->CompressedCapturedData.GetAllocatedSize());
 				}
 			}
 		}
@@ -1150,6 +1152,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 						else
 						{
 							Ar << FullHDRData->CompressedCapturedData;
+							INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRData->CompressedCapturedData.GetAllocatedSize());
 						}
 					}
 					else 
@@ -1157,6 +1160,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 						check(CurrentFormat == EncodedHDR);
 						EncodedHDRDerivedData = new FReflectionCaptureEncodedHDRDerivedData();
 						Ar << EncodedHDRDerivedData->CapturedData->GetArray();
+						EncodedHDRDerivedData->CapturedData->UpdateMemoryTracking();
 					}
 				}
 				else if (CurrentFormat == EncodedHDR)

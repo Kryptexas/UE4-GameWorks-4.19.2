@@ -549,6 +549,12 @@ namespace HTML5LaunchHelper
 			var Args = new Arguments();
 			if (Args.Parse(args))
 			{
+				string cwd = Directory.GetCurrentDirectory();
+				if ( Args.ServerRoot.Equals("./") && cwd.Equals("/") ) // UE-45302
+				{
+					string path = System.IO.Path.GetDirectoryName( System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase ).Replace("file:","");
+					Directory.SetCurrentDirectory(path);
+				}
 				Args.ShowParsedValues();
 			}
 			else

@@ -527,7 +527,6 @@ static FText GetMaliGraphicsDebuggerHelpText()
 	const static FText RunText1(LOCTEXT("MGDIRunText1", "Run the following command from your host to establish a tunnel between your PC and the MGD Daemon. This needs to be done each time you connect your device by USB."));
 	const static FString RunCommand(TEXT("adb forward tcp:5002 tcp:5002"));
 	const static FText RunText2(LOCTEXT("MGDIRunText2", "Next, ensure you are running the daemon. Run the MGD Daemon application and switch it to the \"ON\" state"));
-	const static FText AddInfoText(LOCTEXT("MGDAddInfo", "Applications configured for the Mali Graphics Debugger may crash when launched on non-Mali based devices."));
 	
 	FFormatOrderedArguments Args;
 	Args.Add(InstallText);
@@ -535,9 +534,8 @@ static FText GetMaliGraphicsDebuggerHelpText()
 	Args.Add(RunText1);
 	Args.Add(FText::FromString(RunCommand));
 	Args.Add(RunText2);
-	Args.Add(AddInfoText);
 
-	return FText::Format(LOCTEXT("MaliGraphicsDebuggerHelpText","<RichTextBlock.TextHighlight>Installation</>\n{0}\n{1}\n\n<RichTextBlock.TextHighlight>Run</>\n{2}\n{3}\n{4}\n\n<RichTextBlock.TextHighlight>Note</>\n{5}"), 
+	return FText::Format(LOCTEXT("MaliGraphicsDebuggerHelpText","<RichTextBlock.TextHighlight>Installation</>\n{0}\n{1}\n\n<RichTextBlock.TextHighlight>Run</>\n{2}\n{3}\n{4}"), 
 		Args);
 }
 
@@ -551,6 +549,39 @@ static FText GetAdrenoProfilerHelpText()
 	Args.Add(FText::FromString(RunCommand));
 
 	return FText::Format(LOCTEXT("AdrenoHelpText","{0}\n{1}"), Args);
+}
+
+static FText GetRenderDocHelpText()
+{
+	const static FText InstallText(LOCTEXT("RDOCInstallText", "Run the following command from a host command line from the android/apk/32 directory located in the installation directory of the RenderDoc tool, to install the RenderDocCmd application on your device."));
+	const static FString InstallCommand(TEXT("adb install -r RenderDocCmd.apk"));
+
+	const static FText RunText0(LOCTEXT("RDOCRunText0", "Open RenderDoc on the host"));
+	const static FText RunText1(LOCTEXT("RDOCRunText1", "1. In Tools -> Options -> Android, set the path to your adb executable."));
+	const static FText RunText2(LOCTEXT("RDOCRunText2", "2. Start the Remote Server using Tools -> Start Android Remote Server."));
+	const static FText RunText3(LOCTEXT("RDOCRunText3", "3. Check your device screen and 'Allow' RenderDocCmd to access files on your device."));
+	const static FText RunText4(LOCTEXT("RDOCRunText4", "4. Change your current Replay Context to your device using the bottom left menu, which should now show your device as Online."));
+	const static FText RunText5(LOCTEXT("RDOCRunText5", "5. In the capture executable tab, there is a button on the right of Executable Path that lets you select an installed Android package for capture."));
+	const static FText RunText6(LOCTEXT("RDOCRunText6", "6. Select your package and press the Launch button in the bottom right of the tab to start the package on the device."));
+	const static FText RunText7(LOCTEXT("RDOCRunText7", "7. If everything went well, a new tab will open with a button to Trigger captures."));
+
+	const static FText NoteText(LOCTEXT("RDOCNoteText", "If the latest RenderDoc release does not have Android functionality, download the latest nightly build."));
+
+	FFormatOrderedArguments Args;
+	Args.Add(InstallText);
+	Args.Add(FText::FromString(InstallCommand));
+	Args.Add(RunText0);
+	Args.Add(RunText1);
+	Args.Add(RunText2);
+	Args.Add(RunText3);
+	Args.Add(RunText4);
+	Args.Add(RunText5);
+	Args.Add(RunText6);
+	Args.Add(RunText7);
+	Args.Add(NoteText);
+
+	return FText::Format(LOCTEXT("RDOCHelpText","<RichTextBlock.TextHighlight>Installation</>\n{0}\n{1}\n\n<RichTextBlock.TextHighlight>Run</>\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}\n{8}\n{9}\n\n<RichTextBlock.TextHighlight>Note</>\n{10}"), 
+		Args);
 }
 
 void FAndroidTargetSettingsCustomization::BuildGraphicsDebuggerSection(IDetailLayoutBuilder& DetailLayout)
@@ -641,6 +672,52 @@ void FAndroidTargetSettingsCustomization::BuildGraphicsDebuggerSection(IDetailLa
 						SNew(SHyperlinkLaunchURL, TEXT("https://developer.qualcomm.com/software/adreno-gpu-profiler"))
 						.Text(LOCTEXT("AdrenoProfilerPage", "Adreno Profiler home page"))
 						.ToolTipText(LOCTEXT("AdrenoProfilerPageTooltip", "Opens the Adreno Profiler home page on the Qualcomm website"))
+					]
+				]
+			]
+		];
+	}
+
+	// RenderDoc settings
+	{
+		TAttribute<EVisibility> RenderDocSettingsVisibility(
+			TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(GraphicsDebuggerSettingsVisibility, EAndroidGraphicsDebugger::RenderDoc, AndroidGraphicsDebuggerProperty))
+		);
+
+		TSharedPtr<IPropertyHandle> RenderDocPathProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, RenderDocPath));
+		DetailLayout.HideProperty(RenderDocPathProperty);
+		GraphicsDebuggerCategory.AddProperty(RenderDocPathProperty).Visibility(RenderDocSettingsVisibility);
+		
+		FText RenderDocHelpText = GetRenderDocHelpText();
+		
+		GraphicsDebuggerCategory.AddCustomRow(LOCTEXT("RenderDocInfo", "RenderDoc Info"), false)
+		.Visibility(RenderDocSettingsVisibility)
+		.WholeRowWidget
+		[
+			SNew(SBorder)
+			.Padding(1)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(FMargin(10, 10, 10, 10))
+				.AutoHeight()
+				[
+					SNew(SRichTextBlock)
+					.Text(RenderDocHelpText)
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.AutoWrapText(true)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FMargin(10, 10, 10, 10))
+				[	
+					SNew(SBox)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SHyperlinkLaunchURL, TEXT("https://renderdoc.org/"))
+						.Text(LOCTEXT("RenderDocPage", "RenderDoc home page"))
+						.ToolTipText(LOCTEXT("RenderDocPageTooltip", "Opens the RenderDoc home page"))
 					]
 				]
 			]

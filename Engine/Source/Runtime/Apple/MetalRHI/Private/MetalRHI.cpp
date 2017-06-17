@@ -227,16 +227,21 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
         }
 	}
 
-	// ES2/3.1 feature level emulation
-	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
+	ERHIFeatureLevel::Type PreviewFeatureLevel;
+	if (RHIGetPreviewFeatureLevel(PreviewFeatureLevel))
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
-		GMaxRHIShaderPlatform = SP_METAL_MACES2;
-	}
-	else if ((FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor)
-	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
-		GMaxRHIShaderPlatform = SP_METAL_MACES3_1;
+		check(PreviewFeatureLevel == ERHIFeatureLevel::ES2 || PreviewFeatureLevel == ERHIFeatureLevel::ES3_1);
+
+		// ES2/3.1 feature level emulation
+		GMaxRHIFeatureLevel = PreviewFeatureLevel;
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
+		{
+			GMaxRHIShaderPlatform = SP_METAL_MACES2;
+		}
+		else if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1)
+		{
+			GMaxRHIShaderPlatform = SP_METAL_MACES3_1;
+		}
 	}
 
 	ValidateTargetedRHIFeatureLevelExists(GMaxRHIShaderPlatform);

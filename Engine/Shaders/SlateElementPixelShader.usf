@@ -141,7 +141,7 @@ half4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 	// Make no assumptionn of what vertex color does in a custom material shader
 	FinalColor = BaseColor;
 #else
-    FinalColor = BaseColor * InVertex.Color;
+	FinalColor = BaseColor*InVertex.Color;
 #endif
 
 	return FinalColor;
@@ -304,7 +304,7 @@ half4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
         half3 Grayish = float3(0.349, 0.349, 0.349);
     #endif
     
-    //desaturate
+	//desaturate
 	half Lum = dot( LumCoeffs, OutColor.rgb );
 	OutColor.rgb = lerp( OutColor.rgb, float3(Lum,Lum,Lum), .8 );
 	OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );

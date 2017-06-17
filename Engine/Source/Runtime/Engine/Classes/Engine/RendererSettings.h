@@ -498,6 +498,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Maximum amount of memory (in MB) per world/scene allowed for the Compute Skincache to generate output vertex data and recompute tangents."))
 		float SkinCacheSceneMemoryLimitInMB;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.GPUSkin.Limit2BoneInfluences", DisplayName = "Limit GPU skinning to 2 bones influence",
+		ToolTip = "Whether to use 2 bone influences instead of the default of 4 for GPU skinning. This does not change skeletal mesh assets but reduces the number of instructions required by the GPU skin vertex shaders. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bGPUSkinLimit2BoneInfluences : 1;
+
 public:
 
 	//~ Begin UObject Interface

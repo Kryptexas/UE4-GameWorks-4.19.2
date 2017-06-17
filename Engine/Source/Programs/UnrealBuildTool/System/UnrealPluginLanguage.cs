@@ -312,6 +312,12 @@ namespace UnrealBuildTool
 	 * 	<!-- optional additions to proguard -->
 	 * 	<proguardAdditions>	</proguardAdditions>
 	 * 	
+	 * 	<!-- optional AAR imports additions -->
+	 * 	<AARImports> </AARImports>
+	 * 	
+	 * 	<!-- optional build.gradle additions -->
+	 * 	<buildGradleAdditions>  </buildGradleAdditions>
+	 * 	
 	 * 	<!-- optional additions to generated build.xml before ${sdk.dir}/tools/ant/build.xml import -->
 	 * 	<buildXmlPropertyAdditions> </buildXmlPropertyAdditions>
 	 *
@@ -2152,6 +2158,30 @@ namespace UnrealBuildTool
 			if (bGlobalTrace)
 			{
 				Log.TraceInformation("\nVariables:\n{0}", DumpVariables());
+			}
+		}
+
+		public void SetGlobalContextVariable(string VariableName, bool Value)
+		{
+			if (VariableName != null)
+			{
+				GlobalContext.BoolVariables[VariableName] = Value;
+			}
+		}
+
+		public void SetGlobalContextVariable(string VariableName, int Value)
+		{
+			if (VariableName != null)
+			{
+				GlobalContext.IntVariables[VariableName] = Value;
+			}
+		}
+
+		public void SetGlobalContextVariable(string VariableName, string Value)
+		{
+			if (VariableName != null && Value != null)
+			{
+				GlobalContext.StringVariables[VariableName] = Value;
 			}
 		}
 	}

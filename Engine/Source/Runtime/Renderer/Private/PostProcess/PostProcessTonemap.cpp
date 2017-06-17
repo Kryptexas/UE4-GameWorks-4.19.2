@@ -1603,13 +1603,20 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 
 		const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
 
-		if (IsVulkanPlatform(ShaderPlatform))
+		if (IsMobilePlatform(ShaderPlatform))
 		{
-			//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
-			// Clearing for letterbox mode. We could ENoAction if View.ViewRect == RT dims.
-			FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-			FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
-			Context.RHICmdList.SetRenderTargetsAndClear(Info);
+			// clear target when processing first view in case of splitscreen
+			const bool bFirstView = (&View == View.Family->Views[0]);
+		
+			// Full clear to avoid restore
+			if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
+			{
+				SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			}
+			else
+			{
+				SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
+			}
 		}
 		else
 		{
@@ -2092,26 +2099,18 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	FIntPoint DstSize = OutputDesc.Extent;
 
 	// Set the view family's render target/viewport.
-	//@todo Ronin find a way to use the same codepath for all platforms.
-	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
-	if (IsVulkanMobilePlatform(ShaderPlatform))
 	{
-		//@HACK: gets around an uneccessary load in Vulkan. NOT FOR MAIN as it'll probably kill GearVR
-		//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
-		FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
-		Context.RHICmdList.SetRenderTargetsAndClear(Info);
-	}
-	else
-	{
-		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 		// clear target when processing first view in case of splitscreen
 		const bool bFirstView = (&View == View.Family->Views[0]);
 		
 		// Full clear to avoid restore
 		if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 		{
-			DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		}
+		else
+		{
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 		}
 	}
 

@@ -129,6 +129,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools)
 	bool bEnableLiveRecompilationOfAnimationBlueprints;
 
+	/** Enable experimental PIE preview device launch */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Enable mobile PIE with preview device launch options."))
+	bool bMobilePIEPreviewDeviceLaunch;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

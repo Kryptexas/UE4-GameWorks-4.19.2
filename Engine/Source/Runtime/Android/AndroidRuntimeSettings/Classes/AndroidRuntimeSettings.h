@@ -150,7 +150,8 @@ namespace EAndroidGraphicsDebugger
 	{
 		None = 0 UMETA(DisplayName = "None"),
 		Mali = 1 UMETA(DisplayName = "Mali Graphics Debugger", ToolTip = "Configure for Mali Graphics Debugger."),
-		Adreno = 2 UMETA(DisplayName = "Adreno Profiler", ToolTip = "Configure for Adreno Profiler.")
+		Adreno = 2 UMETA(DisplayName = "Adreno Profiler", ToolTip = "Configure for Adreno Profiler."),
+		RenderDoc = 3 UMETA(DisplayName = "RenderDoc (Experimental)", ToolTip = "Configure for RenderDoc.")
 	};
 }
 
@@ -192,6 +193,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidInstallLocation::Type> InstallLocation;
 
+	// Experimental: Use Gradle instead of Ant for Java compiling and APK generation
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable Gradle instead of Ant [Experimental]"))
+	bool bEnableGradle;
+
 	// Should the data be placed into the .apk file instead of a separate .obb file. Amazon requires this to be enabled, but Google Play Store will not allow .apk files larger than 50MB, so only small games will work with this enabled.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Package game data inside .apk?"))
 	bool bPackageDataInsideApk;
@@ -212,6 +217,10 @@ public:
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
+
+	// Maximum supported aspect ratio (width / height). Android will automatically letterbox application on devices with bigger aspect ratio
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Maximum supported aspect ratio."))
+	float MaxAspectRatio;
 
 	// Level of verbosity to use during packaging with Ant
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
@@ -403,6 +412,10 @@ public:
 	/** The path to your Mali Graphics Debugger installation (eg C:/Program Files/ARM/Mali Developer Tools/Mali Graphics Debugger v4.2.0) */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
 	FDirectoryPath MaliGraphicsDebuggerPath;
+
+	/** The path to your RenderDoc installation (eg C:/Program Files/RenderDoc) */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
+	FDirectoryPath RenderDocPath;
 
 	/** Include ETC1 textures when packaging with the Android (Multi) variant. ETC1 will be included if no other formats are selected. */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ETC1 textures"))

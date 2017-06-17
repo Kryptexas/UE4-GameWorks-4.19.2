@@ -280,6 +280,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	IDetailCategoryBuilder& OSInfoCategory = DetailLayout.EditCategory(TEXT("OS Info"));
 	IDetailCategoryBuilder& DeviceCategory = DetailLayout.EditCategory(TEXT("Devices"));
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
+	IDetailCategoryBuilder& OnlineCategory = DetailLayout.EditCategory(TEXT("Online"));
 	IDetailCategoryBuilder& ExtraCategory = DetailLayout.EditCategory(TEXT("Extra PList Data"));
 	MobileProvisionProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MobileProvision));
 	BuildCategory.AddProperty(MobileProvisionProperty)
@@ -721,11 +722,11 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 /*	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
 	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	RenderCategory.AddProperty(GLES2PropertyHandle);
+	RenderCategory.AddProperty(GLES2PropertyHandle);*/
 
 	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
 	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	OSInfoCategory.AddProperty(MinOSPropertyHandle);*/
+	OSInfoCategory.AddProperty(MinOSPropertyHandle);
 
 	DevArmV7PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7));
 	DevArmV7PropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
@@ -753,6 +754,8 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SETUP_PLIST_PROP(bSupportsLandscapeRightOrientation, OrientationCategory);
 	
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory);
+
+	SETUP_SOURCEONLY_PROP(bEnableRemoteNotificationsSupport, OnlineCategory)
 	
     // Handle max. shader version a little specially.
     {
@@ -795,89 +798,6 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 		
 		UpdateShaderStandardWarning();
     }
-
-	// Handle max. shader version a little specially.
-	{
-		MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
-
-		// Drop-downs for setting type of lower and upper bound normalization
-		IDetailPropertyRow& MinOSPropertyRow = OSInfoCategory.AddProperty(MinOSPropertyHandle.ToSharedRef());
-		MinOSPropertyRow.CustomWidget()
-		.NameContent()
-		[
-			MinOSPropertyHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(2)
-			[
-				SNew(SComboButton)
-				.OnGetMenuContent(this, &FIOSTargetSettingsCustomization::OnGetMinVersionContent)
-				.ContentPadding(FMargin(2.0f, 2.0f))
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.Text(this, &FIOSTargetSettingsCustomization::GetMinVersionDesc)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Fill)
-			.Padding(2)
-			[
-				SAssignNew(IOSVersionWarningTextBox, SErrorText)
-				.AutoWrapText(true)
-			]
-		];
-
-		UpdateOSVersionWarning();
-	}
-
-	// Handle max. shader version a little specially.
-	{
-		FSimpleDelegate OnUpdateGLVersionWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateGLVersionWarning);
-		GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
-		GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateGLVersionWarning);
-		bool bIsChecked = false;
-		GLES2PropertyHandle->GetValue(bIsChecked);
-
-		// Drop-downs for setting type of lower and upper bound normalization
-		IDetailPropertyRow& GLPropertyRow = RenderCategory.AddProperty(GLES2PropertyHandle.ToSharedRef());
-		GLPropertyRow.CustomWidget()
-			.NameContent()
-			[
-				GLES2PropertyHandle->CreatePropertyNameWidget()
-			]
-			.ValueContent()
-			.HAlign(HAlign_Fill)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(2)
-				[
-					SNew(SCheckBox)
-					.IsChecked(bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-					.OnCheckStateChanged(this, &FIOSTargetSettingsCustomization::HandleGLES2CheckBoxCheckStateChanged)
-					.Padding(FMargin(2.0, 2.0))
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Fill)
-				.Padding(2)
-				[
-					SAssignNew(GLVersionWarningTextBox, SErrorText)
-					.AutoWrapText(true)
-				]
-			];
-
-		UpdateGLVersionWarning();
-	}
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
@@ -1219,10 +1139,10 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 #if PLATFORM_MAC
 		FString CmdExe = TEXT("/bin/sh");
 		FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -provision \"%s\" -bundlename \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *ProvisionPath, *BundleIdentifier);
 #else
-		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -provision \"%s\" -bundlename \"%s\""), *ProjectPath, *ProvisionPath, *BundleIdentifier);
 #endif
 		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
@@ -1276,10 +1196,10 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 #if PLATFORM_MAC
 		FString CmdExe = TEXT("/bin/sh");
 		FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -certificate \"%s\" -bundlename \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *CertPath, *BundleIdentifier);
 #else
-		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate \"%s\" -bundlename \"%s\""), *ProjectPath, *CertPath, *BundleIdentifier);
 #endif
 		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));

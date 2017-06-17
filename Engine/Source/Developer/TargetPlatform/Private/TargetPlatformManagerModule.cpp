@@ -900,7 +900,7 @@ RETRY_SETUPANDVALIDATE:
 		}
 		else if (PLATFORM_WINDOWS)
 		{
-			CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/UnrealBuildTool.exe"));
+			CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/UnrealBuildTool.exe"));
 			CommandLine = TEXT("-validateplatform");
 		}
 		else if (PLATFORM_LINUX)

@@ -64,6 +64,7 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 	// read the value from the config file
 	static bool bEnableNewKeyboardConfig = false;
 	GConfig->GetBool( TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableNewKeyboard"), bEnableNewKeyboardConfig, GEngineIni );
+
 	// use integrated keyboard if the runtime setting is set or the console variable is set to 1
 	bool bIsUsingIntegratedKeyboard = bEnableNewKeyboardConfig;
 	switch (GAndroidNewKeyboard)

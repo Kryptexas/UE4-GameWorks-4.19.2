@@ -39,8 +39,8 @@ public class Launch : ModuleRules
 		);
 
 		// Enable the LauncherCheck module to be used for platforms that support the Launcher.
-        // Projects should set UEBuildConfiguration.bUseLauncherChecks in their Target.cs to enable the functionality.
-        if (UEBuildConfiguration.bUseLauncherChecks &&
+		// Projects should set UEBuildConfiguration.bUseLauncherChecks in their Target.cs to enable the functionality.
+		if (UEBuildConfiguration.bUseLauncherChecks &&
             ((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Mac)))
@@ -151,7 +151,8 @@ public class Launch : ModuleRules
 				new string[] {
 					"SourceControl",
 					"UnrealEd",
-					"DesktopPlatform"
+					"DesktopPlatform",
+					"PIEPreviewDeviceProfileSelector",
 				}
 			);
 

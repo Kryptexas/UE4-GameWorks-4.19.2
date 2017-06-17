@@ -69,9 +69,8 @@ typedef FHTML5Types FPlatformTypes;
 #endif
 
 // Optimization macros
-// @todo can we disable optimizations? do we need to?
-#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL
-#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL
+#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
+#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
 
 #if PLATFORM_HTML5_WIN32
 #pragma warning(disable : 4481) // nonstandard extension used: override specifier 'override'

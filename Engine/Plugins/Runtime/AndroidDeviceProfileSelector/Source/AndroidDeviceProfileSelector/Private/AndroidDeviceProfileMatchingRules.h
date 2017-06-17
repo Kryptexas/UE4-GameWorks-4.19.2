@@ -16,6 +16,7 @@ enum ESourceType
 	SRC_DeviceMake,
 	SRC_DeviceModel,
 	SRC_VulkanVersion,
+	SRC_UsingHoudini,
 	SRC_MAX,
 };
 

@@ -38,6 +38,9 @@ namespace UnrealBuildTool
 			ProjectFile = InProjectFile;
 		}
 
+		// Enable Gradle instead of Ant (project-level setting for now)
+		private bool bGradleEnabled = false;
+
 		private UnrealPluginLanguage UPL = null;
 		private bool GoogleVRPluginEnabled = false;
 		private bool CrashlyticsPluginEnabled = false;
@@ -60,12 +63,13 @@ namespace UnrealBuildTool
 					break;
 				}
 			}
-		
-			// check if the Crashlytics plugin was enabled
+
+			// check if Crashlytics plugin was enabled
 			CrashlyticsPluginEnabled = false;
 			foreach (var Plugin in inPluginExtraData)
 			{
-				if (Plugin.Contains("Crashlytics"))
+				// NOTE: There is a thirdparty plugin using Crashlytics_UPL_Android.xml which shouldn't use this code so check full name
+				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
 					CrashlyticsPluginEnabled = true;
 					break;
@@ -183,6 +187,99 @@ namespace UnrealBuildTool
 			}
 
 			return CachedSDKLevel;
+		}
+
+		private string CachedBuildToolsVersion = null;
+		private string LastAndroidHomePath = null;
+
+		private uint GetRevisionValue(string VersionString)
+		{
+			// read up to 4 sections (ie. 20.0.3.5), first section most significant
+			// each section assumed to be 0 to 255 range
+			uint Value = 0;
+			try
+			{
+				string[] Sections = VersionString.Split(".".ToCharArray());
+				Value |= (Sections.Length > 0) ? (uint.Parse(Sections[0]) << 24) : 0;
+				Value |= (Sections.Length > 1) ? (uint.Parse(Sections[1]) << 16) : 0;
+				Value |= (Sections.Length > 2) ? (uint.Parse(Sections[2]) << 8) : 0;
+				Value |= (Sections.Length > 3) ? uint.Parse(Sections[3]) : 0;
+			}
+			catch (Exception)
+			{
+				// ignore poorly formed version
+			}
+			return Value;
+		}
+
+		private string GetBuildToolsVersion(bool bGradle)
+		{
+			// return cached path if ANDROID_HOME has not changed
+			string HomePath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%");
+			if (CachedBuildToolsVersion != null && LastAndroidHomePath == HomePath)
+			{
+				return CachedBuildToolsVersion;
+			}
+
+			// get a list of the directories in build-tools.. may be more than one set installed (or none which is bad)
+			string[] Subdirs = Directory.GetDirectories(Path.Combine(HomePath, "build-tools"));
+			if (Subdirs.Length == 0)
+			{
+				throw new BuildException("Failed to find %ANDROID_HOME%/build-tools subdirectory. Run SDK manager and install build-tools.");
+			}
+
+			// valid directories will have a source.properties with the Pkg.Revision (there is no guarantee we can use the directory name as revision)
+			string BestVersionString = null;
+			uint BestVersion = 0;
+			foreach (string CandidateDir in Subdirs)
+			{
+				string AaptFilename = Path.Combine(CandidateDir, Utils.IsRunningOnMono ? "aapt" : "aapt.exe");
+				string RevisionString = "";
+				uint RevisionValue = 0;
+
+				if (File.Exists(AaptFilename))
+				{
+					string SourcePropFilename = Path.Combine(CandidateDir, "source.properties");
+					if (File.Exists(SourcePropFilename))
+					{
+						string[] PropertyContents = File.ReadAllLines(SourcePropFilename);
+						foreach (string PropertyLine in PropertyContents)
+						{
+							if (PropertyLine.StartsWith("Pkg.Revision="))
+							{
+								RevisionString = PropertyLine.Substring(13);
+								RevisionValue = GetRevisionValue(RevisionString);
+								break;
+							}
+						}
+					}
+				}
+
+				// remember it if newer version or haven't found one yet
+				if (RevisionValue > BestVersion || BestVersionString == null)
+				{
+					BestVersion = RevisionValue;
+					BestVersionString = RevisionString;
+				}
+			}
+
+			if (BestVersionString == null)
+			{
+				throw new BuildException("Failed to find %ANDROID_HOME%/build-tools subdirectory with aapt. Run SDK manager and install build-tools.");
+			}
+
+			// with Gradle enabled use at least 24.0.2 (will be installed by Gradle if missing)
+			if (bGradle && (BestVersion < ((24 << 24) | (0 << 16) | (2 << 8))))
+			{
+				BestVersionString = "24.0.2";
+			}
+
+			CachedBuildToolsVersion = BestVersionString;
+			LastAndroidHomePath = HomePath;
+
+			Console.WriteLine("Building with Build Tools version '{0}'", CachedBuildToolsVersion);
+
+			return CachedBuildToolsVersion;
 		}
 
 		private bool IsVulkanSDKAvailable()
@@ -345,7 +442,7 @@ namespace UnrealBuildTool
 		}
 
 
-		private static void CopyFileDirectory(string SourceDir, string DestDir, Dictionary<string, string> Replacements)
+		private static void CopyFileDirectory(string SourceDir, string DestDir, Dictionary<string, string> Replacements = null)
 		{
 			if (!Directory.Exists(SourceDir))
 			{
@@ -377,7 +474,7 @@ namespace UnrealBuildTool
 
 				// some files are handled specially
 				string Ext = Path.GetExtension(Filename);
-				if (Ext == ".xml")
+				if (Ext == ".xml" && Replacements != null)
 				{
 					string Contents = File.ReadAllText(Filename);
 
@@ -449,6 +546,13 @@ namespace UnrealBuildTool
 					// do nothing
 				}
 			}
+		}
+
+		private void CleanCopyDirectory(string SourceDir, string DestDir)
+		{
+			// remove directory and any subdirectories before copying
+			DeleteDirectory(DestDir);
+			CopyFileDirectory(SourceDir, DestDir);
 		}
 
 		public string GetUE4BuildFilePath(String EngineDirectory)
@@ -854,15 +958,31 @@ namespace UnrealBuildTool
 						}
 					}
 					break;
-					// @TODO: Add NVIDIA Gfx Debugger
-			/*
-					case "nvidia":
+				case "renderdoc":
+					{
+						string RenderDocPath;
+						AndroidPlatformSDK.GetPath(Ini, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "RenderDocPath", out RenderDocPath);
+						if (Directory.Exists(RenderDocPath))
 						{
-			Directory.CreateDirectory(UE4BuildPath + "/libs/" + NDKArch);
-			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
-			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
+							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
+							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\libs", NDKArch, "libVkLayer_RenderDoc.so");
+							string RenderDocLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libVkLayer_RenderDoc.so");
+
+							Console.WriteLine("Copying {0} to {1}", RenderDocLibSrcPath, RenderDocLibDstPath);
+							File.Copy(RenderDocLibSrcPath, RenderDocLibDstPath, true);
 						}
-			*/
+					}
+					break;
+
+				// @TODO: Add NVIDIA Gfx Debugger
+				/*
+				case "nvidia":
+					{
+						Directory.CreateDirectory(UE4BuildPath + "/libs/" + NDKArch);
+						File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
+						File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
+					}
+				*/
 				default:
 					break;
 			}
@@ -1587,10 +1707,10 @@ namespace UnrealBuildTool
 					{
 						EnginePatchVersion = EngineVersionLines[i].Split('\t')[1].Trim(' ');
 					}
-					else if (EngineVersionLines[i].StartsWith("#define BUILT_FROM_CHANGELIST"))
-					{
-						EngineChangelist = EngineVersionLines[i].Split(new char[] { ' ', '\t' })[2].Trim(' ');
-					}
+						else if (EngineVersionLines[i].StartsWith("#define BUILT_FROM_CHANGELIST"))
+						{
+							EngineChangelist = EngineVersionLines[i].Split(new char[] { ' ', '\t' })[2].Trim(' ');
+						}
 				}
 
 				bHaveReadEngineVersion = true;
@@ -1634,6 +1754,11 @@ namespace UnrealBuildTool
 			Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
 			string VersionDisplayName;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "VersionDisplayName", out VersionDisplayName);
+			float MaxAspectRatioValue;
+			if (!Ini.TryGetValue("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MaxAspectRatio", out MaxAspectRatioValue))
+			{
+				MaxAspectRatioValue = 2.1f;
+            }
 			string Orientation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "Orientation", out Orientation);
 			bool EnableFullScreen;
@@ -1682,6 +1807,17 @@ namespace UnrealBuildTool
 					MinSDKVersion = 21;
 					Log.TraceInformation("Fixing minSdkVersion; NDK level above 19 requires minSdkVersion of 21 (arch={0})", UE4Arch.Substring(1));
 				}
+			}
+
+			if (bGradleEnabled && MinSDKVersion < 13)
+			{
+				MinSDKVersion = 13;
+				Log.TraceInformation("Fixing minSdkVersion; AndroidPermission requires minSdkVersion of 13 with Gradle");
+			}
+
+			if (TargetSDKVersion < MinSDKVersion)
+			{
+				TargetSDKVersion = MinSDKVersion;
 			}
 
 			// disable GearVR if not supported platform (in this case only armv7 for now)
@@ -1791,7 +1927,7 @@ namespace UnrealBuildTool
 					Text.AppendLine("\t             " + Line);
 				}
 			}
-			Text.AppendLine("\t             android:hardwareAccelerated=\"true\">");
+			Text.AppendLine("\t             android:hardwareAccelerated=\"true\"");
 			Text.AppendLine("\t             android:hasCode=\"true\">");
 			if (bShowLaunchImage)
 			{
@@ -1910,6 +2046,10 @@ namespace UnrealBuildTool
 
 			Text.AppendLine("\t\t<receiver android:name=\"com.epicgames.ue4.LocalNotificationReceiver\" />");
 
+			// Max supported aspect ratio
+			string MaxAspectRatioString = MaxAspectRatioValue.ToString("f", System.Globalization.CultureInfo.InvariantCulture);
+            Text.AppendLine(string.Format("\t\t<meta-data android:name=\"android.max_aspect\" android:value=\"{0}\" />", MaxAspectRatioString));
+					
 			Text.AppendLine("\t</application>");
 
 			Text.AppendLine("");
@@ -2285,14 +2425,29 @@ namespace UnrealBuildTool
 			File.WriteAllText(AntBatFilename, AntBatText);
 		}
 
+		private bool GradleEnabled()
+		{
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			bool bEnableGradle = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bEnableGradle", out bEnableGradle);
+			return bEnableGradle;
+		}
+
 		private void MakeApk(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk, bool bDisallowExternalFilesDir)
 		{
-            Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+
+			// check for Gradle enabled for this project
+			bGradleEnabled = GradleEnabled();
 
 			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
 			string SDKAPILevel = GetSdkApiLevel(ToolChain);
+			string BuildToolsVersion = GetBuildToolsVersion(bGradleEnabled);
 
-			PatchAntBatIfNeeded();
+			if (!bGradleEnabled)
+			{
+				PatchAntBatIfNeeded();
+			}
 
 			// make sure it is cached
 			string EngineVersion = ReadEngineVersion(EngineDirectory);
@@ -2595,6 +2750,17 @@ namespace UnrealBuildTool
 				}
 			}
 
+			string AARExtractListFilename = Path.Combine(UE4BuildPath, "JavaLibs", "AARExtractList.txt");
+			if (bGradleEnabled)
+			{
+				//Need to clear out JavaLibs if last run was with Ant
+				if (File.Exists(AARExtractListFilename))
+				{
+					Console.WriteLine("Cleanup up JavaLibs from previous Ant packaging");
+					DeleteDirectory(Path.Combine(UE4BuildPath, "JavaLibs"));
+				}
+			}
+
 			//Copy build files to the intermediate folder in this order (later overrides earlier):
 			//	- Shared Engine
 			//  - Shared Engine NoRedist (for Epic secret files)
@@ -2607,8 +2773,16 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
 
-			//Extract AAR and Jar files with dependencies
-			ExtractAARAndJARFiles(EngineDirectory, UE4BuildPath, NDKArches, PackageName);
+			if (!bGradleEnabled)
+			{
+				//Extract AAR and Jar files with dependencies if not using Gradle
+				ExtractAARAndJARFiles(EngineDirectory, UE4BuildPath, NDKArches, PackageName, AARExtractListFilename);
+			}
+			else
+			{
+				//Generate Gradle AAR dependencies
+				GenerateGradleAARImports(EngineDirectory, UE4BuildPath, NDKArches);
+			}
 
 			//Now validate GooglePlay app_id if enabled
 			ValidateGooglePlay(UE4BuildPath);
@@ -2670,11 +2844,14 @@ namespace UnrealBuildTool
 				// copy prebuild plugin files
 				UPL.ProcessPluginNode(NDKArch, "prebuildCopies", "");
 
-				// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
-				UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
+				if (!bGradleEnabled)
+				{
+					// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
+					UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
 
-				// modify the generated build.xml before the final include
-				UpdateBuildXML(Arch, NDKArch, EngineDirectory, UE4BuildPath);
+					// modify the generated build.xml before the final include
+					UpdateBuildXML(Arch, NDKArch, EngineDirectory, UE4BuildPath);
+				}
 
 				// update GameActivity.java if out of date
 				UpdateGameActivity(Arch, NDKArch, EngineDirectory, UE4BuildPath);
@@ -2693,7 +2870,7 @@ namespace UnrealBuildTool
 
 				if (HasNDKPath)
 				{
-					string LibDir = UE4BuildPath + "/jni/" + GetNDKArch(Arch);
+					string LibDir = UE4BuildPath + "/jni/" + NDKArch;
 					FinalSOName = LibDir + "/libUE4.so";
 
 					// check to see if libUE4.so needs to be copied
@@ -2708,7 +2885,7 @@ namespace UnrealBuildTool
 				else
 				{
 					// if no NDK, we don't need any of the debugger stuff, so we just copy the .so to where it will end up
-					FinalSOName = UE4BuildPath + "/libs/" + GetNDKArch(Arch) + "/libUE4.so";
+					FinalSOName = UE4BuildPath + "/libs/" + NDKArch + "/libUE4.so";
 
 					// check to see if libUE4.so needs to be copied
 					if (BuildListComboTotal > 1 || FilesAreDifferent(SourceSOName, FinalSOName))
@@ -2727,7 +2904,7 @@ namespace UnrealBuildTool
 				// if we need to run ndk-build, do it now
 				if (HasNDKPath)
 				{
-					string LibSOName = UE4BuildPath + "/libs/" + GetNDKArch(Arch) + "/libUE4.so";
+					string LibSOName = UE4BuildPath + "/libs/" + NDKArch + "/libUE4.so";
 					// always delete libs up to this point so fat binaries and incremental builds work together (otherwise we might end up with multiple
 					// so files in an apk that doesn't want them)
 					// note that we don't want to delete all libs, just the ones we copied
@@ -2739,7 +2916,7 @@ namespace UnrealBuildTool
 							File.Delete(Lib);
 						}
 
-						string CommandLine = "APP_ABI=\"" + GetNDKArch(Arch) + " " + "\"";
+						string CommandLine = "APP_ABI=\"" + NDKArch + " " + "\"";
 						if (!bForDistribution)
 						{
 							CommandLine += " NDK_DEBUG=1";
@@ -2760,63 +2937,227 @@ namespace UnrealBuildTool
 
 				Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
 
-                string AntBuildType = "debug";
-                string AntOutputSuffix = "-debug";
-                if (bForDistribution)
-                {
-					// Generate the Proguard file contents and write it
-					string ProguardContents = GenerateProguard(NDKArch, UE4BuildFilesPath, GameBuildFilesPath);
-					string ProguardFilename = Path.Combine(UE4BuildPath, "proguard-project.txt");
-					if (File.Exists(ProguardFilename))
+				if (!bGradleEnabled)
+				{
+					// use Ant for compile/package
+					string AntBuildType = "debug";
+					string AntOutputSuffix = "-debug";
+					if (bForDistribution)
 					{
-						File.Delete(ProguardFilename);
-					}
-					File.WriteAllText(ProguardFilename, ProguardContents);
-
-					// this will write out ant.properties with info needed to sign a distribution build
-					PrepareToSignApk(UE4BuildPath);
-					AntBuildType = "release";
-					AntOutputSuffix = "-release";
-				}
-
-				// Use ant to build the .apk file
-				string AntOptions = AntBuildType + " -Djava.source=1.7 -Djava.target=1.7";
-				string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
-				string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
-				string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
-				bool AntSuccess = false;
-				switch (AntVerbosity.ToLower())
-				{
-					default:
-					case "quiet":
-						AntSuccess = (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntOptions + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") == 0);
-						if (!AntSuccess)
+						// Generate the Proguard file contents and write it
+						string ProguardContents = GenerateProguard(NDKArch, UE4BuildFilesPath, GameBuildFilesPath);
+						string ProguardFilename = Path.Combine(UE4BuildPath, "proguard-project.txt");
+						if (File.Exists(ProguardFilename))
 						{
-							AntSuccess = (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors") == 0);
+							File.Delete(ProguardFilename);
 						}
-						break;
+						File.WriteAllText(ProguardFilename, ProguardContents);
 
-					case "normal":
-						AntSuccess = (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors") == 0);
-						break;
+						// this will write out ant.properties with info needed to sign a distribution build
+						PrepareToSignApk(UE4BuildPath);
+						AntBuildType = "release";
+						AntOutputSuffix = "-release";
+					}
 
-					case "verbose":
-						AntSuccess = (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors") == 0);
-						break;
+					// Use ant to build the .apk file
+					string AntOptions = AntBuildType + " -Djava.source=1.7 -Djava.target=1.7";
+					string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
+					string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
+					string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
+					switch (AntVerbosity.ToLower())
+					{
+						default:
+						case "quiet":
+							if (RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntOptions + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+							{
+								RunCommandLineProgramWithException(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors");
+							}
+							break;
+
+						case "normal":
+							RunCommandLineProgramWithException(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors");
+							break;
+
+						case "verbose":
+							RunCommandLineProgramWithException(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntOptions + ShellParametersEnd, "Making .apk with Ant again to show errors");
+							break;
+					}
+
+					// upload Crashlytics symbols if plugin enabled and using build machine
+					if (CrashlyticsPluginEnabled && Environment.GetEnvironmentVariable("IsBuildMachine") == "1")
+					{
+						AntOptions = "crashlytics-upload-symbols";
+						RunCommandLineProgramWithException(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Uploading Crashlytics symbols");
+					}
+
+					// make sure destination exists
+					Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
+
+					// now copy to the final location
+					File.Copy(UE4BuildPath + "/bin/" + ProjectName + AntOutputSuffix + ".apk", DestApkName, true);
 				}
-
-				// upload Crashlytics symbols if plugin enabled and using build machine
-				if (CrashlyticsPluginEnabled && AntSuccess && Environment.GetEnvironmentVariable("IsBuildMachine") == "1")
+				else
 				{
-					AntOptions = "crashlytics-upload-symbols";
-					RunCommandLineProgramAndReturnResult(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntOptions + ShellParametersEnd, "Uploading Crashlytics symbols");
+					// use Gradle for compile/package
+					// ini file to get settings from
+					string UE4BuildGradlePath = Path.Combine(UE4BuildPath, "gradle");
+					string UE4BuildGradleAppPath = Path.Combine(UE4BuildGradlePath, "app");
+					string UE4BuildGradleMainPath = Path.Combine(UE4BuildGradleAppPath, "src", "main");
+
+					string CompileSDKVersion = SDKAPILevel.Replace("android-", "");
+
+					// stage files into gradle app directory
+					string GradleManifest = Path.Combine(UE4BuildGradleMainPath, "AndroidManifest.xml");
+					MakeDirectoryIfRequired(GradleManifest);
+					File.Copy(Path.Combine(UE4BuildPath, "AndroidManifest.xml"), GradleManifest, true);
+
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "assets"), Path.Combine(UE4BuildGradleMainPath, "assets"));
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "jni"), Path.Combine(UE4BuildGradleMainPath, "jni"));     // has debug symbols
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "obj"), Path.Combine(UE4BuildGradleMainPath, "obj"));     // has debug symbols
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "libs"), Path.Combine(UE4BuildGradleMainPath, "libs"));
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "res"), Path.Combine(UE4BuildGradleMainPath, "res"));
+					CleanCopyDirectory(Path.Combine(UE4BuildPath, "src"), Path.Combine(UE4BuildGradleMainPath, "java"));
+
+					// move JavaLibs into subprojects
+					string JavaLibsDir = Path.Combine(UE4BuildPath, "JavaLibs");
+					PrepareJavaLibsForGradle(JavaLibsDir, UE4BuildGradlePath, CompileSDKVersion, BuildToolsVersion);
+
+					// Create gradle.properties
+					string GradlePropertiesFilename = Path.Combine(UE4BuildGradlePath, "gradle.properties");
+					StringBuilder GradleProperties = new StringBuilder();
+
+					int StoreVersion = GetStoreVersion();
+					string VersionDisplayName;
+					Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "VersionDisplayName", out VersionDisplayName);
+					int MinSDKVersion;
+					Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MinSDKVersion", out MinSDKVersion);
+					int TargetSDKVersion = MinSDKVersion;
+					Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
+
+					// Make sure minSdkVersion is at least 13 (need this for appcompat-v13 used by AndroidPermissions)
+					if (MinSDKVersion < 13)
+					{
+						MinSDKVersion = 13;
+					}
+					if (TargetSDKVersion < MinSDKVersion)
+					{
+						TargetSDKVersion = MinSDKVersion;
+					}
+
+					// 64-bit targets must be android-21 or higher
+					int NDKLevelInt = ToolChain.GetNdkApiLevelInt();
+					if (NDKLevelInt < 21)
+					{
+						if (Arch == "-arm64" || Arch == "-x64")
+						{
+							NDKLevelInt = 21;
+						}
+					}
+
+					// fix up the MinSdkVersion
+					if (NDKLevelInt > 19)
+					{
+						if (MinSDKVersion < 21)
+						{
+							MinSDKVersion = 21;
+							Log.TraceInformation("Fixing minSdkVersion; NDK level above 19 requires minSdkVersion of 21 (arch={0})", Arch.Substring(1));
+						}
+					}
+
+					GradleProperties.AppendLine(string.Format("COMPILE_SDK_VERSION={0}", CompileSDKVersion));
+					GradleProperties.AppendLine(string.Format("BUILD_TOOLS_VERSION={0}", BuildToolsVersion));
+					GradleProperties.AppendLine(string.Format("PACKAGE_NAME={0}", PackageName));
+					GradleProperties.AppendLine(string.Format("MIN_SDK_VERSION={0}", MinSDKVersion.ToString()));
+					GradleProperties.AppendLine(string.Format("TARGET_SDK_VERSION={0}", TargetSDKVersion.ToString()));
+					GradleProperties.AppendLine(string.Format("STORE_VERSION={0}", StoreVersion.ToString()));
+					GradleProperties.AppendLine(string.Format("VERSION_DISPLAY_NAME={0}", VersionDisplayName));
+					GradleProperties.AppendLine(string.Format("OUTPUT_PATH={0}", DestApkName.Replace("\\", "/")));
+
+					File.WriteAllText(GradlePropertiesFilename, GradleProperties.ToString());
+
+					StringBuilder GradleBuildAdditionsContent = new StringBuilder();
+					GradleBuildAdditionsContent.AppendLine("apply from: 'aar-imports.gradle'");
+					GradleBuildAdditionsContent.AppendLine("apply from: 'projects.gradle'");
+
+					string GradleBuildType = ":app:assembleDebug";
+					if (bForDistribution)
+					{
+						GradleBuildType = ":app:assembleRelease";
+
+						string KeyAlias, KeyStore, KeyStorePassword, KeyPassword;
+						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyStore", out KeyStore);
+						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyAlias", out KeyAlias);
+						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyStorePassword", out KeyStorePassword);
+						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyPassword", out KeyPassword);
+
+						if (string.IsNullOrEmpty(KeyStore) || string.IsNullOrEmpty(KeyAlias) || string.IsNullOrEmpty(KeyStorePassword))
+						{
+							throw new BuildException("DistributionSigning settings are not all set. Check the DistributionSettings section in the Android tab of Project Settings");
+						}
+
+						if (string.IsNullOrEmpty(KeyPassword) || KeyPassword == "_sameaskeystore_")
+						{
+							KeyPassword = KeyStorePassword;
+						}
+
+						// Make sure the keystore file exists
+						string KeyStoreFilename = Path.Combine(UE4BuildPath, KeyStore);
+						if (!File.Exists(KeyStoreFilename))
+						{
+							throw new BuildException("Keystore file is missing. Check the DistributionSettings section in the Android tab of Project Settings");
+						}
+
+						GradleBuildAdditionsContent.AppendLine("android {");
+						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
+						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
+						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstoreFile file('{0}')", KeyStoreFilename.Replace("\\", "/")));
+						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstorePassword '{0}'", KeyStorePassword));
+						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyAlias '{0}'", KeyAlias));
+						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyPassword '{0}'", KeyPassword));
+						GradleBuildAdditionsContent.AppendLine("\t\t}");
+						GradleBuildAdditionsContent.AppendLine("\t}");
+						GradleBuildAdditionsContent.AppendLine("}");
+
+						// Generate the Proguard file contents and write it
+						string ProguardContents = GenerateProguard(NDKArch, UE4BuildFilesPath, GameBuildFilesPath);
+						string ProguardFilename = Path.Combine(UE4BuildGradleAppPath, "proguard-rules.pro");
+						if (File.Exists(ProguardFilename))
+						{
+							File.Delete(ProguardFilename);
+						}
+						File.WriteAllText(ProguardFilename, ProguardContents);
+					}
+					else
+					{
+						// empty just for Gradle not to complain
+						GradleBuildAdditionsContent.AppendLine("android {");
+						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
+						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
+						GradleBuildAdditionsContent.AppendLine("\t\t}");
+						GradleBuildAdditionsContent.AppendLine("\t}");
+						GradleBuildAdditionsContent.AppendLine("}");
+					}
+
+					// Add any UPL GradleAdditions
+					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));
+
+					string GradleBuildAdditionsFilename = Path.Combine(UE4BuildGradleAppPath, "buildAdditions.gradle");
+					File.WriteAllText(GradleBuildAdditionsFilename, GradleBuildAdditionsContent.ToString());
+
+					string GradleScriptPath = Path.Combine(UE4BuildGradlePath, "gradlew" + (Utils.IsRunningOnMono ? "" : ".bat"));
+					if (Utils.IsRunningOnMono)
+					{
+						// fix permissions for Mac/Linux
+						RunCommandLineProgramWithException(UE4BuildGradlePath, "/bin/sh", string.Format("-c 'chmod 0755 \"{0}\"'", GradleScriptPath.Replace("'", "'\"'\"'")), "Fix gradlew permissions");
+					}
+
+					// Use gradle to build the .apk file
+					string GradleOptions = GradleBuildType;
+					string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
+					string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
+					string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
+					RunCommandLineProgramWithException(UE4BuildGradlePath, ShellExecutable, ShellParametersBegin + "\"" + GradleScriptPath + "\" " + GradleOptions + ShellParametersEnd, "Making .apk with Gradle...");
 				}
-
-				// make sure destination exists
-				Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
-
-				// now copy to the final location
-				File.Copy(UE4BuildPath + "/bin/" + ProjectName + AntOutputSuffix + ".apk", DestApkName, true);
 
 				bool bBuildWithHiddenSymbolVisibility = false;
 				Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildWithHiddenSymbolVisibility", out bBuildWithHiddenSymbolVisibility);
@@ -3013,6 +3354,16 @@ namespace UnrealBuildTool
 											"\t\t\tLog.debug(\"libMGD.so not loaded.\");\n" +
 											"\t\t}\n";
 					break;
+				case "renderdoc":
+					LoadLibraryDefaults += "\t\ttry\n" +
+											"\t\t{\n" +
+											"\t\t\tSystem.loadLibrary(\"VkLayer_RenderDoc\");\n" +
+											"\t\t}\n" +
+											"\t\tcatch (java.lang.UnsatisfiedLinkError e)\n" +
+											"\t\t{\n" +
+											"\t\t\tLog.debug(\"libVkLayer_RenderDoc.so not loaded.\");\n" +
+											"\t\t}\n";
+					break;
 			}
 			
 			Dictionary<string, string> Replacements = new Dictionary<string, string>{
@@ -3059,7 +3410,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private void ExtractAARAndJARFiles(string EngineDir, string UE4BuildPath, List<string> NDKArches, string AppPackageName)
+		private AndroidAARHandler CreateAARHandler(string EngineDir, string UE4BuildPath, List<string> NDKArches, bool HandleDependencies=true)
 		{
 			AndroidAARHandler AARHandler = new AndroidAARHandler();
 			string ImportList = "";
@@ -3112,14 +3463,173 @@ namespace UnrealBuildTool
 						string BaseName = Sections[1].Trim(' ');
 						string Version = Sections[2].Trim(' ');
 						Log.TraceInformation("AARImports: {0}, {1}, {2}", PackageName, BaseName, Version);
-						AARHandler.AddNewAAR(PackageName, BaseName, Version);
+						AARHandler.AddNewAAR(PackageName, BaseName, Version, HandleDependencies);
 					}
 				}
 			}
 
+			return AARHandler;
+		}
+
+		private void PrepareJavaLibsForGradle(string JavaLibsDir, string UE4BuildGradlePath, string CompileSDKVersion, string BuildToolsVersion)
+		{
+			StringBuilder SettingsGradleContent = new StringBuilder();
+			StringBuilder ProjectDependencyContent = new StringBuilder();
+
+			SettingsGradleContent.AppendLine("include ':app'");
+			ProjectDependencyContent.AppendLine("dependencies {");
+
+			string[] LibDirs = Directory.GetDirectories(JavaLibsDir);
+			foreach (string LibDir in LibDirs)
+			{
+				string RelativePath = Path.GetFileName(LibDir);
+
+				SettingsGradleContent.AppendLine(string.Format("include ':{0}'", RelativePath));
+				ProjectDependencyContent.AppendLine(string.Format("\tcompile project(':{0}')", RelativePath));
+
+				string GradleProjectPath = Path.Combine(UE4BuildGradlePath, RelativePath);
+				string GradleProjectMainPath = Path.Combine(GradleProjectPath, "src", "main");
+
+				string GradleManifest = Path.Combine(GradleProjectMainPath, "AndroidManifest.xml");
+				MakeDirectoryIfRequired(GradleManifest);
+				File.Copy(Path.Combine(LibDir, "AndroidManifest.xml"), GradleManifest, true);
+
+				// Copy parts were they need to be
+				CleanCopyDirectory(Path.Combine(LibDir, "assets"), Path.Combine(GradleProjectPath, "assets"));
+				CleanCopyDirectory(Path.Combine(LibDir, "libs"), Path.Combine(GradleProjectPath, "libs"));
+				CleanCopyDirectory(Path.Combine(LibDir, "res"), Path.Combine(GradleProjectMainPath, "res"));
+				CleanCopyDirectory(Path.Combine(LibDir, "src"), Path.Combine(GradleProjectMainPath, "java"));
+
+				// Now generate a build.gradle from the manifest
+				StringBuilder BuildGradleContent = new StringBuilder();
+				BuildGradleContent.AppendLine("apply plugin: 'com.android.library'");
+				BuildGradleContent.AppendLine("android {");
+				BuildGradleContent.AppendLine(string.Format("\tcompileSdkVersion {0}", CompileSDKVersion));
+				BuildGradleContent.AppendLine(string.Format("\tbuildToolsVersion \"{0}\"", BuildToolsVersion));
+				BuildGradleContent.AppendLine("\tdefaultConfig {");
+
+				// Try to get the SDK target from the AndroidManifest.xml
+				string MinSDK = "9";
+				string TargetSDK = "9";
+				string VersionCode = "";
+				string VersionName = "";
+				string ManifestFilename = Path.Combine(LibDir, "AndroidManifest.xml");
+				XDocument ManifestXML;
+				if (File.Exists(ManifestFilename))
+				{
+					try
+					{
+						ManifestXML = XDocument.Load(ManifestFilename);
+
+						XAttribute VersionCodeAttr = ManifestXML.Root.Attribute(XName.Get("versionCode", "http://schemas.android.com/apk/res/android"));
+						if (VersionCodeAttr != null)
+						{
+							VersionCode = VersionCodeAttr.Value;
+						}
+
+						XAttribute VersionNameAttr = ManifestXML.Root.Attribute(XName.Get("versionName", "http://schemas.android.com/apk/res/android"));
+						if (VersionNameAttr != null)
+						{
+							VersionName = VersionNameAttr.Value;
+						}
+
+						XElement UsesSdk = ManifestXML.Root.Element(XName.Get("uses-sdk", ManifestXML.Root.Name.NamespaceName));
+						if (UsesSdk != null)
+						{
+							XAttribute MinSDKAttr = UsesSdk.Attribute(XName.Get("minSdkVersion", "http://schemas.android.com/apk/res/android"));
+							if (MinSDKAttr != null)
+							{
+								MinSDK = MinSDKAttr.Value;
+							}
+
+							XAttribute TargetSDKAttr = UsesSdk.Attribute(XName.Get("targetSdkVersion", "http://schemas.android.com/apk/res/android"));
+							if (TargetSDKAttr != null)
+							{
+								TargetSDK = TargetSDKAttr.Value;
+							}
+						}
+					}
+					catch (Exception e)
+					{
+						Log.TraceError("AAR Manifest file {0} parsing error! {1}", ManifestFilename, e);
+					}
+				}
+
+				BuildGradleContent.AppendLine(string.Format("\t\tminSdkVersion {0}", MinSDK));
+				BuildGradleContent.AppendLine(string.Format("\t\ttargetSdkVersion {0}", TargetSDK));
+				if (VersionCode != "")
+				{
+					BuildGradleContent.AppendLine(string.Format("\t\tversionCode {0}", VersionCode));
+				}
+				if (VersionName != "")
+				{
+					BuildGradleContent.AppendLine(string.Format("\t\tversionName \"{0}\"", VersionName));
+				}
+				BuildGradleContent.AppendLine("\t}");
+				BuildGradleContent.AppendLine("}");
+
+				string AdditionsGradleFilename = Path.Combine(LibDir, "additions.gradle");
+				if (File.Exists(AdditionsGradleFilename))
+				{
+					string[] AdditionsLines = File.ReadAllLines(AdditionsGradleFilename);
+					foreach (string LineContents in AdditionsLines)
+					{
+						BuildGradleContent.AppendLine(LineContents);
+					}
+				}
+
+				string BuildGradleFilename = Path.Combine(GradleProjectPath, "build.gradle");
+				File.WriteAllText(BuildGradleFilename, BuildGradleContent.ToString());
+			}
+			ProjectDependencyContent.AppendLine("}");
+
+			string SettingsGradleFilename = Path.Combine(UE4BuildGradlePath, "settings.gradle");
+			File.WriteAllText(SettingsGradleFilename, SettingsGradleContent.ToString());
+
+			string ProjectsGradleFilename = Path.Combine(UE4BuildGradlePath, "app", "projects.gradle");
+			File.WriteAllText(ProjectsGradleFilename, ProjectDependencyContent.ToString());
+		}
+
+		private void GenerateGradleAARImports(string EngineDir, string UE4BuildPath, List<string> NDKArches)
+		{
+			AndroidAARHandler AARHandler = CreateAARHandler(EngineDir, UE4BuildPath, NDKArches, false);
+			StringBuilder AARImportsContent = new StringBuilder();
+
+			// Add repositories
+			AARImportsContent.AppendLine("repositories {");
+			foreach (string Repository in AARHandler.Repositories)
+			{
+				AARImportsContent.AppendLine("\tmaven { url uri('" + Repository.Replace('\\', '/') + "') }");
+			}
+			AARImportsContent.AppendLine("}");
+
+			// Add dependencies
+			AARImportsContent.AppendLine("dependencies {");
+			foreach (AndroidAARHandler.AndroidAAREntry Dependency in AARHandler.AARList)
+			{
+				AARImportsContent.AppendLine(string.Format("\tcompile '{0}:{1}:{2}'", Dependency.Filename, Dependency.BaseName, Dependency.Version));
+			}
+			AARImportsContent.AppendLine("}");
+
+			string AARImportsFilename = Path.Combine(UE4BuildPath, "gradle", "app", "aar-imports.gradle");
+			File.WriteAllText(AARImportsFilename, AARImportsContent.ToString());
+		}
+
+		private void ExtractAARAndJARFiles(string EngineDir, string UE4BuildPath, List<string> NDKArches, string AppPackageName, string AARExtractListFilename)
+		{
+			AndroidAARHandler AARHandler = CreateAARHandler(EngineDir, UE4BuildPath, NDKArches, true);
+
 			// Finally, extract the AARs and copy the JARs
 			AARHandler.ExtractAARs(UE4BuildPath, AppPackageName);
 			AARHandler.CopyJARs(UE4BuildPath);
+
+			// Write list of AAR files extracted
+			StringBuilder AARListContents = new StringBuilder();
+			foreach (AndroidAARHandler.AndroidAAREntry Dependency in AARHandler.AARList)
+			{
+				AARListContents.AppendLine(Dependency.Filename);
+			}
+			File.WriteAllText(AARExtractListFilename, AARListContents.ToString());
 		}
     }
 }

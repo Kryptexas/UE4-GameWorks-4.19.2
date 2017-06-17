@@ -18,6 +18,10 @@ float4x4 PreviousLocalToWorld;
 #define GPUSKIN_APEX_CLOTH 0
 #endif
 
+#ifndef GPUSKIN_LIMIT_2BONE_INFLUENCES
+#define GPUSKIN_LIMIT_2BONE_INFLUENCES 0 // default is 4 bones
+#endif
+
 #ifndef GPUSKIN_USE_EXTRA_INFLUENCES
 #define GPUSKIN_USE_EXTRA_INFLUENCES 0
 #endif
@@ -291,6 +295,8 @@ FBoneMatrix CalcBoneMatrix( FVertexFactoryInput Input )
 {
 	FBoneMatrix BoneMatrix = Input.BlendWeights.x * GetBoneMatrix(Input.BlendIndices.x);
 	BoneMatrix += Input.BlendWeights.y * GetBoneMatrix(Input.BlendIndices.y);
+
+#if !GPUSKIN_LIMIT_2BONE_INFLUENCES
 	BoneMatrix += Input.BlendWeights.z * GetBoneMatrix(Input.BlendIndices.z);
 	BoneMatrix += Input.BlendWeights.w * GetBoneMatrix(Input.BlendIndices.w);
 
@@ -300,7 +306,7 @@ FBoneMatrix CalcBoneMatrix( FVertexFactoryInput Input )
 	BoneMatrix += Input.BlendWeightsExtra.z * GetBoneMatrix(Input.BlendIndicesExtra.z);
 	BoneMatrix += Input.BlendWeightsExtra.w * GetBoneMatrix(Input.BlendIndicesExtra.w);
 #endif
-
+#endif//GPUSKIN_LIMIT_2BONE_INFLUENCES
 	return BoneMatrix;
 }
 
@@ -320,14 +326,18 @@ FBoneMatrix CalcPreviousBoneMatrix( FVertexFactoryInput Input )
 {
 	FBoneMatrix BoneMatrix = Input.BlendWeights.x * GetPreviousBoneMatrix(Input.BlendIndices.x);
 	BoneMatrix += Input.BlendWeights.y * GetPreviousBoneMatrix(Input.BlendIndices.y);
+
+#if !GPUSKIN_LIMIT_2BONE_INFLUENCES
 	BoneMatrix += Input.BlendWeights.z * GetPreviousBoneMatrix(Input.BlendIndices.z);
 	BoneMatrix += Input.BlendWeights.w * GetPreviousBoneMatrix(Input.BlendIndices.w);
+
 #if GPUSKIN_USE_EXTRA_INFLUENCES
 	BoneMatrix += Input.BlendWeightsExtra.x * GetPreviousBoneMatrix(Input.BlendIndicesExtra.x);
 	BoneMatrix += Input.BlendWeightsExtra.y * GetPreviousBoneMatrix(Input.BlendIndicesExtra.y);
 	BoneMatrix += Input.BlendWeightsExtra.z * GetPreviousBoneMatrix(Input.BlendIndicesExtra.z);
 	BoneMatrix += Input.BlendWeightsExtra.w * GetPreviousBoneMatrix(Input.BlendIndicesExtra.w);
 #endif
+#endif//GPUSKIN_LIMIT_2BONE_INFLUENCES
 	return BoneMatrix;
 }
 

@@ -619,3 +619,36 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
 	}
 	return false;
 }
+
+static ERHIFeatureLevel::Type GRHIMobilePreviewFeatureLevel = ERHIFeatureLevel::Num;
+RHI_API void RHISetMobilePreviewFeatureLevel(ERHIFeatureLevel::Type MobilePreviewFeatureLevel)
+{
+	check(MobilePreviewFeatureLevel == ERHIFeatureLevel::ES2 || MobilePreviewFeatureLevel == ERHIFeatureLevel::ES3_1);
+	check(GRHIMobilePreviewFeatureLevel == ERHIFeatureLevel::Num);
+	check(!GIsEditor);
+	GRHIMobilePreviewFeatureLevel = MobilePreviewFeatureLevel;
+}
+
+bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT)
+{
+	static bool bForceFeatureLevelES2 = !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+	static bool bForceFeatureLevelES3_1 = !GIsEditor && (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1")));
+
+	if (bForceFeatureLevelES2)
+	{
+		PreviewFeatureLevelOUT = ERHIFeatureLevel::ES2;
+	}
+	else if (bForceFeatureLevelES3_1)
+	{
+		PreviewFeatureLevelOUT = ERHIFeatureLevel::ES3_1;
+	}
+	else if (!GIsEditor && GRHIMobilePreviewFeatureLevel != ERHIFeatureLevel::Num)
+	{
+		PreviewFeatureLevelOUT = GRHIMobilePreviewFeatureLevel;
+	}
+	else
+	{
+		return false;
+	}
+	return true;
+}

@@ -134,6 +134,11 @@ public partial class Project : CommandUtils
 			AdditionalArgs += " -mapfile";
 		}
 
+		if (Params.Deploy || Params.Package)
+		{
+			AdditionalArgs += " -skipdeploy"; // skip deploy step in UBT if we going to do it later anyway
+		}
+
 		// Setup cooked targets
 		if (Params.HasClientCookedTargets && (!Params.SkipBuildClient) && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{

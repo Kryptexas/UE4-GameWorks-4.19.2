@@ -612,7 +612,7 @@ namespace AutomationTool
             {
                 this.ChunkInstallReleaseString = this.ChunkInstallVersionString;
             }
-            this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
+			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty, true);
 			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
@@ -1071,15 +1071,15 @@ namespace AutomationTool
 		/// </summary>
 		public string ChunkInstallVersionString { set; get; }
 
-        /// <summary>
+		/// <summary>
         /// Shared: Release string to use for built chunk install data, command line: -chunkinstallrelease=
         /// </summary>
         public string ChunkInstallReleaseString { set; get; }
 
         /// <summary>
-        /// Shared: Directory to copy the client to, command line: -stagingdirectory=
-        /// </summary>	
-        public string BaseStageDirectory
+		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
+		/// </summary>	
+		public string BaseStageDirectory
 		{
 			get
 			{

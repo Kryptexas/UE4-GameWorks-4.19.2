@@ -51,7 +51,7 @@ namespace UnrealBuildTool
 			Target.bCompilePhysX = true;
 			Target.bCompileSimplygon = false;
             Target.bCompileSimplygonSSF = false;
-			Target.bCompileForSize = true;
+			Target.bCompileForSize = true;			// {true:[all:-Oz], false:[developer:-O2, shipping:-O3]}  WARNING: WASM fails when this is false....
 			Target.bUsePCHFiles = false;
 			Target.bDeployAfterCompile = true;
 		}

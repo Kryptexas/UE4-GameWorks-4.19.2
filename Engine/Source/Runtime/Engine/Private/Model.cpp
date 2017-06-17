@@ -106,9 +106,9 @@ FArchive& operator<<( FArchive& Ar, FBspNode& N )
 		<< N.ComponentNodeIndex
 		<< N.ComponentElementIndex;
 	
-	Ar	<< N.iChild[0]
-		<< N.iChild[1]
-		<< N.iChild[2]
+	Ar	<< N.iBack
+		<< N.iFront
+		<< N.iPlane
 		<< N.iCollisionBound
 		<< N.iZone[0]
 		<< N.iZone[1]

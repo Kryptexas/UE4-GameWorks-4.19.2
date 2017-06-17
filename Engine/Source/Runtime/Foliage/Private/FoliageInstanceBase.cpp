@@ -142,6 +142,12 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::GetInstanceBaseId(UActorCompon
 {
 	if(InstanceBaseInvMap.Num() > 0)
 	{
+		// test if this component has allocated FUniqueObjectGuid, to avoid creating new one in FFoliageInstanceBasePtr ctor
+		if (!FUniqueObjectGuid(InComponent).IsValid())
+		{
+			return InvalidBaseId;
+		}
+
 		FFoliageInstanceBasePtr BasePtr(InComponent);
 		if (BasePtr.IsValid())
 		{
@@ -151,6 +157,7 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::GetInstanceBaseId(UActorCompon
 
 	return InvalidBaseId;
 }
+
 
 FFoliageInstanceBaseId FFoliageInstanceBaseCache::GetInstanceBaseId(const FFoliageInstanceBasePtr& BasePtr) const
 {

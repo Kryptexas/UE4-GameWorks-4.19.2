@@ -156,6 +156,7 @@ public class UnrealEd : ModuleRules
 				"ClothingSystemEditor",
 				"ClothingSystemRuntime",
 				"ClothingSystemRuntimeInterface",
+				"PIEPreviewDeviceProfileSelector",
 			}
 		);
 

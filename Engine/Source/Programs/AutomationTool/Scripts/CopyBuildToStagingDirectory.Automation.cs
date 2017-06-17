@@ -722,6 +722,14 @@ public partial class Project : CommandUtils
 		List<string> Blacklist = null;
 		if (SC.StageTargetConfigurations.Count == 1)
 		{
+			// automatically add DefaultBloomKernel to blacklist for mobile platforms (hotfix version)
+			if (SC.PlatformDir == "Android" || SC.PlatformDir == "IOS" || SC.PlatformDir == "TVOS" || SC.PlatformDir == "HTML5")
+			{
+				Blacklist = new List<string>();
+				Blacklist.Add("../../../Engine/Content/EngineMaterials/DefaultBloomKernel.uasset");
+				Blacklist.Add("../../../Engine/Content/EngineMaterials/DefaultBloomKernel.uexp");
+			}
+
 			FileReference PakBlacklistFilename = FileReference.Combine(SC.ProjectRoot, "Build", SC.PlatformDir, string.Format("PakBlacklist-{0}.txt", SC.StageTargetConfigurations[0].ToString()));
 			if (FileReference.Exists(PakBlacklistFilename))
 			{
@@ -1062,31 +1070,31 @@ public partial class Project : CommandUtils
 		}
 		foreach (var StagingFile in StagingManifestResponseFile)
 		{
-            bool bAddedToChunk = false;
-            for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
-            {
-                string OriginalFilename = StagingFile.Key;
-                string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
-                string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
-                string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
+			bool bAddedToChunk = false;
+			for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
+			{
+                		string OriginalFilename = StagingFile.Key;
+                		string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
+                		string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
+                		string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
 
-                if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) ||
-                            ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
-                            ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
-                            ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
-                {
-                    PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
-                    bAddedToChunk = true;
-                }
-            }
-            if (!bAddedToChunk)
-            {
-                //Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
-                PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
-            }
-        }
+				if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) || 
+                		    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
+		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtension) ||
+		                    ChunkResponseFiles[ChunkIndex].Contains(NoExtensionReplaceSlashes))
+				{
+					PakResponseFiles[ChunkIndex].Add(StagingFile.Key, StagingFile.Value);
+					bAddedToChunk = true;
+				}
+			}
+			if (!bAddedToChunk)
+			{
+				//Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
+				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
+			}
+		}
 
-        if (Params.CreateChunkInstall)
+		if (Params.CreateChunkInstall)
 		{
 			string ManifestDir = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform, "ManifestDir");
 			if (InternalUtils.SafeDirectoryExists(ManifestDir))
@@ -1104,7 +1112,7 @@ public partial class Project : CommandUtils
 		}
 
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
-
+	
         System.Threading.Tasks.ParallelOptions Options = new System.Threading.Tasks.ParallelOptions();
         Options.MaxDegreeOfParallelism = 1;
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
@@ -1112,15 +1120,15 @@ public partial class Project : CommandUtils
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
             if (PakPair.Item1.Count > 0)
             {
-                CreatePak(Params, SC, PakPair.Item1, ChunkName);
+			CreatePak(Params, SC, PakPair.Item1, ChunkName);
             }
 		});
 
-        String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());
+		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());
 		String OutputChunkLayerFilename = Path.Combine(SC.ProjectRoot.FullName, "Build", SC.FinalCookPlatform, "ChunkLayerInfo", GetChunkPakLayerListName());
 		Directory.CreateDirectory(Path.GetDirectoryName(OutputChunkLayerFilename));
 		File.Copy(ChunkLayerFilename, OutputChunkLayerFilename, true);
-    }
+	}
 
 	private static bool DoesChunkPakManifestExist(ProjectParams Params, DeploymentContext SC)
 	{
@@ -1258,7 +1266,7 @@ public partial class Project : CommandUtils
 		// @todo: Maybe there should be a new category - UFSNotForPak
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
 		{
-			IntermediateCmdLineFile = new FileReference(IntermediateCmdLineFile.CanonicalName);
+			IntermediateCmdLineFile = new FileReference(CombinePaths(Path.GetDirectoryName(IntermediateCmdLineFile.FullName), Path.GetFileName(IntermediateCmdLineFile.FullName).ToLowerInvariant()));
 		}
 		if (FileReference.Exists(IntermediateCmdLineFile))
 		{

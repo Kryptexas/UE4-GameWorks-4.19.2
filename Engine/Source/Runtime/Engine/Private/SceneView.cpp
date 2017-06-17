@@ -2473,7 +2473,7 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
 {
 	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
-		&& GetFeatureLevel() >= ERHIFeatureLevel::SM4
+		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || IsMobileHDR()) // on mobile separate translucency requires HDR
 		// && EngineShowFlags.PostProcessing
 		&& !UseDebugViewPS()
 		&& EngineShowFlags.SeparateTranslucency;

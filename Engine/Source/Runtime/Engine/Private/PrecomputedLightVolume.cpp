@@ -153,8 +153,9 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolumeData& Volume)
 	}
 	else if (Ar.IsLoading())
 	{
-		Ar << Volume.bInitialized;
-		if (Volume.bInitialized)
+		bool bVolumeInitialized = false;
+		Ar << bVolumeInitialized; // Volume.bInitilized will be set in Volume.Initialize() call
+		if (bVolumeInitialized)
 		{
 			FBox Bounds;
 			Ar << Bounds;

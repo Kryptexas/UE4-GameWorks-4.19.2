@@ -50,6 +50,7 @@
 #include "PostProcess/PostProcessStreamingAccuracyLegend.h"
 #include "DeferredShadingRenderer.h"
 #include "PostProcess/PostProcessFFTBloom.h"
+#include "MobileSeparateTranslucencyPass.h"
 
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
@@ -2428,6 +2429,14 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 						BloomOutput = PostProcessSunAvg;
 					}
 				}
+			} // bUsePost
+
+			// mobile separate translucency 
+			if (IsMobileSeparateTranslucencyActive(Context.View))
+			{
+				FRCSeparateTranslucensyPassES2* Pass = (FRCSeparateTranslucensyPassES2*)Context.Graph.RegisterPass(new(FMemStack::Get()) FRCSeparateTranslucensyPassES2());
+				Pass->SetInput(ePId_Input0, Context.FinalOutput);
+				Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 			}
 		}
 		
@@ -2496,6 +2505,12 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			}
 		}
 
+		// Screenshot mask
+		{
+			FRenderingCompositeOutputRef EmptySeparateTranslucency;
+			AddHighResScreenshotMask(Context, EmptySeparateTranslucency);
+		}
+		
 		// Apply ScreenPercentage
 		if (View.UnscaledViewRect != View.ViewRect)
 		{

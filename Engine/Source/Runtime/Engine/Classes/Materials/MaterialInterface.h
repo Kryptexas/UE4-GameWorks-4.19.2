@@ -54,7 +54,6 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bMasked : 1;
 	uint32 bDistortion : 1;
 	uint32 bSeparateTranslucency : 1; // Translucency After DOF
-	uint32 bMobileSeparateTranslucency : 1;
 	uint32 bNormalTranslucency : 1;
 	uint32 bUsesSceneColorCopy : 1;
 	uint32 bDisableOffscreenRendering : 1; // Blend Modulate

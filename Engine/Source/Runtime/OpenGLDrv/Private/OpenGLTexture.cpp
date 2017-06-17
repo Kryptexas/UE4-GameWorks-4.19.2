@@ -124,11 +124,11 @@ void OpenGLTextureDeleted( FRHITexture* Texture )
 		TextureSize = ((FOpenGLTextureCube*)Texture->GetTextureCube())->GetMemorySize();
 		if (bRenderTarget)
 		{
-			DEC_MEMORY_STAT_BY(STAT_RenderTargetMemory3D,TextureSize);
+			DEC_MEMORY_STAT_BY(STAT_RenderTargetMemoryCube,TextureSize);
 		}
 		else
 		{
-			DEC_MEMORY_STAT_BY(STAT_TextureMemory3D,TextureSize);
+			DEC_MEMORY_STAT_BY(STAT_TextureMemoryCube,TextureSize);
 		}
 	}
 	else if (Texture->GetTexture2D())
@@ -271,7 +271,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 		NumSamples = 1;
 	}
 
-	bool bNoSRGBSupport = (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1);
+	bool bNoSRGBSupport = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2);
 
 	if ((Flags & TexCreate_RenderTargetable) && Format == PF_B8G8R8A8 && !FOpenGL::SupportsBGRA8888RenderTarget())
 	{
@@ -1520,7 +1520,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 		NumMips = FindMaxMipmapLevel(SizeX, SizeY);
 	}
 
-	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		// Remove sRGB read flag when not supported
 		Flags &= ~TexCreate_SRGB;
@@ -1633,7 +1633,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 		NumMips = FindMaxMipmapLevel(SizeX, SizeY, SizeZ);
 	}
 
-	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1)
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		// Remove sRGB read flag when not supported
 		Flags &= ~TexCreate_SRGB;

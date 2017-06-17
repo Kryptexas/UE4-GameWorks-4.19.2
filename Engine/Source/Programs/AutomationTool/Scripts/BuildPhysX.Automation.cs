@@ -677,7 +677,7 @@ class BuildPhysX : BuildCommand
 						Environment.SetEnvironmentVariable("LIB_SUFFIX", GetConfigurationSuffix(BuildConfig, TargetData)); // only used in HTML5's CMakefiles
 
 						string orig = File.ReadAllText(HTML5SDKInfo.EmscriptenCMakeToolChainFile);
-						string txt = Regex.Replace(orig, "(EPIC_BUILD_FLAGS}) .*-O2" , "$1 " + BuildMap[BuildConfig] );
+						string txt = Regex.Replace(orig, "-O2" , BuildMap[BuildConfig] );
 						string CmakeToolchainFile = FileReference.Combine(HTML5CMakeModules, "Emscripten." + BuildConfig + ".cmake").ToString();
 						File.WriteAllText(CmakeToolchainFile, txt);
 

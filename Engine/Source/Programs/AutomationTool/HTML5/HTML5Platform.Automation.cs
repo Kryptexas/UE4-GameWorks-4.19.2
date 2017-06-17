@@ -130,9 +130,6 @@ public class HTML5Platform : Platform
 		string GameExe = GameBasename + ".js";
 		string FullGameExePath = Path.Combine(GameBasepath, GameExe);
 		string FullPackageGameExePath = Path.Combine(PackagePath, GameExe);
-		// special case -- this will be removed when asm.js has been deprecated
-		string ASMJS_FullPackageGameExePath = Path.Combine(PackagePath, GameBasename + "_asm.js");
-
 
 		// ensure the ue4game binary exists, if applicable
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullGameExePath))
@@ -151,8 +148,8 @@ public class HTML5Platform : Platform
 			}
 			else
 			{
-				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
 				File.Copy(FullGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.js", true);
+				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
 			}
 		}
 
@@ -164,10 +161,10 @@ public class HTML5Platform : Platform
 		}
 		else
 		{
-			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
 			File.SetAttributes(FullPackageGameBasePath + ".asm.js", FileAttributes.Normal);
-			File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm // UE-45058
-			File.SetAttributes(ASMJS_FullPackageGameExePath, FileAttributes.Normal);
+		    File.Copy(FullGameExePath, FullPackageGameBasePath + "_asm.js", true); // --separate-asm // UE-45058
+			File.SetAttributes(FullPackageGameBasePath + "_asm.js", FileAttributes.Normal);
+			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
 		}
 
 
@@ -225,9 +222,8 @@ public class HTML5Platform : Platform
 			// Compress all files. These are independent tasks which can be threaded.
 			List<Task> CompressionTasks = new List<Task>();
 
-			// Note that the main .data file is never gzip compressed, because we rely on UnrealPak having compressed it already (above), and gzipping the pak file on
-			// top is showing negligible benefit. Check the console output from UnrealPak run to verify that it is indeed compressed.
-//			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation, FinalDataLocation + "gz")));
+			// data file
+			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation, FinalDataLocation + "gz")));
 
 			// data file .js driver.
 			CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz")));
@@ -241,12 +237,12 @@ public class HTML5Platform : Platform
 			}
 			else
 			{
+				// main game code
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.jsgz")));
+				// main js.
+				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + "_asm.js", FullPackageGameBasePath + "_asm.jsgz")));
 				// mem init file.
 				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameExePath + ".mem", FullPackageGameExePath + ".memgz")));
-				// main js.
-				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(FullPackageGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.jsgz")));
-				// main game code
-				CompressionTasks.Add(Task.Factory.StartNew(() => CompressFile(ASMJS_FullPackageGameExePath, ASMJS_FullPackageGameExePath + "gz")));
 			}
 
 			// symbols file.
@@ -266,6 +262,8 @@ public class HTML5Platform : Platform
 			File.Delete(FinalDataLocation + ".jsgz");
 			File.Delete(FullPackageGameExePath + "gz");
 			File.Delete(FullPackageGameBasePath + ".wasmgz");
+			File.Delete(FullPackageGameBasePath + ".asm.jsgz");
+			File.Delete(FullPackageGameBasePath + "_asm.jsgz");
 			File.Delete(FullPackageGameExePath + ".memgz");
 			File.Delete(FullPackageGameExePath + ".symbolsgz");
 			File.Delete(OutDir + "/Utility.jsgz");
@@ -526,8 +524,9 @@ public class HTML5Platform : Platform
 			}
 			else
 			{
+				SC.ArchiveFiles(PackagePath, GameBasename + ".asm.jsgz");
+				SC.ArchiveFiles(PackagePath, GameBasename + "_asm.jsgz");
 				SC.ArchiveFiles(PackagePath, GameExe + ".memgz");
-				SC.ArchiveFiles(PackagePath, GameExe + ".asm.jsgz");
 			}
 			SC.ArchiveFiles(PackagePath, GameExe + ".symbolsgz");
 			SC.ArchiveFiles(PackagePath, "Utility.jsgz");
@@ -539,6 +538,8 @@ public class HTML5Platform : Platform
 			File.Delete(ProjectDataName + ".jsgz");
 			File.Delete(GameExe + "gz");
 			File.Delete(GameBasename + ".wasmgz");
+			File.Delete(GameBasename + ".asm.jsgz");
+			File.Delete(GameBasename + "_asm.jsgz");
 			File.Delete(GameExe + ".memgz");
 			File.Delete(GameExe + ".symbolsgz");
 			File.Delete("Utility.jsgz");

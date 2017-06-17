@@ -39,6 +39,8 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bUseRemoteAsVirtualJoystick = true;
 	bUseRemoteAbsoluteDpadValues = false;
     bEnableRemoteNotificationsSupport = false;
+	bSupportsOpenGLES2 = false;
+	bSupportsMetal = true;
 }
 
 #if WITH_EDITOR
@@ -54,7 +56,7 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	// Ensure that at least one API is supported
-	if (!bSupportsMetal && !bSupportsOpenGLES2 && !bSupportsMetalMRT)
+	if (!bSupportsMetal && !bSupportsOpenGLES2 /*&& !bSupportsMetalMRT*/)
 	{
 		bSupportsOpenGLES2 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2)), GetDefaultConfigFilename());

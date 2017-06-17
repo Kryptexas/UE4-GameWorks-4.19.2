@@ -21,10 +21,13 @@ struct FRecastTileData
 	};
 
 	FRecastTileData();
-	FRecastTileData(NavNodeRef Ref, int32 TileDataSize, uint8* TileRawData, int32 TileCacheDataSize, uint8* TileCacheRawData);
+	FRecastTileData(int32 TileDataSize, uint8* TileRawData, int32 TileCacheDataSize, uint8* TileCacheRawData);
 	
-	NavNodeRef				TileRef;
-
+	// Location of attached tile
+	int32					X;					
+	int32					Y;					
+	int32					Layer;
+		
 	// Tile data
 	int32					TileDataSize;
 	TSharedPtr<FRawData>	TileRawData;
@@ -32,6 +35,9 @@ struct FRecastTileData
 	// Compressed tile cache layer 
 	int32					TileCacheDataSize;
 	TSharedPtr<FRawData>	TileCacheRawData;
+
+	// Whether this tile is attached to NavMesh
+	bool					bAttached;	
 };
 
 class dtNavMesh;

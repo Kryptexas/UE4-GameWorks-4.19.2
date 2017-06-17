@@ -30,7 +30,7 @@ float4 ScreenToPixel;
 MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2 UV)
 {
 	MaterialFloat4 Sample = Tex.Sample(Sampler, UV);
-#if SRGB_INPUT_TEXTURE && (ES2_PROFILE || ES3_1_PROFILE) && !METAL_PROFILE
+#if SRGB_INPUT_TEXTURE && (FEATURE_LEVEL == FEATURE_LEVEL_ES2) // ES2 does not support sRGB sampling
 	Sample.rgb = Sample.rgb * Sample.rgb;
 #endif
 	return Sample;

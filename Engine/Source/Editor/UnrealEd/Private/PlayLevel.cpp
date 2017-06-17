@@ -866,12 +866,13 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 
 
 // @todo gmp: temp hack for Rocket demo
-void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview )
+void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice)
 {
 	bPlayOnLocalPcSession = true;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = MobilePreview;
 	bPlayUsingVulkanPreview = VulkanPreview;
+	PlayUsingMobilePreviewTargetDevice = MobilePreviewTargetDevice;
 
 	if (StartLocation != NULL)
 	{
@@ -909,6 +910,7 @@ void UEditorEngine::CancelRequestPlaySession()
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = false;
 	bPlayUsingVulkanPreview = false;
+	PlayUsingMobilePreviewTargetDevice.Reset();
 }
 
 void UEditorEngine::PlaySessionPaused()
@@ -1424,11 +1426,20 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	// apply additional settings
 	if (bPlayUsingMobilePreview)
 	{
+		if (PlayUsingMobilePreviewTargetDevice.IsEmpty() == false)
+		{
+			AdditionalParameters += TEXT(" -MobileTargetDevice=") + PlayUsingMobilePreviewTargetDevice;
+		}
+		else
+		{
+			AdditionalParameters += TEXT(" -featureleveles2");
+		}
+
 		if (IsOpenGLPlatform(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]))
 		{
 			AdditionalParameters += TEXT(" -opengl");
 		}
-		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
+		AdditionalParameters += TEXT(" -faketouches");
 	}
 
 	if (bPlayUsingVulkanPreview)

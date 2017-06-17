@@ -71,6 +71,7 @@
 	#include "Editor/UnrealEdEngine.h"
 	#include "Settings/EditorExperimentalSettings.h"
 	#include "Interfaces/IEditorStyleModule.h"
+	#include "PIEPreviewDeviceProfileSelectorModule.h"
 
 	#if PLATFORM_WINDOWS
 		#include "AllowWindowsPlatformTypes.h"
@@ -145,7 +146,6 @@
 #if WITH_AUTOMATION_WORKER
 	#include "Interfaces/IAutomationWorkerModule.h"
 #endif
-
 #endif  //WITH_ENGINE
 
 class FSlateRenderer;
@@ -1685,10 +1685,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		FShaderCache::InitShaderCache(SCO_Default);
 	}
-	
+
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
-	
+
 	if (FPlatformProperties::RequiresCookedData())
 	{
 		// Will open material shader code storage if project was packaged with it
@@ -1814,7 +1814,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
-
+#if WITH_EDITOR
+		if(FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+		{
+			FPIEPreviewDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<FPIEPreviewDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
+			if (PIEPreviewDeviceProfileSelectorModule)
+			{
+				PIEPreviewDeviceProfileSelectorModule->ApplyPreviewDeviceState();
+			}
+		}
+#endif
 #if USE_LOCALIZED_PACKAGE_CACHE
 		// CoreUObject is definitely available now, so make sure the package localization cache is available
 		// This may have already been initialized from the CDO creation from ProcessNewlyLoadedUObjects

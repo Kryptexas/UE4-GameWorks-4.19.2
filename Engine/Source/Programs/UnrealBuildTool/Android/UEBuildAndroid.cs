@@ -108,7 +108,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			return false;
+			return !(Environment.GetEnvironmentVariable("IsBuildMachine") == "1");
 		}
 
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
@@ -320,6 +320,47 @@ namespace UnrealBuildTool
 
 			AndroidToolChain ToolChain = new AndroidToolChain(Target.ProjectFile, false, Target.AndroidPlatform.Architectures, Target.AndroidPlatform.GPUArchitectures);
 
+			// figure out the NDK version
+			string NDKToolchainVersion = "unknown";
+			string NDKDefine = "100500";	// assume r10e
+			string SourcePropFilename = Path.Combine(NDKPath, "source.properties");
+			if (File.Exists(SourcePropFilename))
+			{
+				string RevisionString = "";
+				string[] PropertyContents = File.ReadAllLines(SourcePropFilename);
+				foreach (string PropertyLine in PropertyContents)
+				{
+					if (PropertyLine.StartsWith("Pkg.Revision"))
+					{
+						RevisionString = PropertyLine;
+						break;
+					}
+				}
+
+				int EqualsIndex = RevisionString.IndexOf('=');
+				if (EqualsIndex > 0)
+				{
+					string[] RevisionParts = RevisionString.Substring(EqualsIndex + 1).Trim().Split('.');
+					int RevisionMinor = int.Parse(RevisionParts.Length > 1 ? RevisionParts[1] : "0");
+					char RevisionLetter = Convert.ToChar('a' + RevisionMinor);
+					int RevisionBeta = 0;  // @TODO
+					NDKToolchainVersion = "r" + RevisionParts[0] + (RevisionMinor > 0 ? Char.ToString(RevisionLetter) : "");
+					NDKDefine = RevisionParts[0] + string.Format("{0:00}", RevisionMinor + 1) + string.Format("{0:00}", RevisionBeta);
+				}
+			}
+			else {
+				string ReleaseFilename = Path.Combine(NDKPath, "RELEASE.TXT");
+				if (File.Exists(ReleaseFilename))
+				{
+					string[] PropertyContents = File.ReadAllLines(SourcePropFilename);
+					NDKToolchainVersion = PropertyContents[0];
+				}
+			}
+			
+			// PLATFORM_ANDROID_NDK_VERSION is in the form 150100, where 15 is major version, 01 is the letter (1 is 'a'), 00 indicates beta revision if letter is 00
+			Log.TraceInformation("PLATFORM_ANDROID_NDK_VERSION = {0}", NDKDefine);
+			CompileEnvironment.Definitions.Add("PLATFORM_ANDROID_NDK_VERSION=" + NDKDefine);
+
 			string GccVersion = "4.6";
 			int NDKVersionInt = ToolChain.GetNdkApiLevelInt();
 			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
@@ -331,7 +372,7 @@ namespace UnrealBuildTool
 				GccVersion = "4.8";
 			}
 
-			Log.TraceInformation("NDK version: {0}, GccVersion: {1}", NDKVersionInt.ToString(), GccVersion);
+			Log.TraceInformation("NDK toolchain: {0}, NDK version: {1}, GccVersion: {2}, ClangVersion: {3}", NDKToolchainVersion, NDKVersionInt.ToString(), GccVersion, ToolChain.GetClangVersionString());
 
 			CompileEnvironment.Definitions.Add("PLATFORM_DESKTOP=0");
 			CompileEnvironment.Definitions.Add("PLATFORM_CAN_SUPPORT_EDITORONLY_DATA=0");
@@ -373,6 +414,8 @@ namespace UnrealBuildTool
 				//LinkEnvironment.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
 			}
 
+			SetupGraphicsDebugger(Target, CompileEnvironment, LinkEnvironment);
+
 			LinkEnvironment.AdditionalLibraries.Add("gnustl_shared");
 			LinkEnvironment.AdditionalLibraries.Add("gcc");
 			LinkEnvironment.AdditionalLibraries.Add("z");
@@ -392,6 +435,28 @@ namespace UnrealBuildTool
 		private bool UseTegraGraphicsDebugger(ReadOnlyTargetRules Target)
 		{
 			// Disable for now
+			return false;
+		}
+
+		private bool SetupGraphicsDebugger(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			string AndroidGraphicsDebugger;
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Target.ProjectFile), UnrealTargetPlatform.Android);
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
+
+			if (AndroidGraphicsDebugger.ToLower() == "renderdoc")
+			{
+				string RenderDocPath;
+				AndroidPlatformSDK.GetPath(Ini, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "RenderDocPath", out RenderDocPath);
+				string RenderDocLibPath = Path.Combine(RenderDocPath, @"android\libs\armeabi-v7a");
+				if (Directory.Exists(RenderDocLibPath))
+				{
+					LinkEnvironment.LibraryPaths.Add(RenderDocLibPath);
+					LinkEnvironment.AdditionalLibraries.Add("VkLayer_RenderDoc");
+					return true;
+				}
+			}
+
 			return false;
 		}
 

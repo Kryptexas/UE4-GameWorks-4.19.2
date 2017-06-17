@@ -74,16 +74,21 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 		GSupportsDepthFetchDuringDepthTest = false;
 	}
 
-	// ES2 feature level emulation in D3D11
-	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
+	ERHIFeatureLevel::Type PreviewFeatureLevel;
+	if (!GIsEditor && RHIGetPreviewFeatureLevel(PreviewFeatureLevel))
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
+		check(PreviewFeatureLevel == ERHIFeatureLevel::ES2 || PreviewFeatureLevel == ERHIFeatureLevel::ES3_1);
+
+		// ES2/3.1 feature level emulation in D3D
+		GMaxRHIFeatureLevel = PreviewFeatureLevel;
+		if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	{
 		GMaxRHIShaderPlatform = SP_PCD3D_ES2;
 	}
-	else if ((FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor)
+		else if (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1)
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
 		GMaxRHIShaderPlatform = SP_PCD3D_ES3_1;
+	}
 	}
 	else if (FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{

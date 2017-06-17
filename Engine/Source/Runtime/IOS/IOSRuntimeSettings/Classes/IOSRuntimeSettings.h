@@ -186,11 +186,13 @@ public:
     uint32 bEnableRemoteNotificationsSupport : 1;
     
 	// Whether or not to add support for Metal API (requires IOS8 and A7 processors).
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Support Forward Rendering with Metal (A7 and up devices)"))
+	UPROPERTY(GlobalConfig)
 	bool bSupportsMetal;
 
+	// This feature is no longer supported and will be replaced by a Metal 2-based renderer. The setting UI is disabled for 4.17.
+	//
 	// Whether or not to add support for deferred rendering Metal API (requires IOS8 and A8 processors)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "[Work in Progress] Support Deferred Rendering with Metal (A8 and up devices)"))
+	UPROPERTY(GlobalConfig)
 	bool bSupportsMetalMRT;
 	
 	// Whether or not to add support for PVRTC textures
@@ -202,7 +204,7 @@ public:
 	bool bCookASTCTextures;
 	
 	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
+	UPROPERTY(GlobalConfig)
 	bool bSupportsOpenGLES2;
 	
 	// Remotely compile shaders offline
@@ -222,27 +224,27 @@ public:
 	bool bGenerateXCArchive;	
 	
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArmV7;
 
 	// Enable Arm64 support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64 in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArm64;
 
 	// Enable ArmV7s support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArmV7S;
 
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArmV7;
 
 	// Enable Arm64 support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64 in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArm64;
 
 	// Enable ArmV7s support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArmV7S;
 
 	// Enable bitcode compiling?

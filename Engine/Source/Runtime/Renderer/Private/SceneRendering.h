@@ -374,7 +374,6 @@ public:
 
 	/** 
 	* Draw all the primitives in this set for the mobile pipeline. 
-	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
 	template <class TDrawingPolicyFactory>
 	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;

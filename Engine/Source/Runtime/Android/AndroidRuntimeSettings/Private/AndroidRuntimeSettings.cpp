@@ -12,6 +12,7 @@
 UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Orientation(EAndroidScreenOrientation::Landscape)
+	, MaxAspectRatio(2.1f)
 	, bAndroidVoiceEnabled(false)
 	, GoogleVRMode(EGoogleVRMode::DaydreamAndCardboard)
 	, bEnableGooglePlaySupport(false)

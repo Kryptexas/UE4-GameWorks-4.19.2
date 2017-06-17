@@ -108,6 +108,9 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform);
 // helper to check that the shader platform supports writing to UAVs from pixel shaders.
 RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform);
 
+// helper to check if a preview feature level has been requested.
+RHI_API bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT);
+
 /** true if the GPU is AMD's Pre-GCN architecture */
 extern RHI_API bool GRHIDeviceIsAMDPreGCNArchitecture;
 
@@ -335,6 +338,9 @@ inline FMatrix AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 	FTranslationMatrix ClipSpaceFixTranslate(FVector(0.0f, 0.0f, GMinClipZ));	
 	return InProjectionMatrix * ClipSpaceFixScale * ClipSpaceFixTranslate;
 }
+
+/** Set runtime selection of mobile feature level preview. */
+RHI_API void RHISetMobilePreviewFeatureLevel(ERHIFeatureLevel::Type MobilePreviewFeatureLevel);
 
 /** Current shader platform. */
 

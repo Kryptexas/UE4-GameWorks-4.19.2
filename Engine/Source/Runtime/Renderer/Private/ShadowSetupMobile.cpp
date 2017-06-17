@@ -79,11 +79,18 @@ static bool EnableStaticMeshCombinedStaticAndCSMVisibilityState(const FPrimitive
 			if (bIsLitMaterial)
 			{
 				// CSM enabled list
-				MobileCSMVisibilityInfo.MobileCSMStaticBatchVisibility[StaticMesh.Id] = MobileCSMVisibilityInfo.MobileNonCSMStaticBatchVisibility[StaticMesh.Id];
 				MobileCSMVisibilityInfo.MobileCSMStaticMeshVisibilityMap[StaticMesh.Id] = MobileCSMVisibilityInfo.MobileNonCSMStaticMeshVisibilityMap[StaticMesh.Id];
 				// CSM excluded list
-				MobileCSMVisibilityInfo.MobileNonCSMStaticBatchVisibility[StaticMesh.Id] = 0;
 				MobileCSMVisibilityInfo.MobileNonCSMStaticMeshVisibilityMap[StaticMesh.Id] = false;
+
+				if (StaticMesh.bRequiresPerElementVisibility)
+				{
+					// CSM enabled list
+					MobileCSMVisibilityInfo.MobileCSMStaticBatchVisibility[StaticMesh.BatchVisibilityId] = MobileCSMVisibilityInfo.MobileNonCSMStaticBatchVisibility[StaticMesh.BatchVisibilityId];
+					// CSM excluded list
+					MobileCSMVisibilityInfo.MobileNonCSMStaticBatchVisibility[StaticMesh.BatchVisibilityId] = 0;
+				}
+				
 				INC_DWORD_STAT_BY(STAT_CSMStaticMeshReceivers, 1);
 				bFoundReceiver = true;
 			}

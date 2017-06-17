@@ -849,6 +849,13 @@ namespace UnrealBuildTool
 			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(RulesObject.Platform);
 			Platform.ValidateTarget(RulesObject);
 
+			// Skip deploy step in UBT if UAT is going to do deploy step
+			if (Arguments.Contains("-skipdeploy") 
+				&& RulesObject.Platform == UnrealTargetPlatform.Android) // TODO: if safe on other platforms
+			{
+				RulesObject.bDeployAfterCompile = false;
+            }
+			
 			// Generate a build target from this rules module
 			UEBuildTarget BuildTarget = new UEBuildTarget(Desc, new ReadOnlyTargetRules(RulesObject), RulesAssembly, TargetFileName);
 
@@ -4276,7 +4283,7 @@ namespace UnrealBuildTool
                 GlobalCompileEnvironment.Definitions.Add("USE_CACHE_FREED_OS_ALLOCS=0");
             }
 
-            if (Rules.bUseChecksInShipping)
+			if (Rules.bUseChecksInShipping)
 			{
 				GlobalCompileEnvironment.Definitions.Add("USE_CHECKS_IN_SHIPPING=1");
 			}

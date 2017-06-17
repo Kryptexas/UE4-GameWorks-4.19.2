@@ -544,7 +544,7 @@ static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetS
 inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
 {
 	VkFormat Format = (VkFormat)GPixelFormats[UEFormat].PlatformFormat;
-	if (bIsSRGB && GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+	if (bIsSRGB && GMaxRHIFeatureLevel > ERHIFeatureLevel::ES2)
 	{
 		switch (Format)
 		{

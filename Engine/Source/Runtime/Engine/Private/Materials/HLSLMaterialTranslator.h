@@ -3367,9 +3367,10 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
+		FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+
 		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
 			FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
 			
 			return AddCodeChunk(
@@ -3378,14 +3379,16 @@ protected:
 				*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
 				);
 		}
-		else
+		else // mobile
 		{
-			if (UV == INDEX_NONE)
+			if (UV == INDEX_NONE && Material->GetMaterialDomain() == MD_PostProcess)
 			{
-				// Avoid UV computation in a pixel shader
+				// Avoid UV computation in a PP pixel shader
 				UV = TextureCoordinate(0, false, false);
 			}
-			FString TexCoordCode = CoerceParameter(UV, MCT_Float2);
+			
+			FString TexCoordCode = ((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
+			
 			return AddCodeChunk(MCT_Float4,	TEXT("MobileSceneTextureLookup(Parameters, %d, %s)"), (int32)SceneTextureId, *TexCoordCode);
 		}
 	}
@@ -3634,7 +3637,7 @@ protected:
 	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}

@@ -14,6 +14,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "PlatformInfo.h"
+#include "PIEPreviewDeviceProfileSelectorModule.h"
 #endif
 
 static TAutoConsoleVariable<FString> CVarDeviceProfileOverride(
@@ -465,6 +466,20 @@ const FString UDeviceProfileManager::GetActiveProfileName()
 		}
 	}
 
+#if WITH_EDITOR
+	if (FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+	{
+		IDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<IDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
+		if (PIEPreviewDeviceProfileSelectorModule)
+		{
+			FString PIEProfileName = PIEPreviewDeviceProfileSelectorModule->GetRuntimeDeviceProfileName();
+			if (!PIEProfileName.IsEmpty())
+			{
+				ActiveProfileName = PIEProfileName;
+			}
+		}
+	}
+#endif
 	return ActiveProfileName;
 }
 

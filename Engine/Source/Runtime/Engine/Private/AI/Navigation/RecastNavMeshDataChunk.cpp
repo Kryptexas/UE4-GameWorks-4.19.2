@@ -25,16 +25,22 @@ FRecastTileData::FRawData::~FRawData()
 }
 
 FRecastTileData::FRecastTileData()
-	: TileRef(0)
+	: X(0)
+	, Y(0)
+	, Layer(0)
 	, TileDataSize(0)
 	, TileCacheDataSize(0)
+	, bAttached(false)
 {
 }
 
-FRecastTileData::FRecastTileData(NavNodeRef Ref, int32 DataSize, uint8* RawData, int32 CacheDataSize, uint8* CacheRawData)
-	: TileRef(Ref)
+FRecastTileData::FRecastTileData(int32 DataSize, uint8* RawData, int32 CacheDataSize, uint8* CacheRawData)
+	: X(0)
+	, Y(0)
+	, Layer(0)
 	, TileDataSize(DataSize)
 	, TileCacheDataSize(CacheDataSize)
+	, bAttached(false)
 {
 	TileRawData = MakeShareable(new FRawData(RawData));
 	TileCacheRawData = MakeShareable(new FRawData(CacheRawData));
@@ -135,7 +141,7 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar, int32 NavMeshVer
 				}
 				
 				// We are owner of tile raw data
-				FRecastTileData TileData(0, TileDataSize, TileRawData, TileCacheDataSize, TileCacheRawData);
+				FRecastTileData TileData(TileDataSize, TileRawData, TileCacheDataSize, TileCacheRawData);
 				Tiles.Add(TileData);
 			}
 		}
@@ -171,14 +177,26 @@ TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh& NavMesh
 	{
 		for (FRecastTileData& TileData : Tiles)
 		{
-			if (TileData.TileRawData.IsValid())
+			if (!TileData.bAttached && TileData.TileRawData.IsValid())
 			{
 				// Attach mesh tile to target nav mesh 
-				dtStatus status = NavMesh->addTile(TileData.TileRawData->RawData, TileData.TileDataSize, DT_TILE_FREE_DATA, 0, &TileData.TileRef);
+				dtTileRef TileRef = 0;
+				const dtMeshTile* MeshTile = nullptr;
+
+				dtStatus status = NavMesh->addTile(TileData.TileRawData->RawData, TileData.TileDataSize, DT_TILE_FREE_DATA, 0, &TileRef);
 				if (dtStatusFailed(status))
 				{
-					TileData.TileRef = 0;
 					continue;
+				}
+				else
+				{
+					MeshTile = NavMesh->getTileByRef(TileRef);
+					check(MeshTile);
+					
+					TileData.X = MeshTile->header->x;
+					TileData.Y = MeshTile->header->y;
+					TileData.Layer = MeshTile->header->layer;
+					TileData.bAttached = true;
 				}
 
 				if (bIsGame)
@@ -196,15 +214,10 @@ TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh& NavMesh
 				// Attach tile cache layer to target nav mesh
 				if (TileData.TileCacheDataSize > 0)
 				{
-					const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
-					check(MeshTile);
-					int32 TileX = MeshTile->header->x;
-					int32 TileY = MeshTile->header->y;
-					int32 TileLayerIdx = MeshTile->header->layer;
 					FBox TileBBox = Recast2UnrealBox(MeshTile->header->bmin, MeshTile->header->bmax);
 
-					FNavMeshTileData LayerData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize, TileLayerIdx, TileBBox);
-					NavMeshImpl.AddTileCacheLayer(TileX, TileY, TileLayerIdx, LayerData);
+					FNavMeshTileData LayerData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize, TileData.Layer, TileBBox);
+					NavMeshImpl.AddTileCacheLayer(TileData.X, TileData.Y, TileData.Layer, LayerData);
 
 					if (bIsGame)
 					{
@@ -219,7 +232,7 @@ TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh& NavMesh
 					}
 				}
 
-				Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
+				Result.Add(NavMesh->decodePolyIdTile(TileRef));
 			}
 		}
 	}
@@ -243,15 +256,18 @@ TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh& NavMesh
 	{
 		for (FRecastTileData& TileData : Tiles)
 		{
-			if (TileData.TileRef != 0)
+			if (TileData.bAttached)
 			{
 				// Detach tile cache layer and take ownership over compressed data
-				const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
+				dtTileRef TileRef = 0;
+				const dtMeshTile* MeshTile = NavMesh->getTileAt(TileData.X, TileData.Y, TileData.Layer);
 				if (MeshTile)
 				{
+					TileRef = NavMesh->getTileRef(MeshTile);
+
 					if (bIsGame)
 					{
-						FNavMeshTileData TileCacheData = NavMeshImpl.GetTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
+						FNavMeshTileData TileCacheData = NavMeshImpl.GetTileCacheLayer(TileData.X, TileData.Y, TileData.Layer);
 						if (TileCacheData.IsValid())
 						{
 							TileData.TileCacheDataSize = TileCacheData.DataSize;
@@ -259,22 +275,27 @@ TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh& NavMesh
 						}
 					}
 				
-					NavMeshImpl.RemoveTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
-				}
+					NavMeshImpl.RemoveTileCacheLayer(TileData.X, TileData.Y, TileData.Layer);
+
+					if (bIsGame)
+					{
+						// Remove tile from navmesh and take ownership of tile raw data
+						NavMesh->removeTile(TileRef, &TileData.TileRawData->RawData, &TileData.TileDataSize);
+					}
+					else
+					{
+						// In the editor we have a copy of tile data so just release tile in navmesh
+						NavMesh->removeTile(TileRef, nullptr, nullptr);
+					}
 						
-				if (bIsGame)
-				{
-					// Remove tile from navmesh and take ownership of tile raw data
-					NavMesh->removeTile(TileData.TileRef, &TileData.TileRawData->RawData, &TileData.TileDataSize);
+					Result.Add(NavMesh->decodePolyIdTile(TileRef));
 				}
-				else
-				{
-					// In the editor we have a copy of tile data so just release tile in navmesh
-					NavMesh->removeTile(TileData.TileRef, nullptr, nullptr);
-				}
-						
-				Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
 			}
+
+			TileData.bAttached = false;
+			TileData.X = 0;
+			TileData.Y = 0;
+			TileData.Layer = 0;
 		}
 	}
 #endif// WITH_RECAST
@@ -321,7 +342,11 @@ void URecastNavMeshDataChunk::GatherTiles(const FPImplRecastNavMesh* NavMeshImpl
 				}
 			}
 
-			FRecastTileData RecastTileData(NavMesh->getTileRef(Tile), Tile->dataSize, RawTileData, TileCacheData.DataSize, RawTileCacheData);
+			FRecastTileData RecastTileData(Tile->dataSize, RawTileData, TileCacheData.DataSize, RawTileCacheData);
+			RecastTileData.X = Tile->header->x;
+			RecastTileData.Y = Tile->header->y;
+			RecastTileData.Layer = Tile->header->layer;			
+			RecastTileData.bAttached = true;
 			Tiles.Add(RecastTileData);
 		}
 	}

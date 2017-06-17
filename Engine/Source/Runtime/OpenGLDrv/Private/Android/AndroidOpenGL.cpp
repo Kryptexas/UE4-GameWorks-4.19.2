@@ -646,6 +646,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glDeleteTextures(1, &BGRA8888Texture);
 		glDeleteFramebuffers(1, &FrameBuffer);
 	}
+
+	if (IsES31Usable())
+	{
+		// ES3.1 requires sRGB texture sampling, these formats do not support it
+		bSupportsATITC = false;
+		bSupportsPVRTC = false;
+	}
 }
 
 

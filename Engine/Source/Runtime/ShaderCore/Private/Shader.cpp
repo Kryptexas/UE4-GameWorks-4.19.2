@@ -1906,6 +1906,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		}
     }
     
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GPUSkin.Limit2BoneInfluences"));
+		if (CVar && CVar->GetValueOnAnyThread() != 0)
+		{
+			KeyString += TEXT("_2bi");
+		}
+    }
+    
     if (IsMetalPlatform(Platform))
     {
         // Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later

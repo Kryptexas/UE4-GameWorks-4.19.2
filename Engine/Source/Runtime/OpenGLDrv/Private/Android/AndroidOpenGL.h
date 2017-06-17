@@ -452,6 +452,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
 
+	static FORCEINLINE bool SupportsSRGB()								{ return IsES31Usable(); }		// only with enabled EFeatureLevelSupport::ES31
+	static FORCEINLINE bool SupportsTextureSwizzle()					{ return bES30Support; }
 	static FORCEINLINE bool SupportsInstancing()						{ return bSupportsInstancing; }
 	static FORCEINLINE bool SupportsDrawBuffers()						{ return bES30Support; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return bES30Support; }

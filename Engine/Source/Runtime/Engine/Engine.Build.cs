@@ -326,6 +326,8 @@ public class Engine : ModuleRules
 
             PrivateIncludePathModuleNames.Add("AssetTools");
             DynamicallyLoadedModuleNames.Add("AssetTools");
+
+			PrivateIncludePathModuleNames.Add("PIEPreviewDeviceProfileSelector");
         }
 
 		SetupModulePhysXAPEXSupport(Target);

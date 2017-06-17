@@ -92,6 +92,8 @@ public:
 	TSharedPtr<FUICommandInfo> PlayInNetworkSettings;
 	TSharedPtr<FUICommandInfo> PlayInNetworkDedicatedServer;
 
+	TArray< TSharedPtr< FUICommandInfo > > PlayInTargetedMobilePreviewDevices;
+
 	/** SIE & PIE controls */
 	TSharedPtr<FUICommandInfo> ResumePlaySession;
 	TSharedPtr<FUICommandInfo> PausePlaySession;
@@ -128,7 +130,13 @@ protected:
 	 *
 	 * @return	Menu content widget
 	 */
-	static TSharedRef< SWidget > GenerateLaunchMenuContent( TSharedRef<FUICommandList> InCommandList );	
+	static TSharedRef< SWidget > GenerateLaunchMenuContent( TSharedRef<FUICommandList> InCommandList );
+
+	// Add mobile PIE preview device commands
+	void AddPIEPreviewDeviceCommands();
+
+	// Add mobile PIE preview device actions
+	static void AddPIEPreviewDeviceActions(const FPlayWorldCommands &Commands, FUICommandList &ActionList);
 };
 
 

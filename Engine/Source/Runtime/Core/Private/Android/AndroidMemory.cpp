@@ -143,7 +143,7 @@ FPlatformMemoryStats FAndroidPlatformMemory::GetStats()
 	if (FILE* FileGlobalMemStats = fopen("/proc/meminfo", "r"))
 	{
 		int FieldsSetSuccessfully = 0;
-		SIZE_T MemFree = 0, Cached = 0;
+		uint64 MemFree = 0, Cached = 0;
 		do
 		{
 			char LineBuffer[256] = { 0 };

@@ -239,7 +239,7 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 	if (IsTranslucentBlendMode(BlendMode))
 	{
 		FDepthStencilStateRHIParamRef DepthStencilState = nullptr;
-		if (!DrawingContext.bRenderingSeparateTranslucency && Material->ShouldDisableDepthTest())
+		if (DrawingContext.TranslucencyPass != ETranslucencyPass::TPT_TranslucencyAfterDOF && Material->ShouldDisableDepthTest())
 		{
 			DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 		}
@@ -276,7 +276,7 @@ template <class TDrawingPolicyFactory>
 void FTranslucentPrimSet::DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState,
 	typename TDrawingPolicyFactory::ContextType& DrawingContext) const
 {
-	FInt32Range PassRange = SortedPrimsNum.GetPassRange(ETranslucencyPass::TPT_AllTranslucency);
+	FInt32Range PassRange = SortedPrimsNum.GetPassRange(DrawingContext.TranslucencyPass);
 
 	// Draw sorted scene prims
 	for (int32 PrimIdx = PassRange.GetLowerBoundValue(); PrimIdx < PassRange.GetUpperBoundValue(); PrimIdx++)
@@ -319,16 +319,16 @@ void FTranslucentPrimSet::DrawPrimitivesForMobile(FRHICommandListImmediate& RHIC
 			}
 		}
 	}
-
-	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 }
 
 void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList, const TArrayView<const FViewInfo*> PassViews)
 {
-	if (ShouldRenderTranslucency(ETranslucencyPass::TPT_AllTranslucency))
+	ETranslucencyPass::Type TranslucencyPass = 
+		ViewFamily.AllowTranslucencyAfterDOF() ? ETranslucencyPass::TPT_StandardTranslucency : ETranslucencyPass::TPT_AllTranslucency;
+		
+	if (ShouldRenderTranslucency(TranslucencyPass))
 	{
 		const bool bGammaSpace = !IsMobileHDR();
-		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
 		SCOPED_DRAW_EVENT(RHICmdList, Translucency);
 
@@ -338,15 +338,6 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 			
 			const FViewInfo& View = *PassViews[ViewIndex];
 			FDrawingPolicyRenderState DrawRenderState(View);
-
-			#if PLATFORM_HTML5
-			// Copy the view so emulation of framebuffer fetch works for alpha=depth.
-			// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
-			if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(View.GetShaderPlatform())))
-			{
-				CopySceneAlpha(RHICmdList, View);
-			}
-			#endif 
 
 			if (!bGammaSpace)
 			{
@@ -363,12 +354,14 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 
 			// Draw only translucent prims that don't read from scene color
-			FMobileTranslucencyDrawingPolicyFactory::ContextType DrawingContext(ESceneRenderTargetsMode::SetTextures, false);
+			FMobileTranslucencyDrawingPolicyFactory::ContextType DrawingContext(ESceneRenderTargetsMode::SetTextures, TranslucencyPass);
 			View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
-			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures, false), SDPG_World, false);
-			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures, false), SDPG_Foreground, false);
+			
+			View.SimpleElementCollector.DrawBatchedElements(RHICmdList, DrawRenderState, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
+			
+			// Editor and debug rendering
+			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext, SDPG_World, false);
+			DrawViewElements<FMobileTranslucencyDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext, SDPG_Foreground, false);
 		}
 	}
 }
@@ -578,7 +571,11 @@ public:
 
 	struct ContextType
 	{
-		bool ShouldRenderSeparateTranslucency() const { return false; }
+		ETranslucencyPass::Type TranslucencyPass;
+
+		ContextType(ETranslucencyPass::Type InTranslucencyPass)
+		: TranslucencyPass(InTranslucencyPass)
+		{}
 	};
 
 	static bool DrawDynamicMesh(
@@ -701,7 +698,22 @@ bool FMobileSceneRenderer::RenderInverseOpacity(FRHICommandListImmediate& RHICmd
 
 bool FMobileSceneRenderer::RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState)
 {
-	FMobileOpacityDrawingPolicyFactory::ContextType DrawingContext;
-	View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileOpacityDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
+	if (ViewFamily.AllowTranslucencyAfterDOF())
+	{
+		{
+			FMobileOpacityDrawingPolicyFactory::ContextType DrawingContext(ETranslucencyPass::TPT_StandardTranslucency);
+			View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileOpacityDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
+		}
+		{
+			FMobileOpacityDrawingPolicyFactory::ContextType DrawingContext(ETranslucencyPass::TPT_TranslucencyAfterDOF);
+			View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileOpacityDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
+		}
+	}
+	else
+	{
+		FMobileOpacityDrawingPolicyFactory::ContextType DrawingContext(ETranslucencyPass::TPT_AllTranslucency);
+		View.TranslucentPrimSet.DrawPrimitivesForMobile<FMobileOpacityDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, DrawingContext);
+	}
+
 	return View.TranslucentPrimSet.NumPrims() > 0;
 }

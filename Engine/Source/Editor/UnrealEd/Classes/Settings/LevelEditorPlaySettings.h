@@ -59,6 +59,9 @@ enum EPlayModeType
 	/** Runs a mobile preview in a new process. */
 	PlayMode_InMobilePreview,
 
+	/** Runs a mobile preview targeted to a particular device in a new process. */
+	PlayMode_InTargetedMobilePreview,
+
 	/** Runs a vulkan preview in a new process. */
 	PlayMode_InVulkanPreview,
 
@@ -411,6 +414,9 @@ public:
 	UPROPERTY(config)
 	TEnumAsByte<EPlayModeType> LastExecutedPlayModeType;
 
+	/** The name of the last device that the user ran a play session on. */
+	UPROPERTY(config)
+	FString LastExecutedPIEPreviewDevice;
 public:
 
 	/** Collection of common screen resolutions on mobile phones. */

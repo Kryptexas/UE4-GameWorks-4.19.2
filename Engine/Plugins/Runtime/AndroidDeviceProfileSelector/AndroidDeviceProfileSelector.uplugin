@@ -18,6 +18,11 @@
 	[
 		{
 			"Name" : "AndroidDeviceProfileSelector",
+			"Type": "Editor",
+			"LoadingPhase" : "PostConfigInit"
+		},
+		{
+			"Name" : "AndroidDeviceProfileSelectorRuntime",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
