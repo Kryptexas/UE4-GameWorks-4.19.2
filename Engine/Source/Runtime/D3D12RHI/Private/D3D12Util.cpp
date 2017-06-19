@@ -188,6 +188,7 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult)
 {
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)
 	{
+		GIsGPUCrashed = true;
 		if (!FApp::IsUnattended())
 		{
 			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString(), TEXT("Error"));
