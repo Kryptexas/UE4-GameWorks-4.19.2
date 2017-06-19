@@ -165,7 +165,7 @@ public:
 	static FString UnescapeXMLString( const FString& Text );
 
 	/** Helper to get the standard string for the crash type based on crash event bool values. */
-	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed);
+	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert);
 
 	/** Gets the "vanilla" status string. */
 	static const TCHAR* EngineModeExString();

@@ -236,7 +236,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
 	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
 	AddCrashProperty( TEXT( "IsAssert" ), FDebug::bHasAsserted );
-	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed) );
+	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted ) );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 
@@ -430,9 +430,10 @@ FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 		.Replace( *NewLineTag, TEXT( "\n" ) );
 }
 
-const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed)
+extern CORE_API bool GIsGPUCrashed;
+const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert)
 {
-	if (bIsGPUCrashed)
+	if (GIsGPUCrashed)
 	{
 		return *CrashTypeGPU;
 	}

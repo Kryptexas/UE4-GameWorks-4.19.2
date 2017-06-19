@@ -183,7 +183,7 @@ static FString GetD3D12TextureFlagString(uint32 TextureFlags)
 	return TextureFormatText;
 }
 
-
+extern CORE_API bool GIsGPUCrashed;
 static void TerminateOnDeviceRemoved(HRESULT D3DResult)
 {
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)

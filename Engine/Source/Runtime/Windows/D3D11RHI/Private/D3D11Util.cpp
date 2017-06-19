@@ -151,7 +151,7 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 	return TextureFormatText;
 }
 
-
+extern CORE_API bool GIsGPUCrashed;
 static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDevice)
 {
 	if (GDynamicRHI)

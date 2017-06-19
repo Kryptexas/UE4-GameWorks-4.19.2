@@ -380,9 +380,6 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 extern CORE_API bool GEnableVREditorHacks;
 
-/** true if the engine has detected that the GPU has crashed */
-extern CORE_API bool GIsGPUCrashed;
-
 /**
  * Ensures that current thread is during retrieval of vtable ptr of some
  * UClass.
