@@ -20,9 +20,7 @@ enum class EFbxExportCompatibility : uint8
 	FBX_2016
 };
 
-UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup),
-	   hidecategories=(Object, Options, Grid, RotationGrid),
-	   config=EditorPerProjectUserSettings)
+UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup), hidecategories=(Object, Options, Grid, RotationGrid), config=EditorPerProjectUserSettings)
 class UEditorPerProjectUserSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
