@@ -301,6 +301,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	}
 
 	// Disable active textures and shaders
+	glDisable(GL_SCISSOR_TEST);
 	glActiveTexture( GL_TEXTURE0 );
 	glBindTexture( GL_TEXTURE_2D, 0 );
 	glUseProgram(0);

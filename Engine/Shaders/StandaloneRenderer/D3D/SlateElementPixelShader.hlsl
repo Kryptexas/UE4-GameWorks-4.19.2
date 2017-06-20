@@ -8,10 +8,6 @@
 #define ESlateShader::Font			2
 #define ESlateShader::LineSegment	3
 
-// Draw effects
-#define DE_Disabled 0x20
-#define DE_IgnoreTextureAlpha 0x04
-
 Texture2D ElementTexture;
 SamplerState ElementTextureSampler;
 
@@ -23,20 +19,18 @@ cbuffer PerFramePSConstants
 
 cbuffer PerElementPSConstants
 {
-	float4 ShaderParams;
-	uint DrawEffects;
-	uint ShaderType;
-	uint Padding[2];
+    uint ShaderType;            //  4 bytes
+    float4 ShaderParams;        // 16 bytes
+    uint IgnoreTextureAlpha;    //	4 byte
+    uint DisableEffect;         //  4 byte
+    uint UNUSED[1];             //  4 bytes
 };
-
 
 struct VertexOut
 {
 	float4 Position : SV_POSITION;
 	float4 Color : COLOR0;
 	float4 TextureCoordinates : TEXCOORD0;
-	float4 ClipOriginAndPos : TEXCOORD1;
-	float4 ClipExtents : TEXCOORD2;
 };
 
 float3 Hue( float H )
@@ -73,7 +67,7 @@ float4 GetColor( VertexOut InVertex, float2 UV )
 	float4 FinalColor;
 	
 	float4 BaseColor = ElementTexture.Sample(ElementTextureSampler, UV );
-	if( ( DrawEffects & DE_IgnoreTextureAlpha ) != 0 )
+	if( IgnoreTextureAlpha != 0 )
 	{
 		BaseColor.a = 1.0f;
 	}
@@ -192,7 +186,7 @@ float4 Main( VertexOut InVertex ) : SV_Target
 	// gamma correct
 	OutColor.rgb = GammaCorrect(OutColor.rgb);
 
-	if( DrawEffects & DE_Disabled )
+    if (DisableEffect)
 	{
 		//desaturate
 		float3 LumCoeffs = float3( 0.3, 0.59, .11 );

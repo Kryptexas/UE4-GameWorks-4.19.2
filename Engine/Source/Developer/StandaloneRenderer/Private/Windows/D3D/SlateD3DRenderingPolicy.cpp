@@ -165,8 +165,6 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 				// @todo make this better
 				VertexBuffer.ResizeBuffer( NumBytesNeeded + 200*sizeof(FSlateVertex) );
 			}
-
-		
 		}
 
 		if( InBatchData.GetNumBatchedIndices() > 0 )
@@ -181,8 +179,6 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 				// @todo make this better
 				IndexBuffer.ResizeBuffer( NumIndices + 100 );
 			}
-
-	
 		}
 
 		uint8* VerticesPtr = nullptr;
@@ -203,7 +199,6 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 			VertexBuffer.Unlock();
 			IndexBuffer.Unlock();
 		}
-
 	}
 }
 
@@ -289,7 +284,6 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 				GD3DDeviceContext->RSSetState(NormalRasterState);
 			}
 		}
-	
 
 		PixelShader->SetShaderType( RenderBatch.ShaderType );
 
@@ -327,8 +321,11 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 		check(RenderBatch.IndexOffset + RenderBatch.NumIndices <= IndexBuffer.GetMaxNumIndices());
 		GD3DDeviceContext->DrawIndexed( IndexCount, RenderBatch.IndexOffset, RenderBatch.VertexOffset );
-
 	}
+
+	// Reset the Raster state when finished, there are places that are making assumptions about the raster state
+	// that need to be fixed.
+	GD3DDeviceContext->RSSetState(NormalRasterState);
 }
 
 TSharedRef<FSlateShaderResourceManager> FSlateD3D11RenderingPolicy::GetResourceManager() const

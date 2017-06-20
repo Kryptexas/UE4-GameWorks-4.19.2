@@ -440,7 +440,8 @@ void FSlateDefaultPS::SetShaderType( uint32 InShaderType )
 
 void FSlateDefaultPS::SetDrawEffects( ESlateDrawEffect InDrawEffects )
 {
-	PerElementConstants.GetBufferData().DrawEffects = (uint32)InDrawEffects;
+	PerElementConstants.GetBufferData().IgnoreTextureAlpha = (uint32)(InDrawEffects & ESlateDrawEffect::IgnoreTextureAlpha);
+	PerElementConstants.GetBufferData().DisableEffect = (uint32)(InDrawEffects & ESlateDrawEffect::DisabledEffect);
 }
 
 void FSlateDefaultPS::SetShaderParams( const FVector4& InShaderParams )
