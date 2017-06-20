@@ -19,7 +19,7 @@ class SLATECORE_API FArrangedChildren
 	
 	public:
 
-	typedef TArray<FArrangedWidget, TInlineAllocator<42>> FArrangedWidgetArray;
+	typedef TArray<FArrangedWidget, TInlineAllocator<16>> FArrangedWidgetArray;
 
 	/**
 	 * Construct a new container for arranged children that only accepts children that match the VisibilityFilter.

@@ -1002,7 +1002,7 @@ int32 FEditableSkeleton::RenameNotify(const FName& NewName, const FName& OldName
 	return NumAnimationsModified;
 }
 
-void FEditableSkeleton::GetCompatibleAnimSequences(TArray<class FAssetData>& OutAssets)
+void FEditableSkeleton::GetCompatibleAnimSequences(TArray<struct FAssetData>& OutAssets)
 {
 	//Get the skeleton tag to search for
 	FString SkeletonExportName = FAssetData(Skeleton).GetExportTextName();

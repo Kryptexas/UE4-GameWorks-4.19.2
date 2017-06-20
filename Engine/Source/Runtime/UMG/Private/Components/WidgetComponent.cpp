@@ -612,7 +612,12 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 		MaterialInstance = nullptr;
 	}
 
-	if ( Space != EWidgetSpace::Screen && WidgetRenderer.IsValid() && WidgetClass.Get() != nullptr )
+	if (Space == EWidgetSpace::Screen)
+	{
+		return nullptr;
+	}
+
+	if (WidgetRenderer.IsValid() && CurrentSlateWidget.IsValid())
 	{
 		// Create a new MID for the current base material
 		{
@@ -629,6 +634,7 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 		return new FWidget3DSceneProxy(this, *WidgetRenderer->GetSlateRenderer());
 	}
 
+#if WITH_EDITOR
 	// make something so we can see this component in the editor
 	class FWidgetBoxProxy : public FPrimitiveSceneProxy
 	{
@@ -682,6 +688,9 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 	};
 
 	return new FWidgetBoxProxy(this);
+#else
+	return nullptr;
+#endif
 }
 
 FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const
@@ -1334,12 +1343,14 @@ void UWidgetComponent::UpdateWidget()
 
 			SlateWindow->Resize(DrawSize);
 
+			bool bWidgetChanged = false;
 			if ( NewSlateWidget.IsValid() )
 			{
 				if ( NewSlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = NewSlateWidget;
 					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
+					bWidgetChanged = true;
 				}
 			}
 			else if( SlateWidget.IsValid() )
@@ -1348,12 +1359,22 @@ void UWidgetComponent::UpdateWidget()
 				{
 					CurrentSlateWidget = SlateWidget;
 					SlateWindow->SetContent(SlateWidget.ToSharedRef());
+					bWidgetChanged = true;
 				}
 			}
 			else
 			{
-				CurrentSlateWidget = SNullWidget::NullWidget;
+				if (CurrentSlateWidget != SNullWidget::NullWidget)
+				{
+					CurrentSlateWidget = SNullWidget::NullWidget;
+					bWidgetChanged = true;
+				}
 				SlateWindow->SetContent( SNullWidget::NullWidget );
+			}
+
+			if (bNeededNewWindow || bWidgetChanged)
+			{
+				MarkRenderStateDirty();
 			}
 		}
 		else

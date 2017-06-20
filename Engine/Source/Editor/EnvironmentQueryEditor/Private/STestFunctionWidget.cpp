@@ -12,10 +12,10 @@ void STestFunctionWidget::Construct(const FArguments& InArgs)
 
 FVector2D STestFunctionWidget::GetWidgetPosition(float X, float Y, const FGeometry& Geom) const
 {
-	return FVector2D((X*Geom.Size.X), (Geom.Size.Y - 1) - (Y*Geom.Size.Y));
+	return FVector2D((X*Geom.GetLocalSize().X), (Geom.GetLocalSize().Y - 1) - (Y*Geom.GetLocalSize().Y));
 }
 
-int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled(bParentEnabled);
@@ -29,7 +29,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(AllottedGeometry.Size.X, AllottedGeometry.Size.Y)),
 		TimelineAreaBrush,
-		MyClippingRect,
 		DrawEffects,
 		TimelineAreaBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -52,7 +51,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(FMath::TruncToInt(PreviewData.FilterLow * AllottedGeometry.Size.X), AllottedGeometry.Size.Y)),
 			WhiteBrush,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 0.0f, 0.0f, 0.4f)
 			);
@@ -67,7 +65,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(FVector2D(FMath::TruncToInt(PreviewData.FilterHigh * AllottedGeometry.Size.X), 0), FVector2D(AllottedGeometry.Size.X, AllottedGeometry.Size.Y)),
 			WhiteBrush,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 0.0f, 0.0f, 0.5f)
 			);
@@ -86,7 +83,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		AxisPoints,
-		MyClippingRect,
 		DrawEffects,
 		WhiteBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -105,7 +101,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			ClampLine,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 1.0f, 0.0f, 1.0f)
 			);
@@ -124,7 +119,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			ClampLine,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 1.0f, 0.0f, 1.0f)
 			);
@@ -143,7 +137,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			FilterLine,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)
 			);
@@ -162,7 +155,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			FilterLine,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint(InWidgetStyle) * FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)
 			);
@@ -187,7 +179,6 @@ int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(0.0f, 0.0f, 1.0f, 1.0f)
 		);

@@ -57,15 +57,15 @@ void SFxWidget::SetColorAndOpacity( FLinearColor InColorAndOpacity )
  * This means leveraging the render transform of FGeometry would be expensive, as we would need to use Concat(LayoutTransform, RenderTransform, Inverse(LayoutTransform).
  * Instead, we maintain the old way of doing it by modifying the AllottedGeometry only during rendering to append the widget's implied RenderTransform to the existing LayoutTransform.
  */
-int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Convert the 0..1 origin into local space extents.
-	const FVector2D ScaleOrigin = RenderScaleOrigin.Get() * AllottedGeometry.Size;
-	const FVector2D Offset = VisualOffset.Get() * AllottedGeometry.Size;
+	const FVector2D ScaleOrigin = RenderScaleOrigin.Get() * AllottedGeometry.GetLocalSize();
+	const FVector2D Offset = VisualOffset.Get() * AllottedGeometry.GetLocalSize();
 	// create the render transform as a scale around ScaleOrigin and offset it by Offset.
 	const auto SlateRenderTransform = Concatenate(Inverse(ScaleOrigin), RenderScale.Get(), ScaleOrigin, Offset);
 	// This will append the render transform to the layout transform, and we only use it for rendering.
-	FGeometry ModifiedGeometry = AllottedGeometry.MakeChild(AllottedGeometry.Size, SlateRenderTransform);
+	FGeometry ModifiedGeometry = AllottedGeometry.MakeChild(AllottedGeometry.GetLocalSize(), SlateRenderTransform);
 	
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	this->ArrangeChildren(ModifiedGeometry, ArrangedChildren);
@@ -79,8 +79,8 @@ int32 SFxWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 		// SFxWidgets are able to ignore parent clipping.
 		const FSlateRect ChildClippingRect = (bIgnoreClipping.Get())
-			? ModifiedGeometry.GetClippingRect()
-			: MyClippingRect.IntersectionWith(ModifiedGeometry.GetClippingRect());
+			? ModifiedGeometry.GetLayoutBoundingRect()
+			: MyCullingRect.IntersectionWith(ModifiedGeometry.GetLayoutBoundingRect());
 
 		FWidgetStyle CompoundedWidgetStyle = FWidgetStyle(InWidgetStyle)
 			.BlendColorAndOpacityTint(ColorAndOpacity.Get())
@@ -108,7 +108,7 @@ void SFxWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 			this->ChildSlot.GetWidget(),
-			TransformVector(Inverse(LayoutTransform), AllottedGeometry.Size),
+			TransformVector(Inverse(LayoutTransform), AllottedGeometry.GetLocalSize()),
 			LayoutTransform));
 	}
 }

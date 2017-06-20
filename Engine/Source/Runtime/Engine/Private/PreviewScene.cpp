@@ -17,12 +17,14 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	: PreviewWorld(NULL)
 	, bForceAllUsedMipsResident(CVS.bForceMipsResident)
 {
-	PreviewWorld = NewObject<UWorld>();
-	PreviewWorld->WorldType = CVS.bEditor ? EWorldType::EditorPreview : EWorldType::GamePreview;
+	EObjectFlags NewObjectFlags = RF_NoFlags;
 	if (CVS.bTransactional)
 	{
-		PreviewWorld->SetFlags(RF_Transactional);
+		NewObjectFlags = RF_Transactional;
 	}
+
+	PreviewWorld = NewObject<UWorld>(GetTransientPackage(), NAME_None, NewObjectFlags);
+	PreviewWorld->WorldType = CVS.bEditor ? EWorldType::EditorPreview : EWorldType::GamePreview;
 
 	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(PreviewWorld->WorldType);
 	WorldContext.SetCurrentWorld(PreviewWorld);

@@ -93,9 +93,9 @@ SGraphPanel::~SGraphPanel()
 
 //////////////////////////////////////////////////////////////////////////
 
-int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	CachedAllottedGeometryScaledSize = AllottedGeometry.Size * AllottedGeometry.Scale;
+	CachedAllottedGeometryScaledSize = AllottedGeometry.GetLocalSize() * AllottedGeometry.Scale;
 
 	//Style used for objects that are the same between revisions
 	FWidgetStyle FadedStyle = InWidgetStyle;
@@ -105,7 +105,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	const UEditorExperimentalSettings& Options = *GetDefault<UEditorExperimentalSettings>();
 
 	const FSlateBrush* BackgroundImage = FEditorStyle::GetBrush(TEXT("Graph.Panel.SolidBackground"));
-	PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 
 	const float ZoomFactor = AllottedGeometry.Scale * GetZoomAmount();
 
@@ -173,7 +173,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 			}
 
 
-			const bool bNodeIsVisible = FSlateRect::DoRectanglesIntersect( CurWidget.Geometry.GetClippingRect(), MyClippingRect );
+			const bool bNodeIsVisible = FSlateRect::DoRectanglesIntersect( CurWidget.Geometry.GetLayoutBoundingRect(), MyCullingRect );
 
 			if (bNodeIsVisible)
 			{
@@ -200,7 +200,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 						ShadowLayerId,
 						CurWidget.Geometry.ToInflatedPaintGeometry(NodeShadowSize),
 						ProfilerBrush,
-						MyClippingRect,
 						ESlateDrawEffect::None,
 						ProfilerHeatIntensity
 						);
@@ -214,8 +213,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 						OutDrawElements,
 						ShadowLayerId,
 						CurWidget.Geometry.ToInflatedPaintGeometry(NodeShadowSize),
-						ShadowBrush,
-						MyClippingRect
+						ShadowBrush
 						);
 				}
 
@@ -233,7 +231,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					for (int32 PopupIndex = 0; PopupIndex < Popups.Num(); ++PopupIndex)
 					{
 						FGraphInformationPopupInfo& Popup = Popups[PopupIndex];
-						PaintComment(Popup.Message, CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, Popup.BackgroundColor, /*inout*/ CommentBubbleY, InWidgetStyle);
+						PaintComment(Popup.Message, CurWidget.Geometry, MyCullingRect, OutDrawElements, ChildLayerId, Popup.BackgroundColor, /*inout*/ CommentBubbleY, InWidgetStyle);
 					}
 				}
 
@@ -255,7 +253,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
 					// Draw the node.O
-					CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
+					CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, MyCullingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
 				}
 
 				// Draw the node's overlay, if it has one.
@@ -284,8 +282,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 									OutDrawElements,
 									CurWidgetsMaxLayerId,
 									BouncedGeometry,
-									OverlayBrush,
-									MyClippingRect
+									OverlayBrush
 									);
 							}
 
@@ -305,7 +302,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 								const FGeometry WidgetGeometry = CurWidget.Geometry.MakeChild(OverlayInfo.OverlayOffset, OverlayInfo.Widget->GetDesiredSize());
 
-								OverlayInfo.Widget->Paint(NewArgs, WidgetGeometry, MyClippingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
+								OverlayInfo.Widget->Paint(NewArgs, WidgetGeometry, MyCullingRect, OutDrawElements, CurWidgetsMaxLayerId, InWidgetStyle, bParentEnabled);
 							}
 						}
 					}
@@ -322,7 +319,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	// Draw connections between pins 
 	if (Children.Num() > 0 )
 	{
-        FConnectionDrawingPolicy* ConnectionDrawingPolicy = FNodeFactory::CreateConnectionPolicy(Schema, WireLayerId, MaxLayerId, ZoomFactor, MyClippingRect, OutDrawElements, GraphObj);
+        FConnectionDrawingPolicy* ConnectionDrawingPolicy = FNodeFactory::CreateConnectionPolicy(Schema, WireLayerId, MaxLayerId, ZoomFactor, MyCullingRect, OutDrawElements, GraphObj);
 
 		TArray<TSharedPtr<SGraphPin>> OverridePins;
 		for (const FGraphPinHandle& Handle : PreviewConnectorFromPins)
@@ -454,7 +451,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 	// Draw a shadow overlay around the edges of the graph
 	++MaxLayerId;
-	PaintSurroundSunkenShadow(FEditorStyle::GetBrush(TEXT("Graph.Shadow")), AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
+	PaintSurroundSunkenShadow(FEditorStyle::GetBrush(TEXT("Graph.Shadow")), AllottedGeometry, MyCullingRect, OutDrawElements, MaxLayerId);
 
 	if (ShowGraphStateOverlay.Get())
 	{
@@ -477,18 +474,17 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				OutDrawElements,
 				MaxLayerId,
 				AllottedGeometry.ToPaintGeometry(),
-				BorderBrush,
-				MyClippingRect
+				BorderBrush
 				);
 		}
 	}
 
 	// Draw the marquee selection rectangle
-	PaintMarquee(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
+	PaintMarquee(AllottedGeometry, MyCullingRect, OutDrawElements, MaxLayerId);
 
 	// Draw the software cursor
 	++MaxLayerId;
-	PaintSoftwareCursor(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
+	PaintSoftwareCursor(AllottedGeometry, MyCullingRect, OutDrawElements, MaxLayerId);
 
 	return MaxLayerId;
 }
@@ -747,7 +743,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 					SelectionManager.SelectSingleNode(GraphNode->GetObjectBeingDisplayed());
 				}
 
-				const TSharedPtr<SGraphPin> HoveredPin = GraphNode->GetHoveredPin( HoveredNode.Geometry, MouseEvent );
+				const TSharedPtr<SGraphPin> HoveredPin = GraphNode->GetHoveredPin(GraphNode->GetCachedGeometry(), MouseEvent);
 				if (HoveredPin.IsValid())
 				{
 					PinUnderCursor = HoveredPin->GetPinObj();

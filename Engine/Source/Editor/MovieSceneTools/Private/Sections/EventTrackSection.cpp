@@ -32,18 +32,6 @@ int32 FEventTrackSection::OnPaintSection( FSequencerSectionPainter& InPainter ) 
 }
 
 
-FText FEventTrackSection::GetDisplayName() const
-{
-	return LOCTEXT("DisplayName", "Events");
-}
-
-
-FText FEventTrackSection::GetSectionTitle() const
-{
-	return FText::GetEmpty();
-}
-
-
 void FEventTrackSection::GenerateSectionLayout(ISectionLayoutBuilder& LayoutBuilder) const
 {
 	auto KeyArea = MakeShared<TGenericKeyArea<FEventPayload, float>>(Section->GetCurveInterface(), Section);

@@ -145,8 +145,8 @@ void ArrangeSingleChild( const FGeometry& AllottedGeometry, FArrangedChildren& A
 	{
 		const FVector2D ThisContentScale = ContentScale.Get();
 		const FMargin SlotPadding(ChildSlot.SlotPadding.Get());
-		AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, ChildSlot, SlotPadding, ThisContentScale.X);
-		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding, ThisContentScale.Y);
+		AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding, ThisContentScale.X);
+		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding, ThisContentScale.Y);
 
 		ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
 				ChildSlot.GetWidget(),

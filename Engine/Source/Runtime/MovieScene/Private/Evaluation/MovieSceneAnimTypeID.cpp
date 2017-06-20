@@ -2,6 +2,14 @@
 
 #include "Evaluation/MovieSceneAnimTypeID.h"
 
+namespace Lex
+{
+	FString ToString(const FMovieSceneAnimTypeID& AnimTypeID)
+	{
+		return FString::Printf(TEXT("%#010x"), AnimTypeID.ID);
+	}
+}
+
 uint64 FMovieSceneAnimTypeID::Initialize(uint64* StaticPtr, uint32 Seed)
 {
 	const uint64 NewHash = GenerateHash(StaticPtr, Seed);

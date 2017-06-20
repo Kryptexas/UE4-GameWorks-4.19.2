@@ -53,6 +53,7 @@ static const ANSICHAR* GValidationLayersInstance[] =
 	//"VK_LAYER_LUNARG_screenshot",
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
+	nullptr
 };
 
 // List of validation layers which we want to activate for the device
@@ -87,6 +88,7 @@ static const ANSICHAR* GValidationLayersDevice[] =
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_NV_nsight",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
+	nullptr
 };
 #endif // VULKAN_HAS_DEBUGGING_ENABLED
 
@@ -104,8 +106,9 @@ static const ANSICHAR* GInstanceExtensions[] =
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
 #if !VULKAN_DISABLE_DEBUG_CALLBACK
-	VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+	VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
+	nullptr
 };
 
 // Device Extensions to enable
@@ -124,6 +127,7 @@ static const ANSICHAR* GDeviceExtensions[] =
 	//"VK_KHX_device_group",
 	//"VK_KHR_maintenance1",
 #endif
+	nullptr
 };
 
 
@@ -245,7 +249,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	if (GValidationCvar.GetValueOnAnyThread() > 0)
 	{
 		// Verify that all requested debugging device-layers are available
-		for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GValidationLayersInstance); ++LayerIndex)
+		for (uint32 LayerIndex = 0; GValidationLayersInstance[LayerIndex] != nullptr; ++LayerIndex)
 		{
 			bool bValidationFound = false;
 			const ANSICHAR* CurrValidationLayer = GValidationLayersInstance[LayerIndex];
@@ -277,8 +281,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 
 	for (int32 i = 0; i < GlobalExtensions.ExtensionProps.Num(); i++)
 	{
-		// ARRAY_COUNT cannot be used with 0-sized arrays
-		for (int32 j = 0; j < sizeof(GInstanceExtensions) / sizeof(GInstanceExtensions[0]); j++)
+		for (int32 j = 0; GInstanceExtensions[j] != nullptr; j++)
 		{
 			if (!FCStringAnsi::Strcmp(GlobalExtensions.ExtensionProps[i].extensionName, GInstanceExtensions[j]))
 			{
@@ -347,7 +350,8 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	#endif
 
 	// Verify that all required device layers are available
-	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersDevice); ++LayerIndex)
+	// ARRAY_COUNT is unnecessary, but MSVC analyzer doesn't seem to be happy with just a null check
+	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersDevice) && GRequiredLayersDevice[LayerIndex] != nullptr; ++LayerIndex)
 	{
 		const ANSICHAR* CurrValidationLayer = GRequiredLayersDevice[LayerIndex];
 		if (CurrValidationLayer)
@@ -373,7 +377,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	// Verify that all requested debugging device-layers are available. Skip validation layers under RenderDoc
 	if (!bRenderDocFound && GValidationCvar.GetValueOnAnyThread() > 0)
 	{
-		for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GValidationLayersDevice); ++LayerIndex)
+		for (uint32 LayerIndex = 0; GValidationLayersDevice[LayerIndex] != nullptr; ++LayerIndex)
 		{
 			bool bValidationFound = false;
 			const ANSICHAR* CurrValidationLayer = GValidationLayersDevice[LayerIndex];
@@ -404,7 +408,8 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Device Extension %s"), ANSI_TO_TCHAR(Extensions.ExtensionProps[Index].extensionName));
 	}
 
-	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions); ++Index)
+	// ARRAY_COUNT is unnecessary, but MSVC analyzer doesn't seem to be happy with just a null check
+	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions) && GDeviceExtensions[Index] != nullptr; ++Index)
 	{
 		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
 		{

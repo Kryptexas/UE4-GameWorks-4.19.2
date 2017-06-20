@@ -132,7 +132,7 @@ void FAssetTypeActions_SoundWave::ExecuteCreateSoundCue(TArray<TWeakObjectPtr<US
 	}
 }
 
-void FAssetTypeActions_SoundWave::ExecuteCreateDialogueWave(const class FAssetData& AssetData, TArray<TWeakObjectPtr<USoundWave>> Objects)
+void FAssetTypeActions_SoundWave::ExecuteCreateDialogueWave(const struct FAssetData& AssetData, TArray<TWeakObjectPtr<USoundWave>> Objects)
 {
 	const FString DefaultSuffix = TEXT("_Dialogue");
 

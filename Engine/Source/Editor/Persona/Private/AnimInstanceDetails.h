@@ -7,7 +7,7 @@
 #include "PropertyHandle.h"
 #include "IDetailCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 
 /////////////////////////////////////////////////////
 // FAnimInstanceDetails 

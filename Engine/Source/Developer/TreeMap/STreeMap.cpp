@@ -102,8 +102,8 @@ void STreeMap::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 		// Make a tree map!
 		FTreeMapOptions TreeMapOptions;
 		TreeMapOptions.TreeMapType = ETreeMapType::Squarified;
-		TreeMapOptions.DisplayWidth = AllottedGeometry.Size.X;
-		TreeMapOptions.DisplayHeight = AllottedGeometry.Size.Y;
+		TreeMapOptions.DisplayWidth = AllottedGeometry.GetLocalSize().X;
+		TreeMapOptions.DisplayHeight = AllottedGeometry.GetLocalSize().Y;
 		TreeMapOptions.TopLevelContainerOuterPadding = TopLevelContainerOuterPadding;
 		TreeMapOptions.NestedContainerOuterPadding = NestedContainerOuterPadding;
 		TreeMapOptions.ContainerInnerPadding = ContainerInnerPadding;
@@ -186,7 +186,7 @@ void STreeMap::MakeBlendedNodeVisual( const int32 VisualIndex, const float Navig
 
 
 
-int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& WidgetClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	const auto DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -199,7 +199,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			ThisBackgroundImage,
-			WidgetClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * ThisBackgroundImage->TintColor.GetColor( InWidgetStyle )
 			);
@@ -266,7 +265,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 						LayerId,
 						VisualPaintGeometry,
 						bIsMouseOverNode ? ThisHoveredNodeBackground : ThisNodeBackground,
-						VisualClippingRect,
 						DrawEffects,
 						DrawColor
 						);
@@ -297,7 +295,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 							LayerId,
 							BackgroundPaintGeometry,
 							BlendedVisual.NodeData->BackgroundBrush,
-							BackgroundClippingRect,
 							DrawEffects,
 							DrawColor );
 					}
@@ -315,7 +312,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 								LayerId,
 								VisualPaintGeometry,
 								ThisHoveredNodeBackground,
-								VisualClippingRect,
 								DrawEffects,
 								DrawColor );
 						}
@@ -375,7 +371,7 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 
 							// Clip the text to the visual's rectangle, with some extra inner padding to avoid overlapping the visual's border
 							auto TextClippingRect = FSlateRect( VisualPaintGeometry.DrawPosition, VisualPaintGeometry.DrawPosition + VisualPaintGeometry.GetLocalSize() );
-							TextClippingRect = TextClippingRect.IntersectionWith( WidgetClippingRect );
+							TextClippingRect = TextClippingRect.IntersectionWith( MyCullingRect );
 							TextClippingRect = TextClippingRect.InsetBy( FMargin( ChildContainerTextPadding, 0, ChildContainerTextPadding, 0 ) );
 							if( TextClippingRect.IsValid() )
 							{
@@ -394,7 +390,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 										AllottedGeometry.ToOffsetPaintGeometry( ShadowOffset + FVector2D( TextX, TextY ) ),
 										BlendedVisual.NodeData->Name,
 										BlendedVisual.NameFont,
-										TextClippingRect,
 										DrawEffects,
 										InWidgetStyle.GetColorAndOpacityTint() * VisualTextColor );
 								}
@@ -415,7 +410,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 										AllottedGeometry.ToOffsetPaintGeometry( ShadowOffset + FVector2D( TextX, TextY ) ),
 										BlendedVisual.NodeData->Name2,
 										BlendedVisual.Name2Font,
-										TextClippingRect,
 										DrawEffects,
 										InWidgetStyle.GetColorAndOpacityTint() * VisualTextColor );
 								}
@@ -442,7 +436,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 										AllottedGeometry.ToOffsetPaintGeometry( ShadowOffset + FVector2D( TextX, TextY ) ),
 										BlendedVisual.NodeData->CenterText,
 										*BlendedVisualCenterTextFont,
-										TextClippingRect,
 										DrawEffects,
 										InWidgetStyle.GetColorAndOpacityTint() * VisualTextColor );
 								}
@@ -486,7 +479,6 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 				SplineStartDir,
 				SplineEnd,
 				SplineEndDir,
-				WidgetClippingRect,
 				SplineThickness,
 				DrawEffects,
 				InWidgetStyle.GetColorAndOpacityTint() * DraggingVisual->Color * SplineColorScale );
@@ -497,14 +489,11 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	return LayerId;
 }
 
-
-
 FVector2D STreeMap::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	// TreeMap widgets have no desired size -- their size is always determined by their container
 	return FVector2D::ZeroVector;
 }
-
 
 FReply STreeMap::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -538,12 +527,10 @@ FReply STreeMap::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent
 	return Reply;
 }
 
-
 void STreeMap::OnMouseLeave( const FPointerEvent& InMouseEvent )
 {
 	MouseOverVisual = NULL;
 }
-
 
 FReply STreeMap::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -572,7 +559,6 @@ FReply STreeMap::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointe
 
 	return Reply;
 }
-
 
 FReply STreeMap::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -628,8 +614,6 @@ FReply STreeMap::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerE
 
 	return Reply;
 }
-
-
 
 FReply STreeMap::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {

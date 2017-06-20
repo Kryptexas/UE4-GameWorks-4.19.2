@@ -8,7 +8,7 @@
 #include "PropertyEditorModule.h"
 #include "UObject/PropertyPortFlags.h"
 
-class FAssetData;
+struct FAssetData;
 class IPropertyHandleArray;
 class IPropertyHandleMap;
 class IPropertyHandleSet;
@@ -450,9 +450,19 @@ public:
 	virtual void MarkHiddenByCustomization() = 0;
 
 	/**
-	 * @return True if this property is customized                                                              
+	* Marks this property has having a custom reset to default (reset to default will not show up in the default place)
+	*/
+	virtual void MarkResetToDefaultCustomized() = 0;
+
+	/**
+	 * @return True if this property's UI is customized                                                              
 	 */
 	virtual bool IsCustomized() const = 0;
+
+	/**
+	 * @return True if this property's reset to default UI is customized (but not necessarialy the property UI itself)
+	 */
+	virtual bool IsResetToDefaultCustomized() const = 0;
 
 	/**
 	 * Generates a path from the parent UObject class to this property
@@ -557,13 +567,24 @@ public:
 	 * 
 	 * @return If this property can be reset to default
 	 */
-	virtual bool IsResetToDefaultAvailable() = 0;
+	virtual bool CanResetToDefault() const = 0;
 	
-
 	/**
-	 * Sets an override for this property's reset to defautl behavior
+	 * Sets an override for this property's reset to default behavior
 	 */
-	virtual void CustomResetToDefault( const class FResetToDefaultOverride& OnCustomResetToDefault ) = 0;
+	virtual void ExecuteCustomResetToDefault(const class FResetToDefaultOverride& OnCustomResetToDefault) = 0;
+
+	DEPRECATED(4.17, "IsResetToDefaultAvailable has been deprecated.  Use CanResetToDefault instead")
+	bool IsResetToDefaultAvailable() const
+	{
+		return CanResetToDefault();
+	}
+
+	DEPRECATED(4.17, "CustomResetToDefault has been deprecated.  Use ExecuteCustomResetToDefault instead")
+	void CustomResetToDefault(const class FResetToDefaultOverride& OnCustomResetToDefault)
+	{
+		ExecuteCustomResetToDefault(OnCustomResetToDefault);
+	}
 };
 
 /**

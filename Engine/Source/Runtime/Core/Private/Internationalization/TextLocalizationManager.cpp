@@ -38,6 +38,7 @@ void EndInitTextLocalization()
 
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
+	const bool ShouldLoadNative = false; // Skip loading the native texts during init as things are already in a good state
 
 	FInternationalization& I18N = FInternationalization::Get();
 
@@ -258,7 +259,7 @@ void EndInitTextLocalization()
 		}
 	}
 
-	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame, ShouldLoadNative);
 	FTextLocalizationManager::Get().bIsInitialized = true;
 }
 
@@ -564,7 +565,8 @@ void FTextLocalizationManager::RefreshResources()
 {
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	const bool ShouldLoadNative = true;
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame, ShouldLoadNative);
 }
 
 void FTextLocalizationManager::OnCultureChanged()
@@ -578,10 +580,11 @@ void FTextLocalizationManager::OnCultureChanged()
 
 	const bool ShouldLoadEditor = bIsInitialized && WITH_EDITOR;
 	const bool ShouldLoadGame = bIsInitialized && FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	const bool ShouldLoadNative = true;
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame, ShouldLoadNative);
 }
 
-void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame)
+void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame, const bool ShouldLoadNative)
 {
 	const FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
 
@@ -590,6 +593,8 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	{
 		return;
 	}
+
+	const TArray<FString> PrioritizedCultureNames = FInternationalization::Get().GetPrioritizedCultureNames(CultureName);
 
 	// Collect the localization paths to load from.
 	TArray<FString> GameLocalizationPaths;
@@ -630,6 +635,7 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	PrioritizedLocalizationPaths += AdditionalLocalizationPaths;
 
 	// Load the native texts first to ensure we always apply translations to a consistent base
+	if (ShouldLoadNative)
 	{
 		TArray<FTextLocalizationResource> TextLocalizationResources;
 
@@ -646,11 +652,8 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 				FTextLocalizationMetaDataResource LocMetaResource;
 				if (LocMetaResource.LoadFromFile(LocalizationPath / LocMetaFilenames[0]))
 				{
-					// We skip loading the native text if we're transitioning to the native culture when loc testing is disabled as there's no extra work that 
-					// needs to be done (when loc testing is enabled, UpdateFromNative also takes care of restoring non-localized text)
-#if !ENABLE_LOC_TESTING
-					if (CultureName != LocMetaResource.NativeCulture)
-#endif
+					// We skip loading the native text if we're transitioning to the native culture as there's no extra work that needs to be done
+					if (!PrioritizedCultureNames.Contains(LocMetaResource.NativeCulture))
 					{
 						FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
 						TextLocalizationResource.LoadFromFile(LocalizationPath / LocMetaResource.NativeLocRes);
@@ -659,6 +662,7 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 			}
 		}
 
+		// When loc testing is enabled, UpdateFromNative also takes care of restoring non-localized text which is why the condition below is gated
 #if !ENABLE_LOC_TESTING
 		if (TextLocalizationResources.Num() > 0)
 #endif
@@ -727,18 +731,22 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 			LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
 		}
 
-		// The editor cheats and loads the native culture's localizations.
+		// The editor cheats and loads the native language's localizations.
 		if (GIsEditor)
 		{
-			FString NativeCultureName;
-			GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeCultureName, GEditorSettingsIni );
+			FString NativeLanguageName;
+			if (!GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameLanguage"), NativeLanguageName, GEditorSettingsIni))
+			{
+				// Legacy setting
+				GConfig->GetString(TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeLanguageName, GEditorSettingsIni);
+			}
 
-			if (!NativeCultureName.IsEmpty() && GameLocalizationPaths.Num() > 0)
+			if (!NativeLanguageName.IsEmpty() && GameLocalizationPaths.Num() > 0)
 			{
 				FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
 				for (const FString& LocalizationPath : GameLocalizationPaths)
 				{
-					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeCultureName));
+					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeLanguageName));
 					if (Entry)
 					{
 						const FString CulturePath = LocalizationPath / (*Entry);
@@ -750,7 +758,6 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 		}
 
 		// Read culture localization resources.
-		const TArray<FString> PrioritizedCultureNames = FInternationalization::Get().GetPrioritizedCultureNames(CultureName);
 		for (const FString& ParentCultureName : PrioritizedCultureNames)
 		{
 			if (PrioritizedLocalizationPaths.Num() > 0)

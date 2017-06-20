@@ -8,7 +8,7 @@
 #include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryCharacter.generated.h"
 
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI,config=Editor)
 class UActorFactoryCharacter : public UActorFactory

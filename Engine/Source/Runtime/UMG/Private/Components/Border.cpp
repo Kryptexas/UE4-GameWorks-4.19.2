@@ -50,7 +50,7 @@ TSharedRef<SWidget> UBorder::RebuildWidget()
 		Cast<UBorderSlot>(GetContentSlot())->BuildSlot(MyBorder.ToSharedRef());
 	}
 
-	return BuildDesignTimeWidget( MyBorder.ToSharedRef() );
+	return MyBorder.ToSharedRef();
 }
 
 void UBorder::SynchronizeProperties()

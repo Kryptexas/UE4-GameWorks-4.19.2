@@ -60,7 +60,7 @@ struct ENGINE_API FAssetImportInfo
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnImportDataChanged, const FAssetImportInfo& /*OldData*/, const class UAssetImportData* /* NewData */);
 
 /* todo: Make this class better suited to multiple import paths - maybe have FAssetImportInfo use a map rather than array? */
-UCLASS()
+UCLASS(EditInlineNew)
 class ENGINE_API UAssetImportData : public UObject
 {
 public:
@@ -80,7 +80,7 @@ public:
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Source file data describing the files that were used to import this asset. */
-	UPROPERTY(VisibleAnywhere, Category=ImportSettings)
+	UPROPERTY(VisibleAnywhere, Category="File Path")
 	FAssetImportInfo SourceData;
 
 public:

@@ -9,6 +9,7 @@ FSequencerSectionPainter::FSequencerSectionPainter(FSlateWindowElementList& OutD
 	, SectionGeometry(InSectionGeometry)
 	, LayerId(0)
 	, bParentEnabled(true)
+	, bIsHighlighted(false)
 {
 }
 

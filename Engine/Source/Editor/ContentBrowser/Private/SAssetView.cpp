@@ -279,11 +279,11 @@ void SAssetView::Construct( const FArguments& InArgs )
 	[
 		SNew( SVerticalBox ) 
 
-		+SVerticalBox::Slot()
+		+ SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding( 0, 0, 0, 0 )
 		[
 			SNew( SBox )
+			.Visibility_Lambda([this] { return bIsWorking ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed; })
 			.HeightOverride( 2 )
 			[
 				SNew( SProgressBar )
@@ -292,10 +292,9 @@ void SAssetView::Construct( const FArguments& InArgs )
 				.BorderPadding( FVector2D(0,0) )
 			]
 		]
-
-		+SVerticalBox::Slot()
+		
+		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
-		.Padding( 0, 0, 0, 0 )
 		[
 			SNew(SOverlay)
 
@@ -383,14 +382,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	if (InArgs._ShowBottomToolbar)
 	{
-		//// Separator
-		//VerticalBox->AddSlot()
-		//.AutoHeight()
-		//.Padding(0, 0, 0, 1)
-		//[
-		//	SNew(SSeparator)
-		//];
-
 		// Bottom panel
 		VerticalBox->AddSlot()
 		.AutoHeight()
@@ -403,7 +394,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			.Padding(8, 0)
 			[
-				SNew(STextBlock) .Text(this, &SAssetView::GetAssetCountText)
+				SNew(STextBlock)
+				.Text(this, &SAssetView::GetAssetCountText)
 			]
 
 			// View mode combo button
@@ -1129,7 +1121,7 @@ void SAssetView::CalculateFillScale( const FGeometry& AllottedGeometry )
 
 		// Scrollbars are 16, but we add 1 to deal with half pixels.
 		const float ScrollbarWidth = 16 + 1;
-		float TotalWidth = AllottedGeometry.Size.X - ( ScrollbarWidth / AllottedGeometry.Scale );
+		float TotalWidth = AllottedGeometry.GetLocalSize().X - ( ScrollbarWidth / AllottedGeometry.Scale );
 		float Coverage = TotalWidth / ItemWidth;
 		int32 Items = (int)( TotalWidth / ItemWidth );
 

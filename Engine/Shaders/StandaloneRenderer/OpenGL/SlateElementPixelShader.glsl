@@ -251,55 +251,8 @@ vec4 GetSplineElementColor()
 	return InColor;
 }
 
-void clip(vec4 ClipTest)
-{
-	if( any( lessThan(ClipTest, vec4(0,0,0,0) ) ) ) discard;
-}
-
-float cross(vec2 a, vec2 b)
-{
-	return a.x*b.y - a.y*b.x;
-}
-
-/**
- * Given a point p and a parallelogram defined by point a and vectors b and c, determines in p is inside the parallelogram. 
- * returns a 4-vector that can be used with the clip instruction.
- */
-vec4 PointInParallelogram(vec2 p, vec2 a, vec4 bc)
-{
-	// unoptomized form:
-	//vec2 o = p - a;
-	//vec2 b = bc.xy;
-	//vec2 c = bc.zw;
-	//float d = cross(b, c);
-	//float s = -cross(o, b) / d;
-	//float t = cross(o, c) / d;
-	// test for s and t between 0 and 1
-	//return vec4(s, 1 - s, t, 1 - t);
-
-	vec2 o = p - a;
-	// precompute 1/d
-	float invD = 1/cross(bc.xy, bc.zw);
-	// Compute an optimized o x b and o x c, leveraging that b and c are in the same vector register already (and free swizzles):
-	//   (o.x * b .y  - o.y * b .x, o.x *  c.y - o.y *  c.x) ==
-	//   (o.x * bc.y  - o.y * bc.x, o.x * bc.w - o.y * bc.z) ==
-	//    o.x * bc.yw - o.y * bc.xz
-	vec2 st = (o.x * bc.yw - o.y * bc.xz) * vec2(-invD, invD);
-	// test for s and t between 0 and 1
-	return vec4(st, vec2(1,1) - st);
-}
-
 void main()
 {
-	// Clip pixels which are outside of the clipping rect
-	vec2 ClipOrigin = ClipOriginAndPos.xy;
-	vec2 WindowPos = ClipOriginAndPos.zw;
-	vec4 ClipTest = PointInParallelogram(WindowPos, ClipOrigin, ClipExtents);
-	
-	clip(ClipTest);
-
-	//vec4 OutColorTint = any(lessThan(ClipTest, vec4(0,0,0,0))) ? vec4(1, 0.5, 0.5, 0.5) : vec4(1, 1, 1, 1);
-
 	vec4 OutColor;
 
 	if( ShaderType == ST_Default )
@@ -334,7 +287,5 @@ void main()
 		OutColor.rgb = mix( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0.0, 0.8)  );
 	}
 
-	gl_FragColor = OutColor.bgra 
-		//* OutColorTint
-		;
+	gl_FragColor = OutColor.bgra;
 }

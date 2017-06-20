@@ -37,7 +37,7 @@ bool FFeaturePackValidityTest::RunTest(const FString& Parameters)
 
 	for (auto FeaturePackFile : FeaturePacks)
 	{
-		TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FPaths::FeaturePackDir() + FeaturePackFile, true);
+		TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FPaths::FeaturePackDir() + FeaturePackFile);
 		if (NewContentSource->IsDataValid() == false)
 		{
 			FailCount++;

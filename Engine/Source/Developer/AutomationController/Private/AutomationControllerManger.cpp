@@ -678,6 +678,8 @@ void FAutomationControllerManager::ProcessResults()
 
 			FPlatformProcess::LaunchURL(*DeveloperReportUrl, nullptr, nullptr);
 		}
+
+		UE_LOG(AutomationControllerLog, Display, TEXT("Done writing reports... %s."), *ReportOutputPath);
 	}
 
 	// Then clean our array for the next pass.

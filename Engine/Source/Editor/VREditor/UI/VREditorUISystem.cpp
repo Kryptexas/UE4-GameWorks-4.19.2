@@ -142,7 +142,6 @@ const VREditorPanelID UVREditorUISystem::WorldOutlinerPanelID = VREditorPanelID(
 const VREditorPanelID UVREditorUISystem::DetailsPanelID = VREditorPanelID("Details");
 const VREditorPanelID UVREditorUISystem::ModesPanelID = VREditorPanelID("Modes");
 const VREditorPanelID UVREditorUISystem::TutorialPanelID = VREditorPanelID("Tutorial");
-const VREditorPanelID UVREditorUISystem::AssetEditorPanelID = VREditorPanelID("AssetEditor");
 const VREditorPanelID UVREditorUISystem::WorldSettingsPanelID = VREditorPanelID("WorldSettings");
 const VREditorPanelID UVREditorUISystem::ColorPickerPanelID = VREditorPanelID("ColorPicker");
 const VREditorPanelID UVREditorUISystem::SequencerPanelID = VREditorPanelID("SequencerUI");
@@ -180,6 +179,7 @@ void UVREditorUISystem::Init(UVREditorMode* InVRMode)
 	GetOwner().GetWorldInteraction().OnPreviewInputAction().AddUObject( this, &UVREditorUISystem::OnPreviewInputAction );
 	GetOwner().GetWorldInteraction().OnViewportInteractionInputAction().AddUObject( this, &UVREditorUISystem::OnVRAction );
 	GetOwner().GetWorldInteraction().OnViewportInteractionHoverUpdate().AddUObject( this, &UVREditorUISystem::OnVRHoverUpdate );
+	GetOwner().OnToggleDebugMode().AddUObject(this, &UVREditorUISystem::ToggledDebugMode);
 
 	FSlateApplication::Get().OnDragDropCheckOverride.BindUObject(this, &UVREditorUISystem::CheckForVRDragDrop);
 
@@ -230,6 +230,7 @@ void UVREditorUISystem::Shutdown()
 		WorldInteraction.OnPreviewInputAction().RemoveAll(this);
 		WorldInteraction.OnViewportInteractionInputAction().RemoveAll(this);
 		WorldInteraction.OnViewportInteractionHoverUpdate().RemoveAll(this);
+		VRMode->OnToggleDebugMode().RemoveAll(this);
 	}
 
 	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
@@ -874,6 +875,7 @@ void UVREditorUISystem::Render( const FSceneView* SceneView, FViewport* Viewport
 void UVREditorUISystem::CreateUIs()
 {
 	const FIntPoint DefaultResolution( VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt() );
+	const bool bShowUI = UVREditorMode::IsDebugModeEnabled();
 
 	{
 		const bool bWithSceneComponent = false;
@@ -883,7 +885,7 @@ void UVREditorUISystem::CreateUIs()
 			InfoDisplayPanel = GetOwner().SpawnTransientSceneActor<AVREditorFloatingUI>(TEXT("QuickMenu"), bWithSceneComponent);
 			const FIntPoint Resolution(512, 64);
 			InfoDisplayPanel->SetSlateWidget(*this, InfoDisplayPanelID, SNullWidget::NullWidget, Resolution, 20.0f, AVREditorBaseActor::EDockedTo::Nothing);
-			InfoDisplayPanel->ShowUI(false);
+			InfoDisplayPanel->ShowUI(bShowUI);
 			FVector RelativeOffset = VRMode->GetHMDDeviceType() == EHMDDeviceType::Type::DT_SteamVR ?  FVector(5.0f, 0.0f, 0.0f) : FVector(5.0f, 0.0f, 10.0f);
 			InfoDisplayPanel->SetRelativeOffset(RelativeOffset);
 			InfoDisplayPanel->SetWindowMesh(VRMode->GetAssetContainer().WindowMesh);
@@ -904,7 +906,7 @@ void UVREditorUISystem::CreateUIs()
 			}
 
 			QuickRadialMenu->SetRelativeOffset(RelativeOffset);
-			QuickRadialMenu->ShowUI(false, false, 0.0f, false);
+			QuickRadialMenu->ShowUI(bShowUI, false, 0.0f, false);
 		}
 	}
 	// Make some editor UIs!
@@ -954,7 +956,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* ContentBrowserUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT( "ContentBrowserUI" ), bWithSceneComponent);
 			ContentBrowserUI->SetSlateWidget( *this, ContentBrowserPanelID, WidgetToDraw, Resolution, VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			ContentBrowserUI->ShowUI( false );
+			ContentBrowserUI->ShowUI( bShowUI );
 			FloatingUIs.Add(ContentBrowserPanelID, ContentBrowserUI);
 		}
 
@@ -980,7 +982,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* WorldOutlinerUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("WorldOutlinerUI"), bWithSceneComponent);
 			WorldOutlinerUI->SetSlateWidget( *this, WorldOutlinerPanelID, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			WorldOutlinerUI->ShowUI( false );
+			WorldOutlinerUI->ShowUI( bShowUI );
 			FloatingUIs.Add(WorldOutlinerPanelID, WorldOutlinerUI);
 		}
 
@@ -1001,7 +1003,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* ActorDetailsUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("ActorDetailsUI"), bWithSceneComponent);
 			ActorDetailsUI->SetSlateWidget( *this, DetailsPanelID, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			ActorDetailsUI->ShowUI( false );
+			ActorDetailsUI->ShowUI( bShowUI );
 			FloatingUIs.Add(DetailsPanelID, ActorDetailsUI);
 		}
 
@@ -1025,7 +1027,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* ModesUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("ModesUI"), bWithSceneComponent);
 			ModesUI->SetSlateWidget( *this, ModesPanelID, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			ModesUI->ShowUI( false );
+			ModesUI->ShowUI( bShowUI );
 			FloatingUIs.Add(ModesPanelID, ModesUI);
 
 			// @todo vreditor placement: This is required to force the modes UI to refresh -- otherwise it looks empty
@@ -1038,7 +1040,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("AssetEditor"), bWithSceneComponent);
 			TabManagerUI->SetSlateWidget( *this, TabManagerPanelID,  SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			TabManagerUI->ShowUI( false );
+			TabManagerUI->ShowUI( bShowUI );
 
 			// @todo vreditor: Could use "Hovering" instead for better performance with many UIs, but needs to be manually refreshed in some cases
 			TabManagerUI->GetWidgetComponent()->SetDrawingPolicy( EVREditorWidgetDrawingPolicy::Always );
@@ -1084,7 +1086,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* WorldSettingsUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("WorldSettingsUI"), bWithSceneComponent);
 			WorldSettingsUI->SetSlateWidget( *this, WorldSettingsPanelID, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
-			WorldSettingsUI->ShowUI( false );
+			WorldSettingsUI->ShowUI( bShowUI );
 			FloatingUIs.Add(WorldSettingsPanelID, WorldSettingsUI);
 		}
 
@@ -1122,7 +1124,7 @@ void UVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorFloatingUI* ActorPreviewUI = GetOwner().SpawnTransientSceneActor<AVREditorDockableWindow>(TEXT("ActorPreviewUI"), bWithSceneComponent);
 			ActorPreviewUI->SetSlateWidget(*this, ActorPreviewUIID, WidgetToDraw, FIntPoint(VREd::ContentBrowserUIResolutionX->GetFloat(), VREd::ContentBrowserUIResolutionY->GetFloat()), VREd::ContentBrowserUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
-			ActorPreviewUI->ShowUI(false);
+			ActorPreviewUI->ShowUI(bShowUI);
 			FloatingUIs.Add(ActorPreviewUIID, ActorPreviewUI);
 		}
 	}
@@ -1524,7 +1526,7 @@ void UVREditorUISystem::ShowAssetEditor()
 
 	// A tab was opened, so make sure the "Asset" UI is visible.  That's where the user can interact
 	// with the newly-opened tab
-	AVREditorFloatingUI* AssetEditorPanel = GetPanel(AssetEditorPanelID);
+	AVREditorFloatingUI* AssetEditorPanel = GetPanel(TabManagerPanelID);
 	if (AssetEditorPanel != nullptr && !AssetEditorPanel->IsUIVisible())
 	{	
 		const bool bShouldShow = true;
@@ -2450,11 +2452,26 @@ void UVREditorUISystem::TransitionWorld(UWorld* NewWorld)
 		}
 	}	
 	
-	AVREditorFloatingUI* TabManagerUI = GetPanel(AssetEditorPanelID);
+	AVREditorFloatingUI* TabManagerUI = GetPanel(TabManagerPanelID);
 	if (TabManagerUI != nullptr)
 	{
 		TabManagerUI->GetWidgetComponent()->UpdateWidget();
 		ProxyTabManager->SetParentWindow(TabManagerUI->GetWidgetComponent()->GetSlateWindow().ToSharedRef());
+	}
+}
+
+void UVREditorUISystem::ToggledDebugMode(bool bDebugModeEnabled)
+{
+	const bool bShowAllFloatingUIs = bDebugModeEnabled;
+
+	for (auto& CurrentUI : FloatingUIs)
+	{
+		CurrentUI.Value->ShowUI(bShowAllFloatingUIs, false);
+	}
+
+	if (QuickRadialMenu != nullptr)
+	{
+		QuickRadialMenu->ShowUI(bShowAllFloatingUIs, false);
 	}
 }
 

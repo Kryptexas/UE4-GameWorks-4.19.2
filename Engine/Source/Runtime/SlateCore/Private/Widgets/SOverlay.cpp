@@ -31,8 +31,8 @@ void SOverlay::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 		if ( ArrangedChildren.Accepts(ChildVisibility) )
 		{
 			const FMargin SlotPadding(CurChild.SlotPadding.Get());
-			AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, CurChild, SlotPadding);
-			AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, CurChild, SlotPadding);
+			AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, CurChild, SlotPadding);
+			AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, CurChild, SlotPadding);
 
 			ArrangedChildren.AddWidget( ChildVisibility, AllottedGeometry.MakeChild(
 				CurChild.GetWidget(),
@@ -66,7 +66,7 @@ FChildren* SOverlay::GetChildren()
 	return &Children;
 }
 
-int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	{
@@ -84,23 +84,17 @@ int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 
-		bool bWereOverlapping;
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect(), bWereOverlapping );
+		const int32 CurWidgetsMaxLayerId =
+			CurWidget.Widget->Paint(
+				NewArgs,
+				CurWidget.Geometry,
+				MyCullingRect,
+				OutDrawElements,
+				MaxLayerId + 1,
+				InWidgetStyle,
+				ShouldBeEnabled(bParentEnabled));
 
-		if ( bWereOverlapping )
-		{
-			const int32 CurWidgetsMaxLayerId = 
-				CurWidget.Widget->Paint(
-					NewArgs,
-					CurWidget.Geometry,
-					ChildClipRect,
-					OutDrawElements,
-					MaxLayerId + 1,
-					InWidgetStyle,
-					ShouldBeEnabled(bParentEnabled));
-
-			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
-		}
+		MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 	}
 
 	return MaxLayerId;

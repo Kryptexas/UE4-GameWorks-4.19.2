@@ -14,22 +14,22 @@ FSectionLayoutElement FSectionLayoutElement::FromGroup(const TSharedRef<FSequenc
 	return Tmp;
 }
 
-FSectionLayoutElement FSectionLayoutElement::FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset)
+FSectionLayoutElement FSectionLayoutElement::FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, UMovieSceneSection* InSection, float InOffset)
 {
 	FSectionLayoutElement Tmp;
 	Tmp.Type = Single;
-	Tmp.KeyArea = InKeyAreaNode->GetKeyArea(SectionIndex);
+	Tmp.KeyArea = InKeyAreaNode->GetKeyArea(InSection);
 	Tmp.LocalOffset = InOffset;
 	Tmp.DisplayNode = InKeyAreaNode;
 	Tmp.Height = InKeyAreaNode->GetNodeHeight();
 	return Tmp;
 }
 
-FSectionLayoutElement FSectionLayoutElement::FromTrack(const TSharedRef<FSequencerTrackNode>& InTrackNode, int32 SectionIndex, float InOffset)
+FSectionLayoutElement FSectionLayoutElement::FromTrack(const TSharedRef<FSequencerTrackNode>& InTrackNode, UMovieSceneSection* InSection, float InOffset)
 {
 	FSectionLayoutElement Tmp;
 	Tmp.Type = Single;
-	Tmp.KeyArea = InTrackNode->GetTopLevelKeyNode()->GetKeyArea(SectionIndex);
+	Tmp.KeyArea = InTrackNode->GetTopLevelKeyNode()->GetKeyArea(InSection);
 	Tmp.LocalOffset = InOffset;
 	Tmp.DisplayNode = InTrackNode;
 	Tmp.Height = InTrackNode->GetNodeHeight();
@@ -71,34 +71,34 @@ TSharedPtr<FSequencerDisplayNode> FSectionLayoutElement::GetDisplayNode() const
 	return DisplayNode;
 }
 
-FSectionLayout::FSectionLayout(FSequencerDisplayNode& InNode, int32 InSectionIndex)
+FSectionLayout::FSectionLayout(FSequencerTrackNode& TrackNode, int32 InSectionIndex)
 {
-	float VerticalOffset = 0.f;
+	UMovieSceneSection* Section = TrackNode.GetSections()[InSectionIndex]->GetSectionObject();
 
-	auto SetupKeyArea = [&](FSequencerDisplayNode& Node){
+	auto SetupKeyArea = [this, Section](FSequencerDisplayNode& Node, float Offset){
 
-		if (Node.GetType() == ESequencerNode::KeyArea)
+		if (Node.GetType() == ESequencerNode::KeyArea && static_cast<FSequencerSectionKeyAreaNode&>(Node).GetKeyArea(Section).IsValid())
 		{
 			Elements.Add(FSectionLayoutElement::FromKeyAreaNode(
 				StaticCastSharedRef<FSequencerSectionKeyAreaNode>(Node.AsShared()),
-				InSectionIndex,
-				VerticalOffset
+				Section,
+				Offset
 			));
 		}
 		else if (Node.GetType() == ESequencerNode::Track && static_cast<FSequencerTrackNode&>(Node).GetTopLevelKeyNode().IsValid())
 		{
 			Elements.Add(FSectionLayoutElement::FromTrack(
 				StaticCastSharedRef<FSequencerTrackNode>(Node.AsShared()),
-				InSectionIndex,
-				VerticalOffset
+				Section,
+				Offset
 			));
 		}
-		else if (!Node.IsExpanded())
+		else if (Node.GetChildNodes().Num() && !Node.IsExpanded())
 		{
 			Elements.Add(FSectionLayoutElement::FromGroup(
 				Node.AsShared(),
-				Node.UpdateKeyGrouping(InSectionIndex),
-				VerticalOffset
+				Node.UpdateKeyGrouping(Section),
+				Offset
 			));
 		}
 		else
@@ -106,27 +106,29 @@ FSectionLayout::FSectionLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 			// It's benign space
 			Elements.Add(FSectionLayoutElement::EmptySpace(
 				Node.AsShared(),
-				VerticalOffset
+				Offset
 			));
 		}
 
 	};
 
+	float VerticalOffset = 0.f;
+
 	// First, layout the parent
 	{
-		VerticalOffset += InNode.GetNodePadding().Top;
+		VerticalOffset += TrackNode.GetNodePadding().Top;
 
-		SetupKeyArea(InNode);
+		SetupKeyArea(TrackNode, VerticalOffset);
 
-		VerticalOffset += InNode.GetNodeHeight() + InNode.GetNodePadding().Bottom;
+		VerticalOffset += TrackNode.GetNodeHeight() + TrackNode.GetNodePadding().Bottom;
 	}
 
 	// Then any children
-	InNode.TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){
+	TrackNode.TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){
 		
 		VerticalOffset += Node.GetNodePadding().Top;
 
-		SetupKeyArea(Node);
+		SetupKeyArea(Node, VerticalOffset);
 
 		VerticalOffset += Node.GetNodeHeight() + Node.GetNodePadding().Bottom;
 		return true;

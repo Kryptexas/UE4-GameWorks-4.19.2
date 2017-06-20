@@ -15,6 +15,7 @@
 #include "Editor.h"
 #include "Engine/World.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "MovieSceneSequence.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditorActorSpawner"
 
@@ -81,11 +82,11 @@ TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorActorSpawner::CreateNewS
 		}
 
 		AActor* Instance = FactoryToUse->CreateActor(&SourceObject, GWorld->PersistentLevel, FTransform(), RF_Transient, TemplateName );
+		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName, RF_AllFlags & ~RF_Transient);
 
-		NewSpawnable.ObjectTemplate = StaticDuplicateObject(Instance, &OwnerMovieScene, TemplateName);
-		NewSpawnable.ObjectTemplate->ClearFlags(RF_Transient);
-
-		GWorld->DestroyActor(Instance);
+		const bool bNetForce = false;
+		const bool bShouldModifyLevel = false;
+		GWorld->DestroyActor(Instance, bNetForce, bShouldModifyLevel);
 	}
 
 	if (!NewSpawnable.ObjectTemplate || !NewSpawnable.ObjectTemplate->IsA<AActor>())

@@ -98,7 +98,7 @@ void FWidgetRenderer::DrawWindow(
 		HitTestGrid,
 		Window,
 		WindowGeometry,
-		WindowGeometry.GetClippingRect(),
+		WindowGeometry.GetLayoutBoundingRect(),
 		DeltaTime
 		);
 }

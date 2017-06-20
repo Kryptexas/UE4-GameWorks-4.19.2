@@ -42,11 +42,6 @@ public:
 		return &Section;
 	}
 
-	virtual FText GetDisplayName() const override
-	{
-		return LOCTEXT("CameraShakeSection", "Camera Shake");
-	}
-
 	virtual FText GetSectionTitle() const override
 	{
 		UMovieSceneCameraShakeSection const* const ShakeSection = Cast<UMovieSceneCameraShakeSection>(&Section);
@@ -173,13 +168,10 @@ void FCameraShakeTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuil
 			AssetRegistryModule.Get().GetAssets(Filter, AssetDataList);
 		}
 
-		if (AssetDataList.Num())
-		{
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("AddCameraShake", "Camera Shake"), NSLOCTEXT("Sequencer", "AddCameraShakeTooltip", "Adds an additive camera shake track."),
-				FNewMenuDelegate::CreateRaw(this, &FCameraShakeTrackEditor::AddCameraShakeSubMenu, ObjectBinding)
-				);
-		}
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("AddCameraShake", "Camera Shake"), NSLOCTEXT("Sequencer", "AddCameraShakeTooltip", "Adds an additive camera shake track."),
+			FNewMenuDelegate::CreateRaw(this, &FCameraShakeTrackEditor::AddCameraShakeSubMenu, ObjectBinding)
+			);
 	}
 }
 
@@ -250,11 +242,9 @@ void FCameraShakeTrackEditor::OnCameraShakeAssetSelected(const FAssetData& Asset
 }
 
 
-bool FCameraShakeTrackEditor::AddKeyInternal(float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, TSubclassOf<UCameraShake> ShakeClass)
+FKeyPropertyResult FCameraShakeTrackEditor::AddKeyInternal(float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, TSubclassOf<UCameraShake> ShakeClass)
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
-	bool bTrackModified = false;
+	FKeyPropertyResult KeyPropertyResult;
 
 	for (int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex)
 	{
@@ -262,22 +252,22 @@ bool FCameraShakeTrackEditor::AddKeyInternal(float KeyTime, const TArray<TWeakOb
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(Object);
 		FGuid ObjectHandle = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
 			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneCameraShakeTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
-			bTrackCreated |= TrackResult.bWasCreated;
+			KeyPropertyResult.bTrackCreated |= TrackResult.bWasCreated;
 
 			if (ensure(Track))
 			{
 				Cast<UMovieSceneCameraShakeTrack>(Track)->AddNewCameraShake(KeyTime, ShakeClass);
-				bTrackModified = true;
+				KeyPropertyResult.bTrackModified = true;
 			}
 		}
 	}
 
-	return bHandleCreated || bTrackCreated || bTrackModified;
+	return KeyPropertyResult;
 }
 
 UCameraComponent* FCameraShakeTrackEditor::AcquireCameraComponentFromObjectGuid(const FGuid& Guid)

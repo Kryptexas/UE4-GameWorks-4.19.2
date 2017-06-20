@@ -242,7 +242,7 @@ public:
 		SequencerHelpers::ValidateNodesWithSelectedKeysOrSections(Sequencer);
 	}
 
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 		// convert to physical space for rendering
 		const FVirtualTrackArea VirtualTrackArea = SequencerWidget->GetVirtualTrackArea();
@@ -254,8 +254,7 @@ public:
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(SelectionTopLeft, SelectionBottomRight - SelectionTopLeft),
-			FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
-			MyClippingRect
+			FEditorStyle::GetBrush(TEXT("MarqueeSelection"))
 			);
 
 		return LayerId + 1;
@@ -298,7 +297,6 @@ const FName FSequencerEditTool_Selection::Identifier = "Selection";
 
 FSequencerEditTool_Selection::FSequencerEditTool_Selection(FSequencer& InSequencer)
 	: FSequencerEditTool(InSequencer)
-	, SequencerWidget(StaticCastSharedRef<SSequencer>(InSequencer.GetSequencerWidget()))
 	, CursorDecorator(nullptr)
 { }
 
@@ -309,11 +307,11 @@ FCursorReply FSequencerEditTool_Selection::OnCursorQuery(const FGeometry& MyGeom
 }
 
 
-int32 FSequencerEditTool_Selection::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+int32 FSequencerEditTool_Selection::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	if (DragOperation.IsValid())
 	{
-		LayerId = DragOperation->OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+		LayerId = DragOperation->OnPaint(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 	}
 
 	if (CursorDecorator)
@@ -322,8 +320,7 @@ int32 FSequencerEditTool_Selection::OnPaint(const FGeometry& AllottedGeometry, c
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(MousePosition + FVector2D(5, 5), CursorDecorator->ImageSize),
-			CursorDecorator,
-			MyClippingRect
+			CursorDecorator
 			);
 	}
 
@@ -354,7 +351,8 @@ FReply FSequencerEditTool_Selection::OnMouseMove(SWidget& OwnerWidget, const FGe
 	{
 		FReply Reply = FReply::Handled();
 
-		const FVirtualTrackArea VirtualTrackArea = SequencerWidget.Pin()->GetVirtualTrackArea();
+		TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
+		const FVirtualTrackArea VirtualTrackArea = SequencerWidget->GetVirtualTrackArea();
 
 		if (DragOperation.IsValid())
 		{
@@ -400,8 +398,9 @@ FReply FSequencerEditTool_Selection::OnMouseButtonUp(SWidget& OwnerWidget, const
 	DelayedDrag.Reset();
 	if (DragOperation.IsValid())
 	{
+		TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
 		FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-		DragOperation->OnEndDrag(MouseEvent, LocalPosition, SequencerWidget.Pin()->GetVirtualTrackArea() );
+		DragOperation->OnEndDrag(MouseEvent, LocalPosition, SequencerWidget->GetVirtualTrackArea() );
 		DragOperation = nullptr;
 
 		CursorDecorator = nullptr;

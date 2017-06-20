@@ -37,7 +37,7 @@ FDelegateHandle ContentBrowserExtenderDelegateHandle;
 struct FContentBrowserSelectedAssetExtensionBase
 {
 public:
-	TArray<class FAssetData> SelectedAssets;
+	TArray<struct FAssetData> SelectedAssets;
 
 public:
 	virtual void Execute() {}

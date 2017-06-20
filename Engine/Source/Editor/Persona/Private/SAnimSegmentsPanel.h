@@ -14,7 +14,7 @@
 #include "STrack.h"
 #include "SAnimTrackPanel.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class UAnimSequenceBase;
 struct FAnimSegment;

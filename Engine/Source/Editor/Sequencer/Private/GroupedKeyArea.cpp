@@ -103,7 +103,7 @@ void FGroupedKeyCollection::InitializeRecursive(const TArray<FSequencerDisplayNo
 	RemoveDuplicateKeys(DuplicateThreshold);
 }
 
-void FGroupedKeyCollection::InitializeRecursive(FSequencerDisplayNode& InNode, int32 InSectionIndex, float DuplicateThreshold)
+void FGroupedKeyCollection::InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold)
 {
 	KeyAreas.Reset();
 	Groups.Reset();
@@ -114,7 +114,7 @@ void FGroupedKeyCollection::InitializeRecursive(FSequencerDisplayNode& InNode, i
 
 	for (const auto& Node : AllKeyAreaNodes)
 	{
-		TSharedPtr<IKeyArea> KeyArea = Node->GetKeyArea(InSectionIndex);
+		TSharedPtr<IKeyArea> KeyArea = Node->GetKeyArea(InSection);
 		if (KeyArea.IsValid())
 		{
 			AddKeyArea(KeyArea.ToSharedRef());
@@ -318,25 +318,16 @@ const FSlateBrush* FGroupedKeyCollection::GetBrush(FKeyHandle InHandle) const
 	return nullptr;
 }
 
-FGroupedKeyArea::FGroupedKeyArea(FSequencerDisplayNode& InNode, int32 InSectionIndex)
-	: Section(nullptr)
+FGroupedKeyArea::FGroupedKeyArea(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection)
+	: Section(InSection)
 {
+	check(Section);
+
 	// Calling this virtual function is safe here, as it's just called through standard name-lookup, not runtime dispatch
-	FGroupedKeyCollection::InitializeRecursive(InNode, InSectionIndex);
+	FGroupedKeyCollection::InitializeRecursive(InNode, Section);
 
-	for (const TSharedPtr<IKeyArea>& KeyArea : KeyAreas)
-	{
-		auto* OwningSection = KeyArea->GetOwningSection();
-		// Ensure they all belong to the same section
-		ensure(!Section || Section == OwningSection);
-		Section = OwningSection;
-	}
-
-	if (Section)
-	{
-		IndexKey = FIndexKey(InNode.GetPathName(), Section);
-		UpdateIndex();
-	}
+	IndexKey = FIndexKey(InNode.GetPathName(), Section);
+	UpdateIndex();
 }
 
 TArray<FKeyHandle> FGroupedKeyArea::GetUnsortedKeyHandles() const

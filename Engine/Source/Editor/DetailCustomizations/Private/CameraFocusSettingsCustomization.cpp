@@ -60,7 +60,7 @@ void FCameraFocusSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 	for (auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter)
 	{
 		// make the widget
-		IDetailPropertyRow& PropertyRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+		IDetailPropertyRow& PropertyRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 
 		// set up delegate to know if we need to hide it
 		FString const& Category = Iter.Value()->GetMetaData(NAME_Category);

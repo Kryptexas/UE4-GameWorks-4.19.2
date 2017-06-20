@@ -6,7 +6,7 @@
 #include "IPropertyTypeCustomization.h"
 #include "IStructureDetailsView.h"
 
-class FAssetData;
+struct FAssetData;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 class IPropertyHandle;

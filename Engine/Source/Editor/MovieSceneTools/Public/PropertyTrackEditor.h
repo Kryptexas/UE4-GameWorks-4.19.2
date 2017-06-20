@@ -234,8 +234,10 @@ private:
 	}
 
 	/** Adds a key based on a property change. */
-	bool OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams )
+	FKeyPropertyResult OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams )
 	{
+		FKeyPropertyResult KeyPropertyResult;
+
 		TArray<KeyDataType> NewKeysForPropertyChange;
 		TArray<KeyDataType> DefaultKeysForPropertyChange;
 		GenerateKeysFromPropertyChanged( PropertyChangedParams, NewKeysForPropertyChange, DefaultKeysForPropertyChange );
@@ -243,7 +245,7 @@ private:
 		UProperty* Property = PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get();
 		if (!Property)
 		{
-			return false;
+			return KeyPropertyResult;
 		}
 
 		TSubclassOf<UMovieSceneTrack> CustomizedClass = GetCustomizedTrackClass( Property );
@@ -277,7 +279,7 @@ private:
 		}
 		else
 		{
-			return false;
+			return KeyPropertyResult;
 		}
 	}
 

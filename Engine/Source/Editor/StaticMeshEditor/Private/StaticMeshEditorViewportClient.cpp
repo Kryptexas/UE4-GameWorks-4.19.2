@@ -940,7 +940,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 
 			ClearSelectedPrims = false;
 		}
-		else if (IsSetShowSocketsChecked() && HitProxy->IsA(HSMEVertexProxy::StaticGetType()))
+		else if (IsShowSocketsChecked() && HitProxy->IsA(HSMEVertexProxy::StaticGetType()))
 		{
 			UStaticMeshSocket* Socket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
 
@@ -1301,9 +1301,14 @@ void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, 
 	}
 }
 
-void FStaticMeshEditorViewportClient::SetDrawUVOverlay()
+void FStaticMeshEditorViewportClient::ToggleDrawUVOverlay()
 {
-	bDrawUVs = !bDrawUVs;
+	SetDrawUVOverlay(!bDrawUVs);
+}
+
+void FStaticMeshEditorViewportClient::SetDrawUVOverlay(bool bShouldDraw)
+{
+	bDrawUVs = bShouldDraw;
 	if (FEngineAnalytics::IsAvailable())
 	{
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bDrawUVs"), bDrawUVs ? TEXT("True") : TEXT("False"));
@@ -1311,12 +1316,12 @@ void FStaticMeshEditorViewportClient::SetDrawUVOverlay()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetDrawUVOverlayChecked() const
+bool FStaticMeshEditorViewportClient::IsDrawUVOverlayChecked() const
 {
 	return bDrawUVs;
 }
 
-void FStaticMeshEditorViewportClient::SetShowNormals()
+void FStaticMeshEditorViewportClient::ToggleShowNormals()
 {
 	bDrawNormals = !bDrawNormals;
 	if (FEngineAnalytics::IsAvailable())
@@ -1326,12 +1331,12 @@ void FStaticMeshEditorViewportClient::SetShowNormals()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowNormalsChecked() const
+bool FStaticMeshEditorViewportClient::IsShowNormalsChecked() const
 {
 	return bDrawNormals;
 }
 
-void FStaticMeshEditorViewportClient::SetShowTangents()
+void FStaticMeshEditorViewportClient::ToggleShowTangents()
 {
 	bDrawTangents = !bDrawTangents;
 	if (FEngineAnalytics::IsAvailable())
@@ -1341,12 +1346,12 @@ void FStaticMeshEditorViewportClient::SetShowTangents()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowTangentsChecked() const
+bool FStaticMeshEditorViewportClient::IsShowTangentsChecked() const
 {
 	return bDrawTangents;
 }
 
-void FStaticMeshEditorViewportClient::SetShowBinormals()
+void FStaticMeshEditorViewportClient::ToggleShowBinormals()
 {
 	bDrawBinormals = !bDrawBinormals;
 	if (FEngineAnalytics::IsAvailable())
@@ -1356,12 +1361,12 @@ void FStaticMeshEditorViewportClient::SetShowBinormals()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowBinormalsChecked() const
+bool FStaticMeshEditorViewportClient::IsShowBinormalsChecked() const
 {
 	return bDrawBinormals;
 }
 
-void FStaticMeshEditorViewportClient::SetDrawVertices()
+void FStaticMeshEditorViewportClient::ToggleDrawVertices()
 {
 	bDrawVertices = !bDrawVertices;
 	if (FEngineAnalytics::IsAvailable())
@@ -1371,12 +1376,12 @@ void FStaticMeshEditorViewportClient::SetDrawVertices()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked() const
+bool FStaticMeshEditorViewportClient::IsDrawVerticesChecked() const
 {
 	return bDrawVertices;
 }
 
-void FStaticMeshEditorViewportClient::SetShowSimpleCollision()
+void FStaticMeshEditorViewportClient::ToggleShowSimpleCollision()
 {
 	bShowSimpleCollision = !bShowSimpleCollision;
 
@@ -1395,12 +1400,12 @@ void FStaticMeshEditorViewportClient::SetShowSimpleCollision()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowSimpleCollisionChecked() const
+bool FStaticMeshEditorViewportClient::IsShowSimpleCollisionChecked() const
 {
 	return bShowSimpleCollision;
 }
 
-void FStaticMeshEditorViewportClient::SetShowComplexCollision()
+void FStaticMeshEditorViewportClient::ToggleShowComplexCollision()
 {
 	bShowComplexCollision = !bShowComplexCollision;
 
@@ -1417,12 +1422,12 @@ void FStaticMeshEditorViewportClient::SetShowComplexCollision()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowComplexCollisionChecked() const
+bool FStaticMeshEditorViewportClient::IsShowComplexCollisionChecked() const
 {
 	return bShowComplexCollision;
 }
 
-void FStaticMeshEditorViewportClient::SetShowSockets()
+void FStaticMeshEditorViewportClient::ToggleShowSockets()
 {
 	bShowSockets = !bShowSockets;
 	if (FEngineAnalytics::IsAvailable())
@@ -1431,12 +1436,12 @@ void FStaticMeshEditorViewportClient::SetShowSockets()
 	}
 	Invalidate();
 }
-bool FStaticMeshEditorViewportClient::IsSetShowSocketsChecked() const
+bool FStaticMeshEditorViewportClient::IsShowSocketsChecked() const
 {
 	return bShowSockets;
 }
 
-void FStaticMeshEditorViewportClient::SetShowPivot()
+void FStaticMeshEditorViewportClient::ToggleShowPivot()
 {
 	bShowPivot = !bShowPivot;
 	if (FEngineAnalytics::IsAvailable())
@@ -1446,12 +1451,12 @@ void FStaticMeshEditorViewportClient::SetShowPivot()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowPivotChecked() const
+bool FStaticMeshEditorViewportClient::IsShowPivotChecked() const
 {
 	return bShowPivot;
 }
 
-void FStaticMeshEditorViewportClient::SetDrawAdditionalData()
+void FStaticMeshEditorViewportClient::ToggleDrawAdditionalData()
 {
 	bDrawAdditionalData = !bDrawAdditionalData;
 	if (FEngineAnalytics::IsAvailable())
@@ -1461,7 +1466,7 @@ void FStaticMeshEditorViewportClient::SetDrawAdditionalData()
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetDrawAdditionalData() const
+bool FStaticMeshEditorViewportClient::IsDrawAdditionalDataChecked() const
 {
 	return bDrawAdditionalData;
 }

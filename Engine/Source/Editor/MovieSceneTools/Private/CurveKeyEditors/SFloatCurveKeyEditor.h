@@ -46,6 +46,8 @@ private:
 	void OnValueChanged(float Value);
 	void OnValueCommitted(float Value, ETextCommit::Type CommitInfo);
 
+	void SetValue(float Value);
+
 	ISequencer* Sequencer;
 	UMovieSceneSection* OwningSection;
 	FRichCurve* Curve;

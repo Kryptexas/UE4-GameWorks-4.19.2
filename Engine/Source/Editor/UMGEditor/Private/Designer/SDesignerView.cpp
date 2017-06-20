@@ -63,10 +63,104 @@
 #include "Types/ReflectionMetadata.h"
 
 #include "Math/TransformCalculus2D.h"
+#include "Input/HittestGrid.h"
+
+#include "Fonts/FontMeasure.h"
+#include "UMGEditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
 const float HoveredAnimationTime = 0.150f;
+
+
+class SResizeDesignerHandle : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SResizeDesignerHandle) {
+		_Visibility = EVisibility::Visible;
+		_Cursor = EMouseCursor::ResizeSouthEast;
+	}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, TSharedPtr<SDesignerView> InDesigner)
+	{
+		Designer = InDesigner;
+		bResizing = false;
+
+		ChildSlot
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::Get().GetBrush("UMGEditor.ResizeAreaHandle"))
+		];
+	}
+
+	// SWidget interface
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			bResizing = true;
+			AbsoluteOffset = MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition;
+			return FReply::Handled().CaptureMouse(SharedThis(this));
+		}
+
+		return FReply::Unhandled();
+	}
+
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			TSharedPtr<SDesignerView> DesignerView = Designer.Pin();
+			bResizing = false;
+			DesignerView->EndResizingArea();
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+
+		return FReply::Unhandled();
+	}
+
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (bResizing)
+		{
+			TSharedPtr<SDesignerView> DesignerView = Designer.Pin();
+			DesignerView->BeginResizingArea();
+
+			const float ZoomAmount = DesignerView->GetZoomAmount();
+
+			FVector2D AreaSize = (MouseEvent.GetScreenSpacePosition() - AbsoluteOffset) - DesignerView->GetWidgetOriginAbsolute();
+			AreaSize /= ZoomAmount;
+			AreaSize /= MyGeometry.Scale;
+
+			if (const UUMGEditorProjectSettings* Settings = GetDefault<UUMGEditorProjectSettings>())
+			{
+				for (const FDebugResolution Resolution : Settings->DebugResolutions)
+				{
+					if (((AreaSize - FVector2D(Resolution.Width, Resolution.Height)) * ZoomAmount).Size() < 10.0f)
+					{
+						AreaSize = FVector2D(Resolution.Width, Resolution.Height);
+						break;
+					}
+				}
+			}
+
+			DesignerView->SetPreviewAreaSize((int32)AreaSize.X, (int32)AreaSize.Y);
+
+			return FReply::Handled();
+		}
+
+		return FReply::Unhandled();
+	}
+	// End SWidget interface
+
+private:
+	bool bResizing;
+	TWeakPtr<SDesignerView> Designer;
+	FVector2D AbsoluteOffset;
+};
+
 
 
 struct FWidgetHitResult
@@ -213,56 +307,6 @@ UWidget* SDesignerView::GetWidgetInDesignScopeFromSlateWidget(TSharedRef<SWidget
 	return nullptr;
 }
 
-bool SDesignerView::LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus, bool bIgnoreLockedState)
-{
-	const bool bCandidateUnderCursor =
-		// Candidate is physically under the cursor
-		Candidate.Geometry.IsUnderLocation(InAbsoluteCursorLocation);
-
-	bool bHitAnyWidget = false;
-	if ( bCandidateUnderCursor )
-	{
-		// The candidate widget is under the mouse
-		OutWidgetsUnderCursor.AddWidget(Candidate);
-
-		// Check to see if we were asked to still allow children to be hit test visible
-		bool bHitChildWidget = false;
-		
-		if ( Candidate.Widget->GetVisibility().AreChildrenHitTestVisible() )
-		{
-			FArrangedChildren ArrangedChildren(OutWidgetsUnderCursor.GetFilter());
-			Candidate.Widget->ArrangeChildren(Candidate.Geometry, ArrangedChildren);
-
-			// A widget's children are implicitly Z-ordered from first to last
-			for ( int32 ChildIndex = ArrangedChildren.Num() - 1; !bHitChildWidget && ChildIndex >= 0; --ChildIndex )
-			{
-				FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
-				bHitChildWidget = ( SomeChild.Widget->IsEnabled() || bIgnoreEnabledStatus )
-					&& LocateWidgetsUnderCursor_Helper(SomeChild, InAbsoluteCursorLocation, OutWidgetsUnderCursor, bIgnoreEnabledStatus, bIgnoreLockedState);
-			}
-		}
-
-		// Widgets that are children of foreign userWidgets should not be considered selection candidates.
-		UWidget* CandidateUWidget = GetWidgetInDesignScopeFromSlateWidget(Candidate.Widget);
-
-		// If we hit a child widget or we hit our candidate widget then we'll append our widgets
-		const bool bHitCandidateWidget = OutWidgetsUnderCursor.Accepts(Candidate.Widget->GetVisibility()) &&
-			Candidate.Widget->GetVisibility().AreChildrenHitTestVisible()
-			&& CandidateUWidget
-			&& (bIgnoreLockedState || !CandidateUWidget->IsLockedInDesigner());
-		
-		bHitAnyWidget = bHitChildWidget || bHitCandidateWidget;
-		if ( !bHitAnyWidget )
-		{
-			// No child widgets were hit, and even though the cursor was over our candidate widget, the candidate
-			// widget was not hit-testable, so we won't report it
-			check(OutWidgetsUnderCursor.Last() == Candidate);
-			OutWidgetsUnderCursor.Remove(OutWidgetsUnderCursor.Num() - 1);
-		}
-	}
-
-	return bHitAnyWidget;
-}
 
 /////////////////////////////////////////////////////
 // SDesignerView
@@ -280,6 +324,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	BlueprintEditor = InBlueprintEditor;
 
 	TransformMode = ETransformMode::Layout;
+
+	bShowResolutionOutlines = false;
 
 	SetStartupResolution();
 
@@ -309,30 +355,50 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 		.AllowContinousZoomInterpolation(false)
 		.Content()
 		[
-			SNew(SOverlay)
+			SNew(SGridPanel)
+			.FillColumn(1, 1.0f)
+			.FillRow(1, 1.0f)
 
-			// The bottom layer of the overlay where the actual preview widget appears.
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
+			// Corner
+			+ SGridPanel::Slot(0, 0)
 			[
-				SAssignNew(PreviewHitTestRoot, SZoomPan)
-				.Visibility(EVisibility::HitTestInvisible)
-				.ZoomAmount(this, &SDesignerView::GetZoomAmount)
-				.ViewOffset(this, &SDesignerView::GetViewOffset)
+				SNew(SBorder)
+				.BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
+				.BorderBackgroundColor(FLinearColor(FColor(48, 48, 48)))
+			]
+
+			// Top Ruler
+			+ SGridPanel::Slot(1, 0)
+			[
+				SAssignNew(TopRuler, SRuler)
+				.Orientation(Orient_Horizontal)
+				.Visibility(this, &SDesignerView::GetRulerVisibility)
+			]
+
+			// Side Ruler
+			+ SGridPanel::Slot(0, 1)
+			[
+				SAssignNew(SideRuler, SRuler)
+				.Orientation(Orient_Vertical)
+				.Visibility(this, &SDesignerView::GetRulerVisibility)
+			]
+
+			// Designer content area
+			+ SGridPanel::Slot(1, 1)
+			[
+				SAssignNew(PreviewHitTestRoot, SOverlay)
+				.Visibility(EVisibility::Visible)
+				.Clipping(EWidgetClipping::ClipToBoundsAlways)
+
+				// The bottom layer of the overlay where the actual preview widget appears.
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				[
-					SNew(SOverlay)
-
-					+ SOverlay::Slot()
-					[
-						SNew(SBorder)
-						[
-							SNew(SSpacer)
-							.Size(FVector2D(1, 1))
-						]
-					]
-
-					+ SOverlay::Slot()
+					SNew(SZoomPan)
+					.Visibility(EVisibility::HitTestInvisible)
+					.ZoomAmount(this, &SDesignerView::GetZoomAmount)
+					.ViewOffset(this, &SDesignerView::GetViewOffset)
 					[
 						SNew(SBorder)
 						.Padding(FMargin(0))
@@ -344,65 +410,50 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 							[
 								SAssignNew(PreviewSurface, SDPIScaler)
 								.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
-								[
-									SAssignNew(PreviewContainer, SBox)
-								]
 							]
 						]
 					]
 				]
-			]
 
-			// A layer in the overlay where we draw effects, like the highlight effects.
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(EffectsLayer, SPaintSurface)
-				.OnPaintHandler(this, &SDesignerView::HandleEffectsPainting)
-			]
-
-			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(ExtensionWidgetCanvas, SCanvas)
-				.Visibility(EVisibility::SelfHitTestInvisible)
-			]
-
-			+ SOverlay::Slot()
-			[
-				SNew(SGridPanel)
-				.FillColumn(1, 1.0f)
-				.FillRow(1, 1.0f)
-
-				// Corner
-				+ SGridPanel::Slot(0, 0)
+				// A layer in the overlay where we draw effects, like the highlight effects.
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				[
-					SNew(SBorder)
-					.BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
-					.BorderBackgroundColor(FLinearColor(FColor(48, 48, 48)))
+					SAssignNew(EffectsLayer, SPaintSurface)
+					.OnPaintHandler(this, &SDesignerView::HandleEffectsPainting)
 				]
 
-				// Top Ruler
-				+ SGridPanel::Slot(1, 0)
+				// 
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				[
-					SAssignNew(TopRuler, SRuler)
-					.Orientation(Orient_Horizontal)
-					.Visibility(this, &SDesignerView::GetRulerVisibility)
+					SAssignNew(DesignerWidgetCanvas, SCanvas)
+					.Visibility(EVisibility::SelfHitTestInvisible)
+
+					+ SCanvas::Slot()
+					.Size(FVector2D(20, 20))
+					.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(this, &SDesignerView::GetAreaResizeHandlePosition)))
+					[
+						SNew(SResizeDesignerHandle, SharedThis(this))
+						.Visibility(this, &SDesignerView::GetAreaResizeHandleVisibility)
+					]
 				]
 
-				// Side Ruler
-				+ SGridPanel::Slot(0, 1)
+				// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				[
-					SAssignNew(SideRuler, SRuler)
-					.Orientation(Orient_Vertical)
-					.Visibility(this, &SDesignerView::GetRulerVisibility)
+					SAssignNew(ExtensionWidgetCanvas, SCanvas)
+					.Visibility(EVisibility::SelfHitTestInvisible)
 				]
 
 				// Designer overlay UI, toolbar, status messages, zoom level...etc
-				+ SGridPanel::Slot(1, 1)
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				[
 					CreateOverlayUI()
 				]
@@ -415,6 +466,8 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	PinnedBlueprintEditor->OnHoveredWidgetSet.AddRaw(this, &SDesignerView::OnHoveredWidgetSet);
 	PinnedBlueprintEditor->OnHoveredWidgetCleared.AddRaw(this, &SDesignerView::OnHoveredWidgetCleared);
 	PinnedBlueprintEditor->OnWidgetPreviewUpdated.AddRaw(this, &SDesignerView::OnPreviewNeedsRecreation);
+
+	DesignerHittestGrid = MakeShared<FHittestGrid>();
 
 	ZoomToFit(/*bInstantZoom*/ true);
 }
@@ -870,6 +923,84 @@ FOptionalSize SDesignerView::GetPreviewSizeHeight() const
 	return Size.Y;
 }
 
+void SDesignerView::BeginResizingArea()
+{
+	bDrawGridLines = false;
+	bShowResolutionOutlines = true;
+}
+
+void SDesignerView::EndResizingArea()
+{
+	bDrawGridLines = true;
+	bShowResolutionOutlines = false;
+}
+
+void SDesignerView::SetPreviewAreaSize(int32 Width, int32 Height)
+{
+	if (UUserWidget* DefaultWidget = GetDefaultWidget())
+	{
+		Width = FMath::Max(Width, 1);
+		Height = FMath::Max(Height, 1);
+
+		switch (DefaultWidget->DesignSizeMode)
+		{
+			case EDesignPreviewSizeMode::Custom:
+			case EDesignPreviewSizeMode::CustomOnScreen:
+			{
+				DefaultWidget->DesignTimeSize = FVector2D(Width, Height);
+				break;
+			}
+			default:
+			{
+				int32 GCD = FMath::GreatestCommonDivisor(Width, Height);
+
+				PreviewWidth = Width;
+				PreviewHeight = Height;
+				PreviewAspectRatio = FString::Printf(TEXT("%d:%d"), Height / GCD, Width / GCD);
+
+				const bool bSaveChanges = false;
+				if (bSaveChanges)
+				{
+					GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), Width, GEditorPerProjectIni);
+					GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), Height, GEditorPerProjectIni);
+					GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *PreviewAspectRatio, GEditorPerProjectIni);
+				}
+				break;
+			}
+		}
+	}
+
+	BroadcastDesignerChanged();
+
+	ResolutionTextFade.Play(this->AsShared());
+}
+
+FVector2D SDesignerView::GetAreaResizeHandlePosition() const
+{
+	FGeometry PreviewAreaGeometry = PreviewAreaConstraint->GetCachedGeometry();
+	FGeometry DesignerOverlayGeometry = DesignerWidgetCanvas->GetCachedGeometry();
+
+	FVector2D AbsoluteResizeHandlePosition = PreviewAreaGeometry.LocalToAbsolute(PreviewAreaGeometry.GetLocalSize() + FVector2D(2, 2));
+
+	return DesignerOverlayGeometry.AbsoluteToLocal(AbsoluteResizeHandlePosition);
+}
+
+EVisibility SDesignerView::GetAreaResizeHandleVisibility() const
+{
+	if (UUserWidget* DefaultWidget = GetDefaultWidget())
+	{
+		switch (DefaultWidget->DesignSizeMode)
+		{
+		case EDesignPreviewSizeMode::Desired:
+			return EVisibility::Collapsed;
+		default:
+			return EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
 const FSlateBrush* SDesignerView::GetPreviewBackground() const
 {
 	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
@@ -1040,7 +1171,21 @@ void SDesignerView::OnHoveredWidgetCleared()
 
 FGeometry SDesignerView::GetDesignerGeometry() const
 {
-	return CachedGeometry;
+	return PreviewHitTestRoot->GetCachedGeometry();
+}
+
+FVector2D SDesignerView::GetWidgetOriginAbsolute() const
+{
+	if (PreviewWidget)
+	{
+		FGeometry Geometry;
+		if (GetWidgetGeometry(PreviewWidget, Geometry))
+		{
+			return Geometry.AbsolutePosition;
+		}
+	}
+
+	return FVector2D(0, 0);
 }
 
 void SDesignerView::MarkDesignModifed(bool bRequiresRecompile)
@@ -1105,7 +1250,6 @@ FGeometry SDesignerView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometry
 		TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
 
 		NewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
-		//NewGeometry.AppendTransform(Inverse(CurrentWindowRef->GetLocalToScreenTransform()));
 	}
 
 	return NewGeometry;
@@ -1128,17 +1272,19 @@ void SDesignerView::CreateExtensionWidgetsForSelection()
 
 	if ( Selected.Num() > 0 )
 	{
+		const float Offset = 10;
+
 		// Add transform handles
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopLeft), EExtensionLayoutLocation::TopLeft, FVector2D(-10, -10))));
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopCenter), EExtensionLayoutLocation::TopCenter, FVector2D(-5, -10))));
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopRight), EExtensionLayoutLocation::TopRight, FVector2D(0, -10))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopLeft), EExtensionLayoutLocation::TopLeft, FVector2D(-Offset, -Offset))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopCenter), EExtensionLayoutLocation::TopCenter, FVector2D(0, -Offset))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::TopRight), EExtensionLayoutLocation::TopRight, FVector2D(Offset, -Offset))));
 
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::CenterLeft), EExtensionLayoutLocation::CenterLeft, FVector2D(-10, -5))));
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::CenterRight), EExtensionLayoutLocation::CenterRight, FVector2D(0, -5))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::CenterLeft), EExtensionLayoutLocation::CenterLeft, FVector2D(-Offset, 0))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::CenterRight), EExtensionLayoutLocation::CenterRight, FVector2D(Offset, 0))));
 
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomLeft), EExtensionLayoutLocation::BottomLeft, FVector2D(-10, 0))));
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomCenter), EExtensionLayoutLocation::BottomCenter, FVector2D(-5, 0))));
-		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomRight), EExtensionLayoutLocation::BottomRight, FVector2D(0, 0))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomLeft), EExtensionLayoutLocation::BottomLeft, FVector2D(-Offset, Offset))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomCenter), EExtensionLayoutLocation::BottomCenter, FVector2D(0, Offset))));
+		ExtensionElements.Add(MakeShareable(new FDesignerSurfaceElement(SNew(STransformHandle, this, ETransformDirection::BottomRight), EExtensionLayoutLocation::BottomRight, FVector2D(Offset, Offset))));
 
 		// Build extension widgets for new selection
 		for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
@@ -1173,57 +1319,72 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 
 		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry) )
 		{
-			const FVector2D WidgetPostion_DesignerSpace = (SelectedWidgetGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
-			const FVector2D WidgetSize = SelectedWidgetGeometry.Size * GetPreviewScale();
-
-			const FVector2D ParentPostion_DesignerSpace = (SelectedWidgetParentGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
+			const FVector2D ParentPostion_DesignerSpace = (SelectedWidgetParentGeometry.AbsolutePosition - GetDesignerGeometry().AbsolutePosition) / GetDesignerGeometry().Scale;
 			const FVector2D ParentSize = SelectedWidgetParentGeometry.Size * GetPreviewScale();
 
 			FVector2D FinalPosition(0, 0);
 
-			// Get the initial offset based on the location around the selected object.
-			switch ( ExtensionElement->GetLocation() )
+			if (ExtensionElement->GetLocation() == EExtensionLayoutLocation::RelativeFromParent)
 			{
-			case EExtensionLayoutLocation::Absolute:
-			{
-				FinalPosition = ParentPostion_DesignerSpace;
-				break;
+				FinalPosition = GetDesignerGeometry().AbsoluteToLocal(SelectedWidgetParentGeometry.LocalToAbsolute(FVector2D(0, 0)));
+				FinalPosition += ExtensionElement->GetOffset();
 			}
-			case EExtensionLayoutLocation::TopLeft:
-				FinalPosition = WidgetPostion_DesignerSpace;
-				break;
-			case EExtensionLayoutLocation::TopCenter:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, 0);
-				break;
-			case EExtensionLayoutLocation::TopRight:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X, 0);
-				break;
+			else
+			{
+				FVector2D WidgetPosition;
 
-			case EExtensionLayoutLocation::CenterLeft:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(0, WidgetSize.Y * 0.5f);
-				break;
-			case EExtensionLayoutLocation::CenterCenter:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, WidgetSize.Y * 0.5f);
-				break;
-			case EExtensionLayoutLocation::CenterRight:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X, WidgetSize.Y * 0.5f);
-				break;
+				// Get the initial offset based on the location around the selected object.
+				switch (ExtensionElement->GetLocation())
+				{
+				case EExtensionLayoutLocation::TopLeft:
+					WidgetPosition = FVector2D(0, 0);
+					break;
+				case EExtensionLayoutLocation::TopCenter:
+					WidgetPosition = FVector2D(SelectedWidgetGeometry.GetLocalSize().X * 0.5f, 0);
+					break;
+				case EExtensionLayoutLocation::TopRight:
+					WidgetPosition = FVector2D(SelectedWidgetGeometry.GetLocalSize().X, 0);
+					break;
 
-			case EExtensionLayoutLocation::BottomLeft:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(0, WidgetSize.Y);
-				break;
-			case EExtensionLayoutLocation::BottomCenter:
-				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, WidgetSize.Y);
-				break;
-			case EExtensionLayoutLocation::BottomRight:
-				FinalPosition = WidgetPostion_DesignerSpace + WidgetSize;
-				break;
+				case EExtensionLayoutLocation::CenterLeft:
+					WidgetPosition = FVector2D(0, SelectedWidgetGeometry.GetLocalSize().Y * 0.5f);
+					break;
+				case EExtensionLayoutLocation::CenterCenter:
+					WidgetPosition = FVector2D(SelectedWidgetGeometry.GetLocalSize().X * 0.5f, SelectedWidgetGeometry.GetLocalSize().Y * 0.5f);
+					break;
+				case EExtensionLayoutLocation::CenterRight:
+					WidgetPosition = FVector2D(SelectedWidgetGeometry.GetLocalSize().X, SelectedWidgetGeometry.GetLocalSize().Y * 0.5f);
+					break;
+
+				case EExtensionLayoutLocation::BottomLeft:
+					WidgetPosition = FVector2D(0, SelectedWidgetGeometry.GetLocalSize().Y);
+					break;
+				case EExtensionLayoutLocation::BottomCenter:
+					WidgetPosition = FVector2D(SelectedWidgetGeometry.GetLocalSize().X * 0.5f, SelectedWidgetGeometry.GetLocalSize().Y);
+					break;
+				case EExtensionLayoutLocation::BottomRight:
+					WidgetPosition = SelectedWidgetGeometry.GetLocalSize();
+					break;
+				}
+
+				FVector2D SelectedWidgetScale = SelectedWidgetGeometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
+
+				FVector2D ApplicationScaledOffset = ExtensionElement->GetOffset() * GetDesignerGeometry().Scale;
+
+				FVector2D LocalOffsetFull = ApplicationScaledOffset / SelectedWidgetScale;
+				FVector2D PositionFullOffset = GetDesignerGeometry().AbsoluteToLocal(SelectedWidgetGeometry.LocalToAbsolute(WidgetPosition + LocalOffsetFull));
+				FVector2D LocalOffsetHalf = (ApplicationScaledOffset / 2.0f) / SelectedWidgetScale;
+				FVector2D PositionHalfOffset = GetDesignerGeometry().AbsoluteToLocal(SelectedWidgetGeometry.LocalToAbsolute(WidgetPosition + LocalOffsetHalf));
+
+				FVector2D PivotCorrection = PositionHalfOffset - (PositionFullOffset + FVector2D(5.0f, 5.0f));
+
+				FinalPosition = PositionFullOffset + PivotCorrection;
 			}
 
 			// Add the alignment offset
 			FinalPosition += ParentSize * ExtensionElement->GetAlignment();
 
-			return FinalPosition + ExtensionElement->GetOffset();
+			return FinalPosition;
 		}
 	}
 
@@ -1289,13 +1450,8 @@ bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPo
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
-	FArrangedChildren Children(EVisibility::All);
-
-	PreviewHitTestRoot->SetVisibility(EVisibility::Visible);
-	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), MyGeometry);
-	LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, MouseEvent.GetScreenSpacePosition(), Children, true, !IsRespectingLocks());
-
-	PreviewHitTestRoot->SetVisibility(EVisibility::HitTestInvisible);
+	// Query the hit test grid we create for the design surface, and determine what widgets we hit.
+	TArray<FWidgetAndPointer> BubblePath = DesignerHittestGrid->GetBubblePath(MouseEvent.GetScreenSpacePosition(), 0.0f, true);
 
 	HitResult.Widget = FWidgetReference();
 	HitResult.NamedSlot = NAME_None;
@@ -1306,9 +1462,9 @@ bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPo
 		UWidget* WidgetUnderCursor = nullptr;
 
 		// We loop through each hit slate widget until we arrive at one that we can access from the root widget.
-		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
+		for ( int32 ChildIndex = BubblePath.Num() - 1; ChildIndex >= 0; ChildIndex-- )
 		{
-			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
+			FArrangedWidget& Child = BubblePath[ChildIndex];
 			WidgetUnderCursor = PreviewUserWidget->GetWidgetHandle(Child.Widget);
 			
 			if (WidgetUnderCursor == nullptr)
@@ -1339,9 +1495,9 @@ bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPo
 				if ( UUserWidget* UserWidgetUnderCursor = Cast<UUserWidget>(WidgetUnderCursor) )
 				{
 					// Find the named slot we're over, if any
-					for ( int32 SubChildIndex = Children.Num() - 1; SubChildIndex > ChildIndex; SubChildIndex-- )
+					for ( int32 SubChildIndex = BubblePath.Num() - 1; SubChildIndex > ChildIndex; SubChildIndex-- )
 					{
-						FArrangedWidget& SubChild = Children.GetInternalArray()[SubChildIndex];
+						FArrangedWidget& SubChild = BubblePath[SubChildIndex];
 						UNamedSlot* NamedSlot = Cast<UNamedSlot>(UserWidgetUnderCursor->GetWidgetHandle(SubChild.Widget));
 						if ( NamedSlot )
 						{
@@ -1681,16 +1837,67 @@ void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerE
 
 void SDesignerView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
 {
+	DesignerHittestGrid->ClearGridForNewFrame(GetDesignerGeometry().GetLayoutBoundingRect());
+
+	PopulateWidgetGeometryCache_Loop(Root, INDEX_NONE);
+}
+
+void SDesignerView::PopulateWidgetGeometryCache_Loop(FArrangedWidget& CurrentWidget, int32 ParentHitTestIndex)
+{
+	// If this widget clips to its bounds, then generate a new clipping rect representing the intersection of the bounding
+	// rectangle of the widget's geometry, and the current clipping rectangle.
+	bool bClipToBounds, bAlwaysClip, bIntersectClipBounds;
+	FSlateRect CullingBounds = CurrentWidget.Widget->CalculateCullingAndClippingRules(CurrentWidget.Geometry, FSlateRect(), bClipToBounds, bAlwaysClip, bIntersectClipBounds);
+
+	// NOTE: We're unable to deal with custom clipping states with this method, we'd have to do the true paint
+	//   for widgets, which would be much more expensive.
+
+	if (bClipToBounds)
+	{
+		// The hit test grid records things in desktop space, so we use the tick geometry instead of the paint geometry.
+		FSlateClippingZone DesktopClippingZone(CurrentWidget.Geometry);
+		DesktopClippingZone.SetShouldIntersectParent(bIntersectClipBounds);
+		DesktopClippingZone.SetAlwaysClip(bAlwaysClip);
+		DesignerHittestGrid->PushClip(DesktopClippingZone);
+	}
+
+	bool bIncludeInHitTestGrid = false;
+
+	// Widgets that are children of foreign userWidgets should not be considered selection candidates.
+	UWidget* CandidateUWidget = GetWidgetInDesignScopeFromSlateWidget(CurrentWidget.Widget);
+	if (CandidateUWidget)
+	{
+		bool bRespectLocks = IsRespectingLocks();
+
+		if (bRespectLocks && CandidateUWidget->IsLockedInDesigner())
+		{
+			bIncludeInHitTestGrid = false;
+		}
+
+		bIncludeInHitTestGrid = true;
+	}
+
+	int32 NewParentHitTestIndex = ParentHitTestIndex;
+
+	if (bIncludeInHitTestGrid)
+	{
+		NewParentHitTestIndex = DesignerHittestGrid->InsertWidget(ParentHitTestIndex, EVisibility::Visible, CurrentWidget, FVector2D(0, 0), 0);
+	}
+
 	FArrangedChildren ArrangedChildren(EVisibility::All);
-	Root.Widget->ArrangeChildren(Root.Geometry, ArrangedChildren);
+	CurrentWidget.Widget->ArrangeChildren(CurrentWidget.Geometry, ArrangedChildren);
 
-	CachedWidgetGeometry.Add(Root.Widget, Root);
+	CachedWidgetGeometry.Add(CurrentWidget.Widget, CurrentWidget);
 
-	// A widget's children are implicitly Z-ordered from first to last
-	for ( int32 ChildIndex = ArrangedChildren.Num() - 1; ChildIndex >= 0; --ChildIndex )
+	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
-		PopulateWidgetGeometryCache(SomeChild);
+		PopulateWidgetGeometryCache_Loop(SomeChild, NewParentHitTestIndex);
+	}
+
+	if (bClipToBounds)
+	{
+		DesignerHittestGrid->PopClip();
 	}
 }
 
@@ -1712,12 +1919,8 @@ void SDesignerView::DrawSelectionAndHoverOutline(const FOnPaintHandlerParams& Pa
 		Ext->Paint(SelectedWidgets, PaintArgs.Geometry, PaintArgs.ClippingRect, PaintArgs.OutDrawElements, PaintArgs.Layer);
 	}
 
-	static const FName SelectionOutlineName("UMGEditor.SelectionOutline");
-
-	static const FLinearColor SelectedTint(0, 1, 0);
-
-	const FSlateBrush* SelectionOutlineBrush = FEditorStyle::Get().GetBrush(SelectionOutlineName);
-	FVector2D SelectionBrushInflationAmount = FVector2D(16, 16) * FVector2D(SelectionOutlineBrush->Margin.Left, SelectionOutlineBrush->Margin.Top) * ( 1.0f / GetPreviewScale() );
+	const FLinearColor SelectedTint(0, 1, 0);
+	const bool bAntiAlias = false;
 
 	for ( const FWidgetReference& SelectedWidget : SelectedWidgets )
 	{
@@ -1731,17 +1934,27 @@ void SDesignerView::DrawSelectionAndHoverOutline(const FOnPaintHandlerParams& Pa
 			FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
 			// Draw selection effect
-			FPaintGeometry SelectionGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
+			const FVector2D OutlinePixelSize = FVector2D(2.0f, 2.0f) / ArrangedWidget.Geometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
+			FPaintGeometry SelectionGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(OutlinePixelSize);
 
-			FSlateDrawElement::MakeBox(
+			FSlateClippingZone SelectionZone(SelectionGeometry);
+
+			TArray<FVector2D> Points;
+			Points.Add(SelectionZone.TopLeft);
+			Points.Add(SelectionZone.TopRight);
+			Points.Add(SelectionZone.BottomRight);
+			Points.Add(SelectionZone.BottomLeft);
+			Points.Add(SelectionZone.TopLeft);
+
+			FSlateDrawElement::MakeLines(
 				PaintArgs.OutDrawElements,
 				PaintArgs.Layer,
-				SelectionGeometry,
-				SelectionOutlineBrush,
-				PaintArgs.ClippingRect,
+				FPaintGeometry(),
+				Points,
 				ESlateDrawEffect::None,
-				SelectedTint
-			);
+				SelectedTint,
+				bAntiAlias,
+				2.0f);
 		}
 	}
 
@@ -1759,17 +1972,27 @@ void SDesignerView::DrawSelectionAndHoverOutline(const FOnPaintHandlerParams& Pa
 		FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
 		// Draw hovered effect
-		FPaintGeometry HoveredGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
+		const FVector2D OutlinePixelSize = FVector2D(2.0f, 2.0f) / ArrangedWidget.Geometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
+		FPaintGeometry HoveredGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(OutlinePixelSize);
 
-		FSlateDrawElement::MakeBox(
+		FSlateClippingZone HoveredZone(HoveredGeometry);
+
+		TArray<FVector2D> Points;
+		Points.Add(HoveredZone.TopLeft);
+		Points.Add(HoveredZone.TopRight);
+		Points.Add(HoveredZone.BottomRight);
+		Points.Add(HoveredZone.BottomLeft);
+		Points.Add(HoveredZone.TopLeft);
+
+		FSlateDrawElement::MakeLines(
 			PaintArgs.OutDrawElements,
 			PaintArgs.Layer,
-			HoveredGeometry,
-			SelectionOutlineBrush,
-			PaintArgs.ClippingRect,
+			FPaintGeometry(),
+			Points,
 			ESlateDrawEffect::None,
-			HoveredTint
-			);
+			HoveredTint,
+			bAntiAlias,
+			2.0f);
 	}
 }
 
@@ -1827,7 +2050,6 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 				PaintArgs.Layer,
 				PreviewGeometry.ToPaintGeometry(FVector2D::ZeroVector, FVector2D(Width, SafeMargin.Top)),
 				WhiteBrush,
-				PaintArgs.ClippingRect,
 				ESlateDrawEffect::None,
 				UnsafeZoneColor
 			);
@@ -1838,7 +2060,6 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 				PaintArgs.Layer,
 				PreviewGeometry.ToPaintGeometry(FVector2D(0.0f, Height - SafeMargin.Bottom), FVector2D(Width, SafeMargin.Bottom)),
 				WhiteBrush,
-				PaintArgs.ClippingRect,
 				ESlateDrawEffect::None,
 				UnsafeZoneColor
 			);
@@ -1849,7 +2070,6 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 				PaintArgs.Layer,
 				PreviewGeometry.ToPaintGeometry(FVector2D(0.0f, SafeMargin.Top), FVector2D(SafeMargin.Left, HeightOfSides)),
 				WhiteBrush,
-				PaintArgs.ClippingRect,
 				ESlateDrawEffect::None,
 				UnsafeZoneColor
 			);
@@ -1860,7 +2080,6 @@ void SDesignerView::DrawSafeZone(const FOnPaintHandlerParams& PaintArgs)
 				PaintArgs.Layer,
 				PreviewGeometry.ToPaintGeometry(FVector2D(Width - SafeMargin.Right, SafeMargin.Top), FVector2D(SafeMargin.Right, HeightOfSides)),
 				WhiteBrush,
-				PaintArgs.ClippingRect,
 				ESlateDrawEffect::None,
 				UnsafeZoneColor
 			);
@@ -1973,7 +2192,7 @@ void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	// Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
 	{
 		CachedWidgetGeometry.Reset();
-		FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
+		FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), GetDesignerGeometry());
 		PopulateWidgetGeometryCache(WindowWidgetGeometry);
 	}
 
@@ -1988,19 +2207,21 @@ void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurr
 		QueuedActions.Reset();
 
 		CachedWidgetGeometry.Reset();
-		FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
+		FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), GetDesignerGeometry());
 		PopulateWidgetGeometryCache(WindowWidgetGeometry);
 	}
 
 	// Tick all designer extensions in case they need to update widgets
 	for ( const TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
 	{
-		Ext->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+		Ext->Tick(GetDesignerGeometry(), InCurrentTime, InDeltaTime);
 	}
 
 	// Compute the origin in absolute space.
 	FGeometry RootGeometry = CachedWidgetGeometry.FindChecked(PreviewSurface.ToSharedRef()).Geometry;
 	FVector2D AbsoluteOrigin = MakeGeometryWindowLocal(RootGeometry).LocalToAbsolute(FVector2D::ZeroVector);
+
+	GridOrigin = AbsoluteOrigin;
 
 	TopRuler->SetRuling(AbsoluteOrigin, 1.0f / GetPreviewScale());
 	SideRuler->SetRuling(AbsoluteOrigin, 1.0f / GetPreviewScale());
@@ -2036,6 +2257,65 @@ void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurr
 			}
 		}
 	}
+}
+
+void SDesignerView::OnPaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	SDesignSurface::OnPaintBackground(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
+
+	if (bShowResolutionOutlines)
+	{
+		if (const UUMGEditorProjectSettings* Settings = GetDefault<UUMGEditorProjectSettings>())
+		{
+			for (const FDebugResolution Resolution : Settings->DebugResolutions)
+			{
+				DrawResolution(Resolution, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
+			}
+		}
+	}
+}
+
+void SDesignerView::DrawResolution(const FDebugResolution& Resolution, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	const float Scale = GetZoomAmount();
+	const FVector2D ZeroSpace = AllottedGeometry.AbsoluteToLocal(GridOrigin);
+
+	const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
+
+	FVector2D ResolutionSize(Resolution.Width, Resolution.Height);
+
+	FSlateDrawElement::MakeBox(
+		OutDrawElements,
+		LayerId,
+		AllottedGeometry.ToPaintGeometry(ResolutionSize * Scale, FSlateLayoutTransform(ZeroSpace)),
+		WhiteBrush,
+		ESlateDrawEffect::None,
+		Resolution.Color
+	);
+
+	FSlateFontInfo FontInfo = FEditorStyle::GetFontStyle("UMGEditor.ResizeResolutionFont");
+
+	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+
+	FString ResolutionString;
+	if (Resolution.Description.IsEmpty())
+	{
+		ResolutionString = FString::Printf(TEXT("%d x %d"), Resolution.Width, Resolution.Height);
+	}
+	else
+	{
+		ResolutionString = FString::Printf(TEXT("%d x %d - %s"), Resolution.Width, Resolution.Height, *Resolution.Description);
+	}
+
+	FVector2D ResolutionStringSize = FontMeasureService->Measure(ResolutionString, FontInfo);
+	FSlateDrawElement::MakeText(
+		OutDrawElements,
+		LayerId,
+		AllottedGeometry.ToOffsetPaintGeometry(ZeroSpace + ResolutionSize * Scale - (ResolutionStringSize + FVector2D(2, 2))),
+		ResolutionString,
+		FontInfo,
+		ESlateDrawEffect::None,
+		FLinearColor::Black);
 }
 
 FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -2600,7 +2880,7 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 		CreateExtensionWidgetsForSelection();
 
 		DropPreviews.Empty();
-		return FReply::Handled();
+		return FReply::Handled().SetUserFocus(SharedThis(this));
 	}
 	
 	return FReply::Unhandled();
@@ -2666,7 +2946,7 @@ EVisibility SDesignerView::GetDesignerOutlineVisibility() const
 	}
 
 	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
+	if ( Sequencer.IsValid() && Sequencer->GetAutoChangeMode() != EAutoChangeMode::None )
 	{
 		return EVisibility::HitTestInvisible;
 	}
@@ -2682,7 +2962,7 @@ FSlateColor SDesignerView::GetDesignerOutlineColor() const
 	}
 
 	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
+	if ( Sequencer.IsValid() && Sequencer->GetAutoChangeMode() != EAutoChangeMode::None )
 	{
 		return FLinearColor::FromSRGBColor(FColor(251, 37, 0));
 	}
@@ -2698,7 +2978,7 @@ FText SDesignerView::GetDesignerOutlineText() const
 	}
 	
 	TSharedPtr<ISequencer> Sequencer = BlueprintEditor.Pin()->GetSequencer();
-	if ( Sequencer.IsValid() && Sequencer->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
+	if ( Sequencer.IsValid() && Sequencer->GetAutoChangeMode() != EAutoChangeMode::None )
 	{
 		return LOCTEXT("RECORDING", "RECORDING");
 	}
@@ -2723,16 +3003,16 @@ void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, 
 	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), Height, GEditorPerProjectIni);
 	GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *AspectRatio, GEditorPerProjectIni);
 
-	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+	if (UUserWidget* DefaultWidget = GetDefaultWidget())
 	{
 		// If we using custom or desired design time sizes and the user picks a screen size, he must
 		// want to also change his visualization to be custom on screen or desired on screen, doesn't
 		// make sense to change it otherwise as it would have no effect.
-		if ( DefaultWidget->DesignSizeMode == EDesignPreviewSizeMode::Custom )
+		if (DefaultWidget->DesignSizeMode == EDesignPreviewSizeMode::Custom)
 		{
 			DefaultWidget->DesignSizeMode = EDesignPreviewSizeMode::CustomOnScreen;
 		}
-		else if ( DefaultWidget->DesignSizeMode == EDesignPreviewSizeMode::Desired )
+		else if (DefaultWidget->DesignSizeMode == EDesignPreviewSizeMode::Desired)
 		{
 			DefaultWidget->DesignSizeMode = EDesignPreviewSizeMode::DesiredOnScreen;
 		}
@@ -2742,7 +3022,7 @@ void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, 
 
 	BroadcastDesignerChanged();
 
-	ResolutionTextFade.Play( this->AsShared() );
+	ResolutionTextFade.Play(this->AsShared());
 }
 
 bool SDesignerView::HandleIsCommonResolutionSelected(int32 Width, int32 Height) const

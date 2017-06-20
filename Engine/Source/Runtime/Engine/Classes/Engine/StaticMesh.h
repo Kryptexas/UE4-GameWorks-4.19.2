@@ -408,7 +408,7 @@ struct FMaterialRemapIndex
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see AStaticMeshActor, UStaticMeshComponent
  */
-UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
+UCLASS(hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
@@ -433,7 +433,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FMeshSectionInfoMap SectionInfoMap;
 
 	/** The LOD group to which this mesh belongs. */
-	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=LodSettings)
 	FName LODGroup;
 
 	/** If true, the screen sizees at which LODs swap are computed automatically. */
@@ -549,7 +549,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this static mesh */
@@ -561,7 +561,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, AdvancedDisplay, Category=StaticMesh)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The stored camera position to use as a default for the static mesh editor */

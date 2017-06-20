@@ -106,7 +106,7 @@ public:
 
 private:
 	float GetPreferredWidthForWrapping() const;
-	bool FilterTargets( const class FAssetData& InAssetData );
+	bool FilterTargets( const struct FAssetData& InAssetData );
 	void GenerateContent();
 
 private:

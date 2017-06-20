@@ -175,7 +175,7 @@ public:
 		BindingOverrides->ResetBindings();
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.ClearObjectCaches();
+			SequencePlayer->State.ClearObjectCaches(*SequencePlayer);
 		}
 	}
 

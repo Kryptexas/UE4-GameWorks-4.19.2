@@ -74,7 +74,7 @@ FReply SDockTab::OnDragDetected( const FGeometry& MyGeometry, const FPointerEven
 {
 	// Need to remember where within a tab we grabbed
 	const FVector2D TabGrabOffset = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	const FVector2D TabSize = MyGeometry.Size;
+	const FVector2D TabSize = MyGeometry.GetLocalSize();
 	const FVector2D TabGrabOffsetFraction = FVector2D(
 		FMath::Clamp(TabGrabOffset.X / TabSize.X, 0.0f, 1.0f),
 		FMath::Clamp(TabGrabOffset.Y / TabSize.Y, 0.0f, 1.0f) );

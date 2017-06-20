@@ -14,7 +14,7 @@ void FAssetToolsModule::StartupModule()
 {
 	ConsoleCommands = new FAssetToolsConsoleCommands(*this);
 
-	AssetToolsPtr = GetMutableDefault<UAssetToolsImpl>();
+	AssetToolsPtr = GetDefault<UAssetToolsImpl>();
 
 	// create a message log for the asset tools to use
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
@@ -25,6 +25,8 @@ void FAssetToolsModule::StartupModule()
 
 void FAssetToolsModule::ShutdownModule()
 {
+	AssetToolsPtr = nullptr;
+
 	if (ConsoleCommands != NULL)
 	{
 		delete ConsoleCommands;

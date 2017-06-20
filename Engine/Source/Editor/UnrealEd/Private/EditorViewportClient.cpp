@@ -3803,7 +3803,7 @@ static float AdjustGestureCameraRotation(float Delta, float AdjustLimit, float D
 	return bIsUsingTrackpad ? Delta : FMath::Clamp(Delta, -DeltaCutoff, DeltaCutoff);
 }
 
-bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
+bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
 {
 	if (bDisableInput)
 	{

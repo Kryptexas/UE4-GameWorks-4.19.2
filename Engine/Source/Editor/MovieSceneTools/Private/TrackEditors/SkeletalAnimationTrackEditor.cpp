@@ -29,6 +29,7 @@
 #include "ISectionLayoutBuilder.h"
 #include "Classes/Animation/AnimMontage.h"
 #include "Classes/Animation/AnimSequence.h"
+#include "EditorStyleSet.h"
 
 
 namespace SkeletalAnimationEditorConstants
@@ -50,12 +51,6 @@ FSkeletalAnimationSection::FSkeletalAnimationSection( UMovieSceneSection& InSect
 UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
 { 
 	return &Section;
-}
-
-
-FText FSkeletalAnimationSection::GetDisplayName() const
-{
-	return LOCTEXT("AnimationSection", "Animation");
 }
 
 
@@ -90,30 +85,34 @@ int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Paint
 
 	int32 LayerId = Painter.PaintSectionBackground();
 
+	static const FSlateBrush* GenericDivider = FEditorStyle::GetBrush("Sequencer.GenericDivider");
+
 	// Add lines where the animation starts and ends/loops
-	float CurrentTime = Section.GetStartTime();
 	float AnimPlayRate = FMath::IsNearlyZero(Section.Params.PlayRate) ? 1.0f : Section.Params.PlayRate;
 	float SeqLength = (Section.Params.GetSequenceLength() - (Section.Params.StartOffset + Section.Params.EndOffset)) / AnimPlayRate;
-	while (CurrentTime < Section.GetEndTime() && !FMath::IsNearlyZero(SeqLength, KINDA_SMALL_NUMBER) && SeqLength > 0)
+
+	if (!FMath::IsNearlyZero(SeqLength, KINDA_SMALL_NUMBER) && SeqLength > 0)
 	{
-		if (CurrentTime > Section.GetStartTime())
+		float MaxOffset = Section.GetRange().Size<float>();
+		float OffsetTime = SeqLength;
+
+		while (OffsetTime < MaxOffset)
 		{
-			float CurrentPixels = TimeToPixelConverter.TimeToPixel(CurrentTime);
+			float OffsetPixel = TimeToPixelConverter.TimeToPixel(Section.GetStartTime() + OffsetTime) - TimeToPixelConverter.TimeToPixel(Section.GetStartTime());
 
-			TArray<FVector2D> Points;
-			Points.Add(FVector2D(CurrentPixels, 0));
-			Points.Add(FVector2D(CurrentPixels, Painter.SectionGeometry.Size.Y));
-
-			FSlateDrawElement::MakeLines(
+			FSlateDrawElement::MakeBox(
 				Painter.DrawElements,
-				++LayerId,
-				Painter.SectionGeometry.ToPaintGeometry(),
-				Points,
-				Painter.SectionClippingRect,
+				LayerId,
+				Painter.SectionGeometry.MakeChild(
+					FVector2D(2.f, Painter.SectionGeometry.Size.Y-2.f),
+					FSlateLayoutTransform(FVector2D(OffsetPixel, 1.f))
+				).ToPaintGeometry(),
+				GenericDivider,
 				DrawEffects
 			);
+
+			OffsetTime += SeqLength;
 		}
-		CurrentTime += SeqLength;
 	}
 
 	return LayerId;
@@ -331,31 +330,31 @@ void FSkeletalAnimationTrackEditor::OnAnimationAssetSelected(const FAssetData& A
 }
 
 
-bool FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track )
+FKeyPropertyResult FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track )
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
-	bool bTrackModified = false;
+	FKeyPropertyResult KeyPropertyResult;
 
 	FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 	FGuid ObjectHandle = HandleResult.Handle;
-	bHandleCreated |= HandleResult.bWasCreated;
+	KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 	if (ObjectHandle.IsValid())
 	{
 		if (!Track)
 		{
 			Track = AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectHandle, UMovieSceneSkeletalAnimationTrack::StaticClass(), NAME_None);
-			bTrackCreated = true;
+			KeyPropertyResult.bTrackCreated = true;
 		}
 
 		if (ensure(Track))
 		{
+			Track->Modify();
+
 			Cast<UMovieSceneSkeletalAnimationTrack>(Track)->AddNewAnimation( KeyTime, AnimSequence );
-			bTrackModified = true;
+			KeyPropertyResult.bTrackModified = true;
 		}
 	}
 
-	return bHandleCreated || bTrackCreated || bTrackModified;
+	return KeyPropertyResult;
 }
 
 

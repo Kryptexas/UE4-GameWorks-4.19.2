@@ -2,6 +2,7 @@
 
 #include "Components/ScaleBox.h"
 #include "Components/ScaleBoxSlot.h"
+#include "UObject/EditorObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -38,7 +39,7 @@ TSharedRef<SWidget> UScaleBox::RebuildWidget()
 		CastChecked<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
 	}
 
-	return BuildDesignTimeWidget( MyScaleBox.ToSharedRef() );
+	return MyScaleBox.ToSharedRef();
 }
 
 void UScaleBox::SetStretch(EStretch::Type InStretch)
@@ -108,6 +109,13 @@ void UScaleBox::OnSlotRemoved(UPanelSlot* InSlot)
 	{
 		MyScaleBox->SetContent(SNullWidget::NullWidget);
 	}
+}
+
+void UScaleBox::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 }
 
 #if WITH_EDITOR

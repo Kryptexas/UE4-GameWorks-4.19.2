@@ -32,7 +32,7 @@ public:
 	// ISequencerEditToolDragOperation interface
 
 	virtual FCursorReply GetCursor() const override;
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
 
 protected:
 
@@ -189,4 +189,43 @@ public:
 
 	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
+};
+
+
+/**
+ * An operation to change a section's ease in/out by dragging its left or right handle
+ */
+class FManipulateSectionEasing
+	: public FEditToolDragOperation
+{
+public:
+
+	/** Create and initialize a new instance. */
+	FManipulateSectionEasing( FSequencer& InSequencer, FSectionHandle InSection, bool bEaseIn );
+
+public:
+
+	// FEditToolDragOperation interface
+
+	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
+	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
+	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
+	virtual FCursorReply GetCursor() const override { return FCursorReply::Cursor( EMouseCursor::ResizeLeftRight ); }
+
+private:
+
+	/** The sections we are interacting with */
+	FSectionHandle Handle;
+
+	/** true if editing the section's ease in, false for ease out */
+	bool bEaseIn;
+
+	/** Time where the mouse is pressed */
+	float MouseDownTime;
+
+	/** The section ease in/out when the mouse was pressed */
+	TOptional<float> InitValue;
+
+	/** Optional snap field to use when dragging */
+	TOptional<FSequencerSnapField> SnapField;
 };

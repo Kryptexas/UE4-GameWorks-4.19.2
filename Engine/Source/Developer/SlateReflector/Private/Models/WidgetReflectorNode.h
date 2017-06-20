@@ -65,6 +65,11 @@ public:
 	virtual FText GetWidgetVisibilityText() const = 0;
 
 	/**
+	 * @return The clipping string for the widget we were initialized from
+	 */
+	virtual FText GetWidgetClippingText() const = 0;
+
+	/**
 	 * The human readable location for widgets that are defined in C++ is the file and line number
 	 * The human readable location for widgets that are defined in UMG is the asset name
 	 * @return The fully human readable location for the widget we were initialized from
@@ -107,9 +112,19 @@ public:
 	virtual bool GetWidgetEnabled() const = 0;
 
 	/**
+	 * @return True if the widget is live, and local and can potentially be manipulated in real-time.
+	 */
+	virtual bool IsWidgetLive() const = 0;
+
+	/**
+	 * @return The geometry of the widget.
+	 */
+	const FGeometry& GetGeometry() const;
+
+	/**
 	 * @return The accumulated layout transform of the widget we were initialized from
 	 */
-	const FSlateLayoutTransform& GetAccumulatedLayoutTransform() const;
+	FSlateLayoutTransform GetAccumulatedLayoutTransform() const;
 
 	/**
 	 * @return The accumulated render transform of the widget we were initialized from
@@ -158,14 +173,8 @@ protected:
 	explicit FWidgetReflectorNodeBase(const FArrangedWidget& InWidgetGeometry);
 
 protected:
-	/** The accumulated layout transform of the widget */
-	FSlateLayoutTransform AccumulatedLayoutTransform;
-
-	/** The accumulated render transform of the widget */
-	FSlateRenderTransform AccumulatedRenderTransform;
-
-	/** The local size of the widget */
-	FVector2D LocalSize;
+	/** The Geometry of the widget. */
+	FGeometry WidgetGeometry;
 
 	/** The hit-test information for the widget */
 	FWidgetHitTestInfo HitTestInfo;
@@ -198,6 +207,7 @@ public:
 	virtual TSharedPtr<SWidget> GetLiveWidget() const override;
 	virtual FText GetWidgetType() const override;
 	virtual FText GetWidgetVisibilityText() const override;
+	virtual FText GetWidgetClippingText() const override;
 	virtual FText GetWidgetReadableLocation() const override;
 	virtual FString GetWidgetFile() const override;
 	virtual int32 GetWidgetLineNumber() const override;
@@ -206,6 +216,7 @@ public:
 	virtual FSlateColor GetWidgetForegroundColor() const override;
 	virtual FString GetWidgetAddress() const override;
 	virtual bool GetWidgetEnabled() const override;
+	virtual bool IsWidgetLive() const override { return true; }
 
 private:
 	/**
@@ -244,6 +255,7 @@ public:
 	virtual TSharedPtr<SWidget> GetLiveWidget() const override;
 	virtual FText GetWidgetType() const override;
 	virtual FText GetWidgetVisibilityText() const override;
+	virtual FText GetWidgetClippingText() const override;
 	virtual FText GetWidgetReadableLocation() const override;
 	virtual FString GetWidgetFile() const override;
 	virtual int32 GetWidgetLineNumber() const override;
@@ -252,6 +264,7 @@ public:
 	virtual FSlateColor GetWidgetForegroundColor() const override;
 	virtual FString GetWidgetAddress() const override;
 	virtual bool GetWidgetEnabled() const override;
+	virtual bool IsWidgetLive() const override { return false; }
 
 	/** Save this node data as a JSON object */
 	static TSharedRef<FJsonValue> ToJson(const TSharedRef<FSnapshotWidgetReflectorNode>& RootSnapshotNode);
@@ -276,6 +289,9 @@ private:
 
 	/** The visibility string of the widget at the point it was passed to Initialize */
 	FText CachedWidgetVisibilityText;
+
+	/** The clipping string of the widget at the point it was passed to Initialize */
+	FText CachedWidgetClippingText;
 
 	/** The human readable location (source file for C++ widgets, asset name for UMG widgets) of the widget at the point it was passed to Initialize */
 	FText CachedWidgetReadableLocation;
@@ -380,6 +396,11 @@ public:
 	 * @return The current visibility string for the given widget
 	 */
 	static FText GetWidgetVisibilityText(const TSharedPtr<SWidget>& InWidget);
+
+	/**
+	 * @return The current clipping string for the given widget
+	 */
+	static FText GetWidgetClippingText(const TSharedPtr<SWidget>& InWidget);
 	
 	/**
 	 * The human readable location for widgets that are defined in C++ is the file and line number

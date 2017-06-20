@@ -145,6 +145,13 @@ public:
 	 */
 	bool MoveFocus(int32 PathLevel, EUINavigation NavigationType);
 
+	/** Get the last (leaf-most) widget in this path; assumes path is valid */
+	TSharedRef< SWidget > GetLastWidget() const
+	{
+		check(IsValid());
+		return Widgets[Widgets.Num() - 1].Widget;
+	}
+
 public:
 
 	/** The widgets that make up the widget path, the first item is the root widget, the end is the widget this path was built for. */

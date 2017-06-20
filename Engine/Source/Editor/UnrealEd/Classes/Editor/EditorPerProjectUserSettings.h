@@ -76,18 +76,6 @@ class UEditorPerProjectUserSettings : public UObject
 	/** Folder in which Simplygon Swarm will store intermediate texture and mesh data that is uploaded to the Swarm */
 	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Simplygon Swarm Intermediate Folder", ConfigRestartRequired = true, editcondition = "bUseSimplygonSwarm"))
 	FString SwarmIntermediateFolder;
-	
-	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
-	UPROPERTY(EditAnywhere, config, Category=Performance)
-	uint32 bShowFrameRateAndMemory:1;
-
-	/** Lowers CPU usage when the editor is in the background and not the active application */
-	UPROPERTY(EditAnywhere, config, Category=Performance, meta=(DisplayName="Use Less CPU when in Background") )
-	uint32 bThrottleCPUWhenNotForeground:1;
-
-	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
-	UPROPERTY(EditAnywhere, config, Category=Performance)
-	uint32 bMonitorEditorPerformance:1;
 
 	/** If enabled, any newly added classes will be automatically compiled and trigger a hot-reload of the module they were added to */
 	UPROPERTY(EditAnywhere, config, Category=HotReload, meta=(DisplayName="Automatically Compile Newly Added C++ Classes"))

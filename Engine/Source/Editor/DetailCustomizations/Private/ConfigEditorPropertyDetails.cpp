@@ -138,7 +138,7 @@ void FConfigPropertyHelperDetails::AddEditablePropertyForConfig(IDetailLayoutBui
 	// This allows us to have an editable widget for each config file.
 	TArray<UObject*> ConfigPropertyDisplayObjects;
 	ConfigPropertyDisplayObjects.Add(ConfigEntryObject);
-	if (IDetailPropertyRow* ExternalRow = TempCategory.AddExternalProperty(ConfigPropertyDisplayObjects, ConfigEditorCopyOfEditProperty->GetFName()))
+	if (IDetailPropertyRow* ExternalRow = TempCategory.AddExternalObjectProperty(ConfigPropertyDisplayObjects, ConfigEditorCopyOfEditProperty->GetFName()))
 	{
 		TSharedPtr<SWidget> NameWidget;
 		TSharedPtr<SWidget> ValueWidget;

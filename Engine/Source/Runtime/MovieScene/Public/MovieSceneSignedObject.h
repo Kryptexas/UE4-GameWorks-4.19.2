@@ -38,6 +38,9 @@ public:
 public:
 
 	MOVIESCENE_API virtual bool Modify(bool bAlwaysMarkDirty = true) override;
+	MOVIESCENE_API virtual void PostInitProperties() override;
+	MOVIESCENE_API virtual void PostLoad() override;
+
 #if WITH_EDITOR
 	MOVIESCENE_API virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	MOVIESCENE_API virtual void PostEditUndo() override;
@@ -49,6 +52,11 @@ private:
 	/** Unique generation signature */
 	UPROPERTY()
 	FGuid Signature;
+
+#if WITH_EDITOR
+	/** Keep track of the above signature before and after post load to ensure that it got deserialized. If it didn't this will create deterministic cooking issues. */
+	FGuid PreLoadSignature;
+#endif
 
 	/** Event that is triggered whenever this object's signature has changed */
 	FOnSignatureChanged OnSignatureChangedEvent;

@@ -136,7 +136,7 @@ FVector2D STrackNode::GetOffsetRelativeToParent(const FGeometry& AllottedGeometr
 {
 	FVector2D Result(0.0f, 0.0f);
 	FVector2D Size = GetSizeRelativeToParent(AllottedGeometry);
-	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, AllottedGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, AllottedGeometry.GetLocalSize());
 
 	if(bCenterOnPosition)
 	{
@@ -235,7 +235,7 @@ FReply STrackNode::BeginDrag( const FGeometry& MyGeometry, const FPointerEvent& 
 	FVector2D ScreenNodePosition = MyGeometry.AbsolutePosition;// + GetOffsetRelativeToParent(MyGeometry);
 	
 	bBeingDragged = true;
-	LastSize = MyGeometry.Size;
+	LastSize = MyGeometry.GetLocalSize();
 
 	Select();
 	OnTrackNodeClicked.ExecuteIfBound();
@@ -413,7 +413,7 @@ FChildren* STrack::GetChildren()
 	return &TrackNodes;
 }
 
-int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	int32 CustomLayerId = LayerId + 1;
 	FPaintGeometry MyGeometry = AllottedGeometry.ToPaintGeometry();
@@ -424,7 +424,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 		CustomLayerId++, 
 		MyGeometry, 
 		FEditorStyle::GetBrush(TEXT( "Persona.NotifyEditor.NotifyTrackBackground" )),
-		MyClippingRect, 
 		ESlateDrawEffect::None, 
 		TrackColor.Get()
 		);
@@ -443,7 +442,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 			CustomLayerId++,
 			MyGeometry,
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Red
 			);
@@ -464,7 +462,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 			CustomLayerId,
 			MyGeometry,
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor(0.0f, 1.0f, 0.0f, 1.0f)
 			);
@@ -481,7 +478,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 				TextGeometry,
 				DraggableBarLabels.Get()[I],
 				Font,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black
 				);
@@ -501,7 +497,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 			CustomLayerId,
 			MyGeometry,
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor(0.5f, 0.0f, 0.0f, 0.5f)
 			);
@@ -529,7 +524,6 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 					CustomLayerId,
 					MyGeometry,
 					LinePoints,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					FLinearColor::Black
 					);
@@ -539,7 +533,7 @@ int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 	}
 
 	
-	return SPanel::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled );
+	return SPanel::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled );
 }
 
 // drag drop relationship
@@ -853,14 +847,14 @@ void STrack::UpdateDraggableBarIndex( const FGeometry& MyGeometry, FVector2D Cur
 /** Returns Data (Time, etc) to Local cordinate X */
 float STrack::DataToLocalX( float Data, const FGeometry& MyGeometry ) const
 {
-	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, MyGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, MyGeometry.GetLocalSize());
 	return ScaleInfo.InputToLocalX(Data);
 }
 
 /** Returns Local cordinate X to Data (Time, etc) */
 float STrack::LocalToDataX( float Input, const FGeometry& MyGeometry ) const
 {
-	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, MyGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, MyGeometry.GetLocalSize());
 	return ScaleInfo.LocalXToInput(Input);
 }
 

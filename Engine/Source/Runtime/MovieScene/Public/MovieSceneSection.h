@@ -9,6 +9,8 @@
 #include "Curves/KeyHandle.h"
 #include "Curves/RichCurve.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneBlendType.h"
+#include "Generators/MovieSceneEasingFunction.h"
 #include "MovieSceneSection.generated.h"
 
 class FStructOnScope;
@@ -47,6 +49,62 @@ struct FMovieSceneSectionEvalOptions
 	/** When set to "RestoreState", this section will restore any animation back to its previous state  */
 	UPROPERTY(EditAnywhere, DisplayName="When Finished", Category="Section")
 	EMovieSceneCompletionMode CompletionMode;
+};
+
+USTRUCT()
+struct FMovieSceneEasingSettings
+{
+	GENERATED_BODY()
+
+	FMovieSceneEasingSettings()
+		: AutoEaseInTime(0.f), AutoEaseOutTime(0.f)
+		, EaseIn(nullptr), bManualEaseIn(false), ManualEaseInTime(0.f)
+		, EaseOut(nullptr), bManualEaseOut(false), ManualEaseOutTime(0.f)
+	{}
+
+public:
+
+	float GetEaseInTime() const
+	{
+		return bManualEaseIn ? ManualEaseInTime : AutoEaseInTime;
+	}
+
+	float GetEaseOutTime() const
+	{
+		return bManualEaseOut ? ManualEaseOutTime : AutoEaseOutTime;
+	}
+
+public:
+
+	/** Automatically applied ease in time */
+	UPROPERTY()
+	float AutoEaseInTime;
+
+	/** Automatically applied ease out time */
+	UPROPERTY()
+	float AutoEaseOutTime;
+
+	UPROPERTY()
+	TScriptInterface<IMovieSceneEasingFunction> EaseIn;
+
+	/** Whether to manually override this section's ease in time */
+	UPROPERTY()
+	bool bManualEaseIn;
+
+	/** Manually override this section's ease in time */
+	UPROPERTY()
+	float ManualEaseInTime;
+
+	UPROPERTY()
+	TScriptInterface<IMovieSceneEasingFunction> EaseOut;
+
+	/** Whether to manually override this section's ease out time */
+	UPROPERTY()
+	bool bManualEaseOut;
+
+	/** Manually override this section's ease-out time */
+	UPROPERTY()
+	float ManualEaseOutTime;
 };
 
 /**
@@ -163,6 +221,30 @@ public:
 	}
 
 	/**
+	 * Gets this section's blend type
+	 */
+	FOptionalMovieSceneBlendType GetBlendType() const
+	{
+		return BlendType;
+	}
+
+	/**
+	 * Sets this section's blend type
+	 */
+	void SetBlendType(EMovieSceneBlendType InBlendType)
+	{
+		if (GetSupportedBlendTypes().Contains(InBlendType))
+		{
+			BlendType = InBlendType;
+		}
+	}
+
+	/**
+	 * Gets what kind of blending is supported by this section
+	 */
+	MOVIESCENE_API FMovieSceneBlendTypeField GetSupportedBlendTypes() const;
+
+	/**
 	 * Moves the section by a specific amount of time
 	 *
 	 * @param DeltaTime	The distance in time to move the curve
@@ -215,7 +297,7 @@ public:
 	 * @param OutKeyHandles Will contain the key handles of the keys on the curves within this section
 	 * @param TimeRange Optional time range that the keys must be in (default = all)
 	 */
-	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const { };
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const { }
 
 	/**
 	 * Get the data structure representing the specified key.
@@ -334,17 +416,40 @@ public:
 
 	/** Sets the time for the key referenced by the supplied key handle. */
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) PURE_VIRTUAL( UAISenseEvent::SetKeyTime, );
-	
 	/**
 	 * When guid bindings are updated to allow this section to fix-up any internal bindings
 	 *
 	 */
 	virtual void OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap) { }
 
+	/**
+	 * Gets a list of all overlapping sections
+	 */
+	MOVIESCENE_API void GetOverlappingSections(TArray<UMovieSceneSection*>& OutSections, bool bSameRow, bool bIncludeThis);
+
+	/**
+	 * Evaluate this sections's easing functions based on the specified time
+	 */
+	MOVIESCENE_API float EvaluateEasing(float InTime) const;
+
+	/**
+	 * Evaluate this sections's easing functions based on the specified time
+	 */
+	MOVIESCENE_API void EvaluateEasing(float InTime, TOptional<float>& OutEaseInValue, TOptional<float>& OutEaseOutValue, float* OutEaseInInterp, float* OutEaseOutInterp) const;
+
+	MOVIESCENE_API TRange<float> GetEaseInRange() const;
+
+	MOVIESCENE_API TRange<float> GetEaseOutRange() const;
+
 protected:
 
 	//~ UObject interface
 	MOVIESCENE_API virtual void PostInitProperties() override;
+
+public:
+
+	UPROPERTY(EditAnywhere, Category="Easing", meta=(ShowOnlyInnerProperties))
+	FMovieSceneEasingSettings Easing;
 
 private:
 
@@ -383,4 +488,9 @@ private:
 	/** The amount of time to continue 'postrolling' this section for after evaluation has ended. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Section", meta=(Units=s, UIMin=0))
 	float PostRollTime;
+
+protected:
+
+	UPROPERTY()
+	FOptionalMovieSceneBlendType BlendType;
 };

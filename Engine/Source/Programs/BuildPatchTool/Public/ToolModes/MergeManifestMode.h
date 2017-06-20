@@ -9,6 +9,6 @@ namespace BuildPatchTool
 	class FMergeManifestToolModeFactory
 	{
 	public:
-		static IToolModeRef Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface);
+		static IToolModeRef Create(IBuildPatchServicesModule& BpsInterface);
 	};
 }

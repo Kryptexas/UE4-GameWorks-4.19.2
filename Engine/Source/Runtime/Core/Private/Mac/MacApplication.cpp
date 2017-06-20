@@ -324,13 +324,13 @@ FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) c
 #if WITH_EDITOR
 void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 {
-	static_assert(EGestureEvent::Count == 6, "If the number of gestures changes you need to add more entries below!");
+	static_assert(((uint32)EGestureEvent::Count) == 6, "If the number of gestures changes you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> GestureAttributes;
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Magnify"),	GestureUsage[EGestureEvent::Magnify]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Swipe"),	GestureUsage[EGestureEvent::Swipe]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Rotate"),	GestureUsage[EGestureEvent::Rotate]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[(int32)EGestureEvent::Scroll]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Magnify"),	GestureUsage[(int32)EGestureEvent::Magnify]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Swipe"),	GestureUsage[(int32)EGestureEvent::Swipe]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Rotate"),	GestureUsage[(int32)EGestureEvent::Rotate]));
 
 	Provider->RecordEvent(FString("Mac.Gesture.Usage"), GestureAttributes);
 
@@ -951,7 +951,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 	}
 	else
 	{
-		const EGestureEvent::Type GestureType = Event.Type == NSEventTypeMagnify ? EGestureEvent::Magnify : (Event.Type == NSEventTypeSwipe ? EGestureEvent::Swipe : EGestureEvent::Rotate);
+		const EGestureEvent GestureType = Event.Type == NSEventTypeMagnify ? EGestureEvent::Magnify : (Event.Type == NSEventTypeSwipe ? EGestureEvent::Swipe : EGestureEvent::Rotate);
 		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0, Event.IsDirectionInvertedFromDevice);
 		RecordUsage(GestureType);
 	}
@@ -1705,12 +1705,12 @@ void FMacApplication::InvalidateTextLayouts()
 }
 
 #if WITH_EDITOR
-void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
+void FMacApplication::RecordUsage(EGestureEvent Gesture)
 {
 	if (LastGestureUsed != Gesture)
 	{
 		LastGestureUsed = Gesture;
-		GestureUsage[Gesture] += 1;
+		GestureUsage[(int32)Gesture] += 1;
 	}
 }
 #endif

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneSequenceID.h"
+#include "MovieSceneEvaluationKey.h"
 #include "Evaluation/MovieSceneTrackIdentifier.h"
 #include "MovieSceneEvaluationField.generated.h"
 
@@ -99,15 +100,10 @@ struct FMovieSceneEvaluationGroupLUTIndex
 	GENERATED_BODY()
 
 	FMovieSceneEvaluationGroupLUTIndex()
-		: bRequiresImmediateFlush(false)
-		, LUTOffset(0)
+		: LUTOffset(0)
 		, NumInitPtrs(0)
 		, NumEvalPtrs(0)
 	{}
-
-	/** Whether this group requires a flush of the execution stack immediately or not (generally false) */
-	UPROPERTY()
-	bool bRequiresImmediateFlush;
 
 	/** The offset within FMovieSceneEvaluationGroup::SegmentPtrLUT that this index starts */
 	UPROPERTY()
@@ -137,16 +133,79 @@ struct FMovieSceneEvaluationGroup
 	TArray<FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrLUT;
 };
 
+/** Struct that stores the key for an evaluated entity, and the index at which it was (or is to be) evaluated */
+USTRUCT()
+struct FMovieSceneOrderedEvaluationKey
+{
+	GENERATED_BODY()
 
-/** Informational meta data that applies to a given time range */
+	UPROPERTY()
+	FMovieSceneEvaluationKey Key;
+
+	UPROPERTY()
+	uint32 EvaluationIndex;
+};
+
+/** Informational meta-data that applies to a given time range */
 USTRUCT()
 struct FMovieSceneEvaluationMetaData
 {
 	GENERATED_BODY()
 
+	FMovieSceneEvaluationMetaData() = default;
+
+	FMovieSceneEvaluationMetaData(const FMovieSceneEvaluationMetaData&) = default;
+	FMovieSceneEvaluationMetaData& operator=(const FMovieSceneEvaluationMetaData&) = default;
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FMovieSceneEvaluationMetaData(FMovieSceneEvaluationMetaData&&) = default;
+	FMovieSceneEvaluationMetaData& operator=(FMovieSceneEvaluationMetaData&&) = default;
+#else
+	FMovieSceneEvaluationMetaData(FMovieSceneEvaluationMetaData&& RHS) : ActiveSequences(MoveTemp(RHS.ActiveSequences)), ActiveEntities(MoveTemp(RHS.ActiveEntities)) {}
+	FMovieSceneEvaluationMetaData& operator=(FMovieSceneEvaluationMetaData&& RHS) { ActiveSequences = MoveTemp(RHS.ActiveSequences); ActiveEntities = MoveTemp(RHS.ActiveEntities); return *this; }
+#endif
+
+	/**
+	 * Reset this meta-data
+	 */
+	void Reset()
+	{
+		ActiveSequences.Reset();
+		ActiveEntities.Reset();
+	}
+
+	/**
+	 * Remap this meta-data onto a different parent ID
+	 *
+	 * @param OverrideRootID		The parent ID to remap entities onto
+	 */
+	void RemapSequenceIDsForRoot(FMovieSceneSequenceID OverrideRootID);
+
+	/**
+	 * Diff the active sequences this frame, with the specified previous frame's meta-data
+	 *
+	 * @param LastFrame				Meta-data pertaining to the last frame
+	 * @param NewSequences			(Optional) Ptr to an array that will be populated with sequences that are new this frame
+	 * @param ExpiredSequences		(Optional) Ptr to an array that will be populated with sequences that are no longer being evaluated
+	 */
+	void DiffSequences(const FMovieSceneEvaluationMetaData& LastFrame, TArray<FMovieSceneSequenceID>* NewSequences, TArray<FMovieSceneSequenceID>* ExpiredSequences) const;
+
+	/**
+	 * Diff the active entities (tracks and sections) this frame, with the specified previous frame's meta-data
+	 *
+	 * @param LastFrame				Meta-data pertaining to the last frame
+	 * @param NewKeys				(Optional) Ptr to an array that will be populated with entities that are new this frame
+	 * @param ExpiredKeys			(Optional) Ptr to an array that will be populated with entities that are no longer being evaluated
+	 */
+	void DiffEntities(const FMovieSceneEvaluationMetaData& LastFrame, TArray<FMovieSceneOrderedEvaluationKey>* NewKeys, TArray<FMovieSceneOrderedEvaluationKey>* ExpiredKeys) const;
+
 	/** Array of sequences that are active in this time range. */
 	UPROPERTY()
 	TArray<FMovieSceneSequenceID> ActiveSequences;
+
+	/** Array of entities (tracks and/or sections) that are active in this time range. */
+	UPROPERTY()
+	TArray<FMovieSceneOrderedEvaluationKey> ActiveEntities;
 };
 
 /**

@@ -30,7 +30,6 @@ public:
 	// ISequencerSection interface
 	virtual void Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override;
-	virtual FText GetDisplayName() const override;
 	virtual float GetSectionHeight() const override;
 	virtual int32 OnPaintSection(FSequencerSectionPainter& InPainter) const override;
 	virtual FMargin GetContentPadding() const override;

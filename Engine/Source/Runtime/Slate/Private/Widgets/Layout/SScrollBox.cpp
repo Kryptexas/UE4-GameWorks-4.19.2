@@ -16,7 +16,6 @@ SScrollBox::FSlot& SScrollBox::Slot()
 	return *(new SScrollBox::FSlot());
 }
 
-
 class SScrollPanel : public SPanel
 {
 public:
@@ -125,7 +124,7 @@ private:
 
 		// Figure out the size and local position of the child within the slot.  There is no vertical alignment, because 
 		// it does not make sense in a panel where items are stacked vertically end-to-end.
-		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, ThisSlot, ThisPadding);
+		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, ThisSlot, ThisPadding);
 
 		ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(ThisSlot.GetWidget(), FVector2D(XAlignmentResult.Offset, CurChildOffset + ThisPadding.Top), FVector2D(XAlignmentResult.Size, WidgetDesiredSize.Y)));
 		return CurChildOffset + ThisSlotDesiredHeight;
@@ -139,7 +138,7 @@ private:
 
 		// Figure out the size and local position of the child within the slot.  There is no horizontal alignment, because
 		// it doesn't make sense in a panel where items are stacked horizontally end-to-end.
-		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ThisSlot, ThisPadding);
+		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, ThisSlot, ThisPadding);
 
 		ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(ThisSlot.GetWidget(), FVector2D(CurChildOffset + ThisPadding.Left, YAlignmentResult.Offset), FVector2D(WidgetDesiredSize.X, YAlignmentResult.Size)));
 		return CurChildOffset + ThisSlotDesiredWidth;
@@ -151,6 +150,10 @@ private:
 };
 
 
+SScrollBox::SScrollBox()
+{
+	bClippingProxy = true;
+}
 
 void SScrollBox::Construct( const FArguments& InArgs )
 {
@@ -195,6 +198,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	}
 
 	SAssignNew(ScrollPanel, SScrollPanel, InArgs.Slots)
+		.Clipping(InArgs._Clipping)
 		.Orientation(Orientation);
 
 	if (Orientation == Orient_Vertical)
@@ -207,6 +211,11 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	}
 
 	ScrollBar->SetState( 0.0f, 1.0f );
+}
+
+void SScrollBox::OnClippingChanged()
+{
+	ScrollPanel->SetClipping(Clipping);
 }
 
 TSharedPtr<SScrollBar> SScrollBox::ConstructScrollBar()
@@ -263,10 +272,10 @@ void SScrollBox::ConstructVerticalLayout()
 	if (!bScrollBarIsExternal)
 	{
 		PanelAndScrollbar->AddSlot()
-			.AutoWidth()
-			[
-				ScrollBar.ToSharedRef()
-			];
+		.AutoWidth()
+		[
+			ScrollBar.ToSharedRef()
+		];
 	}
 }
 
@@ -356,7 +365,7 @@ bool SScrollBox::IsRightClickScrolling() const
 	return FSlateApplication::IsInitialized() && AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() && this->ScrollBar->IsNeeded();
 }
 
-float SScrollBox::GetScrollOffset()
+float SScrollBox::GetScrollOffset() const
 {
 	return DesiredScrollOffset;
 }
@@ -500,14 +509,14 @@ EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, fl
 	if ( bIsScrolling )
 	{
 		InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
-		const float ScrollVelocity = InertialScrollManager.GetScrollVelocity() / CachedGeometry.Scale;
+		const float ScrollVelocityLocal = InertialScrollManager.GetScrollVelocity() / CachedGeometry.Scale;
 
-		if ( ScrollVelocity != 0.f )
+		if (ScrollVelocityLocal != 0.f )
 		{
-			if ( CanUseInertialScroll(ScrollVelocity) )
+			if ( CanUseInertialScroll(ScrollVelocityLocal) )
 			{
 				bKeepTicking = true;
-				ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll, false);
+				ScrollBy(CachedGeometry, ScrollVelocityLocal * InDeltaTime, AllowOverscroll, false);
 			}
 			else
 			{
@@ -520,7 +529,7 @@ EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, fl
 	{
 		// If we are currently in overscroll, the list will need refreshing.
 		// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
-		if ( Overscroll.GetOverscroll() != 0.0f )
+		if ( Overscroll.GetOverscroll(CachedGeometry) != 0.0f )
 		{
 			bKeepTicking = true;
 		}
@@ -561,19 +570,19 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 	if ( bScrollToEnd )
 	{
-		DesiredScrollOffset = FMath::Max(ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size), 0.0f);
+		DesiredScrollOffset = FMath::Max(ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.GetLocalSize()), 0.0f);
 		bScrollToEnd = false;
 	}
 
 	// If this scroll box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
-	const float ViewFraction = GetScrollComponentFromVector(AllottedGeometry.Size) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.Size) / ContentSize : 1;
+	const float ViewFraction = GetScrollComponentFromVector(AllottedGeometry.GetLocalSize()) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.GetLocalSize()) / ContentSize : 1;
 	const float ViewOffset = FMath::Clamp<float>( DesiredScrollOffset/ContentSize, 0.0, 1.0 - ViewFraction );
 	
 	// Update the scrollbar with the clamped version of the offset
 	float TargetPhysicalOffset = GetScrollComponentFromVector(ViewOffset*ScrollPanel->GetDesiredSize());
 	if ( AllowOverscroll == EAllowOverscroll::Yes )
 	{
-		TargetPhysicalOffset += Overscroll.GetOverscroll();
+		TargetPhysicalOffset += Overscroll.GetOverscroll(AllottedGeometry);
 	}
 
 	const bool bWasScrolling = bIsScrolling;
@@ -664,7 +673,7 @@ FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 		// If we have mouse capture, snap the mouse back to the closest location that is within the panel's bounds
 		if ( HasMouseCapture() )
 		{
-			FSlateRect PanelScreenSpaceRect = MyGeometry.GetClippingRect();
+			FSlateRect PanelScreenSpaceRect = MyGeometry.GetLayoutBoundingRect();
 			FVector2D CursorPosition = MyGeometry.LocalToAbsolute( SoftwareCursorPosition );
 
 			FIntPoint BestPositionInPanel(
@@ -807,7 +816,7 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	}
 }
 
-bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscrolling, bool InAnimateScroll)
+bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float LocalScrollAmount, EAllowOverscroll Overscrolling, bool InAnimateScroll)
 {
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
@@ -818,18 +827,18 @@ bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount,
 
 	const float PreviousScrollOffset = DesiredScrollOffset;
 
-	if ( ScrollAmount != 0 )
+	if (LocalScrollAmount != 0 )
 	{
 		const float ScrollMin = 0.0f;
-		const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size);
+		const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.GetLocalSize());
 
-		if ( Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, ScrollAmount) )
+		if ( AllowOverscroll == EAllowOverscroll::Yes && Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, LocalScrollAmount) )
 		{
-			Overscroll.ScrollBy(ScrollAmount);
+			Overscroll.ScrollBy(AllottedGeometry, LocalScrollAmount);
 		}
 		else
 		{
-			DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset + ScrollAmount, ScrollMin, ScrollMax);
+			DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset + LocalScrollAmount, ScrollMin, ScrollMax);
 		}
 	}
 
@@ -946,9 +955,9 @@ FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNa
 	return SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
 }
 
-int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	int32 NewLayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	int32 NewLayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 	if( !bShowSoftwareCursor )
 	{
@@ -961,8 +970,7 @@ int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 		OutDrawElements,
 		++NewLayerId,
 		AllottedGeometry.ToPaintGeometry( SoftwareCursorPosition - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
-		Brush,
-		MyClippingRect
+		Brush
 	);
 
 	return NewLayerId;
@@ -974,7 +982,7 @@ void SScrollBox::ScrollBar_OnUserScrolled( float InScrollOffsetFraction )
 	const FGeometry ScrollPanelGeometry = FindChildGeometry(CachedGeometry, ScrollPanel.ToSharedRef());
 
 	// Clamp to max scroll offset
-	DesiredScrollOffset = FMath::Min(InScrollOffsetFraction * ContentSize, ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size));
+	DesiredScrollOffset = FMath::Min(InScrollOffsetFraction * ContentSize, ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.GetLocalSize()));
 	OnUserScrolled.ExecuteIfBound(DesiredScrollOffset);
 
 	Invalidate(EInvalidateWidget::Layout);
@@ -1000,11 +1008,26 @@ FSlateColor SScrollBox::GetEndShadowOpacity() const
 
 bool SScrollBox::CanUseInertialScroll(float ScrollAmount) const
 {
-	const auto CurrentOverscroll = Overscroll.GetOverscroll();
+	const auto CurrentOverscroll = Overscroll.GetOverscroll(CachedGeometry);
 
 	// We allow sampling for the inertial scroll if we are not in the overscroll region,
 	// Or if we are scrolling outwards of the overscroll region
 	return CurrentOverscroll == 0.f || FMath::Sign(CurrentOverscroll) != FMath::Sign(ScrollAmount);
+}
+
+EAllowOverscroll SScrollBox::GetAllowOverscroll() const
+{
+	return AllowOverscroll;
+}
+
+void SScrollBox::SetAllowOverscroll(EAllowOverscroll NewAllowOverscroll)
+{
+	AllowOverscroll = NewAllowOverscroll;
+
+	if (AllowOverscroll == EAllowOverscroll::No)
+	{
+		Overscroll.ResetOverscroll();
+	}
 }
 
 void SScrollBox::BeginInertialScrolling()

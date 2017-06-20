@@ -9,9 +9,10 @@ struct FPropertyChangedEvent;
 
 struct FPropertyAndParent
 {
-	FPropertyAndParent( const UProperty& InProperty, const UProperty* const InParentProperty )
+	FPropertyAndParent( const UProperty& InProperty, const UProperty* const InParentProperty, const TArray< TWeakObjectPtr<UObject> >& InObjects )
 		: Property( InProperty )
 		, ParentProperty( InParentProperty )
+		, Objects( InObjects )
 	{}
 
 	/** The property always exists */
@@ -19,6 +20,9 @@ struct FPropertyAndParent
 
 	/** The parent property may not exist */
 	const UProperty* const ParentProperty;
+
+	/** The objects for these properties */
+	TArray< TWeakObjectPtr< UObject > > Objects;
 };
 
 /** Delegate called to see if a property should be visible */

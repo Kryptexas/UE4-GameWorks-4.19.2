@@ -63,7 +63,7 @@ struct ASSETREGISTRY_API FAssetBundleData
 	TArray<FAssetBundleEntry> Bundles;
 
 	/** Extract this out of an AssetData */
-	bool SetFromAssetData(const class FAssetData& AssetData);
+	bool SetFromAssetData(const struct FAssetData& AssetData);
 
 	/** Returns pointer to an entry with given Scope/Name */
 	FAssetBundleEntry* FindEntry(const FPrimaryAssetId& SearchScope, FName SearchName);

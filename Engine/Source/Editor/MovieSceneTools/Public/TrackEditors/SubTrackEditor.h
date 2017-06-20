@@ -13,7 +13,7 @@
 #include "MovieSceneTrackEditor.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 
 /**
@@ -79,10 +79,10 @@ private:
 	void HandleAddSubSequenceComboButtonMenuEntryExecute(const FAssetData& AssetData, UMovieSceneTrack* InTrack);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence, UMovieSceneTrack* InTrack);
+	FKeyPropertyResult AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence, UMovieSceneTrack* InTrack);
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
-	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
+	FKeyPropertyResult HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
 
 	/** Check if we can record a new sequence (deny it if one is already primed) */
 	bool CanRecordNewSequence() const;
@@ -91,5 +91,5 @@ private:
 	void HandleRecordNewSequence(AActor* InActorToRecord, UMovieSceneTrack* InTrack);
 
 	/** Actually handles the adding of the section */
-	bool HandleRecordNewSequenceInternal(float KeyTime, AActor* InActorToRecord, UMovieSceneTrack* InTrack);
+	FKeyPropertyResult HandleRecordNewSequenceInternal(float KeyTime, AActor* InActorToRecord, UMovieSceneTrack* InTrack);
 };

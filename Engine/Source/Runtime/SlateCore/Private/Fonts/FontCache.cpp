@@ -453,23 +453,29 @@ FShapedGlyphSequence::EEnumerateGlyphsResult FShapedGlyphSequence::EnumerateVisu
 FCharacterList::FCharacterList( const FSlateFontKey& InFontKey, FSlateFontCache& InFontCache )
 	: FontKey( InFontKey )
 	, FontCache( InFontCache )
-	, CompositeFontHistoryRevision( 0 )
+#if WITH_EDITORONLY_DATA
+	, CompositeFontHistoryRevision( INDEX_NONE )
+#endif	// WITH_EDITORONLY_DATA
 	, MaxDirectIndexedEntries( FontCacheConstants::DirectAccessSize )
 	, MaxHeight( 0 )
 	, Baseline( 0 )
 {
+#if WITH_EDITORONLY_DATA
 	const FCompositeFont* const CompositeFont = InFontKey.GetFontInfo().GetCompositeFont();
 	if( CompositeFont )
 	{
 		CompositeFontHistoryRevision = CompositeFont->HistoryRevision;
 	}
+#endif	// WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 bool FCharacterList::IsStale() const
 {
 	const FCompositeFont* const CompositeFont = FontKey.GetFontInfo().GetCompositeFont();
-	return !CompositeFont || CompositeFontHistoryRevision != CompositeFont->HistoryRevision;
+	return CompositeFontHistoryRevision != (CompositeFont ? CompositeFont->HistoryRevision : INDEX_NONE);
 }
+#endif	// WITH_EDITORONLY_DATA
 
 int8 FCharacterList::GetKerning(TCHAR FirstChar, TCHAR SecondChar, const EFontFallback MaxFontFallback)
 {
@@ -905,6 +911,7 @@ FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontI
 
 	if( CachedCharacterList )
 	{
+#if WITH_EDITORONLY_DATA
 		// Clear out this entry if it's stale so that we make a new one
 		if( (*CachedCharacterList)->IsStale() )
 		{
@@ -912,6 +919,7 @@ FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontI
 			FlushData();
 		}
 		else
+#endif	// WITH_EDITORONLY_DATA
 		{
 			return CachedCharacterList->Get();
 		}

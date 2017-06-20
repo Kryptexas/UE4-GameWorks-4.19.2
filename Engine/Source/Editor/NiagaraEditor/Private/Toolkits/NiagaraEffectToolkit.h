@@ -21,7 +21,7 @@ class SNiagaraEffectViewport;
 class SNiagaraEffectEditor;
 class UNiagaraEffect;
 class UNiagaraSequence;
-class FAssetData;
+struct FAssetData;
 
 /** Viewer/editor for a NiagaraEffect
 */

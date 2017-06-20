@@ -36,8 +36,8 @@ UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const 
 	bReverse_DEPRECATED = false;
 	SlotName_DEPRECATED = DefaultSlotName;
 
-	// Section template relies on always restoring state for objects when they are no longer animating. This is how it releases animation control.
-	EvalOptions.CompletionMode = EMovieSceneCompletionMode::RestoreState;
+	BlendType = EMovieSceneBlendType::Absolute;
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 
 #if WITH_EDITOR
 	PreviousPlayRate = Params.PlayRate;

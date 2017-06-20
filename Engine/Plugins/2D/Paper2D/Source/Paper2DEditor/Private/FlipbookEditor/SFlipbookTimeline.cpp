@@ -209,9 +209,9 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 	}
 }
 
-int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	const float CurrentTimeSecs = PlayTime.Get();
 	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
@@ -219,20 +219,19 @@ int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 	const int32 TotalNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
 
 	const float SlateTotalDistance = SlateUnitsPerFrame * TotalNumFrames;
-	const float CurrentTimeXPos = (((CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance) - AnimationScrollBarPosition) + FMath::Clamp((AllottedGeometry.Size.X + AnimationScrollBarPosition) - SlateTotalDistance, 0.0f, AnimationScrollBarPosition);
+	const float CurrentTimeXPos = (((CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance) - AnimationScrollBarPosition) + FMath::Clamp((AllottedGeometry.GetLocalSize().X + AnimationScrollBarPosition) - SlateTotalDistance, 0.0f, AnimationScrollBarPosition);
 
 	// Draw a line for the current scrub cursor
 	++LayerId;
 	TArray<FVector2D> LinePoints;
 	LinePoints.Add(FVector2D(CurrentTimeXPos, 0.f));
-	LinePoints.Add(FVector2D(CurrentTimeXPos, AllottedGeometry.Size.Y));
+	LinePoints.Add(FVector2D(CurrentTimeXPos, AllottedGeometry.GetLocalSize().Y));
 
 	FSlateDrawElement::MakeLines(
 		OutDrawElements,
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor::Red
 		);

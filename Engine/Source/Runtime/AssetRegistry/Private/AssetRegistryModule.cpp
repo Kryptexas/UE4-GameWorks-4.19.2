@@ -9,18 +9,14 @@ IMPLEMENT_MODULE( FAssetRegistryModule, AssetRegistry );
 
 void FAssetRegistryModule::StartupModule()
 {
-	AssetRegistry = new FAssetRegistry();
+	AssetRegistry = GetDefault<UAssetRegistryImpl>();
 	ConsoleCommands = new FAssetRegistryConsoleCommands(*this);
 }
 
 
 void FAssetRegistryModule::ShutdownModule()
 {
-	if ( AssetRegistry )
-	{
-		delete AssetRegistry;
-		AssetRegistry = NULL;
-	}
+	AssetRegistry = nullptr;
 
 	if ( ConsoleCommands )
 	{
@@ -31,6 +27,7 @@ void FAssetRegistryModule::ShutdownModule()
 
 IAssetRegistry& FAssetRegistryModule::Get() const
 {
-	check(AssetRegistry);
+	check(AssetRegistry.IsValid());
 	return *AssetRegistry;
 }
+

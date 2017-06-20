@@ -5,8 +5,9 @@
 #include "DetailGroup.h"
 #include "PropertyHandleImpl.h"
 #include "DetailPropertyRow.h"
+#include "ObjectPropertyNode.h"
 
-IDetailChildrenBuilder& FCustomChildrenBuilder::AddChildCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder )
+IDetailChildrenBuilder& FCustomChildrenBuilder::AddCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.CustomBuilderRow = MakeShareable( new FDetailCustomBuilderRow( InCustomBuilder ) );
@@ -15,7 +16,7 @@ IDetailChildrenBuilder& FCustomChildrenBuilder::AddChildCustomBuilder( TSharedRe
 	return *this;
 }
 
-IDetailGroup& FCustomChildrenBuilder::AddChildGroup( FName GroupName, const FText& LocalizedDisplayName )
+IDetailGroup& FCustomChildrenBuilder::AddGroup( FName GroupName, const FText& LocalizedDisplayName )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, ParentCategory.Pin().ToSharedRef(), LocalizedDisplayName ) );
@@ -25,7 +26,7 @@ IDetailGroup& FCustomChildrenBuilder::AddChildGroup( FName GroupName, const FTex
 	return *NewCustomization.DetailGroup;
 }
 
-FDetailWidgetRow& FCustomChildrenBuilder::AddChildContent( const FText& SearchString )
+FDetailWidgetRow& FCustomChildrenBuilder::AddCustomRow( const FText& SearchString )
 {
 	TSharedRef<FDetailWidgetRow> NewRow = MakeShareable( new FDetailWidgetRow );
 	FDetailLayoutCustomization NewCustomization;
@@ -38,7 +39,7 @@ FDetailWidgetRow& FCustomChildrenBuilder::AddChildContent( const FText& SearchSt
 	return *NewRow;
 }
 
-IDetailPropertyRow& FCustomChildrenBuilder::AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle )
+IDetailPropertyRow& FCustomChildrenBuilder::AddProperty( TSharedRef<IPropertyHandle> PropertyHandle )
 {
 	check( PropertyHandle->IsValidHandle() )
 
@@ -55,9 +56,66 @@ IDetailPropertyRow& FCustomChildrenBuilder::AddChildProperty( TSharedRef<IProper
 	return *NewCustomization.PropertyRow;
 }
 
-TArray<TSharedPtr<IPropertyHandle>> FCustomChildrenBuilder::AddChildStructure( TSharedRef<FStructOnScope> ChildStructure )
+
+IDetailPropertyRow* FCustomChildrenBuilder::AddExternalStructure(TSharedRef<FStructOnScope> ChildStructure, FName UniqueIdName)
 {
-	return ParentCategory.Pin()->AddExternalProperties(ChildStructure);
+	return AddExternalStructureProperty(ChildStructure, NAME_None, UniqueIdName);
+}
+
+IDetailPropertyRow* FCustomChildrenBuilder::AddExternalStructureProperty(TSharedRef<FStructOnScope> ChildStructure, FName PropertyName, FName UniqueIdName)
+{
+	FDetailLayoutCustomization NewCustomization;
+
+	TSharedRef<FDetailCategoryImpl> ParentCategoryRef = ParentCategory.Pin().ToSharedRef();
+
+	FDetailPropertyRow::MakeExternalPropertyRowCustomization(ChildStructure, PropertyName, ParentCategoryRef, NewCustomization);
+
+	TSharedPtr<FDetailPropertyRow> NewRow = NewCustomization.PropertyRow;
+
+	NewRow->SetCustomExpansionId(UniqueIdName);
+
+	if (NewRow.IsValid())
+	{
+		TSharedPtr<FPropertyNode> PropertyNode = NewRow->GetPropertyNode();
+		TSharedPtr<FComplexPropertyNode> RootNode = StaticCastSharedRef<FComplexPropertyNode>(PropertyNode->FindComplexParent()->AsShared());
+
+		ChildCustomizations.Add(NewCustomization);
+	}
+
+	return NewRow.Get();
+}
+
+IDetailPropertyRow* FCustomChildrenBuilder::AddExternalObjects(const TArray<UObject *>& Objects, FName UniqueIdName)
+{
+	return AddExternalObjectProperty(Objects, NAME_None, UniqueIdName);
+}
+
+TArray<TSharedPtr<IPropertyHandle>> FCustomChildrenBuilder::AddAllExternalStructureProperties(TSharedRef<FStructOnScope> ChildStructure)
+{
+	return ParentCategory.Pin()->AddAllExternalStructureProperties(ChildStructure);
+}
+
+IDetailPropertyRow* FCustomChildrenBuilder::AddExternalObjectProperty(const TArray<UObject*>& Objects, FName PropertyName, FName UniqueIdName)
+{
+	FDetailLayoutCustomization NewCustomization;
+
+	TSharedRef<FDetailCategoryImpl> ParentCategoryRef = ParentCategory.Pin().ToSharedRef();
+
+	FDetailPropertyRow::MakeExternalPropertyRowCustomization(Objects, PropertyName, ParentCategoryRef, NewCustomization);
+
+	TSharedPtr<FDetailPropertyRow> NewRow = NewCustomization.PropertyRow;
+
+	NewRow->SetCustomExpansionId(UniqueIdName);
+
+	if (NewRow.IsValid())
+	{
+		TSharedPtr<FPropertyNode> PropertyNode = NewRow->GetPropertyNode();
+		TSharedPtr<FObjectPropertyNode> RootNode = StaticCastSharedRef<FObjectPropertyNode>(PropertyNode->FindObjectItemParent()->AsShared());
+
+		ChildCustomizations.Add(NewCustomization);
+	}
+
+	return NewRow.Get();
 }
 
 class SStandaloneCustomStructValue : public SCompoundWidget, public IPropertyTypeCustomizationUtils

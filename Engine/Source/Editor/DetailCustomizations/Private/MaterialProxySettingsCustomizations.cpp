@@ -76,23 +76,23 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 			|| Iter.Value() == OpacityMaskTextureSizeHandle
 			)
 		{
-			IDetailPropertyRow& SizeRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+			IDetailPropertyRow& SizeRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 			SizeRow.Visibility(TAttribute<EVisibility>(this, &FMaterialProxySettingsCustomizations::AreManualOverrideTextureSizesEnabled));
 		}
 		else if (Iter.Value() == TextureSizeHandle)
 		{
-			IDetailPropertyRow& SettingsRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+			IDetailPropertyRow& SettingsRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 			SettingsRow.Visibility(TAttribute<EVisibility>(this, &FMaterialProxySettingsCustomizations::IsTextureSizeEnabled));
 		}
 		else if (Iter.Value() == GutterSpaceHandle)
 		{
-			IDetailPropertyRow& SettingsRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+			IDetailPropertyRow& SettingsRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 			SettingsRow.Visibility(TAttribute<EVisibility>(this, &FMaterialProxySettingsCustomizations::IsSimplygonMaterialMergingVisible));
 		}
 		// Do not show the merge type property
 		else if (Iter.Value() != MergeTypeHandle)
 		{
-			IDetailPropertyRow& SettingsRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+			IDetailPropertyRow& SettingsRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 		}
 	}	
 

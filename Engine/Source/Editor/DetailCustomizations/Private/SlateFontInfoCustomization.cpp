@@ -6,6 +6,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "AssetData.h"
 #include "PropertyCustomizationHelpers.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "SlateFontInfo"
 
@@ -16,19 +17,19 @@ TSharedRef<IPropertyTypeCustomization> FSlateFontInfoStructCustomization::MakeIn
 
 void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& InHeaderRow, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
 {
+	StructPropertyHandle = InStructPropertyHandle;
+
 	static const FName FontObjectPropertyName = GET_MEMBER_NAME_CHECKED(FSlateFontInfo, FontObject);
 	static const FName TypefaceFontNamePropertyName = GET_MEMBER_NAME_CHECKED(FSlateFontInfo, TypefaceFontName);
 	static const FName SizePropertyName = GET_MEMBER_NAME_CHECKED(FSlateFontInfo, Size);
 
-	StructPropertyHandle = InStructPropertyHandle;
-
-	FontObjectProperty = InStructPropertyHandle->GetChildHandle(FontObjectPropertyName);
+	FontObjectProperty = StructPropertyHandle->GetChildHandle(FontObjectPropertyName);
 	check(FontObjectProperty.IsValid());
 
-	TypefaceFontNameProperty = InStructPropertyHandle->GetChildHandle(TypefaceFontNamePropertyName);
+	TypefaceFontNameProperty = StructPropertyHandle->GetChildHandle(TypefaceFontNamePropertyName);
 	check(TypefaceFontNameProperty.IsValid());
 
-	FontSizeProperty = InStructPropertyHandle->GetChildHandle(SizePropertyName);
+	FontSizeProperty = StructPropertyHandle->GetChildHandle(SizePropertyName);
 	check(FontSizeProperty.IsValid());
 
 	InHeaderRow
@@ -37,58 +38,62 @@ void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHand
 		InStructPropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
-	.MinDesiredWidth(250.0f)
-	.MaxDesiredWidth(0.0f)
-	.HAlign(HAlign_Fill)
-	.VAlign(VAlign_Center)
+	.MinDesiredWidth(0)
+	.MaxDesiredWidth(0)
 	[
-		SNew(SHorizontalBox)
+		InStructPropertyHandle->CreatePropertyValueWidget()
+	];
+}
 
-		+SHorizontalBox::Slot()
-		.FillWidth(2)
+void FSlateFontInfoStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
+{
+	IDetailPropertyRow& FontObjectRow = InStructBuilder.AddProperty(FontObjectProperty.ToSharedRef());
+
+	FontObjectRow.CustomWidget()
+		.NameContent()
+		[
+			FontObjectProperty->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.MinDesiredWidth(200.f)
+		.MaxDesiredWidth(300.f)
 		[
 			SNew(SObjectPropertyEntryBox)
 			.PropertyHandle(FontObjectProperty)
 			.AllowedClass(UFont::StaticClass())
 			.OnShouldFilterAsset(FOnShouldFilterAsset::CreateStatic(&FSlateFontInfoStructCustomization::OnFilterFontAsset))
 			.OnObjectChanged(this, &FSlateFontInfoStructCustomization::OnFontChanged)
-			.DisplayUseSelected(false)
-			.DisplayBrowse(false)
-		]
+			.DisplayUseSelected(true)
+			.DisplayBrowse(true)
+		];
 
-		+SHorizontalBox::Slot()
-		.FillWidth(2)
-		.VAlign(VAlign_Center)
-		[
-			SAssignNew(FontEntryCombo, SComboBox<TSharedPtr<FName>>)
-			.OptionsSource(&FontEntryComboData)
-			.IsEnabled(this, &FSlateFontInfoStructCustomization::IsFontEntryComboEnabled)
-			.OnComboBoxOpening(this, &FSlateFontInfoStructCustomization::OnFontEntryComboOpening)
-			.OnSelectionChanged(this, &FSlateFontInfoStructCustomization::OnFontEntrySelectionChanged)
-			.OnGenerateWidget(this, &FSlateFontInfoStructCustomization::MakeFontEntryWidget)
-			[
-				SNew(STextBlock)
-				.Text(this, &FSlateFontInfoStructCustomization::GetFontEntryComboText)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-		]
+	IDetailPropertyRow& TypefaceRow = InStructBuilder.AddProperty(TypefaceFontNameProperty.ToSharedRef());
 
-		+SHorizontalBox::Slot()
-		.FillWidth(1)
-		.VAlign(VAlign_Center)
-		.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+	TypefaceRow.CustomWidget()
+	.NameContent()
+	[
+		TypefaceFontNameProperty->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	[
+		SAssignNew(FontEntryCombo, SComboBox<TSharedPtr<FName>>)
+		.OptionsSource(&FontEntryComboData)
+		.IsEnabled(this, &FSlateFontInfoStructCustomization::IsFontEntryComboEnabled)
+		.OnComboBoxOpening(this, &FSlateFontInfoStructCustomization::OnFontEntryComboOpening)
+		.OnSelectionChanged(this, &FSlateFontInfoStructCustomization::OnFontEntrySelectionChanged)
+		.OnGenerateWidget(this, &FSlateFontInfoStructCustomization::MakeFontEntryWidget)
 		[
-			SNew(SProperty, FontSizeProperty)
-			.ShouldDisplayName(false)
+			SNew(STextBlock)
+			.Text(this, &FSlateFontInfoStructCustomization::GetFontEntryComboText)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 	];
-}
 
-void FSlateFontInfoStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
-{
-	InStructBuilder.AddChildProperty(InStructPropertyHandle->GetChildHandle( TEXT("FontMaterial")).ToSharedRef());
+	InStructBuilder.AddProperty(FontSizeProperty.ToSharedRef());
 
-	InStructBuilder.AddChildProperty(InStructPropertyHandle->GetChildHandle(TEXT("OutlineSettings")).ToSharedRef());
+	InStructBuilder.AddProperty(InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FSlateFontInfo, FontMaterial)).ToSharedRef());
+
+	InStructBuilder.AddProperty(InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FSlateFontInfo, OutlineSettings)).ToSharedRef());
 }
 
 bool FSlateFontInfoStructCustomization::OnFilterFontAsset(const FAssetData& InAssetData)

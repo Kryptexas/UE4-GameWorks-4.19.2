@@ -88,7 +88,6 @@ void FAIGraphConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVector2D
 		ArrowLayerID,
 		FPaintGeometry(ArrowDrawPos, ArrowImage->ImageSize * ZoomFactor, ZoomFactor),
 		ArrowImage,
-		ClippingRect,
 		ESlateDrawEffect::None,
 		AngleInRadians,
 		TOptional<FVector2D>(),

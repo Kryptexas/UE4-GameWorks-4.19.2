@@ -66,7 +66,7 @@ struct FPopupPlacement
 			? FVector2D(FMath::Max(AllottedGeometry.Size.X, PopupDesiredSize.X), PopupDesiredSize.Y)
 			: PopupDesiredSize;
 		LocalPopupOffset = GetMenuOffsetForPlacement(AllottedGeometry, PlacementMode, LocalPopupSize);
-		AnchorLocalSpace = FSlateRect::FromPointAndExtent(FVector2D::ZeroVector, AllottedGeometry.Size);
+		AnchorLocalSpace = FSlateRect::FromPointAndExtent(FVector2D::ZeroVector, AllottedGeometry.GetLocalSize());
 		Orientation = (PlacementMode == MenuPlacement_MenuRight || PlacementMode == MenuPlacement_MenuLeft) ? Orient_Horizontal : Orient_Vertical;
 	}
 
@@ -201,7 +201,7 @@ FChildren* SMenuAnchor::GetChildren()
 	return &Children;
 }
 
-int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren( EVisibility::Visible );
 	ArrangeChildren( AllottedGeometry, ArrangedChildren );
@@ -217,7 +217,7 @@ int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		const bool bHasArrangedAnchorContent = FirstChild.Widget == Children[0].GetWidget();
 		if ( bHasArrangedAnchorContent )
 		{
-			const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
+			const FSlateRect ChildClippingRect = AllottedGeometry.GetLayoutBoundingRect().IntersectionWith(MyCullingRect);
 			LayerId = FirstChild.Widget->Paint(Args.WithNewParent(this), FirstChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 		}
 
@@ -242,7 +242,7 @@ int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				if (bShouldDeferPaintingAfterWindowContent)
 				{
 					OutDrawElements.QueueDeferredPainting(
-						FSlateWindowElementList::FDeferredPaint(PopupChild->Widget, Args, PopupChild->Geometry, MyClippingRect, InWidgetStyle, bParentEnabled));
+						FSlateWindowElementList::FDeferredPaint(PopupChild->Widget, Args, PopupChild->Geometry, InWidgetStyle, bParentEnabled));
 				}
 				else
 				{
@@ -298,12 +298,6 @@ FPopupMethodReply QueryPopupMethod(const FWidgetPath& PathToQuery)
 	return FPopupMethodReply::UseMethod(EPopupMethod::CreateNewWindow);
 }
 
-
-/**
- * Open or close the popup
- *
- * @param InIsOpen  If true, open the popup. Otherwise close it.
- */
 void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 FocusUserIndex )
 {
 	// Prevent redundant opens/closes

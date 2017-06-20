@@ -97,7 +97,7 @@ public:
 
 public:
 	static FReply OnLayerFilenameButtonClicked(TSharedRef<IPropertyHandle> PropertyHandle_LayerFilename);
-	static bool ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName);
+	static bool ShouldFilterLayerInfo(const struct FAssetData& AssetData, FName LayerName);
 
 	static EVisibility GetImportLayerCreateVisibility(TSharedRef<IPropertyHandle> PropertyHandle_LayerInfo);
 	static TSharedRef<SWidget> OnGetImportLayerCreateMenu(TSharedRef<IPropertyHandle> PropertyHandle_LayerInfo, FName LayerName);

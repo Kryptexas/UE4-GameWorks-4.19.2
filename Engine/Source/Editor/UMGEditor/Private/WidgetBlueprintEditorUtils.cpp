@@ -337,18 +337,29 @@ bool FWidgetBlueprintEditorUtils::CanOpenSelectedWidgetsForEdit( TSet<FWidgetRef
 	return bCanOpenAllForEdit;
 }
 
-void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
+void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* Blueprint, TSet<FWidgetReference> Widgets)
 {
 	if ( Widgets.Num() > 0 )
 	{
 		const FScopedTransaction Transaction(LOCTEXT("RemoveWidget", "Remove Widget"));
-		BP->WidgetTree->SetFlags(RF_Transactional);
-		BP->WidgetTree->Modify();
+		Blueprint->WidgetTree->SetFlags(RF_Transactional);
+		Blueprint->WidgetTree->Modify();
+		Blueprint->Modify();
 
 		bool bRemoved = false;
 		for ( FWidgetReference& Item : Widgets )
 		{
 			UWidget* WidgetTemplate = Item.GetTemplate();
+
+			// Find and update all binding references in the widget blueprint
+			for (int32 BindingIndex = Blueprint->Bindings.Num() - 1; BindingIndex >= 0; BindingIndex--)
+			{
+				FDelegateEditorBinding& Binding = Blueprint->Bindings[BindingIndex];
+				if (Binding.ObjectName == WidgetTemplate->GetName())
+				{
+					Blueprint->Bindings.RemoveAt(BindingIndex);
+				}
+			}
 
 			// Modify the widget's parent
 			UPanelWidget* Parent = WidgetTemplate->GetParent();
@@ -360,13 +371,13 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 			// Modify the widget being removed.
 			WidgetTemplate->Modify();
 
-			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
+			bRemoved = Blueprint->WidgetTree->RemoveWidget(WidgetTemplate);
 
 			// If the widget we're removing doesn't have a parent it may be rooted in a named slot,
 			// so check there as well.
 			if ( WidgetTemplate->GetParent() == nullptr )
 			{
-				bRemoved |= FindAndRemoveNamedSlotContent(WidgetTemplate, BP->WidgetTree);
+				bRemoved |= FindAndRemoveNamedSlotContent(WidgetTemplate, Blueprint->WidgetTree);
 			}
 
 			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
@@ -385,7 +396,7 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 		if ( bRemoved )
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 		}
 	}
 }

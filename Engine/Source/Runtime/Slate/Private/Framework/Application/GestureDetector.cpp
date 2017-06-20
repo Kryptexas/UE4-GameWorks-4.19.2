@@ -5,7 +5,7 @@
 double FGestureDetector::LongPressSeconds = 0.800f;
 float FGestureDetector::LongPressAllowedMovement = 0;
 
-bool FGestureDetector::IsGestureSupported(EGestureEvent::Type Gesture)
+bool FGestureDetector::IsGestureSupported(EGestureEvent Gesture)
 {
 	switch ( Gesture )
 	{
@@ -48,7 +48,7 @@ void FGestureDetector::OnTouchMoved(int32 TouchIndex, const FVector2D& Location)
 
 void FGestureDetector::GenerateGestures(FGenericApplicationMessageHandler& MessageHandler, const TBitArray<FDefaultBitArrayAllocator>& EnabledGestures)
 {
-	if ( EnabledGestures[EGestureEvent::LongPress] )
+	if ( EnabledGestures[(uint8)EGestureEvent::LongPress] )
 	{
 		const double CurrentTime = FPlatformTime::Seconds();
 

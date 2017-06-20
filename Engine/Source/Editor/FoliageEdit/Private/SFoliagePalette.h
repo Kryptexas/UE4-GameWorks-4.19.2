@@ -160,7 +160,7 @@ private:	// CONTEXT MENU
 	void FillReplaceFoliageTypeSubmenu(FMenuBuilder& MenuBuilder);
 
 	/** Handler for 'Replace' command  */
-	void OnReplaceFoliageTypeSelected(const class FAssetData& AssetData);
+	void OnReplaceFoliageTypeSelected(const struct FAssetData& AssetData);
 
 	/** Handler for 'Remove' command  */
 	void OnRemoveFoliageType();

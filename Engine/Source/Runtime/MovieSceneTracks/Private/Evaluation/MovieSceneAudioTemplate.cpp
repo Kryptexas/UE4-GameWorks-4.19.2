@@ -185,7 +185,7 @@ struct FAudioSectionExecutionToken : IMovieSceneExecutionToken
 	{
 		FCachedAudioTrackData& TrackData = PersistentData.GetOrAddTrackData<FCachedAudioTrackData>();
 
-		if (Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing)
+		if ((Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped())
 		{
 			// stopped, recording, etc
 			TrackData.StopAllSounds();
@@ -277,6 +277,8 @@ FMovieSceneAudioSectionTemplateData::FMovieSceneAudioSectionTemplateData(const U
 	, AudioPitchMultiplierCurve(Section.GetPitchMultiplierCurve())
 	, AudioVolumeCurve(Section.GetSoundVolumeCurve())
 	, RowIndex(Section.GetRowIndex())
+	, bOverrideAttenuation(Section.GetOverrideAttenuation())
+	, AttenuationSettings(Section.GetAttenuationSettings())
 	, OnQueueSubtitles(Section.GetOnQueueSubtitles())
 	, OnAudioFinished(Section.GetOnAudioFinished())
 	, OnAudioPlaybackPercent(Section.GetOnAudioPlaybackPercent())
@@ -304,6 +306,12 @@ void FMovieSceneAudioSectionTemplateData::EnsureAudioIsPlaying(UAudioComponent& 
 	if (bPlaySound)
 	{
 		AudioComponent.bAllowSpatialization = bAllowSpatialization;
+	
+		if (bOverrideAttenuation)
+		{
+			AudioComponent.AttenuationSettings = AttenuationSettings;
+		}
+		
 		AudioComponent.Stop();
 		AudioComponent.SetSound(Sound);
 #if WITH_EDITOR
@@ -359,7 +367,7 @@ void FMovieSceneAudioSectionTemplate::Evaluate(const FMovieSceneEvaluationOperan
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_AudioTrack_Evaluate)
 
-	if (GEngine && GEngine->UseSound() && !Context.HasJumped() && Context.GetStatus() != EMovieScenePlayerStatus::Jumping)
+	if (GEngine && GEngine->UseSound() && Context.GetStatus() != EMovieScenePlayerStatus::Jumping)
 	{
 		ExecutionTokens.Add(FAudioSectionExecutionToken(AudioData));
 	}

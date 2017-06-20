@@ -14,7 +14,7 @@ FVector2D SEnvQueryLoadGraph::ComputeDesiredSize(float) const
 	return FVector2D(128, 92);
 }
 
-int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled(bParentEnabled);
@@ -26,9 +26,8 @@ int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(AllottedGeometry.Size.X, AllottedGeometry.Size.Y)),
+		AllottedGeometry.ToPaintGeometry(FVector2D(0, 0), FVector2D(AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y)),
 		TimelineAreaBrush,
-		MyClippingRect,
 		DrawEffects,
 		TimelineAreaBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -39,8 +38,8 @@ int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 	const float PaddingV = 5.0f;
 
 	const int32 NumSamples = (Stats.LastTickEntry >= Stats.FirstTickEntry) ? (Stats.LastTickEntry - Stats.FirstTickEntry) : 0;
-	const float GraphWidth = AllottedGeometry.Size.X - (PaddingH * 2.0f);
-	const float GraphHeight = AllottedGeometry.Size.Y - (PaddingV * 2.0f);
+	const float GraphWidth = AllottedGeometry.GetLocalSize().X - (PaddingH * 2.0f);
+	const float GraphHeight = AllottedGeometry.GetLocalSize().Y - (PaddingV * 2.0f);
 
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddZeroed(2);
@@ -54,10 +53,10 @@ int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			const FLinearColor LineColor = (Pct < 0.3f) ? FLinearColor::White : (Pct < 0.6f) ? FLinearColor::Yellow : FLinearColor::Red;
 
 			LinePoints[0].X = LinePoints[1].X = PaddingH + Idx;
-			LinePoints[0].Y = AllottedGeometry.Size.Y - PaddingV;
+			LinePoints[0].Y = AllottedGeometry.GetLocalSize().Y - PaddingV;
 			LinePoints[1].Y = PaddingV + (1.0f - Pct) * GraphHeight;
 
-			FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, LineColor);
+			FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, LineColor);
 		}
 	}
 	else
@@ -80,10 +79,10 @@ int32 SEnvQueryLoadGraph::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			const FLinearColor LineColor = (Pct < 0.3f) ? FLinearColor::White : (Pct < 0.6f) ? FLinearColor::Yellow : FLinearColor::Red;
 
 			LinePoints[0].X = LinePoints[1].X = PaddingH + LineIdx;
-			LinePoints[0].Y = AllottedGeometry.Size.Y - PaddingV;
+			LinePoints[0].Y = AllottedGeometry.GetLocalSize().Y - PaddingV;
 			LinePoints[1].Y = PaddingV + (1.0f - Pct) * GraphHeight;
 
-			FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, LineColor);
+			FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, LineColor);
 		}
 	}
 

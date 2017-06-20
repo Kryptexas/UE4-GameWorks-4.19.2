@@ -11,7 +11,7 @@
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class IAnimationSequenceBrowser;
 class IDetailsView;

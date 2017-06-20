@@ -51,6 +51,8 @@
 #include "Containers/Algo/Accumulate.h"
 #include "Package.h"
 #include "Engine/StaticMesh.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "InstancedStaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -1619,7 +1621,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			if (InstanceTransforms.Num())
 			{
 				TotalInstances += InstanceTransforms.Num();
-				InstanceBuffer.AllocateInstances(InstanceTransforms.Num());
+				InstanceBuffer.AllocateInstances(InstanceTransforms.Num(), true);
 				for (int32 InstanceIndex = 0; InstanceIndex < InstanceTransforms.Num(); InstanceIndex++)
 				{
 					const FMatrix& OutXForm = InstanceTransforms[InstanceIndex];
@@ -1666,7 +1668,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				InstanceTransforms.AddUninitialized(NumKept);
 				TotalInstances += NumKept;
 				{
-					InstanceBuffer.AllocateInstances(NumKept);
+					InstanceBuffer.AllocateInstances(NumKept, true);
 					int32 InstanceIndex = 0;
 					int32 OutInstanceIndex = 0;
 					for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
@@ -2390,7 +2392,16 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					if (Inner.Builder->InstanceBuffer.NumInstances())
 					{
 						QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_AcceptPrebuiltTree);
-						FMemory::Memswap(&HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, &Inner.Builder->InstanceBuffer, sizeof(FStaticMeshInstanceData));
+
+						if (!HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData.IsValid())
+						{
+							HierarchicalInstancedStaticMeshComponent->InitPerInstanceRenderData(&Inner.Builder->InstanceBuffer);
+						}
+						else
+						{
+							HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData->UpdateFromPreallocatedData(HierarchicalInstancedStaticMeshComponent, Inner.Builder->InstanceBuffer);
+						}
+
 						HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree, Inner.Builder->OutOcclusionLayerNum);
 						if (bForceSync && GetWorld())
 						{

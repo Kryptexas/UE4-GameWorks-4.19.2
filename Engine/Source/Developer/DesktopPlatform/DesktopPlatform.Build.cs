@@ -30,7 +30,6 @@ public class DesktopPlatform : ModuleRules
 			);
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
-			//AddEngineThirdPartyPrivateStaticDependencies(Target, "LinuxNativeDialogs");
 		}
 	}
 }

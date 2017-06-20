@@ -114,7 +114,6 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 
 	TSharedRef<SGameLayerManager> GameLayerManagerRef = SNew(SGameLayerManager)
 		.SceneViewport_UObject(this, &UGameEngine::GetGameSceneViewport, GameViewportClient)
-		.UseScissor(false)
 		[
 			ViewportOverlayWidgetRef
 		];
@@ -652,8 +651,6 @@ void UGameEngine::Start()
 
 void UGameEngine::PreExit()
 {
-	Super::PreExit();
-
 	// Stop tracking, automatically flushes.
 	NETWORK_PROFILER(GNetworkProfiler.EnableTracking(false));
 
@@ -687,6 +684,8 @@ void UGameEngine::PreExit()
 			World->CleanupWorld();
 		}
 	}
+
+	Super::PreExit();
 }
 
 void UGameEngine::FinishDestroy()

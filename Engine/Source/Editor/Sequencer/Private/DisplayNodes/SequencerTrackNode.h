@@ -9,11 +9,20 @@
 #include "DisplayNodes/SequencerSectionKeyAreaNode.h"
 #include "ISequencerSection.h"
 #include "IKeyArea.h"
+#include "SequencerHotspots.h"
 
 class FMenuBuilder;
 class ISequencerTrackEditor;
 class UMovieSceneTrack;
 struct FSlateBrush;
+
+struct FSequencerOverlapRange
+{
+	/** The range for the overlap */
+	TRange<float> Range;
+	/** The sections that occupy this range, sorted by overlap priority */
+	TArray<FSectionHandle> Sections;
+};
 
 /**
  * Represents an area to display Sequencer sections (possibly on multiple lines).
@@ -119,6 +128,12 @@ public:
 	/**  Gets the row index for this track node when this track node is a sub-track. */
 	void SetRowIndex(int32 InRowIndex);
 
+	/** Gets an array of sections that underlap the specified section */
+	TArray<FSequencerOverlapRange> GetUnderlappingSections(UMovieSceneSection* InSection);
+
+	/** Gets an array of sections whose easing bounds underlap the specified section */
+	TArray<FSequencerOverlapRange> GetEasingSegmentsForSection(UMovieSceneSection* InSection);
+
 public:
 
 	// FSequencerDisplayNode interface
@@ -137,6 +152,10 @@ public:
 	virtual bool IsResizable() const override;
 	virtual void Resize(float NewSize) override;
 	
+private:
+
+	FReply CreateNewSection() const;
+
 private:
 
 	/** The track editor for the track associated with this node. */

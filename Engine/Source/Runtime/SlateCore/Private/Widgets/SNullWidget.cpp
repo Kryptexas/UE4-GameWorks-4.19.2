@@ -23,24 +23,13 @@ public:
 
 	void Construct( const FArguments& InArgs )
 	{
-		SWidget::Construct( 
-			InArgs._ToolTipText,
-			InArgs._ToolTip,
-			InArgs._Cursor, 
-			InArgs._IsEnabled,
-			InArgs._Visibility,
-			InArgs._RenderTransform,
-			InArgs._RenderTransformPivot,
-			InArgs._Tag,
-			InArgs._ForceVolatile,
-			InArgs.MetaData
-		);
 	}
 
 	SNullWidgetContent()
 	{
 		bCanTick = false;
 		bCanSupportFocus = false;
+		bCanHaveChildren = false;
 	}
 
 private:
@@ -52,7 +41,7 @@ public:
 	
 	// SWidget interface
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		return LayerId;
 	}
@@ -61,7 +50,6 @@ public:
 	{
 		return &NullWidgetNoChildren;
 	}
-
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override final
 	{

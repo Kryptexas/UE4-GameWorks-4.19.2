@@ -7,6 +7,7 @@
 #include "UObject/UObjectIterator.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Animation/MorphTarget.h"
 
 
 #include "MeshUtilities.h"
@@ -65,6 +66,15 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 			if(SkinnedComponent)
 			{
 				SkinnedComponent->ForcedLodModel = 0;
+			}
+		}
+
+		//remove all Morph target data for this LOD
+		for (UMorphTarget* MorphTarget : SkeletalMesh->MorphTargets)
+		{
+			if (MorphTarget->HasDataForLOD(DesiredLOD))
+			{
+				MorphTarget->MorphLODModels.RemoveAt(DesiredLOD);
 			}
 		}
 		

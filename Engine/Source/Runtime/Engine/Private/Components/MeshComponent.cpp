@@ -128,17 +128,6 @@ void UMeshComponent::CleanUpOverrideMaterials()
 		int32 RemoveCount = GetNumOverrideMaterials() - GetNumMaterials();
 		OverrideMaterials.RemoveAt(GetNumMaterials(), RemoveCount);
 	}
-	//Remove override at the end of the array until there is a valid material
-	for (int32 i = GetNumOverrideMaterials() - 1; i >= 0; --i)
-	{
-		UMaterialInterface *OverrideMaterial = OverrideMaterials[i];
-		if (OverrideMaterial == nullptr)
-		{
-			OverrideMaterials.RemoveAt(i);
-			continue;
-		}
-		break;
-	}
 }
 void UMeshComponent::EmptyOverrideMaterials()
 {

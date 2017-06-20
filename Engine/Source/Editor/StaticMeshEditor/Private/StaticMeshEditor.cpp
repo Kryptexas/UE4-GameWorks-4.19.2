@@ -499,7 +499,7 @@ void FStaticMeshEditor::ExtendToolBar()
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedPtr< class STextComboBox > UVChannelCombo, TSharedPtr< class STextComboBox > LODLevelCombo)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FStaticMeshEditor* ThisEditor, TSharedPtr< class STextComboBox > LODLevelCombo)
 		{
 			ToolbarBuilder.BeginSection("Realtime");
 			{
@@ -530,15 +530,17 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowTangents);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowBinormals);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowVertices);
-				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawUVs);
-				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawAdditionalData);
+
+				FOnGetContent OnGetUVMenuContent = FOnGetContent::CreateRaw(ThisEditor, &FStaticMeshEditor::GenerateUVChannelComboList);
+
+				ToolbarBuilder.AddComboButton(
+					FUIAction(), 
+					OnGetUVMenuContent, 
+					LOCTEXT("UVToolbarText", "UV"), 
+					LOCTEXT("UVToolbarTooltip", "Toggles display of the static mesh's UVs for the specified channel."),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetDrawUVs"));
 			}
-			ToolbarBuilder.EndSection();
-	
-			ToolbarBuilder.BeginSection("UV");
-			{
-				ToolbarBuilder.AddWidget(UVChannelCombo.ToSharedRef());
-			}
+
 			ToolbarBuilder.EndSection();
 	
 			ToolbarBuilder.BeginSection("Camera");
@@ -552,16 +554,22 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddWidget(LODLevelCombo.ToSharedRef());
 			}
 			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetDrawAdditionalData);
 		}
 	};
 
 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
 
+	FStaticMeshEditorViewportClient& ViewportClient = Viewport->GetViewportClient();
+
+	FStaticMeshEditor* ThisEditor = this;
+
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		Viewport->GetCommandList(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, UVChannelCombo, LODLevelCombo )
+		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, ThisEditor, LODLevelCombo )
 		);
 	
 	AddToolbarExtender(ToolbarExtender);
@@ -578,17 +586,6 @@ void FStaticMeshEditor::BuildSubTools()
 
 	SAssignNew( ConvexDecomposition, SConvexDecomposition )
 		.StaticMeshEditorPtr(SharedThis(this));
-
-	// Build toolbar widgets
-	UVChannelCombo = SNew(STextComboBox)
-		.OptionsSource(&UVChannels)
-		.OnSelectionChanged(this, &FStaticMeshEditor::ComboBoxSelectionChanged)
-		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() );
-
-	if(UVChannels.IsValidIndex(0))
-	{
-		UVChannelCombo->SetSelectedItem(UVChannels[0]);
-	}
 
 	LODLevelCombo = SNew(STextComboBox)
 		.OptionsSource(&LODLevels)
@@ -682,9 +679,9 @@ void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData, bool bClear
 	check(IsPrimValid(InPrimData));
 
 	// Enable collision, if not already
-	if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
+	if( !Viewport->GetViewportClient().IsShowSimpleCollisionChecked() )
 	{
-		Viewport->GetViewportClient().SetShowSimpleCollision();
+		Viewport->GetViewportClient().ToggleShowSimpleCollision();
 	}
 
 	if( bClearSelection )
@@ -1104,7 +1101,6 @@ void FStaticMeshEditor::RefreshTool()
 	StaticMeshDetailsView->SetObject( StaticMesh, bForceRefresh );
 
 	RegenerateLODComboList();
-	RegenerateUVChannelComboList();
 	RefreshViewport();
 }
 
@@ -1134,7 +1130,7 @@ void FStaticMeshEditor::RegenerateLODComboList()
 		{
 			LODLevelCombo->RefreshOptions();
 
-			if( OldLOD < LODLevels.Num() )
+			if(LODLevels.IsValidIndex(OldLOD) && OldLOD < LODLevels.Num() )
 			{
 				LODLevelCombo->SetSelectedItem(LODLevels[OldLOD]);
 			}
@@ -1153,30 +1149,52 @@ void FStaticMeshEditor::RegenerateLODComboList()
 	}
 }
 
-void FStaticMeshEditor::RegenerateUVChannelComboList()
+TSharedRef<SWidget> FStaticMeshEditor::GenerateUVChannelComboList()
 {
-	int32 OldUVChannel = GetCurrentUVChannel();
+	FMenuBuilder MenuBuilder(true, nullptr);
+
+	FUIAction DrawUVsAction;
+
+	FStaticMeshEditorViewportClient& ViewportClient = GetViewportClient();
+
+	DrawUVsAction.ExecuteAction = FExecuteAction::CreateRaw(&ViewportClient, &FStaticMeshEditorViewportClient::SetDrawUVOverlay, false);
+
+	// Note, the logic is inversed here.  We show the radio button as checked if no uv channels are being shown
+	DrawUVsAction.GetActionCheckState = FGetActionCheckState::CreateLambda([&ViewportClient]() {return ViewportClient.IsDrawUVOverlayChecked() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked; });
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ShowUVSToggle", "None"),
+		LOCTEXT("ShowUVSToggle_Tooltip", "Toggles display of the static mesh's UVs."),
+		FSlateIcon(),
+		DrawUVsAction,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+
+	MenuBuilder.AddMenuSeparator();
 
 	// Fill out the UV channels combo.
-	UVChannels.Empty();
 	int32 MaxUVChannels = FMath::Max<int32>(GetNumUVChannels(),1);
 	for(int32 UVChannelID = 0; UVChannelID < MaxUVChannels; ++UVChannelID)
 	{
-		UVChannels.Add( MakeShareable( new FString( FText::Format( LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
+		FUIAction MenuAction;
+		MenuAction.ExecuteAction.BindSP(this, &FStaticMeshEditor::SetCurrentViewedUVChannel, UVChannelID);
+		MenuAction.GetActionCheckState.BindSP(this, &FStaticMeshEditor::GetUVChannelCheckState, UVChannelID);
+
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber(UVChannelID)),
+			FText::Format(LOCTEXT("UVChannel_ID_ToolTip", "Overlay UV Channel {0} on the viewport"), FText::AsNumber(UVChannelID)),
+			FSlateIcon(),
+			MenuAction,
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
 	}
 
-	if(UVChannelCombo.IsValid())
-	{
-		UVChannelCombo->RefreshOptions();
-		if( OldUVChannel >= 0 && OldUVChannel < GetNumUVChannels() )
-		{
-			UVChannelCombo->SetSelectedItem(UVChannels[OldUVChannel]);
-		}
-		else
-		{
-			UVChannelCombo->SetSelectedItem(UVChannels[0]);
-		}
-	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
 }
 
 
@@ -1227,10 +1245,7 @@ void FStaticMeshEditor::LODLevelsSelectionChanged( TSharedPtr<FString> NewSelect
 
 int32 FStaticMeshEditor::GetCurrentUVChannel()
 {
-	int32 Index = 0;
-	UVChannels.Find(UVChannelCombo->GetSelectedItem(), Index);
-
-	return Index;
+	return FMath::Min(CurrentViewedUVChannel, GetNumUVChannels());
 }
 
 int32 FStaticMeshEditor::GetCurrentLODLevel()
@@ -1490,9 +1505,9 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 	BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
 
 	// Enable collision, if not already
-	if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
+	if( !Viewport->GetViewportClient().IsShowSimpleCollisionChecked() )
 	{
-		Viewport->GetViewportClient().SetShowSimpleCollision();
+		Viewport->GetViewportClient().ToggleShowSimpleCollision();
 	}
 
 	// Invalidate physics data and create new meshes
@@ -1582,23 +1597,6 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCame
 
 		//Update LOD stats for each level
 		UpdateLODStats(LODLevelID);
-	}
-
-	// Fill out the UV channels combo.
-	UVChannels.Empty();
-	for(int32 UVChannelID = 0; UVChannelID < GetNumUVChannels(0); ++UVChannelID)
-	{
-		UVChannels.Add( MakeShareable( new FString( FText::Format( LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
-	}
-
-	if( UVChannelCombo.IsValid() )
-	{
-		UVChannelCombo->RefreshOptions();
-
-		if(UVChannels.Num())
-		{
-			UVChannelCombo->SetSelectedItem(UVChannels[0]);
-		}
 	}
 
 	if( LODLevelCombo.IsValid() )
@@ -1736,9 +1734,9 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		}
 
 		// Enable collision, if not already
-		if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
+		if( !Viewport->GetViewportClient().IsShowSimpleCollisionChecked() )
 		{
-			Viewport->GetViewportClient().SetShowSimpleCollision();
+			Viewport->GetViewportClient().ToggleShowSimpleCollision();
 		}
 
 		// refresh collision change back to staticmesh components
@@ -1936,6 +1934,16 @@ EViewModeIndex FStaticMeshEditor::GetViewMode() const
 	}
 }
 
+FStaticMeshEditorViewportClient& FStaticMeshEditor::GetViewportClient()
+{
+	return Viewport->GetViewportClient();
+}
+
+const FStaticMeshEditorViewportClient& FStaticMeshEditor::GetViewportClient() const
+{
+	return Viewport->GetViewportClient();
+}
+
 void FStaticMeshEditor::OnConvexDecomposition()
 {
 	TabManager->InvokeTab(CollisionTabId);
@@ -2038,6 +2046,17 @@ void FStaticMeshEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		RefreshTool();
 	}
+}
+
+void FStaticMeshEditor::SetCurrentViewedUVChannel(int32 InNewUVChannel)
+{
+	CurrentViewedUVChannel = FMath::Clamp(InNewUVChannel, 0, GetNumUVChannels());
+	GetViewportClient().SetDrawUVOverlay(true);
+}
+
+ECheckBoxState FStaticMeshEditor::GetUVChannelCheckState(int32 TestUVChannel) const
+{
+	return CurrentViewedUVChannel == TestUVChannel && GetViewportClient().IsDrawUVOverlayChecked() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 #undef LOCTEXT_NAMESPACE

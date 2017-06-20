@@ -11,15 +11,6 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Framework/Text/SlatePasswordRun.h"
 
-#if !UE_BUILD_SHIPPING
-
-TAutoConsoleVariable<int32> ShowDebugTextLayout(
-	TEXT("Slate.ShowDebugTextLayout"),
-	false,
-	TEXT("Whether to show debuging visulization for text layout in Slate."));
-
-#endif
-
 TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaultTextStyle)
 {
 	TSharedRef< FSlateTextLayout > Layout = MakeShareable( new FSlateTextLayout(MoveTemp(InDefaultTextStyle)) );
@@ -57,32 +48,40 @@ void FSlateTextLayout::ArrangeChildren( const FGeometry& AllottedGeometry, FArra
 	}
 }
 
-int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+int32 GShowTextDebugging = 0;
+static FAutoConsoleVariableRef CVarSlateShowTextDebugging(TEXT("Slate.ShowTextDebugging"), GShowTextDebugging, TEXT("Show debugging painting for text rendering."), ECVF_Default);
+
+#endif
+
+int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-#if UE_BUILD_SHIPPING
-	const bool bShowDebug = false;
-#else
-	const bool bShowDebug = ShowDebugTextLayout.GetValueOnAnyThread() != 0;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FLinearColor BlockDebugHue( 0, 1.0f, 1.0f, 0.5 );
 #endif
-	
-	FLinearColor BlockHue( 0, 1.0f, 1.0f, 0.5 );
+
+	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
+	const float InverseScale = Inverse(AllottedGeometry.Scale);
+
 	int32 HighestLayerId = LayerId;
 
 	for (const FTextLayout::FLineView& LineView : LineViews)
 	{
-		// Is this line visible?
-		const FSlateRect LineViewRect(AllottedGeometry.AbsolutePosition + LineView.Offset, AllottedGeometry.AbsolutePosition + LineView.Offset + LineView.Size);
-		const FSlateRect VisibleLineView = ClippingRect.IntersectionWith(LineViewRect);
-		if (VisibleLineView.IsEmpty())
+		// Is this line visible?  This checks if the culling rect, which represents the AABB around the last clipping rect, intersects the 
+		// line of text, this requires that we get the text line into render space.
+		// TODO perhaps save off this line view rect during text layout?
+		const FVector2D LocalLineOffset = LineView.Offset * InverseScale;
+		const FSlateRect LineViewRect(AllottedGeometry.GetRenderBoundingRect(FSlateRect(LocalLineOffset, LocalLineOffset + (LineView.Size * InverseScale))));
+		if ( !FSlateRect::DoRectanglesIntersect(LineViewRect, MyCullingRect))
 		{
 			continue;
 		}
 
 		// Render any underlays for this line
-		const int32 HighestUnderlayLayerId = OnPaintHighlights( Args, LineView, LineView.UnderlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+		const int32 HighestUnderlayLayerId = OnPaintHighlights( Args, LineView, LineView.UnderlayHighlights, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 		const int32 BlockDebugLayer = HighestUnderlayLayerId;
 		const int32 TextLayer = BlockDebugLayer + 1;
@@ -91,23 +90,21 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		// Render every block for this line
 		for (const TSharedRef< ILayoutBlock >& Block : LineView.Blocks)
 		{
-			if ( bShowDebug )
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if ( GShowTextDebugging )
 			{
-				BlockHue.R += 50.0f;
-
-				// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
-				const float InverseScale = Inverse(AllottedGeometry.Scale);
+				BlockDebugHue.R += 50.0f;
 
 				FSlateDrawElement::MakeBox(
 					OutDrawElements, 
 					BlockDebugLayer,
 					AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset()))),
 					&DefaultTextStyle.HighlightShape,
-					ClippingRect,
 					DrawEffects,
-					InWidgetStyle.GetColorAndOpacityTint() * BlockHue.HSVToLinearRGB()
+					InWidgetStyle.GetColorAndOpacityTint() * BlockDebugHue.HSVToLinearRGB()
 					);
 			}
+#endif
 
 			const TSharedRef< ISlateRun > Run = StaticCastSharedRef< ISlateRun >( Block->GetRun() );
 
@@ -115,25 +112,25 @@ int32 FSlateTextLayout::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 			const TSharedPtr< ISlateRunRenderer > RunRenderer = StaticCastSharedPtr< ISlateRunRenderer >( Block->GetRenderer() );
 			if ( RunRenderer.IsValid() )
 			{
-				HighestRunLayerId = RunRenderer->OnPaint( Args, LineView, Run, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
+				HighestRunLayerId = RunRenderer->OnPaint( Args, LineView, Run, Block, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
 			}
 			else
 			{
-				HighestRunLayerId = Run->OnPaint( Args, LineView, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
+				HighestRunLayerId = Run->OnPaint( Args, LineView, Block, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
 			}
 
 			HighestBlockLayerId = FMath::Max( HighestBlockLayerId, HighestRunLayerId );
 		}
 
 		// Render any overlays for this line
-		const int32 HighestOverlayLayerId = OnPaintHighlights( Args, LineView, LineView.OverlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, HighestBlockLayerId, InWidgetStyle, bParentEnabled );
+		const int32 HighestOverlayLayerId = OnPaintHighlights( Args, LineView, LineView.OverlayHighlights, DefaultTextStyle, AllottedGeometry, MyCullingRect, OutDrawElements, HighestBlockLayerId, InWidgetStyle, bParentEnabled );
 		HighestLayerId = FMath::Max( HighestLayerId, HighestOverlayLayerId );
 	}
 
 	return HighestLayerId;
 }
 
-int32 FSlateTextLayout::OnPaintHighlights( const FPaintArgs& Args, const FTextLayout::FLineView& LineView, const TArray<FLineViewHighlight>& Highlights, const FTextBlockStyle& InDefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, const int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 FSlateTextLayout::OnPaintHighlights( const FPaintArgs& Args, const FTextLayout::FLineView& LineView, const TArray<FLineViewHighlight>& Highlights, const FTextBlockStyle& InDefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& CullingRect, FSlateWindowElementList& OutDrawElements, const int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	int32 CurrentLayerId = LayerId;
 
@@ -142,7 +139,7 @@ int32 FSlateTextLayout::OnPaintHighlights( const FPaintArgs& Args, const FTextLa
 		const TSharedPtr< ISlateLineHighlighter > LineHighlighter = StaticCastSharedPtr< ISlateLineHighlighter >( Highlight.Highlighter );
 		if (LineHighlighter.IsValid())
 		{
-			CurrentLayerId = LineHighlighter->OnPaint( Args, LineView, Highlight.OffsetX, Highlight.Width, InDefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, CurrentLayerId, InWidgetStyle, bParentEnabled );
+			CurrentLayerId = LineHighlighter->OnPaint( Args, LineView, Highlight.OffsetX, Highlight.Width, InDefaultTextStyle, AllottedGeometry, CullingRect, OutDrawElements, CurrentLayerId, InWidgetStyle, bParentEnabled );
 		}
 	}
 

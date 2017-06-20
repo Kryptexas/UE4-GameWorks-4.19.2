@@ -10,6 +10,8 @@
 #include "Components/PanelWidget.h"
 #include "ScrollBox.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUserScrolledEvent, float, CurrentOffset);
+
 /**
  * An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization.
  */
@@ -54,12 +56,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
 	bool AlwaysShowScrollbar;
 	
-	//TODO UMG Add SetOrientation
-	//TODO UMG Add SetScrollBarVisibility
-	//TODO UMG Add SetScrollbarThickness
-	//TODO UMG Add SetAlwaysShowScrollbar
+	/**  Disable to stop scrollbars from activating inertial overscrolling */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scroll")
+	bool AllowOverscroll;
+	
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetOrientation(EOrientation NewOrientation);
 
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetScrollBarVisibility(ESlateVisibility NewScrollBarVisibility);
+
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetScrollbarThickness(const FVector2D& NewScrollbarThickness);
+
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetAlwaysShowScrollbar(bool NewAlwaysShowScrollbar);
+	
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetAllowOverscroll(bool NewAllowOverscroll);
 public:
+
+	/** Called when the scroll has changed */
+	UPROPERTY(BlueprintAssignable, Category = "Button|Event")
+	FOnUserScrolledEvent OnUserScrolled;
 
 	/**
 	 * Updates the scroll offset of the scrollbox.
@@ -113,6 +132,8 @@ protected:
 	virtual void OnSlotAdded(UPanelSlot* Slot) override;
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
+
+	void SlateHandleUserScrolled(float CurrentOffset);
 
 protected:
 	/** The desired scroll offset for the underlying scrollbox.  This is a cache so that it can be set before the widget is constructed. */

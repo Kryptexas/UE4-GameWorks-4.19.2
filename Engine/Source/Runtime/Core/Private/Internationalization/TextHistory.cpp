@@ -178,6 +178,13 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 			}
 		}
 #endif // USE_STABLE_LOCALIZATION_KEYS
+#if WITH_EDITOR
+		if (!GIsEditor)
+		{
+			// Strip the package localization ID to match how text works at runtime (properties do this when saving during cook)
+			Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+		}
+#endif // WITH_EDITOR
 
 		// Using the deserialized namespace and key, find the DisplayString.
 		InOutDisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, &SourceString);
@@ -190,6 +197,12 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 		FString Key;
 		const bool bFoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(InOutDisplayString.ToSharedRef(), Namespace, Key);
 
+		if (Ar.IsCooking())
+		{
+			// We strip the package localization off the serialized text for a cooked game, as they're not used at runtime
+			Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+		}
+		else
 #if USE_STABLE_LOCALIZATION_KEYS
 		// Make sure the package namespace for this text property is up-to-date
 		if (GIsEditor && !Ar.HasAnyPortFlags(PPF_DuplicateVerbatim | PPF_DuplicateForPIE))
@@ -200,19 +213,10 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 				const FString FullNamespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
 				if (!Namespace.Equals(FullNamespace, ESearchCase::CaseSensitive))
 				{
-					if (Ar.IsCooking())
-					{
-						const FString CurPackageNamespace = TextNamespaceUtil::ExtractPackageNamespace(Namespace);
-						const FString CurCleanNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
-						UE_LOG(LogCore, Display, TEXT("Package localization ID mismatch during cook! Expected '%s', got '%s'. Namespace: '%s', Key: '%s', Source: '%s'."), *PackageNamespace, *CurPackageNamespace, *CurCleanNamespace, *Key, *SourceString);
-					}
-					else
-					{
-						// We may assign a new key when saving if we don't have the correct package namespace in order to avoid identity conflicts when instancing (which duplicates without any special flags)
-						// This can happen if an asset was duplicated (and keeps the same keys) but later both assets are instanced into the same world (causing them to both take the worlds package id, and conflict with each other)
-						Namespace = FullNamespace;
-						Key = FGuid::NewGuid().ToString();
-					}
+					// We may assign a new key when saving if we don't have the correct package namespace in order to avoid identity conflicts when instancing (which duplicates without any special flags)
+					// This can happen if an asset was duplicated (and keeps the same keys) but later both assets are instanced into the same world (causing them to both take the worlds package id, and conflict with each other)
+					Namespace = FullNamespace;
+					Key = FGuid::NewGuid().ToString();
 				}
 			}
 		}

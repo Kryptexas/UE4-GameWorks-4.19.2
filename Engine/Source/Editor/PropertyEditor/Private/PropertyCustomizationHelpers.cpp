@@ -406,7 +406,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 
 	TSharedPtr<SResetToDefaultPropertyEditor> ResetButton = nullptr;
 
-	if (PropertyHandle.IsValid() && !PropertyHandle->HasMetaData(TEXT("NoResetToDefault")))
+	if (PropertyHandle.IsValid() && !PropertyHandle->HasMetaData(TEXT("NoResetToDefault")) && !PropertyHandle->IsResetToDefaultCustomized())
 	{
 		SAssignNew(ResetButton, SResetToDefaultPropertyEditor, PropertyHandle)
 			.IsEnabled(true)
@@ -764,16 +764,18 @@ public:
 						[
 							SNew( SBox )
 							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
 							[
 								SNew(SHorizontalBox)
 								+SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
 								.Padding(0.0f, 0.0f, 3.0f, 0.0f)
 								.AutoWidth()
 								[
 									// Add a menu for displaying all textures 
 									SNew( SComboButton )
 									.OnGetMenuContent( this, &FMaterialItemView::OnGetTexturesMenuForMaterial )
-									.VAlign( VAlign_Center )
+									.VAlign(VAlign_Center)
 									.ContentPadding(2)
 									.IsEnabled( this, &FMaterialItemView::IsTexturesMenuEnabled )
 									.Visibility( bShowUsedTextures ? EVisibility::Visible : EVisibility::Hidden )
@@ -1082,7 +1084,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 				// If we are currently displaying an expanded set of materials for an element add a link to collapse all of them
 				if( bWantToDisplayAllMaterials )
 				{
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT( "HideAllMaterialSearchString", "Hide All Materials") );
+					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow( LOCTEXT( "HideAllMaterialSearchString", "Hide All Materials") );
 
 					FFormatNamedArguments Arguments;
 					Arguments.Add(TEXT("ElementSlot"), CurrentSlot);
@@ -1106,7 +1108,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 					// The current slot has multiple elements to view
 					bDisplayAllMaterialsInSlot = false;
 
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( FText::GetEmpty() );
+					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow( FText::GetEmpty() );
 
 					AddMaterialItem( ChildRow, CurrentSlot, FMaterialListItem( NULL, CurrentSlot, true ), !bDisplayAllMaterialsInSlot );
 				}
@@ -1120,7 +1122,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 			// Display each thumbnail element unless we shouldn't display multiple materials for one slot
 			if( bDisplayAllMaterialsInSlot )
 			{
-				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( Material.Material.IsValid()? FText::FromString(Material.Material->GetName()) : FText::GetEmpty() );
+				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow( Material.Material.IsValid()? FText::FromString(Material.Material->GetName()) : FText::GetEmpty() );
 
 				AddMaterialItem( ChildRow, CurrentSlot, Material, !bDisplayAllMaterialsInSlot );
 			}
@@ -1128,7 +1130,7 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 	}
 	else
 	{
-		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent( LOCTEXT("NoMaterials", "No Materials") );
+		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow( LOCTEXT("NoMaterials", "No Materials") );
 
 		ChildRow
 		[
@@ -1864,14 +1866,14 @@ void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 			// Display each thumbnail element unless we shouldn't display multiple Sections for one slot
 			if (bDisplayAllSectionsInSlot)
 			{
-				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent(Section.Material.IsValid() ? FText::FromString(Section.Material->GetName()) : FText::GetEmpty());
+				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow(Section.Material.IsValid() ? FText::FromString(Section.Material->GetName()) : FText::GetEmpty());
 				AddSectionItem(ChildRow, CurrentLODIndex, FSectionListItem(CurrentLODIndex, Section.SectionIndex, Section.MaterialSlotName, Section.MaterialSlotIndex, Section.OriginalMaterialSlotName, Section.AvailableMaterialSlotName, Section.Material.Get(), Section.IsSectionUsingCloth, ThumbnailSize), !bDisplayAllSectionsInSlot);
 			}
 		}
 	}
 	else
 	{
-		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent(LOCTEXT("NoSections", "No Sections"));
+		FDetailWidgetRow& ChildRow = ChildrenBuilder.AddCustomRow(LOCTEXT("NoSections", "No Sections"));
 
 		ChildRow
 			[

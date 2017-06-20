@@ -44,7 +44,6 @@ public class UnrealEd : ModuleRules
 				"PlacementMode",
 				"Settings",
 				"SettingsEditor",
-				"SuperSearch",
 				"AudioEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
@@ -94,6 +93,7 @@ public class UnrealEd : ModuleRules
 				"Localization",
 				"AudioEditor",
 				"NetworkFileSystem",
+                "UMG",
 			}
 		);
 
@@ -192,7 +192,6 @@ public class UnrealEd : ModuleRules
 				"SessionFrontend",
 				"Sequencer",
 				"StringTableEditor",
-				"SuperSearch",
 				"GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
@@ -211,7 +210,6 @@ public class UnrealEd : ModuleRules
 				"BehaviorTreeEditor",
 				"EnvironmentQueryEditor",
 				"ViewportSnapping",
-				"UserFeedback",
 				"GameplayTasksEditor",
 				"UndoHistory",
 				"SourceCodeAccess",
@@ -251,7 +249,6 @@ public class UnrealEd : ModuleRules
 
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
-				"UserFeedback",
 				"CollectionManager",
 				"BlueprintGraph",
 				"AddContentDialog",                

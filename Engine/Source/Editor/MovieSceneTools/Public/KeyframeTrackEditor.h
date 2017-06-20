@@ -72,32 +72,35 @@ protected:
 	 *        track is created, but before any sections or keys have been added.
 	 * @return Whether or not a handle guid or track was created. Note this does not return true if keys were added or modified.
 	 */
-	bool AddKeysToObjects(
+	FKeyPropertyResult AddKeysToObjects(
 		TArray<UObject*> ObjectsToKey, float KeyTime,
 		const TArray<KeyDataType>& NewKeys, const TArray<KeyDataType>& DefaultKeys,
 		ESequencerKeyMode KeyMode, TSubclassOf<UMovieSceneTrack> TrackClass, FName PropertyName,
 		TFunction<void(TrackType*)> OnInitializeNewTrack)
 	{
-		bool bHandleCreated = false;
-		bool bTrackCreated = false;
+		FKeyPropertyResult KeyPropertyResult;
+
+		EAutoChangeMode AutoChangeMode = GetSequencer()->GetAutoChangeMode();
+		EAllowEditsMode AllowEditsMode = GetSequencer()->GetAllowEditsMode();
 
 		bool bCreateHandle =
-			(KeyMode == ESequencerKeyMode::AutoKey && GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyAll) ||
+			(KeyMode == ESequencerKeyMode::AutoKey && (AutoChangeMode == EAutoChangeMode::AutoTrack || AutoChangeMode == EAutoChangeMode::All)) ||
 			KeyMode == ESequencerKeyMode::ManualKey ||
-			KeyMode == ESequencerKeyMode::ManualKeyForced;
+			KeyMode == ESequencerKeyMode::ManualKeyForced ||
+			AllowEditsMode == EAllowEditsMode::AllowSequencerEditsOnly;
 
 		for ( UObject* Object : ObjectsToKey )
 		{
 			FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object, bCreateHandle );
 			FGuid ObjectHandle = HandleResult.Handle;
-			bHandleCreated = HandleResult.bWasCreated;
+			KeyPropertyResult.bHandleCreated = HandleResult.bWasCreated;
 
 			if ( ObjectHandle.IsValid() )
 			{
-				bTrackCreated |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyMode, TrackClass, PropertyName, OnInitializeNewTrack );
+				KeyPropertyResult.bTrackCreated |= AddKeysToHandle( ObjectHandle, KeyTime, NewKeys, DefaultKeys, KeyMode, TrackClass, PropertyName, OnInitializeNewTrack );
 			}
 		}
-		return bHandleCreated || bTrackCreated;
+		return KeyPropertyResult;
 	}
 
 
@@ -150,10 +153,14 @@ private:
 		bool bTrackCreated = false;
 		bool bSectionCreated = false;
 
+		EAutoChangeMode AutoChangeMode = GetSequencer()->GetAutoChangeMode();
+		EAllowEditsMode AllowEditsMode = GetSequencer()->GetAllowEditsMode();
+
 		bool bCreateTrack =
-			(KeyMode == ESequencerKeyMode::AutoKey && GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyAll) ||
+			(KeyMode == ESequencerKeyMode::AutoKey && (AutoChangeMode == EAutoChangeMode::AutoTrack || AutoChangeMode == EAutoChangeMode::All)) ||
 			KeyMode == ESequencerKeyMode::ManualKey ||
-			KeyMode == ESequencerKeyMode::ManualKeyForced;
+			KeyMode == ESequencerKeyMode::ManualKeyForced ||
+			AllowEditsMode == EAllowEditsMode::AllowSequencerEditsOnly;
 
 		// Try to find an existing Track, and if one doesn't exist check the key params and create one if requested.
 		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, TrackClass, PropertyName, bCreateTrack );
@@ -185,7 +192,9 @@ private:
 		bool bSectionCreated = false;
 		bool bInfiniteKeyAreas = GetSequencer()->GetInfiniteKeyAreas();
 
-		if ( KeyMode != ESequencerKeyMode::AutoKey || GetSequencer()->GetAutoKeyMode() != EAutoKeyMode::KeyNone )
+		EAutoChangeMode AutoChangeMode = GetSequencer()->GetAutoChangeMode();
+
+		if ( KeyMode != ESequencerKeyMode::AutoKey || AutoChangeMode == EAutoChangeMode::AutoKey || AutoChangeMode == EAutoChangeMode::All )
 		{
 			EMovieSceneKeyInterpolation InterpolationMode = GetSequencer()->GetKeyInterpolation();
 
@@ -194,7 +203,7 @@ private:
 				GetSequencer()->GetKeyAllEnabled();
 
 			bool bKeyEvenIfEmpty =
-				(KeyMode == ESequencerKeyMode::AutoKey && GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyAll) ||
+				(KeyMode == ESequencerKeyMode::AutoKey && AutoChangeMode == EAutoChangeMode::All) ||
 				KeyMode == ESequencerKeyMode::ManualKeyForced;
 
 			for (const KeyDataType& NewKey : NewKeys)

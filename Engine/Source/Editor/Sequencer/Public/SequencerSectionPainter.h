@@ -57,6 +57,8 @@ public:
 
 	/** Whether our parent widget is enabled or not */
 	bool bParentEnabled;
-	
+
+	/** Whether the section is hovered or not */
+	bool bIsHighlighted;
 };
 

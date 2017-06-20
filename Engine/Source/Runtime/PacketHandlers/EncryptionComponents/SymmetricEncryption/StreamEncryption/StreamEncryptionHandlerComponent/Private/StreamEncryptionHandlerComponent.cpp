@@ -151,8 +151,8 @@ TSharedPtr<HandlerComponent> FStreamEncryptionHandlerComponentModuleInterface::C
 
 	if (!Options.IsEmpty())
 	{
-		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
-		TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(static_cast<FStreamEncryptorModuleInterface*>(&(*Interface)));
+		FStreamEncryptorModuleInterface* Interface = FModuleManager::LoadModulePtr<FStreamEncryptorModuleInterface>(FName(*Options));
+		TSharedPtr<FStreamEncryptorModuleInterface> StreamEncryptorInterface(Interface);
 
 		ReturnVal = MakeShareable(new StreamEncryptionHandlerComponent(StreamEncryptorInterface->CreateStreamEncryptorInstance()));
 	}

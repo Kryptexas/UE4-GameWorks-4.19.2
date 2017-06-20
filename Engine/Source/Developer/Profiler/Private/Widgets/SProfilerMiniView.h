@@ -164,9 +164,9 @@ class SProfilerMiniView : public SCompoundWidget
 	/** Holds current state provided by OnPaint function, used to simplify drawing. */
 	struct FSlateOnPaintState : public FNoncopyable
 	{
-		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
+		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyCullingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
 			: AllottedGeometry( InAllottedGeometry )
-			, MyClippingRect( InMyClippingRect )
+			, MyCullingRect( InMyCullingRect )
 			, WidgetStyle( InWidgetStyle )
 			, OutDrawElements( InOutDrawElements )
 			, LayerId( InLayerId )
@@ -175,10 +175,10 @@ class SProfilerMiniView : public SCompoundWidget
 
 #if	0
 		/** Set operation. */
-		void Set( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
+		void Set( const FGeometry& InAllottedGeometry, const FSlateRect& InMyCullingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
 		{
 			_AllottedGeometry = &InAllottedGeometry;
-			_MyClippingRect = &InMyClippingRect;
+			_MyCullingRect = &InMyCullingRect;
 			_WidgetStyle = &InWidgetStyle;
 			_OutDrawElements = &InOutDrawElements;
 			_LayerId = &InLayerId;
@@ -188,7 +188,7 @@ class SProfilerMiniView : public SCompoundWidget
 
 		/** Accessors. */
 		const FGeometry& AllottedGeometry; 
-		const FSlateRect& MyClippingRect;
+		const FSlateRect& MyCullingRect;
 		const FWidgetStyle& WidgetStyle;
 		 
 		FSlateWindowElementList& OutDrawElements;
@@ -216,7 +216,7 @@ public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
@@ -296,7 +296,7 @@ protected:
 
 	void UpdateNumPixelsPerSample()
 	{
-		NumPixelsPerSample = FMath::Max( (float)MIN_NUM_PIXELS_PER_SAMPLE, ThisGeometry.Size.X / AllFrames.Num() );
+		NumPixelsPerSample = FMath::Max( (float)MIN_NUM_PIXELS_PER_SAMPLE, ThisGeometry.GetLocalSize().X / AllFrames.Num() );
 	}
 
 	const float GetNumPixelsPerSample() const

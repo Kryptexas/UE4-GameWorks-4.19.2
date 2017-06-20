@@ -30,6 +30,14 @@ UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& I
 {
 }
 
+UMovieSceneSequencePlayer::~UMovieSceneSequencePlayer()
+{
+	if (OldMaxTickRate.IsSet())
+	{
+		GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
+	}
+}
+
 EMovieScenePlayerStatus::Type UMovieSceneSequencePlayer::GetPlaybackStatus() const
 {
 	return Status;
@@ -92,9 +100,9 @@ void UMovieSceneSequencePlayer::PlayInternal()
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-		OldMaxTickRate = GEngine->GetMaxFPS();
 		if (FixedFrameInterval.IsSet() && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
 		{
+			OldMaxTickRate = GEngine->GetMaxFPS();
 			GEngine->SetMaxFPS(1.f / FixedFrameInterval.GetValue());
 		}
 
@@ -202,7 +210,10 @@ void UMovieSceneSequencePlayer::Stop()
 
 		RootTemplateInstance.Finish(*this);
 
-		GEngine->SetMaxFPS(OldMaxTickRate);
+		if (OldMaxTickRate.IsSet())
+		{
+			GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
+		}
 
 		OnStopped();
 
@@ -341,7 +352,9 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 				SpawnRegister->ForgetExternallyOwnedSpawnedObjects(State, *this);
 			}
 
-			UpdateMovieSceneInstance(Range, OptionalStatus);
+			const bool bHasJumped = true;
+
+			UpdateMovieSceneInstance(Range, OptionalStatus, bHasJumped);
 
 			OnLooped();
 		}
@@ -349,7 +362,7 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 		// stop playback
 		else
 		{
-			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
+			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition, FixedFrameInterval);
 
 			UpdateMovieSceneInstance(Range, OptionalStatus);
 
@@ -375,11 +388,13 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 	}
 }
 
-void UMovieSceneSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus)
+void UMovieSceneSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus, bool bHasJumped)
 {
 	bIsEvaluating = true;
 
-	const FMovieSceneContext Context(InRange, OptionalStatus.Get(GetPlaybackStatus()));
+	FMovieSceneContext Context(InRange, OptionalStatus.Get(GetPlaybackStatus()));
+	Context.SetHasJumped(bHasJumped);
+
 	RootTemplateInstance.Evaluate(Context, *this);
 
 #if WITH_EDITOR

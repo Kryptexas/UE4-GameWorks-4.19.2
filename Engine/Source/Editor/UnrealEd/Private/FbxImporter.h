@@ -150,7 +150,7 @@ struct FBXImportOptions
 	FString BaseNormalTextureName;
 	FString BaseEmmisiveTextureName;
 	FString BaseSpecularTextureName;
-	EMaterialSearchLocation::Type MaterialSearchLocation;
+	EMaterialSearchLocation MaterialSearchLocation;
 	// Skeletal Mesh options
 	bool bImportMorph;
 	bool bImportAnimations;
@@ -778,7 +778,7 @@ public:
 	 * @param BaseSkelMesh - base Skeletal Mesh
 	 * @param LODIndex - LOD index
 	 */
-	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex);
+	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
 
 	/**
 	 * Import LOD object for skeletal mesh
@@ -1026,7 +1026,7 @@ private:
 	 * @param BaseSkelMesh - base Skeletal Mesh
 	 * @param LODIndex - LOD index of the skeletal mesh
 	 */
-	void ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex );
+	void ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData);
 
 	/**
 	* sub-method called from ImportSkeletalMeshLOD method
@@ -1373,15 +1373,6 @@ protected:
 	 * @param outUVSets
 	 */
 	void CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh);
-	
-	/**
-	* Search for an existing Unreal material based on import option settings
-	*
-	* @param BasePath Folder to start looking from, recursively.
-	* @param MaterialName Name of the material to search for.
-	* @return Material found
-	*/
-	UMaterialInterface* FindExistingUnrealMaterial(const FString& BasePath, const FString& MaterialName);
 
 	/**
 	 * Visit all materials of one node, import textures from materials.

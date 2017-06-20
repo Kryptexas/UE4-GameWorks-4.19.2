@@ -57,9 +57,19 @@ FStaticMeshDetails::~FStaticMeshDetails()
 void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder )
 {
 	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
-	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings") );
-	IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision", LOCTEXT("CollisionCategory", "Collision"));
+	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "General Settings") );
+	IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory( "Collision", LOCTEXT("CollisionCategory", "Collision") );
+	IDetailCategoryBuilder& ImportSettingsCategory = DetailBuilder.EditCategory("ImportSettings");
 
+	// Hide the ability to change the import settings object
+	TSharedRef<IPropertyHandle> ImportSettings = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UStaticMesh, AssetImportData));
+	IDetailPropertyRow& Row = ImportSettingsCategory.AddProperty(ImportSettings);
+	Row.CustomWidget(true)
+		.NameContent()
+		[
+			ImportSettings->CreatePropertyNameWidget()
+		];
+	
 	DetailBuilder.EditCategory( "Navigation", FText::GetEmpty(), ECategoryPriority::Uncommon );
 
 	LevelOfDetailSettings = MakeShareable( new FLevelOfDetailSettingsLayout( StaticMeshEditor ) );
@@ -67,7 +77,7 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 	LevelOfDetailSettings->AddToDetailsPanel( DetailBuilder );
 
 	
-	TSharedRef<IPropertyHandle> BodyProp = DetailBuilder.GetProperty("BodySetup");
+	TSharedRef<IPropertyHandle> BodyProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UStaticMesh,BodySetup));
 	BodyProp->MarkHiddenByCustomization();
 
 	static TArray<FName> HiddenBodyInstanceProps;
@@ -307,7 +317,7 @@ void FMeshBuildSettingsLayout::OnDistanceFieldReplacementMeshSelected(const FAss
 void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -324,7 +334,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeTangents", "Recompute Tangents") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("RecomputeTangents", "Recompute Tangents") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -340,7 +350,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("UseMikkTSpace", "Use MikkTSpace Tangent Space") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("UseMikkTSpace", "Use MikkTSpace Tangent Space") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -356,7 +366,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RemoveDegenerates", "Remove Degenerates") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("RemoveDegenerates", "Remove Degenerates") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -372,7 +382,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("BuildAdjacencyBuffer", "Build Adjacency Buffer") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("BuildAdjacencyBuffer", "Build Adjacency Buffer") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -388,7 +398,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("BuildReversedIndexBuffer", "Build Reversed Index Buffer") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("BuildReversedIndexBuffer", "Build Reversed Index Buffer") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -404,7 +414,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("UseHighPrecisionTangentBasis", "Use High Precision Tangent Basis"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("UseHighPrecisionTangentBasis", "Use High Precision Tangent Basis"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -420,7 +430,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -436,7 +446,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -452,7 +462,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -471,7 +481,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -490,7 +500,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -509,7 +519,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("BuildScale", "Build Scale"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -535,7 +545,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -555,7 +565,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 		
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Two-Sided Distance Field Generation") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Two-Sided Distance Field Generation") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -577,7 +587,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.ObjectPath(this, &FMeshBuildSettingsLayout::GetCurrentDistanceFieldReplacementMeshPath)
 			.OnObjectChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldReplacementMeshSelected);
 
-		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldReplacementMesh", "Distance Field Replacement Mesh") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("DistanceFieldReplacementMesh", "Distance Field Replacement Mesh") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -591,7 +601,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes") )
 		.ValueContent()
 		.HAlign(HAlign_Left)
 		[
@@ -943,7 +953,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("PercentTriangles", "Percent Triangles") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("PercentTriangles", "Percent Triangles") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -964,7 +974,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MaxDeviation", "Max Deviation") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("MaxDeviation", "Max Deviation") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -985,7 +995,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("PixelError", "Pixel Error") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("PixelError", "Pixel Error") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1006,7 +1016,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -1026,7 +1036,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Texture_MeshSimplification", "Texture") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("Texture_MeshSimplification", "Texture") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -1046,7 +1056,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Shading_MeshSimplification", "Shading") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("Shading_MeshSimplification", "Shading") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -1066,7 +1076,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("WeldingThreshold", "Welding Threshold") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("WeldingThreshold", "Welding Threshold") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1087,7 +1097,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1104,7 +1114,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("HardEdgeAngle", "Hard Edge Angle") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("HardEdgeAngle", "Hard Edge Angle") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1125,7 +1135,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes") )
 			.ValueContent()
 			.HAlign(HAlign_Left)
 			[
@@ -1424,7 +1434,7 @@ void FMeshSectionSettingsLayout::OnPasteSectionList(int32 CurrentLODIndex)
 
 			GetStaticMesh().PreEditChange(Property);
 
-			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionList", "Pasted section list"));
+			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionList", "Staticmesh editor: Pasted section list"));
 			GetStaticMesh().Modify();
 
 			FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
@@ -1525,7 +1535,7 @@ void FMeshSectionSettingsLayout::OnPasteSectionItem(int32 CurrentLODIndex, int32
 
 			GetStaticMesh().PreEditChange(Property);
 
-			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionItem", "Pasted section item"));
+			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionItem", "Staticmesh editor: Pasted section item"));
 			GetStaticMesh().Modify();
 
 			FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
@@ -1613,12 +1623,18 @@ void FMeshSectionSettingsLayout::OnSectionChanged(int32 ForLODIndex, int32 Secti
 		FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 		if (LOD.Sections.IsValidIndex(SectionIndex))
 		{
+			UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, SectionInfoMap));
+
+			GetStaticMesh().PreEditChange(Property);
+
+			FScopedTransaction Transaction(LOCTEXT("StaticMeshOnSectionChangedTransaction", "Staticmesh editor: Section material slot changed"));
+			GetStaticMesh().Modify();
 			FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
 			Info.MaterialIndex = NewStaticMaterialIndex;
 			StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+			CallPostEditChange();
 		}
 	}
-	CallPostEditChange();
 }
 
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection(int32 ForLODIndex, int32 SectionIndex)
@@ -1700,6 +1716,18 @@ ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIn
 void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	FText TransactionTest = LOCTEXT("StaticMeshEditorSetShadowCastingSectionFlag", "Staticmesh editor: Set Shadow Casting For section");
+	if (NewState == ECheckBoxState::Unchecked)
+	{
+		TransactionTest = LOCTEXT("StaticMeshEditorClearShadowCastingSectionFlag", "Staticmesh editor: Clear Shadow Casting For section");
+	}
+	FScopedTransaction Transaction(TransactionTest);
+
+	UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, SectionInfoMap));
+	StaticMesh.PreEditChange(Property);
+	StaticMesh.Modify();
+	
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
 	Info.bCastShadow = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
@@ -1739,6 +1767,18 @@ ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex
 void FMeshSectionSettingsLayout::OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	FText TransactionTest = LOCTEXT("StaticMeshEditorSetCollisionSectionFlag", "Staticmesh editor: Set Collision For section");
+	if (NewState == ECheckBoxState::Unchecked)
+	{
+		TransactionTest = LOCTEXT("StaticMeshEditorClearCollisionSectionFlag", "Staticmesh editor: Clear Collision For section");
+	}
+	FScopedTransaction Transaction(TransactionTest);
+
+	UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, SectionInfoMap));
+	StaticMesh.PreEditChange(Property);
+	StaticMesh.Modify();
+
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
 	Info.bEnableCollision = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
@@ -2076,7 +2116,7 @@ void FMeshMaterialsLayout::OnPasteMaterialList()
 		check(Property != nullptr);
 
 		GetStaticMesh().PreEditChange(Property);
-		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialList", "Pasted material list"));
+		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialList", "Staticmesh editor: Pasted material list"));
 		GetStaticMesh().Modify();
 
 		TArray<FStaticMaterial> TempMaterials;
@@ -2139,7 +2179,7 @@ void FMeshMaterialsLayout::OnPasteMaterialItem(int32 CurrentSlot)
 
 		GetStaticMesh().PreEditChange(Property);
 
-		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialItem", "Pasted material item"));
+		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialItem", "Staticmesh editor: Pasted material item"));
 		GetStaticMesh().Modify();
 
 		if (GetStaticMesh().StaticMaterials.IsValidIndex(CurrentSlot))
@@ -2157,7 +2197,7 @@ FReply FMeshMaterialsLayout::AddMaterialSlot()
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 
-	FScopedTransaction Transaction(LOCTEXT("FMeshMaterialsLayout_AddMaterialSlot", "Add material slot"));
+	FScopedTransaction Transaction(LOCTEXT("FMeshMaterialsLayout_AddMaterialSlot", "Staticmesh editor: Add material slot"));
 	StaticMesh.Modify();
 	StaticMesh.StaticMaterials.Add(FStaticMaterial());
 
@@ -2194,6 +2234,7 @@ void FMeshMaterialsLayout::GetMaterials(IMaterialListBuilder& ListBuilder)
 void FMeshMaterialsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 MaterialIndex, bool bReplaceAll)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
+	FScopedTransaction ScopeTransaction(LOCTEXT("StaticMeshEditorMaterialChanged", "Staticmesh editor: Material changed"));
 
 	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
 	UProperty* ChangedProperty = NULL;
@@ -2234,7 +2275,6 @@ TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateWidgetsForMaterial(UMaterial
 	return 
 		SNew(SMaterialSlotWidget, SlotIndex, bMaterialIsUsed)
 		.MaterialName(this, &FMeshMaterialsLayout::GetMaterialNameText, SlotIndex)
-		.OnMaterialNameChanged(this, &FMeshMaterialsLayout::OnMaterialNameChanged, SlotIndex)
 		.OnMaterialNameCommitted(this, &FMeshMaterialsLayout::OnMaterialNameCommitted, SlotIndex)
 		.CanDeleteMaterialSlot(this, &FMeshMaterialsLayout::CanDeleteMaterialSlot, SlotIndex)
 		.OnDeleteMaterialSlot(this, &FMeshMaterialsLayout::OnDeleteMaterialSlot, SlotIndex)
@@ -2399,15 +2439,21 @@ FText FMeshMaterialsLayout::GetMaterialNameText(int32 MaterialIndex) const
 
 void FMeshMaterialsLayout::OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex)
 {
-	OnMaterialNameChanged(InValue, MaterialIndex);
-}
-
-void FMeshMaterialsLayout::OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex)
-{
 	UStaticMesh& StaticMesh = GetStaticMesh();
-	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
+	FName InValueName = FName(*(InValue.ToString()));
+	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex) && StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName != InValueName)
 	{
-		StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = FName(*(InValue.ToString()));
+		FScopedTransaction ScopeTransaction(LOCTEXT("StaticMeshEditorMaterialSlotNameChanged", "Staticmesh editor: Material slot name change"));
+
+		UProperty* ChangedProperty = NULL;
+		ChangedProperty = FindField<UProperty>(UStaticMesh::StaticClass(), "StaticMaterials");
+		check(ChangedProperty);
+		StaticMesh.PreEditChange(ChangedProperty);
+
+		StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = InValueName;
+		
+		FPropertyChangedEvent PropertyUpdateStruct(ChangedProperty);
+		StaticMesh.PostEditChangeProperty(PropertyUpdateStruct);
 	}
 }
 
@@ -2422,7 +2468,7 @@ void FMeshMaterialsLayout::OnDeleteMaterialSlot(int32 MaterialIndex)
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	if (CanDeleteMaterialSlot(MaterialIndex))
 	{
-		FScopedTransaction Transaction(LOCTEXT("PersonaDeletedMaterialSlot", "Deleted material slot on skeletal mesh"));
+		FScopedTransaction Transaction(LOCTEXT("StaticMeshEditorDeletedMaterialSlot", "Staticmesh editor: Deleted material slot"));
 
 		StaticMesh.Modify();
 		StaticMesh.StaticMaterials.RemoveAt(MaterialIndex);
@@ -2728,7 +2774,10 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	int32 LODGroupIndex = LODGroupNames.Find(StaticMesh->LODGroup);
 	check(LODGroupIndex == INDEX_NONE || LODGroupIndex < LODGroupOptions.Num());
 
-	LODSettingsCategory.AddCustomRow( LOCTEXT("LODGroup", "LOD Group") )
+
+	IDetailPropertyRow& LODGroupRow = LODSettingsCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UStaticMesh, LODGroup));
+
+	LODGroupRow.CustomWidget()
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -2863,7 +2912,7 @@ FReply FLevelOfDetailSettingsLayout::OnRemoveLOD(int32 LODIndex)
 
 			if (FMessageDialog::Open(EAppMsgType::YesNo, RemoveLODText) == EAppReturnType::Yes)
 			{
-				FText TransactionDescription = FText::Format( LOCTEXT("OnRemoveLOD", "Remove LOD {0}"), LODIndex);
+				FText TransactionDescription = FText::Format( LOCTEXT("OnRemoveLOD", "Staticmesh editor: Remove LOD {0}"), LODIndex);
 				FScopedTransaction Transaction( TEXT(""), TransactionDescription, StaticMesh );
 
 				StaticMesh->Modify();

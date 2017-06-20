@@ -9,6 +9,7 @@
 #include "CommonMovieSceneTools.h"
 
 class FSequencer;
+class FSequencerDisplayNode;
 class SSequencerTreeView;
 
 /** Structure used for handling the virtual space of the track area */

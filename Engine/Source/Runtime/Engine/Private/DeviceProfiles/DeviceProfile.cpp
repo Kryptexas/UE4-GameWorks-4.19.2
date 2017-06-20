@@ -65,10 +65,10 @@ void UDeviceProfile::ValidateTextureLODGroups()
 {
 	// Ensure the Texture LOD Groups are in order of TextureGroup Enum
 	TextureLODGroups.Sort([]
-	(const FTextureLODGroup& Lhs, const FTextureLODGroup& Rhs)
-	{
-		return (int32)Lhs.Group < (int32)Rhs.Group;
-	}
+		(const FTextureLODGroup& Lhs, const FTextureLODGroup& Rhs)
+		{
+			return (int32)Lhs.Group < (int32)Rhs.Group;
+		}
 	);
 
 	// Make sure every Texture Group has an entry, any that aren't specified for this profile should use it's parents values, or the defaults.

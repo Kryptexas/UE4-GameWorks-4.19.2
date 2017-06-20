@@ -9,6 +9,8 @@
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "Evaluation/MovieSceneLegacyTrackInstanceTemplate.h"
 
+#include "MovieSceneEvaluationCustomVersion.h"
+
 UMovieSceneTrack::UMovieSceneTrack(const FObjectInitializer& InInitializer)
 	: Super(InInitializer)
 {
@@ -26,6 +28,77 @@ void UMovieSceneTrack::PostInitProperties()
 	}
 	
 	Super::PostInitProperties();
+}
+
+void UMovieSceneTrack::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetLinkerCustomVersion(FMovieSceneEvaluationCustomVersion::GUID) < FMovieSceneEvaluationCustomVersion::ChangeEvaluateNearestSectionDefault)
+	{
+		EvalOptions.bEvalNearestSection = EvalOptions.bEvaluateNearestSection_DEPRECATED;
+	}
+}
+
+void UMovieSceneTrack::UpdateEasing()
+{
+	int32 MaxRows = GetMaxRowIndex();
+	TArray<UMovieSceneSection*> RowSections;
+
+	for (int32 RowIndex = 0; RowIndex <= MaxRows; ++RowIndex)
+	{
+		RowSections.Reset();
+
+		for (UMovieSceneSection* Section : GetAllSections())
+		{
+			if (Section && Section->GetRowIndex() == RowIndex)
+			{
+				RowSections.Add(Section);
+			}
+		}
+
+		for (int32 Index = 0; Index < RowSections.Num(); ++Index)
+		{
+			UMovieSceneSection* CurrentSection = RowSections[Index];
+
+			// Check overlaps with exclusive ranges so that sections can butt up against each other
+			UMovieSceneTrack* OuterTrack = CurrentSection->GetTypedOuter<UMovieSceneTrack>();
+			float MaxEaseIn = 0.f;
+			float MaxEaseOut = 0.f;
+
+			TRange<float> CurrentSectionRange = CurrentSection->GetRange();
+			for (int32 OtherIndex = 0; OtherIndex < RowSections.Num(); ++OtherIndex)
+			{
+				if (OtherIndex == Index)
+				{
+					continue;
+				}
+
+				UMovieSceneSection* Other = RowSections[OtherIndex];
+				TRange<float> OtherSectionRange = Other->GetRange();
+
+				// Check the lower bound of the current section against the other section's upper bound
+				const bool bSectionRangeContainsOtherUpperBound = !OtherSectionRange.GetUpperBound().IsOpen() && !CurrentSectionRange.GetLowerBound().IsOpen() && CurrentSectionRange.Contains(OtherSectionRange.GetUpperBoundValue());
+				const bool bSectionRangeContainsOtherLowerBound = !OtherSectionRange.GetLowerBound().IsOpen() && !CurrentSectionRange.GetUpperBound().IsOpen() && CurrentSectionRange.Contains(OtherSectionRange.GetLowerBoundValue());
+				if (bSectionRangeContainsOtherUpperBound && !bSectionRangeContainsOtherLowerBound)
+				{
+					MaxEaseIn = FMath::Max(MaxEaseIn, OtherSectionRange.GetUpperBoundValue() - CurrentSectionRange.GetLowerBoundValue());
+				}
+
+				if (bSectionRangeContainsOtherLowerBound &&!bSectionRangeContainsOtherUpperBound)
+				{
+					MaxEaseOut = FMath::Max(MaxEaseOut, CurrentSectionRange.GetUpperBoundValue() - OtherSectionRange.GetLowerBoundValue());
+				}
+			}
+
+			const bool bIsFinite = CurrentSectionRange.HasLowerBound() && CurrentSectionRange.HasUpperBound();
+			const float Max = bIsFinite ? CurrentSectionRange.Size<float>() : TNumericLimits<float>::Max();
+
+			CurrentSection->Modify();
+			CurrentSection->Easing.AutoEaseInTime = FMath::Clamp(MaxEaseIn, 0.f, Max);
+			CurrentSection->Easing.AutoEaseOutTime = FMath::Clamp(MaxEaseOut, 0.f, Max);
+		}
+	}
 }
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -59,8 +132,8 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneTrack::GetTrackCompiler
 		}
 	};
 
-	// Evaluate according to bEvaluateNearestSection preference
-	if (EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvaluateNearestSection)
+	// Evaluate according to bEvalNearestSection preference
+	if (EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection)
 	{
 		return FRoundToNearstSectionRules();
 	}
@@ -176,7 +249,7 @@ struct FSegmentRemapper
 		}
 	}
 
-private:	
+private:
 	bool bAllowEmptySegments;
 
 	static const int32 NotCreatedYet;
@@ -225,6 +298,7 @@ EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& O
 				if (NewTemplate.IsValid())
 				{
 					NewTemplate->SetCompletionMode(AllSections[SectionIndex]->EvalOptions.CompletionMode);
+					NewTemplate->SetSourceSection(AllSections[SectionIndex]);
 				}
 				return NewTemplate;
 			}

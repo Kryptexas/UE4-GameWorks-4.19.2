@@ -22,7 +22,7 @@ class SVirtualWindow;
 class FMoviePlayerWidgetRenderer
 {
 public:
-	FMoviePlayerWidgetRenderer(TSharedPtr<SWindow> InMainWindow, TSharedPtr<SVirtualWindow> InVirtualRenderWindowWindow, TSharedPtr<FSlateRenderer> InRenderer);
+	FMoviePlayerWidgetRenderer(TSharedPtr<SWindow> InMainWindow, TSharedPtr<SVirtualWindow> InVirtualRenderWindowWindow, FSlateRenderer* InRenderer);
 
 	void DrawWindow(float DeltaTime);
 
@@ -36,7 +36,7 @@ private:
 
 	TSharedPtr<FHittestGrid> HittestGrid;
 
-	TSharedPtr<FSlateRenderer> SlateRenderer;
+	FSlateRenderer* SlateRenderer;
 
 	FViewportRHIRef ViewportRHI;
 };
@@ -65,7 +65,7 @@ public:
 
 	/** IGameMoviePlayer Interface */
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override;
-	virtual void Initialize(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
+	virtual void Initialize(FSlateRenderer& InSlateRenderer) override;
 	virtual void Shutdown() override;
 	virtual void PassLoadingScreenWindowBackToGame() const override;
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) override;

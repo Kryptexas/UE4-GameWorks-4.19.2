@@ -50,7 +50,7 @@ void FGameplayDebuggerCategoryConfigCustomization::CustomizeChildren(TSharedRef<
 			continue;
 		}
 
-		StructBuilder.AddChildProperty(PropHandle.ToSharedRef());
+		StructBuilder.AddProperty(PropHandle.ToSharedRef());
 	}
 };
 

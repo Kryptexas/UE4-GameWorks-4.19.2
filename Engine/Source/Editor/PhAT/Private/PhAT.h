@@ -19,7 +19,7 @@
 #include "Editor/PhAT/Private/PhATSharedData.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 
-class FAssetData;
+struct FAssetData;
 class FPhATTreeInfo;
 class IDetailsView;
 class SComboButton;

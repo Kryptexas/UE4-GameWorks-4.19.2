@@ -14,7 +14,11 @@
 #include "MovieSceneNameableTrack.h"
 #include "ISequencerTrackEditor.h"
 #include "ScopedTransaction.h"
+#include "SequencerUtilities.h"
 #include "SKeyNavigationButtons.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+
+#define LOCTEXT_NAMESPACE "SequencerTrackNode"
 
 namespace SequencerNodeConstants
 {
@@ -95,121 +99,119 @@ bool FSequencerTrackNode::CanRenameNode() const
 	return false;
 }
 
+
+FReply FSequencerTrackNode::CreateNewSection() const
+{
+	UMovieSceneTrack* Track = GetTrack();
+	if (!Track)
+	{
+		return FReply::Handled();
+	}
+
+	const int32 InsertAtIndex = SubTrackMode == ESubTrackMode::SubTrack ? GetRowIndex() : Track->GetMaxRowIndex() + 1;
+	const float StartAtTime = GetSequencer().GetLocalTime();
+
+	FScopedTransaction Transaction(LOCTEXT("AddSectionText", "Add Section"));
+	UMovieSceneSection* Section = Track->CreateNewSection();
+	if (Section)
+	{
+		Track->Modify();
+
+		Section->SetIsInfinite(false);
+		Section->SetStartTime(StartAtTime);
+		Section->SetEndTime(StartAtTime + 10.f);
+		Section->SetRowIndex(InsertAtIndex);
+
+		Track->AddSection(*Section);
+
+		GetSequencer().NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+	}
+	else
+	{
+		Transaction.Cancel();
+	}
+	return FReply::Handled();
+}
+
+
 TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 {
 	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode = GetTopLevelKeyNode();
 	if (KeyAreaNode.IsValid())
 	{
-		// @todo - Sequencer - Support multiple sections/key areas?
-		TArray<TSharedRef<IKeyArea>> KeyAreas = KeyAreaNode->GetAllKeyAreas();
-
-		if (KeyAreas.Num() > 0)
-		{
-			// Create the widgets for the key editor and key navigation buttons
-			TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
-
-			if (KeyAreas[0]->CanCreateKeyEditor())
-			{
-				BoxPanel->AddSlot()
-				.AutoWidth()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SBox)
-					.WidthOverride(100)
-					.HAlign(HAlign_Left)
-					.IsEnabled(!GetSequencer().IsReadOnly())
-					[
-						KeyAreas[0]->CreateKeyEditor(&GetSequencer())
-					]
-				];
-			}
-			else
-			{
-				BoxPanel->AddSlot()
-				.AutoWidth()
-				[
-					SNew(SSpacer)
-				];
-			}
-
-			BoxPanel->AddSlot()
-			.VAlign(VAlign_Center)
-			[
-				SNew(SKeyNavigationButtons, AsShared())
-			];
-
-			return SNew(SBox)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				[
-					BoxPanel
-				];
-		}
+		return KeyAreaNode->GetCustomOutlinerContent();
 	}
-	else
+
+	TAttribute<bool> NodeIsHovered = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FSequencerDisplayNode::IsHovered));
+
+	TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
+
+	FGuid ObjectBinding;
+	TSharedPtr<FSequencerDisplayNode> ParentSeqNode = GetParent();
+
+	if (ParentSeqNode.IsValid() && (ParentSeqNode->GetType() == ESequencerNode::Object))
 	{
-		FGuid ObjectBinding;
-		TSharedPtr<FSequencerDisplayNode> ParentSeqNode = GetParent();
-
-		if (ParentSeqNode.IsValid() && (ParentSeqNode->GetType() == ESequencerNode::Object))
-		{
-			ObjectBinding = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentSeqNode)->GetObjectBinding();
-		}
-		FBuildEditWidgetParams Params;
-		Params.NodeIsHovered = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FSequencerDisplayNode::IsHovered));
-
-		TSharedPtr<SWidget> Widget = GetSequencer().IsReadOnly() ? SNullWidget::NullWidget : AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get(), Params);
-
-		TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
-
-		bool bHasKeyableAreas = false;
-
-		TArray<TSharedRef<FSequencerSectionKeyAreaNode>> ChildKeyAreaNodes;
-		FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(ChildKeyAreaNodes);
-		for (int32 ChildIndex = 0; ChildIndex < ChildKeyAreaNodes.Num() && !bHasKeyableAreas; ++ChildIndex)
-		{
-			TArray< TSharedRef<IKeyArea> > ChildKeyAreas = ChildKeyAreaNodes[ChildIndex]->GetAllKeyAreas();
-
-			for (int32 ChildKeyAreaIndex = 0; ChildKeyAreaIndex < ChildKeyAreas.Num() && !bHasKeyableAreas; ++ChildKeyAreaIndex)
-			{
-				if (ChildKeyAreas[ChildKeyAreaIndex]->CanCreateKeyEditor())
-				{
-					bHasKeyableAreas = true;
-				}
-			}
-		}
-
-		if (Widget.IsValid())
-		{
-			BoxPanel->AddSlot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Right)
-			[
-				Widget.ToSharedRef()
-			];
-		}
-
-		if (bHasKeyableAreas)
-		{
-			BoxPanel->AddSlot()
-			.VAlign(VAlign_Center)
-			[
-				SNew(SKeyNavigationButtons, AsShared())
-			];
-		}
-
-		return SNew(SBox)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Right)
-			[
-				BoxPanel
-			];
+		ObjectBinding = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentSeqNode)->GetObjectBinding();
 	}
 
+	UMovieSceneTrack* Track = AssociatedTrack.Get();
 
-	return SNew(SSpacer);
+	FBuildEditWidgetParams Params;
+	Params.NodeIsHovered = NodeIsHovered;
+	if (SubTrackMode == ESubTrackMode::SubTrack)
+	{
+		Params.TrackInsertRowIndex = GetRowIndex();
+	}
+	else if (Track->SupportsMultipleRows())
+	{
+		Params.TrackInsertRowIndex = Track->GetMaxRowIndex()+1;
+	}
+
+	TSharedPtr<SWidget> Widget = GetSequencer().IsReadOnly() ? SNullWidget::NullWidget : AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, Track, Params);
+
+	bool bHasKeyableAreas = false;
+
+	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> ChildKeyAreaNodes;
+	FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(ChildKeyAreaNodes);
+	for (int32 ChildIndex = 0; ChildIndex < ChildKeyAreaNodes.Num() && !bHasKeyableAreas; ++ChildIndex)
+	{
+		TArray< TSharedRef<IKeyArea> > ChildKeyAreas = ChildKeyAreaNodes[ChildIndex]->GetAllKeyAreas();
+
+		for (int32 ChildKeyAreaIndex = 0; ChildKeyAreaIndex < ChildKeyAreas.Num() && !bHasKeyableAreas; ++ChildKeyAreaIndex)
+		{
+			if (ChildKeyAreas[ChildKeyAreaIndex]->CanCreateKeyEditor())
+			{
+				bHasKeyableAreas = true;
+			}
+		}
+	}
+
+	if (Widget.IsValid())
+	{
+		BoxPanel->AddSlot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			Widget.ToSharedRef()
+		];
+	}
+
+	if (bHasKeyableAreas)
+	{
+		BoxPanel->AddSlot()
+		.VAlign(VAlign_Center)
+		[
+			SNew(SKeyNavigationButtons, AsShared())
+		];
+	}
+
+	return SNew(SBox)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			BoxPanel
+		];
 }
 
 
@@ -305,3 +307,116 @@ void FSequencerTrackNode::SetDisplayName(const FText& NewDisplayName)
 		GetSequencer().NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 	}
 }
+
+struct FOverlappingCompileRules : FMovieSceneSegmentCompilerRules
+{
+	int32 PredicatePriority;
+	FOverlappingCompileRules(int32 InPredicatePriority) : PredicatePriority(InPredicatePriority) {}
+
+	virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+	{
+		// If there is anything on top of this section in this range, ignore it completely (that section will render everything underneath it) 
+		auto IsUnderneathAnything = [=](const FSectionEvaluationData& In) { return SourceData[In.ImplIndex].Priority > PredicatePriority; };
+
+		if (Segment.Impls.ContainsByPredicate(IsUnderneathAnything))
+		{
+			Segment.Impls.Reset();
+		}
+		else if (Segment.Impls.Num() > 1)
+		{
+			// Sort lowest to highest
+			Segment.Impls.Sort([=](const FSectionEvaluationData& A, const FSectionEvaluationData& B){
+				return SourceData[A.ImplIndex].Priority < SourceData[B.ImplIndex].Priority;
+			});
+		}
+	}
+};
+
+TArray<FSequencerOverlapRange> FSequencerTrackNode::GetUnderlappingSections(UMovieSceneSection* InSection)
+{
+	TRange<float> InSectionRange = InSection->IsInfinite() ? TRange<float>::All() : InSection->GetRange();
+
+	TArray<FMovieSceneSectionData> CompileData;
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* SectionObj = Sections[SectionIndex]->GetSectionObject();
+		if (!SectionObj || SectionObj == InSection || SectionObj->GetRowIndex() != InSection->GetRowIndex())
+		{
+			continue;
+		}
+
+		
+		TRange<float> OtherSectionRange = SectionObj->IsInfinite() ? TRange<float>::All() : SectionObj->GetRange();
+		TRange<float> Intersection = TRange<float>::Intersection(OtherSectionRange, InSectionRange);
+		if (!Intersection.IsEmpty())
+		{
+			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+		}
+	}
+
+	FOverlappingCompileRules Rules(InSection->GetOverlapPriority());
+
+	TArray<FSequencerOverlapRange> Result;
+
+	for (const FMovieSceneSegment& Segment : FMovieSceneSegmentCompiler().Compile(CompileData, &Rules))
+	{
+		Result.Emplace();
+
+		FSequencerOverlapRange& NewRange = Result.Last();
+		NewRange.Range = Segment.Range;
+		for (FSectionEvaluationData EvalData : Segment.Impls)
+		{
+			NewRange.Sections.Add(FSectionHandle(SharedThis(this), EvalData.ImplIndex));
+		}
+	}
+	
+	return Result;
+}
+
+TArray<FSequencerOverlapRange> FSequencerTrackNode::GetEasingSegmentsForSection(UMovieSceneSection* InSection)
+{
+	TRange<float> InSectionRange = InSection->IsInfinite() ? TRange<float>::All() : InSection->GetRange();
+
+	TArray<FMovieSceneSectionData> CompileData;
+
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* SectionObj = Sections[SectionIndex]->GetSectionObject();
+		if (!SectionObj || !SectionObj->IsActive() || SectionObj->GetRowIndex() != InSection->GetRowIndex())
+		{
+			continue;
+		}
+
+		TRange<float> Intersection = TRange<float>::Intersection(SectionObj->GetEaseInRange(), InSectionRange);
+		if (!Intersection.IsEmpty())
+		{
+			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+		}
+
+		Intersection = TRange<float>::Intersection(SectionObj->GetEaseOutRange(), InSectionRange);
+		if (!Intersection.IsEmpty())
+		{
+			CompileData.Add(FMovieSceneSectionData(Intersection, FSectionEvaluationData(SectionIndex), FOptionalMovieSceneBlendType(), SectionObj->GetOverlapPriority()));
+		}
+	}
+
+	FOverlappingCompileRules Rules(InSection->GetOverlapPriority());
+
+	TArray<FSequencerOverlapRange> Result;
+
+	for (const FMovieSceneSegment& Segment : FMovieSceneSegmentCompiler().Compile(CompileData, &Rules))
+	{
+		Result.Emplace();
+
+		FSequencerOverlapRange& NewRange = Result.Last();
+		NewRange.Range = Segment.Range;
+		for (FSectionEvaluationData EvalData : Segment.Impls)
+		{
+			NewRange.Sections.Add(FSectionHandle(SharedThis(this), EvalData.ImplIndex));
+		}
+	}
+	
+	return Result;
+}
+
+#undef LOCTEXT_NAMESPACE

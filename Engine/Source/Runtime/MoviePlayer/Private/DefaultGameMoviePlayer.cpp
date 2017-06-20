@@ -107,6 +107,7 @@ FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 	, LastPlayTime(0.0)
 	, bInitialized(false)
 {
+	FCoreDelegates::IsLoadingMovieCurrentlyPlaying.BindRaw(this, &FDefaultGameMoviePlayer::IsMovieCurrentlyPlaying);
 }
 
 FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
@@ -125,6 +126,8 @@ FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 		});
 	}
 
+	FCoreDelegates::IsLoadingMovieCurrentlyPlaying.Unbind();
+
 	FlushRenderingCommands();
 }
 
@@ -134,7 +137,7 @@ void FDefaultGameMoviePlayer::RegisterMovieStreamer(TSharedPtr<IMovieStreamer> I
 	MovieStreamer->OnCurrentMovieClipFinished().AddRaw(this, &FDefaultGameMoviePlayer::BroadcastMovieClipFinished);
 }
 
-void FDefaultGameMoviePlayer::Initialize(TSharedPtr<class FSlateRenderer> InSlateRenderer)
+void FDefaultGameMoviePlayer::Initialize(FSlateRenderer& InSlateRenderer)
 {
 	if(bInitialized)
 	{
@@ -174,7 +177,7 @@ void FDefaultGameMoviePlayer::Initialize(TSharedPtr<class FSlateRenderer> InSlat
 		SNew(SVirtualWindow)
 		.Size(GameWindow->GetClientSizeInScreen());
 
-	WidgetRenderer = MakeShared<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe>(GameWindow, VirtualRenderWindow, InSlateRenderer);
+	WidgetRenderer = MakeShared<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe>(GameWindow, VirtualRenderWindow, &InSlateRenderer);
 
 	LoadingScreenContents = SNew(SDefaultMovieBorder)	
 		.OnKeyDown(this, &FDefaultGameMoviePlayer::OnLoadingScreenKeyDown)
@@ -710,7 +713,6 @@ void FDefaultGameMoviePlayer::SetSlateOverlayWidget(TSharedPtr<SWidget> NewOverl
 	{
 		UserWidgetHolder->SetContent(NewOverlayWidget.ToSharedRef());
 	}
-
 }
 
 bool FDefaultGameMoviePlayer::WillAutoCompleteWhenLoadFinishes()
@@ -729,7 +731,7 @@ bool FDefaultGameMoviePlayer::IsLastMovieInPlaylist()
 	return MovieStreamer.IsValid() ? MovieStreamer->IsLastMovieInPlaylist() : false;
 }
 
-FMoviePlayerWidgetRenderer::FMoviePlayerWidgetRenderer(TSharedPtr<SWindow> InMainWindow, TSharedPtr<SVirtualWindow> InVirtualRenderWindow, TSharedPtr<FSlateRenderer> InRenderer)
+FMoviePlayerWidgetRenderer::FMoviePlayerWidgetRenderer(TSharedPtr<SWindow> InMainWindow, TSharedPtr<SVirtualWindow> InVirtualRenderWindow, FSlateRenderer* InRenderer)
 	: MainWindow(InMainWindow.Get())
 	, VirtualRenderWindow(InVirtualRenderWindow.ToSharedRef())
 	, SlateRenderer(InRenderer)
@@ -748,7 +750,7 @@ void FMoviePlayerWidgetRenderer::DrawWindow(float DeltaTime)
 
 	VirtualRenderWindow->SlatePrepass(WindowGeometry.Scale);
 
-	FSlateRect ClipRect = WindowGeometry.GetClippingRect();
+	FSlateRect ClipRect = WindowGeometry.GetLayoutBoundingRect();
 
 	HittestGrid->ClearGridForNewFrame(ClipRect);
 

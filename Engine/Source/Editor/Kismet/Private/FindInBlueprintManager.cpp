@@ -1538,7 +1538,7 @@ void FFindInBlueprintSearchManager::RemoveBlueprintByPath(FName InPath)
 		SearchArray[*SearchIdx].bMarkedForDeletion = true;
 	}
 }
-void FFindInBlueprintSearchManager::OnAssetRemoved(const class FAssetData& InAssetData)
+void FFindInBlueprintSearchManager::OnAssetRemoved(const struct FAssetData& InAssetData)
 {
 	if(InAssetData.IsAssetLoaded())
 	{
@@ -1546,7 +1546,7 @@ void FFindInBlueprintSearchManager::OnAssetRemoved(const class FAssetData& InAss
 	}
 }
 
-void FFindInBlueprintSearchManager::OnAssetRenamed(const class FAssetData& InAssetData, const FString& InOldName)
+void FFindInBlueprintSearchManager::OnAssetRenamed(const struct FAssetData& InAssetData, const FString& InOldName)
 {
 	// Renaming removes the item from the manager, it will be re-added in the OnAssetAdded event under the new name.
 	if(InAssetData.IsAssetLoaded())

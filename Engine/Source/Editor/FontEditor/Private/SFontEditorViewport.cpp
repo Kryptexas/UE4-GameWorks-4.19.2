@@ -212,7 +212,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 				FCharacterList& CharacterList = FontCache->GetCharacterList(FontInfo, FontScale);
 
-				FShapedGlyphSequenceRef EntryNameShapedText = FontCache->ShapeBidirectionalText(TypefaceEntry.Name.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, ETextShapingMethod::Auto);
+				FShapedGlyphSequenceRef EntryNameShapedText = FontCache->ShapeBidirectionalText(TypefaceEntry.Name.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, GetDefaultTextShapingMethod());
 				
 				FCanvasShapedTextItem ShapedTextItem(CurPos, EntryNameShapedText, FLinearColor(ForegroundColor));
 				Canvas->DrawItem(ShapedTextItem);
@@ -230,7 +230,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 			{
 				const FSlateFontInfo FontInfo(Font, Font->LegacyFontSize, TypefaceEntry.Name);
 
-				FShapedGlyphSequenceRef ShapedPreviewText = FontCache->ShapeBidirectionalText(PreviewText.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, ETextShapingMethod::Auto);
+				FShapedGlyphSequenceRef ShapedPreviewText = FontCache->ShapeBidirectionalText(PreviewText.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, GetDefaultTextShapingMethod());
 
 				FCanvasShapedTextItem ShapedTextItem(CurPos, ShapedPreviewText, FLinearColor(ForegroundColor));
 				Canvas->DrawItem(ShapedTextItem);
@@ -266,7 +266,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 						{
 							// A single character may produce multiple glyphs which must be treated as a single logic unit
 							int16 GlyphClusterAdvance = 0;
-							FBox2D GlyphClusterBounds(ForceInitToZero);
+							FBox2D GlyphClusterBounds = FBox2D(ForceInitToZero);
 							for (;;)
 							{
 								const auto& GlyphToRender = GlyphsToRender[CurrentGlyphIndex];
@@ -276,10 +276,18 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 								{
 									const FShapedGlyphFontAtlasData GlyphAtlasData = FontCache->GetShapedGlyphFontAtlasData(GlyphToRender,FFontOutlineSettings::NoOutline);
 
-									const float X = CurPos.X + LineX + GlyphAtlasData.HorizontalOffset + GlyphToRender.XOffset;
+									const float X = CurPos.X + LineX + GlyphClusterAdvance + GlyphAtlasData.HorizontalOffset + GlyphToRender.XOffset;
 									const float Y = CurPos.Y - GlyphAtlasData.VerticalOffset + GlyphToRender.YOffset + ShapedPreviewText->GetTextBaseline() + ShapedPreviewText->GetMaxTextHeight();
 
+									FVector2D ExtraWidth = FVector2D(ForceInitToZero);
+									if (GlyphClusterBounds.bIsValid)
+									{
+										ExtraWidth.X = (GlyphClusterBounds.Min.X > X) ? FMath::Abs(GlyphClusterBounds.Min.X - X) : 0.0f;
+										ExtraWidth.Y = (GlyphClusterBounds.Min.Y > Y) ? FMath::Abs(GlyphClusterBounds.Min.Y - Y) : 0.0f;
+									}
+
 									GlyphClusterBounds += FBox2D(FVector2D(X, Y), FVector2D(GlyphAtlasData.USize, GlyphAtlasData.VSize));
+									GlyphClusterBounds.Max += ExtraWidth;
 								}
 
 								GlyphClusterAdvance += GlyphToRender.XAdvance;
@@ -348,7 +356,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 					CurPos.X += KeyBoxSize + 4.0f;
 
-					FShapedGlyphSequenceRef KeyLabelShapedText = FontCache->ShapeBidirectionalText(*KeyData.KeyText.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, ETextShapingMethod::Auto);
+					FShapedGlyphSequenceRef KeyLabelShapedText = FontCache->ShapeBidirectionalText(*KeyData.KeyText.ToString(), FontInfo, FontScale, TextBiDi::ETextDirection::LeftToRight, GetDefaultTextShapingMethod());
 					FCanvasShapedTextItem ShapedTextItem(CurPos, KeyLabelShapedText, FLinearColor(ForegroundColor));
 					Canvas->DrawItem(ShapedTextItem);
 

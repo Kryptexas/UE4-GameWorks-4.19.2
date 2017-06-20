@@ -1274,7 +1274,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
 	ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
 	
-	FDetailWidgetRow& ResourceObjectRow = StructBuilder.AddChildProperty(ResourceObjectProperty.ToSharedRef()).CustomWidget();
+	FDetailWidgetRow& ResourceObjectRow = StructBuilder.AddProperty(ResourceObjectProperty.ToSharedRef()).CustomWidget();
 
 	ResourceObjectRow
 		.NameContent()
@@ -1290,17 +1290,17 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 
 	// Add the image size property with custom reset delegates that also affect the child properties (the components)
 	const bool bOverrideDefaultOnVectorChildren = true;
-	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() )
+	StructBuilder.AddProperty( ImageSizeProperty.ToSharedRef() )
 	.OverrideResetToDefault(FResetToDefaultOverride::Create(
 		FIsResetToDefaultVisible::CreateSP(this, &FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible),
 		FResetToDefaultHandler::CreateSP(this, &FSlateBrushStructCustomization::OnImageSizeResetToDefault),
 		bOverrideDefaultOnVectorChildren));
 
-	StructBuilder.AddChildProperty(TintProperty.ToSharedRef());
-	StructBuilder.AddChildProperty( DrawAsProperty.ToSharedRef() );
-	StructBuilder.AddChildProperty( TilingProperty.ToSharedRef() )
+	StructBuilder.AddProperty(TintProperty.ToSharedRef());
+	StructBuilder.AddProperty( DrawAsProperty.ToSharedRef() );
+	StructBuilder.AddProperty( TilingProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetTilingPropertyVisibility ) ) );
-	StructBuilder.AddChildProperty( MarginProperty.ToSharedRef() )
+	StructBuilder.AddProperty( MarginProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetMarginPropertyVisibility ) ) );
 
 	// Don't show the preview area when in slim view mode.
@@ -1323,7 +1323,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 				.ResourceObjectProperty(ResourceObjectProperty)
 				.SlateBrush(Brush);
 
-			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), FText::GetEmpty());
+			IDetailGroup& PreviewGroup = StructBuilder.AddGroup(TEXT("Preview"), FText::GetEmpty());
 
 			PreviewGroup
 				.HeaderRow()

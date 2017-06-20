@@ -70,6 +70,7 @@ public:
 	{
 		return ClippingRect;
 	}
+
 private:
 	FIntRect ViewRect;
 	FIntRect ClippingRect;
@@ -106,10 +107,10 @@ FPreviewViewport::~FPreviewViewport()
 	);
 }
 
-void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
+void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
 {
-	FSlateRect SlateCanvasRect = AllottedGeometry.GetClippingRect();
-	FSlateRect ClippedCanvasRect = SlateCanvasRect.IntersectionWith(MyClippingRect);
+	FSlateRect SlateCanvasRect = AllottedGeometry.GetLayoutBoundingRect();
+	FSlateRect ClippedCanvasRect = SlateCanvasRect.IntersectionWith(MyCullingRect);
 
 	FIntRect CanvasRect(
 		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Left) ),
@@ -223,7 +224,6 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 	{
 		// Clip the canvas to avoid having to set UV values
 		FIntRect ClippingRect = RenderTarget->GetClippingRect();
-
 
 		RHICmdList.SetScissorRect(true,
 			ClippingRect.Min.X,

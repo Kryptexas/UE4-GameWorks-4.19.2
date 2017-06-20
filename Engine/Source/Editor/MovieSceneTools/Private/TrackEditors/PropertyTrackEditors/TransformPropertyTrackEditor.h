@@ -50,14 +50,10 @@ public:
 	//~ ISequencerTrackEditor interface
 
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) override;
-
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 protected:
 
 	//~ FPropertyTrackEditor interface
 
 	virtual void GenerateKeysFromPropertyChanged(const FPropertyChangedParams& PropertyChangedParams, TArray<FTransformKey>& NewGeneratedKeys, TArray<FTransformKey>& DefaultGeneratedKeys) override;
-
-private:
-
-
 };

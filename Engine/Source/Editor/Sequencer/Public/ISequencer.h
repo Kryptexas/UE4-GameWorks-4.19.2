@@ -14,6 +14,7 @@
 #include "Widgets/Input/NumericTypeInterface.h"
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
+class UMovieSceneTrack;
 class AActor;
 class FSequencerSelection;
 class FSequencerSelectionPreview;
@@ -24,19 +25,39 @@ class UMovieSceneSubSection;
 enum class EMapChangeType : uint8;
 
 /**
- * Defines auto-key modes.
+ * Defines auto change modes.
  */
 UENUM()
-enum class EAutoKeyMode : uint8
+enum class EAutoChangeMode : uint8
 {
-	/** Key all properties that change. */
-	KeyAll,
+	/** Create a key when a property changes. */
+	AutoKey,
 
-	/** Only key changed properties if they have exiting animations. */
-	KeyAnimated,
+	/** Create a track when a property changes. */
+	AutoTrack,
 
-	/** Don't auto-key */
-	KeyNone
+	/** Create a key and a track when a property changes. */
+	All,
+
+	/** Do nothing */
+	None
+};
+
+
+/**
+ * Defines allow edits mode.
+ */
+UENUM()
+enum class EAllowEditsMode : uint8
+{
+	/** Allow all edits. */
+	AllEdits,
+
+	/** Allow edits to go to sequencer only. */
+	AllowSequencerEditsOnly,
+
+	/** Allow edits to go to level only */
+	AllowLevelEditsOnly
 };
 
 
@@ -89,6 +110,8 @@ enum class EMovieSceneDataChangeType
 	MovieSceneStructureItemsChanged,
 	/** The active movie scene has been changed to a new movie scene. */
 	ActiveMovieSceneChanged,
+	/** Rebuild and evaluate everything immediately. */
+	RefreshAllImmediately,
 	/** It's not known what data has changed. */
 	Unknown
 };
@@ -104,7 +127,10 @@ class ISequencer
 public:
 	
 	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
-	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneDataChanged);
+	DECLARE_MULTICAST_DELEGATE(FOnBeginScrubbingEvent);
+	DECLARE_MULTICAST_DELEGATE(FOnEndScrubbingEvent);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMovieSceneDataChanged, EMovieSceneDataChangeType);
+	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneBindingsChanged);
 	
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/)
 
@@ -172,11 +198,17 @@ public:
 	 */
 	virtual void AddSubSequence(UMovieSceneSequence* Sequence) = 0;
 
-	/** @return Returns the current auto-key mode. */
-	virtual EAutoKeyMode GetAutoKeyMode() const = 0;
+	/** @return Returns the current auto-change mode. */
+	virtual EAutoChangeMode GetAutoChangeMode() const = 0;
 
-	/** Sets whether autokey is enabled in this sequencer. */
-	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) = 0;
+	/** SSets the current auto-change mode. */
+	virtual void SetAutoChangeMode(EAutoChangeMode AutoChangeMode) = 0;
+
+	/** @return Returns where edits are allowed. */
+	virtual EAllowEditsMode GetAllowEditsMode() const = 0;
+
+	/** Sets where edits are allowed */
+	virtual void SetAllowEditsMode(EAllowEditsMode AllowEditsMode) = 0;
 
 	/** @return Returns whether key all is enabled in this sequencer */
 	virtual bool GetKeyAllEnabled() const = 0;
@@ -207,6 +239,9 @@ public:
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;
+
+	/** @return Returns whether sequencer will respond to changes and possibly create a key or track */
+	virtual bool IsAllowedToChange() const { return IsRecordingLive() || GetAllowEditsMode() != EAllowEditsMode::AllowLevelEditsOnly || GetAutoChangeMode() != EAutoChangeMode::None; }
 
 	/**
 	 * Gets the current time of the time slider relative to the currently focused movie scene
@@ -345,8 +380,6 @@ public:
 	/** Get all the keys for the current sequencer selection */
 	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection) = 0;
 
-	virtual float FindNearestKey(float NewScrubPosition) = 0;
-
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
@@ -359,8 +392,17 @@ public:
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
 
+	/** Gets a multicast delegate which is executed whenever the user begins scrubbing. */
+	virtual FOnBeginScrubbingEvent& OnBeginScrubbingEvent() = 0;
+
+	/** Gets a multicast delegate which is executed whenever the user stops scrubbing. */
+	virtual FOnEndScrubbingEvent& OnEndScrubbingEvent() = 0;
+
 	/** Gets a multicast delegate which is executed whenever the movie scene data is changed. */
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() = 0;
+
+	/** Gets a multicast delegate which is executed whenever the movie scene bindings are changed. */
+	virtual FOnMovieSceneBindingsChanged& OnMovieSceneBindingsChanged() = 0;
 
 	/** Gets a multicast delegate with an array of FGuid of bound objects which is called when the outliner node selection changes. */
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() = 0;

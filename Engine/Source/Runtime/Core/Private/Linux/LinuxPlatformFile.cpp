@@ -363,7 +363,7 @@ public:
 					{
 						// make sure this is a directory
 						bool bIsDirectory = Entry->d_type == DT_DIR;
-						if(Entry->d_type == DT_UNKNOWN)
+						if(Entry->d_type == DT_UNKNOWN || Entry->d_type == DT_LNK)
 						{
 							struct stat StatInfo;
 							if(stat(TCHAR_TO_UTF8(*(BaseDir / Entry->d_name)), &StatInfo) == 0)
@@ -875,15 +875,15 @@ bool FLinuxPlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 		const FString UnicodeEntryName = UTF8_TO_TCHAR(InEntry->d_name);
 				
 		bool bIsDirectory = false;
-		if (InEntry->d_type != DT_UNKNOWN)
+		if (InEntry->d_type != DT_UNKNOWN && InEntry->d_type != DT_LNK)
 		{
 			bIsDirectory = InEntry->d_type == DT_DIR;
 		}
 		else
 		{
-			// filesystem does not support d_type, fallback to stat
+			// either filesystem does not support d_type (e.g. a network one or non-native) or we're dealing with a symbolic link, fallback to stat
 			struct stat FileInfo;
-			const FString AbsoluteUnicodeName = NormalizedDirectoryStr / UnicodeEntryName;	
+			const FString AbsoluteUnicodeName = NormalizedDirectoryStr / UnicodeEntryName;
 			if (stat(TCHAR_TO_UTF8(*AbsoluteUnicodeName), &FileInfo) != -1)
 			{
 				bIsDirectory = ((FileInfo.st_mode & S_IFMT) == S_IFDIR);

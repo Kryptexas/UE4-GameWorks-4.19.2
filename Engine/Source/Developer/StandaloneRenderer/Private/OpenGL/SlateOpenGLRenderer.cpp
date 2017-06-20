@@ -152,7 +152,7 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			glViewport( Viewport->ViewportRect.Left, Viewport->ViewportRect.Top, Viewport->ViewportRect.Right, Viewport->ViewportRect.Bottom );
 
 			// Draw all elements
-			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, BatchData.GetRenderBatches() );
+			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, WindowSize, BatchData.GetRenderBatches(), BatchData.GetRenderClipStates() );
 
 			Viewport->SwapBuffers();
 

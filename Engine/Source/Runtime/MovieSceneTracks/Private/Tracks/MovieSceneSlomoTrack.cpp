@@ -15,7 +15,6 @@ UMovieSceneSlomoTrack::UMovieSceneSlomoTrack(const FObjectInitializer& Init)
 	: Super(Init)
 {
 	EvalOptions.bCanEvaluateNearestSection = true;
-	EvalOptions.bEvaluateNearestSection = false;
 }
 
 UMovieSceneSection* UMovieSceneSlomoTrack::CreateNewSection()

@@ -446,6 +446,7 @@ namespace ObjectTools
 	 * @param	ExportPath						receives the value of the path the user chose for exporting.
 	 * @param	bUseProvidedExportPath			If true and out_ExportPath is specified, use the value in out_ExportPath as the export path w/o prompting for a directory when applicable
 	 */
+	DEPRECATED(4.17, "ObjectTools::ExportObjects is deprecated.  Use AssetTools::ExportObjects instead")
 	UNREALED_API void ExportObjects( const TArray<UObject*>& ObjectsToExport, bool bPromptIndividualFilenames, FString* ExportPath = NULL, bool bUseProvidedExportPath = false );
 
 

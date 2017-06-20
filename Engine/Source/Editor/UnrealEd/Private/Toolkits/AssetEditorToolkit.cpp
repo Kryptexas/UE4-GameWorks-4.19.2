@@ -20,13 +20,11 @@
 #include "CollectionManagerTypes.h"
 #include "ICollectionManager.h"
 #include "CollectionManagerModule.h"
-#include "IUserFeedbackModule.h"
 #include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
 #include "IIntroTutorials.h"
-#include "SuperSearchModule.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "IAssetTools.h"
 #include "IAssetTypeActions.h"
@@ -177,35 +175,12 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			}
 		}
 
-#if PLATFORM_MAC
-		TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
-		TSharedRef<SWidget> SuperSearchWidget = FSuperSearchModule::Get().MakeSearchBox(ExposedEditableTextBox);
-#endif
-
-		IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
-		TSharedRef<SWidget> UserFeedbackWidget = UserFeedback.CreateFeedbackWidget(GetBaseToolkitName());
-
 		IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 		TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(GetToolkitContextFName(), NewMajorTab->GetParentWindow());
 
 		NewMajorTab->SetRightContent(
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					UserFeedbackWidget
-				]
-#if PLATFORM_MAC
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SuperSearchWidget
-				]
-#endif
+
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding(8.0f, 0.0f, 8.0f, 0.0f)

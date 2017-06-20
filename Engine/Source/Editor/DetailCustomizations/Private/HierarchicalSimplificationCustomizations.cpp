@@ -48,8 +48,8 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 	}
 	
 	// Create two sub-settings groups for clean overview
-	IDetailGroup& ClusterGroup = ChildBuilder.AddChildGroup(NAME_None, FText::FromString("Cluster generation settings"));
-	IDetailGroup& MergeGroup = ChildBuilder.AddChildGroup(NAME_None, FText::FromString("Mesh generation settings"));
+	IDetailGroup& ClusterGroup = ChildBuilder.AddGroup(NAME_None, FText::FromString("Cluster generation settings"));
+	IDetailGroup& MergeGroup = ChildBuilder.AddGroup(NAME_None, FText::FromString("Mesh generation settings"));
 
 	// Retrieve special case properties
 	SimplifyMeshPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, bSimplifyMesh));

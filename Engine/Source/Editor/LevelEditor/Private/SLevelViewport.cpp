@@ -1384,18 +1384,19 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 		OutCommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
-
-		// Get all known volume classes
-		TArray< UClass* > VolumeClasses;
-		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
-
-		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
+		
 		{
-			OutCommandList.MapAction(
-				FLevelViewportCommands::Get().ShowVolumeCommands[ VolumeClassIndex ].ShowMenuItem,
-				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeClassIndex ),
-				FCanExecuteAction(),
-				FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeClassIndex ) );
+			FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
+			LevelViewportCommands.RegisterShowVolumeCommands();
+			const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
+			for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
+			{
+				OutCommandList.MapAction(
+					ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
+					FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
+			}
 		}
 	}
 

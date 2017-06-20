@@ -17,12 +17,14 @@ class ULandscapeInfoMap : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
+	void BeginDestroy() override;
 	void PostDuplicate(bool bDuplicateForPIE) override;
 	void Serialize(FArchive& Ar) override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	TMap<FGuid, ULandscapeInfo*> Map;
+	UWorld* World;
 
 
 #if WITH_EDITORONLY_DATA

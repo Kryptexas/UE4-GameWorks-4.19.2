@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "MovieSceneEvaluation.h"
+#include "Components/SceneComponent.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("Visibility Track Evaluate"), MovieSceneEval_VisibilityTrack_Evaluate, STATGROUP_MovieSceneEval);
@@ -22,12 +23,22 @@ struct FTemporarilyHiddenInGamePreAnimatedToken : IMovieScenePreAnimatedToken
 
 	virtual void RestoreState(UObject& InObject, IMovieScenePlayer& Player) override
 	{
-		AActor* Actor = CastChecked<AActor>(&InObject);
-		Actor->SetActorHiddenInGame(bHidden);
+		if (InObject.IsA(AActor::StaticClass()))
+		{
+			AActor* Actor = CastChecked<AActor>(&InObject);
+			
+			Actor->SetActorHiddenInGame(bHidden);
 
 #if WITH_EDITOR
-		Actor->SetIsTemporarilyHiddenInEditor(bTemporarilyHiddenInGame);
+			Actor->SetIsTemporarilyHiddenInEditor(bTemporarilyHiddenInGame);
 #endif // WITH_EDITOR
+		}
+		else if (InObject.IsA(USceneComponent::StaticClass()))
+		{
+			USceneComponent* SceneComponent = CastChecked<USceneComponent>(&InObject);
+			
+			SceneComponent->SetHiddenInGame(bHidden);
+		}
 	}
 
 	bool bHidden;
@@ -39,14 +50,27 @@ struct FTemporarilyHiddenInGameTokenProducer : IMovieScenePreAnimatedTokenProduc
 	/** Cache the existing state of an object before moving it */
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& InObject) const override
 	{
-		AActor* Actor = CastChecked<AActor>(&InObject);
-		bool bInTemporarilyHiddenInGame = 
+		if (InObject.IsA(AActor::StaticClass()))
+		{
+			AActor* Actor = CastChecked<AActor>(&InObject);
+	
+			bool bInTemporarilyHiddenInGame = 
 #if WITH_EDITOR
-			Actor->IsTemporarilyHiddenInEditor();
+				Actor->IsTemporarilyHiddenInEditor();
 #else
-			false;
+				false;
 #endif
-		return FTemporarilyHiddenInGamePreAnimatedToken(Actor->bHidden, bInTemporarilyHiddenInGame);
+			return FTemporarilyHiddenInGamePreAnimatedToken(Actor->bHidden, bInTemporarilyHiddenInGame);
+		}
+		else if (InObject.IsA(USceneComponent::StaticClass()))
+		{
+			USceneComponent* SceneComponent = CastChecked<USceneComponent>(&InObject);
+
+			const bool bUnused = false;
+			return FTemporarilyHiddenInGamePreAnimatedToken(SceneComponent->bHiddenInGame, bUnused);
+		}
+
+		return FTemporarilyHiddenInGamePreAnimatedToken(false, false);
 	}
 };
 
@@ -70,9 +94,10 @@ struct FTemporarilyHiddenInGameExecutionToken
 		{
 			if (UObject* ObjectPtr = ObjectAndValue.WeakObject.Get())
 			{
-				AActor* Actor = Cast<AActor>(ObjectPtr);
-				if (Actor)
+				if (ObjectPtr->IsA(AActor::StaticClass()))
 				{
+					AActor* Actor = Cast<AActor>(ObjectPtr);
+
 					Player.SavePreAnimatedState(*Actor, GetAnimTypeID(), FTemporarilyHiddenInGameTokenProducer());
 
 					Actor->SetActorHiddenInGame(ObjectAndValue.Value);
@@ -83,6 +108,14 @@ struct FTemporarilyHiddenInGameExecutionToken
 						Actor->SetIsTemporarilyHiddenInEditor(ObjectAndValue.Value);
 					}
 #endif // WITH_EDITOR
+				}
+				else if (ObjectPtr->IsA(USceneComponent::StaticClass()))
+				{
+					USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectPtr);
+						
+					Player.SavePreAnimatedState(*SceneComponent, GetAnimTypeID(), FTemporarilyHiddenInGameTokenProducer());
+						
+					SceneComponent->SetHiddenInGame(ObjectAndValue.Value);
 				}
 			}
 		}

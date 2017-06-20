@@ -2001,12 +2001,12 @@ TSharedPtr<TArray<ANSICHAR>> GetDebugDebugName(const UPrimitiveComponent* Primit
 #if (WITH_EDITORONLY_DATA || UE_BUILD_DEBUG || LOOKING_FOR_PERF_ISSUES) && !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && !NO_LOGGING
 	if (PrimitiveComp)
 	{
-		DebugName += FString::Printf(TEXT("Component: %s "), *PrimitiveComp->GetReadableName());
+		DebugName += FString::Printf(TEXT("Component: '%s' "), *PrimitiveComp->GetPathName());
 	}
 
 	if (BodySetup->BoneName != NAME_None)
 	{
-		DebugName += FString::Printf(TEXT("Bone: %s "), *BodySetup->BoneName.ToString());
+		DebugName += FString::Printf(TEXT("Bone: '%s' "), *BodySetup->BoneName.ToString());
 	}
 
 	// Convert to char* for PhysX

@@ -10,7 +10,7 @@
 #include "UnrealWidget.h"
 #include "EditorViewportClient.h"
 
-class FAssetData;
+struct FAssetData;
 class FCanvas;
 class FDragTool;
 class HModel;

@@ -61,7 +61,7 @@ public:
 protected:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
+	FKeyPropertyResult AddKeyInternal(float AutoKeyTime, const FGuid ObjectGuid);
 
 	/** Find or create a camera cut track in the currently focused movie scene. */
 	UMovieSceneCameraCutTrack* FindOrCreateCameraCutTrack();

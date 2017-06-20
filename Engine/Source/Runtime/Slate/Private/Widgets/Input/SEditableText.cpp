@@ -83,7 +83,7 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	EditableTextLayout->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FTextBlockStyle& EditableTextStyle = EditableTextLayout->GetTextStyle();
 	const FLinearColor ForegroundColor = EditableTextStyle.ColorAndOpacity.GetColor(InWidgetStyle);
@@ -91,7 +91,7 @@ int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	FWidgetStyle TextWidgetStyle = FWidgetStyle(InWidgetStyle)
 		.SetForegroundColor(ForegroundColor);
 
-	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
+	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 	return LayerId;
 }
@@ -335,6 +335,21 @@ void SEditableText::ClearSelection()
 FText SEditableText::GetSelectedText() const
 {
 	return EditableTextLayout->GetSelectedText();
+}
+
+void SEditableText::GoTo(const FTextLocation& NewLocation)
+{
+	EditableTextLayout->GoTo(NewLocation);
+}
+
+void SEditableText::GoTo(ETextLocation GoToLocation)
+{
+	EditableTextLayout->GoTo(GoToLocation);
+}
+
+void SEditableText::ScrollTo(const FTextLocation& NewLocation)
+{
+	EditableTextLayout->ScrollTo(NewLocation);
 }
 
 void SEditableText::SynchronizeTextStyle()

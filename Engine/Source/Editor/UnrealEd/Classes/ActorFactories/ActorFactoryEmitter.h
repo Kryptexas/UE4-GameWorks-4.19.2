@@ -9,7 +9,7 @@
 #include "ActorFactoryEmitter.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
 class UActorFactoryEmitter : public UActorFactory

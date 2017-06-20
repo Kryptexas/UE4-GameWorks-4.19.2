@@ -50,7 +50,9 @@ void FDetailItemNode::Initialize()
 
 	if (Customization.PropertyRow.IsValid() && Customization.PropertyRow->GetForceAutoExpansion())
 	{
-		SetExpansionState(true);
+		const bool bShouldExpand = true;
+		const bool bSaveState = false;
+		SetExpansionState(bShouldExpand, bSaveState);
 	}
 
 	// Cache the visibility of customizations that can set it
@@ -92,6 +94,12 @@ void FDetailItemNode::InitPropertyEditor()
 	}
 
 	Customization.PropertyRow->OnItemNodeInitialized( ParentCategory.Pin().ToSharedRef(), IsParentEnabled, ParentGroup.IsValid() ? ParentGroup.Pin() : nullptr );
+
+	if (Customization.HasExternalPropertyRow())
+	{
+		const bool bSaveState = false;
+		SetExpansionState(ParentCategory.Pin()->GetSavedExpansionState(*this), bSaveState);
+	}
 }
 
 void FDetailItemNode::InitCustomBuilder()
@@ -102,7 +110,8 @@ void FDetailItemNode::InitCustomBuilder()
 	FName BuilderName = Customization.CustomBuilderRow->GetCustomBuilderName();
 	if( BuilderName != NAME_None )
 	{
-		bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState( *this );
+		const bool bSaveState = false;
+		SetExpansionState(ParentCategory.Pin()->GetSavedExpansionState(*this), bSaveState);
 	}
 
 }
@@ -121,7 +130,8 @@ void FDetailItemNode::InitGroup()
 		FName GroupName = Customization.DetailGroup->GetGroupName();
 		if (GroupName != NAME_None)
 		{
-			bIsExpanded = ParentCategory.Pin()->GetSavedExpansionState(*this);
+			const bool bSaveState = false;
+			SetExpansionState(ParentCategory.Pin()->GetSavedExpansionState(*this), bSaveState);
 		}
 	}
 }
@@ -136,17 +146,18 @@ bool FDetailItemNode::HasMultiColumnWidget() const
 
 void FDetailItemNode::ToggleExpansion()
 {
-	SetExpansionState( !bIsExpanded );
+	const bool bSaveState = true;
+	SetExpansionState( !bIsExpanded, bSaveState );
 }
 
-void FDetailItemNode::SetExpansionState(bool bWantsExpanded)
+void FDetailItemNode::SetExpansionState(bool bWantsExpanded, bool bSaveState)
 {
 	bIsExpanded = bWantsExpanded;
 
 	// Expand the child after filtering if it wants to be expanded
 	ParentCategory.Pin()->RequestItemExpanded(AsShared(), bIsExpanded);
 
-	OnItemExpansionChanged(bIsExpanded);
+	OnItemExpansionChanged(bIsExpanded, bSaveState);
 }
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
@@ -235,7 +246,7 @@ void FDetailItemNode::GenerateChildren( bool bUpdateFilteredNodes )
 }
 
 
-void FDetailItemNode::OnItemExpansionChanged( bool bInIsExpanded )
+void FDetailItemNode::OnItemExpansionChanged( bool bInIsExpanded, bool bShouldSaveState )
 {
 	bIsExpanded = bInIsExpanded;
 	if( Customization.HasPropertyNode() )
@@ -243,10 +254,12 @@ void FDetailItemNode::OnItemExpansionChanged( bool bInIsExpanded )
 		Customization.GetPropertyNode()->SetNodeFlags( EPropertyNodeFlags::Expanded, bInIsExpanded );
 	}
 
-	if( ParentCategory.IsValid() && ( ( Customization.HasCustomBuilder() && Customization.CustomBuilderRow->GetCustomBuilderName() != NAME_None )
-		 || ( Customization.HasGroup() && Customization.DetailGroup->GetGroupName() != NAME_None ) ) )
+	if (ParentCategory.IsValid() && bShouldSaveState &&
+			(  (Customization.HasCustomBuilder() && Customization.CustomBuilderRow->GetCustomBuilderName() != NAME_None)
+			|| (Customization.HasGroup() && Customization.DetailGroup->GetGroupName() != NAME_None)
+			|| (Customization.HasExternalPropertyRow())))
 	{
-		ParentCategory.Pin()->SaveExpansionState( *this );
+		ParentCategory.Pin()->SaveExpansionState(*this);
 	}
 }
 
@@ -395,7 +408,12 @@ FName FDetailItemNode::GetNodeName() const
 	{
 		return Customization.DetailGroup->GetGroupName();
 	}
+	else if (Customization.HasExternalPropertyRow())
+	{
+		FName CustomName = Customization.PropertyRow->GetCustomExpansionId();
 
+		return CustomName;
+	}
 	return NAME_None;
 }
 

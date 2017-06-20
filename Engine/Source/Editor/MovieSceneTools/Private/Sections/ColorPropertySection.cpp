@@ -52,12 +52,11 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 	const float EndTime = TimeConverter.PixelToTime(Painter.SectionGeometry.GetLocalSize().X);
 	const float SectionDuration = EndTime - StartTime;
 
-	if ( !FMath::IsNearlyZero( SectionDuration ) )
+	FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X - 2.f, (Painter.SectionGeometry.Size.Y / 4) - 3.0f );
+	if ( GradientSize.X >= 1.f )
 	{
-		FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X - 2.f, (Painter.SectionGeometry.Size.Y / 4) - 3.0f );
 
 		FPaintGeometry PaintGeometry = Painter.SectionGeometry.ToPaintGeometry( FVector2D( 1.f, 1.f ), GradientSize );
-		FSlateRect ClippingRect = Painter.SectionClippingRect.InsetBy(1.f);
 
 		// If we are showing a background pattern and the colors is transparent, draw a checker pattern
 		FSlateDrawElement::MakeBox(
@@ -65,7 +64,6 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 			LayerId,
 			PaintGeometry,
 			FEditorStyle::GetBrush( "Checker" ),
-			ClippingRect,
 			DrawEffects);
 
 		TArray<FSlateGradientStop> GradientStops;
@@ -84,8 +82,7 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 
 			float TimeFraction = (Time - StartTime) / SectionDuration;
 
-			GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ),
-				Color ) );
+			GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ), Color ) );
 		}
 
 		if ( GradientStops.Num() > 0 )
@@ -96,7 +93,6 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 				PaintGeometry,
 				GradientStops,
 				Orient_Vertical,
-				ClippingRect,
 				DrawEffects
 				);
 		}

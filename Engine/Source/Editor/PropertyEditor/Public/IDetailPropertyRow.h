@@ -103,6 +103,9 @@ class IDetailPropertyRow
 public:
 	virtual ~IDetailPropertyRow(){}
 
+	/** @return the property handle for the property on this row */
+	virtual TSharedPtr<IPropertyHandle> GetPropertyHandle() = 0;
+
 	/**
 	 * Sets the localized display name of the property
 	 *
@@ -187,5 +190,4 @@ public:
 	 * @return a row for the property that custom widgets can be added to
 	 */
 	virtual FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) = 0;
-
 };

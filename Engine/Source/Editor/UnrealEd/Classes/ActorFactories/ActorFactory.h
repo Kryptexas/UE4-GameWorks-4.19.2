@@ -12,7 +12,7 @@
 UNREALED_API DECLARE_LOG_CATEGORY_EXTERN(LogActorFactory, Log, All);
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class UBlueprint;
 class ULevel;
 

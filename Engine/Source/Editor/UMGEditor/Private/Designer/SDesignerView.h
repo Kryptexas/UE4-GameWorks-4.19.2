@@ -24,6 +24,7 @@
 #include "IUMGDesigner.h"
 #include "DesignerExtension.h"
 #include "Designer/SDesignSurface.h"
+#include "UMGEditorProjectSettings.h"
 
 class FMenuBuilder;
 class FScopedTransaction;
@@ -34,6 +35,7 @@ class SRuler;
 class SZoomPan;
 class UPanelWidget;
 class UWidgetBlueprint;
+class FHittestGrid;
 struct FOnPaintHandlerParams;
 struct FWidgetHitResult;
 
@@ -79,6 +81,7 @@ public:
 	virtual FWidgetReference GetSelectedWidget() const override;
 	virtual ETransformMode::Type GetTransformMode() const override;
 	virtual FGeometry GetDesignerGeometry() const override;
+	virtual FVector2D GetWidgetOriginAbsolute() const;
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
 	virtual bool GetWidgetGeometry(const UWidget* PreviewWidget, FGeometry& Geometry) const override;
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
@@ -92,15 +95,7 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface
 
-protected:
-	virtual FSlateRect ComputeAreaBounds() const override;
-	virtual int32 GetGraphRulePeriod() const override;
-	virtual float GetGridScaleAmount() const override;
-	virtual int32 GetSnapGridSize() const override;
-
-private:
-	/** Establishes the resolution and aspect ratio to use on construction from config settings */
-	void SetStartupResolution();
+public:
 
 	/** The width of the preview screen for the UI */
 	FOptionalSize GetPreviewAreaWidth() const;
@@ -113,6 +108,28 @@ private:
 
 	/** The height of the preview widget for the UI */
 	FOptionalSize GetPreviewSizeHeight() const;
+
+	/** Set the size of the preview screen for the UI */
+	void SetPreviewAreaSize(int32 Width, int32 Height);
+
+	void BeginResizingArea();
+	void EndResizingArea();
+
+protected:
+	virtual void OnPaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
+	void DrawResolution(const FDebugResolution& Resolution, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+
+	virtual FSlateRect ComputeAreaBounds() const override;
+	virtual int32 GetGraphRulePeriod() const override;
+	virtual float GetGridScaleAmount() const override;
+	virtual int32 GetSnapGridSize() const override;
+
+private:
+	/** Establishes the resolution and aspect ratio to use on construction from config settings */
+	void SetStartupResolution();
+
+	FVector2D GetAreaResizeHandlePosition() const;
+	EVisibility GetAreaResizeHandleVisibility() const;
 
 	const FSlateBrush* GetPreviewBackground() const;
 
@@ -153,6 +170,7 @@ private:
 	void OnPreviewNeedsRecreation();
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
+	void PopulateWidgetGeometryCache_Loop(FArrangedWidget& Parent, int32 ParentHitTestIndex);
 
 	/** @return Formatted text for the given resolution params */
 	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
@@ -201,7 +219,6 @@ private:
 	void EndTransaction(bool bCancel);
 
 	UWidget* GetWidgetInDesignScopeFromSlateWidget(TSharedRef<SWidget>& InWidget);
-	bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus, bool bIgnoreLockedState);
 
 private:
 	struct FWidgetHitResult
@@ -280,11 +297,12 @@ private:
 
 	TArray<FDropPreview> DropPreviews;
 
-	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
+	TSharedPtr<SWidget> PreviewHitTestRoot;
 	TSharedPtr<SBox> PreviewAreaConstraint;
 	TSharedPtr<SDPIScaler> PreviewSurface;
-	TSharedPtr<SBox> PreviewContainer;
 
+	TSharedPtr<SCanvas> DesignerControls;
+	TSharedPtr<SCanvas> DesignerWidgetCanvas;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 	TSharedPtr<SPaintSurface> EffectsLayer;
 
@@ -311,6 +329,9 @@ private:
 
 	/** The configured Height of the preview area, simulates screen size. */
 	int32 PreviewHeight;
+
+	/***/
+	bool bShowResolutionOutlines;
 
 	/** The slate brush we use to hold the background image shown in the designer. */
 	mutable FSlateBrush BackgroundImage;
@@ -341,6 +362,9 @@ private:
 
 	/**  */
 	TMap<TSharedRef<SWidget>, FArrangedWidget> CachedWidgetGeometry;
+
+	/** */
+	TSharedPtr<FHittestGrid> DesignerHittestGrid;
 
 	/** The message stack to display the last item to the user in a non-modal fashion. */
 	TArray<FText> DesignerMessageStack;

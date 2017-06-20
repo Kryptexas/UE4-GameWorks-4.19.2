@@ -170,36 +170,43 @@ void GetSkeletalMeshCompData(FFbxImporter *FbxImporter, UFbxImportUI* ImportUI, 
 {
 	USkeletalMesh *SkeletalMesh = Cast<USkeletalMesh>(StaticDuplicateObject(SkeletalMeshRef, GetTransientPackage()));
 
-	if (SkeletalMesh != nullptr && FbxImporter->ReimportSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData))
+	USkeletalMesh *NewMesh = nullptr;
+	if (SkeletalMesh != nullptr)
 	{
-		if (GEditor->IsObjectInTransactionBuffer(SkeletalMesh))
+		NewMesh = FbxImporter->ReimportSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData);
+		if (NewMesh)
 		{
-			GEditor->ResetTransaction(LOCTEXT("PreviewReimportSkeletalMeshTransactionReset", "Preview Reimporting a skeletal mesh which was in the undo buffer"));
+			if (GEditor->IsObjectInTransactionBuffer(NewMesh) || GEditor->IsObjectInTransactionBuffer(SkeletalMesh))
+			{
+				GEditor->ResetTransaction(LOCTEXT("PreviewReimportSkeletalMeshTransactionReset", "Preview Reimporting a skeletal mesh which was in the undo buffer"));
+			}
+			CreateCompFromSkeletalMesh(NewMesh, FbxData);
 		}
-		CreateCompFromSkeletalMesh(SkeletalMesh, FbxData);
-	}
-	else
-	{
-		//Log an error here
 	}
 
-	*PreviewObject = SkeletalMesh;
+	*PreviewObject = NewMesh != nullptr ? NewMesh : SkeletalMesh;
 }
 
 void GetStaticMeshCompData(FFbxImporter *FbxImporter, UFbxImportUI* ImportUI, const FCreateCompFromFbxArg &CreateCompFromFbxArg, FCompMesh &FbxData, const UStaticMesh* StaticMeshRef, UObject **PreviewObject)
 {
 	UStaticMesh *StaticMesh = Cast<UStaticMesh>(StaticDuplicateObject(StaticMeshRef, GetTransientPackage()));
 
-	if (StaticMesh != nullptr && FbxImporter->ReimportStaticMesh(StaticMesh, ImportUI->StaticMeshImportData))
+	UStaticMesh *NewMesh = nullptr;
+	if (StaticMesh != nullptr )
 	{
-		FbxImporter->ImportStaticMeshGlobalSockets(StaticMesh);
-		CreateCompFromStaticMesh(StaticMesh, FbxData);
+		NewMesh = FbxImporter->ReimportStaticMesh(StaticMesh, ImportUI->StaticMeshImportData);
+		if (NewMesh)
+		{
+			FbxImporter->ImportStaticMeshGlobalSockets(NewMesh);
+			if (GEditor->IsObjectInTransactionBuffer(NewMesh) || GEditor->IsObjectInTransactionBuffer(StaticMesh))
+			{
+				GEditor->ResetTransaction(LOCTEXT("PreviewReimportStaticMeshTransactionReset", "Preview Reimporting a static mesh which was in the undo buffer"));
+			}
+			CreateCompFromStaticMesh(NewMesh, FbxData);
+		}
 	}
-	else
-	{
-		//Log an error here
-	}
-	*PreviewObject = StaticMesh;
+
+	*PreviewObject = NewMesh != nullptr ? NewMesh : StaticMesh;
 }
 
 void CreateCompFromFbxData(FFbxImporter *FbxImporter, UFbxImportUI* ImportUI, const FString& FullPath, FCompMesh &FbxData, const FCreateCompFromFbxArg &CreateCompFromFbxArg, UStaticMesh *StaticMesh, USkeletalMesh *SkeletalMesh, UObject **PreviewObject)

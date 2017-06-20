@@ -21,7 +21,6 @@
 #include "IPlatformFilePak.h"
 #include "FileHelpers.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-#include "SuperSearchModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentFeaturePacks"
 
@@ -149,7 +148,7 @@ bool TryValidateManifestObject(TSharedPtr<FJsonObject> ManifestObject, TSharedPt
 	return true;
 }
 
-FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegisterForSearch)
+FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 {
 	FeaturePackPath = InFeaturePackPath;
 	bPackValid = false;
@@ -197,16 +196,6 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 		{
 			LoadFeaturePackImageData();			
 		}
-	}
-
-	if( (bDontRegisterForSearch == false) && ( bPackValid == true ) )
-	{
-		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >("SuperSearch");
-		// Remove any existing delegates for this pack
-		SuperSearchModule.GetActOnSearchTextClicked().Remove(SearchClickedHandle);
-		SuperSearchModule.GetSearchTextChanged().Remove(SearchChangedHandle);
-		SearchClickedHandle = SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
-		SearchChangedHandle = SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
 	}
 }
 
@@ -327,13 +316,6 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 
 FFeaturePackContentSource::~FFeaturePackContentSource()
 {
-	// Remove any search handler delegates for this pack	
-	if( FModuleManager::Get().IsModuleLoaded("SuperSearch")==true)
-	{
-		FSuperSearchModule& SuperSearchModule = FModuleManager::Get().GetModuleChecked< FSuperSearchModule >("SuperSearch");
-		SuperSearchModule.GetActOnSearchTextClicked().Remove(SearchClickedHandle);
-		SuperSearchModule.GetSearchTextChanged().Remove(SearchChangedHandle);
-	}
 }
 
 bool FFeaturePackContentSource::IsDataValid() const
@@ -359,67 +341,6 @@ FString FFeaturePackContentSource::GetSortKey() const
 FString FFeaturePackContentSource::GetIdent() const
 {
 	return Identity;
-}
-
-void FFeaturePackContentSource::HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry)
-{
-	if (SearchEntry.IsValid())
-	{
-		if (SearchEntry->bCategory == false)
-		{
-			UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
-			FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
-			FLocalizedText CurrentName = ChooseLocalizedText(LocalizedNames,CurrentLanguage);
-			FString MyTitle = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameTextByValue((int64)Category)).ToString();
-			if (SearchEntry->Title == MyTitle)
-			{
-				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");				
-				AddContentDialogModule.ShowDialog(MainFrameModule.GetParentWindow().ToSharedRef());
-			}
-		}
-	}
-}
-
-void FFeaturePackContentSource::TryAddFeaturePackCategory(FString CategoryTitle, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions)
-{
-	if (OutSuggestions.ContainsByPredicate([&CategoryTitle](TSharedPtr<FSearchEntry>& InElement)
-		{ return ((InElement->Title == CategoryTitle) && (InElement->bCategory == true)); }) == false)
-	{
-		TSharedPtr<FSearchEntry> FeaturePackCat = MakeShareable(new FSearchEntry());
-		FeaturePackCat->bCategory = true;
-		FeaturePackCat->Title = CategoryTitle;
-		OutSuggestions.Add(FeaturePackCat);
-	}
-}
-
-void FFeaturePackContentSource::HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions)
-{
-	FString FeaturePackSearchCat = LOCTEXT("FeaturePackSearchCategory", "Feature Packs").ToString();
-
-	FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
-	FLocalizedText CurrentName = ChooseLocalizedText(LocalizedNames,CurrentLanguage);
-	FLocalizedTextArray CurrentTagSet = ChooseLocalizedTextArray(LocalizedSearchTags,CurrentLanguage);
-	FText AsText = FText::FromString(InText);
-	TArray<FText> TagArray = CurrentTagSet.GetTags();
-	if (TagArray.Num() != 0)
-	{
-		UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
-		// Add a feature packs category		
-		for (int32 iTag = 0; iTag < TagArray.Num(); iTag++)
-		{
-			if (TagArray[iTag].EqualToCaseIgnored(AsText))
-			{
-				// This will add the category if one doesnt exist
-				TryAddFeaturePackCategory(FeaturePackSearchCat,OutSuggestions);
-				TSharedPtr<FSearchEntry> FeaturePackEntry = MakeShareable(new FSearchEntry());
-				FeaturePackEntry->Title = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameTextByValue((int64)Category)).ToString();
-				FeaturePackEntry->bCategory = false;
-				OutSuggestions.Add(FeaturePackEntry);
-				return;
-			}
-		}
-	}
 }
 
 FLocalizedText FFeaturePackContentSource::ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode)
@@ -691,7 +612,7 @@ void FFeaturePackContentSource::InsertAdditionalFeaturePacks()
 		{
 			FString InsertPath = DestinationFolder + *AdditionalFeaturePacks[iExtraPack].MountName;
 
-			TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPath, true);
+			TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPath);
 			if (NewContentSource->IsDataValid() == true)
 			{
 				bool bHasSourceFiles = false;
@@ -744,7 +665,7 @@ bool FFeaturePackContentSource::InsertAdditionalResources(TArray<FFeaturePackLev
 			{
 				FString InsertPath = InDestinationFolder + *InAdditionalFeaturePacks[iExtraPack].MountName;
 
-				TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPath, true);
+				TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPath);
 				if (NewContentSource->IsDataValid() == true)
 				{
 					bool bHasSourceFiles = false;					

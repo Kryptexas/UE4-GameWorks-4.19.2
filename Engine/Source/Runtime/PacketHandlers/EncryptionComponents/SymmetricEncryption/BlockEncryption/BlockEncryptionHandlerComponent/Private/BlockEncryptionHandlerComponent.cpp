@@ -18,7 +18,8 @@ BlockEncryptionHandlerComponent::BlockEncryptionHandlerComponent(BlockEncryptor*
 	if (InEncryptor != nullptr)
 	{
 		Encryptor = InEncryptor;
-	} else
+	}
+	else
 	{
 		Encryptor = new XORBlockEncryptor;
 	}
@@ -96,7 +97,7 @@ void BlockEncryptionHandlerComponent::Outgoing(FBitWriter& Packet)
 	{
 		case Handler::Component::State::UnInitialized:
 		{
-													 break;
+			break;
 		}
 		// Send packet initializing remote handler
 		case Handler::Component::State::InitializedOnLocal:
@@ -231,8 +232,8 @@ TSharedPtr<HandlerComponent> FBlockEncryptionHandlerComponentModuleInterface::Cr
 
 	if (!Options.IsEmpty())
 	{
-		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
-		TSharedPtr<FBlockEncryptorModuleInterface> BlockEncryptorInterface(static_cast<FBlockEncryptorModuleInterface*>(&(*Interface)));
+		FBlockEncryptorModuleInterface* Interface = FModuleManager::LoadModulePtr<FBlockEncryptorModuleInterface>(FName(*Options));
+		TSharedPtr<FBlockEncryptorModuleInterface> BlockEncryptorInterface(Interface);
 
 		ReturnVal = MakeShareable(new BlockEncryptionHandlerComponent(BlockEncryptorInterface->CreateBlockEncryptorInstance()));
 	}

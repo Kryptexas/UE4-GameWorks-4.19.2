@@ -35,17 +35,12 @@ bool FInputEvent::IsPointerEvent() const
 
 FText FCharacterEvent::ToText() const
 {
-	return FText::Format( NSLOCTEXT("Events","Char","Char({0})"), FText::FromString(FString(1, &Character)) );
-}
-
-FText FControllerEvent::ToText() const
-{
-	return NSLOCTEXT("Events","Gamepad","Gamepad()");
+	return FText::Format( NSLOCTEXT("Events", "Char", "Char({0})"), FText::FromString(FString(1, &Character)) );
 }
 
 FText FKeyEvent::ToText() const
 {
-	return FText::Format( NSLOCTEXT("Events","Key","Key({0})"), Key.GetDisplayName() );
+	return FText::Format( NSLOCTEXT("Events", "Key", "Key({0})"), Key.GetDisplayName() );
 }
 
 FText FAnalogInputEvent::ToText() const
@@ -55,7 +50,7 @@ FText FAnalogInputEvent::ToText() const
 
 FText FPointerEvent::ToText() const
 {
-	return FText::Format( NSLOCTEXT("Events","Pointer","Pointer({0}, {1})"), EffectingButton.GetDisplayName() );
+	return FText::Format( NSLOCTEXT("Events", "Pointer", "Pointer({0}, {1})"), EffectingButton.GetDisplayName() );
 }
 
 bool FPointerEvent::IsPointerEvent() const

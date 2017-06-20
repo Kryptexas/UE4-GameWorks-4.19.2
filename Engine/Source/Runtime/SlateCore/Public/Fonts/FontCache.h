@@ -521,8 +521,10 @@ public:
 	 */
 	FCharacterEntry GetCharacter(TCHAR Character, const EFontFallback MaxFontFallback);
 
+#if WITH_EDITORONLY_DATA
 	/** Check to see if our cached data is potentially stale for our font */
 	bool IsStale() const;
+#endif	// WITH_EDITORONLY_DATA
 
 	/**
 	 * Gets a kerning value for a pair of characters
@@ -609,8 +611,10 @@ private:
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */
 	FSlateFontCache& FontCache;
+#if WITH_EDITORONLY_DATA
 	/** The history revision of the cached composite font */
 	int32 CompositeFontHistoryRevision;
+#endif	// WITH_EDITORONLY_DATA
 	/** Number of directly indexed entries */
 	int32 MaxDirectIndexedEntries;
 	/** The global max height for any character in this font */

@@ -1060,7 +1060,10 @@ void SGameMenuPageWidget::ResetMenu()
 		MenuInfo->RemoveAllItems();
 	}
 	MainPanel->ClearChildren();
-	SubPanel->ClearChildren();
+	if (SubPanel.IsValid())
+	{
+		SubPanel->ClearChildren();
+	}
 	PendingSubMenu.Reset();
 	PendingMainMenu.Reset();
 	CurrentMenu.Reset();

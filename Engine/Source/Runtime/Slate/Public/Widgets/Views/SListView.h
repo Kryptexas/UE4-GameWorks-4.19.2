@@ -82,7 +82,8 @@ public:
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
 		, _NavigateOnScrollIntoView(false)
-		{ }
+		{
+		}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 
@@ -936,13 +937,13 @@ public:
 					// FirstItemVisibleFraction is either: The visible item height as a fraction of the available list view height (if the item size is larger than the available size, otherwise this will be >1), or just FirstItemFractionScrolledIntoView (which can never be >1)
 					const float FirstItemFractionScrolledIntoView = 1.0f - FMath::Max(FMath::Fractional(ScrollOffset), 0.0f);
 					const float FirstItemHeightScrolledIntoView = ItemHeight * FirstItemFractionScrolledIntoView;
-					const float FirstItemVisibleFraction = FMath::Min(MyGeometry.Size.Y / FirstItemHeightScrolledIntoView, FirstItemFractionScrolledIntoView);
+					const float FirstItemVisibleFraction = FMath::Min(MyGeometry.GetLocalSize().Y / FirstItemHeightScrolledIntoView, FirstItemFractionScrolledIntoView);
 					ItemsInView += FirstItemVisibleFraction;
 				}
-				else if (ViewHeightUsedSoFar + ItemHeight > MyGeometry.Size.Y)
+				else if (ViewHeightUsedSoFar + ItemHeight > MyGeometry.GetLocalSize().Y)
 				{
 					// The last item may not be fully visible either
-					ItemsInView += (MyGeometry.Size.Y - ViewHeightUsedSoFar) / ItemHeight;
+					ItemsInView += (MyGeometry.GetLocalSize().Y - ViewHeightUsedSoFar) / ItemHeight;
 				}
 				else
 				{
@@ -960,7 +961,7 @@ public:
 					bAtEndOfList = true;
 				}
 
-				if (ViewHeightUsedSoFar > MyGeometry.Size.Y )
+				if (ViewHeightUsedSoFar > MyGeometry.GetLocalSize().Y )
 				{
 					bGeneratedEnoughForSmoothScrolling = true;
 				}
@@ -969,21 +970,21 @@ public:
 			// Handle scenario b.
 			// We may have stopped because we got to the end of the items.
 			// But we may still have space to fill!
-			if (bAtEndOfList && ViewHeightUsedSoFar < MyGeometry.Size.Y)
+			if (bAtEndOfList && ViewHeightUsedSoFar < MyGeometry.GetLocalSize().Y)
 			{
-				float NewScrollOffsetForBackfill = StartIndex + (HeightGeneratedSoFar - MyGeometry.Size.Y) / FirstItemHeight;
+				float NewScrollOffsetForBackfill = StartIndex + (HeightGeneratedSoFar - MyGeometry.GetLocalSize().Y) / FirstItemHeight;
 
-				for( int32 ItemIndex = StartIndex-1; HeightGeneratedSoFar < MyGeometry.Size.Y && ItemIndex >= 0; --ItemIndex )
+				for( int32 ItemIndex = StartIndex-1; HeightGeneratedSoFar < MyGeometry.GetLocalSize().Y && ItemIndex >= 0; --ItemIndex )
 				{
 					const ItemType& CurItem = (*SourceItems)[ItemIndex];
 
 					const float ItemHeight = GenerateWidgetForItem(CurItem, ItemIndex, StartIndex, LayoutScaleMultiplier);
 
-					if (HeightGeneratedSoFar + ItemHeight > MyGeometry.Size.Y)
+					if (HeightGeneratedSoFar + ItemHeight > MyGeometry.GetLocalSize().Y)
 					{
 						// Generated the item that puts us over the top.
 						// Count the fraction of this item that will stick out above the list
-						NewScrollOffsetForBackfill = ItemIndex + (HeightGeneratedSoFar + ItemHeight - MyGeometry.Size.Y) / ItemHeight;
+						NewScrollOffsetForBackfill = ItemIndex + (HeightGeneratedSoFar + ItemHeight - MyGeometry.GetLocalSize().Y) / ItemHeight;
 					}
 
 					// The widget used up some of the available vertical space.
@@ -1384,7 +1385,7 @@ protected:
 		if ( InAllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = FMath::Sign(ScrollByAmountInSlateUnits) * AbsScrollByAmount;				
-			const float ActuallyScrolledBy = Overscroll.ScrollBy( UnclampedScrollDelta );
+			const float ActuallyScrolledBy = Overscroll.ScrollBy(MyGeometry, UnclampedScrollDelta);
 			if (ActuallyScrolledBy != 0.0f)
 			{
 				this->RequestListRefresh();

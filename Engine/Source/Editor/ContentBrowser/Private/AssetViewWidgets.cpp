@@ -541,17 +541,17 @@ bool SAssetViewItem::IsNameReadOnly() const
 
 void SAssetViewItem::HandleBeginNameChange( const FText& OriginalText )
 {
-	OnRenameBegin.ExecuteIfBound(AssetItem, OriginalText.ToString(), LastGeometry.GetClippingRect());
+	OnRenameBegin.ExecuteIfBound(AssetItem, OriginalText.ToString(), LastGeometry.GetLayoutBoundingRect());
 }
 
 void SAssetViewItem::HandleNameCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
-	OnRenameCommit.ExecuteIfBound(AssetItem, NewText.ToString(), LastGeometry.GetClippingRect(), CommitInfo);
+	OnRenameCommit.ExecuteIfBound(AssetItem, NewText.ToString(), LastGeometry.GetLayoutBoundingRect(), CommitInfo);
 }
 
 bool  SAssetViewItem::HandleVerifyNameChanged( const FText& NewText, FText& OutErrorMessage )
 {
-	return !OnVerifyRenameCommit.IsBound() || OnVerifyRenameCommit.Execute(AssetItem, NewText, LastGeometry.GetClippingRect(), OutErrorMessage);
+	return !OnVerifyRenameCommit.IsBound() || OnVerifyRenameCommit.Execute(AssetItem, NewText, LastGeometry.GetLayoutBoundingRect(), OutErrorMessage);
 }
 
 void SAssetViewItem::OnAssetDataChanged()

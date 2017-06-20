@@ -160,13 +160,13 @@ void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildr
 			{
 				const float AspectRatioHeight = 1.0f / AspectRatioWidth;
 
-				const float CurrentRatioWidth = ( AllottedGeometry.Size.X / AllottedGeometry.Size.Y );
+				const float CurrentRatioWidth = ( AllottedGeometry.GetLocalSize().X / AllottedGeometry.GetLocalSize().Y );
 				const float CurrentRatioHeight = 1.0f / CurrentRatioWidth;
 
 				if ( CurrentRatioWidth > AspectRatioWidth /*|| CurrentRatioHeight > AspectRatioHeight*/ )
 				{
-					XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, ChildSlot, SlotPadding);
-					YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding);
+					XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding);
+					YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding);
 
 					float NewWidth = AspectRatioWidth * XAlignmentResult.Size;
 					float NewHeight = AspectRatioHeight * NewWidth;
@@ -198,8 +198,8 @@ void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildr
 
 		if ( bAlignChildren )
 		{
-			XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, ChildSlot, SlotPadding);
-			YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, ChildSlot, SlotPadding);
+			XAlignmentResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding);
+			YAlignmentResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding);
 		}
 
 		const float AlignedSizeX = XAlignmentResult.Size;
@@ -220,7 +220,7 @@ FChildren* SBox::GetChildren()
 	return &ChildSlot;
 }
 
-int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// An SBox just draws its only child
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
@@ -232,9 +232,7 @@ int32 SBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		check( ArrangedChildren.Num() == 1 );
 		FArrangedWidget& TheChild = ArrangedChildren[0];
 
-		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().InsetBy( ChildSlot.SlotPadding.Get() * AllottedGeometry.Scale ).IntersectionWith(MyClippingRect);
-
-		return TheChild.Widget->Paint( Args.WithNewParent(this), TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		return TheChild.Widget->Paint( Args.WithNewParent(this), TheChild.Geometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	return LayerId;
 }

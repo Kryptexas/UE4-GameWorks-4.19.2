@@ -43,6 +43,7 @@ public:
 		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
 		{
 			_Visibility = EVisibility::SelfHitTestInvisible;
+			_Clipping = EWidgetClipping::ClipToBounds;
 		}
 	
 		SLATE_ATTRIBUTE( float, ItemWidth )

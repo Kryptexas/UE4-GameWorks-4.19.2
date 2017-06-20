@@ -87,9 +87,9 @@ public:
 	 *
 	 * @return The Slate renderer.
 	 */
-	TSharedPtr<FSlateRenderer> GetRenderer( ) const
+	FORCEINLINE FSlateRenderer* GetRenderer() const
 	{
-		return Renderer;
+		return Renderer.Get();
 	}
 
 public:

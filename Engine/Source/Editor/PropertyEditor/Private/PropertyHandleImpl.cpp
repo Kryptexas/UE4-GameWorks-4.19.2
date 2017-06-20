@@ -1956,9 +1956,22 @@ void FPropertyHandleBase::MarkHiddenByCustomization()
 	}
 }
 
+void FPropertyHandleBase::MarkResetToDefaultCustomized()
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, true);
+	}
+}
+
 bool FPropertyHandleBase::IsCustomized() const
 {
 	return Implementation->GetPropertyNode()->HasNodeFlags( EPropertyNodeFlags::IsCustomized ) != 0;
+}
+
+bool FPropertyHandleBase::IsResetToDefaultCustomized() const
+{
+	return Implementation->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault) != 0;
 }
 
 FString FPropertyHandleBase::GeneratePathToProperty() const
@@ -2808,7 +2821,7 @@ TArray<TSharedPtr<IPropertyHandle>> FPropertyHandleBase::AddChildStructure( TSha
 	return PropertyHandles;
 }
 
-bool FPropertyHandleBase::IsResetToDefaultAvailable()
+bool FPropertyHandleBase::CanResetToDefault() const
 {
 	UProperty* Property = GetProperty();
 
@@ -2819,7 +2832,7 @@ bool FPropertyHandleBase::IsResetToDefaultAvailable()
 	return Property && bCanResetToDefault && !bFixedSized && DiffersFromDefault();
 }
 
-void FPropertyHandleBase::CustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault)
+void FPropertyHandleBase::ExecuteCustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault)
 {
 	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
 	Implementation->GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateLambda([this, InOnCustomResetToDefault]() { OnCustomResetToDefault(InOnCustomResetToDefault); }));

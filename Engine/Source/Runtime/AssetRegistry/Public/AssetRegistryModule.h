@@ -84,6 +84,6 @@ public:
 	}
 
 private:
-	IAssetRegistry* AssetRegistry;
+	TWeakObjectPtr<class UAssetRegistryImpl> AssetRegistry;
 	class FAssetRegistryConsoleCommands* ConsoleCommands;
 };

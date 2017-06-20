@@ -132,8 +132,7 @@ struct FUsdMatrixData
 struct FUsdGeomData
 {
 	FUsdGeomData()
-		: NumMaterials(1)
-		, NumUVs(0)
+		: NumUVs(0)
 	{}
 
 	/** How many vertices are in each face.  The size of this array tells you how many faces there are */
@@ -158,6 +157,9 @@ struct FUsdGeomData
 	std::vector<FUsdVectorData> Normals;
 	/** List of all vertex colors in the mesh */
 	std::vector<FUsdVectorData> VertexColors;
+	/** List of all materials in the mesh.  The size of this array represents the number of materials */
+	std::vector<std::string> MaterialNames;
+
 	/** Raw UVs.  The size of this array represents how many UV sets there are */
 	FUsdUVData UVs[8];
 
@@ -170,9 +172,6 @@ struct FUsdGeomData
 	EUsdSubdivisionScheme SubdivisionScheme;
 
 	EUsdInterpolationMethod VertexColorInterpMethod;
-
-	/** The total number of unique materials */
-	int NumMaterials;
 
 	int NumUVs;
 };

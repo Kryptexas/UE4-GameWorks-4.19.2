@@ -223,6 +223,15 @@ void UPanelWidget::ClearChildren()
 	}
 }
 
+#if WITH_EDITOR
+
+TSharedRef<SWidget> UPanelWidget::RebuildDesignWidget(TSharedRef<SWidget> Content)
+{
+	return CreateDesignerOutline(Content);
+}
+
+#endif
+
 void UPanelWidget::PostLoad()
 {
 	Super::PostLoad();

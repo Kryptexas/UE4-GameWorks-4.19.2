@@ -14,7 +14,6 @@
 #include "Engine/UserInterfaceSettings.h"
 
 #include "Widgets/LayerManager/STooltipPresenter.h"
-#include "Widgets/Layout/SScissorRectBox.h"
 #include "Widgets/Layout/SDPIScaler.h"
 #include "Widgets/Layout/SPopup.h"
 #include "Widgets/Layout/SWindowTitleBarArea.h"
@@ -84,23 +83,10 @@ void SGameLayerManager::Construct(const SGameLayerManager::FArguments& InArgs)
 			]
 		];
 
-	if ( InArgs._UseScissor )
-	{
-		ChildSlot
-		[
-			SNew(SScissorRectBox)
-			[
-				DPIScaler
-			]
-		];
-	}
-	else
-	{
-		ChildSlot
-		[
-			DPIScaler
-		];
-	}
+	ChildSlot
+	[
+		DPIScaler
+	];
 
 	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 	if (GameEngine != nullptr)
@@ -246,10 +232,10 @@ void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InC
 	UpdateLayout();
 }
 
-int32 SGameLayerManager::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SGameLayerManager::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	FPlatformMisc::BeginNamedEvent(FColor::Green, "Paint: Game UI");
-	const int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	const int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	FPlatformMisc::EndNamedEvent();
 	return ResultLayer;
 }
@@ -327,7 +313,8 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 
 		// Create a new overlay widget to house any widgets we want to display for the player.
 		NewLayer->Widget = SNew(SOverlay)
-			.AddMetaData(StopNavigation);
+			.AddMetaData(StopNavigation)
+			.Clipping(EWidgetClipping::ClipToBoundsAlways);
 		
 		// Add the overlay to the player canvas, which we'll update every frame to match
 		// the dimensions of the player's split screen rect.
@@ -336,10 +323,7 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 			.VAlign(VAlign_Fill)
 			.Expose(NewLayer->Slot)
 			[
-				SNew(SScissorRectBox)
-				[
-					NewLayer->Widget.ToSharedRef()
-				]
+				NewLayer->Widget.ToSharedRef()
 			];
 
 		PlayerLayerPtr = &PlayerLayers.Add(LocalPlayer, NewLayer);

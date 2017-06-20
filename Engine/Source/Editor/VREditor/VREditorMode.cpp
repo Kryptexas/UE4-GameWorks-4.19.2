@@ -43,7 +43,7 @@
 #include "VREditorActions.h"
 #include "EditorModes.h"
 #include "VRModeSettings.h"
-
+#include "IVREditorModule.h"
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
@@ -64,9 +64,12 @@ namespace VREd
 	static FAutoConsoleVariable HeadLocationVelocityOffset( TEXT( "VREd.HeadLocationVelocityOffset" ), TEXT( "X=20, Y=0, Z=5" ), TEXT( "Offset relative to head for location velocity debug indicator" ) );
 	static FAutoConsoleVariable HeadRotationVelocityOffset( TEXT( "VREd.HeadRotationVelocityOffset" ), TEXT( "X=20, Y=0, Z=-5" ), TEXT( "Offset relative to head for rotation velocity debug indicator" ) );
 	static FAutoConsoleVariable SFXMultiplier(TEXT("VREd.SFXMultiplier"), 1.5f, TEXT("Default Sound Effect Volume Multiplier"));
+
+	static FAutoConsoleCommand ToggleDebugMode(TEXT("VREd.ToggleDebugMode"), TEXT("Toggles debug mode of the VR Mode"), FConsoleCommandDelegate::CreateStatic(&UVREditorMode::ToggleDebugMode));
 }
 
 const FString UVREditorMode::AssetContainerPath = FString("/Engine/VREditor/VREditorAssetContainerData");
+bool UVREditorMode::bDebugModeEnabled = false;
 
 UVREditorMode::UVREditorMode() : 
 	Super(),
@@ -406,8 +409,6 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 			WorldInteraction->AddMouseCursorInteractor();
 			WorldInteraction->SetInVR(false);
 		}
-
-		WorldInteraction->SetDefaultOptionalViewportClient( nullptr );
 	}
 
 	if( bActuallyUsingVR )
@@ -795,10 +796,10 @@ const UVREditorMode::FSavedEditorState& UVREditorMode::GetSavedEditorState() con
 	return SavedEditorState;
 }
 
-void UVREditorMode::SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode, const class USequencerSettings& InSequencerSettings)
+void UVREditorMode::SaveSequencerSettings(bool bInKeyAllEnabled, EAutoChangeMode InAutoChangeMode, const class USequencerSettings& InSequencerSettings)
 {
 	SavedEditorState.bKeyAllEnabled = bInKeyAllEnabled;
-	SavedEditorState.AutoKeyMode = InAutoKeyMode;
+	SavedEditorState.AutoChangeMode = InAutoChangeMode;
 }
 
 void UVREditorMode::ToggleSIEAndVREditor()
@@ -1276,6 +1277,23 @@ void UVREditorMode::OnSwitchPIEAndSIE(bool bIsSimulatingInEditor)
 			FSlateApplication::Get().SetAllUserFocusToGameViewport();
 		}
 	}
+}
+
+void UVREditorMode::ToggleDebugMode()
+{
+	UVREditorMode::bDebugModeEnabled = !UVREditorMode::bDebugModeEnabled;
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	UVREditorMode* VRMode = VREditorModule.GetVRMode();
+	if (VRMode != nullptr)
+	{
+		VRMode->OnToggleDebugMode().Broadcast(UVREditorMode::bDebugModeEnabled);
+	}
+}
+
+
+bool UVREditorMode::IsDebugModeEnabled()
+{
+	return UVREditorMode::bDebugModeEnabled;
 }
 
 #undef LOCTEXT_NAMESPACE

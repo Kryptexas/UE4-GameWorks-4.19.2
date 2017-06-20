@@ -149,6 +149,9 @@ protected:
 protected:
 	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+#if WITH_EDITOR
+	virtual TSharedRef<SWidget> RebuildDesignWidget(TSharedRef<SWidget> Content) override { return Content; }
+#endif
 	//~ End UWidget Interface
 
 protected:

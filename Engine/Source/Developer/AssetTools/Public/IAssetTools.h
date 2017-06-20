@@ -14,7 +14,7 @@
 #include "IAssetTools.generated.h"
 
 
-class FAssetData;
+struct FAssetData;
 class IAssetTypeActions;
 class IClassTypeActions;
 class UFactory;
@@ -198,6 +198,40 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
 	virtual TArray<UObject*> ImportAssetsAutomated( const UAutomatedAssetImportData* ImportData) const = 0;
 
+	/**
+	 * Exports the specified objects to file.
+	 *
+	 * @param	AssetsToExport					List of full asset names (e.g /Game/Path/Asset) to export
+	 * @param	ExportPath						The directory path to export to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
+	virtual void ExportAssets(const TArray<FString>& AssetsToExport, const FString& ExportPath) const = 0;
+
+	/**
+	 * Exports the specified objects to file.
+	 *
+	 * @param	AssetsToExport					List of assets to export 
+	 * @param	ExportPath						The directory path to export to.
+	 */
+	virtual void ExportAssets(const TArray<UObject*>& AssetsToExport, const FString& ExportPath) const = 0;
+	
+	/**
+	 * Exports the specified objects to file. First prompting the user to pick an export directory and optionally prompting the user to pick a unique directory per file
+	 *
+	 * @param	AssetsToExport					List of assets to export
+	 * @param	ExportPath						The directory path to export to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
+	virtual void ExportAssetsWithDialog(const TArray<FString>& AssetsToExport, bool bPromptForIndividualFilenames) const = 0;
+	
+	/**
+	 * Exports the specified objects to file. First prompting the user to pick an export directory and optionally prompting the user to pick a unique directory per file
+	 *
+	 * @param	AssetsToExport					List of full asset names (e.g /Game/Path/Asset) to export
+	 * @param	ExportPath						The directory path to export to.
+	 */
+	virtual void ExportAssetsWithDialog(const TArray<UObject*>& AssetsToExport, bool bPromptForIndividualFilenames) const = 0;
+
 	/** Creates a unique package and asset name taking the form InBasePackageName+InSuffix */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
 	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const = 0;
@@ -242,7 +276,7 @@ public:
 };
 
 UCLASS(transient)
-class UEditorScriptAccessors : public UObject
+class UAssetToolsHelpers : public UObject
 {
 	GENERATED_BODY()
 

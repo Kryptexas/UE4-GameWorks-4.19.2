@@ -276,5 +276,5 @@ private:
 	int32 NumDependsNodes;
 	int32 NumPackageData;
 
-	friend class FAssetRegistry;
+	friend class UAssetRegistryImpl;
 };

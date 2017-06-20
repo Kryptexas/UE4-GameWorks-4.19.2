@@ -7,7 +7,7 @@
 #include "Layout/Visibility.h"
 #include "IDetailCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 class IDetailGroup;
 class IDetailLayoutBuilder;
 class IPropertyHandle;

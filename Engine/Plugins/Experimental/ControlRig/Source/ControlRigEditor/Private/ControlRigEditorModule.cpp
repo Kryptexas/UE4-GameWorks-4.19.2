@@ -406,7 +406,7 @@ void FControlRigEditorModule::HandleSequencerCreated(TSharedRef<ISequencer> InSe
 		}
 	});
 
-	InSequencer->OnMovieSceneDataChanged().AddLambda([LocalSequencer]()
+	InSequencer->OnMovieSceneDataChanged().AddLambda([LocalSequencer](EMovieSceneDataChangeType DataChangeType)
 	{
 		if (LocalSequencer.IsValid())
 		{

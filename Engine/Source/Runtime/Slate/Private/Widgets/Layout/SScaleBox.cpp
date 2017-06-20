@@ -183,9 +183,42 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	}
 }
 
-int32 SScaleBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SScaleBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	bool bClippingNeeded = false;
+
+	if (GetClipping() == EWidgetClipping::Inherit)
+	{
+		const EStretch::Type CurrentStretch = Stretch.Get();
+
+		// There are a few stretch modes that require we clip, even if the user didn't set the property.
+		switch (CurrentStretch)
+		{
+		case EStretch::ScaleToFitX:
+		case EStretch::ScaleToFitY:
+		case EStretch::ScaleToFill:
+			bClippingNeeded = true;
+			break;
+		}
+	}
+
+	if (bClippingNeeded)
+	{
+		OutDrawElements.PushClip(FSlateClippingZone(AllottedGeometry));
+		FGeometry HitTestGeometry = AllottedGeometry;
+		HitTestGeometry.AppendTransform(FSlateLayoutTransform(Args.GetWindowToDesktopTransform()));
+		Args.GetGrid().PushClip(FSlateClippingZone(HitTestGeometry));
+	}
+
+	int32 MaxLayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if (bClippingNeeded)
+	{
+		OutDrawElements.PopClip();
+		Args.GetGrid().PopClip();
+	}
+
+	return MaxLayerId;
 }
 
 void SScaleBox::SetContent(TSharedRef<SWidget> InContent)

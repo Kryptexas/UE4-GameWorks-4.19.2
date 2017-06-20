@@ -17,7 +17,7 @@ bool FMediaSourceActions::CanFilter()
 }
 
 
-FText FMediaSourceActions::GetAssetDescription(const class FAssetData& AssetData) const
+FText FMediaSourceActions::GetAssetDescription(const struct FAssetData& AssetData) const
 {
 	auto MediaSource = Cast<UMediaSource>(AssetData.GetAsset());
 

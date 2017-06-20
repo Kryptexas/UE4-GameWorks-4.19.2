@@ -34,7 +34,7 @@ struct FMovieSceneObjectCache
 	 * @param InSequence		The sequence that this cache applies to
 	 * @param InSequenceID		The ID of the sequence within the master sequence
 	 */
-	MOVIESCENE_API void SetSequence(UMovieSceneSequence& InSequence, FMovieSceneSequenceIDRef InSequenceID);
+	MOVIESCENE_API void SetSequence(UMovieSceneSequence& InSequence, FMovieSceneSequenceIDRef InSequenceID, IMovieScenePlayer& Player);
 
 	/**
 	 * Attempt deduce the posessable or spawnable that relates to the specified object
@@ -61,11 +61,7 @@ struct FMovieSceneObjectCache
 	/**
 	 * Completely erase all knowledge of, anc caches for all object bindings
 	 */
-	void Clear()
-	{
-		BoundObjects.Reset();
-		ChildBindings.Reset();
-	}
+	void Clear(IMovieScenePlayer& Player);
 
 	/**
 	 * Get the sequence that this cache relates to
@@ -124,45 +120,6 @@ private:
 };
 
 /**
- * Container that stores which entities have been evalauted in any given frame, and in what order
- */
-struct FOrderedEvaluationCache
-{
-	FOrderedEvaluationCache() = default;
-
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-	FOrderedEvaluationCache(FOrderedEvaluationCache&&) = default;
-	FOrderedEvaluationCache& operator=(FOrderedEvaluationCache&&) = default;
-#else
-	FOrderedEvaluationCache(FOrderedEvaluationCache&& RHS) : KeySet(MoveTemp(RHS.KeySet)), OrderedKeys(MoveTemp(RHS.OrderedKeys)) {}
-	FOrderedEvaluationCache& operator=(FOrderedEvaluationCache&& RHS) { KeySet = MoveTemp(RHS.KeySet); OrderedKeys = MoveTemp(RHS.OrderedKeys); return *this; }
-#endif
-
-	/**
-	 * Check whether the specified entity was evaluated
-	 */
-	bool Contains(FMovieSceneEvaluationKey InKey) const;
-
-	/**
-	 * Report that the specified entity was evaluated
-	 */
-	void Add(FMovieSceneEvaluationKey InKey);
-
-	/**
-	 * Reset the container
-	 */
-	void Reset();
-
-public:
-	
-	/** Unordered set of evaluated items */
-	TSet<FMovieSceneEvaluationKey> KeySet;
-
-	/** Ordered set of evaluated items */
-	TArray<FMovieSceneEvaluationKey> OrderedKeys;
-};
-
-/**
  * Provides runtime evaluation functions with the ability to look up state from the main game environment
  */
 struct FMovieSceneEvaluationState
@@ -173,7 +130,7 @@ struct FMovieSceneEvaluationState
 	 * @param InSequenceID		The sequence ID to assign to
 	 * @param InSequence		The sequence to assign
 	 */
-	void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence);
+	void AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player);
 
 	/**
 	 * Attempt to locate a sequence from its ID
@@ -243,7 +200,7 @@ struct FMovieSceneEvaluationState
 	/**
 	 * Forcably clear all object caches
 	 */
-	MOVIESCENE_API void ClearObjectCaches();
+	MOVIESCENE_API void ClearObjectCaches(IMovieScenePlayer& Player);
 
 	/** A map of persistent evaluation data mapped by movie scene evaluation entity (i.e, a given track or section) */
 	TMap<FMovieSceneEvaluationKey, TUniquePtr<IPersistentEvaluationData>> PersistentEntityData;

@@ -135,7 +135,7 @@ private:
 	 * @param DrawFlags		Any optional draw flags for this batch
 	 * @param ScissorRect   Optional scissor rectangle for this batch
 	 * @param SceneIndex    Index in the slate renderer's scenes array associated with this element.
-	 */	
+	 */
 	FSlateElementBatch& FindBatchForElement( uint32 Layer, 
 											 const FShaderParams& ShaderParams, 
 											 const FSlateShaderResource* InTexture, 
@@ -143,7 +143,7 @@ private:
 											 ESlateShader::Type ShaderType, 
 											 ESlateDrawEffect DrawEffects, 
 											 ESlateBatchDrawFlag DrawFlags,
-											 const TOptional<FShortRect>& ScissorRect,
+											 int32 ClippingIndex,
 											 int32 SceneIndex = -1);
 private:
 	/** Batch data currently being filled in */

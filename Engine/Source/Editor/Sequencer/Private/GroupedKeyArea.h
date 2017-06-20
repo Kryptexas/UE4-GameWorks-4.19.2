@@ -104,7 +104,7 @@ public:
 	virtual void InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
 	
 	/** Initialize this key collection from the specified node and section index. */
-	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, int32 InSectionIndex, float DuplicateThreshold = SMALL_NUMBER) override;
+	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold = SMALL_NUMBER) override;
 
 	/** Iterate the keys contained within this collection */
 	virtual void IterateKeys(const TFunctionRef<bool(float)>& Iter) override;
@@ -162,7 +162,7 @@ class FGroupedKeyArea
 public:
 
 	/** Construct the area from a display node */
-	FGroupedKeyArea(FSequencerDisplayNode& InNode, int32 InSectionIndex);
+	FGroupedKeyArea(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection);
 
 public:
 

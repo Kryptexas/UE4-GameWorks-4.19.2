@@ -91,7 +91,7 @@ TSharedRef<SWidget> SPropertyAssetPicker::OnGenerateAssetPicker()
 	return MenuContent;
 }
 
-void SPropertyAssetPicker::OnAssetSelectedFromPicker( const class FAssetData& AssetData )
+void SPropertyAssetPicker::OnAssetSelectedFromPicker( const struct FAssetData& AssetData )
 {
 	// Close the asset picker
 	AssetPickerAnchor->SetIsOpen( false );

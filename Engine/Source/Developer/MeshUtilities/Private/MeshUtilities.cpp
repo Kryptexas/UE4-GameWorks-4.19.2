@@ -6628,21 +6628,20 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForRawMesh(const FRawMesh& 
 	const int32 NumTris = NumWedges / 3;
 
 	OutBounds.Empty();
-	int32 WedgeIndex = 0;
 	for (int32 TriIndex = 0; TriIndex < NumTris; TriIndex++)
 	{
 		int MaterialIndex = InRawMesh.FaceMaterialIndices[TriIndex];
 		if (OutBounds.Num() <= MaterialIndex)
 			OutBounds.SetNumZeroed(MaterialIndex + 1);
 		{
-			int32 CachedWedgeIndex = WedgeIndex;
+			int32 CachedWedgeIndex = TriIndex * 3;
 			for (int32 UVIndex = 0; UVIndex < MAX_MESH_TEXTURE_COORDS; ++UVIndex)
 			{
-				WedgeIndex = CachedWedgeIndex;
+				int32 WedgeIndex = CachedWedgeIndex;
 				if (InRawMesh.WedgeTexCoords[UVIndex].Num())
 				{
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++, WedgeIndex++)
-			{
+					for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++, WedgeIndex++)
+					{
 						OutBounds[MaterialIndex] += InRawMesh.WedgeTexCoords[UVIndex][WedgeIndex];
 					}
 				}

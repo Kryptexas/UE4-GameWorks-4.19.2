@@ -26,6 +26,7 @@
 #include "AssetToolsModule.h"
 #include "Misc/FbxErrors.h"
 #include "ARFilter.h"
+#include "Factories/MaterialImportHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
 
@@ -545,38 +546,19 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	}
 	else
 	{
-		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString(), NULL, LOAD_Quiet | LOAD_NoWarn);
 		FBXImportOptions* FbxImportOptions = GetImportOptions();
-		if (FoundMaterial == nullptr && FbxImportOptions->MaterialSearchLocation != EMaterialSearchLocation::Local)
-		{
-			// Search recursively in asset's folder
-			FString SearchPath = FPaths::GetPath(BasePackageName);
-			FoundMaterial = FindExistingUnrealMaterial(SearchPath, MaterialFullName);
 
-			if (FoundMaterial == nullptr && 
-				(FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderParent ||
-				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderRoot ||
-				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets))
-			{
-				// Search recursively in parent's folder
-				SearchPath = FPaths::GetPath(SearchPath);
-				FoundMaterial = FindExistingUnrealMaterial(SearchPath, MaterialFullName);
-			}
-			if (FoundMaterial == nullptr && 
-				(FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderRoot || 
-				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets))
-			{
-				// Search recursively in root folder of asset
-				FString OutPackageRoot, OutPackagePath, OutPackageName;
-				FPackageName::SplitLongPackageName(SearchPath, OutPackageRoot, OutPackagePath, OutPackageName);
-				FoundMaterial = FindExistingUnrealMaterial(OutPackageRoot, MaterialFullName);
-			}
-			if (FoundMaterial == nullptr && 
-				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets)
-			{
-				// Search everywhere
-				FoundMaterial = FindExistingUnrealMaterial(TEXT("/"), MaterialFullName);
-			}
+		FText Error;
+		UMaterialInterface* FoundMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(ObjectPath.ToString(), BasePackageName, FbxImportOptions->MaterialSearchLocation, Error);
+		
+		if (!Error.IsEmpty())
+		{
+			AddTokenizedErrorMessage(
+				FTokenizedMessage::Create(EMessageSeverity::Warning,
+					FText::Format(LOCTEXT("FbxMaterialImport_MultipleMaterialsFound", "While importing '{0}': {1}"),
+						FText::FromString(Parent->GetOutermost()->GetName()),
+						Error)),
+				FFbxErrors::Generic_LoadingSceneFailed);
 		}
 		// do not override existing materials
 		if (FoundMaterial)
@@ -830,50 +812,5 @@ int32 UnFbx::FFbxImporter::CreateNodeMaterials(FbxNode* FbxNode, TArray<UMateria
 	return MaterialCount;
 }
 
-UMaterialInterface* UnFbx::FFbxImporter::FindExistingUnrealMaterial(const FString& BasePath, const FString& MaterialName)
-{
-	UMaterialInterface* Material = nullptr;
-
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-	TArray<FAssetData> AssetData;
-	FARFilter Filter;
-
-	AssetRegistry.SearchAllAssets(true);
-
-	Filter.bRecursiveClasses = true;
-	Filter.bRecursivePaths = true;
-	Filter.ClassNames.Add(UMaterialInterface::StaticClass()->GetFName());
-	Filter.PackagePaths.Add(FName(*BasePath));
-
-	AssetRegistry.GetAssets(Filter, AssetData);
-
-	TArray<UMaterialInterface*> FoundAssets;
-	for (const FAssetData& Data : AssetData)
-	{
-		if (Data.AssetName == FName(*MaterialName))
-		{
-			Material = Cast<UMaterialInterface>(Data.GetAsset());
-			if (Material != nullptr)
-			{
-				FoundAssets.Add(Material);
-			}
-		}
-	}
-
-	if (FoundAssets.Num() > 1)
-	{
-		check(Material != nullptr);
-		AddTokenizedErrorMessage(
-			FTokenizedMessage::Create(EMessageSeverity::Warning,
-				FText::Format(LOCTEXT("FbxMaterialImport_MultipleMaterialsFound", "While importing '{0}', found {1} materials matching name '{2}'. Using '{3}'."), 
-					FText::FromString(Parent->GetOutermost()->GetName()), 
-					FText::FromString(FString::FromInt(FoundAssets.Num())), 
-					FText::FromString(MaterialName), 
-					FText::FromString(Material->GetOutermost()->GetName()))),
-			FFbxErrors::Generic_LoadingSceneFailed);
-	}
-	return Material;
-}
 
 #undef LOCTEXT_NAMESPACE

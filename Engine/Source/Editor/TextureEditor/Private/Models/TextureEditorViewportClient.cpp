@@ -167,7 +167,7 @@ bool FTextureEditorViewportClient::InputKey(FViewport* Viewport, int32 Controlle
 }
 
 
-bool FTextureEditorViewportClient::InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
+bool FTextureEditorViewportClient::InputGesture(FViewport* Viewport, EGestureEvent GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
 {
 	const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
 	const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);

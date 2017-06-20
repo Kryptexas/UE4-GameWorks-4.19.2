@@ -195,8 +195,9 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 		 
 // For platforms without a global menu bar we can put the perf. tools in the editor window's menu bar
 #if !PLATFORM_MAC
-			+SOverlay::Slot()
+			+ SOverlay::Slot()
 			.HAlign( HAlign_Right )
+			.VAlign( VAlign_Center )
 			[
 				SAssignNew( NotificationBarBox, SHorizontalBox )
 				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PerformanceTools")))

@@ -896,15 +896,20 @@ void FViewport::HighResScreenshot()
 	// Forcing 128-bit rendering pipeline
 	static auto CVarSceneColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneColorFormat"));
 	static auto CVarPostColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessingColorFormat"));
+	static auto CVarForceLOD = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForceLOD"));
+
 	check(CVarSceneColorFormat && CVarPostColorFormat);
 	const int32 OldSceneColorFormat = CVarSceneColorFormat->GetInt();
 	const int32 OldPostColorFormat = CVarPostColorFormat->GetInt();
-
+	const int32 OldForceLOD = CVarForceLOD->GetInt();
 	if (GetHighResScreenshotConfig().bForce128BitRendering)
 	{
 		CVarSceneColorFormat->Set(5, ECVF_SetByCode);
 		CVarPostColorFormat->Set(1, ECVF_SetByCode);
 	}
+
+	// Force highest LOD
+	CVarForceLOD->Set(0, ECVF_SetByCode);
 
 	// Render the requested number of frames (at least once)
 	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
@@ -934,6 +939,7 @@ void FViewport::HighResScreenshot()
 
 	CVarSceneColorFormat->Set(OldSceneColorFormat, ECVF_SetByCode);
 	CVarPostColorFormat->Set(OldPostColorFormat, ECVF_SetByCode);
+	CVarForceLOD->Set(OldForceLOD, ECVF_SetByCode);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		EndDrawingCommand,

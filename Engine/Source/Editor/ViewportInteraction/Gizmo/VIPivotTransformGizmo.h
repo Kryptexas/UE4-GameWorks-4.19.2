@@ -156,7 +156,7 @@ private:
 	/** Make the components visible when dragging rotation */
 	void ShowRotationVisuals(const bool bInShow);
 
-	void SetupIndicator(USceneComponent* RootComponent, UStaticMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh);
+	void SetupIndicator(USceneComponent* RootComponent, UGizmoHandleMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh);
 	
 	void SetIndicatorColor(UStaticMeshComponent* InMeshComponent, const FLinearColor& InHandleColor);
 
@@ -166,11 +166,11 @@ private:
 
 	/** When dragging a rotation handle the full rotation circle appears */
 	UPROPERTY()
-	UStaticMeshComponent* FullRotationHandleMeshComponent;
+	class UGizmoHandleMeshComponent* FullRotationHandleMeshComponent;
 
 	/** The mesh that indicated the start rotation */
 	UPROPERTY()
-	UStaticMeshComponent* StartRotationIndicatorMeshComponent;
+	class UGizmoHandleMeshComponent* StartRotationIndicatorMeshComponent;
 
 	/** The root component of the start rotation indicator */
 	UPROPERTY()
@@ -178,7 +178,7 @@ private:
 
 	/** The mesh that indicated the delta rotation */
 	UPROPERTY()
-	UStaticMeshComponent* DeltaRotationIndicatorMeshComponent;
+	class UGizmoHandleMeshComponent* DeltaRotationIndicatorMeshComponent;
 
 	/** The root component of the delta rotation indicator */
 	UPROPERTY()

@@ -117,7 +117,6 @@ void FConnectionDrawingPolicy::DrawSplineWithArrow(const FVector2D& StartPoint, 
 			ArrowLayerID,
 			FPaintGeometry(ArrowPoint, ArrowImage->ImageSize * ZoomFactor, ZoomFactor),
 			ArrowImage,
-			ClippingRect,
 			ESlateDrawEffect::None,
 			Params.WireColor
 			);
@@ -326,7 +325,6 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 		LayerId,
 		P0, P0Tangent,
 		P1, P1Tangent,
-		ClippingRect,
 		Params.WireThickness,
 		ESlateDrawEffect::None,
 		Params.WireColor
@@ -362,7 +360,6 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 						LayerId,
 						FPaintGeometry( BubblePos, BubbleSize, ZoomFactor  ),
 						BubbleImage,
-						ClippingRect,
 						ESlateDrawEffect::None,
 						Params.WireColor
 						);
@@ -391,7 +388,6 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 				LayerId,
 				FPaintGeometry(MidpointDrawPos, MidpointImage->ImageSize * ZoomFactor, ZoomFactor),
 				MidpointImage,
-				ClippingRect,
 				ESlateDrawEffect::None,
 				AngleInRadians,
 				TOptional<FVector2D>(),

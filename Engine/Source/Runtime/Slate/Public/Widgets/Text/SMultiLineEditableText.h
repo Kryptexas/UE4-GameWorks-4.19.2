@@ -69,7 +69,10 @@ public:
 		, _ModiferKeyForNewLine(EModifierKey::None)
 		, _TextShapingMethod()
 		, _TextFlowDirection()
-	{}
+	{
+		_Clipping = EWidgetClipping::ClipToBounds;
+	}
+
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
 
@@ -293,7 +296,7 @@ public:
 protected:
 	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void CacheDesiredSize(float LayoutScaleMultiplier) override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
 	virtual FChildren* GetChildren() override;

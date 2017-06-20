@@ -75,7 +75,7 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 		MyRetainerWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
-	return BuildDesignTimeWidget(MyRetainerWidget.ToSharedRef());
+	return MyRetainerWidget.ToSharedRef();
 }
 
 void URetainerBox::SynchronizeProperties()

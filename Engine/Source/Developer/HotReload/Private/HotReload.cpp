@@ -861,7 +861,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 		ModuleManager.AbandonModuleWithCallback(ShortPackageFName);
 
 		// Load the newly-recompiled module up (it will actually have a different DLL file name at this point.)
-		bReloadSucceeded = ModuleManager.LoadModule(ShortPackageFName).IsValid();
+		bReloadSucceeded = ModuleManager.LoadModule(ShortPackageFName) != nullptr;
 		if (!bReloadSucceeded)
 		{
 			HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, reload failed %s."), *PackageName);

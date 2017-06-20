@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class FLevelCollectionModel;
 class FLevelDragDropOp;
 class FLevelModel;

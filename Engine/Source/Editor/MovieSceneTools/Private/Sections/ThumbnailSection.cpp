@@ -71,12 +71,6 @@ void FThumbnailSection::RedrawThumbnails()
 /* ISequencerSection interface
  *****************************************************************************/
 
-bool FThumbnailSection::AreSectionsConnected() const
-{
-	return true;
-}
-
-
 TSharedRef<SWidget> FThumbnailSection::GenerateSectionWidget()
 {
 	return SNew(SBox)
@@ -219,7 +213,7 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 	const float TimePerPx = GenerationRange.Size<float>() / InPainter.SectionGeometry.GetLocalSize().X;
 	
-	FSlateRect ThumbnailClipRect = SectionGeometry.GetClippingRect().InsetBy(FMargin(SectionThumbnailPadding, 0.f)).IntersectionWith(InPainter.SectionClippingRect);
+	FSlateRect ThumbnailClipRect = SectionGeometry.GetLayoutBoundingRect().InsetBy(FMargin(SectionThumbnailPadding, 0.f)).IntersectionWith(InPainter.SectionClippingRect);
 
 	for (const TSharedPtr<FTrackEditorThumbnail>& Thumbnail : ThumbnailCache.GetThumbnails())
 	{
@@ -254,15 +248,19 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 				DrawEffects |= ESlateDrawEffect::ReverseGamma;
 			}
 
+			FSlateClippingZone ClippingZone(ThumbnailClipRect);
+			InPainter.DrawElements.PushClip(ClippingZone);
+
 			FSlateDrawElement::MakeViewport(
 				InPainter.DrawElements,
 				LayerId,
 				PaintGeometry,
 				Thumbnail,
-				ThumbnailClipRect,
 				DrawEffects | AdditionalDrawEffect,
 				FLinearColor(1.f, 1.f, 1.f, 1.f - Fade)
-				);
+			);
+
+			InPainter.DrawElements.PopClip();
 		}
 	}
 

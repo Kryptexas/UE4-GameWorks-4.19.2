@@ -120,8 +120,8 @@ void SSafeZone::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	if ( ArrangedChildren.Accepts( MyCurrentVisibility ) )
 	{
 		const FMargin SlotPadding               = Padding.Get() + (ComputeScaledSafeMargin(AllottedGeometry.Scale) * SafeAreaScale);
-		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.Size.X, ChildSlot, SlotPadding );
-		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.Size.Y, ChildSlot, SlotPadding );
+		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding );
+		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding );
 
 		ArrangedChildren.AddWidget(
 			AllottedGeometry.MakeChild(

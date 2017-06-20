@@ -4,6 +4,7 @@
 #include "MovieSceneTrack.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Generators/MovieSceneEasingCurves.h"
 
 
 UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializer)
@@ -17,7 +18,15 @@ UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializ
 	, bIsInfinite(false)
 	, PreRollTime(0)
 	, PostRollTime(0)
-{ }
+{
+	UMovieSceneBuiltInEasingFunction* DefaultEaseIn = ObjectInitializer.CreateDefaultSubobject<UMovieSceneBuiltInEasingFunction>(this, "EaseInFunction");
+	DefaultEaseIn->Type = EMovieSceneBuiltInEasing::CubicInOut;
+	Easing.EaseIn = DefaultEaseIn;
+
+	UMovieSceneBuiltInEasingFunction* DefaultEaseOut = ObjectInitializer.CreateDefaultSubobject<UMovieSceneBuiltInEasingFunction>(this, "EaseOutFunction");
+	DefaultEaseOut->Type = EMovieSceneBuiltInEasing::CubicInOut;
+	Easing.EaseOut = DefaultEaseOut;
+}
 
 
 void UMovieSceneSection::PostInitProperties()
@@ -32,6 +41,13 @@ void UMovieSceneSection::PostInitProperties()
 }
 
 
+FMovieSceneBlendTypeField UMovieSceneSection::GetSupportedBlendTypes() const
+{
+	UMovieSceneTrack* Track = GetTypedOuter<UMovieSceneTrack>();
+	return Track ? Track->GetSupportedBlendTypes() : FMovieSceneBlendTypeField::None();
+}
+
+
 bool UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
 {
 	if (IsLocked())
@@ -42,6 +58,35 @@ bool UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
 	Modify(bAlwaysMarkDirty);
 
 	return true;
+}
+
+
+void UMovieSceneSection::GetOverlappingSections(TArray<UMovieSceneSection*>& OutSections, bool bSameRow, bool bIncludeThis)
+{
+	UMovieSceneTrack* Track = GetTypedOuter<UMovieSceneTrack>();
+	if (!Track)
+	{
+		return;
+	}
+
+	TRange<float> ThisRange = GetRange();
+	for (UMovieSceneSection* Section : Track->GetAllSections())
+	{
+		if (!Section || (!bIncludeThis && Section == this))
+		{
+			continue;
+		}
+
+		if (bSameRow && Section->GetRowIndex() != GetRowIndex())
+		{
+			continue;
+		}
+
+		if (Section->GetRange().Overlaps(ThisRange))
+		{
+			OutSections.Add(Section);
+		}
+	}
 }
 
 
@@ -75,6 +120,11 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 	StartTime = InStartTime;
 	EndTime = InEndTime;
 	RowIndex = 0;
+
+	for (UMovieSceneSection* OtherSection : Sections)
+	{
+		OverlapPriority = FMath::Max(OtherSection->GetOverlapPriority()+1, OverlapPriority);
+	}
 
 	if (bAllowMultipleRows)
 	{
@@ -185,4 +235,100 @@ void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 FMovieSceneEvalTemplatePtr UMovieSceneSection::GenerateTemplate() const
 {
 	return FMovieSceneEvalTemplatePtr();
+}
+
+
+float UMovieSceneSection::EvaluateEasing(float InTime) const
+{
+	TRange<float> CurrentRange = GetRange();
+
+	float EaseInValue = 1.f;
+	float EaseOutValue = 1.f;
+
+	if (!CurrentRange.GetLowerBound().IsOpen() && Easing.GetEaseInTime() > 0.f && Easing.EaseIn.GetObject())
+	{
+		float EaseInTime = (InTime - CurrentRange.GetLowerBoundValue()) / Easing.GetEaseInTime();
+		if (EaseInTime <= 0.f)
+		{
+			EaseInValue = 0.f;
+		}
+		else if (EaseInTime >= 1.f)
+		{
+			EaseInValue = 1.f;
+		}
+		else
+		{
+			EaseInValue = IMovieSceneEasingFunction::EvaluateWith(Easing.EaseIn, EaseInTime);
+		}
+	}
+
+
+	if (!CurrentRange.GetUpperBound().IsOpen() && Easing.GetEaseOutTime() > 0.f && Easing.EaseOut.GetObject())
+	{
+		float EaseOutTime = (InTime - (CurrentRange.GetUpperBoundValue() - Easing.GetEaseOutTime())) / Easing.GetEaseOutTime();
+		if (EaseOutTime <= 0.f)
+		{
+			EaseOutValue = 1.f;
+		}
+		else if (EaseOutTime >= 1.f)
+		{
+			EaseOutValue = 0.f;
+		}
+		else
+		{
+			EaseOutValue = 1.f - IMovieSceneEasingFunction::EvaluateWith(Easing.EaseOut, EaseOutTime);
+		}
+	}
+
+	return EaseInValue * EaseOutValue;
+}
+
+
+void UMovieSceneSection::EvaluateEasing(float InTime, TOptional<float>& OutEaseInValue, TOptional<float>& OutEaseOutValue, float* OutEaseInInterp, float* OutEaseOutInterp) const
+{
+	TRange<float> CurrentRange = GetRange();
+
+	if (!CurrentRange.GetLowerBound().IsOpen() && Easing.EaseIn.GetObject() && GetEaseInRange().Contains(InTime))
+	{
+		float EaseInTime = (InTime - CurrentRange.GetLowerBoundValue()) / Easing.GetEaseInTime();
+		OutEaseInValue = IMovieSceneEasingFunction::EvaluateWith(Easing.EaseIn, EaseInTime);
+
+		if (OutEaseInInterp)
+		{
+			*OutEaseInInterp = EaseInTime;
+		}
+	}
+
+	if (!CurrentRange.GetUpperBound().IsOpen() && Easing.EaseOut.GetObject() && GetEaseOutRange().Contains(InTime))
+	{
+		float EaseOutTime = (InTime - (CurrentRange.GetUpperBoundValue() - Easing.GetEaseOutTime())) / Easing.GetEaseOutTime();
+		OutEaseOutValue = 1.f - IMovieSceneEasingFunction::EvaluateWith(Easing.EaseOut, EaseOutTime);
+
+		if (OutEaseOutInterp)
+		{
+			*OutEaseOutInterp = EaseOutTime;
+		}
+	}
+}
+
+
+TRange<float> UMovieSceneSection::GetEaseInRange() const
+{
+	const float MaxTime = FMath::Min(GetStartTime() + Easing.GetEaseInTime(), GetEndTime());
+	if (!bIsInfinite && (Easing.bManualEaseIn || Easing.GetEaseInTime() > 0.f))
+	{
+		return TRange<float>(GetStartTime(), TRangeBound<float>::Inclusive(MaxTime));
+	}
+	return TRange<float>::Empty();
+}
+
+
+TRange<float> UMovieSceneSection::GetEaseOutRange() const
+{
+	const float MinTime = FMath::Max(GetEndTime() - Easing.GetEaseOutTime(), GetStartTime());
+	if (!bIsInfinite && (Easing.bManualEaseOut || Easing.GetEaseOutTime() > 0.f))
+	{
+		return TRange<float>(MinTime, TRangeBound<float>::Inclusive(GetEndTime()));
+	}
+	return TRange<float>::Empty();
 }

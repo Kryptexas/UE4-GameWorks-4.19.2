@@ -12,7 +12,7 @@
 #include "ISequencerTrackEditor.h"
 #include "MovieSceneTrackEditor.h"
 
-class FAssetData;
+struct FAssetData;
 class FAudioThumbnail;
 class FFloatCurveKeyArea;
 class FMenuBuilder;
@@ -63,10 +63,10 @@ public:
 protected:
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for master sounds */
-	bool AddNewMasterSound(float KeyTime, class USoundBase* Sound);
+	FKeyPropertyResult AddNewMasterSound(float KeyTime, class USoundBase* Sound);
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for attached sounds */
-	bool AddNewAttachedSound(float KeyTime, class USoundBase* Sound, TArray<TWeakObjectPtr<UObject>> ObjectsToAttachTo);
+	FKeyPropertyResult AddNewAttachedSound(float KeyTime, class USoundBase* Sound, TArray<TWeakObjectPtr<UObject>> ObjectsToAttachTo);
 
 private:
 
@@ -91,7 +91,7 @@ class FAudioSection
 public:
 
 	/** Constructor. */
-	FAudioSection(UMovieSceneSection& InSection, bool bOnAMasterTrack, TWeakPtr<ISequencer> InSequencer);
+	FAudioSection(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer);
 
 	/** Virtual destructor. */
 	virtual ~FAudioSection();
@@ -101,7 +101,6 @@ public:
 	// ISequencerSection interface
 
 	virtual UMovieSceneSection* GetSectionObject() override;
-	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder) const override;
@@ -135,9 +134,6 @@ private:
 
 	/** Stored sound wave to determine when it is invalidated. */
 	TWeakObjectPtr<USoundWave> StoredSoundWave;
-
-	/** Whether this section is on a master audio track or an attached audio track. */
-	bool bIsOnAMasterTrack;
 
 	TWeakPtr<ISequencer> Sequencer;
 };

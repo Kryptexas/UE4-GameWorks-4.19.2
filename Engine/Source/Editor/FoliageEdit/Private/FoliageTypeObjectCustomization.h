@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "IPropertyTypeCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 class IPropertyHandle;
 
 class FFoliageTypeObjectCustomization : public IPropertyTypeCustomization

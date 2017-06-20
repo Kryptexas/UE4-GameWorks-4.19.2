@@ -3,6 +3,42 @@
 #include "Engine/TextureLODSettings.h"
 #include "Engine/Texture2D.h"
 
+void FTextureLODGroup::SetupGroup()
+{
+	MinLODMipCount = FMath::CeilLogTwo(MinLODSize);
+	MaxLODMipCount = FMath::CeilLogTwo(MaxLODSize);
+
+	// Linear filtering
+	if (MinMagFilter == NAME_Linear)
+	{
+		if (MipFilter == NAME_Point)
+		{
+			Filter = ETextureSamplerFilter::Bilinear;
+		}
+		else
+		{
+			Filter = ETextureSamplerFilter::Trilinear;
+		}
+	}
+	// Point. Don't even care about mip filter.
+	else if (MinMagFilter == NAME_Point)
+	{
+		Filter = ETextureSamplerFilter::Point;
+	}
+	// Aniso or unknown.
+	else
+	{
+		if (MipFilter == NAME_Point)
+		{
+			Filter = ETextureSamplerFilter::AnisotropicPoint;
+		}
+		else
+		{
+			Filter = ETextureSamplerFilter::AnisotropicLinear;
+		}
+	}
+}
+
 UTextureLODSettings::UTextureLODSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -26,41 +62,7 @@ TArray<FString> UTextureLODSettings::GetTextureGroupNames()
 
 void UTextureLODSettings::SetupLODGroup(int32 GroupId)
 {
-	TextureLODGroups[GroupId].MinLODMipCount = FMath::CeilLogTwo(TextureLODGroups[GroupId].MinLODSize);
-	TextureLODGroups[GroupId].MaxLODMipCount = FMath::CeilLogTwo(TextureLODGroups[GroupId].MaxLODSize);
-
-	// Convert into single filter enum. The code is layed out such that invalid input will 
-	// map to the default state of highest quality filtering.
-
-	// Linear filtering
-	if (TextureLODGroups[GroupId].MinMagFilter == NAME_Linear)
-	{
-		if (TextureLODGroups[GroupId].MipFilter == NAME_Point)
-		{
-			TextureLODGroups[GroupId].Filter = ETextureSamplerFilter::Bilinear;
-		}
-		else
-		{
-			TextureLODGroups[GroupId].Filter = ETextureSamplerFilter::Trilinear;
-		}
-	}
-	// Point. Don't even care about mip filter.
-	else if (TextureLODGroups[GroupId].MinMagFilter == NAME_Point)
-	{
-		TextureLODGroups[GroupId].Filter = ETextureSamplerFilter::Point;
-	}
-	// Aniso or unknown.
-	else
-	{
-		if (TextureLODGroups[GroupId].MipFilter == NAME_Point)
-		{
-			TextureLODGroups[GroupId].Filter = ETextureSamplerFilter::AnisotropicPoint;
-		}
-		else
-		{
-			TextureLODGroups[GroupId].Filter = ETextureSamplerFilter::AnisotropicLinear;
-		}
-	}
+	TextureLODGroups[GroupId].SetupGroup();
 }
 
 int32 UTextureLODSettings::CalculateLODBias(const UTexture* Texture, bool bIncTextureMips) const

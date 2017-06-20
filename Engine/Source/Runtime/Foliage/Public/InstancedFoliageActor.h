@@ -104,6 +104,7 @@ public:
 	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false, const FFoliageTraceFilterFunc& FilterFunc = FFoliageTraceFilterFunc());
 	static FOLIAGE_API bool CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UPrimitiveComponent* HitComponent);
 
+	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual bool ShouldExport() override;
 	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
@@ -121,6 +122,9 @@ public:
 	
 	// Move selected instances to a foliage actor in target level
 	FOLIAGE_API void MoveSelectedInstancesToLevel(ULevel* InTargetLevel);
+
+	// Move all instances to a foliage actor in target level
+	FOLIAGE_API void MoveAllInstancesToLevel(ULevel* InTargetLevel);
 	
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
@@ -161,6 +165,9 @@ public:
 	// Will return all the foliage type used by currently selected instances
 	FOLIAGE_API TMap<UFoliageType*, FFoliageMeshInfo*> GetSelectedInstancesFoliageType();
 
+	// Will return all the foliage type used
+	FOLIAGE_API TMap<UFoliageType*, FFoliageMeshInfo*> GetAllInstancesFoliageType();
+
 	// Propagate the selected instances to the actual render components
 	FOLIAGE_API void ApplySelectionToComponents(bool bApply);
 
@@ -191,6 +198,9 @@ private:
 	void OnLevelActorMoved(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);
 	void OnPostApplyLevelOffset(ULevel* InLevel, UWorld* InWorld, const FVector& InOffset, bool bWorldShift);
+
+	// Move instances to a foliage actor in target level
+	FOLIAGE_API void MoveInstancesToLevel(ULevel* InTargetLevel, TSet<int32>& InInstanceList, FFoliageMeshInfo* InCurrentMeshInfo, UFoliageType* InFoliageType);
 #endif
 private:
 #if WITH_EDITOR

@@ -40,7 +40,7 @@ void SSynthKnob::Construct(const SSynthKnob::FArguments& InDeclaration)
 	SynthTooltip = SNew(SSynthTooltip);
 }
 
-int32 SSynthKnob::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SSynthKnob::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// Figure out which image to use based on the current value
 	const float KnobPercent = ValueAttribute.Get();
@@ -54,7 +54,7 @@ int32 SSynthKnob::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeome
 	if (BaseImageBrush != nullptr)
 	{
 		const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * BaseImageBrush->GetTint(InWidgetStyle));
-		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), BaseImageBrush, MyClippingRect, DrawEffects, FinalColorAndOpacity);
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), BaseImageBrush, DrawEffects, FinalColorAndOpacity);
 	}
 
 	if (OverlayImageBrush != nullptr)
@@ -67,7 +67,7 @@ int32 SSynthKnob::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeome
 		float RotationAngle = 2.0f * PI * NormalizedRotationAngle;
 
 		const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * OverlayImageBrush->GetTint(InWidgetStyle));
-		FSlateDrawElement::MakeRotatedBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), OverlayImageBrush, MyClippingRect, DrawEffects, RotationAngle, MyClippingRect.GetCenter(), FSlateDrawElement::RelativeToWorld, FinalColorAndOpacity);
+		FSlateDrawElement::MakeRotatedBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), OverlayImageBrush, DrawEffects, RotationAngle, MyCullingRect.GetCenter(), FSlateDrawElement::RelativeToWorld, FinalColorAndOpacity);
 	}
 
 	return LayerId;

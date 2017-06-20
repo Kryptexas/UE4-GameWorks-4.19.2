@@ -25,9 +25,6 @@ static FAutoConsoleVariableRef CVarTemplatePreviewInEditor(TEXT("Widget.Template
 
 #endif
 
-int32 EnableFastTemplates = 1;
-static FAutoConsoleVariableRef CVarEnableFastTemplates(TEXT("Widget.EnableFastTemplates"), EnableFastTemplates, TEXT("Should we be using the fast templates."), ECVF_Default);
-
 #if WITH_EDITORONLY_DATA
 namespace
 {
@@ -211,8 +208,6 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 			// TODO UMG Make this an FName
 			FString VariableName = Widget->GetName();
 
-			Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-
 			// Find property with the same name as the template and assign the new widget to it.
 			UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, *VariableName);
 			if (Prop)
@@ -244,7 +239,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidgetStatic(UUserWidget* UserWid
 
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
-	InitializeWidgetStatic(UserWidget, this, CanTemplate(), WidgetTree, Animations, Bindings);
+	InitializeWidgetStatic(UserWidget, this, HasTemplate(), WidgetTree, Animations, Bindings);
 }
 
 UObject* UWidgetBlueprintGeneratedClass::CreateDefaultObject()
@@ -322,9 +317,9 @@ bool UWidgetBlueprintGeneratedClass::NeedsLoadForServer() const
 	return UISettings->bLoadWidgetsOnDedicatedServer;
 }
 
-bool UWidgetBlueprintGeneratedClass::CanTemplate() const
+bool UWidgetBlueprintGeneratedClass::HasTemplate() const
 {
-	return EnableFastTemplates && bValidTemplate;
+	return bValidTemplate;
 }
 
 void UWidgetBlueprintGeneratedClass::SetTemplate(UUserWidget* InTemplate)
@@ -342,7 +337,7 @@ UUserWidget* UWidgetBlueprintGeneratedClass::GetTemplate()
 	if ( TemplatePreviewInEditor )
 	{
 
-		if ( EditorTemplate == nullptr && CanTemplate() )
+		if ( EditorTemplate == nullptr && HasTemplate() )
 		{
 			EditorTemplate = NewObject<UUserWidget>(this, this, NAME_None, EObjectFlags(RF_ArchetypeObject | RF_Transient));
 			EditorTemplate->TemplateInit();
@@ -365,7 +360,7 @@ UUserWidget* UWidgetBlueprintGeneratedClass::GetTemplate()
 
 #else
 
-	if ( bTemplateInitialized == false && CanTemplate() )
+	if ( bTemplateInitialized == false && HasTemplate() )
 	{
 		// If you hit this ensure, it's possible there's a problem with the loader, or the cooker and the template
 		// widget did not end up in the cooked package.
@@ -400,11 +395,19 @@ UUserWidget* UWidgetBlueprintGeneratedClass::GetTemplate()
 
 void UWidgetBlueprintGeneratedClass::PreSave(const class ITargetPlatform* TargetPlatform)
 {
+#if WITH_EDITOR
 	if ( TargetPlatform && TargetPlatform->RequiresCookedData() )
 	{
 		if ( WidgetTree )
 		{
-			WidgetTree->ClearFlags(RF_Transient);
+			if (bCookSlowConstructionWidgetTree)
+			{
+				WidgetTree->ClearFlags(RF_Transient);
+			}
+			else
+			{
+				WidgetTree->SetFlags(RF_Transient);
+			}
 		}
 
 		InitializeTemplate(TargetPlatform);
@@ -419,6 +422,7 @@ void UWidgetBlueprintGeneratedClass::PreSave(const class ITargetPlatform* Target
 			WidgetTree->SetFlags(RF_Transient);
 		}
 	}
+#endif
 
 	Super::PreSave(TargetPlatform);
 }
@@ -432,81 +436,66 @@ void UWidgetBlueprintGeneratedClass::Serialize(FArchive& Ar)
 
 void UWidgetBlueprintGeneratedClass::InitializeTemplate(const ITargetPlatform* TargetPlatform)
 {
+#if WITH_EDITOR
+
 	if ( TargetPlatform && TargetPlatform->RequiresCookedData() )
 	{
-		if ( bCookedTemplate == false )
+		bool bCanTemplate = bAllowTemplate;
+
+		if ( bCanTemplate )
 		{
-			bCookedTemplate = true;
+			UUserWidget* WidgetTemplate = NewObject<UUserWidget>(GetTransientPackage(), this);
+			WidgetTemplate->TemplateInit();
 
-			bool bCanTemplate = bAllowTemplate;
-
-			if ( bCanTemplate )
+			// Determine if we can generate a template for this widget to speed up CreateWidget time.
+			TArray<FText> OutErrors;
+			bCanTemplate = WidgetTemplate->VerifyTemplateIntegrity(OutErrors);
+			for ( FText Error : OutErrors )
 			{
-				UUserWidget* WidgetTemplate = NewObject<UUserWidget>(GetTransientPackage(), this);
-				WidgetTemplate->TemplateInit();
-
-				// Determine if we can generate a template for this widget to speed up CreateWidget time.
-				TArray<FText> OutErrors;
-				bCanTemplate = WidgetTemplate->VerifyTemplateIntegrity(OutErrors);
-				for ( FText Error : OutErrors )
-				{
-					UE_LOG(LogUMG, Warning, TEXT("Widget Class %s Template Error - %s."), *GetName(), *Error.ToString());
-				}
-			}
-
-			UPackage* WidgetTemplatePackage = GetOutermost();
-
-			// Remove the old archetype.
-			{
-				UUserWidget* OldArchetype = LoadObject<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"), nullptr, LOAD_NoWarn);
-				if ( OldArchetype )
-				{
-					const ERenameFlags RenFlags = REN_DontCreateRedirectors | REN_NonTransactional | REN_DoNotDirty;
-
-					FString TransientArchetypeString = FString::Printf(TEXT("OLD_TEMPLATE_%s"), *OldArchetype->GetName());
-					FName TransientArchetypeName = MakeUniqueObjectName(GetTransientPackage(), OldArchetype->GetClass(), FName(*TransientArchetypeString));
-					OldArchetype->Rename(*TransientArchetypeName.ToString(), GetTransientPackage(), RenFlags);
-					OldArchetype->SetFlags(RF_Transient);
-					OldArchetype->ClearFlags(RF_Public | RF_Standalone | RF_ArchetypeObject);
-					FLinkerLoad::InvalidateExport(OldArchetype);
-
-					TArray<UObject*> ChildrenObjects;
-					ForEachObjectWithOuter(OldArchetype, [&ChildrenObjects] (UObject* Child) {
-						ChildrenObjects.Add(Child);
-					}, false);
-
-					for ( UObject* Child : ChildrenObjects )
-					{
-						Child->Rename(nullptr, GetTransientPackage(), RenFlags);
-						Child->SetFlags(RF_Transient);
-						FLinkerLoad::InvalidateExport(Child);
-					}
-				}
-			}
-
-			if ( bCanTemplate )
-			{
-				UUserWidget* WidgetTemplate = NewObject<UUserWidget>(WidgetTemplatePackage, this, TEXT("WidgetArchetype"), EObjectFlags(RF_Public | RF_Standalone | RF_ArchetypeObject));
-				WidgetTemplate->TemplateInit();
-
-				this->SetTemplate(WidgetTemplate);
-
-				UE_LOG(LogUMG, Display, TEXT("Widget Class %s - Template Initialized."), *GetName());
-			}
-			else if ( bAllowTemplate == false )
-			{
-				UE_LOG(LogUMG, Display, TEXT("Widget Class %s - Not Allowed To Create Template"), *GetName());
-
-				this->SetTemplate(nullptr);
-			}
-			else
-			{
-				UE_LOG(LogUMG, Warning, TEXT("Widget Class %s - Failed To Create Template"), *GetName());
-
-				this->SetTemplate(nullptr);
+				UE_LOG(LogUMG, Warning, TEXT("Widget Class %s Template Error - %s."), *GetName(), *Error.ToString());
 			}
 		}
+
+		UPackage* WidgetTemplatePackage = GetOutermost();
+
+		// Remove the old archetype.
+		{
+			UUserWidget* OldArchetype = LoadObject<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"), nullptr, LOAD_NoWarn);
+			if ( OldArchetype )
+			{
+				const ERenameFlags RenFlags = REN_DontCreateRedirectors | REN_NonTransactional | REN_DoNotDirty;
+
+				FString TransientArchetypeString = FString::Printf(TEXT("OLD_TEMPLATE_%s"), *OldArchetype->GetName());
+				FName TransientArchetypeName = MakeUniqueObjectName(GetTransientPackage(), OldArchetype->GetClass(), FName(*TransientArchetypeString));
+				OldArchetype->Rename(*TransientArchetypeName.ToString(), GetTransientPackage(), RenFlags);
+				OldArchetype->SetFlags(RF_Transient);
+				OldArchetype->ClearFlags(RF_Public | RF_Standalone | RF_ArchetypeObject);
+			}
+		}
+
+		if ( bCanTemplate )
+		{
+			UUserWidget* WidgetTemplate = NewObject<UUserWidget>(WidgetTemplatePackage, this, TEXT("WidgetArchetype"), EObjectFlags(RF_Public | RF_Standalone | RF_ArchetypeObject));
+			WidgetTemplate->TemplateInit();
+
+			this->SetTemplate(WidgetTemplate);
+
+			UE_LOG(LogUMG, Display, TEXT("Widget Class %s - Template Initialized."), *GetName());
+		}
+		else if ( bAllowTemplate == false )
+		{
+			UE_LOG(LogUMG, Display, TEXT("Widget Class %s - Not Allowed To Create Template"), *GetName());
+
+			this->SetTemplate(nullptr);
+		}
+		else
+		{
+			UE_LOG(LogUMG, Warning, TEXT("Widget Class %s - Failed To Create Template"), *GetName());
+
+			this->SetTemplate(nullptr);
+		}
 	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

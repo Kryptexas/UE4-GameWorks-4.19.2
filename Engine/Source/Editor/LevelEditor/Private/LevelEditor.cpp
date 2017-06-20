@@ -26,7 +26,6 @@
 #include "EditorViewportCommands.h"
 #include "LevelViewportActions.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-#include "IUserFeedbackModule.h"
 #include "ISlateReflectorModule.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "IIntroTutorials.h"
@@ -175,9 +174,6 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 
 	}
 
-	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
-	TSharedRef<SWidget> UserFeedbackWidget = UserFeedback.CreateFeedbackWidget(NSLOCTEXT("UserFeedback", "LevelEditing", "Level Editing"));
-
 	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 	TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(TEXT("LevelEditor"), OwnerWindow);
 
@@ -197,14 +193,7 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 			LevelEditorTab->GetRightContent()
 		]
 #endif
-		
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-		.VAlign(VAlign_Center)
-		[
-			UserFeedbackWidget
-		]
+
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(BadgeSizeGetter)

@@ -88,7 +88,7 @@ void FActionMappingsNodeBuilder::GenerateChildContent( IDetailChildrenBuilder& C
 		FString GroupNameString(TEXT("ActionMappings."));
 		MappingSet.SharedName.AppendString(GroupNameString);
 		FName GroupName(*GroupNameString);
-		IDetailGroup& ActionMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, FText::FromName(MappingSet.SharedName));
+		IDetailGroup& ActionMappingGroup = ChildrenBuilder.AddGroup(GroupName, FText::FromName(MappingSet.SharedName));
 		MappingSet.DetailGroup = &ActionMappingGroup;
 
 		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActionMappingsNodeBuilder::AddActionMappingToGroupButton_OnClick, MappingSet),
@@ -395,7 +395,7 @@ void FAxisMappingsNodeBuilder::GenerateChildContent( IDetailChildrenBuilder& Chi
 		FString GroupNameString(TEXT("AxisMappings."));
 		MappingSet.SharedName.AppendString(GroupNameString);
 		FName GroupName(*GroupNameString);
-		IDetailGroup& AxisMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, FText::FromName(MappingSet.SharedName));
+		IDetailGroup& AxisMappingGroup = ChildrenBuilder.AddGroup(GroupName, FText::FromName(MappingSet.SharedName));
 		MappingSet.DetailGroup = &AxisMappingGroup;
 
 		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FAxisMappingsNodeBuilder::AddAxisMappingToGroupButton_OnClick, MappingSet),

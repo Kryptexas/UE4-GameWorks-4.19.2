@@ -8,7 +8,7 @@
 #include "Engine/Blueprint.h"
 #include "BlueprintNativeCodeGenManifest.generated.h"
 
-class FAssetData;
+struct FAssetData;
 struct FBlueprintNativeCodeGenPaths;
 
 /*******************************************************************************

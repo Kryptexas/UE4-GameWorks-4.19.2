@@ -314,13 +314,12 @@ namespace UnrealBuildTool
 		{
 			// set UE4_LINUX_USE_LIBCXX to either 0 or 1. If unset, defaults to 1.
 			string UseLibcxxEnvVarOverride = Environment.GetEnvironmentVariable("UE4_LINUX_USE_LIBCXX");
-			if (UseLibcxxEnvVarOverride != null && (UseLibcxxEnvVarOverride == "1"))
+			if (string.IsNullOrEmpty(UseLibcxxEnvVarOverride) || UseLibcxxEnvVarOverride == "1")
 			{
-				return true;
+				// at the moment ARM32 libc++ remains missing
+				return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64") || Architecture.StartsWith("i686");
 			}
-
-			// at the moment ARM32 libc++ remains missing
-			return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64") || Architecture.StartsWith("i686");
+			return false;
 		}
 
 		static string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
@@ -1239,6 +1238,13 @@ namespace UnrealBuildTool
 			LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\\\", "/");
 			LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
+			/* The linker script that hid global constructor signatures was needed to work around problems like third party libraries
+				alloctating classes through a custom new overload but deleting through global delete. This in particular was needed for Steam.
+				Right now we are not aware of third party libs behaving that way, and hiding global new/delete introduces other problems, particularly
+				when linking to libs that use STL. Hence the script is unnecessary and should not be used, unless you understand what it is doing
+				and you are sure you are running into a similar problem like above. The proper solution though is to always ask the library author
+				to use matching new/delete signatures.
+			*//*
 			// prepare a linker script
 			FileReference LinkerScriptPath = FileReference.Combine(LinkEnvironment.LocalShadowDirectory, "remove-sym.ldscript");
 			if (!DirectoryReference.Exists(LinkEnvironment.LocalShadowDirectory))
@@ -1270,6 +1276,7 @@ namespace UnrealBuildTool
 			};
 
 			LinkAction.CommandArguments += string.Format(" -Wl,--version-script=\"{0}\"", LinkerScriptPath);
+			*/
 
 			// Only execute linking on the local PC.
 			LinkAction.bCanExecuteRemotely = false;

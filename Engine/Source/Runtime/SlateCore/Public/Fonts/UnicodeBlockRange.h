@@ -6,7 +6,7 @@
 #include "ArrayView.h"
 
 /** Enumeration of pre-defined Unicode block ranges that can be used to access entries from FUnicodeBlockRange */
-enum class EUnicodeBlockRange : uint8
+enum class EUnicodeBlockRange : uint16
 {
 #define REGISTER_UNICODE_BLOCK_RANGE(LOWERBOUND, UPPERBOUND, SYMBOLNAME, DISPLAYNAME) SYMBOLNAME,
 #include "UnicodeBlockRange.inl"

@@ -49,7 +49,7 @@ public:
 			&& RowContentsPropertyHandle->IsValidHandle())
 		{
 			/** Edit the data table uobject as normal */
-			StructBuilder.AddChildProperty(DataTablePropertyHandle.ToSharedRef());
+			StructBuilder.AddProperty(DataTablePropertyHandle.ToSharedRef());
 			FSimpleDelegate OnDataTableChangedDelegate = FSimpleDelegate::CreateSP(this, &FDataTableCategoryCustomizationLayout::OnDataTableChanged);
 			DataTablePropertyHandle->SetOnPropertyValueChanged(OnDataTableChangedDelegate);
 
@@ -57,7 +57,7 @@ public:
 			TSharedPtr<FString> InitialColumnValue = InitColumnWidgetContent();
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent(LOCTEXT("DataTable_ColumnName", "Column Name"))
+			StructBuilder.AddCustomRow(LOCTEXT("DataTable_ColumnName", "Column Name"))
 			.NameContent()
 				[
 					SNew(STextBlock)
@@ -81,7 +81,7 @@ public:
 			TSharedPtr<FString> InitialRowValue = InitRowWidgetContent();
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent(LOCTEXT("DataTable_RowContains", "Row Contains"))
+			StructBuilder.AddCustomRow(LOCTEXT("DataTable_RowContains", "Row Contains"))
 			.NameContent()
 				[
 					SNew(STextBlock)

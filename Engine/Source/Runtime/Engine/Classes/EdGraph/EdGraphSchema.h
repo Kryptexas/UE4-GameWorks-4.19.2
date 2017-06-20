@@ -857,23 +857,23 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const;
 
 	/** Called when asset(s) are dropped onto a graph background. */
-	virtual void DroppedAssetsOnGraph(const TArray<class FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const {}
+	virtual void DroppedAssetsOnGraph(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const {}
 
 	/** Called when asset(s) are dropped onto the specified node */
-	virtual void DroppedAssetsOnNode(const TArray<class FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphNode* Node) const {}
+	virtual void DroppedAssetsOnNode(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphNode* Node) const {}
 
 	/** Called when asset(s) are dropped onto the specified pin */
-	virtual void DroppedAssetsOnPin(const TArray<class FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphPin* Pin) const {}
+	virtual void DroppedAssetsOnPin(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphPin* Pin) const {}
 
 	/** Allows schema to generate a tooltip (icon & message) when the specified asset(s) are dragged over the specified node */
-	virtual void GetAssetsNodeHoverMessage(const TArray<class FAssetData>& Assets, const UEdGraphNode* HoverNode, FString& OutTooltipText, bool& OutOkIcon) const 
+	virtual void GetAssetsNodeHoverMessage(const TArray<struct FAssetData>& Assets, const UEdGraphNode* HoverNode, FString& OutTooltipText, bool& OutOkIcon) const 
 	{ 
 		OutTooltipText = FString();
 		OutOkIcon = false;
 	}
 
 	/** Allows schema to generate a tooltip (icon & message) when the specified asset(s) are dragged over the specified pin */
-	virtual void GetAssetsPinHoverMessage(const TArray<class FAssetData>& Assets, const UEdGraphPin* HoverPin, FString& OutTooltipText, bool& OutOkIcon) const 
+	virtual void GetAssetsPinHoverMessage(const TArray<struct FAssetData>& Assets, const UEdGraphPin* HoverPin, FString& OutTooltipText, bool& OutOkIcon) const 
 	{ 
 		OutTooltipText = FString();
 		OutOkIcon = false;

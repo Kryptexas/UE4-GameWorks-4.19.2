@@ -9,7 +9,7 @@
 #include "ActorFactoryStaticMesh.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryStaticMesh : public UActorFactory

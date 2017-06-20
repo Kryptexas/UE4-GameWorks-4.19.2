@@ -143,7 +143,7 @@ struct FEndOfListResult
 static FEndOfListResult ComputeOffsetForEndOfList( const FGeometry& ListPanelGeometry, const FChildren& ListPanelChildren )
 {
 	float OffsetFromEndOfList = 0.0f;
-	float AvailableSpace = ListPanelGeometry.Size.Y;
+	float AvailableSpace = ListPanelGeometry.GetLocalSize().Y;
 	float ItemsAboveView = 0.0f;
 	for ( int ChildIndex=ListPanelChildren.Num()-1; ChildIndex >= 0; --ChildIndex )
 	{
@@ -196,7 +196,7 @@ EActiveTimerReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime
 				if (CanUseInertialScroll(ScrollVelocity))
 				{
 					bKeepTicking = true;
-					ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll);
+					ScrollBy(GetCachedGeometry(), ScrollVelocity * InDeltaTime, AllowOverscroll);
 				}
 				else
 				{
@@ -208,7 +208,7 @@ EActiveTimerReturnType STableViewBase::UpdateInertialScroll(double InCurrentTime
 			{
 				// If we are currently in overscroll, the list will need refreshing.
 				// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
-				if (Overscroll.GetOverscroll() != 0.0f)
+				if (Overscroll.GetOverscroll(GetCachedGeometry()) != 0.0f)
 				{
 					bKeepTicking = true;
 					RequestListRefresh();
@@ -235,12 +235,10 @@ EActiveTimerReturnType STableViewBase::EnsureTickToRefresh(double InCurrentTime,
 
 void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	CachedGeometry = AllottedGeometry;
-
 	if (ItemsPanel.IsValid())
 	{
 		FGeometry PanelGeometry = FindChildGeometry( AllottedGeometry, ItemsPanel.ToSharedRef() );
-		if ( bItemsNeedRefresh || PanelGeometryLastTick.Size != PanelGeometry.Size)
+		if ( bItemsNeedRefresh || PanelGeometryLastTick.GetLocalSize() != PanelGeometry.GetLocalSize())
 		{
 			PanelGeometryLastTick = PanelGeometry;
 
@@ -272,7 +270,7 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 			if (AllowOverscroll == EAllowOverscroll::Yes)
 			{
-				const float OverscrollAmount = Overscroll.GetOverscroll();
+				const float OverscrollAmount = Overscroll.GetOverscroll(GetCachedGeometry());
 				ItemsPanel->SetOverscrollAmount( OverscrollAmount );
 			}
 
@@ -399,7 +397,7 @@ FReply STableViewBase::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoin
 		// If we have mouse capture, snap the mouse back to the closest location that is within the list's bounds
 		if ( HasMouseCapture() )
 		{
-			FSlateRect ListScreenSpaceRect = MyGeometry.GetClippingRect();
+			FSlateRect ListScreenSpaceRect = MyGeometry.GetLayoutBoundingRect();
 			FVector2D CursorPosition = MyGeometry.LocalToAbsolute( SoftwareCursorPosition );
 
 			FIntPoint BestPositionInList(
@@ -628,9 +626,9 @@ bool STableViewBase::IsPendingRefresh() const
 	return bItemsNeedRefresh || ItemsPanel->IsRefreshPending();
 }
 
-int32 STableViewBase::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STableViewBase::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	int32 NewLayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	int32 NewLayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 	if( !bShowSoftwareCursor )
 	{
@@ -643,8 +641,7 @@ int32 STableViewBase::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 		OutDrawElements,
 		++NewLayerId,
 		AllottedGeometry.ToPaintGeometry( SoftwareCursorPosition - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
-		Brush,
-		MyClippingRect
+		Brush
 		);
 
 	return NewLayerId;
@@ -677,7 +674,7 @@ float STableViewBase::ScrollBy(const FGeometry& MyGeometry, float ScrollByAmount
 	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems*NumItemsBeingObserved, -10.0f, NumItemsBeingObserved+10.0f ) * NumItemsBeingObserved;
 	if (InAllowOverscroll == EAllowOverscroll::Yes)
 	{
-		Overscroll.ScrollBy( ClampedScrollOffsetInItems - ScrollByAmountInSlateUnits );
+		Overscroll.ScrollBy(MyGeometry, ClampedScrollOffsetInItems - ScrollByAmountInSlateUnits );
 	}
 	return ScrollTo( ClampedScrollOffsetInItems );
 }
@@ -800,19 +797,17 @@ void STableViewBase::OnRightMouseButtonUp(const FPointerEvent& MouseEvent)
 	const bool bShouldOpenContextMenu = !IsRightClickScrolling();
 	const bool bContextMenuOpeningBound = OnContextMenuOpening.IsBound();
 
-	if ( bShouldOpenContextMenu && bContextMenuOpeningBound )
+	if (bShouldOpenContextMenu && bContextMenuOpeningBound)
 	{
 		// Get the context menu content. If NULL, don't open a menu.
 		TSharedPtr<SWidget> MenuContent = OnContextMenuOpening.Execute();
 
-		if( MenuContent.IsValid() )
+		if (MenuContent.IsValid())
 		{
 			bShowSoftwareCursor = false;
 
 			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
 			FSlateApplication::Get().PushMenu(AsShared(), WidgetPath, MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
-
-
 		}
 	}
 
@@ -857,61 +852,9 @@ TSharedRef<class SWidget> STableViewBase::GetScrollWidget()
 
 bool STableViewBase::CanUseInertialScroll( float ScrollAmount ) const
 {
-	const auto CurrentOverscroll = Overscroll.GetOverscroll();
+	const auto CurrentOverscroll = Overscroll.GetOverscroll(GetCachedGeometry());
 
 	// We allow sampling for the inertial scroll if we are not in the overscroll region,
 	// Or if we are scrolling outwards of the overscroll region
 	return CurrentOverscroll == 0.f || FMath::Sign(CurrentOverscroll) != FMath::Sign(ScrollAmount);
-}
-
-STableViewBase::FListOverscroll::FListOverscroll()
-: OverscrollAmount( 0.0f )
-{
-}
-
-float STableViewBase::FListOverscroll::ScrollBy(float Delta)
-{
-	const float ValueBeforeDeltaApplied = OverscrollAmount;
-	const float EasedDelta = Delta / (FMath::Abs(OverscrollAmount/ListConstants::OvershootMax)+1.0f);
-	OverscrollAmount = FMath::Clamp(OverscrollAmount + EasedDelta, -ListConstants::OvershootMax, ListConstants::OvershootMax);
-
-	// Don't allow an interaction to change from positive <-> negative overscroll
-	const bool bCrossedOverscrollBoundary = FMath::Sign(ValueBeforeDeltaApplied) != FMath::Sign(OverscrollAmount);
-	if ( bCrossedOverscrollBoundary && ValueBeforeDeltaApplied != 0.f )
-	{
-		OverscrollAmount = 0.f;
-	}
-
-	return ValueBeforeDeltaApplied - OverscrollAmount;
-}
-
-float STableViewBase::FListOverscroll::GetOverscroll() const
-{
-	return OverscrollAmount;
-}
-
-void STableViewBase::FListOverscroll::UpdateOverscroll(float InDeltaTime)
-{
-	const float PullForce = FMath::Abs(OverscrollAmount) + 1.0f;
-	const float EasedDelta = ListConstants::OvershootBounceRate * InDeltaTime * PullForce;
-
-	if ( OverscrollAmount > 0 )
-	{
-		OverscrollAmount = FMath::Max( 0.0f, OverscrollAmount - EasedDelta * InDeltaTime );
-	}
-	else
-	{
-		OverscrollAmount = FMath::Min( 0.0f, OverscrollAmount +  EasedDelta * InDeltaTime );
-	}
-}
-
-bool STableViewBase::FListOverscroll::ShouldApplyOverscroll(const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta) const
-{
-	const bool bShouldApplyOverscroll =
-		// We can scroll past the edge of the list only if we are at the edge
-		(bIsAtStartOfList && ScrollDelta < 0) || (bIsAtEndOfList && ScrollDelta > 0) ||
-		// ... or if we are already past the edge and are scrolling in the opposite direction.
-		(OverscrollAmount > 0 && ScrollDelta < 0) || (OverscrollAmount < 0 && ScrollDelta > 0);
-
-	return bShouldApplyOverscroll;
 }

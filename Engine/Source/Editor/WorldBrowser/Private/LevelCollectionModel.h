@@ -130,7 +130,7 @@ public:
 	void AssignParent(const FLevelModelList& InLevels, TSharedPtr<FLevelModel> InParent);
 
 	/** Adds all levels in worlds represented by the supplied world list as sublevels */
-	virtual void AddExistingLevelsFromAssetData(const TArray<class FAssetData>& WorldList);
+	virtual void AddExistingLevelsFromAssetData(const TArray<struct FAssetData>& WorldList);
 			
 	/**	Create drag drop operation for a selected level models */
 	virtual TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> CreateDragDropOp() const;

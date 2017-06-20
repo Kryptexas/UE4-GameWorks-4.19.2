@@ -35,7 +35,7 @@ void FGameplayEffectModifierMagnitudeDetails::CustomizeChildren(TSharedRef<IProp
 	if (MagnitudeCalculationTypePropertyHandle.IsValid())
 	{
 		MagnitudeCalculationTypePropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FGameplayEffectModifierMagnitudeDetails::OnCalculationTypeChanged));
-		StructBuilder.AddChildProperty(MagnitudeCalculationTypePropertyHandle.ToSharedRef());
+		StructBuilder.AddProperty(MagnitudeCalculationTypePropertyHandle.ToSharedRef());
 	}
 	OnCalculationTypeChanged();
 
@@ -43,28 +43,28 @@ void FGameplayEffectModifierMagnitudeDetails::CustomizeChildren(TSharedRef<IProp
 	TSharedPtr<IPropertyHandle> ScalableFloatMagnitudePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectModifierMagnitude, ScalableFloatMagnitude));
 	if (ScalableFloatMagnitudePropertyHandle.IsValid())
 	{
-		IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(ScalableFloatMagnitudePropertyHandle.ToSharedRef());
+		IDetailPropertyRow& PropRow = StructBuilder.AddProperty(ScalableFloatMagnitudePropertyHandle.ToSharedRef());
 		PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectModifierMagnitudeDetails::GetMagnitudeCalculationPropertyVisibility, ScalableFloatMagnitudePropertyHandle->GetProperty())));
 	}
 
 	TSharedPtr<IPropertyHandle> AttributeBasedMagnitudePropertyHandle  = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectModifierMagnitude, AttributeBasedMagnitude));
 	if (AttributeBasedMagnitudePropertyHandle.IsValid())
 	{
-		IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(AttributeBasedMagnitudePropertyHandle.ToSharedRef());
+		IDetailPropertyRow& PropRow = StructBuilder.AddProperty(AttributeBasedMagnitudePropertyHandle.ToSharedRef());
 		PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectModifierMagnitudeDetails::GetMagnitudeCalculationPropertyVisibility, AttributeBasedMagnitudePropertyHandle->GetProperty())));
 	}
 
 	TSharedPtr<IPropertyHandle> CustomMagnitudePropertyHandle  = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectModifierMagnitude, CustomMagnitude));
 	if (CustomMagnitudePropertyHandle.IsValid())
 	{
-		IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(CustomMagnitudePropertyHandle.ToSharedRef());
+		IDetailPropertyRow& PropRow = StructBuilder.AddProperty(CustomMagnitudePropertyHandle.ToSharedRef());
 		PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectModifierMagnitudeDetails::GetMagnitudeCalculationPropertyVisibility, CustomMagnitudePropertyHandle->GetProperty())));
 	}
 
 	TSharedPtr<IPropertyHandle> SetByCallerPropertyHandle  = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectModifierMagnitude, SetByCallerMagnitude));
 	if (SetByCallerPropertyHandle.IsValid())
 	{
-		IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(SetByCallerPropertyHandle.ToSharedRef());
+		IDetailPropertyRow& PropRow = StructBuilder.AddProperty(SetByCallerPropertyHandle.ToSharedRef());
 		PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectModifierMagnitudeDetails::GetMagnitudeCalculationPropertyVisibility, SetByCallerPropertyHandle->GetProperty())));
 	}
 }

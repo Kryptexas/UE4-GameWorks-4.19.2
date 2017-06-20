@@ -140,7 +140,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 	const bool bIsMapPackage = (PackageFileSummary.PackageFlags & PKG_ContainsMap) != 0;
 
 	// Assets do not show up in map packages unless we launch with -WorldAssets
-	static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
+	static const bool bUsingWorldAssets = UAssetRegistryImpl::IsUsingWorldAssets();
 	if ( bIsMapPackage && !bUsingWorldAssets )
 	{
 		return true;

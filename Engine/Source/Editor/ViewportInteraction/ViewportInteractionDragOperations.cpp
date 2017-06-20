@@ -16,26 +16,11 @@ namespace VI
 
 void UTranslationDragOperation::ExecuteDrag(FDraggingTransformableData& DraggingData)
 {
-	const EViewportInteractionDraggingMode DraggingMode = DraggingData.Interactor->GetDraggingMode();
-	
-	FVector ResultLocation = DraggingData.PassDraggedTo;
-
-	// Already snapped when transform to impact of laser, so we don't have to do it here.
-	if (!DraggingData.bIsUpdatingUnsnappedTarget && DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact)
-	{
-		const bool bLocalSpaceSnapping = DraggingData.GizmoCoordinateSpace == COORD_Local;
-		const FVector SnapGridBase = bLocalSpaceSnapping ? FVector::ZeroVector : DraggingData.GizmoStartTransform.GetLocation();
-		const bool bShouldConstrainMovement = true;
-		ResultLocation = DraggingData.WorldInteraction->SnapLocation(bLocalSpaceSnapping, DraggingData.PassDraggedTo, DraggingData.GizmoStartTransform, SnapGridBase, bShouldConstrainMovement, DraggingData.ConstrainedDragDelta);
-	}
-
 	// Translate the gizmo!
-	FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
-
-	PassGizmoTargetTransform.SetLocation(ResultLocation);
-
+	DraggingData.OutGizmoUnsnappedTargetTransform.SetLocation(DraggingData.PassDraggedTo);
 	DraggingData.bOutMovedTransformGizmo = true;
 	DraggingData.bOutShouldApplyVelocitiesFromDrag = true;
+	DraggingData.bOutTranslated = true;
 }
 
 UPlaneTranslationDragOperation::UPlaneTranslationDragOperation()
@@ -46,25 +31,10 @@ UPlaneTranslationDragOperation::UPlaneTranslationDragOperation()
 void UPlaneTranslationDragOperation::ExecuteDrag(struct FDraggingTransformableData& DraggingData)
 {
 	// Translate the gizmo!
-	const EViewportInteractionDraggingMode DraggingMode = DraggingData.Interactor->GetDraggingMode();
-
-	FVector ResultLocation = DraggingData.PassDraggedTo;
-
-	// Already snapped when transform to impact of laser, so we don't have to do it here.
-	if (!DraggingData.bIsUpdatingUnsnappedTarget && DraggingMode != EViewportInteractionDraggingMode::TransformablesAtLaserImpact)
-	{
-		const bool bLocalSpaceSnapping = DraggingData.GizmoCoordinateSpace == COORD_Local;
-		const FVector SnapGridBase = bLocalSpaceSnapping ? FVector::ZeroVector : DraggingData.GizmoStartTransform.GetLocation();
-		const bool bShouldConstrainMovement = true;
-		ResultLocation = DraggingData.WorldInteraction->SnapLocation(bLocalSpaceSnapping, DraggingData.PassDraggedTo, DraggingData.GizmoStartTransform, SnapGridBase, bShouldConstrainMovement, DraggingData.ConstrainedDragDelta);
-	}
-
-	// Translate the gizmo!
-	FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
-
-	PassGizmoTargetTransform.SetLocation(ResultLocation);
+	DraggingData.OutGizmoUnsnappedTargetTransform.SetLocation(DraggingData.PassDraggedTo);
 	DraggingData.bOutMovedTransformGizmo = true;
 	DraggingData.bOutShouldApplyVelocitiesFromDrag = true;
+	DraggingData.bOutTranslated = true;
 }
 
 URotateOnAngleDragOperation::URotateOnAngleDragOperation():
@@ -140,27 +110,20 @@ void URotateOnAngleDragOperation::ExecuteDrag(FDraggingTransformableData& Draggi
 			const float AngleDeltaRotationFromStart = FMath::FindDeltaAngleRadians(AngleToIntersectedLocation, StartDragAngleOnRotation.GetValue());
 			const FQuat GizmoSpaceDeltaRotation = FQuat(GizmoSpaceFacingAxisVector, AngleDeltaRotationFromStart);
 
-			// Snap rotation in gizmo space
-			FTransform GizmoSpaceRotatedTransform(GizmoSpaceDeltaRotation);
-			if (!DraggingData.bIsUpdatingUnsnappedTarget)
-			{
-				FRotator SnappedRotation = GizmoSpaceRotatedTransform.GetRotation().Rotator();
-				FSnappingUtils::SnapRotatorToGrid(SnappedRotation);
-				GizmoSpaceRotatedTransform.SetRotation(SnappedRotation.Quaternion());
-			}
+			const FTransform GizmoSpaceRotatedTransform(GizmoSpaceDeltaRotation);
 			NewGizmoToWorld = GizmoSpaceRotatedTransform * GizmoStartTransform;
 		}
 
 		// Rotate the gizmo!
-		FTransform& PassTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
-		PassTargetTransform = NewGizmoToWorld;
+		DraggingData.OutGizmoUnsnappedTargetTransform = NewGizmoToWorld;
 		DraggingData.bOutMovedTransformGizmo = true;
 		DraggingData.bOutShouldApplyVelocitiesFromDrag = true;
+		DraggingData.bOutRotated = true;
 	}
 }
 
 FVector URotateOnAngleDragOperation::GetLocalIntersectPointOnRotationGizmo() const
-{
+{	
 	return LocalIntersectPointOnRotationGizmo;
 }
 
@@ -180,39 +143,24 @@ void UScaleDragOperation::ExecuteDrag(struct FDraggingTransformableData& Draggin
 		AddedScaleOnAxis *= -1;
 	}
 
-	// Scale the gizmo!
-	FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
-	FVector NewTotalScale = DraggingData.GizmoStartTransform.GetScale3D();
-	NewTotalScale[FacingAxisIndex] += AddedScaleOnAxis;
+	FVector NewScale = DraggingData.GizmoStartTransform.GetScale3D();
+	NewScale[FacingAxisIndex] += AddedScaleOnAxis;
+	DraggingData.OutGizmoUnsnappedTargetTransform.SetScale3D(NewScale);
 
-	// Scale snap!
-	if (!DraggingData.bIsUpdatingUnsnappedTarget && FSnappingUtils::IsScaleSnapEnabled())
-	{
-		FSnappingUtils::SnapScale(NewTotalScale, FVector::ZeroVector);
-	}
-
-	PassGizmoTargetTransform.SetScale3D(NewTotalScale);
 	DraggingData.bOutMovedTransformGizmo = true;
 	DraggingData.bOutShouldApplyVelocitiesFromDrag = true;
+	DraggingData.bOutScaled = true;
 }
 
 void UUniformScaleDragOperation::ExecuteDrag(struct FDraggingTransformableData& DraggingData)
 {
 	//Always use Z for uniform scale
 	const FVector RelativeDraggedTo = DraggingData.PassDraggedTo - DraggingData.GizmoStartTransform.GetLocation();
-	float AddedScaleOnAxis = RelativeDraggedTo.Z * VI::ScaleSensitivity->GetFloat();
+	const FVector AddedScaleOnAxis(RelativeDraggedTo.Z * VI::ScaleSensitivity->GetFloat());
+	const FVector NewScale = DraggingData.GizmoStartTransform.GetScale3D() + AddedScaleOnAxis;
+	DraggingData.OutGizmoUnsnappedTargetTransform.SetScale3D(NewScale);
 
-	// Scale the gizmo!
-	FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
-	FVector NewTotalScale = DraggingData.GizmoStartTransform.GetScale3D() + FVector(AddedScaleOnAxis);
-
-	// Scale snap!
-	if (!DraggingData.bIsUpdatingUnsnappedTarget && FSnappingUtils::IsScaleSnapEnabled())
-	{
-		FSnappingUtils::SnapScale(NewTotalScale, FVector::ZeroVector);
-	}
-
-	PassGizmoTargetTransform.SetScale3D(NewTotalScale);
 	DraggingData.bOutMovedTransformGizmo = true;
 	DraggingData.bOutShouldApplyVelocitiesFromDrag = true;
+	DraggingData.bOutScaled = true;
 }

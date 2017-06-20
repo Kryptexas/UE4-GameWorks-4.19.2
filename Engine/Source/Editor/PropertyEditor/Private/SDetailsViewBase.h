@@ -169,10 +169,14 @@ public:
 	virtual void HighlightProperty(const FPropertyPath& Property) override;
 	virtual void ShowAllAdvancedProperties() override;
 	virtual void SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate) override;
+	virtual FOnDisplayedPropertiesChanged& GetOnDisplayedPropertiesChanged() override { return OnDisplayedPropertiesChangedDelegate; }
 	virtual void SetDisableCustomDetailLayouts( bool bInDisableCustomDetailLayouts ) override { bDisableCustomDetailLayouts = bInDisableCustomDetailLayouts; }
 	virtual void SetIsPropertyVisibleDelegate(FIsPropertyVisible InIsPropertyVisible) override;
+	virtual FIsPropertyVisible& GetIsPropertyVisibleDelegate() override { return IsPropertyVisibleDelegate; }
 	virtual void SetIsPropertyReadOnlyDelegate(FIsPropertyReadOnly InIsPropertyReadOnly) override;
+	virtual FIsPropertyReadOnly& GetIsPropertyReadOnlyDelegate() override { return IsPropertyReadOnlyDelegate; }
 	virtual void SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled IsPropertyEditingEnabled) override;
+	virtual FIsPropertyEditingEnabled& GetIsPropertyEditingEnabledDelegate() override { return IsPropertyEditingEnabledDelegate; }
 	virtual bool IsPropertyEditingEnabled() const override;
 	virtual void SetKeyframeHandler(TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler) override;
 	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() override;
@@ -181,6 +185,7 @@ public:
 	virtual bool IsPropertyVisible(const struct FPropertyAndParent& PropertyAndParent) const override;
 	virtual bool IsPropertyReadOnly(const struct FPropertyAndParent& PropertyAndParent) const override;
 	virtual void SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance OnGetGenericDetails) override;
+	virtual FOnGetDetailCustomizationInstance& GetGenericLayoutDetailsDelegate() override { return GenericLayoutDelegate; }
 	virtual bool IsLocked() const override { return bIsLocked; }
 	virtual void RefreshRootObjectVisibility() override;
 	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override { return OnFinishedChangingPropertiesDelegate; }
@@ -195,6 +200,8 @@ public:
 	TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override;
 	TSharedPtr<IPropertyUtilities> GetPropertyUtilities() override;
 	void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
+	virtual void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData) override;
+
 	virtual FNotifyHook* GetNotifyHook() const override { return DetailsViewArgs.NotifyHook; }
 
 	virtual bool IsConnected() const = 0;
@@ -225,12 +232,12 @@ public:
 	/**
 	 * Queries a layout for a specific class
 	 */
-	void QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class);
+	void QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class) const;
 
 	/**
 	 * Calls a delegate for each registered class that has properties visible to get any custom detail layouts
 	 */
-	void QueryCustomDetailLayout(FDetailLayoutData& LayoutData);
+	void QueryCustomDetailLayout(FDetailLayoutData& LayoutData) const;
 
 	/** Column width accessibility */
 	float OnGetLeftColumnWidth() const { return 1.0f - ColumnWidth; }
@@ -266,7 +273,6 @@ protected:
 
 	/** Updates the property map for access when customizing the details view.  Generates default layout for properties */
 	void UpdatePropertyMaps();
-	void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode>& InRootPropertyNode, FDetailLayoutData& LayoutData);
 
 	/** 
 	 * Recursively updates children of property nodes. Generates default layout for properties 
@@ -438,7 +444,7 @@ protected:
 	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
 
 	/** External property nodes which need to validated each tick */
-	TArray< TWeakPtr<FPropertyNode> > ExternalRootPropertyNodes;
+	TArray< TSharedPtr<FComplexPropertyNode> > ExternalRootPropertyNodes;
 
 	/** The tree node that is currently highlighted, may be none: */
 	TWeakPtr< IDetailTreeNode > CurrentlyHighlightedNode;

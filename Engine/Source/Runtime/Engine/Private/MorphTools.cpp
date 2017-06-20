@@ -78,9 +78,12 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 
 	TMap<uint32,uint32> WedgePointToVertexIndexMap;
 	// Build a mapping of wedge point indices to vertex indices for fast lookup later.
-	for( int32 Idx=0; Idx < TargetSource.WedgePointIndices.Num(); Idx++ )
+	for (int32 Idx = 0; Idx < TargetSource.WedgePointIndices.Num(); Idx++)
 	{
-		WedgePointToVertexIndexMap.Add( TargetSource.WedgePointIndices[Idx], Idx);
+		if (BaseSource.WedgePointIndices.IsValidIndex(Idx) && BaseSource.WedgePointIndices[Idx] == TargetSource.WedgePointIndices[Idx])
+		{
+			WedgePointToVertexIndexMap.Add(TargetSource.WedgePointIndices[Idx], Idx);
+		}
 	}
 
 	// iterate over all the base mesh indices

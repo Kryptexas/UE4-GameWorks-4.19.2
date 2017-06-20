@@ -8,16 +8,18 @@
 #include "Styling/SlateColor.h"
 #include "Layout/SlateRect.h"
 #include "Layout/Visibility.h"
-#include "Rendering/SlateLayoutTransform.h"
+#include "Layout/Clipping.h"
 #include "Layout/Geometry.h"
+#include "Layout/ArrangedWidget.h"
+#include "Layout/LayoutGeometry.h"
+#include "Layout/Margin.h"
+#include "Rendering/SlateLayoutTransform.h"
 #include "Input/CursorReply.h"
 #include "Input/Reply.h"
 #include "Input/NavigationReply.h"
 #include "Input/PopupMethodReply.h"
 #include "Types/ISlateMetaData.h"
-#include "Layout/ArrangedWidget.h"
 #include "Types/WidgetActiveTimerDelegate.h"
-#include "Layout/LayoutGeometry.h"
 
 class FActiveTimerHandle;
 class FArrangedChildren;
@@ -115,6 +117,7 @@ enum class EInvalidateWidget
 	 */
 	LayoutAndVolatility
 };
+
 
 
 /**
@@ -215,29 +218,31 @@ public:
 	 * Construct a SWidget based on initial parameters.
 	 */
 	void Construct(
-		const TAttribute<FText> & InToolTipText ,
-		const TSharedPtr<IToolTip> & InToolTip ,
-		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
-		const TAttribute<bool> & InEnabledState ,
+		const TAttribute<FText> & InToolTipText,
+		const TSharedPtr<IToolTip> & InToolTip,
+		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
+		const TAttribute<bool> & InEnabledState,
 		const TAttribute<EVisibility> & InVisibility,
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const bool InForceVolatile,
+		const EWidgetClipping InClipping,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData);
 
-	void SWidgetConstruct( const TAttribute<FText> & InToolTipText ,
-		const TSharedPtr<IToolTip> & InToolTip ,
-		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
-		const TAttribute<bool> & InEnabledState ,
+	void SWidgetConstruct( const TAttribute<FText> & InToolTipText,
+		const TSharedPtr<IToolTip> & InToolTip,
+		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
+		const TAttribute<bool> & InEnabledState,
 		const TAttribute<EVisibility> & InVisibility,
 		const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 		const TAttribute<FVector2D>& InTransformPivot,
 		const FName& InTag,
 		const bool InForceVolatile,
+		const EWidgetClipping InClipping,
 		const TArray<TSharedRef<ISlateMetaData>>& InMetaData)
 	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InForceVolatile, InMetaData);
+		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTransform, InTransformPivot, InTag, InForceVolatile, InClipping, InMetaData);
 	}
 
 	//
@@ -252,14 +257,14 @@ public:
 	 *
 	 * @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
 	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
+	 * @param MyCullingRect    The clipping rectangle allocated for this widget and its children.
 	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
 	 * @param LayerId           The Layer onto which this widget should be rendered.
 	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
 	 * @param bParentEnabled	True if the parent of this widget is enabled.
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	int32 Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
+	int32 Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
 	/**
 	 * Ticks this widget with Geometry.  Override in derived classes, but always call the parent implementation.
@@ -682,7 +687,15 @@ public:
 	 *
 	 * @return The desired size.
 	 */
-	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
+private:
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
+
+public:
+	/**
+	 * Calculates what if any clipping state changes need to happen when drawing this widget.
+	 * @return the culling rect that should be used going forward.
+	 */
+	FSlateRect CalculateCullingAndClippingRules(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, bool& bClipToBounds, bool& bAlwaysClip, bool& bIntersectClipBounds) const;
 
 private:
 	void CreateStatID() const;
@@ -925,6 +938,15 @@ public:
 protected:
 
 	/**
+	 * Tests if an arranged widget should be culled.
+	 * @param MyCullingRect the culling rect of the widget currently doing the culling.
+	 * @param ArrangedChild the arranged widget in the widget currently attempting to cull children.
+	 */
+	bool IsChildWidgetCulled(const FSlateRect& MyCullingRect, const FArrangedWidget& ArrangedChild) const;
+
+protected:
+
+	/**
 	 * Recalculates and caches volatility and returns 'true' if the volatility changed.
 	 */
 	FORCEINLINE bool Advanced_InvalidateVolatility()
@@ -971,6 +993,44 @@ public:
 	FORCEINLINE void SetRenderTransformPivot(TAttribute<FVector2D> InTransformPivot)
 	{
 		RenderTransformPivot = InTransformPivot;
+	}
+
+	/**
+	 * Sets the clipping to bounds rules for this widget.
+	 */
+	FORCEINLINE void SetClipping(EWidgetClipping InClipping)
+	{
+		if (Clipping != InClipping)
+		{
+			Clipping = InClipping;
+			OnClippingChanged();
+			Invalidate(EInvalidateWidget::Layout);
+		}
+	}
+
+	/** @return The current clipping rules for this widget. */
+	FORCEINLINE EWidgetClipping GetClipping() const
+	{
+		return Clipping;
+	}
+
+	/**
+	 * Sets an additional culling padding that is added to a widget to give more leeway when culling widgets.  Useful if 
+	 * several child widgets have rendering beyond their bounds.
+	 */
+	FORCEINLINE void SetCullingBoundsExtension(const FMargin& InCullingBoundsExtension)
+	{
+		if (CullingBoundsExtension != InCullingBoundsExtension)
+		{
+			CullingBoundsExtension = InCullingBoundsExtension;
+			Invalidate(EInvalidateWidget::Layout);
+		}
+	}
+
+	/** @return CullingBoundsExtension */
+	FORCEINLINE FMargin GetCullingBoundsExtension() const
+	{
+		return CullingBoundsExtension;
 	}
 
 	/**
@@ -1153,7 +1213,7 @@ protected:
 	bool ShouldBeEnabled( bool InParentEnabled ) const
 	{
 		// This widget should be enabled if its parent is enabled and it is enabled
-		return IsEnabled() && InParentEnabled;
+		return InParentEnabled && IsEnabled();
 	}
 
 	/** @return a brush to draw focus, nullptr if no focus drawing is desired */
@@ -1178,6 +1238,12 @@ protected:
 		return Widget->Visibility;
 	}
 
+	/**
+	 * Called when clipping is changed.  Should be used to forward clipping states onto potentially
+	 * hidden children that actually are responsible for clipping the content.
+	 */
+	virtual void OnClippingChanged();
+
 private:
 
 	/**
@@ -1187,14 +1253,14 @@ private:
 	 *
 	 * @param Args              All the arguments necessary to paint this widget (@todo umg: move all params into this struct)
 	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
+	 * @param MyCullingRect     The rectangle representing the bounds currently being used to completely cull widgets.  Unless IsChildWidgetCulled(...) returns true, you should paint the widget. 
 	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
 	 * @param LayerId           The Layer onto which this widget should be rendered.
 	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
 	 * @param bParentEnabled	True if the parent of this widget is enabled.
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
 
 	/**
 	 * Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
@@ -1270,6 +1336,14 @@ protected:
 	 */
 	bool bCanHaveChildren : 1;
 
+	/**
+	  * Some widgets might be a complex hierarchy of child widgets you never see.  Some of those widgets
+	  * would expose their clipping option normally, but may not personally be responsible for clipping
+	  * so even though it may be set to clip, this flag is used to inform painting that this widget doesn't
+	  * really do the clipping.
+	  */
+	bool bClippingProxy : 1;
+
 private:
 
 	/**
@@ -1286,6 +1360,20 @@ private:
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
 	mutable bool bInheritedVolatility : 1;
+
+protected:
+	/**
+	 * Set to true if all content of the widget should clip to the bounds of this widget.
+	 */
+	EWidgetClipping Clipping;
+
+	/**
+	 * Can be used to enlarge the culling bounds of this widget (pre-intersection), this can be useful if you've got
+	 * children that you know are using rendering transforms to render outside their standard bounds, if that happens
+	 * it's possible the parent might be culled before the descendant widget is entirely off screen.  For those cases,
+	 * you should extend the bounds of the culling area to add a bit more slack to how culling is performed to this panel.
+	 */
+	FMargin CullingBoundsExtension;
 
 private:
 
@@ -1365,6 +1453,7 @@ private:
 	// Events
 	TMap<FName, FPointerEventHandler> PointerEvents;
 
+
 	FNoReplyPointerEventHandler MouseEnterHandler;
 	FSimpleNoReplyPointerEventHandler MouseLeaveHandler;
 
@@ -1376,17 +1465,17 @@ private:
 // FGeometry Arranged Widget Inlined Functions
 //=================================================================
 
-FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& InLocalSize, const FSlateLayoutTransform& LayoutTransform) const
 {
 	// If there is no render transform set, use the simpler MakeChild call that doesn't bother concatenating the render transforms.
 	// This saves a significant amount of overhead since every widget does this, and most children don't have a render transform.
 	if ( ChildWidget->GetRenderTransform().IsSet() )
 	{
-		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform().GetValue(), ChildWidget->GetRenderTransformPivot()));
+		return FArrangedWidget(ChildWidget, MakeChild(InLocalSize, LayoutTransform, ChildWidget->GetRenderTransform().GetValue(), ChildWidget->GetRenderTransformPivot()));
 	}
 	else
 	{
-		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform));
+		return FArrangedWidget(ChildWidget, MakeChild(InLocalSize, LayoutTransform));
 	}
 }
 
@@ -1395,9 +1484,9 @@ FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWi
 	return MakeChild(ChildWidget, LayoutGeometry.GetSizeInLocalSpace(), LayoutGeometry.GetLocalToParentTransform());
 }
 
-FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale) const
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& InLocalSize, float ChildScale) const
 {
 	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
 	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
-	return MakeChild(ChildWidget, LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)));
+	return MakeChild(ChildWidget, InLocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)));
 }

@@ -111,7 +111,7 @@ void FLightmapCustomNodeBuilder::GenerateChildContent(IDetailChildrenBuilder& Ch
 
 	for(TSharedPtr<FLightmapItem>& Item : LightmapItems)
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("LightMapsFilter", "Lightmaps"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("LightMapsFilter", "Lightmaps"))
 		.ValueContent()
 		.HAlign(HAlign_Fill)
 		[

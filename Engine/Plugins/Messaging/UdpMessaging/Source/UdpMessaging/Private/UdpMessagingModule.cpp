@@ -223,7 +223,7 @@ public:
 		}
 
 		// load dependencies
-		if (!FModuleManager::Get().LoadModule(TEXT("Networking")).IsValid())
+		if (FModuleManager::Get().LoadModule(TEXT("Networking")) == nullptr)
 		{
 			UE_LOG(LogUdpMessaging, Error, TEXT("The required module 'Networking' failed to load. Plug-in 'UDP Messaging' cannot be used."));
 

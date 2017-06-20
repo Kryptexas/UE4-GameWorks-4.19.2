@@ -19,10 +19,10 @@ struct FSectionLayoutElement
 	static FSectionLayoutElement FromGroup(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset);
 
 	/** Construct this element from a single Key area node */
-	static FSectionLayoutElement FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset);
+	static FSectionLayoutElement FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, UMovieSceneSection* InSection, float InOffset);
 
 	/** Construct this element from a single Key area node */
-	static FSectionLayoutElement FromTrack(const TSharedRef<FSequencerTrackNode>& InTrackNode, int32 SectionIndex, float InOffset);
+	static FSectionLayoutElement FromTrack(const TSharedRef<FSequencerTrackNode>& InTrackNode, UMovieSceneSection* InSection, float InOffset);
 
 	/** Construct this element from a single Key area node */
 	static FSectionLayoutElement EmptySpace(const TSharedRef<FSequencerDisplayNode>& InNode, float InOffset);
@@ -66,7 +66,7 @@ class FSectionLayout
 public:
 
 	/** Constructor that takes a display node, and the index of the section to layout */
-	FSectionLayout(FSequencerDisplayNode& InNode, int32 InSectionIndex);
+	FSectionLayout(FSequencerTrackNode& TrackNode, int32 SectionIndex);
 
 	/** Get all layout elements that we generated */
 	const TArray<FSectionLayoutElement>& GetElements() const;

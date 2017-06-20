@@ -413,11 +413,11 @@ public:
 	// End of SNodePanel::SNode
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const /*override*/;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const /*override*/;
 
 	/** Helpers to draw scrub handles and snap offsets */
-	void DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect ) const;
-	void DrawScrubHandle( float ScrubHandleCentre, FSlateWindowElementList& OutDrawElements, int32 ScrubHandleID, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, FLinearColor NodeColour ) const;
+	void DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect ) const;
+	void DrawScrubHandle( float ScrubHandleCentre, FSlateWindowElementList& OutDrawElements, int32 ScrubHandleID, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect, FLinearColor NodeColour ) const;
 
 	FLinearColor GetNotifyColor() const;
 	FText GetNotifyText() const;
@@ -662,7 +662,7 @@ public:
 
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override { UpdateCachedGeometry( AllottedGeometry ); }
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	// End of SWidget interface
@@ -675,7 +675,7 @@ public:
 	/** Returns the cached rendering geometry of this track */
 	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
 
-	FTrackScaleInfo GetCachedScaleInfo() const { return FTrackScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0.f, 0.f, CachedGeometry.Size); }
+	FTrackScaleInfo GetCachedScaleInfo() const { return FTrackScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0.f, 0.f, CachedGeometry.GetLocalSize()); }
 
 	/** Updates sequences when a notify node has been successfully dragged to a new position
 	 *	@param Offset - Offset from the widget to the time handle 
@@ -850,7 +850,7 @@ private:
 	FMargin GetNotifyTrackPadding(int32 NotifyIndex) const
 	{
 		float LeftMargin = NotifyPairs[NotifyIndex]->GetWidgetPaddingLeft();
-		float RightMargin = CachedGeometry.Size.X - NotifyNodes[NotifyIndex]->GetWidgetPosition().X - NotifyNodes[NotifyIndex]->GetSize().X;
+		float RightMargin = CachedGeometry.GetLocalSize().X - NotifyNodes[NotifyIndex]->GetWidgetPosition().X - NotifyNodes[NotifyIndex]->GetSize().X;
 		return FMargin(LeftMargin, 0, RightMargin, 0);
 	}
 
@@ -858,7 +858,7 @@ private:
 	FMargin GetSyncMarkerTrackPadding(int32 SyncMarkerIndex) const
 	{
 		float LeftMargin = NotifyNodes[SyncMarkerIndex]->GetWidgetPosition().X;
-		float RightMargin = CachedGeometry.Size.X - NotifyNodes[SyncMarkerIndex]->GetWidgetPosition().X - NotifyNodes[SyncMarkerIndex]->GetSize().X;
+		float RightMargin = CachedGeometry.GetLocalSize().X - NotifyNodes[SyncMarkerIndex]->GetWidgetPosition().X - NotifyNodes[SyncMarkerIndex]->GetSize().X;
 		return FMargin(LeftMargin, 0, RightMargin, 0);
 	}
 
@@ -1351,7 +1351,7 @@ public:
 			Info.NotifyTrack = NotifyTracks[i];
 			const FGeometry& CachedGeometry = Info.NotifyTrack->GetCachedGeometry();
 			Info.TrackPos = CachedGeometry.AbsolutePosition.Y;
-			Info.TrackWidth = CachedGeometry.Size.X;
+			Info.TrackWidth = CachedGeometry.GetLocalSize().X;
 			Info.TrackMin = CachedGeometry.AbsolutePosition.X;
 			Info.TrackMax = Info.TrackMin + Info.TrackWidth;
 			Info.TrackSnapTestPos = Info.TrackPos + (CachedGeometry.Size.Y / 2);
@@ -1636,7 +1636,7 @@ FVector2D SAnimNotifyNode::GetSize() const
 	return WidgetSize;
 }
 
-int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 MarkerLayer = LayerId + 1;
 	int32 ScrubHandleID = MarkerLayer + 1;
@@ -1650,7 +1650,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	{
 		FVector2D MarkerSize = EndMarkerNodeOverlay->GetDesiredSize();
 		FVector2D MarkerOffset(NotifyDurationSizeX + MarkerSize.X * 0.5f + 5.0f, (NotifyHeight - MarkerSize.Y) * 0.5f);
-		EndMarkerNodeOverlay->Paint(Args.WithNewParent(this), AllottedGeometry.MakeChild(MarkerOffset, MarkerSize, 1.0f), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		EndMarkerNodeOverlay->Paint(Args.WithNewParent(this), AllottedGeometry.MakeChild(MarkerOffset, MarkerSize, 1.0f), MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT("SpecialEditableTextImageNormal") );
@@ -1658,8 +1658,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		OutDrawElements,
 		LayerId, 
 		AllottedGeometry.ToPaintGeometry(FVector2D(0,0), AllottedGeometry.Size), 
-		StyleInfo, 
-		MyClippingRect, 
+		StyleInfo,
 		ESlateDrawEffect::None,
 		FLinearColor(1.0f, 1.0f, 1.0f,0.1f));
 
@@ -1678,12 +1677,11 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			OutDrawElements,
 			LayerId, 
 			AllottedGeometry.ToPaintGeometry(DurationBoxPosition, DurationBoxSize), 
-			StyleInfo, 
-			MyClippingRect, 
+			StyleInfo,
 			ESlateDrawEffect::None,
 			BoxColor);
 
-		DrawScrubHandle(DurationBoxPosition.X + DurationBoxSize.X, OutDrawElements, ScrubHandleID, AllottedGeometry, MyClippingRect, NodeColour);
+		DrawScrubHandle(DurationBoxPosition.X + DurationBoxSize.X, OutDrawElements, ScrubHandleID, AllottedGeometry, MyCullingRect, NodeColour);
 		
 		// Render offsets if necessary
 		if(AnimNotifyEvent && AnimNotifyEvent->EndTriggerTimeOffset != 0.f) //Do we have an offset to render?
@@ -1693,7 +1691,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			{
 				// ScrubHandle
 				float HandleCentre = NotifyDurationSizeX + ScrubHandleSize.X;
-				DrawHandleOffset(AnimNotifyEvent->EndTriggerTimeOffset, HandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyClippingRect);
+				DrawHandleOffset(AnimNotifyEvent->EndTriggerTimeOffset, HandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyCullingRect);
 			}
 		}
 	}
@@ -1716,8 +1714,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		OutDrawElements,
 		LayerId, 
 		AllottedGeometry.ToPaintGeometry(LabelPosition, LabelSize), 
-		StyleInfo, 
-		MyClippingRect, 
+		StyleInfo,
 		ESlateDrawEffect::None,
 		NodeColor);
 
@@ -1739,7 +1736,6 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black, 
 			false
@@ -1760,12 +1756,11 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		AllottedGeometry.ToPaintGeometry(TextPosition, TextSize),
 		Text,
 		Font,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor::Black
 		);
 
-	DrawScrubHandle(NotifyScrubHandleCentre , OutDrawElements, ScrubHandleID, AllottedGeometry, MyClippingRect, NodeColour);
+	DrawScrubHandle(NotifyScrubHandleCentre , OutDrawElements, ScrubHandleID, AllottedGeometry, MyCullingRect, NodeColour);
 
 	if(AnimNotifyEvent && AnimNotifyEvent->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
@@ -1775,7 +1770,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			float HandleCentre = NotifyScrubHandleCentre;
 			float &Offset = AnimNotifyEvent->TriggerTimeOffset;
 			
-			DrawHandleOffset(AnimNotifyEvent->TriggerTimeOffset, NotifyScrubHandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyClippingRect);
+			DrawHandleOffset(AnimNotifyEvent->TriggerTimeOffset, NotifyScrubHandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyCullingRect);
 		}
 	}
 
@@ -1788,7 +1783,6 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			BranchPointLayerID,
 			AllottedGeometry.ToPaintGeometry(BranchPointIconPos, BranchingPointIconSize),
 			FEditorStyle::GetBrush(TEXT("AnimNotifyEditor.BranchingPoint")),
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::White
 			);
@@ -1808,7 +1802,6 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 		FSlateApplication::Get().ReleaseMouseCapture();
 		return FReply::Unhandled();
 	}
-
 	
 	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, CachedAllotedGeometrySize);
 	
@@ -1999,21 +1992,20 @@ float SAnimNotifyNode::HandleOverflowPan( const FVector2D &ScreenCursorPos, floa
 	return Overflow;
 }
 
-void SAnimNotifyNode::DrawScrubHandle( float ScrubHandleCentre, FSlateWindowElementList& OutDrawElements, int32 ScrubHandleID, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, FLinearColor NodeColour ) const
+void SAnimNotifyNode::DrawScrubHandle( float ScrubHandleCentre, FSlateWindowElementList& OutDrawElements, int32 ScrubHandleID, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect, FLinearColor NodeColour ) const
 {
 	FVector2D ScrubHandlePosition(ScrubHandleCentre - ScrubHandleSize.X / 2.0f, (NotifyHeight - ScrubHandleSize.Y) / 2.f);
 	FSlateDrawElement::MakeBox( 
 		OutDrawElements,
 		ScrubHandleID, 
 		AllottedGeometry.ToPaintGeometry(ScrubHandlePosition, ScrubHandleSize), 
-		FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleWhole" ) ), 
-		MyClippingRect, 
+		FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleWhole" ) ),
 		ESlateDrawEffect::None,
 		NodeColour
 		);
 }
 
-void SAnimNotifyNode::DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect ) const
+void SAnimNotifyNode::DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect ) const
 {
 	FVector2D MarkerPosition;
 	FVector2D MarkerSize = AlignmentMarkerSize;
@@ -2032,8 +2024,7 @@ void SAnimNotifyNode::DrawHandleOffset( const float& Offset, const float& Handle
 		OutDrawElements,
 		MarkerLayer, 
 		AllottedGeometry.ToPaintGeometry(MarkerPosition, MarkerSize), 
-		FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.NotifyAlignmentMarker" ) ), 
-		MyClippingRect, 
+		FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.NotifyAlignmentMarker" ) ),
 		ESlateDrawEffect::None,
 		FLinearColor(0.f, 0.f, 1.f)
 		);
@@ -2140,7 +2131,7 @@ FVector2D SAnimNotifyTrack::ComputeDesiredSize( float ) const
 	return Size;
 }
 
-int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT( "Persona.NotifyEditor.NotifyTrackBackground" ) );
 	FLinearColor Color = TrackColor.Get();
@@ -2150,8 +2141,7 @@ int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 		OutDrawElements,
 		LayerId, 
 		MyGeometry, 
-		StyleInfo, 
-		MyClippingRect, 
+		StyleInfo,
 		ESlateDrawEffect::None, 
 		Color
 		);
@@ -2182,7 +2172,6 @@ int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 					CustomLayerId,
 					MyGeometry,
 					LinePoints,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					FLinearColor::Black
 					);
@@ -2221,7 +2210,6 @@ int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 			CustomLayerId,
 			MyGeometry,
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Red
 			);
@@ -2246,7 +2234,6 @@ int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 				CustomLayerId,
 				MyGeometry,
 				LinePoints,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor(1.0f, 0.5f, 0.0f)
 				);
@@ -2272,13 +2259,12 @@ int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 			CustomLayerId,
 			MyGeometry,
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Bar.DrawColour
 			);
 	}
 
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled);
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled);
 }
 
 FReply SAnimNotifyTrack::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -4790,9 +4776,9 @@ FReply SAnimNotifyPanel::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 	return BaseReply;
 }
 
-int32 SAnimNotifyPanel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimNotifyPanel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	LayerId = SAnimTrackPanel::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = SAnimTrackPanel::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	FVector2D Origin = AllottedGeometry.AbsoluteToLocal(Marquee.Rect.GetUpperLeft());
 	FVector2D Extents = AllottedGeometry.AbsoluteToLocal(Marquee.Rect.GetSize());
@@ -4803,8 +4789,7 @@ int32 SAnimNotifyPanel::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 			OutDrawElements,
 			LayerId++,
 			AllottedGeometry.ToPaintGeometry(Marquee.Rect.GetUpperLeft(), Marquee.Rect.GetSize()),
-			FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
-			MyClippingRect
+			FEditorStyle::GetBrush(TEXT("MarqueeSelection"))
 			);
 	}
 
@@ -4825,8 +4810,8 @@ void SAnimNotifyPanel::RefreshMarqueeSelectedNodes(const FGeometry& PanelGeo)
 
 			const FGeometry& TrackGeo = Track->GetCachedGeometry();
 
-			FSlateRect TrackClip = TrackGeo.GetClippingRect();
-			FSlateRect PanelClip = PanelGeo.GetClippingRect();
+			FSlateRect TrackClip = TrackGeo.GetLayoutBoundingRect();
+			FSlateRect PanelClip = PanelGeo.GetLayoutBoundingRect();
 			FVector2D PanelSpaceOrigin = TrackClip.GetTopLeft() - PanelClip.GetTopLeft();
 			FVector2D TrackSpaceOrigin = MarqueeRect.GetTopLeft() - PanelSpaceOrigin;
 			FSlateRect MarqueeTrackSpace(TrackSpaceOrigin, TrackSpaceOrigin + MarqueeRect.GetSize());

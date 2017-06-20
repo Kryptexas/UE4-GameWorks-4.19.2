@@ -30,7 +30,7 @@ struct IFilmOverlay
 	virtual TSharedPtr<SWidget> ConstructSettingsWidget() { return nullptr; }
 
 	/** Paint the overlay */
-	virtual void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const = 0;
+	virtual void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const = 0;
 
 public:
 
@@ -66,7 +66,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	/** Paint this widget */
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 private:
 	/** Attribute used once per frame to retrieve the film overlays to paint */

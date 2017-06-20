@@ -1206,7 +1206,7 @@ FReply SCollectionView::HandleDragDropOnCollectionTree(const FGeometry& Geometry
 					NAME_None, ECollectionShareType::CST_All
 					))
 			{
-				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetClippingRect(), SharedThis(this));
+				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetLayoutBoundingRect(), SharedThis(this));
 			}
 		}
 
@@ -1295,7 +1295,7 @@ FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionIte
 					CollectionItem->CollectionName, CollectionItem->CollectionType
 					))
 			{
-				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetClippingRect(), SharedThis(this));
+				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetLayoutBoundingRect(), SharedThis(this));
 			}
 		}
 
@@ -1338,7 +1338,7 @@ FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionIte
 		}
 
 		// Added items to the collection or failed. Either way, display the message.
-		ContentBrowserUtils::DisplayMessage(Message, Geometry.GetClippingRect(), SharedThis(this));
+		ContentBrowserUtils::DisplayMessage(Message, Geometry.GetLayoutBoundingRect(), SharedThis(this));
 
 		return FReply::Handled();
 	}

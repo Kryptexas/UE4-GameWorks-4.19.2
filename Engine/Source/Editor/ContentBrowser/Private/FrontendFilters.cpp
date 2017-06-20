@@ -36,30 +36,32 @@ public:
 		{
 			static const FName NAME_DisplayName(TEXT("DisplayName"));
 
-			UClass* AssetClass = InAssetData.GetClass();
-
-			TMap<FName, UObject::FAssetRegistryTagMetadata> AssetTagMetaData;
-			AssetClass->GetDefaultObject()->GetAssetRegistryTagMetadata(AssetTagMetaData);
-
 			AliasToSourceTagMapping = MakeShared<TMap<FName, FName>>();
 
-			for (const auto& AssetTagMetaDataPair : AssetTagMetaData)
+			UClass* AssetClass = InAssetData.GetClass();
+			if (AssetClass)
 			{
-				if (!AssetTagMetaDataPair.Value.DisplayName.IsEmpty())
-				{
-					const FName DisplayName = MakeObjectNameFromDisplayLabel(AssetTagMetaDataPair.Value.DisplayName.ToString(), NAME_None);
-					AliasToSourceTagMapping->Add(DisplayName, AssetTagMetaDataPair.Key);
-				}
-			}
+				TMap<FName, UObject::FAssetRegistryTagMetadata> AssetTagMetaData;
+				AssetClass->GetDefaultObject()->GetAssetRegistryTagMetadata(AssetTagMetaData);
 
-			for (const auto& KeyValuePair : InAssetData.TagsAndValues)
-			{
-				if (UProperty* Field = FindField<UProperty>(AssetClass, KeyValuePair.Key))
+				for (const auto& AssetTagMetaDataPair : AssetTagMetaData)
 				{
-					if (Field->HasMetaData(NAME_DisplayName))
+					if (!AssetTagMetaDataPair.Value.DisplayName.IsEmpty())
 					{
-						const FName DisplayName = MakeObjectNameFromDisplayLabel(Field->GetMetaData(NAME_DisplayName), NAME_None);
-						AliasToSourceTagMapping->Add(DisplayName, KeyValuePair.Key);
+						const FName DisplayName = MakeObjectNameFromDisplayLabel(AssetTagMetaDataPair.Value.DisplayName.ToString(), NAME_None);
+						AliasToSourceTagMapping->Add(DisplayName, AssetTagMetaDataPair.Key);
+					}
+				}
+
+				for (const auto& KeyValuePair : InAssetData.TagsAndValues)
+				{
+					if (UProperty* Field = FindField<UProperty>(AssetClass, KeyValuePair.Key))
+					{
+						if (Field->HasMetaData(NAME_DisplayName))
+						{
+							const FName DisplayName = MakeObjectNameFromDisplayLabel(Field->GetMetaData(NAME_DisplayName), NAME_None);
+							AliasToSourceTagMapping->Add(DisplayName, KeyValuePair.Key);
+						}
 					}
 				}
 			}

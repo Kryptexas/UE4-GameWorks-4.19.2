@@ -48,6 +48,7 @@
 #include "IDetailsView.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "SourceCodeNavigation.h"
 
 DEFINE_LOG_CATEGORY(LogPluginWizard);
 
@@ -838,8 +839,7 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 
 		if (bHasModules)
 		{
-			FText FailReason;
-			GameProjectUtils::OpenCodeIDE(FPaths::GetProjectFilePath(), FailReason);
+			FSourceCodeNavigation::OpenModuleSolution();
 		}
 
 		return FReply::Handled();

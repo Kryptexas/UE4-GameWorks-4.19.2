@@ -10,6 +10,7 @@
 #include "IMovieScenePlayer.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
+#include "MovieSceneSequence.h"
 
 struct FPreAnimatedMPCScalarToken : IMovieScenePreAnimatedToken
 {

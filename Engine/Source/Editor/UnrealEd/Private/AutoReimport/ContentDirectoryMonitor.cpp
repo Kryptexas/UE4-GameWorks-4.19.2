@@ -6,6 +6,7 @@
 #include "EditorReimportHandler.h"
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "Factories/Factory.h"
+#include "Factories/SceneImportFactory.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Editor.h"
 
@@ -321,14 +322,32 @@ void FContentDirectoryMonitor::ProcessAdditions(const DirectoryWatcher::FTimeLim
 				auto* Factories = InFactoriesByExtension.Find(Ext);
 				if (Factories && Factories->Num() != 0)
 				{
+					//Make sure all the scene factory are put at the end of the array. We give priority to asset factory before scene factory
+					TArray<UFactory*> SortFactories;
+					TArray<UFactory*> SceneFactories;
+					for (UFactory *Factory : *Factories)
+					{
+						if (Factory->IsA(USceneImportFactory::StaticClass()))
+						{
+							SceneFactories.Add(Factory);
+						}
+						else
+						{
+							SortFactories.Add(Factory);
+						}
+					}
+					if (SceneFactories.Num() > 0)
+					{
+						SortFactories.Append(SceneFactories);
+					}
 					// Prefer a factory if it explicitly can import. UFactory::FactoryCanImport returns false by default, even if the factory supports the extension, so we can't use it directly.
-					UFactory* const * PreferredFactory = Factories->FindByPredicate([&](UFactory* F){ return F->FactoryCanImport(FullFilename); });
+					UFactory* const * PreferredFactory = SortFactories.FindByPredicate([&](UFactory* F){ return F->FactoryCanImport(FullFilename); });
 					if (PreferredFactory)
 					{
 						NewAsset = AttemptImport((*PreferredFactory)->GetClass(), NewPackage, *NewAssetName, bCancelled, FullFilename);
 					}
 					// If there was no preferred factory, just try them all until one succeeds
-					else for (UFactory* Factory : *Factories)
+					else for (UFactory* Factory : SortFactories)
 					{
 						NewAsset = AttemptImport(Factory->GetClass(), NewPackage, *NewAssetName, bCancelled, FullFilename);
 

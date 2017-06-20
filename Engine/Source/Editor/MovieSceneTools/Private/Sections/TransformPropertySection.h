@@ -9,39 +9,53 @@
 /**
  * An implementation of vector property sections.
  */
-class FTransformPropertySection
-	: public FPropertySection
+class FTransformSection : public ISequencerSection
 {
 public:
 
 	/**
 	* Creates a new transform property section.
 	*
+	* @param InSection The section object which is being displayed and edited.
 	* @param InSequencer The sequencer which is controlling this property section.
 	* @param InObjectBinding The object binding for the object which owns the property that this section is animating.
-	* @param InPropertyName The name of the property which is animated by this section.
-	* @param InPropertyPath A string representing the path to the property which is animated by this section.
-	* @param InSectionObject The section object which is being displayed and edited.
-	* @param InDisplayName A display name for the section being displayed and edited.
 	*/
-	FTransformPropertySection(ISequencer* InSequencer, FGuid InObjectBinding, FName InPropertyName, const FString& InPropertyPath, UMovieSceneSection& InSectionObject, const FText& InDisplayName)
-		: FPropertySection(InSequencer, InObjectBinding, InPropertyName, InPropertyPath, InSectionObject, InDisplayName)
+	FTransformSection(TWeakObjectPtr<UMovieSceneSection> InSection, TWeakPtr<ISequencer> InSequencer, FGuid InObjectBinding)
+		: Section(InSection), WeakSequencer(InSequencer), ObjectBinding(InObjectBinding)
 	{
 	}
 
+	/** Assign a property to this section */
+	void AssignProperty(FName PropertyName, const FString& PropertyPath);
+
 public:
 
-	//~ FPropertySectionInterface
+	virtual UMovieSceneSection* GetSectionObject() override { return Section.Get(); }
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override;
+	virtual void GenerateSectionLayout(ISectionLayoutBuilder& LayoutBuilder) const override;
+	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& InObjectBinding) override;
 
-	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
+protected:
 
-private:
+	virtual TOptional<FTransform> GetCurrentValue() const;
+
+protected:
 
 	TOptional<float> GetTranslationValue(EAxis::Type Axis) const;
 	TOptional<float> GetRotationValue(EAxis::Type Axis) const;
 	TOptional<float> GetScaleValue(EAxis::Type Axis) const;
 
-private:
+protected:
 
-	mutable int32 ChannelsUsed;
+	/** The section that we are editing */
+	TWeakObjectPtr<UMovieSceneSection> Section;
+
+	/** The sequencer which is controlling this section. */
+	TWeakPtr<ISequencer> WeakSequencer;
+
+	/** An object binding for the object which owns the property being animated by this section. */
+	FGuid ObjectBinding;
+
+	/** An object which is used to retrieve the value of a property based on it's name and path. */
+	mutable TOptional<FTrackInstancePropertyBindings> PropertyBindings;
 };

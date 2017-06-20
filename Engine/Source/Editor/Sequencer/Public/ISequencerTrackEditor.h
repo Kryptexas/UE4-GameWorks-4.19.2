@@ -15,12 +15,20 @@ class FPaintArgs;
 class FSlateWindowElementList;
 class SHorizontalBox;
 class UMovieScene;
+class UMovieSceneSequence;
 
 /** Data structure containing information required to build an edit widget */
 struct FBuildEditWidgetParams
 {
+	FBuildEditWidgetParams()
+		: TrackInsertRowIndex(0)
+	{}
+
 	/** Attribute that specifies when the node relating to this edit widget is hovered */
 	TAttribute<bool> NodeIsHovered;
+
+	/** Track row index for any newly created sections */
+	int32 TrackInsertRowIndex;
 };
 
 /** Defines different modes for editing sections on multiple rows. */
@@ -108,12 +116,6 @@ public:
 	 */
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) = 0;
 
-	/** Gets whether the tool can key all*/
-	virtual bool IsAllowedKeyAll() const = 0;
-
-	/** Gets whether the tool can legally autokey */
-	virtual bool IsAllowedToAutoKey() const = 0;
-
 	/**
 	 * Called to generate a section layout for a particular section.
 	 *
@@ -133,7 +135,7 @@ public:
 	virtual void OnRelease() = 0;
 
 	/** Allows the track editor to paint on a track area. */
-	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) = 0;
+	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) = 0;
 
 	/**
 	 * Returns whether a track class is supported by this tool.

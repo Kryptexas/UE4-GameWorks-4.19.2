@@ -53,7 +53,7 @@ void SGraphBar::Construct( const FArguments& InArgs )
 	TotalTime = 1.0;
 }
 
-int32 SGraphBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SGraphBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Used to track the layer ID we will return.
 	int32 RetLayerId = LayerId;
@@ -66,14 +66,12 @@ int32 SGraphBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 	// Paint inside the border only. 
 	const FVector2D BorderPadding = FTaskGraphStyle::Get()->GetVector("TaskGraph.ProgressBar.BorderPadding");
-	const FSlateRect ForegroundClippingRect = AllottedGeometry.GetClippingRect().InsetBy(FMargin(BorderPadding.X, BorderPadding.Y)).IntersectionWith(MyClippingRect);
 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		RetLayerId++,
 		AllottedGeometry.ToPaintGeometry(),
 		BackgroundImage,
-		MyClippingRect,
 		DrawEffects,
 		ColorAndOpacitySRGB
 	);	
@@ -91,9 +89,8 @@ int32 SGraphBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				RetLayerId++,
 				AllottedGeometry.ToPaintGeometry(
 					FVector2D( StartX, 0.0f ),
-					FVector2D( EndX - StartX, AllottedGeometry.Size.Y )),
+					FVector2D( EndX - StartX, AllottedGeometry.GetLocalSize().Y )),
 				Event->IsSelected ? SelectedImage : FillImage,
-				ForegroundClippingRect,
 				DrawEffects,
 				Event->IsSelected ? SelectedBarColor : ColorPalette[Event->ColorIndex % (sizeof(ColorPalette) / sizeof(ColorPalette[0]))]			
 				);
@@ -176,7 +173,7 @@ FReply SGraphBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointer
 	*/
 FReply SGraphBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	const float HoverX = ( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ).X / MyGeometry.Size.X ) / Zoom - Offset / Zoom;
+	const float HoverX = ( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ).X / MyGeometry.GetLocalSize().X ) / Zoom - Offset / Zoom;
 
 	int32 HoveredEventIndex = INDEX_NONE;
 

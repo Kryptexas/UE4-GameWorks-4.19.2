@@ -24,6 +24,8 @@ struct FSequencerSnapPoint
 /** Interface that defines how to construct an FSequencerSnapField */
 struct ISequencerSnapCandidate
 {
+	virtual ~ISequencerSnapCandidate() { }
+
 	/** Return true to include the specified key in the snap field */
 	virtual bool IsKeyApplicable(FKeyHandle KeyHandle, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) { return true; }
 
@@ -32,9 +34,6 @@ struct ISequencerSnapCandidate
 
 	/** Return true to include the specified section's custom snap points in the snap field */
 	virtual bool AreSectionCustomSnapsApplicable(UMovieSceneSection* Section) { return true; }
-
-protected:
-	virtual ~ISequencerSnapCandidate() { }
 };
 
 /** A snapping field that provides efficient snapping calculations on a range of values */

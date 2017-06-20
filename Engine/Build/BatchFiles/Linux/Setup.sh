@@ -1,6 +1,36 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
+TOP_DIR=$(cd "$SCRIPT_DIR/../../.." ; pwd)
+
+AddGDBPrettyPrinters()
+{
+	echo -ne "Attempting to set up UE4 pretty printers for gdb...\t"
+
+	# Copy the pretty printer into the appropriate folder.
+	mkdir -pv ~/.config/Epic/GDBPrinters/
+	cp "$TOP_DIR/Extras/GDBPrinters/UE4Printers.py" ~/.config/Epic/GDBPrinters/
+
+	# Check if .gdbinit exists. If not create else add needed parts.
+	if [ ! -f ~/.gdbinit ]; then
+		echo "no ~/.gdbinit file found - creating a new one."
+		echo -e "python \nimport sys\n\nsys.path.append('$HOME/.config/Epic/GDBPrinters/')\n\nfrom UE4Printers import register_ue4_printers\nregister_ue4_printers(None)\nprint(\"Registered pretty printers for UE4 classes\")\n\nend" >> ~/.gdbinit
+	else
+		if grep -q "register_ue4_printers" ~/.gdbinit; then
+			echo "found necessary entries in ~/.gdbinit file, skipping."
+		else
+			echo -e "cannot modify .gdbinit. Please add the below lines manually:\n\n"
+			echo -e "\timport sys"
+			echo -e "\tsys.path.append('$HOME/.config/Epic/GDBPrinters/')"
+			echo -e "\tfrom UE4Printers import register_ue4_printers"
+			echo -e "\tregister_ue4_printers(None)"
+			echo -e "\tprint(\"Registered pretty printers for UE4 classes\")"
+			echo -e "\tend"
+			echo -e"\n\n"
+		fi
+	fi
+}
+
 
 # args: wrong filename, correct filename
 # expects to be run in Engine folder
@@ -225,7 +255,7 @@ done
 CreateLinkIfNoneExists ../../engine/shaders/Fxaa3_11.usf  ../Engine/Shaders/Fxaa3_11.usf
 CreateLinkIfNoneExists ../../Engine/shaders/Fxaa3_11.usf  ../Engine/Shaders/Fxaa3_11.usf
 
-# We have to build libhlslcc locally due to apparent mismatch between system STL and cross-toolchain one
+# Provide the hooks for locally building third party libs if needed
 echo
 pushd Build/BatchFiles/Linux > /dev/null
 ./BuildThirdParty.sh
@@ -267,6 +297,9 @@ MimeType=application/uproject;" > ~/.local/share/applications/UE4Editor.desktop
     fi
   fi
 fi
+
+# Add GDB scripts for common Unreal types.
+AddGDBPrettyPrinters
 
 echo "Setup successful."
 touch Build/OneTimeSetupPerformed

@@ -115,12 +115,6 @@ void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 }
 
 
-FText FCameraCutSection::GetDisplayName() const
-{
-	return NSLOCTEXT("FCameraCutSection", "CameraCuts", "CameraCuts");
-}
-
-
 /* FThumbnailSection interface
  *****************************************************************************/
 

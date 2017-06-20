@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-class FAssetData;
+struct FAssetData;
 class IAssetRegistry;
 class FLocalizationSCC;
 

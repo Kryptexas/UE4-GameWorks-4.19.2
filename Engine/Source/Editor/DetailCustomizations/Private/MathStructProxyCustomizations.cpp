@@ -227,9 +227,9 @@ void FMatrixStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHan
 
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = StructPropertyHandle;
 
-	CustomizeLocation(StructPropertyHandle, StructBuilder.AddChildContent(LOCTEXT("RotationLabel", "Rotation")));
-	CustomizeRotation(StructPropertyHandle, StructBuilder.AddChildContent(LOCTEXT("LocationLabel", "Location")));
-	CustomizeScale(StructPropertyHandle, StructBuilder.AddChildContent(LOCTEXT("ScaleLabel", "Scale")));
+	CustomizeLocation(StructPropertyHandle, StructBuilder.AddCustomRow(LOCTEXT("RotationLabel", "Rotation")));
+	CustomizeRotation(StructPropertyHandle, StructBuilder.AddCustomRow(LOCTEXT("LocationLabel", "Location")));
+	CustomizeScale(StructPropertyHandle, StructBuilder.AddCustomRow(LOCTEXT("ScaleLabel", "Scale")));
 }
 
 void FMatrixStructCustomization::OnCopy(FTransformField::Type Type, TWeakPtr<IPropertyHandle> PropertyHandlePtr)

@@ -52,7 +52,6 @@ public class Sequencer : ModuleRules
                 "ContentBrowser",
 				"PropertyEditor",
 				"Kismet",
-				"SceneOutliner",
 				"SequenceRecorder",
                 "LevelEditor",
 				"MainFrame",
@@ -63,8 +62,9 @@ public class Sequencer : ModuleRules
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
-			}
-		);
+                "SceneOutliner",
+            }
+        );
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

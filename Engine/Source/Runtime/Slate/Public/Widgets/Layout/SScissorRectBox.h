@@ -27,7 +27,7 @@ class FSlateWindowElementList;
  * NOTE: This class is provided as a STOPGAP for design-time widgets (like the UMG designer itself)
  *       until a more robust clipping solution can be put in place.
  */
-class SLATE_API SScissorRectBox: public SPanel
+class SLATE_API SScissorRectBox : public SPanel
 {
 
 public:
@@ -38,10 +38,12 @@ public:
 	SLATE_BEGIN_ARGS(SScissorRectBox)
 	{
 		_Visibility = EVisibility::SelfHitTestInvisible;
+		_Clipping = EWidgetClipping::ClipToBounds;
 	}
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	SLATE_END_ARGS()
 
+	DEPRECATED(4.17, "You should just make any widget .Clipping(EWidgetClipping::ClipToBounds), instead of using this box.")
 	SScissorRectBox();
 
 	void Construct( const FArguments& InArgs );
@@ -55,7 +57,7 @@ private:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FChildren* GetChildren() override;
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	FScissorRectSlot ChildSlot;
 };

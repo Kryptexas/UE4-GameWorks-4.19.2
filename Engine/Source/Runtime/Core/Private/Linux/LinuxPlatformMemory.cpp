@@ -15,6 +15,7 @@
 #include "HAL/MallocJemalloc.h"
 #include "HAL/MallocBinned.h"
 #include "HAL/MallocBinned2.h"
+#include "HAL/MallocReplayProxy.h"
 #if PLATFORM_FREEBSD
 	#include <kvm.h>
 #else
@@ -24,6 +25,7 @@
 #include <sys/mman.h>
 
 #include "OSAllocationPool.h"
+#include "ScopeLock.h"
 
 // do not do a root privilege check on non-x86-64 platforms (assume an embedded device)
 #if defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
@@ -60,6 +62,10 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		return nullptr;
 	}
 #endif // UE4_DO_ROOT_PRIVILEGE_CHECK
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+	bool bAddReplayProxy = false;
+#endif // UE_USE_MALLOC_REPLAY_PROXY
 
 	if (USE_MALLOC_BINNED2)
 	{
@@ -108,6 +114,14 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 					AllocatorToUse = EMemoryAllocatorToUse::Binned2;
 					break;
 				}
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+				if (FCStringAnsi::Stricmp(Arg, "-mallocsavereplay") == 0)
+				{
+					bAddReplayProxy = true;
+				}
+#endif // UE_USE_MALLOC_REPLAY_PROXY
+
 			}
 			free(Arg);
 			fclose(CmdLineFile);
@@ -139,6 +153,13 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 	}
 
 	printf("Using %ls.\n", Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+	if (bAddReplayProxy)
+	{
+		Allocator = new FMallocReplayProxy(Allocator);
+	}
+#endif // UE_USE_MALLOC_REPLAY_PROXY
 
 	return Allocator;
 }
@@ -304,11 +325,20 @@ namespace LinuxMemoryPool
 		return PoolArray;
 	}
 }
+
+FCriticalSection* GetGlobalLinuxMemPoolLock()
+{
+	static FCriticalSection MemPoolLock;
+	return &MemPoolLock;
+};
+
 #endif // UE4_POOL_BAFO_ALLOCATIONS
 
 void* FLinuxPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
 {
 #if UE4_POOL_BAFO_ALLOCATIONS
+	FScopeLock Lock(GetGlobalLinuxMemPoolLock());
+
 	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
 	void* RetVal = PoolArray.Allocate(Size);
 	if (LIKELY(RetVal))
@@ -346,6 +376,8 @@ void* FLinuxPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
 void FLinuxPlatformMemory::BinnedFreeToOS(void* Ptr, SIZE_T Size)
 {
 #if UE4_POOL_BAFO_ALLOCATIONS
+	FScopeLock Lock(GetGlobalLinuxMemPoolLock());
+
 	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
 	if (LIKELY(PoolArray.Free(Ptr, Size)))
 	{

@@ -119,6 +119,8 @@ FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelega
 
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
+FCoreDelegates::FIsLoadingMovieCurrentlyPlaying FCoreDelegates::IsLoadingMovieCurrentlyPlaying;
+
 /**	 Implemented as a function to address global ctor issues */
 FSimpleMulticastDelegate& FCoreDelegates::GetMemoryTrimDelegate()
 {

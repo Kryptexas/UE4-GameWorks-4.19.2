@@ -13,6 +13,38 @@
 namespace SceneOutliner
 {
 
+	class FOutlinerFilterInfo
+	{ 
+	public:
+		FOutlinerFilterInfo(const FText& InFilterTitle, const FText& InFilterTooltip, bool bInActive, const FCreateSceneOutlinerFilter& InFactory = FCreateSceneOutlinerFilter())
+			: FilterTitle(InFilterTitle)
+			, FilterTooltip(InFilterTooltip)
+			, bActive(bInActive)
+			, Factory(InFactory)
+		{}
+
+		/** Initialize and apply a new filter */
+		void InitFilter(TSharedPtr<FOutlinerFilters> InFilters);
+
+		/** Add menu for this filter */
+		void AddMenu(FMenuBuilder& InMenuBuilder);
+
+	private:
+		void ApplyFilter(bool bActive);
+		void ToggleFilterActive();
+		bool IsFilterActive() const;
+
+		TWeakPtr<FOutlinerFilters> Filters;
+
+		TSharedPtr<FOutlinerFilter> Filter;
+
+		FText FilterTitle;
+		FText FilterTooltip;
+		bool bActive;
+
+		FCreateSceneOutlinerFilter Factory;
+	};
+
 	/** Enum to specify how items that are not explicitly handled by this filter should be managed */
 	enum class EDefaultFilterBehaviour : uint8 { Pass, Fail };
 

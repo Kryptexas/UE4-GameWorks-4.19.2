@@ -66,6 +66,7 @@
 #include "FeaturedClasses.inl"
 
 #include "BlueprintEditorSettings.h"
+#include "EditorFontGlyphs.h"
 
 #include "Algo/Find.h"
 
@@ -3597,6 +3598,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 								TEXT("ConvertToBlueprint")))
 							[
 								SNew(SHorizontalBox)
+								.Clipping(EWidgetClipping::ClipToBounds)
 						
 								+ SHorizontalBox::Slot()
 								.VAlign(VAlign_Center)
@@ -3606,7 +3608,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.10" ) )
-									.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
+									.Text( FEditorFontGlyphs::Cogs )
 								]
 
 								+ SHorizontalBox::Slot()
@@ -3637,6 +3639,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 							.ButtonContent()
 							[
 								SNew( SHorizontalBox )
+								.Clipping(EWidgetClipping::ClipToBounds)
 
 								+ SHorizontalBox::Slot()
 								.AutoWidth()
@@ -3646,7 +3649,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 									SNew(STextBlock)
 									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
 									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-									.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
+									.Text(FEditorFontGlyphs::Cogs)
 								]
 						
 								+ SHorizontalBox::Slot()

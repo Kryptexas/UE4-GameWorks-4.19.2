@@ -6,7 +6,7 @@
 #include "Widgets/SWidget.h"
 #include "AssetTypeActions_Base.h"
 
-class FAssetData;
+struct FAssetData;
 class IClassTypeActions;
 
 /** Base class for "class type" assets (C++ classes and Blueprints */

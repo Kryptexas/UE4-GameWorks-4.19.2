@@ -52,7 +52,7 @@ public:
 public:
 
 	// SWidget overrides
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FChildren* GetChildren() override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 	virtual bool ComputeVolatility() const override;
@@ -85,7 +85,7 @@ private:
 #endif
 	
 
-	bool IsCachingNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect) const;
+	bool IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect) const;
 
 private:
 	mutable FGeometry LastAllottedGeometry;
@@ -109,6 +109,9 @@ private:
 	mutable int32 LastUsedCachedNodeIndex;
 	mutable int32 LastHitTestIndex;
 	mutable FVector2D LastClipRectSize;
+	mutable int32 LastClippingIndex;
+	mutable int32 LastClippingStateOffset;
+	mutable TOptional<FSlateClippingState> LastClippingState;
 
 	mutable int32 CachedMaxChildLayer;
 	mutable bool bNeedsCaching;

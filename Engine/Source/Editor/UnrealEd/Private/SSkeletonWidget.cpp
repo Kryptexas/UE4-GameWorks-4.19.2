@@ -346,7 +346,7 @@ void SSkeletonSelectorWindow::ConstructWindow()
 
 TSharedPtr<SWindow> SAnimationRemapSkeleton::DialogWindow;
 
-bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetData)
+bool SAnimationRemapSkeleton::OnShouldFilterAsset(const struct FAssetData& AssetData)
 {
 	USkeleton* AssetSkeleton = nullptr;
 	if (AssetData.IsAssetLoaded())

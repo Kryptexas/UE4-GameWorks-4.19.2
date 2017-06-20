@@ -18,7 +18,7 @@ void SSequencerShotFilterOverlay::Construct(const FArguments& InArgs, TSharedRef
 /* SWidget interface
  *****************************************************************************/
 
-int32 SSequencerShotFilterOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SSequencerShotFilterOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	float Alpha = Sequencer.Pin()->GetOverlayFadeCurve();
 		
@@ -28,7 +28,7 @@ int32 SSequencerShotFilterOverlay::OnPaint( const FPaintArgs& Args, const FGeome
 		
 		TRange<float> TimeBounds = TRange<float>(
 			TimeToPixelConverter.PixelToTime(0),
-			TimeToPixelConverter.PixelToTime(AllottedGeometry.Size.X)
+			TimeToPixelConverter.PixelToTime(AllottedGeometry.GetLocalSize().X)
 		);
 
 		TArray< TRange<float> > OverlayRanges = ComputeOverlayRanges(TimeBounds, CachedFilteredRanges);
@@ -41,9 +41,8 @@ int32 SSequencerShotFilterOverlay::OnPaint( const FPaintArgs& Args, const FGeome
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(FVector2D(LowerBound, 0), FVector2D(UpperBound - LowerBound, AllottedGeometry.Size.Y)),
+				AllottedGeometry.ToPaintGeometry(FVector2D(LowerBound, 0), FVector2D(UpperBound - LowerBound, AllottedGeometry.GetLocalSize().Y)),
 				FEditorStyle::GetBrush("Sequencer.ShotFilter"),
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor(1.f, 1.f, 1.f, Alpha)
 			);

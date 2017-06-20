@@ -126,6 +126,16 @@ void FCamelCaseBreakIterator::PopulateBreakPointsArray(const TArray<FToken>& InT
 			break;
 		}
 
+		// Digits behave specially when around character tokens so that strings like "D3D11Func" and "Vector2dToString" break as would be expected ("D3D11|Func", and "Vector2d|To|String")
+		// We handle this by remapping the token run type under certain circumstances to avoid incorrectly breaking the run
+		if(TokenRunType == ETokenType::Digit || TokenRunType == ETokenType::Uppercase || TokenRunType == ETokenType::Lowercase)
+		{
+			if((Token.TokenType == ETokenType::Digit) != (TokenRunType == ETokenType::Digit))
+			{
+				TokenRunType = Token.TokenType;
+			}
+		}
+
 		// Have we found the end of some kind of run of tokens?
 		if(TokenRunType != Token.TokenType)
 		{

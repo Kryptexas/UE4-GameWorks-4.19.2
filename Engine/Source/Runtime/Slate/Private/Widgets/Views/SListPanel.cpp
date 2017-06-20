@@ -7,7 +7,7 @@
 FNoChildren SListPanel::NoChildren = FNoChildren();
 
 SListPanel::SListPanel()
-: Children()
+	: Children()
 {
 }
 
@@ -60,7 +60,7 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		const EListItemAlignment ListItemAlignment = ItemAlignment.Get();
 
 		// This is a tile view list, arrange items horizontally until there is no more room then create a new row.
-		const float AllottedWidth = AllottedGeometry.Size.X;
+		const float AllottedWidth = AllottedGeometry.GetLocalSize().X;
 		const float ItemPadding = GetItemPadding(AllottedGeometry, ListItemAlignment);
 		const float HalfItemPadding = ItemPadding * 0.5;
 
@@ -120,7 +120,7 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 				// Note that ListPanel does not respect child Visibility.
 				// It is simply not useful for ListPanels.
 				ArrangedChildren.AddWidget(
-					AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.Size.X, LocalItemHeight) )
+					AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.GetLocalSize().X, LocalItemHeight) )
 					);
 
 				HeightSoFar += LocalItemHeight;
@@ -134,7 +134,7 @@ void SListPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	if (ShouldArrangeHorizontally())
 	{
 		const EListItemAlignment ListItemAlignment = ItemAlignment.Get();
-		const float AllottedWidth = AllottedGeometry.Size.X;
+		const float AllottedWidth = AllottedGeometry.GetLocalSize().X;
 		const float ItemPadding = GetItemPadding(AllottedGeometry, ListItemAlignment);
 		const float LocalItemWidth = GetItemWidth(AllottedGeometry, ListItemAlignment);
 		const float TotalItemSize = LocalItemWidth + ItemPadding;
@@ -235,7 +235,7 @@ float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry) const
 float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const
 {
 	const float LocalItemWidth = GetDesiredItemWidth();
-	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / LocalItemWidth) : 0;
+	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::FloorToInt(AllottedGeometry.GetLocalSize().X / LocalItemWidth) : 0;
 	const bool IsEvenlyDistributedAlignment = ListItemAlignment == EListItemAlignment::EvenlyDistributed;
 
 	// Only add padding between items if we have more total items that we can fit on a single row.  Otherwise,
@@ -246,7 +246,7 @@ float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry, const EListI
 		// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
 		static const float FloatingPointPrecisionOffset = 0.001f;
 
-		Padding = (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * LocalItemWidth) / NumItemsWide;
+		Padding = (AllottedGeometry.GetLocalSize().X - FloatingPointPrecisionOffset - NumItemsWide * LocalItemWidth) / NumItemsWide;
 	}
 
 	return Padding;
@@ -260,7 +260,7 @@ float SListPanel::GetItemWidth(const FGeometry& AllottedGeometry) const
 float SListPanel::GetItemWidth(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const
 {
 	const float DesiredWidth = GetDesiredItemWidth();
-	const int32 NumItemsWide = DesiredWidth > 0 ? FMath::Min(Children.Num(), FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth)) : 0;
+	const int32 NumItemsWide = DesiredWidth > 0 ? FMath::Min(Children.Num(), FMath::FloorToInt(AllottedGeometry.GetLocalSize().X / DesiredWidth)) : 0;
 	const bool IsFillAlignment = ListItemAlignment == EListItemAlignment::Fill;
 
 	float ExtraWidth = 0.0f;
@@ -269,7 +269,7 @@ float SListPanel::GetItemWidth(const FGeometry& AllottedGeometry, const EListIte
 		// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
 		static const float FloatingPointPrecisionOffset = 0.001f;
 
-		ExtraWidth = (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth) / NumItemsWide;
+		ExtraWidth = (AllottedGeometry.GetLocalSize().X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth) / NumItemsWide;
 	}
 
 	return DesiredWidth + ExtraWidth;

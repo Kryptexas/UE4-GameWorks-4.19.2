@@ -56,7 +56,7 @@ TSharedRef<SWidget> USpinBox::RebuildWidget()
 	.OnEndSliderMovement(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnEndSliderMovement))
 	;
 	
-	return BuildDesignTimeWidget( MySpinBox.ToSharedRef() );
+	return MySpinBox.ToSharedRef();
 }
 
 void USpinBox::SynchronizeProperties()

@@ -7,10 +7,20 @@
 #include "Framework/SlateDelegates.h"
 
 template< typename ObjectType > class TAttribute;
+class UMovieSceneTrack;
+class UMovieSceneSection;
+class ISequencer;
+class FMenuBuilder;
 
 struct SEQUENCER_API FSequencerUtilities
 {
 	static TSharedRef<SWidget> MakeAddButton(FText HoverText, FOnGetContent MenuContent, const TAttribute<bool>& HoverState);
+
+	static void PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilder, int32 RowIndex, UMovieSceneTrack* Track, TSharedPtr<ISequencer> InSequencer);
+
+	static void PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, UMovieSceneSection* Section);
+
+	static void PopulateMenu_SetBlendType(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UMovieSceneSection>>& InSections);
 
 	/** 
 	 * Generates a unique FName from a candidate name given a set of already existing names.  

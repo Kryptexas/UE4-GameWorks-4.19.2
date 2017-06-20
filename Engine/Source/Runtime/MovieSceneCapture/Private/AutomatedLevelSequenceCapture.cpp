@@ -514,6 +514,10 @@ void UAutomatedLevelSequenceCapture::LoadFromConfig()
 
 void UAutomatedLevelSequenceCapture::SaveToConfig()
 {
+	int32 CurrentStartFrame = StartFrame;
+	int32 CurrentEndFrame = EndFrame;
+	bool bRestoreFrameOverrides = RestoreFrameOverrides();
+
 	BurnInOptions->SaveConfig();
 	if (BurnInOptions->Settings)
 	{
@@ -521,6 +525,11 @@ void UAutomatedLevelSequenceCapture::SaveToConfig()
 	}
 
 	UMovieSceneCapture::SaveToConfig();
+
+	if (bRestoreFrameOverrides)
+	{
+		SetFrameOverrides(CurrentStartFrame, CurrentEndFrame);
+	}
 }
 
 void UAutomatedLevelSequenceCapture::Close()
@@ -528,6 +537,49 @@ void UAutomatedLevelSequenceCapture::Close()
 	Super::Close();
 			
 	RestoreShots();
+}
+
+bool UAutomatedLevelSequenceCapture::RestoreFrameOverrides()
+{
+	bool bAnySet = CachedStartFrame.IsSet() || CachedEndFrame.IsSet() || bCachedUseCustomStartFrame.IsSet() || bCachedUseCustomEndFrame.IsSet();
+	if (CachedStartFrame.IsSet())
+	{
+		StartFrame = CachedStartFrame.GetValue();
+		CachedStartFrame.Reset();
+	}
+
+	if (CachedEndFrame.IsSet())
+	{
+		EndFrame = CachedEndFrame.GetValue();
+		CachedEndFrame.Reset();
+	}
+
+	if (bCachedUseCustomStartFrame.IsSet())
+	{
+		bUseCustomStartFrame = bCachedUseCustomStartFrame.GetValue();
+		bCachedUseCustomStartFrame.Reset();
+	}
+
+	if (bCachedUseCustomEndFrame.IsSet())
+	{
+		bUseCustomEndFrame = bCachedUseCustomEndFrame.GetValue();
+		bCachedUseCustomEndFrame.Reset();
+	}
+
+	return bAnySet;
+}
+
+void UAutomatedLevelSequenceCapture::SetFrameOverrides(int32 InStartFrame, int32 InEndFrame)
+{
+	CachedStartFrame = StartFrame;
+	CachedEndFrame = EndFrame;
+	bCachedUseCustomStartFrame = bUseCustomStartFrame;
+	bCachedUseCustomEndFrame = bUseCustomEndFrame;
+
+	StartFrame = InStartFrame;
+	EndFrame = InEndFrame;
+	bUseCustomStartFrame = true;
+	bUseCustomEndFrame = true;
 }
 
 void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object)

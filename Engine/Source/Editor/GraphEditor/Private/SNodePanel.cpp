@@ -8,6 +8,7 @@
 #include "EditorStyleSettings.h"
 #include "Settings/LevelEditorViewportSettings.h"
 #include "ScopedTransaction.h"
+#include "GraphEditorSettings.h"
 
 struct FZoomLevelEntry
 {
@@ -348,18 +349,18 @@ FVector2D SNodePanel::ComputeEdgePanAmount(const FGeometry& MyGeometry, const FV
 	{
 		EdgePanThisTick.X += FMath::Max( -MaxPanSpeed, EdgePanSpeedCoefficient * -FMath::Pow(EdgePanForgivenessZone - LocalCursorPos.X, EdgePanSpeedPower) );
 	}
-	else if( LocalCursorPos.X >= MyGeometry.Size.X - EdgePanForgivenessZone )
+	else if( LocalCursorPos.X >= MyGeometry.GetLocalSize().X - EdgePanForgivenessZone )
 	{
-		EdgePanThisTick.X = FMath::Min( MaxPanSpeed, EdgePanSpeedCoefficient * FMath::Pow(LocalCursorPos.X - MyGeometry.Size.X + EdgePanForgivenessZone, EdgePanSpeedPower) );
+		EdgePanThisTick.X = FMath::Min( MaxPanSpeed, EdgePanSpeedCoefficient * FMath::Pow(LocalCursorPos.X - MyGeometry.GetLocalSize().X + EdgePanForgivenessZone, EdgePanSpeedPower) );
 	}
 
 	if ( LocalCursorPos.Y <= EdgePanForgivenessZone )
 	{
 		EdgePanThisTick.Y += FMath::Max( -MaxPanSpeed, EdgePanSpeedCoefficient * -FMath::Pow(EdgePanForgivenessZone - LocalCursorPos.Y, EdgePanSpeedPower) );
 	}
-	else if( LocalCursorPos.Y >= MyGeometry.Size.Y - EdgePanForgivenessZone )
+	else if( LocalCursorPos.Y >= MyGeometry.GetLocalSize().Y - EdgePanForgivenessZone )
 	{
-		EdgePanThisTick.Y = FMath::Min( MaxPanSpeed, EdgePanSpeedCoefficient * FMath::Pow(LocalCursorPos.Y - MyGeometry.Size.Y + EdgePanForgivenessZone, EdgePanSpeedPower) );
+		EdgePanThisTick.Y = FMath::Min( MaxPanSpeed, EdgePanSpeedCoefficient * FMath::Pow(LocalCursorPos.Y - MyGeometry.GetLocalSize().Y + EdgePanForgivenessZone, EdgePanSpeedPower) );
 	}
 
 	return EdgePanThisTick;
@@ -412,7 +413,7 @@ EActiveTimerReturnType SNodePanel::HandleZoomToFit(double InCurrentTime, float I
 {
 	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
 	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
-	bool bDoneZooming = ZoomToLocation(CachedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
+	bool bDoneZooming = ZoomToLocation(CachedGeometry.GetLocalSize(), ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
 
 	if (bDoneZooming && bDoneScrolling)
 	{
@@ -509,8 +510,10 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 {
 	const bool bIsLeftMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 	const bool bIsRightMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
+	const bool bIsMiddleMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton;
 	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton );
 	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton );
+	const bool bIsMiddleMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::MiddleMouseButton);
 
 	TotalMouseDelta = 0;
 
@@ -568,7 +571,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 		return ReplyState;
 	}
-	else if ( bIsRightMouseButtonEffecting )
+	else if (bIsRightMouseButtonEffecting && ( GetDefault<UGraphEditorSettings>()->PanningMouseButton == EGraphPanningMouseButton::Right || GetDefault<UGraphEditorSettings>()->PanningMouseButton == EGraphPanningMouseButton::Both ) )
 	{
 		// Cache current cursor position as zoom origin and software cursor position
 		ZoomStartOffset = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
@@ -584,6 +587,23 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 		CancelZoomToFit();
 
 		// RIGHT BUTTON is for dragging and Context Menu.
+		return ReplyState;
+	}
+	else if (bIsMiddleMouseButtonEffecting && (GetDefault<UGraphEditorSettings>()->PanningMouseButton == EGraphPanningMouseButton::Middle || GetDefault<UGraphEditorSettings>()->PanningMouseButton == EGraphPanningMouseButton::Both))
+	{
+		// Cache current cursor position as zoom origin and software cursor position
+		ZoomStartOffset = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
+		SoftwareCursorPosition = PanelCoordToGraphCoord(ZoomStartOffset);
+
+		FReply ReplyState = FReply::Handled();
+		ReplyState.CaptureMouse(SharedThis(this));
+		ReplyState.UseHighPrecisionMouseMovement(SharedThis(this));
+
+		SoftwareCursorPosition = PanelCoordToGraphCoord(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
+
+		DeferredMovementTargetObject = nullptr; // clear any interpolation when you manually pan
+
+		// MIDDLE BUTTON is for dragging only.
 		return ReplyState;
 	}
 	else if ( bIsLeftMouseButtonEffecting )
@@ -630,6 +650,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 {
 	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton );
 	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton );
+	const bool bIsMiddleMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::MiddleMouseButton);
 	const FModifierKeysState ModifierKeysState = FSlateApplication::Get().GetModifierKeys();
 
 	PastePosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
@@ -640,7 +661,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 		// Track how much the mouse moved since the mouse down.
 		TotalMouseDelta += CursorDelta.Size();
 
-		const bool bShouldZoom = bIsRightMouseButtonDown && (bIsLeftMouseButtonDown || ModifierKeysState.IsAltDown() || FSlateApplication::Get().IsUsingTrackpad());
+		const bool bShouldZoom = bIsRightMouseButtonDown && (bIsLeftMouseButtonDown || bIsMiddleMouseButtonDown || ModifierKeysState.IsAltDown() || FSlateApplication::Get().IsUsingTrackpad());
 		if (bShouldZoom)
 		{
 			FReply ReplyState = FReply::Handled();
@@ -681,13 +702,30 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 			}
 
 			// Panning and mouse is outside of panel? Pasting should just go to the screen center.
-			PastePosition = PanelCoordToGraphCoord( 0.5f * MyGeometry.Size );
+			PastePosition = PanelCoordToGraphCoord( 0.5f * MyGeometry.GetLocalSize() );
 
 			this->bIsPanning = true;
 			ViewOffset -= CursorDelta / GetZoomAmount();
 
 			// Stop the zoom-to-fit in favor of user control
 			CancelZoomToFit();
+
+			return ReplyState;
+		}
+		else if (bIsMiddleMouseButtonDown)
+		{
+			FReply ReplyState = FReply::Handled();
+
+			if (!CursorDelta.IsZero())
+			{
+				bShowSoftwareCursor = true;
+			}
+
+			// Panning and mouse is outside of panel? Pasting should just go to the screen center.
+			PastePosition = PanelCoordToGraphCoord(0.5f * MyGeometry.Size);
+
+			this->bIsPanning = true;
+			ViewOffset -= CursorDelta / GetZoomAmount();
 
 			return ReplyState;
 		}
@@ -794,8 +832,10 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 
 	const bool bIsLeftMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 	const bool bIsRightMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
+	const bool bIsMiddleMouseButtonEffecting = MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton;
 	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton );
 	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton );
+	const bool bIsMiddleMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::MiddleMouseButton);
 
 	// Did the user move the cursor sufficiently far, or is it in a dead zone?
 	// In Dead zone     - implies actions like summoning context menus and general clicking.
@@ -806,7 +846,8 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	bool bRemoveSoftwareCursor = false;
 
 	if ((bIsLeftMouseButtonEffecting && bIsRightMouseButtonDown)
-	||  (bIsRightMouseButtonEffecting && (bIsLeftMouseButtonDown || (FSlateApplication::Get().IsUsingTrackpad() && bIsZoomingWithTrackpad))))
+	||  (bIsRightMouseButtonEffecting && (bIsLeftMouseButtonDown || (FSlateApplication::Get().IsUsingTrackpad() && bIsZoomingWithTrackpad)))
+	||	(bIsMiddleMouseButtonEffecting && bIsRightMouseButtonDown))
 	{
 		// Ending zoom by releasing LMB or RMB
 		ReplyState = FReply::Handled();
@@ -837,6 +878,14 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 		{
 			ReplyState.SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly);
 		}
+	}
+	else if ( bIsMiddleMouseButtonEffecting )
+	{
+		ReplyState = FReply::Handled().ReleaseMouseCapture();
+		
+		bRemoveSoftwareCursor = true;
+		
+		this->bIsPanning = false;
 	}
 	else if ( bIsLeftMouseButtonEffecting )
 	{
@@ -898,7 +947,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 		// If we released the right mouse button first, we need to cancel the software cursor display
 		if ( this->HasMouseCapture() )
 		{
-			FSlateRect ThisPanelScreenSpaceRect = MyGeometry.GetClippingRect();
+			FSlateRect ThisPanelScreenSpaceRect = MyGeometry.GetLayoutBoundingRect();
 			const FVector2D ScreenSpaceCursorPos = MyGeometry.LocalToAbsolute( GraphCoordToPanelCoord( SoftwareCursorPosition ) );
 
 			FIntPoint BestPositionInViewport(
@@ -965,7 +1014,7 @@ void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
 {
-	const EGestureEvent::Type GestureType = GestureEvent.GetGestureType();
+	const EGestureEvent GestureType = GestureEvent.GetGestureType();
 	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
 	if (GestureType == EGestureEvent::Magnify)
 	{
@@ -1169,7 +1218,7 @@ inline float FancyMod(float Value, float Size)
 	return ((Value >= 0) ? 0.0f : Size) + FMath::Fmod(Value, Size);
 }
 
-void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	const bool bAntialias = false;
 
@@ -1205,8 +1254,7 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 		OutDrawElements,
 		DrawLayerId,
 		AllottedGeometry.ToPaintGeometry(),
-		BackgroundImage,
-		MyClippingRect
+		BackgroundImage
 	);
 
 	TArray<FVector2D> LinePoints;
@@ -1217,7 +1265,7 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 	if (GetDefault<UEditorStyleSettings>()->bUseGrid == true){
 
 		// Horizontal bars
-		for (int32 GridIndex = 0; ImageOffsetY < AllottedGeometry.Size.Y; ImageOffsetY += GridCellSize, ++GridIndex)
+		for (int32 GridIndex = 0; ImageOffsetY < AllottedGeometry.GetLocalSize().Y; ImageOffsetY += GridCellSize, ++GridIndex)
 		{
 			if (ImageOffsetY >= 0.0f)
 			{
@@ -1231,14 +1279,13 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 				}
 
 				LinePoints[0] = FVector2D(0.0f, ImageOffsetY);
-				LinePoints[1] = FVector2D(AllottedGeometry.Size.X, ImageOffsetY);
+				LinePoints[1] = FVector2D(AllottedGeometry.GetLocalSize().X, ImageOffsetY);
 
 				FSlateDrawElement::MakeLines(
 					OutDrawElements,
 					Layer,
 					AllottedGeometry.ToPaintGeometry(),
 					LinePoints,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					*Color,
 					bAntialias);
@@ -1246,7 +1293,7 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 		}
 
 		// Vertical bars
-		for (int32 GridIndex = 0; ImageOffsetX < AllottedGeometry.Size.X; ImageOffsetX += GridCellSize, ++GridIndex)
+		for (int32 GridIndex = 0; ImageOffsetX < AllottedGeometry.GetLocalSize().X; ImageOffsetX += GridCellSize, ++GridIndex)
 		{
 			if (ImageOffsetX >= 0.0f)
 			{
@@ -1260,14 +1307,13 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 				}
 
 				LinePoints[0] = FVector2D(ImageOffsetX, 0.0f);
-				LinePoints[1] = FVector2D(ImageOffsetX, AllottedGeometry.Size.Y);
+				LinePoints[1] = FVector2D(ImageOffsetX, AllottedGeometry.GetLocalSize().Y);
 
 				FSlateDrawElement::MakeLines(
 					OutDrawElements,
 					Layer,
 					AllottedGeometry.ToPaintGeometry(),
 					LinePoints,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					*Color,
 					bAntialias);
@@ -1277,18 +1323,17 @@ void SNodePanel::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, cons
 	DrawLayerId += 2;
 }
 
-void SNodePanel::PaintSurroundSunkenShadow(const FSlateBrush* ShadowImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
+void SNodePanel::PaintSurroundSunkenShadow(const FSlateBrush* ShadowImage, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
 {
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		DrawLayerId,
 		AllottedGeometry.ToPaintGeometry(),
-		ShadowImage,
-		MyClippingRect
+		ShadowImage
 	);
 }
 
-void SNodePanel::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
+void SNodePanel::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
 {
 	if (Marquee.IsValid())
 	{
@@ -1296,13 +1341,12 @@ void SNodePanel::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRec
 			OutDrawElements,
 			DrawLayerId,
 			AllottedGeometry.ToPaintGeometry( GraphCoordToPanelCoord(Marquee.Rect.GetUpperLeft()), Marquee.Rect.GetSize()*GetZoomAmount() ),
-			FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
-			MyClippingRect
+			FEditorStyle::GetBrush(TEXT("MarqueeSelection"))
 		);
 	}
 }
 
-void SNodePanel::PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
+void SNodePanel::PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
 {
 	if( !bShowSoftwareCursor )
 	{
@@ -1316,12 +1360,11 @@ void SNodePanel::PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FS
 		OutDrawElements,
 		DrawLayerId,
 		AllottedGeometry.ToPaintGeometry( GraphCoordToPanelCoord( SoftwareCursorPosition ) - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
-		Brush,
-		MyClippingRect
+		Brush
 	);
 }
 
-void SNodePanel::PaintComment(const FString& CommentText, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId, const FLinearColor& CommentTinting, float& HeightAboveNode, const FWidgetStyle& InWidgetStyle) const
+void SNodePanel::PaintComment(const FString& CommentText, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId, const FLinearColor& CommentTinting, float& HeightAboveNode, const FWidgetStyle& InWidgetStyle) const
 {
 	//@TODO: Ideally we don't need to grab these resources for every comment being drawn
 	// Get resources/settings for drawing comment bubbles
@@ -1346,7 +1389,6 @@ void SNodePanel::PaintComment(const FString& CommentText, const FGeometry& Allot
 		DrawLayerId-1,
 		AllottedGeometry.ToPaintGeometry(CommentBubbleOffset, CommentTextSize),
 		CommentCalloutBubble,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		CommentTinting
 		);
@@ -1356,7 +1398,6 @@ void SNodePanel::PaintComment(const FString& CommentText, const FGeometry& Allot
 		DrawLayerId-1,
 		AllottedGeometry.ToPaintGeometry( CommentBubbleArrowOffset, CommentCalloutArrow->ImageSize ),
 		CommentCalloutArrow,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		CommentTinting
 		);
@@ -1368,7 +1409,6 @@ void SNodePanel::PaintComment(const FString& CommentText, const FGeometry& Allot
 		AllottedGeometry.ToPaintGeometry( CommentBubbleOffset + CommentBubblePadding, CommentTextSize ),
 		CommentText,
 		CommentFont,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		CommentTextColor.GetColor( InWidgetStyle )
 		);
@@ -1486,7 +1526,7 @@ bool SNodePanel::GetBoundsForNodes(bool bSelectionSetOnly, FVector2D& MinCorner,
 
 bool SNodePanel::ScrollToLocation(const FGeometry& MyGeometry, FVector2D DesiredCenterPosition, const float InDeltaTime)
 {
-	const FVector2D HalfOFScreenInGraphSpace = 0.5f * MyGeometry.Size / GetZoomAmount();
+	const FVector2D HalfOFScreenInGraphSpace = 0.5f * MyGeometry.GetLocalSize() / GetZoomAmount();
 	FVector2D CurrentPosition = ViewOffset + HalfOFScreenInGraphSpace;
 
 	FVector2D NewPosition = FMath::Vector2DInterpTo(CurrentPosition, DesiredCenterPosition, InDeltaTime, 10.f);

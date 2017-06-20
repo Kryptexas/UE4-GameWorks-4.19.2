@@ -377,7 +377,7 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 
 			// 2.c. Create a ".gitattributes" file to enable Git LFS (Large File System) for the whole "Content/" subdir
 			const FString GitAttributesFilename = FPaths::Combine(FPaths::GameDir(), TEXT(".gitattributes"));
-			const FString GitAttributesContent = TEXT("Content/** filter=lfs diff=lfs merge=lfs -text lockable\n");
+			const FString GitAttributesContent = TEXT("Content/** filter=lfs diff=lfs merge=lfs -text\n");
 			if (FFileHelper::SaveStringToFile(GitAttributesContent, *GitAttributesFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 			{
 				ProjectFiles.Add(GitAttributesFilename);

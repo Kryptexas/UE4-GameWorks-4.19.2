@@ -219,7 +219,7 @@ public:
 		}
 	}
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		TSharedRef< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin().ToSharedRef();
 		const bool bIsActive = OwnerWidget->AsWidget()->HasKeyboardFocus();
@@ -231,13 +231,12 @@ public:
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(),
 				&Style->SelectorFocusedBrush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Style->SelectorFocusedBrush.GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 				);
 		}
 
-		LayerId = SBorder::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		LayerId = SBorder::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 		if (ItemDropZone.IsSet())
 		{
@@ -259,7 +258,6 @@ public:
 				LayerId++,
 				AllottedGeometry.ToPaintGeometry(),
 				DropIndicatorBrush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				DropIndicatorBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 			);
@@ -1102,6 +1100,11 @@ protected:
 					CellContents = GenerateWidgetForColumn(Column.ColumnId);
 				}
 
+				if ( CellContents != SNullWidget::NullWidget )
+				{
+					CellContents->SetClipping(EWidgetClipping::OnDemand);
+				}
+
 				switch (Column.SizeRule)
 				{
 				case EColumnSizeMode::Fill:
@@ -1110,29 +1113,29 @@ protected:
 					WidthBinding.BindRaw(&Column, &SHeaderRow::FColumn::GetWidth);
 
 					SHorizontalBox::FSlot& NewSlot = Box->AddSlot()
-						.HAlign(Column.CellHAlignment)
-						.VAlign(Column.CellVAlignment)
-						.FillWidth(WidthBinding)
-						[
-							CellContents
-						];
+					.HAlign(Column.CellHAlignment)
+					.VAlign(Column.CellVAlignment)
+					.FillWidth(WidthBinding)
+					[
+						CellContents
+					];
 				}
 				break;
 
 				case EColumnSizeMode::Fixed:
 				{
 					Box->AddSlot()
-						.AutoWidth()
-						[
-							SNew(SBox)
-							.WidthOverride(Column.Width.Get())
+					.AutoWidth()
+					[
+						SNew(SBox)
+						.WidthOverride(Column.Width.Get())
 						.HAlign(Column.CellHAlignment)
 						.VAlign(Column.CellVAlignment)
-						.Content()
+						.Clipping(EWidgetClipping::OnDemand)
 						[
 							CellContents
 						]
-						];
+					];
 				}
 				break;
 
@@ -1148,17 +1151,17 @@ protected:
 					WidthBinding.Bind(TAttribute<FOptionalSize>::FGetter::CreateLambda(GetColumnWidthAsOptionalSize));
 
 					Box->AddSlot()
-						.AutoWidth()
-						[
-							SNew(SBox)
-							.WidthOverride(WidthBinding)
+					.AutoWidth()
+					[
+						SNew(SBox)
+						.WidthOverride(WidthBinding)
 						.HAlign(Column.CellHAlignment)
 						.VAlign(Column.CellVAlignment)
-						.Content()
+						.Clipping(EWidgetClipping::OnDemand)
 						[
 							CellContents
 						]
-						];
+					];
 				}
 				break;
 

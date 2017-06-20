@@ -446,7 +446,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateChildContent(IDetai
 		TargetLayerList->SetDropIndicator_Above(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Above"));
 		TargetLayerList->SetDropIndicator_Below(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Below"));
 
-		ChildrenBuilder.AddChildContent(FText::FromString(FString(TEXT("Layers"))))
+		ChildrenBuilder.AddCustomRow(FText::FromString(FString(TEXT("Layers"))))
 			.Visibility(EVisibility::Visible)
 			[
 				TargetLayerList.ToSharedRef()
@@ -763,7 +763,8 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected(const 
 
 			if (TargetDisplayOrderList != nullptr)
 			{
-				int32 DisplayOrderLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex]);
+				FName ShownTargetName = LandscapeEdMode->UISettings->ShowUnusedLayers && TargetShownList.IsValidIndex(SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()) ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex];
+				int32 DisplayOrderLayerIndex = TargetDisplayOrderList->Find(ShownTargetName);
 
 				if (TargetDisplayOrderList->IsValidIndex(DisplayOrderLayerIndex))
 				{

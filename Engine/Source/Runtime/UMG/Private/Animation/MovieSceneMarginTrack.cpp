@@ -8,7 +8,7 @@
 UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FObjectInitializer& Init)
 	: Super(Init)
 {
-	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
+	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 UMovieSceneSection* UMovieSceneMarginTrack::CreateNewSection()

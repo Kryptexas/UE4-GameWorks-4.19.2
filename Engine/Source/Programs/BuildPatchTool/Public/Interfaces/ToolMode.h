@@ -56,6 +56,6 @@ namespace BuildPatchTool
 	class FToolModeFactory
 	{
 	public:
-		static IToolModeRef Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface);
+		static IToolModeRef Create(IBuildPatchServicesModule& BpsInterface);
 	};
 }

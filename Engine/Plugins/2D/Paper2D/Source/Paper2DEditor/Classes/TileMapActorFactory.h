@@ -8,7 +8,7 @@
 #include "TileMapActorFactory.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS()
 class UTileMapActorFactory : public UActorFactory

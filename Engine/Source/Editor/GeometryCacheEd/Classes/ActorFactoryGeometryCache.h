@@ -8,7 +8,7 @@
 #include "ActorFactoryGeometryCache.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 /** Factory class for spawning and creating GeometryCacheActors */
 UCLASS(MinimalAPI, config = Editor)

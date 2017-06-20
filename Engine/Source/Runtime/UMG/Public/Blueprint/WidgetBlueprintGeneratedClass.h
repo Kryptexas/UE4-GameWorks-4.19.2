@@ -64,6 +64,13 @@ public:
 	UPROPERTY()
 	UWidgetTree* WidgetTree;
 
+#if WITH_EDITORONLY_DATA
+
+	UPROPERTY()
+	bool bCookSlowConstructionWidgetTree;
+
+#endif
+
 	UPROPERTY()
 	bool bAllowTemplate;
 
@@ -78,7 +85,7 @@ public:
 
 public:
 
-	bool CanTemplate() const;
+	bool HasTemplate() const;
 
 	void SetTemplate(UUserWidget* InTemplate);
 	UUserWidget* GetTemplate();
@@ -120,9 +127,6 @@ private:
 
 	UPROPERTY(Transient)
 	bool bTemplateInitialized;
-
-	UPROPERTY(Transient)
-	bool bCookedTemplate;
 
 	UPROPERTY()
 	TAssetPtr<UUserWidget> TemplateAsset;

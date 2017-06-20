@@ -221,7 +221,7 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 		];
 }
 
-void SGraphPinObject::OnAssetSelectedFromPicker(const class FAssetData& AssetData)
+void SGraphPinObject::OnAssetSelectedFromPicker(const struct FAssetData& AssetData)
 {
 	const FAssetData& CurrentAssetData = GetAssetData(true);
 	if(CurrentAssetData != AssetData)

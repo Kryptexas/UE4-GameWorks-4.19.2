@@ -18,7 +18,7 @@ public:
 private:
 	TSharedPtr<SWidget> OnBlutilityGetContextMenu(const TArray<FAssetData>& SelectedAssets);
 
-	static void OnBlutilityDoubleClicked(const class FAssetData& AssetData);
+	static void OnBlutilityDoubleClicked(const struct FAssetData& AssetData);
 	
 	static void ToggleFavoriteStatusOnSelection(TArray<FAssetData> AssetList, bool bIsNewFavorite);
 	static bool GetFavoriteStatusOnSelection(TArray<FAssetData> AssetList);

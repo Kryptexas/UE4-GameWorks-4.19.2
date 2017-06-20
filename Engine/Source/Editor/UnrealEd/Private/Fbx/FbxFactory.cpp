@@ -13,6 +13,7 @@
 #include "Factories/FbxImportUI.h"
 #include "Engine/StaticMesh.h"
 #include "Editor.h"
+#include "SkelImport.h"
 
 #include "EditorReimportHandler.h"
 
@@ -506,7 +507,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 									SkelMeshNodeArray.Add(Node);
 								}
 							}
-						
+							FSkeletalMeshImportData OutData;
 							if (LODIndex == 0 && SkelMeshNodeArray.Num() != 0)
 							{
 								FName OutputName = FbxImporter->MakeNameForMesh(Name.ToString(), SkelMeshNodeArray[0]);
@@ -519,6 +520,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								ImportSkeletalMeshArgs.TemplateImportData = ImportUI->SkeletalMeshImportData;
 								ImportSkeletalMeshArgs.LodIndex = LODIndex;
 								ImportSkeletalMeshArgs.bCancelOperation = &bOperationCanceled;
+								ImportSkeletalMeshArgs.OutData = &OutData;
 
 								USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 								NewObject = NewMesh;
@@ -561,6 +563,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								ImportSkeletalMeshArgs.TemplateImportData = ImportUI->SkeletalMeshImportData;
 								ImportSkeletalMeshArgs.LodIndex = SuccessfulLodIndex;
 								ImportSkeletalMeshArgs.bCancelOperation = &bOperationCanceled;
+								ImportSkeletalMeshArgs.OutData = &OutData;
 
 								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 								bool bImportSucceeded = !bOperationCanceled && FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, SuccessfulLodIndex, false);
@@ -586,7 +589,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								uint32 bImportTextures = ImportOptions->bImportTextures;
 								ImportOptions->bImportTextures = 0;
 
-								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex);
+								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex, OutData);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
 								ImportOptions->bImportTextures = !!bImportTextures;

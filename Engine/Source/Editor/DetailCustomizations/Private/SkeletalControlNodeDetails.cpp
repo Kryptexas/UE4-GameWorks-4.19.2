@@ -119,7 +119,7 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 		}
 			break;
 		case FPropertyAccess::MultipleValues:
-			ChildrenBuilder.AddChildContent(FText::GetEmpty())
+			ChildrenBuilder.AddCustomRow(FText::GetEmpty())
 				[
 					SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected"))
 				];
@@ -152,7 +152,7 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 	FString Value;
 	ElementProperty->GetChildHandle("bShowPin")->GetValueAsFormattedString(Value);
 
-	ChildrenBuilder.AddChildContent( PropertyFriendlyName )
+	ChildrenBuilder.AddCustomRow( PropertyFriendlyName )
 	[
 		SNew( SHorizontalBox )
 		+ SHorizontalBox::Slot()

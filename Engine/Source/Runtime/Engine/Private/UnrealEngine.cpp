@@ -1788,19 +1788,19 @@ void UEngine::InitializeObjectReferences()
 
 void UEngine::InitializePortalServices()
 {
-	TSharedPtr<IMessagingRpcModule> MessagingRpcModule;
-	TSharedPtr<IPortalRpcModule> PortalRpcModule;
-	TSharedPtr<IPortalServicesModule> PortalServicesModule;
+	IMessagingRpcModule* MessagingRpcModule = nullptr;
+	IPortalRpcModule* PortalRpcModule = nullptr;
+	IPortalServicesModule* PortalServicesModule = nullptr;
 
 #if WITH_PORTAL_SERVICES && UE_EDITOR
-	MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
-	PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
-	PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
+	MessagingRpcModule = static_cast<IMessagingRpcModule*>(FModuleManager::Get().LoadModule("MessagingRpc"));
+	PortalRpcModule = static_cast<IPortalRpcModule*>(FModuleManager::Get().LoadModule("PortalRpc"));
+	PortalServicesModule = static_cast<IPortalServicesModule*>(FModuleManager::Get().LoadModule("PortalServices"));
 #endif
 
-	if (MessagingRpcModule.IsValid() &&
-		PortalRpcModule.IsValid() &&
-		PortalServicesModule.IsValid())
+	if (MessagingRpcModule &&
+		PortalRpcModule &&
+		PortalServicesModule)
 	{
 		// Initialize Portal services
 		PortalRpcClient = MessagingRpcModule->CreateRpcClient();
@@ -2736,7 +2736,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-#if ENABLE_LOC_TESTING
 	{
 		FString CultureName;
 		if (FParse::Value(Cmd, TEXT("CULTURE="), CultureName))
@@ -2761,6 +2760,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 	}
 
+#if ENABLE_LOC_TESTING
 	{
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
@@ -3199,7 +3199,7 @@ bool UEngine::HandleDeferCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	const TCHAR* ErrorMessage = TEXT( "No level found for CE processing" );
+	FString ErrorMessage = TEXT("No level found for CE processing");
 	bool bResult = false;
 
 	// Try to execute the command on all level script actors
@@ -3211,7 +3211,7 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 
 			if (CurrentLevel->GetLevelScriptActor())
 			{
-				ErrorMessage = 0;
+				ErrorMessage.Empty();
 
 				// return true if at least one level handles the command
 				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments( Cmd, Ar, NULL, true );
@@ -3221,12 +3221,12 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 
 	if (!bResult)
 	{
-		ErrorMessage = TEXT( "CE command wasn't processed" );
+		ErrorMessage = FString::Printf(TEXT("CE command '%s' wasn't processed for levels from world '%s'."), Cmd, *InWorld->GetPathName());
 	}
 
-	if (ErrorMessage)
+	if (!ErrorMessage.IsEmpty())
 	{
-		UE_LOG( LogEngine, Error, TEXT( "%s" ), ErrorMessage );
+		UE_LOG( LogEngine, Error, TEXT( "%s" ), *ErrorMessage );
 	}
 
 	// the command was processed (resulted in executing the command or an error message) - no other spot handles "CE"
@@ -9930,8 +9930,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Unload the current world
 	if( WorldContext.World() )
 	{
-		// Display loading screen.
-		if( !URL.HasOption(TEXT("quiet")) )
+		if(!URL.HasOption(TEXT("quiet")) )
 		{
 			TransitionType = TT_Loading;
 			TransitionDescription = URL.Map;
@@ -9942,8 +9941,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			else
 			{
 				TransitionGameMode = TEXT("");
-			}			
-			LoadMapRedrawViewports();			
+			}
+			
+			// Display loading screen.		
+			// Check if a loading movie is playing.  If so it is not safe to redraw the viewport due to potential race conditions with font rendering
+			bool bIsLoadingMovieCurrentlyPlaying = FCoreDelegates::IsLoadingMovieCurrentlyPlaying.IsBound() ? FCoreDelegates::IsLoadingMovieCurrentlyPlaying.Execute() : false;
+			if(!bIsLoadingMovieCurrentlyPlaying)
+			{
+				LoadMapRedrawViewports();
+			}
+			
 			TransitionType = TT_None;
 		}
 
@@ -11953,7 +11960,7 @@ FColor GetColorForLevelStatus(int32 Status)
 	switch (Status)
 	{
 	case LEVEL_Visible:
-		Color = FColor::Red;		// red  loaded and visible
+		Color = FColor::Green;		// green  loaded and visible
 		break;
 	case LEVEL_MakingVisible:
 		Color = FColorList::Orange;	// orange, in process of being made visible
@@ -11968,7 +11975,7 @@ FColor GetColorForLevelStatus(int32 Status)
 		Color = FColor::Blue;		// blue  (GC needs to occur to remove this)
 		break;
 	case LEVEL_Unloaded:
-		Color = FColor::Green;		// green
+		Color = FColor::Red;		// Red   unloaded
 		break;
 	case LEVEL_Preloading:
 		Color = FColor::Magenta;	// purple (preloading)

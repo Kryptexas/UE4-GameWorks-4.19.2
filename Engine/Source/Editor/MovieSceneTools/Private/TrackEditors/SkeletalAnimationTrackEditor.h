@@ -12,7 +12,7 @@
 #include "ISequencerTrackEditor.h"
 #include "MovieSceneTrackEditor.h"
 
-class FAssetData;
+struct FAssetData;
 class FFloatCurveKeyArea;
 class FMenuBuilder;
 class FSequencerSectionPainter;
@@ -69,7 +69,7 @@ private:
 	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding, UMovieSceneTrack* Track);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track);
+	FKeyPropertyResult AddKeyInternal(float KeyTime, UObject* Object, class UAnimSequenceBase* AnimSequence, UMovieSceneTrack* Track);
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
@@ -94,7 +94,6 @@ public:
 	// ISequencerSection interface
 
 	virtual UMovieSceneSection* GetSectionObject() override;
-	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;

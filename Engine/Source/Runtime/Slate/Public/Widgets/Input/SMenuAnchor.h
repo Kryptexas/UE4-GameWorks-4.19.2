@@ -31,12 +31,6 @@ DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
 class SLATE_API SMenuAnchor : public SPanel, public IMenuHost
 {
 public:
-	DEPRECATED(4.7, "You probably do not need this setting any more. See OnQueryPopupMethod() in SWidget.h.")
-	typedef ::EPopupMethod EMethod;
-	static const EPopupMethod CreateNewWindow = EPopupMethod::CreateNewWindow;
-	static const EPopupMethod UseCurrentWindow = EPopupMethod::UseCurrentWindow;
-	
-public:
 	SLATE_BEGIN_ARGS( SMenuAnchor )
 		: _Content()
 		, _Padding(FMargin(0.f))
@@ -125,7 +119,7 @@ protected:
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	// End of SWidget interface
 
 	/** @return true if the popup is currently open and reusing an existing window */

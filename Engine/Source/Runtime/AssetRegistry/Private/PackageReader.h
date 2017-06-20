@@ -7,7 +7,7 @@
 #include "UObject/ObjectResource.h"
 #include "UObject/PackageFileSummary.h"
 
-class FAssetData;
+struct FAssetData;
 class FPackageDependencyData;
 
 class FPackageReader : public FArchiveUObject

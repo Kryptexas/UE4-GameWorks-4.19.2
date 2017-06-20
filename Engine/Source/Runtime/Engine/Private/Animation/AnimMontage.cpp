@@ -6,6 +6,7 @@
 
 #include "Animation/AnimMontage.h"
 #include "UObject/LinkerLoad.h"
+#include "Package.h"
 #include "Animation/AssetMappingTable.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimInstance.h"
@@ -2146,7 +2147,7 @@ UAnimMontage* FAnimMontageInstance::InitializeMatineeControl(FName SlotName, USk
 	}
 	else if (UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance())
 	{
-		UAnimMontage* PlayingMontage = nullptr;
+		UAnimMontage* PreviousMontage = nullptr;
 
 		if (MontageToPlay)
 		{
@@ -2158,23 +2159,36 @@ UAnimMontage* FAnimMontageInstance::InitializeMatineeControl(FName SlotName, USk
 
 			return MontageToPlay;
 		}
-		else if (!AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage))
+
+		// We need to attempt find an existing slot animation
+		for (FAnimMontageInstance* MontageInstance : AnimInst->MontageInstances)
 		{
-			// set an existing instance's weight to 0
-			FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(PlayingMontage);
-			if(PrevAnimMontageInst)
+			if (!MontageInstance || !MontageInstance->IsActive())
 			{
-				// set weight to be 0
-				PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
-				PrevAnimMontageInst->Blend.SetAlpha(1.f);
+				continue;
 			}
 
-			return AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
+			// Try and find an anim track for the desired slot
+			UAnimMontage* ThisMontage = MontageInstance->Montage;
+			const FAnimTrack* AnimTrack = ( ThisMontage && ThisMontage->GetOuter() == GetTransientPackage() ) ? ThisMontage->GetAnimationData(SlotName) : nullptr;
+			if (!AnimTrack)
+			{
+				continue;
+			}
+
+			// Try and find our asset on this track
+			if (AnimTrack->AnimSegments.Num() == 1 && AnimTrack->AnimSegments[0].AnimReference == InAnimSequence)
+			{
+				// We've already found an active animation in this slot that's playing our animation. Use that.
+				return ThisMontage;
+			}
+
+			// Something animating this slot that's not us - set weight to be 0 on this slot
+			MontageInstance->Blend.SetDesiredValue(0.f);
+			MontageInstance->Blend.SetAlpha(1.f);
 		}
-		else
-		{
-			return PlayingMontage;
-		}
+
+		return AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 	}
 
 	return nullptr;

@@ -20,16 +20,26 @@
 #include "EditorModeManager.h"
 #include "SequencerCommands.h"
 #include "MovieSceneSequence.h"
+#include "MovieScene.h"
+#include "MovieScenePropertyTrack.h"
+#include "MovieSceneSequenceID.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "SequencerSettings.h"
+#include "SequencerInfoColumn.h"
 #include "LevelEditorViewport.h"
 #include "Modules/ModuleManager.h"
 #include "MultiBox/MultiBoxBuilder.h"
 #include "PropertyEditorModule.h"
+#include "SceneOutlinerFwd.h"
+#include "SceneOutlinerModule.h"
+#include "SceneOutlinerPublicTypes.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "UObject/ObjectKey.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditorSequencerIntegration"
 
@@ -67,7 +77,7 @@ public:
 		for (const TWeakPtr<ISequencer>& WeakSequencer : Sequencers)
 		{
 			TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
-			if (Sequencer.IsValid() && Sequencer->GetFocusedMovieSceneSequence())
+			if (Sequencer.IsValid() && Sequencer->GetFocusedMovieSceneSequence() && Sequencer->GetAllowEditsMode() != EAllowEditsMode::AllowLevelEditsOnly)
 			{
 				return true;
 			}
@@ -98,6 +108,7 @@ private:
 static const FName DetailsTabIdentifiers[] = { "LevelEditorSelectionDetails", "LevelEditorSelectionDetails2", "LevelEditorSelectionDetails3", "LevelEditorSelectionDetails4" };
 
 FLevelEditorSequencerIntegration::FLevelEditorSequencerIntegration()
+	: bScrubbing(false)
 {
 	KeyFrameHandler = MakeShared<FDetailKeyframeHandlerWrapper>();
 }
@@ -177,10 +188,11 @@ void FLevelEditorSequencerIntegration::Initialize()
 	}
 
 	AddLevelViewportMenuExtender();
-	ActivateDetailKeyframeHandler();
+	ActivateDetailHandler();
 	AttachTransportControlsToViewports();
 	ActivateSequencerEditorMode();
 	BindLevelEditorCommands();
+	AttachOutlinerColumn();
 
 	{
 		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -271,7 +283,7 @@ void FLevelEditorSequencerIntegration::OnLevelAdded(ULevel* InLevel, UWorld* InW
 		{
 			if (Options.bRequiresLevelEvents)
 			{
-				In.State.ClearObjectCaches();
+				In.State.ClearObjectCaches(In);
 			}
 		}
 	);
@@ -284,7 +296,7 @@ void FLevelEditorSequencerIntegration::OnLevelRemoved(ULevel* InLevel, UWorld* I
 		{
 			if (Options.bRequiresLevelEvents)
 			{
-				In.State.ClearObjectCaches();
+				In.State.ClearObjectCaches(In);
 			}
 		}
 	);
@@ -333,7 +345,82 @@ void FLevelEditorSequencerIntegration::OnSequencerEvaluated()
 			LevelVC->RequestRealTimeFrames(1);
 		}
 	}
+
+	if (!bScrubbing)
+	{
+		UpdateDetails();
+	}
 }
+
+void FLevelEditorSequencerIntegration::OnBeginScrubbing()
+{
+	bScrubbing = true;
+}
+
+void FLevelEditorSequencerIntegration::OnEndScrubbing()
+{
+	bScrubbing = false;
+	UpdateDetails();
+}
+
+void FLevelEditorSequencerIntegration::OnMovieSceneBindingsChanged()
+{
+	for (FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		SequencerAndOptions.BindingData.Get().bActorBindingsDirty = true;
+	}
+}
+
+void FLevelEditorSequencerIntegration::OnMovieSceneDataChanged(EMovieSceneDataChangeType DataChangeType)
+{
+	if (DataChangeType == EMovieSceneDataChangeType::MovieSceneStructureItemAdded ||
+		DataChangeType == EMovieSceneDataChangeType::MovieSceneStructureItemRemoved ||
+		DataChangeType == EMovieSceneDataChangeType::MovieSceneStructureItemsChanged ||
+		DataChangeType == EMovieSceneDataChangeType::RefreshAllImmediately ||
+		DataChangeType == EMovieSceneDataChangeType::ActiveMovieSceneChanged)
+	{
+		UpdateDetails();
+	}
+}
+
+void FLevelEditorSequencerIntegration::OnAllowEditsModeChanged(EAllowEditsMode AllowEditsMode)
+{
+	UpdateDetails(true);
+}
+
+void FLevelEditorSequencerIntegration::UpdateDetails(bool bForceRefresh)
+{
+	bool bNeedsRefresh = bForceRefresh;
+
+	for (FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
+		if (Pinned.IsValid())
+		{
+			SequencerAndOptions.BindingData.Get().bPropertyBindingsDirty = true;
+		
+			if (Pinned.Get()->GetAllowEditsMode() == EAllowEditsMode::AllowLevelEditsOnly)
+			{
+				bNeedsRefresh = true;
+			}
+		}
+	}
+
+	if (bNeedsRefresh)
+	{
+		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		
+		for (const FName& DetailsTabIdentifier : DetailsTabIdentifiers)
+		{
+			TSharedPtr<IDetailsView> DetailsView = EditModule.FindDetailView(DetailsTabIdentifier);
+			if(DetailsView.IsValid())
+			{
+				DetailsView->ForceRefresh();
+			}
+		}
+	}
+}
+
 
 void FLevelEditorSequencerIntegration::ActivateSequencerEditorMode()
 {
@@ -376,7 +463,7 @@ void FLevelEditorSequencerIntegration::OnPreBeginPIE(bool bIsSimulating)
 			if (Options.bRequiresLevelEvents)
 			{
 				In.RestorePreAnimatedState();
-				In.State.ClearObjectCaches();
+				In.State.ClearObjectCaches(In);
 
 				if (bReevaluate)
 				{
@@ -396,7 +483,7 @@ void FLevelEditorSequencerIntegration::OnEndPlayMap()
 			if (Options.bRequiresLevelEvents)
 			{
 				// Update and clear any stale bindings 
-				In.State.ClearObjectCaches();
+				In.State.ClearObjectCaches(In);
 				In.ForceEvaluate();
 			}
 		}
@@ -454,7 +541,7 @@ TSharedRef<FExtender> FLevelEditorSequencerIntegration::GetLevelViewportExtender
 	return Extender;
 }
 
-void FLevelEditorSequencerIntegration::ActivateDetailKeyframeHandler()
+void FLevelEditorSequencerIntegration::ActivateDetailHandler()
 {
 	FName DetailHandlerName("DetailHandler");
 
@@ -469,6 +556,7 @@ void FLevelEditorSequencerIntegration::ActivateDetailKeyframeHandler()
 		if(DetailsView.IsValid())
 		{
 			DetailsView->SetKeyframeHandler(KeyFrameHandler);
+			DetailsView->SetIsPropertyReadOnlyDelegate(FIsPropertyReadOnly::CreateRaw(this, &FLevelEditorSequencerIntegration::IsPropertyReadOnly));
 		}
 	}
 
@@ -494,16 +582,39 @@ void FLevelEditorSequencerIntegration::ActivateDetailKeyframeHandler()
 					{
 						DetailsView->SetKeyframeHandler(nullptr);
 					}
+
+					DetailsView->GetIsPropertyReadOnlyDelegate().Unbind();
+				}
+			}
+		};
+
+	FName DetailHandlerRefreshName("DetailHandlerRefresh");
+	auto RefreshDetailHandler =
+		[]
+		{
+			FPropertyEditorModule* EditModulePtr = FModuleManager::Get().GetModulePtr<FPropertyEditorModule>("PropertyEditor");
+			if (!EditModulePtr)
+			{
+				return;
+			}
+
+			for (const FName& DetailsTabIdentifier : DetailsTabIdentifiers)
+			{
+				TSharedPtr<IDetailsView> DetailsView = EditModulePtr->FindDetailView(DetailsTabIdentifier);
+				if (DetailsView.IsValid())
+				{
+					DetailsView->ForceRefresh();
 				}
 			}
 		};
 
 	AcquiredResources.Add(DetailHandlerName, DeactivateDetailKeyframeHandler);
+	AcquiredResources.Add(DetailHandlerRefreshName, RefreshDetailHandler);
 }
 
 void FLevelEditorSequencerIntegration::OnPropertyEditorOpened()
 {
-	ActivateDetailKeyframeHandler();
+	ActivateDetailHandler();
 }
 
 void FLevelEditorSequencerIntegration::BindLevelEditorCommands()
@@ -897,6 +1008,95 @@ void FLevelEditorSequencerIntegration::DetachTransportControlsFromViewports()
 	TransportControls.Reset();
 }
 
+
+TSharedRef< ISceneOutlinerColumn > FLevelEditorSequencerIntegration::CreateSequencerInfoColumn( ISceneOutliner& SceneOutliner ) const
+{
+	//@todo only supports the first bound sequencer
+	check(BoundSequencers.Num() > 0);
+	check(BoundSequencers[0].Sequencer.IsValid());
+
+	return MakeShareable( new Sequencer::FSequencerInfoColumn( SceneOutliner, *BoundSequencers[0].Sequencer.Pin(), BoundSequencers[0].BindingData.Get() ) );
+}
+
+
+void FLevelEditorSequencerIntegration::AttachOutlinerColumn()
+{
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked< FSceneOutlinerModule >("SceneOutliner");
+
+	SceneOutliner::FColumnInfo ColumnInfo(SceneOutliner::EColumnVisibility::Visible, 15, 
+		FCreateSceneOutlinerColumn::CreateRaw( this, &FLevelEditorSequencerIntegration::CreateSequencerInfoColumn));
+
+	SceneOutlinerModule.RegisterDefaultColumnType< Sequencer::FSequencerInfoColumn >(SceneOutliner::FDefaultColumnInfo(ColumnInfo));
+
+	AcquiredResources.Add([=]{ this->DetachOutlinerColumn(); });
+}
+
+void FLevelEditorSequencerIntegration::DetachOutlinerColumn()
+{
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked< FSceneOutlinerModule >("SceneOutliner");
+
+	SceneOutlinerModule.UnRegisterColumnType< Sequencer::FSequencerInfoColumn >();
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+	// @todo reopen the scene outliner so that is refreshed without the sequencer info column
+	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+	if (LevelEditorTabManager->FindExistingLiveTab(FName("LevelEditorSceneOutliner")).IsValid())
+	{
+		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();
+		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+	}
+}
+
+void FLevelEditorSequencerIntegration::ActivateRealtimeViewports()
+{
+	for (const FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
+		if (Pinned.IsValid())
+		{
+			if (!Pinned.Get()->GetSettings()->ShouldActivateRealtimeViewports())
+			{
+				return;
+			}
+		}
+	}
+
+	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
+	{
+		FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[i];
+		if (LevelVC)
+		{
+			// If there is a director group, set the perspective viewports to realtime automatically.
+			if (LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
+			{				
+				// Ensure Realtime is turned on and store the original setting so we can restore it later.
+				LevelVC->SetRealtime(true, true);
+			}
+		}
+	}
+
+	AcquiredResources.Add([=]{ this->RestoreRealtimeViewports(); });
+}
+
+void FLevelEditorSequencerIntegration::RestoreRealtimeViewports()
+{
+	// Undo any weird settings to editor level viewports.
+	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
+	{
+		FLevelEditorViewportClient* LevelVC =GEditor->LevelViewportClients[i];
+		if (LevelVC)
+		{
+			// Turn off realtime when exiting.
+			if( LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
+			{				
+				// Specify true so RestoreRealtime will allow us to disable Realtime if it was original disabled
+				LevelVC->RestoreRealtime(true);
+			}
+		}
+	}
+}
+
 TSharedRef<FExtender> FLevelEditorSequencerIntegration::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
 {
 	TSharedRef<FExtender> Extender(new FExtender());
@@ -976,19 +1176,34 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 	KeyFrameHandler->Add(InSequencer);
 
 	auto DerivedSequencerPtr = StaticCastSharedRef<FSequencer>(InSequencer);
-	BoundSequencers.Add(FSequencerAndOptions{ DerivedSequencerPtr, Options });
+	BoundSequencers.Add(FSequencerAndOptions{ DerivedSequencerPtr, Options, FAcquiredResources(), MakeShareable(new FLevelEditorSequencerBindingData) });
 
 	{
-		// Set up a callback for when this sequencer changes its time to redraw any non-realtime viewports
 		TWeakPtr<ISequencer> WeakSequencer = InSequencer;
-		FDelegateHandle Handle = InSequencer->OnGlobalTimeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnSequencerEvaluated);
+
+		// Set up a callback for when this sequencer changes its time to redraw any non-realtime viewports
+		FDelegateHandle EvalHandle = InSequencer->OnGlobalTimeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnSequencerEvaluated);
+
+		// Set up a callback for when this sequencer changes to update the sequencer data mapping
+		FDelegateHandle BindingsHandle = InSequencer->OnMovieSceneBindingsChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnMovieSceneBindingsChanged);
+		FDelegateHandle DataHandle = InSequencer->OnMovieSceneDataChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnMovieSceneDataChanged);
+		FDelegateHandle AllowEditsModeHandle = InSequencer->GetSequencerSettings()->GetOnAllowEditsModeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnAllowEditsModeChanged);
+
+		FDelegateHandle BeginScrubbingHandle = InSequencer->OnBeginScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnBeginScrubbing);
+		FDelegateHandle EndScrubbingHandle = InSequencer->OnEndScrubbingEvent().AddRaw(this, &FLevelEditorSequencerIntegration::OnEndScrubbing);
+
 		BoundSequencers.Last().AcquiredResources.Add(
 			[=]
 			{
 				TSharedPtr<ISequencer> Pinned = WeakSequencer.Pin();
 				if (Pinned.IsValid())
 				{
-					Pinned->OnGlobalTimeChanged().Remove(Handle);
+					Pinned->OnGlobalTimeChanged().Remove(EvalHandle);
+					Pinned->OnMovieSceneBindingsChanged().Remove(BindingsHandle);
+					Pinned->OnMovieSceneDataChanged().Remove(DataHandle);
+					Pinned->GetSequencerSettings()->GetOnAllowEditsModeChanged().Remove(AllowEditsModeHandle);
+					Pinned->OnBeginScrubbingEvent().Remove(BeginScrubbingHandle);
+					Pinned->OnEndScrubbingEvent().Remove(EndScrubbingHandle);
 				}
 			}
 		);
@@ -1008,6 +1223,8 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 			Control.Widget->AssignSequencer(DerivedSequencerPtr);
 		}
 	}
+
+	ActivateRealtimeViewports();
 }
 
 void FLevelEditorSequencerIntegration::OnSequencerReceivedFocus(TSharedRef<ISequencer> InSequencer)
@@ -1056,6 +1273,213 @@ void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> In
 	{
 		AcquiredResources.Release();
 	}
+}
+
+void AddActorsToBindingsMap(TWeakPtr<FSequencer> Sequencer, UMovieSceneSequence* Sequence, FMovieSceneSequenceIDRef SequenceID, TMap<FObjectKey, FString>& ActorBindingsMap)
+{
+	UMovieScene* MovieScene = Sequence->GetMovieScene();
+
+	FString SequenceName = Sequence->GetDisplayName().ToString();
+
+	// Search all possessables
+	for (int32 Index = 0; Index < MovieScene->GetPossessableCount(); ++Index)
+	{
+		FGuid ThisGuid = MovieScene->GetPossessable(Index).GetGuid();
+
+		for (TWeakObjectPtr<> WeakObject : Sequencer.Pin()->FindBoundObjects(ThisGuid, SequenceID))
+		{
+			if (WeakObject.IsValid())
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+				if (Actor != nullptr)
+				{
+					FObjectKey ActorKey(Actor);
+
+					if (ActorBindingsMap.Contains(ActorKey))
+					{
+						ActorBindingsMap[ActorKey] = ActorBindingsMap[ActorKey] + TEXT(", ") + SequenceName;
+					}
+					else
+					{
+						ActorBindingsMap.Add(ActorKey, SequenceName);
+					}
+				}
+			}
+		}
+	}
+
+	// Search all spawnables
+	for (int32 Index = 0; Index < MovieScene->GetSpawnableCount(); ++Index)
+	{
+		FGuid ThisGuid = MovieScene->GetSpawnable(Index).GetGuid();
+
+		for (TWeakObjectPtr<> WeakObject : Sequencer.Pin()->FindBoundObjects(ThisGuid, SequenceID))
+		{
+			if (WeakObject.IsValid())
+			{
+				AActor* Actor = Cast<AActor>(WeakObject.Get());
+				if (Actor != nullptr)
+				{
+					FObjectKey ActorKey(Actor);
+
+					if (ActorBindingsMap.Contains(ActorKey))
+					{
+						ActorBindingsMap[ActorKey] = ActorBindingsMap[ActorKey] + TEXT(", ") + SequenceName;
+					}
+					else
+					{
+						ActorBindingsMap.Add(ActorKey, SequenceName);
+					}
+				}
+			}
+		}
+	}
+}
+
+void AddPropertiesToBindingsMap(TWeakPtr<FSequencer> Sequencer, UMovieSceneSequence* Sequence, FMovieSceneSequenceIDRef SequenceID, TMap<FObjectKey, TArray<FString> >& PropertyBindingsMap)
+{
+	UMovieScene* MovieScene = Sequence->GetMovieScene();
+
+	for (FMovieSceneBinding Binding : MovieScene->GetBindings())
+	{
+		for (UMovieSceneTrack* Track : Binding.GetTracks())
+		{
+			if (Track->IsA(UMovieScenePropertyTrack::StaticClass()))
+			{
+				UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(Track);
+				FName PropertyName = PropertyTrack->GetPropertyName();
+				FString PropertyPath = PropertyTrack->GetPropertyPath();
+
+				// Find the property for the given actor
+				for (TWeakObjectPtr<> WeakObject : Sequencer.Pin()->FindBoundObjects(Binding.GetObjectGuid(), SequenceID))
+				{
+					if (WeakObject.IsValid())
+					{
+						FObjectKey ObjectKey(WeakObject.Get());
+
+						if (!PropertyBindingsMap.Contains(ObjectKey))
+						{
+							PropertyBindingsMap.Add(ObjectKey);
+						}
+
+						PropertyBindingsMap[ObjectKey].Add(PropertyPath);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+FString FLevelEditorSequencerBindingData::GetLevelSequencesForActor(TWeakPtr<FSequencer> Sequencer, const AActor* InActor)
+{
+	if (bActorBindingsDirty)
+	{
+		UpdateActorBindingsData(Sequencer);
+	}
+
+	FObjectKey ActorKey(InActor);
+
+	if (ActorBindingsMap.Contains(ActorKey))
+	{
+		return ActorBindingsMap[ActorKey];
+	}
+	return FString();
+}
+	
+bool FLevelEditorSequencerBindingData::GetIsPropertyBound(TWeakPtr<FSequencer> Sequencer, const struct FPropertyAndParent& InPropertyAndParent)
+{
+	if (bPropertyBindingsDirty)
+	{
+		UpdatePropertyBindingsData(Sequencer);
+	}
+
+	for (auto Object : InPropertyAndParent.Objects)
+	{
+		FObjectKey ObjectKey(Object.Get());
+
+		if (PropertyBindingsMap.Contains(ObjectKey))
+		{
+			return PropertyBindingsMap[ObjectKey].Contains(InPropertyAndParent.Property.GetName());
+		}
+	}
+
+	return false;
+}
+
+void FLevelEditorSequencerBindingData::UpdateActorBindingsData(TWeakPtr<FSequencer> InSequencer)
+{
+	static bool bIsReentrant = false;
+
+	if( !bIsReentrant )
+	{
+		ActorBindingsMap.Empty();
+	
+		// Finding the bound objects can cause bindings to be evaluated and changed, causing this to be invoked again
+		TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
+
+		FMovieSceneRootEvaluationTemplateInstance& RootTemplate = InSequencer.Pin()->GetEvaluationTemplate();
+		
+		UMovieSceneSequence* Sequence = RootTemplate.GetSequence(MovieSceneSequenceID::Root);
+
+		AddActorsToBindingsMap(InSequencer, Sequence, MovieSceneSequenceID::Root, ActorBindingsMap);
+
+		for (auto& SubInstance : RootTemplate.GetSubInstances())
+		{
+			AddActorsToBindingsMap(InSequencer, SubInstance.Value.Sequence.Get(), SubInstance.Key, ActorBindingsMap);
+		}
+
+		bActorBindingsDirty = false;
+
+		ActorBindingsDataChanged.Broadcast();
+	}
+}
+
+
+void FLevelEditorSequencerBindingData::UpdatePropertyBindingsData(TWeakPtr<FSequencer> InSequencer)
+{
+	static bool bIsReentrant = false;
+
+	if( !bIsReentrant )
+	{
+		PropertyBindingsMap.Empty();
+	
+		// Finding the bound objects can cause bindings to be evaluated and changed, causing this to be invoked again
+		TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
+
+		FMovieSceneRootEvaluationTemplateInstance& RootTemplate = InSequencer.Pin()->GetEvaluationTemplate();
+
+		for (auto SequenceID : RootTemplate.GetThisFrameMetaData().ActiveSequences)
+		{
+			UMovieSceneSequence* Sequence = RootTemplate.GetSequence(SequenceID);
+			
+			AddPropertiesToBindingsMap(InSequencer, Sequence, SequenceID, PropertyBindingsMap);
+		}
+
+		bPropertyBindingsDirty = false;
+
+		PropertyBindingsDataChanged.Broadcast();
+	}
+}
+
+bool FLevelEditorSequencerIntegration::IsPropertyReadOnly(const FPropertyAndParent& InPropertyAndParent)
+{
+	for (const FSequencerAndOptions& SequencerAndOptions : BoundSequencers)
+	{
+		TSharedPtr<FSequencer> Pinned = SequencerAndOptions.Sequencer.Pin();
+		if (Pinned.IsValid())
+		{
+			if (Pinned.Get()->GetAllowEditsMode() == EAllowEditsMode::AllowLevelEditsOnly)
+			{
+				if (SequencerAndOptions.BindingData.Get().GetIsPropertyBound(SequencerAndOptions.Sequencer, InPropertyAndParent))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

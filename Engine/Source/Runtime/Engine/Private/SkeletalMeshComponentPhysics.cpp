@@ -542,7 +542,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	if(RootBodyIndex == INDEX_NONE)
 	{
-		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Could not find root physics body: %s"), *GetName() );
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Could not find root physics body: '%s'"), *GetPathName() );
 		return;
 	}
 

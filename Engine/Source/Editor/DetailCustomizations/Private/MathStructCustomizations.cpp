@@ -36,7 +36,7 @@ void FMathStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHandl
 		TSharedRef<IPropertyHandle> ChildHandle = SortedChildHandles[ChildIndex];
 
 		// Add the individual properties as children as well so the vector can be expanded for more room
-		StructBuilder.AddChildProperty(ChildHandle);
+		StructBuilder.AddProperty(ChildHandle);
 	}
 }
 
@@ -260,7 +260,7 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 		.OnEndSliderMovement(this, &FMathStructCustomization::OnEndSliderMovement<NumericType>)
 		.LabelVAlign(VAlign_Center)
 		// Only allow spin on handles with one object.  Otherwise it is not clear what value to spin
-		.AllowSpin(PropertyHandle->GetNumOuterObjects() == 1)
+		.AllowSpin(PropertyHandle->GetNumOuterObjects() < 2)
 		.ShiftMouseMovePixelPerDelta(ShiftMouseMovePixelPerDelta)
 		.SupportDynamicSliderMaxValue(SupportDynamicSliderMaxValue)
 		.SupportDynamicSliderMinValue(SupportDynamicSliderMinValue)

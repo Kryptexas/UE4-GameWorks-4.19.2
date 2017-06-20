@@ -2161,7 +2161,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 					SkelMeshNodeArray.Add(Node);
 				}
 			}
-
+			FSkeletalMeshImportData OutData;
 			if (LODIndex == 0)
 			{
 				ImportMeshLodData.AddZeroed();
@@ -2174,6 +2174,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				ImportSkeletalMeshArgs.LodIndex = LODIndex;
 				ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameData;
 				ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[0];
+				ImportSkeletalMeshArgs.OutData = &OutData;
 
 				NewMesh = ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			}
@@ -2192,6 +2193,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				ImportSkeletalMeshArgs.LodIndex = LODIndex;
 				ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameDataLOD;
 				ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[LODIndex];
+				ImportSkeletalMeshArgs.OutData = &OutData;
 
 				UObject *LODObject = ImportSkeletalMesh( ImportSkeletalMeshArgs );
 				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex, true, nullptr, TemplateImportData);
@@ -2226,11 +2228,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			// import morph target
 			if ((ImportOptions->bImportSkeletalMeshLODs || LODIndex == 0) &&
 				NewMesh &&
+				ImportOptions->bImportMorph &&
 				NewMesh->GetImportedResource() &&
 				NewMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
 			{
 				// @fixme: @question : where do they import this morph? where to? What morph target sets?
-				ImportFbxMorphTarget(SkelMeshNodeArray, NewMesh, NewMesh->GetOutermost(), LODIndex);
+				ImportFbxMorphTarget(SkelMeshNodeArray, NewMesh, NewMesh->GetOutermost(), LODIndex, OutData);
 			}
 		}
 		if (NewMesh)
@@ -3633,7 +3636,7 @@ static void ConvertSkeletonImportDataToMeshData( const FSkeletalMeshImportData& 
 class FAsyncImportMorphTargetWork : public FNonAbandonableTask
 {
 public:
-	FAsyncImportMorphTargetWork(FStaticLODModel* InLODModel, const FReferenceSkeleton& InRefSkeleton, FSkeletalMeshImportData& InBaseImportData, TArray<FVector>&& InMorphLODPoints,
+	FAsyncImportMorphTargetWork(FStaticLODModel* InLODModel, const FReferenceSkeleton& InRefSkeleton, const FSkeletalMeshImportData& InBaseImportData, TArray<FVector>&& InMorphLODPoints,
 		FBXImportOptions* InImportOptions, TArray< FMorphTargetDelta >& InMorphDeltas, FMultiSizeIndexContainerData& InBaseIndexData, TArray< uint32 >& InBaseWedgePointIndices,
 		TMap<uint32,uint32>& InWedgePointToVertexIndexMap, const TMultiMap<int32, int32>& InOverlappingCorners,
 		const TSet<uint32> InModifiedPoints, const TMultiMap< int32, int32 >& InWedgeToFaces, const TArray<FVector>& InTangentX, const TArray<FVector>& InTangentY, const TArray<FVector>& InTangentZ)
@@ -3776,7 +3779,7 @@ public:
 				{
 					// get the base mesh's original wedge point index
 					uint32 BasePointIdx = BaseWedgePointIndices[ BaseVertIdx ];
-					if (BaseImportData.Points.IsValidIndex(BasePointIdx))
+					if (BaseImportData.Points.IsValidIndex(BasePointIdx) && MorphLODPoints.IsValidIndex(BasePointIdx))
 					{
 						FVector BasePosition = BaseImportData.Points[BasePointIdx];
 						FVector TargetPosition = MorphLODPoints[BasePointIdx];
@@ -3857,7 +3860,7 @@ private:
 	TArray<FVector> TangentZ;
 };
 
-void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, int32 LODIndex )
+void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, int32 LODIndex, const FSkeletalMeshImportData &BaseImportData)
 {
 	FbxString ShapeNodeName;
 	TMap<FString, TArray<FbxShape*>> ShapeNameToShapeArray;
@@ -3948,14 +3951,6 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 	TArray<FVector> TangentX;
 	TArray<FVector> TangentY;
 	TArray<FVector> TangentZ;
-
-	TArray<FName> LastImportedMaterialNames;
-	FillLastImportMaterialNames(LastImportedMaterialNames, BaseSkelMesh, nullptr);
-
-	UFbxSkeletalMeshImportData* TmpMeshImportData = Cast<UFbxSkeletalMeshImportData>(BaseSkelMesh->AssetImportData);
-
-	FSkeletalMeshImportData BaseImportData;
-	FillSkeletalMeshImportData( SkelMeshNodeArray, TmpMeshImportData, nullptr, &BaseImportData, LastImportedMaterialNames );
 
 	FStaticLODModel& BaseLODModel = BaseSkelMesh->GetImportedResource()->LODModels[ LODIndex ];
 
@@ -4112,7 +4107,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 }
 
 // Import Morph target
-void UnFbx::FFbxImporter::ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, int32 LODIndex)
+void UnFbx::FFbxImporter::ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* InParent, int32 LODIndex, const FSkeletalMeshImportData &BaseSkeletalMeshImportData)
 {
 	bool bHasMorph = false;
 	int32 NodeIndex;
@@ -4132,7 +4127,7 @@ void UnFbx::FFbxImporter::ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArr
 	
 	if (bHasMorph)
 	{
-		ImportMorphTargetsInternal( SkelMeshNodeArray, BaseSkelMesh, InParent, LODIndex );
+		ImportMorphTargetsInternal( SkelMeshNodeArray, BaseSkelMesh, InParent, LODIndex, BaseSkeletalMeshImportData );
 	}
 }
 

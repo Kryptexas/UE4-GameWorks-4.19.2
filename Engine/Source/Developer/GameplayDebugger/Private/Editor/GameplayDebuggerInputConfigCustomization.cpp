@@ -52,7 +52,7 @@ void FGameplayDebuggerInputConfigCustomization::CustomizeChildren(TSharedRef<cla
 			continue;
 		}
 
-		StructBuilder.AddChildProperty(PropHandle.ToSharedRef());
+		StructBuilder.AddProperty(PropHandle.ToSharedRef());
 	}
 };
 

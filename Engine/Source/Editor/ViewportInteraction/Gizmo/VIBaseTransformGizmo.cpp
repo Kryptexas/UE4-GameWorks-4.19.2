@@ -7,6 +7,7 @@
 #include "Materials/Material.h"
 #include "VIGizmoHandle.h"
 #include "ViewportDragOperation.h"
+#include "VIGizmoHandleMeshComponent.h"
 
 namespace VREd
 {

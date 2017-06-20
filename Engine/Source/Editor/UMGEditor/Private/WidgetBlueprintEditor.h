@@ -234,6 +234,9 @@ private:
 	/** Populates the sequencer add menu. */
 	void OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
 
+	/** Populates the sequencer add submenu for the big list of widgets. */
+	void OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
+
 	/** Adds the supplied UObject to the current animation. */
 	void AddObjectToAnimation(UObject* ObjectToAnimate);
 
@@ -258,7 +261,7 @@ private:
 	void AddMaterialTrack( UWidget* Widget, TArray<UProperty*> MaterialPropertyPath, FText MaterialPropertyDisplayName );
 
 	/** Handler which is called whenever sequencer movie scene data changes. */
-	void OnMovieSceneDataChanged();
+	void OnMovieSceneDataChanged(EMovieSceneDataChangeType DataChangeType);
 
 	/** Fire off when sequencer selection changed */
 	void SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids);

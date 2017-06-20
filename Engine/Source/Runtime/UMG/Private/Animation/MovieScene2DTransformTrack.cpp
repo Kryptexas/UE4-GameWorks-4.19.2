@@ -12,7 +12,7 @@ UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitialize
 	TrackTint = FColor(48, 227, 255, 65);
 #endif
 
-	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
+	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()

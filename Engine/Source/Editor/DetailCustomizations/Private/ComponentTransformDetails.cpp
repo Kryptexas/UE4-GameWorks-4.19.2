@@ -383,7 +383,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 			TypeInterface = SharedThis(this);
 		}
 
-		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("LocationFilter", "Location") )
 		.CopyAction( CreateCopyAction( ETransformField::Location ) )
 		.PasteAction( CreatePasteAction( ETransformField::Location ) )
 		.NameContent()
@@ -413,6 +413,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnZCommitted( this, &FComponentTransformDetails::OnSetLocation, 2 )
 				.Font( FontInfo )
 				.TypeInterface( TypeInterface )
+				.AllowSpin(false)
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -449,7 +450,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 			TypeInterface = MakeShareable( new TNumericUnitTypeInterface<float>(EUnit::Degrees) );
 		}
 
-		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("RotationFilter", "Rotation") )
 		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
 		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
 		.NameContent()
@@ -515,7 +516,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	// Scale
 	if(!bHideScaleField)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale") )
+		ChildrenBuilder.AddCustomRow( LOCTEXT("ScaleFilter", "Scale") )
 		.CopyAction( CreateCopyAction(ETransformField::Scale) )
 		.PasteAction( CreatePasteAction(ETransformField::Scale) )
 		.NameContent()
@@ -547,6 +548,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.ContextMenuExtenderY( this, &FComponentTransformDetails::ExtendYScaleContextMenu )
 				.ContextMenuExtenderZ( this, &FComponentTransformDetails::ExtendZScaleContextMenu )
 				.Font( FontInfo )
+				.AllowSpin(false)
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()

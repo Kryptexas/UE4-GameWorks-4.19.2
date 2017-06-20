@@ -26,7 +26,7 @@ public:
 	void Construct(const FArguments& InArgs, TAttribute<const FSlateBrush*> InSecondImage, TAttribute<FSlateColor> InSecondImageColor);
 
 private:
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	TAttribute<const FSlateBrush*> SecondImage;
 	TAttribute<FSlateColor> SecondImageColor;
@@ -39,10 +39,10 @@ void SDoubleImage::Construct(const SDoubleImage::FArguments& InArgs, TAttribute<
 	SecondImageColor = InSecondImageColor;
 }
 
-int32 SDoubleImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SDoubleImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// this will draw Image[0]:
-	SImage::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SImage::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -51,7 +51,7 @@ int32 SDoubleImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	if (SecondImageResolved && SecondImageResolved->DrawAs != ESlateBrushDrawType::NoDrawType)
 	{
 		const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * SecondImageColor.Get().GetColor(InWidgetStyle) * SecondImageResolved->GetTint(InWidgetStyle));
-		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), SecondImageResolved, MyClippingRect, DrawEffects, FinalColorAndOpacity);
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), SecondImageResolved, DrawEffects, FinalColorAndOpacity);
 	}
 	return LayerId;
 }
@@ -364,39 +364,37 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 			SNew(SBox)
 			.WidthOverride(100.f)
 			[
-					SAssignNew( TypeComboButton, SComboButton )
-					.MenuPlacement(EMenuPlacement::MenuPlacement_ComboBoxRight)
-					.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, false)
-					.ContentPadding(0)
-					.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
-					.ButtonContent()
+				SAssignNew( TypeComboButton, SComboButton )
+				.MenuPlacement(EMenuPlacement::MenuPlacement_ComboBoxRight)
+				.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, false)
+				.ContentPadding(0)
+				.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+					.Clipping(EWidgetClipping::OnDemand)
+						
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
+					.AutoWidth()
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Left)
-						.AutoWidth()
-						[
-							SNew(SImage)
-							.Image( this, &SPinTypeSelector::GetTypeIconImage )
-							.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
-						]
-						+SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Left)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.Text( this, &SPinTypeSelector::GetTypeDescription )
-							.Font(InArgs._Font)
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SSpacer)
-						]
+						SNew(SImage)
+						.Image( this, &SPinTypeSelector::GetTypeIconImage )
+						.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+					]
+						
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text( this, &SPinTypeSelector::GetTypeDescription )
+						.Font(InArgs._Font)
 					]
 				]
+			]
 		]
 
 		+SHorizontalBox::Slot()

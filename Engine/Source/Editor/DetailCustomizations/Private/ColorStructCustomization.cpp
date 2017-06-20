@@ -81,6 +81,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 	return SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
+		.Padding(0.0f, 2.0f)
 		[
 			SNew(SOverlay)
 			+SOverlay::Slot()
@@ -106,6 +107,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
+		.Padding(0.0f, 2.0f)
 		[
 			// Displays the color without alpha
 			SNew(SColorBlock)

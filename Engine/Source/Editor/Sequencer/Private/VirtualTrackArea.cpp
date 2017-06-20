@@ -3,6 +3,7 @@
 #include "VirtualTrackArea.h"
 #include "SSequencerTreeView.h"
 #include "GroupedKeyArea.h"
+#include "SequencerTrackNode.h"
 
 FVirtualTrackArea::FVirtualTrackArea(const FSequencer& InSequencer, SSequencerTreeView& InTreeView, const FGeometry& InTrackAreaGeometry)
 	: FTimeToPixel(InTrackAreaGeometry, InSequencer.GetViewRange())
@@ -149,14 +150,12 @@ FSequencerSelectedKey FVirtualTrackArea::HitTestKey(FVector2D InPhysicalPosition
 		TSharedPtr<FSequencerTrackNode> TrackNode = GetParentTrackNode(*Node);
 		if (TrackNode.IsValid())
 		{
-			const TArray< TSharedRef<ISequencerSection> >& Sections = TrackNode->GetSections();
-
-			for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
+			for (TSharedRef<ISequencerSection> SectionInterface : TrackNode->GetSections())
 			{
-				UMovieSceneSection* Section = Sections[SectionIndex]->GetSectionObject();
+				UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 				if (Section->GetStartTime() <= KeyRight && Section->GetEndTime() >= KeyLeft)
 				{
-					KeyAreas.Add(Node->GetKeyGrouping(SectionIndex));
+					KeyAreas.Add(Node->GetKeyGrouping(Section));
 				}
 			}
 		}

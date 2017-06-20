@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 class FEdModeFoliage;
 class IDetailLayoutBuilder;
 

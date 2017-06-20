@@ -22,10 +22,5 @@ protected:
 	//~ IMovieScenePlayer interface
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
-
-private:
-
-	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
-	void SetTickPrerequisites(bool bAddTickPrerequisites);
 };
 

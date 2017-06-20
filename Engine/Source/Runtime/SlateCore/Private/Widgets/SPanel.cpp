@@ -4,55 +4,38 @@
 #include "Types/PaintArgs.h"
 #include "Layout/ArrangedChildren.h"
 
-/* SWidget overrides
- *****************************************************************************/
-
-int32 SPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	// REMOVE THIS: Currently adding a debug quad so that BoxPanels are visible during development
-	// OutDrawElements.AddItem( FSlateDrawElement::MakeQuad( AllottedGeometry.AbsolutePosition, AllottedGeometry.Size ) );	
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	{
-		// The box panel has no visualization of its own; it just visualizes its children.
-		
-		this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
-	}
+	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
-	return PaintArrangedChildren(Args, ArrangedChildren, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	return PaintArrangedChildren(Args, ArrangedChildren, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
-
-/* SPanel implementation
- *****************************************************************************/
-
-int32 SPanel::PaintArrangedChildren( const FPaintArgs& Args, const FArrangedChildren& ArrangedChildren, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled  ) const
+int32 SPanel::PaintArrangedChildren( const FPaintArgs& Args, const FArrangedChildren& ArrangedChildren, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled  ) const
 {
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
 
 	const FPaintArgs NewArgs = Args.WithNewParent(this);
+	const bool bShouldBeEnabled = ShouldBeEnabled(bParentEnabled);
 
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		const FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 
-		bool bWereOverlapping;
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect(), bWereOverlapping);
-		
-		if ( bWereOverlapping )
+		if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
 		{
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bShouldBeEnabled);
 			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
-		}		
-		
+		}
 	}
 	
 	return MaxLayerId;
 }
 
-
-void SPanel::SetVisibility( TAttribute<EVisibility> InVisibility )
+void SPanel::SetVisibility(TAttribute<EVisibility> InVisibility)
 {
-	SWidget::SetVisibility( InVisibility );
+	SWidget::SetVisibility(InVisibility);
 }

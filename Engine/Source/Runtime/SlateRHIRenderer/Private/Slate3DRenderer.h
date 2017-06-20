@@ -45,4 +45,7 @@ private:
 
 	/** The draw buffer that is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
+
+	/** The depth buffer texture if any */
+	FTexture2DRHIRef DepthStencil;
 };

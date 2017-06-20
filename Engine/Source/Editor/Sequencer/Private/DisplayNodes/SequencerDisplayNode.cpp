@@ -49,7 +49,7 @@ public:
 	SLATE_END_ARGS()
 
 	/** SLeafWidget Interface */
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode )
 	{
@@ -83,7 +83,7 @@ private:
 };
 
 
-int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	if (RootNode->GetSequencer().GetSettings()->GetShowCombinedKeyframes())
 	{
@@ -100,9 +100,8 @@ int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& Al
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId+1,
-				AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::CeilToFloat(KeyMarkSize.X/2.f), FMath::CeilToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
+				AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::CeilToFloat(KeyMarkSize.X/2.f), FMath::CeilToFloat(AllottedGeometry.GetLocalSize().Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
 				FEditorStyle::GetBrush("Sequencer.KeyMark"),
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor(1.f, 1.f, 1.f, 1.f)
 			);
@@ -419,7 +418,7 @@ FText FSequencerDisplayNode::GetIconToolTipText() const
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea(const TAttribute< TRange<float> >& ViewRange)
 {
-	if (GetType() == ESequencerNode::Track)
+	if (GetType() == ESequencerNode::Track && static_cast<FSequencerTrackNode&>(*this).GetSubTrackMode() != FSequencerTrackNode::ESubTrackMode::ParentTrack)
 	{
 		return SNew(SSequencerSectionAreaView, SharedThis(this))
 			.ViewRange(ViewRange);
@@ -604,7 +603,7 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 		{
 			UStruct* EvalOptionsStruct = FMovieSceneTrackEvalOptions::StaticStruct();
 
-			const UBoolProperty* NearestSectionProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateNearestSection)));
+			const UBoolProperty* NearestSectionProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvalNearestSection)));
 			auto CanEvaluateNearest = [](UMovieSceneTrack* InTrack) { return InTrack->EvalOptions.bCanEvaluateNearestSection != 0; };
 			if (NearestSectionProperty && AllTracks.ContainsByPredicate(CanEvaluateNearest))
 			{
@@ -669,43 +668,35 @@ bool FSequencerDisplayNode::IsHovered() const
 	return ParentTree.GetHoveredNode().Get() == this;
 }
 
-TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
+
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(UMovieSceneSection* InSection)
 {
-	if (!KeyGroupings.IsValidIndex(InSectionIndex))
+	TSharedRef<FGroupedKeyArea>* KeyGroup = KeyGroupings.FindByPredicate([=](const TSharedRef<FGroupedKeyArea>& InKeyArea) { return InKeyArea->GetOwningSection() == InSection; });
+	if (KeyGroup)
 	{
-		KeyGroupings.SetNum(InSectionIndex + 1);
+		return *KeyGroup;
 	}
 
-	auto& KeyGroup = KeyGroupings[InSectionIndex];
-
-	if (!KeyGroup.IsValid())
-	{
-		KeyGroup = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
-	}
-
-	return KeyGroup.ToSharedRef();
+	KeyGroupings.Emplace(MakeShared<FGroupedKeyArea>(*this, InSection));
+	return KeyGroupings.Last();
 }
 
 
-TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSectionIndex)
+TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(UMovieSceneSection* InSection)
 {
-	if (!KeyGroupings.IsValidIndex(InSectionIndex))
+	TSharedRef<FGroupedKeyArea>* KeyGroup = KeyGroupings.FindByPredicate([=](const TSharedRef<FGroupedKeyArea>& InKeyArea) { return InKeyArea->GetOwningSection() == InSection; });
+	if (KeyGroup)
 	{
-		KeyGroupings.SetNum(InSectionIndex + 1);
+		if (KeyGroupRegenerationLock.GetValue() == 0)
+		{
+			**KeyGroup = FGroupedKeyArea(*this, InSection);
+		}
+		return *KeyGroup;
 	}
 
-	auto& KeyGroup = KeyGroupings[InSectionIndex];
-
-	if (!KeyGroup.IsValid())
-	{
-		KeyGroup = MakeShareable(new FGroupedKeyArea(*this, InSectionIndex));
-	}
-	else if (KeyGroupRegenerationLock.GetValue() == 0)
-	{
-		*KeyGroup = FGroupedKeyArea(*this, InSectionIndex);
-	}
-
-	return KeyGroup.ToSharedRef();
+	// Just make a new one
+	KeyGroupings.Emplace(MakeShared<FGroupedKeyArea>(*this, InSection));
+	return KeyGroupings.Last();
 }
 
 

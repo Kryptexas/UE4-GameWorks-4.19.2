@@ -80,19 +80,18 @@ FReply SColorWheel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent
 }
 
 
-int32 SColorWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SColorWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FVector2D& SelectorSize = SelectorImage->ImageSize;
-	const FVector2D CircleSize = AllottedGeometry.Size - SelectorSize;
+	const FVector2D CircleSize = AllottedGeometry.GetLocalSize() - SelectorSize;
 	
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(0.5 * SelectorSize, CircleSize),
 		Image,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * Image->GetTint(InWidgetStyle)
 	);
@@ -100,9 +99,8 @@ int32 SColorWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId + 1,
-		AllottedGeometry.ToPaintGeometry(0.5f * (AllottedGeometry.Size + CalcRelativePositionFromCenter() * CircleSize - SelectorSize), SelectorSize),
+		AllottedGeometry.ToPaintGeometry(0.5f * (AllottedGeometry.GetLocalSize() + CalcRelativePositionFromCenter() * CircleSize - SelectorSize), SelectorSize),
 		SelectorImage,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * SelectorImage->GetTint(InWidgetStyle)
 	);
@@ -128,7 +126,7 @@ FVector2D SColorWheel::CalcRelativePositionFromCenter() const
 bool SColorWheel::ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bProcessWhenOutsideColorWheel)
 {
 	const FVector2D LocalMouseCoordinate = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const FVector2D RelativePositionFromCenter = (2.0f * LocalMouseCoordinate - MyGeometry.Size) / (MyGeometry.Size - SelectorImage->ImageSize);
+	const FVector2D RelativePositionFromCenter = (2.0f * LocalMouseCoordinate - MyGeometry.GetLocalSize()) / (MyGeometry.GetLocalSize() - SelectorImage->ImageSize);
 	const float RelativeRadius = RelativePositionFromCenter.Size();
 
 	if (RelativeRadius <= 1.0f || bProcessWhenOutsideColorWheel)

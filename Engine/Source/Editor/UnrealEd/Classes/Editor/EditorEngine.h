@@ -2079,7 +2079,7 @@ public:
 	 * @param	ObjectSet	the list of objects to sync to
 	 */
 	void SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync, bool bFocusContentBrowser = true );
-	void SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync, bool bFocusContentBrowser = true );
+	void SyncBrowserToObjects( TArray<struct FAssetData>& InAssetsToSync, bool bFocusContentBrowser = true );
 
 	/**
 	 * Syncs the selected actors objects to the content browser

@@ -57,7 +57,7 @@ void FMarginStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 	for( uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
 	{
 		TSharedRef<IPropertyHandle> ChildHandle = ChildPropertyHandles[ ChildIndex ];
-		IDetailPropertyRow& PropertyRow = StructBuilder.AddChildProperty( ChildHandle );
+		IDetailPropertyRow& PropertyRow = StructBuilder.AddProperty( ChildHandle );
 		PropertyRow
 		.CustomWidget()
 		.NameContent()

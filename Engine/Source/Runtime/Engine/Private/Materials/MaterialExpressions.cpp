@@ -1470,26 +1470,6 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 		if (TextureObject.Expression)
 		{
 			UMaterialExpression* InputExpression = TextureObject.Expression;
-			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
-			if (FunctionInput)
-			{	
-				UMaterialExpressionFunctionInput* NestedFunctionInput = FunctionInput;
-
-				// Walk the input chain to find the last node in the chain
-				while (true)
-				{
-					UMaterialExpression* PreviewExpression = NestedFunctionInput->GetEffectivePreviewExpression();
-					if (PreviewExpression && PreviewExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
-					{
-						NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(PreviewExpression);
-					}
-					else
-					{
-						break;
-					}
-				}
-				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
-			}
 
 			// If we are referencing a texture input through a reroute node, we'll need to backtrack
 			// to get to the real texture.
@@ -1511,6 +1491,28 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 					}
 				}
 			}
+
+			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
+			if (FunctionInput)
+			{	
+				UMaterialExpressionFunctionInput* NestedFunctionInput = FunctionInput;
+
+				// Walk the input chain to find the last node in the chain
+				while (true)
+				{
+					UMaterialExpression* PreviewExpression = NestedFunctionInput->GetEffectivePreviewExpression();
+					if (PreviewExpression && PreviewExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+					{
+						NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(PreviewExpression);
+					}
+					else
+					{
+						break;
+					}
+				}
+				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
+			}
+
 			
 			UMaterialExpressionTextureObject* TextureObjectExpression = Cast<UMaterialExpressionTextureObject>(InputExpression);
 			UMaterialExpressionTextureObjectParameter* TextureObjectParameter = Cast<UMaterialExpressionTextureObjectParameter>(InputExpression);
@@ -8918,10 +8920,8 @@ void UMaterialExpressionMaterialFunctionCall::PostEditChangeProperty(FPropertyCh
 	
 	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("MaterialFunction")))
 	{
-		UMaterialFunction* FunctionOuter = Cast<UMaterialFunction>(GetOuter());
-
 		// Set the new material function
-		SetMaterialFunction(FunctionOuter, SavedMaterialFunction, MaterialFunction);
+		SetMaterialFunctionEx(SavedMaterialFunction, MaterialFunction);
 		SavedMaterialFunction = NULL;
 	}
 
@@ -9014,11 +9014,11 @@ static const TCHAR* GetInputTypeName(uint8 InputType)
 	return TypeNames[InputType];
 }
 
-FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
+FString UMaterialExpressionMaterialFunctionCall::GetInputNameWithType(int32 InputIndex, bool bWithType) const
 {
 	if (InputIndex < FunctionInputs.Num())
 	{
-		if ( FunctionInputs[InputIndex].ExpressionInput != NULL )
+		if (FunctionInputs[InputIndex].ExpressionInput != NULL && bWithType)
 		{
 			return FunctionInputs[InputIndex].Input.InputName + TEXT(" (") + GetInputTypeName(FunctionInputs[InputIndex].ExpressionInput->InputType) + TEXT(")");
 		}
@@ -9028,6 +9028,11 @@ FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) 
 		}
 	}
 	return TEXT("");
+}
+
+FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
+{
+	return GetInputNameWithType(InputIndex, true);
 }
 
 bool UMaterialExpressionMaterialFunctionCall::IsInputConnectionRequired(int32 InputIndex) const
@@ -9125,11 +9130,23 @@ void UMaterialExpressionMaterialFunctionCall::GetExpressionToolTip(TArray<FStrin
 	}
 }
 
-bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(
-	UMaterialFunction* ThisFunctionResource, 
+bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(UMaterialFunction* NewMaterialFunction)
+{
+	// Remember the current material function
+	UMaterialFunction* OldFunction = MaterialFunction;
+
+	return SetMaterialFunctionEx(OldFunction, NewMaterialFunction);
+}
+
+
+bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunctionEx(
 	UMaterialFunction* OldFunctionResource, 
 	UMaterialFunction* NewFunctionResource)
 {
+	// See if Outer is another material function
+	UMaterialFunction* ThisFunctionResource = Cast<UMaterialFunction>(GetOuter());
+
+
 	if (NewFunctionResource 
 		&& ThisFunctionResource
 		&& NewFunctionResource->IsDependent(ThisFunctionResource))

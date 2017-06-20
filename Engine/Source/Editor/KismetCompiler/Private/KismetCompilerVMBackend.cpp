@@ -665,15 +665,9 @@ public:
 
 					if (bIsLocalized)
 					{
-#if USE_STABLE_LOCALIZATION_KEYS
-						// We need to make sure the package namespace is correct at this point
-						// Note: We don't test GIsEditor here as we need to mimic using compile-on-load what the compile during cook would have done when running with -game
-						{
-							checkf(Term->SourcePin || Term->Source, TEXT("EmitTermExpr needs a valid source to correctly emit localized text"));
-							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->SourcePin ? Term->SourcePin->GetOwningNode() : Term->Source);
-							Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
-						}
-#endif // USE_STABLE_LOCALIZATION_KEYS
+						// BP bytecode always removes the package localization ID to match how text works at runtime
+						// If we're gathering editor-only text then we'll pick up the version with the package localization ID from the property/pin rather than the bytecode
+						Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
 
 						Writer << EBlueprintTextLiteralType::LocalizedText;
 						EmitStringLiteral(*SourceString);

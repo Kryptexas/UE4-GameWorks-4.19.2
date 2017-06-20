@@ -445,36 +445,14 @@ namespace GitDependencies
 			Dictionary<string, DependencyPackInfo> TargetPacks = new Dictionary<string, DependencyPackInfo>(StringComparer.InvariantCultureIgnoreCase);
 			foreach(string BaseFolder in Directory.EnumerateDirectories(RootPath))
 			{
-				string BuildFolder = Path.Combine(BaseFolder, "Build");
-				if(Directory.Exists(BuildFolder))
+				if (!AddManifests(TargetFiles, TargetBlobs, TargetPacks, Path.Combine(BaseFolder, "Build"), ""))
 				{
-					foreach(string ManifestFileName in Directory.EnumerateFiles(BuildFolder, "*.gitdeps.xml"))
-					{
-						// Ignore any dotfiles; Mac creates them on non-unix partitions to store permission info.
-						if(!Path.GetFileName(ManifestFileName).StartsWith("."))
-						{
-						    // Read this manifest
-						    DependencyManifest NewTargetManifest;
-						    if(!ReadXmlObject(ManifestFileName, out NewTargetManifest))
-						    {
-							    return false;
-						    }
-    
-						    // Add all the files, blobs and packs into the shared dictionaries
-						    foreach(DependencyFile NewFile in NewTargetManifest.Files)
-						    {
-							    TargetFiles[NewFile.Name] = NewFile;
-						    }
-						    foreach(DependencyBlob NewBlob in NewTargetManifest.Blobs)
-						    {
-							    TargetBlobs[NewBlob.Hash] = NewBlob;
-						    }
-						    foreach(DependencyPack NewPack in NewTargetManifest.Packs)
-						    {
-							    TargetPacks[NewPack.Hash] = new DependencyPackInfo(NewTargetManifest, NewPack);
-						    }
-						}
-					}
+					return false;
+				}
+
+				if (!AddPluginManifests(TargetFiles, TargetBlobs, TargetPacks, Path.Combine(BaseFolder, "Plugins"), Path.GetFileName(BaseFolder) + "/Plugins"))
+				{
+					return false;
 				}
 			}
 
@@ -683,6 +661,65 @@ namespace GitDependencies
 				return false;
 			}
 
+			return true;
+		}
+
+		static bool AddPluginManifests(Dictionary<string, DependencyFile> TargetFiles, Dictionary<string, DependencyBlob> TargetBlobs, Dictionary<string, DependencyPackInfo> TargetPacks, string PluginsFolder, string ExtractPrefix)
+		{
+			if (Directory.Exists(PluginsFolder))
+			{
+				if (Directory.EnumerateFiles(PluginsFolder, "*.uplugin").GetEnumerator().MoveNext())
+				{
+					return AddManifests(TargetFiles, TargetBlobs, TargetPacks, Path.Combine(PluginsFolder, "Build"), ExtractPrefix + "/");
+				}
+				foreach (string Subfolder in Directory.EnumerateDirectories(PluginsFolder))
+				{
+					string Name = Path.GetFileName(Subfolder);
+					if (!Name.StartsWith("."))
+					{
+						if (!AddPluginManifests(TargetFiles, TargetBlobs, TargetPacks, Subfolder, ExtractPrefix + "/" + Name))
+						{
+							return false;
+						}
+					}
+				}
+			}
+			return true;
+		}
+
+		static bool AddManifests(Dictionary<string, DependencyFile> TargetFiles, Dictionary<string, DependencyBlob> TargetBlobs, Dictionary<string, DependencyPackInfo> TargetPacks, string BuildFolder, string ExtractPrefix)
+		{
+			if (Directory.Exists(BuildFolder))
+			{
+				foreach (string ManifestFileName in Directory.EnumerateFiles(BuildFolder, "*.gitdeps.xml"))
+				{
+					// Ignore any dotfiles; Mac creates them on non-unix partitions to store permission info.
+					if (!Path.GetFileName(ManifestFileName).StartsWith("."))
+					{
+						// Read this manifest
+						DependencyManifest NewTargetManifest;
+						if (!ReadXmlObject(ManifestFileName, out NewTargetManifest))
+						{
+							return false;
+						}
+
+						// Add all the files, blobs and packs into the shared dictionaries
+						foreach (DependencyFile NewFile in NewTargetManifest.Files)
+						{
+							NewFile.Name = ExtractPrefix + NewFile.Name;
+							TargetFiles[NewFile.Name] = NewFile;
+						}
+						foreach (DependencyBlob NewBlob in NewTargetManifest.Blobs)
+						{
+							TargetBlobs[NewBlob.Hash] = NewBlob;
+						}
+						foreach (DependencyPack NewPack in NewTargetManifest.Packs)
+						{
+							TargetPacks[NewPack.Hash] = new DependencyPackInfo(NewTargetManifest, NewPack);
+						}
+					}
+				}
+			}
 			return true;
 		}
 

@@ -9,7 +9,8 @@
 #include "SequencerSettings.generated.h"
 
 struct FPropertyChangedEvent;
-enum class EAutoKeyMode : uint8;
+enum class EAutoChangeMode : uint8;
+enum class EAllowEditsMode : uint8;
 enum class EMovieSceneKeyInterpolation : uint8;
 
 UENUM()
@@ -109,14 +110,22 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_MULTICAST_DELEGATE( FOnEvaluateSubSequencesInIsolationChanged );
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAllowEditsModeChanged, EAllowEditsMode );
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnLockPlaybackToAudioClockChanged, bool );
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
-	/** Gets the current auto-key mode. */
-	EAutoKeyMode GetAutoKeyMode() const;
+	/** Gets the current auto change mode. */
+	EAutoChangeMode GetAutoChangeMode() const;
+	/** Sets the current auto change mode. */
+	void SetAutoChangeMode(EAutoChangeMode AutoChangeMode);
+
+	/** Gets the current allow edits mode. */
+	EAllowEditsMode GetAllowEditsMode() const;
 	/** Sets the current auto-key mode. */
-	void SetAutoKeyMode(EAutoKeyMode AutoKeyMode);
+	void SetAllowEditsMode(EAllowEditsMode AllowEditsMode);
+	/** Gets the multicast delegate which is run whenever the allow edits mode is changed. */
+	FOnAllowEditsModeChanged& GetOnAllowEditsModeChanged() { return OnAllowEditsModeChangedEvent; }
 
 	/** Gets whether or not key all is enabled. */
 	bool GetKeyAllEnabled() const;
@@ -251,6 +260,11 @@ public:
 	/** Sets the loop mode. */
 	void SetLoopMode(ESequencerLoopMode InLoopMode);
 
+	/** @return true if the cursor should be kept within the playback range while scrubbing in sequencer, false otherwise */
+	bool ShouldKeepCursorInPlayRangeWhileScrubbing() const;
+	/** Set whether or not the cursor should be kept within the playback range while scrubbing in sequencer */
+	void SetKeepCursorInPlayRangeWhileScrubbing(bool bInKeepCursorInPlayRangeWhileScrubbing);
+
 	/** @return true if the cursor should be kept within the playback range during playback in sequencer, false otherwise */
 	bool ShouldKeepCursorInPlayRange() const;
 	/** Set whether or not the cursor should be kept within the playback range during playback in sequencer */
@@ -291,6 +305,11 @@ public:
 	/** Toggle whether to allow possession of PIE viewports */
 	void SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports);
 
+	/** @return Whether to activate realtime viewports when in sequencer */
+	bool ShouldActivateRealtimeViewports() const;
+	/** Toggle whether to allow possession of PIE viewports */
+	void SetActivateRealtimeViewports(bool bInActivateRealtimeViewports);
+
 	/** Gets whether or not track defaults will be automatically set when modifying tracks. */
 	bool GetAutoSetTrackDefaults() const;
 	/** Sets whether or not track defaults will be automatically set when modifying tracks. */
@@ -305,7 +324,7 @@ public:
 	bool ShouldEvaluateSubSequencesInIsolation() const;
 	/** Set whether to evaluate sub sequences in isolation */
 	void SetEvaluateSubSequencesInIsolation(bool bInEvaluateSubSequencesInIsolation);
-	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
+	/** Gets the multicast delegate which is run whenever evaluate sub sequences in isolation is changed. */
 	FOnEvaluateSubSequencesInIsolationChanged& GetOnEvaluateSubSequencesInIsolationChanged() { return OnEvaluateSubSequencesInIsolationChangedEvent; }
 
 	/** Snaps a time value in seconds to the currently selected interval. */
@@ -326,9 +345,13 @@ public:
 
 protected:
 
-	/** Enable or disable autokeying. */
+	/** The auto change mode (auto-key, auto-track or none). */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
-	EAutoKeyMode AutoKeyMode;
+	EAutoChangeMode AutoChangeMode;
+
+	/** Allow edits mode. */
+	UPROPERTY( config, EditAnywhere, Category=Keyframing )
+	EAllowEditsMode AllowEditsMode;
 
 	/** Enable or disable keying all channels when any are keyed. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
@@ -441,6 +464,10 @@ protected:
 	UPROPERTY( config )
 	TEnumAsByte<ESequencerLoopMode> LoopMode;
 
+	/** Enable or disable keeping the cursor in the current playback range while scrubbing. */
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
+	bool bKeepCursorInPlayRangeWhileScrubbing;
+
 	/** Enable or disable keeping the cursor in the current playback range during playback. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bKeepCursorInPlayRange;
@@ -477,11 +504,13 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category=General)
 	bool bAllowPossessionOfPIEViewports;
 
+	/** When enabled, sequencer will activate 'Realtime' in viewports */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bActivateRealtimeViewports;
+
 	/** When enabled, entering a sub sequence will evaluate that sub sequence in isolation, rather than from the master sequence */
 	UPROPERTY(config, EditAnywhere, Category=Playback)
 	bool bEvaluateSubSequencesInIsolation;
-
-	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 
 	/** Enable or disable showing of debug visualization. */
 	UPROPERTY( config, EditAnywhere, Category=General )
@@ -491,5 +520,7 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bVisualizePreAndPostRoll;
 
+	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;
+	FOnAllowEditsModeChanged OnAllowEditsModeChangedEvent;
 };

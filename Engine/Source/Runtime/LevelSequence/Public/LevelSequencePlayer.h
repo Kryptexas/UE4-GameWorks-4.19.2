@@ -16,6 +16,7 @@
 #include "LevelSequencePlayer.generated.h"
 
 class AActor;
+class ALevelSequenceActor;
 class FLevelSequenceSpawnRegister;
 class FViewportClient;
 class UCameraComponent;
@@ -23,6 +24,8 @@ class UCameraComponent;
 struct DEPRECATED(4.15, "Please use FMovieSceneSequencePlaybackSettings.") FLevelSequencePlaybackSettings
 	: public FMovieSceneSequencePlaybackSettings
 {};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelSequencePlayerCameraCutEvent, UCameraComponent*, CameraComponent);
 
 USTRUCT(BlueprintType)
 struct FLevelSequenceSnapshotSettings
@@ -105,12 +108,17 @@ public:
 	 * @param WorldContextObject Context object from which to retrieve a UWorld.
 	 * @param LevelSequence The level sequence to play.
 	 * @param Settings The desired playback settings
+	 * @param OutActor The level sequence actor created to play this sequence.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
-	static ULevelSequencePlayer* CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* LevelSequence, FMovieSceneSequencePlaybackSettings Settings);
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject", DynamicOutputParam="OutActor"))
+	static ULevelSequencePlayer* CreateLevelSequencePlayer(UObject* WorldContextObject, ULevelSequence* LevelSequence, FMovieSceneSequencePlaybackSettings Settings, ALevelSequenceActor*& OutActor);
 
 	/** Set the settings used to capture snapshots with */
 	void SetSnapshotSettings(const FLevelSequenceSnapshotSettings& InSettings) { SnapshotSettings = InSettings; }
+
+	/** Event triggered when there is a camera cut */
+	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
+	FOnLevelSequencePlayerCameraCutEvent OnCameraCut;
 
 public:
 
@@ -154,11 +162,6 @@ public:
 	void SetSnapshotOffsetTime(float InTime) {SnapshotOffsetTime = TOptional<float>(InTime); }
 
 private:
-
-	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
-	void SetTickPrerequisites(bool bAddTickPrerequisites);
-
-	void SetTickPrerequisites(FMovieSceneSequenceID SequenceID, UMovieSceneSequence* Sequence, bool bAddTickPrerequisites);
 
 	void EnableCinematicMode(bool bEnable);
 

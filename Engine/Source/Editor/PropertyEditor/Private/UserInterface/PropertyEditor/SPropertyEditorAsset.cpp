@@ -305,6 +305,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
 						.FillWidth(1.0f)
+						.VAlign(VAlign_Center)
 						[
 							AssetComboButton.ToSharedRef()
 						]
@@ -768,7 +769,7 @@ UClass* SPropertyEditorAsset::GetDisplayedClass() const
 	}
 }
 
-void SPropertyEditorAsset::OnAssetSelected( const class FAssetData& AssetData )
+void SPropertyEditorAsset::OnAssetSelected( const struct FAssetData& AssetData )
 {
 	SetValue(AssetData);
 }
@@ -1020,7 +1021,10 @@ UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
 		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
 	}
 
-	checkf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null"));
+	if (!ensureMsgf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null")))
+	{
+		Class = UObject::StaticClass();
+	}
 	return Class;
 }
 

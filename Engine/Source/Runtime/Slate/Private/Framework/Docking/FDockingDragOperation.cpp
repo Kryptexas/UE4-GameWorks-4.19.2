@@ -83,15 +83,15 @@ void FDockingDragOperation::OnTabWellLeft( const TSharedRef<class SDockingTabWel
 	// We just pulled out of some DockNode's TabWell
 	HoveredTabPanelPtr.Reset();
 	// Show the Preview Window again.
-	CursorDecoratorWindow->Resize( DockNodeGeometry.Size );
+	CursorDecoratorWindow->Resize( DockNodeGeometry.GetLocalSize() );
 	CursorDecoratorWindow->ShowWindow();
-	CursorDecoratorWindow->ReshapeWindow( DockNodeGeometry.GetClippingRect() );
+	CursorDecoratorWindow->ReshapeWindow( DockNodeGeometry.GetLayoutBoundingRect() );
 
 	FCurveSequence Sequence;
 	Sequence.AddCurve( 0, 0.05f, ECurveEaseFunction::QuadOut );
 	CursorDecoratorWindow->MorphToShape( Sequence, CursorDecoratorWindow->GetOpacity(), CursorDecoratorWindow->GetMorphTargetShape() );
 
-	LastContentSize = DesiredSizeFrom( DockNodeGeometry.Size );
+	LastContentSize = DesiredSizeFrom( DockNodeGeometry.GetLocalSize() );
 
 	TabBeingDragged->SetDraggedOverDockArea( NULL );
 }
@@ -137,7 +137,7 @@ void FDockingDragOperation::SetHoveredTarget( const FDockTarget& InTarget, const
 		{
 			const FGeometry TargetDockNodeGeometry = InputEvent.FindGeometry( HoveredTargetNode.ToSharedRef() );
 			FSlateRect TabStackArea = GetPreviewAreaForDirection(
-				TargetDockNodeGeometry.GetClippingRect(),
+				TargetDockNodeGeometry.GetLayoutBoundingRect(),
 				InTarget.DockDirection );
 
 			const float TargetOpacity = CursorDecoratorWindow->GetOpacity();

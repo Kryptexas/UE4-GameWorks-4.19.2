@@ -56,7 +56,7 @@ FGuid FMovieSceneObjectCache::FindObjectId(UObject& InObject, IMovieScenePlayer&
 
 	// @todo: Currently we nuke the entire object cache when attempting to find an object's ID to ensure that we do a 
 	// complete lookup from scratch. This is required for UMG as it interchanges content slots without notifying sequencer.
-	Clear();
+	Clear(Player);
 
 	TWeakObjectPtr<> ObjectToFind(&InObject);
 
@@ -122,11 +122,20 @@ void FMovieSceneObjectCache::Invalidate(const FGuid& InGuid)
 	}
 }
 
-void FMovieSceneObjectCache::SetSequence(UMovieSceneSequence& InSequence, FMovieSceneSequenceIDRef InSequenceID)
+void FMovieSceneObjectCache::Clear(IMovieScenePlayer& Player)
+{
+	BoundObjects.Reset();
+	ChildBindings.Reset();
+
+	Player.NotifyBindingsChanged();
+}
+
+
+void FMovieSceneObjectCache::SetSequence(UMovieSceneSequence& InSequence, FMovieSceneSequenceIDRef InSequenceID, IMovieScenePlayer& Player)
 {
 	if (WeakSequence != &InSequence)
 	{
-		Clear();
+		Clear(Player);
 	}
 
 	WeakSequence = &InSequence;
@@ -236,26 +245,6 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 	}
 }
 
-bool FOrderedEvaluationCache::Contains(FMovieSceneEvaluationKey InKey) const
-{
-	return KeySet.Contains(InKey);
-}
-
-void FOrderedEvaluationCache::Add(FMovieSceneEvaluationKey InKey)
-{
-	if (!KeySet.Contains(InKey))
-	{
-		KeySet.Add(InKey);
-		OrderedKeys.Add(InKey);
-	}
-}
-
-void FOrderedEvaluationCache::Reset()
-{
-	KeySet.Reset();
-	OrderedKeys.Reset();
-}
-
 void FMovieSceneEvaluationState::InvalidateExpiredObjects()
 {
 	for (auto& Pair : ObjectCaches)
@@ -273,17 +262,17 @@ void FMovieSceneEvaluationState::Invalidate(const FGuid& InGuid, FMovieSceneSequ
 	}
 }
 
-void FMovieSceneEvaluationState::ClearObjectCaches()
+void FMovieSceneEvaluationState::ClearObjectCaches(IMovieScenePlayer& Player)
 {
 	for (auto& Pair : ObjectCaches)
 	{
-		Pair.Value.Clear();
+		Pair.Value.Clear(Player);
 	}
 }
 
-void FMovieSceneEvaluationState::AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence)
+void FMovieSceneEvaluationState::AssignSequence(FMovieSceneSequenceIDRef InSequenceID, UMovieSceneSequence& InSequence, IMovieScenePlayer& Player)
 {
-	GetObjectCache(InSequenceID).SetSequence(InSequence, InSequenceID);
+	GetObjectCache(InSequenceID).SetSequence(InSequence, InSequenceID, Player);
 }
 
 UMovieSceneSequence* FMovieSceneEvaluationState::FindSequence(FMovieSceneSequenceIDRef InSequenceID) const

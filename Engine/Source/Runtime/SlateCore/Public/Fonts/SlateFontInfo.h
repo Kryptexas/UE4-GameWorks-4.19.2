@@ -113,7 +113,7 @@ struct SLATECORE_API FSlateFontInfo
 	TSharedPtr<const FCompositeFont> CompositeFont;
 
 	/** The name of the font to use from the default typeface (None will use the first entry) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(DisplayName="Font"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(DisplayName="Typeface"))
 	FName TypefaceFontName;
 
 	/**
@@ -121,7 +121,7 @@ struct SLATECORE_API FSlateFontInfo
 	 * you're using a tool like Photoshop to prototype layouts and UI mock ups, be sure to change the default dpi 
 	 * measurements from 72 dpi to 96 dpi.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(UIMin=1, UIMax=1000, ClampMin=1, ClampMax=1000))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(ClampMin=1, ClampMax=1000))
 	int32 Size;
 
 private:

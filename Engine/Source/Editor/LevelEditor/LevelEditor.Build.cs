@@ -24,7 +24,6 @@ public class LevelEditor : ModuleRules
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
-				"UserFeedback",
 				"IntroTutorials",
 				"HeadMountedDisplay",
 				"VREditor"
@@ -88,7 +87,6 @@ public class LevelEditor : ModuleRules
 				"NewLevelDialog",
 				"DeviceProfileEditor",
                 "PlacementMode",
-				"UserFeedback",
 				"ReferenceViewer",
 				"SizeMap",
                 "IntroTutorials",

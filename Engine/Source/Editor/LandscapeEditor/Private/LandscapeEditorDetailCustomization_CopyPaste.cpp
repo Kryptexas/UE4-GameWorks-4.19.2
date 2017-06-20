@@ -458,7 +458,7 @@ void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeHeader(TSha
 void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	TSharedRef<IPropertyHandle> PropertyHandle_LayerFilename = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGizmoImportLayer, LayerFilename)).ToSharedRef();
-	ChildBuilder.AddChildProperty(PropertyHandle_LayerFilename)
+	ChildBuilder.AddProperty(PropertyHandle_LayerFilename)
 	.CustomWidget()
 	.NameContent()
 	[
@@ -485,7 +485,7 @@ void FLandscapeEditorStructCustomization_FGizmoImportLayer::CustomizeChildren(TS
 	];
 
 	TSharedRef<IPropertyHandle> PropertyHandle_LayerName = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGizmoImportLayer, LayerName)).ToSharedRef();
-	ChildBuilder.AddChildProperty(PropertyHandle_LayerName);
+	ChildBuilder.AddProperty(PropertyHandle_LayerName);
 }
 
 FReply FLandscapeEditorStructCustomization_FGizmoImportLayer::OnGizmoImportLayerFilenameButtonClicked(TSharedRef<IPropertyHandle> PropertyHandle_LayerFilename)

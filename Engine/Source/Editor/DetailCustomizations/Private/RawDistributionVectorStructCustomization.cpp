@@ -339,7 +339,7 @@ TSharedRef<SWidget> FReplaceVectorWithLinearColorBuilder::CreateColorWidget(cons
 
 void FReplaceVectorWithLinearColorBuilder::AddColorChildProperty(const TSharedPtr<IPropertyHandle>& StructHandle, const FText& Text, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	ChildrenBuilder.AddChildContent(LOCTEXT("Color", "Color"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("Color", "Color"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -377,19 +377,19 @@ void FReplaceVectorWithLinearColorBuilder::GeneratePropertyContent(const TShared
 		// Arrays need special handling and will create an array builder
 		TSharedRef<FDetailArrayBuilder> ArrayBuilder = MakeShareable(new FDetailArrayBuilder(Handle));
 		ArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FReplaceVectorWithLinearColorBuilder::OnGenerateArrayElementWidget));
-		ChildrenBuilder.AddChildCustomBuilder(ArrayBuilder);
+		ChildrenBuilder.AddCustomBuilder(ArrayBuilder);
 	}
 	else if (bHasChildren)
 	{
 		// If there are children, we invoke a new instance of our custom builder for recursive handling
 		// Note, if this is an FVector, it will be handled specially by the implementation of the IDetailCustomNodeBuilder interface.
 		TSharedRef<FReplaceVectorWithLinearColorBuilder> StructBuilder = MakeShareable(new FReplaceVectorWithLinearColorBuilder(Handle));
-		ChildrenBuilder.AddChildCustomBuilder(StructBuilder);
+		ChildrenBuilder.AddCustomBuilder(StructBuilder);
 	}
 	else
 	{
 		// No children - just add the property.
-		ChildrenBuilder.AddChildProperty(Handle);
+		ChildrenBuilder.AddProperty(Handle);
 	}
 }
 
@@ -540,11 +540,11 @@ void FRawDistributionVectorStructCustomization::CustomizeChildren(TSharedRef<IPr
 		if (bTreatAsColor)
 		{
 			TSharedRef<FReplaceVectorWithLinearColorBuilder> CustomBuilder = MakeShareable(new FReplaceVectorWithLinearColorBuilder(ChildHandle.ToSharedRef()));
-			StructBuilder.AddChildCustomBuilder(CustomBuilder);
+			StructBuilder.AddCustomBuilder(CustomBuilder);
 		}
 		else
 		{
-			StructBuilder.AddChildProperty(ChildHandle.ToSharedRef());
+			StructBuilder.AddProperty(ChildHandle.ToSharedRef());
 		}
 	}
 }

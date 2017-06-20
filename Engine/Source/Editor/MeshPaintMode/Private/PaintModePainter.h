@@ -95,7 +95,7 @@ struct FInstanceTexturePaintSettings
 class UPaintModeSettings;
 class IMeshPaintGeometryAdapter;
 class FMeshPaintParameters;
-class FAssetData;
+struct FAssetData;
 class SWidget;
 
 struct FPaintableTexture;

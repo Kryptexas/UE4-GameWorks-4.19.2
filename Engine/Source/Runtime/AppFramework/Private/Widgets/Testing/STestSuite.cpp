@@ -97,7 +97,6 @@
 #include "Framework/Testing/TestStyle.h"
 #include "Framework/Text/RichTextLayoutMarshaller.h"
 #include "Framework/Text/SyntaxHighlighterTextLayoutMarshaller.h"
-#include "Widgets/Layout/SScissorRectBox.h"
 #include "Math/TransformCalculus3D.h"
 #include "Widgets/Layout/SResponsiveGridPanel.h"
 #include "Widgets/Colors/SColorPicker.h"
@@ -346,11 +345,11 @@ public:
 		return FVector2D(128, 128);
 	}
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		if( OnPaintHandler.IsBound() )
 		{
-			FOnPaintHandlerParams Params( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() ); 
+			FOnPaintHandlerParams Params( AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() ); 
 			OnPaintHandler.Execute( Params );
 		}
 		else
@@ -358,12 +357,11 @@ public:
 			FSlateDrawElement::MakeDebugQuad(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(),
-				MyClippingRect
+				AllottedGeometry.ToPaintGeometry()
 			);
 		}
 
-		return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+		return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 	}
 
 private:
@@ -606,7 +604,6 @@ private:
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(),
 			StyleInfo,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
 			);
 
@@ -625,10 +622,9 @@ private:
 		FSlateDrawElement::MakeText(
 			InParams.OutDrawElements,
 			InParams.Layer,
-			InParams.Geometry.ToPaintGeometry(FVector2D(0,0), InParams.Geometry.Size, FontScale),
+			InParams.Geometry.ToPaintGeometry(FVector2D(0,0), InParams.Geometry.GetLocalSize(), FontScale),
 			Text.ToString(),
 			FontInfo,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FColor( 255, 255, 255 )
 			);
@@ -641,10 +637,10 @@ private:
 	{
 		TArray<FSlateGradientStop> GradientStops;
 
-		GradientStops.Add( FSlateGradientStop(FVector2D(InParams.Geometry.Size.X*.1f, 0), FColor::Yellow) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.25f,0), FColor::Magenta ) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.75f,0), FColor::Blue ) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*0.9f,0), FColor::Green) );
+		GradientStops.Add( FSlateGradientStop(FVector2D(InParams.Geometry.GetLocalSize().X*.1f, 0), FColor::Yellow) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.GetLocalSize().X*.25f,0), FColor::Magenta ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.GetLocalSize().X*.75f,0), FColor::Blue ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.GetLocalSize().X*0.9f,0), FColor::Green) );
 
 		FSlateDrawElement::MakeGradient(
 			InParams.OutDrawElements,
@@ -652,7 +648,6 @@ private:
 			InParams.Geometry.ToPaintGeometry(),
 			GradientStops,
 			Orient_Vertical,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
 			);
 
@@ -662,9 +657,9 @@ private:
 	int32 TestSplineElement( const FOnPaintHandlerParams& InParams )
 	{
 		const FVector2D Start(10,10);
-		const FVector2D StartDir(InParams.Geometry.Size.X * 1000 / 600,0);
-		const FVector2D End(InParams.Geometry.Size.X/4, InParams.Geometry.Size.Y-10);
-		const FVector2D EndDir(InParams.Geometry.Size.X * 1000 / 600,0);
+		const FVector2D StartDir(InParams.Geometry.GetLocalSize().X * 1000 / 600,0);
+		const FVector2D End(InParams.Geometry.GetLocalSize().X/4, InParams.Geometry.GetLocalSize().Y-10);
+		const FVector2D EndDir(InParams.Geometry.GetLocalSize().X * 1000 / 600,0);
 
 		FSlateDrawElement::MakeSpline(
 			InParams.OutDrawElements,
@@ -672,14 +667,12 @@ private:
 			InParams.Geometry.ToPaintGeometry(),
 			Start, StartDir,
 			End, EndDir,
-			InParams.ClippingRect,
 			4.0f,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FColor::White
 		);
-
 	
-		FVector2D LineStart =  FVector2D( InParams.Geometry.Size.X/4, 10.0f );
+		FVector2D LineStart =  FVector2D( InParams.Geometry.GetLocalSize().X/4, 10.0f );
 
 		TArray<FVector2D> LinePoints;
 		LinePoints.Add( LineStart );
@@ -693,7 +686,6 @@ private:
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(),
 			LinePoints,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FColor::Magenta
 			);
@@ -713,7 +705,6 @@ private:
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(),
 			LinePoints,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			Color );
 
@@ -740,10 +731,8 @@ private:
 				InParams.Layer,
 				InParams.Geometry.ToPaintGeometry( LocalSize, CenterLayoutTransform ),
 				CenterBrush,
-				InParams.ClippingRect,
 				InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
-				CenterRotation
-				);
+				CenterRotation);
 		}
 
 		// Make a box that rotates around the center of the previous box
@@ -757,12 +746,10 @@ private:
 				InParams.Layer,
 				InParams.Geometry.ToPaintGeometry( TestBrush->ImageSize, OrbitLayoutTransform ),
 				TestBrush,
-				InParams.ClippingRect,
 				InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 				OuterRotation,
 				RelativeOrbitPos);
 		}
-
 	}
 
 	int32 TestRotation( const FOnPaintHandlerParams& InParams )
@@ -774,7 +761,6 @@ private:
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(),
 			StyleInfo,
-			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
 			);
 
@@ -785,19 +771,19 @@ private:
 
 	int32 TestCustomVerts(const FOnPaintHandlerParams& InParams)
 	{
-		const float Radius = FMath::Min(InParams.Geometry.Size.X, InParams.Geometry.Size.Y)*0.5f;
-		const FVector2D Center = InParams.Geometry.AbsolutePosition + InParams.Geometry.Size*0.5f;
+		const float Radius = FMath::Min(InParams.Geometry.GetLocalSize().X, InParams.Geometry.GetLocalSize().Y) * 0.5f;
+		const FVector2D Center = InParams.Geometry.AbsolutePosition + InParams.Geometry.GetLocalSize() * 0.5f;
 
 		const FSlateBrush* MyBrush = FCoreStyle::Get().GetBrush("ColorWheel.HueValueCircle");
 		// @todo this is not the correct way to do this
-		FSlateShaderResourceProxy *ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
+		FSlateShaderResourceProxy* ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
 		FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle( *MyBrush );
 
 		FVector2D UVCenter = FVector2D::ZeroVector;
 		FVector2D UVRadius = FVector2D(1,1);
 		if (ResourceProxy != nullptr)
 		{
-			UVRadius = 0.5f*ResourceProxy->SizeUV;
+			UVRadius = 0.5f * ResourceProxy->SizeUV;
 			UVCenter = ResourceProxy->StartUV + UVRadius;
 		}
 
@@ -816,7 +802,6 @@ private:
 			NewVert.TexCoords[1] = UVCenter.Y;
 			NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
 			NewVert.Color = FColor::White;
-			NewVert.ClipRect = FSlateRotatedRect(InParams.ClippingRect);
 		}
 
 		for (int i = 0; i < NumTris; ++i)
@@ -833,7 +818,6 @@ private:
 				NewVert.TexCoords[1] = UVCenter.Y + UVRadius.Y*EdgeDirection.Y;
 				NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
 				NewVert.Color = FColor::White;
-				NewVert.ClipRect = FSlateRotatedRect(InParams.ClippingRect);
 			}
 		}
 
@@ -5334,7 +5318,8 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 	if (TabIdentifier == FName(TEXT("AnimationTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("AnimationTestTabLabel", "Animation Test") )
+			.Label( LOCTEXT("AnimationTestTabLabel", "Animation Test") )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			. ToolTip
 			(
 				SNew(SToolTip)
@@ -5357,19 +5342,18 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				]
 			)
 		[
-			SNew(SScissorRectBox)
+			SNew(SVerticalBox)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
+
+			+SVerticalBox::Slot()
 			[
-				SNew(SVerticalBox)
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				+SVerticalBox::Slot()
-				[
-					SNew(SAnimTest)
-				]
-				+SVerticalBox::Slot()
-				[
-					SNew(SFxTest)
-				]
+				SNew(SAnimTest)
+			]
+
+			+SVerticalBox::Slot()
+			[
+				SNew(SFxTest)
 			]
 		];
 	}
@@ -5378,101 +5362,87 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		FTabManager* TabManagerRef = &(TestSuite1TabManager.ToSharedRef().Get());
 
 		return
-		SNew(SDockTab)
-		.Label( NSLOCTEXT("TestSuite1", "DocumentsTab", "Documents") )
-		[
-			SNew(SScissorRectBox)
+			SNew(SDockTab)
+			.Label(NSLOCTEXT("TestSuite1", "DocumentsTab", "Documents"))
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew( SDocumentsTest, TabManagerRef )
+				SNew(SDocumentsTest, TabManagerRef)
 				.RenderTransform_Static(&::GetTestRenderTransform)
 				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 				.AddMetaData<FTagMetaData>(FTagMetaData("DocumentSpawner"))
-			]
-		];
+			];
 	}
 	else if (TabIdentifier == FName(TEXT("TableViewTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("ListViewTestTab", "ListView Test") )
-			. ToolTipText( LOCTEXT( "ListViewTestToolTip", "Switches to the List View test tab, which allows you to test list widgets in Slate." ) )
-		[
-			SNew(SScissorRectBox)
+			.Label( LOCTEXT("ListViewTestTab", "ListView Test") )
+			.ToolTipText( LOCTEXT( "ListViewTestToolTip", "Switches to the List View test tab, which allows you to test list widgets in Slate." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
 				MakeTableViewTesting()
-			]
-		];
+			];
 	}
 	else if (TabIdentifier == FName(TEXT("LayoutExampleTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("LayoutExampleTab", "Layout Example") )
-			. ToolTipText( LOCTEXT( "LayoutExampleTabToolTip", "Switches to the Layout Example tab, which shows off examples of various Slate layout primitives." ) )
+			.Label( LOCTEXT("LayoutExampleTab", "Layout Example") )
+			.ToolTipText( LOCTEXT( "LayoutExampleTabToolTip", "Switches to the Layout Example tab, which shows off examples of various Slate layout primitives." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				MakeLayoutExample()
-			]
+			MakeLayoutExample()
 		];
 	}
 #if WITH_FANCY_TEXT
 	else if (TabIdentifier == FName(TEXT("RichTextTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("RichTextTestTab", "Rich Text") )
+			.Label( LOCTEXT("RichTextTestTab", "Rich Text") )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					SNew( SRichTextTest )
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				SNew( SRichTextTest )
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else if ( TabIdentifier == FName( TEXT( "MultiLineEditTab" ) ) )
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("MultiLineEditTab", "MultiLine Edit") )
+			.Label( LOCTEXT("MultiLineEditTab", "MultiLine Edit") )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					#if WITH_FANCY_TEXT
-					SNew( SMultiLineEditingTest )
-					#else
-					SNew( SSpacer )
-					#endif //WITH_FANCY_TEXT
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				#if WITH_FANCY_TEXT
+				SNew( SMultiLineEditingTest )
+				#else
+				SNew( SSpacer )
+				#endif //WITH_FANCY_TEXT
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 #endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName(TEXT("EditableTextTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("EditableTextTestTab", "Editable Text") )
-			. ToolTipText( LOCTEXT( "EditableTextTestTabToolTip", "Switches to the Editable Text tab, where you can test the various inline text editing controls." ) )
+			.Label( LOCTEXT("EditableTextTestTab", "Editable Text") )
+			.ToolTipText( LOCTEXT( "EditableTextTestTabToolTip", "Switches to the Editable Text tab, where you can test the various inline text editing controls." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew( STextEditTest )
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew( STextEditTest )
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 #if WITH_FANCY_TEXT
 	else if (TabIdentifier == FName(TEXT("RichEditableTextTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("RichEditableTextTestTab", "Rich Editable Text") )
-			. ToolTipText( LOCTEXT( "RichEditableTextTestTabToolTip", "Switches to the Rich Editable Text tab, where you can test the various rich editable text features." ) )
+			.Label( LOCTEXT("RichEditableTextTestTab", "Rich Editable Text") )
+			.ToolTipText( LOCTEXT( "RichEditableTextTestTabToolTip", "Switches to the Rich Editable Text tab, where you can test the various rich editable text features." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					SNew( SRichTextEditTest )
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				SNew( SRichTextEditTest )
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 #endif //WITH_FANCY_TEXT
@@ -5480,13 +5450,11 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 	{
 		return SNew(SDockTab)
 			. Label( LOCTEXT("LayoutRoundingTab", "Layout Rounding") )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew( SLayoutRoundingTest )
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew( SLayoutRoundingTest )
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("ElementTestsTab")))
@@ -5494,114 +5462,99 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 		return SNew(SDockTab)
 			. Label( LOCTEXT("ElementTestsTab", "Element Tests") )
 			. ToolTipText( LOCTEXT( "ElementTestsTabToolTip", "Switches to the Element Tests tab, which allows you to view various rendering-related features of Slate." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew( SElementTesting )
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew( SElementTesting )
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("SplitterTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("SplitterTestTab", "Splitter Test") )
-			. ToolTipText( LOCTEXT( "SplitterTestTabToolTip", "Switches to the Splitter Test tab, which you can use to test splitters." ) )
+			.Label( LOCTEXT("SplitterTestTab", "Splitter Test") )
+			.ToolTipText( LOCTEXT( "SplitterTestTabToolTip", "Switches to the Splitter Test tab, which you can use to test splitters." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew( SSplitterTest )
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew( SSplitterTest )
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("MultiBoxTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("MultiBoxTextTab", "MultiBox Text") )
-			. ToolTipText( LOCTEXT( "MultiBoxTextTabToolTip", "Switches to the MultiBox tab, where you can test out MultiBoxes and MultiBlocks." ) )
+			.Label( LOCTEXT("MultiBoxTextTab", "MultiBox Text") )
+			.ToolTipText( LOCTEXT( "MultiBoxTextTabToolTip", "Switches to the MultiBox tab, where you can test out MultiBoxes and MultiBlocks." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew( SMultiBoxTest )
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew( SMultiBoxTest )
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == FName(TEXT("ColorPickerTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("ColorPickerTestTab", "Color Picker Test") )
-			. ToolTipText( LOCTEXT( "ColorPickerTestTabToolTip", "Switches to the Color Picker tab, where you can test out the color picker." ) )
+			.Label( LOCTEXT("ColorPickerTestTab", "Color Picker Test") )
+			.ToolTipText( LOCTEXT( "ColorPickerTestTabToolTip", "Switches to the Color Picker tab, where you can test out the color picker." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew(SColorPickerTest)
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew(SColorPickerTest)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if (TabIdentifier == "DPIScalingTest")
 	{
 		return SNew(SDockTab)
+			.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				SNew(SDPIScalingTest)
-				.RenderTransform_Static(&::GetTestRenderTransform)
-				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-			]
+			SNew(SDPIScalingTest)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 		];
 	}
 	else if ( TabIdentifier == FName(TEXT("InvalidationTest")) )
 	{
 		return SNew(SDockTab)
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					SNew(SInvalidationTest)
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				SNew(SInvalidationTest)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else if ( TabIdentifier == FName(TEXT("GammaTest")) )
 	{
 		return SNew(SDockTab)
-		[
-			SNew(SGammaTest)
-			.RenderTransform_Static(&::GetTestRenderTransform)
-			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-		];
+			.Clipping(EWidgetClipping::ClipToBounds)
+			[
+				SNew(SGammaTest)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
+			];
 	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
 	{
 		return SNew(SDockTab)
-			. Label( LOCTEXT("NotificationListTestTab", "Notification List Test") )
-			. ToolTipText( LOCTEXT( "NotificationListTestTabToolTip", "Switches to the Notification List tab, where you can test out the notification list." ) )
+			.Label( LOCTEXT("NotificationListTestTab", "Notification List Test") )
+			.ToolTipText( LOCTEXT( "NotificationListTestTabToolTip", "Switches to the Notification List tab, where you can test out the notification list." ) )
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					SNew(SNotificationListTest)
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				SNew(SNotificationListTest)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else if (TabIdentifier == FName("GridPanelTest"))
 	{
 		return SNew(SDockTab)
+			.Clipping(EWidgetClipping::ClipToBounds)
 			[
-				SNew(SScissorRectBox)
-				[
-					SNew(SGridPanelTest)
-					.RenderTransform_Static(&::GetTestRenderTransform)
-					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
-				]
+				SNew(SGridPanelTest)
+				.RenderTransform_Static(&::GetTestRenderTransform)
+				.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
 			];
 	}
 	else
@@ -5620,7 +5573,7 @@ TSharedRef<SDockTab> SpawnResponsiveGrid(const FSpawnTabArgs& Args)
 
 	ResponsiveGridTab->SetContent
 		(
-		SNew(SResponsiveGridPanelTestWidget)
+			SNew(SResponsiveGridPanelTestWidget)
 		);
 
 	return ResponsiveGridTab;
@@ -5785,7 +5738,6 @@ static TSharedPtr<FTabManager> TestSuite2TabManager;
 
 TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 {	
-
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "TestSuite2_Layout" )
 	->AddArea
 	(
@@ -5891,11 +5843,9 @@ TSharedRef<SDockTab> SpawnWidgetGallery(const FSpawnTabArgs& Args)
 		.TabRole(ETabRole::NomadTab)
 		.Label(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
 		.ToolTipText(LOCTEXT("WidgetGalleryTabTextToolTip", "Switch to the widget gallery."))
+		.Clipping(EWidgetClipping::ClipToBounds)
 		[
-			SNew(SScissorRectBox)
-			[
-				MakeWidgetGallery()
-			]
+			MakeWidgetGallery()
 		];
 }
 

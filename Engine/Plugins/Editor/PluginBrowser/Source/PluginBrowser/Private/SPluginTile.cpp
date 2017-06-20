@@ -211,6 +211,7 @@ void SPluginTile::RecreateWidgets()
 							.AutoWidth()
 							[
 								SNew(SBox)
+									.VAlign(VAlign_Top)
 									.WidthOverride(ThumbnailImageSize)
 									.HeightOverride(ThumbnailImageSize)
 									[

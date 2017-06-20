@@ -56,11 +56,6 @@ public:
 		// do nothing
 	}
 
-	virtual FText GetDisplayName() const override
-	{
-		return GetSectionTitle();
-	}
-
 	virtual float GetSectionHeight() const override
 	{
 		return SubTrackEditorConstants::TrackHeight;
@@ -164,7 +159,6 @@ public:
 					FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("Sequencer.Section.BackgroundTint"),
-				InPainter.SectionClippingRect,
 				DrawEffects,
 				SubSectionColor
 			);
@@ -181,7 +175,6 @@ public:
 					FVector2D(-StartOffset * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -198,7 +191,6 @@ public:
 					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(32, 128, 32)	// 120, 75, 50 (HSV)
 			);
@@ -217,7 +209,6 @@ public:
 					FVector2D((SectionSize - PlaybackEnd) * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -234,7 +225,6 @@ public:
 					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(128, 32, 32)	// 0, 75, 50 (HSV)
 			);
@@ -251,7 +241,6 @@ public:
 				InPainter.SectionGeometry.ToOffsetPaintGeometry(FVector2D(11.0f, 32.0f)),
 				FText::Format(LOCTEXT("NumTracksFormat", "{0} track(s)"), FText::AsNumber(NumTracks)),
 				FEditorStyle::GetFontStyle("NormalFont"),
-				InPainter.SectionClippingRect,
 				DrawEffects,
 				FColor(200, 200, 200)
 			);
@@ -267,7 +256,6 @@ public:
 				InPainter.SectionGeometry.ToOffsetPaintGeometry(FVector2D(11.0f, 32.0f)),
 				FText::Format(LOCTEXT("RecordingDestination", "Target: \"{0}\""), FText::FromString(Path)),
 				FEditorStyle::GetFontStyle("NormalFont"),
-				InPainter.SectionClippingRect,
 				DrawEffects,
 				FColor(200, 200, 200)
 			);
@@ -542,31 +530,37 @@ void FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute(const FAss
 	}
 }
 
-bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence, UMovieSceneTrack* InTrack)
+FKeyPropertyResult FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence, UMovieSceneTrack* InTrack)
 {	
+	FKeyPropertyResult KeyPropertyResult;
+
 	if (CanAddSubSequence(*InMovieSceneSequence))
 	{
 		UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(InTrack);
 		float Duration = InMovieSceneSequence->GetMovieScene()->GetPlaybackRange().Size<float>();
 		SubTrack->AddSequence(InMovieSceneSequence, KeyTime, Duration);
+		KeyPropertyResult.bTrackModified = true;
 
-		return true;
+		return KeyPropertyResult;
 	}
 
 	FNotificationInfo Info(FText::Format( LOCTEXT("InvalidSequence", "Invalid level sequence {0}. There could be a circular dependency."), InMovieSceneSequence->GetDisplayName()));
 	Info.bUseLargeFont = false;
 	FSlateNotificationManager::Get().AddNotification(Info);
 
-	return false;
+	return KeyPropertyResult;
 }
 
-bool FSubTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence)
+FKeyPropertyResult FSubTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence)
 {
+	FKeyPropertyResult KeyPropertyResult;
+
 	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
 	float Duration = Sequence->GetMovieScene()->GetPlaybackRange().Size<float>();
 	SubTrack->AddSequence(Sequence, KeyTime, Duration);
+	KeyPropertyResult.bTrackModified = true;
 
-	return true;
+	return KeyPropertyResult;
 }
 
 bool FSubTrackEditor::CanRecordNewSequence() const
@@ -581,8 +575,10 @@ void FSubTrackEditor::HandleRecordNewSequence(AActor* InActorToRecord, UMovieSce
 	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::HandleRecordNewSequenceInternal, InActorToRecord, InTrack) );
 }
 
-bool FSubTrackEditor::HandleRecordNewSequenceInternal(float KeyTime, AActor* InActorToRecord, UMovieSceneTrack* InTrack)
+FKeyPropertyResult FSubTrackEditor::HandleRecordNewSequenceInternal(float KeyTime, AActor* InActorToRecord, UMovieSceneTrack* InTrack)
 {
+	FKeyPropertyResult KeyPropertyResult;
+
 	UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(InTrack);
 	UMovieSceneSubSection* Section = SubTrack->AddSequenceToRecord();
 
@@ -590,8 +586,9 @@ bool FSubTrackEditor::HandleRecordNewSequenceInternal(float KeyTime, AActor* InA
 	Section->SetTargetSequenceName(GetDefault<USequenceRecorderSettings>()->SequenceName);
 	Section->SetTargetPathToRecordTo(GetDefault<USequenceRecorderSettings>()->SequenceRecordingBasePath.Path);
 	Section->SetActorToRecord(InActorToRecord);
+	KeyPropertyResult.bTrackModified = true;
 
-	return true;
+	return KeyPropertyResult;
 }
 
 #undef LOCTEXT_NAMESPACE

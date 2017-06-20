@@ -5,18 +5,26 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/DeveloperSettings.h"
 #include "WidgetDesignerSettings.generated.h"
 
 /**
  * Implements the settings for the Widget Blueprint Designer.
  */
 UCLASS(config=EditorPerProjectUserSettings)
-class UMGEDITOR_API UWidgetDesignerSettings : public UObject
+class UMGEDITOR_API UWidgetDesignerSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
 	UWidgetDesignerSettings();
+
+#if WITH_EDITOR
+	virtual FText GetSectionText() const override;
+	virtual FText GetSectionDescription() const override;
+#endif
+
+public:
 
 	/** If enabled, actor positions will snap to the grid. */
 	UPROPERTY(EditAnywhere, config, Category = GridSnapping, meta = (DisplayName = "Enable Grid Snapping"))

@@ -122,16 +122,6 @@ public:
 		];
 	}
 
-	/** Handles the previous key button being clicked. */
-	//FReply OnPreviousKeyClicked();
-
-	/** Handles the next key button being clicked. */
-	//FReply OnNextKeyClicked();
-
-	/** Handles the add key button being clicked. */
-	//FReply OnAddKeyClicked();
-
-
 	FLinearColor GetHoverTint() const
 	{
 		return DisplayNode->IsHovered() ? FLinearColor(1,1,1,0.9f) : FLinearColor(1,1,1,0.4f);
@@ -159,7 +149,7 @@ public:
 		}
 
 		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
-		SequencerHelpers::GetAllSections( DisplayNode.ToSharedRef(), Sections );				
+		SequencerHelpers::GetAllSections( DisplayNode.ToSharedRef(), Sections );
 		for ( TWeakObjectPtr<UMovieSceneSection> Section : Sections )
 		{
 			if (Section.IsValid() && !Section->IsInfinite())
@@ -209,7 +199,7 @@ public:
 		}
 
 		TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
-		SequencerHelpers::GetAllSections( DisplayNode.ToSharedRef(), Sections );				
+		SequencerHelpers::GetAllSections( DisplayNode.ToSharedRef(), Sections );
 		for ( TWeakObjectPtr<UMovieSceneSection> Section : Sections )
 		{
 			if (Section.IsValid() && !Section->IsInfinite())
@@ -246,29 +236,32 @@ public:
 		TSet<TSharedPtr<IKeyArea>> KeyAreas;
 		SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
 
-		TArray<UMovieSceneSection*> KeyAreaSections;
+		// Prune out any key areas that do not exist at the current time, or are overlapped
+		TMap<FName, TArray<TSharedPtr<IKeyArea>>> NameToKeyAreas;
 		for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
 		{
-			UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
-			KeyAreaSections.Add(OwningSection);
-		}
-
-		UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(KeyAreaSections, CurrentTime);
-		if (!NearestSection)
-		{
-			return FReply::Unhandled();
+			NameToKeyAreas.FindOrAdd(KeyArea->GetName()).Add(KeyArea);
 		}
 
 		FScopedTransaction Transaction(LOCTEXT("AddKeys", "Add Keys at Current Time"));
-		for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
+		for (auto& Pair : NameToKeyAreas)
 		{
-			UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
-			if (OwningSection == NearestSection)
+			TArray<UMovieSceneSection*> AllSections;
+			for (TSharedPtr<IKeyArea>& KeyArea : Pair.Value)
 			{
+				AllSections.Add(KeyArea->GetOwningSection());
+			}
+
+			int32 KeyAreaIndex = SequencerHelpers::GetSectionFromTime(AllSections, CurrentTime);
+
+			if (KeyAreaIndex != INDEX_NONE)
+			{
+				UMovieSceneSection* OwningSection = AllSections[KeyAreaIndex];
+
 				OwningSection->SetFlags(RF_Transactional);
 				if (OwningSection->TryModify())
 				{
-					KeyArea->AddKeyUnique(CurrentTime, Sequencer.GetKeyInterpolation());
+					Pair.Value[KeyAreaIndex]->AddKeyUnique(CurrentTime, Sequencer.GetKeyInterpolation());
 					Sequencer.NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 				}
 			}

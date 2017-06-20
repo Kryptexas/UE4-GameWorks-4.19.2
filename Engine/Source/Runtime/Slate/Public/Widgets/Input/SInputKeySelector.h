@@ -15,6 +15,7 @@
 #include "Styling/SlateTypes.h"
 #include "Styling/CoreStyle.h"
 #include "Framework/Commands/InputChord.h"
+#include "Layout/Visibility.h"
 
 class SButton;
 class STextBlock;
@@ -119,6 +120,9 @@ public:
 
 	/** Returns true whenever key selection mode is active, otherwise returns false. */
 	bool GetIsSelectingKey() const { return bIsSelectingKey; }
+
+	/** Sets the visibility of the text block. */
+	void SetTextBlockVisibility(EVisibility InVisibility);
 
 public:
 

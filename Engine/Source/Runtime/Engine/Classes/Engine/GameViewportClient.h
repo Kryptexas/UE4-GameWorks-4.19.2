@@ -130,6 +130,9 @@ public:
 	UFUNCTION(exec)
 	virtual void SetConsoleTarget(int32 PlayerIndex);
 
+	/** Sets the widget to use fore the cursor. */
+	void AddCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget);
+
 	/** Returns a relative world context for this viewport.	 */
 	virtual UWorld* GetWorld() const override;
 

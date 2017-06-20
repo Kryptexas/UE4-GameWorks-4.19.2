@@ -6,6 +6,7 @@
 
 ULandscapeInfoMap::ULandscapeInfoMap(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, World(nullptr)
 {
 }
 
@@ -24,6 +25,16 @@ void ULandscapeInfoMap::Serialize(FArchive& Ar)
 	{
 		Ar << Map;
 	}
+}
+
+void ULandscapeInfoMap::BeginDestroy()
+{
+	if (World != nullptr)
+	{
+		World->PerModuleDataObjects.Remove(this);
+	}
+
+	Super::BeginDestroy();
 }
 
 void ULandscapeInfoMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)

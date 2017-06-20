@@ -134,7 +134,7 @@ private:
 			ColorSpaceLUTSRV.SafeRelease();
 		}
 
-		void ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest);
+		void ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest, uint32 Width, uint32 Height);
 		void RecreateDepthBuffer_RenderThread();
 
 		FTexture2DRHIRef GetRenderTargetTexture() const

@@ -98,7 +98,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 {
 	// Min and Max LOD properties
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MinLODSize", "Min LOD Size"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MinLODSize", "Min LOD Size"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -118,7 +118,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MaxLODSize", "Max LOD Size"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MaxLODSize", "Max LOD Size"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -140,7 +140,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 
 	// LOD Bias
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("LODBias", "LOD Bias"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("LODBias", "LOD Bias"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -169,7 +169,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 	TSharedPtr<FName> NameAnisoPtr = MakeShareable(new FName(NAME_Aniso));
 	FilterComboList.Add(NameAnisoPtr);
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MinMagFilter", "MinMag Filter"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MinMagFilter", "MinMag Filter"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -195,7 +195,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MipFilter", "Mip Filter"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MipFilter", "Mip Filter"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -223,7 +223,7 @@ void FTextureLODGroupLayout::GenerateChildContent(IDetailChildrenBuilder& Childr
 
 	// Mip Gen Settings
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("MipGenSettings", "Mip Gen Settings"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MipGenSettings", "Mip Gen Settings"))
 			.NameContent()
 			[
 				SNew(STextBlock)

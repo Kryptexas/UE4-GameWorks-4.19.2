@@ -1318,7 +1318,7 @@ public:
 	 *
 	 * @see TestNotNull
 	 */
-	void TestNull(const FString& What, void* Pointer);
+	void TestNull(const FString& What, const void* Pointer);
 
 	/**
 	 * Logs an error if the two values are not the same object in memory.

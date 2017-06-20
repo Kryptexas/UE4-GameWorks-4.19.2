@@ -79,8 +79,8 @@ struct AIGRAPH_API FGraphNodeClassHelper
 	void GatherClasses(const UClass* BaseClass, TArray<FGraphNodeClassData>& AvailableClasses);
 	static FString GetDeprecationMessage(const UClass* Class);
 
-	void OnAssetAdded(const class FAssetData& AssetData);
-	void OnAssetRemoved(const class FAssetData& AssetData);
+	void OnAssetAdded(const struct FAssetData& AssetData);
+	void OnAssetRemoved(const struct FAssetData& AssetData);
 	void InvalidateCache();
 	void OnHotReload(bool bWasTriggeredAutomatically);
 
@@ -99,7 +99,7 @@ private:
 	static TArray<FName> UnknownPackages;
 	static TMap<UClass*, int32> BlueprintClassCount;
 
-	TSharedPtr<FGraphNodeClassNode> CreateClassDataNode(const class FAssetData& AssetData);
+	TSharedPtr<FGraphNodeClassNode> CreateClassDataNode(const struct FAssetData& AssetData);
 	TSharedPtr<FGraphNodeClassNode> FindBaseClassNode(TSharedPtr<FGraphNodeClassNode> Node, const FString& ClassName);
 	void FindAllSubClasses(TSharedPtr<FGraphNodeClassNode> Node, TArray<FGraphNodeClassData>& AvailableClasses);
 

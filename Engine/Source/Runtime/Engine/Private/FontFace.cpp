@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/FontFace.h"
+#include "Engine/Font.h"
 #include "EditorFramework/AssetImportData.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
@@ -9,6 +10,8 @@
 #include "UObject/Package.h"
 #include "Misc/PackageName.h"
 #include "EditorObjectVersion.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogFontFace, Log, All);
 
 UFontFace::UFontFace()
 	: FontFaceData(FFontFaceData::MakeFontFaceData())
@@ -117,6 +120,12 @@ void UFontFace::CookAdditionalFiles(const TCHAR* PackageFilename, const ITargetP
 
 	if (LoadingPolicy != EFontLoadingPolicy::Inline)
 	{
+		// Iterative COTF can't handle the .ufont files generated when this UFontFace is within a UFont asset (rather than its own asset) so emit a warning about that
+		if (UFont* OuterFont = GetTypedOuter<UFont>())
+		{
+			UE_LOG(LogFontFace, Warning, TEXT("The font asset '%s' contains nested font faces which can cause issues for iterative cook-on-the-fly. Please edit the font asset and split the font faces into their own assets."), *OuterFont->GetPathName());
+		}
+
 		// We replace the package name with the cooked font face name
 		// Note: This must match the replacement logic in UFontFace::GetCookedFilename
 		const FString CookedFontFilename = FPaths::GetPath(PackageFilename) / GetName() + TEXT(".ufont");

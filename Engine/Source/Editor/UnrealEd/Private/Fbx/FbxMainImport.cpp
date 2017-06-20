@@ -828,6 +828,7 @@ void FFbxImporter::TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, Fbx
 		}
 		else
 		{
+			ChildInfo.AttributeUniqueId = INVALID_UNIQUE_ID;
 			ChildInfo.AttributeType = "eNull";
 			ChildInfo.AttributeName = NULL;
 		}

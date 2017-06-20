@@ -545,7 +545,7 @@ public:
 
 protected:
 	/** SAssetViewItem interface */
-	virtual float GetNameTextWrapWidth() const override { return LastGeometry.Size.X - 2.f; }
+	virtual float GetNameTextWrapWidth() const override { return LastGeometry.GetLocalSize().X - 2.f; }
 
 	/** Returns the size of the thumbnail box widget */
 	FOptionalSize GetThumbnailBoxSize() const;

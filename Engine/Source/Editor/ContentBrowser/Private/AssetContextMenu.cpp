@@ -2038,7 +2038,9 @@ void FAssetContextMenu::ExecuteExport()
 
 	if ( ObjectsToExport.Num() > 0 )
 	{
-		ObjectTools::ExportObjects(ObjectsToExport, /*bPromptForEachFileName=*/true);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+		AssetToolsModule.Get().ExportAssetsWithDialog(ObjectsToExport, true);
 	}
 }
 
@@ -2050,7 +2052,9 @@ void FAssetContextMenu::ExecuteBulkExport()
 
 	if ( ObjectsToExport.Num() > 0 )
 	{
-		ObjectTools::ExportObjects(ObjectsToExport, /*bPromptForEachFileName=*/false);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+		AssetToolsModule.Get().ExportAssetsWithDialog(ObjectsToExport, false);
 	}
 }
 

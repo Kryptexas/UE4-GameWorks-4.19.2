@@ -55,11 +55,6 @@ public:
 		return &Section;
 	}
 
-	virtual FText GetDisplayName() const override
-	{
-		return LOCTEXT("ControlRigSection", "Animation ControlRig Sequence");
-	}
-
 	virtual FText GetSectionTitle() const override
 	{
 		if (Section.GetSequence() != nullptr)
@@ -127,7 +122,6 @@ public:
 					FVector2D(-StartOffset * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -144,7 +138,6 @@ public:
 					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(32, 128, 32)	// 120, 75, 50 (HSV)
 			);
@@ -163,7 +156,6 @@ public:
 					FVector2D((SectionSize - PlaybackEnd) * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -180,7 +172,6 @@ public:
 					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(128, 32, 32)	// 0, 75, 50 (HSV)
 			);
@@ -325,8 +316,9 @@ void FControlRigTrackEditor::OnSequencerAssetSelected(const FAssetData& AssetDat
 	}
 }
 
-bool FControlRigTrackEditor::AddKeyInternal(float KeyTime, FGuid ObjectBinding, UControlRigSequence* Sequence, UMovieSceneTrack* Track)
+FKeyPropertyResult FControlRigTrackEditor::AddKeyInternal(float KeyTime, FGuid ObjectBinding, UControlRigSequence* Sequence, UMovieSceneTrack* Track)
 {
+	FKeyPropertyResult KeyPropertyResult;
 	bool bHandleCreated = false;
 	bool bTrackCreated = false;
 	bool bTrackModified = false;
@@ -338,24 +330,24 @@ bool FControlRigTrackEditor::AddKeyInternal(float KeyTime, FGuid ObjectBinding, 
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(Object);
 		FGuid ObjectHandle = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectBinding.IsValid())
 		{
 			if (!Track)
 			{
 				Track = AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UMovieSceneControlRigTrack::StaticClass(), NAME_None);
-				bTrackCreated = true;
+				KeyPropertyResult.bTrackCreated = true;
 			}
 
 			if (ensure(Track))
 			{
 				Cast<UMovieSceneControlRigTrack>(Track)->AddNewControlRig(KeyTime, Sequence);
-				bTrackModified = true;
+				KeyPropertyResult.bTrackModified = true;
 			}
 		}
 	}
 
-	return bHandleCreated || bTrackCreated || bTrackModified;
+	return KeyPropertyResult;
 }
 
 

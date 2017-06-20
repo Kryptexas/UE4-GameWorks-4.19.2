@@ -370,7 +370,8 @@ void UVREditorPlacement::StartPlacingObjects( const TArray<UObject*>& ObjectsToP
 				}
 			}
 			const float BoundsOfAllActorsSize = BoundsOfAllActors.GetSize().GetAbsMax();
-			const float DesiredScale = ( VREd::SizeOfActorsOverContentBrowserThumbnail->GetFloat() / BoundsOfAllActorsSize ) * ViewportWorldInteraction->GetWorldScaleFactor();
+			const float UsedBoundsOfAllActorsSize = BoundsOfAllActorsSize == 0 ? 1 : BoundsOfAllActorsSize;
+			const float DesiredScale = ( VREd::SizeOfActorsOverContentBrowserThumbnail->GetFloat() / UsedBoundsOfAllActorsSize ) * ViewportWorldInteraction->GetWorldScaleFactor();
 
 			// Start the placed objects off scaled down to match the content browser thumbnail
 			if( bShouldInterpolateFromDragLocation )

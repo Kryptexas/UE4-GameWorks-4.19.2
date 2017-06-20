@@ -1778,9 +1778,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// it wouldn't have anything in it's .ini file)
 			GetMoviePlayer()->SetupLoadingScreenFromIni();
 
-			if(GetMoviePlayer()->HasEarlyStartupMovie())
+			if (GetMoviePlayer()->HasEarlyStartupMovie())
 			{
-				GetMoviePlayer()->Initialize(SlateRenderer);
+				GetMoviePlayer()->Initialize(SlateRenderer.Get());
 
 				// hide splash screen now
 				FPlatformMisc::PlatformHandleSplashScreen(false);
@@ -1788,7 +1788,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				// only allowed to play any movies marked as early startup.  These movies or widgets can have no interaction whatsoever with uobjects or engine features
 				GetMoviePlayer()->PlayEarlyStartupMovies();
 			}
-
 		}
 		else if ( IsRunningCommandlet() )
 		{
@@ -1868,11 +1867,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-
-#if !UE_SERVER// && !UE_EDITOR
+#if !UE_SERVER
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
-		GetMoviePlayer()->Initialize(FSlateApplication::Get().GetRenderer());
+		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
+		{
+			GetMoviePlayer()->Initialize(*Renderer);
+		}
 	}
 #endif
 
@@ -2309,8 +2310,7 @@ bool FEngineLoop::LoadCoreModules()
 {
 	// Always attempt to load CoreUObject. It requires additional pre-init which is called from its module's StartupModule method.
 #if WITH_COREUOBJECT
-	bool bResult = FModuleManager::Get().LoadModule(TEXT("CoreUObject")).IsValid();
-	return bResult;
+	return FModuleManager::Get().LoadModule(TEXT("CoreUObject")) != nullptr;
 #else
 	return true;
 #endif
@@ -2775,11 +2775,12 @@ void FEngineLoop::Exit()
 #endif
 
 #if WITH_EDITOR
-	// This module must be shut down first because other modules may try to access it during shutdown.
-	// Accessing this module at shutdown causes instability since the object system will have been shut down and this module uses uobjects internally.
+	// These module must be shut down first because other modules may try to access them during shutdown.
+	// Accessing these modules at shutdown causes instability since the object system will have been shut down and these modules uses uobjects internally.
 	FModuleManager::Get().UnloadModule("AssetTools", true);
+	
 #endif // WITH_EDITOR
-
+	FModuleManager::Get().UnloadModule("AssetRegistry", true);
 
 #if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();

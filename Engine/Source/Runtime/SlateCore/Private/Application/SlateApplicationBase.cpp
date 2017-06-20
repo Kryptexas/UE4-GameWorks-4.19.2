@@ -12,7 +12,7 @@
 TSharedPtr<FSlateApplicationBase> FSlateApplicationBase::CurrentBaseApplication = nullptr;
 TSharedPtr<GenericApplication> FSlateApplicationBase::PlatformApplication = nullptr;
 // TODO: Identifier the cursor index in a smarter way.
-const uint32 FSlateApplicationBase::CursorPointerIndex = EKeys::NUM_TOUCH_KEYS - 1;
+const uint32 FSlateApplicationBase::CursorPointerIndex = ETouchIndex::CursorPointerIndex;
 const uint32 FSlateApplicationBase::CursorUserIndex = 0;
 
 FWidgetPath FHitTesting::LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const

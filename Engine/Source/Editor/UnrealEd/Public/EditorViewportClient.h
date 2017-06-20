@@ -18,7 +18,7 @@
 #include "EditorComponents.h"
 #include "Framework/Commands/Commands.h"
 
-class FAssetData;
+struct FAssetData;
 class FCachedJoystickState;
 class FCameraControllerConfig;
 class FCameraControllerUserImpulseData;
@@ -456,7 +456,7 @@ public:
 	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;

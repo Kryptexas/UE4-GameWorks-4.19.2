@@ -14,6 +14,7 @@
 #include "Styling/CoreStyle.h"
 #include "Application/ActiveTimerHandle.h"
 #include "Stats/SlateStats.h"
+#include "Input/HittestGrid.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Widgets"), STAT_SlateTotalWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
@@ -25,8 +26,18 @@ SLATE_DECLARE_CYCLE_COUNTER(GSlatePrepass, "SlatePrepass");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateArrangeChildren, "ArrangeChildren");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateGetVisibility, "GetVisibility");
 
-TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), 0, TEXT("Controls whether invisible widgets are ticked."));
+int32 GTickInvisibleWidgets = 0;
+static FAutoConsoleVariableRef CVarTickInvisibleWidgets(TEXT("Slate.TickInvisibleWidgets"), GTickInvisibleWidgets, TEXT("Controls whether invisible widgets are ticked."), ECVF_Default);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+int32 GShowClipping = 0;
+static FAutoConsoleVariableRef CVarSlateShowClipRects(TEXT("Slate.ShowClipping"), GShowClipping, TEXT("Controls whether we should render a clipping zone outline.  Yellow = Axis Scissor Rect Clipping (cheap).  Red = Stencil Clipping (expensive)."), ECVF_Default);
+
+int32 GDebugCulling = 0;
+static FAutoConsoleVariableRef CVarSlateDebugCulling(TEXT("Slate.DebugCulling"), GDebugCulling, TEXT("Controls whether we should ignore clip rects, and just use culling."), ECVF_Default);
+
+#endif
 
 #if STATS
 
@@ -87,10 +98,13 @@ SWidget::SWidget()
 	, bCanTick(true)
 	, bCanSupportFocus(true)
 	, bCanHaveChildren(true)
+	, bClippingProxy(false)
 	, bToolTipForceFieldEnabled(false)
 	, bForceVolatile(false)
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
+	, Clipping(EWidgetClipping::Inherit)
+	, CullingBoundsExtension()
 	, DesiredSize(FVector2D::ZeroVector)
 #if SLATE_DEFERRED_DESIRED_SIZE
 	, DesiredSizeScaleMultiplier(0.0f)
@@ -130,13 +144,14 @@ SWidget::~SWidget()
 void SWidget::Construct(
 	const TAttribute<FText> & InToolTipText ,
 	const TSharedPtr<IToolTip> & InToolTip ,
-	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
+	const TAttribute< TOptional<EMouseCursor::Type> > & InCursor,
 	const TAttribute<bool> & InEnabledState ,
 	const TAttribute<EVisibility> & InVisibility,
 	const TAttribute<TOptional<FSlateRenderTransform>>& InTransform,
 	const TAttribute<FVector2D>& InTransformPivot,
 	const FName& InTag,
 	const bool InForceVolatile,
+	const EWidgetClipping InClipping,
 	const TArray<TSharedRef<ISlateMetaData>>& InMetaData
 )
 {
@@ -163,6 +178,7 @@ void SWidget::Construct(
 	RenderTransformPivot = InTransformPivot;
 	Tag = InTag;
 	bForceVolatile = InForceVolatile;
+	Clipping = InClipping;
 	MetaData = InMetaData;
 }
 
@@ -433,7 +449,7 @@ void SWidget::TickWidgetsRecursively( const FGeometry& AllottedGeometry, const d
 	// Gather all children, whether they're visible or not.  We need to allow invisible widgets to
 	// consider whether they should still be invisible in their tick functions, as well as maintain
 	// other state when hidden,
-	FArrangedChildren ArrangedChildren(TickInvisibleWidgets.GetValueOnAnyThread() ? EVisibility::All : EVisibility::Visible);
+	FArrangedChildren ArrangedChildren(GTickInvisibleWidgets ? EVisibility::All : EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Recur!
@@ -741,7 +757,60 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 #endif
 }
 
-int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+void SWidget::OnClippingChanged()
+{
+
+}
+
+FSlateRect SWidget::CalculateCullingAndClippingRules(const FGeometry& AllottedGeometry, const FSlateRect& IncomingCullingRect, bool& bClipToBounds, bool& bAlwaysClip, bool& bIntersectClipBounds) const
+{
+	bClipToBounds = false;
+	bIntersectClipBounds = true;
+	bAlwaysClip = false;
+
+	if (!bClippingProxy)
+	{
+		switch (Clipping)
+		{
+		case EWidgetClipping::ClipToBounds:
+			bClipToBounds = true;
+			break;
+		case EWidgetClipping::ClipToBoundsAlways:
+			bClipToBounds = true;
+			bAlwaysClip = true;
+			break;
+		case EWidgetClipping::ClipToBoundsWithoutIntersecting:
+			bClipToBounds = true;
+			bIntersectClipBounds = false;
+			break;
+		case EWidgetClipping::OnDemand:
+			const float OverflowEpsilon = 1.0f;
+			const FVector2D& CurrentSize = GetDesiredSize();
+			const FVector2D& LocalSize = AllottedGeometry.GetLocalSize();
+			bClipToBounds =
+				(CurrentSize.X - OverflowEpsilon) > LocalSize.X ||
+				(CurrentSize.Y - OverflowEpsilon) > LocalSize.Y;
+			break;
+		}
+	}
+
+	if (bClipToBounds)
+	{
+		FSlateRect MyCullingRect(AllottedGeometry.GetRenderBoundingRect(CullingBoundsExtension));
+
+		if (bIntersectClipBounds)
+		{
+			bool bClipBoundsOverlapping;
+			return IncomingCullingRect.IntersectionWith(MyCullingRect, bClipBoundsOverlapping);
+		}
+		
+		return MyCullingRect;
+	}
+
+	return IncomingCullingRect;
+}
+
+int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 #if WITH_VERY_VERBOSE_SLATE_STATS
 	FScopeCycleCounterSWidget WidgetScope( this );
@@ -757,6 +826,11 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// of a volatile widget as non-volatile, causing the invalidation panel to do work that's not required.
 	bInheritedVolatility = Args.IsVolatilityPass();
 
+	// If this widget clips to its bounds, then generate a new clipping rect representing the intersection of the bounding
+	// rectangle of the widget's geometry, and the current clipping rectangle.
+	bool bClipToBounds, bAlwaysClip, bIntersectClipBounds;
+	FSlateRect CullingBounds = CalculateCullingAndClippingRules(AllottedGeometry, MyCullingRect, bClipToBounds, bAlwaysClip, bIntersectClipBounds);
+
 	// If this paint pass is to cache off our geometry, but we're a volatile widget,
 	// record this widget as volatile in the draw elements so that we get our own tick/paint 
 	// pass later when the layout cache draws.
@@ -764,7 +838,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	{
 		const int32 VolatileLayerId = LayerId + 1;
 		OutDrawElements.QueueVolatilePainting(
-			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, MyClippingRect, VolatileLayerId, InWidgetStyle, bParentEnabled));
+			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, CullingBounds, OutDrawElements.GetClippingState(), VolatileLayerId, InWidgetStyle, bParentEnabled));
 
 		return VolatileLayerId;
 	}
@@ -782,10 +856,64 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	// Record hit test geometry, but only if we're not caching.
-	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, LayerId, MyClippingRect);
+	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, LayerId);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (GDebugCulling)
+	{
+		// When we're debugging culling, don't actually clip, we'll just pretend to, so we can see the effects of
+		// any widget doing culling to know if it's doing the right thing.
+		bClipToBounds = false;
+	}
+#endif
+
+	if ( bClipToBounds )
+	{
+		FSlateClippingZone ClippingZone(AllottedGeometry);
+		ClippingZone.SetShouldIntersectParent(bIntersectClipBounds);
+		ClippingZone.SetAlwaysClip(bAlwaysClip);
+		OutDrawElements.PushClip(ClippingZone);
+
+		// The hit test grid records things in desktop space, so we use the tick geometry instead of the paint geometry.
+		FSlateClippingZone DesktopClippingZone(CachedGeometry);
+		DesktopClippingZone.SetShouldIntersectParent(bIntersectClipBounds);
+		DesktopClippingZone.SetAlwaysClip(bAlwaysClip);
+		Args.GetGrid().PushClip(DesktopClippingZone);
+	}
 
 	// Paint the geometry of this widget.
-	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, CullingBounds, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (GShowClipping && bClipToBounds)
+	{
+		FSlateClippingZone ClippingZone(AllottedGeometry);
+
+		TArray<FVector2D> Points;
+		Points.Add(ClippingZone.TopLeft);
+		Points.Add(ClippingZone.TopRight);
+		Points.Add(ClippingZone.BottomRight);
+		Points.Add(ClippingZone.BottomLeft);
+		Points.Add(ClippingZone.TopLeft);
+
+		const bool bAntiAlias = true;
+		FSlateDrawElement::MakeLines(
+			OutDrawElements,
+			NewLayerID,
+			FPaintGeometry(),
+			Points,
+			ESlateDrawEffect::None,
+			ClippingZone.IsAxisAligned() ? FLinearColor::Yellow : FLinearColor::Red,
+			bAntiAlias,
+			2.0f);
+	}
+#endif
+
+	if ( bClipToBounds )
+	{
+		OutDrawElements.PopClip();
+		Args.GetGrid().PopClip();
+	}
 
 #if PLATFORM_UI_NEEDS_FOCUS_OUTLINES
 	// Check if we need to show the keyboard focus ring, this is only necessary if the widget could be focused.
@@ -803,7 +931,6 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					NewLayerID,
 					AllottedGeometry.ToPaintGeometry(),
 					BrushResource,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					BrushResource->GetTint(InWidgetStyle)
 				);
@@ -814,7 +941,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 
 	if ( OutDrawElements.ShouldResolveDeferred() )
 	{
-		NewLayerID = OutDrawElements.PaintDeferred(NewLayerID);
+		NewLayerID = OutDrawElements.PaintDeferred(NewLayerID, MyCullingRect);
 	}
 
 	return NewLayerID;
@@ -892,4 +1019,28 @@ void SWidget::SetOnMouseEnter(FNoReplyPointerEventHandler EventHandler)
 void SWidget::SetOnMouseLeave(FSimpleNoReplyPointerEventHandler EventHandler)
 {
 	MouseLeaveHandler = EventHandler;
+}
+
+bool SWidget::IsChildWidgetCulled(const FSlateRect& MyCullingRect, const FArrangedWidget& ArrangedChild) const
+{
+	// 1) We check if the rendered bounding box overlaps with the culling rect.  Which is so that
+	//    a render transformed element is never culled if it would have been visible to the user.
+	// 2) We also check the layout bounding box to see if it overlaps with the culling rect.  The
+	//    reason for this is a bit more nuanced.  Suppose you dock a widget on the screen on the side
+	//    and you want have it animate in and out of the screen.  Even though the layout transform 
+	//    keeps the widget on the screen, the render transform alone would have caused it to be culled
+	//    and therefore not ticked or painted.  The best way around this for now seems to be to simply
+	//    check both rects to see if either one is overlapping the culling volume.
+	const bool bAreOverlapping =
+		FSlateRect::DoRectanglesIntersect(MyCullingRect, ArrangedChild.Geometry.GetRenderBoundingRect()) ||
+		FSlateRect::DoRectanglesIntersect(MyCullingRect, ArrangedChild.Geometry.GetLayoutBoundingRect());
+
+	// There's a special condition if the widget's clipping state is set does not intersect with clipping bounds, they in effect
+	// will be setting a new culling rect, so let them pass being culling from this step.
+	if (bAreOverlapping == false && ArrangedChild.Widget->GetClipping() == EWidgetClipping::ClipToBoundsWithoutIntersecting)
+	{
+		return false;
+	}
+
+	return !bAreOverlapping;
 }

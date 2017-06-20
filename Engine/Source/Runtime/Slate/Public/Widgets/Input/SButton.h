@@ -44,7 +44,8 @@ public:
 		, _ButtonColorAndOpacity(FLinearColor::White)
 		, _ForegroundColor( FCoreStyle::Get().GetSlateColor( "InvertedForeground" ) )
 		, _IsFocusable( true )
-		{}
+		{
+		}
 
 		/** Slot for this button's content (optional) */
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -163,7 +164,7 @@ public:
 public:
 
 	// SWidget overrides
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;

@@ -16,7 +16,7 @@
 #include "Sections/MovieScene3DTransformSection.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class SHorizontalBox;
 
 /**
@@ -50,6 +50,7 @@ public:
 	// ISequencerTrackEditor interface
 
 	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) override;
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding ) override;
@@ -61,6 +62,9 @@ private:
 
 	/** Returns whether or not a transform track can be added for an actor with a specific handle. */
 	bool CanAddTransformTrackForActorHandle(FGuid ActorHandle) const;
+
+	/** Whether the object has an existing transform track */
+	bool HasTransformTrack( UObject& InObject ) const;
 
 	/**
 	 * Called before an actor or component transform changes
@@ -84,6 +88,9 @@ private:
 
 	/** Delegate for locked camera button */
 	void OnLockCameraClicked(ECheckBoxState CheckBoxState, FGuid ObjectGuid);
+
+	/** Clear locked cameras */
+	void ClearLockedCameras(AActor* LockedActor);
 
 	/** Delegate for camera button lock tooltip */
 	FText GetLockCameraToolTip(FGuid ObjectGuid) const; 
@@ -136,7 +143,7 @@ private:
 	* @param Keys The keys to add.
 	* @param KeyParams Parameters which control how the keys are added.
 	*/
-	bool OnAddTransformKeys( float Time, UObject* ObjectToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, ESequencerKeyMode KeyMode );
+	FKeyPropertyResult OnAddTransformKeys( float Time, UObject* ObjectToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, ESequencerKeyMode KeyMode );
 
 private:
 

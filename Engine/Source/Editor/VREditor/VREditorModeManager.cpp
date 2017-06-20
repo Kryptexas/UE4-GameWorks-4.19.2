@@ -18,6 +18,7 @@
 #include "Dialogs.h"
 #include "ProjectDescriptor.h"
 #include "Interfaces/IProjectManager.h"
+#include "UnrealEdMisc.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
@@ -168,30 +169,33 @@ void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 {
-	UVREditorMode* VRMode = nullptr;
+	if (!GIsRequestingExit)
 	{
-		UWorld* World = GEditor->bIsSimulatingInEditor ? GEditor->PlayWorld : GWorld;
-		UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
-		check(ExtensionCollection != nullptr);
+		UVREditorMode* VRMode = nullptr;
+		{
+			UWorld* World = GEditor->bIsSimulatingInEditor ? GEditor->PlayWorld : GWorld;
+			UEditorWorldExtensionCollection* ExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World);
+			check(ExtensionCollection != nullptr);
 		
-		UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->AddExtension(UViewportWorldInteraction::StaticClass()));
+			UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(ExtensionCollection->AddExtension(UViewportWorldInteraction::StaticClass()));
 
-		// Create vr editor mode.
-		VRMode = NewObject<UVREditorMode>();
-		check(VRMode != nullptr);
-		ExtensionCollection->AddExtension(VRMode);
-	}
+			// Create vr editor mode.
+			VRMode = NewObject<UVREditorMode>();
+			check(VRMode != nullptr);
+			ExtensionCollection->AddExtension(VRMode);
+		}
 
-	// Tell the level editor we want to be notified when selection changes
-	{
-		FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
-		LevelEditor.OnMapChanged().AddRaw( this, &FVREditorModeManager::OnMapChanged );
-	}
+		// Tell the level editor we want to be notified when selection changes
+		{
+			FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
+			LevelEditor.OnMapChanged().AddRaw( this, &FVREditorModeManager::OnMapChanged );
+		}
 	
-	CurrentVREditorMode = VRMode;
-	CurrentVREditorMode->SetActuallyUsingVR( !bForceWithoutHMD );
+		CurrentVREditorMode = VRMode;
+		CurrentVREditorMode->SetActuallyUsingVR( !bForceWithoutHMD );
 
-	CurrentVREditorMode->Enter();
+		CurrentVREditorMode->Enter();
+	}
 }
 
 void FVREditorModeManager::CloseVREditor( const bool bShouldDisableStereo )
@@ -230,7 +234,10 @@ void FVREditorModeManager::OnMapChanged( UWorld* World, EMapChangeType MapChange
 		// When changing maps, we are going to close VR editor mode but then reopen it, so don't take the HMD out of stereo mode
 		const bool bShouldDisableStereo = false;
 		CloseVREditor( bShouldDisableStereo );
-		bEnableVRRequest = true;
+		if (MapChangeType != EMapChangeType::SaveMap)
+		{
+			bEnableVRRequest = true;
+		}
 	}
 	CurrentVREditorMode = nullptr;
 }

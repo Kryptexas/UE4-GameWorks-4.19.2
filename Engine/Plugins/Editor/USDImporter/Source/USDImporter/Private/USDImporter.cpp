@@ -225,11 +225,14 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 
 		UObject* NewMesh = ImportSingleMesh(ImportContext, MeshImportType, PrimToImport);
 
-		FAssetRegistryModule::AssetCreated(NewMesh);
+		if (NewMesh)
+		{
+			FAssetRegistryModule::AssetCreated(NewMesh);
 
-		NewMesh->MarkPackageDirty();
-		ImportContext.PrimToAssetMap.Add(PrimToImport.Prim, NewMesh);
-		++MeshCount;
+			NewMesh->MarkPackageDirty();
+			ImportContext.PrimToAssetMap.Add(PrimToImport.Prim, NewMesh);
+			++MeshCount;
+		}
 	}
 
 	// Return the first one on success.  

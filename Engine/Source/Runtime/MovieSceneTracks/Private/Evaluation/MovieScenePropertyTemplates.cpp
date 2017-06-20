@@ -12,6 +12,7 @@
 #include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieScene.h"
 #include "MovieSceneEvaluation.h"
+#include "MovieSceneTemplateCommon.h"
 
 
 namespace
@@ -202,56 +203,62 @@ void FMovieSceneVectorPropertySectionTemplate::Evaluate(const FMovieSceneEvaluat
 	}
 }
 
+struct FTransformPropertyActuator : TMovieSceneBlendingActuator<MovieScene::FSimpleTransform>
+{
+	PropertyTemplate::FSectionData PropertyData;
+
+	virtual MovieScene::FSimpleTransform RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
+	{
+		FTransform Existing = PropertyData.PropertyBindings->GetCurrentValue<FTransform>(*InObject);
+		return MovieScene::FSimpleTransform(Existing.GetTranslation(), Existing.GetRotation().Rotator().Euler(), Existing.GetScale3D());
+	}
+
+	virtual void Actuate(UObject* InObject, const MovieScene::FSimpleTransform& InFinalValue, const TBlendableTokenStack<MovieScene::FSimpleTransform>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	{
+		check(InObject);
+
+		OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, PropertyTemplate::FTokenProducer<FTransform>(*PropertyData.PropertyBindings));
+
+		FTransform FinalTransform(FRotator::MakeFromEuler(InFinalValue.Rotation), InFinalValue.Translation, InFinalValue.Scale);
+		return PropertyData.PropertyBindings->CallFunction<FTransform>(*InObject, FinalTransform);
+	}
+};
 
 FMovieSceneTransformPropertySectionTemplate::FMovieSceneTransformPropertySectionTemplate(const UMovieScene3DTransformSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
-//	, TranslationCurve{ Section.GetTranslationCurve(EAxis::X), Section.GetTranslationCurve(EAxis::Y), Section.GetTranslationCurve(EAxis::Z) }
-//	, RotationCurve{ Section.GetRotationCurve(EAxis::X), Section.GetRotationCurve(EAxis::Y), Section.GetRotationCurve(EAxis::Z) }
-//	, ScaleCurve{ Section.GetScaleCurve(EAxis::X), Section.GetScaleCurve(EAxis::Y), Section.GetScaleCurve(EAxis::Z) }
+	: TemplateData(Section)
+	, PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
 {
-	// VS2013 does not properly support C++11 style initializer lists for arrays
-	TranslationCurve[0] = Section.GetTranslationCurve(EAxis::X);
-	TranslationCurve[1] = Section.GetTranslationCurve(EAxis::Y);
-	TranslationCurve[2] = Section.GetTranslationCurve(EAxis::Z);
+}
 
-	RotationCurve[0] = Section.GetRotationCurve(EAxis::X);
-	RotationCurve[1] = Section.GetRotationCurve(EAxis::Y);
-	RotationCurve[2] = Section.GetRotationCurve(EAxis::Z);
-
-	ScaleCurve[0] = Section.GetScaleCurve(EAxis::X);
-	ScaleCurve[1] = Section.GetScaleCurve(EAxis::Y);
-	ScaleCurve[2] = Section.GetScaleCurve(EAxis::Z);
+void FMovieSceneTransformPropertySectionTemplate::Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+{
+	PropertyData.SetupTrack(PersistentData);
 }
 
 void FMovieSceneTransformPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
+	PropertyTemplate::FSectionData& SectionData = PersistentData.GetSectionData<PropertyTemplate::FSectionData>();
 
-	float Time = Context.GetTime();
+	using namespace MovieScene;
 
-	for (TCachedValue<FTransform>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FTransform>>().ObjectsAndValues)
+	FMaskedTransform TransformValue = TemplateData.Evaluate(Context.GetTime());
+
+	// Actuator type ID for this property
+	FMovieSceneBlendingActuatorID ActuatorTypeID = FMovieSceneBlendingActuatorID(SectionData.PropertyID);
+	if (!ExecutionTokens.GetBlendingAccumulator().FindActuator<FSimpleTransform>(ActuatorTypeID))
 	{
-		const FVector& DefaultLocation = ObjectAndValue.Value.GetLocation();
-		FVector Location;
-		Location.X = TranslationCurve[0].Eval(Time, DefaultLocation.X);
-		Location.Y = TranslationCurve[1].Eval(Time, DefaultLocation.Y);
-		Location.Z = TranslationCurve[2].Eval(Time, DefaultLocation.Z);
-		ObjectAndValue.Value.SetLocation(Location);
-
-		FRotator DefaultRotation = ObjectAndValue.Value.GetRotation().Rotator();
-		FRotator Rotation;
-		Rotation.Roll = RotationCurve[0].Eval(Time, DefaultRotation.Roll);
-		Rotation.Pitch = RotationCurve[1].Eval(Time, DefaultRotation.Pitch);
-		Rotation.Yaw = RotationCurve[2].Eval(Time, DefaultRotation.Yaw);
-		ObjectAndValue.Value.SetRotation(Rotation.Quaternion());
-
-		const FVector& DefaultScale = ObjectAndValue.Value.GetScale3D();
-		FVector Scale;
-		Scale.X = ScaleCurve[0].Eval(Time, DefaultScale.X);
-		Scale.Y = ScaleCurve[1].Eval(Time, DefaultScale.Y);
-		Scale.Z = ScaleCurve[2].Eval(Time, DefaultScale.Z);
-		ObjectAndValue.Value.SetScale3D(Scale);
+		TSharedRef<FTransformPropertyActuator> NewActuator = MakeShared<FTransformPropertyActuator>();
+		NewActuator->PropertyData = SectionData;
+		ExecutionTokens.GetBlendingAccumulator().DefineActuator(ActuatorTypeID, NewActuator);
 	}
 
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FTransform>());
+	// Add the blendable to the accumulator
+	float Weight = EvaluateEasing(Context.GetTime());
+	if (EnumHasAllFlags(TemplateData.Mask.GetChannels(), EMovieSceneTransformChannel::Weight))
+	{
+		Weight *= TemplateData.ManualWeight.Eval(Context.GetTime());
+	}
+
+	// Add the blendable to the accumulator
+	ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<FSimpleTransform>(TransformValue, TemplateData.BlendType, Weight));
 }

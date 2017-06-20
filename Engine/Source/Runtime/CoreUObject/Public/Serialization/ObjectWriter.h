@@ -47,7 +47,6 @@ public:
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	//~ End FArchive Interface
 
-protected:
 	FObjectWriter(TArray<uint8>& InBytes)
 		: FMemoryWriter(InBytes)
 	{

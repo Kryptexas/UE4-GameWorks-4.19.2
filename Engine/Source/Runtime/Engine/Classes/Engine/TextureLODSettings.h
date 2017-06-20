@@ -27,38 +27,7 @@ struct ENGINE_API FTextureLODGroup
 		, MinMagFilter(NAME_Aniso)
 		, MipFilter(NAME_Point)
 	{
-		MinLODMipCount = FMath::CeilLogTwo(MinLODSize);
-		MaxLODMipCount = FMath::CeilLogTwo(MaxLODSize);
-
-		// Linear filtering
-		if (MinMagFilter == NAME_Linear)
-		{
-			if (MipFilter == NAME_Point)
-			{
-				Filter = ETextureSamplerFilter::Bilinear;
-			}
-			else
-			{
-				Filter = ETextureSamplerFilter::Trilinear;
-			}
-		}
-		// Point. Don't even care about mip filter.
-		else if (MinMagFilter == NAME_Point)
-		{
-			Filter = ETextureSamplerFilter::Point;
-		}
-		// Aniso or unknown.
-		else
-		{
-			if (MipFilter == NAME_Point)
-			{
-				Filter = ETextureSamplerFilter::AnisotropicPoint;
-			}
-			else
-			{
-				Filter = ETextureSamplerFilter::AnisotropicLinear;
-			}
-		}
+		SetupGroup();
 	}
 
 	/** Minimum LOD mip count below which the code won't bias.						*/
@@ -97,6 +66,8 @@ struct ENGINE_API FTextureLODGroup
 
 	UPROPERTY()
 	FName MipFilter;
+
+	void SetupGroup();
 };
 
 /**

@@ -26,7 +26,7 @@ public:
 public:
 
 	// ISequencerEditTool interface	
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const override;
 	virtual FReply OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -43,9 +43,6 @@ private:
 	void UpdateCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 private:
-
-	/** Sequencer widget */
-	TWeakPtr<SSequencer> SequencerWidget;
 
 	struct FDelayedDrag_Hotspot : FDelayedDrag
 	{

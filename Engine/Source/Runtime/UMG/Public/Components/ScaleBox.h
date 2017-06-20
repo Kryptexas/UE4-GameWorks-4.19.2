@@ -75,6 +75,8 @@ public:
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif
 
+	virtual void Serialize(FArchive& Ar) override;
+
 protected:
 
 	// UPanelWidget

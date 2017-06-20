@@ -12,7 +12,7 @@
 #include "IPropertyUtilities.h"
 #include "IDetailChildrenBuilder.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Serialization/MemoryWriter.h"
+#include "Serialization/ObjectWriter.h"
 
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
@@ -47,7 +47,7 @@ void FMovieSceneEventParametersCustomization::CustomizeChildren(TSharedRef<IProp
 	EditStructData = MakeShared<FStructOnScope>(nullptr);
 	static_cast<FMovieSceneEventParameters*>(RawData[0])->GetInstance(*EditStructData);
 
-	ChildBuilder.AddChildContent(LOCTEXT("ParametersText", "Parameters"))
+	ChildBuilder.AddCustomRow(LOCTEXT("ParametersText", "Parameters"))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -68,7 +68,7 @@ void FMovieSceneEventParametersCustomization::CustomizeChildren(TSharedRef<IProp
 	{
 		FSimpleDelegate OnEditStructChildContentsChangedDelegate = FSimpleDelegate::CreateSP(this, &FMovieSceneEventParametersCustomization::OnEditStructChildContentsChanged);
 
-		TArray<TSharedPtr<IPropertyHandle>> ExternalHandles = ChildBuilder.AddChildStructure(EditStructData.ToSharedRef());
+		TArray<TSharedPtr<IPropertyHandle>> ExternalHandles = ChildBuilder.AddAllExternalStructureProperties(EditStructData.ToSharedRef());
 		for (TSharedPtr<IPropertyHandle> Handle : ExternalHandles)
 		{
 			Handle->SetOnPropertyValueChanged(OnEditStructChildContentsChangedDelegate);
@@ -158,7 +158,7 @@ void FMovieSceneEventParametersCustomization::OnEditStructChildContentsChanged()
 
 	TArray<uint8> Bytes;
 	{
-		FMemoryWriter Writer(Bytes);
+		FObjectWriter Writer(Bytes);
 		Struct->SerializeTaggedProperties(Writer, EditStructData->GetStructMemory(), Struct, nullptr);
 	}
 

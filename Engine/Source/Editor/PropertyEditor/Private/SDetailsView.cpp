@@ -736,9 +736,9 @@ void SDetailsView::PreSetObject(int32 InNewNumObjects)
 	{
 		if( ExternalRootNode.IsValid() )
 		{
-			SaveExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+			SaveExpandedItems( ExternalRootNode.ToSharedRef() );
 
-			FComplexPropertyNode* ComplexNode = ExternalRootNode.Pin()->AsComplexNode();
+			FComplexPropertyNode* ComplexNode = ExternalRootNode->AsComplexNode();
 			if(ComplexNode)
 			{
 				ComplexNode->Disconnect();
@@ -838,7 +838,7 @@ void SDetailsView::PostSetObject()
 	{
 		if( ExternalRootNode.IsValid() )
 		{
-			RestoreExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+			RestoreExpandedItems( ExternalRootNode.ToSharedRef() );
 		}
 	}
 
@@ -850,36 +850,6 @@ void SDetailsView::SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayCh
 	OnObjectArrayChanged = OnObjectArrayChangedDelegate;
 }
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-const UClass* SDetailsView::GetBaseClass() const
-{
-	if( RootPropertyNodes.Num() == 1 )
-	{
-		return RootPropertyNodes[0]->AsObjectNode()->GetObjectBaseClass();
-	}
-	else
-	{
-		ensureMsgf(0,TEXT("GetBaseClass is not supported on multi-object details panels"));
-	}
-
-	return nullptr;
-}
-
-UClass* SDetailsView::GetBaseClass()
-{
-	if(RootPropertyNodes.Num() == 1)
-	{
-		return RootPropertyNodes[0]->AsObjectNode()->GetObjectBaseClass();
-	}
-	else
-	{
-		ensureMsgf(0, TEXT("GetBaseClass is not supported on multi-object details panels"));
-	}
-
-	return nullptr;
-}
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 void SDetailsView::RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
 	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
@@ -890,14 +860,19 @@ void SDetailsView::UnregisterInstancedCustomPropertyLayout( UStruct* Class )
 	UnregisterInstancedCustomPropertyLayoutInternal(Class);
 }
 
-void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode )
+void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FComplexPropertyNode> ExternalRootNode)
 {
-	ExternalRootPropertyNodes.Add( ExternalRootNode );
+	ExternalRootPropertyNodes.Add(ExternalRootNode);
+}
+
+bool SDetailsView::IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const
+{
+	return ExternalRootPropertyNodes.Contains(RootNode);
 }
 
 bool SDetailsView::IsCategoryHiddenByClass( const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName ) const
 {
-	return InRootNode->AsObjectNode()->GetHiddenCategories().Contains( CategoryName );
+	return InRootNode->AsObjectNode() && InRootNode->AsObjectNode()->GetHiddenCategories().Contains( CategoryName );
 }
 
 bool SDetailsView::IsConnected() const

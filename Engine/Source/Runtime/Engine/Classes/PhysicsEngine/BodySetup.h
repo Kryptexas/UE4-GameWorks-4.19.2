@@ -117,7 +117,7 @@ struct FAsyncPhysicsCookHelper;
  * @see FBodyInstance
  */
 
-UCLASS(hidecategories=Object, MinimalAPI)
+UCLASS(collapseCategories, MinimalAPI)
 class UBodySetup : public UObject
 {
 	GENERATED_UCLASS_BODY()

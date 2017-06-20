@@ -67,7 +67,6 @@ public:
 					BlockRange.BeginIndex,
 					EndIndex,
 					Style.Font,
-					ClippingRect,
 					DrawEffects,
 					TextColor
 					);

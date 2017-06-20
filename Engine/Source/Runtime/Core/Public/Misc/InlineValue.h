@@ -15,7 +15,7 @@
  *
  * Can be viewed as a TUniquePtr with a small allocation optimization.
  */
-template<typename BaseType, uint8 MaxInlineSize=64, uint8 DefaultAlignment=8>
+template<typename BaseType, uint8 DesiredMaxInlineSize=64, uint8 DefaultAlignment=8>
 class TInlineValue
 {
 public:
@@ -183,12 +183,6 @@ public:
 	FORCEINLINE BaseType*		operator->()		{ return &GetValue(); }
 	FORCEINLINE const BaseType*	operator->() const	{ return &GetValue(); }
 
-	/** ~We cannot allow an allocation of less than the size of a pointer */
-	static_assert(
-		MaxInlineSize >= sizeof(void*),
-		"Cannot instantiate TInlineValue with a size less than a ptr."
-		);
-
 	/**
 	 * Reserve space for a structure derived from BaseType, of the size and alignment specified .
 	 * @note Does not initialize the memory in anyway
@@ -241,6 +235,8 @@ private:
 	}
 
 private:
+	/** ~We cannot allow an allocation of less than the size of a pointer */
+	enum { MaxInlineSize = DesiredMaxInlineSize < sizeof(void*) ? sizeof(void*) : DesiredMaxInlineSize };
 
 	/** Type-erased bytes containing either a BaseType& or heap allocated BaseType* */
 	TAlignedBytes<MaxInlineSize, DefaultAlignment> Data;

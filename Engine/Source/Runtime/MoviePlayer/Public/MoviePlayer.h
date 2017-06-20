@@ -15,10 +15,13 @@
 UENUM()
 enum EMoviePlaybackType
 {
-	MT_Normal,				// Normal playback mode.  Play each movie in the play list a single time
-	MT_Looped,				// Looped playback mode.  Play all movies in the play list in order then start over until manaully cancelled
-	MT_LoadingLoop,			// Alternate Looped mode.  Play all of the movies in the play list and loop just the last movie until loading is finished.
-	MT_MAX
+	/** Normal playback mode.  Play each movie in the play list a single time */
+	MT_Normal UMETA(DisplayName="Normal Playback"),
+	/** Looped playback mode.  Play all movies in the play list in order then start over until manually canceled */
+	MT_Looped UMETA(DisplayName = "Looped Playback"),
+	/** Alternate Looped mode.  Play all of the movies in the play list and loop just the last movie until loading is finished. */
+	MT_LoadingLoop UMETA(DisplayName = "Looped Last Playback"),
+	MT_MAX UMETA(Hidden)
 };
 
 /** This viewport is a simple interface for the loading to use to display the video textures. */
@@ -151,7 +154,7 @@ public:
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) = 0;
 
 	/** Initializes this movie player, creating the startup window and hiding the splash screen. To be called in the launch engine loop. */
-	virtual void Initialize(TSharedPtr<class FSlateRenderer> InSlateRenderer) = 0;
+	virtual void Initialize(class FSlateRenderer& InSlateRenderer) = 0;
 
 	/** Shutsdown the movie player. */
 	virtual void Shutdown() = 0;

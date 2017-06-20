@@ -52,8 +52,6 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGener
 
 DECLARE_DELEGATE_RetVal(bool, FDragDropCheckingOverride);
 
-extern SLATE_API const FName NAME_UnrealOS;
-
 
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
 class SLATE_API FPopupSupport
@@ -124,6 +122,9 @@ public:
 
 	TSharedPtr<SWidget> GetFocusedWidget() const;
 
+	FORCEINLINE uint64 GetFocusVersion() const { return FocusVersion; }
+	FORCEINLINE void UpdateFocusVersion() { FocusVersion++; }
+
 	FGestureDetector GestureDetector;
 
 private:
@@ -170,6 +171,12 @@ private:
 	/** If we should show this focus */
 	bool ShowFocus;
 
+	/**
+	 * The FocusVersion is used to know if the focus state is modified for a user while processing focus
+	 * events, that way upon returning from focus calls, we know if we should abandon the remainder of the event.
+	 */
+	int32 FocusVersion;
+
 	friend class FSlateApplication;
 };
 
@@ -183,14 +190,14 @@ public:
 	virtual ~FSlateVirtualUser();
 
 	FORCEINLINE int32 GetUserIndex() const { return UserIndex; }
-	FORCEINLINE int32 GetVirtualUserIndex() const { return UserIndex; }
+	FORCEINLINE int32 GetVirtualUserIndex() const { return VirtualUserIndex; }
 
 private:
 
 	/** The index the user was assigned. */
 	int32 UserIndex;
 
-	/** The index the user was assigned. */
+	/** The virtual index the user was assigned. */
 	int32 VirtualUserIndex;
 };
 
@@ -482,11 +489,11 @@ public:
 	 */
 	void ExternalModalStop();
 
-	/** Delegate for retainer widgets to know when they should update */
+	/** Event before slate application ticks. */
 	DECLARE_EVENT_OneParam(FSlateApplication, FSlateTickEvent, float);
 	FSlateTickEvent& OnPreTick()  { return PreTickEvent; }
 
-	/** Delegate for after slate application ticks. */
+	/** Event after slate application ticks. */
 	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
 
 	/** 
@@ -1382,11 +1389,11 @@ public:
 	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue ) override;
 	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
 	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
+	virtual bool OnTouchGesture( EGestureEvent GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
-	virtual void ShouldSimulateGesture(EGestureEvent::Type Gesture, bool bEnable) override;
+	virtual void ShouldSimulateGesture(EGestureEvent Gesture, bool bEnable) override;
 	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) override;
 	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) override;
 	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
@@ -1395,7 +1402,7 @@ public:
 	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
-	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
+	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation ActivationType ) override;
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
 	virtual bool OnConvertibleLaptopModeChanged() override;
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;

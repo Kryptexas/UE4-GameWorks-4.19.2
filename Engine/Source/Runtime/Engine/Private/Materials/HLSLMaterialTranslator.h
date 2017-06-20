@@ -2986,7 +2986,8 @@ protected:
 	{
 		// For WebGL 1 which is essentially GLES2.0, we can safely assume a higher number of supported vertex attributes
 		// even when we are compiling ES 2 feature level shaders.
-		const uint32 MaxNumCoordinates = ((Platform == SP_OPENGL_ES2_WEBGL) || (FeatureLevel != ERHIFeatureLevel::ES2)) ? 8 : 3;
+		// For UI materials can safely use more texture coordinates due to how they are packed in the slate material shader
+		const uint32 MaxNumCoordinates = ((Platform == SP_OPENGL_ES2_WEBGL) || (FeatureLevel != ERHIFeatureLevel::ES2) || Material->IsUIMaterial()) ? 8 : 3;
 
 		if (CoordinateIndex >= MaxNumCoordinates)
 		{

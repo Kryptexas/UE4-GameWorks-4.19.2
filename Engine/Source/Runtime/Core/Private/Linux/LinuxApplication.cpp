@@ -1000,7 +1000,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				}
 
 				FTouchContext NewTouch;
-				NewTouch.TouchIndex = Touches.Num() + 1;	// +1 to mimic Windows behavior (arguably wrong)
+				NewTouch.TouchIndex = Touches.Num();
 				NewTouch.Location = GetTouchEventLocation(Event) + Offset;
 				NewTouch.DeviceId = Event.tfinger.touchId;
 				Touches.Add(FingerId, NewTouch);

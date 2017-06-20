@@ -5,6 +5,8 @@
 #include "MeshUtilities.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
+#include "PackageName.h"
+#include "Package.h"
 
 #define LOCTEXT_NAMESPACE "USDImportPlugin"
 
@@ -180,10 +182,34 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 			ImportedMesh->StaticMaterials.Empty();
 
+			// There must always be one material
+			int32 NumMaterials = FMath::Max<int32>(1, GeomData.MaterialNames.size());
+
+			FString BasePackageName = FPackageName::GetLongPackagePath(ImportedMesh->GetOutermost()->GetName());
+
 			// Add a material slot for each material
-			for (int32 MaterialIdx = 0; MaterialIdx < GeomData.NumMaterials; ++MaterialIdx)
+			for (int32 MaterialIdx = 0; MaterialIdx < NumMaterials; ++MaterialIdx)
 			{
-				ImportedMesh->StaticMaterials.Add(UMaterial::GetDefaultMaterial(MD_Surface));
+				UMaterialInterface* ExistingMaterial = nullptr;
+
+				if(GeomData.MaterialNames.size() > MaterialIdx)
+				{
+					FString MaterialName = USDToUnreal::ConvertString(GeomData.MaterialNames[MaterialIdx]);
+
+					FText Error;
+					BasePackageName /= MaterialName;
+
+					FString MaterialPath = MaterialName;
+
+					ExistingMaterial = UMaterialImportHelpers::FindExistingMaterialFromSearchLocation(MaterialPath, BasePackageName, ImportContext.ImportOptions->MaterialSearchLocation, Error);
+
+					if (!Error.IsEmpty())
+					{
+						ImportContext.AddErrorMessage(EMessageSeverity::Error, Error);
+					}
+				}
+
+				ImportedMesh->StaticMaterials.Add(ExistingMaterial ? ExistingMaterial : UMaterial::GetDefaultMaterial(MD_Surface));
 				ImportedMesh->SectionInfoMap.Set(LODIndex, MaterialIdx, FMeshSectionInfo(MaterialIdx));
 			}
 

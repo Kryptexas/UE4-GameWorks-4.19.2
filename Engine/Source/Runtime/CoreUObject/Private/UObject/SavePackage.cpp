@@ -40,6 +40,7 @@
 #include "UObject/Linker.h"
 #include "UObject/LinkerLoad.h"
 #include "UObject/LinkerSave.h"
+#include "UObject/EditorObjectVersion.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "UObject/Interface.h"
@@ -4129,6 +4130,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				Linker->Summary.GatherableTextDataCount = 0;
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) && bCanCacheGatheredText )
 				{
+					// The Editor version is used as part of the check to see if a package is too old to use the gather cache, so we always have to add it if we have gathered loc for this asset
+					Linker->UsingCustomVersion(FEditorObjectVersion::GUID);
+
 					Linker->Summary.GatherableTextDataOffset = Linker->Tell();
 
 					// Save gatherable text data.

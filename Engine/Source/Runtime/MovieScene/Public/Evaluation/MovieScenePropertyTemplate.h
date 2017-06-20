@@ -15,6 +15,7 @@
 #include "MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "MovieSceneSequence.h"
 #include "MovieScenePropertyTemplate.generated.h"
 
 DECLARE_CYCLE_STAT(TEXT("Property Track Token Execute"), MovieSceneEval_PropertyTrack_TokenExecute, STATGROUP_MovieSceneEval);

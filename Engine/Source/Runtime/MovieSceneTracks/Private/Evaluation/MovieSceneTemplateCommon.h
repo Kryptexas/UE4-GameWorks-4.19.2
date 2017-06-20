@@ -19,6 +19,15 @@ private:
 /** A token that sets a component's relative transform */
 struct F3DTransformTrackToken
 {
+	F3DTransformTrackToken()
+	{
+	}
+
+	F3DTransformTrackToken(FVector InTranslation, FRotator InRotation, FVector InScale)
+		: Translation(InTranslation), Rotation(InRotation), Scale(InScale)
+	{
+	}
+
 	FVector Translation;
 	FRotator Rotation;
 	FVector Scale;

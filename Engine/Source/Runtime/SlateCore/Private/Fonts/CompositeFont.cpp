@@ -61,18 +61,6 @@ FFontData::FFontData(FString InFontFilename, const EFontHinting InHinting, const
 	check(InLoadingPolicy != EFontLoadingPolicy::Inline);
 }
 
-FFontData::FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
-	: FontFilename(MoveTemp(InFontFilename))
-	, Hinting(InHinting)
-	, LoadingPolicy(EFontLoadingPolicy::LazyLoad)
-	, FontFaceAsset(nullptr)
-#if WITH_EDITORONLY_DATA
-	, BulkDataPtr_DEPRECATED(nullptr)
-	, FontData_DEPRECATED()
-#endif // WITH_EDITORONLY_DATA
-{
-}
-
 bool FFontData::HasFont() const
 {
 	FFontFaceDataConstPtr FontFaceData = GetFontFaceData();

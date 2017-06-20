@@ -138,7 +138,7 @@ void SColorGradientEditor::Construct( const FArguments& InArgs )
 	ContextMenuPosition = FVector2D::ZeroVector;
 }
 
-int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
@@ -148,17 +148,17 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 		FGeometry ColorMarkAreaGeometry = GetColorMarkAreaGeometry( AllottedGeometry );
 		FGeometry AlphaMarkAreaGeometry = GetAlphaMarkAreaGeometry( AllottedGeometry );
 
-		FGeometry GradientAreaGeometry = AllottedGeometry.MakeChild( FVector2D(0.0f, 16.0f), FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y - 30.0f ) );
+		FGeometry GradientAreaGeometry = AllottedGeometry.MakeChild( FVector2D(0.0f, 16.0f), FVector2D( AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y - 30.0f ) );
 
 		bool bEnabled = ShouldBeEnabled( bParentEnabled );
 		ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 		// Pixel to value input converter
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, GradientAreaGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, GradientAreaGeometry.GetLocalSize());
 
 		// The start and end location in slate units of the area to draw
 		int32 Start = 0;
-		int32 Finish = FMath::TruncToInt( AllottedGeometry.Size.X );
+		int32 Finish = FMath::TruncToInt( AllottedGeometry.GetLocalSize().X );
 
 		TArray<FSlateGradientStop> Stops;
 
@@ -201,7 +201,6 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 					LayerId,
 					GradientAreaGeometry.ToPaintGeometry(),
 					FEditorStyle::GetBrush("Checkerboard"),
-					MyClippingRect,
 					DrawEffects 
 				);
 			}
@@ -214,7 +213,6 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 				GradientAreaGeometry.ToPaintGeometry(),
 				Stops,
 				Orient_Vertical,
-				MyClippingRect,
 				DrawEffects | ESlateDrawEffect::NoGamma
 			);	
 		}
@@ -232,13 +230,12 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			float XVal = ScaleInfo.InputToLocalX( Mark.Time );
 
 			// Dont draw stops which are not visible
-			if( XVal >= 0 && XVal <= ColorMarkAreaGeometry.Size.X )
+			if( XVal >= 0 && XVal <= ColorMarkAreaGeometry.GetLocalSize().X )
 			{
 				FLinearColor Color = CurveOwner->GetLinearColorValue( Mark.Time );
 				Color.A = 1.0f;
-				DrawGradientStopMark( Mark, ColorMarkAreaGeometry, XVal, Color, OutDrawElements, LayerId, MyClippingRect, DrawEffects, true, InWidgetStyle );
+				DrawGradientStopMark( Mark, ColorMarkAreaGeometry, XVal, Color, OutDrawElements, LayerId, MyCullingRect, DrawEffects, true, InWidgetStyle );
 			}
-
 		}
 
 		// Draw each alpha stop
@@ -249,12 +246,11 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			float XVal = ScaleInfo.InputToLocalX( Mark.Time );
 		
 			// Dont draw stops which are not visible
-			if( XVal >= 0 && XVal <= AlphaMarkAreaGeometry.Size.X )
+			if( XVal >= 0 && XVal <= AlphaMarkAreaGeometry.GetLocalSize().X )
 			{
 				float Alpha = CurveOwner->GetLinearColorValue( Mark.Time ).A;
-				DrawGradientStopMark( Mark, AlphaMarkAreaGeometry, XVal, FLinearColor( Alpha, Alpha, Alpha, 1.0f ), OutDrawElements, LayerId, MyClippingRect, DrawEffects, false, InWidgetStyle );
+				DrawGradientStopMark( Mark, AlphaMarkAreaGeometry, XVal, FLinearColor( Alpha, Alpha, Alpha, 1.0f ), OutDrawElements, LayerId, MyCullingRect, DrawEffects, false, InWidgetStyle );
 			}
-
 		}
 
 		// Draw some hint messages about how to add stops if no stops exist
@@ -266,7 +262,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Draw the text centered in the color region
 			{
 				FVector2D StringSize = FontMeasureService->Measure( GradientColorMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
-				FPaintGeometry PaintGeom = ColorMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((ColorMarkAreaGeometry.Size.X - StringSize.X) * 0.5f, 1.0f)));
+				FPaintGeometry PaintGeom = ColorMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((ColorMarkAreaGeometry.GetLocalSize().X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
 				( 
@@ -275,7 +271,6 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 					PaintGeom,
 					GradientColorMessage,
 					FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ),
-					MyClippingRect,
 					DrawEffects,
 					FLinearColor( .5f, .5f, .5f, .85f )
 				);	
@@ -284,7 +279,7 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 			// Draw the text centered in the alpha region
 			{
 				FVector2D StringSize = FontMeasureService->Measure( GradientAlphaMessage, FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ) );
-				FPaintGeometry PaintGeom = AlphaMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((AlphaMarkAreaGeometry.Size.X - StringSize.X) * 0.5f, 1.0f)));
+				FPaintGeometry PaintGeom = AlphaMarkAreaGeometry.ToPaintGeometry(FSlateLayoutTransform(FVector2D((AlphaMarkAreaGeometry.GetLocalSize().X - StringSize.X) * 0.5f, 1.0f)));
 
 				FSlateDrawElement::MakeText
 				( 
@@ -293,7 +288,6 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 					PaintGeom,
 					GradientAlphaMessage,
 					FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 ),
-					MyClippingRect,
 					DrawEffects,
 					FLinearColor( .5f, .5f, .5f, .85f )
 				);	
@@ -374,7 +368,7 @@ FReply SColorGradientEditor::OnMouseMove( const FGeometry& MyGeometry, const FPo
 			else
 			{
 				// Already dragging a stop, move it
-				FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.Size);
+				FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.GetLocalSize());
 				float MouseTime = ScaleInfo.LocalXToInput( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ).X );
 				MoveStop( SelectedStop, MouseTime );
 
@@ -712,7 +706,6 @@ void SColorGradientEditor::DrawGradientStopMark( const FGradientStopMark& Mark, 
 		LayerId,
 		Geometry.ToPaintGeometry( FVector2D( XPos-HandleRect.Left, HandleRect.Top ), FVector2D( HandleRect.Right, HandleRect.Bottom ) ),
 		bColor ? ColorStopBrush : AlphaStopBrush,
-		InClippingRect,
 		DrawEffects,
 		bSelected ? SelectionColor : FLinearColor::White
 	);
@@ -724,19 +717,18 @@ void SColorGradientEditor::DrawGradientStopMark( const FGradientStopMark& Mark, 
 		LayerId+1,
 		Geometry.ToPaintGeometry( FVector2D( XPos-HandleRect.Left+3, bColor ? HandleRect.Top+3.0f : HandleRect.Top+6), FVector2D( HandleRect.Right-6, HandleRect.Bottom-9 ) ),
 		WhiteBrush,
-		InClippingRect,
 		DrawEffects,
 		Color.ToFColor(false)
 	);
 }
 FGeometry SColorGradientEditor::GetColorMarkAreaGeometry( const FGeometry& InGeometry ) const
 {
-	return InGeometry.MakeChild( FVector2D( 0.0f, 0.0f), FVector2D( InGeometry.Size.X, 16.0f ) );
+	return InGeometry.MakeChild( FVector2D( 0.0f, 0.0f), FVector2D( InGeometry.GetLocalSize().X, 16.0f ) );
 }
 
 FGeometry SColorGradientEditor::GetAlphaMarkAreaGeometry( const FGeometry& InGeometry ) const
 {
-	return InGeometry.MakeChild( FVector2D( 0.0f, InGeometry.Size.Y-14.0f), FVector2D( InGeometry.Size.X, 16.0f ) );
+	return InGeometry.MakeChild( FVector2D( 0.0f, InGeometry.GetLocalSize().Y-14.0f), FVector2D( InGeometry.GetLocalSize().X, 16.0f ) );
 }
 
 FGradientStopMark SColorGradientEditor::GetGradientStopAtPoint( const FVector2D& MousePos, const FGeometry& MyGeometry )
@@ -744,7 +736,7 @@ FGradientStopMark SColorGradientEditor::GetGradientStopAtPoint( const FVector2D&
 	FGeometry ColorMarkAreaGeometry = GetColorMarkAreaGeometry( MyGeometry );
 	FGeometry AlphaMarkAreaGeometry = GetAlphaMarkAreaGeometry( MyGeometry );
 
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.GetLocalSize());
 
 	if( ColorMarkAreaGeometry.IsUnderLocation( MousePos ) || AlphaMarkAreaGeometry.IsUnderLocation( MousePos ) )
 	{
@@ -865,7 +857,7 @@ FGradientStopMark SColorGradientEditor::AddStop( const FVector2D& Position, cons
 
 	CurveOwner->ModifyOwner();
 
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), 0.0f, 1.0f, MyGeometry.GetLocalSize());
 
 	FVector2D LocalPos = MyGeometry.AbsoluteToLocal( Position );
 

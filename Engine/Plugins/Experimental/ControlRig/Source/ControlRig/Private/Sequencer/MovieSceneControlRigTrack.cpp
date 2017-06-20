@@ -17,7 +17,7 @@ UMovieSceneControlRigTrack::UMovieSceneControlRigTrack(const FObjectInitializer&
 	TrackTint = FColor(108, 53, 0, 65);
 #endif
 
-	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
+	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 void UMovieSceneControlRigTrack::AddNewControlRig(float KeyTime, UControlRigSequence* InSequence)

@@ -4,8 +4,11 @@
 
 #include "AcquiredResources.h"
 #include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
 #include "Layout/Visibility.h"
-
+#include "ISceneOutlinerColumn.h"
+#include "UObject/ObjectKey.h"
+#include "ISequencer.h"
 
 class AActor;
 class FExtender;
@@ -16,6 +19,7 @@ class ILevelViewport;
 class ISequencer;
 class SViewportTransportControls;
 class ULevel;
+struct FPropertyAndParent;
 
 
 struct FLevelEditorSequencerIntegrationOptions
@@ -29,6 +33,38 @@ struct FLevelEditorSequencerIntegrationOptions
 	bool bRequiresLevelEvents : 1;
 	bool bRequiresActorEvents : 1;
 	bool bCanRecord : 1;
+};
+
+
+class FLevelEditorSequencerBindingData : public TSharedFromThis<FLevelEditorSequencerBindingData>
+{
+public:
+	FLevelEditorSequencerBindingData() 
+		: bActorBindingsDirty(true)
+		, bPropertyBindingsDirty(true)
+	{}
+
+	DECLARE_MULTICAST_DELEGATE(FActorBindingsDataChanged);
+	DECLARE_MULTICAST_DELEGATE(FPropertyBindingsDataChanged);
+
+	FActorBindingsDataChanged& OnActorBindingsDataChanged() { return ActorBindingsDataChanged; }
+	FPropertyBindingsDataChanged& OnPropertyBindingsDataChanged() { return PropertyBindingsDataChanged; }
+
+	FString GetLevelSequencesForActor(TWeakPtr<FSequencer> Sequencer, const AActor*);
+	bool GetIsPropertyBound(TWeakPtr<FSequencer> Sequencer, const struct FPropertyAndParent&);
+
+	bool bActorBindingsDirty;
+	bool bPropertyBindingsDirty;
+
+private:
+	void UpdateActorBindingsData(TWeakPtr<FSequencer> InSequencer);
+	void UpdatePropertyBindingsData(TWeakPtr<FSequencer> InSequencer);
+
+	TMap< FObjectKey, FString > ActorBindingsMap;
+	TMap< FObjectKey, TArray<FString> > PropertyBindingsMap;
+
+	FActorBindingsDataChanged ActorBindingsDataChanged;
+	FPropertyBindingsDataChanged PropertyBindingsDataChanged;
 };
 
 
@@ -94,6 +130,21 @@ private:
 	/** Called when sequencer has been evaluated */
 	void OnSequencerEvaluated();
 
+	/** Called when bindings have changed */
+	void OnMovieSceneBindingsChanged();
+
+	/** Called when data has changed */
+	void OnMovieSceneDataChanged(EMovieSceneDataChangeType DataChangeType);
+
+	/** Called when allow edits mode has changed */
+	void OnAllowEditsModeChanged(EAllowEditsMode AllowEditsMode);
+
+	/** Called when the user begins scrubbing */
+	void OnBeginScrubbing();
+
+	/** Called when the user stops scrubbing */
+	void OnEndScrubbing();
+
 	void OnPropertyEditorOpened();
 
 	TSharedRef<FExtender> GetLevelViewportExtender(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors);
@@ -107,18 +158,36 @@ private:
 	/** Create a menu entry we can use to toggle the transport controls */
 	void CreateTransportToggleMenuEntry(FMenuBuilder& MenuBuilder);
 
+	bool IsPropertyReadOnly(const FPropertyAndParent& InPropertyAndParent);
+
 private:
 
 	void ActivateSequencerEditorMode();
 	void AddLevelViewportMenuExtender();
-	void ActivateDetailKeyframeHandler();
+	void ActivateDetailHandler();
 	void AttachTransportControlsToViewports();
 	void DetachTransportControlsFromViewports();
+	void AttachOutlinerColumn();
+	void DetachOutlinerColumn();
+	void ActivateRealtimeViewports();
+	void RestoreRealtimeViewports();
 	void BindLevelEditorCommands();
+
+	struct FSequencerAndOptions
+	{
+		TWeakPtr<FSequencer> Sequencer;
+		FLevelEditorSequencerIntegrationOptions Options;
+		FAcquiredResources AcquiredResources;
+		TSharedRef<FLevelEditorSequencerBindingData> BindingData;
+	};
+	TArray<FSequencerAndOptions> BoundSequencers;
+
+	TSharedRef< ISceneOutlinerColumn > CreateSequencerInfoColumn( ISceneOutliner& SceneOutliner ) const;
 
 private:
 
 	void IterateAllSequencers(TFunctionRef<void(FSequencer&, const FLevelEditorSequencerIntegrationOptions& Options)>) const;
+	void UpdateDetails(bool bForceRefresh = false);
 
 	FLevelEditorSequencerIntegration();
 
@@ -126,14 +195,6 @@ private:
 
 	friend SViewportTransportControls;
 	
-	struct FSequencerAndOptions
-	{
-		TWeakPtr<FSequencer> Sequencer;
-		FLevelEditorSequencerIntegrationOptions Options;
-		FAcquiredResources AcquiredResources;
-	};
-	TArray<FSequencerAndOptions> BoundSequencers;
-
 	/** A map of all the transport controls to viewports that this sequencer has made */
 	struct FTransportControl
 	{
@@ -145,4 +206,6 @@ private:
 	FAcquiredResources AcquiredResources;
 
 	TSharedPtr<class FDetailKeyframeHandlerWrapper> KeyFrameHandler;
+
+	bool bScrubbing;
 };

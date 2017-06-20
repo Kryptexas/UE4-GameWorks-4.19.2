@@ -257,17 +257,11 @@ TSharedPtr<HandlerComponent> PacketHandler::AddHandler(FString ComponentStr, boo
 			// @todo #JohnB: Deprecate non-factory components eventually
 			else
 			{
-				TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentName));
+				FPacketHandlerComponentModuleInterface* PacketHandlerInterface = FModuleManager::Get().LoadModulePtr<FPacketHandlerComponentModuleInterface>(FName(*ComponentName));
 
-				if (Interface.IsValid())
+				if (PacketHandlerInterface)
 				{
-					TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface =
-						StaticCastSharedPtr<FPacketHandlerComponentModuleInterface>(Interface);
-
-					if (PacketHandlerInterface.IsValid())
-					{
-						ReturnVal = PacketHandlerInterface->CreateComponentInstance(ComponentOptions);
-					}
+					ReturnVal = PacketHandlerInterface->CreateComponentInstance(ComponentOptions);
 				}
 				else
 				{

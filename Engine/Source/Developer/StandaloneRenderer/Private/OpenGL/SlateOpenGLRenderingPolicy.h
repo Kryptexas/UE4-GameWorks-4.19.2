@@ -12,6 +12,7 @@
 #include "OpenGL/SlateOpenGLShaders.h"
 #include "OpenGL/SlateOpenGLIndexBuffer.h"
 #include "OpenGL/SlateOpenGLVertexBuffer.h"
+#include "Layout/Clipping.h"
 
 class FSlateOpenGLTexture;
 
@@ -34,7 +35,7 @@ public:
 	 * @param ViewProjectionMatrix	The view projection matrix to pass to the vertex shader
 	 * @param RenderBatches			A list of batches that should be rendered.
 	 */
-	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
+	void DrawElements( const FMatrix& ViewProjectionMatrix, FVector2D ViewportSize, const TArray<FSlateRenderBatch>& RenderBatches, const TArray<FSlateClippingState> RenderClipStates);
 
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() const override;
 

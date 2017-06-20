@@ -28,7 +28,7 @@ public:
 
 	void ToggleExpansion();
 
-	void SetExpansionState(bool bWantsExpanded);
+	void SetExpansionState(bool bWantsExpanded, bool bSaveState);
 
 	/**
 	 * Generates children for this node
@@ -51,7 +51,7 @@ public:
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
 	virtual void GetChildren( FDetailNodeList& OutChildren )  override;
-	virtual void OnItemExpansionChanged( bool bInIsExpanded ) override;
+	virtual void OnItemExpansionChanged( bool bInIsExpanded, bool bShouldSaveState) override;
 	virtual bool ShouldBeExpanded() const override;
 	virtual ENodeVisibility GetVisibility() const override;
 	virtual void FilterNode( const FDetailFilter& InFilter ) override;

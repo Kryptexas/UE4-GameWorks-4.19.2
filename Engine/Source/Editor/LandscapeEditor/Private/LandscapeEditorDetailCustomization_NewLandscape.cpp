@@ -1328,7 +1328,7 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildre
 	Result = PropertyHandle_ThumbnailMIC->GetValue(ThumbnailMIC);
 	checkSlow(Result == FPropertyAccess::Success);
 
-	ChildBuilder.AddChildContent(LayerNameText)
+	ChildBuilder.AddCustomRow(LayerNameText)
 	.NameContent()
 	[
 		SNew(SHorizontalBox)

@@ -12,6 +12,8 @@ void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const T
 	bValueDiffersFromDefault = false;
 	OptionalCustomResetToDefault = InArgs._CustomResetToDefault;
 
+	InPropertyHandle->MarkResetToDefaultCustomized();
+
 	if (OptionalCustomResetToDefault.IsSet())
 	{
 		ChildSlot
@@ -90,7 +92,7 @@ FReply SResetToDefaultPropertyEditor::OnCustomResetClicked()
 {
 	if (PropertyHandle.IsValid())
 	{
-		PropertyHandle->CustomResetToDefault(OptionalCustomResetToDefault.GetValue());
+		PropertyHandle->ExecuteCustomResetToDefault(OptionalCustomResetToDefault.GetValue());
 	}
 	return FReply::Handled();
 }
@@ -105,7 +107,7 @@ void SResetToDefaultPropertyEditor::UpdateDiffersFromDefaultState()
 		}
 		else
 		{
-			bValueDiffersFromDefault = PropertyHandle->IsResetToDefaultAvailable();
+			bValueDiffersFromDefault = PropertyHandle->CanResetToDefault();
 		}
 	}
 }

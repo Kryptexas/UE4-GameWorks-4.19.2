@@ -282,14 +282,14 @@ void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
 
 	// Detect calls where the path is not absolute
-	check(IsRootedPath(AdditionalDir));
+	checkf(IsRootedPath(AdditionalDir), TEXT("%s is not rooted"), *AdditionalDir);
 	AdditionalPluginDirectories.AddUnique(AdditionalDir);
 }
 
 void FProjectDescriptor::RemovePluginDirectory(const FString& Dir)
 {
 	// Detect calls where the path is not absolute
-	check(IsRootedPath(Dir));
+	checkf(IsRootedPath(Dir), TEXT("%s is not rooted"), *Dir);
 	AdditionalPluginDirectories.RemoveSingle(Dir);
 }
 

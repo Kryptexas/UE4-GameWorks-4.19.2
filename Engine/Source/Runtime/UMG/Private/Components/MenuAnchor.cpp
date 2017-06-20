@@ -40,7 +40,7 @@ TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 		MyMenuAnchor->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
-	return BuildDesignTimeWidget( MyMenuAnchor.ToSharedRef() );
+	return MyMenuAnchor.ToSharedRef();
 }
 
 void UMenuAnchor::OnSlotAdded(UPanelSlot* InSlot)

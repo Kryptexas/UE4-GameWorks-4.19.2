@@ -184,9 +184,9 @@ void SNiagaraGraphNodeConvert::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 
 float DirectionOffset = 100;
 
-int32 SNiagaraGraphNodeConvert::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SNiagaraGraphNodeConvert::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	int32 NewLayerId = SGraphNode::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 NewLayerId = SGraphNode::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	UNiagaraNodeConvert* ConvertNode = Cast<UNiagaraNodeConvert>(GraphNode);
 	if (ConvertNode != nullptr && ConvertNode->IsWiringShown() == false)
@@ -220,7 +220,6 @@ int32 SNiagaraGraphNodeConvert::OnPaint(const FPaintArgs& Args, const FGeometry&
 				StartDirection,
 				LocalEnd,
 				EndDirection,
-				MyClippingRect,
 				2);
 		}
 		
@@ -256,7 +255,6 @@ int32 SNiagaraGraphNodeConvert::OnPaint(const FPaintArgs& Args, const FGeometry&
 				StartDirection,
 				LocalEnd,
 				EndDirection,
-				MyClippingRect,
 				2);
 		}
 	}

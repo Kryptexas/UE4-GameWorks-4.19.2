@@ -71,7 +71,7 @@ void SButton::Construct( const FArguments& InArgs )
 	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
 }
 
-int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	bool bEnabled = ShouldBeEnabled(bParentEnabled);
 	bool bShowDisabledEffect = GetShowDisabledEffect();
@@ -87,13 +87,12 @@ int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			BrushResource,
-			MyClippingRect,
 			DrawEffects,
 			BrushResource->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor(InWidgetStyle)
 			);
 	}
 
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith(AllottedGeometry.GetClippingRect()), OutDrawElements, LayerId, InWidgetStyle, bEnabled);
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled);
 }
 
 FMargin SButton::GetCombinedPadding() const

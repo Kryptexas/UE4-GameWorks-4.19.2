@@ -107,11 +107,14 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "AutomatedAssetImportData.h"
+#include "DlgPickPath.h"
+#include "FeedbackContext.h"
+#include "BusyCursor.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 
  
-TScriptInterface<IAssetTools> UEditorScriptAccessors::GetAssetTools()
+TScriptInterface<IAssetTools> UAssetToolsHelpers::GetAssetTools()
 {
 	return &UAssetToolsImpl::Get();
 }
@@ -676,6 +679,60 @@ TArray<UObject*> UAssetToolsImpl::ImportAssetsAutomated(const UAutomatedAssetImp
 	Params.ImportData = ImportData;
 
 	return ImportAssetsInternal(ImportData->Filenames, ImportData->DestinationPath, nullptr, Params);
+}
+
+void UAssetToolsImpl::ExportAssets(const TArray<FString>& AssetsToExport, const FString& ExportPath) const
+{
+	TArray<UObject*> AssetObjectsToExport;
+	AssetObjectsToExport.Reserve(AssetsToExport.Num());
+
+	for (const FString& AssetStr : AssetsToExport)
+	{
+		UObject* Asset = LoadObject<UObject>(nullptr, *AssetStr);
+		if (Asset)
+		{
+			AssetObjectsToExport.Add(Asset);
+		}
+		else
+		{
+			UE_LOG(LogAssetTools, Error, TEXT("Could not load asset '%s' to export it"), *AssetStr);
+		}
+	}
+
+	const bool bPromptIndividualFilenames = false;
+	ExportAssetsInternal(AssetObjectsToExport, bPromptIndividualFilenames, ExportPath);
+}
+
+void UAssetToolsImpl::ExportAssets(const TArray<UObject*>& AssetsToExport, const FString& ExportPath) const
+{
+	const bool bPromptIndividualFilenames = false;
+	ExportAssetsInternal(AssetsToExport, bPromptIndividualFilenames, ExportPath);
+}
+
+void UAssetToolsImpl::ExportAssetsWithDialog(const TArray<UObject*>& AssetsToExport, bool bPromptForIndividualFilenames) const
+{
+	ExportAssetsInternal(AssetsToExport, bPromptForIndividualFilenames, TEXT(""));
+}
+
+void UAssetToolsImpl::ExportAssetsWithDialog(const TArray<FString>& AssetsToExport, bool bPromptForIndividualFilenames) const
+{
+	TArray<UObject*> AssetObjectsToExport;
+	AssetObjectsToExport.Reserve(AssetsToExport.Num());
+
+	for (const FString& AssetStr : AssetsToExport)
+	{
+		UObject* Asset = LoadObject<UObject>(nullptr, *AssetStr);
+		if (Asset)
+		{
+			AssetObjectsToExport.Add(Asset);
+		}
+		else
+		{
+			UE_LOG(LogAssetTools, Error, TEXT("Could not load asset '%s' to export it"), *AssetStr);
+		}
+	}
+
+	ExportAssetsInternal(AssetObjectsToExport, bPromptForIndividualFilenames, TEXT(""));
 }
 
 void UAssetToolsImpl::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
@@ -1531,6 +1588,299 @@ TArray<UObject*> UAssetToolsImpl::ImportAssetsInternal(const TArray<FString>& Fi
 	}
 
 	return ReturnObjects;
+}
+
+void UAssetToolsImpl::ExportAssetsInternal(const TArray<UObject*>& ObjectsToExport, bool bPromptIndividualFilenames, const FString& ExportPath) const
+{
+	FString LastExportPath = !ExportPath.IsEmpty() ? ExportPath : FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT);
+
+	if (ObjectsToExport.Num() == 0)
+	{
+		return;
+	}
+
+	FString SelectedExportPath;
+	if (!bPromptIndividualFilenames)
+	{
+		if (ExportPath.IsEmpty())
+		{
+			// If not prompting individual files, prompt the user to select a target directory.
+			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+			if (DesktopPlatform)
+			{
+				FString FolderName;
+				const FString Title = NSLOCTEXT("UnrealEd", "ChooseADirectory", "Choose A Directory").ToString();
+				const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
+					FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
+					Title,
+					LastExportPath,
+					FolderName
+				);
+
+				if (bFolderSelected)
+				{
+					SelectedExportPath = FolderName;
+				}
+			}
+		}
+		else
+		{
+			SelectedExportPath = ExportPath;
+		}
+
+		// Copy off the selected path for future export operations.
+		LastExportPath = SelectedExportPath;
+	}
+
+	GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "Exporting", "Exporting"), true);
+
+	// Create an array of all available exporters.
+	TArray<UExporter*> Exporters;
+	ObjectTools::AssembleListOfExporters(Exporters);
+
+	// Export the objects.
+	bool bAnyObjectMissingSourceData = false;
+	for (int32 Index = 0; Index < ObjectsToExport.Num(); Index++)
+	{
+		GWarn->StatusUpdate(Index, ObjectsToExport.Num(), FText::Format(NSLOCTEXT("UnrealEd", "Exportingf", "Exporting ({0} of {1})"), FText::AsNumber(Index), FText::AsNumber(ObjectsToExport.Num())));
+
+		UObject* ObjectToExport = ObjectsToExport[Index];
+		if (!ObjectToExport)
+		{
+			continue;
+		}
+
+		// Find all the exporters that can export this type of object and construct an export file dialog.
+		TArray<FString> AllFileTypes;
+		TArray<FString> AllExtensions;
+		TArray<FString> PreferredExtensions;
+
+		// Iterate in reverse so the most relevant file formats are considered first.
+		for (int32 ExporterIndex = Exporters.Num() - 1; ExporterIndex >= 0; --ExporterIndex)
+		{
+			UExporter* Exporter = Exporters[ExporterIndex];
+			if (Exporter->SupportedClass)
+			{
+				const bool bObjectIsSupported = Exporter->SupportsObject(ObjectToExport);
+				if (bObjectIsSupported)
+				{
+					// Get a string representing of the exportable types.
+					check(Exporter->FormatExtension.Num() == Exporter->FormatDescription.Num());
+					check(Exporter->FormatExtension.IsValidIndex(Exporter->PreferredFormatIndex));
+					for (int32 FormatIndex = Exporter->FormatExtension.Num() - 1; FormatIndex >= 0; --FormatIndex)
+					{
+						const FString& FormatExtension = Exporter->FormatExtension[FormatIndex];
+						const FString& FormatDescription = Exporter->FormatDescription[FormatIndex];
+
+						if (FormatIndex == Exporter->PreferredFormatIndex)
+						{
+							PreferredExtensions.Add(FormatExtension);
+						}
+						AllFileTypes.Add(FString::Printf(TEXT("%s (*.%s)|*.%s"), *FormatDescription, *FormatExtension, *FormatExtension));
+						AllExtensions.Add(FString::Printf(TEXT("*.%s"), *FormatExtension));
+					}
+				}
+			}
+		}
+
+		// Skip this object if no exporter found for this resource type.
+		if (PreferredExtensions.Num() == 0)
+		{
+			continue;
+		}
+
+		// If FBX is listed, make that the most preferred option
+		const FString PreferredExtension = TEXT("FBX");
+		int32 ExtIndex = PreferredExtensions.Find(PreferredExtension);
+		if (ExtIndex > 0)
+		{
+			PreferredExtensions.RemoveAt(ExtIndex);
+			PreferredExtensions.Insert(PreferredExtension, 0);
+		}
+		FString FirstExtension = PreferredExtensions[0];
+
+		// If FBX is listed, make that the first option here too, then compile them all into one string
+		check(AllFileTypes.Num() == AllExtensions.Num())
+			for (ExtIndex = 1; ExtIndex < AllFileTypes.Num(); ++ExtIndex)
+			{
+				const FString FileType = AllFileTypes[ExtIndex];
+				if (FileType.Contains(PreferredExtension))
+				{
+					AllFileTypes.RemoveAt(ExtIndex);
+					AllFileTypes.Insert(FileType, 0);
+
+					const FString Extension = AllExtensions[ExtIndex];
+					AllExtensions.RemoveAt(ExtIndex);
+					AllExtensions.Insert(Extension, 0);
+				}
+			}
+		FString FileTypes;
+		FString Extensions;
+		for (ExtIndex = 0; ExtIndex < AllFileTypes.Num(); ++ExtIndex)
+		{
+			if (FileTypes.Len())
+			{
+				FileTypes += TEXT("|");
+			}
+			FileTypes += AllFileTypes[ExtIndex];
+
+			if (Extensions.Len())
+			{
+				Extensions += TEXT(";");
+			}
+			Extensions += AllExtensions[ExtIndex];
+		}
+		FileTypes = FString::Printf(TEXT("%s|All Files (%s)|%s"), *FileTypes, *Extensions, *Extensions);
+
+		FString SaveFileName;
+		if (bPromptIndividualFilenames)
+		{
+			TArray<FString> SaveFilenames;
+			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+			bool bSave = false;
+			if (DesktopPlatform)
+			{
+				bSave = DesktopPlatform->SaveFileDialog(
+					FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
+					FText::Format(NSLOCTEXT("UnrealEd", "Save_F", "Save: {0}"), FText::FromString(ObjectToExport->GetName())).ToString(),
+					*LastExportPath,
+					*ObjectToExport->GetName(),
+					*FileTypes,
+					EFileDialogFlags::None,
+					SaveFilenames
+				);
+			}
+
+			if (!bSave)
+			{
+				int32 NumObjectsLeftToExport = ObjectsToExport.Num() - Index - 1;
+				if (NumObjectsLeftToExport > 0)
+				{
+					const FText ConfirmText = FText::Format(NSLOCTEXT("UnrealEd", "AssetTools_ExportObjects_CancelRemaining", "Would you like to cancel exporting the next {0} files as well?"), FText::AsNumber(NumObjectsLeftToExport));
+					if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, ConfirmText))
+					{
+						break;
+					}
+				}
+				continue;
+			}
+			SaveFileName = FString(SaveFilenames[0]);
+
+			// Copy off the selected path for future export operations.
+			LastExportPath = SaveFileName;
+		}
+		else
+		{
+			// Assemble a filename from the export directory and the object path.
+			SaveFileName = SelectedExportPath;
+
+			if (!FPackageName::IsShortPackageName(ObjectToExport->GetOutermost()->GetFName()))
+			{
+				// Determine the save file name from the long package name
+				FString PackageName = ObjectToExport->GetOutermost()->GetName();
+				if (PackageName.Left(1) == TEXT("/"))
+				{
+					// Trim the leading slash so the file manager doesn't get confused
+					PackageName = PackageName.Mid(1);
+				}
+
+				FPaths::NormalizeFilename(PackageName);
+				SaveFileName /= PackageName;
+			}
+			else
+			{
+				// Assemble the path from the package name.
+				SaveFileName /= ObjectToExport->GetOutermost()->GetName();
+				SaveFileName /= ObjectToExport->GetName();
+			}
+			SaveFileName += FString::Printf(TEXT(".%s"), *FirstExtension);
+			UE_LOG(LogAssetTools, Log, TEXT("Exporting \"%s\" to \"%s\""), *ObjectToExport->GetPathName(), *SaveFileName);
+		}
+
+		// Create the path, then make sure the target file is not read-only.
+		const FString ObjectExportPath(FPaths::GetPath(SaveFileName));
+		const bool bFileInSubdirectory = ObjectExportPath.Contains(TEXT("/"));
+		if (bFileInSubdirectory && (!IFileManager::Get().MakeDirectory(*ObjectExportPath, true)))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_FailedToMakeDirectory", "Failed to make directory {0}"), FText::FromString(ObjectExportPath)));
+		}
+		else if (IFileManager::Get().IsReadOnly(*SaveFileName))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_CouldntWriteToFile_F", "Couldn't write to file '{0}'. Maybe file is read-only?"), FText::FromString(SaveFileName)));
+		}
+		else
+		{
+			// We have a writeable file.  Now go through that list of exporters again and find the right exporter and use it.
+			TArray<UExporter*>	ValidExporters;
+
+			for (int32 ExporterIndex = 0; ExporterIndex < Exporters.Num(); ++ExporterIndex)
+			{
+				UExporter* Exporter = Exporters[ExporterIndex];
+				if (Exporter->SupportsObject(ObjectToExport))
+				{
+					check(Exporter->FormatExtension.Num() == Exporter->FormatDescription.Num());
+					for (int32 FormatIndex = 0; FormatIndex < Exporter->FormatExtension.Num(); ++FormatIndex)
+					{
+						const FString& FormatExtension = Exporter->FormatExtension[FormatIndex];
+						if (FCString::Stricmp(*FormatExtension, *FPaths::GetExtension(SaveFileName)) == 0 ||
+							FCString::Stricmp(*FormatExtension, TEXT("*")) == 0)
+						{
+							ValidExporters.Add(Exporter);
+							break;
+						}
+					}
+				}
+			}
+
+			// Handle the potential of multiple exporters being found
+			UExporter* ExporterToUse = NULL;
+			if (ValidExporters.Num() == 1)
+			{
+				ExporterToUse = ValidExporters[0];
+			}
+			else if (ValidExporters.Num() > 1)
+			{
+				// Set up the first one as default
+				ExporterToUse = ValidExporters[0];
+
+				// ...but search for a better match if available
+				for (int32 ExporterIdx = 0; ExporterIdx < ValidExporters.Num(); ExporterIdx++)
+				{
+					if (ValidExporters[ExporterIdx]->GetClass()->GetFName() == ObjectToExport->GetExporterName())
+					{
+						ExporterToUse = ValidExporters[ExporterIdx];
+						break;
+					}
+				}
+			}
+
+			// If an exporter was found, use it.
+			if (ExporterToUse)
+			{
+				const FScopedBusyCursor BusyCursor;
+
+				UExporter::FExportToFileParams Params;
+				Params.Object = ObjectToExport;
+				Params.Exporter = ExporterToUse;
+				Params.Filename = *SaveFileName;
+				Params.InSelectedOnly = false;
+				Params.NoReplaceIdentical = false;
+				Params.Prompt = false;
+				Params.bUseFileArchive = ObjectToExport->IsA(UPackage::StaticClass());
+				Params.WriteEmptyFiles = false;
+				UExporter::ExportToFileEx(Params);
+			}
+		}
+	}
+
+	if (bAnyObjectMissingSourceData)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Exporter_Error_SourceDataUnavailable", "No source data available for some objects.  See the log for details."));
+	}
+
+	GWarn->EndSlowTask();
+
+	FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, LastExportPath);
 }
 
 UAssetToolsImpl& UAssetToolsImpl::Get()

@@ -170,6 +170,16 @@ FText SEditableTextBox::GetSelectedText() const
 	return EditableText->GetSelectedText();
 }
 
+void SEditableTextBox::GoTo(const FTextLocation& NewLocation)
+{
+	EditableText->GoTo(NewLocation);
+}
+
+void SEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
+{
+	EditableText->ScrollTo(NewLocation);
+}
+
 bool SEditableTextBox::HasError() const
 {
 	return ErrorReporting.IsValid() && ErrorReporting->HasError();

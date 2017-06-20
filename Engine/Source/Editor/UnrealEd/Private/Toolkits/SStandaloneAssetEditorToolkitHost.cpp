@@ -8,9 +8,9 @@
 #include "Framework/Application/SlateApplication.h"
 #include "EditorStyleSet.h"
 #include "Toolkits/ToolkitManager.h"
-#include "SuperSearchModule.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "StandaloneAssetEditorToolkit"
 
@@ -126,11 +126,6 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 	TSharedPtr<SWidget> RestoredUI = MyTabManager->RestoreFrom( NewLayout, ParentWindow );
 
 	checkf(RestoredUI.IsValid(), TEXT("The layout must have a primary dock area") );
-
-#if !PLATFORM_MAC
-	TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
-	TSharedRef<SWidget> SuperSearchWidget = FSuperSearchModule::Get().MakeSearchBox(ExposedEditableTextBox);
-#endif
 	
 	MenuOverlayWidgetContent.Reset();
 	MenuWidgetContent.Reset();
@@ -162,16 +157,7 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 							SAssignNew(MenuOverlayWidgetContent, SBorder)
 							.Padding(0)
 							.BorderImage(FEditorStyle::GetBrush("NoBorder"))
-						]
-
-#if !PLATFORM_MAC
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(FMargin(2.f, 0, 2.f, 0))
-						[
-							SuperSearchWidget
-						]
-#endif						
+						]				
 					]
 				]
 			// Viewport/Document/Docking area

@@ -75,7 +75,8 @@ void SDetailsViewBase::SetNodeExpansionState(TSharedRef<IDetailTreeNode> InTreeN
 	if (Children.Num())
 	{
 		RequestItemExpanded(InTreeNode, bIsItemExpanded);
-		InTreeNode->OnItemExpansionChanged(bIsItemExpanded);
+		const bool bShouldSaveState = true;
+		InTreeNode->OnItemExpansionChanged(bIsItemExpanded, bShouldSaveState);
 
 		if (bRecursive)
 		{
@@ -377,7 +378,7 @@ void SDetailsViewBase::UpdatePropertyMaps()
 	}
 }
 
-void SDetailsViewBase::UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode>& InRootPropertyNode, FDetailLayoutData& LayoutData)
+void SDetailsViewBase::UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData)
 {
 	// Reset everything
 	LayoutData.ClassToPropertyMap.Empty();
@@ -497,7 +498,16 @@ void SDetailsViewBase::UpdateSinglePropertyMapRecursive(FPropertyNode& InNode, F
 				// Children of arrays are not visible directly,
 				bVisibleByDefault &= !bIsChildOfContainer;
 
-				FPropertyAndParent PropertyAndParent(*Property, ParentProperty);
+				TArray< TWeakObjectPtr< UObject> > Objects;
+				if (CurObjectNode && CurObjectNode->AsObjectNode())
+				{
+					for (int32 ObjectIndex = 0; ObjectIndex < CurObjectNode->AsObjectNode()->GetNumObjects(); ++ObjectIndex)
+					{
+						Objects.Add(CurObjectNode->AsObjectNode()->GetUObject(ObjectIndex));
+					}
+				}
+
+				FPropertyAndParent PropertyAndParent(*Property, ParentProperty, Objects);
 				const bool bIsUserVisible = IsPropertyVisible(PropertyAndParent);
 
 				// Inners of customized in structs should not be taken into consideration for customizing.  They are not designed to be individually customized when their parent is already customized
@@ -866,7 +876,7 @@ void SDetailsViewBase::FilterView(const FString& InFilterText)
 	UpdateFilteredDetails();
 }
 
-void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class)
+void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class) const
 {
 	LayoutData.DetailLayout->SetCurrentCustomizationClass(Class, NAME_None);
 
@@ -874,7 +884,7 @@ void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruc
 	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 
 	// Check the instanced map first
-	FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
+	const FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 	if (!Callback)
 	{
@@ -895,12 +905,12 @@ void SDetailsViewBase::QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruc
 	}
 }
 
-void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
+void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData) const
 {
 	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	// Get the registered classes that customize details
-	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
+	const FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 
 	UStruct* BaseStruct = LayoutData.DetailLayout->GetRootNode()->GetBaseStructure();
 
@@ -929,7 +939,7 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		}
 	};
 
-	TMap< TWeakObjectPtr<UStruct>, FDetailLayoutCallback*> FinalCallbackMap;
+	TMap< TWeakObjectPtr<UStruct>,  const FDetailLayoutCallback*> FinalCallbackMap;
 
 	for (auto ClassIt = LayoutData.ClassesWithProperties.CreateConstIterator(); ClassIt; ++ClassIt)
 	{
@@ -941,7 +951,7 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		}
 
 		// Check the instanced map first
-		FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
+		const FDetailLayoutCallback* Callback = InstancedClassToDetailLayoutMap.Find(Class);
 
 		if (!Callback)
 		{
@@ -1152,18 +1162,19 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 	{
 		for (int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 		{
-			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
-
-			if (PropertyNode.IsValid())
+			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex];
 			{
 				EPropertyDataValidationResult Result = PropertyNode->EnsureDataIsValid();
 				if (Result == EPropertyDataValidationResult::PropertiesChanged || Result == EPropertyDataValidationResult::EditInlineNewValueChanged)
 				{
 					RestoreExpandedItems(PropertyNode.ToSharedRef());
-					UpdatePropertyMaps();
-					UpdateFilteredDetails();
+
 					// Note this will invalidate all the external root nodes so there is no need to continue
 					ExternalRootPropertyNodes.Empty();
+
+					UpdatePropertyMaps();
+					UpdateFilteredDetails();
+		
 					break;
 				}
 				else if (Result == EPropertyDataValidationResult::ArraySizeChanged)
@@ -1171,12 +1182,6 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 					RestoreExpandedItems(PropertyNode.ToSharedRef());
 					UpdateFilteredDetails();
 				}
-			}
-			else
-			{
-				// Remove the current node if it is no longer valid
-				ExternalRootPropertyNodes.RemoveAt(NodeIndex);
-				--NodeIndex;
 			}
 		}
 	}
@@ -1377,7 +1382,7 @@ void SDetailsViewBase::UpdateFilteredDetails()
 
 			for(int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 			{
-				TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
+				TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex];
 
 				if(PropertyNode.IsValid())
 				{
@@ -1391,7 +1396,7 @@ void SDetailsViewBase::UpdateFilteredDetails()
 			{
 				DetailLayout->FilterDetailLayout(CurrentFilter);
 
-				FDetailNodeList& LayoutRoots = DetailLayout->GetRootTreeNodes();
+				FDetailNodeList& LayoutRoots = DetailLayout->GetFilteredRootTreeNodes();
 				if (LayoutRoots.Num() > 0)
 				{
 					// A top level object nodes has a non-filtered away root so add one to the total number we have

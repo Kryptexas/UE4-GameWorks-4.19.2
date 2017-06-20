@@ -86,14 +86,20 @@ void FSlateRHIRenderer::FViewportInfo::ReleaseRHI()
 	ViewportRHI.SafeRelease();	
 }
 
-void FSlateRHIRenderer::FViewportInfo::ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest)
+void FSlateRHIRenderer::FViewportInfo::ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest, uint32 InWidth, uint32 InHeight)
 {
 	FViewportInfo* ViewportInfo = this;
 	ENQUEUE_RENDER_COMMAND(UpdateDepthBufferCommand)(
-		[ViewportInfo, bInRequiresStencilTest](FRHICommandListImmediate& RHICmdList)
+		[ViewportInfo, bInRequiresStencilTest, InWidth, InHeight](FRHICommandListImmediate& RHICmdList)
 		{
+			bool bDepthStencilStale =
+				bInRequiresStencilTest &&
+				(!ViewportInfo->bRequiresStencilTest ||
+				 ( ViewportInfo->DepthStencil.IsValid() && ( ViewportInfo->DepthStencil->GetSizeX() != InWidth || ViewportInfo->DepthStencil->GetSizeY() != InHeight ) )
+				);
+
 			// Allocate a stencil buffer if needed and not already allocated
-			if (bInRequiresStencilTest && !ViewportInfo->bRequiresStencilTest)
+			if ( bDepthStencilStale )
 			{
 				ViewportInfo->bRequiresStencilTest = bInRequiresStencilTest;
 				ViewportInfo->RecreateDepthBuffer_RenderThread();
@@ -581,13 +587,13 @@ private:
 SHADER_VARIATION(0)  SHADER_VARIATION(1)
 #undef SHADER_VARIATION
 
+int32 SlateWireFrame = 0;
+static FAutoConsoleVariableRef CVarSlateWireframe(TEXT("Slate.ShowWireFrame"), SlateWireFrame, TEXT(""), ECVF_Default);
+
 /** Draws windows from a FSlateDrawBuffer on the render thread */
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
-#if WANTS_DRAW_MESH_EVENTS
-	TDrawEvent<FRHICommandList> DrawEvent;
-	BEGIN_DRAW_EVENTF(RHICmdList, SlateUI, DrawEvent, TEXT("SlateUI"));
-#endif
+	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
@@ -625,7 +631,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	}
 
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
@@ -636,7 +641,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
-			// Update the vertex and index buffer	
+			// Update the vertex and index buffer
 			BatchData.CreateRenderBatches(RootBatchMap);
 		}
 
@@ -689,6 +694,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			BackBuffer = ViewportInfo.UITargetRT;
 		}
 
+		if ( SlateWireFrame )
+		{
+			bClear = true;
+		}
+
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
 		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
@@ -698,7 +708,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
 			FRHIRenderTargetView ColorView(BackBuffer, 0, -1, bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
-			FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+			FRHIDepthRenderTargetView DepthStencilView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
+			FRHISetRenderTargetsInfo Info(1, &ColorView, DepthStencilView);
 
 			// Clear the stencil buffer
 			RHICmdList.SetRenderTargetsAndClear(Info);
@@ -731,12 +742,18 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
+			FSlateRenderingOptions DrawOptions(ViewMatrix * ViewportInfo.ProjectionMatrix);
+			DrawOptions.bWireFrame = !!SlateWireFrame;
+
 			RenderingPolicy->DrawElements
 			(
 				RHICmdList,
 				BackBufferTarget,
-				ViewMatrix*ViewportInfo.ProjectionMatrix,
-				BatchData.GetRenderBatches()
+				BackBuffer,
+				ViewportInfo.DepthStencil,
+				BatchData.GetRenderBatches(),
+				BatchData.GetRenderClipStates(),
+				DrawOptions
 			);
 		}
 
@@ -843,13 +860,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			}
 		}
 
-	if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
-	{
-		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+		if ( !bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid() )
+		{
+			GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+		}
 	}
-	}
-
-	STOP_DRAW_EVENT(DrawEvent);
 
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();
@@ -948,7 +963,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				// Update the font cache with new text after elements are batched
 				FontCache->UpdateCache();
 
-				bool bRequiresStencilTest = false;
+				bool bRequiresStencilTest = true;
 				bool bLockToVsync = false;
 
 				bLockToVsync = ElementBatcher->RequiresVsync();
@@ -979,9 +994,9 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 					ConditionalResizeViewport(ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen(*Window));
 				}
 
-				if( bRequiresStencilTest )
-				{	
-					ViewInfo->ConditionallyUpdateDepthBuffer(bRequiresStencilTest);
+				if ( bRequiresStencilTest )
+				{
+					ViewInfo->ConditionallyUpdateDepthBuffer(bRequiresStencilTest, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight);
 				}
 
 				// Tell the rendering thread to draw the windows

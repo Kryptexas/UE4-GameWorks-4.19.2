@@ -23,7 +23,7 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}
 
 private:
-	bool OnShouldFilterAsset(const class FAssetData& InAssetData, TArray<FPrimaryAssetType> AllowedTypes) const;
+	bool OnShouldFilterAsset(const struct FAssetData& InAssetData, TArray<FPrimaryAssetType> AllowedTypes) const;
 	FString OnGetObjectPath() const;
 	void OnSetObject(const FAssetData& AssetData);
 

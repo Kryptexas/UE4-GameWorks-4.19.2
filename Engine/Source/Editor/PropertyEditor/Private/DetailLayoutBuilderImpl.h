@@ -100,7 +100,9 @@ public:
 	/**
 	 * @return All tree nodes that should be visible in the tree                                                              
 	 */
-	FDetailNodeList& GetRootTreeNodes() { return FilteredRootTreeNodes; }
+	FDetailNodeList& GetFilteredRootTreeNodes() { return FilteredRootTreeNodes; }
+
+	FDetailNodeList& GetAllRootTreeNodes() { return AllRootTreeNodes; }
 
 	/**
 	 * @return true if the layout has any details
@@ -157,15 +159,19 @@ public:
 	/**
 	 * Adds an external property root node to the list of root nodes that the details new needs to manage
 	 *
-	 * @param InExternalRootNode	The node to add
+	 * @param InExternalRootNode		The node to add
 	 */
-	void AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode );
+	void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> InExternalRootNode);
 
 	/** @return The details view that owns this layout */
 	IDetailsViewPrivate& GetDetailsView() { return DetailsView; }
 
 	/** @return The root node for this customization */
 	TSharedPtr<FComplexPropertyNode> GetRootNode() const { return RootNode.Pin(); }
+
+	/** @return True if the layout is for an external root property node and not in the main set of objects the details panel is observing */
+	bool IsLayoutForExternalRoot() const { return bLayoutForExternalRoot; }
+
 private:
 	/**
 	 * Finds a property node for the current property by searching in a fast lookup map or a path search if required
@@ -209,5 +215,7 @@ private:
 	class IDetailsViewPrivate& DetailsView;
 	/** The current class being customized */
 	UStruct* CurrentCustomizationClass;
+	/** True if the layout is for an external root property node and not in the main set of objects the details panel is observing */
+	bool bLayoutForExternalRoot;
 };
 

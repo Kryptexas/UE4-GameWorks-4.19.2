@@ -344,6 +344,48 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 	return Box;
 }
 
+#if WITH_EDITOR
+bool UPhysicsAsset::CanCalculateValidAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
+{
+	bool ValidBox = false;
+
+	if (!MeshComp)
+	{
+		return false;
+	}
+
+	FVector Scale3D = LocalToWorld.GetScale3D();
+	if (!Scale3D.IsUniform())
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < SkeletalBodySetups.Num(); i++)
+	{
+		UBodySetup* bs = SkeletalBodySetups[i];
+		// Check if setup should be considered for bounds, or if all bodies should be considered anyhow
+		if (bs->bConsiderForBounds || MeshComp->bConsiderAllBodiesForBounds)
+		{
+			int32 BoneIndex = MeshComp->GetBoneIndex(bs->BoneName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				FTransform WorldBoneTransform = MeshComp->GetBoneTransform(BoneIndex, LocalToWorld);
+				if (FMath::Abs(WorldBoneTransform.GetDeterminant()) >(float)KINDA_SMALL_NUMBER)
+				{
+					FBox Box = bs->AggGeom.CalcAABB(WorldBoneTransform);
+					if (Box.GetSize().SizeSquared() > (float)KINDA_SMALL_NUMBER)
+					{
+						ValidBox = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return ValidBox;
+}
+#endif //WITH_EDITOR
+
 int32	UPhysicsAsset::FindControllingBodyIndex(class USkeletalMesh* skelMesh, int32 StartBoneIndex)
 {
 	int32 BoneIndex = StartBoneIndex;

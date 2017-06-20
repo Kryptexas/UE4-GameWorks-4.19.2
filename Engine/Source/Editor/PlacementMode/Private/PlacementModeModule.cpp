@@ -203,10 +203,13 @@ void FPlacementModeModule::PreUnloadCallback()
 {
 	FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Placement);
 
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
-	AssetRegistryModule.Get().OnAssetRenamed().RemoveAll(this);
-	AssetRegistryModule.Get().OnAssetAdded().RemoveAll(this);
+	FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
+	if (AssetRegistryModule)
+	{
+		AssetRegistryModule->Get().OnAssetRemoved().RemoveAll(this);
+		AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
+		AssetRegistryModule->Get().OnAssetAdded().RemoveAll(this);
+	}
 }
 
 void FPlacementModeModule::AddToRecentlyPlaced(const TArray<UObject *>& PlacedObjects, UActorFactory* FactoryUsed /* = NULL */)

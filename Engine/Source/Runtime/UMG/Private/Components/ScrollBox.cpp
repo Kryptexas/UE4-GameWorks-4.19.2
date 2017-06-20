@@ -18,6 +18,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 
 	SScrollBox::FArguments Defaults;
 	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Clipping = EWidgetClipping::ClipToBounds;
 
 	WidgetStyle = *Defaults._Style;
 	WidgetBarStyle = *Defaults._ScrollBarStyle;
@@ -25,6 +26,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 	AlwaysShowScrollbar = false;
 	ScrollbarThickness = FVector2D(5, 5);
 	ScrollBarVisibility = ESlateVisibility::Visible;
+	AllowOverscroll = true;
 
 	ConsumeMouseWheel = EConsumeMouseWheel::WhenScrollingPossible;
 }
@@ -69,7 +71,8 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 		.Style(&WidgetStyle)
 		.ScrollBarStyle(&WidgetBarStyle)
 		.Orientation(Orientation)
-		.ConsumeMouseWheel(ConsumeMouseWheel);
+		.ConsumeMouseWheel(ConsumeMouseWheel)
+		.OnUserScrolled(BIND_UOBJECT_DELEGATE(FOnUserScrolled, SlateHandleUserScrolled));
 
 	for ( UPanelSlot* PanelSlot : Slots )
 	{
@@ -80,7 +83,7 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 		}
 	}
 	
-	return BuildDesignTimeWidget( MyScrollBox.ToSharedRef() );
+	return MyScrollBox.ToSharedRef();
 }
 
 void UScrollBox::SynchronizeProperties()
@@ -92,6 +95,7 @@ void UScrollBox::SynchronizeProperties()
 	MyScrollBox->SetScrollBarVisibility(UWidget::ConvertSerializedVisibilityToRuntime(ScrollBarVisibility));
 	MyScrollBox->SetScrollBarThickness(ScrollbarThickness);
 	MyScrollBox->SetScrollBarAlwaysVisible(AlwaysShowScrollbar);
+	MyScrollBox->SetAllowOverscroll(AllowOverscroll ? EAllowOverscroll::Yes : EAllowOverscroll::No);
 }
 
 float UScrollBox::GetScrollOffset() const
@@ -172,6 +176,68 @@ void UScrollBox::PostLoad()
 			BarStyle_DEPRECATED = nullptr;
 		}
 	}
+}
+
+void UScrollBox::SetOrientation(EOrientation NewOrientation)
+{
+	Orientation = NewOrientation;
+
+	if (MyScrollBox.IsValid())
+	{
+		MyScrollBox->SetOrientation(Orientation);
+	}
+}
+
+void UScrollBox::SetScrollBarVisibility(ESlateVisibility NewScrollBarVisibility)
+{
+	ScrollBarVisibility = NewScrollBarVisibility;
+
+	if (MyScrollBox.IsValid())
+	{
+		switch (ScrollBarVisibility)
+		{
+			case ESlateVisibility::Collapsed:				MyScrollBox->SetScrollBarVisibility(EVisibility::Collapsed); break;
+			case ESlateVisibility::Hidden:					MyScrollBox->SetScrollBarVisibility(EVisibility::Hidden); break;
+			case ESlateVisibility::HitTestInvisible:		MyScrollBox->SetScrollBarVisibility(EVisibility::HitTestInvisible); break;
+			case ESlateVisibility::SelfHitTestInvisible:	MyScrollBox->SetScrollBarVisibility(EVisibility::SelfHitTestInvisible); break;
+			case ESlateVisibility::Visible:					MyScrollBox->SetScrollBarVisibility(EVisibility::Visible); break;
+		}
+	}
+}
+
+void UScrollBox::SetScrollbarThickness(const FVector2D& NewScrollbarThickness)
+{
+	ScrollbarThickness = NewScrollbarThickness;
+
+	if (MyScrollBox.IsValid())
+	{
+		MyScrollBox->SetScrollBarThickness(ScrollbarThickness);
+	}
+}
+
+void UScrollBox::SetAlwaysShowScrollbar(bool NewAlwaysShowScrollbar)
+{
+	AlwaysShowScrollbar = NewAlwaysShowScrollbar;
+
+	if (MyScrollBox.IsValid())
+	{
+		MyScrollBox->SetScrollBarAlwaysVisible(AlwaysShowScrollbar);
+	}
+}
+
+void UScrollBox::SetAllowOverscroll(bool NewAllowOverscroll)
+{
+	AllowOverscroll = NewAllowOverscroll;
+
+	if (MyScrollBox.IsValid())
+	{
+		MyScrollBox->SetAllowOverscroll(AllowOverscroll ? EAllowOverscroll::Yes : EAllowOverscroll::No);
+	}
+}
+
+void UScrollBox::SlateHandleUserScrolled(float CurrentOffset)
+{
+	OnUserScrolled.Broadcast(CurrentOffset);
 }
 
 #if WITH_EDITOR

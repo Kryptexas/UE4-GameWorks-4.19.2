@@ -7,14 +7,10 @@ uniform mat4 ViewProjectionMatrix;
 // Per vertex
 attribute vec4 InTexCoords;
 attribute vec2 InPosition;
-attribute vec2 InClipOrigin;
-attribute vec4 InClipExtents;
 attribute vec4 InColor;
 
 // Between vertex and pixel shader
 varying vec4 TexCoords;
-varying vec4 ClipOriginAndPos;
-varying vec4 ClipExtents;
 varying vec4 Color;
 
 vec3 powScalar(vec3 values, float power)
@@ -38,8 +34,6 @@ vec3 sRGBToLinear( vec3 Color )
 void main()
 {
 	TexCoords = InTexCoords;
-	ClipOriginAndPos = vec4(InClipOrigin, InPosition);
-	ClipExtents = InClipExtents;
 
 	Color.rgb = sRGBToLinear(InColor.rgb);
 	Color.a = InColor.a;

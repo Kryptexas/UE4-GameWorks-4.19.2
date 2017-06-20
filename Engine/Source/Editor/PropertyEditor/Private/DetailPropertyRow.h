@@ -21,9 +21,10 @@ class IDetailGroup;
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
 public:
-	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode = NULL);
+	FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FComplexPropertyNode> InExternalRootNode = nullptr);
 
 	/** IDetailPropertyRow interface */
+	virtual TSharedPtr<IPropertyHandle> GetPropertyHandle() override { return PropertyHandle; }
 	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) override;
 	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) override;
 	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) override;
@@ -49,6 +50,15 @@ public:
 	/** @return true if this row should be ticked */
 	bool RequiresTick() const;
 
+	/** @return true if this row has an external property */
+	bool HasExternalProperty() const { return ExternalRootNode.IsValid(); }
+
+	/** Sets the custom name that should be used to save and restore this nodes expansion state */
+	void SetCustomExpansionId(const FName ExpansionIdName) { CustomExpansionIdName = ExpansionIdName; }
+
+	/** @return Gets the custom name that should be used to save and restore this nodes expansion state */
+	FName GetCustomExpansionId() const { return CustomExpansionIdName; }
+
 	/**
 	 * Called when the owner node is initialized
 	 *
@@ -64,11 +74,6 @@ public:
 	 * @return The property node for this row
 	 */
 	TSharedPtr<FPropertyNode> GetPropertyNode() { return PropertyNode; }
-
-	/**
-	* @return The property handle for this row
-	*/
-	TSharedPtr<IPropertyHandle> GetPropertyHandle() { return PropertyHandle;  }
 
 	/**
 	 * @return The property node for this row
@@ -91,6 +96,10 @@ public:
 	 * @return The visibility of this property
 	 */
 	EVisibility GetPropertyVisibility() const { return PropertyVisibility.Get(); }
+
+	static void MakeExternalPropertyRowCustomization(TSharedPtr<FStructOnScope> StructData, FName PropertyName, TSharedRef<FDetailCategoryImpl> ParentCategory, struct FDetailLayoutCustomization& OutCustomization);
+	static void MakeExternalPropertyRowCustomization(const TArray<UObject*>& InObjects, FName PropertyName, TSharedRef<FDetailCategoryImpl> ParentCategory, struct FDetailLayoutCustomization& OutCustomization);
+
 private:
 	/**
 	 * Makes a name widget or key widget for the tree
@@ -167,6 +176,9 @@ private:
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
 	/** Root of the property node if this node comes from an external tree */
 	TSharedPtr<FPropertyNode> ExternalRootNode;
+	TSharedPtr<struct FDetailLayoutData> ExternalObjectLayout;
+	/** The custom expansion ID name used to save and restore expansion state on this node */
+	FName CustomExpansionIdName;
 	/** Whether or not to show standard property buttons */
 	bool bShowPropertyButtons;
 	/** True to show custom property children */

@@ -20,6 +20,8 @@ class FUNCTIONALTESTING_API UAutomationBlueprintFunctionLibrary : public UBluepr
 	GENERATED_UCLASS_BODY()
 	
 public:
+	static void FinishLoadingBeforeScreenshot();
+
 	static bool TakeAutomationScreenshotInternal(UObject* WorldContextObject, const FString& Name, FAutomationScreenshotOptions Options);
 
 	/**
@@ -37,6 +39,8 @@ public:
 	/**
 	 * 
 	 */
+	static bool TakeAutomationScreenshotOfUI_Immediate(UObject* WorldContextObject, const FString& Name, const FAutomationScreenshotOptions& Options);
+
 	UFUNCTION(BlueprintCallable, Category = "Automation", meta = ( Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", NameOverride = "" ))
 	static void TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options);
 

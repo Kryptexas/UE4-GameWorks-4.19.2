@@ -310,7 +310,7 @@ FConsoleCommandDelegate::CreateStatic(&FMemory::EnablePoisonTests)
 
 
 /** Helper function called on first allocation to create and initialize GMalloc */
-void FMemory::GCreateMalloc()
+int FMemory_GCreateMalloc_ThreadUnsafe()
 {
 	GMalloc = FPlatformMemory::BaseAllocator();
 	// Setup malloc crash as soon as possible.
@@ -357,6 +357,15 @@ void FMemory::GCreateMalloc()
 #endif
 
 #endif
+	return 0;
+}
+
+void FMemory::GCreateMalloc()
+{
+	// On some platforms (e.g. Mac) GMalloc can be created on multiple threads at once.
+	// This admittedly clumsy construct ensures both thread-safe creation and prevents multiple calls into it.
+	// The call will not be optimized away in Shipping because the function has side effects (touches global vars).
+	static int ThreadSafeCreationResult = FMemory_GCreateMalloc_ThreadUnsafe();
 }
 
 #if TIME_MALLOC

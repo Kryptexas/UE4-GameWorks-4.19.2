@@ -446,7 +446,8 @@ void FIntroTutorials::LaunchTutorialByName(const FString& InAssetPath, bool bInR
 	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *InAssetPath);
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
-		LaunchTutorial(Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>(), bInRestart ? IIntroTutorials::ETutorialStartType::TST_RESTART : IIntroTutorials::ETutorialStartType::TST_CONTINUE, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
+		UEditorTutorial* TutorialObject = NewObject<UEditorTutorial>(GetTransientPackage(), Blueprint->GeneratedClass);
+		LaunchTutorial(TutorialObject, bInRestart ? IIntroTutorials::ETutorialStartType::TST_RESTART : IIntroTutorials::ETutorialStartType::TST_CONTINUE, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
 	}
 }
 
@@ -459,6 +460,8 @@ void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, ETutorialStart
 			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 			InNavigationWindow = MainFrameModule.GetParentWindow();
 		}
+		// TODO We will want to protect against this on rewrite.
+		// check(!InTutorial->HasAnyFlags(EObjectFlags::RF_ClassDefaultObject));
 		TutorialRoot->LaunchTutorial(InTutorial, InStartType, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
 	}
 }

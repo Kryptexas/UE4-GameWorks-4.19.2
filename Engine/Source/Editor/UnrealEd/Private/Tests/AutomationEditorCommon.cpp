@@ -436,7 +436,7 @@ void FAutomationEditorCommonUtils::GetLaunchOnDeviceID(FString& OutDeviceID, con
 		if (LaunchOnMap.Equals(InMapName))
 		{
 			// shared devices section
-			TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+			ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 			// for each platform...
 			TArray<ITargetDeviceProxyPtr> DeviceProxies;
 			TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*LaunchOnSettings), true, DeviceProxies);
@@ -463,7 +463,7 @@ void FAutomationEditorCommonUtils::GetLaunchOnDeviceID(FString& OutDeviceID, con
 	OutDeviceID = "None";
 
 	// shared devices section
-	TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+	ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 	// for each platform...
 	TArray<ITargetDeviceProxyPtr> DeviceProxies;
 	TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*InDeviceName), true, DeviceProxies);

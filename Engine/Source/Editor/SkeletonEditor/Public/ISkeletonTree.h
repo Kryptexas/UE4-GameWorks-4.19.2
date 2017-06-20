@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class FAssetData;
+struct FAssetData;
 class IPersonaPreviewScene;
 class UBlendProfile;
 struct FSelectedSocketInfo;

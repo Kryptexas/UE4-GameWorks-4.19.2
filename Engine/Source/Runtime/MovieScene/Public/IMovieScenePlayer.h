@@ -5,21 +5,20 @@
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
 #include "Evaluation/MovieSceneAnimTypeID.h"
-#include "MovieSceneSequenceInstance.h"
 #include "Evaluation/MovieSceneEvaluationKey.h"
 #include "Evaluation/MovieScenePreAnimatedState.h"
 #include "MovieSceneFwd.h"
 #include "MovieSceneSpawnRegister.h"
 #include "Containers/ArrayView.h"
 #include "Evaluation/MovieSceneEvaluationState.h"
-#include "Evaluation/PersistentEvaluationData.h"
-#include "MovieSceneSequence.h"
+#include "Evaluation/MovieSceneEvaluationOperand.h"
 
 
+class UMovieSceneSequence;
 class FViewportClient;
 class IMovieSceneBindingOverridesInterface;
 struct FMovieSceneRootEvaluationTemplateInstance;
-
+class FMovieSceneSequenceInstance;
 
 struct EMovieSceneViewportParams
 {
@@ -97,10 +96,7 @@ public:
 	 * @param InBindingId	The ID relating to the object(s) to resolve
 	 * @param OutObjects	Container to populate with the bound objects
 	 */
-	virtual void ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& Sequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
-	{
-		Sequence.LocateBoundObjects(InBindingId, ResolutionContext, OutObjects);
-	}
+	MOVIESCENE_API virtual void ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& Sequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const;
 
 	/**
 	 * Access the binding overrides interface for this player.
@@ -121,7 +117,12 @@ public:
 	 * @param InSequenceID	The ID of the sequence in which the object binding resides
 	 * @param Objects		The array of objects that were resolved
 	 */
-	virtual void NotifyBindingUpdate(const FGuid& InGuid, FMovieSceneSequenceIDRef InSequenceID, TArrayView<TWeakObjectPtr<>> Objects) {}
+	virtual void NotifyBindingUpdate(const FGuid& InGuid, FMovieSceneSequenceIDRef InSequenceID, TArrayView<TWeakObjectPtr<>> Objects) { NotifyBindingsChanged(); }
+
+	/**
+	 * Called whenever any object bindings have changed
+	 */
+	virtual void NotifyBindingsChanged() {}
 
 	/**
 	 * Access the playback context for this movie scene player
@@ -245,7 +246,7 @@ public:
 	void RestorePreAnimatedState()
 	{
 		PreAnimatedState.RestorePreAnimatedState(*this);
-		State.ClearObjectCaches();
+		State.ClearObjectCaches(*this);
 	}
 
 	/**

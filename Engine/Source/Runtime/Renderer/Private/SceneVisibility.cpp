@@ -30,6 +30,7 @@
 #include "ScenePrivate.h"
 #include "FXSystem.h"
 #include "PostProcess/PostProcessing.h"
+#include "SceneView.h"
 
 /*------------------------------------------------------------------------------
 	Globals
@@ -915,18 +916,22 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 
 			if (bSubQueries)
 			{
-				SubIsOccluded.Add(bIsOccluded);
-				if (!bIsOccluded)
+				if (!View.bIgnoreExistingQueries)
 				{
-					bAllSubOccluded = false;
-					if (bOcclusionStateIsDefinite)
+					SubIsOccluded.Add(bIsOccluded);
+					if (!bIsOccluded)
 					{
-						if (PrimitiveOcclusionHistory)
+						bAllSubOccluded = false;
+						if (bOcclusionStateIsDefinite)
 						{
-							PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+							if (PrimitiveOcclusionHistory)
+							{
+								PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+							}
 						}
 					}
 				}
+
 				if (bIsOccluded || !bOcclusionStateIsDefinite)
 				{
 					bAllSubOcclusionStateIsDefinite = false;
@@ -954,8 +959,12 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 
 		if (bSubQueries)
 		{
-			FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
-			Proxy->AcceptOcclusionResults(&View, &SubIsOccluded, SubIsOccludedStart, SubIsOccluded.Num() - SubIsOccludedStart);
+			if (SubIsOccluded.Num() > 0)
+			{
+				FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
+				Proxy->AcceptOcclusionResults(&View, &SubIsOccluded, SubIsOccludedStart, SubIsOccluded.Num() - SubIsOccludedStart);
+			}
+
 			if (bAllSubOccluded)
 			{
 				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
@@ -1015,8 +1024,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitives);
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
-	const int32 NumBufferedSubIsOccludedArrays = 2;
+	
 	static int32 SubIsOccludedArrayIndex = 0;
 	SubIsOccludedArrayIndex = 1 - SubIsOccludedArrayIndex;
 
@@ -1037,7 +1045,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 		TArray<FHZBBound> OutHZBBounds[NumOutputArrays];
 		TArray<FOcclusionBounds> OutQueriesToRun[NumOutputArrays];	
 
-		static TArray<bool> FrameSubIsOccluded[NumOutputArrays][NumBufferedSubIsOccludedArrays];
+		static TArray<bool> FrameSubIsOccluded[NumOutputArrays][FSceneView::NumBufferedSubIsOccludedArrays];
 
 		//optionally balance the tasks by how the visible primitives are distributed in the array rather than just breaking up the array by range.
 		//should make the tasks more equal length.
@@ -1184,7 +1192,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 				}
 			}
 
-			//now add new primitivie histories to the view. may resize the view's array.
+			//now add new primitive histories to the view. may resize the view's array.
 			for (int32 i = 0; i < NumTasks; ++i)
 			{								
 				const TArray<FPrimitiveOcclusionHistory>& NewHistoryArray = OutputOcclusionHistory[i];				
@@ -1204,9 +1212,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 	else
 	{
 		//SubIsOccluded stuff needs a frame's lifetime
-		static TArray<bool> FrameSubIsOccluded[NumBufferedSubIsOccludedArrays];
-
-		TArray<bool>& SubIsOccluded = FrameSubIsOccluded[SubIsOccludedArrayIndex];
+		TArray<bool>& SubIsOccluded = View.FrameSubIsOccluded[SubIsOccludedArrayIndex];
 		SubIsOccluded.Reset();
 
 		FViewElementPDI OcclusionPDI(&View, NULL);
@@ -1224,7 +1230,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 			nullptr,
 			nullptr,
 			nullptr,
-			&FrameSubIsOccluded[SubIsOccludedArrayIndex]
+			&SubIsOccluded
 			);
 
 		FetchVisibilityForPrimitives_Range<true>(Params);

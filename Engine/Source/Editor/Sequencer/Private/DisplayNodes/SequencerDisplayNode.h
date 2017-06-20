@@ -17,6 +17,7 @@ class IKeyArea;
 class ISequencerTrackEditor;
 class SSequencerTreeViewRow;
 class UMovieSceneTrack;
+class UMovieSceneSection;
 struct FSlateBrush;
 enum class EItemDropZone;
 
@@ -398,13 +399,13 @@ public:
 	}
 
 	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
-	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(int32 InSectionIndex);
+	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(UMovieSceneSection* InSection);
 
 	/** Get the key grouping for the specified section index */
-	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
+	TSharedRef<FGroupedKeyArea> GetKeyGrouping(UMovieSceneSection* InSection);
 
-	/** Get the number of key groupings */
-	int32 GetNumKeyGroupings() { return KeyGroupings.Num(); }
+	/** Get key groupings array */
+	const TArray<TSharedRef<FGroupedKeyArea>> GetKeyGroupings() const { return KeyGroupings; }
 
 	DECLARE_EVENT(FSequencerDisplayNode, FRequestRenameEvent);
 	FRequestRenameEvent& OnRenameRequested() { return RenameRequestedEvent; }
@@ -471,7 +472,7 @@ protected:
 	bool bExpanded;
 
 	/** Transient grouped keys for this node */
-	TArray<TSharedPtr<FGroupedKeyArea>> KeyGroupings;
+	TArray<TSharedRef<FGroupedKeyArea>> KeyGroupings;
 
 	/** Event that is triggered when rename is requested */
 	FRequestRenameEvent RenameRequestedEvent;

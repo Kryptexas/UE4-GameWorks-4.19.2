@@ -191,6 +191,7 @@
 
 #include "ILauncherPlatform.h"
 #include "LauncherPlatformModule.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -905,7 +906,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
 			TEXT("XmlParser"),
-			TEXT("UserFeedback"),
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
@@ -1167,9 +1167,12 @@ void UEditorEngine::FinishDestroy()
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
 		GetMutableDefault<UEditorStyleSettings>()->OnSettingChanged().RemoveAll(this);
 
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().OnInMemoryAssetCreated().RemoveAll(this);
-		
+		FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
+		if (AssetRegistryModule)
+		{
+			AssetRegistryModule->Get().OnInMemoryAssetCreated().RemoveAll(this);
+		}
+
 		UWorld* World = GWorld;
 		if( World != NULL )
 		{
@@ -2865,7 +2868,7 @@ void UEditorEngine::SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync, boo
 
 }
 
-void UEditorEngine::SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync, bool bFocusContentBrowser )
+void UEditorEngine::SyncBrowserToObjects( TArray<struct FAssetData>& InAssetsToSync, bool bFocusContentBrowser )
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets( InAssetsToSync, false, bFocusContentBrowser );
@@ -5915,7 +5918,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 
 	if( !bIsForeground )
 	{
-		const UEditorPerProjectUserSettings* Settings = GetDefault<UEditorPerProjectUserSettings>();
+		const UEditorPerformanceSettings* Settings = GetDefault<UEditorPerformanceSettings>();
 		bShouldThrottle = Settings->bThrottleCPUWhenNotForeground;
 
 		// Check if we should throttle due to all windows being minimized

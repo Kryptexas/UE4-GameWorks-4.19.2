@@ -46,7 +46,6 @@ public:
 			FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X - 2.f, Painter.SectionGeometry.Size.Y - 3.0f );
 
 			FPaintGeometry PaintGeometry = Painter.SectionGeometry.ToPaintGeometry( FVector2D( 1.f, 3.f ), GradientSize );
-			FSlateRect ClippingRect = Painter.SectionClippingRect.InsetBy(1.f);
 
 			TArray<FSlateGradientStop> GradientStops;
 
@@ -86,7 +85,6 @@ public:
 					PaintGeometry,
 					GradientStops,
 					Orient_Vertical,
-					ClippingRect,
 					DrawEffects
 					);
 			}

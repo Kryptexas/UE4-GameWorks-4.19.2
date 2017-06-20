@@ -59,9 +59,9 @@ protected:
 		{
 			TArray<UObject*> ObjectList;
 			ObjectList.Add(GetMutableDefault<UEditorSettings>());
-			StartupCategory.AddExternalProperty(ObjectList, "bLoadTheMostRecentlyLoadedProjectAtStartup");
+			StartupCategory.AddExternalObjectProperty(ObjectList, "bLoadTheMostRecentlyLoadedProjectAtStartup");
 
-			StartupCategory.AddExternalProperty(ObjectList, "bEditorAnalyticsEnabled", EPropertyLocation::Advanced);
+			StartupCategory.AddExternalObjectProperty(ObjectList, "bEditorAnalyticsEnabled", EPropertyLocation::Advanced);
 		}
 	}
 };

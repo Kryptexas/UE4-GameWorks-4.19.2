@@ -47,6 +47,10 @@ struct FMovieSceneVectorKeyStructBase
 	FRichCurveKey* Keys[4];
 	FRichCurve* Curves[4];
 
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
+
 	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
 
 	/** Gets the number of channels used by this vector key struct. */

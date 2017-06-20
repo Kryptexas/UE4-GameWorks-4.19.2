@@ -254,6 +254,10 @@
 			Engine/Build/BatchFiles/Linux/Setup.sh
 			Engine/Build/BatchFiles/Linux/UpdateDeps.sh
 			Engine/Build/BatchFiles/RunUAT.sh
+
+			<!-- Bundled libcxx -->
+			Engine/Source/ThirdParty/Linux/LibCxx/...
+
 		</Property>
 	</Do>
 

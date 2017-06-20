@@ -426,6 +426,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 		// Assets/tree
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
+		.Padding(0,2,0,0)
 		[
 			// The tree/assets splitter
 			SAssignNew(PathAssetSplitterPtr, SSplitter)
@@ -518,6 +519,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					// Search and commands
 					+ SVerticalBox::Slot()
 					.AutoHeight()
+					.Padding(0, 0, 0, 2)
 					[
 						SNew(SHorizontalBox)
 

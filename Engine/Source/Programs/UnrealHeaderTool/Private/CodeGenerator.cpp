@@ -1751,6 +1751,9 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 	Out.Logf(TEXT("\tvoid %s::StaticRegisterNatives%s()\r\n"), ClassCPPName, ClassCPPName);
 	Out.Log(TEXT("\t{\r\n"));
 
+	bool bHasAnyAnsiRuntimeFuncs = false;
+	bool bHasAnyTCharRuntimeFuncs = false;
+
 	{
 		TArray<TTuple<UFunction*, FString>> AnsiNamedFunctionsToExport;
 		TArray<TTuple<UFunction*, FString>> TCharNamedFunctionsToExport;
@@ -1758,13 +1761,17 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 		{
 			if ((Function->FunctionFlags & (FUNC_Native | FUNC_NetRequest)) == FUNC_Native)
 			{
+				
+
 				FString OverriddenName = FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(Function);
 				if (OverriddenName.StartsWith(TEXT("TEXT(")))
 				{
+					bHasAnyTCharRuntimeFuncs |= !Function->HasAnyFunctionFlags(FUNC_EditorOnly);
 					TCharNamedFunctionsToExport.Emplace(Function, MoveTemp(OverriddenName));
 				}
 				else
 				{
+					bHasAnyAnsiRuntimeFuncs |= !Function->HasAnyFunctionFlags(FUNC_EditorOnly);
 					AnsiNamedFunctionsToExport.Emplace(Function, MoveTemp(OverriddenName));
 				}
 			}
@@ -1780,6 +1787,13 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 
 		if (AnsiNamedFunctionsToExport.Num())
 		{
+			// Wrap the entire registration in #if WITH_EDITOR if there are no runtime functions
+			// otherwise wrap the individual editor only functions
+			if (!bHasAnyAnsiRuntimeFuncs)
+			{
+				Out.Log(BeginEditorOnlyGuard);
+			}
+
 			Out.Log(TEXT("\t\tstatic const TNameNativePtrPair<ANSICHAR> AnsiFuncs[] = {\r\n"));
 
 			for (const TTuple<UFunction*, FString>& Func : AnsiNamedFunctionsToExport)
@@ -1789,21 +1803,33 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 
 				Out.Logf(
 					TEXT("%s\t\t\t{ %s, (Native)&%s::exec%s },\r\n%s"),
-					BEGIN_WRAP_EDITOR_ONLY(bEditorOnlyFunction),
+					BEGIN_WRAP_EDITOR_ONLY(bHasAnyAnsiRuntimeFuncs && bEditorOnlyFunction),
 					*Func.Get<1>(),
 					*TypeName,
 					*Function->GetName(),
-					END_WRAP_EDITOR_ONLY(bEditorOnlyFunction)
+					END_WRAP_EDITOR_ONLY(bHasAnyAnsiRuntimeFuncs && bEditorOnlyFunction)
 				);
 
 			}
 
 			Out.Log(TEXT("\t\t};\r\n"));
 			Out.Logf(TEXT("\t\tFNativeFunctionRegistrar::RegisterFunctions(Class, AnsiFuncs, ARRAY_COUNT(AnsiFuncs));\r\n"));
+
+			if (!bHasAnyAnsiRuntimeFuncs)
+			{
+				Out.Logf(EndEditorOnlyGuard);
+			}
 		}
 
 		if (TCharNamedFunctionsToExport.Num())
 		{
+			// Wrap the entire registration in #if WITH_EDITOR if there are no runtime functions
+			// otherwise wrap the individual editor only functions
+			if (!bHasAnyTCharRuntimeFuncs)
+			{
+				Out.Logf(TEXT("%s\r\n"), BeginEditorOnlyGuard);
+			}
+
 			Out.Log(TEXT("\t\tstatic const TNameNativePtrPair<TCHAR> TCharFuncs[] = {\r\n"));
 
 			for (const TTuple<UFunction*, FString>& Func : TCharNamedFunctionsToExport)
@@ -1812,16 +1838,21 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 				const bool bEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
 				Out.Logf(
 					TEXT("%s\t\t\t{ %s, (Native)&%s::exec%s },\r\n%s"),
-					BEGIN_WRAP_EDITOR_ONLY(bEditorOnlyFunction),
+					BEGIN_WRAP_EDITOR_ONLY(bHasAnyTCharRuntimeFuncs && bEditorOnlyFunction),
 					*Func.Get<1>(),
 					*TypeName,
 					*Function->GetName(),
-					END_WRAP_EDITOR_ONLY(bEditorOnlyFunction)
+					END_WRAP_EDITOR_ONLY(bHasAnyTCharRuntimeFuncs && bEditorOnlyFunction)
 				);
 			}
 
 			Out.Log(TEXT("\t\t};\r\n"));
 			Out.Logf(TEXT("\t\tFNativeFunctionRegistrar::RegisterFunctions(Class, TCharFuncs, ARRAY_COUNT(TCharFuncs));\r\n"));
+
+			if (!bHasAnyTCharRuntimeFuncs)
+			{
+				Out.Logf(TEXT("%s\r\n"), EndEditorOnlyGuard);
+			}
 		}
 	}
 

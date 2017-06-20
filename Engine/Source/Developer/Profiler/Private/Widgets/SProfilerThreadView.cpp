@@ -76,7 +76,7 @@ void SProfilerThreadView::Tick( const FGeometry& AllottedGeometry, const double 
 	}
 }
 
-int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	//	SCOPE_LOG_TIME_FUNC();
 
@@ -87,7 +87,7 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 	const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush( "WhiteTexture" );
 
 	// Paint state for this call to OnPaint, valid only in this scope.
-	PaintState = new((void*)PaintStateMemory) FSlateOnPaintState( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, DrawEffects );
+	PaintState = new((void*)PaintStateMemory) FSlateOnPaintState( AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, DrawEffects );
 
 	// Draw background.
 	FSlateDrawElement::MakeBox
@@ -96,7 +96,6 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 		PaintState->LayerId,
 		PaintState->AllottedGeometry.ToPaintGeometry( FVector2D( 0, 0 ), PaintState->Size2D() ),
 		BackgroundBrush,
-		PaintState->AbsoluteClippingRect,
 		PaintState->DrawEffects,
 		BackgroundBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -124,7 +123,7 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "Pos X=%f,Y=%f R X=%f,Y=%f TR X=%f,Y=%f ZF X=%f" ), PositionXMS, PositionY, RangeXMS, RangeY, TotalRangeXMS, TotalRangeY, ZoomFactorX ),
 		PaintState->SummaryFont8,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -137,7 +136,7 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "NumMSPerWin=%f H Fr=%i,TID=%i,PX=%f,PY=%f" ), NumMillisecondsPerWindow, HoveredFrameIndex, HoveredThreadID, HoveredPositionX, HoveredPositionY ),
 		PaintState->SummaryFont8,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -150,7 +149,7 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "DistD=%.2f FI=%3i,%3i" ), DistanceDragged, FramesIndices.X, FramesIndices.Y ),
 		PaintState->SummaryFont8,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -161,7 +160,7 @@ int32 SProfilerThreadView::OnPaint( const FPaintArgs& Args, const FGeometry& All
 	// Reset paint state.
 	PaintState = nullptr;
 
-	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 }
 
 
@@ -190,7 +189,6 @@ void SProfilerThreadView::DrawFramesBackgroundAndTimelines() const
 				PaintState->LayerId,
 				PaintState->AllottedGeometry.ToPaintGeometry( ClippedFrameBackgroundRect.GetTopLeft(), ClippedFrameBackgroundRect.GetSize() ),
 				&SolidWhiteBrush,
-				PaintState->AbsoluteClippingRect,
 				PaintState->DrawEffects,
 				(ThreadNode.FrameIndex % 2) ? FColorList::White.WithAlpha( 64 ) : FColorList::White.WithAlpha( 128 )
 			);
@@ -213,7 +211,6 @@ void SProfilerThreadView::DrawFramesBackgroundAndTimelines() const
 				PaintState->LayerId,
 				PaintState->AllottedGeometry.ToPaintGeometry(),
 				LinePoints,
-				PaintState->AbsoluteClippingRect,
 				PaintState->DrawEffects,
 				PaintState->WidgetStyle.GetColorAndOpacityTint() * FColorList::SkyBlue,
 				false
@@ -239,7 +236,6 @@ void SProfilerThreadView::DrawFramesBackgroundAndTimelines() const
 			PaintState->LayerId,
 			PaintState->AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			PaintState->AbsoluteClippingRect,
 			PaintState->DrawEffects,
 			PaintState->WidgetStyle.GetColorAndOpacityTint() * FColorList::LimeGreen,
 			false
@@ -290,7 +286,6 @@ void SProfilerThreadView::DrawUIStackNodes() const
 					PaintState->LayerId,
 					PaintState->AllottedGeometry.ToPaintGeometry( ClippedNodeRect.GetTopLeft(), ClippedNodeRect.GetSize() ),
 					BorderBrush,
-					PaintState->AbsoluteClippingRect,
 					PaintState->DrawEffects,
 					NodeColor
 				);
@@ -442,7 +437,6 @@ void SProfilerThreadView::DrawUIStackNodes_Recursively( const FProfilerUIStackNo
 			PaintState->LayerId,
 			PaintState->AllottedGeometry.ToPaintGeometry( Position, Size ),
 			&SolidWhiteBrush,
-			PaintState->AbsoluteClippingRect,
 			PaintState->DrawEffects,
 			GameThreadColor
 		);
@@ -471,7 +465,6 @@ void SProfilerThreadView::DrawText( const FString& Text, const FSlateFontInfo& F
 			PaintState->AllottedGeometry.ToOffsetPaintGeometry( Position + ShadowOffset ),
 			Text,
 			FontInfo,
-			ClippingRect ? *ClippingRect : PaintState->AbsoluteClippingRect,
 			PaintState->DrawEffects,
 			ShadowColor
 		);
@@ -484,7 +477,6 @@ void SProfilerThreadView::DrawText( const FString& Text, const FSlateFontInfo& F
 		PaintState->AllottedGeometry.ToOffsetPaintGeometry( Position ),
 		Text,
 		FontInfo,
-		ClippingRect ? *ClippingRect : PaintState->AbsoluteClippingRect,
 		PaintState->DrawEffects,
 		TextColor
 	);
@@ -741,10 +733,10 @@ bool SProfilerThreadView::ShouldUpdateData()
 void SProfilerThreadView::UpdateInternalConstants()
 {
 	ZoomFactorX = (double)NUM_MILLISECONDS_PER_WINDOW / RangeXMS;
-	RangeY = FMath::RoundToFloat(ThisGeometry.Size.Y / (double)NUM_PIXELS_PER_ROW);
+	RangeY = FMath::RoundToFloat(ThisGeometry.GetLocalSize().Y / (double)NUM_PIXELS_PER_ROW);
 
-	const double Aspect = ThisGeometry.Size.X / NUM_MILLISECONDS_PER_WINDOW * ZoomFactorX;
-	NumMillisecondsPerWindow = (double)ThisGeometry.Size.X / Aspect;
-	NumPixelsPerMillisecond = (double)ThisGeometry.Size.X / NumMillisecondsPerWindow;
-	NumMillisecondsPerSample = NumMillisecondsPerWindow / (double)ThisGeometry.Size.X * (double)MIN_NUM_PIXELS_PER_SAMPLE;
+	const double Aspect = ThisGeometry.GetLocalSize().X / NUM_MILLISECONDS_PER_WINDOW * ZoomFactorX;
+	NumMillisecondsPerWindow = (double)ThisGeometry.GetLocalSize().X / Aspect;
+	NumPixelsPerMillisecond = (double)ThisGeometry.GetLocalSize().X / NumMillisecondsPerWindow;
+	NumMillisecondsPerSample = NumMillisecondsPerWindow / (double)ThisGeometry.GetLocalSize().X * (double)MIN_NUM_PIXELS_PER_SAMPLE;
 }

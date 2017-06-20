@@ -4,7 +4,6 @@
 #include "MovieSceneTrack.h"
 #include "MovieSceneFolder.h"
 #include "Evaluation/MovieSceneEvaluationCustomVersion.h"
-#include "Evaluation/MovieSceneEvaluationCustomVersion.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 #include "SequencerObjectVersion.h"
 

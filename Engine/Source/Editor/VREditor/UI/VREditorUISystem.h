@@ -228,7 +228,6 @@ public:
 	static const VREditorPanelID DetailsPanelID;
 	static const VREditorPanelID ModesPanelID;
 	static const VREditorPanelID TutorialPanelID;
-	static const VREditorPanelID AssetEditorPanelID;
 	static const VREditorPanelID WorldSettingsPanelID;
 	static const VREditorPanelID ColorPickerPanelID;
 	static const VREditorPanelID SequencerPanelID;
@@ -318,6 +317,9 @@ protected:
 
 	/** Preview the UI panel's location if spawning with the UI interactor, else spawn immediately */
 	bool ShouldPreviewPanel();
+
+	/** When VR Mode debug was toggled. */
+	void ToggledDebugMode(bool bDebugModeEnabled);
 
 protected:
 

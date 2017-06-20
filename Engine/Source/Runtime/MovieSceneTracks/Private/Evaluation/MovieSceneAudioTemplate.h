@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
+#include "Sound/SoundAttenuation.h"
 #include "MovieSceneAudioTemplate.generated.h"
 
 class UAudioComponent;
@@ -46,6 +47,14 @@ struct FMovieSceneAudioSectionTemplateData
 	/** The row index of the section */
 	UPROPERTY()
 	int32 RowIndex;
+
+	/** Should the attenuation settings on this section be used. */
+	UPROPERTY()
+	bool bOverrideAttenuation;
+
+	/** The attenuation settings */
+	UPROPERTY()
+	class USoundAttenuation* AttenuationSettings;
 
 	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
 	UPROPERTY()

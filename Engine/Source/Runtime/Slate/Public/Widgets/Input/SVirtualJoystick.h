@@ -125,7 +125,7 @@ public:
 	 */
 	static bool ShouldDisplayTouchInterface();
 
-	/** 
+	/**
 	 * Shows or hides the controls (for instance during cinematics
 	 */
 	void SetJoystickVisibility(const bool bVisible, const bool bFade);
@@ -150,7 +150,7 @@ public:
 	 */
 	void SetGlobalParameters(float InActiveOpacity, float InInactiveOpacity, float InTimeUntilDeactive, float InTimeUntilReset, float InActivationDelay, bool InbPreventReCenter, float InStartupDelay);
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	
 	virtual FVector2D ComputeDesiredSize(float) const override;
 
@@ -162,9 +162,9 @@ public:
 
 	virtual bool SupportsKeyboardFocus() const override;
 
-private:
+protected:
 	/** Callback for handling display metrics changes. */
-	void HandleDisplayMetricsChanged(const FDisplayMetrics& NewDisplayMetric);
+	virtual void HandleDisplayMetricsChanged(const FDisplayMetrics& NewDisplayMetric);
 
 	void AlignBoxIntoScreen(FVector2D& Position, const FVector2D& Size, const FVector2D& ScreenSize);
 
@@ -173,7 +173,7 @@ private:
 	 *
 	 * @return true if the touch was successful
 	 */
-	bool HandleTouch(int32 ControlIndex, const FVector2D& LocalCoord, const FVector2D& ScreenSize);
+	virtual bool HandleTouch(int32 ControlIndex, const FVector2D& LocalCoord, const FVector2D& ScreenSize);
 
 	/** 
 	 * Return the target opacity to lerp to given the current state

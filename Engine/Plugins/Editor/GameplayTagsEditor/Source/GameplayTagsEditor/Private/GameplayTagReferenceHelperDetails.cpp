@@ -214,7 +214,7 @@ void FGameplayTagCreationWidgetHelperDetails::CustomizeChildren( TSharedRef<IPro
 	const float MaxPropertyWidth = 480.0f;
 	const float MaxPropertyHeight = 240.0f;
 
-	StructBuilder.AddChildContent( LOCTEXT("NewTag", "NewTag") )
+	StructBuilder.AddCustomRow( LOCTEXT("NewTag", "NewTag") )
 	.ValueContent()
 	.MaxDesiredWidth(MaxPropertyWidth)
 	[

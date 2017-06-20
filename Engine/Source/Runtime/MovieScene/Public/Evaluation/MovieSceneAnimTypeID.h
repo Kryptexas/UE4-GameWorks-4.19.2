@@ -5,6 +5,13 @@
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
 
+struct FMovieSceneAnimTypeID;
+
+namespace Lex
+{
+	MOVIESCENE_API FString ToString(const FMovieSceneAnimTypeID& AnimTypeID);
+}
+
 /**
  * Animation type ID that uniquely identifies the type of a change made
  * (ie changing a transform, spawning an object, etc) as part of a sequence evaluation
@@ -29,6 +36,9 @@ struct FMovieSceneAnimTypeID
 	MOVIESCENE_API static FMovieSceneAnimTypeID Unique();
 
 protected:
+
+	friend FString Lex::ToString(const FMovieSceneAnimTypeID&);
+
 	FMovieSceneAnimTypeID(uint64* StaticPtr, uint32 Seed = 0)
 		: ID(*StaticPtr ? *StaticPtr : Initialize(StaticPtr, Seed))
 	{}

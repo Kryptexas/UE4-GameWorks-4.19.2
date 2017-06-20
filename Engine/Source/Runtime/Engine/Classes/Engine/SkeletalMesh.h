@@ -629,7 +629,7 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, Instanced, Category = ImportSettings)
+	UPROPERTY(EditAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this skeletal mesh */
@@ -641,7 +641,7 @@ public:
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, AdvancedDisplay, Category = Thumbnail)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** Should we use a custom camera transform when viewing this mesh in the tools */

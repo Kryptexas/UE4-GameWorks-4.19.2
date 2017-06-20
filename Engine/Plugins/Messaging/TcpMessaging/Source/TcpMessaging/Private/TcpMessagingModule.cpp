@@ -99,7 +99,7 @@ public:
 		}
 
 		// load dependencies
-		if (!FModuleManager::Get().LoadModule(TEXT("Networking")).IsValid())
+		if (FModuleManager::Get().LoadModule(TEXT("Networking")) == nullptr)
 		{
 			UE_LOG(LogTcpMessaging, Error, TEXT("The required module 'Networking' failed to load. Plug-in 'Tcp Messaging' cannot be used."));
 

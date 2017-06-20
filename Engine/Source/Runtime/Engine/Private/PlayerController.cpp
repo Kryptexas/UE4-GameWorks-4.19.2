@@ -1128,6 +1128,15 @@ AHUD* APlayerController::GetHUD() const
 	return MyHUD;
 }
 
+void APlayerController::SetMouseCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer && LocalPlayer->ViewportClient)
+	{
+		LocalPlayer->ViewportClient->AddCursorWidget(Cursor, CursorWidget);
+	}
+}
+
 void APlayerController::GetViewportSize(int32& SizeX, int32& SizeY) const
 {
 	SizeX = 0;

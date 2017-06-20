@@ -129,7 +129,7 @@ namespace SteamAudio
 
 	void FPhononProbeVolumeDetails::OnGenerateBakedDataInfo(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder)
 	{
-		auto& BakedDataRow = ChildrenBuilder.AddChildProperty(PropertyHandle);
+		auto& BakedDataRow = ChildrenBuilder.AddProperty(PropertyHandle);
 		auto& BakedDataInfo = PhononProbeVolume->BakedDataInfo[ArrayIndex];
 
 		BakedDataRow.ShowPropertyButtons(false);

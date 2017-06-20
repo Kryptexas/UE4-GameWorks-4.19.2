@@ -10,7 +10,6 @@
 #include "GameProjectGenerationModule.h"
 #include "MessageLogModule.h"
 #include "MRUFavoritesList.h"
-#include "SuperSearchModule.h"
 #include "OutputLogModule.h"
 #include "EditorStyleSet.h"
 #include "Editor/EditorPerProjectUserSettings.h"
@@ -27,6 +26,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -312,13 +312,11 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		/** @return Returns true if frame rate and memory should be displayed in the UI */
 		static EVisibility ShouldShowFrameRateAndMemory()
 		{
-			return GetDefault<UEditorPerProjectUserSettings>()->bShowFrameRateAndMemory ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+			return GetDefault<UEditorPerformanceSettings>()->bShowFrameRateAndMemory ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 		}
 	};
 
 
-	
-	const FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
 
 	// We need the output log module in order to instantiate SConsoleInputBox widgets
 	const FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));
@@ -436,7 +434,6 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		]
 	;
 
-	bool bUseSuperSearch = true;
 
 	// Invisible border, so that we can animate our box panel size
 	return SNew( SBorder )
@@ -448,24 +445,24 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 			SNew( SHorizontalBox )
 			.Visibility( EVisibility::SelfHitTestInvisible )
 
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( 0.0f )
-				[
-					FrameRateAndMemoryWidget
-				]
-
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Bottom)
-				.Padding( 0.0f )
-				[
-					SNew(SBox)
-					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
-					[
-						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
-					]
-				]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( 0.0f )
+			[
+				FrameRateAndMemoryWidget
+			]
+			
+			//+ SHorizontalBox::Slot()
+			//.AutoWidth()
+			//.VAlign(VAlign_Bottom)
+			//.Padding( 0.0f )
+			//[
+			//	SNew(SBox)
+			//	.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
+			//	[
+			//		OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
+			//	]
+			//]
 		];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

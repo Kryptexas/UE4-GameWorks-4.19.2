@@ -45,7 +45,8 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 		, _IsReadOnly(false)
 		, _MultiLine(false)
 		, _ModiferKeyForNewLine(EModifierKey::None)
-	{}
+	{
+	}
 
 		/** The text displayed in this text block */
 		SLATE_ATTRIBUTE( FText, Text )

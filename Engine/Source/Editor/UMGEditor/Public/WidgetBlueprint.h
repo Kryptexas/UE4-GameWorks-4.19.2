@@ -102,7 +102,6 @@ public:
 	TArray<FEditorPropertyPathSegment> Segments;
 };
 
-
 /** */
 USTRUCT()
 struct UMGEDITOR_API FDelegateEditorBinding

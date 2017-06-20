@@ -128,16 +128,12 @@ struct CORE_API FGamepadKeyNames
 	static const FName MotionController_Right_Grip2Axis;
 };
 
-namespace EWindowActivation
+enum class EWindowActivation : uint8
 {
-	enum Type
-	{
-		Activate = 0,
-		ActivateByMouse,
-		Deactivate
-	};
-}
-
+	Activate,
+	ActivateByMouse,
+	Deactivate
+};
 
 namespace EWindowZone
 {
@@ -181,31 +177,31 @@ namespace EWindowAction
 }
 
 
+/**
+ * 
+ */
 namespace EDropEffect
 {
 	enum Type
 	{
-		None   = 0,
-		Copy   = 1,
-		Move   = 2,
-		Link   = 3,
+		None = 0,
+		Copy = 1,
+		Move = 2,
+		Link = 3,
 	};
 }
 
 
-namespace EGestureEvent
+enum class EGestureEvent : uint8
 {
-	enum Type
-	{
-		None,
-		Scroll,
-		Magnify,
-		Swipe,
-		Rotate,
-		LongPress,
-		Count
-	};
-}
+	None,
+	Scroll,
+	Magnify,
+	Swipe,
+	Rotate,
+	LongPress,
+	Count
+};
 
 
 /** Defines the minimum and maximum dimensions that a window can take on. */
@@ -332,7 +328,7 @@ public:
     {
     }
 
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice )
+	virtual bool OnTouchGesture( EGestureEvent GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice )
 	{
 		return false;
 	}
@@ -356,7 +352,7 @@ public:
 		return false;
 	}
 
-	virtual void ShouldSimulateGesture(EGestureEvent::Type Gesture, bool bEnable)
+	virtual void ShouldSimulateGesture(EGestureEvent Gesture, bool bEnable)
 	{
 
 	}
@@ -401,7 +397,7 @@ public:
 
 	}
 
-	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& Window, const EWindowActivation::Type ActivationType )
+	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& Window, const EWindowActivation ActivationType )
 	{
 		return false;
 	}

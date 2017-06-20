@@ -505,7 +505,7 @@ void SCollectionTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit
 				if ( !OnNameChangeCommit.Execute(CollectionItemPtr, NewText.ToString(), bIsCommitted, WarningMessage) && ParentWidget.IsValid() && bIsCommitted )
 				{
 					// Failed to rename/create a collection, display a warning.
-					ContentBrowserUtils::DisplayMessage(WarningMessage, CachedGeometry.GetClippingRect(), ParentWidget.ToSharedRef());
+					ContentBrowserUtils::DisplayMessage(WarningMessage, CachedGeometry.GetLayoutBoundingRect(), ParentWidget.ToSharedRef());
 				}
 			}				
 		}
@@ -518,7 +518,7 @@ bool SCollectionTreeItem::HandleVerifyNameChanged( const FText& NewText, FText& 
 
 	if (CollectionItemPtr.IsValid())
 	{
-		return !OnVerifyRenameCommit.IsBound() || OnVerifyRenameCommit.Execute(CollectionItemPtr, NewText.ToString(), CachedGeometry.GetClippingRect(), OutErrorMessage);
+		return !OnVerifyRenameCommit.IsBound() || OnVerifyRenameCommit.Execute(CollectionItemPtr, NewText.ToString(), CachedGeometry.GetLayoutBoundingRect(), OutErrorMessage);
 	}
 
 	return true;

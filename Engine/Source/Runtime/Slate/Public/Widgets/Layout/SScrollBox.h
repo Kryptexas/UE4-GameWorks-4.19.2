@@ -69,7 +69,9 @@ public:
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _OnUserScrolled()
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
-		{}
+		{
+			_Clipping = EWidgetClipping::ClipToBounds;
+		}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
 
@@ -100,6 +102,7 @@ public:
 
 	SLATE_END_ARGS()
 
+	SScrollBox();
 
 	/** @return a new slot. Slots contain children for SScrollBox */
 	static FSlot& Slot();
@@ -119,7 +122,11 @@ public:
 		        the right mouse button and dragging. */
 	bool IsRightClickScrolling() const;
 
-	float GetScrollOffset();
+	EAllowOverscroll GetAllowOverscroll() const;
+
+	void SetAllowOverscroll( EAllowOverscroll NewAllowOverscroll );
+
+	float GetScrollOffset() const;
 
 	void SetScrollOffset( float NewScrollOffset );
 
@@ -170,11 +177,14 @@ public:
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
 	virtual void OnMouseCaptureLost() override;
 	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 	// End of SWidget interface
+
+protected:
+	void OnClippingChanged();
 
 private:
 
@@ -220,7 +230,7 @@ private:
 	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @return Whether or not the scroll was fully handled
 	 */
-	bool ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll);
+	bool ScrollBy(const FGeometry& AllottedGeometry, float LocalScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll);
 
 	/** Invoked when the user scroll via the scrollbar */
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );

@@ -113,7 +113,9 @@ public:
 		, _HandleGamepadEvents(true)
 		, _HandleDirectionalNavigation(true)
 		, _NavigateOnScrollIntoView(false)
-		{}
+		{
+			//_Clipping = EWidgetClipping::ClipToBounds;
+		}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 

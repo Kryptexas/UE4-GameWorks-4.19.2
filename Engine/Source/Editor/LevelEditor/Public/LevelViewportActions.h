@@ -47,6 +47,12 @@ public:
 	}
 	virtual ~FLevelViewportCommands();
 
+	/** Get the singleton instance of this set of commands. */
+	FORCENOINLINE static FLevelViewportCommands& Get()
+	{
+		return *(Instance.Pin());
+	}
+
 	struct FShowMenuCommand
 	{
 		TSharedPtr<FUICommandInfo> ShowMenuItem;
@@ -181,6 +187,10 @@ public:
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;
+
+	/** Registers our commands with the binding system for showing volumes. */
+	void RegisterShowVolumeCommands();
+
 private:
 	/** Registers additional commands as they are loaded */
 	void HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos);

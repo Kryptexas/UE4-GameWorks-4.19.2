@@ -59,7 +59,7 @@ public:
 	/**
 	 * Called when the item is expanded in the tree                                                              
 	 */
-	virtual void OnItemExpansionChanged( bool bIsExpanded ) = 0;
+	virtual void OnItemExpansionChanged( bool bIsExpanded, bool bShouldSaveState ) = 0;
 
 	/**
 	 * @return Whether or not the tree node should be expanded                                                              

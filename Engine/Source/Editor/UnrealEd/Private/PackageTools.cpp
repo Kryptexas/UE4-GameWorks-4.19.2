@@ -39,6 +39,7 @@
 
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "PackageTools"
 
@@ -687,7 +688,9 @@ namespace PackageTools
 				NSLOCTEXT("UnrealEd", "Prompt_AboutToBulkExportNItems_F", "About to bulk export {0} items.  Proceed?"), FText::AsNumber(ObjectsToExport.Num()) ) );
 			if ( bProceed )
 			{
-				ObjectTools::ExportObjects( ObjectsToExport, false, &LastExportPath, bUseProvidedExportPath );
+				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+				AssetToolsModule.Get().ExportAssets(ObjectsToExport, LastExportPath);
 			}
 		}
 

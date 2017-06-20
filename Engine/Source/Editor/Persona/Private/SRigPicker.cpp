@@ -103,7 +103,7 @@ void SRigPicker::OnAssetSelected(const FAssetData& AssetData)
 	OnClose.ExecuteIfBound();
 }
 
-bool SRigPicker::OnShouldFilterAsset(const class FAssetData& AssetData)
+bool SRigPicker::OnShouldFilterAsset(const struct FAssetData& AssetData)
 {
 	if (EngineHumanoidRig && AssetData.ObjectPath == FName(*EngineHumanoidRig->GetPathName()))
 	{

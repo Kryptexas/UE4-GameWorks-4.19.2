@@ -55,6 +55,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Progress)
 	bool bIsMarquee;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Progress)
+	FVector2D BorderPadding;
+
 	/** A bindable delegate to allow logic to drive the text of the widget */
 	UPROPERTY()
 	FGetFloat PercentDelegate;

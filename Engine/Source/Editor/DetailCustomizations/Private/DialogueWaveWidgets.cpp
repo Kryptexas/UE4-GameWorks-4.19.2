@@ -516,7 +516,7 @@ FText STargetsSummaryWidget::GetDialogueVoiceDescription() const
 	return Result;
 }
 
-bool STargetsSummaryWidget::FilterTargets( const class FAssetData& InAssetData )
+bool STargetsSummaryWidget::FilterTargets( const struct FAssetData& InAssetData )
 {
 	bool ShouldAssetBeFilteredOut = false;
 

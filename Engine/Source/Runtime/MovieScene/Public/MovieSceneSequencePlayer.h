@@ -93,6 +93,7 @@ public:
 	GENERATED_BODY()
 
 	UMovieSceneSequencePlayer(const FObjectInitializer&);
+	virtual ~UMovieSceneSequencePlayer();
 
 	/** Start playback forwards from the current time cursor position, using the current play rate. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -239,7 +240,7 @@ protected:
 
 	void PlayInternal();
 
-	void UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus = TOptional<EMovieScenePlayerStatus::Type>());
+	void UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus = TOptional<EMovieScenePlayerStatus::Type>(), bool bHasJumped = false);
 
 	void UpdateTimeCursorPosition(float NewPosition, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus = TOptional<EMovieScenePlayerStatus::Type>());
 
@@ -337,5 +338,5 @@ private:
 	mutable FOnMovieSceneSequencePlayerUpdated OnMovieSceneSequencePlayerUpdate;
 
 	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
-	double OldMaxTickRate;
+	TOptional<double> OldMaxTickRate;
 };

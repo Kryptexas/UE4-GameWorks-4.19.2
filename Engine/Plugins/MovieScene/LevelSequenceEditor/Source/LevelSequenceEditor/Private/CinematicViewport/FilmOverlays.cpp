@@ -85,7 +85,7 @@ struct FFilmOverlay_None : IFilmOverlay
 	
 	const FSlateBrush* GetThumbnail() const { return FLevelSequenceEditorStyle::Get()->GetBrush("FilmOverlay.Disabled"); }
 
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 	}
 };
@@ -113,10 +113,10 @@ struct FFilmOverlay_Grid : IFilmOverlay
 		return FLevelSequenceEditorStyle::Get()->GetBrush(BrushName);
 	}
 
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
-		const int32 IntervalH = AllottedGeometry.Size.X / NumDivsH;
-		const int32 IntervalV = AllottedGeometry.Size.Y / NumDivsV;
+		const int32 IntervalH = AllottedGeometry.GetLocalSize().X / NumDivsH;
+		const int32 IntervalV = AllottedGeometry.GetLocalSize().Y / NumDivsV;
 
 		TArray<FVector2D> LinePoints;
 		LinePoints.SetNum(2);
@@ -131,7 +131,6 @@ struct FFilmOverlay_Grid : IFilmOverlay
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(),
 				LinePoints,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Tint,
 				false
@@ -141,14 +140,13 @@ struct FFilmOverlay_Grid : IFilmOverlay
 		for (int32 OffsetV = 1; OffsetV < NumDivsV; ++OffsetV)
 		{
 			LinePoints[0] = FVector2D(0.f, IntervalV*OffsetV);
-			LinePoints[1] = FVector2D(AllottedGeometry.Size.X, IntervalV*OffsetV);
+			LinePoints[1] = FVector2D(AllottedGeometry.GetLocalSize().X, IntervalV*OffsetV);
 
 			FSlateDrawElement::MakeLines(
 				OutDrawElements,
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(),
 				LinePoints,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Tint,
 				false
@@ -168,7 +166,7 @@ struct FFilmOverlay_Rabatment : IFilmOverlay
 	
 	const FSlateBrush* GetThumbnail() const { return FLevelSequenceEditorStyle::Get()->GetBrush("FilmOverlay.Rabatment"); }
 
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 		FVector2D Position(AllottedGeometry.Size.X / 2, AllottedGeometry.Size.Y / 2);
 		float Size = FMath::Min(AllottedGeometry.Size.X, AllottedGeometry.Size.Y) * .1f;
@@ -176,27 +174,25 @@ struct FFilmOverlay_Rabatment : IFilmOverlay
 		TArray<FVector2D> LinePoints;
 		LinePoints.SetNum(2);
 
-		LinePoints[0] = FVector2D(AllottedGeometry.Size.Y, 0.f);
-		LinePoints[1] = FVector2D(AllottedGeometry.Size.Y, AllottedGeometry.Size.Y);
+		LinePoints[0] = FVector2D(AllottedGeometry.GetLocalSize().Y, 0.f);
+		LinePoints[1] = FVector2D(AllottedGeometry.GetLocalSize().Y, AllottedGeometry.Size.Y);
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint,
 			false
 			);
 
-		LinePoints[0] = FVector2D(AllottedGeometry.Size.X - AllottedGeometry.Size.Y, 0.f);
-		LinePoints[1] = FVector2D(AllottedGeometry.Size.X - AllottedGeometry.Size.Y, AllottedGeometry.Size.Y);
+		LinePoints[0] = FVector2D(AllottedGeometry.GetLocalSize().X - AllottedGeometry.GetLocalSize().Y, 0.f);
+		LinePoints[1] = FVector2D(AllottedGeometry.GetLocalSize().X - AllottedGeometry.GetLocalSize().Y, AllottedGeometry.GetLocalSize().Y);
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint,
 			false
@@ -209,7 +205,7 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 {
 	FText GetDisplayName() const { return LOCTEXT("CrosshairName", "Crosshair"); }
 	const FSlateBrush* GetThumbnail() const { return FLevelSequenceEditorStyle::Get()->GetBrush("FilmOverlay.Crosshair"); }
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 		FVector2D Position(AllottedGeometry.Size.X / 2, AllottedGeometry.Size.Y / 2);
 		float Size = FMath::Min(AllottedGeometry.Size.X, AllottedGeometry.Size.Y) * .1f;
@@ -224,7 +220,6 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint
 			);
@@ -235,7 +230,6 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint,
 			false
@@ -248,7 +242,6 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint
 			);
@@ -259,7 +252,6 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint,
 			false
@@ -281,10 +273,10 @@ struct FFilmOverlay_SafeFrame : IFilmOverlay
 
 	const FSlateBrush* GetThumbnail() const { return nullptr; }
 
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
-		FVector2D TopLeft = AllottedGeometry.Size * ((100.f - SizePercentage) * .5f) / 100.f;
-		FVector2D BottomRight = AllottedGeometry.Size - TopLeft;
+		FVector2D TopLeft = AllottedGeometry.GetLocalSize() * ((100.f - SizePercentage) * .5f) / 100.f;
+		FVector2D BottomRight = AllottedGeometry.GetLocalSize() - TopLeft;
 
 		TArray<FVector2D> LinePoints;
 		LinePoints.Add(FVector2D(TopLeft.X,			TopLeft.Y));
@@ -298,7 +290,6 @@ struct FFilmOverlay_SafeFrame : IFilmOverlay
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint,
 			false
@@ -358,23 +349,22 @@ struct FFilmOverlay_LetterBox : IFilmOverlay
 
 	const FSlateBrush* GetThumbnail() const { return nullptr; }
 
-	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 		const FSlateBrush* Brush = FEditorStyle::GetBrush("WhiteBrush");
 
 		const float DesiredRatio = Ratio1 / Ratio2;
-		const float CurrentRatio = AllottedGeometry.Size.X / AllottedGeometry.Size.Y;
+		const float CurrentRatio = AllottedGeometry.GetLocalSize().X / AllottedGeometry.GetLocalSize().Y;
 
 		if (CurrentRatio > DesiredRatio)
 		{
 			// vertical letterbox mask
-			FVector2D LetterBoxSize((AllottedGeometry.Size.X - AllottedGeometry.Size.Y * DesiredRatio) * .5f, AllottedGeometry.Size.Y);
+			FVector2D LetterBoxSize((AllottedGeometry.GetLocalSize().X - AllottedGeometry.GetLocalSize().Y * DesiredRatio) * .5f, AllottedGeometry.GetLocalSize().Y);
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, 0.f))),
 				Brush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Color
 				);
@@ -382,9 +372,8 @@ struct FFilmOverlay_LetterBox : IFilmOverlay
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(AllottedGeometry.Size.X - LetterBoxSize.X, 0.f))),
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(AllottedGeometry.GetLocalSize().X - LetterBoxSize.X, 0.f))),
 				Brush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Color
 				);
@@ -393,14 +382,13 @@ struct FFilmOverlay_LetterBox : IFilmOverlay
 		else if (CurrentRatio < DesiredRatio)
 		{
 			// horizontal letterbox mask
-			FVector2D LetterBoxSize(AllottedGeometry.Size.X, (AllottedGeometry.Size.Y - AllottedGeometry.Size.X / DesiredRatio) * .5f);
+			FVector2D LetterBoxSize(AllottedGeometry.GetLocalSize().X, (AllottedGeometry.GetLocalSize().Y - AllottedGeometry.GetLocalSize().X / DesiredRatio) * .5f);
 
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, 0.f))),
 				Brush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Color
 				);
@@ -408,9 +396,8 @@ struct FFilmOverlay_LetterBox : IFilmOverlay
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, AllottedGeometry.Size.Y - LetterBoxSize.Y))),
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, AllottedGeometry.GetLocalSize().Y - LetterBoxSize.Y))),
 				Brush,
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				Color
 				);
@@ -464,12 +451,12 @@ void SFilmOverlay::Construct(const FArguments& InArgs)
 	FilmOverlays = InArgs._FilmOverlays;
 }
 
-int32 SFilmOverlay::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SFilmOverlay::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	TArray<IFilmOverlay*> Overlays = FilmOverlays.Get();
 	for (IFilmOverlay* Overlay : Overlays)
 	{
-		Overlay->Paint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+		Overlay->Paint(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 		++LayerId;
 	}
 

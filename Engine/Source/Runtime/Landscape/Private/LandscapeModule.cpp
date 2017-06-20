@@ -30,9 +30,16 @@ public:
  */
 void AddPerWorldLandscapeData(UWorld* World)
 {
+	EObjectFlags NewLandscapeDataFlags = RF_NoFlags;
 	if (!World->PerModuleDataObjects.FindItemByClass<ULandscapeInfoMap>())
 	{
-		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage(), NAME_None, RF_Transactional));
+		if (World->HasAnyFlags(RF_Transactional))
+		{
+			NewLandscapeDataFlags = RF_Transactional;
+		}
+		ULandscapeInfoMap* InfoMap = NewObject<ULandscapeInfoMap>(GetTransientPackage(), NAME_None, NewLandscapeDataFlags);
+		InfoMap->World = World;
+		World->PerModuleDataObjects.Add(InfoMap);
 	}
 }
 
@@ -146,12 +153,13 @@ void WorldRenameEventFunction(UWorld* World, const TCHAR* InName, UObject* NewOu
 void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE, TMap<UObject*, UObject*>& ReplacementMap, TArray<UObject*>& ObjectsToFixReferences)
 {
 	int32 Index;
-	ULandscapeInfoMap *InfoMap;
+	ULandscapeInfoMap* InfoMap;
 	if (World->PerModuleDataObjects.FindItemByClass(&InfoMap, &Index))
 	{
-		World->PerModuleDataObjects[Index] = Cast<ULandscapeInfoMap>(
-			StaticDuplicateObject(InfoMap, InfoMap->GetOuter())
-			);
+		ULandscapeInfoMap* NewInfoMap = Cast<ULandscapeInfoMap>( StaticDuplicateObject(InfoMap, InfoMap->GetOuter()) );
+		NewInfoMap->World = World;
+
+		World->PerModuleDataObjects[Index] = NewInfoMap;
 	}
 	else
 	{

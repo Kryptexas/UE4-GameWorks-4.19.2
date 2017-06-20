@@ -265,6 +265,8 @@ protected:
 			, HitWidgetComponent(nullptr)
 			, HitWidgetPath()
 			, bWasHit(false)
+			, LineStartLocation(FVector::ZeroVector)
+			, LineEndLocation(FVector::ZeroVector)
 		{
 		}
 
@@ -273,6 +275,8 @@ protected:
 		UWidgetComponent* HitWidgetComponent;
 		FWidgetPath HitWidgetPath;
 		bool bWasHit;
+		FVector LineStartLocation;
+		FVector LineEndLocation;
 	};
 
 	/** Gets the WidgetPath for the widget being hovered over based on the hit result. */

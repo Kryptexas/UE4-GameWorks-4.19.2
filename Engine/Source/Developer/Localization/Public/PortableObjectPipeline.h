@@ -13,8 +13,8 @@ enum class ELocalizedTextCollapseMode : uint8
 {
 	/** Collapse texts with the same text identity (namespace + key) and source text (default 4.15+ behavior). */
 	IdenticalTextIdAndSource			UMETA(DisplayName = "Identical Text Identity (Namespace + Key) and Source Text"),
-	/** Collapse texts with the same package ID, text identity (namespace + key), and source text (deprecated 4.14 behavior). */
-	IdenticalPackageIdTextIdAndSource	UMETA(DisplayName = "Identical Package ID, Text Identity (Namespace + Key) and Source Text"),
+	/** Collapse texts with the same package ID, text identity (namespace + key), and source text (deprecated 4.14 behavior, removed in 4.17). */
+	IdenticalPackageIdTextIdAndSource	UMETA(DisplayName = "Identical Package ID, Text Identity (Namespace + Key) and Source Text", Hidden),
 	/** Collapse texts with the same namespace and source text (legacy pre-4.14 behavior). */
 	IdenticalNamespaceAndSource			UMETA(DisplayName = "Identical Namespace and Source Text"),
 };

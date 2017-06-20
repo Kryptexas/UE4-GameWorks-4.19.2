@@ -21,7 +21,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Tickable.h"
 
-class FAssetData;
+struct FAssetData;
 class FCanvas;
 class FMaterialCompiler;
 class FScopedTransaction;
@@ -515,12 +515,7 @@ private:
 	/** Copies all the HLSL Code View code to the clipboard */
 	FReply CopyCodeViewTextToClipboard();
 
-	/**
-	* Rebuilds dependant Material Instance Editors
-	* @param		MatInst	Material Instance to search dependent editors and force refresh of them.
-	*/
-	void RebuildMaterialInstanceEditors(UMaterialInstance * MatInst);
-	
+
 	/**
 	 * Binds our UI commands to delegates
 	 */

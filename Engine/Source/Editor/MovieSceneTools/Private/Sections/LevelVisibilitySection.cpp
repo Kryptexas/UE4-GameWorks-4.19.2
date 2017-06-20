@@ -50,19 +50,6 @@ int32 FLevelVisibilitySection::OnPaintSection( FSequencerSectionPainter& InPaint
 }
 
 
-FText FLevelVisibilitySection::GetDisplayName() const
-{
-	return FText();
-}
-
-
-FText FLevelVisibilitySection::GetSectionTitle() const
-{
-
-	return FText();
-}
-
-
 FSlateColor FLevelVisibilitySection::GetBackgroundColor() const
 {
 	return SectionObject.GetVisibility() == ELevelVisibility::Visible

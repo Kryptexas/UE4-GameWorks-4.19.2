@@ -1980,7 +1980,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateOpenBlueprintMenuContent( TSh
 		}
 
 		/** Handle BP being selected from popup picker */
-		static void OnBPSelected(const class FAssetData& AssetData)
+		static void OnBPSelected(const struct FAssetData& AssetData)
 		{
 			UBlueprint* SelectedBP = Cast<UBlueprint>(AssetData.GetAsset());
 			if(SelectedBP)
@@ -2112,8 +2112,10 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateCinematicsMenuContent( TShare
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList, Extender );
 
+	using namespace SceneOutliner;
+
 	// We can't build a list of Matinees and LevelSequenceActors while the current World is a PIE world.
-	SceneOutliner::FInitializationOptions InitOptions;
+	FInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
 
@@ -2123,11 +2125,14 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateCinematicsMenuContent( TShare
 		InitOptions.bShowSearchBox = false;
 		InitOptions.bShowCreateNewFolder = false;
 
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::ActorInfo(), FColumnInfo(EColumnVisibility::Visible, 10));
+
 		// Only display Matinee and MovieScene actors
 		auto ActorFilter = [](const AActor* Actor){
 			return Actor->IsA( AMatineeActor::StaticClass() ) || Actor->IsA( ALevelSequenceActor::StaticClass() );
 		};
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateLambda( ActorFilter ) );
+		InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateLambda( ActorFilter ) );
 	}
 
 	// actor selector to allow the user to choose an actor

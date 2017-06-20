@@ -37,7 +37,7 @@ struct FMovieSceneTemplateGenerationLedger
 
 public:
 
-	TArrayView<FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature);
+	TArrayView<const FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature) const;
 
 	void AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier);
 
@@ -171,7 +171,7 @@ public:
 	/**
 	 * Find tracks within this template that relate to the specified signature
 	 */
-	MOVIESCENE_API TArrayView<FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature);
+	MOVIESCENE_API TArrayView<const FMovieSceneTrackIdentifier> FindTracks(const FGuid& InSignature) const;
 
 	/**
 	 * Called after this template has been serialized in some way

@@ -15,26 +15,25 @@ class UWidgetBlueprint;
 /**
  * The location where the widget should appear
  */
-namespace EExtensionLayoutLocation
+enum class EExtensionLayoutLocation : uint8
 {
-	enum Type
-	{
-		/** Slate unit position relative from the parent. */
-		Absolute,
+	/** Slate unit position relative from the parent. */
+	RelativeFromParent,
 
-		TopLeft,
-		TopCenter,
-		TopRight,
+	TopLeft,
+	TopCenter,
+	TopRight,
 
-		CenterLeft,
-		CenterCenter,
-		CenterRight,
+	CenterLeft,
+	CenterCenter,
+	CenterRight,
 
-		BottomLeft,
-		BottomCenter,
-		BottomRight,
-	};
-}
+	BottomLeft,
+	BottomCenter,
+	BottomRight,
+};
+
+
 
 /**
  * The basic element returned for extending the design surface.
@@ -42,7 +41,7 @@ namespace EExtensionLayoutLocation
 class UMGEDITOR_API FDesignerSurfaceElement : public TSharedFromThis < FDesignerSurfaceElement >
 {
 public:
-	FDesignerSurfaceElement(TSharedRef<SWidget> InWidget, EExtensionLayoutLocation::Type InLocation, TAttribute<FVector2D> InOffset = FVector2D(0, 0), TAttribute<FVector2D> InAlignment = FVector2D(0, 0))
+	FDesignerSurfaceElement(TSharedRef<SWidget> InWidget, EExtensionLayoutLocation InLocation, TAttribute<FVector2D> InOffset = FVector2D(0, 0), TAttribute<FVector2D> InAlignment = FVector2D(0, 0))
 		: Widget(InWidget)
 		, Location(InLocation)
 		, Offset(InOffset)
@@ -57,7 +56,7 @@ public:
 	}
 
 	/** Gets the location where the widget will be appear */
-	EExtensionLayoutLocation::Type GetLocation() const
+	EExtensionLayoutLocation GetLocation() const
 	{
 		return Location;
 	}
@@ -89,7 +88,7 @@ public:
 protected:
 	TSharedRef<SWidget> Widget;
 
-	EExtensionLayoutLocation::Type Location;
+	EExtensionLayoutLocation Location;
 
 	TAttribute<FVector2D> Offset;
 
@@ -124,7 +123,7 @@ public:
 	{
 	}
 
-	virtual void Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	virtual void Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 	{
 	}
 

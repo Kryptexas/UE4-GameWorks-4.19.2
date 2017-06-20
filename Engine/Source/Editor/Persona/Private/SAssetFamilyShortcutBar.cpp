@@ -276,7 +276,7 @@ public:
 		return MenuBuilder.MakeWidget();
 	}
 
-	void HandleAssetSelectedFromPicker(const class FAssetData& InAssetData)
+	void HandleAssetSelectedFromPicker(const struct FAssetData& InAssetData)
 	{
 		FSlateApplication::Get().DismissAllMenus();
 
@@ -288,7 +288,7 @@ public:
 		}
 	}
 
-	bool HandleFilterAsset(const class FAssetData& InAssetData)
+	bool HandleFilterAsset(const struct FAssetData& InAssetData)
 	{
 		return !AssetFamily->IsAssetCompatible(InAssetData);
 	}

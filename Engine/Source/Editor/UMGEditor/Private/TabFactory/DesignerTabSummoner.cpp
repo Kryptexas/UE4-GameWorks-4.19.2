@@ -2,7 +2,6 @@
 
 #include "TabFactory/DesignerTabSummoner.h"
 #include "Designer/SDesignerView.h"
-#include "Widgets/Layout/SScissorRectBox.h"
 #include "UMGStyle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -24,17 +23,8 @@ FDesignerTabSummoner::FDesignerTabSummoner(TSharedPtr<class FWidgetBlueprintEdit
 
 TSharedRef<SWidget> FDesignerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return 
-		SNew(SScissorRectBox)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.FillWidth(1)
-			[
-				SNew(SDesignerView, BlueprintEditor.Pin())
-				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Designer")))
-			]
-		];
+	return SNew(SDesignerView, BlueprintEditor.Pin())
+		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Designer")));
 }
 
 #undef LOCTEXT_NAMESPACE 

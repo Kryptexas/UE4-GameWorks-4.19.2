@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-class FAssetData;
+struct FAssetData;
 
 /**
  * The bridge between the asset registry and the collections manager - used to update collections as certain asset events happen

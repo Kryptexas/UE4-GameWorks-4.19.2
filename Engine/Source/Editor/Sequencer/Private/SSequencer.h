@@ -159,6 +159,9 @@ public:
 		/** Called when the user changes the clamp range */
 		SLATE_EVENT( FOnRangeChanged, OnClampRangeChanged )
 
+		/** Called to get the nearest key */
+		SLATE_EVENT( FOnGetNearestKey, OnGetNearestKey )
+
 		/** Called when the user has begun scrubbing */
 		SLATE_EVENT( FSimpleDelegate, OnBeginScrubbing )
 
@@ -207,6 +210,7 @@ public:
 	/** Updates the breadcrumbs from a change in the shot filter state. */
 	void UpdateBreadcrumbs();
 	void ResetBreadcrumbs();
+	void PopBreadcrumb();
 
 	/** Step to next and previous keyframes */
 	void StepToNextKey();
@@ -304,8 +308,11 @@ private:
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
 
-	/** Makes the auto-key menu for the toolbar. */
-	TSharedRef<SWidget> MakeAutoKeyMenu();
+	/** Makes the auto-change menu for the toolbar. */
+	TSharedRef<SWidget> MakeAutoChangeMenu();
+
+	/** Makes the allow edits menu for the toolbar. */
+	TSharedRef<SWidget> MakeAllowEditsMenu();
 
 public:	
 

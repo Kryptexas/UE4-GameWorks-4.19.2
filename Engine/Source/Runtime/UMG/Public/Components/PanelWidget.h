@@ -145,6 +145,10 @@ public:
 
 protected:
 
+#if WITH_EDITOR
+	virtual TSharedRef<SWidget> RebuildDesignWidget(TSharedRef<SWidget> Content) override;
+#endif
+
 	virtual UClass* GetSlotClass() const
 	{
 		return UPanelSlot::StaticClass();

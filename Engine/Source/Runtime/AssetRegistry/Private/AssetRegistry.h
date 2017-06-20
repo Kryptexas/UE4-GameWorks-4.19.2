@@ -10,6 +10,7 @@
 #include "PackageDependencyData.h"
 #include "AssetDataGatherer.h"
 #include "BackgroundGatherResults.h"
+#include "AssetRegistry.generated.h"
 
 class FDependsNode;
 struct FARFilter;
@@ -19,11 +20,17 @@ struct FARFilter;
  * like the content browser don't have to work with the filesystem
  */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-class FAssetRegistry : public IAssetRegistry
+
+UCLASS(transient)
+class UAssetRegistryImpl : public UObject, public IAssetRegistry
 {
+	GENERATED_BODY()
 public:
-	FAssetRegistry();
-	virtual ~FAssetRegistry();
+	UAssetRegistryImpl(const FObjectInitializer& ObjectInitializer);
+	virtual ~UAssetRegistryImpl();
+
+	/** Gets the asset registry singleton for asset registry module use */
+	static UAssetRegistryImpl& Get();
 
 	// IAssetRegistry implementation
 	virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const override;
@@ -65,10 +72,10 @@ public:
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
 	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) override;
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
 	virtual FPathAddedEvent& OnPathAdded() override { return PathAddedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathRemovedEvent, FPathRemovedEvent);
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FPathRemovedEvent, FPathRemovedEvent);
 	virtual FPathRemovedEvent& OnPathRemoved() override { return PathRemovedEvent; }
 
 	virtual void AssetCreated(UObject* NewAsset) override;
@@ -77,25 +84,25 @@ public:
 
 	virtual void PackageDeleted(UPackage* DeletedPackage) override;
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetAddedEvent, FAssetAddedEvent);
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FAssetAddedEvent, FAssetAddedEvent);
 	virtual FAssetAddedEvent& OnAssetAdded() override { return AssetAddedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetRemovedEvent, FAssetRemovedEvent);
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FAssetRemovedEvent, FAssetRemovedEvent);
 	virtual FAssetRemovedEvent& OnAssetRemoved() override { return AssetRemovedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetRenamedEvent, FAssetRenamedEvent);
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FAssetRenamedEvent, FAssetRenamedEvent);
 	virtual FAssetRenamedEvent& OnAssetRenamed() override { return AssetRenamedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FInMemoryAssetCreatedEvent, FInMemoryAssetCreatedEvent );
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FInMemoryAssetCreatedEvent, FInMemoryAssetCreatedEvent );
 	virtual FInMemoryAssetCreatedEvent& OnInMemoryAssetCreated() override { return InMemoryAssetCreatedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FInMemoryAssetDeletedEvent, FInMemoryAssetDeletedEvent );
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FInMemoryAssetDeletedEvent, FInMemoryAssetDeletedEvent );
 	virtual FInMemoryAssetDeletedEvent& OnInMemoryAssetDeleted() override { return InMemoryAssetDeletedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FFilesLoadedEvent, FFilesLoadedEvent );
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FFilesLoadedEvent, FFilesLoadedEvent );
 	virtual FFilesLoadedEvent& OnFilesLoaded() override { return FileLoadedEvent; }
 
-	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FFileLoadProgressUpdatedEvent, FFileLoadProgressUpdatedEvent );
+	DECLARE_DERIVED_EVENT( UAssetRegistryImpl, IAssetRegistry::FFileLoadProgressUpdatedEvent, FFileLoadProgressUpdatedEvent );
 	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() override { return FileLoadProgressUpdatedEvent; }
 
 	virtual IAssetRegistry::FAssetEditSearchableNameDelegate& OnEditSearchableName(FName PackageName, FName ObjectName) override;

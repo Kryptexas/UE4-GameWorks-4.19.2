@@ -10,6 +10,7 @@
 
 UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, PanningMouseButton(EGraphPanningMouseButton::Right)
 	, PaddingAbovePin(4.0f)
 	, PaddingBelowPin(4.0f)
 	, PaddingRightOfInput(10.0f)

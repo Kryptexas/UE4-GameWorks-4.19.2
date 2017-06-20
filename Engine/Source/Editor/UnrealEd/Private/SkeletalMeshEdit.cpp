@@ -1275,6 +1275,9 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 					FString BlendShapeName = UTF8_TO_TCHAR(MakeName(BlendShape->GetName()));
 
+					// see below where this is used for explanation...
+					const bool bMightBeBadMAXFile = (BlendShapeName == FString("Morpher"));
+
 					for(int32 ChannelIndex = 0; ChannelIndex<BlendShapeChannelCount; ++ChannelIndex)
 					{
 						FbxBlendShapeChannel* Channel = BlendShape->GetBlendShapeChannel(ChannelIndex);
@@ -1282,11 +1285,21 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 						if(Channel)
 						{
 							FString ChannelName = UTF8_TO_TCHAR(MakeName(Channel->GetName()));
-
-							// Maya adds the name of the blendshape and an underscore to the front of the channel name, so remove it
-							if(ChannelName.StartsWith(BlendShapeName))
+							// Maya adds the name of the blendshape and an underscore or point to the front of the channel name, so remove it
+							// Also avoid to endup with a empty name, we prefer having the Blendshapename instead of nothing
+							if(ChannelName.StartsWith(BlendShapeName) && ChannelName.Len() > BlendShapeName.Len())
 							{
 								ChannelName = ChannelName.Right(ChannelName.Len() - (BlendShapeName.Len()+1));
+							}
+							
+							if (bMightBeBadMAXFile)
+							{
+								FbxShape *TargetShape = Channel->GetTargetShapeCount() > 0 ? Channel->GetTargetShape(0) : nullptr;
+								if (TargetShape)
+								{
+									FString TargetShapeName = UTF8_TO_TCHAR(MakeName(TargetShape->GetName()));
+									ChannelName = TargetShapeName.IsEmpty() ? ChannelName : TargetShapeName;
+								}
 							}
 
 							FbxAnimCurve* Curve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, (FbxAnimLayer*)CurAnimStack->GetMember(0));

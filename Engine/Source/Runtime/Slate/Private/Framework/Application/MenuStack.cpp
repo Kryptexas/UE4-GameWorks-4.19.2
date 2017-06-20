@@ -347,9 +347,10 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 
 	OutResults.WrappedContent = WrapContent(TempContent, OptionalMinWidth, OptionalMinHeight);
 
-	OutResults.WrappedContent->SlatePrepass(FSlateApplication::Get().GetApplicationScale() * HostWindow->GetNativeWindow()->GetDPIScaleFactor());
+	const float ApplicationScale = FSlateApplication::Get().GetApplicationScale() * HostWindow->GetNativeWindow()->GetDPIScaleFactor();
+	OutResults.WrappedContent->SlatePrepass(ApplicationScale);
 	// @todo slate: Doesn't take into account potential window border size
-	OutResults.ExpectedSize = OutResults.WrappedContent->GetDesiredSize();
+	OutResults.ExpectedSize = OutResults.WrappedContent->GetDesiredSize() * ApplicationScale;
 
 	EOrientation Orientation = (InArgs.TransitionEffect.SlideDirection == FPopupTransitionEffect::SubMenu) ? Orient_Horizontal : Orient_Vertical;
 
@@ -824,7 +825,7 @@ FSlateRect FMenuStack::GetToolTipForceFieldRect(TSharedRef<IMenu> InMenu, const 
 				if (WidgetPath.IsValid())
 				{
 					const FGeometry& ContentGeometry = WidgetPath.Widgets.Last().Geometry;
-					ForceFieldRect = ForceFieldRect.Expand(ContentGeometry.GetClippingRect());
+					ForceFieldRect = ForceFieldRect.Expand(ContentGeometry.GetLayoutBoundingRect());
 				}
 			}
 		}

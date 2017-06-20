@@ -1787,7 +1787,7 @@ namespace UnrealBuildTool
 				// Get a list of all the library paths
 				List<string> LibraryPaths = new List<string>();
 				LibraryPaths.Add(Directory.GetCurrentDirectory());
-				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
+				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', Path.DirectorySeparatorChar))));
 
 				// Get all the extensions to look for
 				List<string> LibraryExtensions = new List<string>();
@@ -3383,7 +3383,10 @@ namespace UnrealBuildTool
 			foreach (string ModuleName in ExtraModuleNames)
 			{
 				UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
-				AddModuleToBinary(Module, false);
+				if (Module.Binary == null)
+				{
+					AddModuleToBinary(Module, false);
+				}
 			}
 		}
 

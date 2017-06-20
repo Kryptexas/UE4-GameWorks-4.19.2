@@ -286,8 +286,10 @@ namespace AutomationScripts.Automation
             Message.Attachments.Add()*/
 			try
 			{
+				#pragma warning disable CS0618 // Mono 4.6.x obsoletes this class
 				SmtpClient MailClient = new SmtpClient("smtp.epicgames.net");
 				MailClient.Send(Message);
+				#pragma warning restore CS0618
 			}
 			catch (Exception Ex)
 			{

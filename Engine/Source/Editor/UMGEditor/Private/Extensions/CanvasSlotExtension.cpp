@@ -148,7 +148,7 @@ void FCanvasSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Sel
 
 		AnchorWidgets[AnchorIndex]->SlatePrepass();
 		TAttribute<FVector2D> AnchorAlignment = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(SharedThis(this), &FCanvasSlotExtension::GetAnchorAlignment, (EAnchorWidget)AnchorIndex));
-		SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(AnchorWidgets[AnchorIndex].ToSharedRef(), EExtensionLayoutLocation::Absolute, AnchorPos[AnchorIndex], AnchorAlignment)));
+		SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(AnchorWidgets[AnchorIndex].ToSharedRef(), EExtensionLayoutLocation::RelativeFromParent, AnchorPos[AnchorIndex], AnchorAlignment)));
 	}
 }
 
@@ -308,25 +308,25 @@ void FCanvasSlotExtension::GetCollisionSegmentsFromGeometry(FGeometry ArrangedGe
 
 	// Left Side
 	Segments[0] = ArrangedGeometry.Position;
-	Segments[1] = ArrangedGeometry.Position + FVector2D(0, ArrangedGeometry.Size.Y);
+	Segments[1] = ArrangedGeometry.Position + FVector2D(0, ArrangedGeometry.GetLocalSize().Y);
 
 	// Top Side
 	Segments[2] = ArrangedGeometry.Position;
-	Segments[3] = ArrangedGeometry.Position + FVector2D(ArrangedGeometry.Size.X, 0);
+	Segments[3] = ArrangedGeometry.Position + FVector2D(ArrangedGeometry.GetLocalSize().X, 0);
 
 	// Right Side
-	Segments[4] = ArrangedGeometry.Position + FVector2D(ArrangedGeometry.Size.X, 0);
-	Segments[5] = ArrangedGeometry.Position + ArrangedGeometry.Size;
+	Segments[4] = ArrangedGeometry.Position + FVector2D(ArrangedGeometry.GetLocalSize().X, 0);
+	Segments[5] = ArrangedGeometry.Position + ArrangedGeometry.GetLocalSize();
 
 	// Bottom Side
-	Segments[6] = ArrangedGeometry.Position + FVector2D(0, ArrangedGeometry.Size.Y);
-	Segments[7] = ArrangedGeometry.Position + ArrangedGeometry.Size;
+	Segments[6] = ArrangedGeometry.Position + FVector2D(0, ArrangedGeometry.GetLocalSize().Y);
+	Segments[7] = ArrangedGeometry.Position + ArrangedGeometry.GetLocalSize();
 }
 
-void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
-	//PaintCollisionLines(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
-	PaintDragPercentages(Selection, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	//PaintCollisionLines(Selection, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
+	PaintDragPercentages(Selection, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 }
 
 FReply FCanvasSlotExtension::HandleAnchorBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event, EAnchorWidget AnchorType)
@@ -387,7 +387,7 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 					FVector2D NewLocalPosition = CanvasGeometry.AbsoluteToLocal(Event.GetScreenSpacePosition());
 					FVector2D LocalPositionDelta = NewLocalPosition - StartLocalPosition;
 
-					FVector2D AnchorDelta = LocalPositionDelta / CanvasGeometry.Size;
+					FVector2D AnchorDelta = LocalPositionDelta / CanvasGeometry.GetLocalSize();
 
 					const FAnchorData OldLayoutData = PreviewCanvasSlot->LayoutData;
 					FAnchorData LayoutData = OldLayoutData;
@@ -541,7 +541,7 @@ FReply FCanvasSlotExtension::HandleAnchorDragging(const FGeometry& Geometry, con
 	return FReply::Unhandled();
 }
 
-void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& InSelection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& InSelection, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	// Just show the percentage lines when we're moving the anchor gizmo
 	if ( !(bMovingAnchor || bHoveringAnchor) )
@@ -580,7 +580,7 @@ void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& 
 						FText::FromString(FString::Printf(TEXT("%.1f%%"), Value)),
 						TextTransform,
 						InHorizontalLine,
-						CanvasGeometry, MyClippingRect, OutDrawElements, LayerId);
+						CanvasGeometry, MyCullingRect, OutDrawElements, LayerId);
 				};
 
 				// Horizontal
@@ -627,7 +627,7 @@ void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& 
 	}
 }
 
-void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FText Text, FVector2D TextTransform, bool InHorizontalLine, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FText Text, FVector2D TextTransform, bool InHorizontalLine, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);
@@ -642,7 +642,6 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		Color,
 		bAntialias);
@@ -670,7 +669,7 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		Offset.Y += ((End - Start).Y - TextSize.Y) * TextTransform.Y;
 	}
 
-	const FGeometry ChildGeometry = AllottedGeometry.MakeChild(Start + Offset, AllottedGeometry.Size);
+	const FGeometry ChildGeometry = AllottedGeometry.MakeChild(Start + Offset, AllottedGeometry.GetLocalSize());
 
 	// Draw drop shadow
 	FSlateDrawElement::MakeText(
@@ -679,7 +678,6 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		ChildGeometry.ToPaintGeometry(FVector2D(1, 1), TextSize, InverseDesignerScale),
 		Text,
 		AnchorFont,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor::Black
 	);
@@ -691,13 +689,12 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		ChildGeometry.ToPaintGeometry(FVector2D::ZeroVector, TextSize, InverseDesignerScale),
 		Text,
 		AnchorFont,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor::White
 	);
 }
 
-void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	for ( const FWidgetReference& WidgetRef : Selection )
 	{
@@ -761,11 +758,11 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 											LinePoints[0] = FarthestPoint;
 											LinePoints[1] = FarthestPoint + ( NearestPoint - FarthestPoint ) * 100000;
 
-											LinePoints[0].X = FMath::Clamp(LinePoints[0].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
-											LinePoints[0].Y = FMath::Clamp(LinePoints[0].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
+											LinePoints[0].X = FMath::Clamp(LinePoints[0].X, 0.0f, MyCullingRect.Right - MyCullingRect.Left);
+											LinePoints[0].Y = FMath::Clamp(LinePoints[0].Y, 0.0f, MyCullingRect.Bottom - MyCullingRect.Top);
 
-											LinePoints[1].X = FMath::Clamp(LinePoints[1].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
-											LinePoints[1].Y = FMath::Clamp(LinePoints[1].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
+											LinePoints[1].X = FMath::Clamp(LinePoints[1].X, 0.0f, MyCullingRect.Right - MyCullingRect.Left);
+											LinePoints[1].Y = FMath::Clamp(LinePoints[1].Y, 0.0f, MyCullingRect.Bottom - MyCullingRect.Top);
 
 											FLinearColor Color(0.5f, 0.75, 1);
 											const bool bAntialias = true;
@@ -775,7 +772,6 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 												LayerId,
 												AllottedGeometry.ToPaintGeometry(),
 												LinePoints,
-												MyClippingRect,
 												ESlateDrawEffect::None,
 												Color,
 												bAntialias);

@@ -1077,7 +1077,7 @@ void FAutomationTestBase::TestTrue(const FString& What, bool Value)
 	}
 }
 
-void FAutomationTestBase::TestNull(const FString& What, void* Pointer)
+void FAutomationTestBase::TestNull(const FString& What, const void* Pointer)
 {
 	if ( Pointer != nullptr )
 	{

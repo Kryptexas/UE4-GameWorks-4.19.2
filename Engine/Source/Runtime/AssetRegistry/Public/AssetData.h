@@ -15,6 +15,8 @@
 #include "AssetDataTagMap.h"
 #include "PrimaryAssetId.h"
 
+#include "AssetData.generated.h"
+
 ASSETREGISTRY_API DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
 
 /** Version used for serializing asset registry caches, both runtime and editor */
@@ -42,20 +44,30 @@ private:
 	FAssetRegistryVersion() {}
 };
 
-/** A class to hold important information about an assets found by the Asset Registry */
-class FAssetData
+/** 
+ * A struct to hold important information about an assets found by the Asset Registry
+ * This struct is transient and should never be serialized
+ */
+USTRUCT(BlueprintType)
+struct FAssetData
 {
+	GENERATED_BODY()
 public:
 
 	/** The object path for the asset in the form PackageName.AssetName. Only top level objects in a package can have AssetData */
+	UPROPERTY(BlueprintReadOnly, Category=AssetData, transient)
 	FName ObjectPath;
 	/** The name of the package in which the asset is found, this is the full long package name such as /Game/Path/Package */
+	UPROPERTY(BlueprintReadOnly, Category=AssetData, transient)
 	FName PackageName;
 	/** The path to the package in which the asset is found, this is /Game/Path with the Package stripped off */
+	UPROPERTY(BlueprintReadOnly, Category=AssetData, transient)
 	FName PackagePath;
 	/** The name of the asset without the package */
+	UPROPERTY(BlueprintReadOnly, Category=AssetData, transient)
 	FName AssetName;
 	/** The name of the asset's class */
+	UPROPERTY(BlueprintReadOnly, Category=AssetData, transient)
 	FName AssetClass;
 	/** The map of values for properties that were marked AssetRegistrySearchable or added by GetAssetRegistryTags */
 	FAssetDataTagMapSharedView TagsAndValues;
@@ -422,6 +434,16 @@ private:
 		}
 		return false;
 	}
+};
+
+
+template<>
+struct TStructOpsTypeTraits<FAssetData> : public TStructOpsTypeTraitsBase2<FAssetData>
+{
+	enum
+	{
+		WithIdenticalViaEquality = true
+	};
 };
 
 template <typename ValueType>

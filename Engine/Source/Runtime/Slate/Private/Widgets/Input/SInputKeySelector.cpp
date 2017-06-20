@@ -104,7 +104,7 @@ FReply SInputKeySelector::OnClicked()
 		return FReply::Handled()
 			.SetUserFocus(SharedThis(this), EFocusCause::SetDirectly);
 	}
-	return FReply::Unhandled();
+	return FReply::Handled();
 }
 
 void SInputKeySelector::SelectKey( FKey Key, bool bShiftDown, bool bControllDown, bool bAltDown, bool bCommandDown )
@@ -124,6 +124,11 @@ void SInputKeySelector::SetIsSelectingKey( bool bInIsSelectingKey )
 	if ( bIsSelectingKey != bInIsSelectingKey )
 	{
 		bIsSelectingKey = bInIsSelectingKey;
+		// Prevents certain inputs from being consumed by the button
+		if (Button.IsValid())
+		{
+			Button->SetEnabled(!bIsSelectingKey);
+		}
 		OnIsSelectingKeyChanged.ExecuteIfBound();
 	}
 }
@@ -223,5 +228,13 @@ void SInputKeySelector::OnFocusLost( const FFocusEvent& InFocusEvent )
 	if ( bIsSelectingKey )
 	{
 		SetIsSelectingKey(false);
+	}
+}
+
+void SInputKeySelector::SetTextBlockVisibility(EVisibility InVisibility)
+{
+	if (TextBlock.IsValid())
+	{
+		TextBlock->SetVisibility(InVisibility);
 	}
 }

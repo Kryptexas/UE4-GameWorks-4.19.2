@@ -7,11 +7,10 @@
 // FCachedWidgetNode
 //-------------------------------------------------------------
 
-void FCachedWidgetNode::Initialize(const FPaintArgs& Args, TSharedRef<SWidget> InWidget, const FGeometry& InGeometry, const FSlateRect& InClippingRect)
+void FCachedWidgetNode::Initialize(const FPaintArgs& Args, TSharedRef<SWidget> InWidget, const FGeometry& InGeometry)
 {
 	Widget = InWidget;
 	Geometry = InGeometry;
-	ClippingRect = InClippingRect;
 	WindowOffset = Args.GetWindowToDesktopTransform();
 	RecordedVisibility = Args.GetLastRecordedVisibility();
 	LastRecordedHittestIndex = Args.GetLastHitTestIndex();
@@ -49,7 +48,7 @@ void FCachedWidgetNode::RecordHittestGeometryInternal(FHittestGrid& Grid, int32 
 		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
 		if ( SafeWidget.IsValid() )
 		{
-			LastRecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(SafeWidget.ToSharedRef(), Geometry), WindowOffset + DynamicOffset, ClippingRect, LayerId);
+			LastRecordedHittestIndex = Grid.InsertWidget(LastHittestIndex, RecordedVisibility, FArrangedWidget(SafeWidget.ToSharedRef(), Geometry), WindowOffset + DynamicOffset, LayerId);
 
 			const int32 ChildCount = Children.Num();
 			for ( int32 i = 0; i < ChildCount; i++ )

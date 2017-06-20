@@ -90,18 +90,19 @@ struct FMovieSceneTrackEvalOptions
 	
 	FMovieSceneTrackEvalOptions()
 		: bCanEvaluateNearestSection(false)
-		, bEvaluateNearestSection(false)
+		, bEvalNearestSection(false)
 		, bEvaluateInPreroll(false)
 		, bEvaluateInPostroll(false)
+		, bEvaluateNearestSection_DEPRECATED(false)
 	{}
 
-	/** true when the value of bEvaluateNearestSection is to be considered for the track */
+	/** true when the value of bEvalNearestSection is to be considered for the track */
 	UPROPERTY()
 	uint32 bCanEvaluateNearestSection : 1;
 
 	/** When evaluating empty space on a track, will evaluate the last position of the previous section (if possible), or the first position of the next section, in that order of preference. */
-	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bCanEvaluateNearestSection))
-	uint32 bEvaluateNearestSection : 1;
+	UPROPERTY(EditAnywhere, Category="General", DisplayName="Evaluate Nearest Section", meta=(EditCondition=bCanEvaluateNearestSection))
+	uint32 bEvalNearestSection : 1;
 
 	/** Evaluate this track as part of its parent sub-section's pre-roll, if applicable */
 	UPROPERTY(EditAnywhere, Category="General")
@@ -110,6 +111,9 @@ struct FMovieSceneTrackEvalOptions
 	/** Evaluate this track as part of its parent sub-section's post-roll, if applicable */
 	UPROPERTY(EditAnywhere, Category="General")
 	uint32 bEvaluateInPostroll : 1;
+
+	UPROPERTY()
+	uint32 bEvaluateNearestSection_DEPRECATED : 1;
 };
 
 /** Enumeration specifying the result of a compilation */
@@ -141,6 +145,19 @@ public:
 	/** General evaluation options for a given track */
 	UPROPERTY(EditAnywhere, Category="General", meta=(ShowOnlyInnerProperties))
 	FMovieSceneTrackEvalOptions EvalOptions;
+
+	/**
+	 * Gets what kind of blending is supported by this section
+	 */
+	FMovieSceneBlendTypeField GetSupportedBlendTypes() const
+	{
+		return SupportedBlendTypes;
+	}
+
+	/**
+	 * Update all auto-generated easing curves for all sections in this track
+	 */
+	MOVIESCENE_API void UpdateEasing();
 
 public:
 
@@ -225,6 +242,10 @@ protected:
 
 	//~ UObject interface
 	MOVIESCENE_API virtual void PostInitProperties() override;
+	MOVIESCENE_API virtual void PostLoad() override;
+
+	/** Intentionally not a UPROPERTY so this isn't serialized */
+	FMovieSceneBlendTypeField SupportedBlendTypes;
 
 public:
 

@@ -13,7 +13,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 
-class FAssetData;
+struct FAssetData;
 class FBlueprintEditor;
 class UAnimationAsset;
 class UAnimGraphNode_Base;

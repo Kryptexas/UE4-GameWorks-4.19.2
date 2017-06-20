@@ -9,6 +9,26 @@
 DECLARE_CYCLE_STAT(TEXT("Shape Bidirectional Text"), STAT_SlateShapeBidirectionalText, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Shape Unidirectional Text"), STAT_SlateShapeUnidirectionalText, STATGROUP_Slate);
 
+namespace SurrogatePairUtil
+{
+	template <bool IsUnicode, size_t TCHARSize>
+	bool IsSurrogatePairImpl(const TCHAR InHighChar, const TCHAR InLowChar)
+	{
+		return false;
+	}
+
+	template <>
+	bool IsSurrogatePairImpl<true, 2>(const TCHAR InHighChar, const TCHAR InLowChar)
+	{
+		return (InHighChar >= 0xD800 && InHighChar <= 0xDBFF) && (InLowChar >= 0xDC00 && InLowChar <= 0xDFFF);
+	}
+
+	bool IsSurrogatePair(const TCHAR InHighChar, const TCHAR InLowChar)
+	{
+		return IsSurrogatePairImpl<FPlatformString::IsUnicodeEncoded, sizeof(TCHAR)>(InHighChar, InLowChar);
+	}
+}
+
 namespace
 {
 
@@ -124,7 +144,103 @@ void FSlateTextShaper::PerformTextShaping(const TCHAR* InText, const int32 InTex
 	if (InTextLen > 0)
 	{
 #if WITH_HARFBUZZ
-		if (TextShapingMethod == ETextShapingMethod::FullShaping || (TextShapingMethod == ETextShapingMethod::Auto && InTextDirection == TextBiDi::ETextDirection::RightToLeft))
+		auto TextRequiresFullShaping = [&]() -> bool
+		{
+			// RTL text always requires full shaping
+			if (InTextDirection == TextBiDi::ETextDirection::RightToLeft)
+			{
+				return true;
+			}
+
+			// LTR text containing certain scripts or surrogate pairs requires full shaping
+			{
+				// Note: We deliberately avoid using HarfBuzz/ICU here as we don't care about the script itself, only that the character is within a shaped script range (and testing that is much faster!)
+				auto CharRequiresFullShaping = [](const TCHAR InChar) -> bool
+				{
+					// This isn't an exhaustive list, as it omits some "dead" or uncommon languages, and ranges outside the BMP
+					static const TCHAR FullShapingScriptRanges[][2] = {
+						// Combining characters
+						{ TEXT('\u0300'), TEXT('\u036F') },
+						{ TEXT('\u1AB0'), TEXT('\u1AFF') },
+						{ TEXT('\u1DC0'), TEXT('\u1DFF') },
+						{ TEXT('\u20D0'), TEXT('\u20FF') },
+						{ TEXT('\u31C0'), TEXT('\u31EF') },
+						{ TEXT('\uFE20'), TEXT('\uFE2F') },
+
+						// Devanagari
+						{ TEXT('\u0900'), TEXT('\u097F') },
+						{ TEXT('\uA8E0'), TEXT('\uA8FF') },
+						{ TEXT('\u1CD0'), TEXT('\u1CFF') },
+
+						// Telugu
+						{ TEXT('\u0C00'), TEXT('\u0C7F') },
+
+						// Thai
+						{ TEXT('\u0E00'), TEXT('\u0E7F') },
+						
+						// Tibetan
+						{ TEXT('\u0F00'), TEXT('\u0FFF') },
+
+						// Khmer
+						{ TEXT('\u1780'), TEXT('\u17FF') },
+						{ TEXT('\u19E0'), TEXT('\u19FF') },
+
+						// Sinhala
+						{ TEXT('\u0D80'), TEXT('\u0DFF') },
+
+						// Limbu
+						{ TEXT('\u1900'), TEXT('\u194F') },
+
+						// Tai Tham
+						{ TEXT('\u1A20'), TEXT('\u1AAF') },
+
+						// Tai Viet
+						{ TEXT('\uAA80'), TEXT('\uAADF') },
+
+						// Batak
+						{ TEXT('\u1BC0'), TEXT('\u1BFF') },
+					};
+
+					for (const TCHAR* FullShapingScriptRange : FullShapingScriptRanges)
+					{
+						if (InChar >= FullShapingScriptRange[0] && InChar <= FullShapingScriptRange[1])
+						{
+							return true;
+						}
+					}
+
+					return false;
+				};
+
+				const int32 TextEndIndex = InTextStart + InTextLen;
+				for (int32 RunningTextIndex = InTextStart; RunningTextIndex < TextEndIndex; ++RunningTextIndex)
+				{
+					const TCHAR Char = InText[RunningTextIndex];
+
+					if (Char <= TEXT('\u007F'))
+					{
+						return false;
+					}
+
+					if (CharRequiresFullShaping(Char))
+					{
+						return true;
+					}
+
+					{
+						const int32 NextTextIndex = RunningTextIndex + 1;
+						if (NextTextIndex < TextEndIndex && SurrogatePairUtil::IsSurrogatePair(Char, InText[NextTextIndex]))
+						{
+							return true;
+						}
+					}
+				}
+			}
+
+			return false;
+		};
+
+		if (TextShapingMethod == ETextShapingMethod::FullShaping || (TextShapingMethod == ETextShapingMethod::Auto && TextRequiresFullShaping()))
 		{
 			PerformHarfBuzzTextShaping(InText, InTextStart, InTextLen, InFontInfo, InFontScale, InTextDirection, OutGlyphsToRender);
 		}
@@ -492,8 +608,6 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 				hb_glyph_info_t* HarfBuzzGlyphInfos = hb_buffer_get_glyph_infos(HarfBuzzTextBuffer, &HarfBuzzGlyphCount);
 				hb_glyph_position_t* HarfBuzzGlyphPositions = hb_buffer_get_glyph_positions(HarfBuzzTextBuffer, &HarfBuzzGlyphCount);
 
-				int32 PreviousCharIndex = HarfBuzzTextSubSequenceEntry.StartIndex + ((InTextDirection == TextBiDi::ETextDirection::LeftToRight) ? -1 : HarfBuzzTextSubSequenceEntry.Length);
-
 				OutGlyphsToRender.Reserve(OutGlyphsToRender.Num() + static_cast<int32>(HarfBuzzGlyphCount));
 				for (uint32 HarfBuzzGlyphIndex = 0; HarfBuzzGlyphIndex < HarfBuzzGlyphCount; ++HarfBuzzGlyphIndex)
 				{
@@ -513,10 +627,10 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 						ShapedGlyphEntry.SourceIndex = CurrentCharIndex;
 						ShapedGlyphEntry.XAdvance = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_advance);
 						ShapedGlyphEntry.YAdvance = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_advance);
-						ShapedGlyphEntry.XOffset = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset) * FinalFontScale);
-						ShapedGlyphEntry.YOffset = static_cast<int16>(-FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset) * FinalFontScale);
+						ShapedGlyphEntry.XOffset = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset);
+						ShapedGlyphEntry.YOffset = -FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset);
 						ShapedGlyphEntry.Kerning = 0;
-						ShapedGlyphEntry.NumCharactersInGlyph = 1;
+						ShapedGlyphEntry.NumCharactersInGlyph = 0; // Filled in later once we've processed each cluster
 						ShapedGlyphEntry.NumGraphemeClustersInGlyph = 0; // Filled in later once we have an accurate character count
 						ShapedGlyphEntry.TextDirection = InTextDirection;
 						ShapedGlyphEntry.bIsVisible = !bIsWhitespace;
@@ -534,28 +648,7 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 							}
 #endif // WITH_FREETYPE
 						}
-
-						// Detect the character count for this glyph
-						// For left-to-right text, the count is for the previous glyph; for right-to-left text, it's for the current glyph
-						if (CurrentGlyphEntryIndex == 0 || InTextDirection == TextBiDi::ETextDirection::RightToLeft)
-						{
-							ShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs(ShapedGlyphEntry.SourceIndex - PreviousCharIndex));
-						}
-						else if (CurrentGlyphEntryIndex > 0)
-						{
-							FShapedGlyphEntry& PreviousShapedGlyphEntry = OutGlyphsToRender[CurrentGlyphEntryIndex - 1];
-							PreviousShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs(ShapedGlyphEntry.SourceIndex - PreviousCharIndex));
-						}
 					}
-
-					PreviousCharIndex = CurrentCharIndex;
-				}
-
-				// Need to handle the last character count for left-to-right text (right-to-left text is implicitly handled as part of the loop above)
-				if (InTextDirection == TextBiDi::ETextDirection::LeftToRight && HarfBuzzGlyphCount > 0)
-				{
-					FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender.Last();
-					ShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs((HarfBuzzTextSubSequenceEntry.StartIndex + HarfBuzzTextSubSequenceEntry.Length) - ShapedGlyphEntry.SourceIndex));
 				}
 
 				hb_buffer_clear_contents(HarfBuzzTextBuffer);
@@ -567,7 +660,64 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 		hb_buffer_destroy(HarfBuzzTextBuffer);
 	}
 
-	// Step 4) Count the grapheme clusters for any entries that haven't been set yet
+	const int32 NumGlyphsRendered = OutGlyphsToRender.Num() - InitialNumGlyphsToRender;
+
+	// Step 4) Count the characters that belong to each glyph if they haven't already been set
+	if (NumGlyphsRendered > 0)
+	{
+		const int32 CurrentNumGlyphsToRender = OutGlyphsToRender.Num();
+
+		// The glyphs in the array are in render order, so LTR and RTL text use different start and end points in the source string
+		const int32 FirstGlyphPrevSourceIndex = (InTextDirection == TextBiDi::ETextDirection::LeftToRight) ? InTextStart - 1 : InTextStart + InTextLen;
+		const int32 LastGlyphNextSourceIndex  = (InTextDirection == TextBiDi::ETextDirection::LeftToRight) ? InTextStart + InTextLen : InTextStart - 1;
+
+		// Start of the loop; process against the "start" of the string range
+		{
+			FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[InitialNumGlyphsToRender];
+			ShapedGlyphEntry.NumCharactersInGlyph = FMath::Abs(FirstGlyphPrevSourceIndex - ShapedGlyphEntry.SourceIndex);
+		}
+
+		// Body of the loop; this will process the initial character again, but won't change its value and will walk past its entire cluster
+		for (int32 GlyphToRenderIndex = InitialNumGlyphsToRender; GlyphToRenderIndex < CurrentNumGlyphsToRender;)
+		{
+			FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[GlyphToRenderIndex];
+
+			// Walk forward to find the first glyph in the next cluster; the number of characters in this glyph is the difference between their two source indices
+			int32 NextGlyphToRenderIndex = GlyphToRenderIndex + 1;
+			for (; NextGlyphToRenderIndex < CurrentNumGlyphsToRender; ++NextGlyphToRenderIndex)
+			{
+				const FShapedGlyphEntry& NextShapedGlyphEntry = OutGlyphsToRender[NextGlyphToRenderIndex];
+				if (ShapedGlyphEntry.SourceIndex != NextShapedGlyphEntry.SourceIndex)
+				{
+					break;
+				}
+			}
+
+			if (NextGlyphToRenderIndex < CurrentNumGlyphsToRender)
+			{
+				FShapedGlyphEntry& NextShapedGlyphEntry = OutGlyphsToRender[NextGlyphToRenderIndex];
+
+				// For LTR text we update ourself based on the next glyph cluster, for RTL text we update the next glyph cluster based on us
+				FShapedGlyphEntry& ShapedGlyphEntryToUpdate = (InTextDirection == TextBiDi::ETextDirection::LeftToRight) ? ShapedGlyphEntry : NextShapedGlyphEntry;
+				if (ShapedGlyphEntryToUpdate.NumCharactersInGlyph == 0)
+				{
+					ShapedGlyphEntryToUpdate.NumCharactersInGlyph = FMath::Abs(NextShapedGlyphEntry.SourceIndex - ShapedGlyphEntry.SourceIndex);
+				}
+			}
+
+			GlyphToRenderIndex = NextGlyphToRenderIndex;
+		}
+
+		// End of the loop; process against the "end" of the string range (RTL text is implicitly handled as part of the loop above)
+		if (InTextDirection == TextBiDi::ETextDirection::LeftToRight)
+		{
+			FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender[CurrentNumGlyphsToRender - 1];
+			ShapedGlyphEntry.NumCharactersInGlyph = FMath::Abs(LastGlyphNextSourceIndex - ShapedGlyphEntry.SourceIndex);
+		}
+	}
+
+	// Step 5) Count the grapheme clusters for any entries that haven't been set yet
+	if (NumGlyphsRendered > 0)
 	{
 		GraphemeBreakIterator->SetString(InText + InTextStart, InTextLen);
 

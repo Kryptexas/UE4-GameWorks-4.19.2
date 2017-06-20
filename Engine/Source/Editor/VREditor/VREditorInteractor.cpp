@@ -164,7 +164,7 @@ bool UVREditorInteractor::HasUIOnForearm() const
 
 UWidgetComponent* UVREditorInteractor::GetLastHoveredWidgetComponent() const
 {
-	return InteractorData.LastHoveredWidgetComponent;
+	return InteractorData.LastHoveredWidgetComponent.Get();
 }
 
 void UVREditorInteractor::SetLastHoveredWidgetComponent( UWidgetComponent* NewHoveringOverWidgetComponent )

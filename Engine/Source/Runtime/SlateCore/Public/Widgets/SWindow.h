@@ -88,9 +88,6 @@ enum class ESizingRule : uint8
 /** Proxy structure to handle deprecated construction from bool */
 struct FWindowTransparency
 {
-	DEPRECATED(4.8, "Please specify an EWindowTransparency value instead.")
-	FWindowTransparency(bool bSupportsTransparency) : Value(bSupportsTransparency ? EWindowTransparency::PerWindow : EWindowTransparency::None) {}
-
 	FWindowTransparency(EWindowTransparency In) : Value(In) {}
 	
 	EWindowTransparency Value;
@@ -146,7 +143,8 @@ public:
 		, _SaneWindowPlacement( true )
 		, _LayoutBorder(FMargin(5, 5, 5, 5))
 		, _UserResizeBorder(FMargin(5, 5, 5, 5))
-	{ }
+	{
+	}
 
 		/** Type of this window */
 		SLATE_ARGUMENT( EWindowType, Type )
@@ -322,7 +320,7 @@ public:
 	}
 
 	/** Paint the window and all of its contents. Not the same as Paint(). */
-	int32 PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+	int32 PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 
 	/**
 	 * Returns the size of the title bar as a Slate size parameter.  Does not take into account application scale!
@@ -751,7 +749,7 @@ private:
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
 	virtual FVector2D ComputeDesiredSize(float) const override;

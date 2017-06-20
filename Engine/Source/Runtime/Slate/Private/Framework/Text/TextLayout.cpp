@@ -241,6 +241,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		return InFirst.StartIndex < InSecond.StartIndex;
 	});
 
+	FTextRange SoftLineRange = FTextRange(MAX_int32, MIN_int32);
 	for (; OutRunIndex < LineModel.Runs.Num(); )
 	{
 		const FRunModel& Run = LineModel.Runs[ OutRunIndex ];
@@ -323,6 +324,11 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale, FLayoutBlockTextContext(RunTextContext, BlockTextDirection) ) );
 			OutPreviousBlockEnd = BlockStopIndex;
+
+			// Update the soft line bounds based on this new block (needed within this loop due to bi-directional text, as the extents of the line array are not always the start and end of the range)
+			const FTextRange& BlockRange = OutSoftLine.Last()->GetTextRange();
+			SoftLineRange.BeginIndex = FMath::Min(SoftLineRange.BeginIndex, BlockRange.BeginIndex);
+			SoftLineRange.EndIndex   = FMath::Max(SoftLineRange.EndIndex, BlockRange.EndIndex);
 		}
 
 		// Get the baseline and flip it's sign; Baselines are generally negative
@@ -419,16 +425,11 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		LineSize.X = CurrentHorizontalPos;
 		LineSize.Y = UnscaleLineHeight * LineHeightPercentage;
 
-		// Calculate the range for this line, taking into account the fact that text may be flowing right-to-left, so the bounds may be inverted
-		const FTextRange& FirstBlockRange = OutSoftLine[0]->GetTextRange();
-		const FTextRange& LastBlockRange = OutSoftLine.Last()->GetTextRange();
-		const FTextRange LineViewRange = FTextRange(FMath::Min(FirstBlockRange.BeginIndex, LastBlockRange.BeginIndex), FMath::Max(FirstBlockRange.EndIndex, LastBlockRange.EndIndex));
-
 		FTextLayout::FLineView LineView;
 		LineView.Offset = CurrentOffset;
 		LineView.Size = LineSize;
 		LineView.TextSize = FVector2D(CurrentHorizontalPos, UnscaleLineHeight);
-		LineView.Range = LineViewRange;
+		LineView.Range = SoftLineRange;
 		LineView.TextBaseDirection = LineModel.TextBaseDirection;
 		LineView.ModelIndex = LineModelIndex;
 		LineView.Blocks.Append( OutSoftLine );
@@ -710,18 +711,6 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 
 void FTextLayout::FlowHighlights()
 {
-	struct FVisualHighlightBoundary
-	{
-		FVisualHighlightBoundary()
-			: BlockIndex(INDEX_NONE)
-			, RangeIndex(INDEX_NONE)
-		{
-		}
-
-		int32 BlockIndex;
-		int32 RangeIndex;
-	};
-
 	// FlowLayout must have been called first
 	checkf(!(DirtyFlags & ETextLayoutDirtyState::Layout), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
@@ -748,158 +737,155 @@ void FTextLayout::FlowHighlights()
 				continue;
 			}
 
-			auto AppendLineViewHighlight = [&](const FLineViewHighlight& InLineViewHighlight)
-			{
-				if (LineHighlight.ZOrder < 0)
-				{
-					LineView.UnderlayHighlights.Add(InLineViewHighlight);
-				}
-				else
-				{
-					LineView.OverlayHighlights.Add(InLineViewHighlight);
-				}
-			};
-
 			FLineViewHighlight LineViewHighlight;
 			LineViewHighlight.OffsetX = 0.0f;
 			LineViewHighlight.Width = 0.0f;
 			LineViewHighlight.Highlighter = LineHighlight.Highlighter;
 
-			// Find the start and end block for this highlight
-			FVisualHighlightBoundary VisualHighlightStart;
-			FVisualHighlightBoundary VisualHighlightEnd;
+			bool bHasStartedHighlighting = false;
+			float RunningBlockOffset = LineViewHighlight.OffsetX;
+
+			auto AppendLineViewHighlight = [&LineHighlight, &LineView, &LineViewHighlight, &LineViewHighlightRange]()
+			{
+				if (LineViewHighlightRange.IsEmpty() || LineViewHighlight.Width > 0.0f)
+				{
+					if (LineHighlight.ZOrder < 0)
+					{
+						LineView.UnderlayHighlights.Add(LineViewHighlight);
+					}
+					else
+					{
+						LineView.OverlayHighlights.Add(LineViewHighlight);
+					}
+				}
+			};
+
+			auto AppendLineViewHighlightAndReset = [&AppendLineViewHighlight, &LineViewHighlight, &RunningBlockOffset]()
+			{
+				AppendLineViewHighlight();
+
+				LineViewHighlight.OffsetX = RunningBlockOffset;
+				LineViewHighlight.Width = 0.0f;
+			};
+
 			for (int32 CurrentBlockIndex = 0; CurrentBlockIndex < LineView.Blocks.Num(); ++CurrentBlockIndex)
 			{
 				const TSharedRef<ILayoutBlock>& Block = LineView.Blocks[CurrentBlockIndex];
 				const FTextRange& BlockTextRange = Block->GetTextRange();
+				const TSharedRef<IRun> Run = Block->GetRun();
 
-				if (BlockTextRange.InclusiveContains(LineViewHighlightRange.BeginIndex))
-				{
-					VisualHighlightStart.BlockIndex = CurrentBlockIndex;
-					VisualHighlightStart.RangeIndex = LineViewHighlightRange.BeginIndex;
-				}
+				const float CurrentBlockRunningOffset = RunningBlockOffset;
+				RunningBlockOffset += Block->GetSize().X;
 
-				if (BlockTextRange.InclusiveContains(LineViewHighlightRange.EndIndex))
-				{
-					VisualHighlightEnd.BlockIndex = CurrentBlockIndex;
-					VisualHighlightEnd.RangeIndex = LineViewHighlightRange.EndIndex;
-				}
-
-				if (VisualHighlightStart.BlockIndex != INDEX_NONE && VisualHighlightEnd.BlockIndex != INDEX_NONE)
-				{
-					break;
-				}
-			}
-			check(VisualHighlightStart.BlockIndex != INDEX_NONE && VisualHighlightEnd.BlockIndex != INDEX_NONE);
-
-			// Right-to-left text can lead to VisualHighlightStart being after VisualHighlightEnd, we need to flip them if this has happened since we walk the blocks to highlight left-to-right
-			if (VisualHighlightStart.BlockIndex > VisualHighlightEnd.BlockIndex)
-			{
-				Swap(VisualHighlightStart, VisualHighlightEnd);
-			}
-
-			// Measure the blocks up to the start of this highlight to get the correct start offset
-			for (int32 CurrentBlockIndex = 0; CurrentBlockIndex < VisualHighlightStart.BlockIndex; ++CurrentBlockIndex)
-			{
-				const TSharedRef<ILayoutBlock>& Block = LineView.Blocks[CurrentBlockIndex];
-				LineViewHighlight.OffsetX += Block->GetSize().X;
-			}
-
-			const TSharedRef<ILayoutBlock>& StartBlock = LineView.Blocks[VisualHighlightStart.BlockIndex];
-			const TSharedRef<ILayoutBlock>& EndBlock = LineView.Blocks[VisualHighlightEnd.BlockIndex];
-			const bool bIsSingleBlock = VisualHighlightStart.BlockIndex == VisualHighlightEnd.BlockIndex;
-			const bool bIsVisuallyContiguous = StartBlock->GetTextContext().TextDirection == EndBlock->GetTextContext().TextDirection && StartBlock->GetTextContext().TextDirection == StartBlock->GetTextContext().BaseDirection;
-
-			float RunningBlockOffset = LineViewHighlight.OffsetX;
-
-			// Handle any offset and size from the start block
-			{
-				RunningBlockOffset += StartBlock->GetSize().X;
-
-				const FTextRange& BlockTextRange = StartBlock->GetTextRange();
-				const TSharedRef<IRun> Run = StartBlock->GetRun();
-
-				// The width always includes size of the intersecting text
 				const FTextRange IntersectedRange = BlockTextRange.Intersect(LineViewHighlightRange);
-				if (!IntersectedRange.IsEmpty())
-				{
-					LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
+				const bool bBlockIsHighlighted = !IntersectedRange.IsEmpty() || IntersectedRange == LineViewHighlightRange;
+				const bool bBlockIsFullyHighlighted = IntersectedRange == BlockTextRange;
 
-					// In left-to-right text, the space before the start of the text is added as an offset
-					// In right-to-left text, the space after the end of the text (which is visually on the left) is added as an offset
-					if (StartBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+				if (bBlockIsHighlighted)
+				{
+					// This block should be part of the highlight... but how?
+					if (!bHasStartedHighlighting)
 					{
-						LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+						// This block is the start of the highlight
+						bHasStartedHighlighting = true;
+
+						LineViewHighlight.OffsetX = CurrentBlockRunningOffset;
+
+						// The width always includes size of the intersecting text
+						if (!IntersectedRange.IsEmpty())
+						{
+							LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
+
+							// In LTR text, the space before the start of the text is added as an offset
+							// In RTL text, the space after the end of the text (which is visually on the left) is added as an offset
+							if (Block->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+							{
+								LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+							}
+							else
+							{
+								LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+							}
+						}
 					}
 					else
 					{
-						LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
-					}
-				}
-			}
+						// Test to see whether the current highlight covered the RHS of the previous block
+						const bool bPrevBlockHighlightedRHS = (LineViewHighlight.OffsetX + LineViewHighlight.Width) >= CurrentBlockRunningOffset;
 
-			// If we need to deal with other blocks, then we also need to deal with splitting the highlight for non-contiguous text
-			if (!bIsSingleBlock)
-			{
-				if (!bIsVisuallyContiguous)
-				{
-					// Append the block for the first part of the highlight and reset it to deal with the middle part
-					AppendLineViewHighlight(LineViewHighlight);
-
-					LineViewHighlight.OffsetX = RunningBlockOffset;
-					LineViewHighlight.Width = 0.0f;
-				}
-
-				// Measure the blocks under this highlight to get the correct size
-				for (int32 CurrentBlockIndex = VisualHighlightStart.BlockIndex + 1; CurrentBlockIndex < VisualHighlightEnd.BlockIndex; ++CurrentBlockIndex)
-				{
-					const TSharedRef<ILayoutBlock>& Block = LineView.Blocks[CurrentBlockIndex];
-					LineViewHighlight.Width += Block->GetSize().X;
-					RunningBlockOffset += Block->GetSize().X;
-				}
-
-				if (!bIsVisuallyContiguous)
-				{
-					// Append the block for the middle part of the highlight (if any) and reset it to deal with the end part
-					if (LineViewHighlight.Width > 0.0f)
-					{
-						AppendLineViewHighlight(LineViewHighlight);
-					}
-
-					LineViewHighlight.OffsetX = RunningBlockOffset;
-					LineViewHighlight.Width = 0.0f;
-				}
-
-				// Handle any size from the end block
-				{
-					const FTextRange& BlockTextRange = EndBlock->GetTextRange();
-					const TSharedRef<IRun> Run = EndBlock->GetRun();
-
-					// The width always includes size of the intersecting text
-					const FTextRange IntersectedRange = BlockTextRange.Intersect(LineViewHighlightRange);
-					if (!IntersectedRange.IsEmpty())
-					{
-						LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
-					}
-
-					// When the text flow direction doesn't match the block text flow direction, we'll need to apply an offset to compensate for the selection potentially starting mid-way through the block
-					if (EndBlock->GetTextContext().TextDirection != EndBlock->GetTextContext().BaseDirection)
-					{
-						// In left-to-right text, the space before the start of the text is added as an offset
-						// In right-to-left text, the space after the end of the text (which is visually on the left) is added as an offset
-						if (EndBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+						// This block is part of an existing highlight... but should it split the current visual highlight?
+						if (bBlockIsFullyHighlighted)
 						{
-							LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+							if (bPrevBlockHighlightedRHS)
+							{
+								// Fully highlighted blocks following a block that highlighted its RHS can continue the current visual highlight, so just append its width
+								LineViewHighlight.Width += Block->GetSize().X;
+							}
+							else
+							{
+								// Fully highlighted blocks following a visual gap highlighted block have to start a new visual highlight
+								AppendLineViewHighlightAndReset();
+
+								LineViewHighlight.OffsetX = CurrentBlockRunningOffset;
+								LineViewHighlight.Width += Block->GetSize().X;
+							}
 						}
 						else
-					{
-						LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+						{
+							// When the text flow direction doesn't match the block text flow direction, we'll need to apply an offset to compensate for the selection potentially starting mid-way through the block
+							float BlockHighlightOffsetAdjustment = 0.0f;
+							if (Block->GetTextContext().TextDirection != Block->GetTextContext().BaseDirection)
+							{
+								// In LTR text, the space before the start of the text is added as an offset
+								// In RTL text, the space after the end of the text (which is visually on the left) is added as an offset
+								if (Block->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+								{
+									BlockHighlightOffsetAdjustment += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+								}
+								else
+								{
+									BlockHighlightOffsetAdjustment += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+								}
+							}
+
+							// Append the partial width to the current visual highlight before starting another
+							float BlockHighlightWidth = 0.0f;
+							if (!IntersectedRange.IsEmpty())
+							{
+								BlockHighlightWidth += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
+							}
+
+							// Test to see whether the extra highlight will cover the LHS of this block
+							const bool bBlockHighlighsLHS = BlockHighlightOffsetAdjustment == 0.0f;
+
+							// Partially highlighted blocks can continue the current visual highlight if it highlighted the RHS of the previous block, and this block highlights its LHS
+							const bool bIsVisuallyContiguous = bPrevBlockHighlightedRHS && bBlockHighlighsLHS;
+							
+							if (bIsVisuallyContiguous)
+							{
+								// Append the partial width to the current visual highlight before starting another
+								LineViewHighlight.Width += BlockHighlightWidth;
+								AppendLineViewHighlightAndReset();
+							}
+							else
+							{
+								// There's a visual gap, so we need to end this visual highlight and start another
+								AppendLineViewHighlightAndReset();
+								LineViewHighlight.OffsetX = CurrentBlockRunningOffset + BlockHighlightOffsetAdjustment;
+								LineViewHighlight.Width += BlockHighlightWidth;
+							}
+						}
 					}
 				}
-			}
+				else
+				{
+					// This block is not part of the current highlight... end any current highlight
+					AppendLineViewHighlightAndReset();
+				}
 			}
 
-			AppendLineViewHighlight(LineViewHighlight);
+			// Append any trailing highlight
+			AppendLineViewHighlight();
 		}
 	}
 }
@@ -2507,6 +2493,9 @@ void FTextLayout::SetWrappingPolicy(ETextWrappingPolicy Value)
 void FTextLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
 {
 	DebugSourceInfo = InDebugSourceInfo;
+#if !UE_BUILD_SHIPPING
+	DebugSourceInfo.Get(FString());
+#endif	// !UE_BUILD_SHIPPING
 }
 
 FVector2D FTextLayout::GetDrawSize() const

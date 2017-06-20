@@ -2,7 +2,7 @@
 
 #include "VIUniformScaleGizmoHandle.h"
 #include "UObject/ConstructorHelpers.h"
-#include "Components/StaticMeshComponent.h"
+#include "VIGizmoHandleMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VIBaseTransformGizmo.h"
@@ -21,7 +21,7 @@ UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 		check( UniformScaleMesh != nullptr );
 	}
 
-	UStaticMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
+	UGizmoHandleMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
 	check( UniformScaleHandle != nullptr );
 
 	FGizmoHandle& NewHandle = *new( Handles ) FGizmoHandle();

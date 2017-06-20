@@ -25,7 +25,7 @@ public:
 	/**
 	 * Call to determine if the gesture is supported by the gesture detector.
 	 */
-	static bool IsGestureSupported(EGestureEvent::Type Gesture);
+	static bool IsGestureSupported(EGestureEvent Gesture);
 
 	void OnTouchStarted(int32 TouchIndex, const FVector2D& Location);
 	void OnTouchEnded(int32 TouchIndex, const FVector2D& Location);

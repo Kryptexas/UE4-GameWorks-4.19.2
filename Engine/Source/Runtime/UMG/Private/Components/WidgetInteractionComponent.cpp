@@ -127,7 +127,10 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
 			Params.AddIgnoredComponents(PrimitiveChildren);
 
-			GetWorld()->LineTraceMultiByChannel(MultiHits, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
+			TraceResult.LineStartLocation = WorldLocation;
+			TraceResult.LineEndLocation = WorldLocation + (Direction * InteractionDistance);
+
+			GetWorld()->LineTraceMultiByChannel(MultiHits, TraceResult.LineStartLocation, TraceResult.LineEndLocation, TraceChannel, Params);
 			break;
 		}
 		case EWidgetInteractionSource::Mouse:
@@ -153,7 +156,10 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 						FVector WorldDirection;
 						if ( UGameplayStatics::DeprojectScreenToWorld(PlayerController, MousePosition, WorldOrigin, WorldDirection) == true )
 						{
-							GetWorld()->LineTraceMultiByChannel(MultiHits, WorldOrigin, WorldOrigin + WorldDirection * InteractionDistance, TraceChannel, Params);
+							TraceResult.LineStartLocation = WorldOrigin;
+							TraceResult.LineEndLocation = WorldOrigin + WorldDirection * InteractionDistance;
+
+							GetWorld()->LineTraceMultiByChannel(MultiHits, TraceResult.LineStartLocation, TraceResult.LineEndLocation, TraceChannel, Params);
 						}
 					}
 				}
@@ -166,6 +172,9 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 					FVector WorldDirection;
 					if ( UGameplayStatics::DeprojectScreenToWorld(PlayerController, ViewportSize * 0.5f, WorldOrigin, WorldDirection) == true )
 					{
+						TraceResult.LineStartLocation = WorldOrigin;
+						TraceResult.LineEndLocation = WorldOrigin + WorldDirection * InteractionDistance;
+
 						GetWorld()->LineTraceMultiByChannel(MultiHits, WorldOrigin, WorldOrigin + WorldDirection * InteractionDistance, TraceChannel, Params);
 					}
 				}
@@ -176,6 +185,8 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 		{
 			TraceResult.HitResult = CustomHitResult;
 			TraceResult.bWasHit = CustomHitResult.bBlockingHit;
+			TraceResult.LineStartLocation = CustomHitResult.TraceStart;
+			TraceResult.LineEndLocation = CustomHitResult.TraceEnd;
 			break;
 		}
 	}
@@ -278,8 +289,6 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 	bIsHoveredWidgetFocusable = false;
 	bIsHoveredWidgetHitTestVisible = false;
 
-	LocalHitLocation = LastLocalHitLocation;
-
 	UWidgetComponent* OldHoveredWidget = HoveredWidgetComponent;
 
 	HoveredWidgetComponent = nullptr;
@@ -287,6 +296,7 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 	FWidgetTraceResult TraceResult = PerformTrace();
 	LastHitResult = TraceResult.HitResult;
 	HoveredWidgetComponent = TraceResult.HitWidgetComponent;
+	LastLocalHitLocation = LocalHitLocation;
 	LocalHitLocation = TraceResult.bWasHit
 		? TraceResult.LocalHitLocation
 		: LastLocalHitLocation;
@@ -308,7 +318,7 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 			}
 			else
 			{
-				UKismetSystemLibrary::DrawDebugLine(this, LastHitResult.TraceStart, LastHitResult.TraceEnd, DebugColor, 0, 1);
+				UKismetSystemLibrary::DrawDebugLine(this, TraceResult.LineStartLocation, TraceResult.LineEndLocation, DebugColor, 0, 1);
 			}
 		}
 	}
@@ -318,8 +328,6 @@ FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 	{
 		HoveredWidgetComponent->RequestRedraw();
 	}
-
-	LastLocalHitLocation = LocalHitLocation;
 
 	if ( WidgetPathUnderPointer.IsValid() )
 	{

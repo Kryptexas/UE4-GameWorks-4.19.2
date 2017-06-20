@@ -271,8 +271,9 @@ public:
 	 *
 	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
 	 * @param Container				Container to populate with the desired output from this track
+	 * @param BindingOverride		Optional binding to specify the object that is being animated by this track
 	 */
-	MOVIESCENE_API  void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const;
+	MOVIESCENE_API  void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container, UObject* BindingOverride = nullptr) const;
 
 private:
 

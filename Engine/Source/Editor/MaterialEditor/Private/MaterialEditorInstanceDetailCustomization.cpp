@@ -138,7 +138,7 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 	TArray<UObject*> ExternalObjects;
 	ExternalObjects.Add(MaterialEditorInstance->SourceInstance);
 
-	PreviewingCategory.AddExternalProperty(ExternalObjects, TEXT("PreviewMesh"));
+	PreviewingCategory.AddExternalObjectProperty(ExternalObjects, TEXT("PreviewMesh"));
 
 }
 

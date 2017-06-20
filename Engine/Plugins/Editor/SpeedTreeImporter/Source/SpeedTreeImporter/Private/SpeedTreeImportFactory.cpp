@@ -14,6 +14,7 @@
 #include "Widgets/SWindow.h"
 #include "SlateOptMacros.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
@@ -75,6 +76,11 @@
 #include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+
+#include "SpeedTreeImportData.h"
+
 #define LOCTEXT_NAMESPACE "SpeedTreeImportFactory"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSpeedTreeImport, Log, All);
@@ -84,39 +90,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 class SSpeedTreeImportOptions : public SCompoundWidget
 {
 public:
-
-	/** Geometry import type */
-	enum EImportGeometryType
-	{
-		IGT_3D,
-		IGT_Billboards,
-		IGT_Both
-	};
-	EImportGeometryType				ImportGeometryType;
-
-	/** Tree scale **/
-	float							TreeScale;
-
-	/** LOD type **/
-	enum EImportLODType
-	{
-		ILT_PaintedFoliage,
-		ILT_IndividualActors
-	};
-	EImportLODType					LODType;
-
-	/** options */
-	TSharedPtr<SCheckBox>			MakeMaterialsCheck;
-	TSharedPtr<SCheckBox>			IncludeNormalMapCheck;
-	TSharedPtr<SCheckBox>			IncludeDetailMapCheck;
-	TSharedPtr<SCheckBox>			IncludeSpecularMapCheck;
-	TSharedPtr<SCheckBox>			IncludeVertexProcessingCheck;
-	TSharedPtr<SCheckBox>			IncludeWindCheck;
-	TSharedPtr<SCheckBox>			IncludeSmoothLODCheck;
-	TSharedPtr<SCheckBox>			IncludeCollision;
-	TSharedPtr<SCheckBox>			IncludeBranchSeamSmoothing;
-	TSharedPtr<SCheckBox>			IncludeSpeedTreeAO;
-	TSharedPtr<SCheckBox>			IncludeColorAdjustment;
+	USpeedTreeImportData *SpeedTreeImportData;
 
 	/** Whether we should go ahead with import */
 	bool							bImport;
@@ -124,86 +98,43 @@ public:
 	/** Window that owns us */
 	TSharedPtr<SWindow>				WidgetWindow;
 
+	TSharedPtr<IDetailsView> DetailsView;
+
 public:
 	SLATE_BEGIN_ARGS(SSpeedTreeImportOptions) 
 		: _WidgetWindow()
+		, _ReimportAssetData(nullptr)
 		{}
-
 		SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
+		SLATE_ARGUMENT(USpeedTreeImportData*, ReimportAssetData)
 	SLATE_END_ARGS()
 
 	SSpeedTreeImportOptions() :
-		ImportGeometryType(IGT_3D),
-		TreeScale(30.48f),
-		LODType(ILT_PaintedFoliage),
 		bImport(false)
-	{}
-
-	TSharedRef<SWidget> CreateOption(TSharedPtr<SCheckBox>& CheckBox, const FText& NameText, bool bChecked)
 	{
-		return SAssignNew(CheckBox, SCheckBox)
-		.IsChecked(bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-		.OnCheckStateChanged(this, &SSpeedTreeImportOptions::OnOptionModified)
-		.Content()
-		[
-			SNew(STextBlock).Text(NameText)
-		];
-	}
-
-	TSharedRef<SWidget> CreateGeometryTypeCombo(const FText& NameText, bool bChecked, EImportGeometryType Type)
-	{
-		return SNew(SCheckBox)
-		.Style(FEditorStyle::Get(), "RadioButton")
-		.IsChecked(this, &SSpeedTreeImportOptions::IsGeometryTypeRadioChecked, Type)
-		.OnCheckStateChanged(this, &SSpeedTreeImportOptions::OnGeometryTypeRadioChanged, Type)
-		.Content()
-		[
-			SNew(STextBlock).Text(NameText)
-		];
-	}
-
-	ECheckBoxState IsGeometryTypeRadioChecked(EImportGeometryType ButtonId) const
-	{
-		return (ImportGeometryType == ButtonId) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-
-	void OnGeometryTypeRadioChanged(ECheckBoxState NewRadioState, EImportGeometryType RadioThatChanged )
-	{
-		if (NewRadioState == ECheckBoxState::Checked)
-		{
-			ImportGeometryType = RadioThatChanged;
-		}
-	}
-
-	TSharedRef<SWidget> CreateLodTypeCombo(const FText& NameText, bool bChecked, EImportLODType Type)
-	{
-		return SNew(SCheckBox)
-		.Style(FEditorStyle::Get(), "RadioButton")
-		.IsChecked(this, &SSpeedTreeImportOptions::IsLodTypeRadioChecked, Type)
-		.OnCheckStateChanged(this, &SSpeedTreeImportOptions::OnLodTypeRadioChanged, Type)
-		.Content()
-		[
-			SNew(STextBlock).Text(NameText)
-		];
-	}
-
-	ECheckBoxState IsLodTypeRadioChecked(EImportLODType ButtonId) const
-	{
-		return (LODType == ButtonId) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-
-	void OnLodTypeRadioChanged(ECheckBoxState NewRadioState, EImportLODType RadioThatChanged)
-	{
-		if (NewRadioState == ECheckBoxState::Checked)
-		{
-			LODType = RadioThatChanged;
-		}
+		DetailsView = nullptr;
+		SpeedTreeImportData = NewObject<USpeedTreeImportData>(GetTransientPackage(), NAME_None);
+		SpeedTreeImportData->LoadConfig();
 	}
 
 	void Construct(const FArguments& InArgs)
 	{
 		WidgetWindow = InArgs._WidgetWindow;
+		USpeedTreeImportData* ReimportAssetData = InArgs._ReimportAssetData;
 
+		if (ReimportAssetData != nullptr)
+		{
+			//If we reimport we have to load the original import options
+			//Do not use the real mesh data (ReimportAssetData) in case the user cancel the operation.
+			SpeedTreeImportData->CopyFrom(ReimportAssetData);
+		}
+		else
+		{
+			//When simply importing we load the local config file of the user so he rerieve the last import options
+			SpeedTreeImportData->LoadOptions();
+		}
+		TSharedPtr<SBox> InspectorBox;
+		
 		// Create widget
 		this->ChildSlot
 		[
@@ -212,171 +143,65 @@ public:
 			. Content()
 			[
 				SNew(SVerticalBox)
-
-				// options
-				+SVerticalBox::Slot().AutoHeight().Padding(5)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
 				[
-					SNew(SVerticalBox)
-
-					+ SVerticalBox::Slot().AutoHeight().Padding(5).HAlign(HAlign_Left)
-					[
-						SNew(STextBlock).Text(LOCTEXT("TreeScaleLabel", "Tree Scale"))
-					]
-
-					+SVerticalBox::Slot().AutoHeight().Padding(5)
-					[
-						SNew(SEditableTextBox)
-						.SelectAllTextWhenFocused(true)
-						.OnTextCommitted(this, &SSpeedTreeImportOptions::ScaleTextCommitted)
-						.Text(FText::AsNumber(TreeScale))
-					]
+					SAssignNew(InspectorBox, SBox)
+					.MaxDesiredHeight(650.0f)
+					.WidthOverride(400.0f)
 				]
-
-				+SVerticalBox::Slot().AutoHeight().Padding(5)
-				[
-					SNew(SVerticalBox)
-
-					+SVerticalBox::Slot().AutoHeight().Padding(5).HAlign(HAlign_Left)
-					[
-						SNew(STextBlock).Text(LOCTEXT("GeometryCategoryLabel", "Geometry"))
-					]
-
-					+SVerticalBox::Slot().AutoHeight().Padding(15, 5)
-					[
-						SNew(SVerticalBox)
-					
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateGeometryTypeCombo(LOCTEXT("3D_LODs", "3D LODs"), true, IGT_3D)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateGeometryTypeCombo(LOCTEXT("Billboards", "Billboards"), false, IGT_Billboards)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateGeometryTypeCombo(LOCTEXT("Both", "Both"), false, IGT_Both)
-						]
-					]
-				]
-
-				+SVerticalBox::Slot().AutoHeight().Padding(5)
-				[
-					SNew(SVerticalBox)
-
-					+ SVerticalBox::Slot().AutoHeight().Padding(5).HAlign(HAlign_Left)
-					[
-						SNew(STextBlock).Text(LOCTEXT("LODSetupLabel", "LOD Setup"))
-					]
-
-					+SVerticalBox::Slot().AutoHeight().Padding(15, 5)
-					[
-						SNew(SVerticalBox)
-						
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateLodTypeCombo(LOCTEXT("PaintedFoliage", "Painted Foliage"), true, ILT_PaintedFoliage)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateLodTypeCombo(LOCTEXT("IndividualActors", "Individual Actors"), false, ILT_IndividualActors)
-						]
-					]
-				]
-
-				+SVerticalBox::Slot().AutoHeight().Padding(5)
-				[
-					SNew(SVerticalBox)
-
-					+SVerticalBox::Slot().AutoHeight().Padding(5)
-					[
-						CreateOption(IncludeCollision, LOCTEXT("SetupCollision", "Setup Collision"), true)
-					]
-
-					+SVerticalBox::Slot().AutoHeight().Padding(5)
-					[
-						CreateOption(MakeMaterialsCheck, LOCTEXT("CreateMaterials", "Create Materials"), true)
-					]
-
-					+SVerticalBox::Slot().AutoHeight().Padding(15, 5)
-					[
-						SNew(SVerticalBox)
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeNormalMapCheck, LOCTEXT("IncludeNormalMaps", "Include Normal Maps"), true)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeDetailMapCheck, LOCTEXT("IncludeDetailMaps", "Include Detail Maps"), true)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeSpecularMapCheck, LOCTEXT("IncludeSpecularMaps", "Include Specular Maps"), false)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeBranchSeamSmoothing, LOCTEXT("IncludeBranchSeamSmoothing", "Include Branch Seam Smoothing"), false)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeSpeedTreeAO, LOCTEXT("IncludeSpeedTreeAO", "Include SpeedTree AO"), true)
-						]
-
-						+ SVerticalBox::Slot().AutoHeight().Padding(5)
-						[
-							CreateOption(IncludeColorAdjustment, LOCTEXT("Include Random Color Variation", "Include Random Color Variation"), true)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(5, 10, 5, 5)
-						[
-							CreateOption(IncludeVertexProcessingCheck, LOCTEXT("IncludeVertexProcessing", "Include Vertex Processing"), true)
-						]
-
-						+SVerticalBox::Slot().AutoHeight().Padding(15, 5)
-						[
-							SNew(SVerticalBox)
-
-							+SVerticalBox::Slot().AutoHeight().Padding(5)
-							[
-								CreateOption(IncludeWindCheck, LOCTEXT("IncludeWind", "Include Wind"), true)
-							]
-
-							+SVerticalBox::Slot().AutoHeight().Padding(5)
-							[
-								CreateOption(IncludeSmoothLODCheck, LOCTEXT("IncludeSmoothLOD", "Include Smooth LOD"), true)
-							]
-						]
-					]
-				]				
-				
 				// Ok/Cancel
-				+SVerticalBox::Slot().HAlign(HAlign_Center).Padding(5)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5)
 				[
-					SNew(SUniformGridPanel).SlotPadding(3)
-					+SUniformGridPanel::Slot(0,0)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
 					[
-						SNew(SButton).HAlign(HAlign_Center)
-						.Text(LOCTEXT("FbxOptionWindow_Import", "Import"))
-						.OnClicked(this, &SSpeedTreeImportOptions::OnImport)
+						//Left Button array
+						SNew(SUniformGridPanel)
+						.SlotPadding(3)
+						+ SUniformGridPanel::Slot(0, 0)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("SpeedTreeOptionWindow_ResetToDefault", "Reset to Default"))
+							.OnClicked(this, &SSpeedTreeImportOptions::OnResetToDefault)
+						]
 					]
-					+SUniformGridPanel::Slot(1,0)
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Right)
 					[
-						SNew(SButton).HAlign(HAlign_Center)
-						.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel"))
-						.OnClicked(this, &SSpeedTreeImportOptions::OnCancel)
+						//Right button array
+						SNew(SUniformGridPanel)
+						.SlotPadding(3)
+						+SUniformGridPanel::Slot(0,0)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("SpeedTreeOptionWindow_Import", "Import"))
+							.OnClicked(this, &SSpeedTreeImportOptions::OnImport)
+						]
+						+SUniformGridPanel::Slot(1,0)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("SpeedTreeOptionWindow_Cancel", "Cancel"))
+							.OnClicked(this, &SSpeedTreeImportOptions::OnCancel)
+						]
 					]
 				]
 			]
 		];
 		
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+		DetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		InspectorBox->SetContent(DetailsView->AsShared());
+		DetailsView->SetObject(SpeedTreeImportData);
 	}
 
 	/** If we should import */
@@ -393,6 +218,16 @@ public:
 		return FReply::Handled();
 	}
 
+	FReply OnResetToDefault()
+	{
+		if (DetailsView.IsValid())
+		{
+			SpeedTreeImportData->LoadConfig();
+			DetailsView->SetObject(SpeedTreeImportData, true);
+		}
+		return FReply::Handled();
+	}
+
 	/** Called when 'Cancel' button is pressed */
 	FReply OnCancel()
 	{
@@ -401,26 +236,9 @@ public:
 		return FReply::Handled();
 	}
 
-	void OnOptionModified(const ECheckBoxState /*NewCheckedState*/)
-	{
-		bool bEnable = MakeMaterialsCheck->IsChecked();
-
-		IncludeNormalMapCheck->SetEnabled(bEnable);
-		IncludeDetailMapCheck->SetEnabled(bEnable);
-		IncludeSpecularMapCheck->SetEnabled(bEnable);
-		IncludeBranchSeamSmoothing->SetEnabled(bEnable);
-		IncludeVertexProcessingCheck->SetEnabled(bEnable);
-		IncludeSpeedTreeAO->SetEnabled(bEnable);
-		IncludeColorAdjustment->SetEnabled(bEnable);
-
-		bEnable &= IncludeVertexProcessingCheck->IsChecked();
-		IncludeWindCheck->SetEnabled(bEnable);
-		IncludeSmoothLODCheck->SetEnabled(bEnable);
-	}
-
 	void ScaleTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo)
 	{
-		TTypeFromString<float>::FromString(TreeScale, *(CommentText.ToString()));
+		TTypeFromString<float>::FromString(SpeedTreeImportData->TreeScale, *(CommentText.ToString()));
 	}
 };
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -671,7 +489,7 @@ void LayoutMaterial(UMaterialInterface* MaterialInterface)
 UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFullName, const SpeedTree::SRenderState* RenderState, TSharedPtr<SSpeedTreeImportOptions> Options, ESpeedTreeWindType WindType, int NumBillboards, TSet<UPackage*>& LoadedPackages)
 {
 	// Make sure we have a parent
-	if (!Options->MakeMaterialsCheck->IsChecked() || !ensure(Parent))
+	if (!Options->SpeedTreeImportData->MakeMaterialsCheck || !ensure(Parent))
 	{
 		return UMaterial::GetDefaultMaterial(MD_Surface);
 	}
@@ -690,16 +508,16 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		UTexture* DiffuseTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_DIFFUSE]), false, LoadedPackages);
 		if (DiffuseTexture)
 		{
-			if (RenderState->m_bBranchesPresent && Options->IncludeDetailMapCheck->IsChecked())
+			if (RenderState->m_bBranchesPresent && Options->SpeedTreeImportData->IncludeDetailMapCheck)
 			{
 				UTexture* DetailTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_DETAIL_DIFFUSE]), false, LoadedPackages);
 			}
 		}
-		if (Options->IncludeSpecularMapCheck->IsChecked())
+		if (Options->SpeedTreeImportData->IncludeSpecularMapCheck)
 		{
 			UTexture* SpecularTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_SPECULAR_MASK]), false, LoadedPackages);
 		}
-		if (Options->IncludeNormalMapCheck->IsChecked())
+		if (Options->SpeedTreeImportData->IncludeNormalMapCheck)
 		{
 			UTexture* NormalTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_NORMAL]), true, LoadedPackages);
 		}
@@ -721,7 +539,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	}
 
 	UMaterialExpressionClamp* BranchSeamAmount = NULL;
-	if (Options->IncludeBranchSeamSmoothing->IsChecked() && RenderState->m_bBranchesPresent && RenderState->m_eBranchSeamSmoothing != SpeedTree::EFFECT_OFF)
+	if (Options->SpeedTreeImportData->IncludeBranchSeamSmoothing && RenderState->m_bBranchesPresent && RenderState->m_eBranchSeamSmoothing != SpeedTree::EFFECT_OFF)
 	{
 		UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = NewObject<UMaterialExpressionTextureCoordinate>(UnrealMaterial);
 		SeamTexcoordExpression->CoordinateIndex = 4;
@@ -786,7 +604,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 			UnrealMaterial->BaseColor.Expression = InterpolateExpression;
 		}
 
-		if (RenderState->m_bBranchesPresent && Options->IncludeDetailMapCheck->IsChecked())
+		if (RenderState->m_bBranchesPresent && Options->SpeedTreeImportData->IncludeDetailMapCheck)
 		{
 			UTexture* DetailTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_DETAIL_DIFFUSE]), false, LoadedPackages);
 			if (DetailTexture)
@@ -822,7 +640,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 	}
 
 	bool bMadeSpecular = false;
-	if (Options->IncludeSpecularMapCheck->IsChecked())
+	if (Options->SpeedTreeImportData->IncludeSpecularMapCheck)
 	{
 		UTexture* SpecularTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_SPECULAR_MASK]), false, LoadedPackages);
 		if (SpecularTexture)
@@ -846,7 +664,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		UnrealMaterial->Specular.Expression = ZeroExpression;
 	}
 
-	if (Options->IncludeNormalMapCheck->IsChecked())
+	if (Options->SpeedTreeImportData->IncludeNormalMapCheck)
 	{
 		UTexture* NormalTexture = CreateSpeedTreeMaterialTexture(Parent, ANSI_TO_TCHAR(RenderState->m_apTextures[SpeedTree::TL_NORMAL]), true, LoadedPackages);
 		if (NormalTexture)
@@ -883,11 +701,11 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		}
 	}
 
-	if (Options->IncludeVertexProcessingCheck->IsChecked() && !RenderState->m_bRigidMeshesPresent)
+	if (Options->SpeedTreeImportData->IncludeVertexProcessingCheck && !RenderState->m_bRigidMeshesPresent)
 	{
 		UMaterialExpressionSpeedTree* SpeedTreeExpression = NewObject<UMaterialExpressionSpeedTree>(UnrealMaterial);
 	
-		SpeedTreeExpression->LODType = (Options->IncludeSmoothLODCheck->IsChecked() ? STLOD_Smooth : STLOD_Pop);
+		SpeedTreeExpression->LODType = (Options->SpeedTreeImportData->IncludeSmoothLODCheck ? STLOD_Smooth : STLOD_Pop);
 		SpeedTreeExpression->WindType = WindType;
 
 		float BillboardThreshold = FMath::Clamp((float)(NumBillboards - 8) / 16.0f, 0.0f, 1.0f);
@@ -908,7 +726,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		UnrealMaterial->WorldPositionOffset.Expression = SpeedTreeExpression;
 	}
 
-	if (Options->IncludeSpeedTreeAO->IsChecked() && 
+	if (Options->SpeedTreeImportData->IncludeSpeedTreeAO &&
 		!(RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
 	{
 		UMaterialExpressionVertexColor* VertexColor = NewObject<UMaterialExpressionVertexColor>(UnrealMaterial);
@@ -947,7 +765,7 @@ UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFul
 		UnrealMaterial->Normal.Expression = Multiply;
 	}
 
-	if (Options->IncludeColorAdjustment->IsChecked() && UnrealMaterial->BaseColor.Expression != NULL && 
+	if (Options->SpeedTreeImportData->IncludeColorAdjustment && UnrealMaterial->BaseColor.Expression != NULL &&
 		(RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent || RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
 	{
 		UMaterialFunction* ColorVariationFunction = LoadObject<UMaterialFunction>(NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/SpeedTree/SpeedTreeColorVariation.SpeedTreeColorVariation"), NULL, LOAD_None, NULL);
@@ -1225,13 +1043,29 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 		ParentWindow = MainFrame.GetParentWindow();
 	}
 
+	
+
+	FString MeshName = ObjectTools::SanitizeObjectName(InName.ToString());
+	FString NewPackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
+	NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
+	UPackage* Package = CreatePackage(NULL, *NewPackageName);
+
+	UStaticMesh* ExistingMesh = FindObject<UStaticMesh>(Package, *MeshName);
+	USpeedTreeImportData* ExistingImportData = nullptr;
+	if (ExistingMesh)
+	{
+		//Grab the existing asset data to fill correctly the option with the original import value
+		ExistingImportData = Cast<USpeedTreeImportData>(ExistingMesh->AssetImportData);
+	}
+
+
 	TSharedPtr<SSpeedTreeImportOptions> Options;
 
 	TSharedRef<SWindow> Window = SNew(SWindow)
 		.Title(LOCTEXT("WindowTitle", "SpeedTree Options" ))
 			.SizingRule( ESizingRule::Autosized );
 
-	Window->SetContent(SAssignNew(Options, SSpeedTreeImportOptions).WidgetWindow(Window));
+	Window->SetContent(SAssignNew(Options, SSpeedTreeImportOptions).WidgetWindow(Window).ReimportAssetData(ExistingImportData));
 
 	FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
 
@@ -1239,20 +1073,22 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 
 	if (Options->ShouldImport())
 	{
+		//Save the dialog options
+		Options->SpeedTreeImportData->SaveOptions();
 #ifdef SPEEDTREE_KEY
 		SpeedTree::CCore::Authorize(PREPROCESSOR_TO_STRING(SPEEDTREE_KEY));
 #endif
 		
 		SpeedTree::CCore SpeedTree;
-		if (!SpeedTree.LoadTree(Buffer, BufferEnd - Buffer, false, false, Options->TreeScale))
+		if (!SpeedTree.LoadTree(Buffer, BufferEnd - Buffer, false, false, Options->SpeedTreeImportData->TreeScale))
 		{
 			UE_LOG(LogSpeedTreeImport, Error, TEXT("%s"), ANSI_TO_TCHAR(SpeedTree.GetError( )));
 		}
 		else
 		{
 			const SpeedTree::SGeometry* SpeedTreeGeometry = SpeedTree.GetGeometry();
-			if ((Options->ImportGeometryType == SSpeedTreeImportOptions::IGT_Billboards && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards == 0) ||
-				(Options->ImportGeometryType == SSpeedTreeImportOptions::IGT_3D && SpeedTreeGeometry->m_nNumLods == 0))
+			if ((Options->SpeedTreeImportData->ImportGeometryType == EImportGeometryType::IGT_Billboards && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards == 0) ||
+				(Options->SpeedTreeImportData->ImportGeometryType == EImportGeometryType::IGT_3D && SpeedTreeGeometry->m_nNumLods == 0))
 			{
 				UE_LOG(LogSpeedTreeImport, Error, TEXT("Tree contains no useable geometry"));
 			}
@@ -1260,17 +1096,9 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 			{
 				LoadedPackages.Empty( );
 
-				// make static mesh object
-				FString MeshName = ObjectTools::SanitizeObjectName(InName.ToString());
-				FString NewPackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
-				NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
-				UPackage* Package = CreatePackage(NULL, *NewPackageName);
-				
 				// clear out old mesh
 				TArray<FStaticMaterial> OldMaterials;
-				UStaticMesh* ExistingMesh = FindObject<UStaticMesh>(Package, *MeshName);
 				FGlobalComponentReregisterContext RecreateComponents;
-
 				if (ExistingMesh)
 				{
 					OldMaterials = ExistingMesh->StaticMaterials;
@@ -1286,8 +1114,13 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				
 				StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
 
-				// @todo AssetImportData make a data class for speed tree assets
+				// Copy the speed tree import asset from the option windows
+				if (StaticMesh->AssetImportData == nullptr || !StaticMesh->AssetImportData->IsA(USpeedTreeImportData::StaticClass()))
+				{
+					StaticMesh->AssetImportData = NewObject<USpeedTreeImportData>(Package, NAME_None);
+				}
 				StaticMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
+				Cast<USpeedTreeImportData>(StaticMesh->AssetImportData)->CopyFrom(Options->SpeedTreeImportData);
 				
 				// clear out any old data
 				StaticMesh->SourceModels.Empty();
@@ -1307,7 +1140,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 
 				// choose wind type based on options enabled
 				ESpeedTreeWindType WindType = STW_None;
-				if (Options->IncludeWindCheck->IsChecked() && Wind->IsOptionEnabled(SpeedTree::CWind::GLOBAL_WIND))
+				if (Options->SpeedTreeImportData->IncludeWindCheck && Wind->IsOptionEnabled(SpeedTree::CWind::GLOBAL_WIND))
 				{
 					WindType = STW_Fastest;
 
@@ -1330,25 +1163,25 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				}
 
 				// Force LOD code out of the shaders if we only have one LOD
-				if (Options->IncludeSmoothLODCheck->IsChecked( ))
+				if (Options->SpeedTreeImportData->IncludeSmoothLODCheck)
 				{
 					int32 TotalLODs = 0;
-					if (Options->ImportGeometryType != SSpeedTreeImportOptions::IGT_Billboards)
+					if (Options->SpeedTreeImportData->ImportGeometryType != EImportGeometryType::IGT_Billboards)
 					{
 						TotalLODs += SpeedTreeGeometry->m_nNumLods;
 					}
-					if (Options->ImportGeometryType != SSpeedTreeImportOptions::IGT_3D && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards > 0)
+					if (Options->SpeedTreeImportData->ImportGeometryType != EImportGeometryType::IGT_3D && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards > 0)
 					{
 						++TotalLODs;
 					}
 					if (TotalLODs < 2)
 					{
-						Options->IncludeSmoothLODCheck->ToggleCheckedState( );
+						Options->SpeedTreeImportData->IncludeSmoothLODCheck = !Options->SpeedTreeImportData->IncludeSmoothLODCheck;
 					}
 				}
 
 				// make geometry LODs
-				if (Options->ImportGeometryType != SSpeedTreeImportOptions::IGT_Billboards)
+				if (Options->SpeedTreeImportData->ImportGeometryType != EImportGeometryType::IGT_Billboards)
 				{
 					int32 BranchMaterialsMade = 0;
 					int32 FrondMaterialsMade = 0;
@@ -1531,7 +1364,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				}
 
 				// make billboard LOD
-				if (Options->ImportGeometryType != SSpeedTreeImportOptions::IGT_3D && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards > 0)
+				if (Options->SpeedTreeImportData->ImportGeometryType != EImportGeometryType::IGT_3D && SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards > 0)
 				{
 					UMaterialInterface* Material = CreateSpeedTreeMaterial(InParent, MeshName + "_Billboard", &SpeedTreeGeometry->m_aBillboardRenderStates[SpeedTree::RENDER_PASS_MAIN], Options, WindType, SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards, LoadedPackages);
 					int32 MaterialIndex = StaticMesh->StaticMaterials.Num();
@@ -1650,7 +1483,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 
 				StaticMesh->Build();
 
-				if (Options->IncludeCollision->IsChecked())
+				if (Options->SpeedTreeImportData->IncludeCollision)
 				{
 					int32 NumCollisionObjects = 0;
 					const SpeedTree::SCollisionObject* CollisionObjects = SpeedTree.GetCollisionObjects(NumCollisionObjects);
@@ -1661,7 +1494,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				}
 
 				// make better LOD info for SpeedTrees
-				if (Options->LODType == SSpeedTreeImportOptions::ILT_IndividualActors)
+				if (Options->SpeedTreeImportData->LODType == EImportLODType::ILT_IndividualActors)
 				{
 					StaticMesh->bAutoComputeLODScreenSize = false;
 				}

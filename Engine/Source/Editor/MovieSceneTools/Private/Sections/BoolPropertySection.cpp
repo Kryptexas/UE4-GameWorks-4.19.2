@@ -78,7 +78,6 @@ int32 FBoolPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) 
 			LayerId + 1,
 			Painter.SectionGeometry.ToPaintGeometry(StartPos, Size),
 			BoolOverlayBrush,
-			Painter.SectionClippingRect,
 			DrawEffects,
 			Color
 			);

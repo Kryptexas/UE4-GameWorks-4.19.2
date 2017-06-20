@@ -129,6 +129,16 @@ public:
 
 	virtual bool IsMouseAttached() const override;
 
+	/**
+	 * Returns the current active foreground window.
+	 *
+	 * @return pointer to the window, if any
+	 */
+	TSharedPtr< FLinuxWindow > GetCurrentActiveWindow() 
+	{
+		return CurrentlyActiveWindow;
+	}
+
 private:
 
 	FLinuxApplication();

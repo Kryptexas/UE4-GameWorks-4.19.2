@@ -74,7 +74,7 @@ TSharedRef<SWidget> UWrapBox::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyWrapBox.ToSharedRef() );
+	return MyWrapBox.ToSharedRef();
 }
 
 void UWrapBox::SynchronizeProperties()

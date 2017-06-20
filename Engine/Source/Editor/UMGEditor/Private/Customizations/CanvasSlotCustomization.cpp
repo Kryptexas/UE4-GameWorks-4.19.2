@@ -216,7 +216,7 @@ void FCanvasSlotCustomization::FillOutChildren(TSharedRef<IPropertyHandle> Prope
 		}
 		else
 		{
-			ChildBuilder.AddChildProperty(ChildHandle);
+			ChildBuilder.AddProperty(ChildHandle);
 		}
 	}
 }
@@ -233,7 +233,7 @@ void FCanvasSlotCustomization::CustomizeLayoutData(TSharedRef<IPropertyHandle> P
 
 		TSharedPtr<IPropertyHandle> AlignmentHandle = LayoutData->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnchorData, Alignment));
 		AlignmentHandle->MarkHiddenByCustomization();
-		ChildBuilder.AddChildProperty(AlignmentHandle.ToSharedRef());
+		ChildBuilder.AddProperty(AlignmentHandle.ToSharedRef());
 	}
 }
 
@@ -249,10 +249,10 @@ void FCanvasSlotCustomization::CustomizeOffsets(TSharedPtr<IPropertyHandle> Prop
 	TSharedPtr<IPropertyHandle> RightHandle = OffsetsHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMargin, Right));
 	TSharedPtr<IPropertyHandle> BottomHandle = OffsetsHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMargin, Bottom));
 
-	IDetailPropertyRow& LeftRow = ChildBuilder.AddChildProperty(LeftHandle.ToSharedRef());
-	IDetailPropertyRow& TopRow = ChildBuilder.AddChildProperty(TopHandle.ToSharedRef());
-	IDetailPropertyRow& RightRow = ChildBuilder.AddChildProperty(RightHandle.ToSharedRef());
-	IDetailPropertyRow& BottomRow = ChildBuilder.AddChildProperty(BottomHandle.ToSharedRef());
+	IDetailPropertyRow& LeftRow = ChildBuilder.AddProperty(LeftHandle.ToSharedRef());
+	IDetailPropertyRow& TopRow = ChildBuilder.AddProperty(TopHandle.ToSharedRef());
+	IDetailPropertyRow& RightRow = ChildBuilder.AddProperty(RightHandle.ToSharedRef());
+	IDetailPropertyRow& BottomRow = ChildBuilder.AddProperty(BottomHandle.ToSharedRef());
 
 	TAttribute<FText> LeftLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&FCanvasSlotCustomization::GetOffsetLabel, PropertyHandle, Orient_Horizontal, LOCTEXT("PositionX", "Position X"), LOCTEXT("OffsetLeft", "Offset Left")));
 	TAttribute<FText> TopLabel = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&FCanvasSlotCustomization::GetOffsetLabel, PropertyHandle, Orient_Vertical, LOCTEXT("PositionY", "Position Y"), LOCTEXT("OffsetTop", "Offset Top")));
@@ -317,7 +317,7 @@ void FCanvasSlotCustomization::CustomizeAnchors(TSharedPtr<IPropertyHandle> Prop
 
 	AnchorsHandle->MarkHiddenByCustomization();
 
-	IDetailPropertyRow& AnchorsPropertyRow = ChildBuilder.AddChildProperty(AnchorsHandle.ToSharedRef());
+	IDetailPropertyRow& AnchorsPropertyRow = ChildBuilder.AddProperty(AnchorsHandle.ToSharedRef());
 
 	const float FillDividePadding = 1;
 

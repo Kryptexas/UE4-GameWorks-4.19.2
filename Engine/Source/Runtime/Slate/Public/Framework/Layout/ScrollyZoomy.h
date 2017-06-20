@@ -145,12 +145,12 @@ public:
 	 * Call this from your widget's OnPaint to paint a software cursor, if needed 
 	 *
 	 * @param AllottedGeometry Widget geometry passed into OnPaint.
-	 * @param MyClippingRect Widget clipping rect passed into OnPaint.
+	 * @param MyCullingRect Widget clipping rect passed into OnPaint.
 	 * @param OutDrawElements The draw element list.
 	 * @param LayerId Layer identifier.
 	 * @return New layer Identifier.
 	 */
-	int32 PaintSoftwareCursorIfNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+	int32 PaintSoftwareCursorIfNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
 private:
 

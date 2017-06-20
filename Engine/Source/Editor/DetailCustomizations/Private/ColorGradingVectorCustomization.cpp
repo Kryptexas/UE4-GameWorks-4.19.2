@@ -14,6 +14,7 @@
 #include "ConfigCacheIni.h"
 #include "IDetailPropertyRow.h"
 #include "SCheckBox.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "FColorGradingCustomization"
 
@@ -21,6 +22,7 @@ FColorGradingVectorCustomizationBase::FColorGradingVectorCustomizationBase(TWeak
 	: ColorGradingPropertyHandle(InColorGradingPropertyHandle)
 	, SortedChildArray(InSortedChildArray)
 	, IsRGBMode(true)
+	, bIsUsingSlider(false)
 {
 	if (ColorGradingPropertyHandle.IsValid())
 	{
@@ -121,6 +123,21 @@ TOptional<float> FColorGradingVectorCustomizationBase::OnGetMaxValue(TOptional<f
 	return DefaultValue;
 }
 
+void FColorGradingVectorCustomizationBase::OnBeginSliderMovement()
+{
+	bIsUsingSlider = true;
+	GEditor->BeginTransaction(FText::Format(NSLOCTEXT("ColorGradingVectorCustomization", "SetPropertyValue", "Edit {0}"), ColorGradingPropertyHandle.Pin()->GetPropertyDisplayName()));
+}
+
+void FColorGradingVectorCustomizationBase::OnEndSliderMovement(float NewValue, int32 ColorIndex)
+{
+	bIsUsingSlider = false;
+
+	OnValueChanged(NewValue, ColorIndex);
+
+	GEditor->EndTransaction();
+}
+
 FText FColorGradingVectorCustomizationBase::OnGetColorLabelText(FText DefaultText, int32 ColorIndex) const
 {
 	if (ColorIndex >= 0 && ColorIndex < 3)
@@ -183,7 +200,7 @@ FText FColorGradingVectorCustomizationBase::OnGetColorLabelToolTipsText(FText De
 	return DefaultText;
 }
 
-void FColorGradingVectorCustomizationBase::OnSliderValueChanged(float NewValue, int32 ColorIndex, bool ShouldCommitValueChanges)
+void FColorGradingVectorCustomizationBase::OnValueChanged(float NewValue, int32 ColorIndex)
 {
 	FVector4 CurrentValueVector;
 	verifySlow(ColorGradingPropertyHandle.Pin()->GetValue(CurrentValueVector) == FPropertyAccess::Success);
@@ -217,7 +234,7 @@ void FColorGradingVectorCustomizationBase::OnSliderValueChanged(float NewValue, 
 
 	if (ColorGradingPropertyHandle.IsValid())
 	{
-		ColorGradingPropertyHandle.Pin()->SetValue(NewValueVector, ShouldCommitValueChanges ? EPropertyValueSetFlags::DefaultFlags : EPropertyValueSetFlags::InteractiveChange);
+		ColorGradingPropertyHandle.Pin()->SetValue(NewValueVector, bIsUsingSlider ? EPropertyValueSetFlags::InteractiveChange : EPropertyValueSetFlags::DefaultFlags);
 	}
 }
 
@@ -436,15 +453,16 @@ TSharedRef<SNumericEntryBox<float>> FColorGradingVectorCustomizationBase::MakeNu
 	TSharedRef<SWidget> LabelWidget = SNumericEntryBox<float>::BuildLabel(TextGetter, FLinearColor::White, FLinearColor(0.2f, 0.2f, 0.2f));
 
 	return SNew(SNumericEntryBox<float>)
+		.SpinBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FSpinBoxStyle>("NumericEntrySpinBox_Dark"))
 		.EditableTextBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("DarkEditableTextBox"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.UndeterminedString(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"))
 		.Value(this, &FColorGradingVectorCustomizationBase::OnSliderGetValue, ColorIndex)
-		.OnValueChanged(this, &FColorGradingVectorCustomizationBase::OnSliderValueChanged, ColorIndex, false)
-		.OnEndSliderMovement(this, &FColorGradingVectorCustomizationBase::OnSliderValueChanged, ColorIndex, true)
+		.OnValueChanged(this, &FColorGradingVectorCustomizationBase::OnValueChanged, ColorIndex)
+		.OnBeginSliderMovement(this, &FColorGradingVectorCustomizationBase::OnBeginSliderMovement)
+		.OnEndSliderMovement(this, &FColorGradingVectorCustomizationBase::OnEndSliderMovement, ColorIndex)
 		// Only allow spin on handles with one object.  Otherwise it is not clear what value to spin
 		.AllowSpin(ColorGradingPropertyHandle.Pin()->GetNumOuterObjects() == 1)
-		.UseDarkStyle(true)
 		.ShiftMouseMovePixelPerDelta(ShiftMouseMovePixelPerDelta)
 		.SupportDynamicSliderMaxValue(this, &FColorGradingVectorCustomizationBase::GetSupportDynamicSliderMaxValue, SupportDynamicSliderMaxValue, ColorIndex)
 		.SupportDynamicSliderMinValue(this, &FColorGradingVectorCustomizationBase::GetSupportDynamicSliderMinValue, SupportDynamicSliderMinValue, ColorIndex)
@@ -628,17 +646,19 @@ void FColorGradingVectorCustomization::OnColorModeChanged(bool InIsRGBMode)
 void FColorGradingVectorCustomization::CustomizeChildren(IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	ParentGroup = StructBuilder.GetParentGroup();
-
 	CustomColorGradingBuilder = MakeShareable(new FColorGradingCustomBuilder(ColorGradingPropertyHandle, SortedChildArray, StaticCastSharedRef<FColorGradingVectorCustomization>(AsShared()), ParentGroup));
 
 	// Add the individual properties as children as well so the vector can be expanded for more room
-	StructBuilder.AddChildCustomBuilder(CustomColorGradingBuilder.ToSharedRef());
+	StructBuilder.AddCustomBuilder(CustomColorGradingBuilder.ToSharedRef());
 
-	TSharedPtr<IDetailPropertyRow> PropertyRow = ParentGroup->FindPropertyRow(ColorGradingPropertyHandle.Pin().ToSharedRef());
-	verifySlow(PropertyRow.IsValid());
+	if (ParentGroup != nullptr)
+	{
+		TSharedPtr<IDetailPropertyRow> PropertyRow = ParentGroup->FindPropertyRow(ColorGradingPropertyHandle.Pin().ToSharedRef());
+		verifySlow(PropertyRow.IsValid());
 
-	PropertyRow->OverrideResetToDefault(FResetToDefaultOverride::Create(FIsResetToDefaultVisible::CreateSP(CustomColorGradingBuilder.Get(), &FColorGradingCustomBuilder::CanResetToDefault), 
-																		FResetToDefaultHandler::CreateSP(CustomColorGradingBuilder.Get(), &FColorGradingCustomBuilder::ResetToDefault)));
+		PropertyRow->OverrideResetToDefault(FResetToDefaultOverride::Create(FIsResetToDefaultVisible::CreateSP(CustomColorGradingBuilder.Get(), &FColorGradingCustomBuilder::CanResetToDefault),
+			FResetToDefaultHandler::CreateSP(CustomColorGradingBuilder.Get(), &FColorGradingCustomBuilder::ResetToDefault)));
+	}
 }
 
 
@@ -686,7 +706,10 @@ FColorGradingCustomBuilder::~FColorGradingCustomBuilder()
 		OnNumericEntryBoxDynamicSliderMinValueChanged.RemoveAll(ColorGradingPickerWidget.Pin().Get());
 	}
 
-	ParentGroup->GetOnDetailGroupReset().RemoveAll(this);
+	if (ParentGroup != nullptr)
+	{
+		ParentGroup->GetOnDetailGroupReset().RemoveAll(this);
+	}
 
 	OnCurrentHSVColorChanged.RemoveAll(this);
 }
@@ -888,7 +911,10 @@ void FColorGradingCustomBuilder::GenerateHeaderRowContent(FDetailWidgetRow& Node
 		VerticalBox.ToSharedRef()
 	];
 
-	ParentGroup->GetOnDetailGroupReset().AddSP(this, &FColorGradingCustomBuilder::OnDetailGroupReset);
+	if (ParentGroup)
+	{
+		ParentGroup->GetOnDetailGroupReset().AddSP(this, &FColorGradingCustomBuilder::OnDetailGroupReset);
+	}
 
 	if (ColorGradingCustomization.IsValid())
 	{
@@ -955,7 +981,7 @@ void FColorGradingCustomBuilder::GenerateHeaderRowContent(FDetailWidgetRow& Node
 	OnDynamicSliderMaxValueChanged(BestMaxSliderValue, nullptr, true, true);
 	OnDynamicSliderMinValueChanged(BestMinSliderValue, nullptr, true, true);
 	
-	FString ParentGroupName = ParentGroup->GetGroupName().ToString();
+	FString ParentGroupName = ParentGroup != nullptr ? ParentGroup->GetGroupName().ToString() : TEXT("NoParentGroup");
 	ParentGroupName.ReplaceInline(TEXT(" "), TEXT("_"));
 	ParentGroupName.ReplaceInline(TEXT("|"), TEXT("_"));
 
@@ -1020,7 +1046,7 @@ void FColorGradingCustomBuilder::OnChangeColorModeClicked(ECheckBoxState NewValu
 	{
 		IsRGBMode = NewIsRGBMode;
 
-		FString ParentGroupName = ParentGroup->GetGroupName().ToString();
+		FString ParentGroupName = ParentGroup != nullptr ? ParentGroup->GetGroupName().ToString() : TEXT("NoParentGroup");
 		ParentGroupName.ReplaceInline(TEXT(" "), TEXT("_"));
 		ParentGroupName.ReplaceInline(TEXT("|"), TEXT("_"));
 

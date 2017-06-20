@@ -2422,9 +2422,9 @@ protected:
 			const TArray<FString>& Devices = DeployedDeviceGroup->GetDeviceIDs();
 			for(auto DeviceId : Devices)
 			{
-				TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+				ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 				
-				if (TargetDeviceServicesModule.IsValid())
+				if (TargetDeviceServicesModule)
 				{
 					ITargetDeviceProxyPtr DeviceProxy = TargetDeviceServicesModule->GetDeviceProxyManager()->FindProxy(DeviceId);
 					

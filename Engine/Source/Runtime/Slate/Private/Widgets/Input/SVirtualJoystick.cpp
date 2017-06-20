@@ -116,7 +116,7 @@ static bool PositionIsInside(const FVector2D& Center, const FVector2D& Position,
 		Position.Y <= Center.Y + BoxSize.Y * 0.5f;
 }
 
-int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	int32 RetLayerId = LayerId;
 
@@ -138,7 +138,6 @@ int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 					Control.VisualCenter - FVector2D(Control.CorrectedVisualSize.X * 0.5f, Control.CorrectedVisualSize.Y * 0.5f),
 					Control.CorrectedVisualSize),
 					Control.Image2.Get(),
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					ColorAndOpacitySRGB
 					);
@@ -153,7 +152,6 @@ int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 					Control.VisualCenter + Control.ThumbPosition - FVector2D(Control.CorrectedThumbSize.X * 0.5f, Control.CorrectedThumbSize.Y * 0.5f),
 					Control.CorrectedThumbSize),
 					Control.Image1.Get(),
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					ColorAndOpacitySRGB
 					);
@@ -190,7 +188,7 @@ FReply SVirtualJoystick::OnTouchStarted(const FGeometry& MyGeometry, const FPoin
 			if (PositionIsInside(Control.CorrectedCenter, LocalCoord, Control.CorrectedInteractionSize))
 			{
 				// Align Joystick inside of Screen
-				AlignBoxIntoScreen(LocalCoord, Control.CorrectedVisualSize, MyGeometry.Size);
+				AlignBoxIntoScreen(LocalCoord, Control.CorrectedVisualSize, MyGeometry.GetLocalSize());
 
 				Control.CapturedPointerIndex = Event.GetPointerIndex();
 
@@ -203,7 +201,7 @@ FReply SVirtualJoystick::OnTouchStarted(const FGeometry& MyGeometry, const FPoin
 						Control.VisualCenter = LocalCoord;
 					}
 
-					if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.Size)) // Never fail!
+					if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.GetLocalSize())) // Never fail!
 					{
 						return FReply::Handled().CaptureMouse(SharedThis(this));
 					}
@@ -240,7 +238,7 @@ FReply SVirtualJoystick::OnTouchMoved(const FGeometry& MyGeometry, const FPointe
 			{
 				return FReply::Unhandled();
 			}
-			else if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.Size))
+			else if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.GetLocalSize()))
 			{
 				return FReply::Handled();
 			}
@@ -354,7 +352,7 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 					Control.VisualCenter = Control.NextCenter;
 				}
 
-				HandleTouch(ControlIndex, Control.NextCenter, AllottedGeometry.Size);
+				HandleTouch(ControlIndex, Control.NextCenter, AllottedGeometry.GetLocalSize());
 			}
 		}
 
@@ -366,11 +364,11 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 			float ScaleFactor = GetScaleFactor(AllottedGeometry);
 
 			// update all the sizes
-			Control.CorrectedCenter = FVector2D(ResolveRelativePosition(Control.Center.X, AllottedGeometry.Size.X, ScaleFactor), ResolveRelativePosition(Control.Center.Y, AllottedGeometry.Size.Y, ScaleFactor));
+			Control.CorrectedCenter = FVector2D(ResolveRelativePosition(Control.Center.X, AllottedGeometry.GetLocalSize().X, ScaleFactor), ResolveRelativePosition(Control.Center.Y, AllottedGeometry.GetLocalSize().Y, ScaleFactor));
 			Control.VisualCenter = Control.CorrectedCenter;
-			Control.CorrectedVisualSize = FVector2D(ResolveRelativePosition(Control.VisualSize.X, AllottedGeometry.Size.X, ScaleFactor), ResolveRelativePosition(Control.VisualSize.Y, AllottedGeometry.Size.Y, ScaleFactor));
-			Control.CorrectedInteractionSize = FVector2D(ResolveRelativePosition(Control.InteractionSize.X, AllottedGeometry.Size.X, ScaleFactor), ResolveRelativePosition(Control.InteractionSize.Y, AllottedGeometry.Size.Y, ScaleFactor));
-			Control.CorrectedThumbSize = FVector2D(ResolveRelativePosition(Control.ThumbSize.X, AllottedGeometry.Size.X, ScaleFactor), ResolveRelativePosition(Control.ThumbSize.Y, AllottedGeometry.Size.Y, ScaleFactor));
+			Control.CorrectedVisualSize = FVector2D(ResolveRelativePosition(Control.VisualSize.X, AllottedGeometry.GetLocalSize().X, ScaleFactor), ResolveRelativePosition(Control.VisualSize.Y, AllottedGeometry.GetLocalSize().Y, ScaleFactor));
+			Control.CorrectedInteractionSize = FVector2D(ResolveRelativePosition(Control.InteractionSize.X, AllottedGeometry.GetLocalSize().X, ScaleFactor), ResolveRelativePosition(Control.InteractionSize.Y, AllottedGeometry.GetLocalSize().Y, ScaleFactor));
+			Control.CorrectedThumbSize = FVector2D(ResolveRelativePosition(Control.ThumbSize.X, AllottedGeometry.GetLocalSize().X, ScaleFactor), ResolveRelativePosition(Control.ThumbSize.Y, AllottedGeometry.GetLocalSize().Y, ScaleFactor));
 			Control.CorrectedInputScale = Control.InputScale; // *ScaleFactor;
 			Control.bHasBeenPositioned = true;
 		}

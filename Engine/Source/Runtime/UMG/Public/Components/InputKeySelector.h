@@ -10,6 +10,7 @@
 #include "Widgets/SWidget.h"
 #include "Components/Widget.h"
 #include "Styling/SlateTypes.h"
+#include "Layout/Visibility.h"
 #include "InputKeySelector.generated.h"
 
 class SInputKeySelector;
@@ -101,6 +102,10 @@ public:
 	/** Returns true if the widget is currently selecting a key, otherwise returns false. */
 	UFUNCTION( BlueprintCallable, Category = "Widget" )
 	bool GetIsSelectingKey() const;
+
+	/** Sets the visibility of the text block. */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetTextBlockVisibility(const ESlateVisibility InVisibility);
 
 	/** Sets the style of the button used to start key selection mode. */
 	void SetButtonStyle(const FButtonStyle* ButtonStyle);

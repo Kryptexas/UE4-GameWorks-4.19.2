@@ -6,7 +6,7 @@
 #include "Widgets/SWidget.h"
 #include "ClassTypeActions_Base.h"
 
-class FAssetData;
+struct FAssetData;
 
 class FClassTypeActions_EditorTutorial : public FClassTypeActions_Base
 {

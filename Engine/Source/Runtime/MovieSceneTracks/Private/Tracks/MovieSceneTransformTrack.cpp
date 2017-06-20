@@ -15,7 +15,9 @@ UMovieSceneTransformTrack::UMovieSceneTransformTrack(const FObjectInitializer& O
 	TrackTint = FColor(65, 173, 164, 65);
 #endif
 
-	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
+
+	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 UMovieSceneSection* UMovieSceneTransformTrack::CreateNewSection()

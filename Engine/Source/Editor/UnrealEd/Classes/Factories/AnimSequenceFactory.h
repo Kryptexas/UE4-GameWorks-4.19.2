@@ -11,7 +11,7 @@
 #include "Factories/Factory.h"
 #include "AnimSequenceFactory.generated.h"
 
-class FAssetData;
+struct FAssetData;
 class SWindow;
 
 UCLASS(HideCategories=Object)

@@ -43,7 +43,7 @@ namespace BuildPatchTool
 		}
 	};
 
-	IToolModeRef FToolModeFactory::Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface)
+	IToolModeRef FToolModeFactory::Create(IBuildPatchServicesModule& BpsInterface)
 	{
 		// Create the correct tool mode for the commandline given
 		FString ToolModeValue;

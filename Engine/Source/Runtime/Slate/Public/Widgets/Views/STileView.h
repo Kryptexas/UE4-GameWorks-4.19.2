@@ -61,7 +61,8 @@ public:
 		, _OnEnteredBadState()
 		, _NavigateOnScrollIntoView(false)
 		, _HandleLeftRightBoundsAsWrap(true)
-		{}
+		{
+		}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
 
@@ -375,7 +376,7 @@ protected:
 		if ( InAllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
 			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / GetNumItemsWide();
-			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
+			const float ActuallyScrolledBy = S::Overscroll.ScrollBy(MyGeometry, UnclampedScrollDelta);
 			if (ActuallyScrolledBy != 0.0f)
 			{
 				this->RequestListRefresh();
@@ -396,7 +397,7 @@ protected:
 	virtual int32 GetNumItemsWide() const override
 	{
 		const float ItemWidth = this->GetItemWidth();
-		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;
+		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.GetLocalSize().X / ItemWidth) : 1;
 		return FMath::Max(1, NumItemsWide);
 	}
 
@@ -412,7 +413,7 @@ protected:
 			const int32 IndexOfItem = this->ItemsSource->Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(this->ItemToScrollIntoView));
 			if (IndexOfItem != INDEX_NONE)
 			{
-				const float NumItemsHigh = ListViewGeometry.Size.Y / this->GetItemHeight();
+				const float NumItemsHigh = ListViewGeometry.GetLocalSize().Y / this->GetItemHeight();
 				float NumLiveWidgets = this->GetNumLiveWidgets();
 				if (NumLiveWidgets == 0 && this->IsPendingRefresh())
 				{

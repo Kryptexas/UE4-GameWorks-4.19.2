@@ -12,17 +12,8 @@
 #include "Misc/FeedbackContextMarkup.h"
 #include "HAL/ThreadHeartBeat.h"
 
-#ifndef WITH_LINUX_NATIVE_DIALOGS
-#define WITH_LINUX_NATIVE_DIALOGS 0
-#endif
-
 //#include "LinuxNativeFeedbackContext.h"
-// custom dialogs
-#if WITH_LINUX_NATIVE_DIALOGS
-	#include "UNativeDialogs.h"
-#else
-	#include "ISlateFileDialogModule.h"
-#endif // WITH_LINUX_NATIVE_DIALOGS
+#include "ISlateFileDialogModule.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 #define MAX_FILETYPES_STR 4096
@@ -31,33 +22,14 @@
 FDesktopPlatformLinux::FDesktopPlatformLinux()
 	:	FDesktopPlatformBase()
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	bool bLNDInit = ULinuxNativeDialogs_Initialize();
-	if (bLNDInit)
-	{
-		UE_LOG(LogDesktopPlatform, Log, TEXT("LinuxNativeDialogs have been successfully initialized."));
-	}
-	else
-	{
-		UE_LOG(LogDesktopPlatform, Warning, TEXT("DesktopPlatformLinux could not initialize LinuxNativeDialogs - it will not work properly."));
-	}
-#else
-	UE_LOG(LogDesktopPlatform, Log, TEXT("DesktopPlatformLinux is not using LinuxNativeDialogs."));
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 FDesktopPlatformLinux::~FDesktopPlatformLinux()
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	ULinuxNativeDialogs_Shutdown();
-#endif
 }
 
 bool FDesktopPlatformLinux::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, OutFilterIndex);
-#else
 	if (!FModuleManager::Get().IsModuleLoaded("SlateFileDialogs"))
 	{
 		FModuleManager::Get().LoadModule("SlateFileDialogs");
@@ -71,15 +43,10 @@ bool FDesktopPlatformLinux::OpenFileDialog(const void* ParentWindowHandle, const
 	}
 
 	return false;
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 bool FDesktopPlatformLinux::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	int32 DummyFilterIndex;
-	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, DummyFilterIndex);
-#else
 	if (!FModuleManager::Get().IsModuleLoaded("SlateFileDialogs"))
 	{
 		FModuleManager::Get().LoadModule("SlateFileDialogs");
@@ -93,15 +60,10 @@ bool FDesktopPlatformLinux::OpenFileDialog(const void* ParentWindowHandle, const
 	}
 
 	return false;
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 bool FDesktopPlatformLinux::SaveFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	int32 DummyFilterIndex = 0;
-	return FileDialogShared(true, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, DummyFilterIndex);
-#else
 	if (!FModuleManager::Get().IsModuleLoaded("SlateFileDialogs"))
 	{
 		FModuleManager::Get().LoadModule("SlateFileDialogs");
@@ -115,54 +77,10 @@ bool FDesktopPlatformLinux::SaveFileDialog(const void* ParentWindowHandle, const
 	}
 
 	return false;
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName)
 {
-#if WITH_LINUX_NATIVE_DIALOGS	
-	bool bSuccess;
-	struct UFileDialogHints hints = DEFAULT_UFILEDIALOGHINTS;
-
-	LinuxApplication->SetCapture(NULL);
-
-	hints.Action = UFileDialogActionOpenDirectory;
-	hints.WindowTitle = TCHAR_TO_UTF8(*DialogTitle);
-	hints.InitialDirectory = TCHAR_TO_UTF8(*DefaultPath);
-
-	UFileDialog* dialog = UFileDialog_Create(&hints);
-
-	while(UFileDialog_ProcessEvents(dialog)) 
-	{
-		FPlatformMisc::PumpMessages(true);	// pretend that we're the main loop
-	}
-
-	const UFileDialogResult* result = UFileDialog_Result(dialog);
-
-	if (result)
-	{
-		if (result->count == 1)
-		{
-			OutFolderName = UTF8_TO_TCHAR(result->selection[0]);
-			//OutFolderName = IFileManager::Get().ConvertToRelativePath(*OutFolderName); // @todo (amigo): converting to relative path ends up without ../...
-			FPaths::NormalizeFilename(OutFolderName);
-			bSuccess = true;
-		}
-		else
-		{
-			bSuccess = false;
-		}
-		// Todo like in Windows, normalize files here instead of above
-	}
-	else
-	{
-		bSuccess = false;
-	}
-
-	UFileDialog_Destroy(dialog);
-
-	return bSuccess;
-#else
 	if (!FModuleManager::Get().IsModuleLoaded("SlateFileDialogs"))
 	{
 		FModuleManager::Get().LoadModule("SlateFileDialogs");
@@ -176,7 +94,6 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 	}
 
 	return false;
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags& OutFlags)
@@ -187,131 +104,7 @@ bool FDesktopPlatformLinux::OpenFontDialog(const void* ParentWindowHandle, FStri
 
 bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
-#if WITH_LINUX_NATIVE_DIALOGS
-	FString Filename;
-	bool bSuccess;
-
-	LinuxApplication->SetCapture(NULL);
-
-	UE_LOG(LogDesktopPlatform, Warning, TEXT("FileDialogShared DialogTitle: %s, DefaultPath: %s, DefaultFile: %s, FileTypes: %s, Flags: %d"),
-																		*DialogTitle, *DefaultPath, *DefaultFile, *FileTypes, Flags);
-
-	struct UFileDialogHints hints = DEFAULT_UFILEDIALOGHINTS;
-
-	hints.WindowTitle = TCHAR_TO_UTF8(*DialogTitle);
-
-	FString AllExtensionsSpaceDelim;	// a string like "*.cpp *.h *.c"
-
-	// The strings will come in pairs, formatted as follows: Pair1String1|Pair1String2|Pair2String1|Pair2String2
-	// where the second string in the pair is the extension(s)
-	TArray<FString> Filters;
-	FileTypes.ParseIntoArray(Filters, TEXT("|"), true);
-	for( int32 ExtensionIndex = 1; ExtensionIndex < Filters.Num(); ExtensionIndex += 2)
-	{
-		const FString& Extensions = Filters[ExtensionIndex];
-
-		TArray<FString> ExtensionsArray;
-
-		// Extension can be either *.jpg or *.jpg;*.png -> in the latter case split at ';'
-		int32 UnusedIndex;
-		if (Extensions.FindChar(TEXT(';'), UnusedIndex))
-		{
-			Extensions.ParseIntoArray(ExtensionsArray, TEXT(";"), true);
-		}
-		else
-		{
-			ExtensionsArray.Add(Extensions);	// just a single extension
-		}
-
-		for (const FString& Extension : ExtensionsArray)
-		{
-			if (AllExtensionsSpaceDelim.Find(Extension, ESearchCase::IgnoreCase) == INDEX_NONE)
-			{
-				AllExtensionsSpaceDelim += Extension;
-				AllExtensionsSpaceDelim += TEXT(" ");
-			}
-		}
-	}
-
-	FString AllExtensionsLumpedTogether(TEXT("All applicable ("));
-	AllExtensionsLumpedTogether += AllExtensionsSpaceDelim;
-	AllExtensionsLumpedTogether += TEXT(")");
-
-	char FileTypesBuf[MAX_FILETYPES_STR * 2] = {0,};
-	FTCHARToUTF8_Convert::Convert(FileTypesBuf, sizeof(FileTypesBuf), *AllExtensionsLumpedTogether, AllExtensionsLumpedTogether.Len());
-	hints.NameFilter = FileTypesBuf;
-
-	char DefPathBuf[MAX_FILENAME_STR * 2] = {0,};
-	FTCHARToUTF8_Convert::Convert(DefPathBuf, sizeof(DefPathBuf), *DefaultPath, DefaultPath.Len());
-	hints.InitialDirectory = DefPathBuf;
-
-	char DefFileBuf[MAX_FILENAME_STR * 2] = {0,};
-	FTCHARToUTF8_Convert::Convert(DefFileBuf, sizeof(DefFileBuf), *DefaultFile, DefaultFile.Len());
-	hints.DefaultFile = DefFileBuf;
-
-	if (bSave)
-	{
-		hints.Action = UFileDialogActionSave;
-	}
-	else
-	{
-		hints.Action = UFileDialogActionOpen;
-	}
-
-	UFileDialog* dialog = UFileDialog_Create(&hints);
-
-	while(UFileDialog_ProcessEvents(dialog))
-	{
-		FPlatformMisc::PumpMessages(true);	// pretend that we're the main loop
-	}
-
-	const UFileDialogResult* result = UFileDialog_Result(dialog);
-
-	if (result)
-	{
-		if (result->count > 1)
-		{
-			// Todo better handling of multi-selects
-			UE_LOG(LogDesktopPlatform, Warning, TEXT("FileDialogShared Selected Files: %d"), result->count);
-			for(int i = 0;i < result->count;++i) {
-				//Filename = FUTF8ToTCHAR(result->selection[i], MAX_FILENAME_STR).Get();
-				Filename = UTF8_TO_TCHAR(result->selection[i]);
-				//new(OutFilenames) FString(Filename);
-				OutFilenames.Add(Filename);
-				Filename = IFileManager::Get().ConvertToRelativePath(*Filename);
-				FPaths::NormalizeFilename(Filename);
-				//UE_LOG(LogDesktopPlatform, Warning, TEXT("FileDialogShared File: %s"), *Filename);
-			}
-			bSuccess = true;
-		}
-		else if (result->count == 1)
-		{
-			//Filename = FUTF8ToTCHAR(result->selection[0], MAX_FILENAME_STR).Get();
-			Filename = UTF8_TO_TCHAR(result->selection[0]);
-			//new(OutFilenames) FString(Filename);
-			OutFilenames.Add(Filename);
-			Filename = IFileManager::Get().ConvertToRelativePath(*Filename);
-			FPaths::NormalizeFilename(Filename);
-			//UE_LOG(LogDesktopPlatform, Warning, TEXT("FileDialogShared File: %s"), *Filename);
-			bSuccess = true;
-		}
-		else
-		{
-			bSuccess = false;
-		}
-		// Todo like in Windows, normalize files here instead of above
-	}
-	else
-	{
-		bSuccess = false;
-	}
-
-	UFileDialog_Destroy(dialog);
-
-	return bSuccess;
-#else
 	return false;
-#endif // WITH_LINUX_NATIVE_DIALOGS
 }
 
 bool FDesktopPlatformLinux::RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier)

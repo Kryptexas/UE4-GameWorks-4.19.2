@@ -14,7 +14,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "Toolkits/SimpleAssetEditor.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 
 /** A base class for all AssetTypeActions. Provides helper functions useful for many types. Deriving from this class is optional. */

@@ -267,6 +267,18 @@ public:
 	/** Get the currently selected text */
 	FText GetSelectedText() const;
 
+	/** Move the cursor to the given location in the document */
+	void GoTo(const FTextLocation& NewLocation);
+
+	/** Move the cursor to the specified location */
+	void GoTo(ETextLocation NewLocation)
+	{
+		EditableText->GoTo(NewLocation);
+	}
+
+	/** Scroll to the given location in the document (without moving the cursor) */
+	void ScrollTo(const FTextLocation& NewLocation);
+
 	bool HasError() const;
 
 	// SWidget overrides

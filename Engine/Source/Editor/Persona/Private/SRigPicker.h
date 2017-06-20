@@ -10,7 +10,7 @@
 class URig;
 
 /** Called when an asset is selected in the asset view */
-DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
+DECLARE_DELEGATE_OneParam(FOnAssetSelected, const struct FAssetData& /*AssetData*/);
 
 /**
  * A widget used to pick rig 
@@ -44,7 +44,7 @@ private:
 	void OnAssetSelected( const FAssetData& AssetData );
 	void OnSelectDefault();
 	void OnClear();
-	bool OnShouldFilterAsset(const class FAssetData& AssetData);
+	bool OnShouldFilterAsset(const struct FAssetData& AssetData);
 
 	/** 
 	 * Set the value of the asset referenced by this property editor.

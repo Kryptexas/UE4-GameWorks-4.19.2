@@ -42,6 +42,7 @@
 #include "CrashReporterSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "VRModeSettings.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -150,10 +151,16 @@ protected:
 			GetMutableDefault<UEditorSettings>()
 		);
 
+		SettingsModule.RegisterSettings("Editor", "General", "PerformanceSettings",
+			LOCTEXT("PerformanceSettingsName", "Performance"),
+			LOCTEXT("PerformanceSettingsDescription", "Settings to tweak the performance of the editor"),
+			GetMutableDefault<UEditorPerformanceSettings>()
+		);
+
 		// misc unsorted settings
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),
-			LOCTEXT("UserSettingsDescription", "Customize the behavior, look and feel of the editor."),
+			LOCTEXT("UserSettingsDescription", "Miscellaneous editor settings."),
 			GetMutableDefault<UEditorPerProjectUserSettings>()
 		);
 

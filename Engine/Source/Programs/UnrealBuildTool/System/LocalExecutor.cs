@@ -250,8 +250,6 @@ namespace UnrealBuildTool
 							break;
 						}
 
-						Thread.Sleep(100);
-
 						if (!haveConfiguredProcess)
 						{
 							try
@@ -265,9 +263,11 @@ namespace UnrealBuildTool
 							break;
 						}
 
+						Thread.Sleep(10);
+
 						checkIterations++;
-					} while (checkIterations < 10);
-					if (checkIterations == 10)
+					} while (checkIterations < 100);
+					if (checkIterations == 100)
 					{
 						throw new BuildException("Failed to configure local process for action: {0} {1}", Action.CommandPath, Action.CommandArguments);
 					}
@@ -275,10 +275,7 @@ namespace UnrealBuildTool
 					// block until it's complete
 					// @todo iosmerge: UBT had started looking at:	if (Utils.IsValidProcess(Process))
 					//    do we need to check that in the thread model?
-					while (!ActionProcess.HasExited)
-					{
-						Thread.Sleep(10);
-					}
+					ActionProcess.WaitForExit();
 
 					// capture exit code
 					ExitCode = ActionProcess.ExitCode;
@@ -384,9 +381,9 @@ namespace UnrealBuildTool
 
 			if (Utils.IsRunningOnMono)
 			{
-				// heuristic: give each action at least 1.5GB of RAM (some clang instances will need more, actually)
-				long MinMemoryPerActionMB = 3 * 1024 / 2;
 				long PhysicalRAMAvailableMB = (new PerformanceCounter("Mono Memory", "Total Physical Memory").RawValue) / (1024 * 1024);
+				// heuristic: give each action at least 1.5GB of RAM (some clang instances will need more) if the total RAM is low, or 1GB on 16+GB machines
+				long MinMemoryPerActionMB = (PhysicalRAMAvailableMB < 16384) ? 3 * 1024 / 2 : 1024;
 				int MaxActionsAffordedByMemory = (int)(Math.Max(1, (PhysicalRAMAvailableMB) / MinMemoryPerActionMB));
 
 				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxActionsAffordedByMemory);

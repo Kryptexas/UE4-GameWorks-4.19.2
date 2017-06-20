@@ -68,11 +68,11 @@ public:
 		return FVector2D(128, 128);
 	}
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		if( OnPaintHandler.IsBound() )
 		{
-			FOnPaintHandlerParams Params(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() );
+			FOnPaintHandlerParams Params(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() );
 			OnPaintHandler.Execute( Params );
 		}
 		else
@@ -80,12 +80,11 @@ public:
 			FSlateDrawElement::MakeDebugQuad(
 				OutDrawElements,
 				LayerId,
-				AllottedGeometry.ToPaintGeometry(),
-				MyClippingRect
+				AllottedGeometry.ToPaintGeometry()
 			);
 		}
 
-		return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+		return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 	}
 
 private:

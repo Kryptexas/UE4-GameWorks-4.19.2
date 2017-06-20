@@ -13,7 +13,7 @@ bool SortTokens(const TInlineValue<IMovieSceneSharedExecutionToken, 32>& A, cons
 	return A->Order < B->Order;
 }
 
-void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
+void FMovieSceneExecutionTokens::Apply(const FMovieSceneContext& RootContext, IMovieScenePlayer& Player)
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_ApplyExecutionTokens);
 
@@ -28,6 +28,11 @@ void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
 	}
 
 	Algo::Sort(SortedSharedTokens, SortTokens);
+
+	// Reset track and section keys
+	PersistentDataProxy.SetSectionKey(FMovieSceneEvaluationKey());
+	PersistentDataProxy.SetTrackKey(FMovieSceneEvaluationKey());
+	Player.PreAnimatedState.SetCaptureEntity(FMovieSceneEvaluationKey(), EMovieSceneCompletionMode::KeepState);
 
 	int32 SharedTokenIndex = 0;
 	while (SharedTokenIndex < SortedSharedTokens.Num())
@@ -44,14 +49,11 @@ void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
 		}
 	}
 
-	for (FMovieSceneExecutionTokens::FEntry& Entry : Tokens)
+	for (FMovieSceneExecutionTokens::FEntry& Entry : OrderedTokens)
 	{
-		PersistentDataProxy.SetTrackKey(Entry.TrackKey);
-
-		FMovieSceneEvaluationKey SectionKey(Entry.TrackKey.AsSection(Entry.SectionIdentifier));
-		PersistentDataProxy.SetSectionKey(SectionKey);
-		
-		Player.PreAnimatedState.SetCaptureEntity(SectionKey, Entry.CompletionMode);
+		PersistentDataProxy.SetTrackKey(Entry.Scope.Key.AsTrack());
+		PersistentDataProxy.SetSectionKey(Entry.Scope.Key);
+		Player.PreAnimatedState.SetCaptureEntity(Entry.Scope.Key, Entry.Scope.CompletionMode);
 
 		{
 			MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_ApplyExecutionToken);
@@ -59,11 +61,12 @@ void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
 		}
 	}
 
-	Tokens.Reset();
+	OrderedTokens.Reset();
 
 	// Reset track and section keys
 	PersistentDataProxy.SetSectionKey(FMovieSceneEvaluationKey());
 	PersistentDataProxy.SetTrackKey(FMovieSceneEvaluationKey());
+	Player.PreAnimatedState.SetCaptureEntity(FMovieSceneEvaluationKey(), EMovieSceneCompletionMode::KeepState);
 
 	while (SharedTokenIndex < SortedSharedTokens.Num())
 	{
@@ -71,4 +74,6 @@ void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
 	}
 
 	SharedTokens.Reset();
+
+	BlendingAccumulator.Apply(RootContext, PersistentDataProxy, Player);
 }

@@ -42,6 +42,20 @@ public:
 	virtual void InitRHI() override;
 };
 
+class FSlateMaskingVertexDeclaration : public FRenderResource
+{
+public:
+	FVertexDeclarationRHIRef VertexDeclarationRHI;
+
+	virtual ~FSlateMaskingVertexDeclaration() {}
+
+	/** Initializes the vertex declaration RHI resource */
+	virtual void InitRHI() override;
+
+	/** Releases the vertex declaration RHI resource */
+	virtual void ReleaseRHI() override;
+};
+
 /** The slate Vertex shader representation */
 class FSlateElementVS : public FGlobalShader
 {
@@ -397,8 +411,78 @@ private:
 };
 
 
+
+class FSlateMaskingVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FSlateMaskingVS, Global);
+public:
+	/** Indicates that this shader should be cached */
+	static bool ShouldCache( EShaderPlatform Platform )
+	{
+		return true;
+	}
+
+	FSlateMaskingVS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlateMaskingVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
+
+	/**
+	* Sets the view projection parameter
+	*
+	* @param InViewProjection	The ViewProjection matrix to use when this shader is bound
+	*/
+	void SetViewProjection(FRHICommandList& RHICmdList, const FMatrix& InViewProjection);
+
+	/**
+	 * Sets the vertical axis multiplier to use depending on graphics api
+	 */
+	void SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier);
+
+	virtual bool Serialize(FArchive& Ar) override;
+
+private:
+
+	/** ViewProjection parameter used by the shader */
+	FShaderParameter ViewProjection;
+	/** Parameter used to determine if we need to swtich the vertical axis for opengl */
+	FShaderParameter SwitchVerticalAxisMultiplier;
+};
+
+class FSlateMaskingPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FSlateMaskingPS, Global);
+public:
+	/** Indicates that this shader should be cached */
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;
+	}
+
+	FSlateMaskingPS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlateMaskingPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		return FGlobalShader::Serialize(Ar);
+	}
+};
+
+
 /** The simple element vertex declaration. */
 extern TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
 
 /** The instanced simple element vertex declaration. */
 extern TGlobalResource<FSlateInstancedVertexDeclaration> GSlateInstancedVertexDeclaration;
+
+/** The vertex declaration for rendering stencil masks. */
+extern TGlobalResource<FSlateMaskingVertexDeclaration> GSlateMaskingVertexDeclaration;

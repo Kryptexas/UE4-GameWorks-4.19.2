@@ -61,10 +61,15 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged( FOnKeyProperty OnKeyProp
 			const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
 			FScopedTransaction AutoKeyTransaction( NSLOCTEXT("AnimatablePropertyTool", "PropertyChanged", "Animatable Property Changed"), bShouldActuallyTransact );
 
-			if( OnKeyProperty.Execute( KeyTime ) )
+			FKeyPropertyResult KeyPropertyResult = OnKeyProperty.Execute( KeyTime );
+
+			if (KeyPropertyResult.bTrackCreated)
 			{
-				// TODO: This should pass an appropriate change type here instead of always passing structure changed since most
-				// changes will be value changes.
+				// If a track is created evaluate immediately so that the pre-animated state can be stored
+				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::RefreshAllImmediately );
+			}
+			else if (KeyPropertyResult.bTrackModified)
+			{
 				Sequencer.Pin()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 			}
 
@@ -154,18 +159,6 @@ bool FMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Targe
 	return false; 
 }
 
-bool FMovieSceneTrackEditor::IsAllowedKeyAll() const
-{
-	return Sequencer.Pin()->GetKeyAllEnabled();
-}
-
-bool FMovieSceneTrackEditor::IsAllowedToAutoKey() const
-{
-	// @todo sequencer livecapture: This turns on "auto key" for the purpose of capture keys for actor state
-	// during PIE sessions when record mode is active.
-	return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyMode() != EAutoKeyMode::KeyNone;
-}
-
 void FMovieSceneTrackEditor::OnInitialize() 
 { 
 }
@@ -174,7 +167,7 @@ void FMovieSceneTrackEditor::OnRelease()
 { 
 }
 
-int32 FMovieSceneTrackEditor::PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle)
+int32 FMovieSceneTrackEditor::PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle)
 {
 	return LayerId;
 }

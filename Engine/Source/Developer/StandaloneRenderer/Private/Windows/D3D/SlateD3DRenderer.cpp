@@ -555,7 +555,7 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 
 			{
 				SLATE_CYCLE_COUNTER_SCOPE(GRendererDrawElements);
-				RenderingPolicy->DrawElements(ViewMatrix*Viewport->ProjectionMatrix, BatchData.GetRenderBatches());
+				RenderingPolicy->DrawElements(ViewMatrix * Viewport->ProjectionMatrix, BatchData.GetRenderBatches(), BatchData.GetRenderClipStates());
 			}
 
 			GD3DDeviceContext->OMSetRenderTargets(0, NULL, NULL);

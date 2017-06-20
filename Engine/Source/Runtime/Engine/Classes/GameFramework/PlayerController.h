@@ -865,6 +865,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="HUD")
 	class AHUD* GetHUD() const;
 
+	/**
+	 * Sets the Widget for the Mouse Cursor to display 
+	 * @param Cursor - the cursor to set the widget for
+	 * @param CursorWidget - the widget to set the cursor to
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetMouseCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget);
+
 	/** Set the view target
 	 * @param A - new actor to set as view target
 	 * @param TransitionParams - parameters to use for controlling the transition

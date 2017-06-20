@@ -21,6 +21,7 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 		else
 		{
 			Keys[Index]->Value = Color.Component(Index);
+			Keys[Index]->Time = Time;
 		}
 	}
 }
@@ -127,6 +128,7 @@ TSharedPtr<FStructOnScope> UMovieSceneColorSection::GetKeyStruct(const TArray<FK
 			if (Struct->Keys[Index] != nullptr)
 			{
 				FirstValidKeyTime = Struct->Keys[Index]->Time;
+				Struct->Time = FirstValidKeyTime;
 			}
 		}
 

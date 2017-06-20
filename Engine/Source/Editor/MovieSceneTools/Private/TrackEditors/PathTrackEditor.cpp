@@ -32,11 +32,6 @@ public:
 	{ 
 		return &Section;
 	}
-
-	virtual FText GetDisplayName() const override
-	{ 
-		return LOCTEXT("DisplayName", "Path");
-	}
 	
 	virtual FText GetSectionTitle() const override 
 	{ 
@@ -192,11 +187,9 @@ void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneCompone
 	}
 }
 
-bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, AActor* ParentActor)
+FKeyPropertyResult F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, AActor* ParentActor)
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
-	bool bTrackModified = false;
+	FKeyPropertyResult KeyPropertyResult;
 
 	AActor* ActorWithSplineComponent = ParentActor;
 	
@@ -206,12 +199,12 @@ bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObject
 	{
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( ActorWithSplineComponent );
 		SplineId = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 	}
 
 	if (!SplineId.IsValid())
 	{
-		return false;
+		return KeyPropertyResult;
 	}
 
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
@@ -220,12 +213,12 @@ bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObject
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
 			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieScene3DPathTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
-			bTrackCreated |= TrackResult.bWasCreated;
+			KeyPropertyResult.bTrackCreated |= TrackResult.bWasCreated;
 
 			if (ensure(Track))
 			{
@@ -246,12 +239,12 @@ bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObject
 				}
 
 				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, NAME_None, NAME_None, SplineId );
-				bTrackModified = true;
+				KeyPropertyResult.bTrackModified = true;
 			}
 		}
 	}
 
-	return bHandleCreated || bTrackCreated || bTrackModified;
+	return KeyPropertyResult;
 }
 
 

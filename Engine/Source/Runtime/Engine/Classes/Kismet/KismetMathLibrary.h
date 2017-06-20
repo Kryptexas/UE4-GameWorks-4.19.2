@@ -365,7 +365,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 
 		if (B == 0.f)
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Divide by zero\n%s"), *Stack.GetStackTrace()), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Divide by zero detected: %f / 0\n%s"), A, *Stack.GetStackTrace()), ELogVerbosity::Warning);
 			*(float*)RESULT_PARAM = 0;
 			return;
 		}
@@ -389,7 +389,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 
 		if (B == 0.f)
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Modulo by zero\n%s"), *Stack.GetStackTrace()), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Modulo by zero detected: %f %% 0\n%s"), A, *Stack.GetStackTrace()), ELogVerbosity::Warning);
 			*(float*)RESULT_PARAM = 0;
 			return;
 		}

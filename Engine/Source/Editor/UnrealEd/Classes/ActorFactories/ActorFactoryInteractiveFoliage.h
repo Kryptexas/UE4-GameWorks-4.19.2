@@ -8,7 +8,7 @@
 #include "ActorFactories/ActorFactoryStaticMesh.h"
 #include "ActorFactoryInteractiveFoliage.generated.h"
 
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryInteractiveFoliage : public UActorFactoryStaticMesh

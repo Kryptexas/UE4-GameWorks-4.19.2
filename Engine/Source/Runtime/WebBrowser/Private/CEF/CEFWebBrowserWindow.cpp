@@ -408,13 +408,16 @@ FCEFWebBrowserWindow::~FCEFWebBrowserWindow()
 	WebBrowserHandler->OnBeforePopup().Unbind();
 	CloseBrowser(true);
 
-	if(FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+	if (FSlateApplication::IsInitialized())
 	{
-		for (int I = 0; I < 1; ++I)
+		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
 		{
-			if (UpdatableTextures[I] != nullptr)
+			for (int I = 0; I < 1; ++I)
 			{
-				FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTextures[I]);
+				if (UpdatableTextures[I] != nullptr)
+				{
+					Renderer->ReleaseUpdatableTexture(UpdatableTextures[I]);
+				}
 			}
 		}
 	}
@@ -1444,9 +1447,12 @@ void FCEFWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 void FCEFWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
 	bool bNeedsRedraw = false;
-	if (UpdatableTextures[Type] == nullptr && FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+	if (UpdatableTextures[Type] == nullptr && FSlateApplication::IsInitialized())
 	{
-		UpdatableTextures[Type] = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(Width,Height);
+		if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
+		{
+			UpdatableTextures[Type] = Renderer->CreateUpdatableTexture(Width, Height);
+		}
 	}
 
 	if (UpdatableTextures[Type] != nullptr)

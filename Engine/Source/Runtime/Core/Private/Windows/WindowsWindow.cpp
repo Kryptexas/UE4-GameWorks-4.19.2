@@ -810,6 +810,21 @@ bool FWindowsWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int
 		Y = Restored.top;
 		Width = Restored.right - Restored.left;
 		Height = Restored.bottom - Restored.top;
+
+		const LONG WindowExStyle = ::GetWindowLong(HWnd, GWL_EXSTYLE);
+		if ((WindowExStyle & WS_EX_TOOLWINDOW) == 0)
+		{
+			// For windows without WS_EX_TOOLWINDOW window style WindowPlacement.rcNormalPosition is in workspace coordinates, so we need to convert the position to screen coordinates
+			const bool bTrueFullscreen = (WindowMode == EWindowMode::Fullscreen);
+			HMONITOR Monitor = MonitorFromWindow(HWnd, bTrueFullscreen ? MONITOR_DEFAULTTOPRIMARY : MONITOR_DEFAULTTONEAREST);
+			MONITORINFO MonitorInfo;
+			MonitorInfo.cbSize = sizeof(MONITORINFO);
+			GetMonitorInfo(Monitor, &MonitorInfo);
+
+			X += MonitorInfo.rcWork.left - MonitorInfo.rcMonitor.left;
+			Y += MonitorInfo.rcWork.top - MonitorInfo.rcMonitor.top;
+		}
+
 		return true;
 	}
 	else

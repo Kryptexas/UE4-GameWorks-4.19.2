@@ -36,7 +36,7 @@ TSharedRef<SWidget> UTileView::RebuildWidget()
 		//	);
 		;
 
-	return BuildDesignTimeWidget( MyTileView.ToSharedRef() );
+	return MyTileView.ToSharedRef();
 }
 
 TSharedRef<ITableRow> UTileView::HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const

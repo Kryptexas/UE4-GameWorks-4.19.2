@@ -7,7 +7,7 @@
 #include "IPropertyTypeCustomization.h"
 #include "Widgets/Input/SComboBox.h"
 
-class FAssetData;
+struct FAssetData;
 class IPropertyHandle;
 
 /** Customize the appearance of an FSlateFontInfo */

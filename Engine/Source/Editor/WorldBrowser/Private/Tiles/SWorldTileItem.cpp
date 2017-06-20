@@ -19,7 +19,7 @@
 //
 //
 //----------------------------------------------------------------
-int32 SWorldTileImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SWorldTileImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
 
@@ -28,11 +28,10 @@ int32 SWorldTileImage::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		const bool bIsEnabled = EditableTile.Get() && ShouldBeEnabled(bParentEnabled);
 		const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 		FSlateDrawElement::MakeBox(
-			OutDrawElements, 
-			LayerId, 
-			AllottedGeometry.ToPaintGeometry(), 
-			ImageBrush, 
-			MyClippingRect, 
+			OutDrawElements,
+			LayerId,
+			AllottedGeometry.ToPaintGeometry(),
+			ImageBrush,
 			DrawEffects | ESlateDrawEffect::IgnoreTextureAlpha, 
 			FColor::White);
 	}
@@ -276,7 +275,7 @@ FVector2D SWorldTileItem::ComputeDesiredSize( float ) const
 
 int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	const bool bIsVisible = FSlateRect::DoRectanglesIntersect(AllottedGeometry.GetClippingRect(), ClippingRect);
+	const bool bIsVisible = FSlateRect::DoRectanglesIntersect(AllottedGeometry.GetLayoutBoundingRect(), ClippingRect);
 	
 	if (bIsVisible)
 	{
@@ -302,20 +301,19 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 			const float Scale = 0.5f; // Scale down image of the borders to make them thinner 
 			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() - InflateAmount);
 			FSlateRenderTransform SlateRenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - InflateAmount);
-			FPaintGeometry SelectionGeometry(LayoutTransform, SlateRenderTransform, (AllottedGeometry.GetLocalSize()*AllottedGeometry.Scale + InflateAmount*2)/Scale);
+			FPaintGeometry SelectionGeometry(LayoutTransform, SlateRenderTransform, (AllottedGeometry.GetLocalSize()*AllottedGeometry.Scale + InflateAmount*2)/Scale, !SlateRenderTransform.IsIdentity());
 			FLinearColor HighlightColor = FLinearColor::White;
 			if (PreviewLODIndex)
 			{
 				// Highlight LOD tiles in different color to normal tiles
 				HighlightColor = (*PreviewLODIndex == INDEX_NONE) ? FLinearColor::Green : FLinearColor(0.3f,1.0f,0.3f);
 			}
-													
+			
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + 1,
 				SelectionGeometry,
 				GetShadowBrush(bSelected || bHighlighted),
-				ClippingRect,
 				ESlateDrawEffect::None,
 				HighlightColor
 				);

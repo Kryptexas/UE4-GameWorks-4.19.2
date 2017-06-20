@@ -9,6 +9,7 @@
 #include "GCObject.h"
 #include "NiagaraCurveOwner.h"
 #include "TNiagaraViewModelManager.h"
+#include "ISequencer.h"
 
 class UNiagaraEffect;
 class UNiagaraComponent;
@@ -19,7 +20,7 @@ class FNiagaraEmitterHandleViewModel;
 class FNiagaraEffectScriptViewModel;
 class FNiagaraEffectInstance;
 class ISequencer;
-class FAssetData;
+struct FAssetData;
 class INiagaraParameterCollectionViewModel;
 
 /** Defines options for the niagara effect view model */
@@ -150,7 +151,7 @@ private:
 	void CurveChanged(TSharedPtr<INiagaraParameterCollectionViewModel> CollectionViewModel, FGuid ParameterId);
 
 	/** Called whenever the data in the sequence is changed. */
-	void SequencerDataChanged();
+	void SequencerDataChanged(EMovieSceneDataChangeType DataChangeType);
 
 	/** Called whenever the global time in the sequencer is changed. */
 	void SequencerTimeChanged();

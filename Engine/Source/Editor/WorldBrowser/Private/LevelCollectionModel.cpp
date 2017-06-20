@@ -30,6 +30,8 @@
 
 #include "ShaderCompiler.h"
 #include "FoliageEditModule.h"
+#include "InstancedFoliageActor.h"
+#include "FoliageEditUtility.h"
 #include "LevelUtils.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
@@ -1649,7 +1651,21 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 	}
 
 	MakeLevelCurrent_Executed();
-	const FScopedTransaction Transaction( LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level") );
+
+	const FScopedTransaction Transaction(LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level"));
+
+	// Redirect selected foliage actor to use the MoveActorFoliageInstancesToLevel functionality as we can't move the foliage actor only instances
+	USelection* SelectedActors = GEditor->GetSelectedActors();
+	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+	{
+		AInstancedFoliageActor* Actor = Cast<AInstancedFoliageActor>(*Iter);
+
+		if (Actor != nullptr)
+		{
+			FFoliageEditUtility::MoveActorFoliageInstancesToLevel(GetWorld()->GetCurrentLevel());
+		}
+	}
+
 	UEditorLevelUtils::MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 
 	RequestUpdateAllLevels();
@@ -1997,7 +2013,10 @@ bool FLevelCollectionModel::IsValidMoveFoliageToLevel() const
 		AreAllSelectedLevelsEditableAndVisible() && 
 		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage))
 	{
-		return true;
+		IFoliageEditModule& FoliageModule = FModuleManager::GetModuleChecked<IFoliageEditModule>("FoliageEdit");
+		ULevel* TargetLevel = GetSelectedLevels()[0]->GetLevelObject();
+
+		return FoliageModule.CanMoveSelectedFoliageToLevel(TargetLevel);
 	}
 
 	return false;

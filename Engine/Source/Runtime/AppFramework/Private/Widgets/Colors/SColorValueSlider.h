@@ -58,7 +58,7 @@ public:
 		SelectedColor = InArgs._SelectedColor;
 	}
 
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 		const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -77,7 +77,7 @@ public:
 			AllottedGeometry.ToPaintGeometry(),
 			GradientStops,
 			Orient_Vertical,
-			MyClippingRect,
+			MyCullingRect,
 			DrawEffects
 		);
 	
@@ -89,7 +89,7 @@ public:
 			LayerId + 1,
 			AllottedGeometry.ToPaintGeometry( RelativeSelectedPosition*AllottedGeometry.Size - SelectorImage->ImageSize*0.5, SelectorImage->ImageSize ),
 			SelectorImage,
-			MyClippingRect,
+			MyCullingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * SelectorImage->GetTint( InWidgetStyle ) );
 

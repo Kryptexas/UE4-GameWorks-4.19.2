@@ -787,6 +787,35 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 		GarbageCollectionFrequency = 1;
 	}
 
+	// Default build on production
+	LightingBuildQuality = Quality_Production;
+	FString QualityStr;
+	FParse::Value(*Params, TEXT("Quality="), QualityStr);
+	if (QualityStr.Len())
+	{
+		if (QualityStr.Equals(TEXT("Preview"), ESearchCase::IgnoreCase))
+		{
+			LightingBuildQuality = Quality_Preview;
+		}
+		else if (QualityStr.Equals(TEXT("Medium"), ESearchCase::IgnoreCase))
+		{
+			LightingBuildQuality = Quality_Medium;
+		}
+		else if (QualityStr.Equals(TEXT("High"), ESearchCase::IgnoreCase))
+		{
+			LightingBuildQuality = Quality_High;
+		}
+		else if (QualityStr.Equals(TEXT("Production"), ESearchCase::IgnoreCase))
+		{
+			LightingBuildQuality = Quality_Production;
+		}
+		else
+		{
+			UE_LOG(LogContentCommandlet, Fatal, TEXT( "Unknown Quality(must be Preview/Medium/High/Production): %s"), *QualityStr );
+		}
+		UE_LOG(LogContentCommandlet, Display, TEXT("Lighing Build Quality is %s"), *QualityStr);
+	}
+
 	TArray<FString> PackageNames;
 	int32 ResultCode = InitializeResaveParameters(Tokens, PackageNames);
 	if ( ResultCode != 0 )
@@ -1201,8 +1230,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			GRedirectCollector.ResolveStringAssetReference();
 
 			FLightingBuildOptions LightingOptions;
-			// Always build on production
-			LightingOptions.QualityLevel = Quality_Production;
+ 			LightingOptions.QualityLevel = LightingBuildQuality;
 
 				auto BuildFailedDelegate = [&bShouldProceedWithRebuild,&World]() {
 				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());

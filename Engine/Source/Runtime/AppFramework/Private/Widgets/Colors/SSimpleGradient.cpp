@@ -21,7 +21,7 @@ void SSimpleGradient::Construct( const FArguments& InArgs )
 /* SCompoundWidget overrides
  *****************************************************************************/
 
-int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const ESlateDrawEffect DrawEffects = this->ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -34,7 +34,6 @@ int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			StyleInfo,
-			MyClippingRect,
 			DrawEffects
 		);
 	}
@@ -42,7 +41,7 @@ int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 	TArray<FSlateGradientStop> GradientStops;
 
 	GradientStops.Add(FSlateGradientStop(FVector2D::ZeroVector, StartColor.Get()));
-	GradientStops.Add(FSlateGradientStop(AllottedGeometry.Size, EndColor.Get()));
+	GradientStops.Add(FSlateGradientStop(AllottedGeometry.GetLocalSize(), EndColor.Get()));
 
 	FSlateDrawElement::MakeGradient(
 		OutDrawElements,
@@ -50,7 +49,6 @@ int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 		AllottedGeometry.ToPaintGeometry(),
 		GradientStops,
 		Orientation,
-		MyClippingRect,
 		DrawEffects | ESlateDrawEffect::NoGamma
 	);
 

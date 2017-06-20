@@ -360,6 +360,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FGetOnScreenMessagesDelegate, FSeverityMessageMap&);
 	static FGetOnScreenMessagesDelegate OnGetOnScreenMessages;
 
+	DECLARE_DELEGATE_RetVal(bool, FIsLoadingMovieCurrentlyPlaying)
+	static FIsLoadingMovieCurrentlyPlaying IsLoadingMovieCurrentlyPlaying;
+
 private:
 
 	// Callbacks for hotfixes

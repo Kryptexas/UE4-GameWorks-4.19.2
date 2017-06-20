@@ -754,19 +754,20 @@ void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FSt
 		if (Class)
 		{
 			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
-			if (UserWidget)
-			{
-				CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
-			}
-			else
-			{
-				UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Could not create cursor widget."));
-			}
+			AddCursorWidget(Cursor, UserWidget);
 		}
 		else
 		{
 			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Could not load cursor class %s."), *CursorClass.GetAssetName());
 		}
+	}
+}
+
+void UGameViewportClient::AddCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget)
+{
+	if (ensure(CursorWidget))
+	{
+		CursorWidgets.Add(Cursor, CursorWidget->TakeWidget());
 	}
 }
 

@@ -168,7 +168,6 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 				InArgs.StartLayer,
 				InArgs.AllottedGeometry.ToPaintGeometry( Offset, TickSize ),
 				LinePoints,
-				InArgs.ClippingRect,
 				InArgs.DrawEffects,
 				InArgs.TickColor,
 				false
@@ -181,7 +180,7 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 				// Space the text between the tick mark but slightly above
 				const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 				FVector2D TextSize = FontMeasureService->Measure(FrameString, SmallLayoutFont);
-				FVector2D TextOffset( XPos-(TextSize.X*0.5f), InArgs.bMirrorLabels ? TextSize.Y :  FMath::Abs( InArgs.AllottedGeometry.Size.Y - (InArgs.MajorTickHeight+TextSize.Y) ) );
+				FVector2D TextOffset( XPos-(TextSize.X*0.5f), InArgs.bMirrorLabels ? TextSize.Y :  FMath::Abs( InArgs.AllottedGeometry.GetLocalSize().Y - (InArgs.MajorTickHeight+TextSize.Y) ) );
 
 				FSlateDrawElement::MakeText(
 					OutDrawElements,
@@ -189,7 +188,6 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 					InArgs.AllottedGeometry.ToPaintGeometry( TextOffset, TextSize ), 
 					FrameString, 
 					SmallLayoutFont, 
-					InArgs.ClippingRect, 
 					InArgs.DrawEffects,
 					InArgs.TickColor 
 				);
@@ -200,7 +198,7 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 			// Compute the size of each tick mark.  If we are half way between to visible values display a slightly larger tick mark
 			const float MinorTickHeight = AbsOffsetNum % HalfDivider == 0 ? 7.0f : 4.0f;
 
-			FVector2D Offset(XPos, InArgs.bMirrorLabels ? 0.0f : FMath::Abs( InArgs.AllottedGeometry.Size.Y - MinorTickHeight ) );
+			FVector2D Offset(XPos, InArgs.bMirrorLabels ? 0.0f : FMath::Abs( InArgs.AllottedGeometry.GetLocalSize().Y - MinorTickHeight ) );
 			FVector2D TickSize(1, MinorTickHeight);
 
 			LinePoints[0] = FVector2D(1.0f,1.0f);
@@ -213,7 +211,6 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 				InArgs.StartLayer,
 				InArgs.AllottedGeometry.ToPaintGeometry( Offset, TickSize ),
 				LinePoints,
-				InArgs.ClippingRect,
 				InArgs.DrawEffects,
 				InArgs.TickColor,
 				bAntiAlias
@@ -225,7 +222,7 @@ void FVisualLoggerTimeSliderController::DrawTicks( FSlateWindowElementList& OutD
 }
 
 
-int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const bool bEnabled = bParentEnabled;
 	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -238,7 +235,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 	FVector2D Scale = FVector2D(1.0f,1.0f);
 	if ( LocalSequenceLength > 0)
 	{
-		FScrubRangeToScreen RangeToScreen( LocalViewRange, AllottedGeometry.Size );
+		FScrubRangeToScreen RangeToScreen( LocalViewRange, AllottedGeometry.GetLocalSize() );
 	
 		const float MajorTickHeight = 9.0f;
 	
@@ -247,10 +244,10 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 		Args.bMirrorLabels = bMirrorLabels;
 		Args.bOnlyDrawMajorTicks = false;
 		Args.TickColor = FLinearColor::White;
-		Args.ClippingRect = MyClippingRect;
+		Args.ClippingRect = MyCullingRect;
 		Args.DrawEffects = DrawEffects;
 		Args.StartLayer = LayerId;
-		Args.TickOffset = bMirrorLabels ? 0.0f : FMath::Abs( AllottedGeometry.Size.Y - MajorTickHeight );
+		Args.TickOffset = bMirrorLabels ? 0.0f : FMath::Abs( AllottedGeometry.GetLocalSize().Y - MajorTickHeight );
 		Args.MajorTickHeight = MajorTickHeight;
 
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
@@ -264,8 +261,8 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 		// Draw cursor size
 		const float CursorHalfSize = TimeSliderArgs.CursorSize.Get() * 0.5f;
 		const int32 CursorLayer = LayerId + 2;
-		const float CursorHalfLength = AllottedGeometry.Size.X * CursorHalfSize;
-		FPaintGeometry CursorGeometry = AllottedGeometry.ToPaintGeometry(FVector2D(XPos - CursorHalfLength, 0), FVector2D(2 * CursorHalfLength, AllottedGeometry.Size.Y));
+		const float CursorHalfLength = AllottedGeometry.GetLocalSize().X * CursorHalfSize;
+		FPaintGeometry CursorGeometry = AllottedGeometry.ToPaintGeometry(FVector2D(XPos - CursorHalfLength, 0), FVector2D(2 * CursorHalfLength, AllottedGeometry.GetLocalSize().Y));
 
 		FLinearColor CursorColor = InWidgetStyle.GetColorAndOpacityTint();
 		CursorColor.A = CursorColor.A*0.08f;
@@ -276,14 +273,13 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 			CursorLayer,
 			CursorGeometry,
 			CursorBackground,
-			MyClippingRect,
 			DrawEffects,
 			CursorColor
 			);
 
 		// Should draw above the text
 		const int32 ArrowLayer = LayerId + 3;
-		FPaintGeometry MyGeometry =	AllottedGeometry.ToPaintGeometry( FVector2D( XPos-HalfSize, 0 ), FVector2D( HandleSize, AllottedGeometry.Size.Y ) );
+		FPaintGeometry MyGeometry =	AllottedGeometry.ToPaintGeometry( FVector2D( XPos-HalfSize, 0 ), FVector2D( HandleSize, AllottedGeometry.GetLocalSize().Y ) );
 		FLinearColor ScrubColor = InWidgetStyle.GetColorAndOpacityTint();
 
 		// @todo Sequencer this color should be specified in the style
@@ -295,7 +291,6 @@ int32 FVisualLoggerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, 
 			ArrowLayer, 
 			MyGeometry,
 			bMirrorLabels ? ScrubHandleUp : ScrubHandleDown,
-			MyClippingRect, 
 			DrawEffects, 
 			ScrubColor
 			);
@@ -316,7 +311,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseButtonDown( SWidget& WidgetOwne
 	if ( bHandleLeftMouseButton )
 	{
 		// Always capture mouse if we left or right click on the widget
-		FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.Size);
+		FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.GetLocalSize());
 		FVector2D CursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 		float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
@@ -357,7 +352,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner,
 		}
 		else
 		{
-			FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
+			FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.GetLocalSize() );
 			FVector2D CursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 			float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
@@ -396,7 +391,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, con
 				float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
 				float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
 
-				FScrubRangeToScreen ScaleInfo( LocalViewRange, MyGeometry.Size );
+				FScrubRangeToScreen ScaleInfo( LocalViewRange, MyGeometry.GetLocalSize() );
 				FVector2D ScreenDelta = MouseEvent.GetCursorDelta();
 				FVector2D InputDelta;
 				InputDelta.X = ScreenDelta.X/ScaleInfo.PixelsPerInput;
@@ -446,7 +441,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, con
 			}
 			else
 			{
-				FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
+				FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.GetLocalSize());
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
 				float NewValue = RangeToScreen.LocalXToInput( CursorPos.X );
 
@@ -617,7 +612,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, co
 	return ReturnValue;
 }
 
-int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, bool bDisplayTickLines, bool bDisplayScrubPosition  ) const
+int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, bool bDisplayTickLines, bool bDisplayScrubPosition  ) const
 {
 	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -625,10 +620,10 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 	float LocalScrubPosition = TimeSliderArgs.ScrubPosition.Get();
 
 	float ViewRange = LocalViewRange.Size<float>();
-	float PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : 0;
+	float PixelsPerInput = ViewRange > 0 ? AllottedGeometry.GetLocalSize().X / ViewRange : 0;
 	float LinePos =  (LocalScrubPosition - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 
-	FScrubRangeToScreen RangeToScreen( LocalViewRange, AllottedGeometry.Size );
+	FScrubRangeToScreen RangeToScreen( LocalViewRange, AllottedGeometry.GetLocalSize());
 
 	if( bDisplayTickLines )
 	{
@@ -638,13 +633,13 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 		Args.bMirrorLabels = false;
 		Args.bOnlyDrawMajorTicks = true;
 		Args.TickColor = FLinearColor( 0.3f, 0.3f, 0.3f, 0.3f );
-		Args.ClippingRect = MyClippingRect;
+		Args.ClippingRect = MyCullingRect;
 		Args.DrawEffects = DrawEffects;
 		// Draw major ticks under sections
 		Args.StartLayer = LayerId-1;
 		// Draw the tick the entire height of the section area
 		Args.TickOffset = 0.0f;
-		Args.MajorTickHeight = AllottedGeometry.Size.Y;
+		Args.MajorTickHeight = AllottedGeometry.GetLocalSize().Y;
 
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 	}
@@ -653,15 +648,14 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 	{
 		// Draw cursor size
 		const float CursorHalfSize = TimeSliderArgs.CursorSize.Get() * 0.5f;
-		const float CursorHalfLength = AllottedGeometry.Size.X * CursorHalfSize;
-		FPaintGeometry CursorGeometry = AllottedGeometry.ToPaintGeometry(FVector2D(LinePos - CursorHalfLength, 0), FVector2D(2 * CursorHalfLength, AllottedGeometry.Size.Y));
+		const float CursorHalfLength = AllottedGeometry.GetLocalSize().X * CursorHalfSize;
+		FPaintGeometry CursorGeometry = AllottedGeometry.ToPaintGeometry(FVector2D(LinePos - CursorHalfLength, 0), FVector2D(2 * CursorHalfLength, AllottedGeometry.GetLocalSize().Y));
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			++LayerId,
 			CursorGeometry,
 			CursorBackground,
-			MyClippingRect,
 			DrawEffects,
 			FLinearColor::White.CopyWithNewOpacity(0.08f)
 			);
@@ -670,14 +664,13 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 		TArray<FVector2D> LinePoints;
 		LinePoints.AddUninitialized(2);
 		LinePoints[0] = FVector2D( 1.0f, 0.0f );
-		LinePoints[1] = FVector2D( 1.0f, FMath::RoundToFloat( AllottedGeometry.Size.Y ) );
+		LinePoints[1] = FVector2D( 1.0f, FMath::RoundToFloat( AllottedGeometry.GetLocalSize().Y ) );
 
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry( FVector2D(LinePos, 0.0f ), FVector2D(1.0f,1.0f) ),
 			LinePoints,
-			MyClippingRect,
 			DrawEffects,
 			FLinearColor::White.CopyWithNewOpacity(0.39f),
 			false

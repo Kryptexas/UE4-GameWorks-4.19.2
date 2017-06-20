@@ -14,7 +14,7 @@
 #include "IDetailCustomization.h"
 #include "SComboBox.h"
 
-class FAssetData;
+struct FAssetData;
 class FDetailWidgetRow;
 class FPersonaMeshDetails;
 class IDetailChildrenBuilder;
@@ -224,7 +224,6 @@ private:
 
 	FText GetMaterialNameText(int32 MaterialIndex)const ;
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
-	void OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex);
 
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex)const;
 

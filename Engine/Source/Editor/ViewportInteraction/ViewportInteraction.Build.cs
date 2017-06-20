@@ -17,14 +17,15 @@ namespace UnrealBuildTool.Rules
                     "UnrealEd",
                     "Slate",
                     "SlateCore",
+                    "RHI"
                 }
             );
 
-            PrivateIncludePathModuleNames.AddRange(
+            PrivateDependencyModuleNames.AddRange(
                 new string[] {
-					"LevelEditor"
+                    "LevelEditor"
                 }
             );
-		}
-	}
+        }
+    }
 }

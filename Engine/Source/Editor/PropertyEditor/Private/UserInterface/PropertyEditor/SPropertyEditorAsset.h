@@ -191,7 +191,7 @@ private:
 	 * Delegate for handling selection in the asset browser.
 	 * @param	Object	The chosen asset
 	 */
-	void OnAssetSelected( const class FAssetData& AssetData );
+	void OnAssetSelected( const struct FAssetData& AssetData );
 
 	/** 
 	 * Delegate for handling selection in the scene outliner.

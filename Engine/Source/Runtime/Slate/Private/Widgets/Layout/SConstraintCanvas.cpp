@@ -75,11 +75,8 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 
 void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren, FArrangedChildLayers& ArrangedChildLayers) const
 {
-	CachedGeometry = AllottedGeometry;
-
 	if (Children.Num() > 0)
 	{
-
 		// Using a Project setting here to decide whether we automatically put children in front of all previous children
 		// or allow the explicit ZOrder value to place children in the same layer. This will allow users to have non-touching
 		// children render into the same layer and have a chance of being batched by the Slate renderer for better performance.
@@ -122,10 +119,10 @@ void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry
 				const bool AutoSize = CurChild.AutoSizeAttr.Get();
 
 				const FMargin AnchorPixels =
-					FMargin(Anchors.Minimum.X * AllottedGeometry.Size.X,
-					Anchors.Minimum.Y * AllottedGeometry.Size.Y,
-					Anchors.Maximum.X * AllottedGeometry.Size.X,
-					Anchors.Maximum.Y * AllottedGeometry.Size.Y);
+					FMargin(Anchors.Minimum.X * AllottedGeometry.GetLocalSize().X,
+					Anchors.Minimum.Y * AllottedGeometry.GetLocalSize().Y,
+					Anchors.Maximum.X * AllottedGeometry.GetLocalSize().X,
+					Anchors.Maximum.Y * AllottedGeometry.GetLocalSize().Y);
 
 				const bool bIsHorizontalStretch = Anchors.Minimum.X != Anchors.Maximum.X;
 				const bool bIsVerticalStretch = Anchors.Minimum.Y != Anchors.Maximum.Y;
@@ -192,7 +189,7 @@ void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry
 	}
 }
 
-int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "SConstraintCanvas");
 
@@ -200,7 +197,7 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	FArrangedChildLayers ChildLayers;
 	ArrangeLayeredChildren(AllottedGeometry, ArrangedChildren, ChildLayers);
 
-	bool bForwardedEnabled = ShouldBeEnabled(bParentEnabled);
+	const bool bForwardedEnabled = ShouldBeEnabled(bParentEnabled);
 
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
@@ -213,15 +210,12 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 
-		bool bWereOverlapping;
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect(), bWereOverlapping);
-
-		if ( bWereOverlapping )
+		if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
 		{
 			// Bools in ChildLayers tell us whether to paint the next child in front of all previous
 			ChildLayerId = ChildLayers[ChildIndex] ? MaxLayerId + 1 : ChildLayerId;
 
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, ChildLayerId, InWidgetStyle, bForwardedEnabled);
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, MyCullingRect, OutDrawElements, ChildLayerId, InWidgetStyle, bForwardedEnabled);
 
 			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 		}

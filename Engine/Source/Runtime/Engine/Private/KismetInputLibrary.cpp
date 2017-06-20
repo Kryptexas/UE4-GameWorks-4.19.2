@@ -231,19 +231,4 @@ FVector2D UKismetInputLibrary::PointerEvent_GetGestureDelta(const FPointerEvent&
 	return Input.GetGestureDelta();
 }
 
-FKey UKismetInputLibrary::ControllerEvent_GetEffectingButton(const FControllerEvent& Input)
-{
-	return Input.GetEffectingButton();
-}
-
-int32 UKismetInputLibrary::ControllerEvent_GetUserIndex(const FControllerEvent& Input)
-{
-	return Input.GetUserIndex();
-}
-
-float UKismetInputLibrary::ControllerEvent_GetAnalogValue(const FControllerEvent& Input)
-{
-	return Input.GetAnalogValue();
-}
-
 #undef LOCTEXT_NAMESPACE

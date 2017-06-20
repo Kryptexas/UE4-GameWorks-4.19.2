@@ -867,7 +867,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 					}
 				}
 
-				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(StructData, VariableProperty->GetFName());
+				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalStructureProperty(StructData, VariableProperty->GetFName());
 			}
 			else
 			{
@@ -892,7 +892,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 					// Things are in order, show the property and allow it to be edited
 					TArray<UObject*> ObjectList;
 					ObjectList.Add(TargetBlueprintDefaultObject);
-					IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+					IDetailPropertyRow* Row = DefaultValueCategory.AddExternalObjectProperty(ObjectList, VariableProperty->GetFName());
 					if (Row != nullptr)
 					{
 						Row->IsEnabled(IsVariableInheritedByBlueprint());
@@ -2574,7 +2574,7 @@ void FBlueprintGraphArgumentGroupLayout::GenerateChildContent( IDetailChildrenBu
 					GraphActionDetailsPtr,
 					FName(*FString::Printf(bIsInputNode ? TEXT("InputArgument%i") : TEXT("OutputArgument%i"), i)),
 					bIsInputNode));
-				ChildrenBuilder.AddChildCustomBuilder(BlueprintArgumentLayout);
+				ChildrenBuilder.AddCustomBuilder(BlueprintArgumentLayout);
 				WasContentAdded = true;
 			}
 		}
@@ -2582,7 +2582,7 @@ void FBlueprintGraphArgumentGroupLayout::GenerateChildContent( IDetailChildrenBu
 	if (!WasContentAdded)
 	{
 		// Add a text widget to let the user know to hit the + icon to add parameters.
-		ChildrenBuilder.AddChildContent(FText::GetEmpty()).WholeRowContent()
+		ChildrenBuilder.AddCustomRow(FText::GetEmpty()).WholeRowContent()
 			.MaxDesiredWidth(980.f)
 			[
 				SNew(SHorizontalBox)
@@ -2719,7 +2719,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 
 				if (DefaultValueWidget != SNullWidget::NullWidget)
 				{
-					ChildrenBuilder.AddChildContent(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
+					ChildrenBuilder.AddCustomRow(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
 						.NameContent()
 						[
 							SNew(STextBlock)
@@ -2740,7 +2740,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 			}
 		}
 
-		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
+		ChildrenBuilder.AddCustomRow( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -4904,7 +4904,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	for (int32 i = 0; i < Interfaces.Num(); ++i)
 	{
 		TSharedPtr<SHorizontalBox> Box;
-		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ) )
+		ChildrenBuilder.AddCustomRow( LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ) )
 		[
 			SAssignNew(Box, SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -4948,7 +4948,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	// Add message if no interfaces are being used
 	if (Interfaces.Num() == 0)
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("BlueprintInterfaceValue", "Interface Value"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("BlueprintInterfaceValue", "Interface Value"))
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("NoBlueprintInterface", "No Interfaces"))
@@ -4958,7 +4958,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 
 	if (!bShowsInheritedInterfaces)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintAddInterface", "Add Interface" ) )
+		ChildrenBuilder.AddCustomRow( LOCTEXT( "BlueprintAddInterface", "Add Interface" ) )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)

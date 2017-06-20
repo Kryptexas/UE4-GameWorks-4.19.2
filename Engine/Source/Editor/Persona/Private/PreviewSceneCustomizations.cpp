@@ -202,7 +202,7 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		Objects.Add(AdditionalMeshesAsset.GetAsset());
 
 		IDetailPropertyRow* PropertyRow = DetailBuilder.EditCategory("Additional Meshes")
-		.AddExternalProperty(Objects, "SkeletalMeshes");
+		.AddExternalObjectProperty(Objects, "SkeletalMeshes");
 
 		if (PropertyRow)
 		{

@@ -15,7 +15,8 @@ struct FPostProcessRectParams
 	FSlateRect SourceRect;
 	FSlateRect DestRect;
 	FIntPoint SourceTextureSize;
-	TFunction<void()> RestoreStateFunc; 
+	TFunction<void(FGraphicsPipelineStateInitializer&)> RestoreStateFunc;
+	TFunction<void()> RestoreStateFuncPostPipelineState;
 };
 
 struct FBlurRectParams

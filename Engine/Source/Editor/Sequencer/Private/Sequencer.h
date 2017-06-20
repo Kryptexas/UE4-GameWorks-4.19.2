@@ -583,8 +583,10 @@ public:
 	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() override { return RootTemplateInstance; }
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
 	virtual void FocusSequenceInstance(UMovieSceneSubSection& InSubSection) override;
-	virtual EAutoKeyMode GetAutoKeyMode() const override;
-	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) override;
+	virtual EAutoChangeMode GetAutoChangeMode() const override;
+	virtual void SetAutoChangeMode(EAutoChangeMode AutoChangeMode) override;
+	virtual EAllowEditsMode GetAllowEditsMode() const override;
+	virtual void SetAllowEditsMode(EAllowEditsMode AllowEditsMode) override;
 	virtual bool GetKeyAllEnabled() const override;
 	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) override;
 	virtual bool GetKeyInterpPropertiesOnly() const override;
@@ -624,7 +626,10 @@ public:
 	virtual void SelectObject(FGuid ObjectBinding) override;
 	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
+	virtual FOnBeginScrubbingEvent& OnBeginScrubbingEvent() override { return OnBeginScrubbingDelegate; }
+	virtual FOnEndScrubbingEvent& OnEndScrubbingEvent() override { return OnEndScrubbingDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
+	virtual FOnMovieSceneBindingsChanged& OnMovieSceneBindingsChanged() override { return OnMovieSceneBindingsChangedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
 	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() override { return OnSelectionChangedTracksDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
@@ -653,6 +658,7 @@ public:
 	// IMovieScenePlayer interface
 
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override;
+	virtual void NotifyBindingsChanged() override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
@@ -667,7 +673,7 @@ public:
 protected:
 
 	/** Reevaluate the sequence at the current time */
-	void EvaluateInternal(FMovieSceneEvaluationRange InRange);
+	void EvaluateInternal(FMovieSceneEvaluationRange InRange, bool bHasJumped = false);
 
 	/** Reset data about a movie scene when pushing or popping a movie scene. */
 	void ResetPerMovieSceneData();
@@ -694,6 +700,14 @@ protected:
 	 * @param	NewClampRange The new clamp range
 	 */
 	void OnClampRangeChanged( TRange<float> NewClampRange );
+
+	/*
+	 * Called to get the nearest key
+	 *
+	 * @param InTime The time to get the nearest key to
+	 * @return NearestKey
+	 */
+	float OnGetNearestKey(float InTime);
 
 	/**
 	 * Called when the scrub position is changed by the user
@@ -759,8 +773,7 @@ protected:
 	/** Get all the keys for the current sequencer selection */
 	virtual void GetKeysFromSelection(TUniquePtr<ISequencerKeyCollection>& KeyCollection) override;
 
-	/** Find the nearest keyframe */
-	float FindNearestKey(float NewScrubPosition) override;
+	UMovieSceneSection* FindNextOrPreviousShot(UMovieSceneSequence* Sequence, float Time, const bool bNext) const;
 
 protected:
 	
@@ -780,6 +793,8 @@ protected:
 	void StepToPreviousKey();
 	void StepToNextCameraKey();
 	void StepToPreviousCameraKey();
+	void StepToNextShot();
+	void StepToPreviousShot();
 
 	void ExpandAllNodesAndDescendants();
 	void CollapseAllNodesAndDescendants();
@@ -825,7 +840,7 @@ protected:
 	FMovieScenePossessable* ConvertToPossessableInternal(FGuid SpawnableGuid);
 
 	/** Internal function to render movie for a given start/end time */
-	void RenderMovieInternal(float InStartTime, float InEndTime) const;
+	void RenderMovieInternal(float InStartTime, float InEndTime, bool bSetFrameOverrides = false) const;
 
 	/** Handles adding a new folder to the outliner tree. */
 	void OnAddFolder();
@@ -973,8 +988,17 @@ private:
 	/** A delegate which is called any time the global time changes. */
 	FOnGlobalTimeChanged OnGlobalTimeChangedDelegate;
 
+	/** A delegate which is called whenever the user begins scrubbing. */
+	FOnBeginScrubbingEvent OnBeginScrubbingDelegate;
+
+	/** A delegate which is called whenever the user stops scrubbing. */
+	FOnEndScrubbingEvent OnEndScrubbingDelegate;
+
 	/** A delegate which is called any time the movie scene data is changed. */
 	FOnMovieSceneDataChanged OnMovieSceneDataChangedDelegate;
+
+	/** A delegate which is called any time the movie scene bindings are changed. */
+	FOnMovieSceneBindingsChanged OnMovieSceneBindingsChangedDelegate;
 
 	/** A delegate which is called any time the sequencer selection changes. */
 	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;

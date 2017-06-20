@@ -370,7 +370,7 @@ void FUserDefinedEnumLayout::GenerateChildContent( IDetailChildrenBuilder& Child
 	for (int32 EnumIdx = 0; EnumIdx < EnumToShowNum; ++EnumIdx)
 	{
 		TSharedRef<class FUserDefinedEnumIndexLayout> EnumIndexLayout = MakeShareable(new FUserDefinedEnumIndexLayout(TargetEnum.Get(), EnumIdx) );
-		ChildrenBuilder.AddChildCustomBuilder(EnumIndexLayout);
+		ChildrenBuilder.AddCustomBuilder(EnumIndexLayout);
 		Children.Add(EnumIndexLayout);
 	}
 }

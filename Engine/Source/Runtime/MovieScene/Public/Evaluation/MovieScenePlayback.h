@@ -107,6 +107,7 @@ struct FMovieSceneContext : FMovieSceneEvaluationRange
 		: FMovieSceneEvaluationRange(InRange)
 		, Status(EMovieScenePlayerStatus::Stopped)
 		, PrePostRollStartEndTime(TNumericLimits<float>::Lowest())
+		, HierarchicalBias(0)
 		, bHasJumped(false)
 		, bSilent(false)
 		, bSectionPreRoll(false)
@@ -122,6 +123,7 @@ struct FMovieSceneContext : FMovieSceneEvaluationRange
 		: FMovieSceneEvaluationRange(InRange)
 		, Status(InStatus)
 		, PrePostRollStartEndTime(TNumericLimits<float>::Lowest())
+		, HierarchicalBias(0)
 		, bHasJumped(false)
 		, bSilent(false)
 		, bSectionPreRoll(false)
@@ -223,6 +225,24 @@ public:
 		return NewContext;
 	}
 
+	/**
+	 * Get the hierarchical bias for the current context
+	 * @param InHierarchicalBias		The current hierarchical bias
+	 */
+	void SetHierarchicalBias(int32 InHierarchicalBias)
+	{
+		HierarchicalBias = InHierarchicalBias;
+	}
+
+	/**
+	 * Get the hierarchical bias for the current context
+	 * @return The current hierarchical bias
+	 */
+	int32 GetHierarchicalBias() const
+	{
+		return HierarchicalBias;
+	}
+
 public:
 
 	/**
@@ -321,6 +341,9 @@ protected:
 
 	/** When bHasPreRollEndTime or bHasPostRollStartTime is true, this defines either the time at which 'real' evaluation commences, or finished */
 	float PrePostRollStartEndTime;
+
+	/** Hierachical bias. Higher bias should take precedence. */
+	int32 HierarchicalBias;
 
 protected:
 

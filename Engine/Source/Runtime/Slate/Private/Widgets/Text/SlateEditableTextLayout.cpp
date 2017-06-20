@@ -563,8 +563,8 @@ FVector2D FSlateEditableTextLayout::SetVerticalScrollFraction(const float InScro
 FVector2D FSlateEditableTextLayout::SetScrollOffset(const FVector2D& InScrollOffset, const FGeometry& InGeometry)
 {
 	const FVector2D ContentSize = TextLayout->GetSize();
-	ScrollOffset.X = FMath::Clamp(InScrollOffset.X, 0.0f, ContentSize.X - InGeometry.Size.X);
-	ScrollOffset.Y = FMath::Clamp(InScrollOffset.Y, 0.0f, ContentSize.Y - InGeometry.Size.Y);
+	ScrollOffset.X = FMath::Clamp(InScrollOffset.X, 0.0f, ContentSize.X - InGeometry.GetLocalSize().X);
+	ScrollOffset.Y = FMath::Clamp(InScrollOffset.Y, 0.0f, ContentSize.Y - InGeometry.GetLocalSize().Y);
 	return ScrollOffset;
 }
 
@@ -3057,18 +3057,18 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 			{
 				ScrollOffset.X += LocalCursorRect.Left;
 			}
-			else if (LocalCursorRect.Right > AllottedGeometry.Size.X)
+			else if (LocalCursorRect.Right > AllottedGeometry.GetLocalSize().X)
 			{
-				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.Size.X);
+				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.GetLocalSize().X);
 			}
 
 			if (LocalLineViewRect.Top < 0.0f)
 			{
 				ScrollOffset.Y += LocalLineViewRect.Top;
 			}
-			else if (LocalLineViewRect.Bottom > AllottedGeometry.Size.Y)
+			else if (LocalLineViewRect.Bottom > AllottedGeometry.GetLocalSize().Y)
 			{
-				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.Size.Y);
+				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.GetLocalSize().Y);
 			}
 		}
 
@@ -3078,7 +3078,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 	{
 		// The caret width is included in the margin
 		const float ContentSize = TextLayout->GetSize().X;
-		const float VisibleSize = AllottedGeometry.Size.X;
+		const float VisibleSize = AllottedGeometry.GetLocalSize().X;
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
@@ -3091,7 +3091,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 
 	{
 		const float ContentSize = TextLayout->GetSize().Y;
-		const float VisibleSize = AllottedGeometry.Size.Y;
+		const float VisibleSize = AllottedGeometry.GetLocalSize().Y;
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
@@ -3105,11 +3105,11 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset * TextLayout->GetScale());
 }
 
-int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
+int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
-	CachedSize = AllottedGeometry.Size;
+	CachedSize = AllottedGeometry.GetLocalSize();
 
 	// Only paint the hint text layout if we don't have any text set
 	if (TextLayout->IsEmpty() && HintTextLayout.IsValid())
@@ -3121,10 +3121,10 @@ int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry&
 		HintTextStyle.ColorAndOpacity = FLinearColor(ThisColorAndOpacity.R, ThisColorAndOpacity.G, ThisColorAndOpacity.B, 0.35f);
 		HintTextLayout->OverrideTextStyle(HintTextStyle);
 
-		LayerId = HintTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		LayerId = HintTextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
-	LayerId = TextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = TextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	return LayerId;
 }

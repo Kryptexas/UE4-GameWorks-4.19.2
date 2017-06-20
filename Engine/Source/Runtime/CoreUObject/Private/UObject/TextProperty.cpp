@@ -3,6 +3,7 @@
 #include "UObject/TextProperty.h"
 #include "Internationalization/ITextData.h"
 #include "UObject/PropertyPortFlags.h"
+#include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "Internationalization/StringTableRegistry.h"
 
@@ -187,6 +188,9 @@ FString UTextProperty::GenerateCppCodeForTextValue(const FText& InValue, const F
 		if (SourceString && InValue.ShouldGatherForLocalization())
 		{
 			bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(InValue), Namespace, Key);
+
+			// Nativized BPs always removes the package localization ID to match how text works at runtime (and to match BP bytecode generation)
+			Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
 		}
 
 		if (bIsLocalized)

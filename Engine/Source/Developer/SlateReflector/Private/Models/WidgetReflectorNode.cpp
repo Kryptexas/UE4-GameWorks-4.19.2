@@ -25,30 +25,33 @@ FWidgetReflectorNodeBase::FWidgetReflectorNodeBase()
 	HitTestInfo.AreChildrenHitTestVisible = false;
 }
 
-FWidgetReflectorNodeBase::FWidgetReflectorNodeBase(const FArrangedWidget& InWidgetGeometry)
-	: AccumulatedLayoutTransform(InWidgetGeometry.Geometry.GetAccumulatedLayoutTransform())
-	, AccumulatedRenderTransform(InWidgetGeometry.Geometry.GetAccumulatedRenderTransform())
-	, LocalSize(InWidgetGeometry.Geometry.GetLocalSize())
+FWidgetReflectorNodeBase::FWidgetReflectorNodeBase(const FArrangedWidget& InArrangedWidget)
+	: WidgetGeometry(InArrangedWidget.Geometry)
 	, Tint(FLinearColor::White)
 {
-	const EVisibility WidgetVisibility = InWidgetGeometry.Widget->GetVisibility();
+	const EVisibility WidgetVisibility = InArrangedWidget.Widget->GetVisibility();
 	HitTestInfo.IsHitTestVisible = WidgetVisibility.IsHitTestVisible();
 	HitTestInfo.AreChildrenHitTestVisible = WidgetVisibility.AreChildrenHitTestVisible();
 }
 
-const FSlateLayoutTransform& FWidgetReflectorNodeBase::GetAccumulatedLayoutTransform() const
+const FGeometry& FWidgetReflectorNodeBase::GetGeometry() const
 {
-	return AccumulatedLayoutTransform;
+	return WidgetGeometry;
+}
+
+FSlateLayoutTransform FWidgetReflectorNodeBase::GetAccumulatedLayoutTransform() const
+{
+	return WidgetGeometry.GetAccumulatedLayoutTransform();
 }
 
 const FSlateRenderTransform& FWidgetReflectorNodeBase::GetAccumulatedRenderTransform() const
 {
-	return AccumulatedRenderTransform;
+	return WidgetGeometry.GetAccumulatedRenderTransform();
 }
 
 const FVector2D& FWidgetReflectorNodeBase::GetLocalSize() const
 {
-	return LocalSize;
+	return WidgetGeometry.GetLocalSize();
 }
 
 const FWidgetHitTestInfo& FWidgetReflectorNodeBase::GetHitTestInfo() const
@@ -82,14 +85,14 @@ const TArray<TSharedRef<FWidgetReflectorNodeBase>>& FWidgetReflectorNodeBase::Ge
  * FLiveWidgetReflectorNode
  * -----------------------------------------------------------------------------
  */
-TSharedRef<FLiveWidgetReflectorNode> FLiveWidgetReflectorNode::Create(const FArrangedWidget& InWidgetGeometry)
+TSharedRef<FLiveWidgetReflectorNode> FLiveWidgetReflectorNode::Create(const FArrangedWidget& InArrangedWidget)
 {
-	return MakeShareable(new FLiveWidgetReflectorNode(InWidgetGeometry));
+	return MakeShareable(new FLiveWidgetReflectorNode(InArrangedWidget));
 }
 
-FLiveWidgetReflectorNode::FLiveWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry)
-	: FWidgetReflectorNodeBase(InWidgetGeometry)
-	, Widget(InWidgetGeometry.Widget)
+FLiveWidgetReflectorNode::FLiveWidgetReflectorNode(const FArrangedWidget& InArrangedWidget)
+	: FWidgetReflectorNodeBase(InArrangedWidget)
+	, Widget(InArrangedWidget.Widget)
 {
 }
 
@@ -111,6 +114,11 @@ FText FLiveWidgetReflectorNode::GetWidgetType() const
 FText FLiveWidgetReflectorNode::GetWidgetVisibilityText() const
 {
 	return FWidgetReflectorNodeUtils::GetWidgetVisibilityText(Widget.Pin());
+}
+
+FText FLiveWidgetReflectorNode::GetWidgetClippingText() const
+{
+	return FWidgetReflectorNodeUtils::GetWidgetClippingText(Widget.Pin());
 }
 
 FText FLiveWidgetReflectorNode::GetWidgetReadableLocation() const
@@ -175,18 +183,19 @@ FSnapshotWidgetReflectorNode::FSnapshotWidgetReflectorNode()
 {
 }
 
-FSnapshotWidgetReflectorNode::FSnapshotWidgetReflectorNode(const FArrangedWidget& InWidgetGeometry)
-	: FWidgetReflectorNodeBase(InWidgetGeometry)
-	, CachedWidgetType(FWidgetReflectorNodeUtils::GetWidgetType(InWidgetGeometry.Widget))
-	, CachedWidgetVisibilityText(FWidgetReflectorNodeUtils::GetWidgetVisibilityText(InWidgetGeometry.Widget))
-	, CachedWidgetReadableLocation(FWidgetReflectorNodeUtils::GetWidgetReadableLocation(InWidgetGeometry.Widget))
-	, CachedWidgetFile(FWidgetReflectorNodeUtils::GetWidgetFile(InWidgetGeometry.Widget))
-	, CachedWidgetLineNumber(FWidgetReflectorNodeUtils::GetWidgetLineNumber(InWidgetGeometry.Widget))
-	, CachedWidgetAssetData(FWidgetReflectorNodeUtils::GetWidgetAssetData(InWidgetGeometry.Widget))
-	, CachedWidgetDesiredSize(FWidgetReflectorNodeUtils::GetWidgetDesiredSize(InWidgetGeometry.Widget))
-	, CachedWidgetForegroundColor(FWidgetReflectorNodeUtils::GetWidgetForegroundColor(InWidgetGeometry.Widget))
-	, CachedWidgetAddress(FWidgetReflectorNodeUtils::GetWidgetAddress(InWidgetGeometry.Widget))
-	, CachedWidgetEnabled(FWidgetReflectorNodeUtils::GetWidgetEnabled(InWidgetGeometry.Widget))
+FSnapshotWidgetReflectorNode::FSnapshotWidgetReflectorNode(const FArrangedWidget& InArrangedWidget)
+	: FWidgetReflectorNodeBase(InArrangedWidget)
+	, CachedWidgetType(FWidgetReflectorNodeUtils::GetWidgetType(InArrangedWidget.Widget))
+	, CachedWidgetVisibilityText(FWidgetReflectorNodeUtils::GetWidgetVisibilityText(InArrangedWidget.Widget))
+	, CachedWidgetClippingText(FWidgetReflectorNodeUtils::GetWidgetClippingText(InArrangedWidget.Widget))
+	, CachedWidgetReadableLocation(FWidgetReflectorNodeUtils::GetWidgetReadableLocation(InArrangedWidget.Widget))
+	, CachedWidgetFile(FWidgetReflectorNodeUtils::GetWidgetFile(InArrangedWidget.Widget))
+	, CachedWidgetLineNumber(FWidgetReflectorNodeUtils::GetWidgetLineNumber(InArrangedWidget.Widget))
+	, CachedWidgetAssetData(FWidgetReflectorNodeUtils::GetWidgetAssetData(InArrangedWidget.Widget))
+	, CachedWidgetDesiredSize(FWidgetReflectorNodeUtils::GetWidgetDesiredSize(InArrangedWidget.Widget))
+	, CachedWidgetForegroundColor(FWidgetReflectorNodeUtils::GetWidgetForegroundColor(InArrangedWidget.Widget))
+	, CachedWidgetAddress(FWidgetReflectorNodeUtils::GetWidgetAddress(InArrangedWidget.Widget))
+	, CachedWidgetEnabled(FWidgetReflectorNodeUtils::GetWidgetEnabled(InArrangedWidget.Widget))
 {
 }
 
@@ -208,6 +217,11 @@ FText FSnapshotWidgetReflectorNode::GetWidgetType() const
 FText FSnapshotWidgetReflectorNode::GetWidgetVisibilityText() const
 {
 	return CachedWidgetVisibilityText;
+}
+
+FText FSnapshotWidgetReflectorNode::GetWidgetClippingText() const
+{
+	return CachedWidgetClippingText;
 }
 
 FText FSnapshotWidgetReflectorNode::GetWidgetReadableLocation() const
@@ -323,9 +337,9 @@ TSharedRef<FJsonValue> FSnapshotWidgetReflectorNode::ToJson(const TSharedRef<FSn
 
 	TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
 
-	RootJsonObject->SetField(TEXT("AccumulatedLayoutTransform"), Internal::CreateSlateLayoutTransformJsonValue(RootSnapshotNode->AccumulatedLayoutTransform));
-	RootJsonObject->SetField(TEXT("AccumulatedRenderTransform"), Internal::CreateSlateRenderTransformJsonValue(RootSnapshotNode->AccumulatedRenderTransform));
-	RootJsonObject->SetField(TEXT("LocalSize"), Internal::CreateVector2DJsonValue(RootSnapshotNode->LocalSize));
+	RootJsonObject->SetField(TEXT("AccumulatedLayoutTransform"), Internal::CreateSlateLayoutTransformJsonValue(RootSnapshotNode->GetAccumulatedLayoutTransform()));
+	RootJsonObject->SetField(TEXT("AccumulatedRenderTransform"), Internal::CreateSlateRenderTransformJsonValue(RootSnapshotNode->GetAccumulatedRenderTransform()));
+	RootJsonObject->SetField(TEXT("LocalSize"), Internal::CreateVector2DJsonValue(RootSnapshotNode->GetLocalSize()));
 	RootJsonObject->SetField(TEXT("HitTestInfo"), Internal::CreateWidgetHitTestInfoJsonValue(RootSnapshotNode->HitTestInfo));
 	RootJsonObject->SetStringField(TEXT("WidgetType"), RootSnapshotNode->CachedWidgetType.ToString());
 	RootJsonObject->SetStringField(TEXT("WidgetVisibilityText"), RootSnapshotNode->CachedWidgetVisibilityText.ToString());
@@ -452,9 +466,11 @@ TSharedRef<FSnapshotWidgetReflectorNode> FSnapshotWidgetReflectorNode::FromJson(
 
 	auto RootSnapshotNode = FSnapshotWidgetReflectorNode::Create();
 
-	RootSnapshotNode->AccumulatedLayoutTransform = Internal::ParseSlateLayoutTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedLayoutTransform")));
-	RootSnapshotNode->AccumulatedRenderTransform = Internal::ParseSlateRenderTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedRenderTransform")));
-	RootSnapshotNode->LocalSize = Internal::ParseVector2DJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("LocalSize")));
+	const FSlateLayoutTransform LayoutTransform = Internal::ParseSlateLayoutTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedLayoutTransform")));
+	const FSlateRenderTransform RenderTransform = Internal::ParseSlateRenderTransformJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("AccumulatedRenderTransform")));
+	const FVector2D LocalSize = Internal::ParseVector2DJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("LocalSize")));
+	RootSnapshotNode->WidgetGeometry = FGeometry::MakeRoot(LocalSize, LayoutTransform, RenderTransform);
+
 	RootSnapshotNode->HitTestInfo = Internal::ParseWidgetHitTestInfoJsonValue(RootJsonObject->GetField<EJson::None>(TEXT("HitTestInfo")));
 	RootSnapshotNode->CachedWidgetType = FText::FromString(RootJsonObject->GetStringField(TEXT("WidgetType")));
 	RootSnapshotNode->CachedWidgetVisibilityText = FText::FromString(RootJsonObject->GetStringField(TEXT("WidgetVisibilityText")));
@@ -560,6 +576,28 @@ FText FWidgetReflectorNodeUtils::GetWidgetType(const TSharedPtr<SWidget>& InWidg
 FText FWidgetReflectorNodeUtils::GetWidgetVisibilityText(const TSharedPtr<SWidget>& InWidget)
 {
 	return (InWidget.IsValid()) ? FText::FromString(InWidget->GetVisibility().ToString()) : FText::GetEmpty();
+}
+
+FText FWidgetReflectorNodeUtils::GetWidgetClippingText(const TSharedPtr<SWidget>& InWidget)
+{
+	if ( InWidget.IsValid() )
+	{
+		switch ( InWidget->GetClipping() )
+		{
+		case EWidgetClipping::Inherit:
+			return LOCTEXT("WidgetClippingNo", "No");
+		case EWidgetClipping::ClipToBounds:
+			return LOCTEXT("WidgetClippingYes", "Yes");
+		case EWidgetClipping::ClipToBoundsAlways:
+			return LOCTEXT("WidgetClippingYesAlways", "Yes (Always)");
+		case EWidgetClipping::ClipToBoundsWithoutIntersecting:
+			return LOCTEXT("WidgetClippingYesWithoutIntersecting", "Yes (No Intersect)");
+		case EWidgetClipping::OnDemand:
+			return LOCTEXT("WidgetClippingOnDemand", "On Demand");
+		}
+	}
+
+	return FText::GetEmpty();
 }
 
 FText FWidgetReflectorNodeUtils::GetWidgetReadableLocation(const TSharedPtr<SWidget>& InWidget)

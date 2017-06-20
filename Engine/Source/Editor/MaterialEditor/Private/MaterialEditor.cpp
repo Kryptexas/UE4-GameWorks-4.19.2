@@ -1378,43 +1378,7 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 	RefreshPreviewViewport();
 }
 
-void FMaterialEditor::RebuildMaterialInstanceEditors(UMaterialInstance * MatInst)
-{
-	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
-	TArray<UObject*> EditedAssets = AssetEditorManager.GetAllEditedAssets();
 
-	for (int32 AssetIdx = 0; AssetIdx < EditedAssets.Num(); AssetIdx++)
-	{
-		UObject* EditedAsset = EditedAssets[AssetIdx];
-
-		UMaterialInstance* SourceInstance = Cast<UMaterialInstance>(EditedAsset);
-
-		if(!SourceInstance)
-		{
-			// Check to see if the EditedAssets are from material instance editor
-			UMaterialEditorInstanceConstant* EditorInstance = Cast<UMaterialEditorInstanceConstant>(EditedAsset);
-			if(EditorInstance && EditorInstance->SourceInstance)
-			{
-				SourceInstance = Cast<UMaterialInstance>(EditorInstance->SourceInstance);
-			}
-		}
-
-		// Ensure the material instance is valid and not a UMaterialInstanceDynamic, as that doesn't use FMaterialInstanceEditor as its editor
-		if ( SourceInstance != NULL && !SourceInstance->IsA(UMaterialInstanceDynamic::StaticClass()))
-		{
-			UMaterial * MICOriginalMaterial = SourceInstance->GetMaterial();
-			if (MICOriginalMaterial == OriginalMaterial)
-			{
-				IAssetEditorInstance* EditorInstance = AssetEditorManager.FindEditorForAsset(EditedAsset, false);
-				if ( EditorInstance != NULL )
-				{
-					FMaterialInstanceEditor* OtherEditor = static_cast<FMaterialInstanceEditor*>(EditorInstance);
-					OtherEditor->RebuildMaterialInstanceEditor();
-				}
-			}
-		}
-	}
-}
 
 void FMaterialEditor::UpdateOriginalMaterial()
 {
@@ -1511,158 +1475,66 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			}
 		}
 
-		// mark the parent function as changed
-		MaterialFunction->ParentFunction->PreEditChange(NULL);
-		MaterialFunction->ParentFunction->PostEditChange();
-		MaterialFunction->ParentFunction->MarkPackageDirty();
-
 		// clear the dirty flag
 		bMaterialDirty = false;
 		bStatsFromPreviewMaterial = false;
 
-		// Create a material update context so we can safely update materials using this function.
-		{
-			FMaterialUpdateContext UpdateContext;
-
-			// Go through all materials in memory and recompile them if they use this material function
-			for (TObjectIterator<UMaterial> It; It; ++It)
-			{
-				UMaterial* CurrentMaterial = *It;
-				if (CurrentMaterial != Material)
-				{
-					bool bRecompile = false;
-
-					// Preview materials often use expressions for rendering that are not in their Expressions array, 
-					// And therefore their MaterialFunctionInfos are not up to date.
-					// However we don't want to trigger this if the Material is a preview material itself. This can now be the case with thumbnail preview materials for material functions.
-					if (CurrentMaterial->bIsPreviewMaterial && !Material->bIsPreviewMaterial)
-					{
-						bRecompile = true;
-					}
-					else
-					{
-						for (int32 FunctionIndex = 0; FunctionIndex < CurrentMaterial->MaterialFunctionInfos.Num(); FunctionIndex++)
-						{
-							if (CurrentMaterial->MaterialFunctionInfos[FunctionIndex].Function == MaterialFunction->ParentFunction)
-							{
-								bRecompile = true;
-								break;
-							}
-						}
-					}
-
-					if (bRecompile)
-					{
-						UpdateContext.AddMaterial(CurrentMaterial);
-
-						// Propagate the function change to this material
-						CurrentMaterial->PreEditChange(NULL);
-						CurrentMaterial->PostEditChange();
-						CurrentMaterial->MarkPackageDirty();
-
-						if (CurrentMaterial->MaterialGraph)
-						{
-							CurrentMaterial->MaterialGraph->RebuildGraph();
-						}
-					}
-				}
-			}
-		}
-
-		// update the world's viewports
-		FEditorDelegates::RefreshEditor.Broadcast();
-		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+		UMaterialEditingLibrary::UpdateMaterialFunction(MaterialFunction->ParentFunction, Material);
 	}
 	// Handle propagation of the material being edited
 	else
 	{
 		FNavigationLockContext NavUpdateLock(ENavigationLockReason::MaterialUpdate);
 
-		// Create a material update context so we can safely update materials.
+		// ensure the original copy of the material is removed from the editor's selection set
+		// or it will end up containing a stale, invalid entry
+		if ( OriginalMaterial->IsSelected() )
 		{
-			FMaterialUpdateContext UpdateContext;
-			UpdateContext.AddMaterial(OriginalMaterial);
-
-			// ensure the original copy of the material is removed from the editor's selection set
-			// or it will end up containing a stale, invalid entry
-			if ( OriginalMaterial->IsSelected() )
-			{
-				GEditor->GetSelectedObjects()->Deselect( OriginalMaterial );
-			}
-
-			// Preserve the thumbnail info
-			UThumbnailInfo* OriginalThumbnailInfo = OriginalMaterial->ThumbnailInfo;
-			UThumbnailInfo* ThumbnailInfo = Material->ThumbnailInfo;
-			OriginalMaterial->ThumbnailInfo = NULL;
-			Material->ThumbnailInfo = NULL;
-
-			// A bit hacky, but disable material compilation in post load when we duplicate the material.
-			UMaterial::ForceNoCompilationInPostLoad(true);
-
-			// overwrite the original material in place by constructing a new one with the same name
-			OriginalMaterial = (UMaterial*)StaticDuplicateObject( Material, OriginalMaterial->GetOuter(), OriginalMaterial->GetFName(), 
-				RF_AllFlags, 
-				OriginalMaterial->GetClass());
-
-			// Post load has been called, allow materials to be compiled in PostLoad.
-			UMaterial::ForceNoCompilationInPostLoad(false);
-
-			// Restore the thumbnail info
-			OriginalMaterial->ThumbnailInfo = OriginalThumbnailInfo;
-			Material->ThumbnailInfo = ThumbnailInfo;
-
-			// Change the original material object to the new original material
-			OriginalMaterialObject = OriginalMaterial;
-
-			// Restore RF_Standalone on the original material, as it had been removed from the preview material so that it could be GC'd.
-			OriginalMaterial->SetFlags( RF_Standalone );
-
-			// Manually copy bUsedAsSpecialEngineMaterial as it is duplicate transient to prevent accidental creation of new special engine materials
-			OriginalMaterial->bUsedAsSpecialEngineMaterial = Material->bUsedAsSpecialEngineMaterial;
-
-			// If we are showing stats for mobile materials, compile the full material for ES2 here. That way we can see if permutations
-			// not used for preview materials fail to compile.
-			if (bShowMobileStats)
-			{
-				OriginalMaterial->SetFeatureLevelToCompile(ERHIFeatureLevel::ES2,true);
-			}
-
-			// let the material update itself if necessary
-			OriginalMaterial->PreEditChange(NULL);
-
-			OriginalMaterial->PostEditChange();
-
-			OriginalMaterial->MarkPackageDirty();
-
-			// clear the dirty flag
-			bMaterialDirty = false;
-			bStatsFromPreviewMaterial = false;
-
-			// update the world's viewports
-			FEditorDelegates::RefreshEditor.Broadcast();
-			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
-
-			// Force particle components to update their view relevance.
-			for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
-			{
-				It->bIsViewRelevanceDirty = true;
-			}
-
-			// Update parameter names on any child material instances
-			for (TObjectIterator<UMaterialInstance> It; It; ++It)
-			{
-				if (It->Parent == OriginalMaterial)
-				{
-					It->UpdateParameterNames();
-				}
-			}
-
-			// Leaving this scope will update all dependent material instances.
+			GEditor->GetSelectedObjects()->Deselect( OriginalMaterial );
 		}
 
-		RebuildMaterialInstanceEditors(NULL);
+		// Preserve the thumbnail info
+		UThumbnailInfo* OriginalThumbnailInfo = OriginalMaterial->ThumbnailInfo;
+		UThumbnailInfo* ThumbnailInfo = Material->ThumbnailInfo;
+		OriginalMaterial->ThumbnailInfo = NULL;
+		Material->ThumbnailInfo = NULL;
 
-		FMaterialEditorUtilities::BuildTextureStreamingData(OriginalMaterial);
+		// A bit hacky, but disable material compilation in post load when we duplicate the material.
+		UMaterial::ForceNoCompilationInPostLoad(true);
+
+		// overwrite the original material in place by constructing a new one with the same name
+		OriginalMaterial = (UMaterial*)StaticDuplicateObject( Material, OriginalMaterial->GetOuter(), OriginalMaterial->GetFName(), 
+			RF_AllFlags, 
+			OriginalMaterial->GetClass());
+
+		// Post load has been called, allow materials to be compiled in PostLoad.
+		UMaterial::ForceNoCompilationInPostLoad(false);
+
+		// Restore the thumbnail info
+		OriginalMaterial->ThumbnailInfo = OriginalThumbnailInfo;
+		Material->ThumbnailInfo = ThumbnailInfo;
+
+		// Change the original material object to the new original material
+		OriginalMaterialObject = OriginalMaterial;
+
+		// Restore RF_Standalone on the original material, as it had been removed from the preview material so that it could be GC'd.
+		OriginalMaterial->SetFlags( RF_Standalone );
+
+		// Manually copy bUsedAsSpecialEngineMaterial as it is duplicate transient to prevent accidental creation of new special engine materials
+		OriginalMaterial->bUsedAsSpecialEngineMaterial = Material->bUsedAsSpecialEngineMaterial;
+
+		// If we are showing stats for mobile materials, compile the full material for ES2 here. That way we can see if permutations
+		// not used for preview materials fail to compile.
+		if (bShowMobileStats)
+		{
+			OriginalMaterial->SetFeatureLevelToCompile(ERHIFeatureLevel::ES2,true);
+		}
+
+		UMaterialEditingLibrary::RecompileMaterial(OriginalMaterial);
+
+		// clear the dirty flag
+		bMaterialDirty = false;
+		bStatsFromPreviewMaterial = false;
 	}
 
 	GWarn->EndSlowTask();

@@ -64,7 +64,7 @@ TSharedRef<SWidget> UWindowTitleBarArea::RebuildWidget()
 		MyWindowTitleBarArea->SetGameWindow(GEngine->GameViewport->GetWindow());
 	}
 
-	return BuildDesignTimeWidget(MyWindowTitleBarArea.ToSharedRef());
+	return MyWindowTitleBarArea.ToSharedRef();
 }
 
 UClass* UWindowTitleBarArea::GetSlotClass() const

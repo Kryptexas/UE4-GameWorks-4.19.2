@@ -186,7 +186,7 @@ private:
 	void ShowNotifyInDetailsView( FName NotifyName );
 
 	/** Populates OutAssets with the AnimSequences that match Personas current skeleton */
-	void GetCompatibleAnimMontages( TArray<class FAssetData>& OutAssets );
+	void GetCompatibleAnimMontages( TArray<struct FAssetData>& OutAssets );
 	/** Populates OutAssets with the Anim Blueprints that match Personas current skeleton */
 	void GetCompatibleAnimBlueprints( TArray<FAssetData>& OutAssets );
 

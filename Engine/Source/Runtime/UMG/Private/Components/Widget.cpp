@@ -291,6 +291,28 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	}
 }
 
+EWidgetClipping UWidget::GetClipping() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		return SafeWidget->GetClipping();
+	}
+
+	return Clipping;
+}
+
+void UWidget::SetClipping(EWidgetClipping InClipping)
+{
+	Clipping = InClipping;
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if (SafeWidget.IsValid())
+	{
+		SafeWidget->SetClipping(InClipping);
+	}
+}
+
 void UWidget::ForceVolatile(bool bForce)
 {
 	bIsVolatile = bForce;
@@ -642,73 +664,92 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		   } );
 }
 
-TSharedRef<SWidget> UWidget::TakeWidget_Private( ConstructMethodType ConstructMethod )
+TSharedRef<SWidget> UWidget::TakeWidget_Private(ConstructMethodType ConstructMethod)
 {
-	TSharedPtr<SWidget> SafeWidget;
 	bool bNewlyCreated = false;
+	TSharedPtr<SWidget> PublicWidget;
 
 	// If the underlying widget doesn't exist we need to construct and cache the widget for the first run.
-	if ( !MyWidget.IsValid() )
+	if (!MyWidget.IsValid())
 	{
-		SafeWidget = RebuildWidget();
-		MyWidget = SafeWidget;
+		PublicWidget = RebuildWidget();
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		ensureMsgf(PublicWidget.Get() != &SNullWidget::NullWidget.Get(), TEXT("Don't return SNullWidget from RebuildWidget, because we mutate the state of the return.  Return a SSpacer if you need to return a no-op widget."));
+#endif
+
+		MyWidget = PublicWidget;
 
 		bNewlyCreated = true;
 	}
 	else
 	{
-		SafeWidget = MyWidget.Pin();
+		PublicWidget = MyWidget.Pin();
 	}
 
 	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
-	if ( IsA( UUserWidget::StaticClass() ) )
+	if (IsA(UUserWidget::StaticClass()))
 	{
 		TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
 
 		// If the GC Widget is still valid we still exist in the slate hierarchy, so just return the GC Widget.
-		if ( SafeGCWidget.IsValid() )
+		if (SafeGCWidget.IsValid())
 		{
-			return SafeGCWidget.ToSharedRef();
+			ensure(bNewlyCreated == false);
+			PublicWidget = SafeGCWidget;
 		}
 		else // Otherwise we need to recreate the wrapper widget
 		{
-			SafeGCWidget = ConstructMethod( Cast<UUserWidget>( this ), SafeWidget.ToSharedRef() );
+			SafeGCWidget = ConstructMethod(Cast<UUserWidget>(this), PublicWidget.ToSharedRef());
 
 			MyGCWidget = SafeGCWidget;
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			bRoutedSynchronizeProperties = false;
-#endif
-
-			// Always synchronize properties of a user widget and call construct AFTER we've
-			// properly setup the GCWidget and synced all the properties.
-			SynchronizeProperties();
-			VerifySynchronizeProperties();
-			OnWidgetRebuilt();
-
-			return SafeGCWidget.ToSharedRef();
+			PublicWidget = SafeGCWidget;
 		}
 	}
-	else
+
+#if WITH_EDITOR
+	if (IsDesignTime())
 	{
-		if ( bNewlyCreated )
+		if (bNewlyCreated)
 		{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			bRoutedSynchronizeProperties = false;
+			TSharedPtr<SWidget> SafeDesignWidget = RebuildDesignWidget(PublicWidget.ToSharedRef());
+			if (SafeDesignWidget != PublicWidget)
+			{
+				DesignWrapperWidget = SafeDesignWidget;
+				PublicWidget = SafeDesignWidget;
+			}
+		}
+		else if (DesignWrapperWidget.IsValid())
+		{
+			PublicWidget = DesignWrapperWidget.Pin();
+		}
+	}
 #endif
 
-			SynchronizeProperties();
-			VerifySynchronizeProperties();
-			OnWidgetRebuilt();
-		}
+	if (bNewlyCreated)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		bRoutedSynchronizeProperties = false;
+#endif
 
-		return SafeWidget.ToSharedRef();
+		SynchronizeProperties();
+		VerifySynchronizeProperties();
+		OnWidgetRebuilt();
 	}
+
+	return PublicWidget.ToSharedRef();
 }
 
 TSharedPtr<SWidget> UWidget::GetCachedWidget() const
 {
-	if ( MyGCWidget.IsValid() )
+#if WITH_EDITOR
+	if (DesignWrapperWidget.IsValid())
+	{
+		return DesignWrapperWidget.Pin();
+	}
+#endif
+
+	if (MyGCWidget.IsValid())
 	{
 		return MyGCWidget.Pin();
 	}
@@ -717,19 +758,23 @@ TSharedPtr<SWidget> UWidget::GetCachedWidget() const
 }
 
 #if WITH_EDITOR
-TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)
+
+TSharedRef<SWidget> UWidget::RebuildDesignWidget(TSharedRef<SWidget> Content)
 {
-	if (IsDesignTime())
-	{
-		return SNew(SOverlay)
-		
+	return Content;
+}
+
+TSharedRef<SWidget> UWidget::CreateDesignerOutline(TSharedRef<SWidget> Content) const
+{
+	return SNew(SOverlay)
+	
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
 		[
-			WrapWidget
+			Content
 		]
-		
+
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
@@ -738,12 +783,8 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 			.Visibility(HasAnyDesignerFlags(EWidgetDesignFlags::ShowOutline) ? EVisibility::HitTestInvisible : EVisibility::Collapsed)
 			.BorderImage(FUMGStyle::Get().GetBrush("MarchingAnts"))
 		];
-	}
-	else
-	{
-		return WrapWidget;
-	}
 }
+
 #endif
 
 APlayerController* UWidget::GetOwningPlayer() const
@@ -809,7 +850,7 @@ FText UWidget::GetLabelText() const
 {
 	FText Label = GetDisplayNameBase();
 
-	if (IsGeneratedName() && !bIsVariable)
+	if (!bIsVariable || !GetLabelMetadata().IsEmpty())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BaseName"), Label);
@@ -823,7 +864,7 @@ FText UWidget::GetLabelText() const
 FText UWidget::GetDisplayNameBase() const
 {
 	const bool bHasDisplayLabel = !DisplayLabel.IsEmpty();
-	if (IsGeneratedName())
+	if (IsGeneratedName() && !bIsVariable)
 	{
 		return GetClass()->GetDisplayNameText();
 	}
@@ -936,6 +977,10 @@ void UWidget::SynchronizeProperties()
 	}
 
 #if WITH_EDITOR
+	TSharedPtr<SWidget> SafeContentWidget = MyGCWidget.IsValid() ? MyGCWidget.Pin() : MyWidget.Pin();
+#endif
+
+#if WITH_EDITOR
 	// Always use an enabled and visible state in the designer.
 	if ( IsDesignTime() )
 	{
@@ -953,6 +998,16 @@ void UWidget::SynchronizeProperties()
 		SafeWidget->SetEnabled(PROPERTY_BINDING( bool, bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
+
+#if WITH_EDITOR
+	// In the designer, we need to apply the clip to bounds flag to the real widget, not the designer outline.
+	// because we may be changing a critical default set on the base that not actually set on the outline.
+	// An example of this, would be changing the clipping bounds on a scrollbox.  The outline never clipped to bounds
+	// so unless we tweak the -actual- value on the SScrollBox, the user won't see a difference in how the widget clips.
+	SafeContentWidget->SetClipping(Clipping);
+#else
+	SafeWidget->SetClipping(Clipping);
+#endif
 
 	SafeWidget->ForceVolatile(bIsVolatile);
 

@@ -551,7 +551,7 @@ void SSkeletonSlotNames::ShowNotifyInDetailsView(FName NotifyName)
 	// we can show the list of montage that are used by this slot node?
 }
 
-void SSkeletonSlotNames::GetCompatibleAnimMontages(TArray<class FAssetData>& OutAssets)
+void SSkeletonSlotNames::GetCompatibleAnimMontages(TArray<struct FAssetData>& OutAssets)
 {
 	//Get the skeleton tag to search for
 	const USkeleton& Skeleton = EditableSkeletonPtr.Pin()->GetSkeleton();

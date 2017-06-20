@@ -280,9 +280,9 @@ private:
 	void InvalidateTextLayouts();
 
 #if WITH_EDITOR
-	void RecordUsage(EGestureEvent::Type Gesture);
+	void RecordUsage(EGestureEvent Gesture);
 #else
-	void RecordUsage(EGestureEvent::Type Gesture) { }
+	void RecordUsage(EGestureEvent Gesture) { }
 #endif
 
 private:
@@ -354,10 +354,10 @@ private:
 
 #if WITH_EDITOR
 	/** Holds the last gesture used to try and capture unique uses for gestures. */
-	EGestureEvent::Type LastGestureUsed;
+	EGestureEvent LastGestureUsed;
 
 	/** Stores the number of times a gesture has been used for analytics */
-	int32 GestureUsage[EGestureEvent::Count];
+	int32 GestureUsage[(int32)EGestureEvent::Count];
 #endif
 
 	friend class FMacWindow;

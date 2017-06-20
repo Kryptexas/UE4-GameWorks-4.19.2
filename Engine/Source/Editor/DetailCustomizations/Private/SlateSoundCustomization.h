@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "IPropertyTypeCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 
 /** Customize the appearance of an FSlateSound */
 class FSlateSoundStructCustomization : public IPropertyTypeCustomization

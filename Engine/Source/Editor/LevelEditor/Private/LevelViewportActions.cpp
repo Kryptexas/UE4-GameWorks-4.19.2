@@ -140,29 +140,6 @@ void FLevelViewportCommands::RegisterCommands()
 	{
 		UI_COMMAND( ShowAllVolumes, "Show All Volumes", "Shows all volumes", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( HideAllVolumes, "Hide All Volumes", "Hides all volumes", EUserInterfaceActionType::Button, FInputChord() );
-
-		TArray< UClass* > VolumeClasses;
-		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
-
-		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
-		{
-			//@todo Slate: The show flags system does not support descriptions currently
-			const FText VolumeDesc;
-			const FName VolumeName = VolumeClasses[VolumeClassIndex]->GetFName();
-
-			FText DisplayName;
-			FEngineShowFlags::FindShowFlagDisplayName( VolumeName.ToString(), DisplayName );
-
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("ShowFlagName"), DisplayName );
-			const FText LocalizedName = FText::Format( LOCTEXT("ShowFlagLabel_Visualize", "Visualize {ShowFlagName}"), Args );
-
-			TSharedPtr<FUICommandInfo> ShowVolumeCommand 
-				= FUICommandInfoDecl( this->AsShared(), VolumeName, LocalizedName, VolumeDesc )
-				.UserInterfaceType( EUserInterfaceActionType::ToggleButton );
-
-			ShowVolumeCommands.Add( FLevelViewportCommands::FShowMenuCommand( ShowVolumeCommand, DisplayName ) );
-		}
 	}
 
 	// Generate a command for show/hide all layers
@@ -347,6 +324,38 @@ int32 FLevelViewportCommands::FindStatIndex(const TArray< FShowMenuCommand >* Sh
 		}
 	}
 	return ShowStatCommands->Num();
+}
+
+void FLevelViewportCommands::RegisterShowVolumeCommands()
+{
+	/** This allows us to register commands to show volumes after all the modules were loaded. */
+	TArray< UClass* > VolumeClasses;
+	UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
+
+	for (int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex)
+	{
+		//@todo Slate: The show flags system does not support descriptions currently
+		const FText VolumeDesc;
+		const FName VolumeName = VolumeClasses[VolumeClassIndex]->GetFName();
+
+		// Only add a command if there is none already for this volume class.
+		TSharedPtr<FUICommandInfo> FoundVolumeCommand = FInputBindingManager::Get().FindCommandInContext(this->AsShared()->GetContextName(), VolumeName);
+		if (!FoundVolumeCommand.IsValid())
+		{
+			FText DisplayName;
+			FEngineShowFlags::FindShowFlagDisplayName(VolumeName.ToString(), DisplayName);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ShowFlagName"), DisplayName);
+			const FText LocalizedName = FText::Format(LOCTEXT("ShowFlagLabel_Visualize", "Visualize {ShowFlagName}"), Args);
+
+			TSharedPtr<FUICommandInfo> ShowVolumeCommand
+				= FUICommandInfoDecl(this->AsShared(), VolumeName, LocalizedName, VolumeDesc)
+				.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
+
+			ShowVolumeCommands.Add(FLevelViewportCommands::FShowMenuCommand(ShowVolumeCommand, DisplayName));
+		}
+	}
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

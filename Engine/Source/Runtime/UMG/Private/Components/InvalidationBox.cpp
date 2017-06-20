@@ -37,7 +37,7 @@ TSharedRef<SWidget> UInvalidationBox::RebuildWidget()
 		MyInvalidationPanel->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
-	return BuildDesignTimeWidget(MyInvalidationPanel.ToSharedRef());
+	return MyInvalidationPanel.ToSharedRef();
 }
 
 void UInvalidationBox::OnSlotAdded(UPanelSlot* InSlot)

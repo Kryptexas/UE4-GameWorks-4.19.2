@@ -7,6 +7,7 @@
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportDragOperation.h"
+#include "VIGizmoHandleMeshComponent.h"
 
 UGizmoHandleGroup::UGizmoHandleGroup()
 	: Super(),
@@ -177,7 +178,7 @@ void UGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& 
 		HandleMesh->SetMaterial( 1, MID );
 	}
 	UMaterialInstanceDynamic* MID0 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 0 ) );
-	UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 1 ) );
+	UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 1 ) );		
 
 	ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
 	if (GizmoActor)
@@ -247,11 +248,11 @@ UViewportDragOperationComponent* UGizmoHandleGroup::GetDragOperationComponent()
 	return DragOperationComponent;
 }
 
-class UStaticMeshComponent* UGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )
+class UGizmoHandleMeshComponent* UGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )
 {
 	const bool bAllowGizmoLighting = false;	// @todo vreditor: Not sure if we want this for gizmos or not yet.  Needs feedback.  Also they're translucent right now.
 
-	UStaticMeshComponent* HandleComponent = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
+	UGizmoHandleMeshComponent* HandleComponent = CreateDefaultSubobject<UGizmoHandleMeshComponent>( *ComponentName );
 	check( HandleComponent != nullptr );
 
 	HandleComponent->SetStaticMesh( HandleMesh );
@@ -269,18 +270,19 @@ class UStaticMeshComponent* UGizmoHandleGroup::CreateMeshHandle( class UStaticMe
 	HandleComponent->bCastStaticShadow = false;
 	HandleComponent->bAffectDistanceFieldLighting = bAllowGizmoLighting;
 	HandleComponent->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
+	//HandleComponent->bUseEditorCompositing = true;
 
 	return HandleComponent;
 }
 
-UStaticMeshComponent* UGizmoHandleGroup::CreateAndAddMeshHandle( UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement )
+UGizmoHandleMeshComponent* UGizmoHandleGroup::CreateAndAddMeshHandle( UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement )
 {
-	UStaticMeshComponent* HandleComponent = CreateMeshHandle( HandleMesh, ComponentName );
+	UGizmoHandleMeshComponent* HandleComponent = CreateMeshHandle( HandleMesh, ComponentName );
 	AddMeshToHandles( HandleComponent, HandlePlacement );
 	return HandleComponent;
 }
 
-void UGizmoHandleGroup::AddMeshToHandles( UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement )
+void UGizmoHandleGroup::AddMeshToHandles( UGizmoHandleMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement )
 {
 	int32 HandleIndex = MakeHandleIndex( HandlePlacement );
 	if (Handles.Num() < (HandleIndex + 1))

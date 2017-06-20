@@ -102,15 +102,13 @@ public:
 	 */
 	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent, const FGuid& ObjectBinding) { return FReply::Unhandled(); }
 
-	/**
-	 * @return The display name of the section for the animation outliner
-	 */
-	virtual FText GetDisplayName() const = 0;
+	DEPRECATED(4.17, "This function is no longer used")
+	virtual FText GetDisplayName() const { return FText(); }
 	
 	/**
 	 * @return The display name of the section in the section view
 	 */
-	virtual FText GetSectionTitle() const = 0;
+	virtual FText GetSectionTitle() const { return FText(); }
 
 	/**
 	 * @return The amount of padding to apply to non-interactive portions of the section interface (such as section text)
@@ -136,7 +134,7 @@ public:
 	 */
 	virtual bool SectionIsResizable() const {return true;}
 
-
+	DEPRECATED(4.17, "This function is no longer used")
 	virtual bool AreSectionsConnected() const { return false; }
 
 	/**

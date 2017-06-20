@@ -34,7 +34,7 @@ namespace SequencerSectionUtils
 		if (bIsInfinite)
 		{
 			PixelStartX = AllottedGeometry.Position.X;
-			PixelEndX = AllottedGeometry.Position.X + AllottedGeometry.Size.X;
+			PixelEndX = AllottedGeometry.Position.X + AllottedGeometry.GetLocalSize().X;
 		}
 
 		const float MinSectionWidth = 1.f;
@@ -62,8 +62,6 @@ namespace SequencerSectionUtils
 
 void SSequencerSectionAreaView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node )
 {
-	//SSequencerSectionAreaViewBase::Construct( SSequencerSectionAreaViewBase::FArguments(), Node );
-
 	ViewRange = InArgs._ViewRange;
 
 	check( Node->GetType() == ESequencerNode::Track );
@@ -116,7 +114,7 @@ EVisibility SSequencerSectionAreaView::GetSectionVisibility( UMovieSceneSection*
 
 
 /** SWidget Interface */
-int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
@@ -124,7 +122,7 @@ int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometr
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
+		FSlateRect ChildClipRect = MyCullingRect.IntersectionWith( CurWidget.Geometry.GetLayoutBoundingRect() );
 		LayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 

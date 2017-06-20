@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
+#include "Engine/EngineTypes.h"
 #include "ResavePackagesCommandlet.generated.h"
+
 
 // Log category should be accessible by derived classes
 UNREALED_API DECLARE_LOG_CATEGORY_EXTERN(LogContentCommandlet, Log, All);
@@ -87,6 +89,9 @@ protected:
 	/** Only collect garbage after N packages */
 	int32 GarbageCollectionFrequency;
 
+ 	/** Lighting Build Quality(default: Production) */
+ 	ELightingBuildQuality LightingBuildQuality;
+ 
 	/** List of files to submit */
 	TArray<FString> FilesToSubmit;
 

@@ -250,23 +250,10 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	static bool PointerEvent_IsTouchEvent(const FPointerEvent& Input);
 
 	/** @return The type of touch gesture */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetGestureType" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, Category="Utilities|PointerEvent")
 	static ESlateGesture PointerEvent_GetGestureType(const FPointerEvent& Input);
 
 	/** @return The change in gesture value since the last gesture event of the same type. */
 	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Gesture Delta" ), Category="Utilities|PointerEvent")
 	static FVector2D PointerEvent_GetGestureDelta(const FPointerEvent& Input);
-
-
-	/** @return The controller button that caused this event */
-	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetKey() for KeyEvent instead", DisplayName = "Get Effecting Button"), Category = "Utilities|ControllerEvent")
-	static FKey ControllerEvent_GetEffectingButton(const FControllerEvent& Input);
-
-	/** @return The index of the user that caused the event */
-	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetUserIndex() for KeyEvent instead"), Category = "Utilities|ControllerEvent")
-	static int32 ControllerEvent_GetUserIndex(const FControllerEvent& Input);
-
-	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
-	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetAnalogValue() for AnalogInputEvent instead"), Category = "Utilities|ControllerEvent")
-	static float ControllerEvent_GetAnalogValue(const FControllerEvent& Input);
 };

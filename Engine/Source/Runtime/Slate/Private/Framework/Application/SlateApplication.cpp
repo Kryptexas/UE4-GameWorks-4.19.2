@@ -41,21 +41,14 @@
 #include "WindowsHWrapper.h"
 #endif
 
-extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 
 class FEventRouter
 {
 
 // @todo slate : making too many event copies when translating events( i.e. Translate<EventType>::PointerEvent ).
-
-
-
 // @todo slate : Widget Reflector should log: (1) Every process reply (2) Every time the event is handled and by who.
-
 // @todo slate : Remove remaining [&]-style mass captures.
-
 // @todo slate : Eliminate all ad-hoc uses of SetEventPath()
-
 // @todo slate : Remove CALL_WIDGET_FUNCTION
 
 public:
@@ -297,6 +290,7 @@ struct FEventRouter::Translate<FPointerEvent>
 FSlateUser::FSlateUser(int32 InUserIndex, bool InVirtualUser)
 	: UserIndex(InUserIndex)
 	, bVirtualUser(InVirtualUser)
+	, FocusVersion(0)
 {
 	FocusWidgetPathWeak = FWidgetPath();
 	FocusCause = EFocusCause::Cleared;
@@ -988,7 +982,7 @@ FSlateApplication::FSlateApplication()
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
 	, NavigationConfig(MakeShareable(new FNavigationConfig()))
-	, SimulateGestures(false, EGestureEvent::Count)
+	, SimulateGestures(false, (int32)EGestureEvent::Count)
 	, ProcessingInput(0)
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
@@ -1017,7 +1011,7 @@ FSlateApplication::FSlateApplication()
 	// Add the standard 'default' user because there's always 1 user.
 	RegisterUser(MakeShareable(new FSlateUser(0, false)));
 
-	SimulateGestures[EGestureEvent::LongPress] = true;
+	SimulateGestures[(int32)EGestureEvent::LongPress] = true;
 }
 
 FSlateApplication::~FSlateApplication()
@@ -2725,6 +2719,9 @@ bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocu
 		}
 	}
 
+	User->FocusVersion++;
+	int32 CurrentFocusVersion = User->FocusVersion;
+
 	// Notify widgets in the old focus path that focus is changing
 	if (OldFocusedWidgetPath.IsValid())
 	{
@@ -2736,6 +2733,12 @@ bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocu
 			if (SomeWidget.IsValid())
 			{
 				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, User->GetUserIndex()));
+
+				// If focus setting is interrupted, stop what we're doing, as someone has already changed the focus path.
+				if ( CurrentFocusVersion != User->FocusVersion )
+				{
+					return false;
+				}
 			}
 		}
 	}
@@ -2751,6 +2754,12 @@ bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocu
 			if (SomeWidget.IsValid())
 			{
 				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, User->GetUserIndex()));
+
+				// If focus setting is interrupted, stop what we're doing, as someone has already changed the focus path.
+				if ( CurrentFocusVersion != User->FocusVersion )
+				{
+					return false;
+				}
 			}
 		}
 	}
@@ -2777,7 +2786,7 @@ bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocu
 	User->SetFocusPath(NewFocusedWidgetPath, InCause, ShowFocus);
 
 	// Let the old widget know that it lost keyboard focus
-	if(OldFocusedWidget.IsValid())
+	if (OldFocusedWidget.IsValid())
 	{
 		// Switch worlds for widgets in the old path
 		FScopedSwitchWorldHack SwitchWorld(OldFocusedWidgetPath.Window.Pin());
@@ -3214,7 +3223,7 @@ void FSlateApplication::LockCursorToPath(const FWidgetPath& WidgetPath)
 	// Do not attempt to lock the cursor to the window if its not in the foreground.  It would cause annoying side effects
 	if (Window->GetNativeWindow()->IsForegroundWindow())
 	{
-		const FSlateRect SlateClipRect = WidgetGeom.Geometry.GetClippingRect();
+		const FSlateRect SlateClipRect = WidgetGeom.Geometry.GetLayoutBoundingRect();
 		CursorLock.LastComputedBounds = SlateClipRect;
 		CursorLock.PathToLockingWidget = WidgetPath;
 			
@@ -3245,7 +3254,7 @@ void FSlateApplication::UpdateCursorLockRegion()
 	const FWidgetPath PathToWidget = CursorLock.PathToLockingWidget.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
 	if (PathToWidget.IsValid())
 	{
-		const FSlateRect ComputedClipRect = PathToWidget.Widgets.Last().Geometry.GetClippingRect();
+		const FSlateRect ComputedClipRect = PathToWidget.Widgets.Last().Geometry.GetLayoutBoundingRect();
 		if (ComputedClipRect != CursorLock.LastComputedBounds)
 		{
 			LockCursorToPath(PathToWidget);
@@ -3537,13 +3546,13 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 			if( !bHaveForceFieldRect )
 			{
 				bHaveForceFieldRect = true;
-				ForceFieldRect = CurWidgetGeometry->Geometry.GetClippingRect();				
+				ForceFieldRect = CurWidgetGeometry->Geometry.GetLayoutBoundingRect();
 			}
 			else
 			{
 				// Grow the rect to encompass this geometry.  Usually, the parent's rect should always be inclusive
 				// of it's child though.  Just is kind of just being paranoid.
-				ForceFieldRect = ForceFieldRect.Expand( CurWidgetGeometry->Geometry.GetClippingRect() );
+				ForceFieldRect = ForceFieldRect.Expand( CurWidgetGeometry->Geometry.GetLayoutBoundingRect() );
 			}
 			ForceFieldRect = (1.0f / DPIScaleFactor) * ForceFieldRect;
 		}
@@ -3809,11 +3818,6 @@ void FSlateApplication::EnterDebuggingMode()
 	GFirstFrameIntraFrameDebugging = true;
 #endif	//WITH_EDITORONLY_DATA
 
-
-	// The scissor rect stack must be reset when re-entering the tick loop to avoid graphical artifacts with existing clip rects applied new widgets
-	TOptional<FShortRect> PreviousScissorRect = GSlateScissorRect;
-	GSlateScissorRect.Reset();
-	
 	// Tick slate from here in the event that we should not return until the modal window is closed.
 	while (!bRequestLeaveDebugMode)
 	{
@@ -3851,13 +3855,10 @@ void FSlateApplication::EnterDebuggingMode()
 		}
 	}
 
-	// Reset the scissor rect back to what it was before we started debugging
-	GSlateScissorRect = PreviousScissorRect;
-
 	bLeaveDebugForSingleStep = false;
 }
 
-void FSlateApplication::LeaveDebuggingMode(  bool bLeavingForSingleStep )
+void FSlateApplication::LeaveDebuggingMode( bool bLeavingForSingleStep )
 {
 	bRequestLeaveDebugMode = true;
 	bLeaveDebugForSingleStep = bLeavingForSingleStep;
@@ -4723,10 +4724,10 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 			const bool bIsWidgetReflectorPicking = WidgetReflector.IsValid() && WidgetReflector->IsInPickingMode();
 			if ( bIsWidgetReflectorPicking )
 			{
-					WidgetReflector->OnWidgetPicked();
-					Reply = FReply::Handled();
+				WidgetReflector->OnWidgetPicked();
+				Reply = FReply::Handled();
 
-					return Reply.IsEventHandled();
+				return Reply.IsEventHandled();
 			}
 		}
 #endif
@@ -4962,7 +4963,7 @@ bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& Platfor
 		0,
 		PlatformApplication->GetModifierKeys()
 		);
-
+	
 	return ProcessMouseButtonDownEvent( PlatformWindow, MouseEvent );
 }
 
@@ -6047,7 +6048,7 @@ bool FSlateApplication::OnControllerButtonReleased( FGamepadKeyNames::Type KeyNa
 	return ProcessKeyUpEvent(KeyEvent);
 }
 
-bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D &Delta, const float MouseWheelDelta, bool bIsDirectionInvertedFromDevice )
+bool FSlateApplication::OnTouchGesture( EGestureEvent GestureType, const FVector2D &Delta, const float MouseWheelDelta, bool bIsDirectionInvertedFromDevice )
 {
 	const FVector2D CurrentCursorPosition = GetCursorPos();
 	
@@ -6076,6 +6077,16 @@ bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const F
 
 bool FSlateApplication::OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 {
+	// Don't process touches that overlap or surpass with the cursor pointer index.
+	if (TouchIndex >= ((int32)ETouchIndex::CursorPointerIndex))
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Only log when the touch starts, we don't want to spam the logs.
+		UE_LOG(LogSlate, Warning, TEXT("Maxium Touch Index Exceeded, %d, the maxium index allowed is %d"), TouchIndex, (((int32)ETouchIndex::CursorPointerIndex) - 1));
+#endif
+		return false;
+	}
+
 	FPointerEvent PointerEvent(
 		ControllerId,
 		TouchIndex,
@@ -6099,6 +6110,12 @@ void FSlateApplication::ProcessTouchStartedEvent( const TSharedPtr< FGenericWind
 
 bool FSlateApplication::OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 {
+	// Don't process touches that overlap or surpass with the cursor pointer index.
+	if (TouchIndex >= ((int32)ETouchIndex::CursorPointerIndex))
+	{
+		return false;
+	}
+
 	const FVector2D* LastLocationPtr = PointerIndexLastPositionMap.Find(FUserAndPointer(ControllerId, TouchIndex));
 	const FVector2D LastLocation = LastLocationPtr ? *LastLocationPtr : Location;
 
@@ -6125,6 +6142,12 @@ void FSlateApplication::ProcessTouchMovedEvent( FPointerEvent& PointerEvent )
 
 bool FSlateApplication::OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 {
+	// Don't process touches that overlap or surpass with the cursor pointer index.
+	if (TouchIndex >= ((int32)ETouchIndex::CursorPointerIndex))
+	{
+		return false;
+	}
+
 	FPointerEvent PointerEvent(
 		ControllerId,
 		TouchIndex,
@@ -6141,11 +6164,11 @@ bool FSlateApplication::OnTouchEnded( const FVector2D& Location, int32 TouchInde
 	return true;
 }
 
-void FSlateApplication::ShouldSimulateGesture(EGestureEvent::Type Gesture, bool bEnable)
+void FSlateApplication::ShouldSimulateGesture(EGestureEvent Gesture, bool bEnable)
 {
 	check(FGestureDetector::IsGestureSupported(Gesture));
 
-	SimulateGestures[Gesture] = bEnable;
+	SimulateGestures[(uint8)Gesture] = bEnable;
 }
 
 void FSlateApplication::ProcessTouchEndedEvent( FPointerEvent& PointerEvent )
@@ -6284,7 +6307,7 @@ void FSlateApplication::OnMovedWindow( const TSharedRef< FGenericWindow >& Platf
 	}
 }
 
-FWindowActivateEvent::EActivationType TranslationWindowActivationMessage( const EWindowActivation::Type ActivationType )
+FWindowActivateEvent::EActivationType TranslationWindowActivationMessage( const EWindowActivation ActivationType )
 {
 	FWindowActivateEvent::EActivationType Result = FWindowActivateEvent::EA_Activate;
 
@@ -6306,7 +6329,7 @@ FWindowActivateEvent::EActivationType TranslationWindowActivationMessage( const 
 	return Result;
 }
 
-bool FSlateApplication::OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType )
+bool FSlateApplication::OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation ActivationType )
 {
 	TSharedPtr< SWindow > Window = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, PlatformWindow );
 

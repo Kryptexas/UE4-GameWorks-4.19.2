@@ -334,7 +334,7 @@ FIntPoint FSceneViewport::ViewportToVirtualDesktopPixel(FVector2D ViewportCoordi
 	return FIntPoint( FMath::TruncToInt(TransformedPoint.X), FMath::TruncToInt(TransformedPoint.Y) );
 }
 
-void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
+void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
 {
 	// Switch to the viewport clients world before resizing
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
@@ -374,8 +374,8 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	FIntRect CanvasRect(
 		FMath::RoundToInt( CanvasMinX ),
 		FMath::RoundToInt( CanvasMinY ),
-		FMath::RoundToInt( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
-		FMath::RoundToInt( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
+		FMath::RoundToInt( CanvasMinX + AllottedGeometry.GetLocalSize().X * AllottedGeometry.Scale ),
+		FMath::RoundToInt( CanvasMinY + AllottedGeometry.GetLocalSize().Y * AllottedGeometry.Scale ) );
 
 
 	DebugCanvasDrawer->BeginRenderingCanvas( CanvasRect );
@@ -1429,7 +1429,7 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 			if( !UseSeparateRenderTarget() )
 			{
 				// Get the viewport for this window from the renderer so we can render directly to the backbuffer
-				TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+				FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 				FWidgetPath WidgetPath;
 				void* ViewportResource = Renderer->GetViewportResource( *FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef(), WidgetPath ) );
 				if( ViewportResource )
@@ -1494,7 +1494,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled() && IsStereoRenderingAllowed())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
 		if (ViewportWidget.IsValid())
 		{
@@ -1585,12 +1585,12 @@ void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherView
 	TSharedPtr<SWidget> PinnedViewport = ViewportWidget.Pin();
 	if( PinnedViewport.IsValid() )
 	{
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( PinnedViewport.ToSharedRef(), WidgetPath );
 
-		WindowRenderTargetUpdate( Renderer.Get(), Window.Get() );
+		WindowRenderTargetUpdate( Renderer, Window.Get() );
 	}
 
 	// Play world viewports should always be the same size.  Resize to other viewports size
@@ -1681,7 +1681,7 @@ void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 
 	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
 		void* ViewportResource = Renderer->GetViewportResource(*FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath));
 		if(ViewportResource)
@@ -1700,7 +1700,7 @@ void FSceneViewport::InitDynamicRHI()
 	}
 	RTTSize = FIntPoint(0, 0);
 
-	TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+	FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 	uint32 TexSizeX = SizeX, TexSizeY = SizeY;
 	if (UseSeparateRenderTarget())
 	{
@@ -1806,7 +1806,7 @@ void FSceneViewport::InitDynamicRHI()
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
 		
-		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
+		WindowRenderTargetUpdate(Renderer, Window.Get());
 		if (UseSeparateRenderTarget())
 		{
 			RTTSize = FIntPoint(TexSizeX, TexSizeY);

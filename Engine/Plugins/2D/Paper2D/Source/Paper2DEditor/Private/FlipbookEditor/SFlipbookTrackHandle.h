@@ -84,8 +84,8 @@ public:
 			bDragging = false;
 
 			FIntPoint NewMousePos(
-				(MyGeometry.AbsolutePosition.X + MyGeometry.Size.X / 2) * MyGeometry.Scale,
-				(MyGeometry.AbsolutePosition.Y + MyGeometry.Size.Y / 2) * MyGeometry.Scale
+				(MyGeometry.AbsolutePosition.X + MyGeometry.GetLocalSize().X / 2) * MyGeometry.Scale,
+				(MyGeometry.AbsolutePosition.Y + MyGeometry.GetLocalSize().Y / 2) * MyGeometry.Scale
 				);
 
 			return FReply::Handled().ReleaseMouseCapture().SetMousePos(NewMousePos);

@@ -83,7 +83,7 @@ void FDefaultValueDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLa
 
 		for (TFieldIterator<UProperty> PropertyIter(UserDefinedStruct.Get()); PropertyIter; ++PropertyIter)
 		{
-			StructureCategory.AddExternalProperty(StructData, (*PropertyIter)->GetFName());
+			StructureCategory.AddExternalStructureProperty(StructData, (*PropertyIter)->GetFName());
 		}
 	}
 }
@@ -939,7 +939,7 @@ public:
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("Tooltip", "Tooltip"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("Tooltip", "Tooltip"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -954,7 +954,7 @@ public:
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
-		ChildrenBuilder.AddChildContent(LOCTEXT("EditableOnInstance", "EditableOnInstance"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("EditableOnInstance", "EditableOnInstance"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -969,7 +969,7 @@ public:
 			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
 		];
 
-		ChildrenBuilder.AddChildContent(LOCTEXT("MultiLineText", "Multi-line Text"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("MultiLineText", "Multi-line Text"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -985,7 +985,7 @@ public:
 		]
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FUserDefinedStructureFieldLayout::IsMultiLineTextOptionVisible)));
 
-		ChildrenBuilder.AddChildContent(LOCTEXT("3dWidget", "3D Widget"))
+		ChildrenBuilder.AddCustomRow(LOCTEXT("3dWidget", "3D Widget"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1025,7 +1025,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 	const float NameWidth = 80.0f;
 	const float ContentWidth = 130.0f;
 
-	ChildrenBuilder.AddChildContent(FText::GetEmpty())
+	ChildrenBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -1052,7 +1052,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 		]
 	];
 
-	ChildrenBuilder.AddChildContent(FText::GetEmpty())
+	ChildrenBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -1091,7 +1091,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 				PositionFlag |= (0 == Index) ? EMemberFieldPosition::MFP_First : 0;
 				PositionFlag |= ((VarDescArrayRef.Num() - 1) == Index) ? EMemberFieldPosition::MFP_Last : 0;
 				TSharedRef<class FUserDefinedStructureFieldLayout> VarLayout = MakeShareable(new FUserDefinedStructureFieldLayout(StructureDetails,  SharedThis(this), VarDesc.VarGuid, PositionFlag));
-				ChildrenBuilder.AddChildCustomBuilder(VarLayout);
+				ChildrenBuilder.AddCustomBuilder(VarLayout);
 			}
 		}
 	}

@@ -11,7 +11,7 @@
 #include "IPersonaToolkit.h"
 #include "AnimationEditorPreviewScene.h"
 
-class FAssetData;
+struct FAssetData;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 class IDetailLayoutBuilder;

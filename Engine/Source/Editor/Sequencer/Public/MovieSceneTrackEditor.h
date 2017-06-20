@@ -18,12 +18,37 @@ class FPaintArgs;
 class FSlateWindowElementList;
 class SHorizontalBox;
 
+/**
+ * Result of keying
+ */
+struct FKeyPropertyResult
+{
+	FKeyPropertyResult()
+		: bTrackModified(false)
+		, bHandleCreated(false)
+		, bTrackCreated(false) {}
+
+	/* Was the track modified in any way? */
+	bool bTrackModified;
+
+	/* Was a handle/binding created? */
+	bool bHandleCreated;
+
+	/* Was a track created? */
+	bool bTrackCreated;
+};
+
 /** Delegate for adding keys for a property
  * float - The time at which to add the key.
- * return - True if any data was changed as a result of the call, otherwise false.
+ * return - KeyPropertyResult - 
  */
-DECLARE_DELEGATE_RetVal_OneParam(bool, FOnKeyProperty, float)
+DECLARE_DELEGATE_RetVal_OneParam(FKeyPropertyResult, FOnKeyProperty, float)
 
+
+/** Delegate for whether a property can be keyed
+ * float - The time at which to add the key.
+ * return - True if the property can be keyed, otherwise false.
+ */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FCanKeyProperty, float)
 
 
@@ -127,14 +152,10 @@ public:
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
 
-	virtual bool IsAllowedKeyAll() const;
-
-	virtual bool IsAllowedToAutoKey() const;
-
 	virtual void OnInitialize() override;
 	virtual void OnRelease() override;
 
-	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle);
+	virtual int32 PaintTrackArea(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle);
 
 	virtual bool SupportsType( TSubclassOf<class UMovieSceneTrack> TrackClass ) const = 0;
 	virtual bool SupportsSequence(UMovieSceneSequence* InSequence) const { return true; }

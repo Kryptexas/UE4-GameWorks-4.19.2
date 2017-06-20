@@ -56,28 +56,6 @@ struct FClusterNode
 	}
 };
 
-class FAsyncBuildInstanceBuffer : public FNonAbandonableTask
-{
-public:
-	class UHierarchicalInstancedStaticMeshComponent* Component;
-	class UWorld* World;
-
-	FAsyncBuildInstanceBuffer(class UHierarchicalInstancedStaticMeshComponent* InComponent, class UWorld* InWorld)
-		: Component(InComponent)
-		, World(InWorld)
-	{
-	}
-	void DoWork();
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncBuildInstanceBuffer, STATGROUP_ThreadPoolAsyncTasks);
-	}
-	static const TCHAR *Name()
-	{
-		return TEXT("FAsyncBuildInstanceBuffer");
-	}
-};
-
 UCLASS(ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedStaticMeshComponent
 {
@@ -87,12 +65,6 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 
 	TSharedPtr<TArray<FClusterNode>, ESPMode::ThreadSafe> ClusterTreePtr;
 
-	// Temp hack, long term we will load data in the right format directly
-	FAsyncTask<FAsyncBuildInstanceBuffer>* AsyncBuildInstanceBufferTask;
-
-	// Prebuilt instance buffer, used mostly for grass. Long term instances will be stored directly in the correct format.
-	FStaticMeshInstanceData WriteOncePrebuiltInstanceBuffer;
-	
 	// Table for remaping instances from cluster tree to PerInstanceSMData order
 	UPROPERTY()
 	TArray<int32> SortedInstances;
@@ -178,28 +150,19 @@ public:
 
 	virtual int32 GetNumRenderInstances() const override { return NumBuiltRenderInstances + UnbuiltInstanceBoundsList.Num(); }
 
-	void BuildTree();
-	void BuildTreeAsync();
-	void BuildTreeIfOutdated(bool Async, bool ForceUpdate);
-	static void BuildTreeAnyThread(
-		TArray<FMatrix>& InstanceTransforms, 
-		const FBox& MeshBox,
-		TArray<FClusterNode>& OutClusterTree,
-		TArray<int32>& OutSortedInstances,
-		TArray<int32>& OutInstanceReorderTable,
-		int32& OutOcclusionLayerNum,
-		int32 MaxInstancesPerLeaf
-		);
+	bool BuildTreeIfOutdated(bool Async, bool ForceUpdate);
+	static void BuildTreeAnyThread(TArray<FMatrix>& InstanceTransforms, const FBox& MeshBox, TArray<FClusterNode>& OutClusterTree, TArray<int32>& OutSortedInstances, TArray<int32>& OutInstanceReorderTable, int32& OutOcclusionLayerNum, int32 MaxInstancesPerLeaf );
 	void AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree, int InOcclusionLayerNumNodes);
 	bool IsAsyncBuilding() const { return bIsAsyncBuilding; }
 	bool IsTreeFullyBuilt() const { return NumBuiltInstances == PerInstanceSMData.Num() && RemovedInstances.Num() == 0; }
-
-	void FlushAsyncBuildInstanceBufferTask();
 
 	/** Heuristic for the number of leaves in the tree **/
 	int32 DesiredInstancesPerLeaf();
 
 protected:
+	void BuildTree();
+	void BuildTreeAsync();
+
 	/** Removes a single instance without extra work such as rebuilding the tree or marking render state dirty. */
 	void RemoveInstanceInternal(int32 InstanceIndex);
 	

@@ -9,7 +9,7 @@
 #include "ActorFactoryDestructible.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryDestructible : public UActorFactory

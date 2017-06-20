@@ -51,6 +51,60 @@ void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayN
 	}
 }
 
+int32 SequencerHelpers::GetSectionFromTime(TArrayView<UMovieSceneSection* const> InSections, float Time)
+{
+	float ClosestLowerBound = TNumericLimits<float>::Max();
+	TOptional<int32> MaxOverlapPriority, MaxProximalPriority;
+
+	int32 MostRelevantIndex = INDEX_NONE;
+
+	for (int32 Index = 0; Index < InSections.Num(); ++Index)
+	{
+		const UMovieSceneSection* Section = InSections[Index];
+		if (Section)
+		{
+			const int32 ThisSectionPriority = Section->GetOverlapPriority();
+			TRange<float> SectionRange = Section->IsInfinite() ? TRange<float>::All() : Section->GetRange();
+
+			// If the specified time is within the section bounds
+			if (SectionRange.Contains(Time))
+			{
+				if (ThisSectionPriority >= MaxOverlapPriority.Get(ThisSectionPriority))
+				{
+					MaxOverlapPriority = ThisSectionPriority;
+					MostRelevantIndex = Index;
+				}
+			}
+			// Check for nearby sections if there is nothing overlapping
+			else if (!MaxOverlapPriority.IsSet())
+			{
+				const float LowerBoundValue = SectionRange.GetLowerBoundValue();
+				// If this section exists beyond the current time, we can choose it if its closest to the time
+				if (LowerBoundValue >= Time)
+				{
+					if (
+						(LowerBoundValue < ClosestLowerBound) ||
+						(LowerBoundValue == ClosestLowerBound && ThisSectionPriority >= MaxProximalPriority.Get(ThisSectionPriority))
+						)
+					{
+						MostRelevantIndex = Index;
+						ClosestLowerBound = LowerBoundValue;
+						MaxProximalPriority = ThisSectionPriority;
+					}
+				}
+			}
+		}
+	}
+
+	// If we didn't find one, use the last one (or return -1)
+	if (MostRelevantIndex == -1)
+	{
+		MostRelevantIndex = InSections.Num() - 1;
+	}
+
+	return MostRelevantIndex;
+}
+
 void SequencerHelpers::GetDescendantNodes(TSharedRef<FSequencerDisplayNode> DisplayNode, TSet<TSharedRef<FSequencerDisplayNode>>& Nodes)
 {
 	for (auto ChildNode : DisplayNode.Get().GetChildNodes())
@@ -175,10 +229,8 @@ bool AreKeysSelectedInNode(FSequencer& Sequencer, TSharedRef<FSequencerDisplayNo
 		}
 	}
 
-	for (int32 KeyGroupingIndex = 0; KeyGroupingIndex < InNode->GetNumKeyGroupings(); ++KeyGroupingIndex)
-	{			
-		TSharedRef<FGroupedKeyArea> KeyGrouping = InNode->GetKeyGrouping(KeyGroupingIndex);
-
+	for (TSharedRef<FGroupedKeyArea> KeyGrouping : InNode->GetKeyGroupings())
+	{
 		for (auto KeyHandle : KeyGrouping->GetUnsortedKeyHandles())
 		{
 			FSequencerSelectedKey TestKey(*KeyGrouping->GetOwningSection(), KeyGrouping, KeyHandle);
@@ -297,6 +349,15 @@ void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPoi
 				Selection.AddToSelection(Section);
 			}
 		}
+		else if (Hotspot->GetType() == ESequencerHotspot::EasingArea)
+		{
+			UMovieSceneSection* Section = static_cast<FSectionEasingAreaHotspot*>(Hotspot.Get())->VisibleSection.GetSectionObject();
+			if (!Selection.IsSelected(Section))
+			{
+				ConditionallyClearSelection();
+				Selection.AddToSelection(Section);
+			}
+		}
 
 		if (Hotspot->GetType() == ESequencerHotspot::Key)
 		{
@@ -368,14 +429,9 @@ TSharedPtr<SWidget> SequencerHelpers::SummonContextMenu(FSequencer& Sequencer, c
 
 	TSharedPtr<ISequencerHotspot> Hotspot = Sequencer.GetHotspot();
 
-	if (Hotspot.IsValid())
+	if (Hotspot.IsValid() && Hotspot->PopulateContextMenu(MenuBuilder, Sequencer, PasteAtTime))
 	{
-		if (Hotspot->GetType() == ESequencerHotspot::Section || Hotspot->GetType() == ESequencerHotspot::Key)
-		{
-			Hotspot->PopulateContextMenu(MenuBuilder, Sequencer, PasteAtTime);
-
-			return MenuBuilder.MakeWidget();
-		}
+		return MenuBuilder.MakeWidget();
 	}
 	else if (Sequencer.GetClipboardStack().Num() != 0)
 	{

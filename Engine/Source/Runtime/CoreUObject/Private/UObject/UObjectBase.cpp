@@ -18,7 +18,7 @@
 #include "Templates/Casts.h"
 #include "UObject/GCObject.h"
 #include "LinkerLoad.h"
-#include "CommandLine.h"
+#include "Misc/CommandLine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectBase, Log, All);
 DEFINE_STAT(STAT_UObjectsStatGroupTester);

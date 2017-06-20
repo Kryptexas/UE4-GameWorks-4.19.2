@@ -2,10 +2,10 @@
 
 #include "VIStretchGizmoHandle.h"
 #include "UObject/ConstructorHelpers.h"
-#include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "VIBaseTransformGizmo.h"
 #include "ViewportInteractionDragOperations.h"
+#include "VIGizmoHandleMeshComponent.h"
 
 UStretchGizmoHandleGroup::UStretchGizmoHandleGroup()
 	: Super()
@@ -298,7 +298,7 @@ void UStretchGizmoHandleDragOperation::ExecuteDrag(FDraggingTransformableData& D
 
 	// Stretch and reposition the gizmo!
 	{
-		FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
+		FTransform& PassGizmoTargetTransform  = DraggingData.OutGizmoUnsnappedTargetTransform;
 
 		{
 			const FVector GizmoSpaceTransformableStartLocation = DraggingData.GizmoStartTransform.InverseTransformPositionNoScale(DraggingData.GizmoStartTransform.GetLocation());
@@ -311,5 +311,7 @@ void UStretchGizmoHandleDragOperation::ExecuteDrag(FDraggingTransformableData& D
 
 		DraggingData.bOutMovedTransformGizmo = true;
 		DraggingData.bOutShouldApplyVelocitiesFromDrag = false;
+		DraggingData.bOutScaled = true;
+		DraggingData.bAllowSnap = false;
 	}
 }

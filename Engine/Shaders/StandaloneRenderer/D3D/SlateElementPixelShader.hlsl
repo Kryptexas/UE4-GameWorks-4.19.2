@@ -80,7 +80,6 @@ float4 GetColor( VertexOut InVertex, float2 UV )
 
 	FinalColor = BaseColor*InVertex.Color;
 	return FinalColor;
-
 }
 
 float4 GetDefaultElementColor( VertexOut InVertex )
@@ -169,49 +168,8 @@ float4 GetSplineElementColor( VertexOut InVertex )
 	return Color;
 }
 
-float cross(float2 a, float2 b)
-{
-	return a.x*b.y - a.y*b.x;
-}
-
-/**
- * Given a point p and a parallelogram defined by point a and vectors b and c, determines in p is inside the parallelogram. 
- * returns a 4-vector that can be used with the clip instruction.
- */
-float4 PointInParallelogram(float2 p, float2 a, float4 bc)
-{
-	// unoptomized form:
-	//float2 o = p - a;
-	//float2 b = bc.xy;
-	//float2 c = bc.zw;
-	//float d = cross(b, c);
-	//float s = -cross(o, b) / d;
-	//float t = cross(o, c) / d;
-	// test for s and t between 0 and 1
-	//return float4(s, 1 - s, t, 1 - t);
-
-	float2 o = p - a;
-	// precompute 1/d
-	float invD = 1/cross(bc.xy, bc.zw);
-	// Compute an optimized o x b and o x c, leveraging that b and c are in the same vector register already (and free swizzles):
-	//   (o.x * b .y  - o.y * b .x, o.x *  c.y - o.y *  c.x) ==
-	//   (o.x * bc.y  - o.y * bc.x, o.x * bc.w - o.y * bc.z) ==
-	//    o.x * bc.yw - o.y * bc.xz
-	float2 st = (o.x * bc.yw - o.y * bc.xz) * float2(-invD, invD);
-	// test for s and t between 0 and 1
-	return float4(st, float2(1,1) - st);
-}
-
 float4 Main( VertexOut InVertex ) : SV_Target
 {
-	// Clip pixels which are outside of the clipping rect
-	float2 ClipOrigin = InVertex.ClipOriginAndPos.xy;
-	float2 WindowPos = InVertex.ClipOriginAndPos.zw;
-	float4 ClipTest = PointInParallelogram(WindowPos, ClipOrigin, InVertex.ClipExtents);
-	
-	clip(ClipTest);
-	//float4 OutColorTint = any(ClipTest < 0) ? float4(1, 0.5, 0.5, 0.5) : float4(1, 1, 1, 1);
-
 	float4 OutColor;
 
 	if( ShaderType == ESlateShader::Default )
@@ -247,8 +205,6 @@ float4 Main( VertexOut InVertex ) : SV_Target
 		OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );
 	}
 
-	return OutColor
-		//* OutColorTint
-		;
+	return OutColor;
 }
 

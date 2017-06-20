@@ -9,6 +9,7 @@
 #include "Evaluation/MovieScenePlayback.h"
 #include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
+#include "Evaluation/MovieSceneExecutionTokens.h"
 
 class UMovieSceneSequence;
 struct FDelayedPreAnimatedStateRestore;
@@ -18,7 +19,7 @@ struct FDelayedPreAnimatedStateRestore;
  */
 struct FMovieSceneEvaluationTemplateInstance
 {
-	FMovieSceneEvaluationTemplateInstance() : Template(nullptr), SequenceID(MovieSceneSequenceID::Invalid) {}
+	FMovieSceneEvaluationTemplateInstance() : Template(nullptr), HierarchicalBias(0), SequenceID(MovieSceneSequenceID::Invalid) {}
 
 	/**
 	 * Constructor for root instances
@@ -40,24 +41,8 @@ struct FMovieSceneEvaluationTemplateInstance
 	FMovieSceneEvaluationTemplateInstance(const FMovieSceneEvaluationTemplateInstance&) = delete;
 	FMovieSceneEvaluationTemplateInstance& operator=(const FMovieSceneEvaluationTemplateInstance&) = delete;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMovieSceneEvaluationTemplateInstance(FMovieSceneEvaluationTemplateInstance&&) = default;
 	FMovieSceneEvaluationTemplateInstance& operator=(FMovieSceneEvaluationTemplateInstance&&) = default;
-#else
-	FMovieSceneEvaluationTemplateInstance(FMovieSceneEvaluationTemplateInstance&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FMovieSceneEvaluationTemplateInstance& operator=(FMovieSceneEvaluationTemplateInstance&& RHS)
-	{
-		Sequence = MoveTemp(RHS.Sequence);
-		RootToSequenceTransform = MoveTemp(RHS.RootToSequenceTransform);
-		Template = MoveTemp(RHS.Template);
-		SequenceID = MoveTemp(RHS.SequenceID);
-		LegacySequenceInstance = MoveTemp(RHS.LegacySequenceInstance);
-		return *this;
-	}
-#endif
 
 public:
 
@@ -72,6 +57,9 @@ public:
 
 	/** Pre and Post roll ranges in the inner-sequence's time space */
 	TRange<float> PreRollRange, PostRollRange;
+
+	/** The hierarchical bias for this template instance */
+	int32 HierarchicalBias;
 
 	/** ID of the sequence within the master sequence */
 	FMovieSceneSequenceID SequenceID;
@@ -194,6 +182,14 @@ public:
 	}
 
 	/**
+ 	 * Cache of everything that is evaluated this frame 
+	 */
+	const FMovieSceneEvaluationMetaData& GetThisFrameMetaData() const
+	{
+		return ThisFrameMetaData;
+	}
+
+	/**
 	 * Check whether this instance is dirty (one of its referenced templates has changed)
 	 */
 	bool IsDirty() const
@@ -201,12 +197,14 @@ public:
 		return bIsDirty;
 	}
 
-private:
-
 	/**
-	 * Gather entities that are to be evaluated this frame
+	 * Copy any actuators from this template instance into the specified accumulator
+	 *
+	 * @param Accumulator 			The accumulator to copy actuators into
 	 */
-	void GatherEntities(const FMovieSceneEvaluationGroup& Group, IMovieScenePlayer& Player);
+	MOVIESCENE_API void CopyActuators(FMovieSceneBlendingAccumulator& Accumulator) const;
+
+private:
 
 	/**
 	 * Process entities that are newly evaluated, and those that are no longer being evaluated
@@ -216,7 +214,7 @@ private:
 	/**
 	 * Evaluate a particular group of a segment
 	 */
-	void EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& Context, IMovieScenePlayer& Player, FMovieSceneExecutionTokens& ExecutionTokens) const;
+	void EvaluateGroup(const FMovieSceneEvaluationGroup& Group, const FMovieSceneContext& Context, IMovieScenePlayer& Player);
 
 	/**
 	 * Remap the specified sequence ID based on the currently evaluating sequence path, to the Root
@@ -224,7 +222,7 @@ private:
 	 * @param SequenceID			The sequence ID to find a template for
 	 * @return Pointer to a template instance, or nullptr if the ID was not found
 	 */
-	FORCEINLINE FMovieSceneSequenceID GetSequenceIdForRoot(FMovieSceneSequenceID SequenceID) const
+	FORCEINLINE_DEBUGGABLE FMovieSceneSequenceID GetSequenceIdForRoot(FMovieSceneSequenceID SequenceID) const
 	{
 		if (!ReverseOverrideRootPath.Num())
 		{
@@ -244,7 +242,7 @@ private:
 	 * @param SequenceID			The sequence ID to find a template for
 	 * @return The template instance
 	 */
-	FORCEINLINE const FMovieSceneEvaluationTemplateInstance& GetInstanceChecked(FMovieSceneSequenceIDRef SequenceID) const
+	FORCEINLINE_DEBUGGABLE const FMovieSceneEvaluationTemplateInstance& GetInstanceChecked(FMovieSceneSequenceIDRef SequenceID) const
 	{
 		return SequenceID == MovieSceneSequenceID::Root ? RootInstance : SubInstances.FindChecked(SequenceID);
 	}
@@ -255,7 +253,7 @@ private:
 	 * @param SequenceID			The sequence ID to find a template for
 	 * @return Pointer to a template instance, or nullptr if the ID was not found
 	 */
-	FORCEINLINE const FMovieSceneEvaluationTemplateInstance* FindInstance(FMovieSceneSequenceIDRef SequenceID) const
+	FORCEINLINE_DEBUGGABLE const FMovieSceneEvaluationTemplateInstance* FindInstance(FMovieSceneSequenceIDRef SequenceID) const
 	{
 		return SequenceID == MovieSceneSequenceID::Root ? &RootInstance : SubInstances.Find(SequenceID);
 	}
@@ -275,13 +273,9 @@ private:
 	FMovieSceneEvaluationTemplateInstance RootInstance;
 
 	/** Cache of everything that was evaluated last frame */
-	FOrderedEvaluationCache EntitiesEvaluatedLastFrame;
-
-	/** Cache of everything that was just evaluated */
-	FOrderedEvaluationCache EntitiesEvaluatedThisFrame;
-
-	TArray<FMovieSceneSequenceID> ActiveSequencesThisFrame;
-	TArray<FMovieSceneSequenceID> ActiveSequencesLastFrame;
+	FMovieSceneEvaluationMetaData LastFrameMetaData;
+	/** Cache of everything that is evaluated this frame */
+	FMovieSceneEvaluationMetaData ThisFrameMetaData;
 
 	/** Map of all sub instances, arranged by sequence ID */
 	TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplateInstance> SubInstances;
@@ -291,6 +285,9 @@ private:
 
 	/** A reverse path of deterministic sequence IDs required to accumulate from local -> root */
 	TArray<FMovieSceneSequenceID, TInlineAllocator<8>> ReverseOverrideRootPath;
+
+	/** Execution tokens that are used to apply animated state */
+	FMovieSceneExecutionTokens ExecutionTokens;
 
 	/** True when any of our templates are out of date, and need reinitializing */
 	bool bIsDirty;

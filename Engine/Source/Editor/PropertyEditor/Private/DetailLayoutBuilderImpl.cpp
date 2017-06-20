@@ -15,7 +15,7 @@ FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNo
 	, DetailsView( *InDetailsView )
 	, CurrentCustomizationClass( nullptr )
 {
-
+	bLayoutForExternalRoot = DetailsView.IsExternalRootPropertyNode(InRootNode.ToSharedRef());
 }
 
 IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
@@ -447,9 +447,9 @@ TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetPropertyHandle( TShared
 	return PropertyHandle.ToSharedRef();
 }
 
-void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode )
+void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> InExternalRootNode)
 {
-	DetailsView.AddExternalRootPropertyNode( InExternalRootNode );
+	DetailsView.AddExternalRootPropertyNode(InExternalRootNode);
 }
 
 TSharedPtr<FAssetThumbnailPool> FDetailLayoutBuilderImpl::GetThumbnailPool() const
@@ -461,7 +461,16 @@ bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> Pr
 {
 	if( PropertyHandle->IsValidHandle() )
 	{
-		FPropertyAndParent PropertyAndParent(*PropertyHandle->GetProperty(), PropertyHandle->GetParentHandle().IsValid() ? PropertyHandle->GetParentHandle()->GetProperty() : nullptr );
+		TArray<UObject*> OuterObjects;
+		PropertyHandle->GetOuterObjects(OuterObjects);
+
+		TArray<TWeakObjectPtr<UObject> > Objects;
+		for (auto OuterObject : OuterObjects)
+		{
+			Objects.Add(OuterObject);
+		}
+
+		FPropertyAndParent PropertyAndParent(*PropertyHandle->GetProperty(), PropertyHandle->GetParentHandle().IsValid() ? PropertyHandle->GetParentHandle()->GetProperty() : nullptr, Objects );
 
 		return IsPropertyVisible(PropertyAndParent);
 	}

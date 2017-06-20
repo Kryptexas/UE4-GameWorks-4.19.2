@@ -191,10 +191,10 @@ public:
 	 *
 	 * @return	Rectangle over intersection.
 	 */
-	FSlateRect IntersectionWith(const FSlateRect& Other) const
+	FORCEINLINE FSlateRect IntersectionWith(const FSlateRect& Other) const
 	{
-		bool DummyOverlapping;
-		return IntersectionWith(Other, DummyOverlapping);
+		bool bOverlapping;
+		return IntersectionWith(Other, bOverlapping);
 	}
 
 	/**

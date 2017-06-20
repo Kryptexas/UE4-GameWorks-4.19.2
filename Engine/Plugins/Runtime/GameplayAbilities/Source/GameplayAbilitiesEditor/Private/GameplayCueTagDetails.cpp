@@ -64,13 +64,13 @@ void FGameplayCueTagDetails::CustomizeChildren( TSharedRef<IPropertyHandle> Stru
 	GameplayTagProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayCueTag,GameplayCueTag));
 	if (GameplayTagProperty.IsValid())
 	{
-		IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(GameplayTagProperty.ToSharedRef());
+		IDetailPropertyRow& PropRow = StructBuilder.AddProperty(GameplayTagProperty.ToSharedRef());
 	}
 
 	bool ValidTag = UpdateNotifyList();
 	bool HasNotify = (NotifyList.Num() > 0);
 
-	StructBuilder.AddChildContent( LOCTEXT("NotifyLinkStr", "Notify") )
+	StructBuilder.AddCustomRow( LOCTEXT("NotifyLinkStr", "Notify") )
 	.NameContent()
 	[
 		StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("NotifyStr", "Notify"))

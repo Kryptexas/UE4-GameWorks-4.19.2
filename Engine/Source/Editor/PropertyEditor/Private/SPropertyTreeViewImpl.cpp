@@ -667,7 +667,16 @@ void SPropertyTreeViewImpl::OnGetChildrenForPropertyNode( TSharedPtr<FPropertyNo
 		UProperty* Property = ChildNode->GetProperty();
 		if(Property != NULL && IsPropertyVisible.IsBound())
 		{
-			FPropertyAndParent PropertyAndParent(*Property, InPropertyNode->GetProperty());
+			TArray< TWeakObjectPtr<UObject> > Objects;
+			if ( ObjNode )
+			{
+				for (int32 ObjectIndex = 0; ObjectIndex < ObjNode->GetNumObjects(); ++ObjectIndex)
+				{
+					Objects.Add(ObjNode->GetUObject(ObjectIndex));
+				}
+			}
+
+			FPropertyAndParent PropertyAndParent(*Property, InPropertyNode->GetProperty(), Objects);
 
 			bPropertyVisible = IsPropertyVisible.Execute( PropertyAndParent );
 		}

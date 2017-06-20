@@ -9,10 +9,9 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSlider.h"
 #include "EditorStyleSet.h"
-#include "Editor/EditorPerProjectUserSettings.h"
 #include "Editor.h"
-
 #include "Settings/EditorSettings.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 #define LOCTEXT_NAMESPACE "EngineScalabiltySettings"
 
@@ -148,7 +147,7 @@ SGridPanel::FSlot& SScalabilitySettings::MakeGridSlot(int32 InCol, int32 InRow, 
 
 ECheckBoxState SScalabilitySettings::IsMonitoringPerformance() const
 {
-	const bool bMonitorEditorPerformance = GetDefault<UEditorPerProjectUserSettings>()->bMonitorEditorPerformance;
+	const bool bMonitorEditorPerformance = GetDefault<UEditorPerformanceSettings>()->bMonitorEditorPerformance;
 	return bMonitorEditorPerformance ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
@@ -156,7 +155,7 @@ void SScalabilitySettings::OnMonitorPerformanceChanged(ECheckBoxState NewState)
 {
 	const bool bNewEnabledState = ( NewState == ECheckBoxState::Checked );
 
-	auto* Settings = GetMutableDefault<UEditorPerProjectUserSettings>();
+	auto* Settings = GetMutableDefault<UEditorPerformanceSettings>();
 	Settings->bMonitorEditorPerformance = bNewEnabledState;
 	Settings->PostEditChange();
 	Settings->SaveConfig();

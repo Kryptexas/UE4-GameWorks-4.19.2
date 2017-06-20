@@ -137,7 +137,7 @@ class ADDCONTENTDIALOG_API FFeaturePackContentSource : public IContentSource
 {
 public:
 	FFeaturePackContentSource();
-	FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegister = false);
+	FFeaturePackContentSource(FString InFeaturePackPath);
 
 	virtual ~FFeaturePackContentSource();
 
@@ -159,11 +159,7 @@ public:
 	bool InsertAdditionalResources(TArray<FFeaturePackLevelSet> InAdditionalFeaturePacks,EFeaturePackDetailLevel RequiredLevel, const FString& InDestinationFolder,TArray<FString>& InFilesCopied);
 
 	virtual bool IsDataValid() const override;
-	
-	
-	void HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry);
-	void HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
-		
+			
 	/*
 	 * Copies the list of files specified in 'AdditionFilesToInclude' section in the config.ini of the feature pack.
 	 *
@@ -221,7 +217,6 @@ private:
 	/** Selects an FLocalizedText from an array which matches either the supplied language code, or the default language code. */
 	FLocalizedTextArray ChooseLocalizedTextArray(TArray<FLocalizedTextArray> Choices, FString LanguageCode);
 	FLocalizedText ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode);
-	void TryAddFeaturePackCategory(FString CategoryTitle, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
 
 	/* The path of the file we used to create this feature pack instance */
 	FString FeaturePackPath;
@@ -267,13 +262,7 @@ private:
 	
 	/* Other feature packs this pack needs (shared assets) */
 	TArray<FFeaturePackLevelSet> AdditionalFeaturePacks;
-	
-	/* Handle for the search clicked delegate handler */
-	FDelegateHandle SearchClickedHandle;
-	
-	/* Handle for the search changed delegate handler */
-	FDelegateHandle SearchChangedHandle;
-	
+		
 	/* Additional files to copy when installing this pack */
 	FFeatureAdditionalFiles AdditionalFilesForPack;
 	

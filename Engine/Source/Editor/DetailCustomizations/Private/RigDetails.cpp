@@ -107,7 +107,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 	check (ParentNameProp->GetValueAsDisplayText(ParentNodeName) != FPropertyAccess::Fail);
 	check (DisplayNameProp->GetValueAsDisplayText(DisplayString) != FPropertyAccess::Fail);
 
-	ChildrenBuilder.AddChildContent(FText::GetEmpty())
+	ChildrenBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 
@@ -328,7 +328,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 		NodeIndex++;
 	}
 
-	ChildrenBuilder.AddChildContent(FText::GetEmpty())
+	ChildrenBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 

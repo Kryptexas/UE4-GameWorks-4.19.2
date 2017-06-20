@@ -82,22 +82,22 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		}
 	}
 
-	ChildBuilder.AddChildProperty(DistanceAlgorithmHandle.ToSharedRef() );
+	ChildBuilder.AddProperty(DistanceAlgorithmHandle.ToSharedRef() );
 
-	IDetailPropertyRow& CustomCurveRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, CustomAttenuationCurve)).ToSharedRef());
+	IDetailPropertyRow& CustomCurveRow = ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, CustomAttenuationCurve)).ToSharedRef());
 	CustomCurveRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCustomCurveSelected));
 
-	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
+	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
 	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsNaturalSoundSelected));
 
-	IDetailPropertyRow& AttenuationShapeRow = ChildBuilder.AddChildProperty( AttenuationShapeHandle.ToSharedRef() );
+	IDetailPropertyRow& AttenuationShapeRow = ChildBuilder.AddProperty( AttenuationShapeHandle.ToSharedRef() );
 	
-	ChildBuilder.AddChildProperty(AttenuationExtentsHandle)
+	ChildBuilder.AddProperty(AttenuationExtentsHandle)
 		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsBoxSelected))
 		.DisplayName(NSLOCTEXT("AttenuationSettings", "BoxExtentsLabel", "Extents"))
 		.ToolTip(NSLOCTEXT("AttenuationSettings", "BoxExtents", "The dimensions of the of the box."));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Radius"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -111,7 +111,7 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		]
 		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsSphereSelected));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightLabel", "Capsule Half Height"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightLabel", "Capsule Half Height"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -125,7 +125,7 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 			]
 		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCapsuleSelected));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusLabel", "Capsule Radius"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusLabel", "Capsule Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -139,7 +139,7 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCapsuleSelected));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeRadiusLabel", "Cone Radius"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "ConeRadiusLabel", "Cone Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -153,7 +153,7 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeAngleLabel", "Cone Angle"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "ConeAngleLabel", "Cone Angle"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -167,7 +167,7 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleLabel", "Cone Falloff Angle"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleLabel", "Cone Falloff Angle"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -181,10 +181,10 @@ void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPrope
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, ConeOffset)).ToSharedRef());
+	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, ConeOffset)).ToSharedRef());
 	ConeOffsetRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, FalloffDistance)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, FalloffDistance)).ToSharedRef());
 }
 
 void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
@@ -206,90 +206,90 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	bIsOcclusionEnabledHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bEnableOcclusion)).ToSharedRef();
 	bIsSpatializedHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bSpatialize)).ToSharedRef();
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuate)).ToSharedRef());
-	ChildBuilder.AddChildProperty(bIsSpatializedHandle.ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuate)).ToSharedRef());
+	ChildBuilder.AddProperty(bIsSpatializedHandle.ToSharedRef());
 
 	// Check to see if a spatialization plugin is enabled
 	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
 	{
 		TSharedPtr<IPropertyHandle> SpatializationAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm));
-		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationPluginSettings)).ToSharedRef());
+		ChildBuilder.AddProperty(SpatializationAlgorithmHandle.ToSharedRef());
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationPluginSettings)).ToSharedRef());
 	}
 
 	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
 	
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OmniRadius)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, StereoSpread)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuateWithLPF)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMin)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMax)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OmniRadius)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, StereoSpread)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuateWithLPF)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMin)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMax)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
 
 	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled())
 	{
 		if (IsAudioPluginEnabled(EAudioPlugin::REVERB))
 		{
-			ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbPluginSettings)).ToSharedRef());
+			ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbPluginSettings)).ToSharedRef());
 		}
 
 		// The reverb wet-level mapping is an audio mixer-only feature
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMin)).ToSharedRef());
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMax)).ToSharedRef());
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMin)).ToSharedRef());
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMax)).ToSharedRef());
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMin)).ToSharedRef());
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMax)).ToSharedRef());
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMin)).ToSharedRef());
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMax)).ToSharedRef());
 	}
 
-	ChildBuilder.AddChildProperty(bIsFocusedHandle.ToSharedRef());
+	ChildBuilder.AddProperty(bIsFocusedHandle.ToSharedRef());
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusAzimuth)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusAzimuth)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusAzimuth)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusAzimuth)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusDistanceScale)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusDistanceScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusDistanceScale)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusDistanceScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusPriorityScale)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusPriorityScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusPriorityScale)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusPriorityScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(bIsOcclusionEnabledHandle.ToSharedRef());
+	ChildBuilder.AddProperty(bIsOcclusionEnabledHandle.ToSharedRef());
 
 	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded.
 	// Don't show the built-in occlusion settings if we're using 
 	if (GetDefault<UAudioSettings>()->IsAudioMixerEnabled() && IsAudioPluginEnabled(EAudioPlugin::OCCLUSION))
 	{
-		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionPluginSettings)).ToSharedRef())
+		ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionPluginSettings)).ToSharedRef())
 			.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 	}
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionTraceChannel)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionTraceChannel)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionLowPassFilterFrequency)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionLowPassFilterFrequency)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionInterpolationTime)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionInterpolationTime)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
 	if (PropertyHandles.Num() != 39)

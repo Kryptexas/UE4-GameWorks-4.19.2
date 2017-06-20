@@ -7,7 +7,7 @@
 
 struct FCollectionScalarParameter;
 struct FCollectionVectorParameter;
-class FAssetData;
+struct FAssetData;
 class UMovieSceneMaterialParameterCollectionTrack;
 
 /**

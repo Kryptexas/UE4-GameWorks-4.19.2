@@ -19,7 +19,7 @@ class FPaintArgs;
 class SLATECORE_API FCachedWidgetNode
 {
 public:
-	void Initialize(const FPaintArgs& Args, TSharedRef<SWidget> InWidget, const FGeometry& InGeometry, const FSlateRect& InClippingRect);
+	void Initialize(const FPaintArgs& Args, TSharedRef<SWidget> InWidget, const FGeometry& InGeometry);
 
 	void RecordHittestGeometry(FHittestGrid& Grid, int32 LastHittestIndex, int32 LayerId, FVector2D DynamicOffset);
 
@@ -31,12 +31,8 @@ public:
 
 	TWeakPtr<SWidget> Widget;
 	FGeometry Geometry;
-	FSlateRect ClippingRect;
 	FVector2D WindowOffset;
 
 	EVisibility RecordedVisibility;
 	int32 LastRecordedHittestIndex;
-
-	// TODO Do we want to cache information about the elements drawn by each widget?
-	//TArray< FSlateWindowElementList > Elements;
 };

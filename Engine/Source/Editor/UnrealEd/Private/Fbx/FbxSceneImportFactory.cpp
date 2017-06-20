@@ -38,6 +38,7 @@
 #include "Editor.h"
 #include "FileHelpers.h"
 #include "CineCameraComponent.h"
+#include "SkelImport.h"
 
 #include "AssetSelection.h"
 
@@ -1878,7 +1879,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 				SkelMeshNodePivotArray.Add(SkelMeshNode);
 			}
 		}
-
+		FSkeletalMeshImportData OutData;
 		if (LODIndex == 0 && SkelMeshNodeArray.Num() != 0)
 		{
 			FName OutputName = FbxImporter->MakeNameForMesh(SkelMeshNodeArray[0]->GetName(), SkelMeshNodeArray[0]);
@@ -1897,6 +1898,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			ImportSkeletalMeshArgs.Flags = Flags;
 			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
 			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+			ImportSkeletalMeshArgs.OutData = &OutData;
 
 			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			NewObject = NewMesh;
@@ -1935,6 +1937,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			ImportSkeletalMeshArgs.Flags = RF_Transient;
 			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
 			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+			ImportSkeletalMeshArgs.OutData = &OutData;
 
 			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(ImportSkeletalMeshArgs);
 			bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex);
@@ -1956,12 +1959,13 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			
 			USkeletalMesh *NewSkelMesh = Cast<USkeletalMesh>(NewObject);
 			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				GlobalImportSettings->bImportMorph &&
 				NewSkelMesh &&
 				NewSkelMesh->GetImportedResource() &&
 				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
 			{
 				// TODO: Disable material importing when importing morph targets
-				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex);
+				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex, OutData);
 			}
 		}
 	}

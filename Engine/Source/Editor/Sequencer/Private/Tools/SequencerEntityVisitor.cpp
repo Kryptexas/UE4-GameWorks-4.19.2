@@ -195,16 +195,16 @@ void FSequencerEntityWalker::HandleSingleNode(const ISequencerEntityVisitor& Vis
 
 	if (bIterateKeyGroupings)
 	{
-		for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex)
+		for (TSharedRef<ISequencerSection> SectionInterface : InSections)
 		{
-			UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
+			UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 
 			if (Visitor.CheckEntityMask(ESequencerEntity::Key))
 			{
 				// Only handle grouped keys if we actually have children
 				if (InNode->GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
 				{
-					TSharedRef<IKeyArea> KeyArea = InNode->UpdateKeyGrouping(SectionIndex);
+					TSharedRef<IKeyArea> KeyArea = InNode->UpdateKeyGrouping(Section);
 					HandleKeyArea(Visitor, KeyArea, Section, InNode);
 				}
 			}
@@ -214,21 +214,24 @@ void FSequencerEntityWalker::HandleSingleNode(const ISequencerEntityVisitor& Vis
 
 void FSequencerEntityWalker::HandleKeyAreaNode(const ISequencerEntityVisitor& Visitor, const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, const TSharedRef<FSequencerDisplayNode>& InOwnerNode, const TArray<TSharedRef<ISequencerSection>>& InSections)
 {
-	for( int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex )
+	for (TSharedRef<ISequencerSection> SectionInterface : InSections)
 	{
-		UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
+		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
 		if (Visitor.CheckEntityMask(ESequencerEntity::Key))
 		{
 			if (Range.IntersectKeyArea(InOwnerNode, VirtualKeySize.X))
 			{
-				TSharedRef<IKeyArea> KeyArea = InKeyAreaNode->GetKeyArea(SectionIndex);
-				HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject(), InOwnerNode);
+				TSharedPtr<IKeyArea> KeyArea = InKeyAreaNode->GetKeyArea(Section);
+				if (KeyArea.IsValid())
+				{
+					HandleKeyArea(Visitor, KeyArea.ToSharedRef(), Section, InOwnerNode);
+				}
 			}
 		}
 	}
 }
 
-void FSequencerEntityWalker::HandleKeyArea(const ISequencerEntityVisitor& Visitor, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section, const TSharedRef<FSequencerDisplayNode>& InNode)
+void FSequencerEntityWalker::HandleKeyArea(const ISequencerEntityVisitor& Visitor, const TSharedRef<IKeyArea>& KeyArea, UMovieSceneSection* Section, const TSharedRef<FSequencerDisplayNode>& InNode)
 {
 	for (FKeyHandle KeyHandle : KeyArea->GetUnsortedKeyHandles())
 	{

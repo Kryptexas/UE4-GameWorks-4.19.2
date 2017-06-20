@@ -358,6 +358,25 @@ TSharedRef< IPropertyTableCellPresenter > FPropertyEditorModule::CreateTextPrope
 	return MakeShareable( new FTextPropertyTableCellPresenter( PropertyEditor, InPropertyUtilities, InFont) );
 }
 
+UStructProperty* FPropertyEditorModule::RegisterStructOnScopeProperty(TSharedRef<FStructOnScope> StructOnScope)
+{
+	const FName StructName = StructOnScope->GetStruct()->GetFName();
+	UStructProperty* StructProperty = RegisteredStructToProxyMap.FindRef(StructName);
+
+	if(!StructProperty)
+	{
+		UScriptStruct* InnerStruct = Cast<UScriptStruct>(const_cast<UStruct*>(StructOnScope->GetStruct()));
+		StructProperty = NewObject<UStructProperty>(InnerStruct, MakeUniqueObjectName(InnerStruct, UStructProperty::StaticClass(), InnerStruct->GetFName()));
+		StructProperty->Struct = InnerStruct;
+		StructProperty->ElementSize = StructOnScope->GetStruct()->GetStructureSize();
+
+		RegisteredStructToProxyMap.Add(StructName, StructProperty);
+		StructProperty->AddToRoot();
+	}
+
+	return StructProperty;
+}
+
 TSharedRef< FAssetEditorToolkit > FPropertyEditorModule::CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
 {
 	return FPropertyEditorToolkit::CreateEditor( Mode, InitToolkitHost, ObjectToEdit );

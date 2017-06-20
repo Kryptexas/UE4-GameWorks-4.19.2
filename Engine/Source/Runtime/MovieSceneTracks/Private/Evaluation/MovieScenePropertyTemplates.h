@@ -10,6 +10,7 @@
 #include "Curves/IntegralCurve.h"
 #include "Curves/StringCurve.h"
 #include "Templates/UnrealTypeTraits.h"
+#include "MovieScene3DTransformTemplate.h"
 #include "MovieScenePropertyTemplates.generated.h"
 
 class UMovieSceneBoolSection;
@@ -281,39 +282,21 @@ USTRUCT()
 struct FMovieSceneTransformPropertySectionTemplate : public FMovieSceneEvalTemplate
 {
 	GENERATED_BODY()
-	
+
 	FMovieSceneTransformPropertySectionTemplate(){}
 	FMovieSceneTransformPropertySectionTemplate(const UMovieScene3DTransformSection& Section, const UMovieScenePropertyTrack& Track);
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<FTransform>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<FTransform>(Operand, PersistentData, Player);
-	}
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
+
+	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 
 	UPROPERTY()
+	FMovieScene3DTransformTemplateData TemplateData;
+
+	UPROPERTY()
 	FMovieScenePropertySectionData PropertyData;
-
-	UPROPERTY()
-	FRichCurve TranslationCurve[3];
-
-	UPROPERTY()
-	FRichCurve RotationCurve[3];
-
-	UPROPERTY()
-	FRichCurve ScaleCurve[3];
 };

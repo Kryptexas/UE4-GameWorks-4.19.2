@@ -21,6 +21,7 @@ void FMovieSceneVectorKeyStructBase::PropagateChanges(const FPropertyChangedEven
 		else
 		{
 			Keys[Index]->Value = GetPropertyChannelByIndex(Index);
+			Keys[Index]->Time = Time;
 		}
 	}
 }
@@ -113,6 +114,7 @@ TSharedPtr<FStructOnScope> UMovieSceneVectorSection::GetKeyStruct(const TArray<F
 			if (Struct->Keys[Index] != nullptr)
 			{
 				FirstValidKeyTime = Struct->Keys[Index]->Time;
+				Struct->Time = FirstValidKeyTime;
 			}
 		}
 

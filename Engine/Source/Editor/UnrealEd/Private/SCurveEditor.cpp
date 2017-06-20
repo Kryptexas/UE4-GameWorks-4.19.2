@@ -744,7 +744,7 @@ bool SCurveEditor::GetInputEditEnabled() const
 	return (SelectedKeys.Num() == 1);
 }
 
-int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -755,7 +755,7 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	FGeometry CurveAreaGeometry = AllottedGeometry;
 
 	// Positioning info
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), CurveAreaGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), CurveAreaGeometry.GetLocalSize());
 
 	if (FMath::IsNearlyEqual(ViewMinInput.Get(), ViewMaxInput.Get()) || FMath::IsNearlyEqual(ViewMinOutput.Get(), ViewMaxOutput.Get()))
 	{
@@ -773,28 +773,26 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		(
 		OutDrawElements,
 		BackgroundLayerId,
-		CurveAreaGeometry.ToPaintGeometry(FVector2D(ZeroInputX, 0), FVector2D(TimelineMaxX - ZeroInputX, CurveAreaGeometry.Size.Y)),
+		CurveAreaGeometry.ToPaintGeometry(FVector2D(ZeroInputX, 0), FVector2D(TimelineMaxX - ZeroInputX, CurveAreaGeometry.GetLocalSize().Y)),
 		TimelineAreaBrush,
-		MyClippingRect,
 		DrawEffects,
 		TimelineAreaBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);
 
 	// grid lines.
 	int32 GridLineLayerId = BackgroundLayerId + 1;
-	PaintGridLines(CurveAreaGeometry, ScaleInfo, OutDrawElements, GridLineLayerId, MyClippingRect, DrawEffects);
+	PaintGridLines(CurveAreaGeometry, ScaleInfo, OutDrawElements, GridLineLayerId, MyCullingRect, DrawEffects);
 
 	// time=0 line
 	int32 ZeroLineLayerId = GridLineLayerId + 1;
 	TArray<FVector2D> ZeroLinePoints;
 	ZeroLinePoints.Add( FVector2D( ZeroInputX, 0 ) );
-	ZeroLinePoints.Add( FVector2D( ZeroInputX, CurveAreaGeometry.Size.Y ) );
+	ZeroLinePoints.Add( FVector2D( ZeroInputX, CurveAreaGeometry.GetLocalSize().Y ) );
 	FSlateDrawElement::MakeLines(
 		OutDrawElements,
 		ZeroLineLayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		ZeroLinePoints,
-		MyClippingRect,
 		DrawEffects,
 		FLinearColor::White,
 		false );
@@ -808,7 +806,6 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 			ZeroLineLayerId,
 			CurveAreaGeometry.ToPaintGeometry( FVector2D(0, ZeroOutputY), FVector2D(CurveAreaGeometry.Size.X, 1) ),
 			WhiteBrush,
-			MyClippingRect,
 			DrawEffects,
 			WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -829,7 +826,7 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		{
 			if (CurveViewModel->bIsVisible)
 			{
-				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyClippingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
+				PaintCurve(CurveViewModel, CurveAreaGeometry, ScaleInfo, OutDrawElements, CurveViewModel->bIsLocked ? LockedCurveLayerID : CurveLayerId, MyCullingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
 			}
 		}
 
@@ -838,26 +835,26 @@ int32 SCurveEditor::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		{
 			if (CurveViewModel->bIsVisible)
 			{
-				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyClippingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
+				PaintKeys(CurveViewModel, ScaleInfo, OutDrawElements, KeyLayerId, SelectedKeyLayerId, CurveAreaGeometry, MyCullingRect, DrawEffects, InWidgetStyle, bAnyCurveViewModelsSelected);
 			}
 		}
 	}
 
 	// Paint children
 	int32 ChildrenLayerId = SelectedKeyLayerId + 1;
-	int32 MarqueeLayerId = SCompoundWidget::OnPaint(Args, CurveAreaGeometry, MyClippingRect, OutDrawElements, ChildrenLayerId, InWidgetStyle, bParentEnabled);
+	int32 MarqueeLayerId = SCompoundWidget::OnPaint(Args, CurveAreaGeometry, MyCullingRect, OutDrawElements, ChildrenLayerId, InWidgetStyle, bParentEnabled);
 
 	// Paint marquee
 	if (DragState == EDragState::MarqueeSelect)
 	{
-		PaintMarquee(AllottedGeometry, MyClippingRect, OutDrawElements, MarqueeLayerId);
+		PaintMarquee(AllottedGeometry, MyCullingRect, OutDrawElements, MarqueeLayerId);
 	}
 
 	return MarqueeLayerId + 1;
 }
 
 void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements,
-	int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected )const
+	int32 LayerId, const FSlateRect& MyCullingRect, ESlateDrawEffect DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected )const
 {
 	if (CurveViewModel.IsValid())
 	{
@@ -887,9 +884,9 @@ void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const 
 				float Value = Curve->Eval(0.0f);
 				float Y = ScaleInfo.OutputToLocalY(Value);
 				LinePoints.Add(FVector2D(0.0f, Y));
-				LinePoints.Add(FVector2D(AllottedGeometry.Size.X, Y));
+				LinePoints.Add(FVector2D(AllottedGeometry.GetLocalSize().X, Y));
 
-				FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, Color);
+				FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, Color);
 				LinePoints.Empty();
 			}
 			else
@@ -907,13 +904,13 @@ void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const 
 					//Arrival line
 					LinePoints.Add(FVector2D(0.0f, ArriveY));
 					LinePoints.Add(FVector2D(ArriveX, ArriveY));
-					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, Color);
+					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, Color);
 					LinePoints.Empty();
 
 					//Leave line
-					LinePoints.Add(FVector2D(AllottedGeometry.Size.X, LeaveY));
+					LinePoints.Add(FVector2D(AllottedGeometry.GetLocalSize().X, LeaveY));
 					LinePoints.Add(FVector2D(LeaveX, LeaveY));
-					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, Color);
+					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, Color);
 					LinePoints.Empty();
 				}
 
@@ -923,7 +920,7 @@ void SCurveEditor::PaintCurve(TSharedPtr<FCurveViewModel> CurveViewModel, const 
 				for(int32 i = 0;i<Keys.Num()-1;++i)
 				{
 					CreateLinesForSegment(Curve, Keys[i], Keys[i+1],LinePoints, ScaleInfo);
-					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, MyClippingRect, DrawEffects, Color);
+					FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, DrawEffects, Color);
 					LinePoints.Empty();
 				}
 			}
@@ -977,7 +974,7 @@ void SCurveEditor::CreateLinesForSegment( FRichCurve* Curve, const FRichCurveKey
 	}
 }
 
-void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected ) const
+void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, int32 LayerId, int32 SelectedLayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect, ESlateDrawEffect DrawEffects, const FWidgetStyle &InWidgetStyle, bool bAnyCurveViewModelsSelected ) const
 {
 	FLinearColor KeyColor = CurveViewModel->bIsLocked ? FLinearColor(0.1f,0.1f,0.1f,1.f) : InWidgetStyle.GetColorAndOpacityTint();
 
@@ -1007,7 +1004,6 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 			LayerToUse,
 			AllottedGeometry.ToPaintGeometry( KeyIconLocation, CONST_KeySize ),
 			KeyBrush,
-			MyClippingRect,
 			DrawEffects,
 			KeyBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor * SelectionTint
 			);
@@ -1018,7 +1014,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 		bool bIsLeaveSelected = false;
 		if(IsTangentVisible(Curve, KeyHandle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected) && (Curve->GetKeyInterpMode(KeyHandle) == RCIM_Cubic || LastInterpMode == RCIM_Cubic))
 		{
-			PaintTangent(CurveViewModel, ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyClippingRect, DrawEffects, LayerToUse, InWidgetStyle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected, bAnyCurveViewModelsSelected);
+			PaintTangent(CurveViewModel, ScaleInfo, Curve, KeyHandle, KeyLocation, OutDrawElements, LayerId, AllottedGeometry, MyCullingRect, DrawEffects, LayerToUse, InWidgetStyle, bIsTangentSelected, bIsArrivalSelected, bIsLeaveSelected, bAnyCurveViewModelsSelected);
 		}
 
 		LastInterpMode = Curve->GetKeyInterpMode(KeyHandle);
@@ -1026,7 +1022,7 @@ void SCurveEditor::PaintKeys(TSharedPtr<FCurveViewModel> CurveViewModel, FTrackS
 }
 
 
-void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect, ESlateDrawEffect DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle, bool bTangentSelected, bool bIsArrivalSelected, bool bIsLeaveSelected, bool bAnyCurveViewModelsSelected ) const
+void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTrackScaleInfo &ScaleInfo, FRichCurve* Curve, FKeyHandle KeyHandle, FVector2D KeyLocation, FSlateWindowElementList &OutDrawElements, int32 LayerId, const FGeometry &AllottedGeometry, const FSlateRect& MyCullingRect, ESlateDrawEffect DrawEffects, int32 LayerToUse, const FWidgetStyle &InWidgetStyle, bool bTangentSelected, bool bIsArrivalSelected, bool bIsLeaveSelected, bool bAnyCurveViewModelsSelected ) const
 {
 	FVector2D ArriveTangentLocation, LeaveTangentLocation;
 	GetTangentPoints(ScaleInfo, FSelectedCurveKey(Curve,KeyHandle), ArriveTangentLocation, LeaveTangentLocation);
@@ -1054,7 +1050,6 @@ void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTr
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		ArriveTangentSelected ? TangentColorSelected * ArriveSelectionTint : TangentColor * ArriveSelectionTint
 		);
@@ -1067,7 +1062,6 @@ void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTr
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		LeaveTangentSelected ? TangentColorSelected * LeaveSelectionTint : TangentColor * LeaveSelectionTint
 		);
@@ -1078,7 +1072,6 @@ void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTr
 		LayerToUse,
 		AllottedGeometry.ToPaintGeometry(ArriveTangentIconLocation, CONST_TangentSize ),
 		ArriveTangentSelected ? TangentBrushSelected : TangentBrush,
-		MyClippingRect,
 		DrawEffects,
 		ArriveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) * ArriveSelectionTint : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * ArriveSelectionTint
 		);
@@ -1088,7 +1081,6 @@ void SCurveEditor::PaintTangent( TSharedPtr<FCurveViewModel> CurveViewModel, FTr
 		LayerToUse,
 		AllottedGeometry.ToPaintGeometry(LeaveTangentIconLocation, CONST_TangentSize ),
 		LeaveTangentSelected ? TangentBrushSelected : TangentBrush,
-		MyClippingRect,
 		DrawEffects,
 		LeaveTangentSelected ? TangentBrushSelected->GetTint( InWidgetStyle ) * LeaveSelectionTint : TangentBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * LeaveSelectionTint
 		);
@@ -1112,7 +1104,7 @@ float SCurveEditor::GetTimeStep(FTrackScaleInfo &ScaleInfo) const
 }
 
 void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScaleInfo &ScaleInfo, FSlateWindowElementList &OutDrawElements, 
-	int32 LayerId, const FSlateRect& MyClippingRect, ESlateDrawEffect DrawEffects )const
+	int32 LayerId, const FSlateRect& MyCullingRect, ESlateDrawEffect DrawEffects )const
 {
 	const float MaxGridPixelSpacing = 150.0f;
 
@@ -1129,23 +1121,22 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 		{
 			float StartTime = ScaleInfo.LocalXToInput(0.0f);
 			TArray<FVector2D> LinePoints;
-			float ScaleX = (TimeStep)/(AllottedGeometry.Size.X);
+			float ScaleX = (TimeStep)/(AllottedGeometry.GetLocalSize().X);
 
 			//draw vertical grid lines
 			float StartOffset = -FMath::Fractional(StartTime / TimeStep)*ScreenStepTime;
 			float Time =  ScaleInfo.LocalXToInput(StartOffset);
-			for(float X = StartOffset;X< AllottedGeometry.Size.X;X+= ScreenStepTime, Time += TimeStep)
+			for(float X = StartOffset;X< AllottedGeometry.GetLocalSize().X;X+= ScreenStepTime, Time += TimeStep)
 			{
 				if(SMALL_NUMBER < FMath::Abs(X)) //don't show at 0 to avoid overlapping with center axis 
 				{
 					LinePoints.Add(FVector2D(X, 0.0));
-					LinePoints.Add(FVector2D(X, AllottedGeometry.Size.Y));
+					LinePoints.Add(FVector2D(X, AllottedGeometry.GetLocalSize().Y));
 					FSlateDrawElement::MakeLines(
 						OutDrawElements,
 						LayerId,
 						AllottedGeometry.ToPaintGeometry(),
 						LinePoints,
-						MyClippingRect,
 						DrawEffects,
 						GridColor,
 						false);
@@ -1155,7 +1146,7 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 					{
 						FString TimeStr = FString::Printf(TEXT("%.2f"), Time);
 						FSlateDrawElement::MakeText(OutDrawElements,LayerId,AllottedGeometry.MakeChild(FVector2D(X, 0.0), FVector2D(1.0f, ScaleX )).ToPaintGeometry(),TimeStr,
-							FEditorStyle::GetFontStyle("CurveEd.InfoFont"), MyClippingRect, DrawEffects, GridTextColor );
+							FEditorStyle::GetFontStyle("CurveEd.InfoFont"), DrawEffects, GridTextColor );
 					}
 
 					LinePoints.Empty();
@@ -1178,20 +1169,19 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 
 			float StartOffset = FMath::Fractional(StartValue / ValueStep)*ScreenStepValue;
 			float Value = ScaleInfo.LocalYToOutput(StartOffset);
-			float ScaleY = (ValueStep)/(AllottedGeometry.Size.Y);
+			float ScaleY = (ValueStep)/(AllottedGeometry.GetLocalSize().Y);
 
-			for(float Y = StartOffset;Y< AllottedGeometry.Size.Y;Y+= ScreenStepValue, Value-=ValueStep)
+			for(float Y = StartOffset;Y< AllottedGeometry.GetLocalSize().Y;Y+= ScreenStepValue, Value-=ValueStep)
 			{
 				if(SMALL_NUMBER < FMath::Abs(Y)) //don't show at 0 to avoid overlapping with center axis 
 				{
 					LinePoints.Add(FVector2D(0.0f, Y));
-					LinePoints.Add(FVector2D(AllottedGeometry.Size.X,Y));
+					LinePoints.Add(FVector2D(AllottedGeometry.GetLocalSize().X,Y));
 					FSlateDrawElement::MakeLines(
 						OutDrawElements,
 						LayerId,
 						AllottedGeometry.ToPaintGeometry(),
 						LinePoints,
-						MyClippingRect,
 						DrawEffects,
 						GridColor,
 						false);
@@ -1207,11 +1197,11 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 
 						// draw at the start
 						FSlateDrawElement::MakeText(OutDrawElements,LayerId,AllottedGeometry.MakeChild(FVector2D(0.0f, Y), FVector2D(ScaleY, 1.0f )).ToPaintGeometry(),ValueStr,
-												 Font, MyClippingRect, DrawEffects, GridTextColor );
+												 Font, DrawEffects, GridTextColor );
 
 						// draw at the last since sometimes start can be hidden
-						FSlateDrawElement::MakeText(OutDrawElements,LayerId,AllottedGeometry.MakeChild(FVector2D(AllottedGeometry.Size.X-DrawSize.X, Y), FVector2D(ScaleY, 1.0f )).ToPaintGeometry(),ValueStr,
-												 Font, MyClippingRect, DrawEffects, GridTextColor );
+						FSlateDrawElement::MakeText(OutDrawElements,LayerId,AllottedGeometry.MakeChild(FVector2D(AllottedGeometry.GetLocalSize().X-DrawSize.X, Y), FVector2D(ScaleY, 1.0f )).ToPaintGeometry(),ValueStr,
+												 Font, DrawEffects, GridTextColor );
 					}
 					
 					LinePoints.Empty();
@@ -1221,7 +1211,7 @@ void SCurveEditor::PaintGridLines(const FGeometry &AllottedGeometry, FTrackScale
 	}
 }
 
-void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	FVector2D MarqueTopLeft(
 		FMath::Min(MouseDownLocation.X, MouseMoveLocation.X),
@@ -1237,8 +1227,7 @@ void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateR
 		OutDrawElements,
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(MarqueTopLeft, MarqueBottomRight - MarqueTopLeft),
-		FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
-		MyClippingRect
+		FEditorStyle::GetBrush(TEXT("MarqueeSelection"))
 		);
 }
 
@@ -1393,7 +1382,7 @@ void SCurveEditor::AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition, T
 			FRichCurve* SelectedCurve = CurveViewModel->CurveInfo.CurveToEdit;
 			if (IsValidCurve(SelectedCurve))
 			{
-				FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+				FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 
 				FVector2D LocalClickPos = InMyGeometry.AbsoluteToLocal(ScreenPosition);
 
@@ -1499,7 +1488,7 @@ void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPoin
 		//Display the tooltip only when the curve is visible
 		if (HoveredCurve.IsValid() && HoveredCurve->bIsVisible)
 		{
-			FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+			FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 			const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 			float Time = ScaleInfo.LocalXToInput(HitPosition.X);
 			float Value = HoveredCurve->CurveInfo.CurveToEdit->Eval(Time);
@@ -1771,7 +1760,7 @@ static inline float CalcTangent(const FVector2D& HandleDelta)
 
 void SCurveEditor::ProcessDrag(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 	FVector2D ScreenDelta = InMouseEvent.GetCursorDelta();
 
 	FVector2D InputDelta;
@@ -2266,7 +2255,7 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 	{
 		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
 
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition );
 
@@ -2972,7 +2961,7 @@ TSharedPtr<FCurveViewModel> SCurveEditor::HitTestCurves(  const FGeometry& InMyG
 {
 	if( AreCurvesVisible() )
 	{
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition()  );
 
@@ -3014,7 +3003,7 @@ SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeomet
 	if( AreCurvesVisible() )
 	{
 
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition);
 
@@ -3594,7 +3583,7 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 	TArray<FSelectedCurveKey> KeysWithinMarquee;
 	if (AreCurvesVisible())
 	{
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 		for (auto CurveViewModel : CurveViewModels)
 		{
 			if (IsCurveSelectable(CurveViewModel))
@@ -3632,7 +3621,7 @@ TArray<SCurveEditor::FSelectedTangent> SCurveEditor::GetEditableTangentsWithinMa
 	TArray<FSelectedTangent> TangentsWithinMarquee;
 	if (AreCurvesVisible())
 	{
-		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
+		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.GetLocalSize());
 		for (auto CurveViewModel : CurveViewModels)
 		{
 			if (IsCurveSelectable(CurveViewModel))

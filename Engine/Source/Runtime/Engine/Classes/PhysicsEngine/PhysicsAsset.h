@@ -132,6 +132,12 @@ public:
 	ENGINE_API void ClearAllPhysicsMeshes();
 	
 #if WITH_EDITOR
+	/**
+	 * Check if the Bounds can be calculate for the specified MeshComponent.
+	 * return true if the skeleton match with the physic asset and the bounds can be calculated, otherwise it will return false.
+	 */
+	ENGINE_API bool CanCalculateValidAABB(const class USkinnedMeshComponent* MeshComponent, const FTransform& LocalToWorld) const;
+
 	/** Invalidates physics meshes from all bodies. Data will be rebuilt completely. */
 	ENGINE_API void InvalidateAllPhysicsMeshes();
 #endif

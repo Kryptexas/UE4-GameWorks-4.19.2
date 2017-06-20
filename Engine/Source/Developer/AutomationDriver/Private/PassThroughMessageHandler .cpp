@@ -218,7 +218,7 @@ public:
 		return RealMessageHandler->OnBeginGesture();
 	}
 
-	virtual bool OnTouchGesture(EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice) override
+	virtual bool OnTouchGesture(EGestureEvent GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice) override
 	{
 		if (!bAllowMessageHandling)
 		{
@@ -338,7 +338,7 @@ public:
 		RealMessageHandler->OnMovedWindow(Window, X, Y);
 	}
 
-	virtual bool OnWindowActivationChanged(const TSharedRef< FGenericWindow >& Window, const EWindowActivation::Type ActivationType) override
+	virtual bool OnWindowActivationChanged(const TSharedRef< FGenericWindow >& Window, const EWindowActivation ActivationType) override
 	{
 		return RealMessageHandler->OnWindowActivationChanged(Window, ActivationType);
 	}

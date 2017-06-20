@@ -92,7 +92,6 @@ struct VIEWPORTINTERACTION_API FDraggingTransformableData
 	FDraggingTransformableData() :
 		Interactor(nullptr),
 		WorldInteraction(nullptr),
-		bIsUpdatingUnsnappedTarget(false),
 		PassDraggedTo(FVector::ZeroVector),
 		OptionalHandlePlacement(),
 		DragDelta(FVector::ZeroVector),
@@ -106,19 +105,21 @@ struct VIEWPORTINTERACTION_API FDraggingTransformableData
 		LaserPointerDirection(FVector::ZeroVector),
 		GizmoStartTransform(FTransform::Identity),
 		GizmoLastTransform(FTransform::Identity),
-		OutGizmoTargetTransform(FTransform::Identity),
 		OutGizmoUnsnappedTargetTransform(FTransform::Identity),
 		GizmoStartLocalBounds(EForceInit::ForceInitToZero),
 		GizmoCoordinateSpace(ECoordSystem::COORD_World),
 		bOutMovedTransformGizmo(false),
 		bOutShouldApplyVelocitiesFromDrag(false),
-		OutUnsnappedDraggedTo(FVector::ZeroVector)
+		OutUnsnappedDraggedTo(FVector::ZeroVector),
+		bOutTranslated(false),
+		bOutRotated(false),
+		bOutScaled(false),
+		bAllowSnap(true)
 	{}
 
 	class UViewportInteractor* Interactor;
 	class UViewportWorldInteraction* WorldInteraction;
 
-	bool bIsUpdatingUnsnappedTarget;
 	FVector PassDraggedTo;
 	TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement;
 	FVector DragDelta;
@@ -132,7 +133,6 @@ struct VIEWPORTINTERACTION_API FDraggingTransformableData
 	FVector LaserPointerDirection;
 	FTransform GizmoStartTransform;
 	FTransform GizmoLastTransform;
-	FTransform OutGizmoTargetTransform;
 	FTransform OutGizmoUnsnappedTargetTransform;
 	FBox GizmoStartLocalBounds;
 	ECoordSystem GizmoCoordinateSpace;
@@ -140,4 +140,8 @@ struct VIEWPORTINTERACTION_API FDraggingTransformableData
 	bool bOutMovedTransformGizmo;
 	bool bOutShouldApplyVelocitiesFromDrag;
 	FVector OutUnsnappedDraggedTo;
+	bool bOutTranslated;
+	bool bOutRotated;
+	bool bOutScaled;
+	bool bAllowSnap;
 };

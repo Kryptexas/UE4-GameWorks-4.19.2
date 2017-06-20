@@ -117,7 +117,7 @@ public:
 		return AllocatedSize;
 	}
 private:
-	friend class FAssetData;
+	friend struct FAssetData;
 
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, FAssetDataTagMapSharedView& SharedView)
 	{

@@ -8,15 +8,31 @@
 #include "Rendering/ShaderResourceManager.h"
 #include "Rendering/DrawElements.h"
 #include "Rendering/RenderingPolicy.h"
+#include "Layout/Clipping.h"
 #include "SlateElementIndexBuffer.h"
 #include "SlateElementVertexBuffer.h"
 #include "SlateRHIResourceManager.h"
 #include "Shader.h"
+#include "Engine/TextureLODSettings.h"
 
 class FSlateFontServices;
 class FSlateRHIResourceManager;
 class FSlatePostProcessor;
 class ILayoutCache;
+
+struct FSlateRenderingOptions
+{
+	FMatrix ViewProjectionMatrix;
+	bool bAllowSwitchVerticalAxis;
+	bool bWireFrame;
+
+	FSlateRenderingOptions(const FMatrix& InViewProjectionMatrix)
+		: ViewProjectionMatrix(InViewProjectionMatrix)
+		, bAllowSwitchVerticalAxis(true)
+		, bWireFrame(false)
+	{
+	}
+};
 
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {
@@ -28,7 +44,7 @@ public:
 
 	void ReleaseCachingResourcesFor(FRHICommandListImmediate& RHICmdList, const ILayoutCache* Cacher);
 
-	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwtichVerticalAxis=true);
+	void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, FTexture2DRHIRef& ColorTarget, FTexture2DRHIRef& DepthStencilTarget, const TArray<FSlateRenderBatch>& RenderBatches, const TArray<FSlateClippingState> RenderClipStates, const FSlateRenderingOptions& Options);
 
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() const override { return ResourceManager; }
 	virtual bool IsVertexColorInLinearSpace() const override { return false; }
@@ -50,6 +66,8 @@ protected:
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer);
 
 private:
+	ETextureSamplerFilter GetSamplerFilter(const UTexture* Texture) const;
+
 	/**
 	 * Returns the pixel shader that should be used for the specified ShaderType and DrawEffects
 	 * 
@@ -75,6 +93,8 @@ private:
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 
 	bool bGammaCorrect;
+
+	TArray<FTextureLODGroup> TextureLODGroups;
 
 	TOptional<int32> InitialBufferSizeOverride;
 };

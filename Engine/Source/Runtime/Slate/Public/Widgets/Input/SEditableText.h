@@ -57,7 +57,9 @@ public:
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
 		, _TextShapingMethod()
 		, _TextFlowDirection()
-		{}
+		{
+			_Clipping = EWidgetClipping::ClipToBounds;
+		}
 
 		/** Sets the text content for this editable text widget */
 		SLATE_ATTRIBUTE( FText, Text )
@@ -266,10 +268,19 @@ public:
 	/** Get the currently selected text */
 	FText GetSelectedText() const;
 
+	/** Move the cursor to the given location in the document (will also scroll to this point) */
+	void GoTo(const FTextLocation& NewLocation);
+
+	/** Move the cursor specified location */
+	void GoTo(ETextLocation NewLocation);
+
+	/** Scroll to the given location in the document (without moving the cursor) */
+	void ScrollTo(const FTextLocation& NewLocation);
+
 protected:
 	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void CacheDesiredSize(float LayoutScaleMultiplier) override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
 	virtual FChildren* GetChildren() override;

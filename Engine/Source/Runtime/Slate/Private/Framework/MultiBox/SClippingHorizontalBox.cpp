@@ -28,7 +28,7 @@ void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometr
 	for (int32 ChildIdx = NumChildren - 2; ChildIdx >= 0; --ChildIdx)
 	{
 		const FArrangedWidget& CurWidget = ArrangedChildren[ChildIdx];
-		if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X * CurWidget.Geometry.Scale) > FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X * CurWidget.Geometry.Scale))
+		if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.GetLocalSize().X * CurWidget.Geometry.Scale) > FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.GetLocalSize().X * CurWidget.Geometry.Scale))
 		{
 			ArrangedChildren.Remove(ChildIdx);
 			IndexClippedAt = ChildIdx;
@@ -44,14 +44,14 @@ void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometr
 	{
 		// Right align the wrap button
 		FArrangedWidget& ArrangedButton = ArrangedChildren[ArrangedChildren.Num() - 1];
-		ArrangedButton.Geometry = AllottedGeometry.MakeChild(ArrangedButton.Geometry.Size, FSlateLayoutTransform(AllottedGeometry.Size - ArrangedButton.Geometry.Size));
+		ArrangedButton.Geometry = AllottedGeometry.MakeChild(ArrangedButton.Geometry.GetLocalSize(), FSlateLayoutTransform(AllottedGeometry.GetLocalSize() - ArrangedButton.Geometry.GetLocalSize()));
 		const int32 WrapButtonXPosition = FMath::TruncToInt(ArrangedButton.Geometry.AbsolutePosition.X);
 
 		// Further remove any children that the wrap button overlaps with
 		for (int32 ChildIdx = IndexClippedAt - 1; ChildIdx >= 0; --ChildIdx)
 		{
 			const FArrangedWidget& CurWidget = ArrangedChildren[ChildIdx];
-			if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X * CurWidget.Geometry.Scale) > WrapButtonXPosition)
+			if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.GetLocalSize().X * CurWidget.Geometry.Scale) > WrapButtonXPosition)
 			{
 				ArrangedChildren.Remove(ChildIdx);
 			}
@@ -59,7 +59,7 @@ void SClippingHorizontalBox::OnArrangeChildren( const FGeometry& AllottedGeometr
 	}
 }
 
-int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Get the clipped children info
 	FArrangedChildren ClippedArrangedChildren(EVisibility::Visible);
@@ -76,23 +76,23 @@ int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& 
 		const FArrangedWidget& LastCippedChild = ClippedArrangedChildren[IndexClippedAt];
 		const FArrangedWidget& FirstChild = ArrangedChildren[0];
 		const FArrangedWidget& LastChild = ArrangedChildren[ArrangedChildren.Num() - 1];
-		float BorderLocalWidth = AllottedGeometry.Size.X;
+		float BorderLocalWidth = AllottedGeometry.GetLocalSize().X;
 	
 		// If only the last child/block, which is the wrap button, is being clipped
 		if (IndexClippedAt == ArrangedChildren.Num() - 2)
 		{
 			// Only recalculate the alloted geometry size if said size is fitted to the toolbar/menubar
-			if (FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X * AllottedGeometry.Scale) <= FMath::TruncToInt(LastChild.Geometry.AbsolutePosition.X + LastChild.Geometry.Size.X * LastChild.Geometry.Scale))
+			if (FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.GetLocalSize().X * AllottedGeometry.Scale) <= FMath::TruncToInt(LastChild.Geometry.AbsolutePosition.X + LastChild.Geometry.GetLocalSize().X * LastChild.Geometry.Scale))
 			{
 				// Calculate the size of the custom border
-				BorderLocalWidth = (LastCippedChild.Geometry.AbsolutePosition.X + LastCippedChild.Geometry.Size.X * LastCippedChild.Geometry.Scale - FirstChild.Geometry.AbsolutePosition.X) / AllottedGeometry.Scale;
+				BorderLocalWidth = (LastCippedChild.Geometry.AbsolutePosition.X + LastCippedChild.Geometry.GetLocalSize().X * LastCippedChild.Geometry.Scale - FirstChild.Geometry.AbsolutePosition.X) / AllottedGeometry.Scale;
 			}
 		}
 		else
 		{
 			// Children/blocks are being clipped, calculate the size of the custom border
 			const FArrangedWidget& NextChild = (IndexClippedAt + 1 < ClippedArrangedChildren.Num())? ClippedArrangedChildren[IndexClippedAt + 1]: LastCippedChild;
-			BorderLocalWidth = (NextChild.Geometry.AbsolutePosition.X + NextChild.Geometry.Size.X * NextChild.Geometry.Scale - FirstChild.Geometry.AbsolutePosition.X) / AllottedGeometry.Scale;
+			BorderLocalWidth = (NextChild.Geometry.AbsolutePosition.X + NextChild.Geometry.GetLocalSize().X * NextChild.Geometry.Scale - FirstChild.Geometry.AbsolutePosition.X) / AllottedGeometry.Scale;
 		}
 	
 		bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -103,15 +103,14 @@ int32 SClippingHorizontalBox::OnPaint( const FPaintArgs& Args, const FGeometry& 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
-			AllottedGeometry.ToPaintGeometry(FVector2D(BorderLocalWidth, AllottedGeometry.Size.Y), FSlateLayoutTransform()),
+			AllottedGeometry.ToPaintGeometry(FVector2D(BorderLocalWidth, AllottedGeometry.GetLocalSize().Y), FSlateLayoutTransform()),
 			BackgroundBrush,
-			MyClippingRect,
 			DrawEffects,
 			BackgroundBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.GetColor(InWidgetStyle)
 			);
 	}
 
-	return SHorizontalBox::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	return SHorizontalBox::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 FVector2D SClippingHorizontalBox::ComputeDesiredSize(float LayoutScaleMultiplier) const

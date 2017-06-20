@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
-class FAssetData;
+struct FAssetData;
 
 /**
  * The pending deleted object.

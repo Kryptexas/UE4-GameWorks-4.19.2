@@ -21,7 +21,7 @@
 #include "IDetailPropertyRow.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class FAssetThumbnailPool;
 class FMaterialItemView;
 class FMaterialListBuilder;

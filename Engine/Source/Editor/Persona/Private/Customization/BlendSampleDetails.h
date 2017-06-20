@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 
 class FBlendSampleDetails : public IDetailCustomization
 {

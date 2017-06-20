@@ -6,6 +6,7 @@ FGeometry::FGeometry()
 	: Size(0.0f, 0.0f)
 	, Scale(1.0f)
 	, AbsolutePosition(0.0f, 0.0f)
+	, bHasRenderTransform(false)
 {
 }
 

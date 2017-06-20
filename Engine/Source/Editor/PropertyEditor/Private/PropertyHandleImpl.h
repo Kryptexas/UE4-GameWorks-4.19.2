@@ -425,7 +425,9 @@ public:
 	virtual bool DiffersFromDefault() const override;
 	virtual FText GetResetToDefaultLabel() const override;
 	virtual void MarkHiddenByCustomization() override;
+	virtual void MarkResetToDefaultCustomized() override;
 	virtual bool IsCustomized() const override;
+	virtual bool IsResetToDefaultCustomized() const override;
 	virtual FString GeneratePathToProperty() const override;
 	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FText& NameOverride = FText::GetEmpty(), const FText& ToolTipOverride = FText::GetEmpty(), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const override;
 	virtual TSharedRef<SWidget> CreatePropertyValueWidget( bool bDisplayDefaultPropertyButtons = true ) const override;
@@ -490,8 +492,8 @@ public:
 	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const override;
 	virtual void SetIgnoreValidation(bool bInIgnore) override;
 	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) override;
-	virtual bool IsResetToDefaultAvailable() override;
-	virtual void CustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault) override;
+	virtual bool CanResetToDefault() const override;
+	virtual void ExecuteCustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault) override;
 
 	TSharedPtr<FPropertyNode> GetPropertyNode() const;
 	void OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault);

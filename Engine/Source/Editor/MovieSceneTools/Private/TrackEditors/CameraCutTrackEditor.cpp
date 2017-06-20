@@ -201,14 +201,17 @@ const FSlateBrush* FCameraCutTrackEditor::GetIconBrush() const
 /* FCameraCutTrackEditor implementation
  *****************************************************************************/
 
-bool FCameraCutTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
+FKeyPropertyResult FCameraCutTrackEditor::AddKeyInternal( float KeyTime, const FGuid ObjectGuid )
 {
+	FKeyPropertyResult KeyPropertyResult;
+
 	UMovieSceneCameraCutTrack* CameraCutTrack = FindOrCreateCameraCutTrack();
 	const TArray<UMovieSceneSection*>& AllSections = CameraCutTrack->GetAllSections();
 
 	CameraCutTrack->AddNewCameraCut(ObjectGuid, KeyTime);
+	KeyPropertyResult.bTrackModified = true;
 
-	return true;
+	return KeyPropertyResult;
 }
 
 

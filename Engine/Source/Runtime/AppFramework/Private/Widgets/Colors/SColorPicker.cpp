@@ -1464,10 +1464,7 @@ FReply SColorPicker::HandleOkButtonClicked()
 {
 	bClosedViaOkOrCancel = true;
 
-	if (bOnlyRefreshOnOk)
-	{
-		UpdateColorPick();
-	}
+	UpdateColorPick();
 
 	if (SColorPicker::OnColorPickerDestroyOverride.IsBound())
 	{

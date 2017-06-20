@@ -1085,7 +1085,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			{
 				FInputTouchBinding& TB = IC->TouchBindings[TouchBindingIndex];
 
-				for (ETouchIndex::Type TouchIndex = ETouchIndex::Touch1; TouchIndex <= ETouchIndex::Touch10; TouchIndex = ETouchIndex::Type(TouchIndex + 1))
+				for (int32 TouchIndex = 0; TouchIndex < EKeys::NUM_TOUCH_KEYS; TouchIndex++)
 				{
 					const FKey& TouchKey = EKeys::TouchKeys[TouchIndex];
 					if (!IsKeyConsumed(TouchKey) && KeyEventOccurred(TouchKey, TB.KeyEvent, EventIndices))
@@ -1094,7 +1094,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 						{
 							check(EventIndices.Num() > 0);
 							FVector *TouchedLocation = TouchEventLocations.Find(EventIndices[0]);
-							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f), TouchIndex);
+							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchedLocation != nullptr ? *TouchedLocation : FVector(-1.0f, -1.0f, 0.0f), (ETouchIndex::Type)TouchIndex);
 							NonAxisDelegates.Add(TouchInfo);
 							for (int32 EventsIndex = 1; EventsIndex < EventIndices.Num(); ++EventsIndex)
 							{

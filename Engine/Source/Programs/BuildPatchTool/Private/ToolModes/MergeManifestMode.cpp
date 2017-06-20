@@ -11,7 +11,7 @@ using namespace BuildPatchTool;
 class FMergeManifestToolMode : public IToolMode
 {
 public:
-	FMergeManifestToolMode(const TSharedRef<IBuildPatchServicesModule>& InBpsInterface)
+	FMergeManifestToolMode(IBuildPatchServicesModule& InBpsInterface)
 		: BpsInterface(InBpsInterface)
 	{}
 
@@ -49,7 +49,7 @@ public:
 		}
 
 		// Run the merge manifest routine
-		bool bSuccess = BpsInterface->MergeManifests(ManifestA, ManifestB, ManifestC, BuildVersion, MergeFileList);
+		bool bSuccess = BpsInterface.MergeManifests(ManifestA, ManifestB, ManifestC, BuildVersion, MergeFileList);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 
@@ -89,7 +89,7 @@ private:
 	}
 
 private:
-	TSharedRef<IBuildPatchServicesModule> BpsInterface;
+	IBuildPatchServicesModule& BpsInterface;
 	bool bHelp;
 	FString ManifestA;
 	FString ManifestB;
@@ -98,7 +98,7 @@ private:
 	FString MergeFileList;
 };
 
-BuildPatchTool::IToolModeRef BuildPatchTool::FMergeManifestToolModeFactory::Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface)
+BuildPatchTool::IToolModeRef BuildPatchTool::FMergeManifestToolModeFactory::Create(IBuildPatchServicesModule& BpsInterface)
 {
 	return MakeShareable(new FMergeManifestToolMode(BpsInterface));
 }

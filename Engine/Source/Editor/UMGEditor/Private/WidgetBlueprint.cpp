@@ -460,18 +460,18 @@ bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWi
 				}
 				else
 				{
-					//TODO Bindable property removed.
+					// Bindable property removed.
 				}
 			}
 		}
 		else
 		{
-			// TODO Bindable Property Removed
+			// Bindable Property Removed
 		}
 	}
 	else
 	{
-		//TODO Ignore missing widgets
+		// Ignore missing widgets
 	}
 
 	return false;

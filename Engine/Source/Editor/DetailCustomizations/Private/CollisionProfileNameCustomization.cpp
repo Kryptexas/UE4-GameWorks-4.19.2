@@ -39,7 +39,7 @@ void FCollisionProfileNameCustomization::CustomizeChildren(TSharedRef<class IPro
 		SetPropertyWithName(*InitialSelectedName.Get());
 	}
 
-	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup(TEXT("Collision"), LOCTEXT("CollisionPresetName", "Collision Preset"));
+	IDetailGroup& CollisionGroup = StructBuilder.AddGroup(TEXT("Collision"), LOCTEXT("CollisionPresetName", "Collision Preset"));
 	CollisionGroup.HeaderRow()
 	.NameContent()
 	[

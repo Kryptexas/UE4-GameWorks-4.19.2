@@ -10,7 +10,7 @@
 #include "K2Node_GetSequenceBinding.generated.h"
 
 
-class FAssetData;
+struct FAssetData;
 class UMovieSceneSequence;
 struct FKismetFunctionContext;
 struct FMovieSceneSequenceID;

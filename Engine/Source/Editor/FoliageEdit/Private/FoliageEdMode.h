@@ -355,6 +355,9 @@ public:
 	/** Moves selected foliage instances to the target level. */
 	void MoveSelectedFoliageToLevel(ULevel* InTargetLevel);
 
+	/** Tell us if we can moves selected foliage instances to the target level. */
+	bool CanMoveSelectedFoliageToLevel(ULevel* InTargetLevel) const;
+
 	/** FEdMode: widget handling */
 	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove() override;

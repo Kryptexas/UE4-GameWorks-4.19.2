@@ -93,7 +93,7 @@ void FFormatTextLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBu
 	for (int32 ArgIdx = 0; ArgIdx < TargetNode->GetArgumentCount(); ++ArgIdx)
 	{
 		TSharedRef<class FFormatTextArgumentLayout> ArgumentIndexLayout = MakeShareable(new FFormatTextArgumentLayout(TargetNode, ArgIdx) );
-		ChildrenBuilder.AddChildCustomBuilder(ArgumentIndexLayout);
+		ChildrenBuilder.AddCustomBuilder(ArgumentIndexLayout);
 		Children.Add(ArgumentIndexLayout);
 	}
 }

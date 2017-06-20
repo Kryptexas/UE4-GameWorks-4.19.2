@@ -152,3 +152,12 @@ void UInputKeySelector::HandleIsSelectingKeyChanged()
 {
 	OnIsSelectingKeyChanged.Broadcast();
 }
+
+void UInputKeySelector::SetTextBlockVisibility(const ESlateVisibility InVisibility)
+{
+	if (MyInputKeySelector.IsValid())
+	{
+		EVisibility SlateVisibility = UWidget::ConvertSerializedVisibilityToRuntime(InVisibility);
+		MyInputKeySelector->SetTextBlockVisibility(SlateVisibility);
+	}
+}

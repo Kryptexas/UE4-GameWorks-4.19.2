@@ -146,7 +146,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
-			StructBuilder.AddChildContent(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
+			StructBuilder.AddCustomRow(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
 				.NameContent()
 				[
 					Child->CreatePropertyNameWidget()
@@ -199,7 +199,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 		}
 		else
 		{
-			StructBuilder.AddChildProperty(Child.ToSharedRef());
+			StructBuilder.AddProperty(Child.ToSharedRef());
 		}
 	}
 }

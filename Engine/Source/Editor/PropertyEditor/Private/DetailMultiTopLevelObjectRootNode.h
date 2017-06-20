@@ -44,7 +44,7 @@ public:
 
 private:
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailsView; }
-	virtual void OnItemExpansionChanged( bool bIsExpanded ) override {}
+	virtual void OnItemExpansionChanged( bool bIsExpanded, bool bShouldSaveState ) override {}
 	virtual bool ShouldBeExpanded() const override { return true; }
 	virtual ENodeVisibility GetVisibility() const override;
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;

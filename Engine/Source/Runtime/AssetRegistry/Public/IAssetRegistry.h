@@ -5,6 +5,10 @@
 #include "CoreMinimal.h"
 #include "AssetData.h"
 #include "Misc/AssetRegistryInterface.h"
+#include "Interface.h"
+#include "ARFilter.h"
+#include "IAssetRegistry.generated.h"
+
 
 struct FARFilter;
 struct FAssetRegistrySerializationOptions;
@@ -50,20 +54,25 @@ namespace EAssetSetManagerFlags
 	};
 }
 
+
+UINTERFACE(MinimalApi, BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
+class UAssetRegistry : public UInterface
+{
+	GENERATED_UINTERFACE_BODY()
+};
+
 class IAssetRegistry
 {
+	GENERATED_IINTERFACE_BODY()
 public:
-
-	/** Virtual destructor*/
-	virtual ~IAssetRegistry() {}
-
 	/**
 	 * Does the given path contain assets, optionally also testing sub-paths?
 	 *
 	 * @param PackagePath the path to query asset data in
 	 * @param bRecursive if true, the supplied path will be tested recursively
 	 */
-	 virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const = 0;
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
+	virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const = 0;
 
 	/**
 	 * Gets asset data for the assets in the package with the specified package name
@@ -71,6 +80,7 @@ public:
 	 * @param PackageName the package name for the requested assets
 	 * @param OutAssetData the list of assets in this path
 	 */
+	UFUNCTION(BlueprintCallable, Category="AssetRegistry")
 	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
@@ -80,6 +90,7 @@ public:
 	 * @param OutAssetData the list of assets in this path
 	 * @param bRecursive if true, all supplied paths will be searched recursively
 	 */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
@@ -89,6 +100,7 @@ public:
 	 * @param OutAssetData the list of assets in this path
 	 * @param bSearchSubClasses if true, all subclasses of the passed in class will be searched as well
 	 */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const = 0;
 
 	/**
@@ -107,6 +119,7 @@ public:
 	 * @param Filter filter to apply to the assets in the AssetRegistry
 	 * @param OutAssetData the list of assets in this path
 	 */
+	UFUNCTION(BlueprintCallable, Category="AssetRegistry")
 	virtual bool GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssetData) const = 0;
 
 	/**
@@ -116,6 +129,7 @@ public:
 	 * @param bIncludeOnlyOnDiskAssets if true, in-memory objects will be ignored. The call will be faster.
 	 * @return the assets data;Will be invalid if object could not be found
 	 */
+	UFUNCTION(BlueprintCallable, Category="AssetRegistry")
 	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets = false ) const = 0;
 
 	/**
@@ -124,6 +138,7 @@ public:
 	 *
 	 * @param OutAssetData the list of assets in this path
 	 */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
@@ -175,12 +190,15 @@ public:
 	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const = 0;
 
 	/** Gets a list of all paths that are currently cached */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const = 0;
 
 	/** Gets a list of all paths that are currently cached below the passed-in base path */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const = 0;
 
 	/** Trims items out of the asset data list that do not pass the supplied filter */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual void RunAssetsThroughFilter(TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const = 0;
 
 	/** Modifies passed in filter to make it safe for use on FAssetRegistryState. This expands recursive paths and classes */
@@ -305,6 +323,7 @@ public:
 	virtual bool EditSearchableName(const FAssetIdentifier& SearchableName) = 0;
 
 	/** Returns true if the asset registry is currently loading files and does not yet know about all assets */
+	UFUNCTION(BlueprintCallable, Category = "AssetRegistry")
 	virtual bool IsLoadingAssets() const = 0;
 
 	/** Tick the asset registry */

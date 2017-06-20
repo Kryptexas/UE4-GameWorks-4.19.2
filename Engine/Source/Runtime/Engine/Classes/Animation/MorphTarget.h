@@ -145,7 +145,7 @@ public:
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
 	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
-	bool HasDataForLOD(int32 LODIndex);
+	ENGINE_API bool HasDataForLOD(int32 LODIndex);
 
 	/** Populates the given morph target LOD model with the provided deltas */
 	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal = false);

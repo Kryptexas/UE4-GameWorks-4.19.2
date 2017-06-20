@@ -64,10 +64,29 @@ namespace SceneOutliner
 			: Visibility(InVisibility), PriorityIndex(InPriorityIndex), Factory(InFactory)
 		{}
 
+		FColumnInfo() {}
+
+		FColumnInfo(const FColumnInfo& InColumnInfo)
+			: Visibility(InColumnInfo.Visibility), PriorityIndex(InColumnInfo.PriorityIndex), Factory(InColumnInfo.Factory)
+		{}
+
 		EColumnVisibility 	Visibility;
 		uint8				PriorityIndex;
 
 		FCreateSceneOutlinerColumn	Factory;
+	};
+
+	/** Default column information for the scene outliner */
+	struct FDefaultColumnInfo : public FColumnInfo
+	{
+		FDefaultColumnInfo(const FColumnInfo& InColumnInfo, TOptional<ESceneOutlinerMode> InValidMode = TOptional<ESceneOutlinerMode>())
+			: ColumnInfo(InColumnInfo), ValidMode(InValidMode)
+		{}
+
+		FColumnInfo ColumnInfo;
+
+		// The valid mode for this column. If not set, this column will be valid for all.
+		TOptional<ESceneOutlinerMode> ValidMode;
 	};
 
 	struct FSharedDataBase
@@ -107,16 +126,7 @@ namespace SceneOutliner
 		{}
 
 		/** Set up a default array of columns for this outliner */
-		void UseDefaultColumns()
-		{
-			if (Mode == ESceneOutlinerMode::ActorBrowsing)
-			{
-				ColumnMap.Add( FBuiltInColumnTypes::Gutter(), FColumnInfo(EColumnVisibility::Visible, 0) );
-			}
-
-			ColumnMap.Add( FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 10) );
-			ColumnMap.Add( FBuiltInColumnTypes::ActorInfo(), FColumnInfo(EColumnVisibility::Visible, 20) );
-		}
+		void UseDefaultColumns();
 	};
 
 	/**

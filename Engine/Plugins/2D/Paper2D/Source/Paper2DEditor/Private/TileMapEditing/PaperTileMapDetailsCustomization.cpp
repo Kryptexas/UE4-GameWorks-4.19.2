@@ -272,7 +272,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 					const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
 					const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
 
-					LayerCategory.AddExternalProperty(ListOfSelectedLayers, TestProperty->GetFName(), PropertyLocation);
+					LayerCategory.AddExternalObjectProperty(ListOfSelectedLayers, TestProperty->GetFName(), PropertyLocation);
 				}
 			}
 		}
@@ -297,7 +297,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 				const FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
 				IDetailCategoryBuilder& Category = DetailLayout.EditCategory(CategoryName);
 
-				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName(), PropertyLocation))
+				if (IDetailPropertyRow* ExternalRow = Category.AddExternalObjectProperty(ListOfTileMaps, TestProperty->GetFName(), PropertyLocation))
 				{
 					ExternalRow->Visibility(InternalInstanceVis);
 				}

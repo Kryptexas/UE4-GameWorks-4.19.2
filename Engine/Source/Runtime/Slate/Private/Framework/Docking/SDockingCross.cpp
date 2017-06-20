@@ -20,12 +20,12 @@ void SDockingCross::Construct( const FArguments& InArgs, const TSharedPtr<class 
 
 
 
-int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	using namespace DockingConstants;
 
-	const float DockZoneSizeX = FMath::Clamp( AllottedGeometry.Size.X * ZoneFraction, MinZoneSize, MaxZoneSize );
-	const float DockZoneSizeY = FMath::Clamp( AllottedGeometry.Size.Y * ZoneFraction, MinZoneSize, MaxZoneSize );
+	const float DockZoneSizeX = FMath::Clamp( AllottedGeometry.GetLocalSize().X * ZoneFraction, MinZoneSize, MaxZoneSize );
+	const float DockZoneSizeY = FMath::Clamp( AllottedGeometry.GetLocalSize().Y * ZoneFraction, MinZoneSize, MaxZoneSize );
 
 	// We want to draw this:
 	//  +-------------+
@@ -40,14 +40,14 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	//  +-------------+
 	
 	const FVector2D P0( DockZoneSizeX, DockZoneSizeY );
-	const FVector2D P1( AllottedGeometry.Size.X - DockZoneSizeX, DockZoneSizeY );
-	const FVector2D P2( AllottedGeometry.Size.X - DockZoneSizeX, AllottedGeometry.Size.Y - DockZoneSizeY );
-	const FVector2D P3( DockZoneSizeX, AllottedGeometry.Size.Y - DockZoneSizeY );
+	const FVector2D P1( AllottedGeometry.GetLocalSize().X - DockZoneSizeX, DockZoneSizeY );
+	const FVector2D P2( AllottedGeometry.GetLocalSize().X - DockZoneSizeX, AllottedGeometry.GetLocalSize().Y - DockZoneSizeY );
+	const FVector2D P3( DockZoneSizeX, AllottedGeometry.GetLocalSize().Y - DockZoneSizeY );
 
 	const FVector2D P0_Outer( 0,0 );
-	const FVector2D P1_Outer( AllottedGeometry.Size.X,0 );
-	const FVector2D P2_Outer( AllottedGeometry.Size.X,AllottedGeometry.Size.Y );
-	const FVector2D P3_Outer( 0,AllottedGeometry.Size.Y );
+	const FVector2D P1_Outer( AllottedGeometry.GetLocalSize().X,0 );
+	const FVector2D P2_Outer( AllottedGeometry.GetLocalSize().X,AllottedGeometry.GetLocalSize().Y );
+	const FVector2D P3_Outer( 0,AllottedGeometry.GetLocalSize().Y );
 
 	// Inner Box
 	{
@@ -63,8 +63,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			InnerBox,
-			MyClippingRect
+			InnerBox
 		);
 	}
 
@@ -82,8 +81,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			OuterBox,
-			MyClippingRect
+			OuterBox
 		);
 	}
 	
@@ -98,8 +96,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			Points,
-			MyClippingRect
+			Points
 		);
 	}
 	{
@@ -112,8 +109,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			Points,
-			MyClippingRect
+			Points
 		);
 	}
 	{
@@ -126,8 +122,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			Points,
-			MyClippingRect
+			Points
 		);
 	}{
 		TArray<FVector2D> Points;
@@ -139,8 +134,7 @@ int32 SDockingCross::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedG
 	      OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			Points,
-			MyClippingRect
+			Points
 		);
 	}
 	
@@ -191,8 +185,8 @@ static FDockingDragOperation::FDockTarget GetDropTarget( const TSharedPtr<SDocki
 		bool operator()( const FVector2D& InLocalMousePos, const FGeometry& InGeometry ) const
 		{
 			// Dock Zones can be as large as they want, but should never get smaller than 5 slate units.
-			const float DockZoneSizeX = FMath::Clamp( InGeometry.Size.X * ZoneFraction, MinZoneSize, MaxZoneSize );
-			const float DockZoneSizeY = FMath::Clamp( InGeometry.Size.Y * ZoneFraction, MinZoneSize, MaxZoneSize );
+			const float DockZoneSizeX = FMath::Clamp( InGeometry.GetLocalSize().X * ZoneFraction, MinZoneSize, MaxZoneSize );
+			const float DockZoneSizeY = FMath::Clamp( InGeometry.GetLocalSize().Y * ZoneFraction, MinZoneSize, MaxZoneSize );
 
 			return
 				InLocalMousePos.X < DockZoneSizeX ||

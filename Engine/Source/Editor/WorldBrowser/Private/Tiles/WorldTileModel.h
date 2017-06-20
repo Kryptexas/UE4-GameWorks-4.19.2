@@ -8,7 +8,7 @@
 #include "LevelModel.h"
 #include "LandscapeProxy.h"
 
-class FAssetData;
+struct FAssetData;
 class FLevelDragDropOp;
 class FWorldTileCollectionModel;
 class FWorldTileModel;

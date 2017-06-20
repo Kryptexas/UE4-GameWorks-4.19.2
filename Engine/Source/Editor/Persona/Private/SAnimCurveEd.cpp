@@ -26,9 +26,9 @@ float SAnimCurveEd::GetTimeStep(FTrackScaleInfo &ScaleInfo)const
 	return 0.0f;
 }
 
-int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	int32 NewLayerId = SCurveEditor::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
+	int32 NewLayerId = SCurveEditor::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
 
 	float Value = 0.f;
 
@@ -40,12 +40,12 @@ int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	FPaintGeometry MyGeometry = AllottedGeometry.ToPaintGeometry();
 
 	// scale info
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), 0.f, 0.f, AllottedGeometry.Size);
+	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), 0.f, 0.f, AllottedGeometry.GetLocalSize());
 	float XPos = ScaleInfo.InputToLocalX(Value);
 
 	TArray<FVector2D> LinePoints;
 	LinePoints.Add(FVector2D(XPos, 0.f));
-	LinePoints.Add(FVector2D(XPos, AllottedGeometry.Size.Y));
+	LinePoints.Add(FVector2D(XPos, AllottedGeometry.GetLocalSize().Y));
 
 
 	FSlateDrawElement::MakeLines(
@@ -53,7 +53,6 @@ int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		NewLayerId,
 		MyGeometry,
 		LinePoints,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor::Red
 		);
@@ -67,7 +66,7 @@ FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEve
 	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
 
 	const FVector2D WidgetSpace = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const float ZoomRatio = FMath::Clamp((WidgetSpace.X / MyGeometry.Size.X), 0.f, 1.f);
+	const float ZoomRatio = FMath::Clamp((WidgetSpace.X / MyGeometry.GetLocalSize().X), 0.f, 1.f);
 
 	{
 		const float InputViewSize = ViewMaxInput.Get() - ViewMinInput.Get();

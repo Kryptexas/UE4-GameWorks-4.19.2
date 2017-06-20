@@ -184,6 +184,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	SaveExpandedItems(RootNode.ToSharedRef() );
 	RootNode->AsStructureNode()->SetStructure(nullptr);
 	RootNodesPendingKill.Add(RootNode);
+	ExternalRootPropertyNodes.Empty();
 
 	RootNodes.Empty(1);
 
@@ -226,9 +227,14 @@ void SStructureDetailsView::ForceRefresh()
 	SetStructureData(StructData);
 }
 
-void SStructureDetailsView::AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode)
+void SStructureDetailsView::AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode)
 {
 	ExternalRootPropertyNodes.Add( ExternalRootNode );
+}
+
+bool SStructureDetailsView::IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) const
+{
+	return ExternalRootPropertyNodes.Contains(ExternalRootNode);
 }
 
 void SStructureDetailsView::ClearSearch()

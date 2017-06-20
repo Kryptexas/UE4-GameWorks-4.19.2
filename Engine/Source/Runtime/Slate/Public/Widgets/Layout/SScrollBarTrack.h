@@ -56,7 +56,7 @@ public:
 	{
 		FTrackSizeInfo(const FGeometry& TrackGeometry, EOrientation InOrientation, float InMinThumbSize, float ThumbSizeAsFractionOfTrack, float ThumbOffsetAsFractionOfTrack)
 		{
-			BiasedTrackSize = ((InOrientation == Orient_Horizontal) ? TrackGeometry.Size.X : TrackGeometry.Size.Y) - InMinThumbSize;
+			BiasedTrackSize = ((InOrientation == Orient_Horizontal) ? TrackGeometry.GetLocalSize().X : TrackGeometry.GetLocalSize().Y) - InMinThumbSize;
 			const float AccurateThumbSize = ThumbSizeAsFractionOfTrack * (BiasedTrackSize);
 			ThumbStart = BiasedTrackSize * ThumbOffsetAsFractionOfTrack;
 			ThumbSize = InMinThumbSize + AccurateThumbSize;

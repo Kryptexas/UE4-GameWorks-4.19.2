@@ -735,7 +735,7 @@ public:
 		const FVector2D& InLastScreenSpacePosition,
 		const TSet<FKey>& InPressedButtons,
 		const FModifierKeysState& InModifierKeys,
-		EGestureEvent::Type InGestureType,
+		EGestureEvent InGestureType,
 		const FVector2D& InGestureDelta,
 		bool bInIsDirectionInvertedFromDevice
 	)
@@ -784,7 +784,7 @@ public:
 	bool IsTouchEvent() const { return bIsTouchEvent; }
 
 	/** @return The type of touch gesture */
-	EGestureEvent::Type GetGestureType() const { return GestureType; }
+	EGestureEvent GetGestureType() const { return GestureType; }
 
 	/** @return The change in gesture value since the last gesture event of the same type. */
 	const FVector2D& GetGestureDelta() const { return WheelOrGestureDelta; }
@@ -836,7 +836,7 @@ private:
 	uint32 PointerIndex;
 	uint32 TouchpadIndex;
 	bool bIsTouchEvent;
-	EGestureEvent::Type GestureType;
+	EGestureEvent GestureType;
 	FVector2D WheelOrGestureDelta;
 	bool bIsDirectionInvertedFromDevice;
 	// NOTE: If you add a new member, make sure you add it to the assignment operator.
@@ -845,46 +845,6 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase2<FPointerEvent>
-{
-	enum
-	{
-		WithCopy = true,
-	};
-};
-
-/** DEPRECATED 4.6 - Do not use */
-//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
-USTRUCT(BlueprintType)
-struct FControllerEvent
-	: public FInputEvent
-{
-	GENERATED_USTRUCT_BODY()
-public:
-
-	FControllerEvent()
-		: EffectingButton(EKeys::Gamepad_RightTrigger)
-		, AnalogValue(0)
-	{ }
-
-	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
-		: FInputEvent(FModifierKeysState(), InUserIndex, bIsRepeat)
-		, EffectingButton(InEffectingButton)
-		, AnalogValue(InAnalogValue)
-	{ }
-
-public:
-	FKey GetEffectingButton() const { return EffectingButton; }
-	float GetAnalogValue() const { return AnalogValue; }
-
-	SLATECORE_API virtual FText ToText() const override;
-
-private:
-	FKey EffectingButton;
-	float AnalogValue;
-};
-
-template<>
-struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase2<FControllerEvent>
 {
 	enum
 	{

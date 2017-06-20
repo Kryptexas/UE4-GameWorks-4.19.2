@@ -122,7 +122,16 @@ struct SActorTreeLabel : FCommonLabelData, public SCompoundWidget
 				SNew(SImage)
 				.Image(this, &SActorTreeLabel::GetIcon)
 				.ToolTipText(this, &SActorTreeLabel::GetIconTooltip)
+			]
+
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SImage)
+				.Image(this, &SActorTreeLabel::GetIconOverlay)
 			];
+
 
 		if (ActorItem.GetSharedData().Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
@@ -218,6 +227,20 @@ private:
 		{
 			return nullptr;
 		}
+	}
+
+	const FSlateBrush* GetIconOverlay() const
+	{
+		static const FName SequencerActorTag(TEXT("SequencerActor"));
+
+		if (const AActor* Actor = ActorPtr.Get())
+		{
+			if (Actor->ActorHasTag(SequencerActorTag))
+			{
+				return FEditorStyle::GetBrush("Sequencer.SpawnableIconOverlay");
+			}
+		}
+		return nullptr;
 	}
 
 	FText GetIconTooltip() const

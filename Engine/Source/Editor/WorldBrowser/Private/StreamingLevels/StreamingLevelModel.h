@@ -7,7 +7,7 @@
 #include "LevelModel.h"
 #include "Layers/Layer.h"
 
-class FAssetData;
+struct FAssetData;
 class FLevelDragDropOp;
 class FStreamingLevelCollectionModel;
 class ULevel;

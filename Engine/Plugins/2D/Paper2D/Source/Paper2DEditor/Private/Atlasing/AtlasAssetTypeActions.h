@@ -6,7 +6,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions_Base.h"
 
-class FAssetData;
+struct FAssetData;
 
 class FAtlasAssetTypeActions : public FAssetTypeActions_Base
 {

@@ -94,9 +94,14 @@ public:
 	/**
 	 * Adds an external property root node to the list of root nodes that the details new needs to manage
 	 *
-	 * @param InExternalRootNode	The node to add
+	 * @param InExternalRootNode		The node to add
 	 */
-	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) = 0;
+	virtual void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) = 0;
+
+	/**
+	 * @return Whether or not a root property node is an exteranl root node
+	 */
+	virtual bool IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const = 0;
 
 	/**
 	 * Creates the color picker window for this property view.
@@ -129,4 +134,8 @@ public:
 
 	/** @return the customization instance that defines how the display for a root object looks */
 	virtual TSharedPtr<class IDetailRootObjectCustomization> GetRootObjectCustomization() const = 0;
+
+	/** Runs the details customization update on a root property node */
+	virtual void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, struct FDetailLayoutData& LayoutData) = 0;
+
 };

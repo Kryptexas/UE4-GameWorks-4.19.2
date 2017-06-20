@@ -16,7 +16,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/TextRenderComponent.h"
-#include "Components/StaticMeshComponent.h"
+#include "VIGizmoHandleMeshComponent.h"
 #include "Math/UnitConversion.h"
 #include "ViewportInteractionDragOperations.h"
 
@@ -282,7 +282,7 @@ UPivotRotationGizmoHandleGroup::UPivotRotationGizmoHandleGroup() :
 		RootFullRotationHandleComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootFullRotationHandleComponent"));
 		RootFullRotationHandleComponent->SetMobility(EComponentMobility::Movable);
 		RootFullRotationHandleComponent->SetupAttachment(this);
-
+	
 		UStaticMesh* FullRotationHandleMesh = AssetContainer.RotationHandleSelectedMesh;
 		check(FullRotationHandleMesh != nullptr);
 
@@ -298,7 +298,7 @@ UPivotRotationGizmoHandleGroup::UPivotRotationGizmoHandleGroup() :
 
 		//Start rotation indicator
 		RootStartRotationIdicatorComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootStartRotationIndicator"));
-		StartRotationIndicatorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StartRotationIndicator"));
+		StartRotationIndicatorMeshComponent = CreateDefaultSubobject<UGizmoHandleMeshComponent>(TEXT("StartRotationIndicator"));
 		SetupIndicator(RootStartRotationIdicatorComponent, StartRotationIndicatorMeshComponent, RotationHandleIndicatorMesh);
 	}
 
@@ -308,7 +308,7 @@ UPivotRotationGizmoHandleGroup::UPivotRotationGizmoHandleGroup() :
 
 		//Delta rotation indicator
 		RootDeltaRotationIndicatorComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootDeltaRotationIndicator"));
-		DeltaRotationIndicatorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DeltaRotationIndicator"));
+		DeltaRotationIndicatorMeshComponent = CreateDefaultSubobject<UGizmoHandleMeshComponent>(TEXT("DeltaRotationIndicator"));
 		SetupIndicator(RootDeltaRotationIndicatorComponent, DeltaRotationIndicatorMeshComponent, RotationHandleIndicatorMesh);
 	}
 
@@ -495,7 +495,7 @@ void UPivotRotationGizmoHandleGroup::ShowRotationVisuals(const bool bInShow)
 	DeltaRotationIndicatorMeshComponent->SetVisibility(bInShow);
 }
 
-void UPivotRotationGizmoHandleGroup::SetupIndicator(USceneComponent* RootComponent, UStaticMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh)
+void UPivotRotationGizmoHandleGroup::SetupIndicator(USceneComponent* RootComponent, UGizmoHandleMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh)
 {
 	RootComponent->SetMobility(EComponentMobility::Movable);
 	RootComponent->SetupAttachment(FullRotationHandleMeshComponent);

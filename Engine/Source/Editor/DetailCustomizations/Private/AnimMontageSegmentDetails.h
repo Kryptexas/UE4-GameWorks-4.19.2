@@ -12,7 +12,7 @@
 #include "EditorViewportClient.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 
-class FAssetData;
+struct FAssetData;
 class FSceneViewport;
 class IDetailLayoutBuilder;
 class IPropertyHandle;

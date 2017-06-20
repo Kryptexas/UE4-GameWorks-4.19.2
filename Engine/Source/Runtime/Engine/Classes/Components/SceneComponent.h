@@ -155,7 +155,7 @@ public:
 	uint32 bVisible:1;
 
 	/** Whether to hide the primitive in game, if the primitive is Visible. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering, meta=(SequencerTrackClass = "MovieSceneVisibilityTrack"))
 	uint32 bHiddenInGame:1;
 
 	/**

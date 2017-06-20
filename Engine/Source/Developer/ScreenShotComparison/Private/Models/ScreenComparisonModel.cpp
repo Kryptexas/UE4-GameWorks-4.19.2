@@ -123,6 +123,8 @@ bool FScreenComparisonModel::Replace(IScreenShotManagerPtr ScreenshotManager)
 		//TODO Error
 	}
 
+	SourceControlFiles.Reset();
+
 	for ( const FFileMapping& Import : FileImports )
 	{
 		FString DestFilePath = LocalApprovedFolder / Import.DestinationFile;
@@ -147,43 +149,34 @@ bool FScreenComparisonModel::Replace(IScreenShotManagerPtr ScreenshotManager)
 
 bool FScreenComparisonModel::RemoveExistingApproved(IScreenShotManagerPtr ScreenshotManager)
 {
-	TArray<FString> FilesToRemove;
-
-	FString PlatformFolder = Report.ReportFolder;
-	IFileManager::Get().FindFilesRecursive(FilesToRemove, *PlatformFolder, TEXT("*.*"), true, false);
-
-	// Copy files to the approved
-	const FString& LocalApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
-	const FString ImportApprovedRoot = Report.ReportFolder / TEXT("");
-
-	TArray<FString> SourceControlFiles;
-
-	for ( const FString& File : FilesToRemove )
+	FString RelativeReportFolder = Report.ReportFolder;
+	if (FPaths::MakePathRelativeTo(RelativeReportFolder, *Report.ReportRootDirectory))
 	{
-		FString RelativeFile = File;
-		FPaths::MakePathRelativeTo(RelativeFile, *ImportApprovedRoot);
+		TArray<FString> SourceControlFiles;
 
-		FString DestFilePath = LocalApprovedFolder / RelativeFile;
-		SourceControlFiles.Add(DestFilePath);
+		const FString& LocalApprovedFolder = ScreenshotManager->GetLocalApprovedFolder() / RelativeReportFolder;
+		IFileManager::Get().FindFilesRecursive(SourceControlFiles, *LocalApprovedFolder, TEXT("*.*"), true, false, false);
+
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+		if (SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlFiles) == ECommandResult::Failed)
+		{
+			//TODO Error
+		}
+
+		if (SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), SourceControlFiles) == ECommandResult::Failed)
+		{
+			//TODO Error
+		}
+
+		for (const FString& File : SourceControlFiles)
+		{
+			IFileManager::Get().Delete(*File, false, true, false);
+		}
+
+		return true;
 	}
 
-	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlFiles) == ECommandResult::Failed )
-	{
-		//TODO Error
-	}
-
-	for ( const FString& File : SourceControlFiles )
-	{
-		IFileManager::Get().Delete(*File, false, true, false);
-	}
-
-	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), SourceControlFiles) == ECommandResult::Failed )
-	{
-		//TODO Error
-	}
-
-	return true;
+	return false;
 }
 
 bool FScreenComparisonModel::AddAlternative(IScreenShotManagerPtr ScreenshotManager)

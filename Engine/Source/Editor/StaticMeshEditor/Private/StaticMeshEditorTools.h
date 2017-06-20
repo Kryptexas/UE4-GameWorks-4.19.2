@@ -17,7 +17,7 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "IDetailCustomNodeBuilder.h"
 
-class FAssetData;
+struct FAssetData;
 class FAssetThumbnailPool;
 class FDetailWidgetRow;
 class FLevelOfDetailSettingsLayout;
@@ -390,7 +390,6 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex) const;
 	FText GetMaterialNameText(int32 MaterialIndex) const;
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
-	void OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex);
 	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
 	void OnDeleteMaterialSlot(int32 MaterialIndex);
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);

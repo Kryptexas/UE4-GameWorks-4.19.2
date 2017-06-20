@@ -83,7 +83,7 @@ FVector2D SVisualLoggerTimelineBar::ComputeDesiredSize(float) const
 	return FVector2D(5000.0f, 20.0f);
 }
 
-int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	//@TODO: Optimize it like it was with old LogVisualizer, to draw everything much faster (SebaK)
 	int32 RetLayerId = LayerId;
@@ -95,7 +95,7 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 	float LocalScrubPosition = TimeSliderController->GetTimeSliderArgs().ScrubPosition.Get();
 
 	float ViewRange = LocalViewRange.Size<float>();
-	float PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : 0;
+	float PixelsPerInput = ViewRange > 0 ? AllottedGeometry.GetLocalSize().X / ViewRange : 0;
 	float CurrentScrubLinePos = (LocalScrubPosition - LocalViewRange.GetLowerBoundValue()) * PixelsPerInput;
 	float BoxWidth = FMath::Max(0.08f * PixelsPerInput, 4.0f);
 
@@ -105,7 +105,6 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 		RetLayerId++,
 		AllottedGeometry.ToPaintGeometry(),
 		FLogVisualizerStyle::Get().GetBrush("Sequencer.SectionArea.Background"),
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		TimelineOwner.Pin()->IsSelected() ? FLinearColor(.2f, .2f, .2f, 0.5f) : FLinearColor(.1f, .1f, .1f, 0.5f)
 		);
@@ -197,7 +196,6 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 				FVector2D(StartPos, 0.0f),
 				FVector2D(BarWidth, AllottedGeometry.Size.Y)),
 				FillImage,
-				MyClippingRect,
 				DrawEffects,
 				CurrentTimeColor
 				);
@@ -215,9 +213,8 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 			RetLayerId,
 			AllottedGeometry.ToPaintGeometry(
 			FVector2D(LinePos - 3, 0.0f),
-			FVector2D(6, AllottedGeometry.Size.Y)),
+			FVector2D(6, AllottedGeometry.GetLocalSize().Y)),
 			FillImage,
-			MyClippingRect,
 			DrawEffects,
 			WarningTimeColor
 			);
@@ -233,9 +230,8 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 			RetLayerId,
 			AllottedGeometry.ToPaintGeometry(
 			FVector2D(LinePos - 3, 0.0f),
-			FVector2D(6, AllottedGeometry.Size.Y)),
+			FVector2D(6, AllottedGeometry.GetLocalSize().Y)),
 			FillImage,
-			MyClippingRect,
 			DrawEffects,
 			ErrorTimeColor
 			);
@@ -254,9 +250,8 @@ int32 SVisualLoggerTimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry&
 			++RetLayerId,
 			AllottedGeometry.ToPaintGeometry(
 			FVector2D(LinePos - 2, 0.0f),
-			FVector2D(4, AllottedGeometry.Size.Y)),
+			FVector2D(4, AllottedGeometry.GetLocalSize().Y)),
 			SelectedFillImage,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			SelectedBarColor
 			);

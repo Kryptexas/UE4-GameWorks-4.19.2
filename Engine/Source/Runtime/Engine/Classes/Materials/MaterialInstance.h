@@ -476,7 +476,7 @@ protected:
 	/** Allow resource to access private members. */
 	friend class FMaterialInstanceResource;
 	/** Editor-only access to private members. */
-	friend class FMaterialEditor;
+	friend class UMaterialEditingLibrary;
 	/** Class that knows how to update MI's */
 	friend class FMaterialUpdateContext;
 };

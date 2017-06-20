@@ -51,7 +51,7 @@ protected:
 
 	/** The Section name, is the short name for the settings.  If not filled in, will be the FName of the class. */
 	FName SectionName;
-
+	
 #if WITH_EDITOR
 
 	/** Populates all properties that have 'ConsoleVariable' meta data with the respective console variable values */

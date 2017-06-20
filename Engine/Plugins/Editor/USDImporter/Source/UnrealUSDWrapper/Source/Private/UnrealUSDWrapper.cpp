@@ -480,18 +480,44 @@ public:
 
 				GeomData->FaceMaterialIndices.resize(GeomData->FaceVertexCounts.size());
 				memset(&GeomData->FaceMaterialIndices[0], 0, sizeof(int)*GeomData->FaceMaterialIndices.size());
-				// There is always at least one material
-				GeomData->NumMaterials = 1;
-
+			
 				// Figure out a zero based mateiral index for each face.  The mapping is FaceMaterialIndices[FaceIndex] = MaterialIndex;
 				// This is done by walking the face sets and for each face set getting the number number of unique groups of faces in the set
 				// Each one of these groups represents a material index for that face set.  If there are multiple face sets the material index is offset by the face set index
 				// Once the groups of faces are determined, walk the indices for the total number of faces in each group.  Each element in the face indices array represents a single global face index
 				// Assign the current material index to it
 
+				// @todo USD/Unreal.  This is probably wrong for multiple face sets.  They don't make a ton of sense for unreal as there can only be one "set" of materials at once and there is no construct in the engine for material sets
+			
+				//GeomData->MaterialNames.resize(FaceSets)
 				for (int FaceSetIdx = 0; FaceSetIdx < FaceSets.size(); ++FaceSetIdx)
 				{
 					const UsdGeomFaceSetAPI& FaceSet = FaceSets[FaceSetIdx];
+					
+					SdfPathVector BindingTargets;
+					FaceSet.GetBindingTargets(&BindingTargets);
+
+					
+					UsdStageWeakPtr Stage = Prim.GetStage();
+					for(const SdfPath& Path : BindingTargets)
+					{
+						// load each material at the material path; 
+						UsdPrim MaterialPrim = Stage->Load(Path);
+
+						// Default to using the prim path name as the path for this material in Unreal
+						std::string MaterialName = MaterialPrim.GetName().GetString();
+
+						// See if the material has an "unrealAssetPath" attribute.  This should be the full name of the material
+						static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
+						UsdAttribute UnrealAssetPathAttr = MaterialPrim.GetAttribute(AssetPathToken);
+						if (UnrealAssetPathAttr.HasValue())
+						{
+							UnrealAssetPathAttr.Get(&MaterialName);
+						}
+
+						GeomData->MaterialNames.push_back(MaterialName);
+
+					}
 					// Faces must be mutually exclusive
 					if (FaceSet.GetIsPartition())
 					{
@@ -511,7 +537,6 @@ public:
 						{
 							int MaterialIdx = FaceSetIdx * FaceSets.size() + FaceCountIdx;
 
-							GeomData->NumMaterials = MaterialIdx + 1;
 
 							// Number of faces with the material index
 							int FaceCount = FaceCounts[FaceCountIdx];

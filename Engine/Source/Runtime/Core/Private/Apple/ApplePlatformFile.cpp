@@ -578,7 +578,7 @@ bool FApplePlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 				
 			// Figure out whether it's a directory. Some protocols (like NFS) do not voluntarily return this as part of the directory entry, and need to be queried manually.
 			bool bIsDirectory = (InEntry->d_type == DT_DIR);
-			if (InEntry->d_type == DT_UNKNOWN)
+			if (InEntry->d_type == DT_UNKNOWN || InEntry->d_type == DT_LNK)
 			{
 				struct stat StatInfo;
 				if (stat(TCHAR_TO_UTF8(*(NormalizedDirectoryStr / NormalizedFilename)), &StatInfo) == 0)

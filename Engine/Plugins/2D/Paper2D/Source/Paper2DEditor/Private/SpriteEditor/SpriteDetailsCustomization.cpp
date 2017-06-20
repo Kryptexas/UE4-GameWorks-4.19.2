@@ -291,7 +291,7 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 	
 	if (BodySetupList.Num() > 0)
 	{
-		IDetailPropertyRow* DefaultInstanceRow = CollisionCategory.AddExternalProperty(BodySetupList, GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
+		IDetailPropertyRow* DefaultInstanceRow = CollisionCategory.AddExternalObjectProperty(BodySetupList, GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
 		if (DefaultInstanceRow != nullptr)
 		{
 			DefaultInstanceRow->Visibility(ParticipatesInPhysics);
@@ -371,7 +371,7 @@ void FSpriteDetailsCustomization::BuildTextureSection(IDetailCategoryBuilder& Sp
 
 void FSpriteDetailsCustomization::GenerateAdditionalTextureWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	IDetailPropertyRow& TextureRow = ChildrenBuilder.AddChildProperty(PropertyHandle);
+	IDetailPropertyRow& TextureRow = ChildrenBuilder.AddProperty(PropertyHandle);
 
 	FText ExtraText;
 	if (FText* pExtraText = AdditionalTextureLabels.Find(ArrayIndex))

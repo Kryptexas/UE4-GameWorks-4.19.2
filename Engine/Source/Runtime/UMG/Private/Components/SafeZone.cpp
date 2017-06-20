@@ -104,7 +104,7 @@ TSharedRef<SWidget> USafeZone::RebuildWidget()
 			GetChildAt( 0 ) ? GetChildAt( 0 )->TakeWidget() : SNullWidget::NullWidget
 		];
 
-	return BuildDesignTimeWidget( MySafeZone.ToSharedRef() );
+	return MySafeZone.ToSharedRef();
 }
 
 void USafeZone::ReleaseSlateResources(bool bReleaseChildren)

@@ -54,7 +54,7 @@ void FNavAgentSelectorCustomization::CustomizeChildren(TSharedRef<class IPropert
 			if (AgentIdx >= 0 && AgentIdx < NumAgents)
 			{
 				FText PropName = FText::FromName(DefNavSys->GetSupportedAgents()[AgentIdx].Name);
-				StructBuilder.AddChildContent(PropName)
+				StructBuilder.AddCustomRow(PropName)
 					.NameContent()
 					[
 						SNew(STextBlock)
@@ -70,7 +70,7 @@ void FNavAgentSelectorCustomization::CustomizeChildren(TSharedRef<class IPropert
 			continue;
 		}
 
-		StructBuilder.AddChildProperty(PropHandle.ToSharedRef());
+		StructBuilder.AddProperty(PropHandle.ToSharedRef());
 	}
 }
 

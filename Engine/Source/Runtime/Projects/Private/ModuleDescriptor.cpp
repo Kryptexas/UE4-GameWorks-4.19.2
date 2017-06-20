@@ -457,27 +457,23 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, const TArray<FModuleDescriptor>& Modules, TMap<FName, EModuleLoadResult>& ModuleLoadErrors)
 {
 	FScopedSlowTask SlowTask(Modules.Num());
-	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	for (int Idx = 0; Idx < Modules.Num(); Idx++)
 	{
 		SlowTask.EnterProgressFrame(1);
 		const FModuleDescriptor& Descriptor = Modules[Idx];
 
 		// Don't need to do anything if this module is already loaded
-		if( !FModuleManager::Get().IsModuleLoaded( Descriptor.Name ) )
+		if (!FModuleManager::Get().IsModuleLoaded(Descriptor.Name))
 		{
-			if( LoadingPhase == Descriptor.LoadingPhase && Descriptor.IsLoadedInCurrentConfiguration() )
+			if (LoadingPhase == Descriptor.LoadingPhase && Descriptor.IsLoadedInCurrentConfiguration())
 			{
 				// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
 
 				// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
 				//       that are part of this project or plugin.  That's totally fine.
 				EModuleLoadResult FailureReason;
-				const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( Descriptor.Name, FailureReason );
-				if( ModuleInterface.IsValid() )
-				{
-					// Module loaded OK (or was already loaded.)
-				}
-				else 
+				IModuleInterface* ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason(Descriptor.Name, FailureReason);
+				if (ModuleInterface == nullptr)
 				{
 					// The module failed to load. Note this in the ModuleLoadErrors list.
 					ModuleLoadErrors.Add(Descriptor.Name, FailureReason);
@@ -503,4 +499,3 @@ bool FModuleDescriptor::CheckModuleCompatibility(const TArray<FModuleDescriptor>
 }
 
 #undef LOCTEXT_NAMESPACE
-

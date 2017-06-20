@@ -12,17 +12,27 @@ DECLARE_CYCLE_STAT(TEXT("Spawn Track Token Execute"), MovieSceneEval_SpawnTrack_
 /** A movie scene pre-animated token that stores a pre-animated transform */
 struct FSpawnTrackPreAnimatedTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
+	FMovieSceneEvaluationOperand Operand;
+	FSpawnTrackPreAnimatedTokenProducer(FMovieSceneEvaluationOperand InOperand) : Operand(InOperand) {}
+
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
 		struct FToken : IMovieScenePreAnimatedToken
 		{
+			FMovieSceneEvaluationOperand OperandToDestroy;
+			FToken(FMovieSceneEvaluationOperand InOperand) : OperandToDestroy(InOperand) {}
+
 			virtual void RestoreState(UObject& InObject, IMovieScenePlayer& Player) override
 			{
-				Player.GetSpawnRegister().DestroyObjectDirectly(InObject);
+				bool bDestroyed = Player.GetSpawnRegister().DestroySpawnedObject(OperandToDestroy.ObjectBindingID, OperandToDestroy.SequenceID, Player);
+				if (!bDestroyed)
+				{
+					Player.GetSpawnRegister().DestroyObjectDirectly(InObject);
+				}
 			}
 		};
 		
-		return FToken();
+		return FToken(Operand);
 	}
 };
 
@@ -54,7 +64,7 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 			{
 				if (UObject* ObjectPtr = Object.Get())
 				{
-					Player.SavePreAnimatedState(*ObjectPtr, FMovieSceneSpawnSectionTemplate::GetAnimTypeID(), FSpawnTrackPreAnimatedTokenProducer());
+					Player.SavePreAnimatedState(*ObjectPtr, FMovieSceneSpawnSectionTemplate::GetAnimTypeID(), FSpawnTrackPreAnimatedTokenProducer(Operand));
 				}
 			}
 		}

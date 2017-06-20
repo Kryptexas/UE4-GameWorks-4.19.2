@@ -10,6 +10,7 @@
 #include "Containers/Map.h"
 #include "UObject/NameTypes.h"
 #include "Templates/SharedPointer.h"
+#include "Templates/UniquePtr.h"
 #include "Delegates/Delegate.h"
 #include "Misc/Optional.h"
 #include "Misc/CoreMisc.h"
@@ -133,7 +134,7 @@ public:
 	 * @return 	The module, or nullptr if the module is not loaded.
 	 * @see GetModuleChecked, GetModulePtr
 	 */
-	TSharedPtr<IModuleInterface> GetModule( const FName InModuleName );
+	IModuleInterface* GetModule( const FName InModuleName );
 
 	/**
 	 * Checks whether the specified module is currently loaded.
@@ -154,7 +155,7 @@ public:
 	 * @return The loaded module, or nullptr if the load operation failed.
 	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
 	 */
-	TSharedPtr<IModuleInterface> LoadModule( const FName InModuleName, const bool bWasReloaded = false );
+	IModuleInterface* LoadModule( const FName InModuleName, const bool bWasReloaded = false );
 
 	/**
 	 * Loads the specified module, checking to ensure it exists.
@@ -164,7 +165,7 @@ public:
 	 * @return The loaded module, or nullptr if the load operation failed.
 	 * @see AbandonModule, IsModuleLoaded, LoadModuleChecked, LoadModulePtr, LoadModuleWithFailureReason, UnloadModule
 	 */
-	TSharedPtr<IModuleInterface> LoadModuleChecked( const FName InModuleName, const bool bWasReloaded = false );
+	IModuleInterface& LoadModuleChecked( const FName InModuleName, const bool bWasReloaded = false );
 
 	/**
 	 * Loads a module in memory then calls PostLoad.
@@ -185,7 +186,7 @@ public:
 	 * @return The loaded module (null if the load operation failed).
 	 * @see AbandonModule, IsModuleLoaded, LoadModule, LoadModuleChecked, LoadModulePtr, UnloadModule
 	 */
-	TSharedPtr<IModuleInterface> LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, const bool bWasReloaded = false );
+	IModuleInterface* LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, const bool bWasReloaded = false );
 
 	/**
 	 * Queries information about a specific module name.
@@ -276,7 +277,7 @@ public:
 			return nullptr;
 		}
 
-		return static_cast<TModuleInterface*>(ModuleManager.GetModule(ModuleName).Get());
+		return static_cast<TModuleInterface*>(ModuleManager.GetModule(ModuleName));
 	}
 
 	/**
@@ -290,22 +291,10 @@ public:
 	  * @see GetModulePtr, LoadModulePtr, LoadModuleChecked
 	  */
 	template<typename TModuleInterface>
-	static TModuleInterface& LoadModuleChecked( const FName ModuleName )
+	static TModuleInterface& LoadModuleChecked( const FName InModuleName)
 	{
-		FModuleManager& ModuleManager = FModuleManager::Get();
-
-		if (!ModuleManager.IsModuleLoaded(ModuleName))
-		{
-			ModuleManager.LoadModule(ModuleName);
-		}
-		else
-		{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			WarnIfItWasntSafeToLoadHere(ModuleName);
-#endif
-		}
-
-		return GetModuleChecked<TModuleInterface>(ModuleName);
+		IModuleInterface& ModuleInterface = FModuleManager::Get().LoadModuleChecked(InModuleName);
+		return (TModuleInterface&)(ModuleInterface);
 	}
 
 	/**
@@ -316,22 +305,9 @@ public:
 	  * @see GetModulePtr, GetModuleChecked, LoadModuleChecked
 	  */
 	template<typename TModuleInterface>
-	static TModuleInterface* LoadModulePtr( const FName ModuleName )
+	static TModuleInterface* LoadModulePtr( const FName InModuleName)
 	{
-		FModuleManager& ModuleManager = FModuleManager::Get();
-
-		if (!ModuleManager.IsModuleLoaded(ModuleName))
-		{
-			ModuleManager.LoadModule(ModuleName);
-		}
-		else
-		{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			WarnIfItWasntSafeToLoadHere(ModuleName);
-#endif
-		}
-
-		return GetModulePtr<TModuleInterface>(ModuleName);
+		return static_cast<TModuleInterface*>(FModuleManager::Get().LoadModule(InModuleName));
 	}
 
 public:
@@ -522,7 +498,7 @@ protected:
 		void* Handle;
 
 		/** The module object for this module.  We actually *own* this module, so it's lifetime is controlled by the scope of this shared pointer. */
-		TSharedPtr< IModuleInterface > Module;
+		TUniquePtr<IModuleInterface> Module;
 
 		/** True if this module was unloaded at shutdown time, and we never want it to be loaded again */
 		bool bWasUnloadedAtShutdown;
@@ -537,10 +513,14 @@ protected:
 
 		/** Constructor */
 		FModuleInfo()
-			: Handle( nullptr ),
-			  bWasUnloadedAtShutdown( false ),
-			  LoadOrder(CurrentLoadOrder++)
+			: Handle(nullptr)
+			, bWasUnloadedAtShutdown(false)
+			, LoadOrder(CurrentLoadOrder++)
 		{ }
+
+		~FModuleInfo()
+		{
+		}
 	};
 
 	typedef TSharedPtr<FModuleInfo, ESPMode::ThreadSafe> ModuleInfoPtr;
