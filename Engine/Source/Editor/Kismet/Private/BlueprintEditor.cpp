@@ -7516,34 +7516,37 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 		FocusedGraphEdPtr.Pin()->NotifyPostPropertyChange(PropertyChangedEvent, PropertyName);
 	}
 	
-	UBlueprint* Blueprint = GetBlueprintObj();
-	UPackage* BlueprintPackage = Blueprint->GetOutermost();
-
-	// if any of the objects being edited are in our package, mark us as dirty
-	bool bPropertyInBlueprint = false;
-	for (int32 ObjectIndex = 0; ObjectIndex < PropertyChangedEvent.GetNumObjectsBeingEdited(); ++ObjectIndex)
+	if (IsEditingSingleBlueprint())
 	{
-		const UObject* Object = PropertyChangedEvent.GetObjectBeingEdited(ObjectIndex);
-		if (Object && Object->GetOutermost() == BlueprintPackage)
-		{
-			bPropertyInBlueprint = true;
-			break;
-		}
-	}
+		UBlueprint* Blueprint = GetBlueprintObj();
+		UPackage* BlueprintPackage = Blueprint->GetOutermost();
 
-	if (bPropertyInBlueprint)
-	{
-		// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
-		if (IsEditingSingleBlueprint() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+		// if any of the objects being edited are in our package, mark us as dirty
+		bool bPropertyInBlueprint = false;
+		for (int32 ObjectIndex = 0; ObjectIndex < PropertyChangedEvent.GetNumObjectsBeingEdited(); ++ObjectIndex)
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
-
-			// Call PostEditChange() on any Actors that might be based on this Blueprint
-			FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+			const UObject* Object = PropertyChangedEvent.GetObjectBeingEdited(ObjectIndex);
+			if (Object && Object->GetOutermost() == BlueprintPackage)
+			{
+				bPropertyInBlueprint = true;
+				break;
+			}
 		}
 
-		// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
-		UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+		if (bPropertyInBlueprint)
+		{
+			// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
+			if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
+
+				// Call PostEditChange() on any Actors that might be based on this Blueprint
+				FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+			}
+
+			// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
+			UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+		}
 	}
 }
 
