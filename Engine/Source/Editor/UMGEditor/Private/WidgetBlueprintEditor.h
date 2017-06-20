@@ -235,7 +235,7 @@ private:
 	void OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
 
 	/** Populates the sequencer add submenu for the big list of widgets. */
-	void OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
+	void OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder);
 
 	/** Adds the supplied UObject to the current animation. */
 	void AddObjectToAnimation(UObject* ObjectToAnimate);

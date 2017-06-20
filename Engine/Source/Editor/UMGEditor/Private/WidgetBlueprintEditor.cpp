@@ -1046,14 +1046,14 @@ void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuil
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("AllNamedWidgets", "All Named Widgets"),
 			LOCTEXT("AllNamedWidgetsTooltip", "Select a widget or slot to create an animation track for"),
-			FNewMenuDelegate::CreateRaw(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets, InSequencer),
+			FNewMenuDelegate::CreateRaw(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets),
 			false,
 			FSlateIcon()
 		);
 	}
 }
 
-void FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
+void FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.AddSearchWidget();
 
