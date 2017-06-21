@@ -271,6 +271,11 @@ namespace UnrealBuildTool
 				AddDefinition(Arguments, "_WINDLL");
 			}
 
+            // Fix Incredibuild errors with helpers using heterogeneous character sets
+            if (Compiler >= WindowsCompiler.VisualStudio2015)
+            {
+                Arguments.Add("/source-charset:utf-8 /execution-charset:utf-8");
+            }
 
 			//
 			//	Debug
