@@ -9,6 +9,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "StaticLighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "InstancedStaticMesh.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "Misc/FeedbackContext.h"
@@ -270,6 +271,8 @@ struct FLightMapAllocation
 			FMeshMapBuildData* MeshBuildData = Registry->GetMeshBuildData(MapBuildDataId);
 			check(MeshBuildData);
 
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
+
 			// Instances may have been removed since LM allocation.
 			// Instances may have also been shuffled from removes. We do not handle this case.
 			if( InstanceIndex < MeshBuildData->PerInstanceLightmapData.Num() )
@@ -277,12 +280,10 @@ struct FLightMapAllocation
 				// TODO: We currently only support one LOD of static lighting in foliage
 				// Need to create per-LOD instance data to fix that
 				MeshBuildData->PerInstanceLightmapData[InstanceIndex].LightmapUVBias = LightMap->GetCoordinateBias();
+
+				Component->PerInstanceRenderData->UpdateInstanceData(Component, InstanceIndex);
+				Component->MarkRenderStateDirty();
 			}
-
-			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
-
-			Component->ReleasePerInstanceRenderData();
-			Component->MarkRenderStateDirty();
 		}
 	}
 

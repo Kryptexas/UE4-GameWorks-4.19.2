@@ -8,6 +8,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "InstancedStaticMesh.h"
 #include "LightMap.h"
 #include "UObject/Package.h"
 #include "Misc/FeedbackContext.h"
@@ -104,6 +105,8 @@ struct FShadowMapAllocation
 			FMeshMapBuildData* MeshBuildData = Registry->GetMeshBuildData(MapBuildDataId);
 			check(MeshBuildData);
 
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
+
 			// Instances may have been removed since LM allocation.
 			// Instances may have also been shuffled from removes. We do not handle this case.
 			if( InstanceIndex < MeshBuildData->PerInstanceLightmapData.Num() )
@@ -111,12 +114,10 @@ struct FShadowMapAllocation
 				// TODO: We currently only support one LOD of static lighting in foliage
 				// Need to create per-LOD instance data to fix that
 				MeshBuildData->PerInstanceLightmapData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+
+				Component->PerInstanceRenderData->UpdateInstanceData(Component, InstanceIndex);
+				Component->MarkRenderStateDirty();
 			}
-
-			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
-
-			Component->ReleasePerInstanceRenderData();
-			Component->MarkRenderStateDirty();
 		}
 	}
 };
