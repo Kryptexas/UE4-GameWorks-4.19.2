@@ -218,7 +218,7 @@ bool FIndirectLightingCache::AllocateBlock(int32 Size, FIntVector& OutMin)
 	if (Size == 1)
 	{
 		// Assign a min that won't overlap with any of the samples allocated from the volume texture, so we can be added to VolumeBlocks without collisions
-		// This min is not used for anything else for point samples
+		// This min is not used for anything else for point samples		
 		OutMin = FIntVector(NextPointId, 0, 0);
 		NextPointId++;
 		// Point samples don't go through the volume texture, allocation always succeeds
@@ -352,6 +352,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32
 
 		VolumeBlocks.Add(NewBlock.MinTexel, NewBlock);
 		NewAllocation->SetParameters(NewBlock.MinTexel, NewBlock.TexelSize, Scale, Add, MinUV, MaxUV, bPointSample, bUnbuiltPreview);
+		checkf(NewAllocation->AllocationTexelSize > 1 || NewAllocation->bPointSample, TEXT("%i, %i"), NewAllocation->AllocationTexelSize, NewAllocation->bPointSample ? 1 : 0);
 	}
 
 	return NewAllocation;
@@ -592,7 +593,10 @@ bool FIndirectLightingCache::UpdateCacheAllocation(
 {
 	bool bUpdated = false;
 
-	if (Allocation && Allocation->IsValid())
+	if (Allocation 
+		&& Allocation->IsValid()
+		&& Allocation->AllocationTexelSize == BlockSize
+		&& Allocation->bPointSample == bPointSample)
 	{
 		FIndirectLightingCacheBlock& Block = FindBlock(Allocation->MinTexel);
 
