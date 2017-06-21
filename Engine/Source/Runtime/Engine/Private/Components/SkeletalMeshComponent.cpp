@@ -170,17 +170,17 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	ClothMaxDistanceScale = 1.0f;
 	bResetAfterTeleport = true;
 	TeleportDistanceThreshold = 300.0f;
-	TeleportRotationThreshold = 0.0f;// angles in degree, disabled by default
+	TeleportRotationThreshold = 0.0f;	// angles in degree, disabled by default
 	ClothBlendWeight = 1.0f;
 
 	ClothTeleportMode = EClothingTeleportMode::None;
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 
 	// pre-compute cloth teleport thresholds for performance
-	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
-	bBindClothToMasterComponent = false;
+	ComputeTeleportRotationThresholdInRadians();
+	ComputeTeleportDistanceThresholdInRadians();
 
+	bBindClothToMasterComponent = false;
 	bClothingSimulationSuspended = false;
 
 #endif//#if WITH_APEX_CLOTHING
@@ -393,6 +393,28 @@ void USkeletalMeshComponent::UpdateClothTickRegisteredState()
 	RegisterClothTick(PrimaryComponentTick.IsTickFunctionRegistered() && ShouldRunClothTick());
 }
 
+void USkeletalMeshComponent::FinalizePoseEvaluationResult(const USkeletalMesh* InMesh, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FCompactPose& InFinalPose) const
+{
+	OutBoneSpaceTransforms = InMesh->RefSkeleton.GetRefBonePose();
+
+	if(InFinalPose.IsValid() && InFinalPose.GetNumBones() > 0)
+	{
+		InFinalPose.NormalizeRotations();
+
+		for(const FCompactPoseBoneIndex BoneIndex : InFinalPose.ForEachBoneIndex())
+		{
+			FMeshPoseBoneIndex MeshPoseIndex = InFinalPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
+			OutBoneSpaceTransforms[MeshPoseIndex.GetInt()] = InFinalPose[BoneIndex];
+		}
+	}
+	else
+	{
+		OutBoneSpaceTransforms = InMesh->RefSkeleton.GetRefBonePose();
+	}
+
+	OutRootBoneTranslation = OutBoneSpaceTransforms[0].GetTranslation() - InMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
+}
+
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 {
 	IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimClass);
@@ -401,7 +423,11 @@ bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance() const
 		(SkeletalMesh != nullptr) && (SkeletalMesh->Skeleton->IsCompatible(AnimSkeleton)
 		&& AnimSkeleton->IsCompatibleMesh(SkeletalMesh)))
 	{
-		if ( (AnimScriptInstance == nullptr) || (AnimScriptInstance->GetClass() != AnimClass) )
+		// Check for an 'invalid' AnimScriptInstance:
+		// - Could be NULL (in the case of 'standard' first-time initialization)
+		// - Could have a different class (in the case where the active anim BP has changed)
+		// - Could have a different outer (in the case where an actor has been spawned using an existing actor as a template, as the component is shallow copied directly from the template)
+		if ( (AnimScriptInstance == nullptr) || (AnimScriptInstance->GetClass() != AnimClass) || AnimScriptInstance->GetOuter() != this )
 		{
 			return true;
 		}
@@ -588,6 +614,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 			{
 				TickAnimation(0.f, false);
 			}
+
+			OnAnimInitialized.Broadcast();
 		}
 
 		if (bDoRefreshBoneTransform)
@@ -727,6 +755,15 @@ void USkeletalMeshComponent::InitializeComponent()
 	InitAnim(false);
 }
 
+void USkeletalMeshComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	if (AnimScriptInstance)
+	{
+		AnimScriptInstance->BlueprintBeginPlay();
+	}
+}
+
 #if WITH_EDITOR
 void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -824,6 +861,16 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		{
 			AnimationData.ValidatePosition();
 			SetPosition(AnimationData.SavedPosition, false);
+		}
+
+		if ( PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( USkeletalMeshComponent, TeleportDistanceThreshold ) )
+		{
+			ComputeTeleportDistanceThresholdInRadians();
+		}
+
+		if ( PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( USkeletalMeshComponent, TeleportRotationThreshold ) )
+		{
+			ComputeTeleportRotationThresholdInRadians();
 		}
 	}
 }
@@ -1059,6 +1106,13 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 {
 	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
+
+	// If we are suspended, we will not simulate clothing, but as clothing is simulated in local space
+	// relative to a root bone we need to extract simulation positions as this bone could be animated.
+	if(bClothingSimulationSuspended && ClothingSimulation && ClothingSimulation->ShouldSimulate())
+	{
+		ClothingSimulation->GetSimulationData(CurrentSimulationData_GameThread, this, Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()));
+	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
@@ -1446,14 +1500,14 @@ void USkeletalMeshComponent::ComputeRequiredBones(TArray<FBoneIndexType>& OutReq
 	}
 
 	// Ensure that we have a complete hierarchy down to those bones.
-	FAnimationRuntime::EnsureParentsPresent(OutRequiredBones, SkeletalMesh);
+	FAnimationRuntime::EnsureParentsPresent(OutRequiredBones, SkeletalMesh->RefSkeleton);
 
 	OutFillComponentSpaceTransformsRequiredBones.Reset(OutRequiredBones.Num() + NeededBonesForFillComponentSpaceTransforms.Num());
 	OutFillComponentSpaceTransformsRequiredBones = OutRequiredBones;
 
 	NeededBonesForFillComponentSpaceTransforms.Sort();
 	MergeInBoneIndexArrays(OutFillComponentSpaceTransformsRequiredBones, NeededBonesForFillComponentSpaceTransforms);
-	FAnimationRuntime::EnsureParentsPresent(OutFillComponentSpaceTransformsRequiredBones, SkeletalMesh);
+	FAnimationRuntime::EnsureParentsPresent(OutFillComponentSpaceTransformsRequiredBones, SkeletalMesh->RefSkeleton);
 }
 
 void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
@@ -1507,7 +1561,7 @@ bool USkeletalMeshComponent::AreRequiredCurvesUpToDate() const
 	return (!SkeletalMesh || !SkeletalMesh->Skeleton || CachedAnimCurveUidVersion == SkeletalMesh->Skeleton->GetAnimCurveUidVersion());
 }
 
-void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
+void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(SkeletalComponentAnimEvaluate, IsRunningParallelEvaluation());
 
@@ -1521,20 +1575,16 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 		InAnimInstance &&
 		InAnimInstance->ParallelCanEvaluate(InSkeletalMesh))
 	{
-		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutBoneSpaceTransforms, OutCurve);
+		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutBoneSpaceTransforms, OutCurve, OutPose);
 	}
 	else
 	{
-		OutBoneSpaceTransforms = InSkeletalMesh->RefSkeleton.GetRefBonePose();
 		// unfortunately it's possible they might not have skeleton, in that case, we don't have any place to copy the curve from
 		if (InSkeletalMesh->Skeleton)
 		{
 			OutCurve.InitFrom(&InSkeletalMesh->Skeleton->GetDefaultCurveUIDList());
 		}
 	}
-
-	// Remember the root bone's translation so we can move the bounds.
-	OutRootBoneTranslation = OutBoneSpaceTransforms[0].GetTranslation() - InSkeletalMesh->RefSkeleton.GetRefBonePose()[0].GetTranslation();
 }
 
 void USkeletalMeshComponent::UpdateSlaveComponent()
@@ -1597,27 +1647,33 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 		PostProcessAnimInstance->ParallelUpdateAnimation();
 	}
 
+	FMemMark Mark(FMemStack::Get());
+	FCompactPose EvaluatedPose;
+
 	// evaluate pure animations, and fill up BoneSpaceTransforms
-	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve);
-	EvaluatePostProcessMeshInstance(OutBoneSpaceTransforms, OutCurve, InSkeletalMesh, OutRootBoneTranslation);
+	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, EvaluatedPose);
+	EvaluatePostProcessMeshInstance(OutBoneSpaceTransforms, EvaluatedPose, OutCurve, InSkeletalMesh, OutRootBoneTranslation);
+
+	// Finalize the transforms from the evaluation
+	FinalizePoseEvaluationResult(InSkeletalMesh, OutBoneSpaceTransforms, OutRootBoneTranslation, EvaluatedPose);
 
 	// Fill SpaceBases from LocalAtoms
 	FillComponentSpaceTransforms(InSkeletalMesh, OutBoneSpaceTransforms, OutSpaceBases);
 }
 
 
-void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const
+void USkeletalMeshComponent::EvaluatePostProcessMeshInstance(TArray<FTransform>& OutBoneSpaceTransforms, FCompactPose& InOutPose, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const
 {
 	if(PostProcessAnimInstance)
 	{
 		// Push the previous pose to any input nodes required
 		if(FAnimNode_SubInput* InputNode = PostProcessAnimInstance->GetSubInputNode())
 		{
-			InputNode->InputPose.CopyBonesFrom(OutBoneSpaceTransforms);
+			InputNode->InputPose.CopyBonesFrom(InOutPose);
 			InputNode->InputCurve.CopyFrom(OutCurve);
 		}
 
-		EvaluateAnimation(InSkeletalMesh, PostProcessAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve);
+		EvaluateAnimation(InSkeletalMesh, PostProcessAnimInstance, OutBoneSpaceTransforms, OutRootBoneTranslation, OutCurve, InOutPose);
 	}
 }
 
@@ -1638,7 +1694,7 @@ void USkeletalMeshComponent::CompleteParallelClothSimulation()
 	}
 }
 
-void USkeletalMeshComponent::UpdateClothSimulationContext()
+void USkeletalMeshComponent::UpdateClothSimulationContext(float InDeltaTime)
 {
 	//Do the teleport cloth test here on the game thread
 	CheckClothTeleport();
@@ -1657,7 +1713,7 @@ void USkeletalMeshComponent::UpdateClothSimulationContext()
 	// Fill the context for the next simulation
 	if(ClothingSimulation)
 	{
-		ClothingSimulation->FillContext(this, ClothingSimulationContext);
+		ClothingSimulation->FillContext(this, InDeltaTime, ClothingSimulationContext);
 	}
 
 	ClothTeleportMode = EClothingTeleportMode::None;
@@ -2121,8 +2177,7 @@ bool USkeletalMeshComponent::AllocateTransformData()
 	{
 		if(BoneSpaceTransforms.Num() != SkeletalMesh->RefSkeleton.GetNum() )
 		{
-			BoneSpaceTransforms.Empty( SkeletalMesh->RefSkeleton.GetNum() );
-			BoneSpaceTransforms.AddUninitialized( SkeletalMesh->RefSkeleton.GetNum() );
+			BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
 		}
 
 		return true;
@@ -2259,84 +2314,6 @@ bool USkeletalMeshComponent::IsAnySimulatingPhysics() const
 	return false;
 }
 
-/** 
- * Render bones for debug display
- */
-void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) const
-{
-#if ENABLE_DRAW_DEBUG
-	if (GetWorld()->IsGameWorld() && SkeletalMesh && Canvas && MasterPoseComponent == nullptr)
-	{
-		// draw spacebases, we could cache parent bones, but this is mostly debug feature, I'm not caching it right now
-		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
-		{
-			int32 BoneIndex = RequiredBones[Index];
-			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FTransform BoneTM = (GetComponentSpaceTransforms()[BoneIndex] * GetComponentTransform());
-			FVector Start, End;
-			FLinearColor LineColor;
-
-			End = BoneTM.GetLocation();
-
-			if (ParentIndex >=0)
-			{
-				Start = (GetComponentSpaceTransforms()[ParentIndex] * GetComponentTransform()).GetLocation();
-				LineColor = FLinearColor::White;
-			}
-			else
-			{
-				Start = GetComponentTransform().GetLocation();
-				LineColor = FLinearColor::Red;
-			}
-
-			if(bSimpleBones)
-			{
-				DrawDebugCanvasLine(Canvas, Start, End, LineColor);
-			}
-			else
-			{
-				static const float SphereRadius = 1.0f;
-
-				//Calc cone size 
-				FVector EndToStart = (Start-End);
-				float ConeLength = EndToStart.Size();
-				float Angle = FMath::RadiansToDegrees(FMath::Atan(SphereRadius / ConeLength));
-
-				DrawDebugCanvasWireSphere(Canvas, End, LineColor.ToFColor(true), SphereRadius, 10);
-				DrawDebugCanvasWireCone(Canvas, FTransform(FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End)), ConeLength, Angle, 4, LineColor.ToFColor(true));
-			}
-
-			RenderAxisGizmo(BoneTM, Canvas);
-		}
-	}
-#endif // ENABLE_DRAW_DEBUG
-}
-
-// Render a coordinate system indicator
-void USkeletalMeshComponent::RenderAxisGizmo( const FTransform& Transform, UCanvas* Canvas ) const
-{
-#if ENABLE_DRAW_DEBUG
-	// Display colored coordinate system axes for this joint.
-	const float AxisLength = 3.75f;
-	const FVector Origin = Transform.GetLocation();
-
-	// Red = X
-	FVector XAxis = Transform.TransformVector( FVector(1.0f,0.0f,0.0f) );
-	XAxis.Normalize();
-	DrawDebugCanvasLine(Canvas, Origin, Origin + XAxis * AxisLength, FLinearColor( 1.f, 0.3f, 0.3f));		
-
-	// Green = Y
-	FVector YAxis = Transform.TransformVector( FVector(0.0f,1.0f,0.0f) );
-	YAxis.Normalize();
-	DrawDebugCanvasLine(Canvas, Origin, Origin + YAxis * AxisLength, FLinearColor( 0.3f, 1.f, 0.3f));	
-
-	// Blue = Z
-	FVector ZAxis = Transform.TransformVector( FVector(0.0f,0.0f,1.0f) );
-	ZAxis.Normalize();
-	DrawDebugCanvasLine(Canvas, Origin, Origin + ZAxis * AxisLength, FLinearColor( 0.3f, 0.3f, 1.f));	
-#endif // ENABLE_DRAW_DEBUG
-}
-
 void USkeletalMeshComponent::SetMorphTarget(FName MorphTargetName, float Value, bool bRemoveZeroWeight)
 {
 	float *CurveValPtr = MorphTargetCurves.Find(MorphTargetName);
@@ -2434,7 +2411,10 @@ void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMo
 	// even if it was same mode
 	if(SkeletalMesh != nullptr)
 	{
-		InitializeAnimScriptInstance(true);
+		if (InitializeAnimScriptInstance(true))
+		{
+			OnAnimInitialized.Broadcast();
+		}
 	}
 }
 
@@ -2620,12 +2600,30 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 
 FRootMotionMovementParams USkeletalMeshComponent::ConsumeRootMotion()
 {
-	if (AnimScriptInstance)
+	float InterpAlpha = ShouldUseUpdateRateOptimizations() ? AnimUpdateRateParams->GetRootMotionInterp() : 1.f;
+
+	return ConsumeRootMotion_Internal(InterpAlpha);
+}
+
+FRootMotionMovementParams USkeletalMeshComponent::ConsumeRootMotion_Internal(float InAlpha)
+{
+	FRootMotionMovementParams RootMotion;
+	if(AnimScriptInstance)
 	{
-		float InterpAlpha = ShouldUseUpdateRateOptimizations() ? AnimUpdateRateParams->GetRootMotionInterp() : 1.f;
-		return AnimScriptInstance->ConsumeExtractedRootMotion(InterpAlpha);
+		RootMotion.Accumulate(AnimScriptInstance->ConsumeExtractedRootMotion(InAlpha));
+
+		for(UAnimInstance* SubInstance : SubInstances)
+		{
+			RootMotion.Accumulate(SubInstance->ConsumeExtractedRootMotion(InAlpha));
+		}
 	}
-	return FRootMotionMovementParams();
+
+	if(PostProcessAnimInstance)
+	{
+		RootMotion.Accumulate(PostProcessAnimInstance->ConsumeExtractedRootMotion(InAlpha));
+	}
+
+	return RootMotion;
 }
 
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
@@ -3184,6 +3182,38 @@ void USkeletalMeshComponent::SetUpdateAnimationInEditor(const bool NewUpdateStat
 		bUpdateAnimationInEditor = NewUpdateState;
 	}
 	#endif
+}
+
+float USkeletalMeshComponent::GetTeleportRotationThreshold() const
+{
+	return TeleportDistanceThreshold;
+}
+
+void USkeletalMeshComponent::SetTeleportRotationThreshold(float Threshold)
+{
+	TeleportRotationThreshold = Threshold;
+	ComputeTeleportRotationThresholdInRadians();
+}
+
+float USkeletalMeshComponent::GetTeleportDistanceThreshold() const
+{
+	return TeleportDistanceThreshold;
+}
+
+void USkeletalMeshComponent::SetTeleportDistanceThreshold(float Threshold)
+{
+	TeleportDistanceThreshold = Threshold;
+	ComputeTeleportDistanceThresholdInRadians();
+}
+
+void USkeletalMeshComponent::ComputeTeleportRotationThresholdInRadians()
+{
+	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
+}
+
+void USkeletalMeshComponent::ComputeTeleportDistanceThresholdInRadians()
+{
+	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 }
 
 #undef LOCTEXT_NAMESPACE

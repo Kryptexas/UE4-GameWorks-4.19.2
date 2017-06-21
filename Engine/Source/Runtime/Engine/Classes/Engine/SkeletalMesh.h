@@ -203,7 +203,7 @@ struct FSkeletalMeshOptimizationSettings
 	int32 BaseLOD;
 
 	UPROPERTY()
-	class UAnimSequence* BakePose;
+	class UAnimSequence* BakePose_DEPRECATED;
 
 	FSkeletalMeshOptimizationSettings()
 		: ReductionMethod(SMOT_MaxDeviation)
@@ -219,7 +219,7 @@ struct FSkeletalMeshOptimizationSettings
 		, BoneReductionRatio(100.0f)
 		, MaxBonesPerVertex(4)
 		, BaseLOD(0)
-		, BakePose(nullptr)
+		, BakePose_DEPRECATED(nullptr)
 	{
 	}
 
@@ -238,8 +238,7 @@ struct FSkeletalMeshOptimizationSettings
 			&& bRecalcNormals == Other.bRecalcNormals
 			&& BoneReductionRatio == Other.BoneReductionRatio
 			&& MaxBonesPerVertex == Other.MaxBonesPerVertex
-			&& BaseLOD == Other.BaseLOD
-			&& BakePose == Other.BakePose;
+			&& BaseLOD == Other.BaseLOD;
 	}
 
 	/** Inequality. */
@@ -305,14 +304,14 @@ struct FSkeletalMeshLODInfo
 	float LODHysteresis;
 
 	/** Mapping table from this LOD's materials to the USkeletalMesh materials array. */
-	UPROPERTY(EditAnywhere, editfixedsize, Category=SkeletalMeshLODInfo)
+	UPROPERTY()
 	TArray<int32> LODMaterialMap;
 
 	/** Per-section control over whether to enable shadow casting. */
 	UPROPERTY()
 	TArray<bool> bEnableShadowCasting_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, editfixedsize, Category=SkeletalMeshLODInfo)
+	UPROPERTY()
 	TArray<struct FTriangleSortSettings> TriangleSortSettings;
 
 	/** Whether to disable morph targets for this LOD. */
@@ -324,8 +323,16 @@ struct FSkeletalMeshLODInfo
 	FSkeletalMeshOptimizationSettings ReductionSettings;
 
 	/** This has been removed in editor. We could re-apply this in import time or by mesh reduction utilities*/
+	UPROPERTY()
+	TArray<FName> RemovedBones_DEPRECATED;
+
+	/** Bones which should be removed from the skeleton for the LOD level */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	TArray<FName> RemovedBones;
+	TArray<FBoneReference> BonesToRemove;
+
+	/** Pose which should be used to reskin vertex influences for which the bones will be removed in this LOD level, uses ref-pose by default */
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	class UAnimSequence* BakePose;
 
 	/** The filename of the file tha was used to import this LOD if it was not auto generated. */
 	UPROPERTY(VisibleAnywhere, Category= SkeletalMeshLODInfo, AdvancedDisplay)
@@ -338,6 +345,7 @@ struct FSkeletalMeshLODInfo
 		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
+		, BakePose(nullptr)
 		, bHasPerLODVertexColors(false)
 	{
 	}

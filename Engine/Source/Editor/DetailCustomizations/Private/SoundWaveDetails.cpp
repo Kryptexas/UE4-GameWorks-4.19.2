@@ -23,12 +23,6 @@ TSharedRef<IDetailCustomization> FSoundWaveDetails::MakeInstance()
 
 void FSoundWaveDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!GetDefault<UEditorExperimentalSettings>()->bShowAudioStreamingOptions)
-	{
-		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(USoundWave, bStreaming));
-		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(USoundWave, StreamingPriority));
-	}
-
 	CustomizeCurveDetails(DetailBuilder);
 }
 

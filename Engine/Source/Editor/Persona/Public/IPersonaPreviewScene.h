@@ -75,8 +75,11 @@ public:
 	/** Get the animation asset we are previewing */
 	virtual UAnimationAsset* GetPreviewAnimationAsset() const = 0;
 
-	/** Set the preview mesh for this scene (does not set the preview mesh on the skeleton) */
+	/** Set the preview mesh for this scene (does not set the preview mesh on the skeleton/asset) */
 	virtual void SetPreviewMesh(USkeletalMesh* NewPreviewMesh) = 0;
+
+	/** Get the preview mesh for this scene (does go via skeleton/asset) */
+	virtual USkeletalMesh* GetPreviewMesh() const = 0;
 
 	/** Show the reference pose of the displayed skeletal mesh. Otherwise display the default. */
 	virtual void ShowReferencePose(bool bReferencePose) = 0;

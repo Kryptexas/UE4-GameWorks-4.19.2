@@ -9,8 +9,14 @@
 #include "AudioMixerBuffer.h"
 #include "Async/Async.h"
 
+// Toggles using futures for audio tasks
+#define AUDIO_DECODE_USE_FUTURES 0
+
 namespace Audio
 {
+
+#if AUDIO_DECODE_USE_FUTURES
+
 	class FDecodeHandleBase : public IAudioTask
 	{
 	public:
@@ -141,4 +147,197 @@ namespace Audio
 		NewTask->Decode(InJobData);
 		return NewTask;
 	}
+
+#else // #if AUDIO_DECODE_USE_FUTURES
+
+class FAsyncDecodeWorker : public FNonAbandonableTask
+{
+public:
+	FAsyncDecodeWorker(const FHeaderParseAudioTaskData& InTaskData)
+		: HeaderParseAudioData(InTaskData)
+		, TaskType(EAudioTaskType::Header)
+		, bIsDone(false)
+	{
+	}
+
+	FAsyncDecodeWorker(const FProceduralAudioTaskData& InTaskData)
+		: ProceduralTaskData(InTaskData)
+		, TaskType(EAudioTaskType::Procedural)
+		, bIsDone(false)
+	{
+	}
+
+	FAsyncDecodeWorker(const FDecodeAudioTaskData& InTaskData)
+		: DecodeTaskData(InTaskData)
+		, TaskType(EAudioTaskType::Decode)
+		, bIsDone(false)
+	{
+	}
+
+	void DoWork()
+	{
+		switch (TaskType)
+		{
+			case EAudioTaskType::Procedural:
+			{
+				ProceduralResult.NumBytesWritten = ProceduralTaskData.ProceduralSoundWave->GeneratePCMData(ProceduralTaskData.AudioData, ProceduralTaskData.MaxAudioDataSamples);
+			}
+			break;
+
+			case EAudioTaskType::Header:
+			{
+				HeaderParseAudioData.MixerBuffer->ReadCompressedInfo(HeaderParseAudioData.SoundWave);
+			}
+			break;
+
+			case EAudioTaskType::Decode:
+			{
+				// skip the first buffer if we've already decoded them
+				if (DecodeTaskData.bSkipFirstBuffer)
+				{
+#if PLATFORM_ANDROID
+					// Only skip one buffer on Android
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+#else // #if PLATFORM_ANDROID
+					// If we're using cached data we need to skip the first two reads from the data
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+					DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+#endif // #else // #if PLATFORM_ANDROID
+				}
+
+				DecodeResult.bLooped = DecodeTaskData.MixerBuffer->ReadCompressedData(DecodeTaskData.AudioData, DecodeTaskData.NumFramesToDecode, DecodeTaskData.bLoopingMode);
+			}
+			break;
+		}
+		bIsDone = true;
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncDecodeWorker, STATGROUP_ThreadPoolAsyncTasks);
+	}
+
+	FHeaderParseAudioTaskData HeaderParseAudioData;
+	FDecodeAudioTaskData DecodeTaskData;
+	FDecodeAudioTaskResults DecodeResult;
+	FProceduralAudioTaskData ProceduralTaskData;
+	FProceduralAudioTaskResults ProceduralResult;
+	EAudioTaskType TaskType;
+	FThreadSafeBool bIsDone;
+};
+
+class FDecodeHandleBase : public IAudioTask
+{
+public:
+	FDecodeHandleBase()
+		: Task(nullptr)
+	{}
+
+	virtual ~FDecodeHandleBase()
+	{
+		if (Task)
+		{
+			Task->EnsureCompletion();
+			delete Task;
+		}
+	}
+
+	virtual bool IsDone() const override
+	{
+		if (Task)
+		{
+			return Task->IsDone();
+		}
+		return true;
+	}
+
+	virtual void EnsureCompletion() override
+	{
+		if (Task)
+		{
+			Task->EnsureCompletion();
+		}
+	}
+
+protected:
+
+	FAsyncTask<FAsyncDecodeWorker>* Task;
+};
+
+class FHeaderDecodeHandle : public FDecodeHandleBase
+{
+public:
+	FHeaderDecodeHandle(const FHeaderParseAudioTaskData& InJobData)
+	{
+		Task = new FAsyncTask<FAsyncDecodeWorker>(InJobData);
+		Task->StartBackgroundTask();
+	}
+
+	virtual EAudioTaskType GetType() const override
+	{
+		return EAudioTaskType::Header;
+	}
+};
+
+class FProceduralDecodeHandle : public FDecodeHandleBase
+{
+public:
+	FProceduralDecodeHandle(const FProceduralAudioTaskData& InJobData)
+	{
+		Task = new FAsyncTask<FAsyncDecodeWorker>(InJobData);
+		Task->StartBackgroundTask();
+	}
+
+	virtual EAudioTaskType GetType() const override
+	{ 
+		return EAudioTaskType::Procedural; 
+	}
+
+	virtual void GetResult(FProceduralAudioTaskResults& OutResult) override
+	{
+		Task->EnsureCompletion();
+		const FAsyncDecodeWorker& DecodeWorker = Task->GetTask();
+		OutResult = DecodeWorker.ProceduralResult;
+	}
+};
+
+class FDecodeHandle : public FDecodeHandleBase
+{
+public:
+	FDecodeHandle(const FDecodeAudioTaskData& InJobData)
+	{
+		Task = new FAsyncTask<FAsyncDecodeWorker>(InJobData);
+		Task->StartBackgroundTask();
+	}
+
+	virtual EAudioTaskType GetType() const override
+	{ 
+		return EAudioTaskType::Decode; 
+	}
+
+	virtual void GetResult(FDecodeAudioTaskResults& OutResult) override
+	{
+		Task->EnsureCompletion();
+		const FAsyncDecodeWorker& DecodeWorker = Task->GetTask();
+		OutResult = DecodeWorker.DecodeResult;
+	}
+};
+
+IAudioTask* CreateAudioTask(const FProceduralAudioTaskData& InJobData)
+{
+	return new FProceduralDecodeHandle(InJobData);
+}
+
+IAudioTask* CreateAudioTask(const FHeaderParseAudioTaskData& InJobData)
+{
+	return new FHeaderDecodeHandle(InJobData);
+}
+
+IAudioTask* CreateAudioTask(const FDecodeAudioTaskData& InJobData)
+{
+	return new FDecodeHandle(InJobData);
+}
+
+#endif // #else // #if AUDIO_DECODE_USE_FUTURES
+
 }

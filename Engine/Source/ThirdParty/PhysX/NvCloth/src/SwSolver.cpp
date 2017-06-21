@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -70,7 +70,7 @@ cloth::SwSolver::SwSolver()
 
 cloth::SwSolver::~SwSolver()
 {
-	if(mInterCollisionScratchMem)
+	if (mInterCollisionScratchMem)
 		NV_CLOTH_FREE(mInterCollisionScratchMem);
 
 	NV_CLOTH_ASSERT(mSimulatedCloths.empty());
@@ -93,32 +93,60 @@ void sortTasks(shdfnd::Array<T, cloth::NonTrackingAllocator>& tasks)
 
 void cloth::SwSolver::addCloth(Cloth* cloth)
 {
-	SwCloth& swCloth = static_cast<SwClothImpl&>(*cloth).mCloth;
+	SwCloth& swCloth = *static_cast<SwCloth*>(cloth);
 
 	mSimulatedCloths.pushBack(SimulatedCloth(swCloth, this));
 	sortTasks(mSimulatedCloths);
+
+	mCloths.pushBack(&swCloth);
 }
 
 void cloth::SwSolver::removeCloth(Cloth* cloth)
 {
-	SwCloth& swCloth = static_cast<SwClothImpl&>(*cloth).mCloth;
+	SwCloth& swCloth = *static_cast<SwCloth*>(cloth);
 
-	Vector<SimulatedCloth>::Type::Iterator tIt = mSimulatedCloths.begin();
-	Vector<SimulatedCloth>::Type::Iterator tEnd = mSimulatedCloths.end();
-	while(tIt != tEnd && tIt->mCloth != &swCloth)
-		++tIt;
-
-	if(tIt != tEnd)
+	//Remove from mSimulatedCloths
 	{
-		NV_CLOTH_FREE(tIt->mScratchMemory);
-		mSimulatedCloths.replaceWithLast(tIt);
-		sortTasks(mSimulatedCloths);
+		Vector<SimulatedCloth>::Type::Iterator tIt = mSimulatedCloths.begin();
+		Vector<SimulatedCloth>::Type::Iterator tEnd = mSimulatedCloths.end();
+		while(tIt != tEnd && tIt->mCloth != &swCloth)
+			++tIt;
+
+		if(tIt != tEnd)
+		{
+			NV_CLOTH_FREE(tIt->mScratchMemory);
+			mSimulatedCloths.replaceWithLast(tIt);
+			sortTasks(mSimulatedCloths);
+		}
 	}
+
+	//Remove from mCloths
+	{
+		ClothVector::Iterator tEnd = mCloths.end();
+		ClothVector::Iterator it = mCloths.find(&swCloth);
+
+		if(it != tEnd)
+		{
+			mCloths.replaceWithLast(it);
+		}
+	}
+}
+
+int cloth::SwSolver::getNumCloths() const
+{
+	return mCloths.size();
+}
+cloth::Cloth * const * cloth::SwSolver::getClothList() const
+{
+	if(getNumCloths())
+		return reinterpret_cast<Cloth* const*>(&mCloths[0]);
+	else
+		return nullptr;
 }
 
 bool cloth::SwSolver::beginSimulation(float dt)
 {
-	if(mSimulatedCloths.empty())
+	if (mSimulatedCloths.empty())
 		return false;
 
 	mCurrentDt = dt;
@@ -146,9 +174,9 @@ int cloth::SwSolver::getSimulationChunkCount() const
 
 void cloth::SwSolver::interCollision()
 {
-	if(!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
+	if (!mInterCollisionIterations || mInterCollisionDistance == 0.0f)
 		return;
-	if(mInterCollisionFilter == nullptr)
+	if (mInterCollisionFilter == nullptr)
 	{
 		NV_CLOTH_LOG_WARNING("Inter collision will not work unless an inter collision filter is set using Solver::setInterCollisionFilter.");
 		return;
@@ -158,7 +186,7 @@ void cloth::SwSolver::interCollision()
 
 	// rebuild cloth instance array
 	mInterCollisionInstances.resize(0);
-	for(uint32_t i = 0; i < mSimulatedCloths.size(); ++i)
+	for (uint32_t i = 0; i < mSimulatedCloths.size(); ++i)
 	{
 		SwCloth* c = mSimulatedCloths[i].mCloth;
 		float invNumIterations = mSimulatedCloths[i].mInvNumIterations;
@@ -174,9 +202,9 @@ void cloth::SwSolver::interCollision()
 	    &mInterCollisionInstances[0], mInterCollisionInstances.size()));
 
 	// realloc temp memory if necessary
-	if(mInterCollisionScratchMemSize < requiredTempMemorySize)
+	if (mInterCollisionScratchMemSize < requiredTempMemorySize)
 	{
-		if(mInterCollisionScratchMem)
+		if (mInterCollisionScratchMem)
 			NV_CLOTH_FREE(mInterCollisionScratchMem);
 
 		mInterCollisionScratchMem = NV_CLOTH_ALLOC(requiredTempMemorySize, "cloth::SwSolver::mInterCollisionScratchMem");
@@ -214,19 +242,19 @@ void cloth::SwSolver::SimulatedCloth::Destroy()
 	mCloth->mMotionConstraints.pop();
 	mCloth->mSeparationConstraints.pop();
 
-	if(!mCloth->mTargetCollisionSpheres.empty())
+	if (!mCloth->mTargetCollisionSpheres.empty())
 	{
 		swap(mCloth->mStartCollisionSpheres, mCloth->mTargetCollisionSpheres);
 		mCloth->mTargetCollisionSpheres.resize(0);
 	}
 
-	if(!mCloth->mTargetCollisionPlanes.empty())
+	if (!mCloth->mTargetCollisionPlanes.empty())
 	{
 		swap(mCloth->mStartCollisionPlanes, mCloth->mTargetCollisionPlanes);
 		mCloth->mTargetCollisionPlanes.resize(0);
 	}
 
-	if(!mCloth->mTargetCollisionTriangles.empty())
+	if (!mCloth->mTargetCollisionTriangles.empty())
 	{
 		swap(mCloth->mStartCollisionTriangles, mCloth->mTargetCollisionTriangles);
 		mCloth->mTargetCollisionTriangles.resize(0);
@@ -238,7 +266,7 @@ void cloth::SwSolver::SimulatedCloth::Simulate()
 	// (number of shapes may have changed)
 	uint32_t requiredTempMemorySize = uint32_t(SwSolverKernel<Simd4fType>::estimateTemporaryMemory(*mCloth));
 
-	if(mScratchMemorySize < requiredTempMemorySize)
+	if (mScratchMemorySize < requiredTempMemorySize)
 	{
 		NV_CLOTH_FREE(mScratchMemory);
 
@@ -246,7 +274,7 @@ void cloth::SwSolver::SimulatedCloth::Simulate()
 		mScratchMemorySize = requiredTempMemorySize;
 	}
 
-	if(mParent->mCurrentDt == 0.0f)
+	if (mParent->mCurrentDt == 0.0f)
 		return;
 
 	IterationStateFactory factory(*mCloth, mParent->mCurrentDt);
@@ -259,7 +287,7 @@ void cloth::SwSolver::SimulatedCloth::Simulate()
 
 	// construct kernel functor and execute
 #if NV_ANDROID
-	// if(!neonSolverKernel(cloth, data, allocator, factory))
+	// if (!neonSolverKernel(cloth, data, allocator, factory))
 #endif
 	SwSolverKernel<Simd4fType>(*mCloth, data, allocator, factory)();
 

@@ -190,41 +190,28 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 	Alembic::AbcGeom::IV2fGeomParam UVCoordinateParameter = Schema.getUVsParam();
 	if (UVCoordinateParameter.valid())
 	{
-		Alembic::Abc::V2fArraySamplePtr UVSample = UVCoordinateParameter.getValueProperty().getValue(FrameSelector);
-		RetrieveTypedAbcData<Alembic::Abc::V2fArraySamplePtr, FVector2D>(UVSample, Sample->UVs);
-
-		// Can only retrieve UV indices when the UVs array is indexed
-		const bool bIndexedUVs = UVCoordinateParameter.getIndexProperty().valid();
-		if (bIndexedUVs)
-		{
-			Alembic::Abc::UInt32ArraySamplePtr UVIndiceSample = UVCoordinateParameter.getIndexProperty().getValue(FrameSelector);
-			TArray<uint32> UVIndices;
-			RetrieveTypedAbcData<Alembic::Abc::UInt32ArraySamplePtr, uint32>(UVIndiceSample, UVIndices);
-
-			if (bNeedsTriangulation)
-			{
-				TriangulateIndexBuffer(FaceCounts, UVIndices);
-			}
-
-			// Expand UV array
-			ExpandVertexAttributeArray<FVector2D>(UVIndices, Sample->UVs);
-		}
-		else if (Sample->UVs.Num())
-		{
-			// For vertex only normals (and no normal indices available), expand using the regular indices
-			if (Sample->UVs.Num() != Sample->Indices.Num())
-			{
-				ExpandVertexAttributeArray<FVector2D>(Sample->Indices, Sample->UVs);
-			}
-			else if (bNeedsTriangulation)
-			{
-				TriangulateVertexAttributeBuffer(FaceCounts, Sample->UVs);
-			}
-		}
+		ReadUVSetData(UVCoordinateParameter, FrameSelector, Sample->UVs[0], Sample->Indices, bNeedsTriangulation, FaceCounts);
 	}
 	else
 	{
-		Sample->UVs.AddZeroed(Sample->Indices.Num());
+		Sample->UVs[0].AddZeroed(Sample->Indices.Num());
+	}
+
+	Alembic::AbcGeom::ICompoundProperty GeomParams = Schema.getArbGeomParams();
+	if (GeomParams.valid())
+	{
+		const int32 NumGeomParams = GeomParams.getNumProperties();
+		for (int32 GeomParamIndex = 0; GeomParamIndex < NumGeomParams; ++GeomParamIndex)
+		{
+			Alembic::AbcGeom::IV2fGeomParam UVSetProperty;
+			auto PropertyHeader = GeomParams.getPropertyHeader(GeomParamIndex);
+			if (Alembic::AbcGeom::IV2fGeomParam::matches(PropertyHeader))
+			{
+				UVSetProperty = Alembic::AbcGeom::IV2fGeomParam(GeomParams, PropertyHeader.getName());
+				ReadUVSetData(UVSetProperty, FrameSelector, Sample->UVs[Sample->NumUVSets], Sample->Indices, bNeedsTriangulation, FaceCounts);
+				++Sample->NumUVSets;
+			}
+		}
 	}
 
 	Alembic::AbcGeom::IN3fGeomParam NormalParameter = Schema.getNormalsParam();
@@ -269,8 +256,6 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 	}
 	Alembic::AbcGeom::IC3fGeomParam Color3Property;
 	Alembic::AbcGeom::IC4fGeomParam Color4Property;
-
-	Alembic::AbcGeom::ICompoundProperty GeomParams = Schema.getArbGeomParams();
 	if (GeomParams.valid())
 	{
 		const int32 NumGeomParams = GeomParams.getNumProperties();
@@ -528,6 +513,41 @@ void AbcImporterUtilities::GenerateSmoothingGroups(TMultiMap<uint32, uint32> &To
 	}	
 
 	HighestSmoothingGroup = SmoothingGroupIndex;
+}
+
+void AbcImporterUtilities::ReadUVSetData(Alembic::AbcGeom::IV2fGeomParam &UVCoordinateParameter, const Alembic::Abc::ISampleSelector FrameSelector, TArray<FVector2D>& OutUVs, const TArray<uint32>& MeshIndices, const bool bNeedsTriangulation, const TArray<uint32>& FaceCounts)
+{
+	Alembic::Abc::V2fArraySamplePtr UVSample = UVCoordinateParameter.getValueProperty().getValue(FrameSelector);
+	RetrieveTypedAbcData<Alembic::Abc::V2fArraySamplePtr, FVector2D>(UVSample, OutUVs);
+
+	// Can only retrieve UV indices when the UVs array is indexed
+	const bool bIndexedUVs = UVCoordinateParameter.getIndexProperty().valid();
+	if (bIndexedUVs)
+	{
+		Alembic::Abc::UInt32ArraySamplePtr UVIndiceSample = UVCoordinateParameter.getIndexProperty().getValue(FrameSelector);
+		TArray<uint32> UVIndices;
+		RetrieveTypedAbcData<Alembic::Abc::UInt32ArraySamplePtr, uint32>(UVIndiceSample, UVIndices);
+
+		if (bNeedsTriangulation)
+		{
+			TriangulateIndexBuffer(FaceCounts, UVIndices);
+		}
+
+		// Expand UV array
+		ExpandVertexAttributeArray<FVector2D>(UVIndices, OutUVs);
+	}
+	else if (OutUVs.Num())
+	{
+		// For vertex only normals (and no normal indices available), expand using the regular indices
+		if (OutUVs.Num() != MeshIndices.Num())
+		{
+			ExpandVertexAttributeArray<FVector2D>(MeshIndices, OutUVs);
+		}
+		else if (bNeedsTriangulation)
+		{
+			TriangulateVertexAttributeBuffer(FaceCounts, OutUVs);
+		}
+	}
 }
 
 void AbcImporterUtilities::GenerateSmoothingGroupsIndices(FAbcMeshSample* MeshSample, const UAbcImportSettings* ImportSettings)
@@ -799,7 +819,7 @@ void AbcImporterUtilities::ComputeTangents(FAbcMeshSample* Sample, UAbcImportSet
 	uint32 TangentOptions = 0x0;
 	TangentOptions |= ImportSettings->NormalGenerationSettings.bIgnoreDegenerateTriangles ? ETangentOptions::IgnoreDegenerateTriangles : 0;
 
-	MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs, Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);
+	MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs[0], Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);
 }
 
 FAbcMeshSample* AbcImporterUtilities::MergeMeshSamples(const TArray<FAbcMeshSample*>& Samples)
@@ -826,7 +846,27 @@ FAbcMeshSample* AbcImporterUtilities::MergeMeshSamples(const TArray<FAbcMeshSamp
 		MergedSample->Normals.Append(Sample->Normals);
 		MergedSample->TangentX.Append(Sample->TangentX);
 		MergedSample->TangentY.Append(Sample->TangentY);
-		MergedSample->UVs.Append(Sample->UVs);
+
+		// Add valid number of UVs and zero padding for unavailable UV channels
+		MergedSample->UVs[0].Append(Sample->UVs[0]);
+		if (Sample->NumUVSets >= MergedSample->NumUVSets)
+		{
+			for (uint32 UVIndex = 1; UVIndex < Sample->NumUVSets; ++UVIndex)
+			{
+				const int32 NumMissingUVs = (MergedSample->UVs[0].Num() - MergedSample->UVs[UVIndex].Num()) - Sample->UVs[UVIndex].Num();
+				MergedSample->UVs[UVIndex].AddZeroed(NumMissingUVs);
+				MergedSample->UVs[UVIndex].Append(Sample->UVs[UVIndex]);
+			}
+
+			MergedSample->NumUVSets = Sample->NumUVSets;
+		}
+		else if (Sample->NumUVSets < MergedSample->NumUVSets)
+		{
+			for (uint32 UVIndex = 1; UVIndex < MergedSample->NumUVSets; ++UVIndex)
+			{
+				MergedSample->UVs[UVIndex].AddZeroed(Sample->UVs[0].Num());
+			}
+		}		
 
 		// Currently not used but will still merge
 		MergedSample->Colors.Append(Sample->Colors);
@@ -884,7 +924,29 @@ void AbcImporterUtilities::AppendMeshSample(FAbcMeshSample* MeshSampleOne, FAbcM
 	MeshSampleOne->Normals.Append(MeshSampleTwo->Normals);
 	MeshSampleOne->TangentX.Append(MeshSampleTwo->TangentX);
 	MeshSampleOne->TangentY.Append(MeshSampleTwo->TangentY);
-	MeshSampleOne->UVs.Append(MeshSampleTwo->UVs);
+
+	// Append valid number of UVs and zero padding for unavailable UV channels	
+	if (MeshSampleTwo->NumUVSets >= MeshSampleOne->NumUVSets)
+	{
+		for (uint32 UVIndex = 1; UVIndex < MeshSampleTwo->NumUVSets; ++UVIndex)
+		{
+			const int32 NumMissingUVs = MeshSampleOne->UVs[0].Num() - MeshSampleOne->UVs[UVIndex].Num();
+			MeshSampleOne->UVs[UVIndex].AddZeroed(NumMissingUVs);
+			MeshSampleOne->UVs[UVIndex].Append(MeshSampleTwo->UVs[UVIndex]);
+		}
+
+		MeshSampleOne->NumUVSets = MeshSampleTwo->NumUVSets;
+	}
+	else
+	{
+		for (uint32 UVIndex = 1; UVIndex < MeshSampleOne->NumUVSets; ++UVIndex)
+		{
+			MeshSampleOne->UVs[UVIndex].AddZeroed(MeshSampleTwo->UVs[0].Num());
+		}
+	}
+
+	MeshSampleOne->UVs[0].Append(MeshSampleTwo->UVs[0]);
+
 	MeshSampleOne->Colors.Append(MeshSampleTwo->Colors);
 	// Currently not used but will still merge	
 	/*MeshSampleOne->Visibility.Append(MeshSampleTwo->Visibility);
@@ -1187,9 +1249,13 @@ void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FA
 		// Apply UV matrix to flip channels
 		FMatrix2x2 UVMatrix( FScale2D(InConversionSettings.bFlipU ? -1.0f : 1.0f, InConversionSettings.bFlipV ? -1.0f : 1.0f) );
 		FVector2D UVOffset(InConversionSettings.bFlipU ? 1.0f : 0.0f, InConversionSettings.bFlipV ? 1.0f : 0.0f);
-		for (FVector2D& UV : InOutSample->UVs)
+				
+		for (uint32 UVIndex = 0; UVIndex < InOutSample->NumUVSets; ++UVIndex)
 		{
-			UV = UVOffset + UVMatrix.TransformPoint(UV);
+			for (FVector2D& UV : InOutSample->UVs[UVIndex])
+			{
+				UV = UVOffset + UVMatrix.TransformPoint(UV);
+			}
 		}
 	}
 	
@@ -1204,7 +1270,10 @@ void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FA
 			Algo::Reverse(InOutSample->Normals);
 			Algo::Reverse(InOutSample->TangentX);
 			Algo::Reverse(InOutSample->TangentY);
-			Algo::Reverse(InOutSample->UVs);
+			for (uint32 UVIndex = 0; UVIndex < InOutSample->NumUVSets; ++UVIndex)
+			{
+				Algo::Reverse(InOutSample->UVs[UVIndex]);
+			}
 			Algo::Reverse(InOutSample->MaterialIndices);
 			Algo::Reverse(InOutSample->SmoothingGroupIndices);
 			Algo::Reverse(InOutSample->Colors);

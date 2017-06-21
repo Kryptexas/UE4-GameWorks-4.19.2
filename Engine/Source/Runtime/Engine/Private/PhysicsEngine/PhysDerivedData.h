@@ -8,19 +8,14 @@
 #include "PhysXIncludes.h"
 #include "Stats/Stats.h"
 
-#if WITH_PHYSX/* && WITH_EDITOR*/ //TODO: sync and async cooking should not use the derived data cooker - existing paths exist just need hooking up
+#if WITH_PHYSX && WITH_EDITOR
 #include "DerivedDataPluginInterface.h"
 #include "IPhysXCooking.h"
-#endif
 
 class UBodySetup;
 struct FBodyInstance;
 struct FBodySetupUVInfo;
 struct FTriMeshCollisionData;
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("PhysX Cooking"), STAT_PhysXCooking, STATGROUP_Physics, );
-
-#if WITH_PHYSX/* && WITH_EDITOR*/ //TODO: sync and async cooking should not use the derived data cooker - existing paths exist just need hooking up
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
@@ -38,9 +33,10 @@ private:
 	const class IPhysXCooking* Cooker;
 	FGuid DataGuid;
 	FString MeshId;
+	bool bIsRuntime;
 
 public:
-	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup);
+	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup, bool InIsRuntime);
 
 	virtual const TCHAR* GetPluginName() const override
 	{
@@ -52,7 +48,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("68E961F5D7B04A1C84A67D46CA8B36E3");	
+		return TEXT("22EDD080F7E14728BF09DA089D016E31");	
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override

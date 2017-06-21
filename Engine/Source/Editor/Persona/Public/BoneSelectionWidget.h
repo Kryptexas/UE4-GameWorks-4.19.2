@@ -15,7 +15,7 @@ class IEditableSkeleton;
 class SComboButton;
 
 DECLARE_DELEGATE_OneParam(FOnBoneSelectionChanged, FName);
-DECLARE_DELEGATE_RetVal(FName, FGetSelectedBone);
+DECLARE_DELEGATE_RetVal_OneParam(FName, FGetSelectedBone, bool& /*bMultipleValues*/);
 DECLARE_DELEGATE_RetVal(const struct FReferenceSkeleton&, FGetReferenceSkeleton);
 
 class PERSONA_API SBoneTreeMenu : public SCompoundWidget

@@ -13,12 +13,20 @@ public class MaterialUtilities : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"RenderCore",
+                "Renderer",
                 "RHI",
                 "Landscape",
                 "UnrealEd",
                 "ShaderCore"
-			}
+            }
 		);
+
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "MeshMergeUtilities",
+                "MaterialBaking",
+            }
+        );
 
         PublicDependencyModuleNames.AddRange(
 			new string [] {
@@ -28,8 +36,10 @@ public class MaterialUtilities : ModuleRules
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
-                "Landscape"
-			}
+                "Landscape",
+                "MeshMergeUtilities",
+                "MaterialBaking",
+            }
         );
 
         CircularlyReferencedDependentModules.AddRange(

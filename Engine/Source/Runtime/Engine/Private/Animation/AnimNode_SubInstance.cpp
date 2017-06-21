@@ -12,19 +12,19 @@ FAnimNode_SubInstance::FAnimNode_SubInstance()
 
 }
 
-void FAnimNode_SubInstance::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SubInstance::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	InPose.Initialize(Context);
 }
 
-void FAnimNode_SubInstance::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_SubInstance::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	InPose.CacheBones(Context);
 }
 
-void FAnimNode_SubInstance::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SubInstance::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	InPose.Update(Context);
 	EvaluateGraphExposedInputs.Execute(Context);
@@ -55,7 +55,7 @@ void FAnimNode_SubInstance::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_SubInstance::Evaluate(FPoseContext& Output)
+void FAnimNode_SubInstance::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if(InstanceToRun)
 	{
@@ -70,13 +70,7 @@ void FAnimNode_SubInstance::Evaluate(FPoseContext& Output)
 			InputNode->InputCurve.CopyFrom(Output.Curve);
 		}
 
-		InstanceToRun->ParallelEvaluateAnimation(false, nullptr, BoneTransforms, BlendedCurve);
-
-		for(const FCompactPoseBoneIndex BoneIndex : Output.Pose.ForEachBoneIndex())
-		{
-			FMeshPoseBoneIndex MeshBoneIndex = Output.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-			Output.Pose[BoneIndex] = BoneTransforms[MeshBoneIndex.GetInt()];
-		}
+		InstanceToRun->ParallelEvaluateAnimation(false, nullptr, BoneTransforms, BlendedCurve, Output.Pose);
 
 		Output.Curve.CopyFrom(BlendedCurve);
 	}
@@ -128,11 +122,11 @@ void FAnimNode_SubInstance::AllocateBoneTransforms(const UAnimInstance* InAnimIn
 	}
 }
 
-void FAnimNode_SubInstance::RootInitialize(const FAnimInstanceProxy* InProxy)
+void FAnimNode_SubInstance::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
 	if(*InstanceClass)
 	{
-		USkeletalMeshComponent* MeshComp = InProxy->GetSkelMeshComponent();
+		USkeletalMeshComponent* MeshComp = InAnimInstance->GetSkelMeshComponent();
 		check(MeshComp);
 
 		// Full reinit, kill old instances
@@ -165,7 +159,7 @@ void FAnimNode_SubInstance::RootInitialize(const FAnimInstanceProxy* InProxy)
 			FName& SourceName = SourcePropertyNames[Idx];
 			FName& DestName = DestPropertyNames[Idx];
 
-			UClass* SourceClass = IAnimClassInterface::GetActualAnimClass(InProxy->GetAnimClassInterface());
+			UClass* SourceClass = InAnimInstance->GetClass();
 
 			UProperty* SourceProperty = FindField<UProperty>(SourceClass, SourceName);
 			UProperty* DestProperty = FindField<UProperty>(*InstanceClass, DestName);

@@ -44,15 +44,15 @@ FAnimNode_AnimDynamics::FAnimNode_AnimDynamics()
 	
 }
 
-void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_AnimDynamics::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+	FAnimNode_SkeletalControlBase::Initialize_AnyThread(Context);
 
 	FBoneContainer& RequiredBones = Context.AnimInstanceProxy->GetRequiredBones();
 
 	InitializeBoneReferences(RequiredBones);
 
-	if(BoundBone.IsValid(RequiredBones))
+	if(BoundBone.IsValidToEvaluate(RequiredBones))
 	{
 		RequestInitialise();
 	}
@@ -101,7 +101,7 @@ void FAnimNode_AnimDynamics::EvaluateSkeletalControl_AnyThread(FComponentSpacePo
 		while(BodiesToReset.Num() > 0)
 		{
 			FAnimPhysLinkedBody* BodyToReset = BodiesToReset.Pop(false);
-			if(BodyToReset && BodyToReset->RigidBody.BoundBone.IsValid(RequiredBones))
+			if(BodyToReset && BodyToReset->RigidBody.BoundBone.IsValidToEvaluate(RequiredBones))
 			{
 				FTransform BoneTransform = GetBoneTransformInSimSpace(Output, BodyToReset->RigidBody.BoundBone.GetCompactPoseIndex(RequiredBones));
 				FAnimPhysRigidBody& PhysBody = BodyToReset->RigidBody.PhysBody;
@@ -183,7 +183,7 @@ void FAnimNode_AnimDynamics::EvaluateSkeletalControl_AnyThread(FComponentSpacePo
 				FAnimPhysRigidBody& CurrentBody = Bodies[Idx].RigidBody.PhysBody;
 
 				// Skip invalid bones
-				if(!CurrentChainBone.IsValid(BoneContainer))
+				if(!CurrentChainBone.IsValidToEvaluate(BoneContainer))
 				{
 					continue;
 				}
@@ -238,7 +238,7 @@ void FAnimNode_AnimDynamics::InitializeBoneReferences(const FBoneContainer& Requ
 
 		if(bSimulating)
 		{
-			if(BoneRef.IsValid(RequiredBones) && !ActiveBoneIndices.Contains(BoneRefIdx))
+			if(BoneRef.IsValidToEvaluate(RequiredBones) && !ActiveBoneIndices.Contains(BoneRefIdx))
 			{
 				// This body is inactive and needs to be reset to bone position
 				// as it is now required for the current LOD
@@ -255,7 +255,7 @@ void FAnimNode_AnimDynamics::InitializeBoneReferences(const FBoneContainer& Requ
 		LinkedBody.RigidBody.BoundBone.Initialize(RequiredBones);
 
 		// If this bone is active in this LOD, add to the active list.
-		if(LinkedBody.RigidBody.BoundBone.IsValid(RequiredBones))
+		if(LinkedBody.RigidBody.BoundBone.IsValidToEvaluate(RequiredBones))
 		{
 			ActiveBoneIndices.Add(BodyIdx);
 		}
@@ -275,11 +275,11 @@ void FAnimNode_AnimDynamics::GatherDebugData(FNodeDebugData& DebugData)
 
 bool FAnimNode_AnimDynamics::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	bool bValid = BoundBone.IsValid(RequiredBones);
+	bool bValid = BoundBone.IsValidToEvaluate(RequiredBones);
 
 	if (bChain)
 	{
-		bool bChainEndValid = ChainEnd.IsValid(RequiredBones);
+		bool bChainEndValid = ChainEnd.IsValidToEvaluate(RequiredBones);
 		bool bSubChainValid = false;
 
 		if(!bChainEndValid)
@@ -288,7 +288,7 @@ bool FAnimNode_AnimDynamics::IsValidToEvaluate(const USkeleton* Skeleton, const 
 			int32 NumValidBonesFromRoot = 0;
 			for(FBoneReference& BoneRef : BoundBoneReferences)
 			{
-				if(BoneRef.IsValid(RequiredBones))
+				if(BoneRef.IsValidToEvaluate(RequiredBones))
 				{
 					bSubChainValid = true;
 					break;
@@ -350,7 +350,7 @@ void FAnimNode_AnimDynamics::InitPhysics(FComponentSpacePoseContext& Output)
 	TArray<int32> ChainBoneIndices;
 	TArray<FName> ChainBoneNames;
 
-	if(ChainEnd.IsValid(BoneContainer))
+	if(ChainEnd.IsValidToEvaluate(BoneContainer))
 	{
 		// Add the end of the chain. We have to walk from the bottom upwards to find a chain
 		// as walking downwards doesn't guarantee a single end point.
@@ -541,7 +541,7 @@ void FAnimNode_AnimDynamics::UpdateLimits(FComponentSpacePoseContext& Output)
 		const FBoneReference& CurrentBoneRef = BoundBoneReferences[ActiveIndex];
 
 		// If our bone isn't valid, move on
-		if(!CurrentBoneRef.IsValid(BoneContainer))
+		if(!CurrentBoneRef.IsValidToEvaluate(BoneContainer))
 		{
 			continue;
 		}
@@ -620,7 +620,7 @@ void FAnimNode_AnimDynamics::UpdateLimits(FComponentSpacePoseContext& Output)
 			for(FAnimPhysPlanarLimit& PlanarLimit : PlanarLimits)
 			{
 				FTransform LimitPlaneTransform = PlanarLimit.PlaneTransform;
-				if(PlanarLimit.DrivingBone.IsValid(BoneContainer))
+				if(PlanarLimit.DrivingBone.IsValidToEvaluate(BoneContainer))
 				{
 					FCompactPoseBoneIndex DrivingBoneIndex = PlanarLimit.DrivingBone.GetCompactPoseIndex(BoneContainer);
 
@@ -640,7 +640,7 @@ void FAnimNode_AnimDynamics::UpdateLimits(FComponentSpacePoseContext& Output)
 				FTransform SphereTransform = FTransform::Identity;
 				SphereTransform.SetTranslation(SphericalLimit.SphereLocalOffset);
 
-				if(SphericalLimit.DrivingBone.IsValid(BoneContainer))
+				if(SphericalLimit.DrivingBone.IsValidToEvaluate(BoneContainer))
 				{
 					FCompactPoseBoneIndex DrivingBoneIndex = SphericalLimit.DrivingBone.GetCompactPoseIndex(BoneContainer);
 
@@ -780,7 +780,7 @@ FTransform FAnimNode_AnimDynamics::GetComponentSpaceTransformFromSimSpace(AnimPh
 	case AnimPhysSimSpaceType::BoneRelative:
 	{
 		const FBoneContainer& RequiredBones = Output.Pose.GetPose().GetBoneContainer();
-		if(RelativeSpaceBone.IsValid(RequiredBones))
+		if(RelativeSpaceBone.IsValidToEvaluate(RequiredBones))
 		{
 			FTransform RelativeBoneTransform = Output.Pose.GetComponentSpaceTransform(RelativeSpaceBone.GetCompactPoseIndex(RequiredBones));
 			OutTransform = OutTransform * RelativeBoneTransform;
@@ -837,7 +837,7 @@ FTransform FAnimNode_AnimDynamics::GetSimSpaceTransformFromComponentSpace(AnimPh
 	case AnimPhysSimSpaceType::BoneRelative:
 	{
 		const FBoneContainer& RequiredBones = Output.Pose.GetPose().GetBoneContainer();
-		if(RelativeSpaceBone.IsValid(RequiredBones))
+		if(RelativeSpaceBone.IsValidToEvaluate(RequiredBones))
 		{
 			FTransform RelativeBoneTransform = Output.Pose.GetComponentSpaceTransform(RelativeSpaceBone.GetCompactPoseIndex(RequiredBones));
 			ResultTransform = ResultTransform.GetRelativeTransform(RelativeBoneTransform);
@@ -895,7 +895,7 @@ FVector FAnimNode_AnimDynamics::TransformWorldVectorToSimSpace(FComponentSpacePo
 	case AnimPhysSimSpaceType::BoneRelative:
 	{
 		const FBoneContainer& RequiredBones = Output.Pose.GetPose().GetBoneContainer();
-		if(RelativeSpaceBone.IsValid(RequiredBones))
+		if(RelativeSpaceBone.IsValidToEvaluate(RequiredBones))
 		{
 			FTransform RelativeBoneTransform = Output.Pose.GetComponentSpaceTransform(RelativeSpaceBone.GetCompactPoseIndex(RequiredBones));
 			RelativeBoneTransform = Output.AnimInstanceProxy->GetComponentTransform() * RelativeBoneTransform;

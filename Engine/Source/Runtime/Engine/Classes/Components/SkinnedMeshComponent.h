@@ -335,7 +335,7 @@ public:
 
 	/** Draw the skeleton hierarchy for this skel mesh. */
 	UPROPERTY()
-	uint32 bDisplayBones:1;
+	uint32 bDisplayBones_DEPRECATED:1;
 
 	/** Disable Morphtarget for this component. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)

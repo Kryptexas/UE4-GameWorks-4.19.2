@@ -28,6 +28,7 @@
 #include "UserDefinedStructureCompilerUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "BlueprintCompilerCppBackendInterface.h"
+#include "IMessageLogListing.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
@@ -309,6 +310,13 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	{
 		UMetaData* MetaData =  Package->GetMetaData();
 		MetaData->RemoveMetaDataOutsidePackage();
+	}
+
+	if (!Results.bSilentMode)
+	{
+		FScopedBlueprintMessageLog MessageLog(Blueprint);
+		MessageLog.Log->ClearMessages();
+		MessageLog.Log->AddMessages(Results.Messages, false);
 	}
 }
 

@@ -40,6 +40,16 @@ static PxQueryHitType::Enum WheelRaycastPreFilter(
 	{
 		return PxQueryHitType::eNONE;
 	}
+	
+	PxU32 ShapeFlags = SuspensionData.word3 & 0xFFFFFF;
+	PxU32 QuerierFlags = HitData.word3 & 0xFFFFFF;
+	PxU32 CommonFlags = ShapeFlags & QuerierFlags;
+
+	// Check complexity matches
+	if (!(CommonFlags & EPDF_SimpleCollision) && !(CommonFlags & EPDF_ComplexCollision))
+	{
+		return PxQueryHitType::eNONE;
+	}
 
 	// collision channels filter
 	ECollisionChannel SuspensionChannel = GetCollisionChannel(SuspensionData.word3);

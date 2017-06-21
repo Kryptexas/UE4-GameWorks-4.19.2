@@ -70,14 +70,14 @@ static bool fullContactsGenerationCapsuleConvex(const CapsuleV& capsule, const C
 			manifold.addBatchManifoldContacts2(manifoldContacts, numContacts);
 			//transform normal into the world space
 			normal = transf1.rotate(normal);
-			manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, transf0, capsule.radius, contactDist);
+			manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, normal, transf0, capsule.radius, contactDist);
 		}
 		else
 		{
 			if (!doOverlapTest)
 			{
 				normal = transf1.rotate(normal);
-				manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, transf0, capsule.radius, contactDist);
+				manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, normal, transf0, capsule.radius, contactDist);
 			}
 		}
 
@@ -122,8 +122,8 @@ bool pcmContactCapsuleConvex(GU_CONTACT_METHOD_ARGS)
 	const PsTransformV curRTrans(transf1.transformInv(transf0));
 	const PsMatTransformV aToB(curRTrans);
 	
-
-	const FloatV convexMargin = Gu::CalculatePCMConvexMargin(hullData, vScale);
+	const PxReal toleranceLength = params.mToleranceLength ;
+	const FloatV convexMargin = Gu::CalculatePCMConvexMargin(hullData, vScale, toleranceLength);
 	const FloatV capsuleMinMargin = Gu::CalculateCapsuleMinMargin(capsuleRadius);
 	const FloatV minMargin = FMin(convexMargin, capsuleMinMargin);
 	
@@ -149,8 +149,8 @@ bool pcmContactCapsuleConvex(GU_CONTACT_METHOD_ARGS)
 
 		manifold.setRelativeTransform(curRTrans);
 		const QuatV vQuat = QuatVLoadU(&shapeConvex.scale.rotation.x);  
-		ConvexHullV convexHull(hullData, zeroV, vScale, vQuat, idtScale);
-		convexHull.setMargin(zero);
+		ConvexHullV convexHull(hullData, V3LoadU(hullData->mCenterOfMass), vScale, vQuat, idtScale);
+		convexHull.setMargin(0.f);
 	
 		//transform capsule(a) into the local space of convexHull(b)
 		CapsuleV capsule(aToB.p, aToB.rotate(V3Scale(V3UnitX(), capsuleHalfHeight)), capsuleRadius);
@@ -248,7 +248,7 @@ bool pcmContactCapsuleConvex(GU_CONTACT_METHOD_ARGS)
 			{
 				//This contact is either come from GJK or EPA
 				normal = transf1.rotate(normal);
-				manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, transf0, capsuleRadius, contactDist);
+				manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, normal, transf0, capsuleRadius, contactDist);
 #if	PCM_LOW_LEVEL_DEBUG
 				manifold.drawManifold(*renderOutput, transf0, transf1);
 #endif
@@ -259,7 +259,7 @@ bool pcmContactCapsuleConvex(GU_CONTACT_METHOD_ARGS)
 	else if (manifold.getNumContacts() > 0)
 	{
 		normal = manifold.getWorldNormal(transf1);
-		manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, transf0, capsuleRadius, contactDist);
+		manifold.addManifoldContactsToContactBuffer(contactBuffer, normal, normal, transf0, capsuleRadius, contactDist);
 #if	PCM_LOW_LEVEL_DEBUG
 		manifold.drawManifold(*renderOutput, transf0, transf1);
 #endif

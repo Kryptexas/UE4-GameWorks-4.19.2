@@ -102,7 +102,7 @@ public:
 	virtual class UBodySetup* GetBodySetup() override { return ModelBodySetup; };
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
-	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const override;
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const override;
 	virtual bool IsPrecomputedLightingValid() const override;
 	//~ End UPrimitiveComponent Interface.
 

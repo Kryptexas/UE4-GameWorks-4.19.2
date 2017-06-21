@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "RawMesh.h"
+#include "IMeshReductionInterfaces.h"
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
 #include "SimplygonTypes.h"
@@ -19,7 +20,7 @@
 #include "Misc/FileHelper.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "UniquePtr.h"
-
+#include "Features/IModularFeatures.h"
 #include "AnimationBlueprintLibrary.h"
 
 #include "MeshMergeData.h"
@@ -76,11 +77,9 @@ public:
 	virtual class IMeshReduction* GetStaticMeshReductionInterface() override;
 	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
+	virtual class IMeshMerging* GetDistributedMeshMergingInterface() override;
+	virtual FString GetName() override;
 };
-
-
-
-
 
 DEFINE_LOG_CATEGORY_STATIC(LogSimplygon, Log, All);
 IMPLEMENT_MODULE(FSimplygonMeshReductionModule, SimplygonMeshReduction);
@@ -328,11 +327,11 @@ public:
 			BoneNames.Add(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 		}
 
-		TArray<FTransform> MultipliedBonePoses;
-		if (Settings.BakePose)
+		TArray<FTransform> MultipliedBonePoses;	
+		if (SkeletalMesh->LODInfo[LODIndex].BakePose != nullptr)
 		{
 			TArray<FTransform> BonePoses;
-			UAnimationBlueprintLibrary::GetBonePosesForFrame(Settings.BakePose, BoneNames, 0, true, BonePoses);			
+			UAnimationBlueprintLibrary::GetBonePosesForFrame(SkeletalMesh->LODInfo[LODIndex].BakePose, BoneNames, 0, true, BonePoses);
 			MultipliedBonePoses.AddDefaulted(BonePoses.Num());
 
 			TArray<FTransform> RefBonePoses = SkeletalMesh->RefSkeleton.GetRawRefBonePose();
@@ -2408,16 +2407,10 @@ private:
 		Size = FIntPoint::ZeroValue;
 		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::SubSurface), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::SubSurface, Size);
-	}
 
-	static FIntPoint ComputeMappingImageSize(const FMaterialSimplificationSettings& Settings)
-	{
-		FIntPoint ImageSize = Settings.BaseColorMapSize;
-		ImageSize = ImageSize.ComponentMax(Settings.NormalMapSize);
-		ImageSize = ImageSize.ComponentMax(Settings.MetallicMapSize);
-		ImageSize = ImageSize.ComponentMax(Settings.RoughnessMapSize);
-		ImageSize = ImageSize.ComponentMax(Settings.SpecularMapSize);
-		return ImageSize;
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, TextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_AMBIENT, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::AmbientOcclusion), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::AmbientOcclusion, Size);
 	}
 	
 	bool CreateSGMaterialFromFlattenMaterial(
@@ -2478,6 +2471,11 @@ private:
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Roughness))
 			{
 				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
+			}
+
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::AmbientOcclusion))
+			{
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::AmbientOcclusion), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::AmbientOcclusion), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_AMBIENT);
 			}
 
 			//Does current material have a normalmap?
@@ -2850,12 +2848,14 @@ TUniquePtr<FSimplygonMeshReduction> GSimplygonMeshReduction;
 void FSimplygonMeshReductionModule::StartupModule()
 {
 	GSimplygonMeshReduction.Reset(FSimplygonMeshReduction::Create());
+	IModularFeatures::Get().RegisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 void FSimplygonMeshReductionModule::ShutdownModule()
 {
 	FSimplygonMeshReduction::Destroy();
 	GSimplygonMeshReduction = nullptr;
+	IModularFeatures::Get().UnregisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 #define USE_SIMPLYGON_SWARM 0
@@ -2885,6 +2885,16 @@ IMeshMerging* FSimplygonMeshReductionModule::GetMeshMergingInterface()
 #else
 	return nullptr;
 #endif
+}
+
+class IMeshMerging* FSimplygonMeshReductionModule::GetDistributedMeshMergingInterface()
+{
+	return nullptr;
+}
+
+FString FSimplygonMeshReductionModule::GetName()
+{
+	return FString("SimplygonMeshReduction");
 }
 
 #undef LOCTEXT_NAMESPACE

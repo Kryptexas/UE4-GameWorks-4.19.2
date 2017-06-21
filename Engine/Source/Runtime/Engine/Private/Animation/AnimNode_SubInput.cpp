@@ -2,21 +2,21 @@
 
 #include "Animation/AnimNode_SubInput.h"
 
-void FAnimNode_SubInput::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SubInput::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 }
 
-void FAnimNode_SubInput::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_SubInput::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 }
 
-void FAnimNode_SubInput::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SubInput::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 }
 
-void FAnimNode_SubInput::Evaluate(FPoseContext& Output)
+void FAnimNode_SubInput::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if(InputPose.IsValid() && InputCurve.IsValid())
 	{

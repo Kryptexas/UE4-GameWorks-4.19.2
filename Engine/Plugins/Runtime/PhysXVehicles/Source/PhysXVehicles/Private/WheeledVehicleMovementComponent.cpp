@@ -307,6 +307,16 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			PxFilterData PWheelQueryFilterData, PDummySimData;
 			CreateShapeFilterData(ECC_Vehicle, FMaskFilter(0), UpdatedComponent->GetOwner()->GetUniqueID(), CollisionResponse, UpdatedComponent->GetUniqueID(), 0, PWheelQueryFilterData, PDummySimData, false, false, false);
 
+			if (Wheel->SweepType != EWheelSweepType::Complex)
+			{
+				PWheelQueryFilterData.word3 |= EPDF_SimpleCollision;
+			}
+
+			if (Wheel->SweepType != EWheelSweepType::Simple)
+			{
+				PWheelQueryFilterData.word3 |= EPDF_ComplexCollision;
+			}
+
 			//// Give suspension raycasts the same group ID as the chassis so that they don't hit each other
 			PWheelShape->setQueryFilterData(PWheelQueryFilterData);
 		}

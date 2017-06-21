@@ -20,7 +20,7 @@ namespace Audio
 		~FMixerPlatformAudioUnit();
 
 		//~ Begin IAudioMixerPlatformInterface
-		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::CoreAudio; }
+		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::AudioUnit; }
 		virtual bool InitializeHardware() override;
 		virtual bool CheckAudioDeviceChange() override;
 		virtual bool TeardownHardware() override;
@@ -40,14 +40,12 @@ namespace Audio
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
 		virtual FString GetDefaultDeviceName() override;
 		virtual FAudioPlatformSettings GetPlatformSettings() const override;
-		//~ End IAudioMixerPlatformInterface
-	
-		// These are not being used yet but they should be in the near future
-		void ResumeContext();
-		void SuspendContext();
-		
+        virtual int32 GetNumFrames(const int32 InNumReqestedFrames) override;
+        virtual void ResumeContext() override;
+        virtual void SuspendContext() override;
+        //~ End IAudioMixerPlatformInterface
+        
 	private:
-		FAudioPlatformDeviceInfo	DeviceInfo;
 		AudioStreamBasicDescription OutputFormat;
 
 		bool	bSuspended;
@@ -57,18 +55,20 @@ namespace Audio
 		
 		/** True if execution is in the callback */
 		bool	bInCallback;
-		
-		SInt16*		sampleBuffer;
-		uint32		sampleBufferHead;
-		uint32		sampleBufferTail;
-		
+
 		AUGraph     AudioUnitGraph;
 		AUNode      OutputNode;
 		AudioUnit	OutputUnit;
-			
-		bool PerformCallback(UInt32 NumFrames, const AudioBufferList* OutputBufferData);
+        uint8*      SubmittedBufferPtr;
+        
+#if PLATFORM_IOS || PLATFORM_TVOS
+        int32       RemainingBytesInCurrentSubmittedBuffer;
+        int32       BytesPerSubmittedBuffer;
+#endif //#if PLATFORM_IOS || PLATFORM_TVOS
+        
+		bool PerformCallback(AudioBufferList* OutputBufferData);
 		void HandleError(const TCHAR* InLogOutput, bool bTeardown = true);
-		static OSStatus IOSAudioRenderCallback(void* RefCon, AudioUnitRenderActionFlags* ActionFlags,
+		static OSStatus AudioRenderCallback(void* RefCon, AudioUnitRenderActionFlags* ActionFlags,
 														  const AudioTimeStamp* TimeStamp, UInt32 BusNumber,
 														  UInt32 NumFrames, AudioBufferList* IOData);
 

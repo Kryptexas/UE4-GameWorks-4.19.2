@@ -258,7 +258,6 @@ namespace Audio
 		OutInfo.SampleRate = 44100;
 		OutInfo.DeviceId = 0;
 		OutInfo.Format = EAudioMixerStreamDataFormat::Float;
-		OutInfo.Latency = 0;
 		OutInfo.Name = TEXT("XBoxOne Audio Device.");
 		OutInfo.NumChannels = 8;
 
@@ -321,7 +320,12 @@ namespace Audio
 			OriginalAudioDeviceId = AudioStreamInfo.DeviceInfo.DeviceId;
 		}
 
+#if PLATFORM_WINDOWS
 		HRESULT Result = XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.DeviceInfo.SampleRate, 0, AudioStreamInfo.OutputDeviceIndex, nullptr);
+#elif PLATFORM_XBOXONE
+		HRESULT Result = XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.DeviceInfo.SampleRate, 0, nullptr, nullptr);
+#endif // #if PLATFORM_WINDOWS
+
 		XAUDIO2_CLEANUP_ON_FAIL(Result);
 
 		// Start the xaudio2 engine running, which will now allow us to start feeding audio to it
@@ -357,9 +361,8 @@ namespace Audio
 
 	bool FMixerPlatformXAudio2::CloseAudioStream()
 	{
-		if (!bIsInitialized)
+		if (!bIsInitialized || AudioStreamInfo.StreamState == EAudioOutputStreamState::Closed)
 		{
-			AUDIO_PLATFORM_ERROR(TEXT("XAudio2 was not initialized."));
 			return false;
 		}
 
@@ -417,7 +420,7 @@ namespace Audio
 
 		check(XAudio2System);
 
-		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
+		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped && AudioStreamInfo.StreamState != EAudioOutputStreamState::Closed)
 		{
 			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
 			{
@@ -451,6 +454,8 @@ namespace Audio
 
 	bool FMixerPlatformXAudio2::MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId)
 	{
+#if PLATFORM_WINDOWS
+
 		UE_LOG(LogTemp, Log, TEXT("Resetting audio stream to device id %s"), *InNewDeviceId);
 
 		// Not initialized!
@@ -511,7 +516,6 @@ namespace Audio
 
 		// Update the audio stream info to the new device info
 		AudioStreamInfo.OutputDeviceIndex = DeviceIndex;
-
 		// Get the output device info at this new index
 		GetOutputDeviceInfo(AudioStreamInfo.OutputDeviceIndex, AudioStreamInfo.DeviceInfo);
 
@@ -542,6 +546,8 @@ namespace Audio
  		}
 
 		bAudioDeviceChanging = false;
+
+#endif // #if PLATFORM_WINDOWS
 
 		return true;
 	}

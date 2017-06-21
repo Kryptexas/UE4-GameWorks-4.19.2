@@ -3,6 +3,9 @@
 #include "BoneContainer.h"
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
+#include "EngineLogs.h"
+
+DEFINE_LOG_CATEGORY(LogSkeletalControl);
 
 //////////////////////////////////////////////////////////////////////////
 // FBoneContainer
@@ -316,3 +319,59 @@ void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 }
 
 
+/////////////////////////////////////////////////////
+// FBoneReference
+
+bool FBoneReference::Initialize(const FBoneContainer& RequiredBones)
+{
+	BoneName = *BoneName.ToString().Trim().TrimTrailing();
+	BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(BoneName);
+
+	bUseSkeletonIndex = false;
+	// If bone name is not found, look into the master skeleton to see if it's found there.
+	// SkeletalMeshes can exclude bones from the master skeleton, and that's OK.
+	// If it's not found in the master skeleton, the bone does not exist at all! so we should report it as a warning.
+	if (BoneIndex == INDEX_NONE && BoneName != NAME_None)
+	{
+		if (USkeleton* SkeletonAsset = RequiredBones.GetSkeletonAsset())
+		{
+			if (SkeletonAsset->GetReferenceSkeleton().FindBoneIndex(BoneName) == INDEX_NONE)
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("FBoneReference::Initialize BoneIndex for Bone '%s' does not exist in Skeleton '%s'"),
+					*BoneName.ToString(), *GetNameSafe(SkeletonAsset));
+			}
+		}
+	}
+
+	CachedCompactPoseIndex = RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex(RequiredBones));
+
+	return (BoneIndex != INDEX_NONE);
+}
+
+bool FBoneReference::Initialize(const USkeleton* Skeleton)
+{
+	if (Skeleton && (BoneName != NAME_None))
+	{
+		BoneName = *BoneName.ToString().Trim().TrimTrailing();
+		BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
+		bUseSkeletonIndex = true;
+	}
+	else
+	{
+		BoneIndex = INDEX_NONE;
+	}
+
+	CachedCompactPoseIndex = FCompactPoseBoneIndex(INDEX_NONE);
+
+	return (BoneIndex != INDEX_NONE);
+}
+
+bool FBoneReference::IsValidToEvaluate(const FBoneContainer& RequiredBones) const
+{
+	return (BoneIndex != INDEX_NONE && RequiredBones.Contains(BoneIndex));
+}
+
+bool FBoneReference::IsValid(const FBoneContainer& RequiredBones) const
+{
+	return IsValidToEvaluate(RequiredBones);
+}

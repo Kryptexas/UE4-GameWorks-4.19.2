@@ -8,6 +8,7 @@
 #include "IDetailGroup.h"
 #include "IDetailPropertyRow.h"
 #include "MeshUtilities.h"
+#include "IMeshReductionManagerModule.h"
 
 #define LOCTEXT_NAMESPACE "HierarchicalSimplificationCustomizations"
 
@@ -89,8 +90,8 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 EVisibility FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible() const
 {
 	// Determine whether or not there is a mesh merging interface available (SimplygonMeshReduction/SimplygonSwarm)
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	if (MeshUtilities.GetMeshMergingInterface() != nullptr)
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	if (ReductionModule.GetMeshMergingInterface() != nullptr)
 	{
 		return EVisibility::Visible;
 	}

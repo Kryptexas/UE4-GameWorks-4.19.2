@@ -78,9 +78,9 @@ INCLUDE(../common/PhysX.cmake)
 # Add linked libraries
 # TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PhysXGpu PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
 
-TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
+TARGET_LINK_LIBRARIES(PhysX PRIVATE LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PxTask SceneQuery SimulationController PUBLIC ${NVTOOLSEXT_LIBRARIES} PhysXCommon PxFoundation PxPvdSDK)
 
-IF(DEFINED PX_GENERATE_GPU_PROJECTS)
+IF(DEFINED LINK_GPU_BINARIES)
 SET_TARGET_PROPERTIES(PhysX PROPERTIES 
 	LINK_FLAGS_DEBUG "/DELAYLOAD:nvcuda.dll /MAP /DELAYLOAD:PxFoundationDEBUG_${LIBPATH_SUFFIX}.dll /DELAYLOAD:PhysX3CommonDEBUG_${LIBPATH_SUFFIX}.dll /DEBUG"
 	LINK_FLAGS_CHECKED "/DELAYLOAD:nvcuda.dll /MAP /DELAYLOAD:PxFoundationCHECKED_${LIBPATH_SUFFIX}.dll /DELAYLOAD:PhysX3CommonCHECKED_${LIBPATH_SUFFIX}.dll"

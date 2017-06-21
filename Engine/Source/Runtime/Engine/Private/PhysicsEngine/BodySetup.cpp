@@ -22,6 +22,8 @@
 #include "UObject/PropertyPortFlags.h"
 #include "Components/SplineMeshComponent.h"
 
+#include "PhysXCookHelper.h"
+
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -49,6 +51,8 @@ namespace PhysXBodySetupCookStats
 	});
 }
 #endif
+
+DEFINE_STAT(STAT_PhysXCooking);
 
 IPhysXCookingModule* GetPhysXCookingModule()
 {
@@ -175,6 +179,7 @@ void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlag
 	check(IsInGameThread());
 
 	OutCookInfo.OuterDebugName = GetOuter()->GetPathName();
+	OutCookInfo.bConvexDeformableMesh = false;
 
 	// Cook convex meshes, but only if we are not forcing complex collision to be used as simple collision as well
 	if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple && AggGeom.ConvexElems.Num() > 0)
@@ -245,14 +250,15 @@ void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlag
 	OutCookInfo.bCookTriMesh = false;
 	OutCookInfo.bTriMeshError = false;
 
-	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(GetOuter());
+	UObject* CDPObj = GetOuter();
+	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CDPObj);
+	
 	if (GetCollisionTraceFlag() != CTF_UseSimpleAsComplex && CDP && CDP->ContainsPhysicsTriMeshData(bUsingAllTriData))
 	{
-		OutCookInfo.bCookTriMesh = true;
-		const bool bHaveTriMeshData = CDP->GetPhysicsTriMeshData(&OutCookInfo.TriangleMeshDesc, bUsingAllTriData);
+		OutCookInfo.bCookTriMesh = CDP->GetPhysicsTriMeshData(&OutCookInfo.TriangleMeshDesc, bUsingAllTriData);
 		const FTriMeshCollisionData& TriangleMeshDesc = OutCookInfo.TriangleMeshDesc;
 
-		if (bHaveTriMeshData)
+		if (OutCookInfo.bCookTriMesh)
 		{
 			// If any of the below checks gets hit this usually means 
 			// IInterface_CollisionDataProvider::ContainsPhysicsTriMeshData did not work properly.
@@ -260,7 +266,7 @@ void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlag
 			const int32 NumVerts = TriangleMeshDesc.Vertices.Num();
 			if (NumIndices == 0 || NumVerts == 0 || TriangleMeshDesc.MaterialIndices.Num() > NumIndices)
 			{
-				UE_LOG(LogPhysics, Warning, TEXT("UBodySetup::GetCookInfo: Triangle data from '%s' invalid (%d verts, %d indices)."), *((UObject*)CDP)->GetPathName(), NumVerts, NumIndices);
+				UE_LOG(LogPhysics, Warning, TEXT("UBodySetup::GetCookInfo: Triangle data from '%s' invalid (%d verts, %d indices)."), *CDPObj->GetPathName(), NumVerts, NumIndices);
 				OutCookInfo.bTriMeshError = true;
 			}
 
@@ -278,6 +284,10 @@ void UBodySetup::GetCookInfo(FCookBodySetupInfo& OutCookInfo, EPhysXMeshCookFlag
 			}
 
 			OutCookInfo.TriMeshCookFlags = CookFlags;
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("UBodySetup::GetCookInfo: ContainsPhysicsTriMeshData returned true, but GetPhysicsTriMeshData returned false. This inconsistency should be fixed for asset '%s'"), *CDPObj->GetPathName());
 		}
 	}
 
@@ -325,6 +335,14 @@ void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
 	AddCollisionFrom(FromSetup->AggGeom);
 }
 
+bool IsRuntime(const UBodySetup* BS)
+{
+			UActorComponent* OwningComp = Cast<UActorComponent>(BS->GetOuter());
+			UWorld* World = OwningComp ? OwningComp->GetWorld() : nullptr;
+			const bool bIsRuntime = World && World->IsGameWorld();
+			return bIsRuntime;
+}
+
 DECLARE_CYCLE_STAT(TEXT("Create Physics Meshes"), STAT_CreatePhysicsMeshes, STATGROUP_Physics);
 
 void UBodySetup::CreatePhysicsMeshes()
@@ -343,11 +361,13 @@ void UBodySetup::CreatePhysicsMeshes()
 	{
 		return;
 	}
+	
+	bool bClearMeshes = true;
 
 	// Find or create cooked physics data
 	static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
 	FByteBulkData* FormatData = GetCookedData(PhysicsFormatName);
-	if( FormatData )
+	if (FormatData)
 	{
 		if (FormatData->IsLocked())
 		{
@@ -363,23 +383,45 @@ void UBodySetup::CreatePhysicsMeshes()
 			bNeedsCooking = bNeedsCooking || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() != AggGeom.ConvexElems.Num());
 			if (bNeedsCooking)	//Because of bugs it's possible to save with out of sync cooked data. In editor we want to fixup this data
 			{
-#if WITH_EDITOR
 				InvalidatePhysicsData();
 				CreatePhysicsMeshes();
 				return;
-#endif
 			}
 		}
 
 		FinishCreatingPhysicsMeshes(CookedDataReader.ConvexMeshes, CookedDataReader.ConvexMeshesNegX, CookedDataReader.TriMeshes);
+		bClearMeshes = false;
 	}
 	else
 	{
-		ClearPhysicsMeshes();
+		if (IsRuntime(this))
+		{
+			FPhysXCookHelper CookHelper(GetPhysXCookingModule());
+					
+			GetCookInfo(CookHelper.CookInfo, GetRuntimeOnlyCookOptimizationFlags());
+			if(CookHelper.HasSomethingToCook(CookHelper.CookInfo))
+			{
+				if (!IsRuntimeCookingEnabled())
+				{
+					UE_LOG(LogPhysics, Error, TEXT("Attempting to build physics data for %s at runtime, but runtime cooking is disabled (see the RuntimePhysXCooking plugin)."), *GetPathName());
+				}
+				else
+				{
+					CookHelper.CreatePhysicsMeshes_Concurrent();
+					FinishCreatingPhysicsMeshes(CookHelper.OutNonMirroredConvexMeshes, CookHelper.OutMirroredConvexMeshes, CookHelper.OutTriangleMeshes);
+					bClearMeshes = false;
+				}
+			}
+		}
 	}
 
+	if(bClearMeshes)
+	{
+		ClearPhysicsMeshes();
+	}
+	
 	bCreatedPhysicsMeshes = true;
-#endif
+#endif //WITH_PHYSX
 }
 
 void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& ConvexMeshes, const TArray<PxConvexMesh*>& ConvexMeshesNegX, const TArray<PxTriangleMesh*>& CookedTriMeshes)
@@ -435,78 +477,9 @@ void UBodySetup::FinishCreatingPhysicsMeshes(const TArray<PxConvexMesh*>& Convex
 	bCreatedPhysicsMeshes = true;
 }
 
-struct FAsyncPhysicsCookHelper
-{
-	FAsyncPhysicsCookHelper(IPhysXCookingModule* InPhysXCookingModule, const FCookBodySetupInfo& InCookInfo)
-		: CookInfo(InCookInfo)
-		, PhysXCookingModule(InPhysXCookingModule)
-	{
-	}
-
-	void CreatePhysicsMeshesAsync_Concurrent(FSimpleDelegateGraphTask::FDelegate FinishDelegate)
-	{
-		CreateConvexElements(CookInfo.NonMirroredConvexVertices, OutNonMirroredConvexMeshes, false);
-		CreateConvexElements(CookInfo.MirroredConvexVertices, OutMirroredConvexMeshes, true);
-
-		if (CookInfo.bCookTriMesh && !CookInfo.bTriMeshError)
-		{
-			OutTriangleMeshes.AddZeroed();
-			const bool bError = !PhysXCookingModule->GetPhysXCooking()->CreateTriMesh(FPlatformProperties::GetPhysicsFormat(), CookInfo.TriMeshCookFlags, CookInfo.TriangleMeshDesc.Vertices, CookInfo.TriangleMeshDesc.Indices, CookInfo.TriangleMeshDesc.MaterialIndices, CookInfo.TriangleMeshDesc.bFlipNormals, OutTriangleMeshes[0]);
-			if(bError)
-			{
-				UE_LOG(LogPhysics, Warning, TEXT("Failed to cook TriMesh: %s."), *CookInfo.OuterDebugName);
-			}
-			else if(CookInfo.bSupportUVFromHitResults)
-			{
-				OutUVInfo.FillFromTriMesh(CookInfo.TriangleMeshDesc);
-			}
-		}
-
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FinishDelegate, GET_STATID(STAT_PhysXCooking), nullptr, ENamedThreads::GameThread);
-	}
-
-	void CreateConvexElements(const TArray<TArray<FVector>>& Elements, TArray<PxConvexMesh*>& OutConvexMeshes, bool bFlipped)
-	{
-		OutMirroredConvexMeshes.Reserve(Elements.Num());
-		for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ++ElementIndex)
-		{
-			OutConvexMeshes.AddZeroed();
-			const EPhysXCookingResult Result = PhysXCookingModule->GetPhysXCooking()->CreateConvex(FPlatformProperties::GetPhysicsFormat(), CookInfo.ConvexCookFlags, Elements[ElementIndex], OutConvexMeshes.Last());
-			switch (Result)
-			{
-			case EPhysXCookingResult::Succeeded:
-				break;
-			case EPhysXCookingResult::Failed:
-				UE_LOG(LogPhysics, Warning, TEXT("Failed to cook convex: %s %d (FlipX:%d). The remaining elements will not get cooked."), *CookInfo.OuterDebugName, ElementIndex, bFlipped ? 1 : 0);
-				break;
-			case EPhysXCookingResult::SucceededWithInflation:
-				if (!CookInfo.bConvexDeformableMesh)
-				{
-					UE_LOG(LogPhysics, Warning, TEXT("Cook convex: %s %d (FlipX:%d) failed but succeeded with inflation.  The mesh should be looked at."), *CookInfo.OuterDebugName, ElementIndex, bFlipped ? 1 : 0);
-				}
-				else
-				{
-					UE_LOG(LogPhysics, Log, TEXT("Cook convex: %s %d (FlipX:%d) required inflation. You may wish to adjust the mesh so this is not necessary."), *CookInfo.OuterDebugName, ElementIndex, bFlipped ? 1 : 0);
-				}
-				break;
-			default:
-				check(false);
-			}
-		}
-	}
-
-	FCookBodySetupInfo CookInfo;
-	IPhysXCookingModule* PhysXCookingModule;
-
-	//output
-	TArray<PxConvexMesh*> OutNonMirroredConvexMeshes;
-	TArray<PxConvexMesh*> OutMirroredConvexMeshes;
-	TArray<PxTriangleMesh*> OutTriangleMeshes;
-	FBodySetupUVInfo OutUVInfo;
-};
-
 void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished)
 {
+	check(IsInGameThread());
 #if WITH_PHYSX_COOKING
 	UActorComponent* OwningComp = Cast<UActorComponent>(GetOuter());
 	UWorld* World = OwningComp ? OwningComp->GetWorld() : nullptr;
@@ -522,18 +495,18 @@ void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhy
 
 	if(IPhysXCookingModule* PhysXCookingModule = GetPhysXCookingModule())
 	{
-		FCookBodySetupInfo CookInfo;
-		GetCookInfo(CookInfo, EPhysXMeshCookFlags::Default);	//TODO: pass in different flags?
+		FPhysXCookHelper* AsyncPhysicsCookHelper = new FPhysXCookHelper(PhysXCookingModule);
+		GetCookInfo(AsyncPhysicsCookHelper->CookInfo, GetRuntimeOnlyCookOptimizationFlags());	//TODO: pass in different flags?
 
-		if(CookInfo.bCookTriMesh || CookInfo.bCookNonMirroredConvex || CookInfo.bCookMirroredConvex)
+		if(AsyncPhysicsCookHelper->HasSomethingToCook(AsyncPhysicsCookHelper->CookInfo))
 		{
-			FAsyncPhysicsCookHelper* AsyncPhysicsCookHelper = new FAsyncPhysicsCookHelper(PhysXCookingModule, CookInfo);
-			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateRaw(AsyncPhysicsCookHelper, &FAsyncPhysicsCookHelper::CreatePhysicsMeshesAsync_Concurrent,
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateRaw(AsyncPhysicsCookHelper, &FPhysXCookHelper::CreatePhysicsMeshesAsync_Concurrent,
 				/*FinishDelegate=*/FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UBodySetup::FinishCreatePhysicsMeshesAsync, AsyncPhysicsCookHelper, OnAsyncPhysicsCookFinished)),
 				GET_STATID(STAT_PhysXCooking), nullptr, ENamedThreads::AnyThread);
 		}
 		else
 		{
+			delete AsyncPhysicsCookHelper;
 			FinishCreatePhysicsMeshesAsync(nullptr, OnAsyncPhysicsCookFinished);
 		}
 	}
@@ -543,7 +516,7 @@ void UBodySetup::CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished OnAsyncPhy
 	}
 }
 
-void UBodySetup::FinishCreatePhysicsMeshesAsync(FAsyncPhysicsCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished)
+void UBodySetup::FinishCreatePhysicsMeshesAsync(FPhysXCookHelper* AsyncPhysicsCookHelper, FOnAsyncPhysicsCookFinished OnAsyncPhysicsCookFinished)
 {
 	if(AsyncPhysicsCookHelper)
 	{
@@ -1397,7 +1370,6 @@ bool UBodySetup::CalcUVAtLocation(const FVector& BodySpaceLocation, int32 FaceIn
 	return bSuccess;
 }
 
-
 FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimizedVersion)
 {
 	if (IsTemplate())
@@ -1423,53 +1395,31 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 
 	bool bContainedData = UseCookedData->Contains(Format);
 	FByteBulkData* Result = &UseCookedData->GetFormat(Format);
+	bool bIsRuntime = IsRuntime(this);
 
-#if WITH_PHYSX
+#if WITH_PHYSX && WITH_EDITOR
 	if (!bContainedData)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_PhysXCooking);
-
-		UActorComponent* OwningComp = Cast<UActorComponent>(GetOuter());
-		UWorld* World = OwningComp ? OwningComp->GetWorld() : nullptr;
-		const bool bIsRuntime = World && World->IsGameWorld();
-
-		if(bIsRuntime && !IsRuntimeCookingEnabled())
-		{
-			UE_LOG(LogPhysics, Error, TEXT("Attempting to build physics data for %s at runtime, but runtime cooking is disabled (see the RuntimePhysXCooking plugin)."), *GetPathName());
-			return nullptr;
-		}
 
 		if (AggGeom.ConvexElems.Num() == 0 && (CDP == NULL || CDP->ContainsPhysicsTriMeshData(bMeshCollideAll) == false))
 		{
 			return nullptr;
 		}
 
-#if WITH_EDITOR
 		const bool bEligibleForRuntimeOptimization = UseCookedData == &CookedFormatDataRuntimeOnlyOptimization;
-#else
-		const bool bEligibleForRuntimeOptimization = CookedFormatDataOverride == nullptr;	//We don't support runtime cook optimization for per poly skeletal mesh. This is an edge case we may want to support (only helps memory savings)
-#endif
 
 		const EPhysXMeshCookFlags CookingFlags = bEligibleForRuntimeOptimization ? GetRuntimeOnlyCookOptimizationFlags() : EPhysXMeshCookFlags::Default;
 
 		TArray<uint8> OutData;
-		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, CookingFlags, this);	//TODO: runtime cook (sync or async) should not used the derived data cooker
-		if(!bIsRuntime)
-		{
-#if WITH_EDITOR
+		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, CookingFlags, this, bIsRuntime);
 			
-			if (DerivedPhysXData->CanBuild())
-			{
-				COOK_STAT(auto Timer = PhysXBodySetupCookStats::UsageStats.TimeSyncWork());
-				bool bDataWasBuilt = false;
-				bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData, &bDataWasBuilt);
-				COOK_STAT(Timer.AddHitOrMiss(!DDCHit || bDataWasBuilt ? FCookStats::CallStats::EHitOrMiss::Miss : FCookStats::CallStats::EHitOrMiss::Hit, OutData.Num()));
-			}
-#endif
-		}
-		else
+		if (DerivedPhysXData->CanBuild())
 		{
-			DerivedPhysXData->Build(OutData);
+			COOK_STAT(auto Timer = PhysXBodySetupCookStats::UsageStats.TimeSyncWork());
+			bool bDataWasBuilt = false;
+			bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData, &bDataWasBuilt);
+			COOK_STAT(Timer.AddHitOrMiss(!DDCHit || bDataWasBuilt ? FCookStats::CallStats::EHitOrMiss::Miss : FCookStats::CallStats::EHitOrMiss::Hit, OutData.Num()));
 		}
 
 		if (OutData.Num())
@@ -1478,12 +1428,12 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 			FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
 			Result->Unlock();
 		}
-		else
+		else if(!bIsRuntime)	//only want to warn if DDC cooking failed - if it's really trying to use runtime and we can't, the runtime cooker code will catch it
 		{
 			UE_LOG(LogPhysics, Warning, TEXT("Attempt to build physics data for %s when we are unable to."), *GetPathName());
 		}
 	}
-#endif // WITH_PHYSX
+#endif // WITH_PHYSX && WITH_EDITOR
 	check(Result);
 	return Result->GetBulkDataSize() > 0 ? Result : NULL; // we don't return empty bulk data...but we save it to avoid thrashing the DDC
 }
@@ -1926,22 +1876,31 @@ FKSphylElem FKSphylElem::GetFinalScaled(const FVector& Scale3D, const FTransform
 
 	SetupNonUniformHelper(Scale3D * RelativeTM.GetScale3D(), MinScale, MinScaleAbs, Scale3DAbs);
 
-	float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
-	float ScaleLength = Scale3DAbs.Z;
-	
-	// this is a bit confusing since radius and height is scaled
-	// first apply the scale first 
-	ScaledSphylElem.Radius = FMath::Max(Radius * ScaleRadius, 0.1f);
-	ScaledSphylElem.Length = Length + Radius * 2.f;
-	float HalfLength = FMath::Max(ScaledSphylElem.Length * ScaleLength * 0.5f, 0.1f);
-	ScaledSphylElem.Radius = FMath::Clamp(ScaledSphylElem.Radius, 0.1f, HalfLength);	//radius is capped by half length
-	ScaledSphylElem.Length = FMath::Max(0.1f, (HalfLength - ScaledSphylElem.Radius) * 2.f);
+	ScaledSphylElem.Radius = GetScaledRadius(Scale3DAbs);
+	ScaledSphylElem.Length = GetScaledCylinderLength(Scale3DAbs);
 
 	FVector LocalOrigin = RelativeTM.TransformPosition(Center) * Scale3D;
 	ScaledSphylElem.Center = LocalOrigin;
 	ScaledSphylElem.Rotation = FRotator(RelativeTM.GetRotation() * FQuat(ScaledSphylElem.Rotation));
 
 	return ScaledSphylElem;
+}
+
+float FKSphylElem::GetScaledRadius(const FVector& Scale3D) const
+{
+	const FVector Scale3DAbs = Scale3D.GetAbs();
+	const float RadiusScale = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
+	return FMath::Clamp(Radius * RadiusScale, 0.1f, GetScaledHalfLength(Scale3DAbs));
+}
+
+float FKSphylElem::GetScaledCylinderLength(const FVector& Scale3D) const
+{
+	return FMath::Max(0.1f, (GetScaledHalfLength(Scale3D) - GetScaledRadius(Scale3D)) * 2.f);
+}
+
+float FKSphylElem::GetScaledHalfLength(const FVector& Scale3D) const
+{
+	return FMath::Max((Length + Radius * 2.0f) * FMath::Abs(Scale3D.Z) * 0.5f, 0.1f);
 }
 
 float FKSphylElem::GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BoneToWorldTM) const

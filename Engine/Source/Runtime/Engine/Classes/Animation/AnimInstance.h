@@ -489,6 +489,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void BlueprintPostEvaluateAnimation();
 
+	/** Executed when begin play is called on the owning component */
+	UFUNCTION(BlueprintImplementableEvent)
+	void BlueprintBeginPlay();
+
 	bool CanTransitionSignature() const;
 	
 	/*********************************************************************************************
@@ -844,36 +848,6 @@ public:
 	/** Returns value of named curved in OutValue, returns whether the curve was actually found or not. */
 	bool GetCurveValue(FName CurveName, float& OutValue);
 
-	/** Returns the length (in seconds) of an animation AnimAsset. */
-	DEPRECATED(4.9, "GetAnimAssetPlayerLength is deprecated, use GetInstanceAssetPlayerLength instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerLength(UAnimationAsset* AnimAsset);
-
-	//** Returns how far through the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFraction is deprecated, use GetInstanceAssetPlayerTimeFraction instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFraction(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns how long until the end of the animation AnimAsset (in seconds). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEnd is deprecated, use GetInstanceAssetPlayerTimeFromEnd instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetAnimAssetPlayerTimeFromEnd(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns how long until the end of the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEndFraction is deprecated, use GetInstanceAssetPlayerTimeFromEndFraction instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFromEndFraction(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns the weight of a state in a state machine. */
-	DEPRECATED(4.9, "GetStateWeight is deprecated, use GetInstanceStateWeight instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetStateWeight(int32 MachineIndex, int32 StateIndex);
-
-	/** Returns (in seconds) the time a state machine has been active. */
-	DEPRECATED(4.9, "GetCurrentStateElapsedTime is deprecated, use GetInstanceCurrentStateElapsedTime instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetCurrentStateElapsedTime(int32 MachineIndex);
-
 	/** Returns the name of a currently active state in a state machine. */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true", AnimGetter = "true"))
 	FName GetCurrentStateName(int32 MachineIndex);
@@ -960,7 +934,7 @@ public:
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
 	/** Perform evaluation. Can be called from worker threads. */
-	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve);
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose);
 
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();

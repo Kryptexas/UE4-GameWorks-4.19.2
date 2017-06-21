@@ -6,6 +6,7 @@
 
 #include "AndroidAudioDevice.h"
 #include "AudioDecompress.h"
+#include "ContentStreaming.h"
 
 // Callback that is registered if the source needs to loop
 void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 
@@ -489,6 +490,8 @@ void FSLESSoundSource::Play( void )
  */
 void FSLESSoundSource::Stop( void )
 {
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
 	if( WaveInstance )
 	{
 		// set the player's state to stopped

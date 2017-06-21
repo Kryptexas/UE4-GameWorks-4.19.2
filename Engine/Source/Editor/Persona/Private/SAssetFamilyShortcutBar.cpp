@@ -254,6 +254,7 @@ public:
 					AssetPickerConfig.Filter.bRecursiveClasses = true;
 				}
 
+				AssetPickerConfig.SelectionMode = ESelectionMode::SingleToggle;
 				AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SAssetShortcut::HandleAssetSelectedFromPicker);
 				AssetPickerConfig.OnShouldFilterAsset = FOnShouldFilterAsset::CreateSP(this, &SAssetShortcut::HandleFilterAsset);
 				AssetPickerConfig.bAllowNullSelection = false;
@@ -284,6 +285,13 @@ public:
 		{
 			TArray<UObject*> Assets;
 			Assets.Add(InAssetData.GetAsset());
+			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		}
+		else if(AssetData.IsValid())
+		{
+			// Assume that as we are set to 'toggle' mode with no 'none' selection allowed, we are selecting the currently selected item
+			TArray<UObject*> Assets;
+			Assets.Add(AssetData.GetAsset());
 			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
 		}
 	}

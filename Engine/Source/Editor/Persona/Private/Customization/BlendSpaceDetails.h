@@ -8,6 +8,9 @@
 class FBlendSpaceDetails : public IDetailCustomization
 {
 public:
+	FBlendSpaceDetails();
+	~FBlendSpaceDetails();
+
 	static TSharedRef<IDetailCustomization> MakeInstance()
 	{
 		return MakeShareable( new FBlendSpaceDetails() );
@@ -15,4 +18,9 @@ public:
 
 	// IDetailCustomization interface
 	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) override;
+
+private:
+	FDelegateHandle Handle;
+	class IDetailLayoutBuilder* Builder;
+	class UBlendSpaceBase* BlendSpaceBase;
 };

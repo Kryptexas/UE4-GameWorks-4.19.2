@@ -16,5 +16,6 @@ AHLODSelectionActor::AHLODSelectionActor(const FObjectInitializer& ObjectInitial
 		DrawSphereComponent->SetSphereRadius(0.0f);
 		RootComponent = DrawSphereComponent;
 	}
+	RepresentedActor = nullptr;
 #endif // WITH_EDITORONLY_DATA
 }

@@ -69,6 +69,8 @@ static const char* GetSimplygonMaterialChannel(ESimplygonMaterialChannel::Type c
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE;
 	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SUBSURFACE)
 		return USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR;
+	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_AMBIENT)
+		return SimplygonSDK::SG_MATERIAL_CHANNEL_AMBIENT;
 	else
 	{
 		check(0);
@@ -459,6 +461,10 @@ struct FSimplygonMaterialLODSettings
 		//ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SUBSURFACE, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
 		//ChannelsToCast.Last().bUseSRGB = false;
 		//ChannelsToCast.Last().bActive = true;
+
+		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_AMBIENT, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
+		ChannelsToCast.Last().bUseSRGB = false;
+		ChannelsToCast.Last().bActive = Settings.bAmbientOcclusionMap;
 	}
 
 	static int32 GetTextureResolutionFromEnum(ESimplygonTextureResolution::Type InResolution)

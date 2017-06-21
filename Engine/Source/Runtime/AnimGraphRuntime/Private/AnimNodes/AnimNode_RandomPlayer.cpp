@@ -12,9 +12,9 @@ FAnimNode_RandomPlayer::FAnimNode_RandomPlayer()
 
 }
 
-void FAnimNode_RandomPlayer::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_RandomPlayer::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 	EvaluateGraphExposedInputs.Execute(Context);
 
 	const int32 NumEntries = Entries.Num();
@@ -72,7 +72,7 @@ void FAnimNode_RandomPlayer::Initialize(const FAnimationInitializeContext& Conte
 	NextData.RemainingLoops = FMath::Clamp(RandomStream.RandRange(Entries[NextEntry].MinLoopCount, Entries[NextEntry].MaxLoopCount), 0, MAX_int32);
 }
 
-void FAnimNode_RandomPlayer::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_RandomPlayer::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
@@ -164,7 +164,7 @@ void FAnimNode_RandomPlayer::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_RandomPlayer::Evaluate(FPoseContext& Output)
+void FAnimNode_RandomPlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if(Entries.Num() > 0)
 	{

@@ -37,17 +37,18 @@ bool UMorphTarget::HasDataForLOD(int32 LODIndex)
 	return (MorphLODModels.IsValidIndex(LODIndex) && MorphLODModels[LODIndex].Vertices.Num() > 0);
 }
 
-
-void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
+bool UMorphTarget::HasValidData() const
 {
-	// @todo anim: update BaseSkelMesh with my information
-	NewMesh->RegisterMorphTarget(this);
+	for (const FMorphTargetLODModel& Model : MorphLODModels)
+	{
+		if (Model.Vertices.Num() > 0)
+		{
+			return true;
+		}
+	}
 
-	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex, bCompareNormal);
-
-	MarkPackageDirty();
+	return false;
 }
-
 
 void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
 {

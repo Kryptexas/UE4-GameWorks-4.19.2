@@ -159,6 +159,7 @@ protected:
 	void SetManipSizeX(float InSizeX, ETextCommit::Type CommitType);
 	void SetManipSizeY(float InSizeY, ETextCommit::Type CommitType);
 
+	EVisibility ShowPickerCanvas() const;
 	EVisibility ShowButtonEditingUI() const;
 
 	/** Get pointer to the selected manipulator object */

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -31,7 +31,6 @@
 #include "SwFabric.h"
 #include "SwCloth.h"
 #include "SwSolver.h"
-#include "ClothImpl.h"
 #include <string.h> // for memcpy
 
 using namespace nv;
@@ -66,7 +65,7 @@ cloth::Fabric* cloth::SwFactory::createFabric(uint32_t numParticles, Range<const
 
 cloth::Cloth* cloth::SwFactory::createCloth(Range<const PxVec4> particles, Fabric& fabric)
 {
-	return NV_CLOTH_NEW(SwClothImpl)(*this, fabric, particles);
+	return NV_CLOTH_NEW(SwCloth)(*this, static_cast<SwFabric&>(fabric), particles);
 }
 
 cloth::Solver* cloth::SwFactory::createSolver()
@@ -76,11 +75,11 @@ cloth::Solver* cloth::SwFactory::createSolver()
 
 cloth::Cloth* cloth::SwFactory::clone(const Cloth& cloth)
 {
-	if(cloth.getFactory().getPlatform() != Platform::CPU)
+	if (cloth.getFactory().getPlatform() != Platform::CPU)
 		return cloth.clone(*this); // forward to CuCloth
 
 	// copy construct
-	return NV_CLOTH_NEW(SwClothImpl)(*this, static_cast<const SwClothImpl&>(cloth));
+	return NV_CLOTH_NEW(SwCloth)(*this, static_cast<const SwCloth&>(cloth));
 }
 
 void cloth::SwFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> phaseIndices, Range<uint32_t> sets,
@@ -97,7 +96,7 @@ void cloth::SwFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 	NV_CLOTH_ASSERT(anchors.empty() || anchors.size() == swFabric.getNumTethers());
 	NV_CLOTH_ASSERT(tetherLengths.empty() || tetherLengths.size() == swFabric.getNumTethers());
 
-	for(uint32_t i = 0; !phaseIndices.empty(); ++i, phaseIndices.popFront())
+	for (uint32_t i = 0; !phaseIndices.empty(); ++i, phaseIndices.popFront())
 		phaseIndices.front() = swFabric.mPhases[i];
 
 	typedef SwFabric::RestvalueContainer::ConstIterator RestvalueIterator;
@@ -113,23 +112,23 @@ void cloth::SwFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 	uint32_t* iDst = indices.begin();
 
 	uint32_t numConstraints = 0;
-	for(sIt = swFabric.mSets.begin(); ++sIt != sEnd;)
+	for (sIt = swFabric.mSets.begin(); ++sIt != sEnd;)
 	{
 		RestvalueIterator rEnd = rBegin + *sIt;
-		for(; rIt != rEnd; ++rIt, ++stIt)
+		for (; rIt != rEnd; ++rIt, ++stIt)
 		{
 			uint16_t i0 = *iIt++;
 			uint16_t i1 = *iIt++;
 
-			if(std::max(i0, i1) >= swFabric.mNumParticles)
+			if (std::max(i0, i1) >= swFabric.mNumParticles)
 				continue;
 
-			if(!restvalues.empty())
+			if (!restvalues.empty())
 				*rDst++ = *rIt;
-			if(!stiffnessValues.empty())
+			if (!stiffnessValues.empty())
 				*stDst++ = *stIt;
 
-			if(!indices.empty())
+			if (!indices.empty())
 			{
 				*iDst++ = i0;
 				*iDst++ = i1;
@@ -138,17 +137,17 @@ void cloth::SwFactory::extractFabricData(const Fabric& fabric, Range<uint32_t> p
 			++numConstraints;
 		}
 
-		if(!sets.empty())
+		if (!sets.empty())
 			*sDst++ = numConstraints;
 	}
 
-	for(uint32_t i = 0; !anchors.empty(); ++i, anchors.popFront())
+	for (uint32_t i = 0; !anchors.empty(); ++i, anchors.popFront())
 		anchors.front() = swFabric.mTethers[i].mAnchor;
 
-	for(uint32_t i = 0; !tetherLengths.empty(); ++i, tetherLengths.popFront())
+	for (uint32_t i = 0; !tetherLengths.empty(); ++i, tetherLengths.popFront())
 		tetherLengths.front() = swFabric.mTethers[i].mLength * swFabric.mTetherLengthScale;
 
-	for(uint32_t i = 0; !triangles.empty(); ++i, triangles.popFront())
+	for (uint32_t i = 0; !triangles.empty(); ++i, triangles.popFront())
 		triangles.front() = swFabric.mTriangles[i];
 }
 
@@ -157,7 +156,7 @@ void cloth::SwFactory::extractCollisionData(const Cloth& cloth, Range<PxVec4> sp
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 
 	NV_CLOTH_ASSERT(spheres.empty() || spheres.size() == swCloth.mStartCollisionSpheres.size());
 	NV_CLOTH_ASSERT(capsules.empty() || capsules.size() == swCloth.mCapsuleIndices.size() * 2);
@@ -165,21 +164,21 @@ void cloth::SwFactory::extractCollisionData(const Cloth& cloth, Range<PxVec4> sp
 	NV_CLOTH_ASSERT(convexes.empty() || convexes.size() == swCloth.mConvexMasks.size());
 	NV_CLOTH_ASSERT(triangles.empty() || triangles.size() == swCloth.mStartCollisionTriangles.size());
 
-	if(!swCloth.mStartCollisionSpheres.empty() && !spheres.empty())
+	if (!swCloth.mStartCollisionSpheres.empty() && !spheres.empty())
 		memcpy(spheres.begin(), &swCloth.mStartCollisionSpheres.front(),
 		       swCloth.mStartCollisionSpheres.size() * sizeof(PxVec4));
 
-	if(!swCloth.mCapsuleIndices.empty() && !capsules.empty())
+	if (!swCloth.mCapsuleIndices.empty() && !capsules.empty())
 		memcpy(capsules.begin(), &swCloth.mCapsuleIndices.front(), swCloth.mCapsuleIndices.size() * sizeof(IndexPair));
 
-	if(!swCloth.mStartCollisionPlanes.empty() && !planes.empty())
+	if (!swCloth.mStartCollisionPlanes.empty() && !planes.empty())
 		memcpy(planes.begin(), &swCloth.mStartCollisionPlanes.front(),
 		       swCloth.mStartCollisionPlanes.size() * sizeof(PxVec4));
 
-	if(!swCloth.mConvexMasks.empty() && !convexes.empty())
+	if (!swCloth.mConvexMasks.empty() && !convexes.empty())
 		memcpy(convexes.begin(), &swCloth.mConvexMasks.front(), swCloth.mConvexMasks.size() * sizeof(uint32_t));
 
-	if(!swCloth.mStartCollisionTriangles.empty() && !triangles.empty())
+	if (!swCloth.mStartCollisionTriangles.empty() && !triangles.empty())
 		memcpy(triangles.begin(), &swCloth.mStartCollisionTriangles.front(),
 		       swCloth.mStartCollisionTriangles.size() * sizeof(PxVec3));
 }
@@ -188,13 +187,13 @@ void cloth::SwFactory::extractMotionConstraints(const Cloth& cloth, Range<PxVec4
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 
 	Vector<PxVec4>::Type const& srcConstraints = !swCloth.mMotionConstraints.mTarget.empty()
 	                                               ? swCloth.mMotionConstraints.mTarget
 	                                               : swCloth.mMotionConstraints.mStart;
 
-	if(!srcConstraints.empty())
+	if (!srcConstraints.empty())
 	{
 		// make sure dest array is big enough
 		NV_CLOTH_ASSERT(destConstraints.size() == srcConstraints.size());
@@ -207,13 +206,13 @@ void cloth::SwFactory::extractSeparationConstraints(const Cloth& cloth, Range<Px
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 
 	Vector<PxVec4>::Type const& srcConstraints = !swCloth.mSeparationConstraints.mTarget.empty()
 	                                               ? swCloth.mSeparationConstraints.mTarget
 	                                               : swCloth.mSeparationConstraints.mStart;
 
-	if(!srcConstraints.empty())
+	if (!srcConstraints.empty())
 	{
 		// make sure dest array is big enough
 		NV_CLOTH_ASSERT(destConstraints.size() == srcConstraints.size());
@@ -226,9 +225,9 @@ void cloth::SwFactory::extractParticleAccelerations(const Cloth& cloth, Range<Px
 {
 	NV_CLOTH_ASSERT(&cloth.getFactory() == this);
 
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 
-	if(!swCloth.mParticleAccelerations.empty())
+	if (!swCloth.mParticleAccelerations.empty())
 	{
 		// make sure dest array is big enough
 		NV_CLOTH_ASSERT(destAccelerations.size() == swCloth.mParticleAccelerations.size());
@@ -242,7 +241,7 @@ void cloth::SwFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 {
 	NV_CLOTH_ASSERT(this == &cloth.getFactory());
 
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 
 	uint32_t numIndices = cloth.getNumVirtualParticles();
 	uint32_t numWeights = cloth.getNumVirtualParticleWeights();
@@ -250,7 +249,7 @@ void cloth::SwFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 	NV_CLOTH_ASSERT(indices.size() == numIndices || indices.empty());
 	NV_CLOTH_ASSERT(weights.size() == numWeights || weights.empty());
 
-	if(weights.size() == numWeights)
+	if (weights.size() == numWeights)
 	{
 		PxVec3* wDestIt = reinterpret_cast<PxVec3*>(weights.begin());
 
@@ -258,12 +257,12 @@ void cloth::SwFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 		Vector<PxVec4>::Type::ConstIterator wIt = swCloth.mVirtualParticleWeights.begin();
 		Vector<PxVec4>::Type::ConstIterator wEnd = wIt + numWeights;
 
-		for(; wIt != wEnd; ++wIt, ++wDestIt)
+		for (; wIt != wEnd; ++wIt, ++wDestIt)
 			*wDestIt = PxVec3( wIt->x, wIt->y, wIt->z );
 
 		NV_CLOTH_ASSERT(wDestIt == weights.end());
 	}
-	if(indices.size() == numIndices)
+	if (indices.size() == numIndices)
 	{
 		// convert indices
 		Vec4u* iDestIt = reinterpret_cast<Vec4u*>(indices.begin());
@@ -272,10 +271,10 @@ void cloth::SwFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 
 		uint32_t numParticles = uint32_t(swCloth.mCurParticles.size());
 
-		for(; iIt != iEnd; ++iIt)
+		for (; iIt != iEnd; ++iIt)
 		{
 			// skip dummy indices
-			if(iIt->x < numParticles)
+			if (iIt->x < numParticles)
 				// byte offset to element index
 				*iDestIt++ = Vec4u(*iIt);
 		}
@@ -286,14 +285,14 @@ void cloth::SwFactory::extractVirtualParticles(const Cloth& cloth, Range<uint32_
 
 void cloth::SwFactory::extractSelfCollisionIndices(const Cloth& cloth, Range<uint32_t> destIndices) const
 {
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 	NV_CLOTH_ASSERT(destIndices.size() == swCloth.mSelfCollisionIndices.size());
 	memcpy(destIndices.begin(), swCloth.mSelfCollisionIndices.begin(), destIndices.size() * sizeof(uint32_t));
 }
 
 void cloth::SwFactory::extractRestPositions(const Cloth& cloth, Range<PxVec4> destRestPositions) const
 {
-	const SwCloth& swCloth = static_cast<const SwClothImpl&>(cloth).mCloth;
+	const SwCloth& swCloth = static_cast<const SwCloth&>(cloth);
 	NV_CLOTH_ASSERT(destRestPositions.size() == swCloth.mRestPositions.size());
 	memcpy(destRestPositions.begin(), swCloth.mRestPositions.begin(), destRestPositions.size() * sizeof(PxVec4));
 }

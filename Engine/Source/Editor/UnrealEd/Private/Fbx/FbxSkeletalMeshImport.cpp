@@ -3562,8 +3562,8 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// Also sort the RequiredBones array to be strictly increasing.
-	NewLODModel.RequiredBones.Sort();
-	BaseSkeletalMesh->RefSkeleton.EnsureParentExists(NewLODModel.ActiveBoneIndices);
+	NewLODModel.RequiredBones.Sort();	
+	BaseSkeletalMesh->RefSkeleton.EnsureParentsExistAndSort(NewLODModel.ActiveBoneIndices);
 
 	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
 	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).InverseFast() * BaseSkeletalMesh->GetRefPoseMatrix(0);
@@ -4096,8 +4096,11 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 		MorphTarget->PopulateDeltas(*Results[Index], LODIndex, ImportOptions->ShouldImportNormals() == false);
 
-		BaseSkelMesh->RegisterMorphTarget( MorphTarget );
-		MorphTarget->MarkPackageDirty();
+		// register does mark package as dirty
+		if (MorphTarget->HasValidData())
+		{
+			BaseSkelMesh->RegisterMorphTarget(MorphTarget);
+		}
 
 		delete Results[Index];
 		Results[Index] = nullptr;

@@ -11,6 +11,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "IDetailChildrenBuilder.h"
 #include "IDetailPropertyRow.h"
+#include "IDetailGroup.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "Widgets/SToolTip.h"
@@ -67,13 +68,14 @@
 #include "SKismetInspector.h"
 #include "PropertyEditorDelegates.h"
 #include "IEditableSkeleton.h"
+#include "IMeshReductionManagerModule.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetSkeletalMeshReductionInterface() != NULL;
+	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface").GetSkeletalMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
 }
 
@@ -226,6 +228,7 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 						.OnClicked(OnRemoveLODClicked)
 						[
 							SNew(STextBlock)
+							.Font(IDetailLayoutBuilder::GetDetailFont())
 							.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
 						]
 					]
@@ -244,6 +247,7 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 						.OnClicked(OnReimportClicked)
 						[
 							SNew(STextBlock)
+							.Font(IDetailLayoutBuilder::GetDetailFont())
 							.Text(LOCTEXT("ReimportLOD", "Reimport"))
 						]
 					]
@@ -261,6 +265,7 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 						.OnClicked(OnReimportNewFileClicked)
 						[
 							SNew(STextBlock)
+							.Font(IDetailLayoutBuilder::GetDetailFont())
 							.Text(LOCTEXT("ReimportLOD_NewFile", "Reimport (New File)"))
 						]
 					]
@@ -273,10 +278,9 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 	RegisterActiveTimer(1.0f + LODTimeOffset * LODIndex, FWidgetActiveTimerDelegate::CreateSP(this, &SSkeletalLODActions::RefreshExistFlag));
 }
 
-FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty, const USkeleton* InSkeleton)
+FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, const USkeleton* InSkeleton)
 : LODIndex(InLODIndex)
 , ParentLODSettings(InParentLODSettings)
-, BoneToRemoveProperty(InBoneToRemoveProperty)
 , Skeleton(InSkeleton)
 {
 	FillEnumOptions(SimplificationOptions, GetFeatureSimpificationEnum());
@@ -352,9 +356,9 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 		.ValueContent()
 			[
 				SAssignNew(SilhouetteCombo, STextComboBox)
-				//.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.ContentPadding(0)
 				.OptionsSource(&ImportanceOptions)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.InitiallySelectedItem(ImportanceOptions[ReductionSettings.SilhouetteImportance])
 				.OnSelectionChanged(this, &FSkelMeshReductionSettingsLayout::OnSilhouetteImportanceChanged)
 			];
@@ -372,7 +376,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 		.ValueContent()
 			[
 				SAssignNew(TextureCombo, STextComboBox)
-				//.Font( IDetailLayoutBuilder::GetDetailFont() )
+				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.ContentPadding(0)
 				.OptionsSource(&ImportanceOptions)
 				.InitiallySelectedItem(ImportanceOptions[ReductionSettings.TextureImportance])
@@ -392,7 +396,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 		.ValueContent()
 			[
 				SAssignNew(ShadingCombo, STextComboBox)
-				//.Font( IDetailLayoutBuilder::GetDetailFont() )
+				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.ContentPadding(0)
 				.OptionsSource(&ImportanceOptions)
 				.InitiallySelectedItem(ImportanceOptions[ReductionSettings.ShadingImportance])
@@ -412,7 +416,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 		.ValueContent()
 			[
 				SAssignNew(SkinningCombo, STextComboBox)
-				//.Font( IDetailLayoutBuilder::GetDetailFont() )
+				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.ContentPadding(0)
 				.OptionsSource(&ImportanceOptions)
 				.InitiallySelectedItem(ImportanceOptions[ReductionSettings.SkinningImportance])
@@ -478,12 +482,6 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 
 	}
 
-	{
-		if (BoneToRemoveProperty.IsValid() && BoneToRemoveProperty->IsValidHandle())
-		{
-			ChildrenBuilder.AddProperty(BoneToRemoveProperty.ToSharedRef());
-		}
-	}
 
 	{
 		ChildrenBuilder.AddCustomRow(LOCTEXT("MaxBonesPerVertex", "Max Bones Per Vertex"))
@@ -522,26 +520,6 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 				.OnValueChanged(this, &FSkelMeshReductionSettingsLayout::OnBaseLODChanged)
 			];
 
-	}
-
-	{
-
-
-		ChildrenBuilder.AddCustomRow(LOCTEXT("BakePose", "Bake Pose"))
-			.NameContent()
-			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text(LOCTEXT("BakePoseTitle", "Bake Pose"))
-			]
-		.ValueContent()
-			[
-				SNew(SObjectPropertyEntryBox)
-				.ObjectPath(this, &FSkelMeshReductionSettingsLayout::GetBakePosePath)
-				.AllowedClass(UAnimSequence::StaticClass())
-				.OnShouldFilterAsset(this, &FSkelMeshReductionSettingsLayout::FilterOutBakePose)
-				.OnObjectChanged(this, &FSkelMeshReductionSettingsLayout::SetBakePose)
-			];
 	}
 
 	{
@@ -655,27 +633,6 @@ void FSkelMeshReductionSettingsLayout::OnMaxBonesPerVertexChanged(int32 NewValue
 void FSkelMeshReductionSettingsLayout::OnBaseLODChanged(int32 NewLOD)
 {
 	ReductionSettings.BaseLOD = NewLOD;
-}
-
-FString FSkelMeshReductionSettingsLayout::GetBakePosePath() const
-{
-	return FAssetData(ReductionSettings.BakePose).ObjectPath.ToString();
-}
-
-bool FSkelMeshReductionSettingsLayout::FilterOutBakePose(const FAssetData& AssetData) const
-{
-	UAnimSequence* AnimationSequence = Cast<UAnimSequence>(AssetData.GetAsset());
-	if (AnimationSequence)
-	{
-		return !(AnimationSequence->GetSkeleton() == Skeleton);
-	}
-
-	return true;
-}
-
-void FSkelMeshReductionSettingsLayout::SetBakePose(const FAssetData& AssetData)
-{
-	ReductionSettings.BakePose = Cast<UAnimSequence>(AssetData.GetAsset());
 }
 
 void FSkelMeshReductionSettingsLayout::OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
@@ -1172,24 +1129,10 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			
 			if (LODIndex > 0 && IsAutoMeshReductionAvailable())
 			{	
-				
-
 				TSharedPtr<IPropertyHandle> ReductionHandle = ChildHandle->GetChildHandle(FName("ReductionSettings"));
 				check(ReductionHandle.IsValid());
-				TSharedPtr<IPropertyHandle> BonesToRemoveHandle = ReductionHandle->GetChildHandle(FName("BonesToRemove"));
-
-
-				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle, SkelMesh->Skeleton));
+				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), SkelMesh->Skeleton));
 			}
-
-			TSharedPtr<IPropertyHandle> RemovedBonesHandle = ChildHandle->GetChildHandle(FName("RemovedBones"));
-			RemovedBonesHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([this, LODIndex, SkelMesh]()
-			{
-				if (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() == 0)
-				{
-					RemoveBones(LODIndex);
-				}
-			}));
 
 			FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1241,13 +1184,52 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			{
 				// changing property name to "LOD Info" because it shows only array index
 				TSharedPtr<IPropertyHandle> LODInfoChild = LODInfoProperty->GetChildHandle(LODIndex);
-				LODInfoChild->CreatePropertyNameWidget(LOCTEXT("LODInfoLabel", "LOD Info"));
-				LODCategory.AddProperty(LODInfoChild);
+				uint32 NumInfoChildren = 0;
+				LODInfoChild->GetNumChildren(NumInfoChildren);
+
+				IDetailGroup& LODInfoGroup = LODCategory.AddGroup(TEXT("LOD Info"), LOCTEXT("LODInfoGroupLabel", "LOD Info"));
+
+				const TArray<FName> HiddenProperties = { GET_MEMBER_NAME_CHECKED(FSkeletalMeshLODInfo, ReductionSettings), GET_MEMBER_NAME_CHECKED(FSkeletalMeshLODInfo, BakePose), GET_MEMBER_NAME_CHECKED(FSkeletalMeshLODInfo, BonesToRemove) };
+				for (uint32 ChildIndex = 0; ChildIndex < NumInfoChildren; ++ChildIndex)
+				{
+					TSharedRef<IPropertyHandle> LODInfoChildHandle = LODInfoChild->GetChildHandle(ChildIndex).ToSharedRef();
+					if (!HiddenProperties.Contains(LODInfoChildHandle->GetProperty()->GetFName()))
+					{
+						LODInfoGroup.AddPropertyRow(LODInfoChildHandle);
+					}
+				}
+
+				TSharedPtr<IPropertyHandle> BakePoseHandle = ChildHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FSkeletalMeshLODInfo, BakePose));
+				DetailLayout.HideProperty(BakePoseHandle);
+				LODInfoGroup.AddWidgetRow()
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(LOCTEXT("BakePoseTitle", "Bake Pose"))
+				]
+				.ValueContent()
+				[
+					SNew(SObjectPropertyEntryBox)
+					.PropertyHandle(BakePoseHandle)
+					.AllowedClass(UAnimSequence::StaticClass())
+					.OnShouldFilterAsset(this, &FPersonaMeshDetails::FilterOutBakePose, SkelMesh->Skeleton)
+				];
+
+				TSharedPtr<IPropertyHandle> RemovedBonesHandle = LODInfoChild->GetChildHandle(GET_MEMBER_NAME_CHECKED(FSkeletalMeshLODInfo, BonesToRemove));
+				LODInfoGroup.AddPropertyRow(RemovedBonesHandle->AsShared());
+				RemovedBonesHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([this, LODIndex, SkelMesh]()
+				{
+					if (SkelMesh->LODInfo[LODIndex].BonesToRemove.Num() == 0)
+					{
+						RemoveBones(LODIndex);
+					}
+				}));
 
 				//@Todo : ideally this should be inside of LODinfo customization, but for now this will allow users to re-apply removed joints after re-import if they want to.
 				// this also can be buggy if you have this opened and you removed joints using skeleton tree, in that case, it might not show			
 				// add custom button to re-apply bone reduction if they want to
-				FDetailWidgetRow& ButtonRow = LODCategory.AddCustomRow(LOCTEXT("ReapplyRemovedBones", "Reapply Removed Bones"))
+				FDetailWidgetRow& ButtonRow = LODInfoGroup.AddWidgetRow()
 				.ValueContent()
 				.HAlign(HAlign_Left)			
 				[
@@ -1260,7 +1242,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 					]
 				];
 
-				ButtonRow.Visibility(TAttribute<EVisibility>::Create([SkelMesh, LODIndex]() -> EVisibility { return (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;  }));
+				ButtonRow.Visibility(TAttribute<EVisibility>::Create([SkelMesh, LODIndex]() -> EVisibility { return (SkelMesh->LODInfo[LODIndex].BonesToRemove.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;  }));
 			}
 
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1311,6 +1293,7 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 			.ContentPadding(0)
 			.OptionsSource(&LODNames)
 			.InitiallySelectedItem(LODNames[0])
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OnSelectionChanged(this, &FPersonaMeshDetails::OnImportLOD, &DetailLayout)
 		];
 
@@ -1744,12 +1727,6 @@ void FPersonaMeshDetails::HideUnnecessaryProperties(IDetailLayoutBuilder& Detail
 		TSharedPtr<IPropertyHandle> ChildHandle = LODInfoProperty->GetChildHandle(ChildIdx);
 		if (ChildHandle.IsValid())
 		{
-			TSharedPtr<IPropertyHandle> MaterialMapHandle = ChildHandle->GetChildHandle(FName("LODMaterialMap"));
-			DetailLayout.HideProperty(MaterialMapHandle);
-
-			TSharedPtr<IPropertyHandle> TriangleSortHandle = ChildHandle->GetChildHandle(FName("TriangleSortSettings"));
-			DetailLayout.HideProperty(TriangleSortHandle);
-
 			TSharedPtr<IPropertyHandle> ReductionHandle = ChildHandle->GetChildHandle(FName("ReductionSettings"));
 			DetailLayout.HideProperty(ReductionHandle);
 		}
@@ -2301,9 +2278,11 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 			SAssignNew(ClothComboBoxes.Last(), SClothComboBox)
 			.OnGenerateWidget(this, &FPersonaMeshDetails::OnGenerateWidgetForClothingEntry)
 			.OnSelectionChanged(this, &FPersonaMeshDetails::OnClothingSelectionChanged, ClothComboBoxes.Num() - 1, LODIndex, SectionIndex)
+			.OnComboBoxOpening(this, &FPersonaMeshDetails::OnClothingComboBoxOpening)
 			.OptionsSource(&NewClothingAssetEntries)
 			[
 				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.Text(this, &FPersonaMeshDetails::OnGetClothingComboText, LODIndex, SectionIndex)
 			]
 		]
@@ -3138,12 +3117,16 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 		[
 			SNew(SButton)
 			.OnClicked(this, &FPersonaMeshDetails::OnOpenClothingFileClicked, &DetailLayout)
-			.Text(LOCTEXT("AddAPEXClothingFile", "Add APEX clothing file..."))
 			.ToolTip(IDocumentation::Get()->CreateToolTip(
 				LOCTEXT("AddClothingButtonTooltip", "Select a new APEX clothing file and add it to the skeletal mesh."),
 				NULL,
 				TEXT("Shared/Editors/Persona"),
 				TEXT("AddClothing")))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("AddAPEXClothingFile", "Add APEX clothing file..."))
+			]
 		]
 	];
 #endif
@@ -3557,6 +3540,12 @@ void FPersonaMeshDetails::RefreshClothingComboBoxes()
 	}
 }
 
+void FPersonaMeshDetails::OnClothingComboBoxOpening()
+{
+	UpdateClothingEntries();
+	RefreshClothingComboBoxes();
+}
+
 TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateWidgetForClothingEntry(TSharedPtr<FClothingEntry> InEntry)
 {
 	UClothingAsset* Asset = Cast<UClothingAsset>(InEntry->Asset.Get());
@@ -3735,6 +3724,14 @@ void FPersonaMeshDetails::OnPreviewMeshChanged(USkeletalMesh* OldSkeletalMesh, U
 	{
 		MeshDetailLayout->ForceRefreshDetails();
 	}
+}
+
+bool FPersonaMeshDetails::FilterOutBakePose(const FAssetData& AssetData, USkeleton* Skeleton) const
+{
+	FString SkeletonName;
+	AssetData.GetTagValue("Skeleton", SkeletonName);
+	FAssetData SkeletonData(Skeleton);
+	return (SkeletonName != SkeletonData.GetExportTextName());
 }
 
 #undef LOCTEXT_NAMESPACE

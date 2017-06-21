@@ -7,9 +7,11 @@
 
 #include "AnimInstanceProxy.h"
 
+#include "LiveLinkRemapAsset.h"
+
 #define LOCTEXT_NAMESPACE "LiveLinkAnimNode"
 
-void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_LiveLinkPose::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 	IModularFeatures& ModularFeatures = IModularFeatures::Get();
 
@@ -17,64 +19,36 @@ void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Conte
 	{
 		LiveLinkClient = &IModularFeatures::Get().GetModularFeature<ILiveLinkClient>(ILiveLinkClient::ModularFeatureName);
 	}
+
+	PreviousRetargetAsset = nullptr;
 }
 
-void FAnimNode_LiveLinkPose::Evaluate(FPoseContext& Output)
+void FAnimNode_LiveLinkPose::Update_AnyThread(const FAnimationUpdateContext & Context)
+{
+	EvaluateGraphExposedInputs.Execute(Context);
+
+	ULiveLinkRetargetAsset* CurrentRetargetAsset = RetargetAsset ? RetargetAsset : ULiveLinkRemapAsset::StaticClass()->GetDefaultObject<ULiveLinkRetargetAsset>();
+	if (PreviousRetargetAsset != CurrentRetargetAsset)
+	{
+		RetargetContext = CurrentRetargetAsset->CreateRetargetContext();
+		PreviousRetargetAsset = CurrentRetargetAsset;
+	}
+}
+
+void FAnimNode_LiveLinkPose::Evaluate_AnyThread(FPoseContext& Output)
 {
 	Output.ResetToRefPose();
 
-	if (!LiveLinkClient)
+	if (!LiveLinkClient || !PreviousRetargetAsset)
 	{
 		return;
 	}
 
-	FLiveLinkRefSkeleton RefSkeleton;
-	TArray<FTransform> BoneTransforms;
-	FLiveLinkCurveKey CurveKey;
-	TArray<FOptionalCurveElement> Curves;
+	
 
 	if(const FLiveLinkSubjectFrame* Subject = LiveLinkClient->GetSubjectData(SubjectName))
 	{
-		const TArray<FName>& BoneNames = Subject->RefSkeleton.GetBoneNames();
-
-		if ((BoneNames.Num() == 0) || (Subject->Transforms.Num() == 0) || (BoneNames.Num() != Subject->Transforms.Num()))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), BoneNames.Num(), Subject->Transforms.Num());
-			return;
-		}
-
-		for (int32 i = 0; i < BoneNames.Num(); ++i)
-		{
-			FName BoneName = BoneNames[i];
-			FTransform BoneTransform = Subject->Transforms[i];
-
-			int32 MeshIndex = Output.Pose.GetBoneContainer().GetPoseBoneIndexForBoneName(BoneName);
-			if (MeshIndex != INDEX_NONE)
-			{
-				FCompactPoseBoneIndex CPIndex = Output.Pose.GetBoneContainer().MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshIndex));
-				if (CPIndex != INDEX_NONE)
-				{
-					Output.Pose[CPIndex] = BoneTransform;
-				}
-			}
-		}
-
-		USkeleton* Skeleton = Output.AnimInstanceProxy->GetSkeleton();
-
-		for (int32 CurveIdx = 0; CurveIdx < Subject->CurveKeyData.CurveNames.Num(); ++CurveIdx)
-		{
-			const FOptionalCurveElement& Curve = Subject->Curves[CurveIdx];
-			if(Curve.IsValid())
-			{
-				FName CurveName = Subject->CurveKeyData.CurveNames[CurveIdx];
-
-				SmartName::UID_Type UID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, CurveName);
-				if (UID != SmartName::MaxUID)
-				{
-					Output.Curve.Set(UID, Curve.Value);
-				}
-			}
-		}
+		PreviousRetargetAsset->BuildPoseForSubject(*Subject, RetargetContext, Output.Pose, Output.Curve);
 	}
 }
 

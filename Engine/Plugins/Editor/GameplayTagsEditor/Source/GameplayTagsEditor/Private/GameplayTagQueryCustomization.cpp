@@ -27,7 +27,7 @@ void FGameplayTagQueryCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 	
 	RefreshQueryDescription(); // will call BuildEditableQueryList();
 
-	bool const bReadOnly = StructPropertyHandle->GetProperty() ? StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst) : false;
+	bool const bReadOnly = StructPropertyHandle->IsEditConst();
 
 	HeaderRow
 	.NameContent()
@@ -84,10 +84,9 @@ FText FGameplayTagQueryCustomization::GetQueryDescText() const
 
 FText FGameplayTagQueryCustomization::GetEditButtonText() const
 {
-	UProperty const* const Prop = StructPropertyHandle.IsValid() ? StructPropertyHandle->GetProperty() : nullptr;
-	if (Prop)
+	if (StructPropertyHandle.IsValid())
 	{
-		bool const bReadOnly = Prop->HasAnyPropertyFlags(CPF_EditConst);
+		bool const bReadOnly = StructPropertyHandle->IsEditConst();
 		return
 			bReadOnly
 			? LOCTEXT("GameplayTagQueryCustomization_View", "View...")
@@ -164,7 +163,7 @@ FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 		TArray<UObject*> OuterObjects;
 		StructPropertyHandle->GetOuterObjects(OuterObjects);
 
-		bool const bReadOnly = StructPropertyHandle->GetProperty() ? StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst) : false;
+		bool const bReadOnly = StructPropertyHandle->IsEditConst();
 
 		FText Title;
 		if (OuterObjects.Num() > 1)

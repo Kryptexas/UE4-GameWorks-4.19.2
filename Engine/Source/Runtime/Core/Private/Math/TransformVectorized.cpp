@@ -40,11 +40,11 @@ void FTransform::DebugPrint() const
 
 FString FTransform::ToHumanReadableString() const
 {
-	FQuat R(GetRotation());
+	FRotator R(GetRotation());
 	FVector T(GetTranslation());
 	FVector S(GetScale3D());
 
-	FString Output= FString::Printf(TEXT("Rotation: %f %f %f %f\r\n"), R.X, R.Y, R.Z, R.W);
+	FString Output= FString::Printf(TEXT("Rotation: Pitch %f Yaw %f Roll %f\r\n"), R.Pitch, R.Yaw, R.Roll);
 	Output += FString::Printf(TEXT("Translation: %f %f %f\r\n"), T.X, T.Y, T.Z);
 	Output += FString::Printf(TEXT("Scale3D: %f %f %f\r\n"), S.X, S.Y, S.Z);
 

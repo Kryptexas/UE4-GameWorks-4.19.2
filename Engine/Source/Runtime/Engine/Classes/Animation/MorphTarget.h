@@ -137,15 +137,14 @@ public:
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
 public:
-
-	/** Post process after importing **/
-	ENGINE_API void PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
-
 	/** Remap vertex indices with base mesh. */
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
+	/** Get Morphtarget Delta array for the given input Index */
 	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
 	ENGINE_API bool HasDataForLOD(int32 LODIndex);
+	/** return true if this morphtarget contains valid vertices */
+	ENGINE_API bool HasValidData() const;
 
 	/** Populates the given morph target LOD model with the provided deltas */
 	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal = false);

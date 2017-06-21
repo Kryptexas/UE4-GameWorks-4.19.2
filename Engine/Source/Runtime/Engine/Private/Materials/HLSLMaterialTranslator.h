@@ -227,6 +227,9 @@ protected:
 	/** true if the material reads mesh particle transform in the pixel shader. */
 	uint32 bUsesParticleTransform : 1;
 
+	/** true if the material uses any type of vertex position */
+	uint32 bUsesVertexPosition : 1;
+
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's information
 	uint32 bCompilingPreviousFrame : 1;
@@ -279,6 +282,7 @@ public:
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesParticleTransform(false)
+	,	bUsesVertexPosition(false)
 	,	bUsesTransformVector(false)
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
@@ -2878,6 +2882,8 @@ protected:
 		{
 			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT(""));
 		}
+
+		bUsesVertexPosition = true;
 
 		return AddInlinedCodeChunk(MCT_Float3, TEXT("%s(Parameters)"), *FunctionNamePattern);
 	}

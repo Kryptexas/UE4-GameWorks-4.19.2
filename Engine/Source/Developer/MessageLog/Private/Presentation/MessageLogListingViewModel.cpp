@@ -32,11 +32,11 @@ void FMessageLogListingViewModel::Initialize()
 	MessageLogListingModel->OnChanged().AddSP(this, &FMessageLogListingViewModel::OnChanged);
 
 	// Create our filters
-	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("CriticalErrors", "Critical Errors"), FEditorStyle::GetBrush("MessageLog.Error"))));
-	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Errors", "Errors"), FEditorStyle::GetBrush("MessageLog.Error"))));
-	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("PerformanceWarnings", "Performance Warnings"), FEditorStyle::GetBrush("MessageLog.Warning"))));
-	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Warnings", "Warnings"), FEditorStyle::GetBrush("MessageLog.Warning"))));
-	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Info", "Info"), FEditorStyle::GetBrush("MessageLog.Note"))));
+	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("CriticalErrors", "Critical Errors"), FSlateIcon("EditorStyle", "MessageLog.Error"))));
+	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Errors", "Errors"), FSlateIcon("EditorStyle", "MessageLog.Error"))));
+	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("PerformanceWarnings", "Performance Warnings"), FSlateIcon("EditorStyle", "MessageLog.Warning"))));
+	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Warnings", "Warnings"), FSlateIcon("EditorStyle", "MessageLog.Warning"))));
+	MessageFilters.Add(MakeShareable(new FMessageFilter(LOCTEXT("Info", "Info"), FSlateIcon("EditorStyle", "MessageLog.Note"))));
 
 	for( auto It = MessageFilters.CreateConstIterator(); It; ++It)
 	{

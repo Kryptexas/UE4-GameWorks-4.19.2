@@ -30,7 +30,7 @@ public:
 	{
 	}
 
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 
 };
@@ -45,5 +45,5 @@ public:
 	{
 	}
 
-	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output);
+	virtual void EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output);
 };

@@ -7,15 +7,15 @@
 /////////////////////////////////////////////////////
 // FAnimNode_BlendBoneByChannel
 
-void FAnimNode_BlendBoneByChannel::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_BlendBoneByChannel::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	A.Initialize(Context);
 	B.Initialize(Context);
 }
 
-void FAnimNode_BlendBoneByChannel::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_BlendBoneByChannel::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	A.CacheBones(Context);
 	B.CacheBones(Context);
@@ -28,7 +28,7 @@ void FAnimNode_BlendBoneByChannel::CacheBones(const FAnimationCacheBonesContext&
 		Entry.SourceBone.Initialize(BoneContainer);
 		Entry.TargetBone.Initialize(BoneContainer);
 
-		if (Entry.SourceBone.IsValid(BoneContainer) && Entry.TargetBone.IsValid(BoneContainer)
+		if (Entry.SourceBone.IsValidToEvaluate(BoneContainer) && Entry.TargetBone.IsValidToEvaluate(BoneContainer)
 			&& (Entry.bBlendTranslation || Entry.bBlendRotation || Entry.bBlendScale))
 		{
 			ValidBoneEntries.Add(Entry);
@@ -36,7 +36,7 @@ void FAnimNode_BlendBoneByChannel::CacheBones(const FAnimationCacheBonesContext&
 	}
 }
 
-void FAnimNode_BlendBoneByChannel::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_BlendBoneByChannel::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimNode_BlendBoneByChannel_Update);
 	EvaluateGraphExposedInputs.Execute(Context);
@@ -51,7 +51,7 @@ void FAnimNode_BlendBoneByChannel::Update(const FAnimationUpdateContext& Context
 	}
 }
 
-void FAnimNode_BlendBoneByChannel::Evaluate(FPoseContext& Output)
+void FAnimNode_BlendBoneByChannel::Evaluate_AnyThread(FPoseContext& Output)
 {
 	A.Evaluate(Output);
 

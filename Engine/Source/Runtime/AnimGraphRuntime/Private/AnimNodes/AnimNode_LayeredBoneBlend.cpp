@@ -8,9 +8,9 @@
 /////////////////////////////////////////////////////
 // FAnimNode_LayeredBoneBlend
 
-void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_LayeredBoneBlend::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	const int NumPoses = BlendPoses.Num();
 	checkSlow(BlendWeights.Num() == NumPoses);
@@ -106,7 +106,7 @@ void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContain
 	}
 }
 
-void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_LayeredBoneBlend::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	BasePose.CacheBones(Context);
 	int32 NumPoses = BlendPoses.Num();
@@ -121,7 +121,7 @@ void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& C
 	}
 }
 
-void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_LayeredBoneBlend::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
@@ -185,7 +185,7 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
+void FAnimNode_LayeredBoneBlend::Evaluate_AnyThread(FPoseContext& Output)
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(BlendPosesInGraph, !IsInGameThread());
 

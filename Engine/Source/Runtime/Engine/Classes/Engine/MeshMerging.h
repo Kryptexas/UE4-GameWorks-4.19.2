@@ -60,9 +60,6 @@ struct FMeshReductionSettings
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
 
-	/*UPROPERTY(EditAnywhere, Category = ReductionSettings)
-	bool bActive;*/
-
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	bool bRecalculateNormals;
 
@@ -198,10 +195,6 @@ struct FMeshProxySettings
 	UPROPERTY()
 	bool bExportSpecularMap_DEPRECATED;
 
-	/** Material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings Material_DEPRECATED;
-
 	/** Determines whether or not the correct LOD models should be calculated given the source meshes and transition size */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
 	bool bCalculateCorrectLODModel;
@@ -293,17 +286,17 @@ enum class EMeshMergeType : uint8
 /**
 * Mesh merging settings
 */
-USTRUCT()
+USTRUCT(Blueprintable)
 struct FMeshMergingSettings
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Whether to generate lightmap UVs for a merged mesh*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = MeshSettings)
 	bool bGenerateLightMapUV;
 
 	/** Target lightmap resolution */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings, meta=(ClampMax = 4096))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = MeshSettings, meta=(ClampMax = 4096))
 	int32 TargetLightMapResolution;
 
 	/** Whether we should import vertex colors into merged mesh */
@@ -311,48 +304,48 @@ struct FMeshMergingSettings
 	bool bImportVertexColors_DEPRECATED;
 
 	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
-	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MeshSettings)
 	bool bPivotPointAtZero;
 
 	/** Whether to merge physics data (collision primitives)*/
-	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MeshSettings)
 	bool bMergePhysicsData;
 
 	/** Whether to merge source materials into one flat material, ONLY available when merging a single LOD level, see LODSelectionType */
-	UPROPERTY(EditAnywhere, Category = MaterialSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MaterialSettings)
 	bool bMergeMaterials;
 
 	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
+	UPROPERTY(EditAnywhere, Category = MaterialSettings, BlueprintReadWrite, meta = (editcondition = "bMergeMaterials"))
 	FMaterialProxySettings MaterialSettings;
 
 	/** Whether or not vertex data such as vertex colours should be baked into the resulting mesh */
-	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MeshSettings)
 	bool bBakeVertexDataToMesh;
 
 	/** Whether or not vertex data such as vertex colours should be used when baking out materials */
-	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
+	UPROPERTY(EditAnywhere, Category = MaterialSettings, BlueprintReadWrite, meta = (editcondition = "bMergeMaterials"))
 	bool bUseVertexDataForBakingMaterial;
 
 	// Whether or not to calculate varying output texture sizes according to their importance in the final atlas texture
-	UPROPERTY(Category = MaterialSettings, EditAnywhere, meta = (editcondition = "bMergeMaterials"))
+	UPROPERTY(Category = MaterialSettings, EditAnywhere, BlueprintReadWrite, meta = (editcondition = "bMergeMaterials"))
 	bool bUseTextureBinning;
 			
 	UPROPERTY()
 	bool bCalculateCorrectLODModel_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MeshSettings)
 	EMeshLODSelectionType LODSelectionType;
 
 	UPROPERTY()
 	int32 ExportSpecificLOD_DEPRECATED;
 
 	// A given LOD level to export from the source meshes
-	UPROPERTY(EditAnywhere, Category = MeshSettings, meta = (ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7", EnumCondition = 1))
+	UPROPERTY(EditAnywhere, Category = MeshSettings, BlueprintReadWrite, meta = (ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7", EnumCondition = 1))
 	int32 SpecificLOD;
 
 	/** Whether or not to use available landscape geometry to cull away invisible triangles */
-	UPROPERTY(EditAnywhere, Category = LandscapeCulling)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = LandscapeCulling)
 	bool bUseLandscapeCulling;
 
 	/** Whether to export normal maps for material merging */
@@ -405,13 +398,23 @@ struct FMeshMergingSettings
 /** Struct to store per section info used to populate data after (multiple) meshes are merged together */
 struct FSectionInfo
 {
+	/** Material used by the section */
 	class UMaterialInterface* Material;
-	FName MaterialSlotName;
-	bool bCollisionEnabled;
-	bool bShadowCastingEnabled;
+	/** Name value for the section */
+	FName MaterialSlotName;	
+	/** List of properties enabled for the section (collision, cast shadow etc) */
+	TArray<FName> EnabledProperties;
+	/** Original index of Material in the source data */
+	int32 MaterialIndex;
+	/** Index pointing to the start set of mesh indices that belong to this section */
+	int32 StartIndex;
+	/** Index pointing to the end set of mesh indices that belong to this section */
+	int32 EndIndex;
+	/** Used while baking out materials, to check which sections are and aren't being baked out */
+	bool bProcessed;
 
 	bool operator==(const FSectionInfo& Other) const
 	{
-		return Material == Other.Material && MaterialSlotName == Other.MaterialSlotName && bCollisionEnabled == Other.bCollisionEnabled && bShadowCastingEnabled == Other.bShadowCastingEnabled;
+		return Material == Other.Material && MaterialSlotName == Other.MaterialSlotName && EnabledProperties == Other.EnabledProperties && bProcessed == Other.bProcessed && MaterialIndex == Other.MaterialIndex && StartIndex == Other.StartIndex && EndIndex == Other.EndIndex;
 	}
 };

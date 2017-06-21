@@ -52,6 +52,7 @@ ADD_LIBRARY(APEX_Clothing ${APEX_CLOTHING_LIBTYPE}
 	${AM_SOURCE_DIR}/src/ModuleClothingHelpers.cpp
 	${AM_SOURCE_DIR}/src/ModuleClothingImpl.cpp
 	${AM_SOURCE_DIR}/src/SimulationAbstract.cpp	
+	${AM_SOURCE_DIR}/src/SimdMath.cpp	
 	
 	${APEX_MODULE_DIR}/common/src/ModuleProfileCommon.cpp
 )
@@ -113,8 +114,6 @@ TARGET_INCLUDE_DIRECTORIES(APEX_Clothing
 	PRIVATE ${PHYSX_ROOT_DIR}/Include/particles
 	PRIVATE ${PHYSX_ROOT_DIR}/Include/vehicle
 	PRIVATE ${PHYSX_ROOT_DIR}/Source/GeomUtils/headers
-	
-	PRIVATE ${NVSIMD_INCLUDE_DIR}/include
 	
 )
 

@@ -23,8 +23,10 @@ public class MergeActors : ModuleRules
                 "MeshUtilities",
                 "PropertyEditor",
                 "RawMesh",
-                "WorkspaceMenuStructure"
-			}
+                "WorkspaceMenuStructure",
+                "MeshReductionInterface",
+                "MeshMergeUtilities",
+            }
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -37,7 +39,7 @@ public class MergeActors : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
-			}
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
@@ -46,8 +48,10 @@ public class MergeActors : ModuleRules
                 "ContentBrowser",
                 "Documentation",
                 "LevelEditor",
-                "MeshUtilities"
-			}
+                "MeshUtilities",
+                "MeshMergeUtilities",
+                "MeshReductionInterface",
+            }
 		);
 	}
 }

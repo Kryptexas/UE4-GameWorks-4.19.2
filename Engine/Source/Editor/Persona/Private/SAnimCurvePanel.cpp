@@ -24,6 +24,8 @@
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Widgets/Input/STextEntryPopup.h"
 #include "IEditableSkeleton.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
 
@@ -431,14 +433,11 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 			if (!CurrentCurveName.EqualToCaseIgnored(NewText))
 			{
 				// Check that the name doesn't already exist
-				FName RequestedName = FName(*NewText.ToString());
+				const FName RequestedName = FName(*NewText.ToString());
 
 				const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
-				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-
 				// If requested name exists, make sure it's not currently in use in this sequence.
-
 				SmartName::UID_Type RequestedNameUID;
 				FGuid RequestedNameGuid;
 
@@ -455,38 +454,55 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 					if (RequestedNameUID != CurveInterface->CurveUID && CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
 					{
 						FFormatNamedArguments Args;
-						Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
-						const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
-						FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
-						Transaction.Cancel();
-						return;
+						Args.Add(TEXT("InvalidName"), FText::FromName(RequestedName));
+						FNotificationInfo Info(FText::Format(LOCTEXT("AnimCurveRenamedInUse", "The name \"{InvalidName}\" is already used."), Args));
+
+						Info.bUseLargeFont = false;
+						Info.ExpireDuration = 5.0f;
+
+						TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+						if (Notification.IsValid())
+						{
+							Notification->SetCompletionState(SNotificationItem::CS_Fail);
+						}
 					}
 				}
 				else
 				{
-					FSmartName NewName;
-					const bool bAdded = Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, RequestedName, NewName);
-					if (!bAdded)
+					FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+					const bool bRenamed = Skeleton->RenameSmartnameAndModify(USkeleton::AnimCurveMappingName, CurveInterface->CurveUID, RequestedName);
+					if (bRenamed)
 					{
-						const FText DialogMessage = LOCTEXT("CurveEditor_RenameCurve_Unknownfailure", "ERROR: Failed to add new curve smart name, check the log for errors.");
-						FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
-						Transaction.Cancel();
-						return;
+						FSmartName NewName;
+						Skeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, RequestedName, NewName);
+
+						RequestedNameUID = NewName.UID;
+						RequestedNameGuid = NewName.Guid;
+						CurveInterface->UpdateName(RequestedNameUID, RequestedNameGuid, RequestedName);
+
+						// Refresh the panel
+						TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+						if (SharedPanel.IsValid())
+						{
+							SharedPanel.Get()->UpdatePanel();
+						}
 					}
-					RequestedNameUID = NewName.UID;
-					RequestedNameGuid = NewName.Guid;
-				}
+					else
+					{
+						// Cancel the rename transaction
+						Transaction.Cancel();
 
-				// Not in use in this sequence, switch it to the other curve name.
-				CurveInterface->AnimSequenceBase->Modify(true);
+						FNotificationInfo Info(LOCTEXT("AnimCurveRenamedError", "Failed to rename curve smart name, check the log for errors."));
 
-				CurveInterface->UpdateName(RequestedNameUID, RequestedNameGuid, RequestedName);
+						Info.bUseLargeFont = false;
+						Info.ExpireDuration = 5.0f;
 
-				// 2. refresh panel
-				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
-				if (SharedPanel.IsValid())
-				{
-					SharedPanel.Get()->UpdatePanel();
+						TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+						if (Notification.IsValid())
+						{
+							Notification->SetCompletionState(SNotificationItem::CS_Fail);
+						}						
+					}
 				}
 			}
 		}

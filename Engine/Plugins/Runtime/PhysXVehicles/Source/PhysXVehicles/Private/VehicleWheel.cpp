@@ -35,6 +35,7 @@ UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
 	SuspensionMaxDrop = 10.0f;
 	SuspensionNaturalFrequency = 7.0f;
 	SuspensionDampingRatio = 1.0f;
+	SweepType = EWheelSweepType::SimpleAndComplex;
 }
 
 float UVehicleWheel::GetSteerAngle() const

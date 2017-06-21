@@ -14,13 +14,12 @@ public class AudioMixerXAudio2 : ModuleRules
 			new string[] {
 					"Core",
 					"CoreUObject",
-					"Engine"
-				}
+					"Engine",
+                    "AudioMixer",
+                }
 		);
 
 		PrecompileForTargets = PrecompileTargetsType.None;
-
-		PrivateDependencyModuleNames.Add("AudioMixer");
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
 			"DX11Audio",

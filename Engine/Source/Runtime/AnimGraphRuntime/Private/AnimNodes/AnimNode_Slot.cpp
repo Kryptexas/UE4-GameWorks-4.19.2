@@ -6,9 +6,9 @@
 /////////////////////////////////////////////////////
 // FAnimNode_Slot
 
-void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_Slot::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	Source.Initialize(Context);
 	WeightData.Reset();
@@ -21,12 +21,12 @@ void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 	}
 }
 
-void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_Slot::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	Source.CacheBones(Context);
 }
 
-void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_Slot::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// Update weights.
 	Context.AnimInstanceProxy->GetSlotWeight(SlotName, WeightData.SlotNodeWeight, WeightData.SourceWeight, WeightData.TotalNodeWeight);
@@ -40,7 +40,7 @@ void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_Slot::Evaluate(FPoseContext & Output)
+void FAnimNode_Slot::Evaluate_AnyThread(FPoseContext & Output)
 {
 	// If not playing a montage, just pass through
 	if (WeightData.SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)

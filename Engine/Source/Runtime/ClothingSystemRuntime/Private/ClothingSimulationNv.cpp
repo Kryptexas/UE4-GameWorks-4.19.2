@@ -404,13 +404,13 @@ IClothingSimulationContext* FClothingSimulationNv::CreateContext()
 	return new FClothingSimulationContextNv();
 }
 
-void FClothingSimulationNv::FillContext(USkeletalMeshComponent* InComponent, IClothingSimulationContext* InOutContext)
+void FClothingSimulationNv::FillContext(USkeletalMeshComponent* InComponent, float InDeltaTime, IClothingSimulationContext* InOutContext)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NvClothFillContext);
 
 	check(InOutContext);
 
-	FClothingSimulationBase::FillContext(InComponent, InOutContext);
+	FClothingSimulationBase::FillContext(InComponent, InDeltaTime, InOutContext);
 
 	// Assume calling code guarantees the safety of this conversion, we should be given the pointer we allocated in CreateContext
 	FClothingSimulationContextNv* NvContext = (FClothingSimulationContextNv*)InOutContext;

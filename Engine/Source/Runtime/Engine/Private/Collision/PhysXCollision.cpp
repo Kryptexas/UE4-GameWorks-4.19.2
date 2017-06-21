@@ -1116,19 +1116,19 @@ class FDynamicHitBuffer : public PxHitCallback<HitType>
 {
 private:
 	/** Hit buffer used to provide hits via processTouches */
-	HitType HitBuffer[HIT_BUFFER_SIZE];
+	TTypeCompatibleBytes<HitType> HitBuffer[HIT_BUFFER_SIZE];
 
 	/** Hits encountered. Can be larger than HIT_BUFFER_SIZE */
-	TArray<HitType, TInlineAllocator<HIT_BUFFER_SIZE>> Hits;
+	TArray<TTypeCompatibleBytes<HitType>, TInlineAllocator<HIT_BUFFER_SIZE>> Hits;
 
 public:
 	FDynamicHitBuffer()
-		: PxHitCallback<HitType>(HitBuffer, HIT_BUFFER_SIZE)
+		: PxHitCallback<HitType>((HitType*)HitBuffer, HIT_BUFFER_SIZE)
 	{}
 
 	virtual PxAgain processTouches(const HitType* buffer, PxU32 nbHits) override
 	{
-		Hits.Append(buffer, nbHits);
+		Hits.Append((TTypeCompatibleBytes<HitType>*)buffer, nbHits);
 		return true;
 	}
 
@@ -1148,7 +1148,7 @@ public:
 
 	FORCEINLINE HitType* GetHits()
 	{
-		return Hits.GetData();
+		return (HitType*)Hits.GetData();
 	}
 };
 
@@ -1319,6 +1319,10 @@ PxU32 FindFaceIndex(const PxSweepHit& PHit, const PxVec3& unitDir)
 	PxConvexMeshGeometry convexGeom;
 	if(PHit.shape->getConvexMeshGeometry(convexGeom))
 	{
+		//PhysX has given us the most correct face. However, we actually want the most useful face which is the one with the most opposed normal within some radius.
+		//So for example, if we are sweeping against a corner we should take the plane that is most opposing, even if it's not the exact one we hit.
+		static const float FindFaceInRadius = 1.f; // tolerance to determine how far from the actual contact point we want to search.
+
 		const PxTransform pose = PHit.actor->getGlobalPose() * PHit.shape->getLocalPose();
 		const PxVec3 impactPos(PHit.position);
 		{
@@ -1349,7 +1353,6 @@ PxU32 FindFaceIndex(const PxSweepHit& PHit, const PxVec3& unitDir)
 			PxReal maxD = -PX_MAX_REAL;
 			PxU32 maxDIndex = 0;
 			PxReal minNormalDot = PX_MAX_REAL;
-			static const float onSurfaceEpsilon = 0.2f; // tolerance to determine that an impact point is 'on' a face
 
 			for (PxU32 j = 0; j < nbPolys; j++)
 			{
@@ -1371,8 +1374,9 @@ PxU32 FindFaceIndex(const PxSweepHit& PHit, const PxVec3& unitDir)
 					maxD = d;
 				}
 
-				// If impact point is 'behind' this plane, we are not interested
-				if (d<-onSurfaceEpsilon)
+				//Because we are searching against a convex hull, we will never get multiple faces that are both in front of the contact point _and_ have an opposing normal (except the face we hit).
+				//However, we may have just missed a plane which is now "behind" the contact point while still being inside the radius
+				if (d<-FindFaceInRadius)
 					continue;
 
 				// Calculate direction dot plane normal

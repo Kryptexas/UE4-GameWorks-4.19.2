@@ -29,6 +29,9 @@
 #include "SkeletalMeshTypes.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "SkeletalDebugRendering.h"
+#include "SkeletalRenderPublic.h"
+#include "AudioDevice.h"
 
 namespace {
 	// Value from UE3
@@ -122,6 +125,11 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	if(World)
 	{
 		World->bAllowAudioPlayback = !ConfigOption->bMuteAudio;
+
+		if(FAudioDevice* AudioDevice = World->GetAudioDevice())
+		{
+			AudioDevice->SetUseAttenuationForNonGameWorlds(ConfigOption->bUseAudioAttenuation);
+		}
 	}
 
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
@@ -246,6 +254,25 @@ bool FAnimationViewportClient::IsAudioMuted() const
 	UWorld* World = PreviewScene->GetWorld();
 
 	return (World) ? !World->AllowAudioPlayback() : false;
+}
+
+void FAnimationViewportClient::OnToggleUseAudioAttenuation()
+{
+	ConfigOption->SetUseAudioAttenuation(!ConfigOption->bUseAudioAttenuation);
+
+	UWorld* World = PreviewScene->GetWorld();
+	if(World)
+	{
+		if(FAudioDevice* AudioDevice = GetWorld()->GetAudioDevice())
+		{
+			AudioDevice->SetUseAttenuationForNonGameWorlds(ConfigOption->bUseAudioAttenuation);
+		}
+	}
+}
+
+bool FAnimationViewportClient::IsUsingAudioAttenuation() const
+{
+	return ConfigOption->bUseAudioAttenuation;
 }
 
 void FAnimationViewportClient::SetCameraFollow()
@@ -828,6 +855,8 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
+			int32 Multiplier = 1.f;
+
 			if (PreviewMeshComponent->BonesOfInterest.Num() > 0)
 			{
 				int32 BoneIndex = PreviewMeshComponent->BonesOfInterest[0];
@@ -836,19 +865,20 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				FTransform ComponentTransform = PreviewMeshComponent->GetComponentSpaceTransforms()[BoneIndex];
 
 				CurYOffset += YL + 2;
-				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToString());
+				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToHumanReadableString());
 				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-				CurYOffset += YL + 2;
-				InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToString());
+				CurYOffset += YL*3 + 2;
+				InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToHumanReadableString());
 				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-				CurYOffset += YL + 2;
-				InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToString());
+				CurYOffset += YL*3 + 2;
+				InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToHumanReadableString());
 				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+				Multiplier = 3;
 			}
 
-			CurYOffset += YL + 2;
+			CurYOffset += YL*Multiplier + 2;
 			InfoString = FString::Printf(TEXT("Approximate Size: %ix%ix%i"),
 				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.X * 2.0f),
 				FMath::RoundToInt(PreviewMeshComponent->Bounds.BoxExtent.Y * 2.0f),
@@ -1176,18 +1206,15 @@ void FAnimationViewportClient::DrawMeshBonesSourceRawAnimation(UDebugSkelMeshCom
 
 void FAnimationViewportClient::DrawWatchedPoses(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI)
 {
-	if (UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance())
+	if (UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(MeshComponent->AnimClass))
 	{
-		if (UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(AnimInstance->GetClass()))
+		if (UAnimBlueprint* Blueprint = Cast<UAnimBlueprint>(AnimBlueprintGeneratedClass->ClassGeneratedBy))
 		{
-			if (UAnimBlueprint* Blueprint = Cast<UAnimBlueprint>(AnimBlueprintGeneratedClass->ClassGeneratedBy))
+			if (Blueprint->GetObjectBeingDebugged())
 			{
-				if (Blueprint->GetObjectBeingDebugged() == AnimInstance)
+				for (const FAnimNodePoseWatch& AnimNodePoseWatch : AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData().AnimNodePoseWatch)
 				{
-					for (const FAnimNodePoseWatch& AnimNodePoseWatch : AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData().AnimNodePoseWatch)
-					{
-						DrawBonesFromCompactPose(*AnimNodePoseWatch.PoseInfo.Get(), MeshComponent, PDI, AnimNodePoseWatch.PoseDrawColour);
-					}
+					DrawBonesFromCompactPose(*AnimNodePoseWatch.PoseInfo.Get(), MeshComponent, PDI, AnimNodePoseWatch.PoseDrawColour);
 				}
 			}
 		}
@@ -1288,18 +1315,9 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 					End = WorldTransforms[BoneIndex].GetLocation();
 				}
 
-				static const float SphereRadius = 1.0f;
-				TArray<FVector> Verts;
-
-				//Calc cone size 
-				FVector EndToStart = (Start - End);
-				float ConeLength = EndToStart.Size();
-				float Angle = FMath::RadiansToDegrees(FMath::Atan(SphereRadius / ConeLength));
-
 				//Render Sphere for bone end point and a cone between it and its parent.
 				PDI->SetHitProxy(new HPersonaBoneProxy(MeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)));
-				DrawWireSphere(PDI, End, LineColor, SphereRadius, 10, SDPG_Foreground);
-				DrawWireCone(PDI, Verts, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground);
+				SkeletalDebugRendering::DrawWireBone(PDI, Start, End, LineColor, SDPG_Foreground);
 				PDI->SetHitProxy(NULL);
 
 				// draw gizmo
@@ -1307,34 +1325,11 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 					((GetLocalAxesMode() == ELocalAxesMode::Selected) && SelectedBones.Contains(BoneIndex))
 					)
 				{
-					RenderGizmo(WorldTransforms[BoneIndex], PDI);
+					SkeletalDebugRendering::DrawAxes(PDI, WorldTransforms[BoneIndex], SDPG_Foreground);
 				}
 			}
 		}
 	}
-}
-
-void FAnimationViewportClient::RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI)
-{
-	// Display colored coordinate system axes for this joint.
-	const float AxisLength = 3.75f;
-	const float LineThickness = 0.3f;
-	const FVector Origin = Transform.GetLocation();
-
-	// Red = X
-	FVector XAxis = Transform.TransformVector( FVector(1.0f,0.0f,0.0f) );
-	XAxis.Normalize();
-	PDI->DrawLine( Origin, Origin + XAxis * AxisLength, FColor( 255, 80, 80),SDPG_Foreground, LineThickness);			
-
-	// Green = Y
-	FVector YAxis = Transform.TransformVector( FVector(0.0f,1.0f,0.0f) );
-	YAxis.Normalize();
-	PDI->DrawLine( Origin, Origin + YAxis * AxisLength, FColor( 80, 255, 80),SDPG_Foreground, LineThickness); 
-
-	// Blue = Z
-	FVector ZAxis = Transform.TransformVector( FVector(0.0f,0.0f,1.0f) );
-	ZAxis.Normalize();
-	PDI->DrawLine( Origin, Origin + ZAxis * AxisLength, FColor( 80, 80, 255),SDPG_Foreground, LineThickness); 
 }
 
 void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent* MeshComponent, const TArray<int32>& BonesOfInterest, FPrimitiveDrawInterface* PDI) const
@@ -1464,7 +1459,7 @@ void FAnimationViewportClient::DrawSockets(const UDebugSkelMeshComponent* InPrev
 				DrawWireDiamond( PDI, SocketMatrix, 2.f, SocketColor, SDPG_Foreground );
 				PDI->SetHitProxy( NULL );
 				
-				RenderGizmo(FTransform(SocketMatrix), PDI);
+				SkeletalDebugRendering::DrawAxes(PDI, FTransform(SocketMatrix), SDPG_Foreground);
 			}
 		}
 	}
@@ -1472,28 +1467,25 @@ void FAnimationViewportClient::DrawSockets(const UDebugSkelMeshComponent* InPrev
 
 FSphere FAnimationViewportClient::GetCameraTarget()
 {
-	bool bFoundTarget = false;
-	FSphere Sphere(FVector(0,0,0), 100.0f); // default
+	const FSphere DefaultSphere(FVector(0,0,0), 100.0f);
+
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
-	if( PreviewMeshComponent != nullptr )
+	if( !PreviewMeshComponent )
 	{
-		PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
-
-		// give the editor mode a chance to give us a camera target
-		FSphere Target;
-		if (GetPersonaModeManager().GetCameraTarget(Target))
-		{
-			Sphere = Target;
-			bFoundTarget = true;
-		}
-
-		if( !bFoundTarget )
-		{
-			FBoxSphereBounds Bounds = PreviewMeshComponent->CalcBounds(FTransform::Identity);
-			Sphere = Bounds.GetSphere();
-		}
+		return DefaultSphere;
 	}
-	return Sphere;
+
+	PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
+
+	// give the editor mode a chance to give us a camera target
+	FSphere Target;
+	if (GetPersonaModeManager().GetCameraTarget(Target))
+	{
+		return Target;
+	}
+
+	FBoxSphereBounds Bounds = PreviewMeshComponent->CalcBounds(FTransform::Identity);
+	return Bounds.GetSphere();
 }
 
 void FAnimationViewportClient::UpdateCameraSetup()
@@ -1529,6 +1521,80 @@ void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere, bool bIns
 	Invalidate();
 }
 
+void FAnimationViewportClient::TransformVertexPositionsToWorld(TArray<FFinalSkinVertex>& LocalVertices) const
+{
+	const UDebugSkelMeshComponent* const PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if ( !PreviewMeshComponent )
+	{
+		return;
+	}
+
+	const FTransform& LocalToWorldTransform = PreviewMeshComponent->GetComponentTransform();
+
+	for ( int32 VertexIndex = 0; VertexIndex < LocalVertices.Num(); ++VertexIndex )
+	{
+		FVector& VertexPosition = LocalVertices[VertexIndex].Position;
+		VertexPosition = LocalToWorldTransform.TransformPosition(VertexPosition);
+	}
+}
+
+void FAnimationViewportClient::GetAllVertexIndicesUsedInSection(const FRawStaticIndexBuffer16or32Interface& IndexBuffer,
+																const FSkelMeshSection& SkelMeshSection,
+																TArray<int32>& OutIndices) const
+{
+
+	const uint32 BaseIndex = SkelMeshSection.BaseIndex;
+	const int32 NumWedges = SkelMeshSection.NumTriangles * 3;
+
+	for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
+	{
+		const int32 VertexIndexForWedge = IndexBuffer.Get(SkelMeshSection.BaseIndex + WedgeIndex);
+		OutIndices.Add(VertexIndexForWedge);
+	}
+}
+
+FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() const
+{
+	UDebugSkelMeshComponent* const PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if ( !PreviewMeshComponent )
+	{
+		return FBox(ForceInitToZero);
+	}
+
+	USkeletalMesh* const SkeletalMesh = PreviewMeshComponent->SkeletalMesh;
+	FSkeletalMeshObject* const MeshObject = PreviewMeshComponent->MeshObject;
+	if ( !SkeletalMesh || !MeshObject )
+	{
+		return FBox(ForceInitToZero);
+	}
+
+	const int32 LODLevel = PreviewMeshComponent->PredictedLODLevel;
+	const int32 SelectedEditorSection = SkeletalMesh->SelectedEditorSection;
+	const FSkeletalMeshResource& SkeletalMeshResource = MeshObject->GetSkeletalMeshResource();
+
+	const FStaticLODModel& StaticLODModel = SkeletalMeshResource.LODModels[LODLevel];
+	const FSkelMeshSection& SelectedSectionSkelMesh = StaticLODModel.Sections[SelectedEditorSection];
+
+	// Get us vertices from the entire LOD model.
+	TArray<FFinalSkinVertex> SkinnedVertices;
+	PreviewMeshComponent->GetCPUSkinnedVertices(SkinnedVertices, LODLevel);
+	TransformVertexPositionsToWorld(SkinnedVertices);
+
+	// Find out which of these the selected section actually uses.
+	TArray<int32> VertexIndices;
+	GetAllVertexIndicesUsedInSection(*StaticLODModel.MultiSizeIndexContainer.GetIndexBuffer(), SelectedSectionSkelMesh, VertexIndices);
+
+	// Get their bounds.
+	FBox BoundingBox(ForceInitToZero);
+	for ( int32 Index = 0; Index < VertexIndices.Num(); ++Index )
+	{
+		const int32 VertexIndex = VertexIndices[Index];
+		BoundingBox += SkinnedVertices[VertexIndex].Position;
+	}
+
+	return BoundingBox;
+}
+
 void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bUseCustomCamera)
 {
 	FIntPoint ViewportSize(FIntPoint::ZeroValue);
@@ -1543,31 +1609,48 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bUseCustomCamera)
 		// and we must have the aspect to correctly focus on the component,
 		bFocusOnDraw = true;
 		bFocusUsingCustomCamera = bUseCustomCamera;
+		return;
 	}
-	else
+
+	UDebugSkelMeshComponent* const PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
+	if ( !PreviewMeshComponent )
 	{
-		// dont auto-focus if there is nothing to focus on
-		USkeletalMesh* SkelMesh = GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh;
-		if (SkelMesh)
-		{
-			if (bUseCustomCamera && SkelMesh->bHasCustomDefaultEditorCamera)
-			{
-				FViewportCameraTransform& ViewTransform = GetViewTransform();
-
-				ViewTransform.SetLocation(SkelMesh->DefaultEditorCameraLocation);
-				ViewTransform.SetRotation(SkelMesh->DefaultEditorCameraRotation);
-				ViewTransform.SetLookAt(SkelMesh->DefaultEditorCameraLookAt);
-				ViewTransform.SetOrthoZoom(SkelMesh->DefaultEditorCameraOrthoZoom);
-
-				Invalidate();
-			}
-			else
-			{
-				FSphere Sphere = GetCameraTarget();
-				FocusViewportOnSphere(Sphere);
-			}
-		}
+		return;
 	}
+
+	USkeletalMesh* const SkelMesh = PreviewMeshComponent->SkeletalMesh;
+	if (!SkelMesh)
+	{
+		return;
+	}
+
+	if (bUseCustomCamera && SkelMesh->bHasCustomDefaultEditorCamera)
+	{
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+		ViewTransform.SetLocation(SkelMesh->DefaultEditorCameraLocation);
+		ViewTransform.SetRotation(SkelMesh->DefaultEditorCameraRotation);
+		ViewTransform.SetLookAt(SkelMesh->DefaultEditorCameraLookAt);
+		ViewTransform.SetOrthoZoom(SkelMesh->DefaultEditorCameraOrthoZoom);
+
+		Invalidate();
+		return;
+	}
+
+	if ( SkelMesh->SelectedEditorSection != INDEX_NONE )
+	{
+		const FBox SelectedSectionBounds = ComputeBoundingBoxForSelectedEditorSection();
+		
+		if ( SelectedSectionBounds.IsValid )
+		{
+			FocusViewportOnBox(SelectedSectionBounds);
+		}
+
+		return;
+	}
+
+	FSphere Sphere = GetCameraTarget();
+	FocusViewportOnSphere(Sphere);
 }
 
 float FAnimationViewportClient::GetFloorOffset() const
@@ -1782,6 +1865,35 @@ void FAnimationViewportClient::HandleFocusViews()
 bool FAnimationViewportClient::CanCycleWidgetMode() const
 {
 	return ModeTools ? ModeTools->CanCycleWidgetMode() : false;
+}
+
+void FAnimationViewportClient::UpdateAudioListener(const FSceneView& View)
+{
+	UWorld* ViewportWorld = GetWorld();
+
+	if (ViewportWorld)
+	{
+		if (FAudioDevice* AudioDevice = ViewportWorld->GetAudioDevice())
+		{
+			const FVector& ViewLocation = GetViewLocation();
+			const FRotator& ViewRotation = GetViewRotation();
+
+			FTransform ListenerTransform(ViewRotation);
+			ListenerTransform.SetLocation(ViewLocation);
+
+			AudioDevice->SetListener(ViewportWorld, 0, ListenerTransform, 0.0f);
+		}
+	}
+}
+
+void FAnimationViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View )
+{
+	FEditorViewportClient::SetupViewForRendering( ViewFamily, View );
+
+	if(bHasAudioFocus)
+	{
+		UpdateAudioListener(View);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

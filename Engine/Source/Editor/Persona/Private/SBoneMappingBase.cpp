@@ -114,7 +114,7 @@ void SBoneMappingListRow::OnBoneSelectionChanged(FName Name)
 	}
 }
 
-FName SBoneMappingListRow::GetSelectedBone() const
+FName SBoneMappingListRow::GetSelectedBone(bool& bMultipleValues) const
 {
 	if (OnGetBoneMapping.IsBound())
 	{

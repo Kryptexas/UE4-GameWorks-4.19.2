@@ -922,14 +922,32 @@ public:
 	UPROPERTY(globalconfig)
 	FStringAssetReference BoneWeightMaterialName;
 
-	/** Material used to render cloth properties on skeletal meshes */
+	/** Materials used to render cloth properties on skeletal meshes */
 	UPROPERTY()
 	class UMaterial* ClothPaintMaterial;
+	UPROPERTY()
+	class UMaterial* ClothPaintMaterialWireframe;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ClothPaintMaterialInstance;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ClothPaintMaterialWireframeInstance;
 
-	/** @todo document */
+	/** Name of the material used to render cloth in the clothing tools */
 	UPROPERTY(globalconfig)
 	FStringAssetReference ClothPaintMaterialName;
+
+	/** Name of the material used to render cloth wireframe in the clothing tools */
+	UPROPERTY(globalconfig)
+	FStringAssetReference ClothPaintMaterialWireframeName;
+
+	/** A material used to render debug meshes. */
+	UPROPERTY()
+	class UMaterial* DebugEditorMaterial;
 #endif
+
+	/** A material used to render debug opaque material. Used in various animation editor viewport features. */
+	UPROPERTY(globalconfig)
+	FStringAssetReference DebugEditorMaterialName;
 
 	/** Material used to render constraint limits */
 	UPROPERTY()

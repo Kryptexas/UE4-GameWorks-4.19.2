@@ -51,7 +51,7 @@ protected:
 	 * @param InComponent - The component to fill the context for
 	 * @param InOutContext - The context to fill
 	 */
-	virtual void FillContext(USkeletalMeshComponent* InComponent, IClothingSimulationContext* InOutContext) = 0;
+	virtual void FillContext(USkeletalMeshComponent* InComponent, float InDeltaTime, IClothingSimulationContext* InOutContext) = 0;
 
 	/** Initialize the simulation, will be called before any Simulate calls */
 	virtual void Initialize() = 0;

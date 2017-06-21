@@ -12,15 +12,15 @@ FAnimNode_RotationOffsetBlendSpace::FAnimNode_RotationOffsetBlendSpace()
 {
 }
 
-void FAnimNode_RotationOffsetBlendSpace::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_RotationOffsetBlendSpace::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::Initialize(Context);
+	FAnimNode_BlendSpacePlayer::Initialize_AnyThread(Context);
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_RotationOffsetBlendSpace::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_BlendSpacePlayer::CacheBones(Context);
+	FAnimNode_BlendSpacePlayer::CacheBones_AnyThread(Context);
 	BasePose.CacheBones(Context);
 }
 
@@ -38,7 +38,7 @@ void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdat
 	BasePose.Update(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::Evaluate(FPoseContext& Context)
+void FAnimNode_RotationOffsetBlendSpace::Evaluate_AnyThread(FPoseContext& Context)
 {
 	// Evaluate base pose
 	BasePose.Evaluate(Context);
@@ -47,7 +47,7 @@ void FAnimNode_RotationOffsetBlendSpace::Evaluate(FPoseContext& Context)
 	{
 		// Evaluate MeshSpaceRotation additive blendspace
 		FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
-		FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
+		FAnimNode_BlendSpacePlayer::Evaluate_AnyThread(MeshSpaceRotationAdditivePoseContext);
 
 		// Accumulate poses together
 		FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, ActualAlpha);

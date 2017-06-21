@@ -96,9 +96,21 @@ void UAnimGraphNode_LookAt::Serialize(FArchive& Ar)
 	{
 		Node.LookAt_Axis = FAxis(GetAlignVector(Node.LookAtAxis_DEPRECATED, Node.CustomLookAtAxis_DEPRECATED));
 		Node.LookUp_Axis = FAxis(GetAlignVector(Node.LookUpAxis_DEPRECATED, Node.CustomLookUpAxis_DEPRECATED));
-		if (Node.LookAtBone.BoneName != NAME_None || Node.LookAtSocket != NAME_None)
+		if (Node.LookAtBone_DEPRECATED.BoneName != NAME_None || Node.LookAtSocket_DEPRECATED != NAME_None)
 		{
 			Node.LookAtLocation = FVector::ZeroVector;
+		}
+	}
+	if (Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::CreateTargetReference)
+	{
+		if (Node.LookAtSocket_DEPRECATED != NAME_None)
+		{
+			Node.LookAtTarget.bUseSocket = true;
+			Node.LookAtTarget.SocketReference.SocketName = Node.LookAtSocket_DEPRECATED;
+		}
+		else if (Node.LookAtBone_DEPRECATED.BoneName != NAME_None)
+		{
+			Node.LookAtTarget.BoneReference.BoneName = Node.LookAtBone_DEPRECATED.BoneName;
 		}
 	}
 }
@@ -110,14 +122,9 @@ void UAnimGraphNode_LookAt::GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnim
 		const FAnimNode_LookAt* LookatRuntimeNode = static_cast<FAnimNode_LookAt*>(RuntimeAnimNode);
 		DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenBoneName", "Anim Look At (Source:{0})"), FText::FromName(LookatRuntimeNode->BoneToModify.BoneName)));
 
-		if (LookatRuntimeNode->LookAtBone.BoneIndex != INDEX_NONE)
+		if (LookatRuntimeNode->LookAtTarget.HasValidSetup())
 		{
-			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtBone", "	Look At Bone (Target:{0})"), FText::FromName(LookatRuntimeNode->LookAtBone.BoneName)));
-		}
-
-		if (LookatRuntimeNode->LookAtSocket != NAME_None)
-		{
-			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtSocket", "	LookAtSocket: {0}"), FText::FromName(LookatRuntimeNode->LookAtSocket)));
+			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtTarget", "	Look At Target (Target:{0})"), FText::FromName(LookatRuntimeNode->LookAtTarget.GetTargetSetup())));
 		}
 		else
 		{

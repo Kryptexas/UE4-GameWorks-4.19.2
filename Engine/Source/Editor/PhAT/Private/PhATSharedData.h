@@ -100,6 +100,9 @@ public:
         SetConstraintRelTM(GetSelectedConstraint(), RelTM);
     }
 	
+	void SnapConstraintToBone(int32 ConstraintIndex);
+	void SnapConstraintToBone(FConstraintInstance& ConstraintInstance);
+
 	void DeleteCurrentConstraint();
 	void PasteConstraintProperties();
 	

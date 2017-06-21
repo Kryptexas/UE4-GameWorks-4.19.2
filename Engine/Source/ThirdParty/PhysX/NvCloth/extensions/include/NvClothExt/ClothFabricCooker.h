@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -181,6 +181,8 @@ public:
 	\param desc The cloth mesh descriptor on which the generation of the cooked mesh depends.
 	\param gravity A normalized vector which specifies the direction of gravity. 
 	This information allows the cooker to generate a fabric with higher quality simulation behavior.
+	The gravity vector should point in the direction gravity will be pulling towards in the most common situation/at rest.
+	e.g. For flags it might be beneficial to set the gravity horizontal if they are cooked in landscape orientation, as a flag will hang in portrait orientation at rest.
 	\param useGeodesicTether A flag to indicate whether to compute geodesic distance for tether constraints.
 	\note The geodesic option for tether only works for manifold input.  For non-manifold input, a simple Euclidean distance will be used.
 	For more detailed cooker status for such cases, try running ClothGeodesicTetherCooker directly.

@@ -15,6 +15,7 @@
 #include "MeshMergingTool/MeshMergingTool.h"
 #include "MeshProxyTool/MeshProxyTool.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "IMeshReductionManagerModule.h"
 
 
 #define LOCTEXT_NAMESPACE "MergeActorsModule"
@@ -107,8 +108,8 @@ void FMergeActorsModule::StartupModule()
 	// Register built-in merging tools straight away
 	ensure(RegisterMergeActorsTool(MakeUnique<FMeshMergingTool>()));
 
-	IMeshUtilities* MeshUtilities = FModuleManager::Get().LoadModulePtr<IMeshUtilities>("MeshUtilities");
-	if (MeshUtilities != nullptr && MeshUtilities->GetMeshMergingInterface() != nullptr)
+	IMeshReductionManagerModule& MeshReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
+	if (MeshReductionModule.GetMeshMergingInterface() != nullptr)
 	{
 		// Only register MeshProxyTool if Simplygon is available
 		ensure(RegisterMergeActorsTool(MakeUnique<FMeshProxyTool>()));

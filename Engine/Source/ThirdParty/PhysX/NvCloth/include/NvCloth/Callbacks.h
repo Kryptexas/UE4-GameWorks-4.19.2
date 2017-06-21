@@ -23,13 +23,14 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
-/** All functions to initialize and use user provided callbacks are declared in this header.
-  * Initialize the callbacks with InitializeNvCloth(...) before using any other NvCloth API.
-  * The other functions defined in this header are used to access the functionality provided by the callbacks, and are mostly for internal use.
+/** \file Callbacks.h
+	\brief All functions to initialize and use user provided callbacks are declared in this header.
+	Initialize the callbacks with InitializeNvCloth(...) before using any other NvCloth API.
+	The other functions defined in this header are used to access the functionality provided by the callbacks, and are mostly for internal use.
   */
 
 #pragma once
@@ -54,11 +55,20 @@ namespace physx
 	class PxAssertHandler;
 }
 
+/** \brief NVidia namespace */
 namespace nv
 {
+/** \brief nvcloth namespace */
 namespace cloth
 {
-
+/** \brief Initialize the library by passing in callback functions.
+	This needs to be called before using any other part of the library.
+	@param allocatorCallback Callback interface for memory allocations. Needs to return 16 byte aligned memory.
+	@param errorCallback Callback interface for debug/warning/error messages.
+	@param assertHandler Callback interface for asserts.
+	@param profilerCallback Optional callback interface for performance information.
+	@param autoDllIDCheck Leave as default parameter. This is used to check header and dll version compatibility.
+	*/
 NV_CLOTH_API(void)
 	InitializeNvCloth(physx::PxAllocatorCallback* allocatorCallback, physx::PxErrorCallback* errorCallback, 
 						physx::PxAssertHandler* assertHandler, physx::PxProfilerCallback* profilerCallback,
@@ -114,7 +124,7 @@ class NvClothProfileScoped
 		PX_UNUSED(fileName);
 		PX_UNUSED(lineno);
 		mProfilerData = NULL; //nullptr doesn't work here on mac
-		if(mCallback)
+		if (mCallback)
 		{
 			mEventName = eventName;
 			mDetached = detached;
@@ -124,7 +134,7 @@ class NvClothProfileScoped
 	}
 	~NvClothProfileScoped(void)
 	{
-		if(mCallback)
+		if (mCallback)
 		{
 			mCallback->zoneEnd(mProfilerData, mEventName, mDetached, mContextId);
 		}
@@ -142,7 +152,7 @@ class NvClothProfileScoped
 	(GetNvClothProfiler()!=nullptr?																					       \
 	GetNvClothProfiler()->zoneStart(x, true, y):nullptr)
 #define NV_CLOTH_PROFILE_STOP_CROSSTHREAD(profilerData, x, y)                                                                              \
-	if(GetNvClothProfiler())                                                                                           \
+	if (GetNvClothProfiler())                                                                                           \
 	GetNvClothProfiler()->zoneEnd(profilerData, x, true, y)
 #else
 

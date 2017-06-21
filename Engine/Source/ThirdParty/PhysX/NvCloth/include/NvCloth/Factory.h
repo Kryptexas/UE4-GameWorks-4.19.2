@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -77,7 +77,7 @@ class Factory : public UserAllocated
   protected:
 	Factory() {}
 	Factory(const Factory&);
-	Factory& operator=(const Factory&);
+	Factory& operator = (const Factory&);
 	virtual ~Factory() {}
 
 	friend NV_CLOTH_IMPORT void NV_CLOTH_CALL_CONV ::NvClothDestroyFactory(nv::cloth::Factory*);
@@ -86,7 +86,9 @@ class Factory : public UserAllocated
 	virtual Platform getPlatform() const = 0;
 
 	/**
-	    Create fabric data used to setup cloth object. The returned fabric will have a refcount of 1.
+	   \brief Create fabric data used to setup cloth object.
+	   Look at the cooking extension for helper functions to create fabrics from meshes.
+		The returned fabric will have a refcount of 1.
 	    @param numParticles number of particles, must be larger than any particle index
 	    @param phaseIndices map from phase to set index
 	    @param sets inclusive prefix sum of restvalue count per set
@@ -99,25 +101,26 @@ class Factory : public UserAllocated
 								 Range<const uint32_t> triangles) = 0;
 
 	/**
-	    Create cloth object.
+	    \brief Create cloth object.
 	    @param particles initial particle positions.
 	    @param fabric edge distance constraint structure
 	 */
 	virtual Cloth* createCloth(Range<const physx::PxVec4> particles, Fabric& fabric) = 0;
 
 	/**
-	    Create cloth solver object.
+	   \brief Create cloth solver object.
 	 */
 	virtual Solver* createSolver() = 0;
 
 	/**
-	    Create a copy of a cloth instance
+	    \brief Create a copy of a cloth instance
 	    @param cloth the instance to be cloned, need not match the factory type
 	 */
 	virtual Cloth* clone(const Cloth& cloth) = 0;
 
 	/**
-	    Extract original data from a fabric object
+	    \brief Extract original data from a fabric object.
+		Use the getNum* methods on Cloth to get the memory requirements before calling this function.
 	    @param fabric to extract from, must match factory type
 	    @param phaseIndices pre-allocated memory range to write phase => set indices
 	    @param sets pre-allocated memory range to write sets
@@ -129,7 +132,8 @@ class Factory : public UserAllocated
 	                               Range<float> tetherLengths, Range<uint32_t> triangles) const = 0;
 
 	/**
-	    Extract current collision spheres and capsules from a cloth object
+	    \brief Extract current collision spheres and capsules from a cloth object.
+		Use the getNum* methods on Cloth to get the memory requirements before calling this function.
 	    @param cloth the instance to extract from, must match factory type
 	    @param spheres pre-allocated memory range to write spheres
 	    @param capsules pre-allocated memory range to write capsules
@@ -142,6 +146,7 @@ class Factory : public UserAllocated
 
 	/**
 	    Extract current motion constraints from a cloth object
+		Use the getNum* methods on Cloth to get the memory requirements before calling this function.
 	    @param cloth the instance to extract from, must match factory type
 	    @param destConstraints pre-allocated memory range to write constraints
 	 */

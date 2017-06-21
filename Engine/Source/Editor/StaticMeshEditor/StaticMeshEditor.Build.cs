@@ -12,9 +12,10 @@ public class StaticMeshEditor : ModuleRules
 				"AssetRegistry",
 				"Kismet",
 				"EditorWidgets",
-				"MeshUtilities",				
-                "PropertyEditor"
-			}
+				"MeshUtilities",
+                "PropertyEditor",
+                "MeshReductionInterface",
+            }
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -46,7 +47,8 @@ public class StaticMeshEditor : ModuleRules
 				"ClassViewer",
 				"ContentBrowser",
 				"WorkspaceMenuStructure",
-			}
+                "MeshReductionInterface",
+            }
 		);
 
 		SetupModulePhysXAPEXSupport(Target);

@@ -54,7 +54,7 @@ void FGameplayTagContainerCustomization::CustomizeHeader(TSharedRef<class IPrope
 				.AutoHeight()
 				[
 					SNew(SButton)
-					.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
+					.IsEnabled(!StructPropertyHandle->IsEditConst())
 					.Text(LOCTEXT("GameplayTagContainerCustomization_Clear", "Clear All"))
 					.OnClicked(this, &FGameplayTagContainerCustomization::OnClearAllButtonClicked)
 					.Visibility(this, &FGameplayTagContainerCustomization::GetClearAllVisibility)
@@ -152,7 +152,7 @@ TSharedRef<SWidget> FGameplayTagContainerCustomization::GetListContent()
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
 
-	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
+	bool bReadOnly = StructPropertyHandle->IsEditConst();
 
 	return SNew(SVerticalBox)
 		+ SVerticalBox::Slot()

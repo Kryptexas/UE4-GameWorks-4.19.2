@@ -35,7 +35,6 @@
 #include "PsVecMath.h"
 #include "GuVecCapsule.h"
 #include "GuVecBox.h"
-#include "PsFoundation.h"
 
 using namespace physx;
 using namespace Gu;
@@ -72,8 +71,6 @@ namespace Gu
 			return false;
 
 		const Vec3V capsuleAxis = V3Sub(capsule.p1, capsule.p0);
-
-		PxU32 DebugCounter = 0;
 	
 		for(PxU32 i=0;i<polyData.mNbPolygons;i++)
 		{
@@ -120,12 +117,6 @@ namespace Gu
 				{
 					_minOverlap = tempOverlap;
 					tempAxis = normal;
-				}
-
-				if(DebugCounter++ > 10000)
-				{
-					PxGetFoundation().getErrorCallback().reportError(PxErrorCode::eINTERNAL_ERROR, "testSATCapsulePoly is taking too long", __FILE__, __LINE__);
-					break;
 				}
 			}
 		}
@@ -333,8 +324,8 @@ namespace Gu
 		}
 		else
 		{
-			const FloatV eps = FLoad(PCM_WITNESS_POINT_EPS);
-			const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_ABSOLUTE_EPS));
+			const FloatV eps = FLoad(PCM_WITNESS_POINT_SCALE);
+			const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_LOWER_EPS));
 			const FloatV tolerance = FMax(FMul(margin, eps), lowerEps);
 
 			referencePolygon = &polyData.mPolygons[getWitnessPolygonIndex(polyData, map, V3Neg(normal), closest, tolerance)];
@@ -383,8 +374,8 @@ namespace Gu
 			const PxU32 faceContacts = numContacts - originalContacts;
 			if(faceContacts < 2)
 			{
-				const FloatV eps = FLoad(PCM_WITNESS_POINT_EPS);
-				const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_ABSOLUTE_EPS));
+				const FloatV eps = FLoad(PCM_WITNESS_POINT_SCALE);
+				const FloatV lowerEps = FMul(toleranceScale, FLoad(PCM_WITNESS_POINT_LOWER_EPS));
 				const FloatV toleranceA = FMax(FMul(margin, eps), lowerEps);
 
 				const Gu::HullPolygonData& referencePolygon = polyData.mPolygons[getWitnessPolygonIndex(polyData, map, V3Neg(tNormal), closest, toleranceA)];

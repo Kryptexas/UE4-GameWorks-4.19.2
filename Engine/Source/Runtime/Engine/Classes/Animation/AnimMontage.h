@@ -473,6 +473,9 @@ class UAnimMontage : public UAnimCompositeBase
 	UAnimSequence* PreviewBasePose;
 #endif // WITH_EDITORONLY_DATA
 
+	// Add new slot track to this montage
+	ENGINE_API FSlotAnimationTrack& AddSlot(FName SlotName);
+
 	/** return true if valid slot */
 	ENGINE_API bool IsValidSlot(FName InSlotName) const;
 

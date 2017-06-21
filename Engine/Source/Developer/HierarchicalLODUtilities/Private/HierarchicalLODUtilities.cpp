@@ -36,6 +36,8 @@
 #endif // WITH_EDITOR
 
 #include "HierarchicalLODProxyProcessor.h"
+#include "IMeshReductionManagerModule.h"
+#include "MeshMergeModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHierarchicalLODUtilities, Verbose, All);
 
@@ -128,7 +130,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 		// Delete actor assets before generating new ones
 		FHierarchicalLODUtilities::DestroyClusterData(LODActor);	
 		
-		TArray<UStaticMeshComponent*> AllComponents;
+		TArray<UPrimitiveComponent*> AllComponents;
 		{
 			for (auto& Actor : LODActor->SubActors)
 			{
@@ -162,10 +164,12 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 			UStaticMesh* MainMesh = nullptr;
 
 			// Generate proxy mesh and proxy material assets
-			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+			IMeshReductionManagerModule& MeshReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
+
+			const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
 			// should give unique name, so use level + actor name
 			const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
-			if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
+			if (MeshReductionModule.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
 			{
 				TArray<AActor*> Actors;
 				ExtractSubActorsFromLODActor(LODActor, Actors);
@@ -192,7 +196,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				}
 
 				FGuid JobID = Processor->AddProxyJob(LODActor, OverrideLODSetup);
-				MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, PackageName, JobID, Processor->GetCallbackDelegate(), true, OverrideLODSetup.TransitionScreenSize);
+				MeshMergeUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, PackageName, JobID, Processor->GetCallbackDelegate(), true, OverrideLODSetup.TransitionScreenSize);
 				return true;
 			}
 			else
@@ -203,7 +207,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 					MergeSettings.MaterialSettings = LODActor->MaterialSettings;
 				}
 
-				MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), MergeSettings, AssetsOuter, PackageName, OutAssets, OutProxyLocation, LODSetup.TransitionScreenSize, true);
+				MeshMergeUtilities.MergeComponentsToStaticMesh(AllComponents, FirstActor->GetWorld(), MergeSettings, AssetsOuter, PackageName, OutAssets, OutProxyLocation, LODSetup.TransitionScreenSize, true);
 				
 				// set staticmesh
 				for (auto& Asset : OutAssets)

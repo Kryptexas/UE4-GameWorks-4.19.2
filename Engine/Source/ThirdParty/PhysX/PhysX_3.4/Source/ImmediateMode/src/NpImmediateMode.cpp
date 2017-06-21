@@ -413,38 +413,43 @@ namespace physx
 		for (PxU32 i = 0; i < nbHeaders; ++i)
 		{
 			PxConstraintBatchHeader& batchHeader = batchHeaders[i];
+
+			PxU8 type = DY_SC_TYPE_BLOCK_1D;
 			if (batchHeader.mStride == 4)
 			{
 				PxU32 totalRows = 0;
 				PxU32 maxRows = 0;
+				bool batchable = true;
 				for (PxU32 a = 0; a < batchHeader.mStride; ++a)
 				{
+					if (jointDescs[currentDescIdx + a].numRows == 0)
+					{
+						batchable = false;
+						break;
+					}
 					totalRows += jointDescs[currentDescIdx + a].numRows;
 					maxRows = PxMax(maxRows, jointDescs[currentDescIdx + a].numRows);
 				}
 
-				state = Dy::setupSolverConstraint4
-					(jointDescs + currentDescIdx,
-					dt, invDt, totalRows,
-					allocator, maxRows);
+				if (batchable)
+				{
+					state = Dy::setupSolverConstraint4
+						(jointDescs + currentDescIdx,
+						dt, invDt, totalRows,
+						allocator, maxRows);
+				}
 			}
-
-			bool skipBatch = false;	//TODO: temp hack fix that only works because we are not using batching
 
 			if (state == Dy::SolverConstraintPrepState::eUNBATCHABLE)
 			{
+				type = DY_SC_TYPE_RB_1D;
 				for (PxU32 a = 0; a < batchHeader.mStride; ++a)
 				{
-					if(jointDescs[currentDescIdx + a].numRows == 0)
-					{
-						skipBatch = true;
-					}
-
 					Dy::ConstraintHelper::setupSolverConstraint(jointDescs[currentDescIdx + a], allocator, dt, invDt);
 				}
 			}
 
-			batchHeader.mConstraintType = skipBatch ? 0 : *jointDescs[currentDescIdx].desc->constraint;
+			batchHeader.mConstraintType = type;
 			currentDescIdx += batchHeader.mStride;
 		}
 
@@ -558,10 +563,7 @@ namespace physx
 			for (PxU32 a = 0; a < nbBatchHeaders; ++a)
 			{
 				PxConstraintBatchHeader& batch = batchHeaders[a];
-				if(Dy::SolveBlockMethod solveFunc = solveTable[batch.mConstraintType])
-				{
-					solveFunc(solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
-				}
+				solveTable[batch.mConstraintType](solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
 			}
 		}
 
@@ -569,10 +571,7 @@ namespace physx
 		for (PxU32 a = 0; a < nbBatchHeaders; ++a)
 		{
 			PxConstraintBatchHeader& batch = batchHeaders[a];
-			if(Dy::SolveBlockMethod solveConcludeFunc = solveConcludeTable[batch.mConstraintType])
-			{
-				solveConcludeFunc(solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
-			}
+			solveConcludeTable[batch.mConstraintType](solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
 		}
 
 		//Save motion velocities...
@@ -588,20 +587,14 @@ namespace physx
 			for (PxU32 a = 0; a < nbBatchHeaders; ++a)
 			{
 				PxConstraintBatchHeader& batch = batchHeaders[a];
-				if (Dy::SolveBlockMethod solveFunc = solveTable[batch.mConstraintType])
-				{
-					solveFunc(solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
-				}
+				solveTable[batch.mConstraintType](solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
 			}
 		}
 
 		for (PxU32 a = 0; a < nbBatchHeaders; ++a)
 		{
 			PxConstraintBatchHeader& batch = batchHeaders[a];
-			if(Dy::SolveWriteBackBlockMethod solveWriteBackFunc = solveWritebackTable[batch.mConstraintType])
-			{
-				solveWriteBackFunc(solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
-			}
+			solveWritebackTable[batch.mConstraintType](solverConstraintDescs + batch.mStartIndex, batch.mStride, cache);
 		}
 
 	}

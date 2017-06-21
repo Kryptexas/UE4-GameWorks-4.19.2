@@ -255,26 +255,73 @@ SIZE_T FReferenceSkeleton::GetDataSize() const
 	return ResourceSize;
 }
 
-void FReferenceSkeleton::EnsureParentExists(TArray<FBoneIndexType>& InOutBoneArray) const
+struct FEnsureParentsExistScratchArea : public TThreadSingleton<FEnsureParentsExistScratchArea>
 {
-	for (int32 BoneIndex = 0; BoneIndex < InOutBoneArray.Num(); ++BoneIndex)
+	TArray<bool> BoneExists;
+};
+
+void FReferenceSkeleton::EnsureParentsExist(TArray<FBoneIndexType>& InOutBoneSortedArray) const
+{
+	const int32 NumBones = GetNum();
+	// Iterate through existing array.
+	int32 i = 0;
+
+	TArray<bool>& BoneExists = FEnsureParentsExistScratchArea::Get().BoneExists;
+	BoneExists.Reset();
+	BoneExists.SetNumZeroed(NumBones);
+
+	while (i < InOutBoneSortedArray.Num())
 	{
-		const int32 ChildIndex = InOutBoneArray[BoneIndex];
-		// root doesn't have parent
-		if (ChildIndex > 0)
+		const int32 BoneIndex = InOutBoneSortedArray[i];
+
+		// For the root bone, just move on.
+		if (BoneIndex > 0)
 		{
-			// if you don't have parent of the input array, make sure to insert in the current index
-			const int32 ParentIndex = GetParentIndex(ChildIndex);
-			if (InOutBoneArray.Find(ParentIndex) == INDEX_NONE)
+#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// Warn if we're getting bad data.
+			// Bones are matched as int32, and a non found bone will be set to INDEX_NONE == -1
+			// This should never happen, so if it does, something is wrong!
+			if (BoneIndex >= NumBones)
 			{
-				// Will check this bones parent later in the loop
-				InOutBoneArray.Add(ParentIndex);
+				UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::EnsureParentsExist, BoneIndex >= RefSkeleton.GetNum()."));
+				i++;
+				continue;
+			}
+#endif
+			BoneExists[BoneIndex] = true;
+
+			const int32 ParentIndex = GetParentIndex(BoneIndex);
+
+			// If we do not have this parent in the array, we add it in this location, and leave 'i' where it is.
+			// This can happen if somebody removes bones in the physics asset, then it will try add back in, and in the process, 
+			// parent can be missing
+			if (!BoneExists[ParentIndex])
+			{
+				InOutBoneSortedArray.InsertUninitialized(i);
+				InOutBoneSortedArray[i] = ParentIndex;
+				BoneExists[ParentIndex] = true;
+			}
+			// If parent was in array, just move on.
+			else
+			{
+				i++;
 			}
 		}
+		else
+		{
+			BoneExists[0] = true;
+			i++;
+		}
 	}
-	
-	// sort it now
-	InOutBoneArray.Sort();
+}
+
+void FReferenceSkeleton::EnsureParentsExistAndSort(TArray<FBoneIndexType>& InOutBoneUnsortedArray) const
+{
+	InOutBoneUnsortedArray.Sort();
+
+	EnsureParentsExist(InOutBoneUnsortedArray);
+
+	InOutBoneUnsortedArray.Sort();
 }
 
 FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)

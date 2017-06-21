@@ -628,6 +628,29 @@ FReply SBlendSpaceGridWidget::OnMouseMove(const FGeometry& MyGeometry, const FPo
 		}
 	}
 
+	if (IsHovered() && !HasAnyUserFocus() && bMouseIsOverGeometry)
+	{
+		if (MouseEvent.IsLeftShiftDown() || MouseEvent.IsRightShiftDown())
+		{
+			StartPreviewing();
+			DragState = EDragState::Preview;
+			// Make tool tip visible (this will display the current preview sample value)
+			ShowToolTip();			
+
+			// Set flag for showing advanced preview info in tooltip
+			if (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown())
+			{
+				bAdvancedPreview = true;
+			}
+		}
+		else if (bSamplePreviewing)
+		{
+			StopPreviewing();
+			DragState = EDragState::None;
+			ResetToolTip();
+		}
+	}
+
 	return FReply::Handled();
 }
 
@@ -851,7 +874,7 @@ int32 SBlendSpaceGridWidget::FindClosestGridPointIndex(const FVector2D& InPositi
 {
 	// Clamp the screen position to the grid
 	const FVector2D GridPosition(FMath::Clamp(InPosition.X, CachedGridRectangle.Left, CachedGridRectangle.Right),
-		FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
+								  FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
 	// Find the closest grid point
 	float Distance = FLT_MAX;
 	int32 GridPointIndex = INDEX_NONE;
@@ -1319,17 +1342,23 @@ void SBlendSpaceGridWidget::UpdateCachedBlendParameterData()
 }
 
 void SBlendSpaceGridWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
+{	
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
 	bMouseIsOverGeometry = true;
 }
 
 void SBlendSpaceGridWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+	StopPreviewing();
+	DragState = EDragState::None;
+	ResetToolTip();
 	bMouseIsOverGeometry = false;
 }
 
 void SBlendSpaceGridWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
+	SCompoundWidget::OnFocusLost(InFocusEvent);
 	HighlightedSampleIndex = DraggedSampleIndex = INDEX_NONE;
 	DragState = EDragState::None;
 	bSamplePreviewing = false;

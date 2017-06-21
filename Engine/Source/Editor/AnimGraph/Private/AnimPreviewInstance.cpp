@@ -22,8 +22,8 @@ void FAnimPreviewInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	CurveSource.SourcePose.SetLinkNode(&SingleNode);
 
 	FAnimationInitializeContext InitContext(this);
-	PoseBlendNode.Initialize(InitContext);
-	CurveSource.Initialize(InitContext);
+	PoseBlendNode.Initialize_AnyThread(InitContext);
+	CurveSource.Initialize_AnyThread(InitContext);
 }
 
 void FAnimPreviewInstanceProxy::ResetModifiedBone(bool bCurveController)
@@ -110,14 +110,14 @@ void FAnimPreviewInstanceProxy::Update(float DeltaSeconds)
 	if (CopyPoseNode.SourceMeshComponent.IsValid())
 	{
 		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
-		CopyPoseNode.Update(UpdateContext);
+		CopyPoseNode.Update_AnyThread(UpdateContext);
 	}
 	else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
 	{
 		PoseBlendNode.PoseAsset = PoseAsset;
 
 		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
-		PoseBlendNode.Update(UpdateContext);
+		PoseBlendNode.Update_AnyThread(UpdateContext);
 	}
 	else
 	{
@@ -142,7 +142,7 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 
 	if (CopyPoseNode.SourceMeshComponent.IsValid())
 	{
-		CopyPoseNode.Evaluate(Output);
+		CopyPoseNode.Evaluate_AnyThread(Output);
 	}
 	else
 	{
@@ -165,7 +165,7 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 		{
 			if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(CurrentAsset))
 			{
-				PoseBlendNode.Evaluate(Output);
+				PoseBlendNode.Evaluate_AnyThread(Output);
 			}
 			else
 			{
@@ -323,7 +323,7 @@ void FAnimPreviewInstanceProxy::ApplyBoneControllers(TArray<FAnimNode_ModifyBone
 		{
 			TArray<FBoneTransform> BoneTransforms;
 			FAnimationCacheBonesContext Proxy(this);
-			SingleBoneController.CacheBones(Proxy);
+			SingleBoneController.CacheBones_AnyThread(Proxy);
 			if (SingleBoneController.IsValidToEvaluate(LocalSkeleton, ComponentSpacePoseContext.Pose.GetPose().GetBoneContainer()))
 			{
 				SingleBoneController.EvaluateSkeletalControl_AnyThread(ComponentSpacePoseContext, BoneTransforms);
@@ -412,7 +412,7 @@ void FAnimPreviewInstanceProxy::AddKeyToSequence(UAnimSequence* Sequence, float 
 void FAnimPreviewInstanceProxy::SetDebugSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
 	CopyPoseNode.SourceMeshComponent = InSkeletalMeshComponent;
-	CopyPoseNode.Initialize(FAnimationInitializeContext(this));
+	CopyPoseNode.Initialize_AnyThread(FAnimationInitializeContext(this));
 }
 
 USkeletalMeshComponent* FAnimPreviewInstanceProxy::GetDebugSkeletalMeshComponent() const

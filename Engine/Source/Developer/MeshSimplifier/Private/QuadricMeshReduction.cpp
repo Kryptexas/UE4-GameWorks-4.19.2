@@ -8,6 +8,8 @@
 #include "RawMesh.h"
 #include "MeshSimplify.h"
 #include "UniquePtr.h"
+#include "Features/IModularFeatures.h"
+#include "IMeshReductionInterfaces.h"
 
 class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
@@ -22,6 +24,8 @@ public:
 	virtual class IMeshReduction* GetStaticMeshReductionInterface() override;
 	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
+	virtual class IMeshMerging* GetDistributedMeshMergingInterface() override;	
+	virtual FString GetName() override;
 };
 
 
@@ -453,11 +457,13 @@ TUniquePtr<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
 void FQuadricSimplifierMeshReductionModule::StartupModule()
 {
 	GQuadricSimplifierMeshReduction.Reset(FQuadricSimplifierMeshReduction::Create());
+	IModularFeatures::Get().RegisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 void FQuadricSimplifierMeshReductionModule::ShutdownModule()
 {
 	GQuadricSimplifierMeshReduction = nullptr;
+	IModularFeatures::Get().UnregisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetStaticMeshReductionInterface()
@@ -473,4 +479,14 @@ IMeshReduction* FQuadricSimplifierMeshReductionModule::GetSkeletalMeshReductionI
 IMeshMerging* FQuadricSimplifierMeshReductionModule::GetMeshMergingInterface()
 {
 	return nullptr;
+}
+
+class IMeshMerging* FQuadricSimplifierMeshReductionModule::GetDistributedMeshMergingInterface()
+{
+	return nullptr;
+}
+
+FString FQuadricSimplifierMeshReductionModule::GetName()
+{
+	return FString("QuadricMeshReduction");	
 }

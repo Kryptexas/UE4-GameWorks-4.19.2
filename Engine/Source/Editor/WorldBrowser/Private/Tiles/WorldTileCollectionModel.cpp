@@ -42,6 +42,9 @@
 #include "LandscapeMeshProxyComponent.h"
 #include "LandscapeFileFormatInterface.h"
 #include "LandscapeEditorModule.h"
+#include "IMeshReductionManagerModule.h"
+#include "IMeshMergeUtilities.h"
+#include "MeshMergeModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -89,8 +92,8 @@ void FWorldTileCollectionModel::Initialize(UWorld* InWorld)
 	FLevelCollectionModel::Initialize(InWorld);
 	
 	// Check whehter Editor has support for generating mesh proxies	
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	bMeshProxyAvailable = (MeshUtilities.GetMeshMergingInterface() != nullptr);
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	bMeshProxyAvailable = (ReductionModule.GetMeshMergingInterface() != nullptr);
 }
 
 void FWorldTileCollectionModel::Tick( float DeltaTime )
@@ -1879,7 +1882,7 @@ bool FWorldTileCollectionModel::HasMeshProxySupport() const
 
 bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, int32 TargetLODIndex)
 {
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
 
 	// Select tiles that can be processed
 	TArray<TSharedPtr<FWorldTileModel>> TilesToProcess;
@@ -1928,7 +1931,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		}
 
 		// Check if we can simplify this level
-		IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
+		IMeshMerging* MeshMerging = ReductionModule.GetMeshMergingInterface();
 		if (MeshMerging == nullptr && LandscapeActors.Num() == 0)
 		{
 			continue;
@@ -2019,7 +2022,9 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			});
 
 			FGuid JobGuid = FGuid::NewGuid();
-			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, JobGuid, ProxyDelegate);
+
+			const IMeshMergeUtilities& MergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
+			MergeUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, JobGuid, ProxyDelegate);
 		}
 
 		// Convert landscape actors into static meshes

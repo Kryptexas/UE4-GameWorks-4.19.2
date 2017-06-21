@@ -241,8 +241,8 @@ bool FAnimNode_Fabrik::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneC
 	// Allow evaluation if all parameters are initialized and TipBone is child of RootBone
 	return
 		(
-		TipBone.IsValid(RequiredBones)
-		&& RootBone.IsValid(RequiredBones)
+		TipBone.IsValidToEvaluate(RequiredBones)
+		&& RootBone.IsValidToEvaluate(RequiredBones)
 		&& Precision > 0
 		&& RequiredBones.BoneIsChildOf(TipBone.BoneIndex, RootBone.BoneIndex)
 		);

@@ -315,7 +315,7 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 	if(bRequireBoneChange)
 	{
 		SkelLod.RequiredBones.Sort();
-		InSkelMesh->RefSkeleton.EnsureParentExists(SkelLod.ActiveBoneIndices);
+		InSkelMesh->RefSkeleton.EnsureParentsExistAndSort(SkelLod.ActiveBoneIndices);		
 	}
 
 	if(CustomData)

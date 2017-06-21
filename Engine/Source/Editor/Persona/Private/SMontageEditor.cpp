@@ -285,7 +285,7 @@ void SMontageEditor::SetMontageObj(UAnimMontage * NewMontage)
 void SMontageEditor::OnSetMontagePreviewSlot(int32 SlotIndex)
 {
 	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
-	if (PreviewInstance)
+	if (PreviewInstance && MontageObj->SlotAnimTracks.IsValidIndex(SlotIndex))
 	{
 		const FName SlotName = MontageObj->SlotAnimTracks[SlotIndex].SlotName;
 		PreviewInstance->SetMontagePreviewSlot(SlotName);
@@ -654,7 +654,7 @@ void SMontageEditor::EnsureSlotNode()
 {
 	if (MontageObj && MontageObj->SlotAnimTracks.Num()==0)
 	{
-		AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
+		AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName);
 		OnMontageModified();
 	}
 }
@@ -748,16 +748,15 @@ void SMontageEditor::RenameSlotNode(int32 SlotIndex, FString NewSlotName)
 	}
 }
 
-void SMontageEditor::AddNewMontageSlot( FString NewSlotName )
+void SMontageEditor::AddNewMontageSlot( FName NewSlotName )
 {
 	if ( MontageObj != nullptr )
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddSlot", "Add Slot") );
 		MontageObj->Modify();
 
-		FSlotAnimationTrack NewTrack;
-		NewTrack.SlotName = FName(*NewSlotName);
-		MontageObj->SlotAnimTracks.Add( NewTrack );
+		MontageObj->AddSlot(NewSlotName);
+
 		OnMontageModified();
 
 		if (AnimMontagePanel.IsValid())
@@ -801,6 +800,11 @@ void SMontageEditor::RemoveMontageSlot(int32 AnimSlotIndex)
 	}
 }
 
+bool SMontageEditor::CanRemoveMontageSlot(int32 AnimSlotIndex)
+{
+	return (MontageObj != nullptr) && (MontageObj->SlotAnimTracks.Num()) > 1;
+}
+
 void SMontageEditor::DuplicateMontageSlot(int32 AnimSlotIndex)
 {
 	if (MontageObj != nullptr && MontageObj->SlotAnimTracks.IsValidIndex(AnimSlotIndex))
@@ -808,12 +812,9 @@ void SMontageEditor::DuplicateMontageSlot(int32 AnimSlotIndex)
 		const FScopedTransaction Transaction(LOCTEXT("DuplicateSlot", "Duplicate Slot"));
 		MontageObj->Modify();
 
-		FSlotAnimationTrack NewTrack; 
-		NewTrack.SlotName = FAnimSlotGroup::DefaultSlotName;
-
+		FSlotAnimationTrack& NewTrack = MontageObj->AddSlot(FAnimSlotGroup::DefaultSlotName); 
 		NewTrack.AnimTrack = MontageObj->SlotAnimTracks[AnimSlotIndex].AnimTrack;
 
-		MontageObj->SlotAnimTracks.Add(NewTrack);
 		OnMontageModified();
 
 		AnimMontagePanel->Update();

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -83,7 +83,7 @@ class CuDeviceVector
 		checkSuccess(cuMemFree(mFirst.dev()));
 	}
 
-	CuDeviceVector& operator=(const CuDeviceVector& other)
+	CuDeviceVector& operator = (const CuDeviceVector& other)
 	{
 		resize(other.size());
 		checkSuccess(cuMemcpyDtoD(mFirst.dev(), other.mFirst.dev(), other.size() * sizeof(T)));
@@ -91,7 +91,7 @@ class CuDeviceVector
 	}
 
 	template <typename Alloc>
-	CuDeviceVector& operator=(const physx::shdfnd::Array<T, Alloc>& other)
+	CuDeviceVector& operator = (const physx::shdfnd::Array<T, Alloc>& other)
 	{
 		const T* first = other.empty() ? 0 : &other.front();
 		assign(first, first + other.size());
@@ -130,7 +130,7 @@ class CuDeviceVector
 
 	void push_back(const T& v)
 	{
-		if(mLast == mEnd)
+		if (mLast == mEnd)
 			reserve(std::max<size_t>(1, capacity() * 2));
 
 		*mLast++ = v;
@@ -138,10 +138,10 @@ class CuDeviceVector
 
 	void push_back(const T* first, const T* last)
 	{
-		if(mEnd - mLast < last - first)
+		if (mEnd - mLast < last - first)
 			reserve(std::max<size_t>(2 * capacity(), mLast - mFirst + last - first));
 
-		if(first != last)
+		if (first != last)
 			checkSuccess(cuMemcpyHtoD(mLast.dev(), first, sizeof(T) * (last - first)));
 
 		mLast += last - first;
@@ -150,7 +150,7 @@ class CuDeviceVector
 	void erase(iterator it)
 	{
 		size_t byteSize = (mLast - it - 1) * sizeof(T);
-		if(byteSize)
+		if (byteSize)
 		{
 			CUdeviceptr tmp = 0, dst = it.dev();
 			checkSuccess(cuMemAlloc(&tmp, byteSize));
@@ -163,7 +163,7 @@ class CuDeviceVector
 
 	void reserve(size_t n)
 	{
-		if(n <= capacity())
+		if (n <= capacity())
 			return;
 
 		CUdeviceptr newFirst = 0, oldFirst = mFirst.dev();
@@ -180,7 +180,7 @@ class CuDeviceVector
 
 	void resize(size_t n)
 	{
-		if(capacity() < n)
+		if (capacity() < n)
 			reserve(std::max(n, capacity() * 2));
 
 		mLast = mFirst + n;
@@ -191,7 +191,7 @@ class CuDeviceVector
 	{
 		size_t n = last - first;
 		resize(n);
-		if(n)
+		if (n)
 			checkSuccess(cuMemcpyHtoD(mFirst.dev(), &*first, n * sizeof(T)));
 	}
 

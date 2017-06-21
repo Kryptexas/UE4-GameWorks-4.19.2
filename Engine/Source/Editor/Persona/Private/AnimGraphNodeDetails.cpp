@@ -36,6 +36,8 @@
 #include "BlueprintEditor.h"
 #include "Animation/EditorAnimCurveBoneLinks.h"
 #include "IEditableSkeleton.h"
+#include "IDetailChildrenBuilder.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -56,25 +58,8 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	TSharedRef<IPropertyHandle> AvailablePins = DetailBuilder.GetProperty("ShowPinForProperties");
 	DetailBuilder.HideProperty(AvailablePins);
 
-	// Find the one (and only one) selected AnimGraphNode
-	UAnimGraphNode_Base* AnimGraphNode = NULL;
-	for (auto SelectionIt = SelectedObjectsList.CreateIterator(); SelectionIt; ++SelectionIt)
-	{
-		if (UAnimGraphNode_Base* TestNode = Cast<UAnimGraphNode_Base>(SelectionIt->Get()))
-		{
-			if (AnimGraphNode != NULL)
-			{
-				// We don't allow editing of multiple anim graph nodes at once
-				AbortDisplayOfAllNodes(SelectedObjectsList, DetailBuilder);
-				return;
-			}
-			else
-			{
-				AnimGraphNode = TestNode;
-			}
-		}
-	}
-
+	// get first animgraph nodes
+	UAnimGraphNode_Base* AnimGraphNode = Cast<UAnimGraphNode_Base>(SelectedObjectsList[0].Get());
 	if (AnimGraphNode == NULL)
 	{
 		return;
@@ -92,6 +77,10 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 
 	// customize anim graph node's own details if needed
 	AnimGraphNode->CustomizeDetails(DetailBuilder);
+
+	// Hide the Node property as we are going to be adding its inner properties below
+	TSharedRef<IPropertyHandle> NodePropertyHandle = DetailBuilder.GetProperty(NodeProperty->GetFName(), AnimGraphNode->GetClass());
+	DetailBuilder.HideProperty(NodePropertyHandle);
 
 	// Now customize each property in the pins array
 	for (int CustomPinIndex = 0; CustomPinIndex < AnimGraphNode->ShowPinForProperties.Num(); ++CustomPinIndex)
@@ -136,16 +125,16 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 
 		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
 
-		TSharedPtr<SWidget> NameWidget; 
-		TSharedPtr<SWidget> ValueWidget;
-		FDetailWidgetRow Row;
-		PropertyRow.GetDefaultWidgets( NameWidget, ValueWidget, Row );
-
-		TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
-		ValueWidget = (TempWidget == SNullWidget::NullWidget) ? ValueWidget : TempWidget;
-
 		if (OptionalPin.bCanToggleVisibility)
 		{
+			TSharedPtr<SWidget> NameWidget; 
+			TSharedPtr<SWidget> ValueWidget;
+			FDetailWidgetRow Row;
+			PropertyRow.GetDefaultWidgets( NameWidget, ValueWidget, Row );
+
+			TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
+			ValueWidget = (TempWidget == SNullWidget::NullWidget) ? ValueWidget : TempWidget;
+
 			const FName OptionalPinArrayEntryName(*FString::Printf(TEXT("ShowPinForProperties[%d].bShowPin"), CustomPinIndex));
 			TSharedRef<IPropertyHandle> ShowHidePropertyHandle = DetailBuilder.GetProperty(OptionalPinArrayEntryName);
 
@@ -195,22 +184,22 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 						NameWidget.ToSharedRef()
 					]
 				];
-		}
 
-		const bool bShowChildren = true;
-		PropertyRow.CustomWidget(bShowChildren)
-		.NameContent()
-		.MinDesiredWidth(Row.NameWidget.MinWidth)
-		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-		[
-			NameWidget.ToSharedRef()
-		]
-		.ValueContent()
-		.MinDesiredWidth(Row.ValueWidget.MinWidth)
-		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
-		[
-			ValueWidget.ToSharedRef()
-		];
+			const bool bShowChildren = true;
+			PropertyRow.CustomWidget(bShowChildren)
+			.NameContent()
+			.MinDesiredWidth(Row.NameWidget.MinWidth)
+			.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+			[
+				NameWidget.ToSharedRef()
+			]
+			.ValueContent()
+			.MinDesiredWidth(Row.ValueWidget.MinWidth)
+			.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+			[
+				ValueWidget.ToSharedRef()
+			];
+		}
 	}
 }
 
@@ -279,31 +268,6 @@ EVisibility FAnimGraphNodeDetails::GetVisibilityOfProperty(TSharedRef<IPropertyH
 	}
 }
 
-// Hide any anim graph node properties; used when multiple are selected
-void FAnimGraphNodeDetails::AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObject> >& SelectedObjectsList, class IDetailLayoutBuilder& DetailBuilder)
-{
-	// Display a warning message
-	IDetailCategoryBuilder& ErrorCategory = DetailBuilder.EditCategory("Animation Nodes");
-	ErrorCategory.AddCustomRow( LOCTEXT("ErrorRow", "Error") )
-	[
-		SNew(STextBlock)
-		.Text(LOCTEXT("MultiSelectNotSupported", "Multiple nodes selected"))
-		.Font(DetailBuilder.GetDetailFontBold())
-	];
-
-	// Hide all node properties
-	for (auto SelectionIt = SelectedObjectsList.CreateIterator(); SelectionIt; ++SelectionIt)
-	{
-		if (UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(SelectionIt->Get()))
-		{
-			if (const UStructProperty* NodeProperty = AnimNode->GetFNodeProperty())
-			{
-				DetailBuilder.HideProperty(NodeProperty->GetFName(), AnimNode->GetClass());
-			}
-		}
-	}
-}
-
 void FAnimGraphNodeDetails::OnBlendProfileChanged(UBlendProfile* NewProfile, TSharedPtr<IPropertyHandle> PropertyHandle)
 {
 	if(PropertyHandle.IsValid())
@@ -318,152 +282,173 @@ TSharedRef<IPropertyTypeCustomization> FInputScaleBiasCustomization::MakeInstanc
 	return MakeShareable(new FInputScaleBiasCustomization());
 }
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+float GetMinValue(float Scale, float Bias)
+{
+	return Scale != 0.0f ? (FMath::Abs(Bias) < SMALL_NUMBER ? 0.0f : -Bias) / Scale : 0.0f; // to avoid displaying of - in front of 0
+}
+
+float GetMaxValue(float Scale, float Bias)
+{
+	return Scale != 0.0f ? (1.0f - Bias) / Scale : 0.0f;
+}
+
+void UpdateInputScaleBiasWithMinValue(float MinValue, TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
+{
+	InputBiasScaleStructPropertyHandle->NotifyPreChange();
+
+	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
+	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
+	TArray<void*> BiasDataArray;
+	TArray<void*> ScaleDataArray;
+	BiasProperty->AccessRawData(BiasDataArray);
+	ScaleProperty->AccessRawData(ScaleDataArray);
+	check(BiasDataArray.Num() == ScaleDataArray.Num());
+	for(int32 DataIndex = 0; DataIndex < BiasDataArray.Num(); ++DataIndex)
+	{
+		float* BiasPtr = (float*)BiasDataArray[DataIndex];
+		float* ScalePtr = (float*)ScaleDataArray[DataIndex];
+		check(BiasPtr);
+		check(ScalePtr);
+
+		const float MaxValue = GetMaxValue(*ScalePtr, *BiasPtr);
+		const float Difference = MaxValue - MinValue;
+		*ScalePtr = Difference != 0.0f? 1.0f / Difference : 0.0f;
+		*BiasPtr = -MinValue * *ScalePtr;
+	}
+
+	InputBiasScaleStructPropertyHandle->NotifyPostChange();
+}
+
+void UpdateInputScaleBiasWithMaxValue(float MaxValue, TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
+{
+	InputBiasScaleStructPropertyHandle->NotifyPreChange();
+
+	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
+	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
+	TArray<void*> BiasDataArray;
+	TArray<void*> ScaleDataArray;
+	BiasProperty->AccessRawData(BiasDataArray);
+	ScaleProperty->AccessRawData(ScaleDataArray);
+	check(BiasDataArray.Num() == ScaleDataArray.Num());
+	for(int32 DataIndex = 0; DataIndex < BiasDataArray.Num(); ++DataIndex)
+	{
+		float* BiasPtr = (float*)BiasDataArray[DataIndex];
+		float* ScalePtr = (float*)ScaleDataArray[DataIndex];
+		check(BiasPtr);
+		check(ScalePtr);
+
+		const float MinValue = GetMinValue(*ScalePtr, *BiasPtr);
+		const float Difference = MaxValue - MinValue;
+		*ScalePtr = Difference != 0.0f ? 1.0f / Difference : 0.0f;
+		*BiasPtr = -MinValue * *ScalePtr;
+	}
+
+	InputBiasScaleStructPropertyHandle->NotifyPostChange();
+}
+
+TOptional<float> GetMinValueInputScaleBias(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
+{
+	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
+	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
+	float Scale = 1.0f;
+	float Bias = 0.0f;
+	if(ScaleProperty->GetValue(Scale) == FPropertyAccess::Success && BiasProperty->GetValue(Bias) == FPropertyAccess::Success)
+	{
+		return GetMinValue(Scale, Bias);
+	}
+
+	return TOptional<float>();
+}
+
+TOptional<float> GetMaxValueInputScaleBias(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
+{
+	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
+	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
+	float Scale = 1.0f;
+	float Bias = 0.0f;
+	if(ScaleProperty->GetValue(Scale) == FPropertyAccess::Success && BiasProperty->GetValue(Bias) == FPropertyAccess::Success)
+	{
+		return GetMaxValue(Scale, Bias);
+	}
+
+	return TOptional<float>();
+}
+
+
 void FInputScaleBiasCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	HeaderRow.NameContent()
+
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void FInputScaleBiasCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+	TWeakPtr<IPropertyHandle> WeakStructPropertyHandle = StructPropertyHandle;
+
+	StructBuilder
+	.AddProperty(StructPropertyHandle)
+	.CustomWidget()
+	.NameContent()
 	[
-		SNew(STextBlock)
-		.Text(StructPropertyHandle->GetPropertyDisplayName())
-		.Font(IDetailLayoutBuilder::GetDetailFont())
+		StructPropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
+	.MinDesiredWidth(250.0f)
+	.MaxDesiredWidth(250.0f)
 	[
-		SNew(SExpandableArea)
-		.AreaTitle(LOCTEXT("InputScaleBias", "Input scaling"))
-		.InitiallyCollapsed(true)
-		.BodyContent()
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.Padding(FMargin(0.0f, 2.0f, 3.0f, 2.0f))
 		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				.FillWidth(0.5f)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("MinInputScaleBias", "Minimal input value"))
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.FillWidth(0.5f)
-				.Padding(FMargin(5.0f,1.0f,5.0f,1.0f))
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(64.0f)
-					.Text(this, &FInputScaleBiasCustomization::GetMinValue, StructPropertyHandle)
-					.SelectAllTextWhenFocused(true)
-					.RevertTextOnEscape(true)
-					.OnTextCommitted(this, &FInputScaleBiasCustomization::OnMinValueCommitted, StructPropertyHandle)
-				]
-			]
-			+SVerticalBox::Slot()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				.FillWidth(0.5f)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("MaxInputScaleBias", "Maximal input value"))
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.FillWidth(0.5f)
-				.Padding(FMargin(5.0f,1.0f,5.0f,1.0f))
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(64.0f)
-					.Text(this, &FInputScaleBiasCustomization::GetMaxValue, StructPropertyHandle)
-					.SelectAllTextWhenFocused(true)
-					.RevertTextOnEscape(true)
-					.OnTextCommitted(this, &FInputScaleBiasCustomization::OnMaxValueCommitted, StructPropertyHandle)
-				]
-			]
+			SNew(SNumericEntryBox<float>)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.ToolTipText(LOCTEXT("MinInputScaleBias", "Minimum input value"))
+			.AllowSpin(true)
+			.MinSliderValue(0.0f)
+			.MaxSliderValue(2.0f)
+			.Value_Lambda([WeakStructPropertyHandle]()
+			{
+				return GetMinValueInputScaleBias(WeakStructPropertyHandle.Pin().ToSharedRef());
+			})
+			.OnValueChanged_Lambda([WeakStructPropertyHandle](float InValue)
+			{
+				UpdateInputScaleBiasWithMinValue(InValue, WeakStructPropertyHandle.Pin().ToSharedRef());
+			})
+		]
+		+SHorizontalBox::Slot()
+		.Padding(FMargin(0.0f, 2.0f, 0.0f, 2.0f))
+		[
+			SNew(SNumericEntryBox<float>)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.ToolTipText(LOCTEXT("MaxInputScaleBias", "Maximum input value"))
+			.AllowSpin(true)
+			.MinSliderValue(0.0f)
+			.MaxSliderValue(2.0f)
+			.Value_Lambda([WeakStructPropertyHandle]()
+			{
+				return GetMaxValueInputScaleBias(WeakStructPropertyHandle.Pin().ToSharedRef());
+			})
+			.OnValueChanged_Lambda([WeakStructPropertyHandle](float InValue)
+			{
+				UpdateInputScaleBiasWithMaxValue(InValue, WeakStructPropertyHandle.Pin().ToSharedRef());
+			})
 		]
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-/////////////////////////////////////////////////////
-void FInputScaleBiasCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
-{
-	// nothing here
-}
-
-void UpdateInputScaleBiasWith(float MinValue, float MaxValue, TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
-{
-	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
-	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
-	const float Difference = MaxValue - MinValue;
-	const float Scale = Difference != 0.0f? 1.0f / Difference : 0.0f;
-	const float Bias = -MinValue * Scale;
-	ScaleProperty->SetValue(Scale);
-	BiasProperty->SetValue(Bias);
-}
-
-float GetMinValueInputScaleBias(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
-{
-	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
-	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
-	float Scale = 1.0f;
-	float Bias = 0.0f;
-	ScaleProperty->GetValue(Scale);
-	BiasProperty->GetValue(Bias);
-	return Scale != 0.0f? (FMath::Abs(Bias) < SMALL_NUMBER? 0.0f : -Bias) / Scale : 0.0f; // to avoid displaying of - in front of 0
-}
-
-float GetMaxValueInputScaleBias(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
-{
-	TSharedRef<class IPropertyHandle> BiasProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Bias").ToSharedRef();
-	TSharedRef<class IPropertyHandle> ScaleProperty = InputBiasScaleStructPropertyHandle->GetChildHandle("Scale").ToSharedRef();
-	float Scale = 1.0f;
-	float Bias = 0.0f;
-	ScaleProperty->GetValue(Scale);
-	BiasProperty->GetValue(Bias);
-	return Scale != 0.0f? (1.0f - Bias) / Scale : 0.0f;
-}
-
-FText FInputScaleBiasCustomization::GetMinValue(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle) const
-{
-	return FText::FromString(FString::Printf(TEXT("%.6f"), GetMinValueInputScaleBias(InputBiasScaleStructPropertyHandle)));
-}
-
-FText FInputScaleBiasCustomization::GetMaxValue(TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle) const
-{
-	return FText::FromString(FString::Printf(TEXT("%.6f"), GetMaxValueInputScaleBias(InputBiasScaleStructPropertyHandle)));
-}
-
-void FInputScaleBiasCustomization::OnMinValueCommitted(const FText& NewText, ETextCommit::Type CommitInfo, TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
-{
-	if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		UpdateInputScaleBiasWith(FCString::Atof(*NewText.ToString()), GetMaxValueInputScaleBias(InputBiasScaleStructPropertyHandle), InputBiasScaleStructPropertyHandle);
-	}
-}
-
-void FInputScaleBiasCustomization::OnMaxValueCommitted(const FText& NewText, ETextCommit::Type CommitInfo, TSharedRef<class IPropertyHandle> InputBiasScaleStructPropertyHandle)
-{
-	if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		UpdateInputScaleBiasWith(GetMinValueInputScaleBias(InputBiasScaleStructPropertyHandle), FCString::Atof(*NewText.ToString()), InputBiasScaleStructPropertyHandle);
-	}
-}
-
-/////////////////////////////////////////////////////
 
 TSharedRef<IPropertyTypeCustomization> FBoneReferenceCustomization::MakeInstance()
 {
 	return MakeShareable(new FBoneReferenceCustomization());
 }
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
@@ -541,12 +526,14 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 	if (EditableSkeleton.IsValid())
 	{
-		HeaderRow.NameContent()
+		ChildBuilder
+		.AddProperty(BoneRefProperty.ToSharedRef())
+		.CustomWidget()
+		.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
-		];
-
-		HeaderRow.ValueContent()
+		]
+		.ValueContent()
 		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget)
@@ -565,21 +552,17 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
-{
-	// No child customizations as the properties are shown in the header
-}
-
 void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
 {
 	BoneRefProperty->SetValue(Name);
 }
 
-FName FBoneReferenceCustomization::GetSelectedBone() const
+FName FBoneReferenceCustomization::GetSelectedBone(bool& bMultipleValues) const
 {
 	FString OutText;
 	
-	BoneRefProperty->GetValueAsFormattedString(OutText);
+	FPropertyAccess::Result Result = BoneRefProperty->GetValueAsFormattedString(OutText);
+	bMultipleValues = (Result == FPropertyAccess::MultipleValues);
 
 	return FName(*OutText);
 }

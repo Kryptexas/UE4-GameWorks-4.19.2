@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <xaudio2.h>
 #include "HideWindowsPlatformTypes.h"
@@ -64,6 +63,7 @@ namespace Audio
 		virtual void SubmitBuffer(const uint8* Buffer) override;
 		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) override;
 		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
+		virtual bool SupportsRealtimeDecompression() const override { return true; }
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
 		virtual FString GetDefaultDeviceName() override;
 		virtual FAudioPlatformSettings GetPlatformSettings() const override;
@@ -84,9 +84,8 @@ namespace Audio
 
 		const TCHAR* GetErrorString(HRESULT Result);
 
-	private:
 		typedef TArray<long> TChannelTypeMap;
-
+		
 		// Bool indicating that the default audio device changed
 		// And that we need to restart the audio device.
 		FThreadSafeBool bDeviceChanged;

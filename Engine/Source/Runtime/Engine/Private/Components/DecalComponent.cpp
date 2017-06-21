@@ -158,6 +158,14 @@ void UDecalComponent::SetFadeOut(float StartDelay, float Duration, bool DestroyO
 	MarkRenderStateDirty();
 }
 
+void UDecalComponent::SetFadeScreenSize(float NewFadeScreenSize)
+{
+	FadeScreenSize = NewFadeScreenSize;
+
+	MarkRenderStateDirty();
+}
+
+
 void UDecalComponent::SetSortOrder(int32 Value)
 {
 	SortOrder = Value;

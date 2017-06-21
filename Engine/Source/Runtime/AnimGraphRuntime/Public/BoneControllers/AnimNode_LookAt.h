@@ -8,6 +8,7 @@
 #include "BoneContainer.h"
 #include "BonePose.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
+#include "CommonAnimTypes.h"
 #include "AnimNode_LookAt.generated.h"
 
 class FPrimitiveDrawInterface;
@@ -43,12 +44,15 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	FBoneReference BoneToModify;
 
 	/** Target Bone to look at - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
-	UPROPERTY(EditAnywhere, Category=Target)
-	FBoneReference LookAtBone;
+	UPROPERTY()
+	FBoneReference LookAtBone_DEPRECATED;
+
+	UPROPERTY()
+	FName LookAtSocket_DEPRECATED;
 
 	/** Target socket to look at. Used if LookAtBone is empty. - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
 	UPROPERTY(EditAnywhere, Category = Target)
-	FName LookAtSocket;
+	FTargetReference LookAtTarget;
 
 	/** Target Offset. It's in world space if LookAtBone is empty or it is based on LookAtBone or LookAtSocket in their local space*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target, meta = (PinHiddenByDefault))
@@ -99,7 +103,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
@@ -150,10 +154,6 @@ private:
 	/** Current Alpha */
 	float AccumulatedInterpoolationTime;
 
-	/** Look at socket bone cache data */
-	int32 CachedLookAtSocketMeshBoneIndex;
-	FCompactPoseBoneIndex CachedLookAtSocketBoneIndex;
-	FTransform CachedSocketLocalTransform;
 
 #if !UE_BUILD_SHIPPING
 	/** Debug draw cached data */

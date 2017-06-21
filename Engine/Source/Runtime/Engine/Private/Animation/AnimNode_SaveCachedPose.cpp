@@ -10,7 +10,7 @@ FAnimNode_SaveCachedPose::FAnimNode_SaveCachedPose()
 {
 }
 
-void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SaveCachedPose::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 	// StateMachines cause reinitialization on state changes.
 	// we only want to let them through if we're not relevant as to not create a pop.
@@ -19,14 +19,14 @@ void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Con
 	{
 		InitializationCounter.SynchronizeWith(Context.AnimInstanceProxy->GetInitializationCounter());
 
-		FAnimNode_Base::Initialize(Context);
+		FAnimNode_Base::Initialize_AnyThread(Context);
 
 		// Initialize the subgraph
 		Pose.Initialize(Context);
 	}
 }
 
-void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_SaveCachedPose::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	if (!CachedBonesCounter.IsSynchronizedWith(Context.AnimInstanceProxy->GetCachedBonesCounter()))
 	{
@@ -37,13 +37,13 @@ void FAnimNode_SaveCachedPose::CacheBones(const FAnimationCacheBonesContext& Con
 	}
 }
 
-void FAnimNode_SaveCachedPose::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SaveCachedPose::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// Store this context for the post update
 	CachedUpdateContexts.Add(Context);
 }
 
-void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
+void FAnimNode_SaveCachedPose::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if (!EvaluationCounter.IsSynchronizedWith(Output.AnimInstanceProxy->GetEvaluationCounter()))
 	{

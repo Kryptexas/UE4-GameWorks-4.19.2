@@ -18,6 +18,7 @@
 
 #include "ClothingSimulationNv.h"
 #include "DynamicMeshBuilder.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UDebugSkelMeshComponent
@@ -123,12 +124,7 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 	//Extract root motion regardless of where we use it so that we don't hit
 	//problems with it building up in the instance
 
-	FRootMotionMovementParams ExtractedRootMotion;
-
-	if (UAnimInstance* AnimInst = GetAnimInstance())
-	{
-		ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion(1.f);
-	}
+	FRootMotionMovementParams ExtractedRootMotion = ConsumeRootMotion_Internal(1.0f);
 
 	if (bPreviewRootMotion)
 	{
@@ -186,6 +182,10 @@ FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 	return Result;
 }
 
+bool UDebugSkelMeshComponent::ShouldRenderSelected() const
+{
+	return bDisplayBound || bDisplayVertexColors;
+}
 
 bool UDebugSkelMeshComponent::IsPreviewOn() const
 {
@@ -925,7 +925,8 @@ void UDebugSkelMeshComponent::GetUsedMaterials(TArray<UMaterialInterface *>& Out
 
 	if (bGetDebugMaterials)
 	{
-		OutMaterials.Add(GEngine->ClothPaintMaterial);
+		OutMaterials.Add(GEngine->ClothPaintMaterialInstance);
+		OutMaterials.Add(GEngine->ClothPaintMaterialWireframeInstance);
 	}
 }
 
@@ -969,7 +970,8 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 	{
 		if(DynamicData->SkinnedPositions.Num() > 0 && DynamicData->ClothingVisiblePropertyValues.Num() > 0)
 		{
-			FDynamicMeshBuilder MeshBuilder;
+			FDynamicMeshBuilder MeshBuilderSurface;
+			FDynamicMeshBuilder MeshBuilderWireframe;
 
 			const TArray<uint32>& Indices = DynamicData->ClothingSimIndices;
 			const TArray<FVector>& Vertices = DynamicData->SkinnedPositions;
@@ -986,7 +988,7 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 
 				Vert.Position = Vertices[VertIndex];
 				Vert.TextureCoordinate = {1.0f, 1.0f};
-				Vert.TangentZ = Normals[VertIndex];
+				Vert.TangentZ = DynamicData->bFlipNormal ? -Normals[VertIndex] : Normals[VertIndex];
 
 				float CurrValue = ValueArray[VertIndex];
 				float Range = DynamicData->PropertyViewMax - DynamicData->PropertyViewMin;
@@ -994,24 +996,48 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 				const FLinearColor Color = CurrValue == 0.0f ? Magenta : (FLinearColor::White * ((ClampedViewValue - DynamicData->PropertyViewMin) / Range));
 				Vert.Color = Color.ToFColor(true);
 
-				MeshBuilder.AddVertex(Vert);
+				MeshBuilderSurface.AddVertex(Vert);
+				MeshBuilderWireframe.AddVertex(Vert);
 			}
 
 			const int32 NumIndices = Indices.Num();
 			for(int32 TriBaseIndex = 0; TriBaseIndex < NumIndices; TriBaseIndex += 3)
 			{
-				MeshBuilder.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 1], Indices[TriBaseIndex + 2]);
+				if(DynamicData->bFlipNormal)
+				{
+					MeshBuilderSurface.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 2], Indices[TriBaseIndex + 1]);
+					MeshBuilderWireframe.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 2], Indices[TriBaseIndex + 1]);
+				}
+				else
+				{
+					MeshBuilderSurface.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 1], Indices[TriBaseIndex + 2]);
+					MeshBuilderWireframe.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 1], Indices[TriBaseIndex + 2]);
+				}
 			}
 
-			FMaterialRenderProxy* MatProxy = GEngine->ClothPaintMaterial ? GEngine->ClothPaintMaterial->GetRenderProxy(false) : UMaterial::GetDefaultMaterial(EMaterialDomain::MD_Surface)->GetRenderProxy(false);
+			// Set material params
+			UMaterialInstanceDynamic* SurfaceMID = GEngine->ClothPaintMaterialInstance;
+			check(SurfaceMID);
+			UMaterialInstanceDynamic* WireMID = GEngine->ClothPaintMaterialWireframeInstance;
+			check(WireMID);
 
-			if(MatProxy)
+			SurfaceMID->SetScalarParameterValue(FName("ClothOpacity"), DynamicData->ClothMeshOpacity);
+			WireMID->SetScalarParameterValue(FName("ClothOpacity"), DynamicData->ClothMeshOpacity);
+
+			SurfaceMID->SetScalarParameterValue(FName("BackfaceCull"), DynamicData->bCullBackface ? 1.0f : 0.0f);
+			WireMID->SetScalarParameterValue(FName("BackfaceCull"), true);
+
+			FMaterialRenderProxy* MatProxySurface = SurfaceMID->GetRenderProxy(false);
+			FMaterialRenderProxy* MatProxyWireframe = WireMID->GetRenderProxy(false);
+
+			if(MatProxySurface && MatProxyWireframe)
 			{
 				const int32 NumViews = Views.Num();
 				for(int32 ViewIndex = 0; ViewIndex < NumViews; ++ViewIndex)
 				{
 					const FSceneView* View = Views[ViewIndex];
-					MeshBuilder.GetMesh(GetLocalToWorld(), MatProxy, SDPG_Foreground, false, false, ViewIndex, Collector);
+					MeshBuilderSurface.GetMesh(GetLocalToWorld(), MatProxySurface, SDPG_Foreground, false, false, ViewIndex, Collector);
+					MeshBuilderWireframe.GetMesh(GetLocalToWorld(), MatProxyWireframe, SDPG_Foreground, false, false, ViewIndex, Collector);
 				}
 			}
 		}
@@ -1024,9 +1050,12 @@ FDebugSkelMeshDynamicData::FDebugSkelMeshDynamicData(UDebugSkelMeshComponent* In
 	, bDrawTangents(InComponent->bDrawTangents)
 	, bDrawBinormals(InComponent->bDrawBinormals)
 	, bDrawClothPaintPreview(InComponent->bShowClothData)
+	, bFlipNormal(InComponent->bClothFlipNormal)
+	, bCullBackface(InComponent->bClothCullBackface)
 	, ClothingSimDataIndexWhenPainting(INDEX_NONE)
 	, PropertyViewMin(InComponent->MinClothPropertyView)
 	, PropertyViewMax(InComponent->MaxClothPropertyView)
+	, ClothMeshOpacity(InComponent->ClothMeshOpacity)
 {
 	if(InComponent->SelectedClothingGuidForPainting.IsValid())
 	{

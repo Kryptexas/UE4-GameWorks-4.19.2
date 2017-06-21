@@ -33,6 +33,7 @@
 #include "ScopedTransaction.h"
 #include "JsonObjectConverter.h"
 #include "Engine/SkeletalMesh.h"
+#include "IMeshReductionManagerModule.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -2760,7 +2761,7 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetStaticMeshReductionInterface() != NULL;
+	bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface").GetStaticMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
 }
 

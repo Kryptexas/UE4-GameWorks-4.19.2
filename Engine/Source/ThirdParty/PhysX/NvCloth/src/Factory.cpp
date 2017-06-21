@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -74,7 +74,7 @@ nv::cloth::Factory* NvClothCreateFactoryCUDA(CUcontext context)
 #include "NvCloth/DxContextManagerCallback.h"
 nv::cloth::Factory* NvClothCreateFactoryDX11(nv::cloth::DxContextManagerCallback* graphicsContextManager)
 {
-	if(graphicsContextManager->getDevice()->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
+	if (graphicsContextManager->getDevice()->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
 		return NV_CLOTH_NEW(nv::cloth::DxFactory)(graphicsContextManager);
 	return nullptr;
 }

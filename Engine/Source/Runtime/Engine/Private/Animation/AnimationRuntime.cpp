@@ -841,69 +841,14 @@ void FAnimationRuntime::ConvertPoseToMeshSpace(const TArray<FTransform>& LocalTr
 	}
 }
 
-struct FEnsureParentsPresentScratchArea : public TThreadSingleton<FEnsureParentsPresentScratchArea>
-{
-	TArray<bool> BoneExists;
-};
-
 /** 
  *	Utility for taking an array of bone indices and ensuring that all parents are present 
  *	(ie. all bones between those in the array and the root are present). 
  *	Note that this must ensure the invariant that parent occur before children in BoneIndices.
  */
-void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const USkeletalMesh * SkelMesh )
+void FAnimationRuntime::EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const FReferenceSkeleton& RefSkeleton )
 {
-	const int32 NumBones = SkelMesh->RefSkeleton.GetNum();
-	// Iterate through existing array.
-	int32 i=0;
-
-	TArray<bool>& BoneExists = FEnsureParentsPresentScratchArea::Get().BoneExists;
-	BoneExists.Reset();
-	BoneExists.SetNumZeroed(NumBones);
-
-	while( i<BoneIndices.Num() )
-	{
-		const int32 BoneIndex = BoneIndices[i];
-
-		// For the root bone, just move on.
-		if( BoneIndex > 0 )
-		{
-#if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			// Warn if we're getting bad data.
-			// Bones are matched as int32, and a non found bone will be set to INDEX_NONE == -1
-			// This should never happen, so if it does, something is wrong!
-			if( BoneIndex >= NumBones )
-			{
-				UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::EnsureParentsPresent, BoneIndex >= SkelMesh->RefSkeleton.GetNum()."));
-				i++;
-				continue;
-			}
-#endif
-			BoneExists[BoneIndex] = true;
-
-			const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
-
-			// If we do not have this parent in the array, we add it in this location, and leave 'i' where it is.
-			// This can happen if somebody removes bones in the physics asset, then it will try add back in, and in the process, 
-			// parent can be missing
-			if (!BoneExists[ParentIndex])
-			{
-				BoneIndices.InsertUninitialized(i);
-				BoneIndices[i] = ParentIndex;
-				BoneExists[ParentIndex] = true;
-			}
-			// If parent was in array, just move on.
-			else
-			{
-				i++;
-			}
-		}
-		else
-		{
-			BoneExists[0] = true;
-			i++;
-		}
-	}
+	RefSkeleton.EnsureParentsExist(BoneIndices);
 }
 
 void FAnimationRuntime::ExcludeBonesWithNoParents(const TArray<int32>& BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32>& FilteredRequiredBones)

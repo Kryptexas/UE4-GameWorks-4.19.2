@@ -13,15 +13,15 @@ class IDetailsView;
 class UMeshMergingSettingsObject;
 
 /** Data structure used to keep track of the selected mesh components, and whether or not they should be incorporated in the merge */
-struct FMeshComponentData
+struct FMergeComponentData
 {
-	FMeshComponentData(UStaticMeshComponent* InMeshComponent)
-		: MeshComponent(InMeshComponent )
+	FMergeComponentData(UPrimitiveComponent* InPrimComponent)
+		: PrimComponent(InPrimComponent)
 		, bShouldIncorporate( true )
 	{}
 
-	/** Mesh component extracted from selected actors */
-	TWeakObjectPtr<UStaticMeshComponent> MeshComponent;
+	/** Component extracted from selected actors */
+	TWeakObjectPtr<UPrimitiveComponent> PrimComponent;
 	/** Flag determining whether or not this component should be incorporated into the merge */
 	bool bShouldIncorporate;
 };
@@ -47,7 +47,8 @@ public:
 	void Construct(const FArguments& InArgs, FMeshMergingTool* InTool);	
 	
 	/** Getter functionality */
-	const TArray<TSharedPtr<FMeshComponentData>>& GetSelectedMeshComponents() const { return SelectedMeshComponents; }
+	const TArray<TSharedPtr<FMergeComponentData>>& GetSelectedComponents() const { return SelectedComponents; }
+	/** Get number of selected meshes */
 	const int32 GetNumSelectedMeshComponents() const { return NumSelectedMeshComponents; }
 
 	/** Resets the state of the UI and flags it for refreshing */
@@ -61,7 +62,7 @@ private:
 	void CreateSettingsView();	
 
 	/** Delegate for the creation of the list view item's widget */
-	TSharedRef<ITableRow> MakeComponentListItemWidget(TSharedPtr<FMeshComponentData> StaticMeshComponent, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> MakeComponentListItemWidget(TSharedPtr<FMergeComponentData> ComponentData, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Delegate to determine whether or not the UI elements should be enabled (determined by number of selected actors / mesh components) */
 	bool GetContentEnabledState() const;
@@ -83,16 +84,18 @@ private:
 	/** Owning mesh merging tool */
 	FMeshMergingTool* Tool;
 	/** List of mesh components extracted from editor selection */
-	TArray<TSharedPtr<FMeshComponentData>> SelectedMeshComponents;	
+	TArray<TSharedPtr<FMergeComponentData>> SelectedComponents;
 	/** List view ui element */
-	TSharedPtr<SListView<TSharedPtr<FMeshComponentData>>> MeshComponentsListView;
-	/** Map of keeping track of checkbox states for each selected static mesh component (used to restore state when listview is refreshed) */
-	TMap<UStaticMeshComponent*, ECheckBoxState> StoredCheckBoxStates;
+	TSharedPtr<SListView<TSharedPtr<FMergeComponentData>>> ComponentsListView;
+	/** Map of keeping track of checkbox states for each selected component (used to restore state when listview is refreshed) */
+	TMap<UPrimitiveComponent*, ECheckBoxState> StoredCheckBoxStates;
 	/** Settings view ui element ptr */
 	TSharedPtr<IDetailsView> SettingsView;
 	/** Cached pointer to mesh merging setting singleton object */
 	UMeshMergingSettingsObject* MergeSettings;
 	/** List view state tracking data */
 	bool bRefreshListView;
-	int NumSelectedMeshComponents;
+
+	/** Number of selected static mesh components */
+	int32 NumSelectedMeshComponents;
 };

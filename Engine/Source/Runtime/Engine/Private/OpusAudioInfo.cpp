@@ -164,13 +164,13 @@ bool FOpusAudioInfo::CreateDecoder()
 	return true;
 }
 
-uint32 FOpusAudioInfo::GetFrameSize()
+int32 FOpusAudioInfo::GetFrameSize()
 {
 	// Opus format has variable frame size at the head of each frame...
 	// We have to assume that the SrcBufferOffset is at the correct location for the read
 	uint16 FrameSize = 0;
 	Read(&FrameSize, sizeof(uint16));
-	return (uint32)FrameSize;
+	return (int32)FrameSize;
 }
 
 uint32 FOpusAudioInfo::GetMaxFrameSizeSamples() const
@@ -178,12 +178,16 @@ uint32 FOpusAudioInfo::GetMaxFrameSizeSamples() const
 	return SampleRate * OPUS_MAX_FRAME_SIZE_MS / 1000;
 }
 
-int32 FOpusAudioInfo::Decode(const uint8* FrameData, uint16 FrameSize, int16* OutPCMData, int32 SampleSize)
+FDecodeResult FOpusAudioInfo::Decode(const uint8* CompressedData, const int32 CompressedDataSize, uint8* OutPCMData, const int32 OutputPCMDataSize)
 {
+	FDecodeResult Result;
+
 	if (OpusDecoderWrapper)
 	{
-		return OpusDecoderWrapper->Decode(FrameData, FrameSize, OutPCMData, SampleSize);
+		const int32 SampleSize = OutputPCMDataSize / NumChannels * sizeof(int16);
+		Result.NumAudioFramesProduced = OpusDecoderWrapper->Decode(CompressedData, CompressedDataSize, (int16*)OutPCMData, SampleSize);
 	}
-	return INDEX_NONE;
+	
+	return Result;
 }
 

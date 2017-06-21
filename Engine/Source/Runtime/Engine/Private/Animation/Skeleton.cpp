@@ -116,9 +116,6 @@ void USkeleton::PostLoad()
 	// Cache smart name uids for animation curve names
 	IncreaseAnimCurveUidVersion();
 
-	const bool bRebuildNameMap = false;
-	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
-
 	// refresh linked bone indices
 	SmartNames.InitializeCurveMetaData(this);
 }
@@ -218,6 +215,9 @@ void USkeleton::Serialize( FArchive& Ar )
 		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
 	}
 #endif
+
+	const bool bRebuildNameMap = false;
+	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
 }
 
 #if WITH_EDITOR
@@ -457,7 +457,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 		// not currently supported in-game.
 		if (SkeletonBoneIndex == INDEX_NONE)
 		{
-			if(!bDismissedMessage)
+			if(!bDismissedMessage && !IsRunningCommandlet())
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("SkeletonBuildLinkupMissingBones", "The Skeleton {0}, is missing bones that SkeletalMesh {1} needs. They will be added now. Please save the Skeleton!"), FText::FromString(GetNameSafe(this)), FText::FromString(GetNameSafe(InSkelMesh))));
 				bDismissedMessage = true;

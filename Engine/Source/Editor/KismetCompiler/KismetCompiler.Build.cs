@@ -17,7 +17,8 @@ public class KismetCompiler : ModuleRules
 				"MovieSceneTools",
 				"FunctionalTesting",
 				"BlueprintGraph",
-				"AnimGraph"
+				"AnimGraph",
+                "MessageLog",
 			}
 			);
 	}

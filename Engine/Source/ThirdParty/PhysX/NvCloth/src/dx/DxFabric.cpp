@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -49,6 +49,7 @@ cloth::DxFabric::DxFabric(DxFactory& factory, uint32_t numParticles, Range<const
 , mSets(sets.begin(), sets.end())
 , mConstraints(mFactory.mConstraints)
 , mConstraintsHostCopy(mFactory.mConstraintsHostCopy)
+, mTriangles(mFactory.mTriangles)
 , mStiffnessValues(mFactory.mStiffnessValues)
 , mTethers(mFactory.mTethers)
 , mId(id)
@@ -58,7 +59,7 @@ cloth::DxFabric::DxFabric(DxFactory& factory, uint32_t numParticles, Range<const
 
 	NV_CLOTH_ASSERT(sets.back() == restvalues.size());
 	NV_CLOTH_ASSERT(restvalues.size() * 2 == indices.size());
-	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size()==0);
+	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size() == 0);
 	NV_CLOTH_ASSERT(mNumParticles > *shdfnd::maxElement(indices.begin(), indices.end()));
 
 	// manually convert uint32_t indices to uint16_t in temp memory
@@ -69,7 +70,7 @@ cloth::DxFabric::DxFabric(DxFactory& factory, uint32_t numParticles, Range<const
 
 	const uint32_t* iIt = indices.begin();
 	const float* rIt = restvalues.begin();
-	for(; cIt != cEnd; ++cIt)
+	for (; cIt != cEnd; ++cIt)
 	{
 		cIt->mRestvalue = *rIt++;
 		cIt->mFirstIndex = uint16_t(*iIt++);
@@ -91,7 +92,7 @@ cloth::DxFabric::DxFabric(DxFactory& factory, uint32_t numParticles, Range<const
 	// gather data per phase
 	mFirstConstraintInPhase.reserve(phaseIndices.size());
 	mNumConstraintsInPhase.reserve(phaseIndices.size());
-	for(const uint32_t* pIt = phaseIndices.begin(); pIt != phaseIndices.end(); ++pIt)
+	for (const uint32_t* pIt = phaseIndices.begin(); pIt != phaseIndices.end(); ++pIt)
 	{
 		uint32_t setIndex = *pIt;
 		uint32_t firstIndex = setIndex ? sets[setIndex - 1] : 0;
@@ -107,19 +108,27 @@ cloth::DxFabric::DxFabric(DxFactory& factory, uint32_t numParticles, Range<const
 	float inverseScale = 1 / (mTetherLengthScale + FLT_EPSILON);
 	Vector<DxTether>::Type tethers;
 	tethers.reserve(anchors.size());
-	for(; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
+	for (; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
 	{
 		tethers.pushBack(DxTether(uint16_t(anchors.front()), uint16_t(tetherLengths.front() * inverseScale + 0.5f)));
 	}
 	mTethers.assign(tethers.begin(), tethers.end());
 
 	// triangles
-	Vector<uint16_t>::Type hostTriangles;
-	hostTriangles.resizeUninitialized(triangles.size());
-	Vector<uint16_t>::Type::Iterator tIt = hostTriangles.begin();
+	Vector<uint32_t>::Type hostTriangles;
+	mNumTriangles = triangles.size();
+	//make sure there is an even number of elements allocated
+	hostTriangles.resizeUninitialized(triangles.size()>>1);
+	Vector<uint32_t>::Type::Iterator tIt = hostTriangles.begin();
 
-	for(; !triangles.empty(); triangles.popFront())
-		*tIt++ = uint16_t(triangles.front());
+	for (; !triangles.empty(); triangles.popFront())
+	{
+		uint32_t packed = triangles.front();
+		triangles.popFront();
+		if(!triangles.empty())
+			packed |= triangles.front()<<16;
+		*tIt++ = packed;
+	}
 
 	mTriangles.assign(hostTriangles.begin(), hostTriangles.end());
 
@@ -181,7 +190,7 @@ uint32_t cloth::DxFabric::getNumTethers() const
 
 uint32_t cloth::DxFabric::getNumTriangles() const
 {
-	return uint32_t(mTriangles.size()) / 3;
+	return uint32_t(mNumTriangles) / 3;
 }
 
 void cloth::DxFabric::scaleRestvalues(float scale)
@@ -193,7 +202,7 @@ void cloth::DxFabric::scaleRestvalues(float scale)
 	                    constraints.size() * sizeof(DxConstraint));
 
 	Vector<DxConstraint>::Type::Iterator cIt, cEnd = constraints.end();
-	for(cIt = constraints.begin(); cIt != cEnd; ++cIt)
+	for (cIt = constraints.begin(); cIt != cEnd; ++cIt)
 		cIt->mRestvalue *= scale;
 
 	mConstraints = constraints;

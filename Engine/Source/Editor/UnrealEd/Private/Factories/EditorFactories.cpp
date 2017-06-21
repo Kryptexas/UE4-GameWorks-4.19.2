@@ -5373,6 +5373,10 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This mesh was import with a scene import, we cannot reimport it
 				return false;
 			}
+			else if (FPaths::GetExtension(AnimSequence->AssetImportData->GetFirstFilename()).ToLower() == "abc")
+			{
+				return false;
+			}
 		}
 		else
 		{

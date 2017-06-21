@@ -6174,7 +6174,7 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 
 	float StepTravelUpHeight = MaxStepHeight;
 	float StepTravelDownHeight = StepTravelUpHeight;
-	const float StepSideZ = -1.f * (InHit.ImpactNormal | GravDir);
+	const float StepSideZ = -1.f * FVector::DotProduct(InHit.ImpactNormal, GravDir);
 	float PawnInitialFloorBaseZ = OldLocation.Z - PawnHalfHeight;
 	float PawnFloorPointZ = PawnInitialFloorBaseZ;
 

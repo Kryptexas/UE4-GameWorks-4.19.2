@@ -1191,12 +1191,6 @@ namespace UM
 
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the highest that the value slider should represent.
 		UIMax,
-
-		/// [PropertyMetadata] Indicates that the property should be exposed as an input for an animation controller
-		AnimationInput,
-
-		/// [PropertyMetadata] Indicates that the property should be exposed as an output for an animation controller
-		AnimationOutput,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG

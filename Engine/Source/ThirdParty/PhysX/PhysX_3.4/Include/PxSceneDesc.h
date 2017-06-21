@@ -813,6 +813,8 @@ public:
 	/**
 	\brief Limitation for the partitions in the GPU dynamics pipeline.
 	This variable must be power of 2.
+	A value greater than 32 is currently not supported.
+	<b>Range:</b> (1, 32)<br>
 	*/
 	PxU32					gpuMaxNumPartitions;
 
@@ -906,10 +908,10 @@ PX_INLINE PxSceneDesc::PxSceneDesc(const PxTolerancesScale& scale):
 	ccdMaxPasses						(1),
 	wakeCounterResetValue				(20.0f*0.02f),
 	sanityBounds						(PxBounds3(PxVec3(-PX_MAX_BOUNDS_EXTENTS), PxVec3(PX_MAX_BOUNDS_EXTENTS))),
-#if PX_SUPPORT_GPU_PHYSX
+
 	gpuMaxNumPartitions					(8),
 	gpuComputeVersion					(0),
-#endif
+
 	tolerancesScale						(scale)
 {
 }
@@ -963,11 +965,11 @@ PX_INLINE bool PxSceneDesc::isValid() const
 	if(!sanityBounds.isValid())
 		return false;
 
-#if PX_SUPPORT_GPU_PHYSX
 	//gpuMaxNumPartitions must be power of 2
 	if((gpuMaxNumPartitions&(gpuMaxNumPartitions - 1)) != 0)
 		return false;
-#endif
+	if (gpuMaxNumPartitions > 32)
+		return false;
 
 	return true;
 }

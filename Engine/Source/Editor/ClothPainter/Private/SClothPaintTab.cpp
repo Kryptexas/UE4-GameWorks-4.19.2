@@ -24,6 +24,12 @@
 #include "AssetEditorModeManager.h"
 
 #include "ISkeletalMeshEditor.h"
+#include "SClothPaintWidget.h"
+#include "IPersonaToolkit.h"
+#include "SClothAssetSelector.h"
+#include "ClothingAsset.h"
+#include "SScrollBox.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SClothPaintTab"
 
@@ -42,66 +48,103 @@ SClothPaintTab::~SClothPaintTab()
 
 void SClothPaintTab::Construct(const FArguments& InArgs)
 {
+	// Detail view for UClothingAsset
+	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	FDetailsViewArgs DetailsViewArgs(
+		/*bUpdateFromSelection=*/ false,
+		/*bLockable=*/ false,
+		/*bAllowSearch=*/ false,
+		FDetailsViewArgs::HideNameArea,
+		/*bHideSelectionTip=*/ true,
+		/*InNotifyHook=*/ nullptr,
+		/*InSearchInitialKeyFocus=*/ false,
+		/*InViewIdentifier=*/ NAME_None);
+	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+	DetailsViewArgs.bShowOptions = false;
+	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
+
+	DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
+	DetailsView->OnFinishedChangingProperties().AddSP(this, &SClothPaintTab::OnFinishedChangingClothConfigProperties);
+
 	HostingApp = InArgs._InHostingApp;
 
-	ModeWidget = SNullWidget::NullWidget;
+	ModeWidget = nullptr;
 	
 	FSlateIcon TexturePaintIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode.TexturePaint");
 
 	this->ChildSlot
 	[
-		SNew(SOverlay)
-		+SOverlay::Slot()
+		SNew(SScrollBox)
+		+ SScrollBox::Slot()
 		[
 			SAssignNew(ContentBox, SVerticalBox)
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Center)
+		]
+	];
+
+	ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get());
+
+	if(SkeletalMeshEditor)
+	{
+		IPersonaToolkit& Persona = SkeletalMeshEditor->GetPersonaToolkit().Get();
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		[
+			SAssignNew(SelectorWidget, SClothAssetSelector, Persona.GetMesh())
+				.OnSelectionChanged(this, &SClothPaintTab::OnAssetSelectionChanged)
+		];
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		[
+			DetailsView->AsShared()
+		];
+
+		ContentBox->AddSlot()
+		.Padding(10.0f)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.Type(ESlateCheckBoxType::ToggleButton)
+			.IsChecked_Lambda([=]() { return bPaintModeEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;  })
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState) { bPaintModeEnabled = (NewState == ECheckBoxState::Checked); UpdatePaintTools(); })
+			.Style(&FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
+				SNew(SBox)
+				.MinDesiredHeight(25.0f)
+				.MinDesiredWidth(100.0f)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
 				[
-					SNew(SCheckBox)
-					.Type(ESlateCheckBoxType::ToggleButton)
-					.IsChecked_Lambda([=]() { return bPaintModeEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;  })
-					.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState) { bPaintModeEnabled = (NewState == ECheckBoxState::Checked); UpdatePaintTools(); })
-					.Style(&FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >("ToggleButtonCheckbox"))
+					SNew(SVerticalBox)							
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 4.0f)
 					[
-						SNew(SBox)
-						.MinDesiredHeight(25.0f)
-						.MinDesiredWidth(100.0f)
+						SNew(SHorizontalBox)						
+						+SHorizontalBox::Slot()
 						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
 						[
-							SNew(SVerticalBox)							
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0.0f, 4.0f)
-							[
-								SNew(SHorizontalBox)						
-								+SHorizontalBox::Slot()
-								//.AutoWidth()
-								.HAlign(HAlign_Center)
-								[
-									SNew(SImage)
-									.Image(TexturePaintIcon.GetIcon())
-								]
-								
-							]
-							+SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString("Enable Paint Tools"))
-							]
+							SNew(SImage)
+							.Image(TexturePaintIcon.GetIcon())
 						]
+						
+					]
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Enable Paint Tools"))
 					]
 				]
 			]
-		]
-	];
+		];
+	}
 }
 
 void SClothPaintTab::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -119,8 +162,11 @@ void SClothPaintTab::UpdatePaintTools()
 		FClothingPaintEditMode* PaintMode = (FClothingPaintEditMode*)SkeletalMeshEditor->GetAssetEditorModeManager()->FindMode(PaintModeID);
 		if (PaintMode)
 		{
-			PaintMode->GetMeshPainter()->Reset();
-			ModeWidget = PaintMode->GetMeshPainter()->GetWidget();
+			FClothPainter* ClothPainter = static_cast<FClothPainter*>(PaintMode->GetMeshPainter());
+			check(ClothPainter);
+
+			ClothPainter->Reset();
+			ModeWidget = StaticCastSharedPtr<SClothPaintWidget>(ClothPainter->GetWidget());
 			PaintMode->SetPersonaToolKit(SkeletalMeshEditor->GetPersonaToolkit());
 
 			ContentBox->AddSlot()
@@ -128,6 +174,16 @@ void SClothPaintTab::UpdatePaintTools()
 			[
 				ModeWidget->AsShared()
 			];
+
+			if(SelectorWidget.IsValid())
+			{
+				TWeakObjectPtr<UClothingAsset> WeakAsset = SelectorWidget->GetSelectedAsset();
+
+				if(WeakAsset.Get())
+				{
+					ClothPainter->OnAssetSelectionChanged(WeakAsset.Get(), SelectorWidget->GetSelectedLod(), SelectorWidget->GetSelectedMask());
+				}
+			}
 		}
 	}
 	else
@@ -135,8 +191,70 @@ void SClothPaintTab::UpdatePaintTools()
 		ContentBox->RemoveSlot(ModeWidget->AsShared());
 		ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get());
 		SkeletalMeshEditor->GetAssetEditorModeManager()->ActivateDefaultMode();
-		ModeWidget = SNullWidget::NullWidget;
+		ModeWidget = nullptr;
 	}
+}
+
+void SClothPaintTab::OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAssetPtr, int32 InLodIndex, int32 InMaskIndex)
+{
+	if(bPaintModeEnabled)
+	{
+		ISkeletalMeshEditor* SkeletalMeshEditor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get());
+
+		FClothingPaintEditMode* PaintMode = (FClothingPaintEditMode*)SkeletalMeshEditor->GetAssetEditorModeManager()->FindMode(PaintModeID);
+		if(PaintMode)
+		{
+			FClothPainter* ClothPainter = static_cast<FClothPainter*>(PaintMode->GetMeshPainter());
+
+			if(ClothPainter)
+			{
+				ClothPainter->OnAssetSelectionChanged(InAssetPtr.Get(), InLodIndex, InMaskIndex);
+			}
+		}
+	}
+
+	if(UClothingAsset* Asset = InAssetPtr.Get())
+	{
+		TArray<UObject*> Objects;
+
+		Objects.Add(Asset);
+
+		DetailsView->SetObjects(Objects, true);
+	}
+}
+
+void SClothPaintTab::OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent)
+{
+	if(InEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
+			InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
+		{
+			if(UClothingAsset* CurrAsset = SelectorWidget->GetSelectedAsset().Get())
+			{
+				CurrAsset->BuildSelfCollisionData();
+			}
+		}
+	}
+
+	if(UDebugSkelMeshComponent* PreviewComponent = GetPersonaToolkit()->GetPreviewMeshComponent())
+	{
+		// Reregister our preview component to apply the change
+		FComponentReregisterContext Context(PreviewComponent);
+	}
+}
+
+TSharedRef<IPersonaToolkit> SClothPaintTab::GetPersonaToolkit() const
+{
+	return GetSkeletalMeshEditor()->GetPersonaToolkit();
+}
+
+ISkeletalMeshEditor* SClothPaintTab::GetSkeletalMeshEditor() const
+{
+	ISkeletalMeshEditor* Editor = static_cast<ISkeletalMeshEditor*>(HostingApp.Pin().Get());
+	check(Editor);
+
+	return Editor;
 }
 
 #undef LOCTEXT_NAMESPACE //"SClothPaintTab"

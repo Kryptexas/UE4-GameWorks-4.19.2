@@ -27,6 +27,9 @@
 #include "Interfaces/IAnalyticsProvider.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Package.h"
+#include "AssetRegistryModule.h"
+#include "ARFilter.h"
+#include "Animation/Skeleton.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -57,7 +60,22 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		}
 		else
 		{
-			ImportUI->Skeleton = NULL;
+			// Look in the current target directory to see if we have a skeleton
+			FARFilter Filter;
+			Filter.PackagePaths.Add(*FPaths::GetPath(FullPath));
+			Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
+
+			IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+			TArray<FAssetData> SkeletonAssets;
+			AssetRegistry.GetAssets(Filter, SkeletonAssets);
+			if(SkeletonAssets.Num() > 0)
+			{
+				ImportUI->Skeleton = CastChecked<USkeleton>(SkeletonAssets[0].GetAsset());
+			}
+			else
+			{
+				ImportUI->Skeleton = NULL;
+			}
 		}
 
 		if ( ImportOptions->PhysicsAsset )

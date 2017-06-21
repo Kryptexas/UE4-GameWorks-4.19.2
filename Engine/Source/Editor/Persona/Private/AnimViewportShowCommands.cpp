@@ -10,7 +10,8 @@ void FAnimViewportShowCommands::RegisterCommands()
 
 	UI_COMMAND( AutoAlignFloorToMesh, "Auto Align Floor To Mesh", "Auto aligns floor to mesh bounds", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( MuteAudio, "Mute Audio", "Mutes audio from the preview", EUserInterfaceActionType::ToggleButton, FInputChord() );
-
+	UI_COMMAND( UseAudioAttenuation, "Use Audio Attenuation", "Use audio attentuation when playing back audio in the preview", EUserInterfaceActionType::ToggleButton, FInputChord() );
+	
 	UI_COMMAND(ProcessRootMotion, "Process Root Motion", "Moves preview based on animation root motion", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	UI_COMMAND( ShowRetargetBasePose, "Retarget Base Pose", "Show retarget Base pose on preview mesh", EUserInterfaceActionType::ToggleButton, FInputChord() );
@@ -30,6 +31,8 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND( ShowOverlayNone, "None", "Clear Overlay Display", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND( ShowBoneWeight, "Selected Bone Weight", "Display color overlay of the weight from Selected Bone in Viewport", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( ShowMorphTargetVerts, "Selected Morphtarget Vertices", "Display color overlay with the chnage of Selected Morphtarget in Viewport", EUserInterfaceActionType::RadioButton, FInputChord());
+
+	UI_COMMAND(ShowVertexColors, "Vertex Colors", "Display mesh vertex colors.", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	UI_COMMAND( ShowRawAnimation, "Uncompressed Animation", "Display Skeleton With Uncompressed Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ShowNonRetargetedAnimation, "NonRetargeted Animation", "Display Skeleton With non retargeted Animation Data", EUserInterfaceActionType::ToggleButton, FInputChord() );

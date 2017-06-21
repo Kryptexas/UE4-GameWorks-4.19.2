@@ -20,53 +20,56 @@ class UNREALED_API UPersonaOptions : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	uint32 bShowFloor:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	uint32 bShowSky:1;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	uint32 bAutoAlignFloorToMesh : 1;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 bShowGrid:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 bHighlightOrigin:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Audio")
 	uint32 bMuteAudio:1;
 
+	UPROPERTY(EditAnywhere, config, Category = "Audio")
+	uint32 bUseAudioAttenuation:1;
+
 	// currently Stats can have None, Basic and Detailed. Please refer to EDisplayInfoMode.
-	UPROPERTY(EditAnywhere, config, Category = Options, meta=(ClampMin ="0", ClampMax = "3", UIMin = "0", UIMax = "3"))
+	UPROPERTY(EditAnywhere, config, Category = "Viewport", meta=(ClampMin ="0", ClampMax = "3", UIMin = "0", UIMax = "3"))
 	int32 ShowMeshStats;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	int32 GridSize;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	TEnumAsByte<EViewModeIndex> ViewModeIndex;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	FLinearColor ViewportBackgroundColor;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	float ViewFOV;
 
-	UPROPERTY(EditAnywhere, config, Category=Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 DefaultLocalAxesSelection;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Viewport")
 	uint32 DefaultBoneDrawSelection;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Composites and Montages")
 	FLinearColor SectionTimingNodeColor;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Composites and Montages")
 	FLinearColor NotifyTimingNodeColor;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Composites and Montages")
 	FLinearColor BranchingPointTimingNodeColor;
 
 	/** Whether to use a socket editor that is created in-line inside the skeleton tree, or wither to use the separate details panel */
@@ -77,14 +80,14 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = "Skeleton Tree")
 	bool bFlattenSkeletonHierarchyWhenFiltering;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Preview Scene")
 	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;
 
-	UPROPERTY(EditAnywhere, config, Category = Options)
+	UPROPERTY(EditAnywhere, config, Category = "Mesh")
 	bool bAllowMeshSectionSelection;
 
 	/** The number of folder filters to allow at any one time in the animation tool's asset browser */
-	UPROPERTY(EditAnywhere, config, Category = Options, meta=(ClampMin ="1", ClampMax = "10", UIMin = "1", UIMax = "10"))
+	UPROPERTY(EditAnywhere, config, Category = "Asset Browser", meta=(ClampMin ="1", ClampMax = "10", UIMin = "1", UIMax = "10"))
 	uint32 NumFolderFiltersInAssetBrowser;
 
 public:
@@ -95,6 +98,7 @@ public:
 	void SetAutoAlignFloorToMesh(bool bInAutoAlignFloorToMesh);
 	void SetShowSky( bool bInShowSky );
 	void SetMuteAudio( bool bInMuteAudio );
+	void SetUseAudioAttenuation( bool bInUseAudioAttenuation );
 	void SetGridSize( int32 InGridSize );
 	void SetViewModeIndex( EViewModeIndex InViewModeIndex );
 	void SetViewFOV( float InViewFOV );

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -91,7 +91,7 @@ inline Simd4i operator&(const Simd4i& v, const ComplementExpr<Simd4i>& complemen
 // operator implementations
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Simd4i operator==(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator == (const Simd4i& v0, const Simd4i& v1)
 {
 	return vceqq_u32(v0.u4, v1.u4);
 }
@@ -146,22 +146,22 @@ Simd4i operator>>(const Simd4i& v, const Simd4i& shift)
 	return vshlq_u32(v.u4, vnegq_s32(shift.i4));
 }
 
-Simd4i operator+(const Simd4i& v)
+Simd4i operator + (const Simd4i& v)
 {
 	return v;
 }
 
-Simd4i operator+(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator + (const Simd4i& v0, const Simd4i& v1)
 {
 	return vaddq_u32(v0.u4, v1.u4);
 }
 
-Simd4i operator-(const Simd4i& v)
+Simd4i operator - (const Simd4i& v)
 {
 	return vnegq_s32(v.i4);
 }
 
-Simd4i operator-(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator - (const Simd4i& v0, const Simd4i& v1)
 {
 	return vsubq_u32(v0.u4, v1.u4);
 }

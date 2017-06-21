@@ -6,14 +6,14 @@
 /////////////////////////////////////////////////////
 // FAnimPoseByNameNode
 
-void FAnimNode_PoseByName::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PoseByName::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_PoseHandler::Initialize(Context);
+	FAnimNode_PoseHandler::Initialize_AnyThread(Context);
 }
 
-void FAnimNode_PoseByName::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_PoseByName::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_PoseHandler::CacheBones(Context);
+	FAnimNode_PoseHandler::CacheBones_AnyThread(Context);
 }
 
 void FAnimNode_PoseByName::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
@@ -33,7 +33,7 @@ void FAnimNode_PoseByName::UpdateAssetPlayer(const FAnimationUpdateContext& Cont
 	}
 }
 
-void FAnimNode_PoseByName::Evaluate(FPoseContext& Output)
+void FAnimNode_PoseByName::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if ((CurrentPoseAsset.IsValid()) && (Output.AnimInstanceProxy->IsSkeletonCompatible(CurrentPoseAsset->GetSkeleton())))
 	{

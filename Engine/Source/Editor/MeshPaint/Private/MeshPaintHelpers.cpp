@@ -50,13 +50,13 @@ void MeshPaintHelpers::RemoveInstanceVertexColors(UObject* Obj)
 {
 	// Currently only static mesh component supports per instance vertex colors so only need to retrieve those and remove colors
 	AActor* Actor = Cast<AActor>(Obj);
-	if (Actor != NULL)
+	if (Actor != nullptr)
 	{
 		TArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 		for (const auto& StaticMeshComponent : StaticMeshComponents)
 		{
-			if (StaticMeshComponent != NULL)
+			if (StaticMeshComponent != nullptr)
 			{
 				MeshPaintHelpers::RemoveComponentInstanceVertexColors(StaticMeshComponent);
 			}
@@ -66,7 +66,7 @@ void MeshPaintHelpers::RemoveInstanceVertexColors(UObject* Obj)
 
 void MeshPaintHelpers::RemoveComponentInstanceVertexColors(UStaticMeshComponent* StaticMeshComponent)
 {
-	if (StaticMeshComponent != NULL && StaticMeshComponent->GetStaticMesh() != nullptr)
+	if (StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr)
 	{
 		// Mark the mesh component as modified
 		StaticMeshComponent->Modify();
@@ -150,7 +150,7 @@ bool MeshPaintHelpers::PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 L
 			RenderModel.PositionVertexBuffer,
 			RenderModel.VertexBuffer,
 			TempPositionVertexBuffer,
-			/*OptionalVertexBuffer=*/ NULL,
+			/*OptionalVertexBuffer=*/ nullptr,
 			NewVertexColors
 		);
 		if (NewVertexColors.Num() == RawMesh.VertexPositions.Num())
@@ -876,7 +876,7 @@ void MeshPaintHelpers::ImportVertexColorsFromTexture(UMeshComponent* MeshCompone
 	{
 		// Valid file name picked
 		const FString FileName = Filenames[0];
-		UTexture2D* ColorTexture = ImportObject<UTexture2D>(GEngine, NAME_None, RF_Public, *FileName, NULL, NULL, TEXT("NOMIPMAPS=1 NOCOMPRESSION=1"));
+		UTexture2D* ColorTexture = ImportObject<UTexture2D>(GEngine, NAME_None, RF_Public, *FileName, nullptr, nullptr, TEXT("NOMIPMAPS=1 NOCOMPRESSION=1"));
 
 		if (ColorTexture && ColorTexture->Source.GetFormat() == TSF_BGRA8)
 		{

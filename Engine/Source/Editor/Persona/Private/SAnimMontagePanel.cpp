@@ -17,6 +17,7 @@
 #include "Widgets/Input/STextComboBox.h"
 #include "SAnimTimingPanel.h"
 #include "TabSpawners.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
 
@@ -360,26 +361,64 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 
 			FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
 
-			FNumberFormattingOptions Options;
-			Options.MinimumFractionalDigits = 5;
-
 			// Add item to directly set section time
-			const FText CurrentTime = FText::AsNumber(Section.GetTime(), &Options);
-			const FText TimeMenuText = FText::Format(LOCTEXT("SectionTimeMenuText", "Set Section Time: {0}..."), CurrentTime);
+			TSharedRef<SWidget> TimeWidget = 
+				SNew( SBox )
+				.HAlign( HAlign_Right )
+				.ToolTipText(LOCTEXT("SetSectionTimeToolTip", "Set the time of this section directly"))
+				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					.WidthOverride(100.0f)
+					[
+						SNew(SNumericEntryBox<float>)
+						.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+						.MinValue(0.0f)
+						.MaxValue(Montage->SequenceLength)
+						.Value(Section.GetTime())
+						.OnValueCommitted_Lambda([this, SectionIndex](float InValue, ETextCommit::Type InCommitType)
+						{
+							if (Montage->CompositeSections.IsValidIndex(SectionIndex))
+							{
+								MontageEditor.Pin()->SetSectionTime(SectionIndex, InValue);
+							}
 
-			UIAction.ExecuteAction.BindRaw(this, &SAnimMontagePanel::OnSetSectionTimeClicked, SectionIndex);
-			UIAction.CanExecuteAction.Unbind();
+							FSlateApplication::Get().DismissAllMenus();
+						})
+					]
+				];
 
-			MenuBuilder.AddMenuEntry(TimeMenuText, LOCTEXT("SetSectionTimeToolTip", "Set the time of this section directly"), FSlateIcon(), UIAction);
+			MenuBuilder.AddWidget(TimeWidget, LOCTEXT("SectionTimeMenuText", "Section Time"));
 
 			// Add item to directly set section frame
-			const FText Frame = FText::AsNumber(Montage->GetFrameAtTime(Section.GetTime()));
-			const FText FrameMenuText = FText::Format(LOCTEXT("SectionFrameMenuText", "Set Section Frame: {0}..."), Frame);
+			TSharedRef<SWidget> FrameWidget = 
+				SNew( SBox )
+				.HAlign( HAlign_Right )
+				.ToolTipText(LOCTEXT("SetFrameToolTip", "Set the frame of this section directly"))
+				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					.WidthOverride(100.0f)
+					[
+						SNew(SNumericEntryBox<int32>)
+						.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+						.MinValue(0)
+						.MaxValue(Montage->GetNumberOfFrames())
+						.Value(Montage->GetFrameAtTime(Section.GetTime()))
+						.OnValueCommitted_Lambda([this, SectionIndex](int32 InValue, ETextCommit::Type InCommitType)
+						{
+							if (Montage->CompositeSections.IsValidIndex(SectionIndex))
+							{
+								float NewTime = FMath::Clamp(Montage->GetTimeAtFrame(InValue), 0.0f, Montage->SequenceLength);
+								MontageEditor.Pin()->SetSectionTime(SectionIndex, NewTime);
+							}
 
-			UIAction.ExecuteAction.BindRaw(this, &SAnimMontagePanel::OnSetSectionFrameClicked, SectionIndex);
-			UIAction.CanExecuteAction.Unbind();
+							FSlateApplication::Get().DismissAllMenus();
+						})
+					]
+				];
 
-			MenuBuilder.AddMenuEntry(FrameMenuText, LOCTEXT("SetFrameToolTip", "Set the frame of this section directly"), FSlateIcon(), UIAction);
+			MenuBuilder.AddWidget(FrameWidget, LOCTEXT("SectionFrameMenuText", "Section Frame"));
 		}
 	}
 	MenuBuilder.EndSection();
@@ -393,7 +432,10 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 		if(AnimSlotIndex != INDEX_NONE)
 		{
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::RemoveMontageSlot, AnimSlotIndex);
+			UIAction.CanExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::CanRemoveMontageSlot, AnimSlotIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DeleteSlot", "Delete Slot"), LOCTEXT("DeleteSlotToolTip", "Deletes Slot"), FSlateIcon(), UIAction);
+			UIAction.CanExecuteAction.Unbind();
+
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::DuplicateMontageSlot, AnimSlotIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DuplicateSlot", "Duplicate Slot"), LOCTEXT("DuplicateSlotToolTip", "Duplicates the slected slot"), FSlateIcon(), UIAction);
 		}
@@ -433,14 +475,14 @@ void SAnimMontagePanel::FillSlotSubMenu(FMenuBuilder& Menubuilder)
 /** Slots */
 void SAnimMontagePanel::OnNewSlotClicked()
 {
-	MontageEditor.Pin()->AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
+	MontageEditor.Pin()->AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName);
 }
 
 void SAnimMontagePanel::CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo)
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		MontageEditor.Pin()->AddNewMontageSlot(NewSlotName.ToString());
+		MontageEditor.Pin()->AddNewMontageSlot(*NewSlotName.ToString());
 	}
 
 	FSlateApplication::Get().DismissAllMenus();
@@ -478,93 +520,6 @@ void SAnimMontagePanel::CreateNewSection(const FText& NewSectionName, ETextCommi
 	{
 		MontageEditor.Pin()->AddNewSection(StartTime,NewSectionName.ToString());
 	}
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void SAnimMontagePanel::OnSetSectionTimeClicked(int32 SectionIndex)
-{
-	if (Montage->CompositeSections.IsValidIndex(SectionIndex))
-	{
-		FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
-
-		FString DefaultText = FString::Printf(TEXT("%0.6f"), Section.GetTime());
-
-		// Show dialog to enter time
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label(LOCTEXT("SectionTimeClickedLabel", "Section Time"))
-			.DefaultText(FText::FromString(DefaultText))
-			.OnTextCommitted(this, &SAnimMontagePanel::SetSectionTime, SectionIndex);
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), 
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-		);
-	}
-}
-
-void SAnimMontagePanel::SetSectionTime(const FText& SectionTimeText, ETextCommit::Type CommitInfo, int32 SectionIndex)
-{
-	if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		if (Montage->CompositeSections.IsValidIndex(SectionIndex))
-		{
-			FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
-
-			float NewTime = FMath::Clamp(FCString::Atof(*SectionTimeText.ToString()), 0.0f, Montage->SequenceLength);
-
-			MontageEditor.Pin()->SetSectionTime(SectionIndex, NewTime);
-		}
-	}
-
-	FSlateApplication::Get().DismissAllMenus();
-}
-
-void SAnimMontagePanel::OnSetSectionFrameClicked(int32 SectionIndex)
-{
-	if (Montage->CompositeSections.IsValidIndex(SectionIndex))
-	{
-		FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
-
-		const FText Frame = FText::AsNumber(Montage->GetFrameAtTime(Section.GetTime()));
-
-		FString DefaultText = FString::Printf(TEXT("%s"), *Frame.ToString());
-
-		// Show dialog to enter frame
-		TSharedRef<STextEntryPopup> TextEntry =
-			SNew(STextEntryPopup)
-			.Label(LOCTEXT("SectionFrameClickedLabel", "Section Frame"))
-			.DefaultText(FText::FromString(DefaultText))
-			.OnTextCommitted(this, &SAnimMontagePanel::SetSectionFrame, SectionIndex);
-
-		FSlateApplication::Get().PushMenu(
-			AsShared(), 
-			FWidgetPath(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-		);
-	}
-}
-
-void SAnimMontagePanel::SetSectionFrame(const FText& SectionFrameText, ETextCommit::Type CommitInfo, int32 SectionIndex)
-{
-	if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
-	{
-		if (Montage->CompositeSections.IsValidIndex(SectionIndex))
-		{
-			FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
-
-			int32 Frame = FCString::Atof(*SectionFrameText.ToString());
-			float NewTime = FMath::Clamp(Montage->GetTimeAtFrame(Frame), 0.0f, Montage->SequenceLength);
-
-			MontageEditor.Pin()->SetSectionTime(SectionIndex, NewTime);
-		}
-	}
-
 	FSlateApplication::Get().DismissAllMenus();
 }
 

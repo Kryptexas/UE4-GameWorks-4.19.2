@@ -1025,7 +1025,6 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
-	FCompilerResultsLog Results;
 
 	TSharedPtr<FBlueprintCompileReinstancer> ReinstanceHelper;
 	if(!bSkipReinstancing)
@@ -1037,6 +1036,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
 	{
 		FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(BlueprintObj->GeneratedClass, true);
+		FCompilerResultsLog Results;
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 	}
 	

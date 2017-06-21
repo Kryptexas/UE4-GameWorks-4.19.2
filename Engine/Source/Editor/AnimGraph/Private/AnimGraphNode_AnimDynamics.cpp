@@ -112,7 +112,7 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 						LimitPlaneTransform *= PreviewSkelMeshComp->GetComponentSpaceTransforms()[LimitDrivingBoneIdx];
 					}
 
-					DrawPlane10x10(PDI, LimitPlaneTransform.ToMatrixNoScale(), 200.0f, FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f), GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
+					DrawPlane10x10(PDI, LimitPlaneTransform.ToMatrixNoScale(), 200.0f, FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f), GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
 					DrawDirectionalArrow(PDI, FRotationMatrix(FRotator(90.0f, 0.0f, 0.0f)) * LimitPlaneTransform.ToMatrixNoScale(), FLinearColor::Blue, 50.0f, 20.0f, SDPG_Foreground, 0.5f);
 				}
 			}
@@ -131,7 +131,7 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 						SphereTransform *= PreviewSkelMeshComp->GetComponentSpaceTransforms()[DrivingBoneIdx];
 					}
 
-					DrawSphere(PDI, SphereTransform.GetLocation(), FRotator::ZeroRotator, FVector(SphericalLimit.LimitRadius), 24, 6, GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
+					DrawSphere(PDI, SphereTransform.GetLocation(), FRotator::ZeroRotator, FVector(SphericalLimit.LimitRadius), 24, 6, GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
 					DrawWireSphere(PDI, SphereTransform, FLinearColor::Black, SphericalLimit.LimitRadius, 24, SDPG_World);
 				}
 			}
@@ -226,7 +226,7 @@ void UAnimGraphNode_AnimDynamics::DrawLinearLimits(FPrimitiveDrawInterface* PDI,
 	FTransform LinearLimitsTransform = ShapeTransform;
 	LinearLimitsTransform.SetTranslation(LinearLimitsTransform.GetTranslation() + LinearLimitsTransform.TransformVector(LinearLimitsCenter));
 
-	DrawBox(PDI, LinearLimitsTransform.ToMatrixWithScale(), LinearLimitHalfExtents, GEngine->ConstraintLimitMaterialPrismatic->GetRenderProxy(false), SDPG_Foreground);
+	DrawBox(PDI, LinearLimitsTransform.ToMatrixWithScale(), LinearLimitHalfExtents, GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_Foreground);
 }
 
 FText UAnimGraphNode_AnimDynamics::GetControllerDescription() const
@@ -248,7 +248,7 @@ void UAnimGraphNode_AnimDynamics::CustomizeDetails(IDetailLayoutBuilder& DetailB
 		SNew(SButton)
 			.Text(LOCTEXT("ResetButtonText", "Reset Simulation"))
 			.ToolTipText(LOCTEXT("ResetButtonToolTip", "Resets the simulation for this node"))
-			.OnClicked(FOnClicked::CreateUObject(this, &UAnimGraphNode_AnimDynamics::ResetButtonClicked))
+			.OnClicked(FOnClicked::CreateStatic(&UAnimGraphNode_AnimDynamics::ResetButtonClicked, &DetailBuilder))
 	];
 }
 
@@ -321,21 +321,21 @@ void UAnimGraphNode_AnimDynamics::DrawAngularLimits(FPrimitiveDrawInterface* PDI
 	{
 		FTransform XAxisConeTM(YAxis, XAxis ^ YAxis, XAxis, JointTransform.GetTranslation());
 		XAxisConeTM.SetRotation(FQuat(XAxis, FMath::DegreesToRadians(-Middle.X)) * XAxisConeTM.GetRotation());
-		DrawCone(PDI, FScaleMatrix(30.0f) * XAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.X / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->ConstraintLimitMaterialX->GetRenderProxy(false), SDPG_World);
+		DrawCone(PDI, FScaleMatrix(30.0f) * XAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.X / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
 	}
 
 	if (AngleRange.Y > 0.0f && AngleRange.Y < 180.0f)
 	{
 		FTransform YAxisConeTM(ZAxis, YAxis ^ ZAxis, YAxis, JointTransform.GetTranslation());
 		YAxisConeTM.SetRotation(FQuat(YAxis, FMath::DegreesToRadians(Middle.Y)) * YAxisConeTM.GetRotation());
-		DrawCone(PDI, FScaleMatrix(30.0f) * YAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.Y / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->ConstraintLimitMaterialY->GetRenderProxy(false), SDPG_World);
+		DrawCone(PDI, FScaleMatrix(30.0f) * YAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.Y / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
 	}
 
 	if (AngleRange.Z > 0.0f && AngleRange.Z < 180.0f)
 	{
 		FTransform ZAxisConeTM(XAxis, ZAxis ^ XAxis, ZAxis, JointTransform.GetTranslation());
 		ZAxisConeTM.SetRotation(FQuat(ZAxis, FMath::DegreesToRadians(Middle.Z)) * ZAxisConeTM.GetRotation());
-		DrawCone(PDI, FScaleMatrix(30.0f) * ZAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.Z / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->ConstraintLimitMaterialZ->GetRenderProxy(false), SDPG_World);
+		DrawCone(PDI, FScaleMatrix(30.0f) * ZAxisConeTM.ToMatrixWithScale(), FMath::DegreesToRadians(AngleRange.Z / 2.0f), 0.0f, 24, false, FLinearColor::White, GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
 	}
 }
 
@@ -371,9 +371,17 @@ FAnimNode_AnimDynamics* UAnimGraphNode_AnimDynamics::GetPreviewDynamicsNode() co
 	return ActivePreviewNode;
 }
 
-FReply UAnimGraphNode_AnimDynamics::ResetButtonClicked()
+FReply UAnimGraphNode_AnimDynamics::ResetButtonClicked(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	ResetSim();
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
+	{
+		if(UAnimGraphNode_AnimDynamics* AnimDynamicsNode = Cast<UAnimGraphNode_AnimDynamics>(Object.Get()))
+		{
+			AnimDynamicsNode->ResetSim();
+		}
+	}
+	
 	return FReply::Handled();
 }
 

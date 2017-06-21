@@ -346,6 +346,8 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 		EditorViewportClient->EngineShowFlags.SetLighting(false);
 		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(false);
 		EditorViewportClient->SetFloorAndEnvironmentVisibility(false);
+		StaticMeshEditorPtr.Pin()->GetStaticMeshComponent()->bDisplayVertexColors = true;
+		StaticMeshEditorPtr.Pin()->GetStaticMeshComponent()->MarkRenderStateDirty();
 	}
 	else
 	{
@@ -353,6 +355,8 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 		EditorViewportClient->EngineShowFlags.SetLighting(true);
 		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(true);
 		EditorViewportClient->SetFloorAndEnvironmentVisibility(true);
+		StaticMeshEditorPtr.Pin()->GetStaticMeshComponent()->bDisplayVertexColors = false;
+		StaticMeshEditorPtr.Pin()->GetStaticMeshComponent()->MarkRenderStateDirty();
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{

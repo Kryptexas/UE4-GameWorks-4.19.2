@@ -200,6 +200,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	MaterialIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
 	bCustomOverrideVertexColorPerLOD = false;
+	bDisplayVertexColors = false;
 #endif
 }
 
@@ -931,6 +932,14 @@ bool UStaticMeshComponent::DoesSocketExist(FName InSocketName) const
 {
 	return (GetSocketByName(InSocketName)  != NULL);
 }
+
+#if WITH_EDITOR
+bool UStaticMeshComponent::ShouldRenderSelected() const
+{
+	const bool bShouldRenderSelected = UMeshComponent::ShouldRenderSelected();
+	return bShouldRenderSelected || bDisplayVertexColors;
+}
+#endif // WITH_EDITOR
 
 class UStaticMeshSocket const* UStaticMeshComponent::GetSocketByName(FName InSocketName) const
 {
@@ -2237,9 +2246,11 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 	return true;
 }
 
-UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
 {
 	UMaterialInterface* Result = nullptr;
+	SectionIndex = 0;
+
 	UStaticMesh* Mesh = GetStaticMesh();
 	if (Mesh && Mesh->RenderData.IsValid())
 	{
@@ -2252,9 +2263,9 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 
 			// Look for section that corresponds to the supplied face
 			int32 TotalFaceCount = 0;
-			for (int32 SectionIndex = 0; SectionIndex < LODResource.Sections.Num(); SectionIndex++)
+			for (int32 SectionIdx = 0; SectionIdx < LODResource.Sections.Num(); SectionIdx++)
 			{
-				const FStaticMeshSection& Section = LODResource.Sections[SectionIndex];
+				const FStaticMeshSection& Section = LODResource.Sections[SectionIdx];
 				// Only count faces if collision is enabled
 				if (Section.bEnableCollision)
 				{
@@ -2264,6 +2275,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 					{
 						// Get the current material for it, from this component
 						Result = GetMaterial(Section.MaterialIndex);
+						SectionIndex = SectionIdx;
 						break;
 					}
 				}

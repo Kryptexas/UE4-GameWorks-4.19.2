@@ -1370,6 +1370,14 @@ public:
 	*/
 	ENGINE_API void GetVertices(TArray<FSoftSkinVertex>& Vertices) const;
 
+	/** 
+	 * Similar to GetVertices but ignores vertices from clothing sections
+	 * to avoid getting duplicate vertices from clothing sections if not needed
+	 *
+	 * @param OutVertices Array to fill
+	 */
+	ENGINE_API void GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) const;
+
 	/**
 	* Fill array with APEX cloth mapping data.
 	*
@@ -1464,6 +1472,27 @@ public:
 		}
 
 		return NumSections;
+	}
+
+	int32 GetNumNonClothingVertices() const
+	{
+		int32 NumVerts = 0;
+		int32 NumSections = Sections.Num();
+
+		for(int32 i = 0; i < NumSections; i++)
+		{
+			const FSkelMeshSection& Section = Sections[i];
+
+			// Stop when we hit clothing sections
+			if(Section.ClothingData.AssetGuid.IsValid() && !Section.bDisabled)
+			{
+				break;
+			}
+
+			NumVerts += Section.SoftVertices.Num();
+		}
+
+		return NumVerts;
 	}
 
 	bool DoesVertexBufferHaveExtraBoneInfluences() const
@@ -1630,16 +1659,13 @@ public:
 	/** Util for getting LOD index currently used by this SceneProxy. */
 	int32 GetCurrentLODIndex();
 
-
-	/** 
-	 * Render a coordinate system indicator
-	 */
-	void RenderAxisGizmo(FPrimitiveDrawInterface* PDI, FTransform& Transform);
-
 	/** 
 	 * Render physics asset for debug display
 	 */
 	void DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
+
+	/** Render the bones of the skeleton for debug display */
+	void DebugDrawSkeleton(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
 
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODSections.GetAllocatedSize() ); }

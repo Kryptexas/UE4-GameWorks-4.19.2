@@ -2328,8 +2328,8 @@ public:
 		, MaxEvalRateForInterpolation(4)
 		, ShiftBucket(EUpdateRateShiftBucket::ShiftBucket0)
 	{ 
-		BaseVisibleDistanceFactorThesholds.Add(0.12f);
 		BaseVisibleDistanceFactorThesholds.Add(0.24f);
+		BaseVisibleDistanceFactorThesholds.Add(0.12f);
 	}
 
 	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).

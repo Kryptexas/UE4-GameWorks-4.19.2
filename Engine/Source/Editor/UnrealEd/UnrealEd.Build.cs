@@ -63,7 +63,7 @@ public class UnrealEd : ModuleRules
 				"VREditor",
 				"Persona",
 				"ClothingSystemEditorInterface",
-			}
+            }
 		);
 
 		PublicDependencyModuleNames.AddRange(
@@ -224,7 +224,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintNativeCodeGen",
 				"AnimationModifiers",
 				"ClothPainter",
-			}
+            }
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)

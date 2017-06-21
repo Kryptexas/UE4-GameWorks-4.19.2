@@ -206,9 +206,9 @@ const FBakedAnimationStateMachine* FAnimNode_StateMachine::GetMachineDescription
 	}
 }
 
-void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_StateMachine::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
 
@@ -239,7 +239,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 				{
 					if (FAnimNode_TransitionResult* TransitionNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(Context.AnimInstanceProxy->GetAnimInstanceObject(), AnimBlueprintClass, State.EntryRuleNodeIndex))
 					{
-						TransitionNode->Initialize(Context);
+						TransitionNode->Initialize_AnyThread(Context);
 					}
 				}
 
@@ -250,7 +250,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 					{
 						if (FAnimNode_TransitionResult* TransitionNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(Context.AnimInstanceProxy->GetAnimInstanceObject(), AnimBlueprintClass, TransitionRule.CanTakeDelegateIndex))
 						{
-							TransitionNode->Initialize(Context);
+							TransitionNode->Initialize_AnyThread(Context);
 						}
 					}
 				}
@@ -272,7 +272,7 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 	}
 }
 
-void FAnimNode_StateMachine::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_StateMachine::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	if (const FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{
@@ -334,7 +334,7 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 // Temporarily turned off while we track down and fix https://jira.ol.epicgames.net/browse/OR-17066
 TAutoConsoleVariable<int32> CVarAnimStateMachineRelevancyReset(TEXT("a.AnimNode.StateMachine.EnableRelevancyReset"), 1, TEXT("Reset State Machine when it becomes relevant"));
 
-void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_StateMachine::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	Context.AnimInstanceProxy->RecordMachineWeight(StateMachineIndexInClass, Context.GetFinalBlendWeight());
 
@@ -342,7 +342,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()) && (CVarAnimStateMachineRelevancyReset.GetValueOnAnyThread() == 1))
 	{
 		FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
-		Initialize(InitializationContext);
+		Initialize_AnyThread(InitializationContext);
 	}
 	UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
 
@@ -684,7 +684,7 @@ void FAnimNode_StateMachine::UpdateTransitionStates(const FAnimationUpdateContex
 	}
 }
 
-void FAnimNode_StateMachine::Evaluate(FPoseContext& Output)
+void FAnimNode_StateMachine::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if (const FBakedAnimationStateMachine* Machine = GetMachineDescription())
 	{

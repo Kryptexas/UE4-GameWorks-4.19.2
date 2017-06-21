@@ -14,9 +14,9 @@ struct FMultiBlendData : public TThreadSingleton<FMultiBlendData>
 /////////////////////////////////////////////////////
 // FAnimNode_MultiWayBlend
 
-void FAnimNode_MultiWayBlend::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_MultiWayBlend::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	// this should be consistent all the time by editor node
 	if (!ensure(Poses.Num() == DesiredAlphas.Num()))
@@ -32,7 +32,7 @@ void FAnimNode_MultiWayBlend::Initialize(const FAnimationInitializeContext& Cont
 	}
 }
 
-void FAnimNode_MultiWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_MultiWayBlend::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	for (FPoseLink& Pose : Poses)
 	{
@@ -83,7 +83,7 @@ void FAnimNode_MultiWayBlend::UpdateCachedAlphas()
 	}
 }
 
-void FAnimNode_MultiWayBlend::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_MultiWayBlend::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimationNode_MultiWayBlend_Update);
 	EvaluateGraphExposedInputs.Execute(Context);
@@ -100,7 +100,7 @@ void FAnimNode_MultiWayBlend::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_MultiWayBlend::Evaluate(FPoseContext& Output)
+void FAnimNode_MultiWayBlend::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FMultiBlendData& BlendData = FMultiBlendData::Get();
 	TArray<FCompactPose, TInlineAllocator<8>>& SourcePoses = BlendData.SourcePoses;

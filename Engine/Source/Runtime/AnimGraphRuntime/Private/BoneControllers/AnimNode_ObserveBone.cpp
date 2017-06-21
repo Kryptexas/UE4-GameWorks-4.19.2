@@ -50,7 +50,7 @@ void FAnimNode_ObserveBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePos
 
 bool FAnimNode_ObserveBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	return (BoneToObserve.IsValid(RequiredBones));
+	return (BoneToObserve.IsValidToEvaluate(RequiredBones));
 }
 
 void FAnimNode_ObserveBone::InitializeBoneReferences(const FBoneContainer& RequiredBones)

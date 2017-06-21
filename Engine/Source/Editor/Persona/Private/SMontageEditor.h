@@ -163,8 +163,10 @@ public:
 
 	void					RenameSlotNode(int32 SlotIndex, FString NewSlotName);
 
-	void					AddNewMontageSlot(FString NewSlotName);
+	// UI Slot Action handlers
+	void					AddNewMontageSlot(FName NewSlotName);
 	void					RemoveMontageSlot(int32 AnimSlotIndex);
+	bool					CanRemoveMontageSlot(int32 AnimSlotIndex);
 	void					DuplicateMontageSlot(int32 AnimSlotIndex);
 	FText					GetMontageSlotName(int32 SlotIndex) const;
 

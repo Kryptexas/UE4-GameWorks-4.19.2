@@ -520,13 +520,9 @@ void FAnimNode_RigidBody::InitializeBoneReferences(const FBoneContainer& Require
 	}
 }
 
-void FAnimNode_RigidBody::RootInitialize(const FAnimInstanceProxy* InProxy)
+void FAnimNode_RigidBody::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
-	if(const UAnimInstance* AnimInstance = Cast<UAnimInstance>(InProxy->GetAnimInstanceObject()))
-	{
-		InitPhysics(AnimInstance);
-	}
-	
+	InitPhysics(InAnimInstance);
 }
 
 #undef LOCTEXT_NAMESPACE

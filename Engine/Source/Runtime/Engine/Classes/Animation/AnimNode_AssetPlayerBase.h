@@ -38,13 +38,13 @@ struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 	virtual UAnimationAsset* GetAnimAsset();
 
 	/** Initialize function for setup purposes */
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 
 	/** Update the node, marked final so we can always handle blendweight caching.
 	 *  Derived classes should implement UpdateAssetPlayer
 	 */
 
-	virtual void Update(const FAnimationUpdateContext& Context) final override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) final override;
 
 	/** Update method for the asset player, to be implemented by derived classes */
 	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) {};
@@ -63,6 +63,7 @@ struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 	// Functions to report data to getters, this is required for all asset players (but can't be pure abstract because of struct instantiation generated code).
 	virtual float GetCurrentAssetLength() { return 0.0f; }
 	virtual float GetCurrentAssetTime() { return 0.0f; }
+	virtual float GetCurrentAssetTimePlayRateAdjusted() { return GetCurrentAssetTime(); }
 
 protected:
 

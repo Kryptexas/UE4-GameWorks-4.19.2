@@ -7,93 +7,6 @@
 #include "EngineTypes.h"
 #include "MaterialMerging.generated.h"
 
-// Use FMaterialProxySettings instead
-USTRUCT()
-struct FMaterialSimplificationSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-		// Size of generated BaseColor map
-		UPROPERTY(Category = Material, EditAnywhere)
-		FIntPoint BaseColorMapSize;
-
-	// Whether to generate normal map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (InlineEditConditionToggle))
-		bool bNormalMap;
-
-	// Size of generated specular map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (editcondition = "bNormalMap"))
-		FIntPoint NormalMapSize;
-
-	// Metallic constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-		float MetallicConstant;
-
-	// Whether to generate metallic map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (InlineEditConditionToggle))
-		bool bMetallicMap;
-
-	// Size of generated metallic map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (editcondition = "bMetallicMap"))
-		FIntPoint MetallicMapSize;
-
-	// Roughness constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-		float RoughnessConstant;
-
-	// Whether to generate roughness map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (InlineEditConditionToggle))
-		bool bRoughnessMap;
-
-	// Size of generated roughness map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (editcondition = "bRoughnessMap"))
-		FIntPoint RoughnessMapSize;
-
-	// Specular constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
-		float SpecularConstant;
-
-	// Whether to generate specular map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (InlineEditConditionToggle))
-		bool bSpecularMap;
-
-	// Size of generated specular map
-	UPROPERTY(Category = Material, EditAnywhere, meta = (editcondition = "bSpecularMap"))
-		FIntPoint SpecularMapSize;
-
-	FMaterialSimplificationSettings()
-		: BaseColorMapSize(1024, 1024)
-		, bNormalMap(true)
-		, NormalMapSize(1024, 1024)
-		, MetallicConstant(0.0f)
-		, bMetallicMap(false)
-		, MetallicMapSize(1024, 1024)
-		, RoughnessConstant(0.5f)
-		, bRoughnessMap(false)
-		, RoughnessMapSize(1024, 1024)
-		, SpecularConstant(0.5f)
-		, bSpecularMap(false)
-		, SpecularMapSize(1024, 1024)
-	{
-	}
-
-	bool operator == (const FMaterialSimplificationSettings& Other) const
-	{
-		return BaseColorMapSize == Other.BaseColorMapSize
-			&& bNormalMap == Other.bNormalMap
-			&& NormalMapSize == Other.NormalMapSize
-			&& MetallicConstant == Other.MetallicConstant
-			&& bMetallicMap == Other.bMetallicMap
-			&& MetallicMapSize == Other.MetallicMapSize
-			&& RoughnessConstant == Other.RoughnessConstant
-			&& bRoughnessMap == Other.bRoughnessMap
-			&& RoughnessMapSize == Other.RoughnessMapSize
-			&& SpecularConstant == Other.SpecularConstant
-			&& bSpecularMap == Other.bSpecularMap
-			&& SpecularMapSize == Other.SpecularMapSize;
-	}
-};
-
 UENUM()
 enum ETextureSizingType
 {
@@ -111,102 +24,111 @@ enum EMaterialMergeType
 	MaterialMergeType_Simplygon
 };
 
-USTRUCT()
+USTRUCT(Blueprintable)
 struct FMaterialProxySettings
 {
 	GENERATED_USTRUCT_BODY()
 
 	// Size of generated BaseColor map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	FIntPoint TextureSize;
 
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	TEnumAsByte<ETextureSizingType> TextureSizingType;
 
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	float GutterSpace;
 
 	// Whether to generate normal map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bNormalMap;
 
 	// Whether to generate metallic map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bMetallicMap;
 
 	// Metallic constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bMetallicMap"))
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bMetallicMap"))
 	float MetallicConstant;
 
 	// Whether to generate roughness map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bRoughnessMap;
 
 	// Roughness constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bRoughnessMap"))
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bRoughnessMap"))
 	float RoughnessConstant;
 
 	// Whether to generate specular map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bSpecularMap;
 
 	// Specular constant
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
 	float SpecularConstant;
 
 	// Whether to generate emissive map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bEmissiveMap;
 
 	// Whether to generate opacity map
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bOpacityMap;
 
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMap"))
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMap"))
 	float OpacityConstant;
 
-	UPROPERTY(Category = Material, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
 	bool bOpacityMaskMap;
 
-	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMaskMap"))
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bOpacityMaskMap"))
 	float OpacityMaskConstant;
 
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere)
+	bool bAmbientOcclusionMap;
+
+	UPROPERTY(Category = Material, BlueprintReadWrite, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bAmbientOcclusionMap"))
+	float AmbientOcclusionConstant;
+
 	// Override diffuse map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint DiffuseTextureSize;
 
 	// Override normal map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint NormalTextureSize;
 
 	// Override metallic map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint MetallicTextureSize;
 
 	// Override roughness map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint RoughnessTextureSize;
 
 	// Override specular map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint SpecularTextureSize;
 
 	// Override emissive map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint EmissiveTextureSize;
 
 	// Override opacity map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint OpacityTextureSize;
 	
 	// Override opacity map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	FIntPoint OpacityMaskTextureSize;
+
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
+	FIntPoint AmbientOcclusionTextureSize;
 
 	UPROPERTY()
 	TEnumAsByte<EMaterialMergeType> MaterialMergeType;
 
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	UPROPERTY(Category = Material, BlueprintReadWrite, AdvancedDisplay, EditAnywhere)
 	TEnumAsByte<EBlendMode> BlendMode;
 
 	FMaterialProxySettings()
@@ -222,14 +144,20 @@ struct FMaterialProxySettings
 		, SpecularConstant(0.5f)
 		, bEmissiveMap(false)
 		, bOpacityMap(false)
+		, OpacityConstant(1.0f)
 		, bOpacityMaskMap(false)
+		, OpacityMaskConstant(1.0f)
+		, bAmbientOcclusionMap(false)
+		, AmbientOcclusionConstant(1.0f)
 		, DiffuseTextureSize(1024, 1024)
 		, NormalTextureSize(1024, 1024)
 		, MetallicTextureSize(1024, 1024)
 		, RoughnessTextureSize(1024, 1024)
+		, SpecularTextureSize(1024, 1024)
 		, EmissiveTextureSize(1024, 1024)
 		, OpacityTextureSize(1024, 1024)
 		, OpacityMaskTextureSize(1024, 1024)
+		, AmbientOcclusionTextureSize(1024, 1024)
 		, MaterialMergeType( EMaterialMergeType::MaterialMergeType_Default )
 		, BlendMode(BLEND_Opaque)
 	{
@@ -250,12 +178,15 @@ struct FMaterialProxySettings
 			&& bEmissiveMap == Other.bEmissiveMap
 			&& bOpacityMap == Other.bOpacityMap
 			&& bOpacityMaskMap == Other.bOpacityMaskMap
+			&& bAmbientOcclusionMap == Other.bAmbientOcclusionMap
+			&& AmbientOcclusionConstant == Other.AmbientOcclusionConstant
 			&& DiffuseTextureSize == Other.DiffuseTextureSize
 			&& NormalTextureSize == Other.NormalTextureSize
 			&& MetallicTextureSize == Other.MetallicTextureSize
 			&& RoughnessTextureSize == Other.RoughnessTextureSize
 			&& EmissiveTextureSize == Other.EmissiveTextureSize
 			&& OpacityTextureSize == Other.OpacityTextureSize
-			&& OpacityMaskTextureSize == Other.OpacityMaskTextureSize;
+			&& OpacityMaskTextureSize == Other.OpacityMaskTextureSize
+			&& AmbientOcclusionTextureSize == Other.AmbientOcclusionTextureSize;
 	}
 };

@@ -203,7 +203,10 @@ public:
 
 private:
 	/** When a new anim notify blueprint is created, this will handle post creation work such as adding non-event default nodes */
-	void HandleNewBlueprintCreated(UBlueprint* InBlueprint);
+	void HandleNewAnimNotifyBlueprintCreated(UBlueprint* InBlueprint);
+
+	/** When a new anim notify state blueprint is created, this will handle post creation work such as adding non-event default nodes */
+	void HandleNewAnimNotifyStateBlueprintCreated(UBlueprint* InBlueprint);
 
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;

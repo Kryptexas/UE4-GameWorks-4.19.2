@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -44,6 +44,8 @@ struct DxBufferFlags
 	D3D11_BIND_FLAG mBindFlag;
 	D3D11_RESOURCE_MISC_FLAG mMiscFlag;
 	D3D11_CPU_ACCESS_FLAG mCpuAccessFlag;
+
+	bool isRawBuffer() { return (mMiscFlag & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS) != 0; }
 };
 
 inline DxBufferFlags DxDefaultBufferPolicy()
@@ -52,6 +54,15 @@ inline DxBufferFlags DxDefaultBufferPolicy()
 		                     D3D11_BIND_FLAG(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS),
 		                     D3D11_RESOURCE_MISC_BUFFER_STRUCTURED,
 		                     D3D11_CPU_ACCESS_FLAG(0) };
+	return result;
+};
+
+inline DxBufferFlags DxDefaultRawBufferPolicy()
+{
+	DxBufferFlags result = {D3D11_USAGE_DEFAULT,
+		D3D11_BIND_FLAG(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS),
+		D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS,
+		D3D11_CPU_ACCESS_FLAG(0)};
 	return result;
 };
 
@@ -78,45 +89,47 @@ class DxBuffer : public DxBufferFlags
 
   public:
 	DxBuffer(DxContextManagerCallback* manager, const DxBufferFlags& flags = DxDefaultBufferPolicy())
-	: DxBufferFlags(flags), mCapacity(0), mBuffer(0), mManager(manager), mResourceView(nullptr), mAccessView(nullptr)
+	: DxBufferFlags(flags), mCapacity(0), mBuffer(0), mManager(manager), mResourceView(nullptr), mAccessView(nullptr), mAccessRawView(nullptr)
 	{
 	}
 
 	DxBuffer(const T* first, const T* last, DxContextManagerCallback* manager,
 	         const DxBufferFlags& flags = DxDefaultBufferPolicy())
-	: DxBufferFlags(flags), mCapacity(0), mBuffer(0), mManager(manager), mResourceView(nullptr), mAccessView(nullptr)
+	: DxBufferFlags(flags), mCapacity(0), mBuffer(0), mManager(manager), mResourceView(nullptr), mAccessView(nullptr), mAccessRawView(nullptr)
 	{
 		D3D11_SUBRESOURCE_DATA data = { first };
 		create(uint32_t(last - first), &data);
 	}
 
 	DxBuffer(const DxBuffer& other)
-	: DxBufferFlags(other), mCapacity(0), mBuffer(0), mManager(other.mManager), mResourceView(nullptr), mAccessView(nullptr)
+	: DxBufferFlags(other), mCapacity(0), mBuffer(0), mManager(other.mManager), mResourceView(nullptr), mAccessView(nullptr), mAccessRawView(nullptr)
 	{
 		operator=(other);
 	}
 
 	~DxBuffer()
 	{
-		if(mAccessView)
+		if (mAccessView)
 			mAccessView->Release();
-		if(mResourceView)
+		if(mAccessRawView)
+			mAccessRawView->Release();
+		if (mResourceView)
 			mResourceView->Release();
-		if(mBuffer)
+		if (mBuffer)
 			mBuffer->Release();
 	}
 
-	DxBuffer& operator=(const DxBuffer& other)
+	DxBuffer& operator = (const DxBuffer& other)
 	{
-		if(mCapacity < other.mCapacity)
+		if (mCapacity < other.mCapacity)
 		{
-			if(mBuffer)
+			if (mBuffer)
 				mBuffer->Release();
 
 			create(other.mCapacity);
 		}
 
-		if(other.mCapacity)
+		if (other.mCapacity)
 		{
 			CD3D11_BOX box(0, 0, 0, other.mCapacity * SizeOfT, 1, 1);
 			context()->CopySubresourceRegion(mBuffer, 0, 0, 0, 0, other.mBuffer, 0, &box);
@@ -132,7 +145,7 @@ class DxBuffer : public DxBufferFlags
 
 	void reserve(uint32_t n)
 	{
-		if(n <= mCapacity)
+		if (n <= mCapacity)
 			return;
 
 		ID3D11Buffer* oldBuffer = mBuffer;
@@ -140,7 +153,7 @@ class DxBuffer : public DxBufferFlags
 
 		create(n);
 
-		if(oldBuffer)
+		if (oldBuffer)
 		{
 			context()->CopySubresourceRegion(mBuffer, 0, 0, 0, 0, oldBuffer, 0, &box);
 			oldBuffer->Release();
@@ -161,32 +174,54 @@ class DxBuffer : public DxBufferFlags
 
 	ID3D11ShaderResourceView* resourceView()
 	{
-		if(!mResourceView && mBuffer)
+		if (!mResourceView && mBuffer)
 			mManager->getDevice()->CreateShaderResourceView(mBuffer, NULL, &mResourceView);
 		return mResourceView;
 	}
 
 	ID3D11UnorderedAccessView* accessView()
 	{
-		if(!mAccessView && mBuffer)
+		if (!mAccessView && mBuffer)
 			mManager->getDevice()->CreateUnorderedAccessView(mBuffer, NULL, &mAccessView);
 		return mAccessView;
+	}
+
+	ID3D11UnorderedAccessView* accessViewRaw()
+	{
+		if(!mAccessRawView && mBuffer)
+		{
+			D3D11_BUFFER_UAV buffuav;
+			buffuav.FirstElement = 0;
+			buffuav.NumElements = (mCapacity * SizeOfT)>>2;
+			buffuav.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+
+			D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
+			desc.Format = DXGI_FORMAT_R32_TYPELESS;
+			desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+			desc.Buffer = buffuav;
+			mManager->getDevice()->CreateUnorderedAccessView(mBuffer, &desc, &mAccessRawView);
+		}
+		return mAccessRawView;
 	}
 
   private:
 	void create(uint32_t capacity, D3D11_SUBRESOURCE_DATA* data = 0)
 	{
-		CD3D11_BUFFER_DESC desc(capacity * SizeOfT, mBindFlag, mUsage, mCpuAccessFlag, mMiscFlag, SizeOfT);
+		CD3D11_BUFFER_DESC desc(capacity * SizeOfT, mBindFlag, mUsage, mCpuAccessFlag, mMiscFlag, isRawBuffer()?0:SizeOfT);
 		checkSuccess(mManager->getDevice()->CreateBuffer(&desc, data, &mBuffer));
 		mCapacity = capacity;
 
-		if(mResourceView)
+		if (mResourceView)
 			mResourceView->Release();
 		mResourceView = nullptr;
 
-		if(mAccessView)
+		if (mAccessView)
 			mAccessView->Release();
 		mAccessView = nullptr;
+
+		if(mAccessRawView)
+			mAccessRawView->Release();
+		mAccessRawView = nullptr;
 	}
 
   public:
@@ -195,6 +230,7 @@ class DxBuffer : public DxBufferFlags
 	DxContextManagerCallback* mManager;
 	ID3D11ShaderResourceView* mResourceView;
 	ID3D11UnorderedAccessView* mAccessView;
+	ID3D11UnorderedAccessView* mAccessRawView;
 };
 
 // STL-style vector that holds POD types in DX device memory. The interface
@@ -221,7 +257,7 @@ class DxDeviceVector
 	}
 
 	template <typename Alloc>
-	DxDeviceVector& operator=(const physx::shdfnd::Array<T, Alloc>& other)
+	DxDeviceVector& operator = (const physx::shdfnd::Array<T, Alloc>& other)
 	{
 		assign(other.begin(), other.end());
 		return *this;
@@ -247,7 +283,7 @@ class DxDeviceVector
 
 	void resize(uint32_t n)
 	{
-		if(mBuffer.mCapacity < n)
+		if (mBuffer.mCapacity < n)
 			reserve(std::max(n, mBuffer.mCapacity * 2));
 		mSize = n;
 	}
@@ -256,16 +292,16 @@ class DxDeviceVector
 	{
 		mSize = uint32_t(last - first);
 
-		if(!mSize)
+		if (!mSize)
 			return;
 
-		if(mSize > mBuffer.mCapacity)
+		if (mSize > mBuffer.mCapacity)
 		{
 			mBuffer = DxBuffer<T>(first, last, mBuffer.mManager, mBuffer);
 		}
 		else
 		{
-			if(mBuffer.mUsage == D3D11_USAGE_DEFAULT)
+			if (mBuffer.mUsage == D3D11_USAGE_DEFAULT)
 			{
 				CD3D11_BOX box(0, 0, 0, mSize * SizeOfT, 1, 1);
 				mBuffer.context()->UpdateSubresource(mBuffer.mBuffer, 0, &box, first, 0, 0);
@@ -308,7 +344,7 @@ class DxDeviceVector
 template <typename Vector>
 class DxVectorMap : DxContextLock
 {
-	DxVectorMap& operator=(const DxVectorMap&);
+	DxVectorMap& operator = (const DxVectorMap&);
 
   public:
 	typedef typename Vector::ValueType ValueType;
@@ -320,7 +356,7 @@ class DxVectorMap : DxContextLock
 
 	~DxVectorMap()
 	{
-		if(mData)
+		if (mData)
 			mVector.unmap();
 	}
 
@@ -383,6 +419,7 @@ void swap(nv::cloth::DxBuffer<T>& left, nv::cloth::DxBuffer<T>& right)
 	swap(left.mManager, right.mManager);
 	swap(left.mResourceView, right.mResourceView);
 	swap(left.mAccessView, right.mAccessView);
+	swap(left.mAccessRawView, right.mAccessRawView);
 }
 }
 }

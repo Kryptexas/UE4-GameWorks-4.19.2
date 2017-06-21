@@ -7,7 +7,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Components/SkeletalMeshComponent.h"
 
-#define LOCTEXT_NAMESPACE "A3Nodes"
+#define LOCTEXT_NAMESPACE "PoseDriver"
 
 struct FPoseDriverCustomVersion
 {
@@ -236,53 +236,66 @@ void UAnimGraphNode_PoseDriver::CopyTargetsFromPoseAsset()
 			// Create entry for each bone
 			for (const FBoneReference& SourceBoneRef : Node.SourceBones)
 			{
-				// Get track index in PoseAsset for bone of interest
-				const int32 TrackIndex = PoseAsset->GetTrackIndexByName(SourceBoneRef.BoneName);
-				if (TrackIndex != INDEX_NONE)
-				{		
-					FTransform SourceBoneTransform = FTransform::Identity;
+				FTransform SourceBoneTransform = FTransform::Identity;
 
-					// Don't want to create target for base pose in additive case
-					bool bIsBasePose = (PoseAsset->IsValidAdditive() && PoseIdx == PoseAsset->GetBasePoseIndex());
-					if (!bIsBasePose)
+				// Don't want to create target for base pose in additive case
+				bool bIsBasePose = (PoseAsset->IsValidAdditive() && PoseIdx == PoseAsset->GetBasePoseIndex());
+				if (!bIsBasePose)
+				{
+					// Get transforms from pose (this also converts from additive if necessary)
+					TArray<FTransform> PoseTransforms;
+					if (PoseAsset->GetFullPose(PoseIdx, PoseTransforms))
 					{
-						// Get transforms from pose (this also converts from additive if necessary)
-						TArray<FTransform> PoseTransforms;
-						if (PoseAsset->GetFullPose(PoseIdx, PoseTransforms))
+						// If eval'ing in different space (and that space is valid)
+						if (Node.EvalSpaceBone.BoneName != NAME_None)
 						{
-							// If eval'ing in different space (and that space is valid)
-							if (Node.EvalSpaceBone.BoneName != NAME_None)
-							{
-								FTransform SourceCompSpace = GetComponentSpaceTransform(SourceBoneRef.BoneName, PoseTransforms, PoseAsset);
-								FTransform EvalCompSpace = GetComponentSpaceTransform(Node.EvalSpaceBone.BoneName, PoseTransforms, PoseAsset);
+							FTransform SourceCompSpace = GetComponentSpaceTransform(SourceBoneRef.BoneName, PoseTransforms, PoseAsset);
+							FTransform EvalCompSpace = GetComponentSpaceTransform(Node.EvalSpaceBone.BoneName, PoseTransforms, PoseAsset);
 
-								SourceBoneTransform = SourceCompSpace.GetRelativeTransform(EvalCompSpace);
-							}
-							else
+							SourceBoneTransform = SourceCompSpace.GetRelativeTransform(EvalCompSpace);
+						}
+						else
+						{
+							// Check we have a track for the source bone
+							int32 SourceTrackIndex = PoseAsset->GetTrackIndexByName(SourceBoneRef.BoneName);
+							if (SourceTrackIndex != INDEX_NONE)
 							{
-								// Check we have a track for the source bone
-								int32 SourceTrackIndex = PoseAsset->GetTrackIndexByName(SourceBoneRef.BoneName);
-								if (SourceTrackIndex != INDEX_NONE)
-								{
-									SourceBoneTransform = PoseTransforms[SourceTrackIndex];
-								}
+								SourceBoneTransform = PoseTransforms[SourceTrackIndex];
 							}
 						}
 					}
-
-					// If we got a valid transform, add a pose target now
-					FPoseDriverTransform PoseTransform;
-					PoseTransform.TargetTranslation = SourceBoneTransform.GetTranslation();
-					PoseTransform.TargetRotation = SourceBoneTransform.Rotator();
-
-					PoseTarget.BoneTransforms.Add(PoseTransform);
 				}
+
+				// If we got a valid transform, add a pose target now
+				FPoseDriverTransform PoseTransform;
+				PoseTransform.TargetTranslation = SourceBoneTransform.GetTranslation();
+				PoseTransform.TargetRotation = SourceBoneTransform.Rotator();
+
+				PoseTarget.BoneTransforms.Add(PoseTransform);
 			}
 
 			Node.PoseTargets.Add(PoseTarget);
 		}
 
 		Node.bCachedDrivenIDsAreDirty = true;
+	}
+}
+
+void UAnimGraphNode_PoseDriver::AddNewTarget()
+{
+	FPoseDriverTarget& NewTarget = Node.PoseTargets[Node.PoseTargets.Add(FPoseDriverTarget())];
+
+	// Create entry for each bone
+	NewTarget.BoneTransforms.AddDefaulted(Node.SourceBones.Num());
+}
+
+
+void UAnimGraphNode_PoseDriver::ReserveTargetTransforms()
+{
+	// reallocate transforms array in each target
+	for(FPoseDriverTarget& PoseTarget : Node.PoseTargets)
+	{
+		PoseTarget.BoneTransforms.SetNum(Node.SourceBones.Num());
 	}
 }
 

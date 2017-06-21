@@ -14,13 +14,13 @@ FAnimNode_ScaleChainLength::FAnimNode_ScaleChainLength()
 	ChainInitialLength = EScaleChainInitialLength::FixedDefaultLengthValue;
 }
 
-void FAnimNode_ScaleChainLength::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_ScaleChainLength::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 	InputPose.Initialize(Context);
 }
 
-void FAnimNode_ScaleChainLength::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_ScaleChainLength::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 	InputPose.Update(Context);
@@ -28,7 +28,7 @@ void FAnimNode_ScaleChainLength::Update(const FAnimationUpdateContext& Context)
 	ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 }
 
-void FAnimNode_ScaleChainLength::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_ScaleChainLength::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	InputPose.CacheBones(Context);
 
@@ -36,7 +36,7 @@ void FAnimNode_ScaleChainLength::CacheBones(const FAnimationCacheBonesContext& C
 	bBoneIndicesCached = false;
 }
 
-void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
+void FAnimNode_ScaleChainLength::Evaluate_AnyThread(FPoseContext& Output)
 {
 	// Evaluate incoming pose into our output buffer.
 	InputPose.Evaluate(Output);
@@ -58,7 +58,7 @@ void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
 
 		// Make sure we have valid start/end bones, and that end is a child of start.
 		// Cache this, so we only evaluate on init and LOD changes.
-		const bool bBoneSetupIsValid = ChainStartBone.IsValid(BoneContainer) && ChainEndBone.IsValid(BoneContainer) &&
+		const bool bBoneSetupIsValid = ChainStartBone.IsValidToEvaluate(BoneContainer) && ChainEndBone.IsValidToEvaluate(BoneContainer) &&
 			BoneContainer.BoneIsChildOf(ChainEndBone.GetCompactPoseIndex(BoneContainer), ChainStartBone.GetCompactPoseIndex(BoneContainer));
 
 		if (bBoneSetupIsValid)

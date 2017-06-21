@@ -32,7 +32,7 @@ struct IMMEDIATEPHYSICS_API FAnimNode_RigidBody : public FAnimNode_SkeletalContr
 
 	// FAnimNode_SkeletalControlBase interface
 	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
-	virtual void RootInitialize(const FAnimInstanceProxy* InProxy) override;
+	virtual void OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance) override;
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual bool HasPreUpdate() const override { return true; }

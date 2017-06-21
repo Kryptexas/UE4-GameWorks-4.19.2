@@ -43,7 +43,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CurveSource : public FAnimNode_Base
 	// FAnimNode_Base interface
 	virtual bool HasPreUpdate() const override { return true; }
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
-	virtual void Evaluate(FPoseContext& Output) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
 	// End of FAnimNode_Base interface
 };

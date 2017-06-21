@@ -7,6 +7,7 @@
 #include "BoneContainer.h"
 #include "BonePose.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
+#include "CommonAnimTypes.h"
 #include "AnimNode_TwoBoneIK.generated.h"
 
 class USkeletalMeshComponent;
@@ -72,6 +73,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category=JointTarget)
 	FName JointTargetSpaceBoneName;
 
+	/** Whether or not to apply twist on the chain of joints. This clears the twist value along the TwistAxis */
+	UPROPERTY(EditAnywhere, Category = IK)
+	bool bNoTwist;
+
+	/** Specify which axis it's aligned. Used when removing twist */
+	UPROPERTY(EditAnywhere, Category = IK, meta = (editcondition = "bNoTwist"))
+	FAxis TwistAxis;
+
 	FAnimNode_TwoBoneIK();
 
 	// FAnimNode_Base interface
@@ -81,10 +90,18 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 	// FAnimNode_SkeletalControlBase interface
 	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
+#if WITH_EDITOR
+	void ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* MeshComp) const;
+#endif // WITH_EDITOR
 	// End of FAnimNode_SkeletalControlBase interface
 
 private:
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
+
+#if WITH_EDITOR
+	FVector CachedJoints[3];
+	FVector CachedJointTargetPos;
+#endif // WITH_EDITOR
 };

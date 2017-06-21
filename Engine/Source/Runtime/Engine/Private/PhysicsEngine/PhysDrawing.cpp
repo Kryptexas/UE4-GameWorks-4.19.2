@@ -139,37 +139,34 @@ static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, co
 
 void FKSphylElem::DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FVector& Scale3D, const FColor Color) const
 {
-	const FVector Scale3DAbs = Scale3D.GetAbs();
-	const float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
-	const float ScaleLength = Scale3DAbs.Z;
-
-	FVector Origin = ElemTM.GetLocation();
-	FVector XAxis = ElemTM.GetScaledAxis(EAxis::X);
-	FVector YAxis = ElemTM.GetScaledAxis(EAxis::Y);
-	FVector ZAxis = ElemTM.GetScaledAxis(EAxis::Z);
-
+	const FVector Origin = ElemTM.GetLocation();
+	const FVector XAxis = ElemTM.GetScaledAxis(EAxis::X);
+	const FVector YAxis = ElemTM.GetScaledAxis(EAxis::Y);
+	const FVector ZAxis = ElemTM.GetScaledAxis(EAxis::Z);
+	const float ScaledHalfLength = GetScaledCylinderLength(Scale3D) * .5f;
+	const float ScaledRadius = GetScaledRadius(Scale3D);
+	
 	// Draw top and bottom circles
-	FVector TopEnd = Origin + ScaleLength*0.5f*Length*ZAxis;
-	FVector BottomEnd = Origin - ScaleLength*0.5f*Length*ZAxis;
+	const FVector TopEnd = Origin + (ScaledHalfLength * ZAxis);
+	const FVector BottomEnd = Origin - (ScaledHalfLength * ZAxis);
 
-
-	DrawCircle(PDI, TopEnd, XAxis, YAxis, Color, ScaleRadius*Radius, DrawCollisionSides, SDPG_World);
-	DrawCircle(PDI, BottomEnd, XAxis, YAxis, Color, ScaleRadius*Radius, DrawCollisionSides, SDPG_World);
+	DrawCircle(PDI, TopEnd, XAxis, YAxis, Color, ScaledRadius, DrawCollisionSides, SDPG_World);
+	DrawCircle(PDI, BottomEnd, XAxis, YAxis, Color, ScaledRadius, DrawCollisionSides, SDPG_World);
 
 	// Draw domed caps
-	DrawHalfCircle(PDI, TopEnd, YAxis, ZAxis, Color, ScaleRadius* Radius);
-	DrawHalfCircle(PDI, TopEnd, XAxis, ZAxis, Color, ScaleRadius*Radius);
+	DrawHalfCircle(PDI, TopEnd, YAxis, ZAxis, Color, ScaledRadius);
+	DrawHalfCircle(PDI, TopEnd, XAxis, ZAxis, Color, ScaledRadius);
 
-	FVector NegZAxis = -ZAxis;
+	const FVector NegZAxis = -ZAxis;
 
-	DrawHalfCircle(PDI, BottomEnd, YAxis, NegZAxis, Color, ScaleRadius*Radius);
-	DrawHalfCircle(PDI, BottomEnd, XAxis, NegZAxis, Color, ScaleRadius*Radius);
+	DrawHalfCircle(PDI, BottomEnd, YAxis, NegZAxis, Color, ScaledRadius);
+	DrawHalfCircle(PDI, BottomEnd, XAxis, NegZAxis, Color,ScaledRadius);
 
 	// Draw connecty lines
-	PDI->DrawLine(TopEnd + ScaleRadius*Radius*XAxis, BottomEnd + ScaleRadius*Radius*XAxis, Color, SDPG_World);
-	PDI->DrawLine(TopEnd - ScaleRadius*Radius*XAxis, BottomEnd - ScaleRadius*Radius*XAxis, Color, SDPG_World);
-	PDI->DrawLine(TopEnd + ScaleRadius*Radius*YAxis, BottomEnd + ScaleRadius*Radius*YAxis, Color, SDPG_World);
-	PDI->DrawLine(TopEnd - ScaleRadius*Radius*YAxis, BottomEnd - ScaleRadius*Radius*YAxis, Color, SDPG_World);
+	PDI->DrawLine(TopEnd + ScaledRadius*XAxis, BottomEnd + ScaledRadius*XAxis, Color, SDPG_World);
+	PDI->DrawLine(TopEnd - ScaledRadius*XAxis, BottomEnd - ScaledRadius*XAxis, Color, SDPG_World);
+	PDI->DrawLine(TopEnd + ScaledRadius*YAxis, BottomEnd + ScaledRadius*YAxis, Color, SDPG_World);
+	PDI->DrawLine(TopEnd - ScaledRadius*YAxis, BottomEnd - ScaledRadius*YAxis, Color, SDPG_World);
 }
 
 void FKSphylElem::GetElemSolid(const FTransform& ElemTM, const FVector& Scale3D, const FMaterialRenderProxy* MaterialRenderProxy, int32 ViewIndex, FMeshElementCollector& Collector) const

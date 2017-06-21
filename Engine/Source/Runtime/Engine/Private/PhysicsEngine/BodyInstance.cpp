@@ -968,7 +968,7 @@ void ExecuteOnPxShapeWrite(FBodyInstance* BodyInstance, PxShape* PShape, Lambda 
 }
 
 
-void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride)
+void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride)
 {
 	ExecuteOnPhysicsReadWrite([&]
 	{
@@ -985,6 +985,9 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 			PxShape* PShape = AllShapes[ShapeIdx];
 			const FBodyInstance* BI = GetOriginalBodyInstance(PShape);
 			const bool bIsWelded = BI != this;
+
+			const bool bUseComplexAsSimple = (BI->BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
+			const bool bUseSimpleAsComplex = (BI->BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
 
 			const TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled = CollisionEnabledOverride && !bIsWelded ? *CollisionEnabledOverride : (TEnumAsByte<ECollisionEnabled::Type>)BI->GetCollisionEnabled();
 			const FCollisionResponseContainer& UseResponse = ResponseOverride && !bIsWelded ? *ResponseOverride : BI->CollisionResponses.GetResponseContainer();
@@ -1197,9 +1200,6 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	}
 #endif
 
-	const bool bUseComplexAsSimple = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
-	const bool bUseSimpleAsComplex = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
-
 	// Get component ID
 	uint32 ComponentID = OwnerComponentInst ? OwnerComponentInst->GetUniqueID() : INDEX_NONE;
 
@@ -1207,7 +1207,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
 	FCollisionResponseContainer * ResponseOverride = bResponseOverride ? &UseResponse : NULL;
 	bool * bNotifyOverridePtr = bNotifyOverride ? &bUseNotifyRBCollision : NULL;
-	UpdatePhysicsShapeFilterData(ComponentID, bUseComplexAsSimple, bUseSimpleAsComplex, bPhysicsStatic, CollisionEnabledOverride, ResponseOverride, bNotifyOverridePtr);
+	UpdatePhysicsShapeFilterData(ComponentID, bPhysicsStatic, CollisionEnabledOverride, ResponseOverride, bNotifyOverridePtr);
 #endif
 
 #if WITH_BOX2D
@@ -2913,6 +2913,20 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 	{
 		UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
 
+		// If we are enabling simulation, and we are the root body of our component (or we are welded), we detach the component 
+		if (OwnerComponentInst && OwnerComponentInst->IsRegistered() && (OwnerComponentInst->GetBodyInstance() == this || OwnerComponentInst->IsWelded()))
+		{
+			if (OwnerComponentInst->GetAttachParent())
+			{
+				OwnerComponentInst->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			}
+
+			if (bSimulatePhysics == false)	//if we're switching from kinematic to simulated
+			{
+				ApplyWeldOnChildren();
+			}
+		}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (OwnerComponentInst)
 		{
@@ -2932,20 +2946,6 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 			}
 		}
 #endif
-
-		// If we are enabling simulation, and we are the root body of our component, we detach the component 
-		if (OwnerComponentInst && OwnerComponentInst->IsRegistered() && OwnerComponentInst->GetBodyInstance() == this)
-		{
-			if (OwnerComponentInst->GetAttachParent())
-			{
-				OwnerComponentInst->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-			}
-			
-			if (bSimulatePhysics == false)	//if we're switching from kinematic to simulated
-			{
-				ApplyWeldOnChildren();
-			}
-		}
 	}
 
 	bSimulatePhysics = bSimulate;

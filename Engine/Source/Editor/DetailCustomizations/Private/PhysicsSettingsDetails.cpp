@@ -92,7 +92,9 @@ public:
 		: PhysicsSettings(InPhysicsSettings)
 		, PhysicalSurfaceEnum(InPhysicalSurfaceEnum)
 		, PhysicalSurfacesProperty(InPhysicalSurfacesProperty)
-	{}
+	{
+		PhysicalSurfacesProperty->MarkHiddenByCustomization();
+	}
 
 	void RefreshPhysicalSurfaceList()
 	{

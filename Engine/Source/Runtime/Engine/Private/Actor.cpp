@@ -2335,16 +2335,6 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 				}
 			}
 		}
-
-		static FName NAME_3DBones = FName(TEXT("3DBones"));
-		if (DebugDisplay.IsDisplayOn(NAME_Bones))
-		{
-			bool bSimpleBones = !DebugDisplay.IsCategoryToggledOn(NAME_3DBones, false);
-			for (USkeletalMeshComponent* Comp : Components)
-			{
-				Comp->DebugDrawBones(Canvas, bSimpleBones);
-			}
-		}
 	}
 }
 

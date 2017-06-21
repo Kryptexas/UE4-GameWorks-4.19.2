@@ -1,9 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BoneControllers/AnimNode_TwoBoneIK.h"
+#include "Engine/Engine.h"
 #include "AnimationRuntime.h"
 #include "TwoBoneIK.h"
+#include "AnimationCoreLibrary.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "MaterialShared.h"
 
 DECLARE_CYCLE_STAT(TEXT("TwoBoneIK Eval"), STAT_TwoBoneIK_Eval, STATGROUP_Anim);
 
@@ -84,6 +89,8 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 	// As right after we get them in component space. (And that does the auto conversion).
 	// We might save one transform by doing local first...
 	const FTransform EndBoneLocalTransform = Output.Pose.GetLocalSpaceTransform(IKBoneCompactPoseIndex);
+	const FTransform LowerLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(LowerLimbIndex);
+	const FTransform UpperLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(UpperLimbIndex);
 
 	// Now get those in component space...
 	FTransform LowerLimbCSTransform = Output.Pose.GetComponentSpaceTransform(LowerLimbIndex);
@@ -124,6 +131,45 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 
 	AnimationCore::SolveTwoBoneIK(UpperLimbCSTransform, LowerLimbCSTransform, EndBoneCSTransform, JointTargetPos, DesiredPos, bAllowStretching, StartStretchRatio, MaxStretchScale);
 
+#if WITH_EDITOR
+	CachedJointTargetPos = JointTargetPos;
+	CachedJoints[0] = UpperLimbCSTransform.GetLocation();
+	CachedJoints[1] = LowerLimbCSTransform.GetLocation();
+	CachedJoints[2] = EndBoneCSTransform.GetLocation();
+#endif // WITH_EDITOR
+
+	// if no twist, we clear twist from each limb
+	if (bNoTwist)
+	{
+		auto RemoveTwist = [this](const FTransform& InParentTransform, FTransform& InOutTransform, const FTransform& OriginalLocalTransform, const FVector& InAlignVector) 
+		{
+			FTransform LocalTransform = InOutTransform.GetRelativeTransform(InParentTransform);
+			FQuat LocalRotation = LocalTransform.GetRotation();
+			FQuat NewTwist, NewSwing;
+			LocalRotation.ToSwingTwist(InAlignVector, NewSwing, NewTwist);
+			NewSwing.Normalize();
+
+			// get new twist from old local
+			LocalRotation = OriginalLocalTransform.GetRotation();
+			FQuat OldTwist, OldSwing;
+			LocalRotation.ToSwingTwist(InAlignVector, OldSwing, OldTwist);
+			OldTwist.Normalize();
+
+			InOutTransform.SetRotation(InParentTransform.GetRotation() * NewSwing * OldTwist);
+			InOutTransform.NormalizeRotation();
+		};
+
+		const FCompactPoseBoneIndex UpperLimbParentIndex = BoneContainer.GetParentBoneIndex(UpperLimbIndex);
+		FVector AlignDir = TwistAxis.GetTransformedAxis(FTransform::Identity);
+		if (UpperLimbParentIndex != INDEX_NONE)
+		{
+			FTransform UpperLimbParentTransform = Output.Pose.GetComponentSpaceTransform(UpperLimbParentIndex);
+			RemoveTwist(UpperLimbParentTransform, UpperLimbCSTransform, UpperLimbLocalTransform, AlignDir);
+		}
+			
+		RemoveTwist(UpperLimbCSTransform, LowerLimbCSTransform, LowerLimbLocalTransform, AlignDir);
+	}
+	
 	// Update transform for upper bone.
 	{
 		// Order important. First bone is upper limb.
@@ -158,10 +204,30 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 bool FAnimNode_TwoBoneIK::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
-	return (IKBone.IsValid(RequiredBones));
+	return (IKBone.IsValidToEvaluate(RequiredBones));
 }
 
 void FAnimNode_TwoBoneIK::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	IKBone.Initialize(RequiredBones);
 }
+
+#if WITH_EDITOR
+// can't use World Draw functions because this is called from Render of viewport, AFTER ticking component, 
+// which means LineBatcher already has ticked, so it won't render anymore
+// to use World Draw functions, we have to call this from tick of actor
+void FAnimNode_TwoBoneIK::ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* MeshComp) const
+{
+	FTransform LocalToWorld = MeshComp->GetComponentToWorld();
+	FVector WorldPosition[3];
+	WorldPosition[0] = LocalToWorld.TransformPosition(CachedJoints[0]);
+	WorldPosition[1] = LocalToWorld.TransformPosition(CachedJoints[1]);
+	WorldPosition[2] = LocalToWorld.TransformPosition(CachedJoints[2]);
+	const FVector JointTargetInWorld = LocalToWorld.TransformPosition(CachedJointTargetPos);
+
+	DrawTriangle(PDI, WorldPosition[0], WorldPosition[1], WorldPosition[2], GEngine->DebugEditorMaterial->GetRenderProxy(false), SDPG_World);
+	PDI->DrawLine(WorldPosition[0], JointTargetInWorld, FLinearColor::Red, SDPG_Foreground);
+	PDI->DrawLine(WorldPosition[1], JointTargetInWorld, FLinearColor::Red, SDPG_Foreground);
+	PDI->DrawLine(WorldPosition[2], JointTargetInWorld, FLinearColor::Red, SDPG_Foreground);
+}
+#endif // WITH_EDITOR

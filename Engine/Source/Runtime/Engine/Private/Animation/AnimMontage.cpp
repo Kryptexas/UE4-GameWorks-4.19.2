@@ -29,6 +29,15 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 
 	BlendInTime_DEPRECATED = -1.f;
 	BlendOutTime_DEPRECATED = -1.f;
+
+	AddSlot(FAnimSlotGroup::DefaultSlotName);
+}
+
+FSlotAnimationTrack& UAnimMontage::AddSlot(FName SlotName)
+{
+	int32 NewSlot = SlotAnimTracks.AddDefaulted(1);
+	SlotAnimTracks[NewSlot].SlotName = SlotName;
+	return SlotAnimTracks[NewSlot];
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const

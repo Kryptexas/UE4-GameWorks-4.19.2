@@ -199,10 +199,11 @@ void SBoneSelectionWidget::Construct(const FArguments& InArgs)
 
 TSharedRef<SWidget> SBoneSelectionWidget::CreateSkeletonWidgetMenu()
 {
+	bool bMultipleValues = false;
 	FName CurrentBoneName;
 	if (OnGetSelectedBone.IsBound())
 	{
-		CurrentBoneName = OnGetSelectedBone.Execute();
+		CurrentBoneName = OnGetSelectedBone.Execute(bMultipleValues);
 	}
 
 	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu)
@@ -230,9 +231,16 @@ FText SBoneSelectionWidget::GetCurrentBoneName() const
 {
 	if(OnGetSelectedBone.IsBound())
 	{
-		FName Name = OnGetSelectedBone.Execute();
-
-		return FText::FromName(Name);
+		bool bMultipleValues = false;
+		FName Name = OnGetSelectedBone.Execute(bMultipleValues);
+		if(bMultipleValues)
+		{
+			return LOCTEXT("MultipleValues", "Multiple Values");
+		}
+		else
+		{
+			return FText::FromName(Name);
+		}
 	}
 
 	// @todo implement default solution?

@@ -2,18 +2,121 @@
 
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "Animation/AnimInstanceProxy.h"
+#include "Engine/SkeletalMeshSocket.h"
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Socket Reference 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void FSocketReference::InitializeSocketInfo(const FAnimInstanceProxy* InAnimInstanceProxy)
+{
+	CachedSocketMeshBoneIndex = INDEX_NONE;
+	CachedSocketCompactBoneIndex = FCompactPoseBoneIndex(INDEX_NONE);
+
+	if (SocketName != NAME_None)
+	{
+		const USkeletalMeshComponent* OwnerMeshComponent = InAnimInstanceProxy->GetSkelMeshComponent();
+		if (OwnerMeshComponent && OwnerMeshComponent->DoesSocketExist(SocketName))
+		{
+			USkeletalMeshSocket const* const Socket = OwnerMeshComponent->GetSocketByName(SocketName);
+			if (Socket)
+			{
+				CachedSocketLocalTransform = Socket->GetSocketLocalTransform();
+				// cache mesh bone index, so that we know this is valid information to follow
+				CachedSocketMeshBoneIndex = OwnerMeshComponent->GetBoneIndex(Socket->BoneName);
+
+				ensureMsgf(CachedSocketMeshBoneIndex != INDEX_NONE, TEXT("%s : socket has invalid bone."), *SocketName.ToString());
+			}
+		}
+		else
+		{
+			// @todo : move to graph node warning
+			UE_LOG(LogAnimation, Warning, TEXT("%s: socket doesn't exist"), *SocketName.ToString());
+		}
+	}
+}
+
+void FSocketReference::InitialzeCompactBoneIndex(const FBoneContainer& RequiredBones)
+{
+	if (CachedSocketMeshBoneIndex != INDEX_NONE)
+	{
+		const int32 SocketBoneSkeletonIndex = RequiredBones.GetPoseToSkeletonBoneIndexArray()[CachedSocketMeshBoneIndex];
+		CachedSocketCompactBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SocketBoneSkeletonIndex);
+	}
+}
+
+FTransform FSocketReference::GetAnimatedSocketTransform(FCSPose<FCompactPose>&	InPose) const
+{
+	// current LOD has valid index (FCompactPoseBoneIndex is valid if current LOD supports)
+	if (CachedSocketCompactBoneIndex != INDEX_NONE)
+	{
+		FTransform BoneTransform = InPose.GetComponentSpaceTransform(CachedSocketCompactBoneIndex);
+		return CachedSocketLocalTransform * BoneTransform;
+	}
+
+	return FTransform::Identity;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Target Reference 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+FVector FTargetReference::GetTargetLocation(FVector TargetOffset, const FBoneContainer& BoneContainer, FCSPose<FCompactPose>& InPose, const FTransform& InComponentToWorld, FTransform& OutTargetTransform)
+{
+	FVector TargetLocationInComponentSpace;
+
+	auto SetWorldOffset = [](const FVector& InTargetOffset, const FTransform& LocalInComponentToWorld, FTransform& LocalOutTargetTransform, FVector& OutTargetLocationInComponentSpace)
+	{
+		LocalOutTargetTransform.SetIdentity();
+		OutTargetLocationInComponentSpace = LocalInComponentToWorld.InverseTransformPosition(InTargetOffset);
+		LocalOutTargetTransform.SetLocation(InTargetOffset);
+	};
+
+	if (bUseSocket)
+	{
+		if (SocketReference.IsValidToEvaluate(BoneContainer))
+		{
+			FTransform SocketTransformInCS = SocketReference.GetAnimatedSocketTransform(InPose);
+
+			TargetLocationInComponentSpace = SocketTransformInCS.TransformPosition(TargetOffset);
+			OutTargetTransform = SocketTransformInCS;
+		}
+		else
+		{
+			SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
+		}
+	}
+	// if valid data is available
+	else if (BoneReference.HasValidSetup())
+	{
+		if (BoneReference.IsValidToEvaluate(BoneContainer))
+		{
+			OutTargetTransform = InPose.GetComponentSpaceTransform(BoneReference.GetCompactPoseIndex(BoneContainer));
+			TargetLocationInComponentSpace = OutTargetTransform.TransformPosition(TargetOffset);
+		}
+		else
+		{
+			SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
+		}
+	}
+	else
+	{
+		SetWorldOffset(TargetOffset, InComponentToWorld, OutTargetTransform, TargetLocationInComponentSpace);
+	}
+
+	return TargetLocationInComponentSpace;
+}
 
 /////////////////////////////////////////////////////
 // FAnimNode_SkeletalControlBase
 
-void FAnimNode_SkeletalControlBase::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SkeletalControlBase::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	ComponentPose.Initialize(Context);
 }
 
-void FAnimNode_SkeletalControlBase::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_SkeletalControlBase::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	InitializeBoneReferences(Context.AnimInstanceProxy->GetRequiredBones());
 	ComponentPose.CacheBones(Context);
@@ -23,7 +126,7 @@ void FAnimNode_SkeletalControlBase::UpdateInternal(const FAnimationUpdateContext
 {
 }
 
-void FAnimNode_SkeletalControlBase::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SkeletalControlBase::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	ComponentPose.Update(Context);
 
@@ -58,7 +161,7 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpaceInternal(FComponentSpa
 {
 }
 
-void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseContext& Output)
+void FAnimNode_SkeletalControlBase::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
 {
 	// Evaluate the input
 	ComponentPose.EvaluateComponentSpace(Output);
@@ -100,3 +203,4 @@ void FAnimNode_SkeletalControlBase::EvaluateSkeletalControl_AnyThread(FComponent
 	EvaluateBoneTransforms(Output.AnimInstanceProxy->GetSkelMeshComponent(), Output.Pose, OutBoneTransforms);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
+

@@ -1244,6 +1244,16 @@ void UPrimitiveComponent::SetTranslucentSortPriority(int32 NewTranslucentSortPri
 	}
 }
 
+void UPrimitiveComponent::SetReceivesDecals(bool bNewReceivesDecals)
+{
+	if (bNewReceivesDecals != bReceivesDecals)
+	{
+		bReceivesDecals = bNewReceivesDecals;
+		MarkRenderStateDirty();
+	}
+}
+
+
 void UPrimitiveComponent::PushSelectionToProxy()
 {
 	//although this should only be called for attached components, some billboard components can get in without valid proxies
@@ -1431,9 +1441,10 @@ UMaterialInstanceDynamic* UPrimitiveComponent::CreateDynamicMaterialInstance(int
 	return MID;
 }
 
-UMaterialInterface* UPrimitiveComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+UMaterialInterface* UPrimitiveComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
 {
 	//This function should be overriden
+	SectionIndex = 0;
 	return nullptr;
 }
 

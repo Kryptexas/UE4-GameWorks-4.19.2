@@ -27,14 +27,7 @@ protected:
 	TSharedPtr< IPropertyHandle > EnumHandle;
 
 	TSharedPtr< IPropertyHandle > TextureSizeHandle;
-	TSharedPtr< IPropertyHandle > DiffuseTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > NormalTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > MetallicTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > RoughnessTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > SpecularTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > EmissiveTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > OpacityTextureSizeHandle;
-	TSharedPtr< IPropertyHandle > OpacityMaskTextureSizeHandle;
+	TArray<TSharedPtr<IPropertyHandle>> PropertyTextureSizeHandles;
 
 	TSharedPtr< IPropertyHandle > MergeTypeHandle;
 	TSharedPtr< IPropertyHandle > GutterSpaceHandle;

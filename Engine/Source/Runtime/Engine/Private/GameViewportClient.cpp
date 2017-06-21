@@ -2361,15 +2361,9 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 	// First, look for skeletal mesh show commands
 
 	bool bUpdateSkelMeshCompDebugFlags = false;
-	static bool bShowSkelBones = false;
 	static bool bShowPrePhysSkelBones = false;
 
-	if(FParse::Command(&Cmd,TEXT("BONES")))
-	{
-		bShowSkelBones = !bShowSkelBones;
-		bUpdateSkelMeshCompDebugFlags = true;
-	}
-	else if(FParse::Command(&Cmd,TEXT("PREPHYSBONES")))
+	if(FParse::Command(&Cmd,TEXT("PREPHYSBONES")))
 	{
 		bShowPrePhysSkelBones = !bShowPrePhysSkelBones;
 		bUpdateSkelMeshCompDebugFlags = true;
@@ -2383,7 +2377,6 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 			USkeletalMeshComponent* SkelComp = *It;
 			if( SkelComp->GetScene() == InWorld->Scene )
 			{
-				SkelComp->bDisplayBones = bShowSkelBones;
 				SkelComp->bShowPrePhysBones = bShowPrePhysSkelBones;
 				SkelComp->MarkRenderStateDirty();
 			}

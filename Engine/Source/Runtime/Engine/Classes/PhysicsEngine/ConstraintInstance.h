@@ -44,7 +44,7 @@ struct ENGINE_API FConstraintProfileProperties
 	float ProjectionAngularTolerance;
 
 	/** Force needed to break the distance constraint. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Linear, meta = (ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Linear, meta = (editcondition = "bLinearBreakable", ClampMin = "0.0"))
 	float LinearBreakThreshold;
 
 	/** Torque needed to break the joint. */
@@ -370,6 +370,28 @@ public:
 		UpdateAngularLimit();
 	}
 
+	/** Sets the Linear Breakable properties
+	*	@param bInLinearBreakable		Whether it is possible to break the joint with linear force
+	*	@param InLinearBreakThreshold	Force needed to break the joint
+	*/
+	void SetLinearBreakable(bool bInLinearBreakable, float InLinearBreakThreshold)
+	{
+		ProfileInstance.bLinearBreakable = bInLinearBreakable;
+		ProfileInstance.LinearBreakThreshold = InLinearBreakThreshold;
+		UpdateBreakable();
+	}
+
+	/** Sets the Angular Breakable properties
+	*	@param bInAngularBreakable		Whether it is possible to break the joint with angular force
+	*	@param InAngularBreakThreshold	Torque needed to break the joint
+	*/
+	void SetAngularBreakable(bool bInAngularBreakable, float InAngularBreakThreshold)
+	{
+		ProfileInstance.bAngularBreakable = bInAngularBreakable;
+		ProfileInstance.AngularBreakThreshold = InAngularBreakThreshold;
+		UpdateBreakable();
+	}
+
 	// @todo document
 	void CopyConstraintGeometryFrom(const FConstraintInstance* FromInstance);
 
@@ -378,6 +400,9 @@ public:
 
 	// Retrieve the constraint force most recently applied to maintain this constraint. Returns 0 forces if the constraint is not initialized or broken.
 	void GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce);
+
+	// Retrieve the status of constraint being broken.
+	bool IsBroken();
 
 	/** Set which linear position drives are enabled */
 	void SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);

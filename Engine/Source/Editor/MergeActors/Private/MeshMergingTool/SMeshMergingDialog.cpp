@@ -13,6 +13,7 @@
 #include "Engine/Selection.h"
 #include "Editor.h"
 #include "Components/ChildActorComponent.h"
+#include "Components/ShapeComponent.h"
 
 #include "IDetailsView.h"
 
@@ -42,7 +43,6 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 	checkf(InTool != nullptr, TEXT("Invalid owner tool supplied"));
 	Tool = InTool;
 
-	NumSelectedMeshComponents = 0;
 	UpdateSelectedStaticMeshComponents();
 	CreateSettingsView();
 	
@@ -76,8 +76,8 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 					.AutoHeight()
 					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					[
-						SAssignNew(MeshComponentsListView, SListView<TSharedPtr<FMeshComponentData>>)
-						.ListItemsSource(&SelectedMeshComponents)
+						SAssignNew(ComponentsListView, SListView<TSharedPtr<FMergeComponentData>>)
+						.ListItemsSource(&SelectedComponents)
 						.OnGenerateRow(this, &SMeshMergingDialog::MakeComponentListItemWidget)
 						.ToolTipText(LOCTEXT("SelectedComponentsListBoxToolTip", "The selected mesh components will be incorporated into the merged mesh"))
 					]
@@ -165,10 +165,9 @@ void SMeshMergingDialog::Tick(const FGeometry& AllottedGeometry, const double In
 	if (bRefreshListView == true)
 	{
 		StoreCheckBoxState();
-		NumSelectedMeshComponents = 0;
 		UpdateSelectedStaticMeshComponents();
-		MeshComponentsListView->ClearSelection();
-		MeshComponentsListView->RequestListRefresh();
+		ComponentsListView->ClearSelection();
+		ComponentsListView->RequestListRefresh();
 		bRefreshListView = false;		
 	}
 }
@@ -190,11 +189,13 @@ void SMeshMergingDialog::SetReplaceSourceActors(ECheckBoxState NewValue)
 
 bool SMeshMergingDialog::GetContentEnabledState() const
 {
-	return (GetNumSelectedMeshComponents() >= 1);
+	return (GetNumSelectedMeshComponents() >= 1); // Only enabled if a mesh is selected
 }
 
 void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
 {	
+	NumSelectedMeshComponents = 0;
+
 	// Retrieve selected actors
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	TArray<AActor*> Actors;
@@ -210,7 +211,7 @@ void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
 	}
 
 	// Retrieve static mesh components from selected actors
-	SelectedMeshComponents.Empty();
+	SelectedComponents.Empty();
 	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex )
 	{
 		AActor* Actor = Actors[ActorIndex];
@@ -228,64 +229,106 @@ void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
 			}
 		}
 		
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
-		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
-		for (UStaticMeshComponent* MeshComponent : StaticMeshComponents)
+		TArray<UPrimitiveComponent*> PrimComponents;
+		Actor->GetComponents<UPrimitiveComponent>(PrimComponents);
+		for (UPrimitiveComponent* PrimComponent : PrimComponents)
 		{
-			SelectedMeshComponents.Add(TSharedPtr<FMeshComponentData>(new FMeshComponentData(MeshComponent)));
-			TSharedPtr<FMeshComponentData>& MeshComponentData = SelectedMeshComponents.Last();
-			MeshComponentData->bShouldIncorporate = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr);
-			// See if we stored a checkbox state for this mesh component, and set accordingly
-			ECheckBoxState State = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-			auto StoredState = StoredCheckBoxStates.Find(MeshComponentData->MeshComponent.Get());
-			if (StoredState)
+			bool bInclude = false; // Should put into UI list
+			bool bShouldIncorporate = false; // Should default to part of merged mesh
+			bool bIsMesh = false;
+			if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(PrimComponent))
 			{
-				MeshComponentData->bShouldIncorporate = (*StoredState == ECheckBoxState::Checked);
-				NumSelectedMeshComponents += (MeshComponentData->bShouldIncorporate) ? 1 : 0;
+				bShouldIncorporate = (StaticMeshComponent->GetStaticMesh() != nullptr);
+				bInclude = true;
+				bIsMesh = true;
 			}
-			else if (MeshComponentData->bShouldIncorporate == true)
+			else if (UShapeComponent* ShapeComponent = Cast<UShapeComponent>(PrimComponent))
 			{
-				NumSelectedMeshComponents++;
+				bShouldIncorporate = true;
+				bInclude = true;
 			}
+
+			if (bInclude)
+			{
+				SelectedComponents.Add(TSharedPtr<FMergeComponentData>(new FMergeComponentData(PrimComponent)));
+				TSharedPtr<FMergeComponentData>& ComponentData = SelectedComponents.Last();
+
+				ComponentData->bShouldIncorporate = bShouldIncorporate;
+
+				// See if we stored a checkbox state for this mesh component, and set accordingly
+				ECheckBoxState* StoredState = StoredCheckBoxStates.Find(PrimComponent);
+				if (StoredState != nullptr)
+				{
+					ComponentData->bShouldIncorporate = (*StoredState == ECheckBoxState::Checked);
+				}
+
+				// Keep count of selected meshes
+				if (ComponentData->bShouldIncorporate && bIsMesh)
+				{
+					NumSelectedMeshComponents++;
+				}
+			}
+
 		}		
 	}
 }
 
-TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr<FMeshComponentData> MeshComponentData, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr<FMergeComponentData> ComponentData, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	check(MeshComponentData->MeshComponent != nullptr);
+	check(ComponentData->PrimComponent != nullptr);
 
 	// Retrieve information about the mesh component
-	const FString OwningActorName = MeshComponentData->MeshComponent->GetOwner()->GetName();
-	const FString StaticMeshName = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? MeshComponentData->MeshComponent->GetStaticMesh()->GetName() : TEXT("No Static Mesh Available");
-	const FString ComponentName = MeshComponentData->MeshComponent->GetName();
+	const FString OwningActorName = ComponentData->PrimComponent->GetOwner()->GetName();
+
+	// If box should be enabled
+	bool bEnabled = true;
+	bool bIsMesh = false;
+
+	FString ComponentInfo;
+	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(ComponentData->PrimComponent.Get()))
+	{
+		ComponentInfo = (StaticMeshComponent->GetStaticMesh() != nullptr) ? StaticMeshComponent->GetStaticMesh()->GetName() : TEXT("No Static Mesh Available");
+		bEnabled = (StaticMeshComponent->GetStaticMesh() != nullptr);
+		bIsMesh = true;
+	}
+	else if (UShapeComponent* ShapeComponent = Cast<UShapeComponent>(ComponentData->PrimComponent.Get()))
+	{
+		ComponentInfo = ShapeComponent->GetClass()->GetName();
+	}
+
+	const FString ComponentName = ComponentData->PrimComponent->GetName();
 
 	// See if we stored a checkbox state for this mesh component, and set accordingly
-	ECheckBoxState State = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	auto StoredState = StoredCheckBoxStates.Find(MeshComponentData->MeshComponent.Get());
+	ECheckBoxState State = bEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	ECheckBoxState* StoredState = StoredCheckBoxStates.Find(ComponentData->PrimComponent.Get());
 	if (StoredState)
 	{
 		State = *StoredState;
 	}
 	
-	return SNew(STableRow<TSharedPtr<FMeshComponentData>>, OwnerTable)
+
+	return SNew(STableRow<TSharedPtr<FMergeComponentData>>, OwnerTable)
 		[
 			SNew(SBox)
 			[
 				// Disable UI element if this static mesh component has invalid static mesh data
 				SNew(SHorizontalBox)				
-				.IsEnabled((MeshComponentData->MeshComponent->GetStaticMesh() != nullptr))
+				.IsEnabled(bEnabled)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SCheckBox)
 					.IsChecked(State)
-					.ToolTipText(LOCTEXT("IncorporateCheckBoxToolTip", "When ticked the Mesh Component will be incorporated into the merge"))
+					.ToolTipText(LOCTEXT("IncorporateCheckBoxToolTip", "When ticked the Component will be incorporated into the merge"))
 					
 					.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 					{
-						MeshComponentData->bShouldIncorporate = (NewState == ECheckBoxState::Checked);
-						this->NumSelectedMeshComponents += (NewState == ECheckBoxState::Checked) ? 1 : -1;
+						ComponentData->bShouldIncorporate = (NewState == ECheckBoxState::Checked);
+
+						if (bIsMesh)
+						{
+							this->NumSelectedMeshComponents += (NewState == ECheckBoxState::Checked) ? 1 : -1;
+						}
 					})
 				]
 
@@ -294,7 +337,7 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(OwningActorName + " - " + StaticMeshName + " - " + ComponentName))
+					.Text(FText::FromString(OwningActorName + " - " + ComponentInfo + " - " + ComponentName))
 				]
 			]
 		];
@@ -341,11 +384,11 @@ void SMeshMergingDialog::StoreCheckBoxState()
 	StoredCheckBoxStates.Empty();
 
 	// Loop over selected mesh component and store its checkbox state
-	for (TSharedPtr<FMeshComponentData> SelectedComponent : SelectedMeshComponents )
+	for (TSharedPtr<FMergeComponentData> SelectedComponent : SelectedComponents )
 	{
-		UStaticMeshComponent* MeshComponent = SelectedComponent->MeshComponent.Get();
+		UPrimitiveComponent* PrimComponent = SelectedComponent->PrimComponent.Get();
 		const ECheckBoxState State = SelectedComponent->bShouldIncorporate ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-		StoredCheckBoxStates.Add(MeshComponent, State);
+		StoredCheckBoxStates.Add(PrimComponent, State);
 	}
 }
 

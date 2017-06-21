@@ -38,12 +38,12 @@ public:
 	virtual void SetAnimationAsset(class UAnimationAsset* InAnimationAsset) override;
 	virtual class TSharedRef<IPersonaPreviewScene> GetPreviewScene() const override;
 	virtual class USkeletalMesh* GetPreviewMesh() const override;
-	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
+	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh, bool bSetPreviewMeshInAsset = true) override;
 	virtual FName GetContext() const override;
 
 private:
 	/** The skeleton we are editing */
-	USkeleton* Skeleton;
+	TWeakObjectPtr<USkeleton> Skeleton;
 
 	/** Editable skeleton */
 	TSharedPtr<IEditableSkeleton> EditableSkeleton;

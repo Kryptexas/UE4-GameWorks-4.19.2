@@ -81,7 +81,7 @@ void FAnimNode_CopyBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 bool FAnimNode_CopyBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
-	return (TargetBone.IsValid(RequiredBones) && (TargetBone==SourceBone || SourceBone.IsValid(RequiredBones)));
+	return (TargetBone.IsValidToEvaluate(RequiredBones) && (TargetBone==SourceBone || SourceBone.IsValidToEvaluate(RequiredBones)));
 }
 
 void FAnimNode_CopyBone::InitializeBoneReferences(const FBoneContainer& RequiredBones) 

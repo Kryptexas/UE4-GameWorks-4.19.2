@@ -408,7 +408,7 @@ FReply FColorStructCustomization::OnMouseButtonDownColorBlock(const FGeometry& M
 	bool CanShowColorPicker = true;
 	if (StructPropertyHandle.IsValid() && StructPropertyHandle->GetProperty() != nullptr)
 	{
-		CanShowColorPicker = !(StructPropertyHandle->GetProperty()->HasAllPropertyFlags(CPF_EditConst));
+		CanShowColorPicker = !StructPropertyHandle->IsEditConst();
 	}
 	if (CanShowColorPicker)
 	{

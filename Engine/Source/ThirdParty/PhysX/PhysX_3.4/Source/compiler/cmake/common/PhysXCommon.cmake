@@ -281,19 +281,17 @@ SET(PHYSXCOMMON_GU_INTERSECTION_SOURCE
 )
 SOURCE_GROUP(geomutils\\src\\intersection FILES ${PHYSXCOMMON_GU_INTERSECTION_SOURCE})
 
-IF (NOT "HTML5" IN_LIST PLATFORM_LIST)
-	SET(PXCOMMON_BVH4_FILES
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_AABBSweep.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_BoxOverlap.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweep.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweepAA.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_OBBSweep.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_Raycast.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereOverlap.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereSweep.cpp
-		${GU_SOURCE_DIR}/src/mesh/GuMidphaseBV4.cpp
-	)
-ENDIF()
+SET(PXCOMMON_BVH4_FILES
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_AABBSweep.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_BoxOverlap.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweep.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweepAA.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_OBBSweep.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_Raycast.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereOverlap.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereSweep.cpp
+	${GU_SOURCE_DIR}/src/mesh/GuMidphaseBV4.cpp
+)
 
 SET(PHYSXCOMMON_GU_MESH_SOURCE
 	${GU_SOURCE_DIR}/src/mesh/GuBV4.cpp

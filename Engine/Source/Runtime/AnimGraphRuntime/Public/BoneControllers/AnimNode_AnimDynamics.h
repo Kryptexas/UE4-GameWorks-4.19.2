@@ -351,7 +351,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	FVector ExternalForce;
 
 	// FAnimNode_SkeletalControlBase interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;

@@ -346,5 +346,14 @@ void UAnimGraphNode_Base::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 	CopyPinDefaultsToNodeData(Pin);
 
-	CastChecked<UAnimationGraph>(GetGraph())->OnPinDefaultValueChanged.Broadcast(Pin);
+	if(UAnimationGraph* AnimationGraph = Cast<UAnimationGraph>(GetGraph()))
+	{
+		AnimationGraph->OnPinDefaultValueChanged.Broadcast(Pin);
+	}
+}
+
+bool UAnimGraphNode_Base::IsPinExposedAndLinked(const FString& InPinName, const EEdGraphPinDirection InDirection) const
+{
+	UEdGraphPin* Pin = FindPin(InPinName, InDirection);
+	return Pin != nullptr && Pin->LinkedTo.Num() > 0 && Pin->LinkedTo[0] != nullptr;
 }

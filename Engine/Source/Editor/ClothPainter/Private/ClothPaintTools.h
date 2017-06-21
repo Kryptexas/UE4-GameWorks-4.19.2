@@ -20,7 +20,7 @@ public:
 	}
 
 	/** Value to paint onto the mesh for this parameter */
-	UPROPERTY(EditAnywhere, Category = ToolSettings)
+	UPROPERTY(EditAnywhere, Category = ToolSettings, meta=(UIMin=0, UIMax=100, ClampMin=0, ClampMax=100000))
 	float PaintValue;
 };
 

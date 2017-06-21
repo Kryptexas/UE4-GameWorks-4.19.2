@@ -30,6 +30,7 @@
 
 #include "RendererInterface.h"
 #include "EngineModule.h"
+#include "LightMapHelpers.h"
 
 #define SHOW_WIREFRAME_MESH 0
 
@@ -148,6 +149,7 @@ struct FMaterialMeshVertex
 		TangentZ;
 	uint32			Color;
 	FVector2D		TextureCoordinate[MAX_STATIC_TEXCOORDS];
+	FVector2D		LightMapCoordinate;
 
 	void SetTangents(const FVector& InTangentX, const FVector& InTangentY, const FVector& InTangentZ)
 	{
@@ -234,6 +236,13 @@ public:
 				));
 		}
 
+		VertexData.LightMapCoordinateComponent = FVertexStreamComponent(
+			&GDummyMeshRendererVertexBuffer,
+			STRUCT_OFFSET(FMaterialMeshVertex, LightMapCoordinate),
+			sizeof(FMaterialMeshVertex),
+			VET_Float2
+		);
+
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FMeshVertexFactoryConstructor,
@@ -249,22 +258,40 @@ public:
 };
 TGlobalResource<FMeshVertexFactory> GMeshVertexFactory;
 
+
+class FMeshRenderInfo : public FLightCacheInterface
+{
+public:
+	FMeshRenderInfo(const FLightMap* InLightMap, const FShadowMap* InShadowMap, FUniformBufferRHIRef Buffer)
+		: FLightCacheInterface(InLightMap, InShadowMap)
+	{
+		SetPrecomputedLightingBuffer(Buffer);
+	}
+
+	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const override
+	{
+		return LIT_CachedLightMap;
+	}
+};
+
 /**
 * Canvas render item enqueued into renderer command list.
 */
 class FMeshMaterialRenderItem : public FCanvasBaseRenderItem
 {
 public:
-	FMeshMaterialRenderItem(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/) : Data(new FRenderData(
+	FMeshMaterialRenderItem(FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, const FCanvas::FTransformEntry& InTransform /*= FCanvas::FTransformEntry(FMatrix::Identity)*/, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer) : Data(new FRenderData(
 		InViewFamily,
 		InMesh,
 		InLODModel,
+		LightMapIndex,
 		InMaterialIndex,
 		InTexcoordBounds,
 		InTexCoords,
 		InSize,
 		InMaterialRenderProxy,
-		InTransform))
+		InTransform,
+		new FMeshRenderInfo(LightMap, ShadowMap, Buffer)))
 	{
 	}
 
@@ -280,36 +307,44 @@ private:
 			FSceneViewFamily* InViewFamily,
 			const FRawMesh* InMesh,
 			const FStaticLODModel* InLODModel,
+			int32 InLightMapIndex,
 			int32 InMaterialIndex,
 			const FBox2D& InTexcoordBounds,
 			const TArray<FVector2D>& InTexCoords,
 			const FVector2D& InSize,
-			const FMaterialRenderProxy* InMaterialRenderProxy = NULL,
-			const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity))
+			const FMaterialRenderProxy* InMaterialRenderProxy = nullptr,
+			const FCanvas::FTransformEntry& InTransform = FCanvas::FTransformEntry(FMatrix::Identity),
+			FLightCacheInterface* InLCI = nullptr)
 			: ViewFamily(InViewFamily)
 			, StaticMesh(InMesh)
 			, SkeletalMesh(InLODModel)
+			, LightMapIndex(InLightMapIndex)
 			, MaterialIndex(InMaterialIndex)
 			, TexcoordBounds(InTexcoordBounds)
 			, TexCoords(InTexCoords)
 			, Size(InSize)
 			, MaterialRenderProxy(InMaterialRenderProxy)
 			, Transform(InTransform)
+			, LCI(InLCI)
+
 		{}
 		FSceneViewFamily* ViewFamily;
 		const FRawMesh* StaticMesh;
 		const FStaticLODModel* SkeletalMesh;
+		int32 LightMapIndex;
 		int32 MaterialIndex;
 		FBox2D TexcoordBounds;
 		const TArray<FVector2D>& TexCoords;
 		FVector2D Size;
 		const FMaterialRenderProxy* MaterialRenderProxy;
+		
 		FCanvas::FTransformEntry Transform;
+		FLightCacheInterface* LCI;
 	};
 	FRenderData* Data;
 public:
 
-	static void EnqueueMaterialRender(class FCanvas* InCanvas, FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy)
+	static void EnqueueMaterialRender(class FCanvas* InCanvas, FSceneViewFamily* InViewFamily, const FRawMesh* InMesh, const FStaticLODModel* InLODModel, int32 LightMapIndex, int32 InMaterialIndex, const FBox2D& InTexcoordBounds, const TArray<FVector2D>& InTexCoords, const FVector2D& InSize, const FMaterialRenderProxy* InMaterialRenderProxy, FLightMapRef LightMap, FShadowMapRef ShadowMap, FUniformBufferRHIRef Buffer)
 	{
 		// get sort element based on the current sort key from top of sort key stack
 		FCanvas::FCanvasSortElement& SortElement = InCanvas->GetSortElement(InCanvas->TopDepthSortKey());
@@ -320,12 +355,16 @@ public:
 			InViewFamily,
 			InMesh,
 			InLODModel,
+			LightMapIndex,
 			InMaterialIndex,
 			InTexcoordBounds,
 			InTexCoords,
 			InSize,
 			InMaterialRenderProxy,
-			TopTransformEntry);
+			TopTransformEntry,
+			LightMap,
+			ShadowMap, 
+			Buffer);
 		SortElement.RenderBatchArray.Add(RenderBatch);
 	}
 
@@ -409,6 +448,8 @@ public:
 					Vert->TextureCoordinate[6].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].X;
 					Vert->TextureCoordinate[6].Y = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Y;
 					Vert->TextureCoordinate[7].X = RawMesh.VertexPositions[RawMesh.WedgeIndices[SrcVertIndex]].Z;
+					
+					Vert->LightMapCoordinate = RawMesh.WedgeTexCoords[Data.LightMapIndex][SrcVertIndex];
 
 					Vert->Color = bHasVertexColor ? RawMesh.WedgeColors[SrcVertIndex].DWColor() : DefaultColor;
 					// add index
@@ -641,7 +682,9 @@ public:
 		MeshElement.ReverseCulling = false;
 		MeshElement.UseDynamicData = true;
 		MeshElement.Type = PT_TriangleList;
-		MeshElement.DepthPriorityGroup = SDPG_Foreground;
+		MeshElement.DepthPriorityGroup = SDPG_Foreground;		
+		Data.LCI->SetPrecomputedLightingBuffer(LightMapHelpers::CreateDummyPrecomputedLightingUniformBuffer(UniformBuffer_SingleFrame, GMaxRHIFeatureLevel, Data.LCI));
+		MeshElement.LCI = Data.LCI;
 		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
 	#if SHOW_WIREFRAME_MESH
@@ -840,11 +883,15 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			&ViewFamily,
 			InMaterialData.Mesh,
 			InMaterialData.LODModel,
+			InMaterialData.LightMapIndex,
 			InMaterialData.MaterialIndex,
 			InMaterialData.TexcoordBounds,
 			InMaterialData.TexCoords,
 			FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY),
-			InMaterialProxy
+			InMaterialProxy,
+			InMaterialData.LightMap,
+			InMaterialData.ShadowMap,
+			InMaterialData.Buffer
 			);
 
 		// rendering is performed here
@@ -902,12 +949,12 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			Pixel8.G = (uint8)FMath::RoundToInt(Pixel16.G.GetFloat() * Scale);
 			Pixel8.B = (uint8)FMath::RoundToInt(Pixel16.B.GetFloat() * Scale);
 		}
-		InMaterialData.EmissiveScale = MaxValue;
+		
 	}
 
 	PerformUVBorderSmear(OutBMP, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), bNormalmap);
 
-//#define SAVE_INTERMEDIATE_TEXTURES 1
+#define SAVE_INTERMEDIATE_TEXTURES 1
 #ifdef SAVE_INTERMEDIATE_TEXTURES
 	FString FilenameString = FString::Printf(
 		TEXT( "D:/TextureTest/%s-mat%d-prop%d.bmp"),
@@ -959,11 +1006,15 @@ bool FMeshRenderer::RenderMaterialTexCoordScales(struct FMaterialMergeData& InMa
 		&ViewFamily,
 		InMaterialData.Mesh,
 		InMaterialData.LODModel,
+		InMaterialData.LightMapIndex,
 		InMaterialData.MaterialIndex,
 		InMaterialData.TexcoordBounds,
 		InMaterialData.TexCoords,
 		FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY),
-		InMaterialProxy
+		InMaterialProxy,
+		InMaterialData.LightMap,
+		InMaterialData.ShadowMap,
+		InMaterialData.Buffer
 		);
 
 	// rendering is performed here

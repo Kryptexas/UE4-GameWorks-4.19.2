@@ -11,7 +11,7 @@ public class HierarchicalLODUtilities : ModuleRules
             new string[]
 			{
 				"Core",
-				"CoreUObject",
+				"CoreUObject"
 			}
         );
 
@@ -20,14 +20,24 @@ public class HierarchicalLODUtilities : ModuleRules
 			{
 				"Engine",
 				"UnrealEd",
-                "Projects"
+                "Projects",
 			}
+        );
+
+        PrivateIncludePaths.AddRange(
+            new string[]
+            {
+                "MeshMergeUtilities",
+                "MeshReductionInterface",
+            }
         );
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[]
             {
-                "MeshUtilities"
+                "MeshUtilities",
+                "MeshMergeUtilities",
+                "MeshReductionInterface",
             }
         );
 	}

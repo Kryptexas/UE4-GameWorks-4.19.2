@@ -22,11 +22,6 @@ TSharedRef<IDetailCustomization> FAudioSettingsDetails::MakeInstance()
 
 void FAudioSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	if (!GetDefault<UEditorExperimentalSettings>()->bShowAudioStreamingOptions)
-	{
-		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAudioSettings, MaximumConcurrentStreams));
-	}
-
 	DialogueFilenameFormatProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAudioSettings, DialogueFilenameFormat));
 	DialogueFilenameFormatProperty->MarkHiddenByCustomization();
 

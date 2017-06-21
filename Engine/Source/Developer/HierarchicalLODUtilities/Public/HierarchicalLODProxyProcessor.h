@@ -7,6 +7,7 @@
 #include "Containers/Ticker.h"
 #include "GameFramework/WorldSettings.h"
 #include "MeshUtilities.h"
+#include "IMeshReductionInterfaces.h"
 
 class ALODActor;
 

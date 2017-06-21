@@ -55,12 +55,12 @@ protected:
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
 
 	// Should non-curve mapping values be shown (multiplier, range)?
-	EVisibility AreNonCurveMappingValuesVisible() const;
-	EVisibility AreRemappingValuesVisible() const;
+	static EVisibility AreNonCurveMappingValuesVisible(IDetailLayoutBuilder* DetailLayoutBuilder);
+	static EVisibility AreRemappingValuesVisible(IDetailLayoutBuilder* DetailLayoutBuilder);
 
 	// Should destination bone or morph target properties be visible
-	EVisibility AreTargetBonePropertiesVisible() const;
-	EVisibility AreTargetCurvePropertiesVisible() const;
+	static EVisibility AreTargetBonePropertiesVisible(IDetailLayoutBuilder* DetailLayoutBuilder);
+	static EVisibility AreTargetCurvePropertiesVisible(IDetailLayoutBuilder* DetailLayoutBuilder);
 
 	static void AddTripletPropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName XPropertyName, const FName YPropertyName, const FName ZPropertyName, TAttribute<EVisibility> VisibilityAttribute);
 	static void AddRangePropertyRow(const FText& Name, const FText& Tooltip, IDetailCategoryBuilder& Category, TSharedRef<IPropertyHandle> PropertyHandle, const FName MinPropertyName, const FName MaxPropertyName, TAttribute<EVisibility> VisibilityAttribute);

@@ -199,6 +199,8 @@ namespace Sc
 		void removeFromDirtyInteractionList(Interaction* interaction);
 		void updateDirtyInteractions(PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
+		void reserveSpaceInNphaseCore(const PxU32 nbContactManagers);
+
 
 		/*
 		Description: Perform trigger overlap tests.

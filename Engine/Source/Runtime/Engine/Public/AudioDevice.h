@@ -546,7 +546,7 @@ public:
 	int32 GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveInstances, const ESortedActiveWaveGetType::Type GetType);
 
 	/** Update the active sound playback time. This is done here to do after all audio is updated. */
-	void UpdateActiveSoundPlaybackTime();
+	void UpdateActiveSoundPlaybackTime(bool bIsTimeTicking);
 
 	/** Optional fadeout of audio to avoid clicks when closing audio device. */
 	virtual void FadeOut() {}
@@ -1297,6 +1297,9 @@ private:
 	/** Processes the set of pending sounds that need to be stopped */ 
 	void ProcessingPendingActiveSoundStops(bool bForceDelete = false);
 
+	/** Check whether we should use attenuation settings */
+	bool ShouldUseAttenuation(const UWorld* World) const;
+
 public:
 
 	/** Query if the editor is in VR Preview for the current play world. Returns false for non-editor builds */
@@ -1351,6 +1354,12 @@ public:
 	{
 		FAudioDevice* MainAudioDevice = GEngine->GetMainAudioDevice();
 		return (MainAudioDevice == nullptr || MainAudioDevice == this);
+	}
+
+	/** Set whether or not we force the use of attenuation for non-game worlds (as by default we only care about game worlds) */
+	void SetUseAttenuationForNonGameWorlds(bool bInUseAttenuationForNonGameWorlds)
+	{
+		bUseAttenuationForNonGameWorlds = bInUseAttenuationForNonGameWorlds;
 	}
 
 public:
@@ -1512,6 +1521,9 @@ private:
 
 	/** Whether or not we're supporting zero volume wave instances */
 	uint8 bAllowVirtualizedSounds:1;
+
+	/** Whether or not we force the use of attenuation for non-game worlds (as by default we only care about game worlds) */
+	uint8 bUseAttenuationForNonGameWorlds:1;
 
 #if !UE_BUILD_SHIPPING
 	uint8 RequestedAudioStats;

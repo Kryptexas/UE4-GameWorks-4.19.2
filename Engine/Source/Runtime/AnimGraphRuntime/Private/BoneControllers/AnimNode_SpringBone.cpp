@@ -28,16 +28,16 @@ FAnimNode_SpringBone::FAnimNode_SpringBone()
 {
 }
 
-void FAnimNode_SpringBone::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SpringBone::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+	FAnimNode_SkeletalControlBase::Initialize_AnyThread(Context);
 
 	RemainingTime = 0.0f;
 }
 
-void FAnimNode_SpringBone::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_SpringBone::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_SkeletalControlBase::CacheBones(Context);
+	FAnimNode_SkeletalControlBase::CacheBones_AnyThread(Context);
 }
 
 void FAnimNode_SpringBone::UpdateInternal(const FAnimationUpdateContext& Context)
@@ -204,7 +204,7 @@ void FAnimNode_SpringBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePose
 
 bool FAnimNode_SpringBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
-	return (SpringBone.IsValid(RequiredBones));
+	return (SpringBone.IsValidToEvaluate(RequiredBones));
 }
 
 void FAnimNode_SpringBone::InitializeBoneReferences(const FBoneContainer& RequiredBones) 

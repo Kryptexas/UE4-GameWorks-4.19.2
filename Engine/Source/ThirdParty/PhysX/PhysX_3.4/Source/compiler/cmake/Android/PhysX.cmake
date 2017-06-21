@@ -65,8 +65,6 @@ INCLUDE(../common/PhysX.cmake)
 
 
 # Add linked libraries
-# TARGET_LINK_LIBRARIES(PhysX PUBLIC -Wl,--start-group LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController -Wl,--end-group)
-
 TARGET_LINK_LIBRARIES(PhysX PUBLIC PhysXCommon PxFoundation PxPvdSDK)
 
 # enable -fPIC so we can link static libs with the editor

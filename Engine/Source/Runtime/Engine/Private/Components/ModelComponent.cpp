@@ -368,9 +368,10 @@ UMaterialInterface* UModelComponent::GetMaterial(int32 MaterialIndex) const
 	return Material;
 }
 
-UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
 {
 	UMaterialInterface* Result = nullptr;
+	SectionIndex = 0;
 
 	// Look for element that corresponds to the supplied face
 	int32 TotalFaceCount = 0;
@@ -383,6 +384,7 @@ UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 Fac
 		{
 			// Grab the material
 			Result = Element.Material;
+			SectionIndex = ElementIdx;
 			break;
 		}
 	}

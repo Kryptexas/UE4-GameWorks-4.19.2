@@ -34,6 +34,9 @@ public:
 		: UMeshPaintSettings()
 		, ViewMin(0.0f)
 		, ViewMax(100.0f)
+		, bFlipNormal(false)
+		, bCullBackface(false)
+		, Opacity(0.8f)
 	{}
 
 	float GetViewMin()
@@ -51,10 +54,6 @@ public:
 	// Delegates to communicate with objects concerned with the settings changing
 	FOnClothingAssetSelectionChangedMulticaster OnAssetSelectionChanged;
 
-	/** Array of Clothing assets */
-	UPROPERTY()
-	TArray<UClothingAsset*> ClothingAssets;
-
 protected:
 	/** When painting float/1D values, this is considered the zero or black point */
 	UPROPERTY(EditAnywhere, Category = View)
@@ -63,4 +62,22 @@ protected:
 	/** When painting float/1D values, this is considered the one or white point */
 	UPROPERTY(EditAnywhere, Category = View)
 	float ViewMax;
+
+public:
+
+	/** Array of Clothing assets */
+	UPROPERTY()
+	TArray<UClothingAsset*> ClothingAssets;
+
+	/** Whether to flip normals on the mesh preview */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = View)
+	bool bFlipNormal;
+
+	/** Whether to bull backfacing triangles when rendering the mesh preview */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = View)
+	bool bCullBackface;
+
+	/** Opacity of the mesh preview */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = View, meta = (UIMin = 0, UIMax = 1, ClampMin = 0, ClampMax = 1))
+	float Opacity;
 };

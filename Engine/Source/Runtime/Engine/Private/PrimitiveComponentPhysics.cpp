@@ -139,6 +139,10 @@ bool UPrimitiveComponent::ConditionalApplyRigidBodyState(FRigidBodyState& Update
 		}
 
 		bUpdated = true;
+
+		// Need to update the component to match new position.
+		// TODO: Only call this if OutDeltaPos is non-zero? May not capture rotations.
+		SyncComponentToRBPhysics();
 	}
 
 	return bUpdated;
@@ -375,7 +379,7 @@ FVector UPrimitiveComponent::GetPhysicsAngularVelocity(FName BoneName)
 	return FVector(0,0,0);
 }
 
-FVector UPrimitiveComponent::GetCenterOfMass(FName BoneName)
+FVector UPrimitiveComponent::GetCenterOfMass(FName BoneName) const
 {
 	if (FBodyInstance* ComponentBodyInstance = GetBodyInstance(BoneName))
 	{
@@ -591,7 +595,7 @@ void UPrimitiveComponent::PutAllRigidBodiesToSleep()
 }
 
 
-bool UPrimitiveComponent::RigidBodyIsAwake(FName BoneName)
+bool UPrimitiveComponent::RigidBodyIsAwake(FName BoneName) const
 {
 	FBodyInstance* BI = GetBodyInstance(BoneName);
 	if(BI)
@@ -1015,7 +1019,7 @@ void UPrimitiveComponent::SetCollisionProfileName(FName InCollisionProfileName)
 	}
 }
 
-FName UPrimitiveComponent::GetCollisionProfileName()
+FName UPrimitiveComponent::GetCollisionProfileName() const
 {
 	return BodyInstance.GetCollisionProfileName();
 }

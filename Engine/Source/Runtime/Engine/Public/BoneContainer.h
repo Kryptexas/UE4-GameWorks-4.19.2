@@ -367,8 +367,18 @@ struct FBoneReference
 	// it triggers ensure in those functions
 	ENGINE_API bool Initialize(const USkeleton* Skeleton);
 
-	/** return true if valid. Otherwise return false **/
+	/** Deprecated functions */
+	DEPRECATED(4.17, "Please use IsValidToEvaluate instead")
 	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
+	
+	/** return true if it has valid set up */
+	bool HasValidSetup() const
+	{
+		return (BoneIndex != INDEX_NONE);
+	}
+
+	/** return true if has valid index, and required bones contain it **/
+	ENGINE_API bool IsValidToEvaluate(const FBoneContainer& RequiredBones) const;
 
 	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const
 	{ 

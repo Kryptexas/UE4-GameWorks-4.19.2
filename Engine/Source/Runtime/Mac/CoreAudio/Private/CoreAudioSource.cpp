@@ -10,6 +10,7 @@
 
 #include "CoreAudioDevice.h"
 #include "CoreAudioEffects.h"
+#include "ContentStreaming.h"
 
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 
@@ -425,6 +426,8 @@ void FCoreAudioSoundSource::Play( void )
 void FCoreAudioSoundSource::Stop( void )
 {
 	FScopeLock Lock(&CriticalSection);
+
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 
 	if( WaveInstance )
 	{

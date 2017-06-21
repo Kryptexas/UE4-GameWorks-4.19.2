@@ -73,6 +73,10 @@ class ENGINE_API UDecalComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")
 	void SetFadeOut(float StartDelay, float Duration, bool DestroyOwnerAfterFade = true);
 
+	/** Set the FadeScreenSize for this decal component */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")
+	void SetFadeScreenSize(float NewFadeScreenSize);
+
 	/** Decal size in local space (does not include the component scale), technically redundant but there for convenience */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal, meta=(AllowPreserveRatio = "true"))
 	FVector DecalSize;

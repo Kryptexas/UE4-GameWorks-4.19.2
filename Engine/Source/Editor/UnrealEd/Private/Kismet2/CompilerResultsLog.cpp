@@ -12,6 +12,8 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "EngineLogs.h"
 #include "K2Node_MacroInstance.h"
+#include "Engine/Blueprint.h"
+#include "IMessageLogListing.h"
 
 #if WITH_EDITOR
 
@@ -761,6 +763,67 @@ UEdGraphNode* FCompilerResultsLog::GetSourceTunnelInstance(const UEdGraphNode* I
 void FCompilerResultsLog::GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut)
 {
 	IntermediateTunnelInstanceHierarchyMap.MultiFind(IntermediateNode, ActiveTunnelsOut, true);
+}
+
+static FName GetBlueprintMessageLogName(UBlueprint* InBlueprint)
+{
+	FName LogListingName;
+	if (InBlueprint != nullptr)
+	{
+		LogListingName = *FString::Printf(TEXT("%s_%s_CompilerResultsLog"), *InBlueprint->GetBlueprintGuid().ToString(), *InBlueprint->GetName());
+	}
+	else
+	{
+		LogListingName = "BlueprintCompiler";
+	}
+	return LogListingName;
+}
+
+static TSharedRef<IMessageLogListing> RegisterBlueprintMessageLog(UBlueprint* InBlueprint)
+{
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+
+	const FName LogName = GetBlueprintMessageLogName(InBlueprint);
+
+	// Register the log (this will return an existing log if it has been used before)
+	FMessageLogInitializationOptions LogInitOptions;
+	LogInitOptions.bShowInLogWindow = false;
+	MessageLogModule.RegisterLogListing(LogName, LOCTEXT("BlueprintCompilerLogLabel", "BlueprintCompiler"), LogInitOptions);
+	return MessageLogModule.GetLogListing(LogName);
+}
+
+TSharedRef<IMessageLogListing> FCompilerResultsLog::GetBlueprintMessageLog(UBlueprint* InBlueprint)
+{
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+
+	const FName LogName = GetBlueprintMessageLogName(InBlueprint);
+
+	// Reuse any existing log, or create a new one (that is not held onto bey the message log system)
+	if(MessageLogModule.IsRegisteredLogListing(LogName))
+	{
+		return MessageLogModule.GetLogListing(LogName);
+	}
+	else
+	{
+		FMessageLogInitializationOptions LogInitOptions;
+		LogInitOptions.bShowInLogWindow = false;
+		return MessageLogModule.CreateLogListing(LogName, LogInitOptions);
+	}
+}
+
+FScopedBlueprintMessageLog::FScopedBlueprintMessageLog(UBlueprint* InBlueprint)
+	: Log(RegisterBlueprintMessageLog(InBlueprint))
+{
+}
+
+FScopedBlueprintMessageLog::~FScopedBlueprintMessageLog()
+{
+	// Unregister the log so it will be ref-counted to zero if it has no messages
+	if(Log->NumMessages(EMessageSeverity::Info) == 0)
+	{
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing(Log->GetName());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

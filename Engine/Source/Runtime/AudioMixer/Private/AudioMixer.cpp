@@ -5,6 +5,15 @@
 #include "HAL/RunnableThread.h"
 #include "Misc/ConfigCacheIni.h"
 
+// Command to enable logging to display accurate audio render times
+static int32 LogRenderTimesCVar = 0;
+FAutoConsoleVariableRef CVarLogRenderTimes(
+	TEXT("au.LogRenderTimes"),
+	LogRenderTimesCVar,
+	TEXT("Logs Audio Render Times.\n")
+	TEXT("0: Not Log, 1: Log"),
+	ECVF_Default);
+
 DEFINE_STAT(STAT_AudioMixerRenderAudio);
 DEFINE_STAT(STAT_AudioMixerSourceManagerUpdate);
 DEFINE_STAT(STAT_AudioMixerSourceBuffers);
@@ -19,6 +28,60 @@ DEFINE_STAT(STAT_AudioMixerMasterEQ);
 
 namespace Audio
 {
+	int32 sRenderInstanceIds = 0;
+
+	FAudioRenderTimeAnalysis::FAudioRenderTimeAnalysis()
+		: AvgRenderTime(0.0)
+		, MaxRenderTime(0.0)
+		, TotalRenderTime(0.0)
+		, StartTime(0.0)
+		, RenderTimeCount(0)
+		, RenderInstanceId(sRenderInstanceIds++)
+	{}
+
+	void FAudioRenderTimeAnalysis::Start()
+	{
+		StartTime = FPlatformTime::Cycles();
+	}
+
+	void FAudioRenderTimeAnalysis::End()
+	{
+		uint32 DeltaCycles = FPlatformTime::Cycles() - StartTime;
+		double DeltaTime = DeltaCycles * FPlatformTime::GetSecondsPerCycle();
+
+		TotalRenderTime += DeltaTime;
+		RenderTimeSinceLastLog += DeltaTime;
+		++RenderTimeCount;
+		AvgRenderTime = TotalRenderTime / RenderTimeCount;
+		
+		if (DeltaTime > MaxRenderTime)
+		{
+			MaxRenderTime = DeltaTime;
+		}
+		
+		if (DeltaTime > MaxSinceTick)
+		{
+			MaxSinceTick = DeltaTime;
+		}
+
+		if (LogRenderTimesCVar == 1)
+		{
+			if (RenderTimeCount % 32 == 0)
+			{
+				RenderTimeSinceLastLog /= 32.0f;
+				UE_LOG(LogAudioMixerDebug, Display, TEXT("Render Time [id:%d] - Max: %.2f ms, MaxDelta: %.2f ms, Delta Avg: %.2f ms, Global Avg: %.2f ms"), 
+					RenderInstanceId, 
+					(float)MaxRenderTime * 1000.0f, 
+					(float)MaxSinceTick * 1000.0f,
+					RenderTimeSinceLastLog * 1000.0f, 
+					(float)AvgRenderTime * 1000.0f);
+
+				RenderTimeSinceLastLog = 0.0f;
+				MaxSinceTick = 0.0f;
+			}
+		}
+	}
+
 	void FOutputBuffer::Init(IAudioMixer* InAudioMixer, const int32 InNumSamples, const EAudioMixerStreamDataFormat::Type InDataFormat)
 	{
 		Buffer.SetNumZeroed(InNumSamples);
@@ -148,6 +211,9 @@ namespace Audio
 
 	void IAudioMixerPlatformInterface::PerformFades()
 	{
+		const int32 NextReadIndex = (CurrentBufferReadIndex + 1) % NumOutputBuffers;
+		FOutputBuffer& CurrentReadBuffer = OutputBuffers[NextReadIndex];
+
 		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
 		if (bFadingIn)
 		{
@@ -158,8 +224,6 @@ namespace Audio
 			}
 			else
 			{
-				FOutputBuffer& CurrentReadBuffer = OutputBuffers[CurrentBufferReadIndex];
-
 				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
 				const float Slope = 1.0f / Buffer.Num();
 				for (int32 i = 0; i < Buffer.Num(); ++i)
@@ -177,14 +241,9 @@ namespace Audio
 				bFadingOut = false;
 				bFadedOut = true;
 				FadeEnvelopeValue = 0.0f;
-
-				// We're done fading out, trigger the thread waiting to fade to continue
-				AudioFadeEvent->Trigger();
 			}
 			else
 			{
-				FOutputBuffer& CurrentReadBuffer = OutputBuffers[CurrentBufferReadIndex];
-
 				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
 				const float Slope = 1.0f / Buffer.Num();
 				for (int32 i = 0; i < Buffer.Num(); ++i)
@@ -192,13 +251,15 @@ namespace Audio
 					Buffer[i] *= FadeEnvelopeValue;
 					FadeEnvelopeValue -= Slope;
 				}
+
 			}
+
+			AudioFadeEvent->Trigger();
 		}
 
 		if (bFadedOut)
 		{
 			// If we're faded out, then just zero the data.
-			FOutputBuffer& CurrentReadBuffer = OutputBuffers[CurrentBufferReadIndex];
 			TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
 			FPlatformMemory::Memzero(Buffer.GetData(), sizeof(float)*Buffer.Num());
 		}
@@ -296,7 +357,7 @@ namespace Audio
 		check(AudioFadeEvent != nullptr);
 
 		check(AudioRenderThread == nullptr);
-		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_TimeCritical);
+		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_Highest);
 		check(AudioRenderThread != nullptr);
 	}
 
@@ -324,7 +385,7 @@ namespace Audio
 			AudioRenderThread = nullptr;
 		}
 
-		if(AudioRenderEvent != nullptr)
+		if (AudioRenderEvent != nullptr)
 		{
 			FPlatformProcess::ReturnSynchEventToPool(AudioRenderEvent);
 			AudioRenderEvent = nullptr;
@@ -347,7 +408,7 @@ namespace Audio
 		// Lets prime and submit the first buffer (which is going to be the buffer underrun buffer)
 		SubmitBuffer(UnderrunBuffer.GetBufferData());
 
-		OutputBuffers[0].MixNextBuffer();
+		OutputBuffers[CurrentBufferWriteIndex].MixNextBuffer();
 
 		check(CurrentBufferReadIndex == 0);
 		check(CurrentBufferWriteIndex == 1);
@@ -356,6 +417,8 @@ namespace Audio
 
 		while (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopping)
 		{
+			RenderTimeAnalysis.Start();
+
 			// Render mixed buffers till our queued buffers are filled up
 			while (CurrentBufferReadIndex != CurrentBufferWriteIndex)
 			{
@@ -363,6 +426,8 @@ namespace Audio
 
 				CurrentBufferWriteIndex = (CurrentBufferWriteIndex + 1) % NumOutputBuffers;
 			}
+
+			RenderTimeAnalysis.End();
 
 			// Now wait for a buffer to be consumed, which will bump up the read index.
 			AudioRenderEvent->Wait();

@@ -580,6 +580,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOverlayMorphTargetVerts));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowVertexColors,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowVertexColorsChanged),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingVertexColors));
+
 	// Show sockets
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowSockets,
@@ -726,9 +732,15 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.MuteAudio,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnMuteAudio),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleMuteAudio),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioMuted));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.UseAudioAttenuation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleUseAudioAttenuation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioAttenuationEnabled));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ProcessRootMotion,
@@ -1450,14 +1462,24 @@ bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 	return !LevelViewportClient->IsOrtho();
 }
 
-void SAnimationEditorViewportTabBody::OnMuteAudio()
+void SAnimationEditorViewportTabBody::OnToggleMuteAudio()
 {
 	GetAnimationViewportClient()->OnToggleMuteAudio();
 }
 
-bool SAnimationEditorViewportTabBody::IsAudioMuted()
+bool SAnimationEditorViewportTabBody::IsAudioMuted() const
 {
 	return GetAnimationViewportClient()->IsAudioMuted();
+}
+
+void SAnimationEditorViewportTabBody::OnToggleUseAudioAttenuation()
+{
+	GetAnimationViewportClient()->OnToggleUseAudioAttenuation();
+}
+
+bool SAnimationEditorViewportTabBody::IsAudioAttenuationEnabled() const
+{
+	return GetAnimationViewportClient()->IsUsingAudioAttenuation();
 }
 
 void SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion()
@@ -1479,6 +1501,38 @@ bool SAnimationEditorViewportTabBody::IsPreviewingRootMotion() const
 		return PreviewComponent->bPreviewRootMotion;
 	}
 	return false;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingVertexColors() const
+{
+	return GetAnimationViewportClient()->EngineShowFlags.VertexColors;
+}
+
+void SAnimationEditorViewportTabBody::OnShowVertexColorsChanged()
+{
+	FEngineShowFlags& ShowFlags = GetAnimationViewportClient()->EngineShowFlags;
+
+	if(UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
+	{
+		if(!ShowFlags.VertexColors)
+		{
+			ShowFlags.SetVertexColors(true);
+			ShowFlags.SetLighting(false);
+			ShowFlags.SetIndirectLightingCache(false);
+			PreviewComponent->bDisplayVertexColors = true;
+		}
+		else
+		{
+			ShowFlags.SetVertexColors(false);
+			ShowFlags.SetLighting(true);
+			ShowFlags.SetIndirectLightingCache(true);
+			PreviewComponent->bDisplayVertexColors = false;
+		}
+
+		PreviewComponent->RecreateRenderState_Concurrent();
+	}
+
+	RefreshViewport();
 }
 
 #if WITH_APEX_CLOTHING

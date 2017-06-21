@@ -76,7 +76,7 @@ public:
 	/** Gets the currently selected log listing's name */
 	FName GetCurrentListingName() const;
 
-	/** Gets the currently selectd log listing's label */
+	/** Gets the currently selected log listing's label */
 	FString GetCurrentListingLabel() const;
 
 	/** Get the linearized array of ViewModels */

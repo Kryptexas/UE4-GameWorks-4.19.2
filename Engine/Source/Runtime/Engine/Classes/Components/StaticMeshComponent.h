@@ -310,6 +310,9 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The component has some custom painting on LODs or not. */
 	UPROPERTY()
 	bool bCustomOverrideVertexColorPerLOD;
+
+	UPROPERTY(transient)
+	bool bDisplayVertexColors;
 #endif
 
 	/** The Lightmass settings for this object. */
@@ -374,7 +377,12 @@ public:
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
+#if WITH_EDITOR
+	virtual bool ShouldRenderSelected() const override;
+#endif
 	//~ End USceneComponent Interface
+
+
 
 	//~ Begin UActorComponent Interface.
 protected: 
@@ -428,7 +436,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
-	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const override;
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const override;
 	virtual TArray<FName> GetMaterialSlotNames() const override;
 	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 

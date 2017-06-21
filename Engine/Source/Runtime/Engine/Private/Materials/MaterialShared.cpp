@@ -2725,6 +2725,16 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 		{
 			return bNeedsWorldPositionExcludingShaderOffsets;
 		}
+
+		bool UsesPrecomputedAOMask() const
+		{
+			return bUsesAOMaterialMask;
+		}
+
+		bool UsesVertexPosition() const 
+		{
+			return bUsesVertexPosition;
+		}
 	};
 
 	FMaterialCompilationOutput TempOutput;
@@ -2737,7 +2747,7 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 	CompileProperty(&MaterialTranslator, InProperty);
 	// Request data from translator
 	OutNumTextureCoordinates = MaterialTranslator.GetTextureCoordsCount();
-	bOutRequiresVertexData = MaterialTranslator.UsesVertexColor() || MaterialTranslator.UsesTransformVector() || MaterialTranslator.UsesWorldPositionExcludingShaderOffsets();
+	bOutRequiresVertexData = MaterialTranslator.UsesVertexColor() || MaterialTranslator.UsesTransformVector() || MaterialTranslator.UsesWorldPositionExcludingShaderOffsets() || MaterialTranslator.UsesPrecomputedAOMask() || MaterialTranslator.UsesVertexPosition();
 #endif
 }
 

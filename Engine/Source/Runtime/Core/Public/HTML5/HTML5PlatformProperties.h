@@ -21,7 +21,7 @@ struct FHTML5PlatformProperties
 {
 	static FORCEINLINE const char* GetPhysicsFormat( )
 	{
-		return "PhysXPC";
+		return "PhysXGeneric";
 	}
 
 	static FORCEINLINE bool HasEditorOnlyData( )

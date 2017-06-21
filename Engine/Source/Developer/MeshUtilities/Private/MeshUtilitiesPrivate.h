@@ -18,37 +18,51 @@
 class FMeshUtilities : public IMeshUtilities
 {
 public:
-	/** Default constructor. */
-	FMeshUtilities()
-		: StaticMeshReduction(NULL)
-		, SkeletalMeshReduction(NULL)
-		, MeshMerging(NULL)
-		, DistributedMeshMerging(NULL)
-		, Processor(NULL)
-	{
-	}
+	DEPRECATED(4.17, "Use functionality in new MeshReduction Module")
+	virtual IMeshReduction* GetStaticMeshReductionInterface() override;
+	
+	DEPRECATED(4.17, "Use functionality in new MeshReduction Module")
+	virtual IMeshReduction* GetSkeletalMeshReductionInterface() override;
+	
+	DEPRECATED(4.17, "Use functionality in new MeshReduction Module")
+	virtual IMeshMerging* GetMeshMergingInterface() override;
+	
+	DEPRECATED(4.17, "Use functionality in new MeshMergeUtilities Module")
+	virtual void MergeActors(
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,
+		const FString& InBasePackageName,
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		bool bSilent = false) const override;
 
-	void UpdateMeshReductionModule();
+	DEPRECATED(4.17, "Use functionality in new MeshMergeUtilities Module")
+	virtual void MergeStaticMeshComponents(
+		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
+		UWorld* World,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,
+		const FString& InBasePackageName,
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		const float ScreenSize,
+		bool bSilent = false) const override;
+
+	DEPRECATED(4.17, "Use functionality in new MeshMergeUtilities Module")
+	virtual void CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync,
+	const float ScreenAreaSize = 1.0f) override;
+	
+	DEPRECATED(4.17, "Function is removed, use functionality in new MeshMergeUtilities Module")
+	virtual void FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& InMaterials, TArray<FRawMeshExt>& InSourceMeshes, TMap<FMeshIdAndLOD, TArray<int32>>& InMaterialIndexMap, TArray<bool>& InMeshShouldBakeVertexData, const FMaterialProxySettings &InMaterialProxySettings, TArray<FFlattenMaterial> &OutFlattenedMaterials) const override;
 
 private:
-	/** Cached pointer to the mesh reduction interface. */
-	IMeshReduction* StaticMeshReduction;
-	/** Cached pointer to the mesh reduction interface. */
-	IMeshReduction* SkeletalMeshReduction;
-	/** Cached pointer to the mesh merging interface. */
-	IMeshMerging* MeshMerging;
-	/** Cached pointer to the distributed mesh merging interface. */
-	IMeshMerging* DistributedMeshMerging;
 	/** Cached version string. */
 	FString VersionString;
-	/** True if Simplygon is being used for mesh reduction. */
-	bool bUsingSimplygon;
 	/** True if NvTriStrip is being used for tri order optimization. */
 	bool bUsingNvTriStrip;
 	/** True if we disable triangle order optimization.  For debugging purposes only */
 	bool bDisableTriangleOrderOptimization;
-
-	class FProxyGenerationProcessor* Processor;
 
 	// IMeshUtilities interface.
 	virtual const FString& GetVersionString() const override
@@ -88,12 +102,14 @@ private:
 		bool bGenerateAsIfTwoSided,
 		FDistanceFieldVolumeData& OutData) override;
 
+	virtual void RecomputeTangentsAndNormalsForRawMesh(bool bRecomputeTangents, bool bRecomputeNormals, const FMeshBuildSettings& InBuildSettings, FRawMesh &OutRawMesh) const override;
+
+
+	virtual bool GenerateUniqueUVsForStaticMesh(const FRawMesh& RawMesh, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const override;
+
 	virtual bool BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions = MeshBuildOptions(), TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL) override;
 	bool BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true, TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL);
-
-	virtual IMeshReduction* GetStaticMeshReductionInterface() override;
-	virtual IMeshReduction* GetSkeletalMeshReductionInterface() override;
-	virtual IMeshMerging* GetMeshMergingInterface() override;
+	
 	virtual void CacheOptimizeIndexBuffer(TArray<uint16>& Indices) override;
 	virtual void CacheOptimizeIndexBuffer(TArray<uint32>& Indices) override;
 	void CacheOptimizeVertexAndIndexBuffer(TArray<FStaticMeshBuildVertex>& Vertices, TArray<TArray<uint32> >& PerSectionIndices, TArray<int32>& WedgeMap);
@@ -128,98 +144,17 @@ private:
 	*/
 	void BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap);
 
+	virtual void FindOverlappingCorners(TMultiMap<int32, int32>& OutOverlappingCorners, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, float ComparisonThreshold) const override;
+
+	void FindOverlappingCorners(TMultiMap<int32, int32>& OutOverlappingCorners, FRawMesh const& RawMesh, float ComparisonThreshold) const;
 	// IModuleInterface interface.
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-	DEPRECATED(4.12, "Please use MergeActor with new signature instead")
-	virtual void MergeActors(
-		const TArray<AActor*>& SourceActors,
-		const FMeshMergingSettings& InSettings,
-		UPackage* InOuter,
-		const FString& InBasePackageName,
-		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
-		TArray<UObject*>& OutAssetsToSync,
-		FVector& OutMergedActorLocation,
-		bool bSilent = false) const override;
-
-	virtual void MergeActors(
-		const TArray<AActor*>& SourceActors,
-		const FMeshMergingSettings& InSettings,
-		UPackage* InOuter,
-		const FString& InBasePackageName,
-		TArray<UObject*>& OutAssetsToSync,
-		FVector& OutMergedActorLocation,
-		bool bSilent = false) const override;
-
-
-	DEPRECATED(4.12, "Please use MergeStaticMeshComponents with new signature instead") 
-	virtual void MergeStaticMeshComponents(
-		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
-		UWorld* World,
-		const FMeshMergingSettings& InSettings,
-		UPackage* InOuter,
-		const FString& InBasePackageName,
-		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
-		TArray<UObject*>& OutAssetsToSync,
-		FVector& OutMergedActorLocation,
-		const float ScreenSize,
-		bool bSilent = false) const override;
-
-	virtual void MergeStaticMeshComponents(
-		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
-		UWorld* World,
-		const FMeshMergingSettings& InSettings,
-		UPackage* InOuter,
-		const FString& InBasePackageName,
-		TArray<UObject*>& OutAssetsToSync,
-		FVector& OutMergedActorLocation,
-		const float ScreenSize,
-		bool bSilent = false) const override;
-
-	virtual void CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync,
-		const float ScreenAreaSize = 1.0f) override;
-
-	virtual void ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FRawMesh& OutRawMesh) const override;
-
-	DEPRECATED(4.11, "Please use CreateProxyMesh with new signature")
-		virtual void CreateProxyMesh(
-		const TArray<AActor*>& Actors,
-		const struct FMeshProxySettings& InProxySettings,
-		UPackage* InOuter,
-		const FString& ProxyBasePackageName,
-		TArray<UObject*>& OutAssetsToSync,
-		FVector& OutProxyLocation
-		) override;
-
-	virtual void CreateProxyMesh(
-		const TArray<AActor*>& Actors,
-		const struct FMeshProxySettings& InProxySettings,
-		UPackage* InOuter,
-		const FString& ProxyBasePackageName,
-		TArray<UObject*>& OutAssetsToSync,
-		const float ScreenAreaSize = 1.0f) override;
-
-	virtual void FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& InMaterials, TArray<FRawMeshExt>& InSourceMeshes, TMap<FMeshIdAndLOD, TArray<int32>>& InMaterialIndexMap, TArray<bool>& InMeshShouldBakeVertexData, const FMaterialProxySettings &InMaterialProxySettings, TArray<FFlattenMaterial> &OutFlattenedMaterials) const override;
-
-	bool ConstructRawMesh(
-		const UStaticMeshComponent* InMeshComponent,
-		int32 InLODIndex,
-		const bool bPropagateVertexColours,
-		FRawMesh& OutRawMesh,
-		TArray<FSectionInfo>& OutUniqueSections,
-		TArray<int32>& OutGlobalMaterialIndices
-		) const;
-
 	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices, int32 ImportVersion);
-
-	virtual bool PropagatePaintedColorsToRawMesh(const UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const override;
-
-	virtual void CalculateTextureCoordinateBoundsForRawMesh(const FRawMesh& InRawMesh, TArray<FBox2D>& OutBounds) const override;
-
+	
 	virtual void CalculateTextureCoordinateBoundsForSkeletalMesh(const FStaticLODModel& LODModel, TArray<FBox2D>& OutBounds) const override;
-
-	virtual bool GenerateUniqueUVsForStaticMesh(const FRawMesh& RawMesh, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const override;
+	
 	virtual bool GenerateUniqueUVsForSkeletalMesh(const FStaticLODModel& LODModel, int32 TextureResolution, TArray<FVector2D>& OutTexCoords) const override;
 
 	virtual bool RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODIndex, const TArray<FName>* BoneNamesToRemove) const override;
@@ -255,7 +190,7 @@ protected:
 
 	TSharedRef<FExtender> GetSkeletonEditorToolbarExtender(const TSharedRef<FUICommandList> CommandList, TSharedRef<ISkeletonEditor> InSkeletonEditor);
 
-	void HandleAddConvertComponentToStaticMeshToToolbar(FToolBarBuilder& ParentToolbarBuilder, UMeshComponent* MeshComponent);
+	void HandleAddSkeletalMeshActionExtenderToToolbar(FToolBarBuilder& ParentToolbarBuilder, UMeshComponent* MeshComponent);
 
 	void AddLevelViewportMenuExtender();
 

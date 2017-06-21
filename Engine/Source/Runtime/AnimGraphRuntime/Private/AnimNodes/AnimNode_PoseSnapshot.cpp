@@ -44,13 +44,13 @@ void FAnimNode_PoseSnapshot::PreUpdate(const UAnimInstance* InAnimInstance)
 	}
 }
 
-void FAnimNode_PoseSnapshot::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_PoseSnapshot::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// Evaluate any BP logic plugged into this node
 	EvaluateGraphExposedInputs.Execute(Context);
 }
 
-void FAnimNode_PoseSnapshot::Evaluate(FPoseContext& Output)
+void FAnimNode_PoseSnapshot::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FCompactPose& OutPose = Output.Pose;
 	OutPose.ResetToRefPose();

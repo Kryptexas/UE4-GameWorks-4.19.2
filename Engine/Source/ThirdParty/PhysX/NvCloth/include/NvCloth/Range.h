@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -39,8 +39,16 @@ namespace cloth
 template <class T>
 struct Range
 {
+	/** \brief Construct an empty range.
+		*/
 	Range();
 
+	/** \brief Construct a range (array like container) using existing memory.
+		Range doesn't take ownership of this memory.
+		Interface works similar to std::vector.
+		@param begin start of the memory
+		@param end end of the memory range, point to one element past the last valid element.
+		*/
 	Range(T* begin, T* end);
 
 	template <typename S>

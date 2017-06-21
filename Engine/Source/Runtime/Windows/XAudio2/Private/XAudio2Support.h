@@ -811,6 +811,12 @@ struct FXAudioDeviceProperties final : public IDeviceChangedListener
 			MasteringVoice = nullptr;
 		}
 
+		if (AudioClockVoice)
+		{
+			AudioClockVoice->DestroyVoice();
+			AudioClockVoice = nullptr;
+		}
+
 		if (XAudio2)
 		{
 			// Force the hardware to release all references

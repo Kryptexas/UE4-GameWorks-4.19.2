@@ -117,6 +117,11 @@ template <typename InAllocator>
 struct FBaseCompactPose : FBasePose<FCompactPoseBoneIndex, InAllocator>
 {
 public:
+
+	FBaseCompactPose()
+		: BoneContainer(nullptr)
+	{}
+
 	typedef FCompactPoseBoneIndex BoneIndexType;
 	typedef InAllocator   Allocator;
 	//--------------------------------------------------------------------------

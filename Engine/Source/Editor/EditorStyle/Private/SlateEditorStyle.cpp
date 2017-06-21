@@ -1202,6 +1202,11 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("BlueprintDebugger.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_BlueprintDebugger_16x", Icon16x16 ) );
 	}
 
+	// Collision Analyzer Window
+	{
+		Set("CollisionAnalyzer.TabIcon", new IMAGE_BRUSH("Icons/icon_ShowCollision_16x", Icon16x16));
+	}
+
 	// Developer Tools Menu
 	{
 		Set("DeveloperTools.MenuIcon", new IMAGE_BRUSH( "Icons/icon_tab_DevTools_16x", Icon16x16 ) );
@@ -5070,13 +5075,15 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 
 	// Mesh Paint
 	{
-		Set( "MeshPaint.Fill", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Fill_16x", Icon16x16 ) );
-		Set( "MeshPaint.PropagateColors", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Copy_16x", Icon16x16 ) );
-		Set( "MeshPaint.ImportVertColors", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Import_16x", Icon16x16 ) );
-		Set( "MeshPaint.FindInCB", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Find_16x", Icon16x16 ) );
-		Set( "MeshPaint.SavePackage", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Save_16x", Icon16x16 ) );
-		Set( "MeshPaint.FixColors", new IMAGE_BRUSH( "/Icons/icon_tab_Toolbars_16x", Icon16x16 ) );
-		Set( "MeshPaint.Swap", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Swap_16x", Icon16x16 ) );
+		Set( "MeshPaint.Fill", new IMAGE_BRUSH( "/Icons/icon_MeshPaint_Fill_40x", Icon20x20) );
+		Set( "MeshPaint.Propagate", new IMAGE_BRUSH( "/Icons/icon_MatEd_Apply_40x", Icon20x20) );
+		Set( "MeshPaint.Import", new IMAGE_BRUSH( "/Icons/icon_Import_40x", Icon20x20) );
+		Set( "MeshPaint.FindInCB", new IMAGE_BRUSH( "/Icons/icon_toolbar_genericfinder_40px", Icon20x20) );
+		Set( "MeshPaint.Save", new IMAGE_BRUSH( "/Icons/icon_file_save_40x", Icon20x20) );
+		Set( "MeshPaint.Fix", new IMAGE_BRUSH( "/Icons/icon_tab_Toolbars_40x", Icon20x20) );
+		Set( "MeshPaint.Remove", new IMAGE_BRUSH("/Icons/Edit/icon_Edit_Delete_40x", Icon20x20));
+		Set( "MeshPaint.Copy", new IMAGE_BRUSH("/Icons/Edit/icon_Edit_Copy_40x", Icon20x20));
+		Set( "MeshPaint.Paste", new IMAGE_BRUSH("/Icons/Edit/icon_Edit_Paste_40x", Icon20x20));
 	}
 
 	// News Feed
@@ -5273,6 +5280,8 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Persona.ReimportAsset", new IMAGE_BRUSH("Icons/Reimport_12x", Icon12x12));
 		Set("Persona.ConvertToStaticMesh", new IMAGE_BRUSH("Icons/icon_ShowStaticMeshes_40x", Icon40x40));
 		Set("Persona.ConvertToStaticMesh.Small", new IMAGE_BRUSH("Icons/icon_ShowStaticMeshes_40x", Icon20x20));
+		Set("Persona.BakeMaterials", new IMAGE_BRUSH("Icons/icon_tab_Layers_40x", Icon40x40));
+		Set("Persona.BakeMaterials.Small", new IMAGE_BRUSH("Icons/icon_tab_Layers_40x", Icon20x20));
 
 		// Anim Slot Manager
 		Set("AnimSlotManager.SaveSkeleton", new IMAGE_BRUSH("Persona/AnimSlotManager/icon_SaveSkeleton_40x", Icon40x40));

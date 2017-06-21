@@ -275,6 +275,14 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	DECLARE_EVENT_OneParam(UAnimGraphNode_Base, FOnNodePropertyChangedEvent, FPropertyChangedEvent&);
 	FOnNodePropertyChangedEvent& OnNodePropertyChanged() { return PropertyChangeEvent;	}
 
+	/**
+	 * Helper function to check whether a pin is valid and linked to something else in the graph
+	 * @param	InPinName		The name of the pin @see UEdGraphNode::FindPin
+	 * @param	InPinDirection	The direction of the pin we are looking for. If this is EGPD_MAX, all directions are considered
+	 * @return true if the pin is present and connected
+	 */
+	bool IsPinExposedAndLinked(const FString& InPinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
+
 protected:
 	friend FAnimBlueprintCompiler;
 	friend FAnimGraphNodeDetails;

@@ -40,7 +40,7 @@ class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 private:
 
 	// Details customization helpers
-	EVisibility GetCacheFramesVisibility() const;
+	static EVisibility GetCacheFramesVisibility(IDetailLayoutBuilder* DetailLayoutBuilder);
 
 
 	// End of UK2Node interface

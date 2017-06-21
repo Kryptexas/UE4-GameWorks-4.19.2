@@ -95,12 +95,12 @@ void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector
 			ResampleData();
 		}
 	}
-}
+  }
 
 void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 {
 	FScopedTransaction ScopedTransaction(LOCTEXT("RemoveSample", "Removing Blend Grid Sample"));
-				BlendSpace->Modify();
+	BlendSpace->Modify();
 
 	const bool bRemoveSuccesful = BlendSpace->DeleteSample(SampleIndex);
 	if (bRemoveSuccesful)
@@ -108,6 +108,7 @@ void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 		ResampleData();
 		BlendSpace->ValidateSampleData();
 	}
+	BlendSpace->PostEditChange();
 }
 
 void SBlendSpaceEditorBase::OnSampleAdded(UAnimSequence* Animation, const FVector& Value)
@@ -121,6 +122,7 @@ void SBlendSpaceEditorBase::OnSampleAdded(UAnimSequence* Animation, const FVecto
 		ResampleData();
 		BlendSpace->ValidateSampleData();
 	}
+	BlendSpace->PostEditChange();
 }
 
 void SBlendSpaceEditorBase::OnUpdateAnimation(UAnimSequence* Animation, const FVector& Value)

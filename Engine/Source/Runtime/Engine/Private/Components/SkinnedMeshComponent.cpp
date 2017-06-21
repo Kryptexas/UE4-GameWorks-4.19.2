@@ -419,6 +419,9 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 {
 	if( SkeletalMesh )
 	{
+		// Attempting to track down UE-45505, where it looks as if somehow a skeletal mesh component's mesh has only been partially loaded, causing a mismatch in the LOD arrays
+		checkf(!SkeletalMesh->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WillBeLoaded), TEXT("Attempting to create render state for a skeletal mesh that is is not fully loaded. Mesh: %s"), *SkeletalMesh->GetName());
+
 		// Initialize the alternate weight tracks if present BEFORE creating the new mesh object
 		InitLODInfos();
 

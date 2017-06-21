@@ -2115,7 +2115,7 @@ FReply FBlueprintEditor::OnEditParentClassClicked()
 
 void FBlueprintEditor::PostLayoutBlueprintEditorInitialization()
 {
-	if (GetBlueprintObj() != NULL)
+	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
 		// Refresh the graphs
 		RefreshEditors();
@@ -2138,11 +2138,17 @@ void FBlueprintEditor::PostLayoutBlueprintEditorInitialization()
 
 			// Fire log message
 			FString BlueprintName;
-			GetBlueprintObj()->GetName(BlueprintName);
+			Blueprint->GetName(BlueprintName);
 
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("BlueprintName"), FText::FromString( BlueprintName ) );
 			LogSimpleMessage( FText::Format( LOCTEXT("Blueprint Modified Long", "Blueprint \"{BlueprintName}\" was updated to fix issues detected on load. Please resave."), Args ) );
+		}
+
+		// If we have a warning/error, open output log.
+		if (!Blueprint->IsUpToDate() || (Blueprint->Status == BS_UpToDateWithWarnings))
+		{
+			TabManager->InvokeTab(FBlueprintEditorTabs::CompilerResultsID);
 		}
 	}
 }
@@ -2276,10 +2282,10 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		this->ReplaceReferencesWidget = SNew(SReplaceNodeReferences, SharedThis(this));
 	}
 	
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	CompilerResultsListing = MessageLogModule.CreateLogListing( "BlueprintEditorCompileResults" );
+	CompilerResultsListing = FCompilerResultsLog::GetBlueprintMessageLog(InBlueprint);
 	CompilerResultsListing->OnMessageTokenClicked().AddSP(this, &FBlueprintEditor::OnLogTokenClicked);
 
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	CompilerResults = MessageLogModule.CreateLogListingWidget( CompilerResultsListing.ToSharedRef() );
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
 	
@@ -3732,7 +3738,9 @@ void FBlueprintEditor::LogSimpleMessage(const FText& MessageText)
 void FBlueprintEditor::DumpMessagesToCompilerLog(const TArray<TSharedRef<FTokenizedMessage>>& Messages, bool bForceMessageDisplay)
 {
 	CompilerResultsListing->ClearMessages();
-	CompilerResultsListing->AddMessages(Messages);
+
+	// Note we dont mirror to the output log here as the compiler already does that
+	CompilerResultsListing->AddMessages(Messages, false);
 	
 	if (!bEditorMarkedAsClosed && bForceMessageDisplay && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 	{

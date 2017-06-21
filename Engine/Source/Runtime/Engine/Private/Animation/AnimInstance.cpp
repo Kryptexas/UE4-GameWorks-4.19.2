@@ -540,10 +540,13 @@ bool UAnimInstance::ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) con
 	return Proxy.GetRequiredBones().IsValid() && (Proxy.GetRequiredBones().GetAsset() == InSkeletalMesh);
 }
 
-void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve)
+void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose)
 {
-	FMemMark Mark(FMemStack::Get());
 	FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
+	OutPose.SetBoneContainer(&Proxy.GetRequiredBones());
+	OutPose.ResetToRefPose();
+
+	FMemMark Mark(FMemStack::Get());
 
 	if( !bForceRefPose )
 	{
@@ -555,26 +558,11 @@ void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeleta
 		Proxy.EvaluateAnimation(EvaluationContext);
 		// Move the curves
 		OutCurve.CopyFrom(EvaluationContext.Curve);
-			
-		// can we avoid that copy?
-		if( EvaluationContext.Pose.GetNumBones() > 0 )
-		{
-			// Make sure rotations are normalized to account for accumulation of errors.
-			EvaluationContext.Pose.NormalizeRotations();
-			for (const FCompactPoseBoneIndex BoneIndex : EvaluationContext.Pose.ForEachBoneIndex())
-			{
-				FMeshPoseBoneIndex MeshPoseBoneIndex = EvaluationContext.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-				OutBoneSpaceTransforms[MeshPoseBoneIndex.GetInt()] = EvaluationContext.Pose[BoneIndex];
-			}
-		}
-		else
-		{
-			FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
-		}
+		OutPose.CopyBonesFrom(EvaluationContext.Pose);
 	}
 	else
 	{
-		FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
+		OutPose.ResetToRefPose();
 	}
 }
 
@@ -1343,89 +1331,6 @@ void UAnimInstance::SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value)
 	RootMotionMode = Value;
 }
 
-float UAnimInstance::GetAnimAssetPlayerLength(class UAnimationAsset* AnimAsset)
-{
-	if (AnimAsset)
-	{
-		return AnimAsset->GetMaxCurrentTime();
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFraction(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	float Length = (AnimAsset)? AnimAsset->GetMaxCurrentTime() : 0.f;
-	if (Length > 0.f)
-	{
-		return CurrentTime / Length;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFromEnd(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	if (AnimAsset)
-	{
-		return AnimAsset->GetMaxCurrentTime() - CurrentTime;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFromEndFraction(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	float Length = (AnimAsset)? AnimAsset->GetMaxCurrentTime() : 0.f;
-	if ( Length > 0.f )
-	{
-		return (Length- CurrentTime) / Length;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetStateWeight(int32 MachineIndex, int32 StateIndex)
-{
-	if (IAnimClassInterface* AnimBlueprintClass = IAnimClassInterface::GetFromClass(GetClass()))
-	{
-		const TArray<UStructProperty*>& AnimNodeProperties = AnimBlueprintClass->GetAnimNodeProperties();
-		if ((MachineIndex >= 0) && (MachineIndex < AnimNodeProperties.Num()))
-		{
-			const int32 InstancePropertyIndex = AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
-
-			UStructProperty* MachineInstanceProperty = AnimNodeProperties[InstancePropertyIndex];
-			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
-
-			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
-
-			return MachineInstance->GetStateWeight(StateIndex);
-		}
-	}
-
-	return 0.0f;
-}
-
-float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
-{
-	if (IAnimClassInterface* AnimBlueprintClass = IAnimClassInterface::GetFromClass(GetClass()))
-	{
-		const TArray<UStructProperty*>& AnimNodeProperties = AnimBlueprintClass->GetAnimNodeProperties();
-		if ((MachineIndex >= 0) && (MachineIndex < AnimNodeProperties.Num()))
-		{
-			const int32 InstancePropertyIndex = AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
-
-			UStructProperty* MachineInstanceProperty = AnimNodeProperties[InstancePropertyIndex];
-			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
-
-			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
-
-			return MachineInstance->GetCurrentStateElapsedTime();
-		}
-	}
-
-	return 0.0f;
-}
 
 FName UAnimInstance::GetCurrentStateName(int32 MachineIndex)
 {
@@ -1627,7 +1532,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	NewMontage->SetSkeleton(AssetSkeleton);
 
 	// add new track
-	FSlotAnimationTrack NewTrack;
+	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
 	NewTrack.SlotName = SlotNodeName;
 	FAnimSegment NewSegment;
 	NewSegment.AnimReference = Asset;
@@ -1647,7 +1552,6 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	NewMontage->CompositeSections.Add(NewSection);
 	NewMontage->BlendIn.SetBlendTime(BlendInTime);
 	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
-	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	return Montage_Play(NewMontage, InPlayRate);
 }
@@ -1688,7 +1592,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	NewMontage->SetSkeleton(AssetSkeleton);
 
 	// add new track
-	FSlotAnimationTrack NewTrack;
+	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
 	NewTrack.SlotName = SlotNodeName;
 	FAnimSegment NewSegment;
 	NewSegment.AnimReference = Asset;
@@ -1709,7 +1613,6 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	NewMontage->BlendIn.SetBlendTime(BlendInTime);
 	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
 	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
-	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	// if playing is successful, return the montage to allow more control if needed
 	float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);

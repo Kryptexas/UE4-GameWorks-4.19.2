@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -51,14 +51,16 @@ struct CuKernelData;
 class CuSolver : private CuContextLock, public Solver
 {
 	CuSolver(const CuSolver&); // not implemented
-	CuSolver& operator=(const CuSolver&); // not implemented
+	CuSolver& operator = (const CuSolver&); // not implemented
 
 public:
 	CuSolver(CuFactory&);
 	~CuSolver();
 
-	virtual void addCloth(Cloth*);
-	virtual void removeCloth(Cloth*);
+	virtual void addCloth(Cloth*) override;
+	virtual void removeCloth(Cloth*) override;
+	virtual int getNumCloths() const override;
+	virtual Cloth * const * getClothList() const override;
 
 	// functions executing the simulation work.
 	virtual bool beginSimulation(float dt);

@@ -84,7 +84,7 @@ public:
 	*/
 	UGeometryCache* ImportAsGeometryCache(UObject* InParent, EObjectFlags Flags);
 	
-	USkeletalMesh* ImportAsSkeletalMesh(UObject* InParent, EObjectFlags Flags);	
+	TArray<UObject*> ImportAsSkeletalMesh(UObject* InParent, EObjectFlags Flags);	
 
 	/**
 	* Reimport an Alembic mesh
@@ -108,7 +108,7 @@ public:
 	* @param SkeletalMesh - Current SkeletalMesh instance
 	* @return USkeletalMesh*
 	*/
-	USkeletalMesh* ReimportAsSkeletalMesh(USkeletalMesh* SkeletalMesh);
+	TArray<UObject*> ReimportAsSkeletalMesh(USkeletalMesh* SkeletalMesh);
 
 	/** Returns the array of imported PolyMesh objects */
 	const TArray<TSharedPtr<FAbcPolyMeshObject>>& GetPolyMeshes() const;

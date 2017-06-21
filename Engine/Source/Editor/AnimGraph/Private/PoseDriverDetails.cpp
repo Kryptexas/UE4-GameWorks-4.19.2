@@ -18,6 +18,7 @@
 #include "SButton.h"
 #include "SCurveEditor.h"
 #include "SCheckBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "PoseDriverDetails"
 
@@ -60,6 +61,7 @@ TSharedRef< SWidget > SPDD_TargetRow::GenerateWidgetForColumn(const FName& Colum
 
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 					.Text(this, &SPDD_TargetRow::GetTargetTitleText)
@@ -72,6 +74,7 @@ TSharedRef< SWidget > SPDD_TargetRow::GenerateWidgetForColumn(const FName& Colum
 				]
 
 				+ SHorizontalBox::Slot()
+				.Padding(0,3)
 				.AutoWidth()
 				[
 					SNew(SBox)
@@ -98,7 +101,8 @@ TSharedRef< SWidget > SPDD_TargetRow::GenerateWidgetForColumn(const FName& Colum
 
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(FMargin(3,0))
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(3, 0))
 				[
 					SNew(SBox)
 					.MinDesiredWidth(40)
@@ -108,6 +112,12 @@ TSharedRef< SWidget > SPDD_TargetRow::GenerateWidgetForColumn(const FName& Colum
 						SNew(STextBlock)
 						.Text(this, &SPDD_TargetRow::GetTargetWeightText)
 					]
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &SPDD_TargetRow::RemoveTarget), LOCTEXT("RemoveTarget", "Remove Target"))
 				]
 			]
 			.BodyContent()
@@ -200,11 +210,7 @@ TSharedRef< SWidget > SPDD_TargetRow::GenerateWidgetForColumn(const FName& Colum
 							SNew(SSpacer)
 						]
 
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateSP(this, &SPDD_TargetRow::RemoveTarget), LOCTEXT("RemoveTarget", "Remove target"))
-						]
+
 					]
 
 					+ SVerticalBox::Slot()
@@ -610,6 +616,41 @@ TSharedRef<IDetailCustomization> FPoseDriverDetails::MakeInstance()
 	return MakeShareable(new FPoseDriverDetails);
 }
 
+TSharedRef<SWidget> FPoseDriverDetails::GetToolsMenuContent()
+{
+	FMenuBuilder MenuBuilder(true, nullptr);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("CopyFromPoseAsset", "Copy All From PoseAsset"), 
+		LOCTEXT("CopyFromPoseAssetTooltip", "Copy target positions from PoseAsset. Will overwrite any existing targets."), 
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FPoseDriverDetails::ClickedOnCopyFromPoseAsset),
+			FCanExecuteAction::CreateRaw(this, &FPoseDriverDetails::CopyFromPoseAssetIsEnabled)
+		)
+	);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AutoTargetScale", "Auto Scale"),
+		LOCTEXT("AutoTargetScaleTooltip", "Automatically set all Scale factors, based on distance to nearest neighbour targets."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FPoseDriverDetails::ClickedOnAutoScaleFactors),
+			FCanExecuteAction::CreateRaw(this, &FPoseDriverDetails::AutoScaleFactorsIsEnabled)
+		)
+	);
+
+	return MenuBuilder.MakeWidget();
+}
+
+FSlateColor FPoseDriverDetails::GetToolsForegroundColor() const
+{
+	static const FName InvertedForegroundName("InvertedForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+
+	return ToolsButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
+}
+
 void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	IDetailCategoryBuilder& PoseTargetsCategory = DetailBuilder.EditCategory("PoseTargets");
@@ -620,6 +661,10 @@ void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	// Bind delegate to PoseAsset changing
 	TSharedRef<IPropertyHandle> PoseAssetPropHandle = DetailBuilder.GetProperty("Node.PoseAsset");
 	PoseAssetPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPoseDriverDetails::OnPoseAssetChanged));
+
+	// Bind delegate to source bones changing
+	TSharedRef<IPropertyHandle> SourceBonesPropHandle = DetailBuilder.GetProperty("Node.SourceBones");
+	SourceBonesPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPoseDriverDetails::OnSourceBonesChanged));
 
 	// Cache set of selected things
 	SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
@@ -632,6 +677,48 @@ void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	IDetailPropertyRow& PoseTargetsRow = PoseTargetsCategory.AddProperty(PoseTargetsProperty);
 	PoseTargetsRow.ShowPropertyButtons(false);
 	FDetailWidgetRow& PoseTargetRowWidget = PoseTargetsRow.CustomWidget();
+
+	TSharedRef<SWidget> PoseTargetsHeaderWidget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "RoundButton")
+			.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+			.ContentPadding(FMargin(2, 0))
+			.OnClicked(this, &FPoseDriverDetails::ClickedAddTarget)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(FMargin(0, 1))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Plus"))
+				]
+
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(FMargin(2, 0, 0, 0))
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFontBold())
+					.Text(LOCTEXT("AddTarget", "Add Target"))
+					.ShadowOffset(FVector2D(1, 1))
+				]
+			]
+		];
+
+	PoseTargetsCategory.HeaderContent(PoseTargetsHeaderWidget);
+
+	static const FName DefaultForegroundName("DefaultForeground");
 
 	PoseTargetRowWidget.WholeRowContent()
 	.HAlign(HAlign_Fill)
@@ -656,50 +743,27 @@ void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 
 		+SVerticalBox::Slot()
 		.AutoHeight()
-		.Padding(FMargin(5, 2))
 		[
 			SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
-			.Padding(2)
-			.AutoWidth()
+			.FillWidth(1)
 			[
-				SNew(SButton)
-				.OnClicked(this, &FPoseDriverDetails::ClickedAddTarget)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AddTarget", "Add Target"))
-				]
+				SNew(SSpacer)
 			]
 
 			+ SHorizontalBox::Slot()
-			.Padding(2)
+			.Padding(2, 2)
 			.AutoWidth()
 			[
-				SNew(SButton)
-				.ToolTipText(LOCTEXT("CopyFromPoseAssetTooltip", "Copy target positions from PoseAsset. Will overwrite any existing targets."))
-				.OnClicked(this, &FPoseDriverDetails::ClickedOnCopyFromPoseAsset)
-				.IsEnabled(this, &FPoseDriverDetails::CopyFromPoseAssetIsEnabled)
-				.Content()
+				SAssignNew(ToolsButton, SComboButton)
+				.ContentPadding(3)
+				.ForegroundColor(this, &FPoseDriverDetails::GetToolsForegroundColor)
+				.ButtonStyle(FEditorStyle::Get(), "ToggleButton") // Use the tool bar item style for this button
+				.OnGetMenuContent(this, &FPoseDriverDetails::GetToolsMenuContent)
+				.ButtonContent()
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("CopyFromPoseAsset", "Copy All From PoseAsset"))
-				]
-			]
-
-			+ SHorizontalBox::Slot()
-			.Padding(2)
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.ToolTipText(LOCTEXT("AutoTargetScaleTooltip", "Automatically set all Scale factors, based on distance to nearest neighbour targets."))
-				.OnClicked(this, &FPoseDriverDetails::ClickedOnAutoScaleFactors)
-				.IsEnabled(this, &FPoseDriverDetails::AutoScaleFactorsIsEnabled)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AutoTargetScale", "Auto Scale"))
+					SNew(STextBlock).Text(LOCTEXT("ViewButton", "Tools "))
 				]
 			]
 		]
@@ -753,6 +817,19 @@ void FPoseDriverDetails::OnPoseAssetChanged()
 	UpdateDrivenNameOptions();
 }
 
+void FPoseDriverDetails::OnSourceBonesChanged()
+{
+	for (const TWeakObjectPtr<UObject>& Object : SelectedObjectsList)
+	{
+		UAnimGraphNode_PoseDriver* PoseDriver = Cast<UAnimGraphNode_PoseDriver>(Object.Get());
+		if(PoseDriver)
+		{
+			PoseDriver->ReserveTargetTransforms();
+		}
+	}
+
+	UpdateTargetInfosList();
+}
 
 UAnimGraphNode_PoseDriver* FPoseDriverDetails::GetFirstSelectedPoseDriver() const
 {
@@ -772,12 +849,15 @@ void FPoseDriverDetails::UpdateTargetInfosList()
 {
 	TargetInfos.Empty();
 	
-	UAnimGraphNode_PoseDriver* PoseDriver = GetFirstSelectedPoseDriver();
-	if (PoseDriver)
+	if(SelectedObjectsList.Num() == 1)
 	{
-		for (int32 i = 0; i < PoseDriver->Node.PoseTargets.Num(); i++)
+		UAnimGraphNode_PoseDriver* PoseDriver = GetFirstSelectedPoseDriver();
+		if (PoseDriver)
 		{
-			TargetInfos.Add( FPDD_TargetInfo::Make(i) );
+			for (int32 i = 0; i < PoseDriver->Node.PoseTargets.Num(); i++)
+			{
+				TargetInfos.Add( FPDD_TargetInfo::Make(i) );
+			}
 		}
 	}
 
@@ -832,7 +912,7 @@ void FPoseDriverDetails::UpdateDrivenNameOptions()
 }
 
 
-FReply FPoseDriverDetails::ClickedOnCopyFromPoseAsset()
+void FPoseDriverDetails::ClickedOnCopyFromPoseAsset()
 {
 	UAnimGraphNode_PoseDriver* PoseDriver = GetFirstSelectedPoseDriver();
 	if (PoseDriver)
@@ -847,7 +927,6 @@ FReply FPoseDriverDetails::ClickedOnCopyFromPoseAsset()
 		UpdateTargetInfosList();
 		NodePropHandle->NotifyPostChange();
 	}
-	return FReply::Handled();
 }
 
 bool FPoseDriverDetails::CopyFromPoseAssetIsEnabled() const
@@ -857,7 +936,7 @@ bool FPoseDriverDetails::CopyFromPoseAssetIsEnabled() const
 }
 
 
-FReply FPoseDriverDetails::ClickedOnAutoScaleFactors()
+void FPoseDriverDetails::ClickedOnAutoScaleFactors()
 {
 	UAnimGraphNode_PoseDriver* PoseDriver = GetFirstSelectedPoseDriver();
 	if (PoseDriver)
@@ -867,7 +946,6 @@ FReply FPoseDriverDetails::ClickedOnAutoScaleFactors()
 		PoseDriver->Node.RBFParams.Radius = 0.5f * MaxDist; // reasonable default radius
 		NodePropHandle->NotifyPostChange();
 	}
-	return FReply::Handled();
 }
 
 bool FPoseDriverDetails::AutoScaleFactorsIsEnabled() const
@@ -881,8 +959,7 @@ FReply FPoseDriverDetails::ClickedAddTarget()
 	UAnimGraphNode_PoseDriver* PoseDriver = GetFirstSelectedPoseDriver();
 	if (PoseDriver)
 	{
-		FPoseDriverTarget NewTarget;
-		PoseDriver->Node.PoseTargets.Add(NewTarget);
+		PoseDriver->AddNewTarget();
 		UpdateTargetInfosList();
 		NodePropHandle->NotifyPostChange(); // will push changes to preview node instance
 	}

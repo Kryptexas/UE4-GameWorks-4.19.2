@@ -22,12 +22,12 @@ void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 
 	// initialize node manually 
 	FAnimationInitializeContext InitContext(this);
-	SingleNode.Initialize(InitContext);
+	SingleNode.Initialize_AnyThread(InitContext);
 }
 
 bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 {
-	SingleNode.Evaluate(Output);
+	SingleNode.Evaluate_AnyThread(Output);
 
 	return true;
 }
@@ -54,7 +54,7 @@ void FAnimSingleNodeInstanceProxy::PropagatePreviewCurve(FPoseContext& Output)
 void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 {
 	FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
-	SingleNode.Update(UpdateContext);
+	SingleNode.Update_AnyThread(UpdateContext);
 }
 
 void FAnimSingleNodeInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
@@ -244,7 +244,7 @@ void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInpu
 	BlendSpaceInput = InBlendInput;
 }
 
-void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
+void FAnimNode_SingleNode::Evaluate_AnyThread(FPoseContext& Output)
 {
 	const bool bCanProcessAdditiveAnimationsLocal
 #if WITH_EDITOR
@@ -433,7 +433,7 @@ void FAnimNode_SingleNode::Evaluate(FPoseContext& Output)
 	}
 }
 
-void FAnimNode_SingleNode::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SingleNode::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	float NewPlayRate = Proxy->PlayRate;
 	UAnimSequence* PreviewBasePose = NULL;

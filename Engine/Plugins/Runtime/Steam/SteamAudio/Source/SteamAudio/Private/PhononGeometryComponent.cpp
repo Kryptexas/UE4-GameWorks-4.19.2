@@ -16,6 +16,7 @@ UPhononGeometryComponent::UPhononGeometryComponent()
 
 void UPhononGeometryComponent::UpdateStatistics()
 {
+#if WITH_EDITOR
 	if (ExportAllChildren)
 	{
 		NumTriangles = SteamAudio::GetNumTrianglesAtRoot(GetOwner());
@@ -26,6 +27,7 @@ void UPhononGeometryComponent::UpdateStatistics()
 	}
 
 	NumVertices = NumTriangles * 3;
+#endif // WITH_EDITOR
 }
 
 #if WITH_EDITOR
@@ -44,5 +46,7 @@ void UPhononGeometryComponent::OnComponentCreated()
 {
 	Super::OnComponentCreated();
 
+#if WITH_EDITOR
 	UpdateStatistics();
+#endif // WITH_EDITOR
 }

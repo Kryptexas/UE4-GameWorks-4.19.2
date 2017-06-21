@@ -36,8 +36,6 @@ FClothPainter::FClothPainter()
 
 FClothPainter::~FClothPainter()
 {
-	PaintSettings->OnAssetSelectionChanged.RemoveAll(this);
-	
 	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
 
 	// Cancel rendering of the paint proxy
@@ -51,8 +49,6 @@ void FClothPainter::Init()
 	BrushSettings->bOnlyFrontFacingTriangles = false;
 	PaintSettings = DuplicateObject<UClothPainterSettings>(GetMutableDefault<UClothPainterSettings>(), GetTransientPackage());
 	PaintSettings->AddToRoot();
-
-	PaintSettings->OnAssetSelectionChanged.AddRaw(this, &FClothPainter::OnAssetSelectionChanged);
 
 	CommandList = MakeShareable(new FUICommandList);
 
@@ -151,6 +147,16 @@ void FClothPainter::SetSkeletalMeshComponent(UDebugSkelMeshComponent* InSkeletal
 	}
 }
 
+USkeletalMesh* FClothPainter::GetSkeletalMesh() const
+{
+	if(SkeletalMeshComponent)
+	{
+		return SkeletalMeshComponent->SkeletalMesh;
+	}
+
+	return nullptr;
+}
+
 void FClothPainter::RefreshClothingAssets()
 {
 	if(!PaintSettings || !SkeletalMeshComponent)
@@ -178,6 +184,9 @@ void FClothPainter::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 
 	SkeletalMeshComponent->MinClothPropertyView = PaintSettings->GetViewMin();
 	SkeletalMeshComponent->MaxClothPropertyView = PaintSettings->GetViewMax();
+	SkeletalMeshComponent->bClothFlipNormal = PaintSettings->bFlipNormal;
+	SkeletalMeshComponent->bClothCullBackface = PaintSettings->bCullBackface;
+	SkeletalMeshComponent->ClothMeshOpacity = PaintSettings->Opacity;
 
 	if ((bShouldSimulate && SkeletalMeshComponent->bDisableClothSimulation) || (!bShouldSimulate && !SkeletalMeshComponent->bDisableClothSimulation))
 	{
@@ -313,17 +322,9 @@ void FClothPainter::Render(const FSceneView* View, FViewport* Viewport, FPrimiti
 	if(SkeletalMeshComponent)
 	{
 		if(!bShouldSimulate)
-	{
-			const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->GetComponentTransform().ToMatrixWithScale();
-		const TArray<FVector>& AllVertices = Adapter->GetMeshVertices();
-			for(const FVector& Vertex : AllVertices)
 		{
-			const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
-			PDI->DrawPoint(WorldPositionVertex, VertexPointColor, VertexPointSize, DepthPriority);
-		}
-
 			if(SelectedTool.IsValid())
-					{
+			{
 				SelectedTool->Render(SkeletalMeshComponent, Adapter.Get(), View, Viewport, PDI);
 			}
 		}
@@ -421,12 +422,15 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 			SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
 			SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
 
+			SkeletalMeshComponent->bDisableClothSimulation = true;
+			SkeletalMeshComponent->bShowClothData = true;
 			SkeletalMeshComponent->SelectedClothingGuidForPainting = NewGuid;
 			SkeletalMeshComponent->SelectedClothingLodForPainting = InAssetLod;
 			SkeletalMeshComponent->SelectedClothingLodMaskForPainting = InMaskIndex;
 			SkeletalMeshComponent->RefreshSelectedClothingSkinnedPositions();
 
 			ClothAdapter->SetSelectedClothingAsset(NewGuid, InAssetLod, InMaskIndex);
+
 		}
 	}
 }

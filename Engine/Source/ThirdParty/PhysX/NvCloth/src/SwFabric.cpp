@@ -23,11 +23,10 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
-#include "foundation/PxAssert.h"
 #include "SwFabric.h"
 #include "SwFactory.h"
 #include "PsSort.h"
@@ -62,7 +61,7 @@ cloth::SwFabric::SwFabric(SwFactory& factory, uint32_t numParticles, Range<const
 	// consistency check
 	NV_CLOTH_ASSERT(sets.back() == restvalues.size());
 	NV_CLOTH_ASSERT(restvalues.size() * 2 == indices.size());
-	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size()==0);
+	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size() == 0);
 	NV_CLOTH_ASSERT(mNumParticles > *shdfnd::maxElement(indices.begin(), indices.end()));
 	NV_CLOTH_ASSERT(mNumParticles + kSimdWidth - 1 <= USHRT_MAX);
 
@@ -77,32 +76,32 @@ cloth::SwFabric::SwFabric(SwFactory& factory, uint32_t numParticles, Range<const
 	const float* rBegin = restvalues.begin(), *rIt = rBegin;
 	const float* stBegin = stiffnessValues.begin(), *stIt = stBegin;
 	const uint32_t* sIt, *sEnd = sets.end();
-	for(sIt = sets.begin(); sIt != sEnd; ++sIt)
+	for (sIt = sets.begin(); sIt != sEnd; ++sIt)
 	{
 		const float* rEnd = rBegin + *sIt;
 		const float* stEnd = stBegin + *sIt;
 		const uint32_t* iEnd = iBegin + *sIt * 2;
 		uint32_t numConstraints = uint32_t(rEnd - rIt);
 
-		for(; rIt != rEnd; ++rIt)
+		for (; rIt != rEnd; ++rIt)
 		{
 			mRestvalues.pushBack(*rIt);
 		}
-		if(!stiffnessValues.empty())
+		if (!stiffnessValues.empty())
 		{
-			for(; stIt != stEnd; ++stIt)
+			for (; stIt != stEnd; ++stIt)
 			{
 				mStiffnessValues.pushBack(*stIt);
 			}
 		}
-		for(; iIt != iEnd; ++iIt)
+		for (; iIt != iEnd; ++iIt)
 			mIndices.pushBack(uint16_t(*iIt));
 
 		// add dummy indices to make multiple of 4
-		for(; numConstraints &= kSimdWidth - 1; ++numConstraints)
+		for (; numConstraints &= kSimdWidth - 1; ++numConstraints)
 		{
 			mRestvalues.pushBack(-FLT_MAX);
-			if(!stiffnessValues.empty())
+			if (!stiffnessValues.empty())
 				mStiffnessValues.pushBack(-FLT_MAX);
 			uint32_t index = mNumParticles + numConstraints - 1;
 			mIndices.pushBack(uint16_t(index));
@@ -122,13 +121,13 @@ cloth::SwFabric::SwFabric(SwFactory& factory, uint32_t numParticles, Range<const
 
 	// pad to allow for direct 16 byte (unaligned) loads
 	mTethers.reserve(anchors.size() + 2);
-	for(; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
+	for (; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
 		mTethers.pushBack(SwTether(uint16_t(anchors.front()), tetherLengths.front()));
 
 	// triangles
 	mTriangles.reserve(triangles.size());
 	const uint32_t* iEnd = triangles.end();
-	for(iIt = triangles.begin(); iIt != iEnd; ++iIt)
+	for (iIt = triangles.begin(); iIt != iEnd; ++iIt)
 		mTriangles.pushBack(uint16_t(*iIt));
 
 	mFactory.mFabrics.pushBack(this);
@@ -189,7 +188,7 @@ uint32_t cloth::SwFabric::getNumTriangles() const
 void cloth::SwFabric::scaleRestvalues(float scale)
 {
 	RestvalueContainer::Iterator rIt, rEnd = mRestvalues.end();
-	for(rIt = mRestvalues.begin(); rIt != rEnd; ++rIt)
+	for (rIt = mRestvalues.begin(); rIt != rEnd; ++rIt)
 		*rIt *= scale;
 }
 

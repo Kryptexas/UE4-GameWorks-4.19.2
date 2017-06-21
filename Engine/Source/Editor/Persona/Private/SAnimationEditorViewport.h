@@ -359,16 +359,28 @@ private:
 	EVisibility GetBoneMoveModeButtonVisibility() const;
 
 	/** Function to mute/unmute viewport audio */
-	void OnMuteAudio();
+	void OnToggleMuteAudio();
 
 	/** Whether audio from the viewport is muted */
-	bool IsAudioMuted();
+	bool IsAudioMuted() const;
+
+	/** Function to enable/disable viewport audio attenuation */
+	void OnToggleUseAudioAttenuation();
+
+	/** Whether audio from the viewport is attenuated */
+	bool IsAudioAttenuationEnabled() const;
 
 	/** Function to set whether we are previewing root motion */
 	void OnTogglePreviewRootMotion();
 	
 	/** Whether or not we are previewing root motion */
 	bool IsPreviewingRootMotion() const;
+
+	/** Callback when user checks the vertex colors box in the show menu */
+	void OnShowVertexColorsChanged();
+
+	/** Whether or not vertex color display is enabled */
+	bool IsShowingVertexColors() const;
 
 private:
 	/** Selected Turn Table speed  */

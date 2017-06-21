@@ -1007,11 +1007,23 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			return bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(WeakGraphAction.Pin(), InBlueprintEditor.Pin());
 		}
 
+		return false;
+	};
+	
+	// We differentiate enabled/read-only state here to not dim icons out unnecessarily, which in some situations
+	// (like the right-click palette menu) is confusing to users.
+	auto IsEditingEnabledLambda = [InBlueprintEditor]()
+	{ 
+		if(InBlueprintEditor.IsValid())
+		{
+			return InBlueprintEditor.Pin()->InEditingMode();
+		}
+
 		return true;
 	};
 
 	TAttribute<bool> bIsReadOnly = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(IsReadOnlyLambda));
-	TAttribute<bool> bIsEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([IsReadOnlyLambda]() { return !IsReadOnlyLambda(); }));
+	TAttribute<bool> bIsEditingEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(IsEditingEnabledLambda));
 
 	// construct the icon widget
 	FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
@@ -1022,7 +1034,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
-	IconWidget->SetEnabled(bIsEnabled);
+	IconWidget->SetEnabled(bIsEditingEnabled);
 
 	// Setup a meta tag for this node
 	FTutorialMetaData TagMeta("PaletteItem"); 
@@ -1056,7 +1068,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			{
 				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 				IconWidget = SNew(SPinTypeSelectorHelper, VariableProp, Blueprint, BlueprintEditorPtr)
-					.IsEnabled(bIsEnabled);
+					.IsEnabled(bIsEditingEnabled);
 			}
 		}
 	}
@@ -1087,7 +1099,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			.VAlign(VAlign_Center)
 		[
 			SNew(SPaletteItemVisibilityToggle, ActionPtr, InBlueprintEditor, InBlueprint)
-			.IsEnabled(bIsEnabled)
+			.IsEnabled(bIsEditingEnabled)
 		]
 	];
 }

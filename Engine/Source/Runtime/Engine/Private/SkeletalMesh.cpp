@@ -71,11 +71,15 @@
 #include "ClothingAssetFactoryInterface.h"
 #include "ClothingSystemEditorInterfaceModule.h"
 #endif
+#include "SkeletalDebugRendering.h"
 
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
 DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
+
+TAutoConsoleVariable<int32> CVarDebugDrawSimpleBones(TEXT("a.DebugDrawSimpleBones"), 0, TEXT("When drawing bones (using Show Bones), draw bones as simple lines."));
+TAutoConsoleVariable<int32> CVarDebugDrawBoneAxes(TEXT("a.DebugDrawBoneAxes"), 0, TEXT("When drawing bones (using Show Bones), draw bone axes."));
 
 // Custom serialization version for SkeletalMesh types
 struct FSkeletalMeshCustomVersion
@@ -1567,22 +1571,21 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 			for (int32 DeltaIndex = 0; DeltaIndex < NumSrcDeltas; DeltaIndex++)
 			{
 				const auto& MorphDelta = MorphDeltas[DeltaIndex];
-				if (!(MorphDelta.PositionDelta.IsNearlyZero(0.0000001f) && MorphDelta.TangentZDelta.IsNearlyZero(0.0000001f)))
-				{				
-					MaximumValues[0] = FMath::Max(MaximumValues[0], MorphDelta.PositionDelta.X);
-					MaximumValues[1] = FMath::Max(MaximumValues[1], MorphDelta.PositionDelta.Y);
-					MaximumValues[2] = FMath::Max(MaximumValues[2], MorphDelta.PositionDelta.Z);
-					MaximumValues[3] = FMath::Max(MaximumValues[3], FMath::Max(MorphDelta.TangentZDelta.X, FMath::Max(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+				// when import, we do check threshold, and also when adding weight, we do have threshold for how smaller weight can fit in
+				// so no reason to check here another threshold
+				MaximumValues[0] = FMath::Max(MaximumValues[0], MorphDelta.PositionDelta.X);
+				MaximumValues[1] = FMath::Max(MaximumValues[1], MorphDelta.PositionDelta.Y);
+				MaximumValues[2] = FMath::Max(MaximumValues[2], MorphDelta.PositionDelta.Z);
+				MaximumValues[3] = FMath::Max(MaximumValues[3], FMath::Max(MorphDelta.TangentZDelta.X, FMath::Max(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
 
-					MinimumValues[0] = FMath::Min(MinimumValues[0], MorphDelta.PositionDelta.X);
-					MinimumValues[1] = FMath::Min(MinimumValues[1], MorphDelta.PositionDelta.Y);
-					MinimumValues[2] = FMath::Min(MinimumValues[2], MorphDelta.PositionDelta.Z);
-					MinimumValues[3] = FMath::Min(MinimumValues[3], FMath::Min(MorphDelta.TangentZDelta.X, FMath::Min(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+				MinimumValues[0] = FMath::Min(MinimumValues[0], MorphDelta.PositionDelta.X);
+				MinimumValues[1] = FMath::Min(MinimumValues[1], MorphDelta.PositionDelta.Y);
+				MinimumValues[2] = FMath::Min(MinimumValues[2], MorphDelta.PositionDelta.Z);
+				MinimumValues[3] = FMath::Min(MinimumValues[3], FMath::Min(MorphDelta.TangentZDelta.X, FMath::Min(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
 
-					MorphTargetVertexInfoBuffers.VertexIndices.Add(MorphDelta.SourceIdx);
-					MorphTargetVertexInfoBuffers.MorphDeltas.Emplace(MorphDelta.PositionDelta, MorphDelta.TangentZDelta);
-					MorphTargetVertexInfoBuffers.NumTotalWorkItems++;
-				}
+				MorphTargetVertexInfoBuffers.VertexIndices.Add(MorphDelta.SourceIdx);
+				MorphTargetVertexInfoBuffers.MorphDeltas.Emplace(MorphDelta.PositionDelta, MorphDelta.TangentZDelta);
+				MorphTargetVertexInfoBuffers.NumTotalWorkItems++;
 			}
 
 			uint32 MorphTargetSize =  MorphTargetVertexInfoBuffers.NumTotalWorkItems - StartOffset;
@@ -1591,12 +1594,7 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 				ensureMsgf(MaximumValues[0] < +32752.0f && MaximumValues[1] < +32752.0f && MaximumValues[2] < +32752.0f && MaximumValues[3] < +32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
 				ensureMsgf(MinimumValues[0] > -32752.0f && MinimumValues[1] > -32752.0f && MinimumValues[2] > -32752.0f && MaximumValues[3] > -32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
 			}
-			else
-			{
-				bool bSuppressWarningOnEmptyMorphTargetAnimation = false;
-				GConfig->GetBool(TEXT("/Script/Engine.Engine"), TEXT("bSuppressWarningOnEmptyMorphTargetAnimation"), bSuppressWarningOnEmptyMorphTargetAnimation, GEngineIni);
-				UE_CLOG(!bSuppressWarningOnEmptyMorphTargetAnimation, LogSkeletalMesh, Warning, TEXT("PerformanceWarning: Empty MorphTarget Animation found in %s at index %i. Check if this asset should contain any morphs and reimport without them or remove the empty targets if possible."), *MorphTarget->GetFullName(), AnimIdx);
-			}
+		
 			MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Add(MorphTargetSize);
 			MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Add(FVector4(MaximumValues[0], MaximumValues[1], MaximumValues[2], MaximumValues[3]));
 			MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Add(FVector4(MinimumValues[0], MinimumValues[1], MinimumValues[2], MinimumValues[3]));
@@ -1679,6 +1677,33 @@ void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 	// All chunks are combined into one (rigid first, soft next)
 	FSoftSkinVertex* DestVertex = (FSoftSkinVertex*)Vertices.GetData();
 	for(int32 SectionIndex = 0; SectionIndex < Sections.Num(); SectionIndex++)
+	{
+		const FSkelMeshSection& Section = Sections[SectionIndex];
+		FMemory::Memcpy(DestVertex, Section.SoftVertices.GetData(), Section.SoftVertices.Num() * sizeof(FSoftSkinVertex));
+		DestVertex += Section.SoftVertices.Num();
+	}
+}
+
+void FStaticLODModel::GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) const
+{
+	// Get the number of sections to copy
+	int32 NumSections = NumNonClothingSections();
+
+	// Count number of verts
+	int32 NumVertsToCopy = 0;
+	for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+	{
+		const FSkelMeshSection& Section = Sections[SectionIndex];
+		NumVertsToCopy += Section.SoftVertices.Num();
+	}
+
+	OutVertices.Empty(NumVertsToCopy);
+	OutVertices.AddUninitialized(NumVertsToCopy);
+
+	// Initialize the vertex data
+	// All chunks are combined into one (rigid first, soft next)
+	FSoftSkinVertex* DestVertex = (FSoftSkinVertex*)OutVertices.GetData();
+	for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 	{
 		const FSkelMeshSection& Section = Sections[SectionIndex];
 		FMemory::Memcpy(DestVertex, Section.SoftVertices.GetData(), Section.SoftVertices.Num() * sizeof(FSoftSkinVertex));
@@ -3289,11 +3314,17 @@ void USkeletalMesh::PostLoad()
 			// here for previous LODs
 			for (int32 CurLodIndx = LodIndex + 1; CurLodIndx < TotalLODNum; ++CurLodIndx)
 			{
-				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones);
+				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones_DEPRECATED);
 			}
 
 			// we don't apply this change here, but this will be applied when you re-gen simplygon
 			ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Empty();
+		}
+
+		if (ThisLODInfo.ReductionSettings.BakePose_DEPRECATED != nullptr)
+		{
+			ThisLODInfo.BakePose = ThisLODInfo.ReductionSettings.BakePose_DEPRECATED;
+			ThisLODInfo.ReductionSettings.BakePose_DEPRECATED = nullptr;
 		}
 #endif
 	}
@@ -3339,6 +3370,10 @@ void USkeletalMesh::PostLoad()
 	}
 #endif // WITH_EDITOR
 
+	// init morph targets. 
+	// should do this before InitResource, so that we clear invalid morphtargets
+	InitMorphTargets();
+
 	// initialize rendering resources
 	if (FApp::CanEverRender())
 	{
@@ -3351,9 +3386,6 @@ void USkeletalMesh::PostLoad()
 	}
 
 	CalculateInvRefMatrices();
-
-	// init morph targets
-	InitMorphTargets();
 
 	// validate influences for existing clothing
 	if(FSkeletalMeshResource* SkelResource = GetImportedResource())
@@ -3644,6 +3676,9 @@ void USkeletalMesh::RegisterMorphTarget(UMorphTarget* MorphTarget)
 			MorphTarget->BaseSkelMesh->UnregisterMorphTarget(MorphTarget);
 		}
 
+		// if the input morphtarget doesn't have valid data, do not add to the base morphtarget
+		ensureMsgf(MorphTarget->HasValidData(), TEXT("RegisterMorphTarget: %s has empty data."), *MorphTarget->GetName());
+
 		MorphTarget->BaseSkelMesh = this;
 
 		bool bRegistered = false;
@@ -3704,6 +3739,14 @@ void USkeletalMesh::InitMorphTargets()
 	for (int32 Index = 0; Index < MorphTargets.Num(); ++Index)
 	{
 		UMorphTarget* MorphTarget = MorphTargets[Index];
+		// if we don't have a valid data, just remove it
+		if (!MorphTarget->HasValidData())
+		{
+			MorphTargets.RemoveAt(Index);
+			--Index;
+			continue;
+		}
+
 		FName const ShapeName = MorphTarget->GetFName();
 		if (MorphTargetIndexMap.Find(ShapeName) == nullptr)
 		{
@@ -4637,7 +4680,7 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, const TArray<FName
 	{
 		for (auto& BoneName : BoneNames)
 		{
-			LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+			LODInfo[LODIndex].BonesToRemove.AddUnique(BoneName);
 		}
 	}
 }
@@ -4645,7 +4688,7 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
 {
 	if (LODInfo.IsValidIndex(LODIndex))
 	{
-		LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+		LODInfo[LODIndex].BonesToRemove.AddUnique(BoneName);
 	}
 }
 #endif // WITH_EDITOR
@@ -5366,6 +5409,11 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 			{
 				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
 			}
+
+			if (ViewFamily.EngineShowFlags.Bones)
+			{
+				DebugDrawSkeleton(ViewIndex, Collector, ViewFamily.EngineShowFlags);
+			}
 		}
 	}
 #endif
@@ -5499,43 +5547,47 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 					}
 				}
 			}
-
-			if (ViewFamily.EngineShowFlags.VertexColors && AllowDebugViewmodes())
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (bIsSelected)
 			{
-				// Override the mesh's material with our material that draws the vertex colors
-				UMaterial* VertexColorVisualizationMaterial = NULL;
-				switch (GVertexColorViewMode)
+				if (ViewFamily.EngineShowFlags.VertexColors && AllowDebugViewmodes())
 				{
-				case EVertexColorViewMode::Color:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
-					break;
+					// Override the mesh's material with our material that draws the vertex colors
+					UMaterial* VertexColorVisualizationMaterial = NULL;
+					switch (GVertexColorViewMode)
+					{
+					case EVertexColorViewMode::Color:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
+						break;
 
-				case EVertexColorViewMode::Alpha:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
-					break;
+					case EVertexColorViewMode::Alpha:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
+						break;
 
-				case EVertexColorViewMode::Red:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
-					break;
+					case EVertexColorViewMode::Red:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
+						break;
 
-				case EVertexColorViewMode::Green:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
-					break;
+					case EVertexColorViewMode::Green:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
+						break;
 
-				case EVertexColorViewMode::Blue:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
-					break;
+					case EVertexColorViewMode::Blue:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
+						break;
+					}
+					check(VertexColorVisualizationMaterial != NULL);
+
+					auto VertexColorVisualizationMaterialInstance = new FColoredMaterialRenderProxy(
+						VertexColorVisualizationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+						GetSelectionColor(FLinearColor::White, bSectionSelected, IsHovered())
+					);
+
+					Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
+					Mesh.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
 				}
-				check(VertexColorVisualizationMaterial != NULL);
-
-				auto VertexColorVisualizationMaterialInstance = new FColoredMaterialRenderProxy(
-					VertexColorVisualizationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-					GetSelectionColor(FLinearColor::White, bSectionSelected, IsHovered())
-				);
-
-				Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
-				Mesh.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
 			}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #endif // WITH_EDITORONLY_DATA
 
 			BatchElement.MinVertexIndex = Section.BaseVertexIndex;
@@ -5683,6 +5735,64 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 			if (EngineShowFlags.Constraints)
 			{
 				PhysicsAssetForDebug->DrawConstraints(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+			}
+		}
+	}
+}
+
+void FSkeletalMeshSceneProxy::DebugDrawSkeleton(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
+{
+	FMatrix ProxyLocalToWorld, WorldToLocal;
+	if (!GetWorldMatrices(ProxyLocalToWorld, WorldToLocal))
+	{
+		return; // Cannot draw this, world matrix not valid
+	}
+
+	FTransform LocalToWorldTransform(ProxyLocalToWorld);
+
+	auto MakeRandomColorForSkeleton = [](uint32 InUID)
+	{
+		FRandomStream Stream((int32)InUID);
+		const uint8 Hue = (uint8)(Stream.FRand()*255.f);
+		return FLinearColor::FGetHSV(Hue, 0, 255);
+	};
+
+	FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+	TArray<FTransform>& ComponentSpaceTransforms = *MeshObject->GetComponentSpaceTransforms();
+
+	for (int32 Index = 0; Index < ComponentSpaceTransforms.Num(); ++Index)
+	{
+		const int32 ParentIndex = SkeletalMeshForDebug->RefSkeleton.GetParentIndex(Index);
+		FVector Start, End;
+		
+		FLinearColor LineColor = MakeRandomColorForSkeleton(GetPrimitiveComponentId().PrimIDValue);
+		const FTransform Transform = ComponentSpaceTransforms[Index] * LocalToWorldTransform;
+
+		if (ParentIndex >= 0)
+		{
+			Start = (ComponentSpaceTransforms[ParentIndex] * LocalToWorldTransform).GetLocation();
+			End = Transform.GetLocation();
+		}
+		else
+		{
+			Start = LocalToWorldTransform.GetLocation();
+			End = Transform.GetLocation();
+		}
+
+		if(EngineShowFlags.Bones)
+		{
+			if(CVarDebugDrawSimpleBones.GetValueOnRenderThread() != 0)
+			{
+				PDI->DrawLine(Start, End, LineColor, SDPG_Foreground, 0.0f, 1.0f);
+			}
+			else
+			{
+				SkeletalDebugRendering::DrawWireBone(PDI, Start, End, LineColor, SDPG_Foreground);
+			}
+
+			if(CVarDebugDrawBoneAxes.GetValueOnRenderThread() != 0)
+			{
+				SkeletalDebugRendering::DrawAxes(PDI, Transform, SDPG_Foreground);
 			}
 		}
 	}

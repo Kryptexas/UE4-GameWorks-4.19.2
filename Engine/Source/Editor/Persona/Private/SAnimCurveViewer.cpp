@@ -863,6 +863,12 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 				}
 			}
 		}
+		
+		// In case the num of curves in the cached list does not match the num of smart names we do a full clear
+		if (UidList.Num() != AnimCurveList.Num() && FilterText.IsEmpty())
+		{
+			AnimCurveList.Empty();
+		}
 
 		// Iterate through all curves..
 		for (SmartName::UID_Type Uid : UidList)

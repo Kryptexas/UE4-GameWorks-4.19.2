@@ -140,7 +140,10 @@ void FMessageLogViewModel::UpdateListingViewModelArray()
 
 	for(auto It = NameToViewModelMap.CreateConstIterator(); It; ++It)
 	{
-		ViewModelArray.Add(It.Value());
+		if (It.Value()->ShouldShowInLogWindow())
+		{
+			ViewModelArray.Add(It.Value());
+		}
 	}
 
 	Update();

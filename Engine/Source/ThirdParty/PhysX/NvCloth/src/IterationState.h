@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -75,7 +75,7 @@ inline physx::PxQuat exp(const physx::PxVec3& v)
 template <typename Simd4f, uint32_t N>
 inline void assign(Simd4f (&columns)[N], const physx::PxMat44& matrix)
 {
-	for(uint32_t i = 0; i < N; ++i)
+	for (uint32_t i = 0; i < N; ++i)
 		columns[i] = load(nv::cloth::array(matrix[i]));
 }
 
@@ -265,7 +265,7 @@ cloth::IterationState<Simd4f> cloth::IterationStateFactory::create(MyCloth const
 
 	// for inertia, we want to violate newton physics to
 	// match velocity and position as given by the user, which means:
-	// vt = v0 + a*t and xt = x0 + v0*t + (!) a*t^2
+	// vt = v0 + a * t and xt = x0 + v0 * t + (!) a * t^2
 	// this is achieved by applying a different portion to cur and prev
 	// position, compared to the normal +0.5 and -0.5 for '... 1/2 a*t^2'.
 	// specifically, the portion is alpha=(n+1)/2n and 1-alpha.
@@ -295,7 +295,7 @@ cloth::IterationState<Simd4f> cloth::IterationStateFactory::create(MyCloth const
 
 	result.mIsTurning = mPrevAngularVelocity.magnitudeSquared() + cloth.mAngularVelocity.magnitudeSquared() > 0.0f;
 
-	if(result.mIsTurning)
+	if (result.mIsTurning)
 	{
 		Simd4f curAngularVelocity = load(array(invRotation.rotate(cloth.mAngularVelocity)));
 		Simd4f prevAngularVelocity = load(array(invRotation.rotate(mPrevAngularVelocity)));
@@ -347,10 +347,10 @@ cloth::IterationState<Simd4f> cloth::IterationStateFactory::create(MyCloth const
 		const float* dampScalePtr = array(firstDampScale);
 		const float* centrifugalPtr = array(centrifugalVelocity);
 
-		for(unsigned int j = 0; j < 3; ++j)
+		for (unsigned int j = 0; j < 3; ++j)
 		{
 			float centrifugalJ = -centrifugalPtr[j] * centrifugalScale;
-			for(unsigned int i = 0; i < 3; ++i)
+			for (unsigned int i = 0; i < 3; ++i)
 			{
 				float damping = dampScalePtr[j];
 				float coriolis = coriolisMatrix(i, j);
@@ -383,7 +383,7 @@ cloth::IterationState<Simd4f> cloth::IterationStateFactory::create(MyCloth const
 template <typename Simd4f>
 void cloth::IterationState<Simd4f>::update()
 {
-	if(mIsTurning)
+	if (mIsTurning)
 	{
 		// only need to turn bias, matrix is unaffected (todo: verify)
 		mCurBias = transform(mRotationMatrix, mCurBias);
@@ -392,7 +392,7 @@ void cloth::IterationState<Simd4f>::update()
 	}
 
 	// remove time step ratio in damp scale after first iteration
-	for(uint32_t i = 0; i < 3; ++i)
+	for (uint32_t i = 0; i < 3; ++i)
 	{
 		mPrevMatrix[i] = mPrevMatrix[i] - mRotationMatrix[i] * mDampScaleUpdate;
 		mCurMatrix[i] = mCurMatrix[i] + mRotationMatrix[i] * mDampScaleUpdate;

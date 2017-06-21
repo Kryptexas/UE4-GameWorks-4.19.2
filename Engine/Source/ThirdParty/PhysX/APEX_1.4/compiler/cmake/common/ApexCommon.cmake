@@ -15,7 +15,6 @@ ADD_LIBRARY(ApexCommon STATIC
 	${COMMON_SOURCE_DIR}/src/ApexGeneralizedCubeTemplates.cpp
 	${COMMON_SOURCE_DIR}/src/ApexGeneralizedMarchingCubes.cpp
 	${COMMON_SOURCE_DIR}/src/ApexIsoMesh.cpp
-	${COMMON_SOURCE_DIR}/src/ApexMath.cpp
 	${COMMON_SOURCE_DIR}/src/ApexMeshContractor.cpp
 	${COMMON_SOURCE_DIR}/src/ApexMeshHash.cpp
 	${COMMON_SOURCE_DIR}/src/ApexPreview.cpp
@@ -90,8 +89,6 @@ TARGET_INCLUDE_DIRECTORIES(ApexCommon
 	PRIVATE ${PHYSX_ROOT_DIR}/Include/particles
 	PRIVATE ${PHYSX_ROOT_DIR}/Include/vehicle
 	PRIVATE ${PHYSX_ROOT_DIR}/Source/GeomUtils/headers
-	
-	PRIVATE ${NVSIMD_INCLUDE_DIR}/include
 )
 
 TARGET_COMPILE_DEFINITIONS(ApexCommon 

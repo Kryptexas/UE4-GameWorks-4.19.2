@@ -8,7 +8,7 @@
 
 class UReverbEffect;
 
-static int32 DisableSubmixReverbCVar = 1;
+static int32 DisableSubmixReverbCVar = 0;
 FAutoConsoleVariableRef CVarDisableSubmixReverb(
 	TEXT("au.DisableReverbSubmix"),
 	DisableSubmixReverbCVar,

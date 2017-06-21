@@ -699,7 +699,7 @@ public:
 	 * @param OtherComp Component to test this component against.
 	 * @return Whether this component is overlapping another component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	bool IsOverlappingComponent(const UPrimitiveComponent* OtherComp) const;
 	
 	/** Check whether this component has the specified overlap. */
@@ -710,7 +710,7 @@ public:
 	 * @param Other Actor to test this component against.
 	 * @return Whether this component is overlapping any component of the given Actor.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	bool IsOverlappingActor(const AActor* Other) const;
 
 	/** Appends list of overlaps with components owned by the given actor to the 'OutOverlaps' array. Returns true if any overlaps were added. */
@@ -721,7 +721,7 @@ public:
 	 * @param OverlappingActors		[out] Returned list of overlapping actors
 	 * @param ClassFilter			[optional] If set, only returns actors of this class or subclasses
 	 */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	void GetOverlappingActors(TArray<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
 
 	/** 
@@ -732,7 +732,7 @@ public:
 	void GetOverlappingActors(TSet<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
 
 	/** Returns list of components this component is overlapping. */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& InOverlappingComponents) const;
 
 	/** Returns list of components this component is overlapping. */
@@ -861,7 +861,7 @@ public:
 	 * @param ElementIndex - The element to access the material of.
 	 * @return the material used by the indexed element of this mesh.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
+	UFUNCTION(BlueprintPure, Category="Rendering|Material")
 	virtual class UMaterialInterface* GetMaterial(int32 ElementIndex) const;
 
 	/**
@@ -901,12 +901,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
 	virtual class UMaterialInstanceDynamic* CreateDynamicMaterialInstance(int32 ElementIndex, class UMaterialInterface* SourceMaterial = NULL);
 
-	/** Try and retrieve the material applied to a particular collision face of mesh. Used with face index returned from collision trace. */
-	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
-	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const;
+	/** 
+	 * Try and retrieve the material applied to a particular collision face of mesh. Used with face index returned from collision trace. 
+	 *	@param	FaceIndex		Face index from hit result that was hit by a trace
+	 *	@param	SectionIndex	Section of the mesh that the face belongs to
+	 *	@return					Material applied to section that the hit face belongs to
+	 */
+	UFUNCTION(BlueprintPure, Category = "Components|Mesh")
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const;
 
 	/** Returns the slope override struct for this component. */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintPure, Category="Physics")
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
 
 	/** Sets a new slope override for this component instance. */
@@ -915,6 +920,7 @@ public:
 
 	/** 
 	 *	Sets whether or not a single body should use physics simulation, or should be 'fixed' (kinematic).
+	 *	Note that if this component is currently attached to something, beginning simulation will detach it.
 	 *
 	 *	@param	bSimulate	New simulation state for single body
 	 */
@@ -1105,8 +1111,8 @@ public:
 	*   Objects that are not simulated return (0,0,0) as they do not have COM
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to get center of mass of. 'None' indicates root body.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
-	FVector GetCenterOfMass(FName BoneName = NAME_None);
+	UFUNCTION(BlueprintPure, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
+	FVector GetCenterOfMass(FName BoneName = NAME_None) const;
 
 	/**
 	*	Set the center of mass of a single body. This will offset the physx-calculated center of mass.
@@ -1157,6 +1163,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetTranslucentSortPriority(int32 NewTranslucentSortPriority);
 
+	/** Changes the value of bReceivesDecals. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetReceivesDecals(bool bNewReceivesDecals);
+
 	/** Controls what kind of collision is enabled for this body */
 	UFUNCTION(BlueprintCallable, Category="Collision")
 	virtual void SetCollisionEnabled(ECollisionEnabled::Type NewType);
@@ -1172,8 +1182,8 @@ public:
 	virtual void SetCollisionProfileName(FName InCollisionProfileName);
 
 	/** Get the collision profile name */
-	UFUNCTION(BlueprintCallable, Category="Collision")
-	FName GetCollisionProfileName();
+	UFUNCTION(BlueprintPure, Category="Collision")
+	FName GetCollisionProfileName() const;
 
 	/**
 	 *	Changes the collision channel that this object uses when it moves
@@ -1402,7 +1412,7 @@ public:
 	virtual FMatrix GetRenderMatrix() const;
 
 	/** @return number of material elements in this primitive */
-	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
+	UFUNCTION(BlueprintPure, Category="Rendering|Material")
 	virtual int32 GetNumMaterials() const;
 	
 	/** Get a BodyInstance from this component. The supplied name is used in the SkeletalMeshComponent case. A name of NAME_None in the skeletal case gives the root body instance. */
@@ -1652,27 +1662,27 @@ public:
 	virtual bool IsWorldGeometry() const override;
 
 	/** Returns the form of collision for this component */
-	UFUNCTION(BlueprintCallable, Category="Collision")
+	UFUNCTION(BlueprintPure, Category="Collision")
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 
 	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Collision Enabled"), Category="Collision")
 	bool K2_IsCollisionEnabled() const;
 
 	/** Utility to see if there is any query collision enabled on this component. */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Query Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Query Collision Enabled"), Category="Collision")
 	bool K2_IsQueryCollisionEnabled() const;
 
 	/** Utility to see if there is any physics collision enabled on this component. */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Physics Collision Enabled"), Category="Collision")
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Is Physics Collision Enabled"), Category="Collision")
 	bool K2_IsPhysicsCollisionEnabled() const;
 
 	/** Gets the response type given a specific channel */
-	UFUNCTION(BlueprintCallable, Category="Collision")
+	UFUNCTION(BlueprintPure, Category="Collision")
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
 
 	/** Gets the collision object type */
-	UFUNCTION(BlueprintCallable, Category="Collision")
+	UFUNCTION(BlueprintPure, Category="Collision")
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 
 	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
@@ -1781,7 +1791,7 @@ public:
 	virtual void SetEnableGravity(bool bGravityEnabled);
 
 	/** Returns whether this component is affected by gravity. Returns always false if the component is not simulated. */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintPure, Category="Physics")
 	virtual bool IsGravityEnabled() const;
 
 	/** Sets the linear damping of this component. */
@@ -1789,7 +1799,7 @@ public:
 	virtual void SetLinearDamping(float InDamping);
 
 	/** Returns the linear damping of this component. */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintPure, Category="Physics")
 	virtual float GetLinearDamping() const;
 
 	/** Sets the angular damping of this component. */
@@ -1797,7 +1807,7 @@ public:
 	virtual void SetAngularDamping(float InDamping);
 	
 	/** Returns the angular damping of this component. */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintPure, Category="Physics")
 	virtual float GetAngularDamping() const;
 
 	/** Change the mass scale used to calculate the mass of a single physics body */
@@ -1805,7 +1815,7 @@ public:
 	virtual void SetMassScale(FName BoneName = NAME_None, float InMassScale = 1.f);
 
 	/** Returns the mass scale used to calculate the mass of a single physics body */
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintPure, Category = "Physics")
 	virtual float GetMassScale(FName BoneName = NAME_None) const;
 
 	/** Change the mass scale used fo all bodies in this component */
@@ -1821,15 +1831,15 @@ public:
 	virtual void SetMassOverrideInKg(FName BoneName = NAME_None, float MassInKg = 1.f, bool bOverrideMass = true);
 
 	/** Returns the mass of this component in kg. */
-	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual float GetMass() const;
 
 	/** Returns the inertia tensor of this component in kg cm^2. The inertia tensor is in local component space.*/
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
 	virtual FVector GetInertiaTensor(FName BoneName = NAME_None) const;
 
 	/** Scales the given vector by the world space moment of inertia. Useful for computing the torque needed to rotate an object.*/
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category = "Physics", meta = (Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
 	virtual FVector ScaleByMomentOfInertia(FVector InputVector, FName BoneName = NAME_None) const;
 
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
@@ -1844,12 +1854,12 @@ public:
 	 *	Returns if a single body is currently awake and simulating.
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to return wakeful state from. 'None' indicates root body.
 	 */
-	bool RigidBodyIsAwake(FName BoneName = NAME_None);
+	bool RigidBodyIsAwake(FName BoneName = NAME_None) const;
 
 	/**
 	 *	Returns if any body in this component is currently awake and simulating.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating", UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintPure, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating", UnsafeDuringActorConstruction="true"))
 	virtual bool IsAnyRigidBodyAwake();
 	
 	/**

@@ -94,7 +94,7 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 	
 	FString Categories = UGameplayTagsManager::Get().GetCategoriesMetaFromPropertyHandle(StructPropertyHandle);
 
-	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
+	bool bReadOnly = StructPropertyHandle->IsEditConst();
 
 	return SNew(SVerticalBox)
 		+ SVerticalBox::Slot()

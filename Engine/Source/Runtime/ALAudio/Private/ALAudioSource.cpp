@@ -10,6 +10,8 @@
 #include "Audio.h"
 #include "Sound/SoundWave.h"
 #include "ALAudioDevice.h"
+#include "ContentStreaming.h"
+
 /**
  * Initializes a source with a given wave instance and prepares it for playback.
  *
@@ -172,6 +174,7 @@ void FALSoundSource::Play( void )
  */
 void FALSoundSource::Stop( void )
 {
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 	if( WaveInstance )
 	{
 		GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Stop()"));

@@ -579,7 +579,7 @@ struct ENGINE_API FAnimNode_Base
 	 * This can be called on any thread.
 	 * @param	Context		Context structure providing access to relevant data
 	 */
-	virtual void Initialize(const FAnimationInitializeContext& Context);
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context);
 
 	/** 
 	 * Called to cache any bones that this node needs to track (e.g. in a FBoneReference). 
@@ -587,7 +587,7 @@ struct ENGINE_API FAnimNode_Base
 	 * This can be called on any thread.
 	 * @param	Context		Context structure providing access to relevant data
 	 */
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) {}
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context);
 
 	/** 
 	 * Called to update the state of the graph relative to this node.
@@ -596,7 +596,7 @@ struct ENGINE_API FAnimNode_Base
 	 * This can be called on any thread.
 	 * @param	Context		Context structure providing access to relevant data
 	 */
-	virtual void Update(const FAnimationUpdateContext& Context) {}
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context);
 
 	/** 
 	 * Called to evaluate local-space bones transforms according to the weights set up in Update().
@@ -604,7 +604,7 @@ struct ENGINE_API FAnimNode_Base
 	 * This can be called on any thread.
 	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
 	 */
-	virtual void Evaluate(FPoseContext& Output) { check(false); }
+	virtual void Evaluate_AnyThread(FPoseContext& Output);
 
 	/** 
 	 * Called to evaluate component-space bone transforms according to the weights set up in Update().
@@ -612,8 +612,7 @@ struct ENGINE_API FAnimNode_Base
 	 * This can be called on any thread.
 	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
 	 */	
-	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) { check(false); }
-
+	virtual void EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output);
 	/** 
 	 * If a derived anim node should respond to asset overrides, OverrideAsset should be defined to handle changing the asset 
 	 * This is called during anim blueprint compilation to handle child anim blueprints.
@@ -663,12 +662,28 @@ struct ENGINE_API FAnimNode_Base
 
 	virtual ~FAnimNode_Base() {}
 
+	/** Deprecated functions */
+	DEPRECATED(4.17, "Please use Initialize_AnyThread instead")
+	virtual void Initialize(const FAnimationInitializeContext& Context);
+	DEPRECATED(4.17, "Please use CacheBones_AnyThread instead")
+	virtual void CacheBones(const FAnimationCacheBonesContext& Context) {}
+	DEPRECATED(4.17, "Please use Update_AnyThread instead")
+	virtual void Update(const FAnimationUpdateContext& Context) {}
+	DEPRECATED(4.17, "Please use Evaluate_AnyThread instead")
+	virtual void Evaluate(FPoseContext& Output) { check(false); }
+	DEPRECATED(4.17, "Please use EvaluateComponentSpace_AnyThread instead")
+	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) { check(false); }
+
 protected:
 	/** return true if enabled, otherwise, return false. This is utility function that can be used per node level */
 	bool IsLODEnabled(FAnimInstanceProxy* AnimInstanceProxy, int32 InLODThreshold);
 
-	/** Called once, from game thread as the parent anim instance is created */
+	/** Deprecated function */
+	DEPRECATED(4.17, "Please use OnInitializeAnimInstance instead")
 	virtual void RootInitialize(const FAnimInstanceProxy* InProxy) {}
+
+	/** Called once, from game thread as the parent anim instance is created */
+	virtual void OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance);
 
 	friend struct FAnimInstanceProxy;
 };

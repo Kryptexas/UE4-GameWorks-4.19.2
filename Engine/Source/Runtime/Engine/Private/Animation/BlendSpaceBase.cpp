@@ -504,7 +504,7 @@ int32 UBlendSpaceBase::GetPerBoneInterpolationIndex(int32 BoneIndex, const FBone
 	for (int32 Iter=0; Iter<PerBoneBlend.Num(); ++Iter)
 	{
 		// we would like to make sure if 
-		if (PerBoneBlend[Iter].BoneReference.IsValid(RequiredBones) && RequiredBones.BoneIsChildOf(BoneIndex, PerBoneBlend[Iter].BoneReference.BoneIndex))
+		if (PerBoneBlend[Iter].BoneReference.IsValidToEvaluate(RequiredBones) && RequiredBones.BoneIsChildOf(BoneIndex, PerBoneBlend[Iter].BoneReference.BoneIndex))
 		{
 			return Iter;
 		}

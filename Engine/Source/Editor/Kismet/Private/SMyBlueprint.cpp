@@ -751,7 +751,9 @@ void SMyBlueprint::BuildOverridableFunctionsMenu(FMenuBuilder& MenuBuilder)
 				OverrideAction->GetMenuDescription(),
 				OverrideAction->GetTooltipDescription(),
 				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SMyBlueprint::ImplementFunction, OverrideAction)),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SMyBlueprint::ImplementFunction, OverrideAction),
+					FCanExecuteAction::CreateSP(this, &SMyBlueprint::IsEditingMode)),
 				NAME_None,
 				EUserInterfaceActionType::Button
 				);

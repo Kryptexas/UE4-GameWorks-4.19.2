@@ -807,14 +807,6 @@ namespace ObjectTools
 					CurReplaceObj->MarkPackageDirty();
 					OutInfo.DirtiedPackages.AddUnique( CurReplaceObj->GetOutermost() );
 				}
-				else
-				{
-					UE_LOG(LogObjectTools, Warning, TEXT("ForceReplaceReferences replaced references for an object '%s' in a compiled in package '%s'."), *CurReplaceObj->GetName(), *CurReplaceObj->GetOutermost()->GetName());
-				}
-			}
-			else
-			{
-				UE_LOG(LogObjectTools, Warning, TEXT("ForceReplaceReferences replaced references for a transient object '%s' or package '%s'."), *CurReplaceObj->GetName(), *CurReplaceObj->GetOutermost()->GetName());
 			}
 		}
 	}

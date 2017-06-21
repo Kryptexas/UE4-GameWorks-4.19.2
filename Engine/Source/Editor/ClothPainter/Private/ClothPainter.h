@@ -50,6 +50,9 @@ public:
 	/** Sets the debug skeletal mesh to which we should currently paint */
 	void SetSkeletalMeshComponent(UDebugSkelMeshComponent* SkeletalMeshComponent);
 
+	/** Gets the skeletal mesh of the current skeletal mesh component */
+	USkeletalMesh* GetSkeletalMesh() const;
+
 	/** Creates paint parameters for the current setup */
 	FMeshPaintParameters CreatePaintParameters(const struct FHitResult& HitResult, const FVector& InCameraOrigin, const FVector& InRayOrigin, const FVector& InRayDirection, float PaintStrength);
 
@@ -67,12 +70,12 @@ public:
 	/** Gets the current geometry adapter */
 	TSharedPtr<IMeshPaintGeometryAdapter> GetAdapter() const { return Adapter; }
 
-protected:
-
 	/** When a different clothing asset is selected in the UI the painter should refresh the adapter */
 	void OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, int32 InAssetLod, int32 MaskIndex);
 	void OnAssetMaskSelectionChanged()
 	{};
+
+protected:
 
 	/** Rebuild the list of editable clothing assets from the current mesh */
 	void RefreshClothingAssets();
@@ -86,7 +89,6 @@ protected:
 	 */
 	void SetTool(TSharedPtr<FClothPaintToolBase> InTool);
 
-protected:
 	/** Current adapter used to paint the clothing properties */
 	TSharedPtr<IMeshPaintGeometryAdapter> Adapter;	
 	/** Debug skeletal mesh to which painting should be applied */

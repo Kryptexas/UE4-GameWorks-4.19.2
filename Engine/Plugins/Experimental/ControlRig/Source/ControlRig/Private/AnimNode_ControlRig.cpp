@@ -24,7 +24,7 @@ UControlRig* FAnimNode_ControlRig::GetControlRig() const
 	return CachedControlRig.Get();
 }
 
-void FAnimNode_ControlRig::RootInitialize(const FAnimInstanceProxy* InProxy)
+void FAnimNode_ControlRig::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
 	if (UControlRig* ControlRig = CachedControlRig.Get())
 	{
@@ -53,7 +53,7 @@ void FAnimNode_ControlRig::GatherDebugData(FNodeDebugData& DebugData)
 
 }
 
-void FAnimNode_ControlRig::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_ControlRig::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	if (UControlRig* ControlRig = CachedControlRig.Get())
 	{
@@ -63,7 +63,7 @@ void FAnimNode_ControlRig::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_ControlRig::Evaluate(FPoseContext& Output)
+void FAnimNode_ControlRig::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if (UHierarchicalRig* HierarchicalRig = Cast<UHierarchicalRig>(CachedControlRig.Get()))
 	{
@@ -128,7 +128,7 @@ void FAnimNode_ControlRig::Evaluate(FPoseContext& Output)
 	}
 }
 
-void FAnimNode_ControlRig::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_ControlRig::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	if (UHierarchicalRig* HierarchicalRig = Cast<UHierarchicalRig>(CachedControlRig.Get()))
 	{

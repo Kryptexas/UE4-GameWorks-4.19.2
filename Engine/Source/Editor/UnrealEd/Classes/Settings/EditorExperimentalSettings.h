@@ -71,10 +71,6 @@ public:
 	UPROPERTY(/*EditAnywhere - deprecated (moved into UBlueprintEditorSettings), */config/*, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints")*/)
 	bool bDrawMidpointArrowsInBlueprints;
 
-	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
-	UPROPERTY(EditAnywhere, config, Category=Audio)
-	bool bShowAudioStreamingOptions;
-
 	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
 	bool bContextMenuChunkAssignments;
@@ -133,6 +129,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Enable mobile PIE with preview device launch options."))
 	bool bMobilePIEPreviewDeviceLaunch;
 
+	/** Enables the ability to bake materials inside of the Static Mesh and Skeletal Mesh Editor, and for static mesh instances. */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
+	bool bAssetMaterialBaking;
+	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

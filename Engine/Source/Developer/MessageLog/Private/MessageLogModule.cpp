@@ -52,11 +52,19 @@ void FMessageLogModule::StartupModule()
 	MessageLogViewModel->Initialize();
 
 #if WITH_EDITOR
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("MessageLog", FOnSpawnTab::CreateStatic( &SpawnMessageLog, MessageLogViewModel.ToSharedRef() ))
-		.SetDisplayName(NSLOCTEXT("UnrealEditor", "MessageLogTab", "Message Log"))
-		.SetTooltipText(NSLOCTEXT("UnrealEditor", "MessageLogTooltipText", "Open the Message Log tab."))
-		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsLogCategory() )
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"));
+	TWeakPtr<FMessageLogViewModel> WeakMessageLogViewModel = MessageLogViewModel;
+	ModulesChangedHandle = FModuleManager::Get().OnModulesChanged().AddLambda(
+	[WeakMessageLogViewModel](FName InModuleName, EModuleChangeReason InReason)
+	{
+		if (InReason == EModuleChangeReason::ModuleLoaded && InModuleName == "LevelEditor")
+		{
+			FGlobalTabmanager::Get()->RegisterNomadTabSpawner("MessageLog", FOnSpawnTab::CreateStatic(&SpawnMessageLog, WeakMessageLogViewModel.Pin().ToSharedRef()))
+				.SetDisplayName(NSLOCTEXT("UnrealEditor", "MessageLogTab", "Message Log"))
+				.SetTooltipText(NSLOCTEXT("UnrealEditor", "MessageLogTooltipText", "Open the Message Log tab."))
+				.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsLogCategory())
+				.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MessageLog.TabIcon"));
+		}
+	});
 #endif
 
 	// Bind us so message log output is routed via this module
@@ -70,6 +78,7 @@ void FMessageLogModule::ShutdownModule()
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("MessageLog");
 	}
+	FModuleManager::Get().OnModulesChanged().Remove(ModulesChangedHandle);
 #endif
 
 	FMessageLog::OnGetLog().Unbind();

@@ -11,13 +11,13 @@ public class SimplygonSwarm : ModuleRules
         PrivateIncludePaths.Add("Developer/SimplygonSwarm/Private");
 
         PublicDependencyModuleNames.AddRange(
-        new string[] { 
-				"Core",
-				"CoreUObject",
-				"InputCore",
-				"Json",
-				"RHI"
-			}
+        new string[] {
+                "Core",
+                "CoreUObject",
+                "InputCore",
+                "Json",
+                "RHI",
+            }
         );
 
         PrivateDependencyModuleNames.AddRange(
@@ -40,11 +40,19 @@ public class SimplygonSwarm : ModuleRules
         new string[] { 
 				"MeshUtilities",
 				"MaterialUtilities",
-                "SimplygonMeshReduction"
-			}
+                "SimplygonMeshReduction",
+                "MeshReductionInterface"
+            }
         );
 
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");
+       PublicIncludePathModuleNames.AddRange(
+       new string[] {
+                "MeshReductionInterface"
+           }
+       );
+
+
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "SSF");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "SPL");
 		AddEngineThirdPartyPrivateDynamicDependencies(Target, "PropertyEditor");

@@ -9,18 +9,17 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 
-#if WITH_PHYSX/* && WITH_EDITOR*/ //TODO: sync and async cooking should not use the derived data cooker - existing paths exist just need hooking up
+#if WITH_PHYSX && WITH_EDITOR
 
 #include "IPhysXCookingModule.h"
 
-DEFINE_STAT(STAT_PhysXCooking);
-
-FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup)
+FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup, bool InIsRuntime)
 	: BodySetup( InBodySetup )
 	, CollisionDataProvider( NULL )
 	, Format( InFormat )
 	, RuntimeCookFlags(InRuntimeCookFlags)
 	, Cooker( NULL )
+	, bIsRuntime(InIsRuntime)
 {
 	check( BodySetup != NULL );
 	CollisionDataProvider = BodySetup->GetOuter();
@@ -59,6 +58,11 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 	SCOPE_CYCLE_COUNTER(STAT_PhysXCooking);
 
 	check(Cooker != NULL);
+
+	if(bIsRuntime)
+	{
+		return false;
+	}
 
 	FMemoryWriter Ar( OutData );
 	uint8 bLittleEndian = PLATFORM_LITTLE_ENDIAN;	//TODO: We should pass the target platform into this function and write it. Then swap the endian on the writer so the reader doesn't have to do it at runtime

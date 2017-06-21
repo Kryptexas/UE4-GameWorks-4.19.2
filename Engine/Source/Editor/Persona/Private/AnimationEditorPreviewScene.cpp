@@ -135,6 +135,11 @@ void FAnimationEditorPreviewScene::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 	RefreshAdditionalMeshes();
 }
 
+USkeletalMesh* FAnimationEditorPreviewScene::GetPreviewMesh() const
+{
+	return PreviewSceneDescription->PreviewMesh.Get();
+}
+
 void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
 {
 	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;

@@ -19,7 +19,7 @@ public class HierarchicalLODOutliner : ModuleRules
                 "Engine",
                 "UnrealEd",
                 "PropertyEditor",
-                "HierarchicalLODUtilities"
+                "HierarchicalLODUtilities",
 			}
         );
         
@@ -35,6 +35,8 @@ public class HierarchicalLODOutliner : ModuleRules
 				"LevelEditor"
 				}
 		);
+
+
 
 		if (UEBuildConfiguration.bBuildEditor == true)
         {

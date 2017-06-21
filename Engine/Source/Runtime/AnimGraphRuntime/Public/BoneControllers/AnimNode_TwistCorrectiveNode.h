@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "BoneContainer.h"
 #include "Animation/AnimCurveTypes.h"
+#include "CommonAnimTypes.h"
 #include "BonePose.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_TwistCorrectiveNode.generated.h"
@@ -74,8 +75,8 @@ public:
 
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context)  override;
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)  override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface

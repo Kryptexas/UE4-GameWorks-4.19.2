@@ -88,8 +88,8 @@ FString FTraceChannelTestBatchOptions::ToString() const
 	return FString::Printf(TEXT("bLineTrace:%d, bSphereTrace:%d, bCapsuleTrace:%d, bBoxTrace:%d, bChannelTrace:%d, bObjectsTrace:%d, bProfileTrace:%d"), bLineTrace, bSphereTrace, bCapsuleTrace, bBoxTrace, bChannelTrace, bObjectsTrace, bProfileTrace);
 }
 
-#define TEST_IMPL(X, Type) FunctionalTest.AssertEqual_##Type(Actual.##X, Expected.##X, FString::Printf(TEXT("%s:"#X), *What), ContextObject)
-#define TEST_IMPL_TOLERANCE(X, Type) FunctionalTest.AssertEqual_##Type(Actual.##X, Expected.##X, FString::Printf(TEXT("%s:"#X), *What), KINDA_SMALL_NUMBER, ContextObject)
+#define TEST_IMPL(X, Type) FunctionalTest.AssertEqual_##Type(Actual.X, Expected.X, FString::Printf(TEXT("%s:"#X), *What), ContextObject)
+#define TEST_IMPL_TOLERANCE(X, Type) FunctionalTest.AssertEqual_##Type(Actual.X, Expected.X, FString::Printf(TEXT("%s:"#X), *What), KINDA_SMALL_NUMBER, ContextObject)
 #define TEST_BOOL(X) TEST_IMPL(X, Bool)
 #define TEST_INT(X) TEST_IMPL(X, Int)
 #define TEST_NAME(X) TEST_IMPL(X, Name)
@@ -98,7 +98,6 @@ FString FTraceChannelTestBatchOptions::ToString() const
 
 bool HelperAssertNamesEqual(const FTraceQueryTestNames& Actual, const FTraceQueryTestNames& Expected, const FString& What, const UObject* ContextObject, AFunctionalTest& FunctionalTest)
 {
-#if 0
 	bool bResults[] = {
 		TEST_NAME(ComponentName),
 		TEST_NAME(ActorName),
@@ -112,14 +111,12 @@ bool HelperAssertNamesEqual(const FTraceQueryTestNames& Actual, const FTraceQuer
 			return false;
 		}
 	}
-#endif
 
 	return true;
 }
 
 bool HelperAssertFHitResultEqual(const FHitResult& Actual, const FHitResult& Expected, const FString& What, const UObject* ContextObject, AFunctionalTest& FunctionalTest)
 {
-#if 0
 	bool bResults[] = {
 		TEST_BOOL(bBlockingHit),
 		TEST_BOOL(bStartPenetrating),
@@ -144,7 +141,6 @@ bool HelperAssertFHitResultEqual(const FHitResult& Actual, const FHitResult& Exp
 			return false;
 		}
 	}
-#endif
 
 	return true;
 }

@@ -11,7 +11,7 @@ void FAnimPreviewAttacheInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 
 	FAnimationInitializeContext InitContext(this);
 	CopyPoseFromMesh.bUseAttachedParent = true;
-	CopyPoseFromMesh.Initialize(InitContext);
+	CopyPoseFromMesh.Initialize_AnyThread(InitContext);
 }
 
 void FAnimPreviewAttacheInstanceProxy::Update(float DeltaSeconds)
@@ -20,7 +20,7 @@ void FAnimPreviewAttacheInstanceProxy::Update(float DeltaSeconds)
 	check(IsInGameThread());
 
 	FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
-	CopyPoseFromMesh.Update(UpdateContext);
+	CopyPoseFromMesh.Update_AnyThread(UpdateContext);
 
 	FAnimInstanceProxy::Update(DeltaSeconds);
 }
@@ -28,7 +28,7 @@ void FAnimPreviewAttacheInstanceProxy::Update(float DeltaSeconds)
 bool FAnimPreviewAttacheInstanceProxy::Evaluate(FPoseContext& Output)
 {
 	// we cant evaluate on a worker thread here because of the key delegate needing to be fired
-	CopyPoseFromMesh.Evaluate(Output);
+	CopyPoseFromMesh.Evaluate_AnyThread(Output);
 	return true;
 }
 

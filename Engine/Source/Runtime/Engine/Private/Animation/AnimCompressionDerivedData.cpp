@@ -136,6 +136,8 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 											CompressContext.Get()->MaxAnimations,
 											AAC,
 											OutputStr);
+
+		AnimToOperateOn->CompressedRawDataSize = AnimToOperateOn->GetApproxRawSize();
 	}
 
 	//Our compression scheme may change so copy the new one back

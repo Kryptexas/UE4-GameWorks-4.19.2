@@ -458,7 +458,14 @@ namespace HLODOutliner
 		}
 		
 		ResetLODLevelForcing();
-
+		for (AHLODSelectionActor* BoundsActor : SelectionActors)
+		{
+			if (BoundsActor && BoundsActor->IsValidLowLevel())
+			{
+				CurrentWorld->DestroyActor(BoundsActor);
+			}
+		}
+		SelectionActors.Empty();
 
 		FullRefresh();
 		return FReply::Handled();
@@ -561,7 +568,7 @@ namespace HLODOutliner
 			GEngine->OnActorMoved().RemoveAll(this);
 		}	
 		
-		if (GEditor)
+		if (GEditor && UObjectInitialized())
 		{
 			GEditor->OnHLODActorMoved().RemoveAll(this);
 			GEditor->OnHLODActorAdded().RemoveAll(this);
@@ -817,12 +824,30 @@ namespace HLODOutliner
 		// This call came from a context menu
 		auto SelectedItems = TreeView->GetSelectedItems();
 
+		TArray<AHLODSelectionActor*> SelectionActorsToDelete;
 		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
 		for (auto SelectedItem : SelectedItems)
 		{
 			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 			ALODActor* LODActor = ActorItem->LODActor.Get();			
+						
+			AHLODSelectionActor** SelectionActorPtr = SelectionActors.FindByPredicate([LODActor](const AHLODSelectionActor* Actor) { return Actor->RepresentedActor.Get() == LODActor; });
+
+			if (SelectionActorPtr)
+			{
+				SelectionActorsToDelete.AddUnique(*SelectionActorPtr);
+			}
+
 			HierarchicalLODUtilities->DestroyLODActor(LODActor);
+		}
+
+		for (AHLODSelectionActor* BoundsActor : SelectionActorsToDelete)
+		{
+			if (BoundsActor && BoundsActor->IsValidLowLevel())
+			{
+				SelectionActors.Remove(BoundsActor);
+				CurrentWorld->DestroyActor(BoundsActor);
+			}
 		}
 
 		ResetLODLevelForcing();
@@ -1186,7 +1211,8 @@ namespace HLODOutliner
 		{
 			AHLODSelectionActor* SelectionActor = CurrentWorld->SpawnActorDeferred<AHLODSelectionActor>(AHLODSelectionActor::StaticClass(), FTransform());
 			SelectionActor->ClearFlags(RF_Public | RF_Standalone);
-			SelectionActor->SetFlags(RF_Transient);			
+			SelectionActor->SetFlags(RF_Transient);
+			SelectionActor->RepresentedActor = Actor;
 
 			UDrawSphereComponent* BoundSphereSpawned = SelectionActor->GetDrawSphereComponent();
 			BoundSphereSpawned->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
@@ -1735,7 +1761,7 @@ namespace HLODOutliner
 				bHLODEnabled = CurrentWorldSettings->bEnableHierarchicalLODSystem;
 			}
 
-			if (CurrentWorld != nullptr)
+			if (bHLODEnabled && CurrentWorld != nullptr)
 			{
 				bHLODEnabled = !HierarchicalLODUtilities->IsWorldUsedForStreaming(CurrentWorld);
 			}

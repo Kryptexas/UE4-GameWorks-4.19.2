@@ -299,7 +299,7 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			}
 		}
 
-		SetSkeleton(NewSkeleton);
+		RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 
 		PostEditChange();
 		MarkPackageDirty();

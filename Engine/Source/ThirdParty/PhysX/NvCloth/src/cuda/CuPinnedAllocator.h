@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -111,7 +111,7 @@ public:
 };
 
 template <class T1, unsigned Flag1, class T2, unsigned Flag2>
-bool operator==(const CuHostAllocator<T1, Flag1>&, const CuHostAllocator<T2, Flag2>&)
+bool operator == (const CuHostAllocator<T1, Flag1>&, const CuHostAllocator<T2, Flag2>&)
 {
 	return true;
 }

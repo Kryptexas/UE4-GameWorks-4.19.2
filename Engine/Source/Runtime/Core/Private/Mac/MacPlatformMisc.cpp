@@ -1659,7 +1659,7 @@ bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 void FMacPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerCoreAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 void* FMacPlatformMisc::CreateAutoreleasePool()

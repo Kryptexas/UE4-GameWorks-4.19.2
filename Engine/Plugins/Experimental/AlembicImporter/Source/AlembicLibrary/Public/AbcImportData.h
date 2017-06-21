@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Materials/Material.h"
+#include "Components.h"
 
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
@@ -33,8 +34,9 @@ class UMaterial;
 struct FAbcMeshSample
 {
 	FAbcMeshSample() : NumSmoothingGroups(0)
+		, NumUVSets(1)
 		, NumMaterials(0)
-		, SampleTime(0.0f)
+		, SampleTime(0.0f)		
 	{}
 
 	/** Constructing from other sample*/
@@ -45,7 +47,10 @@ struct FAbcMeshSample
 		Normals = InSample.Normals;
 		TangentX = InSample.TangentX;
 		TangentY = InSample.TangentY;
-		UVs = InSample.UVs;
+		for (uint32 UVIndex = 0; UVIndex < InSample.NumUVSets; ++UVIndex)
+		{
+			UVs[UVIndex] = InSample.UVs[UVIndex];
+		}
 		Colors = InSample.Colors;
 		/*Visibility = InSample.Visibility;
 		VisibilityIndices = InSample.VisibilityIndices;*/
@@ -54,6 +59,7 @@ struct FAbcMeshSample
 		NumSmoothingGroups = InSample.NumSmoothingGroups;
 		NumMaterials = InSample.NumMaterials;
 		SampleTime = InSample.SampleTime;
+		NumUVSets = InSample.NumUVSets;
 	}
 
 	TArray<FVector> Vertices;
@@ -63,7 +69,7 @@ struct FAbcMeshSample
 	TArray<FVector> Normals;
 	TArray<FVector> TangentX;
 	TArray<FVector> TangentY;
-	TArray<FVector2D> UVs;
+	TArray<FVector2D> UVs[MAX_TEXCOORDS];	
 
 	TArray<FLinearColor> Colors;
 	/*TArray<FVector2D> Visibility;
@@ -75,6 +81,7 @@ struct FAbcMeshSample
 
 	/** Number of smoothing groups and different materials (will always be at least 1) */
 	uint32 NumSmoothingGroups;
+	uint32 NumUVSets;
 	uint32 NumMaterials;
 
 	// Time in track this sample was taken from
@@ -214,9 +221,10 @@ struct FMeshSection
 	TArray<FVector> TangentX;
 	TArray<FVector> TangentY;
 	TArray<FVector> TangentZ;
-	TArray<FVector2D> UVs;
+	TArray<FVector2D> UVs[MAX_TEXCOORDS];
 	TArray<FColor> Colors;
 	uint32 NumFaces;
+	uint32 NumUVSets;
 };
 
 /** Structure encapsulating all the (intermediate) data retrieved from an Alembic file by the AbcImporter*/

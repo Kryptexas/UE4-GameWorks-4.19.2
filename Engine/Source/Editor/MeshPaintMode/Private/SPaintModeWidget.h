@@ -8,7 +8,6 @@
 class FPaintModePainter;
 class UPaintModeSettings;
 class IDetailsView;
-class SWrapBox;
 
 /** Widget representing the state / functionality and settings for PaintModePainter*/
 class SPaintModeWidget : public SCompoundWidget
@@ -36,9 +35,6 @@ protected:
 	/** Getters for whether or not a specific mode is visible */
 	EVisibility IsVertexPaintModeVisible() const;
 	EVisibility IsTexturePaintModeVisible() const;
-
-	/** Helper function to create SButtons for each entry inside of Enum together with the enabled check and click action */
-	void CreateActionEnumButtons(TSharedPtr<SWrapBox> WrapBox, const UEnum* Enum, TFunction<bool (int32)> EnabledFunc, TFunction<FReply (int32)> ClickFunc);
 protected:	
 	/** Objects displayed in the details view */
 	TArray<UObject*> SettingsObjects;

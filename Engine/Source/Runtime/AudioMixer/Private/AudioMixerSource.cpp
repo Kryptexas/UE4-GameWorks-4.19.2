@@ -596,7 +596,10 @@ namespace Audio
 			{
 				bool bLooped = false;
 
-				AsyncRealtimeAudioTask->EnsureCompletion();
+				if (!bTaskDone)
+				{
+					AsyncRealtimeAudioTask->EnsureCompletion();
+				}
 
 				switch (AsyncRealtimeAudioTask->GetType())
 				{
@@ -682,24 +685,49 @@ namespace Audio
 
 	void FMixerSource::OnRelease()
 	{
-		// This can only be freed from the audio render thread
-		IAudioTask* PendingTask = nullptr;
+		FPendingReleaseData* PendingReleaseData = nullptr;
 
-		while (PendingReleaseRealtimeAudioTask.Dequeue(PendingTask))
+		while (PendingReleases.Dequeue(PendingReleaseData))
 		{
-			PendingTask->EnsureCompletion();
-			delete PendingTask;
-			PendingTask = nullptr;
-		}
-
-		FSoundBuffer* PendingBuffer = nullptr;
-		if (PendingReleaseBuffer.Dequeue(PendingBuffer))
-		{
-			delete PendingBuffer;
-			PendingBuffer = nullptr;
+			TasksWaitingToFinish.Add(PendingReleaseData);
 		}
 
 		bIsReleasing = false;
+	}
+
+	void FMixerSource::OnUpdatePendingDecodes()
+	{
+		// Don't block, but let tasks finish naturally
+		for (int32 i = TasksWaitingToFinish.Num() - 1; i >= 0; --i)
+		{
+			FPendingReleaseData* PendingReleaseData = TasksWaitingToFinish[i];
+			if (PendingReleaseData->Task)
+			{
+				// Only delete the buffer and the task when it has finished
+				if (PendingReleaseData->Task->IsDone())
+				{
+					delete PendingReleaseData->Task;
+					PendingReleaseData->Task = nullptr;
+
+					if (PendingReleaseData->Buffer)
+					{
+						delete PendingReleaseData->Buffer;
+					}
+
+					delete PendingReleaseData;
+					TasksWaitingToFinish[i] = nullptr;
+
+					TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
+				}
+			}
+			else if (PendingReleaseData->Buffer)
+			{
+				delete PendingReleaseData->Buffer;
+				PendingReleaseData->Buffer = nullptr;
+
+				TasksWaitingToFinish.RemoveAtSwap(i, 1, false);
+			}
+		}
 	}
 
 	void FMixerSource::FreeResources()
@@ -709,12 +737,15 @@ namespace Audio
 			MixerBuffer->EnsureHeaderParseTaskFinished();
 		}
 
+		FPendingReleaseData* PendingDecodeTask = nullptr;
+
 		if (MixerSourceVoice)
 		{
 			// Hand off the ptr of the async task so it can be shutdown on the audio render thread.
 			if (AsyncRealtimeAudioTask)
 			{
-				PendingReleaseRealtimeAudioTask.Enqueue(AsyncRealtimeAudioTask);
+				PendingDecodeTask = new FPendingReleaseData();
+				PendingDecodeTask->Task = AsyncRealtimeAudioTask;
 			}
 
 			// We're now "releasing" so don't recycle this voice until we get notified that the source has finished
@@ -731,10 +762,21 @@ namespace Audio
 			if (Buffer)
 			{
 				check(Buffer->ResourceID == 0);
-				PendingReleaseBuffer.Enqueue(Buffer);
+
+				if (!PendingDecodeTask)
+				{
+					PendingDecodeTask = new FPendingReleaseData();
+				}
+
+				PendingDecodeTask->Buffer = Buffer;
 			}
 
 			CurrentBuffer = 0;
+		}
+
+		if (PendingDecodeTask)
+		{
+			PendingReleases.Enqueue(PendingDecodeTask);
 		}
 
 		MixerBuffer = nullptr;

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -68,7 +68,7 @@ template <typename Simd4f>
 inline BoundingBox<Simd4f> expandBounds(const BoundingBox<Simd4f>& bounds, const Simd4f* pIt, const Simd4f* pEnd)
 {
 	BoundingBox<Simd4f> result = bounds;
-	for(; pIt != pEnd; ++pIt)
+	for (; pIt != pEnd; ++pIt)
 	{
 		result.mLower = min(result.mLower, *pIt);
 		result.mUpper = max(result.mUpper, *pIt);

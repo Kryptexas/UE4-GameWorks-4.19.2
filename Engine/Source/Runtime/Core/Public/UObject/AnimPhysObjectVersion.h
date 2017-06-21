@@ -21,6 +21,10 @@ struct CORE_API FAnimPhysObjectVersion
 		AddedClothingMaskWorkflow,
 		// Remove UID from smart name serialize, it just breaks determinism 
 		RemoveUIDFromSmartNameSerialize,
+		// Convert FName Socket to FSocketReference and added TargetReference that support bone and socket
+		CreateTargetReference,
+		// Tune soft limit stiffness and damping coefficients
+		TuneSoftLimitStiffnessAndDamping,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

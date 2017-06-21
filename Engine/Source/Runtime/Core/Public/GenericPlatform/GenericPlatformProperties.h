@@ -22,7 +22,7 @@ struct FGenericPlatformProperties
 	 */
 	static FORCEINLINE const char* GetPhysicsFormat()
 	{
-		return "PhysXPC";
+		return "PhysXGeneric";
 	}
 
 	/**

@@ -54,14 +54,64 @@ void FComponentSpacePoseContext::ResetToRefPose()
 /////////////////////////////////////////////////////
 // FAnimNode_Base
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 void FAnimNode_Base::Initialize(const FAnimationInitializeContext& Context)
 {
-	EvaluateGraphExposedInputs.Initialize(this, Context.AnimInstanceProxy->GetAnimInstanceObject());
+	EvaluateGraphExposedInputs.Initialize(this, Context.AnimInstanceProxy->GetAnimInstanceObject());	
+}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+void FAnimNode_Base::Initialize_AnyThread(const FAnimationInitializeContext& Context)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	Initialize(Context);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void FAnimNode_Base::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	CacheBones(Context);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void FAnimNode_Base::Update_AnyThread(const FAnimationUpdateContext& Context)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	Update(Context);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void FAnimNode_Base::Evaluate_AnyThread(FPoseContext& Output)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	Evaluate(Output);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void FAnimNode_Base::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	EvaluateComponentSpace(Output);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 bool FAnimNode_Base::IsLODEnabled(FAnimInstanceProxy* AnimInstanceProxy, int32 InLODThreshold)
 {
 	return ((InLODThreshold == INDEX_NONE) || (AnimInstanceProxy->GetLODLevel() <= InLODThreshold));
+}
+
+void FAnimNode_Base::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
+{
+	// Call legacy implementation for backwards compatibility
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	RootInitialize(InProxy);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 /////////////////////////////////////////////////////
@@ -105,7 +155,7 @@ void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 	// Do standard initialization
 	if (LinkedNode != NULL)
 	{
-		LinkedNode->Initialize(Context);
+		LinkedNode->Initialize_AnyThread(Context);
 	}
 }
 
@@ -134,7 +184,7 @@ void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context)
 
 	if (LinkedNode != NULL)
 	{
-		LinkedNode->CacheBones(Context);
+		LinkedNode->CacheBones_AnyThread(Context);
 	}
 }
 
@@ -174,7 +224,7 @@ void FPoseLinkBase::Update(const FAnimationUpdateContext& Context)
 
 	if (LinkedNode != NULL)
 	{
-		LinkedNode->Update(Context);
+		LinkedNode->Update_AnyThread(Context);
 	}
 }
 
@@ -217,7 +267,7 @@ void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.ResetToAdditiveIdentity();
 #endif
-		LinkedNode->Evaluate(Output);
+		LinkedNode->Evaluate_AnyThread(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
@@ -286,7 +336,7 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 
 	if (LinkedNode != NULL)
 	{
-		LinkedNode->EvaluateComponentSpace(Output);
+		LinkedNode->EvaluateComponentSpace_AnyThread(Output);
 
 #if WITH_EDITOR
 		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);

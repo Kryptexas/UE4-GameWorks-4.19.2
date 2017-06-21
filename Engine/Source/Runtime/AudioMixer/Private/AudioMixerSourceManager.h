@@ -52,6 +52,9 @@ namespace Audio
 
 		// Called when the buffer queue listener is released. Allows cleaning up any resources from render thread.
 		virtual void OnRelease() = 0;
+
+		// Update any pending decode tasks. Used to clean up tasks without forcing them to finish.
+		virtual void OnUpdatePendingDecodes() {};
 	};
 
 	struct FMixerSourceSubmixSend
@@ -102,73 +105,80 @@ namespace Audio
 	class FSourceParam
 	{
 	public:
-		FSourceParam(float InNumInterpFrames);
+		FSourceParam()
+		 : CurrentValue(0.0f)
+		 , StartingValue(0.0f)
+		 , TargetValue(0.0f)
+		 , DeltaValue(0.0f)
+		{}
 
-		void Reset();
+		// Set the parameter value to the given target value over the given interpolation frames.
+		FORCEINLINE void SetValue(const float InValue, const int32 InNumInterpFrames)
+		{
+			TargetValue = InValue;
+			DeltaValue = (InValue - CurrentValue) / InNumInterpFrames;
+			StartingValue = CurrentValue;
+		}
 
-		void SetValue(float InValue);
-		float Update();
-		float GetValue() const;
+		// Resets the delta value back to 0.0. To be called at beginning of callback render.
+		FORCEINLINE void Reset()
+		{ 
+			DeltaValue = 0.0f; 
+			CurrentValue = TargetValue;
+		}
 
-		FORCEINLINE float GetCurrentValue() const { return CurrentValue; }
+		// Updates the parameter, assumes called in one of the frames.
+		FORCEINLINE float Update() 
+		{ 
+			CurrentValue += DeltaValue;
+			return CurrentValue; 
+		}
+
+		// Returns the current value, but does not update the value
+		FORCEINLINE float GetValue() const 
+		{ 
+			return CurrentValue; 
+		}
 
 	private:
-		float StartValue;
-		float EndValue;
 		float CurrentValue;
-		float NumInterpFrames;
-		float NumInterpFramesInverse;
-		float Frame;
-		bool bIsInit;
-		bool bIsDone;
+		float StartingValue;
+		float TargetValue;
+		float DeltaValue;
 	};
 
 
 	class FSourceChannelMap
 	{
 	public:
-		FSourceChannelMap(float InNumInterpFrames)
-			: NumInterpFrames(InNumInterpFrames)
-		{}
+		FSourceChannelMap() {}
 
-		void Reset()
+		FORCEINLINE void Reset()
 		{
 			ChannelValues.Reset();
 		}
 
-		void SetChannelMap(const TArray<float>& ChannelMap)
+		FORCEINLINE void SetChannelMap(const TArray<float>& ChannelMap, const int32 InNumInterpFrames)
 		{
 			if (ChannelValues.Num() != ChannelMap.Num())
 			{
 				ChannelValues.Reset();
 				for (int32 i = 0; i < ChannelMap.Num(); ++i)
 				{
-					ChannelValues.Add(FSourceParam(NumInterpFrames));
-					ChannelValues[i].SetValue(ChannelMap[i]);
+					ChannelValues.Add(FSourceParam());
+					ChannelValues[i].SetValue(ChannelMap[i], InNumInterpFrames);
 				}
 			}
 			else
 			{
 				for (int32 i = 0; i < ChannelMap.Num(); ++i)
 				{
-					ChannelValues[i].SetValue(ChannelMap[i]);
+					ChannelValues[i].SetValue(ChannelMap[i], InNumInterpFrames);
 				}
 			}
 		}
 
-		void GetChannelMap(TArray<float>& OutChannelMap)
-		{
-			const int32 NumChannelValues = ChannelValues.Num();
-			OutChannelMap.Reset();
-			OutChannelMap.AddUninitialized(NumChannelValues);
-			for (int32 i = 0; i < NumChannelValues; ++i)
-			{
-				OutChannelMap[i] = ChannelValues[i].Update();
-			}
-		}
-
-		FORCEINLINE_DEBUGGABLE
-		void UpdateChannelMap()
+		FORCEINLINE void UpdateChannelMap()
 		{
 			const int32 NumChannelValues = ChannelValues.Num();
 			for (int32 i = 0; i < NumChannelValues; ++i)
@@ -177,24 +187,32 @@ namespace Audio
 			}
 		}
 
-		FORCEINLINE_DEBUGGABLE
-		float GetChannelValue(int ChannelIndex)
+		FORCEINLINE void ResetInterpolation()
 		{
-			return ChannelValues[ChannelIndex].GetCurrentValue();
+			const int32 NumChannelValues = ChannelValues.Num();
+			for (int32 i = 0; i < NumChannelValues; ++i)
+			{
+				ChannelValues[i].Reset();
+			}
 		}
 
-		void PadZeroes(const int32 ToSize)
+		FORCEINLINE float GetChannelValue(int ChannelIndex)
+		{
+			return ChannelValues[ChannelIndex].GetValue();
+		}
+
+		FORCEINLINE void PadZeroes(const int32 ToSize, const int32 InNumInterpFrames)
 		{
 			int32 CurrentSize = ChannelValues.Num();
 			for (int32 i = CurrentSize; i < ToSize; ++i)
 			{
-				ChannelValues.Add(FSourceParam(NumInterpFrames));
-				ChannelValues[i].SetValue(0.0f);
+				ChannelValues.Add(FSourceParam());
+				ChannelValues[i].SetValue(0.0f, InNumInterpFrames);
 			}
 		}
 
+	private:
 		TArray<FSourceParam> ChannelValues;
-		float NumInterpFrames;
 	};
 
 	struct FSourceManagerInitParams
@@ -303,13 +321,10 @@ namespace Audio
 
 		TArray<int32> DebugSoloSources;
 
-		// Audio plugin processing
-		FAudioPluginSourceInputData AudioPluginInputData;
-
 		struct FSourceInfo
 		{
-			FSourceInfo();
-			~FSourceInfo();
+			FSourceInfo() {}
+			~FSourceInfo() {}
 
 			// Raw PCM buffer data
 			TQueue<FMixerSourceBufferPtr> BufferQueue;

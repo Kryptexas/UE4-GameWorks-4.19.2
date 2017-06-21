@@ -2521,18 +2521,6 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 			MenuBuilder.AddMenuEntry(LOCTEXT("NewNotify", "New Notify"), LOCTEXT("NewNotifyToolTip", "Create a new animation notify"), FSlateIcon(), UIAction);
 		}
 		MenuBuilder.EndSection();
-
-		if (Sequence->IsA(UAnimSequence::StaticClass()))
-		{
-			MenuBuilder.BeginSection("SyncMarkerCreateNew");
-			{
-				FUIAction UIAction;
-				UIAction.ExecuteAction.BindRaw(
-					this, &SAnimNotifyTrack::OnNewSyncMarkerClicked);
-				MenuBuilder.AddMenuEntry(LOCTEXT("NewSyncMarker", "New Sync Marker"), LOCTEXT("NewSyncMarkerToolTip", "Create a new animation sync marker"), FSlateIcon(), UIAction);
-			}
-			MenuBuilder.EndSection();
-		}
 	}
 }
 
@@ -2890,6 +2878,15 @@ TSharedPtr<SWidget> SAnimNotifyTrack::SummonContextMenu(const FGeometry& MyGeome
 				NSLOCTEXT("NewNotifySubMenu", "NewNotifySubMenuAddNotifyState", "Add Notify State..."),
 				NSLOCTEXT("NewNotifySubMenu", "NewNotifySubMenuAddNotifyStateToolTip","Add AnimNotifyState"),
 				FNewMenuDelegate::CreateRaw( this, &SAnimNotifyTrack::FillNewNotifyStateMenu, false ) );
+
+			if (Sequence->IsA(UAnimSequence::StaticClass()))
+			{
+				MenuBuilder.AddMenuEntry(
+					LOCTEXT("NewSyncMarker", "Add Sync Marker"),
+					LOCTEXT("NewSyncMarkerToolTip", "Create a new animation sync marker"),
+					FSlateIcon(),
+					FUIAction(FExecuteAction::CreateSP(this, &SAnimNotifyTrack::OnNewSyncMarkerClicked)));
+			}
 
 			MenuBuilder.AddMenuEntry(
 				NSLOCTEXT("NewNotifySubMenu", "ManageNotifies", "Manage Notifies..."),

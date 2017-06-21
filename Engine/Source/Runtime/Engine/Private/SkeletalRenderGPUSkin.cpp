@@ -45,6 +45,14 @@ static FAutoConsoleVariableRef CVarUseGPUMorphTargets(
 	ECVF_Default
 	);
 
+static float GMorphTargetWeightThreshold = SMALL_NUMBER;
+static FAutoConsoleVariableRef CVarMorphTargetWeightThreshold(
+	TEXT("r.MorphTarget.WeightThreshold"),
+	GMorphTargetWeightThreshold,
+	*FString::Printf(TEXT("Set MorphTarget Weight Threshold (Default : %f).\n"), SMALL_NUMBER), 
+	ECVF_Default
+);
+
 /*-----------------------------------------------------------------------------
 FMorphVertexBuffer
 -----------------------------------------------------------------------------*/
@@ -1330,6 +1338,7 @@ void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 #endif
 	LODIndex = 0;
 	ActiveMorphTargets.Reset();
+	MorphTargetWeights.Reset();
 	NumWeightedActiveMorphTargets = 0;
 	ClothingSimData.Reset();
 	ClothBlendWeight = 0.0f;
@@ -1405,15 +1414,13 @@ bool FDynamicSkelMeshObjectDataGPUSkin::ActiveMorphTargetsEqual( const TArray<FA
 	bool Result=true;
 	if( CompareActiveMorphTargets.Num() == ActiveMorphTargets.Num() )
 	{
-		const float WeightThreshold = 0.001f;
-		const float TimeThreshold = 0.001f;
 		for( int32 MorphIdx=0; MorphIdx < ActiveMorphTargets.Num(); MorphIdx++ )
 		{
 			const FActiveMorphTarget& Morph = ActiveMorphTargets[MorphIdx];
 			const FActiveMorphTarget& CompMorph = CompareActiveMorphTargets[MorphIdx];
 
 			if( Morph.MorphTarget != CompMorph.MorphTarget ||
-				FMath::Abs(MorphTargetWeights[Morph.WeightIndex] - CompareMorphTargetWeights[CompMorph.WeightIndex]) >= WeightThreshold)
+				FMath::Abs(MorphTargetWeights[Morph.WeightIndex] - CompareMorphTargetWeights[CompMorph.WeightIndex]) >= GMorphTargetWeightThreshold)
 			{
 				Result=false;
 				break;

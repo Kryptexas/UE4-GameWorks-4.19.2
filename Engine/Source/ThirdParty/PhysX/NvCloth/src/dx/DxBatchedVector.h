@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -72,7 +72,7 @@ class DxBatchedStorage
 
 	void reserve(DxBatchedVector<T>* view, uint32_t capacity)
 	{
-		if(view->mCapacity >= capacity)
+		if (view->mCapacity >= capacity)
 			return;
 		uint32_t index = view->mOffset + view->mSize;
 		uint32_t delta = capacity - view->mCapacity;
@@ -88,7 +88,7 @@ class DxBatchedStorage
 		replace(offset, offset + oldSize, data, data + newSize);
 		update(view, newSize - oldSize);
 		view->mSize = newSize;
-		if(newSize > view->mCapacity)
+		if (newSize > view->mCapacity)
 			view->mCapacity = newSize;
 	}
 
@@ -104,14 +104,14 @@ class DxBatchedStorage
 
 	T* map(D3D11_MAP mapType = D3D11_MAP_READ_WRITE)
 	{
-		if(!mMapRefCount++)
+		if (!mMapRefCount++)
 			mMapPointer = mBuffer.map(mapType);
 		return mMapPointer;
 	}
 
 	void unmap()
 	{
-		if(!--mMapRefCount)
+		if (!--mMapRefCount)
 		{
 			mBuffer.unmap();
 			mMapPointer = 0;
@@ -123,7 +123,7 @@ class DxBatchedStorage
 	void replace(uint32_t first, uint32_t last, const T* begin, const T* end)
 	{
 		uint32_t tail = first + uint32_t(end - begin);
-		if(uint32_t newSize = tail == last ? 0 : mSize + tail - last)
+		if (uint32_t newSize = tail == last ? 0 : mSize + tail - last)
 		{
 			// Optimization: dx11.1 would allow in place copies
 			// with ID3D11DeviceContext1::CopySubresourceRegion1
@@ -131,14 +131,14 @@ class DxBatchedStorage
 			DxBuffer<T> buffer = DxBuffer<T>(mBuffer.mManager, mBuffer);
 			buffer.reserve(newSize);
 
-			if(0 < first)
+			if (0 < first)
 			{
 				NV_CLOTH_ASSERT(!mMapRefCount);
 				CD3D11_BOX box(0, 0, 0, first * SizeOfT, 1, 1);
 				mBuffer.context()->CopySubresourceRegion(buffer.mBuffer, 0, 0, 0, 0, mBuffer.mBuffer, 0, &box);
 			}
 
-			if(last < mSize)
+			if (last < mSize)
 			{
 				NV_CLOTH_ASSERT(!mMapRefCount);
 				CD3D11_BOX box(last * SizeOfT, 0, 0, mSize * SizeOfT, 1, 1);
@@ -149,9 +149,9 @@ class DxBatchedStorage
 			physx::shdfnd::swap(mBuffer, buffer);
 		}
 
-		if(begin && end > begin)
+		if (begin && end > begin)
 		{
-			if(mBuffer.mUsage == D3D11_USAGE_DEFAULT)
+			if (mBuffer.mUsage == D3D11_USAGE_DEFAULT)
 			{
 				NV_CLOTH_ASSERT(!mMapRefCount);
 				CD3D11_BOX box(first * SizeOfT, 0, 0, tail * SizeOfT, 1, 1);
@@ -169,7 +169,7 @@ class DxBatchedStorage
 	{
 		const uint32_t offset = view->mOffset;
 		DxBatchedVector<T>** it = mViews.begin();
-		for(uint32_t i = mViews.size(); 0 < i--;)
+		for (uint32_t i = mViews.size(); 0 < i--;)
 		{
 			if (it[i] != view && it[i]->mOffset >= offset)
 				it[i]->mOffset += delta;
@@ -216,16 +216,16 @@ class DxBatchedVector
 	}
 
 	template <typename Alloc>
-	DxBatchedVector& operator=(const physx::shdfnd::Array<T, Alloc>& other)
+	DxBatchedVector& operator = (const physx::shdfnd::Array<T, Alloc>& other)
 	{
 		assign(other.begin(), other.end());
 		return *this;
 	}
 
-	DxBatchedVector& operator=(const DxBatchedVector& other)
+	DxBatchedVector& operator = (const DxBatchedVector& other)
 	{
 		NV_CLOTH_ASSERT(mSize == other.size()); // current limitation
-		NV_CLOTH_ASSERT(!mStorage.mMapRefCount);
+		NV_CLOTH_ASSERT(!mStorage.mMapRefCount); // This will trigger if the user still has a reference to the MappedRange returned by Cloth::getCurrentParticles
 
 		CD3D11_BOX box(other.mOffset * sizeof(T), 0, 0, (other.mOffset + other.size()) * sizeof(T), 1, 1);
 		mStorage.mBuffer.context()->CopySubresourceRegion(buffer(), 0, mOffset * sizeof(T), 0, 0, other.buffer(), 0,
@@ -234,7 +234,7 @@ class DxBatchedVector
 		return *this;
 	}
 
-	DxBatchedVector& operator=(const DxDeviceVector<T>& other)
+	DxBatchedVector& operator = (const DxDeviceVector<T>& other)
 	{
 		NV_CLOTH_ASSERT(mSize == other.size()); // current limitation
 		NV_CLOTH_ASSERT(!mStorage.mMapRefCount);

@@ -139,4 +139,57 @@ FQuat SolveAim(const FTransform& CurrentTransform, const FVector& TargetPosition
 	return FQuat::FindBetweenNormals(AimVector, ToTarget);
 }
 
+///////////////////////////////////////////////////////////////
+// new constraints
+
+FTransform SolveConstraints(const FTransform& CurrentTransform, const FTransform& CurrentParentTransform, const TArray<struct FConstraintData>& Constraints)
+{
+	int32 TotalNum = Constraints.Num();
+	ensureAlways(TotalNum > 0);
+
+	FMultiTransformBlendHelper BlendHelperInLocalSpace;
+	FTransform BlendedLocalTransform = CurrentTransform.GetRelativeTransform(CurrentParentTransform);
+
+	float TotalWeight = 0.f;
+	for (int32 ConstraintIndex = 0; ConstraintIndex < TotalNum; ++ConstraintIndex)
+	{
+		const FConstraintData& Constraint = Constraints[ConstraintIndex];
+
+		if (Constraint.Weight > ZERO_ANIMWEIGHT_THRESH)
+		{
+			// constraint has to happen in relative to parent to keep the hierarchy data
+			// we'd like to test if this would work well with rotation
+			FTransform ConstraintTransform = Constraint.CurrentTransform;
+			Constraint.ApplyConstraintTransform(ConstraintTransform, CurrentTransform, CurrentParentTransform, BlendHelperInLocalSpace);
+		}
+	}
+
+	// @note : parent and any other combination of constraints won't work
+	FTransform ParentTransform;
+	if (BlendHelperInLocalSpace.GetBlendedParent(ParentTransform))
+	{
+		BlendedLocalTransform = ParentTransform;
+	}
+	else
+	{
+		FVector BlendedTranslation;
+		if (BlendHelperInLocalSpace.GetBlendedTranslation(BlendedTranslation))
+		{
+			// if any result
+			BlendedLocalTransform.SetTranslation(BlendedTranslation);
+		}
+		FQuat BlendedRotation;
+		if (BlendHelperInLocalSpace.GetBlendedRotation(BlendedRotation))
+		{
+			BlendedLocalTransform.SetRotation(BlendedRotation);
+		}
+		FVector BlendedScale;
+		if (BlendHelperInLocalSpace.GetBlendedScale(BlendedScale))
+		{
+			BlendedLocalTransform.SetScale3D(BlendedScale);
+		}
+	}
+
+	return BlendedLocalTransform * CurrentParentTransform;
+}
 }

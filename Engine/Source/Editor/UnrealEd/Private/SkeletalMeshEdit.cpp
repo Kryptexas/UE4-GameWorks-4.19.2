@@ -27,6 +27,9 @@
 #include "FbxImporter.h"
 #include "Misc/FbxErrors.h"
 #include "Editor/EditorPerProjectUserSettings.h"
+#include "UObjectIterator.h"
+#include "ComponentReregisterContext.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 
@@ -1624,6 +1627,12 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		// run debug mode
 		AnimationTransformDebug::OutputAnimationTransformDebugData(TransformDebugData, TotalNumKeys, RefSkeleton);
 		GWarn->EndSlowTask();
+	}
+
+	// Reregister skeletal mesh components so they reflect the updated animation
+	for (TObjectIterator<USkeletalMeshComponent> Iter; Iter; ++Iter)
+	{
+		FComponentReregisterContext ReregisterContext(*Iter);
 	}
 
 	return true;

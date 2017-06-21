@@ -43,6 +43,24 @@
 
 #define LOCTEXT_NAMESPACE "PaintModePainter"
 
+FPaintModePainter::FPaintModePainter()
+	: BrushRenderTargetTexture(nullptr),
+	BrushMaskRenderTargetTexture(nullptr),
+	SeamMaskRenderTargetTexture(nullptr),
+	TexturePaintingCurrentMeshComponent(nullptr),
+	PaintingTexture2D(nullptr),
+	bDoRestoreRenTargets(false),
+	bRefreshCachedData(true),
+	bSelectionContainsPerLODColors(false)
+{}
+
+FPaintModePainter::~FPaintModePainter()
+{
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	ComponentToAdapterMap.Empty();
+	ComponentToTexturePaintSettingsMap.Empty();
+}
+
 FPaintModePainter* FPaintModePainter::Get()
 {
 	static FPaintModePainter* Painter = nullptr;
@@ -62,29 +80,45 @@ void FPaintModePainter::Init()
 	BrushSettings = DuplicateObject<UPaintBrushSettings>(GetMutableDefault<UPaintBrushSettings>(), GetTransientPackage());
 	BrushSettings->AddToRoot();
 	PaintSettings = UPaintModeSettings::Get();
-	Widget = SNew(SPaintModeWidget, this);
 	FPaintModeCommands::Register();
+	UICommandList = TSharedPtr<FUICommandList>(new FUICommandList());
+	RegisterVertexPaintCommands();
+	RegisterTexturePaintCommands();
+	Widget = SNew(SPaintModeWidget, this);
 	CachedLODIndex = PaintSettings->VertexPaintSettings.LODIndex;
 	bCachedForceLOD = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD;
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FPaintModePainter::UpdatePaintTargets);
 }
 
-FPaintModePainter::FPaintModePainter()
-	: BrushRenderTargetTexture(nullptr),
-	BrushMaskRenderTargetTexture(nullptr),
-	SeamMaskRenderTargetTexture(nullptr),
-	TexturePaintingCurrentMeshComponent(nullptr),
-	PaintingTexture2D(nullptr),
-	bDoRestoreRenTargets(false),
-	bRefreshCachedData(true),
-	bSelectionContainsPerLODColors(false)
-{}
-
-FPaintModePainter::~FPaintModePainter()
+void FPaintModePainter::RegisterTexturePaintCommands()
 {
-	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
-	ComponentToAdapterMap.Empty();
-	ComponentToTexturePaintSettingsMap.Empty();
+	UICommandList->MapAction(FPaintModeCommands::Get().PropagateTexturePaint, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::CommitAllPaintedTextures), FCanExecuteAction::CreateLambda([this]() -> bool {
+		return GetNumberOfPendingPaintChanges() > 0; })));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().SaveTexturePaint, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::SaveModifiedTextures), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanSaveModifiedTextures)));
+}
+
+void FPaintModePainter::RegisterVertexPaintCommands()
+{
+	auto AreMeshComponentsSelected = [this]() -> bool { return GetSelectedComponents<UMeshComponent>().Num() > 0; };
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Fill, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::FillWithVertexColor),
+		FCanExecuteAction::CreateLambda(AreMeshComponentsSelected)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Propagate, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::PropagateVertexColorsToAsset), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanPropagateVertexColors)));
+
+	auto IsAMeshComponentSelected = [this]() -> bool { return (GetSelectedComponents<UMeshComponent>().Num() == 1); };
+	UICommandList->MapAction(FPaintModeCommands::Get().Import, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::ImportVertexColors), FCanExecuteAction::CreateLambda(IsAMeshComponentSelected)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Save, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::SavePaintedAssets), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanSaveMeshPackages)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Copy, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::CopyVertexColors), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanCopyInstanceVertexColors)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Paste, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::PasteVertexColors), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanPasteInstanceVertexColors)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Remove, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::RemoveVertexColors), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanRemoveInstanceColors)));
+
+	UICommandList->MapAction(FPaintModeCommands::Get().Fix, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::FixVertexColors), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::DoesRequireVertexColorsFixup)));
 }
 
 void FPaintModePainter::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
@@ -108,39 +142,14 @@ TSharedPtr<class SWidget> FPaintModePainter::GetWidget()
 	return Widget;
 }
 
-bool FPaintModePainter::CanApplyInstanceColorAction(EInstanceColorAction Action) const
+TSharedPtr<FUICommandList> FPaintModePainter::GetUICommandList()
 {
-	const int32 PaintingMeshLODIndex = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD ? PaintSettings->VertexPaintSettings.LODIndex : 0;
-	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
-
-	switch (Action)
-	{
-		case EInstanceColorAction::Copy:
-		{	
-			return CanCopyInstanceVertexColors(StaticMeshComponents);
-		}
-
-		case EInstanceColorAction::Paste:
-		{
-			return CanPasteInstanceVertexColors(StaticMeshComponents);
-		}
-
-		case EInstanceColorAction::Remove:
-		{
-			return CanRemoveInstanceColors(StaticMeshComponents);
-		}
-
-		case EInstanceColorAction::Fix:
-		{
-			return DoesRequireVertexColorsFixup(StaticMeshComponents);
-		}
-	}
-
-	return false;
+	return UICommandList;
 }
 
-bool FPaintModePainter::DoesRequireVertexColorsFixup(const TArray<UStaticMeshComponent *>& StaticMeshComponents) const
+bool FPaintModePainter::DoesRequireVertexColorsFixup() const
 {
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
 	bool bAnyMeshNeedsFixing = false;
 	/** Check if there are any static mesh components which require fixing */
 	for (UStaticMeshComponent* Component : StaticMeshComponents)
@@ -151,8 +160,9 @@ bool FPaintModePainter::DoesRequireVertexColorsFixup(const TArray<UStaticMeshCom
 	return bAnyMeshNeedsFixing;
 }
 
-bool FPaintModePainter::CanRemoveInstanceColors(const TArray<UStaticMeshComponent *>& StaticMeshComponents) const
+bool FPaintModePainter::CanRemoveInstanceColors() const
 {
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
 	const int32 PaintingMeshLODIndex = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD ? PaintSettings->VertexPaintSettings.LODIndex : 0;
 	int32 NumValidMeshes = 0;
 	// Retrieve per instance vertex color information (only valid if the component contains actual instance vertex colors)
@@ -172,8 +182,9 @@ bool FPaintModePainter::CanRemoveInstanceColors(const TArray<UStaticMeshComponen
 	return (NumValidMeshes != 0);
 }
 
-bool FPaintModePainter::CanPasteInstanceVertexColors(const TArray<UStaticMeshComponent *>& StaticMeshComponents) const
+bool FPaintModePainter::CanPasteInstanceVertexColors() const
 {
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
 	bool bValidForPasting = false;
 	/** Make sure we have copied vertex color data which matches at least mesh component in the current selection */
 	for (UStaticMeshComponent* Component : StaticMeshComponents)
@@ -200,8 +211,9 @@ bool FPaintModePainter::CanPasteInstanceVertexColors(const TArray<UStaticMeshCom
 	return bValidForPasting;
 }
 
-bool FPaintModePainter::CanCopyInstanceVertexColors(const TArray<UStaticMeshComponent *>& StaticMeshComponents) const
+bool FPaintModePainter::CanCopyInstanceVertexColors() const
 {
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
 	const int32 PaintingMeshLODIndex = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD ? PaintSettings->VertexPaintSettings.LODIndex : 0;
 
 	// Ensure that the selection does not contain two components which point to identical meshes
@@ -245,207 +257,150 @@ bool FPaintModePainter::CanCopyInstanceVertexColors(const TArray<UStaticMeshComp
 	return bValidSelection && (NumValidMeshes != 0);
 }
 
-void FPaintModePainter::ApplyInstanceColorAction(EInstanceColorAction Action)
+void FPaintModePainter::CopyVertexColors()
 {
 	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
-
-	switch (Action)
+	for (UStaticMeshComponent* Component : StaticMeshComponents)
 	{
-		case EInstanceColorAction::Copy:
+		/** Make sure we have valid data to copy from */
+		checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
+		const UStaticMesh* StaticMesh = Component->GetStaticMesh();
+		ensure(StaticMesh != nullptr);
+		if (StaticMesh)
 		{
-			CopiedColorsByComponent.Empty(StaticMeshComponents.Num());
-			/** Copy vertex color data for all selected static mesh components */
-			for (UStaticMeshComponent* Component : StaticMeshComponents)
+			// Create copy structure instance for this mesh 
+			FPerComponentVertexColorData ComponentData(StaticMesh, Component->GetBlueprintCreatedComponentIndex());
+			const int32 NumLODs = StaticMesh->GetNumLODs();
+			ComponentData.PerLODVertexColorData.AddDefaulted(NumLODs);
+
+			// Retrieve and store vertex colors for each LOD in the mesh 
+			for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 			{
-				CopyVertexColors(Component);
-			}
-			break;
-		}
+				FPerLODVertexColorData& LODData = ComponentData.PerLODVertexColorData[LODIndex];
 
-		case EInstanceColorAction::Paste:
-		{
-			FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionPasteInstColors", "Pasting Per-Instance Vertex Colors"));
-			/** Try to paste vertex color data to all selected static mesh components */
-			for (UStaticMeshComponent* Component : StaticMeshComponents)
-			{
-				PasteVertexColors(Component);
-			}
-			break;
-		}
+				TArray<FColor> ColorData;
+				TArray<FVector> VertexData;
 
-		case EInstanceColorAction::Remove:
-		{
-			FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionRemoveInstColors", "Removing Per-Instance Vertex Colors"));
-			/** Remove vertex color data from all selected static mesh components */
-			for (UStaticMeshComponent* Component : StaticMeshComponents)
-			{
-				MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
-			}
-			break;
-		}
-
-		case EInstanceColorAction::Fix:
-		{
-			FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionFixInstColors", "Fixing Per-Instance Vertex Colors"));
-			/** Try and fix up vertex color data for all selected static mesh components */
-			for (UStaticMeshComponent* Component : StaticMeshComponents)
-			{
-				Component->FixupOverrideColorsIfNecessary();
-			}
-
-			break;
-		}
-	}
-}
-
-void FPaintModePainter::CopyVertexColors(UStaticMeshComponent* Component)
-{
-	/** Make sure we have valid data to copy from */
-	checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
-	const UStaticMesh* StaticMesh = Component->GetStaticMesh();
-	ensure(StaticMesh != nullptr);
-	if (StaticMesh)
-	{
-		// Create copy structure instance for this mesh 
-		FPerComponentVertexColorData ComponentData(StaticMesh, Component->GetBlueprintCreatedComponentIndex());
-		const int32 NumLODs = StaticMesh->GetNumLODs();
-		ComponentData.PerLODVertexColorData.AddDefaulted(NumLODs);
-
-		// Retrieve and store vertex colors for each LOD in the mesh 
-		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
-		{
-			FPerLODVertexColorData& LODData = ComponentData.PerLODVertexColorData[LODIndex];
-
-			TArray<FColor> ColorData;
-			TArray<FVector> VertexData;
-
-			if (Component->LODData.IsValidIndex(LODIndex) && (Component->LODData[LODIndex].OverrideVertexColors != nullptr))
-			{
-				ColorData = MeshPaintHelpers::GetInstanceColorDataForLOD(Component, LODIndex);
-			}
-			else
-			{
-				ColorData = MeshPaintHelpers::GetColorDataForLOD(StaticMesh, LODIndex);
-			}
-			VertexData = MeshPaintHelpers::GetVerticesForLOD(StaticMesh, LODIndex);
-
-			const bool bValidColorData = VertexData.Num() == ColorData.Num();
-			for (int32 VertexIndex = 0; VertexIndex < VertexData.Num(); ++VertexIndex)
-			{
-				const FColor& Color = bValidColorData ? ColorData[VertexIndex] : FColor::White;
-				LODData.ColorsByIndex.Add(Color);
-				LODData.ColorsByPosition.Add(VertexData[VertexIndex], Color);
-			}
-		}
-
-		CopiedColorsByComponent.Add(ComponentData);
-	}
-}
-
-void FPaintModePainter::PasteVertexColors(UStaticMeshComponent* Component)
-{
-	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;	
-	checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
-	UStaticMesh* Mesh = Component->GetStaticMesh();
-	if (Mesh && Mesh->GetNumLODs() > 0)
-	{
-		// See if there is a valid instance of copied vertex colors for this mesh
-		const int32 BlueprintCreatedComponentIndex = Component->GetBlueprintCreatedComponentIndex();
-		FPerComponentVertexColorData* PasteColors = CopiedColorsByComponent.FindByPredicate([=](const FPerComponentVertexColorData& ComponentData)
-		{
-			return (ComponentData.OriginalMesh.Get() == Mesh && ComponentData.ComponentIndex == BlueprintCreatedComponentIndex);
-		});
-				
-		if (PasteColors)
-		{
-			ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
-
-			const int32 NumLods = Mesh->GetNumLODs();
-			Component->SetFlags(RF_Transactional);
-			Component->Modify();
-			Component->SetLODDataCount(NumLods, NumLods);
-			/** Remove all vertex colors before we paste in new ones */
-			MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
-
-			/** Try and apply copied vertex colors for each LOD in the mesh */
-			for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
-			{
-				FStaticMeshLODResources& LodRenderData = Mesh->RenderData->LODResources[LODIndex];
-				FStaticMeshComponentLODInfo& ComponentLodInfo = Component->LODData[LODIndex];
-
-				const int32 NumLodsInCopyBuffer = PasteColors->PerLODVertexColorData.Num();
-				if (LODIndex >= NumLodsInCopyBuffer)
+				if (Component->LODData.IsValidIndex(LODIndex) && (Component->LODData[LODIndex].OverrideVertexColors != nullptr))
 				{
-					// no corresponding LOD in color paste buffer CopiedColorsByLOD
-					// create array of all white verts
-					MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White);
+					ColorData = MeshPaintHelpers::GetInstanceColorDataForLOD(Component, LODIndex);
 				}
 				else
 				{
-					FPerLODVertexColorData& LODData = PasteColors->PerLODVertexColorData[LODIndex];
-					const int32 NumLODVertices = LodRenderData.GetNumVertices();
+					ColorData = MeshPaintHelpers::GetColorDataForLOD(StaticMesh, LODIndex);
+				}
+				VertexData = MeshPaintHelpers::GetVerticesForLOD(StaticMesh, LODIndex);
 
-					if (NumLODVertices == LODData.ColorsByIndex.Num())
-					{
-						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, LODData.ColorsByIndex);
-					}
-					else
-					{
-						// verts counts mismatch - build translation/fixup list of colors in ReOrderedColors
-						TArray<FColor> PositionMatchedColors;
-						PositionMatchedColors.Empty(NumLODVertices);
-
-						for (int32 VertexIndex = 0; VertexIndex < NumLODVertices; ++VertexIndex)
-						{
-							// Search for color matching this vertex position otherwise fill it with white
-							const FVector& Vertex = LodRenderData.PositionVertexBuffer.VertexPosition(VertexIndex);
-							const FColor* FoundColor = LODData.ColorsByPosition.Find(Vertex);
-							PositionMatchedColors.Add(FoundColor ? *FoundColor : FColor::White);
-						}
-
-						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, PositionMatchedColors);
-					}
+				const bool bValidColorData = VertexData.Num() == ColorData.Num();
+				for (int32 VertexIndex = 0; VertexIndex < VertexData.Num(); ++VertexIndex)
+				{
+					const FColor& Color = bValidColorData ? ColorData[VertexIndex] : FColor::White;
+					LODData.ColorsByIndex.Add(Color);
+					LODData.ColorsByPosition.Add(VertexData[VertexIndex], Color);
 				}
 			}
 
-			/** Update cached paint data on static mesh component and update DDC key */
-			Component->CachePaintedDataIfNecessary();
-			Component->StaticMeshDerivedDataKey = Mesh->RenderData->DerivedDataKey;
+			CopiedColorsByComponent.Add(ComponentData);
 		}
 	}
 }
 
-bool FPaintModePainter::CanApplyVertexColorAction(EVertexColorAction Action) const
+void FPaintModePainter::PasteVertexColors()
 {
-	switch (Action)
+	FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionPasteInstColors", "Pasting Per-Instance Vertex Colors"));
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
+	for (UStaticMeshComponent* Component : StaticMeshComponents)
 	{
-		case EVertexColorAction::Fill:
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
+		checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
+		UStaticMesh* Mesh = Component->GetStaticMesh();
+		if (Mesh && Mesh->GetNumLODs() > 0)
 		{
-			// Check if we have selected either static or skeletal mesh components
-			TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
-			TArray<USkeletalMeshComponent*> SkeletalMeshComponents = GetSelectedComponents<USkeletalMeshComponent>();
+			// See if there is a valid instance of copied vertex colors for this mesh
+			const int32 BlueprintCreatedComponentIndex = Component->GetBlueprintCreatedComponentIndex();
+			FPerComponentVertexColorData* PasteColors = CopiedColorsByComponent.FindByPredicate([=](const FPerComponentVertexColorData& ComponentData)
+			{
+				return (ComponentData.OriginalMesh.Get() == Mesh && ComponentData.ComponentIndex == BlueprintCreatedComponentIndex);
+			});
 
-			return (StaticMeshComponents.Num() > 0) || (SkeletalMeshComponents.Num() > 0);
-		}
+			if (PasteColors)
+			{
+				ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
 
-		case EVertexColorAction::Propagate:
-		{
-			return CanPropagateVertexColors();
-		}
+				const int32 NumLods = Mesh->GetNumLODs();
+				Component->SetFlags(RF_Transactional);
+				Component->Modify();
+				Component->SetLODDataCount(NumLods, NumLods);
+				/** Remove all vertex colors before we paste in new ones */
+				MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
 
-		case EVertexColorAction::Import:
-		{
-			// Ensure we only have one component selected
-			return (GetSelectedComponents<UMeshComponent>().Num() == 1);
-		}
+				/** Try and apply copied vertex colors for each LOD in the mesh */
+				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
+				{
+					FStaticMeshLODResources& LodRenderData = Mesh->RenderData->LODResources[LODIndex];
+					FStaticMeshComponentLODInfo& ComponentLodInfo = Component->LODData[LODIndex];
 
-		case EVertexColorAction::Save:
-		{
-			return CanSaveMeshPackages();
+					const int32 NumLodsInCopyBuffer = PasteColors->PerLODVertexColorData.Num();
+					if (LODIndex >= NumLodsInCopyBuffer)
+					{
+						// no corresponding LOD in color paste buffer CopiedColorsByLOD
+						// create array of all white verts
+						MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, FColor::White);
+					}
+					else
+					{
+						FPerLODVertexColorData& LODData = PasteColors->PerLODVertexColorData[LODIndex];
+						const int32 NumLODVertices = LodRenderData.GetNumVertices();
+
+						if (NumLODVertices == LODData.ColorsByIndex.Num())
+						{
+							MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, LODData.ColorsByIndex);
+						}
+						else
+						{
+							// verts counts mismatch - build translation/fixup list of colors in ReOrderedColors
+							TArray<FColor> PositionMatchedColors;
+							PositionMatchedColors.Empty(NumLODVertices);
+
+							for (int32 VertexIndex = 0; VertexIndex < NumLODVertices; ++VertexIndex)
+							{
+								// Search for color matching this vertex position otherwise fill it with white
+								const FVector& Vertex = LodRenderData.PositionVertexBuffer.VertexPosition(VertexIndex);
+								const FColor* FoundColor = LODData.ColorsByPosition.Find(Vertex);
+								PositionMatchedColors.Add(FoundColor ? *FoundColor : FColor::White);
+							}
+
+							MeshPaintHelpers::SetInstanceColorDataForLOD(Component, LODIndex, PositionMatchedColors);
+						}
+					}
+				}
+
+				/** Update cached paint data on static mesh component and update DDC key */
+				Component->CachePaintedDataIfNecessary();
+				Component->StaticMeshDerivedDataKey = Mesh->RenderData->DerivedDataKey;
+			}
 		}
 	}
+}
 
-	return false;
+void FPaintModePainter::FixVertexColors()
+{
+	FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionFixInstColors", "Fixing Per-Instance Vertex Colors"));
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
+	for (UStaticMeshComponent* Component : StaticMeshComponents)
+	{
+		Component->FixupOverrideColorsIfNecessary();
+	}
+}
+
+void FPaintModePainter::RemoveVertexColors()
+{
+	FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionRemoveInstColors", "Removing Per-Instance Vertex Colors"));
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
+	for (UStaticMeshComponent* Component : StaticMeshComponents)
+	{
+		MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
+	}
 }
 
 bool FPaintModePainter::CanSaveMeshPackages() const
@@ -506,180 +461,6 @@ bool FPaintModePainter::CanPropagateVertexColors() const
 	}
 
 	return bValid && (NumInstanceVertexColorBytes > 0);
-}
-
-void FPaintModePainter::ApplyVertexColorAction(EVertexColorAction Action)
-{
-	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
-	const TArray<USkeletalMeshComponent*> SkeletalMeshComponents = GetSelectedComponents<USkeletalMeshComponent>();
-	const TArray<UMeshComponent*> MeshComponents = GetSelectedComponents<UMeshComponent>();
-
-	switch (Action)
-	{
-		case EVertexColorAction::Fill:
-		{
-			FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionFillInstColors", "Filling Per-Instance Vertex Colors"));
-
-			static const bool bConvertSRGB = false;
-			FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
-
-			if (PaintSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights)
-			{
-				FillColor = MeshPaintHelpers::GenerateColorForTextureWeight((int32)PaintSettings->VertexPaintSettings.TextureWeightType, (int32)PaintSettings->VertexPaintSettings.PaintTextureWeightIndex).ToFColor(bConvertSRGB);
-			}
-			
-			TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
-			/** Fill each mesh component with the given vertex color */
-			for (UMeshComponent* Component : MeshComponents)
-			{				
-				checkf(Component != nullptr, TEXT("Invalid Mesh Component"));
-				Component->Modify();
-				ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
-				MeshPaintHelpers::FillVertexColors(Component, FillColor, true);
-			}
-			break;
-		}
-
-		case EVertexColorAction::Propagate:
-		{
-			FSuppressableWarningDialog::FSetupInfo SetupInfo(LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh."),
-				LOCTEXT("PushInstanceVertexColorsPrompt_Title", "Warning: Copying vertex data overwrites all instances"), "Warning_PushInstanceVertexColorsPrompt");
-
-			SetupInfo.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
-			SetupInfo.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
-			SetupInfo.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText", "Always copy vertex colors without prompting");
-
-			FSuppressableWarningDialog VertexColorCopyWarning(SetupInfo);
-
-			// Prompt the user to see if they really want to push the vert colors to the source mesh and to explain
-			// the ramifications of doing so. This uses a suppressible dialog so that the user has the choice to always ignore the warning.
-			if (VertexColorCopyWarning.ShowModal() != FSuppressableWarningDialog::Cancel)
-			{
-				FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionPropogateColors", "Propagating Vertex Colors To Source Meshes"));
-				bool SomePaintWasPropagated = false;
-				TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
-				for (UStaticMeshComponent* Component : StaticMeshComponents)
-				{
-					checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
-					UStaticMesh* Mesh = Component->GetStaticMesh();
-					for (int32 LODIndex = 0; LODIndex < Mesh->RenderData->LODResources.Num(); LODIndex++)
-					{
-						FStaticMeshComponentLODInfo& InstanceMeshLODInfo = Component->LODData[LODIndex];
-						if (InstanceMeshLODInfo.OverrideVertexColors)
-						{
-							Mesh->Modify();
-							// Try using the mapping generated when building the mesh.
-							if (MeshPaintHelpers::PropagateColorsToRawMesh(Mesh, LODIndex, InstanceMeshLODInfo))
-							{
-								SomePaintWasPropagated = true;
-							}
-						}
-					}
-
-					if (SomePaintWasPropagated)
-					{
-						ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
-						MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
-						Mesh->Build();
-					}
-				}
-			}
-
-			break;
-		}
-
-		case EVertexColorAction::Import:
-		{
-			if (MeshComponents.Num() == 1)
-			{
-				/** Import vertex color to single selected mesh component */
-				FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionImportColors", "Importing Vertex Colors From Texture"));
-				MeshPaintHelpers::ImportVertexColorsFromTexture(MeshComponents[0]);
-			}
-
-			break;
-		}
-
-		case EVertexColorAction::Save:
-		{
-			/** Try and save outstanding dirty packages for currently selected mesh components */
-			TArray<UObject*> ObjectsToSave;
-			for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
-			{
-				if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
-				{
-					ObjectsToSave.Add(StaticMeshComponent->GetStaticMesh());
-				}
-			}
-
-			for (USkeletalMeshComponent* SkeletalMeshComponent: SkeletalMeshComponents)
-			{
-				if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
-				{
-					ObjectsToSave.Add(SkeletalMeshComponent->SkeletalMesh);
-				}
-			}
-			
-			if (ObjectsToSave.Num() > 0)
-			{
-				PackageTools::SavePackagesForObjects(ObjectsToSave);
-			}
-
-			break;
-		}
-	}
-}
-
-bool FPaintModePainter::CanApplyTexturePaintAction(ETexturePaintAction Action) const
-{
-	switch (Action)
-	{
-		case ETexturePaintAction::Propagate:
-		{
-			/** Can only propagate if there are actually any changes */
-			return (GetNumberOfPendingPaintChanges() > 0);			
-		}
-
-		case ETexturePaintAction::Save:
-		{
-			/** Check whether or not the current selected paint texture requires saving */
-			bool bRequiresSaving = false;
-			const UTexture2D* SelectedTexture = PaintSettings->TexturePaintSettings.PaintTexture;
-			if (nullptr != SelectedTexture)
-			{
-				bRequiresSaving = SelectedTexture->GetOutermost()->IsDirty();
-			}
-			return bRequiresSaving;
-		}
-	}
-	
-	return false;
-}
-
-void FPaintModePainter::ApplyTexturePaintAction(ETexturePaintAction Action)
-{
-	switch (Action)
-	{
-		case ETexturePaintAction::Propagate:
-		{
-			CommitAllPaintedTextures();
-			break;
-		}
-
-		case ETexturePaintAction::Save:
-		{
-			UTexture2D* SelectedTexture = PaintSettings->TexturePaintSettings.PaintTexture;
-
-			if( nullptr != SelectedTexture )
-			{
-				TArray<UObject*> TexturesToSaveArray;
-				TexturesToSaveArray.Add( SelectedTexture );
-				PackageTools::SavePackagesForObjects( TexturesToSaveArray );				
-			}
-			
-			break;
-		}
-	}
 }
 
 bool FPaintModePainter::ShouldFilterTextureAsset(const FAssetData& AssetData) const
@@ -2097,6 +1878,141 @@ void FPaintModePainter::UpdatePaintTargets(UObject* InObject, struct FPropertyCh
 	{
 		Refresh();
 	}
+}
+
+void FPaintModePainter::FillWithVertexColor()
+{
+	FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionFillInstColors", "Filling Per-Instance Vertex Colors"));
+	const TArray<UMeshComponent*> MeshComponents = GetSelectedComponents<UMeshComponent>();
+
+	static const bool bConvertSRGB = false;
+	FColor FillColor = PaintSettings->VertexPaintSettings.PaintColor.ToFColor(bConvertSRGB);
+
+	if (PaintSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights)
+	{
+		FillColor = MeshPaintHelpers::GenerateColorForTextureWeight((int32)PaintSettings->VertexPaintSettings.TextureWeightType, (int32)PaintSettings->VertexPaintSettings.PaintTextureWeightIndex).ToFColor(bConvertSRGB);
+	}
+
+	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
+	/** Fill each mesh component with the given vertex color */
+	for (UMeshComponent* Component : MeshComponents)
+	{
+		checkf(Component != nullptr, TEXT("Invalid Mesh Component"));
+		Component->Modify();
+		ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
+		MeshPaintHelpers::FillVertexColors(Component, FillColor, true);
+	}
+}
+
+void FPaintModePainter::PropagateVertexColorsToAsset()
+{
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
+	FSuppressableWarningDialog::FSetupInfo SetupInfo(LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh."),
+		LOCTEXT("PushInstanceVertexColorsPrompt_Title", "Warning: Copying vertex data overwrites all instances"), "Warning_PushInstanceVertexColorsPrompt");
+
+	SetupInfo.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
+	SetupInfo.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
+	SetupInfo.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText", "Always copy vertex colors without prompting");
+
+	FSuppressableWarningDialog VertexColorCopyWarning(SetupInfo);
+
+	// Prompt the user to see if they really want to push the vert colors to the source mesh and to explain
+	// the ramifications of doing so. This uses a suppressible dialog so that the user has the choice to always ignore the warning.
+	if (VertexColorCopyWarning.ShowModal() != FSuppressableWarningDialog::Cancel)
+	{
+		FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionPropogateColors", "Propagating Vertex Colors To Source Meshes"));
+		bool SomePaintWasPropagated = false;
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
+		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		{
+			checkf(Component != nullptr, TEXT("Invalid Static Mesh Component"));
+			UStaticMesh* Mesh = Component->GetStaticMesh();
+			for (int32 LODIndex = 0; LODIndex < Mesh->RenderData->LODResources.Num(); LODIndex++)
+			{
+				FStaticMeshComponentLODInfo& InstanceMeshLODInfo = Component->LODData[LODIndex];
+				if (InstanceMeshLODInfo.OverrideVertexColors)
+				{
+					Mesh->Modify();
+					// Try using the mapping generated when building the mesh.
+					if (MeshPaintHelpers::PropagateColorsToRawMesh(Mesh, LODIndex, InstanceMeshLODInfo))
+					{
+						SomePaintWasPropagated = true;
+					}
+				}
+			}
+
+			if (SomePaintWasPropagated)
+			{
+				ComponentReregisterContext = MakeUnique<FComponentReregisterContext>(Component);
+				MeshPaintHelpers::RemoveComponentInstanceVertexColors(Component);
+				Mesh->Build();
+			}
+		}
+	}
+}
+
+void FPaintModePainter::ImportVertexColors()
+{
+	const TArray<UMeshComponent*> MeshComponents = GetSelectedComponents<UMeshComponent>();
+	if (MeshComponents.Num() == 1)
+	{
+		/** Import vertex color to single selected mesh component */
+		FScopedTransaction Transaction(LOCTEXT("LevelMeshPainter_TransactionImportColors", "Importing Vertex Colors From Texture"));
+		MeshPaintHelpers::ImportVertexColorsFromTexture(MeshComponents[0]);
+	}
+}
+
+void FPaintModePainter::SavePaintedAssets()
+{
+	const TArray<UStaticMeshComponent*> StaticMeshComponents = GetSelectedComponents<UStaticMeshComponent>();
+	const TArray<USkeletalMeshComponent*> SkeletalMeshComponents = GetSelectedComponents<USkeletalMeshComponent>();
+
+	/** Try and save outstanding dirty packages for currently selected mesh components */
+	TArray<UObject*> ObjectsToSave;
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
+		{
+			ObjectsToSave.Add(StaticMeshComponent->GetStaticMesh());
+		}
+	}
+
+	for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
+	{
+		if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+		{
+			ObjectsToSave.Add(SkeletalMeshComponent->SkeletalMesh);
+		}
+	}
+
+	if (ObjectsToSave.Num() > 0)
+	{
+		PackageTools::SavePackagesForObjects(ObjectsToSave);
+	}
+}
+
+void FPaintModePainter::SaveModifiedTextures()
+{
+	UTexture2D* SelectedTexture = PaintSettings->TexturePaintSettings.PaintTexture;
+
+	if (nullptr != SelectedTexture)
+	{
+		TArray<UObject*> TexturesToSaveArray;
+		TexturesToSaveArray.Add(SelectedTexture);
+		PackageTools::SavePackagesForObjects(TexturesToSaveArray);
+	}
+}
+
+bool FPaintModePainter::CanSaveModifiedTextures() const
+{
+	/** Check whether or not the current selected paint texture requires saving */
+	bool bRequiresSaving = false;
+	const UTexture2D* SelectedTexture = PaintSettings->TexturePaintSettings.PaintTexture;
+	if (nullptr != SelectedTexture)
+	{
+		bRequiresSaving = SelectedTexture->GetOutermost()->IsDirty();
+	}
+	return bRequiresSaving;
 }
 
 void FPaintModePainter::Refresh()

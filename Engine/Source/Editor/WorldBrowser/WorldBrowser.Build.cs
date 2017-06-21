@@ -18,7 +18,8 @@ public class WorldBrowser : ModuleRules
 				"Landscape",
                 "MeshUtilities",
                 "MaterialUtilities",
-			}
+                "MeshMergeUtilities",
+            }
         );
      
         PrivateDependencyModuleNames.AddRange(
@@ -60,7 +61,8 @@ public class WorldBrowser : ModuleRules
 				"SceneOutliner",
                 "MeshUtilities",
                 "ContentBrowser",
-			}
+                "MeshMergeUtilities",
+            }
 		);
     }
 }

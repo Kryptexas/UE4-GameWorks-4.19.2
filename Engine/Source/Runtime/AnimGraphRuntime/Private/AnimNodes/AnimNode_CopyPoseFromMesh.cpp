@@ -12,13 +12,13 @@ FAnimNode_CopyPoseFromMesh::FAnimNode_CopyPoseFromMesh()
 {
 }
 
-void FAnimNode_CopyPoseFromMesh::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_CopyPoseFromMesh::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 	RefreshMeshComponent(Context.AnimInstanceProxy);
 }
 
-void FAnimNode_CopyPoseFromMesh::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_CopyPoseFromMesh::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 }
 
@@ -66,14 +66,14 @@ void FAnimNode_CopyPoseFromMesh::RefreshMeshComponent(FAnimInstanceProxy* AnimIn
 	}
 }
 
-void FAnimNode_CopyPoseFromMesh::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_CopyPoseFromMesh::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
 	RefreshMeshComponent(Context.AnimInstanceProxy);
 }
 
-void FAnimNode_CopyPoseFromMesh::Evaluate(FPoseContext& Output)
+void FAnimNode_CopyPoseFromMesh::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FCompactPose& OutPose = Output.Pose;
 	OutPose.ResetToRefPose();

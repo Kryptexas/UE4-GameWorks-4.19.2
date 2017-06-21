@@ -170,22 +170,10 @@ void ConvexHullLib::shiftConvexMeshDesc(PxConvexMeshDesc& desc)
 		points[i] = points[i] + mOriginShift;
 	}
 
-#if PX_DEBUG
-	const PxU32* indices = reinterpret_cast<const PxU32*>(desc.indices.data);
-#endif
 	PxHullPolygon* polygons = reinterpret_cast<PxHullPolygon*>(const_cast<void*>(desc.polygons.data));
 	for(PxU32 i = 0; i < desc.polygons.count; i++)
 	{
 		polygons[i].mPlane[3] -= PxVec3(polygons[i].mPlane[0], polygons[i].mPlane[1], polygons[i].mPlane[2]).dot(mOriginShift);
-#if PX_DEBUG
-		PxPlane plane(polygons[i].mPlane[0], polygons[i].mPlane[1], polygons[i].mPlane[2], polygons[i].mPlane[3]);
-		for(PxU32 j = 0; j < polygons[i].mNbVerts; j++)
-		{
-			const PxVec3& testVertex = points[indices[polygons[i].mIndexBase + j]];
-			const float dist = plane.distance(testVertex);
-			PX_ASSERT(fabsf(dist) < 0.001f);
-		}
-#endif
 	}
 }
 
@@ -194,7 +182,7 @@ void ConvexHullLib::shiftConvexMeshDesc(PxConvexMeshDesc& desc)
 bool ConvexHullLib::cleanupVertices(PxU32 svcount, const PxVec3* svertices, PxU32 stride,
 	PxU32& vcount, PxVec3* vertices, PxVec3& scale, PxVec3& center)
 {
-	if ( svcount == 0 ) 
+	if (svcount == 0) 
 		return false;
 
 	const PxVec3* verticesToClean = svertices;

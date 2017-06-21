@@ -14,9 +14,9 @@ FAnimNode_TransitionPoseEvaluator::FAnimNode_TransitionPoseEvaluator()
 {
 }
 
-void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TransitionPoseEvaluator::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {	
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	if (EvaluatorMode == EEvaluatorMode::EM_Freeze)
 	{
@@ -30,19 +30,19 @@ void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeCon
 	}
 }
 
-void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_TransitionPoseEvaluator::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	const FBoneContainer& RequiredBone = Context.AnimInstanceProxy->GetRequiredBones();
 	CachedPose.SetBoneContainer(&RequiredBone);
 	CachedCurve.InitFrom(RequiredBone);
 }
 
-void FAnimNode_TransitionPoseEvaluator::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_TransitionPoseEvaluator::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// updating is all handled in state machine
 }
 
-void FAnimNode_TransitionPoseEvaluator::Evaluate(FPoseContext& Output)
+void FAnimNode_TransitionPoseEvaluator::Evaluate_AnyThread(FPoseContext& Output)
 {	
 	// the cached pose is evaluated in the state machine and set via CachePose(). 
 	// This is because we need information about the transition that is not available at this level

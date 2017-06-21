@@ -149,6 +149,7 @@ public:
 	virtual void SetViewportType(ELevelViewportType InViewportType) override;
 	virtual void RotateViewportType() override;
 	virtual bool CanCycleWidgetMode() const override;
+	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */
@@ -195,6 +196,12 @@ public:
 
 	/** Function to check whether audio is muted or not */
 	bool IsAudioMuted() const;
+
+	/** Set whether to use audio attenuation */
+	void OnToggleUseAudioAttenuation();
+
+	/** Check whether we are using audio attenuation */
+	bool IsUsingAudioAttenuation() const;
 
 	/** Function to set background color */
 	void SetBackgroundColor(FLinearColor InColor);
@@ -313,6 +320,14 @@ public:
 	/** Draws Gizmo for the Transform in foreground **/
 	static void RenderGizmo(const FTransform& Transform, FPrimitiveDrawInterface* PDI);
 
+private:
+	/**
+	 * Updates the audio listener for this viewport 
+	 *
+	 * @param View	The scene view to use when calculate the listener position
+	 */
+	void UpdateAudioListener(const FSceneView& View);
+
 public:
 
 	/** persona config options **/
@@ -411,6 +426,18 @@ private:
 
 	/** Sets up the ShowFlag according to the current preview scene profile */
 	void SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags);
+	
+	/** Computes a bounding box for the selected section of the preview mesh component.
+	    If there is no selected section, returns an empty box. */
+	FBox ComputeBoundingBoxForSelectedEditorSection() const;
+
+	/** Converts all local vertex positions to world positions. */
+	void TransformVertexPositionsToWorld(TArray<FFinalSkinVertex>& LocalVertices) const;
+
+	/** Gets all vertex indices that the given section references. */
+	void GetAllVertexIndicesUsedInSection(const FRawStaticIndexBuffer16or32Interface& IndexBuffer,
+										  const FSkelMeshSection& SkelMeshSection,
+										  TArray<int32>& OutIndices) const;
 
 private:
 	/** Allow mesh stats to be disabled for specific viewport instances */

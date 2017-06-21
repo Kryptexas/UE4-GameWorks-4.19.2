@@ -253,7 +253,10 @@ void UPhysicsConstraintComponent::InitComponentConstraint()
 	FBodyInstance* Body1 = GetBodyInstance(EConstraintFrame::Frame1);
 	FBodyInstance* Body2 = GetBodyInstance(EConstraintFrame::Frame2);
 
-	ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
+	if (Body1 != nullptr || Body2 != nullptr)
+	{
+		ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
+	}
 }
 
 void UPhysicsConstraintComponent::TermComponentConstraint()
@@ -520,6 +523,11 @@ void UPhysicsConstraintComponent::GetConstraintForce(FVector& OutLinearForce, FV
 	ConstraintInstance.GetConstraintForce(OutLinearForce, OutAngularForce);
 }
 
+bool UPhysicsConstraintComponent::IsBroken()
+{
+	return ConstraintInstance.IsBroken();
+}
+
 void UPhysicsConstraintComponent::SetDisableCollision(bool bDisableCollision)
 {
 	ConstraintInstance.SetDisableCollision(bDisableCollision);
@@ -642,6 +650,16 @@ void UPhysicsConstraintComponent::SetAngularSwing2Limit(EAngularConstraintMotion
 void UPhysicsConstraintComponent::SetAngularTwistLimit(EAngularConstraintMotion Motion, float TwistLimitAngle)
 {
 	ConstraintInstance.SetAngularTwistLimit(Motion, TwistLimitAngle);
+}
+
+void UPhysicsConstraintComponent::SetLinearBreakable(bool bLinearBreakable, float LinearBreakThreshold)
+{
+	ConstraintInstance.SetLinearBreakable(bLinearBreakable, LinearBreakThreshold);
+}
+
+void UPhysicsConstraintComponent::SetAngularBreakable(bool bAngularBreakable, float AngularBreakThreshold)
+{
+	ConstraintInstance.SetAngularBreakable(bAngularBreakable, AngularBreakThreshold);
 }
 
 float UPhysicsConstraintComponent::GetCurrentTwist() const

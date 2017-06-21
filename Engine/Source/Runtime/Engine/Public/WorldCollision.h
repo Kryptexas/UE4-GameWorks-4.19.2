@@ -143,7 +143,7 @@ struct FCollisionShape
 	void SetCapsule(const FVector& Extent)
 	{
 		ShapeType = ECollisionShape::Capsule;
-		Capsule.Radius = FMath::Min(Extent.X, Extent.Y);
+		Capsule.Radius = FMath::Max(Extent.X, Extent.Y);
 		Capsule.HalfHeight = Extent.Z;
 	}
 	

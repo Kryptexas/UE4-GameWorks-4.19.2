@@ -201,10 +201,13 @@ void FControlRigEditorModule::StartupModule()
 						bool bCanReExport = false;
 						for (const FAssetData& AssetData : SelectedAssets)
 						{
-							if (Cast<UControlRigSequence>(AssetData.GetAsset())->LastExportedToAnimationSequence.IsValid())
+							if(UControlRigSequence* ControlRigSequence = Cast<UControlRigSequence>(AssetData.GetAsset()))
 							{
-								bCanReExport = true;
-								break;
+								if (ControlRigSequence->LastExportedToAnimationSequence.IsValid())
+								{
+									bCanReExport = true;
+									break;
+								}
 							}
 						}
 

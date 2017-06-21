@@ -103,6 +103,34 @@ void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWo
 	MeshBuilder.Draw(PDI, FScaleMatrix(Radii) * ObjectToWorld, MaterialRenderProxy, DepthPriorityGroup, 0.f);
 }
 
+void DrawTriangle(class FPrimitiveDrawInterface* PDI, const FVector& A, const FVector& B, const FVector& C, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriorityGroup)
+{
+	FVector2D UVs[4] =
+	{
+		FVector2D(0,0),
+		FVector2D(0,1),
+		FVector2D(1,1),
+		FVector2D(1,0),
+	};
+
+	FDynamicMeshBuilder MeshBuilder;
+
+	FVector Normal = FVector(0, 0, 1);
+	FVector Tangent = FVector(1, 0, 0);	
+
+	MeshBuilder.AddVertex(FDynamicMeshVertex(A, Tangent, Normal, UVs[0],FColor::White));
+
+	MeshBuilder.AddVertex(FDynamicMeshVertex(B, Tangent, Normal, UVs[1], FColor::White));
+	MeshBuilder.AddVertex(FDynamicMeshVertex(C, Tangent, Normal, UVs[2], FColor::White));
+
+	MeshBuilder.AddTriangle(0, 1, 2);
+	MeshBuilder.Draw(PDI, FMatrix::Identity, MaterialRenderProxy, DepthPriorityGroup, false, false);
+
+	PDI->DrawLine(A, B, FColor::Yellow, DepthPriorityGroup, 1.f);
+	PDI->DrawLine(A, C, FColor::Yellow, DepthPriorityGroup, 1.f);
+	PDI->DrawLine(B, C, FColor::Yellow, DepthPriorityGroup, 1.f);
+}
+
 
 void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,int32 ViewIndex,FMeshElementCollector& Collector)
 {

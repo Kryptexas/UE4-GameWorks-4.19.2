@@ -88,7 +88,6 @@ SET(PHYSX_EXTENSIONS_INCLUDE
 	${PHYSX_ROOT_DIR}/Include/extensions/PxFixedJoint.h
 	${PHYSX_ROOT_DIR}/Include/extensions/PxJoint.h
 	${PHYSX_ROOT_DIR}/Include/extensions/PxJointLimit.h
-	${PHYSX_ROOT_DIR}/Include/extensions/PxJointRepXSerializer.h
 	${PHYSX_ROOT_DIR}/Include/extensions/PxMassProperties.h
 	${PHYSX_ROOT_DIR}/Include/extensions/PxParticleExt.h
 	${PHYSX_ROOT_DIR}/Include/extensions/PxPrismaticJoint.h
@@ -128,6 +127,7 @@ SET(PHYSX_EXTENSIONS_SERIALIZATION_XML_SOURCE
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepX3_1Defaults.h
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepX3_2Defaults.h
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepXCollection.h
+	${LL_SOURCE_DIR}/serialization/Xml/SnJointRepXSerializer.h
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepXCoreSerializer.h
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepXSerializerImpl.h
 	${LL_SOURCE_DIR}/serialization/Xml/SnRepXUpgrader.h

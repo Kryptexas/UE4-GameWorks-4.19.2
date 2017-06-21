@@ -13,6 +13,8 @@
 #include "EdGraphToken.h"
 #endif
 
+class IMessageLogListing;
+
 #if WITH_EDITOR
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
@@ -247,6 +249,9 @@ public:
 		return CurrentEventTarget;
 	}
 
+	/** Get the message log listing for this blueprint */
+	static TSharedRef<IMessageLogListing> GetBlueprintMessageLog(UBlueprint* InBlueprint);
+
 protected:
 	/** Helper method to add a child event to the given parent event scope */
 	void AddChildEvent(TSharedPtr<FCompilerEvent>& ParentEventScope, TSharedRef<FCompilerEvent>& ChildEventScope);
@@ -341,6 +346,21 @@ public:
 			ResultsLog->EndEvent();
 		}
 	}
+};
+
+/** Scope wrapper for the blueprint message log. Ensures we dont leak logs that we dont need (i.e. those that have no messages) */
+class UNREALED_API FScopedBlueprintMessageLog
+{
+public:
+	FScopedBlueprintMessageLog(UBlueprint* InBlueprint);
+	~FScopedBlueprintMessageLog();
+
+public:
+	/** The listing we wrap */
+	TSharedRef<IMessageLogListing> Log;
+
+	/** The generated name of the log */
+	FName LogName;
 };
 
 #if STATS

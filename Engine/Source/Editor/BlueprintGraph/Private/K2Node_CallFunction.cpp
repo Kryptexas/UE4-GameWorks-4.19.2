@@ -332,7 +332,7 @@ void FDynamicOutputHelper::VerifyNode(const UK2Node_CallFunction* FuncNode, FCom
 	if (bIsEditorOnlyFunction && !bIsEditorOnlyBlueprintBaseClass)
 	{
 		FText const ErrorFormat = LOCTEXT("BlueprintEditorOnly", "Function in Editor Only Module '@@' cannot be called within the Non-Editor module blueprint base class '@@'.");
-		MessageLog.Warning(*ErrorFormat.ToString(), FuncNode, BlueprintClass);
+		MessageLog.Error(*ErrorFormat.ToString(), FuncNode, BlueprintClass);
 	}
 }
 

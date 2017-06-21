@@ -147,6 +147,14 @@ namespace SteamAudio
 
 		// Set the User ID on the audio component
 		auto AudioComponent = static_cast<UAudioComponent*>(PhononSourceComponent->GetOwner()->GetComponentByClass(UAudioComponent::StaticClass()));
+		if (!AudioComponent)
+		{
+			UE_LOG(LogSteamAudioEditor, Error, TEXT("Ensure there's an AudioComponent attached to the owner."));
+			GBakeSourcePropagationTickable->SetDisplayText(NSLOCTEXT("SteamAudio", "Bake failed.", "Bake failed. Add an AudioComponent to this probe's owner."));
+			GBakeSourcePropagationTickable->DestroyNotification(SNotificationItem::CS_Fail);
+			GIsBakingSourcePropagation.store(false);
+			return FReply::Handled();
+		}
 		AudioComponent->AudioComponentUserID = PhononSourceComponent->UniqueIdentifier;
 
 		AsyncTask(ENamedThreads::AnyNormalThreadNormalTask, [=]()

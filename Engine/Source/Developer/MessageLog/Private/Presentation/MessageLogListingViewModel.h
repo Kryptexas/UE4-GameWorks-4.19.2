@@ -149,6 +149,9 @@ public:
 	/** Gets the number of messages in the current log page */
 	uint32 NumMessages() const;
 
+	/** Get whether to show this log in the main log window */
+	bool ShouldShowInLogWindow() const { return bShowInLogWindow; }
+
 private:
 	FMessageLogListingViewModel( TSharedPtr< FMessageLogListingModel > InMessageLogListingModel, const FText& InLogLabel, const FMessageLogInitializationOptions& InitializationOptions )
 		: bShowFilters( InitializationOptions.bShowFilters )
@@ -156,6 +159,7 @@ private:
 		, bAllowClear( InitializationOptions.bAllowClear )
 		, bDiscardDuplicates( InitializationOptions.bDiscardDuplicates )
 		, MaxPageCount( InitializationOptions.MaxPageCount )
+		, bShowInLogWindow( InitializationOptions.bShowInLogWindow )
 		, CurrentPageIndex( 0 )
 		, bIsRefreshing( false )
 		, LogLabel( InLogLabel )
@@ -190,6 +194,9 @@ private:
 
 	/** The limit on the number of displayed pages for this listing */
 	uint32 MaxPageCount;
+
+	/** Whether to show this log in the main log window */
+	bool bShowInLogWindow;
 
 	/** The currently displayed page index */
 	uint32 CurrentPageIndex;

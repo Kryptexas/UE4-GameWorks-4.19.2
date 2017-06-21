@@ -58,6 +58,8 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	bAutoAlignFloorToMesh = true;
 
 	NumFolderFiltersInAssetBrowser = 2;
+
+	bUseAudioAttenuation = true;
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
@@ -111,6 +113,12 @@ void UPersonaOptions::SetShowSky( bool bInShowSky )
 void UPersonaOptions::SetMuteAudio( bool bInMuteAudio )
 {
 	bMuteAudio = bInMuteAudio;
+	SaveConfig();
+}
+
+void UPersonaOptions::SetUseAudioAttenuation( bool bInUseAudioAttenuation )
+{
+	bUseAudioAttenuation = bInUseAudioAttenuation;
 	SaveConfig();
 }
 

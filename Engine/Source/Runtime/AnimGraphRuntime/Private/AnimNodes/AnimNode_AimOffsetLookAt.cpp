@@ -16,18 +16,18 @@ TAutoConsoleVariable<int32> CVarAimOffsetLookAtDebug(TEXT("a.AnimNode.AimOffsetL
 /////////////////////////////////////////////////////
 // FAnimNode_AimOffsetLookAt
 
-void FAnimNode_AimOffsetLookAt::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_AimOffsetLookAt::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::Initialize(Context);
+	FAnimNode_BlendSpacePlayer::Initialize_AnyThread(Context);
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_AimOffsetLookAt::RootInitialize(const FAnimInstanceProxy* InProxy)
+void FAnimNode_AimOffsetLookAt::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
-	FAnimNode_BlendSpacePlayer::RootInitialize(InProxy);
+	FAnimNode_BlendSpacePlayer::OnInitializeAnimInstance(InProxy, InAnimInstance);
 
 	SocketBoneReference.BoneName = NAME_None;
-	if (USkeletalMeshComponent* SkelMeshComp = InProxy->GetSkelMeshComponent())
+	if (USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetSkelMeshComponent())
 	{
 		if (USkeletalMesh* SkelMesh = SkelMeshComp->SkeletalMesh)
 		{
@@ -64,16 +64,16 @@ void FAnimNode_AimOffsetLookAt::UpdateAssetPlayer(const FAnimationUpdateContext&
 	BasePose.Update(Context);
 }
 
-void FAnimNode_AimOffsetLookAt::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_AimOffsetLookAt::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::CacheBones(Context);
+	FAnimNode_BlendSpacePlayer::CacheBones_AnyThread(Context);
 	BasePose.CacheBones(Context);
 
 	SocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
 	PivotSocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
 }
 
-void FAnimNode_AimOffsetLookAt::Evaluate(FPoseContext& Context)
+void FAnimNode_AimOffsetLookAt::Evaluate_AnyThread(FPoseContext& Context)
 {
 	// Evaluate base pose
 	BasePose.Evaluate(Context);
@@ -84,7 +84,7 @@ void FAnimNode_AimOffsetLookAt::Evaluate(FPoseContext& Context)
 
 		// Evaluate MeshSpaceRotation additive blendspace
 		FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
-		FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
+		FAnimNode_BlendSpacePlayer::Evaluate_AnyThread(MeshSpaceRotationAdditivePoseContext);
 
 		// Accumulate poses together
 		FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, Alpha);
@@ -99,7 +99,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 	FVector BlendInput(X, Y, Z);
 
 	const FBoneContainer& RequiredBones = LocalPoseContext.Pose.GetBoneContainer();
-	if (BlendSpace && SocketBoneReference.IsValid(RequiredBones))
+	if (BlendSpace && SocketBoneReference.IsValidToEvaluate(RequiredBones))
 	{
 		FCSPose<FCompactPose> GlobalPose;
 		GlobalPose.InitPose(LocalPoseContext.Pose);
@@ -108,7 +108,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 		const FTransform BoneTransform = GlobalPose.GetComponentSpaceTransform(SocketBoneIndex);
 
 		FTransform SourceComponentTransform = SocketLocalTransform * BoneTransform;
-		if (PivotSocketBoneReference.IsValid(RequiredBones))
+		if (PivotSocketBoneReference.IsValidToEvaluate(RequiredBones))
 		{
 			const FCompactPoseBoneIndex PivotSocketBoneIndex = PivotSocketBoneReference.GetCompactPoseIndex(RequiredBones);
 			const FTransform PivotBoneComponentTransform = GlobalPose.GetComponentSpaceTransform(PivotSocketBoneIndex);
@@ -125,7 +125,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 		const FTransform TargetWorldTransform(LookAtLocation);
 
 		const FVector DirectionToTarget = ActorTransform.InverseTransformVectorNoScale(TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).GetSafeNormal();
-		const FVector CurrentDirection = ActorTransform.InverseTransformVectorNoScale(SourceWorldTransform.GetUnitAxis(EAxis::X));
+		const FVector CurrentDirection = ActorTransform.InverseTransformVectorNoScale(SourceWorldTransform.TransformVector(SocketAxis).GetSafeNormal());
 
 		const FVector AxisX = FVector::ForwardVector;
 		const FVector AxisY = FVector::RightVector;
@@ -140,7 +140,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 		if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
 		{
 			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), TargetWorldTransform.GetLocation(), FColor::Green);
-			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), SourceWorldTransform.GetLocation() + SourceWorldTransform.GetUnitAxis(EAxis::X) * (TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).Size(), FColor::Red);
+			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), SourceWorldTransform.GetLocation() + SourceWorldTransform.TransformVector(SocketAxis).GetSafeNormal() * (TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).Size(), FColor::Red);
 			AnimProxy->AnimDrawDebugCoordinateSystem(ActorTransform.GetLocation(), ActorTransform.GetRotation().Rotator(), 100.f);
 
 			FString DebugString = FString::Printf(TEXT("Socket (X:%f, Y:%f), Target (X:%f, Y:%f), Result (X:%f, Y:%f)")
@@ -178,6 +178,7 @@ void FAnimNode_AimOffsetLookAt::GatherDebugData(FNodeDebugData& DebugData)
 
 FAnimNode_AimOffsetLookAt::FAnimNode_AimOffsetLookAt()
 	: LODThreshold(INDEX_NONE)
+	, SocketAxis(1.0f, 0.0f, 0.0f)
 	, Alpha(1.f)
 {
 }

@@ -192,7 +192,6 @@ FString FSoundSource::Describe(bool bUseLongName)
 
 void FSoundSource::Stop()
 {
-	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 	if (WaveInstance)
 	{
 		check(AudioDevice);

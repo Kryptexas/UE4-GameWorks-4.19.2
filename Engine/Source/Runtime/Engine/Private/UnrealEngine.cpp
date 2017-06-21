@@ -1411,7 +1411,18 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 					FPlatformProcess::SleepNoStats( 0 );
 				}
 			}
-			FApp::SetCurrentTime(FPlatformTime::Seconds());
+
+			if(bUseFixedFrameRate)
+			{
+				const float FrameRate = 1.f / FixedFrameRate;
+				FApp::SetDeltaTime(FrameRate);
+				FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+				bTimeWasManipulated = true;
+			}
+			else
+			{
+				FApp::SetCurrentTime(FPlatformTime::Seconds());
+			}
 		}
 		else if(bUseFixedFrameRate && MaxTickRate == FixedFrameRate)
 		{
@@ -1642,6 +1653,11 @@ void UEngine::InitializeObjectReferences()
 		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
 		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
 		LoadSpecialMaterial(ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
+		LoadSpecialMaterial(ClothPaintMaterialWireframeName.ToString(), ClothPaintMaterialWireframe, false);
+		LoadSpecialMaterial(DebugEditorMaterialName.ToString(), DebugEditorMaterial, false);
+
+		ClothPaintMaterialInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterial, nullptr);
+		ClothPaintMaterialWireframeInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterialWireframe, nullptr);
 #endif
 
 		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);

@@ -30,6 +30,7 @@
 #include "MeshUtilities.h"
 #include "ClothingAssetInterface.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
+#include "IMeshReductionManagerModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -930,7 +931,8 @@ void TryRegenerateLODs(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMe
 	int32 TotalLOD = MeshData->ExistingLODModels.Num();
 
 	// see if mesh reduction util is available
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetSkeletalMeshReductionInterface() != NULL;
+	IMeshReductionManagerModule& Module = FModuleManager::Get().LoadModuleChecked<IMeshReductionManagerModule>("MeshReductionInterface");
+	static bool bAutoMeshReductionAvailable = Module.GetSkeletalMeshReductionInterface() != NULL;
 
 	if (bAutoMeshReductionAvailable)
 	{
@@ -1162,8 +1164,8 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 					}
 
 					// Sort ascending for parent child relationship
-					LODModel.RequiredBones.Sort();
-						SkeletalMesh->RefSkeleton.EnsureParentExists(LODModel.ActiveBoneIndices);
+					LODModel.RequiredBones.Sort();					
+					SkeletalMesh->RefSkeleton.EnsureParentsExistAndSort(LODModel.ActiveBoneIndices);
 
 					// Fix the sections' BoneMaps.
 					for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)

@@ -21,11 +21,11 @@ struct CONTROLRIG_API FAnimNode_ControlRig : public FAnimNode_Base
 	UControlRig* GetControlRig() const;
 
 	// FAnimNode_Base interface
-	virtual void RootInitialize(const FAnimInstanceProxy* InProxy) override;
+	virtual void OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
 
 private:
 	/** Cached ControlRig */

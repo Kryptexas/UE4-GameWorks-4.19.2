@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -58,11 +58,10 @@ Range<const uint32_t> getSelfCollisionIndices(const DxCloth& cloth)
 	return makeRange(cloth.mSelfCollisionIndicesHost);
 }
 
-template <>
-Cloth* ClothImpl<DxCloth>::clone(Factory& factory) const
+Cloth* DxCloth::clone(Factory& factory) const
 {
-	if(&mCloth.mFactory == &factory)
-		return NV_CLOTH_NEW(ClothImpl<DxCloth>)(factory, *this); // copy construct directly
+	if (&mFactory == &factory)
+		return NV_CLOTH_NEW(DxCloth)(mFactory, *this); // copy construct directly
 
 	switch(factory.getPlatform())
 	{
@@ -80,9 +79,9 @@ Cloth* DxFactory::clone(const Cloth& cloth)
 {
 	if (cloth.getFactory().getPlatform() == Platform::CPU)
 	{
-		if(cloth.getNumParticles() > 2025 /* see DxSolverKernel.hlsl gCurParticles */)
+		if (cloth.getNumParticles() > 2025 /* see DxSolverKernel.hlsl gCurParticles */)
 			return nullptr; // can only fit 2025 particles in dx shared memory
-		return convertCloth(*this, static_cast<const SwClothImpl&>(cloth));
+		return convertCloth(*this, static_cast<const SwCloth&>(cloth));
 	}
 
 	return cloth.clone(*this);

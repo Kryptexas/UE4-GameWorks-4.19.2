@@ -137,7 +137,7 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 	}
 }
 
-void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, IClothingSimulationContext* InOutContext)
+void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, float InDeltaTime, IClothingSimulationContext* InOutContext)
 {
 	FClothingSimulationContextBase* BaseContext = static_cast<FClothingSimulationContextBase*>(InOutContext);
 	BaseContext->ComponentToWorld = InComponent->GetComponentTransform();
@@ -192,7 +192,7 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	UWorld* ComponentWorld = InComponent->GetWorld();
 	check(ComponentWorld);
 
-	BaseContext->DeltaSeconds = FMath::Min(ComponentWorld->GetDeltaSeconds(), MaxPhysicsDelta);
+	BaseContext->DeltaSeconds = FMath::Min(InDeltaTime, MaxPhysicsDelta);
 
 	BaseContext->TeleportMode = InComponent->ClothTeleportMode;
 

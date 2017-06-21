@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimGraphNode_Base.h"
+#include "LiveLinkRetargetAsset.h"
 
 class ILiveLinkClient;
 
@@ -18,16 +19,24 @@ struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SourceData, meta = (PinShownByDefault))
 	FName SubjectName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Retarget, meta = (PinShownByDefault))
+	ULiveLinkRetargetAsset* RetargetAsset;
+
+	UPROPERTY(transient)
+	ULiveLinkRetargetAsset* PreviousRetargetAsset;
+
+	TSharedPtr<FLiveLinkRetargetContext> RetargetContext;
+
 	FAnimNode_LiveLinkPose() : LiveLinkClient(nullptr) {}
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context) override {}
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext & Context) override {}
 
-	virtual void Update(const FAnimationUpdateContext & Context) override {}
+	virtual void Update_AnyThread(const FAnimationUpdateContext & Context) override;
 
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	// End of FAnimNode_Base interface
 
 	void OnLiveLinkClientRegistered(const FName& Type, class IModularFeature* ModularFeature);

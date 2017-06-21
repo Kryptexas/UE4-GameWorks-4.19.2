@@ -99,6 +99,8 @@ public:
 	/** Flag whether or not the user is actively previewing the blend space (moving the sample value) */
 	const bool IsPreviewing() const { return bSamplePreviewing; }
 
+	int32 GetSelectedSampleIndex() const { return SelectedSampleIndex; }
+
 	void InvalidateCachedData();
 	void InvalidateState();
 protected:

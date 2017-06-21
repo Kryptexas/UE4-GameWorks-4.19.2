@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -59,11 +59,11 @@ class DxFactory : public Factory
 {
 protected:
 	DxFactory(const DxFactory&); // not implemented	
-	DxFactory& operator=(const DxFactory&); // not implemented
+	DxFactory& operator = (const DxFactory&); // not implemented
 
   public:
 	typedef DxFabric FabricType;
-	typedef ClothImpl<DxCloth> ImplType;
+	typedef DxCloth ClothType;
 
 	explicit DxFactory(DxContextManagerCallback*);
 	virtual ~DxFactory();
@@ -155,6 +155,8 @@ protected:
 	DxBatchedStorage<uint32_t> mSelfCollisionIndices;
 	DxBatchedStorage<physx::PxVec4> mSelfCollisionParticles;
 	DxBatchedStorage<uint32_t> mSelfCollisionData;
+
+	DxBatchedStorage<uint32_t> mTriangles;
 };
 }
 }

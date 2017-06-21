@@ -76,18 +76,25 @@ void UAnimGraphNode_TransitionPoseEvaluator::CustomizeDetails(IDetailLayoutBuild
 	FramesToCachePoseProperty->MarkHiddenByCustomization();
 	
 	// Bind visibility helper for the property
-	TAttribute<EVisibility> VisibilityAttr;
-	VisibilityAttr.BindUObject(this, &UAnimGraphNode_TransitionPoseEvaluator::GetCacheFramesVisibility);
+	TAttribute<EVisibility> VisibilityAttr = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&UAnimGraphNode_TransitionPoseEvaluator::GetCacheFramesVisibility, &DetailBuilder));
 	PoseCategory.AddProperty(FramesToCachePoseProperty).Visibility(VisibilityAttr);
 }
 
-EVisibility UAnimGraphNode_TransitionPoseEvaluator::GetCacheFramesVisibility() const
+EVisibility UAnimGraphNode_TransitionPoseEvaluator::GetCacheFramesVisibility(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	if(Node.EvaluatorMode != EEvaluatorMode::EM_DelayedFreeze)
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
 	{
-		return EVisibility::Hidden;
+		if(UAnimGraphNode_TransitionPoseEvaluator* TransitionPoseEvaluator = Cast<UAnimGraphNode_TransitionPoseEvaluator>(Object.Get()))
+		{
+			if(TransitionPoseEvaluator->Node.EvaluatorMode == EEvaluatorMode::EM_DelayedFreeze)
+			{
+				return EVisibility::Visible;
+			}
+		}
 	}
-	return EVisibility::Visible;
+
+	return EVisibility::Hidden;
 }
 
 #undef LOCTEXT_NAMESPACE

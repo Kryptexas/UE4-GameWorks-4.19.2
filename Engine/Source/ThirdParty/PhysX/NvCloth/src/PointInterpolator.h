@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -41,7 +41,7 @@ template <typename Simd4f, typename BaseIterator>
 class LerpIterator
 {
 
-	LerpIterator& operator=(const LerpIterator&); // not implemented
+	LerpIterator& operator = (const LerpIterator&); // not implemented
 
   public:
 	LerpIterator(BaseIterator start, BaseIterator target, float alpha)
@@ -61,7 +61,7 @@ class LerpIterator
 	}
 
 	// prefix increment only
-	inline LerpIterator& operator++()
+	inline LerpIterator& operator ++ ()
 	{
 		++mStart;
 		++mTarget;
@@ -80,7 +80,7 @@ template <typename Simd4f, size_t Stride>
 class UnalignedIterator
 {
 
-	UnalignedIterator& operator=(const UnalignedIterator&); // not implemented
+	UnalignedIterator& operator = (const UnalignedIterator&); // not implemented
 
   public:
 	UnalignedIterator(const float* pointer) : mPointer(pointer)
@@ -98,7 +98,7 @@ class UnalignedIterator
 	}
 
 	// prefix increment only
-	inline UnalignedIterator& operator++()
+	inline UnalignedIterator& operator ++ ()
 	{
 		mPointer += Stride;
 		return *this;
@@ -122,13 +122,13 @@ class ConstantIterator
 		return mValue;
 	}
 
-	inline ConstantIterator& operator++()
+	inline ConstantIterator& operator ++ ()
 	{
 		return *this;
 	}
 
   private:
-	ConstantIterator& operator=(const ConstantIterator&);
+	ConstantIterator& operator = (const ConstantIterator&);
 	const Simd4f mValue;
 };
 
@@ -147,14 +147,14 @@ class ScaleBiasIterator
 		return (*mBaseIterator) * mScale + mBias;
 	}
 
-	inline ScaleBiasIterator& operator++()
+	inline ScaleBiasIterator& operator ++ ()
 	{
 		++mBaseIterator;
 		return *this;
 	}
 
   private:
-	ScaleBiasIterator& operator=(const ScaleBiasIterator&);
+	ScaleBiasIterator& operator = (const ScaleBiasIterator&);
 
 	const Simd4f mScale;
 	const Simd4f mBias;

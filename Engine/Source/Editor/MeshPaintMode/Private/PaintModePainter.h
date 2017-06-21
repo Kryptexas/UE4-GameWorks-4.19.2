@@ -7,43 +7,6 @@
 #include "MeshPaintTypes.h"
 #include "Engine/StaticMesh.h"
 
-#include "PaintModePainter.generated.h"
-
-UENUM()
-enum class EInstanceColorAction : uint8
-{
-	/** Copies Vertex Colors from the selected Mesh Components */
-	Copy UMETA(DisplayName = "Copy", Icon="GenericCommands.Copy"),
-	/** Tried to Paste Vertex Colors on the selected Mesh Components */
-	Paste UMETA(DisplayName = "Paste", Icon="GenericCommands.Paste" ),
-	/** Removes Vertex Colors from the selected Mesh Components */
-	Remove UMETA(DisplayName = "Remove", Icon="GenericCommands.Delete"),
-	/** If necessary fixes Vertex Colors applied to the selected Mesh Components */
-	Fix UMETA(DisplayName = "Fix", Icon = "MeshPaint.FixColors")
-};
-
-UENUM()
-enum class EVertexColorAction : uint8
-{
-	/** Fills the selected Meshes with the Paint Color */
-	Fill UMETA(DisplayName = "Fill", Icon = "MeshPaint.Fill"),
-	/** Propagates Instance Vertex Colors to the Source Meshes */
-	Propagate UMETA(DisplayName = "Propagate", Icon = "MeshPaint.PropagateColors"),
-	/** Imports Vertex Colors from a TGA Texture File to the Selected Meshes*/
-	Import UMETA(DisplayName = "Import", , Icon = "MeshPaint.ImportVertColors"),
-	/** Saves the Source Meshes for the selected Mesh Components*/
-	Save UMETA(DisplayName = "Save", Icon = "MeshPaint.SavePackage")
-};
-
-UENUM()
-enum class ETexturePaintAction : uint8
-{
-	/** Propagates Modifications to the Textures */
-	Propagate UMETA(DisplayName = "Propagate", Icon = "MeshPaint.PropagateColors"),
-	/** Saves the Modified Textures for the selected Mesh Components*/
-	Save UMETA(DisplayName = "Save", Icon = "MeshPaint.SavePackage")
-};
-
 /** struct used to store the color data copied from mesh instance to mesh instance */
 struct FPerLODVertexColorData
 {
@@ -113,8 +76,12 @@ protected:
 	FPaintModePainter();
 	~FPaintModePainter();
 	void Init();
+
+	void RegisterTexturePaintCommands();
+	void RegisterVertexPaintCommands();
 public:
 	static FPaintModePainter* Get();
+	TSharedPtr<FUICommandList> GetUICommandList();
 	
 	/** Begin IMeshPainter overrides */
 	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;		
@@ -144,29 +111,16 @@ protected:
 	/** Per triangle action function used for retrieving triangle eligible for texture painting */
 	void GatherTextureTriangles(IMeshPaintGeometryAdapter* Adapter, int32 TriangleIndex, const int32 VertexIndices[3], TArray<FTexturePaintTriangleInfo>* TriangleInfo, TArray<FTexturePaintMeshSectionInfo>* SectionInfos, int32 UVChannelIndex);
 protected:
-	/** Callbacks used by SPaintModeWidget for per-instance vertex color actions */
-	bool CanApplyInstanceColorAction(EInstanceColorAction Action) const;
-
 	/** Functions to determine whether or not an instance vertex color action is valid */
-	bool DoesRequireVertexColorsFixup(const TArray<UStaticMeshComponent *>& StaticMeshComponents) const;
-	bool CanRemoveInstanceColors(const TArray<UStaticMeshComponent*>& StaticMeshComponents) const;
-	bool CanPasteInstanceVertexColors(const TArray<UStaticMeshComponent*>& StaticMeshComponents) const;
-	bool CanCopyInstanceVertexColors(const TArray<UStaticMeshComponent*>& StaticMeshComponents) const;
-
-	void ApplyInstanceColorAction(EInstanceColorAction Action);
-
-	/** Callbacks used by SPaintModeWidget for vertex color actions */
-	bool CanApplyVertexColorAction(EVertexColorAction Action) const;
+	bool DoesRequireVertexColorsFixup() const;
+	bool CanRemoveInstanceColors() const;
+	bool CanPasteInstanceVertexColors() const;
+	bool CanCopyInstanceVertexColors() const;
 
 	/** Functions to determine whether or not an vertex color action is valid */
 	bool CanSaveMeshPackages() const;
 	bool CanPropagateVertexColors() const;
-
-	void ApplyVertexColorAction(EVertexColorAction Action);
-
-	/** Callbacks used by SPaintModeWidget texture paint actions */
-	bool CanApplyTexturePaintAction(ETexturePaintAction Action) const;
-	void ApplyTexturePaintAction(ETexturePaintAction Action);
+	bool CanSaveModifiedTextures() const;
 
 	/** Checks whether or not the given asset should not be shown in the list of textures to paint on */
 	bool ShouldFilterTextureAsset(const FAssetData& AssetData) const;
@@ -193,8 +147,10 @@ protected:
 	void CacheTexturePaintData();
 	void ResetPaintingState();
 	/** Copy and pasting functionality from and to a StaticMeshComponent (currently only supports per instance)*/
-	void CopyVertexColors(UStaticMeshComponent* Component);
-	void PasteVertexColors(UStaticMeshComponent* Component);
+	void CopyVertexColors();
+	void PasteVertexColors();
+	void FixVertexColors();
+	void RemoveVertexColors();
 	
 	/** Checks whether or not the current selection contains components which reference the same (static/skeletal)-mesh */
 	bool ContainsDuplicateMeshes(TArray<UMeshComponent*>& Components) const;
@@ -277,6 +233,13 @@ private:
 
 	/** Updates the paint targets based on property changes on actors in the scene */
 	void UpdatePaintTargets(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent);
+
+	/** Vertex color action callbacks */
+	void FillWithVertexColor();
+	void PropagateVertexColorsToAsset();
+	void ImportVertexColors();
+	void SavePaintedAssets();
+	void SaveModifiedTextures();
 protected:	
 	/** Texture paint state */
 	/** Textures eligible for painting retrieved from the current selection */
@@ -337,4 +300,7 @@ protected:
 	/** Contains copied vertex color data */
 	TArray<FPerComponentVertexColorData> CopiedColorsByComponent;
 	// End vertex paint state
+
+	/** UI command list object */
+	TSharedPtr<FUICommandList> UICommandList;
 };

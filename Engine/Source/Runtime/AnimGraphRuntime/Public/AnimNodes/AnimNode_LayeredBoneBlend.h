@@ -16,25 +16,34 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LayeredBoneBlend : public FAnimNode_Base
 	GENERATED_USTRUCT_BODY()
 
 public:
+	/** The source pose */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink BasePose;
 
-	//@TODO: Anim: Comment these members
+	/** Each layer's blended pose */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, editfixedsize, Category=Links)
 	TArray<FPoseLink> BlendPoses;
 
+	/** 
+	 * Configuration for the parts of the skeleton to blend for each layer. Allows
+	 * certain parts of the tree to be blended out or omitted from the pose.
+	 */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Config)
 	TArray<FInputBlendPose> LayerSetup;
 
+	/** The weights of each layer */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, editfixedsize, Category=Runtime, meta=(PinShownByDefault))
 	TArray<float> BlendWeights;
 
+	/** Whether to blend bone rotations in mesh space or in local space */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
 	bool bMeshSpaceRotationBlend;
 	
+	/** How to blend the layers together */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
 	TEnumAsByte<enum ECurveBlendOption::Type>	CurveBlendOption;
 
+	/** Whether to incorporate the per-bone blend weight of the root bone when lending root motion */
 	UPROPERTY(EditAnywhere, Category = Config)
 	bool bBlendRootMotionBasedOnRootBone;
 
@@ -69,10 +78,10 @@ public:
 	}
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 

@@ -8,15 +8,14 @@ namespace Audio {
 	{
 		enum Type
 		{
-			Wasapi,
-			XAudio2,
-			Ngs2,
-			CoreAudio,
-			OpenAL,
-			Html5,
-			OpenSLES,
-			Switch,
-			Null,
+			XAudio2, 	// Windows, XBoxOne
+			AudioOut, 	// PS4
+			CoreAudio, 	// Mac
+			AudioUnit, 	// iOS
+			OpenAL, 	// Linux, Html5
+			OpenSLES, 	// Android
+			Switch, 	// Switch
+			Null,		// Unknown/not Supported
 		};
 	}
 

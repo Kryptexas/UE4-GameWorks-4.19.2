@@ -77,12 +77,17 @@ public:
 	bool bDrawBinormals;
 	bool bDrawClothPaintPreview;
 
+	bool bFlipNormal;
+	bool bCullBackface;
+
 	int32 ClothingSimDataIndexWhenPainting;
 	TArray<uint32> ClothingSimIndices;
 
 	TArray<float> ClothingVisiblePropertyValues;
 	float PropertyViewMin;
 	float PropertyViewMax;
+
+	float ClothMeshOpacity;
 
 	TArray<FVector> SkinnedPositions;
 	TArray<FVector> SkinnedNormals;
@@ -192,7 +197,10 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 
 	/** Display Bound **/
 	UPROPERTY(transient)
-	uint32 bDisplayBound:1;
+	bool bDisplayBound;
+
+	UPROPERTY(transient)
+	bool bDisplayVertexColors;
 
 	UPROPERTY(transient)
 	uint32 bPreviewRootMotion:1;
@@ -205,6 +213,15 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 
 	UPROPERTY(transient)
 	float MaxClothPropertyView;
+
+	UPROPERTY(transient)
+	float ClothMeshOpacity;
+
+	UPROPERTY(transient)
+	bool bClothFlipNormal;
+
+	UPROPERTY(transient)
+	bool bClothCullBackface;
 
 	/** Non Compressed SpaceBases for when bDisplayRawAnimation == true **/
 	TArray<FTransform> UncompressedSpaceBases;
@@ -263,10 +280,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	// @todo fix this properly
 	// this isn't really the best way to do this, but for now
 	// we'll just mark as selected
-	virtual bool ShouldRenderSelected() const override
-	{
-		return bDisplayBound;
-	}
+	virtual bool ShouldRenderSelected() const override;
 	//~ End UPrimitiveComponent Interface.
 
 	//~ Begin SkinnedMeshComponent Interface
@@ -407,7 +421,6 @@ protected:
 
 	// Overridden to support single clothing ticks
 	virtual bool ShouldRunClothTick() const override;
-
 
 	virtual void SendRenderDynamicData_Concurrent() override;
 

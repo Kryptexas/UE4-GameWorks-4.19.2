@@ -165,7 +165,11 @@ private:
 	bool ShouldFilterAssetBasedOnSkeleton(const FAssetData& AssetData);
 
 	/** Constraint editing helper methods */
-	void SnapConstraintToBone(const FPhATSharedData::FSelection* Constraint);
+	void SnapConstraintToBone(const FPhATSharedData::FSelection* Constraint)
+	{
+		SharedData->SnapConstraintToBone(Constraint->Index);
+	}
+
 	void CreateOrConvertConstraint(EPhATConstraintType ConstraintType);
 	
 	/** Collision editing helper methods */

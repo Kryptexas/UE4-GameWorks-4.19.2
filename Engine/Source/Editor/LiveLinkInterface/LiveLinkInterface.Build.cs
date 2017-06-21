@@ -9,7 +9,8 @@ public class LiveLinkInterface : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[] {
                 "Core",
-                "CoreUObject"
+                "CoreUObject",
+                "Engine"
             }
         );
 

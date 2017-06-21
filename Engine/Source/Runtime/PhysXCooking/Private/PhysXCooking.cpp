@@ -10,13 +10,12 @@
 
 static_assert(WITH_PHYSX, "No point in compiling PhysX cooker, if we don't have PhysX.");
 
+static FName NAME_PhysXGeneric(TEXT("PhysXGeneric"));
 static FName NAME_PhysXPC(TEXT("PhysXPC"));
-static FName NAME_PhysXXboxOne(TEXT("PhysXXboxOne"));
-static FName NAME_PhysXPS4(TEXT("PhysXPS4"));
 
 bool GetPhysXCooking(FName InFormatName, PxPlatform::Enum& OutFormat)
 {
-	if ((InFormatName == NAME_PhysXPC) || (InFormatName == NAME_PhysXXboxOne) || (InFormatName == NAME_PhysXPS4))
+	if ((InFormatName == NAME_PhysXPC) || (InFormatName == NAME_PhysXGeneric))
 	{
 		OutFormat = PxPlatform::ePC;
 	}
@@ -36,6 +35,15 @@ bool CheckPhysXCooking(FName InFormatName)
 	return GetPhysXCooking(InFormatName, Format);
 }
 
+void UseBVH34IfSupported(FName Format, PxCookingParams& Params)
+{
+	if((Format == NAME_PhysXPC))
+	{
+		//TODO: can turn this on once bug is fixed with character movement
+		//Params.midphaseDesc = PxMeshMidPhase::eBVH34;
+	}
+}
+
 FPhysXCooking::FPhysXCooking()
 {
 #if WITH_PHYSX
@@ -50,6 +58,7 @@ FPhysXCooking::FPhysXCooking()
 	// This is because the new 'quick hull' method can generate degenerate geometry in some cases (very thin meshes etc.)
 	//PCookingParams.convexMeshCookingType = PxConvexMeshCookingType::eINFLATION_INCREMENTAL_HULL;
 	PCookingParams.targetPlatform = PxPlatform::ePC;
+	PCookingParams.midphaseDesc = PxMeshMidPhase::eBVH33;
 	//PCookingParams.meshCookingHint = PxMeshCookingHint::eCOOKING_PERFORMANCE;
 	//PCookingParams.meshSizePerformanceTradeOff = 0.0f;
 
@@ -77,8 +86,7 @@ uint16 FPhysXCooking::GetVersion(FName Format) const
 void FPhysXCooking::GetSupportedFormats(TArray<FName>& OutFormats) const
 {
 	OutFormats.Add(NAME_PhysXPC);
-	OutFormats.Add(NAME_PhysXXboxOne);
-	OutFormats.Add(NAME_PhysXPS4);
+	OutFormats.Add(NAME_PhysXGeneric);
 }
 
 /** Utility wrapper for a uint8 TArray for saving into PhysX. */
@@ -149,6 +157,11 @@ EPhysXCookingResult FPhysXCooking::CookConvexImp(FName Format, EPhysXMeshCookFla
 
 		NewParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH);
 		NewParams.meshWeldTolerance = 0.0f;
+	}
+	else
+	{
+		//For meshes that don't deform we can try to use BVH34
+		UseBVH34IfSupported(Format, NewParams);
 	}
 
 	// Do we want to do a 'fast' cook on this mesh, may slow down collision performance at runtime
@@ -275,6 +288,14 @@ bool FPhysXCooking::CookTriMeshImp(FName Format, EPhysXMeshCookFlags CookFlags, 
 	{
 		// In the case of a deformable mesh, we have to change the cook params
 		NewParams.meshPreprocessParams = PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+
+		// The default BVH34 midphase does not support refit
+		NewParams.midphaseDesc = PxMeshMidPhase::eBVH33;
+	}
+	else
+	{
+		//For non deformable meshes we can try to use BVH34
+		UseBVH34IfSupported(Format, NewParams);
 	}
 
 	PhysXCooking->setParams(NewParams);
@@ -336,6 +357,8 @@ bool FPhysXCooking::CookHeightFieldImp(FName Format, FIntPoint HFSize, const voi
 	const PxCookingParams& Params = PhysXCooking->getParams();
 	PxCookingParams NewParams = Params;
 	NewParams.targetPlatform = PhysXFormat;
+	UseBVH34IfSupported(Format, NewParams);
+
 	PhysXCooking->setParams(NewParams);
 
 	// Cook to a temp buffer

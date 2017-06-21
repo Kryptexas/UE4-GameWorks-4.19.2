@@ -86,13 +86,6 @@ public:
 	void OnNewSectionClicked(float DataPosX);
 	bool CanAddNewSection();
 
-	/** Functions for section time change via context menu*/
-	void OnSetSectionTimeClicked(int32 SectionIndex);
-	void SetSectionTime(const FText& SectionTimeText, ETextCommit::Type CommitInfo, int32 SectionIndex);
-	/** Functions for section frame change via context menu*/
-	void OnSetSectionFrameClicked(int32 SectionIndex);
-	void SetSectionFrame(const FText& SectionFrameText, ETextCommit::Type CommitInfo, int32 SectionIndex);
-
 	void ShowSegmentInDetailsView(int32 AnimSegmentIndex, int32 AnimSlotIndex);
 	void ShowSectionInDetailsView(int32 SectionIndex);
 

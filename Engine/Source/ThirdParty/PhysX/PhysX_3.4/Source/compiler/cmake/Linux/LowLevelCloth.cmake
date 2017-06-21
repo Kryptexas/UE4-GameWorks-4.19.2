@@ -1,8 +1,6 @@
 #
 # Build LowLevelCloth
 #
-FIND_PACKAGE(NvSimd REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/LowLevelCloth/src)

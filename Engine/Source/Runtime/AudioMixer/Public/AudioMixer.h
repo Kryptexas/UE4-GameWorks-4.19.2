@@ -236,6 +236,23 @@ namespace Audio
 		Unplugged,
 	};
 
+	/** Struct used to store render time analysis data. */
+	struct FAudioRenderTimeAnalysis
+	{
+		double AvgRenderTime;
+		double MaxRenderTime;
+		double TotalRenderTime;
+		double RenderTimeSinceLastLog;
+		uint32 StartTime;
+		double MaxSinceTick;
+		uint64 RenderTimeCount;
+		int32 RenderInstanceId;
+
+		FAudioRenderTimeAnalysis();
+		void Start();
+		void End();
+	};
+
 	/** Class which wraps an output float buffer and handles conversion to device stream formats. */
 	class AUDIOMIXER_API FOutputBuffer
 	{
@@ -268,6 +285,8 @@ namespace Audio
 
 	private:
 		IAudioMixer* AudioMixer;
+		// TODO: Audio SIMD
+		//typedef TArray<float, TAlignedHeapAllocator<16>> AlignedFloatBuffer;
 		TArray<float> Buffer;
 		TArray<uint8> FormattedBuffer;
  		EAudioMixerStreamDataFormat::Type DataFormat;
@@ -318,7 +337,7 @@ namespace Audio
 		virtual bool IsInitialized() const = 0;
 
 		/** Returns the number of output devices. */
-		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) = 0;
+		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) { OutNumOutputDevices = 1; return true; }
 
 		/** Gets the device information of the given device index. */
 		virtual bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) = 0;
@@ -353,8 +372,17 @@ namespace Audio
 		/** Returns the name of the format of the input sound wave. */
 		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) = 0;
 
+		/** Allows platforms to filter the requested number of frames to render. Some platforms only support specific frame counts. */
+		virtual int32 GetNumFrames(const int32 InNumReqestedFrames) { return InNumReqestedFrames; }
+
 		/** Checks if the platform has a compressed audio format for sound waves. */
 		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) = 0;
+
+		/** Whether or not the platform supports realtime decompression. */
+		virtual bool SupportsRealtimeDecompression() const { return false; }
+
+		/** Whether or not this platform has hardware decompression. */
+		virtual bool SupportsHardwareDecompression() const { return false; }
 
 		/** Creates a Compressed audio info class suitable for decompressing this SoundWave. */
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) = 0;
@@ -365,6 +393,12 @@ namespace Audio
 		// Helper function to gets the channel map type at the given index.
 		static bool GetChannelTypeAtIndex(const int32 Index, EAudioMixerChannel::Type& OutType);
 
+        // Function to stop all audio from rendering. Used on mobile platforms which can suspend the application.
+        virtual void SuspendContext() {}
+        
+        // Function to resume audio rendering. Used on mobile platforms which can suspend the application.
+        virtual void ResumeContext() {}
+        
 	public: // Public Functions
 		//~ Begin FRunnable
 		uint32 Run() override;
@@ -387,8 +421,8 @@ namespace Audio
 		// Run the "main" audio device
 		uint32 MainAudioDeviceRun();
 		
-		// Wrapper around the thread Run
-		uint32 RunInternal();
+		// Wrapper around the thread Run. This is virtualized so a platform can fundamentally override the render function.
+		virtual uint32 RunInternal();
 
 		/** Is called when an error is generated. */
 		inline void OnAudioMixerPlatformError(const FString& ErrorDetails, const FString& FileName, int32 LineNumber)
@@ -403,6 +437,7 @@ namespace Audio
 		/** Stops the render thread from generating audio. */
 		void StopGeneratingAudio();
 
+		/** Performs buffer fades for shutdown/startup of audio mixer. */
 		void PerformFades();
 
 	protected:
@@ -443,6 +478,9 @@ namespace Audio
 
 		/** String containing the last generated error. */
 		FString LastError;
+
+		/** Struct used to store render time analysis data. */
+		FAudioRenderTimeAnalysis RenderTimeAnalysis;
 
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;

@@ -977,7 +977,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 									if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), true, MeshElement))
 									{
 	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-										if (EngineShowFlags.VertexColors && AllowDebugViewmodes())
+										if (bProxyIsSelected && EngineShowFlags.VertexColors && AllowDebugViewmodes())
 										{
 											// Override the mesh's material with our material that draws the vertex colors
 											UMaterial* VertexColorVisualizationMaterial = NULL;

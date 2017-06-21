@@ -31,6 +31,7 @@
 #include "AnimGraphCommands.h"
 #include "K2Node_Knot.h"
 #include "ScopedTransaction.h"
+#include "Animation/AnimMontage.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 
@@ -209,6 +210,16 @@ bool UAnimationGraphSchema::ArePinsCompatible(const UEdGraphPin* PinA, const UEd
 		return false;
 	}
 
+	// Disallow pose pins connecting to wildcards (apart from reroute nodes)
+	if(IsPosePin(PinA->PinType) && PinB->PinType.PinCategory == PC_Wildcard)
+	{
+		return Cast<UK2Node_Knot>(PinB->GetOwningNode()) != nullptr;
+	}
+	else if(IsPosePin(PinB->PinType) && PinA->PinType.PinCategory == PC_Wildcard)
+	{
+		return Cast<UK2Node_Knot>(PinA->GetOwningNode()) != nullptr;
+	}
+
 	return Super::ArePinsCompatible(PinA, PinB, CallingContext, bIgnoreArray);
 }
 
@@ -383,17 +394,17 @@ void UAnimationGraphSchema::GetAssetsNodeHoverMessage(const TArray<FAssetData>& 
 	if (!bSkelMatch)
 	{
 		OutOkIcon = false;
-		OutTooltipText = FString::Printf(TEXT("Skeletons are not compatible"));
+		OutTooltipText = LOCTEXT("SkeletonsNotCompatible", "Skeletons are not compatible").ToString();
 	}
 	else if (bCanPlayAsset)
 	{
 		OutOkIcon = true;
-		OutTooltipText = FString::Printf(TEXT("Change node to play '%s'"), *(Asset->GetName()));
+		OutTooltipText = FText::Format(LOCTEXT("AssetNodeHoverMessage_Success", "Change node to play '{0}'"), FText::FromString(Asset->GetName())).ToString();
 	}
 	else
 	{
 		OutOkIcon = false;
-		OutTooltipText = FString::Printf(TEXT("Cannot play '%s' on this node type"), *(Asset->GetName()));
+		OutTooltipText = FText::Format(LOCTEXT("AssetNodeHoverMessage_Fail", "Cannot play '{0}' on this node type"),  FText::FromString(Asset->GetName())).ToString();
 	}
 }
 
@@ -417,12 +428,12 @@ void UAnimationGraphSchema::GetAssetsPinHoverMessage(const TArray<FAssetData>& A
 	if (bSkelMatch && bTypeMatch && bDirectionMatch)
 	{
 		OutOkIcon = true;
-		OutTooltipText = FString::Printf(TEXT("Play %s and feed to %s"), *(Asset->GetName()), *HoverPin->PinName);
+		OutTooltipText = FText::Format(LOCTEXT("AssetPinHoverMessage_Success", "Play {0} and feed to {1}"), FText::FromString(Asset->GetName()), FText::FromString(HoverPin->PinName)).ToString();
 	}
 	else
 	{
 		OutOkIcon = false;
-		OutTooltipText = FString::Printf(TEXT("Type or direction mismatch; must be wired to a pose input"));
+		OutTooltipText = LOCTEXT("AssetPinHoverMessage_Fail", "Type or direction mismatch; must be wired to a pose input").ToString();
 	}
 }
 
@@ -436,7 +447,17 @@ void UAnimationGraphSchema::GetAssetsGraphHoverMessage(const TArray<FAssetData>&
 		if (!bSkelMatch)
 		{
 			OutOkIcon = false;
-			OutTooltipText = FString::Printf(TEXT("Skeletons are not compatible"));
+			OutTooltipText = LOCTEXT("SkeletonsNotCompatible", "Skeletons are not compatible").ToString();
+		}
+		else if(UAnimMontage* Montage = FAssetData::GetFirstAsset<UAnimMontage>(Assets))
+		{
+			OutOkIcon = false;
+			OutTooltipText = LOCTEXT("NoMontagesInAnimGraphs", "Montages cannot be used in animation graphs").ToString();
+		}
+		else
+		{
+			OutOkIcon = true;
+			OutTooltipText = TEXT("");
 		}
 	}
 }

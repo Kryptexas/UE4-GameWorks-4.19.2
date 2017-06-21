@@ -31,9 +31,17 @@ public class AudioMixerAudioUnit : ModuleRules
 		PublicFrameworks.AddRange(new string[]
 		{
 			"AudioToolbox",
-			"CoreAudio",
-			"AVFoundation"
+			"CoreAudio"
 		});
+		
+		if (Target.Platform == UnrealTargetPlatform.IOS)
+		{
+			PublicFrameworks.Add("AVFoundation");
+		}
+        else if (Target.Platform == UnrealTargetPlatform.Mac)
+        {
+            PublicFrameworks.Add("AudioUnit");
+        }
 
 		Definitions.Add("WITH_OGGVORBIS=1");
 	}

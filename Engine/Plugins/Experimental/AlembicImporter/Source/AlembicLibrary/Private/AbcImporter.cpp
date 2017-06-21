@@ -915,7 +915,7 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFlags Flags)
 {
 	// Create a GeometryCache instance 
-	UGeometryCache* GeometryCache = CreateObjectInstance<UGeometryCache>(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags);
+	UGeometryCache* GeometryCache = CreateObjectInstance<UGeometryCache>(InParent, FPaths::GetBaseFilename(InParent->GetName()), Flags);
 	
 	// Only import data if a valid object was created
 	if (GeometryCache)
@@ -994,14 +994,16 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 	return GeometryCache;
 }
 
-USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlags Flags)
+TArray<UObject*> FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlags Flags)
 {
 	// First compress the animation data
 	const bool bCompressionResult = CompressAnimationDataUsingPCA(ImportData->ImportSettings->CompressionSettings, true);
 
+	TArray<UObject*> GeneratedObjects;
+
 	if (!bCompressionResult)
 	{
-		return nullptr;
+		return GeneratedObjects;
 	}
 
 	// Enforce to compute normals and tangents for the average sample which forms the base of the skeletal mesh
@@ -1026,7 +1028,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 	}
 
 	// Create a Skeletal mesh instance 
-	USkeletalMesh* SkeletalMesh = CreateObjectInstance<USkeletalMesh>(InParent, FPaths::GetBaseFilename(ImportData->FilePath), Flags);
+	USkeletalMesh* SkeletalMesh = CreateObjectInstance<USkeletalMesh>(InParent, FPaths::GetBaseFilename( InParent ? InParent->GetName() : ImportData->FilePath), Flags);
 
 	// Only import data if a valid object was created
 	if (SkeletalMesh)
@@ -1051,15 +1053,16 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 			RefSkelModifier.Add(BoneInfo, BoneTransform);
 		}
 
-		// Forced to 1
-		ImportedResource->LODModels[0].NumTexCoords = 1;
-		SkeletalMesh->bHasVertexColors = true;
 
 		FAbcMeshSample* MergedMeshSample = new FAbcMeshSample();
 		for (const FCompressedAbcData& Data : ImportData->CompressedMeshData)
 		{
 			AbcImporterUtilities::AppendMeshSample(MergedMeshSample, Data.AverageSample);
 		}
+		
+		// Forced to 1
+		ImportedResource->LODModels[0].NumTexCoords = MergedMeshSample->NumUVSets;
+		SkeletalMesh->bHasVertexColors = true;
 
 		/* Bounding box according to animation */
 		SkeletalMesh->SetImportedBounds(ImportData->ArchiveBounds.GetBox());
@@ -1074,7 +1077,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 		if (!bBuildSuccess)
 		{
 			SkeletalMesh->MarkPendingKill();
-			return NULL;
+			return GeneratedObjects;
 		}
 
 		// Create the skeleton object
@@ -1183,10 +1186,14 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 
 		Skeleton->SetPreviewMesh(SkeletalMesh);
 		Skeleton->PostEditChange();
+
+		GeneratedObjects.Add(SkeletalMesh);
+		GeneratedObjects.Add(Skeleton);
+		GeneratedObjects.Add(Sequence);
+
 	}
 	
-	
-	return SkeletalMesh;
+	return GeneratedObjects;
 }
 
 void FAbcImporter::SetupMorphTargetCurves(USkeleton* Skeleton, FName ConstCurveName, UAnimSequence* Sequence, const TArray<float> &CurveValues, const TArray<float>& TimeValues)
@@ -1474,10 +1481,10 @@ UGeometryCache* FAbcImporter::ReimportAsGeometryCache(UGeometryCache* GeometryCa
 	return ReimportedCache;
 }
 
-USkeletalMesh* FAbcImporter::ReimportAsSkeletalMesh(USkeletalMesh* SkeletalMesh)
+TArray<UObject*> FAbcImporter::ReimportAsSkeletalMesh(USkeletalMesh* SkeletalMesh)
 {
-	USkeletalMesh* ReimportedSkeletalMesh = ImportAsSkeletalMesh(SkeletalMesh->GetOuter(), RF_Public | RF_Standalone);
-	return ReimportedSkeletalMesh;
+	TArray<UObject*> ReimportedObjects = ImportAsSkeletalMesh(SkeletalMesh->GetOuter(), RF_Public | RF_Standalone);
+	return ReimportedObjects;
 }
 
 const TArray<TSharedPtr<FAbcPolyMeshObject>>& FAbcImporter::GetPolyMeshes() const
@@ -1521,7 +1528,11 @@ void FAbcImporter::GenerateRawMeshFromSample(FAbcMeshSample* Sample, FRawMesh& R
 	RawMesh.WedgeTangentX = Sample->TangentX;
 	RawMesh.WedgeTangentY = Sample->TangentY;
 	RawMesh.WedgeTangentZ = Sample->Normals;
-	RawMesh.WedgeTexCoords[0] = Sample->UVs;
+
+	for (uint32 UVIndex = 0; UVIndex < Sample->NumUVSets; ++UVIndex)
+	{
+		RawMesh.WedgeTexCoords[UVIndex] = Sample->UVs[UVIndex];
+	}
 
 	if ( Sample->Colors.Num() )
 	{
@@ -1632,7 +1643,7 @@ void FAbcImporter::GenerateGeometryCacheMeshDataForSample(FGeometryCacheMeshData
 
 			Vertex.Position = MeshSample->Vertices[Index];
 			Vertex.SetTangents(MeshSample->TangentX[CornerIndex], MeshSample->TangentY[CornerIndex], MeshSample->Normals[CornerIndex]);
-			Vertex.TextureCoordinate = MeshSample->UVs[CornerIndex];
+			Vertex.TextureCoordinate = MeshSample->UVs[0][CornerIndex];
 			Vertex.Color = MeshSample->Colors[CornerIndex].ToFColor(false);
 
 			Section.Add(CornerIndex);
@@ -1682,7 +1693,7 @@ bool FAbcImporter::BuildSkeletalMesh(
 	if (bComputeNormals || bComputeTangents)
 	{
 		uint32 TangentOptions = 0;
-		MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs, Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);
+		MeshUtilities.CalculateTangents(Sample->Vertices, Sample->Indices, Sample->UVs[0], Sample->SmoothingGroupIndices, TangentOptions, Sample->TangentX, Sample->TangentY, Sample->Normals);
 	}
 
 	// Populate faces
@@ -1703,6 +1714,7 @@ bool FAbcImporter::BuildSkeletalMesh(
 
 		FMeshSection& Section = MeshSections[MaterialIndex];
 		Section.MaterialIndex = MaterialIndex;
+		Section.NumUVSets = Sample->NumUVSets;
 	
 		for (uint32 VertexIndex = 0; VertexIndex < 3; ++VertexIndex)
 		{
@@ -1713,7 +1725,12 @@ bool FAbcImporter::BuildSkeletalMesh(
 			Section.TangentX.Add(Sample->TangentX[FaceOffset + VertexIndex]);
 			Section.TangentY.Add(Sample->TangentY[FaceOffset + VertexIndex]);
 			Section.TangentZ.Add(Sample->Normals[FaceOffset + VertexIndex]);
-			Section.UVs.Add(Sample->UVs[FaceOffset + VertexIndex]);
+
+			for (uint32 UVIndex = 0; UVIndex < Sample->NumUVSets; ++UVIndex)
+			{
+				Section.UVs[UVIndex].Add(Sample->UVs[UVIndex][FaceOffset + VertexIndex]);
+			}		
+			
 			Section.Colors.Add(Sample->Colors[FaceOffset + VertexIndex].ToFColor(false));
 		}
 
@@ -1773,7 +1790,11 @@ bool FAbcImporter::BuildSkeletalMesh(
 				NewVertex.TangentX = SourceSection.TangentX[FaceOffset + VertexIndex];
 				NewVertex.TangentY = SourceSection.TangentY[FaceOffset + VertexIndex];
 				NewVertex.TangentZ = SourceSection.TangentZ[FaceOffset + VertexIndex];
-				NewVertex.UVs[0] = SourceSection.UVs[FaceOffset + VertexIndex];
+				for (uint32 UVIndex = 0; UVIndex < SourceSection.NumUVSets; ++UVIndex)
+				{
+					NewVertex.UVs[UVIndex] = SourceSection.UVs[UVIndex][FaceOffset + VertexIndex];
+				}
+				
 				NewVertex.Color = SourceSection.Colors[FaceOffset + VertexIndex];
 
 				// Set up bone influence (only using one bone so maxed out weight)

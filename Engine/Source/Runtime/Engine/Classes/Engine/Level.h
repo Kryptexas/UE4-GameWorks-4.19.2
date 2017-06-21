@@ -277,10 +277,6 @@ struct ENGINE_API FLevelSimplificationDetails
 	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Details Percentage", ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
 	float DetailsPercentage;
 
-	/** Static mesh material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings StaticMeshMaterial_DEPRECATED;
-
 	/** Landscape material simplification */
 	UPROPERTY(Category = Landscape, EditAnywhere)
 	FMaterialProxySettings StaticMeshMaterialSettings;
@@ -291,11 +287,7 @@ struct ENGINE_API FLevelSimplificationDetails
 	/** Landscape LOD to use for static mesh generation, when not specified 'Max LODLevel' from landscape actor will be used */
 	UPROPERTY(Category=Landscape, EditAnywhere, meta=(ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7", editcondition = "bOverrideLandscapeExportLOD"))
 	int32 LandscapeExportLOD;
-
-	/** Landscape material simplification */
-	UPROPERTY()
-	FMaterialSimplificationSettings LandscapeMaterial_DEPRECATED;
-
+	
 	/** Landscape material simplification */
 	UPROPERTY(Category = Landscape, EditAnywhere)
 	FMaterialProxySettings LandscapeMaterialSettings;

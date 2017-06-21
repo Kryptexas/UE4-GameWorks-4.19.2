@@ -533,11 +533,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float RadiansToDegrees(float A);
 
 	/* Returns the sin of A (expects Degrees)*/
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Sin (Degrees)", CompactNodeTitle = "SINd"), Category="Math|Trig")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Sin (Degrees)", CompactNodeTitle = "SINd", Keywords = "sine"), Category="Math|Trig")
 	static float DegSin(float A);
 
 	/* Returns the inverse sin (arcsin) of A (result is in Degrees) */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Asin (Degrees)", CompactNodeTitle = "ASINd"), Category="Math|Trig")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Asin (Degrees)", CompactNodeTitle = "ASINd", Keywords = "sine"), Category="Math|Trig")
 	static float DegAsin(float A);
 
 	/* Returns the cos of A (expects Degrees)*/

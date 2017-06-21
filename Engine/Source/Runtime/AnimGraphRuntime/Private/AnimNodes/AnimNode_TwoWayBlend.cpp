@@ -6,9 +6,9 @@
 /////////////////////////////////////////////////////
 // FAnimNode_TwoWayBlend
 
-void FAnimNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TwoWayBlend::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	A.Initialize(Context);
 	B.Initialize(Context);
@@ -17,13 +17,13 @@ void FAnimNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Contex
 	bBIsRelevant = false;
 }
 
-void FAnimNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_TwoWayBlend::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	A.CacheBones(Context);
 	B.CacheBones(Context);
 }
 
-void FAnimNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_TwoWayBlend::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimationNode_TwoWayBlend_Update);
 	EvaluateGraphExposedInputs.Execute(Context);
@@ -76,7 +76,7 @@ void FAnimNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_TwoWayBlend::Evaluate(FPoseContext& Output)
+void FAnimNode_TwoWayBlend::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if (bBIsRelevant)
 	{

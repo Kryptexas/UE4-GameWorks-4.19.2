@@ -262,6 +262,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	void SetAngularTwistLimit(EAngularConstraintMotion ConstraintType, float TwistLimitAngle);
 
+	/** Sets the Linear Breakable properties
+	*	@param bLinearBreakable		Whether it is possible to break the joint with linear force
+	*	@param LinearBreakThreshold	Force needed to break the joint
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetLinearBreakable(bool bLinearBreakable, float LinearBreakThreshold);
+
+	/** Sets the Angular Breakable properties
+	*	@param bAngularBreakable		Whether it is possible to break the joint with angular force
+	*	@param AngularBreakThreshold	Torque needed to break the joint
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetAngularBreakable(bool bAngularBreakable, float AngularBreakThreshold);
 
 	/** Gets the current Angular Twist of the constraint */
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
@@ -301,6 +314,10 @@ public:
 	// Retrieve the constraint force most recently applied to maintain this constraint. Returns 0 forces if the constraint is not initialized or broken.
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	void GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce);
+
+	// Retrieve the status of constraint being broken.
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	bool IsBroken();
 
 #if WITH_EDITOR
 	void UpdateSpriteTexture();

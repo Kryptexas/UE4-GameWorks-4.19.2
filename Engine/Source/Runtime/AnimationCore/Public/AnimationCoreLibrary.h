@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 
 struct FTransformConstraint;
+struct FConstraintData;
 
 DECLARE_DELEGATE_RetVal_OneParam(FTransform, FGetGlobalTransform, FName);
 
@@ -24,8 +25,17 @@ namespace AnimationCore
 	 *
 	 * @return resolved transform 
 	 */
-	ANIMATIONCORE_API FTransform SolveConstraints(const FTransform& CurrentTransform, const FTransform& BaseTransform, const TArray<struct FTransformConstraint>& Constraints, const FGetGlobalTransform& OnGetGlobalTransform);
-
+	ANIMATIONCORE_API FTransform SolveConstraints(const FTransform& CurrentTransform, const FTransform& BaseTransform, const TArray<FTransformConstraint>& Constraints, const FGetGlobalTransform& OnGetGlobalTransform);
+	/**
+	 * Resolve Constraints based on input constraints data and current transform
+	 * 
+	 * @param	CurrentTransform		Current transform, based on BaseTransform
+	 * @param	BaseTransform			Base transform of the current transform, where Constraint transform would be converted
+	 * @param	Constraints				List of constraints - should contains latest transform
+	 *
+	 * @return resolved transform 
+	 */
+	ANIMATIONCORE_API FTransform SolveConstraints(const FTransform& CurrentTransform, const FTransform& CurrentParentTransform, const TArray<FConstraintData>& Constraints);
 	/** 
 	 * Aim solver
 	 *

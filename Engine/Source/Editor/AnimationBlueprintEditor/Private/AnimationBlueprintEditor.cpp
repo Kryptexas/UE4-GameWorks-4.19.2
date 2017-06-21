@@ -255,16 +255,6 @@ void FAnimationBlueprintEditor::InitAnimationBlueprintEditor(const EToolkitMode:
 	// register customization of Slot node for this Animation Blueprint Editor
 	// this is so that you can open the manage window per Animation Blueprint Editor
 	PersonaModule.CustomizeSlotNodeDetails(Inspector->GetPropertyView().ToSharedRef(), FOnInvokeTab::CreateSP(this, &FAssetEditorToolkit::InvokeTab));
-
-	if (UBlueprint* Blueprint = GetBlueprintObj())
-	{
-		// If we have a warning/error, open output log and recompile to show log output.
-		if (!Blueprint->IsUpToDate() || (Blueprint->Status == BS_UpToDateWithWarnings))
-		{
-			TabManager->InvokeTab(FBlueprintEditorTabs::CompilerResultsID);
-			Compile();
-		}
-	}
 }
 
 void FAnimationBlueprintEditor::BindCommands()

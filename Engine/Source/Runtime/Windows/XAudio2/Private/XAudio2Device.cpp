@@ -193,14 +193,14 @@ bool FXAudio2Device::InitializeHardware()
 		DeviceProperties->XAudio2 = nullptr;
 		return(false);
 	}
-#endif
+#endif // #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 
 #if DEBUG_XAUDIO2
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
 	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS | XAUDIO2_LOG_DETAIL;
 	DebugConfig.BreakMask = XAUDIO2_LOG_ERRORS;
 	DeviceProperties->XAudio2->SetDebugConfiguration(&DebugConfig);
-#endif
+#endif // #if DEBUG_XAUDIO2
 
 	FXAudioDeviceProperties::NumSpeakers = UE4_XAUDIO2_NUMCHANNELS;
 	SampleRate = FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec;
@@ -212,14 +212,12 @@ bool FXAudio2Device::InitializeHardware()
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec = SampleRate;
 	}
 
-#if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UE_LOG(LogInit, Log, TEXT( "XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)" ), 
 		FXAudioDeviceProperties::DeviceDetails.DisplayName,
 		FXAudioDeviceProperties::NumSpeakers, 
 		( float )SampleRate / 1000.0f, 
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.wBitsPerSample,
 		(uint32)UE4_XAUDIO2_CHANNELMASK );
-#endif
 
 	if( !GetOutputMatrix( UE4_XAUDIO2_CHANNELMASK, FXAudioDeviceProperties::NumSpeakers ) )
 	{
@@ -236,7 +234,7 @@ bool FXAudio2Device::InitializeHardware()
 		DeviceProperties->XAudio2 = nullptr;
 		return( false );
 	}
-#else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+#else	// #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"),
 		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, nullptr )))
@@ -245,7 +243,7 @@ bool FXAudio2Device::InitializeHardware()
 		DeviceProperties->XAudio2 = nullptr;
 		return false;
 	}
-#endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+#endif	// #else // #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 
 	DeviceProperties->SpatializationHelper.Init();
 

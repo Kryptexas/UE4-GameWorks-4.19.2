@@ -116,6 +116,9 @@ namespace Audio
 
 			AudioMixerPlatform->RegisterDeviceChangedListener();
 
+			// Allow platforms to override the platform settings callback buffer frame size (i.e. restrict to particular values, etc)
+			PlatformSettings.CallbackBufferFrameSize = AudioMixerPlatform->GetNumFrames(PlatformSettings.CallbackBufferFrameSize);
+
 			OpenStreamParams.NumBuffers = PlatformSettings.NumBuffers;
 			OpenStreamParams.NumFrames = PlatformSettings.CallbackBufferFrameSize;
 			OpenStreamParams.OutputDeviceIndex = 0; // Default device
@@ -263,13 +266,7 @@ namespace Audio
 
 	bool FMixerDevice::SupportsRealtimeDecompression() const
 	{
-		// TODO: Test and implement realt-time decompression on all other platforms
-#if PLATFORM_WINDOWS
-		return true;
-#else
-		return false;
-#endif
-
+		return AudioMixerPlatform->SupportsRealtimeDecompression();
 	}
 
 	class ICompressedAudioInfo* FMixerDevice::CreateCompressedAudioInfo(USoundWave* InSoundWave)
@@ -501,11 +498,12 @@ namespace Audio
 		FAudioPlatformSettings Settings = AudioMixerPlatform->GetPlatformSettings();
 
 		UE_LOG(LogAudioMixer, Display, TEXT("Audio Mixer Platform Settings:"));
-		UE_LOG(LogAudioMixer, Display, TEXT("	Sample Rate:					%d"), Settings.SampleRate);
-		UE_LOG(LogAudioMixer, Display, TEXT("	Callback Buffer Frame Size:		%d"), Settings.CallbackBufferFrameSize);
-		UE_LOG(LogAudioMixer, Display, TEXT("	Number of buffers to queue:		%d"), Settings.NumBuffers);
-		UE_LOG(LogAudioMixer, Display, TEXT("	Max Channels (voices):			%d"), Settings.MaxChannels);
-		UE_LOG(LogAudioMixer, Display, TEXT("	Number of Async Source Workers: %d"), Settings.NumSourceWorkers);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Sample Rate:						  %d"), Settings.SampleRate);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Callback Buffer Frame Size Requested: %d"), Settings.CallbackBufferFrameSize);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Callback Buffer Frame Size To Use:	  %d"), AudioMixerPlatform->GetNumFrames(PlatformSettings.CallbackBufferFrameSize));
+		UE_LOG(LogAudioMixer, Display, TEXT("	Number of buffers to queue:			  %d"), Settings.NumBuffers);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Max Channels (voices):				  %d"), Settings.MaxChannels);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Number of Async Source Workers:		  %d"), Settings.NumSourceWorkers);
 
  		return Settings;
  	}

@@ -34,7 +34,7 @@ void FAnimInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 	if(RootNode != nullptr)
 	{
 		UpdateCounter.Increment();
-		RootNode->Update(FAnimationUpdateContext(this, DeltaSeconds));
+		RootNode->Update_AnyThread(FAnimationUpdateContext(this, DeltaSeconds));
 
 		// We've updated the graph, now update the fractured saved pose sections
 		for(FAnimNode_SaveCachedPose* PoseNode : SavedPoseQueue)
@@ -140,7 +140,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 
 		auto InitializeNode = [this](FAnimNode_Base* AnimNode)
 		{
-			AnimNode->RootInitialize(this);
+			AnimNode->OnInitializeAnimInstance(this, CastChecked<UAnimInstance>(GetAnimInstanceObject()));
 
 			// Force our functions to be re-evaluated - this reinitialization may have been a 
 			// consequence of our class being recompiled and functions will be invalid in that
@@ -203,12 +203,13 @@ void FAnimInstanceProxy::InitializeRootNode()
 
 		InitializationCounter.Increment();
 		FAnimationInitializeContext InitContext(this);
-		RootNode->Initialize(InitContext);
+		RootNode->Initialize_AnyThread(InitContext);
 	}
 }
 
 void FAnimInstanceProxy::Uninitialize(UAnimInstance* InAnimInstance)
 {
+	MontageEvaluationData.Reset();
 	SubInstanceInputNode = nullptr;
 }
 
@@ -914,7 +915,7 @@ void FAnimInstanceProxy::CacheBones()
 
 		CachedBonesCounter.Increment();
 		FAnimationCacheBonesContext Proxy(this);
-		RootNode->CacheBones(Proxy);
+		RootNode->CacheBones_AnyThread(Proxy);
 	}
 }
 
@@ -924,7 +925,7 @@ void FAnimInstanceProxy::EvaluateAnimationNode(FPoseContext& Output)
 	{
 		ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, !IsInGameThread());
 		EvaluationCounter.Increment();
-		RootNode->Evaluate(Output);
+		RootNode->Evaluate_AnyThread(Output);
 	}
 	else
 	{
@@ -1273,7 +1274,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTime(int32 AssetPlayerIndex)
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		return PlayerNode->GetCurrentAssetTime();
+		return PlayerNode->GetCurrentAssetTimePlayRateAdjusted();
 	}
 
 	return 0.0f;
@@ -1287,7 +1288,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFraction(int32 AssetPlayerIn
 
 		if(Length > 0.0f)
 		{
-			return PlayerNode->GetCurrentAssetTime() / Length;
+			return PlayerNode->GetCurrentAssetTimePlayRateAdjusted() / Length;
 		}
 	}
 
@@ -1302,7 +1303,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetP
 
 		if(Length > 0.f)
 		{
-			return (Length - PlayerNode->GetCurrentAssetTime()) / Length;
+			return (Length - PlayerNode->GetCurrentAssetTimePlayRateAdjusted()) / Length;
 		}
 	}
 
@@ -1313,7 +1314,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFromEnd(int32 AssetPlayerInd
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		return PlayerNode->GetCurrentAssetLength() - PlayerNode->GetCurrentAssetTime();
+		return PlayerNode->GetCurrentAssetLength() - PlayerNode->GetCurrentAssetTimePlayRateAdjusted();
 	}
 
 	return MAX_flt;
@@ -1407,7 +1408,7 @@ float FAnimInstanceProxy::GetRelevantAnimTimeRemaining(int32 MachineIndex, int32
 	{
 		if(AssetPlayer->GetAnimAsset())
 		{
-			return AssetPlayer->GetCurrentAssetLength() - AssetPlayer->GetCurrentAssetTime();
+			return AssetPlayer->GetCurrentAssetLength() - AssetPlayer->GetCurrentAssetTimePlayRateAdjusted();
 		}
 	}
 
@@ -1423,7 +1424,7 @@ float FAnimInstanceProxy::GetRelevantAnimTimeRemainingFraction(int32 MachineInde
 			float Length = AssetPlayer->GetCurrentAssetLength();
 			if(Length > 0.0f)
 			{
-				return (Length - AssetPlayer->GetCurrentAssetTime()) / Length;
+				return (Length - AssetPlayer->GetCurrentAssetTimePlayRateAdjusted()) / Length;
 			}
 		}
 	}
@@ -1448,7 +1449,7 @@ float FAnimInstanceProxy::GetRelevantAnimTime(int32 MachineIndex, int32 StateInd
 {
 	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
 	{
-		return AssetPlayer->GetCurrentAssetTime();
+		return AssetPlayer->GetCurrentAssetTimePlayRateAdjusted();
 	}
 
 	return 0.0f;
@@ -1461,7 +1462,7 @@ float FAnimInstanceProxy::GetRelevantAnimTimeFraction(int32 MachineIndex, int32 
 		float Length = AssetPlayer->GetCurrentAssetLength();
 		if(Length > 0.0f)
 		{
-			return AssetPlayer->GetCurrentAssetTime() / Length;
+			return AssetPlayer->GetCurrentAssetTimePlayRateAdjusted() / Length;
 		}
 	}
 

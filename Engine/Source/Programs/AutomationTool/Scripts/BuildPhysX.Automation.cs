@@ -250,7 +250,6 @@ class BuildPhysX : BuildCommand
 						return "\"" + DirectoryReference.Combine(PhysXCMakeFiles, "HTML5").ToString() + "\"" +
 							" -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=HTML5" +
 							" -DPXSHARED_ROOT_DIR=\"" + SharedSourceRootDirectory.ToString() + "\"" +
-							" -DNVSIMD_INCLUDE_DIR=\"" + SharedSourceRootDirectory.ToString() + "/src/NvSimd\"" +
 							" -DNVTOOLSEXT_INCLUDE_DIRS=\"" + PhysX34SourceRootDirectory + "/externals/nvToolsExt/include\"" +
 							" -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON " +
 							" -DCMAKE_BUILD_TYPE=\"Release\" -DCMAKE_TOOLCHAIN_FILE=\"" + CmakeToolchainFile + "\"" +
