@@ -1532,7 +1532,7 @@ void UAnimationBlueprintLibrary::GetBonePosesForTime(const UAnimSequence* Animat
 
 			if (RequiredBones.Num())
 			{
-				FBoneContainer BoneContainer(RequiredBones, *AnimationSequence->GetSkeleton());
+				FBoneContainer BoneContainer(RequiredBones, false, *AnimationSequence->GetSkeleton());
 				BoneContainer.SetUseSourceData(true);
 				BoneContainer.SetDisableRetargeting(true);
 				FCompactPose Pose;

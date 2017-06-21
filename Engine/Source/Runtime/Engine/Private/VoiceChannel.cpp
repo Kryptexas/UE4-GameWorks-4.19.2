@@ -31,7 +31,7 @@ void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
 		while (!Bunch.AtEnd())
 		{
 			// Give the data to the local voice processing
-			TSharedPtr<FVoicePacket> VoicePacket = UOnlineEngineInterface::Get()->SerializeRemotePacket(Connection->Driver->World, Bunch);
+			TSharedPtr<FVoicePacket> VoicePacket = UOnlineEngineInterface::Get()->SerializeRemotePacket(Connection->Driver->World, Connection, Bunch);
 			if (VoicePacket.IsValid())
 			{
 				if (Connection->Driver->ServerConnection == NULL)
@@ -60,9 +60,10 @@ void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
  */
 void UVoiceChannel::Tick()
 {
+	const bool bHandshakeCompleted = Connection->PlayerController && Connection->PlayerController->MuteList.bHasVoiceHandshakeCompleted;
+
 	// If the handshaking hasn't completed throw away all unreliable voice data
-	if (Connection->PlayerController &&
-		Connection->PlayerController->MuteList.bHasVoiceHandshakeCompleted)
+	if (bHandshakeCompleted)
 	{
 		// Try to append each packet in turn
 		int32 Index;
@@ -127,9 +128,9 @@ void UVoiceChannel::Tick()
 			PacketLoss++;
 		}
 	}
-	if(PacketLoss > 0)
+	if(bHandshakeCompleted && PacketLoss > 0)
 	{
-		UE_LOG(LogNet, Warning, TEXT("Dropped %d packets due to congestion in the voicechannel"), PacketLoss);
+		UE_LOG(LogNet, Log, TEXT("Dropped %d packets due to congestion in the voicechannel"), PacketLoss);
 	}
 }
 

@@ -1082,35 +1082,41 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 		for ( int32 CurrentLOD = 0; CurrentLOD != NumSourceLODs; CurrentLOD++ )
 		{
 			FStaticMeshLODResources& SourceLODModel = SourceComponent->GetStaticMesh()->RenderData->LODResources[CurrentLOD];
-			FStaticMeshComponentLODInfo& SourceLODInfo = SourceComponent->LODData[CurrentLOD];
-
-			FStaticMeshLODResources& TargetLODModel = GetStaticMesh()->RenderData->LODResources[CurrentLOD];
-			FStaticMeshComponentLODInfo& TargetLODInfo = LODData[CurrentLOD];
-
-			if ( SourceLODInfo.OverrideVertexColors != NULL )
+			if (SourceComponent->LODData.IsValidIndex(CurrentLOD))
 			{
-				// Copy vertex colors from source to target.
-				FColorVertexBuffer* SourceColorBuffer = SourceLODInfo.OverrideVertexColors;
+				FStaticMeshComponentLODInfo& SourceLODInfo = SourceComponent->LODData[CurrentLOD];
 
-				TArray< FColor > CopiedColors;
-				for ( uint32 ColorVertexIndex = 0; ColorVertexIndex < SourceColorBuffer->GetNumVertices(); ColorVertexIndex++ )
-				{
-					CopiedColors.Add( SourceColorBuffer->VertexColor( ColorVertexIndex ) );
-				}
+				FStaticMeshLODResources& TargetLODModel = GetStaticMesh()->RenderData->LODResources[CurrentLOD];
+				FStaticMeshComponentLODInfo& TargetLODInfo = LODData[CurrentLOD];
 
-				FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.ColorVertexBuffer;
+				if ( SourceLODInfo.OverrideVertexColors != NULL )
+				{
+					// Copy vertex colors from source to target.
+					FColorVertexBuffer* SourceColorBuffer = SourceLODInfo.OverrideVertexColors;
 
-				if ( TargetLODInfo.OverrideVertexColors != NULL )
-				{
-					TargetLODInfo.BeginReleaseOverrideVertexColors();
-					FlushRenderingCommands();
+					TArray< FColor > CopiedColors;
+					for ( uint32 ColorVertexIndex = 0; ColorVertexIndex < SourceColorBuffer->GetNumVertices(); ColorVertexIndex++ )
+					{
+						CopiedColors.Add( SourceColorBuffer->VertexColor( ColorVertexIndex ) );
+					}
+
+					if (TargetLODInfo.OverrideVertexColors != NULL || CopiedColors.Num() > 0)
+					{
+						FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.ColorVertexBuffer;
+
+						if ( TargetLODInfo.OverrideVertexColors != NULL )
+						{
+							TargetLODInfo.BeginReleaseOverrideVertexColors();
+							FlushRenderingCommands();
+						}
+						else
+						{
+							TargetLODInfo.OverrideVertexColors = new FColorVertexBuffer;
+							TargetLODInfo.OverrideVertexColors->InitFromColorArray( CopiedColors );
+						}
+						BeginInitResource( TargetLODInfo.OverrideVertexColors );
+					}
 				}
-				else
-				{
-					TargetLODInfo.OverrideVertexColors = new FColorVertexBuffer;
-					TargetLODInfo.OverrideVertexColors->InitFromColorArray( CopiedColors );
-				}
-				BeginInitResource( TargetLODInfo.OverrideVertexColors );
 			}
 		}
 
@@ -1599,6 +1605,16 @@ bool UStaticMeshComponent::CanEditChange(const UProperty* InProperty) const
 		{
 			return Mobility != EComponentMobility::Static && bCastDistanceFieldIndirectShadow && CastShadow && bCastDynamicShadow;
 		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, bOverrideDistanceFieldSelfShadowBias))
+		{
+			return bAffectDistanceFieldLighting;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, DistanceFieldSelfShadowBias))
+		{
+			return bOverrideDistanceFieldSelfShadowBias && bAffectDistanceFieldLighting;
+		}
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -1789,6 +1805,15 @@ void UStaticMeshComponent::SetForcedLodModel(int32 NewForcedLodModel)
 	if (ForcedLodModel != NewForcedLodModel)
 	{
 		ForcedLodModel = NewForcedLodModel;
+		MarkRenderStateDirty();
+	}
+}
+
+void UStaticMeshComponent::SetDistanceFieldSelfShadowBias(float NewValue)
+{
+	if (DistanceFieldSelfShadowBias != NewValue)
+	{
+		DistanceFieldSelfShadowBias = NewValue;
 		MarkRenderStateDirty();
 	}
 }

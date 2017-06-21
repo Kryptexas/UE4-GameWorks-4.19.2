@@ -1549,7 +1549,6 @@ bool UKismetSystemLibrary::BoxTraceSingleByProfile(UObject* WorldContextObject, 
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepSingleByProfile(OutHit, Start, End, Orientation.Quaternion(), ProfileName, FCollisionShape::MakeBox(HalfSize), Params) : false;
-
 #if ENABLE_DRAW_DEBUG
 	DrawDebugBoxTraceSingle(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
@@ -1594,7 +1593,6 @@ bool UKismetSystemLibrary::SphereTraceMultiByProfile(UObject* WorldContextObject
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->SweepMultiByProfile(OutHits, Start, End, FQuat::Identity, ProfileName, FCollisionShape::MakeSphere(Radius), Params);
-
 #if ENABLE_DRAW_DEBUG
 	DrawDebugSphereTraceMulti(World, Start, End, Radius, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif

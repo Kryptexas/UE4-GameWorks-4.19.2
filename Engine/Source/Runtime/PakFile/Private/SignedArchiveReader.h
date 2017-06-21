@@ -178,6 +178,8 @@ public:
 	 * Releases the requested chunk buffer
 	 */
 	void ReleaseChunk(FChunkRequest& Chunk);
+
+	friend class FSignedArchiveReader;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////

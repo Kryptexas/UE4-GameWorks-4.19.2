@@ -9,7 +9,6 @@
 #include "Components/AudioComponent.h"
 #include "AudioThread.h"
 
-
 DEFINE_LOG_CATEGORY(LogSubtitle);
 
 #define MULTILINE_SPACING_SCALING 1.1f		// Modifier to the spacing between lines in subtitles
@@ -80,6 +79,12 @@ void FSubtitleManager::QueueSubtitles(PTRINT SubtitleID, float Priority, bool bM
 		return;
 	}
 
+	if (SubtitleID == 0)
+	{	// NOTE: This probably oughtn't happen, but since it does happen and this is correct handling of that case, it's verbose rather than a warning.
+		UE_LOG(LogSubtitle, Verbose, TEXT("Received subtitle with SubtitleID of 0, which likely means the sound associated with it is actually done.  Will not add this subtitle."));
+		return;
+	}
+
 	// skip subtitles that have already been displayed
 	TArray<FSubtitleCue> SubtitlesToAdd;
 	{
@@ -121,9 +126,17 @@ void FSubtitleManager::QueueSubtitles(PTRINT SubtitleID, float Priority, bool bM
 
 void FSubtitleManager::DisplaySubtitle(FCanvas* Canvas, FActiveSubtitle* Subtitle, FIntRect& Parms, const FLinearColor& Color)
 {
+	if (OnSetSubtitleTextDelegate.IsBound())
+	{
+		// If we have subtitle displays, they should be rendered directly through those, not via the canvas.
+		DisplaySubtitle_ToDisplays(Subtitle);
+		return;
+	}
+
 	// These should be valid in here
 	check(GEngine);
 	check(Canvas);
+	check(Subtitle != nullptr);
 
 	CurrentSubtitleHeight = 0.0f;
 
@@ -189,6 +202,71 @@ void FSubtitleManager::DisplaySubtitle(FCanvas* Canvas, FActiveSubtitle* Subtitl
 			}
 		}
 	}
+}
+
+
+FString FSubtitleManager::SubtitleCuesToString(FActiveSubtitle* Subtitle)
+{
+	FString CuesString;
+
+	if (Subtitle != nullptr)
+	{
+		for (const FSubtitleCue& Cue : Subtitle->Subtitles)
+		{
+			if (!Cue.Text.IsEmpty())
+			{
+				if (!CuesString.IsEmpty())
+				{
+					CuesString += TEXT('\n');
+				}
+
+				CuesString += Cue.Text.ToString();
+			}
+		}
+	}
+
+	return CuesString;
+}
+
+
+void FSubtitleManager::DisplaySubtitle_ToDisplays(FActiveSubtitle* Subtitle)
+{
+	FString SubtitleString;
+
+	// Always display all movie subtitles
+	for (const auto& It : ActiveMovieSubtitles)
+	{
+		if (It.Value.IsValid())
+		{
+			if (!SubtitleString.IsEmpty())
+			{
+				SubtitleString += TEXT('\n');
+			}
+
+			SubtitleString += SubtitleCuesToString(It.Value.Get());
+		}
+	}
+
+	if (Subtitle)
+	{
+		if (Subtitle->bSingleLine)
+		{
+			// For a single-line subtitle, just grab the currently active subtitle index
+			SubtitleString = Subtitle->Subtitles[Subtitle->Index].Text.ToString();
+		}
+		else
+		{
+			// Otherwise, display all the subtitles in the cue
+			if (!SubtitleString.IsEmpty())
+			{
+				SubtitleString += TEXT('\n');
+			}
+
+			SubtitleString += SubtitleCuesToString(Subtitle);
+		}
+	}
+
+	OnSetSubtitleTextDelegate.Broadcast(FText::FromString(SubtitleString));
 }
 
 
@@ -345,40 +423,51 @@ PTRINT FSubtitleManager::FindHighestPrioritySubtitle(float CurrentTime)
 
 void FSubtitleManager::DisplaySubtitles(FCanvas* InCanvas, FIntRect& InSubtitleRegion, float InAudioTimeSeconds)
 {
-	check(GEngine);
-	check(InCanvas);
-
-	if (GEngine->bSubtitlesForcedOff || !GEngine->bSubtitlesEnabled)
+	if (OnSetSubtitleTextDelegate.IsBound())
 	{
-		return; // do nothing if subtitles are disabled.
-	}
+		// Prioritize using display objects over the canvas
 
-	if (!GEngine->GetSubtitleFont())
-	{
-		UE_LOG(LogSubtitle, Warning, TEXT("NULL GEngine->GetSubtitleFont() - subtitles not rendering!"));
-		return;
-	}
-	
-	if (InSubtitleRegion.Area() > 0)
-	{
-		// Work out the safe zones
-		TrimRegionToSafeZone(InCanvas, InSubtitleRegion);
-
-		// If the lines have not already been split, split them to the safe zone now
-		SplitLinesToSafeZone(InCanvas, InSubtitleRegion);
-
-		// Find the subtitle to display
 		PTRINT HighestPriorityID = FindHighestPrioritySubtitle(InAudioTimeSeconds);
+		FActiveSubtitle* Subtitle = HighestPriorityID ? ActiveSubtitles.Find(HighestPriorityID) : nullptr;
+		DisplaySubtitle_ToDisplays(Subtitle);
+	}
+	else
+	{
+		check(GEngine);
+		check(InCanvas);
 
-		// Display the highest priority subtitle
-		if (HighestPriorityID)
+		if (GEngine->bSubtitlesForcedOff || !GEngine->bSubtitlesEnabled)
 		{
-			FActiveSubtitle* Subtitle = ActiveSubtitles.Find(HighestPriorityID);
-			DisplaySubtitle(InCanvas, Subtitle, InSubtitleRegion, FLinearColor::White);
+			return; // do nothing if subtitles are disabled.
 		}
-		else
+
+		if (!GEngine->GetSubtitleFont())
 		{
-			CurrentSubtitleHeight = 0.0f;
+			UE_LOG(LogSubtitle, Warning, TEXT("NULL GEngine->GetSubtitleFont() - subtitles not rendering!"));
+			return;
+		}
+
+		if (InSubtitleRegion.Area() > 0)
+		{
+			// Work out the safe zones
+			TrimRegionToSafeZone(InCanvas, InSubtitleRegion);
+
+			// If the lines have not already been split, split them to the safe zone now
+			SplitLinesToSafeZone(InCanvas, InSubtitleRegion);
+
+			// Find the subtitle to display
+			PTRINT HighestPriorityID = FindHighestPrioritySubtitle(InAudioTimeSeconds);
+
+			// Display the highest priority subtitle
+			if (HighestPriorityID)
+			{
+				FActiveSubtitle* Subtitle = ActiveSubtitles.Find(HighestPriorityID);
+				DisplaySubtitle(InCanvas, Subtitle, InSubtitleRegion, FLinearColor::White);
+			}
+			else
+			{
+				CurrentSubtitleHeight = 0.0f;
+			}
 		}
 	}
 }
@@ -395,4 +484,35 @@ FSubtitleManager* FSubtitleManager::GetSubtitleManager()
 	}
 
 	return(SSubtitleManager);
+}
+
+
+void FSubtitleManager::SetMovieSubtitle(UObject* SubtitleOwner, const TArray<FString>& Subtitles)
+{
+	if (SubtitleOwner != nullptr)
+	{
+		TSharedPtr<FActiveSubtitle>& MovieSubtitle = ActiveMovieSubtitles.FindOrAdd(SubtitleOwner);
+
+		MovieSubtitle.Reset();
+
+		if (Subtitles.Num() > 0)
+		{
+			TArray<FSubtitleCue> Cues;
+
+			for (const FString& Subtitle : Subtitles)
+			{
+				FSubtitleCue Cue;
+				Cue.Text = FText::FromString(Subtitle);
+
+				Cues.Add(Cue);
+			}
+
+			const int32 Index = 0;
+			const float Priority = 1.0f;
+			const bool bSplit = true;
+			const bool bSingleLine = false;
+
+			MovieSubtitle = MakeShareable(new FActiveSubtitle(Index, Priority, bSplit, bSingleLine, Cues));
+		}
+	}
 }

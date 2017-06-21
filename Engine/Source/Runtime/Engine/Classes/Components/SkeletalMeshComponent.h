@@ -371,6 +371,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bDisableClothSimulation:1;
 
+private:
+	/** Disable animation curves for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = SkeletalMesh)
+	uint32 bDisableAnimCurves : 1;
+
+public:
 	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithEnvironment:1;
@@ -735,6 +741,12 @@ public:
 		return bUpdateAnimationInEditor;	
 	}
 #endif 
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void SetDisableAnimCurves(bool bInDisableAnimCurves);
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	bool GetDisableAnimCurves() const { return bDisableAnimCurves; }
 
 	/** We detach the Component once we are done playing it.
 	 *

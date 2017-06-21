@@ -175,6 +175,7 @@ void FALSoundSource::Play( void )
 void FALSoundSource::Stop( void )
 {
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
 	if( WaveInstance )
 	{
 		GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Stop()"));

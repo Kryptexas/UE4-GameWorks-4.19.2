@@ -365,6 +365,9 @@ namespace EAnimGroupRole
 
 		/** This node will be excluded from the sync group while blending in. Once blended in it will be the sync group leader until blended out*/
 		TransitionLeader,
+
+		/** This node will be excluded from the sync group while blending in. Once blended in it will be a follower until blended out*/
+		TransitionFollower,
 	};
 }
 

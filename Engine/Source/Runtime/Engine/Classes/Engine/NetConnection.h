@@ -691,7 +691,7 @@ public:
 	/**
 	* Return current timeout value that should be used
 	*/
-	float GetTimeoutValue();
+	ENGINE_API float GetTimeoutValue();
 
 	/** Adds the channel to the ticking channels list. USed to selectively tick channels that have queued bunches or are pending dormancy. */
 	void StartTickingChannel(UChannel* Channel) { ChannelsToTick.AddUnique(Channel); }
@@ -706,6 +706,15 @@ public:
 	{
 		return !!InternalAck || Driver->ServerConnection != nullptr || InReliable[0] != InitInReliable;
 	}
+
+	/**
+	 * Sets the PlayerOnlinePlatformName member.
+	 * Called by the engine during the login process with the NMT_Login message parameter.
+	 */
+	void SetPlayerOnlinePlatformName(const FName InPlayerOnlinePlatformName);
+
+	/** Returns the online platform name for the player on this connection. Only valid for client connections on servers. */
+	ENGINE_API FName GetPlayerOnlinePlatformName() const { return PlayerOnlinePlatformName; }
 
 protected:
 
@@ -723,6 +732,9 @@ private:
 
 	/** Histogram of the received packet time */
 	FHistogram NetConnectionHistogram;
+
+	/** Online platform ID of remote player on this connection. Only valid on client connections (server side).*/
+	FName PlayerOnlinePlatformName;
 };
 
 

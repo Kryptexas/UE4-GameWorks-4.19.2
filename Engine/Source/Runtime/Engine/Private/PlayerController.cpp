@@ -102,6 +102,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bInputEnabled = true;
 	bEnableTouchEvents = true;
 	bForceFeedbackEnabled = true;
+	ForceFeedbackScale = 1.f;
 
 	bAutoManageActiveCameraTarget = true;
 	SmoothTargetViewRotationSpeed = 20.f;
@@ -3904,6 +3905,12 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			ForceFeedbackManager->Update(GetFocalLocation(), ForceFeedbackValues);
 		}
 
+		// Apply ForceFeedbackScale
+		ForceFeedbackValues.LeftLarge  = FMath::Clamp(ForceFeedbackValues.LeftLarge * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.RightLarge = FMath::Clamp(ForceFeedbackValues.RightLarge * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.LeftSmall  = FMath::Clamp(ForceFeedbackValues.LeftSmall * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.RightSmall = FMath::Clamp(ForceFeedbackValues.RightSmall * ForceFeedbackScale, 0.f, 1.f);
+
 		// --- Haptic Feedback -------------------------
 		if (ActiveHapticEffect_Left.IsValid())
 		{
@@ -3942,7 +3949,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 
 	if (FSlateApplication::IsInitialized())
 	{
-		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+		const int32 ControllerId = GetInputIndex();
 
 		IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 		if (InputInterface)
@@ -4138,6 +4145,15 @@ ULocalPlayer* APlayerController::GetLocalPlayer() const
 bool APlayerController::IsInViewportClient(UGameViewportClient* ViewportClient) const
 {
 	return ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered();
+}
+
+int32 APlayerController::GetInputIndex() const
+{
+	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
+	{
+		return LocalPlayer->GetControllerId();
+	}
+	return INVALID_CONTROLLERID;
 }
 
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)

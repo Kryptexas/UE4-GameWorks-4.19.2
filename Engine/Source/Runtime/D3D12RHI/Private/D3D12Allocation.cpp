@@ -115,7 +115,11 @@ void FD3D12BuddyAllocator::Initialize()
 		Desc.Flags = HeapFlags;
 
 		ID3D12Heap* Heap = nullptr;
-		VERIFYD3D12RESULT(Adapter->GetD3DDevice()->CreateHeap(&Desc, IID_PPV_ARGS(&Heap)));
+		{
+			LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12Heap);
+
+			VERIFYD3D12RESULT(Adapter->GetD3DDevice()->CreateHeap(&Desc, IID_PPV_ARGS(&Heap)));
+		}
 		SetName(Heap, L"Placed Resource Allocator Backing Heap");
 
 		BackingHeap = new FD3D12Heap(GetParentDevice(), GetVisibilityMask());
@@ -283,8 +287,11 @@ void FD3D12BuddyAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, FD3D12
 
 #if PIX_MEMORY_PROFILING
 	uint64 Addr = (ResourceLocation.GetGPUVirtualAddress() != 0ull) ? (uint64)ResourceLocation.GetGPUVirtualAddress() : AlignedOffsetFromResourceBase;
-	PIXRecordMemoryAllocationEvent(AllocatorID,     (void*)(Addr), SizeInBytes, MaximumAllocationSizeForPooling);
+	PIXRecordMemoryAllocationEvent(AllocatorID, (void*)(Addr), SizeInBytes, MaximumAllocationSizeForPooling);
 #endif
+
+	// track the allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::RHI, ResourceLocation.GetMappedBaseAddress(), SizeInBytes));
 }
 
 bool FD3D12BuddyAllocator::TryAllocate(uint32 SizeInBytes, uint32 Alignment, FD3D12ResourceLocation& ResourceLocation)
@@ -334,6 +341,9 @@ void FD3D12BuddyAllocator::Deallocate(FD3D12ResourceLocation& ResourceLocation)
 	uint64 Addr = (ResourceLocation.GetGPUVirtualAddress() != 0ull) ? (uint64)ResourceLocation.GetGPUVirtualAddress() : ResourceLocation.GetOffsetFromBaseOfResource();
 	PIXRecordMemoryFreeEvent(AllocatorID, (void*)Addr, 0, MaximumAllocationSizeForPooling);
 #endif
+
+	// track the allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::RHI, ResourceLocation.GetMappedBaseAddress(), 0));
 }
 
 void FD3D12BuddyAllocator::DeallocateInternal(RetiredBlock& Block)

@@ -830,7 +830,8 @@ public:
 	 * @param KeepFlags		Objects with these flags will be kept regardless of being referenced or not
 	 */
 	void PerformReachabilityAnalysis(EObjectFlags KeepFlags, bool bForceSingleThreaded = false)
-	{		
+	{
+		SCOPED_NAMED_EVENT(FRealtimeGC_PerformReachabilityAnalysis, FColor::Red);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRealtimeGC::PerformReachabilityAnalysis"), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC);
 
 		/** Growing array of objects that require serialization */
@@ -881,6 +882,7 @@ public:
  */
 void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 {
+	SCOPED_NAMED_EVENT(IncrementalPurgeGarbage, FColor::Red);
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "IncrementalPurgeGarbage" ), STAT_IncrementalPurgeGarbage, STATGROUP_GC );
 
 	if (GExitPurge)
@@ -1289,6 +1291,7 @@ struct FScopedCBDProfile
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
 	SCOPE_TIME_GUARD(TEXT("Collect Garbage"));
+	SCOPED_NAMED_EVENT(CollectGarbageInternal, FColor::Red);
 
 	CheckImageIntegrityAtRuntime();
 

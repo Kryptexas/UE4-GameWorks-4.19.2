@@ -44,5 +44,7 @@ public:
 
 	virtual TSharedPtr<const class FJsonObject> GetTitleSettings();
 
+	virtual FString GetUniqueAppId();
+
 	virtual IVideoRecordingSystem* GetVideoRecordingSystem();
 };

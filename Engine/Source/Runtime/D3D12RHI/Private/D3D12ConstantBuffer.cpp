@@ -40,7 +40,7 @@ bool FD3D12ConstantBuffer::Version(FD3D12ResourceLocation& BufferOut, bool bDisc
 		return false;
 	}
 
-	SCOPE_CYCLE_COUNTER(STAT_D3D12GlobalConstantBufferUpdateTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12GlobalConstantBufferUpdateTime);
 
 	if (bDiscardSharedConstants)
 	{

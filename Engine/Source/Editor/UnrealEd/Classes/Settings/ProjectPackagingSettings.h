@@ -124,6 +124,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool bGenerateChunks;
 
+	/** 
+	 * If enabled, no platform will generate chunks, regardless of settings in platform-specific ini files.
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bGenerateNoChunks;
+
 	/**
 	* Normally during chunk generation all dependencies of a package in a chunk will be pulled into that package's chunk.
 	* If this is enabled then only hard dependencies are pulled in. Soft dependencies stay in their original chunk.

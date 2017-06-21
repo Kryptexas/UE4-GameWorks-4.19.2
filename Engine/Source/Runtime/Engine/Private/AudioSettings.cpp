@@ -134,6 +134,7 @@ void UAudioSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 
 const FAudioQualitySettings& UAudioSettings::GetQualityLevelSettings(int32 QualityLevel) const
 {
+	check(QualityLevels.Num() > 0);
 	return QualityLevels[FMath::Clamp(QualityLevel, 0, QualityLevels.Num() - 1)];
 }
 
@@ -145,6 +146,22 @@ void UAudioSettings::SetAudioMixerEnabled(const bool bInAudioMixerEnabled)
 const bool UAudioSettings::IsAudioMixerEnabled() const
 {
 	return bIsAudioMixerEnabled;
+}
+
+int32 UAudioSettings::GetHighestMaxChannels() const
+{
+	check(QualityLevels.Num() > 0);
+	
+	int32 HighestMaxChannels = -1;
+	for (const FAudioQualitySettings& Settings : QualityLevels)
+	{
+		if (Settings.MaxChannels > HighestMaxChannels)
+		{
+			HighestMaxChannels = Settings.MaxChannels;
+		}
+	}
+
+	return HighestMaxChannels;
 }
 
 #undef LOCTEXT_NAMESPACE

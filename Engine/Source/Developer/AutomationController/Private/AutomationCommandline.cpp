@@ -15,6 +15,7 @@
 #include "FileHelper.h"
 #include "AssetRegistryModule.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogAutomationCommandLine, Log, All);
 
 /** States for running the automation process */
 enum class EAutomationTestState : uint8
@@ -106,9 +107,7 @@ public:
 			// If an actual test was ran we then will let the user know how many of them were ran.
 			if (TestCount > 0)
 			{
-				// TODO AUTOMATION Don't report the wrong number of tests performed.
-				// FAutomationTestFramework::Get().LogQueueEmptyMessage();
-				OutputDevice->Logf(TEXT("...Automation Test Queue Empty %d tests performed."), TestCount);
+				UE_LOG(LogAutomationCommandLine, Display, TEXT("...Automation Test Queue Empty %d tests performed."), TestCount);
 				TestCount = 0;
 			}
 			return true;
@@ -119,27 +118,25 @@ public:
 	
 	void GenerateTestNamesFromCommandLine(const TArray<FString>& AllTestNames, TArray<FString>& OutTestNames)
 	{
-		FString AllTestNamesNoWhiteSpaces;
 		OutTestNames.Empty();
 		
 		//Split the test names up
 		TArray<FString> Filters;
 		StringCommand.ParseIntoArray(Filters, TEXT("+"), true);
+
 		//trim cruft from all entries
 		for (int32 FilterIndex = 0; FilterIndex < Filters.Num(); ++FilterIndex)
 		{
-			Filters[FilterIndex] = Filters[FilterIndex].Trim();
-			Filters[FilterIndex] = Filters[FilterIndex].Replace(TEXT(" "), TEXT(""));
+			Filters[FilterIndex] = Filters[FilterIndex].Trim().Replace(TEXT(" "), TEXT(""));
 		}
 
 		for ( int32 TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex )
 		{
-			AllTestNamesNoWhiteSpaces = AllTestNames[TestIndex];
-			AllTestNamesNoWhiteSpaces = AllTestNamesNoWhiteSpaces.Replace(TEXT(" "), TEXT(""));
+			FString TestNamesNoWhiteSpaces = AllTestNames[TestIndex].Replace(TEXT(" "), TEXT(""));
 
 			for ( int32 FilterIndex = 0; FilterIndex < Filters.Num(); ++FilterIndex )
 			{
-				if (AllTestNamesNoWhiteSpaces.Contains(Filters[FilterIndex]))
+				if ( TestNamesNoWhiteSpaces.Contains(Filters[FilterIndex]))
 				{
 					OutTestNames.Add(AllTestNames[TestIndex]);
 					TestCount++;
@@ -156,7 +153,7 @@ public:
 				{
 					if (OutTestNames.Remove(TestsRun[i]))
 					{
-						OutputDevice->Logf(TEXT("Skipping %s due to Checkpoint."), *TestsRun[i]);
+						UE_LOG(LogAutomationCommandLine, Display, TEXT("Skipping %s due to Checkpoint."), *TestsRun[i]);
 					}
 				}
 			}
@@ -194,20 +191,27 @@ public:
 
 		if (AutomationCommand == EAutomationCommand::ListAllTests)
 		{
-			//TArray<FAutomationTestInfo> TestInfo;
-			//FAutomationTestFramework::Get().GetValidTestNames(TestInfo);
-			for (int TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex)
+			UE_LOG(LogAutomationCommandLine, Display, TEXT("Found %d Automation Tests"), AllTestNames.Num());
+			for ( const FString& TestName : AllTestNames )
 			{
-				OutputDevice->Logf(TEXT("%s"), *AllTestNames[TestIndex]);
+				UE_LOG(LogAutomationCommandLine, Display, TEXT("\t%s"), *TestName);
 			}
-			OutputDevice->Logf(TEXT("Found %i Automation Tests"), AllTestNames.Num());
+
 			// Set state to complete
 			AutomationTestState = EAutomationTestState::Complete;
 		}
 		else if (AutomationCommand == EAutomationCommand::RunCommandLineTests)
 		{
-			TArray <FString> FilteredTestNames;
+			TArray<FString> FilteredTestNames;
 			GenerateTestNamesFromCommandLine(AllTestNames, FilteredTestNames);
+			
+			UE_LOG(LogAutomationCommandLine, Display, TEXT("Found %d Automation Tests, based on '%s'."), FilteredTestNames.Num(), *StringCommand);
+
+			for ( const FString& TestName : FilteredTestNames )
+			{
+				UE_LOG(LogAutomationCommandLine, Display, TEXT("\t%s"), *TestName);
+			}
+
 			if (FilteredTestNames.Num())
 			{
 				AutomationController->StopTests();
@@ -246,19 +250,19 @@ public:
 		{
 			if (FilterMaps.Contains(StringCommand))
 			{
-				OutputDevice->Logf(TEXT("Running %i Automation Tests"), AllTestNames.Num());
+				UE_LOG(LogAutomationCommandLine, Display, TEXT("Running %i Automation Tests"), AllTestNames.Num());
 				AutomationController->SetEnabledTests(AllTestNames);
 				bRunTests = true;
 			}
 			else
 			{
 				AutomationTestState = EAutomationTestState::Complete;
-				OutputDevice->Logf(TEXT("%s is not a valid flag to filter on! Valid options are: "), *StringCommand);
+				UE_LOG(LogAutomationCommandLine, Display, TEXT("%s is not a valid flag to filter on! Valid options are: "), *StringCommand);
 				TArray<FString> FlagNames;
 				FilterMaps.GetKeys(FlagNames);
 				for (int i = 0; i < FlagNames.Num(); i++)
 				{
-					OutputDevice->Log(FlagNames[i]);
+					UE_LOG(LogAutomationCommandLine, Display, TEXT("\t%s"), *FlagNames[i]);
 				}
 			}
 		}
@@ -306,6 +310,8 @@ public:
 			}
 			case EAutomationTestState::FindWorkers:
 			{
+				//UE_LOG(LogAutomationCommandLine, Log, TEXT("Finding Workers..."));
+
 				FindWorkers(DeltaTime);
 				break;
 			}
@@ -355,9 +361,9 @@ public:
 				break;
 			}
 		}
+
 		return !IsTestingComplete();
 	}
-
 	
 	/** Console commands, see embeded usage statement **/
 	virtual bool Exec(UWorld*, const TCHAR* Cmd, FOutputDevice& Ar) override
@@ -379,9 +385,6 @@ public:
 		//figure out if we are handling this request
 		if (FParse::Command(&Cmd, TEXT("Automation")))
 		{
-			//save off device to send results to
-			OutputDevice = GLog;
-
 			StringCommand.Empty();
 
 			TArray<FString> CommandList;
@@ -408,7 +411,7 @@ public:
 
 					//only one of these should be used
 					StringCommand = TempCmd;
-					Ar.Logf(TEXT("Running all tests matching substring: %s"), *StringCommand);
+					Ar.Logf(TEXT("Automation: RunTests='%s' Queued."), *StringCommand);
 					AutomationCommandQueue.Add(EAutomationCommand::RunCommandLineTests);
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunCheckpointedTests")))
@@ -498,9 +501,8 @@ public:
 				else if (FParse::Command(&TempCmd, TEXT("Quit")))
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::Quit);
-					Ar.Logf(TEXT("Exiting: Received quit command."));
+					Ar.Logf(TEXT("Automation: Quit Command Queued."));
 				}
-
 				else
 				{
 					Ar.Logf(TEXT("Incorrect automation command syntax! Supported commands are: "));
@@ -539,9 +541,6 @@ private:
 
 	/** Holds the session ID */
 	FGuid SessionID;
-
-	//device to send results to
-	FOutputDevice* OutputDevice;
 
 	//so we can release control of the app and just get ticked like all other systems
 	FDelegateHandle TickHandler;

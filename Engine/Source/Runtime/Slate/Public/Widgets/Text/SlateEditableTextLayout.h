@@ -380,7 +380,7 @@ private:
 	public:
 		static TSharedRef<FVirtualKeyboardEntry> Create(FSlateEditableTextLayout& InOwnerLayout);
 
-		virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType) override;
+		virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ETextEntryType TextEntryType) override;
 		virtual FText GetText() const override;
 		virtual FText GetHintText() const override;
 		virtual EKeyboardType GetVirtualKeyboardType() const override;

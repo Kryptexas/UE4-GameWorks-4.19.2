@@ -358,7 +358,7 @@ void UAIPerceptionComponent::GetLocationAndDirection(FVector& Location, FVector&
 	const AActor* OwnerActor = Cast<AActor>(GetOuter());
 	if (OwnerActor != nullptr)
 	{
-		FRotator ViewRotation;
+		FRotator ViewRotation(ForceInitToZero);
 		OwnerActor->GetActorEyesViewPoint(Location, ViewRotation);
 		Direction = ViewRotation.Vector();
 	}

@@ -907,6 +907,7 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 			FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
 			// @todo named params still missing support
 			//QueryRequest.SetNamedParams(QueryParams);
+			QueryInstanceWrapper->SetInstigator(WorldContextObject);
 			QueryInstanceWrapper->RunQuery(RunMode, QueryRequest);
 		}
 	}

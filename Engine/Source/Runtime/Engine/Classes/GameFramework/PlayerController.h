@@ -388,6 +388,10 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Game|Feedback")
 	uint32 bForceFeedbackEnabled:1;
 
+	/** Scale applied to force feedback values */
+	UPROPERTY(config)
+	float ForceFeedbackScale;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface, meta=(EditCondition="bEnableClickEvents"))
 	TArray<FKey> ClickEventKeys;
 
@@ -1419,6 +1423,8 @@ protected:
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused);
 	virtual bool IsInViewportClient(UGameViewportClient* ViewportClient) const;
+
+	virtual int32 GetInputIndex() const;
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();

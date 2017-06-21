@@ -34,6 +34,7 @@ const TCHAR* const SN_QUERY = TEXT("query");
 const TCHAR* const SN_FIELD = TEXT("field");
 const TCHAR* const SN_VALUE = TEXT("value");
 const TCHAR* const SN_RECIPIENT_UNAVAILABLE = TEXT("recipient-unavailable");
+const TCHAR* const SN_PING = TEXT("ping");
 
 // ST means Stanza Type
 
@@ -45,6 +46,7 @@ const TCHAR* const ST_SET = TEXT("set");
 const TCHAR* const ST_GET = TEXT("get");
 const TCHAR* const ST_SUBMIT = TEXT("submit");
 const TCHAR* const ST_AUTH = TEXT("auth");
+const TCHAR* const ST_RESULT = TEXT("result");
 
 // SA means Stanza Attribute
 
@@ -54,6 +56,7 @@ const TCHAR* const SA_ROLE = TEXT("role");
 const TCHAR* const SA_AFFILIATION = TEXT("affiliation");
 const TCHAR* const SA_MAXSTANZAS = TEXT("maxstanzas");
 const TCHAR* const SA_VAR = TEXT("var");
+const TCHAR* const SA_CODE = TEXT("code");
 
 // SNS means Stanza NameSpace
 
@@ -62,5 +65,11 @@ const TCHAR* const SNS_MUC = TEXT("http://jabber.org/protocol/muc");
 const TCHAR* const SNS_MUC_USER = TEXT("http://jabber.org/protocol/muc#user");
 const TCHAR* const SNS_MUC_OWNER = TEXT("http://jabber.org/protocol/muc#owner");
 const TCHAR* const SNS_X_DATA = TEXT("jabber:x:data");
+const TCHAR* const SNS_PING = TEXT("urn:xmpp:ping");
+const TCHAR* const SNS_DISCO_INFO = TEXT("http://jabber.org/protocol/disco#info");
+
+// SC means Status Code
+
+const TCHAR* const SC_104 = TEXT("104");
 
 } // End Strophe Namespace

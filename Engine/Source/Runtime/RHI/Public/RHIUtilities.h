@@ -848,6 +848,7 @@ private:
 
 extern RHI_API void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix);
 extern RHI_API void DisableDepthBoundsTest(FRHICommandList& RHICmdList);
+
 struct FRHILockTracker
 {
 	struct FLockParams

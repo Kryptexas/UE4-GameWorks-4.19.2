@@ -43,7 +43,11 @@ protected:
 	TSharedPtr<IPropertyHandle> FloatValueMinHandle;
 	TSharedPtr<IPropertyHandle> ScoreClampMaxHandle;
 	TSharedPtr<IPropertyHandle> FloatValueMaxHandle;
+	TSharedPtr<IPropertyHandle> MultipleContextFilterOpHandle;
 	TSharedPtr<IPropertyHandle> ScoreHandle;
+	TSharedPtr<IPropertyHandle> ScoreNormalizationTypeHandle;
+	TSharedPtr<IPropertyHandle> ScoreReferenceValueHandle;
+	TSharedPtr<IPropertyHandle> MultipleContextScoreOpHandle;
 
 	bool IsFiltering() const;
 	bool IsScoring() const;
@@ -91,6 +95,7 @@ protected:
 	EVisibility GetVisibilityOfFloatValueMax() const;
 	EVisibility GetVisibilityOfValueMinForScoreClamping() const;
 	EVisibility GetVisibilityOfValueMaxForScoreClamping() const;
+	EVisibility GetVisibilityForFiltering() const;
 	EVisibility GetBoolValueVisibilityForScoring() const;
 	EVisibility GetBoolValueVisibility() const;
 	EVisibility GetVisibilityOfScoreClampMinimum() const;

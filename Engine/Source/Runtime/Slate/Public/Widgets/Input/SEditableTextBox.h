@@ -44,9 +44,11 @@ public:
 		, _AllowContextMenu(true)
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
-		, _BackgroundColor()		
+		, _BackgroundColor()
 		, _Padding()
 		, _ErrorReporting()
+		, _VirtualKeyboardTrigger(EVirtualKeyboardTrigger::OnFocusByPointer)
+		, _VirtualKeyboardDismissAction(EVirtualKeyboardDismissAction::TextChangeOnDismiss)
 		{}
 
 		/** The styling of the textbox */
@@ -117,6 +119,12 @@ public:
 
 		/** The type of virtual keyboard to use on mobile devices */
 		SLATE_ATTRIBUTE(EKeyboardType, VirtualKeyboardType)
+
+		/** The type of event that will trigger the display of the virtual keyboard */
+		SLATE_ATTRIBUTE(EVirtualKeyboardTrigger, VirtualKeyboardTrigger)
+
+		/** The message action to take when the virtual keyboard is dismissed by the user */
+		SLATE_ATTRIBUTE(EVirtualKeyboardDismissAction, VirtualKeyboardDismissAction)
 
 		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
 		SLATE_ARGUMENT(TOptional<ETextShapingMethod>, TextShapingMethod)

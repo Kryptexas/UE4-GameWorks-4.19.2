@@ -1590,18 +1590,19 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 					continue;
 				}
 
-				const bool bWasRecentlyRelevant = ActorInfo->LastNetUpdateTime > 0.0f && ( Time - ActorInfo->LastNetUpdateTime ) < RelevantTimeout;
+				// We check ActorInfo->LastNetUpdateTime < KINDA_SMALL_NUMBER to force at least one update for each actor
+				const bool bWasRecentlyRelevant = (ActorInfo->LastNetUpdateTime < KINDA_SMALL_NUMBER) || ((Time - ActorInfo->LastNetUpdateTime) < RelevantTimeout);
 
-				bool bIsRelevant = !bUseNetRelevancy || Actor->bAlwaysRelevant || Actor == ClientConnections[0]->PlayerController;
+				bool bIsRelevant = !bUseNetRelevancy || Actor->bAlwaysRelevant || Actor == ClientConnections[0]->PlayerController || ActorInfo->bForceRelevantNextUpdate;
+
+				ActorInfo->bForceRelevantNextUpdate = false;
 
 				if ( !bIsRelevant )
 				{
 					// Assume this actor is relevant as long as *any* viewer says so
-					const float CullDistanceSq = CullDistanceOverrideSq > 0.0f ? CullDistanceOverrideSq : Actor->NetCullDistanceSquared;
-
 					for ( const FReplayViewer& ReplayViewer : ReplayViewers )
 					{
-						if ( Actor->IsReplayRelevantFor( ReplayViewer.Viewer, ReplayViewer.ViewTarget, ReplayViewer.Location, CullDistanceSq ) )
+						if (Actor->IsReplayRelevantFor(ReplayViewer.Viewer, ReplayViewer.ViewTarget, ReplayViewer.Location, CullDistanceOverrideSq))
 						{
 							bIsRelevant = true;
 							break;
@@ -1825,6 +1826,7 @@ void UDemoNetDriver::PauseChannels( const bool bPause )
 
 bool UDemoNetDriver::ReadDemoFrameIntoPlaybackPackets( FArchive& Ar )
 {
+	SCOPED_NAMED_EVENT(UDemoNetDriver_ReadDemoFrameIntoPlaybackPackets, FColor::Purple);
 	if ( Ar.IsError() )
 	{
 		StopDemo();
@@ -2288,6 +2290,7 @@ void UDemoNetDriver::AddUserToReplay( const FString& UserString )
 
 void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 {
+	SCOPED_NAMED_EVENT(UDemoNetDriver_TickDemoPlayback, FColor::Purple);
 	if ( World && World->IsInSeamlessTravel() )
 	{
 		return;

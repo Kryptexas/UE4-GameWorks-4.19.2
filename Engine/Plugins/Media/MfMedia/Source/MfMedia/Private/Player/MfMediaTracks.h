@@ -206,6 +206,9 @@ private:
 
 	/** Whether the video track has reached the end. */
 	bool VideoDone;
+
+	/** Whether the tracks have started playback. Set on first enabled tick. */
+	bool bIsStarted;
 };
 
 

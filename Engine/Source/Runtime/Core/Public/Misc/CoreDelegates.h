@@ -79,11 +79,20 @@ public:
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
-	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, int32, int32);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, FPlatformUserId, int32);
+
+	// Callback for handling a Controller pairing change
+	// first param is controller index
+	// second param is NewUserPlatformId, third is OldUserPlatformId.
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerPairingChange, int32 /*ControllerIndex*/, FPlatformUserId /*NewUserPlatformId*/, FPlatformUserId /*OldUserPlatformId*/);
 
 	// Callback for platform handling when flushing async loads.
 	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlush);
 	static FOnAsyncLoadingFlush OnAsyncLoadingFlush;
+
+	// Callback for a game thread interruption point when a async load flushing. Used to updating UI during long loads.
+	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlushUpdate);
+	static FOnAsyncLoadingFlushUpdate OnAsyncLoadingFlushUpdate;
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
 	static FOnAsyncLoadPackage OnAsyncLoadPackage;
@@ -96,6 +105,9 @@ public:
 
 	// Callback when controllers disconnected / reconnected
 	static FOnUserControllerConnectionChange OnControllerConnectionChange;
+
+	// Callback when a single controller pairing changes
+	static FOnUserControllerPairingChange OnControllerPairingChange;
 
 	// Callback when a user changes the safe frame size
 	static FOnSafeFrameChangedEvent OnSafeFrameChangedEvent;

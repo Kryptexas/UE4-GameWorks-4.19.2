@@ -87,7 +87,7 @@ FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerCon
 
 bool FLocalPlayerContext::IsValid() const
 {
-	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer() && GetPlayerController()->Player;
 }
 
 bool FLocalPlayerContext::IsInitialized() const

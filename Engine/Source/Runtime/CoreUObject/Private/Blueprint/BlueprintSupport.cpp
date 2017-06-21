@@ -1772,7 +1772,7 @@ void FLinkerLoad::ForceBlueprintFinalization()
 bool FLinkerLoad::IsBlueprintFinalizationPending() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	return bForceBlueprintFinalization || (DeferredCDOIndex != INDEX_NONE);
+	return (DeferredCDOIndex != INDEX_NONE) || bForceBlueprintFinalization;
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	return false;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

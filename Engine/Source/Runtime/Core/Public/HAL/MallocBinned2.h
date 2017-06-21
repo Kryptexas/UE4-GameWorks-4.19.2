@@ -12,6 +12,7 @@
 #include "HAL/PlatformTLS.h"
 #include "HAL/Allocators/CachedOSPageAllocator.h"
 #include "HAL/PlatformMath.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define BINNED2_MAX_CACHED_OS_FREES (64)
 #if PLATFORM_64BITS
@@ -385,6 +386,8 @@ public:
 	virtual bool IsInternallyThreadSafe() const override;
 	FORCEINLINE virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
+		void* Result = nullptr;
+
 		// Only allocate from the small pools if the size is small enough and the alignment isn't crazy large.
 		// With large alignments, we'll waste a lot of memory allocating an entire page, but such alignments are highly unlikely in practice.
 		if ((Size <= BINNED2_MAX_SMALL_POOL_SIZE) & (Alignment <= BINNED2_MINIMUM_ALIGNMENT)) // one branch, not two
@@ -392,13 +395,15 @@ public:
 			FPerThreadFreeBlockLists* Lists = GMallocBinned2PerThreadCaches ? FPerThreadFreeBlockLists::Get() : nullptr;
 			if (Lists)
 			{
-				if (void* Result = Lists->Malloc(BoundSizeToPoolIndex(Size)))
-				{
-					return Result;
-				}
+				Result = Lists->Malloc(BoundSizeToPoolIndex(Size));
 			}
 		}
-		return MallocExternal(Size, Alignment);
+		if (Result == nullptr)
+		{
+			Result = MallocExternal(Size, Alignment);
+		}
+
+		return Result;
 	}
 
 	FORCEINLINE virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
@@ -439,12 +444,14 @@ public:
 							bool bDidPush = Lists->Free(Ptr, PoolIndex, BlockSize);
 							checkSlow(bDidPush);
 						}
+
 						return Result;
 					}
 				}
 			}
 		}
-		return ReallocExternal(Ptr, NewSize, Alignment);
+		void* Result = ReallocExternal(Ptr, NewSize, Alignment);
+		return Result;
 	}
 
 	FORCEINLINE virtual void Free(void* Ptr) override

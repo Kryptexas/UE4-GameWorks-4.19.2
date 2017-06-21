@@ -57,7 +57,9 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
-					.TextShapingMethod( InArgs._TextShapingMethod )
+					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
+					.VirtualKeyboardDismissAction( InArgs._VirtualKeyboardDismissAction )
+					.TextShapingMethod(InArgs._TextShapingMethod)
 					.TextFlowDirection( InArgs._TextFlowDirection )
 				]
 			]

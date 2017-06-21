@@ -2250,19 +2250,23 @@ public:
 
 	/** When skipping a frame, should it be interpolated or frozen? */
 	UPROPERTY()
-	bool bInterpolateSkippedFrames;
+	uint32 bInterpolateSkippedFrames : 1;
 
 	/** Whether or not to use the defined LOD/Frameskip map instead of separate distance factor thresholds */
 	UPROPERTY()
-	bool bShouldUseLodMap;
+	uint32 bShouldUseLodMap : 1;
+
+	/** If set, LOD/Frameskip map will be queried with mesh's MinLodModel instead of current LOD (PredictedLODLevel) */
+	UPROPERTY()
+	uint32 bShouldUseMinLod : 1;
 
 	/** (This frame) animation update should be skipped. */
 	UPROPERTY()
-	bool bSkipUpdate;
+	uint32 bSkipUpdate : 1;
 
 	/** (This frame) animation evaluation should be skipped. */
 	UPROPERTY()
-	bool bSkipEvaluation;
+	uint32 bSkipEvaluation : 1;
 
 	UPROPERTY(Transient)
 	/** Track time we have lost via skipping */
@@ -2319,6 +2323,7 @@ public:
 		, EvaluationRate(1)
 		, bInterpolateSkippedFrames(false)
 		, bShouldUseLodMap(false)
+		, bShouldUseMinLod(false)
 		, bSkipUpdate(false)
 		, bSkipEvaluation(false)
 		, TickedPoseOffestTime(0.f)

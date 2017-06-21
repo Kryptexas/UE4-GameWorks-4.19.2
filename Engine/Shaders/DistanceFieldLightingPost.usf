@@ -226,7 +226,7 @@ void UpdateHistoryDepthRejectionPS(
 		EffectiveHistoryWeight = 0;
 	}
 
-	OutBentNormal.rgb = isnan(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
+	OutBentNormal.rgb = isnan(OutBentNormal.rgb) || isinf(OutBentNormal.rgb) ? 0 : OutBentNormal.rgb;
 	OutBentNormal.a = SceneDepth;
 
 	FLATTEN
@@ -324,10 +324,9 @@ void FilterHistoryPS(
 #define IRRADIANCE_TARGET SV_Target1
 #endif
 
-// Pack into [0-1] for PF_FloatR11G11B10
 float3 EncodeBentNormal(float3 BentNormal)
 {
-	return BentNormal * .5f + .5f;
+	return BentNormal;
 }
 
 Texture2D SpecularOcclusionTexture;

@@ -100,6 +100,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() )
 ,	ClientWorldPackageName( NAME_None )
 ,	bResendAllDataSinceOpen( false )
+,	PlayerOnlinePlatformName( NAME_None )
 {
 }
 
@@ -843,6 +844,7 @@ void UNetConnection::ReceivedNak( int32 NakPacketId )
 
 void UNetConnection::ReceivedPacket( FBitReader& Reader )
 {
+	SCOPED_NAMED_EVENT(UNetConnection_ReceivedPacket, FColor::Green);
 	AssertValid();
 
 	// Handle PacketId.
@@ -2289,4 +2291,9 @@ void UNetConnection::ResetPacketBitCounts()
 	NumBunchBits = 0;
 	NumAckBits = 0;
 	NumPaddingBits = 0;
+}
+
+void UNetConnection::SetPlayerOnlinePlatformName(const FName InPlayerOnlinePlatformName)
+{
+	PlayerOnlinePlatformName = InPlayerOnlinePlatformName;
 }

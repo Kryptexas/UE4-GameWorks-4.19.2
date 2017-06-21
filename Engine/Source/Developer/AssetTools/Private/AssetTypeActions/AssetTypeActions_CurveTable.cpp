@@ -5,7 +5,7 @@
 #include "Misc/FileHelper.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Framework/Application/SlateApplication.h"
-
+#include "AssetToolsModule.h"
 #include "Editor/CurveTableEditor/Public/CurveTableEditorModule.h"
 #include "DesktopPlatformModule.h"
 
@@ -148,6 +148,35 @@ void FAssetTypeActions_CurveTable::GetResolvedSourceFilePaths(const TArray<UObje
 	{
 		const auto CurveTable = CastChecked<UCurveTable>(Asset);
 		CurveTable->AssetImportData->ExtractFilenames(OutSourceFilePaths);
+	}
+}
+
+// Attempts to export temporary CSV files and diff those. If that fails we fall back to diffing the data table assets directly.
+void FAssetTypeActions_CurveTable::PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const FRevisionInfo& OldRevision, const FRevisionInfo& NewRevision) const
+{
+	UCurveTable* OldCurveTable = CastChecked<UCurveTable>(OldAsset);
+	UCurveTable* NewCurveTable = CastChecked<UCurveTable>(NewAsset);
+
+	// Build names for temp csv files
+	FString RelOldTempFileName = FString::Printf(TEXT("%sTemp%s-%s.csv"), *FPaths::DiffDir(), *OldAsset->GetName(), *OldRevision.Revision);
+	FString AbsoluteOldTempFileName = FPaths::ConvertRelativePathToFull(RelOldTempFileName);
+	FString RelNewTempFileName = FString::Printf(TEXT("%sTemp%s-%s.csv"), *FPaths::DiffDir(), *NewAsset->GetName(), *NewRevision.Revision);
+	FString AbsoluteNewTempFileName = FPaths::ConvertRelativePathToFull(RelNewTempFileName);
+
+	// save temp files
+	bool OldResult = FFileHelper::SaveStringToFile(OldCurveTable->GetTableAsCSV(), *AbsoluteOldTempFileName);
+	bool NewResult = FFileHelper::SaveStringToFile(NewCurveTable->GetTableAsCSV(), *AbsoluteNewTempFileName);
+
+	if (OldResult && NewResult)
+	{
+		FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
+
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateDiffProcess(DiffCommand, AbsoluteOldTempFileName, AbsoluteNewTempFileName);
+	}
+	else
+	{
+		FAssetTypeActions_CSVAssetBase::PerformAssetDiff(OldAsset, NewAsset, OldRevision, NewRevision);
 	}
 }
 

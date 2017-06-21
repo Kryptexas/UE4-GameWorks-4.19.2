@@ -6743,6 +6743,11 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 		for (int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx)
 		{
 			const UParticleEmitter* Emitter = Template->Emitters[EmitterIdx];
+			if (!Emitter)
+			{
+				continue;
+			}
+
 			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
 			{
 				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];

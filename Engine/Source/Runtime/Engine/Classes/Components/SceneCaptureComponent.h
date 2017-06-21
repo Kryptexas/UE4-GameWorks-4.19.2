@@ -80,7 +80,7 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	int32 CaptureSortPriority;
 
 	/** ShowFlags for the SceneCapture's ViewFamily, to control rendering settings for this view. Hidden but accessible through details customization */
-	UPROPERTY(EditAnywhere, interp, Category=SceneComponent)
+	UPROPERTY(EditAnywhere, interp, Category=SceneCapture)
 	TArray<struct FEngineShowFlagsSetting> ShowFlagSettings;
 
 	// TODO: Make this a UStruct to set directly?

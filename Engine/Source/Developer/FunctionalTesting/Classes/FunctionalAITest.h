@@ -132,9 +132,21 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnAllAISPawned;
 
+	/** navmesh debug: log navoctree modifiers around this point */
+	UPROPERTY(EditAnywhere, Category = NavMeshDebug, meta = (MakeEditWidget = ""))
+	FVector NavMeshDebugOrigin;
+
+	/** navmesh debug: extent around NavMeshDebugOrigin */
+	UPROPERTY(EditAnywhere, Category = NavMeshDebug)
+	FVector NavMeshDebugExtent;
+
 	/** if set, ftest will postpone start until navmesh is fully generated */
-	UPROPERTY(BlueprintReadOnly, Category = AITest)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AITest)
 	uint32 bWaitForNavMesh : 1;
+
+	/** if set, ftest will postpone start until navmesh is fully generated */
+	UPROPERTY(EditAnywhere, Category = NavMeshDebug)
+	uint32 bDebugNavMeshOnTimeout : 1;
 
 	uint32 bSingleSetRun:1;
 
@@ -151,6 +163,8 @@ public:
 	// AActor interface end
 
 	virtual bool RunTest(const TArray<FString>& Params = TArray<FString>()) override;
+	virtual void StartTest() override;
+	virtual void OnTimeout() override;
 	virtual bool IsReady_Implementation() override;
 	virtual bool WantsToRunAgain() const override;
 	virtual void GatherRelevantActors(TArray<AActor*>& OutActors) const override;

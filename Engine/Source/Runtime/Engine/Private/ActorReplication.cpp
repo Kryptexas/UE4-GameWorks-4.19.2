@@ -297,36 +297,9 @@ bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget
 	return true;
 }
 
-bool AActor::IsReplayRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation, const float CullDistanceSquared) const
+bool AActor::IsReplayRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation, const float CullDistanceOverrideSq) const
 {
-	if (bAlwaysRelevant || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator)
-	{
-		return true;
-	}
-	else if ( bNetUseOwnerRelevancy && Owner)
-	{
-		return Owner->IsReplayRelevantFor(RealViewer, ViewTarget, SrcLocation, CullDistanceSquared > 0.0f ? CullDistanceSquared : Owner->NetCullDistanceSquared);
-	}
-	else if ( bOnlyRelevantToOwner )
-	{
-		return false;
-	}
-	else if ( RootComponent && RootComponent->GetAttachParent() && RootComponent->GetAttachParent()->GetOwner() && (Cast<USkeletalMeshComponent>(RootComponent->GetAttachParent()) || (RootComponent->GetAttachParent()->GetOwner() == Owner)) )
-	{
-		const AActor* RootComponentOwner = RootComponent->GetAttachParent()->GetOwner();
-		return RootComponentOwner->IsReplayRelevantFor(RealViewer, ViewTarget, SrcLocation, CullDistanceSquared > 0.0f ? CullDistanceSquared : RootComponentOwner->NetCullDistanceSquared);
-	}
-	else if( bHidden && (!RootComponent || !RootComponent->IsCollisionEnabled()) )
-	{
-		return false;
-	}
-
-	if (CullDistanceSquared > 0.0f)
-	{
-		return ((SrcLocation - GetActorLocation()).SizeSquared() < CullDistanceSquared);
-	}
-
-	return true;
+	return IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
 }
 
 void AActor::GatherCurrentMovement()

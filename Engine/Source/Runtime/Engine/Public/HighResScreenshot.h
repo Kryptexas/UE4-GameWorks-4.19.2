@@ -23,6 +23,7 @@ struct ENGINE_API FHighResScreenshotConfig
 	bool bDisplayCaptureRegion;
 	bool bCaptureHDR;
 	bool bForce128BitRendering;
+	FString FilenameOverride;
 
 	// Materials used in the editor to help with the capture of highres screenshots
 	UMaterial* HighResScreenshotMaterial;

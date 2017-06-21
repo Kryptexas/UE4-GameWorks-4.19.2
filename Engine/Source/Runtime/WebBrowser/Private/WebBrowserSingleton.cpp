@@ -106,33 +106,34 @@ namespace {
 		}
 #endif
 	}
+}
 
+FString FWebBrowserSingleton::ApplicationCacheDir() const
+{
 #if PLATFORM_MAC
 	// OSX wants caches in a separate location from other app data
-	const TCHAR* ApplicationCacheDir()
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
 	{
-		static TCHAR Result[MAX_PATH] = TEXT("");
-		if (!Result[0])
+		SCOPED_AUTORELEASE_POOL;
+		NSString *CacheBaseDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		NSString* BundleID = [[NSBundle mainBundle] bundleIdentifier];
+		if(!BundleID)
 		{
-			SCOPED_AUTORELEASE_POOL;
-			NSString *CacheBaseDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
-			NSString* BundleID = [[NSBundle mainBundle] bundleIdentifier];
-			if(!BundleID)
-			{
-				BundleID = [[NSProcessInfo processInfo] processName];
-			}
-			check(BundleID);
-
-			NSString* AppCacheDir = [CacheBaseDir stringByAppendingPathComponent: BundleID];
-			FPlatformString::CFStringToTCHAR((CFStringRef)AppCacheDir, Result);
+			BundleID = [[NSProcessInfo processInfo] processName];
 		}
-		return Result;
+		check(BundleID);
+
+		NSString* AppCacheDir = [CacheBaseDir stringByAppendingPathComponent: BundleID];
+		FPlatformString::CFStringToTCHAR((CFStringRef)AppCacheDir, Result);
 	}
+	return FString(Result);
 #else
 	// Other platforms use the application data directory
-#	define ApplicationCacheDir() *FPaths::GameSavedDir()
+	return FPaths::GameSavedDir();
 #endif
 }
+
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 class FWebBrowserWindowFactory
@@ -627,4 +628,3 @@ bool FWebBrowserSingleton::UnregisterContext(const FString& ContextId)
 #undef CEF3_FRAMEWORK_DIR
 #undef CEF3_RESOURCES_DIR
 #undef CEF3_SUBPROCES_EXE
-#undef ApplicationCacheDir

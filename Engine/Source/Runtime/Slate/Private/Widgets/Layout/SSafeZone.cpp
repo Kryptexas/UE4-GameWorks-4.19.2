@@ -5,6 +5,8 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/CoreDelegates.h"
 
+float SSafeZone::SafeZoneScale = 1.0f;
+
 void SSafeZone::Construct( const FArguments& InArgs )
 {
 	SBox::Construct(SBox::FArguments()
@@ -39,6 +41,18 @@ SSafeZone::~SSafeZone()
 }
 
 
+void SSafeZone::SetSafeZoneScale(float InScale)
+{
+	SafeZoneScale = InScale;
+
+	FCoreDelegates::OnSafeFrameChangedEvent.Broadcast();
+}
+
+float SSafeZone::GetSafeZoneScale()
+{
+	return SafeZoneScale;
+}
+
 void SSafeZone::SafeAreaUpdated()
 {
 	SetTitleSafe(bIsTitleSafe);
@@ -67,6 +81,10 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 	{
 		SafeMargin = DeviceSafeMargin;
 	}
+
+#if PLATFORM_XBOXONE
+	SafeMargin = SafeMargin * SafeZoneScale;
+#endif
 
 	SafeMargin = FMargin(bPadLeft ? SafeMargin.Left : 0.0f, bPadTop ? SafeMargin.Top : 0.0f, bPadRight ? SafeMargin.Right : 0.0f, bPadBottom ? SafeMargin.Bottom : 0.0f);
 }

@@ -432,15 +432,6 @@ struct IPooledRenderTarget
 
 protected:
 
-	/** For pool management (only if NumRef == 0 the element can be reused) */
-	mutable int32 NumRefs;
-
-	/** Snapshots are sortof fake pooled render targets, they don't own anything and can outlive the things that created them. These are for threaded rendering. */
-	bool bSnapshot;
-
-	/** Pointer back to the pool for render targets which are actually pooled, otherwise NULL. */
-	class FRenderTargetPool* RenderTargetPool;
-
 	/** The internal references to the created render target */
 	FSceneRenderTargetItem RenderTargetItem;
 };

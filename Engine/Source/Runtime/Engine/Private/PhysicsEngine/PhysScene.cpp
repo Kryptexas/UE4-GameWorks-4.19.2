@@ -381,6 +381,7 @@ template<> FCriticalSection FPhysXTask<false>::CS = {};
 template<> FPhysXTask<true>::FStatLookup FPhysXTask<true>::Stats[100] = {};
 template<> FPhysXTask<false>::FStatLookup FPhysXTask<false>::Stats[100] = {};
 
+
 DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
 
 /** Used to dispatch physx tasks to the game thread */
@@ -1201,6 +1202,7 @@ void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FG
 
 void FPhysScene::ProcessPhysScene(uint32 SceneType)
 {
+	SCOPED_NAMED_EVENT(FPhysScene_ProcessPhysScene, FColor::Orange);
 	checkSlow(SceneType < PST_MAX);
 
 	SCOPE_CYCLE_COUNTER(STAT_TotalPhysicsTime);

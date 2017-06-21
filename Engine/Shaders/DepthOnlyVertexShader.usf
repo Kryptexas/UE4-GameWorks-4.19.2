@@ -14,6 +14,14 @@ bool bIsInstancedStereoEmulated;
 
 #define IOSZBIASWORKAROUND (METAL_MRT_PROFILE || (IOS && (ES2_PROFILE || ES3_1_PROFILE)))
 
+#if IOSZBIASWORKAROUND
+#if METAL_MRT_PROFILE
+#define IOSZBIASVALUE -0.0000015
+#else
+#define IOSZBIASVALUE 0.0001
+#endif
+#endif
+
 struct FDepthOnlyVSToPS
 {
 	#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
@@ -163,11 +171,7 @@ void Main(
 		// Addendum: This issue can occur with gles & Metal MRT on metal capable hardware too. We apply this for all iOS shaders.
 		// For Metal MRT this is likely to cause errors in rendering elsewhere, but porting to FMA is a non-starter and an FMA pass
 		// in hlslcc can't be done early enough to avoid all potential re-association optimisations.
-		#if METAL_MRT_PROFILE
-			Output.Position.z += -0.0000015 * Output.Position.w;
-		#else
-			Output.Position.z += 0.0001 * Output.Position.w;
-		#endif
+		Output.Position.z += IOSZBIASVALUE * Output.Position.w;
 	#endif
 
 #if USE_GLOBAL_CLIP_PLANE

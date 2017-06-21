@@ -23,6 +23,7 @@
 #include "Engine/PendingNetGame.h"
 #include "Engine/LatentActionManager.h"
 #include "Engine/GameInstance.h"
+#include "Engine/DemoNetDriver.h"
 
 #include "World.generated.h"
 
@@ -43,7 +44,6 @@ class FWorldInGamePerformanceTrackers;
 class IInterface_PostProcessVolume;
 class UAISystemBase;
 class UCanvas;
-class UDemoNetDriver;
 class UGameViewportClient;
 class ULevelStreaming;
 class ULocalPlayer;
@@ -2616,6 +2616,9 @@ public:
 
 	// Destroys the current demo net driver
 	void DestroyDemoNetDriver();
+
+	/** Returns true if we are currently playing a replay */
+	bool IsPlayingReplay() const { return (DemoNetDriver ? DemoNetDriver->IsPlaying() : false); }
 
 	// Start listening for connections.
 	bool Listen( FURL& InURL );

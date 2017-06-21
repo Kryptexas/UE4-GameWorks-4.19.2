@@ -282,6 +282,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
+- (NSSize)window:(NSWindow*)Window willUseFullScreenContentSize:(NSSize)ProposedSize
+{
+	// Make sure the window in fullscreen is the size of the screen instead of the size of Metal drawable
+	return Window.screen.frame.size;
+}
+
 - (void)windowDidBecomeMain:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;

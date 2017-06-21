@@ -295,6 +295,11 @@ static void LaunchDefaultHandlerForURL( const TCHAR* URL, FString* Error )
 	}
 }
 
+bool FWindowsPlatformProcess::CanLaunchURL(const TCHAR* URL)
+{
+	return URL != nullptr;
+}
+
 void FWindowsPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error )
 {
 	check(URL);

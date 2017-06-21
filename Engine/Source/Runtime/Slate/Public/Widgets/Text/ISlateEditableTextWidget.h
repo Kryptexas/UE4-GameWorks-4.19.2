@@ -50,6 +50,24 @@ enum class ETextLocation
 	NextPage,
 };
 
+enum class EVirtualKeyboardTrigger
+{
+	/** Display the virtual keyboard when the widget gains keyboard focus by a pointer action. */
+	OnFocusByPointer,
+	/** Display the virtual keyboard when the widget gains keyboard focus by any means. */
+	OnAllFocusEvents,
+};
+
+enum class EVirtualKeyboardDismissAction
+{
+	/** Sends a text changed message when the virtual keyboard is dismissed by the user. */
+	TextChangeOnDismiss,
+	/** Send a text commit message if the user dismisses the keyboard by accepting text. Send a text changed message if the user cancels the virtual keyboard. */
+	TextCommitOnAccept,
+	/** Send a text commit message when the virtual keyboard is dismissed by the user. */
+	TextCommitOnDismiss,
+};
+
 /**
  * Argument to the ITextEditorWidget::Move(); it decouples performing
  * cursor movement and text highlighting actions from event handling.
@@ -220,6 +238,12 @@ public:
 
 	/** Get the type of virtual keyboard to use for this widget */
 	virtual EKeyboardType GetVirtualKeyboardType() const = 0;
+
+	/** Get the type of event that will trigger the display of the virtual keyboard */
+	virtual EVirtualKeyboardTrigger GetVirtualKeyboardTrigger() const = 0;
+
+	/** Get the message action to take when the virtual keyboard is dismissed by the user */
+	virtual EVirtualKeyboardDismissAction GetVirtualKeyboardDismissAction() const = 0;
 
 	/** Get the Slate widget this interface is representing (may not be called during destruction) */
 	virtual TSharedRef<SWidget> GetSlateWidget() = 0;

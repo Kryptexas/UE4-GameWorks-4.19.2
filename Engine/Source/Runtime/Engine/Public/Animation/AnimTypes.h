@@ -258,13 +258,12 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	int32 TrackIndex;
 
 	FAnimNotifyEvent()
-		: DisplayTime_DEPRECATED(0)
+		: FAnimLinkableElement()
+		, DisplayTime_DEPRECATED(0)
 		, TriggerTimeOffset(0)
 		, EndTriggerTimeOffset(0)
 		, TriggerWeightThreshold(ZERO_ANIMWEIGHT_THRESH)
-#if WITH_EDITORONLY_DATA
 		, Notify(NULL)
-#endif // WITH_EDITORONLY_DATA
 		, NotifyStateClass(NULL)
 		, Duration(0)
 		, bConvertedFromBranchingPoint(false)
@@ -274,8 +273,9 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 		, NotifyFilterLOD(0)
 		, bTriggerOnDedicatedServer(true)
 #if WITH_EDITORONLY_DATA
-		, TrackIndex(0)
+		, NotifyColor(FColor::Black)
 #endif // WITH_EDITORONLY_DATA
+		, TrackIndex(0)
 	{
 	}
 

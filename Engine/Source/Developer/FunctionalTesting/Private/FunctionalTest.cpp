@@ -231,6 +231,11 @@ void AFunctionalTest::StartTest()
 	OnTestStart.Broadcast();
 }
 
+void AFunctionalTest::OnTimeout()
+{
+	FinishTest(TimesUpResult, TimesUpMessage.ToString());
+}
+
 void AFunctionalTest::Tick(float DeltaSeconds)
 {
 	// already requested not to tick. 
@@ -258,7 +263,7 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 		TotalTime += DeltaSeconds;
 		if ( TimeLimit > 0.f && TotalTime > TimeLimit )
 		{
-			FinishTest(TimesUpResult, TimesUpMessage.ToString());
+			OnTimeout();
 		}
 		else
 		{
@@ -270,7 +275,7 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 		TotalTime += DeltaSeconds;
 		if ( PreparationTimeLimit > 0.f && TotalTime > PreparationTimeLimit )
 		{
-			FinishTest(TimesUpResult, TimesUpMessage.ToString());
+			OnTimeout();
 		}
 	}
 }

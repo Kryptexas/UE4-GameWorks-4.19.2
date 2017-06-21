@@ -970,9 +970,9 @@ void UAnimInstance::RecalcRequiredBones()
 	}
 }
 
-void UAnimInstance::RecalcRequiredCurves()
+void UAnimInstance::RecalcRequiredCurves(bool bDisableAnimCurves)
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves();
+	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(bDisableAnimCurves);
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)

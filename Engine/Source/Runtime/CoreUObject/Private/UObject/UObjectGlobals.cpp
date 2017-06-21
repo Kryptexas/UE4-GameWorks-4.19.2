@@ -46,6 +46,7 @@
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "Modules/ModuleManager.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -858,6 +859,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	check(ObjectClass);
 	check(InName);
 
+	FScopedLoadingState ScopedLoadingState(InName);
 	FString StrName = InName;
 	UObject* Result = nullptr;
 	const bool bContainsObjectName = !!FCString::Strstr(InName, TEXT("."));
@@ -1127,21 +1129,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		FName PackageFName(*InPackageName);
 
-		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-		if (!Result || Result->LinkerLoad || !Result->IsFullyLoaded())
 		{
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
 
-		if (InOuter)
-		{
-			return InOuter;
-		}
-		if (!Result)
-		{
-			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-		}
+		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
 		return Result;
 	}
 
@@ -1404,6 +1397,9 @@ UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 
 	FScopeCycleCounter CycleCounter( StatId );
 #endif // STATS
 
+	// since we are faking the object name, this is basically a duplicate of LLM_SCOPED_TAG_WITH_OBJECT_IN_SET
+	FString FakePackageName = FString(TEXT("Package ")) + InLongPackageName;
+	LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(FLowLevelMemTracker::Get().IsTagSetActive(ELLMTagSet::Assets) ? FDynamicStats::CreateMemoryStatId<FStatGroup_STATGROUP_LLMAssets>(FName(*FakePackageName)).GetName() : NAME_None, ELLMTagSet::Assets);
 	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, /*ImportLinker =*/ nullptr);
 }
 

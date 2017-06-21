@@ -86,6 +86,7 @@ VertexToPixelInterpolants Main(
 				VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
 			}
 		}
+		
 	#endif // HAS_MATERIAL_TEXCOORDS
 #endif // NUM_MATERIAL_TEXCOORDS_VERTEX
 

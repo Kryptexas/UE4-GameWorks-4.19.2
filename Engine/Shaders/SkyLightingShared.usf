@@ -19,10 +19,9 @@ float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float 
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
-// Unpack from [0-1] PF_FloatR11G11B10
 float3 DecodeBentNormal(float3 EncodedBentNormal)
 {
-	return EncodedBentNormal * 2 - 1;
+	return EncodedBentNormal;
 }
 
 float ApplyBentNormalAO;

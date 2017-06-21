@@ -83,11 +83,14 @@ public:
 	/** @return the uniform desired item width used when arranging children. */
 	float GetDesiredItemWidth() const;
 
-	/** @return the uniform item width used when arranging children. */
-	float GetItemWidth(const FGeometry& AllottedGeometry) const;
+	/** @return the uniform item height used when arranging children. */
+	float GetDesiredItemHeight() const;
 
 	/** @return the uniform item width used when arranging children. */
-	float GetItemWidth(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const;
+	FVector2D GetItemSize(const FGeometry& AllottedGeometry) const;
+
+	/** @return the uniform item width used when arranging children. */
+	FVector2D GetItemSize(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const;
 
 	/** @return the horizontal padding applied to each tile item */
 	float GetItemPadding(const FGeometry& AllottedGeometry) const;
@@ -97,9 +100,6 @@ public:
 
 	/** @return the horizontal padding applied to all the items on a line */
 	float GetLinePadding(const FGeometry& AllottedGeometry, const int32 LineStartIndex) const;
-	
-	/** @return the uniform item height used when arranging children. */
-	float GetItemHeight() const;
 
 	/** Tells the list panel whether items in the list are pending a refresh */
 	void SetRefreshPending( bool IsPendingRefresh );

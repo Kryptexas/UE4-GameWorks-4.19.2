@@ -196,6 +196,7 @@ private:
 	FSceneViewStateReference MonoViewState;
 
 	/** The controller ID which this player accepts input from. */
+	UPROPERTY()
 	int32 ControllerId;
 
 public:

@@ -157,6 +157,7 @@ bool IStreamedCompressedInfo::StreamCompressedInfo(USoundWave* Wave, struct FSou
 bool IStreamedCompressedInfo::StreamCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize)
 {
 	check(Destination);
+	SCOPED_NAMED_EVENT(IStreamedCompressedInfo_StreamCompressedData, FColor::Blue);
 
 	SCOPE_CYCLE_COUNTER(STAT_AudioStreamedDecompressTime);
 

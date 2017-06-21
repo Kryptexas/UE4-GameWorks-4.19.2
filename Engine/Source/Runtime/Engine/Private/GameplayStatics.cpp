@@ -856,9 +856,11 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (PSC->Template && PSC->Template->IsImmortal())
 				{
+					const FString OnScreenMessage = FString::Printf(TEXT("SpawnEmitterAttached spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."), *(PSC->GetPathName()), *(PSC->Template->GetName()));
+					GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)AttachToComponent), 3.f, FColor::Red, OnScreenMessage);
 					UE_LOG(LogParticles, Log, TEXT("GameplayStatics::SpawnEmitterAttached spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 						*(PSC->GetPathName()), *(PSC->Template->GetPathName())
-						);
+					);
 				}
 #endif
 			}

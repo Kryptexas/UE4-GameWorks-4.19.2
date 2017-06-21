@@ -1153,24 +1153,42 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 
 		// Check custom versions.
 		const FCustomVersionContainer& LatestCustomVersions  = FCustomVersionContainer::GetRegistered();
-		const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
-		for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
+		bool bCustomVersionIsLatest = false;
+		if (Summary.bUnversioned)
 		{
-			const FCustomVersion& SerializedCustomVersion = *It;
+			// When unversioned, pretend we are the latest version
+			bCustomVersionIsLatest = true;
+		}
+		else
+		{
+			bool bAllSavedVersionsMatch = true;
+			const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
+			for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
+			{
+				const FCustomVersion& SerializedCustomVersion = *It;
 
-			const FCustomVersion* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
-			if (!LatestVersion)
-			{
-				// Loading a package with custom integration that we don't know about!
-				// Temporarily just warn and continue. @todo: this needs to be fixed properly
-				UE_LOG(LogLinker, Warning, TEXT("Package %s was saved with a custom integration that is not present. Tag %s  Version %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version);
+				const FCustomVersion* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
+				if (!LatestVersion)
+				{
+					// Loading a package with custom integration that we don't know about!
+					// Temporarily just warn and continue. @todo: this needs to be fixed properly
+					UE_LOG(LogLinker, Warning, TEXT("Package %s was saved with a custom integration that is not present. Tag %s  Version %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version);
+					bAllSavedVersionsMatch = false;
+				}
+				else if (SerializedCustomVersion.Version > LatestVersion->Version)
+				{
+					// Loading a package with a newer custom version than the current one.
+					UE_LOG(LogLinker, Error, TEXT("Package %s was saved with a newer custom version than the current. Tag %s  PackageVersion %d  MaxExpected %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version, LatestVersion->Version);
+					return LINKER_Failed;
+				}
+				else if (SerializedCustomVersion.Version != LatestVersion->Version)
+				{
+					bAllSavedVersionsMatch = false;
+				}
 			}
-			else if (SerializedCustomVersion.Version > LatestVersion->Version)
-			{
-				// Loading a package with a newer custom version than the current one.
-				UE_LOG(LogLinker, Error, TEXT("Package %s was saved with a newer custom version than the current. Tag %s  PackageVersion %d  MaxExpected %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version, LatestVersion->Version);
-				return LINKER_Failed;
-			}
+
+			const bool bSameNumberOfVersions = (PackageCustomVersions.Num() == LatestCustomVersions.GetAllVersions().Num());
+			bCustomVersionIsLatest = bSameNumberOfVersions && bAllSavedVersionsMatch;
 		}
 
 		// Loader needs to be the same version.
@@ -1216,7 +1234,13 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			// Remember the linker versions
 			LinkerRootPackage->LinkerPackageVersion = ArUE4Ver;
 			LinkerRootPackage->LinkerLicenseeVersion = ArLicenseeUE4Ver;
-			LinkerRootPackage->LinkerCustomVersion = SummaryVersions;
+
+			// Only set the custom version if it is not already latest.
+			// If it is latest, we will compare against latest in GetLinkerCustomVersion
+			if (!bCustomVersionIsLatest)
+			{
+				LinkerRootPackage->LinkerCustomVersion = SummaryVersions;
+			}
 
 #if WITH_EDITORONLY_DATA
 			LinkerRootPackage->bIsCookedForEditor = !!(Summary.PackageFlags & PKG_FilterEditorOnly);

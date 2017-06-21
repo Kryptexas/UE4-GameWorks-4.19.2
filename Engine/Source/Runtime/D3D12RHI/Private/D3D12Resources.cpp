@@ -271,6 +271,8 @@ HRESULT FD3D12Adapter::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc
 		return E_POINTER;
 	}
 
+	LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12CommittedResources);
+
 	TRefCountPtr<ID3D12Resource> pResource;
 	const HRESULT hr = RootDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &InDesc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
 	check(SUCCEEDED(hr));
@@ -432,6 +434,9 @@ void FD3D12ResourceLocation::ReleaseResource()
 	case ResourceLocationType::eStandAlone:
 	{
 		check(UnderlyingResource->GetRefCount() == 1);
+		
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::RHI, reinterpret_cast<void*>(GPUVirtualAddress), Size));
+
 		if (UnderlyingResource->ShouldDeferDelete())
 		{
 			GetParentDevice()->GetParentAdapter()->GetDeferredDeletionQueue().EnqueueResource(UnderlyingResource);

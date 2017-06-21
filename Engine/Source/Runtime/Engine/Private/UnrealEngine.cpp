@@ -119,6 +119,7 @@
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "IHardwareSurveyModule.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -2751,6 +2752,13 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return true;
 	}
+
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+	if (FLowLevelMemTracker::Get().Exec(Cmd, Ar))
+	{
+		return true;
+	}
+#endif
 
 	{
 		FString CultureName;
@@ -7191,12 +7199,17 @@ FGuid UEngine::GetPackageGuid(FName PackageName, bool bForPIE)
 	{
 		LoadFlags |= LOAD_PackageForPIE;
 	}
+	UPackage* PackageToReset = nullptr;
 	FLinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LoadFlags, NULL, NULL);
 	if (Linker != NULL && Linker->LinkerRoot != NULL)
 	{
 		Result = Linker->LinkerRoot->GetGuid();
+		PackageToReset = Linker->LinkerRoot;
 	}
 	EndLoad();
+	
+	ResetLoaders(PackageToReset);
+	Linker = nullptr;
 
 	return Result;
 }
@@ -9874,6 +9887,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "LoadMap - " ) + URL.Map )) );
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
+
+	// example of a high level scoped tag
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(LoadMapMemory);
 
 	NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true,URL));
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );

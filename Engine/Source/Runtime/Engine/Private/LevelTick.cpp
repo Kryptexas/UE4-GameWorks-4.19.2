@@ -443,7 +443,7 @@ bool UWorld::IsPaused() const
 
 bool UWorld::IsCameraMoveable() const
 {
-	bool bIsCameraMoveable = (!IsPaused() || bIsCameraMoveableWhenPaused);
+	bool bIsCameraMoveable = (!IsPaused() || bIsCameraMoveableWhenPaused || IsPlayingReplay());
 #if WITH_EDITOR
 	// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate:
 	// Simulate is excluded as the camera can move which invalidates motionblur
@@ -1212,6 +1212,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 {
 	SCOPE_TIME_GUARD(TEXT("UWorld::Tick"));
 
+	SCOPED_NAMED_EVENT(UWorld_Tick, FColor::Orange);
 	if (GIntraFrameDebuggingGameThread)
 	{
 		return;

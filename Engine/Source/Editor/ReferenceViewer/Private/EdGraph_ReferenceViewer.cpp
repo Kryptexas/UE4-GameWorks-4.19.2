@@ -8,6 +8,8 @@
 #include "AssetThumbnail.h"
 #include "SReferenceViewer.h"
 #include "GraphEditor.h"
+#include "ICollectionManager.h"
+#include "CollectionManagerModule.h"
 
 UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -188,6 +190,26 @@ void UEdGraph_ReferenceViewer::SetSearchBreadthLimit(int32 NewBreadthLimit)
 	MaxSearchBreadth = NewBreadthLimit;
 }
 
+FName UEdGraph_ReferenceViewer::GetCurrentCollectionFilter() const
+{
+	return CurrentCollectionFilter;
+}
+
+void UEdGraph_ReferenceViewer::SetCurrentCollectionFilter(FName NewFilter)
+{
+	CurrentCollectionFilter = NewFilter;
+}
+
+bool UEdGraph_ReferenceViewer::GetEnableCollectionFilter() const
+{
+	return bEnableCollectionFilter;
+}
+
+void UEdGraph_ReferenceViewer::SetEnableCollectionFilter(bool bEnabled)
+{
+	bEnableCollectionFilter = bEnabled;
+}
+
 EAssetRegistryDependencyType::Type UEdGraph_ReferenceViewer::GetReferenceSearchFlags(bool bReferencers) const
 {
 	int32 ReferenceFlags = 0;
@@ -218,15 +240,28 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::ConstructNodes(const TArray<FA
 
 	if (GraphRootIdentifiers.Num() > 0 )
 	{
+		TSet<FName> AllowedPackageNames;
+		if (ShouldFilterByCollection())
+		{
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+			TArray<FName> AssetPaths;
+			CollectionManagerModule.Get().GetAssetsInCollection(CurrentCollectionFilter, ECollectionShareType::CST_All, AssetPaths);
+			AllowedPackageNames.Reserve(AssetPaths.Num());
+			for (FName AssetPath : AssetPaths)
+			{
+				AllowedPackageNames.Add(FName(*FPackageName::ObjectPathToPackageName(AssetPath.ToString())));
+			}
+		}
+
 		TMap<FAssetIdentifier, int32> ReferencerNodeSizes;
 		TSet<FAssetIdentifier> VisitedReferencerSizeNames;
 		int32 ReferencerDepth = 1;
-		RecursivelyGatherSizes(/*bReferencers=*/true, GraphRootIdentifiers, ReferencerDepth, VisitedReferencerSizeNames, ReferencerNodeSizes);
+		RecursivelyGatherSizes(/*bReferencers=*/true, GraphRootIdentifiers, AllowedPackageNames, ReferencerDepth, VisitedReferencerSizeNames, ReferencerNodeSizes);
 
 		TMap<FAssetIdentifier, int32> DependencyNodeSizes;
 		TSet<FAssetIdentifier> VisitedDependencySizeNames;
 		int32 DependencyDepth = 1;
-		RecursivelyGatherSizes(/*bReferencers=*/false, GraphRootIdentifiers, DependencyDepth, VisitedDependencySizeNames, DependencyNodeSizes);
+		RecursivelyGatherSizes(/*bReferencers=*/false, GraphRootIdentifiers, AllowedPackageNames, DependencyDepth, VisitedDependencySizeNames, DependencyNodeSizes);
 
 		TSet<FName> AllPackageNames;
 
@@ -258,17 +293,17 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::ConstructNodes(const TArray<FA
 
 		TSet<FAssetIdentifier> VisitedReferencerNames;
 		int32 VisitedReferencerDepth = 1;
-		RecursivelyConstructNodes(/*bReferencers=*/true, RootNode, GraphRootIdentifiers, GraphRootOrigin, ReferencerNodeSizes, PackagesToAssetDataMap, VisitedReferencerDepth, VisitedReferencerNames);
+		RecursivelyConstructNodes(/*bReferencers=*/true, RootNode, GraphRootIdentifiers, GraphRootOrigin, ReferencerNodeSizes, PackagesToAssetDataMap, AllowedPackageNames, VisitedReferencerDepth, VisitedReferencerNames);
 
 		TSet<FAssetIdentifier> VisitedDependencyNames;
 		int32 VisitedDependencyDepth = 1;
-		RecursivelyConstructNodes(/*bReferencers=*/false, RootNode, GraphRootIdentifiers, GraphRootOrigin, DependencyNodeSizes, PackagesToAssetDataMap, VisitedDependencyDepth, VisitedDependencyNames);
+		RecursivelyConstructNodes(/*bReferencers=*/false, RootNode, GraphRootIdentifiers, GraphRootOrigin, DependencyNodeSizes, PackagesToAssetDataMap, AllowedPackageNames, VisitedDependencyDepth, VisitedDependencyNames);
 	}
 
 	return RootNode;
 }
 
-int32 UEdGraph_ReferenceViewer::RecursivelyGatherSizes(bool bReferencers, const TArray<FAssetIdentifier>& Identifiers, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames, TMap<FAssetIdentifier, int32>& OutNodeSizes) const
+int32 UEdGraph_ReferenceViewer::RecursivelyGatherSizes(bool bReferencers, const TArray<FAssetIdentifier>& Identifiers, const TSet<FName>& AllowedPackageNames, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames, TMap<FAssetIdentifier, int32>& OutNodeSizes) const
 {
 	check(Identifiers.Num() > 0);
 
@@ -309,13 +344,13 @@ int32 UEdGraph_ReferenceViewer::RecursivelyGatherSizes(bool bReferencers, const 
 		// Do not count your own size since there could just be a horizontal line of nodes
 		for (const FAssetIdentifier& AssetId : ReferenceNames)
 		{
-			if ( !VisitedNames.Contains(AssetId) )
+			if ( !VisitedNames.Contains(AssetId) && (!AssetId.IsPackage() || !ShouldFilterByCollection() || AllowedPackageNames.Contains(AssetId.PackageName)) )
 			{
 				if ( !ExceedsMaxSearchBreadth(NumReferencesMade) )
 				{
 					TArray<FAssetIdentifier> NewPackageNames;
 					NewPackageNames.Add(AssetId);
-					NodeSize += RecursivelyGatherSizes(bReferencers, NewPackageNames, CurrentDepth + 1, VisitedNames, OutNodeSizes);
+					NodeSize += RecursivelyGatherSizes(bReferencers, NewPackageNames, AllowedPackageNames, CurrentDepth + 1, VisitedNames, OutNodeSizes);
 					NumReferencesMade++;
 				}
 				else
@@ -363,7 +398,7 @@ void UEdGraph_ReferenceViewer::GatherAssetData(const TSet<FName>& AllPackageName
 	}
 }
 
-UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FAssetIdentifier>& Identifiers, const FIntPoint& NodeLoc, const TMap<FAssetIdentifier, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames)
+UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FAssetIdentifier>& Identifiers, const FIntPoint& NodeLoc, const TMap<FAssetIdentifier, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, const TSet<FName>& AllowedPackageNames, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames)
 {
 	check(Identifiers.Num() > 0);
 
@@ -438,7 +473,7 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 		{
 			FAssetIdentifier ReferenceName = ReferenceNames[RefIdx];
 
-			if ( !VisitedNames.Contains(ReferenceName) )
+			if ( !VisitedNames.Contains(ReferenceName) && (!ReferenceName.IsPackage() || !ShouldFilterByCollection() || AllowedPackageNames.Contains(ReferenceName.PackageName)) )
 			{
 				if ( !ExceedsMaxSearchBreadth(NumReferencesMade) )
 				{
@@ -452,7 +487,7 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 					TArray<FAssetIdentifier> NewIdentifiers;
 					NewIdentifiers.Add(ReferenceName);
 					
-					UEdGraphNode_Reference* ReferenceNode = RecursivelyConstructNodes(bReferencers, RootNode, NewIdentifiers, RefNodeLoc, NodeSizes, PackagesToAssetDataMap, CurrentDepth + 1, VisitedNames);
+					UEdGraphNode_Reference* ReferenceNode = RecursivelyConstructNodes(bReferencers, RootNode, NewIdentifiers, RefNodeLoc, NodeSizes, PackagesToAssetDataMap, AllowedPackageNames, CurrentDepth + 1, VisitedNames);
 					if (HardReferenceNames.Contains(ReferenceName))
 					{
 						if (bReferencers)
@@ -543,4 +578,9 @@ void UEdGraph_ReferenceViewer::RemoveAllNodes()
 	{
 		RemoveNode(NodesToRemove[NodeIndex]);
 	}
+}
+
+bool UEdGraph_ReferenceViewer::ShouldFilterByCollection() const
+{
+	return bEnableCollectionFilter && CurrentCollectionFilter != NAME_None;
 }

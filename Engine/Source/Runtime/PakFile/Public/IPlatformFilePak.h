@@ -410,7 +410,7 @@ public:
 			const FPakDirectory* PakDirectory = FindDirectory(*Path);
 			if (PakDirectory != NULL)
 			{
-				FString RelativeFilename(Filename.Mid(MountPoint.Len()));
+				FString RelativeFilename(Filename.Mid(Path.Len() + 1));
 				FoundFile = PakDirectory->Find(RelativeFilename);
 			}
 		}
@@ -473,7 +473,7 @@ public:
 						{
 							for (FPakDirectory::TConstIterator DirectoryIt(It.Value()); DirectoryIt; ++DirectoryIt)
 							{
-								OutFiles.Add(MountPoint + DirectoryIt.Key());
+								OutFiles.Add(MountPoint + It.Key() + DirectoryIt.Key());
 							}
 						}
 						if (bIncludeDirectories)
@@ -492,7 +492,7 @@ public:
 						{
 							for (FPakDirectory::TConstIterator DirectoryIt(It.Value()); DirectoryIt; ++DirectoryIt)
 							{
-								OutFiles.Add(MountPoint + DirectoryIt.Key());
+								OutFiles.Add(MountPoint + It.Key() + DirectoryIt.Key());
 							}
 						}
 						// Add sub-folders in the specified folder only
@@ -554,6 +554,8 @@ public:
 		TMap<FString, FPakDirectory>::TConstIterator IndexIt;
 		/** Directory iterator. */
 		FPakDirectory::TConstIterator DirectoryIt;
+		/** The cached filename for return in Filename() */
+		FString CachedFilename;
 
 	public:
 		/**
@@ -566,6 +568,7 @@ public:
 		, IndexIt(PakFile.GetIndex())
 		, DirectoryIt((IndexIt ? FPakDirectory::TConstIterator(IndexIt.Value()): FPakDirectory()))
 		{
+			UpdateCachedFilename();
 		}
 
 		FFileIterator& operator++()		
@@ -584,6 +587,7 @@ public:
 					new(&DirectoryIt) FPakDirectory::TConstIterator(IndexIt.Value());
 				}
 			}
+			UpdateCachedFilename();
 			return *this; 
 		}
 
@@ -598,8 +602,21 @@ public:
 			return !(bool)*this;
 		}
 
-		const FString& Filename() const		{ return DirectoryIt.Key(); }
+		const FString& Filename() const		{ return CachedFilename; }
 		const FPakEntry& Info() const	{ return *DirectoryIt.Value(); }
+
+	private:
+		FORCEINLINE void UpdateCachedFilename()
+		{
+			if (!!IndexIt && !!DirectoryIt)
+			{
+				CachedFilename = IndexIt.Key() + DirectoryIt.Key();
+			}
+			else
+			{
+				CachedFilename.Empty();
+			}
+		}
 	};
 
 	/**
@@ -1262,7 +1279,7 @@ public:
 				const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
 				if (RealFilename != nullptr)
 				{
-					return *RealFilename;
+					return Path + *RealFilename;
 				}
 			}
 		}

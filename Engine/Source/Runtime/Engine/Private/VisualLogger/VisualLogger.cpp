@@ -566,6 +566,22 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 	bIsRecordingToFile = InIsRecording;
 }
 
+void FVisualLogger::DiscardRecordingToFile()
+{
+	if (bIsRecordingToFile)
+	{
+		for (FVisualLogDevice* Device : OutputDevices)
+		{
+			if (Device->HasFlags(EVisualLoggerDeviceFlags::CanSaveToFile))
+			{
+				Device->DiscardRecordingToFile();
+			}
+		}
+
+		bIsRecordingToFile = false;
+	}
+}
+
 bool FVisualLogger::IsCategoryLogged(const FLogCategoryBase& Category) const
 {
 	if ((GEngine && GEngine->bDisableAILogging) || IsRecording() == false)

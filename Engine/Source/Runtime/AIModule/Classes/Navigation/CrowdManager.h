@@ -286,6 +286,10 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category = Config)
 	float SeparationDirClamp;
 
+	/** agent radius multiplier for offsetting path around corners */
+	UPROPERTY(config, EditAnywhere, Category = Config)
+	float PathOffsetRadiusMultiplier;
+
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;
 	uint32 bEarlyReachTestOptimization : 1;

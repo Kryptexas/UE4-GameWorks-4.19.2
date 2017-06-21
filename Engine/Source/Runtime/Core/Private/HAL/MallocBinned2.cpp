@@ -292,7 +292,12 @@ struct FMallocBinned2::Private
 		{
 			uint64 PoolArraySize = NumPools * sizeof(FPoolInfo);
 
-			void* Result = FPlatformMemory::BinnedAllocFromOS(PoolArraySize);
+			void* Result;
+			{
+				LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::SmallBinnedAllocation);
+				Result = FPlatformMemory::BinnedAllocFromOS(PoolArraySize);
+			}
+
 			if (!Result)
 			{
 				OutOfMemory(PoolArraySize);
@@ -332,7 +337,10 @@ struct FMallocBinned2::Private
 		// Create a new hash bucket entry
 		if (!Allocator.HashBucketFreeList)
 		{
-			Allocator.HashBucketFreeList = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(FMallocBinned2::PageSize);
+			{
+				LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::SmallBinnedAllocation);
+				Allocator.HashBucketFreeList = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(FMallocBinned2::PageSize);
+			}
 
 			for (UPTRINT i = 0, n = PageSize / sizeof(PoolHashBucket); i < n; ++i)
 			{
@@ -613,7 +621,11 @@ FMallocBinned2::FMallocBinned2()
 
 	uint64 MaxHashBuckets = PtrToPoolMapping.GetMaxHashBuckets();
 
-	HashBuckets = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(Align(MaxHashBuckets * sizeof(PoolHashBucket), OsAllocationGranularity));
+	{
+		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::SmallBinnedAllocation);
+		HashBuckets = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(Align(MaxHashBuckets * sizeof(PoolHashBucket), OsAllocationGranularity));
+	}
+
 	DefaultConstructItems<PoolHashBucket>(HashBuckets, MaxHashBuckets);
 	MallocBinned2 = this;
 	GFixedMallocLocationPtr = (FMalloc**)(&MallocBinned2);
@@ -1053,6 +1065,7 @@ void FMallocBinned2::FPerThreadFreeBlockLists::SetTLS()
 	FPerThreadFreeBlockLists* ThreadSingleton = (FPerThreadFreeBlockLists*)FPlatformTLS::GetTlsValue(FMallocBinned2::Binned2TlsSlot);
 	if (!ThreadSingleton)
 	{
+		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::SmallBinnedAllocation);
 		ThreadSingleton = new (FPlatformMemory::BinnedAllocFromOS(Align(sizeof(FPerThreadFreeBlockLists), FMallocBinned2::OsAllocationGranularity))) FPerThreadFreeBlockLists();
 		FPlatformTLS::SetTlsValue(FMallocBinned2::Binned2TlsSlot, ThreadSingleton);
 	}

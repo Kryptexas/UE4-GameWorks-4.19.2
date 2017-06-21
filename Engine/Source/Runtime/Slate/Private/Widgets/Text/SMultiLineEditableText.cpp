@@ -38,6 +38,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	bAllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
+	VirtualKeyboardTrigger = InArgs._VirtualKeyboardTrigger;
+	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
 	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
@@ -267,6 +269,16 @@ void SMultiLineEditableText::EnsureActiveTick()
 EKeyboardType SMultiLineEditableText::GetVirtualKeyboardType() const
 {
 	return Keyboard_Default;
+}
+
+EVirtualKeyboardTrigger SMultiLineEditableText::GetVirtualKeyboardTrigger() const
+{
+	return VirtualKeyboardTrigger.Get();
+}
+
+EVirtualKeyboardDismissAction SMultiLineEditableText::GetVirtualKeyboardDismissAction() const
+{
+	return VirtualKeyboardDismissAction.Get();
 }
 
 TSharedRef<SWidget> SMultiLineEditableText::GetSlateWidget()

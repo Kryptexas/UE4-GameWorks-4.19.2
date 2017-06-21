@@ -67,6 +67,8 @@ public:
 		, _OnCursorMoved()
 		, _ContextMenuExtender()
 		, _ModiferKeyForNewLine(EModifierKey::None)
+		, _VirtualKeyboardTrigger(EVirtualKeyboardTrigger::OnFocusByPointer)
+		, _VirtualKeyboardDismissAction(EVirtualKeyboardDismissAction::TextChangeOnDismiss)
 		, _TextShapingMethod()
 		, _TextFlowDirection()
 	{
@@ -161,6 +163,12 @@ public:
 
 		/** The optional modifier key necessary to create a newline when typing into the editor. */
 		SLATE_ARGUMENT(EModifierKey::Type, ModiferKeyForNewLine)
+
+		/** The type of event that will trigger the display of the virtual keyboard */
+		SLATE_ATTRIBUTE(EVirtualKeyboardTrigger, VirtualKeyboardTrigger)
+
+		/** The message action to take when the virtual keyboard is dismissed by the user */
+		SLATE_ATTRIBUTE(EVirtualKeyboardDismissAction, VirtualKeyboardDismissAction)
 
 		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
 		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
@@ -343,6 +351,8 @@ protected:
 	virtual bool CanTypeCharacter(const TCHAR InChar) const override;
 	virtual void EnsureActiveTick() override;
 	virtual EKeyboardType GetVirtualKeyboardType() const override;
+	virtual EVirtualKeyboardTrigger GetVirtualKeyboardTrigger() const override;
+	virtual EVirtualKeyboardDismissAction GetVirtualKeyboardDismissAction() const override;
 	virtual TSharedRef<SWidget> GetSlateWidget() override;
 	virtual TSharedPtr<SWidget> GetSlateWidgetPtr() override;
 	virtual TSharedPtr<SWidget> BuildContextMenuContent() const override;
@@ -419,6 +429,12 @@ protected:
 
 	/** Callback delegate to have first chance handling of the OnKeyDown event */
 	FOnKeyDown OnKeyDownHandler;
+
+	/** The type of event that will trigger the display of the virtual keyboard */
+	TAttribute<EVirtualKeyboardTrigger> VirtualKeyboardTrigger;
+
+	/** The message action to take when the virtual keyboard is dismissed by the user */
+	TAttribute<EVirtualKeyboardDismissAction> VirtualKeyboardDismissAction;
 };
 
 #endif //WITH_FANCY_TEXT

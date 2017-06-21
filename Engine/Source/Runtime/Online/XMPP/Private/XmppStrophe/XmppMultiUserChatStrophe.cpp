@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/XmppMultiUserChatStrophe.h"
 #include "XmppStrophe/XmppConnectionStrophe.h"
@@ -29,6 +29,7 @@ void FXmppMultiUserChatStrophe::OnDisconnect()
 	IncomingRoomSubjects.Empty();
 	IncomingRoomConfigErrors.Empty();
 	IncomingRoomConfigWriteSuccesses.Empty();
+	IncomingRoomInfoUpdates.Empty();
 }
 
 bool FXmppMultiUserChatStrophe::ReceiveStanza(const FStropheStanza& IncomingStanza)
@@ -61,13 +62,24 @@ bool FXmppMultiUserChatStrophe::ReceiveStanza(const FStropheStanza& IncomingStan
 	}
 	else if (StanzaName == Strophe::SN_IQ)
 	{
-		if (IncomingStanza.GetType() != Strophe::ST_ERROR)
+		// Ignore pings
+		if (IncomingStanza.HasChildByNameAndNamespace(Strophe::SN_PING, Strophe::SNS_PING))
 		{
-			return HandleRoomConfigStanza(IncomingStanza);
+			return false;
 		}
-		else
+
+		// Config sets/gets are don't have queries in the "muc owner" namespace, so filter those out
+		TOptional<const FStropheStanza> QueryStanza = IncomingStanza.GetChildByNameAndNamespace(Strophe::SN_QUERY, Strophe::SNS_MUC_OWNER);
+		if (!QueryStanza.IsSet())
 		{
-			return HandleRoomConfigErrorStanza(IncomingStanza);
+			if (IncomingStanza.GetType() != Strophe::ST_ERROR)
+			{
+				return HandleRoomConfigStanza(IncomingStanza);
+			}
+			else
+			{
+				return HandleRoomConfigErrorStanza(IncomingStanza);
+			}
 		}
 	}
 
@@ -111,44 +123,50 @@ bool FXmppMultiUserChatStrophe::HandlePresenceErrorStanza(const FStropheStanza& 
 
 			if (ErrorName == Strophe::SN_NOT_AUTHORIZED)
 			{
-				OutError.ErrorMessage = TEXT("A password is required to join this room");
+				OutError.ErrorMessage += TEXT("A password is required to join this room");
 			}
 			else if (ErrorName == Strophe::SN_FORBIDDEN)
 			{
-				OutError.ErrorMessage = TEXT("You are not allowed to join this room");
+				OutError.ErrorMessage += TEXT("You are not allowed to join this room");
 			}
 			else if (ErrorName == Strophe::SN_ITEM_NOT_FOUND)
 			{
-				OutError.ErrorMessage = TEXT("That room does not exist");
+				OutError.ErrorMessage += TEXT("That room does not exist");
 			}
 			else if (ErrorName == Strophe::SN_NOT_ALLOWED)
 			{
-				OutError.ErrorMessage = TEXT("You are unable to create rooms");
+				OutError.ErrorMessage += TEXT("You are unable to create rooms");
 			}
 			else if (ErrorName == Strophe::SN_NOT_ACCEPTABLE)
 			{
-				OutError.ErrorMessage = TEXT("You may not change your nickname");
+				OutError.ErrorMessage += TEXT("You may not change your nickname");
 			}
 			else if (ErrorName == Strophe::SN_REGISTRATION_REQUIRED)
 			{
-				OutError.ErrorMessage = TEXT("You are not a member of this room");
+				OutError.ErrorMessage += TEXT("You are not a member of this room");
 			}
 			else if (ErrorName == Strophe::SN_CONFLICT)
 			{
-				OutError.ErrorMessage = TEXT("Your nickname is already in use in this room");
+				OutError.ErrorMessage += TEXT("Your nickname is already in use in this room");
 			}
 			else if (ErrorName == Strophe::SN_SERVICE_UNAVAILABLE)
 			{
-				OutError.ErrorMessage = TEXT("The requested room is full");
+				OutError.ErrorMessage += TEXT("The requested room is full");
 			}
 			else
 			{
-				OutError.ErrorMessage = FString::Printf(TEXT("Unknown Error %s"), *ErrorName);
+				OutError.ErrorMessage += FString::Printf(TEXT("Unknown Error %s. "), *ErrorName);
 			}
 
-			UE_LOG(LogXmpp, Error, TEXT("MUC: Received error %s"), *OutError.ErrorMessage);
 		}
 	}
+
+	if (OutError.ErrorMessage.IsEmpty())
+	{
+		OutError.ErrorMessage = TEXT("Unknown error");
+	}
+
+	UE_LOG(LogXmpp, Warning, TEXT("MUC: Received error %s"), *OutError.ErrorMessage);
 
 	if (!OutError.ErrorMessage.IsEmpty())
 	{
@@ -168,6 +186,28 @@ bool FXmppMultiUserChatStrophe::HandleGroupChatStanza(const FStropheStanza& Inco
 		SubjectUpdate.RoomId = IncomingStanza.GetFrom().Id;
 
 		IncomingRoomSubjects.Enqueue(MoveTemp(SubjectUpdate));
+		return true;
+	}
+
+	// Check for room settings update (status code 104)
+	TOptional<const FStropheStanza> XStanza = IncomingStanza.GetChildByNameAndNamespace(Strophe::SN_X, Strophe::SNS_MUC_USER);
+	if (XStanza.IsSet())
+	{
+		// We're looking for exactly 1 'status' child
+		const TArray<FStropheStanza> XChildren = XStanza->GetChildren();
+		if (XChildren.Num() == 1)
+		{
+			const FStropheStanza& XChild = XChildren[0];
+			if (XChild.GetName() == Strophe::SN_STATUS)
+			{
+				FString Code = XChild.GetAttribute(Strophe::SA_CODE);
+				if (Code == Strophe::SC_104)
+				{
+					IncomingRoomInfoUpdates.Enqueue(FXmppRoomId(IncomingStanza.GetFrom().Id));
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -205,6 +245,8 @@ bool FXmppMultiUserChatStrophe::HandleGroupChatStanza(const FStropheStanza& Inco
 
 bool FXmppMultiUserChatStrophe::HandleGroupChatErrorStanza(const FStropheStanza& IncomingStanza)
 {
+	FString ErrorMessage;
+
 	TOptional<const FStropheStanza> Error = IncomingStanza.GetChild(Strophe::SN_ERROR);
 	if (Error.IsSet())
 	{
@@ -213,27 +255,32 @@ bool FXmppMultiUserChatStrophe::HandleGroupChatErrorStanza(const FStropheStanza&
 		{
 			const FString ErrorName = ErrorItem.GetName();
 
-			FString ErrorMessage;
 			if (ErrorName == Strophe::SN_FORBIDDEN)
 			{
-				ErrorMessage = TEXT("Unable to send message to room");
+				ErrorMessage += TEXT("Unable to send message to room. ");
 			}
 			else if (ErrorName == Strophe::SN_BAD_REQUEST)
 			{
-				ErrorMessage = TEXT("Unable to send groupchat message to an individual");
+				ErrorMessage += TEXT("Unable to send groupchat message to an individual. ");
 			}
 			else if (ErrorName == Strophe::SN_NOT_ACCEPTABLE)
 			{
-				ErrorMessage = TEXT("You may not send messages to rooms you have not joined");
+				ErrorMessage += TEXT("You may not send messages to rooms you have not joined. ");
 			}
 			else
 			{
-				ErrorMessage = ErrorName;
+				ErrorMessage += FString::Printf(TEXT("%s. "), *ErrorName);
 			}
 
-			UE_LOG(LogXmpp, Error, TEXT("MUC: Received GroupChat error %s"), *ErrorMessage);
 		}
 	}
+
+	if (ErrorMessage.IsEmpty())
+	{
+		ErrorMessage = TEXT("Unknown error");
+	}
+
+	UE_LOG(LogXmpp, Warning, TEXT("MUC: Received GroupChat error %s"), *ErrorMessage);
 
 	return true;
 }
@@ -250,6 +297,7 @@ bool FXmppMultiUserChatStrophe::HandleRoomConfigStanza(const FStropheStanza& Inc
 	// d) The query stanza has children and those children have value stanzas; this
 	//    means the channel already exists and we're querying the options for it
 
+	// Check for config write case (No Query child)
 	TOptional<const FStropheStanza> QueryStanza = IncomingStanza.GetChild(Strophe::SN_QUERY);
 	if (!QueryStanza.IsSet())
 	{
@@ -291,6 +339,8 @@ bool FXmppMultiUserChatStrophe::HandleRoomConfigErrorStanza(const FStropheStanza
 
 bool FXmppMultiUserChatStrophe::CreateRoom(const FXmppRoomId& RoomId, const FString& Nickname, const FXmppRoomConfig& RoomConfig)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: CreateRoom=%s Nickname=%s"), *RoomId, *Nickname);
+
 	bool bSuccess = false;
 	FString ErrorStr;
 
@@ -346,6 +396,8 @@ bool FXmppMultiUserChatStrophe::CreateRoom(const FXmppRoomId& RoomId, const FStr
 
 bool FXmppMultiUserChatStrophe::ConfigureRoom(const FXmppRoomId& RoomId, const FXmppRoomConfig& RoomConfig)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: ConfigureRoom RoomId=%s"), *RoomId);
+
 	bool bSuccess = false;
 	FString ErrorStr;
 
@@ -390,6 +442,8 @@ bool FXmppMultiUserChatStrophe::ConfigureRoom(const FXmppRoomId& RoomId, const F
 
 bool FXmppMultiUserChatStrophe::RefreshRoomInfo(const FXmppRoomId& RoomId)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: RefreshRoomInfo RoomId=%s"), *RoomId);
+
 	// This just prints a bunch of info to the console in our libjingle module, so we're going to
 	// skip writing a bunch of code that doesn't do anything and just call our delegate instead
 
@@ -407,6 +461,8 @@ bool FXmppMultiUserChatStrophe::RefreshRoomInfo(const FXmppRoomId& RoomId)
 
 bool FXmppMultiUserChatStrophe::JoinPublicRoom(const FXmppRoomId& RoomId, const FString& Nickname)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: JoinPublicRoom RoomId=%s Nickname=%s"), *RoomId, *Nickname);
+
 	bool bSuccess = false;
 	FString ErrorStr;
 
@@ -459,6 +515,8 @@ bool FXmppMultiUserChatStrophe::JoinPublicRoom(const FXmppRoomId& RoomId, const 
 
 bool FXmppMultiUserChatStrophe::JoinPrivateRoom(const FXmppRoomId& RoomId, const FString& Nickname, const FString& Password)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: JoinPrivateRoom RoomId=%s Nickname=%s Password=%s"), *RoomId, *Nickname, *Password);
+
 	bool bSuccess = false;
 	FString ErrorStr;
 
@@ -512,18 +570,22 @@ bool FXmppMultiUserChatStrophe::JoinPrivateRoom(const FXmppRoomId& RoomId, const
 
 bool FXmppMultiUserChatStrophe::RegisterMember(const FXmppRoomId& RoomId, const FString& Nickname)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: RegisterMember RoomId=%s Nickname=%s"), *RoomId, *Nickname);
 	// No-op currently in libjingle version
 	return false;
 }
 
 bool FXmppMultiUserChatStrophe::UnregisterMember(const FXmppRoomId& RoomId, const FString& Nickname)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: UnregisterMember RoomId=%s Nickname=%s"), *RoomId, *Nickname);
 	// No-op currently in libjingle version
 	return false;
 }
 
 bool FXmppMultiUserChatStrophe::ExitRoom(const FXmppRoomId& RoomId)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: ExitRoom RoomId=%s"), *RoomId);
+
 	if (ConnectionManager.GetLoginStatus() != EXmppLoginStatus::LoggedIn)
 	{
 		return false;
@@ -550,6 +612,8 @@ bool FXmppMultiUserChatStrophe::ExitRoom(const FXmppRoomId& RoomId)
 
 bool FXmppMultiUserChatStrophe::SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo)
 {
+	UE_LOG(LogXmpp, Verbose, TEXT("MUC: SendChat RoomId=%s"), *RoomId);
+
 	if (ConnectionManager.GetLoginStatus() != EXmppLoginStatus::LoggedIn)
 	{
 		return false;
@@ -708,7 +772,7 @@ bool FXmppMultiUserChatStrophe::Tick(float DeltaTime)
 	while (!IncomingRoomConfigErrors.IsEmpty())
 	{
 		FXmppStropheErrorPair RoomConfigError;
-		if (!IncomingRoomConfigErrors.Dequeue(RoomConfigError))
+		if (IncomingRoomConfigErrors.Dequeue(RoomConfigError))
 		{
 			OnReceiveRoomConfigError(MoveTemp(RoomConfigError));
 		}
@@ -716,9 +780,17 @@ bool FXmppMultiUserChatStrophe::Tick(float DeltaTime)
 	while (!IncomingRoomConfigWriteSuccesses.IsEmpty())
 	{
 		FXmppRoomId RoomId;
-		if (!IncomingRoomConfigWriteSuccesses.Dequeue(RoomId))
+		if (IncomingRoomConfigWriteSuccesses.Dequeue(RoomId))
 		{
 			OnReceiveRoomConfigSuccess(MoveTemp(RoomId));
+		}
+	}
+	while (!IncomingRoomInfoUpdates.IsEmpty())
+	{
+		FXmppRoomId RoomId;
+		if (IncomingRoomInfoUpdates.Dequeue(RoomId))
+		{
+			OnReceieveRoomInfoUpdate(MoveTemp(RoomId));
 		}
 	}
 
@@ -872,6 +944,10 @@ void FXmppMultiUserChatStrophe::OnReceiveRoomConfigError(FXmppStropheErrorPair&&
 
 			UE_LOG(LogXmpp, Warning, TEXT("MUC: Failed to Configure Room Room=%s Error=%s"), *RoomConfigError.RoomId, *RoomConfigError.ErrorMessage);
 		}
+		else
+		{
+			UE_LOG(LogXmpp, Warning, TEXT("MUC: OnReceiveRoomConfigError Received Error from room we have no callback for: Room=%s Connjid=%s Error=%s"), *RoomConfigError.RoomId, *ConnectionManager.GetUserJid().Id, *RoomConfigError.ErrorMessage);
+		}
 	}
 	else
 	{
@@ -899,11 +975,30 @@ void FXmppMultiUserChatStrophe::OnReceiveRoomConfigSuccess(FXmppRoomId&& RoomId)
 				OnXmppRoomCreateCompleteDelegate.Broadcast(ConnectionManager.AsShared(), true, RoomPtr->GetRoomId(), FString());
 				break;
 			}
+
+			UE_LOG(LogXmpp, Verbose, TEXT("MUC: OnReceiveRoomConfigSuccess Recieved success for room %s"), *RoomId);
+		}
+		else
+		{
+			UE_LOG(LogXmpp, Warning, TEXT("MUC: OnReceiveRoomConfigSuccess Received success from room with no callback Room=%s"), *RoomId);
 		}
 	}
 	else
 	{
 		UE_LOG(LogXmpp, Warning, TEXT("MUC: OnReceiveRoomConfigSuccess Received RoomConfig from room we haven't joined: Room=%s Connjid=%s"), *RoomId, *ConnectionManager.GetUserJid().Id);
+	}
+}
+
+void FXmppMultiUserChatStrophe::OnReceieveRoomInfoUpdate(FXmppRoomId&& RoomId)
+{
+	FXmppRoomStrophe* RoomPtr = Chatrooms.Find(RoomId);
+	if (RoomPtr != nullptr)
+	{
+		SendRequestRoomInfoConfigStanza(*RoomPtr);
+	}
+	else
+	{
+		UE_LOG(LogXmpp, Warning, TEXT("MUC: OnReceieveRoomInfoUpdate Received RoomInfoUpdate for room we haven't joined: Room=%s Connjid=%s"), *RoomId, *ConnectionManager.GetUserJid().Id);
 	}
 }
 
@@ -945,6 +1040,25 @@ bool FXmppMultiUserChatStrophe::SendExitRoomStanza(const FXmppRoomStrophe& Room)
 	return ConnectionManager.SendStanza(MoveTemp(ExitPresence));
 }
 
+bool FXmppMultiUserChatStrophe::SendRequestRoomInfoConfigStanza(const FXmppRoomStrophe& Room)
+{
+	FStropheStanza IQStanza(ConnectionManager, Strophe::SN_IQ);
+	{
+		IQStanza.SetId(FGuid::NewGuid().ToString());
+		IQStanza.SetTo(Room.GetRoomJid().GetBareId());
+		IQStanza.SetFrom(ConnectionManager.GetUserJid());
+		IQStanza.SetType(Strophe::ST_GET);
+
+		{
+			FStropheStanza QueryStanza(ConnectionManager, Strophe::SN_QUERY);
+			QueryStanza.SetNamespace(Strophe::SNS_DISCO_INFO);
+			IQStanza.AddChild(QueryStanza);
+		}
+	}
+
+	return ConnectionManager.SendStanza(MoveTemp(IQStanza));
+}
+
 bool FXmppMultiUserChatStrophe::InternalConfigureRoom(const FXmppRoomStrophe& Room, const FXmppRoomConfig& RoomConfig, EConfigureRoomTypeStrophe CallbackType)
 {
 	const auto SetStanzaConfig = [this](FStropheStanza& ParentStanza, const FString& Key, const FString& Value)
@@ -968,23 +1082,29 @@ bool FXmppMultiUserChatStrophe::InternalConfigureRoom(const FXmppRoomStrophe& Ro
 
 		FStropheStanza QueryStanza(ConnectionManager, Strophe::SN_QUERY);
 		{
-			QueryStanza.SetNamespace(Strophe::SNS_X_DATA);
-			QueryStanza.SetType(Strophe::ST_SUBMIT);
+			QueryStanza.SetNamespace(Strophe::SNS_MUC_OWNER);
 
-			SetStanzaConfig(QueryStanza, TEXT("FORM_TYPE"),								TEXT("http://jabber.org/protocol/muc#roomconfig"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_roomname"),				RoomConfig.RoomName);
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_roomdesc"),				RoomConfig.RoomDesc);
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_persistentroom"),			RoomConfig.bIsPersistent ? TEXT("1") : TEXT("0"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#maxhistoryfetch"),					FString::FromInt(RoomConfig.MaxMsgHistory));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_changesubject"),			RoomConfig.bAllowChangeSubject ? TEXT("1") : TEXT("0"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_anonymity"),				FXmppRoomConfig::ConvertRoomAnonymityToString(RoomConfig.RoomAnonymity));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_membersonly"),			RoomConfig.bIsMembersOnly ? TEXT("1") : TEXT("0"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_moderatedroom"),			RoomConfig.bIsModerated ? TEXT("1") : TEXT("0"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_publicroom"),				RoomConfig.bAllowPublicSearch ? TEXT("1") : TEXT("0"));
-			SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_passwordprotectedroom"),	RoomConfig.bIsPrivate ? TEXT("1") : TEXT("0"));
-			if (RoomConfig.bIsPrivate)
+			FStropheStanza XStanza(ConnectionManager, Strophe::SN_X);
 			{
-				SetStanzaConfig(QueryStanza, TEXT("muc#roomconfig_roomsecret"), RoomConfig.Password);
+				XStanza.SetNamespace(Strophe::SNS_X_DATA);
+				XStanza.SetType(Strophe::ST_SUBMIT);
+				SetStanzaConfig(XStanza, TEXT("FORM_TYPE"),								TEXT("http://jabber.org/protocol/muc#roomconfig"));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_roomname"),				RoomConfig.RoomName);
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_roomdesc"),				RoomConfig.RoomDesc);
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_persistentroom"),			RoomConfig.bIsPersistent ? TEXT("1") : TEXT("0"));
+				SetStanzaConfig(XStanza, TEXT("muc#maxhistoryfetch"),					FString::FromInt(RoomConfig.MaxMsgHistory));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_changesubject"),			RoomConfig.bAllowChangeSubject ? TEXT("1") : TEXT("0"));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_anonymity"),				FXmppRoomConfig::ConvertRoomAnonymityToString(RoomConfig.RoomAnonymity));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_membersonly"),			RoomConfig.bIsMembersOnly ? TEXT("1") : TEXT("0"));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_moderatedroom"),			RoomConfig.bIsModerated ? TEXT("1") : TEXT("0"));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_publicroom"),				RoomConfig.bAllowPublicSearch ? TEXT("1") : TEXT("0"));
+				SetStanzaConfig(XStanza, TEXT("muc#roomconfig_passwordprotectedroom"),	RoomConfig.bIsPrivate ? TEXT("1") : TEXT("0"));
+				if (RoomConfig.bIsPrivate)
+				{
+					SetStanzaConfig(XStanza, TEXT("muc#roomconfig_roomsecret"), RoomConfig.Password);
+				}
+
+				QueryStanza.AddChild(XStanza);
 			}
 		}
 		IQStanza.AddChild(QueryStanza);
@@ -1048,17 +1168,6 @@ void FXmppMultiUserChatStrophe::HandleJoinPublicRoomComplete(FXmppRoomStrophe& R
 	Room.Status = ERoomStatusStrophe::Joined;
 	Room.Members.Emplace(MakeShareable(new FXmppChatMember(MemberPresence)));
 	OnXmppRoomJoinPublicCompleteDelegate.Broadcast(ConnectionManager.AsShared(), true, Room.GetRoomId(), FString());
-
-	// This is a hack to match the hack in libstrophe
-	if (Room.Info.OwnerId == Room.GetNickname() &&
-		(Room.GetRoomId().StartsWith(TEXT("Fortnite"), ESearchCase::IgnoreCase) || Room.GetRoomId().StartsWith(TEXT("Global"), ESearchCase::IgnoreCase)))
-	{
-		// If we are the first person to enter global chat, configure it
-		FXmppRoomConfig GlobalChatConfig;
-		GlobalChatConfig.bIsPersistent = true;
-		GlobalChatConfig.bIsPrivate = false;
-		InternalConfigureRoom(Room, GlobalChatConfig, EConfigureRoomTypeStrophe::NoCallback);
-	}
 }
 
 void FXmppMultiUserChatStrophe::HandleExitRoomComplete(FXmppRoomStrophe& Room, FXmppMucPresence&& MemberPresence)
@@ -1072,6 +1181,10 @@ void FXmppMultiUserChatStrophe::HandleExitRoomComplete(FXmppRoomStrophe& Room, F
 	else if (Room.Status == ERoomStatusStrophe::CreatePending)
 	{
 		OnXmppRoomCreateCompleteDelegate.Broadcast(ConnectionManager.AsShared(), false, Room.GetRoomId(), TEXT("Failed to configure room"));
+	}
+	else
+	{
+		UE_LOG(LogXmpp, Warning, TEXT("MUC: Unexpected room exit complete; in state %s"), Lex::ToString(Room.Status));
 	}
 
 	// Do not use Room after this

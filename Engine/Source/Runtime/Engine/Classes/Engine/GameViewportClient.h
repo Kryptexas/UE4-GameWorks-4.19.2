@@ -773,6 +773,8 @@ public:
 		return ToggleFullscreenDelegate;
 	}
 
+	void SetVirtualCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* Widget);
+
 private:
 	/** Resets the platform type shape to nullptr, to restore it to the OS default. */
 	void ResetHardwareCursorStates();

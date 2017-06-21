@@ -175,8 +175,8 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 	TickScrollDelta = 0;
 	AllowOverscroll = InArgs._AllowOverscroll;
-	DestinationScrollingWidgetIntoView = EDescendantScrollDestination::IntoView;
-	bAnimateScrollingWidgetIntoView = false;
+	NavigationScrollPadding = InArgs._NavigationScrollPadding;
+	NavigationDestination = InArgs._NavigationDestination;
 	bTouchPanningCapture = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
@@ -388,16 +388,16 @@ void SScrollBox::ScrollToEnd()
 	Invalidate(EInvalidateWidget::Layout);
 }
 
-void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
+void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToScrollIntoView, bool InAnimateScroll, EDescendantScrollDestination InDestination, float InScrollPadding)
 {
-	WidgetToScrollIntoView = WidgetToFind;
-	DestinationScrollingWidgetIntoView = InDestination;
-	bAnimateScrollingWidgetIntoView = InAnimateScroll;
+	ScrollIntoViewRequest = [this, WidgetToScrollIntoView, InAnimateScroll, InDestination, InScrollPadding] (FGeometry AllottedGeometry) {
+		InternalScrollDescendantIntoView(AllottedGeometry, WidgetToScrollIntoView, InAnimateScroll, InDestination, InScrollPadding);
+	};
 
 	BeginInertialScrolling();
 }
 
-bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
+bool SScrollBox::InternalScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination, float InScrollPadding)
 {
 	// We need to safely find the one WidgetToFind among our descendants.
 	TSet< TSharedRef<SWidget> > WidgetsToFind;
@@ -420,34 +420,34 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 		if ( InDestination == EDescendantScrollDestination::TopOrLeft )
 		{
 			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition);
-			const float MyPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition);
+			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
+			const float MyPosition = InScrollPadding;
+			ScrollOffset = WidgetPosition - MyPosition;
+		}
+		else if ( InDestination == EDescendantScrollDestination::Center )
+		{
+			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
+			const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.GetLocalPositionAtCoordinates(FVector2D(0.5f, 0.5f)));
+			const float MyPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() * FVector2D(0.5f, 0.5f));
 			ScrollOffset = WidgetPosition - MyPosition;
 		}
 		else
 		{
-			// If the scale is 0, we can't really calculate things properly.
-			if ( MyGeometry.Scale != 0 )
+			const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position);
+			const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.Position + WidgetGeometry->Geometry.GetLocalSize());
+			const float ViewStartPosition = InScrollPadding;
+			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.GetLocalSize() - InScrollPadding);
+
+			const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
+			const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
+
+			if ( WidgetStartPosition < ViewStartPosition )
 			{
-				// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-				// NOTE: The scrollbox does all offset calculation using desired sizes which doesn't involve scale,
-				//       so we need to remove the scale from positions so that they are in the same unscaled space.
-				const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale);
-				const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale + WidgetGeometry->Geometry.GetLocalSize());
-				const float ViewStartPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale);
-				const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale + MyGeometry.GetLocalSize());
-
-				const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
-				const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
-
-				if ( WidgetStartPosition < ViewStartPosition )
-				{
-					ScrollOffset = WidgetStartPosition - ViewStartPosition;
-				}
-				else if ( WidgetEndPosition > ViewEndPosition )
-				{
-					ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
-				}
+				ScrollOffset = WidgetStartPosition - ViewStartPosition;
+			}
+			else if ( WidgetEndPosition > ViewEndPosition )
+			{
+				ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
 			}
 		}
 
@@ -456,8 +456,10 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 			DesiredScrollOffset = ScrollPanel->PhysicalOffset;
 			ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
 		}
+
 		return true;
 	}
+
 	return false;
 }
 
@@ -559,10 +561,10 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	}
 
 	// If we needed a widget to be scrolled into view, make that happen.
-	if ( WidgetToScrollIntoView.IsValid() )
+	if ( ScrollIntoViewRequest )
 	{
-		ScrollDescendantIntoView(AllottedGeometry, WidgetToScrollIntoView, bAnimateScrollingWidgetIntoView, DestinationScrollingWidgetIntoView);
-		WidgetToScrollIntoView.Reset();
+		ScrollIntoViewRequest(AllottedGeometry);
+		ScrollIntoViewRequest = nullptr;
 	}
 
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
@@ -892,6 +894,7 @@ FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNa
 {
 	TSharedPtr<SWidget> FocusedChild;
 	int32 FocusedChildIndex = -1;
+	int32 FocusedChildDirection = 0;
 
 	// Find the child with focus currently so that we can find the next logical child we're going to move to.
 	TPanelChildren<SScrollBox::FSlot>& Children = ScrollPanel->Children;
@@ -913,10 +916,10 @@ FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNa
 			switch ( InNavigationEvent.GetNavigationType() )
 			{
 			case EUINavigation::Up:
-				FocusedChildIndex--;
+				FocusedChildDirection = -1;
 				break;
 			case EUINavigation::Down:
-				FocusedChildIndex++;
+				FocusedChildDirection = 1;
 				break;
 			default:
 				// If we don't handle this direction in our current orientation we can 
@@ -929,10 +932,10 @@ FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNa
 			switch ( InNavigationEvent.GetNavigationType() )
 			{
 			case EUINavigation::Left:
-				FocusedChildIndex--;
+				FocusedChildDirection = -1;
 				break;
 			case EUINavigation::Right:
-				FocusedChildIndex++;
+				FocusedChildDirection = 1;
 				break;
 			default:
 				// If we don't handle this direction in our current orientation we can 
@@ -943,12 +946,27 @@ FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNa
 
 		// If the focused child index is in a valid range we know we can successfully focus
 		// the new child we're moving focus to.
-		if ( FocusedChildIndex >= 0 && FocusedChildIndex < Children.Num() )
+		if ( FocusedChildDirection != 0 )
 		{
-			TSharedRef<SWidget> NextFocusedChild = Children[FocusedChildIndex].GetWidget();
-			ScrollDescendantIntoView(MyGeometry, NextFocusedChild, false);
+			TSharedPtr<SWidget> NextFocusableChild;
 
-			return FNavigationReply::Explicit(NextFocusedChild);
+			// Search in the direction we need to move for the next focusable child of the scrollbox.
+			for ( int32 ChildIndex = FocusedChildIndex + FocusedChildDirection; ChildIndex >= 0 && ChildIndex < Children.Num(); ChildIndex += FocusedChildDirection )
+			{
+				TSharedRef<SWidget> PossiblyFocusableChild = Children[ChildIndex].GetWidget();
+				if ( PossiblyFocusableChild->SupportsKeyboardFocus() )
+				{
+					NextFocusableChild = PossiblyFocusableChild;
+					break;
+				}
+			}
+
+			// If we found a focusable child, scroll to it, and shift focus.
+			if ( NextFocusableChild.IsValid() )
+			{
+				InternalScrollDescendantIntoView(MyGeometry, NextFocusableChild, false, NavigationDestination, NavigationScrollPadding);
+				return FNavigationReply::Explicit(NextFocusableChild);
+			}
 		}
 	}
 

@@ -159,7 +159,7 @@ void FGameplayEffectDetails::OnTemplateChange()
 		{
 			UProperty* Property = *PropIt;
 			// don't overwrite the template property
-			if (Property->GetFName() == "Template")
+			if (Property->GetFName() == GET_MEMBER_NAME_CHECKED(UGameplayEffect, Template))
 			{
 				continue;
 			}

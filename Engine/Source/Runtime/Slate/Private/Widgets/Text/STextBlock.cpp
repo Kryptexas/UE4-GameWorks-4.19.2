@@ -83,6 +83,12 @@ const FSlateBrush* STextBlock::GetHighlightShape() const
 
 void STextBlock::SetText( const TAttribute< FString >& InText )
 {
+	if (InText.IsSet() && !InText.IsBound())
+	{
+		SetText(InText.Get());
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
 	struct Local
 	{
@@ -99,13 +105,17 @@ void STextBlock::SetText( const TAttribute< FString >& InText )
 
 void STextBlock::SetText( const FString& InText )
 {
-	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
-	BoundText = FText::FromString( InText );
-	Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	SetText(FText::FromString(InText));
 }
 
 void STextBlock::SetText( const TAttribute< FText >& InText )
 {
+	if (InText.IsSet() && !InText.IsBound())
+	{
+		SetText(InText.Get());
+		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
 	BoundText = InText;
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
@@ -118,14 +128,13 @@ void STextBlock::SetText( const FText& InText )
 	if ( !BoundText.IsBound() )
 	{
 		const FString& OldString = BoundText.Get().ToString();
-		const FString& NewString = InText.ToString();
 		const int32 OldLength = OldString.Len();
-		const int32 NewLength = NewString.Len();
 
 		// Only compare reasonably sized strings, it's not worth checking this
 		// for large blocks of text.
 		if ( OldLength <= 20 )
 		{
+			const FString& NewString = InText.ToString();
 			if ( OldString.Compare(NewString, ESearchCase::CaseSensitive) == 0 )
 			{
 				return;

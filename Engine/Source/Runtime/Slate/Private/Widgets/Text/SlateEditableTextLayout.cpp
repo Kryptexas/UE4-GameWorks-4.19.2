@@ -252,7 +252,10 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 		}
 	}
 
-	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	if (bHasTextChanged || BoundText.IsBound())
+	{
+		OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	}
 }
 
 FText FSlateEditableTextLayout::GetText() const
@@ -587,8 +590,8 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
-			const bool bShowVirtualKeyboardOnAllFocusTypes = GetDefault<USlateSettings>()->bVirtualKeyboardDisplayOnFocus;
-			if (InFocusEvent.GetCause() == EFocusCause::Mouse || bShowVirtualKeyboardOnAllFocusTypes)
+			if ( (InFocusEvent.GetCause() == EFocusCause::Mouse && OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnFocusByPointer) ||
+				 (OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnAllFocusEvents))
 			{
 				// @TODO: Create ITextInputMethodSystem derivations for mobile
 				FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
@@ -985,7 +988,11 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeomet
 				{
 					if (!OwnerWidget->IsTextReadOnly())
 					{
-						FSlateApplication::Get().ShowVirtualKeyboard(true, InMouseEvent.GetUserIndex(), VirtualKeyboardEntry.ToSharedRef());
+						if (OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnAllFocusEvents ||
+							OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnFocusByPointer)
+						{
+							FSlateApplication::Get().ShowVirtualKeyboard(true, InMouseEvent.GetUserIndex(), VirtualKeyboardEntry.ToSharedRef());
+						}
 					}
 				}
 			}
@@ -2997,21 +3004,19 @@ bool FSlateEditableTextLayout::ComputeVolatility() const
 
 void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if (bTextCommittedByVirtualKeyboard)
-	{
-		if (SetEditableText(VirtualKeyboardText))
-		{
-			// Let outsiders know that the text content has been changed
-			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-		}
-		bTextCommittedByVirtualKeyboard = false;
-	}
-	else if (bTextChangedByVirtualKeyboard)
+	if (bTextChangedByVirtualKeyboard)
 	{
 		SetEditableText(VirtualKeyboardText);
 		// Let outsiders know that the text content has been changed
 		OwnerWidget->OnTextChanged(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
+	}
+
+	if (bTextCommittedByVirtualKeyboard)
+	{
+		// Let outsiders know that the text content has been changed
+		OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
+		bTextCommittedByVirtualKeyboard = false;
 	}
 
 	if (TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->UpdateCachedGeometry(AllottedGeometry))
@@ -3296,7 +3301,7 @@ FSlateEditableTextLayout::FVirtualKeyboardEntry::FVirtualKeyboardEntry(FSlateEdi
 {
 }
 
-void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
+void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ETextEntryType TextEntryType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextCommitted will handle the update.
@@ -3310,14 +3315,23 @@ void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard
 	// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
 	// fired on the game thread in Tick.		
 	OwnerLayout->VirtualKeyboardText = InNewText;
-	if (SetTextType == ESetTextType::Changed)
+	OwnerLayout->bTextChangedByVirtualKeyboard = true;
+	if (TextEntryType == ETextEntryType::TextEntryAccepted)
 	{
-		OwnerLayout->bTextChangedByVirtualKeyboard = true;
+		if (OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnAccept ||
+			OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnDismiss)
+		{
+			OwnerLayout->VirtualKeyboardTextCommitType = ETextCommit::OnEnter;
+			OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		}
 	}
-	if (SetTextType == ESetTextType::Commited)
+	else if (TextEntryType == ETextEntryType::TextEntryCanceled)
 	{
-		OwnerLayout->VirtualKeyboardTextCommitType = CommitType;
-		OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		if (OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnDismiss)
+		{
+			OwnerLayout->VirtualKeyboardTextCommitType = ETextCommit::Default;
+			OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		}
 	}
 }
 

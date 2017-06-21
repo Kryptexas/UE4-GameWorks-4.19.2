@@ -66,6 +66,7 @@ FMfMediaTracks::FMfMediaTracks()
 	, CaptionDone(true)
 	, Enabled(false)
 	, VideoDone(true)
+	, bIsStarted(false)
 {
 }
 
@@ -178,6 +179,14 @@ void FMfMediaTracks::Tick(float DeltaTime)
 	if (!Enabled || (SourceReader == NULL))
 	{
 		return;
+	}
+
+	// Clear out the delta time on the first tick of playback.
+	// This guarantees we will start playback at the first frame.
+	if (!bIsStarted)
+	{
+		DeltaTime = 0.0f;
+		bIsStarted = true;
 	}
 
 	// Check if new video sample(s) required
@@ -1103,6 +1112,10 @@ void FMfMediaTracks::InitializeAudioSink()
 
 	const FAudioTrack& AudioTrack = AudioTracks[SelectedAudioTrack];
 	AudioSink->InitializeAudioSink(AudioTrack.NumChannels, AudioTrack.SampleRate);
+	if (Enabled)
+	{
+		AudioSink->ResumeAudioSink();
+	}
 }
 
 

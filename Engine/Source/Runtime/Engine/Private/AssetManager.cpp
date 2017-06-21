@@ -1920,6 +1920,21 @@ void UAssetManager::DumpReferencersForPackage(const TArray< FString >& PackageNa
 	Manager.WriteCustomReport(FString::Printf(TEXT("ReferencersForPackage%s%s.gv"), *PackageNames[0], *FDateTime::Now().ToString()), ReportLines);
 }
 
+bool UAssetManager::ShouldScanPrimaryAssetType(FPrimaryAssetTypeInfo& TypeInfo) const
+{
+	if (TypeInfo.bIsEditorOnly && !GIsEditor)
+	{
+		return false;
+	}
+
+	if (!TypeInfo.FillRuntimeData())
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void UAssetManager::ScanPrimaryAssetTypesFromConfig()
 {
 	IAssetRegistry& AssetRegistry = GetAssetRegistry();
@@ -1929,13 +1944,8 @@ void UAssetManager::ScanPrimaryAssetTypesFromConfig()
 
 	for (FPrimaryAssetTypeInfo TypeInfo : Settings.PrimaryAssetTypesToScan)
 	{
-		if (TypeInfo.bIsEditorOnly && !GIsEditor)
-		{
-			continue;
-		}
-
-		// Fill out runtime data on a copy, specifically not making a reference in this case
-		if (!TypeInfo.FillRuntimeData())
+		// This function also fills out runtime data on the copy
+		if (!ShouldScanPrimaryAssetType(TypeInfo))
 		{
 			continue;
 		}

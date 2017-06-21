@@ -347,6 +347,11 @@ void SSlider::SetSliderHandleColor(FSlateColor InSliderHandleColor)
 	SliderHandleColor = InSliderHandleColor;
 }
 
+float SSlider::GetStepSize() const
+{
+	return StepSize.Get();
+}
+
 void SSlider::SetStepSize(const TAttribute<float>& InStepSize)
 {
 	StepSize = InStepSize;

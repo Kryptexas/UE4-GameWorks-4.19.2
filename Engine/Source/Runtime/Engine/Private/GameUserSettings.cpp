@@ -12,6 +12,9 @@
 #include "UnrealEngine.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/GameEngine.h"
+#include "Sound/AudioSettings.h"
+#include "Sound/SoundCue.h"
+#include "AudioDevice.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
@@ -386,6 +389,13 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 		Scalability::SetQualityLevels(ScalabilityQuality);
 	}
 
+	FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
+	if (AudioDevice)
+	{
+		FAudioQualitySettings AudioSettings = AudioDevice->GetQualityLevelSettings();
+		AudioDevice->SetMaxChannels(AudioSettings.MaxChannels);
+	}
+
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
 	bool bWithEditor = false;
@@ -603,7 +613,12 @@ void UGameUserSettings::SetBenchmarkFallbackValues()
 
 void UGameUserSettings::SetAudioQualityLevel(int32 QualityLevel)
 {
-	AudioQualityLevel = QualityLevel;
+	if (AudioQualityLevel != QualityLevel)
+	{
+		AudioQualityLevel = QualityLevel;
+
+		USoundCue::StaticAudioQualityChanged(QualityLevel);
+	}
 }
 
 void UGameUserSettings::SetFrameRateLimit(float NewLimit)

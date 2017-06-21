@@ -45,21 +45,33 @@ void UEnvQueryGenerator_Composite::VerifyItemTypes()
 	TSubclassOf<UEnvQueryItemType> CommonItemType = nullptr;
 	bHasMatchingItemType = true;
 
-	for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
+	if (bAllowDifferentItemTypes)
 	{
-		if (Generators[Idx])
+		// ignore safety and force user specified item type
+		// REQUIRES proper memory layout between forced type and ALL item types used by child generators
+		// this is advanced option and will NOT be validated!
+
+		CommonItemType = ForcedItemType;
+		bHasMatchingItemType = (ForcedItemType != nullptr);
+	}
+	else
+	{
+		for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
 		{
-			if (CommonItemType)
+			if (Generators[Idx])
 			{
-				if (CommonItemType != Generators[Idx]->ItemType)
+				if (CommonItemType)
 				{
-					bHasMatchingItemType = false;
-					break;
+					if (CommonItemType != Generators[Idx]->ItemType)
+					{
+						bHasMatchingItemType = false;
+						break;
+					}
 				}
-			}
-			else
-			{
-				CommonItemType = Generators[Idx]->ItemType;
+				else
+				{
+					CommonItemType = Generators[Idx]->ItemType;
+				}
 			}
 		}
 	}
@@ -70,6 +82,7 @@ void UEnvQueryGenerator_Composite::VerifyItemTypes()
 	}
 	else
 	{
+		// any type will do, generator is not allowed to create items anyway
 		ItemType = UEnvQueryItemType_Point::StaticClass();
 	}
 }

@@ -166,10 +166,15 @@ struct FShowWebUrlParams
 	{}
 };
 
+typedef FString FUniqueOfferId;
+
 struct FShowStoreParams
 {
 	/** Category filter for products to browse */
 	FString Category;
+
+	/** Product to show directly instead of the whole store */
+	FUniqueOfferId ProductId;
 
 	/**
 	 * Constructor

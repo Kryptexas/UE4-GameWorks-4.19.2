@@ -58,13 +58,19 @@ FString FAIStimulus::GetDebugDescription() const
 const FPerceptionListener FPerceptionListener::NullListener;
 
 FPerceptionListener::FPerceptionListener()
-	: ListenerID(FPerceptionListenerID::InvalidID())
+	: CachedLocation(FVector::ZeroVector)
+	, CachedDirection(FVector::UpVector)
+	, bHasStimulusToProcess(false)
+	, ListenerID(FPerceptionListenerID::InvalidID())
 {
 
 }
 
 FPerceptionListener::FPerceptionListener(UAIPerceptionComponent& InListener) 
 	: Listener(&InListener)
+	, CachedLocation(FVector::ZeroVector)
+	, CachedDirection(FVector::UpVector)
+	, bHasStimulusToProcess(false)
 	, ListenerID(FPerceptionListenerID::InvalidID())
 {
 	UpdateListenerProperties(InListener);

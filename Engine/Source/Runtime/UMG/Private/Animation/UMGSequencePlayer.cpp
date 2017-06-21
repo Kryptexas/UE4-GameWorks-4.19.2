@@ -205,7 +205,12 @@ void UUMGSequencePlayer::Stop()
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
-	RootTemplateInstance.Finish(*this);
+	if (RootTemplateInstance.IsValid())
+	{
+		const FMovieSceneContext Context(FMovieSceneEvaluationRange(0), PlayerStatus);
+		RootTemplateInstance.Evaluate(Context, *this);
+		RootTemplateInstance.Finish(*this);
+	}
 
 	OnSequenceFinishedPlayingEvent.Broadcast(*this);
 	Animation->OnAnimationFinished.Broadcast();

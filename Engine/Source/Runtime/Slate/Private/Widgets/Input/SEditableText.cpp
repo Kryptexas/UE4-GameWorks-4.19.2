@@ -32,6 +32,8 @@ void SEditableText::Construct( const FArguments& InArgs )
 	MinDesiredWidth = InArgs._MinDesiredWidth;
 	bSelectAllTextOnCommit = InArgs._SelectAllTextOnCommit;
 	VirtualKeyboardType = InArgs._VirtualKeyboardType;
+	VirtualKeyboardTrigger = InArgs._VirtualKeyboardTrigger;
+	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 
 	Font = InArgs._Font;
@@ -475,6 +477,16 @@ void SEditableText::EnsureActiveTick()
 EKeyboardType SEditableText::GetVirtualKeyboardType() const
 {
 	return VirtualKeyboardType.Get();
+}
+
+EVirtualKeyboardTrigger SEditableText::GetVirtualKeyboardTrigger() const
+{
+	return VirtualKeyboardTrigger.Get();
+}
+
+EVirtualKeyboardDismissAction SEditableText::GetVirtualKeyboardDismissAction() const
+{
+	return VirtualKeyboardDismissAction.Get();
 }
 
 TSharedRef<SWidget> SEditableText::GetSlateWidget()

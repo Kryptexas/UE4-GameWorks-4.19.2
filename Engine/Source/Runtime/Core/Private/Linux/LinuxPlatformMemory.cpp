@@ -568,6 +568,50 @@ FPlatformMemoryStats FLinuxPlatformMemory::GetStats()
 	return MemoryStats;
 }
 
+FExtendedPlatformMemoryStats FLinuxPlatformMemory::GetExtendedStats()
+{
+	FExtendedPlatformMemoryStats MemoryStats;
+
+	// More /proc "API" :/
+	MemoryStats.Shared_Clean = 0;
+	MemoryStats.Shared_Dirty = 0;
+	MemoryStats.Private_Clean = 0;
+	MemoryStats.Private_Dirty = 0;
+	if (FILE* ProcSMaps = fopen("/proc/self/smaps", "r"))
+	{
+		do
+		{
+			char LineBuffer[256] = { 0 };
+			char *Line = fgets(LineBuffer, ARRAY_COUNT(LineBuffer), ProcSMaps);
+			if (Line == nullptr)
+			{
+				break;	// eof or an error
+			}
+
+			if (strstr(Line, "Shared_Clean:") == Line)
+			{
+				MemoryStats.Shared_Clean += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			else if (strstr(Line, "Shared_Dirty:") == Line)
+			{
+				MemoryStats.Shared_Dirty += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			if (strstr(Line, "Private_Clean:") == Line)
+			{
+				MemoryStats.Private_Clean += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			else if (strstr(Line, "Private_Dirty:") == Line)
+			{
+				MemoryStats.Private_Dirty += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+		} while (!feof(ProcSMaps));
+
+		fclose(ProcSMaps);
+	}
+
+	return MemoryStats;
+}
+
 const FPlatformMemoryConstants& FLinuxPlatformMemory::GetConstants()
 {
 	static FPlatformMemoryConstants MemoryConstants;

@@ -340,6 +340,11 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		FEngineShowFlags::IterateAllFlags(Sink);
 	}
 
+	// Add any commands from UConsole subclasses
+	AugmentRuntimeAutoCompleteList(AutoCompleteList);
+
+	AutoCompleteList.Shrink();
+
 	// build the magic tree!
 	for (int32 ListIdx = 0; ListIdx < AutoCompleteList.Num(); ListIdx++)
 	{
@@ -374,11 +379,16 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 #endif
 }
 
+void UConsole::AugmentRuntimeAutoCompleteList(TArray<FAutoCompleteCommand>& List)
+{
+	// Implement in subclasses as necessary
+}
+
 typedef TTextFilter< const FAutoCompleteCommand& > FCheatTextFilter;
 
 void CommandToStringArray(const FAutoCompleteCommand& Command, OUT TArray< FString >& StringArray)
 {
-	StringArray.Add(Command.Desc);
+	StringArray.Add(Command.Command);
 }
 
 void UConsole::UpdateCompleteIndices()
@@ -392,8 +402,7 @@ void UConsole::UpdateCompleteIndices()
 	static FString Space(" ");
 	static FString QuestionMark("?");
 	FString Left, Right;
-	if ((TypedStr.Split(Space, &Left, &Right) && !Left.Compare(QuestionMark)) ||
-		!TypedStr.Compare(QuestionMark))
+	if (TypedStr.Split(Space, &Left, &Right) ? Left.Equals(QuestionMark) : TypedStr.Equals(QuestionMark))
 	{
 		static FCheatTextFilter Filter(FCheatTextFilter::FItemToStringArray::CreateStatic(&CommandToStringArray));
 		Filter.SetRawFilterText(FText::FromString(Right));
@@ -624,7 +633,11 @@ void UConsole::FlushPlayerInput()
 
 bool UConsole::ProcessControlKey(FKey Key, EInputEvent Event)
 {	
+#if PLATFORM_MAC
+	if (Key == EKeys::LeftCommand || Key == EKeys::RightCommand)
+#else
 	if (Key == EKeys::LeftControl || Key == EKeys::RightControl)
+#endif
 	{
 		if (Event == IE_Released)
 		{

@@ -50,6 +50,9 @@ public:
 	/** Sets the animation playback rate */
 	void SetPlaybackSpeed(float PlaybackSpeed);
 
+	/** Gets the current time position in the player (in seconds). */
+	bool IsPlayingForward() const { return bIsPlayingForward; }
+
 	/** IMovieScenePlayer interface */
 	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() override { return RootTemplateInstance; }
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override {}

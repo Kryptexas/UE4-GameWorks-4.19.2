@@ -148,7 +148,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 											{
                                                 if(TextWidget.IsValid())
                                                 {
-                                                    TextWidget->SetTextFromVirtualKeyboard(TextEntry, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
+                                                    TextWidget->SetTextFromVirtualKeyboard(TextEntry, ETextEntryType::TextEntryAccepted);
                                                 }
 
 												// clear the TextWidget
@@ -273,7 +273,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 		// index 1 is the OK button
 		if(buttonIndex == 1 && TextWidget.IsValid())
 		{
-			TextWidget->SetTextFromVirtualKeyboard(TextEntry, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
+			TextWidget->SetTextFromVirtualKeyboard(TextEntry, ETextEntryType::TextEntryAccepted);
 		}
     
         // clear the TextWidget

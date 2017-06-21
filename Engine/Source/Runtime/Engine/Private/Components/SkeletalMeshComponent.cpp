@@ -908,6 +908,7 @@ void USkeletalMeshComponent::LoadedFromAnotherClass(const FName& OldClassName)
 
 void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRootMotion)
 {
+	SCOPED_NAMED_EVENT(USkeletalMeshComponent_TickAnimation, FColor::Yellow);
 	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
 	if (SkeletalMesh != nullptr)
@@ -1021,12 +1022,13 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 {
 	Super::TickPose(DeltaTime, bNeedsValidRootMotion);
 
-	if ((AnimUpdateRateParams != nullptr) && (!ShouldUseUpdateRateOptimizations() || !AnimUpdateRateParams->ShouldSkipUpdate()))
+	const bool bUseUpdateRateOptimizations = ShouldUseUpdateRateOptimizations();
+	if ((AnimUpdateRateParams != nullptr) && (!bUseUpdateRateOptimizations || !AnimUpdateRateParams->ShouldSkipUpdate()))
 	{
 		// Don't care about roll over, just care about uniqueness (and 32-bits should give plenty).
 		LastPoseTickFrame = static_cast<uint32>(GFrameCounter);
 
-		float TimeAdjustment = AnimUpdateRateParams->GetTimeAdjustment();
+		float TimeAdjustment = bUseUpdateRateOptimizations ? AnimUpdateRateParams->GetTimeAdjustment() : 0.0f;
 		TickAnimation(DeltaTime + TimeAdjustment, bNeedsValidRootMotion);
 		if (CVarSpewAnimRateOptimization.GetValueOnGameThread() > 0 && Ticked.Increment()==500)
 		{
@@ -1340,17 +1342,17 @@ void USkeletalMeshComponent::RecalcRequiredCurves()
 	// make sure animation requiredcurve to mark as dirty
 	if (AnimScriptInstance)
 	{
-		AnimScriptInstance->RecalcRequiredCurves();
+		AnimScriptInstance->RecalcRequiredCurves(bDisableAnimCurves);
 	}
 
 	for(UAnimInstance* SubInstance : SubInstances)
 	{
-		SubInstance->RecalcRequiredCurves();
+		SubInstance->RecalcRequiredCurves(bDisableAnimCurves);
 	}
 
 	if(PostProcessAnimInstance)
 	{
-		PostProcessAnimInstance->RecalcRequiredCurves();
+		PostProcessAnimInstance->RecalcRequiredCurves(bDisableAnimCurves);
 	}
 
 	MarkRequiredCurveUpToDate();
@@ -2927,6 +2929,7 @@ void USkeletalMeshComponent::ParallelAnimationEvaluation()
 
 void USkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
 {
+	SCOPED_NAMED_EVENT(USkeletalMeshComponent_CompleteParallelAnimationEvaluation, FColor::Yellow);
 	ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
 
 	if (bDoPostAnimEvaluation && (AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.ComponentSpaceTransforms.Num() == GetNumComponentSpaceTransforms()))
@@ -3214,6 +3217,16 @@ void USkeletalMeshComponent::ComputeTeleportRotationThresholdInRadians()
 void USkeletalMeshComponent::ComputeTeleportDistanceThresholdInRadians()
 {
 	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
+}
+
+void USkeletalMeshComponent::SetDisableAnimCurves(bool bInDisableAnimCurves)
+{
+	if (bDisableAnimCurves != bInDisableAnimCurves)
+	{
+		bDisableAnimCurves = bInDisableAnimCurves;
+		// clear cache uid version, so it will update required curves
+		CachedAnimCurveUidVersion = 0;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

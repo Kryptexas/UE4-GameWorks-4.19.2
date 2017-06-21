@@ -285,6 +285,7 @@ void UChannel::AssertInSequenced()
 
 bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 {
+	SCOPED_NAMED_EVENT(UChannel_ReceivedSequencedBunch, FColor::Green);
 	// Handle a regular bunch.
 	if ( !Closing )
 	{
@@ -317,6 +318,7 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
+	SCOPED_NAMED_EVENT(UChannel_ReceivedRawBunch, FColor::Green);
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
 	// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
 	// If a replay fails to create a channel, we want to salvage as much as possible

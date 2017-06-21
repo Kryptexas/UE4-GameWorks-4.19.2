@@ -19,6 +19,12 @@
 #include "Stats/StatsData.h"
 #include "Performance/EnginePerformanceTargets.h"
 
+TAutoConsoleVariable<int32> CVarNumStatsPerGroup(
+	TEXT("stats.MaxPerGroup"),
+	25,
+	TEXT("The max number of lines of stats to show in a group")
+);
+
 /** Stats rendering constants. */
 enum class EStatRenderConsts
 {
@@ -669,6 +675,16 @@ int32 RenderGroupBudget( FCanvas* Canvas, const  int32 X, const int32 Y, const u
 	return Globals.GetFontHeight();
 }
 
+int32 RenderMoreStatsLine(FCanvas* Canvas, const  int32 X, const int32 Y, const int32 NumMoreStats)
+{
+	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
+
+	FString MoreString = FString::Printf(TEXT("[%d more stats. Use the stats.MaxPerGroup CVar to increase the limit]"), NumMoreStats);
+	Canvas->DrawShadowedString(X, Y, *MoreString, Globals.StatFont, FLinearColor::Yellow);
+
+	return Globals.GetFontHeight();
+}
+
 template< typename T >
 void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<FComplexStatMessage>& Aggregates, const FGameThreadStatsData& ViewData, const TSet<FName>& IgnoreBudgetStats, const float TotalGroupBudget, const T& FunctionToCall )
 {
@@ -681,7 +697,9 @@ void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<
 	uint64 MaxTotalTime = 0;
 
 	// Render all counters.
-	for( int32 RowIndex = 0; RowIndex < Aggregates.Num(); ++RowIndex )
+	int32 MaxStatsPerGroup = CVarNumStatsPerGroup.GetValueOnGameThread();
+	int32 RowIndex;
+	for( RowIndex = 0; RowIndex < Aggregates.Num() && RowIndex < MaxStatsPerGroup; ++RowIndex )
 	{
 		const FComplexStatMessage& ComplexStat = Aggregates[RowIndex];
 		const bool bIsBudgetIgnored = IgnoreBudgetStats.Contains(ComplexStat.NameAndInfo.GetShortName());
@@ -701,11 +719,19 @@ void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<
 		Y += FunctionToCall( ViewData, ComplexStat, Canvas, X, Y, TotalGroupBudget, bIsBudgetIgnored );
 	}
 
+	if (MaxStatsPerGroup < Aggregates.Num())
+	{
+		Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + Globals.InterColumnOffset * NumColumns, Globals.GetFontHeight(),
+			0, 0, 1, 1,
+			Globals.BackgroundColors[(RowIndex++) & 1], BackgroundTexture, true);
+		Y += RenderMoreStatsLine(Canvas, X, Y, Aggregates.Num() - MaxStatsPerGroup);
+	}
+
 	if(bBudget)
 	{
 		Canvas->DrawTile(X, Y + Globals.GetYOffset(), Globals.AfterNameColumnOffset + Globals.InterColumnOffset * NumColumns, Globals.GetFontHeight(),
 			0, 0, 1, 1,
-			Globals.BackgroundColors[0], BackgroundTexture, true);
+			Globals.BackgroundColors[RowIndex & 1], BackgroundTexture, true);
 		Y += RenderGroupBudget(Canvas, X, Y, AvgTotalTime, MaxTotalTime, TotalGroupBudget);
 	}
 }

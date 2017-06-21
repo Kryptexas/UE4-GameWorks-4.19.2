@@ -51,14 +51,20 @@ public:
 	void SetSearchDepthLimit(int32 NewDepthLimit);
 	void SetSearchBreadthLimit(int32 NewBreadthLimit);
 
+	FName GetCurrentCollectionFilter() const;
+	void SetCurrentCollectionFilter(FName NewFilter);
+
+	bool GetEnableCollectionFilter() const;
+	void SetEnableCollectionFilter(bool bEnabled);
+
 	/** Accessor for the thumbnail pool in this graph */
 	const TSharedPtr<class FAssetThumbnailPool>& GetAssetThumbnailPool() const;
 
 private:
 	UEdGraphNode_Reference* ConstructNodes(const TArray<FAssetIdentifier>& GraphRootIdentifiers, const FIntPoint& GraphRootOrigin);
-	int32 RecursivelyGatherSizes(bool bReferencers, const TArray<FAssetIdentifier>& Identifiers, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames, TMap<FAssetIdentifier, int32>& OutNodeSizes) const;
+	int32 RecursivelyGatherSizes(bool bReferencers, const TArray<FAssetIdentifier>& Identifiers, const TSet<FName>& AllowedPackageNames, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames, TMap<FAssetIdentifier, int32>& OutNodeSizes) const;
 	void GatherAssetData(const TSet<FName>& AllPackageNames, TMap<FName, FAssetData>& OutPackageToAssetDataMap) const;
-	class UEdGraphNode_Reference* RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FAssetIdentifier>& Identifiers, const FIntPoint& NodeLoc, const TMap<FAssetIdentifier, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames);
+	class UEdGraphNode_Reference* RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FAssetIdentifier>& Identifiers, const FIntPoint& NodeLoc, const TMap<FAssetIdentifier, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, const TSet<FName>& AllowedPackageNames, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames);
 
 	bool ExceedsMaxSearchDepth(int32 Depth) const;
 	bool ExceedsMaxSearchBreadth(int32 Breadth) const;
@@ -68,6 +74,9 @@ private:
 
 	/** Removes all nodes from the graph */
 	void RemoveAllNodes();
+
+	/** Returns true if filtering is enabled and we have a valid collection */
+	bool ShouldFilterByCollection() const;
 
 private:
 	/** Pool for maintaining and rendering thumbnails */
@@ -81,6 +90,10 @@ private:
 
 	int32 MaxSearchDepth;
 	int32 MaxSearchBreadth;
+
+	/** Current collection filter. NAME_None for no filter */
+	FName CurrentCollectionFilter;
+	bool bEnableCollectionFilter;
 
 	bool bLimitSearchDepth;
 	bool bLimitSearchBreadth;

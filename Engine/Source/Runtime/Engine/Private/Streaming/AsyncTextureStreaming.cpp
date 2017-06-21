@@ -498,6 +498,7 @@ void FAsyncTextureStreamingTask::UpdatePendingStreamingStatus_Async()
 
 void FAsyncTextureStreamingTask::DoWork()
 {
+	SCOPED_NAMED_EVENT(FAsyncTextureStreamingTask_DoWork, FColor::Turquoise);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreamingTask::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
 
 	// While the async task is runnning, the StreamingTextures are guarantied not to be reallocated.

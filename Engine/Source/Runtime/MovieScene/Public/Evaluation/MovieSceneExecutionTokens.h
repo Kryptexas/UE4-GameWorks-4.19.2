@@ -133,7 +133,7 @@ private:
 
 	struct FEntry
 	{
-		FEntry(const FMovieSceneEvaluationOperand& InOperand, const FMovieSceneEvaluationScope& InScope, const FMovieSceneContext& InContext, TInlineValue<IMovieSceneExecutionToken, 32>&& InToken)
+		FEntry(const FMovieSceneEvaluationOperand& InOperand, const FMovieSceneEvaluationScope& InScope, const FMovieSceneContext& InContext, TInlineValue<IMovieSceneExecutionToken, 64>&& InToken)
 			: Operand(InOperand)
 			, Scope(InScope)
 			, Context(InContext)
@@ -151,7 +151,7 @@ private:
 		/** The context from when this token was added */
 		FMovieSceneContext Context;
 		/** The user-provided token */
-		TInlineValue<IMovieSceneExecutionToken, 32> Token;
+		TInlineValue<IMovieSceneExecutionToken, 64> Token;
 	};
 
 	/** Ordered array of tokens */

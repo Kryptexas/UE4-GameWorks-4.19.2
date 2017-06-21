@@ -506,6 +506,46 @@ public:
 		const_cast<float&>( Scale ) = AccumulatedLayoutTransform.GetScale();
 	}
 
+	/**
+	 * Get the absolute position in render space.
+	 */
+	FORCEINLINE FVector2D GetAbsolutePosition() const
+	{
+		return AccumulatedRenderTransform.TransformPoint(FVector2D::ZeroVector);
+	}
+
+	/**
+	 * Get the absolute size of the geometry in render space.
+	 */
+	FORCEINLINE FVector2D GetAbsoluteSize() const
+	{
+		return AccumulatedRenderTransform.TransformVector(GetLocalSize());
+	}
+
+	/**
+	 * Get the absolute position on the surface of the geometry using normalized coordinates.
+	 *   (0,0) - upper left
+	 *   (1,1) - bottom right
+	 *
+	 * Example: Say you wanted to know the center of the widget in absolute space, GetAbsolutePositionAtCoordinates(FVector2D(0.5f, 0.5f));
+	 */
+	FORCEINLINE FVector2D GetAbsolutePositionAtCoordinates(const FVector2D& NormalCoordinates) const
+	{
+		return AccumulatedRenderTransform.TransformPoint(NormalCoordinates * GetLocalSize());
+	}
+
+	/**
+	 * Get the local position on the surface of the geometry using normalized coordinates.
+	 *   (0,0) - upper left
+	 *   (1,1) - bottom right
+	 *
+	 * Example: Say you wanted to know the center of the widget in local space, GetLocalPositionAtCoordinates(FVector2D(0.5f, 0.5f));
+	 */
+	FORCEINLINE FVector2D GetLocalPositionAtCoordinates(const FVector2D& NormalCoordinates) const
+	{
+		return Position + (NormalCoordinates * GetLocalSize());
+	}
+
 	bool HasRenderTransform() const { return bHasRenderTransform; }
 
 public:

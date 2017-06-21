@@ -5,8 +5,19 @@
 #include "HAL/UnrealMemory.h"
 #include "HAL/IConsoleManager.h"
 
+#if PLATFORM_LINUX
+	#include <sys/mman.h>
+#endif
 
 #if USE_MALLOC_STOMP
+
+#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
+const uint32 FMallocStomp::NoAccessProtectMode = PAGE_NOACCESS;
+#elif PLATFORM_LINUX || PLATFORM_MAC
+const uint32 FMallocStomp::NoAccessProtectMode = PROT_NONE;
+#else
+#error The stomp allocator isn't supported in this platform.
+#endif
 
 static void MallocStompOverrunTest()
 {

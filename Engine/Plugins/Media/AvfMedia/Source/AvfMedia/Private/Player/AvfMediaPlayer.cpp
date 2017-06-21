@@ -440,6 +440,8 @@ void FAvfMediaPlayer::Close()
 		MediaEvent.Broadcast(EMediaEvent::MediaClosed);
 		
 		bPrerolled = false;
+
+		State = EMediaState::Closed;
 	}
 }
 

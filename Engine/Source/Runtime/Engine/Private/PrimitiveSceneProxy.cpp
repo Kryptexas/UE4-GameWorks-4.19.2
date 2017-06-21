@@ -350,6 +350,59 @@ void FPrimitiveSceneProxy::SetSelection_GameThread(const bool bInParentSelected,
 	});
 }
 
+/**
+* Set the custom depth enabled flag
+*
+* @param the new value
+*/
+void FPrimitiveSceneProxy::SetCustomDepthEnabled_GameThread(const bool bInRenderCustomDepth)
+{
+	check(IsInGameThread());
+
+	ENQUEUE_RENDER_COMMAND(FSetCustomDepthEnabled)(
+		[this, bInRenderCustomDepth](FRHICommandList& RHICmdList)
+		{
+			this->SetCustomDepthEnabled_RenderThread(bInRenderCustomDepth);
+	});
+}
+
+/**
+* Set the custom depth enabled flag (RENDER THREAD)
+*
+* @param the new value
+*/
+void FPrimitiveSceneProxy::SetCustomDepthEnabled_RenderThread(const bool bInRenderCustomDepth)
+{
+	check(IsInRenderingThread());
+	bRenderCustomDepth = bInRenderCustomDepth;
+}
+
+/**
+* Set the custom depth stencil value
+*
+* @param the new value
+*/
+void FPrimitiveSceneProxy::SetCustomDepthStencilValue_GameThread(const int32 InCustomDepthStencilValue)
+{
+	check(IsInGameThread());
+
+	ENQUEUE_RENDER_COMMAND(FSetCustomDepthStencilValue)(
+		[this, InCustomDepthStencilValue](FRHICommandList& RHICmdList)
+	{
+		this->SetCustomDepthStencilValue_RenderThread(InCustomDepthStencilValue);
+	});
+}
+
+/**
+* Set the custom depth stencil value (RENDER THREAD)
+*
+* @param the new value
+*/
+void FPrimitiveSceneProxy::SetCustomDepthStencilValue_RenderThread(const int32 InCustomDepthStencilValue)
+{
+	check(IsInRenderingThread());
+	CustomDepthStencilValue = InCustomDepthStencilValue;
+}
 
 /**
  * Updates hover state for the primitive proxy. This is called in the rendering thread by SetHovered_GameThread.

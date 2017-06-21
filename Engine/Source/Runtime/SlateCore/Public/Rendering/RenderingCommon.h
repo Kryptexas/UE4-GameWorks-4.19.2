@@ -206,6 +206,7 @@ public:
 		Vertex.TexCoords[1] = InTexCoords.Y;
 		Vertex.TexCoords[2] = InTexCoords.Z;
 		Vertex.TexCoords[3] = InTexCoords.W;
+		Vertex.MaterialTexCoords = FVector2D(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y);
 		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor);
 		Vertex.PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
 		Vertex.PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);

@@ -46,6 +46,9 @@ struct FAnimLinkableElement
 	, SegmentIndex(INDEX_NONE)
 	, LinkMethod(EAnimLinkMethod::Absolute)
 	, CachedLinkMethod(LinkMethod)
+	, SegmentBeginTime(0.f)
+	, SegmentLength(0.f)
+	, LinkValue(0.f)
 	, LinkedSequence(nullptr)
 	{
 	}

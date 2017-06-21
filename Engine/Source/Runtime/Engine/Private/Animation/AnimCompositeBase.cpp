@@ -14,7 +14,7 @@
 // FAnimSegment
 ///////////////////////////////////////////////////////
 
-UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const
+UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float& PositionInAnim) const
 {
 	if( bValid && IsInRange(PositionInTrack) )
 	{
@@ -33,8 +33,6 @@ UAnimSequenceBase * FAnimSegment::GetAnimationData(float PositionInTrack, float&
 				Delta = FMath::Fmod(Delta, AnimPlayLength);
 			}
 
-			// no blending supported
-			Weight = 1.f;
 			if (ValidPlayRate > 0.f)
 			{
 				PositionInAnim = AnimStartTime + Delta * ValidPlayRate;
@@ -400,31 +398,32 @@ void FAnimTrack::ValidateSegmentTimes()
 
 FAnimSegment* FAnimTrack::GetSegmentAtTime(float InTime)
 {
-	FAnimSegment* Result = nullptr;
-	for(FAnimSegment& Segment : AnimSegments)
-	{
-		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
-		{
-			Result = &Segment;
-			break;
-		}
-	}
-	return Result;
+	const int32 SegmentIndex = GetSegmentIndexAtTime(InTime);
+	return (SegmentIndex != INDEX_NONE) ? &(AnimSegments[SegmentIndex]) : nullptr;
 }
 
-int32 FAnimTrack::GetSegmentIndexAtTime(float InTime)
+const FAnimSegment* FAnimTrack::GetSegmentAtTime(float InTime) const
 {
-	int32 Result = INDEX_NONE;
-	for(int32 Idx = 0 ; Idx < AnimSegments.Num() ; ++Idx)
+	const int32 SegmentIndex = GetSegmentIndexAtTime(InTime);
+	return (SegmentIndex != INDEX_NONE) ? &(AnimSegments[SegmentIndex]) : nullptr;
+}
+
+int32 FAnimTrack::GetSegmentIndexAtTime(float InTime) const
+{
+	// Montage Segments overlap on a single frame.
+	// So last frame of Segment1 overlaps first frame of Segment2.
+	// But in that case we want Segment2 to win.
+	// So we iterate through these segments in reverse 
+	// and return the first match with an inclusive range check.
+	for(int32 Idx = AnimSegments.Num()-1; Idx >= 0; Idx--)
 	{
-		FAnimSegment& Segment = AnimSegments[Idx];
-		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
+		const FAnimSegment& Segment = AnimSegments[Idx];
+		if (Segment.IsInRange(InTime))
 		{
-			Result = Idx;
-			break;
+			return Idx;
 		}
 	}
-	return Result;
+	return INDEX_NONE;
 }
 
 #if WITH_EDITOR
@@ -526,69 +525,30 @@ void FAnimTrack::SortAnimSegments()
 
 void FAnimTrack::GetAnimationPose(/*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
-	TArray<FCompactPose, TInlineAllocator<8>> SourcePoses;
-	TArray<float, TInlineAllocator<8>> SourceWeights;
-	TArray<FBlendedCurve, TInlineAllocator<8>> SourceCurves;
-	float TotalWeight = 0.f;
+	bool bExtractedPose = false;
+	const float ClampedTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, GetLength());
 
-	float CurrentTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, GetLength());
-
-	// first get all the montage instance weight this slot node has
-	for(int32 I = 0; I<AnimSegments.Num(); ++I)
+	if (const FAnimSegment* const AnimSegment = GetSegmentAtTime(ClampedTime))
 	{
-		const FAnimSegment& AnimSegment = AnimSegments[I];
-
-		if (AnimSegment.bValid)
+		if (AnimSegment->bValid)
 		{
 			float PositionInAnim = 0.f;
-			float Weight = 0.f;
-			UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
-
-			// make this to be 1 function
-			if (AnimRef && (Weight > ZERO_ANIMWEIGHT_THRESH))
+			if (const UAnimSequenceBase* const AnimRef = AnimSegment->GetAnimationData(ClampedTime, PositionInAnim))
 			{
-				// todo anim: hack - until we fix animcomposite
-				const int32 NewIndex = SourceWeights.AddUninitialized(1);
-				SourcePoses.Add(FCompactPose());
-				SourceCurves.Add(FBlendedCurve());
-				SourcePoses[NewIndex].SetBoneContainer(&OutPose.GetBoneContainer());
-				SourceCurves[NewIndex].InitFrom(OutCurve);
-				SourceWeights[NewIndex] = Weight;
-				TotalWeight += Weight;
-
-				// Copy passed in Extraction Context, but override position and looping parameters.
+				// Copy passed in Extraction Context, but override position and root motion parameters.
 				FAnimExtractContext SequenceExtractionContext(ExtractionContext);
 				SequenceExtractionContext.CurrentTime = PositionInAnim;
 				SequenceExtractionContext.bExtractRootMotion &= AnimRef->HasRootMotion();
 
-				AnimRef->GetAnimationPose(SourcePoses[NewIndex], SourceCurves[NewIndex], SequenceExtractionContext);
+				AnimRef->GetAnimationPose(OutPose, OutCurve, SequenceExtractionContext);
+				bExtractedPose = true;
 			}
-		}
-		else
-		{
-			OutPose.ResetToRefPose();
 		}
 	}
 
-	if (SourcePoses.Num() == 0)
+	if (!bExtractedPose)
 	{
 		OutPose.ResetToRefPose();
-	}
-	else if (SourcePoses.Num() == 1)
-	{
-		OutPose = SourcePoses[0];
-		OutCurve = SourceCurves[0];
-	}
-	else
-	{
-		// If we have SourcePoses.Num() > 0, then we will have a non zero weight.
-		check(TotalWeight >= ZERO_ANIMWEIGHT_THRESH);
-		for(int32 I = 0; I < SourceWeights.Num(); ++I)
-		{
-			// normalize I
-			SourceWeights[I] /= TotalWeight;
-		}
-		FAnimationRuntime::BlendPosesTogether(SourcePoses, SourceCurves, SourceWeights, OutPose, OutCurve);
 	}
 }
 

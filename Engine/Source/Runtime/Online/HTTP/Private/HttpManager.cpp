@@ -67,8 +67,16 @@ void FHttpManager::Flush(bool bShutdown)
 		LastTime = AppTime;
 		if (Requests.Num() > 0)
 		{
-			UE_LOG(LogHttp, Display, TEXT("Sleeping 0.5s to wait for %d outstanding Http requests."), Requests.Num());
-			FPlatformProcess::Sleep(0.5f);
+			if (FPlatformProcess::SupportsMultithreading())
+			{
+				UE_LOG(LogHttp, Display, TEXT("Sleeping 0.5s to wait for %d outstanding Http requests."), Requests.Num());
+				FPlatformProcess::Sleep(0.5f);
+			}
+			else
+			{
+				check(Thread);
+				Thread->Tick();
+			}
 		}
 	}
 }
@@ -168,21 +176,4 @@ void FHttpManager::DumpRequests(FOutputDevice& Ar) const
 		Ar.Logf(TEXT("	verb=[%s] url=[%s] status=%s"),
 			*Request->GetVerb(), *Request->GetURL(), EHttpRequestStatus::ToString(Request->GetStatus()));
 	}
-}
-
-static FString GetUrlDomain(const FString& Url)
-{
-	FString Protocol;
-	FString Domain = Url;
-	// split the http protocol portion from domain
-	Url.Split(TEXT("://"), &Protocol, &Domain);
-	// strip off everything but the domain portion
-	int32 Idx = Domain.Find(TEXT("/"));
-	int32 IdxOpt = Domain.Find(TEXT("?"));
-	Idx = IdxOpt >= 0 && IdxOpt < Idx ? IdxOpt : Idx;
-	if (Idx > 0)
-	{
-		Domain = Domain.Left(Idx);
-	}
-	return Domain;
 }

@@ -1048,7 +1048,7 @@ public:
 	/**
 	* Recalculate Required Curves based on Required Bones [RequiredBones]
 	*/
-	void RecalcRequiredCurves();
+	void RecalcRequiredCurves(bool bDisableAnimCurves);
 
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }

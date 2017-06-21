@@ -8,6 +8,7 @@
 #include "Misc/CoreStats.h"
 #include "MallocBinned.h"
 #include "MallocAnsi.h"
+#include "MemStack.h"
 
 #include <sys/mman.h>
 

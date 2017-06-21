@@ -1565,7 +1565,7 @@ void UGameplayCueManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool
 	{
 		if (PreallocationInfoList_Internal[idx].OwningWorldKey == FObjectKey(World))
 		{
-			ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCleanup Removing PreallocationInfoList_Internal element %d"), idx);
+			ABILITY_LOG(Verbose, TEXT("UGameplayCueManager::OnWorldCleanup Removing PreallocationInfoList_Internal element %d"), idx);
 			PreallocationInfoList_Internal.RemoveAtSwap(idx, 1, false);
 			idx--;
 		}

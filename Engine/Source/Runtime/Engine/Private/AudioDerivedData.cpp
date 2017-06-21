@@ -768,7 +768,7 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 			}
 			if (SoundWave->RawPCMDataSize != Input.Num())
 			{
-				UE_LOG(LogAudioDerivedData, Warning, TEXT( "Updated SoundWave->RawPCMDataSize during cooking %s." ), *SoundWave->GetFullName() );
+				UE_LOG(LogAudioDerivedData, Log, TEXT( "Updated SoundWave->RawPCMDataSize during cooking %s." ), *SoundWave->GetFullName() );
 				SoundWave->RawPCMDataSize = Input.Num();
 			}
 			if (SoundWave->Duration != ( float )SoundWave->RawPCMDataSize / (SoundWave->SampleRate * sizeof( int16 ) * SoundWave->NumChannels))
@@ -911,7 +911,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 				}
 				if (SoundWave->RawPCMDataSize != SampleDataSize * ChannelCount)
 				{
-					UE_LOG(LogAudioDerivedData, Warning, TEXT( "Updated SoundWave->RawPCMDataSize during cooking %s." ), *SoundWave->GetFullName() );
+					UE_LOG(LogAudioDerivedData, Log, TEXT( "Updated SoundWave->RawPCMDataSize during cooking %s." ), *SoundWave->GetFullName() );
 					SoundWave->RawPCMDataSize = SampleDataSize * ChannelCount;
 				}
 				if (SoundWave->Duration != ( float )SampleDataSize / (SoundWave->SampleRate * sizeof( int16 )))

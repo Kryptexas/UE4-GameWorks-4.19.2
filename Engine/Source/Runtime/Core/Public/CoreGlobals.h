@@ -432,6 +432,36 @@ extern CORE_API FRunnableThread* GRHIThread_InternalUseOnly;
 /** Thread ID of the the thread we are executing RHI commands on. This could either be a constant dedicated thread or changing every task if we run the rhi thread on tasks. */
 extern CORE_API uint32 GRHIThreadId;
 
+/** Boot loading timers */
+#if !UE_BUILD_SHIPPING
+CORE_API void NotifyLoadingStateChanged(bool bState, const TCHAR *Message);
+struct FScopedLoadingState
+{
+	FString Message;
+	FScopedLoadingState(const TCHAR* InMessage)
+		: Message(InMessage)
+	{
+		NotifyLoadingStateChanged(true, *Message);
+	}
+	~FScopedLoadingState()
+	{
+		NotifyLoadingStateChanged(false, *Message);
+	}
+};
+#else
+FORCEINLINE void NotifyLoadingStateChanged(bool bState, const TCHAR *Message)
+{
+}
+struct FScopedLoadingState
+{
+	FORCEINLINE FScopedLoadingState(const TCHAR* InMessage)
+	{
+	}
+};
+#endif
+
+
+
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;
 extern CORE_API FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers;

@@ -3144,7 +3144,14 @@ void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
 	if( bRenderCustomDepth != bValue )
 	{
 		bRenderCustomDepth = bValue;
-		MarkRenderStateDirty();
+		if ( SceneProxy )
+		{
+			SceneProxy->SetCustomDepthEnabled_GameThread(bRenderCustomDepth);
+		}
+		else
+		{
+			MarkRenderStateDirty();
+		}
 	}
 }
 
@@ -3156,7 +3163,14 @@ void UPrimitiveComponent::SetCustomDepthStencilValue(int32 Value)
 	if (CustomDepthStencilValue != ClampedValue)
 	{
 		CustomDepthStencilValue = ClampedValue;
-		MarkRenderStateDirty();
+		if ( SceneProxy )
+		{
+			SceneProxy->SetCustomDepthStencilValue_GameThread(CustomDepthStencilValue);
+		}
+		else
+		{
+			MarkRenderStateDirty();
+		}
 	}
 }
 

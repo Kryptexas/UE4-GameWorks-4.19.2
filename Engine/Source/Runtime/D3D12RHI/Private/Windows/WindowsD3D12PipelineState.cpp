@@ -163,7 +163,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 
 FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc* Desc)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
 
 	FScopeLock Lock(&CS);
 
@@ -242,7 +242,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 
 FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc* Desc)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
 
 	FScopeLock Lock(&CS);
 

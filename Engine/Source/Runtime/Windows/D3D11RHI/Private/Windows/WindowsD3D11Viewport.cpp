@@ -109,17 +109,12 @@ void FD3D11Viewport::ConditionalResetSwapChain(bool bIgnoreFocus)
 		{
 			FlushRenderingCommands();
 
-			// Store the current cursor clip rectangle as it can be lost when fullscreen is reset.
-			RECT OriginalCursorRect;
-			GetClipCursor(&OriginalCursorRect);
-
 			// Explicit output selection in fullscreen only (commandline or HDR enabled)
 			bool bNeedsForcedDisplay = bIsFullscreen && (bForcedFullscreenDisplay || PixelFormat == PF_FloatRGBA);
 			HRESULT Result = SwapChain->SetFullscreenState(bIsFullscreen, bNeedsForcedDisplay ? ForcedFullscreenOutput : nullptr);
 
 			if(SUCCEEDED(Result))
 			{
-				ClipCursor(&OriginalCursorRect);
 				bIsValid = true;
 			}
 			else

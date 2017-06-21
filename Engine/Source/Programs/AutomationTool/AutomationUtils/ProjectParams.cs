@@ -221,7 +221,9 @@ namespace AutomationTool
             this.BasedOnReleaseVersion = InParams.BasedOnReleaseVersion;
             this.CreateReleaseVersion = InParams.CreateReleaseVersion;
             this.GeneratePatch = InParams.GeneratePatch;
-            this.DLCName = InParams.DLCName;
+			this.AddPatchLevel = InParams.AddPatchLevel;
+			this.StageBaseReleasePaks = InParams.StageBaseReleasePaks;
+			this.DLCName = InParams.DLCName;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
             this.DiffCookedContentPath = InParams.DiffCookedContentPath;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
@@ -395,7 +397,9 @@ namespace AutomationTool
 			string CreateReleaseVersionBasePath = null,
 			string BasedOnReleaseVersionBasePath = null,
             bool? GeneratePatch = null,
-            string DLCName = null,
+			bool? AddPatchLevel = null,
+			bool? StageBaseReleasePaks = null,
+			string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
 			bool? CrashReporter = null,
@@ -527,7 +531,9 @@ namespace AutomationTool
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
             this.BasedOnReleaseVersion = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersion, "basedonreleaseversion", String.Empty);
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
-            this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
+            this.AddPatchLevel = GetParamValueIfNotSpecified(Command, AddPatchLevel, this.AddPatchLevel, "AddPatchLevel");
+			this.StageBaseReleasePaks = GetParamValueIfNotSpecified(Command, StageBaseReleasePaks, this.StageBaseReleasePaks, "StageBaseReleasePaks");
+			this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
             this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
             this.DiffCookedContentPath = ParseParamValueIfNotSpecified(Command, DiffCookedContentPath, "DiffCookedContentPath", String.Empty);
             this.DLCIncludeEngineContent = GetParamValueIfNotSpecified(Command, DLCIncludeEngineContent, this.DLCIncludeEngineContent, "DLCIncludeEngineContent");
@@ -1329,6 +1335,17 @@ namespace AutomationTool
         public bool GeneratePatch;
 
         /// <summary>
+        /// Are we adding a new patch tier (otherwise patch will modify the most recent patch tier), this requires GeneratePatch and BasedOnReleaseVersion
+        /// see also GeneratePatch, BasedOnReleaseVersion
+        /// </summary>
+        public bool AddPatchLevel;
+
+        /// <summary>
+        /// Are we staging the unmodified pak files from the base release
+        /// </summary>
+        public bool StageBaseReleasePaks;
+
+        /// <summary>
         /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
         /// </summary>
         public string DLCName;
@@ -2127,6 +2144,22 @@ namespace AutomationTool
             get { return GeneratePatch; }
         }
 
+        /// <summary>
+        /// True if we are generating a new patch pak tier
+        /// </summary>
+        public bool ShouldAddPatchLevel
+        {
+            get { return AddPatchLevel; }
+        }
+
+        /// <summary>
+        /// True if we should stage pak files from the base release
+        /// </summary>
+        public bool ShouldStageBaseReleasePaks
+        {
+            get { return StageBaseReleasePaks; }
+        }
+
 		/// <summary>
 		/// Filename of the target game exe (or program exe).
 		/// </summary>
@@ -2312,12 +2345,22 @@ namespace AutomationTool
                 throw new AutomationException("DLCIncludeEngineContent flag is only valid when cooking dlc.");
             }
 
-            if ((IsGeneratingPatch || HasDLCName) && !HasBasedOnReleaseVersion)
+            if ((IsGeneratingPatch || HasDLCName || ShouldAddPatchLevel) && !HasBasedOnReleaseVersion)
             {
                 throw new AutomationException("Require based on release version to build patches or dlc");
             }
 
-            if (HasCreateReleaseVersion && (IsGeneratingPatch || HasDLCName))
+            if (ShouldAddPatchLevel && !IsGeneratingPatch)
+            {
+                throw new AutomationException("Creating a new patch tier requires patch generation");
+            }
+
+			if (ShouldStageBaseReleasePaks && !HasBasedOnReleaseVersion)
+			{
+				throw new AutomationException("Staging pak files from the base release requires a base release version");
+			}
+
+			if (HasCreateReleaseVersion && HasDLCName)
             {
                 throw new AutomationException("Can't create a release version at the same time as creating dlc.");
             }
@@ -2382,8 +2425,10 @@ namespace AutomationTool
                 CommandUtils.LogLog("EncryptEverything={0}", EncryptEverything);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
-                CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
-                CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
+				CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
+				CommandUtils.LogLog("AddPatchLevel={0}", AddPatchLevel);
+				CommandUtils.LogLog("StageBaseReleasePaks={0}", StageBaseReleasePaks);
+				CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.LogLog("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.LogLog("DLCName={0}", DLCName);
                 CommandUtils.LogLog("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);

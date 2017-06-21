@@ -20,8 +20,22 @@ class AIMODULE_API UEnvQueryGenerator_Composite : public UEnvQueryGenerator
 	UPROPERTY(EditDefaultsOnly, Instanced, Category = Generator)
 	TArray<UEnvQueryGenerator*> Generators;
 
+	/** allow generators with different item types, use at own risk!
+	 *
+	 *  WARNING: 
+	 *  generator will use ForcedItemType for raw data, you MUST ensure proper memory layout
+	 *  child generators will be writing to memory block through their own item types:
+	 *  - data must fit info block allocated by ForcedItemType
+	 *  - tests will read item location/properties through ForcedItemType
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = Generator, AdvancedDisplay)
+	uint32 bAllowDifferentItemTypes : 1;
+
 	UPROPERTY()
-	bool bHasMatchingItemType;
+	uint32 bHasMatchingItemType : 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = Generator, AdvancedDisplay)
+	TSubclassOf<UEnvQueryItemType> ForcedItemType;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 	virtual FText GetDescriptionTitle() const override;

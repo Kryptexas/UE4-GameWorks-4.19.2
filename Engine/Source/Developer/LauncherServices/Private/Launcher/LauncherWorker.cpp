@@ -509,6 +509,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			if ( InProfile->IsGeneratingPatch() )
 			{
 				UATCommand += TEXT(" -generatepatch");
+
+				if ( InProfile->ShouldAddPatchLevel() )
+				{
+					UATCommand += TEXT(" -newpatchlevel");
+				}
 			}
 
 			if ( InProfile->IsGeneratingPatch() || 
@@ -519,6 +524,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				{
 					UATCommand += TEXT(" -basedonreleaseversion=");
 					UATCommand += InProfile->GetBasedOnReleaseVersionName();
+
+					if ( InProfile->ShouldStageBaseReleasePaks() )
+					{
+						UATCommand += TEXT(" -stagebasereleasepaks");
+					}
 				}
 			}
 

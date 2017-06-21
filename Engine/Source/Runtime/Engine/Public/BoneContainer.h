@@ -93,10 +93,10 @@ public:
 
 	FBoneContainer();
 
-	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset);
+	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
 
 	/** Initialize BoneContainer to a new Asset, RequiredBonesArray and RefPoseArray. */
-	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset);
+	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
 
 	/** Returns true if FBoneContainer is Valid. Needs an Asset, a RefPoseArray, and a RequiredBonesArray. */
 	const bool IsValid() const
@@ -264,6 +264,7 @@ public:
 			<< B.bUseRAWData
 			<< B.bUseSourceData
 			;
+
 		return Ar;
 	}
 
@@ -308,11 +309,11 @@ public:
 	}
 
 	/** Cache required Anim Curve Uids */
-	void CacheRequiredAnimCurveUids();
+	void CacheRequiredAnimCurveUids(bool bDisableAnimCurves);
 
 private:
 	/** Initialize FBoneContainer. */
-	void Initialize();
+	void Initialize(bool bDisableAnimCurves);
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
 	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton);

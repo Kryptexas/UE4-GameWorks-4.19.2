@@ -30,6 +30,7 @@ public class UnrealEd : ModuleRules
 				"ContentBrowser",
 				"DerivedDataCache",
 				"DesktopPlatform",
+				"LauncherPlatform",
 				"EnvironmentQueryEditor",
 				"GameProjectGeneration",
 				"ProjectTargetPlatformEditor",
@@ -107,6 +108,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
 				"CinematicCamera",
 				"DesktopPlatform",
+				"LauncherPlatform",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
@@ -222,6 +224,7 @@ public class UnrealEd : ModuleRules
 				"PortalServices",
 				"GeometryCacheEd",
 				"BlueprintNativeCodeGen",
+				"OverlayEditor",
 				"AnimationModifiers",
 				"ClothPainter",
             }

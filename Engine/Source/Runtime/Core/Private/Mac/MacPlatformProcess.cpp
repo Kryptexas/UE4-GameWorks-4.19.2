@@ -202,6 +202,11 @@ int32 FMacPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 	return ((CurrentVersion & 0xff) + ((CurrentVersion >> 8) & 0xff) * 100 + ((CurrentVersion >> 16) & 0xffff) * 10000);
 }
 
+bool FMacPlatformProcess::CanLaunchURL(const TCHAR* URL)
+{
+	return URL != nullptr;
+}
+
 void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error )
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -718,6 +723,9 @@ bool FMacPlatformProcess::IsThisApplicationForeground()
 
 bool FMacPlatformProcess::IsSandboxedApplication()
 {
+	// Temporarily disabled as it can take 15 seconds or more to execute this function in Fortnite on a low spec Macs.
+	return false;
+#if 0
 	SCOPED_AUTORELEASE_POOL;
 	
 	bool bIsSandboxedApplication = false;
@@ -745,6 +753,7 @@ bool FMacPlatformProcess::IsSandboxedApplication()
 	}
 	
 	return bIsSandboxedApplication;
+#endif
 }
 
 void FMacPlatformProcess::CleanFileCache()

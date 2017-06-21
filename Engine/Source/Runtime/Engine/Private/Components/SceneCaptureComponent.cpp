@@ -300,6 +300,12 @@ FSceneViewStateInterface* USceneCaptureComponent::GetViewState(int32 ViewIndex)
 
 void USceneCaptureComponent::UpdateShowFlags()
 {
+	USceneCaptureComponent* Archetype = Cast<USceneCaptureComponent>(GetArchetype());
+	if (Archetype)
+	{
+		ShowFlags = Archetype->ShowFlags;
+	}
+
 	for (FEngineShowFlagsSetting ShowFlagSetting : ShowFlagSettings)
 	{
 		int32 SettingIndex = ShowFlags.FindIndexByName(*(ShowFlagSetting.ShowFlagName));

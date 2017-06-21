@@ -7,6 +7,9 @@
 #include "Allocator2D.h"
 #include "MeshUtilities.h"
 
+#define NEW_UVS_ARE_SAME THRESH_POINTS_ARE_SAME
+#define LEGACY_UVS_ARE_SAME (1.0f / 1024.0f)
+
 struct FMeshChart
 {
 	uint32		FirstTri;
@@ -64,6 +67,8 @@ private:
 	void		OrientChart( FMeshChart& Chart, int32 Orientation );
 	void		RasterizeChart( const FMeshChart& Chart, uint32 RectW, uint32 RectH );
 
+	float		GetUVEqualityThreshold() const { return LayoutVersion >= ELightmapUVVersion::SmallChartPacking ? NEW_UVS_ARE_SAME : LEGACY_UVS_ARE_SAME; }	
+
 	FRawMesh*	RawMesh;
 	uint32		SrcChannel;
 	uint32		DstChannel;
@@ -84,7 +89,8 @@ private:
 };
 
 
-#define THRESH_UVS_ARE_SAME THRESH_POINTS_ARE_SAME
+#define THRESH_UVS_ARE_SAME (GetUVEqualityThreshold())
+
 
 inline bool FLayoutUV::PositionsMatch( uint32 a, uint32 b ) const
 {

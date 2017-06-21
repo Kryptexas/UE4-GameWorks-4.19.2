@@ -276,6 +276,8 @@ public:
 
 	virtual uint32 Run() override
 	{
+		LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(RHIThreadMemory);
+
 		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RHIThread);
@@ -301,6 +303,8 @@ public:
 /** The rendering thread main loop */
 void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 {
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(RenderingThreadMemory);
+
 	ENamedThreads::RenderThread = ENamedThreads::Type(ENamedThreads::ActualRenderingThread);
 	ENamedThreads::RenderThread_Local = ENamedThreads::Type(ENamedThreads::ActualRenderingThread_Local);
 	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RenderThread);

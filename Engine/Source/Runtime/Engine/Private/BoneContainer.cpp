@@ -25,7 +25,7 @@ FBoneContainer::FBoneContainer()
 	PoseToSkeletonBoneIndexArray.Empty();
 }
 
-FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
+FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset)
 : BoneIndicesArray(InRequiredBoneIndexArray)
 , Asset(&InAsset)
 , AssetSkeletalMesh(NULL)
@@ -35,15 +35,15 @@ FBoneContainer::FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndex
 , bUseRAWData(false)
 , bUseSourceData(false)
 {
-	Initialize();
+	Initialize(bDisableAnimCurves);
 }
 
-void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
+void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset)
 {
 	BoneIndicesArray = InRequiredBoneIndexArray;
 	Asset = &InAsset;
 
-	Initialize();
+	Initialize(bDisableAnimCurves);
 }
 
 struct FBoneContainerScratchArea : public TThreadSingleton<FBoneContainerScratchArea>
@@ -51,7 +51,7 @@ struct FBoneContainerScratchArea : public TThreadSingleton<FBoneContainerScratch
 	TArray<int32> MeshIndexToCompactPoseIndex;
 };
 
-void FBoneContainer::Initialize()
+void FBoneContainer::Initialize(bool bDisableAnimCurves)
 {
 	RefSkeleton = NULL;
 	UObject* AssetObj = Asset.Get();
@@ -182,12 +182,12 @@ void FBoneContainer::Initialize()
 	}
 
 	// cache required curve UID list according to new bone sets
-	CacheRequiredAnimCurveUids();
+	CacheRequiredAnimCurveUids(bDisableAnimCurves);
 }
 
-void FBoneContainer::CacheRequiredAnimCurveUids()
+void FBoneContainer::CacheRequiredAnimCurveUids(bool bDisableAnimCurves)
 {
-	if (AssetSkeleton.IsValid())
+	if (!bDisableAnimCurves && AssetSkeleton.IsValid())
 	{
 		// this is placeholder. In the future, this will change to work with linked joint of curve meta data
 		// anim curve name Uids; For now it adds all of them
@@ -230,6 +230,10 @@ void FBoneContainer::CacheRequiredAnimCurveUids()
 				}
 			}
 		}
+	}
+	else
+	{
+		AnimCurveNameUids.Reset();
 	}
 }
 

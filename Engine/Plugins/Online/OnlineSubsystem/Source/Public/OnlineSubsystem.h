@@ -597,3 +597,6 @@ ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(class IOnlineSession* SessionInt,
  * @return the port if found, otherwise DEFAULT_BEACON_PORT
  */
 ONLINESUBSYSTEM_API int32 GetBeaconPortFromSessionSettings(const class FOnlineSessionSettings& SessionSettings);
+
+/** Temp solution for some hardcoded access to logged in user 0, please avoid using this */
+ONLINESUBSYSTEM_API TSharedPtr<const FUniqueNetId> GetFirstSignedInUser(IOnlineIdentityPtr IdentityInt);

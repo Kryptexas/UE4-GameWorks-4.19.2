@@ -388,7 +388,6 @@ inline bool SetUAVParameterIfCS(TRHICmdList& RHICmdList, const FComputeShaderRHI
 	return UAVParameter.IsBound();
 }
 
-
 template<typename TShaderRHIRef, typename TRHICmdList>
 inline void FRWShaderParameter::SetBuffer(TRHICmdList& RHICmdList, TShaderRHIRef Shader, const FRWBuffer& RWBuffer) const
 {

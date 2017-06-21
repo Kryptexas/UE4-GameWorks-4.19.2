@@ -83,6 +83,8 @@
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "EditorLevelUtils.h"

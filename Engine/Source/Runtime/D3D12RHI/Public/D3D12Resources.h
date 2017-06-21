@@ -421,6 +421,12 @@ public:
 		}
 		SetGPUVirtualAddress(Resource->GetGPUVirtualAddress());
 		SetTransient(bInIsTransient);
+
+		// don't bother tracking transient memory
+		if (!bTransient)
+		{
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::RHI, reinterpret_cast<void*>(GPUVirtualAddress), Size));
+		}
 	}
 
 	inline void AsFastAllocation(FD3D12Resource* Resource, uint32 BufferSize, D3D12_GPU_VIRTUAL_ADDRESS GPUBase, void* CPUBase, uint64 Offset)

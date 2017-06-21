@@ -81,7 +81,6 @@ public:
 		, _HandleDirectionalNavigation( true )
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
-		, _NavigateOnScrollIntoView(false)
 		{
 		}
 
@@ -130,8 +129,6 @@ public:
 
 		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
 
-		SLATE_ARGUMENT( bool, NavigateOnScrollIntoView );
-
 	SLATE_END_ARGS()
 
 	/**
@@ -160,7 +157,6 @@ public:
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
 		this->bHandleDirectionalNavigation = InArgs._HandleDirectionalNavigation;
-		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		this->OnItemToString_Debug =
 			InArgs._OnItemToString_Debug.IsBound()
@@ -367,18 +363,15 @@ public:
 			const int32 NumItemsWide = GetNumItemsWide();
 			const int32 CurSelectionIndex = (!TListTypeTraits<ItemType>::IsPtrValid(SelectorItem)) ? 0 : ItemsSourceRef.Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(SelectorItem));
 			int32 AttemptSelectIndex = -1;
-			bool bAttempt = false;
 
 			const EUINavigation NavType = InNavigationEvent.GetNavigationType();
 			switch (NavType)
 			{
 			case EUINavigation::Up:
-				bAttempt = true;
 				AttemptSelectIndex = CurSelectionIndex - NumItemsWide;
 				break;
 
 			case EUINavigation::Down:
-				bAttempt = true;
 				AttemptSelectIndex = CurSelectionIndex + NumItemsWide;
 				break;
 
@@ -386,14 +379,10 @@ public:
 				break;
 			}
 
-			// We are attempting to move to a specific index
 			// If it's valid we'll scroll it into view and return an explicit widget in the FNavigationReply
-			if (bAttempt)
+			if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
 			{
-				if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
-				{
-					NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
-				}
+				NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
 				return FNavigationReply::Explicit(nullptr);
 			}
 		}
@@ -1201,10 +1190,11 @@ public:
 	 *
 	 * @param ItemToView  The item to scroll into view on next tick.
 	 */
-	void RequestScrollIntoView( ItemType ItemToView, const uint32 UserIndex = 0)
+	void RequestScrollIntoView( ItemType ItemToView, const uint32 UserIndex = 0, const bool NavigateOnScrollIntoView = false)
 	{
 		ItemToScrollIntoView = ItemToView; 
 		UserRequestingScrollIntoView = UserIndex;
+		bNavigateOnScrollIntoView = NavigateOnScrollIntoView;
 		RequestListRefresh();
 	}
 
@@ -1353,6 +1343,7 @@ protected:
 			{
 				NavigateToWidget(UserRequestingScrollIntoView, Widget->AsWidget());
 			}
+			bNavigateOnScrollIntoView = false;
 
 			OnItemScrolledIntoView.ExecuteIfBound(NonNullItemToNotifyWhenInView, Widget);
 
@@ -1544,7 +1535,7 @@ protected:
 
 			// Always request scroll into view, otherwise partially visible items will be selected.
 			TSharedPtr<ITableRow> WidgetForItem = this->WidgetGenerator.GetWidgetForItem(ItemToSelect);
-			this->RequestScrollIntoView(ItemToSelect, InInputEvent.GetUserIndex()); 
+			this->RequestScrollIntoView(ItemToSelect, InInputEvent.GetUserIndex(), true); 
 		}
 	}
 
@@ -1607,10 +1598,9 @@ protected:
 	/** Should directional nav be supported */
 	bool bHandleDirectionalNavigation;
 
-	/** Should scrolling an item into view generate a navigation */
-	bool bNavigateOnScrollIntoView;
-
 private:
+
+	bool bNavigateOnScrollIntoView;
 
 	struct FGenerationPassGuard
 	{

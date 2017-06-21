@@ -249,7 +249,7 @@ namespace FAnimUpdateRateManager
 			MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
 			bPlayingNetworkedRootMotionMontage |= Component->IsPlayingNetworkedRootMotionMontage();
 			bUsingRootMotionFromEverything &= Component->IsPlayingRootMotionFromEverything();
-			MinLod = FMath::Min(MinLod, Component->PredictedLODLevel);
+			MinLod = FMath::Min(MinLod, Tracker->UpdateRateParameters.bShouldUseMinLod ? Component->MinLodModel : Component->PredictedLODLevel);
 		}
 
 		bNeedsValidRootMotion &= bPlayingNetworkedRootMotionMontage;
@@ -411,8 +411,12 @@ void USkinnedMeshComponent::OnUnregister()
 {
 	DeallocateTransformData();
 	Super::OnUnregister();
-	FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
-	AnimUpdateRateParams = NULL;
+
+	if (AnimUpdateRateParams)
+	{
+		FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
+		AnimUpdateRateParams = nullptr;
+	}
 }
 
 void USkinnedMeshComponent::CreateRenderState_Concurrent()
@@ -636,6 +640,7 @@ void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRoot
 
 void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPED_NAMED_EVENT(USkinnedMeshComponent_TickComponent, FColor::Yellow);
 	SCOPE_CYCLE_COUNTER(STAT_SkinnedMeshCompTick);
 
 	// Tick ActorComponent first.
@@ -2823,6 +2828,22 @@ void USkinnedMeshComponent::ClearSkinWeightOverride(int32 LODIndex)
 			MarkRenderStateDirty();
 		}
 	}
+}
+
+void USkinnedMeshComponent::ReleaseUpdateRateParams()
+{
+	FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
+	AnimUpdateRateParams = nullptr;
+}
+
+void USkinnedMeshComponent::RefreshUpdateRateParams()
+{
+	if (AnimUpdateRateParams)
+	{
+		ReleaseUpdateRateParams();
+	}
+
+	AnimUpdateRateParams = FAnimUpdateRateManager::GetUpdateRateParameters(this);
 }
 
 void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)

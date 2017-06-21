@@ -269,7 +269,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 	const float StartTimeWithoutWarmupFrames = SnapshotOffsetTime.IsSet() ? StartTime + SnapshotOffsetTime.GetValue() : StartTime;
 
 	// Use the actual last evaluation time as per the play position, which accounts for fixed time step offsetting
-	const float CurrentTime = StartTimeWithoutWarmupFrames + PlayPosition.GetLastPlayEvalPostition().Get(TimeCursorPosition);
+	const float CurrentTime = PlayPosition.GetLastPlayEvalPostition().Get(StartTimeWithoutWarmupFrames + TimeCursorPosition);
 
 	OutSnapshot.Settings = SnapshotSettings;
 

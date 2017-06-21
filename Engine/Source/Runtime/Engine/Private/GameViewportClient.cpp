@@ -746,6 +746,22 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	return FViewportClient::GetCursor(InViewport, X, Y);
 }
 
+void UGameViewportClient::SetVirtualCursorWidget(EMouseCursor::Type Cursor, UUserWidget* UserWidget)
+{
+	if (ensure(UserWidget))
+	{
+		if (CursorWidgets.Contains(Cursor))
+		{
+			TSharedRef<SWidget>* Widget = CursorWidgets.Find(Cursor);
+			(*Widget) = UserWidget->TakeWidget();
+		}
+		else
+		{
+			CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
+		}
+	}
+}
+
 void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
 {
 	if (ensureMsgf(CursorClass.IsValid(), TEXT("UGameViewportClient::AddCusor: Cursor class is not valid!")))

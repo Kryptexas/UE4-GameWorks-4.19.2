@@ -625,14 +625,15 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>
 
 	for (auto& Element : Modifiers)
 	{
-		check(Element.Areas.Num() > 0);
-		
-		FAreaNavModifier& AreaMod = Element.Areas[0];
-		const int32 AreaId = GetAreaID(AreaMod.GetAreaClass());
-		if (AreaId >= 0 && AreaId < RECAST_MAX_AREAS)
+		if (Element.Areas.Num())
 		{
-			AreaMod.Cost = AreaCosts[AreaId];
-			AreaMod.FixedCost = AreaFixedCosts[AreaId];
+			FAreaNavModifier& AreaMod = Element.Areas[0];
+			const int32 AreaId = GetAreaID(AreaMod.GetAreaClass());
+			if (AreaId >= 0 && AreaId < RECAST_MAX_AREAS)
+			{
+				AreaMod.Cost = AreaCosts[AreaId];
+				AreaMod.FixedCost = AreaFixedCosts[AreaId];
+			}
 		}
 	}
 
@@ -640,8 +641,11 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>
 	{
 		FORCEINLINE bool operator()(const FRecastAreaNavModifierElement& ElA, const FRecastAreaNavModifierElement& ElB) const
 		{
-			check(ElA.Areas.Num() > 0);
-			check(ElB.Areas.Num() > 0);
+			if (ElA.Areas.Num() == 0 || ElB.Areas.Num() == 0)
+			{
+				return ElA.Areas.Num() <= ElB.Areas.Num();
+			}
+
 			// assuming composite modifiers has same area type
 			const FAreaNavModifier& A = ElA.Areas[0];
 			const FAreaNavModifier& B = ElB.Areas[0];

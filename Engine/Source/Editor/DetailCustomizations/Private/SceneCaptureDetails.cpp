@@ -41,42 +41,21 @@ inline static bool SortAlphabeticallyByLocalizedText(const FString& ip1, const F
 
 void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
+	IDetailCategoryBuilder& SceneCaptureCategoryBuilder = DetailLayout.EditCategory("SceneCapture");
+	
+	ShowFlagSettingsProperty = DetailLayout.GetProperty("ShowFlagSettings", USceneCaptureComponent::StaticClass());
+	check(ShowFlagSettingsProperty->IsValidHandle());
+	ShowFlagSettingsProperty->MarkHiddenByCustomization();
+	
 	// Add all the properties that are there by default
 	// (These would get added by default anyway, but we want to add them first so what we add next comes later in the list)
 	TArray<TSharedRef<IPropertyHandle>> SceneCaptureCategoryDefaultProperties;
-	IDetailCategoryBuilder& SceneCaptureCategoryBuilder = DetailLayout.EditCategory("SceneCapture");
 	SceneCaptureCategoryBuilder.GetDefaultProperties(SceneCaptureCategoryDefaultProperties);
-
 	for (TSharedRef<IPropertyHandle> Handle : SceneCaptureCategoryDefaultProperties)
 	{
-		SceneCaptureCategoryBuilder.AddProperty(Handle);
-	}
-
-	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
-
-	for( int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex )
-	{
-		const TWeakObjectPtr<UObject>& CurrentObject = SelectedObjects[ObjectIndex];
-		if ( CurrentObject.IsValid() )
+		if (Handle->GetProperty() != ShowFlagSettingsProperty->GetProperty())
 		{
-			ASceneCapture2D* CurrentCaptureActor2D = Cast<ASceneCapture2D>(CurrentObject.Get());
-			if (CurrentCaptureActor2D != nullptr)
-			{
-				SceneCaptureComponent = Cast<USceneCaptureComponent>(CurrentCaptureActor2D->GetCaptureComponent2D());
-				break;
-			}
-			ASceneCaptureCube* CurrentCaptureActorCube = Cast<ASceneCaptureCube>(CurrentObject.Get());
-			if (CurrentCaptureActorCube != nullptr)
-			{
-				SceneCaptureComponent = Cast<USceneCaptureComponent>(CurrentCaptureActorCube->GetCaptureComponentCube());
-				break;
-			}
-			APlanarReflection* CurrentPlanarReflection = Cast<APlanarReflection>(CurrentObject.Get());
-			if (CurrentPlanarReflection != nullptr)
-			{
-				SceneCaptureComponent = Cast<USceneCaptureComponent>(CurrentPlanarReflection->GetPlanarReflectionComponent());
-				break;
-			}
+			SceneCaptureCategoryBuilder.AddProperty(Handle);
 		}
 	}
 
@@ -92,6 +71,7 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_SkeletalMeshes);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_StaticMeshes);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_Translucency);
+	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_Lighting);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_DeferredLighting);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_InstancedStaticMeshes);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_InstancedFoliage);
@@ -101,10 +81,12 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_AmbientOcclusion);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_DynamicShadows);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_SkyLighting);
+	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_VolumetricFog);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_AmbientCubemap);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_DistanceFieldAO);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_LightFunctions);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_LightShafts);
+	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_PostProcessing);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_ReflectionEnvironment);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_ScreenSpaceReflections);
 	ShowFlagsToAllowForCaptures.Add(FEngineShowFlags::EShowFlag::SF_TexturedLightProfiles);
@@ -216,46 +198,108 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 
 ECheckBoxState FSceneCaptureDetails::OnGetDisplayCheckState(FString ShowFlagName) const
 {
-	bool IsChecked = false;
-	FEngineShowFlagsSetting* FlagSetting;
-	if (SceneCaptureComponent->GetSettingForShowFlag(ShowFlagName, &FlagSetting))
+	TArray<const void*> RawData;
+	ShowFlagSettingsProperty->AccessRawData(RawData);
+
+	TArray<UObject*> OuterObjects;
+	ShowFlagSettingsProperty->GetOuterObjects(OuterObjects);
+
+	ECheckBoxState ReturnState = ECheckBoxState::Unchecked;
+	bool bReturnStateSet = false;
+	for (int32 ObjectIdx = 0; ObjectIdx < RawData.Num(); ++ObjectIdx)
 	{
-		IsChecked = FlagSetting->Enabled;
-	}
-	else
-	{
-		int32 SettingIndex = SceneCaptureComponent->ShowFlags.FindIndexByName(*(ShowFlagName));
-		if (SettingIndex != INDEX_NONE)
+		const void* Data = RawData[ObjectIdx];
+		check(Data);
+
+		const TArray<FEngineShowFlagsSetting>& ShowFlagSettings = *reinterpret_cast<const TArray<FEngineShowFlagsSetting>*>(Data);
+		const FEngineShowFlagsSetting* Setting = ShowFlagSettings.FindByPredicate([&ShowFlagName](const FEngineShowFlagsSetting& S) { return S.ShowFlagName == ShowFlagName; });
+		ECheckBoxState ThisObjectState = ECheckBoxState::Unchecked;
+		if (Setting)
 		{
-			IsChecked = SceneCaptureComponent->ShowFlags.GetSingleFlag(SettingIndex);
+			ThisObjectState = Setting->Enabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+		else
+		{
+			const UObject* SceneComp = OuterObjects[ObjectIdx];
+			const USceneCaptureComponent* SceneCompArchetype = SceneComp ? Cast<USceneCaptureComponent>(SceneComp->GetArchetype()) : nullptr;
+			const int32 SettingIndex = SceneCompArchetype ? SceneCompArchetype->ShowFlags.FindIndexByName(*ShowFlagName) : INDEX_NONE;
+			if (SettingIndex != INDEX_NONE)
+			{
+				ThisObjectState = SceneCompArchetype->ShowFlags.GetSingleFlag(SettingIndex) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			}
+		}
+		
+		if (bReturnStateSet)
+		{
+			if (ThisObjectState != ReturnState)
+			{
+				ReturnState = ECheckBoxState::Undetermined;
+				break;
+			}
+		}
+		else
+		{
+			ReturnState = ThisObjectState;
+			bReturnStateSet = true;
 		}
 	}
 
-	return IsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return ReturnState;
 }
 
 void FSceneCaptureDetails::OnShowFlagCheckStateChanged(ECheckBoxState InNewRadioState, FString FlagName)
 {
-	SceneCaptureComponent->Modify();
-	FEngineShowFlagsSetting* FlagSetting;
-	bool bNewCheckState = (InNewRadioState == ECheckBoxState::Checked);
-
-	// If setting exists, update it
-	if (SceneCaptureComponent->GetSettingForShowFlag(FlagName, &FlagSetting))
+	if (InNewRadioState == ECheckBoxState::Undetermined)
 	{
-		FlagSetting->Enabled = bNewCheckState;
-	}
-	// Otherwise create a new setting
-	else
-	{
-		FEngineShowFlagsSetting NewFlagSetting;
-		NewFlagSetting.ShowFlagName = FlagName;
-		NewFlagSetting.Enabled = bNewCheckState;
-		SceneCaptureComponent->ShowFlagSettings.Add(NewFlagSetting);
+		return;
 	}
 
-	// Ensure PostEditChangeProperty is called, which in turn calls update
-	SceneCaptureComponent->PostEditChange();
+	ShowFlagSettingsProperty->NotifyPreChange();
+
+	TArray<void*> RawData;
+	ShowFlagSettingsProperty->AccessRawData(RawData);
+
+	TArray<UObject*> OuterObjects;
+	ShowFlagSettingsProperty->GetOuterObjects(OuterObjects);
+
+	const bool bNewEnabledState = (InNewRadioState == ECheckBoxState::Checked) ? true : false;
+	for (int32 ObjectIdx = 0; ObjectIdx < RawData.Num(); ++ObjectIdx)
+	{
+		void* Data = RawData[ObjectIdx];
+		check(Data);
+
+		const UObject* SceneComp = OuterObjects[ObjectIdx];
+		const USceneCaptureComponent* SceneCompArchetype = SceneComp ? Cast<USceneCaptureComponent>(SceneComp->GetArchetype()) : nullptr;
+		const int32 SettingIndex = SceneCompArchetype ? SceneCompArchetype->ShowFlags.FindIndexByName(*FlagName) : INDEX_NONE;
+		const bool bDefaultValue = (SettingIndex != INDEX_NONE) ? SceneCompArchetype->ShowFlags.GetSingleFlag(SettingIndex) : false;
+
+		TArray<FEngineShowFlagsSetting>& ShowFlagSettings = *reinterpret_cast<TArray<FEngineShowFlagsSetting>*>(Data);
+		if (bNewEnabledState == bDefaultValue)
+		{
+			// Just remove settings that are the same as defaults. This lets the flags return to their default state
+			ShowFlagSettings.RemoveAll([&FlagName](const FEngineShowFlagsSetting& Setting) { return Setting.ShowFlagName == FlagName; });
+		}
+		else
+		{
+			FEngineShowFlagsSetting* Setting = ShowFlagSettings.FindByPredicate([&FlagName](const FEngineShowFlagsSetting& S) { return S.ShowFlagName == FlagName; });
+			if (Setting)
+			{
+				// If the setting exists already for some reason, update it
+				Setting->Enabled = bNewEnabledState;
+			}
+			else
+			{
+				// Otherwise create a new setting
+				FEngineShowFlagsSetting NewFlagSetting;
+				NewFlagSetting.ShowFlagName = FlagName;
+				NewFlagSetting.Enabled = bNewEnabledState;
+				ShowFlagSettings.Add(NewFlagSetting);
+			}
+		}
+	}
+
+	ShowFlagSettingsProperty->NotifyPostChange();
+	ShowFlagSettingsProperty->NotifyFinishedChangingProperties();
 }
 
 #undef LOCTEXT_NAMESPACE

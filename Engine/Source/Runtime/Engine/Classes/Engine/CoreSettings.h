@@ -174,6 +174,11 @@ protected:
 		ToolTip = "Whether to allow Blueprint classes to create GC clusters."))
 	uint32 BlueprintClusteringEnabled : 1;
 
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.UseDisregardForGCOnDedicatedServers", DisplayName = "Use DisregardForGC On Dedicated Servers",
+		ToolTip = "If false, DisregardForGC will be disabled for dedicated servers."))
+	uint32 UseDisregardForGCOnDedicatedServers : 1;
+
 	UPROPERTY(EditAnywhere, config, Category = General, meta = (
 		ConsoleVariable = "gc.NumRetriesBeforeForcingGC", DisplayName = "Number Of Retries Before Forcing GC",
 		ToolTip = "Maximum number of times GC can be skipped if worker threads are currently modifying UObject state. 0 = never force GC"))

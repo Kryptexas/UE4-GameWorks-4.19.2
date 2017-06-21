@@ -497,4 +497,36 @@ struct FDynamicStats
 
 		return TStatId();
 	}
+
+	template< typename TStatGroup >
+	static TStatId CreateMemoryStatId(const FString& StatNameOrDescription, FPlatformMemory::EMemoryCounterRegion MemRegion=FPlatformMemory::MCR_Physical)
+	{
+#if	STATS
+		return CreateMemoryStatId<TStatGroup>(FName(*StatNameOrDescription), MemRegion);
+#endif // STATS
+
+		return TStatId();
+	}
+
+	template< typename TStatGroup >
+	static TStatId CreateMemoryStatId(const FName StatNameOrDescription, FPlatformMemory::EMemoryCounterRegion MemRegion=FPlatformMemory::MCR_Physical)
+	{
+#if	STATS
+		FStartupMessages::Get().AddMetadata(StatNameOrDescription, *StatNameOrDescription.ToString(),
+			TStatGroup::GetGroupName(),
+			TStatGroup::GetGroupCategory(),
+			TStatGroup::GetDescription(),
+			false, EStatDataType::ST_int64, false, MemRegion);
+
+		TStatId StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(StatNameOrDescription,
+			TStatGroup::GetGroupName(),
+			TStatGroup::GetGroupCategory(),
+			TStatGroup::DefaultEnable,
+			false, EStatDataType::ST_int64, *StatNameOrDescription.ToString(), false, MemRegion);
+
+		return StatID;
+#endif // STATS
+
+		return TStatId();
+	}
 };

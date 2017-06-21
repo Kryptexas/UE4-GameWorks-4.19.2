@@ -11,6 +11,7 @@
 #include "HAL/ThreadManager.h"
 #include "CoreGlobals.h"
 #include "Windows/WindowsHWrapper.h"
+#include "HAL/LowLevelMemTracker.h"
 
 class FRunnable;
 
@@ -187,8 +188,14 @@ protected:
 		ThreadInitSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 
 		// Create the new thread
-		Thread = CreateThread(NULL,InStackSize,_ThreadProc,this,STACK_SIZE_PARAM_IS_A_RESERVATION,(::DWORD *)&ThreadID);
-		
+		{
+			LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::ThreadStack);
+			// add in the thread size, since it's allocated in a black box we can't track
+			LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, nullptr, InStackSize));
+
+			Thread = CreateThread(NULL, InStackSize, _ThreadProc, this, STACK_SIZE_PARAM_IS_A_RESERVATION, (::DWORD *)&ThreadID);
+		}
+
 		// If it fails, clear all the vars
 		if (Thread == NULL)
 		{

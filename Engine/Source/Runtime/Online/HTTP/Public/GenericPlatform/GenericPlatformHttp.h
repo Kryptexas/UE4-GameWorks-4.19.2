@@ -8,6 +8,9 @@
 class FHttpManager;
 class IHttpRequest;
 
+// Temporary define until UE4Main has this function so OSS can know to avoid it
+#define HTTP_GENERIC_PLATFORM_HAS_GETURLDOMAIN 1
+
 /**
  * Platform specific Http implementations
  */
@@ -65,6 +68,13 @@ public:
 	 * @return The html encoded string
 	 */
 	static FString HtmlEncode(const FString& UnencodedString);
+
+	/** 
+	 * Returns the domain portion of the URL, e.g., "a.b.c" of "http://a.b.c/d"
+	 * @param Url the URL to return the domain of
+	 * @return the domain of the specified URL
+	 */
+	static FString GetUrlDomain(const FString& Url);
 
 	/**
 	 * Returns the mime type for the file.

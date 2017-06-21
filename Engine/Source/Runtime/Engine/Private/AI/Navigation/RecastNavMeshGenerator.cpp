@@ -2795,23 +2795,25 @@ void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 				for (int32 AreaIdx = Element.Areas.Num() - 1; AreaIdx >= 0; AreaIdx--)
 				{
 					const FAreaNavModifier& AreaMod = Element.Areas[AreaIdx];
-					if (AreaMod.GetAreaClassToReplace() == UNavArea_LowHeight::StaticClass())
+					if (AreaMod.GetApplyMode() == ENavigationAreaMode::ApplyInLowPass ||
+						AreaMod.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass)
 					{
 						const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(AreaMod.GetAreaClass());
+						// replace area will be fixed as LowAreaId during this pass, regardless settings in area modifier
+						const int32* ReplaceAreaIDPtr = (AreaMod.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass) ? &LowAreaId : nullptr;
+
 						if (AreaIDPtr != nullptr)
 						{
 							for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
 							{
-								MarkDynamicArea(AreaMod, LocalToWorld, Layer, *AreaIDPtr, &LowAreaId);
+								MarkDynamicArea(AreaMod, LocalToWorld, Layer, *AreaIDPtr, ReplaceAreaIDPtr);
 							}
 
 							if (Element.PerInstanceTransform.Num() == 0)
 							{
-								MarkDynamicArea(AreaMod, FTransform::Identity, Layer, *AreaIDPtr, &LowAreaId);
+								MarkDynamicArea(AreaMod, FTransform::Identity, Layer, *AreaIDPtr, ReplaceAreaIDPtr);
 							}
 						}
-
-						Element.Areas.RemoveAt(AreaIdx, 1, false);
 					}
 				}
 			}
@@ -2825,8 +2827,15 @@ void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 		{
 			for (const FAreaNavModifier& Area : Element.Areas)
 			{
+				if (Area.GetApplyMode() == ENavigationAreaMode::ApplyInLowPass || Area.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass)
+				{
+					continue;
+				}
+
 				const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClass());
-				const int32* ReplaceIDPtr = Area.GetAreaClassToReplace() ? AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClassToReplace()) : nullptr;
+				const int32* ReplaceIDPtr = (Area.GetApplyMode() == ENavigationAreaMode::Replace) && Area.GetAreaClassToReplace() ?
+					AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClassToReplace()) : nullptr;
+				
 				if (AreaIDPtr)
 				{
 					for (const FTransform& LocalToWorld : Element.PerInstanceTransform)

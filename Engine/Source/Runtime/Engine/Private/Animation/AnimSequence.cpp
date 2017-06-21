@@ -2358,7 +2358,7 @@ public:
 			RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 		}
 
-		RequiredBones.InitializeTo(RequiredBoneIndexArray, *MySkeleton);
+		RequiredBones.InitializeTo(RequiredBoneIndexArray, false, *MySkeleton);
 	}
 
 };
@@ -4602,7 +4602,7 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 {
 	check(MoveDelta != 0.f);
 	const bool bPlayingForwards = MoveDelta > 0.f;
-	float CurrentMoveDelta = MoveDelta;
+	float CurrentMoveDelta = MoveDelta * RateScale;
 
 	bool bOffsetInitialized = false;
 	float MarkerTimeOffset = 0.f;

@@ -11,10 +11,16 @@
 
 UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, Orientation(Orient_Vertical)
+	, ScrollBarVisibility(ESlateVisibility::Visible)
+	, ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
+	, ScrollbarThickness(5.0f, 5.0f)
+	, AlwaysShowScrollbar(false)
+	, AllowOverscroll(true)
+	, NavigationDestination(EDescendantScrollDestination::IntoView)
+	, NavigationScrollPadding(0.0f)
 {
 	bIsVariable = false;
-
-	Orientation = Orient_Vertical;
 
 	SScrollBox::FArguments Defaults;
 	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
@@ -22,13 +28,6 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 
 	WidgetStyle = *Defaults._Style;
 	WidgetBarStyle = *Defaults._ScrollBarStyle;
-
-	AlwaysShowScrollbar = false;
-	ScrollbarThickness = FVector2D(5, 5);
-	ScrollBarVisibility = ESlateVisibility::Visible;
-	AllowOverscroll = true;
-
-	ConsumeMouseWheel = EConsumeMouseWheel::WhenScrollingPossible;
 }
 
 void UScrollBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -72,6 +71,8 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 		.ScrollBarStyle(&WidgetBarStyle)
 		.Orientation(Orientation)
 		.ConsumeMouseWheel(ConsumeMouseWheel)
+		.NavigationDestination(NavigationDestination)
+		.NavigationScrollPadding(NavigationScrollPadding)
 		.OnUserScrolled(BIND_UOBJECT_DELEGATE(FOnUserScrolled, SlateHandleUserScrolled));
 
 	for ( UPanelSlot* PanelSlot : Slots )
@@ -134,17 +135,19 @@ void UScrollBox::ScrollToEnd()
 	}
 }
 
-void UScrollBox::ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll)
+void UScrollBox::ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll, EDescendantScrollDestination InScrollDestination)
 {
 	TSharedPtr<SWidget> SlateWidgetToFind;
 	if (WidgetToFind)
 	{
 		SlateWidgetToFind = WidgetToFind->GetCachedWidget();
 	}
+
 	if (MyScrollBox.IsValid())
 	{
-		// NOTE: Pass even if null! This, in effect, cancels a request to scroll which is necessary to avoid warnings/ensures when we request to scroll to a widget and later remove that widget!
-		MyScrollBox->ScrollDescendantIntoView(SlateWidgetToFind, AnimateScroll);
+		// NOTE: Pass even if null! This, in effect, cancels a request to scroll which is necessary to avoid warnings/ensures 
+		//       when we request to scroll to a widget and later remove that widget!
+		MyScrollBox->ScrollDescendantIntoView(SlateWidgetToFind, AnimateScroll, InScrollDestination);
 	}
 }
 

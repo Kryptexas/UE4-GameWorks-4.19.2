@@ -37,6 +37,9 @@ public:
 
 private:
 
+	/** Call after a structural change is made that causes the graph to be recreated */
+	void RebuildGraph();
+
 	/** Called to create context menu when right-clicking on graph */
 	FActionMenuContent OnCreateGraphActionMenu(UEdGraph* InGraph, const FVector2D& InNodePosition, const TArray<UEdGraphPin*>& InDraggedPins, bool bAutoExpand, SGraphEditor::FActionMenuClosed InOnMenuClosed);
 
@@ -87,6 +90,12 @@ private:
 
 	void OnSearchBreadthEnabledChanged( ECheckBoxState NewState );
 	ECheckBoxState IsSearchBreadthEnabledChecked() const;
+
+	void OnEnableCollectionFilterChanged(ECheckBoxState NewState);
+	ECheckBoxState IsEnableCollectionFilterChecked() const;
+	TSharedRef<SWidget> GenerateCollectionFilterItem(TSharedPtr<FName> InItem);
+	void HandleCollectionFilterChanged(TSharedPtr<FName> Item, ESelectInfo::Type SelectInfo);
+	FText GetCollectionFilterText() const;
 
 	void OnShowSoftReferencesChanged( ECheckBoxState NewState );
 	ECheckBoxState IsShowSoftReferencesChecked() const;
@@ -142,4 +151,7 @@ private:
 
 	/** The temporary copy of the path text when it is actively being edited. */
 	FText TemporaryPathBeingEdited;
+
+	/** List of collection filter options */
+	TArray<TSharedPtr<FName>> CollectionsComboList;
 };

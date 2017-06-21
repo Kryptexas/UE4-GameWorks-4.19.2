@@ -60,6 +60,7 @@ EActiveTimerReturnType SViewport::EnsureTick(double InCurrentTime, float InDelta
 
 int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	SCOPED_NAMED_EVENT(SViewport_OnPaint, FColor::Purple);
 	SCOPE_CYCLE_COUNTER(STAT_ViewportUpdateTime);
 
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );

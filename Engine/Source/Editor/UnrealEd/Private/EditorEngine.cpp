@@ -193,6 +193,9 @@
 #include "LauncherPlatformModule.h"
 #include "Editor/EditorPerformanceSettings.h"
 
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"

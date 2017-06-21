@@ -31,6 +31,7 @@
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ISizeMapModule.h"
 #include "Engine/AssetManager.h"
+#include "Widgets/Input/SComboBox.h"
 
 #include "ObjectTools.h"
 
@@ -47,7 +48,7 @@ SReferenceViewer::~SReferenceViewer()
 	}
 }
 
-void SReferenceViewer::Construct( const FArguments& InArgs )
+void SReferenceViewer::Construct(const FArguments& InArgs)
 {
 	// Create an action list and register commands
 	RegisterActions();
@@ -55,6 +56,19 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	// Set up the history manager
 	HistoryManager.SetOnApplyHistoryData(FOnApplyHistoryData::CreateSP(this, &SReferenceViewer::OnApplyHistoryData));
 	HistoryManager.SetOnUpdateHistoryData(FOnUpdateHistoryData::CreateSP(this, &SReferenceViewer::OnUpdateHistoryData));
+
+	// Fill out CollectionsComboList
+	{
+		TArray<FName> CollectionNames;
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+		CollectionManagerModule.Get().GetCollectionNames(ECollectionShareType::CST_All, CollectionNames);
+		CollectionNames.Sort([](const FName& A, const FName& B) { return A.Compare(B) < 0; });
+		CollectionsComboList.Add(MakeShareable(new FName(NAME_None)));
+		for (FName CollectionName : CollectionNames)
+		{
+			CollectionsComboList.Add(MakeShareable(new FName(CollectionName)));
+		}
+	}
 
 	// Create the graph
 	GraphObj = NewObject<UEdGraph_ReferenceViewer>();
@@ -201,7 +215,8 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 								.Value(this, &SReferenceViewer::GetSearchDepthCount)
 								.OnValueChanged(this, &SReferenceViewer::OnSearchDepthCommitted)
 								.MinValue(1)
-								.MaxValue(12)
+								.MaxValue(50)
+								.MaxSliderValue(12)
 							]
 						]
 					]
@@ -241,7 +256,52 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 								.Value(this, &SReferenceViewer::GetSearchBreadthCount)
 								.OnValueChanged(this, &SReferenceViewer::OnSearchBreadthCommitted)
 								.MinValue(1)
-								.MaxValue(50)
+								.MaxValue(1000)
+								.MaxSliderValue(50)
+							]
+						]
+					]
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("CollectionFilter", "Collection Filter"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged( this, &SReferenceViewer::OnEnableCollectionFilterChanged )
+							.IsChecked( this, &SReferenceViewer::IsEnableCollectionFilterChecked )
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SBox)
+							.WidthOverride(100)
+							[
+								SNew(SComboBox<TSharedPtr<FName>>)
+								.OptionsSource(&CollectionsComboList)
+								.OnGenerateWidget(this, &SReferenceViewer::GenerateCollectionFilterItem)
+								.OnSelectionChanged(this, &SReferenceViewer::HandleCollectionFilterChanged)
+								.ToolTipText(this, &SReferenceViewer::GetCollectionFilterText)
+								[
+									SNew(STextBlock)
+									.Text(this, &SReferenceViewer::GetCollectionFilterText)
+								]
 							]
 						]
 					]
@@ -385,20 +445,7 @@ void SReferenceViewer::SetGraphRootPackageNames(const TArray<FAssetIdentifier>& 
 {
 	GraphObj->SetGraphRoot(NewGraphRootIdentifiers);
 	
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	if ( AssetRegistryModule.Get().IsLoadingAssets() )
-	{
-		// We are still discovering assets, listen for the completion delegate before building the graph
-		if (!AssetRegistryModule.Get().OnFilesLoaded().IsBoundToObject(this))
-		{		
-			AssetRegistryModule.Get().OnFilesLoaded().AddSP( this, &SReferenceViewer::OnInitialAssetRegistrySearchComplete );
-		}
-	}
-	else
-	{
-		// All assets are already discovered, build the graph now.
-		GraphObj->RebuildGraph();
-	}
+	RebuildGraph();
 
 	// Set the initial history data
 	HistoryManager.AddHistoryData();
@@ -409,6 +456,27 @@ void SReferenceViewer::OnNodeDoubleClicked(UEdGraphNode* Node)
 	TSet<UObject*> Nodes;
 	Nodes.Add(Node);
 	ReCenterGraphOnNodes( Nodes );
+}
+
+void SReferenceViewer::RebuildGraph()
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if (AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		// We are still discovering assets, listen for the completion delegate before building the graph
+		if (!AssetRegistryModule.Get().OnFilesLoaded().IsBoundToObject(this))
+		{
+			AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SReferenceViewer::OnInitialAssetRegistrySearchComplete);
+		}
+	}
+	else
+	{
+		// All assets are already discovered, build the graph now, if we have one
+		if (GraphObj)
+		{
+			GraphObj->RebuildGraph();
+		}
+	}
 }
 
 FActionMenuContent SReferenceViewer::OnCreateGraphActionMenu(UEdGraph* InGraph, const FVector2D& InNodePosition, const TArray<UEdGraphPin*>& InDraggedPins, bool bAutoExpand, SGraphEditor::FActionMenuClosed InOnMenuClosed)
@@ -546,7 +614,7 @@ void SReferenceViewer::OnSearchDepthEnabledChanged( ECheckBoxState NewState )
 	if ( GraphObj )
 	{
 		GraphObj->SetSearchDepthLimitEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -579,7 +647,7 @@ void SReferenceViewer::OnSearchDepthCommitted(int32 NewValue)
 	if ( GraphObj )
 	{
 		GraphObj->SetSearchDepthLimit(NewValue);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -588,7 +656,7 @@ void SReferenceViewer::OnSearchBreadthEnabledChanged( ECheckBoxState NewState )
 	if ( GraphObj )
 	{
 		GraphObj->SetSearchBreadthLimitEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -604,12 +672,76 @@ ECheckBoxState SReferenceViewer::IsSearchBreadthEnabledChecked() const
 	}
 }
 
+TSharedRef<SWidget> SReferenceViewer::GenerateCollectionFilterItem(TSharedPtr<FName> InItem)
+{
+	FText ItemAsText = FText::FromName(*InItem);
+	return
+		SNew(SBox)
+		.WidthOverride(300)
+		[
+			SNew(STextBlock)
+			.Text(ItemAsText)
+			.ToolTipText(ItemAsText)
+		];
+}
+
+void SReferenceViewer::OnEnableCollectionFilterChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		const bool bNewValue = NewState == ECheckBoxState::Checked;
+		const bool bCurrentValue = GraphObj->GetEnableCollectionFilter();
+		if (bCurrentValue != bNewValue)
+		{
+			GraphObj->SetEnableCollectionFilter(NewState == ECheckBoxState::Checked);
+			RebuildGraph();
+		}
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsEnableCollectionFilterChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->GetEnableCollectionFilter() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::HandleCollectionFilterChanged(TSharedPtr<FName> Item, ESelectInfo::Type SelectInfo)
+{
+	if (GraphObj)
+	{
+		const FName NewFilter = *Item;
+		const FName CurrentFilter = GraphObj->GetCurrentCollectionFilter();
+		if (CurrentFilter != NewFilter)
+		{
+			if (CurrentFilter == NAME_None)
+			{
+				// Automatically check the box to enable the filter if the previous filter was None
+				GraphObj->SetEnableCollectionFilter(true);
+			}
+
+			GraphObj->SetCurrentCollectionFilter(NewFilter);
+			RebuildGraph();
+		}
+	}
+}
+
+FText SReferenceViewer::GetCollectionFilterText() const
+{
+	return FText::FromName(GraphObj->GetCurrentCollectionFilter());
+}
+
 void SReferenceViewer::OnShowSoftReferencesChanged(ECheckBoxState NewState)
 {
 	if (GraphObj)
 	{
 		GraphObj->SetShowSoftReferencesEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -630,7 +762,7 @@ void SReferenceViewer::OnShowHardReferencesChanged(ECheckBoxState NewState)
 	if (GraphObj)
 	{
 		GraphObj->SetShowHardReferencesEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -664,7 +796,7 @@ void SReferenceViewer::OnShowManagementReferencesChanged(ECheckBoxState NewState
 		UAssetManager::Get().UpdateManagementDatabase();
 
 		GraphObj->SetShowManagementReferencesEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -685,7 +817,7 @@ void SReferenceViewer::OnShowSearchableNamesChanged(ECheckBoxState NewState)
 	if (GraphObj)
 	{
 		GraphObj->SetShowSearchableNames(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -706,7 +838,7 @@ void SReferenceViewer::OnShowNativePackagesChanged(ECheckBoxState NewState)
 	if (GraphObj)
 	{
 		GraphObj->SetShowNativePackages(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 
@@ -739,7 +871,7 @@ void SReferenceViewer::OnSearchBreadthCommitted(int32 NewValue)
 	if ( GraphObj )
 	{
 		GraphObj->SetSearchBreadthLimit(NewValue);
-		GraphObj->RebuildGraph();
+		RebuildGraph();
 	}
 }
 

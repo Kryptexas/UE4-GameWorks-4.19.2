@@ -41,7 +41,8 @@ enum class ELightmapUVVersion : int32
 {
 	BitByBit = 0,
 	Segments = 1,
-	Latest = Segments
+	SmallChartPacking = 2,
+	Latest = SmallChartPacking
 };
 
 

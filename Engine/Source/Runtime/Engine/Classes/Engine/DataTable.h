@@ -389,21 +389,24 @@ struct ENGINE_API FDataTableCategoryHandle
 		}
 
 		// check each row to see if the value in the Property element is the one we're looking for (RowContents). If it is, add the row to OutRows
-		FString RowContentsAsString = RowContents.ToString();
+		uint8* RowContentsAsBinary = (uint8*)FMemory_Alloca(Property->GetSize());
+		Property->InitializeValue(RowContentsAsBinary);
+		if (Property->ImportText(*RowContents.ToString(), RowContentsAsBinary, PPF_None, nullptr) == nullptr)
+		{
+			Property->DestroyValue(RowContentsAsBinary);
+			return;
+		}
 
 		for (auto RowIt = DataTable->RowMap.CreateConstIterator(); RowIt; ++RowIt)
 		{
 			uint8* RowData = RowIt.Value();
 
-			FString PropertyValue(TEXT(""));
-
-			Property->ExportText_InContainer(0, PropertyValue, RowData, RowData, nullptr, PPF_None);
-
-			if (RowContentsAsString == PropertyValue)
+			if (Property->Identical(Property->ContainerPtrToValuePtr<void>(RowData, 0), RowContentsAsBinary, PPF_None))
 			{
 				OutRows.Add((T*)RowData);
 			}
 		}
+		Property->DestroyValue(RowContentsAsBinary);
 
 		return;
 	}

@@ -16,9 +16,13 @@
 #include "Misc/OutputDeviceConsole.h"
 #include "UniquePtr.h"
 
+TCHAR FGenericPlatformOutputDevices::CachedAbsoluteFilename[1024] = { 0 };
+
 void FGenericPlatformOutputDevices::SetupOutputDevices()
 {
 	check(GLog);
+
+	CachedAbsoluteFilename[0] = 0;
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
@@ -43,17 +47,15 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 
 FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 {
-	static TCHAR		Filename[1024] = { 0 };
-
-	if (!Filename[0])
+	if (!CachedAbsoluteFilename[0])
 	{
-		FCString::Strcpy(Filename, ARRAY_COUNT(Filename), *FPaths::GameLogDir());
+		FCString::Strcpy(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename), *FPaths::GameLogDir());
 		FString LogFilename;
 		if (!FParse::Value(FCommandLine::Get(), TEXT("LOG="), LogFilename))
 		{
 			if (FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), LogFilename))
 			{
-				Filename[0] = 0;
+				CachedAbsoluteFilename[0] = 0;
 			}
 		}
 
@@ -78,10 +80,10 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 			LogFilename += TEXT(".log");
 		}
 
-		FCString::Strcat(Filename, ARRAY_COUNT(Filename) - FCString::Strlen(Filename), *LogFilename);
+		FCString::Strcat(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename) - FCString::Strlen(CachedAbsoluteFilename), *LogFilename);
 	}
 
-	return Filename;
+	return CachedAbsoluteFilename;
 }
 
 #ifndef WITH_LOGGING_TO_MEMORY

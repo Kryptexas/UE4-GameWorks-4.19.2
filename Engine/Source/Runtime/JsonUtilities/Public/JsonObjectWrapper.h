@@ -21,11 +21,16 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "JSON")
 	FString JsonString;
 
+	TSharedPtr<FJsonObject> JsonObject;
+
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 	bool ExportTextItem(FString& ValueStr, FJsonObjectWrapper const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 	void PostSerialize(const FArchive& Ar);
 
-	TSharedPtr<FJsonObject> JsonObject;
+	explicit operator bool() const
+	{
+		return JsonObject.IsValid();
+	}
 };
 
 template<>

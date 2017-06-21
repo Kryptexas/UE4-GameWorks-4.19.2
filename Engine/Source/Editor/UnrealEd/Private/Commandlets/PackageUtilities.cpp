@@ -689,9 +689,27 @@ int32 ULoadPackageCommandlet::Main( const FString& Params )
 	}
 
 	uint8 PackageFilter = NORMALIZE_DefaultFlags;
-	if ( Switches.Contains(TEXT("MAPSONLY")) )
+	if (Switches.Contains(TEXT("SKIPMAPS")))
+	{
+		PackageFilter |= NORMALIZE_ExcludeMapPackages;
+	}
+	else if (Switches.Contains(TEXT("MAPSONLY")))
 	{
 		PackageFilter |= NORMALIZE_ExcludeContentPackages;
+	}
+
+	if (Switches.Contains(TEXT("PROJECTONLY")))
+	{
+		PackageFilter |= NORMALIZE_ExcludeEnginePackages;
+	}
+
+	if (Switches.Contains(TEXT("SkipDeveloperFolders")) || Switches.Contains(TEXT("NODEV")))
+	{
+		PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
+	}
+	else if (Switches.Contains(TEXT("OnlyDeveloperFolders")))
+	{
+		PackageFilter |= NORMALIZE_ExcludeNonDeveloperPackages;
 	}
 
 	// assume the first token is the map wildcard/pathname

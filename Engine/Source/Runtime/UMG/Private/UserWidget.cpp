@@ -547,11 +547,17 @@ UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 	if (InAnimation)
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
-		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate(
-			[&](const UUMGSequencePlayer* Player)
+		UUMGSequencePlayer** FoundPlayer = nullptr;
+		for ( UUMGSequencePlayer * Player : ActiveSequencePlayers )
 		{
-			return Player->GetAnimation() == InAnimation;
-		});
+			// We need to make sure we haven't stopped the animation, otherwise it'll get cancelled on the next frame.
+			if (Player->GetAnimation() == InAnimation
+			 && !StoppedSequencePlayers.Contains(Player))
+			{
+				FoundPlayer = &Player;
+				break;
+			}
+		}
 
 		if (!FoundPlayer)
 		{
@@ -722,6 +728,21 @@ void UUserWidget::ReverseAnimation(const UWidgetAnimation* InAnimation)
 			(*FoundPlayer)->Reverse();
 		}
 	}
+}
+
+bool UUserWidget::IsAnimationPlayingForward(const UWidgetAnimation* InAnimation)
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if (FoundPlayer)
+		{
+			return (*FoundPlayer)->IsPlayingForward();
+		}
+	}
+
+	return true;
 }
 
 void UUserWidget::OnAnimationFinishedPlaying(UUMGSequencePlayer& Player)

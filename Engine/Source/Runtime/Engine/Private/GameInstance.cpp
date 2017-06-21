@@ -1002,6 +1002,11 @@ bool UGameInstance::IsDedicatedServerInstance() const
 	}
 }
 
+FName UGameInstance::GetOnlinePlatformName() const
+{
+	return UOnlineEngineInterface::Get()->GetDefaultOnlineSubsystemName();
+}
+
 bool UGameInstance::ClientTravelToSession(int32 ControllerId, FName InSessionName)
 {
 	UWorld* World = GetWorld();
@@ -1009,11 +1014,16 @@ bool UGameInstance::ClientTravelToSession(int32 ControllerId, FName InSessionNam
 	FString URL;
 	if (UOnlineEngineInterface::Get()->GetResolvedConnectString(World, InSessionName, URL))
 	{
-		APlayerController* PC = UGameplayStatics::GetPlayerController(World, ControllerId);
+		ULocalPlayer* LP = GEngine->GetLocalPlayerFromControllerId(World, ControllerId);
+		APlayerController* PC = LP ? LP->PlayerController : nullptr;
 		if (PC)
 		{
 			PC->ClientTravel(URL, TRAVEL_Absolute);
 			return true;
+		}
+		else
+		{
+			UE_LOG(LogGameSession, Warning, TEXT("Failed to find local player for controller id %d"), ControllerId);
 		}
 	}
 	else

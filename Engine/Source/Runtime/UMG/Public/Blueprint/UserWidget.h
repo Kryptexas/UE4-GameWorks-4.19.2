@@ -785,6 +785,14 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
 	void ReverseAnimation(const UWidgetAnimation* InAnimation);
 
+	/**
+	 * returns true if the animation is currently playing forward, false otherwise.
+	 *
+	 * @param InAnimation The playing animation that we want to know about
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	bool IsAnimationPlayingForward(const UWidgetAnimation* InAnimation);
+
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 

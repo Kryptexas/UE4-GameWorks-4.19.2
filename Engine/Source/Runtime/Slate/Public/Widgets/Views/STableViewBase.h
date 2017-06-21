@@ -14,6 +14,8 @@
 #include "Framework/Layout/InertialScrollManager.h"
 #include "Framework/Layout/Overscroll.h"
 
+#include "STableViewBase.generated.h"
+
 class FPaintArgs;
 class FSlateWindowElementList;
 class ITableRow;
@@ -23,10 +25,17 @@ class SScrollBar;
 enum class EConsumeMouseWheel : uint8;
 
 /** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
+UENUM(BlueprintType)
 enum class EListItemAlignment : uint8
 {
 	/** Items are distributed evenly along the row (any extra space is added as padding between the items) */
-	EvenlyDistributed,
+	EvenlyDistributed UMETA(DisplayName = "Evenly (Padding)"),
+
+	/** Items are distributed evenly along the row (any extra space is used to scale up the size of the item proportionally.) */
+	EvenlySize UMETA(DisplayName = "Evenly (Size)"),
+
+	/** Items are distributed evenly along the row, any extra space is used to scale up width of the items proportionally.) */
+	EvenlyWide UMETA(DisplayName = "Evenly (Wide)"),
 
 	/** Items are left aligned on the row (any extra space is added to the right of the items) */
 	LeftAligned,
@@ -183,6 +192,11 @@ protected:
 	 * Get the uniform item height that is enforced by ListViews.
 	 */
 	float GetItemHeight() const;
+
+	/**
+	* Get the uniform item
+	*/
+	FVector2D GetItemSize() const;
 
 	/** @return the number of items that can fit on the screen */
 	virtual float GetNumLiveWidgets() const;

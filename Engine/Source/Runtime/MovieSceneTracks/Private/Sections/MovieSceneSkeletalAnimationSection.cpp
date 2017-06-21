@@ -91,7 +91,7 @@ void UMovieSceneSkeletalAnimationSection::PostLoad()
 	if (GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::ConvertEnableRootMotionToForceRootLock)
 	{
 		UAnimSequence* AnimSeq = Cast<UAnimSequence>(Params.Animation);
-		if (AnimSeq && AnimSeq->bEnableRootMotion)
+		if (AnimSeq && AnimSeq->bEnableRootMotion && !AnimSeq->bForceRootLock)
 		{
 			// this is not ideal, but previously single player node was using this flag to whether or not to extract root motion
 			// with new anim sequencer instance, this would break because we use the instance flag to extract root motion or not

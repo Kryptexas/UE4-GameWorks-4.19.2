@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "NetworkReplayStreaming.h"
+#include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
 
 IMPLEMENT_MODULE( FNetworkReplayStreaming, NetworkReplayStreaming );
@@ -16,6 +17,12 @@ INetworkReplayStreamingFactory& FNetworkReplayStreaming::GetFactory(const TCHAR*
 	else
 	{
 		FactoryName = FactoryNameOverride;
+	}
+
+	FString CmdlineFactoryName;
+	if (FParse::Value(FCommandLine::Get(), TEXT("-REPLAYSTREAMER="), CmdlineFactoryName))
+	{
+		FactoryName = CmdlineFactoryName;
 	}
 
 	// See if we need to forcefully fallback to the null streamer

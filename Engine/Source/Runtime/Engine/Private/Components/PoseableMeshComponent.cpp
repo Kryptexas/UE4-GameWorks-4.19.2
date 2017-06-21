@@ -31,7 +31,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 				RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 			}
 
-			RequiredBones.InitializeTo(RequiredBoneIndexArray, *SkeletalMesh);
+			RequiredBones.InitializeTo(RequiredBoneIndexArray, true, *SkeletalMesh);
 		}
 
 		FillComponentSpaceTransforms();

@@ -58,12 +58,22 @@ void SBox::SetPadding(const TAttribute<FMargin>& InPadding)
 
 void SBox::SetWidthOverride(TAttribute<FOptionalSize> InWidthOverride)
 {
-	WidthOverride = InWidthOverride;
+	if (WidthOverride.Get().Get() != InWidthOverride.Get().Get())
+	{
+		WidthOverride = InWidthOverride;
+
+		Invalidate(EInvalidateWidget::Layout);
+	}
 }
 
 void SBox::SetHeightOverride(TAttribute<FOptionalSize> InHeightOverride)
 {
-	HeightOverride = InHeightOverride;
+	if (HeightOverride.Get().Get() != InHeightOverride.Get().Get())
+	{
+		HeightOverride = InHeightOverride;
+
+		Invalidate(EInvalidateWidget::Layout);
+	}
 }
 
 void SBox::SetMinDesiredWidth(TAttribute<FOptionalSize> InMinDesiredWidth)

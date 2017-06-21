@@ -105,7 +105,7 @@ class UNREALED_API UCookOnTheFlyServer : public UObject, public FTickableEditorO
 {
 	GENERATED_BODY()
 
-	UCookOnTheFlyServer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+		UCookOnTheFlyServer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 
@@ -1477,7 +1477,6 @@ private:
 
 	/**
 	 * Returns all packages which are found in memory which aren't cooked
-	 * 
 	 * @param PackagesToSave (in+out) filled with all packages in memory
 	 * @param TargetPlatformNames list of target platforms to find unsolicited packages for 
 	 * @param ContainsFullAssetGCClasses do these packages contain any of the assets which require a GC after cooking 

@@ -44,7 +44,7 @@ struct FNavigableGeometryExport
 
 namespace NavigationHelper
 {
-	struct FNavLinkOwnerData
+	struct ENGINE_API FNavLinkOwnerData
 	{
 		const AActor* Actor;
 		FTransform LinkToWorld;

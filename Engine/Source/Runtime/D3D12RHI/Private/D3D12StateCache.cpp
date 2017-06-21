@@ -293,7 +293,7 @@ void FD3D12StateCacheBase::SetScissorRects(uint32 Count, const D3D12_RECT* const
 template <bool IsCompute>
 void FD3D12StateCacheBase::ApplyState()
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateTime);
 	const bool bForceState = false;
 	if (bForceState)
 	{
@@ -405,7 +405,7 @@ void FD3D12StateCacheBase::ApplyState()
 		// Setup non-heap bindings
 		if (bNeedSetVB)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetVertexBufferTime);
+			//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetVertexBufferTime);
 			DescriptorCache.SetVertexBuffers(PipelineState.Graphics.VBCache);
 			bNeedSetVB = false;
 		}
@@ -572,7 +572,7 @@ void FD3D12StateCacheBase::ApplyState()
 
 	// Shader resource views
 	{
-		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetSRVTime);
+		//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetSRVTime);
 		FD3D12ShaderResourceViewCache& SRVCache = PipelineState.Common.SRVCache;
 
 #define CONDITIONAL_SET_SRVS(Shader) \
@@ -598,7 +598,7 @@ void FD3D12StateCacheBase::ApplyState()
 
 	// Constant buffers
 	{
-		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetConstantBufferTime);
+		//SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetConstantBufferTime);
 		FD3D12ConstantBufferCache& CBVCache = PipelineState.Common.CBVCache;
 
 #if USE_STATIC_ROOT_SIGNATURE
@@ -1168,7 +1168,7 @@ void FD3D12StateCacheBase::InternalSetStreamSource(FD3D12ResourceLocation* Verte
 template <EShaderFrequency ShaderFrequency>
 void FD3D12StateCacheBase::SetShaderResourceView(FD3D12ShaderResourceView* SRV, uint32 ResourceIndex)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderResourceViewTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderResourceViewTime);
 
 	check(ResourceIndex < MAX_SRVS);
 	FD3D12ShaderResourceViewCache& Cache = PipelineState.Common.SRVCache;

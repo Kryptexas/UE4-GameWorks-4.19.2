@@ -645,7 +645,7 @@ FWidgetPath FSlateApplication::MouseCaptorHelper::ToWidgetPath( FWeakWidgetPath:
 {
 	FWidgetPath WidgetPath;
 	const FWeakWidgetPath* MouseCaptorWeakPath = PointerIndexToMouseCaptorWeakPathMap.Find(FUserAndPointer(PointerEvent->GetUserIndex(), PointerEvent->GetPointerIndex()));
-	if ( MouseCaptorWeakPath->IsValid() )
+	if ( MouseCaptorWeakPath && MouseCaptorWeakPath->IsValid() )
 	{
 		if ( MouseCaptorWeakPath->ToWidgetPath( WidgetPath, InterruptedPathHandling, PointerEvent ) == FWeakWidgetPath::EPathResolutionResult::Truncated )
 		{
@@ -3494,7 +3494,8 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	const bool bCheckForToolTipChanges =
 		IsInGameThread() &&					// We should never allow the slate loading thread to create new windows or interact with the hittest grid
 		!IsUsingHighPrecisionMouseMovment() && // If we are using HighPrecision movement then we can't rely on the OS cursor to be accurate
-		!IsDragDropping();					// We must not currwently be in the middle of a drag-drop action
+		!IsDragDropping() &&				// We must not currently be in the middle of a drag-drop action
+		PlatformApplication->IsCursorDirectlyOverSlateWindow(); // The cursor must be over a Slate window
 	
 	// We still want to show tooltips for widgets that are disabled
 	const bool bIgnoreEnabledStatus = true;

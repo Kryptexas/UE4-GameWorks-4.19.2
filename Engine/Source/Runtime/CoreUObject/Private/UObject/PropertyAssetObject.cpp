@@ -112,15 +112,13 @@ bool UAssetObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar
 
 	if (Tag.Type == NAME_ObjectProperty || Tag.Type == NAME_ClassProperty)
 	{
-		// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
-		UObject* PreviousValue = nullptr;
-		Ar << PreviousValue;
+		// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>;
+		// Serialize from mismatched tag directly into the FAssetPtr's string asset reference to ensure that the delegates needed for cooking
+		// are fired
+		FAssetPtr* PropertyValue = GetPropertyValuePtr_InContainer(Data, Tag.ArrayIndex);
+		check(PropertyValue);
 
-		// now copy the value into the object's address space
-		FAssetPtr PreviousValueAssetPtr(PreviousValue);
-		SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
-
-		return true;
+		return PropertyValue->GetUniqueID().SerializeFromMismatchedTag(Tag, Ar);
 	}
 	else if (Tag.Type == NAME_StructProperty)
 	{

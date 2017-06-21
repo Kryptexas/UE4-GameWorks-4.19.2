@@ -618,6 +618,8 @@ protected:
 
 	virtual bool IsReady_Implementation();
 
+	virtual void OnTimeout();
+
 	/**
 	 * Goto an observation location.
 	 */

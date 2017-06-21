@@ -338,7 +338,7 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 	FGeometryShaderRHIParamRef GeometryShaderRHI
 	)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateBoundShaderStateTime);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12CreateBoundShaderStateTime);
 
 	checkf(GIsRHIInitialized && GetRHIDevice()->GetCommandListManager().IsReady(), (TEXT("Bound shader state RHI resource was created without initializing Direct3D first")));
 

@@ -13,6 +13,8 @@
 #include "IPropertyUtilities.h"
 #include "Preferences/PersonaOptions.h"
 #include "SButton.h"
+#include "STextBlock.h"
+#include "SCheckBox.h"
 #include "SImage.h"
 #include "AssetToolsModule.h"
 #include "IAssetTools.h"

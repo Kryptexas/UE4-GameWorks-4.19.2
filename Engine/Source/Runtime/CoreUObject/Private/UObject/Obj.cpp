@@ -50,6 +50,7 @@
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
 #include "UObject/CoreRedirects.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -955,7 +956,13 @@ void UObject::ConditionalPostLoad()
 			}
 			else
 			{
+				LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(PostLoadMemory);
+				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetOutermost(), ELLMTagSet::Assets);
+				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetClass()->IsChildOf(UDynamicClass::StaticClass()) ? UDynamicClass::StaticClass() : GetClass(), ELLMTagSet::AssetClasses);
+
 				PostLoad();
+
+				LLM_PUSH_STATS_FOR_ASSET_TAGS();
 			}
 		}
 

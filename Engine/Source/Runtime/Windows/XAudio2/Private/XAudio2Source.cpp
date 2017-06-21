@@ -557,6 +557,7 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 		if (CreateSource())
 		{
 			check(WaveInstance);
+
 			if (WaveInstance->StartTime > 0.0f)
 			{
 				if (WaveInstance->WaveData->bStreaming)

@@ -819,9 +819,12 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	{
 		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
+		// ItemValue's size must match what is expected by class doing memory write
 		check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
-		check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
-		const int32 DataOffset = RawData.AddUninitialized(ValueSize);
+		// writer must fit into block allocated for single item (not 'equal' on purpose, check UEnvQueryGenerator_Composite.bAllowDifferentItemTypes)
+		check(GetDefault<TypeItem>()->GetValueSize() <= ValueSize);
+
+		const int32 DataOffset = RawData.AddZeroed(ValueSize);
 		TypeItem::SetValue(RawData.GetData() + DataOffset, ItemValue);
 		Items.Add(FEnvQueryItem(DataOffset));
 
@@ -836,9 +839,12 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 		{
 			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
+			// ItemValue's size must match what is expected by class doing memory write
 			check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
-			check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
-			int32 DataOffset = RawData.AddUninitialized(ValueSize * ItemCollection.Num());
+			// writer must fit into block allocated for single item (not 'equal' on purpose, check UEnvQueryGenerator_Composite.bAllowDifferentItemTypes)
+			check(GetDefault<TypeItem>()->GetValueSize() <= ValueSize);
+
+			int32 DataOffset = RawData.AddZeroed(ValueSize * ItemCollection.Num());
 			Items.Reserve(Items.Num() + ItemCollection.Num());
 
 			for (typename TypeItem::FValueType& Item : ItemCollection)

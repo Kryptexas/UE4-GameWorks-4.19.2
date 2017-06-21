@@ -403,6 +403,9 @@ protected:
 
 	/** Function used during creating Management references to decide when to recurse and set references */
 	virtual EAssetSetManagerResult::Type ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const;
+	
+	/** Returns true if the specified TypeInfo should be scanned. Can be implemented by the game. */
+	virtual bool ShouldScanPrimaryAssetType(FPrimaryAssetTypeInfo& TypeInfo) const;
 
 	/** Scans all asset types specified in DefaultGame */
 	virtual void ScanPrimaryAssetTypesFromConfig();
@@ -441,6 +444,7 @@ protected:
 	/** Copy of the asset state before PIE was entered, return to that when PIE completes */
 	TMap<FPrimaryAssetId, TArray<FName>> PrimaryAssetStateBeforePIE;
 #endif // WITH_EDITOR
+
 
 	/** Map from object path to Primary Asset Id */
 	TMap<FName, FPrimaryAssetId> AssetPathMap;

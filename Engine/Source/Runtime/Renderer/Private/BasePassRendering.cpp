@@ -839,6 +839,8 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
  */
 bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHICmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess)
 {
+	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderBasePass, FColor::Emerald);
+
 	bool bDirty = false;
 
 	if (ViewFamily.EngineShowFlags.LightMapDensity && AllowDebugViewmodes())

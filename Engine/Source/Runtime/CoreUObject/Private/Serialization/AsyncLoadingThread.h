@@ -15,6 +15,7 @@
 #include "HAL/Runnable.h"
 #include "HAL/ThreadSafeBool.h"
 #include "Misc/ConfigCacheIni.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /** [EDL] Event Driven loader event */
 struct FAsyncLoadEvent

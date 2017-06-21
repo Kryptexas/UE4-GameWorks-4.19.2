@@ -631,6 +631,9 @@ public:
 	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
 	ENGINE_API void ForcePropertyCompare( AActor* Actor );
 
+	/** Force this actor to be relevant for at least one update */
+	ENGINE_API void ForceActorRelevantNextUpdate(AActor* Actor);
+
 	/** Called when a spawned actor is destroyed. */
 	ENGINE_API virtual void NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel=false );
 

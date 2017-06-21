@@ -1075,6 +1075,7 @@ void UCharacterMovementComponent::Serialize(FArchive& Archive)
 
 void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPED_NAMED_EVENT(UCharacterMovementComponent_TickComponent, FColor::Yellow);
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovement);
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementTick);
 
@@ -2645,6 +2646,18 @@ float UCharacterMovementComponent::GetMaxSpeed() const
 	}
 }
 
+float UCharacterMovementComponent::GetMinAnalogSpeed() const
+{
+	switch (MovementMode)
+	{
+	case MOVE_Walking:
+	case MOVE_NavWalking:
+	case MOVE_Falling:
+		return MinAnalogWalkSpeed;
+	default:
+		return 0.f;
+	}
+}
 
 FVector UCharacterMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) const
 {
@@ -2923,7 +2936,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 
 	// Path following above didn't care about the analog modifier, but we do for everything else below, so get the fully modified value.
 	// Use max of requested speed and max speed if we modified the speed in ApplyRequestedMove above.
-	MaxSpeed = FMath::Max(RequestedSpeed, MaxSpeed * AnalogInputModifier);
+	MaxSpeed = FMath::Max3(RequestedSpeed, MaxSpeed * AnalogInputModifier, GetMinAnalogSpeed());
 
 	// Apply braking or deceleration
 	const bool bZeroAcceleration = Acceleration.IsZero();

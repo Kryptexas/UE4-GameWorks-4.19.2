@@ -18,6 +18,7 @@ class ENGINE_API USoundNodeAssetReferencer : public USoundNode
 
 public:
 	virtual void LoadAsset(bool bAddToRoot = false) PURE_VIRTUAL(USoundNodesAssetReferencer::LoadAsset,);
+	virtual void ClearAssetReferences() PURE_VIRTUAL(USoundNodesAssetReferencer::ClearAssetReferences, );
 
 	bool ShouldHardReferenceAsset() const;
 

@@ -1167,7 +1167,10 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(OldWindowPos, OldWindowSize));
 
 			// A switch to window mode should position the window to be in the center of the work-area (we don't do this if we were already in window mode to allow the user to move the window)
-			// Fullscreen modes should position the window to the top-left of the work-area
+			// Fullscreen modes should position the window to the top-left of the monitor.
+			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
+			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
+			// scaling so we actual render to the resolution we've been asked for.
 			if (NewWindowMode == EWindowMode::Windowed)
 			{
 				if (OldWindowMode == EWindowMode::Windowed && NewWindowSize == OldWindowSize)
@@ -1197,21 +1200,13 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			}
 			else
 			{
-				NewWindowPos = BestWorkArea.GetTopLeft();
-			}
-
-			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
-			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
-			// scaling so we actual render to the resolution we've been asked for.
-			if (NewWindowMode == EWindowMode::WindowedFullscreen)
-			{
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
 
 				if (DisplayMetrics.MonitorInfo.Num() > 0)
 				{
 					// Try to find the monitor that the viewport belongs to based on BestWorkArea.
-					// For widowed fullscreen mode it should be top left position of one of monitors.
+					// For widowed fullscreen and fullscreen modes it should be top left position of one of monitors.
 					FPlatformRect DisplayRect = DisplayMetrics.MonitorInfo[0].DisplayRect;
 					for (int32 Index = 1; Index < DisplayMetrics.MonitorInfo.Num(); ++Index)
 					{
@@ -1223,14 +1218,22 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 					}
 
 					NewWindowPos = FVector2D(DisplayRect.Left, DisplayRect.Top);
-					NewWindowSize.X = DisplayRect.Right - DisplayRect.Left;
-					NewWindowSize.Y = DisplayRect.Bottom - DisplayRect.Top;
+
+					if (NewWindowMode == EWindowMode::WindowedFullscreen)
+					{
+						NewWindowSize.X = DisplayRect.Right - DisplayRect.Left;
+						NewWindowSize.Y = DisplayRect.Bottom - DisplayRect.Top;
+					}
 				}
 				else
 				{
 					NewWindowPos = FVector2D(0.0f, 0.0f);
-					NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
-					NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+
+					if (NewWindowMode == EWindowMode::WindowedFullscreen)
+					{
+						NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
+						NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+					}
 				}
 			}
 

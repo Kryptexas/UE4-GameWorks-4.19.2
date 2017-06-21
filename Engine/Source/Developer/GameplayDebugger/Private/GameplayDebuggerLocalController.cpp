@@ -7,6 +7,7 @@
 #include "TimerManager.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/SpectatorPawn.h"
 #include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerCategoryReplicator.h"
 #include "GameplayDebuggerPlayerManager.h"
@@ -448,7 +449,9 @@ void UGameplayDebuggerLocalController::OnActivationPressed()
 	bPrevLocallyEnabled = bIsLocallyEnabled;
 	if (CachedReplicator)
 	{
-		CachedReplicator->GetWorldTimerManager().SetTimer(StartSelectingActorHandle, this, &UGameplayDebuggerLocalController::OnStartSelectingActor, 0.2f);
+		const float HoldTimeThr = 0.2f * (FApp::UseFixedTimeStep() ? (FApp::GetFixedDeltaTime() * 60.0f) : 1.0f);
+
+		CachedReplicator->GetWorldTimerManager().SetTimer(StartSelectingActorHandle, this, &UGameplayDebuggerLocalController::OnStartSelectingActor, HoldTimeThr);
 	}
 }
 
@@ -621,7 +624,9 @@ void UGameplayDebuggerLocalController::OnSelectActorTick()
 		for (FConstPawnIterator It = OwnerPC->GetWorld()->GetPawnIterator(); It; ++It)
 		{
 			APawn* TestPawn = It->Get();
-			if (TestPawn && !TestPawn->bHidden && TestPawn->GetActorEnableCollision() && TestPawn != OwnerPC->GetPawn())
+			if (TestPawn && !TestPawn->bHidden && TestPawn->GetActorEnableCollision() &&
+				!TestPawn->IsA(ASpectatorPawn::StaticClass()) &&
+				TestPawn != OwnerPC->GetPawn())
 			{
 				FVector DirToPawn = (TestPawn->GetActorLocation() - CameraLocation);
 				float DistToPawn = DirToPawn.Size();

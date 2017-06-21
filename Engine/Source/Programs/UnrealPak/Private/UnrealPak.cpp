@@ -1365,75 +1365,116 @@ bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 	}
 }
 
-bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath, bool bUseMountPoint = false)
+struct FFileInfo
 {
-	if ( !IFileManager::Get().FileExists(InPakFilename) )
+	uint64 FileSize;
+	uint64 PatchIndex;
+	uint8 Hash[16];
+};
+
+bool ExtractFilesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>& InFileHashes, const TCHAR* InDestPath, bool bUseMountPoint = false)
+{
+	// Gather all patch versions of the requested pak file and run through each separately
+	TArray<FString> PakFileList;
+	FString PakFileDirectory = FPaths::GetPath(InPakFilename);
+	// If file doesn't exist try using it as a search string, it may contain wild cards
+	if (IFileManager::Get().FileExists(InPakFilename))
 	{
-		return false;
-	}
-
-	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
-	if (PakFile.IsValid())
-	{
-		FString DestPath(InDestPath);
-		FArchive& PakReader = *PakFile.GetSharedReader(NULL);
-		const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
-		void* Buffer = FMemory::Malloc(BufferSize);
-		int64 CompressionBufferSize = 0;
-		uint8* PersistantCompressionBuffer = NULL;
-		int32 ErrorCount = 0;
-		int32 FileCount = 0;
-
-		FString PakMountPoint = bUseMountPoint ? PakFile.GetMountPoint().Replace( TEXT("../../../"), TEXT("")) : TEXT("");
-
-		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
-		{
-			const FPakEntry& Entry = It.Info();
-			PakReader.Seek(Entry.Offset);
-			uint32 SerializedCrcTest = 0;
-			FPakEntry EntryInfo;
-			EntryInfo.Serialize(PakReader, PakFile.GetInfo().Version);
-			if (EntryInfo == Entry)
-			{
-				FString DestFilename(DestPath / PakMountPoint /  It.Filename());
-
-				TUniquePtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
-				if (FileHandle)
-				{
-					if (Entry.CompressionMethod == COMPRESS_None)
-					{
-						BufferedCopyFile(*FileHandle, PakReader, Entry, Buffer, BufferSize);
-					}
-					else
-					{
-						UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
-					}
-					UE_LOG(LogPakFile, Display, TEXT("Extracted \"%s\" to \"%s\"."), *It.Filename(), *DestFilename);
-				}
-				else
-				{
-					UE_LOG(LogPakFile, Error, TEXT("Unable to create file \"%s\"."), *DestFilename);
-					ErrorCount++;
-				}
-			}
-			else
-			{
-				UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
-				ErrorCount++;
-			}
-		}
-		FMemory::Free(Buffer);
-		FMemory::Free(PersistantCompressionBuffer);
-
-		UE_LOG(LogPakFile, Log, TEXT("Finished extracting %d files (including %d errors)."), FileCount, ErrorCount);
-
-		return true;
+		PakFileList.Add(*FPaths::GetCleanFilename(InPakFilename));
 	}
 	else
 	{
-		UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), InPakFilename);
-		return false;
+		IFileManager::Get().FindFiles(PakFileList, *PakFileDirectory, *FPaths::GetCleanFilename(InPakFilename));
 	}
+
+	for (int32 PakFileIndex = 0; PakFileIndex < PakFileList.Num(); PakFileIndex++)
+	{
+		FString PakFilename = PakFileDirectory + "\\" + PakFileList[PakFileIndex];
+		// Gather the pack file index from the filename. The base pak file holds index -1;
+		int32 PakPriority = -1;
+		if (PakFilename.EndsWith("_P.pak"))
+		{
+			FString PakIndexFromFilename = PakFilename.LeftChop(6);
+			int32 PakIndexStart = INDEX_NONE;
+			PakIndexFromFilename.FindLastChar('_', PakIndexStart);
+			if (PakIndexStart != INDEX_NONE)
+			{
+				PakIndexFromFilename = PakIndexFromFilename.RightChop(PakIndexStart + 1);
+				if (PakIndexFromFilename.IsNumeric())
+				{
+					PakPriority = FCString::Atoi(*PakIndexFromFilename);
+				}
+			}
+		}
+
+		FPakFile PakFile(*PakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+		if (PakFile.IsValid())
+		{
+			FString DestPath(InDestPath);
+			FArchive& PakReader = *PakFile.GetSharedReader(NULL);
+			const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
+			void* Buffer = FMemory::Malloc(BufferSize);
+			int64 CompressionBufferSize = 0;
+			uint8* PersistantCompressionBuffer = NULL;
+			int32 ErrorCount = 0;
+			int32 FileCount = 0;
+
+			FString PakMountPoint = bUseMountPoint ? PakFile.GetMountPoint().Replace(TEXT("../../../"), TEXT("")) : TEXT("");
+
+			for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+			{
+				// Extract only the most recent version of a file when present in multiple paks
+				FFileInfo* HashFileInfo = InFileHashes.Find(It.Filename());
+				if (HashFileInfo == nullptr || HashFileInfo->PatchIndex == PakPriority)
+				{
+					const FPakEntry& Entry = It.Info();
+					PakReader.Seek(Entry.Offset);
+					uint32 SerializedCrcTest = 0;
+					FPakEntry EntryInfo;
+					EntryInfo.Serialize(PakReader, PakFile.GetInfo().Version);
+					if (EntryInfo == Entry)
+					{
+						FString DestFilename(DestPath / PakMountPoint / It.Filename());
+
+						TUniquePtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
+						if (FileHandle)
+						{
+							if (Entry.CompressionMethod == COMPRESS_None)
+							{
+								BufferedCopyFile(*FileHandle, PakReader, Entry, Buffer, BufferSize);
+							}
+							else
+							{
+								UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
+							}
+							UE_LOG(LogPakFile, Display, TEXT("Extracted \"%s\" to \"%s\"."), *It.Filename(), *DestFilename);
+						}
+						else
+						{
+							UE_LOG(LogPakFile, Error, TEXT("Unable to create file \"%s\"."), *DestFilename);
+							ErrorCount++;
+						}
+					}
+					else
+					{
+						UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
+						ErrorCount++;
+					}
+				}
+			}
+			FMemory::Free(Buffer);
+			FMemory::Free(PersistantCompressionBuffer);
+
+			UE_LOG(LogPakFile, Log, TEXT("Finished extracting %d files (including %d errors)."), FileCount, ErrorCount);
+		}
+		else
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), *PakFilename);
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void CreateDiffRelativePathMap(TArray<FString>& FileNames, const FString& RootPath, TMap<FName, FString>& OutMap)
@@ -1595,12 +1636,6 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 	return true;
 }
 
-struct FFileInfo
-{
-	uint64 FileSize;
-	uint8 Hash[16];
-};
-
 void GenerateHashForFile(uint8* ByteBuffer, uint64 TotalSize, FFileInfo& FileHash)
 {
 	FMD5 FileHasher;
@@ -1631,82 +1666,175 @@ bool GenerateHashForFile( FString Filename, FFileInfo& FileHash)
 	return true;
 }
 
-bool GenerateHashesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>& FileHashes, bool bUseMountPoint = false)
+bool GenerateHashesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPakFilename, TMap<FString, FFileInfo>& FileHashes, bool bUseMountPoint = false)
 {
-	if ( !IFileManager::Get().FileExists(InPakFilename) )
+	if (!IFileManager::Get().FileExists(InPakFilename))
 	{
-		// it's ok if we can't get the hashes from the pak file 
 		return false;
 	}
-	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
-	if (PakFile.IsValid())
+
+	// Gather all patch pak files and run through them one at a time
+	TArray<FString> PakFileList;
+	FString PakFileDirectory = FPaths::GetPath(InPakFilename);
+	IFileManager::Get().FindFiles(PakFileList, *PakFileDirectory, *FPaths::GetCleanFilename(InPakFilename));
+	for (int32 PakFileIndex = 0; PakFileIndex < PakFileList.Num(); PakFileIndex++)
 	{
-		FArchive& PakReader = *PakFile.GetSharedReader(NULL);
-		const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
-		void* Buffer = FMemory::Malloc(BufferSize);
-		int64 CompressionBufferSize = 0;
-		uint8* PersistantCompressionBuffer = NULL;
-		int32 ErrorCount = 0;
-		int32 FileCount = 0;
-
-		FString PakMountPoint = bUseMountPoint ? PakFile.GetMountPoint().Replace(TEXT("../../../"), TEXT("")) : TEXT("");
-
-		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+		FString PakFilename = PakFileDirectory + "\\" + PakFileList[PakFileIndex];
+		// Skip the destination pak file so we can regenerate an existing patch level
+		if (PakFilename.Equals(InDestPakFilename))
 		{
-			const FPakEntry& Entry = It.Info();
-			const FString Filename = PakMountPoint + It.Filename();
-			PakReader.Seek(Entry.Offset);
-			uint32 SerializedCrcTest = 0;
-			FPakEntry EntryInfo;
-			EntryInfo.Serialize(PakReader, PakFile.GetInfo().Version);
-			if (EntryInfo == Entry)
+			continue;
+		}
+		// Parse the pak file index, the base pak file is index -1
+		int32 PakPriority = -1;
+		if (PakFilename.EndsWith("_P.pak"))
+		{
+			FString PakIndexFromFilename = PakFilename.LeftChop(6);
+			int32 PakIndexStart = INDEX_NONE;
+			PakIndexFromFilename.FindLastChar('_', PakIndexStart);
+			if (PakIndexStart != INDEX_NONE)
 			{
-				// TAutoPtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
-				TArray<uint8> Bytes;
-				FMemoryWriter MemoryFile(Bytes);
-				FArchive* FileHandle = &MemoryFile;
-				// if (FileHandle.IsValid())
+				PakIndexFromFilename = PakIndexFromFilename.RightChop(PakIndexStart + 1);
+				if (PakIndexFromFilename.IsNumeric())
 				{
-					if (Entry.CompressionMethod == COMPRESS_None)
-					{
-						BufferedCopyFile(*FileHandle, PakReader, Entry, Buffer, BufferSize);
-					}
-					else
-					{
-						UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
-					}
-
-					UE_LOG(LogPakFile, Display, TEXT("Generated hash for \"%s\""), *Filename);
-					FFileInfo FileHash;
-					GenerateHashForFile(Bytes.GetData(), Bytes.Num(), FileHash);
-
-					FileHashes.Add(Filename, FileHash);
+					PakPriority = FCString::Atoi(*PakIndexFromFilename);
 				}
-				/*else
-				{
-					UE_LOG(LogPakFile, Error, TEXT("Unable to create file \"%s\"."), *DestFilename);
-					ErrorCount++;
-				}*/
-
-			}
-			else
-			{
-				UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
-				ErrorCount++;
 			}
 		}
-		FMemory::Free(Buffer);
-		FMemory::Free(PersistantCompressionBuffer);
 
-		UE_LOG(LogPakFile, Log, TEXT("Finished extracting %d files (including %d errors)."), FileCount, ErrorCount);
+		FPakFile PakFile(*PakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+		if (PakFile.IsValid())
+		{
+			FArchive& PakReader = *PakFile.GetSharedReader(NULL);
+			const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
+			void* Buffer = FMemory::Malloc(BufferSize);
+			int64 CompressionBufferSize = 0;
+			uint8* PersistantCompressionBuffer = NULL;
+			int32 ErrorCount = 0;
+			int32 FileCount = 0;
 
-		return true;
+			FString PakMountPoint = bUseMountPoint ? PakFile.GetMountPoint().Replace(TEXT("../../../"), TEXT("")) : TEXT("");
+
+			for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+			{
+				const FPakEntry& Entry = It.Info();
+				PakReader.Seek(Entry.Offset);
+				uint32 SerializedCrcTest = 0;
+				FPakEntry EntryInfo;
+				EntryInfo.Serialize(PakReader, PakFile.GetInfo().Version);
+				if (EntryInfo == Entry)
+				{
+					// TAutoPtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
+					TArray<uint8> Bytes;
+					FMemoryWriter MemoryFile(Bytes);
+					FArchive* FileHandle = &MemoryFile;
+					// if (FileHandle.IsValid())
+					{
+						if (Entry.CompressionMethod == COMPRESS_None)
+						{
+							BufferedCopyFile(*FileHandle, PakReader, Entry, Buffer, BufferSize);
+						}
+						else
+						{
+							UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
+						}
+
+						FString FullFilename = PakMountPoint;
+						if (!FullFilename.IsEmpty() && !FullFilename.EndsWith("/"))
+						{
+							FullFilename += "/";
+						}
+						FullFilename += It.Filename();
+						UE_LOG(LogPakFile, Display, TEXT("Generated hash for \"%s\""), *FullFilename);
+						FFileInfo FileHash;
+						GenerateHashForFile(Bytes.GetData(), Bytes.Num(), FileHash);
+						FileHash.PatchIndex = PakPriority;
+
+						// Keep only the hash of the most recent version of a file (across multiple pak patch files)
+						if (!FileHashes.Contains(FullFilename))
+						{
+							FileHashes.Add(FullFilename, FileHash);
+						}
+						else if (FileHashes[FullFilename].PatchIndex < FileHash.PatchIndex)
+						{
+							FileHashes[FullFilename] = FileHash;
+						}
+					}
+					/*else
+					{
+					UE_LOG(LogPakFile, Error, TEXT("Unable to create file \"%s\"."), *DestFilename);
+					ErrorCount++;
+					}*/
+
+				}
+				else
+				{
+					UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
+					ErrorCount++;
+				}
+			}
+			FMemory::Free(Buffer);
+			FMemory::Free(PersistantCompressionBuffer);
+
+			UE_LOG(LogPakFile, Log, TEXT("Finished extracting %d files (including %d errors)."), FileCount, ErrorCount);
+		}
+		else
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), *PakFilename);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool FileIsIdentical(FString SourceFile, FString DestFilename, const FFileInfo* Hash)
+{
+	int64 SourceTotalSize = Hash ? Hash->FileSize : IFileManager::Get().FileSize(*SourceFile);
+	int64 DestTotalSize = IFileManager::Get().FileSize(*DestFilename);
+
+	if (SourceTotalSize != DestTotalSize)
+	{
+		// file size doesn't match 
+		UE_LOG(LogPakFile, Display, TEXT("Source file size for %s %d bytes doesn't match %s %d bytes, did find %d"), *SourceFile, SourceTotalSize, *DestFilename, DestTotalSize, Hash ? 1 : 0);
+		return false;
+	}
+
+	FFileInfo SourceFileHash;
+	if (!Hash)
+	{
+		if (GenerateHashForFile(SourceFile, SourceFileHash) == false)
+		{
+			// file size doesn't match 
+			UE_LOG(LogPakFile, Display, TEXT("Source file size %s doesn't exist will be included in build"), *SourceFile);
+			return false;;
+		}
+		else
+		{
+			UE_LOG(LogPakFile, Warning, TEXT("Generated hash for file %s but it should have been in the FileHashes array"), *SourceFile);
+		}
 	}
 	else
 	{
-		UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), InPakFilename);
+		SourceFileHash = *Hash;
+	}
+
+	FFileInfo DestFileHash;
+	if (GenerateHashForFile(DestFilename, DestFileHash) == false)
+	{
+		// destination file was removed don't really care about it
+		UE_LOG(LogPakFile, Display, TEXT("File was removed from destination cooked content %s not included in patch"), *DestFilename);
 		return false;
 	}
+
+	int32 Diff = FMemory::Memcmp(&SourceFileHash.Hash, &DestFileHash.Hash, sizeof(DestFileHash.Hash));
+	if (Diff != 0)
+	{
+		UE_LOG(LogPakFile, Display, TEXT("Source file hash for %s doesn't match dest file hash %s and will be included in patch"), *SourceFile, *DestFilename);
+		return false;
+	}
+
+	return true;
 }
 
 void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& SourceDirectory, const TMap<FString, FFileInfo>& FileHashes )
@@ -1717,8 +1845,9 @@ void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& Sou
 	{
 		FString EntireFile;
 		FFileHelper::LoadFileToString(EntireFile, *HashFilename);
-
 	}
+
+	TArray<FString> FilesToRemove;
 
 	for ( int I = FilesToPak.Num()-1; I >= 0; --I )
 	{
@@ -1733,60 +1862,61 @@ void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& Sou
 			FoundFileHash = FileHashes.Find(NewFile.Dest);
 		}
 		
-		if ( !FoundFileHash )
+ 		if ( !FoundFileHash )
+ 		{
+ 			UE_LOG(LogPakFile, Display, TEXT("Didn't find hash for %s No mount %s"), *SourceFilename, *SourceFileNoMountPoint);
+ 		}
+ 
+		// uexp files are always handled with their corresponding uasset file
+		if (!FPaths::GetExtension(SourceFilename).Equals("uexp", ESearchCase::IgnoreCase))
 		{
-			UE_LOG(LogPakFile, Display, TEXT("Didn't find hash for %s No mount %s"), *SourceFilename, *SourceFileNoMountPoint);
-		}
-
-		int64 SourceTotalSize = FoundFileHash ? FoundFileHash->FileSize : IFileManager::Get().FileSize(*SourceFilename);
-		
-		FString DestFilename = NewFile.Source;
-		int64 DestTotalSize = IFileManager::Get().FileSize(*DestFilename);
-		
-		if (SourceTotalSize != DestTotalSize)
-		{
-			// file size doesn't match 
-			UE_LOG(LogPakFile, Display, TEXT("Source file size for %s %d bytes doesn't match %s %d bytes, did find %d"), *SourceFilename, SourceTotalSize, *DestFilename, DestTotalSize, FoundFileHash ? 1 : 0);
-			continue;
-		}
-
-		FFileInfo SourceFileHash;
-		if ( !FoundFileHash) 
-		{
-			if (GenerateHashForFile(SourceFilename, SourceFileHash) == false)
+			FString DestFilename = NewFile.Source;
+			if (FileIsIdentical(SourceFilename, DestFilename, FoundFileHash))
 			{
-				// file size doesn't match 
-				UE_LOG(LogPakFile, Display, TEXT("Source file size %s doesn't exist will be included in build"), *SourceFilename);
-				continue;
-			}
-			else
-			{
-				UE_LOG(LogPakFile, Warning, TEXT("Generated hash for file %s but it should have been in the FileHashes array %d"), *SourceFilename, FileHashes.Num());
-			}
-		}
-		else
-		{
-			SourceFileHash = *FoundFileHash;
-		}
-		
-		FFileInfo DestFileHash;
-		if ( GenerateHashForFile( DestFilename, DestFileHash ) == false )
-		{
-			// destination file was removed don't really care about it
-			UE_LOG(LogPakFile, Display, TEXT("File was removed from destination cooked content %s not included in patch"), *DestFilename);
-			continue;
-		}
+				// Check for uexp files only for uasset files
+				if (FPaths::GetExtension(SourceFilename).Equals("uasset", ESearchCase::IgnoreCase))
+				{
+					FString UexpSourceFilename = FPaths::ChangeExtension(SourceFilename, "uexp");
+					FString UexpSourceFileNoMountPoint = FPaths::ChangeExtension(SourceFileNoMountPoint, "uexp");
 
-		int32 Diff = FMemory::Memcmp( &SourceFileHash, &DestFileHash, sizeof( DestFileHash ) );
-		if ( Diff != 0 )
-		{
-			UE_LOG(LogPakFile, Display, TEXT("Source file hash for %s doesn't match dest file hash %s and will be included in patch"), *SourceFilename, *DestFilename);
-			continue;
-		}
+					const FFileInfo* UexpFoundFileHash = FileHashes.Find(UexpSourceFileNoMountPoint);
+					if (!UexpFoundFileHash)
+					{
+						UexpFoundFileHash = FileHashes.Find(FPaths::ChangeExtension(NewFile.Dest, "uexp"));
+					}
 
-		UE_LOG(LogPakFile, Display, TEXT("Source file %s matches dest file %s and will not be included in patch"), *SourceFilename, *DestFilename);
-		// remove fromt eh files to pak list
-		FilesToPak.RemoveAt(I);
+					if (!UexpFoundFileHash)
+					{
+						UE_LOG(LogPakFile, Display, TEXT("Didn't find hash for %s No mount %s"), *UexpSourceFilename, *UexpSourceFileNoMountPoint);
+					}
+
+					if (UexpFoundFileHash || IFileManager::Get().FileExists(*UexpSourceFilename))
+					{
+
+						FString UexpDestFilename = FPaths::ChangeExtension(NewFile.Source, "uexp");
+						if (!FileIsIdentical(UexpSourceFilename, UexpDestFilename, UexpFoundFileHash))
+						{
+							UE_LOG(LogPakFile, Display, TEXT("%s not identical for %s. Including both files in patch."), *UexpSourceFilename, *SourceFilename);
+							continue;
+						}
+						// Add this file to the list to be removed from FilesToPak after we finish processing (since this file was found at random within 
+						// the list we cannot remove it or we'll mess up our containing for loop)
+						FilesToRemove.Add(UexpDestFilename);
+					}
+				}
+
+				UE_LOG(LogPakFile, Display, TEXT("Source file %s matches dest file %s and will not be included in patch"), *SourceFilename, *DestFilename);
+				// remove from the files to pak list
+				FilesToPak.RemoveAt(I);
+			}
+		}
+	}
+
+	// Clean up uexp files that were marked for removal, assume files may only be listed one in FilesToPak
+	for (int FileIndexToRemove = 0; FileIndexToRemove < FilesToRemove.Num(); FileIndexToRemove++)
+	{
+		const FPakInputPair FileSourceToRemove(FilesToRemove[FileIndexToRemove], "");
+		FilesToPak.RemoveSingle(FileSourceToRemove);
 	}
 }
 
@@ -2192,7 +2322,8 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			else
 			{
 				FString DestPath = (ArgV[2][0] == '-') ? ArgV[3] : ArgV[2];
-				Result = ExtractFilesFromPak(*PakFilename, *DestPath) ? 0 : 1;
+				TMap<FString, FFileInfo> EmptyMap;
+				Result = ExtractFilesFromPak(*PakFilename, EmptyMap, *DestPath) ? 0 : 1;
 			}
 		}
 		else
@@ -2227,9 +2358,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 					UE_LOG(LogPakFile, Display, TEXT("Generating patch from %s."), *CmdLineParameters.SourcePatchPakFilename, true );
 
-					if ( !GenerateHashesFromPak(*CmdLineParameters.SourcePatchPakFilename, SourceFileHashes, true) )
+					if ( !GenerateHashesFromPak(*CmdLineParameters.SourcePatchPakFilename, *PakFilename, SourceFileHashes, true) )
 					{
-						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath ) == false )
+						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, SourceFileHashes, *OutputPath, true ) == false )
 						{
 							UE_LOG(LogPakFile, Warning, TEXT("Unable to extract files from source pak file for patch") );
 						}

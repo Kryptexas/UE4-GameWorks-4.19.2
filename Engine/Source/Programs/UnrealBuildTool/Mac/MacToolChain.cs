@@ -1042,15 +1042,20 @@ namespace UnrealBuildTool
 					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
 					string GameName = ExeNameParts[0];
-					FileReference UProjectFilePath = null;
+					string ProjectName = GameName;
+					FileReference UProjectFilePath = ProjectFile;
+
+					if (UProjectFilePath != null)
+					{
+						ProjectName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
+					}
 
 					if (GameName == "EpicGamesBootstrapLauncher")
 					{
 						GameName = "EpicGamesLauncher";
 					}
-					else if (GameName == "UE4" && ProjectFile != null)
+					else if (GameName == "UE4" && UProjectFilePath != null)
 					{
-						UProjectFilePath = ProjectFile;
 						GameName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
 					}
 
@@ -1081,6 +1086,10 @@ namespace UnrealBuildTool
 					{
 						string ResourceParentFolderName = bIsLauncherProduct ? "Application" : GameName;
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ResourceParentFolderName + "/Resources/Mac";
+						if (!Directory.Exists(CustomResourcesPath))
+						{
+							CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ProjectName + "/Resources/Mac";
+						}
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Build/Mac";
 					}
 
@@ -1118,7 +1127,7 @@ namespace UnrealBuildTool
 						AppendMacLine(FinalizeAppBundleScript, FormatCopyCommand(String.Format("{0}/Runtime/Launch/Resources/Mac/UProject.icns", EngineSourcePath), String.Format("{0}.app/Contents/Resources/UProject.icns", ExeName)));
 					}
 
-					string InfoPlistFile = CustomResourcesPath + "/Info.plist";
+					string InfoPlistFile = CustomResourcesPath + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
 					if (!File.Exists(InfoPlistFile))
 					{
 						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");

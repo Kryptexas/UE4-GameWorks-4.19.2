@@ -694,12 +694,33 @@ void FCurlHttpRequest::FinishRequest()
 
 bool FCurlHttpRequest::IsThreadedRequestComplete()
 {
+	if (bCanceled)
+	{
+		return true;
+	}
+	
+	if (bCompleted && ElapsedTime >= FHttpModule::Get().GetHttpDelayTime())
+	{
+		return true;
+	}
+
+	if (CurlAddToMultiResult != CURLM_OK)
+	{
+		return true;
+	}
+
 	const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
 	bool bTimedOut = (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout);
-	return (bCompleted && ElapsedTime >= FHttpModule::Get().GetHttpDelayTime()) ||
-		bCanceled ||
-		(CurlAddToMultiResult != CURLM_OK) ||
-		bTimedOut;
+#if !UE_BUILD_SHIPPING
+	static const bool bNoTimeouts = FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts"));
+	bTimedOut = bTimedOut && !bNoTimeouts;
+#endif
+	if (bTimedOut)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void FCurlHttpRequest::TickThreadedRequest(float DeltaSeconds)

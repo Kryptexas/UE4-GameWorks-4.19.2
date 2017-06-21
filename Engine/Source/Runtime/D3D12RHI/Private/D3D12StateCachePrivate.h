@@ -440,7 +440,7 @@ public:
 	template <EShaderFrequency ShaderFrequency>
 	void ClearShaderResourceViews(FD3D12ResourceLocation*& ResourceLocation)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_D3D12ClearShaderResourceViewsTime);
+		//SCOPE_CYCLE_COUNTER(STAT_D3D12ClearShaderResourceViewsTime);
 
 		if (PipelineState.Common.SRVCache.MaxBoundIndex[ShaderFrequency] < 0)
 		{

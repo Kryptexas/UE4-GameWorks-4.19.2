@@ -8,6 +8,8 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "AIController.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/NavigationOctree.h"
 
 AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
@@ -16,6 +18,7 @@ AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitialize
 {
 	SpawnLocationRandomizationRange = 0.f;
 	bWaitForNavMesh = true;
+	bDebugNavMeshOnTimeout = false;
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -76,14 +79,66 @@ bool AFunctionalAITest::RunTest(const TArray<FString>& Params)
 		return false;
 	}
 	
-	StartSpawning();
-
 	return Super::RunTest(Params);
+}
+
+void AFunctionalAITest::StartTest()
+{
+	Super::StartTest();
+	StartSpawning();
 }
 
 bool AFunctionalAITest::IsReady_Implementation()
 {
 	return Super::IsReady_Implementation() && IsNavMeshReady();
+}
+
+void AFunctionalAITest::OnTimeout()
+{
+	// tracking for FORT-42587, FORT-42994
+	// - log pending navmesh rebuilds / dirty areas
+	// - check if area modifiers from navoctree were applied
+
+	UNavigationSystem* NavSys = bDebugNavMeshOnTimeout ? UNavigationSystem::GetCurrent(GetWorld()) : nullptr;
+	if (NavSys)
+	{
+		const ARecastNavMesh* Navmesh = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData()) : nullptr;
+
+		UE_LOG(LogFunctionalTest, Log, TEXT("Test timed out, log details for: %s"), *GetNameSafe(Navmesh));
+		UE_LOG(LogFunctionalTest, Log, TEXT("> dirty areas? %s"), NavSys->HasDirtyAreasQueued() ? TEXT("YES") : TEXT("no"));
+
+		FNavigationOctree* NavigationOctree = NavSys->GetMutableNavOctree();
+		
+		FNavigationOctreeFilter AreaFilter;
+		AreaFilter.bIncludeAreas = true;
+		AreaFilter.bIncludeGeometry = false;
+		AreaFilter.bIncludeMetaAreas = true;
+		AreaFilter.bIncludeOffmeshLinks = false;
+
+		const FVector TransformedOrigin = GetTransform().TransformPosition(NavMeshDebugOrigin);
+		const FBox DebugBounds = FBox::BuildAABB(TransformedOrigin, NavMeshDebugExtent);
+
+		for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavigationOctree, DebugBounds); It.HasPendingElements(); It.Advance())
+		{
+			const FNavigationOctreeElement& Element = It.GetCurrentElement();
+			if (Element.IsMatchingFilter(AreaFilter))
+			{
+				const FCompositeNavModifier NavModifier = Element.GetModifierForAgent(&Navmesh->GetConfig());
+				const TArray<FAreaNavModifier> AreaMods = NavModifier.GetAreas();
+
+				FString DebugAreaNames;
+				for (int32 Idx = 0; Idx < AreaMods.Num(); Idx++)
+				{
+					DebugAreaNames += GetNameSafe(AreaMods[Idx].GetAreaClass().Get());
+					DebugAreaNames += TEXT(',');
+				}
+
+				UE_LOG(LogFunctionalTest, Log, TEXT("> modifier, owner:%s areas:%s"), *GetNameSafe(Element.GetOwner()), *DebugAreaNames);
+			}
+		}
+	}
+
+	Super::OnTimeout();
 }
 
 void AFunctionalAITest::StartSpawning()

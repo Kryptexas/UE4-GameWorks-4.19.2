@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,31 @@ enum class ERoomStatusStrophe : uint8
 	JoinPublicPending,
 	ExitPending
 };
+
+namespace Lex
+{
+	inline const TCHAR* ToString(ERoomStatusStrophe Value)
+	{
+		switch (Value)
+		{
+		case ERoomStatusStrophe::NotJoined:
+			return TEXT("NotJoined");
+		case ERoomStatusStrophe::Joined:
+			return TEXT("Joined");
+		case ERoomStatusStrophe::CreatePending:
+			return TEXT("CreatePending");
+		case ERoomStatusStrophe::JoinPrivatePending:
+			return TEXT("JoinPrivatePending");
+		case ERoomStatusStrophe::JoinPublicPending:
+			return TEXT("JoinPublicPending");
+		case ERoomStatusStrophe::ExitPending:
+			return TEXT("ExitPending");
+		}
+
+		checkf(false, TEXT("Unhandled ERoomStatusStrophe %d"), static_cast<int32>(Value));
+		return TEXT("Unknown");
+	}
+}
 
 /**
  * Info cached about a joined/created room
@@ -157,9 +182,11 @@ protected:
 	void OnReceiveGroupChatSubject(FXmppStropheSubjectUpdate&& GroupChatMessage);
 	void OnReceiveRoomConfigError(FXmppStropheErrorPair&& RoomConfigError);
 	void OnReceiveRoomConfigSuccess(FXmppRoomId&& RoomId);
+	void OnReceieveRoomInfoUpdate(FXmppRoomId&& RoomId);
 
 	bool SendJoinRoomStanza(const FXmppRoomStrophe& Room, const FString& Password = FString());
 	bool SendExitRoomStanza(const FXmppRoomStrophe& Room);
+	bool SendRequestRoomInfoConfigStanza(const FXmppRoomStrophe& Room);
 
 	bool InternalConfigureRoom(const FXmppRoomStrophe& Room, const FXmppRoomConfig& RoomConfig, EConfigureRoomTypeStrophe CallbackType);
 
@@ -198,6 +225,8 @@ protected:
 	TQueue<FXmppStropheErrorPair> IncomingRoomConfigErrors;
 	/** Queue of room configuration writes that came back successful */
 	TQueue<FXmppRoomId> IncomingRoomConfigWriteSuccesses;
+	/** Queue of room configuration updates to be queried */
+	TQueue<FXmppRoomId> IncomingRoomInfoUpdates;
 
 	/** Delegates for game to listen for MUC events*/
 	FOnXmppRoomCreateComplete OnXmppRoomCreateCompleteDelegate;

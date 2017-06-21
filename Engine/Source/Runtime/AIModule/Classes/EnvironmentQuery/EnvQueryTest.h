@@ -21,8 +21,10 @@ struct FPropertyChangedEvent;
 UENUM()
 enum class EEQSNormalizationType : uint8
 {
-	Absolute,	// using 0 as the base of normalization range
-	RelativeToScores	// using lowest item store as the base of normalization range
+	// Use 0 as the base of normalization range.
+	Absolute,
+	// Use lowest item score as the base of normalization range.
+	RelativeToScores
 };
 
 namespace EnvQueryTestVersion

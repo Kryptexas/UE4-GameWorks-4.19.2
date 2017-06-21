@@ -703,7 +703,7 @@ void PostProcessBentNormalAOScreenGrid(
 
 		RHICmdList.CopyToResolveTarget(DistanceFieldAOBentNormal->GetRenderTargetItem().TargetableTexture, DistanceFieldAOBentNormal->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 		RHICmdList.CopyToResolveTarget(DistanceFieldAOConfidence->GetRenderTargetItem().TargetableTexture, DistanceFieldAOConfidence->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
-			
+
 		if (bUseDistanceFieldGI)
 		{
 			RHICmdList.CopyToResolveTarget(DistanceFieldIrradiance->GetRenderTargetItem().TargetableTexture, DistanceFieldIrradiance->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());

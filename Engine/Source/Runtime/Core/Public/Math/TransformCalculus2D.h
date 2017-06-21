@@ -575,13 +575,17 @@ public:
 	{
 	}
 
-	/** 2D transformation of a point. */
+	/**
+	 * 2D transformation of a point.  Transforms position, rotation, and scale.
+	 */
 	FVector2D TransformPoint(const FVector2D& Point) const
 	{
 		return ::TransformPoint(Trans, ::TransformPoint(M, Point));
 	}
 
-	/** 2D transformation of a vector. */
+	/**
+	 * 2D transformation of a vector.  Transforms rotation and scale.
+	 */
 	FVector2D TransformVector(const FVector2D& Vector) const
 	{
 		return ::TransformVector(M, Vector);

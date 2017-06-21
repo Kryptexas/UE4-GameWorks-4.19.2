@@ -268,6 +268,10 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxAcceleration;
 
+	/** The ground speed that we should accelerate up to when walking at minimum analog stick tilt */
+	UPROPERTY(Category = "Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0", UIMin = "0"))
+	float MinAnalogWalkSpeed;
+
 	/**
 	 * Factor used to multiply actual value of friction used when braking.
 	 * This applies to any friction value that is currently used, which may depend on bUseSeparateBrakingFriction.
@@ -1277,6 +1281,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovemet")
 	virtual float GetMaxJumpHeightWithJumpTime() const;
+
+	/** @return Maximum acceleration for the current state. */
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement")
+	virtual float GetMinAnalogSpeed() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
 	DEPRECATED(4.3, "GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired.")

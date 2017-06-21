@@ -451,6 +451,9 @@ float UDialogueSoundWaveProxy::GetPitchMultiplier()
 void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
 	int OldWaveInstanceCount = WaveInstances.Num();
+	bool bHasSubtitles = (Subtitles.Num() > 0);
+
+	ActiveSound.bHasExternalSubtitles = bHasSubtitles; // Need to set this so the sound will virtualize when silent if necessary.
 	SoundWave->Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
 	int NewWaveInstanceCount = WaveInstances.Num();
 
@@ -465,7 +468,7 @@ void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRI
 	{
 		CurrentWaveInstance = NewWaveInstance;
 		// Add in the subtitle if they exist
-		if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
+		if (ActiveSound.bHandleSubtitles && bHasSubtitles)
 		{
 			FQueueSubtitleParams QueueSubtitleParams(Subtitles);
 			{

@@ -901,6 +901,16 @@ void ULightComponent::SetIESTexture(UTextureLightProfile* NewValue)
 	}
 }
 
+void ULightComponent::SetShadowBias(float NewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& ShadowBias != NewValue)
+	{
+		ShadowBias = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 // GetDirection
 FVector ULightComponent::GetDirection() const 
 { 

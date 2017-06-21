@@ -763,6 +763,9 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 	// Add the GameplayEffect asset tags to the source Spec tags
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
+	// Prepare source tags before accessing them in ConditionalGameplayEffects
+	CaptureDataFromSource();
+
 	// ------------------------------------------------
 	//	Linked/Dependant Specs
 	// ------------------------------------------------
@@ -795,9 +798,6 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 			AbilitySpecDef.SourceObject = InEffectContext.GetSourceObject();
 		}
 	}
-
-	// Everything is setup now, capture data from our source
-	CaptureDataFromSource();
 }
 
 void FGameplayEffectSpec::InitializeFromLinkedSpec(const UGameplayEffect* InDef, const FGameplayEffectSpec& OriginalSpec)

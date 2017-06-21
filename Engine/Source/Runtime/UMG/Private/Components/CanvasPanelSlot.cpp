@@ -34,6 +34,93 @@ void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 	SynchronizeProperties();
 }
 
+#if WITH_EDITOR
+
+bool UCanvasPanelSlot::NudgeByDesigner(const FVector2D& NudgeDirection, const TOptional<int32>& GridSnapSize)
+{
+	const FVector2D OldPosition = GetPosition();
+	FVector2D NewPosition = OldPosition + NudgeDirection;
+
+	// Determine the new position aligned to the grid.
+	if (GridSnapSize.IsSet())
+	{
+		if (NudgeDirection.X != 0)
+		{
+			NewPosition.X = ((int32)NewPosition.X) - (((int32)NewPosition.X) % GridSnapSize.GetValue());
+		}
+		if (NudgeDirection.Y != 0)
+		{
+			NewPosition.Y = ((int32)NewPosition.Y) - (((int32)NewPosition.Y) % GridSnapSize.GetValue());
+		}
+	}
+
+	// Offset the size by the same amount moved if we're anchoring along that axis.
+	const FVector2D OldSize = GetSize();
+	FVector2D NewSize = OldSize;
+	if (GetAnchors().IsStretchedHorizontal())
+	{
+		NewSize.X -= NewPosition.X - OldPosition.X;
+	}
+	if (GetAnchors().IsStretchedVertical())
+	{
+		NewSize.Y -= NewPosition.Y - OldPosition.Y;
+	}
+
+	// Return false and early out if there are no effective changes.
+	if (OldPosition == NewPosition && OldSize == NewSize)
+	{
+		return false;
+	}
+
+	Modify();
+
+	SetPosition(NewPosition);
+	SetSize(NewSize);
+
+	return true;
+}
+
+bool UCanvasPanelSlot::DragDropPreviewByDesigner(const FVector2D& LocalCursorPosition, const TOptional<int32>& XGridSnapSize, const TOptional<int32>& YGridSnapSize)
+{
+	// HACK UMG - This seems like a bad idea to call TakeWidget
+	TSharedPtr<SWidget> SlateWidget = Content->TakeWidget();
+	SlateWidget->SlatePrepass();
+	const FVector2D& WidgetDesiredSize = SlateWidget->GetDesiredSize();
+
+	static const FVector2D MinimumDefaultSize(100, 40);
+	FVector2D LocalSize = FVector2D(FMath::Max(WidgetDesiredSize.X, MinimumDefaultSize.X), FMath::Max(WidgetDesiredSize.Y, MinimumDefaultSize.Y));
+
+	FVector2D NewPosition = LocalCursorPosition;
+	if (XGridSnapSize.IsSet())
+	{
+		NewPosition.X = ((int32)NewPosition.X) - (((int32)NewPosition.X) % XGridSnapSize.GetValue());
+	}
+	if (YGridSnapSize.IsSet())
+	{
+		NewPosition.Y = ((int32)NewPosition.Y) - (((int32)NewPosition.Y) % YGridSnapSize.GetValue());
+	}
+
+	// Return false and early out if there are no effective changes.
+	if (GetSize() == LocalSize && GetPosition() == NewPosition)
+	{
+		return false;
+	}
+
+	SetPosition(NewPosition);
+	SetSize(LocalSize);
+
+	return true;
+}
+
+void UCanvasPanelSlot::SynchronizeFromTemplate(const UPanelSlot* const TemplateSlot)
+{
+	const ThisClass* const TemplateCanvasPanelSlot = CastChecked<ThisClass>(TemplateSlot);
+	SetPosition(TemplateCanvasPanelSlot->GetPosition());
+	SetSize(TemplateCanvasPanelSlot->GetSize());
+}
+
+#endif //WITH_EDITOR
+
 void UCanvasPanelSlot::SetLayout(const FAnchorData& InLayoutData)
 {
 	LayoutData = InLayoutData;

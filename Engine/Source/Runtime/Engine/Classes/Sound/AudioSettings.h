@@ -132,6 +132,9 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	// Returns if the audio mixer is currently enabled
 	const bool IsAudioMixerEnabled() const;
 
+	/** Returns the highest value for MaxChannels among all quality levels */
+	int32 GetHighestMaxChannels() const;
+
 private:
 
 #if WITH_EDITOR

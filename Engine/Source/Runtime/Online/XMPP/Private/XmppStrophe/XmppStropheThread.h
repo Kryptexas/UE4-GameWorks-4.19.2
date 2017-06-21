@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,11 +52,11 @@ protected:
 	TQueue<TUniquePtr<FStropheStanza>> StanzaSendQueue;
 
 	/** signal request for connection */
-	FThreadSafeBool ConnectRequest;
+	FThreadSafeBool bConnectRequest;
 	/** signal request for disconnect */
-	FThreadSafeBool DisconnectRequest;
+	FThreadSafeBool bDisconnectRequest;
 	/** Thread-Safe way to trigger a thread exit */
-	FThreadSafeBool ExitRequested;
+	FThreadSafeBool bExitRequested;
 };
 
 #endif

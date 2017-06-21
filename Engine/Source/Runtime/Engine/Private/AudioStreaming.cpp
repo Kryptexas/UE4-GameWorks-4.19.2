@@ -528,25 +528,26 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 				if (SoundBuffer)
 				{
 					int32 SourceChunk = SoundBuffer->GetCurrentChunkIndex();
-				if (SourceChunk >= 0 && SourceChunk < Wave->RunningPlatformData->NumChunks)
-				{
-					WaveRequest.RequiredIndices.AddUnique(SourceChunk);
-					WaveRequest.RequiredIndices.AddUnique((SourceChunk + 1) % Wave->RunningPlatformData->NumChunks);
-					if (!WaveData->LoadedChunkIndices.Contains(SourceChunk)
-							|| SoundBuffer->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
+					if (SourceChunk >= 0 && SourceChunk < Wave->RunningPlatformData->NumChunks)
 					{
-						// currently not loaded or already read over half, request is high priority
-						WaveRequest.bPrioritiseRequest = true;
+						WaveRequest.RequiredIndices.AddUnique(SourceChunk);
+						WaveRequest.RequiredIndices.AddUnique((SourceChunk + 1) % Wave->RunningPlatformData->NumChunks);
+						if (!WaveData->LoadedChunkIndices.Contains(SourceChunk)
+							|| SoundBuffer->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
+						{
+							// currently not loaded or already read over half, request is high priority
+							WaveRequest.bPrioritiseRequest = true;
+						}
 					}
-				}
-				else
-				{
-					UE_LOG(LogAudio, Log, TEXT("Invalid chunk request curIndex=%d numChunks=%d\n"), SourceChunk, Wave->RunningPlatformData->NumChunks);
+					else
+					{
+						UE_LOG(LogAudio, Log, TEXT("Invalid chunk request curIndex=%d numChunks=%d\n"), SourceChunk, Wave->RunningPlatformData->NumChunks);
+					}
 				}
 			}
 		}
 	}
-	}
+
 	for (auto Iter = WaveRequests.CreateIterator(); Iter; ++Iter)
 	{
 		USoundWave* Wave = Iter.Key();
@@ -630,8 +631,8 @@ void FAudioStreamingManager::AddStreamingSoundWave(USoundWave* SoundWave)
 	{
 		FScopeLock Lock(&CriticalSection);
 		if (StreamingSoundWaves.FindRef(SoundWave) == NULL)
-	{
-		FStreamingWaveData& WaveData = *StreamingSoundWaves.Add(SoundWave, new FStreamingWaveData);
+		{
+			FStreamingWaveData& WaveData = *StreamingSoundWaves.Add(SoundWave, new FStreamingWaveData);
 			WaveData.Initialize(SoundWave, this);
 		}
 	}

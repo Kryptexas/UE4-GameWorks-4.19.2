@@ -16,6 +16,9 @@
 #include "Misc/EventPool.h"
 #include "Misc/EngineVersion.h"
 
+#ifndef DEFAULT_NO_THREADING
+	#define DEFAULT_NO_THREADING 0
+#endif
 
 #if PLATFORM_HAS_BSD_TIME 
 	#include <unistd.h>
@@ -259,6 +262,11 @@ void FGenericPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool K
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::TerminateProc not implemented on this platform"));
 }
 
+FGenericPlatformProcess::EWaitAndForkResult FGenericPlatformProcess::WaitAndFork()
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::WaitAndFork not implemented on this platform"));
+	return EWaitAndForkResult::Error;
+}
 
 bool FGenericPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode )
 {
@@ -544,7 +552,11 @@ bool FGenericPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 
 bool FGenericPlatformProcess::SupportsMultithreading()
 {
+#if DEFAULT_NO_THREADING
+	static bool bSupportsMultithreading = FParse::Param(FCommandLine::Get(), TEXT("threading"));
+#else
 	static bool bSupportsMultithreading = !FParse::Param(FCommandLine::Get(), TEXT("nothreading"));
+#endif
 	return bSupportsMultithreading;
 }
 

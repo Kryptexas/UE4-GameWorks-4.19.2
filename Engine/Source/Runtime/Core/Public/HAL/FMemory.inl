@@ -8,29 +8,49 @@
 	#define FMEMORY_INLINE_GMalloc GMalloc
 #endif
 
+#include "HAL/LowLevelMemTracker.h"
+
 struct FMemory;
 struct FScopedMallocTimer;
 
 FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Malloc(SIZE_T Count, uint32 Alignment)
 {
+	void* Ptr;
 	if (!FMEMORY_INLINE_GMalloc)
 	{
-		return MallocExternal(Count, Alignment);
+		Ptr = MallocExternal(Count, Alignment);
 	}
-	DoGamethreadHook(0);
-	FScopedMallocTimer Timer(0);
-	return FMEMORY_INLINE_GMalloc->Malloc(Count, Alignment);
+	else
+	{
+		DoGamethreadHook(0);
+		FScopedMallocTimer Timer(0);
+		Ptr = FMEMORY_INLINE_GMalloc->Malloc(Count, Alignment);
+	}
+	// optional tracking of every allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Malloc, Ptr, Count));
+	return Ptr;
 }
 
 FMEMORY_INLINE_FUNCTION_DECORATOR void* FMemory::Realloc(void* Original, SIZE_T Count, uint32 Alignment)
 {
+	// optional tracking of every allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Malloc, Original, 0));
+
+	void* Ptr;
 	if (!FMEMORY_INLINE_GMalloc)
 	{
-		return ReallocExternal(Original, Count, Alignment);
+		Ptr = ReallocExternal(Original, Count, Alignment);
 	}
-	DoGamethreadHook(1);
-	FScopedMallocTimer Timer(1);
-	return FMEMORY_INLINE_GMalloc->Realloc(Original, Count, Alignment);
+	else
+	{
+		DoGamethreadHook(1);
+		FScopedMallocTimer Timer(1);
+		Ptr = FMEMORY_INLINE_GMalloc->Realloc(Original, Count, Alignment);
+	}
+
+	// optional tracking of every allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Malloc, Ptr, Count));
+	return Ptr;
 }
 
 FMEMORY_INLINE_FUNCTION_DECORATOR void FMemory::Free(void* Original)
@@ -40,6 +60,9 @@ FMEMORY_INLINE_FUNCTION_DECORATOR void FMemory::Free(void* Original)
 		FScopedMallocTimer Timer(3);
 		return;
 	}
+
+	// optional tracking of every allocation
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Malloc, Original, 0));
 
 	if (!FMEMORY_INLINE_GMalloc)
 	{

@@ -55,6 +55,8 @@ public:
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
+		, _VirtualKeyboardTrigger(EVirtualKeyboardTrigger::OnFocusByPointer)
+		, _VirtualKeyboardDismissAction(EVirtualKeyboardDismissAction::TextChangeOnDismiss)
 		, _TextShapingMethod()
 		, _TextFlowDirection()
 		{
@@ -137,6 +139,12 @@ public:
 
 		/** The type of virtual keyboard to use on mobile devices */
 		SLATE_ATTRIBUTE( EKeyboardType, VirtualKeyboardType)
+
+		/** The type of event that will trigger the display of the virtual keyboard */
+		SLATE_ATTRIBUTE( EVirtualKeyboardTrigger, VirtualKeyboardTrigger )
+
+		/** The message action to take when the virtual keyboard is dismissed by the user */
+		SLATE_ATTRIBUTE( EVirtualKeyboardDismissAction, VirtualKeyboardDismissAction )
 
 		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
 		SLATE_ARGUMENT(TOptional<ETextShapingMethod>, TextShapingMethod)
@@ -326,6 +334,8 @@ protected:
 	virtual bool CanTypeCharacter(const TCHAR InChar) const override;
 	virtual void EnsureActiveTick() override;
 	virtual EKeyboardType GetVirtualKeyboardType() const override;
+	virtual EVirtualKeyboardTrigger GetVirtualKeyboardTrigger() const override;
+	virtual EVirtualKeyboardDismissAction GetVirtualKeyboardDismissAction() const override;
 	virtual TSharedRef<SWidget> GetSlateWidget() override;
 	virtual TSharedPtr<SWidget> GetSlateWidgetPtr() override;
 	virtual TSharedPtr<SWidget> BuildContextMenuContent() const override;
@@ -405,4 +415,10 @@ protected:
 
 	/** The type of virtual keyboard to use for editing this text on mobile */
 	TAttribute<EKeyboardType> VirtualKeyboardType;
+
+	/** The type of event that will trigger the display of the virtual keyboard */
+	TAttribute<EVirtualKeyboardTrigger> VirtualKeyboardTrigger;
+
+	/** The message action to take when the virtual keyboard is dismissed by the user */
+	TAttribute<EVirtualKeyboardDismissAction> VirtualKeyboardDismissAction;
 };

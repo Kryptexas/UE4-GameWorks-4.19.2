@@ -877,6 +877,8 @@ bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 
 void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
+	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_RenderVelocities, FColor::Emerald);
+
 	check(FeatureLevel >= ERHIFeatureLevel::SM4);
 	SCOPE_CYCLE_COUNTER(STAT_RenderVelocities);
 

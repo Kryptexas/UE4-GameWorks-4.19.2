@@ -165,6 +165,18 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Handle command line overrides
+				string[] CmdLine = Environment.GetCommandLineArgs();
+				string IniConfigArgPrefix = "-ini:" + Enum.GetName(typeof(ConfigHierarchyType), Type) + ":";
+				foreach (string CmdLineArg in CmdLine)
+				{
+					if (CmdLineArg.StartsWith(IniConfigArgPrefix))
+					{
+						ConfigFile OverrideFile = new ConfigFile(CmdLineArg.Substring(IniConfigArgPrefix.Length));
+						Files.Add(OverrideFile);
+					}
+				}
+
 				Hierarchy = new ConfigHierarchy(Files);
 				HierarchyKeyToHierarchy.Add(Key, Hierarchy);
 			}

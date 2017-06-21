@@ -98,3 +98,28 @@ void UEnvQueryInstanceBlueprintWrapper::SetNamedParam(FName ParamName, float Val
 		InstancePtr->NamedParams.Add(ParamName, Value);
 	}
 }
+
+void UEnvQueryInstanceBlueprintWrapper::SetInstigator(const UObject* Object)
+{
+#if !UE_BUILD_SHIPPING
+	Instigator = Object;
+#endif // !UE_BUILD_SHIPPING
+}
+
+bool UEnvQueryInstanceBlueprintWrapper::IsSupportedForNetworking() const
+{
+	// this object can't be replicated, but there are dragons in the land of blueprint...
+	FEnvQueryInstance* InstancePtr = QueryInstance.Get();
+	FString InstigatorName = TEXT("not available in shipping");
+#if !UE_BUILD_SHIPPING
+	InstigatorName = *GetNameSafe(Instigator.Get());
+#endif // !UE_BUILD_SHIPPING
+
+	UE_LOG(LogEQS, Warning, TEXT("%s can't be replicated over network!\n- Query: %s\n- Querier:%s\n- Instigator:%s"),
+		*GetName(),
+		InstancePtr ? *InstancePtr->QueryName : TEXT("instance not found"),
+		InstancePtr ? *GetNameSafe(InstancePtr->Owner.Get()) : TEXT("instance not found"),
+		*InstigatorName);
+
+	return false;
+}

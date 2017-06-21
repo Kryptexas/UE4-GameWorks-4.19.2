@@ -191,6 +191,9 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 		return true;
 	}
 
+	// Make sure if requesting a depth format that the clear value is correct
+	ensure(!IsDepthOrStencilFormat(InputDesc.Format) || (InputDesc.ClearValue.ColorBinding == EClearBinding::ENoneBound || InputDesc.ClearValue.ColorBinding == EClearBinding::EDepthStencilBound));
+
 	// If we're doing aliasing, we may need to override Transient flags, depending on the input format and mode
 	int32 AliasingMode = CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread();
 	FPooledRenderTargetDesc ModifiedDesc;
@@ -222,8 +225,6 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 
 	const FPooledRenderTargetDesc& Desc = bModifyDesc ? ModifiedDesc : InputDesc;
 
-	// Make sure if requesting a depth format that the clear value is correct
-	ensure(!IsDepthOrStencilFormat(Desc.Format) || (Desc.ClearValue.ColorBinding == EClearBinding::ENoneBound || Desc.ClearValue.ColorBinding == EClearBinding::EDepthStencilBound));
 
 	// if we can keep the current one, do that
 	if(Out)

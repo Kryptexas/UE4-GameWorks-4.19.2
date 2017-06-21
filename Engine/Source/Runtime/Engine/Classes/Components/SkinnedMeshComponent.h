@@ -845,6 +845,14 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
 	bool bDisplayDebugUpdateRateOptimizations;
 
+protected:
+
+	/** Removes update rate params and internal tracker data */
+	void ReleaseUpdateRateParams();
+
+	/** Recreates update rate params and internal tracker data */
+	void RefreshUpdateRateParams();
+
 private:
 	/** Update Rate Optimization ticking. */
 	void TickUpdateRate(float DeltaTime, bool bNeedsValidRootMotion);

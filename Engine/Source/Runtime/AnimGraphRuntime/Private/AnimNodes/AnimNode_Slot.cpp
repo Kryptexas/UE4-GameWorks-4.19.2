@@ -75,16 +75,17 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 	{
 		if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotName))
 		{
-			const FAnimTrack* Track = MontageInstance->Montage->GetAnimationData(SlotName);
-			for (const FAnimSegment& Segment : Track->AnimSegments)
+			if (const FAnimTrack* const Track = MontageInstance->Montage->GetAnimationData(SlotName))
 			{
-				float Weight;
-				float CurrentAnimPos;
-				if (UAnimSequenceBase* Anim = Segment.GetAnimationData(MontageInstance->GetPosition(), CurrentAnimPos, Weight))
+				if (const FAnimSegment* const Segment = Track->GetSegmentAtTime(MontageInstance->GetPosition()))
 				{
-					FString MontageLine = FString::Printf(TEXT("Montage('%s') Anim('%s') P(%.2f) W(%.0f%%)"), *MontageInstance->Montage->GetName(), *Anim->GetName(), CurrentAnimPos, WeightData.SlotNodeWeight*100.f);
-					DebugData.BranchFlow(1.0f).AddDebugItem(MontageLine, true);
-					break;
+					float CurrentAnimPos;
+					if (UAnimSequenceBase* Anim = Segment->GetAnimationData(MontageInstance->GetPosition(), CurrentAnimPos))
+					{
+						FString MontageLine = FString::Printf(TEXT("Montage('%s') Anim('%s') P(%.2f) W(%.0f%%)"), *MontageInstance->Montage->GetName(), *Anim->GetName(), CurrentAnimPos, WeightData.SlotNodeWeight*100.f);
+						DebugData.BranchFlow(1.0f).AddDebugItem(MontageLine, true);
+						break;
+					}
 				}
 			}
 		}

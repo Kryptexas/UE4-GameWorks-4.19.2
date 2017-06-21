@@ -750,20 +750,19 @@ void STableViewBase::ClearWidgets()
 	ItemsPanel->ClearItems();
 }
 
-/**
- * Get the uniform item width.
- */
 float STableViewBase::GetItemWidth() const
 {
-	return ItemsPanel->GetItemWidth(PanelGeometryLastTick) + ItemsPanel->GetItemPadding(PanelGeometryLastTick);
+	return GetItemSize().X;
 }
 
-/**
- * Get the uniform item height that is enforced by ListViews.
- */
 float STableViewBase::GetItemHeight() const
 {
-	return ItemsPanel->GetItemHeight();
+	return GetItemSize().Y;
+}
+
+FVector2D STableViewBase::GetItemSize() const
+{
+	return ItemsPanel->GetItemSize(PanelGeometryLastTick) + FVector2D(ItemsPanel->GetItemPadding(PanelGeometryLastTick), 0.0f);
 }
 
 void STableViewBase::SetItemHeight(TAttribute<float> Height)

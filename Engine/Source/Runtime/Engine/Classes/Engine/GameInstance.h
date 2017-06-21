@@ -340,6 +340,16 @@ public:
 	bool IsDedicatedServerInstance() const;
 
 	/**
+	 * Retrieves the name of the online subsystem for the platform used by this instance.
+	 * This will be used as the value of the PlayerOnlinePlatformName parameter in
+	 * the NMT_Login message when this client connects to a server.
+	 * Normally this will be the same as the DefaultPlatformService config value,
+	 * but games may override it if they need non-default behavior (for example,
+	 * if they are using multiple online subsystems at the same time).
+	 */
+	virtual FName GetOnlinePlatformName() const;
+
+	/**
 	 * Helper function for traveling to a session that has already been joined via the online platform
 	 * Grabs the URL from the session info and travels
 	 *

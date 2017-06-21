@@ -865,7 +865,7 @@ void FDistanceFieldAsyncQueue::Shutdown()
 		if (!bLogged)
 		{
 			bLogged = true;
-			UE_LOG(LogStaticMesh,Warning,TEXT("Waiting until distance field task is complete so it is safe to destruct UObjects"));
+			UE_LOG(LogStaticMesh,Log,TEXT("Abandoning remaining async distance field tasks for shutdown"));
 		}
 		FPlatformProcess::Sleep(0.01f);
 	}

@@ -42,6 +42,7 @@ void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryIns
 	GenerateOnlyActorsInRadius.BindData(QueryOwner, QueryInstance.QueryID);
 	bool bUseRadius = GenerateOnlyActorsInRadius.GetValue();
 
+	TArray<AActor*> MatchingActors;
 	if (bUseRadius)
 	{
 		TArray<FVector> ContextLocations;
@@ -57,7 +58,7 @@ void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryIns
 			{
 				if (FVector::DistSquared(ContextLocations[ContextIndex], ItActor->GetActorLocation()) < RadiusSq)
 				{
-					QueryInstance.AddItemData<UEnvQueryItemType_Actor>(*ItActor);
+					MatchingActors.Add(*ItActor);
 					break;
 				}
 			}
@@ -67,9 +68,12 @@ void UEnvQueryGenerator_ActorsOfClass::GenerateItems(FEnvQueryInstance& QueryIns
 	{	// If radius is not positive, ignore Search Center and Search Radius and just return all actors of class.
 		for (TActorIterator<AActor> ItActor = TActorIterator<AActor>(World, SearchedActorClass); ItActor; ++ItActor)
 		{
-			QueryInstance.AddItemData<UEnvQueryItemType_Actor>(*ItActor);
+			MatchingActors.Add(*ItActor);
 		}
 	}
+
+	ProcessItems(QueryInstance, MatchingActors);
+	QueryInstance.AddItemData<UEnvQueryItemType_Actor>(MatchingActors);
 }
 
 FText UEnvQueryGenerator_ActorsOfClass::GetDescriptionTitle() const

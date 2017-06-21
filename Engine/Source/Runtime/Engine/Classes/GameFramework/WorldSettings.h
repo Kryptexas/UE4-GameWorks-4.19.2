@@ -391,7 +391,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	 * Controls the intensity of self-shadowing from capsule indirect shadows. 
 	 * These types of shadows use approximate occluder representations, so reducing self-shadowing intensity can hide those artifacts.
 	 */
-	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "0", UIMax = "1"))
+	UPROPERTY(EditAnywhere, config, Category=Rendering, meta=(UIMin = "0", UIMax = "1"))
 	float DynamicIndirectShadowsSelfShadowingIntensity;
 
 	/************************************/

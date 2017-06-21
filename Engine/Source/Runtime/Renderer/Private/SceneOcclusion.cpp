@@ -44,6 +44,12 @@ static FAutoConsoleVariableRef CVarShowRelevantPrecomputedVisibilityCells(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarFastVRamHzb(
+	TEXT("r.FastVramHzb"),
+	0,
+	TEXT("Whether to store HZB in fast VRAM"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 #define NUM_CUBE_VERTICES 36
 
 /** Random table for occlusion **/
@@ -1082,6 +1088,10 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	View.HZBMipmap0Size = HZBSize;
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
+	if (CVarFastVRamHzb.GetValueOnRenderThread() >= 1)
+	{
+		Desc.Flags |= TexCreate_FastVRAM;
+	}
 	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, View.HZB, TEXT("HZB") );
 	
 	FSceneRenderTargetItem& HZBRenderTarget = View.HZB->GetRenderTargetItem();
@@ -1181,6 +1191,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 
 void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries)
 {
+	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_BeginOcclusionTests, FColor::Emerald);
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	const bool bUseDownsampledDepth = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.SmallDepthZ) && IsValidRef(SceneContext.GetSmallDepthSurface());	

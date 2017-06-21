@@ -896,6 +896,12 @@ const FNameEntry* FName::GetDisplayNameEntry() const
 
 FString FName::ToString() const
 {
+	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
+	{
+		// Avoids some extra allocations in non-number case
+		return GetDisplayNameEntry()->GetPlainNameString();
+	}
+	
 	FString Out;	
 	ToString(Out);
 	return Out;
@@ -903,10 +909,21 @@ FString FName::ToString() const
 
 void FName::ToString(FString& Out) const
 {
-	// a version of ToString that saves at least one string copy
+	// A version of ToString that saves at least one string copy
 	const FNameEntry* const NameEntry = GetDisplayNameEntry();
-	Out.Empty( NameEntry->GetNameLength() + 6);
-	AppendString(Out);
+	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
+	{
+		Out.Empty(NameEntry->GetNameLength());
+		NameEntry->AppendNameToString(Out);
+	}	
+	else
+	{
+		Out.Empty(NameEntry->GetNameLength() + 6);
+		NameEntry->AppendNameToString(Out);
+
+		Out += TEXT("_");
+		Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(GetNumber()));
+	}
 }
 
 void FName::AppendString(FString& Out) const

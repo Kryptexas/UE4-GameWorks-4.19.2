@@ -732,7 +732,18 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		// Go over recently imported network guids, and see if there are any replicators that need to map them
 		TSet< FNetworkGUID >& ImportedNetGuids = GuidCache->ImportedNetGuids;
 
-		if ( ImportedNetGuids.Num() )
+		TSet< FObjectReplicator* > ForceUpdateReplicators;
+
+		for (FObjectReplicator* Replicator : UnmappedReplicators)
+		{
+			if (Replicator->bForceUpdateUnmapped)
+			{
+				Replicator->bForceUpdateUnmapped = false;
+				ForceUpdateReplicators.Add(Replicator);
+			}
+		}
+
+		if ( ImportedNetGuids.Num() || ForceUpdateReplicators.Num() )
 		{
 			TArray< FNetworkGUID > NewlyMappedGuids;
 
@@ -752,9 +763,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				}
 			}
 
-			if ( NewlyMappedGuids.Num() )
+			if ( NewlyMappedGuids.Num() || ForceUpdateReplicators.Num() )
 			{
-				TSet< FObjectReplicator* > AllReplicators;
+				TSet< FObjectReplicator* > AllReplicators = ForceUpdateReplicators;
 
 				for ( const FNetworkGUID& NetGuid : NewlyMappedGuids )
 				{
@@ -763,15 +774,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					if ( Replicators )
 					{
 						AllReplicators.Append( *Replicators );
-					}
-				}
-
-				for (FObjectReplicator* Replicator : UnmappedReplicators)
-				{
-					if (Replicator->bForceUpdateUnmapped)
-					{
-						Replicator->bForceUpdateUnmapped = false;
-						AllReplicators.Add(Replicator);
 					}
 				}
 
@@ -2157,6 +2159,15 @@ void UNetDriver::ForcePropertyCompare( AActor* Actor )
 #endif // WITH_SERVER_CODE
 }
 
+void UNetDriver::ForceActorRelevantNextUpdate(AActor* Actor)
+{
+#if WITH_SERVER_CODE
+	check(Actor);
+	
+	GetNetworkObjectList().ForceActorRelevantNextUpdate(Actor, NetDriverName);
+#endif // WITH_SERVER_CODE
+}
+
 UChildConnection* UNetDriver::CreateChild(UNetConnection* Parent)
 {
 	UE_LOG(LogNet, Log, TEXT("Creating child connection with %s parent"), *Parent->GetName());
@@ -2937,8 +2948,10 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 
 	for ( int32 j = 0; j < FinalSortedCount; j++ )
 	{
+		FNetworkObjectInfo*	ActorInfo = PriorityActors[j]->ActorInfo;
+
 		// Deletion entry
-		if ( PriorityActors[j]->ActorInfo == NULL && PriorityActors[j]->DestructionInfo )
+		if ( ActorInfo == NULL && PriorityActors[j]->DestructionInfo )
 		{
 			// Make sure client has streaming level loaded
 			if ( PriorityActors[j]->DestructionInfo->StreamingLevelName != NAME_None && !Connection->ClientVisibleLevelNames.Contains( PriorityActors[j]->DestructionInfo->StreamingLevelName ) )
@@ -2962,20 +2975,20 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 #if !( UE_BUILD_SHIPPING || UE_BUILD_TEST )
 		static IConsoleVariable* DebugObjectCvar = IConsoleManager::Get().FindConsoleVariable( TEXT( "net.PackageMap.DebugObject" ) );
 		static IConsoleVariable* DebugAllObjectsCvar = IConsoleManager::Get().FindConsoleVariable( TEXT( "net.PackageMap.DebugAll" ) );
-		if ( PriorityActors[j]->ActorInfo &&
-			 ( ( DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && PriorityActors[j]->ActorInfo->Actor->GetName().Contains( DebugObjectCvar->GetString() ) ) ||
+		if ( ActorInfo &&
+			 ( ( DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && ActorInfo->Actor->GetName().Contains( DebugObjectCvar->GetString() ) ) ||
 			   ( DebugAllObjectsCvar && DebugAllObjectsCvar->GetInt() != 0 ) ) )
 		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "Evaluating actor for replication %s" ), *PriorityActors[j]->ActorInfo->Actor->GetName() );
+			UE_LOG( LogNetPackageMap, Log, TEXT( "Evaluating actor for replication %s" ), *ActorInfo->Actor->GetName() );
 		}
 #endif
 
 		// Normal actor replication
 		UActorChannel* Channel = PriorityActors[j]->Channel;
-		UE_LOG( LogNetTraffic, Log, TEXT( " Maybe Replicate %s" ), *PriorityActors[j]->ActorInfo->Actor->GetName() );
+		UE_LOG( LogNetTraffic, Log, TEXT( " Maybe Replicate %s" ), *ActorInfo->Actor->GetName() );
 		if ( !Channel || Channel->Actor ) //make sure didn't just close this channel
 		{
-			AActor* Actor = PriorityActors[j]->ActorInfo->Actor;
+			AActor* Actor = ActorInfo->Actor;
 			bool bIsRelevant = false;
 
 			const bool bLevelInitializedForActor = IsLevelInitializedForActor( Actor, Connection );
@@ -3004,7 +3017,9 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 			}
 
 			// if the actor is now relevant or was recently relevant
-			const bool bIsRecentlyRelevant = bIsRelevant || ( Channel && Time - Channel->RelevantTime < RelevantTimeout );
+			const bool bIsRecentlyRelevant = bIsRelevant || ( Channel && Time - Channel->RelevantTime < RelevantTimeout ) || ActorInfo->bForceRelevantNextUpdate;
+
+			ActorInfo->bForceRelevantNextUpdate = false;
 
 			if ( bIsRecentlyRelevant )
 			{
@@ -3029,7 +3044,7 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 					else if ( Actor->NetUpdateFrequency < 1.0f )
 					{
 						UE_LOG( LogNetTraffic, Log, TEXT( "Unable to replicate %s" ), *Actor->GetName() );
-						PriorityActors[j]->ActorInfo->NextUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
+						ActorInfo->NextUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
 					}
 				}
 
@@ -3061,11 +3076,11 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 							// Calculate min delta (max rate actor will upate), and max delta (slowest rate actor will update)
 							const float MinOptimalDelta				= 1.0f / Actor->NetUpdateFrequency;
 							const float MaxOptimalDelta				= FMath::Max( 1.0f / Actor->MinNetUpdateFrequency, MinOptimalDelta );
-							const float DeltaBetweenReplications	= ( World->TimeSeconds - PriorityActors[j]->ActorInfo->LastNetReplicateTime );
+							const float DeltaBetweenReplications	= ( World->TimeSeconds - ActorInfo->LastNetReplicateTime );
 
 							// Choose an optimal time, we choose 70% of the actual rate to allow frequency to go up if needed
-							PriorityActors[j]->ActorInfo->OptimalNetUpdateDelta = FMath::Clamp( DeltaBetweenReplications * 0.7f, MinOptimalDelta, MaxOptimalDelta );
-							PriorityActors[j]->ActorInfo->LastNetReplicateTime = World->TimeSeconds;
+							ActorInfo->OptimalNetUpdateDelta = FMath::Clamp( DeltaBetweenReplications * 0.7f, MinOptimalDelta, MaxOptimalDelta );
+							ActorInfo->LastNetReplicateTime = World->TimeSeconds;
 						}
 						ActorUpdatesThisConnection++;
 						OutUpdated++;

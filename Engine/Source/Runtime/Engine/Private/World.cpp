@@ -69,7 +69,6 @@
 #include "PhysicsPublic.h"
 #include "AI/AISystemBase.h"
 #include "Camera/CameraActor.h"
-#include "Engine/DemoNetDriver.h"
 #include "Engine/NetworkObjectList.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
@@ -4201,9 +4200,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 			case NMT_Login:
 			{
 				FUniqueNetIdRepl UniqueIdRepl;
+				FString OnlinePlatformName;
 
 				// Admit or deny the player here.
-				FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, Connection->RequestURL, UniqueIdRepl);
+				TArray<uint8> RequestUrlBytes;
+				FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformName);
+				Connection->RequestURL = UTF8_TO_TCHAR(RequestUrlBytes.GetData());
 				UE_LOG(LogNet, Log, TEXT("Login request: %s userId: %s"), *Connection->RequestURL, UniqueIdRepl.IsValid() ? *UniqueIdRepl->ToString() : TEXT("Invalid"));
 
 
@@ -4234,6 +4236,9 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				// keep track of net id for player associated with remote connection
 				Connection->PlayerId = UniqueIdRepl;
+
+				// keep track of the online platform the player associated with this connection is using.
+				Connection->SetPlayerOnlinePlatformName(FName(*OnlinePlatformName));
 
 				// ask the game code if this player can join
 				FString ErrorMsg;
@@ -4381,6 +4386,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 					UChildConnection* ChildConn = NetDriver->CreateChild(Connection);
 					ChildConn->PlayerId = Connection->PlayerId;
+					ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
 					ChildConn->RequestURL = SplitRequestURL;
 					ChildConn->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
 

@@ -5,6 +5,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApp, Log, All);
 
@@ -225,7 +226,11 @@ bool FApp::IsUnattended() // @todo clang: Workaround for missing symbol export
 #if HAVE_RUNTIME_THREADING_SWITCHES
 bool FApp::ShouldUseThreadingForPerformance()
 {
-	static bool OnlyOneThread = FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD")) || IsRunningDedicatedServer() || !FPlatformProcess::SupportsMultithreading() || FPlatformMisc::NumberOfCores() < 2;
+	static bool OnlyOneThread = 
+		FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD")) ||
+		IsRunningDedicatedServer() ||
+		!FPlatformProcess::SupportsMultithreading() ||
+		FPlatformMisc::NumberOfCores() < 2;
 	return !OnlyOneThread;
 }
 #endif // HAVE_RUNTIME_THREADING_SWITCHES

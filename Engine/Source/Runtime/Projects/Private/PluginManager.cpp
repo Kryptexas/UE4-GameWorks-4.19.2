@@ -17,6 +17,7 @@
 #include "Interfaces/IProjectManager.h"
 #include "Modules/ModuleManager.h"
 #include "ProjectManager.h"
+#include "PlatformTime.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogPluginManager, Log, All );
 
@@ -155,7 +156,10 @@ FPluginManager::FPluginManager()
 	: bHaveConfiguredEnabledPlugins(false)
 	, bHaveAllRequiredPlugins(false)
 {
+	double Before = FPlatformTime::Seconds();
 	DiscoverAllPlugins();
+	double After= FPlatformTime::Seconds();
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\nPlugin discovery took %f seconds!\n\n"), After - Before);
 }
 
 FPluginManager::~FPluginManager()

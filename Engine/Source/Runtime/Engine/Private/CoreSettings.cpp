@@ -136,6 +136,7 @@ UGarbageCollectionSettings::UGarbageCollectionSettings()
 	MergeGCClusters = false;
 	ActorClusteringEnabled = true;
 	BlueprintClusteringEnabled = false;
+	UseDisregardForGCOnDedicatedServers = false;
 }
 
 void UGarbageCollectionSettings::PostInitProperties()

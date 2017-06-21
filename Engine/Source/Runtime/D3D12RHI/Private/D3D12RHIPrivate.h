@@ -12,6 +12,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/Paths.h"
 #include "HAL/RunnableThread.h"
+#include "HAL/LowLevelMemTracker.h"
 #include "Containers/ResourceArray.h"
 #include "Serialization/MemoryReader.h"
 #include "EngineGlobals.h"
@@ -788,7 +789,7 @@ public:
 
 #if	PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 	virtual void* CreateVirtualTexture(uint32 Flags, D3D12_RESOURCE_DESC& ResourceDesc, const struct FD3D12TextureLayout& TextureLayout, FD3D12Resource** ppResource, D3D12_RESOURCE_STATES InitialUsage = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) = 0;
-	virtual void DestroyVirtualTexture(uint32 Flags, void* RawTextureMemory) = 0;
+	virtual void DestroyVirtualTexture(uint32 Flags, void* RawTextureMemory, uint64 CommittedTextureSize) = 0;
 	virtual bool HandleSpecialLock(void*& MemoryOut, uint32 MipIndex, uint32 ArrayIndex, uint32 Flags, EResourceLockMode LockMode, const FD3D12TextureLayout& TextureLayout, void* RawTextureMemory, uint32& DestStride) = 0;
 	virtual bool HandleSpecialUnlock(FRHICommandListBase* RHICmdList, uint32 MipIndex, uint32 Flags, const struct FD3D12TextureLayout& TextureLayout, void* RawTextureMemory) = 0;
 #endif

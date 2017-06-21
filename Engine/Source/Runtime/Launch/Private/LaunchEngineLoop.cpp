@@ -3,6 +3,7 @@
 #include "LaunchEngineLoop.h"
 #include "HAL/PlatformStackWalk.h"
 #include "HAL/PlatformOutputDevices.h"
+#include "HAL/LowLevelMemTracker.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/QueuedThreadPool.h"
@@ -191,6 +192,14 @@ class FFeedbackContext;
 #else
 	#define USE_LOCALIZED_PACKAGE_CACHE 0
 #endif
+
+int32 GUseDisregardForGCOnDedicatedServers = 1;
+static FAutoConsoleVariableRef CVarUseDisregardForGCOnDedicatedServers(
+	TEXT("gc.UseDisregardForGCOnDedicatedServers"),
+	GUseDisregardForGCOnDedicatedServers,
+	TEXT("If false, DisregardForGC will be disabled for dedicated servers."),
+	ECVF_Default
+);
 
 static TAutoConsoleVariable<int32> CVarDoAsyncEndOfFrameTasksRandomize(
 	TEXT("tick.DoAsyncEndOfFrameTasks.Randomize"),
@@ -882,6 +891,10 @@ DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_
 
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
+	// disable/enable LLM based on commandline
+	LLM(FLowLevelMemTracker::Get().ProcessCommandLine(CmdLine));
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EnginePreInitMemory);
+
 	FPlatformMisc::InitTaggedStorage(1024);
 
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
@@ -1468,7 +1481,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Set all CVars which have been setup in the device profiles.
 	UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile();
 
-	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowRenderThread())
+	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowRenderThread()
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+		// disable rendering thread when LLM is on so that memory is attributer better
+		&& !FLowLevelMemTracker::Get().ShouldReduceThreads()
+#endif
+		)
 	{
 		GUseThreadedRendering = true;
 	}
@@ -1505,7 +1523,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformMisc::RequestExit(false);
 	}
 	
-	bool bIsSeekFreeDedicatedServer = false;	
 	bool bIsRegularClient = false;
 
 	if (!bHasEditorToken)
@@ -1567,6 +1584,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
+	bool bDisableDisregardForGC = bHasEditorToken;
 	if (IsRunningDedicatedServer())
 	{
 		GIsClient = false;
@@ -1575,7 +1593,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_EDITOR
 		GIsEditor = false;
 #endif
-		bIsSeekFreeDedicatedServer = FPlatformProperties::RequiresCookedData();
+		bDisableDisregardForGC |= FPlatformProperties::RequiresCookedData() && (GUseDisregardForGCOnDedicatedServers == 0);
 	}
 
 	// If std out device hasn't been initialized yet (there was no -stdout param in the command line) and
@@ -1845,7 +1863,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
 	// Setup GC optimizations
-	if (bIsSeekFreeDedicatedServer || bHasEditorToken)
+	if (bDisableDisregardForGC)
 	{
 		GUObjectArray.DisableDisregardForGC();
 	}
@@ -2493,6 +2511,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 	if( !IsRunningDedicatedServer() )
 	{
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
+		FModuleManager::Get().LoadModule(TEXT("Overlay"));
 	}
 #endif
 
@@ -2589,6 +2608,8 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EngineInitMemory);
+
 	CheckImageIntegrity();
 
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FEngineLoop::Init" ), STAT_FEngineLoop_Init, STATGROUP_LoadTime );
@@ -3029,6 +3050,10 @@ void FEngineLoop::Tick()
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST && MALLOC_GT_HOOKS
 	FScopedSampleMallocChurn ChurnTracker;
 #endif
+	// let the low level mem tracker pump once a frame to update states
+	LLM(FLowLevelMemTracker::Get().UpdateStatsPerFrame());
+
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EngineTickMemory);
 
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();

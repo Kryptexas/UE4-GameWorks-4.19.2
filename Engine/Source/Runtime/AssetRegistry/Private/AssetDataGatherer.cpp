@@ -560,7 +560,7 @@ uint32 FAssetDataGatherer::Run()
 
 					if (DiskCachedAssetData)
 					{
-						if (DiskCachedAssetData->DependencyData.PackageName != PackageName)
+						if (DiskCachedAssetData->DependencyData.PackageName != PackageName && DiskCachedAssetData->DependencyData.PackageName != NAME_None)
 						{
 							UE_LOG(LogAssetRegistry, Display, TEXT("Cached dependency data for package '%s' is invalid. Discarding cached data."), *PackageName.ToString());
 							DiskCachedAssetData = nullptr;

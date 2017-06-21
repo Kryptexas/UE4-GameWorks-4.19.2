@@ -254,11 +254,15 @@ bool FWindowsPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, con
 }
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
-	return VirtualAlloc( NULL, Size, MEM_COMMIT, PAGE_READWRITE );
+	void* Ptr = VirtualAlloc( NULL, Size, MEM_COMMIT, PAGE_READWRITE );
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Platform, Ptr, Size));
+	return Ptr;
 }
 
 void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 {
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Platform, Ptr, Size));
+
 	CA_SUPPRESS(6001)
 	// Windows maintains the size of allocation internally, so Size is unused
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);

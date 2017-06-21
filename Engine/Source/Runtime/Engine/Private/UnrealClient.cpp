@@ -334,7 +334,8 @@ void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename
 	}
 	else if(GIsHighResScreenshot)
 	{
-		TypeName = TEXT("HighresScreenshot");
+		FString FilenameOverride = GetHighResScreenshotConfig().FilenameOverride;
+		TypeName = FilenameOverride.IsEmpty() ? TEXT("HighresScreenshot") : FilenameOverride;
 	}
 	else
 	{
@@ -1109,6 +1110,7 @@ bool GCaptureCompositionNextFrame = false;
 
 void FViewport::Draw( bool bShouldPresent /*= true */)
 {
+	SCOPED_NAMED_EVENT(FViewport_Draw, FColor::Red);
 	UWorld* World = GetClient()->GetWorld();
 	static TUniquePtr<FSuspendRenderingThread> GRenderingThreadSuspension;
 
@@ -1141,7 +1143,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 			if( GIsHighResScreenshot )
 			{
 				const bool bShowUI = false;
-				const bool bAddFilenameSuffix = true;
+				const bool bAddFilenameSuffix = GetHighResScreenshotConfig().FilenameOverride.IsEmpty();
 				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 				HighResScreenshot();
 			}
@@ -1733,12 +1735,25 @@ ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitma
 	return false;
 }
 
-ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR)
+ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR, FString& OutFilenameOverride)
 {
 	FString CmdString = Cmd;
 	int32 SeperatorPos = -1;
 	int32 LastSeperatorPos = 0;
 	TArray<FString> Arguments;
+
+	// Look for an optional filename to override from the default filename and strip it if found.
+	FString FilenameSearchString = TEXT("filename=");
+	int32 FilenamePos = CmdString.Find(FilenameSearchString, ESearchCase::IgnoreCase);
+	if (FilenamePos != INDEX_NONE)
+	{
+		FString FilenameOverride;
+		FParse::Value(Cmd, TEXT("filename="), FilenameOverride);
+		OutFilenameOverride = FilenameOverride;
+		CmdString.RemoveAt(FilenamePos, FilenameSearchString.Len() + FilenameOverride.Len());
+		CmdString.Trim(); 
+		CmdString.TrimTrailing();
+	}
 
 	while (CmdString.FindChar(TCHAR(' '), SeperatorPos))
 	{

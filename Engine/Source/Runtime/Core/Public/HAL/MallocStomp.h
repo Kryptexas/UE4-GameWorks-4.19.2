@@ -44,13 +44,7 @@ private:
 
 	static const SIZE_T PageSize = 4096U; // TODO: Verify the assumption that all relevant platforms use 4KiB pages.
 
-#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
-	static const uint32 NoAccessProtectMode = PAGE_NOACCESS;
-#elif PLATFORM_LINUX || PLATFORM_MAC
-	static const uint32 NoAccessProtectMode = PROT_NONE;
-#else
-	#error The stomp allocator isn't supported in this platform.
-#endif
+	static const uint32 NoAccessProtectMode;
 
 	struct FAllocationData
 	{

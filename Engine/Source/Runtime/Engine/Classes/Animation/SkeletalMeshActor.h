@@ -104,7 +104,7 @@ private:
 
 public:
 	/** Returns SkeletalMeshComponent subobject **/
-	class USkeletalMeshComponent* GetSkeletalMeshComponent() { return SkeletalMeshComponent; }
+	class USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComponent; }
 };
 
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "EnumRange.h"
 #include "SlateEnums.generated.h"
 
 
@@ -106,6 +107,8 @@ enum class EUINavigation : uint8
 	/** Denotes an invalid navigation, more important used to denote no specified navigation*/
 	Invalid UMETA(Hidden),
 };
+
+ENUM_RANGE_BY_COUNT(EUINavigation, EUINavigation::Num);
 
 /**
  * Enumerates the source of the navigation

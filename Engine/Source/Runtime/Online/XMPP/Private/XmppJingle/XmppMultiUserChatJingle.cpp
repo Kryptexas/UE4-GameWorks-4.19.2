@@ -469,16 +469,6 @@ public:
 		else
 		{
 			UE_LOG(LogXmpp, Verbose, TEXT("MUC: JoinPublicRoom [%s] succeeded."), *RoomId);
-			// Also configure the room IF it looks like a global room, but don't fire delegates because we know this will fail for every user but the first
-			// This is hardcoded and super hacky, but the correct thing is to have the ChatService backend create, own, and manage global+guild chat rooms
-			if (RoomId.StartsWith(TEXT("Fortnite"), ESearchCase::IgnoreCase) || RoomId.StartsWith(TEXT("Global"), ESearchCase::IgnoreCase))
-			{
-				// Every person who ever enters global chat will attempt to configure it, only the first will succeed
-				FXmppRoomConfig GlobalChatConfig;
-				GlobalChatConfig.bIsPersistent = true;
-				GlobalChatConfig.bIsPrivate = false;
-				Muc.InternalConfigureRoom(RoomId, GlobalChatConfig, EConfigureRoomTypeJingle::NoCallback);
-			}
 		}
 
 		Muc.JoinRoomFinish();

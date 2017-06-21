@@ -1769,48 +1769,25 @@ FReply SDesignerView::NudgeSelectedWidget(FVector2D Nudge)
 
 			if (CurrentTemplateWidget && CurrentPreviewWidget)
 			{
-				UCanvasPanelSlot* TemplateSlot = Cast<UCanvasPanelSlot>(CurrentTemplateWidget->Slot);
-				UCanvasPanelSlot* PreviewSlot = Cast<UCanvasPanelSlot>(CurrentPreviewWidget->Slot);
+				UPanelSlot* TemplateSlot = CurrentTemplateWidget->Slot;
+				UPanelSlot* PreviewSlot = CurrentPreviewWidget->Slot;
 
 				if ( TemplateSlot && PreviewSlot )
 				{
-					const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
-
-					const FVector2D OldPosition = TemplateSlot->GetPosition();
-					FVector2D NewPosition = OldPosition + Nudge;
-
-					// Determine the new position aligned to the grid.
-					if ( DesignerSettings->GridSnapEnabled )
-					{
-						if ( Nudge.X != 0 )
-						{
-							NewPosition.X = ( (int32)NewPosition.X ) - ( ( (int32)NewPosition.X ) % DesignerSettings->GridSnapSize );
-						}
-						if ( Nudge.Y != 0 )
-						{
-							NewPosition.Y = ( (int32)NewPosition.Y ) - ( ( (int32)NewPosition.Y ) % DesignerSettings->GridSnapSize );
-						}
-					}
-
-					// Offset the size by the same amount moved if we're anchoring along that axis.
-					FVector2D NewSize = TemplateSlot->GetSize();
-					if ( TemplateSlot->GetAnchors().IsStretchedHorizontal() )
-					{
-						NewSize.X -= NewPosition.X - OldPosition.X;
-					}
-					if ( TemplateSlot->GetAnchors().IsStretchedVertical() )
-					{
-						NewSize.Y -= NewPosition.Y - OldPosition.Y;
-					}
-
 					FScopedTransaction Transaction(LOCTEXT("Designer_NudgeWidget", "Nudge Widget"));
 
-					TemplateSlot->Modify();
+					const UWidgetDesignerSettings* const WidgetDesignerSettings = GetDefault<UWidgetDesignerSettings>();
 
-					TemplateSlot->SetPosition(NewPosition);
-					TemplateSlot->SetSize(NewSize);
-					PreviewSlot->SetPosition(NewPosition);
-					PreviewSlot->SetSize(NewSize);
+					// Attempt to nudge the slot. 
+					if (TemplateSlot->NudgeByDesigner(Nudge, WidgetDesignerSettings->GridSnapEnabled ? TOptional<int32>(WidgetDesignerSettings->GridSnapSize) : TOptional<int32>()))
+					{
+						PreviewSlot->SynchronizeFromTemplate(TemplateSlot);
+					}
+					// Nudge failed, cancel transaction.
+					else
+					{
+						Transaction.Cancel();
+					}
 				}
 			}
 		}
@@ -2572,27 +2549,9 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 			{
 				if (UPanelSlot* Slot = Parent->AddChild(Widget))
 				{
-					// Special logic for canvas panel slots.
-					if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
-					{
-						// HACK UMG - This seems like a bad idea to call TakeWidget
-						TSharedPtr<SWidget> SlateWidget = Widget->TakeWidget();
-						SlateWidget->SlatePrepass();
-						const FVector2D& WidgetDesiredSize = SlateWidget->GetDesiredSize();
-
-						static const FVector2D MinimumDefaultSize(100, 40);
-						FVector2D LocalSize = FVector2D(FMath::Max(WidgetDesiredSize.X, MinimumDefaultSize.X), FMath::Max(WidgetDesiredSize.Y, MinimumDefaultSize.Y));
-
-						const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
-						if (DesignerSettings->GridSnapEnabled)
-						{
-							LocalPosition.X = ((int32)LocalPosition.X) - (((int32)LocalPosition.X) % DesignerSettings->GridSnapSize);
-							LocalPosition.Y = ((int32)LocalPosition.Y) - (((int32)LocalPosition.Y) % DesignerSettings->GridSnapSize);
-						}
-
-						CanvasSlot->SetPosition(LocalPosition);
-						CanvasSlot->SetSize(LocalSize);
-					}
+					const UWidgetDesignerSettings* const WidgetDesignerSettings = GetDefault<UWidgetDesignerSettings>();
+					const TOptional<int32> GridSnapSize = WidgetDesignerSettings->GridSnapEnabled ? TOptional<int32>(WidgetDesignerSettings->GridSnapSize) : TOptional<int32>();
+					Slot->DragDropPreviewByDesigner(LocalPosition, GridSnapSize, GridSnapSize);
 
 					FDropPreview DropPreview;
 					DropPreview.Widget = Widget;
@@ -2780,17 +2739,9 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 					{
 						FVector2D NewPosition = LocalPosition - DraggedWidget.DraggedOffset;
 
-						// Perform grid snapping on X and Y if we need to.
-						if (bGridSnapX)
-						{
-							NewPosition.X = ((int32)NewPosition.X) - (((int32)NewPosition.X) % DesignerSettings->GridSnapSize);
-						}
+						FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, DraggedWidget.ExportedSlotProperties);
 
-						if (bGridSnapY)
-						{
-							NewPosition.Y = ((int32)NewPosition.Y) - (((int32)NewPosition.Y) % DesignerSettings->GridSnapSize);
-						}
-
+						bool HasChangedLayout = false;
 						// HACK UMG: In order to correctly drop items into the canvas that have a non-zero anchor,
 						// we need to know the layout information after slate has performed a pre-pass.  So we have
 						// to rebase the layout and reinterpret the new position based on anchor point layout data.
@@ -2800,22 +2751,34 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 						{
 							if (bIsPreview)
 							{
-								FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, DraggedWidget.ExportedSlotProperties);
-
 								CanvasSlot->SaveBaseLayout();
-								CanvasSlot->SetDesiredPosition(NewPosition);
-								CanvasSlot->RebaseLayout();
 
-								FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, DraggedWidget.ExportedSlotProperties);
-							}
-							else
-							{
-								FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, DraggedWidget.ExportedSlotProperties);
+								// Perform grid snapping on X and Y if we need to.
+								if (bGridSnapX)
+								{
+									NewPosition.X = ((int32)NewPosition.X) - (((int32)NewPosition.X) % DesignerSettings->GridSnapSize);
+								}
+								if (bGridSnapY)
+								{
+									NewPosition.Y = ((int32)NewPosition.Y) - (((int32)NewPosition.Y) % DesignerSettings->GridSnapSize);
+								}
+								CanvasSlot->SetDesiredPosition(NewPosition);
+
+								CanvasSlot->RebaseLayout();
+								HasChangedLayout = true;
 							}
 						}
 						else
 						{
-							FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, DraggedWidget.ExportedSlotProperties);
+							const TOptional<int32> XGridSnapSize = bGridSnapX ? TOptional<int32>(DesignerSettings->GridSnapSize) : TOptional<int32>();
+							const TOptional<int32> YGridSnapSize = bGridSnapY ? TOptional<int32>(DesignerSettings->GridSnapSize) : TOptional<int32>();
+							HasChangedLayout = Slot->DragDropPreviewByDesigner(LocalPosition, XGridSnapSize, YGridSnapSize);
+						}
+
+						// Re-export slot properties.
+						if (HasChangedLayout)
+						{
+							FWidgetBlueprintEditorUtils::ExportPropertiesToText(Slot, DraggedWidget.ExportedSlotProperties);
 						}
 
 						FDropPreview DropPreview;

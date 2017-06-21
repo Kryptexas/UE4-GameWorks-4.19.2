@@ -111,6 +111,9 @@ public:
 	/** See the SliderHandleColor attribute */
 	void SetSliderHandleColor(FSlateColor InSliderHandleColor);
 
+	/** Get the StepSize attribute */
+	float GetStepSize() const;
+
 	/** See the StepSize attribute */
 	void SetStepSize(const TAttribute<float>& InStepSize);
 

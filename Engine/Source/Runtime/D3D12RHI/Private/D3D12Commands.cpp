@@ -62,6 +62,11 @@ void FD3D12DynamicRHI::SetupRecursiveResources()
 
 	extern ENGINE_API TGlobalResource<FScreenVertexDeclaration> GScreenVertexDeclaration;
 
+	{
+		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
+		PixelShader->GetPixelShader();
+	}
+
 	// TODO: Waiting to integrate MSAA fix for ResolveShader.h
 	if (GMaxRHIShaderPlatform == SP_XBOXONE_D3D12)
 		return;
@@ -428,7 +433,7 @@ void FD3D12CommandContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 M
 */
 void FD3D12CommandContext::RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderStateRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetBoundShaderState);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetBoundShaderState);
 	FD3D12BoundShaderState* const BoundShaderState = FD3D12DynamicRHI::ResourceCast(BoundShaderStateRHI);
 
 	StateCache.SetBoundShaderState(BoundShaderState);
@@ -661,7 +666,7 @@ void FD3D12CommandContext::RHISetShaderSampler(FComputeShaderRHIParamRef Compute
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef VertexShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(VertexShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 
@@ -674,7 +679,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Ve
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(HullShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 
@@ -687,7 +692,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FHullShaderRHIParamRef Hull
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef DomainShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(DomainShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 	
@@ -700,7 +705,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef Do
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef GeometryShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(GeometryShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 
@@ -713,7 +718,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef 
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(PixelShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 
@@ -726,7 +731,7 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef Pix
 
 void FD3D12CommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	//VALIDATE_BOUND_SHADER(ComputeShader);
 	FD3D12UniformBuffer* Buffer = RetrieveObject<FD3D12UniformBuffer>(BufferRHI);
 
@@ -1188,7 +1193,7 @@ static D3D_PRIMITIVE_TOPOLOGY GetD3D12PrimitiveType(uint32 PrimitiveType, bool b
 
 void FD3D12CommandContext::CommitNonComputeShaderConstants()
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12CommitGraphicsConstants);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12CommitGraphicsConstants);
 
 	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStateRef = CurrentBoundShaderState.GetReference();
 
@@ -1368,7 +1373,7 @@ void FD3D12CommandContext::SetResourcesFromTables(const ShaderType* RESTRICT Sha
 
 void FD3D12CommandContext::CommitGraphicsResourceTables()
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12CommitResourceTables);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12CommitResourceTables);
 
 	const FD3D12BoundShaderState* const RESTRICT CurrentBoundShaderStateRef = CurrentBoundShaderState.GetReference();
 	check(CurrentBoundShaderStateRef);
@@ -1397,7 +1402,7 @@ void FD3D12CommandContext::CommitGraphicsResourceTables()
 
 void FD3D12CommandContext::CommitComputeResourceTables(FD3D12ComputeShader* InComputeShader)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12CommitResourceTables);
+	//SCOPE_CYCLE_COUNTER(STAT_D3D12CommitResourceTables);
 
 	FD3D12ComputeShader* RESTRICT ComputeShader = InComputeShader;
 	check(ComputeShader);

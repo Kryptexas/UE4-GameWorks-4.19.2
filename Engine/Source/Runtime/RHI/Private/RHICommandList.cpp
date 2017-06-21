@@ -18,6 +18,16 @@ DECLARE_CYCLE_STAT(TEXT("All Command List Execute"), STAT_ImmedCmdListExecuteTim
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
 
+DEFINE_STAT(STAT_VertexBufferMemoryLLM);
+DEFINE_STAT(STAT_IndexBufferMemoryLLM);
+DEFINE_STAT(STAT_UniformBufferMemoryLLM);
+DEFINE_STAT(STAT_BufferMemoryLLM);
+DEFINE_STAT(STAT_ShaderMemoryLLM);
+DEFINE_STAT(STAT_TextureMemoryLLM);
+DEFINE_STAT(STAT_StateMemoryLLM);
+
+
+
 #if !PLATFORM_USES_FIXED_RHI_CLASS
 #include "RHICommandListCommandExecutes.inl"
 #endif
@@ -816,6 +826,7 @@ public:
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ParallelChainTranslate);
+		SCOPED_NAMED_EVENT(FParallelTranslateCommandList_DoTask, FColor::Magenta);
 		check(ContextContainer && RHICmdLists);
 		IRHICommandContext* Context = ContextContainer->GetContext();
 		check(Context);

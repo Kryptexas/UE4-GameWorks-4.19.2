@@ -59,7 +59,6 @@ public:
 		, _HandleDirectionalNavigation(true)
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
-		, _NavigateOnScrollIntoView(false)
 		, _HandleLeftRightBoundsAsWrap(true)
 		{
 		}
@@ -110,8 +109,6 @@ public:
 		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
 
 		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
-
-		SLATE_ARGUMENT(bool, NavigateOnScrollIntoView);
 		
 		SLATE_ARGUMENT(bool, HandleLeftRightBoundsAsWrap);
 
@@ -149,8 +146,6 @@ public:
 			? InArgs._OnItemToString_Debug
 			: SListView< ItemType >::GetDefaultDebugDelegate();
 		this->OnEnteredBadState = InArgs._OnEnteredBadState;
-
-		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
 
 		this->bHandleLeftRightBoundsAsWrap = InArgs._HandleLeftRightBoundsAsWrap;
 
@@ -208,7 +203,6 @@ public:
 			const int32 NumItemsWide = GetNumItemsWide();
 			const int32 CurSelectionIndex = (!TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem)) ? 0 : ItemsSourceRef.Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(this->SelectorItem));
 			int32 AttemptSelectIndex = -1;
-			bool bAttempt = false;
 
 			const EUINavigation NavType = InNavigationEvent.GetNavigationType();
 			switch (NavType)
@@ -216,7 +210,6 @@ public:
 			case EUINavigation::Left:
 				if (bHandleLeftRightBoundsAsWrap || (CurSelectionIndex % NumItemsWide) > 0)
 				{
-					bAttempt = true;
 					AttemptSelectIndex = CurSelectionIndex - 1;
 				}
 				break;
@@ -224,7 +217,6 @@ public:
 			case EUINavigation::Right:
 				if (bHandleLeftRightBoundsAsWrap || (CurSelectionIndex % NumItemsWide) < (NumItemsWide - 1))
 				{
-					bAttempt = true;
 					AttemptSelectIndex = CurSelectionIndex + 1;
 				}
 				break;
@@ -233,14 +225,10 @@ public:
 				break;
 			}
 
-			// We are attempting to move to a specific index
 			// If it's valid we'll scroll it into view and return an explicit widget in the FNavigationReply
-			if (bAttempt)
+			if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
 			{
-				if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
-				{
-					this->NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
-				}
+				this->NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
 				return FNavigationReply::Explicit(nullptr);
 			}
 		}
