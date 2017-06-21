@@ -1821,7 +1821,7 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 void UHierarchicalInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
-	InitPerInstanceRenderData();
+
 	BuildTreeIfOutdated(false, false);
 }
 
