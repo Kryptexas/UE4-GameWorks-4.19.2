@@ -417,6 +417,7 @@
 
 		<!-- Additional Binaries -->
 		Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe
+    Engine/Binaries/Win64/XboxOne/XboxOnePDBFileUtil.exe
 	</Property>
 
 	<Property Name="CopyXboxOneExceptions">

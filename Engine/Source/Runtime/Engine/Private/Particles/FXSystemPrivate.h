@@ -188,8 +188,8 @@ public:
 	 */
 	int32 AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin);
 
-	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList);
-	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList);
+	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture = nullptr);
+	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture = nullptr);
 
 private:
 

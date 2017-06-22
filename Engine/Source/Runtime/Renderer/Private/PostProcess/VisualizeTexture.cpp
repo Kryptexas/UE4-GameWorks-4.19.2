@@ -26,9 +26,21 @@
 #include "PipelineStateCache.h"
 
 
+enum class EVisualisePSType
+{
+	Cube = 0,
+	Texture1D = 1, //not supported
+	Texture2DNoMSAA = 2,
+	Texture3D = 3,
+	CubeArray = 4,
+	Texture2DMSAA = 5,
+	Texture2DDepthStencilNoMSAA = 6,
+	Texture2DUINT8 = 7,
+};
+
 /** A pixel shader which filters a texture. */
 // @param TextureType 0:Cube, 1:1D(not yet supported), 2:2D no MSAA, 3:3D, 4:Cube[], 5:2D MSAA, 6:2D DepthStencil no MSAA (needed to avoid D3DDebug error)
-template<uint32 TextureType>
+template<EVisualisePSType TextureType>
 class VisualizeTexturePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(VisualizeTexturePS,Global);
@@ -42,7 +54,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("TEXTURE_TYPE"), TextureType);
+		OutEnvironment.SetDefine(TEXT("TEXTURE_TYPE"), (int32)TextureType);
 	}
 
 	/** Default constructor. */
@@ -65,6 +77,7 @@ public:
 		VisualizeTextureCubeArraySampler.Bind(Initializer.ParameterMap,TEXT("VisualizeTextureCubeArraySampler"));
 		VisualizeParam.Bind(Initializer.ParameterMap,TEXT("VisualizeParam"));
 		TextureExtent.Bind(Initializer.ParameterMap,TEXT("TextureExtent"));
+		VisualizeUINT8Texture2D.Bind(Initializer.ParameterMap, TEXT("VisualizeUINT8Texture2D"));
 	}
 
 	/** Serializer */
@@ -83,6 +96,7 @@ public:
 		Ar << VisualizeTextureCubeArraySampler;
 		Ar << VisualizeParam;
 		Ar << TextureExtent;
+		Ar << VisualizeUINT8Texture2D;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -122,6 +136,7 @@ public:
 		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTexture3D, VisualizeTexture3DSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
 		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTextureCube, VisualizeTextureCubeSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
 		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTextureCubeArray, VisualizeTextureCubeArraySampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeUINT8Texture2D, Data.RenderTargetItem.TargetableTexture);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -145,15 +160,24 @@ protected:
 	FShaderResourceParameter VisualizeTextureCubeSampler;
 	FShaderResourceParameter VisualizeTextureCubeArray;
 	FShaderResourceParameter VisualizeTextureCubeArraySampler;
+	FShaderResourceParameter VisualizeUINT8Texture2D;
 	FShaderParameter VisualizeParam;
 	FShaderParameter TextureExtent;
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A) typedef VisualizeTexturePS<A> VisualizeTexturePS##A; \
+#define VARIATION1(A) typedef VisualizeTexturePS<EVisualisePSType::A> VisualizeTexturePS##A; \
 	IMPLEMENT_SHADER_TYPE2(VisualizeTexturePS##A, SF_Pixel);
 
-VARIATION1(0)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)			VARIATION1(6)
+
+VARIATION1(Cube)
+VARIATION1(Texture2DNoMSAA)
+VARIATION1(Texture3D)
+VARIATION1(CubeArray)
+VARIATION1(Texture2DMSAA)
+VARIATION1(Texture2DDepthStencilNoMSAA)	
+VARIATION1(Texture2DUINT8)
+
 #undef VARIATION1
 
 
@@ -203,7 +227,7 @@ public:
 IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
 
 
-template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
+template<EVisualisePSType TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -251,37 +275,41 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLev
 		if(Data.Desc.NumSamples > 1)
 		{
 			// MSAA
-			VisualizeTextureForTextureType<5>(RHICmdList, FeatureLevel, Data);
+			VisualizeTextureForTextureType<EVisualisePSType::Texture2DMSAA>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			if(Data.Desc.Format == PF_DepthStencil)
 			{
 				// DepthStencil non MSAA (needed to avoid D3DDebug error)
-				VisualizeTextureForTextureType<6>(RHICmdList, FeatureLevel, Data);
+				VisualizeTextureForTextureType<EVisualisePSType::Texture2DDepthStencilNoMSAA>(RHICmdList, FeatureLevel, Data);
+			}
+			else if (Data.Desc.Format == PF_R8_UINT)
+			{
+				VisualizeTextureForTextureType<EVisualisePSType::Texture2DUINT8>(RHICmdList, FeatureLevel, Data);
 			}
 			else
 			{
 				// non MSAA
-				VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
+				VisualizeTextureForTextureType<EVisualisePSType::Texture2DNoMSAA>(RHICmdList, FeatureLevel, Data);
 			}
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
 	{		
-		VisualizeTextureForTextureType<3>(RHICmdList, FeatureLevel, Data);
+		VisualizeTextureForTextureType<EVisualisePSType::Texture3D>(RHICmdList, FeatureLevel, Data);
 	}
 	else if(Data.Desc.IsCubemap())
 	{		
 		if(Data.Desc.IsArray())
 		{
 			// Cube[]
-			VisualizeTextureForTextureType<4>(RHICmdList, FeatureLevel, Data);
+			VisualizeTextureForTextureType<EVisualisePSType::CubeArray>(RHICmdList, FeatureLevel, Data);
 		}
 		else
 		{
 			// Cube
-			VisualizeTextureForTextureType<0>(RHICmdList, FeatureLevel, Data);
+			VisualizeTextureForTextureType<EVisualisePSType::Cube>(RHICmdList, FeatureLevel, Data);
 		}
 	}
 }

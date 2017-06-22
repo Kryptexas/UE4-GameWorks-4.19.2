@@ -4452,7 +4452,7 @@ bool FFXSystem::UsesGlobalDistanceFieldInternal() const
 	return false;
 }
 
-void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
+void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture)
 {
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
@@ -4465,9 +4465,13 @@ void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
 	};
 
 	RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, RenderTargets, 2);
+	if (SceneDepthTexture)
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneDepthTexture);
+	}
 }
 
-void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
+void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture)
 {
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
@@ -4479,7 +4483,11 @@ void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
 		CurrentStateTextures.VelocityTextureTargetRHI,
 	};
 	
-	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);	
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);
+	if (SceneDepthTexture)
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, SceneDepthTexture);
+	}
 }
 
 void FFXSystem::SimulateGPUParticles(

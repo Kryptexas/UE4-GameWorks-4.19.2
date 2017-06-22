@@ -24,6 +24,7 @@
 #include "Linux/LinuxPlatformTLS.h"
 #include "Containers/CircularQueue.h"
 #include "Misc/FileHelper.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 namespace PlatformProcessLimits
 {

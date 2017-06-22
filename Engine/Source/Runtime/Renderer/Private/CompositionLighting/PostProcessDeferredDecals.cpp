@@ -860,19 +860,26 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				DrawClearQuad(RHICmdList, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
 			}
 
+			// This stops the targets from being resolved and decoded until the last view is rendered.
+			// This is done so as to not run eliminate fast clear on the views before the end.
+			bool bLastView = Context.View.Family->Views.Last() == &Context.View;
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
 				RenderTargetManager.FlushMetaData();
 
-				if (GSupportsRenderTargetWriteMask)
+				if (GSupportsRenderTargetWriteMask && bLastView)
 				{
 					DecodeRTWriteMask(Context);
+					GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferMask);
 					bHasValidDBufferMask = true;
 				}
 			}
 
-			RenderTargetManager.ResolveTargets();
+			if (bLastView || !GSupportsRenderTargetWriteMask)
+			{
+				RenderTargetManager.ResolveTargets();
+			}
 		}
 
 		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets)

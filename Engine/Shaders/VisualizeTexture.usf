@@ -20,6 +20,8 @@ SamplerState VisualizeTextureCubeSampler;
 //default Texture2D type is <float4>, which won't read the X28_G8UINT format properly.
 Texture2D<uint4> VisualizeDepthStencilTexture; 
 
+Texture2D<uint> VisualizeUINT8Texture2D;
+
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 Texture2DMS<float4> VisualizeTexture2DMS;
 TextureCubeArray VisualizeTextureCubeArray;
@@ -90,6 +92,9 @@ void VisualizeTexturePS(
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 		TexLookup = VisualizeTexture2DMS.Load(int2(UV * TextureExtent.xy), 0);
 	#endif
+#elif TEXTURE_TYPE == 7
+    float IntTexLookup = float(VisualizeUINT8Texture2D.Load(int3(UV * TextureExtent.xy, 0)));
+	float4 TexLookup = IntTexLookup.xxxx;
 #endif
 	
 	// Normal = 0, SceneDepth = 1 and ShadowDepth = 2

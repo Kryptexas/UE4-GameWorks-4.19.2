@@ -141,11 +141,6 @@ namespace AutomationTool
 			{
 				string Desc = DescriptionBuilders[PlatformIndex].ToString().Replace("\r\n", "\n");
 
-				if (Desc == "")
-				{
-					continue;
-				}
-
 				// Clean any workspace names that may reveal internal information
 				Desc = Regex.Replace(Desc, "(Change[^@]*)@.*", "$1", RegexOptions.Multiline);
 
@@ -166,6 +161,11 @@ namespace AutomationTool
 
 				// Remove merge-only changelists
 				Desc = Regex.Replace(Desc, "(?<=(^|\\n))Change .*\\s*Merging .* to .*\\s*\\n(?=(Change|$))", "");
+
+				if (string.IsNullOrEmpty(Desc))
+				{
+					continue;
+				}
 
 				// Figure out the target stream
 				IProcessResult StreamResult = P4.P4(String.Format("stream -o {0}", Stream), AllowSpew: false);
@@ -208,6 +208,9 @@ namespace AutomationTool
 					{
 						Writer.WriteLine(Line);
 					}
+
+					Writer.WriteLine("DONE!");
+
 				}
 				Log("Written {0}.", OutputFileName);
 

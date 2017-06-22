@@ -372,11 +372,11 @@ void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const FUn
 {
 	if (RHISupportsGPUParticles() && IsParticleCollisionModeSupported(GetShaderPlatform(), PCM_DepthBuffer))
 	{
-		PrepareGPUSimulation(RHICmdList);
-
+		PrepareGPUSimulation(RHICmdList, SceneDepthTexture);
+		
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDepthBuffer, ViewUniformBuffer, NULL, SceneDepthTexture, GBufferATexture);
-
-		FinalizeGPUSimulation(RHICmdList);
+		
+		FinalizeGPUSimulation(RHICmdList, SceneDepthTexture);
 
 		SortGPUParticles(RHICmdList);		
 	}

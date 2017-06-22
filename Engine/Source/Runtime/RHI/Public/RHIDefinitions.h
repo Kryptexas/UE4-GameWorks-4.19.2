@@ -766,6 +766,11 @@ inline bool IsSwitchPlatform(const EShaderPlatform Platform)
 	return Platform == SP_SWITCH || Platform == SP_SWITCH_FORWARD;
 }
 
+inline bool IsPS4Platform(const EShaderPlatform Platform)
+{
+	return Platform == SP_PS4;
+}
+
 inline bool IsVulkanPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_VULKAN_SM5 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;

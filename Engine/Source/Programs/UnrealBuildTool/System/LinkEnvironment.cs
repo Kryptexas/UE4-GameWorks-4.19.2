@@ -124,7 +124,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// True if debug symbols that are cached for some platforms should not be created.
 		/// </summary>
-		public bool bDisableSymbolCache = true;
+		public bool bDisableSymbolCache = false;
 
 		/// <summary>
 		/// True if we're compiling .cpp files that will go into a library (.lib file)
