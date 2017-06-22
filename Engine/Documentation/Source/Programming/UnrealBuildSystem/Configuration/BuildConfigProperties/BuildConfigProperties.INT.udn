@@ -210,3 +210,5 @@ $ RSyncUsername : Username on the remote machine to connect to with RSync
 
 $ Compiler : Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
 
+$ StaticAnalyzer : The static analyzer to use
+
