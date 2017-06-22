@@ -45,7 +45,10 @@ void FMeshReductionManagerModule::StartupModule()
 		FModuleManager::Get().LoadModule(ModuleName);
 	}
 
-	FModuleManager::Get().LoadModule("SimplygonSwarm");
+	if (FModuleManager::Get().ModuleExists(TEXT("SimplygonSwarm")))
+	{
+		FModuleManager::Get().LoadModule("SimplygonSwarm");
+	}
 	
 	TArray<IMeshReductionModule*> MeshReductionModules = IModularFeatures::Get().GetModularFeatureImplementations<IMeshReductionModule>(IMeshReductionModule::GetModularFeatureName());
 	
