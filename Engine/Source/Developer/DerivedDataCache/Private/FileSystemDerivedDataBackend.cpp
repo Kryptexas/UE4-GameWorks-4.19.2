@@ -114,7 +114,7 @@ public:
 
 		if (!bFailed && AccessDuration > SlowInitDuration && !GIsBuildMachine)
 		{
-			UE_LOG(LogDerivedDataCache, Warning, TEXT("%s access is very slow (initialization took %.2lf seconds), consider disabling it."), *CachePath, AccessDuration);
+			UE_LOG(LogDerivedDataCache, Warning, TEXT("%s access is very slow (initialization took %.2f seconds), consider disabling it."), *CachePath, AccessDuration);
 		}
 
 		if (!bReadOnly && !bFailed && bDeleteOldFiles && !FParse::Param(FCommandLine::Get(),TEXT("NODDCCLEANUP")) && FDDCCleanup::Get())
