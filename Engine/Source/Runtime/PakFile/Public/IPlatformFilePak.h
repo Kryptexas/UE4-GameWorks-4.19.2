@@ -1279,7 +1279,7 @@ public:
 				const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
 				if (RealFilename != nullptr)
 				{
-					return Path + *RealFilename;
+					return Path / *RealFilename;
 				}
 			}
 		}
