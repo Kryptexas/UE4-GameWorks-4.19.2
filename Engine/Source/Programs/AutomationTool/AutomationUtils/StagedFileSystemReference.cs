@@ -76,7 +76,7 @@ public abstract class StagedFileSystemReference
 		StringBuilder NewName = new StringBuilder(BaseDirectory);
 		foreach (string Fragment in Fragments)
 		{
-			if (NewName.Length > 0)
+			if (NewName.Length > 0 && (NewName[NewName.Length - 1] != '/' && NewName[NewName.Length - 1] != '\\'))
 			{
 				NewName.Append('/');
 			}
