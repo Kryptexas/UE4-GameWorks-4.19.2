@@ -19,6 +19,7 @@ class UK2Node_GetClassDefaults : public UK2Node
 
 	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
@@ -98,6 +99,8 @@ private:
 	/** Output pin visibility control */
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
+
+	TArray<FName> OldShownPins;
 
 	/** Whether or not to exclude object container properties */
 	UPROPERTY()

@@ -740,16 +740,14 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 {
 	using namespace FBlueprintNodeSpawnerFactory; // for MakeMacroNodeSpawner()
 
-	for (auto GraphIt = Blueprint->MacroGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
+	for (UEdGraph* MacroGraph : Blueprint->MacroGraphs)
 	{
-		ActionListOut.Add(MakeMacroNodeSpawner(*GraphIt));
+		ActionListOut.Add(MakeMacroNodeSpawner(MacroGraph));
 	}
 
 	// local variables and parameters
-	for (auto GraphIt = Blueprint->FunctionGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
+	for (UEdGraph* FunctionGraph : Blueprint->FunctionGraphs)
 	{
-		UEdGraph* FunctionGraph = (*GraphIt);
-
 		TArray<UK2Node_FunctionEntry*> GraphEntryNodes;
 		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphEntryNodes);
 
@@ -1101,11 +1099,11 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 	{
 		auto ActionIndex = ActionPrimingQueue.CreateIterator();	
 			
-		TWeakObjectPtr<UObject> ActionsKey = ActionIndex.Key();
-		if (ActionsKey.IsValid())
+		const FObjectKey& ActionsKey = ActionIndex.Key();
+		if (ActionsKey.ResolveObjectPtr())
 		{
 			// make sure this class is still listed in the database
-			if (FActionList* ClassActionList = ActionRegistry.Find(ActionsKey.Get()))
+			if (FActionList* ClassActionList = ActionRegistry.Find(ActionsKey))
 			{
 				int32& ActionListIndex = ActionIndex.Value();
 				for (; (ActionListIndex < ClassActionList->Num()) && (PrimedCount < PrimingMaxPerFrame); ++ActionListIndex)
@@ -1130,12 +1128,29 @@ void FBlueprintActionDatabase::Tick(float DeltaTime)
 			ActionPrimingQueue.Remove(ActionsKey);
 		}
 	}
+
+	// Handle deferred removals.
+	while (ActionRemoveQueue.Num() > 0)
+	{
+		TArray<UBlueprintNodeSpawner*> NodeSpawners = ActionRegistry.FindAndRemoveChecked(ActionRemoveQueue.Pop());
+		for (UBlueprintNodeSpawner* Action : NodeSpawners)
+		{
+			check(Action);
+			Action->ClearCachedTemplateNode();
+		}
+	}
 }
 
 //------------------------------------------------------------------------------
 TStatId FBlueprintActionDatabase::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FBlueprintActionDatabase, STATGROUP_Tickables);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::DeferredRemoveEntry(FObjectKey const& InKey)
+{
+	ActionRemoveQueue.AddUnique(InKey);
 }
 
 //------------------------------------------------------------------------------
@@ -1179,7 +1194,7 @@ void FBlueprintActionDatabase::RefreshWorlds()
 	// Add all level scripts from current world
 	const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
 
-	for( auto Context : WorldContexts )
+	for (const FWorldContext& Context : WorldContexts)
 	{
 		if( Context.WorldType == EWorldType::Editor )
 		{
@@ -1338,7 +1353,7 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	UWorld* WorldAsset = Cast<UWorld>(AssetObject);
 	if (WorldAsset && WorldAsset->WorldType == EWorldType::Editor)
 	{
-		for( auto Level : WorldAsset->GetLevels() )
+		for( ULevel* Level : WorldAsset->GetLevels() )
 		{
 			UBlueprint* LevelScript = Cast<UBlueprint>(Level->GetLevelScriptBlueprint(true));
 			if (LevelScript != nullptr)
@@ -1381,8 +1396,8 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	// we don't want to clear entries for blueprints, mainly because we 
 	// use the presence of an entry to know if we've set the blueprint's 
 	// OnChanged(), but also because most blueprints will have actions at some 
-	// later point. Same goes for world assets because they are used to managed level scripts blueprints.
-	else if (!BlueprintAsset && !WorldAsset)
+	// later point. Same goes for in-editor world assets because they are used to manage level script blueprints.
+	else if (!BlueprintAsset && (!WorldAsset || WorldAsset->WorldType != EWorldType::Editor))
 	{
 		ClearAssetActions(AssetObject);
 	}
@@ -1399,7 +1414,7 @@ void FBlueprintActionDatabase::RefreshComponentActions()
 	check(ComponentTypes);
 	FActionList& ClassActionList = ActionRegistry.FindOrAdd(UBlueprintComponentNodeSpawner::StaticClass());
 	ClassActionList.Empty(ComponentTypes->Num());
-	for (const auto& ComponentType : *ComponentTypes)
+	for (const FComponentTypeEntry& ComponentType : *ComponentTypes)
 	{
 		if (UBlueprintComponentNodeSpawner* NodeSpawner = UBlueprintComponentNodeSpawner::Create(ComponentType))
 		{
@@ -1447,7 +1462,7 @@ void FBlueprintActionDatabase::ClearUnloadedAssetActions(FName ObjectPath)
 	{
 		for(UBlueprintNodeSpawner* NodeSpawner : *UnloadedActionList)
 		{
-			FActionList* ActionList = ActionRegistry.Find(NodeSpawner->NodeClass);
+			FActionList* ActionList = ActionRegistry.Find(NodeSpawner->NodeClass.Get());
 
 			// Remove the NodeSpawner from the main registry, it will be replaced with the loaded version of the action
 			ActionList->Remove(NodeSpawner);

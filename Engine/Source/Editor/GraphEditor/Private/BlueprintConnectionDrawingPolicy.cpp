@@ -37,6 +37,8 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	AttackWireThickness = Settings->TraceAttackWireThickness;
 	SustainWireThickness = Settings->TraceSustainWireThickness;
 	ReleaseWireThickness = Settings->TraceReleaseWireThickness;
+	DefaultDataWireThickness = Settings->DefaultDataWireThickness;
+	DefaultExecutionWireThickness = Settings->DefaultExecutionWireThickness;
 
 	TracePositionBonusPeriod = Settings->TracePositionBonusPeriod;
 	TracePositionExponent = Settings->TracePositionExponent;
@@ -62,10 +64,13 @@ void FKismetConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWid
 
 bool FKismetConnectionDrawingPolicy::CanBuildRoadmap() const
 {
-	UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraphChecked(GraphObj);
-	UObject* ActiveObject = TargetBP->GetObjectBeingDebugged();
+	UObject* ActiveObject = nullptr;
+	if (UBlueprint* TargetBP = FBlueprintEditorUtils::FindBlueprintForGraph(GraphObj))
+	{
+		ActiveObject = TargetBP->GetObjectBeingDebugged();
+	}
 
-	return ActiveObject != NULL;
+	return ActiveObject != nullptr;
 }
 
 void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
@@ -426,6 +431,7 @@ bool FKismetConnectionDrawingPolicy::ShouldChangeTangentForKnot(UK2Node_Knot* Kn
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.WireThickness = DefaultDataWireThickness;
 	Params.AssociatedPin1 = OutputPin;
 	Params.AssociatedPin2 = InputPin;
 
@@ -434,7 +440,14 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 	check(GraphObj);
 	const UEdGraphSchema* Schema = GraphObj->GetSchema();
 
-	Params.WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
+	if (OutputPin->bOrphanedPin || (InputPin && InputPin->bOrphanedPin))
+	{
+		Params.WireColor = FLinearColor::Red;
+	}
+	else
+	{
+		Params.WireColor = Schema->GetPinTypeColor(OutputPin->PinType);
+	}
 
 	UEdGraphNode* OutputNode = OutputPin->GetOwningNode();
 	UEdGraphNode* InputNode = (InputPin != nullptr) ? InputPin->GetOwningNode() : nullptr;
@@ -506,7 +519,7 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 			else
 			{
 				// Make exec wires slightly thicker even outside of debug
-				Params.WireThickness = 3.0f;
+				Params.WireThickness = DefaultExecutionWireThickness;
 			}
 		}
 		else
@@ -514,7 +527,7 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 			// Container types should draw thicker
 			if ((InputPin && InputPin->PinType.IsContainer()) || (OutputPin && OutputPin->PinType.IsContainer()))
 			{
-				Params.WireThickness = 3.0f;
+				Params.WireThickness = DefaultExecutionWireThickness;
 			}
 		}
 	}

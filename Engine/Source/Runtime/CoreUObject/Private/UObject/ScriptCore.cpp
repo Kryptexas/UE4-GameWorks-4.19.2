@@ -346,6 +346,10 @@ FString FFrame::GetScriptCallstack()
 			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i].GetStackDescription() + TEXT("\n");
 		}
 	}
+	else
+	{
+		ScriptStack += TEXT("\t[Empty] (FFrame::GetScriptCallstack() called from native code)");
+	}
 #else
 	ScriptStack = TEXT("Unable to display Script Callstack. Compile with DO_BLUEPRINT_GUARD=1");
 #endif
@@ -463,10 +467,17 @@ FString FFrame::GetStackTrace() const
 	}
 	
 	// and then dump them to a string
-	Result += FString( TEXT("Script call stack:\n") );
-	for (int32 Index = FrameStack.Num() - 1; Index >= 0; Index--)
+	if (FrameStack.Num() > 0)
 	{
-		Result += FString::Printf(TEXT("\t%s\n"), *FrameStack[Index]->Node->GetFullName());
+		Result += FString(TEXT("Script call stack:\n"));
+		for (int32 Index = FrameStack.Num() - 1; Index >= 0; Index--)
+		{
+			Result += FString::Printf(TEXT("\t%s\n"), *FrameStack[Index]->Node->GetFullName());
+		}
+	}
+	else
+	{
+		Result += FString(TEXT("Script call stack: [Empty] (FFrame::GetStackTrace() called from native code)"));
 	}
 
 	return Result;
@@ -1032,8 +1043,18 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 	uint8* Parms = (uint8*)FMemory_Alloca(Function->ParmsSize);
 	FMemory::Memzero( Parms, Function->ParmsSize );
 
+	for (TFieldIterator<UProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+	{
+		UProperty* LocalProp = *It;
+		checkSlow(LocalProp);
+		if (!LocalProp->HasAnyPropertyFlags(CPF_ZeroConstructor))
+		{
+			LocalProp->InitializeValue_InContainer(Parms);
+		}
+	}
+
 	const uint32 ExportFlags = PPF_None;
-	bool Failed = 0;
+	bool bFailed = 0;
 	int32 NumParamsEvaluated = 0;
 	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It, NumParamsEvaluated++ )
 	{
@@ -1095,22 +1116,22 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("Message"), FText::FromName( Message ));
-			Arguments.Add(TEXT("PropertyName"), FText::FromString( It->GetName() ));
-			Ar.Logf( TEXT("%s"), *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
-			Failed = true;
+			Arguments.Add(TEXT("PropertyName"), FText::FromName(It->GetFName()));
+			Arguments.Add(TEXT("FunctionName"), FText::FromName(Function->GetFName()));
+			Ar.Logf( TEXT("%s"), *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}' when trying to call {FunctionName}" ), Arguments ).ToString() );
+			bFailed = true;
 
 			break;
 		}
-
 	}
 
-	if( !Failed )
+	if( !bFailed )
 	{
 		ProcessEvent( Function, Parms );
 	}
 
 	//!!destructframe see also UObject::ProcessEvent
-	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It )
+	for( TFieldIterator<UProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It )
 	{
 		It->DestroyValue_InContainer(Parms);
 	}

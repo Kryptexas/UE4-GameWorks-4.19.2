@@ -25,12 +25,6 @@
 
 #include "Object.h"
 
-#if WITH_UNREAL_DEVELOPER_TOOLS
-	#include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"
-#endif	//WITH_UNREAL_DEVELOPER_TOOLS
-
-
-
 DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
 
 FString FNetworkPlatformFile::MP4Extension = TEXT(".mp4");

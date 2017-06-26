@@ -129,6 +129,10 @@ public:
 
 	// Flag to trigger ProcessSubInstance in CreateClassVariablesFromBlueprint:
 	bool bGenerateSubInstanceVariables;
+
+	static FSimpleMulticastDelegate OnPreCompile;
+	static FSimpleMulticastDelegate OnPostCompile;
+
 public:
 	FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FKismetCompilerContext();
@@ -141,6 +145,9 @@ public:
 
 	/** Compile a blueprint into a class and a set of functions */
 	void Compile();
+
+	/** Function used to assign the new class that will be used by the compiler */
+	void SetNewClass(UBlueprintGeneratedClass* ClassToUse);
 
 	const UEdGraphSchema_K2* GetSchema() const { return Schema; }
 
@@ -243,6 +250,7 @@ protected:
 	virtual UEdGraphSchema_K2* CreateSchema();
 	virtual void PostCreateSchema();
 	virtual void SpawnNewClass(const FString& NewClassName);
+	virtual void OnNewClassSet(UBlueprintGeneratedClass* ClassToUse) {}
 
 	/**
 	 * Backwards Compatability:  Ensures that the passed in TargetClass is of the proper type (e.g. BlueprintGeneratedClass, AnimBlueprintGeneratedClass), and NULLs the reference if it is not 
@@ -319,8 +327,8 @@ protected:
 	virtual void PostCompileDiagnostics() {}
 
 	// Gives derived classes a chance to hook up any custom logic
-	virtual void PreCompile() {}
-	virtual void PostCompile() {}
+	virtual void PreCompile() { OnPreCompile.Broadcast(); }
+	virtual void PostCompile() { OnPostCompile.Broadcast(); }
 
 	/** Determines if a node is pure */
 	virtual bool IsNodePure(const UEdGraphNode* Node) const;

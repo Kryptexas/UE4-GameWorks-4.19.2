@@ -156,11 +156,15 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
 		UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave;
-		const ECookInitializationFlags IterativeFlags = ECookInitializationFlags::Iterative | (CookerSettings->bUseAssetRegistryForIteration ? ECookInitializationFlags::IterateOnAssetRegistry : ECookInitializationFlags::IterateOnHash);
-		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? IterativeFlags : ECookInitializationFlags::None;
 		BaseCookingFlags |= CookerSettings->bEnableBuildDDCInBackground ? ECookInitializationFlags::BuildDDCInBackground : ECookInitializationFlags::None;
 
-
+		if (CookerSettings->bIterativeCookingForLaunchOn)
+		{
+			BaseCookingFlags |= ECookInitializationFlags::Iterative;
+			BaseCookingFlags |= CookerSettings->bIgnoreIniSettingsOutOfDateForIteration ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
+			BaseCookingFlags |= CookerSettings->bIgnoreScriptPackagesOutOfDateForIteration ? ECookInitializationFlags::IgnoreScriptPackagesOutOfDate : ECookInitializationFlags::None;
+		}
+		
 		if (CookerSettings->bEnableCookOnTheSide)
 		{
 			if ( ExperimentalSettings->bSharedCookedBuilds )

@@ -226,7 +226,7 @@ float ACharacter::GetDefaultHalfHeight() const
 UActorComponent* ACharacter::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
 	// If the character has a Mesh, treat it as the first 'hit' when finding components
-	if (Mesh && Mesh->IsA(ComponentClass))
+	if (Mesh && ComponentClass && Mesh->IsA(ComponentClass))
 	{
 		return Mesh;
 	}

@@ -13,7 +13,7 @@ UAbilityTask_WaitGameplayEffectRemoved::UAbilityTask_WaitGameplayEffectRemoved(c
 
 UAbilityTask_WaitGameplayEffectRemoved* UAbilityTask_WaitGameplayEffectRemoved::WaitForGameplayEffectRemoved(UGameplayAbility* OwningAbility, FActiveGameplayEffectHandle InHandle)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectRemoved>(OwningAbility);
+	UAbilityTask_WaitGameplayEffectRemoved* MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectRemoved>(OwningAbility);
 	MyObj->Handle = InHandle;
 
 	return MyObj;

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AI/Navigation/CrowdManagerBase.h"
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
@@ -20,7 +21,6 @@ class UCrowdManager;
 struct dtCrowdAgent;
 struct dtCrowdAgentDebugInfo;
 struct dtCrowdAgentParams;
-struct dtQuerySpecialLinkFilter;
 struct FNavMeshPath;
 
 #if WITH_RECAST
@@ -164,11 +164,14 @@ struct FCrowdTickHelper : FTickableGameObject
 };
 
 UCLASS(config = Engine, defaultconfig)
-class AIMODULE_API UCrowdManager : public UObject
+class AIMODULE_API UCrowdManager : public UCrowdManagerBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	virtual void Tick(float DeltaTime);
+public:
+	UCrowdManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	virtual void Tick(float DeltaTime) override;
 	virtual void BeginDestroy() override;
 
 	/** adds new agent to crowd */

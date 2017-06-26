@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UserDefinedEnumEditor.h"
+#include "Editor.h"
 #include "Widgets/Text/STextBlock.h"
 #include "EditorStyleSet.h"
 #include "PropertyEditorModule.h"
@@ -261,8 +262,6 @@ FLinearColor FUserDefinedEnumEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor( 0.5f, 0.0f, 0.0f, 0.5f );
 }
 
-
-
 void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
@@ -310,8 +309,15 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	}
 }
 
+FEnumDetails::FEnumDetails()
+	: TargetEnum(nullptr)
+{
+	GEditor->RegisterForUndo(this);
+}
+
 FEnumDetails::~FEnumDetails()
 {
+	GEditor->UnregisterForUndo( this );
 }
 
 void FEnumDetails::OnForceRefresh()
@@ -320,6 +326,11 @@ void FEnumDetails::OnForceRefresh()
 	{
 		Layout->Refresh();
 	}
+}
+
+void FEnumDetails::PostUndo(bool bSuccess)
+{
+	OnForceRefresh();
 }
 
 void FEnumDetails::PreChange(const class UUserDefinedEnum* Enum, FEnumEditorUtils::EEnumEditorChangeInfo Info)
@@ -352,9 +363,8 @@ void FEnumDetails::OnBitmaskFlagsAttributeStateChanged(ECheckBoxState InNewState
 
 bool FUserDefinedEnumLayout::CausedChange() const
 {
-	for(auto Iter = Children.CreateConstIterator(); Iter; ++Iter)
+	for (const TWeakPtr<class FUserDefinedEnumIndexLayout>& Child : Children)
 	{
-		const auto Child = (*Iter);
 		if (Child.IsValid() && Child.Pin()->CausedChange())
 		{
 			return true;
@@ -365,8 +375,8 @@ bool FUserDefinedEnumLayout::CausedChange() const
 
 void FUserDefinedEnumLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
-	Children.Empty();
 	const int32 EnumToShowNum = FMath::Max<int32>(0, TargetEnum->NumEnums() - 1);
+	Children.Reset(EnumToShowNum);
 	for (int32 EnumIdx = 0; EnumIdx < EnumToShowNum; ++EnumIdx)
 	{
 		TSharedRef<class FUserDefinedEnumIndexLayout> EnumIndexLayout = MakeShareable(new FUserDefinedEnumIndexLayout(TargetEnum.Get(), EnumIdx) );

@@ -41,7 +41,12 @@ public:
 UCLASS()
 class ENGINE_API AAbstractNavData : public ANavigationData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	AAbstractNavData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	virtual void PostLoad() override;
 
 	// Begin ANavigationData overrides
 	virtual void BatchRaycast(TArray<FNavigationRaycastWork>& Workload, FSharedConstNavQueryFilter QueryFilter, const UObject* Querier = NULL) const override {};

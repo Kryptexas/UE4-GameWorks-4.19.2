@@ -25,21 +25,22 @@ void UKismetMaterialLibrary::SetScalarParameterValue(UObject* WorldContextObject
 {
 	if (Collection)
 	{
-		check(WorldContextObject);
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
-
-		const bool bFoundParameter = Instance->SetScalarParameterValue(ParameterName, ParameterValue);
-
-		if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
-			FMessageLog("PIE").Warning()
-				->AddToken(FTextToken::Create(LOCTEXT("SetScalarParamOn", "SetScalarParameterValue called on")))
-				->AddToken(FUObjectToken::Create(Collection))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
-			Instance->bLoggedMissingParameterWarning = true;
+			UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
+
+			const bool bFoundParameter = Instance->SetScalarParameterValue(ParameterName, ParameterValue);
+
+			if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+			{
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
+				FMessageLog("PIE").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("SetScalarParamOn", "SetScalarParameterValue called on")))
+					->AddToken(FUObjectToken::Create(Collection))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
+				Instance->bLoggedMissingParameterWarning = true;
+			}
 		}
 	}
 }
@@ -48,21 +49,22 @@ void UKismetMaterialLibrary::SetVectorParameterValue(UObject* WorldContextObject
 {
 	if (Collection)
 	{
-		check(WorldContextObject);
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
-
-		const bool bFoundParameter = Instance->SetVectorParameterValue(ParameterName, ParameterValue);
-
-		if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
-			FMessageLog("PIE").Warning()
-				->AddToken(FTextToken::Create(LOCTEXT("SetVectorParamOn", "SetVectorParameterValue called on")))
-				->AddToken(FUObjectToken::Create(Collection))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
-			Instance->bLoggedMissingParameterWarning = true;
+			UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
+
+			const bool bFoundParameter = Instance->SetVectorParameterValue(ParameterName, ParameterValue);
+
+			if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+			{
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
+				FMessageLog("PIE").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("SetVectorParamOn", "SetVectorParameterValue called on")))
+					->AddToken(FUObjectToken::Create(Collection))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
+				Instance->bLoggedMissingParameterWarning = true;
+			}
 		}
 	}
 }
@@ -73,21 +75,22 @@ float UKismetMaterialLibrary::GetScalarParameterValue(UObject* WorldContextObjec
 
 	if (Collection)
 	{
-		check(WorldContextObject);
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
-
-		bool bFoundParameter = Instance->GetScalarParameterValue(ParameterName, ParameterValue);
-
-		if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
-			FMessageLog("PIE").Warning()
-				->AddToken(FTextToken::Create(LOCTEXT("GetScalarParamOn", "GetScalarParameterValue called on")))
-				->AddToken(FUObjectToken::Create(Collection))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
-			Instance->bLoggedMissingParameterWarning = true;
+			UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
+
+			const bool bFoundParameter = Instance->GetScalarParameterValue(ParameterName, ParameterValue);
+
+			if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+			{
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
+				FMessageLog("PIE").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("GetScalarParamOn", "GetScalarParameterValue called on")))
+					->AddToken(FUObjectToken::Create(Collection))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
+				Instance->bLoggedMissingParameterWarning = true;
+			}
 		}
 	}
 
@@ -100,21 +103,22 @@ FLinearColor UKismetMaterialLibrary::GetVectorParameterValue(UObject* WorldConte
 
 	if (Collection)
 	{
-		check(WorldContextObject);
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
-
-		bool bFoundParameter = Instance->GetVectorParameterValue(ParameterName, ParameterValue);
-
-		if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
-			FMessageLog("PIE").Warning()
-				->AddToken(FTextToken::Create(LOCTEXT("GetVectorParamOn", "GetVectorParameterValue called on")))
-				->AddToken(FUObjectToken::Create(Collection))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
-			Instance->bLoggedMissingParameterWarning = true;
+			UMaterialParameterCollectionInstance* Instance = World->GetParameterCollectionInstance(Collection);
+
+			const bool bFoundParameter = Instance->GetVectorParameterValue(ParameterName, ParameterValue);
+
+			if (!bFoundParameter && !Instance->bLoggedMissingParameterWarning)
+			{
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("ParamName"), FText::FromName(ParameterName));
+				FMessageLog("PIE").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("GetVectorParamOn", "GetVectorParameterValue called on")))
+					->AddToken(FUObjectToken::Create(Collection))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("WithInvalidParam", "with invalid ParameterName '{ParamName}'. This is likely due to a Blueprint error."), Arguments)));
+				Instance->bLoggedMissingParameterWarning = true;
+			}
 		}
 	}
 

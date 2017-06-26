@@ -17,7 +17,7 @@ UAbilityTask_WaitAttributeChangeRatioThreshold::UAbilityTask_WaitAttributeChange
 
 UAbilityTask_WaitAttributeChangeRatioThreshold* UAbilityTask_WaitAttributeChangeRatioThreshold::WaitForAttributeChangeRatioThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute AttributeNumerator, FGameplayAttribute AttributeDenominator, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce)
 {
-	auto MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeRatioThreshold>(OwningAbility);
+	UAbilityTask_WaitAttributeChangeRatioThreshold* MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeRatioThreshold>(OwningAbility);
 	MyTask->AttributeNumerator = AttributeNumerator;
 	MyTask->AttributeDenominator = AttributeDenominator;
 	MyTask->ComparisonType = ComparisonType;

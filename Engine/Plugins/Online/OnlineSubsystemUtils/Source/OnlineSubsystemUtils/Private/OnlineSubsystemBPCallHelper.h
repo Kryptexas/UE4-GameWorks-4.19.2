@@ -12,7 +12,7 @@ class IOnlineSubsystem;
 struct FOnlineSubsystemBPCallHelper
 {
 public:
-	FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, UWorld* World, FName SystemName = NAME_None);
+	FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, UObject* WorldContextObject, FName SystemName = NAME_None);
 
 	void QueryIDFromPlayerController(APlayerController* PlayerController);
 

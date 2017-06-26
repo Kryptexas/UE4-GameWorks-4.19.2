@@ -925,12 +925,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBluepri
 		}
 	}
 
-	// Default Values are now set in CDO. And these copies could be soon obsolete, so better to reset them.
-	for(int VarIndex = 0; VarIndex < BlueprintObj->NewVariables.Num(); ++VarIndex)
-	{
-		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
-	}
-
 	if (!bLetReinstancerRefreshDependBP && (bIsInterface || !BlueprintObj->bIsRegeneratingOnLoad) && !bSkipReinstancing)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);

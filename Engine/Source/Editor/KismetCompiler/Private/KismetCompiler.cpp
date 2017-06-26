@@ -56,6 +56,9 @@
 
 static bool bDebugPropertyPropagation = false;
 
+FSimpleMulticastDelegate FKismetCompilerContext::OnPreCompile;
+FSimpleMulticastDelegate FKismetCompilerContext::OnPostCompile;
+
 #define USE_TRANSIENT_SKELETON 0
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
@@ -243,7 +246,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	TransientClass->ClassGeneratedBy = Blueprint;
 	TransientClass->ClassFlags |= CLASS_CompiledFromBlueprint;
 
-	NewClass = ClassToClean;
+	SetNewClass( ClassToClean );
 	InOldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
 	const ERenameFlags RenFlags = REN_DontCreateRedirectors |  ((bRecompilingOnLoad) ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
@@ -370,25 +373,33 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 {
 	Super::ValidateLink(PinA, PinB);
 
-	// At this point we can assume the pins are linked, and as such the connection response should not be to disallow
-	// @todo: Potentially revisit this later.
-	// This API is intended to describe how to handle a potentially new connection to a pin that may already have a connection.
-	// However it also checks all necessary constraints for a valid connection to exist. We rely on the fact that the "disallow"
-	// response will be returned if the pins are not compatible; any other response here then means that the connection is valid.
-	const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
+	// We don't want to validate orphaned pin connections to avoid noisy connection errors that are
+	// already being reported
+	const bool bShouldValidatePinA = (PinA == nullptr || !PinA->bOrphanedPin);
+	const bool bShouldValidatePinB = (PinB == nullptr || !PinB->bOrphanedPin);
 
-	const bool bForbiddenConnection = (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW);
-	const bool bMissingConversion   = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
-	if (bForbiddenConnection || bMissingConversion)
+	if (bShouldValidatePinA && bShouldValidatePinB)
 	{
-		const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
-		if (ConnectResponse.IsFatal())
+		// At this point we can assume the pins are linked, and as such the connection response should not be to disallow
+		// @todo: Potentially revisit this later.
+		// This API is intended to describe how to handle a potentially new connection to a pin that may already have a connection.
+		// However it also checks all necessary constraints for a valid connection to exist. We rely on the fact that the "disallow"
+		// response will be returned if the pins are not compatible; any other response here then means that the connection is valid.
+		const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
+
+		const bool bForbiddenConnection = (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW);
+		const bool bMissingConversion = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
+		if (bForbiddenConnection || bMissingConversion)
 		{
-			MessageLog.Error(*ErrorMessage, PinA, PinB);
-		}
-		else
-		{
-			MessageLog.Warning(*ErrorMessage, PinA, PinB);
+			const FString ErrorMessage = FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString());
+			if (ConnectResponse.IsFatal())
+			{
+				MessageLog.Error(*ErrorMessage, PinA, PinB);
+			}
+			else
+			{
+				MessageLog.Warning(*ErrorMessage, PinA, PinB);
+			}
 		}
 	}
 
@@ -633,6 +644,12 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			if(!Variable.DefaultValue.IsEmpty())
 			{
 				SetPropertyDefaultValue(NewProperty, Variable.DefaultValue);
+
+				// We're copying the value to the real CDO, so clear the version stored in the blueprint editor data
+				if (CompileOptions.CompileType == EKismetCompileType::Full)
+				{
+					Variable.DefaultValue.Empty();
+				}
 			}
 
 			if (NewProperty->HasAnyPropertyFlags(CPF_Net))
@@ -889,7 +906,7 @@ static void SwapElementsInSingleLinkedList(UField* & PtrToFirstElement, UField* 
 void FKismetCompilerContext::CreateParametersForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature, UField**& FunctionPropertyStorageLocation)
 {
 	const bool bArePropertiesLocal = true;
-	CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+	CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Parameters, CPF_Parm|CPF_BlueprintVisible | CPF_BlueprintReadOnly, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 	CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 
 	//MAKE SURE THE PARAMETERS ORDER MATCHES THE OVERRIDEN FUNCTION
@@ -919,6 +936,13 @@ void FKismetCompilerContext::CreateParametersForFunction(FKismetFunctionContext&
 					break;
 				}
 			}
+
+			// Ensure that the 'CPF_UObjectWrapper' flag is propagated through to new parameters, so that wrapper types like 'TSubclassOf' can be preserved if the compiled UFunction is ever nativized.
+			if (SignatureIt->HasAllPropertyFlags(CPF_UObjectWrapper))
+			{
+				CastChecked<UProperty>(*CurrentFieldStorageLocation)->SetPropertyFlags(CPF_UObjectWrapper);
+			}
+
 			CurrentFieldStorageLocation = &((*CurrentFieldStorageLocation)->Next);
 		}
 		FunctionPropertyStorageLocation = CurrentFieldStorageLocation;
@@ -1735,7 +1759,8 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		if (Context.IsDelegateSignature())
 		{
 			Context.Function->FunctionFlags |= FUNC_Delegate;
-			if(UMulticastDelegateProperty* Property = FindObject<UMulticastDelegateProperty>(Context.NewClass, *Context.DelegateSignatureName.ToString()))
+
+			if(UMulticastDelegateProperty* Property = Cast<UMulticastDelegateProperty>(StaticFindObjectFast(UMulticastDelegateProperty::StaticClass(), NewClass, Context.DelegateSignatureName)))
 			{
 				Property->SignatureFunction = Context.Function;
 			}
@@ -2522,22 +2547,34 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 
 FPinConnectionResponse FKismetCompilerContext::MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
 {
-	 UEdGraphSchema_K2 const* K2Schema = GetSchema();
-	 FPinConnectionResponse ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin, true);
+	FPinConnectionResponse ConnectionResult;
 
-	 CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
-	 MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
+	// If we're modifying a removed pin there will be other compile errors and we don't want odd connection disallowed error so don't even try to move the pin links
+	if (!SourcePin.bOrphanedPin)
+	{
+		UEdGraphSchema_K2 const* K2Schema = GetSchema();
+		ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin, true);
+
+		CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
+		MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
+	}
 
 	 return ConnectionResult;
 }
 
 FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
 {
-	UEdGraphSchema_K2 const* K2Schema = GetSchema();
-	FPinConnectionResponse ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin, true);
+	FPinConnectionResponse ConnectionResult;
 
-	CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
-	MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
+	// If we're modifying a removed pin there will be other compile errors and we don't want odd connection disallowed error so don't even try to move the pin links
+	if (!SourcePin.bOrphanedPin)
+	{
+		UEdGraphSchema_K2 const* K2Schema = GetSchema();
+		ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin, true);
+
+		CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
+		MessageLog.NotifyIntermediatePinCreation(&IntermediatePin, &SourcePin);
+	}
 
 	return ConnectionResult;
 }
@@ -4331,6 +4368,12 @@ void FKismetCompilerContext::Compile()
 {
 	CompileClassLayout(EInternalCompilerFlags::None);
 	CompileFunctions(EInternalCompilerFlags::None);
+}
+
+void FKismetCompilerContext::SetNewClass(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewClass = ClassToUse;
+	OnNewClassSet(ClassToUse);
 }
 
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)

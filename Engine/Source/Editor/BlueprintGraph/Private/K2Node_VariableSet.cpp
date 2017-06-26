@@ -347,6 +347,46 @@ FText UK2Node_VariableSet::GetPinNameOverride(const UEdGraphPin& Pin) const
 	return !Pin.PinFriendlyName.IsEmpty() ? Pin.PinFriendlyName : FText::FromString(Pin.PinName);
 }
 
+void UK2Node_VariableSet::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	// Some expansions will create sets for non-blueprint visible properties, and we don't want to validate against that
+	if (!IsIntermediateNode())
+	{
+		if (UProperty* Property = GetPropertyForVariable())
+		{
+			const FBlueprintEditorUtils::EPropertyWritableState PropertyWritableState = FBlueprintEditorUtils::IsPropertyWritableInBlueprint(GetBlueprint(), Property);
+
+			if (PropertyWritableState != FBlueprintEditorUtils::EPropertyWritableState::Writable)
+			{
+				FFormatNamedArguments Args;
+				if (UObject* Class = Property->GetOuter())
+				{
+					Args.Add(TEXT("VariableName"), FText::AsCultureInvariant(FString::Printf(TEXT("%s.%s"), *Class->GetName(), *Property->GetName())));
+				}
+				else
+				{
+					Args.Add(TEXT("VariableName"), FText::AsCultureInvariant(Property->GetName()));
+				}
+
+				if (PropertyWritableState == FBlueprintEditorUtils::EPropertyWritableState::BlueprintReadOnly || PropertyWritableState == FBlueprintEditorUtils::EPropertyWritableState::NotBlueprintVisible)
+				{
+					MessageLog.Error(*FText::Format(LOCTEXT("UnableToSet_NotWritable", "{VariableName} is not blueprint writable. @@"), Args).ToString(), this);
+				}
+				else if (PropertyWritableState == FBlueprintEditorUtils::EPropertyWritableState::Private)
+				{
+					MessageLog.Error(*LOCTEXT("UnableToSet_ReadOnly", "{VariableName} is private and not accessible in this context. @@").ToString(), this);
+				}
+				else
+				{
+					check(false);
+				}
+			}
+		}
+	}
+}
+
 void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
@@ -404,7 +444,10 @@ void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 				CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Then, EGPD_Output), *CallFuncNode->GetThenPin());
 				
 				// Move Self pin connections
-				CompilerContext.MovePinLinksToIntermediate(*K2Schema->FindSelfPin(*this, EGPD_Input), *K2Schema->FindSelfPin(*CallFuncNode, EGPD_Input));
+				if (UEdGraphPin* SetSelfPin = K2Schema->FindSelfPin(*this, EGPD_Input))
+				{
+					CompilerContext.MovePinLinksToIntermediate(*SetSelfPin, *K2Schema->FindSelfPin(*CallFuncNode, EGPD_Input));
+				}
 
 				// Move Value pin connections
 				UEdGraphPin* SetFunctionValuePin = nullptr;

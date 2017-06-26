@@ -13,6 +13,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Blueprint/AIAsyncTaskBlueprintProxy.h"
 #include "Animation/AnimInstance.h"
+#include "AI/Navigation/NavigationPath.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAIBlueprint, Warning, All);
 
@@ -131,7 +132,7 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 	AAIController* AIController = Cast<AAIController>(Pawn->GetController());
 	if (AIController)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject);
 		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>(World);
 
 		FAIMoveRequest MoveReq;
@@ -179,7 +180,7 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(UObject* WorldContextObject, 
 {
 	APawn* NewPawn = NULL;
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (World && *PawnClass)
 	{
 		FActorSpawnParameters ActorSpawnParams;
@@ -304,3 +305,36 @@ bool UAIBlueprintHelperLibrary::IsValidAIRotation(FRotator Rotation)
 {
 	return FAISystem::IsValidRotation(Rotation);
 }
+
+UNavigationPath* UAIBlueprintHelperLibrary::GetCurrentPath(AController* Controller)
+{
+	UNavigationPath* ResultPath = nullptr;
+	if (Controller)
+	{
+		AAIController* AIController = Cast<AAIController>(Controller);
+		UPathFollowingComponent* PFComp = nullptr;
+		if (AIController)
+		{
+			PFComp = AIController->GetPathFollowingComponent();
+		}
+		else
+		{
+			// player controller, most probably using SimpleMove
+			PFComp = Controller->FindComponentByClass<UPathFollowingComponent>();
+		}
+
+		if (PFComp != nullptr)
+		{
+			const FNavPathSharedPtr Path = PFComp->GetPath();
+			if (Path.IsValid())
+			{
+				// we don't care if Path->IsValid(), we're going to retrieve whatever's there
+				ResultPath = NewObject<UNavigationPath>();
+				ResultPath->SetPath(Path);
+			}
+		}
+	}
+
+	return ResultPath;
+}
+

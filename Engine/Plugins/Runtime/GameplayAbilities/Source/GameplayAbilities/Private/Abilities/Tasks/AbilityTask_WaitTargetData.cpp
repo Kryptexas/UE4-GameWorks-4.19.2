@@ -81,8 +81,10 @@ bool UAbilityTask_WaitTargetData::BeginSpawningActor(UGameplayAbility* OwningAbi
 			UClass* Class = *InTargetClass;
 			if (Class != nullptr)
 			{
-				UWorld* World = GEngine->GetWorldFromContextObject(OwningAbility);
-				SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FTransform::Identity, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+				if (UWorld* World = GEngine->GetWorldFromContextObject(OwningAbility, EGetWorldErrorMode::LogAndReturnNull))
+				{
+					SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FTransform::Identity, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+				}
 			}
 
 			if (SpawnedActor)

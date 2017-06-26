@@ -132,6 +132,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
@@ -181,7 +182,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	virtual void BakeDataDuringCompilation(FCompilerResultsLog& MessageLog) {}
 
 	// preload asset required for this node in this function
-	virtual void PreloadRequiredAssets() {}
+	virtual void PreloadRequiredAssets() override {}
 
 	// Give the node a chance to change the display name of a pin
 	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const;
@@ -308,6 +309,9 @@ protected:
 	void InternalPinCreation(TArray<UEdGraphPin*>* OldPins);
 
 	FOnNodePropertyChangedEvent PropertyChangeEvent;
+
+private:
+	TArray<FName> OldShownPins;
 };
 
 template<class AssetType>

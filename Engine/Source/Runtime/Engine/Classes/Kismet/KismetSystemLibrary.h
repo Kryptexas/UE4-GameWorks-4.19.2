@@ -212,12 +212,12 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetLoaded, class UObject*, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAsset(UObject* WorldContextObject, const TAssetPtr<UObject>& Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAsset(UObject* WorldContextObject, TAssetPtr<UObject> Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetClassLoaded, TSubclassOf<UObject>, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAssetClass(UObject* WorldContextObject, const TAssetSubclassOf<UObject>& AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAssetClass(UObject* WorldContextObject, TAssetSubclassOf<UObject> AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 
 	/**

@@ -42,7 +42,8 @@ class UGameplayTagsK2Node_SwitchGameplayTagContainer : public UK2Node_Switch
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface
-	GAMEPLAYTAGSEDITOR_API virtual void AddPinToSwitchNode() override;
+	virtual void AddPinToSwitchNode() override;
+	virtual FEdGraphPinType GetInnerCaseType() const override;
 	virtual FString GetUniquePinName() override;
 	virtual FEdGraphPinType GetPinType() const override;
 	// End of UK2Node_Switch Interface

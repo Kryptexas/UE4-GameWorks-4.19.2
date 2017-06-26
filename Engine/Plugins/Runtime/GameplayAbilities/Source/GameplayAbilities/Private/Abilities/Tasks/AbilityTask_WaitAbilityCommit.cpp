@@ -13,7 +13,7 @@ UAbilityTask_WaitAbilityCommit::UAbilityTask_WaitAbilityCommit(const FObjectInit
 
 UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCommit(UGameplayAbility* OwningAbility, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityCommit>(OwningAbility);
+	UAbilityTask_WaitAbilityCommit* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityCommit>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->TriggerOnce = InTriggerOnce;
@@ -23,7 +23,7 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 
 UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCommit_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityCommit>(OwningAbility);
+	UAbilityTask_WaitAbilityCommit* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityCommit>(OwningAbility);
 	MyObj->Query = Query;
 	MyObj->TriggerOnce = InTriggerOnce;
 	return MyObj;

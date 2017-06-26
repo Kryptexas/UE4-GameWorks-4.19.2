@@ -121,7 +121,7 @@ UCanvasRenderTarget2D* UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(UObject
 		UCanvasRenderTarget2D* NewCanvasRenderTarget = NewObject<UCanvasRenderTarget2D>(GetTransientPackage(), CanvasRenderTarget2DClass);
 		if (NewCanvasRenderTarget)
 		{
-			NewCanvasRenderTarget->World = GEngine->GetWorldFromContextObject(WorldContextObject);
+			NewCanvasRenderTarget->World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 			NewCanvasRenderTarget->InitAutoFormat(Width, Height);
 			return NewCanvasRenderTarget;
 		}

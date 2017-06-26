@@ -29,7 +29,7 @@ UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantF
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
-	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionConstantForce>(OwningAbility, TaskInstanceName);
+	UAbilityTask_ApplyRootMotionConstantForce* MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionConstantForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->WorldDirection = WorldDirection.GetSafeNormal();

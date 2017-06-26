@@ -39,7 +39,12 @@ bool FRuntimeAssetCacheFilesystemBackend::ClearCache()
 
 bool FRuntimeAssetCacheFilesystemBackend::ClearCache(FName Bucket)
 {
-	return IFileManager::Get().DeleteDirectory(*FPaths::Combine(*PathToRAC, *Bucket.ToString()), false, true);
+	if (Bucket != NAME_None)
+	{
+		return IFileManager::Get().DeleteDirectory(*FPaths::Combine(*PathToRAC, *Bucket.ToString()), false, true);
+	}
+
+	return false;
 }
 
 FRuntimeAssetCacheBucket* FRuntimeAssetCacheFilesystemBackend::PreLoadBucket(FName BucketName, int32 BucketSize)

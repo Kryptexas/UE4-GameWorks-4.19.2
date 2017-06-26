@@ -6794,11 +6794,6 @@ FWorldContext* UEditorEngine::GetPIEWorldContext()
 	return nullptr;
 }
 
-bool UEditorEngine::IsUsingWorldAssets()
-{
-	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
-}
-
 void UEditorEngine::OnAssetLoaded(UObject* Asset)
 {
 	UWorld* World = Cast<UWorld>(Asset);

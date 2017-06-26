@@ -1509,7 +1509,7 @@ FVector USceneComponent::K2_GetComponentScale() const
 
 void USceneComponent::GetParentComponents(TArray<class USceneComponent*>& Parents) const
 {
-	Parents.Empty();
+	Parents.Reset();
 
 	USceneComponent* ParentIterator = GetAttachParent();
 	while (ParentIterator != nullptr)

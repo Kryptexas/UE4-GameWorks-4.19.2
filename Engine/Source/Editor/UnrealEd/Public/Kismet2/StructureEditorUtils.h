@@ -5,9 +5,11 @@
 #include "Misc/Guid.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Kismet2/ListenerManager.h"
-#include "UserDefinedStructure/UserDefinedStructEditorData.h"
 
+struct FEdGraphPinType;
+struct FStructVariableDescription;
 class UBlueprint;
+class UUserDefinedStruct;
 
 class UNREALED_API FStructureEditorUtils
 {
@@ -125,25 +127,9 @@ public:
 
 	static const TArray<FStructVariableDescription>* GetVarDescPtr(const UUserDefinedStruct* Struct);
 
-	static FStructVariableDescription* GetVarDescByGuid(UUserDefinedStruct* Struct, FGuid VarGuid)
-	{
-		if (Struct)
-		{
-			TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
-			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
-		}
-		return nullptr;
-	}
+	static FStructVariableDescription* GetVarDescByGuid(UUserDefinedStruct* Struct, FGuid VarGuid);
 
-	static const FStructVariableDescription* GetVarDescByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid)
-	{
-		if (Struct)
-		{
-			const TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
-			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
-		}
-		return nullptr;
-	}
+	static const FStructVariableDescription* GetVarDescByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid);
 
 	static FGuid GetGuidForProperty(const UProperty* Property);
 

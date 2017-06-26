@@ -387,8 +387,8 @@ void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sec
 					{
 						CurrentBatch = new (Sections) FSpriteRenderSection();
 						CurrentBatch->BaseTexture = SourceTexture;
-						//CurrentBatch->AdditionalTextures = ?; //@TODO: PAPER2D: Need to add multi-texture support to tile sets / tile maps
-						// Probably also need to change the batch check here to TileSet changing to avoid checking each texture in the array
+						CurrentBatch->AdditionalTextures = TileInfo.TileSet->GetAdditionalTextures(); 
+						//@TODO: Not checking the AdditionalTextures array to see if it's changed to break a batch (almost always going to be fine to skip it as the same base texture is fairly unlikely to be shared with different additional textures)
 						CurrentBatch->Material = TileMapMaterial;
 						CurrentBatch->VertexOffset = Vertices.Num();
 						CurrentDestinationOrigin = TopLeftCornerOfTile.ProjectOnTo(PaperAxisZ);

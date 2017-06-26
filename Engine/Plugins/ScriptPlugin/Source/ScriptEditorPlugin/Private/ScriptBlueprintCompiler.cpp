@@ -31,8 +31,7 @@ void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);	
-	NewScriptBlueprintClass = CastChecked<UScriptBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewScriptBlueprintClass == NewClass);	
 	ContextProperty = NULL;
 }
 
@@ -229,6 +228,11 @@ void FScriptBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 		FBlueprintCompileReinstancer::Create(NewScriptBlueprintClass);
 	}
 	NewClass = NewScriptBlueprintClass;
+}
+	
+void FScriptBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewScriptBlueprintClass = CastChecked<UScriptBlueprintGeneratedClass>(ClassToUse);
 }
 
 bool FScriptBlueprintCompiler::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)

@@ -14,7 +14,7 @@ UAbilityTask_WaitGameplayEvent::UAbilityTask_WaitGameplayEvent(const FObjectInit
 
 UAbilityTask_WaitGameplayEvent* UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(UGameplayAbility* OwningAbility, FGameplayTag Tag, AActor* OptionalExternalTarget, bool OnlyTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEvent>(OwningAbility);
+	UAbilityTask_WaitGameplayEvent* MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEvent>(OwningAbility);
 	MyObj->Tag = Tag;
 	MyObj->SetExternalTarget(OptionalExternalTarget);
 	MyObj->OnlyTriggerOnce = OnlyTriggerOnce;

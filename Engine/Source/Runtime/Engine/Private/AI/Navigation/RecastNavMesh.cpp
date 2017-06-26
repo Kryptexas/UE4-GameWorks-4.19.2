@@ -16,6 +16,7 @@
 #include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMeshDataChunk.h"
+#include "AI/Navigation/RecastQueryFilter.h"
 #include "VisualLogger/VisualLogger.h"
 
 #if WITH_EDITOR
@@ -1412,9 +1413,10 @@ void ARecastNavMesh::UpdateCustomLink(const INavLinkCustomInterface* CustomLink)
 	if (AreaId >= 0 && RecastNavMeshImpl)
 	{
 		UNavArea* DefArea = (UNavArea*)(AreaClass->GetDefaultObject());
+		const uint16 PolyFlags = DefArea->GetAreaFlags() | ARecastNavMesh::GetNavLinkFlag();
 
-		RecastNavMeshImpl->UpdateNavigationLinkArea(UserId, AreaId, DefArea->GetAreaFlags());
-		RecastNavMeshImpl->UpdateSegmentLinkArea(UserId, AreaId, DefArea->GetAreaFlags());
+		RecastNavMeshImpl->UpdateNavigationLinkArea(UserId, AreaId, PolyFlags);
+		RecastNavMeshImpl->UpdateSegmentLinkArea(UserId, AreaId, PolyFlags);
 	}
 }
 
@@ -1424,8 +1426,9 @@ void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea
 	if (AreaId >= 0 && RecastNavMeshImpl)
 	{
 		UNavArea* DefArea = (UNavArea*)(AreaClass->GetDefaultObject());
+		const uint16 PolyFlags = DefArea->GetAreaFlags() | ARecastNavMesh::GetNavLinkFlag();
 
-		RecastNavMeshImpl->UpdateNavigationLinkArea(UserId, AreaId, DefArea->GetAreaFlags());
+		RecastNavMeshImpl->UpdateNavigationLinkArea(UserId, AreaId, PolyFlags);
 	}
 }
 
@@ -1435,8 +1438,9 @@ void ARecastNavMesh::UpdateSegmentLinkArea(int32 UserId, TSubclassOf<UNavArea> A
 	if (AreaId >= 0 && RecastNavMeshImpl)
 	{
 		UNavArea* DefArea = (UNavArea*)(AreaClass->GetDefaultObject());
+		const uint16 PolyFlags = DefArea->GetAreaFlags() | ARecastNavMesh::GetNavLinkFlag();
 
-		RecastNavMeshImpl->UpdateSegmentLinkArea(UserId, AreaId, DefArea->GetAreaFlags());
+		RecastNavMeshImpl->UpdateSegmentLinkArea(UserId, AreaId, PolyFlags);
 	}
 }
 
@@ -2601,6 +2605,21 @@ void FRecastNavMeshCachedData::OnAreaAdded(const UClass* AreaClass, int32 AreaID
 			FlagsPerOffMeshLinkArea[AreaID] = FlagsPerArea[AreaID] | NavLinkFlag;
 		}
 	}		
+}
+
+uint32 ARecastNavMesh::GetLinkUserId(NavNodeRef LinkPolyID) const
+{
+	return RecastNavMeshImpl ? RecastNavMeshImpl->GetLinkUserId(LinkPolyID) : 0;
+}
+
+dtNavMesh* ARecastNavMesh::GetRecastMesh()
+{
+	return RecastNavMeshImpl ? RecastNavMeshImpl->GetRecastMesh() : nullptr;
+}
+
+const dtNavMesh* ARecastNavMesh::GetRecastMesh() const
+{
+	return RecastNavMeshImpl ? RecastNavMeshImpl->GetRecastMesh() : nullptr;
 }
 
 #endif// WITH_RECAST

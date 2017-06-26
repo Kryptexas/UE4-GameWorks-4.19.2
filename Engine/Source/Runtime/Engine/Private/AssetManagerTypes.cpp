@@ -6,6 +6,8 @@
 
 bool FPrimaryAssetTypeInfo::FillRuntimeData()
 {
+	// Hot reload may have messed up asset pointer
+	AssetBaseClass.ResetWeakPtr();
 	AssetBaseClassLoaded = AssetBaseClass.LoadSynchronous();
 
 	if (!ensureMsgf(AssetBaseClassLoaded, TEXT("Failed to load Primary Asset Type class %s!"), *AssetBaseClass.ToString()))

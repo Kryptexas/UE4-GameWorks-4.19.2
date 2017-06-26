@@ -12,7 +12,7 @@ UAbilityTask_StartAbilityState::UAbilityTask_StartAbilityState(const FObjectInit
 
 UAbilityTask_StartAbilityState* UAbilityTask_StartAbilityState::StartAbilityState(UGameplayAbility* OwningAbility, FName StateName, bool bEndCurrentState)
 {
-	auto Task = NewAbilityTask<UAbilityTask_StartAbilityState>(OwningAbility, StateName);
+	UAbilityTask_StartAbilityState* Task = NewAbilityTask<UAbilityTask_StartAbilityState>(OwningAbility, StateName);
 	Task->bEndCurrentState = bEndCurrentState;
 	return Task;
 }

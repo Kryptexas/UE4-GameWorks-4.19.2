@@ -41,7 +41,7 @@ void FStringAssetReference::SetPath(FString Path)
 	}
 }
 
-void FStringAssetReference::PreSavePath()
+bool FStringAssetReference::PreSavePath()
 {
 #if WITH_EDITOR
 	FString* FoundRedirection = GRedirectCollector.GetAssetPathRedirection(ToString());
@@ -49,8 +49,10 @@ void FStringAssetReference::PreSavePath()
 	if (FoundRedirection)
 	{
 		SetPath(*FoundRedirection);
+		return true;
 	}
 #endif // WITH_EDITOR
+	return false;
 }
 
 void FStringAssetReference::PostLoadPath() const

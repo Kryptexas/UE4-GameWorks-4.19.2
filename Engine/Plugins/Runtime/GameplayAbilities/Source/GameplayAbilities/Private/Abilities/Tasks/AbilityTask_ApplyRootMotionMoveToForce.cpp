@@ -22,7 +22,7 @@ UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
-	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToForce>(OwningAbility, TaskInstanceName);
+	UAbilityTask_ApplyRootMotionMoveToForce* MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->TargetLocation = TargetLocation;

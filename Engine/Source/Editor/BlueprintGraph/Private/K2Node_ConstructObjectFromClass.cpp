@@ -109,7 +109,8 @@ void UK2Node_ConstructObjectFromClass::CreatePinsForClass(UClass* InClass, TArra
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
 			!bIsDelegate &&
-			(NULL == FindPin(Property->GetName()) ) )
+			(nullptr == FindPin(Property->GetName()) ) &&
+			FBlueprintEditorUtils::PropertyStillExists(Property))
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
@@ -137,7 +138,7 @@ void UK2Node_ConstructObjectFromClass::CreatePinsForClass(UClass* InClass, TArra
 
 	// Change class of output pin
 	UEdGraphPin* ResultPin = GetResultPin();
-	ResultPin->PinType.PinSubCategoryObject = InClass;
+	ResultPin->PinType.PinSubCategoryObject = InClass->GetAuthoritativeClass();
 }
 
 UClass* UK2Node_ConstructObjectFromClass::GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch /*=NULL*/) const
@@ -187,16 +188,14 @@ void UK2Node_ConstructObjectFromClass::OnClassPinChanged()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	// Remove all pins related to archetype variables
-	TArray<UEdGraphPin*> OldPins = Pins;
 	TArray<UEdGraphPin*> OldClassPins;
 
-	for (int32 i = 0; i < OldPins.Num(); i++)
+	for (int32 i = Pins.Num() - 1; i >= 0; --i)
 	{
-		UEdGraphPin* OldPin = OldPins[i];
+		UEdGraphPin* OldPin = Pins[i];
 		if (IsSpawnVarPin(OldPin))
 		{
-			OldPin->MarkPendingKill();
-			Pins.Remove(OldPin);
+			Pins.RemoveAt(i, 1, false);
 			OldClassPins.Add(OldPin);
 		}
 	}
@@ -205,16 +204,13 @@ void UK2Node_ConstructObjectFromClass::OnClassPinChanged()
 
 	UClass* UseSpawnClass = GetClassToSpawn();
 	TArray<UEdGraphPin*> NewClassPins;
-	if (UseSpawnClass != NULL)
+	if (UseSpawnClass)
 	{
 		CreatePinsForClass(UseSpawnClass, &NewClassPins);
 	}
 
 	// Rewire the old pins to the new pins so connections are maintained if possible
 	RewireOldPinsToNewPins(OldClassPins, NewClassPins);
-
-	// Destroy the old pins
-	DestroyPinList(OldClassPins);
 
 	// Refresh the UI for the graph so the pin changes show up
 	UEdGraph* Graph = GetGraph();

@@ -7,6 +7,7 @@
 #include "Kismet2/StructureEditorUtils.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Blueprint/BlueprintSupport.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedStructEditorData"
 
@@ -56,10 +57,25 @@ UUserDefinedStruct* UUserDefinedStructEditorData::GetOwnerStruct() const
 	return Cast<UUserDefinedStruct>(GetOuter());
 }
 
+void UUserDefinedStructEditorData::PostUndo(bool bSuccess)
+{
+	GEditor->UnregisterForUndo(this);
+	// TODO: In the undo case we might want to flip the change type since an add is now a remove and vice versa
+	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct(), CachedStructureChange);
+	CachedStructureChange = FStructureEditorUtils::Unknown;
+}
+
+void UUserDefinedStructEditorData::ConsolidatedPostEditUndo(const FStructureEditorUtils::EStructureEditorChangeInfo TransactedStructureChange)
+{
+	ensure(CachedStructureChange == FStructureEditorUtils::Unknown);
+	CachedStructureChange = TransactedStructureChange;
+	GEditor->RegisterForUndo(this);
+}
+
 void UUserDefinedStructEditorData::PostEditUndo()
 {
 	Super::PostEditUndo();
-	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct());
+	ConsolidatedPostEditUndo(FStructureEditorUtils::Unknown);
 }
 
 class FStructureTransactionAnnotation : public ITransactionObjectAnnotation
@@ -89,24 +105,24 @@ TSharedPtr<ITransactionObjectAnnotation> UUserDefinedStructEditorData::GetTransa
 void UUserDefinedStructEditorData::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
 {
 	Super::PostEditUndo();
-	FStructureEditorUtils::EStructureEditorChangeInfo ActiveChange = FStructureEditorUtils::Unknown;
+	FStructureEditorUtils::EStructureEditorChangeInfo TransactedStructureChange = FStructureEditorUtils::Unknown;
 
 	if (TransactionAnnotation.IsValid())
 	{
 		TSharedPtr<FStructureTransactionAnnotation> StructAnnotation = StaticCastSharedPtr<FStructureTransactionAnnotation>(TransactionAnnotation);
 		if (StructAnnotation.IsValid())
 		{
-			ActiveChange = StructAnnotation->GetActiveChange();
+			TransactedStructureChange = StructAnnotation->GetActiveChange();
 		}
 	}
-	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct(), ActiveChange);
+	ConsolidatedPostEditUndo(TransactedStructureChange);
 }
 
 void UUserDefinedStructEditorData::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
-	for (auto& VarDesc : VariablesDescriptions)
+	for (FStructVariableDescription& VarDesc : VariablesDescriptions)
 	{
 		VarDesc.bInvalidMember = !FStructureEditorUtils::CanHaveAMemberVariableOfType(GetOwnerStruct(), VarDesc.ToPinType());
 	}
@@ -138,7 +154,7 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 			UProperty* Property = *It;
 			if (Property)
 			{
-				auto VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
+				FStructVariableDescription* VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
 				if (VarDesc && !VarDesc->CurrentDefaultValue.IsEmpty())
 				{
 					if (!FBlueprintEditorUtils::PropertyValueFromString(Property, VarDesc->CurrentDefaultValue, StructData))

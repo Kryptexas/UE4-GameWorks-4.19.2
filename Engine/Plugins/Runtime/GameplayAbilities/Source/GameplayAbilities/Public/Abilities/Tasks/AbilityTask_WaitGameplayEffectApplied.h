@@ -10,8 +10,8 @@
 
 class UAbilitySystemComponent;
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

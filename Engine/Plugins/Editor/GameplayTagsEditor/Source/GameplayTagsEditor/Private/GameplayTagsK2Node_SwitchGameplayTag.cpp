@@ -12,6 +12,7 @@ UGameplayTagsK2Node_SwitchGameplayTag::UGameplayTagsK2Node_SwitchGameplayTag(con
 {
 	FunctionName = TEXT("NotEqual_TagTag");
 	FunctionClass = UBlueprintGameplayTagLibrary::StaticClass();
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveNone;
 }
 
 void UGameplayTagsK2Node_SwitchGameplayTag::CreateFunctionPin()
@@ -51,8 +52,8 @@ void UGameplayTagsK2Node_SwitchGameplayTag::PostLoad()
 void UGameplayTagsK2Node_SwitchGameplayTag::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	bool bIsDirty = false;
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == TEXT("PinTags"))
+	const FName PropertyName = (PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None);
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGameplayTagsK2Node_SwitchGameplayTag, PinTags))
 	{
 		bIsDirty = true;
 	}

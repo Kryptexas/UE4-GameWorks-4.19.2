@@ -13,6 +13,7 @@ UK2Node_SwitchEnum::UK2Node_SwitchEnum(const FObjectInitializer& ObjectInitializ
 {
 
 	bHasDefaultPin = false;
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveAll;
 
 	FunctionName = TEXT("NotEqual_ByteByte");
 	FunctionClass = UKismetMathLibrary::StaticClass();

@@ -189,7 +189,7 @@ void UK2Node_MakeArray::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 	if (Pin->LinkedTo.Num() > 0)
 	{
 		// Just made a connection, was it the first and was it the parent pin?
-		if (Pin->ParentPin == nullptr && NumPinsWithLinks == 1)
+		if (Pin->ParentPin == nullptr && NumPinsWithLinks == 1 && (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || Pin->LinkedTo[0]->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard))
 		{
 			// Update the types on all the pins
 			OutputPin->PinType = Pin->LinkedTo[0]->PinType;
@@ -386,7 +386,6 @@ FSlateIcon UK2Node_MakeArray::GetIconAndTint(FLinearColor& OutColor) const
 
 void UK2Node_MakeArray::AddInputPin()
 {
-	FScopedTransaction Transaction( LOCTEXT("AddPinTx", "AddPin") );
 	Modify();
 
 	++NumInputs;

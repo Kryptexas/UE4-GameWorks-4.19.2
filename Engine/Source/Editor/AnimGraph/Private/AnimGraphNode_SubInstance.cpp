@@ -168,7 +168,7 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 			KnownExposableProperties.Add(PropertyName);
 		}
 
-		if(ExposedPropertyNames.Contains(PropertyName))
+		if(ExposedPropertyNames.Contains(PropertyName) && FBlueprintEditorUtils::PropertyStillExists(Property))
 		{
 			FEdGraphPinType PinType;
 

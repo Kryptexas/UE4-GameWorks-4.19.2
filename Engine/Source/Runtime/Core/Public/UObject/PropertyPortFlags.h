@@ -29,7 +29,9 @@ enum EPropertyPortFlags
 	/** Indicates that importing values for config properties is disallowed */
 	PPF_RestrictImportTypes			= 0x00000020,
 
-	//								= 0x00000040,
+	/** Indicates that this is a blueprint pin or something else that is saved to disk as import text */
+	PPF_SerializedAsImportText		= 0x00000040,
+
 	//								= 0x00000080,
 
 	/** only include properties which are marked CPF_InstancedReference */
@@ -72,7 +74,7 @@ enum EPropertyPortFlags
 	/** indicates that we're exporting properties for display in the property window. - used to hide EditHide items in collapsed structs */
 	PPF_PropertyWindow				= 0x00080000,
 
-	PPF_NoInternalArcheType			= 0x00100000,
+	//								= 0x00100000,
 
 	/** Force fully qualified object names (for debug dumping) */
 	PPF_DebugDump					= 0x00200000,

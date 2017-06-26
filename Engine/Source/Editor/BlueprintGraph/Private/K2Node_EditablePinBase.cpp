@@ -81,32 +81,13 @@ UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinN
 
 void UK2Node_EditablePinBase::RemoveUserDefinedPin(TSharedPtr<FUserPinInfo> PinToRemove)
 {
-	// Try to find the pin with the same name and params as the specified description, if any
-	const FString PinName = PinToRemove->PinName;
-	for(int32 i = 0; i < Pins.Num(); i++)
-	{
-		UEdGraphPin* Pin = Pins[i];
-		if( Pin->PinName == PinName )
-		{
-			Pins.Remove(Pin);
-			Pin->MarkPendingKill();
-
-			if (UBlueprint* Blueprint = GetBlueprint())
-			{
-				FKismetDebugUtilities::RemovePinWatch(Blueprint, Pin);
-			}
-		}
-	}
-
-	// Remove the description from the user-defined pins array
-	UserDefinedPins.Remove(PinToRemove);
+	RemoveUserDefinedPinByName(PinToRemove->PinName);
 }
 
 void UK2Node_EditablePinBase::RemoveUserDefinedPinByName(const FString& PinName)
 {
-	for (int32 i = 0; i < Pins.Num(); i++)
+	for (UEdGraphPin* Pin : Pins)
 	{
-		UEdGraphPin* Pin = Pins[i];
 		if (Pin->PinName == PinName)
 		{
 			Pin->Modify();
@@ -290,7 +271,7 @@ void UK2Node_EditablePinBase::Serialize(FArchive& Ar)
 			UserDefinedPins.Add(PinInfo);
 		}
 	}
-	else
+	else if(Ar.IsSaving())
 	{
 		SerializedItems.Empty(UserDefinedPins.Num());
 
@@ -300,14 +281,14 @@ void UK2Node_EditablePinBase::Serialize(FArchive& Ar)
 		}
 
 		Ar << SerializedItems;
-
-		if (Ar.IsModifyingWeakAndStrongReferences())
+	}
+	else
+	{
+		// We want to avoid destroying and recreating FUserPinInfo, because that will invalidate 
+		// any WeakPtrs to those entries:
+		for(TSharedPtr<FUserPinInfo>& PinInfo : UserDefinedPins )
 		{
-			UserDefinedPins.Empty(SerializedItems.Num());
-			for (int32 Index = 0; Index < SerializedItems.Num(); ++Index)
-			{
-				UserDefinedPins.Add(MakeShareable(new FUserPinInfo(SerializedItems[Index])));
-			}
+			Ar << *PinInfo;
 		}
 	}
 }

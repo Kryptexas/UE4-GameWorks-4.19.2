@@ -653,7 +653,7 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 
 	for(UEdGraphPin* Pin : SubInstance->Pins)
 	{
-		if(Pin->PinName == TEXT("InPose") || Pin->PinName == TEXT("Pose"))
+		if (Pin->bOrphanedPin || Pin->PinName == TEXT("InPose") || Pin->PinName == TEXT("Pose"))
 		{
 			continue;
 		}
@@ -669,14 +669,17 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 			FKismetCompilerUtilities::LinkAddedProperty(NewAnimBlueprintClass, NewProperty);
 
 			// Add mappings to the node
-			FAnimNode_SubInstance& RuntimeNode = SubInstance->Node;
-
-			RuntimeNode.SourcePropertyNames.Add(NewProperty->GetFName());
-			
-			// Find the property on the internal instance
-			if(UProperty* FoundProperty = FindField<UProperty>(*RuntimeNode.InstanceClass, *Pin->PinName))
+			if(!bGenerateSubInstanceVariables)
 			{
-				RuntimeNode.DestPropertyNames.Add(FoundProperty->GetFName());
+				FAnimNode_SubInstance& RuntimeNode = SubInstance->Node;
+				
+				if(UProperty* FoundProperty = FindField<UProperty>(*RuntimeNode.InstanceClass, *Pin->PinName))
+				{
+					RuntimeNode.SourcePropertyNames.Add(NewProperty->GetFName());
+			
+					// Find the property on the internal instance
+					RuntimeNode.DestPropertyNames.Add(FoundProperty->GetFName());
+				}
 			}
 		}
 	}
@@ -1794,13 +1797,17 @@ void FAnimBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	NewClass = NewAnimBlueprintClass;
 }
 
+void FAnimBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewAnimBlueprintClass = CastChecked<UAnimBlueprintGeneratedClass>(ClassToUse);
+}
+
 void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
 	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);
-	NewAnimBlueprintClass = CastChecked<UAnimBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewAnimBlueprintClass == NewClass);
 
 	NewAnimBlueprintClass->AnimBlueprintDebugData = FAnimBlueprintDebugData();
 
@@ -1849,6 +1856,8 @@ void FAnimBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 void FAnimBlueprintCompiler::PostCompile()
 {
+	Super::PostCompile();
+
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(NewClass);
 
 	UAnimInstance* DefaultAnimInstance = CastChecked<UAnimInstance>(AnimBlueprintGeneratedClass->GetDefaultObject());

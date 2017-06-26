@@ -14,6 +14,7 @@
 
 class IStructureDetailsView;
 class SEditableTextBox;
+class FStructOnScope;
 
 DECLARE_DELEGATE_OneParam(FOnRowModified, FName /*Row name*/);
 DECLARE_DELEGATE_OneParam(FOnRowSelected, FName /*Row name*/);

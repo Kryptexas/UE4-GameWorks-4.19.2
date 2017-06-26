@@ -25,6 +25,7 @@ class UK2Node_VariableSet : public UK2Node_Variable
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldOverridePinNames() const override { return true; }
 	virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin K2Node Interface

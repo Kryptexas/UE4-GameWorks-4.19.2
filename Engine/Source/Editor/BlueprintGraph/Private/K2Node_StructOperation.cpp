@@ -103,15 +103,22 @@ FString UK2Node_StructOperation::GetFindReferenceSearchString() const
 bool UK2Node_StructOperation::IsActionFilteredOut(const FBlueprintActionFilter& Filter)
 {
 	bool bIsFiltered = false;
-	if (StructType && !StructType->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType))
+	if (StructType)
 	{
-		bIsFiltered = true;
-		for (UEdGraphPin* ContextPin : Filter.Context.Pins)
+		if (StructType->GetBoolMetaData(FBlueprintMetadata::MD_BlueprintInternalUseOnly))
 		{
-			if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && ContextPin->PinType.PinSubCategoryObject == StructType)
+			bIsFiltered = true;
+		}
+		else if (!StructType->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType))
+		{
+			bIsFiltered = true;
+			for (UEdGraphPin* ContextPin : Filter.Context.Pins)
 			{
-				bIsFiltered = false;
-				break;
+				if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && ContextPin->PinType.PinSubCategoryObject == StructType)
+				{
+					bIsFiltered = false;
+					break;
+				}
 			}
 		}
 	}

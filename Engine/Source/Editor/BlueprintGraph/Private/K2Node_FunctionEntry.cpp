@@ -192,12 +192,52 @@ UK2Node_FunctionEntry::UK2Node_FunctionEntry(const FObjectInitializer& ObjectIni
 	bEnforceConstCorrectness = true;
 }
 
+void UK2Node_FunctionEntry::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	Super::PreSave(TargetPlatform);
+	
+	const UBlueprint* Blueprint = HasValidBlueprint() ? GetBlueprint() : nullptr;
+	if (LocalVariables.Num() > 0 && Blueprint)
+	{
+		// This code is here as it's unsafe to call when GIsSavingPackage is true
+		UFunction* Function = FindField<UFunction>(Blueprint->SkeletonGeneratedClass, *GetOuter()->GetName());
+
+		if (Function)
+		{
+			if (Function->GetStructureSize() > 0 || !ensure(Function->PropertyLink == nullptr))
+			{
+				TSharedPtr<FStructOnScope> LocalVarData = MakeShareable(new FStructOnScope(Function));
+
+				for (TFieldIterator<UProperty> It(Function); It; ++It)
+				{
+					if (const UProperty* Property = *It)
+					{
+						const UStructProperty* PotentialUDSProperty = Cast<const UStructProperty>(Property);
+						// UDS requires default data even when the LocalVariable value is empty
+						const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
+
+						for (FBPVariableDescription& LocalVar : LocalVariables)
+						{
+							if (LocalVar.VarName == Property->GetFName() && (bUDSProperty || !LocalVar.DefaultValue.IsEmpty()))
+							{
+								// Go to property and back, this handles redirector fixup and will sanitize the output
+								// The asset registry only knows about these references because when the node is expanded it turns into a hard reference
+								FBlueprintEditorUtils::PropertyValueFromString(Property, LocalVar.DefaultValue, LocalVarData->GetStructMemory());
+								FBlueprintEditorUtils::PropertyValueToString(Property, LocalVarData->GetStructMemory(), LocalVar.DefaultValue);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
-	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 
 	if (Ar.IsLoading())
 	{
@@ -277,7 +317,11 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 
 	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
 
-	if (Function == nullptr)
+	// This FindDelegateSignature call was added to support multiple UClasses in a single file.
+	// For blueprint declared functions it can generate an "Ambiguous search" warning, and may also
+	// be very slow:
+	bool bIsNativeFunction = (SignatureClass == nullptr || SignatureClass->HasAnyClassFlags(CLASS_Native));
+	if (Function == nullptr && bIsNativeFunction)
 	{
 		Function = FindDelegateSignature(SignatureName);
 	}

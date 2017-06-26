@@ -6,6 +6,8 @@
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
 #include "Misc/PackageName.h"
+#include "Misc/RuntimeErrors.h"
+#include "UObject/Stack.h"
 
 void UClassRegisterAllCompiledInClasses();
 bool IsInAsyncLoadingThreadCoreUObjectInternal();
@@ -18,6 +20,15 @@ bool IsAsyncLoadingMultithreadedCoreUObjectInternal();
 class FCoreUObjectModule : public FDefaultModuleImpl
 {
 public:
+	static void RouteRuntimeMessageToBP(ELogVerbosity::Type Verbosity, const ANSICHAR* FileName, int32 LineNumber, const FText& Message)
+	{
+#if UE_RAISE_RUNTIME_ERRORS && !NO_LOGGING
+		check((Verbosity == ELogVerbosity::Error) || (Verbosity == ELogVerbosity::Warning));
+		FMsg::Logf_Internal(FileName, LineNumber, LogScript.GetCategoryName(), Verbosity, TEXT("%s(%d): Runtime %s: \"%s\""), ANSI_TO_TCHAR(FileName), LineNumber, (Verbosity == ELogVerbosity::Error) ? TEXT("Error") : TEXT("Warning"), *Message.ToString());
+#endif
+		FFrame::KismetExecutionMessage(*Message.ToString(), Verbosity);
+	}
+
 	virtual void StartupModule() override
 	{
 		// Register all classes that have been loaded so far. This is required for CVars to work.		
@@ -32,6 +43,11 @@ public:
 		SuspendAsyncLoading = &SuspendAsyncLoadingInternal;
 		ResumeAsyncLoading = &ResumeAsyncLoadingInternal;
 		IsAsyncLoadingMultithreaded = &IsAsyncLoadingMultithreadedCoreUObjectInternal;
+
+		// Register the script callstack callback to the runtime error logging
+#if UE_RAISE_RUNTIME_ERRORS
+		FRuntimeErrors::OnRuntimeIssueLogged.BindStatic(&FCoreUObjectModule::RouteRuntimeMessageToBP);
+#endif
 
 		// Make sure that additional content mount points can be registered after CoreUObject loads
 		FPackageName::EnsureContentPathsAreRegistered();		

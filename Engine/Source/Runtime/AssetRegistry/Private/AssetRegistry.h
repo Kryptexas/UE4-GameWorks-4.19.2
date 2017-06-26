@@ -112,8 +112,8 @@ public:
 
 	virtual void Tick (float DeltaTime) override;
 
-	/** True if world assets are enabled */
-	static bool IsUsingWorldAssets();
+	DEPRECATED(4.17, "IsUsingWorldAssets is now always true, remove any code that assumes it could be false")
+	static bool IsUsingWorldAssets() { return true; }
 
 protected:
 	virtual void SetManageReferences(const TMultiMap<FAssetIdentifier, FAssetIdentifier>& ManagerMap, bool bClearExisting, EAssetRegistryDependencyType::Type RecurseType, ShouldSetManagerPredicate ShouldSetManager) override;

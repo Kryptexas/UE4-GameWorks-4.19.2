@@ -2599,6 +2599,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 				BuildContext.log(RC_LOG_ERROR, "GenerateNavigationData: Failed to build regions.");
 				return false;
 			}
+
+			// skip empty layer
+			if (GenerationContext.Layer->regCount <= 0)
+			{
+				continue;
+			}
 		}
 	
 		{
@@ -2625,6 +2631,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 			{
 				BuildContext.log(RC_LOG_ERROR, "GenerateNavigationData: Failed to generate contour set (0x%08X).", status);
 				return false;
+			}
+
+			// skip empty layer, sometimes there are regions assigned but all flagged as empty (id=0)
+			if (GenerationContext.ContourSet->nconts <= 0)
+			{
+				continue;
 			}
 		}
 
@@ -3376,11 +3388,13 @@ bool FRecastNavMeshGenerator::RebuildAll()
 
 void FRecastNavMeshGenerator::EnsureBuildCompletion()
 {
-	const bool bHasTasks = GetNumRemaningBuildTasks() > 0;
+	const bool bHadTasks = GetNumRemaningBuildTasks() > 0;
 	
+	const bool bDoAsyncDataGathering = (GatherGeometryOnGameThread() == false);
 	do 
 	{
-		ProcessTileTasks(16);
+		const int32 NumTasksToSubmit = (bDoAsyncDataGathering ? 1 : MaxTileGeneratorTasks) - RunningDirtyTiles.Num();
+		ProcessTileTasks(NumTasksToSubmit);
 		
 		// Block until tasks are finished
 		for (FRunningTileElement& Element : RunningDirtyTiles)
@@ -3391,7 +3405,7 @@ void FRecastNavMeshGenerator::EnsureBuildCompletion()
 	while (GetNumRemaningBuildTasks() > 0);
 
 	// Update navmesh drawing only if we had something to build
-	if (bHasTasks)
+	if (bHadTasks)
 	{
 		DestNavMesh->RequestDrawingUpdate();
 	}

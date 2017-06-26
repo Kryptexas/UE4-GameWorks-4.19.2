@@ -379,7 +379,7 @@ private:
 
 	void SetEntryNode();
 
-	UMulticastDelegateProperty* GetDelegatePoperty() const;
+	UMulticastDelegateProperty* GetDelegateProperty() const;
 	FText OnGetTooltipText() const;
 	void OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	FText OnGetCategoryText() const;

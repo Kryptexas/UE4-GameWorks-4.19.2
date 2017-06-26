@@ -13,7 +13,7 @@ UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const FObject
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate(UGameplayAbility* OwningAbility, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
@@ -23,7 +23,7 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivateWithTagRequirements(UGameplayAbility* OwningAbility, FGameplayTagRequirements TagRequirements, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
 	MyObj->TagRequirements = TagRequirements;
 	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
 	MyObj->TriggerOnce = InTriggerOnce;
@@ -32,7 +32,7 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
 	MyObj->Query = Query;
 	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
 	MyObj->TriggerOnce = InTriggerOnce;

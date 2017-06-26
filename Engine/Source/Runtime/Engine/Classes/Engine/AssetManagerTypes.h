@@ -85,7 +85,7 @@ struct FPrimaryAssetTypeInfo
 
 private:
 	/** Base Class of all assets of this type */
-	UPROPERTY(EditAnywhere, Category = AssetType)
+	UPROPERTY(EditAnywhere, Category = AssetType, meta = (AllowAbstract))
 	TAssetSubclassOf<UObject> AssetBaseClass;
 public:
 

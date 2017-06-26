@@ -1430,10 +1430,6 @@ const UStruct* UStruct::HasMetaDataHierarchical(const FName& Key) const
 	}
 #endif // #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-//
-// Serialize an expression to an archive.
-// Returns expression token.
-//
 EExprToken UStruct::SerializeExpr( int32& iCode, FArchive& Ar )
 {
 #define SERIALIZEEXPR_INC

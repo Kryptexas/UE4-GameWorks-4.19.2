@@ -49,6 +49,7 @@ protected:
 	virtual void ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction = false) override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
+	virtual void OnNewClassSet(UBlueprintGeneratedClass* ClassToUse) override;
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) override;
 	virtual void PostCompileDiagnostics() override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;

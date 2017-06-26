@@ -24,7 +24,7 @@ void UAbilityTask_Repeat::PerformAction()
 
 UAbilityTask_Repeat* UAbilityTask_Repeat::RepeatAction(UGameplayAbility* OwningAbility, float InTimeBetweenActions, int32 TotalActionCount)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_Repeat>(OwningAbility);
+	UAbilityTask_Repeat* MyObj = NewAbilityTask<UAbilityTask_Repeat>(OwningAbility);
 
 	//TODO Validate/fix TimeBetweenActions and TotalActionCount values as needed
 	MyObj->ActionPerformancesDesired = TotalActionCount;

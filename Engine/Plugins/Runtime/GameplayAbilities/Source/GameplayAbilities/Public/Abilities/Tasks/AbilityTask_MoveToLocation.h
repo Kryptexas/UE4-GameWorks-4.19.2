@@ -27,8 +27,8 @@ class UGameplayTasksComponent;
  *	This will RESET your character's current movement mode! If you wish to maintain PHYS_Flying or PHYS_Custom, you must
  *	reset it on completion.!
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_MoveToLocation : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_MoveToLocation : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

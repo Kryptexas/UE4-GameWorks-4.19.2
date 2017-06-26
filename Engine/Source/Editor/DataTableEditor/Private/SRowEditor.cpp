@@ -7,6 +7,7 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
 #include "EditorStyleSet.h"
+#include "UObject/StructOnScope.h"
 
 #include "PropertyEditorModule.h"
 #include "IStructureDetailsView.h"

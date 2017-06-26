@@ -145,17 +145,20 @@ struct CORE_API FDebug
  *
  * Example:
  *
- *		if( ensure( InObject != NULL ) )
+ *		if (ensure(InObject != nullptr))
  *		{
  *			InObject->Modify();
  *		}
  *
- * This code is safe to execute as the pointer dereference is wrapped in a non-NULL conditional block, but
+ * This code is safe to execute as the pointer dereference is wrapped in a non-nullptr conditional block, but
  * you still want to find out if this ever happens so you can avoid side effects.  Using ensure() here will
  * force a crash report to be generated without crashing the application (and potentially causing editor
  * users to lose unsaved work.)
  *
- * ensure() resolves to a regular assertion (crash) in shipping or test builds.
+ * ensure() resolves to just evaluate the expression when DO_CHECK is 0 (typically shipping or test builds).
+ *
+ * By default a given call site will only print the callstack and submit the 'crash report' the first time an
+ * ensure is hit in a session; ensureAlways can be used instead if you want to handle every failure
  */
 
 #if DO_CHECK && !USING_CODE_ANALYSIS // The Visual Studio 2013 analyzer doesn't understand these complex conditionals

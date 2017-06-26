@@ -9,6 +9,8 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "Misc/RuntimeErrors.h"
+
 #if WITH_EDITOR
 
 //----------------------------------------------------------------------//
@@ -87,6 +89,10 @@ struct FSortTestActorsByName
 bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
 {
 	UFunctionalTestingManager* Manager = GetManager(WorldContextObject);
+	if (!ensureAsRuntimeWarning(Manager != nullptr))
+	{
+		return false;
+	}
 
 	if (Manager->bIsRunning)
 	{
@@ -94,7 +100,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObjec
 		return true;
 	}
 	
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject);
 	World->ForceGarbageCollection(true);
 
 	Manager->bFinished = false;
@@ -182,14 +188,15 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 
 	if (Manager == nullptr)
 	{
-		check(WorldContext);
-		UObject* World = GEngine->GetWorldFromContextObject(WorldContext);
-		Manager = NewObject<UFunctionalTestingManager>(World);
-		FFunctionalTestingModule::Get()->SetScript(Manager);
+		if (UObject* World = GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::LogAndReturnNull))
+		{
+			Manager = NewObject<UFunctionalTestingManager>(World);
+			FFunctionalTestingModule::Get()->SetScript(Manager);
 
-		// add to root and get notified on world cleanup to remove from root on map cleanup
-		Manager->AddToRoot();
-		FWorldDelegates::OnWorldCleanup.AddUObject(Manager, &UFunctionalTestingManager::OnWorldCleanedUp);
+			// add to root and get notified on world cleanup to remove from root on map cleanup
+			Manager->AddToRoot();
+			FWorldDelegates::OnWorldCleanup.AddUObject(Manager, &UFunctionalTestingManager::OnWorldCleanedUp);
+		}
 	}
 
 	return Manager;
@@ -197,7 +204,7 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 
 UWorld* UFunctionalTestingManager::GetWorld() const
 {
-	return GEngine->GetWorldFromContextObject(GetOuter());
+	return GEngine->GetWorldFromContextObjectChecked(GetOuter());
 }
 
 void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnded, bool bCleanupResources)

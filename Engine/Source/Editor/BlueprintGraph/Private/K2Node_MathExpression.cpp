@@ -2438,6 +2438,7 @@ UK2Node_MathExpression::UK2Node_MathExpression(const FObjectInitializer& ObjectI
 	bCanRenameNode = true;
 
 	bMadeAfterRotChange = false;
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveNone;
 }
 
 void UK2Node_MathExpression::Serialize(FArchive& Ar)

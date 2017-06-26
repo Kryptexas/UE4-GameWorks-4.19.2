@@ -103,7 +103,12 @@ FString FStreamLevelAction::MakeSafeLevelName( const FName& InLevelName, UWorld*
 	// Special case for PIE, the PackageName gets mangled.
 	if (!InWorld->StreamingLevelsPrefix.IsEmpty())
 	{
-		FString PackageName = InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InLevelName);
+		FString PackageName = FPackageName::GetShortName(InLevelName);
+		if (!PackageName.StartsWith(InWorld->StreamingLevelsPrefix))
+		{
+			PackageName = InWorld->StreamingLevelsPrefix + PackageName;
+		}
+
 		if (!FPackageName::IsShortPackageName(InLevelName))
 		{
 			PackageName = FPackageName::GetLongPackagePath(InLevelName.ToString()) + TEXT("/") + PackageName;
@@ -1055,7 +1060,7 @@ ALevelScriptActor* ULevelStreaming::GetLevelScriptActor()
 ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess)
 { 
 	bOutSuccess = false; 
-	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) 
 	{
 		return nullptr;

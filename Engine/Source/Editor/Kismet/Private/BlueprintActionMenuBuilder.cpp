@@ -518,22 +518,31 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 		MenuSection->Empty();
 	}
 	
-	FBlueprintActionDatabase::FActionRegistry const& ActionDatabase = FBlueprintActionDatabase::Get().GetAllActions();
-	for (auto const& ActionEntry : ActionDatabase)
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	FBlueprintActionDatabase::FActionRegistry const& ActionRegistry = ActionDatabase.GetAllActions();
+	for (auto const& ActionEntry : ActionRegistry)
 	{
-		for (UBlueprintNodeSpawner const* NodeSpawner : ActionEntry.Value)
+		if (UObject *ActionObject = ActionEntry.Key.ResolveObjectPtr())
 		{
-			FBlueprintActionInfo BlueprintAction(ActionEntry.Key, NodeSpawner);
-
-			// @TODO: could probably have a super filter that spreads across 
-			//        all MenuSctions (to pair down on performance?)
-			for (TSharedRef<FMenuSectionDefinition> const& MenuSection : MenuSections)
+			for (UBlueprintNodeSpawner const* NodeSpawner : ActionEntry.Value)
 			{
-				for (TSharedPtr<FEdGraphSchemaAction> MenuEntry : MenuSection->MakeMenuItems(BlueprintEditorPtr, BlueprintAction))
+				FBlueprintActionInfo BlueprintAction(ActionObject, NodeSpawner);
+
+				// @TODO: could probably have a super filter that spreads across 
+				//        all MenuSctions (to pair down on performance?)
+				for (TSharedRef<FMenuSectionDefinition> const& MenuSection : MenuSections)
 				{
-					AddAction(MenuEntry);
+					for (TSharedPtr<FEdGraphSchemaAction> MenuEntry : MenuSection->MakeMenuItems(BlueprintEditorPtr, BlueprintAction))
+					{
+						AddAction(MenuEntry);
+					}
 				}
 			}
+		}
+		else
+		{
+			// Remove this (invalid) entry on the next tick.
+			ActionDatabase.DeferredRemoveEntry(ActionEntry.Key);
 		}
 	}	
 }

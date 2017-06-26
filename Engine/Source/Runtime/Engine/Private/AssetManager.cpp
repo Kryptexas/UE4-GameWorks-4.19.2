@@ -18,6 +18,7 @@
 #include "Editor.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "Commandlets/ChunkDependencyInfo.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "AssetManager"
@@ -2036,60 +2037,6 @@ bool UAssetManager::GetPackageManagers(FName PackageName, bool bRecurseToParents
 	return bFoundAny;
 }
 
-EAssetSetManagerResult::Type UAssetManager::ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const
-{
-	FPrimaryAssetId ManagerPrimaryAssetId = Manager.GetPrimaryAssetId();
-	FPrimaryAssetId TargetPrimaryAssetId = Target.GetPrimaryAssetId();
-	if (TargetPrimaryAssetId.IsValid())
-	{
-		// Don't recurse Primary Asset Id references
-		return EAssetSetManagerResult::SetButDoNotRecurse;
-	}
-
-	const FString TargetPackageString = Target.PackageName.ToString();
-
-	// Ignore script and engine references
-	if (!TargetPackageString.StartsWith(TEXT("/Game/"), ESearchCase::CaseSensitive))
-	{
-		return EAssetSetManagerResult::DoNotSet;
-	}
-
-	if (Flags & EAssetSetManagerFlags::TargetHasExistingManager)
-	{
-		// If target has a higher priority manager, never recurse and only set manager if direct
-		if (Flags & EAssetSetManagerFlags::IsDirectSet)
-		{
-			return EAssetSetManagerResult::SetButDoNotRecurse;
-		}
-		else
-		{
-			return EAssetSetManagerResult::DoNotSet;
-		}
-	}
-	else if (Flags & EAssetSetManagerFlags::TargetHasDirectManager)
-	{
-		// If target has another direct manager being set in this run, never recurse and set manager if we think this is an "owner" reference and not a back reference
-
-		bool bIsOwnershipReference = Flags & EAssetSetManagerFlags::IsDirectSet;
-
-		if (ManagerPrimaryAssetId.PrimaryAssetType == MapType)
-		{
-			// References made by maps are ownership references, because there is no way to distinguish between sublevels and top level maps we "include" sublevels in parent maps via reference
-			bIsOwnershipReference = true;
-		}
-		
-		if (bIsOwnershipReference)
-		{
-			return EAssetSetManagerResult::SetButDoNotRecurse;
-		}
-		else
-		{
-			return EAssetSetManagerResult::DoNotSet;
-		}
-	}
-	return EAssetSetManagerResult::SetAndRecurse;
-}
-
 void UAssetManager::StartInitialLoading()
 {
 	ScanPrimaryAssetTypesFromConfig();
@@ -2132,6 +2079,61 @@ bool UAssetManager::IsPathExcludedFromScan(const FString& Path) const
 }
 
 #if WITH_EDITOR
+
+EAssetSetManagerResult::Type UAssetManager::ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const
+{
+	FPrimaryAssetId ManagerPrimaryAssetId = Manager.GetPrimaryAssetId();
+	FPrimaryAssetId TargetPrimaryAssetId = Target.GetPrimaryAssetId();
+	if (TargetPrimaryAssetId.IsValid())
+	{
+		// Don't recurse Primary Asset Id references
+		return EAssetSetManagerResult::SetButDoNotRecurse;
+	}
+
+	const FString TargetPackageString = Target.PackageName.ToString();
+
+	// Ignore script references
+	if (TargetPackageString.StartsWith(TEXT("/Script/"), ESearchCase::CaseSensitive))
+	{
+		return EAssetSetManagerResult::DoNotSet;
+	}
+
+	if (Flags & EAssetSetManagerFlags::TargetHasExistingManager)
+	{
+		// If target has a higher priority manager, never recurse and only set manager if direct
+		if (Flags & EAssetSetManagerFlags::IsDirectSet)
+		{
+			return EAssetSetManagerResult::SetButDoNotRecurse;
+		}
+		else
+		{
+			return EAssetSetManagerResult::DoNotSet;
+		}
+	}
+	else if (Flags & EAssetSetManagerFlags::TargetHasDirectManager)
+	{
+		// If target has another direct manager being set in this run, never recurse and set manager if we think this is an "owner" reference and not a back reference
+
+		bool bIsOwnershipReference = Flags & EAssetSetManagerFlags::IsDirectSet;
+
+		if (ManagerPrimaryAssetId.PrimaryAssetType == MapType)
+		{
+			// References made by maps are ownership references, because there is no way to distinguish between sublevels and top level maps we "include" sublevels in parent maps via reference
+			bIsOwnershipReference = true;
+		}
+
+		if (bIsOwnershipReference)
+		{
+			return EAssetSetManagerResult::SetButDoNotRecurse;
+		}
+		else
+		{
+			return EAssetSetManagerResult::DoNotSet;
+		}
+	}
+	return EAssetSetManagerResult::SetAndRecurse;
+}
+
 void UAssetManager::ScanPathsSynchronous(const TArray<FString>& PathsToScan) const
 {
 	TArray<FString> Directories;
@@ -2516,19 +2518,21 @@ bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform*
 		}
 	}
 
-	// If 0 is in list at all, constrain to just that
-	if (OutChunkList.Contains(0) && OutChunkList.Num() > 1)
+	int32 HighestChunk = 0;
+	for (int32 ChunkId : OutChunkList)
 	{
-		OutChunkList.Empty();
-		OutChunkList.Add(0);
+		if (ChunkId > HighestChunk)
+		{
+			HighestChunk = ChunkId;
+		}
 	}
 
-	return bFoundAny;
-}
+	// Use chunk dependency info to remove redundant chunks
+	UChunkDependencyInfo *DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
+	DependencyInfo->GetOrBuildChunkDependencyGraph(HighestChunk);
+	DependencyInfo->RemoveRedundantChunks(OutChunkList);
 
-void UAssetManager::UpdatePackageSourceHash(FName PackageName, FMD5& PackageSourceHash) const
-{
-	// TODO Need to handle shader cache
+	return bFoundAny;
 }
 
 void UAssetManager::PreBeginPIE(bool bStartSimulate)
@@ -2582,6 +2586,12 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+
+		// Rescan the runtime data, the class may have gotten changed by hot reload
+		if (!TypeData.Info.FillRuntimeData())
+		{
+			continue;
+		}
 
 		if (TypeData.Info.AssetScanPaths.Num())
 		{

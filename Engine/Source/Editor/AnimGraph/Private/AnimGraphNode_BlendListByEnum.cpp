@@ -176,6 +176,7 @@ void UAnimGraphNode_BlendListByEnum::RemovePinFromBlendList(UEdGraphPin* Pin)
 		// setting up removed pins info 
 		RemovedPinArrayIndex = ArrayIndex;
 		Node.RemovePose(ArrayIndex);
+		Pin->bSavePinIfOrphaned = false;
 		ReconstructNode();
 		//@TODO: Just want to invalidate the visual representation currently
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());

@@ -213,7 +213,7 @@ bool UK2Node_SetFieldsInStruct::ShowCustomPinActions(const UEdGraphPin* Pin, boo
 		&& !Schema->IsMetaPin(*Pin);
 }
 
-void UK2Node_SetFieldsInStruct::RemoveFieldPins(const UEdGraphPin* Pin, EPinsToRemove Selection)
+void UK2Node_SetFieldsInStruct::RemoveFieldPins(UEdGraphPin* Pin, EPinsToRemove Selection)
 {
 	if (ShowCustomPinActions(Pin, false) && (Pin->GetOwningNodeUnchecked() == this))
 	{
@@ -234,6 +234,7 @@ void UK2Node_SetFieldsInStruct::RemoveFieldPins(const UEdGraphPin* Pin, EPinsToR
 			{
 				bWasChanged = true;
 				OptionalProperty.bShowPin = false;
+				Pin->bSavePinIfOrphaned = false;
 			}
 		}
 

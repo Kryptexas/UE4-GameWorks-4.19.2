@@ -250,9 +250,8 @@ void UEdGraphNode::BreakAllNodeLinks()
 	}
 
 	// Send all nodes that received a new pin connection a notification
-	for (auto It = NodeList.CreateConstIterator(); It; ++It)
+	for (UEdGraphNode* Node : NodeList)
 	{
-		UEdGraphNode* Node = (*It);
 		Node->NodeConnectionListChanged();
 	}
 }
@@ -272,7 +271,7 @@ void UEdGraphNode::SnapToGrid(float GridSnapSize)
 class UEdGraph* UEdGraphNode::GetGraph() const
 {
 	UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
-	if (Graph == NULL && !IsPendingKill())
+	if (Graph == nullptr && !IsPendingKill())
 	{
 		ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
 	}

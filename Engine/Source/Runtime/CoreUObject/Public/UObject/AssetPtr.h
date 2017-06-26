@@ -137,6 +137,12 @@ public:
 		AssetPtr.Reset();
 	}
 
+	/** Resets the weak ptr only, call this when ObjectId may change */
+	FORCEINLINE void ResetWeakPtr()
+	{
+		AssetPtr.ResetWeakPtr();
+	}
+
 	/** Copy from an object already in memory */
 	template <typename U>
 	FORCEINLINE TAssetPtr& operator=(const U* Object)
@@ -394,6 +400,12 @@ public:
 	FORCEINLINE void Reset()
 	{
 		AssetPtr.Reset();
+	}
+
+	/** Resets the weak ptr only, call this when ObjectId may change */
+	FORCEINLINE void ResetWeakPtr()
+	{
+		AssetPtr.ResetWeakPtr();
 	}
 
 	/** Copy from a class already in memory */

@@ -27,8 +27,8 @@
 UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, ProxyFactoryFunctionName(NAME_None)
-	, ProxyFactoryClass(NULL)
-	, ProxyClass(NULL)
+	, ProxyFactoryClass(nullptr)
+	, ProxyClass(nullptr)
 	, ProxyActivateFunctionName(NAME_None)
 {
 }
@@ -157,7 +157,6 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 				if (PinsToHide.Contains(Pin->PinName))
 				{
 					Pin->bHidden = true;
-					Pin->DefaultValue = TEXT("0");
 				}
 			}
 
@@ -179,8 +178,7 @@ bool UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::ValidDataPin(const UEdGraphPin
 {
 	check(Schema);
 	const bool bValidDataPin = Pin
-		&& (Pin->PinName != Schema->PN_Execute)
-		&& (Pin->PinName != Schema->PN_Then)
+		&& !Pin->bOrphanedPin
 		&& (Pin->PinType.PinCategory != Schema->PC_Exec);
 
 	const bool bProperDirection = Pin && (Pin->Direction == Direction);
@@ -259,10 +257,10 @@ bool UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::HandleDelegateImplementation(
 	}
 
 	UEdGraphPin* LastActivatedNodeThen = CurrentCENode->FindPinChecked(Schema->PN_Then);
-	for (auto OutputPair : VariableOutputs) // CREATE CHAIN OF ASSIGMENTS
+	for (const FBaseAsyncTaskHelper::FOutputPinAndLocalVariable& OutputPair : VariableOutputs) // CREATE CHAIN OF ASSIGMENTS
 	{
 		UEdGraphPin* PinWithData = CurrentCENode->FindPin(OutputPair.OutputPin->PinName);
-		if (PinWithData == NULL)
+		if (PinWithData == nullptr)
 		{
 			/*FText ErrorMessage = FText::Format(LOCTEXT("MissingDataPin", "ICE: Pin @@ was expecting a data output pin named {0} on @@ (each delegate must have the same signature)"), FText::FromString(OutputPair.OutputPin->PinName));
 			CompilerContext.MessageLog.Error(*ErrorMessage.ToString(), OutputPair.OutputPin, CurrentCENode);
@@ -309,7 +307,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Execute), *CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Execute)).CanSafeConnect();
 
-	for (auto CurrentPin : Pins)
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
 		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input, Schema))
 		{
@@ -325,7 +323,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 	// GATHER OUTPUT PARAMETERS AND PAIR THEM WITH LOCAL VARIABLES
 	TArray<FBaseAsyncTaskHelper::FOutputPinAndLocalVariable> VariableOutputs;
-	for (auto CurrentPin : Pins)
+	for (UEdGraphPin* CurrentPin : Pins)
 	{
 		if ((OutputAsyncTaskProxy != CurrentPin) && FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output, Schema))
 		{

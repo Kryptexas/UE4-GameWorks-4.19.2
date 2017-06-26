@@ -247,7 +247,15 @@ public:
 	FLinearColor DefaultCommentNodeTitleColor;
 
 public:
+	/** The thickness of a data wire */
+	UPROPERTY(EditAnywhere, config, Category=Tracing)
+	float DefaultDataWireThickness;
 
+	/** The thickness of an execution wire when not debugging */
+	UPROPERTY(EditAnywhere, config, Category=Tracing)
+	float DefaultExecutionWireThickness;
+
+	/** The color to display execution wires that were just executed */
 	UPROPERTY(EditAnywhere, config, Category=Tracing)
 	FLinearColor TraceAttackColor;
 
@@ -275,9 +283,11 @@ public:
 	UPROPERTY()
 	float TraceSustainHoldPeriod;
 
+	/** The color to fade to for execution wires on release */
 	UPROPERTY(EditAnywhere, config, Category=Tracing)
 	FLinearColor TraceReleaseColor;
 
+	/** The thickness to drop down to during release / for unexecuted wires when debugging */
 	UPROPERTY(EditAnywhere, config, Category=Tracing)
 	float TraceReleaseWireThickness;
 

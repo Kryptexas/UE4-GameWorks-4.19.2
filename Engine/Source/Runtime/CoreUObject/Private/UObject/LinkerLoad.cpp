@@ -3845,8 +3845,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 
 				for (UObject* SubObject : SuperSubObjects)
 				{
-					if (SubObject->HasAnyFlags(RF_NeedLoad))
+					// Matching behavior in UBlueprint::ForceLoad to ensure that the subobject is actually loaded:
+					if (SubObject->HasAnyFlags(RF_NeedLoad) || !SubObject->HasAnyFlags(RF_LoadCompleted))
 					{
+						SubObject->SetFlags(RF_NeedLoad);
 						Preload(SubObject);
 					}
 				}

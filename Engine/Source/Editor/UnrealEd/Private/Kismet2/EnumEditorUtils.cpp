@@ -15,6 +15,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "Enum"
 
@@ -97,6 +98,8 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 		return;
 	}
 
+	const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "AddNewEnumerator", "Add Enumerator"));
+
 	PrepareForChange(Enum);
 
 	TArray<TPair<FName, int64>> OldNames, Names;
@@ -128,6 +131,8 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 		return;
 	}
 
+	const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "RemoveEnumerator", "Remove Enumerator"));
+
 	PrepareForChange(Enum);
 
 	TArray<TPair<FName, int64>> OldNames, Names;
@@ -158,6 +163,8 @@ void FEnumEditorUtils::SetEnumeratorBitflagsTypeState(UUserDefinedEnum* Enum, bo
 {
 	if (Enum)
 	{
+		const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "SetEnumeratorBitflagsTypeState", "Set Bitflag Type State"));
+
 		PrepareForChange(Enum);
 
 		if (bBitflagsType)
@@ -184,6 +191,8 @@ void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, i
 	{
 		return;
 	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "MoveEnumeratorInUserDefinedEnum", "Reorder Enumerator"));
 
 	PrepareForChange(Enum);
 
@@ -252,9 +261,10 @@ public:
 	}
 };
 
-void FEnumEditorUtils::PrepareForChange(const UUserDefinedEnum* Enum)
+void FEnumEditorUtils::PrepareForChange(UUserDefinedEnum* Enum)
 {
 	FEnumEditorManager::Get().PreChange(Enum, EEnumEditorChangeInfo::Changed);
+	Enum->Modify();
 }
 
 void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int64>>& OldNames, bool bResolveData)
@@ -446,6 +456,8 @@ bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 En
 	{
 		if (IsEnumeratorDisplayNameValid(Enum, EnumeratorIndex, NewDisplayName))
 		{
+			const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "SetEnumeratorDisplayName", "Set Display Name"));
+
 			PrepareForChange(Enum);
 			
 			const FName EnumEntryName = *Enum->GetNameStringByIndex(EnumeratorIndex);

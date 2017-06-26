@@ -13,7 +13,7 @@
 #include "Recast/RecastAlloc.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/RecastNavMeshGenerator.h"
-
+#include "AI/Navigation/RecastQueryFilter.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "VisualLogger/VisualLogger.h"
 

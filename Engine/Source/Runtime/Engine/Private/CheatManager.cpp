@@ -1134,33 +1134,28 @@ void UCheatManager::CheatScript(FString ScriptName)
 	APlayerController* const PlayerController = GetOuterAPlayerController();
 	ULocalPlayer* const LocalPlayer = PlayerController ? Cast<ULocalPlayer>(PlayerController->Player) : nullptr;
 
-	if (LocalPlayer)
+	UConsole* ConsoleToDisplayResults = (LocalPlayer && LocalPlayer->ViewportClient) ? LocalPlayer->ViewportClient->ViewportConsole : nullptr;
+
+	// Run commands from the ini
+	FConfigSection const* const CommandsToRun = GConfig->GetSectionPrivate(*FString::Printf(TEXT("CheatScript.%s"), *ScriptName), 0, 1, GGameIni);
+
+	if (CommandsToRun)
 	{
-		// Run commands from the ini
-		FConfigSection const* const CommandsToRun = GConfig->GetSectionPrivate(*FString::Printf(TEXT("CheatScript.%s"), *ScriptName), 0, 1, GGameIni);
-
-		if (CommandsToRun)
+		for (FConfigSectionMap::TConstIterator It(*CommandsToRun); It; ++It)
 		{
-			for (FConfigSectionMap::TConstIterator It(*CommandsToRun); It; ++It)
+			// show user what commands ran
+			if (ConsoleToDisplayResults)
 			{
-				// show user what commands ran
-				if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
-				{
-					FString const S = FString::Printf(TEXT("> %s"), *It.Value().GetValue());
-					LocalPlayer->ViewportClient->ViewportConsole->OutputText(S);
-				}
-
-				LocalPlayer->Exec(GetWorld(), *It.Value().GetValue(), *GLog);
+				FString const S = FString::Printf(TEXT("> %s"), *It.Value().GetValue());
+				ConsoleToDisplayResults->OutputText(S);
 			}
-		}
-		else
-		{
-			UE_LOG(LogCheatManager, Warning, TEXT("Can't find section 'CheatScript.%s' in DefaultGame.ini"), *ScriptName);
+
+			PlayerController->ConsoleCommand(*It.Value().GetValue(), /*bWriteToLog=*/ true);
 		}
 	}
 	else
 	{
-		UE_LOG(LogCheatManager, Warning, TEXT("Can't find local player!"));
+		UE_LOG(LogCheatManager, Warning, TEXT("Can't find section 'CheatScript.%s' in DefaultGame.ini"), *ScriptName);
 	}
 }
 

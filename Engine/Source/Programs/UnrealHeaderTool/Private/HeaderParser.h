@@ -410,7 +410,7 @@ protected:
 
 protected:
 	// Constructor.
-	FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile);
+	FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile, const FManifestModule& InModule);
 
 	virtual ~FHeaderParser()
 	{
@@ -712,6 +712,9 @@ private:
 
 	// Module currently parsed by UHT.
 	const FManifestModule* CurrentlyParsedModule;
+
+	// True if the module currently being parsed is part of the engine, as opposed to being part of a game
+	bool bIsCurrentModulePartOfEngine;
 
 	/**
 	 * Tries to match constructor parameter list. Assumes that constructor

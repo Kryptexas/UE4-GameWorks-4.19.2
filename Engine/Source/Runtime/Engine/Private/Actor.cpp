@@ -2593,13 +2593,17 @@ void AActor::ClearInstanceComponents(const bool bDestroyComponents)
 
 UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
-	UActorComponent* FoundComponent = NULL;
-	for (UActorComponent* Component : OwnedComponents)
+	UActorComponent* FoundComponent = nullptr;
+
+	if (UClass* TargetClass = ComponentClass.Get())
 	{
-		if (Component && Component->IsA(ComponentClass))
+		for (UActorComponent* Component : OwnedComponents)
 		{
-			FoundComponent = Component;
-			break;
+			if (Component && Component->IsA(TargetClass))
+			{
+				FoundComponent = Component;
+				break;
+			}
 		}
 	}
 
@@ -2615,7 +2619,7 @@ TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponen
 {
 	TArray<UActorComponent*> ValidComponents;
 
-        // In the UActorComponent case we can skip the IsA checks for a slight performance benefit
+	// In the UActorComponent case we can skip the IsA checks for a slight performance benefit
 	if (ComponentClass == UActorComponent::StaticClass())
 	{
 		for (UActorComponent* Component : OwnedComponents)

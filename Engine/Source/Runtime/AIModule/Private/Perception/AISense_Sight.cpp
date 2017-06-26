@@ -141,7 +141,7 @@ float UAISense_Sight::Update()
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 
-	const UWorld* World = GEngine->GetWorldFromContextObject(GetPerceptionSystem()->GetOuter());
+	const UWorld* World = GEngine->GetWorldFromContextObject(GetPerceptionSystem()->GetOuter(), EGetWorldErrorMode::LogAndReturnNull);
 
 	if (World == NULL)
 	{

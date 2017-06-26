@@ -118,6 +118,7 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	virtual void OnRegister() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void PostLoad() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End of UActorComponent interface
 
 	// USceneComponent interface

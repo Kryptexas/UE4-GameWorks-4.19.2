@@ -32,7 +32,7 @@ void ULogoutCallbackProxy::Activate()
 		return;
 	}
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("Logout"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("Logout"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.OnlineSub == nullptr)
@@ -74,7 +74,7 @@ void ULogoutCallbackProxy::Activate()
 
 void ULogoutCallbackProxy::OnLogoutCompleted(int LocalPlayerNum, bool bWasSuccessful)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("Logout"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("Logout"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

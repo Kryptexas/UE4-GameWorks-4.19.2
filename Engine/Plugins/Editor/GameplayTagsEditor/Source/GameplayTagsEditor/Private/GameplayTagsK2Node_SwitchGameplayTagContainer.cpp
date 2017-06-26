@@ -12,6 +12,7 @@ UGameplayTagsK2Node_SwitchGameplayTagContainer::UGameplayTagsK2Node_SwitchGamepl
 {
 	FunctionName = TEXT("NotEqual_TagContainerTagContainer");
 	FunctionClass = UBlueprintGameplayTagLibrary::StaticClass();
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveNone;
 }
 
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateFunctionPin()
@@ -154,6 +155,14 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateCasePins()
 			NewPin->PinFriendlyName = FText::FromString(PinNames[Index].ToString());
 		}
   	}
+}
+
+FEdGraphPinType UGameplayTagsK2Node_SwitchGameplayTagContainer::GetInnerCaseType() const
+{
+	// This type should match the second argument of UBlueprintGameplayTagLibrary::NotEqual_TagContainerTagContainer !
+	FEdGraphPinType PinType;
+	PinType.PinCategory = UEdGraphSchema_K2::PC_String;
+	return PinType;
 }
 
 FString UGameplayTagsK2Node_SwitchGameplayTagContainer::GetUniquePinName()

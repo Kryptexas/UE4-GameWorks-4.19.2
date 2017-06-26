@@ -139,20 +139,13 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 
 	const bool bIsMapPackage = (PackageFileSummary.PackageFlags & PKG_ContainsMap) != 0;
 
-	// Assets do not show up in map packages unless we launch with -WorldAssets
-	static const bool bUsingWorldAssets = UAssetRegistryImpl::IsUsingWorldAssets();
-	if ( bIsMapPackage && !bUsingWorldAssets )
-	{
-		return true;
-	}
-
 	// Load the object count
 	int32 ObjectCount = 0;
 	*this << ObjectCount;
 
 	// Worlds that were saved before they were marked public do not have asset data so we will synthesize it here to make sure we see all legacy umaps
 	// We will also do this for maps saved after they were marked public but no asset data was saved for some reason. A bug caused this to happen for some maps.
-	if (bUsingWorldAssets && bIsMapPackage)
+	if (bIsMapPackage)
 	{
 		const bool bLegacyPackage = PackageFileSummary.GetFileVersionUE4() < VER_UE4_PUBLIC_WORLDS;
 		const bool bNoMapAsset = (ObjectCount == 0);

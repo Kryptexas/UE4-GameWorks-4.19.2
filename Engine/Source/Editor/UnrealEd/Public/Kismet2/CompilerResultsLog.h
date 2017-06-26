@@ -7,12 +7,14 @@
 #include "UObject/Object.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraph/EdGraphPin.h"
+#include "ObjectKey.h"
 #if WITH_EDITOR
 #include "Logging/TokenizedMessage.h"
 #include "Misc/CompilationResult.h"
 #include "EdGraphToken.h"
 #endif
 
+class FTokenizedMessage;
 class IMessageLogListing;
 
 #if WITH_EDITOR
@@ -79,7 +81,7 @@ class UNREALED_API FCompilerResultsLog
 
 public:
 	// List of all tokenized messages
-	TArray< TSharedRef<class FTokenizedMessage> > Messages;
+	TArray< TSharedRef<FTokenizedMessage> > Messages;
 
 	// Number of error messages
 	int32 NumErrors;
@@ -152,7 +154,10 @@ public:
 		SourcePath = InSourcePath;
 	}
 
-	// Note: @@ will re replaced by FEdGraphToken::Create
+	/**
+	 * Write an error in to the compiler log.
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
 	template<typename... Args>
 	TSharedRef<FTokenizedMessage> Error(const TCHAR* Format, Args... args)
 	{
@@ -162,6 +167,10 @@ public:
 		return Line;
 	}
 
+	/**
+	 * Write a warning in to the compiler log.
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
 	template<typename... Args>
 	TSharedRef<FTokenizedMessage> Warning(const TCHAR* Format, Args... args)
 	{
@@ -171,12 +180,89 @@ public:
 		return Line;
 	}
 
+	/**
+	 * Write a note in to the compiler log.
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
 	template<typename... Args>
 	TSharedRef<FTokenizedMessage> Note(const TCHAR* Format, Args... args)
 	{
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Info);
 		InternalLogMessage(Format, Line, args...);
 		return Line;
+	}
+
+	/**
+	 * Store a potential error for a given node in the compiler log. All messages for the node can be committed to the log later by calling CommitPotentialMessages
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
+	template<typename... Args>
+	TSharedRef<FTokenizedMessage> StorePotentialError(const UEdGraphNode* Source, const TCHAR* Format, Args... args)
+	{
+		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Error);
+		UEdGraphNode* SourceNode = nullptr;
+		Tokenize(Format, *Line, SourceNode, args...);
+		PotentialMessages.FindOrAdd(Source).Add(Line);
+		return Line;
+	}
+
+	/**
+	 * Store a potential warning for a given node in the compiler log. All messages for the node can be committed to the log later by calling CommitPotentialMessages
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
+	template<typename... Args>
+	TSharedRef<FTokenizedMessage> StorePotentialWarning(const UEdGraphNode* Source, const TCHAR* Format, Args... args)
+	{
+		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Warning);
+		UEdGraphNode* SourceNode = nullptr;
+		Tokenize(Format, *Line, SourceNode, args...);
+		PotentialMessages.FindOrAdd(Source).Add(Line);
+		return Line;
+	}
+
+	/**
+	 * Store a potential note for a given node in the compiler log. All messages for the node can be committed to the log later by calling CommitPotentialMessages
+	 * Note: @@ will be replaced by node or pin links for nodes/pins passed via varargs 
+	 */
+	template<typename... Args>
+	TSharedRef<FTokenizedMessage> StorePotentialNote(const UEdGraphNode* Source, const TCHAR* Format, Args... args)
+	{
+		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Info);
+		UEdGraphNode* SourceNode = nullptr;
+		Tokenize(Format, *Line, SourceNode, args...);
+		PotentialMessages.FindOrAdd(Source).Add(Line);
+		return Line;
+	}
+
+	/**
+	 * Commit all stored potential messages for a given node. Returns true if any messages were written.
+	 */
+	bool CommitPotentialMessages(UEdGraphNode* Source)
+	{
+		TArray<TSharedRef<FTokenizedMessage>> FoundMessages;
+		if (PotentialMessages.RemoveAndCopyValue(Source, FoundMessages))
+		{
+			for (const TSharedRef<FTokenizedMessage>& Message : FoundMessages)
+			{
+				switch (Message->GetSeverity())
+				{
+				case EMessageSeverity::Error:
+					++NumErrors;
+					break;
+
+				case EMessageSeverity::Warning:
+					++NumWarnings;
+					break;
+
+				default:
+					break;
+				}
+
+				InternalLogMessage(Message, Source);
+			}
+			return true;
+		}
+		return false;
 	}
 
 	/** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
@@ -304,8 +390,12 @@ protected:
 	void InternalLogEvent(const FCompilerEvent& InEvent, int32 InDepth = 0);
 
 private:
+
+	/** Map of stored potential messages indexed by a node. Can be committed to the results log by calling CommitPotentialMessages for that node. */
+	TMap< FObjectKey, TArray< TSharedRef<FTokenizedMessage> > > PotentialMessages;
+
 	/** Parses a compiler log dump to generate tokenized output */
-	static TArray< TSharedRef<class FTokenizedMessage> > ParseCompilerLogDump(const FString& LogDump);
+	static TArray< TSharedRef<FTokenizedMessage> > ParseCompilerLogDump(const FString& LogDump);
 
 	/** Goes to an error given a Message Token */
 	static void OnGotoError(const class TSharedRef<IMessageToken>& Token);

@@ -317,7 +317,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		if (!GraphPinObj->bNotConnectable && IsEditingEnabled())
+		if (IsEditingEnabled())
 		{
 			if (MouseEvent.IsAltDown())
 			{
@@ -327,7 +327,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				return FReply::Handled();
 			}
 
-			auto OwnerNodePinned = OwnerNodePtr.Pin();
+			TSharedPtr<SGraphNode> OwnerNodePinned = OwnerNodePtr.Pin();
 			if (MouseEvent.IsControlDown() && (GraphPinObj->LinkedTo.Num() > 0))
 			{
 				// Get a reference to the owning panel widget
@@ -341,9 +341,8 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 
 				// Construct a UEdGraphPin->SGraphPin mapping for the full pin set
 				TMap< FGraphPinHandle, TSharedRef<SGraphPin> > PinToPinWidgetMap;
-				for( TSet< TSharedRef<SWidget> >::TIterator ConnectorIt(AllPins); ConnectorIt; ++ConnectorIt )
+				for (const TSharedRef<SWidget>& SomePinWidget : AllPins)
 				{
-					const TSharedRef<SWidget>& SomePinWidget = *ConnectorIt;
 					const SGraphPin& PinWidget = static_cast<const SGraphPin&>(SomePinWidget.Get());
 
 					UEdGraphPin* GraphPin = PinWidget.GetPinObj();
@@ -354,7 +353,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				}
 
 				// Define a local struct to temporarily store lookup information for pins that we are currently linked to
-				struct LinkedToPinInfo
+				struct FLinkedToPinInfo
 				{
 					// Pin name string
 					FString PinName;
@@ -364,33 +363,30 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				};
 
 				// Build a lookup table containing information about the set of pins that we're currently linked to
-				TArray<LinkedToPinInfo> LinkedToPinInfoArray;
-				for( TArray<UEdGraphPin*>::TIterator LinkArrayIter(GetPinObj()->LinkedTo); LinkArrayIter; ++LinkArrayIter )
+				TArray<FLinkedToPinInfo> LinkedToPinInfoArray;
+				for (UEdGraphPin* Pin : GetPinObj()->LinkedTo)
 				{
-					if (auto PinWidget = PinToPinWidgetMap.Find(*LinkArrayIter))
+					if (auto PinWidget = PinToPinWidgetMap.Find(Pin))
 					{
 						check((*PinWidget)->OwnerNodePtr.IsValid());
 
-						LinkedToPinInfo PinInfo;
+						FLinkedToPinInfo PinInfo;
 						PinInfo.PinName = (*PinWidget)->GetPinObj()->PinName;
 						PinInfo.OwnerNodePtr = (*PinWidget)->OwnerNodePtr.Pin()->GetNodeObj();
-						LinkedToPinInfoArray.Add(PinInfo);
+						LinkedToPinInfoArray.Add(MoveTemp(PinInfo));
 					}
 				}
-				
-				
+
+
 				// Now iterate over our lookup table to find the instances of pin widgets that we had previously linked to
 				TArray<TSharedRef<SGraphPin>> PinArray;
-				for(auto LinkedToPinInfoIter = LinkedToPinInfoArray.CreateConstIterator(); LinkedToPinInfoIter; ++LinkedToPinInfoIter)
+				for (FLinkedToPinInfo PinInfo : LinkedToPinInfoArray)
 				{
-					LinkedToPinInfo PinInfo = *LinkedToPinInfoIter;
-					UEdGraphNode* OwnerNodeObj = PinInfo.OwnerNodePtr.Get();
-					if(OwnerNodeObj != NULL)
+					if (UEdGraphNode* OwnerNodeObj = PinInfo.OwnerNodePtr.Get())
 					{
-						for(auto PinIter = PinInfo.OwnerNodePtr.Get()->Pins.CreateConstIterator(); PinIter; ++PinIter)
+						for (UEdGraphPin* Pin : PinInfo.OwnerNodePtr.Get()->Pins)
 						{
-							UEdGraphPin* Pin = *PinIter;
-							if(Pin->PinName == PinInfo.PinName)
+							if (Pin->PinName == PinInfo.PinName)
 							{
 								if (TSharedRef<SGraphPin>* pWidget = PinToPinWidgetMap.Find(FGraphPinHandle(Pin)))
 								{
@@ -414,7 +410,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
 				Schema->BreakPinLinks(*GraphPinObj, true);
 
-				if(DragEvent.IsValid())
+				if (DragEvent.IsValid())
 				{
 					bIsMovingLinks = true;
 					return FReply::Handled().BeginDragDrop(DragEvent.ToSharedRef());
@@ -425,25 +421,26 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 					return FReply::Handled();
 				}
 			}
-			
-			// Start a drag-drop on the pin
-			if (ensure(OwnerNodePinned.IsValid()))
-			{
-				TArray<TSharedRef<SGraphPin>> PinArray;
-				PinArray.Add(SharedThis(this));
 
-				return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerNodePinned->GetOwnerPanel().ToSharedRef(), PinArray));
-			}
-			else
+			if (!GraphPinObj->bNotConnectable)
 			{
-				return FReply::Unhandled();
+				// Start a drag-drop on the pin
+				if (ensure(OwnerNodePinned.IsValid()))
+				{
+					TArray<TSharedRef<SGraphPin>> PinArray;
+					PinArray.Add(SharedThis(this));
+
+					return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerNodePinned->GetOwnerPanel().ToSharedRef(), PinArray));
+				}
+				else
+				{
+					return FReply::Unhandled();
+				}
 			}
 		}
-		else
-		{
-			// It's not connectable, but we don't want anything above us to process this left click.
-			return FReply::Handled();
-		}
+
+		// It's not connectible, but we don't want anything above us to process this left click.
+		return FReply::Handled();
 	}
 	else
 	{
@@ -950,6 +947,10 @@ FSlateColor SGraphPin::GetPinColor() const
 		{
 			return FSlateColor(FLinearColor(0.9f, 0.2f, 0.15f));
 		}
+		if (GraphPinObj->bOrphanedPin)
+		{
+			return FSlateColor(FLinearColor::Red);
+		}
 		if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
 		{
 			if (!GetPinObj()->GetOwningNode()->IsNodeEnabled() || !IsEditingEnabled())
@@ -975,11 +976,21 @@ FSlateColor SGraphPin::GetPinTextColor() const
 	// If there is no schema there is no owning node (or basically this is a deleted node)
 	if (UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked())
 	{
-		if(!GraphNode->IsNodeEnabled() || !IsEditingEnabled())
+		const bool bDisabled = (!GraphNode->IsNodeEnabled() || !IsEditingEnabled());
+		if (GraphPinObj->bOrphanedPin)
+		{
+			FLinearColor PinColor = FLinearColor::Red;
+			if (bDisabled)
+			{
+				PinColor.A = 0.5f;
+			}
+			return PinColor;
+		}
+		else if (bDisabled)
 		{
 			return FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
 		}
-		else if(bUsePinColorForText)
+		if (bUsePinColorForText)
 		{
 			return GetPinColor();
 		}
@@ -1051,7 +1062,7 @@ EVisibility SGraphPin::GetDefaultValueVisibility() const
 		return EVisibility::Collapsed;
 	}
 
-	if (GraphPinObj->bNotConnectable)
+	if (GraphPinObj->bNotConnectable && !GraphPinObj->bOrphanedPin)
 	{
 		// The only reason this pin exists is to show something, so do so
 		return EVisibility::Visible;

@@ -32,8 +32,7 @@ UKismetRenderingLibrary::UKismetRenderingLibrary(const FObjectInitializer& Objec
 
 void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, FLinearColor ClearColor)
 {
-	check(WorldContextObject);
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	if (TextureRenderTarget
 		&& TextureRenderTarget->Resource
@@ -51,8 +50,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 
 UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height)
 {
-	check(WorldContextObject);
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	if (Width > 0 && Height > 0 && World && FApp::CanEverRender())
 	{
@@ -69,8 +67,7 @@ UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* W
 
 void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material)
 {
-	check(WorldContextObject);
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	if (TextureRenderTarget 
 		&& TextureRenderTarget->Resource 
@@ -271,8 +268,7 @@ void UKismetRenderingLibrary::ExportTexture2D(UObject* WorldContextObject, UText
 
 void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UCanvas*& Canvas, FVector2D& Size, FDrawToRenderTargetContext& Context)
 {
-	check(WorldContextObject);
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	Canvas = NULL;
 	Size = FVector2D(0, 0);
@@ -325,8 +321,7 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextObject, const FDrawToRenderTargetContext& Context)
 {
-	check(WorldContextObject);
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	if (World)
 	{
@@ -356,14 +351,14 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 			// const cast required, as BP will treat Context as an output without the const
 			const_cast<FDrawToRenderTargetContext&>(Context) = FDrawToRenderTargetContext();
 		}
-		else if (!World)
-		{
-			FMessageLog("Blueprint").Warning(LOCTEXT("EndDrawCanvasToRenderTarget_InvalidWorldContextObject", "EndDrawCanvasToRenderTarget: WorldContextObject is not valid."));
-		}
 		else
 		{
 			FMessageLog("Blueprint").Warning(LOCTEXT("EndDrawCanvasToRenderTarget_InvalidContext", "EndDrawCanvasToRenderTarget: Context must be valid."));
 		}
+	}
+	else
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("EndDrawCanvasToRenderTarget_InvalidWorldContextObject", "EndDrawCanvasToRenderTarget: WorldContextObject is not valid."));
 	}
 }
 

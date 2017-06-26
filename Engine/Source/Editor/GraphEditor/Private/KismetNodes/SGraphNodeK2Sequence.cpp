@@ -4,14 +4,14 @@
 #include "EdGraph/EdGraph.h"
 #include "Widgets/SBoxPanel.h"
 #include "GraphEditorSettings.h"
-#include "K2Node_CommutativeAssociativeBinaryOperator.h"
-#include "K2Node_DoOnceMultiInput.h"
-#include "K2Node_ExecutionSequence.h"
-#include "K2Node_MakeArray.h"
+#include "K2Node_AddPinInterface.h"
+#include "K2Node.h"
+#include "ScopedTransaction.h"
 
 
 void SGraphNodeK2Sequence::Construct( const FArguments& InArgs, UK2Node* InNode )
 {
+	ensure(InNode == nullptr || InNode->GetClass()->ImplementsInterface(UK2Node_AddPinInterface::StaticClass()));
 	GraphNode = InNode;
 
 	SetCursor( EMouseCursor::CardinalCross );
@@ -39,30 +39,16 @@ void SGraphNodeK2Sequence::CreateOutputSideAddButton(TSharedPtr<SVerticalBox> Ou
 
 FReply SGraphNodeK2Sequence::OnAddPin()
 {
-	if (UK2Node_ExecutionSequence* SequenceNode = Cast<UK2Node_ExecutionSequence>(GraphNode))
+	IK2Node_AddPinInterface* AddPinNode = Cast<IK2Node_AddPinInterface>(GraphNode);
+	ensure(AddPinNode);
+	if (AddPinNode && AddPinNode->CanAddPin())
 	{
-		SequenceNode->AddPinToExecutionNode();
-		UpdateGraphNode();
-		GraphNode->GetGraph()->NotifyGraphChanged();
-	}
-	else if (UK2Node_MakeArray* MakeArrayNode = Cast<UK2Node_MakeArray>(GraphNode))
-	{
-		MakeArrayNode->AddInputPin();
-		UpdateGraphNode();
-		GraphNode->GetGraph()->NotifyGraphChanged();
-	}
-	else if (UK2Node_CommutativeAssociativeBinaryOperator* OperatorNode = Cast<UK2Node_CommutativeAssociativeBinaryOperator>(GraphNode))
-	{
-		OperatorNode->AddInputPin();
-		UpdateGraphNode();
-		GraphNode->GetGraph()->NotifyGraphChanged();
-	}
-	else if (UK2Node_DoOnceMultiInput* DoOnceMultiNode = Cast<UK2Node_DoOnceMultiInput>(GraphNode))
-	{
-		DoOnceMultiNode->AddInputPin();
-		UpdateGraphNode();
-		GraphNode->GetGraph()->NotifyGraphChanged();
-	}
+		FScopedTransaction Transaction(NSLOCTEXT("SequencerNode", "AddPinTransaction", "AddPin"));
 
+		AddPinNode->AddInputPin();
+		UpdateGraphNode();
+		GraphNode->GetGraph()->NotifyGraphChanged();
+	}
+	
 	return FReply::Handled();
 }

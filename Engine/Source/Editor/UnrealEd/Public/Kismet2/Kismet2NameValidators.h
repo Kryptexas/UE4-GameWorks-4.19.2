@@ -8,6 +8,11 @@
 class INameValidatorInterface;
 class UBlueprint;
 
+// Eventually we want this to be the same as INVALID_OBJECTNAME_CHARACTERS, except we might allow spaces
+// but for now it only includes "." as that has known failure modes (FindObject<T> will try to interpret
+// that as a packagename.objectname)
+#define UE_BLUEPRINT_INVALID_NAME_CHARACTERS TEXT(".")
+
 //////////////////////////////////////////////////////////////////////////
 // FNameValidtorFactory
 class UNREALED_API FNameValidatorFactory
@@ -16,7 +21,7 @@ public:
 	static TSharedPtr<class INameValidatorInterface> MakeValidator(class UEdGraphNode* Node);
 };
 
-enum EValidatorResult
+enum class EValidatorResult
 {
 	/** Name is valid for this object */
 	Ok,
@@ -28,6 +33,8 @@ enum EValidatorResult
 	ExistingName,
 	/* The entered name is too long */
 	TooLong,
+	/* The entered name contains invalid characters (see INVALID_OBJECTNAME_CHARACTERS, except for space) */
+	ContainsInvalidCharacters,
 	/** The entered is in use locally */
 	LocallyInUse
 };
@@ -47,7 +54,14 @@ public:
 	/** @return true if FString is valid, false otherwise */
 	virtual EValidatorResult IsValid (const FString& Name, bool bOriginal = false) = 0;
 
-	static FString GetErrorString(const FString& Name, EValidatorResult ErrorCode);
+	/** @return A text string describing the type of error in ErrorCode for Name */
+	static FText GetErrorText(const FString& Name, EValidatorResult ErrorCode);
+
+	/** @return A string describing the type of error in ErrorCode for Name */
+	static FString GetErrorString(const FString& Name, EValidatorResult ErrorCode)
+	{
+		return GetErrorText(Name, ErrorCode).ToString();
+	}
 
 	/** @return Ok if was valid and doesn't require anything, AlreadyInUse if was already in use and is replaced with new one */
 	EValidatorResult FindValidString(FString& InOutName);

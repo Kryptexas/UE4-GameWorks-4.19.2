@@ -8,7 +8,7 @@
 
 class UNREALED_API FEnumEditorUtils
 {
-	static void PrepareForChange(const UUserDefinedEnum* Enum);
+	static void PrepareForChange(UUserDefinedEnum* Enum);
 	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int64>>& OldNames, bool bResolveData = true);
 
 	/** copy full enumeratos names from given enum to OutEnumNames, the last '_MAX' enumerator is skipped */

@@ -83,22 +83,23 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 	}
 }
 
-static bool CanBeExposed(const UProperty* Property, bool bIncludeEditOnly = true)
+static bool CanBeExposed(const UProperty* Property)
 {
 	if (Property)
 	{
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		check(Schema);
 
-		FEdGraphPinType DumbGraphPinType;
-		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
-
-		//TODO: remove CPF_Edit in a future release
-		const bool bVisible = (bIncludeEditOnly ? Property->HasAnyPropertyFlags(CPF_BlueprintVisible | CPF_Edit) : Property->HasAnyPropertyFlags(CPF_BlueprintVisible)) && !(Property->ArrayDim > 1);
-		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
-		if (bVisible && bConvertable && !bBlueprintReadOnly)
+		if (!Property->HasAllPropertyFlags(CPF_BlueprintReadOnly))
 		{
-			return true;
+			if (Property->HasAllPropertyFlags(CPF_BlueprintVisible) && !(Property->ArrayDim > 1))
+			{
+				FEdGraphPinType DumbGraphPinType;
+				if (Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType))
+				{
+					return true;
+				}
+			}
 		}
 	}
 	return false;
@@ -155,30 +156,22 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 
 void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	if(!StructType)
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
 	}
 	else
 	{
-		bool bHasAnyBlueprintVisibleProperty = false;
 		for (TFieldIterator<UProperty> It(StructType); It; ++It)
 		{
 			const UProperty* Property = *It;
 			if (CanBeExposed(Property))
 			{
-				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
-				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
-
-				const UEdGraphPin* Pin = FindPin(Property->GetName());
-
-				if (Pin && !bIsBlueprintVisible)
-				{
-					MessageLog.Warning(*LOCTEXT("PropertyIsNotBPVisible_Warning", "@@ - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.").ToString(), Pin);
-				}
-
 				if (Property->ArrayDim > 1)
 				{
+					const UEdGraphPin* Pin = FindPin(Property->GetName());
 					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
 				}
 			}
@@ -243,18 +236,18 @@ FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
 	return UK2Node::GetNodeTitleColor();
 }
 
-bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct, bool bIncludeEditOnly, bool bMustHaveValidProperties )
+bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct, const bool bForInternalUse)
 {
-	if (Struct && !Struct->HasMetaData(TEXT("HasNativeMake")))
-	{
-		if (!bMustHaveValidProperties && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
-		{
-			return true;
-		}
+	return (Struct && !Struct->HasMetaData(TEXT("HasNativeMake")) && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct, bForInternalUse));
+}
 
+bool UK2Node_MakeStruct::CanBeSplit(const UScriptStruct* Struct)
+{
+	if (CanBeMade(Struct))
+	{
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
-			if (CanBeExposed(*It, bIncludeEditOnly))
+			if (CanBeExposed(*It))
 			{
 				return true;
 			}
@@ -327,7 +320,7 @@ void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 	{
 		UBlueprintFieldNodeSpawner* NodeSpawner = nullptr;
 		
-		if (UK2Node_MakeStruct::CanBeMade(Struct, /*bIncludeEditOnly =*/false))
+		if (UK2Node_MakeStruct::CanBeMade(Struct))
 		{
 			NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, Struct);
 			check(NodeSpawner != nullptr);

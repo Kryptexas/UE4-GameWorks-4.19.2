@@ -36,9 +36,13 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, meta = (DisplayName = "Iterative cooking for builds launched from the editor (launch on)"))
 	bool bIterativeCookingForLaunchOn;
 
-	/** Use asset registry for iteration instead of older system. Currently experimental, will be default when finished */
-	UPROPERTY(GlobalConfig)
-	bool bUseAssetRegistryForIteration;
+	/** Ignore ini changes when doing iterative cooking, either in editor or out of editor */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay)
+	bool bIgnoreIniSettingsOutOfDateForIteration;
+
+	/** Ignore native header file changes when doing iterative cooking, either in editor or out of editor */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay)
+	bool bIgnoreScriptPackagesOutOfDateForIteration;
 
 	/** Whether or not to compile Blueprints in development mode when cooking. */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay)

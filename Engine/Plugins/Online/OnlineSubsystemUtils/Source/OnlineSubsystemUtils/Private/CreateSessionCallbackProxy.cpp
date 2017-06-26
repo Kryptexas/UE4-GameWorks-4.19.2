@@ -31,7 +31,7 @@ UCreateSessionCallbackProxy* UCreateSessionCallbackProxy::CreateSession(UObject*
 
 void UCreateSessionCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("CreateSession"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("CreateSession"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())
@@ -66,7 +66,7 @@ void UCreateSessionCallbackProxy::Activate()
 
 void UCreateSessionCallbackProxy::OnCreateCompleted(FName SessionName, bool bWasSuccessful)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("CreateSessionCallback"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("CreateSessionCallback"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())
@@ -95,7 +95,7 @@ void UCreateSessionCallbackProxy::OnCreateCompleted(FName SessionName, bool bWas
 
 void UCreateSessionCallbackProxy::OnStartCompleted(FName SessionName, bool bWasSuccessful)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("StartSessionCallback"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("StartSessionCallback"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

@@ -161,7 +161,7 @@ void UAIPerceptionSystem::Tick(float DeltaSeconds)
 	// if no new stimuli
 	// and it's not time to remove stimuli from "know events"
 
-	UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
+	UWorld* World = GEngine->GetWorldFromContextObjectChecked(GetOuter());
 	check(World);
 
 	if (World->bPlayersOnly == false)
@@ -280,16 +280,14 @@ void UAIPerceptionSystem::AgeStimuli()
 UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = Cast<UWorld>(WorldContextObject);
-
-	if (World == nullptr && WorldContextObject != nullptr)
+	if (World == nullptr)
 	{
-		World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	}
 
 	if (World && World->GetAISystem())
 	{
-		check(Cast<UAISystem>(World->GetAISystem()));
-		UAISystem* AISys = (UAISystem*)(World->GetAISystem());
+		UAISystem* AISys = CastChecked<UAISystem>(World->GetAISystem());
 
 		return AISys->GetPerceptionSystem();
 	}
@@ -579,7 +577,7 @@ bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContextO
 	bool bResult = false;
 	if (Sense && Target)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		if (World && World->GetAISystem())
 		{
 			UAISystem* AISys = Cast<UAISystem>(World->GetAISystem());

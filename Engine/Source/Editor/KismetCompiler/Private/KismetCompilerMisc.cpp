@@ -867,13 +867,13 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	{
 		UClass* SubType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(PinSubCategoryObject);
 
-		if (SubType == NULL)
+		if (SubType == nullptr)
 		{
 			// If this is from a degenerate pin, because the object type has been removed, default this to a UObject subtype so we can make a dummy term for it to allow the compiler to continue
 			SubType = UObject::StaticClass();
 		}
 
-		if (SubType != NULL)
+		if (SubType)
 		{
 			const bool bIsInterface = SubType->HasAnyClassFlags(CLASS_Interface)
 				|| ((SubType == SelfClass) && ensure(SelfClass->ClassGeneratedBy) && FBlueprintEditorUtils::IsInterfaceBlueprint(CastChecked<UBlueprint>(SelfClass->ClassGeneratedBy)));
@@ -914,8 +914,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	}
 	else if (PinCategory == Schema->PC_Struct)
 	{
-		UScriptStruct* SubType = Cast<UScriptStruct>(PinSubCategoryObject);
-		if (SubType != NULL)
+		if (UScriptStruct* SubType = Cast<UScriptStruct>(PinSubCategoryObject))
 		{
 			FString StructureError;
 			if (FStructureEditorUtils::EStructureError::Ok == FStructureEditorUtils::IsStructureValid(SubType, NULL, &StructureError))
@@ -951,7 +950,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	{
 		UClass* SubType = Cast<UClass>(PinSubCategoryObject);
 
-		if (SubType == NULL)
+		if (SubType == nullptr)
 		{
 			// If this is from a degenerate pin, because the object type has been removed, default this to a UObject subtype so we can make a dummy term for it to allow the compiler to continue
 			SubType = UObject::StaticClass();
@@ -963,11 +962,11 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 					));
 		}
 
-		if (SubType != NULL)
+		if (SubType)
 		{
 			if (PinCategory == Schema->PC_AssetClass)
 			{
-				auto AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				UAssetClassProperty* AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				// we want to use this setter function instead of setting the 
 				// MetaClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
@@ -1164,6 +1163,8 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			NewMapProperty->ValueProp = CreatePrimitiveProperty(PropertyScope, ValueName, Type.PinValueType.TerminalCategory, Type.PinValueType.TerminalSubCategory, Type.PinValueType.TerminalSubCategoryObject.Get(), SelfClass, Type.bIsWeakPointer, Schema, MessageLog);;
 			if (!NewMapProperty->ValueProp)
 			{
+				NewProperty->MarkPendingKill();
+				NewProperty = nullptr;
 				NewMapProperty->MarkPendingKill();
 			}
 			else
@@ -1649,27 +1650,30 @@ FBPTerminal* FNodeHandlingFunctor::RegisterLiteral(FKismetFunctionContext& Conte
 
 void FNodeHandlingFunctor::RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node)
 {
-	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+	for (UEdGraphPin* Pin : Node->Pins)
 	{
-		UEdGraphPin* Pin = Node->Pins[PinIndex];
-		if (Pin->bNotConnectable && Pin->LinkedTo.Num() > 0)
+		if (!Pin->bOrphanedPin)
 		{
-			CompilerContext.MessageLog.Warning(*LOCTEXT("NotConnectablePinLinked", "@@ is linked to another pin but is marked as not connectable. This pin connection will not be compiled.").ToString(), Pin);
-		}
-		else if (!CompilerContext.GetSchema()->IsMetaPin(*Pin)
-			|| (CompilerContext.GetSchema()->IsSelfPin(*Pin) && Pin->LinkedTo.Num() == 0 && Pin->DefaultObject) )
-		{
-			UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(Pin);
-
-			if (Context.NetMap.Find(Net) == NULL)
+			if (Pin->bNotConnectable && Pin->LinkedTo.Num() > 0)
 			{
-				if ((Net->Direction == EGPD_Input) && (Net->LinkedTo.Num() == 0))
+				// If it is not connectible due to being orphaned no need to warn as we have other messaging for that
+				CompilerContext.MessageLog.Warning(*LOCTEXT("NotConnectablePinLinked", "@@ is linked to another pin but is marked as not connectable. This pin connection will not be compiled.").ToString(), Pin);
+			}
+			else if (!CompilerContext.GetSchema()->IsMetaPin(*Pin)
+				|| (Pin->LinkedTo.Num() == 0 && Pin->DefaultObject && CompilerContext.GetSchema()->IsSelfPin(*Pin) ))
+			{
+				UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(Pin);
+
+				if (Context.NetMap.Find(Net) == nullptr)
 				{
-					RegisterLiteral(Context, Net);
-				}
-				else
-				{
-					RegisterNet(Context, Pin);
+					if ((Net->Direction == EGPD_Input) && (Net->LinkedTo.Num() == 0))
+					{
+						RegisterLiteral(Context, Net);
+					}
+					else
+					{
+						RegisterNet(Context, Pin);
+					}
 				}
 			}
 		}

@@ -34,7 +34,7 @@ UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievement
 
 void UAchievementWriteCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("WriteAchievementObject"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("WriteAchievementObject"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

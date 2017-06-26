@@ -23,7 +23,7 @@ namespace SKnotNodeDefinitions
 	static const float KnotCenterBubbleAdjust = 20.f;
 
 	/** Knot node spacer sizes */
-	static const FVector2D NodeSpacerSize(32.0f, 32.0f);
+	static const FVector2D NodeSpacerSize(42.0f, 24.0f);
 }
 
 class FAmbivalentDirectionDragConnection : public FDragConnection
@@ -126,21 +126,14 @@ void FAmbivalentDirectionDragConnection::ValidateGraphPinList(TArray<UEdGraphPin
 
 		if (UEdGraphPin* TargetPinObj = GetHoveredPin())
 		{
-// 			if (UK2Node_Knot* TargetKnot = Cast<UK2Node_Knot>(TargetPinObj->GetOwningNode()))
-// 			{
-// 				// The visible pin on a knot is always an output, so Rely on the direction matching; since the visible pin on another knot is always an output
-// 			}
-// 			else
+			// Dragging to another pin, pick the opposite direction as a source to maximize connection chances
+			if (TargetPinObj->Direction == EGPD_Input)
 			{
-				// Dragging to another pin, pick the opposite direction as a source to maximize connection chances
-				if (TargetPinObj->Direction == EGPD_Input)
-				{
-					bUseOutput = true;
-				}
-				else
-				{
-					bUseOutput = false;
-				}
+				bUseOutput = true;
+			}
+			else
+			{
+				bUseOutput = false;
 			}
 		}
 
@@ -311,9 +304,6 @@ void SGraphNodeKnot::Construct(const FArguments& InArgs, UEdGraphNode* InKnot)
 	verify(InKnot->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex) == true &&
 		InputPinIndex >= 0 && OutputPinIndex >= 0);
 	SGraphNodeDefault::Construct(SGraphNodeDefault::FArguments().GraphNodeObj(InKnot));
-
-	ShadowBrush = FEditorStyle::GetBrush(TEXT("Graph.Node.RerouteShadow"));
-	ShadowBrushSelected = FEditorStyle::GetBrush(TEXT("Graph.Node.RerouteShadowSelected"));
 }
 
 
@@ -339,32 +329,47 @@ void SGraphNodeKnot::UpdateGraphNode()
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 
 	this->GetOrAddSlot( ENodeZone::Center )
-	.HAlign(HAlign_Center)
-	.VAlign(VAlign_Center)
-	[
-		SNew(SOverlay)
-		+SOverlay::Slot()
-		[
-			// Grab handle to be able to move the node
-			SNew(SSpacer)
-			.Size(SKnotNodeDefinitions::NodeSpacerSize)
-			.Visibility(EVisibility::Visible)
-			.Cursor(EMouseCursor::CardinalCross)
-		]
-		+ SOverlay::Slot()
-		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		[
-			SAssignNew(LeftNodeBox, SVerticalBox)
-		]
-		+SOverlay::Slot()
 		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
 		[
-			SAssignNew(RightNodeBox, SVerticalBox)
-		]
-	];
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			[
+				// Grab handle to be able to move the node
+				SNew(SSpacer)
+				.Size(SKnotNodeDefinitions::NodeSpacerSize)
+				.Visibility(EVisibility::Visible)
+				.Cursor(EMouseCursor::CardinalCross)
+			]
 
+			+SOverlay::Slot()
+// 			.VAlign(VAlign_Center)
+// 			.HAlign(HAlign_Center)
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.VAlign(VAlign_Top)
+				.HAlign(HAlign_Center)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SOverlay)
+						+SOverlay::Slot()
+						[
+							// LEFT
+							SAssignNew(LeftNodeBox, SVerticalBox)
+						]
+						+SOverlay::Slot()
+						[
+							// RIGHT
+							SAssignNew(RightNodeBox, SVerticalBox)
+						]
+					]
+				]
+			]
+		];
 	// Create comment bubble
 	const FSlateColor CommentColor = GetDefault<UGraphEditorSettings>()->DefaultCommentNodeTitleColor;
 
@@ -393,7 +398,7 @@ void SGraphNodeKnot::UpdateGraphNode()
 
 const FSlateBrush* SGraphNodeKnot::GetShadowBrush(bool bSelected) const
 {
-	return bSelected ? ShadowBrushSelected : ShadowBrush;
+	return bSelected ? FEditorStyle::GetBrush(TEXT("Graph.Node.ShadowSelected")) : FEditorStyle::GetNoBrush();
 }
 
 TSharedPtr<SGraphPin> SGraphNodeKnot::CreatePinWidget(UEdGraphPin* Pin) const

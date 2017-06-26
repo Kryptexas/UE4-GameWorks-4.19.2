@@ -12,6 +12,7 @@
 #include "EdMode.h"
 #include "ScopedTransaction.h"
 #include "EdGraphSchema_K2.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
@@ -656,6 +657,26 @@ const TArray<FStructVariableDescription>* FStructureEditorUtils::GetVarDescPtr(c
 {
 	check(Struct);
 	return Struct->EditorData ? &CastChecked<const UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions : nullptr;
+}
+
+FStructVariableDescription* FStructureEditorUtils::GetVarDescByGuid(UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	if (Struct)
+	{
+		TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
+		return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
+	}
+	return nullptr;
+}
+
+const FStructVariableDescription* FStructureEditorUtils::GetVarDescByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	if (Struct)
+	{
+		const TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
+		return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
+	}
+	return nullptr;
 }
 
 FString FStructureEditorUtils::GetTooltip(const UUserDefinedStruct* Struct)

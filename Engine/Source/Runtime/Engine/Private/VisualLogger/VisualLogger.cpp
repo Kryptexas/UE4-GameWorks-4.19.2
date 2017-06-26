@@ -29,7 +29,7 @@ namespace
 {
 	UWorld* GetWorldForVisualLogger(const UObject* Object)
 	{
-		UWorld* World = Object ? GEngine->GetWorldFromContextObject(Object, false) : nullptr;
+		UWorld* World = GEngine->GetWorldFromContextObject(Object, EGetWorldErrorMode::ReturnNull);
 #if WITH_EDITOR
 		UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
 		if (GIsEditor && EEngine != nullptr && World == nullptr)
@@ -65,7 +65,7 @@ bool FVisualLogger::CheckVisualLogInputInternal(const UObject* Object, const FLo
 		return false;
 	}
 
-	*World = GEngine->GetWorldFromContextObject(Object, false);
+	*World = GEngine->GetWorldFromContextObject(Object, EGetWorldErrorMode::ReturnNull);
 	if (ensure(*World != nullptr) == false)
 	{
 		return false;

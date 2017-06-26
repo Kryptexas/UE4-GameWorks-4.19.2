@@ -1286,29 +1286,18 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(BlueprintObj, OriginalName, ValidationScope));
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(TextAsString);
-	if(ValidatorResult == EValidatorResult::AlreadyInUse)
+	switch (ValidatorResult)
 	{
-		OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText);
-	}
-	else if(ValidatorResult == EValidatorResult::EmptyName)
-	{
-		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!");
-	}
-	else if(ValidatorResult == EValidatorResult::TooLong)
-	{
-		OutErrorMessage = LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!");
-	}
-	else if(ValidatorResult == EValidatorResult::LocallyInUse)
-	{
-		OutErrorMessage = LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!");
+	case EValidatorResult::Ok:
+	case EValidatorResult::ExistingName:
+		// These are fine, don't need to surface to the user, the rename can 'proceed' even if the name is the existing one
+		break;
+	default:
+		OutErrorMessage = INameValidatorInterface::GetErrorText(TextAsString, ValidatorResult);
+		break;
 	}
 
-	if(OutErrorMessage.IsEmpty())
-	{
-		return true;
-	}
-
-	return false;
+	return OutErrorMessage.IsEmpty();
 }
 
 //------------------------------------------------------------------------------

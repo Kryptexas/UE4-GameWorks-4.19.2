@@ -336,9 +336,6 @@ public:
 	/** For a given package and platform, return what Chunks it should be assigned to, games can override this as needed. Returns false if no information found */
 	virtual bool GetPackageChunkIds(FName PackageName, const class ITargetPlatform* TargetPlatform, const TArray<int32>& ExistingChunkList, TArray<int32>& OutChunkList) const;
 
-	/** Runs game-specific code to update the source hash on a package at cook time. This is added to the base package guid check */
-	virtual void UpdatePackageSourceHash(FName PackageName, FMD5& PackageSourceHash) const;
-
 	/** Refresh the entire set of asset data, can call from editor when things have changed dramatically */
 	virtual void RefreshPrimaryAssetDirectory();
 
@@ -401,9 +398,6 @@ protected:
 	/** Helper function to write out asset reports */
 	virtual bool WriteCustomReport(FString FileName, TArray<FString>& FileLines) const;
 
-	/** Function used during creating Management references to decide when to recurse and set references */
-	virtual EAssetSetManagerResult::Type ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const;
-	
 	/** Returns true if the specified TypeInfo should be scanned. Can be implemented by the game. */
 	virtual bool ShouldScanPrimaryAssetType(FPrimaryAssetTypeInfo& TypeInfo) const;
 
@@ -417,6 +411,9 @@ protected:
 	virtual bool IsPathExcludedFromScan(const FString& Path) const;
 
 #if WITH_EDITOR
+	/** Function used during creating Management references to decide when to recurse and set references */
+	virtual EAssetSetManagerResult::Type ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const;
+
 	/** Helper function which requests the asset register scan a list of directories/assets */
 	virtual void ScanPathsSynchronous(const TArray<FString>& PathsToScan) const;
 

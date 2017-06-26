@@ -916,9 +916,16 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invalid and not waiting for repath"));
 			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
+			return;
 		}
-		return;
+		else
+		{
+			// continue with execution, if navigation is being rebuild constantly AI will get stuck with current waypoint
+			// path updates should be still coming in, even though they get invalidated right away
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Updating path points in invalid & pending path!"));
+		}
 	}
 
 	// if agent has control over its movement, check finish conditions

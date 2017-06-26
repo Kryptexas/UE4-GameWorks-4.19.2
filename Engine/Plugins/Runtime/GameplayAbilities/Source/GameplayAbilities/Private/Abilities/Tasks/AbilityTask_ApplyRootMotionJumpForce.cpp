@@ -21,7 +21,7 @@ UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::Ap
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
-	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionJumpForce>(OwningAbility, TaskInstanceName);
+	UAbilityTask_ApplyRootMotionJumpForce* MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionJumpForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->Rotation = Rotation;

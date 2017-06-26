@@ -88,6 +88,10 @@ private:
 	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(DisplayName="Tile Sheet Texture", AllowPrivateAccess="true"))
 	UTexture2D* TileSheet;
 
+	// Additional source textures for other slots
+	UPROPERTY(Category = TileSet, EditAnywhere, AssetRegistrySearchable, meta = (DisplayName = "Additional Textures"))
+	TArray<UTexture*> AdditionalSourceTextures;
+
 	// The amount of padding around the border of the tile sheet (in pixels)
 	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0, AllowPrivateAccess="true"))
 	FIntMargin BorderMargin;
@@ -219,6 +223,11 @@ public:
 	inline UTexture2D* GetTileSheetTexture() const
 	{
 		return TileSheet;
+	}
+
+	inline TArray<UTexture*> GetAdditionalTextures() const
+	{
+		return AdditionalSourceTextures;
 	}
 
 	// Returns the imported size of the tile sheet texture (in pixels)

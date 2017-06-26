@@ -27,13 +27,8 @@ void FKCHandler_VariableSet::RegisterNets(FKismetFunctionContext& Context, UEdGr
 	{
 		SetterNode->CheckForErrors(CompilerContext.GetSchema(), Context.MessageLog);
 
-		if(FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Context.Blueprint, SetterNode->GetPropertyForVariable()))
-		{
-			CompilerContext.MessageLog.Warning(*LOCTEXT("BlueprintReadOnlyOrPrivate_Error", "The property is marked as BlueprintReadOnly or Private. It cannot be modifed in the blueprint. @@").ToString(), Node);
-		}
-
 		// Report an error that the local variable could not be found
-		if(SetterNode->VariableReference.IsLocalScope() && SetterNode->GetPropertyForVariable() == NULL)
+		if(SetterNode->VariableReference.IsLocalScope() && SetterNode->GetPropertyForVariable() == nullptr)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("VariableName"), FText::FromName(SetterNode->VariableReference.GetMemberName()));
@@ -50,10 +45,9 @@ void FKCHandler_VariableSet::RegisterNets(FKismetFunctionContext& Context, UEdGr
 		}
 	}
 
-	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+	for (UEdGraphPin* Net : Node->Pins)
 	{
-		UEdGraphPin* Net = Node->Pins[PinIndex];
-		if (!CompilerContext.GetSchema()->IsMetaPin(*Net) && (Net->Direction == EGPD_Input))
+		if (!Net->bOrphanedPin && (Net->Direction == EGPD_Input) && !CompilerContext.GetSchema()->IsMetaPin(*Net))
 		{
 			if (ValidateAndRegisterNetIfLiteral(Context, Net))
 			{
@@ -66,18 +60,18 @@ void FKCHandler_VariableSet::RegisterNets(FKismetFunctionContext& Context, UEdGr
 void FKCHandler_VariableSet::InnerAssignment(FKismetFunctionContext& Context, UEdGraphNode* Node, UEdGraphPin* VariablePin, UEdGraphPin* ValuePin)
 {
 	FBPTerminal** VariableTerm = Context.NetMap.Find(VariablePin);
-	if (VariableTerm == NULL)
+	if (VariableTerm == nullptr)
 	{
 		VariableTerm = Context.NetMap.Find(FEdGraphUtilities::GetNetFromPin(VariablePin));
 	}
 
 	FBPTerminal** ValueTerm = Context.LiteralHackMap.Find(ValuePin);
-	if (ValueTerm == NULL)
+	if (ValueTerm == nullptr)
 	{
 		ValueTerm = Context.NetMap.Find(FEdGraphUtilities::GetNetFromPin(ValuePin));
 	}
 
-	if ((VariableTerm != NULL) && (ValueTerm != NULL))
+	if (VariableTerm && ValueTerm)
 	{
 		FKismetCompilerUtilities::CreateObjectAssignmentStatement(Context, Node, *ValueTerm, *VariableTerm);
 

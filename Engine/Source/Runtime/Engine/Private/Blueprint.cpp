@@ -629,6 +629,12 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 		UPackage* Package = Cast<UPackage>(GetOutermost());
 		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
+		if( Package )
+		{
+			// Tell the linker to try to find exports in memory first, so that it gets the new, regenerated versions
+			Package->FindExportsInMemoryFirst(true);
+		}
+
 		UClass* GeneratedClassResolved = GeneratedClass;
 
 		UBlueprint::ForceLoadMetaData(this);
@@ -653,6 +659,8 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 
 		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
 		
+		FBlueprintEditorUtils::PreloadBlueprintSpecificData( this );
+
 		// clear this now that we're not in a re-entrrant context - bHasBeenRegenerated will guard against 'real' 
 		// double regeneration calls:
 		bIsRegeneratingOnLoad = false;

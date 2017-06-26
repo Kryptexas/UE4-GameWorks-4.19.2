@@ -753,40 +753,20 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	{
 		SaveFilename = FString();
 		bool bSaveFileLocationSelected = false;
-		if (UEditorEngine::IsUsingWorldAssets())
-		{
-			FString DefaultPackagePath;
-			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / Filename, DefaultPackagePath);
 
-			FString PackageName;
-			bSaveFileLocationSelected = OpenSaveAsDialog(
-				UWorld::StaticClass(),
-				FPackageName::GetLongPackagePath(DefaultPackagePath),
-				FPaths::GetBaseFilename(Filename),
-				PackageName);
+		FString DefaultPackagePath;
+		FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / Filename, DefaultPackagePath);
 
-			if ( bSaveFileLocationSelected )
-			{
-				SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
-			}
-		}
-		else
-		{
-			bSaveFileLocationSelected = FileDialogHelpers::SaveFile(
-				NSLOCTEXT("UnrealEd", "SaveAs", "Save As").ToString(),
-				FEditorFileUtils::GetFilterString(FI_Save),
-				DefaultDirectory,
-				FPaths::GetCleanFilename(Filename),
-				SaveFilename
-				);
-		}
+		FString PackageName;
+		bSaveFileLocationSelected = OpenSaveAsDialog(
+			UWorld::StaticClass(),
+			FPackageName::GetLongPackagePath(DefaultPackagePath),
+			FPaths::GetBaseFilename(Filename),
+			PackageName);
+
 		if( bSaveFileLocationSelected )
 		{
-			// Add a map file extension if none was supplied
-			if( FPaths::GetExtension(SaveFilename).IsEmpty() )
-			{
-				SaveFilename = SaveFilename + FPackageName::GetMapPackageExtension();
-			}
+			SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
 
 			FText ErrorMessage;
 			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(SaveFilename, ErrorMessage);
@@ -2015,104 +1995,51 @@ bool FEditorFileUtils::LoadMap()
 	}
 
 	bool bResult = false;
-	if (UEditorEngine::IsUsingWorldAssets())
+	static bool bIsDialogOpen = false;
+
+	struct FLocal
 	{
-		static bool bIsDialogOpen = false;
-
-		struct FLocal
+		static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets, bool* OutResult)
 		{
-			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets, bool* OutResult)
+			bIsDialogOpen = false;
+
+			if ( SelectedAssets.Num() > 0 )
 			{
-				bIsDialogOpen = false;
+				const FAssetData& AssetData = SelectedAssets[0];
 
-				if ( SelectedAssets.Num() > 0 )
-				{
-					const FAssetData& AssetData = SelectedAssets[0];
-
-					if (!GIsDemoMode)
-					{
-						// If there are any unsaved changes to the current level, see if the user wants to save those first.
-						bool bPromptUserToSave = true;
-						bool bSaveMapPackages = true;
-						bool bSaveContentPackages = true;
-						if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
-						{
-							*OutResult = false;
-							return;
-						}
-					}
-
-					const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
-					const bool bLoadAsTemplate = false;
-					const bool bShowProgress = true;
-					*OutResult = FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
-				}
-			}
-
-			static void HandleDialogCancelled()
-			{
-				bIsDialogOpen = false;
-			}
-		};
-		
-		if (!bIsDialogOpen)
-		{
-			bIsDialogOpen = true;
-			const bool bAllowMultipleSelection = false;
-			OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen, &bResult),
-								   FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
-								   bAllowMultipleSelection);
-		}
-	}
-	else
-	{
-		bool bFilenameIsValid = false;
-		FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
-
-		while( !bFilenameIsValid )
-		{
-			TArray<FString> OutFiles;
-			if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
-			{
-				const FString& FileToOpen = OutFiles[0];
-
-				FText ErrorMessage;
-				bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
-				if ( !bFilenameIsValid )
-				{
-					// Start the loop over, prompting for load again
-					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Filename"), DisplayFilename);
-					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-					const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-					continue;
-				}
-
-				if( !GIsDemoMode )
+				if (!GIsDemoMode)
 				{
 					// If there are any unsaved changes to the current level, see if the user wants to save those first.
 					bool bPromptUserToSave = true;
 					bool bSaveMapPackages = true;
 					bool bSaveContentPackages = true;
-					if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+					if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
 					{
-						// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
-						return false;
+						*OutResult = false;
+						return;
 					}
 				}
 
-				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-				bResult = LoadMap( FileToOpen, false, true );
-			}
-			else
-			{
-				// User canceled the open dialog, do not prompt again.
-				break;
+				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
+				const bool bLoadAsTemplate = false;
+				const bool bShowProgress = true;
+				*OutResult = FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 			}
 		}
+
+		static void HandleDialogCancelled()
+		{
+			bIsDialogOpen = false;
+		}
+	};
+		
+	if (!bIsDialogOpen)
+	{
+		bIsDialogOpen = true;
+		const bool bAllowMultipleSelection = false;
+		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen, &bResult),
+								FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
+								bAllowMultipleSelection);
 	}
 
 	return bResult;
@@ -2648,34 +2575,25 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		while( NumSkips < NumSkipsBeforeAbort )
 		{
 			FString DefaultLocation = Directory;
-
-			bool bSaveFile = false;
-			if( UEditorEngine::IsUsingWorldAssets() )
+			FString DefaultPackagePath;
+			if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
 			{
-				FString DefaultPackagePath;
-				if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
-				{
-					// Original location is invalid; set default location to /Game/Maps
-					DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
-					ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
-				}
-
-				FString SaveAsPackageName;
-				bSaveFile = OpenSaveAsDialog(
-					UWorld::StaticClass(),
-					FPackageName::GetLongPackagePath(DefaultPackagePath),
-					FPaths::GetBaseFilename(FinalPackageFilename),
-					SaveAsPackageName);
-
-				if (bSaveFile)
-				{
-					// Leave out the extension. It will be added below.
-					FinalPackageFilename = FPackageName::LongPackageNameToFilename(SaveAsPackageName);
-				}
+				// Original location is invalid; set default location to /Game/Maps
+				DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
+				ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
 			}
-			else
+
+			FString SaveAsPackageName;
+			bool bSaveFile = OpenSaveAsDialog(
+				UWorld::StaticClass(),
+				FPackageName::GetLongPackagePath(DefaultPackagePath),
+				FPaths::GetBaseFilename(FinalPackageFilename),
+				SaveAsPackageName);
+
+			if (bSaveFile)
 			{
-				bSaveFile = FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename );
+				// Leave out the extension. It will be added below.
+				FinalPackageFilename = FPackageName::LongPackageNameToFilename(SaveAsPackageName);
 			}
 
 			if( bSaveFile )

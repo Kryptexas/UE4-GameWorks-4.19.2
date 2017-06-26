@@ -108,7 +108,7 @@ struct FMaterialParameterCollectionExecutionToken : IMovieSceneExecutionToken
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{
 		UObject* WorldContextObject = Player.GetPlaybackContext();
-		UWorld* World = WorldContextObject ? GEngine->GetWorldFromContextObject(WorldContextObject) : nullptr;
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 		if (!World)
 		{

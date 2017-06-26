@@ -198,19 +198,17 @@ TSharedRef<SWidget> FBlackboardDecoratorDetails::OnGetEnumValueContent() const
 
 FText FBlackboardDecoratorDetails::GetCurrentEnumValueDesc() const
 {
-	if (CachedCustomObjectType && EnumPropValues.Num() > 0)
-	{
-		int32 CurrentIntValue = 0;
-		FPropertyAccess::Result Result = IntValueProperty->GetValue(CurrentIntValue);
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+	int32 CurrentIntValue = INDEX_NONE;
 
-		if (Result == FPropertyAccess::Success)
-		{
-			int32 ClampedIdx = FMath::Clamp(CurrentIntValue, 0, EnumPropValues.Num());
-			return FText::FromString(EnumPropValues[ClampedIdx]);
-		}
+	if (CachedCustomObjectType)
+	{	
+		Result = IntValueProperty->GetValue(CurrentIntValue);
 	}
 
-	return FText::GetEmpty();
+	return (Result == FPropertyAccess::Success && EnumPropValues.IsValidIndex(CurrentIntValue))
+		? FText::FromString(EnumPropValues[CurrentIntValue])
+		: FText::GetEmpty();
 }
 
 void FBlackboardDecoratorDetails::OnEnumValueComboChange(int32 Index)

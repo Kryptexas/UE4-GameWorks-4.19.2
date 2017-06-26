@@ -29,6 +29,7 @@
 #include "Engine/AssetManager.h"
 #include "Widgets/Input/SComboBox.h"
 #include "ReferenceViewer.h"
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "AssetManagementBrowser"
 
@@ -650,6 +651,8 @@ void SAssetAuditBrowser::AddManagedAssets(FPrimaryAssetId AssetId)
 
 void SAssetAuditBrowser::AddAssetsOfClass(UClass* AssetClass)
 {
+	FSlateApplication::Get().DismissAllMenus();
+
 	if (AssetClass)
 	{
 		TArray<FAssetData> FoundData;

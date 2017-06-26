@@ -9,8 +9,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMontageWaitSimpleDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_PlayMontageAndWait : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_PlayMontageAndWait : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

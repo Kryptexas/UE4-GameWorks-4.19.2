@@ -69,19 +69,6 @@ void UK2Node_AddComponent::Serialize(FArchive& Ar)
 	}
 }
 
-void UK2Node_AddComponent::PostDuplicate(bool bDuplicateForPIE)
-{
-	Super::PostDuplicate(bDuplicateForPIE);
-
-	// Determine whether or not this node belongs to a Blueprint context.
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
-	if (!bDuplicateForPIE && Blueprint != nullptr && !Blueprint->bBeingCompiled)
-	{
-		// Create a unique component template for the duplicated node (this).
-		MakeNewComponentTemplate();
-	}
-}
-
 void UK2Node_AddComponent::AllocateDefaultPins()
 {
 	AllocateDefaultPinsWithoutExposedVariables();
@@ -113,7 +100,8 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 			const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
 			const bool bIsVisible = Property->HasAllPropertyFlags(CPF_BlueprintVisible);
 			const bool bNotParam = !Property->HasAllPropertyFlags(CPF_Parm);
-			if(bNotDelegate && bIsExposedToSpawn && bIsVisible && bNotParam)
+			const bool bStillExists = FBlueprintEditorUtils::PropertyStillExists(Property);
+			if(bNotDelegate && bIsExposedToSpawn && bIsVisible && bNotParam && bStillExists)
 			{
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);	

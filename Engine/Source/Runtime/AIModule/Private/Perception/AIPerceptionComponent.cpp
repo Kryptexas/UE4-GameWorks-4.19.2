@@ -244,7 +244,10 @@ void UAIPerceptionComponent::CleanUp()
 
 void UAIPerceptionComponent::BeginDestroy()
 {
-	CleanUp();
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		CleanUp();
+	}
 	Super::BeginDestroy();
 }
 

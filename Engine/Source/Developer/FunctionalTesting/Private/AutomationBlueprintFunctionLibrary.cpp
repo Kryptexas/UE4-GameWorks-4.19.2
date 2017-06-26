@@ -355,7 +355,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* Worl
 {
 	if ( GIsAutomationTesting )
 	{
-		if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject) )
+		if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) )
 		{
 			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 			if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
@@ -396,7 +396,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 		ScreenshotName = NameOverride;
 	}
 
-	if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject) )
+	if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) )
 	{
 		ScreenshotName = FString::Printf(TEXT("%s_%s"), *World->GetName(), *ScreenshotName);
 
@@ -412,7 +412,7 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI_Immediate
 {
 	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
 
-	if (UWorld* World = WorldContextObject->GetWorld())
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		if (UGameViewportClient* GameViewport = WorldContextObject->GetWorld()->GetGameViewport())
 		{
@@ -425,9 +425,9 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI_Immediate
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 					// The screenshot taker deletes itself later.
-					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(GEngine->GetWorldFromContextObject(WorldContextObject), Name, Options);
+					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(World, Name, Options);
 
-					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
+					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(World->GetName(), Name, OutSize.X, OutSize.Y);
 
 					// Copy the relevant data into the metadata for the screenshot.
 					Data.bHasComparisonRules = true;

@@ -15,8 +15,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWaitAttributeChangeThresholdDelega
 /**
  *	Waits for an attribute to match a threshold
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitAttributeChangeThreshold : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChangeThreshold : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

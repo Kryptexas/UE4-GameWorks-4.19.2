@@ -2913,8 +2913,8 @@ protected:
 	void HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent);
 
 public:
-	/** True if world assets are enabled */
-	static bool IsUsingWorldAssets();
+	DEPRECATED(4.17, "IsUsingWorldAssets is now always true, remove any code that assumes it could be false")
+	static bool IsUsingWorldAssets() { return true; }
 
 private:
 	/** Handler for when any asset is loaded in the editor */

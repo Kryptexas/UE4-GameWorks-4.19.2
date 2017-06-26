@@ -36,7 +36,14 @@ ALevelBounds::ALevelBounds(const FObjectInitializer& ObjectInitializer)
 void ALevelBounds::PostLoad()
 {
 	Super::PostLoad();
-	GetLevel()->LevelBoundsActor = this;
+
+	if (!IsTemplate())
+	{
+		if (ULevel* Level = GetLevel())
+		{
+			Level->LevelBoundsActor = this;
+		}
+	}
 }
 
 FBox ALevelBounds::GetComponentsBoundingBox(bool bNonColliding) const

@@ -16,8 +16,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWaitAttributeChangeRatioThresholdD
 /**
  *	Waits for the ratio between two attributes to match a threshold
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitAttributeChangeRatioThreshold : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChangeRatioThreshold : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

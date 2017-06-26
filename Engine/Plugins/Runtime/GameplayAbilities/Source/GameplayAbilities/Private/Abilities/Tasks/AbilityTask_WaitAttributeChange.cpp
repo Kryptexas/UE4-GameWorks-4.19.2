@@ -14,7 +14,7 @@ UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObject
 
 UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChange(UGameplayAbility* OwningAbility, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool TriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
+	UAbilityTask_WaitAttributeChange* MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->Attribute = InAttribute;
@@ -26,7 +26,7 @@ UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttri
 
 UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChangeWithComparison(UGameplayAbility* OwningAbility, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, TEnumAsByte<EWaitAttributeChangeComparison::Type> InComparisonType, float InComparisonValue, bool TriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
+	UAbilityTask_WaitAttributeChange* MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->Attribute = InAttribute;

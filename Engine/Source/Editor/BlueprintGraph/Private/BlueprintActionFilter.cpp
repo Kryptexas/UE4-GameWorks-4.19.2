@@ -808,8 +808,8 @@ static bool BlueprintActionFilterImpl::IsPermissionNotGranted(FBlueprintActionFi
 		UClass const* const NodeClass = BlueprintAction.GetNodeClass();
 		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 		{
-			bool const bIsReadOnly = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, Property);
-			if (bIsReadOnly && NodeClass && NodeClass->IsChildOf<UK2Node_VariableSet>())
+			bool const bIsWritable = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, Property) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
+			if (!bIsWritable && NodeClass && NodeClass->IsChildOf<UK2Node_VariableSet>())
 			{
 				bIsFilteredOut = true;
 			}
@@ -1805,7 +1805,7 @@ UClass const* FBlueprintActionInfo::GetOwnerClass()
 		}
 		else if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner.Get()))
 		{
-			CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass;
+			CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass.Get();
 		}
 
 		if (CachedOwnerClass == nullptr)
@@ -1818,7 +1818,7 @@ UClass const* FBlueprintActionInfo::GetOwnerClass()
 
 		CacheFlags |= EBlueprintActionInfoFlags::CachedClass;
 	}
-	return CachedOwnerClass;
+	return CachedOwnerClass.Get();
 }
 
 //------------------------------------------------------------------------------

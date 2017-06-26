@@ -1156,45 +1156,48 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 
 		for (auto const& DbEntry : ActionRegistry)
 		{
-			UObject const* ActionSetKey = DbEntry.Key;
-			bool const bIsUnknownAssetEntry = ActionSetKey->IsAsset() &&
-				!ActionSetKey->IsA<UBlueprint>() &&
-				!ActionSetKey->IsA<UUserDefinedStruct>() &&
-				!ActionSetKey->IsA<UUserDefinedEnum>();
-
-			for (UBlueprintNodeSpawner* BpAction : DbEntry.Value)
+			UObject const* ActionSetKey = DbEntry.Key.ResolveObjectPtr();
+			if (ActionSetKey)
 			{
-				++DatabaseCount;
-				// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
-				EstimatedDatabaseSize += sizeof(*BpAction);
+				bool const bIsUnknownAssetEntry = ActionSetKey->IsAsset() &&
+					!ActionSetKey->IsA<UBlueprint>() &&
+					!ActionSetKey->IsA<UUserDefinedStruct>() &&
+					!ActionSetKey->IsA<UUserDefinedEnum>();
 
-				FSpawnerInfo& SpawnerInfo = DatabaseBreakdown.FindOrAdd(BpAction->GetClass());
-				SpawnerInfo.Count += 1;
-
-				int32 OldPrimingTime = TotalPrimingTime;
+				for (UBlueprintNodeSpawner* BpAction : DbEntry.Value)
 				{
-					FScopedDurationTimer PrimingTimer(TotalPrimingTime);
-					BpAction->Prime();
-				}
-				SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
+					++DatabaseCount;
+					// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
+					EstimatedDatabaseSize += sizeof(*BpAction);
 
-				if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
-				{
-					UObject* TemplateOuter = TemplateNode->GetOuter();
-					while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
+					FSpawnerInfo& SpawnerInfo = DatabaseBreakdown.FindOrAdd(BpAction->GetClass());
+					SpawnerInfo.Count += 1;
+
+					int32 OldPrimingTime = TotalPrimingTime;
 					{
-						TemplateOuter = TemplateOuter->GetOuter();
+						FScopedDurationTimer PrimingTimer(TotalPrimingTime);
+						BpAction->Prime();
 					}
-					UBlueprint* OuterBlueprint = CastChecked<UBlueprint>(TemplateOuter);
-					TemplateOuters.Add(OuterBlueprint);
+					SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
 
-					++TemplateCount;
-					SpawnerInfo.TemplateNodeCount += 1;
-				}
+					if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
+					{
+						UObject* TemplateOuter = TemplateNode->GetOuter();
+						while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
+						{
+							TemplateOuter = TemplateOuter->GetOuter();
+						}
+						UBlueprint* OuterBlueprint = CastChecked<UBlueprint>(TemplateOuter);
+						TemplateOuters.Add(OuterBlueprint);
 
-				if (bIsUnknownAssetEntry)
-				{
-					++UnknownAssetActions;
+						++TemplateCount;
+						SpawnerInfo.TemplateNodeCount += 1;
+					}
+
+					if (bIsUnknownAssetEntry)
+					{
+						++UnknownAssetActions;
+					}
 				}
 			}
 		}

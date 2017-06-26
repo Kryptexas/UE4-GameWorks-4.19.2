@@ -33,6 +33,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface

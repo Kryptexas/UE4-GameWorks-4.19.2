@@ -198,8 +198,6 @@
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
-#define DEBUGGING_VIEWPORT_SIZES 0
-
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
 void OnChangeEngineCVarRequiringRecreateRenderState(IConsoleVariable* Var)
@@ -739,7 +737,7 @@ public:
 	FWorldContext
 -----------------------------------------------------------------------------*/
 
-void FWorldContext::SetCurrentWorld(UWorld *World)
+void FWorldContext::SetCurrentWorld(UWorld* World)
 {
 	if (World != nullptr)
 	{
@@ -7472,7 +7470,6 @@ void UEngine::LogPerformanceCapture(UWorld* World, const FString& MapName, const
 	if ((World != nullptr) && (World->GetGameViewport() != nullptr))
 	{
 		const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
-		//	const FStatHitchesData* StatHitchesData = World->GetGameViewport->GetStatHitchesData();
 
 		FAutomationPerformanceSnapshot PerfSnapshot;
 		PerfSnapshot.Changelist = FString::FromInt(ChangeList);
@@ -8363,26 +8360,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
 		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
 
-		//give the viewport first shot at drawing stats
+		// give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
-
-#if DEBUGGING_VIEWPORT_SIZES
-		// Useful for debugging viewport sizing/resizing, especially on external displays
-
-		FCanvasTextItem ViewportTextItem( FVector2D( 0,0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::Blue );
-		ViewportTextItem.EnableShadow( FLinearColor::Black );
-		FString CurrentRes = FString::Printf(TEXT("W = %d, H = %d"), Viewport->GetSizeXY().X,Viewport->GetSizeXY().Y);
-		ViewportTextItem.Text = FText::FromString( CurrentRes );
-		Canvas->DrawItem( ViewportTextItem, 5, Y );
-		ViewportTextItem.Text =  LOCTEXT("00", "00" );
-		Canvas->DrawItem( ViewportTextItem, 5, 5 );
-		ViewportTextItem.Text =  LOCTEXT("0M", "0M" );
-		Canvas->DrawItem( ViewportTextItem, 5,  Viewport->GetSizeXY().Y - 2 );
-		ViewportTextItem.Text =  LOCTEXT("M0", "M0" );
-		Canvas->DrawItem( ViewportTextItem, Viewport->GetSizeXY().X - 25, 5 );
-		ViewportTextItem.Text =  LOCTEXT("MM", "MM" );
-		Canvas->DrawItem( ViewportTextItem, Viewport->GetSizeXY().X - 25, Viewport->GetSizeXY().Y - 25 );
-#endif
 
 		// Render all the simple stats
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
@@ -8690,22 +8669,31 @@ void UEngine::WorldDestroyed( UWorld* InWorld )
 	WorldDestroyedEvent.Broadcast( InWorld );
 }
 
-UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, const bool bChecked) const
+UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldErrorMode ErrorMode) const
 {
-	if (!bChecked && Object == NULL)
+	if (Object == nullptr)
 	{
-		return NULL;
+		switch (ErrorMode)
+		{
+		case EGetWorldErrorMode::Assert:
+			check(Object);
+			break;
+		case EGetWorldErrorMode::LogAndReturnNull:
+			FFrame::KismetExecutionMessage(TEXT("A null object was passed as a world context object to UEngine::GetWorldFromContextObject()."), ELogVerbosity::Error);
+			//UE_LOG(LogEngine, Warning, TEXT("UEngine::GetWorldFromContextObject() passed a nullptr"));
+			break;
+		case EGetWorldErrorMode::ReturnNull:
+			break;
+		}
+		return nullptr;
 	}
 
-	check(Object);
-
-	// @note : GetWorldChecked is not thread safe, so we can't call if called by another thread
 	bool bSupported = true;
-	UWorld* World = ((bChecked && IsInGameThread() )? Object->GetWorldChecked(bSupported) : Object->GetWorld());
+	UWorld* World = (ErrorMode == EGetWorldErrorMode::Assert) ? Object->GetWorldChecked(/*out*/ bSupported) : Object->GetWorld();
 	return (bSupported ? World : GWorld);
 }
 
-TArray<class ULocalPlayer*>::TConstIterator	UEngine::GetLocalPlayerIterator(UWorld *World)
+TArray<class ULocalPlayer*>::TConstIterator	UEngine::GetLocalPlayerIterator(UWorld* World)
 {
 	return GetGamePlayers(World).CreateConstIterator();
 }

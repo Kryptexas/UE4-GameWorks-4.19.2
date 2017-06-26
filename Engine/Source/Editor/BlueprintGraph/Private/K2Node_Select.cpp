@@ -167,7 +167,7 @@ public:
 
 		// Create a term to determine if the compare was successful or not
 		FBPTerminal* BoolTerm = Context.CreateLocalTerminal();
-		BoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
+		BoolTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Boolean;
 		BoolTerm->Source = Node;
 		BoolTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_CmpSuccess");
 		BoolTermMap.Add(Node, BoolTerm);
@@ -222,7 +222,7 @@ public:
 				// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
 				FBPTerminal* LiteralTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 				LiteralTerm->bIsLiteral = true;
-				LiteralTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
+				LiteralTerm->Type.PinCategory = UEdGraphSchema_K2::PC_Int;
 
 				if (UEnum* NodeEnum = SelectNode->GetEnum())
 				{
@@ -283,7 +283,7 @@ public:
 					// Create a local int for use in the equality call function below (LiteralTerm = the right hand side of the EqualEqual_IntInt or NotEqual_BoolBool statement)
 					FBPTerminal* LiteralStringTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
 					LiteralStringTerm->bIsLiteral = true;
-					LiteralStringTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_String;
+					LiteralStringTerm->Type.PinCategory = UEdGraphSchema_K2::PC_String;
 
 					FString SelectionNodeType(TEXT("NONE"));
 					if (IndexPin)
@@ -334,16 +334,15 @@ UK2Node_Select::UK2Node_Select(const FObjectInitializer& ObjectInitializer)
 
 	NumOptionPins = 2;
 
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	IndexPinType.PinCategory = Schema->PC_Wildcard;
-	IndexPinType.PinSubCategory = Schema->PSC_Index;
-	IndexPinType.PinSubCategoryObject = NULL;
+	IndexPinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+	IndexPinType.PinSubCategory = UEdGraphSchema_K2::PSC_Index;
+	IndexPinType.PinSubCategoryObject = nullptr;
+
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveNone;
 }
 
 void UK2Node_Select::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	// To refresh, just in case it changed
 	SetEnum(Enum, true);
 
@@ -368,13 +367,13 @@ void UK2Node_Select::AllocateDefaultPins()
 			UEdGraphPin* TempPin = FindPin(PinName);
 			if (!TempPin)
 			{
-				NewPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, PinName);
+				NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, PinName);
 			}
 		}
 		else
 		{
 			const FString PinName = FString::Printf(TEXT("Option %d"), Idx);
-			NewPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FString(), nullptr, PinName);
+			NewPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, PinName);
 		}
 
 		if (NewPin)
@@ -395,7 +394,7 @@ void UK2Node_Select::AllocateDefaultPins()
 	CreatePin(EGPD_Input, IndexPinType.PinCategory, IndexPinType.PinSubCategory, IndexPinType.PinSubCategoryObject.Get(), TEXT("Index"));
 
 	// Create the return value
-	UEdGraphPin* ReturnPin = CreatePin(EGPD_Output, Schema->PC_Wildcard, FString(), nullptr, Schema->PN_ReturnValue);
+	UEdGraphPin* ReturnPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Wildcard, FString(), nullptr, UEdGraphSchema_K2::PN_ReturnValue);
 	ReturnPin->bDisplayAsMutableRef = UseSelectRef;
 
 	Super::AllocateDefaultPins();
@@ -753,16 +752,16 @@ void UK2Node_Select::RemoveOptionPinToNode()
 
 void UK2Node_Select::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	UEnum* PrevEnum = Enum;
 	Enum = InEnum;
 
-	if ((PrevEnum != Enum) || bForceRegenerate)
+	OrphanedPinSaveMode = (Enum ? ESaveOrphanPinMode::SaveAll : ESaveOrphanPinMode::SaveNone);
+
+	if (bForceRegenerate || (PrevEnum != Enum))
 	{
 		// regenerate enum name list
-		EnumEntries.Empty();
-		EnumEntryFriendlyNames.Empty();
+		EnumEntries.Reset();
+		EnumEntryFriendlyNames.Reset();
 
 		if (Enum)
 		{
@@ -895,17 +894,23 @@ void UK2Node_Select::PinTypeChanged(UEdGraphPin* Pin)
 		{
 			IndexPinType = Pin->PinType;
 
+			// Since it is an interactive action we want the pins to go away regardless of the new type
+			for (UEdGraphPin* PinToDiscard : Pins)
+			{
+				PinToDiscard->bSavePinIfOrphaned = false;
+			}
+
 			if (IndexPinType.PinSubCategoryObject.IsValid())
 			{
 				SetEnum(Cast<UEnum>(IndexPinType.PinSubCategoryObject.Get()));
 			}
 			else if (Enum)
 			{
-				SetEnum(NULL);
+				SetEnum(nullptr);
 			}
 
 			// Remove all but two options if we switched to a bool index
-			if (IndexPinType.PinCategory == Schema->PC_Boolean)
+			if (IndexPinType.PinCategory == UEdGraphSchema_K2::PC_Boolean)
 			{
 				NumOptionPins = 2;
 			}
@@ -987,8 +992,7 @@ FSlateIcon UK2Node_Select::GetIconAndTint(FLinearColor& OutColor) const
 
 bool UK2Node_Select::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if (OtherPin && (OtherPin->PinType.PinCategory == K2Schema->PC_Exec))
+	if (OtherPin && (OtherPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec))
 	{
 		OutReason = LOCTEXT("ExecConnectionDisallowed", "Cannot connect with Exec pin.").ToString();
 		return true;

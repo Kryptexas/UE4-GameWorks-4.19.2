@@ -8,24 +8,20 @@ UGameplayTagsK2Node_MultiCompareBase::UGameplayTagsK2Node_MultiCompareBase(const
 	: Super(ObjectInitializer)
 {
 	NumberOfPins = 1;
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveNone;
 }
 
 void UGameplayTagsK2Node_MultiCompareBase::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// If the number of pins is changed mark the node as dirty and reconstruct
-	bool bIsDirty = false;
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == TEXT("NumberOfPins"))
+	const FName PropertyName = (PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None);
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGameplayTagsK2Node_MultiCompareBase, NumberOfPins))
 	{
 		if (NumberOfPins < 0)
 		{
 			NumberOfPins = 1;
 		}
-		bIsDirty = true;
-	}
 
-	if (bIsDirty)
-	{
 		ReconstructNode();
 		GetGraph()->NotifyGraphChanged();
 	}

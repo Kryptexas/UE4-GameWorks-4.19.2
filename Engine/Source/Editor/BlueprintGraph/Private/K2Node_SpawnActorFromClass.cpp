@@ -104,7 +104,8 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass, TArray<UEd
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
 			!bIsDelegate &&
-			(NULL == FindPin(Property->GetName()) ) )
+			(nullptr == FindPin(Property->GetName()) ) &&
+			FBlueprintEditorUtils::PropertyStillExists(Property) )
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, FString(), FString(), nullptr, Property->GetName());
 			const bool bPinGood = (Pin != nullptr) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
@@ -362,9 +363,6 @@ void UK2Node_SpawnActorFromClass::OnClassPinChanged()
 
 	// Rewire the old pins to the new pins so connections are maintained if possible
 	RewireOldPinsToNewPins(OldClassPins, NewClassPins);
-
-	// Destroy the old pins
-	DestroyPinList(OldClassPins);
 
 	// Refresh the UI for the graph so the pin changes show up
 	UEdGraph* Graph = GetGraph();

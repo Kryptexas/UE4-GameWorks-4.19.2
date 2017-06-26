@@ -42,7 +42,7 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 	UUserWidget* UserWidget = nullptr;
 	if ( OwningPlayer == nullptr )
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		UserWidget = CreateWidget<UUserWidget>(World, WidgetType);
 	}
 	else
@@ -502,7 +502,7 @@ void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, 
 		return;
 	}
 	 
-	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( !World )
 	{
 		return;
@@ -547,7 +547,7 @@ void UWidgetBlueprintLibrary::GetAllWidgetsWithInterface(UObject* WorldContextOb
 		return;
 	}
 
-	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World)
 	{
 		return;
@@ -615,7 +615,7 @@ void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FV
 
 bool UWidgetBlueprintLibrary::SetHardwareCursor(UObject* WorldContextObject, EMouseCursor::Type CursorShape, FName CursorName, FVector2D HotSpot)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )

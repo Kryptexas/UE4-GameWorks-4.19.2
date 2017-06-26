@@ -2706,10 +2706,11 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 {
 	if (bHasDefaultValue)
 	{
-		if (UEdGraphPin* FoundPin = GetPin())
+		UEdGraphPin* FoundPin = GetPin();
+		if (FoundPin)
 		{
 			// Certain types are outlawed at the compiler level
-			bool bTypeWithNoDefaults = (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
+			const bool bTypeWithNoDefaults = (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface) || UEdGraphSchema_K2::IsExecPin(*FoundPin);
 
 			if (!FoundPin->PinType.bIsReference && !bTypeWithNoDefaults)
 			{
@@ -2740,21 +2741,25 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 			}
 		}
 
-		ChildrenBuilder.AddCustomRow( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
-		.NameContent()
-		[
-			SNew(STextBlock)
-				.Text( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
-				.ToolTipText( LOCTEXT("FunctionArgDetailsPassByReferenceTooltip", "Pass this paremeter by reference?") )
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-		]
-		.ValueContent()
-		[
-			SNew(SCheckBox)
-				.IsChecked( this, &FBlueprintGraphArgumentLayout::IsRefChecked )
-				.OnCheckStateChanged( this, &FBlueprintGraphArgumentLayout::OnRefCheckStateChanged)
+		// Exec pins can't be passed by reference
+		if (FoundPin == nullptr || !UEdGraphSchema_K2::IsExecPin(*FoundPin))
+		{
+			ChildrenBuilder.AddCustomRow(LOCTEXT("FunctionArgDetailsPassByReference", "Pass-by-Reference"))
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("FunctionArgDetailsPassByReference", "Pass-by-Reference"))
+				.ToolTipText(LOCTEXT("FunctionArgDetailsPassByReferenceTooltip", "Pass this paremeter by reference?"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			.ValueContent()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &FBlueprintGraphArgumentLayout::IsRefChecked)
+				.OnCheckStateChanged(this, &FBlueprintGraphArgumentLayout::OnRefCheckStateChanged)
 				.IsEnabled(!ShouldPinBeReadOnly())
-		];
+				];
+		}
 	}
 		
 	
@@ -3679,13 +3684,13 @@ void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ECheckBo
 	}
 }
 
-UMulticastDelegateProperty* FBlueprintDelegateActionDetails::GetDelegatePoperty() const
+UMulticastDelegateProperty* FBlueprintDelegateActionDetails::GetDelegateProperty() const
 {
 	if (MyBlueprint.IsValid())
 	{
 		if (const FEdGraphSchemaAction_K2Delegate* DelegateVar = MyBlueprint.Pin()->SelectionAsDelegate())
 		{
-			return DelegateVar->GetDelegatePoperty();
+			return DelegateVar->GetDelegateProperty();
 		}
 	}
 	return NULL;
@@ -3693,7 +3698,7 @@ UMulticastDelegateProperty* FBlueprintDelegateActionDetails::GetDelegatePoperty(
 
 bool FBlueprintDelegateActionDetails::IsBlueprintProperty() const
 {
-	const UMulticastDelegateProperty* Property = GetDelegatePoperty();
+	const UMulticastDelegateProperty* Property = GetDelegateProperty();
 	const UBlueprint* Blueprint = GetBlueprintObj();
 	if(Property && Blueprint)
 	{
@@ -3731,7 +3736,7 @@ UEdGraph* FBlueprintDelegateActionDetails::GetGraph() const
 
 FText FBlueprintDelegateActionDetails::OnGetTooltipText() const
 {
-	if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
+	if (UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty())
 	{
 		FString Result;
 		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, TEXT("tooltip"), Result);
@@ -3742,7 +3747,7 @@ FText FBlueprintDelegateActionDetails::OnGetTooltipText() const
 
 void FBlueprintDelegateActionDetails::OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
-	if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
+	if (UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty())
 	{
 		FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, TEXT("tooltip"), NewText.ToString() );
 	}
@@ -3750,7 +3755,7 @@ void FBlueprintDelegateActionDetails::OnTooltipTextCommitted(const FText& NewTex
 
 FText FBlueprintDelegateActionDetails::OnGetCategoryText() const
 {
-	if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
+	if (UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty())
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		FName DelegateName = DelegateProperty->GetFName();
@@ -3773,7 +3778,7 @@ void FBlueprintDelegateActionDetails::OnCategoryTextCommitted(const FText& NewTe
 {
 	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
 	{
-		if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
+		if (UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty())
 		{
 			// Remove excess whitespace and prevent categories with just spaces
 			FText CategoryName = FText::TrimPrecedingAndTrailing(NewText);
@@ -3796,7 +3801,7 @@ TSharedRef< ITableRow > FBlueprintDelegateActionDetails::MakeCategoryViewWidget(
 
 void FBlueprintDelegateActionDetails::OnCategorySelectionChanged( TSharedPtr<FText> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ )
 {
-	UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty();
+	UMulticastDelegateProperty* DelegateProperty = GetDelegateProperty();
 	if (DelegateProperty && ProposedSelection.IsValid())
 	{
 		FText NewCategory = *ProposedSelection.Get();
@@ -3922,7 +3927,7 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 void FBlueprintDelegateActionDetails::CollectAvailibleSignatures()
 {
 	FunctionsToCopySignatureFrom.Empty();
-	if (UMulticastDelegateProperty* Property = GetDelegatePoperty())
+	if (UMulticastDelegateProperty* Property = GetDelegateProperty())
 	{
 		if (UClass* ScopeClass = Cast<UClass>(Property->GetOuterUField()))
 		{
@@ -3948,7 +3953,7 @@ void FBlueprintDelegateActionDetails::CollectAvailibleSignatures()
 void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> FunctionName, ESelectInfo::Type SelectInfo)
 {
 	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
-	UMulticastDelegateProperty* Property = GetDelegatePoperty();
+	UMulticastDelegateProperty* Property = GetDelegateProperty();
 	UClass* ScopeClass = Property ? Cast<UClass>(Property->GetOuterUField()) : NULL;
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -3988,7 +3993,10 @@ void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* 
 		RegenerateOutputsChildrenDelegate.ExecuteIfBound();
 
 		// Reconstruct the entry/exit definition and recompile the blueprint to make sure the signature has changed before any fixups
-		TargetNode->ReconstructNode();
+		{
+			TGuardValue<ESaveOrphanPinMode> GuardSaveMode(TargetNode->OrphanedPinSaveMode, ESaveOrphanPinMode::SaveNone);
+			TargetNode->ReconstructNode();
+		}
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 

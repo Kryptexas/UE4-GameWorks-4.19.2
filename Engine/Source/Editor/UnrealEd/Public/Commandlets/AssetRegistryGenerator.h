@@ -52,8 +52,9 @@ public:
 	 * @param IdenticalCookedPackages list of cooked packages that have not changed
 	 * @param IdenticalUncookedPackages list of uncooked packages that have not changed. These were filtered out by platform or editor only
 	 * @param bRecurseModifications if true, modified packages are recursed to X in X->Y->Z chains. Otherwise, only Y and Z are seen as modified
+	 * @param bRecurseModifications if true, modified script/c++ packages are recursed, if false only asset references are recursed
 	 */
-	void ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications);
+	void ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications, bool bRecurseScriptModifications);
 
 	/**
 	 * GenerateChunkManifest 
@@ -278,9 +279,6 @@ private:
 		}
 		return RegistryChunkIDs;
 	}
-
-	/** Updates the Package Source hash based on dependency information */
-	void UpdatePackageSourceHashes();
 
 	/** Generate manifest for a single package */
 	void GenerateChunkManifestForPackage(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile);

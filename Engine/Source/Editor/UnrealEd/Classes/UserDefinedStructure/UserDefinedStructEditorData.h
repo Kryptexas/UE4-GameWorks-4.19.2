@@ -9,6 +9,8 @@
 #include "UObject/AssetPtr.h"
 #include "EdGraph/EdGraphPin.h"
 #include "UObject/StructOnScope.h"
+#include "EditorUndoClient.h"
+#include "StructureEditorUtils.h"
 #include "UserDefinedStructEditorData.generated.h"
 
 class ITransactionObjectAnnotation;
@@ -119,7 +121,7 @@ public:
 };
 
 UCLASS()
-class UNREALED_API UUserDefinedStructEditorData : public UObject
+class UNREALED_API UUserDefinedStructEditorData : public UObject, public FEditorUndoClient
 {
 	GENERATED_UCLASS_BODY()
 
@@ -152,10 +154,25 @@ public:
 	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) override;
 	// End of UObject interface.
 
+	// FEditorUndoClient interface
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
+	// End of FEditorUndoClient interface.
+
+
 	uint32 GenerateUniqueNameIdForMemberVariable();
 	class UUserDefinedStruct* GetOwnerStruct() const;
 
 	const uint8* GetDefaultInstance() const;
 	void RecreateDefaultInstance(FString* OutLog = nullptr);
 	void CleanDefaultInstance();
+
+private:
+
+	// Track the structure change that PostEditUndo undid to pass to FUserDefinedStructureCompilerUtils::CompileStruct
+	FStructureEditorUtils::EStructureEditorChangeInfo CachedStructureChange;
+
+	// Utility function for both PostEditUndo to route through
+	void ConsolidatedPostEditUndo(FStructureEditorUtils::EStructureEditorChangeInfo ActiveChange);
+
 };

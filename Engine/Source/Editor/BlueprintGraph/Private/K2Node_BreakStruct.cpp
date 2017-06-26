@@ -84,9 +84,7 @@ public:
 
 	void RegisterOutputTerm(FKismetFunctionContext& Context, UScriptStruct* StructType, UEdGraphPin* Net, FBPTerminal* ContextTerm)
 	{
-		UProperty* BoundProperty = FindField<UProperty>(StructType, *(Net->PinName));
-
-		if (BoundProperty != NULL)
+		if (UProperty* BoundProperty = FindField<UProperty>(StructType, *(Net->PinName)))
 		{
 			if (BoundProperty->HasAnyPropertyFlags(CPF_Deprecated) && Net->LinkedTo.Num())
 			{
@@ -117,19 +115,18 @@ public:
 	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
 	{
 		UK2Node_BreakStruct* Node = Cast<UK2Node_BreakStruct>(InNode);
-		check(NULL != Node);
+		check(Node);
 
-		if(!UK2Node_BreakStruct::CanBeBroken(Node->StructType))
+		if(!UK2Node_BreakStruct::CanBeBroken(Node->StructType, Node->IsIntermediateNode()))
 		{
 			CompilerContext.MessageLog.Warning(*LOCTEXT("BreakStruct_NoBreak_Error", "The structure cannot be broken using generic 'break' node @@. Try use specialized 'break' function if available.").ToString(), Node);
 		}
 
 		if(FBPTerminal* StructContextTerm = RegisterInputTerm(Context, Node))
 		{
-			for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+			for (UEdGraphPin* Pin : Node->Pins)
 			{
-				UEdGraphPin* Pin = Node->Pins[PinIndex];
-				if(NULL != Pin && EGPD_Output == Pin->Direction)
+				if(Pin && EGPD_Output == Pin->Direction)
 				{
 					RegisterOutputTerm(Context, Node->StructType, Pin, StructContextTerm);
 				}
@@ -145,29 +142,23 @@ UK2Node_BreakStruct::UK2Node_BreakStruct(const FObjectInitializer& ObjectInitial
 {
 }
 
-static bool CanCreatePinForProperty(const UProperty* Property, bool bIncludeEditAnywhere = true)
+static bool CanCreatePinForProperty(const UProperty* Property)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	FEdGraphPinType DumbGraphPinType;
 	const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
 
-	const bool bVisible = Property ? (bIncludeEditAnywhere ? Property->HasAnyPropertyFlags(CPF_Edit | CPF_BlueprintVisible) : Property->HasAnyPropertyFlags(CPF_BlueprintVisible) ): false;
+	const bool bVisible = (Property && Property->HasAnyPropertyFlags(CPF_BlueprintVisible));
 	return bVisible && bConvertable;
 }
 
-bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct, bool bIncludeEditAnywhere, bool bMustHaveValidProperties )
+bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct, const bool bForInternalUse)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if(Struct && Schema && !Struct->HasMetaData(TEXT("HasNativeBreak")))
+	if (Struct && !Struct->HasMetaData(TEXT("HasNativeBreak")) && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct, bForInternalUse))
 	{
-		if (!bMustHaveValidProperties && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
-		{
-			return true;
-		}
-
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
-			if (CanCreatePinForProperty(*It, bIncludeEditAnywhere))
+			if (CanCreatePinForProperty(*It))
 			{
 				return true;
 			}
@@ -253,6 +244,8 @@ FText UK2Node_BreakStruct::GetTooltipText() const
 
 void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog); 
+
 	if(!StructType)
 	{
 		MessageLog.Error(*LOCTEXT("NoStruct_Error", "No Struct in @@").ToString(), this);
@@ -377,7 +370,7 @@ void UK2Node_BreakStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 	{
 		UBlueprintFieldNodeSpawner* NodeSpawner = nullptr;
 		
-		if (UK2Node_BreakStruct::CanBeBroken(Struct, /*bIncludeEditAnywhere =*/false))
+		if (UK2Node_BreakStruct::CanBeBroken(Struct))
 		{
 			NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, Struct);
 			check(NodeSpawner != nullptr);

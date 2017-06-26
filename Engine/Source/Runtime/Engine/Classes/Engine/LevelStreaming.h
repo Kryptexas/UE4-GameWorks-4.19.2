@@ -213,6 +213,7 @@ public:
 	ENGINE_API FString GetWorldAssetPackageName() const;
 
 	/** Gets the package name for the world asset referred to by this level streaming as an FName */
+	UFUNCTION(BlueprintCallable, Category = "Game")
 	ENGINE_API FName GetWorldAssetPackageFName() const;
 
 	/** Sets the world asset based on the package name assuming it contains a world of the same name. */

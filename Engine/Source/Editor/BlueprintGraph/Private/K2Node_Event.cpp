@@ -388,7 +388,8 @@ bool UK2Node_Event::IsFunctionEntryCompatible(const UK2Node_FunctionEntry* Entry
 		if( CurPin->PinType.PinCategory == K2Schema->PC_Exec 
 			|| CurPin->PinType.PinSubCategory == K2Schema->PSC_Self
 			|| CurPin->PinName == DelegateOutputName
-			|| CurPin->Direction == EGPD_Input )
+			|| CurPin->Direction == EGPD_Input
+			|| CurPin->ParentPin != nullptr )
 		{
 			EventPins.RemoveAt(i, 1);
 			i--;
@@ -400,7 +401,9 @@ bool UK2Node_Event::IsFunctionEntryCompatible(const UK2Node_FunctionEntry* Entry
 		const UEdGraphPin* CurPin = EntryPins[i];
 		if( CurPin->PinType.PinCategory == K2Schema->PC_Exec 
 			|| CurPin->PinType.PinSubCategory == K2Schema->PSC_Self
-			|| CurPin->Direction == EGPD_Input)
+			|| CurPin->PinName == DelegateOutputName
+			|| CurPin->Direction == EGPD_Input
+			|| CurPin->ParentPin != nullptr )
 		{
 			EntryPins.RemoveAt(i, 1);
 			i--;

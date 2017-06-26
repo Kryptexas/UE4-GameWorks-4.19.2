@@ -19,7 +19,6 @@ public class NetworkFile : ModuleRules
 				new string[]
 				{ 
 					"DerivedDataCache",
-					"PackageDependencyInfo",
 				}
 				);
 		}

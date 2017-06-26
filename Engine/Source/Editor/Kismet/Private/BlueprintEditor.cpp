@@ -3290,6 +3290,7 @@ void FBlueprintEditor::Compile()
 		}
 
 		FCompilerResultsLog LogResults;
+		LogResults.SetSourcePath(BlueprintObj->GetPathName());
 		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
@@ -3304,7 +3305,9 @@ void FBlueprintEditor::Compile()
 		}
 		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, CompileOptions, &LogResults);
 
-		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
+		LogResults.EndEvent();
+
+		const bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
 
 		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
@@ -3323,9 +3326,7 @@ void FBlueprintEditor::Compile()
 
 		AppendExtraCompilerResults(CompilerResultsListing);
 
-		LogResults.EndEvent();
-
-	    // Update the blueprint instrumenation state and show the profiler window if required
+	    // Update the blueprint instrumentation state and show the profiler window if required
 	    if (bProfilerAvailable)
 	    {
 		    bBlueprintHasInstrumentation = BlueprintObj && BlueprintObj->GeneratedClass ? BlueprintObj->GeneratedClass->HasInstrumentation() : false;
@@ -3848,7 +3849,7 @@ bool FBlueprintEditor::CanPromoteToVariable(bool bInToMemberVariable) const
 	{
 		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			if (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph())))
+			if (!Pin->bOrphanedPin && (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph()))))
 			{
 				bCanPromote = K2Schema->CanPromotePinToVariable(*Pin);
 			}
@@ -3941,7 +3942,7 @@ void FBlueprintEditor::OnAddExecutionPin()
 			const FScopedTransaction Transaction( LOCTEXT("AddExecutionPin", "Add Execution Pin") );
 			SeqNode->Modify();
 
-			SeqNode->AddPinToExecutionNode();
+			SeqNode->AddInputPin();
 
 			const UEdGraphSchema* Schema = SeqNode->GetSchema();
 			Schema->ReconstructNode(*SeqNode);
@@ -7303,7 +7304,7 @@ void FBlueprintEditor::RefreshStandAloneDefaultsEditor()
 		}
 	}
 
-	if ( DefaultObjects.Num() )
+	if ( DefaultObjects.Num() && DefaultEditor.IsValid() )
 	{
 		DefaultEditor->ShowDetailsForObjects(DefaultObjects);
 	}
@@ -7326,12 +7327,6 @@ void FBlueprintEditor::RenameNewlyAddedAction(FName InActionName)
 void FBlueprintEditor::OnAddNewVariable()
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddVariable", "Add Variable") );
-
-	// Reset MyBlueprint item filter so new variable is visible
-	if (MyBlueprintWidget.IsValid())
-	{
-		MyBlueprintWidget->OnResetItemFilter();
-	}
 
 	FName VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
 
@@ -7384,12 +7379,6 @@ void FBlueprintEditor::OnAddNewDelegate()
 	check(NULL != K2Schema);
 	UBlueprint* const Blueprint = GetBlueprintObj();
 	check(NULL != Blueprint);
-
-	// Reset MyBlueprint item filter so new variable is visible
-	if (MyBlueprintWidget.IsValid())
-	{
-		MyBlueprintWidget->OnResetItemFilter();
-	}
 
 	FName Name = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewEventDispatcher"));
 
@@ -7453,12 +7442,6 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 	default:
 		DocumentNameText = LOCTEXT("NewDocNewName", "NewDocument");
 		break;
-	}
-	
-	// Reset MyBlueprint item filter so new variable is visible
-	if( bResetMyBlueprintFilter )
-	{
-		MyBlueprintWidget->OnResetItemFilter();
 	}
 
 	FName DocumentName = FName(*DocumentNameText.ToString());
@@ -7569,34 +7552,37 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 		FocusedGraphEdPtr.Pin()->NotifyPostPropertyChange(PropertyChangedEvent, PropertyName);
 	}
 	
-	UBlueprint* Blueprint = GetBlueprintObj();
-	UPackage* BlueprintPackage = Blueprint->GetOutermost();
-
-	// if any of the objects being edited are in our package, mark us as dirty
-	bool bPropertyInBlueprint = false;
-	for (int32 ObjectIndex = 0; ObjectIndex < PropertyChangedEvent.GetNumObjectsBeingEdited(); ++ObjectIndex)
+	if (IsEditingSingleBlueprint())
 	{
-		const UObject* Object = PropertyChangedEvent.GetObjectBeingEdited(ObjectIndex);
-		if (Object && Object->GetOutermost() == BlueprintPackage)
-		{
-			bPropertyInBlueprint = true;
-			break;
-		}
-	}
+		UBlueprint* Blueprint = GetBlueprintObj();
+		UPackage* BlueprintPackage = Blueprint->GetOutermost();
 
-	if (bPropertyInBlueprint)
-	{
-		// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
-		if (IsEditingSingleBlueprint() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+		// if any of the objects being edited are in our package, mark us as dirty
+		bool bPropertyInBlueprint = false;
+		for (int32 ObjectIndex = 0; ObjectIndex < PropertyChangedEvent.GetNumObjectsBeingEdited(); ++ObjectIndex)
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
-
-			// Call PostEditChange() on any Actors that might be based on this Blueprint
-			FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+			const UObject* Object = PropertyChangedEvent.GetObjectBeingEdited(ObjectIndex);
+			if (Object && Object->GetOutermost() == BlueprintPackage)
+			{
+				bPropertyInBlueprint = true;
+				break;
+			}
 		}
 
-		// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
-		UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+		if (bPropertyInBlueprint)
+		{
+			// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
+			if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
+
+				// Call PostEditChange() on any Actors that might be based on this Blueprint
+				FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+			}
+
+			// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
+			UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+		}
 	}
 }
 

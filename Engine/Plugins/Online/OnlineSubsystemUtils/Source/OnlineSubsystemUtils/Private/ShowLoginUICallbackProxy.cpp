@@ -34,7 +34,7 @@ void UShowLoginUICallbackProxy::Activate()
 		return;
 	}
 
-	const FOnlineSubsystemBPCallHelper Helper(TEXT("ShowLoginUI"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	const FOnlineSubsystemBPCallHelper Helper(TEXT("ShowLoginUI"), WorldContextObject);
 	if (Helper.OnlineSub == nullptr)
 	{
 		OnFailure.Broadcast(MyPlayerController);

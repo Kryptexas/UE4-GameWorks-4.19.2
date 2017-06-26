@@ -429,101 +429,13 @@ void FStreamingLevelCollectionModel::AddExistingLevel_Executed()
 
 void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	if (UEditorEngine::IsUsingWorldAssets())
+	if (!bAssetDialogOpen)
 	{
-		if (!bAssetDialogOpen)
-		{
-			bAssetDialogOpen = true;
-			FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
-			FEditorFileUtils::FOnLevelPickingCancelled LevelPickingCancelledDelegate = FEditorFileUtils::FOnLevelPickingCancelled::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelCancelled);
-			const bool bAllowMultipleSelection = true;
-			FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, LevelPickingCancelledDelegate, bAllowMultipleSelection);
-		}
-	}
-	else
-	{
-		TArray<FString> OpenFilenames;
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		bool bOpened = false;
-		if ( DesktopPlatform )
-		{
-			void* ParentWindowWindowHandle = NULL;
-
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
-
-			bOpened = DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
-				NSLOCTEXT("UnrealEd", "Open", "Open").ToString(),
-				*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
-				TEXT(""),
-				*FEditorFileUtils::GetFilterString(FI_Load),
-				EFileDialogFlags::Multiple,
-				OpenFilenames
-				);
-		}
-
-		if( bOpened )
-		{
-			// Save the path as default for next time
-			FEditorDirectories::Get().SetLastDirectory( ELastDirectory::UNR, FPaths::GetPath( OpenFilenames[ 0 ] ) );
-
-			TArray<FString> Filenames;
-			for( int32 FileIndex = 0 ; FileIndex < OpenFilenames.Num() ; ++FileIndex )
-			{
-				// Strip paths from to get the level package names.
-				const FString FilePath( OpenFilenames[FileIndex] );
-
-				// make sure the level is in our package cache, because the async loading code will use this to find it
-				if (!FPaths::FileExists(FilePath))
-				{
-					FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelImportFromExternal", "Importing external sublevels is not allowed. Move the level files into the standard content directory and try again.\nAfter moving the level(s), restart the editor.") );
-					return;				
-				}
-
-				FText ErrorMessage;
-				bool bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(OpenFilenames[FileIndex], ErrorMessage);
-				if ( !bFilenameIsValid )
-				{
-					// Start the loop over, prompting for save again
-					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*OpenFilenames[FileIndex]) );
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Filename"), DisplayFilename);
-					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-					const FText DisplayMessage = FText::Format( NSLOCTEXT("UnrealEd", "Error_InvalidLevelToAdd", "Unable to add streaming level {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-					return;
-				}
-
-				Filenames.Add( FilePath );
-			}
-
-			TArray<FString> PackageNames;
-			for (const auto& Filename : Filenames)
-			{
-				const FString& PackageName = FPackageName::FilenameToLongPackageName(Filename);
-				PackageNames.Add(PackageName);
-			}
-
-			// Save or selected list, adding a new level will clean it up
-			FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
-
-			EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
-			
-			// Force a cached level list rebuild
-			PopulateLevelsList();
-			
-			if (bRemoveInvalidSelectedLevelsAfter)
-			{
-				InvalidSelectedLevels = SavedInvalidSelectedLevels;
-				RemoveInvalidSelectedLevels_Executed();
-			}
-		}
+		bAssetDialogOpen = true;
+		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+		FEditorFileUtils::FOnLevelPickingCancelled LevelPickingCancelledDelegate = FEditorFileUtils::FOnLevelPickingCancelled::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelCancelled);
+		const bool bAllowMultipleSelection = true;
+		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, LevelPickingCancelledDelegate, bAllowMultipleSelection);
 	}
 }
 

@@ -83,17 +83,20 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	{
 		WaitPos = UpdatedComponent->GetComponentLocation(); //-V595
 	}
-	while (RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent)
+	while (RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent && bIsActive)
 	{
 		Iterations++;
 
 		const float TimeTick = ShouldUseSubStepping() ? GetSimulationTimeStep(RemainingTime, Iterations) : RemainingTime;
 		RemainingTime -= TimeTick;
 
-		// Calculate the current time with this tick iteration
-		float Time = FMath::Clamp(CurrentTime + ((DeltaTime*TimeMultiplier)*CurrentDirection),0.0f,1.0f);		
-		FVector MoveDelta = ComputeMoveDelta(Time);
+		// Calculate the current alpha with this tick iteration
+		const float TargetTime = FMath::Clamp(CurrentTime + ((TimeTick*TimeMultiplier)*CurrentDirection), 0.0f, 1.0f);		
+		FVector MoveDelta = ComputeMoveDelta(TargetTime);
 		
+		// Update velocity
+		Velocity = MoveDelta / TimeTick;
+
 		// Update the rotation on the spline if required
 		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); //-V595
 		
@@ -111,27 +114,48 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 		}
 		//DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentLocation(), 16, FColor::White,true,5.0f);
 		// If we hit a trigger that destroyed us, abort.
-		if (ActorOwner->IsPendingKill() || !UpdatedComponent)
+		if (ActorOwner->IsPendingKill() || !UpdatedComponent || !bIsActive)
 		{
 			return;
 		}
 
-		// Handle hit result after movement
-		if (!Hit.bBlockingHit)
+		// Update current time
+		float AlphaRemainder = 0.0f;
+		if (bIsWaiting == false)
 		{
-			// If we were 'waiting' were not any more - broadcast we are off again
-			if( bIsWaiting == true )
+			// Compute time used out of tick time to get to the hit
+			const float TimeDeltaAtHit = TimeTick * Hit.Time;
+			// Compute new time lerp alpha based on how far we moved
+			CurrentTime = CalculateNewTime(CurrentTime, TimeDeltaAtHit, Hit, true, bStopped, AlphaRemainder);
+		}
+
+		// See if we moved at all
+		if (Hit.Time != 0.f)
+		{
+			// If we were 'waiting' we are not any more - broadcast we are moving again
+			if (bIsWaiting == true)
 			{
-				OnWaitEndDelegate.Broadcast(Hit, Time);
+				OnWaitEndDelegate.Broadcast(Hit, CurrentTime);
 				bIsWaiting = false;
 			}
-			else
-			{				
-				CalculateNewTime(CurrentTime, TimeTick, Hit, true, bStopped);
-				if (bStopped == true)
-				{
-					return;
-				}
+		}
+
+		// Handle hit result after movement
+		float SubTickTimeRemaining = 0.0f;
+		if (!Hit.bBlockingHit)
+		{
+			if (bStopped == true)
+			{
+				Velocity = FVector::ZeroVector;
+				break;
+			}
+
+			// Handle remainder of alpha after it goes off the end, for instance if ping-pong is set and it hit the end,
+			// continue with the time remaining off the end but in the reverse direction. It is similar to hitting an object in this respect.
+			if (AlphaRemainder != 0.0f)
+			{
+				NumBounces++;
+				SubTickTimeRemaining = (AlphaRemainder * Duration);
 			}
 		}
 		else
@@ -142,26 +166,23 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 			}
 
 			NumBounces++;
-			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
-			
-			// A few initial bounces should add more time and iterations to complete most of the simulation.
-			if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
-			{
-				RemainingTime += SubTickTimeRemaining;
-				Iterations--;
-			}
+			SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+		}
+
+		// A few initial bounces should add more time and iterations to complete most of the simulation.
+		if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
+		{
+			RemainingTime += SubTickTimeRemaining;
+			Iterations--;
 		}
 	}
-	if( bIsWaiting == false )
-	{		
-		FHitResult DummyHit;
-		CurrentTime = CalculateNewTime(CurrentTime, DeltaTime, DummyHit, false, bStopped);		
-	}
+
 	UpdateComponentVelocity();
 }
 
-float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, FHitResult& HitResult, bool InBroadcastEvent, bool& OutStopped )
+float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, FHitResult& HitResult, bool InBroadcastEvent, bool& OutStopped, float& OutTimeRemainder )
 {
+	OutTimeRemainder = 0.0f;
 	float NewTime = TimeNow;
 	OutStopped = false;
 	if (bIsWaiting == false)
@@ -169,6 +190,7 @@ float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, 
 		NewTime += ((Delta*TimeMultiplier)*CurrentDirection);
 		if (NewTime >= 1.0f)
 		{
+			OutTimeRemainder = NewTime - 1.0f;
 			if (BehaviourType == EInterpToBehaviourType::OneShot)
 			{
 				NewTime = 1.0f;
@@ -189,11 +211,13 @@ float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, 
 			else
 			{
 				FHitResult DummyHit;
-				NewTime = ReverseDirection(DummyHit,NewTime, InBroadcastEvent);
+				NewTime = 1.0f;
+				ReverseDirection(DummyHit, NewTime, InBroadcastEvent);
 			}	
 		}
 		else if (NewTime < 0.0f)
 		{
+			OutTimeRemainder = -NewTime;
 			if (BehaviourType == EInterpToBehaviourType::OneShot_Reverse)
 			{
 				NewTime = 0.0f;
@@ -205,9 +229,9 @@ float UInterpToMovementComponent::CalculateNewTime( float TimeNow, float Delta, 
 			}
 			else if (BehaviourType == EInterpToBehaviourType::PingPong)
 			{
-
 				FHitResult DummyHit;
-				NewTime = ReverseDirection(DummyHit, NewTime, InBroadcastEvent);
+				NewTime = 0.0f;
+				ReverseDirection(DummyHit, NewTime, InBroadcastEvent);
 			}			
 		}
 	}
@@ -485,20 +509,15 @@ void UInterpToMovementComponent::UpdateControlPoints(bool InForceUpdate)
 	}
 }
 
-float UInterpToMovementComponent::ReverseDirection(const FHitResult& Hit, float Time, bool InBroadcastEvent)
+void UInterpToMovementComponent::ReverseDirection(const FHitResult& Hit, float Time, bool InBroadcastEvent)
 {
-	float NewTime = Time;
 	// Invert the direction we are moving 
 	if (InBroadcastEvent == true)
 	{
-		OnInterpToReverse.Broadcast(Hit, NewTime);
+		OnInterpToReverse.Broadcast(Hit, Time);
 	}
 	// flip dir
 	CurrentDirection = -CurrentDirection;
-	// remove extra time from current time
-	float Remainder = NewTime - 1.0f;
-	NewTime = 1.0f - Remainder;
-	return NewTime;
 }
 
 

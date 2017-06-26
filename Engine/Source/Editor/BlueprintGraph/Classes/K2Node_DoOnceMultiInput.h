@@ -6,13 +6,14 @@
 #include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphPin.h"
 #include "K2Node.h"
+#include "K2Node_AddPinInterface.h"
 #include "K2Node_DoOnceMultiInput.generated.h"
 
 class FBlueprintActionDatabaseRegistrar;
 class UEdGraph;
 
 UCLASS(MinimalAPI)
-class UK2Node_DoOnceMultiInput : public UK2Node
+class UK2Node_DoOnceMultiInput : public UK2Node, public IK2Node_AddPinInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -39,7 +40,6 @@ private:
 	FEdGraphPinType GetOutType() const;
 
 	void AddPinsInner(int32 AdditionalPinIndex);
-	bool CanAddPin() const;
 	bool CanRemovePin(const UEdGraphPin* Pin) const;
 public:
 	BLUEPRINTGRAPH_API UEdGraphPin* FindOutPin() const;
@@ -49,7 +49,6 @@ public:
 	BLUEPRINTGRAPH_API UEdGraphPin* GetInputPin(int32 InputPinIndex);
 	BLUEPRINTGRAPH_API UEdGraphPin* GetOutputPin(int32 InputPinIndex);
 
-	BLUEPRINTGRAPH_API void AddInputPin();
 	BLUEPRINTGRAPH_API void RemoveInputPin(UEdGraphPin* Pin);
 
 	// UEdGraphNode interface
@@ -62,4 +61,9 @@ public:
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	// End of UK2Node interface
+
+	// IK2Node_AddPinInterface interface
+	BLUEPRINTGRAPH_API virtual void AddInputPin() override;
+	virtual bool CanAddPin() const override;
+	// End of IK2Node_AddPinInterface interface
 };

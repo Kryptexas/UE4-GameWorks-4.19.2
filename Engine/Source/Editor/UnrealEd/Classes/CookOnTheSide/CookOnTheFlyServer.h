@@ -44,11 +44,11 @@ enum class ECookInitializationFlags
 	OutputVerboseCookerWarnings =				0x00000800, // output additional cooker warnings about content issues
 	EnablePartialGC =							0x00001000, // mark up with an object flag objects which are in packages which we are about to use or in the middle of using, this means we can gc more often but only gc stuff which we have finished with
 	TestCook =									0x00002000, // test the cooker garbage collection process and cooking (cooker will never end just keep testing).
-	IterateOnHash =								0x00004000, // when using iterative cooking use hashes of original files instead of timestamps
+	//unused =									0x00004000,
 	LogDebugInfo =								0x00008000, // enables additional debug log information
 	IterateSharedBuild =						0x00010000, // iterate from a build in the SharedIterativeBuild directory 
 	IgnoreIniSettingsOutOfDate =				0x00020000, // if the inisettings say the cook is out of date keep using the previously cooked build
-	IterateOnAssetRegistry =					0x00040000, // when using iterative cooking use the asset registry dependencies
+	IgnoreScriptPackagesOutOfDate =				0x00040000, // for incremental cooking, ignore script package changes
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -1293,12 +1293,6 @@ public:
 	void MarkPackageDirtyForCooker( UPackage *Package );
 
 	/**
-	* Mark any packages which reference this package as dirty also
-	* causes all packages to be recooked on next request
-	*/
-	void MarkDependentPackagesDirtyForCooker(const FName& PackageName);
-
-	/**
 	* MaybeMarkPackageAsAlreadyLoaded
 	* Mark the package as already loaded if we have already cooked the package for all requested target platforms
 	* this hints to the objects on load that we don't need to load all our bulk data
@@ -1365,14 +1359,6 @@ private:
 	* @return true if successfully read false otherwise
 	*/
 	bool GetAllPackageFilenamesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageFilenames ) const;
-
-	/**
-	* SaveCookedAssetRegistry
-	* Save an asset registry which contains all the packages which were cooked
-	* this asset registry is used in the editor to display information about package sizes and asset sizes
-	* this asset registry is also used by the cooker for iterative cooking
-	*/
-	bool SaveCookedAssetRegistry(const FString& CookedAssetRegistryFilename, const TArray<FName>& AllCookedPackages, const TArray<FName>& UncookedEditorOnlyPackages, const TArray<FName>& FailedToSavePackages, const FString& PlatformName, const bool Append) const;
 
 	/**
 	* BuildMapDependencyGraph
@@ -1729,8 +1715,6 @@ private:
 	*/
 	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
 
-
-
 	/**
 	* Searches the disk for all the cooked files in the sandbox path provided
 	* Returns a map of the uncooked file path matches to the cooked file path for each package which exists
@@ -1739,13 +1723,6 @@ private:
 	* @param SandboxPath path to search for cooked packages in
 	*/
 	void GetAllCookedFiles(TMap<FName, FName>& UncookedPathToCookedPath, const FString& SandboxPath);
-
-	/**
-	* Verify the cooked package list hasn't got any packages which are out of date in it and remove any which are out of date deleting content from disk
-	* 
-	* @params Platforms to process
-	*/
-	void VerifyCookedPackagesAreUptodate( const TArray<ITargetPlatform*>& Platforms );
 
 	/** Generates asset registry */
 	void GenerateAssetRegistry();

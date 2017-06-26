@@ -1671,6 +1671,11 @@ void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 	{
 		TickState = (bInEnabled ? ETickState::Enabled : ETickState::Disabled);
 	}
+
+	if (TickState == ETickState::Disabled)
+	{
+		LastTickGameTimeSeconds = -1.f;
+	}
 }
 
 void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)

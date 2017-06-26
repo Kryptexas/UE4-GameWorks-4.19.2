@@ -1805,6 +1805,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector2d / float", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector2D")
 	static FVector2D Divide_Vector2DFloat(FVector2D A, float B = 1.f);
 
+	/* Element-wise Vector divide (Result = {A.x/B.x, A.y/B.y}) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "vector2d / vector2d", CompactNodeTitle = "/", Keywords = "/ divide division"), Category = "Math|Vector2D")
+	static FVector2D Divide_Vector2DVector2D(FVector2D A, FVector2D B);
+
 	/** Returns Vector A added by B */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector2d + float", CompactNodeTitle = "+", Keywords = "+ add plus"), Category="Math|Vector2D")
 	static FVector2D Add_Vector2DFloat(FVector2D A, float B);
@@ -2092,6 +2096,7 @@ private:
 	static void ReportError_Divide_VectorVector();
 	static void ReportError_ProjectVectorOnToVector();
 	static void ReportError_Divide_Vector2DFloat();
+	static void ReportError_Divide_Vector2DVector2D();
 	static void ReportError_DaysInMonth();
 };
 

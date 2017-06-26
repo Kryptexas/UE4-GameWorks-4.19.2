@@ -71,7 +71,7 @@ namespace
 
 	void DelayForFramesCommon(UObject* WorldContextObject, FLatentActionInfo LatentInfo, int32 NumFrames)
 	{
-		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
 			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 			if (LatentActionManager.FindExistingAction<FDelayForFramesLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)

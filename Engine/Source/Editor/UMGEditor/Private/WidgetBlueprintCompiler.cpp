@@ -155,7 +155,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	if ( !Blueprint->bIsRegeneratingOnLoad && bIsFullCompile )
 	{
 		UPackage* WidgetTemplatePackage = WidgetBP->GetWidgetTemplatePackage();
-		UUserWidget* OldArchetype = LoadObject<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"), nullptr, LOAD_NoWarn);
+		UUserWidget* OldArchetype = FindObjectFast<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"));
 		if ( OldArchetype )
 		{
 			const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
@@ -185,8 +185,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	Super::CleanAndSanitizeClass(ClassToClean, InOutOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);
-	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewWidgetBlueprintClass == NewClass);
 
 	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
 	{
@@ -469,9 +468,10 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	// Make sure that we don't have dueling widget hierarchies
 	if (UWidgetBlueprintGeneratedClass* SuperBPGClass = Cast<UWidgetBlueprintGeneratedClass>(BPGClass->GetSuperClass()))
 	{
-		if (SuperBPGClass->WidgetTree != nullptr)
+		UWidgetBlueprint* SuperBlueprint = Cast<UWidgetBlueprint>(SuperBPGClass->ClassGeneratedBy);
+		if (SuperBlueprint->WidgetTree != nullptr)
 		{
-			if ((SuperBPGClass->WidgetTree->RootWidget != nullptr) && (BPGClass->WidgetTree->RootWidget != nullptr))
+			if ((SuperBlueprint->WidgetTree->RootWidget != nullptr) && (WidgetBlueprint()->WidgetTree->RootWidget != nullptr))
 			{
 				// We both have a widget tree, terrible things will ensue
 				// @todo: nickd - we need to switch this back to a warning in engine, but note for games
@@ -591,6 +591,11 @@ void FWidgetBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 		FBlueprintCompileReinstancer::Create(NewWidgetBlueprintClass);
 	}
 	NewClass = NewWidgetBlueprintClass;
+}
+
+void FWidgetBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>(ClassToUse);
 }
 
 void FWidgetBlueprintCompiler::PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags)

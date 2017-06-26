@@ -10,10 +10,11 @@
 #include "AIModuleLog.h"
 
 #if WITH_RECAST
-#include "AI/Navigation/PImplRecastNavMesh.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "DetourCrowd/DetourObstacleAvoidance.h"
 #include "DetourCrowd/DetourCrowd.h"
+#include "Detour/DetourNavMesh.h"
+#include "AI/Navigation/RecastQueryFilter.h"
 #endif
 
 #include "Navigation/CrowdFollowingComponent.h"
@@ -806,8 +807,7 @@ void UCrowdManager::UpdateAgentPaths()
 {
 	UNavigationSystem* NavSys = Cast<UNavigationSystem>(GetOuter());
 	ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
-	FPImplRecastNavMesh* PImplNavMesh = RecastNavData ? RecastNavData->RecastNavMeshImpl : NULL;
-	if (PImplNavMesh == NULL)
+	if (RecastNavData == NULL)
 	{
 		return;
 	}
@@ -831,7 +831,7 @@ void UCrowdManager::UpdateAgentPaths()
 
 				if (AnimInfo.t == 0)
 				{
-					const uint32 NavLinkId = PImplNavMesh->GetLinkUserId(AnimInfo.polyRef);
+					const uint32 NavLinkId = RecastNavData->GetLinkUserId(AnimInfo.polyRef);
 					INavLinkCustomInterface* CustomLink = NavSys->GetCustomLink(NavLinkId);
 
 					if (CustomLink)
@@ -883,9 +883,18 @@ void UCrowdManager::UpdateSelectedDebug(const ICrowdAgentInterface* Agent, int32
 
 void UCrowdManager::CreateCrowdManager()
 {
+	if (MyNavData == nullptr)
+	{
+		// run update and quit since UpdateNavData will call CreateCrowdManager
+		// if navigation mesh is found
+		UpdateNavData();
+
+		UE_CLOG(MyNavData == nullptr, LogCrowdFollowing, Error, TEXT("Unable to find RecastNavMesh instance while trying to create UCrowdManager instance"));
+		return;
+	}
+
 	ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
-	FPImplRecastNavMesh* PImplNavMesh = RecastNavData ? RecastNavData->RecastNavMeshImpl : NULL;
-	dtNavMesh* NavMeshPtr = PImplNavMesh ? PImplNavMesh->GetRecastMesh() : NULL;
+	dtNavMesh* NavMeshPtr = RecastNavData->GetRecastMesh();
 
 	if (NavMeshPtr)
 	{
@@ -1370,11 +1379,11 @@ UWorld* UCrowdManager::GetWorld() const
 UCrowdManager* UCrowdManager::GetCurrent(UObject* WorldContextObject)
 {
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(WorldContextObject);
-	return NavSys ? NavSys->GetCrowdManager() : NULL;
+	return NavSys ? Cast<UCrowdManager>(NavSys->GetCrowdManager()) : NULL;
 }
 
 UCrowdManager* UCrowdManager::GetCurrent(UWorld* World)
 {
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-	return NavSys ? NavSys->GetCrowdManager() : NULL;
+	return NavSys ? Cast<UCrowdManager>(NavSys->GetCrowdManager()) : NULL;
 }

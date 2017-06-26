@@ -3,7 +3,7 @@
 #include "AI/Navigation/NavFilters/RecastFilter_UseDefaultArea.h"
 #include "Templates/Casts.h"
 #include "AI/Navigation/RecastNavMesh.h"
-#include "AI/Navigation/PImplRecastNavMesh.h"
+#include "AI/Navigation/RecastQueryFilter.h"
 
 URecastFilter_UseDefaultArea::URecastFilter_UseDefaultArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

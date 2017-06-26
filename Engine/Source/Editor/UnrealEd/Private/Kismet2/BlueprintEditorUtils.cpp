@@ -1225,6 +1225,17 @@ void FBlueprintEditorUtils::RefreshVariables(UBlueprint* Blueprint)
 	Compiler.RefreshVariables(Blueprint);
 }
 
+void FBlueprintEditorUtils::PreloadBlueprintSpecificData(UBlueprint* Blueprint)
+{
+	TArray<UK2Node*> AllNodes;
+	FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, AllNodes);
+
+	for( UK2Node* K2Node : AllNodes )
+	{
+		K2Node->PreloadRequiredAssets();
+	}
+}
+
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
 	bool bRegenerated = false;
@@ -2019,6 +2030,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 						FKismetCompilerOptions CompileOptions;
 						CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 						Compiler.CompileBlueprint(SkelBlueprint, CompileOptions, Results);
+						SkelBlueprint->Status = BS_Dirty;
 
 						SkelBlueprint->BroadcastCompiled();
 
@@ -2043,24 +2055,35 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_MarkBlueprintasStructurallyModified);
 
-		TArray<UEdGraph*> AllGraphs;
-		Blueprint->GetAllGraphs(AllGraphs);
-		for (int32 i = 0; i < AllGraphs.Num(); i++)
-		{
-			UK2Node_EditablePinBase* EntryNode = GetEntryNode(AllGraphs[i]);
-			if(UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode))
-			{
-				// Remove data marking graphs as latent, this will be re-cache'd as needed
-				TunnelNode->MetaData.HasLatentFunctions = INDEX_NONE;
-			}
-		}
-
 		TArray<UClass*> ChildrenOfClass;
 		if (UClass* SkelClass = Blueprint->SkeletonGeneratedClass)
 		{
 			if (!Blueprint->bIsRegeneratingOnLoad)
 			{
-				GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+				if (IsInterfaceBlueprint(Blueprint))
+				{
+					// Find all dependent Blueprints that implement the interface. Note: Using
+					// GetDependentBlueprints() here as the result is cached and thus it should
+					// generally be a faster path than iterating through all loaded Blueprints.
+					TArray<UBlueprint*> DependentBlueprints;
+					GetDependentBlueprints(Blueprint, DependentBlueprints, true);
+					for (UBlueprint* DependentBlueprint : DependentBlueprints)
+					{
+						const bool bDependentBPImplementsInterface = DependentBlueprint->ImplementedInterfaces.ContainsByPredicate([&Blueprint](const FBPInterfaceDescription& InterfaceDesc)
+						{
+							return InterfaceDesc.Interface == Blueprint->GeneratedClass;
+						});
+
+						if (bDependentBPImplementsInterface)
+						{
+							ChildrenOfClass.Add(DependentBlueprint->SkeletonGeneratedClass);
+						}
+					}
+				}
+				else
+				{
+					GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+				}
 			}
 		}
 
@@ -2071,11 +2094,13 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			FKismetCompilerOptions CompileOptions;
 			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 			Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
-			Blueprint->Status = BS_Dirty;
 		}
 		UpdateDelegatesInBlueprint(Blueprint);
 
 		FRefreshHelper::SkeletalRecompileChildren(ChildrenOfClass, Blueprint->bIsRegeneratingOnLoad);
+
+		// Call general modification callback as well
+		MarkBlueprintAsModified(Blueprint);
 
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
@@ -2083,8 +2108,6 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			// Notify any interested parties that the blueprint has changed
 			Blueprint->BroadcastChanged();
 		}
-
-		Blueprint->MarkPackageDirty();
 	}
 }
 
@@ -2181,6 +2204,48 @@ UBlueprint* FBlueprintEditorUtils::FindBlueprintForGraphChecked(const UEdGraph* 
 	UBlueprint* Result = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 	check(Result);
 	return Result;
+}
+
+UClass* FBlueprintEditorUtils::GetSkeletonClass(UClass* FromClass)
+{
+	if(UBlueprint* Generator = Cast<UBlueprint>(FromClass->ClassGeneratedBy))
+	{
+		return Generator->SkeletonGeneratedClass;
+	}
+	return nullptr;
+}
+
+UClass* FBlueprintEditorUtils::GetMostUpToDateClass(UClass* FromClass)
+{
+	if(!FromClass || FromClass->HasAnyClassFlags(CLASS_Native))
+	{
+		return FromClass;
+	}
+
+	if(GBlueprintUseCompilationManager)
+	{
+		// It's really not safe/coherent to try and dig out the 'right' class. Things that need the 'most up to date'
+		// version of a class should always be looking at the skeleton:
+		return GetSkeletonClass(FromClass);
+	}
+	else
+	{
+		return FromClass;
+	}
+}
+
+bool FBlueprintEditorUtils::PropertyStillExists(UProperty* Property)
+{
+	if (GBlueprintUseCompilationManager)
+	{
+		if (UClass* UpToDateClass = FBlueprintEditorUtils::GetMostUpToDateClass(Property->GetTypedOuter<UClass>()))
+		{
+			return (UpToDateClass->FindPropertyByName(Property->GetFName()) != nullptr);
+		}
+	}
+
+	// We can't reliably know if the property still exists, but assume that it does
+	return true;
 }
 
 bool FBlueprintEditorUtils::IsGraphNameUnique(UBlueprint* Blueprint, const FName& InName)
@@ -4320,7 +4385,7 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 
 			{
 				const bool bIsDelegateVar = (Variable.VarType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate);
-				if (UEdGraph* DelegateSignatureGraph = bIsDelegateVar ? FindObject<UEdGraph>(Blueprint, *OldName.ToString()) : nullptr)
+				if (UEdGraph* DelegateSignatureGraph = bIsDelegateVar ? GetDelegateSignatureGraphByName(Blueprint, OldName) : nullptr)
 				{
 					FBlueprintEditorUtils::RenameGraph(DelegateSignatureGraph, NewName.ToString());
 
@@ -4618,7 +4683,7 @@ FName FBlueprintEditorUtils::DuplicateVariable(UBlueprint* InBlueprint, const US
 				{
 					// if there is a property for variable, it means the original default value was already copied, so it can be safely overridden
 					Variable.DefaultValue.Empty();
-					TargetProperty->ExportTextItem(NewVar.DefaultValue, OldPropertyAddr, OldPropertyAddr, nullptr, PPF_None);
+					TargetProperty->ExportTextItem(NewVar.DefaultValue, OldPropertyAddr, OldPropertyAddr, nullptr, PPF_SerializedAsImportText);
 				}
 			}
 
@@ -4635,8 +4700,6 @@ FName FBlueprintEditorUtils::DuplicateVariable(UBlueprint* InBlueprint, const US
 			if (LocalVariable)
 			{
 				FunctionEntry->Modify();
-
-				FBPVariableDescription& Variable = *LocalVariable;
 
 				NewVar = DuplicateVariableDescription(InBlueprint, *LocalVariable);
 
@@ -4694,6 +4757,7 @@ bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* In
 		NewVar.VarName = InNewVarName;
 		NewVar.VarGuid = FGuid::NewGuid();
 		NewVar.VarType = InNewVarType;
+		NewVar.PropertyFlags |= CPF_BlueprintVisible;
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
 		NewVar.Category = K2Schema->VR_DefaultCategory;
 		NewVar.DefaultValue = DefaultValue;
@@ -6037,43 +6101,77 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 		}
 
 		// Cache off the graph names for this interface, for easier searching
-		TArray<FName> GraphNames;
+		TMap<FName, const UEdGraph*> InterfaceFunctionGraphs;
 		for (int32 GraphIndex = 0; GraphIndex < CurrentInterfaceDesc.Graphs.Num(); GraphIndex++)
 		{
 			const UEdGraph* CurrentGraph = CurrentInterfaceDesc.Graphs[GraphIndex];
 			if( CurrentGraph )
 			{
-				GraphNames.AddUnique(CurrentGraph->GetFName());
+				InterfaceFunctionGraphs.Add(CurrentGraph->GetFName()) = CurrentGraph;
 			}
 		}
 
+		// If this is a Blueprint interface, redirect to the skeleton class for function iteration
+		const UClass* InterfaceClass = CurrentInterfaceDesc.Interface;
+		if (InterfaceClass && InterfaceClass->ClassGeneratedBy)
+		{
+			InterfaceClass = CastChecked<UBlueprint>(InterfaceClass->ClassGeneratedBy)->SkeletonGeneratedClass;
+		}
+
 		// Iterate over all the functions in the interface, and create graphs that are in the interface, but missing in the blueprint
-		for (TFieldIterator<UFunction> FunctionIter(CurrentInterfaceDesc.Interface, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
+		for (TFieldIterator<UFunction> FunctionIter(InterfaceClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
 		{
 			UFunction* Function = *FunctionIter;
 			const FName FunctionName = Function->GetFName();
 			if(!VariableNamesUsedInBlueprint.Contains(FunctionName))
 			{
-				if( UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && !GraphNames.Contains(FunctionName) )
+				if( UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) )
 				{
-					// interface methods initially create EventGraph stubs, so we need
-					// to make sure we remove that entry so the new graph doesn't conflict (don't
-					// worry, these are regenerated towards the end of a compile)
-					for (UEdGraph* GraphStub : Blueprint->EventGraphs)
+					if (const UEdGraph** FunctionGraphPtr = InterfaceFunctionGraphs.Find(FunctionName))
 					{
-						if (GraphStub->GetFName() == FunctionName)
+						const bool bIsConstInterfaceFunction = (Function->FunctionFlags & FUNC_Const) != 0;
+
+						// Sync the 'const' attribute of the implementation with the interface function, in case it has been changed
+						TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+						(*FunctionGraphPtr)->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+						for (UK2Node_FunctionEntry* FunctionEntryNode : FunctionEntryNodes)
 						{
-							FBlueprintEditorUtils::RemoveGraph(Blueprint, GraphStub, EGraphRemoveFlags::MarkTransient);
+							const bool bIsImplementedAsConstFunction = (FunctionEntryNode->GetExtraFlags() & FUNC_Const) != 0;
+							if (bIsImplementedAsConstFunction != bIsConstInterfaceFunction)
+							{
+								FunctionEntryNode->Modify();
+								if (bIsConstInterfaceFunction)
+								{
+									FunctionEntryNode->AddExtraFlags(FUNC_Const);
+								}
+								else
+								{
+									FunctionEntryNode->ClearExtraFlags(FUNC_Const);
+								}
+							}
 						}
 					}
+					else
+					{
+						// interface methods initially create EventGraph stubs, so we need
+						// to make sure we remove that entry so the new graph doesn't conflict (don't
+						// worry, these are regenerated towards the end of a compile)
+						for (UEdGraph* GraphStub : Blueprint->EventGraphs)
+						{
+							if (GraphStub->GetFName() == FunctionName)
+							{
+								FBlueprintEditorUtils::RemoveGraph(Blueprint, GraphStub, EGraphRemoveFlags::MarkTransient);
+							}
+						}
 
-					// Check to see if we already have implemented 
-					UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FunctionName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					NewGraph->bAllowDeletion = false;
-					NewGraph->InterfaceGuid = FBlueprintEditorUtils::FindInterfaceFunctionGuid(Function, CurrentInterfaceDesc.Interface);
-					CurrentInterfaceDesc.Graphs.Add(NewGraph);
+						// Check to see if we already have implemented 
+						UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FunctionName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+						NewGraph->bAllowDeletion = false;
+						NewGraph->InterfaceGuid = FBlueprintEditorUtils::FindInterfaceFunctionGuid(Function, CurrentInterfaceDesc.Interface);
+						CurrentInterfaceDesc.Graphs.Add(NewGraph);
 
-					FBlueprintEditorUtils::AddInterfaceGraph(Blueprint, NewGraph, CurrentInterfaceDesc.Interface);
+						FBlueprintEditorUtils::AddInterfaceGraph(Blueprint, NewGraph, CurrentInterfaceDesc.Interface);
+					}
 				}
 			}
 			else
@@ -6548,8 +6646,24 @@ FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint,
 	int32 Count = 0;
 	FString KismetName;
 	FString BaseName = InBaseName;
-
 	TSharedPtr<FKismetNameValidator> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint, NAME_None, InScope));
+
+	// Clean up BaseName to not contain any invalid characters, which will mean we can never find a legal name no matter how many numbers we add
+	if (NameValidator->IsValid(BaseName) == EValidatorResult::ContainsInvalidCharacters)
+	{
+		for (TCHAR& TestChar : BaseName)
+		{
+			for (TCHAR BadChar : UE_BLUEPRINT_INVALID_NAME_CHARACTERS)
+			{
+				if (TestChar == BadChar)
+				{
+					TestChar = TEXT('_');
+					break;
+				}
+			}
+		}
+	}
+
 	while(NameValidator->IsValid(KismetName) != EValidatorResult::Ok)
 	{
 		// Calculate the number of digits in the number, adding 2 (1 extra to correctly count digits, another to account for the '_' that will be added to the name
@@ -7538,21 +7652,53 @@ void FBlueprintEditorUtils::PostEditChangeBlueprintActors(UBlueprint* Blueprint,
 	}
 }
 
-bool FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(const UBlueprint* Blueprint, const UProperty* Property)
+FBlueprintEditorUtils::EPropertyWritableState FBlueprintEditorUtils::IsPropertyWritableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property)
 {
-	if (Property && Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly))
+	if (Property)
 	{
-		return true;
-	}
-	if (Property && Property->GetBoolMetaData(FBlueprintMetadata::MD_Private))
-	{
-		const UClass* OwningClass = CastChecked<UClass>(Property->GetOuter());
-		if(OwningClass->ClassGeneratedBy != Blueprint)
+		if (!Property->HasAnyPropertyFlags(CPF_BlueprintVisible))
 		{
-			return true;
+			return EPropertyWritableState::NotBlueprintVisible;
+		}
+		if (Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly))
+		{
+			return EPropertyWritableState::BlueprintReadOnly;
+		}
+		if (Property->GetBoolMetaData(FBlueprintMetadata::MD_Private))
+		{
+			const UClass* OwningClass = CastChecked<UClass>(Property->GetOuter());
+			if (OwningClass->ClassGeneratedBy != Blueprint)
+			{
+				return EPropertyWritableState::Private;
+			}
 		}
 	}
-	return false;
+	return EPropertyWritableState::Writable;
+}
+
+FBlueprintEditorUtils::EPropertyReadableState FBlueprintEditorUtils::IsPropertyReadableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property)
+{
+	if (Property)
+	{
+		if (!Property->HasAnyPropertyFlags(CPF_BlueprintVisible))
+		{
+			return EPropertyReadableState::NotBlueprintVisible;
+		}
+		if (Property->GetBoolMetaData(FBlueprintMetadata::MD_Private))
+		{
+			const UClass* OwningClass = CastChecked<UClass>(Property->GetOuter());
+			if (OwningClass->ClassGeneratedBy != Blueprint)
+			{
+				return EPropertyReadableState::Private;
+			}
+		}
+	}
+	return EPropertyReadableState::Readable;
+}
+
+bool FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(const UBlueprint* Blueprint, const UProperty* Property)
+{
+	return (IsPropertyWritableInBlueprint(Blueprint, Property) != EPropertyWritableState::Writable);
 }
 
 void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
@@ -7770,7 +7916,7 @@ bool FBlueprintEditorUtils::PropertyValueFromString_Direct(const UProperty* Prop
 		else if (Property->IsA(UTextProperty::StaticClass()))
 		{
 			FStringOutputDevice ImportError;
-			const TCHAR* EndOfParsedBuff = Property->ImportText(*StrValue, DirectValue, 0, nullptr, &ImportError);
+			const TCHAR* EndOfParsedBuff = Property->ImportText(*StrValue, DirectValue, PPF_SerializedAsImportText, nullptr, &ImportError);
 			bParseSucceeded = EndOfParsedBuff && ImportError.IsEmpty();
 		}
 		else
@@ -7781,7 +7927,7 @@ bool FBlueprintEditorUtils::PropertyValueFromString_Direct(const UProperty* Prop
 				: *StrValue;
 
 			FStringOutputDevice ImportError;
-			const TCHAR* EndOfParsedBuff = Property->ImportText(*StrValue, DirectValue, 0, nullptr, &ImportError);
+			const TCHAR* EndOfParsedBuff = Property->ImportText(*StrValue, DirectValue, PPF_SerializedAsImportText, nullptr, &ImportError);
 			bParseSucceeded = EndOfParsedBuff && ImportError.IsEmpty();
 		}
 	}
@@ -7829,7 +7975,7 @@ bool FBlueprintEditorUtils::PropertyValueFromString_Direct(const UProperty* Prop
 			bParseSucceeded = FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(Struct), DirectValue);
 
 			FStringOutputDevice ImportError;
-			const TCHAR* EndOfParsedBuff = StructProperty->ImportText(StrValue.IsEmpty() ? TEXT("()") : *StrValue, DirectValue, 0, nullptr, &ImportError);
+			const TCHAR* EndOfParsedBuff = StructProperty->ImportText(StrValue.IsEmpty() ? TEXT("()") : *StrValue, DirectValue, PPF_SerializedAsImportText, nullptr, &ImportError);
 			bParseSucceeded &= EndOfParsedBuff && ImportError.IsEmpty();
 		}
 	}
@@ -7895,7 +8041,7 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 			DefaultValue = StructOnScope.GetStructMemory();
 		}
 		
-		bSuccedded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, 0);
+		bSuccedded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, PPF_SerializedAsImportText);
 	}
 	return bSuccedded;
 }

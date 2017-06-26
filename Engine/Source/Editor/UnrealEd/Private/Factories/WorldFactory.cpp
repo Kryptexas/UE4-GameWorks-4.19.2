@@ -12,7 +12,7 @@
 UWorldFactory::UWorldFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bCreateNew = UEditorEngine::IsUsingWorldAssets();
+	bCreateNew = true;
 	SupportedClass = UWorld::StaticClass();
 	WorldType = EWorldType::Inactive;
 	bInformEngineOfWorld = false;

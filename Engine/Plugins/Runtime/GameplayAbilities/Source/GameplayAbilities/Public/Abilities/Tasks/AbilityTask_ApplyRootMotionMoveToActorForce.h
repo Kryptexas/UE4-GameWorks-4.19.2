@@ -33,8 +33,8 @@ enum class ERootMotionMoveToActorTargetOffsetType : uint8
 /**
  *	Applies force to character's movement
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask_ApplyRootMotion_Base
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 

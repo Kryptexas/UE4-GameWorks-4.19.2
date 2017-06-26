@@ -1407,6 +1407,10 @@ void SDesignerView::ClearDropPreviews()
 
 		UWidgetBlueprint* BP = GetBlueprint();
 		BP->WidgetTree->RemoveWidget(DropPreview.Widget);
+
+		// Since the widget has been removed from the widget tree, move it into the transient package. Otherwise,
+		// it will remain outered to the widget tree and end up as a property in the BP class layout as a result.
+		DropPreview.Widget->Rename(nullptr, GetTransientPackage());
 	}
 	DropPreviews.Empty();
 }
@@ -2584,6 +2588,18 @@ void SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const F
 		if (bIsPreview)
 		{
 			Transaction.Cancel();
+		}
+
+		// Remove widgets tracked by the 'DropPreviews' set. We don't consider them to be transient at this point because they have been inserted into the widget tree hierarchy.
+		for (const FDropPreview& DropPreview : DropPreviews)
+		{
+			DragDropPreviewWidgets.RemoveSwap(DropPreview.Widget);
+		}
+
+		// Move the remaining widgets into the transient package. Otherwise, they will remain outered to the WidgetTree and end up as properties in the BP class layout as a result.
+		for (UWidget* Widget : DragDropPreviewWidgets)
+		{
+			Widget->Rename(nullptr, GetTransientPackage());
 		}
 
 		// If we had preview widgets, we know that we can not be performing a selected widget drag/drop operation. Bail.

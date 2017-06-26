@@ -26,7 +26,7 @@ class FNavDataGenerator;
 class FNavigationOctree;
 class INavLinkCustomInterface;
 class INavRelevantInterface;
-class UCrowdManager;
+class UCrowdManagerBase;
 class UNavArea;
 class UNavigationPath;
 struct FNavigationRelevantData;
@@ -159,10 +159,13 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	ANavigationData* MainNavData;
 
 	/** special navigation data for managing direct paths, not part of NavDataSet! */
-	UPROPERTY()
+	UPROPERTY(Transient)
 	ANavigationData* AbstractNavData;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Navigation)
+	TSubclassOf<UCrowdManagerBase> CrowdManagerClass;
+
 	/** Should navigation system spawn default Navigation Data when there's none and there are navigation bounds present? */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bAutoCreateNavigationData:1;
@@ -244,7 +247,7 @@ public:
 	FOnNavigationInitDone OnNavigationInitDone;
 	
 private:
-	TWeakObjectPtr<UCrowdManager> CrowdManager;
+	TWeakObjectPtr<UCrowdManagerBase> CrowdManager;
 	
 	/** set to true when navigation processing was blocked due to missing nav bounds */
 	uint32 bNavDataRemovedDueToMissingNavBounds : 1;
@@ -386,7 +389,7 @@ public:
 
 	UWorld* GetWorld() const override { return GetOuterUWorld(); }
 
-	UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
+	UCrowdManagerBase* GetCrowdManager() const { return CrowdManager.Get(); }
 
 protected:
 	/** spawn new crowd manager */
@@ -874,6 +877,7 @@ protected:
 	uint8 bInitialLevelsAdded : 1;
 	uint8 bWorldInitDone : 1;
 	uint8 bAsyncBuildPaused : 1;
+	uint8 bCanAccumulateDirtyAreas : 1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
@@ -940,7 +944,7 @@ protected:
 	 *	in this regard **/
 	void AddElementToNavOctree(const FNavigationDirtyElement& DirtyElement);
 
-	void SetCrowdManager(UCrowdManager* NewCrowdManager); 
+	void SetCrowdManager(UCrowdManagerBase* NewCrowdManager);
 
 	/** Add BSP collision data to navigation octree */
 	void AddLevelCollisionToOctree(ULevel* Level);

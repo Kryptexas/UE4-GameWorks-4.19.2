@@ -10,7 +10,6 @@
 #include "UObject/Package.h"
 #include "UObject/ObjectRedirector.h"
 #include "Misc/PackageName.h"
-#include "Misc/SecureHash.h"
 #include "UObject/LinkerLoad.h"
 #include "AssetDataTagMap.h"
 #include "PrimaryAssetId.h"
@@ -28,6 +27,7 @@ struct ASSETREGISTRY_API FAssetRegistryVersion
 		HardSoftDependencies,	// The first version of the runtime asset registry to include file versioning.
 		AddAssetRegistryState,	// Added FAssetRegistryState and support for piecemeal serialization
 		ChangedAssetData,		// AssetData serialization format changed, versions before this are not readable
+		RemovedMD5Hash,			// Removed MD5 hash from package data
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
@@ -519,11 +519,8 @@ public:
 	/** Total size of this asset on disk */
 	int64 DiskSize;
 
-	/** Guid of the guid, uniquely identifies an asset package */
+	/** Guid of the source package, uniquely identifies an asset package */
 	FGuid PackageGuid;
-
-	/** Hash of the package and any dependencies that created it */
-	FMD5Hash PackageSourceHash;
 
 	FAssetPackageData()
 		: DiskSize(0)
@@ -538,7 +535,6 @@ public:
 	{
 		Ar << DiskSize;
 		Ar << PackageGuid;
-		Ar << PackageSourceHash;
 	}
 };
 

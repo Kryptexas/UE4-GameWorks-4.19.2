@@ -26,7 +26,7 @@ UDestroySessionCallbackProxy* UDestroySessionCallbackProxy::DestroySession(UObje
 
 void UDestroySessionCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("DestroySession"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("DestroySession"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())
@@ -52,7 +52,7 @@ void UDestroySessionCallbackProxy::Activate()
 
 void UDestroySessionCallbackProxy::OnCompleted(FName SessionName, bool bWasSuccessful)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("DestroySessionCallback"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("DestroySessionCallback"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

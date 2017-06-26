@@ -186,6 +186,9 @@ public:
 	 */
 	static void RefreshVariables(UBlueprint* Blueprint);
 
+	/** Helper function to punch through and honor UAnimGraphNode_Base::PreloadRequiredAssets, which formerly relied on loading assets during compile */
+	static void PreloadBlueprintSpecificData(UBlueprint* Blueprint);
+
 	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
@@ -246,6 +249,12 @@ public:
 	 * @return	The corresponding blueprint or NULL.
 	 */
 	static UBlueprint* FindBlueprintForGraphChecked(const UEdGraph* Graph);
+
+	static UClass* GetSkeletonClass(UClass* FromClass);
+	static UClass* GetMostUpToDateClass(UClass* FromClass);
+
+	/** Looks at the most up to data class and returns whether the given property exists in it as well */
+	static bool PropertyStillExists(UProperty* Property);
 
 	/**
 	 * Updates sources of delegates.
@@ -1099,7 +1108,31 @@ public:
 	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint, bool bComponentEditChange = false);
 
 	/** Checks if the property can be modified in given blueprint */
+	DEPRECATED(4.17, "Use IsPropertyWritableInBlueprint instead.")
 	static bool IsPropertyReadOnlyInCurrentBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
+
+	/** Enumeration of whether a property is writable or if not, why. */
+	enum class EPropertyWritableState : uint8
+	{
+		Writable,
+		Private,
+		NotBlueprintVisible,
+		BlueprintReadOnly
+	};
+
+	/** Returns an enumeration indicating if the property can be written to by the given Blueprint */
+	static EPropertyWritableState IsPropertyWritableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
+
+	/** Enumeration of whether a property is readable or if not, why. */
+	enum class EPropertyReadableState : uint8
+	{
+		Readable,
+		Private,
+		NotBlueprintVisible
+	};
+
+	/** Returns an enumeration indicating if the property can be read by the given Blueprint */
+	static EPropertyReadableState IsPropertyReadableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
 
 	/** Ensures that the CDO root component reference is valid for Actor-based Blueprints */
 	static void UpdateRootComponentReference(UBlueprint* Blueprint);

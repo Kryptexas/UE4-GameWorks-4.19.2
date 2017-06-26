@@ -149,8 +149,8 @@ void FAnimNode_SubInstance::OnInitializeAnimInstance(const FAnimInstanceProxy* I
 		MeshComp->SubInstances.Add(InstanceToRun);
 
 		// Build property lists
-		InstanceProperties.Empty();
-		SubInstanceProperties.Empty();
+		InstanceProperties.Reset(SourcePropertyNames.Num());
+		SubInstanceProperties.Reset(SourcePropertyNames.Num());
 
 		check(SourcePropertyNames.Num() == DestPropertyNames.Num());
 
@@ -164,10 +164,11 @@ void FAnimNode_SubInstance::OnInitializeAnimInstance(const FAnimInstanceProxy* I
 			UProperty* SourceProperty = FindField<UProperty>(SourceClass, SourceName);
 			UProperty* DestProperty = FindField<UProperty>(*InstanceClass, DestName);
 
-			check(SourceProperty && DestProperty);
-
-			InstanceProperties.Add(SourceProperty);
-			SubInstanceProperties.Add(DestProperty);
+			if (SourceProperty && DestProperty)
+			{
+				InstanceProperties.Add(SourceProperty);
+				SubInstanceProperties.Add(DestProperty);
+			}
 		}
 		
 	}

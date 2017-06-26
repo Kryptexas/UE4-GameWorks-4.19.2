@@ -285,7 +285,7 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(const FString& Unsanitize
 }
 
 //------------------------------------------------------------------------------
-void FEditorCategoryUtils::GetClassHideCategories(const UClass* Class, TArray<FString>& CategoriesOut, bool bHomogenize)
+void FEditorCategoryUtils::GetClassHideCategories(const UStruct* Class, TArray<FString>& CategoriesOut, bool bHomogenize)
 {
 	CategoriesOut.Empty();
 
@@ -307,7 +307,7 @@ void FEditorCategoryUtils::GetClassHideCategories(const UClass* Class, TArray<FS
 }
 
 //------------------------------------------------------------------------------
-void  FEditorCategoryUtils::GetClassShowCategories(const UClass* Class, TArray<FString>& CategoriesOut)
+void  FEditorCategoryUtils::GetClassShowCategories(const UStruct* Class, TArray<FString>& CategoriesOut)
 {
 	CategoriesOut.Empty();
 
@@ -325,19 +325,19 @@ void  FEditorCategoryUtils::GetClassShowCategories(const UClass* Class, TArray<F
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, FCommonEditorCategory::EValue CategoryId)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UStruct* Class, FCommonEditorCategory::EValue CategoryId)
 {
 	return IsCategoryHiddenFromClass(Class, GetCommonCategory(CategoryId));
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, const FText& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UStruct* Class, const FText& Category)
 {
 	return IsCategoryHiddenFromClass(Class, Category.ToString());
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, const FString& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UStruct* Class, const FString& Category)
 {
 	TArray<FString> ClassHideCategories;
 	GetClassHideCategories(Class, ClassHideCategories);
@@ -345,7 +345,7 @@ bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const UClass* Class, const 
 }
 
 //------------------------------------------------------------------------------
-bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, const UClass* Class, const FString& Category)
+bool FEditorCategoryUtils::IsCategoryHiddenFromClass(const TArray<FString>& ClassHideCategories, const UStruct* Class, const FString& Category)
 {
 	bool bIsHidden = false;
 
@@ -410,7 +410,7 @@ void FEditorCategoryUtils::GetCategoryTooltipInfo(const FString& Category, FText
 }
 
 //------------------------------------------------------------------------------
-TSet<FString> FEditorCategoryUtils::GetHiddenCategories(const UClass* Class)
+TSet<FString> FEditorCategoryUtils::GetHiddenCategories(const UStruct* Class)
 {
 	TArray<FString> ClassHiddenCategories;
 	GetClassHideCategories(Class, ClassHiddenCategories);

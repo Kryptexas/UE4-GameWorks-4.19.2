@@ -23,7 +23,7 @@ UNiagaraComponent* UNiagaraFunctionLibrary::SpawnEffectAtLocation(UObject* World
 	UNiagaraComponent* PSC = NULL;
 	if (EffectTemplate)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		if (World != nullptr)
 		{
 			AActor* Actor = World->GetWorldSettings();

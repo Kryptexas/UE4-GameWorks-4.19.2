@@ -22,13 +22,13 @@
 
 void FAssetTypeActions_Blueprint::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
-	auto Blueprints = GetTypedWeakObjectPtrs<UBlueprint>(InObjects);
+	TArray<TWeakObjectPtr<UBlueprint>> Blueprints = GetTypedWeakObjectPtrs<UBlueprint>(InObjects);
 	
 	if (Blueprints.Num() > 1)
 	{
 		// Ensure that all the selected blueprints are actors
 		bool bCanEditSharedDefaults = true;
-		for (auto Blueprint : Blueprints)
+		for (const TWeakObjectPtr<UBlueprint>& Blueprint : Blueprints)
 		{
 			if (!Blueprint.Get()->ParentClass->IsChildOf(AActor::StaticClass()))
 			{
@@ -73,10 +73,9 @@ void FAssetTypeActions_Blueprint::OpenAssetEditor( const TArray<UObject*>& InObj
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
 
-	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	for (UObject* Object : InObjects)
 	{
-		auto Blueprint = Cast<UBlueprint>(*ObjIt);
-		if (Blueprint)
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(Object))
 		{
 			bool bLetOpen = true;
 			if (!Blueprint->SkeletonGeneratedClass || !Blueprint->GeneratedClass)
@@ -149,10 +148,9 @@ void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlu
 	FMessageLog EditorErrors("EditorErrors");
 	EditorErrors.NewPage(LOCTEXT("ExecuteEditDefaultsNewLogPage", "Loading Blueprints"));
 
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	for (const TWeakObjectPtr<UBlueprint>& WeakBP : Objects)
 	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
+		if (UBlueprint* Object = WeakBP.Get())
 		{
 			// If the blueprint is valid, allow it to be added to the list, otherwise log the error.
 			if ( Object->SkeletonGeneratedClass && Object->GeneratedClass )
@@ -180,8 +178,7 @@ void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlu
 
 void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)
 {
-	auto Object = InObject.Get();
-	if ( Object )
+	if (UBlueprint* Object = InObject.Get())
 	{
 		// The menu option should ONLY be available if there is only one blueprint selected, validated by the menu creation code
 		UBlueprint* TargetParentBP = Object;
@@ -219,8 +216,8 @@ FText FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<
 
 bool FAssetTypeActions_Blueprint::CanExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)
 {
-	auto BP = InObject.Get();
-	auto BPGC = BP ? BP->GeneratedClass : NULL;
+	UBlueprint* BP = InObject.Get();
+	UClass* BPGC = BP ? BP->GeneratedClass : nullptr;
 	return BPGC && !BPGC->HasAnyClassFlags(CLASS_Deprecated);
 }
 

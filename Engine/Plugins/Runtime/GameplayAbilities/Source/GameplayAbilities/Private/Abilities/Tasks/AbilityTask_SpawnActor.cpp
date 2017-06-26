@@ -25,7 +25,7 @@ bool UAbilityTask_SpawnActor::BeginSpawningActor(UGameplayAbility* OwningAbility
 {
 	if (Ability && Ability->GetCurrentActorInfo()->IsNetAuthority() && ShouldBroadcastAbilityTaskDelegates())
 	{
-		UWorld* const World = GEngine->GetWorldFromContextObject(OwningAbility);
+		UWorld* const World = GEngine->GetWorldFromContextObject(OwningAbility, EGetWorldErrorMode::LogAndReturnNull);
 		if (World)
 		{
 			SpawnedActor = World->SpawnActorDeferred<AActor>(InClass, FTransform::Identity, NULL, NULL, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);

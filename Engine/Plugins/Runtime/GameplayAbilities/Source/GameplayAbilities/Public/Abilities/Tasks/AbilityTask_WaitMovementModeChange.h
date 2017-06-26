@@ -12,8 +12,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementModeChangedDelegate, EMovem
 
 class ACharacter;
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitMovementModeChange : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

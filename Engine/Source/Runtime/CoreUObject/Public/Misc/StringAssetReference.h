@@ -106,8 +106,8 @@ struct COREUOBJECT_API FStringAssetReference
 	/** Serializes the internal path and also handles save/PIE fixups. Call this from the archiver overrides */
 	void SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize = false);
 
-	/** Fixes up string asset reference for saving, call if saving with a method that skips SerializePath. This can modify the path */
-	void PreSavePath();
+	/** Fixes up string asset reference for saving, call if saving with a method that skips SerializePath. This can modify the path, it will return true if it was modified */
+	bool PreSavePath();
 
 	/** Handles when a string asset reference has been loaded, call if loading with a method that skips SerializePath. This does not modify path but might call callbacks */
 	void PostLoadPath() const;

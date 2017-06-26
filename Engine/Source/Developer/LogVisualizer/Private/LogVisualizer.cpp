@@ -115,20 +115,18 @@ FLinearColor FLogVisualizer::GetColorForCategory(const FString& InFilterName) co
 
 UWorld* FLogVisualizer::GetWorld(UObject* OptionalObject)
 {
-	UWorld* World = OptionalObject != nullptr ? GEngine->GetWorldFromContextObject(OptionalObject, false) : nullptr;
+	UWorld* World = GEngine->GetWorldFromContextObject(OptionalObject, EGetWorldErrorMode::ReturnNull);
 #if WITH_EDITOR
 	if (!World && GIsEditor)
 	{
-		UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+		UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
 		// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
 		World = EEngine != nullptr && EEngine->PlayWorld != nullptr ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
-
 	}
 	else 
 #endif
 	if (!World && !GIsEditor)
 	{
-
 		World = GEngine->GetWorld();
 	}
 

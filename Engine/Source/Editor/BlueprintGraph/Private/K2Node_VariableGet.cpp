@@ -407,6 +407,48 @@ void UK2Node_VariableGet::SetPurity(bool bNewPurity)
 	}
 }
 
+void UK2Node_VariableGet::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	// Some expansions, such as timelines, will create gets for non-blueprint visible properties, and we don't want to validate against that
+	if (!IsIntermediateNode())
+	{
+		if (UProperty* Property = GetPropertyForVariable())
+		{
+			const FBlueprintEditorUtils::EPropertyReadableState PropertyReadableState = FBlueprintEditorUtils::IsPropertyReadableInBlueprint(GetBlueprint(), Property);
+
+			if (PropertyReadableState != FBlueprintEditorUtils::EPropertyReadableState::Readable)
+			{
+				FFormatNamedArguments Args;
+				if (UObject* Class = Property->GetOuter())
+				{
+					Args.Add(TEXT("VariableName"), FText::AsCultureInvariant(FString::Printf(TEXT("%s.%s"), *Class->GetName(), *Property->GetName())));
+				}
+				else
+				{
+					Args.Add(TEXT("VariableName"), FText::AsCultureInvariant(Property->GetName()));
+				}
+
+				if (PropertyReadableState == FBlueprintEditorUtils::EPropertyReadableState::NotBlueprintVisible)
+				{
+					// DEPRECATED(4.17) ... make this an error
+					MessageLog.Warning(*FText::Format(LOCTEXT("UnableToGet_NotVisible", "{VariableName} is not blueprint visible. Please fix mark up or cease accessing as this will be made an error in a future release. @@"), Args).ToString(), this);
+				}
+				else if (PropertyReadableState == FBlueprintEditorUtils::EPropertyReadableState::Private)
+				{
+					// DEPRECATED(4.17) ... make this an error
+					MessageLog.Warning(*FText::Format(LOCTEXT("UnableToGet_ReadOnly", "{VariableName} is private and not accessible in this context. Please fix mark up or cease accessing as this will be an error in a future release. @@"), Args).ToString(), this);
+				}
+				else
+				{
+					check(false);
+				}
+			}
+		}
+	}
+}
+
 void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);

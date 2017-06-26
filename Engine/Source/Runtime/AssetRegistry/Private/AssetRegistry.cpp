@@ -23,6 +23,8 @@
 #if WITH_EDITOR
 #include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
+#include "HAL/ThreadHeartBeat.h"
+#include "HAL/PlatformProcess.h"
 #endif // WITH_EDITOR
 
 
@@ -362,8 +364,27 @@ void UAssetRegistryImpl::SearchAllAssets(bool bSynchronousSearch)
 	// Start the asset search (synchronous in commandlets)
 	if ( bSynchronousSearch )
 	{
-		const bool bForceRescan = false;
-		ScanPathsAndFilesSynchronous(PathsToSearch, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
+#if WITH_EDITOR
+		if (IsLoadingAssets())
+		{
+			// Force a flush of the current gatherer instead
+			UE_LOG(LogAssetRegistry, Log, TEXT("Flushing asset discovery search because of synchronous request, this can take several seconds..."));
+
+			while (IsLoadingAssets())
+			{
+				Tick(-1.0f);
+
+				FThreadHeartBeat::Get().HeartBeat();
+				FPlatformProcess::SleepNoStats(0.0001f);
+			}
+		}
+		else
+#endif
+		{
+			const bool bForceRescan = false;
+			ScanPathsAndFilesSynchronous(PathsToSearch, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
+		}
+
 
 #if WITH_EDITOR
 		if (IsRunningCommandlet())
@@ -468,13 +489,6 @@ bool UAssetRegistryImpl::GetAssets(const FARFilter& InFilter, TArray<FAssetData>
 			if ( Obj->IsAsset() )
 			{
 				UPackage* InMemoryPackage = Obj->GetOutermost();
-
-				static const bool bUsingWorldAssets = UAssetRegistryImpl::IsUsingWorldAssets();
-				// Skip assets in map packages... unless we are showing world assets
-				if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
-				{
-					return;
-				}
 
 				// Skip assets that were loaded for diffing
 				if (InMemoryPackage->HasAnyPackageFlags(PKG_ForDiffing))
@@ -1392,11 +1406,6 @@ void UAssetRegistryImpl::Tick(float DeltaTime)
 	}
 }
 
-bool UAssetRegistryImpl::IsUsingWorldAssets()
-{
-	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
-}
-
 void UAssetRegistryImpl::Serialize(FArchive& Ar)
 {
 	State.Serialize(Ar, SerializationOptions);
@@ -1411,6 +1420,19 @@ void UAssetRegistryImpl::Serialize(FArchive& Ar)
 			if (AssetData != nullptr)
 			{
 				AddAssetPath(AssetData->PackagePath);
+
+				// Populate the class map if adding blueprint
+				if (ClassGeneratorNames.Contains(AssetData->AssetClass))
+				{
+					const FString GeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
+					const FString ParentClass = AssetData->GetTagValueRef<FString>("ParentClass");
+					if (!GeneratedClass.IsEmpty() && !ParentClass.IsEmpty())
+					{
+						const FName GeneratedClassFName = *ExportTextPathToObjectName(GeneratedClass);
+						const FName ParentClassFName = *ExportTextPathToObjectName(ParentClass);
+						CachedInheritanceMap.Add(GeneratedClassFName, ParentClassFName);
+					}
+				}
 			}
 		}
 	}
@@ -1802,6 +1824,25 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 			
 			if (DependsNode != nullptr)
 			{
+				const FAssetIdentifier& Identifier = DependsNode->GetIdentifier();
+				if (DependsNode->GetConnectionCount() == 0 && Identifier.IsPackage())
+				{
+					// This was newly created, see if we need to read the script package Guid
+					FString PackageName = Identifier.PackageName.ToString();
+
+					if (FPackageName::IsScriptPackage(PackageName))
+					{
+						// Get the guid off the script package, this is updated when script is changed
+						UPackage* Package = FindPackage(nullptr, *PackageName);
+
+						if (Package)
+						{
+							FAssetPackageData* ScriptPackageData = State.CreateOrGetAssetPackageData(Identifier.PackageName);
+							ScriptPackageData->PackageGuid = Package->GetGuid();
+						}
+					}
+				}
+
 				Node->AddDependency(DependsNode, NewDependsIt.Value);
 				DependsNode->AddReferencer(Node);
 			}

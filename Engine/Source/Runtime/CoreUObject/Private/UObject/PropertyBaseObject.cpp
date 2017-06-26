@@ -32,7 +32,7 @@ void UObjectPropertyBase::InstanceSubobjects(void* Data, void const* DefaultData
 		UObject* CurrentValue = GetObjectPropertyValue((uint8*)Data + ArrayIndex * ElementSize);
 		if ( CurrentValue )
 		{
-			UObject *SubobjectTemplate = DefaultData ? GetObjectPropertyValue((uint8*)DefaultData + ArrayIndex * ElementSize): NULL;
+			UObject *SubobjectTemplate = DefaultData ? GetObjectPropertyValue((uint8*)DefaultData + ArrayIndex * ElementSize): nullptr;
 			UObject* NewValue = InstanceGraph->InstancePropertyValue(SubobjectTemplate, CurrentValue, Owner, HasAnyPropertyFlags(CPF_Transient), HasAnyPropertyFlags(CPF_InstancedReference));
 			SetObjectPropertyValue((uint8*)Data + ArrayIndex * ElementSize, NewValue);
 		}
@@ -41,8 +41,8 @@ void UObjectPropertyBase::InstanceSubobjects(void* Data, void const* DefaultData
 
 bool UObjectPropertyBase::Identical( const void* A, const void* B, uint32 PortFlags ) const
 {
-	UObject* ObjectA = A ? GetObjectPropertyValue(A) : NULL;
-	UObject* ObjectB = B ? GetObjectPropertyValue(B) : NULL;
+	UObject* ObjectA = A ? GetObjectPropertyValue(A) : nullptr;
+	UObject* ObjectB = B ? GetObjectPropertyValue(B) : nullptr;
 	if (!ObjectA && !ObjectB)
 	{
 		return true;
@@ -55,7 +55,7 @@ bool UObjectPropertyBase::Identical( const void* A, const void* B, uint32 PortFl
 	// which contains actor references. We want to serialize those references so they are fixed up.
 	const bool bDuplicatingForPIE = (PortFlags&PPF_DuplicateForPIE) != 0;
 	bool bResult = !bDuplicatingForPIE ? (ObjectA == ObjectB) : false;
-	// always serialize the cross level references, because they could be NULL
+	// always serialize the cross level references, because they could be nullptr
 	// @todo: okay, this is pretty hacky overall - we should have a PortFlag or something
 	// that is set during SavePackage. Other times, we don't want to immediately return false
 	// (instead of just this ExportDefProps case)
@@ -156,7 +156,7 @@ FString UObjectPropertyBase::GetExportPath(const UObject* Object, const UObject*
 			StopOuter = Parent->GetOutermost();
 		}
 	}
-	else if (Parent != NULL && Object->IsIn(Parent))
+	else if (Parent != nullptr && Object->IsIn(Parent))
 	{
 		StopOuter = Parent;
 	}
@@ -190,7 +190,7 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
 		return;
 	}
 
-	if( Temp != NULL )
+	if( Temp != nullptr )
 	{
 		if (PortFlags & PPF_DebugDump)
 		{
@@ -223,7 +223,7 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
  *
  * @param	Property			the property that the value is being importing to
  * @param	OwnerObject			the object that is importing the value; used for determining search scope.
- * @param	RequiredMetaClass	the meta-class for the object to find; if the object that is resolved is not of this class type, the result is NULL.
+ * @param	RequiredMetaClass	the meta-class for the object to find; if the object that is resolved is not of this class type, the result is nullptr.
  * @param	PortFlags			bitmask of EPropertyPortFlags that can modify the behavior of the search
  * @param	Buffer				the text to parse; should point to a textual representation of an object reference.  Can be just the object name (either fully 
  *								fully qualified or not), or can be formatted as a const object reference (i.e. SomeClass'SomePackage.TheObject')
@@ -246,14 +246,14 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 
 	FString Temp;
 	Buffer = UPropertyHelpers::ReadToken(Buffer, Temp, true);
-	if ( Buffer == NULL )
+	if ( Buffer == nullptr )
 	{
 		return false;
 	}
 
 	if ( Temp == TEXT("None") )
 	{
-		out_ResolvedValue = NULL;
+		out_ResolvedValue = nullptr;
 	}
 	else
 	{
@@ -261,13 +261,13 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 
 		SkipWhitespace(Buffer);
 
-		bool bWarnOnNULL = (PortFlags&PPF_CheckReferences)!=0;
+		bool bWarnOnnullptr = (PortFlags&PPF_CheckReferences)!=0;
 
 		if( *Buffer == TCHAR('\'') )
 		{
 			FString ObjectText;
 			Buffer = UPropertyHelpers::ReadToken( ++Buffer, ObjectText, true );
-			if( Buffer == NULL )
+			if( Buffer == nullptr )
 			{
 				return false;
 			}
@@ -287,21 +287,21 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 			out_ResolvedValue = UObjectPropertyBase::FindImportedObject(Property, OwnerObject, ObjectClass, RequiredMetaClass, *Temp, PortFlags);
 		}
 
-		if ( out_ResolvedValue != NULL && !out_ResolvedValue->GetClass()->IsChildOf(RequiredMetaClass) )
+		if ( out_ResolvedValue != nullptr && !out_ResolvedValue->GetClass()->IsChildOf(RequiredMetaClass) )
 		{
-			if (bWarnOnNULL )
+			if (bWarnOnnullptr )
 			{
 				UE_LOG(LogProperty, Error, TEXT("%s: bad cast in '%s'"), *Property->GetFullName(), InBuffer );
 			}
 
-			out_ResolvedValue = NULL;
+			out_ResolvedValue = nullptr;
 			return false;
 		}
 
 		// If we couldn't find it or load it, we'll have to do without it.
-		if ( out_ResolvedValue == NULL )
+		if ( out_ResolvedValue == nullptr )
 		{
-			if( bWarnOnNULL )
+			if( bWarnOnnullptr )
 			{
 				UE_LOG(LogProperty, Warning, TEXT("%s: unresolved reference to '%s'"), *Property->GetFullName(), InBuffer );
 			}
@@ -315,7 +315,7 @@ bool UObjectPropertyBase::ParseObjectPropertyValue( const UProperty* Property, U
 const TCHAR* UObjectPropertyBase::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
 	const TCHAR* Buffer = InBuffer;
-	UObject* Result = NULL;
+	UObject* Result = nullptr;
 
 	bool bOk = ParseObjectPropertyValue(this, Parent, PropertyClass, PortFlags, Buffer, Result);
 
@@ -325,7 +325,7 @@ const TCHAR* UObjectPropertyBase::ImportText_Internal( const TCHAR* InBuffer, vo
 
 UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UObject* OwnerObject, UClass* ObjectClass, UClass* RequiredMetaClass, const TCHAR* Text, uint32 PortFlags/*=0*/ )
 {
-	UObject*	Result = NULL;
+	UObject*	Result = nullptr;
 	check( ObjectClass->IsChildOf(RequiredMetaClass) );
 
 	bool AttemptNonQualifiedSearch = (PortFlags & PPF_AttemptNonQualifiedSearch) != 0; 
@@ -334,16 +334,16 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 	// looking through the archetype chain at each outer and stop once the outer chain reaches the owning class's default object
 	if (PortFlags & PPF_ParsingDefaultProperties)
 	{
-		for (UObject* SearchStart = OwnerObject; Result == NULL && SearchStart != NULL; SearchStart = SearchStart->GetOuter())
+		for (UObject* SearchStart = OwnerObject; Result == nullptr && SearchStart != nullptr; SearchStart = SearchStart->GetOuter())
 		{
 			UObject* ScopedSearchRoot = SearchStart;
-			while (Result == NULL && ScopedSearchRoot != NULL)
+			while (Result == nullptr && ScopedSearchRoot != nullptr)
 			{
 				Result = StaticFindObjectSafe(ObjectClass, ScopedSearchRoot, Text);
 				// don't think it's possible to get a non-subobject here, but it doesn't hurt to check
-				if (Result != NULL && !Result->IsTemplate(RF_ClassDefaultObject))
+				if (Result != nullptr && !Result->IsTemplate(RF_ClassDefaultObject))
 				{
-					Result = NULL;
+					Result = nullptr;
 				}
 
 				ScopedSearchRoot = ScopedSearchRoot->GetArchetype();
@@ -360,33 +360,43 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 	// fully qualified, and this will step up the nested object chain to solve any name
 	// collisions within a nested object tree
 	UObject* ScopedSearchRoot = OwnerObject;
-	while (Result == NULL && ScopedSearchRoot != NULL)
+	while (Result == nullptr && ScopedSearchRoot != nullptr)
 	{
 		Result = StaticFindObjectSafe(ObjectClass, ScopedSearchRoot, Text);
 		// disallow class default subobjects here while importing defaults
 		// this prevents the use of a subobject name that doesn't exist in the scope of the default object being imported
 		// from grabbing some other subobject with the same name and class in some other arbitrary default object
-		if (Result != NULL && (PortFlags & PPF_ParsingDefaultProperties) && Result->IsTemplate(RF_ClassDefaultObject))
+		if (Result != nullptr && (PortFlags & PPF_ParsingDefaultProperties) && Result->IsTemplate(RF_ClassDefaultObject))
 		{
-			Result = NULL;
+			Result = nullptr;
 		}
 
 		ScopedSearchRoot = ScopedSearchRoot->GetOuter();
 	}
 
-	if (Result == NULL)
+	if (Result == nullptr)
 	{
 		// attempt to find a fully qualified object
-		Result = StaticFindObjectSafe(ObjectClass, NULL, Text);
+		Result = StaticFindObjectSafe(ObjectClass, nullptr, Text);
 
-		if (Result == NULL)
+		if (Result == nullptr && (PortFlags & PPF_SerializedAsImportText))
+		{
+			// Check string asset redirectors
+			FStringAssetReference Path = FString(Text);
+			if (Path.PreSavePath())
+			{
+				Result = StaticFindObjectSafe(ObjectClass, nullptr, *Path.ToString());
+			}
+		}
+
+		if (Result == nullptr)
 		{
 			// match any object of the correct class whose path contains the specified path
 			Result = StaticFindObjectSafe(ObjectClass, ANY_PACKAGE, Text);
 			// disallow class default subobjects here while importing defaults
-			if (Result != NULL && (PortFlags & PPF_ParsingDefaultProperties) && Result->IsTemplate(RF_ClassDefaultObject))
+			if (Result != nullptr && (PortFlags & PPF_ParsingDefaultProperties) && Result->IsTemplate(RF_ClassDefaultObject))
 			{
-				Result = NULL;
+				Result = nullptr;
 			}
 		}
 	}
@@ -435,7 +445,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 				uint32 LoadFlags = LOAD_NoWarn | LOAD_FindIfFail;
 
 				UE_LOG(LogProperty, Verbose, TEXT("FindImportedObject is attempting to import [%s] (class = %s) with StaticLoadObject"), Text, *GetFullNameSafe(ObjectClass));
-				Result = StaticLoadObject(ObjectClass, NULL, Text, NULL, LoadFlags, NULL);
+				Result = StaticLoadObject(ObjectClass, nullptr, Text, nullptr, LoadFlags, nullptr);
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 				check(!bDeferAssetImports || !Result || !FBlueprintSupport::IsInBlueprintPackage(Result));
@@ -451,7 +461,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 		if ( !ObjectProperty || !ObjectProperty->AllowCrossLevel())
 		{
 			UE_LOG(LogProperty, Warning, TEXT("Illegal TEXT reference to a private object in external package (%s) from referencer (%s).  Import failed..."), *Result->GetFullName(), *OwnerObject->GetFullName());
-			Result = NULL;
+			Result = nullptr;
 		}
 	}
 
@@ -467,7 +477,7 @@ FName UObjectPropertyBase::GetID() const
 UObject* UObjectPropertyBase::GetObjectPropertyValue(const void* PropertyValueAddress) const
 {
 	check(0);
-	return NULL;
+	return nullptr;
 }
 
 void UObjectPropertyBase::SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const
@@ -515,13 +525,13 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 		if ((PropertyClass != nullptr) && !ObjectClass->IsChildOf(PropertyClass) && !bIsReplacingClassRefs && !bIsDeferringValueLoad)
 		{
 			UE_LOG(LogProperty, Warning,
-				TEXT("Serialized %s for a property of %s. Reference will be NULLed.\n    Property = %s\n    Item = %s"),
+				TEXT("Serialized %s for a property of %s. Reference will be nullptred.\n    Property = %s\n    Item = %s"),
 				*Object->GetClass()->GetFullName(),
 				*PropertyClass->GetFullName(),
 				*GetFullName(),
 				*Object->GetFullName()
 				);
-			SetObjectPropertyValue(Value, NULL);
+			SetObjectPropertyValue(Value, nullptr);
 		}
 	}
 }

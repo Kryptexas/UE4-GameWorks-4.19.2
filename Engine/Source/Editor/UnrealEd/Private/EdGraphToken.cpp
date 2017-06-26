@@ -40,6 +40,10 @@ FEdGraphToken::FEdGraphToken(const UObject* InObject, const UEdGraphPin* InPin)
 	if (InPin)
 	{
 		CachedText = InPin->GetDisplayName();
+		if (CachedText.IsEmpty())
+		{
+			CachedText = NSLOCTEXT("MessageLog", "UnnamedPin", "<Unnamed>");
+		}
 	}
 	else if (InObject)
 	{

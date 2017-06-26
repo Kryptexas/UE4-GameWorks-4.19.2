@@ -134,16 +134,16 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 
 private:
 	/** The class or asset-object that the NodeSpawner action is keyed to (in the action database)*/
-	const TWeakObjectPtr<UObject> ActionOwner;
+	TWeakObjectPtr<const UObject> ActionOwner;
 
 	/** Keeps track of the fields we've cached (needed in case one turns out to be null) */
 	uint32 CacheFlags;
 	
 	/** */
-	UClass const*    CachedOwnerClass;
-	UField const*    CachedActionField;
-	UProperty const* CachedActionProperty;
-	UFunction const* CachedActionFunction;
+	TWeakObjectPtr<const UClass>	CachedOwnerClass;
+	UField const*					CachedActionField;
+	UProperty const*				CachedActionProperty;
+	UFunction const*				CachedActionFunction;
 
 	/** */
 	IBlueprintNodeBinder::FBindingSet Bindings;

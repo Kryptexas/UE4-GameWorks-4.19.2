@@ -192,15 +192,29 @@ void FAssetRegistryState::InitializeFromExisting(const TMap<FName, FAssetData*>&
 		}
 	}
 
+	TSet<FAssetIdentifier> ScriptPackages;
+
 	if (!bRefreshExisting)
 	{
 		for (const TPair<FName, FAssetPackageData*>& Pair : AssetPackageDataMap)
 		{
-			// Only add if also in asset data map
-			if (Pair.Value && CachedAssetsByPackageName.Find(Pair.Key))
+			bool bIsScriptPackage = FPackageName::IsScriptPackage(Pair.Key.ToString());
+
+			if (Pair.Value)
 			{
-				FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
-				*NewData = *Pair.Value;
+				// Only add if also in asset data map, or script package
+				if (bIsScriptPackage)
+				{
+					ScriptPackages.Add(Pair.Key);
+
+					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
+					*NewData = *Pair.Value;
+				}
+				else if (CachedAssetsByPackageName.Find(Pair.Key) || bIsScriptPackage)
+				{
+					FAssetPackageData* NewData = CreateOrGetAssetPackageData(Pair.Key);
+					*NewData = *Pair.Value;
+				}
 			}
 		}
 
@@ -209,11 +223,12 @@ void FAssetRegistryState::InitializeFromExisting(const TMap<FName, FAssetData*>&
 			FDependsNode* OldNode = Pair.Value;
 			FDependsNode* NewNode = CreateOrFindDependsNode(Pair.Key);
 
-			Pair.Value->IterateOverDependencies([this, &DependsNodeMap, OldNode, NewNode](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType) {
-				if (DependsNodeMap.Find(InDependency->GetIdentifier()))
+			Pair.Value->IterateOverDependencies([this, &DependsNodeMap, &ScriptPackages, OldNode, NewNode](FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType) {
+				const FAssetIdentifier& Identifier = InDependency->GetIdentifier();
+				if (DependsNodeMap.Find(Identifier) || ScriptPackages.Contains(Identifier))
 				{
 					// Only add if this node is in the incoming map
-					FDependsNode* NewDependency = CreateOrFindDependsNode(InDependency->GetIdentifier());
+					FDependsNode* NewDependency = CreateOrFindDependsNode(Identifier);
 					NewNode->AddDependency(NewDependency, InDependencyType, true);
 					NewDependency->AddReferencer(NewNode);
 				}
@@ -668,7 +683,7 @@ bool FAssetRegistryState::Serialize(FArchive& OriginalAr, FAssetRegistrySerializ
 		FAssetRegistryVersion::Type Version = FAssetRegistryVersion::LatestVersion;
 		FAssetRegistryVersion::SerializeVersion(OriginalAr, Version);
 
-		if (Version < FAssetRegistryVersion::ChangedAssetData)
+		if (Version < FAssetRegistryVersion::RemovedMD5Hash)
 		{
 			// Cannot read states before this version
 			return false;

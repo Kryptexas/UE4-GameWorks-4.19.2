@@ -16,6 +16,7 @@
 #include "Dialogs/Dialogs.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EdGraphSchema_K2.h"
+#include "K2Node_AddComponent.h"
 #include "K2Node_Event.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_Tunnel.h"
@@ -474,7 +475,7 @@ void SMyBlueprint::OnCategoryNameCommitted(const FText& InNewText, ETextCommit::
 			else if (Actions[i]->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
 			{
 				FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)Actions[i].Get();
-				FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateAction->GetDelegatePoperty()->GetFName(), NULL, CategoryName, true);
+				FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateAction->GetDelegateProperty()->GetFName(), NULL, CategoryName, true);
 			}
 			else if (Actions[i]->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 			{
@@ -1630,7 +1631,7 @@ void SMyBlueprint::OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAct
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)InAction.Get();
-			if (UMulticastDelegateProperty* Property = DelegateAction->GetDelegatePoperty())
+			if (UMulticastDelegateProperty* Property = DelegateAction->GetDelegateProperty())
 			{
 				Inspector->ShowDetailsForSingleObject(Property, SKismetInspector::FShowDetailsOptions(FText::FromString(Property->GetName())));
 			}
@@ -2617,13 +2618,18 @@ void SMyBlueprint::OnDuplicateAction()
 
 		DuplicatedGraph->Modify();
 
-		// Generate new Guids for all nodes in the graph
-		// *NOTE* this cannot occur during PostDuplicate, node Guids need to remain static during duplication for Blueprint compilation
+		// Generate new Guids and component templates for all relevant nodes in the graph
+		// *NOTE* this cannot occur during PostDuplicate, node Guids and component templates need to remain static during duplication for Blueprint compilation
 		for (UEdGraphNode* EdGraphNode : DuplicatedGraph->Nodes)
 		{
 			if (EdGraphNode)
 			{
 				EdGraphNode->CreateNewGuid();
+
+				if (UK2Node_AddComponent* AddComponentNode = Cast<UK2Node_AddComponent>(EdGraphNode))
+				{
+					AddComponentNode->MakeNewComponentTemplate();
+				}
 			}
 		}
 		// Only function and macro duplication is supported
@@ -2787,7 +2793,15 @@ void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type Sel
 	else
 	{
 		// Attempt to select the item in the main graph action menu
-		GraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
+		const bool bSucceededAtSelecting = GraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
+		if (!bSucceededAtSelecting)
+		{
+			// We failed to select the item, maybe because it was filtered out?
+			// Reset the item filter and try again (we don't do this first because someone went to the effort of typing
+			// a filter and probably wants to keep it unless it is getting in the way, as it just has)
+			OnResetItemFilter();
+			GraphActionMenu->SelectItemByName(ItemName, SelectInfo, SectionId, bIsCategory);
+		}
 	}
 }
 

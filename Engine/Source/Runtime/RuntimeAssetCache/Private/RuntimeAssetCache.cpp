@@ -42,32 +42,40 @@ FRuntimeAssetCache::~FRuntimeAssetCache()
 
 int32 FRuntimeAssetCache::GetCacheSize(FName Bucket) const
 {
-	return Buckets[Bucket]->GetSize();
+	return ensure(Buckets.Contains(Bucket)) ? Buckets[Bucket]->GetSize() : 0;
 }
 
 int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnComplete)
 {
-	int32 Handle = GetNextHandle();
-
-	/** Must return a valid handle */
-	check(Handle != 0);
-	
-	/** Make sure task isn't processed twice. */
-	check(!PendingTasks.Contains(Handle));
-
-	checkf(CacheBuilder->IsBuildThreadSafe(), TEXT("CacheBuilder %s Build function is not thread safe, but builder was used in asynchronous code. Use GetSynchronous instead."), CacheBuilder->GetBuilderName());
-
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, Handle, OnComplete);
-
+	if (ensure(CacheBuilder != nullptr))
 	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		PendingTasks.Add(Handle, AsyncTask);
+		int32 Handle = GetNextHandle();
+
+		/** Must return a valid handle */
+		check(Handle != 0);
+
+		/** Make sure task isn't processed twice. */
+		check(!PendingTasks.Contains(Handle));
+
+		checkf(CacheBuilder->IsBuildThreadSafe(), TEXT("CacheBuilder %s Build function is not thread safe, but builder was used in asynchronous code. Use GetSynchronous instead."), CacheBuilder->GetBuilderName());
+
+		FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, Handle, OnComplete);
+
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+			PendingTasks.Add(Handle, AsyncTask);
+		}
+		AddToAsyncCompletionCounter(1);
+
+		AsyncTask->StartBackgroundTask();
+
+		return Handle;
 	}
-	AddToAsyncCompletionCounter(1);
-
-	AsyncTask->StartBackgroundTask();
-
-	return Handle;
+	else
+	{
+		// Using this with other functions is going to cause knock-on errors
+		return 0;
+	}
 }
 
 int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder)
@@ -77,12 +85,17 @@ int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilde
 
 FVoidPtrParam FRuntimeAssetCache::GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder)
 {
-	checkf(!CacheBuilder->ShouldBuildAsynchronously(), TEXT("CacheBuilder %s can be only called asynchronously."), CacheBuilder->GetBuilderName());
-	
-	FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, -1, FOnRuntimeAssetCacheAsyncComplete());
-	AddToAsyncCompletionCounter(1);
-	AsyncTask->StartSynchronousTask();
-	return AsyncTask->GetTask().GetDataAndSize();
+	if (ensure(CacheBuilder))
+	{
+		if (ensureMsgf(!CacheBuilder->ShouldBuildAsynchronously(), TEXT("CacheBuilder %s can be only called asynchronously."), CacheBuilder->GetBuilderName()))
+		{
+			FAsyncTask<FRuntimeAssetCacheAsyncWorker>* AsyncTask = new FAsyncTask<FRuntimeAssetCacheAsyncWorker>(CacheBuilder, &Buckets, -1, FOnRuntimeAssetCacheAsyncComplete());
+			AddToAsyncCompletionCounter(1);
+			AsyncTask->StartSynchronousTask();
+			return AsyncTask->GetTask().GetDataAndSize();
+		}
+	}
+	return FVoidPtrParam::NullPtr();
 }
 
 bool FRuntimeAssetCache::ClearCache()
@@ -139,8 +152,11 @@ void FRuntimeAssetCache::WaitAsynchronousCompletion(int32 Handle)
 			FScopeLock ScopeLock(&SynchronizationObject);
 			AsyncTask = PendingTasks.FindRef(Handle);
 		}
-		check(AsyncTask);
-		AsyncTask->EnsureCompletion();
+
+		if (ensure(AsyncTask))
+		{
+			AsyncTask->EnsureCompletion();
+		}
 	}
 	INC_FLOAT_STAT_BY(STAT_RAC_ASyncWaitTime, (float)ThisTime);
 }
@@ -151,13 +167,22 @@ FVoidPtrParam FRuntimeAssetCache::GetAsynchronousResults(int32 Handle)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		PendingTasks.RemoveAndCopyValue(Handle, AsyncTask);
-		AsyncTask->GetTask().FireCompletionDelegate();
+		if (ensure(AsyncTask))
+		{
+			AsyncTask->GetTask().FireCompletionDelegate();
+		}
 	}
-	check(AsyncTask);
 
-	FVoidPtrParam Data = AsyncTask->GetTask().GetDataAndSize();
-	delete AsyncTask;
-	return Data;
+	if (ensure(AsyncTask))
+	{
+		FVoidPtrParam Data = AsyncTask->GetTask().GetDataAndSize();
+		delete AsyncTask;
+		return Data;
+	}
+	else
+	{
+		return FVoidPtrParam::NullPtr();
+	}
 }
 
 bool FRuntimeAssetCache::PollAsynchronousCompletion(int32 Handle)
@@ -167,8 +192,8 @@ bool FRuntimeAssetCache::PollAsynchronousCompletion(int32 Handle)
 		FScopeLock ScopeLock(&SynchronizationObject);
 		AsyncTask = PendingTasks.FindRef(Handle);
 	}
-	check(AsyncTask);
-	return AsyncTask->IsDone();
+	ensure(AsyncTask);
+	return AsyncTask ? AsyncTask->IsDone() : true;
 }
 
 void FRuntimeAssetCache::Tick()

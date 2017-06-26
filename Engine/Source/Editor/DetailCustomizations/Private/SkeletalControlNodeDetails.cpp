@@ -12,6 +12,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "PropertyCustomizationHelpers.h"
+#include "K2Node.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalControlNodeDetails"
 
@@ -41,11 +42,11 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 		}
 		for (int32 Index = 0; Index < NumElements; ++Index)
 		{
-			auto StructPropHandle = ArrayProperty->GetElement(Index);
-			auto CategoryPropeHandle = StructPropHandle->GetChildHandle("CategoryName");
-			check(CategoryPropeHandle.IsValid());
+			TSharedRef<IPropertyHandle> StructPropHandle = ArrayProperty->GetElement(Index);
+			TSharedPtr<IPropertyHandle> CategoryPropHandle = StructPropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, CategoryName));
+			check(CategoryPropHandle.IsValid());
 			FName CategoryNameValue;
-			const auto Result = CategoryPropeHandle->GetValue(CategoryNameValue);
+			const FPropertyAccess::Result Result = CategoryPropHandle->GetValue(CategoryNameValue);
 			if (ensure(FPropertyAccess::Success == Result))
 			{
 				UniqueCategoryNames.Add(CategoryNameValue);
@@ -58,8 +59,11 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 	const bool bDisplayResetToDefault = false;
 	const bool bDisplayElementNum = false;
 	const bool bForAdvanced = false;
-	for (auto CategoryName : UniqueCategoryNames)
+	for (const FName& CategoryName : UniqueCategoryNames)
 	{
+		//@TODO: Pay attention to category filtering here
+		
+		
 		TSharedRef<FDetailArrayBuilder> AvailablePinsBuilder = MakeShareable(new FDetailArrayBuilder(AvailablePins, bGenerateHeader, bDisplayResetToDefault, bDisplayElementNum));
 		AvailablePinsBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin, CategoryName));
 		AvailablePinsBuilder->SetDisplayName((CategoryName == NAME_None) ? LOCTEXT("DefaultCategory", "Default Category") : FText::FromName(CategoryName));
@@ -70,13 +74,13 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 ECheckBoxState FSkeletalControlNodeDetails::GetShowPinValueForProperty(TSharedRef<IPropertyHandle> InElementProperty) const
 {
 	FString Value;
-	InElementProperty->GetChildHandle("bShowPin")->GetValueAsFormattedString(Value);
+	InElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, bShowPin))->GetValueAsFormattedString(Value);
 
 	if (Value == TEXT("true"))
 	{
 		return ECheckBoxState::Checked;
 	}
-	else if(Value == TEXT("false"))
+	else if (Value == TEXT("false"))
 	{
 		return ECheckBoxState::Unchecked;
 	}
@@ -85,92 +89,119 @@ ECheckBoxState FSkeletalControlNodeDetails::GetShowPinValueForProperty(TSharedRe
 
 void FSkeletalControlNodeDetails::OnShowPinChanged(ECheckBoxState InNewState, TSharedRef<IPropertyHandle> InElementProperty)
 {
-	InElementProperty->GetChildHandle("bShowPin")->SetValueFromFormattedString(InNewState == ECheckBoxState::Checked? TEXT("true") : TEXT("false"));
+	InElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, bShowPin))->SetValueFromFormattedString(InNewState == ECheckBoxState::Checked ? TEXT("true") : TEXT("false"));
 }
 
 void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder, FName CategoryName)
 {
 	{
-		auto CategoryPropeHandle = ElementProperty->GetChildHandle("CategoryName");
-		check(CategoryPropeHandle.IsValid());
+		TSharedPtr<IPropertyHandle> CategoryPropHandle = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, CategoryName));
+		check(CategoryPropHandle.IsValid());
 		FName CategoryNameValue;
-		const auto Result = CategoryPropeHandle->GetValue(CategoryNameValue);
+		const FPropertyAccess::Result Result = CategoryPropHandle->GetValue(CategoryNameValue);
 		const bool bProperCategory = ensure(FPropertyAccess::Success == Result) && (CategoryNameValue == CategoryName);
+
 		if (!bProperCategory)
 		{
 			return;
 		}
 	}
 
-	TSharedPtr<IPropertyHandle> PropertyNameHandle = ElementProperty->GetChildHandle("PropertyFriendlyName");
+	FString FilterString = CategoryName.ToString();
+
 	FText PropertyFriendlyName(LOCTEXT("Invalid", "Invalid"));
-
-	if (PropertyNameHandle.IsValid())
 	{
-		FString DisplayFriendlyName;
-		switch (PropertyNameHandle->GetValue(/*out*/ DisplayFriendlyName))
+		TSharedPtr<IPropertyHandle> PropertyFriendlyNameHandle = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, PropertyFriendlyName));
+		if (PropertyFriendlyNameHandle.IsValid())
 		{
-		case FPropertyAccess::Success:
-		{
-			PropertyFriendlyName = FText::FromString(DisplayFriendlyName);
-
-			//DetailBuilder.EditCategory
-			//DisplayNameAsName
-		}
-			break;
-		case FPropertyAccess::MultipleValues:
-			ChildrenBuilder.AddCustomRow(FText::GetEmpty())
-				[
-					SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected"))
-				];
-			return;
-		case FPropertyAccess::Fail:
-		default:
-			check(false);
-			break;
+			FString DisplayFriendlyName;
+			switch (PropertyFriendlyNameHandle->GetValue(/*out*/ DisplayFriendlyName))
+			{
+			case FPropertyAccess::Success:
+				FilterString += TEXT(" ") + DisplayFriendlyName;
+				PropertyFriendlyName = FText::FromString(DisplayFriendlyName);
+				break;
+			case FPropertyAccess::MultipleValues:
+				ChildrenBuilder.AddCustomRow(FText::GetEmpty())
+					[
+						SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected"))
+					];
+				return;
+			case FPropertyAccess::Fail:
+			default:
+				check(false);
+				break;
+			}
 		}
 	}
-	
-	TSharedPtr<IPropertyHandle> HasOverrideValueHandle = ElementProperty->GetChildHandle("bHasOverridePin");
+
+	{
+		TSharedPtr<IPropertyHandle> PropertyNameHandle = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, PropertyName));
+		if (PropertyNameHandle.IsValid())
+		{
+			FString RawName;
+			if (PropertyNameHandle->GetValue(/*out*/ RawName) == FPropertyAccess::Success)
+			{
+				FilterString += TEXT(" ") + RawName;
+			}
+		}
+	}
+
+	FText PinTooltip;
+	{
+		TSharedPtr<IPropertyHandle> PropertyTooltipHandle = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, PropertyTooltip));
+		if (PropertyTooltipHandle.IsValid())
+		{
+			FString PinTooltipString;
+			if (PropertyTooltipHandle->GetValue(/*out*/ PinTooltip) == FPropertyAccess::Success)
+			{
+				FilterString += TEXT(" ") + PinTooltip.ToString();
+			}
+		}
+	}
+
+	TSharedPtr<IPropertyHandle> HasOverrideValueHandle = ElementProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, bHasOverridePin));
 	bool bHasOverrideValue;
 	HasOverrideValueHandle->GetValue(/*out*/ bHasOverrideValue);
-	FText Tooltip;
+	FText OverrideCheckBoxTooltip;
 
 	// Setup a tooltip based on whether the property has an override value or not.
 	if (bHasOverrideValue)
 	{
-		Tooltip = LOCTEXT("HasOverridePin", "Enabling this pin will make it visible for setting on the node and automatically enable the value for override when using the struct. Any updates to the resulting struct will require the value be set again or the override will be automatically disabled.");
+		OverrideCheckBoxTooltip = LOCTEXT("HasOverridePin", "Enabling this pin will make it visible for setting on the node and automatically enable the value for override when using the struct. Any updates to the resulting struct will require the value be set again or the override will be automatically disabled.");
 	}
 	else
 	{
-		Tooltip = LOCTEXT("HasNoOverridePin", "Enabling this pin will make it visible for setting on the node.");
+		OverrideCheckBoxTooltip = LOCTEXT("HasNoOverridePin", "Enabling this pin will make it visible for setting on the node.");
 	}
 
-	TSharedRef<SWidget> PropertyNameWidget = ElementProperty->CreatePropertyNameWidget(PropertyFriendlyName);
-	PropertyNameWidget->SetToolTipText(Tooltip);
-
-	FString Value;
-	ElementProperty->GetChildHandle("bShowPin")->GetValueAsFormattedString(Value);
-
 	ChildrenBuilder.AddCustomRow( PropertyFriendlyName )
+	.FilterString(FText::AsCultureInvariant(FilterString))
+	.NameContent()
 	[
-		SNew( SHorizontalBox )
-		+ SHorizontalBox::Slot()
+		ElementProperty->CreatePropertyNameWidget(PropertyFriendlyName, PinTooltip)
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		.ToolTipText(OverrideCheckBoxTooltip)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Right)
-		.Padding( 3.0f, 0.0f )
-		.FillWidth(1.0f)
-		[
-			PropertyNameWidget
-		]
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.FillWidth(1.0f)
 		[
 			SNew(SCheckBox)
-				.IsChecked(this, &FSkeletalControlNodeDetails::GetShowPinValueForProperty, ElementProperty)
-				.OnCheckStateChanged(this, &FSkeletalControlNodeDetails::OnShowPinChanged, ElementProperty)
-				.ToolTipText(Tooltip)
+			.IsChecked(this, &FSkeletalControlNodeDetails::GetShowPinValueForProperty, ElementProperty)
+			.OnCheckStateChanged(this, &FSkeletalControlNodeDetails::OnShowPinChanged, ElementProperty)
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AsPin", " (As pin)"))
+			.Font(ChildrenBuilder.GetParentCategory().GetParentLayout().GetDetailFont())
 		]
 	];
 }
@@ -179,4 +210,3 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
-

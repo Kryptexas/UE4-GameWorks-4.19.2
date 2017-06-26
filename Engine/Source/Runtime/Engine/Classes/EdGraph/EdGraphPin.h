@@ -378,6 +378,16 @@ public:
 
 	/** If true, the pin is displayed as ref. This is transient. */
 	uint32 bDisplayAsMutableRef:1;
+
+	/** 
+	 * If true, this pin existed on an older version of the owning node, but when the node was reconstructed a matching pin was not found.
+	 * This pin must be linked to other pins or have a non-default value and will be removed if disconnected, reset to default, or the node is refreshed.
+	 **/
+	uint32 bOrphanedPin:1;
+
+	/** If true, this pin will be retained when reconstructing a node if there is no matching pin on the new version of the pin. This is transient. */
+	uint32 bSavePinIfOrphaned:1;
+
 #endif // WITH_EDITORONLY_DATA
 
 	/** True when InvalidateAndTrash was called. This pin is intended to be discarded and destroyed. */
@@ -395,7 +405,7 @@ public:
 	ENGINE_API void BreakLinkTo(UEdGraphPin* ToPin);
 
 	/** Break all links from this pin */
-	ENGINE_API void BreakAllPinLinks();
+	ENGINE_API void BreakAllPinLinks(bool bNotifyNodes = false);
 
 	/**
 	 * Copies the persistent data (across a node refresh) from the SourcePin.
@@ -478,6 +488,8 @@ public:
 		bNotConnectable = false;
 		bDefaultValueIsReadOnly = false;
 		bDefaultValueIsIgnored = false;
+		bOrphanedPin = false;
+		bSavePinIfOrphaned = true;
 #endif // WITH_EDITORONLY_DATA
 	}
 
@@ -522,6 +534,9 @@ public:
 
 	/** This needs to be called if you want to use pin data within PostEditUndo */
 	ENGINE_API static void ResolveAllPinReferences();
+
+	ENGINE_API static bool EnableOrphanPins();
+
 private:
 	/** Private Constructor. Create pins using CreatePin since all pin instances are managed by TSharedPtr. */
 	UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinGuid);

@@ -52,6 +52,9 @@ UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInit
 	TransformPinTypeColor = FLinearColor(1.0f, 0.172585f, 0.0f, 1.0f);			// orange
 	IndexPinTypeColor = FLinearColor(0.013575f, 0.770000f, 0.429609f, 1.0f);	// green-blue
 
+	DefaultDataWireThickness = 1.0f;
+	DefaultExecutionWireThickness = 3.0f;
+
 	// graph debugging visuals
 	TraceAttackColor = FLinearColor(1.0f, 0.05f, 0.0f, 1.0f);
 	TraceAttackWireThickness = 12.0f;

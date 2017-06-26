@@ -9,8 +9,8 @@
 
 class UAbilitySystemComponent;
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayTag : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTag : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

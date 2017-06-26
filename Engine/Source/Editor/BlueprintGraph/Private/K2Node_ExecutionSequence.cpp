@@ -211,8 +211,9 @@ FString UK2Node_ExecutionSequence::GetUniquePinName()
 	return NewPinName;
 }
 
-void UK2Node_ExecutionSequence::AddPinToExecutionNode()
+void UK2Node_ExecutionSequence::AddInputPin()
 {
+	Modify();
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, GetUniquePinName());
 }

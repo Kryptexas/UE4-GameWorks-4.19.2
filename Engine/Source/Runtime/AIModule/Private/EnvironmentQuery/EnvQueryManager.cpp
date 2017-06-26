@@ -81,7 +81,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 
 	if (World == NULL)
 	{
-		World = GEngine->GetWorldFromContextObject(Owner);
+		World = GEngine->GetWorldFromContextObject(Owner, EGetWorldErrorMode::ReturnNull);
 		if (World == NULL)
 		{
 			UE_LOG(LogEQS, Warning, TEXT("Unable to access world with owner: %s"), *GetNameSafe(Owner));
@@ -140,14 +140,14 @@ void UEnvQueryManager::FinishDestroy()
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 {
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
+	return AISys ? AISys->GetEnvironmentQueryManager() : nullptr;
 }
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(const UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
+	return AISys ? AISys->GetEnvironmentQueryManager() : nullptr;
 }
 
 #if USE_EQS_DEBUGGER

@@ -47,6 +47,8 @@ class UNavigationSystem;
 class UPrimitiveComponent;
 class URecastNavMeshDataChunk;
 struct FRecastAreaNavModifierElement;
+class dtNavMesh;
+class dtQueryFilter;
 
 UENUM()
 namespace ERecastPartitioning
@@ -893,6 +895,15 @@ public:
 	//----------------------------------------------------------------------//
 	// Querying                                                                
 	//----------------------------------------------------------------------//
+	
+	/** dtNavMesh getter */
+	dtNavMesh* GetRecastMesh();
+
+	/** dtNavMesh getter */
+	const dtNavMesh* GetRecastMesh() const;
+
+	/** Retrieves LinkUserID associated with indicated PolyID */
+	uint32 GetLinkUserId(NavNodeRef LinkPolyID) const;
 
 	FColor GetAreaIDColor(uint8 AreaID) const;
 
@@ -1030,7 +1041,6 @@ protected:
 private:
 	friend class FRecastNavMeshGenerator;
 	friend class FPImplRecastNavMesh;
-	friend class UCrowdManager;
 	// destroys FPImplRecastNavMesh instance if it has been created 
 	void DestroyRecastPImpl();
 	// @todo docuement

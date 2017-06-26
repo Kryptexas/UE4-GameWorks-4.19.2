@@ -6,8 +6,8 @@
 #include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitConfirm.generated.h"
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitConfirm : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitConfirm : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

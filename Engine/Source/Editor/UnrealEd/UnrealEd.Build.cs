@@ -197,7 +197,6 @@ public class UnrealEd : ModuleRules
 				"GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
-				"PackageDependencyInfo",
 				"ImageWrapper",
 				"Blutility",
 				"IntroTutorials",

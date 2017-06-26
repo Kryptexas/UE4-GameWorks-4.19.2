@@ -198,6 +198,13 @@ FVector USpringArmComponent::BlendLocations(const FVector& DesiredArmLocation, c
 	return bHitSomething ? TraceHitLocation : DesiredArmLocation;
 }
 
+void USpringArmComponent::ApplyWorldOffset(const FVector & InOffset, bool bWorldShift)
+{
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+	PreviousDesiredLoc += InOffset;
+	PreviousArmOrigin += InOffset;
+}
+
 void USpringArmComponent::OnRegister()
 {
 	Super::OnRegister();

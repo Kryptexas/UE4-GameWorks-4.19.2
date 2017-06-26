@@ -150,7 +150,12 @@ void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	{
 		ChildActorName = NAME_None;
 
-		if (!IsTemplate())
+		if (IsTemplate())
+		{
+			// This case is necessary to catch the situation where we are propogating the change down to child blueprints
+			SetChildActorClass(ChildActorClass);
+		}
+		else
 		{
 			UChildActorComponent* Archetype = CastChecked<UChildActorComponent>(GetArchetype());
 			ChildActorTemplate = (Archetype->ChildActorClass == ChildActorClass ? Archetype->ChildActorTemplate : nullptr);

@@ -389,7 +389,7 @@ void UPawnAction::WaitForMessage(FName MessageType, FAIRequestID InRequestID)
 
 UPawnAction* UPawnAction::CreateActionInstance(UObject* WorldContextObject, TSubclassOf<UPawnAction> ActionClass)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (World && ActionClass)
 	{
 		return NewObject<UPawnAction>(World, ActionClass);

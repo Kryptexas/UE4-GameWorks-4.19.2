@@ -439,13 +439,14 @@ UK2Node_CallFunction::UK2Node_CallFunction(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 	, bPinTooltipsValid(false)
 {
+	OrphanedPinSaveMode = ESaveOrphanPinMode::SaveAll;
 }
 
 
 bool UK2Node_CallFunction::IsDeprecated() const
 {
 	UFunction* Function = GetTargetFunction();
-	return (Function != NULL) && Function->HasMetaData(FBlueprintMetadata::MD_DeprecatedFunction);
+	return (Function && Function->HasMetaData(FBlueprintMetadata::MD_DeprecatedFunction));
 }
 
 bool UK2Node_CallFunction::ShouldWarnOnDeprecation() const
@@ -457,7 +458,7 @@ bool UK2Node_CallFunction::ShouldWarnOnDeprecation() const
 FString UK2Node_CallFunction::GetDeprecationMessage() const
 {
 	UFunction* Function = GetTargetFunction();
-	if ((Function != NULL) && Function->HasMetaData(FBlueprintMetadata::MD_DeprecationMessage))
+	if (Function && Function->HasMetaData(FBlueprintMetadata::MD_DeprecationMessage))
 	{
 		return FString::Printf(TEXT("%s %s"), *LOCTEXT("CallFunctionDeprecated_Warning", "@@ is deprecated;").ToString(), *Function->GetMetaData(FBlueprintMetadata::MD_DeprecationMessage));
 	}
@@ -1736,8 +1737,7 @@ void UK2Node_CallFunction::PostPasteNode()
 	Super::PostPasteNode();
 	FixupSelfMemberContext();
 
-	UFunction* Function = GetTargetFunction();
-	if(Function != NULL)
+	if (UFunction* Function = GetTargetFunction())
 	{
 		// After pasting we need to go through and ensure the hidden the self pins is correct in case the source blueprint had different metadata
 		TSet<FString> PinsToHide;
@@ -1753,8 +1753,8 @@ void UK2Node_CallFunction::PostPasteNode()
 		{
 			UEdGraphPin* Pin = Pins[PinIndex];
 
-			bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
-			bool bPinShouldBeHidden = PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin);
+			const bool bIsSelfPin = ((Pin->PinName == DefaultToSelfMetaValue) || (Pin->PinName == WorldContextMetaValue));
+			const bool bPinShouldBeHidden = ((Pin->SubPins.Num() > 0) || (PinsToHide.Contains(Pin->PinName) && (!bShowWorldContextPin || !bIsSelfPin)));
 
 			if (bPinShouldBeHidden && !Pin->bHidden)
 			{
@@ -2324,6 +2324,8 @@ bool UK2Node_CallFunction::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 		}
 		if (PinExec)
 		{
+			PinExec->bSavePinIfOrphaned = false; 
+
 			// look for old then pin
 			UEdGraphPin* PinThen = nullptr;
 			for (int32 PinIdx = 0; PinIdx < OldPins.Num(); PinIdx++)
@@ -2336,6 +2338,8 @@ bool UK2Node_CallFunction::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 			}
 			if (PinThen)
 			{
+				PinThen->bSavePinIfOrphaned = false;
+
 				// reconnect all incoming links to old exec pin to the far end of the old then pin.
 				if (PinThen->LinkedTo.Num() > 0)
 				{

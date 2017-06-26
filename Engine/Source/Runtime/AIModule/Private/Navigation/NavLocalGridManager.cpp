@@ -430,7 +430,7 @@ UNavLocalGridManager* UNavLocalGridManager::GetCurrent(UWorld* World)
 
 UNavLocalGridManager* UNavLocalGridManager::GetCurrent(const UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	UAISystem* AISys = World ? UAISystem::GetCurrent(*World) : nullptr;
 	return AISys ? AISys->GetNavLocalGridManager() : nullptr;
 }

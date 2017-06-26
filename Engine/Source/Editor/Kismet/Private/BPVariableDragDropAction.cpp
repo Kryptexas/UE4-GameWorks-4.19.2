@@ -117,7 +117,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			Message = FText::Format( LOCTEXT("IncorrectGraphForVariable_Error", "Cannot place variable '{VariableName}' in external scope '{Scope}'"), Args);
 		}
 	}
-	else if (PinUnderCursor != NULL)
+	else if (PinUnderCursor)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
@@ -125,43 +125,51 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 		if(CanVariableBeDropped(VariableProperty, *PinUnderCursor->GetOwningNode()->GetGraph()))
 		{
-			const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(PinUnderCursor->GetSchema());
-			const bool bIsExecPin = Schema->IsExecPin(*PinUnderCursor);
-
-			const bool bIsRead = (PinUnderCursor->Direction == EGPD_Input) && !bIsExecPin;
-			const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(PinUnderCursor->GetOwningNode());
-			const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
-			const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
-
-			FEdGraphPinType VariablePinType;
-			Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
-			const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType) || bIsExecPin;
-
-			Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
-
-			if (bTypeMatch && bCanWriteIfNeeded)
+			if (PinUnderCursor->bOrphanedPin)
 			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-
-				if (bIsRead)
-				{
-					Message = FText::Format(LOCTEXT("MakeThisEqualThat_PinEqualVariableName", "Make {PinUnderCursor} = {VariableName}"), Args);
-				}
-				else
-				{
-					Message = FText::Format(LOCTEXT("MakeThisEqualThat_VariableNameEqualPin", "Make {VariableName} = {PinUnderCursor}"), Args);
-				}
+				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+				Message = FText::Format(LOCTEXT("OrphanedPin_Error", "Cannot make connection to orphaned pin {PinUnderCursor}"), Args);
 			}
 			else
 			{
-				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				if (!bCanWriteIfNeeded)
+				const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(PinUnderCursor->GetSchema());
+				const bool bIsExecPin = Schema->IsExecPin(*PinUnderCursor);
+
+				const bool bIsRead = (PinUnderCursor->Direction == EGPD_Input) && !bIsExecPin;
+				const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(PinUnderCursor->GetOwningNode());
+				const bool bWritableProperty = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, VariableProperty) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
+				const bool bCanWriteIfNeeded = bIsRead || bWritableProperty;
+
+				FEdGraphPinType VariablePinType;
+				Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
+				const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType) || bIsExecPin;
+
+				Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
+
+				if (bTypeMatch && bCanWriteIfNeeded)
 				{
-					Message = FText::Format(LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
+					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
+
+					if (bIsRead)
+					{
+						Message = FText::Format(LOCTEXT("MakeThisEqualThat_PinEqualVariableName", "Make {PinUnderCursor} = {VariableName}"), Args);
+					}
+					else
+					{
+						Message = FText::Format(LOCTEXT("MakeThisEqualThat_VariableNameEqualPin", "Make {VariableName} = {PinUnderCursor}"), Args);
+					}
 				}
 				else
 				{
-					Message = FText::Format(LOCTEXT("NotCompatible_Error", "The type of '{VariableName}' is not compatible with {PinUnderCursor}"), Args);
+					StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+					if (!bCanWriteIfNeeded)
+					{
+						Message = FText::Format(LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
+					}
+					else
+					{
+						Message = FText::Format(LOCTEXT("NotCompatible_Error", "The type of '{VariableName}' is not compatible with {PinUnderCursor}"), Args);
+					}
 				}
 			}
 		}
@@ -173,7 +181,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			Message = FText::Format( LOCTEXT("IncorrectGraphForPin_Error", "Cannot place local variable '{VariableName}' in external scope '{Scope}'"), Args);
 		}
 	}
-	else if (VarNodeUnderCursor != NULL)
+	else if (VarNodeUnderCursor)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
@@ -182,8 +190,8 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		{
 			const bool bIsRead = VarNodeUnderCursor->IsA(UK2Node_VariableGet::StaticClass());
 			const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(VarNodeUnderCursor);
-			const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
-			const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
+			const bool bWritableProperty = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, VariableProperty) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
+			const bool bCanWriteIfNeeded = bIsRead || bWritableProperty;
 
 			if (bCanWriteIfNeeded)
 			{
@@ -229,7 +237,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()));
 		}
 
-		if(Blueprint != NULL)
+		if (Blueprint)
 		{
 			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName(), GetLocalVariableScope() );
 		}
@@ -271,8 +279,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			// Needs to have a valid index to move it (this excludes variables added through other means, like timelines/components
 			int32 MoveVarIndex = INDEX_NONE;
 			int32 TargetVarIndex = INDEX_NONE;
-			UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get()));
-			if(Blueprint != NULL)
+			if (UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UClass>(VariableSource.Get())))
 			{
 				MoveVarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VariableName);
 				TargetVarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, TargetVarName);
@@ -324,38 +331,39 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 FReply FKismetVariableDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
 {
-	UEdGraphPin* TargetPin = GetHoveredPin();
-
-	if (TargetPin != NULL)
+	if (UEdGraphPin* TargetPin = GetHoveredPin())
 	{
-		if (const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(TargetPin->GetSchema()))
+		if (!TargetPin->bOrphanedPin)
 		{
-			const bool bIsExecPin = Schema->IsExecPin(*TargetPin);
-
-			UProperty* VariableProperty = GetVariableProperty();
-
-			if(CanVariableBeDropped(VariableProperty, *TargetPin->GetOwningNode()->GetGraph()))
+			if (const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(TargetPin->GetSchema()))
 			{
-				const bool bIsRead = (TargetPin->Direction == EGPD_Input) && !bIsExecPin;
-				const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(TargetPin->GetOwningNode());
-				const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
-				const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
+				const bool bIsExecPin = Schema->IsExecPin(*TargetPin);
 
-				FEdGraphPinType VariablePinType;
-				Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
-				const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, TargetPin->PinType) || bIsExecPin;
+				UProperty* VariableProperty = GetVariableProperty();
 
-				if (bTypeMatch && bCanWriteIfNeeded)
+				if (CanVariableBeDropped(VariableProperty, *TargetPin->GetOwningNode()->GetGraph()))
 				{
-					FEdGraphSchemaAction_K2NewNode Action;
+					const bool bIsRead = (TargetPin->Direction == EGPD_Input) && !bIsExecPin;
+					const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(TargetPin->GetOwningNode());
+					const bool bWritableProperty = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, VariableProperty) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
+					const bool bCanWriteIfNeeded = bIsRead || bWritableProperty;
 
-					UK2Node_Variable* VarNode = bIsRead ? (UK2Node_Variable*)NewObject<UK2Node_VariableGet>() : (UK2Node_Variable*)NewObject<UK2Node_VariableSet>();
-					Action.NodeTemplate = VarNode;
+					FEdGraphPinType VariablePinType;
+					Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
+					const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, TargetPin->PinType) || bIsExecPin;
 
-					UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetPin->GetOwningNode()->GetGraph());
-					UEdGraphSchema_K2::ConfigureVarNode(VarNode, VariableName, VariableSource.Get(), DropOnBlueprint);
+					if (bTypeMatch && bCanWriteIfNeeded)
+					{
+						FEdGraphSchemaAction_K2NewNode Action;
 
-					Action.PerformAction(TargetPin->GetOwningNode()->GetGraph(), TargetPin, GraphPosition);
+						UK2Node_Variable* VarNode = bIsRead ? (UK2Node_Variable*)NewObject<UK2Node_VariableGet>() : (UK2Node_Variable*)NewObject<UK2Node_VariableSet>();
+						Action.NodeTemplate = VarNode;
+
+						UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetPin->GetOwningNode()->GetGraph());
+						UEdGraphSchema_K2::ConfigureVarNode(VarNode, VariableName, VariableSource.Get(), DropOnBlueprint);
+
+						Action.PerformAction(TargetPin->GetOwningNode()->GetGraph(), TargetPin, GraphPosition);
+					}
 				}
 			}
 		}
@@ -453,9 +461,9 @@ bool FKismetVariableDragDropAction::CanExecuteMakeSetter(FNodeConstructionParams
 	if(UClass* VariableSourceClass = Cast<UClass>(InParams.VariableSource.Get()))
 	{
 		const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InParams.Graph);
-		const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, InVariableProperty);
+		const bool bWritableProperty = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, InVariableProperty) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
 
-		return (!bReadOnlyProperty) && (!VariableSourceClass->HasAnyClassFlags(CLASS_Const));
+		return (bWritableProperty && !VariableSourceClass->HasAnyClassFlags(CLASS_Const));
 	}
 
 	return true;
@@ -463,10 +471,10 @@ bool FKismetVariableDragDropAction::CanExecuteMakeSetter(FNodeConstructionParams
 
 FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph)
 {	
-	if (Cast<const UEdGraphSchema_K2>(Graph.GetSchema()) != NULL)
+	if (Graph.GetSchema()->IsA<UEdGraphSchema_K2>())
 	{
 		UProperty* VariableProperty = GetVariableProperty();
-		if (VariableProperty != nullptr && CanVariableBeDropped(VariableProperty, Graph))
+		if (VariableProperty && CanVariableBeDropped(VariableProperty, Graph))
 		{
 			UStruct* Outer = CastChecked<UStruct>(VariableProperty->GetOuter());
 			
@@ -480,7 +488,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 			AnalyticCallback.ExecuteIfBound();
 
 			// Take into account current state of modifier keys in case the user changed his mind
-			auto ModifierKeys = FSlateApplication::Get().GetModifierKeys();
+			FModifierKeysState ModifierKeys = FSlateApplication::Get().GetModifierKeys();
 			const bool bModifiedKeysActive = ModifierKeys.IsControlDown() || ModifierKeys.IsAltDown();
 			const bool bAutoCreateGetter = bModifiedKeysActive ? ModifierKeys.IsControlDown() : bControlDrag;
 			const bool bAutoCreateSetter = bModifiedKeysActive ? ModifierKeys.IsAltDown() : bAltDrag;

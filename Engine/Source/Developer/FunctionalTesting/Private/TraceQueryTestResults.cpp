@@ -200,7 +200,12 @@ bool FTraceQueryTestResultsInner::AssertEqual(const FTraceQueryTestResultsInner&
 
 bool UTraceQueryTestResults::AssertEqual(const UTraceQueryTestResults* Expected, const FString& What, const UObject* ContextObject, AFunctionalTest& FunctionalTest) const
 {
-	if(Expected->BatchOptions != BatchOptions)
+	if(Expected == nullptr)
+	{
+		FunctionalTest.LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' 'Expected != nullptr' for context '%s'"), *What, ContextObject ? *ContextObject->GetName() : TEXT("")));
+		return false;
+	}
+	else if(Expected->BatchOptions != BatchOptions)
 	{
 		FunctionalTest.LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%s} but it was {%s} for context '%s'"), *What, *Expected->BatchOptions.ToString(), *BatchOptions.ToString(), ContextObject ? *ContextObject->GetName() : TEXT("")));
 		return false;

@@ -314,8 +314,19 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 				{
 					if (SceneComponent->GetAttachParent() && SceneComponent->GetAttachParent()->IsCreatedByConstructionScript())
 					{
+						// In rare cases the root component can be unset so walk the hierarchy and find what is probably the root component for the purposes of storing off the relative transform
+						USceneComponent* RelativeToComponent = Actor->GetRootComponent();
+						if (RelativeToComponent == nullptr)
+						{
+							RelativeToComponent = SceneComponent->GetAttachParent();
+							while (RelativeToComponent->GetAttachParent() && RelativeToComponent->GetAttachParent()->GetOwner() == Actor)
+							{
+								RelativeToComponent = RelativeToComponent->GetAttachParent();
+							}
+						}
+
 						SceneComponent->ConditionalUpdateComponentToWorld();
-						InstanceComponentTransformToRootMap.Add(SceneComponent, SceneComponent->GetComponentTransform().GetRelativeTransform(Actor->GetRootComponent()->GetComponentTransform()));
+						InstanceComponentTransformToRootMap.Add(SceneComponent, SceneComponent->GetComponentTransform().GetRelativeTransform(RelativeToComponent->GetComponentTransform()));
 					}
 				}
 			}

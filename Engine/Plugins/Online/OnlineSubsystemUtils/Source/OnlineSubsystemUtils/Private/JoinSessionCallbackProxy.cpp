@@ -27,7 +27,7 @@ UJoinSessionCallbackProxy* UJoinSessionCallbackProxy::JoinSession(UObject* World
 
 void UJoinSessionCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("JoinSession"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("JoinSession"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())
@@ -53,7 +53,7 @@ void UJoinSessionCallbackProxy::Activate()
 
 void UJoinSessionCallbackProxy::OnCompleted(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("JoinSessionCallback"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("JoinSessionCallback"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

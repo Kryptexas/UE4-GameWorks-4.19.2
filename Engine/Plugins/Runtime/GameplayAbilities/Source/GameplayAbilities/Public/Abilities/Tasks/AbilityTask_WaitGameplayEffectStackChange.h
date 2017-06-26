@@ -15,8 +15,8 @@ class UPrimitiveComponent;
 /**
  *	Waits for the actor to activate another ability
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayEffectStackChange : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectStackChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

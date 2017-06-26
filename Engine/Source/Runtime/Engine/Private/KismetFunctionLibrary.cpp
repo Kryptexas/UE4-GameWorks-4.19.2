@@ -49,14 +49,14 @@ int32 UBlueprintFunctionLibrary::GetFunctionCallspace(UFunction* Function, void*
 		// check which world the cosmetic/authoritative call would run in
 		if (PlayInSettings->GetRunUnderOneProcess(bIsOnePIEProcessEnabled) && bIsOnePIEProcessEnabled)
 		{
-			UObject* WorldContextObj = nullptr;
+			UWorld* WorldContext = nullptr;
 			if (Stack != nullptr)
 			{
 //				const FName WorldContextTag = TEXT("WorldContext");
-
-				if (Stack->Object && Stack->Object->ImplementsGetWorld())
+				
+				if (Stack->Object)
 				{
-					WorldContextObj = Stack->Object;
+					WorldContext = GEngine->GetWorldFromContextObject(Stack->Object, EGetWorldErrorMode::ReturnNull);
 				}
 // 				else if (Function->HasMetaData(WorldContextTag))
 // 				{
@@ -71,15 +71,11 @@ int32 UBlueprintFunctionLibrary::GetFunctionCallspace(UFunction* Function, void*
 // 				}
 			}
 
-			if (WorldContextObj != nullptr)
+			if (WorldContext != nullptr)
 			{
-				UWorld* WorldContext = WorldContextObj->GetWorld();
-				if (ensure(WorldContext != nullptr))
-				{
-					ENetMode WorldNetMode = WorldContext->GetNetMode();
-					bAbsorbCosmeticCalls  = (WorldNetMode == NM_DedicatedServer);
-					bAbsorbAuthorityCalls = (WorldNetMode == NM_Client);
-				}
+				ENetMode WorldNetMode = WorldContext->GetNetMode();
+				bAbsorbCosmeticCalls  = (WorldNetMode == NM_DedicatedServer);
+				bAbsorbAuthorityCalls = (WorldNetMode == NM_Client);
 			}
 			else
 			{

@@ -16,22 +16,23 @@ UFoliageStatistics::UFoliageStatistics(const FObjectInitializer& ObjectInitializ
 
 int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FVector CenterPosition, float Radius)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	const FSphere Sphere(CenterPosition, Radius);
-
 	int32 Count = 0;
-
-	for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		AInstancedFoliageActor* IFA = *It;
-		if (!IFA->IsPendingKill())
-		{
-			TArray<const UFoliageType*> FoliageTypes;
-			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+		const FSphere Sphere(CenterPosition, Radius);
 
-			for (const auto Type : FoliageTypes)
+		for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
+		{
+			AInstancedFoliageActor* IFA = *It;
+			if (!IFA->IsPendingKill())
 			{
-				Count += IFA->GetOverlappingSphereCount(Type, Sphere);
+				TArray<const UFoliageType*> FoliageTypes;
+				IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+				for (const auto Type : FoliageTypes)
+				{
+					Count += IFA->GetOverlappingSphereCount(Type, Sphere);
+				}
 			}
 		}
 	}
@@ -41,44 +42,44 @@ int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObj
 
 int32 UFoliageStatistics::FoliageOverlappingBoxCount(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FBox Box)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-
 	int32 Count = 0;
-
-	for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		AInstancedFoliageActor* IFA = *It;
-		if (!IFA->IsPendingKill())
+		for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
 		{
-			TArray<const UFoliageType*> FoliageTypes;
-			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
-
-			for (const auto Type : FoliageTypes)
+			AInstancedFoliageActor* IFA = *It;
+			if (!IFA->IsPendingKill())
 			{
-				Count += IFA->GetOverlappingBoxCount(Type, Box);
+				TArray<const UFoliageType*> FoliageTypes;
+				IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+				for (const auto Type : FoliageTypes)
+				{
+					Count += IFA->GetOverlappingBoxCount(Type, Box);
+				}
 			}
 		}
 	}
-
 
 	return Count;
 }
 
 void UFoliageStatistics::FoliageOverlappingBoxTransforms(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FBox Box, TArray<FTransform>& OutTransforms)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-
-	for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		AInstancedFoliageActor* IFA = *It;
-		if (!IFA->IsPendingKill())
+		for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
 		{
-			TArray<const UFoliageType*> FoliageTypes;
-			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
-
-			for (const auto Type : FoliageTypes)
+			AInstancedFoliageActor* IFA = *It;
+			if (!IFA->IsPendingKill())
 			{
-				IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+				TArray<const UFoliageType*> FoliageTypes;
+				IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+				for (const auto Type : FoliageTypes)
+				{
+					IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+				}
 			}
 		}
 	}
@@ -86,16 +87,18 @@ void UFoliageStatistics::FoliageOverlappingBoxTransforms(UObject* WorldContextOb
 
 void UFoliageStatistics::FoliageOverlappingMeshCounts_Debug(UObject* WorldContextObject, FVector CenterPosition, float Radius, TMap<UStaticMesh*, int32>& OutMeshCounts)
 {
-	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	const FSphere Sphere(CenterPosition, Radius);
-
-	OutMeshCounts.Reset();
-	for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		AInstancedFoliageActor* IFA = *It;
-		if (!IFA->IsPendingKill())
+		const FSphere Sphere(CenterPosition, Radius);
+
+		OutMeshCounts.Reset();
+		for (TActorIterator<AInstancedFoliageActor> It(World); It; ++It)
 		{
-			IFA->GetOverlappingMeshCounts(Sphere, OutMeshCounts);
+			AInstancedFoliageActor* IFA = *It;
+			if (!IFA->IsPendingKill())
+			{
+				IFA->GetOverlappingMeshCounts(Sphere, OutMeshCounts);
+			}
 		}
 	}
 }

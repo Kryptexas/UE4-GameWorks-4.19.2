@@ -131,6 +131,14 @@ enum class ENodeEnabledState : uint8
 	DevelopmentOnly
 };
 
+/** Enum that defines what kind of orphaned pins should be retained. */
+enum class ESaveOrphanPinMode : uint8
+{
+	SaveNone,
+	SaveAll,
+	SaveAllButExec
+};
+
 /** Holds metadata keys, so as to discourage text duplication throughout the engine. */
 struct ENGINE_API FNodeMetadata
 {
@@ -193,6 +201,9 @@ class ENGINE_API UEdGraphNode : public UObject
 	/** Indicates in what state the node is enabled, which may eliminate it from being compiled */
 	UPROPERTY()
 	ENodeEnabledState EnabledState;
+
+	/** When reconstructing a node should the orphaned pins be retained and transfered to the new pin list. */
+	ESaveOrphanPinMode OrphanedPinSaveMode;
 
 	/** Indicates whether or not the user explicitly set the enabled state */
 	UPROPERTY()

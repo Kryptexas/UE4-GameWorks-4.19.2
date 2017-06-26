@@ -8,8 +8,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitCancelDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitCancel : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitCancel : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

@@ -577,7 +577,9 @@ void SGraphEditorImpl::ReconstructNodes()
 		{
 			if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
 			{
+				TGuardValue<ESaveOrphanPinMode> GuardSaveMode(Node->OrphanedPinSaveMode, ESaveOrphanPinMode::SaveNone);
 				Schema->ReconstructNode(*Node);
+				Node->ClearCompilerMessage();
 			}
 		}
 	}

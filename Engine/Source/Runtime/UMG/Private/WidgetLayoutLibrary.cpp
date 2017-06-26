@@ -81,7 +81,7 @@ float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 	{
 		float ViewportScale = 1.0f;
 
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		if ( World && World->IsGameWorld() )
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
@@ -159,7 +159,7 @@ FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 	{
 		FVector2D ViewportSize(1, 1);
 
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		if ( World && World->IsGameWorld() )
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
@@ -176,7 +176,7 @@ FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 
 FGeometry UWidgetLayoutLibrary::GetViewportWidgetGeometry(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
@@ -194,7 +194,7 @@ FGeometry UWidgetLayoutLibrary::GetViewportWidgetGeometry(UObject* WorldContextO
 
 FGeometry UWidgetLayoutLibrary::GetPlayerScreenWidgetGeometry(APlayerController* PlayerController)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(PlayerController);
+	UWorld* World = GEngine->GetWorldFromContextObject(PlayerController, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
@@ -282,7 +282,7 @@ UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* Widget)
 
 void UWidgetLayoutLibrary::RemoveAllWidgets(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )

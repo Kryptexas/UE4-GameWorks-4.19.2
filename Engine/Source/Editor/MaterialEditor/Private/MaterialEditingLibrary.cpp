@@ -22,6 +22,7 @@
 #include "MaterialEditor/MaterialEditorInstanceConstant.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "EditorSupportDelegates.h"
+#include "Misc/RuntimeErrors.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditingLibrary, Warning, All);
@@ -426,7 +427,7 @@ bool UMaterialEditingLibrary::ConnectMaterialExpressions(UMaterialExpression* Fr
 
 void UMaterialEditingLibrary::RecompileMaterial(UMaterial* Material)
 {
-	if (Material)
+	if (ensureAsRuntimeWarning(Material != nullptr))
 	{
 		{
 			FMaterialUpdateContext UpdateContext;

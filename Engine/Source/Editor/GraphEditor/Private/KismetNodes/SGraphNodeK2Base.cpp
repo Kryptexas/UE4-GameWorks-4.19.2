@@ -490,7 +490,7 @@ void SGraphNodeK2Base::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGrap
 
 				if (Action.Object == ActiveObject)
 				{
-					if (UWorld* World = GEngine->GetWorldFromContextObject(Action.Object))
+					if (UWorld* World = GEngine->GetWorldFromContextObject(Action.Object, EGetWorldErrorMode::ReturnNull))
 					{
 						FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 

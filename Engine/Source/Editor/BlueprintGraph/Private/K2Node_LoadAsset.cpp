@@ -134,7 +134,23 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 	{
 		UEdGraphPin* AssetPin = FindPin(GetInputPinName());
 		ensure(CallFunctionAssetPin);
-		bIsErrorFree &= AssetPin && CallFunctionAssetPin && CompilerContext.MovePinLinksToIntermediate(*AssetPin, *CallFunctionAssetPin).CanSafeConnect();
+
+		if (AssetPin && CallFunctionAssetPin)
+		{
+			if (AssetPin->LinkedTo.Num() > 0)
+			{
+				bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*AssetPin, *CallFunctionAssetPin).CanSafeConnect();
+			}
+			else
+			{
+				// Copy literal value
+				CallFunctionAssetPin->DefaultValue = AssetPin->DefaultValue;
+			}
+		}
+		else
+		{
+			bIsErrorFree = false;
+		}
 	}
 
 	// Create OnLoadEvent

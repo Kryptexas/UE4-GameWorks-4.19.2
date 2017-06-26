@@ -67,7 +67,7 @@ UAndroidPermissionCallbackProxy* UAndroidPermissionFunctionLibrary::AcquirePermi
 	env->DeleteLocalRef(permissionsArray);
 	return UAndroidPermissionCallbackProxy::GetInstance();
 #else
-	UE_LOG(LogAndroidPermission, Log, TEXT("UAndroidPermissionFunctionLibrary::AcquirePermissions %s (Android)"), *(permissions[0]));
+	UE_LOG(LogAndroidPermission, Log, TEXT("UAndroidPermissionFunctionLibrary::AcquirePermissions(%s) (Android)"), *(FString::Join(permissions, TEXT(","))));
 	return UAndroidPermissionCallbackProxy::GetInstance();
 #endif
 }

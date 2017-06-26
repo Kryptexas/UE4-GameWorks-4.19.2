@@ -34,7 +34,7 @@ UEndTurnCallbackProxy* UEndTurnCallbackProxy::EndTurn(UObject* WorldContextObjec
 
 void UEndTurnCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("ConnectToService"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

@@ -203,7 +203,7 @@ protected:
 	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/* Reverse direction we are moving */
-	float ReverseDirection(const FHitResult& Hit, float Time, bool InBroadcastEvent);
+	void ReverseDirection(const FHitResult& Hit, float Time, bool InBroadcastEvent);
 
 	/** Compute the distance for the given time. */
 	virtual FVector ComputeMoveDelta(float Time) const;
@@ -233,7 +233,7 @@ protected:
 	virtual void UpdateControlPoints(bool InForceUpdate);	
 
 	/* Calculate the new current time */
-	float CalculateNewTime( float TimeNow, float Delta, FHitResult& HitResult, bool InBroadcastEvent, bool& OutStopped );
+	float CalculateNewTime( float TimeNow, float Delta, FHitResult& HitResult, bool InBroadcastEvent, bool& OutStopped, float& OutTimeRemainder );
 
 private:
 	float TotalDistance;

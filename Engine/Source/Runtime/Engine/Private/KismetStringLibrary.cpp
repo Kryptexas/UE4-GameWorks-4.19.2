@@ -455,7 +455,7 @@ FString UKismetStringLibrary::RightChop(const FString& SourceString, int32 Count
 
 FString UKismetStringLibrary::Mid(const FString& SourceString, int32 Start, int32 Count = MAX_int32)
 {
-	return SourceString.Mid(Start, Count);
+	return (Count >= 0 ? SourceString.Mid(Start, Count) : FString());
 }
 
 FString UKismetStringLibrary::TimeSecondsToString(float InSeconds)
