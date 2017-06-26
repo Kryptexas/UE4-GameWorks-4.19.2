@@ -546,6 +546,7 @@ namespace HTML5LaunchHelper
 
 		static int Main(string[] args)
 		{
+            System.Console.WriteLine("Version: 20170623"); // date: YYYYMMDD - needed to help figure out what version QA is running...
 			var Args = new Arguments();
 			if (Args.Parse(args))
 			{
