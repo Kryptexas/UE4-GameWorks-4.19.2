@@ -105,9 +105,6 @@ public class MeshUtilities : ModuleRules
             PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.14.0.dylib");
 			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbb.dylib");
 			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbbmalloc.dylib");
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libembree.2.14.0.dylib"));
-            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbb.dylib"));
-            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Mac/libtbbmalloc.dylib"));
             Definitions.Add("USE_EMBREE=1");
         }
         else
