@@ -86,7 +86,7 @@ class UInterpGroup : public UObject, public FInterpEdInputInterface
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(export)
+	UPROPERTY(export, BlueprintReadOnly, Category=InterpGroup)
 	TArray<class UInterpTrack*> InterpTracks;
 
 	/** 

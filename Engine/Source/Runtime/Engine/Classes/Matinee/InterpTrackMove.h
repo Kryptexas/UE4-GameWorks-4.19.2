@@ -102,7 +102,7 @@ class UInterpTrackMove : public UInterpTrack
 	GENERATED_UCLASS_BODY()
 	
 	/** Actual position keyframe data. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=InterpTrackMove)
 	FInterpCurveVector PosTrack;
 
 	/** Actual rotation keyframe data, stored as Euler angles in degrees, for easy editing on curve. */

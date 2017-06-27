@@ -364,13 +364,13 @@ struct FVector2D
 
 
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, BlueprintType, noexport)
 struct FTwoVectors
 {
-	UPROPERTY(EditAnywhere, Category=TwoVectors, SaveGame)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TwoVectors, SaveGame)
 	FVector v1;
 
-	UPROPERTY(EditAnywhere, Category=TwoVectors, SaveGame)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TwoVectors, SaveGame)
 	FVector v2;
 
 };
@@ -663,223 +663,223 @@ struct FMatrix
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointFloat
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
 	float OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
 	float ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
 	float LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveFloat
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
 	TArray<FInterpCurvePointFloat> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
 	float LoopKeyOffset;
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointVector2D
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
 	FVector2D OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
 	FVector2D ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
 	FVector2D LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveVector2D
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
 	TArray<FInterpCurvePointVector2D> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
 	float LoopKeyOffset;
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointVector
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
 	FVector OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
 	FVector ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
 	FVector LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveVector
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
 	TArray<FInterpCurvePointVector> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
 	float LoopKeyOffset;
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointQuat
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
 	FQuat OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
 	FQuat ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
 	FQuat LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveQuat
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
 	TArray<FInterpCurvePointQuat> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
 	float LoopKeyOffset;
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointTwoVectors
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
 	FTwoVectors OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
 	FTwoVectors ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
 	FTwoVectors LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveTwoVectors
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
 	TArray<FInterpCurvePointTwoVectors> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
 	float LoopKeyOffset;
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointLinearColor
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
 	FLinearColor OutVal;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
 	FLinearColor ArriveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
 	FLinearColor LeaveTangent;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveLinearColor
 {
-	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
 	TArray<FInterpCurvePointLinearColor> Points;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
 	float LoopKeyOffset;
 };
 

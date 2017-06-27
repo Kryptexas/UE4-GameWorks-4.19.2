@@ -27,7 +27,7 @@ class UInterpData : public UObject
 	float PathBuildTime;
 
 	/** Actual interpolation data. Groups of InterpTracks. */
-	UPROPERTY(export)
+	UPROPERTY(export, BlueprintReadOnly, Category=InterpData)
 	TArray<class UInterpGroup*> InterpGroups;
 
 	/** Used for curve editor to remember curve-editing setup. Only loaded in editor. */

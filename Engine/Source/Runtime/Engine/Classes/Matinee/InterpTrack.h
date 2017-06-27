@@ -105,7 +105,7 @@ class UInterpTrack : public UObject, public FCurveEdInterface, public FInterpEdI
 	GENERATED_UCLASS_BODY()
 
 	/** A list of subtracks that belong to this track */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=InterpTrack)
 	TArray<class UInterpTrack*> SubTracks;
 
 #if WITH_EDITORONLY_DATA
