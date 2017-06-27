@@ -409,6 +409,7 @@ static void BuildShaderOutput(
 			break;
 		case EVulkanBindingType::UniformTexelBuffer:
 		case EVulkanBindingType::StorageTexelBuffer:
+		case EVulkanBindingType::StorageBuffer:
 			break;
 		default:
 			checkf(0, TEXT("Binding Type %d not found"), (int32)Binding.Type);
@@ -654,6 +655,10 @@ static void BuildShaderOutput(
 		if (VulkanBindingIndex == -1)
 		{
 			VulkanBindingIndex = FindHlslccBindingByIndex(HlslccUAVIndex, EVulkanBindingType::StorageImage);
+			if (VulkanBindingIndex == -1)
+			{
+				VulkanBindingIndex = FindHlslccBindingByIndex(HlslccUAVIndex, EVulkanBindingType::StorageBuffer);
+			}
 		}
 		check(VulkanBindingIndex != -1);
 
@@ -909,7 +914,7 @@ static FString CreateShaderCompileCommandLine(FCompilerInfo& CompilerInfo, EHlsl
 	FString SPVFile = CompilerInfo.Input.DumpDebugInfoPath / TEXT("Output.spv");
 	FString SPVDisasmFile = CompilerInfo.Input.DumpDebugInfoPath / TEXT("Output.spvasm");
 
-	FString DumpedUSFFile = CompilerInfo.Input.DumpDebugInfoPath / (CompilerInfo.BaseSourceFilename + TEXT(".usf"));
+	FString DumpedUSFFile = CompilerInfo.Input.DumpDebugInfoPath / CompilerInfo.BaseSourceFilename;
 	const TCHAR* VersionSwitch = TEXT("-esdeferred");
 	switch (Target)
 	{
@@ -950,7 +955,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 	bDebugDump(false)
 {
 	bDebugDump = Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath);
-	BaseSourceFilename = FPaths::GetBaseFilename(Input.SourceFilename);
+	BaseSourceFilename = Input.GetSourceFilename();
 }
 
 
@@ -1000,7 +1005,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 //	{
 //		if (Input.bSkipPreprocessedCache)
 //		{
-//			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.SourceFilename);
+//			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath);
 //		}
 //		else
 //		{
@@ -1046,7 +1051,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 //		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 //		if (bDumpDebugInfo && !Input.bSkipPreprocessedCache)
 //		{
-//			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+//			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath));
 //			if (FileWriter)
 //			{
 //				auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShader);
@@ -1086,7 +1091,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 //		if (!bIsSM5)
 //		{
 //			FHlslCrossCompilerContext CrossCompilerContextES(CCFlagsES, Frequency, HlslCompilerTargetES);
-//			if (CrossCompilerContextES.Init(TCHAR_TO_ANSI(*Input.SourceFilename), &VulkanLanguageSpec))
+//			if (CrossCompilerContextES.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), &VulkanLanguageSpec))
 //			{
 //				Result = CrossCompilerContextES.Run(
 //					TCHAR_TO_ANSI(*PreprocessedShader),
@@ -1113,7 +1118,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 //		FVulkanCodeBackend VulkanBackend(CCFlags, BindingTable, HlslCompilerTarget);
 //
 //		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
-//		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.SourceFilename), &VulkanLanguageSpec))
+//		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), &VulkanLanguageSpec))
 //		{
 //			Result = CrossCompilerContext.Run(
 //				TCHAR_TO_ANSI(*PreprocessedShader),
@@ -1321,7 +1326,7 @@ static bool CallHlslcc(const FString& PreprocessedShader, FVulkanBindingTable& B
 		const bool bShareSamplers = false;
 		FVulkanLanguageSpec VulkanLanguageSpec(false/*HlslCompilerTarget == HCT_FeatureLevelSM4 || HlslCompilerTarget == HCT_FeatureLevelSM5*/);
 		int32 Result = 0;
-		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*CompilerInfo.Input.SourceFilename), &VulkanLanguageSpec))
+		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*CompilerInfo.Input.VirtualSourceFilePath), &VulkanLanguageSpec))
 		{
 			Result = CrossCompilerContext.Run(
 				TCHAR_TO_ANSI(*PreprocessedShader),
@@ -1463,7 +1468,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	FString PreprocessedShaderSource;
 	if (Input.bSkipPreprocessedCache)
 	{
-		if (!FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.SourceFilename))
+		if (!FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.VirtualSourceFilePath))
 		{
 			return;
 		}
@@ -1526,7 +1531,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 	if (CompilerInfo.bDebugDump)
 	{
-		FString DumpedUSFFile = CompilerInfo.Input.DumpDebugInfoPath / (CompilerInfo.BaseSourceFilename + TEXT(".usf"));
+		FString DumpedUSFFile = CompilerInfo.Input.DumpDebugInfoPath / CompilerInfo.BaseSourceFilename;
 		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*DumpedUSFFile);
 		if (FileWriter)
 		{

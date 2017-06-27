@@ -83,7 +83,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("PostProcessHistogram"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("/Engine/Private/PostProcessHistogram.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Context)
 {

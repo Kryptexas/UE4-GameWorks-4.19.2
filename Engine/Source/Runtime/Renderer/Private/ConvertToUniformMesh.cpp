@@ -52,7 +52,7 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FConvertToUniformMeshVS,TEXT("ConvertToUniformMesh"),TEXT("ConvertToUniformMeshVS"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FConvertToUniformMeshVS,TEXT("/Engine/Private/ConvertToUniformMesh.usf"),TEXT("ConvertToUniformMeshVS"),SF_Vertex); 
 
 void GetUniformMeshStreamOutLayout(FStreamOutElementList& Layout)
 {
@@ -142,7 +142,7 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FConvertToUniformMeshGS,TEXT("ConvertToUniformMesh"),TEXT("ConvertToUniformMeshGS"),SF_Geometry); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FConvertToUniformMeshGS,TEXT("/Engine/Private/ConvertToUniformMesh.usf"),TEXT("ConvertToUniformMeshGS"),SF_Geometry); 
 
 
 class FConvertToUniformMeshDrawingPolicy : public FMeshDrawingPolicy
@@ -485,7 +485,7 @@ private:
 	FShaderParameter Instance0InverseTransform;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FEvaluateSurfelMaterialCS,TEXT("EvaluateSurfelMaterial"),TEXT("EvaluateSurfelMaterialCS"),SF_Compute);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FEvaluateSurfelMaterialCS,TEXT("/Engine/Private/EvaluateSurfelMaterial.usf"),TEXT("EvaluateSurfelMaterialCS"),SF_Compute);
 
 void FUniformMeshConverter::GenerateSurfels(
 	FRHICommandListImmediate& RHICmdList, 

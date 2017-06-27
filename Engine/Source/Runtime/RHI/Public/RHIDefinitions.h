@@ -43,28 +43,27 @@ enum EShaderPlatform
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
 	SP_METAL			= 11,
-	SP_OPENGL_SM4_MAC	= 12,
-	SP_METAL_MRT		= 13,
-	SP_OPENGL_ES31_EXT	= 14,
+	SP_METAL_MRT		= 12,
+	SP_OPENGL_ES31_EXT	= 13,
 	/** Used when running in Feature Level ES3_1 in D3D11. */
-	SP_PCD3D_ES3_1		= 15,
+	SP_PCD3D_ES3_1		= 14,
 	/** Used when running in Feature Level ES3_1 in OpenGL. */
-	SP_OPENGL_PCES3_1	= 16,
-	SP_METAL_SM5		= 17,
-	SP_VULKAN_PCES3_1	= 18,
-	SP_METAL_SM4		= 19,
-	SP_VULKAN_SM4		= 20,
-	SP_VULKAN_SM5		= 21,
-	SP_VULKAN_ES3_1_ANDROID = 22,
-	SP_METAL_MACES3_1 	= 23,
-	SP_METAL_MACES2		= 24,
-	SP_OPENGL_ES3_1_ANDROID = 25,
-	SP_SWITCH				= 26,
-	SP_SWITCH_FORWARD		= 27,
-	SP_METAL_MRT_MAC	= 28,
-	SP_XBOXONE_D3D11    = 29,
+	SP_OPENGL_PCES3_1	= 15,
+	SP_METAL_SM5		= 16,
+	SP_VULKAN_PCES3_1	= 17,
+	SP_METAL_SM4		= 18,
+	SP_VULKAN_SM4		= 19,
+	SP_VULKAN_SM5		= 20,
+	SP_VULKAN_ES3_1_ANDROID = 21,
+	SP_METAL_MACES3_1 	= 22,
+	SP_METAL_MACES2		= 23,
+	SP_OPENGL_ES3_1_ANDROID = 24,
+	SP_SWITCH				= 25,
+	SP_SWITCH_FORWARD		= 26,
+	SP_METAL_MRT_MAC	= 27,
+	SP_XBOXONE_D3D11    = 28,
 
-	SP_NumPlatforms		= 30,
+	SP_NumPlatforms		= 29,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -725,7 +724,7 @@ enum class EAsyncComputeBudget
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
-		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
+		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
 		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
 		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
 }
@@ -746,7 +745,7 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
+	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
 		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT
 		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_SWITCH || Platform == SP_SWITCH_FORWARD;
 }
@@ -827,7 +826,6 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
-	case SP_OPENGL_SM4_MAC:
 	case SP_METAL_MRT:
 	case SP_METAL_MRT_MAC:
 	case SP_METAL_SM4:

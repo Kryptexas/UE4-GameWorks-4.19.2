@@ -99,6 +99,7 @@ public:
 	static const FString CrashTypeCrash;
 	static const FString CrashTypeAssert;
 	static const FString CrashTypeEnsure;
+	static const FString CrashTypeGPU;
 
 	static const FString EngineModeExUnknown;
 	static const FString EngineModeExDirty;
@@ -166,7 +167,7 @@ public:
 	static FString UnescapeXMLString( const FString& Text );
 
 	/** Helper to get the standard string for the crash type based on crash event bool values. */
-	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert);
+	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed);
 
 	/** Gets the "vanilla" status string. */
 	static const TCHAR* EngineModeExString();

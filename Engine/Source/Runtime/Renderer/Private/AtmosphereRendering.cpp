@@ -254,7 +254,7 @@ public:
 	}
 };
 
-#define SHADER_VARIATION(RenderFlag) IMPLEMENT_SHADER_TYPE(template<>,TAtmosphericFogPS<RenderFlag>, TEXT("AtmosphericFogShader"), TEXT("AtmosphericPixelMain"), SF_Pixel);
+#define SHADER_VARIATION(RenderFlag) IMPLEMENT_SHADER_TYPE(template<>,TAtmosphericFogPS<RenderFlag>, TEXT("/Engine/Private/AtmosphericFogShader.usf"), TEXT("AtmosphericPixelMain"), SF_Pixel);
 SHADER_VARIATION(EAtmosphereRenderFlag::E_EnableAll)
 SHADER_VARIATION(EAtmosphereRenderFlag::E_DisableSunDisk)
 SHADER_VARIATION(EAtmosphereRenderFlag::E_DisableGroundScattering)
@@ -316,7 +316,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FAtmosphericVS,TEXT("AtmosphericFogShader"),TEXT("VSMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FAtmosphericVS,TEXT("/Engine/Private/AtmosphericFogShader.usf"),TEXT("VSMain"),SF_Vertex);
 
 /** Vertex declaration for the light function fullscreen 2D quad. */
 TGlobalResource<FAtmopshereVertexDeclaration> GAtmophereVertexDeclaration;
@@ -1030,20 +1030,20 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FAtmosphereTransmittancePS,TEXT("AtmospherePrecompute"),TEXT("TransmittancePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereIrradiance1PS,TEXT("AtmospherePrecompute"),TEXT("Irradiance1PS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereIrradianceNPS,TEXT("AtmospherePrecompute"),TEXT("IrradianceNPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyIrradiancePS,TEXT("AtmospherePrecompute"),TEXT("CopyIrradiancePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereGS,TEXT("AtmospherePrecomputeInscatter"),TEXT("AtmosphereGS"),SF_Geometry);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatter1PS,TEXT("AtmospherePrecomputeInscatter"),TEXT("Inscatter1PS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatter1PS,TEXT("AtmospherePrecomputeInscatter"),TEXT("CopyInscatter1PS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterNPS,TEXT("AtmospherePrecomputeInscatter"),TEXT("CopyInscatterNPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatterSPS,TEXT("AtmospherePrecomputeInscatter"),TEXT("InscatterSPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatterNPS,TEXT("AtmospherePrecomputeInscatter"),TEXT("InscatterNPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterFPS,TEXT("AtmospherePrecomputeInscatter"),TEXT("CopyInscatterFPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterFBackPS,TEXT("AtmospherePrecomputeInscatter"),TEXT("CopyInscatterFBackPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FAtmospherePrecomputeVS,TEXT("AtmospherePrecompute"),TEXT("MainVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FAtmospherePrecomputeInscatterVS,TEXT("AtmospherePrecomputeInscatter"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereTransmittancePS,TEXT("/Engine/Private/AtmospherePrecompute.usf"),TEXT("TransmittancePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereIrradiance1PS,TEXT("/Engine/Private/AtmospherePrecompute.usf"),TEXT("Irradiance1PS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereIrradianceNPS,TEXT("/Engine/Private/AtmospherePrecompute.usf"),TEXT("IrradianceNPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyIrradiancePS,TEXT("/Engine/Private/AtmospherePrecompute.usf"),TEXT("CopyIrradiancePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereGS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("AtmosphereGS"),SF_Geometry);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatter1PS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("Inscatter1PS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatter1PS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("CopyInscatter1PS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterNPS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("CopyInscatterNPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatterSPS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("InscatterSPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereInscatterNPS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("InscatterNPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterFPS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("CopyInscatterFPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmosphereCopyInscatterFBackPS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("CopyInscatterFBackPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FAtmospherePrecomputeVS,TEXT("/Engine/Private/AtmospherePrecompute.usf"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FAtmospherePrecomputeInscatterVS,TEXT("/Engine/Private/AtmospherePrecomputeInscatter.usf"),TEXT("MainVS"),SF_Vertex);
 
 namespace
 {

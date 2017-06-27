@@ -84,7 +84,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramReducePS,TEXT("PostProcessHistogramReduce"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramReducePS,TEXT("/Engine/Private/PostProcessHistogramReduce.usf"),TEXT("MainPS"),SF_Pixel);
 
 void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& Context)
 {

@@ -90,7 +90,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessVisualizeBuffer");
+		return TEXT("/Engine/Private/PostProcessVisualizeBuffer.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

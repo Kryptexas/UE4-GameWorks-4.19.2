@@ -604,6 +604,7 @@ void FD3DGPUProfiler::PopEvent()
 	FGPUProfiler::PopEvent();
 }
 
+extern CORE_API bool GIsGPUCrashed;
 bool FD3DGPUProfiler::CheckGpuHeartbeat() const
 {
 #if NV_AFTERMATH
@@ -617,6 +618,7 @@ bool FD3DGPUProfiler::CheckGpuHeartbeat() const
 		{
 			if (Status != GFSDK_Aftermath_Status_Active)
 			{
+				GIsGPUCrashed = true;
 				const TCHAR* AftermathReason[] = { TEXT("Active"), TEXT("Timeout"), TEXT("OutOfMemory"), TEXT("PageFault"), TEXT("Unknown") };
 				check(Status < 5);
 				UE_LOG(LogRHI, Error, TEXT("[Aftermath] Status: %s"), AftermathReason[Status]);

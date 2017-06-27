@@ -167,7 +167,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("FilterPixelShader");
+		return TEXT("/Engine/Private/FilterPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -280,7 +280,7 @@ private:
 
 /** A macro to declaring a filter shader type for a specific number of samples. */
 #define IMPLEMENT_FILTER_SHADER_TYPE(NumSamples) \
-	IMPLEMENT_SHADER_TYPE(template<>,TFilterVS<NumSamples>,TEXT("FilterVertexShader"),TEXT("Main"),SF_Vertex);
+	IMPLEMENT_SHADER_TYPE(template<>,TFilterVS<NumSamples>,TEXT("/Engine/Private/FilterVertexShader.usf"),TEXT("Main"),SF_Vertex);
 	/** The filter shader types for 1-MAX_FILTER_SAMPLES samples. */
 	IMPLEMENT_FILTER_SHADER_TYPE(1);
 	IMPLEMENT_FILTER_SHADER_TYPE(2);
@@ -447,7 +447,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("FilterPixelShader");
+		return TEXT("/Engine/Private/FilterPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

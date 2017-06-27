@@ -92,10 +92,10 @@ void FullyResolveReflectionScratchCubes(FRHICommandListImmediate& RHICmdList)
 	RHICmdList.CopyToResolveTarget(Scratch1, Scratch1, true, ResolveParams);  
 }
 
-IMPLEMENT_SHADER_TYPE(,FCubeFilterPS,TEXT("ReflectionEnvironmentShaders"),TEXT("DownsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCubeFilterPS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("DownsamplePS"),SF_Pixel);
 
-IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<0>,TEXT("ReflectionEnvironmentShaders"),TEXT("FilterPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<1>,TEXT("ReflectionEnvironmentShaders"),TEXT("FilterPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<0>,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("FilterPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TCubeFilterPS<1>,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("FilterPS"),SF_Pixel);
 
 /** Computes the average brightness of a 1x1 mip of a cubemap. */
 class FComputeBrightnessPS : public FGlobalShader
@@ -162,7 +162,7 @@ private:
 	FShaderParameter NumCaptureArrayMips;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeBrightnessPS,TEXT("ReflectionEnvironmentShaders"),TEXT("ComputeBrightnessMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FComputeBrightnessPS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("ComputeBrightnessMain"),SF_Pixel);
 
 void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, int32 NumMips, FSceneRenderTargetItem& Cubemap )
 {	
@@ -170,65 +170,73 @@ void CreateCubeMips( FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Typ
 
 	FTextureRHIParamRef CubeRef = Cubemap.TargetableTexture.GetReference();
 
-	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
-
-	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-
-	// Downsample all the mips, each one reads from the mip above it
-	for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
+	if (GSupportsGenerateMips)
 	{
-		const int32 MipSize = 1 << (NumMips - MipIndex - 1);
-			
-		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-		{
-			SetRenderTarget(RHICmdList, Cubemap.TargetableTexture, MipIndex, CubeFace, NULL, true);
-			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-			//this is a weired place but at the end of the scope it will not be good enough as SetRendertarget sets it to writable 
-			//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
-
-			const FIntRect ViewRect(0, 0, MipSize, MipSize);
-			RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
-
-
-			TShaderMapRef<FScreenVS> VertexShader( ShaderMap );
-			TShaderMapRef<FCubeFilterPS> PixelShader( ShaderMap );
-
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			{
-				const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
-
-				SetShaderValue( RHICmdList, ShaderRHI, PixelShader->CubeFace, CubeFace );
-				SetShaderValue( RHICmdList, ShaderRHI, PixelShader->MipIndex, MipIndex );
-
-				SetShaderValue( RHICmdList, ShaderRHI, PixelShader->NumMips, NumMips );
-
-				SetSRVParameter( RHICmdList, ShaderRHI, PixelShader->SourceTexture, Cubemap.MipSRVs[ MipIndex - 1 ] );
-				SetSamplerParameter( RHICmdList, ShaderRHI, PixelShader->SourceTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI() );
-			}
-
-			DrawRectangle( 
-				RHICmdList,
-				ViewRect.Min.X, ViewRect.Min.Y, 
-				ViewRect.Width(), ViewRect.Height(),
-				ViewRect.Min.X, ViewRect.Min.Y, 
-				ViewRect.Width(), ViewRect.Height(),
-				FIntPoint(ViewRect.Width(), ViewRect.Height()),
-				FIntPoint(MipSize, MipSize),
-				*VertexShader);
-		}
+		RHICmdList.GenerateMips(CubeRef/*, NumMips*/);
 	}
-	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &CubeRef, 1);
+	else
+	{
+		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+
+		// Downsample all the mips, each one reads from the mip above it
+		for (int32 MipIndex = 1; MipIndex < NumMips; MipIndex++)
+		{
+			const int32 MipSize = 1 << (NumMips - MipIndex - 1);
+
+			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+			{
+				SetRenderTarget(RHICmdList, Cubemap.TargetableTexture, MipIndex, CubeFace, NULL, false);
+				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+				//this is a weired place but at the end of the scope it will not be good enough as SetRendertarget sets it to writable 
+				//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+				RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &CubeRef, 1);
+
+				const FIntRect ViewRect(0, 0, MipSize, MipSize);
+				RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
+
+
+				TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+				TShaderMapRef<FCubeFilterPS> PixelShader(ShaderMap);
+
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+				{
+					const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
+
+					SetShaderValue(RHICmdList, ShaderRHI, PixelShader->CubeFace, CubeFace);
+					SetShaderValue(RHICmdList, ShaderRHI, PixelShader->MipIndex, MipIndex);
+
+					SetShaderValue(RHICmdList, ShaderRHI, PixelShader->NumMips, NumMips);
+
+					SetSRVParameter(RHICmdList, ShaderRHI, PixelShader->SourceTexture, Cubemap.MipSRVs[MipIndex - 1]);
+					SetSamplerParameter(RHICmdList, ShaderRHI, PixelShader->SourceTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+				}
+
+				DrawRectangle(
+					RHICmdList,
+					ViewRect.Min.X, ViewRect.Min.Y,
+					ViewRect.Width(), ViewRect.Height(),
+					ViewRect.Min.X, ViewRect.Min.Y,
+					ViewRect.Width(), ViewRect.Height(),
+					FIntPoint(ViewRect.Width(), ViewRect.Height()),
+					FIntPoint(MipSize, MipSize),
+					*VertexShader);
+			}
+		}
+
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &CubeRef, 1);
+	}
 }
 
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */
@@ -467,7 +475,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyToCubeFaceVS,TEXT("ReflectionEnvironmentShaders"),TEXT("CopyToCubeFaceVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FCopyToCubeFaceVS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("CopyToCubeFaceVS"),SF_Vertex);
 
 /** Pixel shader used when copying scene color from a scene render into a face of a reflection capture cubemap. */
 class FCopySceneColorToCubeFacePS : public FGlobalShader
@@ -554,7 +562,7 @@ private:
 	FShaderParameter LowerHemisphereColor;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopySceneColorToCubeFacePS,TEXT("ReflectionEnvironmentShaders"),TEXT("CopySceneColorToCubeFaceColorPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCopySceneColorToCubeFacePS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("CopySceneColorToCubeFaceColorPS"),SF_Pixel);
 
 /** Pixel shader used when copying a cubemap into a face of a reflection capture cubemap. */
 class FCopyCubemapToCubeFacePS : public FGlobalShader
@@ -619,7 +627,7 @@ private:
 	FShaderParameter SinCosSourceCubemapRotation;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyCubemapToCubeFacePS,TEXT("ReflectionEnvironmentShaders"),TEXT("CopyCubemapToCubeFaceColorPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCopyCubemapToCubeFacePS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("CopyCubemapToCubeFaceColorPS"),SF_Pixel);
 
 int32 FindOrAllocateCubemapIndex(FScene* Scene, const UReflectionCaptureComponent* Component)
 {

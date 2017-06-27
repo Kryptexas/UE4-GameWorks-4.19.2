@@ -289,6 +289,7 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 		bRootComponentDataCached = true;
 		RootComponentData.Transform = ActorRootComponent->GetComponentTransform();
 		RootComponentData.Transform.SetTranslation(ActorRootComponent->GetComponentLocation()); // take into account any custom location
+		RootComponentData.TransformRotationCache = ActorRootComponent->GetRelativeRotationCache();
 
 		if (ActorRootComponent->GetAttachParent())
 		{

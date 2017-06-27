@@ -103,8 +103,8 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<false>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<true>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<false>, TEXT("/Engine/Private/PlanarReflectionShaders.usf"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<true>, TEXT("/Engine/Private/PlanarReflectionShaders.usf"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
 
 template<bool bEnablePlanarReflectionPrefilter>
 void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FPlanarReflectionSceneProxy* ReflectionSceneProxy, const FRenderTarget* Target)
@@ -369,7 +369,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 
 		TArray<FSceneCaptureViewInfo> SceneCaptureViewInfo;
 
-		for (int32 ViewIndex = 0; ViewIndex < MainSceneRenderer.Views.Num(); ++ViewIndex)
+		for (int32 ViewIndex = 0; ViewIndex < MainSceneRenderer.Views.Num() && ViewIndex < GMaxPlanarReflectionViews; ++ViewIndex)
 		{
 			const FViewInfo& View = MainSceneRenderer.Views[ViewIndex];
 			FSceneCaptureViewInfo NewView;
@@ -556,10 +556,23 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPlanarReflectionPS,TEXT("PlanarReflectionShaders"),TEXT("PlanarReflectionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPlanarReflectionPS,TEXT("/Engine/Private/PlanarReflectionShaders.usf"),TEXT("PlanarReflectionPS"),SF_Pixel);
 
 bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output)
 {
+	// Prevent rendering unsupported views when ViewIndex >= GMaxPlanarReflectionViews
+	// Planar reflections in those views will fallback to other reflection methods
+	{
+		int32 ViewIndex = INDEX_NONE;
+
+		ViewFamily.Views.Find(&View, ViewIndex);
+
+		if (ViewIndex >= GMaxPlanarReflectionViews)
+		{
+			return false;
+		}
+	}
+
 	bool bAnyVisiblePlanarReflections = false;
 
 	for (int32 PlanarReflectionIndex = 0; PlanarReflectionIndex < Scene->PlanarReflections.Num(); PlanarReflectionIndex++)

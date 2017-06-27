@@ -23,7 +23,6 @@ enum GLSLVersion
 	GLSL_150_ES2_NOUB,	// ES2 Emulation with NoUBs
 	GLSL_150_ES3_1,	// ES3.1 Emulation
 	GLSL_ES2_IOS,
-	GLSL_150_MAC, // Apple only
 	GLSL_310_ES_EXT,
 	GLSL_ES3_1_ANDROID,
 	GLSL_SWITCH,

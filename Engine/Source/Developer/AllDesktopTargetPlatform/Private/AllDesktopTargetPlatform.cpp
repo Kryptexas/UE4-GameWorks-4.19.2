@@ -45,7 +45,6 @@ void FAllDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutF
 	static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
 	static FName NAME_GLSL_150(TEXT("GLSL_150"));
 	static FName NAME_GLSL_430(TEXT("GLSL_430"));
-	static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 	
 #if PLATFORM_WINDOWS
 	// right now, only windows can properly compile D3D shaders (this won't corrupt the DDC, but it will 
@@ -55,7 +54,6 @@ void FAllDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutF
 #endif
 	OutFormats.AddUnique(NAME_GLSL_150);
 	OutFormats.AddUnique(NAME_GLSL_430);
-	OutFormats.AddUnique(NAME_GLSL_150_MAC);
 }
 
 

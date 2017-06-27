@@ -10,7 +10,7 @@
 
 class FVulkanDevice;
 class FVulkanCommandBufferManager;
-class FOLDVulkanPendingGfxState;
+class FVulkanPendingGfxState;
 class FVulkanPendingComputeState;
 
 class FVulkanCommandListContext : public IRHICommandContext
@@ -30,6 +30,7 @@ public:
 	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override;
 	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) final override;
+	virtual void RHISetGraphicsPipelineState(FGraphicsPipelineStateRHIParamRef GraphicsState) final override;
 	virtual void RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
 	virtual void RHISetShaderTexture(FHullShaderRHIParamRef HullShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
 	virtual void RHISetShaderTexture(FDomainShaderRHIParamRef DomainShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
@@ -63,6 +64,7 @@ public:
 	virtual void RHISetShaderParameter(FPixelShaderRHIParamRef PixelShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) final override;
 	virtual void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState, uint32 StencilRef) final override;
+	virtual void RHISetStencilRef(uint32 StencilRef) final override;
 	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) final override;
 	virtual void RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs) final override;
 	virtual void RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo) final override;
@@ -78,6 +80,9 @@ public:
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
+
+	//#todo-rco: Switch virtual override final
+	void RHIGenerateMips(FTextureRHIParamRef Texture, int32 NumMips);
 
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
 	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override;
@@ -121,7 +126,7 @@ public:
 		return TempFrameAllocationBuffer;
 	}
 
-	inline FOLDVulkanPendingGfxState* GetPendingGfxState()
+	inline FVulkanPendingGfxState* GetPendingGfxState()
 	{
 		return PendingGfxState;
 	}
@@ -172,7 +177,7 @@ protected:
 	bool bAutomaticFlushAfterComputeShader;
 	FVulkanUniformBufferUploader* UniformBufferUploader;
 
-	void SetShaderUniformBuffer(EShaderFrequency Stage, const FVulkanUniformBuffer* UniformBuffer, int32 BindingIndex);
+	void SetShaderUniformBuffer(EShaderFrequency Stage, const FVulkanUniformBuffer* UniformBuffer, int32 BindingIndex, FVulkanShader* ExpectedShader);
 
 	/** Some locally global variables to track the pending primitive information uised in RHIEnd*UP functions */
 	VulkanRHI::FTempFrameAllocationBuffer::FTempAllocInfo PendingDrawPrimUPVertexAllocInfo;
@@ -208,26 +213,41 @@ protected:
 		FVulkanFramebuffer* GetOrCreateFramebuffer(FVulkanDevice& InDevice, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass);
 		FVulkanRenderPass* GetOrCreateRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout, uint32 RTLayoutHash)
 		{
-			FVulkanRenderPass** FoundRenderPass = RenderPasses.Find(RTLayoutHash);
+			FVulkanRenderPass** FoundRenderPass = nullptr;
+			{
+				FScopeLock Lock(&RenderPassesCS);
+				FoundRenderPass = RenderPasses.Find(RTLayoutHash);
+			}
 			if (FoundRenderPass)
 			{
 				return *FoundRenderPass;
 			}
 
 			FVulkanRenderPass* RenderPass = new FVulkanRenderPass(InDevice, RTLayout);
-			RenderPasses.Add(RTLayoutHash, RenderPass);
+			{
+				FScopeLock Lock(&RenderPassesCS); 
+				RenderPasses.Add(RTLayoutHash, RenderPass);
+			}
 			return RenderPass;
 		}
 
-		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanPipelineGraphicsKey& GfxKey, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer);
+		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo, const FVulkanRenderTargetLayout& RTLayout, FVulkanRenderPass* RenderPass, FVulkanFramebuffer* Framebuffer);
 		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
 
 		FVulkanRenderPass* CurrentRenderPass;
 		FVulkanRenderPass* PreviousRenderPass;
 		FVulkanFramebuffer* CurrentFramebuffer;
 
+		struct FFlushMipsInfo
+		{
+			VkImage Image = VK_NULL_HANDLE;
+			int8 MipIndex = -1;
+		} FlushMipsInfo;
+
 		TMap<VkImage, VkImageLayout> CurrentLayout;
+
 		TMap<uint32, FVulkanRenderPass*> RenderPasses;
+		FCriticalSection RenderPassesCS;
 
 		struct FFramebufferList
 		{
@@ -289,8 +309,7 @@ protected:
 	};
 	FOcclusionQueryData CurrentOcclusionQueryData;
 
-	//#todo-rco: Temp!
-	FOLDVulkanPendingGfxState* PendingGfxState;
+	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
 	void PrepareForCPURead();
@@ -303,6 +322,9 @@ public:
 	{
 		return TransitionState;
 	}
+
+	FVulkanRenderPass* PrepareRenderPassForPSOCreation(const FGraphicsPipelineStateInitializer& Initializer);
+	FVulkanRenderPass* PrepareRenderPassForPSOCreation(const FVulkanRenderTargetLayout& Initializer);
 
 private:
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
@@ -327,4 +349,8 @@ private:
 
 	// Number of times EndFrame() has been called on this context
 	uint64 FrameCounter;
+
+
+	//TEMP
+	friend class FVulkanPendingGfxState;
 };

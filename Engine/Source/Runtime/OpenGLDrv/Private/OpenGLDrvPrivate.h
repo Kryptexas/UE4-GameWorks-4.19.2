@@ -522,7 +522,6 @@ inline bool OpenGLShaderPlatformNeedsBindLocation(const EShaderPlatform InShader
 			return false;
 
 		case SP_OPENGL_SM4:
-		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_PCES2:
 		case SP_OPENGL_ES2_ANDROID:
 		case SP_OPENGL_ES2_WEBGL:
@@ -541,7 +540,6 @@ inline bool OpenGLShaderPlatformSeparable(const EShaderPlatform InShaderPlatform
 	switch (InShaderPlatform)
 	{
 		case SP_OPENGL_SM5:
-		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_PCES2:
 		case SP_OPENGL_PCES3_1:

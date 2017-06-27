@@ -94,7 +94,7 @@ private:
 	FShaderParameter ShadowToWorld;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVolumetricFogLightFunctionPS,TEXT("VolumetricFogLightFunction"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FVolumetricFogLightFunctionPS,TEXT("/Engine/Private/VolumetricFogLightFunction.usf"),TEXT("Main"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderLightFunctionForVolumetricFog(
 	FRHICommandListImmediate& RHICmdList, 

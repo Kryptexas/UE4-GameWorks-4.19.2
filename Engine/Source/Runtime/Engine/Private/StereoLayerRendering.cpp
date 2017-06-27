@@ -6,5 +6,5 @@
 
 #include "StereoLayerRendering.h"
 
-IMPLEMENT_SHADER_TYPE(,FStereoLayerVS,TEXT("StereoLayerShader"),TEXT("MainVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FStereoLayerPS,TEXT("StereoLayerShader"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FStereoLayerVS,TEXT("/Engine/Private/StereoLayerShader.usf"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FStereoLayerPS,TEXT("/Engine/Private/StereoLayerShader.usf"),TEXT("MainPS"),SF_Pixel);

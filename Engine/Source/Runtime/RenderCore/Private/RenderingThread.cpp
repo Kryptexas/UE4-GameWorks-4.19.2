@@ -155,14 +155,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 
 /** Destructor that starts the renderthread again */
 FSuspendRenderingThread::~FSuspendRenderingThread()
-{
-#if PLATFORM_MAC	// On OS X Apple's context sharing is a strict interpretation of the spec. so a resource is only properly visible to other contexts
-					// in the share group after a flush. Thus we call RHIFlushResources which will flush the current context's commands to GL (but not wait for them).
-	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand,
-		RHIFlushResources();
-	);
-#endif
-	
+{	
 	if ( bRecreateThread )
 	{
 		GUseThreadedRendering = bUseRenderingThread;

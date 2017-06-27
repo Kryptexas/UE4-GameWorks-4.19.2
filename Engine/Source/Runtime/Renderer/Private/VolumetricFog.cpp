@@ -207,7 +207,7 @@ private:
 	FShaderParameter GlobalExtinctionScale;
 };
 
-IMPLEMENT_SHADER_TYPE(,FVolumetricFogMaterialSetupCS,TEXT("VolumetricFog"),TEXT("MaterialSetupCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FVolumetricFogMaterialSetupCS,TEXT("/Engine/Private/VolumetricFog.usf"),TEXT("MaterialSetupCS"),SF_Compute);
 
 /** Vertex shader used to write to a range of slices of a 3d volume texture. */
 class FWriteToBoundingSphereVS : public FGlobalShader
@@ -268,7 +268,7 @@ private:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FWriteToBoundingSphereVS,TEXT("VolumetricFog"),TEXT("WriteToBoundingSphereVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FWriteToBoundingSphereVS,TEXT("/Engine/Private/VolumetricFog.usf"),TEXT("WriteToBoundingSphereVS"),SF_Vertex);
 
 /** Shader that adds direct lighting contribution from the given light to the current volume lighting cascade. */
 template<bool bDynamicallyShadowed, bool bInverseSquared, bool bTemporalReprojection>
@@ -345,7 +345,7 @@ private:
 
 #define IMPLEMENT_LOCAL_LIGHT_INJECTION_PIXELSHADER_TYPE(bDynamicallyShadowed,bInverseSquared,bTemporalReprojection) \
 	typedef TInjectShadowedLocalLightPS<bDynamicallyShadowed,bInverseSquared,bTemporalReprojection> TInjectShadowedLocalLightPS##bDynamicallyShadowed##bInverseSquared##bTemporalReprojection; \
-	IMPLEMENT_SHADER_TYPE(template<>,TInjectShadowedLocalLightPS##bDynamicallyShadowed##bInverseSquared##bTemporalReprojection,TEXT("VolumetricFog"),TEXT("InjectShadowedLocalLightPS"),SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,TInjectShadowedLocalLightPS##bDynamicallyShadowed##bInverseSquared##bTemporalReprojection,TEXT("/Engine/Private/VolumetricFog.usf"),TEXT("InjectShadowedLocalLightPS"),SF_Pixel);
 
 IMPLEMENT_LOCAL_LIGHT_INJECTION_PIXELSHADER_TYPE(true, true, true);
 IMPLEMENT_LOCAL_LIGHT_INJECTION_PIXELSHADER_TYPE(true, false, true);
@@ -817,7 +817,7 @@ private:
 
 #define IMPLEMENT_VOLUMETRICFOG_LIGHT_SCATTERING_CS_TYPE(bTemporalReprojection, bDistanceFieldSkyOcclusion) \
 	typedef TVolumetricFogLightScatteringCS<bTemporalReprojection, bDistanceFieldSkyOcclusion> TVolumetricFogLightScatteringCS##bTemporalReprojection##bDistanceFieldSkyOcclusion; \
-	IMPLEMENT_SHADER_TYPE(template<>,TVolumetricFogLightScatteringCS##bTemporalReprojection##bDistanceFieldSkyOcclusion,TEXT("VolumetricFog"),TEXT("LightScatteringCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TVolumetricFogLightScatteringCS##bTemporalReprojection##bDistanceFieldSkyOcclusion,TEXT("/Engine/Private/VolumetricFog.usf"),TEXT("LightScatteringCS"),SF_Compute);
 
 IMPLEMENT_VOLUMETRICFOG_LIGHT_SCATTERING_CS_TYPE(true, true)
 IMPLEMENT_VOLUMETRICFOG_LIGHT_SCATTERING_CS_TYPE(false, true)
@@ -877,7 +877,7 @@ private:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FVolumetricFogFinalIntegrationCS,TEXT("VolumetricFog"),TEXT("FinalIntegrationCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FVolumetricFogFinalIntegrationCS,TEXT("/Engine/Private/VolumetricFog.usf"),TEXT("FinalIntegrationCS"),SF_Compute);
 
 bool ShouldRenderVolumetricFog(const FScene* Scene, const FSceneViewFamily& ViewFamily)
 {
@@ -971,9 +971,14 @@ void FViewInfo::SetupVolumetricFogUniformBufferParameters(FViewUniformShaderPara
 	}
 }
 
+bool FDeferredShadingSceneRenderer::ShouldRenderVolumetricFog() const
+{
+	return ::ShouldRenderVolumetricFog(Scene, ViewFamily);
+}
+
 void FDeferredShadingSceneRenderer::SetupVolumetricFog()
 {
-	if (ShouldRenderVolumetricFog(Scene, ViewFamily))
+	if (ShouldRenderVolumetricFog())
 	{
 		const FExponentialHeightFogSceneInfo& FogInfo = Scene->ExponentialFogs[0];
 
@@ -1022,7 +1027,7 @@ void FDeferredShadingSceneRenderer::SetupVolumetricFog()
 
 void FDeferredShadingSceneRenderer::ComputeVolumetricFog(FRHICommandListImmediate& RHICmdList)
 {
-	if (ShouldRenderVolumetricFog(Scene, ViewFamily))
+	if (ShouldRenderVolumetricFog())
 	{
 		const FExponentialHeightFogSceneInfo& FogInfo = Scene->ExponentialFogs[0];
 

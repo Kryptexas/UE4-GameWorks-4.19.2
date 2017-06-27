@@ -1363,10 +1363,10 @@ public:
 	ENGINE_API static bool IsDynamicParameter(const UMaterialExpression* Expression);
 
 	/** Returns an array of the guids of functions used in this material, with the call hierarchy flattened. */
-	void GetReferencedFunctionIds(TArray<FGuid>& OutIds) const;
+	void AppendReferencedFunctionIdsTo(TArray<FGuid>& OutIds) const;
 
 	/** Returns an array of the guids of parameter collections used in this material. */
-	void GetReferencedParameterCollectionIds(TArray<FGuid>& OutIds) const;
+	void AppendReferencedParameterCollectionIdsTo(TArray<FGuid>& OutIds) const;
 
 	/* Helper functions for text output of properties. */
 	static const TCHAR* GetMaterialShadingModelString(EMaterialShadingModel InMaterialShadingModel);

@@ -90,7 +90,7 @@ namespace OpenGLConsoleVariables
 		ECVF_ReadOnly
 		);
 	
-	int32 bRebindTextureBuffers = PLATFORM_MAC ? 1 : 0;
+	int32 bRebindTextureBuffers = 0;
 	static FAutoConsoleVariableRef CVarRebindTextureBuffers(
 		TEXT("OpenGL.RebindTextureBuffers"),
 		bRebindTextureBuffers,
@@ -106,11 +106,7 @@ namespace OpenGLConsoleVariables
 	
 	static TAutoConsoleVariable<int32> CVarUseSeparateShaderObjects(
 		TEXT("OpenGL.UseSeparateShaderObjects"),
-#if PLATFORM_MAC
-		1,
-#else
 		0,
-#endif
 		TEXT("If set to 1, use OpenGL's separate shader objects to eliminate expensive program linking"),
 		ECVF_ReadOnly|ECVF_RenderThreadSafe);
 };
@@ -478,34 +474,6 @@ void FOpenGLDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShad
 	check(0);
 }
 
-#if PLATFORM_MAC
-void FOpenGLDynamicRHI::InternalUpdateTextureBuffer( FOpenGLContextState& ContextState, FOpenGLShaderResourceView* SRV, GLint TextureIndex )
-{
-	if ( SRV && SRV->Target == GL_TEXTURE_BUFFER && IsValidRef(SRV->VertexBuffer) && OpenGLConsoleVariables::bRebindTextureBuffers )
-	{
-		FOpenGLVertexBuffer* VB = (FOpenGLVertexBuffer*)SRV->VertexBuffer.GetReference();
-		if (SRV->ModificationVersion != VB->ModificationCount)
-		{
-			const uint32 FormatBPP = GPixelFormats[SRV->Format].BlockBytes;
-			const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[SRV->Format];
-			
-			if( ContextState.ActiveTexture != TextureIndex )
-			{
-				glActiveTexture(GL_TEXTURE0 + TextureIndex);
-				ContextState.ActiveTexture = TextureIndex;
-			}
-			
-			FOpenGL::TexBuffer(GL_TEXTURE_BUFFER, GLFormat.InternalFormat[0], 0);
-			FOpenGL::TexBuffer(GL_TEXTURE_BUFFER, GLFormat.InternalFormat[0], VB->Resource);
-			
-			SRV->ModificationVersion = VB->ModificationCount;
-		}
-	}
-}
-#else
-#define InternalUpdateTextureBuffer(ContextState, SRV, TextureIndex)
-#endif
-
 void FOpenGLDynamicRHI::InternalSetShaderTexture(FOpenGLTextureBase* Texture, FOpenGLShaderResourceView* SRV, GLint TextureIndex, GLenum Target, GLuint Resource, int NumMips, int LimitMip)
 {
 	auto& PendingTextureState = PendingState.Textures[TextureIndex];
@@ -742,10 +710,7 @@ void FOpenGLDynamicRHI::SetupTexturesForDraw( FOpenGLContextState& ContextState,
 			}
 #endif
 			CachedSetupTextureStage( ContextState, TextureStageIndex, TextureStage.Target, TextureStage.Resource, TextureStage.LimitMip, TextureStage.NumMips );
-			if (PLATFORM_MAC && OpenGLConsoleVariables::bRebindTextureBuffers && TextureStage.SRV)
-			{
-				InternalUpdateTextureBuffer(ContextState, TextureStage.SRV, TextureStageIndex);
-			}
+			
 			if (bNeedsSetupSamplerStage && TextureStage.Target != GL_TEXTURE_BUFFER)
 			{
 				ApplyTextureStage( ContextState, TextureStageIndex, TextureStage, PendingState.SamplerStates[TextureStageIndex] );
@@ -2857,30 +2822,6 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 #if DEBUG_GL_SHADERS
 	VerifyProgramPipeline();
 #endif
-	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia" Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
-	// This workaround has performance and correctness implications - it is only needed on Mac + OpenGL + Nvidia and will
-	// break AMD drivers entirely as it is technically an abuse of the OpenGL specification. Consequently it is deliberately
-	// compiled out for other platforms. Apple have closed the bug claiming the NV behaviour is permitted by the GL spec.
-#if PLATFORM_MAC
-	bool bAttributeLessDraw = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask == 0 && ContextState.ElementArrayBufferBound && IsRHIDeviceNVIDIA());
-	if(bAttributeLessDraw)
-	{
-		CachedBindArrayBuffer(ContextState, IndexBuffer->Resource);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 1, IndexType, false, 0, INDEX_TO_VOID(StartIndex));
-		ContextState.VertexAttrs[0].Pointer = INDEX_TO_VOID(StartIndex);
-		ContextState.VertexAttrs[0].Stride = 0;
-		ContextState.VertexAttrs[0].Buffer = IndexBuffer->Resource;
-		ContextState.VertexAttrs[0].Size = 1;
-		ContextState.VertexAttrs[0].Divisor = 0;
-		ContextState.VertexAttrs[0].Type = IndexType;
-		ContextState.VertexAttrs[0].StreamOffset = 0;
-		ContextState.VertexAttrs[0].StreamIndex = 0;
-		ContextState.VertexAttrs[0].bNormalized = false;
-		ContextState.VertexAttrs[0].bEnabled = true;
-	}
-#endif
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumElements * NumInstances);
 	if (NumInstances > 1)
@@ -2906,16 +2847,6 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		}
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
-	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia"
-#if PLATFORM_MAC
-	if(bAttributeLessDraw)
-	{
-		glDisableVertexAttribArray(0);
-		ContextState.VertexAttrs[0].bEnabled = false;
-		ContextState.VertexStreams[0].VertexBuffer = nullptr;
-	}
-#endif
 
 	FShaderCache::LogDraw(FShaderCache::GetDefaultCacheState(), IndexBuffer->GetStride());
 }

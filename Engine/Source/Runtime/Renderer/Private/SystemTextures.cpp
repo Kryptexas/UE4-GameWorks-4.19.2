@@ -105,57 +105,46 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 		}
 
 		// Create the SobolSampling texture
+		if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 		{
-			const size_t SobolBits = 8;
-			static const uint16 SobolXCell[SobolBits][4] = {
-				{ 0x5880, 0x7780, 0x9400, 0xc400 },
-				{ 0x5400, 0xa400, 0x4a00, 0xc200 },
-				{ 0x3a80, 0x2980, 0xfb00, 0x5700 },
-				{ 0xe800, 0x8800, 0x0400, 0x5400 },
-				{ 0xea00, 0x3600, 0xa200, 0x8a00 },
-				{ 0x4c00, 0x1c00, 0x2600, 0x5e00 },
-				{ 0xa480, 0x9b80, 0xe600, 0x9e00 },
-				{ 0x6880, 0x0780, 0xae00, 0x7600 }
-			};
-			static const uint16 SobolYCell[SobolBits][4] = {
-				{ 0x8e80, 0xed80, 0xf600, 0x8e00 },
-				{ 0x6e00, 0x8200, 0x8e00, 0x5600 },
-				{ 0xf600, 0xba00, 0x1100, 0x3500 },
-				{ 0x6a80, 0xb980, 0x2200, 0x0a00 },
-				{ 0x2600, 0xaa00, 0x4400, 0x1400 },
-				{ 0xe880, 0x8780, 0x8800, 0x2800 },
-				{ 0xa480, 0x9b80, 0xe600, 0x9e00 },
-				{ 0x6880, 0x0780, 0xae00, 0x7600 }
-			};
-
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1 << SobolBits, 1 << SobolBits), PF_R16G16B16A16_UINT, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_NoFastClear, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(32, 16), PF_R16_UINT, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SobolSampling, TEXT("SobolSampling"));
 			// Write the contents of the texture.
 			uint32 DestStride;
 			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 
-			for (int y = 0; y < Desc.Extent.Y; ++y)
+			uint16 Result, *Dest;
+			for (int y = 0; y < 16; ++y)
 			{
-				for (int x = 0; x < Desc.Extent.X; ++x)
+				Dest = (uint16*)(DestBuffer + y * DestStride);
+
+				// 16x16 block starting at 0,0 = Sobol X,Y from bottom 4 bits of cell X,Y
+				for (int x = 0; x < 16; ++x, ++Dest)
 				{
-					uint16 *Dest = (uint16*)(DestBuffer + x * 4 * sizeof(uint16) + y * DestStride);
-					Dest[0] = Dest[1] = Dest[2] = Dest[3] = 0;
+					Result  = (x & 0x001) ? 0xf68e : 0;
+					Result ^= (x & 0x002) ? 0x8e56 : 0;
+					Result ^= (x & 0x004) ? 0x1135 : 0;
+					Result ^= (x & 0x008) ? 0x220a : 0;
+					Result ^= (y & 0x001) ? 0x94c4 : 0;
+					Result ^= (y & 0x002) ? 0x4ac2 : 0;
+					Result ^= (y & 0x004) ? 0xfb57 : 0;
+					Result ^= (y & 0x008) ? 0x0454 : 0;
+					*Dest = Result;
+				}
 
-					for (int bit = 0; bit < SobolBits; ++bit)
-					{
-						Dest[0] ^= (x & (1 << bit)) ? SobolXCell[bit][0] : 0;
-						Dest[0] ^= (y & (1 << bit)) ? SobolYCell[bit][0] : 0;
-
-						Dest[1] ^= (x & (1 << bit)) ? SobolXCell[bit][1] : 0;
-						Dest[1] ^= (y & (1 << bit)) ? SobolYCell[bit][1] : 0;
-
-						Dest[2] ^= (x & (1 << bit)) ? SobolXCell[bit][2] : 0;
-						Dest[2] ^= (y & (1 << bit)) ? SobolYCell[bit][2] : 0;
-
-						Dest[3] ^= (x & (1 << bit)) ? SobolXCell[bit][3] : 0;
-						Dest[3] ^= (y & (1 << bit)) ? SobolYCell[bit][3] : 0;
-					}
+				// 16x16 block starting at 16,0 = Sobol X,Y from 2nd 4 bits of cell X,Y
+				for (int x = 0; x < 16; ++x, ++Dest)
+				{
+					Result  = (x & 0x010) ? 0x4414 : 0;
+					Result ^= (x & 0x020) ? 0x8828 : 0;
+					Result ^= (x & 0x040) ? 0xe69e : 0;
+					Result ^= (x & 0x080) ? 0xae76 : 0;
+					Result ^= (y & 0x010) ? 0xa28a : 0;
+					Result ^= (y & 0x020) ? 0x265e : 0;
+					Result ^= (y & 0x040) ? 0xe69e : 0;
+					Result ^= (y & 0x080) ? 0xae76 : 0;
+					*Dest = Result;
 				}
 			}
 			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, false);
@@ -186,7 +175,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 	}
 
 	// Create the PerlinNoise3D texture (similar to http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise/)
-	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM5 && InFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		uint32 Extent = 16;
 
@@ -298,7 +287,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 	}
 
 	// Create the SSAO randomization texture
-	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM4 && InFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		float g_AngleOff1 = 127;
 		float g_AngleOff2 = 198;

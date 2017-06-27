@@ -190,4 +190,4 @@ FVertexFactoryShaderParameters* FLocalVertexFactory::ConstructShaderParameters(E
 	return NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory,"LocalVertexFactory",true,true,true,true,true);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FLocalVertexFactory,"/Engine/Private/LocalVertexFactory.ush",true,true,true,true,true);

@@ -18,11 +18,7 @@ namespace RHIOpenGLConsoleVariables
 {
 	int32 SyncInterval = 1;
 	static FAutoConsoleVariableRef CVarSyncInterval(
-#if PLATFORM_MAC
-		TEXT("RHI.SyncInterval"),
-#else
 		TEXT("RHI.SyncIntervalOgl"),
-#endif
 		SyncInterval,
 		TEXT("When synchronizing with OpenGL, specifies the interval at which to refresh.")
 		);
@@ -64,9 +60,7 @@ FViewportRHIRef FOpenGLDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 S
 {
 	check(IsInGameThread());
 
-//#if !PLATFORM_MAC
 //	SCOPED_SUSPEND_RENDERING_THREAD(true);
-//#endif
 
 	// Use a default pixel format if none was specified	
 	if (PreferredPixelFormat == EPixelFormat::PF_Unknown)
@@ -82,9 +76,7 @@ void FOpenGLDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint3
 	FOpenGLViewport* Viewport = ResourceCast(ViewportRHI);
 	check( IsInGameThread() );
 
-//#if !PLATFORM_MAC
 //	SCOPED_SUSPEND_RENDERING_THREAD(true);
-//#endif
 
 	Viewport->Resize(SizeX,SizeY,bIsFullscreen);
 }

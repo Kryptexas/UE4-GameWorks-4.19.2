@@ -303,7 +303,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSelectionOutline");
+		return TEXT("/Engine/Private/PostProcessSelectionOutline.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

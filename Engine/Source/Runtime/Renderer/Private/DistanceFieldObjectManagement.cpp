@@ -191,7 +191,7 @@ private:
 	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FUploadObjectsToBufferCS,TEXT("DistanceFieldObjectCulling"),TEXT("UploadObjectsToBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FUploadObjectsToBufferCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("UploadObjectsToBufferCS"),SF_Compute);
 
 class FCopyObjectBufferCS : public FGlobalShader
 {
@@ -264,7 +264,7 @@ private:
 	FDistanceFieldObjectBufferParameters ObjectBufferParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyObjectBufferCS,TEXT("DistanceFieldObjectCulling"),TEXT("CopyObjectBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCopyObjectBufferCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("CopyObjectBufferCS"),SF_Compute);
 
 class FCopySurfelBufferCS : public FGlobalShader
 {
@@ -340,7 +340,7 @@ private:
 	FShaderParameter NumSurfels;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopySurfelBufferCS,TEXT("SurfelTree"),TEXT("CopySurfelBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCopySurfelBufferCS,TEXT("/Engine/Private/SurfelTree.usf"),TEXT("CopySurfelBufferCS"),SF_Compute);
 
 
 class FCopyVPLFluxBufferCS : public FGlobalShader
@@ -404,7 +404,7 @@ private:
 	FShaderParameter NumSurfels;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyVPLFluxBufferCS,TEXT("SurfelTree"),TEXT("CopyVPLFluxBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCopyVPLFluxBufferCS,TEXT("/Engine/Private/SurfelTree.usf"),TEXT("CopyVPLFluxBufferCS"),SF_Compute);
 
 template<bool bRemoveFromSameBuffer>
 class TRemoveObjectsFromBufferCS : public FGlobalShader
@@ -480,8 +480,8 @@ private:
 	FShaderResourceParameter ObjectData2;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<true>,TEXT("DistanceFieldObjectCulling"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<false>,TEXT("DistanceFieldObjectCulling"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<true>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TRemoveObjectsFromBufferCS<false>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("RemoveObjectsFromBufferCS"),SF_Compute);
 
 void FSurfelBufferAllocator::RemovePrimitive(const FPrimitiveSceneInfo* Primitive)
 {

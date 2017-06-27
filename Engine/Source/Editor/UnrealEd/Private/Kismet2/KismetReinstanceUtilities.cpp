@@ -1190,7 +1190,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	else if (CachedActorData.IsValid())
 	{
 		CachedActorData->ComponentInstanceData.FindAndReplaceInstances(OldToNewInstanceMap);
-		const bool bErrorFree = NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
+		const bool bErrorFree = NewActor->ExecuteConstruction(TargetWorldTransform, nullptr, &CachedActorData->ComponentInstanceData);
 		if (!bErrorFree)
 		{
 			// Save off the cached actor data for once the blueprint has been fixed so we can reapply it
@@ -1200,7 +1200,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	else
 	{
 		FComponentInstanceDataCache DummyComponentData;
-		NewActor->ExecuteConstruction(TargetWorldTransform, &DummyComponentData);
+		NewActor->ExecuteConstruction(TargetWorldTransform, nullptr, &DummyComponentData);
 	}	
 
 	// make sure that the actor is properly hidden if it's in a hidden sublevel:

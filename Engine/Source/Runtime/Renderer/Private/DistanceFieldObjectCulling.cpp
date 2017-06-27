@@ -187,7 +187,7 @@ private:
 	FShaderParameter ObjectBoundingGeometryIndexCount;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullObjectsForViewCS,TEXT("DistanceFieldObjectCulling"),TEXT("CullObjectsForViewCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullObjectsForViewCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("CullObjectsForViewCS"),SF_Compute);
 
 void CullObjectsToView(FRHICommandListImmediate& RHICmdList, FScene* Scene, const FViewInfo& View, const FDistanceFieldAOParameters& Parameters, FDistanceFieldObjectBufferResource& CulledObjectBuffers)
 {
@@ -324,7 +324,7 @@ private:
 	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FBuildTileConesCS,TEXT("DistanceFieldObjectCulling"),TEXT("BuildTileConesMain"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FBuildTileConesCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("BuildTileConesMain"),SF_Compute);
 
 /**  */
 class FObjectCullVS : public FGlobalShader
@@ -384,7 +384,7 @@ private:
 	FShaderParameter ConservativeRadiusScale;
 };
 
-IMPLEMENT_SHADER_TYPE(,FObjectCullVS,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FObjectCullVS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullVS"),SF_Vertex);
 
 template <bool bCountingPass>
 class TObjectCullPS : public FGlobalShader
@@ -466,8 +466,8 @@ private:
 	FShaderParameter NumGroups;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<true>,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<false>,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<true>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<false>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullPS"),SF_Pixel);
 
 const uint32 ComputeStartOffsetGroupSize = 64;
 
@@ -544,7 +544,7 @@ private:
 	FTileIntersectionParameters TileIntersectionParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeCulledTilesStartOffsetCS,TEXT("DistanceFieldObjectCulling"),TEXT("ComputeCulledTilesStartOffsetCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeCulledTilesStartOffsetCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ComputeCulledTilesStartOffsetCS"),SF_Compute);
 
 template<bool bCountingPass>
 void ScatterTilesToObjects(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FIntPoint TileListGroupSize, const FDistanceFieldAOParameters& Parameters)

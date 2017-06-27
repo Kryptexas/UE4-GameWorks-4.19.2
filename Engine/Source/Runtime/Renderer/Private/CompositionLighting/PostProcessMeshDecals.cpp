@@ -115,9 +115,9 @@ protected:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalVS,TEXT("MeshDecals"),TEXT("MainVS"),SF_Vertex); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalHS,TEXT("MeshDecals"),TEXT("MainHull"),SF_Hull); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalDS,TEXT("MeshDecals"),TEXT("MainDomain"),SF_Domain);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalVS,TEXT("/Engine/Private/MeshDecals.usf"),TEXT("MainVS"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalHS,TEXT("/Engine/Private/MeshDecals.usf"),TEXT("MainHull"),SF_Hull); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalDS,TEXT("/Engine/Private/MeshDecals.usf"),TEXT("MainDomain"),SF_Domain);
 
 
 /**
@@ -163,7 +163,7 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalsPS,TEXT("MeshDecals"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FMeshDecalsPS,TEXT("/Engine/Private/MeshDecals.usf"),TEXT("MainPS"),SF_Pixel);
 
 /*-----------------------------------------------------------------------------
 FMeshDecalsDrawingPolicy

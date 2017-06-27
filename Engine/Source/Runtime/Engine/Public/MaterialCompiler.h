@@ -208,6 +208,7 @@ public:
 
 	virtual int32 Power(int32 Base,int32 Exponent) = 0;
 	virtual int32 Logarithm2(int32 X) = 0;
+	virtual int32 Logarithm10(int32 X) = 0;
 	virtual int32 SquareRoot(int32 X) = 0;
 	virtual int32 Length(int32 X) = 0;
 
@@ -401,6 +402,7 @@ public:
 
 	virtual int32 Power(int32 Base,int32 Exponent) override { return Compiler->Power(Base,Exponent); }
 	virtual int32 Logarithm2(int32 X) override { return Compiler->Logarithm2(X); }
+	virtual int32 Logarithm10(int32 X) override { return Compiler->Logarithm10(X); }
 	virtual int32 SquareRoot(int32 X) override { return Compiler->SquareRoot(X); }
 	virtual int32 Length(int32 X) override { return Compiler->Length(X); }
 

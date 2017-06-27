@@ -106,7 +106,7 @@ private:
 	FRWShaderParameter TriangleAreas;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeTriangleAreasCS,TEXT("SurfelTree"),TEXT("ComputeTriangleAreasCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeTriangleAreasCS,TEXT("/Engine/Private/SurfelTree.usf"),TEXT("ComputeTriangleAreasCS"),SF_Compute);
 
 
 class FComputeTriangleCDFsCS : public FGlobalShader
@@ -176,7 +176,7 @@ private:
 	FRWShaderParameter TriangleCDFs;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeTriangleCDFsCS,TEXT("SurfelTree"),TEXT("ComputeTriangleCDFsCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeTriangleCDFsCS,TEXT("/Engine/Private/SurfelTree.usf"),TEXT("ComputeTriangleCDFsCS"),SF_Compute);
 
 
 class FSampleTrianglesCS : public FGlobalShader
@@ -275,7 +275,7 @@ private:
 	FShaderResourceParameter TriangleCDFs;
 };
 
-IMPLEMENT_SHADER_TYPE(,FSampleTrianglesCS,TEXT("SurfelTree"),TEXT("SampleTrianglesCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FSampleTrianglesCS,TEXT("/Engine/Private/SurfelTree.usf"),TEXT("SampleTrianglesCS"),SF_Compute);
 
 // In float4's, must match usf
 int32 FSurfelBuffers::SurfelDataStride = 4;

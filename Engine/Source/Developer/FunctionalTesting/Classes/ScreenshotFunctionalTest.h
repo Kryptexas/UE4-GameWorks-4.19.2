@@ -41,6 +41,6 @@ protected:
 	UPROPERTY()
 	class UCameraComponent* ScreenshotCamera;
 
-	UPROPERTY(EditAnywhere, Category="Screenshot", SimpleDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Screenshot", SimpleDisplay)
 	FAutomationScreenshotOptions ScreenshotOptions;
 };

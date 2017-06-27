@@ -441,7 +441,8 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 	if (Input.DumpDebugInfoPath.Len() > 0 && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath))
 	{
-		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+		FString Filename = Input.GetSourceFilename();
+		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Filename));
 		if (FileWriter)
 		{
 			FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
@@ -449,12 +450,12 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			delete FileWriter;
 		}
 
-		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags, Output);
+		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine(Filename, *EntryPointName, ShaderProfile, CompileFlags, Output);
 		FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
 
 		if (GD3DDumpAMDCodeXLFile)
 		{
-			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
+			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine(Filename, *EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
 		}
 
@@ -483,7 +484,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			bException,
 			AnsiSourceFile.Get(),
 			AnsiSourceFile.Length(),
-			TCHAR_TO_ANSI(*Input.SourceFilename),
+			TCHAR_TO_ANSI(*Input.VirtualSourceFilePath),
 			/*pDefines=*/ NULL,
 			/*pInclude=*/ NULL,
 			TCHAR_TO_ANSI(*EntryPointName),
@@ -972,7 +973,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 	if (Input.bSkipPreprocessedCache)
 	{
-		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.SourceFilename);
+		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.VirtualSourceFilePath);
 	}
 	else
 	{
@@ -1096,16 +1097,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			&& LastParenIndex != INDEX_NONE
 			&& LastParenIndex > FirstParenIndex)
 		{
-			FString ErrorFileAndPath = CurrentError.Left(FirstParenIndex);
-			if (FPaths::GetExtension(ErrorFileAndPath).ToUpper() == TEXT("USF"))
-			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath);
-			}
-			else
-			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath) + TEXT(".usf");
-			}
-
+			NewError.ErrorVirtualFilePath = CurrentError.Left(FirstParenIndex);
 			NewError.ErrorLineString = CurrentError.Mid(FirstParenIndex + 1, LastParenIndex - FirstParenIndex - FCString::Strlen(TEXT("(")));
 			NewError.StrippedErrorMessage = CurrentError.Right(CurrentError.Len() - LastParenIndex - FCString::Strlen(TEXT("):")));
 		}

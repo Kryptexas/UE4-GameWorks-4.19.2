@@ -161,9 +161,9 @@ void FLinuxPlatformProcess::CleanFileCache()
 	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
 	{
 		// get shader path, and convert it to the userdirectory
-		for (FString Dir : FPlatformProcess::AllShaderDirs())
+		for (const auto& ShaderSourceDirectoryEntry : FPlatformProcess::AllShaderSourceDirectoryMappings())
 		{
-			FString ShaderDir = FString(FPlatformProcess::BaseDir()) / Dir;
+			FString ShaderDir = FString(FPlatformProcess::BaseDir()) / ShaderSourceDirectoryEntry.Value;
 			FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
 			FPaths::CollapseRelativeDirectories(ShaderDir);
 

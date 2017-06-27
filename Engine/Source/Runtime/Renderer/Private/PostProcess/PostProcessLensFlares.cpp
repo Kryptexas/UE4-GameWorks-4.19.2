@@ -68,7 +68,7 @@ public:
 
 #define IMPLEMENT_LENSE_FLARE_BASE(_bClearRegion) \
 typedef TPostProcessLensFlareBasePS< _bClearRegion > FPostProcessLensFlareBasePS##_bClearRegion ;\
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("/Engine/Private/PostProcessLensFlares.usf"),TEXT("CopyPS"),SF_Pixel);
 
 IMPLEMENT_LENSE_FLARE_BASE(true)
 IMPLEMENT_LENSE_FLARE_BASE(false)
@@ -123,7 +123,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("PostProcessLensFlares"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("/Engine/Private/PostProcessLensFlares.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 

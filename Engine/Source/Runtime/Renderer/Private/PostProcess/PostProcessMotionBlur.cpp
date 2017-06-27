@@ -130,7 +130,7 @@ private:
 	FShaderParameter			MotionBlurParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityFlattenMain"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("/Engine/Private/PostProcessVelocityFlatten.usf"),TEXT("VelocityFlattenMain"),SF_Compute);
 
 
 FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
@@ -264,7 +264,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -299,8 +299,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("/Engine/Private/PostProcessMotionBlur.usf"),TEXT("VelocityScatterVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("/Engine/Private/PostProcessMotionBlur.usf"),TEXT("VelocityScatterPS"),SF_Pixel);
 
 
 void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& Context)
@@ -447,7 +447,7 @@ private:
 	FShaderParameter			MotionBlurParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityGatherCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityGatherCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityGatherCS,TEXT("/Engine/Private/PostProcessVelocityFlatten.usf"),TEXT("VelocityGatherCS"),SF_Compute);
 
 void FRCPassPostProcessVelocityGather::Process(FRenderingCompositePassContext& Context)
 {
@@ -585,7 +585,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -715,7 +715,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -1018,7 +1018,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

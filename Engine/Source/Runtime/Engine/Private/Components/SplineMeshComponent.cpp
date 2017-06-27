@@ -106,7 +106,7 @@ void FSplineMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdLi
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshVertexFactory
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FSplineMeshVertexFactory, "LocalVertexFactory", true, true, true, true, true);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FSplineMeshVertexFactory, "/Engine/Private/LocalVertexFactory.ush", true, true, true, true, true);
 
 
 FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)

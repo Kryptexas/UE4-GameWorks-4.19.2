@@ -35,6 +35,7 @@
 FThumbnailPreviewScene::FThumbnailPreviewScene()
 	: FPreviewScene( ConstructionValues()
 						.SetLightRotation( FRotator(304.736, 39.84, 0) )
+						.SetSkyBrightness(1.69f)
 						.SetCreatePhysicsScene(false)
 						.SetTransactional(false))
 {
@@ -56,6 +57,8 @@ FThumbnailPreviewScene::FThumbnailPreviewScene()
 	UDirectionalLightComponent* DirectionalLight3 = NewObject<UDirectionalLightComponent>();
 	DirectionalLight3->Intensity = 1.0f;
 	AddComponent(DirectionalLight3, FTransform( FRotator(299.235,144.993, 0) ));
+
+	SetSkyCubemap(GUnrealEd->GetThumbnailManager()->AmbientCubemap);
 
 	// Add an infinite plane
 	const float FloorPlaneScale = 10000.f;
@@ -128,12 +131,7 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 
 		NewView->StartFinalPostprocessSettings( ViewInitOptions.ViewOrigin );
 		NewView->EndFinalPostprocessSettings(ViewInitOptions);
-
-		FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(NewView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
-		CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
-		const float AmbientCubemapIntensity = 1.69;
-		CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White * AmbientCubemapIntensity;
-
+		
 		// Tell the texture streaming system about this thumbnail view, so the textures will stream in as needed
 		// NOTE: Sizes may not actually be in screen space depending on how the thumbnail ends up stretched by the UI.  Not a big deal though.
 		// NOTE: Textures still take a little time to stream if the view has not been re-rendered recently, so they may briefly appear blurry while mips are prepared

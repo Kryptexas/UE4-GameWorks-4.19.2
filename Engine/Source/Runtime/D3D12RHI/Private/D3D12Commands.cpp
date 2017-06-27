@@ -214,11 +214,6 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
 {
 #if !USE_D3D12RHI_RESOURCE_STATE_TRACKING
-	if (TransitionType == EResourceTransitionAccess::EMetaData)
-	{
-		return;
-	}
-
 	check(TransitionType == EResourceTransitionAccess::EReadable || TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier);
 	// TODO: Remove this skip.
 	// Skip for now because we don't have enough info about what mip to transition yet.

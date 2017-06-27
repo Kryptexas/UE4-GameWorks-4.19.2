@@ -107,8 +107,8 @@ private:
 	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TVisualizeMeshDistanceFieldCS<true>,TEXT("DistanceFieldVisualization"),TEXT("VisualizeMeshDistanceFieldCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TVisualizeMeshDistanceFieldCS<false>,TEXT("DistanceFieldVisualization"),TEXT("VisualizeMeshDistanceFieldCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TVisualizeMeshDistanceFieldCS<true>,TEXT("/Engine/Private/DistanceFieldVisualization.usf"),TEXT("VisualizeMeshDistanceFieldCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TVisualizeMeshDistanceFieldCS<false>,TEXT("/Engine/Private/DistanceFieldVisualization.usf"),TEXT("VisualizeMeshDistanceFieldCS"),SF_Compute);
 
 class FVisualizeDistanceFieldUpsamplePS : public FGlobalShader
 {
@@ -163,7 +163,7 @@ private:
 	FShaderResourceParameter VisualizeDistanceFieldSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FVisualizeDistanceFieldUpsamplePS,TEXT("DistanceFieldVisualization"),TEXT("VisualizeDistanceFieldUpsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FVisualizeDistanceFieldUpsamplePS,TEXT("/Engine/Private/DistanceFieldVisualization.usf"),TEXT("VisualizeDistanceFieldUpsamplePS"),SF_Pixel);
 
 
 void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters)

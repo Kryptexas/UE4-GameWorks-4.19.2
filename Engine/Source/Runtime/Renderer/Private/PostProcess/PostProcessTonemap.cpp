@@ -1231,7 +1231,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessTonemap");
+		return TEXT("/Engine/Private/PostProcessTonemap.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -1253,8 +1253,8 @@ public:
 
 
 // Vertex Shader permutations based on bool AutoExposure.
-IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("/Engine/Private/PostProcessTonemap.usf"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("/Engine/Private/PostProcessTonemap.usf"), TEXT("MainVS"), SF_Vertex);
 
 /** Encapsulates the post processing tonemap compute shader. */
 template<uint32 ConfigIndex, bool bDoEyeAdaptation>
@@ -1426,7 +1426,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessTonemap");
+		return TEXT("/Engine/Private/PostProcessTonemap.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -1954,7 +1954,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessTonemap");
+		return TEXT("/Engine/Private/PostProcessTonemap.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -2035,7 +2035,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS_ES2,TEXT("PostProcessTonemap"),TEXT("MainVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS_ES2,TEXT("/Engine/Private/PostProcessTonemap.usf"),TEXT("MainVS_ES2"),SF_Vertex);
 
 namespace PostProcessTonemap_ES2Util
 {

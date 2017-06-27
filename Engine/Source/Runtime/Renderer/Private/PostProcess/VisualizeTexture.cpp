@@ -141,7 +141,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("VisualizeTexture");
+		return TEXT("/Engine/Private/VisualizeTexture.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -224,7 +224,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("/Engine/Private/VisualizeTexture.usf"),TEXT("PresentPS"),SF_Pixel);
 
 
 template<EVisualisePSType TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FVisualizeTextureData& Data)

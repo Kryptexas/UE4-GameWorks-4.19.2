@@ -289,13 +289,12 @@ void FLevelTextureManager::IncrementalUpdate(
 			FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Level);
 			if (bUseDynamicStreaming)
 			{
-				TInlineComponentArray<UPrimitiveComponent*> Primitives;
-		
 				// Handle dynamic component for static actors
 				for (const AActor* Actor : StaticActorsWithNonStaticPrimitives)
 				{
 					if (Actor && Actor->IsRootComponentStatic()) // If static, it gets processed in the next loop
 					{
+						TInlineComponentArray<UPrimitiveComponent*> Primitives;
 						Actor->GetComponents<UPrimitiveComponent>(Primitives);
 						for (const UPrimitiveComponent* Primitive : Primitives)
 						{
@@ -314,6 +313,7 @@ void FLevelTextureManager::IncrementalUpdate(
 					// In the preprocessing step, we only handle static actors, to allow dynamic actors to update before insertion.
 					if (Actor && !Actor->IsRootComponentStatic())
 					{
+						TInlineComponentArray<UPrimitiveComponent*> Primitives;
 						Actor->GetComponents<UPrimitiveComponent>(Primitives);
 						for (UPrimitiveComponent* Primitive : Primitives)
 						{

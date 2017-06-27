@@ -55,7 +55,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 	{
 		if (Input.bSkipPreprocessedCache)
 		{
-			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.SourceFilename);
+			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath);
 		}
 		else
 		{
@@ -76,7 +76,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 // 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 // 		if (bDumpDebugInfo)
 // 		{
-// 			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+// 			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.GetSourceFilename()));
 // 			if (FileWriter)
 // 			{
 // 				auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShader);
@@ -100,7 +100,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 // 		if (bDumpDebugInfo)
 // 		{
 // 			const FString VVMFile = (Input.DumpDebugInfoPath / TEXT("Output.vvm"));
-// 			const FString USFFile = (Input.DumpDebugInfoPath / Input.SourceFilename) + TEXT(".usf");
+// 			const FString USFFile = (Input.DumpDebugInfoPath / Input.GetSourceFilename());
 // 			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, VVMFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 // 			if (!CCBatchFileContents.IsEmpty())
 // 			{
@@ -118,7 +118,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 
 		int32 Result = 0;
 		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
-		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.SourceFilename), &VVMLanguageSpec))
+		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), &VVMLanguageSpec))
 		{
 			Result = CrossCompilerContext.Run(
 				TCHAR_TO_ANSI(*PreprocessedShader),
@@ -141,14 +141,14 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 // 
 // 				if (SourceLen > 0)
 // 				{
-// 					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(ShaderSource) + 20;
+// 					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(ShaderSource) + 20;
 // 					char* Dest = (char*)malloc(Len);
-// 					FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)ShaderSource);
+// 					FCStringAnsi::Snprintf(Dest, Len, "// ! %s:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)ShaderSource);
 // 					free(ShaderSource);
 // 					ShaderSource = Dest;
 // 					SourceLen = FCStringAnsi::Strlen(ShaderSource);
 // 					
-// 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".vvm")));
+// 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath + TEXT(".vvm")));
 // 					if (FileWriter)
 // 					{
 // 						FileWriter->Serialize(ShaderSource,SourceLen+1);

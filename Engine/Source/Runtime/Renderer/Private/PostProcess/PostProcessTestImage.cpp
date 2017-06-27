@@ -84,7 +84,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessTestImagePS,TEXT("PostProcessTestImage"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessTestImagePS,TEXT("/Engine/Private/PostProcessTestImage.usf"),TEXT("MainPS"),SF_Pixel);
 
 FRCPassPostProcessTestImage::FRCPassPostProcessTestImage()
 {

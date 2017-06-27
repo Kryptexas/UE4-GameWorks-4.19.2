@@ -71,6 +71,15 @@ class ENGINE_API USceneCaptureComponent2D : public USceneCaptureComponent
 	/** Normal for the plane. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
 	FVector ClipPlaneNormal;
+	
+	/** 
+	 * True if we did a camera cut this frame. Automatically reset to false at every capture.
+	 * This flag affects various things in the renderer (such as whether to use the occlusion queries from last frame, and motion blur).
+	 * Similar to UPlayerCameraManager::bGameCameraCutThisFrame.
+	 */
+	UPROPERTY(Transient, BlueprintReadWrite, Category = SceneCapture)
+	uint32 bCameraCutThisFrame : 1;
+
 
 	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;

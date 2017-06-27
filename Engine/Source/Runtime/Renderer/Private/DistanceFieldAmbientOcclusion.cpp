@@ -302,7 +302,7 @@ private:
 	FAOParameters AOParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalPS,TEXT("DistanceFieldScreenGridLighting"),TEXT("ComputeDistanceFieldNormalPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalPS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ComputeDistanceFieldNormalPS"),SF_Pixel);
 
 
 class FComputeDistanceFieldNormalCS : public FGlobalShader
@@ -369,7 +369,7 @@ private:
 	FAOParameters AOParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalCS,TEXT("DistanceFieldScreenGridLighting"),TEXT("ComputeDistanceFieldNormalCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalCS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ComputeDistanceFieldNormalCS"),SF_Compute);
 
 void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArray<FViewInfo>& Views, FSceneRenderTargetItem& DistanceFieldNormal, const FDistanceFieldAOParameters& Parameters)
 {
@@ -867,9 +867,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
-				// Bent normals are signed so we will have to pack / unpack
-				Desc.Format = PF_FloatR11G11B10;
-				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+				// Make sure we get a signed format
+				Desc.Format = PF_FloatRGBA;
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
 
 				if (bUseDistanceFieldGI)
@@ -1020,7 +1019,7 @@ private:
 
 #define IMPLEMENT_SKYLIGHT_PS_TYPE(bApplyShadowing, bSupportIrradiance) \
 	typedef TDynamicSkyLightDiffusePS<bApplyShadowing, bSupportIrradiance> TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance; \
-	IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance,TEXT("/Engine/Private/SkyLighting.usf"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 
 IMPLEMENT_SKYLIGHT_PS_TYPE(true, true)
 IMPLEMENT_SKYLIGHT_PS_TYPE(false, true)

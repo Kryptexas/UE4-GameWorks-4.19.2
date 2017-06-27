@@ -139,7 +139,7 @@ public:
 			static FName NAME_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
 			static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
 			static FName NAME_OPENGL_150_ES3_1(TEXT("GLSL_150_ES31"));
-			static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+			static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
 			OutFormats.AddUnique(NAME_PCD3D_SM4);
@@ -148,7 +148,7 @@ public:
 			OutFormats.AddUnique(NAME_VULKAN_ES31);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES2);
 			OutFormats.AddUnique(NAME_OPENGL_150_ES3_1);
-			OutFormats.AddUnique(NAME_VULKAN_SM4);
+			OutFormats.AddUnique(NAME_VULKAN_SM5);
 		}
 	}
 

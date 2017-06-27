@@ -9,6 +9,7 @@
 #include "ProjectDescriptor.h"
 #include "Modules/ModuleManager.h"
 #include "GenericPlatform/GenericPlatformProcess.h"
+#include "HAL/PlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
@@ -31,9 +32,12 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
-		// Projects can have their own shaders
-		// Add potential project shader directory
-		FGenericPlatformProcess::AddShaderDir(FPaths::Combine(FPaths::GetPath(InProjectFile), TEXT("Shaders")));
+		// Add existing project's shader directory
+		FString RealShaderSourceDir = FPaths::Combine(FPaths::GetPath(InProjectFile), TEXT("Shaders"));
+		if (FPaths::DirectoryExists(RealShaderSourceDir))
+		{
+			FGenericPlatformProcess::AddShaderSourceDirectoryMapping(TEXT("/Project"), RealShaderSourceDir);
+		}
 
 		// Create the project
 		CurrentProject = Descriptor;

@@ -1171,91 +1171,6 @@ struct FRHICommandClearColorTextures : public FRHICommand<FRHICommandClearColorT
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-struct FComputedBSS
-{
-	FBoundShaderStateRHIRef BSS;
-	int32 UseCount;
-	FComputedBSS()
-		: UseCount(0)
-	{
-	}
-};
-
-struct FLocalBoundShaderStateWorkArea
-{
-	FBoundShaderStateInput Args;
-	FComputedBSS* ComputedBSS;
-#if DO_CHECK // the below variables are used in check(), which can be enabled in Shipping builds (see Build.h)
-	FRHICommandListBase* CheckCmdList;
-	int32 UID;
-#endif
-
-	FORCEINLINE_DEBUGGABLE FLocalBoundShaderStateWorkArea(
-		FRHICommandListBase* InCheckCmdList,
-		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
-		FVertexShaderRHIParamRef VertexShaderRHI,
-		FHullShaderRHIParamRef HullShaderRHI,
-		FDomainShaderRHIParamRef DomainShaderRHI,
-		FPixelShaderRHIParamRef PixelShaderRHI,
-		FGeometryShaderRHIParamRef GeometryShaderRHI
-		)
-		: Args(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI)
-#if DO_CHECK
-		, CheckCmdList(InCheckCmdList)
-		, UID(InCheckCmdList->GetUID())
-#endif
-	{
-		ComputedBSS = new (InCheckCmdList->Alloc<FComputedBSS>()) FComputedBSS;
-	}
-};
-
-struct FLocalBoundShaderState
-{
-	FLocalBoundShaderStateWorkArea* WorkArea;
-	FBoundShaderStateRHIRef BypassBSS; // this is only used in the case of Bypass, should eventually be deleted
-	FLocalBoundShaderState()
-		: WorkArea(nullptr)
-	{
-	}
-	FLocalBoundShaderState(const FLocalBoundShaderState& Other)
-		: WorkArea(Other.WorkArea)
-		, BypassBSS(Other.BypassBSS)
-	{
-	}
-};
-
-struct FRHICommandBuildLocalBoundShaderState : public FRHICommand<FRHICommandBuildLocalBoundShaderState>
-{
-	FLocalBoundShaderStateWorkArea WorkArea;
-
-	FORCEINLINE_DEBUGGABLE FRHICommandBuildLocalBoundShaderState(
-		FRHICommandListBase* CheckCmdList,
-		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
-		FVertexShaderRHIParamRef VertexShaderRHI,
-		FHullShaderRHIParamRef HullShaderRHI,
-		FDomainShaderRHIParamRef DomainShaderRHI,
-		FPixelShaderRHIParamRef PixelShaderRHI,
-		FGeometryShaderRHIParamRef GeometryShaderRHI
-		)
-		: WorkArea(CheckCmdList, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI)
-
-	{
-	}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
-struct FRHICommandSetLocalBoundShaderState : public FRHICommand<FRHICommandSetLocalBoundShaderState>
-{
-	FLocalBoundShaderState LocalBoundShaderState;
-	FORCEINLINE_DEBUGGABLE FRHICommandSetLocalBoundShaderState(FRHICommandListBase* CheckCmdList, FLocalBoundShaderState& InLocalBoundShaderState)
-		: LocalBoundShaderState(InLocalBoundShaderState)
-	{
-		check(CheckCmdList == LocalBoundShaderState.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalBoundShaderState.WorkArea->UID); // this BSS was not built for this particular commandlist
-		LocalBoundShaderState.WorkArea->ComputedBSS->UseCount++;
-	}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
 struct FComputedGraphicsPipelineState
 {
 	FGraphicsPipelineStateRHIRef GraphicsPipelineState;
@@ -1589,57 +1504,6 @@ public:
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory);
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	DEPRECATED(4.15, "Use functionality in PipelineStateCache.h")
-	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
-	{
-		return BuildLocalBoundShaderState(
-			BoundShaderStateInput.VertexDeclarationRHI,
-			BoundShaderStateInput.VertexShaderRHI,
-			BoundShaderStateInput.HullShaderRHI,
-			BoundShaderStateInput.DomainShaderRHI,
-			BoundShaderStateInput.PixelShaderRHI,
-			BoundShaderStateInput.GeometryShaderRHI
-			);
-	}
-
-	DEPRECATED(4.15, "Use functionality in PipelineStateCache.h")
-	FORCEINLINE_DEBUGGABLE void BuildAndSetLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
-	{
-		SetLocalBoundShaderState(BuildLocalBoundShaderState(
-			BoundShaderStateInput.VertexDeclarationRHI,
-			BoundShaderStateInput.VertexShaderRHI,
-			BoundShaderStateInput.HullShaderRHI,
-			BoundShaderStateInput.DomainShaderRHI,
-			BoundShaderStateInput.PixelShaderRHI,
-			BoundShaderStateInput.GeometryShaderRHI
-			));
-	}
-
-	DEPRECATED(4.15, "Use functionality in PipelineStateCache.h")
-	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(
-		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
-		FVertexShaderRHIParamRef VertexShaderRHI,
-		FHullShaderRHIParamRef HullShaderRHI,
-		FDomainShaderRHIParamRef DomainShaderRHI,
-		FPixelShaderRHIParamRef PixelShaderRHI,
-		FGeometryShaderRHIParamRef GeometryShaderRHI
-		)
-	{
-		FLocalBoundShaderState Result;
-		if (Bypass())
-		{
-			Result.BypassBSS = RHICreateBoundShaderState(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
-		}
-		else
-		{
-			auto* Cmd = new (AllocCommand<FRHICommandBuildLocalBoundShaderState>()) FRHICommandBuildLocalBoundShaderState(this, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
-			Result.WorkArea = &Cmd->WorkArea;
-		}
-		return Result;
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 	FORCEINLINE_DEBUGGABLE void BeginUpdateMultiFrameResource( FTextureRHIParamRef Texture)
 	{
 		if (Bypass())
@@ -1678,17 +1542,6 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandEndUpdateMultiFrameUAV>()) FRHICommandEndUpdateMultiFrameUAV(UAV);
-	}
-
-	DEPRECATED(4.15, "Use SetLocalGraphicsPipelineState")
-	FORCEINLINE_DEBUGGABLE void SetLocalBoundShaderState(FLocalBoundShaderState LocalBoundShaderState)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetBoundShaderState)(LocalBoundShaderState.BypassBSS);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
 	}
 
 	FORCEINLINE_DEBUGGABLE FLocalGraphicsPipelineState BuildLocalGraphicsPipelineState(
@@ -1866,39 +1719,6 @@ public:
 		SetUAVParameter(Shader.GetReference(), UAVIndex, UAV, InitialCount);
 	}
 
-	DEPRECATED(4.15, "Use SetGraphicsPipelineState")
-	FORCEINLINE_DEBUGGABLE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetBoundShaderState)(BoundShaderState);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetBoundShaderState>()) FRHICommandSetBoundShaderState(BoundShaderState);
-	}
-
-	DEPRECATED(4.15, "Use GraphicsPipelineState Interface")
-	FORCEINLINE_DEBUGGABLE void SetRasterizerState(FRasterizerStateRHIParamRef State)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetRasterizerState)(State);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
-	}
-
-	DEPRECATED(4.15, "Use GraphicsPipelineState Interface")
-	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetBlendState)(State, BlendFactor);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetBlendState>()) FRHICommandSetBlendState(State, BlendFactor);
-	}
-
 	FORCEINLINE_DEBUGGABLE void SetBlendFactor(const FLinearColor& BlendFactor = FLinearColor::White)
 	{
 		if (Bypass())
@@ -1937,17 +1757,6 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSource(StreamIndex, VertexBuffer, Stride, Offset);
-	}
-
-	DEPRECATED(4.15, "Use GraphicsPipelineState Interface")
-	void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);
-			return;
-		}
-		new (AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetStencilRef(uint32 StencilRef)
@@ -3191,14 +3000,19 @@ public:
 	}
 	
 	FORCEINLINE void UpdateTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
-	{		
+	{
 		LLM_SCOPED_TAG_WITH_STAT(STAT_TextureMemoryLLM);
+		checkf(UpdateRegion.DestX + UpdateRegion.Width <= Texture->GetSizeX(), TEXT("UpdateTexture2D out of bounds on X. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestX, UpdateRegion.Width, Texture->GetSizeX());
+		checkf(UpdateRegion.DestY + UpdateRegion.Height <= Texture->GetSizeY(), TEXT("UpdateTexture2D out of bounds on Y. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestY, UpdateRegion.Height, Texture->GetSizeY());
 		GDynamicRHI->UpdateTexture2D_RenderThread(*this, Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
 	}
 	
 	FORCEINLINE void UpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 	{
 		LLM_SCOPED_TAG_WITH_STAT(STAT_TextureMemoryLLM);
+		checkf(UpdateRegion.DestX + UpdateRegion.Width <= Texture->GetSizeX(), TEXT("UpdateTexture3D out of bounds on X. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestX, UpdateRegion.Width, Texture->GetSizeX());
+		checkf(UpdateRegion.DestY + UpdateRegion.Height <= Texture->GetSizeY(), TEXT("UpdateTexture3D out of bounds on Y. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestY, UpdateRegion.Height, Texture->GetSizeY());
+		checkf(UpdateRegion.DestZ + UpdateRegion.Depth <= Texture->GetSizeZ(), TEXT("UpdateTexture3D out of bounds on Z. Texture: %s, %i, %i, %i"), *Texture->GetName().ToString(), UpdateRegion.DestZ, UpdateRegion.Depth, Texture->GetSizeZ());
 		GDynamicRHI->UpdateTexture3D_RenderThread(*this, Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
 	}
 	

@@ -185,7 +185,7 @@ struct FTextureSource
 	ENGINE_API void UnlockMip(int32 MipIndex);
 
 	/** Retrieve a copy of the data for a particular mip. */
-	ENGINE_API bool GetMipData(TArray<uint8>& OutMipData, int32 MipIndex);
+	ENGINE_API bool GetMipData(TArray<uint8>& OutMipData, int32 MipIndex, class IImageWrapperModule* ImageWrapperModule = nullptr);
 
 	/** Computes the size of a single mip. */
 	ENGINE_API int32 CalcMipSize(int32 MipIndex) const;
@@ -212,6 +212,8 @@ struct FTextureSource
 	FORCEINLINE bool IsPNGCompressed() const { return bPNGCompressed; }
 	FORCEINLINE int32 GetSizeOnDisk() const { return BulkData.GetBulkDataSize(); }
 	FORCEINLINE bool IsBulkDataLoaded() const { return BulkData.IsBulkDataLoaded(); }
+	FORCEINLINE bool LoadBulkDataWithFileReader() { return BulkData.LoadBulkDataWithFileReader(); }
+	FORCEINLINE void RemoveBulkData() { BulkData.RemoveBulkData(); }
 	
 	/** Sets the GUID to use, and whether that GUID is actually a hash of some data. */
 	void SetId(const FGuid& InId, bool bInGuidIsHash);
@@ -647,9 +649,11 @@ public:
 	 * Caches platform data for the texture.
 	 * 
 	 * @param bAsyncCache spawn a thread to cache the platform data 
-	 * @param bAllowAsyncBuild allow the building of the texture to happen on another thread !!!load BulkData and cache the Source mip data on the main thread before checking DDC!!!
+	 * @param bAllowAsyncBuild allow building the DDC file in the thread if missing.
+	 * @param bAllowAsyncLoading allow loading source data in the thread if missing (the data won't be reusable for later use though)
+	 * @param Compressor optional compressor as the texture compressor can not be get from an async thread.
 	 */
-	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false, class ITextureCompressorModule* Compressor = nullptr);
+	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false, bool bAllowAsyncLoading = false, class ITextureCompressorModule* Compressor = nullptr);
 
 	/**
 	 * Begins caching platform data in the background for the platform requested

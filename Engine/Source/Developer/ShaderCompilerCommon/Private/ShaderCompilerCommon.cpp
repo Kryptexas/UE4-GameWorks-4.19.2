@@ -308,7 +308,7 @@ FString CreateShaderCompilerWorkerDirectCommandLine(const FShaderCompilerInput& 
 	}
 
 	Text += TEXT(" ");
-	Text += Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf");
+	Text += Input.DumpDebugInfoPath / Input.GetSourceFilename();
 
 	uint64 CFlags = 0;
 	for (int32 Index = 0; Index < Input.Environment.CompilerFlags.Num(); ++Index)
@@ -394,8 +394,8 @@ namespace CrossCompiler
 		FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
 
 		// Copy the filename.
-		while (*p && *p != TEXT('(')) { Error->ErrorFile += (*p++); }
-		Error->ErrorFile = GetRelativeShaderFilename(Error->ErrorFile);
+		while (*p && *p != TEXT('(')) { Error->ErrorVirtualFilePath += (*p++); }
+		Error->ErrorVirtualFilePath = ParseVirtualShaderFilename(Error->ErrorVirtualFilePath);
 		p++;
 
 		// Parse the line number.

@@ -14,6 +14,7 @@
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCache.h"
 #include "ShaderCodeLibrary.h"
+#include "ShaderCore.h"
 #include "Misc/ConfigCacheIni.h"
 #include "RenderingObjectVersion.h"
 
@@ -151,6 +152,9 @@ FShaderType::FShaderType(
 
 	//make sure the name is shorter than the maximum serializable length
 	check(FCString::Strlen(InName) < NAME_SIZE);
+
+	// Make sure the format of the source file path is right.
+	check(CheckVirtualShaderFilePath(InSourceFilename));
 
 	// register this shader type
 	GlobalListLink.LinkHead(GetTypeList());
@@ -590,19 +594,8 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 	
 	if (!bFeatureLevelCompatible && IsPCPlatform(CurrentPlatform) && IsPCPlatform(TargetPlatform) )
 	{
-		if (CurrentPlatform == SP_OPENGL_SM4_MAC || TargetPlatform == SP_OPENGL_SM4_MAC)
-		{
-			// prevent SP_OPENGL_SM4 == SP_OPENGL_SM4_MAC, allow SP_OPENGL_SM4_MAC == SP_OPENGL_SM4_MAC,
-			// allow lesser feature levels on SP_OPENGL_SM4_MAC device.
-			// do not allow MAC targets to work on non MAC devices.
-			bFeatureLevelCompatible = CurrentPlatform == SP_OPENGL_SM4_MAC && 
-				GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
-		}
-		else
-		{
-			bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
-		}
-
+		bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		
 		bool const bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
 		TargetPlatform == SP_PCD3D_SM4 ||
 		TargetPlatform == SP_PCD3D_ES3_1 ||

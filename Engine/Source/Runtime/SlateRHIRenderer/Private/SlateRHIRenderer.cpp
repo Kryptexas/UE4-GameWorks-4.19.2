@@ -493,7 +493,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("CompositeUIPixelShader");
+		return TEXT("/Engine/Private/CompositeUIPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -506,7 +506,7 @@ private:
 	FShaderParameter OutputGamut;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCompositeLUTGenerationPS,TEXT("CompositeUIPixelShader"),TEXT("GenerateLUTPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCompositeLUTGenerationPS,TEXT("/Engine/Private/CompositeUIPixelShader.usf"),TEXT("GenerateLUTPS"),SF_Pixel);
 
 // Pixel shader to composite UI over HDR buffer
 template<uint32 EncodingType>
@@ -563,7 +563,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("CompositeUIPixelShader");
+		return TEXT("/Engine/Private/CompositeUIPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

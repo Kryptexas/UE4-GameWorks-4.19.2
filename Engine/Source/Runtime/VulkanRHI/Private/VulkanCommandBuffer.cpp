@@ -20,6 +20,7 @@ static FAutoConsoleVariableRef CVarVulkanUseSingleQueue(
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool)
 	: bNeedsDynamicStateSet(true)
+	, bHasPipeline(false)
 	, Device(InDevice)
 	, CommandBufferHandle(VK_NULL_HANDLE)
 	, State(EState::ReadyForBegin)
@@ -102,6 +103,7 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 		if (FenceMgr->IsFenceSignaled(Fence))
 		{
 			State = EState::ReadyForBegin;
+			bHasPipeline = false;
 			VulkanRHI::vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 #if VULKAN_REUSE_FENCES
 			Fence->GetOwner()->ResetFence(Fence);
@@ -204,7 +206,11 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
 {
 	check(!UploadCmdBuffer);
 	check(ActiveCmdBuffer);
-	check(ActiveCmdBuffer->IsOutsideRenderPass());
+	if (!ActiveCmdBuffer->IsOutsideRenderPass())
+	{
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Forcing EndRenderPass() for submission"));
+		ActiveCmdBuffer->EndRenderPass();
+	}
 	ActiveCmdBuffer->End();
 	Device->GetGraphicsQueue()->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
 	if (bWaitForFence)

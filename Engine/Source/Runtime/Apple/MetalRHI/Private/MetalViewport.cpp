@@ -65,13 +65,8 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 		Layer.magnificationFilter = kCAFilterNearest;
 		Layer.minificationFilter = kCAFilterNearest;
 
-		if (GRHISupportsHDROutput)
-		{
-			[Layer setWantsExtendedDynamicRangeContent:YES];
-		}
-
 		[Layer setDevice:GetMetalDeviceContext().GetDevice()];
-		[Layer setPixelFormat:(Format == PF_FloatRGBA && GRHISupportsHDROutput) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm];
+		
 		[Layer setFramebufferOnly:NO];
 		[Layer removeAllAnimations];
 
@@ -123,12 +118,19 @@ uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
 
 void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format)
 {
+	bool bCanUseHDR = GRHISupportsHDROutput;
+	
+#if PLATFORM_MAC
+	static bool sbHDROSVersionSafe = FPlatformMisc::MacOSXVersionCompare(10,13,0) >= 0;
+	bCanUseHDR = bCanUseHDR && (sbHDROSVersionSafe || bInIsFullscreen || IsRunningGame());
+#endif
+
 	uint32 Index = GetViewportIndex(EMetalViewportAccessGame);
 	
 	FRHIResourceCreateInfo CreateInfo;
 
-	Format = (Format == PF_FloatRGBA && GRHISupportsHDROutput) ? PF_FloatRGBA : PF_B8G8R8A8;
-	MTLPixelFormat MetalFormat = (Format == PF_FloatRGBA && GRHISupportsHDROutput) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
+	Format = (Format == PF_FloatRGBA && bCanUseHDR) ? PF_FloatRGBA : PF_B8G8R8A8;
+	MTLPixelFormat MetalFormat = (Format == PF_FloatRGBA && bCanUseHDR) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
 	if (IsValidRef(BackBuffer[Index]) && Format != BackBuffer[Index]->GetFormat())
 	{
 		// Really need to flush the RHI thread & GPU here...
@@ -141,7 +143,7 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		
 		// Issue a fence command to the rendering thread and wait for it to complete.
 		FRenderCommandFence Fence;
-		Fence.BeginFence();
+		Fence.BeginFence();	
 		Fence.Wait();
 	}
 
@@ -154,12 +156,23 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
 	}
 #if PLATFORM_MAC
-	MainThreadCall(^{
-		((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
-		if (MetalFormat != ((CAMetalLayer*)View.layer).pixelFormat)
+	MainThreadCall(^
+	{
+		CAMetalLayer* MetalLayer = (CAMetalLayer*)View.layer;
+		
+		MetalLayer.drawableSize = CGSizeMake(InSizeX, InSizeY);
+		
+		if (MetalFormat != MetalLayer.pixelFormat)
 		{
-			((CAMetalLayer*)View.layer).pixelFormat = MetalFormat;
+			MetalLayer.pixelFormat = MetalFormat;
 		}
+		
+		BOOL bUsingHDR = MetalFormat == MTLPixelFormatRGBA16Float;
+		if (bUsingHDR != MetalLayer.wantsExtendedDynamicRangeContent)
+		{
+			MetalLayer.wantsExtendedDynamicRangeContent = bUsingHDR;
+		}
+		
 	}, NSDefaultRunLoopMode, true);
 #else
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];

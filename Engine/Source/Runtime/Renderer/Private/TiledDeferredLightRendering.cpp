@@ -264,7 +264,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("TiledDeferredLightShaders");
+		return TEXT("/Engine/Private/TiledDeferredLightShaders.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

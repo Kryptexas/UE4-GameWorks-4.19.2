@@ -78,38 +78,20 @@ void RadixSort32( IndexType* RESTRICT Dst, IndexType* RESTRICT Src, CountType Nu
 }
 
 
-FORCEINLINE uint64 EncodeSortKey( uint8 ID, uint8 vLevel, uint32 vAddress, uint16 pAddress )
+FORCEINLINE uint64 EncodeSortKey( uint8 ID, uint8 vLevel, uint64 vAddress )
 {
-#if VT_RADIX_SORT
 	uint64 Key;
 	Key  = (uint64)vAddress	<<  0;
-	Key |= (uint64)vLevel	<< 24;
-	Key |= (uint64)ID		<< 28;
-	Key |= (uint64)pAddress	<< 32;
-	return Key;
-#else
-	uint64 Key;
-	Key  = (uint64)pAddress	<<  0;
-	Key |= (uint64)vAddress	<< 16;
 	Key |= (uint64)vLevel	<< 48;
 	Key |= (uint64)ID		<< 56;
 	return Key;
-#endif
 }
 
-FORCEINLINE void DecodeSortKey( uint64 Key, uint8& ID, uint8& vLevel, uint32& vAddress, uint16& pAddress )
+FORCEINLINE void DecodeSortKey( uint64 Key, uint8& ID, uint8& vLevel, uint64& vAddress )
 {
-#if VT_RADIX_SORT
-	vAddress	= ( Key >>  0 ) & 0xffffff;
-	vLevel		= ( Key >> 24 ) & 0xf;
-	ID			= ( Key >> 28 ) & 0xf;
-	pAddress	= ( Key >> 32 );
-#else
-	pAddress	= ( Key >>  0 ) & 0xffff;
-	vAddress	= ( Key >> 16 ) & 0xffffffff;
+	vAddress	= ( Key >>  0 ) & 0xffffffffffffull;
 	vLevel		= ( Key >> 48 ) & 0xf;
 	ID			= ( Key >> 56 );
-#endif
 }
 
 
@@ -170,7 +152,7 @@ void FTexturePagePool::UpdateUsage( uint32 Frame, uint32 PageIndex )
 }
 
 
-uint32 FTexturePagePool::FindPage( uint8 ID, uint8 vLevel, uint32 vAddress ) const
+uint32 FTexturePagePool::FindPage( uint8 ID, uint8 vLevel, uint64 vAddress ) const
 {
 	uint16 Hash = HashPage( vLevel, vAddress, vDimensions );
 	for( uint32 PageIndex = HashTable.First( Hash ); HashTable.IsValid( PageIndex ); PageIndex = HashTable.Next( PageIndex ) )
@@ -186,7 +168,7 @@ uint32 FTexturePagePool::FindPage( uint8 ID, uint8 vLevel, uint32 vAddress ) con
 	return ~0u;
 }
 
-uint32 FTexturePagePool::FindNearestPage( uint8 ID, uint8 vLevel, uint32 vAddress ) const
+uint32 FTexturePagePool::FindNearestPage( uint8 ID, uint8 vLevel, uint64 vAddress ) const
 {
 	while( vLevel < 16 )
 	{
@@ -202,7 +184,7 @@ uint32 FTexturePagePool::FindNearestPage( uint8 ID, uint8 vLevel, uint32 vAddres
 		}
 
 		vLevel++;
-		vAddress &= 0xffffffff << ( vDimensions * vLevel );
+		vAddress &= ~0ull << ( vDimensions * vLevel );
 	}
 
 	return ~0u;
@@ -210,12 +192,6 @@ uint32 FTexturePagePool::FindNearestPage( uint8 ID, uint8 vLevel, uint32 vAddres
 
 void FTexturePagePool::UnmapPage( uint16 pAddress )
 {
-#if VT_RADIX_SORT
-	const uint64 Mask = 0xffffffff;
-#else
-	const uint64 Mask = 0xffffffffffff0000ull;
-#endif
-	
 	FTexturePage& Page = Pages[ pAddress ];
 
 	if( Page.ID != 0xff )
@@ -227,11 +203,9 @@ void FTexturePagePool::UnmapPage( uint16 pAddress )
 		uint8  Ancestor_vLevel = Ancestor_pAddress == ~0u ? 0xff : Pages[ Ancestor_pAddress ].vLevel;
 		GVirtualTextureSystem.GetSpace( Page.ID )->QueueUpdate( Page.vLevel, Page.vAddress, Ancestor_vLevel, Ancestor_pAddress );
 
-#if VT_MERGE_RESORT
-		uint64 OldKey = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress, 0 );
-		uint32 OldIndex = LowerBound( 0, SortedKeys.Num(), OldKey, Mask );
+		uint64 OldKey = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress );
+		uint32 OldIndex = LowerBound( 0, SortedKeys.Num(), OldKey, ~0ull );
 		SortedSubIndexes.Add( ( OldIndex << 16 ) | Page.pAddress );
-#endif
 	}
 
 	Page.vLevel = 0;
@@ -241,14 +215,8 @@ void FTexturePagePool::UnmapPage( uint16 pAddress )
 	SortedKeysDirty = true;
 }
 
-void FTexturePagePool::MapPage( uint8 ID, uint8 vLevel, uint32 vAddress, uint16 pAddress )
+void FTexturePagePool::MapPage( uint8 ID, uint8 vLevel, uint64 vAddress, uint16 pAddress )
 {
-#if VT_RADIX_SORT
-	const uint64 Mask = 0xffffffff;
-#else
-	const uint64 Mask = 0xffffffffffff0000ull;
-#endif
-	
 	FTexturePage& Page = Pages[ pAddress ];
 
 	Page.vLevel = vLevel;
@@ -256,11 +224,9 @@ void FTexturePagePool::MapPage( uint8 ID, uint8 vLevel, uint32 vAddress, uint16 
 	Page.ID = ID;
 
 	{
-#if VT_MERGE_RESORT
-		uint64 NewKey = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress, 0 );
-		uint32 NewIndex = UpperBound( 0, SortedKeys.Num(), NewKey, Mask );
+		uint64 NewKey = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress );
+		uint32 NewIndex = UpperBound( 0, SortedKeys.Num(), NewKey, ~0ull );
 		SortedAddIndexes.Add( ( NewIndex << 16 ) | Page.pAddress );
-#endif
 
 		// Map new page
 		HashTable.Add( HashPage( Page.vLevel, Page.vAddress, vDimensions ), Page.pAddress );
@@ -273,7 +239,6 @@ void FTexturePagePool::MapPage( uint8 ID, uint8 vLevel, uint32 vAddress, uint16 
 // Must call this before the below functions so that SortedKeys is up to date.
 inline void FTexturePagePool::BuildSortedKeys()
 {
-#if VT_MERGE_RESORT
 	checkSlow( SortedSubIndexes.Num() || SortedAddIndexes.Num() );
 
 	SortedSubIndexes.Sort();
@@ -283,17 +248,19 @@ inline void FTexturePagePool::BuildSortedKeys()
 			const FTexturePage& PageA = Pages[ A & 0xffff ];
 			const FTexturePage& PageB = Pages[ B & 0xffff ];
 
-			uint64 KeyA = EncodeSortKey( PageA.ID, PageA.vLevel, PageA.vAddress, PageA.pAddress );
-			uint64 KeyB = EncodeSortKey( PageB.ID, PageB.vLevel, PageB.vAddress, PageB.pAddress );
+			uint64 KeyA = EncodeSortKey( PageA.ID, PageA.vLevel, PageA.vAddress );
+			uint64 KeyB = EncodeSortKey( PageB.ID, PageB.vLevel, PageB.vAddress );
 
 			return KeyA < KeyB;
 		} );
 	
 	// Copy version
-	Exchange( SortedKeys, UnsortedKeys );
+	Exchange( SortedKeys,	UnsortedKeys );
+	Exchange( SortedIndexes,UnsortedIndexes );
 
 	uint32 NumUnsorted = UnsortedKeys.Num();
-	SortedKeys.SetNum( NumUnsorted + SortedAddIndexes.Num() - SortedSubIndexes.Num(), false );
+	SortedKeys.SetNum(		NumUnsorted + SortedAddIndexes.Num() - SortedSubIndexes.Num(), false );
+	SortedIndexes.SetNum(	NumUnsorted + SortedAddIndexes.Num() - SortedSubIndexes.Num(), false );
 	
 	int32 SubI = 0;
 	int32 AddI = 0;
@@ -309,6 +276,7 @@ inline void FTexturePagePool::BuildSortedKeys()
 		if( Interval )
 		{
 			FMemory::Memcpy( &SortedKeys[ SortedI ], &UnsortedKeys[ UnsortedI ], Interval * sizeof( uint64 ) );
+			FMemory::Memcpy( &SortedIndexes[ SortedI ], &UnsortedIndexes[ UnsortedI ], Interval * sizeof( uint16 ) );
 
 			UnsortedI += Interval;
 			SortedI += Interval;
@@ -333,7 +301,8 @@ inline void FTexturePagePool::BuildSortedKeys()
 			uint16 pAddress = SortedAddIndexes[ AddI ] & 0xffff;
 
 			FTexturePage& Page = Pages[ pAddress ];
-			SortedKeys[ SortedI ] = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress, Page.pAddress );
+			SortedKeys[ SortedI ] = EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress );
+			SortedIndexes[ SortedI ] = Page.pAddress;
 
 			SortedI++;
 			AddI++;
@@ -344,35 +313,6 @@ inline void FTexturePagePool::BuildSortedKeys()
 	SortedAddIndexes.Reset();
 
 	SortedKeysDirty = false;
-#elif VT_RADIX_SORT
-	UnsortedKeys.Reset();
-
-	for( auto Page : Pages )
-	{
-		if( Page.ID != 0xff )
-		{
-			UnsortedKeys.Add( EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress, Page.pAddress ) );
-		}
-	}
-
-	SortedKeys.SetNum( UnsortedKeys.Num(), false );
-
-	RadixSort32( SortedKeys.GetData(), UnsortedKeys.GetData(), (uint16)SortedKeys.Num() );
-	SortedKeysDirty = false;
-#else
-	SortedKeys.Reset();
-
-	for( auto Page : Pages )
-	{
-		if( Page.ID != 0xff )
-		{
-			SortedKeys.Add( EncodeSortKey( Page.ID, Page.vLevel, Page.vAddress, Page.pAddress ) );
-		}
-	}
-
-	Sort( SortedKeys.GetData(), SortedKeys.Num() );
-	SortedKeysDirty = false;
-#endif
 }
 
 // Binary search lower bound
@@ -442,7 +382,7 @@ uint32 FTexturePagePool::EqualRange( uint32 Min, uint32 Max, uint64 SearchKey, u
 	return 0;
 }
 
-void FTexturePagePool::RefreshEntirePageTable( uint8 ID, TArray< FPageUpdate >* Output )
+void FTexturePagePool::RefreshEntirePageTable( uint8 ID, TArray< FPageTableUpdate >* Output )
 {
 	if( SortedKeysDirty )
 	{
@@ -455,7 +395,8 @@ void FTexturePagePool::RefreshEntirePageTable( uint8 ID, TArray< FPageUpdate >* 
 	{
 		FPageUpdate Update;
 		uint8 Update_ID;
-		DecodeSortKey( SortedKeys[i], Update_ID, Update.vLevel, Update.vAddress, Update.pAddress );
+		DecodeSortKey( SortedKeys[i], Update_ID, Update.vLevel, Update.vAddress );
+		Update.pAddress = SortedIndexes[i];
 		Update.vLogSize = Update.vLevel;
 
 		for( int Mip = Update.vLevel; Mip >= 0; Mip-- )
@@ -474,7 +415,7 @@ If there are mapped descendants then draw those on top using painters algorithm.
 Outputs list of FPageTableUpdate which will be drawn on the GPU to the page table.
 ======================
 */
-void FTexturePagePool::ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Update, TArray< FPageUpdate >* Output )
+void FTexturePagePool::ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Update, TArray< FPageTableUpdate >* Output )
 {
 	if( SortedKeysDirty )
 	{
@@ -498,12 +439,8 @@ void FTexturePagePool::ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Upda
 	for( uint32 Mip = vLogSize; Mip > 0; )
 	{
 		Mip--;
-		uint64 SearchKey = EncodeSortKey( ID, Mip, vAddress, 0 );
-#if VT_RADIX_SORT
-		uint64 Mask = ( 0xffffffff << ( vDimensions * vLogSize ) ) & 0xffffffff;
-#else
-		uint64 Mask = 0xffffffffffff0000ull << ( vDimensions * vLogSize );
-#endif
+		uint64 SearchKey = EncodeSortKey( ID, Mip, vAddress );
+		uint64 Mask = ~0ull << ( vDimensions * vLogSize );
 		
 		uint32 DescendantRange = EqualRange( 0, SearchRange, SearchKey, Mask );
 		if( DescendantRange != 0 )
@@ -520,7 +457,8 @@ void FTexturePagePool::ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Upda
 
 				FPageUpdate Descendant;
 				uint8 Descendant_ID, Descendant_Level;
-				DecodeSortKey( SortedKeys[ DescendantIndex ], Descendant_ID, Descendant_Level, Descendant.vAddress, Descendant.pAddress );
+				DecodeSortKey( SortedKeys[ DescendantIndex ], Descendant_ID, Descendant_Level, Descendant.vAddress );
+				Descendant.pAddress = SortedIndexes[ DescendantIndex ];
 
 				Descendant.vLevel	= Mip;
 				Descendant.vLogSize	= Mip;
@@ -529,7 +467,7 @@ void FTexturePagePool::ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Upda
 				checkSlow( Descendant_Level == Mip );
 
 				// Mask out low bits
-				uint32 Ancestor_vAddress = Descendant.vAddress & ( 0xffffffff << ( vDimensions * vLogSize ) );
+				uint64 Ancestor_vAddress = Descendant.vAddress & ( ~0ull << ( vDimensions * vLogSize ) );
 				checkSlow( Ancestor_vAddress == vAddress );
 
 				LoopOutput.Add( Descendant );
@@ -549,7 +487,7 @@ If there are mapped descendants then break it up into many squares in quadtree o
 Outputs list of FPageTableUpdate which will be drawn on the GPU to the page table.
 ======================
 */
-void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update, TArray< FPageUpdate >* Output )
+void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update, TArray< FPageTableUpdate >* Output )
 {
 	if( SortedKeysDirty )
 	{
@@ -565,9 +503,9 @@ void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update
 	checkSlow( Stack.Num() == 0 );
 
 	uint8  vLogSize = Update.vLogSize;
-	uint32 vAddress = Update.vAddress;
+	uint64 vAddress = Update.vAddress;
 	
-	Output[ vLogSize ].Add( Update );
+	Output[ vLogSize ].Add( FPageTableUpdate( Update ) );
 
 	// Start with input quad
 	LoopOutput.Add( Update );
@@ -577,12 +515,8 @@ void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update
 	for( uint32 Mip = vLogSize; Mip > 0; )
 	{
 		Mip--;
-		uint64 SearchKey = EncodeSortKey( ID, Mip, vAddress, 0 );
-#if VT_RADIX_SORT
-		uint64 Mask = ( 0xffffffff << ( vDimensions * vLogSize ) ) & 0xffffffff;
-#else
-		uint64 Mask = 0xffffffffffff0000ull << ( vDimensions * vLogSize );
-#endif
+		uint64 SearchKey = EncodeSortKey( ID, Mip, vAddress );
+		uint64 Mask = ~0ull << ( vDimensions * vLogSize );
 		
 		uint32 DescendantRange = EqualRange( 0, SearchRange, SearchKey, Mask );
 		if( DescendantRange != 0 )
@@ -606,7 +540,8 @@ void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update
 
 				FPageUpdate Descendant;
 				uint8 Descendant_ID, Descendant_Level;
-				DecodeSortKey( SortedKeys[ DescendantIndex ], Descendant_ID, Descendant_Level, Descendant.vAddress, Descendant.pAddress );
+				DecodeSortKey( SortedKeys[ DescendantIndex ], Descendant_ID, Descendant_Level, Descendant.vAddress );
+				Descendant.pAddress = SortedIndexes[ DescendantIndex ];
 
 				Descendant.vLevel	= Mip;
 				Descendant.vLogSize	= Mip;
@@ -615,7 +550,7 @@ void FTexturePagePool::ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update
 				checkSlow( Descendant_Level == Mip );
 
 				// Mask out low bits
-				uint32 Ancestor_vAddress = Descendant.vAddress & ( 0xffffffff << ( vDimensions * vLogSize ) );
+				uint64 Ancestor_vAddress = Descendant.vAddress & ( ~0ull << ( vDimensions * vLogSize ) );
 				checkSlow( Ancestor_vAddress == vAddress );
 
 				uint32 UpdateSize		= 1 << ( vDimensions * Update.vLogSize );

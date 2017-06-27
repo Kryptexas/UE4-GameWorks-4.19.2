@@ -140,7 +140,7 @@ static void DumpLightmapSizeOnDisk()
 	for (TObjectIterator<ULightMapTexture2D> It; It; ++It)
 	{
 		ULightMapTexture2D* Lightmap = *It;
-		UE_LOG(LogLightMap,Log,TEXT("%f,%d,%d,%f,%s"),
+		UE_LOG(LogLightMap,Log,TEXT("%f,%d,%f,%s"),
 			Lightmap->Source.GetSizeOnDisk() / 1024.0f,
 			Lightmap->Source.IsPNGCompressed(),
 			Lightmap->CalcTextureMemorySizeEnum(TMC_AllMips) / 1024.0f,

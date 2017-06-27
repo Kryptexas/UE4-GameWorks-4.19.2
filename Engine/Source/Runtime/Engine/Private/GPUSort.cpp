@@ -293,7 +293,7 @@ private:
 	/** The buffer to which offsets will be written. */
 	FShaderResourceParameter OutOffsets;
 };
-IMPLEMENT_SHADER_TYPE(,FRadixSortClearOffsetsCS,TEXT("RadixSortShaders"),TEXT("RadixSort_ClearOffsets"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRadixSortClearOffsetsCS,TEXT("/Engine/Private/RadixSortShaders.usf"),TEXT("RadixSort_ClearOffsets"),SF_Compute);
 
 /*------------------------------------------------------------------------------
 	The upsweep sorting kernel. This kernel performs an upsweep scan on all
@@ -410,7 +410,7 @@ private:
 	/** The buffer to which offsets will be written. */
 	FShaderResourceParameter OutOffsets;
 };
-IMPLEMENT_SHADER_TYPE(,FRadixSortUpsweepCS,TEXT("RadixSortShaders"),TEXT("RadixSort_Upsweep"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRadixSortUpsweepCS,TEXT("/Engine/Private/RadixSortShaders.usf"),TEXT("RadixSort_Upsweep"),SF_Compute);
 
 /*------------------------------------------------------------------------------
 	The spine sorting kernel. This kernel performs a parallel prefix sum on
@@ -505,7 +505,7 @@ private:
 	/** The buffer to which offsets will be written. */
 	FShaderResourceParameter OutOffsets;
 };
-IMPLEMENT_SHADER_TYPE(,FRadixSortSpineCS,TEXT("RadixSortShaders"),TEXT("RadixSort_Spine"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRadixSortSpineCS,TEXT("/Engine/Private/RadixSortShaders.usf"),TEXT("RadixSort_Spine"),SF_Compute);
 
 /*------------------------------------------------------------------------------
 	The downsweep sorting kernel. This kernel reads the per-work group partial
@@ -666,7 +666,7 @@ private:
 	/** The buffer to which sorted values will be written. */
 	FShaderResourceParameter OutValues;
 };
-IMPLEMENT_SHADER_TYPE(,FRadixSortDownsweepCS,TEXT("RadixSortShaders"),TEXT("RadixSort_Downsweep"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRadixSortDownsweepCS,TEXT("/Engine/Private/RadixSortShaders.usf"),TEXT("RadixSort_Downsweep"),SF_Compute);
 
 /*------------------------------------------------------------------------------
 	Public interface.

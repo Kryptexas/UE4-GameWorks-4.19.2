@@ -129,6 +129,8 @@ namespace VulkanRHI
 #if VULKAN_TRACK_MEMORY_USAGE
 		NewAllocation->File = File;
 		NewAllocation->Line = Line;
+		static uint32 ID = 0;
+		NewAllocation->UID = ++ID;
 #endif
 		++NumAllocations;
 		PeakNumAllocations = FMath::Max(NumAllocations, PeakNumAllocations);
@@ -182,7 +184,7 @@ namespace VulkanRHI
 			{
 				FDeviceMemoryAllocation* Allocation = HeapInfo.Allocations[SubIndex];
 #if VULKAN_TRACK_MEMORY_USAGE
-				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p %s(%d)"), SubIndex, Allocation->Size, (void*)Allocation->Handle, ANSI_TO_TCHAR(Allocation->File), Allocation->Line);
+				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p ID %d %s(%d)"), SubIndex, Allocation->Size, (void*)Allocation->Handle, Allocation->UID, ANSI_TO_TCHAR(Allocation->File), Allocation->Line);
 #else
 				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p"), SubIndex, Allocation->Size, (void*)Allocation->Handle);
 #endif
@@ -864,7 +866,7 @@ namespace VulkanRHI
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
-		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(BufferSize, MemoryTypeIndex, File, Line);
+		FDeviceMemoryAllocation* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(MemReqs.size, MemoryTypeIndex, File, Line);
 		VERIFYVULKANRESULT(VulkanRHI::vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
 		if (DeviceMemoryAllocation->CanBeMapped())
 		{
@@ -1133,7 +1135,7 @@ namespace VulkanRHI
 			{
 				FPendingItem& Item = FreeStagingBuffers[Index];
 				FStagingBuffer* FreeBuffer = (FStagingBuffer*)Item.Resource;
-				if (FreeBuffer->ResourceAllocation->GetSize() == Size && FreeBuffer->bCPURead == bCPURead)
+				if (FreeBuffer->GetSize() == Size && FreeBuffer->bCPURead == bCPURead)
 				{
 					FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
 					UsedStagingBuffers.Add((FStagingBuffer*)FreeBuffer);
@@ -1163,6 +1165,7 @@ namespace VulkanRHI
 
 		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | (bCPURead ? VK_MEMORY_PROPERTY_HOST_CACHED_BIT : VK_MEMORY_PROPERTY_HOST_COHERENT_BIT), __FILE__, __LINE__);
 		StagingBuffer->bCPURead = bCPURead;
+		StagingBuffer->BufferSize = Size;
 		StagingBuffer->ResourceAllocation->BindBuffer(Device, StagingBuffer->Buffer);
 
 		{
@@ -1293,6 +1296,11 @@ namespace VulkanRHI
 			FFence* Fence = FreeFences[0];
 			FreeFences.RemoveAtSwap(0, 1, false);
 			UsedFences.Add(Fence);
+
+			if (bCreateSignaled)
+			{
+				Fence->State = FFence::EState::Signaled;
+			}
 			return Fence;
 		}
 
@@ -1392,7 +1400,7 @@ namespace VulkanRHI
 
 	FGPUEvent::~FGPUEvent()
 	{
-		VulkanRHI::vkDestroyEvent(Device->GetInstanceHandle(), Handle, nullptr);
+		Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Event, Handle);
 	}
 
 
@@ -1450,6 +1458,7 @@ namespace VulkanRHI
 				VKSWITCH(Sampler);
 				VKSWITCH(Semaphore);
 				VKSWITCH(ShaderModule);
+				VKSWITCH(Event);
 #undef VKSWITCH
 				default:
 					check(0);
@@ -1460,20 +1469,13 @@ namespace VulkanRHI
 		}
 	}
 
-	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize)
+	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice)
 		: FDeviceChild(InDevice)
 		, BufferIndex(0)
-		, Size(InSize)
-		, PeakUsed(0)
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
 		{
-			BufferSuballocations[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize,
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				__FILE__, __LINE__);
-			MappedData[Index] = (uint8*)BufferSuballocations[Index]->GetMappedPointer();
-			CurrentData[Index] = MappedData[Index];
+			Entries[Index].InitBuffer(Device, ALLOCATION_SIZE);
 		}
 	}
 
@@ -1482,33 +1484,71 @@ namespace VulkanRHI
 		Destroy();
 	}
 
+	void FTempFrameAllocationBuffer::FFrameEntry::InitBuffer(FVulkanDevice* InDevice, uint32 InSize)
+	{
+		Size = InSize;
+		PeakUsed = 0;
+		BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(InSize,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			__FILE__, __LINE__);
+		MappedData = (uint8*)BufferSuballocation->GetMappedPointer();
+		CurrentData = MappedData;
+	}
+
 	void FTempFrameAllocationBuffer::Destroy()
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
 		{
-			BufferSuballocations[Index] = nullptr;
+			Entries[Index].BufferSuballocation = nullptr;
 		}
 	}
 
-	bool FTempFrameAllocationBuffer::Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo)
+	bool FTempFrameAllocationBuffer::FFrameEntry::TryAlloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo)
 	{
-		uint8* AlignedData = (uint8*)Align((uintptr_t)CurrentData[BufferIndex], (uintptr_t)InAlignment);
-		if (AlignedData + InSize <= MappedData[BufferIndex] + Size)
+		uint8* AlignedData = (uint8*)Align((uintptr_t)CurrentData, (uintptr_t)InAlignment);
+		if (AlignedData + InSize <= MappedData + Size)
 		{
 			OutInfo.Data = AlignedData;
-			OutInfo.BufferSuballocation = BufferSuballocations[BufferIndex];
-			OutInfo.CurrentOffset = (uint32)(AlignedData - MappedData[BufferIndex]);
-			CurrentData[BufferIndex] = AlignedData + InSize;
-			PeakUsed = FMath::Max(PeakUsed, (uint32)(CurrentData[BufferIndex] - MappedData[BufferIndex]));
+			OutInfo.BufferSuballocation = BufferSuballocation;
+			OutInfo.CurrentOffset = (uint32)(AlignedData - MappedData);
+			CurrentData = AlignedData + InSize;
+			PeakUsed = FMath::Max(PeakUsed, (uint32)(CurrentData - MappedData));
 			return true;
 		}
 
 		return false;
 	}
 
+	void FTempFrameAllocationBuffer::Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo)
+	{
+		if (Entries[BufferIndex].TryAlloc(InSize, InAlignment, OutInfo))
+		{
+			return;
+		}
+		
+		// Couldn't fit in the current buffers; allocate a new bigger one and schedule the current one for deletion
+		uint32 NewSize = Align(ALLOCATION_SIZE + InSize + InAlignment, ALLOCATION_SIZE);
+		Entries[BufferIndex].PendingDeletionList.Add(Entries[BufferIndex].BufferSuballocation);
+		Entries[BufferIndex].InitBuffer(Device, NewSize);
+		if (!Entries[BufferIndex].TryAlloc(InSize, InAlignment, OutInfo))
+		{
+			checkf(0, TEXT("Internal Error trying to allocate %d Align %d on TempFrameBuffer, size %d"), InSize, InAlignment, NewSize);
+		}
+	}
+
 	void FTempFrameAllocationBuffer::Reset()
 	{
 		BufferIndex = (BufferIndex + 1) % NUM_RENDER_BUFFERS;
-		CurrentData[BufferIndex] = MappedData[BufferIndex];
+		Entries[BufferIndex].Reset();
+	}
+
+	void FTempFrameAllocationBuffer::FFrameEntry::Reset()
+	{
+		CurrentData = MappedData;
+		while (PendingDeletionList.Num() > 0)
+		{
+			PendingDeletionList.Pop(false);
+		}
 	}
 }

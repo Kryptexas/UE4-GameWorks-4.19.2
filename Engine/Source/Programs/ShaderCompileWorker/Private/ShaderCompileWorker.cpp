@@ -14,7 +14,7 @@
 #define DEBUG_USING_CONSOLE	0
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 7;
+const int32 ShaderCompileWorkerInputVersion = 8;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerOutputVersion = 3;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -259,6 +259,18 @@ private:
 		InputFile << ReceivedFormatVersionMap;
 
 		VerifyFormatVersions(ReceivedFormatVersionMap);
+		
+		// Apply shader source directory mappings.
+		{
+			TMap<FString, FString> DirectoryMappings;
+			InputFile << DirectoryMappings;
+
+			FPlatformProcess::ResetAllShaderSourceDirectoryMappings();
+			for (const auto& MappingEntry : DirectoryMappings)
+			{
+				FPlatformProcess::AddShaderSourceDirectoryMapping(MappingEntry.Key, MappingEntry.Value);
+			}
+		}
 
 		// Individual jobs
 		{
@@ -565,7 +577,6 @@ static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
 static FName NAME_PCD3D_ES3_1(TEXT("PCD3D_ES31"));
 static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
-static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
 static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
 static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
@@ -584,6 +595,7 @@ static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
 static FName NAME_VULKAN_SM4_UB(TEXT("SF_VULKAN_SM4_UB"));
 static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5_UB(TEXT("SF_VULKAN_SM5_UB"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
@@ -596,7 +608,6 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_ES3_1)		return SP_PCD3D_ES3_1;
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
-	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)	return SP_XBOXONE_D3D11;
 	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)	return SP_XBOXONE_D3D12;
@@ -616,6 +627,7 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
 	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_VULKAN_SM4_UB)		return SP_VULKAN_SM4;
+	if (ShaderFormat == NAME_VULKAN_SM5_UB)		return SP_VULKAN_SM5;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID) return SP_OPENGL_ES3_1_ANDROID;
@@ -713,7 +725,7 @@ static void DirectCompile(const TArray<const class IShaderFormat*>& ShaderFormat
 	FShaderCompilerInput Input;
 	Input.EntryPointName = Entry;
 	Input.ShaderFormat = FormatName;
-	Input.SourceFilename = InputFile;
+	Input.VirtualSourceFilePath = InputFile;
 	Input.Target.Platform =  FormatNameToEnum(FormatName);
 	Input.Target.Frequency = Frequency;
 	Input.bSkipPreprocessedCache = !bUseMCPP;

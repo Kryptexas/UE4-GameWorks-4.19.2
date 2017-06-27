@@ -161,6 +161,20 @@ public:
 		return TimestampQueryPool;
 	}
 
+	inline class FVulkanPipelineStateCache* GetPipelineStateCache()
+	{
+		return PipelineStateCache;
+	}
+
+	void NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline);
+	void NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline);
+	
+	struct FOptionalVulkanDeviceExtensions
+	{
+		uint32 HasKHRMaintenance1 : 1;
+	};
+	const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
+
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat, int32 BlockBytes);
@@ -200,6 +214,10 @@ private:
 	FVulkanCommandListContext* ImmediateContext;
 
 	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
+
+	void ParseOptionalDeviceExtensions(const TArray<const ANSICHAR*>& DeviceExtensions);
+	FOptionalVulkanDeviceExtensions OptionalDeviceExtensions;
+
 	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -211,5 +229,4 @@ private:
 
 	class FVulkanPipelineStateCache* PipelineStateCache;
 	friend class FVulkanDynamicRHI;
-	friend class FVulkanBoundShaderState;
 };

@@ -69,7 +69,7 @@ FVulkanVertexInputStateInfo::FVulkanVertexInputStateInfo()
 	FMemory::Memzero(Bindings);
 }
 
-void FVulkanVertexInputStateInfo::Create(FVulkanVertexDeclaration* VertexDeclaration, uint32 VertexHeaderInOutAttributeMask)
+void FVulkanVertexInputStateInfo::Generate(FVulkanVertexDeclaration* VertexDeclaration, uint32 VertexHeaderInOutAttributeMask)
 {
 	// GenerateVertexInputState is expected to be called only once!
 	check(Info.sType == 0);

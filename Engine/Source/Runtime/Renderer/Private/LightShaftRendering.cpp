@@ -283,7 +283,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FDownsampleLightShaftsVertexShader,TEXT("LightShaftShader"),TEXT("DownsampleLightShaftsVertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FDownsampleLightShaftsVertexShader,TEXT("/Engine/Private/LightShaftShader.usf"),TEXT("DownsampleLightShaftsVertexMain"),SF_Vertex);
 
 /*-----------------------------------------------------------------------------
 	TDownsampleLightShaftsPixelShader
@@ -351,7 +351,7 @@ private:
 
 #define IMPLEMENT_LSDOWNSAMPLE_PIXELSHADER_TYPE(LightType,DownsampleValue) \
 	typedef TDownsampleLightShaftsPixelShader<LightType, DownsampleValue> TDownsampleLightShaftsPixelShader##LightType##DownsampleValue; \
-	IMPLEMENT_SHADER_TYPE(template<>,TDownsampleLightShaftsPixelShader##LightType##DownsampleValue,TEXT("LightShaftShader"),TEXT("DownsampleLightShaftsPixelMain"),SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,TDownsampleLightShaftsPixelShader##LightType##DownsampleValue,TEXT("/Engine/Private/LightShaftShader.usf"),TEXT("DownsampleLightShaftsPixelMain"),SF_Pixel);
 
 IMPLEMENT_LSDOWNSAMPLE_PIXELSHADER_TYPE(LightType_Point, true);
 IMPLEMENT_LSDOWNSAMPLE_PIXELSHADER_TYPE(LightType_Spot, true);
@@ -415,7 +415,7 @@ private:
 	FLightShaftPixelShaderParameters LightShaftParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FBlurLightShaftsPixelShader,TEXT("LightShaftShader"),TEXT("BlurLightShaftsMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FBlurLightShaftsPixelShader,TEXT("/Engine/Private/LightShaftShader.usf"),TEXT("BlurLightShaftsMain"),SF_Pixel);
 
 /*-----------------------------------------------------------------------------
 	FFinishOcclusionPixelShader
@@ -461,7 +461,7 @@ private:
 	FLightShaftPixelShaderParameters LightShaftParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FFinishOcclusionPixelShader,TEXT("LightShaftShader"),TEXT("FinishOcclusionMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FFinishOcclusionPixelShader,TEXT("/Engine/Private/LightShaftShader.usf"),TEXT("FinishOcclusionMain"),SF_Pixel);
 
 void AllocateOrReuseLightShaftRenderTarget(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name)
 {
@@ -914,7 +914,7 @@ private:
 	FShaderResourceParameter SourceTextureSamplerParameter;
 };
 
-IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("LightShaftShader"),TEXT("ApplyLightShaftsPixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("/Engine/Private/LightShaftShader.usf"),TEXT("ApplyLightShaftsPixelMain"),SF_Pixel);
 
 void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
 {

@@ -252,7 +252,8 @@ inline float FQuadric::Evaluate( const FVector& Point ) const
 	double Q = vAv + 2.0 * btv + d2;
 	
 	//check( Q > -1.0 );
-	check( FMath::IsFinite( Q ) );
+	checkSlow( FMath::IsFinite( Q ) );
+	ensure( FMath::IsFinite( Q ) );
 
 	return Q;
 }
@@ -613,7 +614,8 @@ inline float TQuadricAttr< NumAttributes >::Evaluate( const FVector& Point, cons
 	double Q = vAv + 2.0 * btv + d2;
 
 	//check( Q > -1.0 );
-	check( FMath::IsFinite( Q ) );
+	checkSlow(FMath::IsFinite(Q));
+	ensure( FMath::IsFinite( Q ) );
 
 	return Q;
 }

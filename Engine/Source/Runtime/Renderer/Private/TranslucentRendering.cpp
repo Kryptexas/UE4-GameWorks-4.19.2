@@ -100,7 +100,7 @@ static bool RenderInSeparateTranslucency(const FSceneRenderTargets& SceneContext
 	return false;
 }
 
-bool FTranslucencyDrawingPolicyFactory::ContextType::ShouldDraw(const FViewInfo& View, const FMaterial* Material, bool bIsSeparateTranslucency) const
+bool FTranslucencyDrawingPolicyFactory::ContextType::ShouldDraw(const FMaterial* Material, bool bIsSeparateTranslucency) const
 {
 	bool bShouldDraw = false;
 
@@ -116,7 +116,7 @@ bool FTranslucencyDrawingPolicyFactory::ContextType::ShouldDraw(const FViewInfo&
 			}
 			// Only draw meshes in the relevant pass
 			const ETranslucencyPass::Type MaterialPass = Material->IsTranslucencyAfterDOFEnabled() ? ETranslucencyPass::TPT_TranslucencyAfterDOF : ETranslucencyPass::TPT_StandardTranslucency;
-			if (TranslucencyPass == MaterialPass || (!View.Family->EngineShowFlags.PostProcessing && MaterialPass == ETranslucencyPass::TPT_TranslucencyAfterDOF && TranslucencyPass == ETranslucencyPass::TPT_StandardTranslucency))
+			if (TranslucencyPass == MaterialPass)
 			{
 				bShouldDraw = true;
 			}
@@ -323,7 +323,7 @@ private:
 	FSceneTextureShaderParameters SceneTextureParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopySceneColorPS,TEXT("TranslucentLightingShaders"),TEXT("CopySceneColorMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCopySceneColorPS,TEXT("/Engine/Private/TranslucentLightingShaders.usf"),TEXT("CopySceneColorMain"),SF_Pixel);
 
 void FTranslucencyDrawingPolicyFactory::CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
@@ -510,7 +510,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
 	// Only render relevant materials
-	if (DrawingContext.ShouldDraw(View, Material, SceneContext.IsSeparateTranslucencyPass()))
+	if (DrawingContext.ShouldDraw(Material, SceneContext.IsSeparateTranslucencyPass()))
 		{
 			FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
@@ -812,7 +812,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 
 				// Only render visible elements with relevant materials
-				if (View.StaticMeshVisibilityMap[StaticMesh.Id] && Context.ShouldDraw(View, StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel), FSceneRenderTargets::Get(RHICmdList).IsSeparateTranslucencyPass()))
+				if (View.StaticMeshVisibilityMap[StaticMesh.Id] && Context.ShouldDraw(StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel), FSceneRenderTargets::Get(RHICmdList).IsSeparateTranslucencyPass()))
 					{
 						FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 							RHICmdList,
@@ -1372,7 +1372,7 @@ public:
 	FTranslucencySimpleUpsamplingPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FTranslucencyUpsamplingPS(Initializer, false) {}
 };
 					
-IMPLEMENT_SHADER_TYPE(,FTranslucencySimpleUpsamplingPS,TEXT("TranslucencyUpsampling"),TEXT("SimpleUpsamplingPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FTranslucencySimpleUpsamplingPS,TEXT("/Engine/Private/TranslucencyUpsampling.usf"),TEXT("SimpleUpsamplingPS"),SF_Pixel);
 
 class FTranslucencyNearestDepthNeighborUpsamplingPS : public FTranslucencyUpsamplingPS
 {
@@ -1383,7 +1383,7 @@ public:
 	FTranslucencyNearestDepthNeighborUpsamplingPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FTranslucencyUpsamplingPS(Initializer, true) {}
 };
 
-IMPLEMENT_SHADER_TYPE(,FTranslucencyNearestDepthNeighborUpsamplingPS,TEXT("TranslucencyUpsampling"),TEXT("NearestDepthNeighborUpsamplingPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FTranslucencyNearestDepthNeighborUpsamplingPS,TEXT("/Engine/Private/TranslucencyUpsampling.usf"),TEXT("NearestDepthNeighborUpsamplingPS"),SF_Pixel);
 
 bool UseNearestDepthNeighborUpsampleForSeparateTranslucency(const FSceneRenderTargets& SceneContext)
 					{
@@ -1456,6 +1456,3 @@ void FTranslucencyDrawingPolicyFactory::UpsampleTranslucency(FRHICommandList& RH
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 }
-
-
-

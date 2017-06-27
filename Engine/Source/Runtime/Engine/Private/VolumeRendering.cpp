@@ -8,8 +8,8 @@
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
 
-IMPLEMENT_SHADER_TYPE(,FWriteToSliceGS,TEXT("TranslucentLightingShaders"),TEXT("WriteToSliceMainGS"),SF_Geometry);
-IMPLEMENT_SHADER_TYPE(,FWriteToSliceVS,TEXT("TranslucentLightingShaders"),TEXT("WriteToSliceMainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FWriteToSliceGS,TEXT("/Engine/Private/TranslucentLightingShaders.usf"),TEXT("WriteToSliceMainGS"),SF_Geometry);
+IMPLEMENT_SHADER_TYPE(,FWriteToSliceVS,TEXT("/Engine/Private/TranslucentLightingShaders.usf"),TEXT("WriteToSliceMainVS"),SF_Vertex);
 
 TGlobalResource<FVolumeRasterizeVertexBuffer> GVolumeRasterizeVertexBuffer;
 

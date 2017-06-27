@@ -316,7 +316,7 @@ public:
 	 */
 	virtual class FFXSystemInterface* GetFXSystem() = 0;
 
-	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const { }
+	virtual void DumpUnbuiltLightInteractions( FOutputDevice& Ar ) const { }
 
 	/**
 	 * Dumps static mesh draw list stats to the log.

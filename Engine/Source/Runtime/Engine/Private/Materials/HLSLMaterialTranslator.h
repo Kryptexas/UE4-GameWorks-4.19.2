@@ -829,7 +829,7 @@ public:
 				ResourcesString += CustomOutputImplementations[ExpressionIndex] + "\r\n\r\n";
 			}
 
-			LoadShaderSourceFileChecked(TEXT("MaterialTemplate"), MaterialTemplate);
+			LoadShaderSourceFileChecked(TEXT("/Engine/Private/MaterialTemplate.ush"), MaterialTemplate);
 
 			// Find the string index of the '#line' statement in MaterialTemplate.usf
 			const int32 LineIndex = MaterialTemplate.Find(TEXT("#line"), ESearchCase::CaseSensitive);
@@ -1016,7 +1016,7 @@ public:
 
 	FString GetMaterialShaderCode()
 	{	
-		// use "MaterialTemplate.usf" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
+		// use "/Engine/Private/MaterialTemplate.ush" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
 		FLazyPrintf LazyPrintf(*MaterialTemplate);
 
 		const uint32 NumCustomVectors = FMath::DivideAndRoundUp((uint32)CurrentCustomVertexInterpolatorOffset, 2u);
@@ -4013,6 +4013,21 @@ protected:
 		return AddCodeChunk(GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
 	}
 
+	virtual int32 Logarithm10(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+		
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionLogarithm10(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("log10(%s)"),*GetParameterCode(X));
+		}
+
+		return AddCodeChunk(GetParameterType(X),TEXT("log10(%s)"),*GetParameterCode(X));
+	}
+
 	virtual int32 SquareRoot(int32 X) override
 	{
 		if(X == INDEX_NONE)
@@ -4735,19 +4750,28 @@ protected:
 
 	virtual int32 Sobol(int32 Cell, int32 Index, int32 Seed) override
 	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
 		return AddCodeChunk(MCT_Float2,
-			TEXT("floor(%s) + float2(DirectSobol(PixelSobol(uint2(%s), uint(%s) & 7u), uint(%s) >> 3u).xy ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			TEXT("floor(%s) + float2(SobolIndex(SobolPixel(uint2(%s)), uint(%s)) ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
 			*GetParameterCode(Cell),
 			*GetParameterCode(Cell),
-			*GetParameterCode(Index),
 			*GetParameterCode(Index),
 			*GetParameterCode(Seed));
 	}
 
 	virtual int32 TemporalSobol(int32 Index, int32 Seed) override
 	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
 		return AddCodeChunk(MCT_Float2,
-			TEXT("float2(DirectSobol(PixelSobol(uint2(Parameters.SvPosition.xy), View.FrameNumber), uint(%s)).xy ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			TEXT("float2(SobolIndex(SobolPixel(uint2(Parameters.SvPosition.xy)), uint(View.StateFrameIndexMod8 + 8 * %s)) ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
 			*GetParameterCode(Index),
 			*GetParameterCode(Seed));
 	}

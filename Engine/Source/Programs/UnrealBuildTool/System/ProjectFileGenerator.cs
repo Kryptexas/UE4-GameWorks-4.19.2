@@ -971,7 +971,14 @@ namespace UnrealBuildTool
 						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( GameBuildDirectory, SubdirectoryNamesToExclude ), GameProjectDirectory );
 					}
 				}
-			}
+
+                DirectoryReference GameShaderDirectory = DirectoryReference.Combine(GameProjectDirectory, "Shaders");
+                if (DirectoryReference.Exists(GameShaderDirectory))
+                {
+                    ProjectFile GameProjectFile = GameFolderAndProjectFile.Value;
+                    GameProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(GameShaderDirectory), GameProjectDirectory);
+                }
+            }
 		}
 
 
@@ -1676,8 +1683,15 @@ namespace UnrealBuildTool
 			if(DirectoryReference.Exists(PluginResourcesFolder))
 			{
 				ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(PluginResourcesFolder), BaseFolder );
-			}
-		}
+            }
+
+            // Add plugin shader files if we have any
+            DirectoryReference PluginShadersFolder = DirectoryReference.Combine(PluginFileName.Directory, "Shaders");
+            if (DirectoryReference.Exists(PluginShadersFolder))
+            {
+                ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(PluginShadersFolder), BaseFolder);
+            }
+        }
 
 		private ProjectFile FindProjectForModule(FileReference CurModuleFile, List<UProjectInfo> AllGames, Dictionary<FileReference, ProjectFile> ProgramProjects, Dictionary<DirectoryReference, ProjectFile> ModProjects, out DirectoryReference BaseFolder)
 		{

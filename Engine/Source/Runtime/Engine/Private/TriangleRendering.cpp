@@ -182,7 +182,7 @@ void FTriangleRenderer::DrawTriangleUsingVertexColor(FRHICommandListImmediate& R
 {
 	FMaterialTriangleVertex DestVertex[3];
 
-	// create verts
+	// create verts. Notice the order is (1, 0, 2)
 	if (bNeedsToSwitchVerticalAxis)
 	{
 		DestVertex[0].Initialize(Tri.V1_Pos.X, View.ViewRect.Height() - Tri.V1_Pos.Y, Tri.V1_UV.X, Tri.V1_UV.Y);
@@ -196,8 +196,9 @@ void FTriangleRenderer::DrawTriangleUsingVertexColor(FRHICommandListImmediate& R
 		DestVertex[2].Initialize(Tri.V2_Pos.X, Tri.V2_Pos.Y, Tri.V2_UV.X, Tri.V2_UV.Y);
 	}
 
-	DestVertex[0].Color = Tri.V0_Color.ToFColor(true).DWColor();
-	DestVertex[1].Color = Tri.V1_Color.ToFColor(true).DWColor();
+	// Notice the order is (1, 0, 2)
+	DestVertex[0].Color = Tri.V1_Color.ToFColor(true).DWColor();
+	DestVertex[1].Color = Tri.V0_Color.ToFColor(true).DWColor();
 	DestVertex[2].Color = Tri.V2_Color.ToFColor(true).DWColor();
 
 	// update the FMeshBatch

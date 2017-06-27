@@ -152,7 +152,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessVisualizeDOF");
+		return TEXT("/Engine/Private/PostProcessVisualizeDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -419,7 +419,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessBokehDOF");
+		return TEXT("/Engine/Private/PostProcessBokehDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -496,7 +496,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FRCPassPostProcessBokehDOFSetupCS,TEXT("PostProcessBokehDOF"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRCPassPostProcessBokehDOFSetupCS,TEXT("/Engine/Private/PostProcessBokehDOF.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -714,7 +714,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessBokehDOF");
+		return TEXT("/Engine/Private/PostProcessBokehDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -785,7 +785,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBokehDOFPS,TEXT("PostProcessBokehDOF"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBokehDOFPS,TEXT("/Engine/Private/PostProcessBokehDOF.usf"),TEXT("MainPS"),SF_Pixel);
 
 // #define avoids a lot of code duplication
 #define VARIATION1(A) typedef FPostProcessBokehDOFVS<A> FPostProcessBokehDOFVS##A; \

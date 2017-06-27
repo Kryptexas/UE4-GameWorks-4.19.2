@@ -220,7 +220,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -416,7 +416,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -632,7 +632,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -845,7 +845,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

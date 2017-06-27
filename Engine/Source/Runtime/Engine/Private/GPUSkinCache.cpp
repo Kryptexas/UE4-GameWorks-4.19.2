@@ -485,7 +485,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("GpuSkinCacheComputeShader");
+		return TEXT("/Engine/Private/GpuSkinCacheComputeShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -642,7 +642,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("RecomputeTangentsPerTrianglePass");
+		return TEXT("/Engine/Private/RecomputeTangentsPerTrianglePass.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -764,7 +764,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FRecomputeTangentsPerVertexPassCS,TEXT("RecomputeTangentsPerVertexPass"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRecomputeTangentsPerVertexPassCS,TEXT("/Engine/Private/RecomputeTangentsPerVertexPass.usf"),TEXT("MainCS"),SF_Compute);
 
 void FGPUSkinCache::DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 SectionIndex)
 {

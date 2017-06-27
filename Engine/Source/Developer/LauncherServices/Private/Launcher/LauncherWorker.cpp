@@ -69,9 +69,11 @@ uint32 FLauncherWorker::Run( )
 					StringArray[Index].TrimTrailing();
 					OutputMessageReceived.Broadcast(StringArray[Index]);
 				}
-                Line = StringArray[count-1];
-                if (NewLine.EndsWith(TEXT("\n")))
-                    Line += TEXT("\n");
+				Line = StringArray[count-1];
+				if (NewLine.EndsWith(TEXT("\n")))
+				{
+					Line += TEXT("\n");
+				}
 			}
 		}
 
@@ -93,9 +95,11 @@ uint32 FLauncherWorker::Run( )
 						StringArray[Index].TrimTrailing();
 						OutputMessageReceived.Broadcast(StringArray[Index]);
 					}
-                    Line = StringArray[count-1];
-                    if (NewLine.EndsWith(TEXT("\n")))
-                        Line += TEXT("\n");
+					Line = StringArray[count-1];
+					if (NewLine.EndsWith(TEXT("\n")))
+					{
+						Line += TEXT("\n");
+					}
 				}
 
 				NewLine = FPlatformProcess::ReadPipe(ReadPipe);
@@ -234,6 +238,11 @@ static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxy
 	if (FParse::Param(FCommandLine::Get(), TEXT("opengl")))
 	{
 		RoleCommands += TEXT(" -opengl");
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("vulkan")))
+	{
+		RoleCommands += TEXT(" -vulkan");
 	}
 }
 

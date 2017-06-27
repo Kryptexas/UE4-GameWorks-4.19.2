@@ -171,6 +171,7 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 {
 	bCaptureEveryFrame = true;
 	bCaptureOnMovement = true;
+	bAlwaysPersistRenderingState = false;
 	LODDistanceFactor = 1.0f;
 	MaxViewDistanceOverride = -1;
 	CaptureSortPriority = 0;
@@ -232,6 +233,8 @@ void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
 {
 	if (InComponent)
 	{
+		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
+		PrimitiveRenderMode = PRM_UseShowOnlyList;
 		ShowOnlyComponents.Add(InComponent);
 	}
 }
@@ -240,6 +243,9 @@ void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
 {
 	if (InActor)
 	{
+		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
+		PrimitiveRenderMode = PRM_UseShowOnlyList;
+
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 		InActor->GetComponents(PrimitiveComponents);
 		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
@@ -285,12 +291,12 @@ FSceneViewStateInterface* USceneCaptureComponent::GetViewState(int32 ViewIndex)
 	}
 
 	FSceneViewStateInterface* ViewStateInterface = ViewStates[ViewIndex].GetReference();
-	if (bCaptureEveryFrame && ViewStateInterface == NULL)
+	if ((bCaptureEveryFrame || bAlwaysPersistRenderingState) && ViewStateInterface == NULL)
 	{
 		ViewStates[ViewIndex].Allocate();
 		ViewStateInterface = ViewStates[ViewIndex].GetReference();
 	}
-	else if (!bCaptureEveryFrame && ViewStateInterface)
+	else if (!bCaptureEveryFrame && ViewStateInterface && !bAlwaysPersistRenderingState)
 	{
 		ViewStates[ViewIndex].Destroy();
 		ViewStateInterface = NULL;
@@ -317,6 +323,27 @@ void USceneCaptureComponent::UpdateShowFlags()
 }
 
 #if WITH_EDITOR
+
+bool USceneCaptureComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, HiddenActors))
+		{
+			return PrimitiveRenderMode == PRM_RenderScenePrimitives;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, ShowOnlyActors))
+		{
+			return PrimitiveRenderMode == PRM_UseShowOnlyList;
+		}
+	}
+
+	return true;
+}
+
 void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -332,19 +359,19 @@ void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent
 }
 #endif
 
-bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut)
+void USceneCaptureComponent::Serialize(FArchive& Ar)
 {
-	bool HasSetting = false;
-	for (int32 ShowFlagSettingsIndex = 0; ShowFlagSettingsIndex < ShowFlagSettings.Num(); ++ShowFlagSettingsIndex)
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::AddedbUseShowOnlyList)
 	{
-		if (ShowFlagSettings[ShowFlagSettingsIndex].ShowFlagName.Equals(FlagName))
+		if (ShowOnlyActors.Num() > 0 || ShowOnlyComponents.Num() > 0)
 		{
-			HasSetting = true;
-			*ShowFlagSettingOut = &(ShowFlagSettings[ShowFlagSettingsIndex]);
-			break;
+			PrimitiveRenderMode = PRM_UseShowOnlyList;
 		}
-	}	
-	return HasSetting;
+	}
 }
 
 void USceneCaptureComponent::UpdateDeferredCaptures(FSceneInterface* Scene)
@@ -384,6 +411,16 @@ void USceneCaptureComponent::UpdateDeferredCaptures(FSceneInterface* Scene)
 	SceneCapturesToUpdateMap.Remove(World);
 }
 
+void USceneCaptureComponent::OnUnregister()
+{
+	for (int32 ViewIndex = 0; ViewIndex < ViewStates.Num(); ViewIndex++)
+	{
+		ViewStates[ViewIndex].Destroy();
+	}
+
+	Super::OnUnregister();
+}
+
 // -----------------------------------------------
 
 
@@ -405,6 +442,7 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 	CustomProjectionMatrix.SetIdentity();
 	ClipPlaneNormal = FVector(0, 0, 1);
+	bCameraCutThisFrame = false;
 	
 	// Legacy initialization.
 	{
@@ -525,7 +563,7 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 		}
 	}
 
-	return true;
+	return Super::CanEditChange(InProperty);
 }
 
 void USceneCaptureComponent2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

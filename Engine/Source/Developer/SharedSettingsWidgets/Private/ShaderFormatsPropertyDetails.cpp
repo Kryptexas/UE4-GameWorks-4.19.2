@@ -42,7 +42,6 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 			FriendlyRHIName = LOCTEXT("D3DES2", "Direct3D (ES2, Mobile Preview)");
 			break;
 		case SP_OPENGL_SM4:
-		case SP_OPENGL_SM4_MAC:
 			FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4)");
 			break;
 		case SP_OPENGL_SM5:

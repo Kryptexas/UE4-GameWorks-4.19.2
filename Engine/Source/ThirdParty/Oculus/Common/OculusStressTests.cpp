@@ -343,7 +343,7 @@ void FPixelShaderDeclaration::UnbindBuffers(FRHICommandList& RHICmdList)
 	}
 }
 
-IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("OculusStressShaders"), TEXT("MainPixelShader"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("/Engine/Private/OculusStressShaders.usf"), TEXT("MainPixelShader"), SF_Pixel);
 
 // Console commands for managing the stress tester:
 

@@ -382,6 +382,8 @@ private:
 	/** Filters the translucency lighting volumes to reduce aliasing. */
 	void FilterTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
 
+	bool ShouldRenderVolumetricFog() const;
+
 	void SetupVolumetricFog();
 
 	void RenderLocalLightsForVolumetricFog(

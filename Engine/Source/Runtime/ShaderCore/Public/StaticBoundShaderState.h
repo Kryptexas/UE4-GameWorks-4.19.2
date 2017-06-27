@@ -99,27 +99,3 @@ private:
 
 	FGlobalBoundShaderStateWorkArea* WorkAreas[ERHIFeatureLevel::Num];
 };
-
-
-
-/**
- * SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
- *
- * @param RHICmdList				- cmdlist to add to
- * @param BoundShaderState			- current bound shader state, will be updated if it wasn't a valid ref
- * @param VertexDeclaration			- the vertex declaration to use in creating the new bound shader state
- * @param VertexShader				- the vertex shader to use in creating the new bound shader state
- * @param PixelShader				- the pixel shader to use in creating the new bound shader state
- * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
- */
-
-DEPRECATED(4.15, "Use functionality in PipelineStateCache.h")
-SHADERCORE_API void SetGlobalBoundShaderState(
-	FRHICommandList& RHICmdList,
-	ERHIFeatureLevel::Type FeatureLevel,
-	FGlobalBoundShaderState& BoundShaderState,
-	FVertexDeclarationRHIParamRef VertexDeclaration,
-	FShader* VertexShader,
-	FShader* PixelShader,
-	FShader* GeometryShader = nullptr
-	);

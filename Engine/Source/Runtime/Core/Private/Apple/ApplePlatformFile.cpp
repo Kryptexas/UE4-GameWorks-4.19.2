@@ -223,7 +223,7 @@ private:
 			{
 				ReserveSlot();
 
-				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY);
+				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY | O_SHLOCK);
 				if( FileHandle != -1 )
 				{
 					lseek(FileHandle, FileOffset, SEEK_SET);
@@ -486,6 +486,15 @@ IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);
 	if (Handle != -1)
 	{
+#if PLATFORM_MAC && !UE_BUILD_SHIPPING
+		// No blocking attempt shared lock, failure means we should not have opened the file for reading, protect against multiple instances and client/server versions
+		if(flock(Handle, LOCK_NB | LOCK_SH) == -1)
+		{
+			close(Handle);
+			return NULL;
+		}
+#endif
+		
 #if MANAGE_FILE_HANDLES
 		return new FFileHandleApple(Handle, *NormalizeDirectory(Filename), true);
 #else
@@ -498,10 +507,7 @@ IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 IFileHandle* FApplePlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
 	int Flags = O_CREAT;
-	if (!bAppend)
-	{
-		Flags |= O_TRUNC;
-	}
+	
 	if (bAllowRead)
 	{
 		Flags |= O_RDWR;
@@ -510,9 +516,26 @@ IFileHandle* FApplePlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	{
 		Flags |= O_WRONLY;
 	}
+	
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	
 	if (Handle != -1)
 	{
+#if PLATFORM_MAC && !UE_BUILD_SHIPPING
+		// No blocking attempt exclusive lock, failure means we should not have opened the file for writing, protect against multiple instances and client/server versions
+		if(flock(Handle, LOCK_NB | LOCK_EX) == -1)
+		{
+			close(Handle);
+			return NULL;
+		}
+#endif
+		
+		// Truncate after locking as lock may fail - don't use O_TRUNC in open flags
+		if(!bAppend)
+		{
+			ftruncate(Handle, 0);
+		}
+
 #if MANAGE_FILE_HANDLES
 		FFileHandleApple* FileHandleApple = new FFileHandleApple(Handle, *NormalizeDirectory(Filename), false);
 #else

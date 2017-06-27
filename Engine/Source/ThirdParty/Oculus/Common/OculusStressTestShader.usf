@@ -1,4 +1,4 @@
-#include "Common.usf"
+#include "Common.ush"
 
 void MainVertexShader(
 	float4 InPosition : ATTRIBUTE0,

@@ -385,7 +385,7 @@ void FShadowMapPendingTexture::StartEncoding(ULevel* LightingScenario, ITextureC
 	}
 
 	// Update the texture resource.
-	Texture->CachePlatformData(true, true, Compressor);
+	Texture->CachePlatformData(true, true, false, Compressor);
 
 	bFinishedEncoding = true;
 }

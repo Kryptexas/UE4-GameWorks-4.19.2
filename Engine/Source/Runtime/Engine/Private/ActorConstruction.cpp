@@ -251,6 +251,7 @@ void AActor::RerunConstructionScripts()
 		FComponentInstanceDataCache* InstanceDataCache;
 		
 		FTransform OldTransform = FTransform::Identity;
+		FRotationConversionCache OldTransformRotationCache; // Enforces using the same Rotator.
 		FName  SocketName;
 		AActor* Parent = nullptr;
 		USceneComponent* AttachParentComponent = nullptr;
@@ -280,6 +281,7 @@ void AActor::RerunConstructionScripts()
 		if (ActorTransactionAnnotation->bRootComponentDataCached)
 		{
 			OldTransform = ActorTransactionAnnotation->RootComponentData.Transform;
+			OldTransformRotationCache = ActorTransactionAnnotation->RootComponentData.TransformRotationCache;
 			Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
 			if (Parent)
 			{
@@ -366,6 +368,7 @@ void AActor::RerunConstructionScripts()
 				// (Component transform may be stale if we are here following an Undo)
 				RootComponent->UpdateComponentToWorld();
 				OldTransform = RootComponent->GetComponentTransform();
+				OldTransformRotationCache = RootComponent->GetRelativeRotationCache();
 			}
 		}
 
@@ -488,7 +491,7 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		const bool bErrorFree = ExecuteConstruction(OldTransform, InstanceDataCache);
+		const bool bErrorFree = ExecuteConstruction(OldTransform, &OldTransformRotationCache, InstanceDataCache);
 
 		if(Parent)
 		{
@@ -641,7 +644,7 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
-bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
+bool AActor::ExecuteConstruction(const FTransform& Transform, const FRotationConversionCache* TransformRotationCache, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
@@ -650,6 +653,10 @@ bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	// we can skip this in the default case as the given transform will be the root component's transform
 	if (RootComponent && !bIsDefaultTransform)
 	{
+		if (TransformRotationCache)
+		{
+			RootComponent->SetRelativeRotationCache(*TransformRotationCache);
+		}
 		RootComponent->SetWorldTransform(Transform);
 	}
 
@@ -712,7 +719,7 @@ bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 				if (SCS)
 				{
 					SCS->CreateNameToSCSNodeMap();
-					SCS->ExecuteScriptOnActor(this, NativeSceneComponents, Transform, bIsDefaultTransform);
+					SCS->ExecuteScriptOnActor(this, NativeSceneComponents, Transform, TransformRotationCache, bIsDefaultTransform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
 				UBlueprintGeneratedClass::CreateComponentsForActor(CurrentBPGClass, this);

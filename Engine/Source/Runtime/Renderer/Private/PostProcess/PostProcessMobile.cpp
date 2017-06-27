@@ -135,18 +135,18 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupVS_ES2,TEXT("PostProcessMobile"),TEXT("BloomVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomVS_ES2"),SF_Vertex);
 
 typedef FPostProcessBloomSetupPS_ES2<0> FPostProcessBloomSetupPS_ES2_0;
 typedef FPostProcessBloomSetupPS_ES2<1> FPostProcessBloomSetupPS_ES2_1;
 typedef FPostProcessBloomSetupPS_ES2<2> FPostProcessBloomSetupPS_ES2_2;
 typedef FPostProcessBloomSetupPS_ES2<3> FPostProcessBloomSetupPS_ES2_3;
 typedef FPostProcessBloomSetupPS_ES2<4> FPostProcessBloomSetupPS_ES2_4;
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_0,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_1,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_2,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_3,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_4,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_0,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_1,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_3,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_4,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomPS_ES2"),SF_Pixel);
 
 template <uint32 UseSunDof>
 static void BloomSetup_SetShader(const FRenderingCompositePassContext& Context)
@@ -380,9 +380,9 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallVS_ES2,TEXT("PostProcessMobile"),TEXT("BloomSmallVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomSmallVS_ES2"),SF_Vertex);
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallPS_ES2,TEXT("PostProcessMobile"),TEXT("BloomSmallPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomSmallPS_ES2"),SF_Pixel);
 
 
 void FRCPassPostProcessBloomSetupSmallES2::SetShader(const FRenderingCompositePassContext& Context)
@@ -544,7 +544,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomDownPS_ES2,TEXT("PostProcessMobile"),TEXT("BloomDownPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomDownPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomDownPS_ES2"),SF_Pixel);
 
 
 class FPostProcessBloomDownVS_ES2 : public FGlobalShader
@@ -585,7 +585,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomDownVS_ES2,TEXT("PostProcessMobile"),TEXT("BloomDownVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomDownVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomDownVS_ES2"),SF_Vertex);
 
 
 void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Context)
@@ -726,7 +726,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomUpPS_ES2,TEXT("PostProcessMobile"),TEXT("BloomUpPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomUpPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomUpPS_ES2"),SF_Pixel);
 
 
 class FPostProcessBloomUpVS_ES2 : public FGlobalShader
@@ -767,7 +767,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomUpVS_ES2,TEXT("PostProcessMobile"),TEXT("BloomUpVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomUpVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("BloomUpVS_ES2"),SF_Vertex);
 
 
 void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Context)
@@ -931,9 +931,9 @@ public:
 
 // #define avoids a lot of code duplication
 #define SUNMASK_PS_ES2(A) typedef FPostProcessSunMaskPS_ES2<A,true> FPostProcessSunMaskPS_ES2_DEPTH_##A; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_DEPTH_##A,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"), SF_Pixel); \
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_DEPTH_##A,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMaskPS_ES2"), SF_Pixel); \
 	typedef FPostProcessSunMaskPS_ES2<A,false> FPostProcessSunMaskPS_ES2_##A; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_##A,TEXT("PostProcessMobile"),TEXT("SunMaskPS_ES2"), SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMaskPS_ES2_##A,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMaskPS_ES2"), SF_Pixel);
 
 SUNMASK_PS_ES2(0)  SUNMASK_PS_ES2(1)  SUNMASK_PS_ES2(2)  SUNMASK_PS_ES2(3)  SUNMASK_PS_ES2(4)
 SUNMASK_PS_ES2(5)  SUNMASK_PS_ES2(6)  SUNMASK_PS_ES2(7)  SUNMASK_PS_ES2(8)
@@ -976,7 +976,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunMaskVS_ES2,TEXT("PostProcessMobile"),TEXT("SunMaskVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunMaskVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMaskVS_ES2"),SF_Vertex);
 
 template <uint32 UseFetchSunDof, bool bUseDepthTexture>
 static void SunMask_SetShader(const FRenderingCompositePassContext& Context)
@@ -1201,8 +1201,8 @@ public:
 
 typedef FPostProcessSunAlphaPS_ES2<0> FPostProcessSunAlphaPS_ES2_0;
 typedef FPostProcessSunAlphaPS_ES2<1> FPostProcessSunAlphaPS_ES2_1;
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunAlphaPS_ES2_0,TEXT("PostProcessMobile"),TEXT("SunAlphaPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunAlphaPS_ES2_1,TEXT("PostProcessMobile"),TEXT("SunAlphaPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunAlphaPS_ES2_0,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunAlphaPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunAlphaPS_ES2_1,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunAlphaPS_ES2"),SF_Pixel);
 
 class FPostProcessSunAlphaVS_ES2 : public FGlobalShader
 {
@@ -1243,7 +1243,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunAlphaVS_ES2,TEXT("PostProcessMobile"),TEXT("SunAlphaVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunAlphaVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunAlphaVS_ES2"),SF_Vertex);
 
 template <uint32 UseDof>
 static void SunAlpha_SetShader(const FRenderingCompositePassContext& Context)
@@ -1398,7 +1398,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunBlurPS_ES2,TEXT("PostProcessMobile"),TEXT("SunBlurPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunBlurPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunBlurPS_ES2"),SF_Pixel);
 
 
 class FPostProcessSunBlurVS_ES2 : public FGlobalShader
@@ -1440,7 +1440,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunBlurVS_ES2,TEXT("PostProcessMobile"),TEXT("SunBlurVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunBlurVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunBlurVS_ES2"),SF_Vertex);
 
 
 void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Context)
@@ -1600,10 +1600,10 @@ typedef FPostProcessSunMergePS_ES2<0> FPostProcessSunMergePS_ES2_0;
 typedef FPostProcessSunMergePS_ES2<1> FPostProcessSunMergePS_ES2_1;
 typedef FPostProcessSunMergePS_ES2<2> FPostProcessSunMergePS_ES2_2;
 typedef FPostProcessSunMergePS_ES2<3> FPostProcessSunMergePS_ES2_3;
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_0,TEXT("PostProcessMobile"),TEXT("SunMergePS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_1,TEXT("PostProcessMobile"),TEXT("SunMergePS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_2,TEXT("PostProcessMobile"),TEXT("SunMergePS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_3,TEXT("PostProcessMobile"),TEXT("SunMergePS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_0,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergePS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_1,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergePS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergePS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessSunMergePS_ES2_3,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergePS_ES2"),SF_Pixel);
 
 
 class FPostProcessSunMergeVS_ES2 : public FGlobalShader
@@ -1645,7 +1645,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeVS_ES2,TEXT("PostProcessMobile"),TEXT("SunMergeVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergeVS_ES2"),SF_Vertex);
 
 
 
@@ -1838,7 +1838,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallPS_ES2,TEXT("PostProcessMobile"),TEXT("SunMergeSmallPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergeSmallPS_ES2"),SF_Pixel);
 
 class FPostProcessSunMergeSmallVS_ES2 : public FGlobalShader
 {
@@ -1875,7 +1875,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallVS_ES2,TEXT("PostProcessMobile"),TEXT("SunMergeSmallVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunMergeSmallVS_ES2"),SF_Vertex);
 
 void FRCPassPostProcessSunMergeSmallES2::SetShader(const FRenderingCompositePassContext& Context)
 {
@@ -2073,12 +2073,12 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessDofDownVS_ES2,TEXT("PostProcessMobile"),TEXT("DofDownVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessDofDownVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofDownVS_ES2"),SF_Vertex);
 
 typedef FPostProcessDofDownPS_ES2<0> FPostProcessDofDownPS_ES2_0;
 typedef FPostProcessDofDownPS_ES2<1> FPostProcessDofDownPS_ES2_1;
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_0,TEXT("PostProcessMobile"),TEXT("DofDownPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_1,TEXT("PostProcessMobile"),TEXT("DofDownPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_0,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofDownPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_1,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofDownPS_ES2"),SF_Pixel);
 
 template <uint32 UseSun>
 static void DofDown_SetShader(const FRenderingCompositePassContext& Context)
@@ -2296,12 +2296,12 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessDofNearVS_ES2,TEXT("PostProcessMobile"),TEXT("DofNearVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessDofNearVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofNearVS_ES2"),SF_Vertex);
 
 typedef FPostProcessDofNearPS_ES2<0> FPostProcessDofNearPS_ES2_0;
 typedef FPostProcessDofNearPS_ES2<1> FPostProcessDofNearPS_ES2_1;
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_0,TEXT("PostProcessMobile"),TEXT("DofNearPS_ES2"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_1,TEXT("PostProcessMobile"),TEXT("DofNearPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_0,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofNearPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_1,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofNearPS_ES2"),SF_Pixel);
 
 template <uint32 UseSun>
 static void DofNear_SetShader(const FRenderingCompositePassContext& Context)
@@ -2457,7 +2457,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessDofBlurPS_ES2,TEXT("PostProcessMobile"),TEXT("DofBlurPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessDofBlurPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofBlurPS_ES2"),SF_Pixel);
 
 
 class FPostProcessDofBlurVS_ES2 : public FGlobalShader
@@ -2495,7 +2495,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessDofBlurVS_ES2,TEXT("PostProcessMobile"),TEXT("DofBlurVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessDofBlurVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("DofBlurVS_ES2"),SF_Vertex);
 
 
 void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Context)
@@ -2631,7 +2631,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgPS_ES2,TEXT("PostProcessMobile"),TEXT("SunAvgPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunAvgPS_ES2"),SF_Pixel);
 
 
 
@@ -2670,7 +2670,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgVS_ES2,TEXT("PostProcessMobile"),TEXT("SunAvgVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("SunAvgVS_ES2"),SF_Vertex);
 
 
 
@@ -2884,7 +2884,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessAaPS_ES2,TEXT("PostProcessMobile"),TEXT("AaPS_ES2"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessAaPS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("AaPS_ES2"),SF_Pixel);
 
 
 
@@ -2923,7 +2923,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessAaVS_ES2,TEXT("PostProcessMobile"),TEXT("AaVS_ES2"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessAaVS_ES2,TEXT("/Engine/Private/PostProcessMobile.usf"),TEXT("AaVS_ES2"),SF_Vertex);
 
 
 

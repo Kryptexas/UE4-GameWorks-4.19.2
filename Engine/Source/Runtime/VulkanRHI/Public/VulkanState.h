@@ -43,8 +43,6 @@ public:
 	FVulkanDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer);
 
 	VkPipelineDepthStencilStateCreateInfo DepthStencilState;
-	uint8 FrontStencilKey;
-	uint8 BackStencilKey;
 };
 
 class FVulkanBlendState : public FRHIBlendState
@@ -54,6 +52,4 @@ public:
 
 	// array the pipeline state can point right to
 	VkPipelineColorBlendAttachmentState BlendStates[MaxSimultaneousRenderTargets];
-
-	uint64 BlendStateKey;
 };

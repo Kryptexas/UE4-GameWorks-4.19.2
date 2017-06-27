@@ -253,7 +253,7 @@ void FVirtualTextureSystem::Update( FRHICommandListImmediate& RHICmdList, ERHIFe
 		FTexturePagePool* RESTRICT		Pool = Space->Pool;
 
 		// Find specific VT in Space
-		uint32 Local_vAddress = 0;
+		uint64 Local_vAddress = 0;
 		IVirtualTexture* RESTRICT VT = Space->Allocator.Find( vAddress, Local_vAddress );
 
 		void* RESTRICT Location = nullptr;

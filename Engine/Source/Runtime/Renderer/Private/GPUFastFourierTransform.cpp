@@ -193,7 +193,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName() { return TEXT("ReorderFFTPassCS"); }
 
 		static bool ShouldCache(EShaderPlatform Platform)
@@ -295,7 +295,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("GroupSharedSubComplexFFTCS"); }
 		
 		static uint32 SubPassLength() { return 2048;}
@@ -399,7 +399,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("ComplexFFTPassCS"); }
 
 		static bool ShouldCache(EShaderPlatform Platform)
@@ -499,7 +499,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName() { return TEXT("PackTwoForOneFFTPassCS"); }
 
 		static bool ShouldCache(EShaderPlatform Platform)
@@ -581,7 +581,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("CopyWindowCS"); }
 
 		static uint32 XThreadCount() { return 1; }
@@ -667,7 +667,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName() { return TEXT("ComplexMultiplyImagesCS"); }
 
 
@@ -826,7 +826,7 @@ namespace GPUFFT
 		DECLARE_SHADER_TYPE(TGSComplexTransformCS, Global);
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("GroupSharedComplexFFTCS"); }
 
 		static bool ShouldCache(EShaderPlatform Platform)
@@ -862,7 +862,7 @@ namespace GPUFFT
 		DECLARE_SHADER_TYPE(TGSTwoForOneTransformCS, Global);
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("GroupSharedTwoForOneFFTCS"); }
 
 		static bool ShouldCache(EShaderPlatform Platform)
@@ -991,7 +991,7 @@ namespace GPUFFT
 		}
 
 		// Used by IMPLEMENT_SHADER_TYPE2
-		static const TCHAR* GetSourceFilename() { return TEXT("GPUFastFourierTransform"); }
+		static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/GPUFastFourierTransform.usf"); }
 		static const TCHAR* GetFunctionName()   { return TEXT("GSConvolutionWithTextureCS"); }
 	
 

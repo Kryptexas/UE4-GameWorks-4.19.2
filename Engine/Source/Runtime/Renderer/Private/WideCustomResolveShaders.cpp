@@ -6,11 +6,11 @@
 #include "PipelineStateCache.h"
 #include "RenderUtils.h"
 
-IMPLEMENT_SHADER_TYPE(, FWideCustomResolveVS, TEXT("WideCustomResolveShaders"), TEXT("WideCustomResolveVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FWideCustomResolveVS, TEXT("/Engine/Private/WideCustomResolveShaders.usf"), TEXT("WideCustomResolveVS"), SF_Vertex);
 
 #define IMPLEMENT_RESOLVE_SHADER(Width, MSAA) \
 	typedef FWideCustomResolvePS<Width,MSAA> FWideCustomResolve##Width##_##MSAA##xPS; \
-	IMPLEMENT_SHADER_TYPE(template<>, FWideCustomResolve##Width##_##MSAA##xPS, TEXT("WideCustomResolveShaders"), TEXT("WideCustomResolvePS"), SF_Pixel)
+	IMPLEMENT_SHADER_TYPE(template<>, FWideCustomResolve##Width##_##MSAA##xPS, TEXT("/Engine/Private/WideCustomResolveShaders.usf"), TEXT("WideCustomResolvePS"), SF_Pixel)
 
 IMPLEMENT_RESOLVE_SHADER(0, 1);
 IMPLEMENT_RESOLVE_SHADER(2, 0);

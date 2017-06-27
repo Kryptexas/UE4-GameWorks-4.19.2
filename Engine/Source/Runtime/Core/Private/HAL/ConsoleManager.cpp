@@ -310,6 +310,7 @@ public:
 	virtual int32 GetInt() const;
 	virtual float GetFloat() const;
 	virtual FString GetString() const;
+	virtual bool IsVariableInt() const { return false; }
 	virtual class TConsoleVariableData<int32>* AsVariableInt() { return 0; }
 	virtual class TConsoleVariableData<float>* AsVariableFloat() { return 0; }
 	virtual class TConsoleVariableData<FString>* AsVariableString() { return 0; }
@@ -348,6 +349,12 @@ template<> FString FConsoleVariable<int32>::GetString() const
 {
 	return FString::Printf(TEXT("%d"), Value());
 }
+
+template<> bool FConsoleVariable<int32>::IsVariableInt() const
+{
+	return true; 
+}
+
 template<> TConsoleVariableData<int32>* FConsoleVariable<int32>::AsVariableInt()
 {
 	return &Data; 

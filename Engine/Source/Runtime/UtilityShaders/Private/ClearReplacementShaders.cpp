@@ -87,15 +87,15 @@ template class FClearTexture2DArrayReplacementCS<uint32>;
 template class FClearVolumeReplacementCS<float>;
 template class FClearVolumeReplacementCS<uint32>;
 
-IMPLEMENT_SHADER_TYPE(, FClearReplacementVS, TEXT("ClearReplacementShaders"), TEXT("ClearVS"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(, FClearReplacementPS, TEXT("ClearReplacementShaders"), TEXT("ClearPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FClearReplacementVS, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FClearReplacementPS, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearPS"), SF_Pixel);
 
-IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearVolumeCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearVolumeCS"), SF_Compute);
-IMPLEMENT_SHADER_TYPE(, FClearTexture2DReplacementScissorCS, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DScissorCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<float>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearTexture2DCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<uint32>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearTexture2DCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<float>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<uint32>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<float>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearVolumeCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<uint32>, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearVolumeCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FClearTexture2DReplacementScissorCS, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearTexture2DScissorCS"), SF_Compute);
 
-IMPLEMENT_SHADER_TYPE(, FClearBufferReplacementCS, TEXT("ClearReplacementShaders"), TEXT("ClearBufferCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FClearBufferReplacementCS, TEXT("/Engine/Private/ClearReplacementShaders.usf"), TEXT("ClearBufferCS"), SF_Compute);

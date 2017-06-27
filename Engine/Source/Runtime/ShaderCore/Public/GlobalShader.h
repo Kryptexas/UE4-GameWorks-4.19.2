@@ -66,7 +66,12 @@ public:
 		ConstructCompiledRef(InConstructCompiledRef),
 		ShouldCacheRef(InShouldCacheRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
-	{}
+	{
+		checkf(FPaths::GetExtension(InSourceFilename) == TEXT("usf"),
+			TEXT("Incorrect virtual shader path extension for global shader '%s': Only .usf files should be "
+			     "compiled."),
+			InSourceFilename);
+	}
 
 	/**
 	 * Checks if the shader type should be cached for a particular platform.

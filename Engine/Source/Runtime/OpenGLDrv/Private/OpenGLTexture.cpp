@@ -622,7 +622,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	return Texture;
 }
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
+#if PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels)
 {
 	GLuint FBO = 0;
@@ -711,7 +711,7 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 	
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+#if PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
 	if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 	{
 		GLuint SourceFBO = GetOpenGLFramebuffer(ArrayIndex, MipIndex);
@@ -1103,10 +1103,7 @@ void TOpenGLTexture<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 		}
 
 		//need to free PBO if we aren't keeping shadow copies
-		if(!PLATFORM_MAC || !GLFormat.bCompressed || Target != GL_TEXTURE_2D)
-		{
-			PixelBuffers[BufferIndex] = NULL;
-		}
+		PixelBuffers[BufferIndex] = NULL;
 	}
 	else if(!bUseClientStorage || !ClientStorageBuffers[BufferIndex].bReadOnly)
 	{
@@ -1297,14 +1294,6 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 			const int32 BufferIndex = DstMipIndex * (bCubemap ? 6 : 1) * this->GetEffectiveSizeZ() + ArrayIndex;
 			const int32 SrcBufferIndex = SrcMipIndex * (Src->bCubemap ? 6 : 1) * Src->GetEffectiveSizeZ() + ArrayIndex;
 			
-			// Retain the existing PBO for this texture data - as it is compressed it won't change
-			if(PLATFORM_MAC && GLFormat.bCompressed && Target == GL_TEXTURE_2D)
-			{
-				PixelBuffers[BufferIndex] = Src->PixelBuffers[SrcBufferIndex];
-				check(PixelBuffers[BufferIndex]->GetSize() == MipBytes);
-				check(!PixelBuffers[BufferIndex]->IsLocked());
-			}
-			
 			// Standard path with a PBO mirroring ever slice of a texture to allow multiple simulataneous maps
 			if (!IsValidRef(PixelBuffers[BufferIndex]))
 			{
@@ -1317,43 +1306,40 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 			
 			// Transfer data from texture to pixel buffer.
 			// This may be further optimized by caching information if surface content was changed since last lock.
-			if(!PLATFORM_MAC || !GLFormat.bCompressed || !IsValidRef(Src->PixelBuffers[SrcBufferIndex]))
+			// Use a texture stage that's not likely to be used for draws, to avoid waiting
+			OpenGLRHI->CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Src->Target, Src->Resource, -1, this->GetNumMips());
+			
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
+			
+#if PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+			if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 			{
-				// Use a texture stage that's not likely to be used for draws, to avoid waiting
-				OpenGLRHI->CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Src->Target, Src->Resource, -1, this->GetNumMips());
-				
-				glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
-				
-#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
-				if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
-				{
-					GLuint SourceFBO = Src->GetOpenGLFramebuffer(ArrayIndex, SrcMipIndex);
-					check(SourceFBO > 0);
-					glBindFramebuffer(UGL_READ_FRAMEBUFFER, SourceFBO);
-					FOpenGL::ReadBuffer(Attachment);
-					glPixelStorei(GL_PACK_ALIGNMENT, 1);
-					glReadPixels(0, 0, MipSizeX, MipSizeY, GLFormat.Format, GLFormat.Type, 0 );
-					glPixelStorei(GL_PACK_ALIGNMENT, 4);
-					ContextState.Framebuffer = (GLuint)-1;
-				}
-				else
+				GLuint SourceFBO = Src->GetOpenGLFramebuffer(ArrayIndex, SrcMipIndex);
+				check(SourceFBO > 0);
+				glBindFramebuffer(UGL_READ_FRAMEBUFFER, SourceFBO);
+				FOpenGL::ReadBuffer(Attachment);
+				glPixelStorei(GL_PACK_ALIGNMENT, 1);
+				glReadPixels(0, 0, MipSizeX, MipSizeY, GLFormat.Format, GLFormat.Type, 0 );
+				glPixelStorei(GL_PACK_ALIGNMENT, 4);
+				ContextState.Framebuffer = (GLuint)-1;
+			}
+			else
 #endif
-				if (GLFormat.bCompressed)
-				{
-					FOpenGL::GetCompressedTexImage(Src->bCubemap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + ArrayIndex : Src->Target,
-												   SrcMipIndex,
-												   0);	// offset into PBO
-				}
-				else
-				{
-					glPixelStorei(GL_PACK_ALIGNMENT, 1);
-					FOpenGL::GetTexImage(Src->bCubemap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + ArrayIndex : Src->Target,
-										 SrcMipIndex,
-										 GLFormat.Format,
-										 GLFormat.Type,
-										 0);	// offset into PBO
-					glPixelStorei(GL_PACK_ALIGNMENT, 4);
-				}
+			if (GLFormat.bCompressed)
+			{
+				FOpenGL::GetCompressedTexImage(Src->bCubemap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + ArrayIndex : Src->Target,
+											   SrcMipIndex,
+											   0);	// offset into PBO
+			}
+			else
+			{
+				glPixelStorei(GL_PACK_ALIGNMENT, 1);
+				FOpenGL::GetTexImage(Src->bCubemap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + ArrayIndex : Src->Target,
+									 SrcMipIndex,
+									 GLFormat.Format,
+									 GLFormat.Type,
+									 0);	// offset into PBO
+				glPixelStorei(GL_PACK_ALIGNMENT, 4);
 			}
 			
 			// copy the texture data
@@ -1448,11 +1434,8 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 				}
 			}
 			
-			if(!PLATFORM_MAC || !GLFormat.bCompressed || Target != GL_TEXTURE_2D)
-			{
-				// need to free PBO if we aren't keeping shadow copies
-				PixelBuffers[BufferIndex] = NULL;
-			}
+			// need to free PBO if we aren't keeping shadow copies
+			PixelBuffers[BufferIndex] = NULL;
 			
 			// No need to restore texture stage; leave it like this,
 			// and the next draw will take care of cleaning it up; or

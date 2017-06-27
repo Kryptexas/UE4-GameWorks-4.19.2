@@ -558,7 +558,7 @@ public:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(A, B, C, D, E) \
 	typedef TReflectionEnvironmentTiledDeferredCS<A,B,C,D,E> TReflectionEnvironmentTiledDeferredCS##A##B##C##D##E; \
-	IMPLEMENT_SHADER_TYPE(template<>,TReflectionEnvironmentTiledDeferredCS##A##B##C##D##E,TEXT("ReflectionEnvironmentComputeShaders"),TEXT("ReflectionEnvironmentTiledDeferredMain"),SF_Compute)
+	IMPLEMENT_SHADER_TYPE(template<>,TReflectionEnvironmentTiledDeferredCS##A##B##C##D##E,TEXT("/Engine/Private/ReflectionEnvironmentComputeShaders.usf"),TEXT("ReflectionEnvironmentTiledDeferredMain"),SF_Compute)
 
 IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(0, 0, 0, 0, 0);
 IMPLEMENT_REFLECTION_COMPUTESHADER_TYPE(0, 0, 0, 1, 0);
@@ -688,7 +688,7 @@ private:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_REFLECTION_APPLY_PIXELSHADER_TYPE(A, B, C, D) \
 	typedef FReflectionApplyPS<A,B,C,D> FReflectionApplyPS##A##B##C##D; \
-	IMPLEMENT_SHADER_TYPE(template<>,FReflectionApplyPS##A##B##C##D,TEXT("ReflectionEnvironmentShaders"),TEXT("ReflectionApplyPS"),SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,FReflectionApplyPS##A##B##C##D,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("ReflectionApplyPS"),SF_Pixel);
 
 IMPLEMENT_REFLECTION_APPLY_PIXELSHADER_TYPE(0,0,0,0);
 IMPLEMENT_REFLECTION_APPLY_PIXELSHADER_TYPE(0,0,1,0);
@@ -753,7 +753,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FReflectionCaptureSpecularBouncePS,TEXT("ReflectionEnvironmentShaders"),TEXT("SpecularBouncePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FReflectionCaptureSpecularBouncePS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("SpecularBouncePS"),SF_Pixel);
 
 template<bool bSphereCapture>
 class TStandardDeferredReflectionPS : public FGlobalShader
@@ -853,8 +853,8 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<true>,TEXT("ReflectionEnvironmentShaders"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<false>,TEXT("ReflectionEnvironmentShaders"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<true>,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<false>,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit)
 {
@@ -1156,49 +1156,47 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			static const FName TiledReflBeginComputeName(TEXT("ReflectionEnvBeginComputeFence"));
 			static const FName TiledReflEndComputeName(TEXT("ReflectionEnvEndComputeFence"));
-			//FComputeFenceRHIRef ReflectionBeginFence = RHICmdList.CreateComputeFence(TiledReflBeginComputeName);
-			//FComputeFenceRHIRef ReflectionEndFence = RHICmdList.CreateComputeFence(TiledReflEndComputeName);
+			FComputeFenceRHIRef ReflectionBeginFence = RHICmdList.CreateComputeFence(TiledReflBeginComputeName);
+			FComputeFenceRHIRef ReflectionEndFence = RHICmdList.CreateComputeFence(TiledReflEndComputeName);
 
 			//Grab the async compute commandlist.
-			//FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
-			auto& RHICmdListComputeImmediate = RHICmdList;
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
-				/*SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d SkyLight:%d"),
+				SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d SkyLight:%d"),
 					View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
 					View.NumBoxReflectionCaptures, View.NumSphereReflectionCaptures, bHasSkyLight);
-					*/
 
 				ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bHasSkyLight, bHasBoxCaptures, bHasSphereCaptures, DynamicBentNormalAO != NULL);
 
 				//Really we should write this fence where we transition the final depedency for the reflections.  We may add an RHI command just for writing fences if this
 				//can't be done in the general case.  In the meantime, hack this command a bit to write the fence.
-				//RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
-					
+				RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, nullptr, 0, ReflectionBeginFence);
+
 				//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
-				//RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
+				RHICmdListComputeImmediate.WaitComputeFence(ReflectionBeginFence);
 
 				//standard compute setup, but on the async commandlist.
 				RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
 
 				FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
 				ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, OutUAV, DynamicBentNormalAO);
-			
+
 				uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
 				uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
 				DispatchComputeShader(RHICmdListComputeImmediate, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
 				ComputeShader->UnsetParameters(RHICmdListComputeImmediate, OutUAV);
-			
+
 				//transition the output to readable and write the fence to allow the Gfx pipe to carry on.
-				RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1);// , ReflectionEndFence);
+				RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, &OutUAV, 1, ReflectionEndFence);
 			}
 
 			//immediately dispatch our async compute commands to the RHI thread to be submitted to the GPU as soon as possible.
 			//dispatch after the scope so the drawevent pop is inside the dispatch
-			//FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);			
-			
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);
+
 			//Gfx pipe must wait for the async compute reflection job to complete.
-			//RHICmdList.WaitComputeFence(ReflectionEndFence);
+			RHICmdList.WaitComputeFence(ReflectionEndFence);
 		}
 	}
 

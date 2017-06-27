@@ -56,6 +56,12 @@ void FSkyLightComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLa
 		}
 	}
 
+	DetailLayout.EditCategory("Light", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+
+	// The bVisible checkbox in the rendering category is frequently used on lights
+	// Editing the rendering category and giving it TypeSpecific priority will place it just under the Light category
+	DetailLayout.EditCategory("Rendering", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+
 	DetailLayout.EditCategory( "SkyLight" )
 	.AddCustomRow( NSLOCTEXT("SkyLightDetails", "UpdateSkyLight", "Recapture Scene") )
 		.NameContent()

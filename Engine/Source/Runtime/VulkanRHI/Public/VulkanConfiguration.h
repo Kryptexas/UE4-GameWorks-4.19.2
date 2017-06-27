@@ -31,21 +31,16 @@
 
 // constants we probably will change a few times
 #define VULKAN_UB_RING_BUFFER_SIZE								(8 * 1024 * 1024)
-#define VULKAN_TEMP_FRAME_ALLOCATOR_SIZE						(8 * 1024 * 1024)
 
 enum class EDescriptorSetStage
 {
 	// Adjusting these requires a full shader rebuild (ie modify the guid on VulkanCommon.usf)
-	Vertex		= 0,
-	Pixel		= 1,
-	Geometry	= 2,
-	Hull		= 3,
-
-	// Some devices only have 4 descriptor sets max
-	MaxMobileSets	= 4,
-
-	// This will make Tessellation not available on mobile
-	Domain		= 4,
+	// Keep the values in sync with EShaderFrequency
+	Vertex = 0,
+	Hull = 1,
+	Domain = 2,
+	Pixel = 3,
+	Geometry = 4,
 
 	// Compute is its own pipeline, so it can all live as set 0
 	Compute		= 0,
@@ -102,6 +97,8 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_REUSE_FENCES										1
 
+#define VULKAN_USE_NEW_GFX_STATE								1
+
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
 #elif PLATFORM_LINUX
@@ -141,6 +138,7 @@ namespace EVulkanBindingType
 
 		// UAV/RWBuffer
 		//A storage buffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) is a region of structured storage that supports both read and write access for shaders.In addition to general read and write operations, some members of storage buffers can be used as the target of atomic operations.In general, atomic operations are only supported on members that have unsigned integer formats.
+		StorageBuffer,
 
 
 		Count,
@@ -158,6 +156,7 @@ namespace EVulkanBindingType
 		case UniformTexelBuffer:	return 'x';
 		case StorageImage:			return 'y';
 		case StorageTexelBuffer:	return 'z';
+		case StorageBuffer:			return 'v';
 		default:
 			check(0);
 			break;

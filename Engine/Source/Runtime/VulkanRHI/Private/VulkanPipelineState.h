@@ -12,6 +12,7 @@
 #include "VulkanDescriptorSets.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "VulkanPipeline.h"
+#include "VulkanRHIPrivate.h"
 
 class FVulkanComputePipeline;
 
@@ -35,6 +36,17 @@ class FVulkanComputePipelineState : public FVulkanCommonPipelineState
 {
 public:
 	FVulkanComputePipelineState(FVulkanDevice* InDevice, FVulkanComputePipeline* InComputePipeline);
+	~FVulkanComputePipelineState()
+	{
+		ComputePipeline->Release();
+	}
+
+	void Reset()
+	{
+		PackedUniformBuffersDirty = PackedUniformBuffersMask;
+		DSRingBuffer.Reset();
+		DSWriter.ResetDirty();
+	}
 
 	inline void SetUAVBufferViewState(uint32 BindPoint, FVulkanBufferView* View)
 	{
@@ -62,7 +74,7 @@ public:
 
 	inline void SetSRVTextureView(uint32 BindPoint, const FVulkanTextureView& TextureView)
 	{
-		ensure(0);
+		DSWriter.WriteImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
 	}
 
 	inline void SetSamplerState(uint32 BindPoint, FVulkanSamplerState* Sampler)
@@ -73,12 +85,12 @@ public:
 
 	inline void SetShaderParameter(uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
 	{
-		PackedUniformBuffers.SetPackedGlobalParameter(BufferIndex, ByteOffset, NumBytes, NewValue, PackedUniformBufferStagingDirty);
+		PackedUniformBuffers.SetPackedGlobalParameter(BufferIndex, ByteOffset, NumBytes, NewValue, PackedUniformBuffersDirty);
 	}
 
 	inline void SetUniformBufferConstantData(uint32 BindPoint, const TArray<uint8>& ConstantData)
 	{
-		PackedUniformBuffers.SetEmulatedUniformBufferIntoPacked(BindPoint, ConstantData, PackedUniformBufferStagingDirty);
+		PackedUniformBuffers.SetEmulatedUniformBufferIntoPacked(BindPoint, ConstantData, PackedUniformBuffersDirty);
 	}
 
 	inline void SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
@@ -97,7 +109,8 @@ public:
 
 protected:
 	FPackedUniformBuffers PackedUniformBuffers;
-	uint64 PackedUniformBufferStagingDirty;
+	uint64 PackedUniformBuffersMask;
+	uint64 PackedUniformBuffersDirty;
 	FVulkanDescriptorSetWriter DSWriter;
 
 	FVulkanComputePipeline* ComputePipeline;
@@ -108,6 +121,128 @@ protected:
 	friend class FVulkanCommandListContext;
 };
 
+class FVulkanGfxPipelineState : public FVulkanCommonPipelineState
+{
+public:
+	FVulkanGfxPipelineState(FVulkanDevice* InDevice, FVulkanGraphicsPipelineState* InGfxPipeline, FVulkanBoundShaderState* InBSS);
+	~FVulkanGfxPipelineState()
+	{
+		GfxPipeline->Release();
+		BSS->Release();
+	}
+
+	inline void SetUAVBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View)
+	{
+		check(View && (View->Flags & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
+		DSWriter[Stage].WriteStorageTexelBuffer(BindPoint, View);
+	}
+
+	inline void SetUAVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView)
+	{
+		DSWriter[Stage].WriteStorageImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	inline void SetTexture(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureBase* TextureBase)
+	{
+		check(TextureBase);
+		DSWriter[Stage].WriteImage(BindPoint, TextureBase->PartialView->View,
+			(TextureBase->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	inline void SetSRVBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View)
+	{
+		check(View && (View->Flags & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT) == VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
+		DSWriter[Stage].WriteUniformTexelBuffer(BindPoint, View);
+	}
+
+	inline void SetSRVTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView)
+	{
+		DSWriter[Stage].WriteImage(BindPoint, TextureView.View, VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	inline void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)
+	{
+		check(Sampler);
+		DSWriter[Stage].WriteSampler(BindPoint, Sampler->Sampler);
+	}
+
+	inline void SetShaderParameter(EShaderFrequency Stage, uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
+	{
+		PackedUniformBuffers[Stage].SetPackedGlobalParameter(BufferIndex, ByteOffset, NumBytes, NewValue, PackedUniformBuffersDirty[Stage]);
+	}
+
+	inline void SetUniformBufferConstantData(EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData)
+	{
+		PackedUniformBuffers[Stage].SetEmulatedUniformBufferIntoPacked(BindPoint, ConstantData, PackedUniformBuffersDirty[Stage]);
+	}
+
+	inline void SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
+	{
+		//#todo-rco
+		ensure(0);
+	}
+
+	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
+
+	inline void BindDescriptorSets(VkCommandBuffer CmdBuffer)
+	{
+		check(DSRingBuffer.CurrDescriptorSets);
+		DSRingBuffer.CurrDescriptorSets->Bind(CmdBuffer, GfxPipeline->Pipeline->GetLayout().GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+	}
+
+	void Reset()
+	{
+		FMemory::Memcpy(PackedUniformBuffersDirty, PackedUniformBuffersMask);
+		DSRingBuffer.Reset();
+		for (int32 Index = 0; Index < SF_Compute; ++Index)
+		{
+			DSWriter[Index].ResetDirty();
+		}
+		;
+	}
+
+	inline void Verify()
+	{
+#if 0
+		int32 TotalNumWrites = 0;
+		int32 TotalNumBuffer = 0;
+		int32 TotalNumImages = 0;
+
+		for (int32 Index = 0; Index < SF_Compute; ++Index)
+		{
+			FVulkanShader* Shader = GfxPipeline->Shaders[Index];
+			if (!Shader)
+			{
+				ensure(DSWriter[Index].NumWrites == 0);
+				continue;
+			}
+
+			ensure(Shader->GetCodeHeader().NEWDescriptorInfo.DescriptorTypes.Num() == DSWriter[Index].NumWrites);
+			TotalNumWrites += Shader->GetCodeHeader().NEWDescriptorInfo.DescriptorTypes.Num();
+			TotalNumBuffer += Shader->GetCodeHeader().NEWDescriptorInfo.NumBufferInfos;
+			TotalNumImages += Shader->GetCodeHeader().NEWDescriptorInfo.NumImageInfos;
+		}
+		ensure(TotalNumWrites == DSWriteContainer.DescriptorWrites.Num());
+		ensure(TotalNumBuffer == DSWriteContainer.DescriptorBufferInfo.Num());
+		ensure(TotalNumImages == DSWriteContainer.DescriptorImageInfo.Num());
+#endif
+	}
+
+protected:
+	FPackedUniformBuffers PackedUniformBuffers[SF_Compute];
+	uint64 PackedUniformBuffersMask[SF_Compute];
+	uint64 PackedUniformBuffersDirty[SF_Compute];
+	FVulkanDescriptorSetWriter DSWriter[SF_Compute];
+
+	FVulkanGraphicsPipelineState* GfxPipeline;
+	FVulkanBoundShaderState* BSS;
+	int32 ID;
+
+	void CreateDescriptorWriteInfos();
+
+	friend class FVulkanPendingGfxState;
+	friend class FVulkanCommandListContext;
+};
 
 static inline void UpdatePackedUniformBuffers(VkDeviceSize UBOffsetAlignment, const FVulkanCodeHeader& CodeHeader, FPackedUniformBuffers& PackedUniformBuffers,
 	FVulkanDescriptorSetWriter& DescriptorWriteSet, FVulkanUniformBufferUploader* UniformBufferUploader, uint8* CPURingBufferBase, uint64 RemainingPackedUniformsMask)

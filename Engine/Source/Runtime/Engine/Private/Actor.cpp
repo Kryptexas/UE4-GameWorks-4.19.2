@@ -2895,7 +2895,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 		FinalRootComponentTransform.GetLocation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetLocation()"));
 		FinalRootComponentTransform.GetRotation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetRotation()"));
 
-		ExecuteConstruction(FinalRootComponentTransform, InstanceDataCache, bIsDefaultTransform);
+		ExecuteConstruction(FinalRootComponentTransform, nullptr, InstanceDataCache, bIsDefaultTransform);
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_PostActorConstruction);

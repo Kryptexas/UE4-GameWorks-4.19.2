@@ -457,12 +457,10 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 	}
 }
 
-/**
- * Adds new textures and level data on the gamethread (while the worker thread isn't active).
- */
-void FStreamingManagerTexture::UpdateThreadData(bool bProcessEverything)
+void FStreamingManagerTexture::UpdatePendingStates(bool bUpdateDynamicComponents)
 {
-	// Update the textures, can only be done while the async task is stopped since it accesses this StreamingTextures.
+	CheckUserSettings();
+
 	ProcessRemovedTextures();
 	ProcessAddedTextures();
 
@@ -472,10 +470,18 @@ void FStreamingManagerTexture::UpdateThreadData(bool bProcessEverything)
 	// Fully complete all pending update static data (newly loaded levels).
 	// Dynamic bounds are not updated here since the async task uses the async view generated from the last frame.
 	// this makes the current dynamic data fully dirty, and it will get refreshed iterativelly for the next full update.
-	IncrementalUpdate(1.f, false);
+	IncrementalUpdate(1.f, bUpdateDynamicComponents);
+	if (bUpdateDynamicComponents)
+	{
+		DynamicComponentManager.PrepareAsyncView();
+	}
+}
 
-	// Update the thread data.
-
+/**
+ * Adds new textures and level data on the gamethread (while the worker thread isn't active).
+ */
+void FStreamingManagerTexture::PrepareAsyncTask(bool bProcessEverything)
+{
 	FAsyncTextureStreamingTask& AsyncTask = AsyncWork->GetTask();
 	FTextureMemoryStats Stats;
 	RHIGetTextureMemoryStats(Stats);
@@ -837,6 +843,22 @@ void FStreamingManagerTexture::NotifyPrimitiveUpdated_Concurrent( const UPrimiti
 	STAT(FPlatformAtomics::InterlockedAdd(&GatheredStats.CallbacksCycles, CallbackCycle));
 }
 
+void FStreamingManagerTexture::SyncStates(bool bCompleteFullUpdateCycle)
+{
+	// Finish the current update cycle. 
+	while (ProcessingStage != 0 && bCompleteFullUpdateCycle)
+	{
+		UpdateResourceStreaming(0, false);
+	}
+
+	// Wait for async tasks
+	AsyncWork->EnsureCompletion();
+	TextureInstanceAsyncWork->EnsureCompletion();
+
+	// Update any pending states, including added/removed textures.
+	UpdatePendingStates(bCompleteFullUpdateCycle);
+}
+
 /**
  * Returns the corresponding FStreamingTexture for a UTexture2D.
  */
@@ -844,7 +866,11 @@ FStreamingTexture* FStreamingManagerTexture::GetStreamingTexture( const UTexture
 {
 	if (Texture2D && StreamingTextures.IsValidIndex(Texture2D->StreamingIndex))
 	{
-		return &StreamingTextures[Texture2D->StreamingIndex];
+		FStreamingTexture* StreamingTexture = &StreamingTextures[Texture2D->StreamingIndex];
+
+		// If the texture don't match, this means the texture is pending in PendingStreamingTextures, for which no FStreamingTexture* is yet allocated.
+		// If this is not acceptable, the caller should first synchronize everything through SyncStates
+		return StreamingTexture->Texture == Texture2D ? StreamingTexture : nullptr;
 	}
 	else
 	{
@@ -861,7 +887,9 @@ void FStreamingManagerTexture::UpdateIndividualTexture( UTexture2D* Texture )
 {
 	if (!IStreamingManager::Get().IsStreamingEnabled() || !Texture) return;
 
-	AsyncWork->EnsureCompletion();
+	// Because we want to priorize loading of this texture, 
+	// don't process everything as this would send load requests for all textures.
+	SyncStates(false);
 
 	FStreamingTexture* StreamingTexture = GetStreamingTexture(Texture);
 	if (!StreamingTexture) return;
@@ -1099,14 +1127,13 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		NumTextureProcessingStages =  FMath::Max<int32>(CVarFramesForFullUpdate.GetValueOnGameThread(), 0);
 
 		// Update Thread Data
-		CheckUserSettings();
 		SetLastUpdateTime();
-		// Clear the async view so that we generate a new one.
 		UpdateStreamingTextures(0, 1);
-		IncrementalUpdate(1.f);
-		DynamicComponentManager.PrepareAsyncView();
-		UpdateThreadData(bProcessEverything);
+
+		UpdatePendingStates(true);
+		PrepareAsyncTask(bProcessEverything);
 		AsyncWork->StartSynchronousTask();
+
 		StreamTextures(bProcessEverything);
 
 		STAT(GatheredStats.SetupAsyncTaskCycles = 0);
@@ -1126,8 +1153,9 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 			AsyncWork->EnsureCompletion();
 		}
 
-		CheckUserSettings();
-		UpdateThreadData(bProcessEverything);
+		// Here we rely on dynamic components to be updated on the last stage, in order to split the workload. 
+		UpdatePendingStates(false);
+		PrepareAsyncTask(bProcessEverything);
 		AsyncWork->StartBackgroundTask();
 		++ProcessingStage;
 
@@ -1143,7 +1171,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		}
 
 		UpdateStreamingTextures(ProcessingStage - 1, NumTextureProcessingStages);
-		IncrementalUpdate(1.f / (float)FMath::Max(NumTextureProcessingStages - 1, 1)); // -1 since we don't want to do anything at stage 0.)
+		IncrementalUpdate(1.f / (float)FMath::Max(NumTextureProcessingStages - 1, 1), true); // -1 since we don't want to do anything at stage 0.
 		++ProcessingStage;
 
 		STAT(GatheredStats.UpdateStreamingDataCycles = FMath::Max<uint32>(ProcessingStage > 2 ? GatheredStats.UpdateStreamingDataCycles : 0, FPlatformTime::Cycles() - StartTime);)
@@ -1161,7 +1189,7 @@ void FStreamingManagerTexture::UpdateResourceStreaming( float DeltaTime, bool bP
 		StreamTextures(bProcessEverything);
 		// Release the old view now as the destructors can be expensive. Now only the dynamic manager holds a ref.
 		AsyncWork->GetTask().ReleaseAsyncViews();
-		IncrementalUpdate(1.f / (float)FMath::Max(NumTextureProcessingStages - 1, 1)); // Just in case continue any pending update.
+		IncrementalUpdate(1.f / (float)FMath::Max(NumTextureProcessingStages - 1, 1), true); // Just in case continue any pending update.
 		DynamicComponentManager.PrepareAsyncView();
 
 		ProcessingStage = 0;
@@ -1282,8 +1310,7 @@ bool FStreamingManagerTexture::HandleDumpTextureStreamingStatsCommand( const TCH
 
 bool FStreamingManagerTexture::HandleListStreamingTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	// Make sure the async task is idle (also implies Update_Async is finished and that the distances are valid).
-	AsyncWork->EnsureCompletion();
+	SyncStates(true);
 
 	// Sort texture by names so that the state can be compared between runs.
 	TMap<FString, int32> SortedTextures;
@@ -1553,7 +1580,7 @@ bool FStreamingManagerTexture::HandlePauseTextureStreamingCommand( const TCHAR* 
 
 bool FStreamingManagerTexture::HandleStreamingManagerMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	AsyncWork->EnsureCompletion();
+	SyncStates(true);
 
 	uint32 MemSize = sizeof(FStreamingManagerTexture);
 	MemSize += StreamingTextures.GetAllocatedSize();
@@ -1581,18 +1608,11 @@ bool FStreamingManagerTexture::HandleTextureGroupsCommand( const TCHAR* Cmd, FOu
 
 bool FStreamingManagerTexture::HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
+	SyncStates(true);
+
 	FString InvestigateTextureName(FParse::Token(Cmd, 0));
 	if ( InvestigateTextureName.Len() )
 	{
-		// Finish the current update cycle. 
-		// Don't call UpdateResourceStreaming(0, true as it would remove budget limit)
-		while (ProcessingStage != 0)
-		{
-			UpdateResourceStreaming(0, false);
-		}
-		TextureInstanceAsyncWork->EnsureCompletion();
-		AsyncWork->EnsureCompletion();
-
 		FAsyncTextureStreamingData& StreamingData = AsyncWork->GetTask().StreamingData;
 		StreamingData.Init(CurrentViewInfos, LastWorldUpdateTime, LevelTextureManagers, DynamicComponentManager);
 		StreamingData.UpdateBoundSizes_Async(Settings);

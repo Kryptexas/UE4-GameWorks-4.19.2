@@ -286,7 +286,7 @@ private:
 	FSubsectionHeightfieldDescriptionParameters SubsectionHeightfieldParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FHeightfieldSubsectionQuadVS,TEXT("HeightfieldLighting"),TEXT("HeightfieldSubsectionQuadVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FHeightfieldSubsectionQuadVS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("HeightfieldSubsectionQuadVS"),SF_Vertex);
 
 class FInitializeHeightfieldsPS : public FGlobalShader
 {
@@ -328,7 +328,7 @@ private:
 	FHeightfieldTextureParameters HeightfieldTextureParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FInitializeHeightfieldsPS,TEXT("HeightfieldLighting"),TEXT("InitializeHeightfieldsPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FInitializeHeightfieldsPS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("InitializeHeightfieldsPS"),SF_Pixel);
 
 class FQuadVertexBuffer : public FVertexBuffer
 {
@@ -721,7 +721,7 @@ private:
 	FHeightfieldDescriptionParameters HeightfieldDescriptionParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FHeightfieldComponentQuadVS,TEXT("HeightfieldLighting"),TEXT("HeightfieldComponentQuadVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FHeightfieldComponentQuadVS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("HeightfieldComponentQuadVS"),SF_Vertex);
 
 class FShadowHeightfieldsPS : public FGlobalShader
 {
@@ -798,7 +798,7 @@ private:
 	FShaderResourceParameter ShadowDepthTextureSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FShadowHeightfieldsPS,TEXT("HeightfieldLighting"),TEXT("ShadowHeightfieldsPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FShadowHeightfieldsPS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("ShadowHeightfieldsPS"),SF_Pixel);
 
 void FHeightfieldLightingViewInfo::ClearShadowing(const FViewInfo& View, FRHICommandListImmediate& RHICmdList, const FLightSceneInfo& LightSceneInfo) const
 {
@@ -972,7 +972,7 @@ private:
 	FShaderParameter TwoSidedMeshDistanceBias;
 };
 
-IMPLEMENT_SHADER_TYPE(,FRayTracedShadowHeightfieldsPS,TEXT("HeightfieldLighting"),TEXT("RayTracedShadowHeightfieldsPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FRayTracedShadowHeightfieldsPS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("RayTracedShadowHeightfieldsPS"),SF_Pixel);
 
 
 void FHeightfieldLightingViewInfo::ComputeRayTracedShadowing(
@@ -1134,7 +1134,7 @@ private:
 	FLightFunctionSharedParameters LightFunctionParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightHeightfieldsPS,TEXT("HeightfieldLighting"),TEXT("LightHeightfieldsPS"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightHeightfieldsPS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("LightHeightfieldsPS"),SF_Pixel);
 
 void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICommandListImmediate& RHICmdList, const FLightSceneInfo& LightSceneInfo) const
 {
@@ -1318,7 +1318,7 @@ private:
 	FShaderParameter TanConeHalfAngle;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCalculateHeightfieldOcclusionScreenGridCS,TEXT("HeightfieldLighting"),TEXT("CalculateHeightfieldOcclusionScreenGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCalculateHeightfieldOcclusionScreenGridCS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("CalculateHeightfieldOcclusionScreenGridCS"),SF_Compute);
 
 
 void FHeightfieldLightingViewInfo::ComputeOcclusionForScreenGrid(
@@ -1503,7 +1503,7 @@ private:
 	FShaderResourceParameter RecordConeVisibility;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCalculateHeightfieldIrradianceScreenGridCS,TEXT("HeightfieldLighting"),TEXT("CalculateHeightfieldIrradianceScreenGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCalculateHeightfieldIrradianceScreenGridCS,TEXT("/Engine/Private/HeightfieldLighting.usf"),TEXT("CalculateHeightfieldIrradianceScreenGridCS"),SF_Compute);
 
 void FHeightfieldLightingViewInfo::ComputeIrradianceForScreenGrid(
 	const FViewInfo& View, 

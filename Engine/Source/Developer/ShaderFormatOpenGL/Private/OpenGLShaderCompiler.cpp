@@ -82,8 +82,7 @@ bool FOpenGLFrontend::SupportsSeparateShaderObjects(GLSLVersion Version)
 	// Only desktop shader platforms can use separable shaders for now,
 	// the generated code relies on macros supplied at runtime to determine whether
 	// shaders may be separable and/or linked.
-	return Version == GLSL_150 || Version == GLSL_150_MAC || Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB ||
-		Version == GLSL_150_ES3_1 || Version == GLSL_430;
+	return Version == GLSL_150 || Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB || Version == GLSL_150_ES3_1 || Version == GLSL_430;
 }
 
 /*------------------------------------------------------------------------------
@@ -955,7 +954,6 @@ void FOpenGLFrontend::ConvertOpenGLVersionFromGLSLVersion(GLSLVersion InVersion,
 	switch(InVersion)
 	{
 		case GLSL_150:
-		case GLSL_150_MAC:
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
@@ -1243,10 +1241,6 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			VersionSwitch = TEXT(" -gl3");
 			break;
 
-		case GLSL_150_MAC:
-			VersionSwitch = TEXT(" -gl3 -mac");
-			break;
-
 		case GLSL_ES3_1_ANDROID:
 			VersionSwitch = TEXT(" -es31");
 			break;
@@ -1298,13 +1292,6 @@ void FOpenGLFrontend::SetupPerVersionCompilationEnvironment(GLSLVersion Version,
 			break;
 
 		case GLSL_150:
-			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
-			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
-			HlslCompilerTarget = HCT_FeatureLevelSM4;
-			break;
-
-		case GLSL_150_MAC:
-			AdditionalDefines.SetDefine(TEXT("MAC"), 1);
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
@@ -1474,7 +1461,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 	{
 		if (Input.bSkipPreprocessedCache)
 		{
-			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.SourceFilename);
+			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath);
 		}
 		else
 		{
@@ -1520,7 +1507,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
-			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.GetSourceFilename()));
 			if (FileWriter)
 			{
 				auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShader);
@@ -1540,7 +1527,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 		if (bDumpDebugInfo)
 		{
 			const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
-			const FString USFFile = (Input.DumpDebugInfoPath / Input.SourceFilename) + TEXT(".usf");
+			const FString USFFile = Input.DumpDebugInfoPath / Input.GetSourceFilename();
 			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 			if (!CCBatchFileContents.IsEmpty())
 			{
@@ -1557,7 +1544,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 
 		int32 Result = 0;
 		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
-		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.SourceFilename), LanguageSpec))
+		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), LanguageSpec))
 		{
 			Result = CrossCompilerContext.Run(
 				TCHAR_TO_ANSI(*PreprocessedShader),
@@ -1591,14 +1578,14 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 
 				if (GlslSourceLen > 0)
 				{
-					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
+					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
 					char* Dest = (char*)malloc(Len);
-					FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
+					FCStringAnsi::Snprintf(Dest, Len, "// ! %s:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
 					free(GlslShaderSource);
 					GlslShaderSource = Dest;
 					GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 					
-					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
+					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath + TEXT(".glsl")));
 					if (FileWriter)
 					{
 						FileWriter->Serialize(GlslShaderSource,GlslSourceLen+1);

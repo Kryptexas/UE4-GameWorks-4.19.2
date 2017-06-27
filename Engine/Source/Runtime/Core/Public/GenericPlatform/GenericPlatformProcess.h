@@ -596,17 +596,21 @@ struct CORE_API FGenericPlatformProcess
 	static bool IsFirstInstance();
 
 	/**
-	 * Returns the list of all shader dirs that were added with AddShaderDir
+	 * Returns the map virtual shader directory path -> real shader directory path.
 	 */
-	static const TArray<FString>& AllShaderDirs();
+	static const TMap<FString, FString>& AllShaderSourceDirectoryMappings();
+	
+	/**
+	 * Clears all shader source directory mappings.
+	 */
+	static void ResetAllShaderSourceDirectoryMappings();
 
 	/**
-	 * Add a shader to the list of shader dirs
+	 * Maps a real shader directory existing on disk to a virtual shader directory.
+	 * @param VirtualShaderDirectory Unique absolute path of the virtual shader directory (ex: /Project).
+	 * @param RealShaderDirectory FPlatformProcess::BaseDir() relative path of the directory map.
 	 */
-	static void AddShaderDir(const FString& InShaderDir);
-
-	private:
-	static TArray<FString> ShaderDirs;
+	static void AddShaderSourceDirectoryMapping(const FString& VirtualShaderDirectory, const FString& RealShaderDirectory);
 };
 
 

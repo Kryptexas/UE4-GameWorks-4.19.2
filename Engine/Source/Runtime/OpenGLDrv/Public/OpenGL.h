@@ -84,7 +84,7 @@ public:
 	static FORCEINLINE bool SupportsUniformBuffers()					{ return true; }
 	static FORCEINLINE bool SupportsStructuredBuffers()					{ return true; }
 	static FORCEINLINE bool SupportsTimestampQueries()					{ return true; }
-	static FORCEINLINE bool SupportsDisjointTimeQueries()				{ return false; } // @todo: if enabled, causes crash on PC and massive slowdown on Mac
+	static FORCEINLINE bool SupportsDisjointTimeQueries()				{ return false; } // @todo: if enabled, causes crash on PC
 	static FORCEINLINE bool SupportsOcclusionQueries()					{ return true; }
 	static FORCEINLINE bool SupportsExactOcclusionQueries()				{ return true; }
 	static FORCEINLINE bool SupportsBlitFramebuffer()					{ return true; }

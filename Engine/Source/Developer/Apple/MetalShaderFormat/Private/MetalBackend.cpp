@@ -128,7 +128,7 @@ static const char * const MetalExpressionTable[ir_opcode_count][4] =
 	{ "intBitsToFloat(", ")", "", "" }, // ir_unop_iasf,
 	{ "uintBitsToFloat(", ")", "", "" }, // ir_unop_uasf,
 
-	{ "bitfieldReverse(", ")", "", "" }, // ir_unop_bitreverse,
+	{ "reverse_bits(", ")", "", "" }, // ir_unop_bitreverse,
 	{ "bitCount(", ")", "", "" }, // ir_unop_bitcount,
 	{ "findMSB(", ")", "", "" }, // ir_unop_msb,
 	{ "findLSB(", ")", "", "" }, // ir_unop_lsb,
@@ -431,6 +431,9 @@ protected:
 	// Do we need to add CubemapTo2DArrayFace functions?
 	bool bCubeArrayHackFloat4;
 	bool bCubeArrayHackFloat3;
+	
+	// Need to inject the Metal <= v1.1 reverse_bits?
+	bool bReverseBitsWAR;
 
     const char *shaderPrefix()
     {
@@ -1348,7 +1351,12 @@ protected:
 
 		int numOps = expr->get_num_operands();
 		ir_expression_operation op = expr->operation;
-
+		
+		if (op == ir_unop_bitreverse)
+		{
+			bReverseBitsWAR = true;
+		}
+		
 		if (op == ir_unop_rcp)
 		{
 			check(numOps == 1);
@@ -1421,12 +1429,22 @@ protected:
 			ralloc_asprintf_append(buffer, "))");
 		}
 		else if (op == ir_binop_mul && expr->type->is_matrix()
-			&& expr->operands[0]->type->is_matrix()
-			&& expr->operands[1]->type->is_matrix())
+				 && expr->operands[0]->type->is_matrix()
+				 && expr->operands[1]->type->is_matrix())
 		{
 			ralloc_asprintf_append(buffer, "ERRROR_MulMatrix()");
 			check(0);
-		}
+        }
+        else if (op == ir_binop_mul && expr->type->is_vector()
+                 && expr->operands[0]->type->is_vector()
+                 && expr->operands[1]->type->is_matrix())
+        {
+            ralloc_asprintf_append(buffer, "(");
+            expr->operands[1]->accept(this);
+            ralloc_asprintf_append(buffer, "*");
+            expr->operands[0]->accept(this);
+            ralloc_asprintf_append(buffer, ")");
+        }
 		else if ((op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
 			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
@@ -3614,6 +3632,7 @@ public:
 		, bNeedsComputeInclude(false)
 		, bCubeArrayHackFloat4(false)
 		, bCubeArrayHackFloat3(false)
+		, bReverseBitsWAR(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -3696,6 +3715,24 @@ public:
 
         buffer = 0;
 		
+		char* reverse_bits = ralloc_asprintf(mem_ctx, "");
+		if (Backend->Version < 2 && bReverseBitsWAR)
+		{
+			buffer = &reverse_bits;
+			ralloc_asprintf_append(buffer, "static uint reverse_bits(uint x)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x55555555)) << 1) | ((x & uint(0xAAAAAAAA)) >> 1);\n");
+			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x33333333)) << 2) | ((x & uint(0xCCCCCCCC)) >> 2);\n");
+			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x0F0F0F0F)) << 4) | ((x & uint(0xF0F0F0F0)) >> 4);\n");
+			ralloc_asprintf_append(buffer, "	\tx = ((x & uint(0x00FF00FF)) << 8) | ((x & uint(0xFF00FF00)) >> 8);\n");
+			ralloc_asprintf_append(buffer, "	\tushort2 t = as_type<ushort2>(x);\n");
+			ralloc_asprintf_append(buffer, "	\tt = ushort2(t.y, t.x);\n");
+			ralloc_asprintf_append(buffer, "	\treturn as_type<uint>(t);\n");
+			ralloc_asprintf_append(buffer, "}\n");
+		}
+		
+		buffer = 0;
+		
 		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
 		// Convert CubeMapArray to 2DArray for iOS/tvOS: x=>x, y=>y, z=>Face
 		if (Backend->bIsDesktop == EMetalGPUSemanticsTBDRDesktop && (bCubeArrayHackFloat4 || bCubeArrayHackFloat3))
@@ -3747,11 +3784,12 @@ public:
 
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s",
 			signature,
 			metal_defines,
 			bNeedsComputeInclude ? "#include <metal_compute>" : "",
 			CubemapHack,
+			reverse_bits,
 			decl_buffer,
 			code_buffer
 			);

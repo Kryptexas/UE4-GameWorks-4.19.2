@@ -13,6 +13,7 @@ static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
 static FName NAME_VULKAN_SM4_UB(TEXT("SF_VULKAN_SM4_UB"));
 static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5_UB(TEXT("SF_VULKAN_SM5_UB"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 
 class FShaderFormatVulkan : public IShaderFormat
@@ -22,17 +23,16 @@ class FShaderFormatVulkan : public IShaderFormat
 		UE_SHADER_VULKAN_ES3_1_VER = 8,
 		UE_SHADER_VULKAN_ES3_1_ANDROID_VER = 8,
 		UE_SHADER_VULKAN_SM4_VER = 8,
-		UE_SHADER_VULKAN_SM4_UB_VER = 8,
 		UE_SHADER_VULKAN_SM5_VER = 9,
 	}; 
 
 	int32 InternalGetVersion(FName Format) const
 	{
-		if (Format == NAME_VULKAN_SM4)
+		if (Format == NAME_VULKAN_SM4 || Format == NAME_VULKAN_SM4_UB)
 		{
 			return UE_SHADER_VULKAN_SM4_VER;
 		}
-		else if (Format == NAME_VULKAN_SM5)
+		else if (Format == NAME_VULKAN_SM5 || Format == NAME_VULKAN_SM5_UB)
 		{
 			return UE_SHADER_VULKAN_SM5_VER;
 		}
@@ -43,10 +43,6 @@ class FShaderFormatVulkan : public IShaderFormat
 		else if (Format == NAME_VULKAN_ES3_1)
 		{
 			return UE_SHADER_VULKAN_ES3_1_VER;
-		}
-		else if (Format == NAME_VULKAN_SM4_UB)
-		{
-			return UE_SHADER_VULKAN_SM4_UB_VER;
 		}
 
 		check(0);

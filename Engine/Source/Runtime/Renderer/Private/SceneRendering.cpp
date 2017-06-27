@@ -446,6 +446,7 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 void FViewInfo::Init()
 {
 	CachedViewUniformShaderParameters = nullptr;
+	bHasNoVisiblePrimitive = false;
 	bHasTranslucentViewMeshElements = 0;
 	bPrevTransformsReset = false;
 	bIgnoreExistingQueries = false;

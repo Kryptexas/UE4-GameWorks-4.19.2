@@ -639,7 +639,6 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_PCD3D_SM4:
 		case SP_PCD3D_ES2:
 		case SP_METAL:
-		case SP_OPENGL_SM4_MAC:
 		case SP_METAL_MRT:
 		case SP_METAL_MRT_MAC:
 		case SP_METAL_SM5:

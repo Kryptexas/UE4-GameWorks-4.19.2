@@ -133,7 +133,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("PostProcessUpscale"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("/Engine/Private/PostProcessUpscale.usf"),TEXT("MainVS"),SF_Vertex);
 
 /** Encapsulates the post processing upscale pixel shader. */
 template <uint32 Method>
@@ -205,7 +205,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessUpscale");
+		return TEXT("/Engine/Private/PostProcessUpscale.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

@@ -81,8 +81,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FGammaCorrectionPS,TEXT("GammaCorrection"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FGammaCorrectionVS,TEXT("GammaCorrection"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FGammaCorrectionPS,TEXT("/Engine/Private/GammaCorrection.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FGammaCorrectionVS,TEXT("/Engine/Private/GammaCorrection.usf"),TEXT("MainVS"),SF_Vertex);
 
 // TODO: REMOVE if no longer needed:
 void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma)

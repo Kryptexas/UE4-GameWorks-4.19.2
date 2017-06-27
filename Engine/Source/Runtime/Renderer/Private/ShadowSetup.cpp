@@ -143,7 +143,7 @@ static TAutoConsoleVariable<float> CVarPreShadowResolutionFactor(
 	TEXT("r.Shadow.PreShadowResolutionFactor"),
 	0.5f,
 	TEXT("Mulitplier for preshadow resolution"),
-	ECVF_RenderThreadSafe);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarShadowTexelsPerPixel(
 	TEXT("r.Shadow.TexelsPerPixel"),

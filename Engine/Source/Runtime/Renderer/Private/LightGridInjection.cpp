@@ -232,8 +232,8 @@ private:
 	FForwardCullingParameters ForwardCullingParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TLightGridInjectionCS<true>,TEXT("LightGridInjection"),TEXT("LightGridInjectionCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLightGridInjectionCS<false>,TEXT("LightGridInjection"),TEXT("LightGridInjectionCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLightGridInjectionCS<true>,TEXT("/Engine/Private/LightGridInjection.usf"),TEXT("LightGridInjectionCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLightGridInjectionCS<false>,TEXT("/Engine/Private/LightGridInjection.usf"),TEXT("LightGridInjectionCS"),SF_Compute);
 
 class FLightGridCompactCS : public FGlobalShader
 {
@@ -293,7 +293,7 @@ private:
 	FForwardCullingParameters ForwardCullingParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FLightGridCompactCS,TEXT("LightGridInjection"),TEXT("LightGridCompactCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLightGridCompactCS,TEXT("/Engine/Private/LightGridInjection.usf"),TEXT("LightGridCompactCS"),SF_Compute);
 
 FVector GetLightGridZParams(float NearPlane, float FarPlane)
 {
@@ -331,7 +331,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
-			bAnyViewUsesForwardLighting |= View.bTranslucentSurfaceLighting || ShouldRenderVolumetricFog(Scene, ViewFamily);
+			bAnyViewUsesForwardLighting |= View.bTranslucentSurfaceLighting || ShouldRenderVolumetricFog();
 		}
 
 		const bool bCullLightsToGrid = (IsForwardShadingEnabled(FeatureLevel) || bAnyViewUsesForwardLighting) && ViewFamily.EngineShowFlags.DirectLighting;

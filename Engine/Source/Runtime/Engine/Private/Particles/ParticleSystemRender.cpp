@@ -1586,7 +1586,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
 				UniformParameters.PrevTransformAvailable = Source.MeshMotionBlurOffset ? 1 : 0;
 
-				CollectorResources.UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_SingleFrame);
+				CollectorResources.UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_MultiFrame);
 				MeshVertexFactory->SetUniformBuffer(CollectorResources.UniformBuffer);
 
 				// For OpenGL & Metal we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.

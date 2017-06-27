@@ -78,6 +78,7 @@ public:
 	void Set(RHICommandListType& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View, const bool bIsInstancedStereo = false)
 	{
 		//@todo - put all of these in a shader resource table
+		check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid() || !ForwardGlobalLightData.IsBound());
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
 		SetSRVParameter(RHICmdList, ShaderRHI, ForwardLocalLightBuffer, View.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
 		NumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NumCulledLightsGrid);
@@ -87,6 +88,7 @@ public:
 		{
 			// Bind right eye uniforms to instanced parameters
 			const FSceneView& InstancedView = *View.Family->Views[1];
+			check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid() || !InstancedForwardGlobalLightData.IsBound());
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, InstancedView.ForwardLightingResources->ForwardGlobalLightData);
 			SetSRVParameter(RHICmdList, ShaderRHI, InstancedForwardLocalLightBuffer, InstancedView.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
 			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
@@ -94,6 +96,7 @@ public:
 		}
 		else if (InstancedForwardGlobalLightData.IsBound())
 		{
+			check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid());
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
 		}
 

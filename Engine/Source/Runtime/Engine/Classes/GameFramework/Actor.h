@@ -1571,6 +1571,9 @@ public:
 		// The RootComponent's transform
 		FTransform Transform;
 
+		// The RootComponent's relative rotation cache (enforces using the same rotator)
+		FRotationConversionCache TransformRotationCache;
+
 		// The Actor the RootComponent is attached to
 		FAttachedActorInfo AttachedParentInfo;
 
@@ -2391,12 +2394,13 @@ public:
 	/**
 	 * Run any construction script for this Actor. Will call OnConstruction.
 	 * @param	Transform			The transform to construct the actor at.
+	 * @param   TransformRotationCache Optional rotation cache to use when applying the transform.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 * @param	bIsDefaultTransform	Whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults
 	 *
 	 * @return Returns false if the hierarchy was not error free and we've put the Actor is disaster recovery mode
 	 */
-	bool ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
+	bool ExecuteConstruction(const FTransform& Transform, const struct FRotationConversionCache* TransformRotationCache, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.

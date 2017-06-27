@@ -84,13 +84,13 @@ FArchive& operator<<(FArchive& Ar,FShaderResourceParameter& P)
 
 void FShaderUniformBufferParameter::ModifyCompilationEnvironment(const TCHAR* ParameterName,const FUniformBufferStruct& Struct,EShaderPlatform Platform,FShaderCompilerEnvironment& OutEnvironment)
 {
-	const FString IncludeName = FString::Printf(TEXT("UniformBuffers/%s.usf"),ParameterName);
+	const FString IncludeName = FString::Printf(TEXT("/Engine/Generated/UniformBuffers/%s.ush"),ParameterName);
 	// Add the uniform buffer declaration to the compilation environment as an include: UniformBuffers/<ParameterName>.usf
 	FString Declaration = CreateUniformBufferShaderDeclaration(ParameterName,Struct,Platform);
-	OutEnvironment.IncludeFileNameToContentsMap.Add(IncludeName, StringToArray<ANSICHAR>(*Declaration, Declaration.Len() + 1));
+	OutEnvironment.IncludeVirtualPathToContentsMap.Add(IncludeName, StringToArray<ANSICHAR>(*Declaration, Declaration.Len() + 1));
 
-	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
-	FString Include = FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, ParameterName);
+	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap.FindOrAdd("/Engine/Generated/GeneratedUniformBuffers.ush");
+	FString Include = FString::Printf(TEXT("#include \"/Engine/Generated/UniformBuffers/%s.ush\"") LINE_TERMINATOR, ParameterName);
 	if (GeneratedUniformBuffersInclude.Num() > 0)
 	{
 		GeneratedUniformBuffersInclude.RemoveAt(GeneratedUniformBuffersInclude.Num() - 1);
@@ -323,7 +323,6 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 		case SP_OPENGL_ES3_1_ANDROID:
 		case SP_OPENGL_ES31_EXT:
 		case SP_OPENGL_SM4:
-		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_SM5:
 		case SP_SWITCH:
 			return CreateHLSLUniformBufferDeclaration(Name, UniformBufferStruct, false);
@@ -365,10 +364,10 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
 		check(It.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, It.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"/Engine/Generated/UniformBuffers/%s.ush\"") LINE_TERMINATOR, It.Key());
 		FString Declaration = It.Value().Declaration[Platform];
-		OutEnvironment.IncludeFileNameToContentsMap.Add(
-			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
+		OutEnvironment.IncludeVirtualPathToContentsMap.Add(
+			*FString::Printf(TEXT("/Engine/Generated/UniformBuffers/%s.ush"),It.Key()),
 			StringToArray<ANSICHAR>(*Declaration, Declaration.Len() + 1)
 			);
 
@@ -381,7 +380,7 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 		}
 	}
 
-	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
+	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap.FindOrAdd("/Engine/Generated/GeneratedUniformBuffers.ush");
 	if (GeneratedUniformBuffersInclude.Num() > 0)
 	{
 		GeneratedUniformBuffersInclude.RemoveAt(GeneratedUniformBuffersInclude.Num() - 1);
@@ -403,10 +402,10 @@ void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvir
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
 		check(It.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, It.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"/Engine/Generated/UniformBuffers/%s.ush\"") LINE_TERMINATOR, It.Key());
 		FString Declaration = It.Value().Declaration[Platform];
-		OutEnvironment.IncludeFileNameToContentsMap.Add(
-			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
+		OutEnvironment.IncludeVirtualPathToContentsMap.Add(
+			*FString::Printf(TEXT("/Engine/Generated/UniformBuffers/%s.ush"),It.Key()),
 			StringToArray<ANSICHAR>(*Declaration, Declaration.Len() + 1)
 		);
 
@@ -419,7 +418,7 @@ void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvir
 		}
 	}
 
-	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
+	TArray<ANSICHAR>& GeneratedUniformBuffersInclude = OutEnvironment.IncludeVirtualPathToContentsMap.FindOrAdd("/Engine/Generated/GeneratedUniformBuffers.ush");
 	if (GeneratedUniformBuffersInclude.Num() > 0)
 	{
 		GeneratedUniformBuffersInclude.RemoveAt(GeneratedUniformBuffersInclude.Num() - 1);

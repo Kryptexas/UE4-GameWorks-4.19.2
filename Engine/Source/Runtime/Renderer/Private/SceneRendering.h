@@ -929,6 +929,9 @@ public:
 	float TranslucencyVolumeVoxelSize[TVC_MAX];
 	FVector TranslucencyLightingVolumeSize[TVC_MAX];
 
+	/** true if all PrimitiveVisibilityMap's bits are set to false. */
+	uint32 bHasNoVisiblePrimitive : 1;
+
 	/** true if the view has at least one mesh with a translucent material. */
 	uint32 bHasTranslucentViewMeshElements : 1;
 	/** Indicates whether previous frame transforms were reset this frame for any reason. */
@@ -1089,7 +1092,11 @@ public:
 	/** Instanced stereo and multi-view only need to render the left eye. */
 	bool ShouldRenderView() const 
 	{
-		if (!bIsInstancedStereoEnabled && !bIsMobileMultiViewEnabled)
+		if (bHasNoVisiblePrimitive)
+		{
+			return false;
+		}
+		else if (!bIsInstancedStereoEnabled && !bIsMobileMultiViewEnabled)
 		{
 			return true;
 		}

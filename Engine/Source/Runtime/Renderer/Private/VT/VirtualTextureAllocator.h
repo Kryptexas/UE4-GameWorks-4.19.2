@@ -15,18 +15,18 @@ public:
 						FVirtualTextureAllocator( uint32 Size, uint32 Dimensions );
 						~FVirtualTextureAllocator() {}
 
-	IVirtualTexture*	Find( uint32 vAddress, uint32& Local_vAddress ) const;
-	uint32				Alloc( IVirtualTexture* VT );
+	IVirtualTexture*	Find( uint64 vAddress, uint64& Local_vAddress ) const;
+	uint64				Alloc( IVirtualTexture* VT );
 	void				Free( IVirtualTexture* VT );
 	// TODO				Realloc
 
 private:
-	uint32				Find( uint32 vAddress ) const;
+	uint32				Find( uint64 vAddress ) const;
 
 	struct FAddressBlock
 	{
 		IVirtualTexture*	VT;
-		uint32				vAddress;
+		uint64				vAddress;
 		uint16				NextFree;
 		uint16				PrevFree;
 		uint8				vLogSize;
@@ -44,7 +44,7 @@ private:
 			, MipBias( 0 )
 		{}
 
-		FAddressBlock( const FAddressBlock& Block, uint32 Offset, uint32 Dimensions )
+		FAddressBlock( const FAddressBlock& Block, uint64 Offset, uint32 Dimensions )
 			: VT( nullptr )
 			, vAddress( Block.vAddress + ( Offset << ( Dimensions * Block.vLogSize ) ) )
 			, NextFree( 0xffff )
@@ -56,7 +56,7 @@ private:
 
 	struct FSortedBlock
 	{
-		uint32	vAddress;
+		uint64	vAddress;
 		uint16	Index;
 	};
 

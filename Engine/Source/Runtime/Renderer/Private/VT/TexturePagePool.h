@@ -7,15 +7,12 @@
 #include "BinaryHeap.h"
 #include "HashTable.h"
 
-#define VT_MERGE_RESORT		1
-#define VT_RADIX_SORT		0
-
-// 64k x 64k virtual pages
+// 16m x 16m virtual pages
 // 256 x 256 physical pages
 struct FTexturePage
 {
 	// Address is Morton order, relative to mip 0
-	uint32	vAddress;
+	uint64	vAddress;
 	uint16	pAddress;
 	uint8	vLevel;
 	uint8	ID;
@@ -35,15 +32,15 @@ public:
 	void		Free( uint32 Frame, uint32 PageIndex );
 	void		UpdateUsage( uint32 Frame, uint32 PageIndex );
 
-	uint32		FindPage( uint8 ID, uint8 vLevel, uint32 vAddress ) const;
-	uint32		FindNearestPage( uint8 ID, uint8 vLevel, uint32 vAddress ) const;
+	uint32		FindPage( uint8 ID, uint8 vLevel, uint64 vAddress ) const;
+	uint32		FindNearestPage( uint8 ID, uint8 vLevel, uint64 vAddress ) const;
 
 	void		UnmapPage( uint16 pAddress );
-	void		MapPage( uint8 ID, uint8 vLevel, uint32 vAddress, uint16 pAddress );
+	void		MapPage( uint8 ID, uint8 vLevel, uint64 vAddress, uint16 pAddress );
 
-	void		RefreshEntirePageTable( uint8 ID, TArray< FPageUpdate >* Output );
-	void		ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Update, TArray< FPageUpdate >* Output );
-	void		ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update, TArray< FPageUpdate >* Output );
+	void		RefreshEntirePageTable( uint8 ID, TArray< FPageTableUpdate >* Output );
+	void		ExpandPageTableUpdatePainters( uint8 ID, FPageUpdate Update, TArray< FPageTableUpdate >* Output );
+	void		ExpandPageTableUpdateMasked( uint8 ID, FPageUpdate Update, TArray< FPageTableUpdate >* Output );
 
 private:
 	void		BuildSortedKeys();
@@ -59,7 +56,9 @@ private:
 	FBinaryHeap< uint32, uint16 >	FreeHeap;
 
 	TArray< uint64 >	UnsortedKeys;
+	TArray< uint16 >	UnsortedIndexes;
 	TArray< uint64 >	SortedKeys;
+	TArray< uint16 >	SortedIndexes;
 	bool				SortedKeysDirty;
 	
 	TArray< uint32 >	SortedSubIndexes;

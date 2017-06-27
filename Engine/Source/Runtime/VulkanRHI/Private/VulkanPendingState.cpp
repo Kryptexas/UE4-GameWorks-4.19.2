@@ -11,161 +11,6 @@
 
 static FCriticalSection GCS;
 
-#if UE_BUILD_DEBUG
-struct FDebugPipelineKey
-{
-	union
-	{
-		struct
-		{
-			uint64 BlendState			: NUMBITS_BLEND_STATE;
-
-			uint64 RenderTargetFormat0	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat1	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat2	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat3	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetLoad0	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad1	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad2	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad3	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetStore0	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore1	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore2	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore3	: NUMBITS_STORE_OP;
-			uint64 CullMode				: NUMBITS_CULL_MODE;
-			uint64 PolyFill				: NUMBITS_POLYFILL;
-			uint64 PolyType				: NUMBITS_POLYTYPE;
-			uint64 DepthBiasEnabled		: 1;
-			uint64 DepthTestEnabled		: 1;
-			uint64 DepthWriteEnabled	: 1;
-			uint64 DepthCompareOp		: NUMBITS_DEPTH_COMPARE_OP;
-			uint64 FrontStencilOp		: NUMBITS_STENCIL_STATE;
-			uint64 DepthStencilFormat	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 DepthStencilLoad		: NUMBITS_LOAD_OP;
-			uint64 DepthStencilStore	: NUMBITS_STORE_OP;
-			uint64						: 0;
-
-			uint64 RenderTargetFormat4	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat5	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat6	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetFormat7	: NUMBITS_RENDER_TARGET_FORMAT;
-			uint64 RenderTargetLoad4	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad5	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad6	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetLoad7	: NUMBITS_LOAD_OP;
-			uint64 RenderTargetStore4	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore5	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore6	: NUMBITS_STORE_OP;
-			uint64 RenderTargetStore7	: NUMBITS_STORE_OP;
-			uint64 BackStencilOp		: NUMBITS_STENCIL_STATE;
-			uint64 StencilTestEnabled	: 1;
-			uint64 NumSamplesMinusOne	: NUMBITS_NUM_SAMPLES_MINUS_ONE;
-			uint64 NumColorBlends		: NUMBITS_NUM_COLOR_BLENDS;
-			uint64: 0;
-		};
-		uint64 Key[2];
-	};
-
-	FDebugPipelineKey()
-	{
-		static_assert(sizeof(*this) == sizeof(FVulkanPipelineGraphicsKey), "size mismatch!");
-		{
-			// Sanity check that bits match, runs at startup time only
-			FVulkanPipelineGraphicsKey CurrentKeys;
-
-#define TEST_KEY(Offset, NumBits, Member)	\
-{\
-	FMemory::Memzero(*this);\
-	FMemory::Memzero(CurrentKeys);\
-	uint32 Value = (1 << NumBits) - 1;\
-	SetKeyBits(CurrentKeys, Offset, NumBits, Value);\
-	Member = Value;\
-	check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);\
-}
-
-#define TEST_GROUP_KEY(Table, Index, NumBits, Member)	\
-{\
-	FMemory::Memzero(*this);\
-	FMemory::Memzero(CurrentKeys);\
-	uint32 Value = (1 << NumBits) - 1;\
-	SetKeyBits(CurrentKeys, Table[Index], NumBits, Value);\
-	Member = Value;\
-	check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);\
-}
-
-			TEST_KEY(OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, BlendState);
-
-			TEST_GROUP_KEY(RTFormatBitOffsets, 0, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat0);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 1, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat1);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 2, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat2);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 3, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat3);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 4, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat4);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 5, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat5);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 6, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat6);
-			TEST_GROUP_KEY(RTFormatBitOffsets, 7, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat7);
-
-			TEST_KEY(OFFSET_DEPTH_STENCIL_FORMAT, NUMBITS_RENDER_TARGET_FORMAT, DepthStencilFormat);
-
-			TEST_GROUP_KEY(RTLoadBitOffsets, 0, NUMBITS_LOAD_OP, RenderTargetLoad0);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 1, NUMBITS_LOAD_OP, RenderTargetLoad1);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 2, NUMBITS_LOAD_OP, RenderTargetLoad2);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 3, NUMBITS_LOAD_OP, RenderTargetLoad3);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 4, NUMBITS_LOAD_OP, RenderTargetLoad4);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 5, NUMBITS_LOAD_OP, RenderTargetLoad5);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 6, NUMBITS_LOAD_OP, RenderTargetLoad6);
-			TEST_GROUP_KEY(RTLoadBitOffsets, 7, NUMBITS_LOAD_OP, RenderTargetLoad7);
-
-			TEST_KEY(OFFSET_DEPTH_STENCIL_LOAD, NUMBITS_LOAD_OP, DepthStencilLoad);
-
-			TEST_GROUP_KEY(RTStoreBitOffsets, 0, NUMBITS_STORE_OP, RenderTargetStore0);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 1, NUMBITS_STORE_OP, RenderTargetStore1);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 2, NUMBITS_STORE_OP, RenderTargetStore2);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 3, NUMBITS_STORE_OP, RenderTargetStore3);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 4, NUMBITS_STORE_OP, RenderTargetStore4);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 5, NUMBITS_STORE_OP, RenderTargetStore5);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 6, NUMBITS_STORE_OP, RenderTargetStore6);
-			TEST_GROUP_KEY(RTStoreBitOffsets, 7, NUMBITS_STORE_OP, RenderTargetStore7);
-
-			TEST_KEY(OFFSET_DEPTH_STENCIL_STORE, NUMBITS_STORE_OP, DepthStencilStore);
-
-			TEST_KEY(OFFSET_CULL_MODE, NUMBITS_CULL_MODE, CullMode);
-			TEST_KEY(OFFSET_POLYFILL, NUMBITS_POLYFILL, PolyFill);
-			TEST_KEY(OFFSET_POLYTYPE, NUMBITS_POLYTYPE, PolyType);
-
-			TEST_KEY(OFFSET_DEPTH_BIAS_ENABLED, 1, DepthBiasEnabled);
-			TEST_KEY(OFFSET_DEPTH_TEST_ENABLED, 1, DepthTestEnabled);
-			TEST_KEY(OFFSET_DEPTH_WRITE_ENABLED, 1, DepthWriteEnabled);
-			TEST_KEY(OFFSET_DEPTH_COMPARE_OP, NUMBITS_DEPTH_COMPARE_OP, DepthCompareOp);
-
-			TEST_KEY(OFFSET_FRONT_STENCIL_STATE, NUMBITS_STENCIL_STATE, FrontStencilOp);
-			TEST_KEY(OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, BackStencilOp);
-			TEST_KEY(OFFSET_STENCIL_TEST_ENABLED, 1, StencilTestEnabled);
-
-			TEST_KEY(OFFSET_NUM_SAMPLES_MINUS_ONE, NUMBITS_NUM_SAMPLES_MINUS_ONE, NumSamplesMinusOne);
-
-			TEST_KEY(OFFSET_NUM_COLOR_BLENDS, NUMBITS_NUM_COLOR_BLENDS, NumColorBlends);
-		}
-	}
-};
-static FDebugPipelineKey GDebugPipelineKey;
-static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not matching Hash/Sizes!");
-#endif
-
-FOLDVulkanPendingGfxState::FOLDVulkanPendingGfxState(FVulkanDevice* InDevice)
-	: bScissorEnable(false)
-{
-	Reset();
-}
-
-// Expected to be called after render pass has been ended
-// and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
-void FOLDVulkanPendingGfxState::Reset()
-{
-	CurrentState.Reset();
-
-	FMemory::Memzero(PendingStreams);
-}
-
 FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, MaxDescriptorSets(0)
@@ -187,6 +32,7 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	uint32 LimitMaxCombinedImageSamplers = 4096;
 	uint32 LimitMaxUniformTexelBuffers = 512;
 	uint32 LimitMaxStorageTexelBuffers = 512;
+	uint32 LimitMaxStorageBuffers = 512;
 	uint32 LimitMaxStorageImage = 512;
 
 	TArray<VkDescriptorPoolSize> Types;
@@ -219,6 +65,11 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	FMemory::Memzero(*Type);
 	Type->type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
 	Type->descriptorCount = LimitMaxStorageTexelBuffers;
+
+	Type = new(Types) VkDescriptorPoolSize;
+	FMemory::Memzero(*Type);
+	Type->type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	Type->descriptorCount = LimitMaxStorageBuffers;
 
 	Type = new(Types) VkDescriptorPoolSize;
 	FMemory::Memzero(*Type);
@@ -274,154 +125,14 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 	NumAllocatedDescriptorSets -= Layout.GetLayouts().Num();
 }
 
-inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
+
+FVulkanPendingComputeState::~FVulkanPendingComputeState()
 {
-	check(CurrDescriptorSets);
-	CurrDescriptorSets->Bind(Cmd->GetHandle(), Layout.GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
-}
-
-
-void FOLDVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
-{
-	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
-
-	checkf(Topology < (1 << NUMBITS_POLYTYPE), TEXT("PolygonMode was too high a value for the PSO key [%d]"), Topology);
-	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
-
-	check(CurrentState.BSS);
-	bool bHasDescriptorSets = CurrentState.BSS->UpdateDescriptorSets(CmdListContext, Cmd, &GlobalUniformPool);
-
-	// let the BoundShaderState return a pipeline object for the full current state of things
-	CurrentState.InputAssembly.topology = Topology;
-	FVulkanGfxPipeline* Pipeline = CurrentState.BSS->PrepareForDraw(CmdListContext->GetCurrentRenderPass() ? CmdListContext->GetCurrentRenderPass() : CmdListContext->GetPreviousRenderPass(), CurrentKey, CurrentState.BSS->GetVertexInputStateInfo().GetHash(), CurrentState);
-
-	check(Pipeline);
-
+	for (auto Pair : PipelineStates)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
-		VkPipeline NewPipeline = Pipeline->GetHandle();
-		CurrentState.BSS->BindPipeline(Cmd->GetHandle(), NewPipeline);
-		Pipeline->UpdateDynamicStates(Cmd, CurrentState);
-		if (bHasDescriptorSets)
-		{
-			CurrentState.BSS->BindDescriptorSets(Cmd);
-		}
-		CurrentState.BSS->BindVertexStreams(Cmd, PendingStreams);
+		FVulkanComputePipelineState* State = Pair.Value;
+		delete State;
 	}
-}
-
-void FOLDVulkanPendingGfxState::InitFrame()
-{
-}
-
-void FOLDVulkanPendingGfxState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
-{
-	VkViewport& vp = CurrentState.Viewport;
-	FMemory::Memzero(vp);
-
-	vp.x = MinX;
-	vp.y = MinY;
-	vp.width = MaxX - MinX;
-	vp.height = MaxY - MinY;
-
-	// Engine parses in some cases MaxZ as 0.0, which is rubbish.
-	if(MinZ == MaxZ)
-	{
-		vp.minDepth = MinZ;
-		vp.maxDepth = MinZ + 1.0f;
-	}
-	else
-	{
-		vp.minDepth = MinZ;
-		vp.maxDepth = MaxZ;
-	}
-
-	CurrentState.bNeedsViewportUpdate = true;
-
-	// Set scissor to match the viewport when disabled
-	if (!bScissorEnable)
-	{
-		SetScissorRect(vp.x, vp.y, vp.width, vp.height);
-	}
-}
-
-void FOLDVulkanPendingGfxState::SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
-{
-	bScissorEnable = bEnable;
-
-	if (bScissorEnable)
-	{
-		SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
-	}
-	else
-	{
-		const VkViewport& vp = CurrentState.Viewport;
-		SetScissorRect(vp.x, vp.y, vp.width, vp.height);
-	}
-}
-
-void FOLDVulkanPendingGfxState::SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)
-{
-	VkRect2D& Scissor = CurrentState.Scissor;
-	FMemory::Memzero(Scissor);
-
-	Scissor.offset.x = MinX;
-	Scissor.offset.y = MinY;
-	Scissor.extent.width = Width;
-	Scissor.extent.height = Height;
-
-	// todo vulkan: compare against previous (and viewport above)
-	CurrentState.bNeedsScissorUpdate = true;
-}
-
-void FOLDVulkanPendingGfxState::SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState)
-{
-	check(InBoundShaderState);
-	InBoundShaderState->ResetState();
-	CurrentState.BSS = InBoundShaderState;
-}
-
-FVulkanBoundShaderState& FOLDVulkanPendingGfxState::GetBoundShaderState()
-{
-	check(CurrentState.BSS);
-	return *CurrentState.BSS;
-}
-
-
-void FOLDVulkanPendingGfxState::SetBlendState(FVulkanBlendState* NewState)
-{
-	check(NewState);
-	CurrentState.BlendState = NewState;
-
-	// set blend modes into the key
-	SetKeyBits(CurrentKey, OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, NewState->BlendStateKey);
-}
-
-void FOLDVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
-{
-	check(NewState);
-	CurrentState.DepthStencilState = NewState;
-	CurrentState.StencilRef = StencilRef;
-	CurrentState.bNeedsStencilRefUpdate = true;
-
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_TEST_ENABLED, 1, NewState->DepthStencilState.depthTestEnable);
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_WRITE_ENABLED, 1, NewState->DepthStencilState.depthWriteEnable);
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_COMPARE_OP, NUMBITS_DEPTH_COMPARE_OP, NewState->DepthStencilState.depthCompareOp);
-	SetKeyBits(CurrentKey, OFFSET_STENCIL_TEST_ENABLED, 1, NewState->DepthStencilState.stencilTestEnable);
-	SetKeyBits(CurrentKey, OFFSET_FRONT_STENCIL_STATE, NUMBITS_STENCIL_STATE, NewState->FrontStencilKey);
-	SetKeyBits(CurrentKey, OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, NewState->BackStencilKey);
-}
-
-void FOLDVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState)
-{
-	check(NewState);
-
-	CurrentState.RasterizerState = NewState;
-
-	// update running key
-	SetKeyBits(CurrentKey, OFFSET_CULL_MODE, NUMBITS_CULL_MODE, NewState->RasterizerState.cullMode);
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, 1, NewState->RasterizerState.depthBiasEnable);
-	SetKeyBits(CurrentKey, OFFSET_POLYFILL, NUMBITS_POLYFILL, NewState->RasterizerState.polygonMode == VK_POLYGON_MODE_FILL);
 }
 
 void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCommandListContext* Context, FVulkanCmdBuffer* InCmdBuffer)
@@ -434,6 +145,7 @@ void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCommandListContext* C
 	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
 
 	{
+		//#todo-rco: Move this to SetComputePipeline()
 		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
 		CurrentPipeline->Bind(CmdBuffer);
 		if (bHasDescriptorSets)
@@ -455,4 +167,135 @@ FVulkanComputePipeline* FVulkanPendingComputeState::GetOrCreateComputePipeline(F
 	FVulkanComputePipeline* NewPipeline = new FVulkanComputePipeline(Device, ComputeShader);
 	ComputePipelineCache.Add(ComputeShader, NewPipeline);
 	return NewPipeline;
+}
+
+FVulkanPendingGfxState::~FVulkanPendingGfxState()
+{
+	for (auto Pair : PipelineStates)
+	{
+		FVulkanGfxPipelineState* State = Pair.Value;
+		delete State;
+	}
+}
+
+void FVulkanPendingGfxState::PrepareForDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology)
+{
+	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
+
+	ensure(Topology == UEToVulkanType(CurrentPipeline->PipelineStateInitializer.PrimitiveType));
+
+	bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(CmdListContext, CmdBuffer, &GlobalUniformPool);
+
+	UpdateDynamicStates(CmdBuffer);
+
+	if (bHasDescriptorSets)
+	{
+		CurrentState->BindDescriptorSets(CmdBuffer->GetHandle());
+	}
+
+	if (bDirtyVertexStreams)
+	{
+#if VULKAN_ENABLE_AGGRESSIVE_STATS
+		SCOPE_CYCLE_COUNTER(STAT_VulkanBindVertexStreamsTime);
+#endif
+		// Its possible to have no vertex buffers
+		const FVulkanVertexInputStateInfo& VertexInputStateInfo = CurrentPipeline->Pipeline->GetVertexInputState();
+		if (VertexInputStateInfo.AttributesNum == 0)
+		{
+			// However, we need to verify that there are also no bindings
+			check(VertexInputStateInfo.BindingsNum == 0);
+			return;
+		}
+
+		//#todo-rco: Fix this!
+		struct FTmp
+		{
+			TArray<VkBuffer> VertexBuffers;
+			TArray<VkDeviceSize> VertexOffsets;
+		} Tmp;
+		Tmp.VertexBuffers.Reset(0);
+		Tmp.VertexOffsets.Reset(0);
+		const VkVertexInputAttributeDescription* CurrAttribute = nullptr;
+		for (uint32 BindingIndex = 0; BindingIndex < VertexInputStateInfo.BindingsNum; BindingIndex++)
+		{
+			const VkVertexInputBindingDescription& CurrBinding = VertexInputStateInfo.Bindings[BindingIndex];
+
+			uint32 StreamIndex = VertexInputStateInfo.BindingToStream.FindChecked(BindingIndex);
+			FVulkanPendingGfxState::FVertexStream& CurrStream = PendingStreams[StreamIndex];
+
+			// Verify the vertex buffer is set
+			if (/*!CurrStream.Stream && */!CurrStream.Stream2 && CurrStream.Stream3 == VK_NULL_HANDLE)
+			{
+				// The attribute in stream index is probably compiled out
+#if VULKAN_HAS_DEBUGGING_ENABLED
+				// Lets verify
+				for (uint32 AttributeIndex = 0; AttributeIndex < VertexInputStateInfo.AttributesNum; AttributeIndex++)
+				{
+					if (VertexInputStateInfo.Attributes[AttributeIndex].binding == CurrBinding.binding)
+					{
+						UE_LOG(LogVulkanRHI, Warning, TEXT("Missing binding on location %d in '%s' vertex shader"),
+							CurrBinding.binding,
+							*CurrentBSS->GetShader(SF_Vertex)->GetDebugName());
+						ensure(0);
+					}
+				}
+#endif
+				continue;
+			}
+
+			Tmp.VertexBuffers.Add(/*CurrStream.Stream
+								  ? CurrStream.Stream->GetBufferHandle()
+								  : (*/CurrStream.Stream2
+								  ? CurrStream.Stream2->GetHandle()
+								  : CurrStream.Stream3//)
+			);
+			Tmp.VertexOffsets.Add(CurrStream.BufferOffset);
+		}
+
+		if (Tmp.VertexBuffers.Num() > 0)
+		{
+			// Bindings are expected to be in ascending order with no index gaps in between:
+			// Correct:		0, 1, 2, 3
+			// Incorrect:	1, 0, 2, 3
+			// Incorrect:	0, 2, 3, 5
+			// Reordering and creation of stream binding index is done in "GenerateVertexInputStateInfo()"
+			VulkanRHI::vkCmdBindVertexBuffers(CmdBuffer->GetHandle(), 0, Tmp.VertexBuffers.Num(), Tmp.VertexBuffers.GetData(), Tmp.VertexOffsets.GetData());
+		}
+
+		bDirtyVertexStreams = true;
+	}
+}
+
+void FVulkanPendingGfxState::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd)
+{
+	bool bInCmdNeedsDynamicState = Cmd->bNeedsDynamicStateSet;
+
+	// Validate and update Viewport
+	if ((NeedsUpdateMask & ENeedsViewport) == ENeedsViewport || bInCmdNeedsDynamicState)
+	{
+		ensure(Viewport.width > 0 || Viewport.height > 0);
+		VulkanRHI::vkCmdSetViewport(Cmd->GetHandle(), 0, 1, &Viewport);
+	}
+
+	// Validate and update scissor rect
+	if ((NeedsUpdateMask & ENeedsScissor) == ENeedsScissor || bInCmdNeedsDynamicState)
+	{
+		// Make a copy to not overwrite what the RHI has set internally
+		VkRect2D InnerScissor = Scissor;
+		if (InnerScissor.extent.width == 0 || InnerScissor.extent.height == 0)
+		{
+			InnerScissor.extent.width = Viewport.width;
+			InnerScissor.extent.height = Viewport.height;
+		}
+
+		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &InnerScissor);
+	}
+
+	if ((NeedsUpdateMask & ENeedsStencilRef) == ENeedsStencilRef || bInCmdNeedsDynamicState)
+	{
+		VulkanRHI::vkCmdSetStencilReference(Cmd->GetHandle(), VK_STENCIL_FRONT_AND_BACK, StencilRef);
+	}
+
+	NeedsUpdateMask = 0;
+	Cmd->bNeedsDynamicStateSet = false;
 }

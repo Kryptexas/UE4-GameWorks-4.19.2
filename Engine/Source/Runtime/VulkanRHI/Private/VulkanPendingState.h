@@ -11,121 +11,6 @@
 #include "VulkanPipeline.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "VulkanPipelineState.h"
-#include "VulkanBoundShaderState.h"
-
-typedef uint32 FStateKey;
-
-namespace VulkanRHI
-{
-	enum EStateKey
-	{
-		NUMBITS_BLEND_STATE				= 6,
-		NUMBITS_RENDER_TARGET_FORMAT	= 4,
-		NUMBITS_LOAD_OP					= 2,
-		NUMBITS_STORE_OP				= 2,
-		NUMBITS_CULL_MODE				= 2,
-		NUMBITS_POLYFILL				= 1,
-		NUMBITS_POLYTYPE				= 3,
-		NUMBITS_DEPTH_COMPARE_OP		= 3,
-		NUMBITS_STENCIL_STATE			= 5,
-		NUMBITS_NUM_COLOR_BLENDS		= 3,
-		NUMBITS_NUM_SAMPLES_MINUS_ONE	= 4,	// 0..15 maps to 1..16
-
-		OFFSET_BLEND_STATE				= 0,
-		OFFSET_RENDER_TARGET_FORMAT0	= OFFSET_BLEND_STATE + NUMBITS_BLEND_STATE,
-		OFFSET_RENDER_TARGET_FORMAT1	= OFFSET_RENDER_TARGET_FORMAT0 + NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_FORMAT2	= OFFSET_RENDER_TARGET_FORMAT1 + NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_FORMAT3	= OFFSET_RENDER_TARGET_FORMAT2 + NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_LOAD0		= OFFSET_RENDER_TARGET_FORMAT3 + NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_LOAD1		= OFFSET_RENDER_TARGET_LOAD0 + NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_LOAD2		= OFFSET_RENDER_TARGET_LOAD1 + NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_LOAD3		= OFFSET_RENDER_TARGET_LOAD2 + NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_STORE0		= OFFSET_RENDER_TARGET_LOAD3 + NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_STORE1		= OFFSET_RENDER_TARGET_STORE0 + NUMBITS_STORE_OP,
-		OFFSET_RENDER_TARGET_STORE2		= OFFSET_RENDER_TARGET_STORE1 + NUMBITS_STORE_OP,
-		OFFSET_RENDER_TARGET_STORE3		= OFFSET_RENDER_TARGET_STORE2 + NUMBITS_STORE_OP,
-
-		OFFSET_CULL_MODE				= OFFSET_RENDER_TARGET_STORE3 + NUMBITS_STORE_OP,
-		OFFSET_POLYFILL					= OFFSET_CULL_MODE + NUMBITS_CULL_MODE,
-		OFFSET_POLYTYPE					= OFFSET_POLYFILL + NUMBITS_POLYFILL,
-		OFFSET_DEPTH_BIAS_ENABLED		= OFFSET_POLYTYPE + NUMBITS_POLYTYPE,
-		OFFSET_DEPTH_TEST_ENABLED		= OFFSET_DEPTH_BIAS_ENABLED + 1,
-		OFFSET_DEPTH_WRITE_ENABLED		= OFFSET_DEPTH_TEST_ENABLED + 1,
-		OFFSET_DEPTH_COMPARE_OP			= OFFSET_DEPTH_WRITE_ENABLED + 1,
-		OFFSET_FRONT_STENCIL_STATE		= OFFSET_DEPTH_COMPARE_OP + NUMBITS_DEPTH_COMPARE_OP,
-
-		OFFSET_DEPTH_STENCIL_FORMAT		= OFFSET_FRONT_STENCIL_STATE + NUMBITS_STENCIL_STATE,
-		OFFSET_DEPTH_STENCIL_LOAD		= OFFSET_DEPTH_STENCIL_FORMAT + NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_DEPTH_STENCIL_STORE		= OFFSET_DEPTH_STENCIL_LOAD + NUMBITS_LOAD_OP,
-
-		OFFSET_RENDER_TARGET_FORMAT4	= 0x8000,
-		OFFSET_RENDER_TARGET_FORMAT5	= OFFSET_RENDER_TARGET_FORMAT4	+ NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_FORMAT6	= OFFSET_RENDER_TARGET_FORMAT5	+ NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_FORMAT7	= OFFSET_RENDER_TARGET_FORMAT6	+ NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_LOAD4		= OFFSET_RENDER_TARGET_FORMAT7	+ NUMBITS_RENDER_TARGET_FORMAT,
-		OFFSET_RENDER_TARGET_LOAD5		= OFFSET_RENDER_TARGET_LOAD4	+ NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_LOAD6		= OFFSET_RENDER_TARGET_LOAD5	+ NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_LOAD7		= OFFSET_RENDER_TARGET_LOAD6	+ NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_STORE4		= OFFSET_RENDER_TARGET_LOAD7	+ NUMBITS_LOAD_OP,
-		OFFSET_RENDER_TARGET_STORE5		= OFFSET_RENDER_TARGET_STORE4	+ NUMBITS_STORE_OP,
-		OFFSET_RENDER_TARGET_STORE6		= OFFSET_RENDER_TARGET_STORE5	+ NUMBITS_STORE_OP,
-		OFFSET_RENDER_TARGET_STORE7		= OFFSET_RENDER_TARGET_STORE6	+ NUMBITS_STORE_OP,
-		OFFSET_BACK_STENCIL_STATE		= OFFSET_RENDER_TARGET_STORE7	+ NUMBITS_STORE_OP,
-		OFFSET_STENCIL_TEST_ENABLED		= OFFSET_BACK_STENCIL_STATE		+ NUMBITS_STENCIL_STATE,
-		OFFSET_NUM_SAMPLES_MINUS_ONE	= OFFSET_STENCIL_TEST_ENABLED	+ 1,
-		OFFSET_NUM_COLOR_BLENDS			= OFFSET_NUM_SAMPLES_MINUS_ONE	+ NUMBITS_NUM_SAMPLES_MINUS_ONE,
-	};
-
-	static_assert(OFFSET_DEPTH_STENCIL_STORE + NUMBITS_STORE_OP <= 64, "Out of bits!");
-	static_assert(((OFFSET_NUM_COLOR_BLENDS + NUMBITS_NUM_COLOR_BLENDS) & ~0x8000) <= 64, "Out of bits!");
-
-	static FORCEINLINE uint64* GetKey(FVulkanPipelineGraphicsKey& Key, uint64 Offset)
-	{
-		return Key.Key + (((Offset & 0x8000) != 0) ? 1 : 0);
-	}
-
-	static FORCEINLINE void SetKeyBits(FVulkanPipelineGraphicsKey& Key, uint64 Offset, uint64 NumBits, uint64 Value)
-	{
-		uint64& CurrentKey = *GetKey(Key, Offset);
-		Offset = (Offset & ~0x8000);
-		const uint64 BitMask = ((1ULL << NumBits) - 1) << Offset;
-		CurrentKey = (CurrentKey & ~BitMask) | (((uint64)(Value) << Offset) & BitMask); \
-	}
-
-	static const uint32 RTFormatBitOffsets[MaxSimultaneousRenderTargets] =
-	{
-		OFFSET_RENDER_TARGET_FORMAT0,
-		OFFSET_RENDER_TARGET_FORMAT1,
-		OFFSET_RENDER_TARGET_FORMAT2,
-		OFFSET_RENDER_TARGET_FORMAT3,
-		OFFSET_RENDER_TARGET_FORMAT4,
-		OFFSET_RENDER_TARGET_FORMAT5,
-		OFFSET_RENDER_TARGET_FORMAT6,
-		OFFSET_RENDER_TARGET_FORMAT7
-	};
-	static const uint32 RTLoadBitOffsets[MaxSimultaneousRenderTargets] =
-	{
-		OFFSET_RENDER_TARGET_LOAD0,
-		OFFSET_RENDER_TARGET_LOAD1,
-		OFFSET_RENDER_TARGET_LOAD2,
-		OFFSET_RENDER_TARGET_LOAD3,
-		OFFSET_RENDER_TARGET_LOAD4,
-		OFFSET_RENDER_TARGET_LOAD5,
-		OFFSET_RENDER_TARGET_LOAD6,
-		OFFSET_RENDER_TARGET_LOAD7
-	};
-	static const uint32 RTStoreBitOffsets[MaxSimultaneousRenderTargets] =
-	{
-		OFFSET_RENDER_TARGET_STORE0,
-		OFFSET_RENDER_TARGET_STORE1,
-		OFFSET_RENDER_TARGET_STORE2,
-		OFFSET_RENDER_TARGET_STORE3,
-		OFFSET_RENDER_TARGET_STORE4,
-		OFFSET_RENDER_TARGET_STORE5,
-		OFFSET_RENDER_TARGET_STORE6,
-		OFFSET_RENDER_TARGET_STORE7
-	};
-};
 
 // All the current compute pipeline states in use
 class FVulkanPendingComputeState : public VulkanRHI::FDeviceChild
@@ -136,11 +21,7 @@ public:
 	{
 	}
 
-	~FVulkanPendingComputeState()
-	{
-		//#todo-rco: Delete all
-		ensure(0);
-	}
+	~FVulkanPendingComputeState();
 
 	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
 	{
@@ -156,6 +37,7 @@ public:
 			if (Found)
 			{
 				CurrentState = *Found;
+				check(CurrentState->ComputePipeline == InComputePipeline);
 			}
 			else
 			{
@@ -163,7 +45,7 @@ public:
 				PipelineStates.Add(CurrentPipeline, CurrentState);
 			}
 
-			CurrentState->DSRingBuffer.Reset();
+			CurrentState->Reset();
 		}
 	}
 
@@ -205,7 +87,7 @@ public:
 		CurrentState->SetTexture(BindPoint, TextureBase);
 	}
 
-	void SetSRV(uint32 TextureIndex, FVulkanShaderResourceView* SRV)
+	inline void SetSRV(uint32 BindIndex, FVulkanShaderResourceView* SRV)
 	{
 		if (SRV)
 		{
@@ -214,17 +96,17 @@ public:
 			if (SRV->BufferView)
 			{
 				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVBufferViewState(TextureIndex, SRV->BufferView);
+				CurrentState->SetSRVBufferViewState(BindIndex, SRV->BufferView);
 			}
 			else
 			{
 				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
-				CurrentState->SetSRVTextureView(TextureIndex, SRV->TextureView);
+				CurrentState->SetSRVTextureView(BindIndex, SRV->TextureView);
 			}
 		}
 		else
 		{
-			CurrentState->SetSRVBufferViewState(TextureIndex, nullptr);
+			//CurrentState->SetSRVBufferViewState(BindIndex, nullptr);
 		}
 	}
 
@@ -246,6 +128,11 @@ public:
 	//#todo-rco: Move to pipeline cache
 	FVulkanComputePipeline* GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader);
 
+	void NotifyDeletedPipeline(FVulkanComputePipeline* Pipeline)
+	{
+		PipelineStates.Remove(Pipeline);
+	}
+
 protected:
 	FVulkanGlobalUniformPool GlobalUniformPool;
 	TArray<FVulkanUnorderedAccessView*> UAVListForAutoFlush;
@@ -261,99 +148,270 @@ protected:
 	friend class FVulkanCommandListContext;
 };
 
-class FOLDVulkanPendingGfxState
+// All the current gfx pipeline states in use
+class FVulkanPendingGfxState : public VulkanRHI::FDeviceChild
 {
 public:
-	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderPass;
-	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
+	FVulkanPendingGfxState(FVulkanDevice* InDevice)
+		: VulkanRHI::FDeviceChild(InDevice)
+	{
+		Reset();
+	}
 
-	FOLDVulkanPendingGfxState(FVulkanDevice* InDevice);
-
-	void Reset();
-
-	void PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+	~FVulkanPendingGfxState();
 
 	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
 	{
 		return GlobalUniformPool;
 	}
 
-	void SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState);
-
-	// Pipeline states
-	void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
-	void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
-	void SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height);
-	void SetBlendState(FVulkanBlendState* NewState);
-	void SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef);
-	void SetRasterizerState(FVulkanRasterizerState* NewState);
-
-	// Returns shader state
-	// TODO: Move binding/layout functionality to the shader (who owns what)?
-	FVulkanBoundShaderState& GetBoundShaderState();
-
-	void SetStreamSource(uint32 StreamIndex, FVulkanBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
+	void Reset()
 	{
-		PendingStreams[StreamIndex].Stream = VertexBuffer;
+		FMemory::Memzero(Scissor);
+		FMemory::Memzero(Viewport);
+		StencilRef = 0;
+		bScissorEnable = false;
+		NeedsUpdateMask = ENeedsAll;
+		CurrentPipeline = nullptr;
+		CurrentState = nullptr;
+		CurrentBSS = nullptr;
+		bDirtyVertexStreams = true;
+
+		//#todo-rco: Would this cause issues?
+		//FMemory::Memzero(PendingStreams);
+	}
+
+	void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
+	{
+		FMemory::Memzero(Viewport);
+
+		Viewport.x = MinX;
+		Viewport.y = MinY;
+		Viewport.width = MaxX - MinX;
+		Viewport.height = MaxY - MinY;
+
+		// Engine parses in some cases MaxZ as 0.0, which is rubbish.
+		if (MinZ == MaxZ)
+		{
+			Viewport.minDepth = MinZ;
+			Viewport.maxDepth = MinZ + 1.0f;
+		}
+		else
+		{
+			Viewport.minDepth = MinZ;
+			Viewport.maxDepth = MaxZ;
+		}
+
+		NeedsUpdateMask |= ENeedsViewport;
+
+		// Set scissor to match the viewport when disabled
+		if (!bScissorEnable)
+		{
+			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
+		}
+	}
+
+	inline void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	{
+		bScissorEnable = bEnable;
+
+		if (bScissorEnable)
+		{
+			SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
+		}
+		else
+		{
+			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
+		}
+	}
+
+	inline void SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)
+	{
+		FMemory::Memzero(Scissor);
+
+		Scissor.offset.x = MinX;
+		Scissor.offset.y = MinY;
+		Scissor.extent.width = Width;
+		Scissor.extent.height = Height;
+
+		// todo vulkan: compare against previous (and viewport above)
+		NeedsUpdateMask |= ENeedsScissor;
+	}
+
+	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
+	{
+		//PendingStreams[StreamIndex].Stream = VertexBuffer;
+		PendingStreams[StreamIndex].Stream2  = VertexBuffer;
+		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
+		PendingStreams[StreamIndex].BufferOffset = Offset;
+		bDirtyVertexStreams = true;
+	}
+
+	inline void SetStreamSource(uint32 StreamIndex, VkBuffer VertexBuffer, uint32 Stride, uint32 Offset)
+	{
 		PendingStreams[StreamIndex].Stream2  = nullptr;
-		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
+		PendingStreams[StreamIndex].Stream3 = VertexBuffer;
 		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.BSS)
+		bDirtyVertexStreams = true;
+	}
+
+	inline void SetTexture(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureBase* TextureBase)
+	{
+		CurrentState->SetTexture(Stage, BindPoint, TextureBase);
+	}
+
+	inline void SetUniformBufferConstantData(EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData)
+	{
+		CurrentState->SetUniformBufferConstantData(Stage, BindPoint, ConstantData);
+	}
+
+	inline void SetUniformBuffer(EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
+	{
+		//#todo-rco
+		ensure(0);
+	}
+
+	inline void SetSRV(EShaderFrequency Stage, uint32 BindIndex, FVulkanShaderResourceView* SRV)
+	{
+		if (SRV)
 		{
-			CurrentState.BSS->MarkDirtyVertexStreams();
+			// make sure any dynamically backed SRV points to current memory
+			SRV->UpdateView();
+			if (SRV->BufferView)
+			{
+				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVBufferViewState(Stage, BindIndex, SRV->BufferView);
+			}
+			else
+			{
+				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVTextureView(Stage, BindIndex, SRV->TextureView);
+			}
+		}
+		else
+		{
+			//CurrentState->SetSRVBufferViewState(Stage, BindIndex, nullptr);
 		}
 	}
 
-	void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
+	inline void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)
 	{
-		PendingStreams[StreamIndex].Stream = nullptr;
-		PendingStreams[StreamIndex].Stream2 = VertexBuffer;
-		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
-		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.BSS)
+		CurrentState->SetSamplerState(Stage, BindPoint, Sampler);
+	}
+
+	inline void SetShaderParameter(EShaderFrequency Stage, uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
+	{
+		CurrentState->SetShaderParameter(Stage, BufferIndex, ByteOffset, NumBytes, NewValue);
+	}
+
+	void PrepareForDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+
+	bool SetGfxPipeline(FVulkanGraphicsPipelineState* InGfxPipeline)
+	{
+		if (InGfxPipeline != CurrentPipeline)
 		{
-			CurrentState.BSS->MarkDirtyVertexStreams();
+			// note: BSS objects are cached so this should only be a lookup
+			CurrentBSS = ResourceCast(
+				RHICreateBoundShaderState(
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.VertexDeclarationRHI,
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.VertexShaderRHI,
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.HullShaderRHI,
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.DomainShaderRHI,
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.PixelShaderRHI,
+					InGfxPipeline->PipelineStateInitializer.BoundShaderState.GeometryShaderRHI
+				).GetReference()
+			);
+
+			CurrentPipeline = InGfxPipeline;
+			FVulkanGfxPipelineState** Found = PipelineStates.Find(InGfxPipeline);
+			if (Found)
+			{
+				CurrentState = *Found;
+				check(CurrentState->GfxPipeline == InGfxPipeline);
+			}
+			else
+			{
+				CurrentState = new FVulkanGfxPipelineState(Device, InGfxPipeline, CurrentBSS);
+				PipelineStates.Add(CurrentPipeline, CurrentState);
+			}
+
+			CurrentState->Reset();
+			return true;
+		}
+
+		return false;
+	}
+
+	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd)
+	{
+		if (NeedsUpdateMask != 0 || Cmd->bNeedsDynamicStateSet)
+		{
+			InternalUpdateDynamicStates(Cmd);
 		}
 	}
 
-	void SetStreamSource(uint32 StreamIndex, VkBuffer InBuffer, uint32 Stride, uint32 Offset)
+	inline void SetStencilRef(uint32 InStencilRef)
 	{
-		PendingStreams[StreamIndex].Stream = nullptr;
-		PendingStreams[StreamIndex].Stream2 = nullptr;
-		PendingStreams[StreamIndex].Stream3  = InBuffer;
-		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.BSS)
+		if (InStencilRef != StencilRef)
 		{
-			CurrentState.BSS->MarkDirtyVertexStreams();
+			StencilRef = InStencilRef;
+			NeedsUpdateMask |= ENeedsStencilRef;
 		}
 	}
+
+	void NotifyDeletedPipeline(FVulkanGraphicsPipelineState* Pipeline)
+	{
+		PipelineStates.Remove(Pipeline);
+	}
+
+	inline void MarkNeedsDynamicStates()
+	{
+		NeedsUpdateMask = ENeedsAll;
+	}
+
+protected:
+	FVulkanGlobalUniformPool GlobalUniformPool;
+
+	enum
+	{
+		ENeedsScissor =		1 << 0,
+		ENeedsViewport =	1 << 1,
+		ENeedsStencilRef =	1 << 2,
+
+		ENeedsAll = ENeedsScissor | ENeedsViewport | ENeedsStencilRef,
+	};
+
+	VkViewport Viewport;
+	uint32 StencilRef;
+	bool bScissorEnable;
+	VkRect2D Scissor;
+	uint8 NeedsUpdateMask;
+
+	FVulkanGraphicsPipelineState* CurrentPipeline;
+	FVulkanGfxPipelineState* CurrentState;
+	FVulkanBoundShaderState* CurrentBSS;
+
+	TMap<FVulkanGraphicsPipelineState*, FVulkanGfxPipelineState*> PipelineStates;
 
 	struct FVertexStream
 	{
-		FVertexStream() : Stream(nullptr), Stream2(nullptr), Stream3(VK_NULL_HANDLE), BufferOffset(0) {}
-		FVulkanBuffer* Stream;
+		FVertexStream() :
+			//Stream(nullptr),
+			Stream2(nullptr),
+			Stream3(VK_NULL_HANDLE),
+			BufferOffset(0)
+		{
+		}
+
+		//FVulkanBuffer* Stream;
 		FVulkanResourceMultiBuffer* Stream2;
 		VkBuffer Stream3;
 		uint32 BufferOffset;
 	};
+	FVertexStream PendingStreams[MaxVertexElementCount];
+	bool bDirtyVertexStreams;
 
-	inline const FVertexStream* GetVertexStreams() const
-	{
-		return PendingStreams;
-	}
-
-	void InitFrame();
-
-private:
-	bool bScissorEnable;
-
-	FVulkanGfxPipelineState CurrentState;
-	FVulkanGlobalUniformPool GlobalUniformPool;
+	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd);
 
 	friend class FVulkanCommandListContext;
-
-	FVertexStream PendingStreams[MaxVertexElementCount];
-
-	// running key of the current pipeline state
-	FVulkanPipelineGraphicsKey CurrentKey;
 };

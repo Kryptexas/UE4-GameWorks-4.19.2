@@ -75,7 +75,7 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("SF_VULKAN_SM5"))
 	{
-		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan Desktop (SM5, Highly Experimental!)");
+		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan Desktop (SM5, Experimental)");
 	}
 
 	return FriendlyRHIName;

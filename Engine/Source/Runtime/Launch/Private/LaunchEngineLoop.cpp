@@ -1056,7 +1056,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	const TCHAR* ParsedCmdLine	= CommandLineCopy;
 
 	// Add the default engine shader dir
-	FGenericPlatformProcess::AddShaderDir(FGenericPlatformProcess::ShaderDir());
+	FGenericPlatformProcess::AddShaderSourceDirectoryMapping(TEXT("/Engine"), FGenericPlatformProcess::ShaderDir());
 
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 

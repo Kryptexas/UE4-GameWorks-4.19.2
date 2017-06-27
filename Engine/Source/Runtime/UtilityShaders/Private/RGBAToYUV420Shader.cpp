@@ -17,7 +17,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( RGBAToYUV420UB, )
 END_UNIFORM_BUFFER_STRUCT( RGBAToYUV420UB )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(RGBAToYUV420UB, TEXT("RGBAToYUV420UB"));
-IMPLEMENT_SHADER_TYPE(, FRGBAToYUV420CS, TEXT("MorpheusInclude"), TEXT("RGBAToYUV420Main"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FRGBAToYUV420CS, TEXT("/Engine/Private/MorpheusInclude.usf"), TEXT("RGBAToYUV420Main"), SF_Compute);
 
 
 void FRGBAToYUV420CS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> SrcTex, FUnorderedAccessViewRHIParamRef OutUAV, float TargetHeight, float ScaleFactorX, float ScaleFactorY, float TextureYOffset)

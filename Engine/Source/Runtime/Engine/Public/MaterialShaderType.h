@@ -88,7 +88,11 @@ public:
 		ConstructCompiledRef(InConstructCompiledRef),
 		ShouldCacheRef(InShouldCacheRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
-	{}
+	{
+		checkf(FPaths::GetExtension(InSourceFilename) == TEXT("usf"),
+			TEXT("Incorrect virtual shader path extension for material shader '%s': Only .usf files should be compiled."),
+			InSourceFilename);
+	}
 
 	/**
 	 * Enqueues a compilation for a new shader of this type.

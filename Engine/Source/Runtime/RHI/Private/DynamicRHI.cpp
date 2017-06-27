@@ -12,6 +12,7 @@
 #include "RHI.h"
 #include "Modules/ModuleManager.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
+#include "PipelineStateCache.h"
 
 #ifndef PLATFORM_ALLOW_NULL_RHI
 	#define PLATFORM_ALLOW_NULL_RHI		0
@@ -208,6 +209,9 @@ void RHIExit()
 {
 	if ( !GUsingNullRHI && GDynamicRHI != NULL )
 	{
+		// Clean up all cached pipelines
+		ClearPipelineCache();
+
 		// Destruct the dynamic RHI.
 		GDynamicRHI->Shutdown();
 		delete GDynamicRHI;

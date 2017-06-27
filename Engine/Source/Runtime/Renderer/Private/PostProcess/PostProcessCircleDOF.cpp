@@ -160,8 +160,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<0>,TEXT("PostProcessCircleDOF"),TEXT("CircleSetupPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<1>,TEXT("PostProcessCircleDOF"),TEXT("CircleSetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<0>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleSetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<1>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleSetupPS"),SF_Pixel);
 
 void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -370,8 +370,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<0>,TEXT("PostProcessCircleDOF"),TEXT("CircleDilatePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<1>,TEXT("PostProcessCircleDOF"),TEXT("CircleDilatePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<0>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleDilatePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<1>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleDilatePS"),SF_Pixel);
 
 void FRCPassPostProcessCircleDOFDilate::Process(FRenderingCompositePassContext& Context)
 {
@@ -610,7 +610,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessCircleDOF");
+		return TEXT("/Engine/Private/PostProcessCircleDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -847,7 +847,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessCircleDOF");
+		return TEXT("/Engine/Private/PostProcessCircleDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

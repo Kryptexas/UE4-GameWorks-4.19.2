@@ -69,7 +69,7 @@ int32 FOcclusionQueryHelpers::GetNumBufferedFrames()
 
 
 // default, non-instanced shader implementation
-IMPLEMENT_SHADER_TYPE(,FOcclusionQueryVS,TEXT("OcclusionQueryVertexShader"),TEXT("Main"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FOcclusionQueryVS,TEXT("/Engine/Private/OcclusionQueryVertexShader.usf"),TEXT("Main"),SF_Vertex);
 
 static FGlobalBoundShaderState GOcclusionTestBoundShaderState;
 
@@ -795,7 +795,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FHZBTestPS,TEXT("HZBOcclusion"),TEXT("HZBTestPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FHZBTestPS,TEXT("/Engine/Private/HZBOcclusion.usf"),TEXT("HZBTestPS"),SF_Pixel);
 
 void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
@@ -1070,8 +1070,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<0>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<0>,TEXT("/Engine/Private/HZBOcclusion.usf"),TEXT("HZBBuildPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("/Engine/Private/HZBOcclusion.usf"),TEXT("HZBBuildPS"),SF_Pixel);
 
 void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 {
@@ -1135,55 +1135,63 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
-
-		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &HZBRenderTargetRef, 1);
 	}
 
-	FIntPoint SrcSize = HZBSize;
-	FIntPoint DstSize = SrcSize / 2;
-	
-	SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMips Mips:1..%d %dx%d"), NumMips - 1, DstSize.X, DstSize.Y);	
-
-	// Downsampling...
-	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )
+	if (GSupportsGenerateMips)
 	{
-		DstSize.X = FMath::Max(DstSize.X, 1);
-		DstSize.Y = FMath::Max(DstSize.Y, 1);
-
-		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
-		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
-		TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-		PixelShader->SetParameters(RHICmdList, View, SrcSize, HZBRenderTarget.MipSRVs[ MipIndex - 1 ] );
-
-		RHICmdList.SetViewport(0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f);
-
-		DrawRectangle(
-			RHICmdList,
-			0, 0,
-			DstSize.X, DstSize.Y,
-			0, 0,
-			SrcSize.X, SrcSize.Y,
-			DstSize,
-			SrcSize,
-			*VertexShader,
-			EDRF_UseTriangleOptimization);
-
-		SrcSize /= 2;
-		DstSize /= 2;
-
-		//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		SCOPED_DRAW_EVENT(RHICmdList, BuildHZBMips);
+		RHICmdList.GenerateMips(HZBRenderTargetRef/*, NumMips*/);
+	}
+	else
+	{
+		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
 		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &HZBRenderTargetRef, 1);
+
+		FIntPoint SrcSize = HZBSize;
+		FIntPoint DstSize = SrcSize / 2;
+
+		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMips Mips:1..%d %dx%d"), NumMips - 1, DstSize.X, DstSize.Y);
+
+		// Downsampling...
+		for (uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++)
+		{
+			DstSize.X = FMath::Max(DstSize.X, 1);
+			DstSize.Y = FMath::Max(DstSize.Y, 1);
+
+			SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
+			TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
+
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+			PixelShader->SetParameters(RHICmdList, View, SrcSize, HZBRenderTarget.MipSRVs[MipIndex - 1]);
+
+			RHICmdList.SetViewport(0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f);
+
+			DrawRectangle(
+				RHICmdList,
+				0, 0,
+				DstSize.X, DstSize.Y,
+				0, 0,
+				SrcSize.X, SrcSize.Y,
+				DstSize,
+				SrcSize,
+				*VertexShader,
+				EDRF_UseTriangleOptimization);
+
+			SrcSize /= 2;
+			DstSize /= 2;
+
+			//Use ERWSubResBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWSubResBarrier, &HZBRenderTargetRef, 1);
+		}
 	}
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint( RHICmdList, View.HZB );

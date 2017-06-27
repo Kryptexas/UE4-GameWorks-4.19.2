@@ -584,7 +584,7 @@ public:
 	FShaderResourceParameter MobileMultiViewSceneColorTextureSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(, FCopyMobileMultiViewSceneColorPS, TEXT("MobileMultiView"), TEXT("MainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FCopyMobileMultiViewSceneColorPS, TEXT("/Engine/Private/MobileMultiView.usf"), TEXT("MainPS"), SF_Pixel);
 
 void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList)
 {

@@ -80,7 +80,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessGBufferHintsPS,TEXT("PostProcessGBufferHints"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessGBufferHintsPS,TEXT("/Engine/Private/PostProcessGBufferHints.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints(FRHICommandList& RHICmdList)

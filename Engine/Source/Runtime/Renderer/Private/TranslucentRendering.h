@@ -40,7 +40,7 @@ public:
 		{}
 
 		/** Whether this material should be processed now */
-		bool ShouldDraw(const FViewInfo& View, const FMaterial* Material, bool bIsSeparateTranslucency) const;
+		bool ShouldDraw(const FMaterial* Material, bool bIsSeparateTranslucency) const;
 	};
 
 	/**

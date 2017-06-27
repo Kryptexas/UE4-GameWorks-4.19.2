@@ -91,7 +91,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessDOF");
+		return TEXT("/Engine/Private/PostProcessDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -352,7 +352,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessDOF");
+		return TEXT("/Engine/Private/PostProcessDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

@@ -192,9 +192,9 @@ public:
 };
 
 
-IMPLEMENT_SHADER_TYPE(,FLpvVisualiseGS,TEXT("LPVVisualise"),TEXT("GShader"),SF_Geometry);
-IMPLEMENT_SHADER_TYPE(,FLpvVisualiseVS,TEXT("LPVVisualise"),TEXT("VShader"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FLpvVisualiseGS,TEXT("/Engine/Private/LPVVisualise.usf"),TEXT("GShader"),SF_Geometry);
+IMPLEMENT_SHADER_TYPE(,FLpvVisualiseVS,TEXT("/Engine/Private/LPVVisualise.usf"),TEXT("VShader"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("/Engine/Private/LPVVisualise.usf"),TEXT("PShader"),SF_Pixel);
 
 
 void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FViewInfo& View) const

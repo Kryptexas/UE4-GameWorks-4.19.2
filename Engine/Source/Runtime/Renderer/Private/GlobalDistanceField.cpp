@@ -236,7 +236,7 @@ private:
 	FShaderParameter AcceptOftenMovingObjectsOnly;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullObjectsForVolumeCS,TEXT("GlobalDistanceField"),TEXT("CullObjectsForVolumeCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullObjectsForVolumeCS,TEXT("/Engine/Private/GlobalDistanceField.usf"),TEXT("CullObjectsForVolumeCS"),SF_Compute);
 
 const int32 GMaxGridCulledObjects = 2047;
 
@@ -373,7 +373,7 @@ private:
 	FShaderParameter AOGlobalMaxSphereQueryRadius;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullObjectsToGridCS,TEXT("GlobalDistanceField"),TEXT("CullObjectsToGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullObjectsToGridCS,TEXT("/Engine/Private/GlobalDistanceField.usf"),TEXT("CullObjectsToGridCS"),SF_Compute);
 
 enum EFlattenedDimension
 {
@@ -525,7 +525,7 @@ private:
 
 #define IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(bUseParentDistanceField, FlattenedDimension) \
 	typedef TCompositeObjectDistanceFieldsCS<bUseParentDistanceField, FlattenedDimension> TCompositeObjectDistanceFieldsCS##bUseParentDistanceField##FlattenedDimension; \
-	IMPLEMENT_SHADER_TYPE(template<>,TCompositeObjectDistanceFieldsCS##bUseParentDistanceField##FlattenedDimension,TEXT("GlobalDistanceField"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TCompositeObjectDistanceFieldsCS##bUseParentDistanceField##FlattenedDimension,TEXT("/Engine/Private/GlobalDistanceField.usf"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
 
 IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_None);
 IMPLEMENT_GLOBALDF_COMPOSITE_CS_TYPE(true, Flatten_XAxis);
@@ -641,7 +641,7 @@ private:
 	FHeightfieldTextureParameters HeightfieldTextureParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(, FCompositeHeightfieldsIntoGlobalDistanceFieldCS, TEXT("GlobalDistanceField"), TEXT("CompositeHeightfieldsIntoGlobalDistanceFieldCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FCompositeHeightfieldsIntoGlobalDistanceFieldCS, TEXT("/Engine/Private/GlobalDistanceField.usf"), TEXT("CompositeHeightfieldsIntoGlobalDistanceFieldCS"), SF_Compute);
 
 extern void UploadHeightfieldDescriptions(const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions, FVector2D InvLightingAtlasSize, float InvDownsampleFactor);
 

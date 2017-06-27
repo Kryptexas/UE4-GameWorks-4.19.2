@@ -117,7 +117,7 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeVS,TEXT("VolumetricFogVoxelization"),TEXT("VoxelizeVS"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeVS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeVS"),SF_Vertex); 
 
 class FVoxelizeVolumeGS : public FMeshMaterialShader
 {
@@ -196,7 +196,7 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeGS,TEXT("VolumetricFogVoxelization"),TEXT("VoxelizeGS"),SF_Geometry); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumeGS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizeGS"),SF_Geometry); 
 
 class FVoxelizeVolumePS : public FMeshMaterialShader
 {
@@ -252,7 +252,7 @@ protected:
 	FVolumetricFogIntegrationParameters VolumetricFogParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumePS,TEXT("VolumetricFogVoxelization"),TEXT("VoxelizePS"),SF_Pixel); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FVoxelizeVolumePS,TEXT("/Engine/Private/VolumetricFogVoxelization.usf"),TEXT("VoxelizePS"),SF_Pixel); 
 
 class FVoxelizeVolumeDrawingPolicy : public FMeshDrawingPolicy
 {

@@ -22,7 +22,7 @@ public:
 	{
 		ConstructionValues()
 			: LightRotation(-40.f,-67.5f,0.f)
-			, SkyBrightness(0.f)
+			, SkyBrightness(1.0f)
 			, LightBrightness(PI)
 			, bAllowAudioPlayback(false)
 			, bForceMipsResident(true)
@@ -86,12 +86,14 @@ public:
 	void SetLightColor(const FColor& LightColor);
 
 	void SetSkyBrightness(float SkyBrightness);
+	void SetSkyCubemap(class UTextureCube* Cubemap);
 
 	/** Load/Save settings to the config, specifying the key */
 	void LoadSettings(const TCHAR* Section);
 	void SaveSettings(const TCHAR* Section);
 
 	class UDirectionalLightComponent* DirectionalLight;
+	class USkyLightComponent* SkyLight;
 
 private:
 

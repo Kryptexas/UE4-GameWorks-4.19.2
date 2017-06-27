@@ -71,7 +71,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessAmbientPS, TEXT("PostProcessAmbient"), TEXT("MainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessAmbientPS, TEXT("/Engine/Private/PostProcessAmbient.usf"), TEXT("MainPS"), SF_Pixel);
 
 void FRCPassPostProcessAmbient::Render(FRenderingCompositePassContext& Context, FGraphicsPipelineStateInitializer& GraphicsPSOInit)
 {

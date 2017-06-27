@@ -46,18 +46,18 @@ IMPLEMENT_ONECOLORVS(true,true)
 IMPLEMENT_ONECOLORVS(true,false)
 #undef IMPLEMENT_ONECOLORVS
 
-IMPLEMENT_SHADER_TYPE(,FOneColorPS,TEXT("OneColorShader"),TEXT("MainPixelShader"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FOneColorPS,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShader"),SF_Pixel);
 // Compiling a version for every number of MRT's
 // On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<1>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<2>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<3>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<4>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<5>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<6>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<7>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<8>,TEXT("OneColorShader"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<1>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<2>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<3>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<4>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<5>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<6>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<7>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<> UTILITYSHADERS_API,TOneColorPixelShaderMRT<8>,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainPixelShaderMRT"),SF_Pixel);
 
-IMPLEMENT_SHADER_TYPE(,FFillTextureCS,TEXT("OneColorShader"),TEXT("MainFillTextureCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FFillTextureCS,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainFillTextureCS"),SF_Compute);
 
-IMPLEMENT_SHADER_TYPE(,FLongGPUTaskPS,TEXT("OneColorShader"),TEXT("MainLongGPUTask"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FLongGPUTaskPS,TEXT("/Engine/Private/OneColorShader.usf"),TEXT("MainLongGPUTask"),SF_Pixel);

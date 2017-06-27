@@ -157,7 +157,7 @@ private:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessCompositeEditorPrimitives");
+		return TEXT("/Engine/Private/PostProcessCompositeEditorPrimitives.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

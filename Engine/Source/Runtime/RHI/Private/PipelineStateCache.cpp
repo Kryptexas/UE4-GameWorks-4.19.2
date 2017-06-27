@@ -316,3 +316,18 @@ void SetGraphicsPipelineState(FRHICommandList& RHICmdList, const FGraphicsPipeli
 {
 	RHICmdList.SetGraphicsPipelineState(GetAndOrCreateGraphicsPipelineState(RHICmdList, Initializer, ApplyFlags));
 }
+
+void ClearPipelineCache()
+{
+	for (auto GraphicsPipeLine : GGraphicsPipelines)
+	{
+		delete GraphicsPipeLine.Value;
+ 	}
+	GGraphicsPipelines.Empty();
+
+	for (auto ComputePipeline : GComputePipelines)
+	{
+		delete ComputePipeline.Value;
+	}
+	GComputePipelines.Empty();
+}

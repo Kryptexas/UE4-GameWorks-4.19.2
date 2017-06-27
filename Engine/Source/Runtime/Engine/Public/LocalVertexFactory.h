@@ -46,9 +46,6 @@ public:
 		FVertexStreamComponent ColorComponent;
 	};
 
-	DEPRECATED(4.11, "DataType has been renamed to FDataType.")
-	typedef FDataType DataType;
-
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 
 	 */

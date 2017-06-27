@@ -1180,6 +1180,11 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 	if (ClearSelectedEdges)
 	{
 		SelectedEdgeIndices.Empty();
+		SelectedEdgeVertices.Empty();
+		for (int32 TexCoordIndex = 0; TexCoordIndex < MAX_STATIC_TEXCOORDS; ++TexCoordIndex)
+		{
+			SelectedEdgeTexCoords[TexCoordIndex].Empty();
+		}
 	}
 
 	Invalidate();

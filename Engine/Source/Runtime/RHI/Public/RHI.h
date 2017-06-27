@@ -138,6 +138,9 @@ extern RHI_API bool GRHISupportsAsyncTextureCreation;
 /** Can we handle quad primitives? */
 extern RHI_API bool GSupportsQuads;
 
+/** Does the RHI provide a custom way to generate mips? */
+extern RHI_API bool GSupportsGenerateMips;
+
 /** True if and only if the GPU support rendering to volume textures (2D Array, 3D). Some OpenGL 3.3 cards support SM4, but can't render to volume textures. */
 extern RHI_API bool GSupportsVolumeTextureRendering;
 

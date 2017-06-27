@@ -20,12 +20,7 @@
 #include "Engine/Texture2D.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
-
-enum
-{
-	/** The number of mips to store inline. */
-	NUM_INLINE_DERIVED_MIPS = 7,
-};
+#include "TextureDerivedDataTask.h"
 
 #if WITH_EDITOR
 
@@ -33,10 +28,7 @@ enum
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Interfaces/ITextureFormat.h"
-#include "TextureCompressorModule.h"
-#include "ImageCore.h"
 #include "Engine/TextureCube.h"
-
 #include "ProfilingDebugging/CookStats.h"
 
 /*------------------------------------------------------------------------------
@@ -139,11 +131,7 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
  * @param CompressionSettings - Compression settings for which to compute the derived data key.
  * @param OutKeySuffix - The derived data key suffix.
  */
-static void GetTextureDerivedDataKeySuffix(
-	const UTexture& Texture,
-	const FTextureBuildSettings& BuildSettings,
-	FString& OutKeySuffix
-	)
+ void GetTextureDerivedDataKeySuffix(const UTexture& Texture, const FTextureBuildSettings& BuildSettings, FString& OutKeySuffix)
 {
 	uint16 Version = 0;
 
@@ -180,7 +168,7 @@ static void GetTextureDerivedDataKeySuffix(
 	// Serialize the compressor settings into a temporary array. The archive
 	// is flagged as persistent so that machines of different endianness produce
 	// identical binary results.
-	TArray<uint8> TempBytes;
+	TArray<uint8> TempBytes; 
 	TempBytes.Reserve(64);
 	FMemoryWriter Ar(TempBytes, /*bIsPersistent=*/ true);
 	SerializeForKey(Ar, BuildSettings);
@@ -394,10 +382,7 @@ static void GetBuildSettingsForRunningPlatform(
  * @param DerivedDataKeySuffix - The key suffix at which to store derived data.
  * @return number of bytes put to the DDC (total, including all mips)
  */
-static uint32 PutDerivedDataInCache(
-	FTexturePlatformData* DerivedData,
-	const FString& DerivedDataKeySuffix
-	)
+uint32 PutDerivedDataInCache(FTexturePlatformData* DerivedData, const FString& DerivedDataKeySuffix)
 {
 	TArray<uint8> RawDerivedData;
 	FString DerivedDataKey;
@@ -463,30 +448,6 @@ static uint32 PutDerivedDataInCache(
 ------------------------------------------------------------------------------*/
 
 #if WITH_EDITOR
-
-class FTextureStatusMessageContext : public FScopedSlowTask
-{
-public:
-	explicit FTextureStatusMessageContext(const FText& InMessage)
-		: FScopedSlowTask(0, InMessage, IsInGameThread())
-	{
-		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
-	}
-};
-
-namespace ETextureCacheFlags
-{
-	enum Type
-	{
-		None			= 0x00,
-		Async			= 0x01,
-		ForceRebuild	= 0x02,
-		InlineMips		= 0x08,
-		AllowAsyncBuild	= 0x10,
-		ForDDCBuild		= 0x20,
-		RemoveSourceMipDataAfterCache = 0x40,
-	};
-};
 
 /**
  * Unpack a DXT 565 color to RGB32.
@@ -650,328 +611,6 @@ static float ComputePSNR(const FImage& SrcImage, const FCompressedImage2D& Compr
 	return RMSE > 0.0 ? 20.0f * (float)log10(255.0 / RMSE) : 500.0f;
 }
 
-/**
- * Worker used to cache texture derived data.
- */
-class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
-{
-	/** Texture compressor module, loaded in the game thread. */
-	ITextureCompressorModule* Compressor;
-	/** Where to store derived data. */
-	FTexturePlatformData* DerivedData;
-	/** The texture for which derived data is being cached. */
-	UTexture& Texture;
-	/** Compression settings. */
-	FTextureBuildSettings BuildSettings;
-	/** Derived data key suffix. */
-	FString KeySuffix;
-	/** Source mip images. */
-	TArray<FImage> SourceMips;
-	/** Source mip images of the composite texture (e.g. normal map for compute roughness). Not necessarily in RGBA32F, usually only top mip as other mips need to be generated first */
-	TArray<FImage> CompositeSourceMips;
-	/** Texture cache flags. */
-	uint32 CacheFlags;
-	/** Have many bytes were loaded from DDC or built (for telemetry) */
-	uint32 BytesCached = 0;
-
-	/** true if caching has succeeded. */
-	bool bSucceeded;
-	/** true if the derived data was pulled from DDC */
-	bool bLoadedFromDDC = false;
-
-	/**
-	 * Gathers information needed to build a texture. This MUST be called from the main thread. 
-	 * Usually called in the ctor when we are pretty sure we'll have to build the data from source.
-	 * Could be called in Finalize if we weren't able to successfully retrieve from the DDC. 
-	 */
-	void GetBuildInfo()
-	{
-		if ( Texture.Source.HasHadBulkDataCleared() )
-		{
-			// don't do any work we can't reload this
-			UE_LOG(LogTexture, Error, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetPathName())
-			return;
-		}
-
-		// Dump any existing mips.
-		DerivedData->Mips.Empty();
-		
-		// At this point, the texture *MUST* have a valid GUID.
-		if (!Texture.Source.GetId().IsValid())
-		{
-			UE_LOG(LogTexture,Warning,
-				TEXT("Building texture with an invalid GUID: %s"),
-				*Texture.GetPathName()
-				);
-			Texture.Source.ForceGenerateGuid();
-		}
-		check(Texture.Source.GetId().IsValid());
-
-		// Get the source mips. There must be at least one.
-		int32 NumSourceMips = Texture.Source.GetNumMips();
-		int32 NumSourceSlices = Texture.Source.GetNumSlices();
-		if (NumSourceMips < 1 || NumSourceSlices < 1)
-		{
-			UE_LOG(LogTexture,Warning,
-				TEXT("Texture has no source mips: %s"),
-				*Texture.GetPathName()
-				);
-			return;
-		}
-
-		if (BuildSettings.MipGenSettings != TMGS_LeaveExistingMips)
-		{
-			NumSourceMips = 1;
-		}
-
-		if (!BuildSettings.bCubemap)
-		{
-			NumSourceSlices = 1;
-		}
-
-		GetSourceMips(Texture, SourceMips, NumSourceMips, NumSourceSlices);
-
-		if(Texture.CompositeTexture && Texture.CompositeTextureMode != CTM_Disabled)
-		{
-			const int32 SizeX = Texture.CompositeTexture->Source.GetSizeX();
-			const int32 SizeY = Texture.CompositeTexture->Source.GetSizeY();
-			const bool bUseCompositeTexture = (FMath::IsPowerOfTwo(SizeX) && FMath::IsPowerOfTwo(SizeY)) ? true : false;
-
-			if(bUseCompositeTexture)
-			{
-				GetSourceMips(*Texture.CompositeTexture, CompositeSourceMips, Texture.CompositeTexture->Source.GetNumMips(), NumSourceSlices);
-			}
-			else
-			{
-				UE_LOG(LogTexture, Warning, 
-					TEXT("Composite texture with non-power of two dimensions cannot be used: %s (Assigned on texture: %s)"), 
-					*Texture.CompositeTexture->GetPathName(), *Texture.GetPathName());
-			}
-		}
-
-		GetTextureDerivedDataKeySuffix(Texture, BuildSettings, KeySuffix);
-	}
-
-	/** Build the texture. This function is safe to call from any thread. */
-	void BuildTexture()
-		{
-		ensure(Compressor);
-		if (Compressor && SourceMips.Num())
-			{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("TextureName"), FText::FromString( Texture.GetName() ) );
-			Args.Add( TEXT("TextureFormatName"), FText::FromString( BuildSettings.TextureFormatName.GetPlainNameString() ) );
-			Args.Add( TEXT("TextureResolutionX"), FText::FromString( FString::FromInt(SourceMips[0].SizeX) ) );
-			Args.Add( TEXT("TextureResolutionY"), FText::FromString( FString::FromInt(SourceMips[0].SizeY) ) );
-			FTextureStatusMessageContext StatusMessage( FText::Format( NSLOCTEXT("Engine", "BuildTextureStatus", "Building textures: {TextureName} ({TextureFormatName}, {TextureResolutionX}X{TextureResolutionY})"), Args ) );
-
-			check(DerivedData->Mips.Num() == 0);
-			DerivedData->SizeX = 0;
-			DerivedData->SizeY = 0;
-			DerivedData->PixelFormat = PF_Unknown;
-
-			// Compress the texture.
-			TArray<FCompressedImage2D> CompressedMips;
-			if (Compressor->BuildTexture(SourceMips, CompositeSourceMips, BuildSettings, CompressedMips))
-			{
-				check(CompressedMips.Num());
-
-				// Build the derived data.
-				const int32 MipCount = CompressedMips.Num();
-				for (int32 MipIndex = 0; MipIndex < MipCount; ++MipIndex)
-				{
-					const FCompressedImage2D& CompressedImage = CompressedMips[MipIndex];
-					FTexture2DMipMap* NewMip = new(DerivedData->Mips) FTexture2DMipMap();
-					NewMip->SizeX = CompressedImage.SizeX;
-					NewMip->SizeY = CompressedImage.SizeY;
-					NewMip->BulkData.Lock(LOCK_READ_WRITE);
-					check(CompressedImage.RawData.GetTypeSize() == 1);
-					void* NewMipData = NewMip->BulkData.Realloc(CompressedImage.RawData.Num());
-					FMemory::Memcpy(NewMipData, CompressedImage.RawData.GetData(), CompressedImage.RawData.Num());
-					NewMip->BulkData.Unlock();
-
-					if (MipIndex == 0)
-					{
-						DerivedData->SizeX = CompressedImage.SizeX;
-						DerivedData->SizeY = CompressedImage.SizeY;
-						DerivedData->PixelFormat = (EPixelFormat)CompressedImage.PixelFormat;
-					}
-					else
-					{
-						check(CompressedImage.PixelFormat == DerivedData->PixelFormat);
-					}
-				}
-				DerivedData->NumSlices = BuildSettings.bCubemap ? 6 : 1;
-
-				// Store it in the cache.
-				// @todo: This will remove the streaming bulk data, which we immediately reload below!
-				// Should ideally avoid this redundant work, but it only happens when we actually have 
-				// to build the texture, which should only ever be once.
-				this->BytesCached = PutDerivedDataInCache(DerivedData, KeySuffix);
-			}
-
-			if (DerivedData->Mips.Num())
-			{
-				bool bInlineMips = (CacheFlags & ETextureCacheFlags::InlineMips) != 0;
-				bSucceeded = !bInlineMips || DerivedData->TryInlineMipData();
-			}
-			else
-			{
-				UE_LOG(LogTexture, Warning, TEXT("Failed to build %s derived data for %s"),
-					*BuildSettings.TextureFormatName.GetPlainNameString(),
-					*Texture.GetPathName()
-					);
-			}
-		}
-	}
-
-	static void GetSourceMips(UTexture& Texture, TArray<FImage>& SourceMips, uint32 NumSourceMips, uint32 NumSourceSlices)
-	{
-		ERawImageFormat::Type ImageFormat = ERawImageFormat::BGRA8;
-
-		switch (Texture.Source.GetFormat())
-		{
-			case TSF_G8:		ImageFormat = ERawImageFormat::G8;		break;
-			case TSF_BGRA8:		ImageFormat = ERawImageFormat::BGRA8;	break;
-			case TSF_BGRE8:		ImageFormat = ERawImageFormat::BGRE8;	break;
-			case TSF_RGBA16:	ImageFormat = ERawImageFormat::RGBA16;	break;
-			case TSF_RGBA16F:	ImageFormat = ERawImageFormat::RGBA16F; break;
-			default: UE_LOG(LogTexture,Fatal,TEXT("Texture %s has source art in an invalid format."), *Texture.GetName());
-		}
-
-		SourceMips.Empty(NumSourceMips);
-		for (uint32 MipIndex = 0; MipIndex < NumSourceMips; ++MipIndex)
-		{
-			FImage* SourceMip = new(SourceMips) FImage(
-				(MipIndex == 0) ? Texture.Source.GetSizeX() : FMath::Max(1, SourceMips[MipIndex - 1].SizeX >> 1),
-				(MipIndex == 0) ? Texture.Source.GetSizeY() : FMath::Max(1, SourceMips[MipIndex - 1].SizeY >> 1),
-				NumSourceSlices,
-				ImageFormat,
-				Texture.SRGB ? (Texture.bUseLegacyGamma ? EGammaSpace::Pow22 : EGammaSpace::sRGB) : EGammaSpace::Linear
-				);
-			if (Texture.Source.GetMipData(SourceMip->RawData, MipIndex) == false)
-			{
-				UE_LOG(LogTexture,Warning,
-					TEXT("Cannot retrieve source data for mip %d of texture %s"),
-					MipIndex,
-					*Texture.GetName()
-					);
-				SourceMips.Empty();
-				break;
-			}
-		}
-	}
-
-public:
-	/** Initialization constructor. */
-	FTextureCacheDerivedDataWorker(
-		ITextureCompressorModule* InCompressor,
-		FTexturePlatformData* InDerivedData,
-		UTexture* InTexture,
-		const FTextureBuildSettings& InSettings,
-		uint32 InCacheFlags
-		)
-		: Compressor(InCompressor)
-		, DerivedData(InDerivedData)
-		, Texture(*InTexture)
-		, BuildSettings(InSettings)
-		, CacheFlags(InCacheFlags)
-		, bSucceeded(false)
-	{
-		const bool bAllowAsyncBuild = (CacheFlags & ETextureCacheFlags::AllowAsyncBuild) != 0;
-		// if we think we'll need to build the texture, do the required game thread work first.
-		if (bAllowAsyncBuild)
-		{
-			GetBuildInfo();
-		}
-		UTexture::GetPixelFormatEnum();
-	}
-
-	/** Does the work to cache derived data. Safe to call from any thread. */
-	void DoWork()
-	{
-		TArray<uint8> RawDerivedData;
-		bool bForceRebuild = (CacheFlags & ETextureCacheFlags::ForceRebuild) != 0;
-		bool bInlineMips = (CacheFlags & ETextureCacheFlags::InlineMips) != 0;
-		bool bForDDC = (CacheFlags & ETextureCacheFlags::ForDDCBuild) != 0;
-
-		if (!bForceRebuild && GetDerivedDataCacheRef().GetSynchronous(*DerivedData->DerivedDataKey, RawDerivedData))
-		{
-			BytesCached = RawDerivedData.Num();
-			FMemoryReader Ar(RawDerivedData, /*bIsPersistent=*/ true);
-			DerivedData->Serialize(Ar, NULL);
-			bSucceeded = true;
-			// Load any streaming (not inline) mips that are necessary for our platform.
-			if (bForDDC)
-			{
-				bSucceeded = DerivedData->TryLoadMips(0,NULL);
-			}
-			else if (bInlineMips)
-			{
-				bSucceeded = DerivedData->TryInlineMipData();
-			}
-			else
-			{
-				bSucceeded = DerivedData->AreDerivedMipsAvailable();
-			}
-			bLoadedFromDDC = true;
-		}
-		else if (SourceMips.Num())
-		{
-			BuildTexture();
-		}
-	}
-
-	/** Finalize work. Must be called ONLY by the game thread! */
-	void Finalize()
-	{
-		check(IsInGameThread());
-		// if we couldn't get from the DDC or didn't build synchronously, then we have to build now. 
-		// This is a super edge case that should rarely happen.
-		if (!bSucceeded && SourceMips.Num() == 0)
-		{
-			GetBuildInfo();
-			BuildTexture();
-		}
-	}
-
-	/** Expose bytes cached for telemetry. */
-	uint32 GetBytesCached() const
-	{
-		return BytesCached;
-	}
-
-	/** Expose how the resource was returned for telemetry. */
-	bool WasLoadedFromDDC() const
-	{
-		return bLoadedFromDDC;
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FTextureCacheDerivedDataWorker, STATGROUP_ThreadPoolAsyncTasks);
-	}
-};
-
-struct FTextureAsyncCacheDerivedDataTask : public FAsyncTask<FTextureCacheDerivedDataWorker>
-{
-	FTextureAsyncCacheDerivedDataTask(
-		ITextureCompressorModule* InCompressor,
-		FTexturePlatformData* InDerivedData,
-		UTexture* InTexture,
-		const FTextureBuildSettings& InSettings,
-		uint32 InCacheFlags
-		)
-		: FAsyncTask<FTextureCacheDerivedDataWorker>(
-			InCompressor,
-			InDerivedData,
-			InTexture,
-			InSettings,
-			InCacheFlags
-			)
-	{
-	}
-};
 
 void FTexturePlatformData::Cache(
 	UTexture& InTexture,
@@ -1490,7 +1129,7 @@ void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 }
 
 #if WITH_EDITOR
-void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild, ITextureCompressorModule* Compressor)
+void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild, bool bAllowAsyncLoading, ITextureCompressorModule* Compressor)
 {
 	FTexturePlatformData** PlatformDataLinkPtr = GetRunningPlatformData();
 	if (PlatformDataLinkPtr)
@@ -1516,7 +1155,8 @@ void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild, ITextu
 				}
 				int32 CacheFlags = 
 					(bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None) |
-					(bAllowAsyncBuild? ETextureCacheFlags::AllowAsyncBuild : ETextureCacheFlags::None);
+					(bAllowAsyncBuild? ETextureCacheFlags::AllowAsyncBuild : ETextureCacheFlags::None) |
+					(bAllowAsyncLoading? ETextureCacheFlags::AllowAsyncLoading : ETextureCacheFlags::None);
 
 				PlatformDataLink->Cache(*this, BuildSettings, CacheFlags, Compressor);
 			}
@@ -1534,7 +1174,7 @@ void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild, ITextu
 
 void UTexture::BeginCachePlatformData()
 {
-	CachePlatformData(true);
+	CachePlatformData(true, true, true);
 
 #if 0 // don't cache in post load, this increases our peak memory usage, instead cache just before we save the package
 	// enable caching in postload for derived data cache commandlet and cook by the book
@@ -1609,6 +1249,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 					if ( GetDerivedDataCacheRef().CachedDataProbablyExists( *DerivedDataKey ) == false )
 					{
 						CurrentCacheFlags |= ETextureCacheFlags::AllowAsyncBuild;
+						CurrentCacheFlags |= ETextureCacheFlags::AllowAsyncLoading;
 					}
 				}
 

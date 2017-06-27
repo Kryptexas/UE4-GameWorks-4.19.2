@@ -26,7 +26,7 @@ static TAutoConsoleVariable<int32> CVarVTMaskedPageTableUpdates(
 	);
 
 
-FVirtualTextureSpace::FVirtualTextureSpace( uint32 InSize, uint32 InDimensions, FTexturePagePool* InPool )
+FVirtualTextureSpace::FVirtualTextureSpace( uint32 InSize, uint8 InDimensions, EPixelFormat InFormat, FTexturePagePool* InPool )
 	: ID( 0xff )
 	, Dimensions( InDimensions )
 	, Pool( InPool )
@@ -34,6 +34,7 @@ FVirtualTextureSpace::FVirtualTextureSpace( uint32 InSize, uint32 InDimensions, 
 {
 	PageTableSize = InSize;
 	PageTableLevels = FMath::FloorLog2( PageTableSize ) + 1;
+	PageTableFormat = InFormat;
 
 	GVirtualTextureSystem.RegisterSpace( this );
 }
@@ -48,7 +49,7 @@ void FVirtualTextureSpace::InitDynamicRHI()
 	{
 		// Page Table
 		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( PageTableSize, PageTableSize ), PF_R8G8B8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false, PageTableLevels ) );
+		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( PageTableSize, PageTableSize ), PageTableFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false, PageTableLevels ) );
 		GRenderTargetPool.FindFreeElement( RHICmdList, Desc, PageTable, TEXT("PageTable") );
 	}
 
@@ -63,7 +64,7 @@ void FVirtualTextureSpace::InitDynamicRHI()
 
 		// Update Buffer
 		FRHIResourceCreateInfo CreateInfo;
-		UpdateBuffer = RHICreateStructuredBuffer( sizeof( FPageUpdate ), MaxUpdates * sizeof( FPageUpdate ), BUF_ShaderResource | BUF_Volatile, CreateInfo );
+		UpdateBuffer = RHICreateStructuredBuffer( sizeof( FPageTableUpdate ), MaxUpdates * sizeof( FPageTableUpdate ), BUF_ShaderResource | BUF_Volatile, CreateInfo );
 		UpdateBufferSRV = RHICreateShaderResourceView( UpdateBuffer );
 	}
 }
@@ -76,7 +77,7 @@ void FVirtualTextureSpace::ReleaseDynamicRHI()
 	UpdateBufferSRV.SafeRelease();
 }
 
-void FVirtualTextureSpace::QueueUpdate( uint8 vLogSize, uint32 vAddress, uint8 vLevel, uint16 pAddress )
+void FVirtualTextureSpace::QueueUpdate( uint8 vLogSize, uint64 vAddress, uint8 vLevel, uint16 pAddress )
 {
 	FPageUpdate Update;
 	Update.vAddress	= vAddress;
@@ -132,32 +133,67 @@ class FPageTableUpdatePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPageTableUpdatePS, Global);
 
-	static bool ShouldCache( EShaderPlatform Platform )
-	{
-		return IsFeatureLevelSupported( Platform, ERHIFeatureLevel::SM5 ) && !IsHlslccShaderPlatform(Platform);
-	}
-
-	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
-	{
-		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
-		//OutEnvironment.SetRenderTargetOutputFormat( 0, PF_R16_UINT );
-	}
-
 	FPageTableUpdatePS() {}
 
 public:
 	FPageTableUpdatePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{}
+	
+	static bool ShouldCache( EShaderPlatform Platform )
+	{
+		return IsFeatureLevelSupported( Platform, ERHIFeatureLevel::SM5 ) && !IsHlslccShaderPlatform(Platform);
+	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPageTableUpdateVS, TEXT("PageTableUpdate"), TEXT("PageTableUpdateVS"), SF_Vertex );
-IMPLEMENT_SHADER_TYPE(, FPageTableUpdatePS, TEXT("PageTableUpdate"), TEXT("PageTableUpdatePS"), SF_Pixel );
+template< uint32 Format >
+class TPageTableUpdateVS : public FPageTableUpdateVS
+{
+	DECLARE_SHADER_TYPE(TPageTableUpdateVS,Global);
+
+	TPageTableUpdateVS() {}
+
+public:
+	TPageTableUpdateVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FPageTableUpdateVS(Initializer)
+	{}
+
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		OutEnvironment.SetDefine( TEXT("PAGE_TABLE_FORMAT"), Format );
+	}
+};
+
+template< uint32 Format >
+class TPageTableUpdatePS : public FPageTableUpdatePS
+{
+	DECLARE_SHADER_TYPE(TPageTableUpdatePS, Global);
+
+	TPageTableUpdatePS() {}
+
+public:
+	TPageTableUpdatePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FPageTableUpdatePS(Initializer)
+	{}
+	
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		OutEnvironment.SetDefine( TEXT("PAGE_TABLE_FORMAT"), Format );
+		OutEnvironment.SetRenderTargetOutputFormat( 0, Format == 0 ? PF_R16_UINT : PF_R8G8B8A8 );
+	}
+};
+
+IMPLEMENT_SHADER_TYPE( template<>, TPageTableUpdateVS<0>, TEXT("/Engine/Private/PageTableUpdate.usf"), TEXT("PageTableUpdateVS"), SF_Vertex );
+IMPLEMENT_SHADER_TYPE( template<>, TPageTableUpdateVS<1>, TEXT("/Engine/Private/PageTableUpdate.usf"), TEXT("PageTableUpdateVS"), SF_Vertex );
+IMPLEMENT_SHADER_TYPE( template<>, TPageTableUpdatePS<0>, TEXT("/Engine/Private/PageTableUpdate.usf"), TEXT("PageTableUpdatePS"), SF_Pixel );
+IMPLEMENT_SHADER_TYPE( template<>, TPageTableUpdatePS<1>, TEXT("/Engine/Private/PageTableUpdate.usf"), TEXT("PageTableUpdatePS"), SF_Pixel );
 
 
 void FVirtualTextureSpace::ApplyUpdates( FRHICommandList& RHICmdList )
 {
-	static TArray< FPageUpdate > ExpandedUpdates[16];
+	static TArray< FPageTableUpdate > ExpandedUpdates[16];
 
 	if( CVarVTRefreshEntirePageTable.GetValueOnRenderThread() )
 	{
@@ -194,25 +230,25 @@ void FVirtualTextureSpace::ApplyUpdates( FRHICommandList& RHICmdList )
 		TotalNumUpdates += ExpandedUpdates[ Mip ].Num();
 	}
 
-	if( TotalNumUpdates * sizeof( FPageUpdate ) > UpdateBuffer->GetSize() )
+	if( TotalNumUpdates * sizeof( FPageTableUpdate ) > UpdateBuffer->GetSize() )
 	{
 		// Resize Update Buffer
 		uint32 MaxUpdates = FMath::RoundUpToPowerOfTwo( TotalNumUpdates );
 
 		FRHIResourceCreateInfo CreateInfo;
-		UpdateBuffer = RHICreateStructuredBuffer( sizeof( FPageUpdate ), MaxUpdates * sizeof( FPageUpdate ), BUF_ShaderResource | BUF_Volatile, CreateInfo );
+		UpdateBuffer = RHICreateStructuredBuffer( sizeof( FPageUpdate ), MaxUpdates * sizeof( FPageTableUpdate ), BUF_ShaderResource | BUF_Volatile, CreateInfo );
 		UpdateBufferSRV = RHICreateShaderResourceView( UpdateBuffer );
 	}
 	
 	// This flushes the RHI thread!
-	uint8* Buffer = (uint8*)RHILockStructuredBuffer( UpdateBuffer, 0, TotalNumUpdates * sizeof( FPageUpdate ), RLM_WriteOnly );
+	uint8* Buffer = (uint8*)RHILockStructuredBuffer( UpdateBuffer, 0, TotalNumUpdates * sizeof( FPageTableUpdate ), RLM_WriteOnly );
 
 	for( uint32 Mip = 0; Mip < PageTableLevels; Mip++ )
 	{
 		uint32 NumUpdates = ExpandedUpdates[ Mip ].Num();
 		if( NumUpdates )
 		{
-			size_t UploadSize = NumUpdates * sizeof( FPageUpdate );
+			size_t UploadSize = NumUpdates * sizeof( FPageTableUpdate );
 			FMemory::Memcpy( Buffer, ExpandedUpdates[ Mip ].GetData(), UploadSize );
 			Buffer += UploadSize;
 		}
@@ -245,21 +281,47 @@ void FVirtualTextureSpace::ApplyUpdates( FRHICommandList& RHICmdList )
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-			TShaderMapRef< FPageTableUpdateVS > VertexShader( ShaderMap );
-			TShaderMapRef< FPageTableUpdatePS > PixelShader( ShaderMap );
+			FPageTableUpdateVS* VertexShader = nullptr;
+			FPageTableUpdatePS* PixelShader = nullptr;
 
-			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
-			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-			SetGraphicsPipelineState( RHICmdList, GraphicsPSOInit );
-
+			switch( PageTableFormat )
 			{
-				const FVertexShaderRHIParamRef ShaderRHI = VertexShader->GetVertexShader();
+			case PF_R16_UINT:
+				{
+					VertexShader = *TShaderMapRef< TPageTableUpdateVS<0> >( ShaderMap );
+					PixelShader  = *TShaderMapRef< TPageTableUpdatePS<0> >( ShaderMap );
+				}
+				break;
+			case PF_R8G8B8A8:
+				{
+					VertexShader = *TShaderMapRef< TPageTableUpdateVS<1> >( ShaderMap );
+					PixelShader  = *TShaderMapRef< TPageTableUpdatePS<1> >( ShaderMap );
+				}
+				break;
+			default:
+				check(0);
+			}
+			
+			if (VertexShader && PixelShader)
+			{
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GEmptyVertexDeclaration.VertexDeclarationRHI;
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
 
-				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->PageTableSize,	PageTableSize );
-				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->FirstUpdate,	FirstUpdate );
-				SetShaderValue( RHICmdList, ShaderRHI, VertexShader->NumUpdates,	NumUpdates );
-				SetSRVParameter( RHICmdList, ShaderRHI, VertexShader->UpdateBuffer,	UpdateBufferSRV );
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+				{
+					const FVertexShaderRHIParamRef ShaderRHI = VertexShader->GetVertexShader();
+
+					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->PageTableSize, PageTableSize);
+					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->FirstUpdate, FirstUpdate);
+					SetShaderValue(RHICmdList, ShaderRHI, VertexShader->NumUpdates, NumUpdates);
+					SetSRVParameter(RHICmdList, ShaderRHI, VertexShader->UpdateBuffer, UpdateBufferSRV);
+				}
+			}
+			else
+			{
+				check(0);
 			}
 
 			// needs to be the same on shader side (faster on NVIDIA and AMD)

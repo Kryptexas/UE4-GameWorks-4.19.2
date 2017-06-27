@@ -19,8 +19,6 @@
 
 #if PLATFORM_WINDOWS
 #include <mmintrin.h>
-#elif PLATFORM_MAC
-#include <xmmintrin.h>
 #endif
 #include "SceneUtils.h"
 
@@ -709,11 +707,6 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			}
 			ReplaceCString(GlslCodeOriginal, "#version 100", "");
 		}
-	}
-	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Desktop && PLATFORM_MAC)
-	{
-		AppendCString(GlslCode, "#version 330\n");
-		ReplaceCString(GlslCodeOriginal, "#version 150", "");
 	}
 	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
 	{

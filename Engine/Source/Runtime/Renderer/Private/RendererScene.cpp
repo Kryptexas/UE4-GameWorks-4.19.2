@@ -2484,12 +2484,12 @@ void FScene::ConditionalMarkStaticMeshElementsForUpdate()
 	}
 }
 
-void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
+void FScene::DumpUnbuiltLightInteractions( FOutputDevice& Ar ) const
 {
 	FlushRenderingCommands();
 
-	TArray<FString> LightsWithUnbuiltInteractions;
-	TArray<FString> PrimitivesWithUnbuiltInteractions;
+	TSet<FString> LightsWithUnbuiltInteractions;
+	TSet<FString> PrimitivesWithUnbuiltInteractions;
 
 	// if want to print out all of the lights
 	for( TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It )
@@ -2506,7 +2506,7 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 			if (Interaction->IsUncachedStaticLighting())
 			{
 				bLightHasUnbuiltInteractions = true;
-				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+				PrimitivesWithUnbuiltInteractions.Add(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
 			}
 		}
 
@@ -2517,28 +2517,28 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 			if (Interaction->IsUncachedStaticLighting())
 			{
 				bLightHasUnbuiltInteractions = true;
-				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+				PrimitivesWithUnbuiltInteractions.Add(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
 			}
 		}
 
 		if (bLightHasUnbuiltInteractions)
 		{
-			LightsWithUnbuiltInteractions.AddUnique(LightSceneInfo->Proxy->GetComponentName().ToString());
+			LightsWithUnbuiltInteractions.Add(LightSceneInfo->Proxy->GetComponentName().ToString());
 		}
 	}
 
 	Ar.Logf( TEXT( "DumpUnbuiltLightIteractions" ) );
 	Ar.Logf( TEXT( "Lights with unbuilt interactions: %d" ), LightsWithUnbuiltInteractions.Num() );
-	for (int Index = 0; Index < LightsWithUnbuiltInteractions.Num(); Index++)
+	for (auto &LightName : LightsWithUnbuiltInteractions)
 	{
-		Ar.Logf(TEXT("    Light %s"), *LightsWithUnbuiltInteractions[Index]);
+		Ar.Logf(TEXT("    Light %s"), *LightName);
 	}
 
 	Ar.Logf( TEXT( "" ) );
 	Ar.Logf( TEXT( "Primitives with unbuilt interactions: %d" ), PrimitivesWithUnbuiltInteractions.Num() );
-	for (int Index = 0; Index < PrimitivesWithUnbuiltInteractions.Num(); Index++)
+	for (auto &PrimitiveName : PrimitivesWithUnbuiltInteractions)
 	{
-		Ar.Logf(TEXT("    Primitive %s"), *PrimitivesWithUnbuiltInteractions[Index]);
+		Ar.Logf(TEXT("    Primitive %s"), *PrimitiveName);
 	}
 }
 

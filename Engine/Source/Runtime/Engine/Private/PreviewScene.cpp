@@ -10,7 +10,9 @@
 #include "SceneInterface.h"
 #include "Components/MeshComponent.h"
 #include "AudioDevice.h"
+#include "Engine/TextureCube.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/LineBatchComponent.h"
 
 FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
@@ -43,6 +45,13 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	DirectionalLight->Intensity = CVS.LightBrightness;
 	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
+
+	SkyLight = NewObject<USkyLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+	SkyLight->bLowerHemisphereIsBlack = false;
+	SkyLight->SourceType = ESkyLightSourceType::SLS_SpecifiedCubemap;
+	SkyLight->Intensity = CVS.SkyBrightness;
+	SkyLight->Mobility = EComponentMobility::Movable;
+	AddComponent(SkyLight, FTransform::Identity);
 
 	LineBatcher = NewObject<ULineBatchComponent>(GetTransientPackage());
 	LineBatcher->bCalculateAccurateBounds = false;
@@ -185,6 +194,12 @@ void FPreviewScene::SetLightColor(const FColor& LightColor)
 
 void FPreviewScene::SetSkyBrightness(float SkyBrightness)
 {
+	SkyLight->SetIntensity(SkyBrightness);
+}
+
+void FPreviewScene::SetSkyCubemap(UTextureCube* Cubemap)
+{
+	SkyLight->SetCubemap(Cubemap);
 }
 
 void FPreviewScene::LoadSettings(const TCHAR* Section)

@@ -383,6 +383,7 @@ public:
 	 * True if we did a camera cut this frame. Automatically reset to false every frame.
 	 * This flag affects various things in the renderer (such as whether to use the occlusion queries from last frame, and motion blur).
 	 */
+	UPROPERTY(Transient, BlueprintReadOnly, Category=PlayerCameraManager)
 	uint32 bGameCameraCutThisFrame : 1;
 
 protected:

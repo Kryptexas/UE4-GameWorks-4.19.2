@@ -151,7 +151,7 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 	return TextureFormatText;
 }
 
-
+extern CORE_API bool GIsGPUCrashed;
 static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDevice)
 {
 	if (GDynamicRHI)
@@ -161,6 +161,7 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDe
 
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)
 	{
+		GIsGPUCrashed = true;		
 		if (Direct3DDevice)
 		{
 			HRESULT hRes = Direct3DDevice->GetDeviceRemovedReason();
@@ -175,9 +176,9 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult, ID3D11Device* Direct3DDe
 			case DXGI_ERROR_INVALID_CALL:			Reason = TEXT("INVALID_CALL"); break;
 			case S_OK:								Reason = TEXT("S_OK"); break;
 			}
-
+			
 			// We currently don't support removed devices because FTexture2DResource can't recreate its RHI resources from scratch.
-			// We would also need to recreate the viewport swap chains from scratch.
+			// We would also need to recreate the viewport swap chains from scratch.			
 			UE_LOG(LogD3D11RHI, Fatal, TEXT("Unreal Engine is exiting due to D3D device being lost. (Error: 0x%X - '%s')"), hRes, Reason);
 		}
 		else

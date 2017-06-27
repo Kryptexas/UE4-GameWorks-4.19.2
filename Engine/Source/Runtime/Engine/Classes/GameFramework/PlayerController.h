@@ -261,6 +261,9 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY()
 	TArray< TWeakObjectPtr<UPrimitiveComponent> > HiddenPrimitiveComponents;
 
+	/** Whether to render primitives component. */
+	bool bRenderPrimitiveComponents;
+
 	/** Used to make sure the client is kept synchronized when in a spectator state */
 	UPROPERTY()
 	float LastSpectatorStateSynchTime;

@@ -41,7 +41,6 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 	virtual bool ShouldOrbitCamera() const override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	
 	void SetShowGrid(bool bShowGrid);
 
@@ -134,16 +133,6 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 	return BackgroundColor;
 }
 
-
-FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
-{
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
-	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
-	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
-	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White;
-	return SceneView;
-}
-
 void FMaterialEditorViewportClient::SetShowGrid(bool bShowGrid)
 {
 	DrawHelper.bDrawGrid = bShowGrid;
@@ -202,6 +191,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 
 	// Rotate the light in the preview scene so that it faces the preview object
 	PreviewScene.SetLightDirection(FRotator(-40.0f, 27.5f, 0.0f));
+	PreviewScene.SetSkyCubemap(GUnrealEd->GetThumbnailManager()->AmbientCubemap);
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 

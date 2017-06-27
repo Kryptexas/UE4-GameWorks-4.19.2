@@ -157,7 +157,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
 	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
-	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+	TOptional<TSet<FPrimitiveComponentId>> ShowOnlyPrimitives;
 
 	// -1,-1 if not setup
 	FIntPoint CursorPos;
@@ -712,7 +712,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGIN
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoiseGradientTextureSampler)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, PerlinNoise3DTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoise3DTextureSampler)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D<uint4>, SobolSamplingTexture)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D<uint>, SobolSamplingTexture)
 
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
@@ -859,7 +859,7 @@ public:
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
 	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
-	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+	TOptional<TSet<FPrimitiveComponentId>> ShowOnlyPrimitives;
 
 	// Derived members.
 

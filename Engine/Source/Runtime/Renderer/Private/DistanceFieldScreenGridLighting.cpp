@@ -218,7 +218,7 @@ private:
 
 #define IMPLEMENT_CONETRACE_CS_TYPE(bSupportIrradiance, bUseGlobalDistanceField) \
 	typedef TConeTraceScreenGridObjectOcclusionCS<bSupportIrradiance, bUseGlobalDistanceField> TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField; \
-	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField,TEXT("DistanceFieldScreenGridLighting"),TEXT("ConeTraceObjectOcclusionCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ConeTraceObjectOcclusionCS"),SF_Compute);
 
 IMPLEMENT_CONETRACE_CS_TYPE(true, true)
 IMPLEMENT_CONETRACE_CS_TYPE(false, true)
@@ -370,7 +370,7 @@ private:
 
 #define IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(bSupportIrradiance) \
 	typedef TConeTraceScreenGridGlobalOcclusionCS<bSupportIrradiance> TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance; \
-	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance,TEXT("DistanceFieldScreenGridLighting"),TEXT("ConeTraceGlobalOcclusionCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ConeTraceGlobalOcclusionCS"),SF_Compute);
 
 IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(true)
 IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(false)
@@ -476,7 +476,7 @@ private:
 	FRWShaderParameter DistanceFieldBentNormal;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCombineConeVisibilityCS,TEXT("DistanceFieldScreenGridLighting"),TEXT("CombineConeVisibilityCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCombineConeVisibilityCS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("CombineConeVisibilityCS"),SF_Compute);
 
 template<bool bSupportIrradiance, bool bHighQuality>
 class TGeometryAwareUpsamplePS : public FGlobalShader
@@ -616,7 +616,7 @@ private:
 
 #define IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(bSupportIrradiance,bHighQuality) \
 	typedef TGeometryAwareUpsamplePS<bSupportIrradiance, bHighQuality> TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality; \
-	IMPLEMENT_SHADER_TYPE(template<>,TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality,TEXT("DistanceFieldScreenGridLighting"),TEXT("GeometryAwareUpsamplePS"),SF_Pixel); 
+	IMPLEMENT_SHADER_TYPE(template<>,TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("GeometryAwareUpsamplePS"),SF_Pixel); 
 
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(true, true);
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(true, false);

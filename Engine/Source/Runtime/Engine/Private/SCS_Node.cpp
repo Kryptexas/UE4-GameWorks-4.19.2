@@ -78,7 +78,7 @@ const FBlueprintCookedComponentInstancingData* USCS_Node::GetActualComponentTemp
 	return OverridenComponentTemplateData ? OverridenComponentTemplateData : &CookedComponentInstancingData;
 }
 
-UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
+UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, const FRotationConversionCache* RootRelativeRotationCache, bool bIsDefaultTransform)
 {
 	check(Actor != nullptr);
 	check((ParentComponent != nullptr && !ParentComponent->IsPendingKill()) || (RootTransform != nullptr)); // must specify either a parent component or a world transform
@@ -131,6 +131,12 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 					// Note: We use the scale vector from the component template when spawning (to match what happens with a native root)
 					WorldTransform.SetScale3D(NewSceneComp->RelativeScale3D);
 				}
+
+				if (RootRelativeRotationCache)
+				{	// Enforces using the same rotator as much as possible.
+					NewSceneComp->SetRelativeRotationCache(*RootRelativeRotationCache);
+				}
+
 				NewSceneComp->SetWorldTransform(WorldTransform);
 				Actor->SetRootComponent(NewSceneComp);
 
@@ -182,7 +188,7 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 		{
 			USCS_Node* Node = ChildNodes[NodeIdx];
 			check(Node != nullptr);
-			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, nullptr, false);
+			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, nullptr, nullptr, false);
 		}
 	}
 

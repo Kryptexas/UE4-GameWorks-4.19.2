@@ -165,7 +165,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeHDRPS,TEXT("PostProcessVisualizeHDR"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeHDRPS,TEXT("/Engine/Private/PostProcessVisualizeHDR.usf"),TEXT("MainPS"),SF_Pixel);
 
 FString LogToString(float LogValue)
 {

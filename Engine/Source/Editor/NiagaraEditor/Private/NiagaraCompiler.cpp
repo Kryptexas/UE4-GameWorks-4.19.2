@@ -1076,10 +1076,10 @@ const FNiagaraCompileResults& FHlslNiagaraCompiler::CompileScript(UNiagaraScript
 		//But that adds the complexity of a new shader type, new shader class and a new shader map to contain them etc.
 		//Can do things simply for now.
 		FShaderCompilerInput Input;
-		Input.SourceFilename = TEXT("NiagaraSimulationShader");
+		Input.VirtualSourceFilePath = TEXT("NiagaraSimulationShader");
 		Input.EntryPointName = TEXT("SimulateMain");
 		//Input.Target = FShaderTarget(SF_Vertex, SP_VECTORVM_1_0);
-		Input.Environment.IncludeFileNameToContentsMap.Add(TEXT("NiagaraSimulation.usf"), StringToArray<ANSICHAR>(*HlslOutput, HlslOutput.Len() + 1));
+		Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/NiagaraSimulation.ush"), StringToArray<ANSICHAR>(*HlslOutput, HlslOutput.Len() + 1));
 		FShaderCompilerOutput Output;
 
 		CompileShader_VectorVM(Input, Output, FString(FPlatformProcess::ShaderDir()), 0, CompilationOutput);

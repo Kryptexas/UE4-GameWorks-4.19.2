@@ -88,13 +88,9 @@ class FVulkanQueue;
 class FVulkanCmdBuffer;
 class FVulkanShader;
 class FVulkanDescriptorSetsLayout;
-class FVulkanBlendState;
-class FVulkanDepthStencilState;
-class FVulkanBoundShaderState;
 class FVulkanGfxPipeline;
 class FVulkanRenderPass;
 class FVulkanCommandBufferManager;
-class FOLDVulkanPendingGfxState;
 
 inline VkShaderStageFlagBits UEFrequencyToVKStageBit(EShaderFrequency InStage)
 {
@@ -120,6 +116,7 @@ inline VkShaderStageFlagBits UEFrequencyToVKStageBit(EShaderFrequency InStage)
 class FVulkanRenderTargetLayout
 {
 public:
+	FVulkanRenderTargetLayout(const FGraphicsPipelineStateInitializer& Initializer);
 	FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo);
 
 	inline uint32 GetHash() const { return Hash; }
@@ -317,9 +314,7 @@ public:
 	}
 
 private:
-	friend class FOLDVulkanPendingGfxState;
 	friend class FVulkanCommandListContext;
-
 	friend class FVulkanPipelineStateCache;
 
 	FVulkanRenderPass(FVulkanDevice& Device, const FVulkanRenderTargetLayout& RTLayout);
@@ -426,6 +421,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGR
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Query"), STAT_VulkanWaitQuery, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Reset Queries"), STAT_VulkanResetQuery, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait For Swapchain"), STAT_VulkanWaitSwapchain, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Acquire Backbuffer"), STAT_VulkanAcquireBackBuffer, STATGROUP_VulkanRHI, );
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Shader Resources"), STAT_VulkanApplyDSResources, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update DescriptorSets"), STAT_VulkanUpdateDescriptorSets, STATGROUP_VulkanRHI, );
@@ -636,6 +632,23 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 	check(!"Undefined vertex-element format conversion");
 	return VK_FORMAT_UNDEFINED;
 }
+
+static inline VkPrimitiveTopology UEToVulkanType(EPrimitiveType PrimitiveType)
+{
+	switch (PrimitiveType)
+	{
+	case PT_PointList:			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+	case PT_LineList:			return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	case PT_TriangleList:		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	case PT_TriangleStrip:		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+	default:
+		break;
+	}
+
+	checkf(false, TEXT("Unsupported primitive type"));
+	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+}
+
 #if 0
 namespace FRCLog
 {

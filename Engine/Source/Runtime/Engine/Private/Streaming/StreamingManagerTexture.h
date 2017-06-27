@@ -201,7 +201,7 @@ protected:
 		void ConditionalUpdateStaticData();
 
 		/** Adds new textures and level data on the gamethread (while the worker thread isn't active). */
-		void UpdateThreadData( bool bProcessEverything );
+		void PrepareAsyncTask( bool bProcessEverything );
 
 		/** Checks for updates in the user settings (CVars, etc). */
 		void CheckUserSettings();
@@ -243,7 +243,21 @@ protected:
 	void	UpdateStats();
 	void	LogViewLocationChange();
 
-	void	IncrementalUpdate( float Percentage, bool bUpdateDynamicComponents = true );
+	void	IncrementalUpdate( float Percentage, bool bUpdateDynamicComponents);
+
+	/**
+	 * Update all pending states.
+	 *
+	 * @param bUpdateDynamicComponents		Whether dynamic component state should also be updated.
+	 */
+	void	UpdatePendingStates(bool bUpdateDynamicComponents);
+
+	/**
+	 * Complete all pending async work and complete all pending state updates.
+	 *
+	 * @param bCompleteFullUpdateCycle		Whether to complete the full update cycle usually spread accross several frames.
+	 */
+	void	SyncStates(bool bCompleteFullUpdateCycle);
 
 	/** Next sync, dump texture group stats. */
 	bool	bTriggerDumpTextureGroupStats;

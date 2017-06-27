@@ -21,6 +21,8 @@
 #define NOINITCRASHREPORTER 0
 #endif
 
+extern CORE_API bool GIsGPUCrashed;
+
 /*-----------------------------------------------------------------------------
 	FGenericCrashContext
 -----------------------------------------------------------------------------*/
@@ -44,6 +46,7 @@ const FString FGenericCrashContext::NewLineTag = TEXT( "&nl;" );
 const FString FGenericCrashContext::CrashTypeCrash = TEXT("Crash");
 const FString FGenericCrashContext::CrashTypeAssert = TEXT("Assert");
 const FString FGenericCrashContext::CrashTypeEnsure = TEXT("Ensure");
+const FString FGenericCrashContext::CrashTypeGPU = TEXT("GPUCrash");
 
 const FString FGenericCrashContext::EngineModeExUnknown = TEXT("Unset");
 const FString FGenericCrashContext::EngineModeExDirty = TEXT("Dirty");
@@ -235,7 +238,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
 	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
 	AddCrashProperty( TEXT( "IsAssert" ), FDebug::bHasAsserted );
-	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted) );
+	AddCrashProperty( TEXT( "CrashType" ), GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed) );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 
@@ -429,8 +432,12 @@ FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 		.Replace( *NewLineTag, TEXT( "\n" ) );
 }
 
-const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert)
+const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed)
 {
+	if (bIsGPUCrashed)
+	{
+		return *CrashTypeGPU;
+	}
 	if (InIsEnsure)
 	{
 		return *CrashTypeEnsure;

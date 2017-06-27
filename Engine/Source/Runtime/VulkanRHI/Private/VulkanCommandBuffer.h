@@ -98,6 +98,7 @@ public:
 	};
 
 	bool bNeedsDynamicStateSet;
+	bool bHasPipeline;
 
 private:
 	FVulkanDevice* Device;

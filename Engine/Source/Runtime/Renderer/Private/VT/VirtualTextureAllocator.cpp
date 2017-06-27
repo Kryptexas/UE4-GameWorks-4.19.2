@@ -25,7 +25,7 @@ FVirtualTextureAllocator::FVirtualTextureAllocator( uint32 Size, uint32 Dimensio
 }
 
 // returns SortedIndex
-uint32 FVirtualTextureAllocator::Find( uint32 vAddress ) const
+uint32 FVirtualTextureAllocator::Find( uint64 vAddress ) const
 {
 	uint32 Min = 0;
 	uint32 Max = SortedBlocks.Num();
@@ -45,7 +45,7 @@ uint32 FVirtualTextureAllocator::Find( uint32 vAddress ) const
 	return Min - 1;
 }
 
-IVirtualTexture* FVirtualTextureAllocator::Find( uint32 vAddress, uint32& Local_vAddress ) const
+IVirtualTexture* FVirtualTextureAllocator::Find( uint64 vAddress, uint64& Local_vAddress ) const
 {
 	uint32 SortedIndex = Find( vAddress );
 
@@ -65,7 +65,7 @@ IVirtualTexture* FVirtualTextureAllocator::Find( uint32 vAddress, uint32& Local_
 	return nullptr;
 }
 
-uint32 FVirtualTextureAllocator::Alloc( IVirtualTexture* VT )
+uint64 FVirtualTextureAllocator::Alloc( IVirtualTexture* VT )
 {
 	uint32 BlockSize = FMath::Max( VT->SizeX, VT->SizeY );
 	uint8 vLogSize = FMath::CeilLogTwo( BlockSize );

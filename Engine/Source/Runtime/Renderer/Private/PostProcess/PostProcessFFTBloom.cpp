@@ -59,7 +59,7 @@ public:
 	// Method for use with the FScopedUAVBind
 	FShaderResourceParameter& DestinationResourceParamter() { return DstRWTexture; }
 
-	static const TCHAR* GetSourceFilename() { return TEXT("PostProcessFFTBloom"); }
+	static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/PostProcessFFTBloom.usf"); }
 	static const TCHAR* GetFunctionName()   { return TEXT("ResizeAndCenterTextureCS"); }
 
 	void SetCSParamters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context,
@@ -149,7 +149,7 @@ public:
 	// Method for use with the FScopedUAVBind
 	FShaderResourceParameter& DestinationResourceParamter() { return DstRWTexture; }
 
-	static const TCHAR* GetSourceFilename() { return TEXT("PostProcessFFTBloom"); }
+	static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/PostProcessFFTBloom.usf"); }
 	static const TCHAR* GetFunctionName()   { return TEXT("CaptureKernelWeightsCS"); }
 
 
@@ -241,7 +241,7 @@ public:
 	// Determine the number of threads used per scanline when writing the physical space kernel
 	static int32 NumThreadsPerGroup() { return 32; }
 
-	static const TCHAR* GetSourceFilename() { return TEXT("PostProcessFFTBloom"); }
+	static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/PostProcessFFTBloom.usf"); }
 	static const TCHAR* GetFunctionName()   { return TEXT("BlendLowResCS"); }
 
 
@@ -337,7 +337,7 @@ public:
 
 	static int32 NumThreadsPerGroup() { return 32; }
 
-	static const TCHAR* GetSourceFilename() { return TEXT("PostProcessFFTBloom"); }
+	static const TCHAR* GetSourceFilename() { return TEXT("/Engine/Private/PostProcessFFTBloom.usf"); }
 	static const TCHAR* GetFunctionName()   { return TEXT("PassThroughCS"); }
 
 	void SetCSParamters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context,
@@ -789,7 +789,7 @@ FSceneRenderTargetItem* FRCPassFFTBloom::InitDomainAndGetKernel(FRenderingCompos
 	
 
 	// The pre-filter boost parameters for bright pixels
-	const FVector PreFilter = PPSettings.BloomConvolutionPreFilter;
+	const FVector PreFilter(PPSettings.BloomConvolutionPreFilterMin, PPSettings.BloomConvolutionPreFilterMax, PPSettings.BloomConvolutionPreFilterMult);
 
 	
 	// Clip the Kernel support (i.e. bloom size) to 100% the screen width 
@@ -938,8 +938,9 @@ bool FRCPassFFTBloom::ConvolveImageWithKernel(FRenderingCompositePassContext& Co
 	
 
 	const FSceneView& View = Context.View;
+	const auto& FinalPPSettings = View.FinalPostProcessSettings;
 	// The pre-filter boost parameters for bright pixels
-	const FVector PreFilter = View.FinalPostProcessSettings.BloomConvolutionPreFilter;
+	const FVector PreFilter(FinalPPSettings.BloomConvolutionPreFilterMin, FinalPPSettings.BloomConvolutionPreFilterMax, FinalPPSettings.BloomConvolutionPreFilterMult);
 
 	const FLinearColor Tint(1, 1, 1, 1);
 

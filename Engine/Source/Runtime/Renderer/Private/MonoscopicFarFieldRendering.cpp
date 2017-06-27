@@ -49,8 +49,8 @@ public:
 	FShaderParameter LateralOffsetNDCParameter;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewVS<true>, TEXT("MonoscopicFarFieldRenderingVertexShader"), TEXT("CompositeMonoscopicFarFieldView"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewVS<false>, TEXT("MonoscopicFarFieldRenderingVertexShader"), TEXT("CompositeMonoscopicFarFieldView"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewVS<true>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingVertexShader.usf"), TEXT("CompositeMonoscopicFarFieldView"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewVS<false>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingVertexShader.usf"), TEXT("CompositeMonoscopicFarFieldView"), SF_Vertex);
 
 /** Pixel shader to composite the monoscopic view into the stereo views. */
 template<bool bMobileMultiView>
@@ -105,8 +105,8 @@ public:
 	FSceneTextureShaderParameters SceneTextureParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewPS<true>, TEXT("MonoscopicFarFieldRenderingPixelShader"), TEXT("CompositeMonoscopicFarFieldView"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewPS<false>, TEXT("MonoscopicFarFieldRenderingPixelShader"), TEXT("CompositeMonoscopicFarFieldView"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewPS<true>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingPixelShader.usf"), TEXT("CompositeMonoscopicFarFieldView"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FCompositeMonoscopicFarFieldViewPS<false>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingPixelShader.usf"), TEXT("CompositeMonoscopicFarFieldView"), SF_Pixel);
 
 /**
 Pixel Shader to mask the monoscopic far field view's depth buffer where pixels were rendered into the stereo views.
@@ -177,8 +177,8 @@ public:
 	FShaderParameter LateralOffsetNDCParameter;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, FMonoscopicFarFieldMaskPS<true>, TEXT("MonoscopicFarFieldRenderingPixelShader"), TEXT("MonoscopicFarFieldMask"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, FMonoscopicFarFieldMaskPS<false>, TEXT("MonoscopicFarFieldRenderingPixelShader"), TEXT("MonoscopicFarFieldMask"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FMonoscopicFarFieldMaskPS<true>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingPixelShader.usf"), TEXT("MonoscopicFarFieldMask"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FMonoscopicFarFieldMaskPS<false>, TEXT("/Engine/Private/MonoscopicFarFieldRenderingPixelShader.usf"), TEXT("MonoscopicFarFieldMask"), SF_Pixel);
 
 void FSceneRenderer::RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHICmdList)
 {

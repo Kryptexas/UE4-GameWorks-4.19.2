@@ -187,8 +187,8 @@ void FMaterialResource::GatherExpressionsForCustomInterpolators(TArray<UMaterial
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
 {
 	FMaterial::GetShaderMapId(Platform, OutId);
-	Material->GetReferencedFunctionIds(OutId.ReferencedFunctions);
-	Material->GetReferencedParameterCollectionIds(OutId.ReferencedParameterCollections);
+	Material->AppendReferencedFunctionIdsTo(OutId.ReferencedFunctions);
+	Material->AppendReferencedParameterCollectionIdsTo(OutId.ReferencedParameterCollections);
 
 	Material->GetForceRecompileTextureIdsHash(OutId.TextureReferencesHash);
 
@@ -4288,20 +4288,16 @@ void UMaterial::RecursiveUpdateRealtimePreview( UMaterialExpression* InExpressio
 }
 #endif // WITH_EDITOR
 
-void UMaterial::GetReferencedFunctionIds(TArray<FGuid>& Ids) const
+void UMaterial::AppendReferencedFunctionIdsTo(TArray<FGuid>& Ids) const
 {
-	Ids.Reset();
-
 	for (int32 FunctionIndex = 0; FunctionIndex < MaterialFunctionInfos.Num(); FunctionIndex++)
 	{
 		Ids.AddUnique(MaterialFunctionInfos[FunctionIndex].StateId);
 	}
 }
 
-void UMaterial::GetReferencedParameterCollectionIds(TArray<FGuid>& Ids) const
+void UMaterial::AppendReferencedParameterCollectionIdsTo(TArray<FGuid>& Ids) const
 {
-	Ids.Reset();
-
 	for (int32 CollectionIndex = 0; CollectionIndex < MaterialParameterCollectionInfos.Num(); CollectionIndex++)
 	{
 		Ids.AddUnique(MaterialParameterCollectionInfos[CollectionIndex].StateId);
@@ -4770,8 +4766,8 @@ void UMaterial::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGu
 	{
 		OutGuids.Append(ReferencedTextureGuids);
 	}
-	GetReferencedFunctionIds(OutGuids);
-	GetReferencedParameterCollectionIds(OutGuids);
+	AppendReferencedFunctionIdsTo(OutGuids);
+	AppendReferencedParameterCollectionIdsTo(OutGuids);
 	OutGuids.Add(StateId);
 	Super::GetLightingGuidChain(bIncludeTextures, OutGuids);
 #endif

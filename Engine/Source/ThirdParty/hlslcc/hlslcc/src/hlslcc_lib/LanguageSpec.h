@@ -30,6 +30,9 @@ struct ILanguageSpec
 	
 	// Some platforms require input variable structs to be split, others require that they aren't
 	virtual bool SplitInputVariableStructs() const { return true; }
+	
+	// Whether the backend can generate correct native matrix intrinsics (given HLSL row-major matrices)
+	virtual bool SupportsMatrixIntrinsics() const { return false; }
 };
 
 enum

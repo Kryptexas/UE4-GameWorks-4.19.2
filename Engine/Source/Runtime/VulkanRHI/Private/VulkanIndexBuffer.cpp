@@ -12,6 +12,52 @@
 static TMap<FVulkanResourceMultiBuffer*, VulkanRHI::FPendingBufferLock> GPendingLockIBs;
 static FCriticalSection GPendingLockIBsMutex;
 
+static void UpdateVulkanBufferStats(uint64_t Size, VkBufferUsageFlags Usage, bool Allocating)
+{
+	const bool bUniformBuffer = !!(Usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	const bool bIndexBuffer = !!(Usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+	const bool bVertexBuffer = !!(Usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+	if (Allocating)
+	{
+		if (bUniformBuffer)
+		{
+			INC_MEMORY_STAT_BY(STAT_UniformBufferMemory, Size);
+		}
+		else if (bIndexBuffer)
+		{
+			INC_MEMORY_STAT_BY(STAT_IndexBufferMemory, Size);
+		}
+		else if (bVertexBuffer)
+		{
+			INC_MEMORY_STAT_BY(STAT_VertexBufferMemory, Size);
+		}
+		else
+		{
+			INC_MEMORY_STAT_BY(STAT_StructuredBufferMemory, Size);
+		}
+	}
+	else
+	{
+		if (bUniformBuffer)
+		{
+			DEC_MEMORY_STAT_BY(STAT_UniformBufferMemory, Size);
+		}
+		else if (bIndexBuffer)
+		{
+			DEC_MEMORY_STAT_BY(STAT_IndexBufferMemory, Size);
+		}
+		else if (bVertexBuffer)
+		{
+			DEC_MEMORY_STAT_BY(STAT_VertexBufferMemory, Size);
+		}
+		else
+		{
+			DEC_MEMORY_STAT_BY(STAT_StructuredBufferMemory, Size);
+		}
+	}
+}
+
 FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, VkBufferUsageFlags InBufferUsageFlags, uint32 InSize, uint32 InUEUsage, FRHIResourceCreateInfo& CreateInfo)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, UEUsage(InUEUsage)
@@ -55,6 +101,8 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 
 				CreateInfo.ResourceArray->Discard();
 			}
+
+			UpdateVulkanBufferStats(InSize * NumBuffers, InBufferUsageFlags, true);
 		}
 	}
 }
@@ -62,6 +110,13 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 FVulkanResourceMultiBuffer::~FVulkanResourceMultiBuffer()
 {
 	//#todo-rco: Free VkBuffers
+
+	uint64_t Size = 0;
+	for (uint32 Index = 0; Index < NumBuffers; ++Index)
+	{
+		Size += Buffers[Index]->GetSize();
+	}
+	UpdateVulkanBufferStats(Size, BufferUsageFlags, false);
 }
 
 void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, uint32 Offset)
@@ -83,9 +138,8 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 		}
 		else
 		{
-			bool bResult = Device->GetImmediateContext().GetTempFrameAllocationBuffer().Alloc(Size + Offset, 256, VolatileLockInfo);
+			Device->GetImmediateContext().GetTempFrameAllocationBuffer().Alloc(Size + Offset, 256, VolatileLockInfo);
 			Data = VolatileLockInfo.Data;
-			check(bResult);
 			++VolatileLockInfo.LockCounter;
 		}
 	}

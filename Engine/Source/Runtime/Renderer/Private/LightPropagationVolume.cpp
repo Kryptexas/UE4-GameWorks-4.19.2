@@ -419,7 +419,7 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(,FLpvClearCS,TEXT("LPVClear"),TEXT("CSClear"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvClearCS,TEXT("/Engine/Private/LPVClear.usf"),TEXT("CSClear"),SF_Compute);
 
 
 // ----------------------------------------------------------------------------
@@ -443,7 +443,7 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(,FLpvClearGeometryVolumeCS,TEXT("LPVClear"),TEXT("CSClearGeometryVolume"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvClearGeometryVolumeCS,TEXT("/Engine/Private/LPVClear.usf"),TEXT("CSClearGeometryVolume"),SF_Compute);
 
 
 // ----------------------------------------------------------------------------
@@ -467,7 +467,7 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(,FLpvClearListsCS,TEXT("LPVClearLists"),TEXT("CSClearLists"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvClearListsCS,TEXT("/Engine/Private/LPVClearLists.usf"),TEXT("CSClearLists"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // LPV generate VPL lists compute shader (for a directional light)
@@ -540,7 +540,7 @@ protected:
 	FShaderResourceParameter LinearTextureSampler;
 	FShaderResourceParameter PointTextureSampler;
 };
-IMPLEMENT_SHADER_TYPE(,FLpvInject_GenerateVplListsCS,TEXT("LPVInject_GenerateVplLists"),TEXT("CSGenerateVplLists_LightDirectional"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvInject_GenerateVplListsCS,TEXT("/Engine/Private/LPVInject_GenerateVplLists.usf"),TEXT("CSGenerateVplLists_LightDirectional"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // LPV accumulate VPL lists compute shader
@@ -563,7 +563,7 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(,FLpvInject_AccumulateVplListsCS,TEXT("LPVInject_AccumulateVplLists"),TEXT("CSAccumulateVplLists"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvInject_AccumulateVplListsCS,TEXT("/Engine/Private/LPVInject_AccumulateVplLists.usf"),TEXT("CSAccumulateVplLists"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // LPV directional occlusion compute shader
@@ -602,7 +602,7 @@ public:
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 	}
 };
-IMPLEMENT_SHADER_TYPE(,FLpvDirectionalOcclusionCS,TEXT("LpvDirectionalOcclusion"),TEXT("CSDirectionalOcclusion"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvDirectionalOcclusionCS,TEXT("/Engine/Private/LPVDirectionalOcclusion.usf"),TEXT("CSDirectionalOcclusion"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // LPV directional occlusion compute shader
@@ -641,7 +641,7 @@ public:
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 	}
 };
-IMPLEMENT_SHADER_TYPE(,FLpvCopyAOVolumeCS,TEXT("LpvDirectionalOcclusion"),TEXT("CSCopyAOVolume"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvCopyAOVolumeCS,TEXT("/Engine/Private/LPVDirectionalOcclusion.usf"),TEXT("CSCopyAOVolume"),SF_Compute);
 
 
 // ----------------------------------------------------------------------------
@@ -665,7 +665,7 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(,FLpvBuildGeometryVolumeCS,TEXT("LPVBuildGeometryVolume"),TEXT("CSBuildGeometryVolume"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLpvBuildGeometryVolumeCS,TEXT("/Engine/Private/LPVBuildGeometryVolume.usf"),TEXT("CSBuildGeometryVolume"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // LPV propagate compute shader
@@ -705,14 +705,14 @@ public:
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<0>,																		TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION>,											TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES>,												TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION|PROPAGATE_MULTIPLE_BOUNCES>,					TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO>,																TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_SECONDARY_OCCLUSION>,								TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_MULTIPLE_BOUNCES>,									TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_SECONDARY_OCCLUSION|PROPAGATE_MULTIPLE_BOUNCES>,	TEXT("LPVPropagate"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<0>,																		TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION>,											TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_MULTIPLE_BOUNCES>,												TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_SECONDARY_OCCLUSION|PROPAGATE_MULTIPLE_BOUNCES>,					TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO>,																TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_SECONDARY_OCCLUSION>,								TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_MULTIPLE_BOUNCES>,									TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<PROPAGATE_AO|PROPAGATE_SECONDARY_OCCLUSION|PROPAGATE_MULTIPLE_BOUNCES>,	TEXT("/Engine/Private/LPVPropagate.usf"),TEXT("CSPropagate"),SF_Compute);
 
 FLpvWriteShaderCSBase* GetPropagateShader( FViewInfo& View, uint32 ShaderFlags )
 {
@@ -795,10 +795,10 @@ public:
 	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvInjectShader_Base::Serialize( Ar ); }
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<0>,TEXT("LPVDirectLightInject"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<1>,TEXT("LPVDirectLightInject"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<2>,TEXT("LPVDirectLightInject"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<3>,TEXT("LPVDirectLightInject"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<0>,TEXT("/Engine/Private/LPVDirectLightInject.usf"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<1>,TEXT("/Engine/Private/LPVDirectLightInject.usf"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<2>,TEXT("/Engine/Private/LPVDirectLightInject.usf"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_LightCS<3>,TEXT("/Engine/Private/LPVDirectLightInject.usf"),TEXT("CSLightInject_ListGenCS"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // FLightPropagationVolume
@@ -898,8 +898,8 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 			LPV_GRIDRES,
 			PF_FloatRGBA,
 			FClearValueBinding::None,
-			TexCreate_HideInVisualizeTexture,
-			TexCreate_ShaderResource | TexCreate_UAV | TexCreate_FastVRAM,
+			TexCreate_HideInVisualizeTexture | TexCreate_FastVRAM,
+			TexCreate_ShaderResource | TexCreate_UAV,
 			false,
 			1));
 

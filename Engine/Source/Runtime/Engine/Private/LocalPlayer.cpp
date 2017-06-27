@@ -773,6 +773,12 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	// Fill out the rest of the view init options
 	ViewInitOptions.ViewFamily = ViewFamily;
 
+	if (!PlayerController->bRenderPrimitiveComponents)
+	{
+		// Emplaces an empty show only primitive list.
+		ViewInitOptions.ShowOnlyPrimitives.Emplace();
+	}
+	else
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHiddenComponentList);
 		PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);

@@ -85,7 +85,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeShadingModelsPS,TEXT("VisualizeShadingModels"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeShadingModelsPS,TEXT("/Engine/Private/VisualizeShadingModels.usf"),TEXT("MainPS"),SF_Pixel);
 
 FRCPassPostProcessVisualizeShadingModels::FRCPassPostProcessVisualizeShadingModels(FRHICommandList& RHICmdList)
 {

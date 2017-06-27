@@ -78,7 +78,7 @@ private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionVS,TEXT("LightFunctionVertexShader"),TEXT("Main"),SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionVS,TEXT("/Engine/Private/LightFunctionVertexShader.usf"),TEXT("Main"),SF_Vertex);
 
 /**
  * A pixel shader for projecting a light function onto the scene.
@@ -181,7 +181,7 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionPS,TEXT("LightFunctionPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionPS,TEXT("/Engine/Private/LightFunctionPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 /** Returns a fade fraction for a light function and a given view based on the appropriate fade settings. */
 static float GetLightFunctionFadeFraction(const FViewInfo& View, FSphere LightBounds)

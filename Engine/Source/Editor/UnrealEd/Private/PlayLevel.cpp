@@ -1444,7 +1444,8 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 
 	if (bPlayUsingVulkanPreview)
 	{
-		AdditionalParameters += TEXT(" -vulkan -faketouches");
+		ensure(!bPlayUsingMobilePreview);
+		AdditionalParameters += TEXT(" -vulkan -faketouches -featureleveles31");
 	}
 
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.

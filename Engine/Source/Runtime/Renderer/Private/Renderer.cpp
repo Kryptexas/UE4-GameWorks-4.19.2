@@ -492,7 +492,7 @@ static bool RendererExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if(FParse::Command(&Cmd,TEXT("DumpUnbuiltLightInteractions")))
 	{
-		InWorld->Scene->DumpUnbuiltLightIteractions(Ar);
+		InWorld->Scene->DumpUnbuiltLightInteractions(Ar);
 		return true;
 	}
 #endif

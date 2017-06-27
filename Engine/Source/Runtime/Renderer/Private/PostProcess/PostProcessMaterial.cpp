@@ -91,8 +91,8 @@ private:
 typedef FPostProcessMaterialVS<EPostProcessMaterialTarget::HighEnd> FPostProcessMaterialVS_HighEnd;
 typedef FPostProcessMaterialVS<EPostProcessMaterialTarget::Mobile> FPostProcessMaterialVS_Mobile;
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialVS_HighEnd,TEXT("PostProcessMaterialShaders"),TEXT("MainVS"),SF_Vertex);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialVS_Mobile,TEXT("PostProcessMaterialShaders"),TEXT("MainVS_ES2"),SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialVS_HighEnd,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialVS_Mobile,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainVS_ES2"),SF_Vertex);
 
 /**
  * A pixel shader for rendering a post process material
@@ -120,10 +120,6 @@ public:
 		if (MaterialTarget == EPostProcessMaterialTarget::Mobile)
 		{
 			OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
-		}
-		else
-		{
-			OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_OUTPUT_ALPHA"), (Material->GetBlendableOutputAlpha() ) ? 1 : 0);
 		}
 	}
 
@@ -156,8 +152,8 @@ private:
 typedef FPostProcessMaterialPS<EPostProcessMaterialTarget::HighEnd> FFPostProcessMaterialPS_HighEnd;
 typedef FPostProcessMaterialPS<EPostProcessMaterialTarget::Mobile> FPostProcessMaterialPS_Mobile;
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FFPostProcessMaterialPS_HighEnd,TEXT("PostProcessMaterialShaders"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialPS_Mobile,TEXT("PostProcessMaterialShaders"),TEXT("MainPS_ES2"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FFPostProcessMaterialPS_HighEnd,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,FPostProcessMaterialPS_Mobile,TEXT("/Engine/Private/PostProcessMaterialShaders.usf"),TEXT("MainPS_ES2"),SF_Pixel);
 
 FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, ERHIFeatureLevel::Type InFeatureLevel, EPixelFormat OutputFormatIN)
 : MaterialInterface(InMaterialInterface), OutputFormat(OutputFormatIN)

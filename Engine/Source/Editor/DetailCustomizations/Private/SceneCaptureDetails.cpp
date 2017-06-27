@@ -19,6 +19,7 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneCaptureComponentCube.h"
 #include "Components/PlanarReflectionComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SceneCaptureDetails"
 
@@ -194,6 +195,24 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 			}
 		}
 	}
+}
+
+static bool FindShowFlagSetting(
+	TArray<FEngineShowFlagsSetting>& ShowFlagSettings,
+	FString FlagName,
+	FEngineShowFlagsSetting** ShowFlagSettingOut)
+{
+	bool HasSetting = false;
+	for (int32 ShowFlagSettingsIndex = 0; ShowFlagSettingsIndex < ShowFlagSettings.Num(); ++ShowFlagSettingsIndex)
+	{
+		if (ShowFlagSettings[ShowFlagSettingsIndex].ShowFlagName.Equals(FlagName))
+		{
+			HasSetting = true;
+			*ShowFlagSettingOut = &(ShowFlagSettings[ShowFlagSettingsIndex]);
+			break;
+		}
+	}
+	return HasSetting;
 }
 
 ECheckBoxState FSceneCaptureDetails::OnGetDisplayCheckState(FString ShowFlagName) const

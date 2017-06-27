@@ -403,7 +403,7 @@ void FStaticLightingManager::FinishLightingBuild()
 	if (World->Scene)
 	{
 		// Everything should be built at this point, dump unbuilt interactions for debugging
-		World->Scene->DumpUnbuiltLightIteractions(*GLog);
+		World->Scene->DumpUnbuiltLightInteractions(*GLog);
 
 		// Update reflection captures now that static lighting has changed
 		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular

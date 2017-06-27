@@ -205,7 +205,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessScreenSpaceReflectionsStencilPS,TEXT("ScreenSpaceReflections"),TEXT("ScreenSpaceReflectionsStencilPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessScreenSpaceReflectionsStencilPS,TEXT("/Engine/Private/ScreenSpaceReflections.usf"),TEXT("ScreenSpaceReflectionsStencilPS"),SF_Pixel);
 static const uint32 SSRConeQuality = 5;
 
 /**
@@ -293,7 +293,7 @@ public:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(A, B) \
 	typedef FPostProcessScreenSpaceReflectionsPS<A,B> FPostProcessScreenSpaceReflectionsPS##A##B; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessScreenSpaceReflectionsPS##A##B,TEXT("ScreenSpaceReflections"),TEXT("ScreenSpaceReflectionsPS"),SF_Pixel)
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessScreenSpaceReflectionsPS##A##B,TEXT("/Engine/Private/ScreenSpaceReflections.usf"),TEXT("ScreenSpaceReflectionsPS"),SF_Pixel)
 
 IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(0,0);
 IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(0,1);

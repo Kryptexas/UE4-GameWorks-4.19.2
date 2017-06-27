@@ -105,6 +105,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	ForceFeedbackScale = 1.f;
 
 	bAutoManageActiveCameraTarget = true;
+	bRenderPrimitiveComponents = true;
 	SmoothTargetViewRotationSpeed = 20.f;
 	bHidePawnInCinematicMode = false;
 
@@ -4960,6 +4961,9 @@ void APlayerController::UpdateCameraManager(float DeltaSeconds)
 
 void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponentsOut)
 {
+	// Makes no sens to build hidden component list if should not render any components.
+	check(bRenderPrimitiveComponents);
+
 	// Translate the hidden actors list to a hidden primitive list.
 	UpdateHiddenActors(ViewLocation);
 

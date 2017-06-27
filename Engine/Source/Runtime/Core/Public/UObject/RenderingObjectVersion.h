@@ -56,6 +56,8 @@ struct CORE_API FRenderingObjectVersion
 		// Triggers a rebuild of the mesh UV density while also adding an update in the postedit
 		FixedMeshUVDensity,
 
+		AddedbUseShowOnlyList,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

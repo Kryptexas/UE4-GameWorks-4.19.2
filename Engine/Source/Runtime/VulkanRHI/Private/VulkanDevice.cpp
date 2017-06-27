@@ -56,6 +56,8 @@ void FVulkanDevice::CreateDevice()
 	TArray<const ANSICHAR*> ValidationLayers;
 	GetDeviceExtensions(DeviceExtensions, ValidationLayers, bDebugMarkersFound);
 
+	ParseOptionalDeviceExtensions(DeviceExtensions);
+
 	DeviceInfo.enabledExtensionCount = DeviceExtensions.Num();
 	DeviceInfo.ppEnabledExtensionNames = DeviceExtensions.GetData();
 
@@ -306,7 +308,7 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_A2B10G10R10, VK_FORMAT_A2B10G10R10_UNORM_PACK32, 4);
 	SetComponentMapping(PF_A2B10G10R10, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
-	MapFormatSupport(PF_A16B16G16R16, VK_FORMAT_R16G16B16A16_UNORM, 4);
+	MapFormatSupport(PF_A16B16G16R16, VK_FORMAT_R16G16B16A16_UNORM, 8);
 	SetComponentMapping(PF_A16B16G16R16, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
 	MapFormatSupport(PF_A8, VK_FORMAT_R8_UNORM);
@@ -516,8 +518,7 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	{
 		CacheFilenames.Add(FPaths::GameDir() / TEXT("Build") / TEXT("ShaderCaches") / TEXT("Android") / TEXT("VulkanPSO.cache"));
 	}
-	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));
-	PipelineStateCache->InitAndLoad(CacheFilenames);
+	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));	
 
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)
@@ -531,6 +532,8 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	}
 
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, true);
+
+	PipelineStateCache->InitAndLoad(CacheFilenames);
 
 	// Setup default resource
 	{
@@ -650,7 +653,31 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	}
 	if (CmdMgr->HasPendingActiveCmdBuffer())
 	{
+		//#todo-rco: If we get real render passes then this is not needed
+		if (ImmediateContext->TransitionState.CurrentRenderPass)
+		{
+			ImmediateContext->TransitionState.EndRenderPass(CmdMgr->GetActiveCmdBuffer());
+		}
+
 		CmdMgr->SubmitActiveCmdBuffer(true);
 	}
 	CmdMgr->PrepareForNewActiveCommandBuffer();
+}
+
+void FVulkanDevice::NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline)
+{
+	//#todo-rco: Loop through all contexts!
+	if (ImmediateContext)
+	{
+		ImmediateContext->PendingGfxState->NotifyDeletedPipeline(Pipeline);
+	}
+}
+
+void FVulkanDevice::NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline)
+{
+	//#todo-rco: Loop through all contexts!
+	if (ImmediateContext)
+	{
+		ImmediateContext->PendingComputeState->NotifyDeletedPipeline(Pipeline);
+	}
 }

@@ -2,6 +2,7 @@
 
 #include "GenericPlatform/GenericPlatformProcess.h"
 #include "Misc/Timespan.h"
+#include "HAL/PlatformProperties.h"
 #include "HAL/PlatformProcess.h"
 #include "GenericPlatform/GenericPlatformCriticalSection.h"
 #include "Logging/LogMacros.h"
@@ -28,7 +29,7 @@
 DEFINE_STAT(STAT_Sleep);
 DEFINE_STAT(STAT_EventWait);
 
-TArray<FString> FGenericPlatformProcess::ShaderDirs;
+static TMap<FString, FString> GShaderSourceDirectoryMappings;
 
 void* FGenericPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -140,22 +141,49 @@ void FGenericPlatformProcess::SetShaderDir(const TCHAR*Where)
 }
 
 
-const TArray<FString>& FGenericPlatformProcess::AllShaderDirs()
+const TMap<FString, FString>& FGenericPlatformProcess::AllShaderSourceDirectoryMappings()
 {
-	return ShaderDirs;
+	return GShaderSourceDirectoryMappings;
 }
 
-void FGenericPlatformProcess::AddShaderDir(const FString& InShaderDir)
+void FGenericPlatformProcess::ResetAllShaderSourceDirectoryMappings()
+{
+	GShaderSourceDirectoryMappings.Reset();
+}
+
+void FGenericPlatformProcess::AddShaderSourceDirectoryMapping(const FString& VirtualShaderDirectory, const FString& RealShaderDirectory)
 {
 	check(IsInGameThread());
 
-	FString ShaderDir = InShaderDir;
-	// make sure we store only relative paths
-	if (!FPaths::IsRelative(ShaderDir))
+	if (FPlatformProperties::RequiresCookedData())
 	{
-		FPaths::MakePathRelativeTo(ShaderDir, FPlatformProcess::BaseDir());
+		return;
 	}
-	ShaderDirs.Add(ShaderDir);
+
+	// Do sanity checks of the virtual shader directory to map.
+	check(VirtualShaderDirectory.StartsWith(TEXT("/")));
+	check(!VirtualShaderDirectory.EndsWith(TEXT("/")));
+	check(!VirtualShaderDirectory.Contains(FString(TEXT("."))));
+
+	// Do sanity checks of the real shader directory to map.
+	check(FPaths::IsRelative(RealShaderDirectory));
+
+	// Detect collisions with any other mappings.
+	check(!GShaderSourceDirectoryMappings.Contains(VirtualShaderDirectory));
+
+	// Make sur the real directory to map exists.
+	check(FPaths::DirectoryExists(RealShaderDirectory));
+
+	// Make sure there is at least a Public or Private directory in the Shaders directory.
+	check(
+		FPaths::DirectoryExists(RealShaderDirectory / TEXT("Public")) ||
+		FPaths::DirectoryExists(RealShaderDirectory / TEXT("Private")));
+
+	// Make sure the Generated directory does not exist, because is reserved for C++ generated shader source
+	// by the FShaderCompilerEnvironment::IncludeVirtualPathToContentsMap member.
+	check(!FPaths::DirectoryExists(RealShaderDirectory / TEXT("Generated")));
+
+	GShaderSourceDirectoryMappings.Add(VirtualShaderDirectory, RealShaderDirectory);
 }
 
 /**

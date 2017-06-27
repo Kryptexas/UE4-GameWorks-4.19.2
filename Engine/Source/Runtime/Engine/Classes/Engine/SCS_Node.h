@@ -109,10 +109,11 @@ class USCS_Node : public UObject
 	 * @param Actor					The actor instance for which to create a new component based on the template encapsulated by this node.
 	 * @param ParentComponent		If non-NULL, the component to which the new component should be attached as a child. If NULL, the new component will not be attached to anything.
 	 * @param RootTransform			The transform to apply if this node turns out to be the root component of the actor instance.
+	 * @param RootRelativeRotationCache Optional rotation cache to use if this node turns out to be the root component of the actor instance.
 	 * @param bIsDefaultTransform	Indicates whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults.
 	 * @return The new component instance that was created, or NULL on failure.
 	 */
-	UActorComponent* ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform);
+	UActorComponent* ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, const struct FRotationConversionCache* RootRelativeRotationCache, bool bIsDefaultTransform);
 
 	/** Return the actual component template used in the BPGC. The template can be overridden in a child. */
 	ENGINE_API UActorComponent* GetActualComponentTemplate(class UBlueprintGeneratedClass* ActualBPGC) const;

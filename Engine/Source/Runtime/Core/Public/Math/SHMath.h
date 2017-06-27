@@ -298,7 +298,7 @@ public:
 		// Multiply the coefficients in each band with the appropriate band scaling factor.
 		for(int32 BasisIndex = 0;BasisIndex < MaxSHBasis;BasisIndex++)
 		{
-			float Scale = L2;
+			float Scale = 1.0f;
 
 			if (BasisIndex < 1)
 			{
@@ -307,6 +307,10 @@ public:
 			else if (BasisIndex < 4)
 			{
 				Scale = L1;
+			}
+			else
+			{
+				Scale = L2;
 			}
 
 			Result.V[BasisIndex] *= Scale;

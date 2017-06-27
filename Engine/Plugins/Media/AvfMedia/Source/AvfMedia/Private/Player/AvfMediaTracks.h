@@ -63,6 +63,7 @@ class FAvfMediaTracks
 		NSObject* Output;
 		AVAssetReader* Reader;
 		AudioConverterRef Converter;
+		int32 StreamIndex;
 	};
 
 public:

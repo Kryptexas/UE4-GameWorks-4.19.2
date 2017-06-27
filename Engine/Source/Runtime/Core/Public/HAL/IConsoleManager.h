@@ -195,6 +195,8 @@ public:
 		return 0; 
 	}
 
+	virtual bool IsVariableInt() const { return false; }
+
 	virtual class TConsoleVariableData<int32>* AsVariableInt()
 	{
 		ensureMsgf(false, TEXT("Attempted to access variable data of a console variable type that doesn't support it.  For example FindTConsoleVariableData* on a FAutoConsoleVariableRef."));

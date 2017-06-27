@@ -764,7 +764,7 @@ void FGPUSpriteVertexFactoryShaderParametersPS::SetMesh(FRHICommandList& RHICmdL
 	SetUniformBufferParameter(RHICmdList, PixelShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterDynamicUniformParameters>(), GPUVF->EmitterDynamicUniformBuffer );
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"ParticleGPUSpriteVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"/Engine/Private/ParticleGPUSpriteVertexFactory.ush",true,false,true,false,false);
 
 /*-----------------------------------------------------------------------------
 	Shaders used for simulation.
@@ -1258,11 +1258,11 @@ public:
 };
 
 /** Implementation for all shaders used for simulation. */
-IMPLEMENT_SHADER_TYPE(,FParticleTileVS,TEXT("ParticleSimulationShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_None>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DepthBuffer>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DistanceField>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FParticleSimulationClearPS,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleTileVS,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_None>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DepthBuffer>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DistanceField>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleSimulationClearPS,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
 
 /**
  * Vertex declaration for drawing particle tiles.
@@ -1683,9 +1683,9 @@ public:
 };
 
 /** Implementation for all shaders used for particle injection. */
-IMPLEMENT_SHADER_TYPE(,FParticleInjectionVS,TEXT("ParticleInjectionShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<false>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<true>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleInjectionVS,TEXT("/Engine/Private/ParticleInjectionShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<false>, TEXT("/Engine/Private/ParticleInjectionShader.usf"), TEXT("PixelMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<true>, TEXT("/Engine/Private/ParticleInjectionShader.usf"), TEXT("PixelMain"), SF_Pixel);
 
 
 /**
@@ -1930,8 +1930,8 @@ private:
 };
 
 /** Implementation for all shaders used for visualization. */
-IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizeVS,TEXT("ParticleSimVisualizeShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizePS,TEXT("ParticleSimVisualizeShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizeVS,TEXT("/Engine/Private/ParticleSimVisualizeShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizePS,TEXT("/Engine/Private/ParticleSimVisualizeShader.usf"),TEXT("PixelMain"),SF_Pixel);
 
 /**
  * Vertex declaration for particle simulation visualization.
@@ -2205,7 +2205,7 @@ private:
 	/** Output key buffer. */
 	FShaderResourceParameter OutBounds;
 };
-IMPLEMENT_SHADER_TYPE(,FParticleBoundsCS,TEXT("ParticleBoundsShader"),TEXT("ComputeParticleBounds"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FParticleBoundsCS,TEXT("/Engine/Private/ParticleBoundsShader.usf"),TEXT("ComputeParticleBounds"),SF_Compute);
 
 /**
  * Returns true if the Mins and Maxs consistutue valid bounds, i.e. Mins <= Maxs.
@@ -4538,8 +4538,8 @@ void FFXSystem::SimulateGPUParticles(
 			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
 
 			SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
+			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
 			PrevStateTextures.bTexturesCleared = true;

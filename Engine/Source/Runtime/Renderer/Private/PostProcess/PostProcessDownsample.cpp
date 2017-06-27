@@ -83,7 +83,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessDownsample");
+		return TEXT("/Engine/Private/PostProcessDownsample.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -144,7 +144,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessDownsampleVS,TEXT("PostProcessDownsample"),TEXT("MainDownsampleVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessDownsampleVS,TEXT("/Engine/Private/PostProcessDownsample.usf"),TEXT("MainDownsampleVS"),SF_Vertex);
 
 /** Encapsulates the post processing down sample compute shader. */
 template <uint32 Method>
@@ -222,7 +222,7 @@ public:
 
 // #define avoids a lot of code duplication
 #define VARIATION1(A) typedef FPostProcessDownsampleCS<A> FPostProcessDownsampleCS##A; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDownsampleCS##A,TEXT("PostProcessDownsample"),TEXT("MainCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDownsampleCS##A,TEXT("/Engine/Private/PostProcessDownsample.usf"),TEXT("MainCS"),SF_Compute);
 
 VARIATION1(0)			VARIATION1(1)			VARIATION1(2)
 #undef VARIATION1

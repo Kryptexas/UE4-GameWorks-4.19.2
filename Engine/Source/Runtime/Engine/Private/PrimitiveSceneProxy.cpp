@@ -590,7 +590,7 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 			return false;
 		}
 
-		if (View->ShowOnlyPrimitives.Num() > 0 && !View->ShowOnlyPrimitives.Contains(PrimitiveComponentId))
+		if (View->ShowOnlyPrimitives.IsSet() && !View->ShowOnlyPrimitives->Contains(PrimitiveComponentId))
 		{
 			return false;
 		}

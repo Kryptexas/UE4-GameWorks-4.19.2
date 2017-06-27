@@ -44,6 +44,7 @@
 #include "Materials/MaterialExpressionArctangent2.h"
 #include "Materials/MaterialExpressionArctangent2Fast.h"
 #include "Materials/MaterialExpressionAtmosphericFogColor.h"
+#include "Materials/MaterialExpressionBentNormalCustomOutput.h"
 #include "Materials/MaterialExpressionBlackBody.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
@@ -97,6 +98,7 @@
 #include "Materials/MaterialExpressionLightVector.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 #include "Materials/MaterialExpressionLogarithm2.h"
+#include "Materials/MaterialExpressionLogarithm10.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
@@ -6961,6 +6963,52 @@ void UMaterialExpressionLogarithm2::GetCaption(TArray<FString>& OutCaptions) con
 {
 	OutCaptions.Add(TEXT("Log2"));
 }
+
+void UMaterialExpressionLogarithm2::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the base-2 logarithm of the input. Input should be greater than 0."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+UMaterialExpressionLogarithm10::UMaterialExpressionLogarithm10(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionLogarithm10::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!X.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Log10 X input"));
+	}
+
+	return Compiler->Logarithm10(X.Compile(Compiler));
+}
+
+void UMaterialExpressionLogarithm10::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Log10"));
+}
+
+void UMaterialExpressionLogarithm10::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the base-10 logarithm of the input. Input should be greater than 0."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
@@ -12224,6 +12272,63 @@ void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>&
 #endif // WITH_EDITOR
 
 FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Bent Normal Output
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionBentNormalCustomOutput::UMaterialExpressionBentNormalCustomOutput(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+			// Register with attribute map to allow use with material attribute nodes and blending
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xfbd7b46e, 0xb1234824, 0xbde76b23, 0x609f984c), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
+		}
+	};
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	bCollapsed = true;
+
+	// No outputs
+	Outputs.Reset();
+}
+
+#if WITH_EDITOR
+int32  UMaterialExpressionBentNormalCustomOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Input.GetTracedInput().Expression)
+	{
+		return Compiler->CustomOutput(this, OutputIndex, Input.Compile(Compiler));
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+	return INDEX_NONE;
+}
+
+
+void UMaterialExpressionBentNormalCustomOutput::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("BentNormal")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionBentNormalCustomOutput::GetInput(int32 InputIndex)
 {
 	return &Input;
 }

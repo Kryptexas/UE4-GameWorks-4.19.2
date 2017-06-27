@@ -87,7 +87,7 @@ namespace VulkanRHI
 		FVulkanDevice* Device;
 	};
 
-	// An Allocation of a Device Heap. Lowest level of allocations and bounded by VkPhysicalDeviceLimits::maxMemoryAllocationCount.
+	// An Allocation off a Device Heap. Lowest level of allocations and bounded by VkPhysicalDeviceLimits::maxMemoryAllocationCount.
 	class FDeviceMemoryAllocation
 	{
 	public:
@@ -104,6 +104,7 @@ namespace VulkanRHI
 #if VULKAN_TRACK_MEMORY_USAGE
 			, File(nullptr)
 			, Line(0)
+			, UID(0)
 #endif
 		{
 		}
@@ -165,6 +166,7 @@ namespace VulkanRHI
 #if VULKAN_TRACK_MEMORY_USAGE
 		const char* File;
 		uint32 Line;
+		uint32 UID;
 #endif
 		// Only owner can delete!
 		~FDeviceMemoryAllocation();
@@ -825,6 +827,7 @@ namespace VulkanRHI
 			: ResourceAllocation(nullptr)
 			, Buffer(VK_NULL_HANDLE)
 			, bCPURead(false)
+			, BufferSize(0)
 		{
 		}
 
@@ -845,7 +848,7 @@ namespace VulkanRHI
 
 		inline uint32 GetSize() const
 		{
-			return ResourceAllocation->GetSize();
+			return BufferSize;
 		}
 
 		inline VkDeviceMemory GetDeviceMemoryHandle() const
@@ -857,6 +860,7 @@ namespace VulkanRHI
 		TRefCountPtr<FOldResourceAllocation> ResourceAllocation;
 		VkBuffer Buffer;
 		bool bCPURead;
+		uint32 BufferSize;
 
 		// Owner maintains lifetime
 		virtual ~FStagingBuffer();
@@ -1031,6 +1035,7 @@ namespace VulkanRHI
 			Sampler,
 			Semaphore,
 			ShaderModule,
+			Event,
 		};
 
 		template <typename T>
@@ -1079,8 +1084,13 @@ namespace VulkanRHI
 	// Simple tape allocation per frame for a VkBuffer, used for Volatile allocations
 	class FTempFrameAllocationBuffer : public FDeviceChild
 	{
+		enum
+		{
+			ALLOCATION_SIZE = (2 * 1024 * 1024),
+		};
+
 	public:
-		FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize);
+		FTempFrameAllocationBuffer(FVulkanDevice* InDevice);
 		virtual ~FTempFrameAllocationBuffer();
 		void Destroy();
 
@@ -1088,18 +1098,18 @@ namespace VulkanRHI
 		{
 			void* Data;
 
+			FBufferSuballocation* BufferSuballocation;
+
 			// Offset into the locked area
 			uint32 CurrentOffset;
-
-			FBufferSuballocation* BufferSuballocation;
 
 			// Simple counter used for the SRVs to know a new one is required
 			uint32 LockCounter;
 
 			FTempAllocInfo()
 				: Data(nullptr)
-				, CurrentOffset(0)
 				, BufferSuballocation(nullptr)
+				, CurrentOffset(0)
 				, LockCounter(0)
 			{
 			}
@@ -1115,17 +1125,27 @@ namespace VulkanRHI
 			}
 		};
 
-		bool Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
+		void Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
 
 		void Reset();
 
 	protected:
-		uint8* MappedData[NUM_RENDER_BUFFERS];
-		uint8* CurrentData[NUM_RENDER_BUFFERS];
-		TRefCountPtr<FBufferSuballocation> BufferSuballocations[NUM_RENDER_BUFFERS];
 		uint32 BufferIndex;
-		uint32 Size;
-		uint32 PeakUsed;
+
+		struct FFrameEntry
+		{
+			TRefCountPtr<FBufferSuballocation> BufferSuballocation;
+			TArray<TRefCountPtr<FBufferSuballocation>> PendingDeletionList;
+			uint8* MappedData = nullptr;
+			uint8* CurrentData = nullptr;
+			uint32 Size = 0;
+			uint32 PeakUsed = 0;
+
+			void InitBuffer(FVulkanDevice* InDevice, uint32 InSize);
+			void Reset();
+			bool TryAlloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo);
+		};
+		FFrameEntry Entries[NUM_RENDER_BUFFERS];
 
 		friend class FVulkanCommandListContext;
 	};

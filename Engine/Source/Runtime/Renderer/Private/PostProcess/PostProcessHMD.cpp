@@ -100,7 +100,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessHMDVS, TEXT("PostProcessHMD"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FPostProcessHMDVS, TEXT("/Engine/Private/PostProcessHMD.usf"), TEXT("MainVS"), SF_Vertex);
 
 /** Encapsulates the post processing HMD distortion and correction pixel shader. */
 class FPostProcessHMDPS : public FGlobalShader
@@ -147,7 +147,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessHMDPS, TEXT("PostProcessHMD"), TEXT("MainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessHMDPS, TEXT("/Engine/Private/PostProcessHMD.usf"), TEXT("MainPS"), SF_Pixel);
 
 void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 {

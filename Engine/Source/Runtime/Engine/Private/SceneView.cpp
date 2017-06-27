@@ -465,6 +465,7 @@ FVector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 FViewMatrices::FViewMatrices(const FSceneViewInitOptions& InitOptions) : FViewMatrices()
 {
 	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
+	check(FVector::Distance(InitOptions.ViewRotationMatrix.GetScaleVector(), FVector::OneVector) < KINDA_SMALL_NUMBER);
 
 	FVector LocalViewOrigin = InitOptions.ViewOrigin;
 	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
@@ -1304,7 +1305,10 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(BloomDirtMaskTint);
 		LERP_PP(BloomConvolutionSize);
 		LERP_PP(BloomConvolutionCenterUV);
-		LERP_PP(BloomConvolutionPreFilter);
+		LERP_PP(BloomConvolutionPreFilter_DEPRECATED);
+		LERP_PP(BloomConvolutionPreFilterMin);
+		LERP_PP(BloomConvolutionPreFilterMax);
+		LERP_PP(BloomConvolutionPreFilterMult);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
 		LERP_PP(AutoExposureLowPercent);
@@ -2472,11 +2476,15 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 
 bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
 {
+	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessing.PropagateAlpha"));
+	const bool bPostProcessAlphaChannel = CVar ? (CVar->GetInt() != 0) : false;
+
 	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
 		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || IsMobileHDR()) // on mobile separate translucency requires HDR
-		// && EngineShowFlags.PostProcessing
+		&& EngineShowFlags.PostProcessing // Used for reflection captures.
 		&& !UseDebugViewPS()
-		&& EngineShowFlags.SeparateTranslucency;
+		&& EngineShowFlags.SeparateTranslucency
+		&& !bPostProcessAlphaChannel;
 		// If not, translucency after DOF will be rendered in standard translucency.
 }
 

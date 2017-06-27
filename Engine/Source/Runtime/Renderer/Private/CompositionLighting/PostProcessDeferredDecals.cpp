@@ -95,7 +95,7 @@ private:
 	FShaderParameter			RTWriteMaskDimensions;
 };
 
-IMPLEMENT_SHADER_TYPE(, FRTWriteMaskDecodeCS, TEXT("RTWriteMaskDecode"), TEXT("RTWriteMaskCombineMain"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FRTWriteMaskDecodeCS, TEXT("/Engine/Private/RTWriteMaskDecode.usf"), TEXT("RTWriteMaskCombineMain"), SF_Compute);
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("r.Decal.StencilSizeThreshold"),

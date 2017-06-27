@@ -111,8 +111,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TPostProcessBuildHCBPS<0>,TEXT("PostProcessHierarchical"),TEXT("BuildHCB"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TPostProcessBuildHCBPS<1>,TEXT("PostProcessHierarchical"),TEXT("BuildHCB"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessBuildHCBPS<0>,TEXT("/Engine/Private/PostProcessHierarchical.usf"),TEXT("BuildHCB"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessBuildHCBPS<1>,TEXT("/Engine/Private/PostProcessHierarchical.usf"),TEXT("BuildHCB"),SF_Pixel);
 
 static void HierarchycalSizeAndMips(const FIntPoint& BufferSize, uint32 Mip0Downsample, uint32& OutNumMips, FIntPoint& OutHierachicalSize)
 {

@@ -72,7 +72,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessNoiseBlur");
+		return TEXT("/Engine/Private/PostProcessNoiseBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

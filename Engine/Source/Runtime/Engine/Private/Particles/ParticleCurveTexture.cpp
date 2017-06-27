@@ -126,8 +126,8 @@ public:
 };
 
 /** Implementation for all shaders used for particle injection. */
-IMPLEMENT_SHADER_TYPE(,FParticleCurveInjectionVS,TEXT("ParticleCurveInjectionShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FParticleCurveInjectionPS,TEXT("ParticleCurveInjectionShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleCurveInjectionVS,TEXT("/Engine/Private/ParticleCurveInjectionShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FParticleCurveInjectionPS,TEXT("/Engine/Private/ParticleCurveInjectionShader.usf"),TEXT("PixelMain"),SF_Pixel);
 
 /**
  * Vertex declaration for injecting curves.

@@ -201,7 +201,7 @@ public:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(A, B, EntryName) \
 	typedef FPostProcessTemporalAAPS<A,B> FPostProcessTemporalAAPS##A##B; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAAPS##A##B,TEXT("PostProcessTemporalAA"),EntryName,SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAAPS##A##B,TEXT("/Engine/Private/PostProcessTemporalAA.usf"),EntryName,SF_Pixel);
 
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(0, 0, TEXT("DOFTemporalAAPS"));
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(1, 0, TEXT("MainTemporalAAPS"));
@@ -395,7 +395,7 @@ public:
 
 #define IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(A, EntryName) \
 	typedef FPostProcessTemporalAACS<A> FPostProcessTemporalAACS##A; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAACS##A,TEXT("PostProcessTemporalAA"),EntryName,SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAACS##A,TEXT("/Engine/Private/PostProcessTemporalAA.usf"),EntryName,SF_Compute);
 
 IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(0, TEXT("DOFTemporalAACS"));
 IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(1, TEXT("MainTemporalAACS"));

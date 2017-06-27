@@ -599,7 +599,7 @@ void USimpleConstructionScript::RegisterInstancedComponent(UActorComponent* Inst
 	}
 }
 
-void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const TInlineComponentArray<USceneComponent*>& NativeSceneComponents, const FTransform& RootTransform, bool bIsDefaultTransform)
+void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const TInlineComponentArray<USceneComponent*>& NativeSceneComponents, const FTransform& RootTransform, const FRotationConversionCache* RootRelativeRotationCache, bool bIsDefaultTransform)
 {
 	if(RootNodes.Num() > 0)
 	{
@@ -647,7 +647,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const TInlin
 				}
 
 				// Create the new component instance and any child components it may have
-				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != nullptr ? ParentComponent : RootComponent, &RootTransform, bIsDefaultTransform);
+				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != nullptr ? ParentComponent : RootComponent, &RootTransform, RootRelativeRotationCache, bIsDefaultTransform);
 			}
 		}
 	}
@@ -656,6 +656,10 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const TInlin
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
 		SceneComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+		if (RootRelativeRotationCache)
+		{   // Enforces using the same rotator as much as possible.
+			SceneComp->SetRelativeRotationCache(*RootRelativeRotationCache); 
+		}
 		SceneComp->SetWorldTransform(RootTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();

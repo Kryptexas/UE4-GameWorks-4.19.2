@@ -203,8 +203,31 @@ void FMaterialShader::SetParameters(
 
 	FUniformExpressionCache* UniformExpressionCache = &MaterialRenderProxy->UniformExpressionCache[FeatureLevel];
 	bool bUniformExpressionCacheNeedsDelete = false;
+	bool bForceExpressionEvaluation = false;
 
-	if (!bAllowCachedUniformExpressions || !UniformExpressionCache->bUpToDate || bOverrideSelection)
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING || !WITH_EDITOR)
+	if (!(!bAllowCachedUniformExpressions || !UniformExpressionCache->bUpToDate || bOverrideSelection))
+	{
+		// UE-46061 - Workaround for a rare crash with an outdated cached shader map
+		if (UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap())
+		{
+			UMaterialInterface* MtlInterface = Material.GetMaterialInterface();
+			UMaterialInterface* ProxyInterface = MaterialRenderProxy->GetMaterialInterface();
+
+			ensureMsgf(false,
+				TEXT("%s shader uniform expression set mismatched shader map for material %s/%s, forcing expression cache evaluation.\n")
+				TEXT("Material:  %s\n")
+				TEXT("Proxy:  %s\n"),
+				GetType()->GetName(),
+				*MaterialRenderProxy->GetFriendlyName(), *Material.GetFriendlyName(),
+				MtlInterface ? *MtlInterface->GetFullName() : TEXT("nullptr"),
+				ProxyInterface ? *ProxyInterface->GetFullName() : TEXT("nullptr"));
+			bForceExpressionEvaluation = true;
+		}
+	}
+#endif
+
+	if (!bAllowCachedUniformExpressions || !UniformExpressionCache->bUpToDate || bOverrideSelection || bForceExpressionEvaluation)
 	{
 		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
 		bUniformExpressionCacheNeedsDelete = true;

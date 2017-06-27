@@ -12,7 +12,7 @@
 class FVirtualTextureSpace : public FRenderResource
 {
 public:
-						FVirtualTextureSpace( uint32 InSize, uint32 InDimensions, FTexturePagePool* InPool );
+						FVirtualTextureSpace( uint32 InSize, uint8 InDimensions, EPixelFormat InFormat, FTexturePagePool* InPool );
 						~FVirtualTextureSpace();
 
 	// FRenderResource interface
@@ -21,13 +21,14 @@ public:
 	
 	FRHITexture*		GetPageTableTexture() const		{ return PageTable->GetRenderTargetItem().ShaderResourceTexture; }
 	
-	void				QueueUpdate( uint8 vLogSize, uint32 vAddress, uint8 vLevel, uint16 pAddress );
+	void				QueueUpdate( uint8 vLogSize, uint64 vAddress, uint8 vLevel, uint16 pAddress );
 	void				ApplyUpdates( FRHICommandList& RHICmdList );
 
 	uint32				ID;
 	uint32				PageTableSize;
 	uint32				PageTableLevels;
-	uint32				Dimensions;
+	EPixelFormat		PageTableFormat;
+	uint8				Dimensions;
 	
 	FTexturePagePool*	Pool;
 

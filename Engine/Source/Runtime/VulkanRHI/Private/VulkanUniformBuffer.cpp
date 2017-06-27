@@ -82,8 +82,7 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 		}
 		else
 		{
-			// Create uniform buffer, which is stored on the CPU, the buffer is uploaded to a correct GPU
-			// buffer in 'FVulkanBoundShaderState::UpdateDescriptorSets()'.
+			// Create uniform buffer, which is stored on the CPU, the buffer is uploaded to a correct GPU buffer in UpdateDescriptorSets()
 			ConstantData.AddUninitialized(InLayout.ConstantBufferSize);
 			if (Contents)
 			{
@@ -125,7 +124,7 @@ FUniformBufferRHIRef FVulkanDynamicRHI::RHICreateUniformBuffer(const void* Conte
 }
 
 FVulkanPooledUniformBuffer::FVulkanPooledUniformBuffer(FVulkanDevice& InDevice, uint32 InSize)
-    : Buffer(InDevice, InSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, __FILE__, __LINE__)
+	: Buffer(InDevice, InSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, __FILE__, __LINE__)
 {
 }
 
@@ -140,56 +139,56 @@ FVulkanGlobalUniformPool::FVulkanGlobalUniformPool()
 
 FVulkanGlobalUniformPool::~FVulkanGlobalUniformPool()
 {
-    for (uint32 BucketIndex = 0; BucketIndex < NumPoolBuckets; BucketIndex++)
-    {
-        GlobalUniformBufferPool[BucketIndex].Empty();
-    }
+	for (uint32 BucketIndex = 0; BucketIndex < NumPoolBuckets; BucketIndex++)
+	{
+		GlobalUniformBufferPool[BucketIndex].Empty();
+	}
 
-    const uint32 NumUsedBuckets = NumPoolBuckets * NumFrames;
-    for (uint32 UsedBucketIndex = 0; UsedBucketIndex < NumUsedBuckets; UsedBucketIndex++)
-    {
-        UsedGlobalUniformBuffers[UsedBucketIndex].Empty();
-    }
+	const uint32 NumUsedBuckets = NumPoolBuckets * NumFrames;
+	for (uint32 UsedBucketIndex = 0; UsedBucketIndex < NumUsedBuckets; UsedBucketIndex++)
+	{
+		UsedGlobalUniformBuffers[UsedBucketIndex].Empty();
+	}
 }
 
 static FORCEINLINE uint32 GetPoolBucketSize(uint32 NumBytes)
 {
-    return FMath::RoundUpToPowerOfTwo(NumBytes);
+	return FMath::RoundUpToPowerOfTwo(NumBytes);
 }
 
 void FVulkanGlobalUniformPool::BeginFrame()
 {
-    const uint32 CurrentFrameIndex = GFrameNumberRenderThread % NumFrames;
+	const uint32 CurrentFrameIndex = GFrameNumberRenderThread % NumFrames;
 
-    for (uint32 BucketIndex = 0; BucketIndex < NumPoolBuckets; BucketIndex++)
-    {
-        const uint32 UsedBucketIndex = CurrentFrameIndex * NumPoolBuckets + BucketIndex;
+	for (uint32 BucketIndex = 0; BucketIndex < NumPoolBuckets; BucketIndex++)
+	{
+		const uint32 UsedBucketIndex = CurrentFrameIndex * NumPoolBuckets + BucketIndex;
 
-        GlobalUniformBufferPool[BucketIndex].Append(UsedGlobalUniformBuffers[UsedBucketIndex]);
-        UsedGlobalUniformBuffers[UsedBucketIndex].Reset();
-    }
+		GlobalUniformBufferPool[BucketIndex].Append(UsedGlobalUniformBuffers[UsedBucketIndex]);
+		UsedGlobalUniformBuffers[UsedBucketIndex].Reset();
+	}
 }
 
 FPooledUniformBufferRef& FVulkanGlobalUniformPool::GetGlobalUniformBufferFromPool(FVulkanDevice& InDevice, uint32 InSize)
 {
-    const uint32 BucketIndex = GetPoolBucketIndex(InSize);
-    TArray<FPooledUniformBufferRef>& PoolBucket = GlobalUniformBufferPool[BucketIndex];
+	const uint32 BucketIndex = GetPoolBucketIndex(InSize);
+	TArray<FPooledUniformBufferRef>& PoolBucket = GlobalUniformBufferPool[BucketIndex];
 
-    const uint32 BufferSize = GetPoolBucketSize(InSize);
+	const uint32 BufferSize = GetPoolBucketSize(InSize);
 
-    int32 NewIndex = 0;
-    const uint32 CurrentFrameIndex = GFrameNumberRenderThread % NumFrames;
-    const uint32 UsedBucketIndex = CurrentFrameIndex * NumPoolBuckets + BucketIndex;
-    if (PoolBucket.Num() > 0)
-    {
-        NewIndex = UsedGlobalUniformBuffers[UsedBucketIndex].Add(PoolBucket.Pop());
-    }
-    else
-    {
-        NewIndex = UsedGlobalUniformBuffers[UsedBucketIndex].Add(new FVulkanPooledUniformBuffer(InDevice, BufferSize));
-    }
+	int32 NewIndex = 0;
+	const uint32 CurrentFrameIndex = GFrameNumberRenderThread % NumFrames;
+	const uint32 UsedBucketIndex = CurrentFrameIndex * NumPoolBuckets + BucketIndex;
+	if (PoolBucket.Num() > 0)
+	{
+		NewIndex = UsedGlobalUniformBuffers[UsedBucketIndex].Add(PoolBucket.Pop());
+	}
+	else
+	{
+		NewIndex = UsedGlobalUniformBuffers[UsedBucketIndex].Add(new FVulkanPooledUniformBuffer(InDevice, BufferSize));
+	}
 
-    return UsedGlobalUniformBuffers[UsedBucketIndex][NewIndex];
+	return UsedGlobalUniformBuffers[UsedBucketIndex][NewIndex];
 }
 
 

@@ -771,7 +771,7 @@ void FTextureSource::UnlockMip(int32 MipIndex)
 	}
 }
 
-bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex)
+bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex, IImageWrapperModule* ImageWrapperModule)
 {
 	bool bSuccess = false;
 	if (MipIndex < NumMips && BulkData.GetBulkDataSize() > 0)
@@ -782,8 +782,11 @@ bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex)
 			bool bCanPngCompressFormat = (Format == TSF_G8 || Format == TSF_RGBA8 || Format == TSF_BGRA8 || Format == TSF_RGBA16);
 			if (MipIndex == 0 && NumSlices == 1 && bCanPngCompressFormat)
 			{
-				IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+				if (!ImageWrapperModule) // Optional if called from the gamethread, see FModuleManager::WarnIfItWasntSafeToLoadHere()
+				{
+					ImageWrapperModule = &FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
+				}
+				IImageWrapperPtr ImageWrapper = ImageWrapperModule->CreateImageWrapper( EImageFormat::PNG );
 				if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawSourceData, BulkData.GetBulkDataSize() ) )
 				{
 					if (ImageWrapper->GetWidth() == SizeX

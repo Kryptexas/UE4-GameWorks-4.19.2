@@ -117,7 +117,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("DistortApplyScreenPS");
+		return TEXT("/Engine/Private/DistortApplyScreenPS.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -203,7 +203,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("DistortApplyScreenPS");
+		return TEXT("/Engine/Private/DistortApplyScreenPS.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -327,9 +327,9 @@ protected:
 };
 
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("Main"),SF_Vertex); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("MainHull"),SF_Hull); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("MainDomain"),SF_Domain);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("Main"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("MainHull"),SF_Hull); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("MainDomain"),SF_Domain);
 
 
 /**
@@ -393,7 +393,7 @@ private:
 };
 
 //** distortion accumulate pixel shader type implementation */
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshPS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulatePS"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshPS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulatePS.usf"),TEXT("Main"),SF_Pixel);
 
 /*-----------------------------------------------------------------------------
 TDistortionMeshDrawingPolicy

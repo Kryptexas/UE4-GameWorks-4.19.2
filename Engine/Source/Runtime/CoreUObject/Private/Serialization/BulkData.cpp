@@ -164,18 +164,29 @@ FUntypedBulkData& FUntypedBulkData::operator=( const FUntypedBulkData& Other )
 {
 	// Remove bulk data, avoiding potential load in Lock call.
 	RemoveBulkData();
-	
+
 	BulkDataAlignment = Other.BulkDataAlignment;
 
-	// Reallocate to size of src.
-	Lock(LOCK_READ_WRITE);
-	Realloc(Other.GetElementCount());
+	if (Other.BulkData)
+	{
+		// Reallocate to size of src.
+		Lock(LOCK_READ_WRITE);
+		Realloc(Other.GetElementCount());
 
-	// Copy data over.
-	Copy( Other );
+		// Copy data over.
+		Copy( Other );
 
-	// Unlock.
-	Unlock();
+		// Unlock.
+		Unlock();
+	}
+	else // Otherwise setup the bulk so that the data can be loaded through LoadBulkDataWithFileReader()
+	{
+		Filename = Other.Filename;
+		BulkDataFlags = Other.BulkDataFlags;
+		ElementCount = Other.ElementCount;
+		BulkDataOffsetInFile = Other.BulkDataOffsetInFile;
+		BulkDataSizeOnDisk = Other.BulkDataSizeOnDisk;
+	}
 
 	return *this;
 }
@@ -579,6 +590,33 @@ void FUntypedBulkData::RemoveBulkData()
 	BulkData.Deallocate();
 }
 
+// FutureState implementation that loads everything when created.
+struct FStateComplete : public TFutureState<bool>
+{
+public:
+	FStateComplete(TFunction<void()> CompletionCallback) : TFutureState<bool>(MoveTemp(CompletionCallback)) { MarkComplete(); }
+};
+
+/**
+* Load the bulk data using a file reader. Works when no archive is attached to the bulk data.
+* @return Whether the operation succeeded.
+*/
+bool FUntypedBulkData::LoadBulkDataWithFileReader()
+{
+#if WITH_EDITOR
+	if (!BulkData && GIsEditor && !GEventDrivenLoaderEnabled && !SerializeFuture.IsValid())
+	{
+		SerializeFuture = TFuture<bool>(TSharedPtr<TFutureState<bool>, ESPMode::ThreadSafe>(new FStateComplete([=]() 
+		{ 
+			AsyncLoadBulkData();
+			return true; 
+		})));
+		return (bool)BulkDataAsync;
+	}
+#endif
+	return false;
+}
+
 /**
  * Forces the bulk data to be resident in memory and detaches the archive.
  */
@@ -648,6 +686,26 @@ void FUntypedBulkData::ClearBulkDataFlags( uint32 BulkDataFlagsToClear )
 	BulkDataFlags &= ~BulkDataFlagsToClear;
 }
 
+/**
+ * Load the resource data in the BulkDataAsync
+ *
+ * @param BulkDataFlagsToClear	Bulk data flags to clear
+ */
+void FUntypedBulkData::AsyncLoadBulkData()
+{
+	BulkDataAsync.Reallocate(GetBulkDataSize(), BulkDataAlignment);
+
+	UE_CLOG(GEventDrivenLoaderEnabled, LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
+
+	FArchive* FileReaderAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
+	checkf(FileReaderAr != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
+
+	// Seek to the beginning of the bulk data in the file.
+	FileReaderAr->Seek(BulkDataOffsetInFile);
+	SerializeBulkData(*FileReaderAr, BulkDataAsync.Get());
+	delete FileReaderAr;
+}
+
 
 /*-----------------------------------------------------------------------------
 	Serialization.
@@ -658,21 +716,9 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FUntypedBulkData::StartSerializingBulkData"), STAT_UBD_StartSerializingBulkData, STATGROUP_Memory);
 	check(SerializeFuture.IsValid() == false);	
 
-	// Async
-	SerializeFuture = Async<bool>(EAsyncExecution::ThreadPool, [=]()
-	{
-		BulkDataAsync.Reallocate(GetBulkDataSize(), BulkDataAlignment);
-
-		UE_CLOG(GEventDrivenLoaderEnabled, LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
-
-		FArchive* FileReaderAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
-		checkf(FileReaderAr != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
-
-		// Seek to the beginning of the bulk data in the file.
-		FileReaderAr->Seek(BulkDataOffsetInFile);
-		SerializeBulkData(*FileReaderAr, BulkDataAsync.Get());
-		delete FileReaderAr;
-
+	SerializeFuture = Async<bool>(EAsyncExecution::ThreadPool, [=]() 
+	{ 
+		AsyncLoadBulkData(); 
 		return true;
 	});
 
@@ -1119,7 +1165,7 @@ void FUntypedBulkData::Copy( const FUntypedBulkData& Other )
 		// Make sure src is loaded without calling Lock as the object is const.
 		check(Other.BulkData);
 		check(BulkData);
-		check(ElementCount == Other.GetElementCount() );
+		check(ElementCount == Other.GetElementCount());
 		// Copy from src to dest.
 		FMemory::Memcpy( BulkData.Get(), Other.BulkData.Get(), Other.GetBulkDataSize() );
 	}
