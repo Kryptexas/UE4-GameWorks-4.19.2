@@ -94,6 +94,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	, bIsRunning(false)
 	, TotalTime(0.f)
 	, RunFrame(0)
+	, RunTime(0.0f)
 	, StartFrame(0)
 	, StartTime(0.0f)
 	, bIsReady(false)
@@ -200,6 +201,8 @@ bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 	GetWorld()->DelayGarbageCollection();
 
 	RunFrame = GFrameNumber;
+	RunTime = GetWorld()->GetTimeSeconds();
+
 	TotalTime = 0.f;
 	if (TimeLimit >= 0)
 	{
@@ -212,6 +215,7 @@ bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 	GoToObservationPoint();
 
 	PrepareTest();
+	OnTestPrepare.Broadcast();
 
 	return true;
 }

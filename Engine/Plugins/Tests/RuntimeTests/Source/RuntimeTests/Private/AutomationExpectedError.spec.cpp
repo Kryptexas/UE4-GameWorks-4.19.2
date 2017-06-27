@@ -120,7 +120,7 @@ void FAutomationExpectedErrorTest::Define()
 // IMPORTANT: The pass condition for these tests is that they FAIL. To prevent
 // the expected failures from interfering with regular test runs, these tests
 // must be run manually.
-BEGIN_DEFINE_SPEC(FAutomationExpectedErrorFailureTest, "System.Automation.ExpectedError", EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::RequiresUser)
+BEGIN_DEFINE_SPEC(FAutomationExpectedErrorFailureTest, "System.Automation.ExpectedError", EAutomationTestFlags::NegativeFilter | EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::RequiresUser)
 END_DEFINE_SPEC(FAutomationExpectedErrorFailureTest)
 
 void FAutomationExpectedErrorFailureTest::Define()

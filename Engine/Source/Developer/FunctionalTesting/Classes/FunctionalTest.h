@@ -332,6 +332,10 @@ public:
 
 public:
 
+	/** Called when the test is ready to prepare */
+	UPROPERTY(BlueprintAssignable)
+	FFunctionalTestEventSignature OnTestPrepare;
+
 	/** Called when the test is started */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestStart;
@@ -637,6 +641,7 @@ public:
 	float TotalTime;
 
 	uint32 RunFrame;
+	float RunTime;
 
 	uint32 StartFrame;
 	float StartTime;
