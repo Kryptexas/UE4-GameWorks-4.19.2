@@ -113,6 +113,10 @@ private:
 		MemCache_Magic = 0x0cac0ddc,
 		/** Magic number to use in header (new, > 2GB size compatible) */
 		MemCache_Magic64 = 0x0cac1ddc,
+		/** Magic number to use in header (new, > 2GB size compatible) */
+		MemCache_Magic64_V2 = 0x0cac2ddc,
+		/** Magic number before each entry */
+		MemCache_Magic_Item = 0x0ddc1234,
 		/** Oldest cache items to keep */
 		MaxAge = 3,
 		/** Size of data that is stored in the cachefile apart from the cache entries (64 bit size). */
