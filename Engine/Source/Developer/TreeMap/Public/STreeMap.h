@@ -46,7 +46,9 @@ public:
 		, _NestedContainerOuterPadding( 0.0f )
 		, _ContainerInnerPadding( 4.0f )
 		, _ChildContainerTextPadding( 2.0f )
-	{}
+	{
+		_Clipping = EWidgetClipping::ClipToBounds;
+	}
 
 		/** Sets whether the user can edit the tree map interactively by dragging nodes around and typing new node labels */
 		SLATE_ATTRIBUTE( bool, AllowEditing )
