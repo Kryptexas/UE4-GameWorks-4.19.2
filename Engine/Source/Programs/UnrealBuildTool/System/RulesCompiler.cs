@@ -58,8 +58,9 @@ namespace UnrealBuildTool
 		/// <param name="ForeignPlugins"></param>
 		/// <param name="AdditionalSearchPaths"></param>
 		/// <param name="bIncludeEngine"></param>
+		/// <param name="bIncludeEnterprise"></param>
 		/// <returns></returns>
-		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true)
+		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true, bool bIncludeEnterprise = true)
 		{
 			List<DirectoryReference> Folders = new List<DirectoryReference>();
 
@@ -67,6 +68,9 @@ namespace UnrealBuildTool
 			if (bIncludeEngine)
 			{
 				Folders.Add(UnrealBuildTool.EngineSourceDirectory);
+			}
+			if(bIncludeEnterprise)
+			{
 				Folders.Add(UnrealBuildTool.EnterpriseSourceDirectory);
 			}
 
@@ -77,6 +81,9 @@ namespace UnrealBuildTool
 			if (bIncludeEngine)
 			{
 				RootFolders.Add(UnrealBuildTool.EngineDirectory);
+			}
+			if(bIncludeEnterprise)
+			{
 				RootFolders.Add(UnrealBuildTool.EnterpriseDirectory);
 			}
 			if (GameFolders != null)
