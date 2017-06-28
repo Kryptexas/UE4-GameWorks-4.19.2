@@ -535,7 +535,7 @@ public:
 	/** This needs to be called if you want to use pin data within PostEditUndo */
 	ENGINE_API static void ResolveAllPinReferences();
 
-	ENGINE_API static bool EnableOrphanPins();
+	ENGINE_API static bool AreOrphanPinsEnabled();
 
 private:
 	/** Private Constructor. Create pins using CreatePin since all pin instances are managed by TSharedPtr. */

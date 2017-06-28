@@ -1052,7 +1052,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			bool LocalOrphanedPin = bOrphanedPin;
 			Buffer = BoolPropCDO->ImportText(Buffer, &LocalOrphanedPin, PortFlags, Parent, ErrorText);
 			bParseSuccess = (Buffer != nullptr);
-			if (EnableOrphanPins())
+			if (AreOrphanPinsEnabled())
 			{
 				bOrphanedPin = LocalOrphanedPin;
 			}
@@ -1449,7 +1449,7 @@ bool UEdGraphPin::Serialize(FArchive& Ar)
 		bDefaultValueIsReadOnly = !!(BitField & (1 << 2));
 		bDefaultValueIsIgnored = !!(BitField & (1 << 3));
 		bAdvancedView = !!(BitField & (1 << 4));
-		if (EnableOrphanPins())
+		if (AreOrphanPinsEnabled())
 		{
 			bOrphanedPin = !!(BitField & (1 << 5));
 		}
@@ -1861,11 +1861,12 @@ bool UEdGraphPin::ImportText_PinArray(const TCHAR*& Buffer, TArray<UEdGraphPin*>
 	return false;
 }
 
-TAutoConsoleVariable<int32> CVarDisableOrphanPins(TEXT("DisableOrphanPins"), 0, TEXT("0=Enable, 1=Disable"), ECVF_ReadOnly);
+int32 GCVarDisableOrphanPins = 0;
+FAutoConsoleVariableRef CVarDisableOrphanPins(TEXT("DisableOrphanPins"), GCVarDisableOrphanPins, TEXT("0=Orphan pins are enabled (default), 1=Orphan pins are disabled (note: this option will go away in the future)"), ECVF_ReadOnly);
 
-bool UEdGraphPin::EnableOrphanPins()
+bool UEdGraphPin::AreOrphanPinsEnabled()
 {
-	return (CVarDisableOrphanPins.GetValueOnGameThread() == 0);
+	return (GCVarDisableOrphanPins == 0);
 }
 
 
