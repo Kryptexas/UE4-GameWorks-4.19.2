@@ -94,7 +94,7 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 		const float StartAtTime = InSequencer->GetLocalTime();
 		TRange<float> VisibleRange = InSequencer->GetViewRange();
 
-		FScopedTransaction Transaction(LOCTEXT("AddSectionText", "Add Section"));
+		FScopedTransaction Transaction(LOCTEXT("AddSectionTransactionText", "Add Section"));
 		if (UMovieSceneSection* NewSection = Track->CreateNewSection())
 		{
 			int32 OverlapPriority = 0;

@@ -77,4 +77,4 @@ FText FPIEPreviewDeviceContainerCategory::GetCategoryToolTip()
 	return FText::Format(LOCTEXT("PIEPreviewDeviceCategoryToolTip", "Preview {Device} devices"), Args);
 }
 
-
+#undef LOCTEXT_NAMESPACE
