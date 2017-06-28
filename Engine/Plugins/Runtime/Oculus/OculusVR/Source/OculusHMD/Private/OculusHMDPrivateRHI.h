@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
+
 //-------------------------------------------------------------------------------------------------
 // D3D11
 //-------------------------------------------------------------------------------------------------
@@ -72,3 +74,5 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanResources.h"
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS_VULKAN
+
+#endif // OCULUS_HMD_SUPPORTED_PLATFORMS
