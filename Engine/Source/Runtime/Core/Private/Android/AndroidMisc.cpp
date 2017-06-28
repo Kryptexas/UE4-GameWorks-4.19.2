@@ -31,6 +31,9 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
+#if STATS
+int32 FAndroidMisc::TraceMarkerFileDescriptor = -1;
+#endif
 
 // run time compatibility information
 FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4.0.4"
@@ -228,12 +231,32 @@ void FAndroidMisc::PlatformInit()
 	// Setup user specified thread affinity if any
 	extern void AndroidSetupDefaultThreadAffinity();
 	AndroidSetupDefaultThreadAffinity();
+
+#if STATS
+	// Setup trace file descriptor
+	TraceMarkerFileDescriptor = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
+	if (TraceMarkerFileDescriptor == -1)
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
+	}
+#endif
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
 
 void FAndroidMisc::PlatformPostInit()
 {
+}
+
+void FAndroidMisc::PlatformTearDown()
+{
+#if STATS
+	// Tear down trace file descriptor
+	if (TraceMarkerFileDescriptor != -1)
+	{
+		close(TraceMarkerFileDescriptor);
+	}
+#endif
 }
 
 void FAndroidMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
@@ -1698,6 +1721,42 @@ bool FAndroidMisc::IsDebuggerPresent()
 	}
 #endif
 	return Result;
+}
+#endif
+
+#if STATS
+void FAndroidMisc::BeginNamedEvent(const struct FColor& Color, const TCHAR* Text)
+{
+	const int MAX_TRACE_MESSAGE_LENGTH = 256;
+
+	// not static since may be called by different threads
+	ANSICHAR TextBuffer[MAX_TRACE_MESSAGE_LENGTH];
+
+	const TCHAR* SourcePtr = Text;
+	ANSICHAR* WritePtr = TextBuffer;
+	int32 RemainingSpace = MAX_TRACE_MESSAGE_LENGTH;
+	while (*SourcePtr && --RemainingSpace > 0)
+	{
+		*WritePtr++ = static_cast<ANSICHAR>(*SourcePtr++);
+	}
+	*WritePtr = '\0';
+
+	BeginNamedEvent(Color, TextBuffer);
+}
+
+void FAndroidMisc::BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text)
+{
+	const int MAX_TRACE_EVENT_LENGTH = 256;
+
+	ANSICHAR EventBuffer[MAX_TRACE_EVENT_LENGTH];
+	int EventLength = snprintf(EventBuffer, MAX_TRACE_EVENT_LENGTH, "B|%d|%s", getpid(), Text);
+	write(TraceMarkerFileDescriptor, EventBuffer, EventLength);
+}
+
+void FAndroidMisc::EndNamedEvent()
+{
+	const ANSICHAR EventTerminatorChar = 'E';
+	write(TraceMarkerFileDescriptor, &EventTerminatorChar, 1);
 }
 #endif
 

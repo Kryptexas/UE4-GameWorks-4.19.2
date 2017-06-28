@@ -21,6 +21,7 @@
 // Needed for VR Headset
 #if HMD_MODULE_INCLUDED
 #include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
 #endif // HMD_MODULE_INCLUDED
 
 const FName ATP_VehicleAdvPawn::LookUpBinding("LookUp");

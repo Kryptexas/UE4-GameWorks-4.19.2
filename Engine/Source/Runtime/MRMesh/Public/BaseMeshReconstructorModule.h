@@ -11,16 +11,6 @@ class IMRMesh;
 
 class FBaseMeshReconstructorModule : public IModuleInterface, public IModularFeature
 {
-public:
-	//
-	// MESH RECONSTRUCTION API
-	//
-
-	/** Invoked when a new MRMesh instance wants to render and is requesting that data be sent to it. */
-	virtual void PairWithComponent(IMRMesh& MRMeshComponent) = 0;
-
-	/** A signal to stop any running threads. */
-	virtual void Stop() = 0;
 
 public:
 	//

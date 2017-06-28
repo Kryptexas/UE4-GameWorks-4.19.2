@@ -28,6 +28,7 @@ void MainBlackShader(
 }
 
 Texture2D InTexture;
+TextureCube InTextureCube;
 SamplerState InTextureSampler;
 
 void MainAlphaInverseShader(
@@ -37,4 +38,40 @@ void MainAlphaInverseShader(
 {
 	float InverseAlpha = 1 - Texture2DSample(InTexture, InTextureSampler, uv).a;
 	OutColor = float4(0, 0, 0, InverseAlpha);
+}
+
+int CubeFaceIndex;
+
+void MainForCubemap(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+	)
+{
+	float u = Input.UV.x * 2. - 1.0;
+	float v = Input.UV.y * 2. - 1.0;
+
+	if(CubeFaceIndex == 0)
+	{
+	    OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(1., v, u));
+	}
+	else if(CubeFaceIndex == 1)
+	{
+		OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(-1., v, -u));
+	}
+	else if(CubeFaceIndex == 2)
+	{
+		OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(u, 1., v));
+	}
+	else if(CubeFaceIndex == 3)
+	{
+		OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(u, -1., -v));
+	}
+	else if(CubeFaceIndex == 5)
+	{
+		OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(-u,v,1.));
+	}
+	else if(CubeFaceIndex == 4)
+	{
+		OutColor = TextureCubeSample(InTextureCube, InTextureSampler, float3(u,v,-1.));
+	}
 }

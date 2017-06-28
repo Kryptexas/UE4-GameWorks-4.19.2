@@ -22,7 +22,7 @@ public:
 	FOnlineFactoryOculus() {}	
 	virtual ~FOnlineFactoryOculus() {}
 
-	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
+	IOnlineSubsystemPtr CreateSubsystem(FName InstanceName) override
 	{
 		if (!OnlineSub.IsValid())
 		{

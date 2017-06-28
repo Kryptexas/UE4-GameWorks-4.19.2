@@ -167,19 +167,19 @@ bool FOnlineSubsystemOculus::Tick(float DeltaTime)
 	return true;
 }
 
-void FOnlineSubsystemOculus::AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate)
+void FOnlineSubsystemOculus::AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate) const
 {
 	check(MessageTaskManager);
 	MessageTaskManager->AddRequestDelegate(RequestId, MoveTemp(Delegate));
 }
 
-FOculusMulticastMessageOnCompleteDelegate& FOnlineSubsystemOculus::GetNotifDelegate(ovrMessageType MessageType)
+FOculusMulticastMessageOnCompleteDelegate& FOnlineSubsystemOculus::GetNotifDelegate(ovrMessageType MessageType) const
 {
 	check(MessageTaskManager);
 	return MessageTaskManager->GetNotifDelegate(MessageType);
 }
 
-void FOnlineSubsystemOculus::RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate)
+void FOnlineSubsystemOculus::RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate) const
 {
 	check(MessageTaskManager);
 	return MessageTaskManager->RemoveNotifDelegate(MessageType, Delegate);
@@ -238,7 +238,7 @@ bool FOnlineSubsystemOculus::Init()
 }
 
 #if PLATFORM_WINDOWS
-bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
+bool FOnlineSubsystemOculus::InitWithWindowsPlatform() const
 {
 	UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemOculus::InitWithWindowsPlatform()"));
 	auto OculusAppId = GetAppId();
@@ -251,7 +251,7 @@ bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
 	auto InitResult = ovr_PlatformInitializeWindows(TCHAR_TO_ANSI(*OculusAppId));
 	if (InitResult != ovrPlatformInitialize_Success)
 	{
-		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Failure code: %d"), (int)InitResult);
+		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Failure code: %d"), static_cast<int>(InitResult));
 		return false;
 	}
 	return true;
@@ -331,14 +331,14 @@ FText FOnlineSubsystemOculus::GetOnlineServiceName() const
 	return NSLOCTEXT("OnlineSubsystemOculus", "OnlineServiceName", "Oculus Platform");
 }
 
-bool FOnlineSubsystemOculus::IsEnabled()
+bool FOnlineSubsystemOculus::IsEnabled() const
 {
 	bool bEnableOculus = true;
 	GConfig->GetBool(TEXT("OnlineSubsystemOculus"), TEXT("bEnabled"), bEnableOculus, GEngineIni);
 	return bEnableOculus;
 }
 
-bool FOnlineSubsystemOculus::IsInitialized()
+bool FOnlineSubsystemOculus::IsInitialized() const
 {
 	return bOculusInit;
 }

@@ -9,17 +9,6 @@
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
 
-THIRD_PARTY_INCLUDES_START
-#if USING_CODE_ANALYSIS
-#pragma warning( push )
-#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
-#endif	// USING_CODE_ANALYSIS
-#include <string>
-#if USING_CODE_ANALYSIS
-#pragma warning( pop )
-#endif	// USING_CODE_ANALYSIS
-THIRD_PARTY_INCLUDES_END
-
 class FOnlineOculusFriend : public FOnlineFriend
 {
 private:
@@ -28,14 +17,14 @@ private:
 	const FString DisplayName;
 	FOnlineUserPresence Presence;
 
-	std::string InviteToken;
+	const FString InviteToken;
 
 public:
 
-	FOnlineOculusFriend(const ovrID ID, const FString& InDisplayName, ovrUserPresenceStatus FriendPresenceStatus, const char* InInviteToken) :
+	FOnlineOculusFriend(const ovrID ID, const FString& InDisplayName, ovrUserPresenceStatus FriendPresenceStatus, const FString& InInviteToken) :
 		UserId(new FUniqueNetIdOculus(ID)),
 		DisplayName(InDisplayName),
-		InviteToken((InInviteToken != nullptr) ? std::string(InInviteToken) : "")
+		InviteToken(InInviteToken)
 	{
 		Presence.bIsOnline = FriendPresenceStatus == ovrUserPresenceStatus_Online;
 	}
@@ -70,9 +59,9 @@ public:
 		return Presence;
 	}
 
-	const char* GetInviteToken() const
+	FString GetInviteToken() const
 	{
-		return InviteToken.c_str();
+		return InviteToken;
 	}
 };
 

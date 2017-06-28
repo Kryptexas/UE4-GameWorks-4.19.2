@@ -16,7 +16,6 @@
 
 #include <string>
 
-
 /**
  * OnlineSubsystemGameCircle - Implementation of the online subsystem for Amazon Game Circle services
  */

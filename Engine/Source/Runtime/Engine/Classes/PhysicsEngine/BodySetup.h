@@ -12,7 +12,9 @@
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "BodySetup.generated.h"
+
 
 class ITargetPlatform;
 class UPhysicalMaterial;
@@ -451,3 +453,24 @@ extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArr
 extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<physx::PxTriangleMesh*>&,TFunctionRef<void (physx::PxTriangleMesh* const &, const physx::PxTriangleMeshGeometry&, const physx::PxTransform&,float)>) const;
 
 /// @endcond
+
+
+struct ENGINE_API FAsyncPhysicsCookHelper
+{
+	FAsyncPhysicsCookHelper(class IPhysXCookingModule* InPhysXCookingModule, const FCookBodySetupInfo& InCookInfo);
+
+	void CreatePhysicsMeshesAsync_Concurrent(FSimpleDelegateGraphTask::FDelegate FinishDelegate);
+
+	void CreatePhysicsMeshes_Concurrent();
+
+	void CreateConvexElements(const TArray<TArray<FVector>>& Elements, TArray<physx::PxConvexMesh*>& OutConvexMeshes, bool bFlipped);
+
+	FCookBodySetupInfo CookInfo;
+	IPhysXCookingModule* PhysXCookingModule;
+
+	//output
+	TArray<physx::PxConvexMesh*> OutNonMirroredConvexMeshes;
+	TArray<physx::PxConvexMesh*> OutMirroredConvexMeshes;
+	TArray<physx::PxTriangleMesh*> OutTriangleMeshes;
+	FBodySetupUVInfo OutUVInfo;
+};

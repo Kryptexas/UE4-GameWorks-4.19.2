@@ -51,7 +51,12 @@ namespace UnrealBuildTool.Rules
 
 			if (UEBuildConfiguration.bBuildEditor == true)
 			{
-				PrivateDependencyModuleNames.Add("UnrealEd");
+				PrivateDependencyModuleNames.AddRange(
+					new string[]
+					{
+						"UnrealEd",
+						"GoogleInstantPreview"
+					});
 			}
 			else
 			{
@@ -75,6 +80,9 @@ namespace UnrealBuildTool.Rules
 			else if (Target.Platform == UnrealTargetPlatform.IOS)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
+
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("IOSPlugin", Path.Combine(PluginPath, "GoogleVRHMD_APL.xml")));
 			}
 		}
 	}

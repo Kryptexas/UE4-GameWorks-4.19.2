@@ -6,6 +6,14 @@
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
 #include "AnalyticsEventAttribute.h"
+#include "Misc/CoreDelegates.h"
+#include "RenderingThread.h"
+#include "Engine/Texture.h"
+#include "DefaultSpectatorScreenController.h"
+
+// including interface headers without their own implementation file, so that 
+// functions (default ctors, etc.) get compiled into this module
+#include "IXRDeviceAssets.h"
 
 void FHeadMountedDisplayBase::RecordAnalytics()
 {
@@ -20,8 +28,6 @@ void FHeadMountedDisplayBase::RecordAnalytics()
 
 bool FHeadMountedDisplayBase::PopulateAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& EventAttributes)
 {
-	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
-
 	IHeadMountedDisplay::MonitorInfo MonitorInfo;
 	GetHMDMonitorInfo(MonitorInfo);
 
@@ -37,7 +43,7 @@ bool FHeadMountedDisplayBase::PopulateAnalyticsAttributes(TArray<FAnalyticsEvent
 	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
 	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
 	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), IsChromaAbCorrectionEnabled()));
-	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), CVarMirrorMode->GetValueOnAnyThread() > 0));
+	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), IsSpectatorScreenActive()));
 
 	return true;
 }
@@ -68,4 +74,20 @@ void FHeadMountedDisplayBase::ApplyLateUpdate(FSceneInterface* Scene, const FTra
 		DefaultStereoLayers->UpdateHmdTransform(NewRelativeTransform);
 	}
 	IHeadMountedDisplay::ApplyLateUpdate(Scene, OldRelativeTransform, NewRelativeTransform);
+}
+
+bool FHeadMountedDisplayBase::IsSpectatorScreenActive() const
+{
+	ISpectatorScreenController const * Controller = GetSpectatorScreenController();
+	return (Controller && Controller->GetSpectatorScreenMode() != ESpectatorScreenMode::Disabled);
+}
+
+ISpectatorScreenController* FHeadMountedDisplayBase::GetSpectatorScreenController()
+{
+	return SpectatorScreenController.Get();
+}
+
+class ISpectatorScreenController const * FHeadMountedDisplayBase::GetSpectatorScreenController() const
+{
+	return SpectatorScreenController.Get();
 }

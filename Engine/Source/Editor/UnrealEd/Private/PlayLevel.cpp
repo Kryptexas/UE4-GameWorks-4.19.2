@@ -3329,7 +3329,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
-				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid();
+				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid() && GetDefault<ULevelEditorPlaySettings>()->ShouldMinimizeEditorOnVRPIE;
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
 					struct FLocal

@@ -28,6 +28,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static void PlatformPostInit();
+	static void PlatformTearDown();
 	static void PlatformHandleSplashScreen(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
@@ -194,7 +195,24 @@ public:
 	}
 
 
+#if STATS
+	/**
+	* Platform specific function for adding a named event that can be viewed in PIX
+	*/
+	static void BeginNamedEvent(const struct FColor& Color, const TCHAR* Text);
+	static void BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text);
+
+	/**
+	* Platform specific function for closing a named event that can be viewed in PIX
+	*/
+	static void EndNamedEvent();
+#endif
+
 	static void* NativeWindow ; //raw platform Main window
+
+#if STATS
+	static int32 TraceMarkerFileDescriptor;
+#endif
 	
 	// run time compatibility information
 	static FString AndroidVersion; // version of android we are running eg "4.0.4"

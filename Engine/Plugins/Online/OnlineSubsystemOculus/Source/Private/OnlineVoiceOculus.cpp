@@ -9,6 +9,7 @@
 #include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
 #include "OnlineSubsystemUtils.h"
 
+#include "ConfigCacheIni.h"
 #include "OnlineSubsystemOculusPackage.h"
 
 // Define the voice sample rate the default in OVR_VoipSampleRate
@@ -71,7 +72,7 @@ void FOnlineVoiceOculus::StartNetworkedVoice(uint8 LocalUserNum)
 	else
 	{
 		UE_LOG(LogVoice, Log, TEXT("Invalid user specified in StartNetworkedVoice(%d)"),
-			(uint32)LocalUserNum);
+			static_cast<uint32>(LocalUserNum));
 	}
 }
 
@@ -86,7 +87,7 @@ void FOnlineVoiceOculus::StopNetworkedVoice(uint8 LocalUserNum)
 	else
 	{
 		UE_LOG(LogVoice, Log, TEXT("Invalid user specified in StartNetworkedVoice(%d)"),
-			(uint32)LocalUserNum);
+			static_cast<uint32>(LocalUserNum));
 	}
 }
 
@@ -286,7 +287,7 @@ FString FOnlineVoiceOculus::GetVoiceDebugState() const
 	return Output;
 }
 
-void FOnlineVoiceOculus::OnVoipConnectionRequest(ovrMessageHandle Message, bool bIsError)
+void FOnlineVoiceOculus::OnVoipConnectionRequest(ovrMessageHandle Message, bool bIsError) const
 {
 	auto NetworkingPeer = ovr_Message_GetNetworkingPeer(Message);
 	auto PeerID = ovr_NetworkingPeer_GetID(NetworkingPeer);

@@ -254,7 +254,7 @@ FOnlineIdentityOculus::FOnlineIdentityOculus(class FOnlineSubsystemOculus& InSub
 	: OculusSubsystem(InSubsystem)
 {
 	// Auto login the 0-th player
-	AutoLogin(0);
+	FOnlineIdentityOculus::AutoLogin(0);
 }
 
 void FOnlineIdentityOculus::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
@@ -272,12 +272,12 @@ void FOnlineIdentityOculus::GetUserPrivilege(const FUniqueNetId& UserId, EUserPr
 				auto Error = ovr_Message_GetError(Message);
 				FString ErrorMessage(ovr_Error_GetMessage(Error));
 				UE_LOG_ONLINE(Error, TEXT("Failed the entitlement check: %s"), *ErrorMessage);
-				PrivilegeResults = (uint32)IOnlineIdentity::EPrivilegeResults::UserNotFound;
+				PrivilegeResults = static_cast<uint32>(IOnlineIdentity::EPrivilegeResults::UserNotFound);
 			}
 			else
 			{
 				UE_LOG_ONLINE(Verbose, TEXT("User is entitled to app"));
-				PrivilegeResults = (uint32)IOnlineIdentity::EPrivilegeResults::NoFailures;
+				PrivilegeResults = static_cast<uint32>(IOnlineIdentity::EPrivilegeResults::NoFailures);
 			}
 			Delegate.ExecuteIfBound(UserId, Privilege, PrivilegeResults);
 		}));

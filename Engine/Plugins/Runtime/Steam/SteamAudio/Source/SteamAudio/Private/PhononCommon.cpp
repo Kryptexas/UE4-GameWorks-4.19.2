@@ -109,7 +109,7 @@ namespace SteamAudio
 		IPLVector3 PhononCoords;
 		PhononCoords.x = UnrealCoords.Y;
 		PhononCoords.y = UnrealCoords.Z;
-		PhononCoords.z = -UnrealCoords.X; 
+		PhononCoords.z = -UnrealCoords.X;
 		
 		if (bScale)
 		{
@@ -163,6 +163,46 @@ namespace SteamAudio
 		Vector.Y = Coords.y;
 		Vector.Z = Coords.z;
 		return Vector;
+	}
+
+	/**
+	 * Given a Unreal transform, convert it to a 4x4 column-major transformation matrix. OutMatrix is assumed to be a contiguous array of
+	 * 16 floats.
+	 */
+	void GetMatrixForTransform(const FTransform& Transform, float* OutMatrix)
+	{
+		check(OutMatrix);
+
+		auto PhononTranslation = SteamAudio::UnrealToPhononFVector(Transform.GetTranslation());
+		auto PhononScale = SteamAudio::UnrealToPhononFVector(Transform.GetScale3D());
+
+		FQuat RotationQuatConverted;
+		RotationQuatConverted.X = -Transform.GetRotation().Y;
+		RotationQuatConverted.Y = -Transform.GetRotation().Z;
+		RotationQuatConverted.Z = Transform.GetRotation().X;
+		RotationQuatConverted.W = Transform.GetRotation().W;
+
+		FQuatRotationTranslationMatrix RotationTranslationMatrix(RotationQuatConverted, PhononTranslation);
+		FScaleMatrix ScaleMatrix(PhononScale);
+		auto ConvertedMatrix = (ScaleMatrix * RotationTranslationMatrix).GetTransposed();
+		
+		// Convert row-major to column-major
+		for (int32 i = 0; i < 4; ++i)
+		{
+			for (int32 j = 0; j < 4; ++j)
+			{
+				OutMatrix[j * 4 + i] = ConvertedMatrix.M[i][j];
+			}
+		}
+	}
+
+	FText GetKBTextFromByte(const int32 NumBytes)
+	{
+		float NumKilobytes = (float)NumBytes / 1000.0f;
+		NumKilobytes = (float)roundf(NumKilobytes * 10) / 10;
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("NumKilobytes"), FText::AsNumber(NumKilobytes));
+		return FText::Format(NSLOCTEXT("KBText", "KBText", "{NumKilobytes} KB"), Arguments);
 	}
 
 	void* LoadDll(const FString& DllFile)

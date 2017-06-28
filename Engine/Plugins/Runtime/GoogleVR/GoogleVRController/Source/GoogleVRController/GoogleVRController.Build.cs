@@ -21,9 +21,9 @@ namespace UnrealBuildTool.Rules
 	{
 		public GoogleVRController(ReadOnlyTargetRules Target) : base(Target)
 		{
-            bFasterWithoutUnity = true;
+			bFasterWithoutUnity = true;
 
-            string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
+			string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"GoogleVRController/Private",
@@ -62,7 +62,12 @@ namespace UnrealBuildTool.Rules
 				{	
 					PublicIncludePaths.Add("Developer/Android/AndroidDeviceDetection/Public");
 					PublicIncludePaths.Add("Developer/Android/AndroidDeviceDetection/Public/Interfaces");
-					PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
+					PrivateDependencyModuleNames.AddRange(
+						new string[]
+						{
+							"GoogleVR",
+							"GoogleInstantPreview",
+						});
 				}
 			}
 

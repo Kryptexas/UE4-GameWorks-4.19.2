@@ -82,6 +82,9 @@ public:
 	// Whether separate render target should be used or not.
 	virtual bool ShouldUseSeparateRenderTarget() const { return false; }
 
+	// Are we outputting so a Spectator Screen now.
+	virtual bool IsSpectatorScreenActive() const { return false; }
+
 	// Renders texture into a backbuffer. Could be empty if no rendertarget texture is used, or if direct-rendering 
 	// through RHI bridge is implemented. 
 	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const {}

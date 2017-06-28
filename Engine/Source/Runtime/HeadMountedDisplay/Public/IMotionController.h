@@ -34,6 +34,13 @@ public:
 	}
 
 	/**
+	* Returns the device type of the controller.
+	*
+	* @return	Device type of the controller.
+	*/
+	virtual FName GetMotionControllerDeviceTypeName() const = 0;
+
+	/**
 	 * Returns the calibration-space orientation of the requested controller's hand.
 	 *
 	 * @param ControllerIndex	The Unreal controller (player) index of the contoller set

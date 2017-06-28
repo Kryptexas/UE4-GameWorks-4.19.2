@@ -215,6 +215,14 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	RenderMobileBasePass(RHICmdList, ViewList);
 
+	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
+	{
+		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+		{
+			ViewFamily.ViewExtensions[ViewExt]->PostRenderMobileBasePass_RenderThread(RHICmdList, Views[ViewIndex]);
+		}
+	}
+
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
 	ConditionalResolveSceneDepth(RHICmdList, View);
 	

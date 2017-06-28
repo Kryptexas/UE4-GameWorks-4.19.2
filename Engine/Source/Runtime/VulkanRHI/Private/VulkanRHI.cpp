@@ -876,6 +876,22 @@ void FVulkanDynamicRHI::RHISubmitCommandsAndFlushGPU()
 	Device->SubmitCommandsAndFlushGPU();
 }
 
+FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromVkImage(uint8 Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 Flags)
+{
+	return new FVulkanBackBuffer(*Device, (EPixelFormat)Format, SizeX, SizeY, Image, Flags);
+}
+
+void FVulkanDynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+{
+	FVulkanTexture2D* DestTexture2D = static_cast<FVulkanTexture2D*>(DestTexture2DRHI);
+	FVulkanTexture2D* SrcTexture2D = static_cast<FVulkanTexture2D*>(SrcTexture2DRHI);
+
+	if (DestTexture2D && SrcTexture2D)
+	{
+		// UNDONE DestTexture2D->AliasResources(SrcTexture2D);
+	}
+}
+
 
 FVulkanBuffer::FVulkanBuffer(FVulkanDevice& InDevice, uint32 InSize, VkFlags InUsage, VkMemoryPropertyFlags InMemPropertyFlags, bool bInAllowMultiLock, const char* File, int32 Line) :
 	Device(InDevice),
@@ -1346,6 +1362,11 @@ void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
 			});
 		FlushRenderingCommands();
 	}
+}
+
+void FVulkanDynamicRHI::VulkanSetImageLayout( VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange )
+{
+	::VulkanSetImageLayout( CmdBuffer, Image, OldLayout, NewLayout, SubresourceRange );
 }
 
 #undef LOCTEXT_NAMESPACE

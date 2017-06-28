@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/GCObject.h"
 #include "TickableEditorObject.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayTypes.h"
 
 class UVREditorMode;
 enum class EMapChangeType : uint8;

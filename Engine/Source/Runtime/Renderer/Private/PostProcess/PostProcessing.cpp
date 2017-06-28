@@ -1944,7 +1944,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
+			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->HMDDevice->IsStereoEnabled())
 			{
 				
 #if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION

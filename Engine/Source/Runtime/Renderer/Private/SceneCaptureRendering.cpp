@@ -385,7 +385,8 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 	bool bCaptureSceneColor,
 	bool bIsPlanarReflection,
 	FPostProcessSettings* PostProcessSettings,
-	float PostProcessBlendWeight)
+	float PostProcessBlendWeight,
+	const AActor* ViewActor)
 {
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		RenderTarget,
@@ -401,6 +402,7 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.SetViewRectangle(SceneCaptureViewInfo.ViewRect);
 		ViewInitOptions.ViewFamily = &ViewFamily;
+		ViewInitOptions.ViewActor = ViewActor;
 		ViewInitOptions.ViewOrigin = SceneCaptureViewInfo.ViewLocation;
 		ViewInitOptions.ViewRotationMatrix = SceneCaptureViewInfo.ViewRotationMatrix;
 		ViewInitOptions.BackgroundColor = FLinearColor::Black;
@@ -510,7 +512,8 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 	bool bCaptureSceneColor,
 	bool bIsPlanarReflection,
 	FPostProcessSettings* PostProcessSettings,
-	float PostProcessBlendWeight)
+	float PostProcessBlendWeight,
+	const AActor* ViewActor)
 {
 	FSceneCaptureViewInfo SceneCaptureViewInfo;
 	SceneCaptureViewInfo.ViewRotationMatrix = ViewRotationMatrix;
@@ -529,7 +532,8 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		bCaptureSceneColor, 
 		bIsPlanarReflection, 
 		PostProcessSettings, 
-		PostProcessBlendWeight);
+		PostProcessBlendWeight,
+		ViewActor);
 }
 
 void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureComponent)
@@ -579,7 +583,8 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 			bUseSceneColorTexture, 
 			false, 
 			&CaptureComponent->PostProcessSettings, 
-			CaptureComponent->PostProcessBlendWeight);
+			CaptureComponent->PostProcessBlendWeight,
+			CaptureComponent->GetViewOwner());
 
 		SceneRenderer->ViewFamily.SceneCaptureSource = CaptureComponent->CaptureSource;
 		SceneRenderer->ViewFamily.SceneCaptureCompositeMode = CaptureComponent->CompositeMode;
@@ -673,7 +678,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			BuildProjectionMatrix(CaptureSize, ECameraProjectionMode::Perspective, FOV, 1.0f, ProjectionMatrix);
 			FPostProcessSettings PostProcessSettings;
 
-			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, false, &PostProcessSettings, 0);
+			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, false, &PostProcessSettings, 0, CaptureComponent->GetViewOwner());
 			SceneRenderer->ViewFamily.SceneCaptureSource = SCS_SceneColorHDR;
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());

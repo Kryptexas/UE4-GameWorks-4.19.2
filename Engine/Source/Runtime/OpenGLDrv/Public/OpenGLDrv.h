@@ -17,7 +17,7 @@
 
 //TODO: Move these to OpenGLDrvPrivate.h
 #if PLATFORM_WINDOWS
-#include "Windows/OpenGLWindows.h"
+#include "Runtime/OpenGLDrv/Private/Windows/OpenGLWindows.h"
 #elif PLATFORM_LINUX
 #include "Runtime/OpenGLDrv/Private/Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS

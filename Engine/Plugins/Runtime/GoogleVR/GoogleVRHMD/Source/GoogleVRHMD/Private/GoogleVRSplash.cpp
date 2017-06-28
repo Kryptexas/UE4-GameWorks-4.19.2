@@ -345,6 +345,7 @@ bool FGoogleVRSplash::LoadTexture()
 	{
 		SplashTexture->AddToRoot();
 		UE_LOG(LogHMD, Log, TEXT("Splash Texture load successful!"));
+		SplashTexture->AddToRoot();
 		SplashTexture->UpdateResource();
 		FlushRenderingCommands();
 	}

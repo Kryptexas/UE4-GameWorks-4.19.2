@@ -14,3 +14,4 @@ IMPLEMENT_SHADER_TYPE(,FScreenPS,TEXT("/Engine/Private/ScreenPixelShader.usf"),T
 IMPLEMENT_SHADER_TYPE(,FScreenVS,TEXT("/Engine/Private/ScreenVertexShader.usf"),TEXT("Main"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<> ,TScreenVSForGS<false>,TEXT("/Engine/Private/ScreenVertexShader.usf"),TEXT("MainForGS"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<> ,TScreenVSForGS<true>,TEXT("/Engine/Private/ScreenVertexShader.usf"),TEXT("MainForGS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FScreenPS_OSE,TEXT("/Engine/Private/ScreenPixelShaderOES.usf"),TEXT("Main"),SF_Pixel);

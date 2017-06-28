@@ -194,7 +194,7 @@ void Controller::UpdateTorsoDirection(const UpdateData& update_data) {
     torso_direction = head_direction;
   } else if (follow_gaze == GazeBehavior::DuringMotion) {
     float angular_velocity = update_data.gyro.Magnitude();
-    float gaze_filter_strength = Util::Clampf((angular_velocity - 0.2f) / 45.0f, 0.0f, 0.1f);
+    float gaze_filter_strength = FMath::Clamp((angular_velocity - 0.2f) / 45.0f, 0.0f, 0.1f);
     torso_direction = Vector3::Slerp(torso_direction, head_direction, gaze_filter_strength);
   }
 
@@ -243,9 +243,9 @@ void Controller::TransformElbow(const UpdateData& update_data) {
   // Apply the filtered velocity to update the elbow offset position.
   if (use_accelerometer) {
     elbow_offset += filtered_velocity * update_data.deltaTimeSeconds;
-    elbow_offset.x(Util::Clampf(elbow_offset.x(), ELBOW_MIN_RANGE.x(), ELBOW_MAX_RANGE.x()));
-    elbow_offset.y(Util::Clampf(elbow_offset.y(), ELBOW_MIN_RANGE.y(), ELBOW_MAX_RANGE.y()));
-    elbow_offset.z(Util::Clampf(elbow_offset.z(), ELBOW_MIN_RANGE.z(), ELBOW_MAX_RANGE.z()));
+    elbow_offset.x(FMath::Clamp(elbow_offset.x(), ELBOW_MIN_RANGE.x(), ELBOW_MAX_RANGE.x()));
+    elbow_offset.y(FMath::Clamp(elbow_offset.y(), ELBOW_MIN_RANGE.y(), ELBOW_MAX_RANGE.y()));
+    elbow_offset.z(FMath::Clamp(elbow_offset.z(), ELBOW_MIN_RANGE.z(), ELBOW_MAX_RANGE.z()));
   }
 }
 
@@ -271,7 +271,7 @@ void Controller::ApplyArmModel(const UpdateData &update_data) {
   const float MIN_EXTENSION_ANGLE = 7.0f;
   const float MAX_EXTENSION_ANGLE = 60.0f;
   float normalized_angle = (x_angle - MIN_EXTENSION_ANGLE) / (MAX_EXTENSION_ANGLE - MIN_EXTENSION_ANGLE);
-  float extension_ratio = Util::Clampf(normalized_angle, 0.0f, 1.0f);
+  float extension_ratio = FMath::Clamp(normalized_angle, 0.0f, 1.0f);
   if (!use_accelerometer) {
     elbow_position += arm_extension_offset * extension_ratio;
   }
@@ -296,18 +296,18 @@ void Controller::UpdateTransparency(const UpdateData &update_data) {
   // Determine how vertical the controller is pointing.
   float distance_to_face = wrist_position.Magnitude();
   if (distance_to_face < fade_distance_from_face) {
-    controller_alpha_value = Util::Clampf(controller_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    controller_alpha_value = FMath::Clamp(controller_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   } else {
-    controller_alpha_value = Util::Clampf(controller_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    controller_alpha_value = FMath::Clamp(controller_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   }
 
   Vector3 wrist_from_head = wrist_position.Normalized() * -1.0f;
   float dot = wrist_rotation.Rotated(UP).Dot(wrist_from_head);
   float min_dot = (tooltip_max_angle_from_camera - 90.0f) / -90.0f;
   if (distance_to_face < fade_distance_from_face || distance_to_face > tooltip_min_distance_from_face || dot < min_dot) {
-    tooltip_alpha_value = Util::Clampf(tooltip_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   } else {
-    tooltip_alpha_value = Util::Clampf(tooltip_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
+    tooltip_alpha_value = FMath::Clamp(tooltip_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   }
 }
 

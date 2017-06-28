@@ -100,11 +100,11 @@ UWorld* FLocalPlayerContext::GetWorld() const
 	UWorld* WorldPtr = World.Get();
 	if (WorldPtr != nullptr)
 	{
-		return WorldPtr;	
+		return WorldPtr;
 	}
 
 	check( LocalPlayer.IsValid() );
-	return LocalPlayer->GetWorld();	
+	return LocalPlayer->GetWorld();
 }
 
 ULocalPlayer* FLocalPlayerContext::GetLocalPlayer() const
@@ -189,7 +189,7 @@ void ULocalPlayer::PostInitProperties()
 	if ( !IsTemplate() )
 	{
 		ViewState.Allocate();
-		
+
 		if( GEngine->StereoRenderingDevice.IsValid() )
 		{
 			StereoViewState.Allocate();
@@ -246,7 +246,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		// The PlayerController gets replicated from the client though the engine assumes that every Player always has
 		// a valid PlayerController so we spawn a dummy one that is going to be replaced later.
 
-		// 
+		//
 		// Look at APlayerController::OnActorChannelOpen + UNetConnection::HandleClientPlayer for the code the
 		// replaces this fake player controller with the real replicated one from the server
 		//
@@ -746,10 +746,10 @@ static void SetupMonoParameters(FSceneViewFamily& ViewFamily, const FSceneView& 
 	ViewFamily.MonoParameters.LateralOffset = (MonoProjectedPoint.X - ProjectedPointAtLimit.X) / 2.0f;
 }
 
-FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
-	FVector& OutViewLocation, 
-	FRotator& OutViewRotation, 
-	FViewport* Viewport, 
+FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
+	FVector& OutViewLocation,
+	FRotator& OutViewRotation,
+	FViewport* Viewport,
 	class FViewElementDrawer* ViewDrawer,
 	EStereoscopicPass StereoPass)
 {
@@ -788,7 +788,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	EngineShowFlagOrthographicOverride( ViewInitOptions.IsPerspectiveProjection(), ViewFamily->EngineShowFlags );
 
 	FSceneView* const View = new FSceneView(ViewInitOptions);
-	
+
 	View->ViewLocation = OutViewLocation;
 	View->ViewRotation = OutViewRotation;
 
@@ -803,7 +803,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 			TArray<FPostProcessSettings> const* CameraAnimPPSettings;
 			TArray<float> const* CameraAnimPPBlendWeights;
 			PlayerController->PlayerCameraManager->GetCachedPostProcessBlends(CameraAnimPPSettings, CameraAnimPPBlendWeights);
-			
+
 			for (int32 PPIdx = 0; PPIdx < CameraAnimPPBlendWeights->Num(); ++PPIdx)
 			{
 				View->OverridePostProcessSettings( (*CameraAnimPPSettings)[PPIdx], (*CameraAnimPPBlendWeights)[PPIdx]);
@@ -853,7 +853,7 @@ bool ULocalPlayer::GetPixelBoundingBox(const FBox& ActorBox, FVector2D& OutLower
 
 		// transform the box
 		const int32 NumOfVerts = 8;
-		FVector Vertices[NumOfVerts] = 
+		FVector Vertices[NumOfVerts] =
 		{
 			FVector(ActorBox.Min),
 			FVector(ActorBox.Min.X, ActorBox.Min.Y, ActorBox.Max.Z),
@@ -881,7 +881,7 @@ bool ULocalPlayer::GetPixelBoundingBox(const FBox& ActorBox, FVector2D& OutLower
 				float InvW = 1.0f / ScreenPoint.W;
 				FVector2D PixelPoint = FVector2D( ViewRect.Min.X + (0.5f + ScreenPoint.X * 0.5f * InvW) * ViewRect.Width(),
 												  ViewRect.Min.Y + (0.5f - ScreenPoint.Y * 0.5f * InvW) * ViewRect.Height());
-			
+
 				PixelPoint.X = FMath::Clamp<float>(PixelPoint.X, 0, ViewRect.Width());
 				PixelPoint.Y = FMath::Clamp<float>(PixelPoint.Y, 0, ViewRect.Height());
 
@@ -1004,7 +1004,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	// scale distances for cull distance purposes by the ratio of our current FOV to the default FOV
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
-	
+
     FVector StereoViewLocation = ViewInfo.Location;
     if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
     {
@@ -1026,6 +1026,12 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	{
 		// Create the projection matrix (and possibly constrain the view rectangle)
 		FMinimalViewInfo::CalculateProjectionMatrixGivenView(ViewInfo, AspectRatioAxisConstraint, ViewportClient->Viewport, /*inout*/ ProjectionData);
+
+        // ViewExtension may need to update the projection matrix when not using stereo rendering. for example when doing monocular AR.
+        for (int ViewExt = 0; ViewExt < GEngine->ViewExtensions.Num(); ViewExt++)
+        {
+            GEngine->ViewExtensions[ViewExt]->SetupViewProjectionMatrix(ProjectionData);
+        }
 	}
 	else
 	{
@@ -1035,8 +1041,8 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		// calculate the out rect
 		ProjectionData.SetViewRectangle(FIntRect(X, Y, X + SizeX, Y + SizeY));
 	}
-	
-	
+
+
 	return true;
 }
 
@@ -1147,14 +1153,14 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 			// Dump all instances.
 			for( int32 InstanceIndex=0; InstanceIndex<SkeletalMeshComponents.Num(); InstanceIndex++ )
 			{
-				USkeletalMeshComponent* SkeletalMeshComponent = SkeletalMeshComponents[InstanceIndex];					
+				USkeletalMeshComponent* SkeletalMeshComponent = SkeletalMeshComponents[InstanceIndex];
 				check(SkeletalMeshComponent);
 				UWorld* World = SkeletalMeshComponent->GetWorld();
 				check(World);
 				float TimeSinceLastRender = World->GetTimeSeconds() - SkeletalMeshComponent->LastRenderTime;
 
-				UE_LOG(LogPlayerManagement, Log, TEXT("%s%2i  Component    : %s"), 
-					(TimeSinceLastRender > 0.5) ? TEXT(" ") : TEXT("*"), 
+				UE_LOG(LogPlayerManagement, Log, TEXT("%s%2i  Component    : %s"),
+					(TimeSinceLastRender > 0.5) ? TEXT(" ") : TEXT("*"),
 					InstanceIndex,
 					*SkeletalMeshComponent->GetFullName() );
 				if( SkeletalMeshComponent->GetOwner() )
@@ -1162,8 +1168,8 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 					UE_LOG(LogPlayerManagement, Log, TEXT("     Owner        : %s"),*SkeletalMeshComponent->GetOwner()->GetFullName());
 				}
 				UE_LOG(LogPlayerManagement, Log, TEXT("     LastRender   : %f"), TimeSinceLastRender);
-				UE_LOG(LogPlayerManagement, Log, TEXT("     CullDistance : %f   Distance: %f   Location: (%7.1f,%7.1f,%7.1f)"), 
-					SkeletalMeshComponent->CachedMaxDrawDistance,	
+				UE_LOG(LogPlayerManagement, Log, TEXT("     CullDistance : %f   Distance: %f   Location: (%7.1f,%7.1f,%7.1f)"),
+					SkeletalMeshComponent->CachedMaxDrawDistance,
 					FVector::Dist( PlayerLocation, SkeletalMeshComponent->Bounds.Origin ),
 					SkeletalMeshComponent->Bounds.Origin.X,
 					SkeletalMeshComponent->Bounds.Origin.Y,
@@ -1178,7 +1184,7 @@ bool ULocalPlayer::HandleListPawnComponentsCommand( const TCHAR* Cmd, FOutputDev
 {
 	for( TObjectIterator<APawn> It; It; ++It )
 	{
-		APawn *Pawn = *It;	
+		APawn *Pawn = *It;
 		UE_LOG(LogPlayerManagement, Log, TEXT("Components for pawn: %s (collision component: %s)"),*Pawn->GetName(),*Pawn->GetRootComponent()->GetName());
 
 		TInlineComponentArray<UActorComponent*> Components;
@@ -1250,7 +1256,7 @@ bool ULocalPlayer::HandleToggleStreamingVolumesCommand( const TCHAR* Cmd, FOutpu
 
 bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	// allow optional parameter for initial time in the matinee that this won't work (ie, 
+	// allow optional parameter for initial time in the matinee that this won't work (ie,
 	// 'cancelmatinee 5' won't do anything in the first 5 seconds of the matinee)
 	float InitialNoSkipTime = FCString::Atof(Cmd);
 
@@ -1273,7 +1279,7 @@ bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& 
 					{
 						const float RightBeforeEndTime = 0.1f;
 						// make sure we aren';t already at the end (or before the allowed skip time)
-						if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) && 
+						if ((MatineeActor->InterpPosition < MatineeActor->MatineeData->InterpLength - RightBeforeEndTime) &&
 							(MatineeActor->InterpPosition >= InitialNoSkipTime))
 						{
 							// skip to end
@@ -1305,7 +1311,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 			return HandleDNCommand( Cmd, Ar );
 		}
 
-		if( FParse::Command(&Cmd,TEXT("Exit")) 
+		if( FParse::Command(&Cmd,TEXT("Exit"))
 		||	FParse::Command(&Cmd,TEXT("Quit")))
 		{
 			return HandleExitCommand( Cmd, Ar );
@@ -1369,17 +1375,17 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 	// This will list all awake rigid bodies
 	else if( FParse::Command(&Cmd,TEXT("LISTAWAKEBODIES")) )
 	{
-		return HandleListAwakeBodiesCommand( Cmd, Ar );	
+		return HandleListAwakeBodiesCommand( Cmd, Ar );
 	}
 	// This will list all simulating rigid bodies
 	else if( FParse::Command(&Cmd,TEXT("LISTSIMBODIES")) )
 	{
-		return HandleListSimBodiesCommand( Cmd, Ar );		
+		return HandleListSimBodiesCommand( Cmd, Ar );
 	}
 #endif
 	else if( FParse::Command(&Cmd, TEXT("MOVECOMPTIMES")) )
 	{
-		return HandleMoveComponentTimesCommand( Cmd, Ar );	
+		return HandleMoveComponentTimesCommand( Cmd, Ar );
 	}
 	else if( FParse::Command(&Cmd,TEXT("LISTSKELMESHES")) )
 	{
@@ -1387,7 +1393,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 	}
 	else if ( FParse::Command(&Cmd,TEXT("LISTPAWNCOMPONENTS")) )
 	{
-		return HandleListPawnComponentsCommand( Cmd, Ar );	
+		return HandleListPawnComponentsCommand( Cmd, Ar );
 	}
 	else if( FParse::Command(&Cmd,TEXT("EXEC")) )
 	{
@@ -1407,7 +1413,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 	// gameplay. Will fix up better when we have some testing done!
 	else if (FParse::Command(&Cmd, TEXT("CANCELMATINEE")))
 	{
-		return HandleCancelMatineeCommand( Cmd, Ar );	
+		return HandleCancelMatineeCommand( Cmd, Ar );
 	}
 	else if(ViewportClient && ViewportClient->Exec( InWorld, Cmd,Ar))
 	{
@@ -1494,7 +1500,7 @@ TSharedPtr<const FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerI
 {
 	UWorld* World = GetWorld();
 	if (World != nullptr)
-	{		
+	{
 		return UOnlineEngineInterface::Get()->GetUniquePlayerId(World, ControllerId);
 	}
 

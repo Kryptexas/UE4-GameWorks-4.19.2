@@ -24,6 +24,11 @@
 #include "Classes/GoogleVRControllerEventManager.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 
+#if GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+#include "instant_preview_server.h"
+#include "ip_shared.h"
+#endif  // GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
 #endif
@@ -146,6 +151,13 @@ public:	// IInputDevice
 	virtual void SetChannelValues(int32 ControllerId, const FForceFeedbackValues &values);
 
 public: // IMotionController
+
+	static FName DeviceTypeName;
+	virtual FName GetMotionControllerDeviceTypeName() const override
+	{
+		return DeviceTypeName;
+	}
+
 	/**
 	* Returns the calibration-space orientation of the requested controller's hand.
 	*
@@ -199,6 +211,10 @@ private:
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 	FRotator BaseEmulatorOrientation;
+#endif
+#if GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	instant_preview::ControllerState InstantPreviewControllerState;
+	ip_static_server_handle IpServerHandle;
 #endif
 
 	/** Last Orientation used */

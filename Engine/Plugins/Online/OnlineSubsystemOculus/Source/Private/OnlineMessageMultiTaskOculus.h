@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "OnlineSubsystemOculusPackage.h"
 #include "OnlineSubsystemOculusPrivate.h"
 #include "OnlineDelegateMacros.h"
 #include "OnlineMessageTaskManagerOculus.h"

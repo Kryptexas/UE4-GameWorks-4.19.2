@@ -24,7 +24,6 @@ namespace gvr_arm_model {
 
   class Util {
   public:
-    static float Clampf(float value, float min, float max);
     static float ToDegrees(float radians);
     static float ToRadians(float degrees);
   };

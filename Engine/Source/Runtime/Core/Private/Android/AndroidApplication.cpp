@@ -208,6 +208,11 @@ jobject FAndroidApplication::GetGameActivityThis()
 	return GlobalObjectRef;
 }
 
+jobject FAndroidApplication::GetClassLoader()
+{
+	return ClassLoader;
+}
+
 static void JavaEnvDestructor(void*)
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** JavaEnvDestructor: %d"), FPlatformTLS::GetCurrentThreadId());

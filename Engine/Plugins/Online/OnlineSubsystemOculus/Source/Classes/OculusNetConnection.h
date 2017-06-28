@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Engine/NetConnection.h"
+#include "IpConnection.h"
 #include "OVR_Platform.h"
 #include "OculusNetConnection.generated.h"
 
@@ -10,12 +10,14 @@
  *
  */
 UCLASS(transient, config = Engine)
-class UOculusNetConnection : public UNetConnection
+class UOculusNetConnection : public UIpConnection
 {
 	GENERATED_BODY()
 	
 private:
 	ovrID PeerID;
+	/** Should this net connection behave as a passthrough to normal IP */
+	bool bIsPassThrough;
 
 public:
 

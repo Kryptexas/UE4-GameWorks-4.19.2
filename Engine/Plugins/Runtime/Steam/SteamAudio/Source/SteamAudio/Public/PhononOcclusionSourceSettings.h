@@ -21,6 +21,9 @@ public:
 #endif
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OcclusionSettings)
+	EIplDirectOcclusionMode DirectOcclusionMode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OcclusionSettings)
 	EIplDirectOcclusionMethod DirectOcclusionMethod;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OcclusionSettings)
@@ -28,5 +31,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OcclusionSettings, meta = (DisplayName = "Physics-based Attenuation"))
 	bool DirectAttenuation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OcclusionSettings)
+	bool AirAbsorption;
 };
 

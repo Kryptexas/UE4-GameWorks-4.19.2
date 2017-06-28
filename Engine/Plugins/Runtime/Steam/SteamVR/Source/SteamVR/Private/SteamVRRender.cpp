@@ -12,13 +12,12 @@
 #include "PostProcess/PostProcessHMD.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+#include "DefaultSpectatorScreenController.h"
 
-#if PLATFORM_LINUX
 #include "VulkanRHIPrivate.h"
 #include "ScreenRendering.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
-#endif
 
 static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
 
@@ -38,121 +37,8 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 		DrawClearQuad(RHICmdList, FLinearColor(0, 0, 0, 0));
 	}
 
-	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
-	const int WindowMirrorMode = CVarMirrorMode->GetValueOnRenderThread();
-
-	if (WindowMirrorMode != 0)
-	{
-		const uint32 ViewportWidth = BackBuffer->GetSizeX();
-		const uint32 ViewportHeight = BackBuffer->GetSizeY();
-
-		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
-
-		if (WindowMirrorMode == 1)
-		{
-			// need to clear when rendering only one eye since the borders won't be touched by the DrawRect below
-			DrawClearQuad(RHICmdList, FLinearColor::Black);
-		}
-
-		FGraphicsPipelineStateInitializer GraphicsPSOInit;
-		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-		const auto FeatureLevel = GMaxRHIFeatureLevel;
-		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
-
-		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
-		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTexture);
-
-		if (WindowMirrorMode == 1)
-		{
-			RendererModule->DrawRectangle(
-				RHICmdList,
-				ViewportWidth / 4, 0,
-				ViewportWidth / 2, ViewportHeight,
-				0.1f, 0.2f,
-				0.3f, 0.6f,
-				FIntPoint(ViewportWidth, ViewportHeight),
-				FIntPoint(1, 1),
-				*VertexShader,
-				EDRF_Default);
-		}
-		else if (WindowMirrorMode == 2)
-		{
-			RendererModule->DrawRectangle(
-				RHICmdList,
-				0, 0,
-				ViewportWidth, ViewportHeight,
-				0.0f, 0.0f,
-				1.0f, 1.0f,
-				FIntPoint(ViewportWidth, ViewportHeight),
-				FIntPoint(1, 1),
-				*VertexShader,
-				EDRF_Default);
-		}
-		else
-		{
-			// Defaulting all unknown modes to 'single eye cropped'.
-			// aka WindowMirrorMode == 5
-
-			// These numbers define rectangle of the whole eye texture we slice out.
-			// They are pretty much what looked good to whoever came up with them.
-			const float SrcUSize = 0.3f;
-			const float SrcVSize = 0.6f;
-
-			check(ViewportWidth > 0);
-			check(ViewportHeight > 0);
-			const float SrcAspect = (float)SrcUSize / (float)SrcVSize;
-			const float DstAspect = (float)ViewportWidth / (float)ViewportHeight;
-
-			float USize = SrcUSize;
-			float VSize = SrcVSize;
-			if (DstAspect > SrcAspect)
-			{
-				// src is narrower, crop top and bottom
-				// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
-				VSize = (USize * 2.0f) / DstAspect;
-			}
-			else if (SrcAspect > DstAspect)
-			{
-				// src is wider, crop left and right
-				// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
-				USize = (VSize* 0.5f) * DstAspect;
-			}
-			else
-			{
-				check(SrcAspect == DstAspect);
-			}
-
-			// U is for just one eye, so the full U src range is 0-0.5, while V ranges 0-1.
-			const float UStart = (0.5f - USize) * 0.5f;
-			const float VStart = (1.0f - VSize) * 0.5f;
-
-			RendererModule->DrawRectangle(
-				RHICmdList,
-				0, 0,
-				ViewportWidth, ViewportHeight,
-				UStart, VStart,
-				USize, VSize,
-				FIntPoint(ViewportWidth, ViewportHeight),
-				FIntPoint(1, 1),
-				*VertexShader,
-				EDRF_Default);
-		}
-
-	}
+	check(SpectatorScreenController);
+	SpectatorScreenController->RenderSpectatorScreen_RenderThread(RHICmdList, BackBuffer, SrcTexture);
 }
 
 static void DrawOcclusionMesh(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass, const FHMDViewMesh MeshAssets[])
@@ -283,9 +169,8 @@ void FSteamVRHMD::D3D11Bridge::PostPresent()
 		Plugin->VRCompositor->PostPresentHandoff();
 	}
 }
+#endif // PLATFORM_WINDOWS
 
-#elif PLATFORM_LINUX
-#if STEAMVR_USE_VULKAN_RHI
 FSteamVRHMD::VulkanBridge::VulkanBridge(FSteamVRHMD* plugin):
 	BridgeBaseImpl(plugin),
 	RenderTargetTexture(0)
@@ -308,7 +193,8 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		FVulkanCommandListContext& ImmediateContext = vlkRHI->GetDevice()->GetImmediateContext();
 		const VkImageLayout* CurrentLayout = ImmediateContext.GetTransitionState().CurrentLayout.Find(Texture2D->Surface.Image);
 		FVulkanCmdBuffer* CmdBuffer = ImmediateContext.GetCommandBufferManager()->GetUploadCmdBuffer();
-		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Texture2D->Surface.Image, CurrentLayout ? *CurrentLayout : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		VkImageSubresourceRange SubresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		vlkRHI->VulkanSetImageLayout( CmdBuffer->GetHandle(), Texture2D->Surface.Image, CurrentLayout ? *CurrentLayout : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, SubresourceRange );
 
 		vr::VRTextureBounds_t LeftBounds;
 		LeftBounds.uMin = 0.0f;
@@ -380,7 +266,7 @@ void FSteamVRHMD::VulkanBridge::PostPresent()
 		Plugin->VRCompositor->PostPresentHandoff();
 	}
 }
-#else
+
 FSteamVRHMD::OpenGLBridge::OpenGLBridge(FSteamVRHMD* plugin):
 	BridgeBaseImpl(plugin),
 	RenderTargetTexture(0)
@@ -418,7 +304,7 @@ void FSteamVRHMD::OpenGLBridge::FinishRendering()
 	RightBounds.vMax = 0.0f;
 
 	vr::Texture_t Texture;
-	Texture.handle = reinterpret_cast<void*>(RenderTargetTexture);
+	Texture.handle = reinterpret_cast<void*>(static_cast<size_t>(RenderTargetTexture));
 	Texture.eType = vr::TextureType_OpenGL;
 	Texture.eColorSpace = vr::ColorSpace_Auto;
 
@@ -469,8 +355,5 @@ void FSteamVRHMD::OpenGLBridge::PostPresent()
 		Plugin->VRCompositor->PostPresentHandoff();
 	}
 }
-#endif
-
-#endif // PLATFORM_WINDOWS
 
 #endif // STEAMVR_SUPPORTED_PLATFORMS

@@ -18,6 +18,23 @@ namespace SteamAudio
 		: EnvironmentalRenderer(nullptr)
 		, SteamAudioModule(nullptr)
 	{
+		InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO;
+		InputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+		InputAudioFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+		InputAudioFormat.numSpeakers = 1;
+		InputAudioFormat.speakerDirections = nullptr;
+		InputAudioFormat.ambisonicsOrder = -1;
+		InputAudioFormat.ambisonicsNormalization = IPL_AMBISONICSNORMALIZATION_N3D;
+		InputAudioFormat.ambisonicsOrdering = IPL_AMBISONICSORDERING_ACN;
+
+		OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO;
+		OutputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+		OutputAudioFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+		OutputAudioFormat.numSpeakers = 1;
+		OutputAudioFormat.speakerDirections = nullptr;
+		OutputAudioFormat.ambisonicsOrder = -1;
+		OutputAudioFormat.ambisonicsNormalization = IPL_AMBISONICSNORMALIZATION_N3D;
+		OutputAudioFormat.ambisonicsOrdering = IPL_AMBISONICSORDERING_ACN;
 	}
 
 	FPhononOcclusion::~FPhononOcclusion()
@@ -26,7 +43,20 @@ namespace SteamAudio
 
 	void FPhononOcclusion::Initialize(const int32 SampleRate, const int32 NumSources)
 	{
-		DirectSoundSources.SetNum(NumSources);
+		DirectSoundSources.AddDefaulted(NumSources);
+
+		for (auto& DirectSoundSource : DirectSoundSources)
+		{
+			DirectSoundSource.InBuffer.format = InputAudioFormat;
+			DirectSoundSource.InBuffer.numSamples = 1024; // FIXME
+			DirectSoundSource.InBuffer.interleavedBuffer = nullptr;
+			DirectSoundSource.InBuffer.deinterleavedBuffer = nullptr;
+
+			DirectSoundSource.OutBuffer.format = OutputAudioFormat;
+			DirectSoundSource.OutBuffer.numSamples = 1024; // FIXME
+			DirectSoundSource.OutBuffer.interleavedBuffer = nullptr;
+			DirectSoundSource.OutBuffer.deinterleavedBuffer = nullptr;
+		}
 
 		SteamAudioModule = &FModuleManager::GetModuleChecked<FSteamAudioModule>("SteamAudio");
 		SteamAudioModule->SetSampleRate(SampleRate);
@@ -44,53 +74,47 @@ namespace SteamAudio
 
 		UPhononOcclusionSourceSettings* OcclusionSettings = CastChecked<UPhononOcclusionSourceSettings>(InSettings);
 		DirectSoundSources[SourceId].bDirectAttenuation = OcclusionSettings->DirectAttenuation;
+		DirectSoundSources[SourceId].bAirAbsorption = OcclusionSettings->AirAbsorption;
 		DirectSoundSources[SourceId].DirectOcclusionMethod = OcclusionSettings->DirectOcclusionMethod;
+		DirectSoundSources[SourceId].DirectOcclusionMode = OcclusionSettings->DirectOcclusionMode;
 		DirectSoundSources[SourceId].Radius = OcclusionSettings->DirectOcclusionSourceRadius;
 
-		const int32 NumInterpolationFrames = 4;
-		DirectSoundSources[SourceId].DirectLerp.Init(NumInterpolationFrames);
+		iplCreateDirectSoundEffect(EnvironmentalRenderer, InputAudioFormat, OutputAudioFormat, &(DirectSoundSources[SourceId].DirectSoundEffect));
 	}
 
 	void FPhononOcclusion::OnReleaseSource(const uint32 SourceId)
 	{
 		UE_LOG(LogSteamAudio, Log, TEXT("Destroying occlusion effect."));
+
+		iplDestroyDirectSoundEffect(&(DirectSoundSources[SourceId].DirectSoundEffect));
 	}
 
 	void FPhononOcclusion::ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData)
 	{
+		auto& DirectSoundSource = DirectSoundSources[InputData.SourceId];
+
 		if (!EnvironmentalRenderer)
 		{
 			FMemory::Memcpy(OutputData.AudioBuffer.GetData(), InputData.AudioBuffer->GetData(), InputData.AudioBuffer->Num() * sizeof(float));
 			return;
 		}
 
-		auto& DirectSoundSource = DirectSoundSources[InputData.SourceId];
-		float ConfiguredOcclusionFactor;
-		float ConfiguredAttenuationFactor;
+		DirectSoundSource.InBuffer.interleavedBuffer = InputData.AudioBuffer->GetData();
+		DirectSoundSource.OutBuffer.interleavedBuffer = OutputData.AudioBuffer.GetData();
 
 		{
 			FScopeLock Lock(&DirectSoundSources[InputData.SourceId].CriticalSection);
 			DirectSoundSource.Position = SteamAudio::UnrealToPhononIPLVector3(InputData.SpatializationParams->EmitterWorldPosition);
 			DirectSoundSource.bNeedsUpdate = true;
-			ConfiguredOcclusionFactor = DirectSoundSource.DirectOcclusionMethod == EIplDirectOcclusionMethod::NONE ? 
-				1.0f : DirectSoundSource.DirectSoundPath.occlusionFactor;
-			ConfiguredAttenuationFactor = DirectSoundSource.bDirectAttenuation ? DirectSoundSource.DirectSoundPath.distanceAttenuation : 1.0f;
 		}
 
-		DirectSoundSource.DirectLerp.Set(ConfiguredOcclusionFactor * ConfiguredAttenuationFactor);
-		float PerSampleIncrement;
-		int32 NumSamplesInFrame = InputData.AudioBuffer->Num() / InputData.NumChannels;
-		float LerpedAttenuationFactor = DirectSoundSource.DirectLerp.Update(PerSampleIncrement, NumSamplesInFrame);
+		IPLDirectSoundEffectOptions DirectSoundEffectOptions;
+		DirectSoundEffectOptions.applyAirAbsorption = static_cast<IPLbool>(DirectSoundSources[InputData.SourceId].bAirAbsorption);
+		DirectSoundEffectOptions.applyDistanceAttenuation = static_cast<IPLbool>(DirectSoundSources[InputData.SourceId].bDirectAttenuation);
+		DirectSoundEffectOptions.directOcclusionMode = static_cast<IPLDirectOcclusionMode>(DirectSoundSources[InputData.SourceId].DirectOcclusionMode);
 
-		for (int32 i = 0, count = 0; i < NumSamplesInFrame; ++i)
-		{
-			for (int32 j = 0; j < InputData.NumChannels; ++j, ++count)
-			{
-				OutputData.AudioBuffer[count] = (*InputData.AudioBuffer)[count] * LerpedAttenuationFactor;
-			}
-
-			LerpedAttenuationFactor += PerSampleIncrement;
-		}
+		iplApplyDirectSoundEffect(DirectSoundSource.DirectSoundEffect, DirectSoundSource.InBuffer, DirectSoundSource.DirectSoundPath,
+			DirectSoundEffectOptions, DirectSoundSource.OutBuffer);
 	}
 
 	void FPhononOcclusion::UpdateDirectSoundSources(const FVector& ListenerPosition, const FVector& ListenerForward, const FVector& ListenerUp)
@@ -111,6 +135,7 @@ namespace SteamAudio
 				IPLDirectSoundPath DirectSoundPath = iplGetDirectSoundPath(EnvironmentalRenderer, SteamAudio::UnrealToPhononIPLVector3(ListenerPosition),
 					SteamAudio::UnrealToPhononIPLVector3(ListenerForward, false), SteamAudio::UnrealToPhononIPLVector3(ListenerUp, false),
 					DirectSoundSource.Position, DirectSoundSource.Radius * SteamAudio::SCALEFACTOR,
+					static_cast<IPLDirectOcclusionMode>(DirectSoundSource.DirectOcclusionMode),
 					static_cast<IPLDirectOcclusionMethod>(DirectSoundSource.DirectOcclusionMethod));
 
 				DirectSoundSource.DirectSoundPath = DirectSoundPath;
@@ -126,100 +151,20 @@ namespace SteamAudio
 }
 
 //==================================================================================================================================================
-// FOcclusionSource
+// FDirectSoundSource
 //==================================================================================================================================================
 
 namespace SteamAudio
 {
 	FDirectSoundSource::FDirectSoundSource()
 		: bNeedsUpdate(false)
+		, bAirAbsorption(false)
+		, bDirectAttenuation(false)
+		, DirectOcclusionMethod(EIplDirectOcclusionMethod::RAYCAST)
+		, DirectOcclusionMode(EIplDirectOcclusionMode::NONE)
+		, DirectSoundEffect(nullptr)
 	{
-		DirectSoundPath.occlusionFactor = 1.0f;
-		DirectSoundPath.distanceAttenuation = 1.0f;
+		memset(&DirectSoundPath, 0, sizeof(DirectSoundPath));
 		Position.x = Position.y = Position.z = 0.0f;
-	}
-}
-
-//==================================================================================================================================================
-// FAttenuationInterpolator
-//==================================================================================================================================================
-
-namespace SteamAudio
-{
-	void FAttenuationInterpolator::Init(const int32 InterpolationFrames)
-	{
-		NumInterpFrames = InterpolationFrames;
-		FrameIndex = 0;
-
-		StartValue = 0.0f;
-		EndValue = 0.0f;
-		CurrentValue = 0.0f;
-		NextValue = 0.0f;
-		bIsInit = true;
-		bIsDone = false;
-	}
-
-	void FAttenuationInterpolator::Reset()
-	{
-		bIsInit = true;
-	}
-
-	float FAttenuationInterpolator::Update(float& PerSampleIncrement, const int32 SamplesToInterpolate)
-	{
-		if (bIsDone)
-		{
-			PerSampleIncrement = 0.0f;
-			return CurrentValue;
-		}
-		else
-		{
-			float delta = 1.0f / NumInterpFrames;
-			float alpha = FrameIndex * delta;
-			if (alpha >= 1.0f)
-			{
-				bIsDone = true;
-				CurrentValue = EndValue;
-				NextValue = EndValue;
-			}
-			else if ((alpha + delta) >= 1.0f)
-			{
-				CurrentValue = FMath::Lerp(StartValue, EndValue, alpha);
-				NextValue = EndValue;
-			}
-			else
-			{
-				CurrentValue = FMath::Lerp(StartValue, EndValue, alpha);
-				NextValue = FMath::Lerp(StartValue, EndValue, alpha + delta);
-			}
-
-			PerSampleIncrement = (NextValue - CurrentValue) / SamplesToInterpolate;
-			FrameIndex++;
-			return CurrentValue;
-		}
-	}
-
-	void FAttenuationInterpolator::Set(const float AttenuationValue)
-	{
-		if (bIsInit || NumInterpFrames == 0)
-		{
-			bIsInit = false;
-			CurrentValue = AttenuationValue;
-			StartValue = AttenuationValue;
-			EndValue = AttenuationValue;
-			FrameIndex = NumInterpFrames;
-			bIsDone = NumInterpFrames == 0;
-		}
-		else
-		{
-			StartValue = NextValue;
-			EndValue = AttenuationValue;
-			FrameIndex = 0;
-			bIsDone = false;
-		}
-	}
-
-	float FAttenuationInterpolator::Get()
-	{
-		return CurrentValue;
 	}
 }

@@ -484,7 +484,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		//FRCLog::Printf(FString::Printf(TEXT("FVulkanViewport::Present(), AcquiredImageIndex=%d"), AcquiredImageIndex));
 		check(AcquiredImageIndex != -1);
 
-		check(RHIBackBuffer && RHIBackBuffer->Surface.Image == BackBufferImages[AcquiredImageIndex]);
+		check(RHIBackBuffer == nullptr || RHIBackBuffer->Surface.Image == BackBufferImages[AcquiredImageIndex]);
 
 		//#todo-rco: Might need to NOT be undefined...
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED/*VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -529,7 +529,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 
 	bool bResult = false;
-	if (bNeedNativePresent)
+	if (bNeedNativePresent && RHIBackBuffer != nullptr)
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);

@@ -1459,7 +1459,7 @@ protected:
 		check(UniformExpression);
 
 		// Only a texture uniform expression can have MCT_Texture type
-		if ((Type & MCT_Texture) && !UniformExpression->GetTextureUniformExpression())
+		if ((Type & MCT_Texture) && !UniformExpression->GetTextureUniformExpression() && !UniformExpression->GetExternalTextureUniformExpression())
 		{
 			return Errorf(TEXT("Operation not supported on a Texture"));
 		}
@@ -1539,9 +1539,11 @@ protected:
 		check(CodeChunk.UniformExpression && !CodeChunk.UniformExpression->IsConstant());
 
 		FMaterialUniformExpressionTexture* TextureUniformExpression = CodeChunk.UniformExpression->GetTextureUniformExpression();
+		FMaterialUniformExpressionExternalTexture* ExternalTextureUniformExpression = CodeChunk.UniformExpression->GetExternalTextureUniformExpression();
+
 		// Any code chunk can have a texture uniform expression (eg FMaterialUniformExpressionFlipBookTextureParameter),
 		// But a texture code chunk must have a texture uniform expression
-		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression);
+		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression || ExternalTextureUniformExpression);
 
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
@@ -1612,6 +1614,10 @@ protected:
 			case MCT_TextureCube:
 				TextureInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformCubeTextureExpressions.AddUnique(TextureUniformExpression);
 				BaseName = TEXT("TextureCube");
+				break;
+			case MCT_TextureExternal:
+				TextureInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformExternalTextureExpressions.AddUnique(ExternalTextureUniformExpression);
+				BaseName = TEXT("ExternalTexture");
 				break;
 			default: UE_LOG(LogMaterial, Fatal,TEXT("Unrecognized texture material value type: %u"),(int32)CodeChunk.Type);
 			};
@@ -3068,7 +3074,7 @@ protected:
 
 		EMaterialValueType TextureType = GetParameterType(TextureIndex);
 
-		if(TextureType != MCT_Texture2D && TextureType != MCT_TextureCube)
+		if(TextureType != MCT_Texture2D && TextureType != MCT_TextureCube && TextureType != MCT_TextureExternal)
 		{
 			Errorf(TEXT("Sampling unknown texture type: %s"),DescribeType(TextureType));
 			return INDEX_NONE;
@@ -3111,10 +3117,12 @@ protected:
 			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Clamp_WorldGroupSettings)");
 		}
 
-		FString SampleCode = 
-			(TextureType == MCT_TextureCube)
-			? TEXT("TextureCubeSample")
-			: TEXT("Texture2DSample");
+		FString SampleCode =
+			(TextureType == MCT_TextureCube) ?
+			TEXT("TextureCubeSample") :
+			(TextureType == MCT_TextureExternal) ?
+			TEXT("TextureExternalSample") :
+			TEXT("Texture2DSample");
 		
 		EMaterialValueType UVsType = (TextureType == MCT_TextureCube) ? MCT_Float3 : MCT_Float2;
 	
@@ -3201,9 +3209,11 @@ protected:
 		}
 
 		FString TextureName =
-			(TextureType == MCT_TextureCube)
-			? CoerceParameter(TextureIndex, MCT_TextureCube)
-			: CoerceParameter(TextureIndex, MCT_Texture2D);
+			(TextureType == MCT_TextureCube) ?
+			CoerceParameter(TextureIndex, MCT_TextureCube) :
+			(TextureType == MCT_Texture2D) ?
+			CoerceParameter(TextureIndex, MCT_Texture2D) :
+			CoerceParameter(TextureIndex, MCT_TextureExternal);
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
@@ -3653,6 +3663,16 @@ protected:
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
+	}
+
+	virtual int32 ExternalTexture(const FGuid& ExternalTextureGuid) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
 	}
 
 	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)

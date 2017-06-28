@@ -16,7 +16,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 
 		const uint32 FormatBPP = GPixelFormats[Format].BlockBytes;
 
-		if (FormatBPP != Stride)
+		if (FormatBPP != Stride && GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			UE_LOG(LogRHI, Fatal,TEXT("OpenGL 3.2 RHI supports only tightly packed texture buffers!"));
 			return new FOpenGLShaderResourceView(this, 0, GL_TEXTURE_BUFFER);

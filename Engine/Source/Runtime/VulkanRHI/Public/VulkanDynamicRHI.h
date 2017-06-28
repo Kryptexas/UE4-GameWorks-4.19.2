@@ -186,6 +186,12 @@ public:
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
+
+	// FVulkanDynamicRHI interface
+	virtual FTexture2DRHIRef RHICreateTexture2DFromVkImage(uint8 Format, uint32 SizeX, uint32 SizeY, VkImage vkImage, uint32 Flags);
+	virtual void RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D);
+
+
 	inline uint32 GetPresentCount() const
 	{
 		return PresentCount;
@@ -215,6 +221,8 @@ public:
 		return Device;
 	}
 
+	virtual void VulkanSetImageLayout( VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange );
+	
 private:
 	void PooledUniformBuffersBeginFrame();
 	void ReleasePooledUniformBuffers();
@@ -284,6 +292,9 @@ protected:
 	FCriticalSection LockBufferCS;
 
 	uint32 PresentCount;
+	
+public:
+	static TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > SteamVRHMDDevice;
 };
 
 /** Implements the Vulkan module as a dynamic RHI providing module. */

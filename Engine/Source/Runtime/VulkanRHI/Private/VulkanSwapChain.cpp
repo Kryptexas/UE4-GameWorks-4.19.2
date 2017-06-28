@@ -293,16 +293,6 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 
 	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
-	//#todo-rco: Is this the right place?
-	// Make sure the CPU doesn't get too ahead of the GPU
-	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
-		if (!ImageAcquiredFences[SemaphoreIndex]->IsSignaled())
-		{
-			bool bResult = FenceMgr.WaitForFence(ImageAcquiredFences[SemaphoreIndex], UINT32_MAX);
-			ensure(bResult);
-		}
-	}
 	FenceMgr.ResetFence(ImageAcquiredFences[SemaphoreIndex]);
 
 	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
@@ -318,6 +308,12 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
 	CurrentImageIndex = (int32)ImageIndex;
 	check(CurrentImageIndex == ImageIndex);
+	
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
+		bool bResult = FenceMgr.WaitForFence(ImageAcquiredFences[SemaphoreIndex], UINT64_MAX);
+		ensure(bResult);
+	}
 	return CurrentImageIndex;
 }
 

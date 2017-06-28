@@ -105,10 +105,6 @@ extern "C" {
 
     /** \} */
 
-    IPLAPI IPLvoid iplInitializeCrashHandler();
-
-    IPLAPI IPLvoid iplTerminateCrashHandler();
-
 
     /*****************************************************************************************************************/
     /* Geometry                                                                                                      */
@@ -146,6 +142,14 @@ extern "C" {
         IPLVector3  minCoordinates; /**< The minimum coordinates of any vertex. */
         IPLVector3  maxCoordinates; /**< The maximum coordinates of any vertex. */
     } IPLBox;
+
+    /** An oriented box. Oriented boxes are used to specify a volume of 3D space.
+    */
+    typedef struct {
+        IPLVector3     mCenter;        /**< The center of the box. */
+        IPLVector3     mExtents;       /**< The extents of the box. */
+        IPLQuaternion  mRotation;      /**< The rotation of the box. */
+    } IPLOrientedBox;
 
     /** A sphere. Spheres are used to define a region of influence around a point.
      */
@@ -331,19 +335,26 @@ extern "C" {
     } IPLTriangle;
 
     /** The acoustic properties of a surface. You can specify the acoustic material properties of each triangle,
-     *  although typically many triangles will share a common material.
+     *  although typically many triangles will share a common material. The acoustic material properties are specified
+     *  for three frequency bands with center frequencies of 400 Hz, 2.5 KHz, and 15 KHz.
      */
     typedef struct {
-        IPLfloat32  lowFreqAbsorption;  /**< Fraction of sound energy absorbed at low frequencies. Between 0.0 and
-                                             1.0. */
-        IPLfloat32  midFreqAbsorption;  /**< Fraction of sound energy absorbed at middle frequencies. Between 0.0
-                                             and 1.0. */
-        IPLfloat32  highFreqAbsorption; /**< Fraction of sound energy absorbed at high frequencies. Between 0.0 and
-                                             1.0. */
-        IPLfloat32  scattering;         /**< Fraction of sound energy that is scattered in a random direction when
-                                             it reaches the surface. Between 0.0 and 1.0. A value of 0.0 describes
-                                             a smooth surface with mirror-like reflection properties; a value of 1.0
-                                             describes rough surface with diffuse reflection properties. */
+        IPLfloat32  lowFreqAbsorption;      /**< Fraction of sound energy absorbed at low frequencies. Between 0.0 and
+                                                1.0. */
+        IPLfloat32  midFreqAbsorption;      /**< Fraction of sound energy absorbed at middle frequencies. Between 0.0
+                                                and 1.0. */
+        IPLfloat32  highFreqAbsorption;     /**< Fraction of sound energy absorbed at high frequencies. Between 0.0 and
+                                                1.0. */
+        IPLfloat32  scattering;             /**< Fraction of sound energy that is scattered in a random direction when
+                                                it reaches the surface. Between 0.0 and 1.0. A value of 0.0 describes
+                                                a smooth surface with mirror-like reflection properties; a value of 1.0
+                                                describes rough surface with diffuse reflection properties. */
+        IPLfloat32  lowFreqTransmission;    /**< Fraction of sound energy transmitted through at low frequencies. 
+                                                Between 0.0 and 1.0. */
+        IPLfloat32  midFreqTransmission;    /**< Fraction of sound energy transmitted through at middle frequencies. 
+                                                Between 0.0 and 1.0. */
+        IPLfloat32  highFreqTransmission;   /**< Fraction of sound energy transmitted through at high frequencies. 
+                                                Between 0.0 and 1.0. */
     } IPLMaterial;
 
     /** A callback that is called to update the application on the progress of the iplLoadScene function. You can
@@ -525,16 +536,20 @@ extern "C" {
      */
     IPLAPI IPLvoid iplFinalizeScene(IPLhandle scene, IPLFinalizeSceneProgressCallback progressCallback);
 
-    /** Serializes a Scene object to a file on disk. The \c ::iplFinalizeScene function must have been called on
+    /** Serializes a Scene object to a byte array. The \c ::iplFinalizeScene function must have been called on
      *  the Scene object before calling this function. This function can only be called on a Scene object that
      *  has been created using the Phonon built-in ray tracer.
      *
      *  \param  scene               Handle to the Scene object.
-     *  \param  fileName            Absolute or relative path to the file into which to serialize the Scene object.
+     *  \param  data                [out] Byte array into which the Scene object will be serialized. It is the
+     *                              caller's responsibility to manage memory for this array. The array must be large
+     *                              enough to hold all the data in the Scene object. May be \c NULL, in which case
+     *                              no data is returned; this is useful when finding out the size of the data stored
+     *                              in the Scene object.
      */
-    IPLAPI IPLerror iplSaveFinalizedScene(IPLhandle scene, IPLstring fileName);
+    IPLAPI IPLint32 iplSaveFinalizedScene(IPLhandle scene, IPLbyte* data);
 
-    /** Creates a Scene object based on data stored in a file on disk. After this function is called, it is not
+    /** Creates a Scene object based on data stored in a byte array. After this function is called, it is not
      *  necessary to call \c ::iplFinalizeScene on the resulting Scene object.
      *
      *  \param  context             The Context object used by the game engine.
@@ -543,7 +558,9 @@ extern "C" {
      *                              \c ::iplSaveFinalizedScene, except for the \c sceneType and \c simulationType
      *                              data members. This allows you to use the same file to create a Scene object
      *                              that uses any ray tracer you prefer.
-     *  \param  fileName            Absolute or relative path to the file from which to load the Scene object.
+     *  \param  data                Byte array containing the serialized representation of the Scene object. Must
+     *                              not be \c NULL.
+     *  \param  size                Size (in bytes) of the serialized data.
      *  \param  computeDevice       Handle to a Compute Device object. Only required if using Radeon Rays for
      *                              ray tracing, may be \c NULL otherwise.
      *  \param  progressCallback    Pointer to a function that reports the percentage of this function's work
@@ -553,7 +570,7 @@ extern "C" {
      *  \return Status code indicating whether or not the operation succeeded.
      */
     IPLAPI IPLerror iplLoadFinalizedScene(IPLContext context, IPLSimulationSettings simulationSettings,
-        IPLstring fileName, IPLhandle computeDevice, IPLLoadSceneProgressCallback progressCallback, IPLhandle* scene);
+        IPLbyte* data, IPLint32 size, IPLhandle computeDevice, IPLLoadSceneProgressCallback progressCallback, IPLhandle* scene);
 
     /** Saves a Scene object to an OBJ file. An OBJ file is a widely-supported 3D model file format, that can be
      *  displayed using a variety of software on most PC platforms. The OBJ file generated by this function can be
@@ -843,8 +860,7 @@ extern "C" {
     IPLAPI IPLvoid iplDeinterleaveAudioBuffer(IPLAudioBuffer inputAudio, IPLAudioBuffer outputAudio);
 
     /** Converts the format of an audio buffer into the format of the output audio buffer. This is primarily useful
-     *  for 360 video and audio authoring workflows. Both the input and output audio buffers must be deinterleaved.
-     *  The following format conversions are supported:
+     *  for 360 video and audio authoring workflows. The following format conversions are supported:
      *
      *  - mono to multi-channel speaker-based formats (stereo, quadraphonic, 5.1, 7.1)
      *  - multi-channel speaker-based (stereo, quadraphonic, 5.1, 7.1) to mono
@@ -919,8 +935,91 @@ extern "C" {
      *  \{
      */
 
+    /** The type of HRTF database to use for binaural rendering. You can either use the built-in HRTF database, or
+     *  supply your own HRTF data at run-time.
+     */
+    typedef enum {
+        IPL_HRTFDATABASETYPE_DEFAULT,   /**< The built-in HRTF database. */
+        IPL_HRTFDATABASETYPE_CUSTOM     /**< Indicates that your application will supply HRTF data of its own at
+                                             run-time. For this to work, you must implement the necessary HRTF database
+                                             callbacks described in this section. */
+    } IPLHrtfDatabaseType;
+
+    /** A single-precision complex number.
+     */
+    typedef struct {
+        IPLfloat32 real;    /**< The real part. */
+        IPLfloat32 imag;    /**< The imaginary part. */
+    } IPLComplex;
+
+    /** A function that you can call to calculate the Fast Fourier Transform (FFT) of a real-valued time-domain
+     *  signal. You will typically call this from within your implementation of IPLHrtfLoadCallback, to transform your
+     *  time-domain Head-Related Impulse Responses (HRIRs) into Head-Related Transfer Functions (HRTFs).
+     *
+     *  \param  data                Pointer to internal data required for calculating Fourier transforms. This will be
+     *                              passed in to your implementation of IPLHrtfLoadCallback.
+     *  \param  signal              Array containing the time-domain signal. The number of elements in this array must
+     *                              match the signalSize parameter received by IPLHrtfLoadCallback.
+     *  \param  spectrum            Array containing the frequency-domain spectrum. The number of elements in this
+     *                              array must match the spectrumSize parameter received by IPLHrtfLoadCallback.
+     */
+    typedef void (*IPLFftHelper)(IPLvoid* data, IPLfloat32* signal, IPLComplex* spectrum);
+
+    /** Pointer to a function that will be called during the execution of iplCreateBinauralRenderer, to allow your
+     *  application to pre-transform all HRTF data into frequency domain.
+     *
+     *  \param  signalSize          Number of elements in the time-domain (HRIR) data arrays that must be transformed.
+     *                              This will be greater than the actual size of the HRIRs passed to
+     *                              iplCreateBinauralRenderer. Any array passed to fftHelper must contain the HRIR
+     *                              data at the start, and the rest of the elements must be initialized to zero. For
+     *                              example, if signalSize is 1024, and the HRIRs are 200 samples long, the arrays
+     *                              passed to the signal parameter of fftHelper must be 1024 samples long, with the
+     *                              first 200 samples containing the HRIR data, and the remaining 824 samples containing
+     *                              zeroes.
+     *  \param  spectrumSize        Number of elements in the frequency-domain (HRTF) data arrays that will contain the
+     *                              results of the transformation. You will typically allocate arrays of this size for
+     *                              each HRIR; they must not be freed until IPLHrtfUnloadCallback is called.
+     *  \param  fftHelper           Pointer to a function that you can call to calculate the Fourier transforms of the
+     *                              HRIRs.
+     *  \param  fftHelperData       Internal data required for calculating Fourier transforms. Pass this to fftHelper.
+     */
+    typedef void (*IPLHrtfLoadCallback)(IPLint32 signalSize, IPLint32 spectrumSize, IPLFftHelper fftHelper,
+        IPLvoid* fftHelperData);
+
+    /** Pointer to a function that will be called during the execution of iplDestroyBinauralRenderer, to allow your
+     *  application to free memory allocated during IPLHrtfLoadCallback.
+     */
+    typedef void (*IPLHrtfUnloadCallback)();
+
+    /** Pointer to a function that will be called during the execution of iplApplyBinauralEffect, to left your
+     *  application copy HRTF data for a given direction into arrays managed by Phonon.
+     *
+     *  \param  direction           Array containing the coordinates of the unit vector from the listener to the
+     *                              source, in Cartesian coordinates.
+     *  \param  leftHrtf            Array into which you should copy the frequency-domain left-ear HRTF for the given
+     *                              direction.
+     *  \param  rightHrtf           Array into which you should copy the frequency-domain right-ear HRTF for the given
+     *                              direction.
+     */
+    typedef void (*IPLHrtfLookupCallback)(IPLfloat32* direction, IPLComplex* leftHrtf, IPLComplex* rightHrtf);
+
+    /** Parameters used to describe the HRTF database you want to use when creating a Binaural Renderer object.
+     */
+    typedef struct {
+        IPLHrtfDatabaseType             type;                       /**< Type of HRTF database to use. */
+        IPLbyte*                        hrtfData;                   /**< Reserved. Must be NULL. */
+        IPLint32                        numHrirSamples;             /**< If using custom HRTF data, the size of each
+                                                                         time-domain HRIR. */
+        IPLHrtfLoadCallback             loadCallback;               /**< Callback that will be called when creating
+                                                                         a Binaural Renderer object. */
+        IPLHrtfUnloadCallback           unloadCallback;             /**< Callback that will be called when destroying a
+                                                                         Binaural Renderer object. */
+        IPLHrtfLookupCallback           lookupCallback;             /**< Callback that may be called to look up an HRTF
+                                                                         and return a copy of the data. */
+    } IPLHrtfParams;
+
     /** Creates a Binaural Renderer object. This function must be called before creating any Panning Effect objects,
-     *  Object-Based Binaural Effect object, Virtual Surround Effect objects, or Ambisonics Binaural Effect objects.
+     *  Object-Based Binaural Effect objects, Virtual Surround Effect objects, or Ambisonics Binaural Effect objects.
      *  Calling this function for the first time is somewhat expensive; avoid creating Binaural Renderer objects in
      *  your audio thread if at all possible. **This function is not thread-safe. It cannot be simultaneously called
      *  from multiple threads.**
@@ -929,15 +1028,14 @@ extern "C" {
      *  \param  renderingSettings   An \c IPLRenderingSettings object describing the audio pipeline's DSP processing
      *                              parameters. These properties must remain constant throughout the lifetime of your
      *                              application.
-     *  \param  hrtfData            Pointer to a byte array containing HRTF data. For most situations, set this
-     *                              parameter to \c NULL; Phonon will use its built-in HRTF data. If you want to use
-     *                              customized or personalized HRTF data, contact Impulsonic for further information.
+     *  \param  params              Parameters describing the type of HRTF data you wish to use (built-in HRTF data or
+     *                              your own custom HRTF data).
      *  \param  renderer            [out] Handle to the created Binaural Renderer object.
      *
      *  \return Status code indicating whether or not the operation succeeded.
      */
     IPLAPI IPLerror iplCreateBinauralRenderer(IPLContext context, IPLRenderingSettings renderingSettings,
-        IPLbyte* hrtfData, IPLhandle* renderer);
+        IPLHrtfParams params, IPLhandle* renderer);
 
     /** Destroys a Binaural Renderer object. If any other API objects are still referencing the Binaural Renderer
      *  object, it will not be destroyed; destruction occurs when the object's reference count reaches zero.
@@ -1073,13 +1171,18 @@ extern "C" {
      *  \param  direction           Unit vector from the listener to the point source, relative to the listener's
      *                              coordinate system.
      *  \param  interpolation       The interpolation technique to use when rendering a point source at a location
-     *                              that is not contained in the measured HRTF data used by Phonon.
+     *                              that is not contained in the measured HRTF data used by Phonon. **If using a custom
+     *                              HRTF database, this value must be set to IPL_HRTFINTERPOLATION_BILINEAR.**
      *  \param  outputAudio         Audio buffer that should contain the rendered audio data. The format of this
      *                              buffer must match the \c outputFormat parameter passed to
      *                              \c ::iplCreateBinauralEffect.
      */
     IPLAPI IPLvoid iplApplyBinauralEffect(IPLhandle effect, IPLAudioBuffer inputAudio, IPLVector3 direction,
         IPLHrtfInterpolation interpolation, IPLAudioBuffer outputAudio);
+
+    IPLAPI IPLvoid iplApplyBinauralEffectWithParameters(IPLhandle effect, IPLAudioBuffer inputAudio,
+        IPLVector3 direction, IPLHrtfInterpolation interpolation, IPLAudioBuffer outputAudio, IPLfloat32* leftDelay,
+        IPLfloat32* rightDelay);
 
     /** Resets any internal state maintained by an Object-Based Binaural Effect object. This is useful if the 
      *  Object-Based Binaural Effect object is going to be disabled/unused for a few frames; resetting the internal 
@@ -1144,6 +1247,8 @@ extern "C" {
      *  \param  outputAudio         Audio buffer that should contain the rendered audio data. The format of this buffer
      *                              must match the \c outputFormat parameter passed to
      *                              \c ::iplCreateVirtualSurroundEffect.
+     *
+     *  \remark When using a custom HRTF database, calling this function is not supported.
      */
     IPLAPI IPLvoid iplApplyVirtualSurroundEffect(IPLhandle effect, IPLAudioBuffer inputAudio,
         IPLAudioBuffer outputAudio);
@@ -1289,6 +1394,8 @@ extern "C" {
      *  \param  outputAudio         Audio buffer that should contain the rendered audio data. The format of this buffer
      *                              must match the \c outputFormat parameter passed to
      *                              \c ::iplCreateAmbisonicsBinauralEffect.
+     *
+     *  \remark When using a custom HRTF database, calling this function is not supported.
      */
     IPLAPI IPLvoid iplApplyAmbisonicsBinauralEffect(IPLhandle effect, IPLAudioBuffer inputAudio,
         IPLAudioBuffer outputAudio);
@@ -1303,7 +1410,6 @@ extern "C" {
 
     /** \} */
 
-
     /*****************************************************************************************************************/
     /* Environmental Renderer                                                                                        */
     /*****************************************************************************************************************/
@@ -1316,6 +1422,9 @@ extern "C" {
      *  various objects managed by the audio engine.
      *  \{
      */
+
+    typedef void (*IPLSimulationThreadCreateCallback)(void);
+    typedef void (*IPLSimulationThreadDestroyCallback)(void);
 
     /** Creates an Environmental Renderer object.
      *
@@ -1333,7 +1442,9 @@ extern "C" {
      *  \return Status code indicating whether or not the operation succeeded.
      */
     IPLAPI IPLerror iplCreateEnvironmentalRenderer(IPLContext context, IPLhandle environment,
-        IPLRenderingSettings renderingSettings, IPLAudioFormat outputFormat, IPLhandle* renderer);
+        IPLRenderingSettings renderingSettings, IPLAudioFormat outputFormat,
+        IPLSimulationThreadCreateCallback threadCreateCallback,
+        IPLSimulationThreadDestroyCallback threadDestroyCallback, IPLhandle* renderer);
 
     /** Destroys an Environmental Renderer object. If any other API objects are still referencing the Environmental
      *  Renderer object, the object will not be destroyed; it will only be destroyed once its reference count reaches
@@ -1368,33 +1479,52 @@ extern "C" {
     /** \defgroup directsound Direct Sound
      *  Functions for calculating various properties of direct sound. Direct sound is defined as sound that reaches
      *  the listener directly from the source, without any reflections from the environment. The Phonon API contains
-     *  functions for calculating various parameters of direct sound, but the task of applying these properties to
-     *  audio data is left up to the audio engine.
+     *  functions for calculating various parameters of direct sound.
      *  \{
      */
 
     /** The algorithm to use when checking for direct path occlusion. Phonon can check whether a direct sound path is
-     *  occluded by scene geometry, and calculate a simple attenuation factor accordingly.
+     *  occluded by scene geometry, and optionally how much of a sound source is occluded.
      */
     typedef enum {
-        IPL_DIRECTOCCLUSION_NONE,       /**< Does not perform any occlusion checks. Sound will be audible through
-                                             solid objects. */
         IPL_DIRECTOCCLUSION_RAYCAST,    /**< Performs a rudimentary occlusion test by checking if the ray from the
-                                             listener to the source is occluded by any source geometry. If so, the
-                                             sound will be considered to be completely inaudible. The Environment
+                                             listener to the source is occluded by any scene geometry. If so, the
+                                             sound will be considered to be completely occluded. The Environment
                                              object created by the game engine must have a valid Scene object for
                                              this to work. **Not supported if using Radeon Rays as your ray
                                              tracer.** */
         IPL_DIRECTOCCLUSION_VOLUMETRIC  /**< Performs a slightly more complicated occlusion test: the source is
                                              treated as a sphere, and rays are traced from the listener to various
                                              points in the interior of the sphere. The proportion of rays that are
-                                             occluded by scene geometry determines the attenuation of the sound
-                                             source. The Environment object created by the game engine must have a
-                                             valid Scene object for this to work. */
+                                             occluded by scene geometry determines the how much of the sound
+                                             source is considered occluded. The Environment object created by the 
+                                             game engine must have a valid Scene object for this to work. */
     } IPLDirectOcclusionMethod;
 
-    /** Parameters describing a direct sound path. The audio engine must decide how to use the information provided
-     *  by Phonon via this structure.
+    /** The method to use when rendering occluded or partially occluded sound. Phonon can model sound passing through
+        solid objects, and optionally apply frequency-dependent transmission filters.
+    */
+    typedef enum {
+        IPL_DIRECTOCCLUSION_NONE,                       /**< Does not perform any occlusion checks. Sound will be 
+                                                             audible through solid objects. */
+        IPL_DIRECTOCCLUSION_NOTRANSMISSION,             /**< Perform occlusion checks but do not model transmission.
+                                                             Occluded sound will be completely inaudible. */
+        IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME,       /**< Perform occlusion checks and model transmission; occluded
+                                                             sound will be scaled by a frequency-independent
+                                                             attenuation value. This value is calculated based on the
+                                                             transmission properties of the object occluding the
+                                                             direct sound path. */
+        IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,    /**< Perform occlusion checks and model transmission; occluded
+                                                             sound will be rendered with a frequency-dependent
+                                                             transmission filter. This filter is calculated based on
+                                                             the transmission properties of the object occluding the
+                                                             direct sound path. */
+    } IPLDirectOcclusionMode;
+
+    /** Parameters describing a direct sound path. For each frequency band, the attenuation factor applied to the
+     *  direct sound path is:
+     *
+     *  \f$ distanceAttenuation \cdot airAbsorption \cdot (occlusionFactor + (1 - occlusionFactor) \cdot transmissionFactor) \f$
      */
     typedef struct {
         IPLVector3  direction;              /**< Unit vector from the listener to the source. */
@@ -1408,6 +1538,9 @@ extern "C" {
                                                  listener. */
         IPLfloat32  occlusionFactor;        /**< Scaling factor to apply to direct sound, that arises due to occlusion
                                                  by scene geometry. Linear scale from 0.0 to 1.0. */
+        IPLfloat32  transmissionFactor[3];  /**< Scaling factors to apply to direct sound, for low, middle, and high
+                                                 frequencies, that arise due to the transmission of sound waves through
+                                                 scene geometry. Linear scale from 0.0 to 1.0. */
     } IPLDirectSoundPath;
 
     /** Calculates direct sound path parameters for a single source. It is up to the audio engine to perform audio
@@ -1420,16 +1553,84 @@ extern "C" {
      *  \param  sourcePosition      World-space position of the source.
      *  \param  sourceRadius        Radius of the sphere defined around the source, for use with
      *                              \c ::IPL_DIRECTOCCLUSION_VOLUMETRIC only.
+     *  \param  occlusionMode       Confuguring the occlusion mode for direct path.
      *  \param  occlusionMethod     Algorithm to use for checking for direct path occlusion.
      *
      *  \return Parameters of the direct path from the source to the listener.
      */
     IPLAPI IPLDirectSoundPath iplGetDirectSoundPath(IPLhandle renderer, IPLVector3 listenerPosition,
         IPLVector3 listenerAhead, IPLVector3 listenerUp, IPLVector3 sourcePosition, IPLfloat32 sourceRadius,
-        IPLDirectOcclusionMethod occlusionMethod);
+        IPLDirectOcclusionMode occlusionMode, IPLDirectOcclusionMethod occlusionMethod);
 
     /** \} */
 
+    /*****************************************************************************************************************/
+    /* Direct Sound Effect                                                                                           */
+    /*****************************************************************************************************************/
+
+    /** \defgroup directsoundeffect Direct Sound Effect.
+    *  Functions for managing and using Direct Sound Effect objects. A Direct Sound Effect object is the main object
+    *  used to apply \c IPLDirectSoundPath parameters to audio data. A Direct Sound Effect only applies direction 
+    *  independent effects to direct sound.
+    *  \{
+    */
+
+    /** Flags that specify which parameters from \c IPLDirectSoundPath should be applied by the Direct Sound Effect.
+     */
+    typedef struct {
+        IPLbool                 applyDistanceAttenuation;   /**< Whether to apply distance attenuation. */
+        IPLbool                 applyAirAbsorption;         /**< Whether to apply frequency-dependent air absorption. */
+        IPLDirectOcclusionMode  directOcclusionMode;        /**< Whether to apply occlusion and transmission. Also
+                                                                 lets you specify whether to apply frequency-dependent
+                                                                 or frequency-independent transmission. */
+    } IPLDirectSoundEffectOptions;
+
+    /** Creates a Direct Sound Effect object.
+     *
+     *  \param  renderer            Handle to an Environmental Renderer object.
+     *  \param  inputFormat         The format of the audio buffers that will be passed as input to this effect. All
+     *                              subsequent calls to \c ::iplApplyDirectSoundEffect for this effect object must use
+     *                              \c IPLAudioBuffer objects with the same format as specified here.
+     *  \param  outputFormat        The format of the audio buffers which will be used to retrieve the output from this
+     *                              effect. All subsequent calls to \c ::iplApplyDirectSoundEffect for this effect 
+     *                              object must use \c IPLAudioBuffer objects with the same format as specified here.
+     *  \param  effect              [out] Handle to the created Direct Sound Effect object.
+     *
+     *  \return Status code indicating whether or not the operation succeeded.
+     */
+    IPLAPI IPLerror iplCreateDirectSoundEffect(IPLhandle renderer, IPLAudioFormat inputFormat, 
+        IPLAudioFormat outputFormat, IPLhandle* effect);
+
+    /** Destroys a Direct Sound Effect object.
+     *
+     *  \param  effect              [in, out] Address of a handle to the Direct Sound Effect object to destroy.
+     */
+    IPLAPI IPLvoid iplDestroyDirectSoundEffect(IPLhandle* effect);
+
+    /** Applies various parameters in \c IPLDirectSoundPath to a buffer of audio data.
+     *
+     *  \param  effect              Handle to a Direct Sound Effect object.
+     *  \param  inputAudio          Audio buffer containing the dry audio data. The format of this buffer must match the
+     *                              \c inputFormat parameter passed to \c ::iplCreateDirectSoundEffect.
+     *  \param  directSoundPath     Parameters of the direct path from the source to the listener.
+     *  \param  options             Specifies which parameters from \c IPLDirectSoundPath should be processed by
+     *                              the Direct Sound Effect.
+     *  \param  outputAudio         Audio buffer that should contain the wet audio data. The format of this buffer must
+     *                              match the \c outputFormat parameter passed to \c ::iplCreateDirectSoundEffect.
+     */
+    IPLAPI IPLvoid iplApplyDirectSoundEffect(IPLhandle effect, IPLAudioBuffer inputAudio, 
+        IPLDirectSoundPath directSoundPath, IPLDirectSoundEffectOptions options, IPLAudioBuffer outputAudio);
+
+    /** Resets any internal state maintained by a Direct Sound Effect object. This is useful if the
+     *  Direct Sound Effect object is going to be disabled/unused for a few frames; resetting the internal
+     *  state will prevent an audible glitch when the Direct Sound Effect object is re-enabled at a later
+     *  time.
+     *
+     *  \param  effect              Handle to a Direct Sound Effect object.
+     */
+    IPLAPI IPLvoid iplFlushDirectSoundEffect(IPLhandle effect);
+
+    /** \} */
 
     /*****************************************************************************************************************/
     /* Convolution Effect                                                                                            */
@@ -1572,7 +1773,7 @@ extern "C" {
         IPLfloat32          heightAboveFloor;   /**< Height of the probes above the closest floor or terrain
                                                      surfaces. Only used if \c placement is
                                                      \c ::IPL_PLACEMENT_UNIFORMFLOOR. */
-        IPLint32           maxOctreeTriangles; /**< The maximum number of triangles to store in an octree leaf
+        IPLint32            maxOctreeTriangles; /**< The maximum number of triangles to store in an octree leaf
                                                      node. Only used if \c placement is \c ::IPL_PLACEMENT_OCTREE. */
         IPLint32            maxOctreeDepth;     /**< The maximum depth of the octree. Increasing this value increases
                                                      density of the generated probes. Only used if \c placement is
@@ -1590,17 +1791,18 @@ extern "C" {
     /** Generates probes within a box. This function should typically be called from the game engine's editor, in
      *  response to the user indicating that they want to generate probes in the scene.
      *
-     *  \param  scene               Handle to the Scene object.
-     *  \param  box                 Bounding box within which to place probes.
-     *  \param  placementParams     Parameters specifying how probes should be generated.
-     *  \param  progressCallback    Pointer to a function that reports the percentage of this function's work
-     *                              that has been completed. May be \c NULL.
-     *  \param  probeBox            [out] Handle to the created Probe Box object.
+     *  \param  scene                       Handle to the Scene object.
+     *  \param  boxLocalToWorldTransform    4x4 local to world transform matrix laid out in column-major format.
+     *  \param  placementParams             Parameters specifying how probes should be generated.
+     *  \param  progressCallback            Pointer to a function that reports the percentage of this function's 
+     *                                      work that has been completed. May be \c NULL.
+     *  \param  probeBox                    [out] Handle to the created Probe Box object.
      *
      *  \return Status code indicating whether or not the operation succeeded.
      */
-    IPLAPI IPLerror iplCreateProbeBox(IPLhandle scene, IPLBox box, IPLProbePlacementParams placementParams,
-        IPLProbePlacementProgressCallback progressCallback, IPLhandle* probeBox);
+    IPLAPI IPLerror iplCreateProbeBox(IPLhandle scene, IPLfloat32* boxLocalToWorldTransform,
+        IPLProbePlacementParams placementParams, IPLProbePlacementProgressCallback progressCallback,
+        IPLhandle* probeBox);
 
     /** Destroys a Probe Box object.
      *

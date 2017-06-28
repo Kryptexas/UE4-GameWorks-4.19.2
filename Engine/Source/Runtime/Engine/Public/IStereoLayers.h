@@ -57,7 +57,8 @@ public:
 		ELayerType			PositionType = ELayerType::FaceLocked;
 		// which shape of layer it is. ELayerShape::QuadLayer is the only shape supported by all VR platforms.
 		ELayerShape			ShapeType	 = ELayerShape::QuadLayer;
-		FVector2D			CylinderSize = FVector2D(1.0f, 1.0f);
+		float				CylinderRadius		= 1.0f;
+		float				CylinderOverlayArc	= 1.0f;
 		float				CylinderHeight = 1.0f;
 		// Texture mapped for right eye (if one texture provided, mono assumed)
 		FTextureRHIRef		Texture		 = nullptr;	

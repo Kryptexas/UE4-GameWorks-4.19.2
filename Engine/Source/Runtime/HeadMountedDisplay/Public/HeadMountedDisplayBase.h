@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IHeadMountedDisplay.h"
+#include "DefaultSpectatorScreenController.h"
 
 /**
  * Default implementation for various IHeadMountedDisplay methods.
@@ -13,9 +14,7 @@ class HEADMOUNTEDDISPLAY_API FHeadMountedDisplayBase : public IHeadMountedDispla
 {
 
 public:
-	FHeadMountedDisplayBase()
-	{}
-
+	virtual ~FHeadMountedDisplayBase() {}
 
 	/**
 	 * Record analytics - To add custom information logged with the analytics, override PopulateAnalyticsAttributes
@@ -31,6 +30,15 @@ public:
 
 	/** Overridden so the late update HMD transform can be passed on to the default stereo layers implementation */
 	virtual void ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform) override;
+
+	virtual bool IsSpectatorScreenActive() const override;
+
+	virtual class ISpectatorScreenController* GetSpectatorScreenController() override;
+	virtual class ISpectatorScreenController const* GetSpectatorScreenController() const override;
+
+	// Spectator Screen Hooks into specific implementations
+	virtual FIntRect GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const { return FIntRect(0, 0, 1, 1); }
+	virtual void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const {}
 
 protected:
 	/**
@@ -57,4 +65,6 @@ protected:
 	mutable TSharedPtr<class FDefaultStereoLayers, ESPMode::ThreadSafe> DefaultStereoLayers;
 	
 	friend class FDefaultStereoLayers;
+
+	TUniquePtr<FDefaultSpectatorScreenController> SpectatorScreenController;
 };

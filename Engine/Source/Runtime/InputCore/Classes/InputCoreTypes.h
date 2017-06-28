@@ -18,6 +18,7 @@ enum class EControllerHand : uint8
 {
 	Left,
 	Right,
+	AnyHand,
 	Pad,
 	ExternalCamera,
 	Gun,

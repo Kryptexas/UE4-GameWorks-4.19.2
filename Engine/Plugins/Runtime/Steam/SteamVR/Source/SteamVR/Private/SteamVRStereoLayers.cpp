@@ -237,15 +237,22 @@ void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 			{
 				vr::Texture_t Texture;
 				Texture.handle = Layer.LayerDesc.Texture->GetNativeResource();
-#if PLATFORM_LINUX
-#if STEAMVR_USE_VULKAN_RHI
-				Texture.eType = vr::TextureType_Vulkan;
+				if ( IsVulkanPlatform( GMaxRHIShaderPlatform ) )
+				{
+					Texture.eType = vr::TextureType_Vulkan;
+				}
+				else if ( IsOpenGLPlatform( GMaxRHIShaderPlatform ) )
+				{
+					Texture.eType = vr::TextureType_OpenGL;
+				}
+				else
+				{
+#if PLATFORM_WINDOWS
+					Texture.eType = vr::TextureType_DirectX;
 #else
-				Texture.eType = vr::TextureType_OpenGL;
+					check( 0 );
 #endif
-#else
-				Texture.eType = vr::TextureType_DirectX;
-#endif
+				}
 				Texture.eColorSpace = vr::ColorSpace_Auto;
 				OVR_VERIFY(VROverlay->SetOverlayTexture(Layer.OverlayHandle, &Texture));
 				OVR_VERIFY(VROverlay->ShowOverlay(Layer.OverlayHandle));

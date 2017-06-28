@@ -717,6 +717,8 @@ private:
 	FUniformBufferRHIRef GBufferDummyResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
+	/* Size of the first view, used for multiview rendertargets */
+	FIntPoint View0Size;
 	FIntPoint SeparateTranslucencyBufferSize;
 	float SeparateTranslucencyScale;
 	/** e.g. 2 */

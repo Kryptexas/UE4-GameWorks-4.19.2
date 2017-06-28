@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
 #include "UObject/Package.h"
+#include "HeadMountedDisplayTypes.h"
+#include "ISpectatorScreenController.h"
 
 //#include "UObject/UObjectGlobals.h"
 
@@ -26,13 +28,6 @@ static TAutoConsoleVariable<int32> CVarHiddenAreaMask(
 	*LOCTEXT("CVarText_HiddenAreaMask", "Enable or disable hidden area mask\n0: disabled\n1: enabled").ToString(),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarMirrorMode(
-	TEXT("vr.MirrorMode"),
-	1,
-	*LOCTEXT("CVarText_MirrorMode", 
-		"Changes the look of the mirror window if supported by the HMD plugin.\n 0: disable mirroring\n 1: single eye\n 2: stereo pair\nNumbers larger than 2 may be possible and specify HMD plugin-specific variations.\nNegative values are treated the same as 0.").ToString(),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarEnableDevOverrides(
 	TEXT("vr.Debug.bEnableDevOverrides"),
 	0,
@@ -47,7 +42,7 @@ static TAutoConsoleVariable<int32> CVarMixLayerPriorities(
 
 
 #if !UE_BUILD_SHIPPING
-static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController* PlayerController, UWorld* World)
+static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController* PlayerController)
 {
 	if (!GEngine || !GEngine->HMDDevice.IsValid() || !GEngine->HMDDevice->IsStereoEnabled())
 	{
@@ -55,31 +50,38 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 	}
 	if (!PlayerController)
 	{
-		PlayerController = World->GetFirstPlayerController();
+		PlayerController = GWorld->GetFirstPlayerController();
 		if (!PlayerController)
 		{
 			return;
 		}
 	}
+	const FColor FrustrumColor = (GEngine->HMDDevice->HasValidTrackingPosition() ? FColor::Green : FColor::Red);
+	const FColor CenterLineColor = FColor::Yellow;
+
 	APawn* Pawn = PlayerController->GetPawn();
-	if (!Pawn)
+	AActor* ViewTarget = PlayerController->GetViewTarget();
+	if (!Pawn || ! ViewTarget)
 	{
 		return;
 	}
-	FVector ViewLocation = Pawn->GetPawnViewLocation();
-	FRotator ViewRotation = Pawn->GetViewRotation();
+	FQuat DeltaControlOrientation = Pawn->GetViewRotation().Quaternion();
+	FVector LocationOffset = ViewTarget->GetTransform().GetLocation();
 
-	const FColor FrustrumColor = (GEngine->HMDDevice->HasValidTrackingPosition() ? FColor::Green : FColor::Red);
-	FVector SensorOrigin;
-	FQuat SensorOrient;
-	float LFovDeg, RFovDeg, TFovDeg, BFovDeg, NearPlane, FarPlane, CameraDist;
+	if (!ViewTarget->HasActiveCameraComponent())
+	{
+		FVector HeadPosition; /* unsused */
+		FQuat HeadOrient;
+		GEngine->HMDDevice->GetCurrentOrientationAndPosition(HeadOrient, HeadPosition);
+		DeltaControlOrientation = DeltaControlOrientation * HeadOrient.Inverse();
+	}
+
 	uint32 NumSensors = GEngine->HMDDevice->GetNumOfTrackingSensors();
-	FVector HeadPosition;
-	FQuat HeadOrient;
-	GEngine->HMDDevice->GetCurrentOrientationAndPosition(HeadOrient, HeadPosition);
-	const FQuat DeltaControlOrientation = ViewRotation.Quaternion() * HeadOrient.Inverse();
 	for (uint8 SensorIndex = 0; SensorIndex < NumSensors; ++SensorIndex)
 	{
+		float LFovDeg, RFovDeg, TFovDeg, BFovDeg, NearPlane, FarPlane, CameraDist;
+		FVector SensorOrigin;
+		FQuat SensorOrient;
 
 		GEngine->HMDDevice->GetTrackingSensorProperties(SensorIndex, SensorOrigin, SensorOrient, LFovDeg, RFovDeg, TFovDeg, BFovDeg, CameraDist, NearPlane, FarPlane);
 
@@ -100,7 +102,7 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 		// Create a matrix to translate from sensor-relative coordinates to the view location
 		FMatrix Matrix = SensorOrient * FMatrix::Identity;
 		Matrix *= FTranslationMatrix(SensorOrigin);
-		Matrix *= FTranslationMatrix(ViewLocation);
+		Matrix *= FTranslationMatrix(LocationOffset);
 
 		// Calculate coordinates of the tip (location of the sensor) and the base of the pyramid (far plane)
 		FVector Tip = Matrix.TransformPosition(FVector::ZeroVector);
@@ -116,30 +118,30 @@ static void DrawDebugTrackingSensorLocations(UCanvas* Canvas, APlayerController*
 		FVector NearBR = Matrix.TransformPosition(EdgeBR * NearPlane);
 
 		// Draw a point at the sensor position
-		DrawDebugPoint(World, Tip, 5, FrustrumColor);
+		DrawDebugPoint(GWorld, Tip, 5, FrustrumColor);
 
 		// Draw the four edges of the pyramid
-		DrawDebugLine(World, Tip, BaseTR, FrustrumColor);
-		DrawDebugLine(World, Tip, BaseTL, FrustrumColor);
-		DrawDebugLine(World, Tip, BaseBL, FrustrumColor);
-		DrawDebugLine(World, Tip, BaseBR, FrustrumColor);
+		DrawDebugLine(GWorld, Tip, BaseTR, FrustrumColor);
+		DrawDebugLine(GWorld, Tip, BaseTL, FrustrumColor);
+		DrawDebugLine(GWorld, Tip, BaseBL, FrustrumColor);
+		DrawDebugLine(GWorld, Tip, BaseBR, FrustrumColor);
 
 		// Draw the base (far plane)
-		DrawDebugLine(World, BaseTR, BaseTL, FrustrumColor);
-		DrawDebugLine(World, BaseTL, BaseBL, FrustrumColor);
-		DrawDebugLine(World, BaseBL, BaseBR, FrustrumColor);
-		DrawDebugLine(World, BaseBR, BaseTR, FrustrumColor);
+		DrawDebugLine(GWorld, BaseTR, BaseTL, FrustrumColor);
+		DrawDebugLine(GWorld, BaseTL, BaseBL, FrustrumColor);
+		DrawDebugLine(GWorld, BaseBL, BaseBR, FrustrumColor);
+		DrawDebugLine(GWorld, BaseBR, BaseTR, FrustrumColor);
 
 		// Draw the near plane
-		DrawDebugLine(World, NearTR, NearTL, FrustrumColor);
-		DrawDebugLine(World, NearTL, NearBL, FrustrumColor);
-		DrawDebugLine(World, NearBL, NearBR, FrustrumColor);
-		DrawDebugLine(World, NearBR, NearTR, FrustrumColor);
+		DrawDebugLine(GWorld, NearTR, NearTL, FrustrumColor);
+		DrawDebugLine(GWorld, NearTL, NearBL, FrustrumColor);
+		DrawDebugLine(GWorld, NearBL, NearBR, FrustrumColor);
+		DrawDebugLine(GWorld, NearBR, NearTR, FrustrumColor);
 
 		// Draw a center line from the sensor to the focal point
 		FVector CenterLine = Matrix.TransformPosition(FVector(CameraDist, 0, 0));
-		DrawDebugLine(World, Tip, CenterLine, FColor::Yellow);
-		DrawDebugPoint(World, CenterLine, 5, FColor::Yellow);
+		DrawDebugLine(GWorld, Tip, CenterLine, CenterLineColor);
+		DrawDebugPoint(GWorld, CenterLine, 5, CenterLineColor);
 	}
 }
 
@@ -153,7 +155,7 @@ static void ShowTrackingSensors(const TArray<FString>& Args, UWorld* World, FOut
 		{
 			if (bShouldEnable)
 			{
-				Handle = UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateStatic(DrawDebugTrackingSensorLocations, World));
+				Handle = UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateStatic(DrawDebugTrackingSensorLocations));
 			}
 			else
 			{
@@ -209,6 +211,62 @@ static FAutoConsoleCommand CTrackingOriginCmd(
 	TEXT("vr.TrackingOrigin"),
 	*LOCTEXT("CCommandText_TrackingOrigin", "Floor or 0 - tracking origin is at the floor, Eye or 1 - tracking origin is at the eye level.").ToString(),
 	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(TrackingOrigin));
+
+namespace HMDConsoleCommandsHelpers
+{
+	ISpectatorScreenController* GetSpectatorScreenController()
+	{
+		if (GEngine->HMDDevice.IsValid())
+		{
+			return GEngine->HMDDevice->GetSpectatorScreenController();
+		}
+		return nullptr;
+	}
+}
+
+static void SpectatorScreenMode(const TArray<FString>& Args, UWorld* , FOutputDevice& Ar)
+{
+	ISpectatorScreenController* const Controller = HMDConsoleCommandsHelpers::GetSpectatorScreenController();
+	if (Controller == nullptr)
+	{
+		Ar.Logf(ELogVerbosity::Error, TEXT("SpectatorScreenMode is not controllable now, cannot change or get mode."), *Args[0]);
+		return;
+	}
+
+	const static UEnum* ScreenModeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ESpectatorScreenMode"));
+	int ModeVal = INDEX_NONE;
+	if (Args.Num())
+	{
+		if (FCString::IsNumeric(*Args[0]))
+		{
+			ModeVal = FCString::Atoi(*Args[0]);
+		}
+		else
+		{
+			ModeVal = ScreenModeEnum->GetIndexByName(*Args[0]);
+		}
+		if (ModeVal >= ESpectatorScreenModeFirst && ModeVal <= ESpectatorScreenModeLast)
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid spectator screen mode: %s"), *Args[0]);
+		}
+
+		Controller->SetSpectatorScreenMode(ESpectatorScreenMode(ModeVal));
+	}
+	else
+	{
+		if (GEngine && GEngine->HMDDevice.IsValid())
+		{
+			ModeVal = (int)Controller->GetSpectatorScreenMode();
+		}
+		Ar.Logf(TEXT("Spectator screen mode is set to: %s"), *ScreenModeEnum->GetNameStringByIndex(ModeVal));
+	}
+}
+
+static FAutoConsoleCommand CSpectatorModeCmd(
+	TEXT("vr.SpectatorScreenMode"),
+	*LOCTEXT("CVarText_SpectatorScreenMode",
+		"Changes the look of the spectator if supported by the HMD plugin.\n 0: disable mirroring\n 1: single eye\n 2: stereo pair\nNumbers larger than 2 may be possible and specify HMD plugin-specific variations.\nNegative values are treated the same as 0.").ToString(),
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(SpectatorScreenMode));
 
 static void HMDResetPosition(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar)
 {
@@ -396,6 +454,10 @@ static bool CompatExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	if (FParse::Command(&Cmd, TEXT("vr.SetTrackingOrigin")))
 	{
 		AliasedCommand = FString::Printf(TEXT("vr.TrackingOrigin %s"), Cmd);
+	}
+	if (FParse::Command(&Cmd, TEXT("vr.MirrorMode")))
+	{
+		AliasedCommand = FString::Printf(TEXT("vr.SpectatorScreenMode %s"), Cmd);
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMDPOS")))
 	{

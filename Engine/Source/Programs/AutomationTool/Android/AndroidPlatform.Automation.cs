@@ -246,6 +246,13 @@ public class AndroidPlatform : Platform
 		// collect plugin extra data paths from target receipts
 		Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
 
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.Android);
+		int MinSDKVersion;
+		Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MinSDKVersion", out MinSDKVersion);
+		int TargetSDKVersion = MinSDKVersion;
+		Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
+		Log("Target SDK Version" + TargetSDKVersion);
+
 		foreach (string Architecture in Architectures)
 		{
 			foreach (string GPUArchitecture in GPUArchitectures)
@@ -294,7 +301,7 @@ public class AndroidPlatform : Platform
 					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Install, Target);
 					string PackageName = GetPackageInfo(ApkName, false);
 					// make a batch file that can be used to install the .apk and .obb files
-					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
+					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC, Params.Distribution, TargetSDKVersion > 22);
 					File.WriteAllLines(BatchName, BatchLines);
 					// make a batch file that can be used to uninstall the .apk and .obb files
 					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Uninstall, Target);
@@ -351,15 +358,21 @@ public class AndroidPlatform : Platform
 		PrintRunTime();
 	}
 
-    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC)
+    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
     {
         string[] BatchLines = null;
         string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
         string WritePermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
 
-        if (!bIsPC)
+		// We don't grant runtime permission for distribution build on purpose since we will push the obb file to the folder that doesn't require runtime storage permission.
+		// This way developer can catch permission issue if they try to save/load game file in folder that requires runtime storage permission.
+		bool bNeedGrantStoragePermission = bRequireRuntimeStoragePermission && !bIsDistribution;
+
+		if (!bIsPC)
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
+			// If it is a distribution build, push to $STORAGE/Android/obb folder instead of $STORAGE/obb folder.
+			// Note that $STORAGE/Android/obb will be the folder that contains the obb if you download the app from playstore.
+			string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
 
             Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
@@ -377,14 +390,15 @@ public class AndroidPlatform : Platform
 						"$ADB $DEVICE install " + Path.GetFileName(ApkName),
 						"if [ $? -eq 0 ]; then",
                         "\techo",
-                        bPackageDataInsideApk ? "" : "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
-                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + ReadPermissionGrantCommand,
-                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + WritePermissionGrantCommand,
+						bNeedGrantStoragePermission ? "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB or game file in external storage." : "",
+						bNeedGrantStoragePermission ? "\t$ADB $DEVICE " + ReadPermissionGrantCommand : "",
+						bNeedGrantStoragePermission ?"\t$ADB $DEVICE " + WritePermissionGrantCommand : "",
                         "\techo",
 						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
                         "\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
+						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/Android/" + TargetAndroidLocation + PackageName + "'",
 						bPackageDataInsideApk ? "" : "\techo",
 						bPackageDataInsideApk ? "" : "\techo Installing new data. Failures here indicate storage problems \\(missing SD card or bad permissions\\) and are fatal.",
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
@@ -407,7 +421,7 @@ public class AndroidPlatform : Platform
         }
         else
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName;
+            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
 
 			Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
@@ -428,14 +442,15 @@ public class AndroidPlatform : Platform
                         "%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/Android/" + TargetAndroidLocation + PackageName,
 						bPackageDataInsideApk ? "" : "@echo.",
 						bPackageDataInsideApk ? "" : "@echo Installing new data. Failures here indicate storage problems (missing SD card or bad permissions) and are fatal.",
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + OBBInstallCommand,
 						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"@echo.",
-                        bPackageDataInsideApk ? "" : "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
-                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + ReadPermissionGrantCommand,
-                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + WritePermissionGrantCommand,
+						bNeedGrantStoragePermission ? "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file or game file in external storage." : "",
+						bNeedGrantStoragePermission ? "%ADB% %DEVICE% " + ReadPermissionGrantCommand : "",
+						bNeedGrantStoragePermission ? "%ADB% %DEVICE% " + WritePermissionGrantCommand : "",
                         "@echo.",
                         "@echo Installation successful",
 						"goto:eof",
@@ -449,7 +464,7 @@ public class AndroidPlatform : Platform
 						"@echo Check that the device has an SD card.",
 						"@pause"
 					};
-        } 
+        }
         return BatchLines;
     }
 
@@ -475,6 +490,7 @@ public class AndroidPlatform : Platform
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
+						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/Android/" + TargetAndroidLocation + PackageName + "'",
 						"echo",
 						"echo Uninstall completed",
 						"exit 0",
@@ -499,6 +515,7 @@ public class AndroidPlatform : Platform
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/Android/" + TargetAndroidLocation + PackageName,
 						"@echo.",
 						"@echo Uninstall completed",
 					};

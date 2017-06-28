@@ -32,6 +32,7 @@
 #include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
 #include "DecalRenderingCommon.h"
+#include "ExternalTexture.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);
 
@@ -2085,6 +2086,8 @@ void FMaterialRenderProxy::ReleaseDynamicRHI()
 	DeferredUniformExpressionCacheRequests.Remove(this);
 
 	InvalidateUniformExpressionCache();
+
+	FExternalTextureRegistry::Get().RemoveMaterialRenderProxyReference(this);
 }
 
 void FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions()

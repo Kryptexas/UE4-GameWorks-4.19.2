@@ -6,15 +6,6 @@
 #include "OnlineMessageMultiTaskOculus.h"
 #include "OnlineSubsystemOculusPackage.h"
 
-#if USING_CODE_ANALYSIS
-#pragma warning( push )
-#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
-#endif	// USING_CODE_ANALYSIS
-#include <string>
-#if USING_CODE_ANALYSIS
-#pragma warning( pop )
-#endif	// USING_CODE_ANALYSIS
-
 class FOnlineMessageMultiTaskOculusWriteAchievements : public FOnlineMessageMultiTaskOculus
 {
 private:
@@ -100,20 +91,29 @@ void FOnlineAchievementsOculus::WriteAchievements(const FUniqueNetId& PlayerId, 
 		switch (AchievementDesc->Type)
 		{
 			case EAchievementType::Simple:
+			{
 				RequestId = ovr_Achievements_Unlock(TCHAR_TO_ANSI(*AchievementId));
 				break;
+			}
 			case EAchievementType::Count:
+			{
 				uint64 Count;
 				GetWriteAchievementCountValue(VariantData, Count);
 				RequestId = ovr_Achievements_AddCount(TCHAR_TO_ANSI(*AchievementId), Count);
 				break;
+			}
 			case EAchievementType::Bitfield:
+			{
 				FString Bitfield;
 				GetWriteAchievementBitfieldValue(VariantData, Bitfield, AchievementDesc->BitfieldLength);
-				std::string AchievementIdString(TCHAR_TO_ANSI(*AchievementId));
-				std::string BitfieldString(TCHAR_TO_ANSI(*Bitfield));
-				RequestId = ovr_Achievements_AddFields(AchievementIdString.c_str(), BitfieldString.c_str());
+				RequestId = ovr_Achievements_AddFields(TCHAR_TO_ANSI(*AchievementId), TCHAR_TO_ANSI(*Bitfield));
 				break;
+			}
+			default:
+			{
+				UE_LOG_ONLINE(Warning, TEXT("Unknown achievement type"));
+				break;
+			}
 		}
 
 		if (RequestId != 0)
@@ -332,7 +332,7 @@ void FOnlineAchievementsOculus::GetWriteAchievementCountValue(FVariantData Varia
 		}
 	}
 }
-void FOnlineAchievementsOculus::GetWriteAchievementBitfieldValue(FVariantData VariantData, FString& OutData, uint32 BitfieldLength)
+void FOnlineAchievementsOculus::GetWriteAchievementBitfieldValue(FVariantData VariantData, FString& OutData, uint32 BitfieldLength) const
 {
 	switch (VariantData.GetType())
 	{
@@ -353,6 +353,11 @@ void FOnlineAchievementsOculus::GetWriteAchievementBitfieldValue(FVariantData Va
 		case EOnlineKeyValuePairDataType::String:
 		{
 			VariantData.GetValue(OutData);
+			break;
+		}
+		default:
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Could not %s convert to string"), VariantData.GetTypeString());
 			break;
 		}
 	}

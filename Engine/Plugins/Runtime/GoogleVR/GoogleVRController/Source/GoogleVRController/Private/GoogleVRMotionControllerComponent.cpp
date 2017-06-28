@@ -14,11 +14,13 @@
  */
 #include "Classes/GoogleVRMotionControllerComponent.h"
 #include "GoogleVRController.h"
+#include "GoogleVRLaserPlaneComponent.h"
 #include "Classes/GoogleVRPointerInputComponent.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 #include "MotionControllerComponent.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Components/MaterialBillboardComponent.h"
@@ -27,10 +29,14 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
+#include "Modules/ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRMotionController, Log, All);
 
 const FVector UGoogleVRMotionControllerComponent::TOUCHPAD_POINT_DIMENSIONS = FVector(0.01f, 0.01f, 0.0004f);
+const FVector UGoogleVRMotionControllerComponent::BATTERY_INDICATOR_TRANSLATION = FVector(-3.0f, 0.0f, 0.001f);
+const FVector UGoogleVRMotionControllerComponent::BATTERY_INDICATOR_SCALE = FVector(0.032f, 0.015f, 1.0f);
+const FQuat UGoogleVRMotionControllerComponent::BATTERY_INDICATOR_ROTATION = FQuat(FVector(0.0f, 0.0f, 1.0f), PI/2.0f);
 
 UGoogleVRMotionControllerComponent::UGoogleVRMotionControllerComponent()
 : ControllerMesh(nullptr)
@@ -42,7 +48,16 @@ UGoogleVRMotionControllerComponent::UGoogleVRMotionControllerComponent()
 , ControllerTouchPointMaterial(nullptr)
 , ControllerReticleMaterial(nullptr)
 , ParameterCollection(nullptr)
-, LaserParticleSystem(nullptr)
+, ControllerBatteryMesh(nullptr)
+, BatteryTextureParameterName("Texture")
+, BatteryUnknownTexture(nullptr)
+, BatteryFullTexture(nullptr)
+, BatteryAlmostFullTexture(nullptr)
+, BatteryMediumTexture(nullptr)
+, BatteryLowTexture(nullptr)
+, BatteryCriticalLowTexture(nullptr)
+, BatteryChargingTexture(nullptr)
+, LaserPlaneMesh(nullptr)
 , LaserDistanceMax(0.75f)
 , ReticleDistanceMin(0.45f)
 , ReticleDistanceMax(2.5f)
@@ -55,25 +70,42 @@ UGoogleVRMotionControllerComponent::UGoogleVRMotionControllerComponent()
 , MotionControllerComponent(nullptr)
 , ControllerMeshComponent(nullptr)
 , ControllerTouchPointMeshComponent(nullptr)
+, ControllerBatteryMeshComponent(nullptr)
+, ControllerBatteryStaticMaterial(nullptr)
+, ControllerBatteryMaterial(nullptr)
 , PointerContainerComponent(nullptr)
-, LaserParticleSystemComponent(nullptr)
+, LaserPlaneComponent(nullptr)
 , ReticleBillboardComponent(nullptr)
 , TouchMeshScale(FVector::ZeroVector)
 , bAreSubComponentsEnabled(false)
+, LastKnownBatteryState(EGoogleVRControllerBatteryLevel::Unknown)
+, bBatteryWasCharging(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;
 
-	ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerMesh")));
-	ControllerTouchPointMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/BasicShapes/Cylinder")));
-	IdleMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerIdleMaterial")));
-	TouchpadMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerPadMaterial")));
-	AppMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerAppMaterial")));
-	SystemMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerSysMaterial")));
-	ControllerTouchPointMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/TouchMaterial")));
-	ControllerReticleMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerRetMaterial")));
-	ParameterCollection = Cast<UMaterialParameterCollection>(StaticLoadObject(UMaterialParameterCollection::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerParameters")));
-	LaserParticleSystem = Cast<UParticleSystem>(StaticLoadObject(UParticleSystem::StaticClass(), NULL, TEXT("/GoogleVRController/LaserPointerParticleSystem")));
+	if (FModuleManager::Get().IsModuleLoaded("GoogleVRController"))
+	{
+		ControllerMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerMesh")));
+		ControllerTouchPointMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/BasicShapes/Cylinder")));
+		IdleMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerIdleMaterial")));
+		TouchpadMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerPadMaterial")));
+		AppMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerAppMaterial")));
+		SystemMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerSysMaterial")));
+		ControllerTouchPointMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/TouchMaterial")));
+		ControllerBatteryMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/BasicShapes/Plane")));
+		ControllerBatteryStaticMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorMaterial")));
+		BatteryUnknownTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorUnknown")));
+		BatteryFullTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorFull")));
+		BatteryAlmostFullTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorAlmostFull")));
+		BatteryMediumTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorMedium")));
+		BatteryLowTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorLow")));
+		BatteryCriticalLowTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorCriticalLow")));
+		BatteryChargingTexture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/GoogleVRController/BatteryIndicatorCharging")));
+		ControllerReticleMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerRetMaterial")));
+		ParameterCollection = Cast<UMaterialParameterCollection>(StaticLoadObject(UMaterialParameterCollection::StaticClass(), NULL, TEXT("/GoogleVRController/ControllerParameters")));
+		LaserPlaneMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/GoogleVRController/LaserPlane")));
+	}
 }
 
 UMotionControllerComponent* UGoogleVRMotionControllerComponent::GetMotionController() const
@@ -86,9 +118,14 @@ UStaticMeshComponent* UGoogleVRMotionControllerComponent::GetControllerMesh() co
 	return ControllerMeshComponent;
 }
 
-UParticleSystemComponent* UGoogleVRMotionControllerComponent::GetLaser() const
+UStaticMeshComponent* UGoogleVRMotionControllerComponent::GetLaser() const
 {
-	return LaserParticleSystemComponent;
+	return LaserPlaneComponent;
+}
+
+UMaterialInstanceDynamic* UGoogleVRMotionControllerComponent::GetLaserMaterial() const
+{
+	return LaserPlaneComponent ? LaserPlaneComponent->GetLaserMaterial() : nullptr;
 }
 
 UMaterialBillboardComponent* UGoogleVRMotionControllerComponent::GetReticle() const
@@ -108,7 +145,25 @@ void UGoogleVRMotionControllerComponent::OnRegister()
 
 	// Check that required UPROPERTIES are set.
 	check(ControllerMesh != nullptr);
+	check(ControllerTouchPointMesh != nullptr);
 	check(IdleMaterial != nullptr);
+	check(TouchpadMaterial != nullptr);
+	check(AppMaterial != nullptr);
+	check(SystemMaterial != nullptr);
+	check(ControllerTouchPointMaterial != nullptr);
+	check(ControllerBatteryMesh != nullptr);
+	check(ControllerBatteryStaticMaterial != nullptr);
+	check(BatteryUnknownTexture != nullptr);
+	check(BatteryFullTexture != nullptr);
+	check(BatteryAlmostFullTexture != nullptr);
+	check(BatteryMediumTexture != nullptr);
+	check(BatteryLowTexture != nullptr);
+	check(BatteryCriticalLowTexture != nullptr);
+	check(BatteryChargingTexture != nullptr);
+	check(ControllerReticleMaterial != nullptr);
+	check(ParameterCollection != nullptr);
+	check(LaserPlaneMesh != nullptr);
+
 
 	// Get the world to meters scale.
 	const float WorldToMetersScale = GetWorldToMetersScale();
@@ -136,16 +191,12 @@ void UGoogleVRMotionControllerComponent::OnRegister()
 	ControllerMeshComponent->SetRelativeLocation(FVector(ControllerHalfLength, 0.0f, 0.0f));
 
 	// Create the Controller Touch Point Mesh and attach it to the ControllerMesh.
-	if (ControllerTouchPointMesh != nullptr)
 	{
 		ControllerTouchPointMeshComponent = NewObject<UStaticMeshComponent>(this, TEXT("ControllerTouchPointMesh"));
 		ControllerTouchPointMeshComponent->SetStaticMesh(ControllerTouchPointMesh);
 		ControllerTouchPointMeshComponent->SetTranslucentSortPriority(TranslucentSortPriority + 1);
 		ControllerTouchPointMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		if (ControllerTouchPointMaterial != nullptr)
-		{
-			ControllerTouchPointMeshComponent->SetMaterial(0, ControllerTouchPointMaterial);
-		}
+		ControllerTouchPointMeshComponent->SetMaterial(0, ControllerTouchPointMaterial);
 
 		// Determine what the scale of the mesh should be based on the
 		// Size of the mesh and the desired size of the touch point.
@@ -163,36 +214,49 @@ void UGoogleVRMotionControllerComponent::OnRegister()
 		ControllerTouchPointMeshComponent->RegisterComponent();
 	}
 
+	// Create the Controller Battery Mesh and attach it to the ControllerMesh.
+	{
+		ControllerBatteryMeshComponent = NewObject<UStaticMeshComponent>(this, TEXT("ControllerBatteryMesh"));
+		ControllerBatteryMeshComponent->SetStaticMesh(ControllerBatteryMesh);
+		ControllerBatteryMeshComponent->SetTranslucentSortPriority(TranslucentSortPriority + 1);
+		ControllerBatteryMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		// Create the dynamic material that will hold the current battery level texture.
+		ControllerBatteryMaterial = UMaterialInstanceDynamic::Create(ControllerBatteryStaticMaterial->GetMaterial(), this);
+		ControllerBatteryMaterial->SetTextureParameterValue(BatteryTextureParameterName, BatteryUnknownTexture);
+		ControllerBatteryMeshComponent->SetMaterial(0, ControllerBatteryMaterial);
+
+		// Determine the size and position of the mesh.  This assumes that
+		// the controller is a certain size.
+		FTransform BatteryTransform;
+		BatteryTransform.SetTranslation(BATTERY_INDICATOR_TRANSLATION);
+		BatteryTransform.SetScale3D(BATTERY_INDICATOR_SCALE);
+		BatteryTransform.SetRotation(BATTERY_INDICATOR_ROTATION);
+		ControllerBatteryMeshComponent->SetRelativeTransform(BatteryTransform);
+		ControllerBatteryMeshComponent->SetupAttachment(ControllerMeshComponent);
+		ControllerBatteryMeshComponent->RegisterComponent();
+	}
+
 	// Create the pointer container.
 	PointerContainerComponent = NewObject<USceneComponent>(this, TEXT("Pointer"));
 	PointerContainerComponent->SetupAttachment(MotionControllerComponent);
 	PointerContainerComponent->RegisterComponent();
 
-	// Create the laser.
-	if (LaserParticleSystem != nullptr)
-	{
-		LaserParticleSystemComponent = NewObject<UParticleSystemComponent>(this, TEXT("LaserParticleSystem"));
-		LaserParticleSystemComponent->SetTemplate(LaserParticleSystem);
-		LaserParticleSystemComponent->SetTranslucentSortPriority(TranslucentSortPriority);
-		LaserParticleSystemComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		FParticleSysParam DistanceParam;
-		DistanceParam.Name = "LaserDistance";
-		DistanceParam.ParamType = EParticleSysParamType::PSPT_Scalar;
-		LaserParticleSystemComponent->InstanceParameters.Add(DistanceParam);
-		LaserParticleSystemComponent->SetupAttachment(PointerContainerComponent);
-		LaserParticleSystemComponent->RegisterComponent();
-	}
+	// Create the laser plane.
+	LaserPlaneComponent = NewObject<UGoogleVRLaserPlaneComponent>(this, TEXT("LaserPlaneMesh"));
+	LaserPlaneComponent->SetStaticMesh(LaserPlaneMesh);
+	LaserPlaneComponent->SetTranslucentSortPriority(TranslucentSortPriority + 1);
+	LaserPlaneComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LaserPlaneComponent->SetupAttachment(PointerContainerComponent);
+	LaserPlaneComponent->RegisterComponent();
 
 	// Create the reticle.
-	if (ControllerReticleMaterial != nullptr)
-	{
-		ReticleBillboardComponent = NewObject<UMaterialBillboardComponent>(this, TEXT("Reticle"));
-		ReticleBillboardComponent->AddElement(ControllerReticleMaterial, nullptr, false, 1.0f, 1.0f, nullptr);
-		ReticleBillboardComponent->SetTranslucentSortPriority(TranslucentSortPriority);
-		ReticleBillboardComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		ReticleBillboardComponent->SetupAttachment(PointerContainerComponent);
-		ReticleBillboardComponent->RegisterComponent();
-	}
+	ReticleBillboardComponent = NewObject<UMaterialBillboardComponent>(this, TEXT("Reticle"));
+	ReticleBillboardComponent->AddElement(ControllerReticleMaterial, nullptr, false, 1.0f, 1.0f, nullptr);
+	ReticleBillboardComponent->SetTranslucentSortPriority(TranslucentSortPriority);
+	ReticleBillboardComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ReticleBillboardComponent->SetupAttachment(PointerContainerComponent);
+	ReticleBillboardComponent->RegisterComponent();
 
 	// Now that everything is created, set the visibility based on the active status.
 	// Set bAreSubComponentsEnabled to prevent SetSubComponentsEnabled from returning early since
@@ -270,6 +334,9 @@ void UGoogleVRMotionControllerComponent::TickComponent( float DeltaTime, ELevelT
 
 	const float WorldToMetersScale = GetWorldToMetersScale();
 
+	// Update the battery level indicator.
+	UpdateBatteryIndicator();
+
 	if (PlayerController->IsInputKeyDown(FGamepadKeyNames::MotionController_Left_Thumbstick)
 		|| PlayerController->IsInputKeyDown(FGamepadKeyNames::MotionController_Right_Thumbstick))
 	{
@@ -338,13 +405,6 @@ void UGoogleVRMotionControllerComponent::TickComponent( float DeltaTime, ELevelT
 			UE_LOG(LogGoogleVRMotionController, Warning, TEXT("Unable to find GoogleVRMotionControllerAlpha parameter in Material Collection."));
 		}
 	}
-
-	// If we don't explicitly mark the particly system dirty then it won't
-	// Follow the position of the controller correctly.
-	if (LaserParticleSystemComponent != nullptr)
-	{
-		LaserParticleSystemComponent->MarkRenderStateDirty();
-	}
 }
 
 void UGoogleVRMotionControllerComponent::TrySetControllerMaterial(UMaterialInterface* NewMaterial)
@@ -359,21 +419,76 @@ void UGoogleVRMotionControllerComponent::TrySetControllerMaterial(UMaterialInter
 	}
 }
 
+void UGoogleVRMotionControllerComponent::UpdateBatteryIndicator()
+{
+	UTexture2D* NewTexture = nullptr;
+
+	// Charging overrides other state options.
+	if (UGoogleVRControllerFunctionLibrary::GetBatteryCharging())
+	{
+		if (!bBatteryWasCharging)
+		{
+			NewTexture = BatteryChargingTexture;
+			bBatteryWasCharging = true;
+		}
+	}
+	else
+	{
+		EGoogleVRControllerBatteryLevel BatteryLevel = UGoogleVRControllerFunctionLibrary::GetBatteryLevel();
+
+		if (BatteryLevel != LastKnownBatteryState || bBatteryWasCharging)
+		{
+			switch (BatteryLevel)
+			{
+				case EGoogleVRControllerBatteryLevel::CriticalLow:
+					NewTexture = BatteryCriticalLowTexture;
+					break;
+
+				case EGoogleVRControllerBatteryLevel::Low:
+					NewTexture = BatteryLowTexture;
+					break;
+
+				case EGoogleVRControllerBatteryLevel::Medium:
+					NewTexture = BatteryMediumTexture;
+					break;
+
+				case EGoogleVRControllerBatteryLevel::AlmostFull:
+					NewTexture = BatteryAlmostFullTexture;
+					break;
+
+				case EGoogleVRControllerBatteryLevel::Full:
+					NewTexture = BatteryFullTexture;
+					break;
+
+				default:
+					NewTexture = BatteryUnknownTexture;
+					break;
+			}
+
+			LastKnownBatteryState = BatteryLevel;
+			bBatteryWasCharging = false;
+		}
+	}
+
+	if (NewTexture != nullptr && ControllerBatteryMaterial != nullptr)
+	{
+		ControllerBatteryMaterial->SetTextureParameterValue(BatteryTextureParameterName, NewTexture);
+	}
+}
+
 void UGoogleVRMotionControllerComponent::UpdateLaserDistance(float Distance)
 {
-	if (LaserParticleSystemComponent != nullptr)
+	if (LaserPlaneComponent != nullptr)
 	{
-		const float WorldToMetersScale = GetWorldToMetersScale();
-		float ClampedDistance = FMath::Clamp(Distance, 0.0f, LaserDistanceMax * WorldToMetersScale);
-		FParticleSysParam& DistanceParam = LaserParticleSystemComponent->InstanceParameters[0];
-		DistanceParam.Scalar = ClampedDistance;
+		LaserPlaneComponent->UpdateLaserDistance(Distance);
+	}
+}
 
-		// Make sure that the laser is facing the Reticle.
-		if (ReticleBillboardComponent != nullptr)
-		{
-			FVector LookAtPos = ReticleBillboardComponent->RelativeLocation - LaserParticleSystemComponent->RelativeLocation;
-			LaserParticleSystemComponent->SetRelativeRotation(FRotationMatrix::MakeFromX(LookAtPos).Rotator());
-		}
+void UGoogleVRMotionControllerComponent::UpdateLaserCorrection(FVector Correction)
+{
+	if (LaserPlaneComponent != nullptr)
+	{
+		LaserPlaneComponent->UpdateLaserCorrection(Correction);
 	}
 }
 
@@ -457,10 +572,16 @@ void UGoogleVRMotionControllerComponent::SetSubComponentsEnabled(bool bNewEnable
 		ControllerTouchPointMeshComponent->SetVisibility(bNewEnabled);
 	}
 
-	if (LaserParticleSystemComponent != nullptr)
+	if (ControllerBatteryMeshComponent != nullptr)
 	{
-		LaserParticleSystemComponent->SetActive(bNewEnabled);
-		LaserParticleSystemComponent->SetVisibility(bNewEnabled);
+		ControllerBatteryMeshComponent->SetActive(bNewEnabled);
+		ControllerBatteryMeshComponent->SetVisibility(bNewEnabled);
+	}
+
+	if (LaserPlaneComponent != nullptr)
+	{
+		LaserPlaneComponent->SetActive(bNewEnabled);
+		LaserPlaneComponent->SetVisibility(bNewEnabled);
 	}
 
 	if (ReticleBillboardComponent != nullptr)
@@ -497,9 +618,14 @@ void UGoogleVRMotionControllerComponent::OnPointerHover(const FHitResult& HitRes
 	FVector OriginLocation = HitResult.TraceStart;
 	UpdateReticleLocation(Location, OriginLocation);
 
-	FVector Difference = Location - PointerContainerComponent->GetComponentLocation();
+	FTransform PointerContainerTransform = PointerContainerComponent->GetComponentTransform();
+
+	FVector Difference = Location - PointerContainerTransform.GetLocation();
 	float Distance = Difference.Size();
 	UpdateLaserDistance(Distance);
+
+	FVector UncorrectedLaserEndpoint = PointerContainerTransform.GetLocation() + PointerContainerTransform.GetUnitAxis(EAxis::X) * Distance;
+	UpdateLaserCorrection(Location - UncorrectedLaserEndpoint);
 }
 
 void UGoogleVRMotionControllerComponent::OnPointerExit(const FHitResult& HitResult)
@@ -507,6 +633,7 @@ void UGoogleVRMotionControllerComponent::OnPointerExit(const FHitResult& HitResu
 	const float WorldToMetersScale = GetWorldToMetersScale();
 	UpdateReticleDistance(ReticleDistanceMax * WorldToMetersScale);
 	UpdateLaserDistance(LaserDistanceMax * WorldToMetersScale);
+	UpdateLaserCorrection(FVector(0, 0, 0));
 }
 
 FVector UGoogleVRMotionControllerComponent::GetOrigin() const

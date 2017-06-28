@@ -22,7 +22,6 @@ namespace SteamAudio
 
 		FReply OnBakePropagation();
 		bool IsBakeEnabled() const;
-		void CancelBakePropagation();
 
 		TWeakObjectPtr<UPhononSourceComponent> PhononSourceComponent;
 	};

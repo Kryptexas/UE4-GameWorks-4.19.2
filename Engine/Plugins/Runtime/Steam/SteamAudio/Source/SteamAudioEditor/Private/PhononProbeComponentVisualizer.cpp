@@ -17,7 +17,7 @@ namespace SteamAudio
 			const FColor Color(0, 153, 255);
 			for (const auto& ProbeLocation : ProbeComponent->ProbeLocations)
 			{
-				PDI->DrawPoint(ProbeLocation, Color, 10, SDPG_World);
+				PDI->DrawPoint(ProbeLocation, Color, 5, SDPG_World);
 			}
 		}
 	}

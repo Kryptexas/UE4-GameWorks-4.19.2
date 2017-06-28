@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 #include "StereoRendering.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
 
 class FPrimitiveSceneInfo;
@@ -15,6 +14,7 @@ class UCanvas;
 class USceneComponent;
 struct FPostProcessSettings;
 struct FWorldContext;
+class UTexture;
 
 /**
  * HMD device interface
@@ -155,6 +155,13 @@ public:
 			OutViewExtensions.Add(HmdViewExt);
 		}
 	}
+
+	/**
+	* Return a pointer to the SpectatorScreenController for the hmd if supported, else null.
+	* The controller is owned by the HMD, and will be destroyed when the HMD is destroyed.
+	*/
+	virtual class ISpectatorScreenController* GetSpectatorScreenController() { return nullptr; }
+	virtual class ISpectatorScreenController const* GetSpectatorScreenController() const { return nullptr; }
 
 protected:
 	/**

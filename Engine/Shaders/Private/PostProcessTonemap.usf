@@ -475,13 +475,22 @@ float4 TonemapCommonPS(
 
 		#if USE_GRAIN_QUANTIZATION
 			// Needs to go after tonemapping.
-			half GrainQuantization = 1.0/256.0;
+			#if USE_LINEAR_FLOAT_RT
+				half GrainQuantization = 1.0/1024.0;
+			#else
+				half GrainQuantization = 1.0/256.0;
+			#endif
+
 			half GrainAdd = (Grain * GrainQuantization) + (-0.5 * GrainQuantization);
 			OutDeviceColor.rgb += GrainAdd;
 		#endif
 
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(OutDeviceColor, saturate(LuminanceForPostProcessAA));
+
+		#if USE_LINEAR_FLOAT_RT
+			OutColor.rgb = sRGBToLinear( OutColor.rgb );
+		#endif
 
 		// We always process in PQ for precision but can output in ScRGB
 		BRANCH

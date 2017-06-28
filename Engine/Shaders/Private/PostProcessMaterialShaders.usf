@@ -96,7 +96,11 @@ void MainPS_ES2(
 	half4 FullSceneColor = half4(EmissiveColor, Parameters.BackupSceneColorAlpha);
 
 #if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
+#if OUTPUT_GAMMA_SPACE
+	FullSceneColor.rgb = sqrt(FullSceneColor.rgb);
+#else
 	FullSceneColor = Encode32BPPHDR(FullSceneColor, SvPosition);
+#endif
 #endif
 	OutColor = FullSceneColor;
 }

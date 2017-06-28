@@ -860,7 +860,8 @@ void UVREditorMotionControllerInteractor::PollInput()
 		{
 			FVector Location = FVector::ZeroVector;
 			FRotator Rotation = FRotator::ZeroRotator; 
-			if ( MotionController->GetControllerOrientationAndPosition( WorldInteraction->GetMotionControllerID(), ControllerHandSide, /* Out */ Rotation, /* Out */ Location, GetVRMode().GetWorldScaleFactor() ) )
+			const float WorldScale = GetVRMode().GetWorldScaleFactor() *100.0f; // WorldScaleFactor is worldscale / 100.0
+			if ( MotionController->GetControllerOrientationAndPosition( WorldInteraction->GetMotionControllerID(), ControllerHandSide, /* Out */ Rotation, /* Out */ Location, WorldScale) )
 			{
 				bHaveMotionController = true;
 				InteractorData.RoomSpaceTransform = FTransform( Rotation.Quaternion(), Location, FVector( 1.0f ) );

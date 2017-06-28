@@ -22,7 +22,7 @@ PFNGLDELETEQUERIESEXTPROC 				glDeleteQueriesEXT = NULL;
 PFNGLISQUERYEXTPROC 					glIsQueryEXT = NULL;
 PFNGLBEGINQUERYEXTPROC 					glBeginQueryEXT = NULL;
 PFNGLENDQUERYEXTPROC 					glEndQueryEXT = NULL;
-PFNGLGETQUERYIVEXTPROC 					glGetQueryivEXT = NULL;  
+PFNGLGETQUERYIVEXTPROC 					glGetQueryivEXT = NULL;
 PFNGLGETQUERYOBJECTIVEXTPROC 			glGetQueryObjectivEXT = NULL;
 PFNGLGETQUERYOBJECTUIVEXTPROC 			glGetQueryObjectuivEXT = NULL;
 
@@ -299,7 +299,7 @@ void FPlatformOpenGLDevice::LoadEXT()
 	glGetObjectLabelKHR = (PFNGLGETOBJECTLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectLabelKHR"));
 	glObjectPtrLabelKHR = (PFNGLOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glObjectPtrLabelKHR"));
 	glGetObjectPtrLabelKHR = (PFNGLGETOBJECTPTRLABELKHRPROC)((void*)eglGetProcAddress("glGetObjectPtrLabelKHR"));
-	
+
 	glGetProgramBinary = (PFNGLGETPROGRAMBINARYOESPROC)((void*)eglGetProcAddress("glGetProgramBinaryOES"));
 	glProgramBinary = (PFNGLPROGRAMBINARYOESPROC)((void*)eglGetProcAddress("glProgramBinaryOES"));
 }
@@ -470,8 +470,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		MaxMSAASamplesTileMem = 1;
 	}
 
-	if (ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external")) && 
-		ExtensionsString.Contains(TEXT("OES_EGL_image_external_essl3")))
+	if (ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external")))
 	{
 		bSupportsImageExternal = true;
 		UE_LOG(LogRHI, Log, TEXT("Image external enabled."));
@@ -495,7 +494,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bHasHardwareHiddenSurfaceRemoval = true;
 		UE_LOG(LogRHI, Log, TEXT("Enabling support for Hidden Surface Removal on PowerVR"));
 	}
-	
+
 	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
@@ -542,7 +541,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsTextureHalfFloat = true;
 		bSupportsRGB10A2 = true;
 		bSupportsVertexHalfFloat = true;
-		
+
 		// According to https://www.khronos.org/registry/gles/extensions/EXT/EXT_color_buffer_float.txt
 		bSupportsColorBufferHalfFloat = (bSupportsColorBufferHalfFloat || bSupportsColorBufferFloat);
 	}
@@ -576,7 +575,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 			glTexBufferEXT = (PFNGLTEXBUFFEREXTPROC)((void*)eglGetProcAddress("glTexBufferEXT"));
 		}
 	}
-	
+
 	if (bES30Support || bIsAdrenoBased)
 	{
 		// Attempt to find ES 3.0 glTexStorage2D if we're on an ES 3.0 device

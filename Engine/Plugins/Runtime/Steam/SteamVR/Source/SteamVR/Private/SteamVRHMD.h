@@ -16,13 +16,12 @@
 #include "AllowWindowsPlatformTypes.h"
 #include <d3d11.h>
 #include "HideWindowsPlatformTypes.h"
-#elif PLATFORM_LINUX
-#include "OpenGLDrv.h"
 #endif
 
-#include "SceneViewExtension.h"
+#include "OpenGLDrv.h"
 
-#define STEAMVR_USE_VULKAN_RHI 0
+#include "SceneViewExtension.h"
+#include "SteamVRAssetManager.h"
 
 class IRendererModule;
 
@@ -35,16 +34,6 @@ struct FBoundingQuad
 //@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
-
-
-/** 
- * Translates deprecated SteamVR HMD console commands to the newer ones
- */
-class FSteamVRHMDCompat : private FSelfRegisteringExec
-{
-private:
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-};
 
 /** 
  * Struct for managing stereo layer data.
@@ -71,7 +60,7 @@ struct FSteamVRLayer
 /**
  * SteamVR Head Mounted Display
  */
-class FSteamVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public TStereoLayerManager<FSteamVRLayer>
+class FSteamVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public FSteamVRAssetManager, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public TStereoLayerManager<FSteamVRLayer>
 {
 public:
 	/** IHeadMountedDisplay interface */
@@ -177,6 +166,14 @@ public:
 	// Create/Set/Get/Destroy inherited from TStereoLayerManager
 	virtual void UpdateSplashScreen() override;
 
+	// SpectatorScreen
+private:
+	void CreateSpectatorScreenController();
+public:
+	virtual FIntRect GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const override;
+	virtual void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const override;
+
+
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
 	public:
@@ -190,6 +187,7 @@ public:
 		bool IsInitialized() const { return bInitialized; }
 
 		virtual void BeginRendering() = 0;
+		virtual void FinishRendering() = 0;
 		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) = 0;
 		virtual void SetNeedReinitRendererAPI() { bNeedReinitRendererAPI = true; }
 
@@ -213,7 +211,7 @@ public:
 		virtual void PostPresent() override;
 
 		virtual void BeginRendering() override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
@@ -224,9 +222,8 @@ public:
 	protected:
 		ID3D11Texture2D* RenderTargetTexture = NULL;
 	};
-#elif PLATFORM_LINUX
+#endif
 
-#if STEAMVR_USE_VULKAN_RHI
 	class VulkanBridge : public BridgeBaseImpl
 	{
 	public:
@@ -237,7 +234,7 @@ public:
 		virtual void PostPresent() override;
 
 		virtual void BeginRendering() override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
@@ -250,7 +247,6 @@ public:
 		FTexture2DRHIRef RenderTargetTexture;
 	};
 
-	#else
 	class OpenGLBridge : public BridgeBaseImpl
 	{
 	public:
@@ -261,7 +257,7 @@ public:
 		virtual void PostPresent() override;
 
 		virtual void BeginRendering() override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
@@ -273,8 +269,6 @@ public:
 		GLuint RenderTargetTexture = 0;
 
 	};
-	#endif
-#endif // PLATFORM_WINDOWS
 
 	BridgeBaseImpl* GetActiveRHIBridgeImpl();
 	void ShutdownRendering();
@@ -286,7 +280,7 @@ public:
 	ETrackingStatus GetControllerTrackingStatus(uint32 DeviceId) const;
 	STEAMVR_API bool GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation);
 	STEAMVR_API ETrackingStatus GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const;
-
+	bool IsTracking(uint32 DeviceId) const;
 
 	/** Chaperone */
 	/** Returns whether or not the player is currently inside the bounds */
@@ -296,8 +290,8 @@ public:
 	TArray<FVector> GetBounds() const;
 
 	/** Sets the map from Unreal controller id and hand index, to tracked device id. */
-	void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ]);
-
+	void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ vr::k_unMaxTrackedDeviceCount ]);
+	
 public:
 	/** Constructor */
 	FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin);
@@ -309,6 +303,7 @@ public:
 	bool IsInitialized() const;
 
 	vr::IVRSystem* GetVRSystem() const { return VRSystem; }
+	vr::IVRRenderModels* GetRenderModelManager() const { return VRRenderModels; }
 
 private:
 
@@ -476,7 +471,7 @@ private:
 	void UpdateStereoLayers_RenderThread();
 
 	TSharedPtr<FSteamSplashTicker>	SplashTicker;
-	
+
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
 	/** How far the HMD has to move before it's considered to be worn */
@@ -508,7 +503,7 @@ private:
 	bool					bShouldCheckHMDPosition;
 
 	/** Mapping from Unreal Controller Id and Hand to a tracked device id.  Passed in from the controller plugin */
-	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2];
+	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][vr::k_unMaxTrackedDeviceCount];
 
 	IRendererModule* RendererModule;
 	ISteamVRPlugin* SteamVRPlugin;
@@ -517,23 +512,14 @@ private:
 	vr::IVRCompositor* VRCompositor;
 	vr::IVROverlay* VROverlay;
 	vr::IVRChaperone* VRChaperone;
+	vr::IVRRenderModels* VRRenderModels;
 
 	FString DisplayId;
 
-	FSteamVRHMDCompat CompatExec;
 	FQuat PlayerOrientation;
 	FVector PlayerLocation;
 
-#if PLATFORM_WINDOWS
-	TRefCountPtr<D3D11Bridge>	pBridge;
-#elif PLATFORM_LINUX
-	#if STEAMVR_USE_VULKAN_RHI
-		TRefCountPtr<VulkanBridge>	pBridge;
-	#else
-		TRefCountPtr<OpenGLBridge>	pBridge;
-	#endif
-#endif
-
+	TRefCountPtr<BridgeBaseImpl> pBridge;
 
 //@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 public:

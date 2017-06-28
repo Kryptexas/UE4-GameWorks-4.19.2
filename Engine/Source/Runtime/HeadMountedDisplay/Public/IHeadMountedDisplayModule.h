@@ -8,6 +8,8 @@
 #include "Features/IModularFeatures.h"
 #include "Features/IModularFeature.h"
 
+#include "IHeadMountedDisplayVulkanExtensions.h"
+
 class IHeadMountedDisplay;
 
 /**
@@ -104,4 +106,10 @@ public:
 	 * @return	Interface to the new head tracking device, if we were able to successfully create one
 	 */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() = 0;
+
+	/**
+	 * Extensions:
+	 * If the HMD supports the various extensions listed below, it should return a valid pointer to an implementation contained within it.
+	 */
+	virtual IHeadMountedDisplayVulkanExtensions* GetVulkanExtensions() { return nullptr; }
 };

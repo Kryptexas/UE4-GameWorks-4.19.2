@@ -12,6 +12,9 @@ UPhononMaterialComponent::UPhononMaterialComponent()
 	LowFreqAbsorption = SelectedMaterialPreset.lowFreqAbsorption;
 	MidFreqAbsorption = SelectedMaterialPreset.midFreqAbsorption;
 	HighFreqAbsorption = SelectedMaterialPreset.highFreqAbsorption;
+	LowFreqTransmission = SelectedMaterialPreset.lowFreqTransmission;
+	MidFreqTransmission = SelectedMaterialPreset.midFreqTransmission;
+	HighFreqTransmission = SelectedMaterialPreset.highFreqTransmission;
 	Scattering = SelectedMaterialPreset.scattering;
 }
 
@@ -21,6 +24,9 @@ IPLMaterial UPhononMaterialComponent::GetMaterialPreset() const
 	SelectedMaterialPreset.lowFreqAbsorption = LowFreqAbsorption;
 	SelectedMaterialPreset.midFreqAbsorption = MidFreqAbsorption;
 	SelectedMaterialPreset.highFreqAbsorption = HighFreqAbsorption;
+	SelectedMaterialPreset.lowFreqTransmission = LowFreqTransmission;
+	SelectedMaterialPreset.midFreqTransmission = MidFreqTransmission;
+	SelectedMaterialPreset.highFreqTransmission = HighFreqTransmission;
 	SelectedMaterialPreset.scattering = Scattering;
 
 	return SelectedMaterialPreset;
@@ -38,6 +44,9 @@ void UPhononMaterialComponent::PostEditChangeProperty(struct FPropertyChangedEve
 		LowFreqAbsorption = SelectedMaterialPreset.lowFreqAbsorption;
 		MidFreqAbsorption = SelectedMaterialPreset.midFreqAbsorption;
 		HighFreqAbsorption = SelectedMaterialPreset.highFreqAbsorption;
+		LowFreqTransmission = SelectedMaterialPreset.lowFreqTransmission;
+		MidFreqTransmission = SelectedMaterialPreset.midFreqTransmission;
+		HighFreqTransmission = SelectedMaterialPreset.highFreqTransmission;
 		Scattering = SelectedMaterialPreset.scattering;
 	}
 }
@@ -50,6 +59,9 @@ bool UPhononMaterialComponent::CanEditChange(const UProperty* InProperty) const
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, LowFreqAbsorption) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, MidFreqAbsorption) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, HighFreqAbsorption) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, LowFreqTransmission) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, MidFreqTransmission) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, HighFreqTransmission) ||
 		PropertyName == GET_MEMBER_NAME_CHECKED(UPhononMaterialComponent, Scattering))
 	{
 		return ParentVal && (MaterialPreset == EPhononMaterial::CUSTOM);

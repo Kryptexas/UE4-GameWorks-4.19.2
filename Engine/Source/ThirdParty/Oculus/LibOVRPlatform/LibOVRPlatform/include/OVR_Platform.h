@@ -44,8 +44,16 @@
 #include "OVR_MatchmakingBrowseResult.h"
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingEnqueueResultAndRoom.h"
+#include "OVR_PermissionGrantStatus.h"
 #include "OVR_Voip_LowLevel.h"
 #include "OVR_PlatformInitializeResult.h"
+#include "OVR_LivestreamingAudience.h"
+#include "OVR_LivestreamingMicrophoneStatus.h"
+#include "OVR_LivestreamingStartStatus.h"
+#include "OVR_LivestreamingApplicationStatus.h"
+#include "OVR_LivestreamingStartResult.h"
+#include "OVR_LivestreamingVideoStats.h"
+
 #include "OVR_Requests_Achievements.h"
 #include "OVR_Requests_Application.h"
 #include "OVR_Requests_ApplicationLifecycle.h"
@@ -71,11 +79,63 @@ OVRP_PUBLIC_FUNCTION(bool) ovr_IsPlatformInitialized();
 #ifdef __ANDROID__
 #include <jni.h>
 OVRP_PUBLIC_FUNCTION(ovrPlatformInitializeResult) ovr_PlatformInitializeAndroid(const char* appId, jobject activityObject, JNIEnv * jni);
+
+// Asynchronously Initialize Platform SDK. The result will be put on the message
+// queue with the message type: ovrMessage_PlatformInitializeAndroidAsynchronous
+//
+// While the platform is in an initializing state, it's not fully functional.
+// [Requests]: will queue up and run once platform is initialized.
+//    For example: ovr_User_GetLoggedInUser() can be called immediately after
+//    asynchronous init and once platform is initialized, this request will run
+// [Synchronous Methods]: will return the default value;
+//    For example: ovr_GetLoggedInUserID() will return 0 until platform is
+//    fully initialized
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_PlatformInitializeAndroidAsynchronous(const char* appId, jobject activityObject, JNIEnv * jni);
 #endif
 
-OVRPL_PUBLIC_FUNCTION(void) ovr_PlatformInitializeStandaloneAccessToken(const char* accessToken);
+/// This enum describes the type of versionable structs in the Oculus Platform
+/// API. Older versions of structs will not be declared here, but they will be
+/// seamlessly updated for all supported older versions of the SDK.
+typedef enum ovrPlatformStructureType_ {
+  ovrPlatformStructureType_Unknown = 0,
+  ovrPlatformStructureType_OculusInitParams = 1,
+} ovrPlatformStructureType;
 
+/// sType - Credential struct type, must be: ovrPlatformStructureType_OculusInitParams
+/// email - Email address associated with Oculus account.
+/// password - Password for the Oculus account.
+/// appID - ID of the application (user must be entitled).
+/// uriPrefixOverride - optional override for https://graph.oculus.com
+typedef struct {
+  ovrPlatformStructureType sType;
+  const char *email;
+  const char *password;
+  ovrID appId;
+  const char *uriPrefixOverride;
+} ovrOculusInitParams;
+
+
+#ifdef __ANDROID__ //Needed for compatibility. 1.13 introduced this method
+
+/// Initializes the SDK in Standalone mode and doesn't try to connect to a locally running Oculus
+/// Service process.  Not all functionality will work when when the SDK is initialized this
+/// way.  In particular: IAP, Cloud Storage, Parties, Events, Live Streaming.
+/// Listen for the message ovrMessage_Platform_InitializeStandaloneOculus to detect when
+/// the platform has finished initializing.
+/// \param params non-nullptr to a struct with the required Oculus Authentication data.
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculus(
+  const ovrOculusInitParams *params);
+#else
 #if defined(OVRPL_DISABLED)
+
+/// Initializes the SDK in Standalone mode and doesn't try to connect to a locally running Oculus
+/// Service process.  Not all functionality will work when when the SDK is initialized this
+/// way.  In particular: IAP, Cloud Storage, Parties, Events, Live Streaming.
+/// Listen for the message ovrMessage_Platform_InitializeStandaloneOculus to detect when
+/// the platform has finished initializing.
+/// \param params non-nullptr to a struct with the required Oculus Authentication data.
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculus(
+  const ovrOculusInitParams *params);
 
 /// Performs the initialization of the platform for use on Windows. Requires your app
 /// ID (not access token). This call may fail for a variety of reasons, and will return
@@ -83,7 +143,32 @@ OVRPL_PUBLIC_FUNCTION(void) ovr_PlatformInitializeStandaloneAccessToken(const ch
 /// exit or make no further platform calls.
 OVRPL_PUBLIC_FUNCTION(ovrPlatformInitializeResult) ovr_PlatformInitializeWindows(const char* appId);
 
+// Asynchronously Initialize Platform SDK. The result will be put on the message
+// queue with the message type: ovrMessage_PlatformInitializeWindowsAsynchronous
+//
+// While the platform is in an initializing state, it's not fully functional.
+// [Requests]: will queue up and run once platform is initialized.
+//    For example: ovr_User_GetLoggedInUser() can be called immediately after
+//    asynchronous init and once platform is initialized, this request will run
+// [Synchronous Methods]: will return the default value;
+//    For example: ovr_GetLoggedInUserID() will return 0 until platform is
+//    fully initialized
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_PlatformInitializeWindowsAsynchronous(const char* appId);
 #else
+
+/// Initializes the SDK in Standalone mode and doesn't try to connect to a locally running Oculus
+/// Service process.  Not all functionality will work when when the SDK is initialized this
+/// way.  In particular: IAP, Cloud Storage, Parties, Events, Live Streaming.
+/// Listen for the message ovrMessage_Platform_InitializeStandaloneOculus to detect when
+/// the platform has finished initializing.
+/// \param params non-nullptr to a struct with the required Oculus Authentication data.
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_Platform_InitializeStandaloneOculusEx(
+  const ovrOculusInitParams *params, ovrPlatformInitializeResult *outResult, int productVersion, int majorVersion);
+
+/// Wrapper for ovr_Platform_InitializeStandaloneOculusEx that automatically passes the key
+/// version information as defined in this header package. This is used to ensure that the
+/// version in your headers matches the version of the static library.
+#define ovr_Platform_InitializeStandaloneOculus(params, outResult) ovr_Platform_InitializeStandaloneOculusEx(params, outResult, PLATFORM_PRODUCT_VERSION, PLATFORM_MAJOR_VERSION)
 
 /// Performs the initialization of the platform for use on Windows. Requires your app
 /// ID (not access token). This call may fail for a variety of reasons, and will return
@@ -96,7 +181,33 @@ OVRPL_PUBLIC_FUNCTION(ovrPlatformInitializeResult) ovr_PlatformInitializeWindows
 /// in your headers matches the version of the static library.
 #define ovr_PlatformInitializeWindows(appId) ovr_PlatformInitializeWindowsEx((appId), PLATFORM_PRODUCT_VERSION, PLATFORM_MAJOR_VERSION)
 
+
+/// Performs the initialization of the platform for use on Windows. Requires your app
+/// ID (not access token). This call may fail for a variety of reasons, and will return
+/// an error code in that case. It is critical to respect this error code and either
+/// exit or make no further platform calls.
+///
+/// outResult will contain the result of attempting to load the DLL.
+/// If that fails, the returning ovrRequest will be 0.
+///
+/// NOTE: Just because the DLL is loaded successfully does NOT mean that the
+/// initialization was successful, you still need to check the message queue
+/// for the result in ovrMessage_PlatformInitializeWindowsAsynchronous
+OVRPL_PUBLIC_FUNCTION(ovrRequest) ovr_PlatformInitializeWindowsAsynchronousEx(const char* appId, ovrPlatformInitializeResult *outResult, int productVersion, int majorVersion);
+
+/// Wrapper for ovr_PlatformInitializeWindowsAsynchronousEx that automatically passes the key version
+/// information as defined in this header package. This is used to ensure that the version
+/// in your headers matches the version of the static library.
+///
+/// outResult will contain the result of attempting to load the DLL.
+/// If that fails, the returning ovrRequest will be 0.
+///
+/// NOTE: Just because the DLL is loaded successfully does NOT mean that the
+/// initialization was successful, you still need to check the message queue
+/// for the result in ovrMessage_PlatformInitializeWindowsAsynchronous
+#define ovr_PlatformInitializeWindowsAsynchronous(appId, outResult) ovr_PlatformInitializeWindowsAsynchronousEx(appId, outResult, PLATFORM_PRODUCT_VERSION, PLATFORM_MAJOR_VERSION)
 #endif
+#endif //Android
 
 /// Returns the id of the currently logged in user, or a 0 id if there
 /// is none.

@@ -3,10 +3,9 @@
 #include "OculusIdentityCallbackProxy.h"
 #include "OnlineSubsystemOculusPrivate.h"
 #include "Online.h"
-#include "OnlineIdentityOculus.h"
 
 UOculusIdentityCallbackProxy::UOculusIdentityCallbackProxy(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer), LocalUserNum(0)
 {
 }
 

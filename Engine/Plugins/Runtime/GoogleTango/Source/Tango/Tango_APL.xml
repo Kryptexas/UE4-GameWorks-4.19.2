@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Tango plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- init section is always evaluated once per architecture -->
+  <init>
+    <log text="Tango init"/>
+  </init>
+
+  <!-- optional files or directories to copy to Intermediate/Android/APK -->
+  <resourceCopies>
+    <log text="Copying Tango files to staging"/>
+    <copyDir src="$S(PluginDir)/Java"
+    dst="$S(BuildDir)/src/com/projecttango/unreal" />
+    <copyDir src="$S(PluginDir)/../Java/com" dst="$S(BuildDir)/src/com" />
+    <isArch arch="armeabi-v7a">
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/armeabi-v7a/libtango_support_api.so"
+          dst="$S(BuildDir)/libs/armeabi-v7a/libtango_support_api.so" />
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/armeabi-v7a/libtango_3d_reconstruction.so"
+                dst="$S(BuildDir)/libs/armeabi-v7a/libtango_3d_reconstruction.so" />
+    </isArch>
+    <isArch arch="arm64-v8a">
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/arm64-v8a/libtango_support_api.so"
+                dst="$S(BuildDir)/libs/arm64-v8a/libtango_support_api.so" />
+      <copyFile src="$S(EngineDir)/Source/ThirdParty/TangoSDK/lib/arm64-v8a/libtango_3d_reconstruction.so"
+                dst="$S(BuildDir)/libs/arm64-v8a/libtango_3d_reconstruction.so" />
+    </isArch>
+
+  </resourceCopies>
+
+  <!-- optional updates applied to AndroidManifest.xml -->
+  <androidManifestUpdates>
+    <addPermission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <addPermission android:name="android.permission.CAMERA"/>
+  </androidManifestUpdates>
+
+
+  <gameActivityImportAdditions>
+    <insert>
+      import com.projecttango.unreal.TangoInitialization;
+      import com.projecttango.unreal.TangoUnrealHelper;
+      import com.projecttango.unreal.TangoNativeEngineMethodWrapper;
+
+      import android.os.IBinder;
+    </insert>
+  </gameActivityImportAdditions>
+
+  <gameActivityClassAdditions>
+    <insert>
+      static boolean bTangoLibFound;
+
+      static
+      {
+        // Static initialization block as hack(?) to load .so from device before Unreal tries to.
+        try {
+           bTangoLibFound = TangoInitialization.loadLibrary();
+        } catch (Throwable throwable) {
+            Log.error(throwable.getMessage()); // can happen on non-tango device
+        }
+      }
+
+      public class ServiceLifecycleWrapper implements TangoUnrealHelper.TangoServiceLifecycleListener
+      {
+        public void onTangoServiceConnected(IBinder binder)
+        {
+          TangoNativeEngineMethodWrapper.reportTangoServiceConnect(binder);
+        }
+        public void onTangoServiceDisconnected()
+        {
+          TangoNativeEngineMethodWrapper.reportTangoServiceDisconnect();
+        }
+      }
+
+      TangoUnrealHelper tangoUnrealHelper = null;
+
+      public TangoUnrealHelper GetTangoUnrealHelper()
+      {
+        if (tangoUnrealHelper == null)
+        {
+          tangoUnrealHelper = new TangoUnrealHelper(this);
+        }
+
+        return tangoUnrealHelper;
+      }
+
+      // Methods for calling via JNI:
+
+      public boolean AndroidThunkJava_InitiateTangoServiceBind()
+      {
+        return GetTangoUnrealHelper().bindTangoService();
+      }
+
+      public void AndroidThunkJava_UnbindTangoService()
+      {
+        GetTangoUnrealHelper().unbindTangoService();
+      }
+
+      public int AndroidThunkJava_GetDisplayRotation()
+      {
+        return GetTangoUnrealHelper().getDisplayRotation();
+      }
+
+      public int AndroidThunkJava_GetColorCameraRotation()
+      {
+        return GetTangoUnrealHelper().getColorCameraRotation();
+      }
+      public void AndroidThunkJava_TangoRequestAreaDescriptionPermission()
+      {
+         GetTangoUnrealHelper().getAreaLearningPermissionIfNecessary();
+      }
+      public boolean AndroidThunkJava_TangoHasAreaDescriptionPermission()
+      {
+         return GetTangoUnrealHelper().hasAreaLearningPermission();
+      }
+      public void AndroidThunkJava_TangoRequestAreaDescriptionImport(String filePath)
+      {
+         GetTangoUnrealHelper().requestImportAreaDescription(filePath);
+      }
+      public void AndroidThunkJava_TangoRequestAreaDescriptionExport(String UUID, String filePath)
+      {
+         GetTangoUnrealHelper().requestExportAreaDescription(UUID, filePath);
+      }
+      public boolean AndroidThunkJava_IsTangoCorePresent()
+      {
+         return GetTangoUnrealHelper().isTangoCorePresent();
+      }
+      public boolean AndroidThunkJava_IsTangoCoreUpToDate()
+      {
+         return GetTangoUnrealHelper().isTangoCoreUpToDate();
+      }
+
+    </insert>
+  </gameActivityClassAdditions>
+
+  <gameActivityOnPauseAdditions>
+    <insert>
+      if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+          TangoNativeEngineMethodWrapper.onApplicationPause();
+      }
+    </insert>
+  </gameActivityOnPauseAdditions>
+
+  <gameActivityOnResumeAdditions>
+    <insert>
+      if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+         TangoNativeEngineMethodWrapper.onApplicationResume();
+      }
+    </insert>
+  </gameActivityOnResumeAdditions>
+
+  <gameActivityOnStartAdditions>
+    <insert>
+      if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+          TangoNativeEngineMethodWrapper.onApplicationStart();
+      }
+      </insert>
+  </gameActivityOnStartAdditions>
+
+  <gameActivityOnStopAdditions>
+    <insert>
+      if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+          TangoNativeEngineMethodWrapper.onApplicationStop();
+      }
+      </insert>
+  </gameActivityOnStopAdditions>
+  <gameActivityOnActivityResultAdditions>
+    <insert>
+      Log.debug("TangoUnrealHelper on activity result");
+      if (GetTangoUnrealHelper() != null) {
+          GetTangoUnrealHelper().onActivityResult(requestCode, resultCode, data);
+      }
+    </insert>
+  </gameActivityOnActivityResultAdditions>
+
+  <gameActivityOnCreateAdditions>
+    <insert>
+      if (!bTangoLibFound)
+      {
+        Log.debug("Unable to load Tango library from device. Things may not work.");
+      }
+      else
+      {
+        Log.debug("Tango library loaded successfully from device.");
+        if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+           // Attach listener that will redirect Tango service connection state to plugin through JNI.
+            GetTangoUnrealHelper().attachTangoServiceLifecycleListener(new ServiceLifecycleWrapper());
+            TangoNativeEngineMethodWrapper.onApplicationCreated();
+        }
+      }
+    </insert>
+  </gameActivityOnCreateAdditions>
+
+  <gameActivityOnDestroyAdditions>
+    <insert>
+      if (GetTangoUnrealHelper().isTangoCoreUpToDate()) {
+        TangoNativeEngineMethodWrapper.onApplicationDestroyed();
+      }
+    </insert>
+  </gameActivityOnDestroyAdditions>
+
+  <!-- optional libraries to load in GameActivity.java before libUE4.so -->
+  <soLoadLibrary>
+  </soLoadLibrary>
+</root>

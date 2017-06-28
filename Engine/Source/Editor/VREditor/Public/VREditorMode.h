@@ -13,7 +13,6 @@
 #include "Misc/App.h"
 #include "Widgets/SWindow.h"
 #include "HeadMountedDisplayTypes.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "UI/VRRadialMenuHandler.h"
 #include "VREditorMode.generated.h"
 

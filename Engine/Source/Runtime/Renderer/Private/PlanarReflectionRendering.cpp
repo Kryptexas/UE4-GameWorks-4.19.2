@@ -325,7 +325,8 @@ extern FSceneRenderer* CreateSceneRendererForSceneCapture(
 	bool bCaptureSceneColor,
 	bool bIsPlanarReflection,
 	FPostProcessSettings* PostProcessSettings,
-	float PostProcessBlendWeight);
+	float PostProcessBlendWeight,
+	const AActor* ViewActor);
 
 void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer)
 {
@@ -404,7 +405,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		
 		FPostProcessSettings PostProcessSettings;
 
-		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, SceneCaptureViewInfo, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
+		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, SceneCaptureViewInfo, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f, /*ViewActor =*/nullptr);
 
 		for (int32 ViewIndex = 0; ViewIndex < SceneCaptureViewInfo.Num(); ++ViewIndex)
 		{

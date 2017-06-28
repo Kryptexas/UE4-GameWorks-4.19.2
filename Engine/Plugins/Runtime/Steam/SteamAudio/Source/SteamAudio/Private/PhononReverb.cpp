@@ -115,7 +115,15 @@ namespace SteamAudio
 		RenderingSettings.frameSize = FrameSize;
 		RenderingSettings.samplingRate = SampleRate;
 
-		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, nullptr, &BinauralRenderer);
+		IPLHrtfParams HrtfParams;
+		HrtfParams.hrtfData = nullptr;
+		HrtfParams.loadCallback = nullptr;
+		HrtfParams.lookupCallback = nullptr;
+		HrtfParams.unloadCallback = nullptr;
+		HrtfParams.numHrirSamples = 0;
+		HrtfParams.type = IPL_HRTFDATABASETYPE_DEFAULT;
+
+		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, HrtfParams, &BinauralRenderer);
 		iplCreateAmbisonicsBinauralEffect(BinauralRenderer, IndirectOutputAudioFormat, BinauralOutputAudioFormat, &IndirectBinauralEffect);
 		iplCreateAmbisonicsPanningEffect(BinauralRenderer, IndirectOutputAudioFormat, BinauralOutputAudioFormat, &IndirectPanningEffect);
 
@@ -161,7 +169,7 @@ namespace SteamAudio
 			return;
 		}
 
-		UE_LOG(LogSteamAudio, Log, TEXT("Creating reverb effect."));
+		UE_LOG(LogSteamAudio, Log, TEXT("Creating reverb effect for %s"), *AudioComponentUserId.ToString().ToLower());
 
 		auto Settings = static_cast<UPhononReverbSourceSettings*>(InSettings);
 		auto& ReverbSource = ReverbSources[SourceId];
@@ -171,11 +179,11 @@ namespace SteamAudio
 		switch (Settings->IndirectSimulationType)
 		{
 		case EIplSimulationType::BAKED:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString()), IPL_SIMTYPE_BAKED, InputAudioFormat,
+			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString().ToLower()), IPL_SIMTYPE_BAKED, InputAudioFormat,
 				IndirectOutputAudioFormat, &ReverbSource.ConvolutionEffect);
 			break;
 		case EIplSimulationType::REALTIME:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString()), IPL_SIMTYPE_REALTIME, 
+			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString().ToLower()), IPL_SIMTYPE_REALTIME, 
 				InputAudioFormat, IndirectOutputAudioFormat, &ReverbSource.ConvolutionEffect);
 			break;
 		case EIplSimulationType::DISABLED:

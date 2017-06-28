@@ -10,7 +10,7 @@
 #include "VREditorMode.h"
 #include "MultiBoxBuilder.h"
 #include "MultiBoxExtender.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
+#include "HeadMountedDisplayTypes.h"
 
 class FVREditorModule : public IVREditorModule
 {

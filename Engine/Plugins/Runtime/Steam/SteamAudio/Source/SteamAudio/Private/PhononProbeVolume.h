@@ -52,7 +52,7 @@ inline bool operator<(const FBakedDataInfo& lhs, const FBakedDataInfo& rhs)
  * Phonon Probe volumes generate a set of probes at which acoustic information will be sampled
  * at bake time.
  */
-UCLASS(HideCategories = (Actor, Advanced, Attachment, Collision))
+UCLASS(HideCategories = (Actor, Advanced, Attachment, Collision), meta = (BlueprintSpawnableComponent))
 class STEAMAUDIO_API APhononProbeVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
@@ -69,11 +69,15 @@ public:
 
 	uint8* GetProbeBoxData();
 
-	const int32 GetProbeBoxDataSize() const;
+	int32 GetProbeBoxDataSize() const;
 
 	uint8* GetProbeBatchData();
 
-	const int32 GetProbeBatchDataSize() const;
+	int32 GetProbeBatchDataSize() const;
+
+	int32 GetDataSizeForSource(const FName& UniqueIdentifier) const;
+
+	class UPhononProbeComponent* GetPhononProbeComponent() const { return PhononProbeComponent; }
 
 	// Method by which probes are placed within the volume.
 	UPROPERTY(EditAnywhere, Category = ProbeGeneration)
@@ -98,7 +102,6 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = ProbeVolumeStatistics, meta = (DisplayName = "Detailed Statistics"))
 	TArray<FBakedDataInfo> BakedDataInfo;
 
-private:
 	UPROPERTY()
 	class UPhononProbeComponent* PhononProbeComponent;
 
@@ -109,7 +112,4 @@ private:
 
 	UPROPERTY()
 	TArray<uint8> ProbeBatchData;
-
-public:
-	UPhononProbeComponent* GetPhononProbeComponent() { return PhononProbeComponent; }
 };

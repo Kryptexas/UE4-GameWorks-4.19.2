@@ -996,6 +996,9 @@ public:
 					case GL_TEXTURE_CUBE_MAP:
 					case GL_TEXTURE_2D_ARRAY:
 					case GL_TEXTURE_CUBE_MAP_ARRAY:
+#if PLATFORM_ANDROID
+					case GL_TEXTURE_EXTERNAL_OES:
+#endif
 					{
 						InvalidateTextureResourceInCache();
 						FOpenGL::DeleteTextures(1, &Resource);

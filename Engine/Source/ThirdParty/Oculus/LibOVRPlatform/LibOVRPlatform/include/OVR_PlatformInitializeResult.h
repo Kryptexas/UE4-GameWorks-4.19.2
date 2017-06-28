@@ -18,6 +18,8 @@ typedef enum ovrPlatformInitializeResult_ {
   ovrPlatformInitialize_UnableToVerify = -5,
   ovrPlatformInitialize_VersionMismatch = -6,
   ovrPlatformInitialize_Unknown = -7,
+  ovrPlatformInitialize_InvalidCredentials = -8,
+  ovrPlatformInitialize_NotEntitled = -9,
 } ovrPlatformInitializeResult;
 
 /// Converts an ovrPlatformInitializeResult enum value to a string

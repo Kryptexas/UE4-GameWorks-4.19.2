@@ -125,8 +125,8 @@ OVRP_PUBLIC_FUNCTION(void) ovr_Voip_SetMicrophoneMuted(ovrVoipMuteState state);
 /// This function can be safely called from any thread.
 OVRP_PUBLIC_FUNCTION(void) ovr_Voip_SetOutputSampleRate(ovrVoipSampleRate rate);
 
-/// Attempts to establish a VoIP session with the specified user. Message of
-/// type ovrNotification_Voip_StateChange will be posted when the session gets
+/// Attempts to establish a VoIP session with the specified user. A message of
+/// type ovrNotification_Voip_StateChange will be posted when the session is
 /// established.
 ///
 /// This function can be safely called from any thread.

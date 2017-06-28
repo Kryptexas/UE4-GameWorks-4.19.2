@@ -164,6 +164,9 @@ public:
 
 	virtual void OnUnregister() override;
 
+	/** To leverage a component's bOwnerNoSee/bOnlyOwnerSee properties, the capture view requires an "owner". Override this to set a "ViewActor" for the scene. */
+	virtual const AActor* GetViewOwner() const { return nullptr; }
+
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	static void UpdateDeferredCaptures(FSceneInterface* Scene);

@@ -14,6 +14,7 @@
 #include "Engine/GameEngine.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
+#include "IHeadMountedDisplayVulkanExtensions.h"
 
 #include "SteamVRMeshAssets.h"
 
@@ -100,7 +101,7 @@ static FString GetFStringTrackedDeviceProperty(vr::IVRSystem* VRSystem, uint32 D
 // SteamVR Plugin Implementation
 //---------------------------------------------------
 
-class FSteamVRPlugin : public ISteamVRPlugin
+class FSteamVRPlugin : public ISteamVRPlugin, public IHeadMountedDisplayVulkanExtensions
 {
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
@@ -206,7 +207,7 @@ public:
         }
     }
 
-	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2]) override
+	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][vr::k_unMaxTrackedDeviceCount]) override
 	{
 		if (!GEngine->HMDDevice.IsValid() || (GEngine->HMDDevice->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR))
 		{
@@ -229,7 +230,78 @@ public:
 		VRSystem = nullptr;
 	}
 
+	virtual IHeadMountedDisplayVulkanExtensions* GetVulkanExtensions() override
+	{
+		return static_cast<IHeadMountedDisplayVulkanExtensions*>(this);
+	}
+	
+	virtual bool GetVulkanInstanceExtensionsRequired(TArray<const ANSICHAR*>& Out) override
+	{
+		//@todo:  Uncomment this once we have routing to the HMD device
+// 		if (VRCompositor == nullptr)
+// 		{
+// 			UE_LOG(LogHMD, Warning, TEXT("VRCompositor is null"));
+// 			return false;
+// 		}
+// 
+// 		static ANSICHAR* InstanceExtensionsBuf = nullptr;
+// 
+// 		uint32_t BufSize = VRCompositor->GetVulkanInstanceExtensionsRequired(nullptr, 0);
+// 		if (BufSize == 0)
+// 		{
+// 			return true; // No particular extensions required
+// 		}
+// 		if (InstanceExtensionsBuf != nullptr)
+// 		{
+// 			FMemory::Free(InstanceExtensionsBuf);
+// 		}
+// 		InstanceExtensionsBuf = (ANSICHAR*)FMemory::Malloc(BufSize);
+// 		VRCompositor->GetVulkanInstanceExtensionsRequired(InstanceExtensionsBuf, BufSize);
+// 
+// 		ANSICHAR * Context = nullptr;
+// 		ANSICHAR * Tok = FCStringAnsi::Strtok(InstanceExtensionsBuf, " ", &Context);
+// 		while (Tok != nullptr)
+// 		{
+// 			Out.Add(Tok);
+// 			Tok = FCStringAnsi::Strtok(nullptr, " ", &Context);
+// 		}
 
+		return true;
+	}
+
+	virtual bool GetVulkanDeviceExtensionsRequired(VkPhysicalDevice_T *pPhysicalDevice, TArray<const ANSICHAR*>& Out) override
+	{
+		//@todo:  Uncomment this once we have routing to the HMD device
+// 		if (VRCompositor == nullptr)
+// 		{
+// 			UE_LOG(LogHMD, Warning, TEXT("VRCompositor is null"));
+// 			return false;
+// 		}
+// 
+// 		static ANSICHAR* DeviceExtensionsBuf = nullptr;
+// 
+// 		uint32_t BufSize = VRCompositor->GetVulkanDeviceExtensionsRequired(pPhysicalDevice, nullptr, 0);
+// 		if (BufSize == 0)
+// 		{
+// 			return true; // No particular extensions required
+// 		}
+// 		if (DeviceExtensionsBuf != nullptr)
+// 		{
+// 			FMemory::Free(DeviceExtensionsBuf);
+// 		}
+// 		DeviceExtensionsBuf = (ANSICHAR*)FMemory::Malloc(BufSize);
+// 		VRCompositor->GetVulkanDeviceExtensionsRequired(pPhysicalDevice, DeviceExtensionsBuf, BufSize);
+// 
+// 		ANSICHAR * Context = nullptr;
+// 		ANSICHAR * Tok = FCStringAnsi::Strtok(DeviceExtensionsBuf, " ", &Context);
+// 		while (Tok != nullptr)
+// 		{
+// 			Out.Add(Tok);
+// 			Tok = FCStringAnsi::Strtok(nullptr, " ", &Context);
+// 		}
+
+		return true;
+	}
 private:
 	vr::IVRSystem* VRSystem;
     
@@ -612,11 +684,11 @@ void FSteamVRHMD::RecordAnalytics()
 	}
 }
 
-void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ] )
+void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ vr::k_unMaxTrackedDeviceCount ] )
 {
 	for( int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex )
 	{
-		for( int32 HandIndex = 0; HandIndex < 2; ++HandIndex )
+		for( int32 HandIndex = 0; HandIndex < vr::k_unMaxTrackedDeviceCount; ++HandIndex )
 		{
 			UnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ] = InUnrealControllerIdAndHandToDeviceIdMap[ UnrealControllerIndex ][ HandIndex ];
 		}
@@ -626,6 +698,11 @@ void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealContro
 void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, const float WorldToMetersScale, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	FMatrix Pose = ToFMatrix(InPose);
+	if (!((FMath::Abs(1.f - Pose.GetScaledAxis(EAxis::X).SizeSquared()) <= KINDA_SMALL_NUMBER) && (FMath::Abs(1.f - Pose.GetScaledAxis(EAxis::Y).SizeSquared()) <= KINDA_SMALL_NUMBER) && (FMath::Abs(1.f - Pose.GetScaledAxis(EAxis::Z).SizeSquared()) <= KINDA_SMALL_NUMBER)))
+	{
+		// When running an oculus rift through steamvr the tracking reference seems to have a slightly scaled matrix, about 99%.  We need to strip that so we can build the quaternion without hitting an ensure.
+		Pose.RemoveScaling(KINDA_SMALL_NUMBER);
+	}
 	FQuat Orientation(Pose);
  
 	OutOrientation.X = -Orientation.Z;
@@ -666,6 +743,8 @@ ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) con
 		return ESteamVRTrackedDeviceType::Controller;
 	case vr::TrackedDeviceClass_TrackingReference:
 		return ESteamVRTrackedDeviceType::TrackingReference;
+	case vr::TrackedDeviceClass_GenericTracker:
+		return ESteamVRTrackedDeviceType::Other;
 	default:
 		return ESteamVRTrackedDeviceType::Invalid;
 	}
@@ -724,7 +803,7 @@ ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(uint32 DeviceId) const
 
 bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || Hand < EControllerHand::Left || Hand > EControllerHand::Right) //-V547
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS)) //-V547
 	{
 		return false;
 	}
@@ -735,7 +814,7 @@ bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 Controlle
 
 ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const
 {
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || DeviceHand < EControllerHand::Left || DeviceHand > EControllerHand::Right) //-V547
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS)) //-V547
 	{
 		return ETrackingStatus::NotTracked;
 	}
@@ -744,6 +823,19 @@ ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(int32 ControllerIndex, 
 	return GetControllerTrackingStatus(DeviceId);
 }
 
+bool FSteamVRHMD::IsTracking(uint32 DeviceId) const
+{
+	bool bHasTrackedPose = false;
+	if (VRSystem != nullptr)
+	{
+		const FTrackingFrame& TrackingFrame = GetTrackingFrame();
+		if (DeviceId < vr::k_unMaxTrackedDeviceCount)
+		{
+			bHasTrackedPose = TrackingFrame.bPoseIsValid[DeviceId];
+		}
+	}
+	return bHasTrackedPose;
+}
 
 TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> FSteamVRHMD::GetViewExtension()
 {
@@ -792,39 +884,6 @@ bool FSteamVRHMD::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Current
 bool FSteamVRHMD::IsChromaAbCorrectionEnabled() const
 {
 	return true;
-}
-
-bool FSteamVRHMDCompat::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	const TCHAR* OrigCmd = Cmd;
-	FString AliasedCommand;
-	if (FParse::Command(&Cmd, TEXT("HMD")))
-	{
-		int32 val;
-		if (FParse::Value(Cmd, TEXT("MIRROR"), val))
-		{
-			if ((val >= 0) && (val <= 2))
-			{
-				AliasedCommand = FString::Printf(TEXT("vr.MirrorMode %d"), val);
-			}
-			else
-			{
-				Ar.Logf(TEXT("HMD MIRROR accepts values from 0 though 2"));
-				return true;
-			}
-		}
-	}
-
-	if (!AliasedCommand.IsEmpty())
-	{
-		Ar.Logf(ELogVerbosity::Warning, TEXT("%s is deprecated. Use %s instead"), OrigCmd, *AliasedCommand);
-
-		return IConsoleManager::Get().ProcessUserConsoleInput(*AliasedCommand, Ar, InWorld);
-	}
-	else
-	{
-		return false;
-	}
 }
 
 bool FSteamVRHMD::IsHeadTrackingAllowed() const
@@ -1276,6 +1335,9 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	const FQuat ViewOrientation = MainView->ViewRotation.Quaternion();
 	PlayerOrientation = ViewOrientation * MainView->BaseHmdOrientation.Inverse();
 
+	check(SpectatorScreenController);
+	SpectatorScreenController->UpdateSpectatorScreenMode_RenderThread();
+
 }
 
 void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
@@ -1499,6 +1561,9 @@ bool FSteamVRHMD::Startup()
 			UE_LOG(LogHMD, Log, TEXT("Failed to initialize Chaperone.  Error: %d"), (int32)ChaperoneErr);
 		}
 
+		vr::EVRInitError RenderModelsErr = vr::VRInitError_None;
+		VRRenderModels = (vr::IVRRenderModels*)(*VRGetGenericInterfaceFn)(vr::IVRRenderModels_Version, &RenderModelsErr);
+
 		// Initialize our controller to device index
 		for (int32 UnrealControllerIndex = 0; UnrealControllerIndex < MAX_STEAMVR_CONTROLLER_PAIRS; ++UnrealControllerIndex)
 		{
@@ -1508,29 +1573,31 @@ bool FSteamVRHMD::Startup()
 			}
 		}
 
+		if ( IsPCPlatform( GMaxRHIShaderPlatform ) )
+		{
+			if ( IsVulkanPlatform( GMaxRHIShaderPlatform ) )
+			{
+				pBridge = new VulkanBridge( this );
+			}
+			else if ( IsOpenGLPlatform( GMaxRHIShaderPlatform ) )
+			{
+				pBridge = new OpenGLBridge( this );
+			}
 #if PLATFORM_WINDOWS
-		if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
-		{
-			pBridge = new D3D11Bridge(this);
-		}
-#elif PLATFORM_LINUX
-	#if STEAMVR_USE_VULKAN_RHI
-		if (IsPCPlatform(GMaxRHIShaderPlatform) && IsVulkanPlatform(GMaxRHIShaderPlatform))
-		{
-			pBridge = new VulkanBridge(this);
-		}
-	#else
-		if (IsPCPlatform(GMaxRHIShaderPlatform) && IsOpenGLPlatform(GMaxRHIShaderPlatform))
-		{
-			pBridge = new OpenGLBridge(this);
-		}
-	#endif
+			else
+			{
+				pBridge = new D3D11Bridge( this );
+			}
 #endif
+			ensure( pBridge != nullptr );
+		}
 
 		LoadFromIni();
 
 		SplashTicker = MakeShareable(new FSteamSplashTicker(this));
 		SplashTicker->RegisterForMapLoad();
+
+		CreateSpectatorScreenController();
 
 		UE_LOG(LogHMD, Log, TEXT("SteamVR initialized.  Driver: %s  Display: %s"), *DriverId, *DisplayId);
 		return true;
@@ -1547,12 +1614,6 @@ void FSteamVRHMD::LoadFromIni()
 {
 	const TCHAR* SteamVRSettings = TEXT("SteamVR.Settings");
 	int32 i;
-
-	if (GConfig->GetInt(SteamVRSettings, TEXT("WindowMirrorMode"), i, GEngineIni))
-	{
-		static const auto CVarMirrorMode = IConsoleManager::Get().FindConsoleVariable(TEXT("vr.MirrorMode"));
-		CVarMirrorMode->Set(i, ECVF_SetBySystemSettingsIni);
-	}
 
 	if (GConfig->GetInt(SteamVRSettings, TEXT("WindowMirrorBoundsWidth"), i, GEngineIni))
 	{
@@ -1584,6 +1645,7 @@ void FSteamVRHMD::Shutdown()
 		VRCompositor = nullptr;
 		VROverlay = nullptr;
 		VRChaperone = nullptr;
+		VRRenderModels = nullptr;
 
 		SteamVRPlugin->Reset();
 

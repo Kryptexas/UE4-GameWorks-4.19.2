@@ -25,15 +25,12 @@ UGoogleVRControllerFunctionLibrary::UGoogleVRControllerFunctionLibrary(const FOb
 
 FGoogleVRController* GetGoogleVRController()
 {
-	FGoogleVRController* GVRController;
 	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
 	for( auto MotionController : MotionControllers )
 	{
-		if (MotionController != nullptr)
+		if (MotionController != nullptr && MotionController->GetMotionControllerDeviceTypeName() == FGoogleVRController::DeviceTypeName)
 		{
-			GVRController = static_cast<FGoogleVRController*>(MotionController);
-			if(GVRController != nullptr)
-				return GVRController;
+			return static_cast<FGoogleVRController*>(MotionController);
 		}
 	}
 

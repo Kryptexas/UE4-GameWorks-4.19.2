@@ -18,6 +18,7 @@
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 #if NV_AFTERMATH
+// Disabled by default since introduces stalls between render and driver threads
 int32 GDX11NVAfterMathEnabled = 0;
 #endif
 

@@ -13,37 +13,21 @@ class UOcclusionPluginSourceSettingsBase;
 
 namespace SteamAudio
 {
-	class FAttenuationInterpolator
-	{
-	public:
-		void Init(const int32 InterpolationFrames);
-		void Reset();
-		float Update(float& PerSampleIncrement, const int32 SamplesToInterpolate);
-		void Set(const float AttenuationValue);
-		float Get();
-
-	private:
-		int32 FrameIndex;
-		int32 NumInterpFrames;
-		float CurrentValue;
-		float NextValue;
-		float StartValue;
-		float EndValue;
-		bool bIsDone;
-		bool bIsInit;
-	};
-
 	struct FDirectSoundSource
 	{
 		FDirectSoundSource();
 
 		FCriticalSection CriticalSection;
 		IPLDirectSoundPath DirectSoundPath;
+		IPLhandle DirectSoundEffect;
 		EIplDirectOcclusionMethod DirectOcclusionMethod;
-		FAttenuationInterpolator DirectLerp;
+		EIplDirectOcclusionMode DirectOcclusionMode;
+		IPLAudioBuffer InBuffer;
+		IPLAudioBuffer OutBuffer;
 		IPLVector3 Position;
 		float Radius;
 		bool bDirectAttenuation;
+		bool bAirAbsorption;
 		bool bNeedsUpdate;
 	};
 
@@ -63,6 +47,8 @@ namespace SteamAudio
 
 	private:
 		IPLhandle EnvironmentalRenderer;
+		IPLAudioFormat InputAudioFormat;
+		IPLAudioFormat OutputAudioFormat;
 		TArray<FDirectSoundSource> DirectSoundSources;
 		FSteamAudioModule* SteamAudioModule;
 	};

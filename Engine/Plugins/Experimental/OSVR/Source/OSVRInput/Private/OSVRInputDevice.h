@@ -47,12 +47,18 @@ class OSVRButton;
 class FOSVRInputDevice : public IInputDevice, public IMotionController
 {
 public:
-    FOSVRInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler,
-        TSharedPtr<OSVREntryPoint, ESPMode::ThreadSafe> osvrEntryPoint, TSharedPtr<FOSVRHMD, ESPMode::ThreadSafe> osvrHMD);
-    virtual ~FOSVRInputDevice();
-    static void RegisterNewKeys();
+	FOSVRInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler,
+		TSharedPtr<OSVREntryPoint, ESPMode::ThreadSafe> osvrEntryPoint, TSharedPtr<FOSVRHMD, ESPMode::ThreadSafe> osvrHMD);
+	virtual ~FOSVRInputDevice();
+	static void RegisterNewKeys();
 
-    /* IMotionController interface*/
+	/* IMotionController interface*/
+
+	virtual FName GetMotionControllerDeviceTypeName() const override 
+	{
+		const static FName DefaultName(TEXT("OSVRInputDevice"));
+		return DefaultName;
+	}
 
     /**
     * Returns the calibration-space orientation of the requested controller's hand.

@@ -775,7 +775,7 @@ void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmd
 	if (!MobileMultiViewSceneColor)
 	{
 		const EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
-		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
+		const FIntPoint MultiViewBufferSize(BufferSize.X, BufferSize.Y);
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
@@ -796,7 +796,7 @@ void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
 
 	if (!MobileMultiViewSceneDepthZ)
 	{
-		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
+		const FIntPoint MultiViewBufferSize(BufferSize.X, BufferSize.Y);
 
 		// Using the result of GetDepthFormat() without stencil due to packed depth-stencil not working in array frame buffers.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, PF_D24, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));

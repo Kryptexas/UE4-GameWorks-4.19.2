@@ -169,6 +169,10 @@ public:
 	//virtual void OnReleaseThreadOwnership() {}
 };
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+#include "instant_preview_server.h"
+#include "ip_shared.h"
+#endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 
 /**
  * GoogleVR Head Mounted Display
@@ -404,6 +408,25 @@ private:
 	mutable gvr_buffer_viewport_list* ActiveViewportList;
 	mutable gvr_buffer_viewport* ScratchViewport;
 #endif
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	static const int kReadbackTextureCount = 5;
+	FTexture2DRHIRef ReadbackTextures[kReadbackTextureCount];
+	FRenderQueryRHIRef ReadbackCopyQueries[kReadbackTextureCount];
+	FIntPoint ReadbackTextureSizes[kReadbackTextureCount];
+	int ReadbackTextureCount;
+	instant_preview::ReferencePose ReadbackReferencePoses[kReadbackTextureCount];
+	void* ReadbackBuffers[kReadbackTextureCount];
+	int ReadbackBufferWidths[kReadbackTextureCount];
+	int SentTextureCount;
+	TArray<FColor> ReadbackData;
+
+	ip_static_server_handle IpServerHandle;
+	bool bIsInstantPreviewActive;
+	mutable instant_preview::EyeViews EyeViews;
+	mutable instant_preview::ReferencePose CurrentReferencePose;
+	mutable TQueue<instant_preview::ReferencePose> PendingRenderReferencePoses;
+	mutable instant_preview::ReferencePose RenderReferencePose;
+#endif
 
 	// Simulation data for previewing
 	float PosePitch;
@@ -458,6 +481,10 @@ public:
 	 * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.
 	 */
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
+	/**
+	* Called on render thread after rendering.
+	*/
+	virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 
 	///////////////////////////////////////////////////
 	// Begin IStereoRendering Pure-Virtual Interface //
@@ -873,4 +900,9 @@ public:
 	 */
 	virtual FString GetVersionString() const override;
 
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	bool GetCurrentReferencePose(FQuat& CurrentOrientation, FVector& CurrentPosition) const;
+	static FVector GetLocalEyePos(const instant_preview::EyeView& EyeView);
+	void PushVideoFrame(const FColor* VideoFrameBuffer, int width, int height, int stride, instant_preview::PixelFormat pixel_format, instant_preview::ReferencePose reference_pose);
+#endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 };

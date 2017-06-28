@@ -76,18 +76,18 @@ public:
 	* Is the Oculus API available for use
 	* @return true if Oculus functionality is available, false otherwise
 	*/
-	bool IsEnabled();
+	bool IsEnabled() const;
 
 	/**
 	 * Allows for the LibOVRPlatform calls to be used directly with the Delegates in the Oculus OSS
 	 */
-	void AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate);
+	void AddRequestDelegate(ovrRequest RequestId, FOculusMessageOnCompleteDelegate&& Delegate) const;
 
 	/**
 	* Allows for direct subscription to the LibOVRPlatform notifications with the Delegates in the Oculus OSS
 	*/
-	FOculusMulticastMessageOnCompleteDelegate& GetNotifDelegate(ovrMessageType MessageType);
-	void RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate);
+	FOculusMulticastMessageOnCompleteDelegate& GetNotifDelegate(ovrMessageType MessageType) const;
+	void RemoveNotifDelegate(ovrMessageType MessageType, const FDelegateHandle& Delegate) const;
 
 PACKAGE_SCOPE:
 
@@ -100,14 +100,14 @@ PACKAGE_SCOPE:
 	FOnlineSubsystemOculus()
 	{}
 
-	bool IsInitialized();
+	bool IsInitialized() const;
 
 private:
 
 	bool bOculusInit;
 
 #if PLATFORM_WINDOWS
-	bool InitWithWindowsPlatform();
+	bool InitWithWindowsPlatform() const;
 #elif PLATFORM_ANDROID
 	bool InitWithAndroidPlatform();
 #endif
