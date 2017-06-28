@@ -8,6 +8,8 @@
 #include "PhononScene.h"
 #include "PhononCommon.h"
 
+#include "Components/PrimitiveComponent.h"
+
 #if WITH_EDITOR
 #include "Editor.h"
 #include "LevelEditorViewport.h"
