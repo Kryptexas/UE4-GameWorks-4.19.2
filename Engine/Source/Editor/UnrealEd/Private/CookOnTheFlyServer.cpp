@@ -6818,6 +6818,9 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		GRedirectCollector.GetStringAssetReferencePackageList(StartupPackage, StartupStringAssetPackages);
 	}
 
+	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
+
+	// Add string asset packages after collecting files, to avoid accidentally activating the behavior to cook all maps if none are specified
 	for (FName StringAssetPackage : StartupStringAssetPackages)
 	{
 		TMap<FString, FString> RedirectedPaths;
@@ -6836,8 +6839,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			AddFileToCook(FilesInPath, StringAssetPackage.ToString());
 		}
 	}
-
-	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
 	
 	if (FilesInPath.Num() == 0)
 	{
