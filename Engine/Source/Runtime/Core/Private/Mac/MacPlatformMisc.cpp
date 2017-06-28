@@ -1653,7 +1653,7 @@ bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& T
 
 bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 {
-	return true;
+	return false;
 }
 
 #include "ModuleManager.h"
