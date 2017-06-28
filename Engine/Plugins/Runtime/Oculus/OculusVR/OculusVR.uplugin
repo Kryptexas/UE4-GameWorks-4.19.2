@@ -20,12 +20,12 @@
 			"Name" : "OculusHMD",
 			"Type" : "Runtime",
 			"LoadingPhase" : "PostConfigInit",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "Android" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
 		},
 		{
 			"Name" : "OculusInput",
 			"Type" : "Runtime",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "Android" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
 		},
 	]
 }
