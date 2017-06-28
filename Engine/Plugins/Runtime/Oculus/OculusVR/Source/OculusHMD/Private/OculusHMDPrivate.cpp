@@ -75,9 +75,9 @@ void ExecuteOnRenderThread(const std::function<void()>& Function)
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ExecuteOnRenderThread,
-			std::function<void()>, function, Function,
+			std::function<void()>, FunctionArg, Function,
 			{
-				function();
+				FunctionArg();
 			});
 
 		FlushRenderingCommands();
