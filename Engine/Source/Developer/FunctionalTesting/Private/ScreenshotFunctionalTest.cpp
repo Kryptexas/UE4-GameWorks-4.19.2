@@ -17,7 +17,6 @@ AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& 
 {
 	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	ScreenshotCamera->SetupAttachment(RootComponent);
-	FieldOfView = ScreenshotCamera->FieldOfView;
 }
 
 void AScreenshotFunctionalTest::PrepareTest()
@@ -91,10 +90,6 @@ void AScreenshotFunctionalTest::PostEditChangeProperty(FPropertyChangedEvent& Pr
 		if ( PropertyName == GET_MEMBER_NAME_CHECKED(FAutomationScreenshotOptions, Tolerance) )
 		{
 			ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
-		}
-		else if (PropertyName == GET_MEMBER_NAME_CHECKED(AScreenshotFunctionalTest, FieldOfView))
-		{
-			ScreenshotCamera->SetFieldOfView(FieldOfView);
 		}
 	}
 }
