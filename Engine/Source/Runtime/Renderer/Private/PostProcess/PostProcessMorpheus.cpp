@@ -185,8 +185,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusVS, TEXT("/Engine/Private/MorpheusInclude.usf"), TEXT("MainVS"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS,TEXT("/Engine/Private/MorpheusInclude.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusVS, TEXT("/Engine/Private/PS4/PostProcessHMDMorpheus.usf"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS,TEXT("/Engine/Private/PS4/PostProcessHMDMorpheus.usf"),TEXT("MainPS"),SF_Pixel);
 
 void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context)
 {
