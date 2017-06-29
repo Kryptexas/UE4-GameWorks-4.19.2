@@ -21,7 +21,7 @@
 #include "KismetCompiler.h"
 #include "ProfilingDebugging/ScopedTimers.h"
 #include "Serialization/ArchiveHasReferences.h"
-#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "Serialization/ArchiveReplaceOrClearExternalReferences.h"
 #include "TickableEditorObject.h"
 #include "UObject/MetaData.h"
 #include "UObject/ReferenceChainSearch.h"
@@ -869,6 +869,11 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 
 void FBlueprintCompilationManagerImpl::FlushReinstancingQueueImpl()
 {
+	if(GCompilingBlueprint)
+	{
+		return;
+	}
+
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	// we can finalize reinstancing now:
 	if(ClassesToReinstance.Num() == 0)
@@ -1073,7 +1078,7 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 		if(OldCDO)
 		{
 			UObject* NewCDO = CurrentReinstancer->ClassToReinstance->GetDefaultObject(true);
-			FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
+			FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO, true);
 
 			if(ReinstancingJob.Compiler.IsValid())
 			{
@@ -1184,7 +1189,7 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 				UObject* NewArchetype = NewObject<UObject>(OriginalOuter, CurrentReinstancer->ClassToReinstance, OriginalName, OriginalFlags & FlagMask);
 
 				// copy old data:
-				FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(Archetype, NewArchetype);
+				FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(Archetype, NewArchetype, false);
 
 				OldArchetypeToNewArchetype.Add(Archetype, NewArchetype);
 				// Map old subobjects to new subobjects. This is needed by UMG right now, which allows owning archetypes to reference subobjects
@@ -1244,7 +1249,8 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 
 	for(UObject* ArchetypeReferencer : ArchetypeReferencers)
 	{
-		FArchiveReplaceObjectRef< UObject > ReplaceAr(ArchetypeReferencer, OldArchetypeToNewArchetype, false, false, false);
+		UPackage* NewPackage = ArchetypeReferencer->GetOutermost();
+		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(ArchetypeReferencer, OldArchetypeToNewArchetype, NewPackage);
 	}
 }
 
@@ -1621,6 +1627,8 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 				InterfaceClass = Owner->SkeletonGeneratedClass;
 			}
 		}
+
+		AddFunctionForGraphs(TEXT(""), BPID.Graphs, CurrentFieldStorageLocation, BPTYPE_FunctionLibrary == BP->BlueprintType);
 
 		for (TFieldIterator<UFunction> FunctionIt(InterfaceClass, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
 		{

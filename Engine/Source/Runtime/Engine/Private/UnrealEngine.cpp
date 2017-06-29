@@ -11810,15 +11810,18 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		}
 	});
 
-	// Replace references to old classes and instances on this object with the corresponding new ones
-	UPackage* NewPackage = NewObject->GetOutermost();
-	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
-
-	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
-	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
+	if(Params.bClearReferences)
 	{
-		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
-		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
+		UPackage* NewPackage = NewObject->GetOutermost();
+		// Replace references to old classes and instances on this object with the corresponding new ones
+		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
+
+		// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
+		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
+		{
+			UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
+			FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
+		}
 	}
 
 	// Restore the root component reference

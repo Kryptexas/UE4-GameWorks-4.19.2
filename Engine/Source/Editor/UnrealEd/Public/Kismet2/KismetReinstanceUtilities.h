@@ -195,7 +195,7 @@ protected:
 	/** Determine whether reinstancing actors should preserve the root component of the new actor */
 	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const { return true; }
 
-	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject );
+	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, bool bClearExternalReferences);
 
 private:
 	/**
