@@ -2133,30 +2133,32 @@ void UClass::EmitFixedArrayEnd()
 	ReferenceTokenStream.EmitReturn();
 }
 
+struct FScopeLockIfNotNative
+{
+	FCriticalSection& ScopeCritical;
+	const bool bNotNative;
+	FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
+		: ScopeCritical(InScopeCritical)
+		, bNotNative(bIsNotNative)
+	{
+		if (bNotNative)
+		{
+			ScopeCritical.Lock();
+		}
+	}
+	~FScopeLockIfNotNative()
+	{
+		if (bNotNative)
+		{
+			ScopeCritical.Unlock();
+		}
+	}
+};
+
 void UClass::AssembleReferenceTokenStream(bool bForce)
 {
 	// Lock for non-native classes
-	struct FScopeLockIfNotNative
-	{
-		FCriticalSection& ScopeCritical;
-		const bool bNotNative;
-		FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
-			: ScopeCritical(InScopeCritical)
-			, bNotNative(bIsNotNative)
-		{
-			if (bNotNative)
-			{
-				ScopeCritical.Lock();
-			}
-		}
-		~FScopeLockIfNotNative()
-		{
-			if (bNotNative)
-			{
-				ScopeCritical.Unlock();
-			}
-		}
-	} ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
+	FScopeLockIfNotNative ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
 
 	UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogGarbage, Fatal, TEXT("AssembleReferenceTokenStream for %s called on a non-game thread while GC is not locked."), *GetFullName());
 
@@ -2179,14 +2181,17 @@ void UClass::AssembleReferenceTokenStream(bool bForce)
 			Property->EmitReferenceInfo(*this, 0, EncounteredStructProps);
 		}
 
-		if (GetSuperClass())
+		if (UClass* SuperClass = GetSuperClass())
 		{
+			// We also need to lock the super class stream too in case something (like PostLoad) wants to reconstruct in on GameThread
+			FScopeLockIfNotNative SuperClassReferenceTokenStreamLock(SuperClass->ReferenceTokenStreamCritical, !(SuperClass->ClassFlags & CLASS_Native));
+			
 			// Make sure super class has valid token stream.
-			GetSuperClass()->AssembleReferenceTokenStream();
-			if (!GetSuperClass()->ReferenceTokenStream.IsEmpty())
+			SuperClass->AssembleReferenceTokenStream();
+			if (!SuperClass->ReferenceTokenStream.IsEmpty())
 			{
 				// Prepend super's stream. This automatically handles removing the EOS token.
-				PrependStreamWithSuperClass(*GetSuperClass());
+				PrependStreamWithSuperClass(*SuperClass);
 			}
 		}
 		else

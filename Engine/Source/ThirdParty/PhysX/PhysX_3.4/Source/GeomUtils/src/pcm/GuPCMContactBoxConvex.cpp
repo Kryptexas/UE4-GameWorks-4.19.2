@@ -185,9 +185,10 @@ bool pcmContactBoxConvex(GU_CONTACT_METHOD_ARGS)
 	const PsTransformV curRTrans(transf1.transformInv(transf0));
 	const PsMatTransformV aToB(curRTrans);
 
+	const PxReal tolerenceLength = params.mToleranceLength;
 	const Gu::ConvexHullData* hullData = shapeConvex.hullData;
-	const FloatV convexMargin = Gu::CalculatePCMConvexMargin(hullData, vScale);
-	const FloatV boxMargin = Gu::CalculatePCMBoxMargin(boxExtents);
+	const FloatV convexMargin = Gu::CalculatePCMConvexMargin(hullData, vScale, tolerenceLength);
+	const FloatV boxMargin = Gu::CalculatePCMBoxMargin(boxExtents, tolerenceLength);
 
 	const FloatV minMargin = FMin(convexMargin, boxMargin);//FMin(boxMargin, convexMargin);
 	const FloatV projectBreakingThreshold = FMul(minMargin, FLoad(0.8f));

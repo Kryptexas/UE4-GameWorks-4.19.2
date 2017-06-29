@@ -138,14 +138,30 @@ bool FMemoryDerivedDataBackend::SaveCache(const TCHAR* Filename)
 	}
 
 	FArchive& Saver = *SaverArchive;
-	uint32 Magic = MemCache_Magic64;
+	uint32 Magic = MemCache_Magic64_V2;
 	Saver << Magic;
 	const int64 DataStartOffset = Saver.Tell();
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		check(!bDisabled);
-		for (TMap<FString, FCacheValue*>::TIterator It(CacheItems); It; ++It )
+
+		// Additional metadata to help debug issues with corrupt caches
+		int32 Count = CacheItems.Num();
+		Saver << Count;
+		for (TMap<FString, FCacheValue*>::TIterator It(CacheItems); It; ++It)
 		{
+			FString Key = It.Key();
+			Saver << Key;
+		}
+
+		int32 Index = 0;
+		for (TMap<FString, FCacheValue*>::TIterator It(CacheItems); It; ++It)
+		{
+			int32 Signature = MemCache_Magic_Item;
+			Saver << Signature;
+			Saver << Index;
+			Index++;
+
 			Saver << It.Key();
 			Saver << It.Value()->Age;
 			Saver << It.Value()->Data;
@@ -153,7 +169,7 @@ bool FMemoryDerivedDataBackend::SaveCache(const TCHAR* Filename)
 	}
 	const int64 DataSize = Saver.Tell(); // Everything except the footer
 	int64 Size = DataSize;
-	uint32 Crc = MemCache_Magic64; // Crc takes more time than I want to spend  FCrc::MemCrc_DEPRECATED(&Buffer[0], Size);
+	uint32 Crc = MemCache_Magic64_V2; // Crc takes more time than I want to spend  FCrc::MemCrc_DEPRECATED(&Buffer[0], Size);
 	Saver << Size;
 	Saver << Crc;
 
@@ -179,7 +195,7 @@ bool FMemoryDerivedDataBackend::LoadCache(const TCHAR* Filename)
 		UE_LOG(LogDerivedDataCache, Error, TEXT("Memory cache was corrputed (short) %s."), Filename);
 		return false;
 	}
-	if (FileSize > MaxCacheSize*2 && MaxCacheSize > 0)
+	if (FileSize > MaxCacheSize * 2 && MaxCacheSize > 0)
 	{
 		UE_LOG(LogDerivedDataCache, Error, TEXT("Refusing to load DDC cache %s. Size exceeds doubled MaxCacheSize."), Filename);
 		return false;
@@ -195,39 +211,35 @@ bool FMemoryDerivedDataBackend::LoadCache(const TCHAR* Filename)
 	FArchive& Loader = *LoaderArchive;
 	uint32 Magic = 0;
 	Loader << Magic;
-	if (Magic != MemCache_Magic && Magic != MemCache_Magic64)
+	if (Magic != MemCache_Magic && Magic != MemCache_Magic64 && Magic != MemCache_Magic64_V2)
 	{
 		UE_LOG(LogDerivedDataCache, Error, TEXT("Memory cache was corrputed (magic) %s."), Filename);
 		return false;
 	}
+	if (Magic != MemCache_Magic64_V2)
+	{
+		UE_LOG(LogDerivedDataCache, Display, TEXT("Ignoring memory cache (%s) with old version number (%08x)"), Filename, Magic);
+		return false;
+	}
 	// Check the file size again, this time against the correct minimum size.
-	if (Magic == MemCache_Magic64 && FileSize < SerializationSpecificDataSize)
+	if (FileSize < SerializationSpecificDataSize)
 	{
 		UE_LOG(LogDerivedDataCache, Error, TEXT("Memory cache was corrputed (short) %s."), Filename);
 		return false;
 	}
 	// Calculate expected DataSize based on the magic number (footer size difference)
-	const int64 DataSize = FileSize - (Magic == MemCache_Magic64 ? (SerializationSpecificDataSize - sizeof(uint32)) : (sizeof(uint32) * 2));		
+	const int64 DataSize = FileSize - (SerializationSpecificDataSize - sizeof(uint32));
 	Loader.Seek(DataSize);
 	int64 Size = 0;
 	uint32 Crc = 0;
-	if (Magic == MemCache_Magic64)
-	{
-		Loader << Size;
-	}
-	else
-	{
-		uint32 Size32 = 0;
-		Loader << Size32;
-		Size = (int64)Size32;
-	}
+	Loader << Size;
 	Loader << Crc;
 	if (Size != DataSize)
 	{
 		UE_LOG(LogDerivedDataCache, Error, TEXT("Memory cache was corrputed (size) %s."), Filename);
 		return false;
 	}
-	if ((Crc != MemCache_Magic && Crc != MemCache_Magic64) || Crc != Magic)
+	if (Crc != Magic)
 	{
 		UE_LOG(LogDerivedDataCache, Warning, TEXT("Memory cache was corrputed (crc) %s."), Filename);
 		return false;
@@ -238,8 +250,29 @@ bool FMemoryDerivedDataBackend::LoadCache(const TCHAR* Filename)
 		TArray<uint8> Working;
 		FScopeLock ScopeLock(&SynchronizationObject);
 		check(!bDisabled);
+
+		int32 NumEntries;
+		Loader << NumEntries;
+
+		TArray<FString> KeyNames;
+		for (int32 Idx = 0; Idx < NumEntries; Idx++)
+		{
+			FString KeyName;
+			Loader << KeyName;
+			KeyNames.Add(KeyName);
+		}
+
+		int32 NextIndex = 0;
 		while (Loader.Tell() < DataSize)
 		{
+			int32 Signature;
+			Loader << Signature;
+			checkf(Signature == MemCache_Magic_Item, TEXT("Invalid magic number in boot cache (%s)"), Filename);
+
+			int32 Index;
+			Loader << Index;
+			checkf(Index == NextIndex, TEXT("Invalid index in boot cache (%d instead of %d)"), Filename, Index, NextIndex);
+
 			FString Key;
 			int32 Age;
 			Loader << Key;
@@ -251,18 +284,11 @@ bool FMemoryDerivedDataBackend::LoadCache(const TCHAR* Filename)
 				CacheItems.Add(Key, new FCacheValue(Working, Age));
 			}
 			Working.Reset();
+
+			NextIndex++;
 		}
 		// these are just a double check on ending correctly
-		if (Magic == MemCache_Magic64)
-		{
-			Loader << Size;
-		}
-		else
-		{
-			uint32 Size32 = 0;
-			Loader << Size32;
-			Size = (int64)Size32;
-		}
+		Loader << Size;
 		Loader << Crc;
 	}
 		

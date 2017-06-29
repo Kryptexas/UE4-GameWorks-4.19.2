@@ -2755,13 +2755,12 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 
 	FEvent* MyEvent = nullptr;
 	FGraphEventArray TaskThreadTasks;
+	FThreadSafeCounter StallForTaskThread;
 	if (bDoTaskThreads)
 	{
 		MyEvent = FPlatformProcess::GetSynchEventFromPool(false);
-		FThreadSafeCounter StallForTaskThread;
 
 		int32 Workers = FTaskGraphInterface::Get().GetNumWorkerThreads();
-		StallForTaskThread.Reset();
 		StallForTaskThread.Add(Workers * (1 + (bDoBackgroundThreads && ENamedThreads::bHasBackgroundThreads) + !!(ENamedThreads::bHasHighPriorityThreads)));
 
 		TaskEvents.Reserve(StallForTaskThread.GetValue());
@@ -2820,15 +2819,17 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 			TaskEvent->Trigger();
 		}
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(TaskThreadTasks, ENamedThreads::GameThread_Local);
-		for (FEvent* TaskEvent : TaskEvents)
-		{
-			FPlatformProcess::ReturnSynchEventToPool(TaskEvent);
-		}
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+	}
+	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+	for (FEvent* TaskEvent : TaskEvents)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(TaskEvent);
+	}
+	if (MyEvent)
+	{
 		FPlatformProcess::ReturnSynchEventToPool(MyEvent);
 	}
 }
-
 
 
 // Benchmark

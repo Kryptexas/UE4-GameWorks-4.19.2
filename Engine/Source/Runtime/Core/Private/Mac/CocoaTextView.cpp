@@ -9,15 +9,15 @@
 - (id)initWithFrame:(NSRect)frame
 {
 	SCOPED_AUTORELEASE_POOL;
-    self = [super initWithFrame:frame];
-    if (self)
+	self = [super initWithFrame:frame];
+	if (self)
 	{
-        // Initialization code here.
+		// Initialization code here.
 		IMMContext = nil;
 		markedRange = {NSNotFound, 0};
 		reallyHandledEvent = false;
-    }
-    return self;
+	}
+	return self;
 }
 
 - (bool)imkKeyDown:(NSEvent *)theEvent
@@ -197,8 +197,11 @@
 			else
 			{
 				GameThreadCall(^{
-					ITextInputMethodContext::ECaretPosition CaretPosition;
-					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+					if (IMMContext.IsValid())
+					{
+						ITextInputMethodContext::ECaretPosition CaretPosition;
+						IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+					}
 				}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 			}
 		}
@@ -220,9 +223,12 @@
 		
 		GameThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-			FString TheFString(TheString);
-			IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
-			IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+			if (IMMContext.IsValid())
+			{
+				FString TheFString(TheString);
+				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
+				IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		
 		[self unmarkText];
@@ -260,8 +266,11 @@
 			else
 			{
 				GameThreadCall(^{
-					ITextInputMethodContext::ECaretPosition CaretPosition;
-					IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+					if (IMMContext.IsValid())
+					{
+						ITextInputMethodContext::ECaretPosition CaretPosition;
+						IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+					}
 				}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 			}
 		}
@@ -274,7 +283,10 @@
 		if ([aString length] == 0)
 		{
 			GameThreadCall(^{
-				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, FString());
+				if (IMMContext.IsValid())
+				{
+					IMMContext->SetTextInRange(SelectionLocation, SelectionLength, FString());
+				}
 			}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 			[self unmarkText];
 		}
@@ -283,7 +295,10 @@
 			if(markedRange.location == NSNotFound)
 			{
 				GameThreadCall(^{
-					IMMContext->BeginComposition();
+					if (IMMContext.IsValid())
+					{
+						IMMContext->BeginComposition();
+					}
 				}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 			}
 			markedRange = NSMakeRange(SelectionLocation, [aString length]);
@@ -322,10 +337,13 @@
 			
 			GameThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
-				FString TheFString(TheString);
-				IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
-				IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
-				IMMContext->SetSelectionRange(markedRange.location + selectedRange.location, 0, ITextInputMethodContext::ECaretPosition::Ending);
+				if (IMMContext.IsValid())
+				{
+					FString TheFString(TheString);
+					IMMContext->SetTextInRange(SelectionLocation, SelectionLength, TheFString);
+					IMMContext->UpdateCompositionRange(CompositionRange.location, CompositionRange.length);
+					IMMContext->SetSelectionRange(markedRange.location + selectedRange.location, 0, ITextInputMethodContext::ECaretPosition::Ending);
+				}
 			}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		}
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
@@ -346,8 +364,11 @@
 		if (IMMContext.IsValid())
 		{
 			GameThreadCall(^{
-				IMMContext->UpdateCompositionRange(0, 0);
-				IMMContext->EndComposition();
+				if (IMMContext.IsValid())
+				{
+					IMMContext->UpdateCompositionRange(0, 0);
+					IMMContext->EndComposition();
+				}
 			}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		}
 	}
@@ -363,7 +384,10 @@
 		__block uint32 SelectionLength;
 		__block ITextInputMethodContext::ECaretPosition CaretPosition;
 		GameThreadCall(^{
-			IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+			if (IMMContext.IsValid())
+			{
+				IMMContext->GetSelectionRange(SelectionLocation, SelectionLength, CaretPosition);
+			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		return {SelectionLocation, SelectionLength};
 	}
@@ -404,7 +428,10 @@
 	{
 		__block FString String;
 		GameThreadCall(^{
-			IMMContext->GetTextInRange(aRange.location, aRange.length, String);
+			if (IMMContext.IsValid())
+			{
+				IMMContext->GetTextInRange(aRange.location, aRange.length, String);
+			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		CFStringRef CFString = FPlatformString::TCHARToCFString(*String);
 		if(CFString)
@@ -424,11 +451,11 @@
  */
 - (NSArray*)validAttributesForMarkedText
 {
-    // We only allow these attributes to be set on our marked text (plus standard attributes)
-    // NSMarkedClauseSegmentAttributeName is important for CJK input, among other uses
-    // NSGlyphInfoAttributeName allows alternate forms of characters
+	// We only allow these attributes to be set on our marked text (plus standard attributes)
+	// NSMarkedClauseSegmentAttributeName is important for CJK input, among other uses
+	// NSGlyphInfoAttributeName allows alternate forms of characters
 	// Deliberately no autorelease pool here - relies on the OS setting one up beforehand, otherwise the returned object won't be properly ref-counted
-return [NSArray arrayWithObjects:NSMarkedClauseSegmentAttributeName, NSGlyphInfoAttributeName, nil];
+	return [NSArray arrayWithObjects:NSMarkedClauseSegmentAttributeName, NSGlyphInfoAttributeName, nil];
 }
 
 /* Returns the first logical rectangular area for aRange. The return value is in the screen coordinate. The size value can be negative if the text flows to the left. If non-NULL, actuallRange contains the character range corresponding to the returned area.
@@ -441,7 +468,10 @@ return [NSArray arrayWithObjects:NSMarkedClauseSegmentAttributeName, NSGlyphInfo
 		__block FVector2D Position;
 		__block FVector2D Size;
 		GameThreadCall(^{
-			IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
+			if (IMMContext.IsValid())
+			{
+				IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
+			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		
 		if(actualRange)

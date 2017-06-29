@@ -764,7 +764,11 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
 	Component->InstancingRandomSeed = FMath::Rand();
-	Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(this, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
+
+	if (Component->GetStaticMesh() != nullptr)
+	{
+		Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(this, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
+	}
 
 #if WITH_EDITOR
 	FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
@@ -2090,7 +2094,11 @@ void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, in
 		{
 			if (MeshInfo->Component)
 			{
-				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
+				if (MeshInfo->Component->GetStaticMesh() != nullptr)
+				{
+					MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
+				}
+
 				MeshInfo->Component->ClearInstances();
 				MeshInfo->Component->SetFlags(RF_Transactional);
 				MeshInfo->Component->Modify();
@@ -2218,6 +2226,22 @@ void AInstancedFoliageActor::Destroyed()
 	Super::Destroyed();
 }
 
+void AInstancedFoliageActor::PreEditUndo()
+{
+	Super::PreEditUndo();
+
+	// Remove all delegate as we dont know what the Undo will affect and we will simply readd those still valid afterward
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+
+		if (MeshPair.Key->GetStaticMesh() != nullptr)
+		{
+			MeshPair.Key->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(&MeshInfo);
+		}
+	}
+}
+
 void AInstancedFoliageActor::PostEditUndo()
 {
 	Super::PostEditUndo();
@@ -2229,6 +2253,11 @@ void AInstancedFoliageActor::PostEditUndo()
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+
+		if (MeshInfo.Component != nullptr && MeshPair.Key->GetStaticMesh() != nullptr)
+		{
+			MeshPair.Key->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(&MeshInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
+		}
 
 		MeshInfo.CheckComponentClass(this, MeshPair.Key);
 		MeshInfo.ReapplyInstancesToComponent();
@@ -2704,7 +2733,7 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType,
 			}
 
 			// Change bounds delegate bindings
-			if (TypeInfo->Component != nullptr)
+			if (TypeInfo->Component != nullptr && TypeInfo->Component->GetStaticMesh() != nullptr)
 			{
 				TypeInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(TypeInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
 
@@ -2724,7 +2753,7 @@ void AInstancedFoliageActor::NotifyFoliageTypeWillChange(UFoliageType* FoliageTy
 		// Change bounds delegate bindings
 		if (TypeInfo)
 		{
-			if (TypeInfo->Component != nullptr)
+			if (TypeInfo->Component != nullptr && TypeInfo->Component->GetStaticMesh() != nullptr)
 			{
 				TypeInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(TypeInfo);
 			}

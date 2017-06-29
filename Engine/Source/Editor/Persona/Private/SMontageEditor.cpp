@@ -288,7 +288,7 @@ void SMontageEditor::SetMontageObj(UAnimMontage * NewMontage)
 void SMontageEditor::OnSetMontagePreviewSlot(int32 SlotIndex)
 {
 	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
-	if (PreviewInstance)
+	if (PreviewInstance && MontageObj->SlotAnimTracks.IsValidIndex(SlotIndex))
 	{
 		const FName SlotName = MontageObj->SlotAnimTracks[SlotIndex].SlotName;
 		PreviewInstance->SetMontagePreviewSlot(SlotName);

@@ -382,7 +382,7 @@ void FEdModeFoliage::Enter()
 		{
 			FFoliageMeshInfo* MeshInfo = Actor->FindMesh(MeshUIInfo->Settings);
 
-			if (MeshInfo != nullptr && MeshInfo->Component != nullptr)
+			if (MeshInfo != nullptr && MeshInfo->Component != nullptr && MeshInfo->Component->GetStaticMesh() != nullptr)
 			{
 				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(MeshInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
 
@@ -493,7 +493,7 @@ void FEdModeFoliage::Exit()
 		{
 			FFoliageMeshInfo* MeshInfo = Actor->FindMesh(MeshUIInfo->Settings);
 
-			if (MeshInfo != nullptr && MeshInfo->Component != nullptr)
+			if (MeshInfo != nullptr && MeshInfo->Component != nullptr && MeshInfo->Component->GetStaticMesh() != nullptr)
 			{
 				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
 			}

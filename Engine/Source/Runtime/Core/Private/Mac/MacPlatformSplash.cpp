@@ -5,6 +5,7 @@
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 #include "CocoaThread.h"
+#include "ScopeLock.h"
 
 /**
  * Simple window class that overrides a couple of functions, so the splash window can be moved to front even if it's borderless
@@ -31,6 +32,7 @@
  * Splash screen functions and static globals
  */
 
+static FCriticalSection GSplashMutex;
 static FSplashWindow *GSplashWindow = NULL;
 static NSImage *GSplashScreenImage = NULL;
 static FText GSplashScreenAppName;
@@ -46,6 +48,7 @@ static NSRect GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
 static void StartSetSplashText( const SplashTextType::Type InType, const FText& InText )
 {
 	// Update splash text
+	FScopeLock Lock(&GSplashMutex);
 	GSplashScreenText[ InType ] = InText;
 }
 
@@ -63,6 +66,7 @@ static void StartSetSplashText( const SplashTextType::Type InType, const FText& 
 - (void)drawRect: (NSRect)DirtyRect
 {
 	SCOPED_AUTORELEASE_POOL;
+	FScopeLock Lock(&GSplashMutex);
 
 	// Draw background
 	[GSplashScreenImage drawAtPoint: NSMakePoint(0,0) fromRect: NSZeroRect operation: NSCompositeCopy fraction: 1.0];
@@ -233,57 +237,63 @@ void FMacPlatformSplash::Show()
 			}
 		}
 
-		NSString *SplashScreenFileName = (NSString *)FPlatformString::TCHARToCFString(*SplashPath);
-		GSplashScreenImage = [[NSImage alloc] initWithContentsOfFile: SplashScreenFileName];
-		[SplashScreenFileName release];
-
-		NSBitmapImageRep* BitmapRep = [NSBitmapImageRep imageRepWithData: [GSplashScreenImage TIFFRepresentation]];
-		float ImageWidth = [BitmapRep pixelsWide];
-		float ImageHeight = [BitmapRep pixelsHigh];
-		[GSplashScreenImage setSize:NSMakeSize(ImageWidth, ImageHeight)];
-
 		NSRect ContentRect;
-		ContentRect.origin.x = 0;
-		ContentRect.origin.y = 0;
-		ContentRect.size.width = ImageWidth;
-		ContentRect.size.height = ImageHeight;
-
-		int32 OriginX = 10;
-		int32 OriginY = 6;
-		int32 FontHeight = 14;
-
-		// Setup bounds for game name
-		GSplashScreenTextRects[ SplashTextType::GameName ].origin.x = 10;
-		GSplashScreenTextRects[ SplashTextType::GameName ].origin.y = 0;
-		GSplashScreenTextRects[ SplashTextType::GameName ].size.width = ImageWidth - 2 * 10;
-		GSplashScreenTextRects[ SplashTextType::GameName ].size.height = ImageHeight;
-
-		// Setup bounds for texts
-		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].origin.x =
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.x =
-		GSplashScreenTextRects[ SplashTextType::StartupProgress ].origin.x = OriginX;
-
-		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].size.width =
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].size.width =
-		GSplashScreenTextRects[ SplashTextType::StartupProgress ].size.width = ImageWidth - 2 * OriginX;
-
-		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].size.height =
-		GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].size.height =
-		GSplashScreenTextRects[ SplashTextType::StartupProgress ].size.height = FontHeight;
-
-		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].origin.y = OriginY + 3 * FontHeight;
-		GSplashScreenTextRects[ SplashTextType::StartupProgress ].origin.y = OriginY;
-
-		if( GIsEditor )
 		{
-			GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.y = OriginY + 2 * FontHeight;
-		}
-		else
-		{
-			GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.y = OriginY;
+			FScopeLock Lock(&GSplashMutex);
+			
+			NSString *SplashScreenFileName = (NSString *)FPlatformString::TCHARToCFString(*SplashPath);
+			GSplashScreenImage = [[NSImage alloc] initWithContentsOfFile: SplashScreenFileName];
+			[SplashScreenFileName release];
+			
+			NSBitmapImageRep* BitmapRep = [NSBitmapImageRep imageRepWithData: [GSplashScreenImage TIFFRepresentation]];
+			float ImageWidth = [BitmapRep pixelsWide];
+			float ImageHeight = [BitmapRep pixelsHigh];
+			[GSplashScreenImage setSize:NSMakeSize(ImageWidth, ImageHeight)];
+			
+			ContentRect.origin.x = 0;
+			ContentRect.origin.y = 0;
+			ContentRect.size.width = ImageWidth;
+			ContentRect.size.height = ImageHeight;
+			
+			int32 OriginX = 10;
+			int32 OriginY = 6;
+			int32 FontHeight = 14;
+			
+			// Setup bounds for game name
+			GSplashScreenTextRects[ SplashTextType::GameName ].origin.x = 10;
+			GSplashScreenTextRects[ SplashTextType::GameName ].origin.y = 0;
+			GSplashScreenTextRects[ SplashTextType::GameName ].size.width = ImageWidth - 2 * 10;
+			GSplashScreenTextRects[ SplashTextType::GameName ].size.height = ImageHeight;
+			
+			// Setup bounds for texts
+			GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].origin.x =
+			GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.x =
+			GSplashScreenTextRects[ SplashTextType::StartupProgress ].origin.x = OriginX;
+			
+			GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].size.width =
+			GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].size.width =
+			GSplashScreenTextRects[ SplashTextType::StartupProgress ].size.width = ImageWidth - 2 * OriginX;
+			
+			GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].size.height =
+			GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].size.height =
+			GSplashScreenTextRects[ SplashTextType::StartupProgress ].size.height = FontHeight;
+			
+			GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].origin.y = OriginY + 3 * FontHeight;
+			GSplashScreenTextRects[ SplashTextType::StartupProgress ].origin.y = OriginY;
+			
+			if( GIsEditor )
+			{
+				GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.y = OriginY + 2 * FontHeight;
+			}
+			else
+			{
+				GSplashScreenTextRects[ SplashTextType::CopyrightInfo ].origin.y = OriginY;
+			}
 		}
 
 		MainThreadCall(^{
+			FScopeLock Lock(&GSplashMutex);
+
 			// Create bordeless window with size from NSImage
 			GSplashWindow = [[FSplashWindow alloc] initWithContentRect: ContentRect styleMask: 0 backing: NSBackingStoreBuffered defer: NO];
 			[GSplashWindow setContentView: [[UE4SplashView alloc] initWithFrame: ContentRect]];
@@ -313,6 +323,7 @@ void FMacPlatformSplash::Hide()
 	{
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
+			FScopeLock Lock(&GSplashMutex);
 
 			[GSplashWindow close];
 			GSplashWindow = NULL;
@@ -341,6 +352,8 @@ void FMacPlatformSplash::SetSplashText(const SplashTextType::Type InType, const 
 		{
 			bool bWasUpdated = false;
 			{
+				FScopeLock Lock(&GSplashMutex);
+
 				// Update splash text
 				if( FCString::Strcmp( InText, *GSplashScreenText[ InType ].ToString() ) != 0 )
 				{

@@ -99,6 +99,7 @@ public:
 	static const FString CrashTypeCrash;
 	static const FString CrashTypeAssert;
 	static const FString CrashTypeEnsure;
+	static const FString CrashTypeGPU;
 
 	static const FString EngineModeExUnknown;
 	static const FString EngineModeExDirty;

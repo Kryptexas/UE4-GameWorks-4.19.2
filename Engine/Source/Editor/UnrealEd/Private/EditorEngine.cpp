@@ -6592,7 +6592,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		}
 
 		extern bool IsSupportedXcodeVersionInstalled();
-		if (!IsSupportedXcodeVersionInstalled())
+		if (FSlateApplication::IsInitialized() && !IsSupportedXcodeVersionInstalled())
 		{
 			/** Utility functions for the notification */
 			struct Local

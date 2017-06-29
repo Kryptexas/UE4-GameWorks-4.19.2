@@ -5641,6 +5641,8 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 	bool bMapsOnly = (!!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly)) || PackagingSettings->bCookMapsOnly;
 	bool bNoDev = !!(FilesToCookFlags & ECookByTheBookOptions::NoDevContent);
 
+	TArray<FName> InitialPackages = FilesInPath;
+
 	if (IsChildCooker())
 	{
 		const FString ChildCookFilename = CookByTheBookOptions->ChildCookFilename;
@@ -5820,6 +5822,43 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 			}
 		}
 
+		// If no packages were explicitly added by command line or game callback, add all maps
+		if (FilesInPath.Num() == InitialPackages.Num() || bCookAll)
+		{
+			TArray<FString> Tokens;
+			Tokens.Empty(2);
+			Tokens.Add(FString("*") + FPackageName::GetAssetPackageExtension());
+			Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
+
+			uint8 PackageFilter = NORMALIZE_DefaultFlags | NORMALIZE_ExcludeEnginePackages;
+			if (bMapsOnly)
+			{
+				PackageFilter |= NORMALIZE_ExcludeContentPackages;
+			}
+
+			if (bNoDev)
+			{
+				PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
+			}
+
+			// assume the first token is the map wildcard/pathname
+			TArray<FString> Unused;
+			for (int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++)
+			{
+				TArray<FString> TokenFiles;
+				if (!NormalizePackageNames(Unused, TokenFiles, Tokens[TokenIndex], PackageFilter))
+				{
+					UE_LOG(LogCook, Display, TEXT("No packages found for parameter %i: '%s'"), TokenIndex, *Tokens[TokenIndex]);
+					continue;
+				}
+
+				for (int32 TokenFileIndex = 0; TokenFileIndex < TokenFiles.Num(); ++TokenFileIndex)
+				{
+					AddFileToCook(FilesInPath, TokenFiles[TokenFileIndex]);
+				}
+			}
+		}
+
 		// Add any files of the desired cultures localized assets to cook.
 		for (const FString& CultureToCookName : CookCultures)
 		{
@@ -5865,42 +5904,6 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 				{
 					FPackageName::RegisterMountPoint(ExternalMountPointName, DLCPath);
 				}
-			}
-		}
-	}
-
-	if ((FilesInPath.Num() == 0) || bCookAll)
-	{
-		TArray<FString> Tokens;
-		Tokens.Empty(2);
-		Tokens.Add(FString("*") + FPackageName::GetAssetPackageExtension());
-		Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
-
-		uint8 PackageFilter = NORMALIZE_DefaultFlags | NORMALIZE_ExcludeEnginePackages;
-		if ( bMapsOnly )
-		{
-			PackageFilter |= NORMALIZE_ExcludeContentPackages;
-		}
-
-		if ( bNoDev )
-		{
-			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
-		}
-
-		// assume the first token is the map wildcard/pathname
-		TArray<FString> Unused;
-		for ( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++ )
-		{
-			TArray<FString> TokenFiles;
-			if ( !NormalizePackageNames( Unused, TokenFiles, Tokens[TokenIndex], PackageFilter) )
-			{
-				UE_LOG(LogCook, Display, TEXT("No packages found for parameter %i: '%s'"), TokenIndex, *Tokens[TokenIndex]);
-				continue;
-			}
-
-			for (int32 TokenFileIndex = 0; TokenFileIndex < TokenFiles.Num(); ++TokenFileIndex)
-			{
-				AddFileToCook( FilesInPath, TokenFiles[TokenFileIndex]);
 			}
 		}
 	}
@@ -6815,6 +6818,9 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		GRedirectCollector.GetStringAssetReferencePackageList(StartupPackage, StartupStringAssetPackages);
 	}
 
+	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
+
+	// Add string asset packages after collecting files, to avoid accidentally activating the behavior to cook all maps if none are specified
 	for (FName StringAssetPackage : StartupStringAssetPackages)
 	{
 		TMap<FString, FString> RedirectedPaths;
@@ -6833,8 +6839,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			AddFileToCook(FilesInPath, StringAssetPackage.ToString());
 		}
 	}
-
-	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
 	
 	if (FilesInPath.Num() == 0)
 	{

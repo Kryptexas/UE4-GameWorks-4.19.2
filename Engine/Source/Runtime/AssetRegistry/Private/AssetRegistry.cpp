@@ -1306,6 +1306,19 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 			if (AssetData != nullptr)
 			{
 				AddAssetPath(AssetData->PackagePath);
+
+				// Populate the class map if adding blueprint
+				if (ClassGeneratorNames.Contains(AssetData->AssetClass))
+				{
+					const FString GeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
+					const FString ParentClass = AssetData->GetTagValueRef<FString>("ParentClass");
+					if (!GeneratedClass.IsEmpty() && !ParentClass.IsEmpty())
+					{
+						const FName GeneratedClassFName = *ExportTextPathToObjectName(GeneratedClass);
+						const FName ParentClassFName = *ExportTextPathToObjectName(ParentClass);
+						CachedInheritanceMap.Add(GeneratedClassFName, ParentClassFName);
+					}
+				}
 			}
 		}
 	}

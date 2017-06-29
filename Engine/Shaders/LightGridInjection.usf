@@ -216,14 +216,14 @@ RWBuffer<uint> RWNextCulledLightData;
 Buffer<uint> StartOffsetGrid;
 Buffer<uint> CulledLightLinks;
 
-void CompactReverseLinkedList(uint GridIndex)
+void CompactReverseLinkedList(uint GridIndex, uint SceneMax)
 {
 	uint NumCulledLights = 0;
 	uint StartLinkOffset = StartOffsetGrid[GridIndex];
 	uint LinkOffset = StartLinkOffset;
 
 	// Traverse the linked list to count how many culled indices we have
-	while (LinkOffset != 0xFFFFFFFF)
+	while (LinkOffset != 0xFFFFFFFF && NumCulledLights < SceneMax)
 	{
 		NumCulledLights++;
 		LinkOffset = CulledLightLinks[LinkOffset * LIGHT_LINK_STRIDE + 1];
@@ -237,7 +237,7 @@ void CompactReverseLinkedList(uint GridIndex)
 	LinkOffset = StartLinkOffset;
 	uint CulledLightIndex = 0;
 
-	while (LinkOffset != 0xFFFFFFFF)
+	while (LinkOffset != 0xFFFFFFFF && CulledLightIndex < NumCulledLights)
 	{
 		// Reverse the order as we write them out, which restores the original order before the reverse linked list was built
 		// Reflection captures are order dependent
@@ -260,9 +260,9 @@ void LightGridCompactCS(
 		uint GridIndex = (GridCoordinate.z * ForwardGlobalLightData.CulledGridSize.y + GridCoordinate.y) * ForwardGlobalLightData.CulledGridSize.x + GridCoordinate.x;
 
 		// Compact lights
-		CompactReverseLinkedList(GridIndex);
+		CompactReverseLinkedList(GridIndex, ForwardGlobalLightData.NumLocalLights);
 
 		// Compact reflection captures
-		CompactReverseLinkedList(ForwardGlobalLightData.NumGridCells + GridIndex);
+		CompactReverseLinkedList(ForwardGlobalLightData.NumGridCells + GridIndex, ForwardGlobalLightData.NumReflectionCaptures);
 	}
 }

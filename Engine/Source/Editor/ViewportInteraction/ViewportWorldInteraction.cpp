@@ -25,8 +25,8 @@
 #include "ActorTransformer.h"
 #include "SnappingUtils.h"
 #include "ScopedTransaction.h"
-
 #include "DrawDebugHelpers.h"
+#include "Framework/Application/SlateApplication.h"
 
 //Sound
 #include "Kismet/GameplayStatics.h"
@@ -37,6 +37,7 @@
 #include "IHeadMountedDisplay.h"
 #include "EngineUtils.h"
 #include "ActorViewportTransformable.h"
+
 
 #define LOCTEXT_NAMESPACE "ViewportWorldInteraction"
 
@@ -2420,6 +2421,14 @@ void UViewportWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 					ViewportTransformer->OnStopDragging(Interactor);
 				}
 			}
+		}
+
+		// Make sure we reset the dragging state if we released
+		FSlateApplication& SlateApplication = FSlateApplication::Get();
+		if (SlateApplication.IsDragDropping())
+		{
+			TSharedPtr<FGenericWindow> Window = SlateApplication.GetActiveTopLevelWindow()->GetNativeWindow();
+			SlateApplication.OnDragLeave(Window);
 		}
 
 		InteractorData.DraggingMode = EViewportInteractionDraggingMode::Nothing;

@@ -1114,6 +1114,12 @@ namespace UnrealBuildTool
 				bool bIsHotReload = !bNoHotReload && (BuildConfiguration.bHotReloadFromIDE || (TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0));
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
 
+				// Do a gather on hotreload - we don't want old module names from the makefile to be used
+				if (bIsHotReload)
+				{
+					UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
+				}
+
 				if (ProjectFileGenerator.bGenerateProjectFiles)
 				{
 					// Create empty timestamp file to record when was the last time we regenerated projects.

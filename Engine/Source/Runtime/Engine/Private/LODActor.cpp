@@ -544,9 +544,9 @@ const bool ALODActor::HasValidSubActors() const
 	int32 NumMeshes = 0;
 
 	// Make sure there are at least two meshes in the subactors
-	TInlineComponentArray<UStaticMeshComponent*> Components;
 	for (AActor* SubActor : SubActors)
 	{
+		TInlineComponentArray<UStaticMeshComponent*> Components;
 		SubActor->GetComponents(/*out*/ Components);
 		NumMeshes += Components.Num();
 

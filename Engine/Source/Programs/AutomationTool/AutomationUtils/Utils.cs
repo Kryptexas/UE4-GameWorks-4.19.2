@@ -284,6 +284,10 @@ namespace AutomationTool
 		{
 			"KeyStorePassword",
 			"KeyPassword",
+			"rsa.privateexp",
+			"rsa.modulus",
+			"rsa.publicexp",
+			"aes.key",
 		};
 
 		private static void FilterIniFile(string SourceName, string TargetName)

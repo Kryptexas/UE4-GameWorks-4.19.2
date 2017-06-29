@@ -4160,12 +4160,12 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 
 	double TickStartTime = FPlatformTime::Seconds();
 
+	if (GEventDrivenLoaderEnabled)
+	{
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FScopedRecursionNotAllowed RecursionGuard;
 #endif
 
-	if (GEventDrivenLoaderEnabled)
-	{
 		FAsyncLoadingTickScope InAsyncLoadingTick;
 		uint32 LoopIterations = 0;
 

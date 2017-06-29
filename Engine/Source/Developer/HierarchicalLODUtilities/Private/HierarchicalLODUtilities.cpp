@@ -787,35 +787,37 @@ bool FHierarchicalLODUtilities::IsWorldUsedForStreaming(const UWorld* InWorld)
 	AssetRegistryModule.Get().GetReferencers(FAssetIdentifier(OuterPackage->GetFName()), ReferenceNames);
 
 	for (const FAssetIdentifier& Identifier : ReferenceNames)
-	{
-		
-		const FString PackageName = Identifier.PackageName.ToString();
-		UPackage* ReferencingPackage = FindPackage(nullptr, *PackageName);
-		if (!ReferencingPackage)
+	{	
+		if (Identifier.PackageName != NAME_None)
 		{
-			ReferencingPackage = LoadPackage(nullptr, *PackageName, LOAD_None);
-		}
-
-		// Retrieve the referencing UPackage and check if it contains a map asset
-		if (ReferencingPackage && ReferencingPackage->ContainsMap())
-		{
-			TArray<UPackage*> Packages;
-			Packages.Add(ReferencingPackage);
-			TArray<UObject*> Objects;
-			PackageTools::GetObjectsInPackages(&Packages, Objects);
-
-			// Loop over all objects in package and try to find a world
-			for (UObject* Object : Objects)
+			const FString PackageName = Identifier.PackageName.ToString();
+			UPackage* ReferencingPackage = FindPackage(nullptr, *PackageName);
+			if (!ReferencingPackage)
 			{
-				if (UWorld* World = Cast<UWorld>(Object))
+				ReferencingPackage = LoadPackage(nullptr, *PackageName, LOAD_None);
+			}
+
+			// Retrieve the referencing UPackage and check if it contains a map asset
+			if (ReferencingPackage && ReferencingPackage->ContainsMap())
+			{
+				TArray<UPackage*> Packages;
+				Packages.Add(ReferencingPackage);
+				TArray<UObject*> Objects;
+				PackageTools::GetObjectsInPackages(&Packages, Objects);
+
+				// Loop over all objects in package and try to find a world
+				for (UObject* Object : Objects)
 				{
-					// Check the world contains InWorld as a streaming level
-					if (World->StreamingLevels.FindByPredicate([InWorld](const ULevelStreaming* StreamingLevel)
+					if (UWorld* World = Cast<UWorld>(Object))
 					{
-						return StreamingLevel->GetWorldAsset() == InWorld;
-					}))
-					{
-						return true;
+						// Check the world contains InWorld as a streaming level
+						if (World->StreamingLevels.FindByPredicate([InWorld](const ULevelStreaming* StreamingLevel)
+						{
+							return StreamingLevel->GetWorldAsset() == InWorld;
+						}))
+						{
+							return true;
+						}
 					}
 				}
 			}
