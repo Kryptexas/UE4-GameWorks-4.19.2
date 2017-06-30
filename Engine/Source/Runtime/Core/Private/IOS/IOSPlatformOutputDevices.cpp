@@ -8,7 +8,7 @@
 #include "Misc/OutputDeviceFile.h"
 
 #include "FeedbackContextAnsi.h"
-#include "../Private/iOS/IOSPlatformOutputDevicesPrivate.h"
+#include "../Private/IOS/IOSPlatformOutputDevicesPrivate.h"
 
 //////////////////////////////////
 // FIOSPlatformOutputDevices
