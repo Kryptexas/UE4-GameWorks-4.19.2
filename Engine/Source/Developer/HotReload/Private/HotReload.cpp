@@ -944,6 +944,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 
 		ReplaceReferencesToReconstructedCDOs();
 
+		// Force GC to collect reinstanced objects
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+
 		Result = ECompilationResult::Succeeded;
 	}
 
