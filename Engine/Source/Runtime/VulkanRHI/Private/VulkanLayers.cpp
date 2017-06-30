@@ -439,7 +439,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		}
 	}
 
-	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions); ++Index)
+	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions) && GDeviceExtensions[Index] != nullptr; ++Index)
 	{
 		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
 		{
