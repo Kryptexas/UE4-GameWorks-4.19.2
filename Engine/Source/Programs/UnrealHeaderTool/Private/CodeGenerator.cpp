@@ -3028,7 +3028,7 @@ void WriteEventFunctionEpilogue(FOutputDevice& Output, int32 Indent, const FParm
 	{
 		UProperty* Prop = *It;
 
-		if (Prop->HasAnyPropertyFlags(CPF_OutParm) && (!Prop->HasAnyPropertyFlags(CPF_ConstParm) || Prop->IsA<UObjectPropertyBase>()))
+		if ((Prop->PropertyFlags & (CPF_OutParm | CPF_ConstParm)) == CPF_OutParm)
 		{
 			const FString PropertyName = Prop->GetName();
 			if ( Prop->ArrayDim > 1 )
