@@ -1065,23 +1065,19 @@ struct FRHICommandTransitionTexturesArray : public FRHICommand<FRHICommandTransi
 template<ECmdList CmdListType>
 struct FRHICommandTransitionUAVs : public FRHICommand<FRHICommandTransitionUAVs<CmdListType>>
 {
-	static const int32 MaxUAVsToTransition = 16;
 	int32 NumUAVs;
-	FUnorderedAccessViewRHIParamRef UAVs[MaxUAVsToTransition];
+	FUnorderedAccessViewRHIParamRef* UAVs; // Pointer to an array of UAVs, allocated inline with the command list
 	EResourceTransitionAccess TransitionType;
 	EResourceTransitionPipeline TransitionPipeline;
 	FComputeFenceRHIParamRef WriteFence;
 
-		FORCEINLINE_DEBUGGABLE FRHICommandTransitionUAVs(EResourceTransitionAccess InTransitionType, EResourceTransitionPipeline InTransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef InWriteFence)
+	FORCEINLINE_DEBUGGABLE FRHICommandTransitionUAVs(EResourceTransitionAccess InTransitionType, EResourceTransitionPipeline InTransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef InWriteFence)
 		: NumUAVs(InNumUAVs)
+		, UAVs(InUAVs)
 		, TransitionType(InTransitionType)
 		, TransitionPipeline(InTransitionPipeline)
 		, WriteFence(InWriteFence)
 	{
-		for (int32 i = 0; i < NumUAVs; ++i)
-		{
-			UAVs[i] = InUAVs[i];
-		}
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
@@ -2214,7 +2210,11 @@ public:
 			CMD_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
 			return;
 		}
-		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
+
+		// Allocate space to hold the single UAV pointer inline in the command list itself.
+		FUnorderedAccessViewRHIParamRef* UAVArray = (FUnorderedAccessViewRHIParamRef*)Alloc(sizeof(FUnorderedAccessViewRHIParamRef), alignof(FUnorderedAccessViewRHIParamRef));
+		UAVArray[0] = UAV;
+		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, UAVArray, 1, WriteFence);
 	}
 
 	FORCEINLINE_DEBUGGABLE void TransitionResource(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef InUAV)
@@ -2230,7 +2230,15 @@ public:
 			CMD_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
 			return;
 		}
-		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
+
+		// Allocate space to hold the list UAV pointers inline in the command list itself.
+		FUnorderedAccessViewRHIParamRef* UAVArray = (FUnorderedAccessViewRHIParamRef*)Alloc(sizeof(FUnorderedAccessViewRHIParamRef) * NumUAVs, alignof(FUnorderedAccessViewRHIParamRef));
+		for (int32 Index = 0; Index < NumUAVs; ++Index)
+		{
+			UAVArray[Index] = InUAVs[Index];
+		}
+
+		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, UAVArray, NumUAVs, WriteFence);
 	}
 
 	FORCEINLINE_DEBUGGABLE void TransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs)
@@ -2447,7 +2455,11 @@ public:
 			COMPUTE_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
 			return;
 		}
-		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
+
+		// Allocate space to hold the single UAV pointer inline in the command list itself.
+		FUnorderedAccessViewRHIParamRef* UAVArray = (FUnorderedAccessViewRHIParamRef*)Alloc(sizeof(FUnorderedAccessViewRHIParamRef), alignof(FUnorderedAccessViewRHIParamRef));
+		UAVArray[0] = UAV;
+		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, UAVArray, 1, WriteFence);
 	}
 
 	FORCEINLINE_DEBUGGABLE void TransitionResource(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef InUAV)
@@ -2462,7 +2474,15 @@ public:
 			COMPUTE_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
 			return;
 		}
-		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
+
+		// Allocate space to hold the list UAV pointers inline in the command list itself.
+		FUnorderedAccessViewRHIParamRef* UAVArray = (FUnorderedAccessViewRHIParamRef*)Alloc(sizeof(FUnorderedAccessViewRHIParamRef) * NumUAVs, alignof(FUnorderedAccessViewRHIParamRef));
+		for (int32 Index = 0; Index < NumUAVs; ++Index)
+		{
+			UAVArray[Index] = InUAVs[Index];
+		}
+
+		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, UAVArray, NumUAVs, WriteFence);
 	}
 
 	FORCEINLINE_DEBUGGABLE void TransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs)
