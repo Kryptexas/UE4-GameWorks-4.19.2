@@ -715,11 +715,11 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 
 void FAssetEditorManager::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
 {
+	static TArray<UObject*> PendingAssetsToOpen;
+
 	if (InPackageReloadPhase == EPackageReloadPhase::PrePackageFixup)
 	{
 		TArray<UObject*> OldAssets;
-		TArray<UObject*> NewAssets;
-
 		for (auto AssetEditorPair : OpenedAssets)
 		{
 			UObject* NewAsset = nullptr;
@@ -728,7 +728,7 @@ void FAssetEditorManager::HandlePackageReloaded(const EPackageReloadPhase InPack
 				OldAssets.Add(AssetEditorPair.Key);
 				if (NewAsset)
 				{
-					NewAssets.Add(NewAsset);
+					PendingAssetsToOpen.AddUnique(NewAsset);
 				}
 			}
 		}
@@ -737,11 +737,15 @@ void FAssetEditorManager::HandlePackageReloaded(const EPackageReloadPhase InPack
 		{
 			CloseAllEditorsForAsset(OldAsset);
 		}
+	}
 
-		for (UObject* NewAsset : NewAssets)
+	if (InPackageReloadPhase == EPackageReloadPhase::PostBatchPostGC)
+	{
+		for (UObject* NewAsset : PendingAssetsToOpen)
 		{
 			OpenEditorForAsset(NewAsset);
 		}
+		PendingAssetsToOpen.Reset();
 	}
 }
 
