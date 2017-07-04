@@ -466,6 +466,12 @@ struct FAndroidOpenGL : public FOpenGLES2
 	{
 		return bUseES30ShadingLanguage;
 	}
+
+	// For now, framebuffer fetch is disabled with ES3.1
+	static FORCEINLINE bool SupportsShaderFramebufferFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderFramebufferFetch(); }
+	static FORCEINLINE bool SupportsShaderDepthStencilFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderDepthStencilFetch(); }
+	static FORCEINLINE bool RequiresUEShaderFramebufferFetchDef() { return !IsES31Usable() && FOpenGLES2::RequiresUEShaderFramebufferFetchDef(); }
+
 	static FORCEINLINE bool SupportsTextureMaxLevel()					{ return bES31Support; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat() { return bES31Support ? GL_HALF_FLOAT : GL_HALF_FLOAT_OES; }
 
