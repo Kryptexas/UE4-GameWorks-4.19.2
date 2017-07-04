@@ -46,7 +46,8 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_SpawnTrack_TokenExecute)
 		
-		bool bHasSpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(Operand.ObjectBindingID, Operand.SequenceID) != nullptr;
+		// We always go through FindBoundObjects to lookup objects so that any user-defined overrides get picked up properly for spawnables
+		bool bHasSpawnedObject = Player.FindBoundObjects(Operand).Num() != 0;
 		if (bSpawned)
 		{
 			// If it's not spawned, spawn it
