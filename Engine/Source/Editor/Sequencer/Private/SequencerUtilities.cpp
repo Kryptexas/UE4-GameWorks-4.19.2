@@ -103,7 +103,6 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 				OverlapPriority = FMath::Max(Section->GetOverlapPriority() + 1, OverlapPriority);
 			}
 
-			
 			Track->Modify();
 
 			NewSection->SetIsInfinite(false);
@@ -114,6 +113,7 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 			NewSection->SetBlendType(BlendType);
 
 			Track->AddSection(*NewSection);
+			Track->UpdateEasing();
 
 			InSequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
 		}

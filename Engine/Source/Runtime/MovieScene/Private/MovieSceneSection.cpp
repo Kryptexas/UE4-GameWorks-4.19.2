@@ -148,6 +148,12 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 			MoveSection(OverlappedSection->GetEndTime() - StartTime, KeyHandles);
 		}
 	}
+
+	UMovieSceneTrack* Track = GetTypedOuter<UMovieSceneTrack>();
+	if (Track)
+	{
+		Track->UpdateEasing();
+	}
 }
 
 
