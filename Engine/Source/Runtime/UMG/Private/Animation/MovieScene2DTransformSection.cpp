@@ -7,6 +7,7 @@ UMovieScene2DTransformSection::UMovieScene2DTransformSection(const FObjectInitia
 	: Super(ObjectInitializer)
 {
 	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+	BlendType = EMovieSceneBlendType::Absolute;
 }
 
 
@@ -292,4 +293,6 @@ void UMovieScene2DTransformSection::ClearDefaults()
 	Translation[1].ClearDefaultValue();
 	Scale[0].ClearDefaultValue();
 	Scale[1].ClearDefaultValue();
+	Shear[0].ClearDefaultValue();
+	Shear[1].ClearDefaultValue();
 }

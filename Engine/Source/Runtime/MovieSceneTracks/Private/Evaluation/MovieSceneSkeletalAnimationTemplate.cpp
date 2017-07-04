@@ -136,21 +136,23 @@ namespace MovieScene
 		OutBlend.AllAnimations.Add(InValue);
 	}
 
-	struct FComponentAnimationActuator : TMovieSceneBlendingActuator<MovieScene::FBlendedAnimation>
+	struct FComponentAnimationActuator : TMovieSceneBlendingActuator<FBlendedAnimation>
 	{
+		FComponentAnimationActuator() : TMovieSceneBlendingActuator<FBlendedAnimation>(GetActuatorTypeID()) {}
+
 		static FMovieSceneBlendingActuatorID GetActuatorTypeID()
 		{
 			static FMovieSceneAnimTypeID TypeID = TMovieSceneAnimTypeID<FComponentAnimationActuator>();
 			return FMovieSceneBlendingActuatorID(TypeID);
 		}
 
-		virtual MovieScene::FBlendedAnimation RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
+		virtual FBlendedAnimation RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
 		{
 			check(false);
-			return MovieScene::FBlendedAnimation();
+			return FBlendedAnimation();
 		}
 
-		virtual void Actuate(UObject* InObject, const MovieScene::FBlendedAnimation& InFinalValue, const TBlendableTokenStack<MovieScene::FBlendedAnimation>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+		virtual void Actuate(UObject* InObject, const FBlendedAnimation& InFinalValue, const TBlendableTokenStack<FBlendedAnimation>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 		{
 			USkeletalMeshComponent* SkeletalMeshComponent = SkeletalMeshComponentFromObject(InObject);
 			if (!SkeletalMeshComponent)

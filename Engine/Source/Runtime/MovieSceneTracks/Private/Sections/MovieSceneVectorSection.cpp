@@ -36,6 +36,7 @@ UMovieSceneVectorSection::UMovieSceneVectorSection(const FObjectInitializer& Obj
 	ChannelsUsed = 0;
 
 	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+	BlendType = EMovieSceneBlendType::Absolute;
 }
 
 /* UMovieSceneSection interface
@@ -215,7 +216,7 @@ void UMovieSceneVectorSection::SetDefault(const FVectorKey& Key)
 
 void UMovieSceneVectorSection::ClearDefaults()
 {
-	for (auto Curve : Curves)
+	for (auto& Curve : Curves)
 	{
 		Curve.ClearDefaultValue();
 	}

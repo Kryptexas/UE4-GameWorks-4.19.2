@@ -189,6 +189,14 @@ struct ENGINE_API FRichCurve
 
 public:
 
+	/**
+	 * Check whether this curve has any data or not
+	 */
+	bool HasAnyData() const
+	{
+		return DefaultValue != MAX_flt || Keys.Num();
+	}
+
 	/** Gets a copy of the keys, so indices and handles can't be meddled with */
 	TArray<FRichCurveKey> GetCopyOfKeys() const;
 

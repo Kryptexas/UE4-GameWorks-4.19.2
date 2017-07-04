@@ -9,6 +9,7 @@ UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FObjectInitializer& Init)
 	: Super(Init)
 {
 	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
 }
 
 UMovieSceneSection* UMovieSceneMarginTrack::CreateNewSection()

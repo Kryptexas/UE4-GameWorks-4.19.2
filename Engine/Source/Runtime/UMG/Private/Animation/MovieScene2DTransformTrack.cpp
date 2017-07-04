@@ -13,6 +13,7 @@ UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitialize
 #endif
 
 	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
 }
 
 UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()

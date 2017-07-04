@@ -11,6 +11,7 @@
 #include "Curves/StringCurve.h"
 #include "Templates/UnrealTypeTraits.h"
 #include "MovieScene3DTransformTemplate.h"
+#include "MovieSceneBlendType.h"
 #include "MovieScenePropertyTemplates.generated.h"
 
 class UMovieSceneBoolSection;
@@ -23,44 +24,27 @@ class UMovieSceneVectorSection;
 class UMovieSceneEnumSection;
 class UMovieScene3DTransformSection;
 
+
 USTRUCT()
-struct FMovieSceneBoolPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneBoolPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
-	FMovieSceneBoolPropertySectionTemplate(){}
+	FMovieSceneBoolPropertySectionTemplate() {}
 	FMovieSceneBoolPropertySectionTemplate(const UMovieSceneBoolSection& Section, const UMovieScenePropertyTrack& Track);
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<bool>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<bool>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 
 	UPROPERTY()
 	FIntegralCurve BoolCurve;
 };
 
 USTRUCT()
-struct FMovieSceneFloatPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneFloatPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -69,34 +53,18 @@ struct FMovieSceneFloatPropertySectionTemplate : public FMovieSceneEvalTemplate
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<float>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<float>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 
 	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
+	FRichCurve FloatCurve;
 
 	UPROPERTY()
-	FRichCurve FloatCurve;
+	EMovieSceneBlendType BlendType;
 };
 
 USTRUCT()
-struct FMovieSceneBytePropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneBytePropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -105,34 +73,16 @@ struct FMovieSceneBytePropertySectionTemplate : public FMovieSceneEvalTemplate
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<uint8>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<uint8>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 
 	UPROPERTY()
 	FIntegralCurve ByteCurve;
 };
 
 USTRUCT()
-struct FMovieSceneEnumPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneEnumPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -141,34 +91,16 @@ struct FMovieSceneEnumPropertySectionTemplate : public FMovieSceneEvalTemplate
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<int64>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<int64>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 
 	UPROPERTY()
 	FIntegralCurve EnumCurve;
 };
 
 USTRUCT()
-struct FMovieSceneIntegerPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneIntegerPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -177,34 +109,18 @@ struct FMovieSceneIntegerPropertySectionTemplate : public FMovieSceneEvalTemplat
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<int32>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<int32>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 
 	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
+	FIntegralCurve IntegerCurve;
 
 	UPROPERTY()
-	FIntegralCurve IntegerCurve;
+	EMovieSceneBlendType BlendType;
 };
 
 USTRUCT()
-struct FMovieSceneStringPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneStringPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -213,27 +129,9 @@ struct FMovieSceneStringPropertySectionTemplate : public FMovieSceneEvalTemplate
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedTrack<FString>(PersistentData);
-	}
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
-	{
-		PropertyData.SetupCachedFrame<FString>(Operand, PersistentData, Player);
-	}
-
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 
 	UPROPERTY()
 	FStringCurve StringCurve;
@@ -244,7 +142,7 @@ Expose_TNameOf(FVector);
 Expose_TNameOf(FVector4);
 
 USTRUCT()
-struct FMovieSceneVectorPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneVectorPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 	
@@ -253,33 +151,23 @@ struct FMovieSceneVectorPropertySectionTemplate : public FMovieSceneEvalTemplate
 
 protected:
 
-	virtual UScriptStruct& GetScriptStructImpl() const override
-	{
-		return *StaticStruct();
-	}
-	virtual void SetupOverrides() override
-	{
-		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
-	}
-
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
-	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 
 	UPROPERTY()
 	FRichCurve ComponentCurves[4];
 
 	UPROPERTY()
 	int32 NumChannelsUsed;
+
+	UPROPERTY()
+	EMovieSceneBlendType BlendType;
 };
 
 Expose_TNameOf(FTransform);
 
 USTRUCT()
-struct FMovieSceneTransformPropertySectionTemplate : public FMovieSceneEvalTemplate
+struct FMovieSceneTransformPropertySectionTemplate : public FMovieScenePropertySectionTemplate
 {
 	GENERATED_BODY()
 
@@ -289,14 +177,8 @@ struct FMovieSceneTransformPropertySectionTemplate : public FMovieSceneEvalTempl
 protected:
 
 	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
-	virtual void SetupOverrides() override { EnableOverrides(RequiresSetupFlag); }
-
-	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 
 	UPROPERTY()
 	FMovieScene3DTransformTemplateData TemplateData;
-
-	UPROPERTY()
-	FMovieScenePropertySectionData PropertyData;
 };

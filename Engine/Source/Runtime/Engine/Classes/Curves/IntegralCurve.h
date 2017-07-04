@@ -59,6 +59,14 @@ public:
 	/** Evaluates the value of an array of keys at a time */
 	int32 Evaluate(float Time, int32 InDefaultValue = 0) const;
 
+	/**
+	 * Check whether this curve has any data or not
+	 */
+	bool HasAnyData() const
+	{
+		return DefaultValue != MAX_int32 || Keys.Num();
+	}
+
 	/** Const iterator for the keys, so the indices and handles stay valid */
 	TArray<FIntegralKey>::TConstIterator GetKeyIterator() const;
 	
