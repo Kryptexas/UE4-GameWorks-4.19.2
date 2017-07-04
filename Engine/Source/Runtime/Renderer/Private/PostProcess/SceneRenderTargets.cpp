@@ -2058,8 +2058,8 @@ FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const
 {
 	int32 MaxShadowRes = CurrentMaxShadowResolution;
 	const FIntPoint ShadowBufferResolution(
-			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeX),
-			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeY));
+			FMath::Clamp(MaxShadowRes,1,(int32)GMaxShadowDepthBufferSizeX),
+			FMath::Clamp(MaxShadowRes,1,(int32)GMaxShadowDepthBufferSizeY));
 	
 	return ShadowBufferResolution;
 }
@@ -2083,8 +2083,8 @@ FIntPoint FSceneRenderTargets::GetPreShadowCacheTextureResolution() const
 
 	FIntPoint Ret;
 
-	Ret.X = FMath::Clamp(FMath::TruncToInt(ShadowDepthResolution.X * Factor) * ExpandFactor, 1, GMaxShadowDepthBufferSizeX);
-	Ret.Y = FMath::Clamp(FMath::TruncToInt(ShadowDepthResolution.Y * Factor) * ExpandFactor, 1, GMaxShadowDepthBufferSizeY);
+	Ret.X = FMath::Clamp(FMath::TruncToInt(ShadowDepthResolution.X * Factor) * ExpandFactor, 1, (int32)GMaxShadowDepthBufferSizeX);
+	Ret.Y = FMath::Clamp(FMath::TruncToInt(ShadowDepthResolution.Y * Factor) * ExpandFactor, 1, (int32)GMaxShadowDepthBufferSizeY);
 
 	return Ret;
 }
@@ -2095,8 +2095,8 @@ FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() cons
 
 	int32 Factor = GetTranslucentShadowDownsampleFactor();
 
-	ShadowDepthResolution.X = FMath::Clamp(ShadowDepthResolution.X / Factor, 1, GMaxShadowDepthBufferSizeX);
-	ShadowDepthResolution.Y = FMath::Clamp(ShadowDepthResolution.Y / Factor, 1, GMaxShadowDepthBufferSizeY);
+	ShadowDepthResolution.X = FMath::Clamp(ShadowDepthResolution.X / Factor, 1, (int32)GMaxShadowDepthBufferSizeX);
+	ShadowDepthResolution.Y = FMath::Clamp(ShadowDepthResolution.Y / Factor, 1, (int32)GMaxShadowDepthBufferSizeY);
 
 	return ShadowDepthResolution;
 }
