@@ -347,7 +347,7 @@ void FImagePlateTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuild
 	}
 }
 
-TSharedPtr<SWidget> FImagePlateTrackEditor::BuildOutlinerRightGutterWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
+TSharedPtr<SWidget> FImagePlateTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
 {
 	UMovieSceneImagePlateTrack* ImagePlateTrack = Cast<UMovieSceneImagePlateTrack>(Track);
 	if (!ImagePlateTrack)
