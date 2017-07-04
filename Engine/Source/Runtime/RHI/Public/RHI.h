@@ -148,13 +148,13 @@ private:
 
 #if WITH_EDITOR
 template<>
-int32 TRHIGlobal<int32>::GetPreviewValue() const 
+inline int32 TRHIGlobal<int32>::GetPreviewValue() const 
 {
 	// ensure the preview values are subsets of RHI functionality.
 	return FMath::Min(PreviewValue.GetValue(), Value);
 }
 template<>
-bool TRHIGlobal<bool>::GetPreviewValue() const
+inline bool TRHIGlobal<bool>::GetPreviewValue() const
 {
 	// ensure the preview values are subsets of RHI functionality.
 	return PreviewValue.GetValue() && Value;
