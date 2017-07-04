@@ -24,6 +24,7 @@
 #include "SSequencer.h"
 #include "SSequencerLabelEditor.h"
 #include "MovieSceneSequence.h"
+#include "SequencerTrackNode.h"
 #include "ObjectEditorUtils.h"
 #include "SequencerUtilities.h"
 #include "Styling/SlateIconFinder.h"
@@ -123,6 +124,11 @@ FSequencerObjectBindingNode::FSequencerObjectBindingNode(FName NodeName, const F
 	{
 		BindingType = EObjectBindingType::Unknown;
 	}
+}
+
+void FSequencerObjectBindingNode::AddTrackNode( TSharedRef<FSequencerTrackNode> NewChild )
+{
+	AddChildAndSetParent( NewChild );
 }
 
 /* FSequencerDisplayNode interface

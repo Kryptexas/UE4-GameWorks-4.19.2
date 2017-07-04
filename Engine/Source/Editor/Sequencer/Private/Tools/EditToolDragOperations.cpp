@@ -524,88 +524,84 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 		// vertical dragging
 		if (Handle.TrackNode->GetTrack()->SupportsMultipleRows() && AllSections.Num() > 1)
 		{
-			int32 NumRows = 0;
+			// Compute the max row index whilst disregarding the one we're dragging
+			int32 MaxRowIndex = 0;
 			for (auto* Sec : MovieSceneSections)
 			{
 				if (Sec != Section)
 				{
-					NumRows = FMath::Max(Sec->GetRowIndex() + 1, NumRows);
+					MaxRowIndex = FMath::Max(Sec->GetRowIndex() + 1, MaxRowIndex);
 				}
 			}
 
-			// Compute the max row index whilst disregarding the one we're dragging
-			const int32 MaxRowIndex = NumRows;
-
-			// Now factor in the row index of the one we're dragging
-			NumRows = FMath::Max(Section->GetRowIndex() + 1, NumRows);
-
-			float VirtualSectionHeight = 0;
-			float VirtualSectionTop = 0;
-
+			// Handle sub-track and non-sub-track dragging
 			if (Handle.TrackNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::None)
 			{
-				VirtualSectionHeight = Handle.TrackNode->GetVirtualBottom() - Handle.TrackNode->GetVirtualTop();
-				VirtualSectionTop = Handle.TrackNode->GetVirtualTop();
+				const int32 NumRows = FMath::Max(Section->GetRowIndex() + 1, MaxRowIndex);
+
+				// Find the total height of the track - this is necessary because tracks may contain key areas, but they will not use sub tracks unless there is more than one row
+				float VirtualSectionBottom = 0.f;
+				Handle.TrackNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){ VirtualSectionBottom = Node.GetVirtualBottom(); return true; }, true);
+
+				// Assume same height rows
+				const float VirtualSectionTop = Handle.TrackNode->GetVirtualTop();
+				const float VirtualSectionHeight = VirtualSectionBottom - Handle.TrackNode->GetVirtualTop();
+
+				const float VirtualRowHeight = VirtualSectionHeight / NumRows;
+				const float MouseOffsetWithinRow = VirtualMousePos.Y - (VirtualSectionTop + (VirtualRowHeight * TargetRowIndex));
+
+				if (MouseOffsetWithinRow < VirtualRowHeight || MouseOffsetWithinRow > VirtualRowHeight)
+				{
+					const int32 NewIndex = FMath::FloorToInt((VirtualMousePos.Y - VirtualSectionTop) / VirtualRowHeight);
+					TargetRowIndex = FMath::Clamp(NewIndex, 0, MaxRowIndex);
+				}
 			}
 			else if(Handle.TrackNode->GetSubTrackMode() == FSequencerTrackNode::ESubTrackMode::SubTrack)
 			{
 				TSharedPtr<FSequencerTrackNode> ParentTrack = StaticCastSharedPtr<FSequencerTrackNode>(Handle.TrackNode->GetParent());
 				if (ensure(ParentTrack.IsValid()))
 				{
-					float ParentTrackVirtualHeight = ParentTrack->GetVirtualBottom() - ParentTrack->GetVirtualTop();
-					for (TSharedRef<FSequencerDisplayNode> ChildNode : ParentTrack->GetChildNodes())
+					for (int32 ChildIndex = 0; ChildIndex < ParentTrack->GetChildNodes().Num(); ++ChildIndex)
 					{
-						VirtualSectionHeight += ChildNode->GetVirtualBottom() - ChildNode->GetVirtualTop();
+						TSharedRef<FSequencerDisplayNode> ChildNode = ParentTrack->GetChildNodes()[ChildIndex];
+						float VirtualSectionTop = ChildNode->GetVirtualTop();
+						float VirtualSectionBottom = 0.f;
+						ChildNode->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& Node){ VirtualSectionBottom = Node.GetVirtualBottom(); return true; }, true);
+
+						if (VirtualMousePos.Y < VirtualSectionBottom)
+						{
+							TargetRowIndex = ChildIndex;
+							break;
+						}
+						else
+						{
+							TargetRowIndex = ChildIndex + 1;
+						}
 					}
-					VirtualSectionTop = ParentTrack->GetVirtualTop() + ParentTrackVirtualHeight;
 				}
-			}
-
-			float VirtualRowHeight = VirtualSectionHeight / NumRows;
-			float MouseOffsetWithinRow = VirtualMousePos.Y - (VirtualSectionTop + (VirtualRowHeight * TargetRowIndex));
-
-			if (MouseOffsetWithinRow < 0 || MouseOffsetWithinRow > VirtualRowHeight)
-			{
-				const int32 NewIndex = FMath::FloorToInt((VirtualMousePos.Y - VirtualSectionTop) / VirtualRowHeight);
-
-				if (NewIndex < 0)
-				{
-					// todo: Move everything else down?
-				}
-
-				TargetRowIndex = FMath::Clamp(NewIndex, 0, MaxRowIndex);
 			}
 		}
 
 		bool bDeltaX = !FMath::IsNearlyZero(DeltaTime);
 		bool bDeltaY = TargetRowIndex != Section->GetRowIndex();
 
-		if (bDeltaX && bDeltaY &&
-			!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), DeltaTime))
+		// Horizontal movement
+		if (bDeltaX)
 		{
-			Section->MoveSection(MinDeltaXTime.IsSet() ? MinDeltaXTime.GetValue() : DeltaTime, DraggedKeyHandles);
-			if (!bSectionsAreOnDifferentRows)
-			{
-				Section->Modify();
-				Section->SetRowIndex(TargetRowIndex);
-				bRowIndexChanged = true;
-			}
+			Section->MoveSection(MinDeltaXTime.Get(DeltaTime), DraggedKeyHandles);
 		}
-		else
-		{
-			if (bDeltaY &&
-				!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), 0.f) &&
-				!bSectionsAreOnDifferentRows)
-			{
-				Section->Modify();
-				Section->SetRowIndex(TargetRowIndex);
-				bRowIndexChanged = true;
-			}
 
-			if (bDeltaX)
-			{
-				Section->MoveSection( MinDeltaXTime.IsSet() ? MinDeltaXTime.GetValue() : DeltaTime, DraggedKeyHandles );
-			}
+		// Vertical movement
+		if (bDeltaY && !bSectionsAreOnDifferentRows &&
+			(
+				Section->GetBlendType().IsValid() ||
+				!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), DeltaTime)
+			)
+		)
+		{
+			Section->Modify();
+			Section->SetRowIndex(TargetRowIndex);
+			bRowIndexChanged = true;
 		}
 	}
 

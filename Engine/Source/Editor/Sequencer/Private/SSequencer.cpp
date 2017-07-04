@@ -497,6 +497,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 					// debug vis
 					+ SGridPanel::Slot( Column1, Row3, SGridPanel::Layer(10) )
+					.Padding(ResizeBarPadding)
 					[
 						SNew(SSequencerDebugVisualizer, InSequencer)
 						.ViewRange(FAnimatedRange::WrapAttribute(InArgs._ViewRange))
@@ -760,13 +761,14 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.SaveAs")
 			);
 
-			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RestoreAnimatedState );
 			//ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().DiscardChanges );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().FindInContentBrowser );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().CreateCamera );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
 			ToolBarBuilder.AddSeparator("Level Sequence Separator");
 		}
+
+		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RestoreAnimatedState );
 
 		ToolBarBuilder.AddComboButton(
 			FUIAction(),

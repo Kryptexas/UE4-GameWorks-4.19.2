@@ -1763,7 +1763,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.Timeline.SubSequenceRangeHashL", new BORDER_BRUSH( "Sequencer/SubSequenceRangeHashL", FMargin(1.f, 0.f, 0.f, 0.f) ) );
 		Set( "Sequencer.Timeline.SubSequenceRangeHashR", new BORDER_BRUSH( "Sequencer/SubSequenceRangeHashR", FMargin(1.f, 0.f, 0.f, 0.f) ) );
 		Set( "Sequencer.Timeline.EaseInOut", new IMAGE_BRUSH( "Sequencer/EaseInOut", FVector2D(128, 128) ) );
-
+		Set( "Sequencer.InterpLine", new BOX_BRUSH( "Sequencer/InterpLine", FMargin(5.f/7.f, 0.f, 0.f, 0.f) ) );
 		
 		Set( "Sequencer.Transport.JumpToPreviousKey", FButtonStyle()
 			.SetNormal ( IMAGE_BRUSH( "/Sequencer/Transport_Bar/Previous_Frame_OFF", Icon24x24 ) )

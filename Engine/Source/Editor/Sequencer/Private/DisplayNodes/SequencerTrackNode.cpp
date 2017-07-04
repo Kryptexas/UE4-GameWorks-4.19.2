@@ -75,6 +75,7 @@ int32 FSequencerTrackNode::GetRowIndex() const
 void FSequencerTrackNode::SetRowIndex(int32 InRowIndex)
 {
 	RowIndex = InRowIndex;
+	NodeName.SetNumber(RowIndex);
 }
 
 
@@ -84,6 +85,21 @@ void FSequencerTrackNode::SetRowIndex(int32 InRowIndex)
 void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
 	AssociatedEditor.BuildTrackContextMenu(MenuBuilder, AssociatedTrack.Get());
+	UMovieSceneTrack* Track = AssociatedTrack.Get();
+	if (Track && Track->GetSupportedBlendTypes().Num() > 0)
+	{
+		int32 NewRowIndex = SubTrackMode == ESubTrackMode::SubTrack ? GetRowIndex() : Track->GetMaxRowIndex() + 1;
+		TSharedPtr<ISequencer> SharedSequencer = GetSequencer().AsShared();
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("AddSection", "Add Section"),
+			FText(),
+			FNewMenuDelegate::CreateLambda([=](FMenuBuilder& SubMenuBuilder){
+				FSequencerUtilities::PopulateMenu_CreateNewSection(SubMenuBuilder, NewRowIndex, Track, SharedSequencer);
+			})
+		);
+		
+	}
 	FSequencerDisplayNode::BuildContextMenu(MenuBuilder );
 }
 

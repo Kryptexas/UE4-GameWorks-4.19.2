@@ -8,6 +8,7 @@
 #include "DisplayNodes/SequencerDisplayNode.h"
 #include "PropertyPath.h"
 
+class FSequencerTrackNode;
 class FMenuBuilder;
 struct FSlateBrush;
 
@@ -49,6 +50,13 @@ public:
 	{
 		return BindingType;
 	}
+
+	/**
+	 * Adds a new externally created node to this display node
+	 *
+	 * @param NewChild		The child node to add
+	 */
+	void AddTrackNode( TSharedRef<FSequencerTrackNode> NewChild );
 
 public:
 

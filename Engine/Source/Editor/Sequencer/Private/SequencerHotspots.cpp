@@ -164,12 +164,22 @@ TSharedPtr<ISequencerEditToolDragOperation> FSectionEasingHandleHotspot::Initiat
 bool FSectionEasingAreaHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer& Sequencer, float MouseDownTime)
 {
 	FEasingContextMenu::BuildMenu(MenuBuilder, Easings, static_cast<FSequencer&>(Sequencer), MouseDownTime);
-	return true;
-}
 
-void FSectionEasingAreaHotspot::UpdateOnHover(SSequencerTrackArea& InTrackArea, ISequencer& InSequencer) const
-{
-	InTrackArea.AttemptToActivateTool(FSequencerEditTool_Movement::Identifier);
+	TSharedPtr<ISequencerSection> SectionInterface = Section.TrackNode->GetSections()[Section.SectionIndex];
+
+	FGuid ObjectBinding;
+	if (Section.TrackNode.IsValid())
+	{
+		TSharedPtr<FSequencerObjectBindingNode> ObjectBindingNode = Section.TrackNode->FindParentObjectBindingNode();
+		if (ObjectBindingNode.IsValid())
+		{
+			ObjectBinding = ObjectBindingNode->GetObjectBinding();
+		}
+	}
+
+	SectionInterface->BuildSectionContextMenu(MenuBuilder, ObjectBinding);
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

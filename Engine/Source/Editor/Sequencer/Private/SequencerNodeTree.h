@@ -122,16 +122,17 @@ private:
 	/* 
 	 * Makes sub-track nodes and section interfaces for a track node.
 	 * @param The track node to create sub-tracks and section interfaces for.
+	 * @return A new parent for the supplied track, or the track itself
 	 */
-	void MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode);
+	TSharedRef<FSequencerTrackNode> MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode, const FGuid& ObjectBinding = FGuid());
 
 	/**
 	 * Makes section interfaces for all sections in a track
 	 *
-	 * @param Track	The type to get sections from
 	 * @param SectionAreaNode	The section area which section interfaces belong to
+	 * @param ObjectBinding Object binding ID that the track operates on
 	 */
-	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FSequencerTrackNode>& TrackNode );
+	void MakeSectionInterfaces( TSharedRef<FSequencerTrackNode> TrackNode, const FGuid& ObjectBinding );
 
 	/**
 	 * Creates a new object binding node and any parent binding nodes.

@@ -17,6 +17,8 @@ void SSequencerDebugVisualizer::Construct(const FArguments& InArgs, TSharedRef<F
 	InSequencer->GetSequenceInstance().OnUpdated().AddSP(this, &SSequencerDebugVisualizer::Refresh);
 	InSequencer->OnActivateSequence().AddSP(this, &SSequencerDebugVisualizer::OnSequenceActivated);
 
+	SetClipping(EWidgetClipping::ClipToBounds);
+
 	ViewRange = InArgs._ViewRange;
 
 	Refresh();

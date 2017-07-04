@@ -69,7 +69,7 @@ public:
 
 	void AddChildTrack(TSharedRef<FSequencerTrackNode> TrackNode)
 	{
-		ChildNodes.Add(TrackNode);
+		AddChildAndSetParent(TrackNode);
 	}
 
 	/**
