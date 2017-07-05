@@ -68,8 +68,11 @@ void ACameraActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph
 	if (GetLinkerUE4Version() < VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT)
 	{
 		RootComponent = SceneComponent;
-		CameraComponent->SetupAttachment(RootComponent);
-		RootComponent->SetupAttachment(OldAttachParent, OldSocketName);
+		if (OldAttachParent != SceneComponent)
+		{
+			CameraComponent->SetupAttachment(RootComponent);
+			RootComponent->SetupAttachment(OldAttachParent, OldSocketName);
+		}
 	}
 }
 
