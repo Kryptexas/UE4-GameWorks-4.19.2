@@ -98,6 +98,11 @@ struct FNoLightMapPolicy
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{}
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 enum ELightmapQuality
@@ -140,6 +145,11 @@ struct TLightMapPolicy
 			&& VertexFactoryType->SupportsStaticLighting() 
 			&& (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0)
 			&& (Material->IsUsedWithStaticLighting() || Material->IsSpecialEngineMaterial());		
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -229,6 +239,11 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("TRANSLUCENT_SELF_SHADOWING"),TEXT("1"));
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 
 	/** Initialization constructor. */
@@ -323,6 +338,11 @@ struct FCachedVolumeIndirectLightingPolicy
 	{
 		OutEnvironment.SetDefine(TEXT("CACHED_VOLUME_INDIRECT_LIGHTING"),TEXT("1"));
 	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 
@@ -340,6 +360,11 @@ struct FCachedPointIndirectLightingPolicy
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 /**
@@ -357,6 +382,11 @@ struct FSimpleNoLightmapLightingPolicy : public FNoLightMapPolicy
 	{
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_SHADING"),TEXT("1"));
 		FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return true;
 	}
 };
 
@@ -379,6 +409,11 @@ struct FSimpleLightmapOnlyLightingPolicy : public TLightMapPolicy<HQ_LIGHTMAP>
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_SHADING"),TEXT("1"));
 		TLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return true;
+	}
 };
 
 /**
@@ -396,6 +431,11 @@ struct FSimpleDirectionalLightLightingPolicy
 	{
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_SHADING"),TEXT("1"));
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_DIRECTIONAL_LIGHT"),TEXT("1"));
+	}
+
+	static bool RequiresSkylight()
+	{
+		return true;
 	}
 };
 
@@ -419,6 +459,11 @@ struct FSimpleStationaryLightPrecomputedShadowsLightingPolicy : public TDistance
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_DIRECTIONAL_LIGHT"),TEXT("1"));
 		TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return true;
+	}
 };
 
 /**
@@ -441,6 +486,11 @@ struct FSimpleStationaryLightSingleSampleShadowsLightingPolicy : public FCachedP
 		OutEnvironment.SetDefine(TEXT("SIMPLE_FORWARD_DIRECTIONAL_LIGHT"),TEXT("1"));
 		FCachedPointIndirectLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return true;
+	}
 };
 
 /** Mobile Specific: Combines a distance field shadow with LQ lightmaps. */
@@ -453,6 +503,11 @@ public:
 		static auto* CVarMobileAllowDistanceFieldShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowDistanceFieldShadows"));
 		const bool bMobileAllowDistanceFieldShadows = CVarMobileAllowDistanceFieldShadows->GetValueOnAnyThread() == 1;
 		return bMobileAllowDistanceFieldShadows && Super::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -476,6 +531,11 @@ public:
 
 		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 /** Mobile Specific: Combines an unshadowed directional light with indirect lighting from a single SH sample. */
@@ -492,6 +552,11 @@ struct FMobileDirectionalLightAndSHIndirectPolicy
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FCachedPointIndirectLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -512,6 +577,11 @@ struct FMobileMovableDirectionalLightAndSHIndirectPolicy : public FMobileDirecti
 		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
 		FMobileDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 /** Mobile Specific: Combines a movable directional light with CSM with indirect lighting from a single SH sample. */
@@ -522,6 +592,11 @@ struct FMobileMovableDirectionalLightCSMAndSHIndirectPolicy : public FMobileMova
 		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
 		FMobileMovableDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -534,6 +609,11 @@ public:
 		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
 		FMobileDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -551,6 +631,11 @@ struct FMobileMovableDirectionalLightLightingPolicy
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"),TEXT("1"));
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -572,6 +657,11 @@ struct FMobileMovableDirectionalLightCSMLightingPolicy
 		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
 
 		FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -598,6 +688,11 @@ struct FMobileMovableDirectionalLightWithLightmapPolicy : public TLightMapPolicy
 
 		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
+	}
 };
 
 /** Mobile Specific */
@@ -608,6 +703,11 @@ struct FMobileMovableDirectionalLightCSMWithLightmapPolicy : public FMobileMovab
 		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 
 		FMobileMovableDirectionalLightWithLightmapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	static bool RequiresSkylight()
+	{
+		return false;
 	}
 };
 
@@ -868,6 +968,23 @@ public:
 			check(false);
 			break;
 		}
+	}
+
+	static bool RequiresSkylight()
+	{
+		CA_SUPPRESS(6326);
+		switch (Policy)
+		{
+		// Simple forward
+		case LMP_SIMPLE_NO_LIGHTMAP:
+		case LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING:
+		case LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING:
+		case LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING:
+		case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
+			return true;
+		default:
+			return false;
+		};
 	}
 };
 

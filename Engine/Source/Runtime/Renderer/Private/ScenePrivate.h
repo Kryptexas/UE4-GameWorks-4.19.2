@@ -2260,9 +2260,8 @@ public:
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
 	bool ShouldRenderSkylightInBasePass(EBlendMode BlendMode) const
-	{		
-		const bool bStationarySkylight = SkyLight && SkyLight->bWantsStaticShadowing;
-		return ShouldRenderSkylightInBasePass_Internal(BlendMode) && (ReadOnlyCVARCache.bEnableStationarySkylight || !bStationarySkylight);
+	{
+		return ShouldRenderSkylightInBasePass_Internal(BlendMode) && (ReadOnlyCVARCache.bEnableStationarySkylight || IsSimpleForwardShadingEnabled(GetShaderPlatform()));
 	}
 
 	bool ShouldRenderSkylightInBasePass_Internal(EBlendMode BlendMode) const
