@@ -211,11 +211,9 @@ public:
 		}
 	}
 
-	inline void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	inline void SetScissor(bool bInEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 	{
-		bScissorEnable = bEnable;
-
-		if (bScissorEnable)
+		if (bInEnable)
 		{
 			SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
 		}
@@ -223,6 +221,8 @@ public:
 		{
 			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
 		}
+
+		bScissorEnable = bInEnable;
 	}
 
 	inline void SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)
@@ -236,6 +236,9 @@ public:
 
 		// todo vulkan: compare against previous (and viewport above)
 		NeedsUpdateMask |= ENeedsScissor;
+		ensure(!(MinX == 0 && MinY == 0 && Width == 0 && Height == 0));
+
+		bScissorEnable = true;
 	}
 
 	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
