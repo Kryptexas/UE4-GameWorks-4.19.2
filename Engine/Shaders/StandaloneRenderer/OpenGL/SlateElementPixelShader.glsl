@@ -29,9 +29,8 @@ uniform vec4 MarginUVs;
 uniform int ShaderType;
 uniform sampler2D ElementTexture;
 
+varying vec4 Position;
 varying vec4 TexCoords;
-varying vec4 ClipOriginAndPos;
-varying vec4 ClipExtents;
 varying vec4 Color;
 
 vec3 maxWithScalar(float test, vec3 values)
@@ -203,7 +202,6 @@ vec4 GetBorderElementColor()
 
 vec4 GetSplineElementColor()
 {
-	vec2 SSPosition = ClipOriginAndPos.zw;
 	vec4 InTexCoords = TexCoords;
 	float Width = MarginUVs.x;
 	float Radius = MarginUVs.y;
@@ -221,7 +219,7 @@ vec4 GetSplineElementColor()
 	vec3 E1 = K*vec3( -Diff.x, -Diff.y, (EndPos.x*StartPos.y - StartPos.x*EndPos.y) );
 	E1.z += 1.0;
 	
-	vec3 Pos = vec3(SSPosition.xy,1.0);
+    vec3 Pos = vec3(Position.xy,1);
 	
 	vec2 Distance = vec2( dot(E0,Pos), dot(E1,Pos) );
 	
