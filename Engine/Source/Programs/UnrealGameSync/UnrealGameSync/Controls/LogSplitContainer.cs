@@ -30,9 +30,19 @@ namespace UnrealGameSync
 
 		public event Action<bool> OnVisibilityChanged;
 
+		[Browsable(true)]
+		public string Caption
+		{
+			get;
+			set;
+		}
+
 		public LogSplitContainer()
 		{
 			DoubleBuffered = true;
+
+			Caption = "Log";
+			Orientation = System.Windows.Forms.Orientation.Horizontal;
 
 			SplitterMoved += OnSplitterMoved;
 		}
@@ -223,6 +233,8 @@ namespace UnrealGameSync
 
 		protected override void OnPaint(PaintEventArgs e)
 		{
+			base.OnPaint(e);
+
 			int CaptionMinY = SplitterDistance + CaptionPadding;
 			int CaptionMaxY = SplitterDistance + SplitterWidth;
 			int ButtonSize = SplitterWidth - CaptionPadding - 2 - 4;
@@ -232,23 +244,15 @@ namespace UnrealGameSync
 				ButtonSize -= CaptionPadding;
 			}
 
-			using(Pen BackgroundPen = new Pen(SystemColors.Window))
-			{
-				for(int Idx = 0; Idx < CaptionMinY; Idx++)
-				{
-					e.Graphics.DrawLine(BackgroundPen, 0, Idx, ClientRectangle.Width, Idx);
-				}
-				for(int Idx = CaptionMaxY; Idx < Height; Idx++)
-				{
-					e.Graphics.DrawLine(BackgroundPen, 0, Idx, ClientRectangle.Width, Idx);
-				}
-			}
 			using(Pen CaptionBorderPen = new Pen(SystemColors.ControlDark, 1.0f))
 			{
 				e.Graphics.DrawRectangle(CaptionBorderPen, 0, CaptionMinY, ClientRectangle.Width - 1, CaptionMaxY - CaptionMinY - 1);
 			}
-			using(Brush BackgroundBrush = new SolidBrush(SystemColors.Window))
+
+			using(Brush BackgroundBrush = new SolidBrush(BackColor))
 			{
+				e.Graphics.FillRectangle(BackgroundBrush, 0, 0, ClientRectangle.Width, CaptionMinY);
+				e.Graphics.FillRectangle(BackgroundBrush, 0, CaptionMaxY, ClientRectangle.Width, Height - CaptionMaxY);
 				e.Graphics.FillRectangle(BackgroundBrush, 1, CaptionMinY + 1, ClientRectangle.Width - 2, CaptionMaxY - CaptionMinY - 2);
 			}
 
@@ -278,7 +282,7 @@ namespace UnrealGameSync
 				e.Graphics.DrawImage(Properties.Resources.Log, new Rectangle(CrossX - (ButtonSize / 2) - 1, CrossY - (ButtonSize / 2) - 1, ButtonSize + 2, ButtonSize + 2), new Rectangle(0, 0, 16, 16), GraphicsUnit.Pixel);
 			}
 
-			TextRenderer.DrawText(e.Graphics, "Log", CaptionFont, new Rectangle(2, CaptionMinY, ClientRectangle.Width - 20, CaptionMaxY - CaptionMinY), SystemColors.ControlText, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+			TextRenderer.DrawText(e.Graphics, Caption, CaptionFont, new Rectangle(2, CaptionMinY, ClientRectangle.Width - 20, CaptionMaxY - CaptionMinY), SystemColors.ControlText, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 		}
 
 		protected override void WndProc(ref Message Message)

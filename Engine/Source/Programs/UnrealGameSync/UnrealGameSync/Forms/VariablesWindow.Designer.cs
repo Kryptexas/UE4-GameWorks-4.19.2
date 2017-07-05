@@ -42,9 +42,9 @@ namespace UnrealGameSync
 			// 
 			this.OkButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.OkButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.OkButton.Location = new System.Drawing.Point(483, 359);
+			this.OkButton.Location = new System.Drawing.Point(565, 416);
 			this.OkButton.Name = "OkButton";
-			this.OkButton.Size = new System.Drawing.Size(89, 23);
+			this.OkButton.Size = new System.Drawing.Size(104, 27);
 			this.OkButton.TabIndex = 0;
 			this.OkButton.Text = "Ok";
 			this.OkButton.UseVisualStyleBackColor = true;
@@ -59,9 +59,9 @@ namespace UnrealGameSync
             this.columnHeader1,
             this.columnHeader2});
 			this.MacrosList.HideSelection = false;
-			this.MacrosList.Location = new System.Drawing.Point(12, 13);
+			this.MacrosList.Location = new System.Drawing.Point(12, 15);
 			this.MacrosList.Name = "MacrosList";
-			this.MacrosList.Size = new System.Drawing.Size(559, 340);
+			this.MacrosList.Size = new System.Drawing.Size(657, 395);
 			this.MacrosList.TabIndex = 1;
 			this.MacrosList.UseCompatibleStateImageBehavior = false;
 			this.MacrosList.View = System.Windows.Forms.View.Details;
@@ -82,9 +82,9 @@ namespace UnrealGameSync
 			// 
 			this.InsertButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.InsertButton.Enabled = false;
-			this.InsertButton.Location = new System.Drawing.Point(12, 359);
+			this.InsertButton.Location = new System.Drawing.Point(12, 416);
 			this.InsertButton.Name = "InsertButton";
-			this.InsertButton.Size = new System.Drawing.Size(93, 23);
+			this.InsertButton.Size = new System.Drawing.Size(108, 27);
 			this.InsertButton.TabIndex = 2;
 			this.InsertButton.Text = "Insert";
 			this.InsertButton.UseVisualStyleBackColor = true;
@@ -93,13 +93,14 @@ namespace UnrealGameSync
 			// VariablesWindow
 			// 
 			this.AcceptButton = this.OkButton;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.OkButton;
-			this.ClientSize = new System.Drawing.Size(584, 394);
+			this.ClientSize = new System.Drawing.Size(681, 455);
 			this.Controls.Add(this.InsertButton);
 			this.Controls.Add(this.MacrosList);
 			this.Controls.Add(this.OkButton);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.Name = "VariablesWindow";

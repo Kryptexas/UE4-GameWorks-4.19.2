@@ -140,7 +140,10 @@ namespace UnrealGameSync
 			{
 				LogWriter.WriteLine("Using connection string: {0}", SqlConnectionString);
 			}
+		}
 
+		public void Start()
+		{
 			WorkerThread = new Thread(() => PollForUpdates());
 			WorkerThread.Start();
 		}

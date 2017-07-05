@@ -11,13 +11,16 @@ namespace UnrealGameSync
 {
 	class TabControl : Control
 	{
+		const int TabPadding = 13;//18;
+		const int TabCloseButtonWidth = 8 + 13;
+
 		class TabData
 		{
 			public string Name;
 			public object Data;
 			public int MinX;
 			public int Width;
-			public Rectangle TextRect;
+			public Size TextSize;
 			public Tuple<Color, float> Highlight;
 		}
 
@@ -53,6 +56,9 @@ namespace UnrealGameSync
 		public delegate void OnTabReorderDelegate();
 		public event OnTabReorderDelegate OnTabReorder;
 
+		public delegate void OnButtonClickDelegate(int ButtonIdx, Point Location, MouseButtons Buttons);
+		public event OnButtonClickDelegate OnButtonClick;
+
 		public TabControl()
 		{
 			DoubleBuffered = true;
@@ -71,6 +77,20 @@ namespace UnrealGameSync
 		{
 			HighlightTabIdx = -1;
 			Invalidate();
+		}
+
+		public int FindTabIndex(object Data)
+		{
+			int Result = -1;
+			for(int TabIdx = 0; TabIdx < Tabs.Count - 1; TabIdx++)
+			{
+				if(Tabs[TabIdx].Data == Data)
+				{
+					Result = TabIdx;
+					break;
+				}
+			}
+			return Result;
 		}
 
 		public void SetHighlight(int TabIdx, Tuple<Color, float> Highlight)
@@ -127,6 +147,11 @@ namespace UnrealGameSync
 		public object GetTabData(int TabIdx)
 		{
 			return Tabs[TabIdx].Data;
+		}
+
+		public int GetSelectedTabIndex()
+		{
+			return SelectedTabIdx;
 		}
 
 		public object GetSelectedTabData()
@@ -211,30 +236,30 @@ namespace UnrealGameSync
 		{
 			using(Graphics Graphics = CreateGraphics())
 			{
-				const int Padding = 15;//18;
-
-				int X = 0;
 				for(int Idx = 0; Idx < Tabs.Count; Idx++)
 				{
 					TabData Tab = Tabs[Idx];
-
-					Tab.MinX = X;
-					int TextMinX = X + Padding;//18;
-					Size TextSize = TextRenderer.MeasureText(Graphics, Tab.Name, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
-					Tab.TextRect = new Rectangle(TextMinX, (ClientSize.Height - 4 - TextSize.Height) / 2, TextSize.Width, TextSize.Height);
-
-					Tab.Width = Tab.TextRect.Right + Padding - Tab.MinX;//18;
+					Tab.TextSize = TextRenderer.MeasureText(Graphics, Tab.Name, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
+					Tab.Width = TabPadding + Tab.TextSize.Width + TabPadding;
 					if(Idx == SelectedTabIdx)
 					{
-						Tab.Width += 8 + 13;
+						Tab.Width += TabCloseButtonWidth;
 					}
-					X += Tab.Width;
 				}
 
-				if(X > Width)
+				int LeftX = 0;
+				for(int Idx = 0; Idx < Tabs.Count; Idx++)
+				{
+					TabData Tab = Tabs[Idx];
+					Tab.MinX = LeftX;
+					LeftX += Tab.Width;
+				}
+
+				int RightX = Width - 1;
+				if(LeftX > RightX)
 				{
 					int UsedWidth = Tabs.Take(Tabs.Count - 1).Sum(x => x.Width);
-					int RemainingWidth = Width - Tabs[Tabs.Count - 1].Width;
+					int RemainingWidth = RightX + 1 - Tabs[Tabs.Count - 1].Width;
 					if(SelectedTabIdx != -1)
 					{
 						UsedWidth -= Tabs[SelectedTabIdx].Width;
@@ -248,9 +273,9 @@ namespace UnrealGameSync
 						int PrevWidth = Tabs[Idx].Width;
 						if(Idx != SelectedTabIdx && Idx != Tabs.Count - 1)
 						{
-							Tabs[Idx].Width = Math.Max((Tabs[Idx].Width * RemainingWidth) / UsedWidth, Padding * 3);
+							Tabs[Idx].Width = Math.Max((Tabs[Idx].Width * RemainingWidth) / UsedWidth, TabPadding * 3);
 						}
-						Tabs[Idx].TextRect = new Rectangle(NewX + Padding, Tabs[Idx].TextRect.Y, Tabs[Idx].TextRect.Width - (PrevWidth - Tabs[Idx].Width), Tabs[Idx].TextRect.Height);
+						Tabs[Idx].TextSize.Width -= PrevWidth - Tabs[Idx].Width;
 						NewX += Tabs[Idx].Width;
 					}
 				}
@@ -265,7 +290,6 @@ namespace UnrealGameSync
 					Offset = Math.Min(Offset, MaxOffset);
 
 					DragState.Tab.MinX += Offset;
-					DragState.Tab.TextRect.Offset(Offset, 0);
 				}
 			}
 		}
@@ -290,7 +314,7 @@ namespace UnrealGameSync
 				{
 					if(HoverTabIdx == SelectedTabIdx)
 					{
-						if(e.Location.X > Tabs[HoverTabIdx].TextRect.Right)
+						if(e.Location.X > Tabs[HoverTabIdx].MinX + Tabs[HoverTabIdx].Width - TabCloseButtonWidth)
 						{
 							RemoveTab(HoverTabIdx);
 						}
@@ -301,7 +325,11 @@ namespace UnrealGameSync
 					}
 					else
 					{
-						if(HoverTabIdx == Tabs.Count - 1)
+						if(HoverTabIdx > Tabs.Count - 1)
+						{
+							OnButtonClick(HoverTabIdx - Tabs.Count, e.Location, e.Button);
+						}
+						else if(HoverTabIdx == Tabs.Count - 1)
 						{
 							OnNewTabClick(e.Location, e.Button);
 						}
@@ -313,7 +341,7 @@ namespace UnrealGameSync
 				}
 				else if(e.Button == MouseButtons.Middle)
 				{
-					if(HoverTabIdx != Tabs.Count - 1)
+					if(HoverTabIdx < Tabs.Count - 1)
 					{
 						RemoveTab(HoverTabIdx);
 					}
@@ -420,43 +448,36 @@ namespace UnrealGameSync
 
 			LayoutTabs();
 
-			using(SolidBrush SelectedBrush = new SolidBrush(Color.FromArgb(0, 136, 204)))
-			{
-				using(SolidBrush HoverBrush = new SolidBrush(Color.FromArgb(192, 192, 192)))
-				{
-					for(int Idx = 0; Idx < Tabs.Count; Idx++)
-					{
-						TabData Tab = Tabs[Idx];
-						if(Idx == SelectedTabIdx)
-						{
-							DrawBackground(e.Graphics, Tab, SystemBrushes.Window, SelectedBrush, Tab.Highlight);
-						}
-						else if(Idx == HoverTabIdx || Idx == HighlightTabIdx)
-						{
-							DrawBackground(e.Graphics, Tab, SystemBrushes.Window, HoverBrush, Tab.Highlight);
-						}
-						else
-						{
-							DrawBackground(e.Graphics, Tab, SystemBrushes.Control, SystemBrushes.Control, Tab.Highlight);
-						}
-					}
-				}
-			}
-
-			using(Pen SeparatorPen = new Pen(Color.FromArgb(192, SystemColors.ControlDark)))
+			using(SolidBrush HoverBrush = new SolidBrush(Color.FromArgb(192, 192, 192)))
 			{
 				for(int Idx = 0; Idx < Tabs.Count; Idx++)
 				{
 					TabData Tab = Tabs[Idx];
-					if(Idx > 0 || Idx == SelectedTabIdx || Idx == HoverTabIdx || Idx == HighlightTabIdx || Tabs.Count == 1)
+					if(Idx == HoverTabIdx || Idx == HighlightTabIdx)
+					{
+						DrawBackground(e.Graphics, Tab, SystemBrushes.Window, HoverBrush, Tab.Highlight);
+					}
+					else
+					{
+						DrawBackground(e.Graphics, Tab, SystemBrushes.Control, SystemBrushes.Control, Tab.Highlight);
+					}
+				}
+			}
+
+			using(Pen SeparatorPen = new Pen(Color.FromArgb(192, SystemColors.ControlDarkDark)))
+			{
+				for(int Idx = 0; Idx < Tabs.Count; Idx++)
+				{
+					TabData Tab = Tabs[Idx];
+					if((Idx > 0 && Idx < Tabs.Count - 1) || Idx >= Tabs.Count || Idx == SelectedTabIdx || Idx == HoverTabIdx || Idx == HighlightTabIdx || Tabs.Count == 1)
 					{
 						e.Graphics.DrawLine(SeparatorPen, Tab.MinX, 0, Tab.MinX, ClientSize.Height - 2);
 					}
-					if(Idx < Tabs.Count - 1 || Idx == HoverTabIdx || Idx == HighlightTabIdx || Tabs.Count == 1)
+					if(Idx < Tabs.Count - 1 || Idx >= Tabs.Count || Idx == HoverTabIdx || Idx == HighlightTabIdx || Tabs.Count == 1)
 					{
 						e.Graphics.DrawLine(SeparatorPen, Tab.MinX + Tab.Width, 0, Tab.MinX + Tab.Width, ClientSize.Height - 2);
 					}
-					if(Idx == HoverTabIdx || Idx == HighlightTabIdx)
+					if(Idx == HoverTabIdx || Idx == HighlightTabIdx || Idx >= Tabs.Count)
 					{
 						e.Graphics.DrawLine(SeparatorPen, Tab.MinX, 0, Tab.MinX + Tab.Width, 0);
 					}
@@ -467,20 +488,27 @@ namespace UnrealGameSync
 			{
 				if(Idx != SelectedTabIdx)
 				{
-					TabData Tab = Tabs[Idx];
-					TextRenderer.DrawText(e.Graphics, Tab.Name, Font, Tab.TextRect, Color.Black, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+					DrawText(e.Graphics, Tabs[Idx]);
 				}
 			}
+
 
 			if(SelectedTabIdx != -1)
 			{
 				TabData SelectedTab = Tabs[SelectedTabIdx];
 
+				using(SolidBrush SelectedBrush = new SolidBrush(Color.FromArgb(0, 136, 204)))
+				{
+					DrawBackground(e.Graphics, SelectedTab, SystemBrushes.Window, SelectedBrush, SelectedTab.Highlight);
+				}
+
+				DrawText(e.Graphics, SelectedTab);
+	
 				// Draw the close button
 				SmoothingMode PrevSmoothingMode = e.Graphics.SmoothingMode;
 				e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-				int CloseMidX = (SelectedTab.MinX + SelectedTab.Width + SelectedTab.TextRect.Right) / 2;
+				int CloseMidX = SelectedTab.MinX + SelectedTab.Width - (TabPadding + TabCloseButtonWidth) / 2;// + (13 / 2);
 				int CloseMidY = (ClientSize.Height - 4) / 2;
 
 				Rectangle CloseButton = new Rectangle(CloseMidX - (13 / 2), CloseMidY - (13 / 2), 13, 13);
@@ -494,16 +522,13 @@ namespace UnrealGameSync
 				}
 				e.Graphics.SmoothingMode = PrevSmoothingMode;
 
-				// Draw the text
-				TextRenderer.DrawText(e.Graphics, SelectedTab.Name, Font, SelectedTab.TextRect, Color.Black, TextFormatFlags.NoPadding);
-
 				// Border
 				e.Graphics.DrawLine(SystemPens.ControlDark, SelectedTab.MinX, 0, SelectedTab.MinX + SelectedTab.Width, 0);
 				e.Graphics.DrawLine(SystemPens.ControlDark, SelectedTab.MinX, 0, SelectedTab.MinX, ClientSize.Height - 2);
 				e.Graphics.DrawLine(SystemPens.ControlDark, SelectedTab.MinX + SelectedTab.Width, 0, SelectedTab.MinX + SelectedTab.Width, ClientSize.Height - 2);
 			}
-		
-			e.Graphics.DrawLine(SystemPens.ControlDark, 0, ClientSize.Height - 2, ClientSize.Width, ClientSize.Height - 2);
+
+			e.Graphics.DrawLine(SystemPens.ControlDarkDark, 0, ClientSize.Height - 2,  ClientSize.Width, ClientSize.Height - 2);
 			e.Graphics.DrawLine(SystemPens.ControlLightLight, 0, ClientSize.Height - 1, ClientSize.Width, ClientSize.Height - 1);
 		}
 
@@ -520,6 +545,11 @@ namespace UnrealGameSync
 					Graphics.FillRectangle(Brush, Tab.MinX + 1, ClientSize.Height - 5, (int)((Tab.Width - 2) * Highlight.Item2), 3);
 				}
 			}
+		}
+
+		void DrawText(Graphics Graphics, TabData Tab)
+		{
+			TextRenderer.DrawText(Graphics, Tab.Name, Font, new Rectangle(Tab.MinX + TabPadding, 0, Tab.TextSize.Width, ClientSize.Height - 3), Color.Black, TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter);
 		}
 	}
 }

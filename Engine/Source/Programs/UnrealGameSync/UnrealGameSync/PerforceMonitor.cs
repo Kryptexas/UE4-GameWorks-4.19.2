@@ -60,7 +60,10 @@ namespace UnrealGameSync
 			OtherStreamNames = new List<string>();
 
 			LogWriter = new BoundedLogWriter(InLogPath);
+		}
 
+		public void Start()
+		{
 			WorkerThread = new Thread(() => PollForUpdates());
 			WorkerThread.Start();
 		}

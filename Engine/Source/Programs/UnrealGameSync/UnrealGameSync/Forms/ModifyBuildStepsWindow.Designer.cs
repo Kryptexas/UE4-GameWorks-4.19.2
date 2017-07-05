@@ -57,12 +57,12 @@ namespace UnrealGameSync
 			this.BuildStepList.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.BuildStepList.FullRowSelect = true;
 			this.BuildStepList.GridLines = true;
-			this.BuildStepList.Location = new System.Drawing.Point(10, 11);
+			this.BuildStepList.Location = new System.Drawing.Point(12, 11);
 			this.BuildStepList.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.BuildStepList.MultiSelect = false;
 			this.BuildStepList.Name = "BuildStepList";
 			this.BuildStepList.OwnerDraw = true;
-			this.BuildStepList.Size = new System.Drawing.Size(635, 369);
+			this.BuildStepList.Size = new System.Drawing.Size(634, 371);
 			this.BuildStepList.TabIndex = 0;
 			this.BuildStepList.UseCompatibleStateImageBehavior = false;
 			this.BuildStepList.View = System.Windows.Forms.View.Details;
@@ -98,10 +98,10 @@ namespace UnrealGameSync
 			// NewStepButton
 			// 
 			this.NewStepButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.NewStepButton.Location = new System.Drawing.Point(654, 12);
+			this.NewStepButton.Location = new System.Drawing.Point(652, 11);
 			this.NewStepButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.NewStepButton.Name = "NewStepButton";
-			this.NewStepButton.Size = new System.Drawing.Size(112, 24);
+			this.NewStepButton.Size = new System.Drawing.Size(112, 26);
 			this.NewStepButton.TabIndex = 1;
 			this.NewStepButton.Text = "New Step...";
 			this.NewStepButton.UseVisualStyleBackColor = true;
@@ -110,10 +110,10 @@ namespace UnrealGameSync
 			// EditStepButton
 			// 
 			this.EditStepButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.EditStepButton.Location = new System.Drawing.Point(654, 41);
+			this.EditStepButton.Location = new System.Drawing.Point(652, 41);
 			this.EditStepButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.EditStepButton.Name = "EditStepButton";
-			this.EditStepButton.Size = new System.Drawing.Size(112, 24);
+			this.EditStepButton.Size = new System.Drawing.Size(112, 26);
 			this.EditStepButton.TabIndex = 2;
 			this.EditStepButton.Text = "Edit Step...";
 			this.EditStepButton.UseVisualStyleBackColor = true;
@@ -122,10 +122,10 @@ namespace UnrealGameSync
 			// RemoveStepButton
 			// 
 			this.RemoveStepButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.RemoveStepButton.Location = new System.Drawing.Point(654, 72);
+			this.RemoveStepButton.Location = new System.Drawing.Point(652, 71);
 			this.RemoveStepButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.RemoveStepButton.Name = "RemoveStepButton";
-			this.RemoveStepButton.Size = new System.Drawing.Size(112, 24);
+			this.RemoveStepButton.Size = new System.Drawing.Size(112, 26);
 			this.RemoveStepButton.TabIndex = 3;
 			this.RemoveStepButton.Text = "Remove Step";
 			this.RemoveStepButton.UseVisualStyleBackColor = true;
@@ -135,10 +135,11 @@ namespace UnrealGameSync
 			// 
 			this.CloseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.CloseButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.CloseButton.Location = new System.Drawing.Point(655, 358);
+			this.CloseButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.CloseButton.Location = new System.Drawing.Point(653, 356);
 			this.CloseButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.CloseButton.Name = "CloseButton";
-			this.CloseButton.Size = new System.Drawing.Size(111, 24);
+			this.CloseButton.Size = new System.Drawing.Size(111, 26);
 			this.CloseButton.TabIndex = 6;
 			this.CloseButton.Text = "Close";
 			this.CloseButton.UseVisualStyleBackColor = true;
@@ -147,9 +148,9 @@ namespace UnrealGameSync
 			// MoveUp
 			// 
 			this.MoveUp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.MoveUp.Location = new System.Drawing.Point(655, 167);
+			this.MoveUp.Location = new System.Drawing.Point(653, 164);
 			this.MoveUp.Name = "MoveUp";
-			this.MoveUp.Size = new System.Drawing.Size(111, 23);
+			this.MoveUp.Size = new System.Drawing.Size(111, 26);
 			this.MoveUp.TabIndex = 4;
 			this.MoveUp.Text = "Move Up";
 			this.MoveUp.UseVisualStyleBackColor = true;
@@ -158,9 +159,9 @@ namespace UnrealGameSync
 			// MoveDown
 			// 
 			this.MoveDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.MoveDown.Location = new System.Drawing.Point(654, 197);
+			this.MoveDown.Location = new System.Drawing.Point(652, 196);
 			this.MoveDown.Name = "MoveDown";
-			this.MoveDown.Size = new System.Drawing.Size(112, 23);
+			this.MoveDown.Size = new System.Drawing.Size(111, 26);
 			this.MoveDown.TabIndex = 5;
 			this.MoveDown.Text = "Move Down";
 			this.MoveDown.UseVisualStyleBackColor = true;
@@ -180,6 +181,7 @@ namespace UnrealGameSync
 			this.Controls.Add(this.EditStepButton);
 			this.Controls.Add(this.NewStepButton);
 			this.Controls.Add(this.BuildStepList);
+			this.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
 			this.MaximizeBox = false;

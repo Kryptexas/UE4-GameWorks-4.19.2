@@ -66,6 +66,31 @@ namespace UnrealGameSync
 		}
 	}
 
+	class WorkspaceSyncCategory
+	{
+		public Guid UniqueId;
+		public bool bEnable;
+		public string Name;
+		public string[] Paths;
+
+		public WorkspaceSyncCategory(Guid UniqueId) : this(UniqueId, "Unnamed")
+		{
+		}
+
+		public WorkspaceSyncCategory(Guid UniqueId, string Name, params string[] Paths)
+		{
+			this.UniqueId = UniqueId;
+			this.bEnable = true;
+			this.Name = Name;
+			this.Paths = Paths;
+		}
+
+		public override string ToString()
+		{
+			return Name;
+		}
+	}
+
 	class Workspace : IDisposable
 	{
 		readonly string[] DefaultBuildTargets =
@@ -75,6 +100,24 @@ namespace UnrealGameSync
 			"ShaderCompileWorker Win64 Development, 0.8",
 			"UnrealLightmass Win64 Development, 0.9",
 			"CrashReportClient Win64 Shipping, 1.0",
+		};
+
+		readonly WorkspaceSyncCategory[] DefaultSyncCategories =
+		{
+			new WorkspaceSyncCategory(new Guid("{6703E989-D912-451D-93AD-B48DE748D282}"), "Content", "*.uasset"),
+			new WorkspaceSyncCategory(new Guid("{6507C2FB-19DD-403A-AFA3-BBF898248D5A}"), "Documentation", "/Engine/Documentation/..."),
+			new WorkspaceSyncCategory(new Guid("{FD7C716E-4BAD-43AE-8FAE-8748EF9EE44D}"), "Platform Support: Android", "/Engine/Source/ThirdParty/.../Android/..."),
+			new WorkspaceSyncCategory(new Guid("{3299A73D-2176-4C0F-BC99-C1C6631AF6C4}"), "Platform Support: HTML5", "/Engine/Source/ThirdParty/.../HTML5/...", "/Engine/Extras/ThirdPartyNotUE/emsdk/..."),
+			new WorkspaceSyncCategory(new Guid("{176B2EB2-35F7-4E8E-B131-5F1C5F0959AF}"), "Platform Support: iOS", "/Engine/Source/ThirdParty/.../IOS/..."),
+			new WorkspaceSyncCategory(new Guid("{F44B2D25-CBC0-4A8F-B6B3-E4A8125533DD}"), "Platform Support: Linux", "/Engine/Source/ThirdParty/.../Linux/..."),
+			new WorkspaceSyncCategory(new Guid("{2AF45231-0D75-463B-BF9F-ABB3231091BB}"), "Platform Support: Mac", "/Engine/Source/ThirdParty/.../Mac/..."),
+			new WorkspaceSyncCategory(new Guid("{C8CB4934-ADE9-46C9-B6E3-61A659E1FAF5}"), "Platform Support: PS4", ".../PS4/..."),
+			new WorkspaceSyncCategory(new Guid("{F8AE5AC3-DA2D-4719-BABF-8A90D878379E}"), "Platform Support: Switch", ".../Switch/..."),
+			new WorkspaceSyncCategory(new Guid("{3788A0BC-188C-4A0D-950A-D68175F0D110}"), "Platform Support: tvOS", "/Engine/Source/ThirdParty/.../TVOS/..."),
+			new WorkspaceSyncCategory(new Guid("{1144E719-FCD7-491B-B0FC-8B4C3565BF79}"), "Platform Support: Win32", "/Engine/Source/ThirdParty/.../Win32/..."),
+			new WorkspaceSyncCategory(new Guid("{5206CCEE-9024-4E36-8B89-F5F5A7D288D2}"), "Platform Support: Win64", "/Engine/Source/ThirdParty/.../Win64/..."),
+			new WorkspaceSyncCategory(new Guid("{06887423-B094-4718-9B55-C7A21EE67EE4}"), "Platform Support: XboxOne", ".../XboxOne/..."),
+			new WorkspaceSyncCategory(new Guid("{CFEC942A-BB90-4F0C-ACCF-238ECAAD9430}"), "Source Code", "/Engine/Source/..."),
 		};
 
 		const string BuildVersionFileName = "/Engine/Build/Build.version";
@@ -130,6 +173,48 @@ namespace UnrealGameSync
 		public void Dispose()
 		{
 			CancelUpdate();
+		}
+
+		public Dictionary<Guid, WorkspaceSyncCategory> GetSyncCategories()
+		{
+			Dictionary<Guid, WorkspaceSyncCategory> UniqueIdToCategory = new Dictionary<Guid, WorkspaceSyncCategory>();
+
+			// Add the default filters
+			foreach(WorkspaceSyncCategory DefaultSyncCategory in DefaultSyncCategories)
+			{
+				UniqueIdToCategory.Add(DefaultSyncCategory.UniqueId, DefaultSyncCategory);
+			}
+
+			// Add the custom filters
+			if(ProjectConfigFile != null)
+			{
+				string[] CategoryLines = ProjectConfigFile.GetValues("Options.SyncCategory", new string[0]);
+				foreach(string CategoryLine in CategoryLines)
+				{
+					ConfigObject Object = new ConfigObject(CategoryLine);
+
+					Guid UniqueId;
+					if(Guid.TryParse(Object.GetValue("UniqueId", ""), out UniqueId))
+					{
+						WorkspaceSyncCategory Category;
+						if(!UniqueIdToCategory.TryGetValue(UniqueId, out Category))
+						{
+							Category = new WorkspaceSyncCategory(UniqueId);
+							UniqueIdToCategory.Add(UniqueId, Category);
+						}
+
+						if(Object.GetValue("Clear", false))
+						{
+							Category.Paths = new string[0];
+						}
+
+						Category.Name = Object.GetValue("Name", Category.Name);
+						Category.bEnable = Object.GetValue("Enable", Category.bEnable);
+						Category.Paths = Enumerable.Concat(Category.Paths, Object.GetValue("Paths", "").Split(';').Select(x => x.Trim())).Distinct().OrderBy(x => x).ToArray();
+					}
+				}
+			}
+			return UniqueIdToCategory;
 		}
 
 		public ConfigFile ProjectConfigFile
@@ -217,15 +302,6 @@ namespace UnrealGameSync
 
 		WorkspaceUpdateResult UpdateWorkspaceInternal(WorkspaceUpdateContext Context, out string StatusMessage)
 		{
-			if(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
-			{
-				Log.WriteLine("Waiting for other workspaces to finish...");
-				while(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
-				{
-					Thread.Sleep(100);
-				}
-			}
-
 			string CmdExe = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");
 			if(!File.Exists(CmdExe))
 			{
@@ -266,7 +342,7 @@ namespace UnrealGameSync
 
 						if(UserFilter != null)
 						{
-							SyncRecords.RemoveAll(x => !String.IsNullOrEmpty(x.ClientPath) && !MatchFilter(x.ClientPath, UserFilter));
+							SyncRecords.RemoveAll(x => !String.IsNullOrEmpty(x.ClientPath) && !MatchFilter(Path.GetFullPath(x.ClientPath), UserFilter));
 						}
 
 						SyncFiles.AddRange(SyncRecords.Select(x => x.DepotPath));
@@ -329,6 +405,7 @@ namespace UnrealGameSync
 						}
 					}
 
+					int VersionChangeNumber = -1;
 					if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
 					{
 						// Read the new config file
@@ -362,7 +439,6 @@ namespace UnrealGameSync
 						}
 
 						// Get the last code change
-						int VersionChangeNumber;
 						if(ProjectConfigFile.GetValue("Options.VersionToLastCodeChange", true))
 						{
 							VersionChangeNumber = CodeChanges.Max(x => x.Number);
@@ -463,9 +539,42 @@ namespace UnrealGameSync
 						return WorkspaceUpdateResult.FilesToResolve;
 					}
 
-					// Update the current change number. Everything else happens for the new change.
-					if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
+					// Continue processing sync-only actions
+					if (Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
 					{
+						// Execute any project specific post-sync steps
+						string[] PostSyncSteps = ProjectConfigFile.GetValues("Sync.Step", null);
+						if (PostSyncSteps != null)
+						{
+							Log.WriteLine();
+							Log.WriteLine("Executing post-sync steps...");
+
+							Dictionary<string, string> PostSyncVariables = new Dictionary<string, string>(Context.Variables);
+							PostSyncVariables.Add("Change", PendingChangeNumber.ToString());
+							PostSyncVariables.Add("CodeChange", VersionChangeNumber.ToString());
+
+							foreach (string PostSyncStep in PostSyncSteps.Select(x => x.Trim()))
+							{
+								ConfigObject PostSyncStepObject = new ConfigObject(PostSyncStep);
+
+								string ToolFileName = Utility.ExpandVariables(PostSyncStepObject.GetValue("FileName", ""), PostSyncVariables);
+								if (ToolFileName != null)
+								{
+									string ToolArguments = Utility.ExpandVariables(PostSyncStepObject.GetValue("Arguments", ""), PostSyncVariables);
+
+									Log.WriteLine("post-sync> Running {0} {1}", ToolFileName, ToolArguments);
+
+									int ResultFromTool = Utility.ExecuteProcess(ToolFileName, ToolArguments, null, new ProgressTextWriter(Progress, new PrefixedTextWriter("post-sync> ", Log)));
+									if (ResultFromTool != 0)
+									{
+										StatusMessage = String.Format("Post-sync step terminated with exit code {0}.", ResultFromTool);
+										return WorkspaceUpdateResult.FailedToSync;
+									}
+								}
+							}
+						}
+
+						// Update the current change number. Everything else happens for the new change.
 						CurrentChangeNumber = PendingChangeNumber;
 					}
 
@@ -534,6 +643,16 @@ namespace UnrealGameSync
 
 					// Add the finish time
 					Times.Add(new Tuple<string,TimeSpan>("Archive", Stopwatch.Stop("Success")));
+				}
+			}
+
+			// Take the lock before doing anything else. Building and generating project files can only be done on one workspace at a time.
+			if(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
+			{
+				Log.WriteLine("Waiting for other workspaces to finish...");
+				while(Interlocked.CompareExchange(ref ActiveWorkspace, this, null) != null)
+				{
+					Thread.Sleep(100);
 				}
 			}
 

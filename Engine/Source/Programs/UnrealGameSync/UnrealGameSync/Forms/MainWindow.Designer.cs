@@ -139,7 +139,7 @@ namespace UnrealGameSync
             this.toolStripSeparator2,
             this.labelsToolStripMenuItem});
 			this.TabMenu.Name = "TabMenu";
-			this.TabMenu.Size = new System.Drawing.Size(156, 98);
+			this.TabMenu.Size = new System.Drawing.Size(156, 76);
 			this.TabMenu.Closed += new System.Windows.Forms.ToolStripDropDownClosedEventHandler(this.TabMenu_Closed);
 			// 
 			// TabMenu_OpenProject
@@ -161,12 +161,12 @@ namespace UnrealGameSync
 			// TabMenu_Recent_Separator
 			// 
 			this.TabMenu_Recent_Separator.Name = "TabMenu_Recent_Separator";
-			this.TabMenu_Recent_Separator.Size = new System.Drawing.Size(149, 6);
+			this.TabMenu_Recent_Separator.Size = new System.Drawing.Size(119, 6);
 			// 
 			// TabMenu_RecentProjects_ClearList
 			// 
 			this.TabMenu_RecentProjects_ClearList.Name = "TabMenu_RecentProjects_ClearList";
-			this.TabMenu_RecentProjects_ClearList.Size = new System.Drawing.Size(152, 22);
+			this.TabMenu_RecentProjects_ClearList.Size = new System.Drawing.Size(122, 22);
 			this.TabMenu_RecentProjects_ClearList.Text = "Clear List";
 			this.TabMenu_RecentProjects_ClearList.Click += new System.EventHandler(this.TabMenu_RecentProjects_ClearList_Click);
 			// 
