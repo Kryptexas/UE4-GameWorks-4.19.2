@@ -1694,8 +1694,14 @@ namespace OculusHMD
 
 				FTransform Translation(FVector(5.0f, 0.0f, 0.0f));
 
-				FGameFrame* CurrentFrame = GetFrame();
-				FRotator Rotation(CurrentFrame->GameHeadPose.Orientation);
+				FQuat HeadOrientation = FQuat::Identity;
+				// it's possible for the user to call ShowSplash before the first OnStartGameFrame (from BeginPlay for example)
+				// in that scenario, we don't have a valid head pose yet, so use the identity (the rot will be updated later anyways)
+				if (FGameFrame* CurrentFrame = GetFrame())
+				{
+					HeadOrientation = CurrentFrame->GameHeadPose.Orientation;
+				}
+				FRotator Rotation(HeadOrientation);
 				Rotation.Pitch = 0.0f;
 				Rotation.Roll = 0.0f;
 
