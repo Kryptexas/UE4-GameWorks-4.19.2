@@ -32,6 +32,7 @@ UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 void UMovieScene::Serialize( FArchive& Ar )
 {
 	Ar.UsingCustomVersion(FMovieSceneEvaluationCustomVersion::GUID);
+	Ar.UsingCustomVersion(FSequencerObjectVersion::GUID);
 
 #if WITH_EDITOR
 
