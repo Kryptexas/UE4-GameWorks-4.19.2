@@ -5327,7 +5327,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 		if ( bDragDetected )
 		{
 			FWidgetPath DragDetectPath = DetectDragForWidget->ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
-			const TSharedPtr<SWidget> DragDetectRequestor = DetectDragForWidget->GetLastWidget().Pin();
+			const TSharedPtr<SWidget> DragDetectRequestor = DetectDragForWidget->IsValid() ? DetectDragForWidget->GetLastWidget().Pin() : nullptr;
 			if ( DragDetectPath.IsValid() && DragDetectRequestor.IsValid() )
 			{
 				FWidgetAndPointer DetectDragForMe = DragDetectPath.FindArrangedWidgetAndCursor(DragDetectRequestor.ToSharedRef()).Get(FWidgetAndPointer());
