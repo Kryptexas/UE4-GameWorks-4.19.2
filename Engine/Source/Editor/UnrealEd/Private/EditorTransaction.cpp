@@ -141,7 +141,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check(ElementSize==0);
 		check(DefaultConstructor==NULL);
 		check(Serializer==NULL);
-		Object->Serialize( Ar );
+		// Once UE-46691 this should probably become an ensure
+		if (UObject* Obj = Object.Get())
+		{
+			Obj->Serialize(Ar);
+		}
 	}
 	Ar.ArIgnoreOuterRef = bWasArIgnoreOuterRef;
 }
@@ -168,8 +172,11 @@ void FTransaction::FObjectRecord::Save(FTransaction* Owner)
 		FlipReferencedObjects.Empty();
 		FlipReferencedNames.Empty();
 		FlipObjectAnnotation = TSharedPtr<ITransactionObjectAnnotation>();
-
-		FlipObjectAnnotation = Object->GetTransactionAnnotation();
+		// Once UE-46691 this should probably become an ensure
+		if (UObject* Obj = Object.Get())
+		{
+			FlipObjectAnnotation = Obj->GetTransactionAnnotation();
+		}
 		FWriter Writer(FlipData, FlipReferencedObjects, FlipReferencedNames, bWantsBinarySerialization);
 		SerializeContents(Writer, -Oper);
 	}
