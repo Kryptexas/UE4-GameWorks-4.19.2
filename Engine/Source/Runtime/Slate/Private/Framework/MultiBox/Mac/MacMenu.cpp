@@ -237,7 +237,10 @@ void FSlateMacMenu::UpdateMenu(FMacMenu* Menu)
 				if (MenuItemState.IsEnabled)
 				{
 					[MenuItem setTarget:MenuItem];
-					[MenuItem setAction:@selector(performAction)];
+                    if(!MenuItemState.IsSubMenu)
+                    {
+                        [MenuItem setAction:@selector(performAction)];
+                    }
 				}
 
 				if (!MenuItemState.IsSubMenu)
