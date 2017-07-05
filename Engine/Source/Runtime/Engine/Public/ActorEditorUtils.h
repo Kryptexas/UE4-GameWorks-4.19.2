@@ -50,4 +50,14 @@ namespace FActorEditorUtils
 	 * @return true on expected completion, false where the client prematurely terminated the traversal
 	 */
 	ENGINE_API bool TraverseActorTree_ChildFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor = true);
+
+	/**
+	 * Validates that a name is suitable for an actor
+	 *
+	 * @param InName			The proposed actor name
+	 * @param OutErrorMessage	Any error messages generated as a result of validation
+	 * @return true if the actor name is valid, false if not.
+	 */ 
+	ENGINE_API bool ValidateActorName(const FText& InName, FText& OutErrorMessage);
+
 };
