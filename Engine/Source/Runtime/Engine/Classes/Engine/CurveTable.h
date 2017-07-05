@@ -61,6 +61,10 @@ class UCurveTable
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
 	virtual TArray<const UObject*> GetOwners() const override;
+	virtual bool RepointCurveOwner(const FPackageReloadedEvent& InPackageReloadedEvent, FCurveOwnerInterface*& OutNewCurveOwner) const override
+	{
+		return RepointCurveOwnerAsset(InPackageReloadedEvent, this, OutNewCurveOwner);
+	}
 	//~ End FCurveOwnerInterface Interface.
 
 	//~ Begin UCurveTable Interface
