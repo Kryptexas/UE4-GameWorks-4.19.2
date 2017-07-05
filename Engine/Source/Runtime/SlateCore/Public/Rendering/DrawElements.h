@@ -1152,6 +1152,11 @@ public:
 	const TArray<FSlateClippingState>& GetRenderClipStates() const { return RenderClipStates; }
 
 	/**
+	 * 
+	 */
+	SLATECORE_API bool IsStencilClippingRequired() const;
+
+	/**
 	 * Assigns a vertex array from the pool which is appropriate for the batch.  Creates a new array if needed
 	 */
 	void AssignVertexArrayToBatch( FSlateElementBatch& Batch );
