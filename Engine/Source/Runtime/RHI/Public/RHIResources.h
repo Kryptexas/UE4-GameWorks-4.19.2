@@ -162,8 +162,6 @@ class FRHIBoundShaderState : public FRHIResource {};
 class FRHIShader : public FRHIResource
 {
 public:
-	FRHIShader(bool InbDoNotDeferDelete = false) : FRHIResource(InbDoNotDeferDelete) {}
-	
 	void SetHash(FSHAHash InHash) { Hash = InHash; }
 	FSHAHash GetHash() const { return Hash; }
 
@@ -742,10 +740,6 @@ private:
 class FRHIViewport : public FRHIResource 
 {
 public:
-	FRHIViewport()
-		: FRHIResource(true)
-	{
-	}
 	/**
 	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
 	 * to the underlying resource and should be used very carefully or not at all.
@@ -1300,8 +1294,7 @@ class FRHICustomPresent : public FRHIResource
 {
 public:
 	explicit FRHICustomPresent(FRHIViewport* InViewport) 
-		: FRHIResource(true)
-		, ViewportRHI(InViewport) 
+		: ViewportRHI(InViewport) 
 	{
 	}
 	
