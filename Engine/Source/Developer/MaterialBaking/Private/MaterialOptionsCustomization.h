@@ -33,3 +33,5 @@ public:
 protected:
 	int32 NumLODs;
 };
+
+static void AddTextureSizeClamping(TSharedPtr<IPropertyHandle> TextureSizeProperty);
