@@ -58,7 +58,7 @@ namespace UnrealBuildTool.Rules
 						"GoogleInstantPreview"
 					});
 			}
-			else
+			else if (Target.Platform != UnrealTargetPlatform.Mac)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "OpenGLDrv" });
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
