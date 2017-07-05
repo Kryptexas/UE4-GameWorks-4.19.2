@@ -364,6 +364,19 @@ struct NvFlexExtInstance
 	void* userData;					//!< User data pointer
 };
 
+/**
+* Represents a soft joint with a radius overlapping different flex objects
+*/
+// TODO: Need to consider deleting joint constraints
+struct NvFlexExtJoint
+{
+	int* particleIndices;			//!< global indices
+	float* particleLocalPositions;  //!< relative offsets of the joint from center
+	int numParticles;				//!< Number of particles in the joint
+
+	float stiffness;				//!< joint stiffness
+};
+
 /** 
  * Opaque type representing a simulation
  */
@@ -767,7 +780,10 @@ NV_FLEX_API void NvFlexExtDestroyForceFieldCallback(NvFlexExtForceFieldCallback*
  */
 NV_FLEX_API void NvFlexExtSetForceFields(NvFlexExtForceFieldCallback* callback, const NvFlexExtForceField* forceFields, int numForceFields);
 
-
+/**
+* Create shape-matching constraint between the particles that belong to the overlapped flex objects
+*/
+NV_FLEX_API void NvFlexExtSetJoints(NvFlexExtContainer* container, NvFlexExtJoint* joints, int numSoftJoints);
 
 } // extern "C"
 

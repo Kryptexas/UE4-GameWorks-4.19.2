@@ -1052,6 +1052,9 @@ void FFlexContainerInstance::UpdateSimData()
 
 	// force fields
 	NvFlexExtSetForceFields(ForceFieldCallback, ForceFields.GetData(), ForceFields.Num());
+
+	// soft joints
+	NvFlexExtSetJoints(Container, SoftJoints.GetData(), SoftJoints.Num());
 		
 	// move particle data to GPU, async
 	NvFlexExtPushToDevice(Container);
@@ -1341,6 +1344,17 @@ void FFlexContainerInstance::AddRadialImpulse(FVector Origin, float Radius, floa
 	Force.mStrength = Strength;
 	Force.mLinearFalloff = (Falloff != RIF_Constant);
 	Force.mMode = bVelChange ? eNvFlexExtModeVelocityChange : eNvFlexExtModeImpulse;
+}
+
+void FFlexContainerInstance::AddSoftJoint(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+{
+	SoftJoints.AddUninitialized(1);
+	NvFlexExtJoint& Joint = SoftJoints.Top();
+
+	Joint.particleIndices = (int*)&ParticleIndices[0];
+	Joint.particleLocalPositions = (float*)&ParticleLocalPositions[0];
+	Joint.numParticles = NumParticles;
+	Joint.stiffness = Stiffness;	
 }
 
 int FFlexContainerInstance::GetActiveParticleCount()

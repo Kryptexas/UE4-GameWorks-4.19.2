@@ -162,6 +162,8 @@ public:
 	// attach particles to a component within a radius)
 	virtual void AttachToComponent(USceneComponent* Component, float Radius);
 
+	void AddJointParticles(const FVector& JointCenter, const float JointRadius, TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, int32& NumParticles);
+
 		/// Returns true if the component is in editor world or conversely not in a game world.
 		/// Will return true if GetWorld() is null    
 	bool IsInEditorWorld() const;

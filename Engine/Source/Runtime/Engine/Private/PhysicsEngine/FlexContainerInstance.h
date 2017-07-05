@@ -98,6 +98,9 @@ struct FFlexContainerInstance : public PxDeletionListener
 	// add a radial impulse for one frame 
 	void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
+	// add a soft joint
+	void AddSoftJoint(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+
 	// helper methods
 	void ComputeSteppingParam(float& Dt, int32& NumSubsteps, float& NewLeftOverTime, float DeltaTime) const;
 	void DebugDraw();
@@ -167,6 +170,8 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<FVector4> ConvexMeshPlanes;
 
 	TArray<NvFlexExtForceField> ForceFields;
+
+	TArray<NvFlexExtJoint> SoftJoints;
 
 	float LeftOverTime;
 	float AverageDeltaTime;

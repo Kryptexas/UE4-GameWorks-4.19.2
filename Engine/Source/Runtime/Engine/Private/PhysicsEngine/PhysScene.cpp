@@ -1831,6 +1831,15 @@ void FPhysScene::AddRadialForceToFlex(FVector Origin, float Radius, float Streng
 	}
 }
 
+void FPhysScene::AddSoftJointToFlex(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+{
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		Container->AddSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+	}
+}
+
 void FPhysScene::AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
