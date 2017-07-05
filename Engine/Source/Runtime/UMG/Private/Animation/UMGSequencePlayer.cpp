@@ -14,6 +14,7 @@ UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializ
 	AnimationStartOffset = 0;
 	PlaybackSpeed = 1;
 	Animation = nullptr;
+	bIsEvaluating = false;
 }
 
 void UUMGSequencePlayer::InitSequencePlayer( UWidgetAnimation& InAnimation, UUserWidget& InUserWidget )
@@ -27,7 +28,7 @@ void UUMGSequencePlayer::InitSequencePlayer( UWidgetAnimation& InAnimation, UUse
 	AnimationStartOffset = TimeRange.GetLowerBoundValue();
 
 	UserWidget = &InUserWidget;
-		}
+}
 
 void UUMGSequencePlayer::Tick(float DeltaTime)
 {
@@ -104,10 +105,16 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 		}
 		if (RootTemplateInstance.IsValid())
 		{
+			bIsEvaluating = true;
+
 			const FMovieSceneContext Context(
 				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset),
 				PlayerStatus);
 			RootTemplateInstance.Evaluate(Context, *this);
+
+			bIsEvaluating = false;
+
+			ApplyLatentActions();
 		}
 
 		if ( bCompleted )
@@ -187,10 +194,18 @@ void UUMGSequencePlayer::PlayTo(float StartAtTime, float EndAtTime, int32 InNumL
 
 void UUMGSequencePlayer::Pause()
 {
+	if (bIsEvaluating)
+	{
+		LatentActions.Add(ELatentAction::Pause);
+		return;
+	}
+
 	// Purposely don't trigger any OnFinished events
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
 	RootTemplateInstance.Finish(*this);
+
+	ApplyLatentActions();
 }
 
 void UUMGSequencePlayer::Reverse()
@@ -203,6 +218,12 @@ void UUMGSequencePlayer::Reverse()
 
 void UUMGSequencePlayer::Stop()
 {
+	if (bIsEvaluating)
+	{
+		LatentActions.Add(ELatentAction::Stop);
+		return;
+	}
+
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
 	if (RootTemplateInstance.IsValid())
@@ -258,4 +279,20 @@ TArray<UObject*> UUMGSequencePlayer::GetEventContexts() const
 void UUMGSequencePlayer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus)
 {
 	PlayerStatus = InPlaybackStatus;
+}
+
+void UUMGSequencePlayer::ApplyLatentActions()
+{
+	// Swap to a stack array to ensure no reentrancy if we evaluate during a pause, for instance
+	TArray<ELatentAction> TheseActions;
+	Swap(TheseActions, LatentActions);
+
+	for (ELatentAction LatentAction : TheseActions)
+	{
+		switch(LatentAction)
+		{
+		case ELatentAction::Stop:	Stop(); break;
+		case ELatentAction::Pause:	Pause(); break;
+		}
+	}
 }
