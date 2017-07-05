@@ -119,6 +119,7 @@ protected:
 
 	/** Functions to determine whether or not an vertex color action is valid */
 	bool CanSaveMeshPackages() const;
+	bool SelectionContainsValidAdapters() const;
 	bool CanPropagateVertexColors() const;
 	bool CanSaveModifiedTextures() const;
 

@@ -100,15 +100,13 @@ void FPaintModePainter::RegisterTexturePaintCommands()
 
 void FPaintModePainter::RegisterVertexPaintCommands()
 {
-	auto AreMeshComponentsSelected = [this]() -> bool { return GetSelectedComponents<UMeshComponent>().Num() > 0; };
-
 	UICommandList->MapAction(FPaintModeCommands::Get().Fill, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::FillWithVertexColor),
-		FCanExecuteAction::CreateLambda(AreMeshComponentsSelected)));
+		FCanExecuteAction::CreateRaw(this, &FPaintModePainter::SelectionContainsValidAdapters)));
 
 	UICommandList->MapAction(FPaintModeCommands::Get().Propagate, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::PropagateVertexColorsToAsset), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanPropagateVertexColors)));
 
-	auto IsAMeshComponentSelected = [this]() -> bool { return (GetSelectedComponents<UMeshComponent>().Num() == 1); };
-	UICommandList->MapAction(FPaintModeCommands::Get().Import, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::ImportVertexColors), FCanExecuteAction::CreateLambda(IsAMeshComponentSelected)));
+	auto IsAValidMeshComponentSelected = [this]() -> bool { return (GetSelectedComponents<UMeshComponent>().Num() == 1) && SelectionContainsValidAdapters(); };
+	UICommandList->MapAction(FPaintModeCommands::Get().Import, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::ImportVertexColors), FCanExecuteAction::CreateLambda(IsAValidMeshComponentSelected)));
 
 	UICommandList->MapAction(FPaintModeCommands::Get().Save, FUIAction(FExecuteAction::CreateRaw(this, &FPaintModePainter::SavePaintedAssets), FCanExecuteAction::CreateRaw(this, &FPaintModePainter::CanSaveMeshPackages)));
 
@@ -430,6 +428,19 @@ bool FPaintModePainter::CanSaveMeshPackages() const
 	}
 
 	return bValid;
+}
+
+bool FPaintModePainter::SelectionContainsValidAdapters() const
+{
+	for (auto& MeshAdapterPair : ComponentToAdapterMap)
+	{
+		if (MeshAdapterPair.Value->IsValid())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FPaintModePainter::CanPropagateVertexColors() const
