@@ -2571,7 +2571,7 @@ bool FMaterialEditor::OnCanPromoteToParameter()
 {
 	UEdGraphPin* TargetPin = GraphEditor->GetGraphPinForMenu();
 
-	if (TargetPin->LinkedTo.Num() == 0)
+	if (ensure(TargetPin) && TargetPin->LinkedTo.Num() == 0)
 	{
 		return GetOnPromoteToParameterClass(TargetPin) != nullptr;
 	}
