@@ -9,7 +9,8 @@
 #include "MovieScene.h"
 #include "ActorRecordingSettings.h"
 
-static const FName VisibilityTrackName = TEXT("bHidden");
+static const FName ActorVisibilityTrackName = TEXT("bHidden");
+static const FName ComponentVisibilityTrackName = TEXT("bHiddenInGame");
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneVisibilitySectionRecorderFactory::CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const
 {
@@ -35,7 +36,16 @@ void FMovieSceneVisibilitySectionRecorder::CreateSection(UObject* InObjectToReco
 	UMovieSceneVisibilityTrack* VisibilityTrack = MovieScene->AddTrack<UMovieSceneVisibilityTrack>(Guid);
 	if(VisibilityTrack)
 	{
-		VisibilityTrack->SetPropertyNameAndPath(VisibilityTrackName, VisibilityTrackName.ToString());
+		USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get());
+
+		if (SceneComponent)
+		{
+			VisibilityTrack->SetPropertyNameAndPath(ComponentVisibilityTrackName, ComponentVisibilityTrackName.ToString());
+		}
+		else
+		{
+			VisibilityTrack->SetPropertyNameAndPath(ActorVisibilityTrackName, ActorVisibilityTrackName.ToString());
+		}
 
 		MovieSceneSection = Cast<UMovieSceneBoolSection>(VisibilityTrack->CreateNewSection());
 
@@ -44,7 +54,7 @@ void FMovieSceneVisibilitySectionRecorder::CreateSection(UObject* InObjectToReco
 		MovieSceneSection->SetDefault(false);
 
 		bWasVisible = false;
-		if(USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get()))
+		if(SceneComponent)
 		{
 			bWasVisible = SceneComponent->IsVisible() && SceneComponent->IsRegistered();
 		}
