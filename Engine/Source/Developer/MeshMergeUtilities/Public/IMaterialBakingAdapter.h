@@ -30,6 +30,9 @@ public:
 	/** Adds a new material to the underlying asset/data */
 	virtual int32 AddMaterial(UMaterialInterface* Material) = 0;
 
+	/** Update UV channel data on object the adapter represents */
+	virtual void UpdateUVChannelData() = 0;
+
 	/** Ability to aplly custom settings to the FMeshData structure */
 	virtual void ApplySettings(int32 LODIndex, FMeshData& InOutMeshData) const = 0;
 

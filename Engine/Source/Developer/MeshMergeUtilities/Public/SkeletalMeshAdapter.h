@@ -24,6 +24,7 @@ public:
 	virtual void SetMaterial(int32 MaterialIndex, UMaterialInterface* Material) override;
 	virtual void RemapMaterialIndex(int32 LODIndex, int32 SectionIndex, int32 NewMaterialIndex) override;
 	virtual int32 AddMaterial(UMaterialInterface* Material) override;
+	virtual void UpdateUVChannelData() override;
 	virtual bool IsAsset() const override;
 	virtual int32 LightmapUVIndex() const override;
 	virtual FBoxSphereBounds GetBounds() const override;
