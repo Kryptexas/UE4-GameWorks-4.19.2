@@ -305,7 +305,18 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
 
-	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
+	if (Result == VK_ERROR_VALIDATION_FAILED_EXT)
+	{
+		extern TAutoConsoleVariable<int32> GValidationCvar;
+		if (GValidationCvar.GetValueOnRenderThread() == 0)
+		{
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("vkAcquireNextImageKHR failed with Validation error. Try running with r.Vulkan.EnableValidation=1 to get information from the driver"));
+		}
+	}
+	else
+	{
+		checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("vkAcquireNextImageKHR failed Result = %d"), int32(Result));
+	}
 	CurrentImageIndex = (int32)ImageIndex;
 	check(CurrentImageIndex == ImageIndex);
 	
