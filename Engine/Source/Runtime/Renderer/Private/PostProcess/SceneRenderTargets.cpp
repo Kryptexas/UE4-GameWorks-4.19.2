@@ -763,7 +763,7 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 	check(GetSceneColorForCurrentShadingPath());
 }
 
-void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList, const int32 ScaleFactor)
 {
 	// For mono support. 
 	// Ensure we clear alpha to 0. We use alpha to tag which pixels had objects rendered into them so we can mask them out for the mono pass
@@ -775,7 +775,7 @@ void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmd
 	if (!MobileMultiViewSceneColor)
 	{
 		const EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
-		const FIntPoint MultiViewBufferSize(BufferSize.X, BufferSize.Y);
+		const FIntPoint MultiViewBufferSize(BufferSize.X / ScaleFactor, BufferSize.Y);
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
@@ -786,7 +786,7 @@ void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmd
 	check(MobileMultiViewSceneColor);
 }
 
-void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList, const int32 ScaleFactor)
 {
 	// For mono support. We change the default depth clear value to the mono clip plane to clip the stereo portion of the frustum.
 	if (MobileMultiViewSceneDepthZ && !(MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear))
@@ -796,7 +796,7 @@ void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
 
 	if (!MobileMultiViewSceneDepthZ)
 	{
-		const FIntPoint MultiViewBufferSize(BufferSize.X, BufferSize.Y);
+		const FIntPoint MultiViewBufferSize(BufferSize.X / ScaleFactor, BufferSize.Y);
 
 		// Using the result of GetDepthFormat() without stencil due to packed depth-stencil not working in array frame buffers.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, PF_D24, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
@@ -1590,12 +1590,13 @@ void FSceneRenderTargets::AllocateMobileRenderTargets(FRHICommandList& RHICmdLis
 
 	if (bIsUsingMobileMultiView)
 	{
+		const int32 ScaleFactor = (bIsMobileMultiViewDirectEnabled) ? 1 : 2;
 		if (!bIsMobileMultiViewDirectEnabled)
 		{
-			AllocMobileMultiViewSceneColor(RHICmdList);
+			AllocMobileMultiViewSceneColor(RHICmdList, ScaleFactor);
 		}
 
-		AllocMobileMultiViewDepth(RHICmdList);
+		AllocMobileMultiViewDepth(RHICmdList, ScaleFactor);
 	}
 #endif
 

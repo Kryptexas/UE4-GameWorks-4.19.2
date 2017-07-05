@@ -98,6 +98,7 @@ public:
 	static FGoogleVRHMDTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
+		uint32 InNumLayers,
 		uint32 InNumSamples,
 		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
@@ -136,7 +137,7 @@ public:
 	 * @param Index			(in) index of the buffer, changing from 0 to GetNumberOfBufferedFrames()
 	 * @return				true, if texture was allocated; false, if the default texture allocation should be used.
 	 */
-	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
+	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumLayers, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
 
 	// Frame operations
 	void UpdateRenderingViewportList(const gvr_buffer_viewport_list* BufferViewportList);
@@ -269,6 +270,12 @@ public:
 	/** Check if the application is running in Daydream mode*/
 	bool IsInDaydreamMode() const;
 
+	/** Check if mobile multi-view direct is enabled */
+	bool IsMobileMultiViewDirect() const
+	{
+		return bIsMobileMultiViewDirect;
+	}
+
 	void SetSPMEnable(bool bEnable) const;
 
 	/**
@@ -377,6 +384,7 @@ private:
 	bool		bUseOffscreenFramebuffers;
 	bool		bIsInDaydreamMode;
 	bool		bForceStopPresentScene;
+	bool		bIsMobileMultiViewDirect;
 	float		NeckModelScale;
 	FQuat		CurHmdOrientation;
 	FVector		CurHmdPosition;
