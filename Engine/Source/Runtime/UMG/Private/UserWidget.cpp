@@ -1491,7 +1491,7 @@ void UUserWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath
 		if ( bDecendantNewlyFocused )
 		{
 			const bool bDecendantPreviouslyFocused = PreviousFocusPath.ContainsWidget(SafeGCWidget.ToSharedRef());
-			if ( bDecendantPreviouslyFocused )
+			if ( !bDecendantPreviouslyFocused )
 			{
 				NativeOnAddedToFocusPath( InFocusEvent );
 			}
