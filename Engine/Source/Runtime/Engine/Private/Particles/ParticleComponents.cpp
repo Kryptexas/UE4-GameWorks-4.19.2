@@ -7065,21 +7065,24 @@ UMaterialInterface* UParticleSystemComponent::GetNamedMaterial(FName Name) const
 		else
 		{
 			//This slot hasn't been overridden so just used the default.
-			return Template->NamedMaterialSlots[Index].Material;
+			return Template ? Template->NamedMaterialSlots[Index].Material : nullptr;
 		}
 	}
 	//Could not find this named materials slot.
-	return NULL;
+	return nullptr;
 }
 
 int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 {
-	TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-	for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
+	if (Template != nullptr)
 	{
-		if (Name == Slots[SlotIdx].Name)
+		TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
+		for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
 		{
-			return SlotIdx;
+			if (Name == Slots[SlotIdx].Name)
+			{
+				return SlotIdx;
+			}
 		}
 	}
 	return INDEX_NONE;
