@@ -255,22 +255,29 @@ void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
 
 bool FProjectManager::IsNonDefaultPluginEnabled() const
 {
-	TSet<FString> EnabledPlugins;
-
+	// Get settings for the plugins which are currently enabled or disabled by the project file
+	TMap<FString, bool> ConfiguredPlugins;
 	if (CurrentProject.IsValid())
 	{
 		for (const FPluginReferenceDescriptor& PluginReference : CurrentProject->Plugins)
 		{
-			if (PluginReference.bEnabled)
-			{
-				EnabledPlugins.Add(PluginReference.Name);
-			}
+			ConfiguredPlugins.Add(PluginReference.Name, PluginReference.bEnabled);
 		}
 	}
 
+	// Check whether the setting for any default plugin has been changed
 	for(const FPluginStatus& Plugin: IPluginManager::Get().QueryStatusForAllPlugins())
 	{
-		if ((Plugin.LoadedFrom == EPluginLoadedFrom::GameProject || !Plugin.Descriptor.bEnabledByDefault || Plugin.Descriptor.bInstalled) && EnabledPlugins.Contains(Plugin.Name))
+		bool bEnabled = Plugin.Descriptor.bEnabledByDefault;
+
+		bool* EnabledPtr = ConfiguredPlugins.Find(Plugin.Name);
+		if(EnabledPtr != nullptr)
+		{
+			bEnabled = *EnabledPtr;
+		}
+
+		bool bEnabledInDefaultExe = (Plugin.LoadedFrom == EPluginLoadedFrom::Engine && Plugin.Descriptor.bEnabledByDefault && !Plugin.Descriptor.bInstalled);
+		if(bEnabled != bEnabledInDefaultExe)
 		{
 			return true;
 		}
