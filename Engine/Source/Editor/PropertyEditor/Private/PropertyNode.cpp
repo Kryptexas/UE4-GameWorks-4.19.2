@@ -1882,12 +1882,11 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 					// Cache the value of the property before modifying it.
 					FString PreviousValue;
-					TheProperty->ExportText_Direct(PreviousValue, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), NULL, 0);
-
-			
+					TheProperty->ExportText_Direct(PreviousValue, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), nullptr, 0);
+								
 					FString PreviousArrayValue;
 
-					if( ValueTracker.GetPropertyDefaultAddress() != NULL )
+					if (ValueTracker.GetPropertyDefaultAddress())
 					{
 						UObject* RootObject = ValueTracker.GetTopLevelObject();
 
@@ -1896,19 +1895,17 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 						// dynamic arrays are the only property type that do not support CopySingleValue correctly due to the fact that they cannot
 						// be used in a static array
 
-						if(Cast<UArrayProperty>(ParentProperty) != nullptr)
+						if (UArrayProperty* ParentArrayProp = Cast<UArrayProperty>(ParentProperty))
 						{
-							UArrayProperty* ArrayProp = Cast<UArrayProperty>(ParentProperty);
-							if(ArrayProp->Inner == TheProperty)
+							if (ParentArrayProp->Inner == TheProperty)
 							{
 								uint8* Addr = ParentPropertyNode->GetValueBaseAddress((uint8*)Object);
 
-								ArrayProp->ExportText_Direct(PreviousArrayValue, Addr, Addr, NULL, 0);
+								ParentArrayProp->ExportText_Direct(PreviousArrayValue, Addr, Addr, nullptr, 0);
 							}
 						}
 
-						UArrayProperty* ArrayProp = Cast<UArrayProperty>(TheProperty);
-						if( ArrayProp != NULL )
+						if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(TheProperty))
 						{
 							TheProperty->CopyCompleteValue(ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyDefaultAddress());
 						}
@@ -1930,8 +1927,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 							FPropertyItemComponentCollector DefaultComponentCollector(ValueTracker);
 							for ( int32 CompIndex = 0; CompIndex < ComponentCollector.Components.Num(); CompIndex++ )
 							{
-								UObject* Component = ComponentCollector.Components[CompIndex];
-								if (Component != NULL)
+								if (UObject* Component = ComponentCollector.Components[CompIndex])
 								{
 									if ( DefaultComponentCollector.Components.Contains(Component->GetArchetype()) )
 									{
@@ -1944,7 +1940,14 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 								}
 							}
 
-							FArchiveReplaceObjectRef<UObject> ReplaceAr(RootObject, ReplaceMap, false, true, true);
+							{ FArchiveReplaceObjectRef<UObject> ReplaceAr(RootObject, ReplaceMap, false, true, true); }
+
+							// The old objects need to be renamed out of the way otherwise the subobject instancing will just find the
+							// same object again and not get a new one
+							for (const TPair<UObject*,UObject*> ReplacedObjPair : ReplaceMap)
+							{
+								ReplacedObjPair.Key->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+							}
 
 							FObjectInstancingGraph InstanceGraph(RootObject);
 
@@ -1965,6 +1968,9 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 							}
 
 							RootObject->InstanceSubobjectTemplates(&InstanceGraph);
+
+							{ FArchiveReplaceObjectRef<UObject> ReplaceAr(RootObject, InstanceGraph.GetReplaceMap(), false, true, true); }
+
 						}
 
 						bEditInlineNewWasReset = ComponentCollector.bContainsEditInlineNew;
@@ -1977,7 +1983,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 					// Cache the value of the property after having modified it.
 					FString ValueAfterImport;
-					TheProperty->ExportText_Direct(ValueAfterImport, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), NULL, 0);
+					TheProperty->ExportText_Direct(ValueAfterImport, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), nullptr, 0);
 
 					// If this is an instanced component property we must move the old component to the 
 					// transient package so resetting owned components on the parent doesn't find it
