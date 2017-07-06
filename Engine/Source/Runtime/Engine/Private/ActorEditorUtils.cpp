@@ -143,4 +143,6 @@ namespace FActorEditorUtils
 
 }
 
+#undef LOCTEXT_NAMESPACE
+
 
