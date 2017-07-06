@@ -1898,6 +1898,12 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 
  	int32 ArrayIndex;
  	Stack.Step( Stack.Object, &ArrayIndex);
+	
+	if (ArrayProperty == nullptr)
+	{
+		Stack.bArrayContextFailed = true;
+		return;
+	}
 
 	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddr);
 	Stack.MostRecentProperty = ArrayProperty->Inner;
