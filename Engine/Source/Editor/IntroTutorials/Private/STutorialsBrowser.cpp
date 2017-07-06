@@ -25,6 +25,7 @@
 #include "Interfaces/IAnalyticsProvider.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Navigation/SBreadcrumbTrail.h"
+#include "GCObject.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
 
@@ -277,7 +278,7 @@ public:
 
 DECLARE_DELEGATE_TwoParams(FOnTutorialSelected, UEditorTutorial* /* InTutorial */, bool /* bRestart */ );
 
-class FTutorialListEntry_Tutorial : public ITutorialListEntry, public TSharedFromThis<FTutorialListEntry_Tutorial>
+class FTutorialListEntry_Tutorial : public ITutorialListEntry, public TSharedFromThis<FTutorialListEntry_Tutorial>, public FGCObject
 {
 public:
 	FTutorialListEntry_Tutorial(UEditorTutorial* InTutorial, FOnTutorialSelected InOnTutorialSelected, const TAttribute<FText>& InHighlightText)
@@ -495,6 +496,12 @@ public:
 
 			LastUpdateTime = FPlatformTime::Seconds();
 		}
+	}
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects(FReferenceCollector& Collector)
+	{
+		Collector.AddReferencedObject(Tutorial);
 	}
 
 public:
