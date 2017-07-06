@@ -497,6 +497,7 @@ public:
 
 		// Delete existing redirector
 		DeleteTagRedirector(TagToRenameTo);
+		DeleteTagRedirector(TagToRename);
 
 		if (Manager.GetTagEditorData(OldTagName, OldComment, OldTagSourceName))
 		{
@@ -530,6 +531,10 @@ public:
 						break;
 					}
 				}
+			}
+			else
+			{
+				ShowNotification(FText::Format(LOCTEXT("RenameFailure", "Tag {0} redirector was created but original tag was not destroyed as it has children"), FText::FromString(TagToRename)), 10.0f);
 			}
 		}
 
