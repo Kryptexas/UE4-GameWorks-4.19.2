@@ -38,7 +38,7 @@ public:
 	UImagePlateFileSequence(const FObjectInitializer& Init);
 
 	/** Path to the directory in which the image sequence resides */
-	UPROPERTY(EditAnywhere, Category="General")
+	UPROPERTY(EditAnywhere, Category="General", meta=(RelativePath))
 	FDirectoryPath SequencePath;
 
 	/** Wildcard used to find images within the directory (ie *.exr) */

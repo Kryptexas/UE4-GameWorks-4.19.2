@@ -12,6 +12,7 @@
 #include "Runnable.h"
 #include "Algo/Sort.h"
 #include "Async.h"
+#include "PackageName.h"
 #include "Engine/Texture2DDynamic.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogImagePlateFileSequence, Log, Warning);
@@ -289,15 +290,19 @@ namespace ImagePlateFrameCache
 		: CurrentFrameNumber(-1), MinCacheRange(-1), MaxCacheRange(-1), Framerate(InFramerate)
 	{
 		FString SequenceFolder = InSequencePath;
-		if (FPaths::IsRelative(SequenceFolder))
+		if (!FPackageName::TryConvertLongPackageNameToFilename(InSequencePath, SequenceFolder))
 		{
-			if (SequenceFolder.StartsWith(TEXT("./")))
+			SequenceFolder = InSequencePath;
+			if (FPaths::IsRelative(SequenceFolder))
 			{
-				SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), SequenceFolder.RightChop(2));
-			}
-			else
-			{
-				SequenceFolder = FPaths::ConvertRelativePathToFull(SequenceFolder);
+				if (SequenceFolder.StartsWith(TEXT("./")))
+				{
+					SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), SequenceFolder.RightChop(2));
+				}
+				else
+				{
+					SequenceFolder = FPaths::ConvertRelativePathToFull(SequenceFolder);
+				}
 			}
 		}
 

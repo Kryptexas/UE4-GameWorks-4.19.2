@@ -348,6 +348,7 @@ void UImagePlateComponent::OnRegister()
 {
 	Super::OnRegister();
 	UpdateMaterialParametersForMedia();
+	UpdateTransformScale();
 
 #if WITH_EDITORONLY_DATA
 	if (AActor* ComponentOwner = GetOwner())
