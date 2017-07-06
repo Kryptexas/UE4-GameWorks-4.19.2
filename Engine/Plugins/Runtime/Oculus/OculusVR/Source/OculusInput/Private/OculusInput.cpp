@@ -313,15 +313,16 @@ void FOculusInput::SendControllerEvents()
 								MessageHandler->OnControllerAnalog(bIsLeft ? FGamepadKeyNames::MotionController_Left_Grip1Axis : FGamepadKeyNames::MotionController_Right_Grip1Axis, ControllerPair.UnrealControllerIndex, State.GripAxis);
 							}
 
-							if (OvrpControllerState.Thumbstick[HandIndex].x != State.ThumbstickAxes.X)
+							ovrpVector2f ThumbstickValue = bIsMalibuTracked ? OvrpControllerState.Touchpad[HandIndex] : OvrpControllerState.Thumbstick[HandIndex];
+							if (ThumbstickValue.x != State.ThumbstickAxes.X)
 							{
-								State.ThumbstickAxes.X = OvrpControllerState.Thumbstick[HandIndex].x;
+								State.ThumbstickAxes.X = ThumbstickValue.x;
 								MessageHandler->OnControllerAnalog(bIsLeft ? FGamepadKeyNames::MotionController_Left_Thumbstick_X : FGamepadKeyNames::MotionController_Right_Thumbstick_X, ControllerPair.UnrealControllerIndex, State.ThumbstickAxes.X);
 							}
 
-							if (OvrpControllerState.Thumbstick[HandIndex].y != State.ThumbstickAxes.Y)
+							if (ThumbstickValue.y != State.ThumbstickAxes.Y)
 							{
-								State.ThumbstickAxes.Y = OvrpControllerState.Thumbstick[HandIndex].y;
+								State.ThumbstickAxes.Y = ThumbstickValue.y;
 								// we need to negate Y value to match XBox controllers
 								MessageHandler->OnControllerAnalog(bIsLeft ? FGamepadKeyNames::MotionController_Left_Thumbstick_Y : FGamepadKeyNames::MotionController_Right_Thumbstick_Y, ControllerPair.UnrealControllerIndex, -State.ThumbstickAxes.Y);
 							}
@@ -353,6 +354,22 @@ void FOculusInput::SendControllerEvents()
 
 								case EOculusTouchControllerButton::Thumbstick:
 									bButtonPressed = bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_LThumb) != 0 : (OvrpControllerState.Buttons & ovrpButton_RThumb) != 0;
+									break;
+
+								case EOculusTouchControllerButton::Thumbstick_Up:
+									bButtonPressed = State.Buttons[(int)EOculusTouchControllerButton::Thumbstick].bIsPressed && State.ThumbstickAxes.Y > 0.7;
+									break;
+
+								case EOculusTouchControllerButton::Thumbstick_Down:
+									bButtonPressed = State.Buttons[(int)EOculusTouchControllerButton::Thumbstick].bIsPressed && State.ThumbstickAxes.Y < -0.7;
+									break;
+
+								case EOculusTouchControllerButton::Thumbstick_Left:
+									bButtonPressed = State.Buttons[(int)EOculusTouchControllerButton::Thumbstick].bIsPressed && State.ThumbstickAxes.X < -0.7;
+									break;
+
+								case EOculusTouchControllerButton::Thumbstick_Right:
+									bButtonPressed = State.Buttons[(int)EOculusTouchControllerButton::Thumbstick].bIsPressed && State.ThumbstickAxes.X > 0.7;
 									break;
 
 								case EOculusTouchControllerButton::Menu:
