@@ -43,8 +43,6 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "Spawning", meta = (BlueprintInternalUseOnly = "true"))
 	static UObject* SpawnObject(TSubclassOf<UObject> ObjectClass, UObject* Outer);
 
-	static bool CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract = false);
-
 	// --- Spawning functions ------------------------------
 
 	/** Spawns an instance of a blueprint, but does not automatically run its construction script.  */
