@@ -2712,121 +2712,124 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 				Addr = ParentPropertyNode->GetValueBaseAddress((uint8*)ActualObjToChange);
 			}
 
-			FString OriginalContent;
-			ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, NULL, PPF_None);
-
-			bool bIsDefaultContainerContent = OriginalContent == OriginalContainerContent;
-
-			if (Addr != NULL && ArrayProperty)
+			if (Addr != nullptr)
 			{
-				FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
+				FString OriginalContent;
+				ConvertedProperty->ExportText_Direct(OriginalContent, Addr, Addr, nullptr, PPF_None);
 
-				// Check if the original value was the default value and change it only then
-				if (bIsDefaultContainerContent)
+				bool bIsDefaultContainerContent = OriginalContent == OriginalContainerContent;
+
+				if (ArrayProperty)
 				{
-					int32 ElementToInitialize = -1;
-					switch (ChangeType)
-					{
-					case EPropertyArrayChangeType::Add:
-						ElementToInitialize = ArrayHelper.AddValue();
-						break;
-					case EPropertyArrayChangeType::Clear:
-						ArrayHelper.EmptyValues();
-						break;
-					case EPropertyArrayChangeType::Insert:
-						ArrayHelper.InsertValues(ArrayIndex, 1);
-						ElementToInitialize = ArrayIndex;
-						break;
-					case EPropertyArrayChangeType::Delete:
-						ArrayHelper.RemoveValues(ArrayIndex, 1);
-						break;
-					case EPropertyArrayChangeType::Duplicate:
-						ArrayHelper.InsertValues(ArrayIndex, 1);
-						// Copy the selected item's value to the new item.
-						NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
-						Object->InstanceSubobjectTemplates();
-						break;
-					}
-					if (ElementToInitialize >= 0)
-					{
-						AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
-					}
-				}
-			}	// End Array
+					FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
 
-			else if ( Addr != NULL && SetProperty )
-			{
-				FScriptSetHelper SetHelper(SetProperty, Addr);
+					// Check if the original value was the default value and change it only then
+					if (bIsDefaultContainerContent)
+					{
+						int32 ElementToInitialize = -1;
+						switch (ChangeType)
+						{
+						case EPropertyArrayChangeType::Add:
+							ElementToInitialize = ArrayHelper.AddValue();
+							break;
+						case EPropertyArrayChangeType::Clear:
+							ArrayHelper.EmptyValues();
+							break;
+						case EPropertyArrayChangeType::Insert:
+							ArrayHelper.InsertValues(ArrayIndex, 1);
+							ElementToInitialize = ArrayIndex;
+							break;
+						case EPropertyArrayChangeType::Delete:
+							ArrayHelper.RemoveValues(ArrayIndex, 1);
+							break;
+						case EPropertyArrayChangeType::Duplicate:
+							ArrayHelper.InsertValues(ArrayIndex, 1);
+							// Copy the selected item's value to the new item.
+							NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
+							Object->InstanceSubobjectTemplates();
+							break;
+						}
+						if (ElementToInitialize >= 0)
+						{
+							AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
+						}
+					}
+				}	// End Array
 
-				// Check if the original value was the default value and change it only then
-				if (bIsDefaultContainerContent)
+				else if (SetProperty)
 				{
-					int32 ElementToInitialize = -1;
-					switch (ChangeType)
+					FScriptSetHelper SetHelper(SetProperty, Addr);
+
+					// Check if the original value was the default value and change it only then
+					if (bIsDefaultContainerContent)
 					{
-					case EPropertyArrayChangeType::Add:
-						ElementToInitialize = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
-						SetHelper.Rehash();
-						break;
-					case EPropertyArrayChangeType::Clear:
-						SetHelper.EmptyElements();
-						break;
-					case EPropertyArrayChangeType::Insert:
-						check(false);	// Insert is not supported for sets
-						break;
-					case EPropertyArrayChangeType::Delete:
-						SetHelper.RemoveAt(ArrayIndex);
-						SetHelper.Rehash();
-						break;
-					case EPropertyArrayChangeType::Duplicate:
-						check(false);	// Duplicate not supported on sets
-						break;
+						int32 ElementToInitialize = -1;
+						switch (ChangeType)
+						{
+						case EPropertyArrayChangeType::Add:
+							ElementToInitialize = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
+							SetHelper.Rehash();
+							break;
+						case EPropertyArrayChangeType::Clear:
+							SetHelper.EmptyElements();
+							break;
+						case EPropertyArrayChangeType::Insert:
+							check(false);	// Insert is not supported for sets
+							break;
+						case EPropertyArrayChangeType::Delete:
+							SetHelper.RemoveAt(ArrayIndex);
+							SetHelper.Rehash();
+							break;
+						case EPropertyArrayChangeType::Duplicate:
+							check(false);	// Duplicate not supported on sets
+							break;
+						}
+
+						if (ElementToInitialize >= 0)
+						{
+							AdditionalInitializationUDS(SetProperty->ElementProp, SetHelper.GetElementPtr(ElementToInitialize));
+						}
+					}
+				}	// End Set
+				else if (MapProperty)
+				{
+					FScriptMapHelper MapHelper(MapProperty, Addr);
+
+					// Check if the original value was the default value and change it only then
+					if (bIsDefaultContainerContent)
+					{
+						int32 ElementToInitialize = -1;
+						switch (ChangeType)
+						{
+						case EPropertyArrayChangeType::Add:
+							ElementToInitialize = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+							MapHelper.Rehash();
+							break;
+						case EPropertyArrayChangeType::Clear:
+							MapHelper.EmptyValues();
+							break;
+						case EPropertyArrayChangeType::Insert:
+							check(false);	// Insert is not supported for maps
+							break;
+						case EPropertyArrayChangeType::Delete:
+							MapHelper.RemoveAt(ArrayIndex);
+							MapHelper.Rehash();
+							break;
+						case EPropertyArrayChangeType::Duplicate:
+							check(false);	// Duplicate is not supported for maps
+							break;
+						}
+
+						if (ElementToInitialize >= 0)
+						{
+							uint8* PairPtr = MapHelper.GetPairPtr(ElementToInitialize);
+
+							AdditionalInitializationUDS(MapProperty->KeyProp, MapProperty->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
+							AdditionalInitializationUDS(MapProperty->ValueProp, MapProperty->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
+						}
+					}
+				}	// End Map
 			}
-
-					if (ElementToInitialize >= 0)
-					{
-						AdditionalInitializationUDS(SetProperty->ElementProp, SetHelper.GetElementPtr(ElementToInitialize));
-					}
-				}
-			}	// End Set
-			else if (Addr != NULL && MapProperty)
-			{
-				FScriptMapHelper MapHelper(MapProperty, Addr);
-
-				// Check if the original value was the default value and change it only then
-				if (bIsDefaultContainerContent)
-				{
-					int32 ElementToInitialize = -1;
-					switch (ChangeType)
-					{
-					case EPropertyArrayChangeType::Add:
-						ElementToInitialize = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
-						MapHelper.Rehash();
-						break;
-					case EPropertyArrayChangeType::Clear:
-						MapHelper.EmptyValues();
-						break;
-					case EPropertyArrayChangeType::Insert:
-						check(false);	// Insert is not supported for maps
-						break;
-					case EPropertyArrayChangeType::Delete:
-						MapHelper.RemoveAt(ArrayIndex);
-						MapHelper.Rehash();
-						break;
-					case EPropertyArrayChangeType::Duplicate:
-						check(false);	// Duplicate is not supported for maps
-						break;
-					}
-
-					if (ElementToInitialize >= 0)
-					{
-						uint8* PairPtr = MapHelper.GetPairPtr(ElementToInitialize);
-
-						AdditionalInitializationUDS(MapProperty->KeyProp, MapProperty->KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-						AdditionalInitializationUDS(MapProperty->ValueProp, MapProperty->ValueProp->ContainerPtrToValuePtr<uint8>(PairPtr));
-					}
-				}
-			}	// End Map
 		}
 
 		for (int32 i=0; i < ArchetypeInstances.Num(); ++i)
