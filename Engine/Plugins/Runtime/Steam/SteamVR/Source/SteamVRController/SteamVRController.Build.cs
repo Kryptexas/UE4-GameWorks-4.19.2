@@ -18,6 +18,7 @@ public class SteamVRController : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputDevice",
+            "InputCore",
 			"HeadMountedDisplay",
             "SteamVR"
 		});
