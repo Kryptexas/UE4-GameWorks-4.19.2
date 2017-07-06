@@ -43,12 +43,18 @@ public:
 	FRGBAToYUV420CS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
+		TargetHeight.Bind(Initializer.ParameterMap, TEXT("TargetHeight"), SPF_Mandatory);
+		ScaleFactorX.Bind(Initializer.ParameterMap, TEXT("ScaleFactorX"), SPF_Mandatory);
+		ScaleFactorY.Bind(Initializer.ParameterMap, TEXT("ScaleFactorY"), SPF_Mandatory);
+		TextureYOffset.Bind(Initializer.ParameterMap, TEXT("TextureYOffset"), SPF_Mandatory);
+		SrcTexture.Bind(Initializer.ParameterMap, TEXT("SrcTexture"), SPF_Mandatory);
 		OutTextureRW.Bind(Initializer.ParameterMap, TEXT("OutTexture"), SPF_Mandatory);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << TargetHeight << ScaleFactorX << ScaleFactorY << TextureYOffset << SrcTexture << OutTextureRW;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -56,6 +62,12 @@ public:
 	void UnbindBuffers(FRHICommandList& RHICmdList);
 
 protected:
+	FShaderParameter TargetHeight;
+	FShaderParameter ScaleFactorX;
+	FShaderParameter ScaleFactorY;
+	FShaderParameter TextureYOffset;
+	FShaderResourceParameter SrcTexture;
+
 	FShaderResourceParameter OutTextureRW;
 };
 
