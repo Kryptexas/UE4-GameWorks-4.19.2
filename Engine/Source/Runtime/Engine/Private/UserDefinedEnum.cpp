@@ -88,7 +88,7 @@ void UUserDefinedEnum::PostLoad()
 void UUserDefinedEnum::PostEditUndo()
 {
 	Super::PostEditUndo();
-	FEnumEditorUtils::UpdateAfterPathChanged(this);
+	FEnumEditorUtils::PostEditUndo(this);
 }
 
 FString UUserDefinedEnum::GenerateNewEnumeratorName()
