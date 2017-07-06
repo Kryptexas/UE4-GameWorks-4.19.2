@@ -1628,11 +1628,6 @@ void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
 		// Spawn a new window to play in.
 		GUnrealEd->RequestPlaySession(bAtPlayerStart, NULL, bSimulateInEditor, StartLoc, StartRot, -1, false, bHMDIsReady);
 	}
-	else
-	{
-		// Terminate existing session
-		GUnrealEd->EndPlayMap();
-	}
 }
 
 
