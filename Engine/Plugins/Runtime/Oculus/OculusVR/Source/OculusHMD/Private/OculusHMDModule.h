@@ -10,7 +10,7 @@
 // FOculusHMDModule
 //-------------------------------------------------------------------------------------------------
 
-class FOculusHMDModule : public IOculusHMDModule
+class FOculusHMDModule : public IOculusHMDModule 
 {
 public:
 	FOculusHMDModule();
@@ -72,6 +72,15 @@ public:
 	virtual class IStereoLayers* GetStereoLayers() override
 	{
 		return UOculusFunctionLibrary::GetStereoLayers();
+	}
+
+	bool IsOVRPluginAvailable() const
+	{
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
+		return OVRPluginHandle != nullptr;
+#else
+		return false;
+#endif
 	}
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
