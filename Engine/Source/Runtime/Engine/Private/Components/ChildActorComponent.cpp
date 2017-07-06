@@ -585,7 +585,8 @@ void UChildActorComponent::DestroyChildActor()
 		if (!GExitPurge)
 		{
 			// if still alive, destroy, otherwise just clear the pointer
-			if (!ChildActor->IsPendingKillOrUnreachable())
+			const bool bIsChildActorPendingKillOrUnreachable = ChildActor->IsPendingKillOrUnreachable();
+			if (!bIsChildActorPendingKillOrUnreachable)
 			{
 #if WITH_EDITOR
 				if (CachedInstanceData)
@@ -601,33 +602,37 @@ void UChildActorComponent::DestroyChildActor()
 				{
 					CachedInstanceData = new FChildActorComponentInstanceData(this);
 				}
+			}
 
-				UWorld* World = ChildActor->GetWorld();
-				// World may be nullptr during shutdown
-				if (World != nullptr)
+			UWorld* World = ChildActor->GetWorld();
+			// World may be nullptr during shutdown
+			if (World != nullptr)
+			{
+				UClass* ChildClass = ChildActor->GetClass();
+
+				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
+				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
+				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
+
+				// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
+				if (!IsGarbageCollecting())
 				{
-					UClass* ChildClass = ChildActor->GetClass();
-
-					// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
-					// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-					int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
-					ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
-
-					// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
-					if (!IsGarbageCollecting())
+					const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
+					const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
+					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+				}
+				else
+				{
+					ChildActorName = NAME_None;
+					if (CachedInstanceData)
 					{
-						const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
-						const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
-						ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+						CachedInstanceData->ChildActorName = NAME_None;
 					}
-					else
-					{
-						ChildActorName = NAME_None;
-						if (CachedInstanceData)
-						{
-							CachedInstanceData->ChildActorName = NAME_None;
-						}
-					}
+				}
+
+				if (!bIsChildActorPendingKillOrUnreachable)
+				{
 					World->DestroyActor(ChildActor);
 				}
 			}
