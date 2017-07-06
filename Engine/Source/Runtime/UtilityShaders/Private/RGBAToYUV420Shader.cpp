@@ -8,34 +8,18 @@
 /* FRGBAToYUV420CS shader
  *****************************************************************************/
 
-BEGIN_UNIFORM_BUFFER_STRUCT( RGBAToYUV420UB, )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, TargetHeight )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, ScaleFactorX )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, ScaleFactorY )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, TextureYOffset )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE( Texture2D, SrcTex )
-END_UNIFORM_BUFFER_STRUCT( RGBAToYUV420UB )
-
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(RGBAToYUV420UB, TEXT("RGBAToYUV420UB"));
 IMPLEMENT_SHADER_TYPE(, FRGBAToYUV420CS, TEXT("/Engine/Private/RGBAToYUV420.usf"), TEXT("RGBAToYUV420Main"), SF_Compute);
 
 
-void FRGBAToYUV420CS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> SrcTex, FUnorderedAccessViewRHIParamRef OutUAV, float TargetHeight, float ScaleFactorX, float ScaleFactorY, float TextureYOffset)
+void FRGBAToYUV420CS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> InSrcTexture, FUnorderedAccessViewRHIParamRef InOutUAV, float InTargetHeight, float InScaleFactorX, float InScaleFactorY, float InTextureYOffset)
 {
-	RGBAToYUV420UB UB;
-	{
-		UB.SrcTex = SrcTex;
-		UB.TargetHeight = TargetHeight;
-		UB.ScaleFactorX = ScaleFactorX;
-		UB.ScaleFactorY = ScaleFactorY;
-		UB.TextureYOffset = TextureYOffset;
-	}
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-
-	TUniformBufferRef<RGBAToYUV420UB> Data = TUniformBufferRef<RGBAToYUV420UB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
-	SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<RGBAToYUV420UB>(), Data);
-
-	RHICmdList.SetUAVParameter(ComputeShaderRHI, OutTextureRW.GetBaseIndex(), OutUAV);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, TargetHeight, InTargetHeight);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ScaleFactorX, InScaleFactorX);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ScaleFactorY, InScaleFactorY);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, TextureYOffset, InTextureYOffset);
+	SetTextureParameter(RHICmdList, ComputeShaderRHI, SrcTexture, InSrcTexture);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, OutTextureRW.GetBaseIndex(), InOutUAV);
 }
 
 /**

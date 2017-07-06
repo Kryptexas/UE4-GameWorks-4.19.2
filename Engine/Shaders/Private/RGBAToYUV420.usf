@@ -6,4 +6,4 @@
 //
 // TODO(VR team): move shader file and C++ into a plugin.
 
-#include "PS4/RGBAToYUV420.usf"
+#include "PS4/RGBAToYUV420.ush"
