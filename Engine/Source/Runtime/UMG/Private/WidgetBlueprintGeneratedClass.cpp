@@ -362,11 +362,30 @@ UUserWidget* UWidgetBlueprintGeneratedClass::GetTemplate()
 
 	if ( bTemplateInitialized == false && HasTemplate() )
 	{
+		// This shouldn't be possible with the EDL loader, so only attempt to do it then.
+		if (GEventDrivenLoaderEnabled == false && Template == nullptr)
+		{
+			Template = TemplateAsset.LoadSynchronous();
+		}
+
 		// If you hit this ensure, it's possible there's a problem with the loader, or the cooker and the template
 		// widget did not end up in the cooked package.
 		if ( ensureMsgf(Template, TEXT("No Template Found!  Could not load a Widget Archetype for %s."), *GetName()) )
 		{
 			bTemplateInitialized = true;
+
+			// This should only ever happen if the EDL is disabled, where you're not guaranteed every object in the package
+			// has been loaded at this point.
+			if (GEventDrivenLoaderEnabled == false)
+			{
+				if (Template->HasAllFlags(RF_NeedLoad))
+				{
+					if (FLinkerLoad* Linker = Template->GetLinker())
+					{
+						Linker->Preload(Template);
+					}
+				}
+			}
 
 #if !UE_BUILD_SHIPPING
 			UE_LOG(LogUMG, Display, TEXT("Widget Class %s - Loaded Fast Template."), *GetName());
