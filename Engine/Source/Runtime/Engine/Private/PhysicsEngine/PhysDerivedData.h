@@ -29,6 +29,7 @@ private:
 	bool bGenerateNormalMesh;
 	bool bGenerateMirroredMesh;
 	bool bGenerateUVInfo;
+	int32 BodyComplexity;
 	EPhysXMeshCookFlags RuntimeCookFlags;
 	const class IPhysXCooking* Cooker;
 	FGuid DataGuid;
@@ -63,7 +64,7 @@ public:
 				((PX_PHYSICS_VERSION_BUGFIX & 0xF) << 4) |
 				((UE_PHYSX_DERIVEDDATA_VER	& 0xF));
 
-		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%hu_%hu"),
+		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%d_%hu_%hu"),
 			*Format.ToString(),
 			*DataGuid.ToString(),
 			*MeshId,
@@ -71,6 +72,7 @@ public:
 			(int32)bGenerateMirroredMesh,
 			(int32)bGenerateUVInfo,
 			(int32)RuntimeCookFlags,
+			(int32)BodyComplexity,
 			PhysXVersion,
 			Cooker ? Cooker->GetVersion( Format ) : 0xffff
 			);

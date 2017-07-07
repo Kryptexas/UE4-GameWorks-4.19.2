@@ -27,6 +27,7 @@ FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookF
 	bGenerateNormalMesh = BodySetup->bGenerateNonMirroredCollision;
 	bGenerateMirroredMesh = BodySetup->bGenerateMirroredCollision;
 	bGenerateUVInfo = UPhysicsSettings::Get()->bSupportUVFromHitResults;
+	BodyComplexity = BodySetup->GetCollisionTraceFlag();
 	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	if (CDP)
 	{
