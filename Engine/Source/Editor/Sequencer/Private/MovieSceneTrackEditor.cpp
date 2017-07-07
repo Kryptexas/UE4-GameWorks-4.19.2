@@ -60,7 +60,7 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged( FOnKeyProperty OnKeyProp
 			MovieSceneSequence->SetFlags(RF_Transactional);
 		
 			// Create a transaction record because we are about to add keys
-			const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
+			const bool bShouldActuallyTransact = !GIsTransacting && !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
 			FScopedTransaction AutoKeyTransaction( NSLOCTEXT("AnimatablePropertyTool", "PropertyChanged", "Animatable Property Changed"), bShouldActuallyTransact );
 
 			FKeyPropertyResult KeyPropertyResult = OnKeyProperty.Execute( KeyTime );
