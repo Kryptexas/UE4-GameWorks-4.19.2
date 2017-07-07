@@ -189,26 +189,21 @@ public:
 		Viewport.y = MinY;
 		Viewport.width = MaxX - MinX;
 		Viewport.height = MaxY - MinY;
-
-		// Engine parses in some cases MaxZ as 0.0, which is rubbish.
+		Viewport.minDepth = MinZ;
 		if (MinZ == MaxZ)
 		{
-			Viewport.minDepth = MinZ;
+			// Engine pases in some cases MaxZ as 0.0
 			Viewport.maxDepth = MinZ + 1.0f;
 		}
 		else
 		{
-			Viewport.minDepth = MinZ;
 			Viewport.maxDepth = MaxZ;
 		}
 
 		NeedsUpdateMask |= ENeedsViewport;
 
-		// Set scissor to match the viewport when disabled
-		if (!bScissorEnable)
-		{
-			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
-		}
+		SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
+		bScissorEnable = false;
 	}
 
 	inline void SetScissor(bool bInEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
@@ -236,9 +231,6 @@ public:
 
 		// todo vulkan: compare against previous (and viewport above)
 		NeedsUpdateMask |= ENeedsScissor;
-		ensure(!(MinX == 0 && MinY == 0 && Width == 0 && Height == 0));
-
-		bScissorEnable = true;
 	}
 
 	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
