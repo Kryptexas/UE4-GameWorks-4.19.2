@@ -476,7 +476,7 @@ void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, 
 				MyBS->CollisionTraceFlag = CTF_UseComplexAsSimple;
 
 				FCookBodySetupInfo CookInfo;
-				MyBS->GetCookInfo(CookInfo, EPhysXMeshCookFlags::FastCook);
+				MyBS->GetCookInfo(CookInfo, EPhysXMeshCookFlags::FastCook | EPhysXMeshCookFlags::DeformableMesh);
 				CookInfo.bCookTriMesh = true;
 				CookInfo.TriangleMeshDesc.bFlipNormals = true;
 				CookInfo.TriangleMeshDesc.Vertices = Args.PositionData;
