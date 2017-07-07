@@ -182,12 +182,12 @@ public:
 	}
 
 	/** Initialize the occlusion plugin with the same rate and number of sources. */
-	virtual void Initialize(const int32 SampleRate, const int32 NumSources)
+	virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize)
 	{
 	}
 
 	/** Called when a source is assigned to a voice. */
-	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UOcclusionPluginSourceSettingsBase* InSettings)
+	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UOcclusionPluginSourceSettingsBase* InSettings)
 	{
 	}
 
@@ -223,7 +223,7 @@ public:
 	}
 
 	/** Called when a source is assigned to a voice. */
-	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UReverbPluginSourceSettingsBase* InSettings) = 0;
+	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UReverbPluginSourceSettingsBase* InSettings) = 0;
 
 	/** Called when a source is done playing and is released. */
 	virtual void OnReleaseSource(const uint32 SourceId) = 0;

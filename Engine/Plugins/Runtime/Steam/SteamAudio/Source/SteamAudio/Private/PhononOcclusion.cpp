@@ -41,28 +41,27 @@ namespace SteamAudio
 	{
 	}
 
-	void FPhononOcclusion::Initialize(const int32 SampleRate, const int32 NumSources)
+	void FPhononOcclusion::Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize)
 	{
 		DirectSoundSources.AddDefaulted(NumSources);
 
 		for (auto& DirectSoundSource : DirectSoundSources)
 		{
 			DirectSoundSource.InBuffer.format = InputAudioFormat;
-			DirectSoundSource.InBuffer.numSamples = 1024; // FIXME
+			DirectSoundSource.InBuffer.numSamples = FrameSize;
 			DirectSoundSource.InBuffer.interleavedBuffer = nullptr;
 			DirectSoundSource.InBuffer.deinterleavedBuffer = nullptr;
 
 			DirectSoundSource.OutBuffer.format = OutputAudioFormat;
-			DirectSoundSource.OutBuffer.numSamples = 1024; // FIXME
+			DirectSoundSource.OutBuffer.numSamples = FrameSize;
 			DirectSoundSource.OutBuffer.interleavedBuffer = nullptr;
 			DirectSoundSource.OutBuffer.deinterleavedBuffer = nullptr;
 		}
 
 		SteamAudioModule = &FModuleManager::GetModuleChecked<FSteamAudioModule>("SteamAudio");
-		SteamAudioModule->SetSampleRate(SampleRate);
 	}
 
-	void FPhononOcclusion::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UOcclusionPluginSourceSettingsBase* InSettings)
+	void FPhononOcclusion::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UOcclusionPluginSourceSettingsBase* InSettings)
 	{
 		if (!EnvironmentalRenderer)
 		{
@@ -78,6 +77,19 @@ namespace SteamAudio
 		DirectSoundSources[SourceId].DirectOcclusionMethod = OcclusionSettings->DirectOcclusionMethod;
 		DirectSoundSources[SourceId].DirectOcclusionMode = OcclusionSettings->DirectOcclusionMode;
 		DirectSoundSources[SourceId].Radius = OcclusionSettings->DirectOcclusionSourceRadius;
+
+		InputAudioFormat.numSpeakers = OutputAudioFormat.numSpeakers = NumChannels;
+		switch (NumChannels)
+		{
+			case 1: InputAudioFormat.channelLayout = OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO; break;
+			case 2: InputAudioFormat.channelLayout = OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO; break;
+			case 4: InputAudioFormat.channelLayout = OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_QUADRAPHONIC; break;
+			case 6: InputAudioFormat.channelLayout = OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_FIVEPOINTONE; break;
+			case 8: InputAudioFormat.channelLayout = OutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_SEVENPOINTONE; break;
+		}
+
+		DirectSoundSources[SourceId].InBuffer.format = InputAudioFormat;
+		DirectSoundSources[SourceId].OutBuffer.format = OutputAudioFormat;
 
 		iplCreateDirectSoundEffect(EnvironmentalRenderer, InputAudioFormat, OutputAudioFormat, &(DirectSoundSources[SourceId].DirectSoundEffect));
 	}

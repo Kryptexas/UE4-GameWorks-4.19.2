@@ -388,14 +388,14 @@ namespace Audio
 			// Create the occlusion plugin source effect
 			if (InitParams.OcclusionPluginSettings != nullptr)
 			{
-				MixerDevice->OcclusionInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.OcclusionPluginSettings);
+				MixerDevice->OcclusionInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.NumInputChannels, InitParams.OcclusionPluginSettings);
 				SourceInfo.bUseOcclusionPlugin = true;
 			}
 
 			// Create the reverb plugin source effect
 			if (InitParams.ReverbPluginSettings != nullptr)
 			{
-				MixerDevice->ReverbPluginInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.ReverbPluginSettings);
+				MixerDevice->ReverbPluginInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.NumInputChannels, InitParams.ReverbPluginSettings);
 				SourceInfo.bUseReverbPlugin = true;
 			}
 
