@@ -18,6 +18,8 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	, Surface(VK_NULL_HANDLE)
 	, CurrentImageIndex(-1)
 	, SemaphoreIndex(0)
+	, NumPresentCalls(0)
+	, NumAcquireCalls(0)
 	, Instance(InInstance)
 {
 #if PLATFORM_WINDOWS
@@ -292,9 +294,10 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 
+	// If we have not called present for any of the swapchain images, it will cause a crash/hang
+	checkf(!(NumAcquireCalls == ImageAcquiredSemaphore.Num() - 1 && NumPresentCalls == 0), TEXT("vkAcquireNextImageKHR will fail as no images have been presented before acquiring all of them"));
 	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
 	FenceMgr.ResetFence(ImageAcquiredFences[SemaphoreIndex]);
-
 	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
 		Device.GetInstanceHandle(),
 		SwapChain,
@@ -302,7 +305,7 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
 		ImageAcquiredFences[SemaphoreIndex]->GetHandle(),
 		&ImageIndex);
-
+	++NumAcquireCalls;
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
 
 	if (Result == VK_ERROR_VALIDATION_FAILED_EXT)
@@ -318,7 +321,6 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 		checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("vkAcquireNextImageKHR failed Result = %d"), int32(Result));
 	}
 	CurrentImageIndex = (int32)ImageIndex;
-	check(CurrentImageIndex == ImageIndex);
 	
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
@@ -350,6 +352,8 @@ bool FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBuffer
 		SCOPE_CYCLE_COUNTER(STAT_VulkanQueuePresent);
 		VERIFYVULKANRESULT(VulkanRHI::vkQueuePresentKHR(Queue->GetHandle(), &Info));
 	}
+
+	++NumPresentCalls;
 
 	return true;
 }

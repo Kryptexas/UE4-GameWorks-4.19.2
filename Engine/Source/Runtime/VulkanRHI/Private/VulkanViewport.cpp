@@ -528,7 +528,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 
 	bool bResult = false;
-	if (bNeedNativePresent && RHIBackBuffer != nullptr)
+	if (bNeedNativePresent && (CVarDelayAcquireBackBuffer->GetInt() != 0 || RHIBackBuffer != nullptr))
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
