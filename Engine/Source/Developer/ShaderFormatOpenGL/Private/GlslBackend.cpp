@@ -108,6 +108,7 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
 	{
 		return "mat4";
 	}
+#ifndef UE4_HTML5_TARGET_WEBGL2
 	else if (bIsES2 && Type->base_type == GLSL_TYPE_UINT)
 	{
 		// uint does not exist with GLSL 1.00 (ES2)
@@ -129,6 +130,7 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
 			return "ivec4";
 		}
 	}
+#endif
 	return Name;
 }
 

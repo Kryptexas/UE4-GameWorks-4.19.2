@@ -329,8 +329,13 @@ void Main(
 	FPixelMaterialInputs PixelMaterialInputs;
 	{
 		float4 ScreenPosition = SvPositionToResolvedScreenPosition(SvPosition);
+#if WEBGL
+		float3 WorldPosition = BasePassInterpolants.PixelPosition.xyz;
+		float3 WorldPositionExcludingWPO = BasePassInterpolants.PixelPosition.xyz;
+#else
 		float3 WorldPosition = BasePassInterpolants.PixelPosition;
 		float3 WorldPositionExcludingWPO = BasePassInterpolants.PixelPosition;
+#endif
 		#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 			WorldPositionExcludingWPO = BasePassInterpolants.PixelPositionExcludingWPO;
 		#endif
