@@ -411,6 +411,13 @@ public:
 	ENGINE_API void BreakAllPinLinks(bool bNotifyNodes = false);
 
 	/**
+	* Moves the persistent data (across a node refresh) from the SourcePin.
+	*
+	* @param	SourcePin	Source pin.
+	*/
+	ENGINE_API void MovePersistentDataFromOldPin(UEdGraphPin& SourcePin);
+
+	/**
 	 * Copies the persistent data (across a node refresh) from the SourcePin.
 	 *
 	 * @param	SourcePin	Source pin.
