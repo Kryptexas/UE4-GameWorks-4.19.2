@@ -5366,7 +5366,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				TArray<FName> ShaderFormats;
 				TargetPlatform->GetAllTargetedShaderFormats(ShaderFormats);
 				
-				FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
+				if(!FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
+				{
+					LogCookerMessage(FString::Printf(TEXT("Shared Material Shader Code Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+				}
 			}
 		}
 	}
@@ -5431,7 +5434,11 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 					TArray<FName> ShaderFormats;
 					TargetPlatform->GetAllTargetedShaderFormats(ShaderFormats);
 					
-					FShaderCodeLibrary::PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
+					if(!FShaderCodeLibrary::PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
+					{
+						// This is fatal - In this case we should cancel any launch on device operation or package write but we don't want to assert and crash the editor
+						LogCookerMessage(FString::Printf(TEXT("Package Native Shader Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+					}
 				}
 			}
 			

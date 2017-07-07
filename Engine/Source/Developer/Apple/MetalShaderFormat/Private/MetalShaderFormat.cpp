@@ -12,7 +12,7 @@
 #include "HAL/FileManager.h"
 #include "Serialization/Archive.h"
 
-extern void StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool const bNative);
+extern bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool const bNative);
 extern uint64 AppendShader_Metal(class FName const& Format, class FString const& ArchivePath, const FSHAHash& Hash, TArray<uint8>& Code);
 extern bool FinalizeLibrary_Metal(class FName const& Format, class FString const& ArchivePath, class FString const& LibraryPath, TSet<uint64> const& Shaders, class FString const& DebugOutputDir);
 
@@ -152,9 +152,9 @@ public:
 	{
 		return true;
 	}
-	virtual void StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const override final
+	virtual bool StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const override final
 	{
-		StripShader_Metal(Code, DebugOutputDir, bNative);
+		return StripShader_Metal(Code, DebugOutputDir, bNative);
     }
     virtual class IShaderFormatArchive* CreateShaderArchive( FName Format, const FString& WorkingDirectory ) const
     {

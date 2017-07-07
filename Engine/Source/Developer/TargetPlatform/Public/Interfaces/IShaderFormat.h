@@ -53,8 +53,9 @@ public:
 	 * @param Code The byte code to strip (must be uncompressed).
 	 * @param DebugOutputDir The output directory to write the debug symbol file for this shader.
 	 * @param bNative Whether the final shader library uses a native format which may determine how the shader is stripped.
+	 * @return True if the format has successfully stripped the extraneous data from shaders, otherwise false
 	 */
-    virtual void StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const {}
+    virtual bool StripShaderCode( TArray<uint8>& Code, FString const& DebugOutputDir, bool const bNative ) const { return false; }
     
     /**
      * Create a format specific archive for precompiled shader code.
