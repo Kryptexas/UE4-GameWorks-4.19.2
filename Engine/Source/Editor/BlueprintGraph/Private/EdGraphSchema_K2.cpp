@@ -5460,6 +5460,42 @@ void UEdGraphSchema_K2::GetAssetsPinHoverMessage(const TArray<FAssetData>& Asset
 	}
 }
 
+
+void UEdGraphSchema_K2::GetAssetsGraphHoverMessage(const TArray<FAssetData>& Assets, const UEdGraph* HoverGraph, FString& OutTooltipText, bool& OutOkIcon) const
+{
+	OutOkIcon = false;
+	OutTooltipText = LOCTEXT("CannotCreateComponentsInNonActorBlueprints", "Cannot create components from assets in a non-Actor blueprint").ToString();
+
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(HoverGraph);
+	if ((Blueprint != nullptr) && FBlueprintEditorUtils::IsActorBased(Blueprint))
+	{
+		for (const FAssetData& AssetData : Assets)
+		{
+			if (UObject* Asset = AssetData.GetAsset())
+			{
+				UClass* AssetClass = Asset->GetClass();
+				if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(Asset))
+				{
+					AssetClass = BlueprintAsset->GeneratedClass;
+				}
+
+				TSubclassOf<UActorComponent> DestinationComponentType = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
+				if ((DestinationComponentType == nullptr) && AssetClass->IsChildOf(AActor::StaticClass()))
+				{
+					DestinationComponentType = UChildActorComponent::StaticClass();
+				}
+
+				if (DestinationComponentType != nullptr)
+				{
+					OutOkIcon = true;
+					OutTooltipText = TEXT("");
+					return;
+				}
+			}
+		}
+	}
+}
+
 bool UEdGraphSchema_K2::FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const
 {
 	if(Node && Pin && (PC_Delegate == Pin->PinType.PinCategory) && (EGPD_Input == Pin->Direction))
