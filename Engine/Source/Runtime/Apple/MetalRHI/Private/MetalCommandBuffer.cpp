@@ -11,6 +11,7 @@
 #include "MetalParallelRenderCommandEncoder.h"
 #include "MetalBlitCommandEncoder.h"
 #include "MetalComputeCommandEncoder.h"
+#include <objc/runtime.h>
 
 NSString* GMetalDebugCommandTypeNames[EMetalDebugCommandTypeInvalid] = {
 	@"RenderEncoder",
@@ -27,6 +28,19 @@ NSString* GMetalDebugCommandTypeNames[EMetalDebugCommandTypeInvalid] = {
 };
 
 extern int32 GMetalRuntimeDebugLevel;
+
+@implementation NSObject (IMetalDebugGroupAssociation)
+@dynamic debugGroups;
+- (void)setDebugGroups:(NSMutableArray<NSString*>*)Data
+{
+	objc_setAssociatedObject(self, @selector(debugGroups), Data, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableArray<NSString*>*)debugGroups
+{
+	return (NSMutableArray<NSString*>*)objc_getAssociatedObject(self, @selector(debugGroups));
+}
+@end
 
 @implementation FMetalDebugCommandBuffer
 

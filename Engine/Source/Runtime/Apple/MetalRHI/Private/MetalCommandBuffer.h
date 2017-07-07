@@ -53,6 +53,14 @@ struct FMetalDebugCommand
 };
 
 /**
+ * Simpler NSObject extension that provides for an associated object to track debug groups in a command-buffer.
+ * This doesn't interfere with objc_msgSend invocation so doesn't cost as much on the CPU.
+ */
+@interface NSObject (IMetalDebugGroupAssociation)
+@property (nonatomic, strong) NSMutableArray<NSString*>* debugGroups;
+@end
+
+/**
  * FMetalDebugCommandBuffer: Wrapper around id<MTLCommandBuffer> that records information about commands.
  * This allows reporting of substantially more information in debug modes which can be especially helpful 
  * when debugging GPU command-buffer failures.

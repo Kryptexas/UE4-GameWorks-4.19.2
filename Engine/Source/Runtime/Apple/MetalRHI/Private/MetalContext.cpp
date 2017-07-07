@@ -64,14 +64,14 @@ static FAutoConsoleVariableRef CVarMetalResourceDeferDeleteNumFrames(
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 int32 GMetalRuntimeDebugLevel = 0;
 #else
-int32 GMetalRuntimeDebugLevel = 0;
+int32 GMetalRuntimeDebugLevel = 1;
 #endif
 static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("rhi.Metal.RuntimeDebugLevel"),
 	GMetalRuntimeDebugLevel,
 	TEXT("The level of debug validation performed by MetalRHI in addition to the underlying Metal API & validation layer.\n")
 	TEXT("Each subsequent level adds more tests and reporting in addition to the previous level.\n")
-	TEXT("*LEVELS >1 ARE IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 2 (Debug, Development), 0 (Test, Shipping))\n")
+	TEXT("*LEVELS >1 ARE IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 1 (Debug, Development), 0 (Test, Shipping))\n")
 	TEXT("\t0: Off,\n")
 	TEXT("\t1: Record the debug-groups issued into a command-buffer and report them on failure,\n")
 	TEXT("\t2: Enable light-weight validation of resource bindings & API usage,\n")

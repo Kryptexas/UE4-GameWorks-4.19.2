@@ -276,6 +276,10 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 		{
 			for (NSString* Group in DebugGroups)
 			{
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+				{
+					[((NSObject<MTLCommandBuffer>*)CommandBuffer).debugGroups addObject:Group];
+				}
 				[RenderCommandEncoder pushDebugGroup:Group];
 			}
 		}
@@ -303,6 +307,10 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 		{
 			for (NSString* Group in DebugGroups)
 			{
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+				{
+					[((NSObject<MTLCommandBuffer>*)CommandBuffer).debugGroups addObject:Group];
+				}
 				[ComputeCommandEncoder pushDebugGroup:Group];
 			}
 		}
@@ -329,6 +337,10 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 		{
 			for (NSString* Group in DebugGroups)
 			{
+				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+				{
+					[((NSObject<MTLCommandBuffer>*)CommandBuffer).debugGroups addObject:Group];
+				}
 				[BlitCommandEncoder pushDebugGroup:Group];
 			}
 		}
@@ -488,6 +500,10 @@ void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 {
 	if (String)
 	{
+		if (CommandBuffer && CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+		{
+			[((NSObject<MTLCommandBuffer>*)CommandBuffer).debugGroups addObject:String];
+		}
 		if (RenderCommandEncoder)
 		{
 			[RenderCommandEncoder insertDebugSignpost:String];
@@ -507,6 +523,10 @@ void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 {
 	if (String)
 	{
+		if (CommandBuffer && CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+		{
+			[((NSObject<MTLCommandBuffer>*)CommandBuffer).debugGroups addObject:String];
+		}
 		[DebugGroups addObject:String];
 		if (RenderCommandEncoder)
 		{
