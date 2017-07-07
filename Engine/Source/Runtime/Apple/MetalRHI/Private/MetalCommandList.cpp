@@ -46,7 +46,7 @@ static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffe
 	if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
 	{
 		NSMutableString* DescString = [NSMutableString new];
-		[DescString appendFormat:@"Command Buffer %p %s:", CompletedBuffer, *LabelString];
+		[DescString appendFormat:@"Command Buffer %p %@:", CompletedBuffer, Label ? Label : @"Unknown"];
 
 		for (NSString* String in ((NSObject<MTLCommandBuffer>*)CompletedBuffer).debugGroups)
 		{
