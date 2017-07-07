@@ -1417,10 +1417,10 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 		}
 	}
 
-	bool bIsLevel = AssetClass->IsChildOf(UWorld::StaticClass());
-	bool bIsBlueprint = AssetClass->IsChildOf(UBlueprint::StaticClass());
+	bool bIsLevel = AssetClass && AssetClass->IsChildOf(UWorld::StaticClass());
+	bool bIsBlueprint = AssetClass && AssetClass->IsChildOf(UBlueprint::StaticClass());
 
-	if(AssetClass && (bIsLevel || bIsBlueprint))
+	if(bIsLevel || bIsBlueprint)
 	{
 		// Confirm that the Blueprint has not been added already, this can occur during duplication of Blueprints.
 		int32* IndexPtr = SearchMap.Find(InAssetData.ObjectPath);
