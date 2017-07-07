@@ -6456,11 +6456,7 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 			Blueprint->GetAssetRegistryTags(OutTags);
 		}
 
-		// If there are no Blueprints, add empty FiB data so the manager knows that the Blueprint is indexed.
-		if (LevelBlueprints.Num() == 0)
-		{
-			OutTags.Add(FAssetRegistryTag("FiB", FString(), FAssetRegistryTag::TT_Hidden));
-		}
+		// If there are no blueprints FiBData will be empty, the search manager will treat this as indexed
 	}
 
 	// Get the full file path with extension
