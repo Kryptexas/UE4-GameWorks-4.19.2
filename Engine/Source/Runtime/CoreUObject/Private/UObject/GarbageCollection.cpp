@@ -621,10 +621,11 @@ public:
 		bAllowEliminatingReferences = bAllow;
 	}
 
-	virtual void MarkWeakObjectReferenceForClearing(UObject** WeakReference) override
+	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) override
 	{
 		// Track this references for later destruction if necessary. These should be relatively rare
 		ObjectArrayStruct.WeakReferences.Add(WeakReference);
+		return true;
 	}
 };
 
