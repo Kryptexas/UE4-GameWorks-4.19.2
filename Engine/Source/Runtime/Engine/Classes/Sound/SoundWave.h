@@ -452,7 +452,7 @@ public:
 	 * @param ChunkIndex	The Chunk index to cache.
 	 * @param OutChunkData	Address of pointer that will store data.
 	 */
-	void GetChunkData(int32 ChunkIndex, uint8** OutChunkData);
+	bool GetChunkData(int32 ChunkIndex, uint8** OutChunkData);
 
 private:
 

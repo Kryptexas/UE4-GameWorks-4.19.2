@@ -878,7 +878,7 @@ void USoundWave::UpdatePlatformData()
 	}
 }
 
-void USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
+bool USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
 {
 	if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
 	{
@@ -890,6 +890,13 @@ void USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
 		{
 			UE_LOG(LogAudio, Error, TEXT("Failed to build sound %s."), *GetPathName());
 		}
+		else
+		{
+			// Succeeded after rebuilding platform data
+			return true;
+		}
 #endif // #if WITH_EDITORONLY_DATA
+		return false;
 	}
+	return true;
 }
