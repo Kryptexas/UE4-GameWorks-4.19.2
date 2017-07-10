@@ -281,9 +281,13 @@ void FSlateRHIRenderingPolicy::DrawElements(
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	if (TextureLODGroups.Num() == 0)
+	TArray<FTextureLODGroup> TextureLODGroups;
+	if (UDeviceProfileManager::DeviceProfileManagerSingleton)
 	{
-		TextureLODGroups = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->TextureLODGroups;
+		if (UDeviceProfile* Profile = UDeviceProfileManager::Get().GetActiveProfile())
+		{
+			TextureLODGroups = Profile->GetTextureLODSettings()->TextureLODGroups;
+		}
 	}
 
 	IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
@@ -760,7 +764,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 						if (UTexture* TextureObj = TextureObjectResource->TextureObject)
 						{
-							Filter = GetSamplerFilter(TextureObj);
+							Filter = GetSamplerFilter(TextureLODGroups, TextureObj);
 						}
 					}
 					else
@@ -1126,7 +1130,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 	INC_DWORD_STAT_BY(STAT_SlateStencilClips, StencilClips);
 }
 
-ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const UTexture* Texture) const
+ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const TArray<FTextureLODGroup>& TextureLODGroups, const UTexture* Texture) const
 {
 	// Default to point filtering.
 	ETextureSamplerFilter Filter = ETextureSamplerFilter::Point;
@@ -1140,7 +1144,10 @@ ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const UTexture*
 		// TF_Default
 	default:
 		// Use LOD group value to find proper filter setting.
-		Filter = TextureLODGroups[Texture->LODGroup].Filter;
+		if (Texture->LODGroup < TextureLODGroups.Num())
+		{
+			Filter = TextureLODGroups[Texture->LODGroup].Filter;
+		}
 	}
 
 	return Filter;
