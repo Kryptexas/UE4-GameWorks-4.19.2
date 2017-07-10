@@ -62,28 +62,24 @@ struct FColorToken
 
 	void Apply(UObject& Object, FTrackInstancePropertyBindings& Bindings)
 	{
-		if (!Type.IsSet())
+		if (!Type.IsSet() && !DeduceColorType(Object, Bindings))
 		{
-			DeduceColorType(Object, Bindings);
+			return;
 		}
 
-		if (ensure(Type.IsSet()))
+		switch(Type.GetValue())
 		{
-			switch(Type.GetValue())
-			{
 			case EColorType::Slate:		ApplySlateColor(Object, Bindings);		break;
 			case EColorType::Linear: 	ApplyLinearColor(Object, Bindings);		break;
 			case EColorType::Color: 	ApplyColor(Object, Bindings);			break;
-			}
 		}
 	}
 
 	static FColorToken Get(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
 	{
 		FColorToken Token;
-		Token.DeduceColorType(InObject, Bindings);
 
-		if (ensure(Token.Type.IsSet()))
+		if (Token.DeduceColorType(InObject, Bindings))
 		{
 			switch (Token.Type.GetValue())
 			{
@@ -128,17 +124,17 @@ private:
 		Bindings.CallFunction<FLinearColor>(Object, ColorValue);
 	}
 
-	void DeduceColorType(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
+	bool DeduceColorType(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
 	{
 		if (Type.IsSet())
 		{
-			return;
+			return true;
 		}
 
 		const UStructProperty* StructProp = Cast<const UStructProperty>(Bindings.GetProperty(InObject));
 		if (!StructProp || !StructProp->Struct)
 		{
-			return;
+			return false;
 		}
 
 		FName StructName = StructProp->Struct->GetFName();
@@ -158,6 +154,8 @@ private:
 		{
 			Type = EColorType::Linear;
 		}
+
+		return true;
 	}
 
 	/** Optional deduced color type - when empty, this needs deducing */
