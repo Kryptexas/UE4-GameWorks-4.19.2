@@ -563,8 +563,11 @@ FGoogleVRHMD::~FGoogleVRHMD()
 		gvr_buffer_viewport_destroy(&ScratchViewport);
 	}
 
-	CustomPresent->Shutdown();
-    CustomPresent = nullptr;
+	if (CustomPresent)
+	{
+		CustomPresent->Shutdown();
+		CustomPresent = nullptr;
+	}
 #endif
 
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
@@ -2195,10 +2198,10 @@ bool FGoogleVRHMD::HandleInputKey(UPlayerInput *, const FKey & Key, EInputEvent 
 				if (bIsInDaydreamMode)
 				{
 					AndroidThunkCpp_QuitDaydreamApplication();
+					return true;
 				}
 			}
 		}
-		return true;
 	}
 #endif
 	return false;
