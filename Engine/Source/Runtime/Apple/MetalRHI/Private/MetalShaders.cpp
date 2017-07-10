@@ -112,11 +112,11 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 	return CompiledShaderCache;
 }
 
-template<typename BaseResourceType, int32 ShaderType>
-NSString* TMetalBaseShader<BaseResourceType, ShaderType>::GetSourceCode()
+NSString* DecodeMetalSourceCode(uint32 CodeSize, TArray<uint8> const& CompressedSource)
 {
+	NSString* GlslCodeNSString = nil;
 #if PLATFORM_MAC
-	if (!GlslCodeNSString && CodeSize && CompressedSource.Num())
+	if (CodeSize && CompressedSource.Num())
 	{
 		static void* DLL = FPlatformProcess::GetDllHandle(TEXT("/usr/lib/libcompression.dylib"));
 		static compression_decode_scratch_buffer_size_ptr compression_decode_scratch_buffer_size = (compression_decode_scratch_buffer_size_ptr)(DLL ? FPlatformProcess::GetDllExport(DLL, TEXT("compression_decode_scratch_buffer_size")) : nullptr);
@@ -130,7 +130,6 @@ NSString* TMetalBaseShader<BaseResourceType, ShaderType>::GetSourceCode()
 			FMemory::Memzero(String, CodeSize+1);
 			
 			size_t OutputSize = compression_decode_buffer((uint8*)String, CodeSize+1, (uint8 const*)CompressedSource.GetData(), CompressedSource.Num(), ScratchData, COMPRESSION_LZFSE);
-			CompressedSource.Empty();
 			
 			if (OutputSize == CodeSize+1)
 			{

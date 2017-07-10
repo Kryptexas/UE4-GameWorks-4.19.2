@@ -58,7 +58,7 @@ protected:
 
 };
 
-
+extern NSString* DecodeMetalSourceCode(uint32 CodeSize, TArray<uint8> const& CompressedSource);
 
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
 template<typename BaseResourceType, int32 ShaderType>
@@ -86,7 +86,14 @@ public:
 	virtual ~TMetalBaseShader();
 
 	/** @returns The Metal source code as an NSString if available or nil if not. Will dynamically decompress from compressed data on first invocation. */
-	NSString* GetSourceCode();
+	inline NSString* GetSourceCode()
+	{
+		if (!GlslCodeNSString && CodeSize && CompressedSource.Num())
+		{
+			GlslCodeNSString = DecodeMetalSourceCode(CodeSize, CompressedSource);
+		}
+		return GlslCodeNSString;
+	}
 
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
