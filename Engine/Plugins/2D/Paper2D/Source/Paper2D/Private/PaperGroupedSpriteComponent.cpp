@@ -37,7 +37,7 @@ int32 UPaperGroupedSpriteComponent::AddInstanceWithMaterial(const FTransform& Tr
 {
 	const int32 NewInstanceIndex = PerInstanceSpriteData.Num();
 
-	const FTransform LocalTransform(bWorldSpace ? Transform.GetRelativeTransform(ComponentToWorld) : Transform);
+	const FTransform LocalTransform(bWorldSpace ? Transform.GetRelativeTransform(GetComponentTransform()) : Transform);
 
 	FSpriteInstanceData& NewInstanceData = *new (PerInstanceSpriteData)FSpriteInstanceData();
 	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, MaterialOverride, Color.ToFColor(/*bSRGB=*/ false));
@@ -61,7 +61,7 @@ bool UPaperGroupedSpriteComponent::GetInstanceTransform(int32 InstanceIndex, FTr
 	OutInstanceTransform = FTransform(InstanceData.Transform);
 	if (bWorldSpace)
 	{
-		OutInstanceTransform = OutInstanceTransform * ComponentToWorld;
+		OutInstanceTransform = OutInstanceTransform * GetComponentTransform();
 	}
 
 	return true;
@@ -77,10 +77,11 @@ void UPaperGroupedSpriteComponent::OnUpdateTransform(EUpdateTransformFlags Updat
 	{
 		const bool bTeleport = TeleportEnumToFlag(Teleport);
 
+		const FTransform& ComponentTransform = GetComponentTransform();
 		for (int32 i = 0; i < PerInstanceSpriteData.Num(); i++)
 		{
 			const FTransform InstanceTransform(PerInstanceSpriteData[i].Transform);
-			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentTransform, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
 		}
 	}
 }
@@ -98,13 +99,13 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 	FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
 
 	// Render data uses local transform of the instance
-	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
+	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(GetComponentTransform()) : NewInstanceTransform;
 	InstanceData.Transform = LocalTransform.ToMatrixWithScale();
 
 	if (bPhysicsStateCreated)
 	{
 		// Physics uses world transform of the instance
-		const FTransform WorldTransform = bWorldSpace ? NewInstanceTransform : (LocalTransform * ComponentToWorld);
+		const FTransform WorldTransform = bWorldSpace ? NewInstanceTransform : (LocalTransform * GetComponentTransform());
 		if (FBodyInstance* InstanceBodyInstance = InstanceBodies[InstanceIndex])
 		{
 			// Update transform.
@@ -407,7 +408,7 @@ FBodyInstance* UPaperGroupedSpriteComponent::InitInstanceBody(int32 InstanceInde
 			// make sure we never enable bSimulatePhysics for ISMComps
 			NewBodyInstance->bSimulatePhysics = false;
 
-			const FTransform InstanceTransform(FTransform(InstanceData.Transform) * ComponentToWorld);
+			const FTransform InstanceTransform(FTransform(InstanceData.Transform) * GetComponentTransform());
 			NewBodyInstance->InitBody(BodySetup, InstanceTransform, this, PhysScene);
 		}
 	}
@@ -542,13 +543,14 @@ void UPaperGroupedSpriteComponent::GetNavigationData(FNavigationRelevantData& Da
 
 void UPaperGroupedSpriteComponent::GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& OutInstanceTransforms) const
 {
+	const FTransform& ComponentTransform = GetComponentTransform();
 	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
 	{
 		//TODO: Is it worth doing per instance bounds check here ?
 		const FTransform InstanceToComponent(InstanceData.Transform);
 		if (!InstanceToComponent.GetScale3D().IsZero())
 		{
-			OutInstanceTransforms.Add(InstanceToComponent * ComponentToWorld);
+			OutInstanceTransforms.Add(InstanceToComponent * ComponentTransform);
 		}
 	}
 }
@@ -592,11 +594,12 @@ void UPaperGroupedSpriteComponent::SortInstancesAlongAxis(FVector WorldSpaceSort
 	};
 
 	// Figure out the sort order
+	const FTransform& ComponentTransform = GetComponentTransform();
 	TArray<FSortStruct> SortArray;
 	SortArray.Empty(PerInstanceSpriteData.Num());
 	for (int32 Index = 0; Index < PerInstanceSpriteData.Num(); ++Index)
 	{
-		const FVector InstanceWorldPos = ComponentToWorld.TransformPosition(PerInstanceSpriteData[Index].Transform.GetOrigin());
+		const FVector InstanceWorldPos = ComponentTransform.TransformPosition(PerInstanceSpriteData[Index].Transform.GetOrigin());
 		const float SortKey = FVector::DotProduct(InstanceWorldPos, WorldSpaceSortAxis);
 		SortArray.Emplace(Index, SortKey);
 	}

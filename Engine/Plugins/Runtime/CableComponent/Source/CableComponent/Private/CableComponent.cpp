@@ -619,7 +619,7 @@ void UCableComponent::GetEndPositions(FVector& OutStartPosition, FVector& OutEnd
 	}
 	else
 	{
-		OutEndPosition = EndComponent->ComponentToWorld.TransformPosition(EndLocation);
+		OutEndPosition = EndComponent->GetComponentTransform().TransformPosition(EndLocation);
 	}
 
 }
@@ -690,11 +690,12 @@ void UCableComponent::SendRenderDynamicData_Concurrent()
 		FCableDynamicData* DynamicData = new FCableDynamicData;
 
 		// Transform current positions from particles into component-space array
+		const FTransform& ComponentTransform = GetComponentTransform();
 		int32 NumPoints = NumSegments+1;
 		DynamicData->CablePoints.AddUninitialized(NumPoints);
 		for(int32 PointIdx=0; PointIdx<NumPoints; PointIdx++)
 		{
-			DynamicData->CablePoints[PointIdx] = ComponentToWorld.InverseTransformPosition(Particles[PointIdx].Position);
+			DynamicData->CablePoints[PointIdx] = ComponentTransform.InverseTransformPosition(Particles[PointIdx].Position);
 		}
 
 		// Enqueue command to send to render thread
@@ -770,7 +771,7 @@ FTransform UCableComponent::GetSocketTransform(FName InSocketName, ERelativeTran
 			}
 			case RTS_Component:
 			{
-				return WorldSocketTM.GetRelativeTransform(ComponentToWorld);
+				return WorldSocketTM.GetRelativeTransform(GetComponentTransform());
 			}
 		}
 	}

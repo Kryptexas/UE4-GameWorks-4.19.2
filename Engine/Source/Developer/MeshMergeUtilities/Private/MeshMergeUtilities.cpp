@@ -1295,7 +1295,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			if (bFirstMesh)
 		{
 			// Mesh component pivot point
-			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->ComponentToWorld.GetLocation();
+			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->GetComponentTransform().GetLocation();
 			// Source mesh asset package name
 			MergedAssetPackageName = MeshComponent->GetStaticMesh()->GetOutermost()->GetName();
 

@@ -40,7 +40,7 @@ bool FMeshPaintSpriteAdapter::Initialize()
 
 bool FMeshPaintSpriteAdapter::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
-	const FTransform& ComponentToWorld = SpriteComponent->ComponentToWorld;
+	const FTransform& ComponentToWorld = SpriteComponent->GetComponentTransform();
 
 	// Can we possibly intersect with the sprite?
 	const FBoxSphereBounds& Bounds = SpriteComponent->Bounds;
