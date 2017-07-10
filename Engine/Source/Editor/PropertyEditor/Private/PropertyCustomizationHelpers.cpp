@@ -370,7 +370,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 	OnObjectChanged = InArgs._OnObjectChanged;
 	OnShouldSetAsset = InArgs._OnShouldSetAsset;
 
-	bool bDisplayThumbnail = false;
+	bool bDisplayThumbnail = InArgs._DisplayThumbnail;
 	FIntPoint ThumbnailSize(64, 64);
 
 	if( InArgs._PropertyHandle.IsValid() && InArgs._PropertyHandle->IsValidHandle() )
@@ -406,7 +406,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 
 	TSharedPtr<SResetToDefaultPropertyEditor> ResetButton = nullptr;
 
-	if (PropertyHandle.IsValid() && !PropertyHandle->HasMetaData(TEXT("NoResetToDefault")) && !PropertyHandle->IsResetToDefaultCustomized())
+	if (InArgs._CustomResetToDefault.IsSet() || (PropertyHandle.IsValid() && !PropertyHandle->HasMetaData(TEXT("NoResetToDefault")) && !PropertyHandle->IsResetToDefaultCustomized()))
 	{
 		SAssignNew(ResetButton, SResetToDefaultPropertyEditor, PropertyHandle)
 			.IsEnabled(true)
@@ -436,6 +436,11 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.EnableContentPicker(InArgs._EnableContentPicker)
 				.PropertyHandle(PropertyHandle)
 				.ThumbnailSize(ThumbnailSize)
+				.DisplayCompactSize(InArgs._DisplayCompactSize)
+				.CustomContentSlot()
+				[
+					InArgs._CustomContentSlot.Widget
+				]
 				.ResetToDefaultSlot()
 				[
 					ResetWidget
@@ -737,6 +742,13 @@ public:
 
 	TSharedRef<SWidget> CreateValueContent( const TSharedPtr<FAssetThumbnailPool>& ThumbnailPool )
 	{
+		FIntPoint ThumbnailSize(64, 64);
+
+		FResetToDefaultOverride ResetToDefaultOverride = FResetToDefaultOverride::Create(
+			FIsResetToDefaultVisible::CreateSP(this, &FMaterialItemView::GetReplaceVisibility),
+			FResetToDefaultHandler::CreateSP(this, &FMaterialItemView::OnResetToBaseClicked)
+		);
+
 		return
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -752,14 +764,13 @@ public:
 					+SHorizontalBox::Slot()
 					.FillWidth(1.0f)
 					[
-						SNew( SPropertyEditorAsset )
+						SNew( SObjectPropertyEntryBox )
 						.ObjectPath(MaterialItem.Material->GetPathName())
-						.Class(UMaterialInterface::StaticClass())
-						.OnSetObject(this, &FMaterialItemView::OnSetObject)
-						.DisplayThumbnail(true)
+						.AllowedClass(UMaterialInterface::StaticClass())
+						.OnObjectChanged(this, &FMaterialItemView::OnSetObject)
 						.ThumbnailPool(ThumbnailPool)
-						.ThumbnailSize(FIntPoint(64, 64))
 						.DisplayCompactSize(bDisplayCompactSize)
+						.CustomResetToDefault(ResetToDefaultOverride)
 						.CustomContentSlot()
 						[
 							SNew( SBox )
@@ -796,23 +807,6 @@ public:
 							]
 						]
 					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					.Padding(4.0f, 9.0f)
-					[
-						// Add a button to reset the material to the base material
-						SNew(SButton)
-						.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
-						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-						.ContentPadding(0)
-						.Visibility(this, &FMaterialItemView::GetReplaceVisibility)
-						.OnClicked(this, &FMaterialItemView::OnResetToBaseClicked)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-						]
-					]
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -822,7 +816,6 @@ public:
 					OnGenerateCustomMaterialWidgets.IsBound() && !bDisplayCompactSize ? OnGenerateCustomMaterialWidgets.Execute( MaterialItem.Material.Get(), MaterialItem.SlotIndex ) : StaticCastSharedRef<SWidget>( SNullWidget::NullWidget )
 				]
 			];
-
 	}
 
 private:
@@ -921,21 +914,21 @@ private:
 	/**
 	 * Called to get the visibility of the replace button
 	 */
-	EVisibility GetReplaceVisibility() const
+	bool GetReplaceVisibility(TSharedPtr<IPropertyHandle> PropertyHandle) const
 	{
 		// Only show the replace button if the current material can be replaced
-		if( OnMaterialChanged.IsBound() && MaterialItem.bCanBeReplaced )
+		if (OnMaterialChanged.IsBound() && MaterialItem.bCanBeReplaced)
 		{
-			return EVisibility::Visible;
+			return true;
 		}
 
-		return EVisibility::Collapsed;
+		return false;
 	}
 
 	/**
 	 * Called when reset to base is clicked
 	 */
-	FReply OnResetToBaseClicked()
+	void OnResetToBaseClicked(TSharedPtr<IPropertyHandle> PropertyHandle)
 	{
 		// Only allow reset to base if the current material can be replaced
 		if( MaterialItem.Material.IsValid() && MaterialItem.bCanBeReplaced )
@@ -944,7 +937,6 @@ private:
 			ReplaceMaterial( NULL, bReplaceAll );
 			OnResetToDefaultClicked.ExecuteIfBound( MaterialItem.Material.Get(), MaterialItem.SlotIndex );
 		}
-		return FReply::Handled();
 	}
 
 private:
@@ -1733,10 +1725,9 @@ private:
 	/**
 	* Called when reset to base is clicked
 	*/
-	FReply OnResetToBaseClicked()
+	void OnResetToBaseClicked(TSharedRef<IPropertyHandle> PropertyHandle)
 	{
 		OnResetToDefaultClicked.ExecuteIfBound(SectionItem.LodIndex, SectionItem.SectionIndex);
-		return FReply::Handled();
 	}
 
 private:

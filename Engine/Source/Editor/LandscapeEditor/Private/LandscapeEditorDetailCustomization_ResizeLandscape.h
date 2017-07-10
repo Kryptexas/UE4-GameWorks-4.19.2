@@ -29,15 +29,15 @@ public:
 	static TSharedRef<SWidget> GetSectionSizeMenu(TSharedRef<IPropertyHandle> PropertyHandle);
 	static void OnChangeSectionSize(TSharedRef<IPropertyHandle> PropertyHandle, int32 NewSize);
 	static FText GetSectionSize(TSharedRef<IPropertyHandle> PropertyHandle);
-	static bool IsSectionSizeResetToDefaultVisible(TSharedRef<IPropertyHandle> PropertyHandle);
-	static void OnSectionSizeResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
+	static bool IsSectionSizeResetToDefaultVisible(TSharedPtr<IPropertyHandle> PropertyHandle);
+	static void OnSectionSizeResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
 
 	static FText GetOriginalSectionsPerComponent();
 	static TSharedRef<SWidget> GetSectionsPerComponentMenu(TSharedRef<IPropertyHandle> PropertyHandle);
 	static void OnChangeSectionsPerComponent(TSharedRef<IPropertyHandle> PropertyHandle, int32 NewSize);
 	static FText GetSectionsPerComponent(TSharedRef<IPropertyHandle> PropertyHandle);
-	static bool IsSectionsPerComponentResetToDefaultVisible(TSharedRef<IPropertyHandle> PropertyHandle);
-	static void OnSectionsPerComponentResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
+	static bool IsSectionsPerComponentResetToDefaultVisible(TSharedPtr<IPropertyHandle> PropertyHandle);
+	static void OnSectionsPerComponentResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
 
 	static FText GetOriginalComponentCount();
 	static FText GetComponentCount(TSharedRef<IPropertyHandle> PropertyHandle_ComponentCount_X, TSharedRef<IPropertyHandle> PropertyHandle_ComponentCount_Y);

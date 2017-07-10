@@ -199,7 +199,7 @@ void FBoneProxyDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 	];
 }
 
-bool FBoneProxyDetailsCustomization::IsResetLocationVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+bool FBoneProxyDetailsCustomization::IsResetLocationVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{
@@ -212,7 +212,7 @@ bool FBoneProxyDetailsCustomization::IsResetLocationVisible(TSharedRef<IProperty
 	return false;
 }
 
-bool FBoneProxyDetailsCustomization::IsResetRotationVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+bool FBoneProxyDetailsCustomization::IsResetRotationVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{
@@ -225,7 +225,7 @@ bool FBoneProxyDetailsCustomization::IsResetRotationVisible(TSharedRef<IProperty
 	return false;
 }
 
-bool FBoneProxyDetailsCustomization::IsResetScaleVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+bool FBoneProxyDetailsCustomization::IsResetScaleVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{
@@ -238,7 +238,7 @@ bool FBoneProxyDetailsCustomization::IsResetScaleVisible(TSharedRef<IPropertyHan
 	return false;
 }
 
-void FBoneProxyDetailsCustomization::HandleResetLocation(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+void FBoneProxyDetailsCustomization::HandleResetLocation(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{
@@ -254,7 +254,7 @@ void FBoneProxyDetailsCustomization::HandleResetLocation(TSharedRef<IPropertyHan
 	}
 }
 
-void FBoneProxyDetailsCustomization::HandleResetRotation(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+void FBoneProxyDetailsCustomization::HandleResetRotation(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{
@@ -270,7 +270,7 @@ void FBoneProxyDetailsCustomization::HandleResetRotation(TSharedRef<IPropertyHan
 	}
 }
 
-void FBoneProxyDetailsCustomization::HandleResetScale(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
+void FBoneProxyDetailsCustomization::HandleResetScale(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy)
 {
 	if (UDebugSkelMeshComponent* Component = InBoneProxy->SkelMeshComponent.Get())
 	{

@@ -12,7 +12,10 @@ void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const T
 	bValueDiffersFromDefault = false;
 	OptionalCustomResetToDefault = InArgs._CustomResetToDefault;
 
-	InPropertyHandle->MarkResetToDefaultCustomized();
+	if (InPropertyHandle.IsValid())
+	{
+		InPropertyHandle->MarkResetToDefaultCustomized();
+	}
 
 	if (OptionalCustomResetToDefault.IsSet())
 	{
@@ -94,21 +97,23 @@ FReply SResetToDefaultPropertyEditor::OnCustomResetClicked()
 	{
 		PropertyHandle->ExecuteCustomResetToDefault(OptionalCustomResetToDefault.GetValue());
 	}
+	else if(OptionalCustomResetToDefault.IsSet())
+	{
+		OptionalCustomResetToDefault.GetValue().OnResetToDefaultClicked().ExecuteIfBound(PropertyHandle);
+	}
+
 	return FReply::Handled();
 }
 
 void SResetToDefaultPropertyEditor::UpdateDiffersFromDefaultState()
 {
-	if (PropertyHandle.IsValid())
+	if (OptionalCustomResetToDefault.IsSet())
 	{
-		if (OptionalCustomResetToDefault.IsSet())
-		{
-			bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyHandle.ToSharedRef());
-		}
-		else
-		{
-			bValueDiffersFromDefault = PropertyHandle->CanResetToDefault();
-		}
+		bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyHandle);
+	}
+	else if (PropertyHandle.IsValid())
+	{
+		bValueDiffersFromDefault = PropertyHandle->CanResetToDefault();
 	}
 }
 

@@ -166,8 +166,8 @@ public:
 	FOnColorModeChanged& GetOnColorModeChanged() { return OnColorModeChanged; }
 
 	/** Callback when user click the reset button of the color grading property */
-	void ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
-	bool CanResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
+	void ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
+	bool CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
 
 private:
 

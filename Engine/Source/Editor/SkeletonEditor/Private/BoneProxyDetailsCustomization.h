@@ -22,22 +22,22 @@ public:
 
 private:
 	/** Handle reset to defaults visibility */
-	bool IsResetLocationVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	bool IsResetLocationVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Handle reset to defaults visibility */
-	bool IsResetRotationVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	bool IsResetRotationVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Handle reset to defaults visibility */
-	bool IsResetScaleVisible(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	bool IsResetScaleVisible(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Handle resetting defaults */
-	void HandleResetLocation(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	void HandleResetLocation(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Handle resetting defaults */
-	void HandleResetRotation(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	void HandleResetRotation(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Handle resetting defaults */
-	void HandleResetScale(TSharedRef<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
+	void HandleResetScale(TSharedPtr<IPropertyHandle> InPropertyHandle, UBoneProxy* InBoneProxy);
 
 	/** Remove any modification node if it has no effect */
 	void RemoveUnnecessaryModifications(UDebugSkelMeshComponent* Component, FAnimNode_ModifyBone& ModifyBone);

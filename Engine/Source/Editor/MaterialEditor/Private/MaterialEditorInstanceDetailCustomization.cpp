@@ -382,7 +382,7 @@ FText FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEdi
 	return FText::GetEmpty();
 }
 
-void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
+void FMaterialInstanceParameterDetails::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
 {
 	const FScopedTransaction Transaction( LOCTEXT( "ResetToDefault", "Reset To Default" ) );
 	Parameter->Modify();
@@ -458,7 +458,7 @@ void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandl
 	}
 }
 
-bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
+bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
 {
 	FName ParameterName = Parameter->ParameterName;
 
