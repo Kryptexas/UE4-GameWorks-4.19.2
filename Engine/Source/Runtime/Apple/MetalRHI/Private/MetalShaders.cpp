@@ -16,6 +16,27 @@
 #include "Misc/FileHelper.h"
 #include "ScopeRWLock.h"
 
+#if PLATFORM_MAC
+typedef enum {
+
+    /* Commonly-available encoders */
+    COMPRESSION_LZ4     = 0x100,       // available starting OS X 10.11, iOS 9.0
+    COMPRESSION_ZLIB    = 0x205,       // available starting OS X 10.11, iOS 9.0
+    COMPRESSION_LZMA    = 0x306,       // available starting OS X 10.11, iOS 9.0
+
+    COMPRESSION_LZ4_RAW = 0x101,       // available starting OS X 10.11, iOS 9.0
+
+    /* Apple-specific encoders */
+    COMPRESSION_LZFSE    = 0x801,      // available starting OS X 10.11, iOS 9.0
+
+} compression_algorithm;
+typedef size_t (*compression_decode_scratch_buffer_size_ptr)(compression_algorithm algorithm);
+typedef size_t (*compression_decode_buffer_ptr)(uint8_t * __restrict dst_buffer, size_t dst_size,
+                          const uint8_t * __restrict src_buffer, size_t src_size,
+                          void * __restrict __nullable scratch_buffer,
+                          compression_algorithm algorithm);	
+#endif
+
 #define SHADERCOMPILERCOMMON_API
 #	include "Developer/ShaderCompilerCommon/Public/ShaderCompilerCommon.h"
 #undef SHADERCOMPILERCOMMON_API
@@ -91,6 +112,39 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 	return CompiledShaderCache;
 }
 
+template<typename BaseResourceType, int32 ShaderType>
+NSString* TMetalBaseShader<BaseResourceType, ShaderType>::GetSourceCode()
+{
+#if PLATFORM_MAC
+	if (!GlslCodeNSString && CodeSize && CompressedSource.Num())
+	{
+		static void* DLL = FPlatformProcess::GetDllHandle(TEXT("/usr/lib/libcompression.dylib"));
+		static compression_decode_scratch_buffer_size_ptr compression_decode_scratch_buffer_size = (compression_decode_scratch_buffer_size_ptr)(DLL ? FPlatformProcess::GetDllExport(DLL, TEXT("compression_decode_scratch_buffer_size")) : nullptr);
+		static compression_decode_buffer_ptr compression_decode_buffer = (compression_decode_buffer_ptr)(DLL ? FPlatformProcess::GetDllExport(DLL, TEXT("compression_decode_buffer")) : nullptr);
+		if (compression_decode_scratch_buffer_size && compression_decode_buffer)
+		{
+			size_t BufferSize = compression_decode_scratch_buffer_size(COMPRESSION_LZFSE);
+			void* ScratchData = FMemory::Malloc(BufferSize);
+			
+			ANSICHAR* String = new ANSICHAR[CodeSize+1];
+			FMemory::Memzero(String, CodeSize+1);
+			
+			size_t OutputSize = compression_decode_buffer((uint8*)String, CodeSize+1, (uint8 const*)CompressedSource.GetData(), CompressedSource.Num(), ScratchData, COMPRESSION_LZFSE);
+			CompressedSource.Empty();
+			
+			if (OutputSize == CodeSize+1)
+			{
+				GlslCodeNSString = [[NSString stringWithUTF8String:String] retain];
+			}
+			
+			delete [] String;
+			FMemory::Free(ScratchData);
+		}
+	}
+#endif
+	return GlslCodeNSString;
+}
+
 /** Initialization constructor. */
 template<typename BaseResourceType, int32 ShaderType>
 void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& InShaderCode, FMetalCodeHeader& Header)
@@ -139,7 +193,28 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 		bool bOfflineCompile = (OfflineCompiledFlag > 0);
 		
 		const ANSICHAR* ShaderSource = ShaderCode.FindOptionalData('c');
-		bool const bHasShaderSource = (ShaderSource && FCStringAnsi::Strlen(ShaderSource) > 0);
+		bool bHasShaderSource = (ShaderSource && FCStringAnsi::Strlen(ShaderSource) > 0);
+		
+#if PLATFORM_MAC
+		static bool bForceTextShaders = FParse::Param(FCommandLine::Get(),TEXT("metalshaderdebug"));
+		if (!bHasShaderSource)
+		{
+			int32 LZMASourceSize = 0;
+			int32 SourceSize = 0;
+			const uint8* LZMASource = ShaderCode.FindOptionalDataAndSize('z', LZMASourceSize);
+			const uint8* UnSourceLen = ShaderCode.FindOptionalDataAndSize('u', SourceSize);
+			if (LZMASource && LZMASourceSize > 0 && UnSourceLen && SourceSize == sizeof(uint32))
+			{
+				CompressedSource.Append(LZMASource, LZMASourceSize);
+				memcpy(&CodeSize, UnSourceLen, sizeof(uint32));
+			}
+			if (bForceTextShaders)
+			{
+				bHasShaderSource = (GetSourceCode() != nil);
+			}
+		}
+		else
+#endif
 		if (bOfflineCompile && bHasShaderSource)
 		{
 			GlslCodeNSString = [NSString stringWithUTF8String:ShaderSource];
@@ -162,7 +237,7 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 			bool const bHasShaderPath = (ShaderPath && FCStringAnsi::Strlen(ShaderPath) > 0);
 			
 			// on Mac if we have a path for the shader we can access the shader code
-			if (bHasShaderPath)
+			if (bHasShaderPath && !bForceTextShaders)
 			{
 				FString ShaderPathString(ShaderPath);
 				
@@ -247,14 +322,14 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 
 			if (Library == nil)
 			{
-				NSLog(@"Failed to create library: %@", Error);
-				NSLog(@"*********** Error\n%@", ShaderString);
+				UE_LOG(LogRHI, Error, TEXT("*********** Error\n%s"), *FString(ShaderString));
+				UE_LOG(LogRHI, Fatal, TEXT("Failed to create shader: %s"), *FString([Error description]));
 			}
 			else if (Error != nil)
 			{
 				// Warning...
-                NSLog(@"%@\n", Error);
-                NSLog(@"*********** Error\n%@", ShaderString);
+				UE_LOG(LogRHI, Warning, TEXT("*********** Warning\n%s"), *FString(ShaderString));
+				UE_LOG(LogRHI, Warning, TEXT("Created shader with warnings: %s"), *FString([Error description]));
 			}
 
 			GlslCodeNSString = ShaderString;
@@ -388,9 +463,7 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
 	
 	if (Kernel == nil)
 	{
-        NSLog(@"Failed to create kernel: %@", Error);
-        NSLog(@"*********** Error\n%@", GlslCodeNSString);
-        
+        UE_LOG(LogRHI, Error, TEXT("*********** Error\n%s"), *FString(GetSourceCode()));
         UE_LOG(LogRHI, Fatal, TEXT("Failed to create compute kernel: %s"), *FString([Error description]));
 	}
 	
@@ -398,7 +471,7 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
 	Pipeline.ComputePipelineState = Kernel;
 #if METAL_DEBUG_OPTIONS
     Pipeline.ComputePipelineReflection = Reflection;
-	Pipeline.ComputeSource = GlslCodeNSString;
+	Pipeline.ComputeSource = GetSourceCode();
 #endif
 	METAL_DEBUG_OPTION(FMemory::Memzero(Pipeline->ResourceMask, sizeof(Pipeline->ResourceMask)));
 	TRACK_OBJECT(STAT_MetalComputePipelineStateCount, Pipeline);
@@ -439,9 +512,7 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode, id<MTLLibr
 		
 		if (Kernel == nil)
 		{
-			NSLog(@"Failed to create kernel: %@", Error);
-			NSLog(@"*********** Error\n%@", GlslCodeNSString);
-			
+			UE_LOG(LogRHI, Error, TEXT("*********** Error\n%s"), *FString(GetSourceCode()));
 			UE_LOG(LogRHI, Fatal, TEXT("Failed to create compute kernel: %s"), *FString([Error description]));
 		}
 		
@@ -449,7 +520,7 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode, id<MTLLibr
 		Pipeline.ComputePipelineState = Kernel;
 #if METAL_DEBUG_OPTIONS
         Pipeline.ComputePipelineReflection = Reflection;
-		Pipeline.ComputeSource = GlslCodeNSString;
+		Pipeline.ComputeSource = GetSourceCode();
 #endif
 		METAL_DEBUG_OPTION(FMemory::Memzero(Pipeline->ResourceMask, sizeof(Pipeline->ResourceMask)));
 		TRACK_OBJECT(STAT_MetalComputePipelineStateCount, Pipeline);
