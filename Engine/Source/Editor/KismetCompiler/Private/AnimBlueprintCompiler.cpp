@@ -136,7 +136,7 @@ void FAnimBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			It->GetNodesOfClass(SubInstanceNodes);
 			for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
 			{
-				ProcessSubInstance(SubInstance);
+				ProcessSubInstance(SubInstance, false);
 			}
 		}
 		
@@ -148,7 +148,7 @@ void FAnimBlueprintCompiler::CreateClassVariablesFromBlueprint()
 				It->GetNodesOfClass(SubInstanceNodes);
 				for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
 				{
-					ProcessSubInstance(SubInstance);
+					ProcessSubInstance(SubInstance, false);
 				}
 			}
 		}
@@ -455,7 +455,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 	}
 	else if(UAnimGraphNode_SubInstance* SubInstanceNode = Cast<UAnimGraphNode_SubInstance>(VisualAnimNode))
 	{
-		ProcessSubInstance(SubInstanceNode);
+		ProcessSubInstance(SubInstanceNode, true);
 	}
 
 	// Record pose pins for later patchup and gather pins that have an associated evaluation handler
@@ -644,7 +644,7 @@ void FAnimBlueprintCompiler::ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* 
 	}
 }
 
-void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance)
+void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance, bool bCheckForCycles)
 {
 	if(!SubInstance)
 	{
@@ -683,32 +683,35 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 			}
 		}
 	}
-
-	// Check for duplicated slot and state machine names to warn the user about how these 
-	// are boxed
-	NameToCountMap SlotNameToCountMap;
-	NameToCountMap StateMachineNameToCountMap;
-
-	GetDuplicatedSlotAndStateNames(SubInstance, StateMachineNameToCountMap, SlotNameToCountMap);
-
-
-	for(TPair<FName, int32>& Pair : SlotNameToCountMap)
+	
+	if(bCheckForCycles)
 	{
-		if(Pair.Value > 1)
+		// Check for duplicated slot and state machine names to warn the user about how these 
+		// are boxed
+		NameToCountMap SlotNameToCountMap;
+		NameToCountMap StateMachineNameToCountMap;
+
+		GetDuplicatedSlotAndStateNames(SubInstance, StateMachineNameToCountMap, SlotNameToCountMap);
+
+
+		for(TPair<FName, int32>& Pair : SlotNameToCountMap)
 		{
-			// Duplicated slot node
-			FString CompilerMessage = FString::Printf(TEXT("Slot name \"%s\" found across multiple instances. Slots are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
-			MessageLog.Warning(*CompilerMessage);
+			if(Pair.Value > 1)
+			{
+				// Duplicated slot node
+				FString CompilerMessage = FString::Printf(TEXT("Slot name \"%s\" found across multiple instances. Slots are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
+				MessageLog.Warning(*CompilerMessage);
+			}
 		}
-	}
 
-	for(TPair<FName, int32>& Pair : StateMachineNameToCountMap)
-	{
-		if(Pair.Value > 1)
+		for(TPair<FName, int32>& Pair : StateMachineNameToCountMap)
 		{
-			// Duplicated slot node
-			FString CompilerMessage = FString::Printf(TEXT("State machine \"%s\" found across multiple instances. States are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
-			MessageLog.Warning(*CompilerMessage);
+			if(Pair.Value > 1)
+			{
+				// Duplicated slot node
+				FString CompilerMessage = FString::Printf(TEXT("State machine \"%s\" found across multiple instances. States are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
+				MessageLog.Warning(*CompilerMessage);
+			}
 		}
 	}
 }

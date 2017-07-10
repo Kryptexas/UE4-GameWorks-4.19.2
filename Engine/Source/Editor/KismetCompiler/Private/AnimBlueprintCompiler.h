@@ -305,7 +305,7 @@ private:
 	void ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* UseCachedPose);
 
 	// Compiles one sub instance node
-	void ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance);
+	void ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance, bool bCheckForCycles);
 
 	// Traverses subinstance links looking for slot names and state machine names, returning their count in a name map
 	typedef TMap<FName, int32> NameToCountMap;
