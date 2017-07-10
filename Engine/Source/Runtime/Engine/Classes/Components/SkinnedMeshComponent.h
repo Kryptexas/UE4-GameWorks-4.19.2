@@ -1134,24 +1134,38 @@ public:
 
 class FRenderStateRecreator
 {
-	bool bWasRenderStateCreated;
 	USkinnedMeshComponent* Component;
+	const bool bWasInitiallyRegistered;
+	const bool bWasRenderStateCreated;
 
 public:
 
-	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent)
+	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent) :
+		Component(InActorComponent),
+		bWasInitiallyRegistered(Component->IsRegistered()),
+		bWasRenderStateCreated(Component->IsRenderStateCreated())
 	{
-		Component = InActorComponent;
-		bWasRenderStateCreated = Component->IsRenderStateCreated();
 		if (bWasRenderStateCreated)
 		{
+			if (!bWasInitiallyRegistered)
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Created a FRenderStateRecreator with an unregistered component: %s"), *Component->GetPathName());
+			}
+
 			Component->DestroyRenderState_Concurrent();
 		}
 	}
 
 	~FRenderStateRecreator()
 	{
-		if (bWasRenderStateCreated)
+		const bool bIsRegistered = Component->IsRegistered();
+
+		ensureMsgf(bWasInitiallyRegistered == bIsRegistered,
+			TEXT("Component Registered state changed from %s to %s within FRenderStateRecreator scope."),
+			*((bWasInitiallyRegistered ? GTrue : GFalse).ToString()),
+			*((bIsRegistered ? GTrue : GFalse).ToString()));
+
+		if (bWasRenderStateCreated && bIsRegistered)
 		{
 			Component->CreateRenderState_Concurrent();
 		}
