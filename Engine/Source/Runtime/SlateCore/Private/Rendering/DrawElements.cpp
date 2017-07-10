@@ -125,7 +125,9 @@ void FSlateDrawElement::MakeBox(
 	ESlateDrawEffect InDrawEffects, 
 	const FLinearColor& InTint )
 {
-	if ( InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType )
+
+	const FVector2D& LocalSize = PaintGeometry.GetLocalSize();
+	if (InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType || LocalSize.X == 0 || LocalSize.Y == 0)
 	{
 		return;
 	}
@@ -153,7 +155,8 @@ void FSlateDrawElement::MakeBox(
 		return;
 	}
 
-	if ( InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType )
+	const FVector2D& LocalSize = PaintGeometry.GetLocalSize();
+	if (InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType || LocalSize.X == 0 || LocalSize.Y == 0)
 	{
 		return;
 	}
@@ -180,7 +183,8 @@ void FSlateDrawElement::MakeRotatedBox(
 	ERotationSpace RotationSpace,
 	const FLinearColor& InTint )
 {
-	if ( InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType )
+	const FVector2D& LocalSize = PaintGeometry.GetLocalSize();
+	if (InTint.A == 0 || InBrush->DrawAs == ESlateBrushDrawType::NoDrawType || LocalSize.X == 0 || LocalSize.Y == 0)
 	{
 		return;
 	}
