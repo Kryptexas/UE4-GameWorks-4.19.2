@@ -25,7 +25,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_MAC
-NS_ASSUME_NONNULL_BEGIN
+#pragma clang diagnostic ignored "-Wnullability-completeness"
 typedef enum {
 
     /* Commonly-available encoders */
@@ -44,7 +44,6 @@ typedef size_t (*compression_encode_buffer_ptr)(uint8_t * __restrict dst_buffer,
                           const uint8_t * __restrict src_buffer, size_t src_size,
                           void * __restrict __nullable scratch_buffer,
                           compression_algorithm algorithm);
-NS_ASSUME_NONNULL_END
 #endif
 
 #include "ShaderPreprocessor.h"
