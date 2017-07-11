@@ -2300,6 +2300,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 
 FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	:
+	ViewMode(VMI_Lit),
 	FamilySizeX(0),
 	FamilySizeY(0),
 	InstancedStereoWidth(0),

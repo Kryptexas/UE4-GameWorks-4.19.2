@@ -1300,6 +1300,9 @@ public:
 	/** The views which make up the family. */
 	TArray<const FSceneView*> Views;
 
+	/** View mode of the family. */
+	EViewModeIndex ViewMode;
+
 	/** The width in screen pixels of the view family being rendered (maximum x of all viewports). */
 	uint32 FamilySizeX;
 
