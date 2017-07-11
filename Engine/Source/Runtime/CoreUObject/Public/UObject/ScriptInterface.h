@@ -158,7 +158,7 @@ public:
 	{
 		SetObject(SourceObject);
 		
-		InterfaceType* SourceInterface = Cast<InterfaceType>(SourceObject);
+		InterfaceType* SourceInterface = SourceObject;
 		SetInterface( SourceInterface );
 
 		return *((InterfaceType*)GetInterface());
