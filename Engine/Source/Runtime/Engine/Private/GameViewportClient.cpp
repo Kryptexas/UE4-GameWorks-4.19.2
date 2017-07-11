@@ -1262,9 +1262,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		
 		bBufferCleared = true;
 	}
-	
-	SceneCanvas->Clear(FLinearColor::Transparent);
-	bBufferCleared = true;
 
 	// Draw the player views.
 	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
