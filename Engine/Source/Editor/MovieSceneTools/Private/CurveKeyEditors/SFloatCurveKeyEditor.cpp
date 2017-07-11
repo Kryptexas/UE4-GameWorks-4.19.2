@@ -69,9 +69,9 @@ void SFloatCurveKeyEditor::OnEndSliderMovement(float Value)
 
 float SFloatCurveKeyEditor::OnGetKeyValue() const
 {
-	if (ExternalValue.IsSet() && ExternalValue.Get().IsSet())
+	if (TOptional<float> ExtVal = ExternalValue.Get(TOptional<float>()))
 	{
-		return ExternalValue.Get().GetValue();
+		return ExtVal.GetValue();
 	}
 
 	float CurrentTime = Sequencer->GetLocalTime();
