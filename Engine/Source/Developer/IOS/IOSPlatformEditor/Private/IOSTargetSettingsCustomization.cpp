@@ -1202,7 +1202,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate \"%s\" -bundlename \"%s\""), *ProjectPath, *CertPath, *BundleIdentifier);
 #endif
-		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, false));
 		OutputMessage = TEXT("");
 		IPPProcess->OnOutput().BindStatic(&OnOutput);
 		IPPProcess->Launch();
