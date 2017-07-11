@@ -185,7 +185,21 @@ void FMeshMergeUtilities::BakeMaterialsForComponent(TArray<TWeakObjectPtr<UObjec
 					MeshSettings.RawMesh = RawMeshLODs.Find(LODIndex);
 
 					MeshSettings.TextureCoordinateBox = FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
-					MeshSettings.TextureCoordinateIndex = MaterialOptions->bUseSpecificUVIndex ? MaterialOptions->TextureCoordinateIndex : 0;
+					const bool bUseVertexColor = (MeshSettings.RawMesh->WedgeColors.Num() > 0);
+					if (MaterialOptions->bUseSpecificUVIndex)
+					{
+						MeshSettings.TextureCoordinateIndex = MaterialOptions->TextureCoordinateIndex;
+					}
+					// if you use vertex color, we can't rely on overlapping UV channel, so use light map UV to unwrap UVs
+					else if (bUseVertexColor)
+					{
+						MeshSettings.TextureCoordinateIndex = Adapter->LightmapUVIndex();
+					}
+					else
+					{
+						MeshSettings.TextureCoordinateIndex = 0;
+					}
+					
 					Adapter->ApplySettings(LODIndex, MeshSettings);
 					
 					// In case part of the UVs is not within the 0-1 range try to use the lightmap UVs
