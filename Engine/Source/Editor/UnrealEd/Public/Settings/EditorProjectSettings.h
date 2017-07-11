@@ -157,3 +157,19 @@ public:
 
 };
 
+
+UCLASS(config=Editor, meta=(DisplayName="Blueprints"), defaultconfig)
+class UNREALED_API UBlueprintEditorProjectSettings : public UDeveloperSettings
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** Flag to disable the new compilation manager for blueprints */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	uint32 bUseCompilationManager:1;
+	
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+};
+
