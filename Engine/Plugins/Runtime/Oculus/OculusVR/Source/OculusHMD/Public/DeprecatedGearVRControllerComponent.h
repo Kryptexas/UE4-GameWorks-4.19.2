@@ -10,7 +10,7 @@
 #include "Components/SceneComponent.h"
 #include "DeprecatedGearVRControllerComponent.generated.h"
 
-DEPRECATED(4.17, "This component (the GearVRController) is superfluous. It will be removed in a subsequent version. To emulate it, use a UStaticMeshComponent attached to a UMotionControllerComponent. The mesh used by this component can be found here: /OculusVR/Meshes/GearVRController.")
+/** DEPRECATED in 4.17 : This component (the GearVRController) is superfluous. It will be removed in a subsequent version. To emulate it, use a UStaticMeshComponent attached to a UMotionControllerComponent. The mesh used by this component can be found here: /OculusVR/Meshes/GearVRController.*/
 UCLASS(ClassGroup=(GearVR), deprecated)
 class UDEPRECATED_DeprecatedGearVRControllerComponent : public USceneComponent
 {

@@ -78,7 +78,7 @@ struct FHmdUserProfile
 		PlayerHeight(0.f), EyeHeight(0.f), IPD(0.f), NeckToEyeDistance(FVector2D::ZeroVector) {}
 };
 
-DEPRECATED(4.17, "All functions using this enum have been deprecated and it will be removed with them. If you are still needing this, then please create your own replacement.")
+/** DEPRECATED in 4.17 : All functions using this enum have been deprecated and it will be removed with them. If you are still needing this, then please create your own replacement.*/
 UENUM(BlueprintType)
 enum class EGearVRControllerHandedness_DEPRECATED : uint8
 {
