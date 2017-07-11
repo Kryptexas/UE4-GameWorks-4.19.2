@@ -41,6 +41,21 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "AnimPhysObjectVersion.h"
 
+
+
+FCookBodySetupInfo::FCookBodySetupInfo()
+	: TriMeshCookFlags(EPhysXMeshCookFlags::Default)
+	, ConvexCookFlags(EPhysXMeshCookFlags::Default)
+	, bCookNonMirroredConvex(false)
+	, bCookMirroredConvex(false)
+	, bConvexDeformableMesh(false)
+	, bCookTriMesh(false)
+	, bSupportUVFromHitResults(false)
+	, bTriMeshError(false)
+{
+}
+
+
 #if ENABLE_COOK_STATS
 namespace PhysXBodySetupCookStats
 {
