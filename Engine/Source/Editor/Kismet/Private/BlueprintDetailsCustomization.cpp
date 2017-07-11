@@ -3962,6 +3962,8 @@ void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> Fun
 		const FName Name( *(*FunctionName) );
 		if (UFunction* NewSignature = ScopeClass->FindFunctionByName(Name))
 		{
+			const FScopedTransaction Transaction(LOCTEXT("CopySignature", "Copy Signature"));
+
 			while (FunctionEntryNode->UserDefinedPins.Num())
 			{
 				TSharedPtr<FUserPinInfo> Pin = FunctionEntryNode->UserDefinedPins[0];
