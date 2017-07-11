@@ -15,10 +15,12 @@ public:
 	FOnlineError();
 	explicit FOnlineError(bool bSucceeded);
 	explicit FOnlineError(const FString& ErrorCode);
+	explicit FOnlineError(FString&& ErrorCode);
 	explicit FOnlineError(const FText& ErrorMessage);
 
 	/** Same as the Ctors but can be called any time */
 	void SetFromErrorCode(const FString& ErrorCode);
+	void SetFromErrorCode(FString&& ErrorCode);
 	void SetFromErrorMessage(const FText& ErrorMessage);
 
 	/** Converts the HttpResult into a EOnlineServerConnectionStatus */

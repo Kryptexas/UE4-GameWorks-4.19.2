@@ -742,6 +742,7 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
+	UE_LOG(LogHttp, Verbose, TEXT("%p: HTTP request canceled.  URL=%s"), this, *GetURL());
 	
 	FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
 	if (HttpManager.IsValidRequest(this))

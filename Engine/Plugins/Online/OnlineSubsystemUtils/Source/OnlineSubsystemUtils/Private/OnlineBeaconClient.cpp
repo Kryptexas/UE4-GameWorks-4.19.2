@@ -14,6 +14,16 @@
 
 #define BEACON_RPC_TIMEOUT 15.0f
 
+/** For backwards compatibility with the engine packet handler code */
+#ifndef PACKETHANDLER_HAS_BEGINHANDSHAKING
+	#define PACKETHANDLER_HAS_BEGINHANDSHAKING 0
+#endif
+
+/** For backwards compatibility with engine encryption support */
+#ifndef SUPPORTS_ENCRYPTION_TOKEN
+	#define SUPPORTS_ENCRYPTION_TOKEN 0
+#endif
+
 AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	BeaconOwner(nullptr),
@@ -101,10 +111,14 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 
 				if (BeaconConnection->Handler.IsValid())
 				{
+#if PACKETHANDLER_HAS_BEGINHANDSHAKING
 					BeaconConnection->Handler->BeginHandshaking(
 						FPacketHandlerHandshakeComplete::CreateUObject(this, &AOnlineBeaconClient::SendInitialJoin));
 
 					bSentHandshake = true;
+#else
+					BeaconConnection->StatelessConnectComponent.Pin()->SendInitialConnect();
+#endif
 				}
 
 				SetConnectionState(EBeaconConnectionState::Pending);
@@ -136,6 +150,11 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 	return bSuccess;
 }
 
+void AOnlineBeaconClient::SetEncryptionToken(const FString& InEncryptionToken)
+{
+	EncryptionToken = InEncryptionToken;
+}
+
 void AOnlineBeaconClient::SendInitialJoin()
 {
 	if (ensure(NetDriver != nullptr && NetDriver->ServerConnection != nullptr))
@@ -144,8 +163,17 @@ void AOnlineBeaconClient::SendInitialJoin()
 		check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 
 		uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-				
+
+#if SUPPORTS_ENCRYPTION_TOKEN
+		if (CVarNetAllowEncryption.GetValueOnGameThread() == 0)
+		{
+			EncryptionToken.Reset();
+		}
+
+		FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion, EncryptionToken);
+#else
 		FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion);
+#endif
 		NetDriver->ServerConnection->FlushNet();
 	}
 }
@@ -225,6 +253,17 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 #endif
 		switch (MessageType)
 		{
+#if SUPPORTS_ENCRYPTION_TOKEN
+		case NMT_EncryptionAck:
+			{
+				UGameInstance* const Instance = GetGameInstance();
+				if (Instance)
+				{
+					Instance->ReceivedNetworkEncryptionAck(Connection);
+				}
+				break;
+			}
+#endif
 		case NMT_BeaconWelcome:
 			{
 				Connection->ClientResponse = TEXT("0");

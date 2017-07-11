@@ -2,6 +2,9 @@
 
 #include "OnlineNotificationTransportManager.h"
 
+FOnlineNotificationTransportManager::~FOnlineNotificationTransportManager()
+{
+}
 
 bool FOnlineNotificationTransportManager::SendNotification(FNotificationTransportId TransportType, const FOnlineNotification& Notification)
 {

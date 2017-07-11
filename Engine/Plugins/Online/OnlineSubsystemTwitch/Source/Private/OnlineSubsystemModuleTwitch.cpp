@@ -45,7 +45,7 @@ public:
 
 void FOnlineSubsystemTwitchModule::StartupModule()
 {
-	UE_LOG_ONLINE(Log, TEXT("Twitch Startup!"));
+	UE_LOG_ONLINE(Verbose, TEXT("Twitch Startup!"));
 
 	TwitchFactory = MakeUnique<FOnlineFactoryTwitch>();
 
@@ -56,7 +56,7 @@ void FOnlineSubsystemTwitchModule::StartupModule()
 
 void FOnlineSubsystemTwitchModule::ShutdownModule()
 {
-	UE_LOG_ONLINE(Log, TEXT("Twitch Shutdown!"));
+	UE_LOG_ONLINE(Verbose, TEXT("Twitch Shutdown!"));
 
 	FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
 	OSS.UnregisterPlatformService(TWITCH_SUBSYSTEM);

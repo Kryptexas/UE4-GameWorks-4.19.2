@@ -204,7 +204,7 @@ protected:
 			}
 
 			static const buzz::StaticQName QN_DELAY = { "urn:xmpp:delay", "delay" };
- 			const buzz::XmlElement* Delay = Stanza->FirstNamed(QN_DELAY);
+			const buzz::XmlElement* Delay = Stanza->FirstNamed(QN_DELAY);
 			if (Delay != NULL)
 			{
 				std::string Stamp = Delay->Attr(buzz::kQnStamp);
@@ -359,7 +359,7 @@ FXmppPresenceJingle::FXmppPresenceJingle(class FXmppConnectionJingle& InConnecti
 	: PresenceSendTask(NULL)
 	, PresenceRcvTask(NULL)
 	, NumPresenceIn(0)
-    , NumPresenceOut(0)
+	, NumPresenceOut(0)
 	, NumQueryRequests(0)
 	, Connection(InConnection) 
 {
@@ -375,7 +375,7 @@ FXmppPresenceJingle::~FXmppPresenceJingle()
 	}
 }
 
-void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid)
+void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid, const FString& InResourceOverride)
 {
 	OutPresence.UserJid = InJid;
 	OutPresence.bIsAvailable = InStatus.available();
@@ -420,7 +420,8 @@ void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, cons
 		}
 	}
 	
-	InJid.ParseResource(OutPresence.AppId, OutPresence.Platform);
+	FString UnusedPlatformUserId;
+	FXmppUserJid::ParseResource(InResourceOverride.IsEmpty() ? InJid.Resource : InResourceOverride, OutPresence.AppId, OutPresence.Platform, UnusedPlatformUserId);
 }
 
 void FXmppPresenceJingle::ConvertFromPresence(buzz::PresenceStatus& OutStatus, const FXmppUserPresence& InPresence)
@@ -638,15 +639,16 @@ void FXmppPresenceJingle::OnSignalPresenceUpdate(const buzz::PresenceStatus& InS
 	}
 }
 
-void FXmppPresenceJingle::ConvertToMucPresence(FXmppMucPresence& OutMucPresence, const class FXmppMucPresenceStatus& InMucStatus, const FXmppUserJid& InJid)
+void FXmppPresenceJingle::ConvertToMucPresence(FXmppMucPresence& OutMucPresence, const FXmppMucPresenceStatus& InMucStatus, const FXmppUserJid& InJid)
 {
-	FXmppPresenceJingle::ConvertToPresence(OutMucPresence, InMucStatus, InJid);
+	const FString UserResource = FXmppUserJid::ParseMucUserResource(InJid.Resource);
+	FXmppPresenceJingle::ConvertToPresence(OutMucPresence, InMucStatus, InJid, UserResource);
 
 	OutMucPresence.Role = UTF8_TO_TCHAR(InMucStatus.get_role().c_str());
 	OutMucPresence.Affiliation = UTF8_TO_TCHAR(InMucStatus.get_affiliation().c_str());
 }
 
-void FXmppPresenceJingle::OnSignalMucPresenceUpdate(const class FXmppMucPresenceStatus& MucStatus)
+void FXmppPresenceJingle::OnSignalMucPresenceUpdate(const FXmppMucPresenceStatus& MucStatus)
 {
 	FXmppUserJid MucJid;
 	FXmppJingle::ConvertToJid(MucJid, MucStatus.jid());
@@ -657,7 +659,5 @@ void FXmppPresenceJingle::OnSignalMucPresenceUpdate(const class FXmppMucPresence
 	ConvertToMucPresence(MucPresence, MucStatus, MucJid);
 	Connection.MultiUserChat()->HandleMucPresence(MucPresence);
 }
-
-
 
 #endif //WITH_XMPP_JINGLE

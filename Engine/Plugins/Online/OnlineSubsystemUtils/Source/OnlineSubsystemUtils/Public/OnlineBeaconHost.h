@@ -107,6 +107,9 @@ private:
 	UPROPERTY()
 	TArray<AOnlineBeaconClient*> ClientActors;
 
+	/** Sends the welcome control message to the client. Used as a delegate if encryption is being negotiated. */
+	void SendWelcomeControlMessage(UNetConnection* Connection);
+
 	/** Delegate to route a connection attempt to the appropriate beacon host, by type */
 	DECLARE_DELEGATE_RetVal_OneParam(AOnlineBeaconClient*, FOnBeaconSpawned, UNetConnection*);
 	FOnBeaconSpawned& OnBeaconSpawned(const FString& BeaconType);

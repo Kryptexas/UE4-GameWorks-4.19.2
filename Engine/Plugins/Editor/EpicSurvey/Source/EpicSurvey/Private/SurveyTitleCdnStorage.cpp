@@ -85,7 +85,7 @@ bool FSurveyTitleCdnStorage::EnumerateFiles(const FPagedQuery& Page)
 	if(!EnumerateFilesRequests.IsEmpty())
 	{
 		UE_LOG(LogEpicSurvey, Verbose, TEXT("EnumerateFiles request failed. Request already in progress."));
-		TriggerOnEnumerateFilesCompleteDelegates(false);
+		TriggerOnEnumerateFilesCompleteDelegates(false, TEXT("Request already in progress"));
 		return false;
 	}
 
@@ -356,7 +356,7 @@ void FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete(FHttpRequestPtr 
 		UE_LOG(LogEpicSurvey, Verbose, TEXT("EnumerateFiles request failed. %s"), *ErrorStr);
 	}
 
-	TriggerOnEnumerateFilesCompleteDelegates(bResult);
+	TriggerOnEnumerateFilesCompleteDelegates(bResult, ErrorStr);
 }
 
 void FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)

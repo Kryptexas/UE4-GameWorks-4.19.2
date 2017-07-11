@@ -1405,6 +1405,9 @@ enum class EJoinPartyCompletionResult
 	/** Failed to send a message to the party leader.  No message sent to the party leader. */
 	MessagingFailure,
 
+	/** Game specific reason, indicated by the NotApprovedReason parameter.  Message might or might not have been sent to party leader. */
+	GameSpecificReason,
+
 	/** DEPRECATED! */
 	PartyNotInPendingState,
 	/** DEPRECATED! */
@@ -1749,6 +1752,10 @@ inline const TCHAR* ToString(const EJoinPartyCompletionResult Value)
 	case EJoinPartyCompletionResult::MessagingFailure:
 	{
 		return TEXT("MessagingFailure");
+	}
+	case EJoinPartyCompletionResult::GameSpecificReason:
+	{
+		return TEXT("GameSpecificReason");
 	}
 	case EJoinPartyCompletionResult::Succeeded:
 	{

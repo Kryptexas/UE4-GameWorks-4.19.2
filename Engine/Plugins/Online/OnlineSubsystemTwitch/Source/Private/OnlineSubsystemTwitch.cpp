@@ -229,11 +229,11 @@ bool FOnlineSubsystemTwitch::HandleAuthExecCommands(UWorld* InWorld, const TCHAR
 			}
 			else
 			{
-				if (Error.StartsWith(LOGIN_ERROR_MISSING_PERMISSIONS))
+				if (Error.StartsWith(TWITCH_LOGIN_ERROR_MISSING_PERMISSIONS))
 				{
 					TArray<FString> MissingPermissions;
 					Error.ParseIntoArray(MissingPermissions, TEXT(" "));
-					// First index will be LOGIN_ERROR_MISSING_PERMISSIONS, so skip
+					// First index will be TWITCH_LOGIN_ERROR_MISSING_PERMISSIONS, so skip
 					for (int32 MissingPermissionIndex = 1; MissingPermissionIndex < MissingPermissions.Num(); ++MissingPermissionIndex)
 					{
 						UE_LOG_ONLINE(Display, TEXT("Twitch log in failed:  Missing permission %s"), *MissingPermissions[MissingPermissionIndex]);

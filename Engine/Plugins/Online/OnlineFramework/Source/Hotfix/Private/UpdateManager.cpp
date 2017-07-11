@@ -235,25 +235,16 @@ void UUpdateManager::StartPatchCheck()
 		IOnlineIdentityPtr OnlineIdentityConsole = OnlineSubConsole->GetIdentityInterface();
 		if (OnlineIdentityConsole.IsValid())
 		{
-			ULocalPlayer* LP = GameInstance->GetFirstGamePlayer();
-			if (LP != nullptr)
+			TSharedPtr<const FUniqueNetId> UserId = GetFirstSignedInUser(OnlineIdentityConsole);
+			if (UserId.IsValid())
 			{
-				const int32 ControllerId = LP->GetControllerId();
-				TSharedPtr<const FUniqueNetId> UserId = OnlineIdentityConsole->GetUniquePlayerId(ControllerId);
-				if (UserId.IsValid())
-				{
-					bStarted = true;
-					OnlineIdentityConsole->GetUserPrivilege(*UserId,
-						EUserPrivileges::CanPlayOnline, IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate::CreateUObject(this, &ThisClass::OnCheckForPatchComplete, true));
-				}
-				else
-				{
-					UE_LOG(LogHotfixManager, Warning, TEXT("No valid platform user id when starting patch check!"));
-				}
+				bStarted = true;
+				OnlineIdentityConsole->GetUserPrivilege(*UserId,
+					EUserPrivileges::CanPlayOnline, IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate::CreateUObject(this, &ThisClass::OnCheckForPatchComplete, true));
 			}
 			else
 			{
-				UE_LOG(LogHotfixManager, Warning, TEXT("No local player to perform check!"));
+				UE_LOG(LogHotfixManager, Warning, TEXT("No valid platform user id when starting patch check!"));
 			}
 		}
 	}
@@ -389,33 +380,64 @@ void UUpdateManager::PatchCheckComplete(EPatchCheckResult PatchResult)
 
 void UUpdateManager::StartPlatformEnvironmentCheck()
 {
-	IOnlineSubsystem* OnlineSubConsole = IOnlineSubsystem::GetByPlatform();
-	if (!bPlatformEnvironmentDetected &&
-		OnlineSubConsole != nullptr &&
-		OnlineSubConsole->GetIdentityInterface().IsValid())
-	{
-		SetUpdateState(EUpdateState::DetectingPlatformEnvironment);
-
-		ULocalPlayer* LP = GetGameInstance()->GetFirstGamePlayer();
-		if (LP != nullptr)
-		{
-			const int32 ControllerId = LP->GetControllerId();
-			OnLoginConsoleCompleteHandle = OnlineSubConsole->GetIdentityInterface()->AddOnLoginCompleteDelegate_Handle(
-				ControllerId,
-				FOnLoginCompleteDelegate::CreateUObject(this, &ThisClass::PlatformEnvironmentCheck_OnLoginConsoleComplete)
-				);
-
-			OnlineSubConsole->GetIdentityInterface()->Login(ControllerId, FOnlineAccountCredentials());
-		}
-	}
-	else
+	if (bPlatformEnvironmentDetected)
 	{
 		StartHotfixCheck();
+		return;
 	}
+
+	const IOnlineSubsystem* const OnlineSubConsole = IOnlineSubsystem::GetByPlatform();
+	if (OnlineSubConsole == nullptr)
+	{
+		StartHotfixCheck();
+		return;
+	}
+
+	const IOnlineIdentityPtr OnlineIdentityConsole = OnlineSubConsole->GetIdentityInterface();
+	if (!ensure(OnlineIdentityConsole.IsValid()))
+	{
+		StartHotfixCheck();
+		return;
+	}
+
+	TSharedPtr<const FUniqueNetId> UniqueNetId = GetFirstSignedInUser(OnlineIdentityConsole);
+	if (!UniqueNetId.IsValid())
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("No signed in user available to log in with"));
+		CheckComplete(EUpdateCompletionStatus::UpdateFailure_NotLoggedIn);
+		return;
+	}
+
+	const FPlatformUserId PlatformUserId = OnlineIdentityConsole->GetPlatformUserIdFromUniqueNetId(*UniqueNetId);
+	if (PlatformUserId == PLATFORMUSERID_NONE)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("No valid FPlatformUserId for UniqueNetId %s"), *UniqueNetId->ToDebugString());
+		CheckComplete(EUpdateCompletionStatus::UpdateFailure_NotLoggedIn);
+		return;
+	}
+
+	SetUpdateState(EUpdateState::DetectingPlatformEnvironment);
+
+	OnLoginConsoleCompleteHandle = OnlineIdentityConsole->AddOnLoginCompleteDelegate_Handle(
+		PlatformUserId,
+		FOnLoginCompleteDelegate::CreateUObject(this, &ThisClass::PlatformEnvironmentCheck_OnLoginConsoleComplete)
+	);
+
+	OnlineIdentityConsole->Login(PlatformUserId, FOnlineAccountCredentials());
+
 }
 
 void UUpdateManager::PlatformEnvironmentCheck_OnLoginConsoleComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
+	const IOnlineSubsystem* const OnlineSubConsole = IOnlineSubsystem::GetByPlatform();
+	if (ensure(OnlineSubConsole))
+	{
+		const IOnlineIdentityPtr OnlineIdentityConsole = OnlineSubConsole->GetIdentityInterface();
+		ensure(OnlineIdentityConsole.IsValid());
+
+		OnlineIdentityConsole->ClearOnLoginChangedDelegate_Handle(OnLoginConsoleCompleteHandle);
+	}
+
 	if (bWasSuccessful)
 	{
 		bPlatformEnvironmentDetected = true;

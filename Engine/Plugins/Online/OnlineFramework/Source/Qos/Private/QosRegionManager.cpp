@@ -265,7 +265,7 @@ void UQosRegionManager::ForceSelectRegion(const FString& InRegionId)
 
 	// make sure we can select this region
 	FString RegionId = InRegionId.ToUpper();
-	if (!SetSelectedRegion(RegionId))
+	if (!SetSelectedRegion(RegionId, true))
 	{
 		// if not, add a fake entry and try again
 		FQosRegionInfo RegionInfo;
@@ -311,29 +311,26 @@ void UQosRegionManager::TrySetDefaultRegion()
 	}
 }
 
-bool UQosRegionManager::SetSelectedRegion(const FString& InRegionId)
+bool UQosRegionManager::SetSelectedRegion(const FString& InRegionId, bool bForce)
 {
 	// make sure we've enumerated
-	if (QosEvalResult != EQosCompletionResult::Success)
+	if (bForce || QosEvalResult == EQosCompletionResult::Success)
 	{
-		// can't select region until we've enumerated them
-		return false;
-	}
-	
-	// make sure it's in the option list
-	FString RegionId = InRegionId.ToUpper();
-	for (const FQosRegionInfo& RegionInfo : RegionOptions)
-	{
-		if (RegionInfo.Region.RegionId == RegionId)
+		// make sure it's in the option list
+		FString RegionId = InRegionId.ToUpper();
+		for (const FQosRegionInfo& RegionInfo : RegionOptions)
 		{
-			if (RegionInfo.IsUsable())
+			if (RegionInfo.Region.RegionId == RegionId)
 			{
-				SelectedRegionId = RegionId;
-				return true;
-			}
-			else
-			{
-				return false;
+				if (RegionInfo.IsUsable())
+				{
+					SelectedRegionId = RegionId;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
 			}
 		}
 	}

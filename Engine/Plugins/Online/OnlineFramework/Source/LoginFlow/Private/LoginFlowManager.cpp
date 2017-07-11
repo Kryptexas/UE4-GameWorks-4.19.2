@@ -1,8 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LoginFlowPrivatePCH.h"
 #include "LoginFlowManager.h"
-#include "OnlineSubsystem.h"
+#include "LoginFlowPrivate.h"
 #include "OnlineIdentityInterface.h"
 #include "OnlineExternalUIInterface.h"
 #include "OnlineError.h"
@@ -10,6 +9,9 @@
 #include "IWebBrowserSingleton.h"
 #include "WebBrowserModule.h"
 #include "IWebBrowserCookieManager.h"
+
+#include "Widgets/Layout/SBox.h"
+#include "Framework/Application/SlateApplication.h"
 
 DEFINE_LOG_CATEGORY(LogLoginFlow);
 
@@ -98,7 +100,6 @@ bool FLoginFlowManager::AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPop
 				FOnlineParams& NewParams = OnlineSubsystemsMap.Add(OnlineIdentifier);
 				NewParams.OnlineIdentifier = OnlineIdentifier;
 				NewParams.OnDisplayPopup = InPopupDelegate;
-#ifdef WEBBROWSER_HASAPPLICATIONCACHEDIR
 				NewParams.BrowserContextSettings = MakeShared<FBrowserContextSettings>(ContextName);
 				NewParams.BrowserContextSettings->bPersistSessionCookies = bPersistCookies;
 				if (NewParams.BrowserContextSettings->bPersistSessionCookies)
@@ -115,13 +116,6 @@ bool FLoginFlowManager::AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPop
 				}
 
 				NewParams.LoginFlowLogoutDelegateHandle = OnlineIdentity->AddOnLoginFlowLogoutDelegate_Handle(FOnLoginFlowLogoutDelegate::CreateSP(this, &FLoginFlowManager::OnLoginFlowLogout, OnlineIdentifier));
-#else
-				if (!bPersistCookies)
-				{
-					// context settings to not persist cookies
-					NewParams.BrowserContextSettings = MakeShared<FBrowserContextSettings>(TEXT("LoginFlowContext"));
-				}
-#endif
 
 				NewParams.LoginFlowUIRequiredDelegateHandle = OnlineExternalUI->AddOnLoginFlowUIRequiredDelegate_Handle(FOnLoginFlowUIRequiredDelegate::CreateSP(this, &FLoginFlowManager::OnLoginFlowStarted, OnlineIdentifier));
 				bSuccess = true;

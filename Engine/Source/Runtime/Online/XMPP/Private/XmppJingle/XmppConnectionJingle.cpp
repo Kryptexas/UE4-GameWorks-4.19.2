@@ -656,7 +656,7 @@ void FXmppConnectionJingle::SetServer(const FXmppServer& InServer)
 	// add random number to the client resource identifier
 	ServerConfig = InServer;
 
-	ServerConfig.ClientResource = FXmppUserJid::CreateResource(ServerConfig.AppId, ServerConfig.Platform);
+	ServerConfig.ClientResource = FXmppUserJid::CreateResource(ServerConfig.AppId, ServerConfig.Platform, ServerConfig.PlatformUserId);
 }
 
 const FXmppServer& FXmppConnectionJingle::GetServer() const

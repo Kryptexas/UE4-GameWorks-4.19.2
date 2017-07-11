@@ -106,7 +106,7 @@ FLoginFlowResult FOnlineExternalUITwitch::ParseRedirectResult(const FTwitchLogin
 		check(IdentityInt.IsValid());
 
 		const FString& CurrentLoginNonce = IdentityInt->GetCurrentLoginNonce();
-		if (CurrentLoginNonce == *State)
+		if (CurrentLoginNonce == URLDetails.GetNonce(*State))
 		{
 			const FString* AccessToken = ParamsMap.Find(TWITCH_ACCESS_TOKEN);
 			if (AccessToken)

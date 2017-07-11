@@ -14,9 +14,16 @@ class FOnlineSubsystemTwitch;
 typedef TMap<FString, TSharedRef<FUserOnlineAccountTwitch> > FUserOnlineAccountTwitchMap;
 
 /** This string will be followed by space separated permissions that are missing, so use FString.StartsWith to check for this error */
-#define LOGIN_ERROR_MISSING_PERMISSIONS TEXT("errors.com.epicgames.oss.twitch.identity.missing_permissions")
+#define TWITCH_LOGIN_ERROR_MISSING_PERMISSIONS TEXT("errors.com.epicgames.oss.twitch.identity.missing_permissions")
 /** The specified user doesn't match the specified auth token */
-#define LOGIN_ERROR_TOKEN_NOT_FOR_USER TEXT("errors.com.epicgames.oss.twitch.identity.token_not_for_user")
+#define TWITCH_LOGIN_ERROR_TOKEN_NOT_FOR_USER TEXT("errors.com.epicgames.oss.twitch.identity.token_not_for_user")
+/** The provided auth token is not valid */
+#define TWITCH_LOGIN_ERROR_TOKEN_NOT_VALID TEXT("errors.com.epicgames.oss.twitch.identity.token_not_valid")
+/** Invalid response received from Twitch */
+#define TWITCH_LOGIN_ERROR_INVALID_RESPONSE TEXT("errors.com.epicgames.oss.twitch.identity.invalid_response")
+/** Http request failed */
+#define TWITCH_LOGIN_ERROR_REQUEST_FAILED TEXT("errors.com.epicgames.oss.twitch.identity.request_failed")
+
 
 /**
  * Contains URL details for Twitch interaction
@@ -40,6 +47,8 @@ struct FTwitchLoginURL
 	FString ClientId;
 	/** Config based list of permission scopes to use when logging in */
 	TArray<FString> ScopeFields;
+	/** Prefix for the state field */
+	FString StatePrefix;
 
 	/** 
 	 * @return whether this is properly configured or not
@@ -64,14 +73,39 @@ struct FTwitchLoginURL
 	FString GetURL(const FString& Nonce) const
 	{
 		FString Scopes = FString::Join(ScopeFields, TEXT(" "));
+		FString State;
+		if (!StatePrefix.IsEmpty())
+		{
+			State = FString::Printf(TEXT("%s+%s"), *StatePrefix, *Nonce);
+		}
+		else
+		{
+			State = Nonce;
+		}
 
 		return FString::Printf(TEXT("%s?force_verify=%s&response_type=token&client_id=%s&scope=%s&state=%s&redirect_uri=%s"),
 			*LoginUrl,
 			bForceVerify ? TEXT("true") : TEXT("false"),
 			*FGenericPlatformHttp::UrlEncode(ClientId),
 			*FGenericPlatformHttp::UrlEncode(Scopes),
-			*FGenericPlatformHttp::UrlEncode(Nonce),
+			*FGenericPlatformHttp::UrlEncode(State),
 			*FGenericPlatformHttp::UrlEncode(LoginRedirectUrl));
+	}
+
+	/** 
+	 * Get the Nonce from the specified State
+	 */
+	FString GetNonce(const FString& State) const
+	{
+		FString DecodedState(FGenericPlatformHttp::UrlDecode(State));
+		if (StatePrefix.IsEmpty() ||
+			DecodedState.Len() < (StatePrefix.Len() + 1) ||
+			!DecodedState.StartsWith(StatePrefix) ||
+			DecodedState[StatePrefix.Len()] != TEXT('+'))
+		{
+			return DecodedState;
+		}
+		return DecodedState.Mid(StatePrefix.Len() + 1);
 	}
 };
 
@@ -99,6 +133,7 @@ public:
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
 	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
+	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 	virtual FString GetAuthType() const override;
@@ -188,34 +223,35 @@ private:
 	void OnExternalUILoginComplete(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex);
 
 	/** 
-	 * Function called after logging out has completed, including the optional revoke token step
-	 * @param LocalUserNum id of the local user initiating the request
-	 * @param bWasSuccessful true if we successfully logged out of Twitch
+	 * Function called after logging out has completed, or if the user revoked their auth token
+	 * @param UserId the unique net of the associated user
 	 */
-	void OnTwitchLogoutComplete(int32 LocalUserNum);
+	void OnTwitchLogoutComplete(const FUniqueNetId& UserId);
 
 	/** 
 	 * Revokes the auth token associated with an account
-	 * @param LocalUserNum id of the local user initiating the request
+	 * @param UserId the unique net of the associated user
 	 * @param AuthToken auth token for the user that needs to be revoked
 	 * @param InCompletionDelegate delegate to fire when operation completes
 	 */
-	void RevokeAuthToken(int32 LocalUserNum, const FString& AuthToken, const FOnLogoutCompleteDelegate& InCompletionDelegate);
+	void RevokeAuthTokenInternal(const FUniqueNetId& UserId, const FString& AuthToken, const FOnRevokeAuthTokenCompleteDelegate& Delegate);
 
 	/** 
 	 * Delegate fired when the http request from RevokeAuthToken completes
 	 */
-	void RevokeAuthToken_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 LocalUserNum, const FOnLogoutCompleteDelegate InCompletionDelegate);
+	void RevokeAuthToken_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TSharedRef<const FUniqueNetId> UserId, const FOnRevokeAuthTokenCompleteDelegate InCompletionDelegate);
 
 	/** 
-	 * Delegate fired when the call to RevokeAuthToken completes
+	 * Get the controller number associated with the specified user id
+	 * @param UserId the unique net of the user
+	 * @return the controller number, or INDEX_NONE if not found
 	 */
-	void OnRevokeAuthTokenComplete(int32 LocalUserNum, bool bWasSuccessful);
+	int32 GetLocalUserNumberFromUserId(const FUniqueNetId& UserId) const;
 
 	/** Users that have been registered */
 	FUserOnlineAccountTwitchMap UserAccounts;
 	/** Ids mapped to locally registered users */
-	TMap<int32, TSharedPtr<const FUniqueNetId> > UserIds;
+	TMap<int32, TSharedPtr<const FUniqueNetId>> UserIds;
 
 	/** Reference to the main subsystem */
 	FOnlineSubsystemTwitch* Subsystem;
@@ -230,8 +266,6 @@ private:
 	bool bHasLoginOutstanding;
 	/** URL used to revoke an access token */
 	FString TokenRevokeUrl;
-	/** Whether we want to revoke the access token on logout or not */
-	bool bRevokeTokenOnLogout;
 
 	/** Re-usable empty unique id for errors */
 	TSharedRef<FUniqueNetId> ZeroId;

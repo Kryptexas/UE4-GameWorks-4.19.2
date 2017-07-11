@@ -417,7 +417,8 @@ bool FOnlineIdentityGoogle::Logout(int32 LocalUserNum)
 		// reset scope permissions
 		GConfig->GetArray(TEXT("OnlineSubsystemGoogle.OnlineIdentityGoogle"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
 		// not async but should call completion delegate anyway
-		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum, UserId]() {
+		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum, UserId]() 
+		{
 			TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
 			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::LoggedIn, ELoginStatus::NotLoggedIn, *UserId);
 		});
@@ -428,7 +429,8 @@ bool FOnlineIdentityGoogle::Logout(int32 LocalUserNum)
 	{
 		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."),
 			LocalUserNum);
-		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum]() {
+		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum]() 
+		{
 			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
 		});
 	}

@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemTwitchPrivate.h"
 #include "OnlineAccountTwitch.h"
+#include "TwitchTokenValidationResponse.h"
 
 TSharedRef<const FUniqueNetId> FUserOnlineAccountTwitch::GetUserId() const
 {
@@ -42,91 +43,26 @@ bool FUserOnlineAccountTwitch::GetAuthAttribute(const FString& AttrName, FString
 	return false;
 }
 
-/** 
- * Authorization JSON block from Twitch token validation
- */
-struct FTwitchTokenValidationResponseAuthorizationJson : public FJsonSerializable
-{
-	BEGIN_JSON_SERIALIZER
-		JSON_SERIALIZE_ARRAY("scopes", Scopes);
-	END_JSON_SERIALIZER
-
-	/** List of scope fields the user has given permissions to in the token */
-	TArray<FString> Scopes;
-};
-
-/** 
- * Token JSON block from Twitch token validation
- */
-struct FTwitchTokenValidationResponseJson : public FJsonSerializable
-{
-	BEGIN_JSON_SERIALIZER
-		JSON_SERIALIZE("valid", bValid);
-		JSON_SERIALIZE_OBJECT_SERIALIZABLE("authorization", Authorization);
-		JSON_SERIALIZE("user_name", UserName);
-		JSON_SERIALIZE("user_id", UserId);
-		JSON_SERIALIZE("client_id", ClientId);
-	END_JSON_SERIALIZER
-
-	/** Whether or not the token is still valid */
-	bool bValid;
-	/** Json block containing scope fields, if the token is valid */
-	FTwitchTokenValidationResponseAuthorizationJson Authorization;
-	/** Twitch user name, if the token is valid*/
-	FString UserName;
-	/** Twitch user Id, if the token is valid */
-	FString UserId;
-	/** Client Id the token was granted for, if the token is valid */
-	FString ClientId;
-};
-
-bool FUserOnlineAccountTwitch::Parse(const FString& InAuthTicket, const FString& JsonStr)
+bool FUserOnlineAccountTwitch::Parse(const FString& InAuthTicket, FTwitchTokenValidationResponse&& ValidationResponse)
 {
 	bool bResult = false;
 
 	if (!InAuthTicket.IsEmpty())
 	{
-		if (!JsonStr.IsEmpty())
+		if (ValidationResponse.bTokenIsValid)
 		{
-			TSharedPtr<FJsonObject> JsonUser;
-			TSharedRef< TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(JsonStr);
-
-			if (FJsonSerializer::Deserialize(JsonReader, JsonUser) &&
-				JsonUser.IsValid() &&
-				JsonUser->HasTypedField<EJson::Object>(TEXT("token")))
+			UserId = MakeShared<FUniqueNetIdString>(ValidationResponse.UserId);
+			if (!ValidationResponse.UserName.IsEmpty())
 			{
-				FTwitchTokenValidationResponseJson TwitchToken;
-				if (TwitchToken.FromJson(JsonUser->GetObjectField(TEXT("token"))))
-				{
-					if (TwitchToken.bValid)
-					{
-						UserId = MakeShared<FUniqueNetIdString>(TwitchToken.UserId);
-						if (!TwitchToken.UserName.IsEmpty())
-						{
-							SetAccountData(TEXT("displayName"), TwitchToken.UserName);
-						}
-						AuthTicket = InAuthTicket;
-						ScopePermissions = MoveTemp(TwitchToken.Authorization.Scopes);
-						bResult = true;
-					}
-					else
-					{
-						UE_LOG_ONLINE(Log, TEXT("FUserOnlineAccountTwitch::Parse: Twitch token is not valid"));
-					}
-				}
-				else
-				{
-					UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountTwitch::Parse: JSON response missing field 'token': payload=%s"), *JsonStr);
-				}
+				SetAccountData(TEXT("displayName"), ValidationResponse.UserName);
 			}
-			else
-			{
-				UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountTwitch::Parse: Failed to parse JSON response: payload=%s"), *JsonStr);
-			}
+			AuthTicket = InAuthTicket;
+			ScopePermissions = MoveTemp(ValidationResponse.Authorization.Scopes);
+			bResult = true;
 		}
 		else
 		{
-			UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountTwitch::Parse: Empty JSON"));
+			UE_LOG_ONLINE(Log, TEXT("FUserOnlineAccountTwitch::Parse: Twitch token is not valid"));
 		}
 	}
 	else

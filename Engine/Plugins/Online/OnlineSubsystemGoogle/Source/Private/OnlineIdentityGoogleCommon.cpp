@@ -5,6 +5,7 @@
 #include "OnlineSubsystemGooglePrivate.h"
 #include "OnlineSubsystemGoogleTypes.h"
 #include "OnlineSubsystemGoogle.h"
+#include "OnlineError.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Misc/ConfigCacheIni.h"
@@ -511,3 +512,12 @@ FString FOnlineIdentityGoogleCommon::GetAuthType() const
 	return TEXT("Google");
 }
 
+void FOnlineIdentityGoogleCommon::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGoogleCommon::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	GoogleSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
+}

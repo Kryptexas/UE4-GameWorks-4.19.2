@@ -61,6 +61,8 @@ public:
 	FString ServerAddr;
 	/** port number 5222 typically */
 	int32 ServerPort;
+	/** Platform user id, if applicable */
+	FString PlatformUserId;
 	/** domain for user jid */
 	FString Domain;
 	/** client id user is logging in from (constructed from other fields) */
@@ -114,25 +116,33 @@ public:
 	 * @param InResource The resource to parse
 	 * @param OutAppId The app id the user is using
 	 * @param OutPlatform The platform the user is using
+	 * @param OutPlatformUserId The platform user id (optional)
 	 *
 	 * @return Whether the Resource was successfully parsed or not
 	 */
-	static bool ParseResource(const FString& InResource, FString& OutAppId, FString& OutPlatform);
+	static bool ParseResource(const FString& InResource, FString& OutAppId, FString& OutPlatform, FString& OutPlatformUserId);
 
-	static FString CreateResource(const FString& AppId, const FString& Platform);
+	static FString CreateResource(const FString& AppId, const FString& Platform, const FString& PlatformUserId);
 
 	/** 
 	 * Get the components that comprise the resource
 	 *
 	 * @param OutAppId The app id the user is using
 	 * @param OutPlatform The platform the user is using
+	 * @param OutPlatformUserId The platform user id (optional)
 	 *
 	 * @return Whether the Resource was successfully parsed or not
 	 */
-	bool ParseResource(FString& OutAppId, FString& OutPlatform) const
+	bool ParseResource(FString& OutAppId, FString& OutPlatform, FString& OutPlatformUserId) const
 	{
-		return ParseResource(Resource, OutAppId, OutPlatform);
+		return ParseResource(Resource, OutAppId, OutPlatform, OutPlatformUserId);
 	}
+
+	/**
+	 * Separate the MUC half of the resource (nickname:userid) from the UserJid resource portion (Vx:AppId:Platform:etc)
+	 * This is highly dependent on FChatRoomMemberMcp::BuildMemberJidResourceString
+	 */
+	static FString ParseMucUserResource(const FString& InResource);
 
 	bool operator==(const FXmppUserJid& Other) const
 	{
@@ -140,6 +150,11 @@ public:
 			Other.Id == Id && 
 			Other.Domain == Domain && 
 			Other.Resource == Resource;
+	}
+
+	bool operator!=(const FXmppUserJid& Other) const
+	{
+		return !operator==(Other);
 	}
 
 	/** full jid path <id@domain/resource> */

@@ -248,7 +248,7 @@ void FEpicSurvey::LoadSurveys()
 	}
 }
 
-void FEpicSurvey::OnEnumerateFilesComplete( bool bSuccess )
+void FEpicSurvey::OnEnumerateFilesComplete( bool bSuccess, const FString& ErrorString )
 {
 	if ( !bSuccess )
 	{

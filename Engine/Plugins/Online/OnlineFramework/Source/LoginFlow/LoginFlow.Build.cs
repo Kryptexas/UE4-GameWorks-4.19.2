@@ -5,7 +5,9 @@ using UnrealBuildTool;
 public class LoginFlow : ModuleRules
 {
 	public LoginFlow(ReadOnlyTargetRules Target) : base(Target)
-    {
+	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{

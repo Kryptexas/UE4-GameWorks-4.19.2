@@ -11,6 +11,11 @@
 #include "Net/DataChannel.h"
 #include "OnlineBeaconClient.h"
 
+/** For backwards compatibility with engine encryption support */
+#ifndef SUPPORTS_ENCRYPTION_TOKEN
+	#define SUPPORTS_ENCRYPTION_TOKEN 0
+#endif
+
 AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
@@ -92,20 +97,35 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 				uint32 RemoteNetworkVersion = 0;
 				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+				FString EncryptionToken;
 
+#if SUPPORTS_ENCRYPTION_TOKEN
+				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion, EncryptionToken);
+#else
 				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion);
-
+#endif
 				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
-					UE_LOG(LogBeacon, Log, TEXT("Client not network compatible %s"), *Connection->GetName());
+					UE_LOG(LogBeacon, Error, TEXT("Client not network compatible %s (Local=%d, Remote=%d)"), *Connection->GetName(), LocalNetworkVersion, RemoteNetworkVersion);
 					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					bCloseConnection = true;
 				}
 				else
 				{
-					Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
-					FNetControlMessage<NMT_BeaconWelcome>::Send(Connection);
-					Connection->FlushNet();
+					if (EncryptionToken.IsEmpty())
+					{
+						SendWelcomeControlMessage(Connection);
+					}
+#if SUPPORTS_ENCRYPTION_TOKEN
+					else
+					{
+						UGameInstance* const Instance = GetGameInstance();
+						if (Instance)
+						{
+							Instance->ReceivedNetworkEncryptionToken(Connection, EncryptionToken, FSimpleDelegate::CreateUObject(this, &AOnlineBeaconHost::SendWelcomeControlMessage, Connection));
+						}
+					}
+#endif
 				}
 				break;
 			}
@@ -302,6 +322,27 @@ void AOnlineBeaconHost::RemoveClientActor(AOnlineBeaconClient* ClientActor)
 		{
 			ClientActor->Destroy();
 		}
+	}
+}
+
+void AOnlineBeaconHost::SendWelcomeControlMessage(UNetConnection* Connection)
+{
+	if (Connection)
+	{
+		if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+		{
+			Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
+			FNetControlMessage<NMT_BeaconWelcome>::Send(Connection);
+			Connection->FlushNet();
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Log, TEXT("OnlineBeaconHost::SendWelcomeControlMessage: connection in invalid state. %s"), *Connection->Describe());
+		}
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Log, TEXT("OnlineBeaconHost::SendWelcomeControlMessage: Connection is null."));
 	}
 }
 

@@ -7,6 +7,8 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
 
+struct FOnlineError;
+
 /**
  * Account credentials needed to sign in to an online service
  */
@@ -120,6 +122,14 @@ typedef FOnLogoutComplete::FDelegate FOnLogoutCompleteDelegate;
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginFlowLogout, const TArray<FString>& /*LoginDomains*/);
 typedef FOnLoginFlowLogout::FDelegate FOnLoginFlowLogoutDelegate;
+
+/**
+ * Delegate executed when we get a user privilege result.
+ *
+ * @param UserId The unique id of the user who was queried
+ * @param OnlineError the result of the operation
+ */
+DECLARE_DELEGATE_TwoParams(FOnRevokeAuthTokenCompleteDelegate, const FUniqueNetId&, const FOnlineError&);
 
 /**
  * Interface for registration/authentication of user identities
@@ -343,6 +353,14 @@ public:
 	 */
 	//@todo - remove and use GetUserAccount instead
 	virtual FString GetAuthToken(int32 LocalUserNum) const = 0;
+
+	/**
+	 * Revoke the user's registered auth token.
+	 *
+	 * @param UserId the unique net of the associated user
+	 * @param Delegate delegate to execute when the async task completes
+	 */
+	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) = 0;
 
 	/**
 	 * Delegate executed when we get a user privilege result.

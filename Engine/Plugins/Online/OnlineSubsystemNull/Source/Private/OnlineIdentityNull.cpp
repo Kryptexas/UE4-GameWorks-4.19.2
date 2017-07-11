@@ -4,9 +4,10 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Guid.h"
 #include "Misc/OutputDeviceRedirector.h"
-#include "OnlineSubsystem.h"
+#include "OnlineSubsystemNull.h"
 #include "IPAddress.h"
 #include "SocketSubsystem.h"
+#include "OnlineError.h"
 
 bool FUserOnlineAccountNull::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const
 {
@@ -275,14 +276,21 @@ FString FOnlineIdentityNull::GetAuthToken(int32 LocalUserNum) const
 	return FString();
 }
 
-FOnlineIdentityNull::FOnlineIdentityNull(class FOnlineSubsystemNull* InSubsystem)
+void FOnlineIdentityNull::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityNull::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	NullSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
+}
+
+FOnlineIdentityNull::FOnlineIdentityNull(FOnlineSubsystemNull* InSubsystem)
+	: NullSubsystem(InSubsystem)
 {
 	// autologin the 0-th player
 	Login(0, FOnlineAccountCredentials(TEXT("DummyType"), TEXT("DummyUser"), TEXT("DummyId")) );
-}
-
-FOnlineIdentityNull::FOnlineIdentityNull()
-{
 }
 
 FOnlineIdentityNull::~FOnlineIdentityNull()

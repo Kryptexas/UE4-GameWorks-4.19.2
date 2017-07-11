@@ -7,6 +7,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Misc/ConfigCacheIni.h"
+#include "OnlineError.h"
 
 FOnlineIdentityFacebookCommon::FOnlineIdentityFacebookCommon(FOnlineSubsystemFacebook* InSubsystem)
 	: FacebookSubsystem(InSubsystem)
@@ -274,6 +275,16 @@ FString FOnlineIdentityFacebookCommon::GetAuthToken(int32 LocalUserNum) const
 		}
 	}
 	return FString();
+}
+
+void FOnlineIdentityFacebookCommon::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityFacebookCommon::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	FacebookSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
 }
 
 void FOnlineIdentityFacebookCommon::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)

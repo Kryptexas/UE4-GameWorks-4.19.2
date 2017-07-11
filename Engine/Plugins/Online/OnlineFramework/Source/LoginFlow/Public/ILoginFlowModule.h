@@ -4,6 +4,7 @@
 #include "ILoginFlowManager.h"
 
 class IOnlineSubsystem;
+class ISlateStyle;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLoginFlow, Log, All);
 

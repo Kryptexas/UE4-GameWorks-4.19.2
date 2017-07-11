@@ -104,17 +104,11 @@ FOnlineStoreOffer ConvertProductToStoreOffer(SKProduct* Product)
 {
 	FOnlineStoreOffer NewProductInfo;
 	
-	NSNumberFormatter *numberFormatter = [[NSNumberFormatter alloc] init];
-	[numberFormatter setFormatterBehavior : NSNumberFormatterBehavior10_4];
-	[numberFormatter setNumberStyle : NSNumberFormatterCurrencyStyle];
-	[numberFormatter setLocale : Product.priceLocale];
-	
 	NewProductInfo.OfferId = [Product productIdentifier];
 	
 	NewProductInfo.Title = FText::FromString([Product localizedTitle]);
 	NewProductInfo.Description = FText::FromString([Product localizedDescription]);
 	//NewProductInfo.LongDescription = FText::FromString([Product localizedDescription]);
-	NewProductInfo.PriceText = FText::FromString([numberFormatter stringFromNumber : Product.price]);
 	NewProductInfo.CurrencyCode = [Product.priceLocale objectForKey : NSLocaleCurrencyCode];
 	
 	// Convert the backend stated price into its base units
@@ -129,6 +123,8 @@ FOnlineStoreOffer ConvertProductToStoreOffer(SKProduct* Product)
 	// iOS doesn't support these fields, set to min and max defaults
 	NewProductInfo.ReleaseDate = FDateTime::MinValue();
 	NewProductInfo.ExpirationDate = FDateTime::MaxValue();
+
+	NewProductInfo.PriceText = FText::AsCurrencyBase(NewProductInfo.NumericPrice, NewProductInfo.CurrencyCode);
 	
 	return NewProductInfo;
 }
