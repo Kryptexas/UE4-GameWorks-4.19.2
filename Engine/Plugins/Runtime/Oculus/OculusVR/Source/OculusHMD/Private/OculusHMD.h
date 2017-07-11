@@ -194,7 +194,7 @@ protected:
 	class FSceneViewport* FindSceneViewport();
 
 public:
-	bool IsHMDActive() { return ovrp_GetInitialized() != ovrpBool_False; }
+	bool IsHMDActive() const;
 
 	FSplash* GetSplash() const { return Splash.Get(); }
 
