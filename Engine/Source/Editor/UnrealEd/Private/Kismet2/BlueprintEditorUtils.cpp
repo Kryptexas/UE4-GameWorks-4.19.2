@@ -2208,9 +2208,12 @@ UBlueprint* FBlueprintEditorUtils::FindBlueprintForGraphChecked(const UEdGraph* 
 
 UClass* FBlueprintEditorUtils::GetSkeletonClass(UClass* FromClass)
 {
-	if(UBlueprint* Generator = Cast<UBlueprint>(FromClass->ClassGeneratedBy))
+	if (FromClass)
 	{
-		return Generator->SkeletonGeneratedClass;
+		if (UBlueprint* Generator = Cast<UBlueprint>(FromClass->ClassGeneratedBy))
+		{
+			return Generator->SkeletonGeneratedClass;
+		}
 	}
 	return nullptr;
 }
