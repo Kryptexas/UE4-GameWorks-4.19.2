@@ -3506,6 +3506,64 @@ namespace OculusHMD
 		bool v;
 		float f;
 		FVector vec;
+
+		// Handling of old (deprecated) GearVR settings
+		// @TODO: Remove GearVR deprecation handling in 4.18+
+		{
+			const TCHAR* OldGearVRSettings = TEXT("GearVR.Settings");
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bChromaAbCorrectionEnabled"), v, GEngineIni))
+			{
+				Settings->Flags.bChromaAbCorrectionEnabled = v;
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'bChromaAbCorrectionEnabled' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bOverrideIPD"), v, GEngineIni) || GConfig->GetBool(OculusSettings, TEXT("bOverrideIPD"), v, GEngineIni))
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Removed config setting: 'bOverrideIPD' config variable has been removed completely. Now, only in non-shipping builds, if you set the 'IPD' config variable then the IPD will automatically be overridden."));
+			}
+			// other GearVR settings that have been removed entirely: 
+			//    "CpuLevel"
+			//    "GpuLevel"
+			//    "MinimumVsyncs"
+			//    "HeadModelScale"
+			//    "bOverrideFOV" + "HFOV" & "VFOV"
+
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("IPD"), f, GEngineIni))
+			{
+	#if !UE_BUILD_SHIPPING
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					SetInterpupillaryDistance(FMath::Clamp(f, 0.0f, 1.0f));
+				}
+
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'IPD' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+	#endif // #if !UE_BUILD_SHIPPING
+			}
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bUpdateOnRT"), v, GEngineIni))
+			{
+				Settings->Flags.bUpdateOnRT = v;
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'bUpdateOnRT' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("FarClippingPlane"), f, GEngineIni))
+			{
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					Settings->FarClippingPlane = FMath::Max(f, 0.0f);
+				}
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'FarClippingPlane' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("NearClippingPlane"), f, GEngineIni))
+			{
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					Settings->NearClippingPlane = FMath::Max(f, 0.0f);
+				}
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'NearClippingPlane' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+		}
+
 		if (GConfig->GetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), v, GEngineIni))
 		{
 			Settings->Flags.bChromaAbCorrectionEnabled = v;

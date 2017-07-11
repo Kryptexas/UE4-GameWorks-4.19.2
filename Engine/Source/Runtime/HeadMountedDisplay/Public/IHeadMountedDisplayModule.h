@@ -26,13 +26,35 @@ public:
 
 	/** Returns the key into the HMDPluginPriority section of the config file for this module */
 	virtual FString GetModuleKeyName() const = 0;
+	/** Returns an array of alternative ini/config names for this module (helpful if the module's name changes, so we can have back-compat) */
+	virtual void GetModuleAliases(TArray<FString>& AliasesOut) const {}
 	
 	/** Returns the priority of this module from INI file configuration */
 	float GetModulePriority() const
 	{
+		TArray<FString> ModuleAliases;
+		GetModuleAliases(ModuleAliases);
+
+		FString DefaultName = GetModuleKeyName();
+		if (DefaultName.IsEmpty())
+		{
+			ModuleAliases.Add(TEXT("Default"));
+		}
+		else
+		{
+			// Search for aliases first. This favors old module names, and ensures 
+			// that overrides in project specific ini files get found (not just the one in BaseEngine.ini)
+			ModuleAliases.Add(DefaultName);
+		}
+
 		float ModulePriority = 0.f;
-		FString KeyName = GetModuleKeyName();
-		GConfig->GetFloat(TEXT("HMDPluginPriority"), (!KeyName.IsEmpty() ? *KeyName : TEXT("Default")), ModulePriority, GEngineIni);
+		for (const FString& KeyName : ModuleAliases)
+		{
+			if (GConfig->GetFloat(TEXT("HMDPluginPriority"), *KeyName, ModulePriority, GEngineIni))
+			{
+				break;
+			}
+		}	
 		return ModulePriority;
 	}
 

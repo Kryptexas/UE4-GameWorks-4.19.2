@@ -2252,9 +2252,26 @@ bool UEngine::InitializeHMDDevice()
 				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
 				// Skip all non-matching modules when an explicit module name has been specified on the command line
-				if (bUseExplicitHMDDevice && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+				if (bUseExplicitHMDDevice)
 				{
-					continue;
+					TArray<FString> HMDAliases;
+					HMDModule->GetModuleAliases(HMDAliases);
+					HMDAliases.Add(HMDModule->GetModuleKeyName());
+
+					bool bMatchesExplicitDevice = false;
+					for (const FString& HMDModuleName : HMDAliases)
+					{
+						if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+						{
+							bMatchesExplicitDevice = true;
+							break;
+						}
+					}
+
+					if (!bMatchesExplicitDevice)
+					{
+						continue;
+					}
 				}
 
 				if(HMDModule->IsHMDConnected())

@@ -26,6 +26,7 @@ public:
 
 	// IHeadMountedDisplayModule
 	virtual FString GetModuleKeyName() const override;
+	virtual void GetModuleAliases(TArray<FString>& AliasesOut) const override;
 	virtual bool PreInit() override;
 	virtual bool IsHMDConnected() override;
 	virtual int GetGraphicsAdapter() override;
