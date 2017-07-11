@@ -185,7 +185,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 
 	bEngineInit = true;
 	// @PJS - need a better way to allow the game to turn off the splash screen
-//    GShowSplashScreen = false;
+    GShowSplashScreen = false;
 
 	while( !GIsRequestingExit )
 	{
