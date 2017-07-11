@@ -125,7 +125,19 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 			Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 		}
 	}
-	check(Window != NULL);
+//	check(Window != NULL);
+	if (Window == NULL)
+	{
+		FPlatformRect ScreenRect;
+		ScreenRect.Left = 0;
+		ScreenRect.Top = 0;
+		ScreenRect.Right = GAndroidIsPortrait ? 720 : 1280;
+		ScreenRect.Bottom = GAndroidIsPortrait ? 1280 : 720;
+
+		UE_LOG(LogAndroid, Log, TEXT("FAndroidWindow::GetScreenRect: Window was NULL, returned default resolution: %d x %d"), ScreenRect.Right, ScreenRect.Bottom);
+
+		return ScreenRect;
+	}
 
 	// determine mosaic requirements:
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
