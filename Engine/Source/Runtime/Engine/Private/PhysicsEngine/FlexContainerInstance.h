@@ -13,8 +13,10 @@
 class UFlexContainer;
 class UFlexComponent;
 class UFlexAsset;
+class USoftJointComponent;
 struct FFlexPhase;
 struct IFlexContainerClient;
+
 
 #if STATS
 
@@ -98,8 +100,9 @@ struct FFlexContainerInstance : public PxDeletionListener
 	// add a radial impulse for one frame 
 	void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
-	// add a soft joint
-	void AddSoftJoint(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	// Create a soft joint
+	NvFlexExtJoint* CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroySoftJoint();
 
 	// helper methods
 	void ComputeSteppingParam(float& Dt, int32& NumSubsteps, float& NewLeftOverTime, float DeltaTime) const;
@@ -147,6 +150,8 @@ struct FFlexContainerInstance : public PxDeletionListener
 
 	TArray<IFlexContainerClient*> Components;
 
+	TArray<USoftJointComponent*> SoftJointComponents;
+
 	TWeakObjectPtr<UFlexContainer> TemplateRef;
 	UFlexContainer* Template;
 
@@ -171,7 +176,7 @@ struct FFlexContainerInstance : public PxDeletionListener
 
 	TArray<NvFlexExtForceField> ForceFields;
 
-	TArray<NvFlexExtJoint> SoftJoints;
+	TArray<NvFlexExtJoint*> SoftJoints;
 
 	float LeftOverTime;
 	float AverageDeltaTime;

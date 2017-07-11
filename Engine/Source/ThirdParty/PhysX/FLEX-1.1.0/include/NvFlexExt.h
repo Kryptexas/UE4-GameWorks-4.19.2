@@ -367,7 +367,6 @@ struct NvFlexExtInstance
 /**
 * Represents a soft joint with a radius overlapping different flex objects
 */
-// TODO: Need to consider deleting joint constraints
 struct NvFlexExtJoint
 {
 	int* particleIndices;			//!< global indices
@@ -375,6 +374,8 @@ struct NvFlexExtJoint
 	int numParticles;				//!< Number of particles in the joint
 
 	float stiffness;				//!< joint stiffness
+	int shapeIndex;					//!< index in the container's shape body constraints array	
+	int shapeParticleIndex;			//!< index in the container's particle array
 };
 
 /** 
@@ -767,7 +768,7 @@ NV_FLEX_API NvFlexExtForceFieldCallback* NvFlexExtCreateForceFieldCallback(NvFle
 /**
  * Destroy the force field callback
  *
- * @param[in] callback A valid solver created with NvFlexExtCreateForceFieldCallback()
+ * @param[in] callback A valid solver created with NvFlexExtCreatestruct NvFlexExtJointForceFieldCallback()
  */
 NV_FLEX_API void NvFlexExtDestroyForceFieldCallback(NvFlexExtForceFieldCallback* callback);
 
@@ -781,9 +782,21 @@ NV_FLEX_API void NvFlexExtDestroyForceFieldCallback(NvFlexExtForceFieldCallback*
 NV_FLEX_API void NvFlexExtSetForceFields(NvFlexExtForceFieldCallback* callback, const NvFlexExtForceField* forceFields, int numForceFields);
 
 /**
-* Create shape-matching constraint between the particles that belong to the overlapped flex objects
+* Create a joint, the container will internally store a reference the joint array
+* @param[in] container The container to spawn into
+* @param[in] particleIndices A pointer to an array of particle indices
+* @param[in] particleLocalPositions A pointer to an array of particle local positions
+* @param[in] numJointParticles The number of particles in this joint
+* @param[in] stiffness The stiffness of this joint
 */
-NV_FLEX_API void NvFlexExtSetJoints(NvFlexExtContainer* container, NvFlexExtJoint* joints, int numSoftJoints);
+NV_FLEX_API NvFlexExtJoint* NvFlexExtCreateJoint(NvFlexExtContainer* container, const int* particleIndices, const float* particleLocalPositions, const int numJointParticles, const float stiffness);
+
+/** Destoy a joint
+*
+* @param[in] container The container the joint belongs to
+* @param[in] joint The joint to destroy
+*/
+NV_FLEX_API void NvFlexExtDestroyJoint(NvFlexExtContainer* container, const NvFlexExtJoint* joint);
 
 } // extern "C"
 

@@ -763,38 +763,6 @@ void UFlexComponent::AttachToComponent(USceneComponent* Component, float Radius)
 	}
 }
 
-void UFlexComponent::AddJointParticles(const FVector& JointCenter, const float JointRadius, TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, int32& NumParticles)
-{
-	// Find all UFlexComponents except fluids overlapping the joint radius
-	if (!Phase.Fluid)
-	{
-		const FBoxSphereBounds FlexBounds = GetBounds();
-
-		// Dist of joint to flex bounds
-		const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(JointCenter);
-
-		// Find all particles belonging to these UFlexComponents which are inside the joint radius
-		if (DistSq < JointRadius*JointRadius)
-		{
-			for (int ParticleIndex = 0; ParticleIndex < SimPositions.Num(); ++ParticleIndex)
-			{
-				FVector ParticlePos = SimPositions[ParticleIndex];
-
-				// Test distance from component origin
-				FVector LocalPosition = FVector(ParticlePos) - JointCenter;
-
-				if (LocalPosition.SizeSquared() < JointRadius*JointRadius)
-				{
-					ParticleIndices.Add(ParticleIndex);
-					ParticleLocalPositions.Add(LocalPosition);
-
-					++NumParticles;
-				}
-			}
-		}
-	}
-}
-
 FMatrix UFlexComponent::GetRenderMatrix() const
 {
 #if WITH_FLEX

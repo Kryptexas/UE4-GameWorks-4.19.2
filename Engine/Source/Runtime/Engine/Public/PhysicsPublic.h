@@ -505,7 +505,7 @@ public:
 	void AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/** Adds a soft joint to all flex container instances */
-	void AddSoftJointToFlex(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void AddSoftJointToFlex(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
 #endif
 
 	ENGINE_API FPhysScene();

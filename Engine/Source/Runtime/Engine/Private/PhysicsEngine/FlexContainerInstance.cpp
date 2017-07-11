@@ -1053,9 +1053,6 @@ void FFlexContainerInstance::UpdateSimData()
 	// force fields
 	NvFlexExtSetForceFields(ForceFieldCallback, ForceFields.GetData(), ForceFields.Num());
 
-	// soft joints
-	NvFlexExtSetJoints(Container, SoftJoints.GetData(), SoftJoints.Num());
-		
 	// move particle data to GPU, async
 	NvFlexExtPushToDevice(Container);
 }
@@ -1346,15 +1343,11 @@ void FFlexContainerInstance::AddRadialImpulse(FVector Origin, float Radius, floa
 	Force.mMode = bVelChange ? eNvFlexExtModeVelocityChange : eNvFlexExtModeImpulse;
 }
 
-void FFlexContainerInstance::AddSoftJoint(TArray<int32>& ParticleIndices, TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+NvFlexExtJoint* FFlexContainerInstance::CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
 {
-	SoftJoints.AddUninitialized(1);
-	NvFlexExtJoint& Joint = SoftJoints.Top();
+	NvFlexExtJoint* joint =	NvFlexExtCreateJoint(Container, (int*)&ParticleIndices[0], (float*)&ParticleLocalPositions[0], NumParticles, Stiffness);
 
-	Joint.particleIndices = (int*)&ParticleIndices[0];
-	Joint.particleLocalPositions = (float*)&ParticleLocalPositions[0];
-	Joint.numParticles = NumParticles;
-	Joint.stiffness = Stiffness;	
+	return joint;
 }
 
 int FFlexContainerInstance::GetActiveParticleCount()

@@ -11,6 +11,8 @@
 #include "PhysicsEngine/SoftJointActor.h"
 #include "Components/DestructibleComponent.h"
 
+#include "PhysicsPublic.h"
+
 #if WITH_FLEX
 #include "PhysicsEngine/FlexActor.h"
 #include "PhysicsEngine/FlexComponent.h"
@@ -22,68 +24,114 @@
 USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PostPhysics; //  TG_PostUpdateWork
 	Radius = 200.0f;
 	bAutoActivate = true;
 	NumParticles = 0;
+	bAutoActivate = true;
+	JointIsInitialized = false;
+
+	ContainerInstance = nullptr;
+	JointInstance = nullptr;
+
+	// by default we affect all Flex objects that can currently be affected by soft joint
+	AddCollisionChannelToAffect(ECC_Flex);
+
+	UpdateCollisionObjectQueryParams();
+}
+
+void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+#if WITH_FLEX
+	// Do the initialization the first time this joint is ticked
+	if (!JointIsInitialized)
+	{
+		// Create rigid attachments to overlapping Flex actors
+		const FVector Origin = GetComponentLocation();
+
+		// Find all UFlexComponents except fluids overlapping the joint radius
+		for (TActorIterator<AFlexActor> It(GetWorld()); It; ++It)
+		{
+			AFlexActor* FlexActor = (*It);
+			UFlexComponent* FlexComponent = Cast<UFlexComponent>(FlexActor->GetRootComponent());
+
+			if (FlexComponent && FlexComponent->AssetInstance && !FlexComponent->Phase.Fluid)
+			{
+				const FBoxSphereBounds FlexBounds = FlexComponent->GetBounds();
+
+				// Dist of joint to flex bounds
+				const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(Origin);
+
+				// Find all particles belonging to these UFlexComponents which are inside the joint radius
+				if (DistSq < Radius*Radius)
+				{
+					for (int i = 0; i < FlexComponent->AssetInstance->numParticles; ++i)
+					{
+						FVector ParticlePos = FlexComponent->SimPositions[i];
+
+						// Test distance from component origin
+						FVector LocalPosition = FVector(ParticlePos) - Origin;
+
+						if (LocalPosition.SizeSquared() < Radius*Radius)
+						{
+							int ParticleIndex = FlexComponent->AssetInstance->particleIndices[i];
+							ParticleIndices.Add(ParticleIndex);
+							ParticleLocalPositions.Add(LocalPosition);
+
+							++NumParticles;
+						}
+					}
+				}
+			}
+		}
+
+		// Create shape-matching constraint between joint particles
+		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
+		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+		{
+			PhysScene->AddSoftJointToFlex(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+		}
+
+		JointIsInitialized = true;
+	}
+#endif
 }
 
 void USoftJointComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-#if WITH_FLEX
-	// create rigid attachments to overlapping Flex actors
-	const FVector Origin = GetComponentLocation();
-
-	// Find all UFlexComponents except fluids overlapping the joint radius
-	// Find all particles belonging to these UFlexComponents which are inside the joint radius
-	for (TActorIterator<AFlexActor> It(GetWorld()); It; ++It)
-	{
-		AFlexActor* FlexActor = (*It);
-		UFlexComponent* FlexComponent = Cast<UFlexComponent>(FlexActor->GetRootComponent());	
-
-		if (FlexComponent && !FlexComponent->Phase.Fluid)
-		{
-			const FBoxSphereBounds FlexBounds = FlexComponent->GetBounds();
-
-			// dist of joint to flex bounds
-			const float DistSq = FlexBounds.ComputeSquaredDistanceFromBoxToPoint(Origin);
-
-			if (DistSq < Radius*Radius)
-			{
-				for (int ParticleIndex = 0; ParticleIndex < FlexComponent->SimPositions.Num(); ++ParticleIndex)
-				{
-					FVector ParticlePos = FlexComponent->SimPositions[ParticleIndex];
-
-					// test distance from component origin
-					FVector LocalPosition = FVector(ParticlePos) - Origin;
-
-					if (LocalPosition.SizeSquared() < Radius*Radius)
-					{
-						ParticleIndices.Add(ParticleIndex);
-						ParticleLocalPositions.Add(LocalPosition);
-
-						++NumParticles;
-					}
-				}
-			}
-		}
-	}
-
-	// TODO:
-	// Create shape-matching constraint between joint particles
-	FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
-	if (PhysScene)
-	{
-		PhysScene->AddSoftJointToFlex(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
-	}
-
-#endif
 }
 
 void USoftJointComponent::PostLoad()
 {
 	Super::PostLoad();
+
+	UpdateCollisionObjectQueryParams();
+}
+
+void USoftJointComponent::AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel)
+{
+	EObjectTypeQuery ObjectType = UEngineTypes::ConvertToObjectType(CollisionChannel);
+	if (ObjectType != ObjectTypeQuery_MAX)
+	{
+		AddObjectTypeToAffect(ObjectType);
+	}
+}
+
+void USoftJointComponent::AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
+{
+	ObjectTypesToAffect.AddUnique(ObjectType);
+	UpdateCollisionObjectQueryParams();
+}
+
+void USoftJointComponent::RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
+{
+	ObjectTypesToAffect.Remove(ObjectType);
+	UpdateCollisionObjectQueryParams();
 }
 
 #if WITH_EDITOR
@@ -94,6 +142,11 @@ void USoftJointComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 }
 
 #endif
+
+void USoftJointComponent::UpdateCollisionObjectQueryParams()
+{
+	CollisionObjectQueryParams = FCollisionObjectQueryParams(ObjectTypesToAffect);
+}
 
 //////////////////////////////////////////////////////////////////////////
 // ARB_SOFTJOINTACTOR
