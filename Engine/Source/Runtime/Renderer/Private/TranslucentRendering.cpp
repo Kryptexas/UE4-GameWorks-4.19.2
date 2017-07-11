@@ -1241,9 +1241,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			if (DownsamplingScale < 1.f)
 			{
 				SetupDownsampledTranslucencyViewUniformBuffer(RHICmdList, View);
-					}
-
-			BeginTimingSeparateTranslucencyPass(RHICmdList, View);
+			}
+			if (TranslucencyPass == ETranslucencyPass::TPT_TranslucencyAfterDOF)
+			{
+				BeginTimingSeparateTranslucencyPass(RHICmdList, View);
+			}
 			SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, ViewIndex == 0);
 
 			// Draw only translucent prims that are in the SeparateTranslucency pass
@@ -1252,20 +1254,22 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			if (bUseParallel)
 			{
 				RenderViewTranslucencyParallel(RHICmdList, View, DrawRenderState, TranslucencyPass);
-				}
+			}
 			else
 			{
 				RenderViewTranslucency(RHICmdList, View, DrawRenderState, TranslucencyPass);
 			}
 
 			SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
-			EndTimingSeparateTranslucencyPass(RHICmdList, View);
-
+			if (TranslucencyPass == ETranslucencyPass::TPT_TranslucencyAfterDOF)
+			{
+				EndTimingSeparateTranslucencyPass(RHICmdList, View);
+			}
 			if (TranslucencyPass != ETranslucencyPass::TPT_TranslucencyAfterDOF)
 			{
 				FTranslucencyDrawingPolicyFactory::UpsampleTranslucency(RHICmdList, View, false);
+			}
 		}
-	}
 		else
 		{
 			SceneContext.BeginRenderingTranslucency(RHICmdList, View, ViewIndex == 0);
