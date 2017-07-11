@@ -1252,11 +1252,19 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	
 	// If the views don't cover the entire bounding rectangle, clear the entire buffer.
 	bool bBufferCleared = false;
-	if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
+	if (ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering)
 	{
-		SceneCanvas->Clear(FLinearColor::Black);
+		bool bStereoscopicPass = (ViewFamily.Views.Num() != 0 && ViewFamily.Views[0]->StereoPass != eSSP_FULL);
+		if (bDisableWorldRendering || !bStereoscopicPass) // TotalArea computation does not work correctly for stereoscopic views
+		{
+			SceneCanvas->Clear(FLinearColor::Transparent);
+		}
+		
 		bBufferCleared = true;
 	}
+	
+	SceneCanvas->Clear(FLinearColor::Transparent);
+	bBufferCleared = true;
 
 	// Draw the player views.
 	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
