@@ -1350,6 +1350,11 @@ NvFlexExtJoint* FFlexContainerInstance::CreateSoftJoint(const TArray<int32>& Par
 	return joint;
 }
 
+void FFlexContainerInstance::DestroySoftJoint(NvFlexExtJoint* joint)
+{
+	NvFlexExtDestroyJoint(Container, joint);
+}
+
 int FFlexContainerInstance::GetActiveParticleCount()
 {
 	return NvFlexGetActiveCount(Solver);

@@ -102,7 +102,7 @@ struct FFlexContainerInstance : public PxDeletionListener
 
 	// Create a soft joint
 	NvFlexExtJoint* CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
-	void DestroySoftJoint();
+	void DestroySoftJoint(NvFlexExtJoint* joint);
 
 	// helper methods
 	void ComputeSteppingParam(float& Dt, int32& NumSubsteps, float& NewLeftOverTime, float DeltaTime) const;
@@ -175,8 +175,6 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexVector<FVector4> ConvexMeshPlanes;
 
 	TArray<NvFlexExtForceField> ForceFields;
-
-	TArray<NvFlexExtJoint*> SoftJoints;
 
 	float LeftOverTime;
 	float AverageDeltaTime;

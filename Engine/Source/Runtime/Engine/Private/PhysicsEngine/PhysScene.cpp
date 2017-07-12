@@ -1831,13 +1831,27 @@ void FPhysScene::AddRadialForceToFlex(FVector Origin, float Radius, float Streng
 	}
 }
 
-void FPhysScene::AddSoftJointToFlex(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+NvFlexExtJoint* FPhysScene::CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
 {
+	NvFlexExtJoint* joint = nullptr;
+
+	// TODO: joints for Maps from Flex container template to instances
 	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
 	{
 		FFlexContainerInstance* Container = It->Value;
-		NvFlexExtJoint* joint = Container->CreateSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
-		Container->SoftJoints.Add(joint);
+		joint = Container->CreateSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+	}
+
+	return joint;
+}
+
+void FPhysScene::DestroySoftJoint(NvFlexExtJoint* joint)
+{
+	// TODO: joints for Maps from Flex container template to instances
+	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
+	{
+		FFlexContainerInstance* Container = It->Value;
+		Container->DestroySoftJoint(joint);
 	}
 }
 

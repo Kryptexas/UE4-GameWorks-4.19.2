@@ -31,9 +31,8 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	NumParticles = 0;
 	bAutoActivate = true;
 	JointIsInitialized = false;
-
-	ContainerInstance = nullptr;
-	JointInstance = nullptr;
+	ShouldDestroy = false;
+	Joint = nullptr;
 
 	// by default we affect all Flex objects that can currently be affected by soft joint
 	AddCollisionChannelToAffect(ECC_Flex);
@@ -93,11 +92,19 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
 		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
 		{
-			PhysScene->AddSoftJointToFlex(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+			Joint = PhysScene->CreateSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
 		}
 
 		JointIsInitialized = true;
 	}
+
+	// TODO: how to set ShouldDestroy as true when deleting joint actor
+	if (ShouldDestroy && Joint)
+	{
+		GetWorld()->GetPhysicsScene()->DestroySoftJoint(Joint);
+
+	}
+
 #endif
 }
 

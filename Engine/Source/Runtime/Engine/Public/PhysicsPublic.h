@@ -129,6 +129,7 @@ extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 class UFlexContainer;
 struct FFlexContainerInstance;
 extern ENGINE_API bool GFlexIsInitialized;
+struct NvFlexExtJoint;
 #endif
 
 /** Information about a specific object involved in a rigid body collision */
@@ -505,7 +506,8 @@ public:
 	void AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/** Adds a soft joint to all flex container instances */
-	void AddSoftJointToFlex(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	NvFlexExtJoint* CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroySoftJoint(NvFlexExtJoint* joint);
 #endif
 
 	ENGINE_API FPhysScene();

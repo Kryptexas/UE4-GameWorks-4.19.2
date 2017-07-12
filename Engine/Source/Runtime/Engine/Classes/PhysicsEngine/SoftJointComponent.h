@@ -36,11 +36,13 @@ class ENGINE_API USoftJointComponent : public USceneComponent
 	/** How many particles affected by this soft joint */
 	int32 NumParticles;
 
-	/* The simulation container the soft joint belongs to */
-	FFlexContainerInstance* ContainerInstance;
-
 	/** Whether it has been initialized */
 	bool JointIsInitialized;
+
+	/** Whether it should be destroyed */
+	bool ShouldDestroy;
+
+	NvFlexExtJoint* Joint;
 
 	/** Add an object type for this soft joint to affect */
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|RadialForce")
@@ -52,8 +54,6 @@ class ENGINE_API USoftJointComponent : public USceneComponent
 
 	/** Add a collision channel for this soft joint to affect */
 	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
-
-	NvFlexExtJoint* JointInstance;
 
 public:
 	/** Returns the number of particles in the joint**/

@@ -366,6 +366,7 @@ struct NvFlexExtInstance
 
 /**
 * Represents a soft joint with a radius overlapping different flex objects
+* Each joint can be spawned into a container using NvFlexExtCreateJoint()
 */
 struct NvFlexExtJoint
 {
@@ -374,8 +375,6 @@ struct NvFlexExtJoint
 	int numParticles;				//!< Number of particles in the joint
 
 	float stiffness;				//!< joint stiffness
-	int shapeIndex;					//!< index in the container's shape body constraints array	
-	int shapeParticleIndex;			//!< index in the container's particle array
 };
 
 /** 
@@ -789,14 +788,14 @@ NV_FLEX_API void NvFlexExtSetForceFields(NvFlexExtForceFieldCallback* callback, 
 * @param[in] numJointParticles The number of particles in this joint
 * @param[in] stiffness The stiffness of this joint
 */
-NV_FLEX_API NvFlexExtJoint* NvFlexExtCreateJoint(NvFlexExtContainer* container, const int* particleIndices, const float* particleLocalPositions, const int numJointParticles, const float stiffness);
+NV_FLEX_API NvFlexExtJoint* NvFlexExtCreateJoint(NvFlexExtContainer* c, const int* particleIndices, const float* particleLocalPositions, const int numJointParticles, const float stiffness);
 
 /** Destoy a joint
 *
 * @param[in] container The container the joint belongs to
 * @param[in] joint The joint to destroy
 */
-NV_FLEX_API void NvFlexExtDestroyJoint(NvFlexExtContainer* container, const NvFlexExtJoint* joint);
+NV_FLEX_API void NvFlexExtDestroyJoint(NvFlexExtContainer* c, const NvFlexExtJoint* joint);
 
 } // extern "C"
 
