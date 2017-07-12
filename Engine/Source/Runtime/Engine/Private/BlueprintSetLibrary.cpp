@@ -186,3 +186,14 @@ void UBlueprintSetLibrary::GenericSet_Difference(const void* SetA, const USetPro
 	}
 }
 
+void UBlueprintSetLibrary::GenericSet_SetSetPropertyByName(UObject* OwnerObject, FName SetPropertyName, const void* SrcSetAddr)
+{
+	if (OwnerObject)
+	{
+		if (USetProperty* SetProp = FindField<USetProperty>(OwnerObject->GetClass(), SetPropertyName))
+		{
+			void* Dest = SetProp->ContainerPtrToValuePtr<void>(OwnerObject);
+			SetProp->CopyValuesInternal(Dest, SrcSetAddr, 1);
+		}
+	}
+}
