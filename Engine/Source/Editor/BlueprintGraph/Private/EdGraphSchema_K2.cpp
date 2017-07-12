@@ -5062,7 +5062,7 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 	UFunction* Function = nullptr;
 	if (!SetFunctionName.IsNone())
 	{
-		Function = SetFunctionLibrary->FindFunctionByName(SetFunctionName);
+		Function = SetFunctionLibraryClass->FindFunctionByName(SetFunctionName);
 	}
 
 	return Function;
