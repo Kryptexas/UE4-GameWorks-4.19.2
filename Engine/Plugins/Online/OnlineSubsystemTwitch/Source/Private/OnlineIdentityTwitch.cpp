@@ -4,6 +4,8 @@
 #include "OnlineIdentityTwitch.h"
 #include "OnlineAccountTwitch.h"
 #include "OnlineExternalUIInterface.h"
+#include "TwitchTokenValidationResponse.h"
+
 #include "Http.h"
 #include "Misc/ConfigCacheIni.h"
 
@@ -142,7 +144,7 @@ void FOnlineIdentityTwitch::OnValidateAuthTokenComplete(int32 LocalUserNum, cons
 			FString MissingScopeFields;
 			for (const FString& ScopeField : LoginURLDetails.ScopeFields)
 			{
-				bool bHasPermission = User->GetScopePermissions().Contains(ScopeField);
+				const bool bHasPermission = User->GetScopePermissions().Contains(ScopeField);
 				if (!bHasPermission)
 				{
 					bHasAllPermissions = false;
@@ -156,17 +158,17 @@ void FOnlineIdentityTwitch::OnValidateAuthTokenComplete(int32 LocalUserNum, cons
 			if (!MissingScopeFields.IsEmpty())
 			{
 				UE_LOG_ONLINE(Log, TEXT("FOnlineIdentityTwitch::OnValidateAuthTokenComplete: User %d missing scope field(s) [%s]"), LocalUserNum, *MissingScopeFields);
-				ErrorStr = LOGIN_ERROR_MISSING_PERMISSIONS;
+				ErrorStr = TWITCH_LOGIN_ERROR_MISSING_PERMISSIONS;
 				ErrorStr += TEXT(" ");
 				ErrorStr += MissingScopeFields;
 			}
 		}
 		else
 		{
-			ErrorStr = LOGIN_ERROR_TOKEN_NOT_FOR_USER;
+			ErrorStr = TWITCH_LOGIN_ERROR_TOKEN_NOT_FOR_USER;
 		}
 	}
-	
+
 	if (ErrorStr.IsEmpty())
 	{
 		// update/add cached entry for user
@@ -179,7 +181,7 @@ void FOnlineIdentityTwitch::OnValidateAuthTokenComplete(int32 LocalUserNum, cons
 		UE_LOG_ONLINE(Log, TEXT("ValidateAuthToken for user %d failed: %s"), LocalUserNum, *ErrorStr);
 	}
 
-	bool bWasSuccessful = ErrorStr.IsEmpty();
+	const bool bWasSuccessful = ErrorStr.IsEmpty();
 	InCompletionDelegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, bWasSuccessful ? *User->GetUserId() : *ZeroId, ErrorStr);
 }
 
@@ -188,7 +190,7 @@ void FOnlineIdentityTwitch::ValidateAuthToken(int32 LocalUserNum, const FOnlineA
 	// kick off http request to validate access token
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-	FString Url(LoginURLDetails.TokenValidateUrl);
+	FString Url(FString::Printf(TEXT("%s?client_id=%s"), *LoginURLDetails.TokenValidateUrl, *FGenericPlatformHttp::UrlEncode(LoginURLDetails.ClientId)));
 
 	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete, LocalUserNum, AccountCredentials, InCompletionDelegate);
 	HttpRequest->SetURL(MoveTemp(Url));
@@ -201,7 +203,7 @@ void FOnlineIdentityTwitch::ValidateAuthToken(int32 LocalUserNum, const FOnlineA
 void FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 LocalUserNum, const FOnlineAccountCredentials AccountCredentials, const FOnValidateAuthTokenComplete InCompletionDelegate)
 {
 	TSharedPtr<FUserOnlineAccountTwitch> User;
-	FString ResponseStr, ErrorStr;
+	FString ErrorStr;
 
 	if (bSucceeded &&
 		HttpResponse.IsValid())
@@ -209,26 +211,70 @@ void FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete(FHttpRequestPt
 		if (EHttpResponseCodes::IsOk(HttpResponse->GetResponseCode()) &&
 			HttpResponse->GetContentType().StartsWith(TEXT("application/json")))
 		{
-			ResponseStr = HttpResponse->GetContentAsString();
-			UE_LOG_ONLINE(Verbose, TEXT("Request Current Permissions request complete for user %d. url=%s code=%d response=%s"),
+			const FString ResponseStr = HttpResponse->GetContentAsString();
+			UE_LOG_ONLINE(Verbose, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: request complete for user %d. url=%s code=%d response=%s"),
 				LocalUserNum, *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *ResponseStr);
 
-			User = MakeShared<FUserOnlineAccountTwitch>();
-			if (!User->Parse(AccountCredentials.Token, ResponseStr))
+			if (!ResponseStr.IsEmpty())
 			{
-				ErrorStr = FString::Printf(TEXT("Error parsing login. payload=%s"),
-					*ResponseStr);
+				TSharedPtr<FJsonObject> JsonUser;
+				const TSharedRef< TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(ResponseStr);
+
+				if (FJsonSerializer::Deserialize(JsonReader, JsonUser) &&
+					JsonUser.IsValid() &&
+					JsonUser->HasTypedField<EJson::Object>(TEXT("token")))
+				{
+					FTwitchTokenValidationResponse ValidationResponse;
+					if (ValidationResponse.FromJson(JsonUser->GetObjectField(TEXT("token"))))
+					{
+						if (ValidationResponse.bTokenIsValid)
+						{
+							User = MakeShared<FUserOnlineAccountTwitch>();
+							if (User->Parse(AccountCredentials.Token, MoveTemp(ValidationResponse)))
+							{
+								UE_LOG_ONLINE(Log, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Auth token validated"));
+							}
+							else
+							{
+								UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Failed to initialize user. payload=%s"), *ResponseStr);
+								ErrorStr = FString::Printf(TEXT("Error parsing login. payload=%s"), *ResponseStr);
+							}
+						}
+						else
+						{
+							UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Auth token is not valid"));
+							ErrorStr = TWITCH_LOGIN_ERROR_TOKEN_NOT_VALID;
+						}
+					}
+					else
+					{
+						UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: JSON response missing field 'token': payload=%s"), *ResponseStr);
+						ErrorStr = TWITCH_LOGIN_ERROR_INVALID_RESPONSE;
+					}
+				}
+				else
+				{
+					UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Failed to parse JSON response: payload=%s"), *ResponseStr);
+					ErrorStr = TWITCH_LOGIN_ERROR_INVALID_RESPONSE;
+				}
+			}
+			else
+			{
+				UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Empty JSON"));
+				ErrorStr = TWITCH_LOGIN_ERROR_INVALID_RESPONSE;
 			}
 		}
 		else
 		{
-			ErrorStr = FString::Printf(TEXT("Invalid response. code=%d contentType=%s error=%s"),
-				HttpResponse->GetResponseCode(), *HttpResponse->GetContentType(), *ResponseStr);
+			UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Invalid response. code=%d contentType=%s body=%s"),
+				HttpResponse->GetResponseCode(), *HttpResponse->GetContentType(), *HttpResponse->GetContentAsString());
+			ErrorStr = TWITCH_LOGIN_ERROR_INVALID_RESPONSE;
 		}
 	}
 	else
 	{
-		ErrorStr = TEXT("No response");
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete: Request not successful"));
+		ErrorStr = TWITCH_LOGIN_ERROR_REQUEST_FAILED;
 	}
 
 	InCompletionDelegate.ExecuteIfBound(LocalUserNum, AccountCredentials, User, ErrorStr);
@@ -243,6 +289,7 @@ void FOnlineIdentityTwitch::OnAccessTokenLoginComplete(int32 LocalUserNum, bool 
 
 void FOnlineIdentityTwitch::OnLoginAttemptComplete(int32 LocalUserNum, const FString& ErrorStr)
 {
+	TWeakPtr<FOnlineIdentityTwitch, ESPMode::ThreadSafe> WeakThisPtr(AsShared());
 	const FString ErrorStrCopy(ErrorStr);
 	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 	{
@@ -250,18 +297,26 @@ void FOnlineIdentityTwitch::OnLoginAttemptComplete(int32 LocalUserNum, const FSt
 		TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 		check(UserId.IsValid());
 
-		Subsystem->ExecuteNextTick([this, UserId, LocalUserNum, ErrorStrCopy]()
+		Subsystem->ExecuteNextTick([WeakThisPtr, UserId, LocalUserNum, ErrorStrCopy]()
 		{
-			TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserId, ErrorStrCopy);
-			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::LoggedIn, *UserId);
+			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
+			if (This.IsValid())
+			{
+				This->TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserId, ErrorStrCopy);
+				This->TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::LoggedIn, *UserId);
+			}
 		});
 	}
 	else
 	{
 		UE_LOG_ONLINE(Warning, TEXT("Twitch login for user %d failed: %s"), LocalUserNum, *ErrorStr);
-		Subsystem->ExecuteNextTick([this, LocalUserNum, ErrorStrCopy]()
+		Subsystem->ExecuteNextTick([WeakThisPtr, LocalUserNum, ErrorStrCopy]()
 		{
-			TriggerOnLoginCompleteDelegates(LocalUserNum, false, *ZeroId, ErrorStrCopy);
+			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
+			if (This.IsValid())
+			{
+				This->TriggerOnLoginCompleteDelegates(LocalUserNum, false, *This->ZeroId, ErrorStrCopy);
+			}
 		});
 	}
 }
@@ -275,57 +330,91 @@ void FOnlineIdentityTwitch::OnExternalUILoginComplete(TSharedPtr<const FUniqueNe
 
 bool FOnlineIdentityTwitch::Logout(int32 LocalUserNum)
 {
+	TWeakPtr<FOnlineIdentityTwitch, ESPMode::ThreadSafe> WeakThisPtr(AsShared());
 	bool bResult = false;
 	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
-		FString AuthToken = GetAuthToken(LocalUserNum);
-		if (bRevokeTokenOnLogout && !AuthToken.IsEmpty())
+		Subsystem->ExecuteNextTick([WeakThisPtr, UserId]()
 		{
-			RevokeAuthToken(LocalUserNum, AuthToken, FOnLogoutCompleteDelegate::CreateThreadSafeSP(this, &FOnlineIdentityTwitch::OnRevokeAuthTokenComplete));
-		}
-		else
-		{
-			Subsystem->ExecuteNextTick([this, LocalUserNum]()
+			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
+			if (This.IsValid())
 			{
-				OnTwitchLogoutComplete(LocalUserNum);
-			});
-		}
-		bResult = true;
+				This->OnTwitchLogoutComplete(*UserId);
+			}
+		});
 	}
 	else
 	{
-		UE_LOG_ONLINE(Warning, TEXT("No logged in user found for LocalUserNum=%d."),
-			LocalUserNum);
-		Subsystem->ExecuteNextTick([this, LocalUserNum]() {
-			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+		UE_LOG_ONLINE(Warning, TEXT("No logged in user found for LocalUserNum=%d"), LocalUserNum);
+		Subsystem->ExecuteNextTick([WeakThisPtr, LocalUserNum]()
+		{
+			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
+			if (This.IsValid())
+			{
+				This->TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+			}
 		});
 	}
 	return bResult;
 }
 
-void FOnlineIdentityTwitch::OnTwitchLogoutComplete(int32 LocalUserNum)
+void FOnlineIdentityTwitch::OnTwitchLogoutComplete(const FUniqueNetId& UserId)
 {
-	UE_LOG_ONLINE(Log, TEXT("Twitch logout for user %d complete"), LocalUserNum);
-	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (ensure(UserId.IsValid()))
+	const FString UserIdString(UserId.ToString());
+	UE_LOG_ONLINE(Log, TEXT("Twitch logout for user %s complete"), *UserIdString);
+
+	if (UserAccounts.Contains(UserIdString))
 	{
+		const int32 LocalUserNum = GetLocalUserNumberFromUserId(UserId);
+		ensure(LocalUserNum != INDEX_NONE); // Shouldn't be in UserAccounts if we don't have a user number
 		// remove cached user account
-		UserAccounts.Remove(UserId->ToString());
+		UserAccounts.Remove(UserIdString);
 		// remove cached user id
 		UserIds.Remove(LocalUserNum);
 
 		TriggerOnLoginFlowLogoutDelegates(LoginDomains);
 
-		Subsystem->ExecuteNextTick([this, UserId, LocalUserNum]()
+		TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+		TWeakPtr<FOnlineIdentityTwitch, ESPMode::ThreadSafe> WeakThisPtr(AsShared());
+		Subsystem->ExecuteNextTick([WeakThisPtr, UserIdRef, LocalUserNum]()
 		{
-			TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
-			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::LoggedIn, ELoginStatus::NotLoggedIn, *UserId);
+			FOnlineIdentityTwitchPtr This(WeakThisPtr.Pin());
+			if (This.IsValid())
+			{
+				This->TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
+				This->TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::LoggedIn, ELoginStatus::NotLoggedIn, *This->ZeroId);
+			}
 		});
+	}
+	else
+	{
+		UE_LOG_ONLINE(Log, TEXT("FOnlineIdentityTwitch::OnTwitchLogoutComplete: Missing user %s"), *UserIdString);
 	}
 }
 
-void FOnlineIdentityTwitch::RevokeAuthToken(int32 LocalUserNum, const FString& AuthToken, const FOnLogoutCompleteDelegate& InCompletionDelegate)
+void FOnlineIdentityTwitch::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	TSharedPtr<FUserOnlineAccountTwitch> FoundUserAccount = GetUserAccountTwitch(UserId);
+	if (FoundUserAccount.IsValid())
+	{
+		const FString AuthToken = FoundUserAccount->GetAccessToken();
+		RevokeAuthTokenInternal(UserId, AuthToken, Delegate);
+	}
+	else
+	{
+		if (Delegate.IsBound())
+		{
+			TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+			Subsystem->ExecuteNextTick([UserIdRef, Delegate]()
+			{
+				Delegate.Execute(*UserIdRef, FOnlineError(FString(TEXT("User not found"))));
+			});
+		}
+	}
+}
+
+void FOnlineIdentityTwitch::RevokeAuthTokenInternal(const FUniqueNetId& UserId, const FString& AuthToken, const FOnRevokeAuthTokenCompleteDelegate& InCompletionDelegate)
 {
 	// kick off http request to validate access token
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
@@ -333,7 +422,8 @@ void FOnlineIdentityTwitch::RevokeAuthToken(int32 LocalUserNum, const FString& A
 	FString Url(TokenRevokeUrl);
 	FString PostData(FString::Printf(TEXT("client_id=%s&token=%s"), *FGenericPlatformHttp::UrlEncode(LoginURLDetails.ClientId), *FGenericPlatformHttp::UrlEncode(AuthToken)));
 
-	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete, LocalUserNum, InCompletionDelegate);
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete, UserIdRef, InCompletionDelegate);
 	HttpRequest->SetURL(TokenRevokeUrl);
 	HttpRequest->SetHeader(TEXT("Accept"), Subsystem->GetTwitchApiVersion());
 	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
@@ -342,48 +432,58 @@ void FOnlineIdentityTwitch::RevokeAuthToken(int32 LocalUserNum, const FString& A
 	HttpRequest->ProcessRequest();
 }
 
-void FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, int32 LocalUserNum, const FOnLogoutCompleteDelegate InCompletionDelegate)
+void FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TSharedRef<const FUniqueNetId> UserId, const FOnRevokeAuthTokenCompleteDelegate InCompletionDelegate)
 {
-	bool bWasSuccessful = false;
-
-	FString ResponseStr, ErrorStr;
+	FOnlineError OnlineError;
 
 	if (bSucceeded &&
 		HttpResponse.IsValid())
 	{
+		const FString ResponseStr = HttpResponse->GetContentAsString();
 		if (EHttpResponseCodes::IsOk(HttpResponse->GetResponseCode()) &&
 			HttpResponse->GetContentType().StartsWith(TEXT("application/json")))
 		{
-			bWasSuccessful = true;
-			ResponseStr = HttpResponse->GetContentAsString();
-			UE_LOG_ONLINE(Verbose, TEXT("Revoke auth token request complete for user %d. url=%s code=%d response=%s"),
-				LocalUserNum, *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *ResponseStr);
+			OnlineError.bSucceeded = true;
+			UE_LOG_ONLINE(Verbose, TEXT("Revoke auth token request complete for user %s. url=%s code=%d response=%s"),
+				*UserId->ToString(), *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *ResponseStr);
 		}
 		else
 		{
-			ErrorStr = FString::Printf(TEXT("Invalid response. code=%d contentType=%s error=%s"),
-				HttpResponse->GetResponseCode(), *HttpResponse->GetContentType(), *ResponseStr);
+			OnlineError.SetFromErrorCode(FString::Printf(TEXT("Invalid response. code=%d contentType=%s response=%s"),
+				HttpResponse->GetResponseCode(), *HttpResponse->GetContentType(), *ResponseStr));
 		}
 	}
 	else
 	{
-		ErrorStr = TEXT("No response");
+		OnlineError.SetFromErrorCode(TEXT("No response"));
 	}
 	
-	InCompletionDelegate.ExecuteIfBound(LocalUserNum, bWasSuccessful);
-}
-
-void FOnlineIdentityTwitch::OnRevokeAuthTokenComplete(int32 LocalUserNum, bool bWasSuccessful)
-{
-	if (bWasSuccessful)
+	if (OnlineError.bSucceeded)
 	{
-		UE_LOG_ONLINE(Log, TEXT("User %d successfully revoked their auth token"), LocalUserNum);
+		UE_LOG_ONLINE(Log, TEXT("User %s successfully revoked their auth token"), *UserId->ToString());
 	}
 	else
 	{
-		UE_LOG_ONLINE(Log, TEXT("User %d failed to revoke their auth token"), LocalUserNum);
+		UE_LOG_ONLINE(Log, TEXT("User %s failed to revoke their auth token with error %s"), *UserId->ToString(), *OnlineError.ErrorCode);
 	}
-	OnTwitchLogoutComplete(LocalUserNum);
+	
+	InCompletionDelegate.ExecuteIfBound(*UserId, OnlineError);
+	// Log out the user
+	OnTwitchLogoutComplete(*UserId);
+}
+
+int32 FOnlineIdentityTwitch::GetLocalUserNumberFromUserId(const FUniqueNetId& UserId) const
+{
+	int32 LocalUserNum = INDEX_NONE;
+	for (const TPair<int32, TSharedPtr<const FUniqueNetId>>& UserInfo : UserIds)
+	{
+		if (*UserInfo.Value == UserId)
+		{
+			LocalUserNum = UserInfo.Key;
+			break;
+		}
+	}
+	return LocalUserNum;
 }
 
 bool FOnlineIdentityTwitch::AutoLogin(int32 LocalUserNum)
@@ -455,10 +555,9 @@ FString FOnlineIdentityTwitch::GetAuthToken(int32 LocalUserNum) const
 	return AuthToken;
 }
 
-FOnlineIdentityTwitch::FOnlineIdentityTwitch(class FOnlineSubsystemTwitch* InSubsystem)
+FOnlineIdentityTwitch::FOnlineIdentityTwitch(FOnlineSubsystemTwitch* InSubsystem)
 	: Subsystem(InSubsystem)
 	, bHasLoginOutstanding(false)
-	, bRevokeTokenOnLogout(false)
 	, ZeroId(MakeShared<FUniqueNetIdString>())
 {
 	check(InSubsystem);
@@ -478,6 +577,8 @@ FOnlineIdentityTwitch::FOnlineIdentityTwitch(class FOnlineSubsystemTwitch* InSub
 	{
 		UE_LOG_ONLINE(Warning, TEXT("Missing TokenValidateUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
 	}
+	// StatePrefix is optional
+	GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("StatePrefix"), LoginURLDetails.StatePrefix, GEngineIni);
 
 	LoginURLDetails.ClientId = Subsystem->GetAppId();
 
@@ -489,10 +590,6 @@ FOnlineIdentityTwitch::FOnlineIdentityTwitch(class FOnlineSubsystemTwitch* InSub
 	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("TokenRevokeUrl"), TokenRevokeUrl, GEngineIni))
 	{
 		UE_LOG_ONLINE(Warning, TEXT("Missing TokenRevokeUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("bRevokeTokenOnLogout"), bRevokeTokenOnLogout, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing bRevokeTokenOnLogout= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
 	}
 }
 

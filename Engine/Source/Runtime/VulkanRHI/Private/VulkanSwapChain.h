@@ -31,6 +31,8 @@ protected:
 
 	int32 CurrentImageIndex;
 	int32 SemaphoreIndex;
+	uint32 NumPresentCalls;
+	uint32 NumAcquireCalls;
 	VkInstance Instance;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
 	TArray<VulkanRHI::FFence*> ImageAcquiredFences;

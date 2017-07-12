@@ -9,7 +9,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 
-static FAutoConsoleVariable CVarDelayAcquireBackBuffer(
+FAutoConsoleVariable GCVarDelayAcquireBackBuffer(
 	TEXT("r.Vulkan.DelayAcquireBackBuffer"),
 	1,
 	TEXT("Delay acquiring the back buffer until preset"),
@@ -18,7 +18,7 @@ static FAutoConsoleVariable CVarDelayAcquireBackBuffer(
 
 inline static bool DelayAcquireBackBuffer()
 {
-	return CVarDelayAcquireBackBuffer->GetInt() != 0;
+	return GCVarDelayAcquireBackBuffer->GetInt() != 0;
 }
 
 struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackBuffer>
@@ -529,7 +529,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 
 	bool bResult = false;
-	if (bNeedNativePresent && RHIBackBuffer != nullptr)
+	if (bNeedNativePresent && (GCVarDelayAcquireBackBuffer->GetInt() != 0 || RHIBackBuffer != nullptr))
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);

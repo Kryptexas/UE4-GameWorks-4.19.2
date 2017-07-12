@@ -3354,7 +3354,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		ViewExt->SetupViewFamily(ViewFamily);
 	}
 
-	EngineShowFlagOverride(ESFIM_Editor, GetViewMode(), ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
+	ViewFamily.ViewMode = GetViewMode();
+	EngineShowFlagOverride(ESFIM_Editor, ViewFamily.ViewMode, ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
 	EngineShowFlagOrthographicOverride(IsPerspective(), ViewFamily.EngineShowFlags);
 
 	UpdateLightingShowFlags( ViewFamily.EngineShowFlags );

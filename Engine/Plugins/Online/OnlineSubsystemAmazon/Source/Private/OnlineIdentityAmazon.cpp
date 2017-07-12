@@ -2,7 +2,8 @@
 
 #include "OnlineIdentityAmazon.h"
 #include "Misc/ConfigCacheIni.h"
-#include "OnlineSubsystem.h"
+#include "OnlineSubsystemAmazon.h"
+#include "OnlineError.h"
 
 // FUserOnlineAccountAmazon
 
@@ -52,8 +53,9 @@ bool FUserOnlineAccountAmazon::GetAuthAttribute(const FString& AttrName, FString
 /**
  * Sets the needed configuration properties
  */
-FOnlineIdentityAmazon::FOnlineIdentityAmazon() :
+FOnlineIdentityAmazon::FOnlineIdentityAmazon(FOnlineSubsystemAmazon* InSubsystem) :
 	Singleton(NULL),
+	AmazonSubsystem(InSubsystem),
 	LastTickToggle(1),
 	LastCheckElapsedTime(0.f),
 	TotalCheckElapsedTime(0.f),
@@ -340,6 +342,16 @@ FString FOnlineIdentityAmazon::GetAuthToken(int32 LocalUserNum) const
 		}
 	}
 	return FString();
+}
+
+void FOnlineIdentityAmazon::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityAmazon::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	AmazonSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
 }
 
 void FOnlineIdentityAmazon::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)

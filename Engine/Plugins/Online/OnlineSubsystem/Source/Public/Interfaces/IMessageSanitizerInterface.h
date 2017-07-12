@@ -4,39 +4,39 @@
 
 #include "CoreMinimal.h"
 
-DECLARE_DELEGATE_TwoParams(FOnMessageProcessed, bool /*Process success*/, const FString& /*SanitizedMessage*/);
-DECLARE_DELEGATE_TwoParams(FOnMessageArrayProcessed, bool /*Process success*/, const TArray<FString>& /*SanitizedMessages*/);
-
-struct FSanitizeMessage
+struct FBlockedQueryResult
 {
-	FSanitizeMessage(const FString& InRawMessage, FOnMessageProcessed InProcessCompleteDelegate)
-		: RawMessage(InRawMessage)
-		, CompletionDelegate(InProcessCompleteDelegate)
-	{}
-
-	FString RawMessage;
-	FOnMessageProcessed CompletionDelegate;
+	/** Is this user blocked */
+	bool bIsBlocked;
+	/** Platform specific unique id */
+	FString UserId;
 };
 
-struct FMultiPartMessage
-{
-	TArray<FString> AlreadyProcessedMessages;
-	TArray<int32> AlreadyProcessedIndex;
-	TArray<FString> SanitizedMessages;
-	FString MessageToSanatize;
-	bool bCompleted;
-	int32 PartNumber;
-};
+DECLARE_DELEGATE_TwoParams(FOnMessageProcessed, bool /*bSuccess*/, const FString& /*SanitizedMessage*/);
+DECLARE_DELEGATE_TwoParams(FOnMessageArrayProcessed, bool /*bSuccess*/, const TArray<FString>& /*SanitizedMessages*/);
+DECLARE_DELEGATE_OneParam(FOnQueryUserBlockedResponse, const FBlockedQueryResult& /** QueryResult */);
 
-class IMessageSanitizer
+class IMessageSanitizer : public TSharedFromThis<IMessageSanitizer, ESPMode::ThreadSafe>
 {
 protected:
 	IMessageSanitizer() {};
 
 public:
 	virtual ~IMessageSanitizer() {};
-	virtual void SanitizeMessage(const FString& Message, FOnMessageProcessed CompletionDelegate) = 0;
-	virtual void SanitizeMessageArray(const TArray<FString>& MessageArray, FOnMessageArrayProcessed CompletionDelegate) = 0;
+	virtual void SanitizeDisplayName(const FString& DisplayName, const FOnMessageProcessed& CompletionDelegate) = 0;
+	virtual void SanitizeDisplayNames(const TArray<FString>& DisplayNames, const FOnMessageArrayProcessed& CompletionDelegate) = 0;
+
+	/**
+	 * Query for a blocked user status between a local and remote user
+	 *
+	 * @param LocalUserNum local user making the query
+	 * @param FromUserId platform specific user id of the remote user
+	 * @param CompletionDelegate delegate to fire on completion
+	 */
+	virtual void QueryBlockedUser(int32 LocalUserNum, const FString& FromUserId, const FOnQueryUserBlockedResponse& CompletionDelegate) = 0;
+
+	/** Invalidate all previously queried blocked users state */
+	virtual void ResetBlockedUserCache() = 0;
 };
 
 typedef TSharedPtr<IMessageSanitizer, ESPMode::ThreadSafe> IMessageSanitizerPtr;

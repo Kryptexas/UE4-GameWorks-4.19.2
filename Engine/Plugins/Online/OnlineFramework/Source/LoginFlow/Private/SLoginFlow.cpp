@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LoginFlowPrivatePCH.h"
 #include "SLoginFlow.h"
 #include "LoginFlowViewModel.h"
 #include "SWebBrowser.h"
@@ -8,6 +7,8 @@
 #include "IWebBrowserPopupFeatures.h"
 #include "IWebBrowserDialog.h"
 #include "SWindowTitleBar.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/ScopeLock.h"
 
 class SLoginFlowImpl 
 	: public SLoginFlow
@@ -16,6 +17,7 @@ public:
 	virtual void Construct(const FArguments& InArgs, const TSharedRef<FLoginFlowViewModel>& InViewModel) override
 	{
 		bEncounteredError = false;
+		bOpenDevTools = false;
 		ViewModel = InViewModel;
 		StyleSet = InArgs._StyleSet;
 
@@ -201,6 +203,7 @@ private:
 		// Chrome debug tools are allowed to open a popup window.
 		if(Url.Contains(TEXT("chrome-devtools")))
 		{
+			bOpenDevTools = true;
 			return false;
 		}
 
@@ -316,11 +319,96 @@ private:
 		check(PopupFeatures.IsValid())
 
 		// All allowed popups, with the exception of the dev tools, are spawned as an overlay on top of the login flow browser.
-		if (PopupFeaturesSP->GetAdditionalFeatures().Find(TEXT("Epic_DevTools")) == INDEX_NONE)
+		if (bOpenDevTools)
+		{
+			bOpenDevTools = false;
+			// Dev tools spawn in a new window.
+			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
+			if (ParentWindow.IsValid())
+			{
+				const int PosX = PopupFeaturesSP->IsXSet() ? PopupFeaturesSP->GetX() : 100;
+				const int PosY = PopupFeaturesSP->IsYSet() ? PopupFeaturesSP->GetY() : 100;
+				const FVector2D BrowserWindowPosition(PosX, PosY);
+
+				const int Width = PopupFeaturesSP->IsWidthSet() ? PopupFeaturesSP->GetWidth() : 800;
+				const int Height = PopupFeaturesSP->IsHeightSet() ? PopupFeaturesSP->GetHeight() : 600;
+				const FVector2D BrowserWindowSize(Width, Height);
+
+				const ESizingRule SizeingRule = PopupFeaturesSP->IsResizable() ? ESizingRule::UserSized : ESizingRule::FixedSize;
+
+				TSharedPtr<IWebBrowserWindow> NewBrowserWindowSP = NewBrowserWindow.Pin();
+				check(NewBrowserWindowSP.IsValid());
+
+				TSharedRef<SWindow> BrowserWindowWidget =
+					SNew(SWindow)
+					.Title(FText::GetEmpty())
+					.ClientSize(BrowserWindowSize)
+					.ScreenPosition(BrowserWindowPosition)
+					.AutoCenter(EAutoCenter::None)
+					.SizingRule(SizeingRule)
+					.SupportsMaximize(SizeingRule != ESizingRule::FixedSize)
+					.SupportsMinimize(SizeingRule != ESizingRule::FixedSize)
+					.HasCloseButton(true)
+					.CreateTitleBar(true)
+					.IsInitiallyMaximized(PopupFeaturesSP->IsFullscreen())
+					.LayoutBorder(FMargin(0));
+
+				// Setup browser widget.
+				TSharedPtr<SWebBrowser> BrowserWidget;
+				BrowserWindowWidget->SetContent(
+					SNew(SBorder)
+					.VAlign(VAlign_Fill)
+					.HAlign(HAlign_Fill)
+					.Padding(0)
+					[
+						SAssignNew(BrowserWidget, SWebBrowser, NewBrowserWindowSP)
+						.ShowControls(PopupFeaturesSP->IsToolBarVisible())
+						.ShowAddressBar(PopupFeaturesSP->IsLocationBarVisible())
+						.OnCreateWindow(this, &SLoginFlowImpl::HandleBrowserCreateWindow)
+						.OnCloseWindow(this, &SLoginFlowImpl::HandleBrowserCloseWindow)
+						.OnShowDialog(this, &SLoginFlowImpl::HandleShowDialog)
+					]);
+
+				// Setup some OnClose stuff.
+				{
+					struct FLocal
+					{
+						static void RequestDestroyWindowOverride(const TSharedRef<SWindow>& Window, TWeakPtr<IWebBrowserWindow> BrowserWindowPtr)
+						{
+							TSharedPtr<IWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+							if (BrowserWindow.IsValid())
+							{
+								if (BrowserWindow->IsClosing())
+								{
+									FSlateApplicationBase::Get().RequestDestroyWindow(Window);
+								}
+								else
+								{
+									// Notify the browser window that we would like to close it.  On the CEF side, this will 
+									//  result in a call to FWebBrowserHandler::DoClose only if the JavaScript onbeforeunload
+									//  event handler allows it.
+									BrowserWindow->CloseBrowser(false);
+								}
+							}
+						}
+					};
+
+					BrowserWindowWidget->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateStatic(&FLocal::RequestDestroyWindowOverride, TWeakPtr<IWebBrowserWindow>(NewBrowserWindow)));
+				}
+
+				FSlateApplication::Get().AddWindow(BrowserWindowWidget);
+				BrowserWindowWidget->BringToFront();
+				FSlateApplication::Get().SetKeyboardFocus(BrowserWidget, EKeyboardFocusCause::SetDirectly);
+
+				BrowserWindowWidgets.Add(NewBrowserWindow, BrowserWindowWidget);
+				return true;
+			}
+		}
+		else
 		{
 			TSharedPtr<IWebBrowserWindow> NewBrowserWindowSP = NewBrowserWindow.Pin();
 			check(NewBrowserWindowSP.IsValid());
-			
+
 			TSharedRef<SWebBrowserView> NewBrowserToOverlay =
 				SNew(SWebBrowserView, NewBrowserWindowSP)
 				.ShowErrorMessage(false)
@@ -336,112 +424,6 @@ private:
 			BrowserOverlayWidgets.Add(NewBrowserWindow, NewBrowserToOverlay);
 
 			return true;
-		}
-		else
-		{
-			// Dev tools spawn in a new window.
-			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SharedThis(this));
-			if (ParentWindow.IsValid())
-			{
-				const int PosX = PopupFeaturesSP->IsXSet() ? PopupFeaturesSP->GetX() : 100;
-				const int PosY = PopupFeaturesSP->IsYSet() ? PopupFeaturesSP->GetY() : 100;
-				const FVector2D BrowserWindowPosition(PosX, PosY);
-
-				const int Width = PopupFeaturesSP->IsWidthSet() ? PopupFeaturesSP->GetWidth() : 800;
-				const int Height = PopupFeaturesSP->IsHeightSet() ? PopupFeaturesSP->GetHeight() : 600;
-				const FVector2D BrowserWindowSize(Width, Height);
-
-				bool bHideTitleBar = PopupFeaturesSP->GetAdditionalFeatures().Find(TEXT("Epic_HideTitleBar")) != INDEX_NONE;
-
-				const ESizingRule SizeingRule = PopupFeaturesSP->IsResizable() ? ESizingRule::UserSized : ESizingRule::FixedSize;
-
-				TSharedPtr<IWebBrowserWindow> NewBrowserWindowSP = NewBrowserWindow.Pin();
-				check(NewBrowserWindowSP.IsValid());
-
-				TSharedRef<SWindow> BrowserWindowWidget =
-					SNew(SWindow)
-					.Title(FText::FromString("Debug Tools"))
-					.ClientSize(BrowserWindowSize)
-					.ScreenPosition(BrowserWindowPosition)
-					.AutoCenter(EAutoCenter::None)
-					.SizingRule(SizeingRule)
-					.SupportsMaximize(SizeingRule != ESizingRule::FixedSize)
-					.SupportsMinimize(SizeingRule != ESizingRule::FixedSize)
-					.HasCloseButton(true)
-					.CreateTitleBar(false)
-					.IsInitiallyMaximized(PopupFeaturesSP->IsFullscreen())
-					.LayoutBorder(FMargin(0));
-
-				// Setup browser widget.
-				TSharedPtr<SWebBrowser> BrowserWidget;
-				{
-					TSharedPtr<SVerticalBox> Contents;
-					BrowserWindowWidget->SetContent(
-						SNew(SBorder)
-						.VAlign(VAlign_Fill)
-						.HAlign(HAlign_Fill)
-						.Padding(0)
-						[
-							SAssignNew(Contents, SVerticalBox)
-						]);
-
-					if (!bHideTitleBar)
-					{
-						Contents->AddSlot()
-						.VAlign(VAlign_Top)
-						.AutoHeight()
-						[
-							SNew(SWindowTitleBar, BrowserWindowWidget, nullptr, HAlign_Center)
-							.ShowAppIcon(false)
-							.Title(FText::GetEmpty())
-						];
-					}
-
-					Contents->AddSlot()
-					[
-						SAssignNew(BrowserWidget, SWebBrowser, NewBrowserWindowSP)
-						.ShowControls(PopupFeaturesSP->IsToolBarVisible())
-						.ShowAddressBar(PopupFeaturesSP->IsLocationBarVisible())
-						.OnCreateWindow(this, &SLoginFlowImpl::HandleBrowserCreateWindow)
-						.OnCloseWindow(this, &SLoginFlowImpl::HandleBrowserCloseWindow)
-						.OnShowDialog(this, &SLoginFlowImpl::HandleShowDialog)
-					];
-				}
-
-				// Setup some OnClose stuff.
-			{
-				struct FLocal
-				{
-					static void RequestDestroyWindowOverride(const TSharedRef<SWindow>& Window, TWeakPtr<IWebBrowserWindow> BrowserWindowPtr)
-					{
-						TSharedPtr<IWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-						if (BrowserWindow.IsValid())
-						{
-							if (BrowserWindow->IsClosing())
-							{
-								FSlateApplicationBase::Get().RequestDestroyWindow(Window);
-							}
-							else
-							{
-								// Notify the browser window that we would like to close it.  On the CEF side, this will 
-								//  result in a call to FWebBrowserHandler::DoClose only if the JavaScript onbeforeunload
-								//  event handler allows it.
-								BrowserWindow->CloseBrowser(false);
-							}
-						}
-					}
-				};
-
-				BrowserWindowWidget->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateStatic(&FLocal::RequestDestroyWindowOverride, TWeakPtr<IWebBrowserWindow>(NewBrowserWindow)));
-			}
-
-			FSlateApplication::Get().AddWindow(BrowserWindowWidget);
-			BrowserWindowWidget->BringToFront();
-			FSlateApplication::Get().SetKeyboardFocus(BrowserWidget, EKeyboardFocusCause::SetDirectly);
-
-			BrowserWindowWidgets.Add(NewBrowserWindow, BrowserWindowWidget);
-			return true;
-			}
 		}
 
 		return false;
@@ -486,6 +468,7 @@ private:
 	FCriticalSection NavigationQueueCS;
 
 	bool bEncounteredError;
+	bool bOpenDevTools;
 	const ISlateStyle* StyleSet;
 };
 

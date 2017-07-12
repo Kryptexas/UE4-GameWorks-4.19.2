@@ -30,7 +30,7 @@ class FPostProcessMorpheusPS : public FGlobalShader
 		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
 		// but a user will not necessarily have the Morpheus files
 		bool bEnableMorpheus = false;
-		if (GConfig->GetBool(TEXT("/Script/MorpheusEditor.MorpheusRuntimeSettings"), TEXT("bEnableMorpheus"), bEnableMorpheus, GEngineIni))
+		if (Platform == EShaderPlatform::SP_PS4 && GConfig->GetBool(TEXT("/Script/MorpheusEditor.MorpheusRuntimeSettings"), TEXT("bEnableMorpheus"), bEnableMorpheus, GEngineIni))
 		{
 			return bEnableMorpheus;
 		}
@@ -185,8 +185,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusVS, TEXT("/Engine/Private/MorpheusInclude.usf"), TEXT("MainVS"), SF_Vertex);
-IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS,TEXT("/Engine/Private/MorpheusInclude.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusVS, TEXT("/Engine/Private/PostProcessHMDMorpheus.usf"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FPostProcessMorpheusPS, TEXT("/Engine/Private/PostProcessHMDMorpheus.usf"), TEXT("MainPS"), SF_Pixel);
 
 void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context)
 {

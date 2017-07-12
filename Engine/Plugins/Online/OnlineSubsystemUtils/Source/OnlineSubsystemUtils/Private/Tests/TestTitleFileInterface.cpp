@@ -40,7 +40,7 @@ void FTestTitleFileInterface::FinishTest()
 	delete this;
 }
 
-void FTestTitleFileInterface::OnEnumerateFilesComplete(bool bSuccess)
+void FTestTitleFileInterface::OnEnumerateFilesComplete(bool bSuccess, const FString& ErrorStr)
 {
 	TArray<FCloudFileHeader> Files;
 	OnlineTitleFile->GetFileList(Files);

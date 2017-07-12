@@ -238,7 +238,7 @@ struct FHotfixFileSortPredicate
 	}
 };
 
-void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
+void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful, const FString& ErrorStr)
 {
 	if (bWasSuccessful)
 	{
@@ -321,7 +321,7 @@ void UOnlineHotfixManager::CheckAvailability(FOnHotfixAvailableComplete& InCompl
 	}
 }
 
-void UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete(bool bWasSuccessful, FOnHotfixAvailableComplete InCompletionDelegate)
+void UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete(bool bWasSuccessful, const FString& ErrorStr, FOnHotfixAvailableComplete InCompletionDelegate)
 {
 	if (OnlineTitleFile.IsValid())
 	{

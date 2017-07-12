@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.17
+Version: 4.18
 
 ### Read/Write Properties
 $ Type (ModuleType): Type of module

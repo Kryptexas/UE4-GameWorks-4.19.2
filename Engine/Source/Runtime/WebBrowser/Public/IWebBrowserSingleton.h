@@ -145,7 +145,6 @@ public:
 
 	virtual bool UnregisterContext(const FString& ContextId) = 0;
 
-#define WEBBROWSER_HASAPPLICATIONCACHEDIR 1
 	// @return the application cache dir where the cookies are stored
 	virtual FString ApplicationCacheDir() const = 0;
 

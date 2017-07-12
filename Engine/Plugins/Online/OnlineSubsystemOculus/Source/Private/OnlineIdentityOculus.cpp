@@ -3,6 +3,7 @@
 #include "OnlineIdentityOculus.h"
 #include "OnlineSubsystemOculusPrivate.h"
 #include "OnlineSubsystemOculusPackage.h"
+#include "OnlineError.h"
 
 bool FUserOnlineAccountOculus::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const
 {
@@ -250,7 +251,17 @@ FString FOnlineIdentityOculus::GetAuthToken(int32 LocalUserNum) const
 	return FString();
 }
 
-FOnlineIdentityOculus::FOnlineIdentityOculus(class FOnlineSubsystemOculus& InSubsystem)
+void FOnlineIdentityOculus::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityOculus::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	OculusSubsystem.ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
+}
+
+FOnlineIdentityOculus::FOnlineIdentityOculus(FOnlineSubsystemOculus& InSubsystem)
 	: OculusSubsystem(InSubsystem)
 {
 	// Auto login the 0-th player

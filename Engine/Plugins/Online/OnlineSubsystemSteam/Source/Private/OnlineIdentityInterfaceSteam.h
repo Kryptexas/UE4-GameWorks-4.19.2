@@ -7,6 +7,8 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemSteamPackage.h"
 
+class FOnlineSubsystemSteam;
+
 class FOnlineIdentitySteam :
 	public IOnlineIdentity
 {
@@ -15,9 +17,12 @@ class FOnlineIdentitySteam :
 	/** The steam friends interface to use when interacting with steam */
 	class ISteamFriends* SteamFriendsPtr;
 
+	/** Cached pointer to owning subsystem */
+	FOnlineSubsystemSteam* SteamSubsystem;
+
 PACKAGE_SCOPE:
 
-	FOnlineIdentitySteam();	
+	FOnlineIdentitySteam(FOnlineSubsystemSteam* InSubsystem);
 
 public:
 
@@ -38,6 +43,7 @@ public:
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
 	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
+	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 	virtual FString GetAuthType() const override;

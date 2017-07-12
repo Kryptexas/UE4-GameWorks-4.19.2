@@ -23,6 +23,11 @@ Notes:
 #include "IPAddress.h"
 #include "Sockets.h"
 
+/** For backwards compatibility with the engine stateless connect code */
+#ifndef STATELESSCONNECT_HAS_RANDOM_SEQUENCE
+	#define STATELESSCONNECT_HAS_RANDOM_SEQUENCE 0
+#endif
+
 /*-----------------------------------------------------------------------------
 	Declarations.
 -----------------------------------------------------------------------------*/
@@ -416,6 +421,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 						Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
 						check(Connection);
 
+#if STATELESSCONNECT_HAS_RANDOM_SEQUENCE
 						// Set the initial packet sequence from the handshake data
 						if (StatelessConnect.IsValid())
 						{
@@ -426,6 +432,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 							Connection->InitSequence(ClientSequence, ServerSequence);
 						}
+#endif
 
 						Connection->InitRemoteConnection( this, Socket,  FURL(), *FromAddr, USOCK_Open);
 

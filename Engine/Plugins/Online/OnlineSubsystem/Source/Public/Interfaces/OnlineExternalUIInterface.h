@@ -211,7 +211,8 @@ struct FShowSendMessageParams
 enum class EPlatformMessageType
 {
 	EmptyStore,
-	ChatRestricted
+	ChatRestricted,
+	UGCRestricted
 };
 
 /** 

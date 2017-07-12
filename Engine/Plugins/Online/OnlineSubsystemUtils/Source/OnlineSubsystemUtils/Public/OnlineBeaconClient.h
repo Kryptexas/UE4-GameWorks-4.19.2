@@ -70,6 +70,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	bool InitClient(FURL& URL);
 
 	/**
+	 * Sets the encryption token that will be sent to servers on connection requests as a parameter to the NMT_Hello message.
+	 *
+	 * @param EncryptionToken the token to use
+	 */
+	void SetEncryptionToken(const FString& InEncryptionToken);
+
+	/**
 	 * Send the packet for triggering the initial join
 	 */
 	void SendInitialJoin();
@@ -161,6 +168,9 @@ protected:
 	FTimerHandle TimerHandle_OnFailure;
 
 private:
+
+	/** Token sent to servers when connecting with an NMT_Hello message. */
+	FString EncryptionToken;
 
 	/**
 	 * Called on the server side to open up the actor channel that will allow RPCs to occur

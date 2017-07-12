@@ -1088,14 +1088,14 @@ struct FCloudFileHeader
 
 	/** Constructors */
 	FCloudFileHeader() :
-		FileSize(0) ,
+		FileSize(0),
 		ChunkID(0)
 	{}
 
 	FCloudFileHeader(const FString& InFileName, const FString& InDLName, int32 InFileSize) :
 		DLName(InDLName),
 		FileName(InFileName),
-		FileSize(InFileSize) ,
+		FileSize(InFileSize),
 		ChunkID(0)
 	{}
 

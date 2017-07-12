@@ -11,12 +11,6 @@
 #include <SDL.h>
 #endif
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-
-	#if VULKAN_ENABLE_DRAW_MARKERS
-		#define RENDERDOC_LAYER_NAME	"VK_LAYER_RENDERDOC_Capture"
-	#endif
-
 TAutoConsoleVariable<int32> GValidationCvar(
 	TEXT("r.Vulkan.EnableValidation"),
 	0,
@@ -28,6 +22,12 @@ TAutoConsoleVariable<int32> GValidationCvar(
 	TEXT("5 to enable all messages"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe
 	);
+
+#if VULKAN_HAS_DEBUGGING_ENABLED
+
+	#if VULKAN_ENABLE_DRAW_MARKERS
+		#define RENDERDOC_LAYER_NAME	"VK_LAYER_RENDERDOC_Capture"
+	#endif
 
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GRequiredLayersInstance[] =
@@ -439,7 +439,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		}
 	}
 
-	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions); ++Index)
+	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions) && GDeviceExtensions[Index] != nullptr; ++Index)
 	{
 		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
 		{

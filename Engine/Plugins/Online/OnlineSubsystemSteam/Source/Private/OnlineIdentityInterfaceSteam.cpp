@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineIdentityInterfaceSteam.h"
-#include "OnlineSubsystem.h"
+#include "OnlineSubsystemSteam.h"
 #include "OnlineSubsystemSteamTypes.h"
+#include "OnlineError.h"
 
-FOnlineIdentitySteam::FOnlineIdentitySteam() :
+FOnlineIdentitySteam::FOnlineIdentitySteam(FOnlineSubsystemSteam* InSubsystem) :
 	SteamUserPtr(NULL),
-	SteamFriendsPtr(NULL)
+	SteamFriendsPtr(NULL),
+	SteamSubsystem(InSubsystem)
 {
 	SteamUserPtr = SteamUser();
 	SteamFriendsPtr = SteamFriends();
@@ -200,6 +202,16 @@ FString FOnlineIdentitySteam::GetAuthToken(int32 LocalUserNum) const
 		}
 	}	
 	return ResultToken;
+}
+
+void FOnlineIdentitySteam::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentitySteam::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	SteamSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
 }
 
 void FOnlineIdentitySteam::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)

@@ -30,6 +30,7 @@ FXmppConnectionStrophe::FXmppConnectionStrophe()
 void FXmppConnectionStrophe::SetServer(const FXmppServer& NewServerConfiguration)
 {
 	ServerConfiguration = NewServerConfiguration;
+	ServerConfiguration.ClientResource = FXmppUserJid::CreateResource(ServerConfiguration.AppId, ServerConfiguration.Platform, ServerConfiguration.PlatformUserId);
 }
 
 const FXmppServer& FXmppConnectionStrophe::GetServer() const
@@ -39,7 +40,7 @@ const FXmppServer& FXmppConnectionStrophe::GetServer() const
 
 void FXmppConnectionStrophe::Login(const FString& UserId, const FString& Auth)
 {
-	FXmppUserJid NewJid(UserId, ServerConfiguration.Domain, FXmppUserJid::CreateResource(ServerConfiguration.AppId, ServerConfiguration.Platform));
+	FXmppUserJid NewJid(UserId, ServerConfiguration.Domain, ServerConfiguration.ClientResource);
 	if (!NewJid.IsValid())
 	{
 		UE_LOG(LogXmpp, Error, TEXT("Invalid Jid %s"), *UserJid.GetFullPath());

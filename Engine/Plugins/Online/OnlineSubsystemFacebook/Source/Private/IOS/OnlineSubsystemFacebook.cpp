@@ -60,12 +60,14 @@ bool FOnlineSubsystemFacebook::Init()
 		FCoreDelegates::ApplicationHasReactivatedDelegate.AddStatic(&OnFacebookAppDidBecomeActive);
 
 		FOnlineIdentityFacebookPtr TempPtr = MakeShareable(new FOnlineIdentityFacebook(this));
-		TempPtr->Init();
-		FacebookIdentity = TempPtr;
+		if (TempPtr->Init())
+		{
+			FacebookIdentity = TempPtr;
+		}
 		FacebookSharing = MakeShareable(new FOnlineSharingFacebook(this));
 		FacebookFriends = MakeShareable(new FOnlineFriendsFacebook(this));
 		FacebookUser = MakeShareable(new FOnlineUserFacebook(this));
-
+		
 		// Trigger Facebook SDK last now that everything is setup
 		dispatch_async(dispatch_get_main_queue(), ^
 		{
@@ -75,7 +77,7 @@ bool FOnlineSubsystemFacebook::Init()
 			[[FBSDKApplicationDelegate sharedInstance] application:sharedApp didFinishLaunchingWithOptions : launchDict];
 		});
 
-		bSuccessfullyStartedUp = true;
+		bSuccessfullyStartedUp = FacebookIdentity.IsValid() && FacebookSharing.IsValid() && FacebookFriends.IsValid() && FacebookUser.IsValid();
 	}
 	return bSuccessfullyStartedUp;
 }

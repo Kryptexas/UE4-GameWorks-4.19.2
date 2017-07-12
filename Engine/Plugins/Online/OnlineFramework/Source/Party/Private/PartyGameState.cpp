@@ -1521,6 +1521,7 @@ void UPartyGameState::OnReservationBeaconUpdateResponseReceived(EPartyReservatio
 		ReservationResponse == EPartyReservationResult::ReservationDuplicate)
 	{
 		UWorld* World = GetWorld();
+		check(World);
 
 		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
 		TSharedPtr<const FOnlinePartyId> PartyId = GetPartyId();
@@ -1539,14 +1540,12 @@ void UPartyGameState::OnReservationBeaconUpdateResponseReceived(EPartyReservatio
 		}
 
 		// Check if there are any more while we are connected
-		if (PendingApprovals.Dequeue(PendingApproval))
+		FPendingMemberApproval NextApproval;
+		if (PendingApprovals.Peek(NextApproval))
 		{
 			if (ensure(ReservationBeaconClient))
 			{
 				FUniqueNetIdRepl PartyLeader(GetPartyLeader());
-
-				FPendingMemberApproval NextApproval;
-				PendingApprovals.Peek(NextApproval);
 
 				FPlayerReservation NewPlayerRes;
 				NewPlayerRes.UniqueId = NextApproval.SenderId;
@@ -1555,6 +1554,11 @@ void UPartyGameState::OnReservationBeaconUpdateResponseReceived(EPartyReservatio
 				PlayersToAdd.Add(NewPlayerRes);
 
 				ReservationBeaconClient->RequestReservationUpdate(PartyLeader, PlayersToAdd);
+			}
+			else
+			{
+				UE_LOG(LogParty, Warning, TEXT("UPartyGameState::OnReservationBeaconUpdateResponseReceived: ReservationBeaconClient is null while trying to process more requests"));
+				RejectAllPendingJoinRequests();
 			}
 		}
 		else

@@ -2,7 +2,7 @@
 
 #include "OnlineIdentityInterfaceGameCircle.h"
 #include "OnlineSubsystemGameCircle.h"
-
+#include "OnlineError.h"
 
 FOnlineIdentityGameCircle::FOnlineIdentityGameCircle(FOnlineSubsystemGameCircle* InSubsystem)
 	: MainSubsystem(InSubsystem)
@@ -101,6 +101,16 @@ FString FOnlineIdentityGameCircle::GetAuthToken(int32 LocalUserNum) const
 	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGameCircle::GetAuthToken not implemented"));
 	FString ResultToken;
 	return ResultToken;
+}
+
+void FOnlineIdentityGameCircle::RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGameCircle::RevokeAuthToken not implemented"));
+	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
+	MainSubsystem->ExecuteNextTick([UserIdRef, Delegate]()
+	{
+		Delegate.ExecuteIfBound(*UserIdRef, FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
+	});
 }
 
 void FOnlineIdentityGameCircle::Tick(float DeltaTime)

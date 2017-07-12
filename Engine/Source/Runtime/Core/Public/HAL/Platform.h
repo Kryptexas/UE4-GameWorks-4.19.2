@@ -75,7 +75,7 @@
 #elif PLATFORM_MAC
 	#include "Mac/MacPlatformCompilerPreSetup.h"
 #elif PLATFORM_IOS
-	#include "iOS/IOSPlatformCompilerPreSetup.h"
+	#include "IOS/IOSPlatformCompilerPreSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatformCompilerPreSetup.h"
 #elif PLATFORM_HTML5

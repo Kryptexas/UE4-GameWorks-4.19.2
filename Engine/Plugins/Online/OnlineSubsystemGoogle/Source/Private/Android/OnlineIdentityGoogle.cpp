@@ -10,7 +10,6 @@
 
 FOnlineIdentityGoogle::FOnlineIdentityGoogle(FOnlineSubsystemGoogle* InSubsystem)
 	: FOnlineIdentityGoogleCommon(InSubsystem)
-	, bHasLoginOutstanding(false)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineIdentityGoogle::FOnlineIdentityGoogle()"));
 

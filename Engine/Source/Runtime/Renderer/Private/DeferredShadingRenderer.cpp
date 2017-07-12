@@ -636,12 +636,16 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	bool bComputeLightGrid = false;
 	if (bUseGBuffer)
 	{
-		bComputeLightGrid = bRenderDeferredLighting || ShouldRenderVolumetricFog();
+		bComputeLightGrid = bRenderDeferredLighting;
 	}
 	else
 	{
-		bComputeLightGrid = ViewFamily.EngineShowFlags.Lighting || ShouldRenderVolumetricFog();
+		bComputeLightGrid = ViewFamily.EngineShowFlags.Lighting;
 	}
+
+	bComputeLightGrid |= (
+		ShouldRenderVolumetricFog() ||
+		ViewFamily.ViewMode != VMI_Lit);
 
 	if (ClearMethodCVar)
 	{

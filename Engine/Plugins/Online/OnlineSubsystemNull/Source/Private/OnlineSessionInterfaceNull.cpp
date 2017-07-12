@@ -309,6 +309,7 @@ bool FOnlineSessionNull::IsSessionJoinable(const FNamedOnlineSession& Session) c
 	return bIsAdvertised && bJoinableFromProgress && bAreSpacesAvailable;
 }
 
+
 uint32 FOnlineSessionNull::UpdateLANStatus()
 {
 	uint32 Result = ERROR_SUCCESS;
