@@ -4,8 +4,9 @@
 #include "TangoPrimitives.h"
 #if PLATFORM_ANDROID
 #include "tango_support_api.h"
-#endif
 #include <set>
+#endif
+
 
 class FTangoDevice;
 
@@ -15,12 +16,14 @@ class FTangoPointCloud
 public:
 	FTangoPointCloud();
 	bool FitPlane(UWorld* World, const FVector2D& ScreenPoint, FTransform& Pose);
+#if PLATFORM_ANDROID
 	bool FindFloorPlane(
 		UWorld* World,
 		TMap<int32, int32> & NumUpPoints,
 		std::set<int32>& NonNoiseBuckets,
 		double& LastPointCloudTimestamp,
 		float& PlaneZ);
+#endif
 	bool GetRawDepthToWorldTransform(double Timestamp, FTransform& RawDepthToWorldTransform, bool bIgnoreDisplayRotation = false) const;
 	bool GetRawDepthToWorldMatrix(double Timestamp, FMatrix& RawDepthToWorldMatrix, bool bIgnoreDisplayRotation = false) const
 	{
@@ -81,6 +84,7 @@ private:
 	TangoPointCloud* LatestPointCloud;
 	FTangoPose LatestPointCloudPose;
 	TangoSupportPointCloudManager* PointCloudManager;
+	int32 MaxPointCloudElements = 0;
 #endif
 	FMatrix TangoToUnrealCameraMatrix;
 	FTransform TangoToUnrealCameraTransform;
