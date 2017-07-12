@@ -847,7 +847,10 @@ protected:
 	void IssueLongGPUTask();
 
 	// Some platforms might want to override this
-	virtual void SetScissorRectIfRequiredWhenSettingViewport(uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) {}
+	virtual void SetScissorRectIfRequiredWhenSettingViewport(uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	{
+		RHISetScissorRect(true, MinX, MinY, MaxX, MaxY);
+	}
 
 	/**
 	* Returns a pointer to a texture resource that can be used for CPU reads.
