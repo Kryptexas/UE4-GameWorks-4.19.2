@@ -23,11 +23,13 @@ class ILayoutCache;
 struct FSlateRenderingOptions
 {
 	FMatrix ViewProjectionMatrix;
+	FVector2D ViewOffset;
 	bool bAllowSwitchVerticalAxis;
 	bool bWireFrame;
 
 	FSlateRenderingOptions(const FMatrix& InViewProjectionMatrix)
 		: ViewProjectionMatrix(InViewProjectionMatrix)
+		, ViewOffset(0, 0)
 		, bAllowSwitchVerticalAxis(true)
 		, bWireFrame(false)
 	{

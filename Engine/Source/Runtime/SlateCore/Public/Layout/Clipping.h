@@ -166,6 +166,10 @@ public:
 
 	FORCEINLINE bool GetAlwaysClip() const { return bAlwaysClips; }
 
+	/**
+	 * Gets the type of clipping that is required by this clipping state.  The simpler clipping is
+	 * scissor clipping, but that's only possible if the clipping rect is axis aligned.
+	 */
 	FORCEINLINE EClippingMethod GetClippingMethod() const
 	{
 		return ScissorRect.IsSet() ? EClippingMethod::Scissor : EClippingMethod::Stencil;
