@@ -6,6 +6,7 @@
 #include "ActiveSound.h"
 #include "IAudioExtensionPlugin.h"
 #include "Sound/AudioSettings.h"
+#include "ContentStreaming.h"
 
 static int32 DisableHRTFCvar = 0;
 FAutoConsoleVariableRef CVarDisableHRTF(
@@ -354,6 +355,8 @@ namespace Audio
 	void FMixerSource::Stop()
 	{
 		bInitialized = false;
+		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
 		if (WaveInstance)
 		{
 			FScopeLock Lock(&RenderThreadCritSect);
