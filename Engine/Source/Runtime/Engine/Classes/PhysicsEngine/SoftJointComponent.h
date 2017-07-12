@@ -39,9 +39,6 @@ class ENGINE_API USoftJointComponent : public USceneComponent
 	/** Whether it has been initialized */
 	bool JointIsInitialized;
 
-	/** Whether it should be destroyed */
-	bool ShouldDestroy;
-
 	NvFlexExtJoint* Joint;
 
 	/** Add an object type for this soft joint to affect */
@@ -60,6 +57,9 @@ public:
 	FORCEINLINE int32 GetNumParticles() const { return NumParticles; }
 
 protected:
+
+	virtual void OnUnregister() override;
+
 	/** The object types that are affected by this radial force */
 	UPROPERTY(EditAnywhere, Category = RadialForceComponent)
 		TArray<TEnumAsByte<enum EObjectTypeQuery> > ObjectTypesToAffect;
