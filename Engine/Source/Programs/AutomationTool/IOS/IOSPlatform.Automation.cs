@@ -876,24 +876,24 @@ public class IOSPlatform : Platform
                         DirectoryReference DataPath = DirectoryReference.Combine(SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "Graphics");
                         if (bSupportsPortrait)
                         {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.jpg", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.png", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         }
                         if (bSupportsLandscape)
                         {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         }
-						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.jpg", false, null, new StagedDirectoryReference(""), true, false);
-						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.png", false, null, new StagedDirectoryReference(""), true, false);
+						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, new StagedDirectoryReference(""), true, false);
                     }
@@ -903,24 +903,24 @@ public class IOSPlatform : Platform
 						DirectoryReference DataPath = DirectoryReference.Combine(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
                         if (bSupportsPortrait)
                         {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.jpg", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6.png", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait@2x.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Portrait-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         }
                         if (bSupportsLandscape)
                         {
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.jpg", false, null, new StagedDirectoryReference(""), true, false);
-							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+                            SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-IPhone6Plus-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape@2x.png", false, null, new StagedDirectoryReference(""), true, false);
+							//                           SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336.png", false, null, new StagedDirectoryReference(""), true, false);
+							SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-Landscape-1336@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         }
-						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.jpg", false, null, new StagedDirectoryReference(""), true, false);
-						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.jpg", false, null, new StagedDirectoryReference(""), true, false);
+						//                       SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default.png", false, null, new StagedDirectoryReference(""), true, false);
+						SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         SC.StageFiles(StagedFileType.NonUFS, DataPath, "Default-568h@2x.png", false, null, new StagedDirectoryReference(""), true, false);
                         SC.StageFiles(StagedFileType.NonUFS, DataPath, "Icon*.png", false, null, new StagedDirectoryReference(""), true, false);
                     }
