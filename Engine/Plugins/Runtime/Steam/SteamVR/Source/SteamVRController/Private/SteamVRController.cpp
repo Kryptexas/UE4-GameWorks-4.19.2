@@ -929,7 +929,9 @@ private:
 };
 
 FName FSteamVRController::DeviceTypeName(TEXT("SteamVRController"));
+/// @cond DOXYGEN_WARNINGS
 ESteamVRTouchDPadMapping FSteamVRController::DefaultDPadMapping = ESteamVRTouchDPadMapping::FaceButtons;
+/// @endcond
 
 // defined here in this .cpp file so we have access to FSteamVRController
 void USteamVRControllerLibrary::SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)
