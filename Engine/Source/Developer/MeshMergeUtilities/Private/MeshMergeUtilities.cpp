@@ -1377,6 +1377,11 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 					DataTracker.RemoveRawMesh(ComponentIndex, LODIndex);
 					break;
 				}
+				else if(Component->GetStaticMesh() != nullptr)
+				{
+					// If the mesh is valid at this point, record the lightmap UV so we have a record for use later
+					DataTracker.AddLightmapChannelRecord(ComponentIndex, LODIndex, Component->GetStaticMesh()->LightMapCoordinateIndex);
+				}
 
 				DataTracker.AddLODIndex(LODIndex);
 			}
@@ -1450,6 +1455,11 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			if (!bValidMesh)
 			{
 				DataTracker.RemoveRawMesh(ComponentIndex, LODIndex);
+			}
+			else if(Component->GetStaticMesh() != nullptr)
+			{
+				// If the mesh is valid at this point, record the lightmap UV so we have a record for use later
+				DataTracker.AddLightmapChannelRecord(ComponentIndex, LODIndex, Component->GetStaticMesh()->LightMapCoordinateIndex);
 			}
 		}
 	}

@@ -94,6 +94,9 @@ public:
 	/** Returns a non-const key/value iterator for the FRawMesh entries */ 
 	TRawMeshIterator GetRawMeshIterator();
 
+	/** Adds a record of what channel lightmap data is stored at */
+	void AddLightmapChannelRecord(int32 MeshIndex, int32 LODIndex, int32 LightmapChannelIndex);
+
 	/** Adds (unique) section to stored data */
 	int32 AddSection(const FSectionInfo& SectionInfo);
 	/** Returns the number of unique sections */
@@ -124,6 +127,11 @@ public:
 protected:
 	// Mesh / LOD index, RawMesh
 	TMap<FMeshLODKey, FRawMesh> RawMeshLODs;
+
+	// Mesh / LOD index, lightmap channel
+	TMap<FMeshLODKey, int32> LightmapChannelLODs;
+
+	// Whether a key requires unique UVs 
 	TArray<FMeshLODKey> RequiresUniqueUVs;
 	
 	/** Flags for UV and vertex color usage */
