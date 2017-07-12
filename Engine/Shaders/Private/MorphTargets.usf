@@ -17,11 +17,7 @@ uint MorphWorkItems;
 uint2 OffsetAndSize;
 float4 PositionScale;
 
-#if COMPILER_HLSLCC
 Buffer<uint> VertexIndicies;
-#else
-StructuredBuffer<uint> VertexIndicies;
-#endif
 Buffer<float> MorphDeltas;
 
 
