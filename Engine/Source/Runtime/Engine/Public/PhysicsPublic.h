@@ -893,4 +893,4 @@ public:
 
 };
 
-extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule();
+extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad = true);

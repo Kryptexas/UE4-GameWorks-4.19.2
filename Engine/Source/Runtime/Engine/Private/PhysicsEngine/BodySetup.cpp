@@ -69,14 +69,26 @@ namespace PhysXBodySetupCookStats
 
 DEFINE_STAT(STAT_PhysXCooking);
 
-IPhysXCookingModule* GetPhysXCookingModule()
+IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad)
 {
 	check(IsInGameThread());
+
+	if (bForceLoad)
+	{
 #if WITH_PHYSX_COOKING
-	return FModuleManager::LoadModulePtr<IPhysXCookingModule>("PhysXCooking");	//in some configurations (for example the editor) we must have physx cooking
+		return FModuleManager::LoadModulePtr<IPhysXCookingModule>("PhysXCooking");	//in some configurations (for example the editor) we must have physx cooking
 #else
-	return FModuleManager::LoadModulePtr<IPhysXCookingModule>("RuntimePhysXCooking");	//in some configurations (mobile) we can choose to opt in for physx cooking via plugin
+		return FModuleManager::LoadModulePtr<IPhysXCookingModule>("RuntimePhysXCooking");	//in some configurations (mobile) we can choose to opt in for physx cooking via plugin
 #endif
+	}
+	else
+	{
+#if WITH_PHYSX_COOKING
+		return FModuleManager::GetModulePtr<IPhysXCookingModule>("PhysXCooking");	//in some configurations (for example the editor) we must have physx cooking
+#else
+		return FModuleManager::GetModulePtr<IPhysXCookingModule>("RuntimePhysXCooking");	//in some configurations (mobile) we can choose to opt in for physx cooking via plugin
+#endif
+	}
 }
 
 bool IsRuntimeCookingEnabled()
