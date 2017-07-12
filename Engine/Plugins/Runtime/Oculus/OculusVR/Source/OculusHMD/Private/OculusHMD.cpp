@@ -1680,7 +1680,7 @@ namespace OculusHMD
 		{
 			if (SplashLayerHandle)
 			{
-				FSplashDesc CurrentDesc;
+				FOculusSplashDesc CurrentDesc;
 				Splash->GetSplash(0, CurrentDesc);
 				CurrentDesc.LoadedTexture = Texture;
 				CurrentDesc.TextureOffset = SplashOffset;
@@ -1690,7 +1690,7 @@ namespace OculusHMD
 			{
 				Splash->ClearSplashes();
 
-				FSplashDesc NewDesc;
+				FOculusSplashDesc NewDesc;
 				NewDesc.LoadedTexture = Texture;
 				NewDesc.QuadSizeInMeters = FVector2D(8.0f, 4.5f);
 

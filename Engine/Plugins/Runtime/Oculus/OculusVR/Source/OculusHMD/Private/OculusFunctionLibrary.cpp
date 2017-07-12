@@ -207,7 +207,7 @@ void UOculusFunctionLibrary::AddLoadingSplashScreen(class UTexture2D* Texture, F
 			}
 			Splash->SetLoadingIconMode(false);
 
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.LoadingTexture = Texture;
 			Desc.QuadSizeInMeters = SizeInMeters;
 			Desc.TransformInMeters = FTransform(Rotation, TranslationInMeters);
@@ -310,7 +310,7 @@ void UOculusFunctionLibrary::ShowLoadingIcon(class UTexture2D* Texture)
 		if (Splash)
 		{
 			Splash->ClearSplashes();
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.LoadingTexture = Texture;
 			Splash->AddSplash(Desc);
 			Splash->SetLoadingIconMode(true);
@@ -365,7 +365,7 @@ void UOculusFunctionLibrary::SetLoadingSplashParams(FString TexturePath, FVector
 		{
 			Splash->ClearSplashes();
 			Splash->SetLoadingIconMode(false);
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.TexturePath = TexturePath;
 			Desc.QuadSizeInMeters = SizeInMeters;
 			Desc.TransformInMeters = FTransform(DistanceInMeters);
@@ -385,7 +385,7 @@ void UOculusFunctionLibrary::GetLoadingSplashParams(FString& TexturePath, FVecto
 		OculusHMD::FSplash* Splash = OculusHMD->GetSplash();
 		if (Splash)
 		{
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			if (Splash->GetSplash(0, Desc))
 			{
 				if (Desc.LoadingTexture && Desc.LoadingTexture->IsValidLowLevel())
@@ -394,7 +394,7 @@ void UOculusFunctionLibrary::GetLoadingSplashParams(FString& TexturePath, FVecto
 				}
 				else
 				{
-					TexturePath = Desc.TexturePath;
+					TexturePath = Desc.TexturePath.ToString();
 				}
 				DistanceInMeters = Desc.TransformInMeters.GetTranslation();
 				SizeInMeters	 = Desc.QuadSizeInMeters;
