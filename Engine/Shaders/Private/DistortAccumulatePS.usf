@@ -69,7 +69,7 @@ void Main(
 	// Sample depth at distortion offset
 	float2 DistortScreenUV = ScreenUV + Distortion;
 
-#if (ES2_PROFILE || ES3_1_PROFILE) 
+#if (ES2_PROFILE || ES3_1_PROFILE) && (!WEBGL)
 	float DistortSceneDepth = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, DistortScreenUV, 0).r);
 #else
 	float DistortSceneDepth = CalcSceneDepth(DistortScreenUV);

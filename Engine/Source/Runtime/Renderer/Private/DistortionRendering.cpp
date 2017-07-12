@@ -1169,10 +1169,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 {
 	// We need access to HDR scene color
+#ifndef UE4_HTML5_TARGET_WEBGL2
 	if (!IsMobileHDR() || IsMobileHDRMosaic())
 	{
 		return;
 	}
+#endif
 
 	// do we need to render the distortion pass?
 	bool bRender=false;
