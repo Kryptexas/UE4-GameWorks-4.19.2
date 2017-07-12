@@ -121,6 +121,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			.HAlign(HAlign_Center)
 			.OnClicked(this, &FPaperTileMapDetailsCustomization::EnterTileMapEditingMode)
 			.Visibility(this, &FPaperTileMapDetailsCustomization::GetNonEditModeVisibility)
+			.IsEnabled(this, &FPaperTileMapDetailsCustomization::GetIsEditModeEnabled)
 			.Text(LOCTEXT("EditAsset", "Edit Map"))
 			.ToolTipText(LOCTEXT("EditAssetToolTip", "Edit this tile map"))
 		]
@@ -389,6 +390,16 @@ FReply FPaperTileMapDetailsCustomization::OnMakeInstanceFromAssetButtonClicked()
 	MyDetailLayout->ForceRefreshDetails();
 
 	return FReply::Handled();
+}
+
+bool FPaperTileMapDetailsCustomization::GetIsEditModeEnabled() const
+{
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
+	{
+		return (TileMapComponent->TileMap != nullptr);
+	}
+	
+	return false;
 }
 
 EVisibility FPaperTileMapDetailsCustomization::GetNonEditModeVisibility() const

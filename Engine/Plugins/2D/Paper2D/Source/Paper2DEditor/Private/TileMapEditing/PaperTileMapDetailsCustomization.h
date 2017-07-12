@@ -44,6 +44,8 @@ private:
 
 	EVisibility GetNewButtonVisiblity() const;
 
+	bool GetIsEditModeEnabled() const;
+
 	bool InLevelEditorContext() const;
 	bool IsInstanced() const;
 
