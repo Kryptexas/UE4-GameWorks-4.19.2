@@ -1065,7 +1065,7 @@ function compileShadersFromJson(jsonData) {
 
 $(document).ready(function() {
 	if (runningAsmJs && !explicitlyLoadedAsmJs) {
-		showWarningRibbon('Your browser does not support WebAssembly, so running the asm.js fallback of this page. This can impact performance.<br>Try updating to latest <a href="https://www.mozilla.org/en-US/firefox/all/">64-bit Firefox</a> for a browser that supports WebAssembly.<br>Current user agent: ' + navigator.userAgent);
+		showWarningRibbon('Your browser does not support WebAssembly, so running the asm.js fallback of this page. This can impact performance.<br>Try updating to latest 64-bit browser that supports WebAssembly.<br>Current user agent: ' + navigator.userAgent);
 	}
 
 	if (!Module['buffer'] && allocateHeapUpFront) {
@@ -1095,7 +1095,7 @@ $(document).ready(function() {
 
 	if (!heuristicIs64Bit('browser')) {
 		if (heuristicIs64Bit('os')) {
-			showWarningRibbon('It looks like you are running a 32-bit browser on a 64-bit operating system. This can dramatically affect performance and risk running out of memory on large applications. Try updating to <a href="https://www.mozilla.org/en-US/firefox/all/">64-bit Firefox</a> for an optimized experience.');
+			showWarningRibbon('It looks like you are running a 32-bit browser on a 64-bit operating system. This can dramatically affect performance and risk running out of memory on large applications. Try updating to a 64-bit browser for an optimized experience.');
 		} else {
 			showWarningRibbon('It looks like your computer hardware is 32-bit. This can dramatically affect performance.');
 		}
@@ -1148,12 +1148,12 @@ $(document).ready(function() {
 
 	function noAsmJsFallbackHostedError() {
 		if (location.search.indexOf('asmjs') != -1) showErrorDialog('There is no asm.js version deployed of this page.'); // Explicitly wanted to run asm.js version, but it did not exist.
-		else showErrorDialog('Your browser does not support WebAssembly (and there is no asm.js fallback deployed of this page). Please try with Firefox 52 or newer.<br>Current user agent: ' + navigator.userAgent); // Automatically tried to fall back to asm.js since browser didn't have wasm, but no asm.js variant existed.
+		else showErrorDialog('Your browser does not support WebAssembly (and there is no asm.js fallback deployed of this page). Please try with latest 64-bit browser.<br>Current user agent: ' + navigator.userAgent); // Automatically tried to fall back to asm.js since browser didn't have wasm, but no asm.js variant existed.
 	}
 
 	// No WebAssembly support?
 	if ((!runningAsmJs || !supportsAsmJsAsFallback) && typeof WebAssembly === 'undefined') {
-		showErrorDialog('Your browser does not support WebAssembly. Please try with Firefox 52 or newer.<br>Current user agent: ' + navigator.userAgent);
+		showErrorDialog('Your browser does not support WebAssembly. Please try with latest 64-bit browser.<br>Current user agent: ' + navigator.userAgent);
 		return;
 	}
 
