@@ -173,7 +173,7 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 
 	if (!OfflineCompiledFlag)
 	{
-		UE_LOG(LogMetal, Display, TEXT("Loaded a non-offline compiled shader (will be slower to load)"));
+		UE_LOG(LogMetal, Display, TEXT("Loaded a text shader (will be slower to load)"));
 	}
 	
 	FMetalCompiledShaderKey Key(Header.SourceLen, Header.SourceCRC);
@@ -840,6 +840,7 @@ FPixelShaderRHIRef FMetalShaderLibrary::CreatePixelShader(const FSHAHash& Hash)
 		}
 	}
 	
+	UE_LOG(LogMetal, Error, TEXT("Failed to find Pixel Shader with SHA: %s"), *Hash.ToString());
 	return FPixelShaderRHIRef();
 }
 
@@ -858,6 +859,7 @@ FVertexShaderRHIRef FMetalShaderLibrary::CreateVertexShader(const FSHAHash& Hash
 			delete Shader;
 		}
 	}
+	UE_LOG(LogMetal, Error, TEXT("Failed to find Vertex Shader with SHA: %s"), *Hash.ToString());
 	return FVertexShaderRHIRef();
 }
 
@@ -876,6 +878,7 @@ FHullShaderRHIRef FMetalShaderLibrary::CreateHullShader(const FSHAHash& Hash)
 			delete Shader;
 		}
 	}
+	UE_LOG(LogMetal, Error, TEXT("Failed to find Hull Shader with SHA: %s"), *Hash.ToString());
 	return FHullShaderRHIRef();
 }
 
@@ -894,6 +897,7 @@ FDomainShaderRHIRef FMetalShaderLibrary::CreateDomainShader(const FSHAHash& Hash
 			delete Shader;
 		}
 	}
+	UE_LOG(LogMetal, Error, TEXT("Failed to find Domain Shader with SHA: %s"), *Hash.ToString());
 	return FDomainShaderRHIRef();
 }
 
@@ -924,6 +928,7 @@ FComputeShaderRHIRef FMetalShaderLibrary::CreateComputeShader(const FSHAHash& Ha
 			delete Shader;
 		}
 	}
+	UE_LOG(LogMetal, Error, TEXT("Failed to find Compute Shader with SHA: %s"), *Hash.ToString());
 	return FComputeShaderRHIRef();
 }
 

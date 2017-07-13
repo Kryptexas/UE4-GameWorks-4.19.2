@@ -42,10 +42,10 @@ public:
 
 	/**
 	 * Can this shader format strip shader code for packaging in a shader library?
-	 * 
+	 * @param bNative Whether the final shader library uses a native format which may determine if the shader is stripped.
 	 * @returns True if and only if the format can strip extraneous data from shaders to be included in a shared library, otherwise false.
 	 */
-	virtual bool CanStripShaderCode(void) const { return false; }
+	virtual bool CanStripShaderCode(bool const bNativeFormat) const { return false; }
 	
 	/**
 	 * Strips the shader bytecode provided of any unnecessary optional data elements when archiving shaders into the shared library.

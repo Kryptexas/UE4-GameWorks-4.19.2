@@ -1786,16 +1786,15 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 	// was the shader already compiled offline?
 	uint8 OfflineCompiledFlag;
 	Ar << OfflineCompiledFlag;
-	check(OfflineCompiledFlag == 0 || OfflineCompiledFlag == 1);
 	
-	if(bNative == false || OfflineCompiledFlag == 1)
+	if(bNative && OfflineCompiledFlag == 1)
 	{
 		// get the header
 		FMetalCodeHeader Header = { 0 };
 		Ar << Header;
 		
 		// Must be compiled for archiving or something is very wrong.
-		if(Header.CompileFlags & (1 << CFLAG_Archive))
+		if(bNative == false || Header.CompileFlags & (1 << CFLAG_Archive))
 		{
 			bSuccess = true;
 			
@@ -1840,9 +1839,6 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 			// Strip any optional data
 			if (bNative || ShaderCode.GetOptionalDataSize() > 0)
 			{
-				// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
-				Header.CompileFlags |= (1 << CFLAG_Archive);
-				
 				// Write out the header and compiled shader code
 				FShaderCode NewCode;
 				FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
@@ -1855,6 +1851,14 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 				Code = NewCode.GetReadAccess();
 			}
 		}
+		else
+		{
+			UE_LOG(LogShaders, Error, TEXT("Shader stripping failed: shader %s (Len: %0.8x, CRC: %0.8x) was not compiled for archiving into a native library (Native: %s, Compile Flags: %0.8x)!"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, bNative ? TEXT("true") : TEXT("false"), (uint32)Header.CompileFlags);
+		}
+	}
+	else
+	{
+		UE_LOG(LogShaders, Error, TEXT("Shader stripping failed: shader %s (Native: %s, Offline Compiled: %d) was not compiled to bytecode for native archiving!"), *DebugPath, bNative ? TEXT("true") : TEXT("false"), OfflineCompiledFlag);
 	}
 	
 	return bSuccess;
@@ -1903,69 +1907,79 @@ uint64 AppendShader_Metal(FName const& Format, FString const& WorkingDir, const 
 		// was the shader already compiled offline?
 		uint8 OfflineCompiledFlag;
 		Ar << OfflineCompiledFlag;
-		check(OfflineCompiledFlag == 0 || OfflineCompiledFlag == 1);
-		
-		// get the header
-		FMetalCodeHeader Header = { 0 };
-		Ar << Header;
-		
-		// Must be compiled for archiving or something is very wrong.
-		check(Header.CompileFlags & (1 << CFLAG_Archive));
-		
-		// remember where the header ended and code (precompiled or source) begins
-		int32 CodeOffset = Ar.Tell();
-		const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
-		
-		// Copy the non-optional shader bytecode
-		int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
-		TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
-		
-		// Object code segment
-		FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
-		
-		bool const bHasObjectData = (ObjectCodeDataSize > 0) || IFileManager::Get().FileExists(*ObjFilename);
-		if (bHasObjectData)
+		if (OfflineCompiledFlag == 1)
 		{
-			// metal commandlines
-			int32 ReturnCode = 0;
-			FString Results;
-			FString Errors;
+			// get the header
+			FMetalCodeHeader Header = { 0 };
+			Ar << Header;
 			
-			bool bHasObjectFile = IFileManager::Get().FileExists(*ObjFilename);
-			if (ObjectCodeDataSize > 0)
+			// Must be compiled for archiving or something is very wrong.
+			if(Header.CompileFlags & (1 << CFLAG_Archive))
 			{
-				// write out shader object code source (IR) for archiving to a single library file later
-				if( FFileHelper::SaveArrayToFile(ObjectCodeArray, *ObjFilename) )
+				// remember where the header ended and code (precompiled or source) begins
+				int32 CodeOffset = Ar.Tell();
+				const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
+				
+				// Copy the non-optional shader bytecode
+				int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
+				TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
+				
+				// Object code segment
+				FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
+				
+				bool const bHasObjectData = (ObjectCodeDataSize > 0) || IFileManager::Get().FileExists(*ObjFilename);
+				if (bHasObjectData)
 				{
-					bHasObjectFile = true;
+					// metal commandlines
+					int32 ReturnCode = 0;
+					FString Results;
+					FString Errors;
+					
+					bool bHasObjectFile = IFileManager::Get().FileExists(*ObjFilename);
+					if (ObjectCodeDataSize > 0)
+					{
+						// write out shader object code source (IR) for archiving to a single library file later
+						if( FFileHelper::SaveArrayToFile(ObjectCodeArray, *ObjFilename) )
+						{
+							bHasObjectFile = true;
+						}
+					}
+					
+					if (bHasObjectFile)
+					{
+						Id = ((uint64)Header.SourceLen << 32) | Header.SourceCRC;
+						
+						// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
+						Header.CompileFlags |= (1 << CFLAG_Archive);
+						
+						// Write out the header and compiled shader code
+						FShaderCode NewCode;
+						FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
+						NewAr << OfflineCompiledFlag;
+						NewAr << Header;
+						
+						InShaderCode = NewCode.GetReadAccess();
+						
+						UE_LOG(LogShaders, Display, TEXT("Archiving succeeded: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+					}
+					else
+					{
+						UE_LOG(LogShaders, Error, TEXT("Archiving failed: failed to write temporary file %s for shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *ObjFilename, *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+					}
 				}
-			}
-			
-			if (bHasObjectFile)
-			{
-				Id = ((uint64)Header.SourceLen << 32) | Header.SourceCRC;
-				
-				// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
-				Header.CompileFlags |= (1 << CFLAG_Archive);
-				
-				// Write out the header and compiled shader code
-				FShaderCode NewCode;
-				FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
-				NewAr << OfflineCompiledFlag;
-				NewAr << Header;
-				
-				InShaderCode = NewCode.GetReadAccess();
-				
-				UE_LOG(LogShaders, Display, TEXT("Archiving succeeded: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				else
+				{
+					UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) has no object data"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				}
 			}
 			else
 			{
-				UE_LOG(LogShaders, Error, TEXT("Archiving failed: failed to write temporary file %s for shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *ObjFilename, *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) was not compiled for archiving (Compile Flags: %0.8x)!"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString(), (uint32)Header.CompileFlags);
 			}
 		}
 		else
 		{
-			UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) has no object data"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+			UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader SHA: %s was not compiled to bytecode (%d)!"), *Hash.ToString(), OfflineCompiledFlag);
 		}
 	}
 	else
