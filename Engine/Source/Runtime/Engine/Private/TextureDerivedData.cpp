@@ -1391,11 +1391,10 @@ void UTexture2D::WillNeverCacheCookedPlatformDataAgain()
 		}
 	}
 
-	// Daniel: I think we should call the release source memory function all the time because this will prevent it being force loaded when the linker is destroyed
-	//if ( Source.IsBulkDataLoaded() ) 
-	{
-		Source.ReleaseSourceMemory();
-	}
+	// Don't release the source memory because at build time, textures may need other texture source data.
+	// Releasing it would make the source data unavailable for texture referenced through CompositeTexture.
+	// Otherwise, texture data is usually already released when loaded with AllowAsyncLoading.
+	//	Source.ReleaseSourceMemory();
 #endif
 }
 
