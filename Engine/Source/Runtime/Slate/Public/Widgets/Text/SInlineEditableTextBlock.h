@@ -93,6 +93,12 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 		/** Callback when the text is committed. */
 		SLATE_EVENT( FOnTextCommitted, OnTextCommitted )
 
+		/** Callback when the text editing begins. */
+		SLATE_EVENT(FSimpleDelegate, OnEnterEditingMode)
+
+		/** Callback when the text editing ends. */
+		SLATE_EVENT(FSimpleDelegate, OnExitEditingMode)
+
 		/** Callback to check if the widget is selected, should only be hooked up if parent widget is handling selection or focus. */
 		SLATE_EVENT( FIsSelected, IsSelected )
 
@@ -165,6 +171,9 @@ protected:
 	/** The widget used when in editing mode */ 
 	TSharedPtr< SMultiLineEditableTextBox > MultiLineTextBox;
 #endif //WITH_FANCY_TEXT
+
+	FSimpleDelegate OnEnterEditingMode;
+	FSimpleDelegate OnExitEditingMode;
 
 	/** Delegate to execute when the text starts to be edited */
 	FOnBeginTextEdit OnBeginTextEditDelegate;

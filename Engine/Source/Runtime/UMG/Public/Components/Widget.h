@@ -655,6 +655,9 @@ public:
 	/** Gets the label to display to the user for this widget. */
 	FText GetLabelText() const;
 
+	/** Gets the label to display to the user for this widget, including any extra metadata like the text string for text. */
+	FText GetLabelTextWithMetadata() const;
+
 	/** Gets the palette category of the widget */
 	virtual const FText GetPaletteCategory();
 

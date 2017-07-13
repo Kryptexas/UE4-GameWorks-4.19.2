@@ -848,6 +848,11 @@ FString UWidget::GetLabelMetadata() const
 
 FText UWidget::GetLabelText() const
 {
+	return GetDisplayNameBase();
+}
+
+FText UWidget::GetLabelTextWithMetadata() const
+{
 	FText Label = GetDisplayNameBase();
 
 	if (!bIsVariable || !GetLabelMetadata().IsEmpty())
