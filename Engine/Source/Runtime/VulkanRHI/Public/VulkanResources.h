@@ -30,6 +30,7 @@ namespace VulkanRHI
 {
 	class FDeviceMemoryAllocation;
 	class FOldResourceAllocation;
+	struct FPendingBufferLock;
 }
 
 enum
@@ -193,16 +194,17 @@ public:
 		uint32 NumMips,
 		uint32 NumSamples,
 		uint32 UEFlags,
+		VkMemoryRequirements& OutMemoryRequirements,
 		VkFormat* OutStorageFormat = nullptr,
 		VkFormat* OutViewFormat = nullptr,
 		VkImageCreateInfo* OutInfo = nullptr,
-		VkMemoryRequirements* OutMemoryRequirements = nullptr,
 		bool bForceLinearTexture = false);
 
 	FVulkanSurface(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat Format,
 					uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bArray, uint32 ArraySize,
 					uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
 
+	// Constructor for externally owned Image
 	FVulkanSurface(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat Format,
 					uint32 SizeX, uint32 SizeY, uint32 SizeZ, VkImage InImage,
 					uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
@@ -228,7 +230,10 @@ public:
 	/**
 	 * Returns how much memory is used by the surface
 	 */
-	uint32 GetMemorySize();
+	uint32 GetMemorySize() const
+	{
+		return MemoryRequirements.size;
+	}
 
 	/**
 	 * Returns one of the texture's mip-maps stride.
@@ -281,11 +286,15 @@ public:
 	EPixelFormat PixelFormat;
 	uint32 UEFlags;
 	VkMemoryPropertyFlags MemProps;
+	VkMemoryRequirements MemoryRequirements;
+
+	static void InternalLockWrite(FVulkanCommandListContext& Context, FVulkanSurface* Surface, const VkImageSubresourceRange& SubresourceRange, const VkBufferImageCopy& Region, VulkanRHI::FStagingBuffer* StagingBuffer);
 
 private:
 
 	// Used to clear render-target objects on creation
-	void InitialClear(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
+	void InitialClear(FVulkanCommandListContext& Context, const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
+	friend struct FRHICommandInitialClearTexture;
 
 private:
 	VkImageTiling Tiling;
@@ -464,8 +473,6 @@ public:
 	{
 		return (FVulkanTextureBase*)this;
 	}
-
-	FVulkanTexture2DArray* Texture2DArray;
 };
 
 class FVulkanTextureCube : public FRHITextureCube, public FVulkanTextureBase
@@ -909,8 +916,8 @@ public:
 		return BufferUsageFlags;
 	}
 
-	void* Lock(EResourceLockMode LockMode, uint32 Size, uint32 Offset);
-	void Unlock();
+	void* Lock(bool bFromRenderingThread, EResourceLockMode LockMode, uint32 Size, uint32 Offset);
+	void Unlock(bool bFromRenderingThread);
 
 protected:
 	uint32 UEUsage;
@@ -919,7 +926,11 @@ protected:
 	uint32 DynamicBufferIndex;
 	TArray<TRefCountPtr<VulkanRHI::FBufferSuballocation>> Buffers;
 	VulkanRHI::FTempFrameAllocationBuffer::FTempAllocInfo VolatileLockInfo;
+
+	static void InternalUnlock(FVulkanCommandListContext& Context, VulkanRHI::FPendingBufferLock& PendingLock, FVulkanResourceMultiBuffer* MultiBuffer, int32 InDynamicBufferIndex);
+
 	friend class FVulkanCommandListContext;
+	friend struct FRHICommandMultiBufferUnlock;
 };
 
 class FVulkanIndexBuffer : public FRHIIndexBuffer, public FVulkanResourceMultiBuffer
@@ -958,10 +969,10 @@ private:
 };
 
 
-class FVulkanStructuredBuffer : public FRHIStructuredBuffer
+class FVulkanStructuredBuffer : public FRHIStructuredBuffer, public FVulkanResourceMultiBuffer
 {
 public:
-	FVulkanStructuredBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 InUsage);
+	FVulkanStructuredBuffer(FVulkanDevice* InDevice, uint32 Stride, uint32 Size, FRHIResourceCreateInfo& CreateInfo, uint32 InUsage);
 
 	~FVulkanStructuredBuffer();
 
@@ -1023,6 +1034,7 @@ public:
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
 	FVulkanTextureView TextureView;
+	FVulkanStructuredBuffer* SourceStructuredBuffer = nullptr;
 	uint32 MipLevel;
 	uint32 NumMips;
 

@@ -95,9 +95,9 @@ FVulkanResourceMultiBuffer::FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, 
 			{
 				ensure(bStatic);
 				uint32 CopyDataSize = FMath::Min(InSize, CreateInfo.ResourceArray->GetResourceDataSize());
-				void* Data = Lock(RLM_WriteOnly, CopyDataSize, 0);
+				void* Data = Lock(true, RLM_WriteOnly, CopyDataSize, 0);
 				FMemory::Memcpy(Data, CreateInfo.ResourceArray->GetResourceData(), CopyDataSize);
-				Unlock();
+				Unlock(IsInRenderingThread());
 
 				CreateInfo.ResourceArray->Discard();
 			}
@@ -119,7 +119,7 @@ FVulkanResourceMultiBuffer::~FVulkanResourceMultiBuffer()
 	UpdateVulkanBufferStats(Size, BufferUsageFlags, false);
 }
 
-void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, uint32 Offset)
+void* FVulkanResourceMultiBuffer::Lock(bool bFromRenderingThread, EResourceLockMode LockMode, uint32 Size, uint32 Offset)
 {
 	void* Data = nullptr;
 
@@ -179,7 +179,52 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 	return Data;
 }
 
-void FVulkanResourceMultiBuffer::Unlock()
+inline void FVulkanResourceMultiBuffer::InternalUnlock(FVulkanCommandListContext& Context, VulkanRHI::FPendingBufferLock& PendingLock, FVulkanResourceMultiBuffer* MultiBuffer, int32 InDynamicBufferIndex)
+{
+	uint32 LockSize = PendingLock.Size;
+	uint32 LockOffset = PendingLock.Offset;
+	VulkanRHI::FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
+	PendingLock.StagingBuffer = nullptr;
+
+	FVulkanCmdBuffer* Cmd = Context.GetCommandBufferManager()->GetUploadCmdBuffer();
+	ensure(Cmd->IsOutsideRenderPass());
+	VkCommandBuffer CmdBuffer = Cmd->GetHandle();
+
+	VkBufferCopy Region;
+	FMemory::Memzero(Region);
+	Region.size = LockSize;
+	//Region.srcOffset = 0;
+	Region.dstOffset = LockOffset + MultiBuffer->Buffers[InDynamicBufferIndex]->GetOffset();
+	VulkanRHI::vkCmdCopyBuffer(CmdBuffer, StagingBuffer->GetHandle(), MultiBuffer->Buffers[InDynamicBufferIndex]->GetHandle(), 1, &Region);
+	//UpdateBuffer(ResourceAllocation, IndexBuffer->GetBuffer(), LockSize, LockOffset);
+
+	//Device->GetDeferredDeletionQueue().EnqueueResource(Cmd, StagingBuffer);
+	MultiBuffer->GetParent()->GetStagingManager().ReleaseBuffer(Cmd, StagingBuffer);
+}
+
+struct FRHICommandMultiBufferUnlock : public FRHICommand<FRHICommandMultiBufferUnlock>
+{
+	VulkanRHI::FPendingBufferLock PendingLock;
+	FVulkanResourceMultiBuffer* MultiBuffer;
+	FVulkanDevice* Device;
+	int32 DynamicBufferIndex;
+
+	FRHICommandMultiBufferUnlock(FVulkanDevice* InDevice, const VulkanRHI::FPendingBufferLock& InPendingLock, FVulkanResourceMultiBuffer* InMultiBuffer, int32 InDynamicBufferIndex)
+		: PendingLock(InPendingLock)
+		, MultiBuffer(InMultiBuffer)
+		, Device(InDevice)
+		, DynamicBufferIndex(InDynamicBufferIndex)
+	{
+	}
+
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		FVulkanResourceMultiBuffer::InternalUnlock((FVulkanCommandListContext&)CmdList.GetContext(), PendingLock, MultiBuffer, DynamicBufferIndex);
+	}
+};
+
+
+void FVulkanResourceMultiBuffer::Unlock(bool bFromRenderingThread)
 {
 	const bool bStatic = (UEUsage & BUF_Static) != 0;
 	const bool bDynamic = (UEUsage & BUF_Dynamic) != 0;
@@ -204,28 +249,26 @@ void FVulkanResourceMultiBuffer::Unlock()
 			bFound = GPendingLockIBs.RemoveAndCopyValue(this, PendingLock);
 		}
 
+		PendingLock.StagingBuffer->FlushMappedMemory();
+
 		checkf(bFound, TEXT("Mismatched lock/unlock IndexBuffer!"));
 		if (PendingLock.LockMode == RLM_WriteOnly)
 		{
-			uint32 LockSize = PendingLock.Size;
-			uint32 LockOffset = PendingLock.Offset;
-			VulkanRHI::FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
-			PendingLock.StagingBuffer = nullptr;
-
-			FVulkanCmdBuffer* Cmd = Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer();
-			ensure(Cmd->IsOutsideRenderPass());
-			VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-
-			VkBufferCopy Region;
-			FMemory::Memzero(Region);
-			Region.size = LockSize;
-			//Region.srcOffset = 0;
-			Region.dstOffset = LockOffset + Buffers[DynamicBufferIndex]->GetOffset();
-			VulkanRHI::vkCmdCopyBuffer(CmdBuffer, StagingBuffer->GetHandle(), Buffers[DynamicBufferIndex]->GetHandle(), 1, &Region);
-			//UpdateBuffer(ResourceAllocation, IndexBuffer->GetBuffer(), LockSize, LockOffset);
-
-			//Device->GetDeferredDeletionQueue().EnqueueResource(Cmd, StagingBuffer);
-			Device->GetStagingManager().ReleaseBuffer(Cmd, StagingBuffer);
+			FRHICommandList& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+			if (!bFromRenderingThread || (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread()))
+			{
+				FVulkanResourceMultiBuffer::InternalUnlock(Device->GetImmediateContext(), PendingLock, this, DynamicBufferIndex);
+			}
+			else
+			{
+				check(IsInRenderingThread());
+				new (RHICmdList.AllocCommand<FRHICommandMultiBufferUnlock>()) FRHICommandMultiBufferUnlock(Device, PendingLock, this, DynamicBufferIndex);
+			}
+		}
+		else
+		{
+			// Not implemented
+			ensure(0);
 		}
 	}
 }
@@ -247,11 +290,27 @@ FIndexBufferRHIRef FVulkanDynamicRHI::RHICreateIndexBuffer(uint32 Stride, uint32
 void* FVulkanDynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
-	return IndexBuffer->Lock(LockMode, Size, Offset);
+	return IndexBuffer->Lock(false, LockMode, Size, Offset);
 }
+
+#if 0
+void* FVulkanDynamicRHI::LockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBufferRHI, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+{
+	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
+	return IndexBuffer->Lock(true, LockMode, SizeRHI, Offset);
+}
+#endif
 
 void FVulkanDynamicRHI::RHIUnlockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRHI)
 {
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
-	IndexBuffer->Unlock();
+	IndexBuffer->Unlock(false);
 }
+
+#if 0
+void FVulkanDynamicRHI::UnlockIndexBuffer_RenderThread(FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBufferRHI)
+{
+	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
+	IndexBuffer->Unlock(true);
+}
+#endif

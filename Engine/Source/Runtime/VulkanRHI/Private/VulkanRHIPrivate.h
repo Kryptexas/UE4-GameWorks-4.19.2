@@ -655,3 +655,10 @@ namespace FRCLog
 	void Printf(const FString& S);
 }
 #endif
+
+
+#ifndef VK_KHR_maintenance1
+#define VK_KHR_maintenance1	0
+#endif
+
+#define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1

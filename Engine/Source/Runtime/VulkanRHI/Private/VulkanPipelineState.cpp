@@ -36,10 +36,12 @@ void FVulkanComputePipelineState::CreateDescriptorWriteInfos()
 	DSWriteContainer.DescriptorBufferInfo.AddZeroed(CodeHeader.NEWDescriptorInfo.NumBufferInfos);
 
 	VkSampler DefaultSampler = Device->GetDefaultSampler();
+	VkImageView DefaultImageView = Device->GetDefaultImageView();
 	for (int32 Index = 0; Index < DSWriteContainer.DescriptorImageInfo.Num(); ++Index)
 	{
 		// Texture.Load() still requires a default sampler...
 		DSWriteContainer.DescriptorImageInfo[Index].sampler = DefaultSampler;
+		DSWriteContainer.DescriptorImageInfo[Index].imageView = DefaultImageView;
 		DSWriteContainer.DescriptorImageInfo[Index].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	}
 
@@ -160,10 +162,13 @@ void FVulkanGfxPipelineState::CreateDescriptorWriteInfos()
 		DSWriteContainer.DescriptorBufferInfo.AddZeroed(CodeHeader.NEWDescriptorInfo.NumBufferInfos);
 	}
 
+	VkSampler DefaultSampler = Device->GetDefaultSampler();
+	VkImageView DefaultImageView = Device->GetDefaultImageView();
 	for (int32 Index = 0; Index < DSWriteContainer.DescriptorImageInfo.Num(); ++Index)
 	{
 		// Texture.Load() still requires a default sampler...
-		DSWriteContainer.DescriptorImageInfo[Index].sampler = Device->GetDefaultSampler();
+		DSWriteContainer.DescriptorImageInfo[Index].sampler = DefaultSampler;
+		DSWriteContainer.DescriptorImageInfo[Index].imageView = DefaultImageView;
 		DSWriteContainer.DescriptorImageInfo[Index].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	}
 
