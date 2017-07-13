@@ -72,7 +72,11 @@ FReply FLevelSequenceActorDetails::OnOpenLevelSequenceForActor()
 {
 	if( LevelSequenceActor.IsValid() )
 	{
-		FAssetEditorManager::Get().OpenEditorForAsset(LevelSequenceActor.Get()->LevelSequence.TryLoad());
+		UObject* LoadedObject = LevelSequenceActor.Get()->LevelSequence.TryLoad();
+		if (LoadedObject != nullptr)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(LoadedObject);
+		}
 	}
 
 	return FReply::Handled();

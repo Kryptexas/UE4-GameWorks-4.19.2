@@ -153,9 +153,12 @@ void ALevelSequenceActor::UpdateObjectFromProxy(FStructOnScope& Proxy, IProperty
 
 void ALevelSequenceActor::OnSequenceLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bInitializePlayer)
 {
-	if (bInitializePlayer)
+	if (Result == EAsyncLoadingResult::Succeeded)
 	{
-		InitializePlayer();
+		if (bInitializePlayer)
+		{
+			InitializePlayer();
+		}
 	}
 }
 
