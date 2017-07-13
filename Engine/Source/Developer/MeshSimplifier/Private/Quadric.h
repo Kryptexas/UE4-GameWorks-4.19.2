@@ -72,7 +72,7 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 {
 	FVector n = ( p2 - p0 ) ^ ( p1 - p0 );
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;
@@ -136,7 +136,7 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 
 	FVector n = edge ^ faceNormal;
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;
@@ -252,8 +252,7 @@ inline float FQuadric::Evaluate( const FVector& Point ) const
 	double Q = vAv + 2.0 * btv + d2;
 	
 	//check( Q > -1.0 );
-	checkSlow( FMath::IsFinite( Q ) );
-	ensure( FMath::IsFinite( Q ) );
+	check( FMath::IsFinite( Q ) );
 
 	return Q;
 }
@@ -317,7 +316,7 @@ inline TQuadricAttr< NumAttributes >::TQuadricAttr(
 {
 	FVector n = ( p2 - p0 ) ^ ( p1 - p0 );
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;
@@ -614,8 +613,7 @@ inline float TQuadricAttr< NumAttributes >::Evaluate( const FVector& Point, cons
 	double Q = vAv + 2.0 * btv + d2;
 
 	//check( Q > -1.0 );
-	checkSlow(FMath::IsFinite(Q));
-	ensure( FMath::IsFinite( Q ) );
+	check( FMath::IsFinite( Q ) );
 
 	return Q;
 }

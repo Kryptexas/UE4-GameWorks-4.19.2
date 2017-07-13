@@ -53,9 +53,10 @@ public:
 	void			Correct()
 	{
 		Normal.Normalize();
-		Tangents[0] = Tangents[0] - ( Tangents[0] * Normal ) * Normal;
-		Tangents[1] = Tangents[1] - ( Tangents[1] * Normal ) * Normal;
+		Tangents[0] -= ( Tangents[0] * Normal ) * Normal;
 		Tangents[0].Normalize();
+		Tangents[1] -= ( Tangents[1] * Normal ) * Normal;
+		Tangents[1] -= ( Tangents[1] * Tangents[0] ) * Tangents[0];
 		Tangents[1].Normalize();
 		Color = Color.GetClamped();
 	}
@@ -225,6 +226,8 @@ public:
 					}
 				}
 
+				// Make sure this vertex is valid from the start
+				NewVert.Correct();
 
 				DupVerts.Reset();
 				InOverlappingCorners.MultiFind( WedgeIndex, DupVerts );
