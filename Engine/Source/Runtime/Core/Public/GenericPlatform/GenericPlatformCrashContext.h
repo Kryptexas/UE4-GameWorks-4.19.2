@@ -92,6 +92,7 @@ public:
 	static const FString CrashContextExtension;
 	static const FString RuntimePropertiesTag;
 	static const FString PlatformPropertiesTag;
+	static const FString EnabledPluginsTag;
 	static const FString UE4MinidumpName;
 	static const FString NewLineTag;
 	static const int32 CrashGUIDLength = 128;
@@ -180,6 +181,9 @@ public:
 
 	/** Helper to clean out old files in the crash report client config folder. */
 	static void PurgeOldCrashConfig();
+
+	/** Adds a plugin descriptor string to the enabled plugins list in the crash context */
+	static void AddPlugin(const FString& PluginDesc);
 
 	/**
 	 * @return whether this crash is a non-crash event
