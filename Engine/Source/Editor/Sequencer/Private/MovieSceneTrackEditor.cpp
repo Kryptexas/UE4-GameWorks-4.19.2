@@ -12,6 +12,8 @@
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
 #include "Sequencer.h"
+#include "MultiBoxBuilder.h"
+#include "SequencerUtilities.h"
 
 FMovieSceneTrackEditor::FMovieSceneTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: Sequencer(InSequencer)
@@ -58,7 +60,7 @@ void FMovieSceneTrackEditor::AnimatablePropertyChanged( FOnKeyProperty OnKeyProp
 			MovieSceneSequence->SetFlags(RF_Transactional);
 		
 			// Create a transaction record because we are about to add keys
-			const bool bShouldActuallyTransact = !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
+			const bool bShouldActuallyTransact = !GIsTransacting && !Sequencer.Pin()->IsRecordingLive();		// Don't transact if we're recording in a PIE world.  That type of keyframe capture cannot be undone.
 			FScopedTransaction AutoKeyTransaction( NSLOCTEXT("AnimatablePropertyTool", "PropertyChanged", "Animatable Property Changed"), bShouldActuallyTransact );
 
 			FKeyPropertyResult KeyPropertyResult = OnKeyProperty.Execute( KeyTime );
@@ -146,8 +148,31 @@ void FMovieSceneTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuild
 }
 
 TSharedPtr<SWidget> FMovieSceneTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) 
-{ 
-	return TSharedPtr<SWidget>(); 
+{
+	if (Track->GetSupportedBlendTypes().Num() > 0)
+	{
+		TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+
+		const int32 RowIndex = Params.TrackInsertRowIndex;
+		auto SubMenuCallback = [=]() -> TSharedRef<SWidget>
+		{
+			FMenuBuilder MenuBuilder(true, nullptr);
+			FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
+			return MenuBuilder.MakeWidget();
+		};
+
+		return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			FSequencerUtilities::MakeAddButton(NSLOCTEXT("MovieSceneTrackEditor", "AddSection", "Section"), FOnGetContent::CreateLambda(SubMenuCallback), Params.NodeIsHovered)
+		];
+	}
+	else
+	{
+		return TSharedPtr<SWidget>(); 
+	}
 }
 
 void FMovieSceneTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) 

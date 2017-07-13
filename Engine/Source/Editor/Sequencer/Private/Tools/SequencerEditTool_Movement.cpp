@@ -125,13 +125,9 @@ TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateD
 		auto HotspotType = DelayedDrag->Hotspot->GetType();
 
 		TOptional<FSectionHandle> SectionToDrag;
-		if (HotspotType == ESequencerHotspot::Section)
+		if (HotspotType == ESequencerHotspot::Section || HotspotType == ESequencerHotspot::EasingArea)
 		{
 			SectionToDrag = StaticCastSharedPtr<FSectionHotspot>(DelayedDrag->Hotspot)->Section;
-		}
-		else if (HotspotType == ESequencerHotspot::EasingArea)
-		{
-			SectionToDrag = StaticCastSharedPtr<FSectionEasingAreaHotspot>(DelayedDrag->Hotspot)->VisibleSection;
 		}
 
 		// Moving section(s)?

@@ -75,7 +75,7 @@ template<typename DataType> struct TMovieSceneInitialValueStore;
 namespace MovieScene
 {
 	template<typename InType, typename WorkingDataType, typename SourceDataType>
-	void BlendValue(WorkingDataType& OutBlend, InType&& InValue, float Weight, EMovieSceneBlendType BlendType, TMovieSceneInitialValueStore<SourceDataType>& InitialValueStore)
+	void BlendValue(WorkingDataType& OutBlend, InType InValue, float Weight, EMovieSceneBlendType BlendType, TMovieSceneInitialValueStore<SourceDataType>& InitialValueStore)
 	{
 		// Always assert on instantiation
 		static_assert(TIsSame<WorkingDataType, void>::Value, "BlendValue must be implemented for the specified types in order to blend them with Sequencer.");

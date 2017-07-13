@@ -2798,8 +2798,8 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalIndex, LightSceneInfo.IsPrecomputedLightingValid(), ProjectedShadowInitializer))
 				{
 					const FIntPoint ShadowBufferResolution(
-						FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, GMaxShadowDepthBufferSizeX),
-						FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, GMaxShadowDepthBufferSizeY));
+					FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, (int32)GMaxShadowDepthBufferSizeX),
+					FMath::Clamp(GetCachedScalabilityCVars().MaxCSMShadowResolution, 1, (int32)GMaxShadowDepthBufferSizeY));
 
 					// Create the projected shadow info.
 					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;

@@ -58,6 +58,11 @@ int32 FSkeletalMeshComponentAdapter::AddMaterial(UMaterialInterface* Material)
 	return SkeletalMesh->Materials.Add(Material);
 }
 
+void FSkeletalMeshComponentAdapter::UpdateUVChannelData()
+{
+	SkeletalMesh->UpdateUVChannelData(false);
+}
+
 bool FSkeletalMeshComponentAdapter::IsAsset() const
 {
 	return true;

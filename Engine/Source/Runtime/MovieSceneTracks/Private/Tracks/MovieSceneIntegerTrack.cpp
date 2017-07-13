@@ -6,7 +6,9 @@
 
 UMovieSceneIntegerTrack::UMovieSceneIntegerTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
+}
 
 
 UMovieSceneSection* UMovieSceneIntegerTrack::CreateNewSection()

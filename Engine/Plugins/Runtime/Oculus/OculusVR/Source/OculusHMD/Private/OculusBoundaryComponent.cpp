@@ -6,6 +6,8 @@
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 
+#include "OculusHMDModule.h" // for IsOVRPluginAvailable()
+
 namespace OculusHMD
 {
 
@@ -95,28 +97,32 @@ static float DistanceToWorldSpace(float ovrDistance)
  */
 static bool AddInteractionPairsToList(TArray<FBoundaryTestResult>* ResultList, ovrpNode Node, ovrpBoundaryType BoundaryType)
 {
-	ovrpBoundaryTestResult TestResult;
-	
-	if(OVRP_FAILURE(ovrp_TestBoundaryNode2(Node, BoundaryType, &TestResult)))
-		return false;
-
-	bool IsTriggering = (TestResult.IsTriggering != 0);
-
-	if (IsTriggering && ResultList != NULL)
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
 	{
-		FBoundaryTestResult InteractionInfo;
-		memset(&InteractionInfo, 0, sizeof(FBoundaryTestResult));
+		ovrpBoundaryTestResult TestResult;
 
-		InteractionInfo.IsTriggering = IsTriggering;
-		InteractionInfo.DeviceType = ToETrackedDeviceType(Node);
-		InteractionInfo.ClosestDistance = DistanceToWorldSpace(TestResult.ClosestDistance);
-		InteractionInfo.ClosestPoint = PointToWorldSpace(TestResult.ClosestPoint);
-		InteractionInfo.ClosestPointNormal = NormalToWorldSpace(TestResult.ClosestPointNormal);
+		if (OVRP_FAILURE(ovrp_TestBoundaryNode2(Node, BoundaryType, &TestResult)))
+			return false;
 
-		ResultList->Add(InteractionInfo);
+		bool IsTriggering = (TestResult.IsTriggering != 0);
+
+		if (IsTriggering && ResultList != NULL)
+		{
+			FBoundaryTestResult InteractionInfo;
+			memset(&InteractionInfo, 0, sizeof(FBoundaryTestResult));
+
+			InteractionInfo.IsTriggering = IsTriggering;
+			InteractionInfo.DeviceType = ToETrackedDeviceType(Node);
+			InteractionInfo.ClosestDistance = DistanceToWorldSpace(TestResult.ClosestDistance);
+			InteractionInfo.ClosestPoint = PointToWorldSpace(TestResult.ClosestPoint);
+			InteractionInfo.ClosestPointNormal = NormalToWorldSpace(TestResult.ClosestPointNormal);
+
+			ResultList->Add(InteractionInfo);
+		}
+
+		return IsTriggering;
 	}
-
-	return IsTriggering;
+	return false;
 }
 
 /**
@@ -127,30 +133,33 @@ static bool AddInteractionPairsToList(TArray<FBoundaryTestResult>* ResultList, o
 static TArray<FVector> GetBoundaryPoints(ovrpBoundaryType BoundaryType)
 {
 	TArray<FVector> BoundaryPointList;
-	int NumPoints = 0;
 
-	if (OVRP_SUCCESS(ovrp_GetBoundaryGeometry3(BoundaryType, NULL, &NumPoints)))
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
 	{
-        //allocate points
-		const int BufferSize = NumPoints;
-		ovrpVector3f* BoundaryPoints = new ovrpVector3f[BufferSize];
-	
-        if (OVRP_SUCCESS(ovrp_GetBoundaryGeometry3(BoundaryType, BoundaryPoints, &NumPoints)))
-        {
-			NumPoints = FMath::Min(BufferSize, NumPoints);
-			check(NumPoints <= BufferSize); // For static analyzer
-			BoundaryPointList.Reserve(NumPoints);
+		int NumPoints = 0;
 
-            for (int i = 0; i < NumPoints; i++)
-            {
-                FVector point = PointToWorldSpace(BoundaryPoints[i]);
-                BoundaryPointList.Add(point);
-            }
-        }
+		if (OVRP_SUCCESS(ovrp_GetBoundaryGeometry3(BoundaryType, NULL, &NumPoints)))
+		{
+			//allocate points
+			const int BufferSize = NumPoints;
+			ovrpVector3f* BoundaryPoints = new ovrpVector3f[BufferSize];
 
-		delete [] BoundaryPoints;
+			if (OVRP_SUCCESS(ovrp_GetBoundaryGeometry3(BoundaryType, BoundaryPoints, &NumPoints)))
+			{
+				NumPoints = FMath::Min(BufferSize, NumPoints);
+				check(NumPoints <= BufferSize); // For static analyzer
+				BoundaryPointList.Reserve(NumPoints);
+
+				for (int i = 0; i < NumPoints; i++)
+				{
+					FVector point = PointToWorldSpace(BoundaryPoints[i]);
+					BoundaryPointList.Add(point);
+				}
+			}
+
+			delete[] BoundaryPoints;
+		}
 	}
-
 	return BoundaryPointList;
 }
 
@@ -164,17 +173,20 @@ static FBoundaryTestResult CheckPointInBounds(EBoundaryType BoundaryType, const 
 	FBoundaryTestResult InteractionInfo;
 	memset(&InteractionInfo, 0, sizeof(FBoundaryTestResult));
 
-	ovrpVector3f OvrpPoint = ToOvrpVector3f(Point);
-	ovrpBoundaryType OvrpBoundaryType = ToOvrpBoundaryType(BoundaryType);
-	ovrpBoundaryTestResult InteractionResult;
-
-	if (OVRP_SUCCESS(ovrp_TestBoundaryPoint2(OvrpPoint, OvrpBoundaryType, &InteractionResult)))
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
 	{
-		InteractionInfo.IsTriggering = (InteractionResult.IsTriggering != 0);
-		InteractionInfo.ClosestDistance = DistanceToWorldSpace(InteractionResult.ClosestDistance);
-		InteractionInfo.ClosestPoint = PointToWorldSpace(InteractionResult.ClosestPoint);
-		InteractionInfo.ClosestPointNormal = NormalToWorldSpace(InteractionResult.ClosestPointNormal);
-		InteractionInfo.DeviceType = ETrackedDeviceType::None;
+		ovrpVector3f OvrpPoint = ToOvrpVector3f(Point);
+		ovrpBoundaryType OvrpBoundaryType = ToOvrpBoundaryType(BoundaryType);
+		ovrpBoundaryTestResult InteractionResult;
+
+		if (OVRP_SUCCESS(ovrp_TestBoundaryPoint2(OvrpPoint, OvrpBoundaryType, &InteractionResult)))
+		{
+			InteractionInfo.IsTriggering = (InteractionResult.IsTriggering != 0);
+			InteractionInfo.ClosestDistance = DistanceToWorldSpace(InteractionResult.ClosestDistance);
+			InteractionInfo.ClosestPoint = PointToWorldSpace(InteractionResult.ClosestPoint);
+			InteractionInfo.ClosestPointNormal = NormalToWorldSpace(InteractionResult.ClosestPointNormal);
+			InteractionInfo.DeviceType = ETrackedDeviceType::None;
+		}
 	}
 
 	return InteractionInfo;
@@ -204,8 +216,8 @@ UOculusBoundaryComponent::UOculusBoundaryComponent(const FObjectInitializer& Obj
 
 void UOculusBoundaryComponent::BeginPlay()
 {
-#if OCULUS_HMD_SUPPORTED_PLATFORMS
 	Super::BeginPlay();
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
 	bIsOuterBoundaryTriggered = AddInteractionPairsToList(NULL, ovrpNode_Head, ovrpBoundary_Outer) ||
 								AddInteractionPairsToList(NULL, ovrpNode_HandLeft, ovrpBoundary_Outer) ||
 								AddInteractionPairsToList(NULL, ovrpNode_HandRight, ovrpBoundary_Outer);
@@ -214,8 +226,8 @@ void UOculusBoundaryComponent::BeginPlay()
 
 void UOculusBoundaryComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-#if OCULUS_HMD_SUPPORTED_PLATFORMS
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+#if OCULUS_HMD_SUPPORTED_PLATFORMS
 	FOculusHMD* OculusHMD = (FOculusHMD*)(GEngine->HMDDevice.Get());
 	if (OculusHMD && OculusHMD->IsHMDActive())
 	{
@@ -248,11 +260,13 @@ void UOculusBoundaryComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 bool UOculusBoundaryComponent::IsOuterBoundaryDisplayed()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	ovrpBool boundaryVisible;
-	return OVRP_SUCCESS(ovrp_GetBoundaryVisible2(&boundaryVisible)) && boundaryVisible;
-#else
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		ovrpBool boundaryVisible;
+		return OVRP_SUCCESS(ovrp_GetBoundaryVisible2(&boundaryVisible)) && boundaryVisible;
+	}
+#endif 
 	return false;
-#endif
 }
 
 bool UOculusBoundaryComponent::IsOuterBoundaryTriggered()
@@ -267,23 +281,27 @@ bool UOculusBoundaryComponent::IsOuterBoundaryTriggered()
 bool UOculusBoundaryComponent::SetOuterBoundaryColor(const FColor InBoundaryColor)
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	ovrpColorf NewColor = { InBoundaryColor.R / 255.f, InBoundaryColor.G / 255.f, InBoundaryColor.B / 255.f, InBoundaryColor.A / 255.f };
-	ovrpBoundaryLookAndFeel BoundaryLookAndFeel;
-	BoundaryLookAndFeel.Color = NewColor;
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		ovrpColorf NewColor = { InBoundaryColor.R / 255.f, InBoundaryColor.G / 255.f, InBoundaryColor.B / 255.f, InBoundaryColor.A / 255.f };
+		ovrpBoundaryLookAndFeel BoundaryLookAndFeel;
+		BoundaryLookAndFeel.Color = NewColor;
 
-	return OVRP_SUCCESS(ovrp_SetBoundaryLookAndFeel2(BoundaryLookAndFeel));
-#else
+		return OVRP_SUCCESS(ovrp_SetBoundaryLookAndFeel2(BoundaryLookAndFeel));
+	}
+#endif 
 	return true;
-#endif
 }
 
 bool UOculusBoundaryComponent::ResetOuterBoundaryColor()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	return OVRP_SUCCESS(ovrp_ResetBoundaryLookAndFeel2());
-#else
-	return true;
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		return OVRP_SUCCESS(ovrp_ResetBoundaryLookAndFeel2());
+	}
 #endif
+	return true;
 }
 
 TArray<FVector> UOculusBoundaryComponent::GetPlayAreaPoints()
@@ -307,29 +325,33 @@ TArray<FVector> UOculusBoundaryComponent::GetOuterBoundaryPoints()
 FVector UOculusBoundaryComponent::GetPlayAreaDimensions()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	ovrpVector3f Dimensions;
-	
-	if(OVRP_FAILURE(ovrp_GetBoundaryDimensions2(ovrpBoundary_PlayArea, &Dimensions)))
-		return FVector::ZeroVector;
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		ovrpVector3f Dimensions;
 
-	return DimensionsToWorldSpace(Dimensions);
-#else
-	return FVector::ZeroVector;
+		if (OVRP_FAILURE(ovrp_GetBoundaryDimensions2(ovrpBoundary_PlayArea, &Dimensions)))
+			return FVector::ZeroVector;
+
+		return DimensionsToWorldSpace(Dimensions);
+	}
 #endif
+	return FVector::ZeroVector;
 }
 
 FVector UOculusBoundaryComponent::GetOuterBoundaryDimensions()
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	ovrpVector3f Dimensions;
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		ovrpVector3f Dimensions;
 
-	if(OVRP_FAILURE(ovrp_GetBoundaryDimensions2(ovrpBoundary_Outer, &Dimensions)))
-		return FVector::ZeroVector;
+		if (OVRP_FAILURE(ovrp_GetBoundaryDimensions2(ovrpBoundary_Outer, &Dimensions)))
+			return FVector::ZeroVector;
 
-	return DimensionsToWorldSpace(Dimensions);
-#else
-	return FVector::ZeroVector;
+		return DimensionsToWorldSpace(Dimensions);
+	}
 #endif
+	return FVector::ZeroVector;
 }
 
 FBoundaryTestResult UOculusBoundaryComponent::CheckIfPointWithinPlayArea(const FVector Point)
@@ -359,10 +381,12 @@ FBoundaryTestResult UOculusBoundaryComponent::CheckIfPointWithinOuterBounds(cons
 bool UOculusBoundaryComponent::RequestOuterBoundaryVisible(bool BoundaryVisible)
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	return OVRP_SUCCESS(ovrp_SetBoundaryVisible2(BoundaryVisible));
-#else
-	return false;
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+	{
+		return OVRP_SUCCESS(ovrp_SetBoundaryVisible2(BoundaryVisible));
+	}
 #endif
+	return false;
 }
 
 FBoundaryTestResult UOculusBoundaryComponent::GetTriggeredPlayAreaInfo(ETrackedDeviceType DeviceType)
@@ -371,16 +395,19 @@ FBoundaryTestResult UOculusBoundaryComponent::GetTriggeredPlayAreaInfo(ETrackedD
 	memset(&InteractionInfo, 0, sizeof(FBoundaryTestResult));
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
-	ovrpNode OvrpNode = ToOvrpNode(DeviceType);
-	ovrpBoundaryTestResult TestResult;
-	
-	if (OVRP_SUCCESS(ovrp_TestBoundaryNode2(OvrpNode, ovrpBoundary_PlayArea, &TestResult)) && TestResult.IsTriggering)
+	if (FOculusHMDModule::Get().IsOVRPluginAvailable())
 	{
-		InteractionInfo.IsTriggering = true;
-		InteractionInfo.DeviceType = ToETrackedDeviceType(OvrpNode);
-		InteractionInfo.ClosestDistance = DistanceToWorldSpace(TestResult.ClosestDistance);
-		InteractionInfo.ClosestPoint = PointToWorldSpace(TestResult.ClosestPoint);
-		InteractionInfo.ClosestPointNormal = NormalToWorldSpace(TestResult.ClosestPointNormal);
+		ovrpNode OvrpNode = ToOvrpNode(DeviceType);
+		ovrpBoundaryTestResult TestResult;
+
+		if (OVRP_SUCCESS(ovrp_TestBoundaryNode2(OvrpNode, ovrpBoundary_PlayArea, &TestResult)) && TestResult.IsTriggering)
+		{
+			InteractionInfo.IsTriggering = true;
+			InteractionInfo.DeviceType = ToETrackedDeviceType(OvrpNode);
+			InteractionInfo.ClosestDistance = DistanceToWorldSpace(TestResult.ClosestDistance);
+			InteractionInfo.ClosestPoint = PointToWorldSpace(TestResult.ClosestPoint);
+			InteractionInfo.ClosestPointNormal = NormalToWorldSpace(TestResult.ClosestPointNormal);
+		}
 	}
 #endif
 

@@ -103,7 +103,6 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 				OverlapPriority = FMath::Max(Section->GetOverlapPriority() + 1, OverlapPriority);
 			}
 
-			
 			Track->Modify();
 
 			NewSection->SetIsInfinite(false);
@@ -114,6 +113,7 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 			NewSection->SetBlendType(BlendType);
 
 			Track->AddSection(*NewSection);
+			Track->UpdateEasing();
 
 			InSequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
 		}
@@ -130,10 +130,11 @@ void FSequencerUtilities::PopulateMenu_CreateNewSection(FMenuBuilder& MenuBuilde
 	for (EMovieSceneBlendType BlendType : Track->GetSupportedBlendTypes())
 	{
 		FText DisplayName = MovieSceneBlendType->GetDisplayNameTextByValue((int64)BlendType);
+		FName EnumValueName = MovieSceneBlendType->GetNameByValue((int64)BlendType);
 		MenuBuilder.AddMenuEntry(
 			NameOverride.IsEmpty() ? DisplayName : NameOverride,
 			TooltipOverride.IsEmpty() ? FText::Format(LOCTEXT("AddSectionFormatToolTip", "Adds a new {0} section at the current time"), DisplayName) : TooltipOverride,
-			FSlateIcon(),
+			FSlateIcon("EditorStyle", EnumValueName),
 			FUIAction(FExecuteAction::CreateLambda(CreateNewSection, BlendType))
 		);
 	}

@@ -349,6 +349,8 @@ bool UUserWidget::Initialize()
 
 		if ( bCookedWidgetTree == false )
 		{
+			WidgetTree->SetFlags(RF_Transient);
+
 			const bool bReparentToWidgetTree = false;
 			InitializeNamedSlots(bReparentToWidgetTree);
 		}
@@ -1489,7 +1491,7 @@ void UUserWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath
 		if ( bDecendantNewlyFocused )
 		{
 			const bool bDecendantPreviouslyFocused = PreviousFocusPath.ContainsWidget(SafeGCWidget.ToSharedRef());
-			if ( bDecendantPreviouslyFocused )
+			if ( !bDecendantPreviouslyFocused )
 			{
 				NativeOnAddedToFocusPath( InFocusEvent );
 			}

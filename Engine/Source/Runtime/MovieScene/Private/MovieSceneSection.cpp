@@ -148,6 +148,12 @@ void UMovieSceneSection::InitialPlacement(const TArray<UMovieSceneSection*>& Sec
 			MoveSection(OverlappedSection->GetEndTime() - StartTime, KeyHandles);
 		}
 	}
+
+	UMovieSceneTrack* Track = GetTypedOuter<UMovieSceneTrack>();
+	if (Track)
+	{
+		Track->UpdateEasing();
+	}
 }
 
 
@@ -315,7 +321,7 @@ void UMovieSceneSection::EvaluateEasing(float InTime, TOptional<float>& OutEaseI
 TRange<float> UMovieSceneSection::GetEaseInRange() const
 {
 	const float MaxTime = FMath::Min(GetStartTime() + Easing.GetEaseInTime(), GetEndTime());
-	if (!bIsInfinite && (Easing.bManualEaseIn || Easing.GetEaseInTime() > 0.f))
+	if (!bIsInfinite && Easing.GetEaseInTime() > 0.f)
 	{
 		return TRange<float>(GetStartTime(), TRangeBound<float>::Inclusive(MaxTime));
 	}
@@ -326,7 +332,7 @@ TRange<float> UMovieSceneSection::GetEaseInRange() const
 TRange<float> UMovieSceneSection::GetEaseOutRange() const
 {
 	const float MinTime = FMath::Max(GetEndTime() - Easing.GetEaseOutTime(), GetStartTime());
-	if (!bIsInfinite && (Easing.bManualEaseOut || Easing.GetEaseOutTime() > 0.f))
+	if (!bIsInfinite && Easing.GetEaseOutTime() > 0.f)
 	{
 		return TRange<float>(MinTime, TRangeBound<float>::Inclusive(GetEndTime()));
 	}

@@ -362,8 +362,7 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 		// stop playback
 		else
 		{
-			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition, FixedFrameInterval);
-
+			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition + StartTime, FixedFrameInterval);
 			UpdateMovieSceneInstance(Range, OptionalStatus);
 
 			Stop();

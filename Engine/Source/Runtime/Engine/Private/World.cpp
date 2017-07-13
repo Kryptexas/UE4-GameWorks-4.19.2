@@ -3502,12 +3502,11 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		}
 	}
 
+#if WITH_EDITOR
 	// Clear standalone flag when switching maps in the Editor. This causes resources placed in the map
 	// package to be garbage collected together with the world.
-	if( GIsEditor && !IsTemplate() && this != NewWorld )
+	if( GIsEditor && !IsTemplate() && bCleanupResources && this != NewWorld )
 	{
-		TArray<UObject*> WorldObjects;
-
 		// Iterate over all objects to find ones that reside in the same package as the world.
 		ForEachObjectWithOuter(GetOutermost(), [this](UObject* CurrentObject)
 		{
@@ -3517,7 +3516,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		});
 
-		if (bCleanupResources && WorldType != EWorldType::PIE)
+		if (WorldType != EWorldType::PIE)
 		{
 			for (int32 LevelIndex = 0; LevelIndex < GetNumLevels(); ++LevelIndex)
 			{
@@ -3530,6 +3529,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		}
 	}
+#endif //WITH_EDITOR
 
 	for (int32 LevelIndex=0; LevelIndex < GetNumLevels(); ++LevelIndex)
 	{
@@ -6456,11 +6456,7 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 			Blueprint->GetAssetRegistryTags(OutTags);
 		}
 
-		// If there are no Blueprints, add empty FiB data so the manager knows that the Blueprint is indexed.
-		if (LevelBlueprints.Num() == 0)
-		{
-			OutTags.Add(FAssetRegistryTag("FiB", FString(), FAssetRegistryTag::TT_Hidden));
-		}
+		// If there are no blueprints FiBData will be empty, the search manager will treat this as indexed
 	}
 
 	// Get the full file path with extension

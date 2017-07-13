@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #pragma once
 
@@ -98,6 +85,7 @@ public:
 	static FGoogleVRHMDTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
+		uint32 InNumLayers,
 		uint32 InNumSamples,
 		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
@@ -136,7 +124,7 @@ public:
 	 * @param Index			(in) index of the buffer, changing from 0 to GetNumberOfBufferedFrames()
 	 * @return				true, if texture was allocated; false, if the default texture allocation should be used.
 	 */
-	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
+	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumLayers, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
 
 	// Frame operations
 	void UpdateRenderingViewportList(const gvr_buffer_viewport_list* BufferViewportList);
@@ -269,6 +257,12 @@ public:
 	/** Check if the application is running in Daydream mode*/
 	bool IsInDaydreamMode() const;
 
+	/** Check if mobile multi-view direct is enabled */
+	bool IsMobileMultiViewDirect() const
+	{
+		return bIsMobileMultiViewDirect;
+	}
+
 	void SetSPMEnable(bool bEnable) const;
 
 	/**
@@ -377,6 +371,7 @@ private:
 	bool		bUseOffscreenFramebuffers;
 	bool		bIsInDaydreamMode;
 	bool		bForceStopPresentScene;
+	bool		bIsMobileMultiViewDirect;
 	float		NeckModelScale;
 	FQuat		CurHmdOrientation;
 	FVector		CurHmdPosition;

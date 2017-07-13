@@ -13,19 +13,28 @@ struct IMovieSceneBlendingActuator;
 template<typename DataType> struct TBlendableTokenStack;
 template<typename DataType> struct TMovieSceneBlendingActuator;
 
-/**
- * Pre animated token producer that reverts the object's initial value from the actuator when its state is restored
- */
-struct FMovieSceneRemoveInitialValueTokenProducer : IMovieScenePreAnimatedGlobalTokenProducer
+/** Pre animated token producer that reverts the object's initial value from the actuator when its state is restored */
+struct FMovieSceneRemoveInitialValueTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
 	/** Construction from the object whose initial value to remove, and the actuator to remove it from */
-	MOVIESCENE_API FMovieSceneRemoveInitialValueTokenProducer(FObjectKey InObjectKey, TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator);
+	MOVIESCENE_API FMovieSceneRemoveInitialValueTokenProducer(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator);
+
+	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& InObject) const override;
+
+private:
+	/** The actuator to remove the initial value from */
+	TWeakPtr<IMovieSceneBlendingActuator> WeakActuator;
+};
+
+/** Pre animated token producer that reverts a global initial value from the actuator when its state is restored */
+struct FMovieSceneRemoveInitialGlobalValueTokenProducer : IMovieScenePreAnimatedGlobalTokenProducer
+{
+	/** Construction from the object whose initial value to remove, and the actuator to remove it from */
+	MOVIESCENE_API FMovieSceneRemoveInitialGlobalValueTokenProducer(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator);
 
 	virtual IMovieScenePreAnimatedGlobalTokenPtr CacheExistingState() const override;
 
 private:
-	/** The object to remove an initial value for */
-	FObjectKey ObjectKey;
 	/** The actuator to remove the initial value from */
 	TWeakPtr<IMovieSceneBlendingActuator> WeakActuator;
 };
@@ -71,22 +80,12 @@ struct TMovieSceneInitialValueStore
 		}
 
 		DataType NewInitialValue = Actuator.RetrieveCurrentValue(AnimatingObject, Player);
-
 		if (Player)
 		{
 			Actuator.InitialValues.Emplace(ThisObjectKey, NewInitialValue);
-			Stack.SavePreAnimatedStateForAllEntities(*Player, FMovieSceneAnimTypeID::Unique(), FMovieSceneRemoveInitialValueTokenProducer(ThisObjectKey, Actuator.AsShared()));
 		}
 
 		return NewInitialValue;
-	}
-
-	/**
-	 * Retrieve the player that is currently playing back the sequence. May return nullptr if the evaluation is for data interrogation.
-	 */
-	IMovieScenePlayer* GetPlayer() const
-	{
-		return Player;
 	}
 
 private:

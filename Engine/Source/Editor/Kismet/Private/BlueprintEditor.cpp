@@ -2961,27 +2961,23 @@ bool FBlueprintEditor::CanNavigateToChildGraph() const
 	return FocusedGraphEdPtr.IsValid() && (FocusedGraphEdPtr.Pin()->GetCurrentGraph()->SubGraphs.Num() > 0);
 }
 
-void FBlueprintEditor::PostUndo(bool bSuccess)
-{	
-	// Clear selection, to avoid holding refs to nodes that go away
-	if (bSuccess && GetBlueprintObj())
+void FBlueprintEditor::HandleUndoTransaction(const FTransaction* Transaction)
+{
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	if (BlueprintObj && Transaction)
 	{
 		bool bAffectsBlueprint = false;
-		const UPackage* BlueprintOutermost = GetBlueprintObj()->GetOutermost();
+		const UPackage* BlueprintOutermost = BlueprintObj->GetOutermost();
 
 		// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
-		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount());
-		if( Transaction != nullptr )
+		TArray<UObject*> TransactionObjects;
+		Transaction->GetTransactionObjects(TransactionObjects);
+		for (UObject* Object : TransactionObjects)
 		{
-			TArray<UObject*> TransactionObjects;
-			Transaction->GetTransactionObjects(TransactionObjects);
-			for (UObject* Object : TransactionObjects)
+			if (Object->GetOutermost() == BlueprintOutermost)
 			{
-				if (Object->GetOutermost() == BlueprintOutermost)
-				{
-					bAffectsBlueprint = true;
-					break;
-				}
+				bAffectsBlueprint = true;
+				break;
 			}
 		}
 
@@ -2997,34 +2993,21 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 	}
 }
 
+void FBlueprintEditor::PostUndo(bool bSuccess)
+{	
+	if (bSuccess)
+	{
+		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount());
+		HandleUndoTransaction(Transaction);
+	}
+}
+
 void FBlueprintEditor::PostRedo(bool bSuccess)
 {
-	UBlueprint* BlueprintObj = GetBlueprintObj();
-	if (BlueprintObj && bSuccess)
+	if (bSuccess)
 	{
-		bool bAffectsBlueprint = false;
-		const UPackage* BlueprintOutermost = GetBlueprintObj()->GetOutermost();
-
-		// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
 		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount() - 1);
-		TArray<UObject*> TransactionObjects;
-		Transaction->GetTransactionObjects(TransactionObjects);
-		for (UObject* Object : TransactionObjects)
-		{
-			if (Object->GetOutermost() == BlueprintOutermost)
-			{
-				bAffectsBlueprint = true;
-				break;
-			}
-		}
-
-		// Transaction affects the Blueprint this editor handles, so react as necessary
-		if (bAffectsBlueprint)
-		{
-			RefreshEditors();
-
-			FSlateApplication::Get().DismissAllMenus();
-		}
+		HandleUndoTransaction(Transaction);
 	}
 }
 

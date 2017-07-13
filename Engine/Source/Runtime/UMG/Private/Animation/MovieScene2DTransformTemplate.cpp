@@ -5,9 +5,16 @@
 #include "Animation/MovieScene2DTransformTrack.h"
 #include "MovieSceneEvaluation.h"
 
+template<>
+FMovieSceneAnimTypeID GetBlendingDataType<FWidgetTransform>()
+{
+	static FMovieSceneAnimTypeID TypeId = FMovieSceneAnimTypeID::Unique();
+	return TypeId;
+}
 
 FMovieScene2DTransformSectionTemplate::FMovieScene2DTransformSectionTemplate(const UMovieScene2DTransformSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
+	, BlendType(Section.GetBlendType().Get())
 {
 	Translation[0] = Section.GetTranslationCurve(EAxis::X);
 	Translation[1] = Section.GetTranslationCurve(EAxis::Y);
@@ -23,26 +30,35 @@ FMovieScene2DTransformSectionTemplate::FMovieScene2DTransformSectionTemplate(con
 
 void FMovieScene2DTransformSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
+	const float Time = Context.GetTime();
+	MovieScene::TMultiChannelValue<float, 7> AnimatedData;
 
-	TCachedSectionData<FWidgetTransform>& SectionData = PersistentData.GetSectionData<TCachedSectionData<FWidgetTransform>>();
-
-	float Time = Context.GetTime();
-	for (TCachedValue<FWidgetTransform>& ObjectAndValue : SectionData.ObjectsAndValues)
+	// Only activate channels if the curve has data associated with it
+	auto EvalChannel = [&AnimatedData, Time](uint8 ChanneIndex, const FRichCurve& Curve)
 	{
-		FWidgetTransform& Value = ObjectAndValue.Value;
+		if (Curve.HasAnyData())
+		{
+			AnimatedData.Set(ChanneIndex, Curve.Eval(Time));
+		}
+	};
 
-		Value.Translation.X 	= Translation[0].Eval(Time, Value.Translation.X);
-		Value.Translation.Y 	= Translation[1].Eval(Time, Value.Translation.Y);
+	EvalChannel(0, Translation[0]);
+	EvalChannel(1, Translation[1]);
 
-		Value.Scale.X 			= Scale[0].Eval(Time, Value.Scale.X);
-		Value.Scale.Y 			= Scale[1].Eval(Time, Value.Scale.Y);
+	EvalChannel(2, Scale[0]);
+	EvalChannel(3, Scale[1]);
 
-		Value.Shear.X 			= Shear[0].Eval(Time, Value.Shear.X);
-		Value.Shear.Y 			= Shear[1].Eval(Time, Value.Shear.Y);
+	EvalChannel(4, Shear[0]);
+	EvalChannel(5, Shear[1]);
 
-		Value.Angle 			= Rotation.Eval(Time, Value.Angle);
+	EvalChannel(6, Rotation);
+
+	if (!AnimatedData.IsEmpty())
+	{
+		FMovieSceneBlendingActuatorID ActuatorTypeID = EnsureActuator<FWidgetTransform>(ExecutionTokens.GetBlendingAccumulator());
+
+		// Add the blendable to the accumulator
+		float Weight = EvaluateEasing(Context.GetTime());
+		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<FWidgetTransform>(AnimatedData, BlendType, Weight));
 	}
-
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FWidgetTransform>());
 }

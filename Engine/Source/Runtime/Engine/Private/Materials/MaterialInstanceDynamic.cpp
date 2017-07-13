@@ -8,6 +8,7 @@
 #include "UObject/Package.h"
 #include "Materials/MaterialInstanceSupport.h"
 #include "Engine/Texture.h"
+#include "Misc/RuntimeErrors.h"
 
 UMaterialInstanceDynamic::UMaterialInstanceDynamic(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -296,10 +297,13 @@ void UMaterialInstanceDynamic::CopyInterpParameters(UMaterialInstance* Source)
 void UMaterialInstanceDynamic::CopyParameterOverrides(UMaterialInstance* MaterialInstance)
 {
 	ClearParameterValues();
-	VectorParameterValues = MaterialInstance->VectorParameterValues;
-	ScalarParameterValues = MaterialInstance->ScalarParameterValues;
-	TextureParameterValues = MaterialInstance->TextureParameterValues;
-	FontParameterValues = MaterialInstance->FontParameterValues;
+	if (ensureAsRuntimeWarning(MaterialInstance != nullptr))
+	{
+		VectorParameterValues = MaterialInstance->VectorParameterValues;
+		ScalarParameterValues = MaterialInstance->ScalarParameterValues;
+		TextureParameterValues = MaterialInstance->TextureParameterValues;
+		FontParameterValues = MaterialInstance->FontParameterValues;
+	}
 	InitResources();
 }
 

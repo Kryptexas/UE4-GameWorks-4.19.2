@@ -70,6 +70,9 @@ private:
 	/** Internal play function with a verbose parameter set */
 	void PlayInternal(double StartAtTime, double EndAtTime, double SubAnimStartTime, double SubAnimEndTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode, float InPlaybackSpeed);
 
+	/** Apply any latent actions which may have accumulated while the sequence was being evaluated */
+	void ApplyLatentActions();
+
 	/** Animation being played */
 	UPROPERTY()
 	UWidgetAnimation* Animation;
@@ -114,4 +117,15 @@ private:
 
 	/** True if the animation is playing forward, otherwise false and it's playing in reverse. */
 	bool bIsPlayingForward;
+
+	/** Set to true while evaluating to prevent reentrancy */
+	bool bIsEvaluating : 1;
+
+	enum class ELatentAction
+	{
+		Stop, Pause
+	};
+
+	/** Set of latent actions that are to be performed when the sequence has finished evaluating this frame */
+	TArray<ELatentAction> LatentActions;
 };

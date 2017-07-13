@@ -1195,7 +1195,9 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
-	if (Obj && Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	/** Macros should not create uber graph frames as they have no uber graph. If UBlueprints are cooked out the macro class probably does not exist as well */
+	UBlueprint* Blueprint = Cast<UBlueprint>(ClassGeneratedBy);
+	if (Blueprint && Blueprint->BlueprintType == BPTYPE_MacroLibrary)
 	{
 		return;
 	}
@@ -1461,16 +1463,15 @@ protected:
 
 				if (ObjectProperty)
 				{
+					// This was a raw UObject* serialized by UObjectProperty, so just save the address
 					bWeakRef = true;
 				}
 			}
 
-			if (bWeakRef)
-			{
-				// This was a raw UObject * serialized by UObjectProperty, so just save the address
-				Collector.MarkWeakObjectReferenceForClearing(&Object);				
-			}
-			else
+			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
+			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
+
+			if (!bWeakRef)
 			{
 				// This is a hard reference or we don't know what's serializing it, so serialize it normally
 				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);

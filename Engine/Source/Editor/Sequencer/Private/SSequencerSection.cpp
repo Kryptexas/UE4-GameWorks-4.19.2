@@ -21,6 +21,17 @@
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 
+/** A point on an easing curve used for rendering */
+struct FEasingCurvePoint
+{
+	FEasingCurvePoint(FVector2D InLocation, const FLinearColor& InPointColor) : Location(InLocation), Color(InPointColor) {}
+
+	/** The location of the point (x=time, y=easing value [0-1]) */
+	FVector2D Location;
+	/** The color of the point */
+	FLinearColor Color;
+};
+
 struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 {
 	FSequencerSectionPainterImpl(FSequencer& InSequencer, UMovieSceneSection& InSection, FSlateWindowElementList& _OutDrawElements, const FGeometry& InSectionGeometry, const SSequencerSection& InSectionWidget)
@@ -73,6 +84,9 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 		if (!Section.IsInfinite() && Sequencer.GetSettings()->ShouldShowPrePostRoll())
 		{
+			TOptional<FSlateClippingState> PreviousClipState = DrawElements.GetClippingState();
+			DrawElements.PopClip();
+
 			static const FSlateBrush* PreRollBrush = FEditorStyle::GetBrush("Sequencer.Section.PreRoll");
 			float BrushHeight = 16.f, BrushWidth = 10.f;
 
@@ -115,6 +129,11 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 					PreRollBrush,
 					DrawEffects
 				);
+			}
+
+			if (PreviousClipState.IsSet())
+			{
+				DrawElements.GetClippingManager().PushClippingState(PreviousClipState.GetValue());
 			}
 		}
 
@@ -223,7 +242,7 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 	{
 		// Draw the blend type text if necessary
 		UMovieSceneTrack* Track = GetTrack();
-		if (!Track || Track->GetSupportedBlendTypes().Num() <= 1 || !Section.GetBlendType().IsValid() || !bIsHighlighted)
+		if (!Track || Track->GetSupportedBlendTypes().Num() <= 1 || !Section.GetBlendType().IsValid() || !bIsHighlighted || Section.GetBlendType().Get() == EMovieSceneBlendType::Absolute)
 		{
 			return;
 		}
@@ -309,6 +328,53 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 		return TotalScale > 0.f ? EaseInInterp * (EaseInScale/TotalScale) + ((1.f-EaseOutInterp) * (EaseOutScale/TotalScale)) : 0.f;
 	}
 
+	FEasingCurvePoint MakeCurvePoint(FSectionHandle SectionHandle, float Time, const FLinearColor& FinalTint, const FLinearColor& EaseSelectionColor) const
+	{
+		TOptional<float> EaseInValue, EaseOutValue;
+		float EaseInInterp = 0.f, EaseOutInterp = 1.f;
+		SectionHandle.GetSectionObject()->EvaluateEasing(Time, EaseInValue, EaseOutValue, &EaseInInterp, &EaseOutInterp);
+
+		return FEasingCurvePoint(
+			FVector2D(Time, EaseInValue.Get(1.f) * EaseOutValue.Get(1.f)),
+			FMath::Lerp(FinalTint, EaseSelectionColor, GetEaseHighlightAmount(SectionHandle, EaseInInterp, EaseOutInterp))
+		);
+	}
+
+	/** Adds intermediate control points for the specified section's easing up to a given threshold */
+	void RefineCurvePoints(FSectionHandle SectionHandle, const FLinearColor& FinalTint, const FLinearColor& EaseSelectionColor, TArray<FEasingCurvePoint>& InOutPoints)
+	{
+		static float GradientThreshold = .05f;
+		static float ValueThreshold = .05f;
+
+		float MinTimeSize = FMath::Max(0.0001f, TimeToPixelConverter.PixelToTime(2.5) - TimeToPixelConverter.PixelToTime(0));
+
+		UMovieSceneSection* SectionObject = SectionHandle.GetSectionObject();
+
+		for (int32 Index = 0; Index < InOutPoints.Num() - 1; ++Index)
+		{
+			const FEasingCurvePoint& Lower = InOutPoints[Index];
+			const FEasingCurvePoint& Upper = InOutPoints[Index + 1];
+
+			if ((Upper.Location.X - Lower.Location.X)*.5f > MinTimeSize)
+			{
+				float NewPointTime = (Upper.Location.X + Lower.Location.X)*.5f;
+				float NewPointValue = SectionObject->EvaluateEasing(NewPointTime);
+
+				// Check that the gradient is changing significantly
+				float LinearValue = (Upper.Location.Y + Lower.Location.Y) * .5f;
+				float PointGradient = NewPointValue - SectionObject->EvaluateEasing(FMath::Lerp(Lower.Location.X, NewPointTime, 0.9f));
+				float OuterGradient = Upper.Location.Y - Lower.Location.Y;
+				if (!FMath::IsNearlyEqual(OuterGradient, PointGradient, GradientThreshold) ||
+					!FMath::IsNearlyEqual(LinearValue, NewPointValue, ValueThreshold))
+				{
+					// Add the point
+					InOutPoints.Insert(MakeCurvePoint(SectionHandle, NewPointTime, FinalTint, EaseSelectionColor), Index+1);
+					--Index;
+				}
+			}
+		}
+	}
+
 	void DrawEasingForSegment(const FSequencerOverlapRange& Segment, const FGeometry& InnerSectionGeometry, const FLinearColor& FinalTint)
 	{
 		const float StartTimePixel = TimeToPixelConverter.TimeToPixel(Section.GetStartTime());
@@ -328,9 +394,6 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 			return;
 		}
 
-		const float SegmentSizePx = FMath::Clamp(RangeSizePixel / 10.f, 4.f, 16.f);
-		const int32 NumSegments = FMath::CeilToInt(RangeSizePixel / SegmentSizePx);
-
 		const FSlateBrush* MyBrush = FEditorStyle::Get().GetBrush("Sequencer.Timeline.EaseInOut");
 		FSlateShaderResourceProxy *ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
 		FSlateResourceHandle ResourceHandle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*MyBrush);
@@ -347,14 +410,26 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 		FColor FillColor(0,0,0,51);
 
+		TArray<FEasingCurvePoint> CurvePoints;
+
 		// Segment.Impls are already sorted bottom to top
 		for (int32 CurveIndex = 0; CurveIndex < Segment.Sections.Num(); ++CurveIndex)
 		{
 			FSectionHandle Handle = Segment.Sections[CurveIndex];
-			UMovieSceneSection* OverlappingSection = Handle.GetSectionObject();
-			if (!OverlappingSection)
+
+			// Make the points for the curve
+			CurvePoints.Reset(20);
 			{
-				continue;
+				CurvePoints.Add(MakeCurvePoint(Handle, Segment.Range.GetLowerBoundValue(), FinalTint, EaseSelectionColor));
+				CurvePoints.Add(MakeCurvePoint(Handle, Segment.Range.GetUpperBoundValue(), FinalTint, EaseSelectionColor));
+
+				// Refine the control points
+				int32 LastNumPoints;
+				do
+				{
+					LastNumPoints = CurvePoints.Num();
+					RefineCurvePoints(Handle, FinalTint, EaseSelectionColor, CurvePoints);
+				} while(LastNumPoints != CurvePoints.Num());
 			}
 
 			TArray<SlateIndex> Indices;
@@ -362,28 +437,20 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 			TArray<FVector2D> BorderPoints;
 			TArray<FLinearColor> BorderPointColors;
 
-			Indices.Reserve(NumSegments*6);
-			Verts.Reserve(NumSegments*2);
+			Indices.Reserve(CurvePoints.Num()*6);
+			Verts.Reserve(CurvePoints.Num()*2);
 
-			for (int32 Index = 0; Index <= NumSegments; ++Index)
+			for (const FEasingCurvePoint& Point : CurvePoints)
 			{
-				float U = Index / float(NumSegments);
-				float Time = Segment.Range.GetLowerBoundValue() + Segment.Range.Size<float>()*U;
-
-				TOptional<float> EaseInValue, EaseOutValue;
-				float EaseInInterp = 0.f, EaseOutInterp = 1.f;
-				OverlappingSection->EvaluateEasing(Time, EaseInValue, EaseOutValue, &EaseInInterp, &EaseOutInterp);
-
-				float HighlightAmount = GetEaseHighlightAmount(Handle, EaseInInterp, EaseOutInterp);
-				FLinearColor LineTint = FMath::Lerp(FinalTint, EaseSelectionColor, HighlightAmount);
+				float U = (Point.Location.X - Segment.Range.GetLowerBoundValue()) / Segment.Range.Size<float>();
 
 				// Add verts top->bottom
 				FVector2D UV(U, 0.f);
 				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, Pos + UV*Size, AtlasOffset + UV*AtlasUVSize, FillColor));
 
-				UV.Y = 1.f - EaseInValue.Get(1.f) * EaseOutValue.Get(1.f);
+				UV.Y = 1.f - Point.Location.Y;
 				BorderPoints.Add(UV*Size);
-				BorderPointColors.Add(LineTint);
+				BorderPointColors.Add(Point.Color);
 				Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RenderTransform, Pos + UV*Size, AtlasOffset + FVector2D(UV.X, 0.5f)*AtlasUVSize, FillColor));
 
 				if (Verts.Num() >= 4)
@@ -429,6 +496,11 @@ struct FSequencerSectionPainterImpl : FSequencerSectionPainter
 
 	void DrawEasing(const FLinearColor& FinalTint)
 	{
+		if (!Section.GetBlendType().IsValid())
+		{
+			return;
+		}
+
 		// Compute easing geometry by insetting from the current section geometry by 1px
 		FGeometry InnerSectionGeometry = SectionGeometry.MakeChild(SectionGeometry.Size - FVector2D(2.f, 2.f), FSlateLayoutTransform(FVector2D(1.f, 1.f)));
 		for (const FSequencerOverlapRange& Segment : SectionWidget.UnderlappingEasingSegments)
@@ -722,7 +794,8 @@ bool SSequencerSection::CheckForEasingHandleInteraction( const FPointerEvent& Mo
 	FTimeToPixel TimeToPixelConverter(MakeSectionGeometryWithoutHandles(SectionGeometry, SectionInterface), ThisSection->IsInfinite() ? GetSequencer().GetViewRange() : ThisSection->GetRange());
 
 	const float MouseTime = TimeToPixelConverter.PixelToTime(SectionGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X);
-	const float HalfHandleSizeX = TimeToPixelConverter.PixelToTime(5.f) - TimeToPixelConverter.PixelToTime(0.f);
+	// We intentionally give the handles a little more hit-test area than is visible as they are quite small
+	const float HalfHandleSizeX = TimeToPixelConverter.PixelToTime(8.f) - TimeToPixelConverter.PixelToTime(0.f);
 
 	// Now test individual easing handles if we're at the correct vertical position
 	float LocalMouseY = SectionGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).Y;
@@ -752,23 +825,17 @@ bool SSequencerSection::CheckForEasingHandleInteraction( const FPointerEvent& Mo
 		}
 
 		TRange<float> EaseInRange = EasingSectionObj->GetEaseInRange();
-		if (!EaseInRange.IsEmpty())
+		if (FMath::IsNearlyEqual(MouseTime, EaseInRange.IsEmpty() ? EasingSectionObj->GetStartTime() : EaseInRange.GetUpperBoundValue(), HalfHandleSizeX))
 		{
-			if (FMath::IsNearlyEqual(MouseTime, EaseInRange.GetUpperBoundValue(), HalfHandleSizeX))
-			{
-				GetSequencer().SetHotspot(MakeShared<FSectionEasingHandleHotspot>(ESequencerEasingType::In, Handle));
-				return true;
-			}
+			GetSequencer().SetHotspot(MakeShared<FSectionEasingHandleHotspot>(ESequencerEasingType::In, Handle));
+			return true;
 		}
 
 		TRange<float> EaseOutRange = EasingSectionObj->GetEaseOutRange();
-		if (!EaseOutRange.IsEmpty())
+		if (FMath::IsNearlyEqual(MouseTime, EaseOutRange.IsEmpty() ? EasingSectionObj->GetEndTime() :EaseOutRange.GetLowerBoundValue(), HalfHandleSizeX))
 		{
-			if (FMath::IsNearlyEqual(MouseTime, EaseOutRange.GetLowerBoundValue(), HalfHandleSizeX))
-			{
-				GetSequencer().SetHotspot(MakeShared<FSectionEasingHandleHotspot>(ESequencerEasingType::Out, Handle));
-				return true;
-			}
+			GetSequencer().SetHotspot(MakeShared<FSectionEasingHandleHotspot>(ESequencerEasingType::Out, Handle));
+			return true;
 		}
 	}
 
@@ -1297,46 +1364,33 @@ void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FW
 
 void SSequencerSection::PaintEasingHandles( FSequencerSectionPainter& InPainter, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const
 {
-	UMovieSceneSection* ThisSection = SectionInterface->GetSectionObject();
-	if (!ThisSection)
+	if (!SectionInterface->GetSectionObject()->GetBlendType().IsValid())
 	{
 		return;
 	}
 
-	TArray<TRange<float>> HighlightedRanges;
+	TArray<FSectionHandle> AllUnderlappingSections;
 	if (IsSectionHighlighted(FSectionHandle(ParentSectionArea, SectionIndex), Hotspot))
 	{
-		HighlightedRanges.Add(ThisSection->GetRange());
+		AllUnderlappingSections.Add(FSectionHandle(ParentSectionArea, SectionIndex));
 	}
 
-	TArray<FSectionHandle> AllUnderlappingSections;
-	AllUnderlappingSections.Add(FSectionHandle(ParentSectionArea, SectionIndex));
 	for (const FSequencerOverlapRange& Segment : UnderlappingSegments)
 	{
 		for (FSectionHandle Section : Segment.Sections)
 		{
-			if (!AllUnderlappingSections.Contains(Section))
+			if (IsSectionHighlighted(Section, Hotspot) && !AllUnderlappingSections.Contains(Section))
 			{
-				if (IsSectionHighlighted(Section, Hotspot))
-				{
-					HighlightedRanges.Add(Section.GetSectionObject()->GetRange());
-				}
 				AllUnderlappingSections.Add(Section);
 			}
 		}
 	}
 
-	if (!HighlightedRanges.Num())
-	{
-		return;
-	}
-
 	FTimeToPixel TimeToPixelConverter = InPainter.GetTimeConverter();
 	for (FSectionHandle Handle : AllUnderlappingSections)
 	{
-		TSharedRef<ISequencerSection> UnderlappingSection =  Handle.TrackNode->GetSections()[Handle.SectionIndex];
-		UMovieSceneSection* UnderlappingSectionObj = UnderlappingSection->GetSectionObject();
-		if (!UnderlappingSection->SectionIsResizable() || UnderlappingSectionObj->IsInfinite())
+		UMovieSceneSection* UnderlappingSectionObj = Handle.GetSectionInterface()->GetSectionObject();
+		if (UnderlappingSectionObj->IsInfinite())
 		{
 			continue;
 		}
@@ -1346,13 +1400,39 @@ void SSequencerSection::PaintEasingHandles( FSequencerSectionPainter& InPainter,
 		bool bRightHandleActive = false;
 
 		// Get the hovered/selected state for the section handles from the hotspot
-		if (Hotspot && (Hotspot->GetType() == ESequencerHotspot::EaseInHandle || Hotspot->GetType() == ESequencerHotspot::EaseOutHandle))
+		if (Hotspot)
 		{
-			const FSectionEasingHandleHotspot* EasingHotspot = static_cast<const FSectionEasingHandleHotspot*>(Hotspot);
+			if (Hotspot->GetType() == ESequencerHotspot::EaseInHandle || Hotspot->GetType() == ESequencerHotspot::EaseOutHandle)
+			{
+				const FSectionEasingHandleHotspot* EasingHotspot = static_cast<const FSectionEasingHandleHotspot*>(Hotspot);
 
-			bDrawThisSectionsHandles = EasingHotspot->Section == Handle;
-			bLeftHandleActive = Hotspot->GetType() == ESequencerHotspot::EaseInHandle;
-			bRightHandleActive = Hotspot->GetType() == ESequencerHotspot::EaseOutHandle;
+				bDrawThisSectionsHandles = EasingHotspot->Section == Handle;
+				bLeftHandleActive = Hotspot->GetType() == ESequencerHotspot::EaseInHandle;
+				bRightHandleActive = Hotspot->GetType() == ESequencerHotspot::EaseOutHandle;
+			}
+			else if (Hotspot->GetType() == ESequencerHotspot::EasingArea)
+			{
+				const FSectionEasingAreaHotspot* EasingAreaHotspot = static_cast<const FSectionEasingAreaHotspot*>(Hotspot);
+				for (const FEasingAreaHandle& Easing : EasingAreaHotspot->Easings)
+				{
+					if (Easing.Section == Handle)
+					{
+						if (Easing.EasingType == ESequencerEasingType::In)
+						{
+							bLeftHandleActive = true;
+						}
+						else
+						{
+							bRightHandleActive = true;
+						}
+
+						if (bLeftHandleActive && bRightHandleActive)
+						{
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		if (!bDrawThisSectionsHandles)
@@ -1366,42 +1446,38 @@ void SSequencerSection::PaintEasingHandles( FSequencerSectionPainter& InPainter,
 		FVector2D HandleSize(10.f, 10.f);
 
 		TRange<float> EaseInRange = UnderlappingSectionObj->GetEaseInRange();
-		if (!EaseInRange.IsEmpty() && HighlightedRanges.ContainsByPredicate([=](TRange<float> InRange){ return InRange.Contains(EaseInRange.GetUpperBoundValue()); }))
-		{
-			FVector2D HandlePos(TimeToPixelConverter.TimeToPixel(EaseInRange.GetUpperBoundValue()), 0.f);
-			FSlateDrawElement::MakeBox(
-				InPainter.DrawElements,
-				// always draw selected keys on top of other keys
-				InPainter.LayerId,
-				// Center the key along Y.  Ensure the middle of the key is at the actual key time
-				InPainter.SectionGeometry.ToPaintGeometry(
-					HandlePos - HandleSize*0.5f,
-					HandleSize
-				),
-				EasingHandle,
-				DrawEffects,
-				(bLeftHandleActive ? SelectionColor : EasingHandle->GetTint(FWidgetStyle()))
-			);
-		}
+		// Always draw handles if the section is highlighted, even if there is no range (to allow manual adjustment)
+		FVector2D HandlePos(TimeToPixelConverter.TimeToPixel(EaseInRange.IsEmpty() ? UnderlappingSectionObj->GetStartTime() : EaseInRange.GetUpperBoundValue()), 0.f);
+		FSlateDrawElement::MakeBox(
+			InPainter.DrawElements,
+			// always draw selected keys on top of other keys
+			InPainter.LayerId,
+			// Center the key along X.  Ensure the middle of the key is at the actual key time
+			InPainter.SectionGeometry.ToPaintGeometry(
+				HandlePos - FVector2D(HandleSize.X*0.5f, 0.f),
+				HandleSize
+			),
+			EasingHandle,
+			DrawEffects,
+			(bLeftHandleActive ? SelectionColor : EasingHandle->GetTint(FWidgetStyle()))
+		);
 
 		TRange<float> EaseOutRange = UnderlappingSectionObj->GetEaseOutRange();
-		if (!EaseOutRange.IsEmpty() && HighlightedRanges.ContainsByPredicate([=](TRange<float> InRange){ return InRange.Contains(EaseOutRange.GetUpperBoundValue()); }))
-		{
-			FVector2D HandlePos(TimeToPixelConverter.TimeToPixel(EaseOutRange.GetLowerBoundValue()), 0.f);
-			FSlateDrawElement::MakeBox(
-				InPainter.DrawElements,
-				// always draw selected keys on top of other keys
-				InPainter.LayerId,
-				// Center the key along Y.  Ensure the middle of the key is at the actual key time
-				InPainter.SectionGeometry.ToPaintGeometry(
-					HandlePos - HandleSize*0.5f,
-					HandleSize
-				),
-				EasingHandle,
-				DrawEffects,
-				(bRightHandleActive ? SelectionColor : EasingHandle->GetTint(FWidgetStyle()))
-			);
-		}
+		// Always draw handles if the section is highlighted, even if there is no range (to allow manual adjustment)
+		HandlePos = FVector2D(TimeToPixelConverter.TimeToPixel(EaseOutRange.IsEmpty() ? UnderlappingSectionObj->GetEndTime() : EaseOutRange.GetLowerBoundValue()), 0.f);
+		FSlateDrawElement::MakeBox(
+			InPainter.DrawElements,
+			// always draw selected keys on top of other keys
+			InPainter.LayerId,
+			// Center the key along X.  Ensure the middle of the key is at the actual key time
+			InPainter.SectionGeometry.ToPaintGeometry(
+				HandlePos - FVector2D(HandleSize.X*0.5f, 0.f),
+				HandleSize
+			),
+			EasingHandle,
+			DrawEffects,
+			(bRightHandleActive ? SelectionColor : EasingHandle->GetTint(FWidgetStyle()))
+		);
 	}
 }
 
@@ -1539,6 +1615,10 @@ void SSequencerSection::Tick( const FGeometry& AllottedGeometry, const double In
 
 			const float SectionGripSize = SectionInterface->GetSectionGripSize();
 			HandleOffsetPx = FMath::Max(FMath::RoundToFloat((2*SectionGripSize - SectionLengthPx) * .5f), 0.f);
+		}
+		else
+		{
+			HandleOffsetPx = 0;
 		}
 
 		FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );

@@ -1898,6 +1898,12 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 
  	int32 ArrayIndex;
  	Stack.Step( Stack.Object, &ArrayIndex);
+	
+	if (ArrayProperty == nullptr)
+	{
+		Stack.bArrayContextFailed = true;
+		return;
+	}
 
 	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddr);
 	Stack.MostRecentProperty = ArrayProperty->Inner;
@@ -2626,13 +2632,18 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 {
 	UScriptStruct* ScriptStruct = CastChecked<UScriptStruct>(Stack.ReadObject());
 	int32 SerializedSize = Stack.ReadInt<int32>();
-
-	// Temporarily disabling this check because we can't assume the serialized size
-	// will match the struct size on all platforms (like win64 vs win32 cooked)
-	//check( ScriptStruct->GetStructureSize() == SerializedSize );
 	
+	// TODO: Change this once structs/classes can be declared as explicitly editor only
+	bool bIsEditorOnlyStruct = false;
+
 	for( UProperty* StructProp = ScriptStruct->PropertyLink; StructProp; StructProp = StructProp->PropertyLinkNext )
 	{
+		// Skip transient and editor only properties, this needs to be synched with KismetCompilerVMBackend
+		if (StructProp->PropertyFlags & CPF_Transient || (!bIsEditorOnlyStruct && StructProp->PropertyFlags & CPF_EditorOnly))
+		{
+			continue;
+		}
+
 		for (int32 ArrayIter = 0; ArrayIter < StructProp->ArrayDim; ++ArrayIter)
 		{
 			Stack.Step(Stack.Object, StructProp->ContainerPtrToValuePtr<uint8>(RESULT_PARAM, ArrayIter));

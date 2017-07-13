@@ -2091,10 +2091,13 @@ int32 UStaticMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 TArray<FName> UStaticMeshComponent::GetMaterialSlotNames() const
 {
 	TArray<FName> MaterialNames;
-	for (int32 MaterialIndex = 0; MaterialIndex < GetStaticMesh()->StaticMaterials.Num(); ++MaterialIndex)
+	if (UStaticMesh* Mesh = GetStaticMesh())
 	{
-		const FStaticMaterial &StaticMaterial = GetStaticMesh()->StaticMaterials[MaterialIndex];
-		MaterialNames.Add(StaticMaterial.MaterialSlotName);
+		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->StaticMaterials.Num(); ++MaterialIndex)
+		{
+			const FStaticMaterial &StaticMaterial = Mesh->StaticMaterials[MaterialIndex];
+			MaterialNames.Add(StaticMaterial.MaterialSlotName);
+		}
 	}
 	return MaterialNames;
 }

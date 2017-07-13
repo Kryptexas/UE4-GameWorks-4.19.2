@@ -445,9 +445,4 @@ TSharedPtr<SWidget> FSkeletalAnimationTrackEditor::BuildOutlinerEditWidget(const
 	}
 }
 
-EMultipleRowMode FSkeletalAnimationTrackEditor::GetMultipleRowMode() const
-{
-	return EMultipleRowMode::MultipleTrack;
-}
-
 #undef LOCTEXT_NAMESPACE

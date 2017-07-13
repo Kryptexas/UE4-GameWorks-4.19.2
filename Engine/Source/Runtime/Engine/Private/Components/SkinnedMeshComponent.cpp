@@ -723,12 +723,15 @@ UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) cons
 
 int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 {
-	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	if (SkeletalMesh != nullptr)
 	{
-		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
-		if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
 		{
-			return MaterialIndex;
+			const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+			if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+			{
+				return MaterialIndex;
+			}
 		}
 	}
 	return INDEX_NONE;
@@ -737,10 +740,13 @@ int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 TArray<FName> USkinnedMeshComponent::GetMaterialSlotNames() const
 {
 	TArray<FName> MaterialNames;
-	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	if (SkeletalMesh != nullptr)
 	{
-		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
-		MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+		{
+			const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+			MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+		}
 	}
 	return MaterialNames;
 }

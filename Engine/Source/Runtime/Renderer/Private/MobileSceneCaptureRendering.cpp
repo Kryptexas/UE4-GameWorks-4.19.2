@@ -308,12 +308,21 @@ static void CopyCaptureToTarget(
 		ScreenVertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
 		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SourceTextureRHI);
 
+		int32 TargetPosY = ViewRect.Min.Y;
+		int32 TargetHeight = ViewRect.Height();
+	
+		if (bNeedsFlippedRenderTarget)
+		{
+			TargetPosY = ViewRect.Height() - TargetPosY;
+			TargetHeight = -TargetHeight;
+		}
+
 		DrawRectangle(
 			RHICmdList,
 			ViewRect.Min.X, ViewRect.Min.Y,
 			ViewRect.Width(), ViewRect.Height(),
-			ViewRect.Min.X, ViewRect.Min.Y,
-			ViewRect.Width(), ViewRect.Height(),
+			ViewRect.Min.X, TargetPosY,
+			ViewRect.Width(), TargetHeight,
 			TargetSize,
 			SourceTexSize,
 			*ScreenVertexShader,

@@ -259,8 +259,8 @@ uint32 GRHIDeviceId = 0;
 uint32 GRHIDeviceRevision = 0;
 bool GRHIDeviceIsAMDPreGCNArchitecture = false;
 bool GSupportsRenderDepthTargetableShaderResources = true;
-bool GSupportsRenderTargetFormat_PF_G8 = true;
-bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
+TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_G8(true);
+TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_FloatRGBA(true);
 bool GSupportsShaderFramebufferFetch = false;
 bool GSupportsShaderDepthStencilFetch = false;
 bool GSupportsTimestampRenderQueries = false;
@@ -276,15 +276,15 @@ bool GSupportsTexture3D = true;
 bool GSupportsMobileMultiView = false;
 bool GSupportsImageExternal = false;
 bool GSupportsResourceView = true;
-bool GSupportsMultipleRenderTargets = true;
+TRHIGlobal<bool> GSupportsMultipleRenderTargets(true);
 bool GSupportsWideMRT = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
 bool GRHINeedsExtraDeletionLatency = false;
-int32 GMaxShadowDepthBufferSizeX = 2048;
-int32 GMaxShadowDepthBufferSizeY = 2048;
-int32 GMaxTextureDimensions = 2048;
-int32 GMaxCubeTextureDimensions = 2048;
+TRHIGlobal<int32> GMaxShadowDepthBufferSizeX(2048);
+TRHIGlobal<int32> GMaxShadowDepthBufferSizeY(2048);
+TRHIGlobal<int32> GMaxTextureDimensions(2048);
+TRHIGlobal<int32> GMaxCubeTextureDimensions(2048);
 int32 GMaxTextureArrayLayers = 256;
 int32 GMaxTextureSamplers = 16;
 bool GUsingNullRHI = false;
@@ -296,7 +296,7 @@ bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
 bool GSupportsEfficientAsyncCompute = false;
 bool GRHISupportsBaseVertexIndex = true;
-bool GRHISupportsInstancing = true;
+TRHIGlobal<bool> GRHISupportsInstancing(true);
 bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
@@ -600,8 +600,8 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 	{
 		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_XBOXONE_D3D11) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT)/* || (Platform == SP_VULKAN_SM5)*/;
 	}
-	// For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
-	// As such it becomes an opt-in project setting.
+    // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
+    // As such it becomes an opt-in project setting.
 	else if (Platform == SP_METAL_SM5)
 	{
 		return (RHIGetShaderLanguageVersion(Platform) >= 2);

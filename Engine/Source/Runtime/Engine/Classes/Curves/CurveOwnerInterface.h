@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Curves/RichCurve.h"
-
+#include "UObject/PackageReload.h"
 
 /**
  * Interface you implement if you want the CurveEditor to be able to edit curves on you.
@@ -56,4 +56,21 @@ public:
 
 	/** @return Color for this curve */
 	virtual FLinearColor GetCurveColor(FRichCurveEditInfo CurveInfo) const;
+
+	/** Called during package reload to repoint a curve interface asset */
+	virtual bool RepointCurveOwner(const FPackageReloadedEvent& InPackageReloadedEvent, FCurveOwnerInterface*& OutNewCurveOwner) const
+	{
+		return false;
+	}
+	
+protected:
+	/** Default implementation of RepointCurveOwner that can be used with UObject based types that inherit FCurveOwnerInterface */
+	template <typename AssetType>
+	static bool RepointCurveOwnerAsset(const FPackageReloadedEvent& InPackageReloadedEvent, const AssetType* InCurveOwnerAsset, FCurveOwnerInterface*& OutNewCurveOwner)
+	{
+		AssetType* NewCurveOwnerAsset = nullptr;
+		const bool bDidRepoint = InPackageReloadedEvent.GetRepointedObject(InCurveOwnerAsset, NewCurveOwnerAsset);
+		OutNewCurveOwner = NewCurveOwnerAsset;
+		return bDidRepoint;
+	}
 };

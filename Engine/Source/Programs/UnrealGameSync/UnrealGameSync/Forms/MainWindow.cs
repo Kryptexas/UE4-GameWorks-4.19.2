@@ -40,7 +40,8 @@ namespace UnrealGameSync
 		ActivationListener ActivationListener;
 		BoundedLogWriter Log;
 		UserSettings Settings;
-		int TabMenu_TabIndex = -1;
+		int TabMenu_TabIdx = -1;
+		int ChangingWorkspacesRefCount;
 
 		bool bAllowClose = false;
 
@@ -75,6 +76,7 @@ namespace UnrealGameSync
 			TabControl.OnTabClosing += TabControl_OnTabClosing;
 			TabControl.OnTabClosed += TabControl_OnTabClosed;
 			TabControl.OnTabReorder += TabControl_OnTabReorder;
+			TabControl.OnButtonClick += TabControl_OnButtonClick;
 
 			SetupDefaultControl();
 
@@ -101,6 +103,14 @@ namespace UnrealGameSync
 			}
 		}
 
+		void TabControl_OnButtonClick(int ButtonIdx, Point Location, MouseButtons Buttons)
+		{
+			if(ButtonIdx == 0)
+			{
+				BrowseForProject(TabControl.GetSelectedTabIndex());
+			}
+		}
+
 		void TabControl_OnTabClicked(object TabData, Point Location, MouseButtons Buttons)
 		{
 			if(Buttons == System.Windows.Forms.MouseButtons.Right)
@@ -114,12 +124,12 @@ namespace UnrealGameSync
 					TabMenu_RecentProjects.DropDownItems.RemoveAt(InsertIdx);
 				}
 
-				TabMenu_TabIndex = -1;
+				TabMenu_TabIdx = -1;
 				for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 				{
 					if(TabControl.GetTabData(Idx) == TabData)
 					{
-						TabMenu_TabIndex = Idx;
+						TabMenu_TabIdx = Idx;
 						break;
 					}
 				}
@@ -132,7 +142,7 @@ namespace UnrealGameSync
 						string FullProjectFileName = Path.GetFullPath(ProjectFileName);
 						if(ProjectList.Add(FullProjectFileName))
 						{
-							ToolStripMenuItem Item = new ToolStripMenuItem(FullProjectFileName, null, new EventHandler((o, e) => TryOpenProject(FullProjectFileName, TabMenu_TabIndex)));
+							ToolStripMenuItem Item = new ToolStripMenuItem(FullProjectFileName, null, new EventHandler((o, e) => TryOpenProject(FullProjectFileName, TabMenu_TabIdx)));
 							TabMenu_RecentProjects.DropDownItems.Insert(InsertIdx, Item);
 							InsertIdx++;
 						}
@@ -474,12 +484,32 @@ namespace UnrealGameSync
 			Refresh();
 		}
 
+		public void BrowseForProject(WorkspaceControl Workspace)
+		{
+			int TabIdx = TabControl.FindTabIndex(Workspace);
+			if(TabIdx != -1)
+			{
+				BrowseForProject(TabIdx);
+			}
+		}
+
+		public void RequestProjectChange(WorkspaceControl Workspace, string ProjectFileName)
+		{
+			int TabIdx = TabControl.FindTabIndex(Workspace);
+			if(TabIdx != -1)
+			{
+				TryOpenProject(ProjectFileName, TabIdx);
+			}
+		}
+
 		public void BrowseForProject(int ReplaceTabIdx = -1)
 		{
 			OpenFileDialog Dialog = new OpenFileDialog();
-			Dialog.Filter = "Project files (*.uproject)|*.uproject|Project directory lists (*.uprojectdirs)|*.uprojectdirs|All files (*.*)|*.*" ;
+			Dialog.Filter = "Project files (*.uproject)|*.uproject|Project directory lists (*.uprojectdirs)|*.uprojectdirs|All supported files (*.uproject;*.uprojectdirs)|*.uproject;*.uprojectdirs|All files (*.*)|*.*" ;
+			Dialog.FilterIndex = Settings.FilterIndex;
 			if(Dialog.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
 			{
+				Settings.FilterIndex = Dialog.FilterIndex;
 				Settings.OtherProjectFileNames = Enumerable.Concat(new string[]{ Path.GetFullPath(Dialog.FileName) }, Settings.OtherProjectFileNames).Where(x => !String.IsNullOrEmpty(x)).Distinct(StringComparer.InvariantCultureIgnoreCase).ToArray();
 				Settings.Save();
 
@@ -581,17 +611,24 @@ namespace UnrealGameSync
 
 		public void StreamChangedCallback(WorkspaceControl Workspace)
 		{
-			for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
+			if(ChangingWorkspacesRefCount == 0)
 			{
-				if(TabControl.GetTabData(Idx) == Workspace)
+				ChangingWorkspacesRefCount++;
+
+				for(int Idx = 0; Idx < TabControl.GetTabCount(); Idx++)
 				{
-					string ProjectFileName = Workspace.SelectedFileName;
-					if(TryOpenProject(ProjectFileName, Idx) == -1)
+					if(TabControl.GetTabData(Idx) == Workspace)
 					{
-						TabControl.RemoveTab(Idx);
+						string ProjectFileName = Workspace.SelectedFileName;
+						if(TryOpenProject(ProjectFileName, Idx) == -1)
+						{
+							TabControl.RemoveTab(Idx);
+						}
+						break;
 					}
-					break;
 				}
+
+				ChangingWorkspacesRefCount--;
 			}
 		}
 
@@ -648,7 +685,7 @@ namespace UnrealGameSync
 
 		private void TabMenu_OpenProject_Click(object sender, EventArgs e)
 		{
-			BrowseForProject(TabMenu_TabIndex);
+			BrowseForProject(TabMenu_TabIdx);
 		}
 
 		private void TabMenu_TabNames_Stream_Click(object sender, EventArgs e)
@@ -680,6 +717,12 @@ namespace UnrealGameSync
 		private void TabMenu_Closed(object sender, ToolStripDropDownClosedEventArgs e)
 		{
 			TabControl.UnlockHover();
+		}
+
+		private void RecentMenu_ClearList_Click(object sender, EventArgs e)
+		{
+			Settings.OtherProjectFileNames = new string[0];
+			Settings.Save();
 		}
 
 		public void UpdateProgress()

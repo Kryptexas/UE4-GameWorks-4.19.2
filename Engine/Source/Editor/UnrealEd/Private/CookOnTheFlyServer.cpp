@@ -2076,10 +2076,14 @@ void UCookOnTheFlyServer::GetAllUnsolicitedPackages(TArray<UPackage*>& PackagesT
 			SCOPE_TIMER(PostLoadPackageFixup);
 			for (TObjectIterator<UPackage> It; It; ++It)
 			{
+				const FName StandardPackageName = GetCachedStandardPackageFileFName(*It);
+				if (CookedPackages.Exists(StandardPackageName, TargetPlatformNames))
+				{
+					continue;
+				}
 				PostLoadPackageFixup(*It);
 			}
 		}
-		//GRedirectCollector.ResolveStringAssetReference();
 		SCOPE_TIMER(UnsolicitedMarkup);
 		GetUnsolicitedPackages(PackagesToSave, ContainsFullAssetGCClasses, TargetPlatformNames);
 		
@@ -2422,13 +2426,7 @@ bool UCookOnTheFlyServer::SaveCookedPackages(TArray<UPackage*>& PackagesToSave, 
 
 void UCookOnTheFlyServer::PostLoadPackageFixup(UPackage* Package)
 {
-	const FName StandardPackageName = GetCachedStandardPackageFileFName(Package);
-	const TArray<FName> EmptyTargets;
-	if (CookedPackages.Exists(StandardPackageName, EmptyTargets))
-	{
-		return;
-	}
-
+	
 	if (Package->ContainsMap())
 	{
 		// load sublevels
@@ -5368,7 +5366,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				TArray<FName> ShaderFormats;
 				TargetPlatform->GetAllTargetedShaderFormats(ShaderFormats);
 				
-				FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
+				if(!FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
+				{
+					LogCookerMessage(FString::Printf(TEXT("Shared Material Shader Code Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+				}
 			}
 		}
 	}
@@ -5433,7 +5434,11 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 					TArray<FName> ShaderFormats;
 					TargetPlatform->GetAllTargetedShaderFormats(ShaderFormats);
 					
-					FShaderCodeLibrary::PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
+					if(!FShaderCodeLibrary::PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
+					{
+						// This is fatal - In this case we should cancel any launch on device operation or package write but we don't want to assert and crash the editor
+						LogCookerMessage(FString::Printf(TEXT("Package Native Shader Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+					}
 				}
 			}
 			
@@ -5988,6 +5993,9 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		GRedirectCollector.ProcessStringAssetReferencePackageList(StartupPackage, false, StartupStringAssetPackages);
 	}
 
+	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
+
+	// Add string asset packages after collecting files, to avoid accidentally activating the behavior to cook all maps if none are specified
 	for (FName StringAssetPackage : StartupStringAssetPackages)
 	{
 		TMap<FString, FString> RedirectedPaths;
@@ -6006,8 +6014,6 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			AddFileToCook(FilesInPath, StringAssetPackage.ToString());
 		}
 	}
-
-	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
 	
 	if (FilesInPath.Num() == 0)
 	{
@@ -6480,41 +6486,46 @@ bool UCookOnTheFlyServer::HandleNetworkFileServerNewConnection(const FString& Ve
 	return true;
 }
 
+void UCookOnTheFlyServer::GetCookOnTheFlyUnsolicitedFiles(const FName& PlatformName, TArray<FString> UnsolicitedFiles, const FString& Filename)
+{
+	TArray<FName> UnsolicitedFilenames;
+	UnsolicitedCookedPackages.GetPackagesForPlatformAndRemove(PlatformName, UnsolicitedFilenames);
+
+	for (const FName& UnsolicitedFile : UnsolicitedFilenames)
+	{
+		FString StandardFilename = UnsolicitedFile.ToString();
+		FPaths::MakeStandardFilename(StandardFilename);
+
+		// check that the sandboxed file exists... if it doesn't then don't send it back
+		// this can happen if the package was saved but the async writer thread hasn't finished writing it to disk yet
+
+		FString SandboxFilename = ConvertToFullSandboxPath(*Filename, true);
+		SandboxFilename.ReplaceInline(TEXT("[Platform]"), *PlatformName.ToString());
+		if (IFileManager::Get().FileExists(*SandboxFilename))
+		{
+			UnsolicitedFiles.Add(StandardFilename);
+		}
+		else
+		{
+			UE_LOG(LogCook, Warning, TEXT("Unsolicited file doesn't exist in sandbox, ignoring %s"), *Filename);
+		}
+
+	}
+	UPackage::WaitForAsyncFileWrites();
+}
+
 void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Filename, const FString &PlatformName, TArray<FString>& UnsolicitedFiles )
 {
-	check( IsCookOnTheFlyMode() );	
-	
+	check(IsCookOnTheFlyMode());
+
 	bool bIsCookable = FPackageName::IsPackageExtension(*FPaths::GetExtension(Filename, true));
 
 
-	FName PlatformFname = FName( *PlatformName );
+	FName PlatformFname = FName(*PlatformName);
 
 	if (!bIsCookable)
 	{
-		TArray<FName> UnsolicitedFilenames;
-		UnsolicitedCookedPackages.GetPackagesForPlatformAndRemove(PlatformFname, UnsolicitedFilenames);
-
-		for ( const FName& UnsolicitedFile : UnsolicitedFilenames )
-		{	
-			FString StandardFilename = UnsolicitedFile.ToString();
-			FPaths::MakeStandardFilename( StandardFilename );
-
-			// check that the sandboxed file exists... if it doesn't then don't send it back
-			// this can happen if the package was saved but the async writer thread hasn't finished writing it to disk yet
-			
-			FString SandboxFilename = ConvertToFullSandboxPath(*Filename, true);
-			SandboxFilename.ReplaceInline(TEXT("[Platform]"), *PlatformFname.ToString());
-			if ( IFileManager::Get().FileExists(*SandboxFilename) )
-			{
-				UnsolicitedFiles.Add(StandardFilename);
-			}
-			else
-			{
-				UE_LOG(LogCook, Warning, TEXT("Unsolicited file doesn't exist in sandbox, ignoring %s"), *Filename );
-			}
-			
-		}
-		UPackage::WaitForAsyncFileWrites();
+		GetCookOnTheFlyUnsolicitedFiles(PlatformFname, UnsolicitedFiles, Filename);
 		return;
 	}
 
@@ -6573,18 +6584,7 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 #endif
 	UE_LOG( LogCook, Display, TEXT("Cook complete %s"), *FileRequest.GetFilename().ToString())
 
-	TArray<FName> UnsolicitedFilenames;
-	UnsolicitedCookedPackages.GetPackagesForPlatformAndRemove(PlatformFname, UnsolicitedFilenames);
-	UnsolicitedFilenames.Remove(FileRequest.GetFilename());
-
-	for ( const FName& UnsolicitedFile : UnsolicitedFilenames )
-	{	
-		FString StandardFilename = UnsolicitedFile.ToString();
-		FPaths::MakeStandardFilename( StandardFilename );
-		UnsolicitedFiles.Add( StandardFilename );
-	}
-
-	UPackage::WaitForAsyncFileWrites();
+	GetCookOnTheFlyUnsolicitedFiles(PlatformFname, UnsolicitedFiles, Filename);
 
 #if PROFILE_NETWORK
 	WaitForAsyncFilesWrites += FPlatformTime::Seconds() - StartTime;

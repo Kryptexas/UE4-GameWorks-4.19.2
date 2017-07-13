@@ -181,7 +181,7 @@ namespace Audio
 
 				if (OcclusionInterface.IsValid())
 				{
-					OcclusionInterface->Initialize(SampleRate, MaxChannels);
+					OcclusionInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
 				}
 
 				if (ReverbPluginInterface.IsValid())

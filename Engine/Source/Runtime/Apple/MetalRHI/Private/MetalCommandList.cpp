@@ -9,6 +9,7 @@
 #include "MetalCommandList.h"
 #include "MetalCommandQueue.h"
 #include "MetalProfiler.h"
+#include "MetalCommandBuffer.h"
 
 #pragma mark - Public C++ Boilerplate -
 
@@ -42,8 +43,23 @@ static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffe
 	FString FailureString = FailureDesc ? FString(FailureDesc) : FString(TEXT("Unknown"));
 	FString RecoveryString = RecoveryDesc ? FString(RecoveryDesc) : FString(TEXT("Unknown"));
 	
-	NSString* Desc = CompletedBuffer.debugDescription;
-	UE_LOG(LogMetal, Warning, TEXT("%s"), *FString(Desc));
+	if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+	{
+		NSMutableString* DescString = [NSMutableString new];
+		[DescString appendFormat:@"Command Buffer %p %@:", CompletedBuffer, Label ? Label : @"Unknown"];
+
+		for (NSString* String in ((NSObject<MTLCommandBuffer>*)CompletedBuffer).debugGroups)
+		{
+			[DescString appendFormat:@"\n\tDebugGroup: %@", String];
+		}
+		
+		UE_LOG(LogMetal, Warning, TEXT("Command Buffer %p %s:%s"), CompletedBuffer, *LabelString, *FString(DescString));
+	}
+	else
+	{
+		NSString* Desc = CompletedBuffer.debugDescription;
+		UE_LOG(LogMetal, Warning, TEXT("%s"), *FString(Desc));
+	}
 	
     if (bDoCheck)
     {

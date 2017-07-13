@@ -58,6 +58,11 @@ public:
 	virtual TArray<const UObject*> GetOwners() const override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+	
+	virtual bool RepointCurveOwner(const FPackageReloadedEvent& InPackageReloadedEvent, FCurveOwnerInterface*& OutNewCurveOwner) const override
+	{
+		return RepointCurveOwnerAsset(InPackageReloadedEvent, this, OutNewCurveOwner);
+	}
 
 	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override
 	{

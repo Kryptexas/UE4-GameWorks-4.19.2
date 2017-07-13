@@ -165,14 +165,17 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 
 			FTexture2DRHIRef ColorTarget = RenderTargetResource->GetTextureRHI();
 
-			if (!DepthStencil.IsValid() || ColorTarget->GetSizeXY() != DepthStencil->GetSizeXY())
+			if (BatchData.IsStencilClippingRequired())
 			{
-				DepthStencil.SafeRelease();
+				if (!DepthStencil.IsValid() || ColorTarget->GetSizeXY() != DepthStencil->GetSizeXY())
+				{
+					DepthStencil.SafeRelease();
 
-				FTexture2DRHIRef ShaderResourceUnused;
-				FRHIResourceCreateInfo CreateInfo(FClearValueBinding::DepthZero);
-				RHICreateTargetableShaderResource2D(ColorTarget->GetSizeX(), ColorTarget->GetSizeY(), PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused);
-				check(IsValidRef(DepthStencil));
+					FTexture2DRHIRef ShaderResourceUnused;
+					FRHIResourceCreateInfo CreateInfo(FClearValueBinding::DepthZero);
+					RHICreateTargetableShaderResource2D(ColorTarget->GetSizeX(), ColorTarget->GetSizeY(), PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused);
+					check(IsValidRef(DepthStencil));
+				}
 			}
 
 			RenderTargetPolicy->DrawElements(

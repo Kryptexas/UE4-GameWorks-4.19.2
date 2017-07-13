@@ -9,10 +9,39 @@
 #include "Styling/SlateColor.h"
 #include "MovieSceneEvaluation.h"
 #include "IMovieScenePlayer.h"
-
+#include "Evaluation/MovieScenePropertyTemplate.h"
+#include "Evaluation/Blending/MovieSceneBlendingActuator.h"
+#include "Evaluation/Blending/MovieSceneMultiChannelBlending.h"
 
 DECLARE_CYCLE_STAT(TEXT("Color Track Token Execute"), MovieSceneEval_ColorTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
+/** Access the unique runtime type identifier for a widget transform. */
+template<> FMovieSceneAnimTypeID GetBlendingDataType<FLinearColor>()
+{
+	static FMovieSceneAnimTypeID TypeId = FMovieSceneAnimTypeID::Unique();
+	return TypeId;
+}
+
+/** Inform the blending accumulator to use a 7 channel float to blend margins */
+template<> struct TBlendableTokenTraits<FLinearColor>
+{
+	typedef MovieScene::TMaskedBlendable<float, 4> WorkingDataType;
+};
+
+namespace MovieScene
+{
+	/** Convert a color into a 4 channel float */
+	inline void MultiChannelFromData(const FLinearColor& In, TMultiChannelValue<float, 4>& Out)
+	{
+		Out = { In.R, In.G, In.B, In.A };
+	}
+
+	/** Convert a 4 channel float into a color */
+	inline void ResolveChannelsToData(const TMultiChannelValue<float, 4>& In, FLinearColor& Out)
+	{
+		Out = FLinearColor(In[0], In[1], In[2], In[3]);
+	}
+}
 
 enum class EColorType : uint8
 {
@@ -24,26 +53,51 @@ enum class EColorType : uint8
 	Color,
 };
 
-struct FColorSectionData : IPersistentEvaluationData
-{
-	TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
-	FLinearColor DefaultColor;
-};
-
 struct FColorToken
 {
+	FLinearColor ColorValue;
+
 	FColorToken() {}
-	FColorToken(FLinearColor InColorValue, EColorType InType) : ColorValue(InColorValue), Type(InType) {}
+	FColorToken(FLinearColor InColorValue) : ColorValue(InColorValue){}
 
 	void Apply(UObject& Object, FTrackInstancePropertyBindings& Bindings)
 	{
-		switch(Type)
+		if (!Type.IsSet())
 		{
-		case EColorType::Slate:		ApplySlateColor(Object, Bindings);		break;
-		case EColorType::Linear: 	ApplyLinearColor(Object, Bindings);		break;
-		case EColorType::Color: 	ApplyColor(Object, Bindings);			break;
+			DeduceColorType(Object, Bindings);
+		}
+
+		if (ensure(Type.IsSet()))
+		{
+			switch(Type.GetValue())
+			{
+			case EColorType::Slate:		ApplySlateColor(Object, Bindings);		break;
+			case EColorType::Linear: 	ApplyLinearColor(Object, Bindings);		break;
+			case EColorType::Color: 	ApplyColor(Object, Bindings);			break;
+			}
 		}
 	}
+
+	static FColorToken Get(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
+	{
+		FColorToken Token;
+		Token.DeduceColorType(InObject, Bindings);
+
+		if (ensure(Token.Type.IsSet()))
+		{
+			switch (Token.Type.GetValue())
+			{
+			case EColorType::Color: 	Token.ColorValue = Bindings.GetCurrentValue<FColor>(InObject);							break;
+			case EColorType::Slate: 	Token.ColorValue = Bindings.GetCurrentValue<FSlateColor>(InObject).GetSpecifiedColor();	break;
+			case EColorType::Linear:	Token.ColorValue = Bindings.GetCurrentValue<FLinearColor>(InObject);					break;
+			}
+		}
+
+		return Token;
+	}
+
+private:
+
 
 	void ApplyColor(UObject& Object, FTrackInstancePropertyBindings& Bindings)
 	{
@@ -76,54 +130,45 @@ struct FColorToken
 
 	void DeduceColorType(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
 	{
-		const UStructProperty* StructProp = Cast<const UStructProperty>(Bindings.GetProperty(InObject));
-		if (StructProp && StructProp->Struct)
+		if (Type.IsSet())
 		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName SlateColor("SlateColor");
-			if( StructName == NAME_Color )
-			{
-				Type = EColorType::Color;
-			}
-			else if( StructName == SlateColor )
-			{
-				Type = EColorType::Slate;
-			}
-			else
-			{
-				Type = EColorType::Linear;
-			}
+			return;
 		}
-	}
 
-	void AssignFromCurrentValue(const UObject& InObject, FTrackInstancePropertyBindings& Bindings)
-	{
-		switch (Type)
+		const UStructProperty* StructProp = Cast<const UStructProperty>(Bindings.GetProperty(InObject));
+		if (!StructProp || !StructProp->Struct)
 		{
-		case EColorType::Color:
+			return;
+		}
+
+		FName StructName = StructProp->Struct->GetFName();
+		static const FName SlateColor("SlateColor");
+		if( StructName == NAME_Color )
+		{
 			// We assume the color we get back is in sRGB, assigning it to a linear color will implicitly
 			// convert it to a linear color instead of using ReinterpretAsLinear which will just change the
 			// bytes into floats using divide by 255.
-			ColorValue = Bindings.GetCurrentValue<FColor>(InObject);
-			break;
-
-		case EColorType::Slate:
-			ColorValue = Bindings.GetCurrentValue<FSlateColor>(InObject).GetSpecifiedColor();
-			break;
-
-		case EColorType::Linear:
-			ColorValue = Bindings.GetCurrentValue<FLinearColor>(InObject);
-			break;
+			Type = EColorType::Color;
+		}
+		else if( StructName == SlateColor )
+		{
+			Type = EColorType::Slate;
+		}
+		else
+		{
+			Type = EColorType::Linear;
 		}
 	}
 
-	FLinearColor ColorValue;
-	EColorType Type;
+	/** Optional deduced color type - when empty, this needs deducing */
+	TOptional<EColorType> Type;
 };
 
 struct FColorTrackPreAnimatedState : IMovieScenePreAnimatedToken
 {
+	FColorToken Token;
+	FTrackInstancePropertyBindings Bindings;
+
 	FColorTrackPreAnimatedState(FColorToken InToken, const FTrackInstancePropertyBindings& InBindings)
 		: Token(InToken)
 		, Bindings(InBindings)
@@ -134,63 +179,48 @@ struct FColorTrackPreAnimatedState : IMovieScenePreAnimatedToken
 	{
 		Token.Apply(Object, Bindings);
 	}
-
-	FColorToken Token;
-	FTrackInstancePropertyBindings Bindings;
 };
 
 struct FColorTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
-	FColorTokenProducer(const FColorToken& InSourceToken, FTrackInstancePropertyBindings& InPropertyBindings)
-		: SourceToken(InSourceToken), PropertyBindings(InPropertyBindings)
-	{}
+	FTrackInstancePropertyBindings& PropertyBindings;
+	FColorTokenProducer(FTrackInstancePropertyBindings& InPropertyBindings) : PropertyBindings(InPropertyBindings) {}
 
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
-		FColorToken TokenCopy = SourceToken;
-		TokenCopy.AssignFromCurrentValue(Object, PropertyBindings);
-		return FColorTrackPreAnimatedState(TokenCopy, PropertyBindings);
+		return FColorTrackPreAnimatedState(FColorToken::Get(Object, PropertyBindings), PropertyBindings);
 	}
-
-	const FColorToken& SourceToken;
-	FTrackInstancePropertyBindings& PropertyBindings;
 };
 
-struct FColorTrackExecutionToken : IMovieSceneExecutionToken
+struct FColorTokenActuator : TMovieSceneBlendingActuator<FLinearColor>
 {
-	FColorTrackExecutionToken(FLinearColor InColor)
-		: Token(InColor, EColorType::Linear)	// Just initialize to linear color for now, we'll deduce the type later
+	PropertyTemplate::FSectionData PropertyData;
+	FColorTokenActuator(const PropertyTemplate::FSectionData& InPropertyData)
+		: TMovieSceneBlendingActuator<FLinearColor>(FMovieSceneBlendingActuatorID(InPropertyData.PropertyID))
+		, PropertyData(InPropertyData)
+	{}
+
+	virtual FLinearColor RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
 	{
+		return FColorToken::Get(*InObject, *PropertyData.PropertyBindings).ColorValue;
 	}
 
-	/** Execute this token, operating on all objects referenced by 'Operand' */
-	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& SectionData, IMovieScenePlayer& Player) override
+	virtual void Actuate(UObject* InObject, const FLinearColor& InFinalValue, const TBlendableTokenStack<FLinearColor>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
-		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_ColorTrack_TokenExecute)
-		
-		FTrackInstancePropertyBindings* PropertyBindings = SectionData.GetSectionData<FColorSectionData>().PropertyBindings.Get();
+		check(InObject);
 
-		for (TWeakObjectPtr<> Object : Player.FindBoundObjects(Operand))
-		{
-			if (UObject* ObjectPtr = Object.Get())
-			{
-				// Deduce the color type before we save pre animated state (so we store the right type)
-				Token.DeduceColorType(*ObjectPtr, *PropertyBindings);
+		FTrackInstancePropertyBindings& PropertyBindings = *PropertyData.PropertyBindings;
 
-				FMovieSceneAnimTypeID AnimType = TMovieSceneAnimTypeID<FColorTrackExecutionToken>();
-				Player.SavePreAnimatedState(*ObjectPtr, AnimType, FColorTokenProducer(Token, *PropertyBindings));
+		OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, FColorTokenProducer(PropertyBindings));
 
-				Token.Apply(*ObjectPtr, *PropertyBindings);
-			}
-		}
+		// Apply a token
+		FColorToken(InFinalValue).Apply(*InObject, PropertyBindings);
 	}
-
-	FColorToken Token;
 };
 
 FMovieSceneColorSectionTemplate::FMovieSceneColorSectionTemplate(const UMovieSceneColorSection& Section, const UMovieSceneColorTrack& Track)
-	: PropertyName(Track.GetPropertyName())
-	, PropertyPath(Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
+	, BlendType(Section.GetBlendType().Get())
 {
 	Curves[0] = Section.GetRedCurve();
 	Curves[1] = Section.GetGreenCurve();
@@ -198,45 +228,35 @@ FMovieSceneColorSectionTemplate::FMovieSceneColorSectionTemplate(const UMovieSce
 	Curves[3] = Section.GetAlphaCurve();
 }
 
-void FMovieSceneColorSectionTemplate::Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+void FMovieSceneColorSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	PersistentData.AddSectionData<FColorSectionData>().PropertyBindings = MakeShareable(new FTrackInstancePropertyBindings(PropertyName, PropertyPath));
-}
+	const float Time = Context.GetTime();
+	MovieScene::TMultiChannelValue<float, 4> AnimationData;
 
-void FMovieSceneColorSectionTemplate::Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
-{
-	FColorSectionData& ColorSectionData = PersistentData.GetSectionData<FColorSectionData>();
-
-	// Cache off the default color from the first object.
-	// To support multiple relative animations, we'd need to animate each color relatively
-	for (TWeakObjectPtr<> Object : Player.FindBoundObjects(Operand))
+	for (uint8 Index = 0; Index < 4; ++Index)
 	{
-		if (UObject* ObjectPtr = Object.Get())
+		const FRichCurve& Curve = Curves[Index];
+		if (Curve.HasAnyData())
 		{
-			FColorToken TempToken;
-			TempToken.DeduceColorType(*ObjectPtr, *ColorSectionData.PropertyBindings);
-			TempToken.AssignFromCurrentValue(*ObjectPtr, *ColorSectionData.PropertyBindings);
-			ColorSectionData.DefaultColor = TempToken.ColorValue;
-			break;
+			AnimationData.Set(Index, Curve.Eval(Time));
 		}
 	}
 
-	
-}
+	// Only blend the token if at least one of the channels was animated
+	if (!AnimationData.IsEmpty())
+	{
+		// Actuator type ID for this property
+		FMovieSceneAnimTypeID UniquePropertyID = GetPropertyTypeID();
+		FMovieSceneBlendingActuatorID ActuatorTypeID = FMovieSceneBlendingActuatorID(UniquePropertyID);
+		if (!ExecutionTokens.GetBlendingAccumulator().FindActuator<FLinearColor>(ActuatorTypeID))
+		{
+			PropertyTemplate::FSectionData SectionData;
+			SectionData.Initialize(PropertyData.PropertyName, PropertyData.PropertyPath);
 
-void FMovieSceneColorSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
-{
-	float Time = Context.GetTime();
-	FLinearColor DefaultColor = PersistentData.GetSectionData<FColorSectionData>().DefaultColor;
+			ExecutionTokens.GetBlendingAccumulator().DefineActuator(ActuatorTypeID, MakeShared<FColorTokenActuator>(SectionData));
+		}
 
-	ExecutionTokens.Add(
-		FColorTrackExecutionToken(
-			FLinearColor(
-				Curves[0].Eval(Time, DefaultColor.R),
-				Curves[1].Eval(Time, DefaultColor.G),
-				Curves[2].Eval(Time, DefaultColor.B),
-				Curves[3].Eval(Time, DefaultColor.A)
-			)
-		)
-	);
+		const float Weight = EvaluateEasing(Time);
+		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<FLinearColor>(AnimationData, BlendType, Weight));
+	}
 }

@@ -4,90 +4,30 @@
 #include "Misc/AutomationTest.h"
 #include "Evaluation/Blending/MovieSceneBlendingAccumulator.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/Blending/MovieSceneMultiChannelBlending.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneBlendingTests"
-
-template<> FMovieSceneAnimTypeID GetBlendingDataType<int32>()
-{
-	static FMovieSceneAnimTypeID TypeID = FMovieSceneAnimTypeID::Unique();
-	return TypeID;
-}
 
 static const int32 StartingValue = 0xefefefef;
 static int32 TestValue = StartingValue;
 
-namespace MovieScene
-{
-	/** Working data type for blending integers */
-	struct FBlendableInteger
-	{
-		FBlendableInteger() : AbsoluteTotal(0.f), AdditiveTotal(0.f) {}
-
-		double AbsoluteTotal;
-		double AdditiveTotal;
-
-		TOptional<float> TotalWeight;
-
-		int32 Resolve(TMovieSceneInitialValueStore<int32>& InitialValueStore)
-		{
-			if (TotalWeight.IsSet())
-			{
-				if (TotalWeight.GetValue() == 0.f)
-				{
-					AbsoluteTotal = InitialValueStore.GetInitialValue();
-				}
-				else
-				{
-					AbsoluteTotal /= TotalWeight.GetValue();
-				}
-			}
-
-			return AbsoluteTotal + AdditiveTotal;
-		}
-	};
-
-	void BlendValue(FBlendableInteger& OutBlend, int32 InValue, float Weight, EMovieSceneBlendType BlendType, TMovieSceneInitialValueStore<int32>& InitialValueStore)
-	{
-		if (BlendType == EMovieSceneBlendType::Absolute || BlendType == EMovieSceneBlendType::Relative)
-		{
-			if (BlendType == EMovieSceneBlendType::Relative)
-			{
-				OutBlend.AbsoluteTotal += double(InitialValueStore.GetInitialValue() + InValue) * Weight;
-			}
-			else
-			{
-				OutBlend.AbsoluteTotal += double(InValue) * Weight;
-			}
-
-			OutBlend.TotalWeight = OutBlend.TotalWeight.Get(0.f) + Weight;
-		}
-		else if (BlendType == EMovieSceneBlendType::Additive)
-		{
-			OutBlend.AdditiveTotal += double(InValue) * Weight;
-		}
-	}
-}
-
-template<> struct TBlendableTokenTraits<int32>
-{
-	typedef MovieScene::FBlendableInteger WorkingDataType;
-};
-
 struct FInt32Actuator : TMovieSceneBlendingActuator<int32>
 {
+	FInt32Actuator() : TMovieSceneBlendingActuator<int32>(GetID()) {}
+
 	static FMovieSceneBlendingActuatorID GetID()
 	{
 		static FMovieSceneAnimTypeID TypeID = FMovieSceneAnimTypeID::Unique();
 		return FMovieSceneBlendingActuatorID(TypeID);
 	}
 
-	virtual void Actuate(UObject* InObject, const int32 InValue, const TBlendableTokenStack<int32>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	virtual void Actuate(UObject* InObject, TCallTraits<int32>::ParamType InValue, const TBlendableTokenStack<int32>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 	{
 		ensure(!InObject);
 		TestValue = InValue;
 	}
 
-	virtual int32 RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const override
+	virtual int32 RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
 	{
 		return TestValue;
 	}

@@ -69,6 +69,7 @@
 #include "EditorFontGlyphs.h"
 
 #include "Algo/Find.h"
+#include "ActorEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -3240,23 +3241,7 @@ TSharedRef<SToolTip> SSCS_RowWidget_ActorRoot::CreateToolTipWidget() const
 
 bool SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged(const FText& InLabel, FText& OutErrorMessage)
 {
-	FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
-
-	if (TrimmedLabel.IsEmpty())
-	{
-		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!");
-		return false;
-	}
-
-	if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("CharCount"), NAME_SIZE);
-		OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Names must be less than {CharCount} characters long."), Arguments);
-		return false;
-	}
-
-	return true;
+	return FActorEditorUtils::ValidateActorName(InLabel, OutErrorMessage);
 }
 
 const FSlateBrush* SSCS_RowWidget_ActorRoot::GetActorIcon() const

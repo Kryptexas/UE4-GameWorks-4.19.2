@@ -16,7 +16,10 @@
 #include "Misc/UObjectToken.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "MovieSceneSequence.h"
+#include "MovieSceneBlendingActuator.h"
 #include "MovieScenePropertyTemplate.generated.h"
+
+class UMovieScenePropertyTrack;
 
 DECLARE_CYCLE_STAT(TEXT("Property Track Token Execute"), MovieSceneEval_PropertyTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
@@ -38,19 +41,21 @@ namespace PropertyTemplate
 	};
 
 	/** The value of the object as it existed before this frame's evaluation */
-	template<typename PropertyValueType>
-	struct TCachedValue
+	template<typename PropertyValueType> struct
+	DEPRECATED(4.17, "Precaching of property values should no longer be necessary as it was only used to pass default values to curves on evaluation. Curves should now be checked for emptyness before attempting to animate an object.")
+	TCachedValue
 	{
-	/** The object */
 		TWeakObjectPtr<UObject> WeakObject;
-
-		/** The property value */
 		PropertyValueType Value;
 	};
 
-	/** Typed persistent section data for a property section that caches object values at the start of the frame. Use in conjunction with TPropertyTrackExecutionToken. */
-	template<typename PropertyValueType>
-	struct TCachedSectionData : FSectionData
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	template<typename T> struct TCachedValue_DEPRECATED : TCachedValue<T> {};
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	template<typename PropertyValueType> struct 
+	DEPRECATED(4.17, "Precaching of property values should no longer be necessary as it was only used to pass default values to curves on evaluation. Curves should now be checked for emptyness before attempting to animate an object.")
+	TCachedSectionData : FSectionData
 	{
 		/** Setup the data for the current frame */
 		void SetupFrame(const FMovieSceneEvaluationOperand& Operand, IMovieScenePlayer& Player)
@@ -66,7 +71,7 @@ namespace PropertyTemplate
 					{
 						if (Property->GetSize() == sizeof(PropertyValueType))
 						{
-							ObjectsAndValues.Add(TCachedValue<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
+							ObjectsAndValues.Add(TCachedValue_DEPRECATED<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
 						}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 						else
@@ -81,7 +86,7 @@ namespace PropertyTemplate
 			}
 		}
 
-		TArray<TCachedValue<PropertyValueType>, TInlineAllocator<1>> ObjectsAndValues;
+		TArray<TCachedValue_DEPRECATED<PropertyValueType>, TInlineAllocator<1>> ObjectsAndValues;
 	};
 
 	template<typename PropertyValueType, typename IntermediateType = PropertyValueType>
@@ -159,11 +164,11 @@ namespace PropertyTemplate
 	};
 }
 
-/** Execution token for a given property */
-template<typename PropertyValueType>
-struct TCachedPropertyTrackExecutionToken : IMovieSceneExecutionToken
+
+template<typename PropertyValueType> struct
+DEPRECATED(4.17, "Precaching of property values should no longer be necessary as it was only used to pass default values to curves on evaluation. Curves should now be checked for emptyness before attempting to animate an object.")
+TCachedPropertyTrackExecutionToken : IMovieSceneExecutionToken
 {
-	/** Execute this token, operating on all objects referenced by 'Operand' */
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
 		using namespace PropertyTemplate;
@@ -223,48 +228,34 @@ struct TPropertyTrackExecutionToken : IMovieSceneExecutionToken
 	IntermediateType Value;
 };
 
+/** Blending actuator type that knows how to apply values of type PropertyType */
+template<typename PropertyType>
+struct TPropertyActuator : TMovieSceneBlendingActuator<PropertyType>
+{
+	PropertyTemplate::FSectionData PropertyData;
+	TPropertyActuator(const PropertyTemplate::FSectionData& InPropertyData)
+		: TMovieSceneBlendingActuator<PropertyType>(FMovieSceneBlendingActuatorID(InPropertyData.PropertyID))
+		, PropertyData(InPropertyData)
+	{}
+
+	virtual PropertyType RetrieveCurrentValue(UObject* InObject, IMovieScenePlayer* Player) const
+	{
+		return PropertyData.PropertyBindings->GetCurrentValue<PropertyType>(*InObject);
+	}
+
+	virtual void Actuate(UObject* InObject, typename TCallTraits<PropertyType>::ParamType InFinalValue, const TBlendableTokenStack<PropertyType>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	{
+		check(InObject);
+
+		OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, PropertyTemplate::FTokenProducer<PropertyType>(*PropertyData.PropertyBindings));
+		PropertyData.PropertyBindings->CallFunction<PropertyType>(*InObject, InFinalValue);
+	}
+};
+
 USTRUCT()
 struct FMovieScenePropertySectionData
 {
 	GENERATED_BODY()
-	
-	FMovieScenePropertySectionData()
-	{}
-
-	FMovieScenePropertySectionData(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None, FName InNotifyFunctionName = NAME_None)
-		: PropertyName(InPropertyName), PropertyPath(MoveTemp(InPropertyPath)), FunctionName(InFunctionName), NotifyFunctionName(InNotifyFunctionName)
-	{
-	}
-
-	/** Helper function to create FSectionData for this property section */
-	void SetupTrack(FPersistentEvaluationData& PersistentData) const
-	{
-		SetupTrack<PropertyTemplate::FSectionData>(PersistentData);
-	}
-
-	template<typename T>
-	void SetupTrack(FPersistentEvaluationData& PersistentData) const
-	{
-		PersistentData.AddSectionData<T>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
-	}
-
-	/** Helper function to create TCachedSectionData<T> for this property section */
-	template<typename T>
-	void SetupCachedTrack(FPersistentEvaluationData& PersistentData) const
-	{
-		typedef PropertyTemplate::TCachedSectionData<T> FSectionData;
-		PersistentData.AddSectionData<FSectionData>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
-	}
-
-	/** Helper function to initialize the TCachedSectionData<T> for this property section for the current frame */
-	template<typename T>
-	void SetupCachedFrame(const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
-	{
-		typedef PropertyTemplate::TCachedSectionData<T> FSectionData;
-		PersistentData.GetSectionData<FSectionData>().SetupFrame(Operand, Player);
-	}
-
-private:
 
 	UPROPERTY()
 	FName PropertyName;
@@ -277,4 +268,76 @@ private:
 
 	UPROPERTY()
 	FName NotifyFunctionName;
+
+	FMovieScenePropertySectionData()
+	{}
+
+	FMovieScenePropertySectionData(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None, FName InNotifyFunctionName = NAME_None)
+		: PropertyName(InPropertyName), PropertyPath(MoveTemp(InPropertyPath)), FunctionName(InFunctionName), NotifyFunctionName(InNotifyFunctionName)
+	{}
+
+	/** Helper function to create FSectionData for a property section */
+	void SetupTrack(FPersistentEvaluationData& PersistentData) const
+	{
+		SetupTrack<PropertyTemplate::FSectionData>(PersistentData);
+	}
+
+	template<typename T>
+	void SetupTrack(FPersistentEvaluationData& PersistentData) const
+	{
+		PersistentData.AddSectionData<T>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
+	}
+
+	template<typename T>
+	DEPRECATED(4.17, "Precaching of property values should no longer be necessary as it was only used to pass default values to curves on evaluation. Curves should now be checked for emptyness before attempting to animate an object.")
+	void SetupCachedTrack(FPersistentEvaluationData& PersistentData) const
+	{
+		typedef PropertyTemplate::TCachedSectionData<T> FSectionData;
+		PersistentData.AddSectionData<FSectionData>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
+	}
+
+	template<typename T>
+	DEPRECATED(4.17, "Precaching of property values should no longer be necessary as it was only used to pass default values to curves on evaluation. Curves should now be checked for emptyness before attempting to animate an object.")
+	void SetupCachedFrame(const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+	{
+		typedef PropertyTemplate::TCachedSectionData<T> FSectionData;
+		PersistentData.GetSectionData<FSectionData>().SetupFrame(Operand, Player);
+	}
+};
+
+USTRUCT()
+struct MOVIESCENE_API FMovieScenePropertySectionTemplate : public FMovieSceneEvalTemplate
+{
+	GENERATED_BODY()
+	
+	FMovieScenePropertySectionTemplate(){}
+	FMovieScenePropertySectionTemplate(FName PropertyName, const FString& InPropertyPath);
+
+protected:
+
+	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+	/** Setup is only called if derived classes enable RequiresSetupFlag */
+	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+
+	/** Access an animation type identifier that uniquely represents the property this section animates */
+	FMovieSceneAnimTypeID GetPropertyTypeID() const;
+
+	/** Ensure that an actutor for this property type exists */
+	template<typename PropertyType> FMovieSceneBlendingActuatorID EnsureActuator(FMovieSceneBlendingAccumulator& Accumulator) const
+	{
+		// Actuator type ID for this property
+		FMovieSceneAnimTypeID UniquePropertyID = GetPropertyTypeID();
+		FMovieSceneBlendingActuatorID ActuatorTypeID = FMovieSceneBlendingActuatorID(UniquePropertyID);
+		if (!Accumulator.FindActuator<PropertyType>(ActuatorTypeID))
+		{
+			PropertyTemplate::FSectionData SectionData;
+			SectionData.Initialize(PropertyData.PropertyName, PropertyData.PropertyPath, PropertyData.FunctionName, PropertyData.NotifyFunctionName);
+
+			Accumulator.DefineActuator(ActuatorTypeID, MakeShared<TPropertyActuator<PropertyType>>(SectionData));
+		}
+		return ActuatorTypeID;
+	}
+
+	UPROPERTY()
+	FMovieScenePropertySectionData PropertyData;
 };

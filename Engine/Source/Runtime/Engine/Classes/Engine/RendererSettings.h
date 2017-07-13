@@ -412,7 +412,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
 		EditCondition = "bMobileMultiView",
 		ConsoleVariable = "vr.MobileMultiView.Direct", DisplayName = "Mobile Multi-View Direct",
-		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR Android devices).",
+		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR and Daydream Android devices).",
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiViewDirect : 1;
 

@@ -17,7 +17,8 @@ public:
 	/** IPropertyTypeCustomization instance */
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-
+protected:
+	void AddTextureSizeClamping(TSharedPtr<IPropertyHandle> TextureSizeProperty);
 protected:
 	EVisibility AreManualOverrideTextureSizesEnabled() const;
 	EVisibility IsTextureSizeEnabled() const;

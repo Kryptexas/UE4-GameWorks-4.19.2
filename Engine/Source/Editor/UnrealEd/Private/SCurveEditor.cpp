@@ -279,6 +279,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditorCurveToolTips(); } ) );
 
+	FCoreUObjectDelegates::OnPackageReloaded.AddSP(this, &SCurveEditor::HandlePackageReloaded);
+
 	SAssignNew(WarningMessageText, SErrorText);
 
 	TSharedRef<SBox> CurveSelector = SNew(SBox)
@@ -3706,6 +3708,20 @@ void SCurveEditor::OnObjectPropertyChanged(UObject* Object, FPropertyChangedEven
 	if ( CurveOwner && CurveOwner->GetOwners().Contains(Object) )
 	{
 		ValidateSelection();
+	}
+}
+
+void SCurveEditor::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
+{
+	if (InPackageReloadPhase == EPackageReloadPhase::OnPackageFixup && CurveOwner)
+	{
+		// Our curve owner may be an object that has been reloaded, so we need to check that and update the curve editor appropriately
+		// We have to do this via the interface as the object addresses stored in the remap table will be offset from the interface pointer due to multiple inheritance
+		FCurveOwnerInterface* NewCurveOwner = nullptr;
+		if (CurveOwner->RepointCurveOwner(*InPackageReloadedEvent, NewCurveOwner))
+		{
+			SetCurveOwner(NewCurveOwner, bCanEditTrack);
+		}
 	}
 }
 

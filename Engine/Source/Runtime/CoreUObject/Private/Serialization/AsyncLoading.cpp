@@ -4254,13 +4254,12 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 
 	double TickStartTime = FPlatformTime::Seconds();
 
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	FScopedRecursionNotAllowed RecursionGuard;
-#endif
-
-
 	if (GEventDrivenLoaderEnabled)
 	{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		FScopedRecursionNotAllowed RecursionGuard;
+#endif
+
 		FAsyncLoadingTickScope InAsyncLoadingTick;
 		uint32 LoopIterations = 0;
 
@@ -4727,6 +4726,26 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 	}
 
 	return Result;
+}
+
+
+FMaxPackageSummarySize::FMaxPackageSummarySize()
+{
+	// this is used for the initial precache and should be large enough to find the actual Sum.TotalHeaderSize
+	// the editor packages may not have the AdditionalPackagesToCook array stripped so we need to allocate more memory
+#if WITH_EDITORONLY_DATA
+	const int32 MinimumPackageSummarySize = 1024;
+	check(GConfig);
+	Value = 16384;
+	GConfig->GetInt(TEXT("/Script/Engine.StreamingSettings"), TEXT("s.MaxPackageSummarySize"), Value, GEngineIni);
+	if (Value <= MinimumPackageSummarySize)
+	{
+		UE_LOG(LogStreaming, Warning, TEXT("Invalid minimum package file summary size (s.MaxPackageSummarySize=%d), %d is min."), Value, MinimumPackageSummarySize);
+		Value = MinimumPackageSummarySize;
+	}
+#else
+	Value = 8192;
+#endif
 }
 
 bool FAsyncLoadingThread::bThreadStarted = false;
@@ -6885,7 +6904,7 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 			}
 			else
 			{
-				int64 Size = FMath::Min<int64>(MAX_SUMMARY_SIZE, FileSize);
+				int64 Size = FMath::Min<int64>(FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, FileSize);
 				LogItem(TEXT("Starting Summary"), 0, Size);
 				SummaryRequestPtr = Handle->ReadRequest(0, Size, AIOP_Normal, &ReadCallbackFunction);
 				// I need a precache request here to keep the memory alive until I submit the header request
@@ -6910,7 +6929,7 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 		}
 		else
 		{
-			FBufferReader Ar(Mem, FMath::Min<int64>(MAX_SUMMARY_SIZE, FileSize),/*bInFreeOnClose=*/ false, /*bIsPersistent=*/ true);
+			FBufferReader Ar(Mem, FMath::Min<int64>(FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, FileSize),/*bInFreeOnClose=*/ false, /*bIsPersistent=*/ true);
 			FPackageFileSummary Sum;
 			Ar << Sum;
 			if (Ar.IsError() || Sum.TotalHeaderSize > FileSize)
@@ -6920,13 +6939,16 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 			else
 			{
 				//@todoio change header format to put the TotalHeaderSize at the start of the file
-				check(Ar.Tell() < MAX_SUMMARY_SIZE / 2); // we need to be sure that we can at least get the size from the initial request. This is an early warning that custom versions are starting to get too big, relocate the total size to be at offset 4!
+				// we need to be sure that we can at least get the size from the initial request. This is an early warning that custom versions are starting to get too big, relocate the total size to be at offset 4!
+				checkf(Ar.Tell() < FAsyncLoadingThread::Get().MaxPackageSummarySize.Value / 2, 
+					TEXT("The initial read request was too small (%d) compared to package %s header size (%lld). Try increasing s.MaxPackageSummarySize value in DefaultEngine.ini."),
+					FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, *FileName, Ar.Tell());
 				HeaderSize = Sum.TotalHeaderSize;
 				LogItem(TEXT("Starting Header"), 0, HeaderSize);
 				PrecacheInternal(0, HeaderSize);
 			}
 			FMemory::Free(Mem);
-			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, FMath::Min<int64>(MAX_SUMMARY_SIZE, FileSize));
+			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, FMath::Min<int64>(FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, FileSize));
 		}
 		FPlatformMisc::MemoryBarrier();
 		LoadPhase = ELoadPhase::WaitingForHeader;

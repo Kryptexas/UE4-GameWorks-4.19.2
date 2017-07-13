@@ -31,6 +31,10 @@ void MainVS(
 	Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 
 	FactoryInterpolants = VertexFactoryGetInterpolants(Input, VFIntermediates, VertexParameters);
+
+#if OUTPUT_GAMMA_SPACE && (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES3_1_EXT)
+	Position.y *= -1;
+#endif
 }
 
 

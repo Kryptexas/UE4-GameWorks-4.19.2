@@ -32,6 +32,10 @@
 #include "Misc/EngineBuildSettings.h"
 #include "InstalledPlatformInfo.h"
 
+#include "AndroidLicenseDialog.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Framework/Application/SlateApplication.h"
+
 #define LOCTEXT_NAMESPACE "AndroidRuntimeSettings"
 
 //////////////////////////////////////////////////////////////////////////
@@ -248,6 +252,50 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 
 	// @todo android fat binary: Put back in when we expose those
 //	SETUP_SOURCEONLY_PROP(bSplitIntoSeparateApks, BuildCategory, LOCTEXT("SplitIntoSeparateAPKsToolTip", "If checked, CPU architectures and rendering types will be split into separate .apk files"));
+
+	// check for Gradle change
+	TSharedRef<IPropertyHandle> EnableGradleProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bEnableGradle));
+	FSimpleDelegate EnableGradleChange = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnEnableGradleChange);
+	EnableGradleProperty->SetOnPropertyValueChanged(EnableGradleChange);
+}
+
+void FAndroidTargetSettingsCustomization::OnEnableGradleChange()
+{
+	// only need to do this if enabling
+	if (!GetDefault<UAndroidRuntimeSettings>()->bEnableGradle)
+	{
+		return;
+	}
+
+	// only show if don't have a valid license
+	TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
+	if (!LicenseDialog->HasLicense())
+	{
+		const FText AndroidLicenseWindowTitle = LOCTEXT("AndroidLicenseUnrealEditor", "Android SDK License");
+
+		TSharedPtr<SWindow> AndroidLicenseWindow =
+			SNew(SWindow)
+			.Title(AndroidLicenseWindowTitle)
+			.ClientSize(FVector2D(600.f, 700.f))
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::FixedSize)
+			[
+				LicenseDialog.ToSharedRef()
+			];
+
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		TSharedPtr<SWindow> ParentWindow = MainFrame.GetParentWindow();
+
+		if (ParentWindow.IsValid())
+		{
+			FSlateApplication::Get().AddModalWindow(AndroidLicenseWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(AndroidLicenseWindow.ToSharedRef());
+		}
+	}
 }
 
 void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder& DetailLayout)

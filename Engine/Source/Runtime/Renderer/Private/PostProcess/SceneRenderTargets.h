@@ -661,10 +661,10 @@ private:
 	void AllocSceneColor(FRHICommandList& RHICmdList);
 
 	/** Allocates the mobile multi-view scene color texture array render target. */
-	void AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList);
+	void AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList, const int32 ScaleFactor);
 
 	/** Allocates the mobile multi-view depth (no stencil) texture array render target. */
-	void AllocMobileMultiViewDepth(FRHICommandList& RHICmdList);
+	void AllocMobileMultiViewDepth(FRHICommandList& RHICmdList, const int32 ScaleFactor);
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();

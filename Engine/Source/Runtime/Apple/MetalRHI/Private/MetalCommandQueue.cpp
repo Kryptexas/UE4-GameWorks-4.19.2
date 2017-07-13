@@ -152,9 +152,13 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 	@autoreleasepool
 	{
 		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		if (RuntimeDebuggingLevel > EMetalDebugLevelLogDebugGroups)
 		{
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+		else if (RuntimeDebuggingLevel == EMetalDebugLevelLogDebugGroups)
+		{
+			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [NSMutableArray new];
 		}
 	}
 	INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);

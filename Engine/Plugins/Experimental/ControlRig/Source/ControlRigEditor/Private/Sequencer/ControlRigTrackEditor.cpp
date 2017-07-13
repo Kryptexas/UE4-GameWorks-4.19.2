@@ -360,11 +360,6 @@ TSharedRef<SWidget> FControlRigTrackEditor::HandleAddSubSequenceComboButtonGetMe
 	return MenuBuilder.MakeWidget();
 }
 
-EMultipleRowMode FControlRigTrackEditor::GetMultipleRowMode() const
-{
-	return EMultipleRowMode::MultipleTrack;
-}
-
 const FSlateBrush* FControlRigTrackEditor::GetIconBrush() const
 {
 	return nullptr;

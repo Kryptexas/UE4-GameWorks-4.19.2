@@ -646,9 +646,6 @@ void FVulkanDynamicRHI::InitInstance()
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 && bDeviceSupportsGeometryShaders) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5 && bDeviceSupportsTessellation) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 
-		// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
-		Device->GetImmediateContext().RHISetScissorRect(false, 0, 0, 0, 0);
-
 		GDynamicRHI = this;
 
 		// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.

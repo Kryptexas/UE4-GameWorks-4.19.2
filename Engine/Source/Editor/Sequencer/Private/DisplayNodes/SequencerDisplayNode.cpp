@@ -305,44 +305,6 @@ TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode
 }
 
 
-TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor)
-{
-	TSharedPtr<FSequencerTrackNode> SectionNode;
-
-	// see if there is an already existing section node to use
-	for (const TSharedRef<FSequencerDisplayNode>& Node : ChildNodes)
-	{
-		if (Node->GetType() != ESequencerNode::Track)
-		{
-			continue;
-		}
-
-		SectionNode = StaticCastSharedRef<FSequencerTrackNode>(Node);
-
-		if (SectionNode->GetTrack() != &AssociatedTrack)
-		{
-			SectionNode.Reset();
-		}
-		else
-		{
-			break;
-		}
-	}
-
-	if (!SectionNode.IsValid())
-	{
-		// No existing node found make a new one
-		SectionNode = MakeShareable( new FSequencerTrackNode( AssociatedTrack, AssociatedEditor, false, SharedThis(this), ParentTree ) );
-		ChildNodes.Add( SectionNode.ToSharedRef() );
-	}
-
-	// The section node type has to match
-	check(SectionNode->GetTrack() == &AssociatedTrack);
-
-	return SectionNode.ToSharedRef();
-}
-
-
 void FSequencerDisplayNode::AddKeyAreaNode(FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea)
 {
 	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode;

@@ -198,7 +198,8 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 	int32 AliasingMode = CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread();
 	FPooledRenderTargetDesc ModifiedDesc;
 	bool bModifyDesc = false;
-	if (GSupportsTransientResourceAliasing && AliasingMode > 0 )
+	if (GSupportsTransientResourceAliasing && AliasingMode > 0 && 
+	   (InputDesc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV) ) )
 	{
 		// Only override if the flags aren't already transient (this avoids a copy)
 		if ((InputDesc.Flags & TexCreate_Transient) == 0)
@@ -543,11 +544,14 @@ Done:
 	if (bReusingExistingTarget)
 	{
 		if (bDoWritableBarrier)
-	{
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Found->GetRenderTargetItem().TargetableTexture);
-	}
+		{
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Found->GetRenderTargetItem().TargetableTexture);
+		}
 
 	}
+
+	// Transient RTs have to be targettable
+	check( ( Desc.Flags & TexCreate_Transient ) == 0 || Found->GetRenderTargetItem().TargetableTexture != nullptr );
 
 	return false;
 }
@@ -1365,7 +1369,11 @@ uint32 FPooledRenderTarget::Release()
 		else if (Refs == 1 && RenderTargetPool && IsTransient() )
 		{
 			// Discard the resource
-			RHIDiscardTransientResource( GetRenderTargetItem().TargetableTexture );
+			check(GetRenderTargetItem().TargetableTexture != nullptr);
+			if (GetRenderTargetItem().TargetableTexture)
+			{
+				RHIDiscardTransientResource(GetRenderTargetItem().TargetableTexture);
+			}
 			FrameNumberLastDiscard = GFrameNumberRenderThread;
 		}
 		return Refs;

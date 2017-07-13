@@ -1333,14 +1333,14 @@ namespace UnrealBuildTool
 			return RemoteDestFile;
 		}
 
-		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable, ActionGraph ActionGraph)
+		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable, DirectoryReference BundleDirectory, ActionGraph ActionGraph)
 		{
 			Action CopyAction = ActionGraph.Add(ActionType.CreateAppBundle);
 			CopyAction.WorkingDirectory = GetMacDevSrcRoot(); // Path.GetFullPath(".");
 			CopyAction.CommandPath = "/bin/sh";
 			CopyAction.CommandDescription = "";
 
-			string BundlePath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
+			string BundlePath = BundleDirectory.FullName;
 			string SourcePath = Path.Combine(Path.GetFullPath("."), Resource.ResourcePath);
 			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
 
@@ -1745,11 +1745,11 @@ namespace UnrealBuildTool
 				return OutputFiles;
 			}
 
-			if(Executable.AbsolutePath.Contains(".app"))
+			if(BinaryLinkEnvironment.BundleDirectory != null)
 			{
 				foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.AdditionalBundleResources)
 				{
-					OutputFiles.Add(CopyBundleResource(Resource, Executable, ActionGraph));
+					OutputFiles.Add(CopyBundleResource(Resource, Executable, BinaryLinkEnvironment.BundleDirectory, ActionGraph));
 				}
 			}
 

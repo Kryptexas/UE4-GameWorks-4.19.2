@@ -40,20 +40,20 @@ namespace UnrealGameSync
 			this.FileList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.FileList.Location = new System.Drawing.Point(13, 37);
+			this.FileList.Location = new System.Drawing.Point(15, 43);
 			this.FileList.Multiline = true;
 			this.FileList.Name = "FileList";
 			this.FileList.ReadOnly = true;
-			this.FileList.Size = new System.Drawing.Size(715, 170);
+			this.FileList.Size = new System.Drawing.Size(833, 196);
 			this.FileList.TabIndex = 0;
 			// 
 			// OkBtn
 			// 
 			this.OkBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.OkBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.OkBtn.Location = new System.Drawing.Point(644, 217);
+			this.OkBtn.Location = new System.Drawing.Point(753, 253);
 			this.OkBtn.Name = "OkBtn";
-			this.OkBtn.Size = new System.Drawing.Size(84, 23);
+			this.OkBtn.Size = new System.Drawing.Size(98, 26);
 			this.OkBtn.TabIndex = 1;
 			this.OkBtn.Text = "Ok";
 			this.OkBtn.UseVisualStyleBackColor = true;
@@ -61,23 +61,24 @@ namespace UnrealGameSync
 			// label1
 			// 
 			this.label1.AutoSize = true;
-			this.label1.Location = new System.Drawing.Point(13, 13);
+			this.label1.Location = new System.Drawing.Point(15, 15);
 			this.label1.Name = "label1";
-			this.label1.Size = new System.Drawing.Size(194, 13);
+			this.label1.Size = new System.Drawing.Size(219, 15);
 			this.label1.TabIndex = 2;
 			this.label1.Text = "The following files could not be deleted:";
 			// 
 			// FailedToDeleteWindow
 			// 
 			this.AcceptButton = this.OkBtn;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.OkBtn;
-			this.ClientSize = new System.Drawing.Size(740, 252);
+			this.ClientSize = new System.Drawing.Size(863, 291);
 			this.ControlBox = false;
 			this.Controls.Add(this.label1);
 			this.Controls.Add(this.OkBtn);
 			this.Controls.Add(this.FileList);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Name = "FailedToDeleteWindow";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
 			this.Text = "Failed to Delete Files";

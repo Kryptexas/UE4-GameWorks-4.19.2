@@ -21,7 +21,7 @@ TAutoConsoleVariable<int32> GValidationCvar(
 	TEXT("4 to enable errors, warnings, performance & information messages\n")
 	TEXT("5 to enable all messages"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe
-	);
+);
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 

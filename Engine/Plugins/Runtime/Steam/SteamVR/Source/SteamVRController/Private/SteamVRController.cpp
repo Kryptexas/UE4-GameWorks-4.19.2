@@ -9,6 +9,9 @@
 #include "EngineGlobals.h"
 #include "GenericPlatform/IInputInterface.h"
 #include "../../SteamVR/Private/SteamVRHMD.h"
+#include "SteamVRControllerLibrary.h" // for ESteamVRTouchDPadMapping
+
+#define LOCTEXT_NAMESPACE "SteamVRController"
 
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
@@ -29,8 +32,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogSteamVRController, Log, All);
 #define GENERIC_TRACKER_PLAYER_NUM 0
 
 /** Controller axis mappings. @todo steamvr: should enumerate rather than hard code */
-#define TOUCHPAD_AXIS	0
-#define TRIGGER_AXIS	1
+#define TOUCHPAD_AXIS					0
+#define TRIGGER_AXIS					1
+#define KNUCKLES_TOTAL_HAND_GRIP_AXIS	2
+#define KNUCKLES_UPPER_HAND_GRIP_AXIS	3
+#define KNUCKLES_LOWER_HAND_GRIP_AXIS	4
 #define DOT_45DEG		0.7071f
 
 //
@@ -56,9 +62,34 @@ namespace SteamVRControllerKeyNames
 	const FGamepadKeyNames::Type GenericTouchpad("Steam_Generic_Touchpad");
 	const FGamepadKeyNames::Type GenericMenu("Steam_Generic_Menu");
 	const FGamepadKeyNames::Type GenericSystem("Steam_Generic_System");
+
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Left_HandGrip("SteamVR_Knuckles_Left_HandGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Left_IndexGrip("SteamVR_Knuckles_Left_IndexGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Left_MiddleGrip("SteamVR_Knuckles_Left_MiddleGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Left_RingGrip("SteamVR_Knuckles_Left_RingGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Left_PinkyGrip("SteamVR_Knuckles_Left_PinkyGrip");
+
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Right_HandGrip("SteamVR_Knuckles_Right_HandGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Right_IndexGrip("SteamVR_Knuckles_Right_IndexGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Right_MiddleGrip("SteamVR_Knuckles_Right_MiddleGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Right_RingGrip("SteamVR_Knuckles_Right_RingGrip");
+	const FGamepadKeyNames::Type SteamVR_Knuckles_Right_PinkyGrip("SteamVR_Knuckles_Right_PinkyGrip");
 }
 
+namespace SteamVRControllerKeys
+{
+	const FKey SteamVR_Knuckles_Left_HandGrip("SteamVR_Knuckles_Left_HandGrip");
+	const FKey SteamVR_Knuckles_Left_IndexGrip("SteamVR_Knuckles_Left_IndexGrip");
+	const FKey SteamVR_Knuckles_Left_MiddleGrip("SteamVR_Knuckles_Left_MiddleGrip");
+	const FKey SteamVR_Knuckles_Left_RingGrip("SteamVR_Knuckles_Left_RingGrip");
+	const FKey SteamVR_Knuckles_Left_PinkyGrip("SteamVR_Knuckles_Left_PinkyGrip");
 
+	const FKey SteamVR_Knuckles_Right_HandGrip("SteamVR_Knuckles_Right_HandGrip");
+	const FKey SteamVR_Knuckles_Right_IndexGrip("SteamVR_Knuckles_Right_IndexGrip");
+	const FKey SteamVR_Knuckles_Right_MiddleGrip("SteamVR_Knuckles_Right_MiddleGrip");
+	const FKey SteamVR_Knuckles_Right_RingGrip("SteamVR_Knuckles_Right_RingGrip");
+	const FKey SteamVR_Knuckles_Right_PinkyGrip("SteamVR_Knuckles_Right_PinkyGrip");
+}
 
 class FSteamVRController : public IInputDevice, public IMotionController, public IHapticDevice
 {
@@ -147,10 +178,6 @@ public:
 		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch0;
 		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::MotionController_Left_Trigger;
 		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::Grip ] = FGamepadKeyNames::MotionController_Left_Grip1;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::MotionController_Left_FaceButton1;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::MotionController_Left_FaceButton3;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::MotionController_Left_FaceButton4;
-		Buttons[ (int32)EControllerHand::Left ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Left_FaceButton2;
 
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::System ] = FGamepadKeyNames::SpecialRight;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::ApplicationMenu ] = FGamepadKeyNames::MotionController_Right_Shoulder;
@@ -158,10 +185,9 @@ public:
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadTouch ] = SteamVRControllerKeyNames::Touch1;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TriggerPress ] = FGamepadKeyNames::MotionController_Right_Trigger;
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::Grip ] = FGamepadKeyNames::MotionController_Right_Grip1;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadUp ] = FGamepadKeyNames::MotionController_Right_FaceButton1;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadDown ] = FGamepadKeyNames::MotionController_Right_FaceButton3;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadLeft ] = FGamepadKeyNames::MotionController_Right_FaceButton4;
-		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Right_FaceButton2;
+
+		// Init Left & Right, TouchPadUp/Down/Left/Right button mappings
+		SetTouchDPadMapping(DefaultDPadMapping);
 
 		Buttons[ (int32)EControllerHand::Pad ][ ESteamVRControllerButton::System ] = SteamVRControllerKeyNames::GenericSystem;
 		Buttons[ (int32)EControllerHand::Pad ][ ESteamVRControllerButton::ApplicationMenu ] = SteamVRControllerKeyNames::GenericMenu;
@@ -209,6 +235,18 @@ public:
 			Buttons[SpecialIndex][ESteamVRControllerButton::TouchPadLeft] = FGamepadKeyNames::Invalid;
 			Buttons[SpecialIndex][ESteamVRControllerButton::TouchPadRight] = FGamepadKeyNames::Invalid;
 		}
+
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Left_HandGrip, LOCTEXT("SteamVR_Knuckles_Left_HandGrip", "SteamVR Knuckles (L) Hand Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Left_IndexGrip, LOCTEXT("SteamVR_Knuckles_Left_IndexGrip", "SteamVR Knuckles (L) Index Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Left_MiddleGrip, LOCTEXT("SteamVR_Knuckles_Left_MiddleGrip", "SteamVR Knuckles (L) Middle Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Left_RingGrip, LOCTEXT("SteamVR_Knuckles_Left_RingGrip", "SteamVR Knuckles (L) Ring Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Left_PinkyGrip, LOCTEXT("SteamVR_Knuckles_Left_PinkyGrip", "SteamVR Knuckles (L) Pinky Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Right_HandGrip, LOCTEXT("SteamVR_Knuckles_Right_HandGrip", "SteamVR Knuckles (R) Hand Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Right_IndexGrip, LOCTEXT("SteamVR_Knuckles_Right_IndexGrip", "SteamVR Knuckles (R) Index Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Right_MiddleGrip, LOCTEXT("SteamVR_Knuckles_Right_MiddleGrip", "SteamVR Knuckles (R) Middle Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Right_RingGrip, LOCTEXT("SteamVR_Knuckles_Right_RingGrip", "SteamVR Knuckles (R) Ring Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+		EKeys::AddKey(FKeyDetails(SteamVRControllerKeys::SteamVR_Knuckles_Right_PinkyGrip, LOCTEXT("SteamVR_Knuckles_Right_PinkyGrip", "SteamVR Knuckles (R) Pinky Grip CapSense"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
 		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -493,6 +531,44 @@ public:
 							ControllerState.TriggerAnalog = VRControllerState.rAxis[TRIGGER_AXIS].x;
 						}
 
+						// Knuckles CapSense Grip Axes Updates
+						{
+							if (ControllerState.HandGripAnalog != VRControllerState.rAxis[KNUCKLES_TOTAL_HAND_GRIP_AXIS].x)
+							{
+								const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? SteamVRControllerKeyNames::SteamVR_Knuckles_Left_HandGrip : SteamVRControllerKeyNames::SteamVR_Knuckles_Right_HandGrip;
+								MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[KNUCKLES_TOTAL_HAND_GRIP_AXIS].x);
+								ControllerState.HandGripAnalog = VRControllerState.rAxis[KNUCKLES_TOTAL_HAND_GRIP_AXIS].x;
+							}
+
+							if (ControllerState.IndexGripAnalog != VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].x)
+							{
+								const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? SteamVRControllerKeyNames::SteamVR_Knuckles_Left_IndexGrip : SteamVRControllerKeyNames::SteamVR_Knuckles_Right_IndexGrip;
+								MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].x);
+								ControllerState.IndexGripAnalog = VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].x;
+							}
+
+							if (ControllerState.MiddleGripAnalog != VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].y)
+							{
+								const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? SteamVRControllerKeyNames::SteamVR_Knuckles_Left_MiddleGrip : SteamVRControllerKeyNames::SteamVR_Knuckles_Right_MiddleGrip;
+								MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].y);
+								ControllerState.MiddleGripAnalog = VRControllerState.rAxis[KNUCKLES_UPPER_HAND_GRIP_AXIS].y;
+							}
+
+							if (ControllerState.RingGripAnalog != VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].x)
+							{
+								const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? SteamVRControllerKeyNames::SteamVR_Knuckles_Left_RingGrip : SteamVRControllerKeyNames::SteamVR_Knuckles_Right_RingGrip;
+								MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].x);
+								ControllerState.RingGripAnalog = VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].x;
+							}
+
+							if (ControllerState.PinkyGripAnalog != VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].y)
+							{
+								const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? SteamVRControllerKeyNames::SteamVR_Knuckles_Left_PinkyGrip : SteamVRControllerKeyNames::SteamVR_Knuckles_Right_PinkyGrip;
+								MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].y);
+								ControllerState.PinkyGripAnalog = VRControllerState.rAxis[KNUCKLES_LOWER_HAND_GRIP_AXIS].y;
+							}
+						}
+
 						// For each button check against the previous state and send the correct message if any
 						for (int32 ButtonIndex = 0; ButtonIndex < ESteamVRControllerButton::TotalButtonCount; ++ButtonIndex)
 						{
@@ -539,6 +615,54 @@ public:
 			{
 				SteamVRPlugin->SetUnrealControllerIdAndHandToDeviceIdMap(UnrealControllerIdAndHandToDeviceIdMap);
 			}
+		}
+#endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+	}
+
+	void SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)
+	{
+		DefaultDPadMapping = NewMapping;
+
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+		switch (NewMapping)
+		{
+		case ESteamVRTouchDPadMapping::FaceButtons:
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadUp]     = FGamepadKeyNames::MotionController_Left_FaceButton1;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadDown]   = FGamepadKeyNames::MotionController_Left_FaceButton3;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadLeft]   = FGamepadKeyNames::MotionController_Left_FaceButton4;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadRight]  = FGamepadKeyNames::MotionController_Left_FaceButton2;
+
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadUp]    = FGamepadKeyNames::MotionController_Right_FaceButton1;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadDown]  = FGamepadKeyNames::MotionController_Right_FaceButton3;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadLeft]  = FGamepadKeyNames::MotionController_Right_FaceButton4;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadRight] = FGamepadKeyNames::MotionController_Right_FaceButton2;
+			break;
+
+		case ESteamVRTouchDPadMapping::ThumbstickDirections:
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadUp]     = FGamepadKeyNames::MotionController_Left_Thumbstick_Up;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadDown]   = FGamepadKeyNames::MotionController_Left_Thumbstick_Down;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadLeft]   = FGamepadKeyNames::MotionController_Left_Thumbstick_Left;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadRight]  = FGamepadKeyNames::MotionController_Left_Thumbstick_Right;
+
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadUp]    = FGamepadKeyNames::MotionController_Right_Thumbstick_Up;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadDown]  = FGamepadKeyNames::MotionController_Right_Thumbstick_Down;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadLeft]  = FGamepadKeyNames::MotionController_Right_Thumbstick_Left;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadRight] = FGamepadKeyNames::MotionController_Right_Thumbstick_Right;
+			break;
+
+		default:
+			UE_LOG(LogSteamVRController, Warning, TEXT("Unsupported d-pad mapping (%d). Defaulting to disabled."), (int32)NewMapping);
+		case ESteamVRTouchDPadMapping::Disabled:
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadUp]     = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadDown]   = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadLeft]   = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Left][ESteamVRControllerButton::TouchPadRight]  = FGamepadKeyNames::Invalid;
+
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadUp]    = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadDown]  = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadLeft]  = FGamepadKeyNames::Invalid;
+			Buttons[(int32)EControllerHand::Right][ESteamVRControllerButton::TouchPadRight] = FGamepadKeyNames::Invalid;
+			break;
 		}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	}
@@ -634,7 +758,6 @@ public:
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	void UpdateVibration( const int32 ControllerIndex )
 	{
-
 		const FControllerState& ControllerState = ControllerStates[ ControllerIndex ];
 		vr::IVRSystem* VRSystem = GetVRSystem();
 
@@ -664,9 +787,9 @@ public:
 
 	virtual FName GetMotionControllerDeviceTypeName() const override
 	{
-		const static FName DefaultName(TEXT("SteamVRController"));
-		return DefaultName;
+		return DeviceTypeName;
 	}
+	static FName DeviceTypeName;
 
 	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 	{
@@ -721,6 +844,7 @@ public:
 		return false;
 	}
 
+	static ESteamVRTouchDPadMapping DefaultDPadMapping;
 private:
 
 	inline vr::IVRSystem* GetVRSystem()
@@ -732,8 +856,6 @@ private:
 
 		return SteamVRPlugin->GetVRSystem();
 	}
-
-
 
 	struct FControllerState
 	{
@@ -750,6 +872,13 @@ private:
 
 		/** trigger analog value */
 		float TriggerAnalog;
+
+		/** Knuckles Controller Axes */
+		float HandGripAnalog;
+		float IndexGripAnalog;
+		float MiddleGripAnalog;
+		float RingGripAnalog;
+		float PinkyGripAnalog;
 
 		/** Last frame's button states, so we only send events on edges */
 		bool ButtonStates[ ESteamVRControllerButton::TotalButtonCount ];
@@ -791,14 +920,33 @@ private:
 	ISteamVRPlugin* SteamVRPlugin;
 };
 
+FName FSteamVRController::DeviceTypeName(TEXT("SteamVRController"));
+ESteamVRTouchDPadMapping FSteamVRController::DefaultDPadMapping = ESteamVRTouchDPadMapping::FaceButtons;
+
+// defined here in this .cpp file so we have access to FSteamVRController
+void USteamVRControllerLibrary::SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)
+{
+	// modify the default mapping in case we haven't instantiated a FSteamVRController yet
+	FSteamVRController::DefaultDPadMapping = NewMapping;
+
+	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
+	for (IMotionController* MotionController : MotionControllers)
+	{
+		if (MotionController != nullptr && MotionController->GetMotionControllerDeviceTypeName() == FSteamVRController::DeviceTypeName)
+		{
+			static_cast<FSteamVRController*>(MotionController)->SetTouchDPadMapping(NewMapping);
+		}
+	}
+}
 
 class FSteamVRControllerPlugin : public ISteamVRControllerPlugin
 {
 	virtual TSharedPtr< class IInputDevice > CreateInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler) override
 	{
 		return TSharedPtr< class IInputDevice >(new FSteamVRController(InMessageHandler));
-
 	}
 };
+
+#undef LOCTEXT_NAMESPACE //"SteamVRController"
 
 IMPLEMENT_MODULE( FSteamVRControllerPlugin, SteamVRController)

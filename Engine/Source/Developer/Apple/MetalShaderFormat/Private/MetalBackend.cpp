@@ -434,6 +434,9 @@ protected:
 	
 	// Need to inject the Metal <= v1.1 reverse_bits?
 	bool bReverseBitsWAR;
+	
+	// Need to inject the Metal vector array deref helper?
+	bool bVectorDerefHelper;
 
     const char *shaderPrefix()
     {
@@ -1966,9 +1969,21 @@ protected:
 		{
 			ralloc_asprintf_append(buffer, "[");
 		}
+		
+		bool bIsVectorArrayIndex = deref->array->type->is_vector() && (Backend->Version < 3 && Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop);
+		if (bIsVectorArrayIndex)
+		{
+			bVectorDerefHelper = true;
+			ralloc_asprintf_append(buffer, "VectorDerefHelper(");
+		}
 
 		deref->array_index->accept(this);
 		should_print_uint_literals_as_ints = false;
+
+		if (bIsVectorArrayIndex)
+		{
+			ralloc_asprintf_append(buffer, ")");
+		}
 
 		if (enforceInt)
 		{
@@ -3633,6 +3648,7 @@ public:
 		, bCubeArrayHackFloat4(false)
 		, bCubeArrayHackFloat3(false)
 		, bReverseBitsWAR(false)
+		, bVectorDerefHelper(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -3731,6 +3747,18 @@ public:
 			ralloc_asprintf_append(buffer, "}\n");
 		}
 		
+		char* VectorDerefHelper = ralloc_asprintf(mem_ctx, "");
+		if (Backend->Version < 3 && bVectorDerefHelper)
+		{
+			buffer = &VectorDerefHelper;
+			
+			ralloc_asprintf_append(buffer, "static uint VectorDerefHelper(uint i)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "	\tuint Indices[4] = {0, 1, 2, 3};\n");
+			ralloc_asprintf_append(buffer, "	\treturn Indices[i];\n");
+			ralloc_asprintf_append(buffer, "}\n");
+		}
+		
 		buffer = 0;
 		
 		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
@@ -3784,12 +3812,13 @@ public:
 
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s%s",
 			signature,
 			metal_defines,
 			bNeedsComputeInclude ? "#include <metal_compute>" : "",
 			CubemapHack,
 			reverse_bits,
+			VectorDerefHelper,
 			decl_buffer,
 			code_buffer
 			);

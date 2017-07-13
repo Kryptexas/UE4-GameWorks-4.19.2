@@ -416,6 +416,19 @@ void FSlateBatchData::Reset()
 #define MAX_VERT_ARRAY_RECYCLE (200)
 #define MAX_INDEX_ARRAY_RECYCLE (500)
 
+bool FSlateBatchData::IsStencilClippingRequired() const
+{
+	for (const FSlateClippingState& Clipping : RenderClipStates)
+	{
+		if (Clipping.GetClippingMethod() == EClippingMethod::Stencil)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FSlateBatchData::AssignVertexArrayToBatch( FSlateElementBatch& Batch )
 {
 	// Get a free vertex array

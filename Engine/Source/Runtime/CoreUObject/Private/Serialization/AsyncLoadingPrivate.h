@@ -20,17 +20,6 @@ public:
 		ProcessingExports,
 	};
 
-	enum
-	{
-		// this is used for the initial precache and should be large enough to find the actual Sum.TotalHeaderSize
-		// the editor packages may not have the AdditionalPackagesToCook array stripped so we need to allocate more memory
-#if WITH_EDITORONLY_DATA
-		MAX_SUMMARY_SIZE = 16384
-#else
-		MAX_SUMMARY_SIZE = 8192
-#endif
-	};
-
 	FArchiveAsync2(const TCHAR* InFileName
 		, TFunction<void()>&& InSummaryReadyCallback
 		);
@@ -50,6 +39,10 @@ public:
 	virtual int64 TotalSize() override;
 	virtual void Seek(int64 InPos) override;
 	virtual void FlushCache() override;
+	virtual FString GetArchiveName() const override 
+	{
+		return FileName;
+	}
 
 	bool Precache(int64 PrecacheOffset, int64 PrecacheSize, bool bUseTimeLimit, bool bUseFullTimeLimit, double TickStartTime, float TimeLimit);
 	bool PrecacheForEvent(int64 PrecacheOffset, int64 PrecacheSize);

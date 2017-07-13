@@ -80,6 +80,36 @@ public:
 		InitialValues.RemoveAll([=](const FInitialValue& In) { return In.Object == ObjectToRemove; });
 	}
 
+	/**
+	 * Access this actuator's unique identifier
+	 */
+	FMovieSceneBlendingActuatorID GetActuatorID() const
+	{
+		return ActuatorID;
+	}
+
+	/**
+	 * Check whether this actuator has an initial value for the specified animated object
+	 */
+	bool HasInitialValue(FObjectKey InObject) const
+	{
+		for (const auto& InitialValue : InitialValues)
+		{
+			if (InitialValue.Object == InObject)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+protected:
+	
+	/** Constructor */
+	TMovieSceneBlendingActuator(FMovieSceneBlendingActuatorID InActuatorID)
+		: ActuatorID(InActuatorID)
+	{}
+
 private:
 
 	/**
@@ -102,5 +132,8 @@ private:
 
 	/** Member that stores initial values for this actuator */
 	TArray<FInitialValue> InitialValues;
+
+	/** This actuator's unique identifier */
+	FMovieSceneBlendingActuatorID ActuatorID;
 };
 

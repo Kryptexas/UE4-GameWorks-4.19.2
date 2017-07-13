@@ -125,7 +125,18 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 				TSharedPtr<FJsonValue> ValueElement = FJsonObjectConverter::UPropertyToJsonValue(MapProperty->ValueProp, Helper.GetValuePtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
 				if ( KeyElement.IsValid() && ValueElement.IsValid() )
 				{
-					Out->SetField(KeyElement->AsString(), ValueElement);
+					FString KeyString = KeyElement->AsString();
+					if (KeyString.IsEmpty())
+					{
+						MapProperty->KeyProp->ExportTextItem(KeyString, Helper.GetKeyPtr(i), nullptr, nullptr, 0);
+						if (KeyString.IsEmpty())
+						{
+							UE_LOG(LogJson, Error, TEXT("Unable to convert key to string for property %s."), *MapProperty->GetName())
+							KeyString = FString::Printf(TEXT("Unparsed Key %d"), i);
+						}
+					}
+
+					Out->SetField(KeyString, ValueElement);
 				}
 			}
 		}
@@ -473,7 +484,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			return false;
 		}
 	}
-	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
+	else if (UTextProperty* TextProperty = Cast<UTextProperty>(Property))
 	{
 		if (JsonValue->Type == EJson::String)
 		{
@@ -571,7 +582,17 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			
 			FString ImportTextString = JsonValue->AsString();
 			const TCHAR* ImportTextPtr = *ImportTextString;
-			TheCppStructOps->ImportTextItem(ImportTextPtr, OutValue, PPF_None, nullptr, (FOutputDevice*)GWarn);
+			if (!TheCppStructOps->ImportTextItem(ImportTextPtr, OutValue, PPF_None, nullptr, (FOutputDevice*)GWarn))
+			{
+				// Fall back to trying the tagged property approach if custom ImportTextItem couldn't get it done
+				Property->ImportText(ImportTextPtr, OutValue, PPF_None, nullptr);
+			}
+		}
+		else if (JsonValue->Type == EJson::String)
+		{
+			FString ImportTextString = JsonValue->AsString();
+			const TCHAR* ImportTextPtr = *ImportTextString;
+			Property->ImportText(ImportTextPtr, OutValue, PPF_None, nullptr);
 		}
 		else
 		{

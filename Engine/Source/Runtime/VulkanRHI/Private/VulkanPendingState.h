@@ -189,33 +189,26 @@ public:
 		Viewport.y = MinY;
 		Viewport.width = MaxX - MinX;
 		Viewport.height = MaxY - MinY;
-
-		// Engine parses in some cases MaxZ as 0.0, which is rubbish.
+		Viewport.minDepth = MinZ;
 		if (MinZ == MaxZ)
 		{
-			Viewport.minDepth = MinZ;
+			// Engine pases in some cases MaxZ as 0.0
 			Viewport.maxDepth = MinZ + 1.0f;
 		}
 		else
 		{
-			Viewport.minDepth = MinZ;
 			Viewport.maxDepth = MaxZ;
 		}
 
 		NeedsUpdateMask |= ENeedsViewport;
 
-		// Set scissor to match the viewport when disabled
-		if (!bScissorEnable)
-		{
-			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
-		}
+		SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
+		bScissorEnable = false;
 	}
 
-	inline void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	inline void SetScissor(bool bInEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 	{
-		bScissorEnable = bEnable;
-
-		if (bScissorEnable)
+		if (bInEnable)
 		{
 			SetScissorRect(MinX, MinY, MaxX - MinX, MaxY - MinY);
 		}
@@ -223,6 +216,8 @@ public:
 		{
 			SetScissorRect(Viewport.x, Viewport.y, Viewport.width, Viewport.height);
 		}
+
+		bScissorEnable = bInEnable;
 	}
 
 	inline void SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)

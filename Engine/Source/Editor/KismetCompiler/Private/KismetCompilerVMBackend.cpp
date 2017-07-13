@@ -844,9 +844,18 @@ public:
 					Writer << Struct;
 					Writer << StructSize;
 
+					// TODO: Change this once structs/classes can be declared as explicitly editor only
+					bool bIsEditorOnlyStruct = false; 
+
 					checkSlow(Schema);
 					for( UProperty* Prop = Struct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext )
 					{
+						// Skip transient and editor only properties, this needs to be synched with ScriptCore
+						if (Prop->PropertyFlags & CPF_Transient || (!bIsEditorOnlyStruct && Prop->PropertyFlags & CPF_EditorOnly))
+						{
+							continue;
+						}
+
 						for (int32 ArrayIter = 0; ArrayIter < Prop->ArrayDim; ++ArrayIter)
 						{
 							// Create a new term for each property, and serialize it out

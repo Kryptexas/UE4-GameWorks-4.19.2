@@ -269,7 +269,7 @@ public:
 	 */
 	virtual bool SupportsMultipleRows() const
 	{
-		return false;
+		return SupportedBlendTypes.Num() != 0;
 	}
 
 	/** Gets the greatest row index of all the sections owned by this track. */

@@ -7,12 +7,11 @@ D3D12CommandContext.cpp: RHI  Command Context implementation.
 #include "D3D12RHIPrivate.h"
 
 #if PLATFORM_XBOXONE
-// Workaround for flickering UI issues. 
-// @TODO: Fix and re-enable
+// @TODO: We fixed this on PC. Need to check it works on XB before re-enabling. 
+// Aggressive batching saves ~0.1ms on the RHI thread, reduces executecommandlist calls by around 25%
 int32 GCommandListBatchingMode = CLB_NormalBatching;
 #else
-// @todo: CLB_AggressiveBatching disabled as it caused flickering in lighting on PC
-int32 GCommandListBatchingMode = CLB_NormalBatching;
+int32 GCommandListBatchingMode = CLB_AggressiveBatching;
 #endif 
 
 static FAutoConsoleVariableRef CVarCommandListBatchingMode(
@@ -176,8 +175,7 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 	check(IsDefaultContext());
 
 	FD3D12Device* Device = GetParentDevice();
-	const bool bExecutePendingWork = GCommandListBatchingMode == CLB_AggressiveBatching || GetParentDevice()->IsGPUIdle();
-	const bool bHasPendingWork = bExecutePendingWork && (Device->PendingCommandListsTotalWorkCommands > 0);
+	const bool bHasPendingWork = Device->PendingCommandLists.Num() > 0;
 	const bool bHasDoneWork = HasDoneWork() || bHasPendingWork;
 
 	// Only submit a command list if it does meaningful work or the flush is expected to wait for completion.
