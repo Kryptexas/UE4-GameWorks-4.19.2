@@ -979,11 +979,6 @@ reset_hard()
 		git clean -fd
 	cd ../..
 	# ........................................
-	cd libWebSockets/$WS_VERSION
-		git reset --hard HEAD
-		git clean -fd
-	cd ../..
-	# ........................................
 	cd WebRTC/src
 		git reset --hard HEAD
 		git clean -fd
@@ -1091,7 +1086,6 @@ get_google_depot_tools
 get_zlib
 get_openssl
 get_libcurl
-get_libwebsockets
 get_webrtc
 	#reset_hard
 
@@ -1102,7 +1096,6 @@ build_zlib
 build_zlib_fPIC
 build_openssl
 build_libcurl
-build_libwebsockets
 build_webrtc
 
 if [[ $SYSTEM == *'_NT-'* ]]; then
@@ -1123,7 +1116,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc            ## NOTE: SPECIAL BUILD !!!
 	USE_VS_2013=false
 
@@ -1136,7 +1128,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc
 
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1148,7 +1139,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc            ## NOTE: SPECIAL BUILD !!!
 
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
