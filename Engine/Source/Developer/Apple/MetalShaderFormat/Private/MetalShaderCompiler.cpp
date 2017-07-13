@@ -1131,10 +1131,19 @@ static void BuildMetalShaderOutput(
 					GMetalLoggedRemoteCompileNotConfigured = true;
 				}
 				bRemoteBuildingConfigured = false;
+				bSucceeded = true;
 			}
-			else
+#if PLATFORM_MAC
+			else if (FPlatformMisc::IsSupportedXcodeVersionInstalled())
 			{
 				bCompileAtRuntime = false;
+				bSucceeded = true;
+			}
+#endif
+			else
+			{
+				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Installed Xcode's metal shader compiler is too old, please update Xcode on this Mac. Falling back to online compiled text shaders which will be slower."));
+				bCompileAtRuntime = true;
 				bSucceeded = true;
 			}
 		}
