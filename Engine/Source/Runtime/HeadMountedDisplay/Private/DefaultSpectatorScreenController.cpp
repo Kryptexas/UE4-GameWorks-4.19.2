@@ -92,6 +92,11 @@ void FDefaultSpectatorScreenController::SetSpectatorScreenTextureRenderCommand(U
 {
 	check(IsInGameThread());
 
+	if (!SrcTexture)
+	{
+		return;
+	}
+
 	FTexture2DRHIRef Texture2DRHIRef;
 	FTextureResource* TextureResource = SrcTexture->Resource;
 	if (TextureResource && TextureResource->TextureRHI)

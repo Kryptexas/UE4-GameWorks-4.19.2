@@ -275,6 +275,11 @@ void UHeadMountedDisplayFunctionLibrary::SetSpectatorScreenTexture(UTexture* InT
 	ISpectatorScreenController* const Controller = HMDFunctionLibraryHelpers::GetSpectatorScreenController();
 	if (Controller)
 	{
+		if (!InTexture)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("SetSpectatorScreenTexture blueprint function called with null Texture!"));
+		}
+
 		Controller->SetSpectatorScreenTexture(InTexture);
 	}
 }
