@@ -30,7 +30,7 @@ class ENGINE_API USoftJointComponent : public USceneComponent
 	/** The global particle indice*/
 	TArray<int32> ParticleIndices;
 
-	/** The relative offsets from the particle of the joint to the center */
+	/** The relative offsets from the particles of the joint to the center */
 	TArray<FVector> ParticleLocalPositions;
 
 	/** How many particles affected by this soft joint */

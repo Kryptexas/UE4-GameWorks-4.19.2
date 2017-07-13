@@ -27,6 +27,7 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics; //  TG_PostUpdateWork
 	Radius = 200.0f;
+	Stiffness = 0.0002f;
 	bAutoActivate = true;
 	NumParticles = 0;
 	bAutoActivate = true;
