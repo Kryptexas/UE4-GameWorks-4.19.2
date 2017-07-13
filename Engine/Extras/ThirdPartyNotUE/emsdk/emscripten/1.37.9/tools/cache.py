@@ -91,12 +91,13 @@ class Cache:
         if shortname.endswith(('.bc', '.so', '.a')): what = 'system library'
         else: what = 'system asset'
       message = 'generating ' + what + ': ' + shortname + '... (this will be cached in "' + cachename + '" for subsequent builds)'
-      logging.info(message)
+      #logging.info(message) # UE4EDIT - nick.shin - suppress this "info" -- it's getting promoted to WARNING via UBT...
+      traceback.print_stack()
       self.ensure()
       temp = creator()
       if temp != cachename:
         shutil.copyfile(temp, cachename)
-      logging.info(' - ok')
+      #logging.info(' - ok') # UE4EDIT - nick.shin - suppress this "info" -- it's getting promoted to WARNING via UBT...
     finally:
       self.release_cache_lock()
 
