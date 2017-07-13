@@ -207,12 +207,15 @@ struct FColorTokenActuator : TMovieSceneBlendingActuator<FLinearColor>
 	{
 		ensureMsgf(InObject, TEXT("Attempting to evaluate a Color track with a null object."));
 
-		FTrackInstancePropertyBindings& PropertyBindings = *PropertyData.PropertyBindings;
+		if (InObject != nullptr)
+		{
+			FTrackInstancePropertyBindings& PropertyBindings = *PropertyData.PropertyBindings;
 
-		OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, FColorTokenProducer(PropertyBindings));
+			OriginalStack.SavePreAnimatedState(Player, *InObject, PropertyData.PropertyID, FColorTokenProducer(PropertyBindings));
 
-		// Apply a token
-		FColorToken(InFinalValue).Apply(*InObject, PropertyBindings);
+			// Apply a token
+			FColorToken(InFinalValue).Apply(*InObject, PropertyBindings);
+		}
 	}
 };
 
