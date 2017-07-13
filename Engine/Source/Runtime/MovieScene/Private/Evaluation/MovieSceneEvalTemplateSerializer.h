@@ -29,8 +29,10 @@ bool SerializeEvaluationTemplate(TInlineValue<T, N>& Impl, FArchive& Ar)
 		UScriptStruct* Struct = FindObject<UScriptStruct>(nullptr, *TypeName);
 		if (!Struct || Struct == T::StaticStruct())
 		{
+#if !WITH_EDITORONLY_DATA
+			// We only throw this warning in cooked builds as that is the only place where this deserialized data matters
 			UE_LOG(LogMovieScene, Warning, TEXT("Unknown or invalid track type (%s) found in serialized data. This track will no longer work. Please recompile template data."), *TypeName);
-
+#endif
 			// If it wasn't found, just deserialize an empty struct instead, and set ourselves to default
 			FMovieSceneEmptyStruct Empty;
 			FMovieSceneEmptyStruct::StaticStruct()->SerializeItem(Ar, &Empty, nullptr);
