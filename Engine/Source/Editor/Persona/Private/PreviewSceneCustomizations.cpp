@@ -210,8 +210,10 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 			.ThumbnailPool(DetailBuilder.GetThumbnailPool())
 			.NewAssetFactories(FactoriesToUse)
 		]
-		+ SHorizontalBox::Slot()
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
 		.AutoWidth()
+		.Padding(2.0f)
 		[
 			SNew(SButton)
 			.Visibility(this, &FPreviewSceneDescriptionCustomization::GetSaveButtonVisibility, AdditionalMeshesProperty)
