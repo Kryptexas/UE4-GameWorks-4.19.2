@@ -205,7 +205,7 @@ struct FColorTokenActuator : TMovieSceneBlendingActuator<FLinearColor>
 
 	virtual void Actuate(UObject* InObject, const FLinearColor& InFinalValue, const TBlendableTokenStack<FLinearColor>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
-		check(InObject);
+		ensureMsgf(InObject, TEXT("Attempting to evaluate a Color track with a null object."));
 
 		FTrackInstancePropertyBindings& PropertyBindings = *PropertyData.PropertyBindings;
 
