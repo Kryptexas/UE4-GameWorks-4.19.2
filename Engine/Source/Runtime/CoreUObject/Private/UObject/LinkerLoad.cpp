@@ -4054,7 +4054,8 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 	DeferPotentialCircularImport(Index); 
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-	if( Import.XObject == NULL )
+	// Imports can have no name if they were filtered out due to package redirects, skip in that case
+	if (Import.XObject == nullptr && Import.ObjectName != NAME_None)
 	{
 		if (!GIsEditor && !IsRunningCommandlet())
 		{
