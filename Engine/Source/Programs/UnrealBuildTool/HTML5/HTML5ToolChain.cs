@@ -432,7 +432,14 @@ namespace UnrealBuildTool
 				MatchLineNumber.Length == 0 ||
 				MatchDescription.Length == 0)
 			{
-				Log.TraceWarning(Output);
+				// emscripten output match
+				string RegexEmscriptenInfo = @"^INFO:";
+				Match match = Regex.Match(Output, RegexEmscriptenInfo);
+				if ( match.Success ) {
+					Log.TraceInformation(Output);
+				} else {
+					Log.TraceWarning(Output);
+				}
 				return;
 			}
 
