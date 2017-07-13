@@ -102,6 +102,21 @@ public:
 		return bIsAxisAligned;
 	}
 
+	/**
+	 * Indicates if this clipping state has a zero size, aka is empty.  We only possibly report true for
+	 * scissor clipping zones.
+	 */
+	FORCEINLINE bool HasZeroArea() const
+	{
+		if (bIsAxisAligned)
+		{
+			FVector2D Difference = TopLeft - BottomRight;
+			return FMath::IsNearlyZero(Difference.X) || FMath::IsNearlyZero(Difference.Y);
+		}
+
+		return false;
+	}
+
 	/** Is a point inside the clipping zone? */
 	bool IsPointInside(const FVector2D& Point) const;
 
@@ -173,6 +188,20 @@ public:
 	FORCEINLINE EClippingMethod GetClippingMethod() const
 	{
 		return ScissorRect.IsSet() ? EClippingMethod::Scissor : EClippingMethod::Stencil;
+	}
+
+	/**
+	 * Indicates if this clipping state has a zero size, aka is empty.  We only possibly report true for
+	 * scissor clipping zones.
+	 */
+	FORCEINLINE bool HasZeroArea() const
+	{
+		if (ScissorRect.IsSet())
+		{
+			return ScissorRect->HasZeroArea();
+		}
+
+		return false;
 	}
 
 	bool operator==(const FSlateClippingState& Other) const
