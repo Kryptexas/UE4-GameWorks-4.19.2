@@ -1286,6 +1286,13 @@ void FGoogleVRHMD::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& R
 			ReadbackTextureSizes[textureIndex] = renderSize;
 		}
 		ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount] = RHICmdList.CreateRenderQuery(ERenderQueryType::RQT_AbsoluteTime);
+		
+		// Absolute time query creation can fail on AMD hardware due to driver support
+		if (!ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount])
+		{
+			return;
+		}
+		
 		// copy and map the texture.
 		FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(ReadbackTextureSizes[textureIndex], PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
