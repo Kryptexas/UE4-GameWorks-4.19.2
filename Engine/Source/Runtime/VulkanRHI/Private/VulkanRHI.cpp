@@ -351,9 +351,6 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	check(!GIsThreadedRendering);
 
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
-#if PLATFORM_ANDROID
-	GHardwareHiddenSurfaceRemoval = true;
-#endif
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
