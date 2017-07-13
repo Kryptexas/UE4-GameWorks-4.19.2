@@ -481,7 +481,7 @@ void UK2Node_MakeArray::GetContextMenuActions(const FGraphNodeContextMenuBuilder
 		if (Context.Pin != NULL)
 		{
 			// we only do this for normal BlendList/BlendList by enum, BlendList by Bool doesn't support add/remove pins
-			if (Context.Pin->Direction == EGPD_Input)
+			if (Context.Pin->Direction == EGPD_Input && Context.Pin->ParentPin == nullptr)
 			{
 				//@TODO: Only offer this option on arrayed pins
 				Context.MenuBuilder->AddMenuEntry(

@@ -65,6 +65,7 @@ bool UK2Node_CommutativeAssociativeBinaryOperator::CanRemovePin(const UEdGraphPi
 {
 	return (
 		Pin &&
+		Pin->ParentPin == nullptr &&
 		NumAdditionalInputs &&
 		(INDEX_NONE != Pins.IndexOfByKey(Pin)) &&
 		(EEdGraphPinDirection::EGPD_Input == Pin->Direction)
