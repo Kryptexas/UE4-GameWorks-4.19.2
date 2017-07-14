@@ -774,7 +774,12 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected(const 
 					{
 						if (TargetInfo->LayerName == (*TargetDisplayOrderList)[DisplayOrderLayerIndex])
 						{
-							return FReply::Handled().BeginDragDrop(FTargetLayerDragDropOp::New(SlotIndex, Slot, GenerateRow(TargetInfo)));
+							TSharedPtr<SWidget> Row = GenerateRow(TargetInfo);
+
+							if (Row.IsValid())
+							{
+								return FReply::Handled().BeginDragDrop(FTargetLayerDragDropOp::New(SlotIndex, Slot, Row));
+							}
 						}
 					}
 				}
