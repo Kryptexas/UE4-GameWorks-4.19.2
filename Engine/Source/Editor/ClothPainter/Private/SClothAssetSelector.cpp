@@ -834,7 +834,7 @@ TWeakObjectPtr<UClothingAsset> SClothAssetSelector::GetSelectedAsset() const
 	
 }
 
-int32 SClothAssetSelector::SClothAssetSelector::GetSelectedLod() const
+int32 SClothAssetSelector::GetSelectedLod() const
 {
 	return SelectedLod;
 }

@@ -19,6 +19,9 @@ class FMenuBuilder;
 class UBlueprint;
 class UK2Node;
 struct FTypesDatabase;
+class UEnum;
+class UClass;
+class UScriptStruct;
 
 /** Reference to an structure (only used in 'docked' palette) */
 USTRUCT()
@@ -773,9 +776,9 @@ public:
 	/** returns friendly signature name if possible or Removes any mangling to get the unmangled signature name of the function */
 	static FText GetFriendlySignatureName(const UFunction* Function);
 
-	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
-	static bool IsAllowableBlueprintVariableType(const class UClass* InClass);
-	static bool IsAllowableBlueprintVariableType(const class UScriptStruct *InStruct, bool bForInternalUse = false);
+	static bool IsAllowableBlueprintVariableType(const UEnum* InEnum);
+	static bool IsAllowableBlueprintVariableType(const UClass* InClass);
+	static bool IsAllowableBlueprintVariableType(const UScriptStruct *InStruct, bool bForInternalUse = false);
 
 	static bool IsPropertyExposedOnSpawn(const UProperty* Property);
 
