@@ -1203,6 +1203,16 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 			Info.DepthStencilRenderTarget = FRHIDepthRenderTargetView(FallbackDepthStencilSurface, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil::DepthRead_StencilRead);
 		}
 		
+		// Ensure that we make it a Clear/Store -> Load/Store for the colour targets or we might render incorrectly
+		for (uint32 i = 0; i < Info.NumColorRenderTargets; i++)
+		{
+			if (Info.ColorRenderTarget[i].LoadAction != ERenderTargetLoadAction::ELoad)
+			{
+				check(Info.ColorRenderTarget[i].StoreAction == ERenderTargetStoreAction::EStore || Info.ColorRenderTarget[i].StoreAction == ERenderTargetStoreAction::EMultisampleResolve);
+				Info.ColorRenderTarget[i].LoadAction = ERenderTargetLoadAction::ELoad;
+			}
+		}
+		
 		if (StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false))
 		{
 			RenderPass.RestartRenderPass(StateCache.GetRenderPassDescriptor());
