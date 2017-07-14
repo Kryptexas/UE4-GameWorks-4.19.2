@@ -84,18 +84,47 @@ public:
 	// IPropertyTypeCustomization interface
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	const struct FReferenceSkeleton&  GetReferenceSkeleton() const;
 
+protected:
+	void SetEditableSkeleton(TSharedRef<IPropertyHandle> StructPropertyHandle);
+	virtual void SetPropertyHandle(TSharedRef<IPropertyHandle> StructPropertyHandle);
+	TSharedPtr<IPropertyHandle> FindStructMemberProperty(TSharedRef<IPropertyHandle> PropertyHandle, const FName& PropertyName);
+	virtual void Build(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder);
+
+	// Property to change after bone has been picked
+	TSharedPtr<IPropertyHandle> BoneNameProperty;
+
+	// Target Skeleton this widget is referencing
+	TSharedPtr<IEditableSkeleton> TargetEditableSkeleton;
 private:
 
 	// Bone tree widget delegates
-	void OnBoneSelectionChanged(FName Name);
-	FName GetSelectedBone(bool& bMultipleValues) const;
-	const struct FReferenceSkeleton&  GetReferenceSkeleton() const;
+	virtual void OnBoneSelectionChanged(FName Name);
+	virtual FName GetSelectedBone(bool& bMultipleValues) const;
+};
 
+//////////////////////////////////////////////////////////////////////////
+// FBoneSocketTargetCustomization
+
+class FBoneSocketTargetCustomization : public FBoneReferenceCustomization
+{
+public:
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+
+private:
 	// Property to change after bone has been picked
-	TSharedPtr<IPropertyHandle> BoneRefProperty;
-	// Target Skeleton this widget is referencing
-	TSharedPtr<IEditableSkeleton> TargetEditableSkeleton;
+	TSharedPtr<IPropertyHandle> SocketNameProperty;
+	TSharedPtr<IPropertyHandle> UseSocketProperty;
+
+	virtual void SetPropertyHandle(TSharedRef<IPropertyHandle> StructPropertyHandle) override;
+	virtual void Build(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder) override;
+	// Bone tree widget delegates
+	virtual void OnBoneSelectionChanged(FName Name) override;
+	virtual FName GetSelectedBone(bool& bMultipleValues) const override;
+	const TArray<class USkeletalMeshSocket*>& GetSocketList() const;
+
+	TSharedPtr<IPropertyHandle> GetNameProperty() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

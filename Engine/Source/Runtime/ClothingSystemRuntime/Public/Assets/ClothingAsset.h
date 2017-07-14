@@ -137,6 +137,10 @@ struct FClothVertBoneData
 		FMemory::Memset(BoneWeights, 0, sizeof(BoneWeights));
 	}
 
+	// Number of influences for this vertex.
+	UPROPERTY()
+	int32 NumInfluences;
+
 	// Up to MAX_TOTAL_INFLUENCES bone indices that this vert is weighted to
 	UPROPERTY()
 	uint16 BoneIndices[MAX_TOTAL_INFLUENCES];
@@ -453,44 +457,6 @@ namespace ClothingAssetUtils
 	
 	// Similar to above, but only inspects the specified LOD
 	void CLOTHINGSYSTEMRUNTIME_API GetMeshClothingAssetBindings(USkeletalMesh* InSkelMesh, TArray<FClothingAssetMeshBinding>& OutBindings, int32 InLodIndex);
-
-	/**
-	 * Given mesh information for two meshes, generate a list of skinning data to embed mesh0 in mesh1
-	 * @param OutSkinningData	- Final skinning data to map mesh0 to mesh1
-	 * @param Mesh0Verts		- Vertex positions for Mesh0
-	 * @param Mesh0Normals		- Vertex normals for Mesh0
-	 * @param Mesh0Tangents		- Vertex tangents for Mesh0
-	 * @param Mesh1Verts		- Vertex positions for Mesh1
-	 * @param Mesh1Normals		- Vertex normals for Mesh1
-	 * @param Mesh1Indices		- Triangle indices for Mesh1
-	 */
-	void GenerateMeshToMeshSkinningData(TArray<FMeshToMeshVertData>& OutSkinningData,
-													 const TArray<FVector>& Mesh0Verts,
-													 const TArray<FVector>& Mesh0Normals,
-													 const TArray<FVector>& Mesh0Tangents,
-													 const TArray<FVector>& Mesh1Verts,
-													 const TArray<FVector>& Mesh1Normals,
-													 const TArray<uint32>& Mesh1Indices);
-
-	/**
-	 * Given a triangle ABC with normals at each vertex NA, NB and NC, get a barycentric coordinate
-	 * and corresponding distance from the triangle encoded in an FVector4 where the components are
-	 * (BaryX, BaryY, BaryZ, Dist)
-	 * @param A		- Position of triangle vertex A
-	 * @param B		- Position of triangle vertex B
-	 * @param C		- Position of triangle vertex C
-	 * @param NA	- Normal at vertex A
-	 * @param NB	- Normal at vertex B
-	 * @param NC	- Normal at vertex C
-	 * @param Point	- Point to calculate Bary+Dist for
-	 */
-	FVector4 GetPointBaryAndDist(const FVector& A,
-								 const FVector& B,
-								 const FVector& C,
-								 const FVector& NA,
-								 const FVector& NB,
-								 const FVector& NC,
-								 const FVector& Point);
 }
 
 /**

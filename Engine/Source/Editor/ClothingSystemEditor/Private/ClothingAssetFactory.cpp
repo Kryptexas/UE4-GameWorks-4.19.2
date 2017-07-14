@@ -19,6 +19,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Utils/ClothingMeshUtils.h"
 
 #define LOCTEXT_NAMESPACE "ClothingAssetFactory"
 DEFINE_LOG_CATEGORY(LogClothingAssetFactory)
@@ -62,6 +63,15 @@ namespace ClothingFactoryConstants
 	static const char ParamName_Partition_NumSimIndices[] = "numSimulatedIndices";
 }
 
+void LogAndToastWarning(const FText& Error)
+{
+	FNotificationInfo Info(Error);
+	Info.ExpireDuration = 5.0f;
+	FSlateNotificationManager::Get().AddNotification(Info);
+
+	UE_LOG(LogClothingAssetFactory, Warning, TEXT("%s"), *Error.ToString());
+}
+
 UClothingAssetFactory::UClothingAssetFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -100,7 +110,7 @@ UClothingAssetBase* UClothingAssetFactory::Import
 		NewClothingAsset->ImportedFilePath = Filename;
 
 		// Push to the target mesh
-		TargetMesh->MeshClothingAssets.Add(NewClothingAsset);
+		TargetMesh->AddClothingAsset(NewClothingAsset);
 	}
 
 	return NewClothingAsset;
@@ -263,174 +273,119 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromSkeletalMesh(USkeletalMesh*
 	NewAsset->LodData.AddDefaulted();
 	FClothLODData& LodData = NewAsset->LodData.Last();
 
-	const int32 NumVerts = SourceSection.SoftVertices.Num();
-	const int32 NumIndices = SourceSection.NumTriangles * 3;
-	const int32 BaseIndex = SourceSection.BaseIndex;
-	const int32 BaseVertexIndex = SourceSection.BaseVertexIndex;
-
-	// We need to weld the mesh verts to get rid of duplicates (happens for smoothing groups)
-	TArray<FVector> UniqueVerts;
-	TArray<uint32> OriginalIndexes;
-
-	TArray<uint32> IndexRemap;
-	IndexRemap.AddDefaulted(NumVerts);
+	if(ImportToLodInternal(TargetMesh, Params.LodIndex, Params.SourceSection, NewAsset, LodData))
 	{
-		float ThreshSq = SMALL_NUMBER * SMALL_NUMBER;
-
-		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+		if(Params.bRemoveFromMesh)
 		{
-			const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[VertIndex];
+			// User doesn't want the section anymore as a renderable, get rid of it
+			TargetMesh->RemoveMeshSection(Params.LodIndex, Params.SourceSection);
+		}
 
-			bool bUnique = true;
-			int32 RemapIndex = INDEX_NONE;
+		// Set asset guid
+		NewAsset->AssetGuid = FGuid::NewGuid();
 
-			const int32 NumUniqueVerts = UniqueVerts.Num();
-			for(int32 UniqueVertIndex = 0; UniqueVertIndex < NumUniqueVerts; ++UniqueVertIndex)
+		// Set physics asset, will be used when building actors for cloth collisions
+		NewAsset->PhysicsAsset = Params.PhysicsAsset.LoadSynchronous();
+
+		// Build the final bone map
+		NewAsset->RefreshBoneMapping(TargetMesh);
+
+		// Invalidate cached data as the mesh has changed
+		NewAsset->InvalidateCachedData();
+
+		return NewAsset;
+	}
+
+	return nullptr;
+}
+
+UClothingAssetBase* UClothingAssetFactory::ImportLodToClothing(USkeletalMesh* TargetMesh, FSkeletalMeshClothBuildParams& Params)
+{
+	if(!TargetMesh)
+	{
+		// Invalid target - can't continue.
+		LogAndToastWarning(LOCTEXT("Warning_InvalidLodMesh", "Failed to import clothing LOD, invalid target mesh specified"));
+		return nullptr;
+	}
+
+	if(!Params.TargetAsset.IsValid())
+	{
+		// Invalid target - can't continue.
+		LogAndToastWarning(LOCTEXT("Warning_InvalidClothTarget", "Failed to import clothing LOD, invalid target clothing object"));
+		return nullptr;
+	}
+
+	FSkeletalMeshResource* MeshResource = TargetMesh->GetImportedResource();
+	check(MeshResource);
+
+	const int32 NumMeshLods = MeshResource->LODModels.Num();
+
+	if(UClothingAssetBase* TargetClothing = Params.TargetAsset.Get())
+	{
+		// Find the clothing asset in the mesh to verify the params are correct
+		int32 MeshAssetIndex = INDEX_NONE;
+		if(TargetMesh->MeshClothingAssets.Find(TargetClothing, MeshAssetIndex))
+		{
+			// Everything looks good, continue to actual import
+			UClothingAsset* ConcreteTarget = CastChecked<UClothingAsset>(TargetClothing);
+
+			FClothLODData* RemapSource = nullptr;
+
+			if(Params.bRemapParameters)
 			{
-				FVector& UniqueVert = UniqueVerts[UniqueVertIndex];
-
-				if((UniqueVert - SourceVert.Position).SizeSquared() <= ThreshSq)
+				if(Params.TargetLod == ConcreteTarget->LodData.Num())
 				{
-					// Not unique
-					bUnique = false;
-					RemapIndex = UniqueVertIndex;
-
-					break;
+					// New LOD, remap from previous
+					RemapSource = &ConcreteTarget->LodData.Last();
+				}
+				else
+				{
+					// This is a replacement, remap from current LOD
+					check(ConcreteTarget->LodData.IsValidIndex(Params.TargetLod));
+					RemapSource = &ConcreteTarget->LodData[Params.TargetLod];
 				}
 			}
 
-			if(bUnique)
+			if(Params.TargetLod == ConcreteTarget->LodData.Num())
 			{
-				// Unique
-				UniqueVerts.Add(SourceVert.Position);
-				OriginalIndexes.Add(VertIndex);
-				IndexRemap[VertIndex] = UniqueVerts.Num() - 1;
+				ConcreteTarget->LodData.AddDefaulted();
 			}
-			else
+			else if(!ConcreteTarget->LodData.IsValidIndex(Params.TargetLod))
 			{
-				IndexRemap[VertIndex] = RemapIndex;
+				LogAndToastWarning(LOCTEXT("Warning_InvalidLodTarget", "Failed to import clothing LOD, invalid target LOD."));
+				return nullptr;
 			}
-		}
-	}
 
-	const int32 NumUniqueVerts = UniqueVerts.Num();
+			FClothLODData& NewLod = ConcreteTarget->LodData[Params.TargetLod];
 
-	FClothPhysicalMeshData& PhysMesh = LodData.PhysicalMeshData;
-	PhysMesh.Reset(NumUniqueVerts);
-	PhysMesh.Indices.AddZeroed(NumIndices);
-	for(int32 VertexIndex = 0; VertexIndex < NumUniqueVerts; ++VertexIndex)
-	{
-		const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[OriginalIndexes[VertexIndex]];
-
-		PhysMesh.Vertices[VertexIndex] = SourceVert.Position;
-		PhysMesh.Normals[VertexIndex] = SourceVert.TangentZ;
-		PhysMesh.MaxDistances[VertexIndex] = Params.bTryAutoFix ? Params.SimulatedParticleMaxDistance : 0.0f;
-
-		PhysMesh.BackstopRadiuses[VertexIndex] = 0.0f;
-		PhysMesh.BackstopDistances[VertexIndex] = 0.0f;
-
-		FClothVertBoneData& BoneData = PhysMesh.BoneData[VertexIndex];
-		for(int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
-		{
-			const uint16 SourceIndex = SourceSection.BoneMap[SourceVert.InfluenceBones[InfluenceIndex]];
-			
-			if(SourceIndex != INDEX_NONE)
+			if(Params.TargetLod > 0 && Params.bRemapParameters)
 			{
-				FName BoneName = TargetMesh->RefSkeleton.GetBoneName(SourceIndex);
-				BoneData.BoneIndices[InfluenceIndex] = NewAsset->UsedBoneNames.AddUnique(BoneName);
-				BoneData.BoneWeights[InfluenceIndex] = (float)SourceVert.InfluenceWeights[InfluenceIndex] / 255.0f;
+				RemapSource = &ConcreteTarget->LodData[Params.TargetLod - 1];
 			}
-		}
-	}
 
-	if(Params.bTryAutoFix && Params.AutoFixThreshold > 0.0f)
-	{
-		FBoxSphereBounds MeshBounds = TargetMesh->GetBounds();
-		FQueryTriOctree Octree(MeshBounds.Origin, MeshBounds.BoxExtent.GetAbsMax());
-
-		PopulateAutoFixOctree(Octree, LodModel, Params.SourceSection);
-
-		// Query each simulation vert against the octree
-		float SquaredQueryDist = Params.AutoFixThreshold * Params.AutoFixThreshold;
-		for(int32 VertexIndex = 0; VertexIndex < NumVerts; ++VertexIndex)
-		{
-			FVector Position = PhysMesh.Vertices[VertexIndex];
-
-			FQueryTriOctree::TConstElementBoxIterator<> OctreeIt(Octree, FBoxCenterAndExtent(Position, FVector(Params.AutoFixThreshold)));
-			for(; OctreeIt.HasPendingElements(); OctreeIt.Advance())
+			if(ImportToLodInternal(TargetMesh, Params.LodIndex, Params.SourceSection, ConcreteTarget, NewLod, RemapSource))
 			{
-				const FQueryTri& CurrentTri = OctreeIt.GetCurrentElement();
-				FVector ClosestTriPoint = FMath::ClosestPointOnTriangleToPoint(Position, CurrentTri.Vertices[0], CurrentTri.Vertices[1], CurrentTri.Vertices[2]);
-				float ActualDistSq = (ClosestTriPoint - Position).SizeSquared();
-
-				if(ActualDistSq <= SquaredQueryDist)
+				if(Params.bRemoveFromMesh)
 				{
-					PhysMesh.MaxDistances[VertexIndex] = 0.0f;
+					// User doesn't want the section anymore as a renderable, get rid of it
+					TargetMesh->RemoveMeshSection(Params.LodIndex, Params.SourceSection);
 				}
+
+				// Rebuild the final bone map
+				ConcreteTarget->RefreshBoneMapping(TargetMesh);
+
+				// Build Lod skinning map for smooth transitions
+				ConcreteTarget->BuildLodTransitionData();
+
+				// Invalidate cached data as the mesh has changed
+				ConcreteTarget->InvalidateCachedData();
+
+				return ConcreteTarget;
 			}
 		}
 	}
 
-	// Add a max distance parameter mask to begin with
-	LodData.ParameterMasks.AddDefaulted();
-	FClothParameterMask_PhysMesh& Mask = LodData.ParameterMasks.Last();
-	Mask.CopyFromPhysMesh(PhysMesh, MaskTarget_PhysMesh::MaxDistance);
-	Mask.bEnabled = true;
-
-	PhysMesh.MaxBoneWeights = SourceSection.MaxBoneInfluences;
-
-	FMultiSizeIndexContainerData IndexData;
-	LodModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
-	for(int32 IndexIndex = 0; IndexIndex < NumIndices; ++IndexIndex)
-	{
-		PhysMesh.Indices[IndexIndex] = IndexData.Indices[BaseIndex + IndexIndex] - BaseVertexIndex;
-		PhysMesh.Indices[IndexIndex] = IndexRemap[PhysMesh.Indices[IndexIndex]];
-	}
-
-	// Validate the generated triangles. If the source mesh has colinear triangles then clothing simulation will fail
-	const int32 NumTriangles = PhysMesh.Indices.Num() / 3;
-	for(int32 TriIndex = 0; TriIndex < NumTriangles; ++TriIndex)
-	{
-		FVector A = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 0]];
-		FVector B = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 1]];
-		FVector C = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 2]];
-
-		FVector TriNormal = (B - A) ^ (C - A);
-		if(TriNormal.SizeSquared() <= SMALL_NUMBER)
-		{
-			// This triangle is colinear
-			FText ErrorText = FText::Format(LOCTEXT("Colinear_Error", "Failed to generate clothing sim mesh due to degenerate triangle, found conincident vertices in triangle A={0} B={1} C={2}"), FText::FromString(A.ToString()), FText::FromString(B.ToString()), FText::FromString(C.ToString()));
-
-			FNotificationInfo Info(ErrorText);
-			Info.bFireAndForget = true;
-			Info.ExpireDuration = 5.0f;
-
-			FSlateNotificationManager::Get().AddNotification(Info);
-			UE_LOG(LogClothingAssetFactory, Warning, TEXT("%s"), *ErrorText.ToString());
-
-			return nullptr;
-		}
-	}
-
-	// Set asset guid
-	NewAsset->AssetGuid = FGuid::NewGuid();
-
-	if(Params.bRemoveFromMesh)
-	{
-		// User doesn't want the section anymore as a renderable, get rid of it
-		TargetMesh->RemoveMeshSection(Params.LodIndex, Params.SourceSection);
-	}
-
-	// Set physics asset, will be used when building actors for cloth collisions
-	NewAsset->PhysicsAsset = Params.PhysicsAsset.LoadSynchronous();
-
-	// Build the final bone map
-	NewAsset->RefreshBoneMapping(TargetMesh);
-
-	// Invalidate cached data as the mesh has changed
-	NewAsset->InvalidateCachedData();
-
-	return NewAsset;
+	return nullptr;
 }
 
 UClothingAssetBase* UClothingAssetFactory::CreateFromApexAsset(nvidia::apex::ClothingAsset* InApexAsset, USkeletalMesh* TargetMesh, FName InName)
@@ -1152,45 +1107,193 @@ void UClothingAssetFactory::ExtractMaterialParameters(UClothingAsset* NewAsset, 
 	}
 }
 
-void UClothingAssetFactory::PopulateAutoFixOctree(FQueryTriOctree& OutOctree, const FStaticLODModel& InLodModel, int32 InExcludeSectionIndex /*= INDEX_NONE*/)
+bool UClothingAssetFactory::ImportToLodInternal(USkeletalMesh* SourceMesh, int32 SourceLodIndex, int32 SourceSectionIndex, UClothingAsset* DestAsset, FClothLODData& DestLod, FClothLODData* InParameterRemapSource)
 {
-	TArray<FSoftSkinVertex> LodVerts;
-	InLodModel.GetVertices(LodVerts);
-
-	FMultiSizeIndexContainerData IndexData;
-	InLodModel.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
-
-	// Attempt to auto fix verts by looking for neighboring verts in other sections
-	for(int32 SectionIndex = 0; SectionIndex < InLodModel.Sections.Num(); ++SectionIndex)
+	if(!SourceMesh || !SourceMesh->GetImportedResource())
 	{
-		// don't look at our own verts
-		if(SectionIndex == InExcludeSectionIndex)
+		// Invalid mesh
+		return false;
+	}
+
+	FSkeletalMeshResource* SkeletalResource = SourceMesh->GetImportedResource();
+
+	if(!SkeletalResource->LODModels.IsValidIndex(SourceLodIndex))
+	{
+		// Invalid LOD
+		return false;
+	}
+
+	FStaticLODModel& SourceLod = SkeletalResource->LODModels[SourceLodIndex];
+
+	if(!SourceLod.Sections.IsValidIndex(SourceSectionIndex))
+	{
+		// Invalid Section
+		return false;
+	}
+
+	FSkelMeshSection& SourceSection = SourceLod.Sections[SourceSectionIndex];
+
+	const int32 NumVerts = SourceSection.SoftVertices.Num();
+	const int32 NumIndices = SourceSection.NumTriangles * 3;
+	const int32 BaseIndex = SourceSection.BaseIndex;
+	const int32 BaseVertexIndex = SourceSection.BaseVertexIndex;
+
+	// We need to weld the mesh verts to get rid of duplicates (happens for smoothing groups)
+	TArray<FVector> UniqueVerts;
+	TArray<uint32> OriginalIndexes;
+
+	TArray<uint32> IndexRemap;
+	IndexRemap.AddDefaulted(NumVerts);
+	{
+		float ThreshSq = SMALL_NUMBER * SMALL_NUMBER;
+
+		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 		{
-			continue;
-		}
+			const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[VertIndex];
 
-		const FSkelMeshSection& CurrSection = InLodModel.Sections[SectionIndex];
+			bool bUnique = true;
+			int32 RemapIndex = INDEX_NONE;
 
-		const int32 NumIndices = CurrSection.NumTriangles * 3;
-		for(int32 CurrIndex = 0; CurrIndex < NumIndices; CurrIndex += 3)
-		{
-			FQueryTri Tri;
+			const int32 NumUniqueVerts = UniqueVerts.Num();
+			for(int32 UniqueVertIndex = 0; UniqueVertIndex < NumUniqueVerts; ++UniqueVertIndex)
+			{
+				FVector& UniqueVert = UniqueVerts[UniqueVertIndex];
 
-			Tri.Id = CurrIndex / 3; // triangle index
-			Tri.SectionIndex = SectionIndex;
-			Tri.Vertices[0] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex]].Position;
-			Tri.Vertices[1] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex + 1]].Position;
-			Tri.Vertices[2] = LodVerts[IndexData.Indices[CurrSection.BaseIndex + CurrIndex + 2]].Position;
+				if((UniqueVert - SourceVert.Position).SizeSquared() <= ThreshSq)
+				{
+					// Not unique
+					bUnique = false;
+					RemapIndex = UniqueVertIndex;
 
-			FBox TriBox;
-			TriBox.Min = Tri.Vertices[0].ComponentMin(Tri.Vertices[1].ComponentMin(Tri.Vertices[2]));
-			TriBox.Max = Tri.Vertices[0].ComponentMax(Tri.Vertices[1].ComponentMax(Tri.Vertices[2]));
+					break;
+				}
+			}
 
-			Tri.Bounds = FBoxCenterAndExtent(TriBox);
-
-			OutOctree.AddElement(Tri);
+			if(bUnique)
+			{
+				// Unique
+				UniqueVerts.Add(SourceVert.Position);
+				OriginalIndexes.Add(VertIndex);
+				IndexRemap[VertIndex] = UniqueVerts.Num() - 1;
+			}
+			else
+			{
+				IndexRemap[VertIndex] = RemapIndex;
+			}
 		}
 	}
+
+	const int32 NumUniqueVerts = UniqueVerts.Num();
+
+	// If we're going to remap the parameters we need to cache the remap source
+	// data. We copy it here incase the destination and remap source
+	// lod models are aliased (as in a reimport)
+	TArray<FVector> CachedPositions;
+	TArray<FVector> CachedNormals;
+	TArray<uint32> CachedIndices;
+	int32 NumSourceMasks = 0;
+	TArray<FClothParameterMask_PhysMesh> SourceMaskCopy;
+	
+	bool bPerformParamterRemap = false;
+
+	if(InParameterRemapSource)
+	{
+		FClothPhysicalMeshData& RemapPhysMesh = InParameterRemapSource->PhysicalMeshData;
+		CachedPositions = RemapPhysMesh.Vertices;
+		CachedNormals = RemapPhysMesh.Normals;
+		CachedIndices = RemapPhysMesh.Indices;
+		SourceMaskCopy = InParameterRemapSource->ParameterMasks;
+		NumSourceMasks = SourceMaskCopy.Num();
+
+		bPerformParamterRemap = true;
+	}
+
+	FClothPhysicalMeshData& PhysMesh = DestLod.PhysicalMeshData;
+	PhysMesh.Reset(NumUniqueVerts);
+	PhysMesh.Indices.Reset(NumIndices);
+	PhysMesh.Indices.AddZeroed(NumIndices);
+
+	for(int32 VertexIndex = 0; VertexIndex < NumUniqueVerts; ++VertexIndex)
+	{
+		const FSoftSkinVertex& SourceVert = SourceSection.SoftVertices[OriginalIndexes[VertexIndex]];
+
+		PhysMesh.Vertices[VertexIndex] = SourceVert.Position;
+		PhysMesh.Normals[VertexIndex] = SourceVert.TangentZ;
+		PhysMesh.MaxDistances[VertexIndex] = 0.0f;
+
+		PhysMesh.BackstopRadiuses[VertexIndex] = 0.0f;
+		PhysMesh.BackstopDistances[VertexIndex] = 0.0f;
+
+		FClothVertBoneData& BoneData = PhysMesh.BoneData[VertexIndex];
+		for(int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+		{
+			const uint16 SourceIndex = SourceSection.BoneMap[SourceVert.InfluenceBones[InfluenceIndex]];
+
+			if(SourceIndex != INDEX_NONE)
+			{
+				FName BoneName = SourceMesh->RefSkeleton.GetBoneName(SourceIndex);
+				BoneData.BoneIndices[InfluenceIndex] = DestAsset->UsedBoneNames.AddUnique(BoneName);
+				BoneData.BoneWeights[InfluenceIndex] = (float)SourceVert.InfluenceWeights[InfluenceIndex] / 255.0f;
+			}
+		}
+	}
+
+	// Add a max distance parameter mask to begin with
+	DestLod.ParameterMasks.AddDefaulted();
+	FClothParameterMask_PhysMesh& Mask = DestLod.ParameterMasks.Last();
+	Mask.CopyFromPhysMesh(PhysMesh, MaskTarget_PhysMesh::MaxDistance);
+	Mask.bEnabled = true;
+
+	PhysMesh.MaxBoneWeights = SourceSection.MaxBoneInfluences;
+
+	FMultiSizeIndexContainerData IndexData;
+	SourceLod.MultiSizeIndexContainer.GetIndexBufferData(IndexData);
+	for(int32 IndexIndex = 0; IndexIndex < NumIndices; ++IndexIndex)
+	{
+		PhysMesh.Indices[IndexIndex] = IndexData.Indices[BaseIndex + IndexIndex] - BaseVertexIndex;
+		PhysMesh.Indices[IndexIndex] = IndexRemap[PhysMesh.Indices[IndexIndex]];
+	}
+
+	// Validate the generated triangles. If the source mesh has colinear triangles then clothing simulation will fail
+	const int32 NumTriangles = PhysMesh.Indices.Num() / 3;
+	for(int32 TriIndex = 0; TriIndex < NumTriangles; ++TriIndex)
+	{
+		FVector A = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 0]];
+		FVector B = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 1]];
+		FVector C = PhysMesh.Vertices[PhysMesh.Indices[TriIndex * 3 + 2]];
+
+		FVector TriNormal = (B - A) ^ (C - A);
+		if(TriNormal.SizeSquared() <= SMALL_NUMBER)
+		{
+			// This triangle is colinear
+			LogAndToastWarning(FText::Format(LOCTEXT("Colinear_Error", "Failed to generate clothing sim mesh due to degenerate triangle, found conincident vertices in triangle A={0} B={1} C={2}"), FText::FromString(A.ToString()), FText::FromString(B.ToString()), FText::FromString(C.ToString())));
+
+			return false;
+		}
+	}
+
+	if(bPerformParamterRemap)
+	{
+		ClothingMeshUtils::FVertexParameterMapper ParameterRemapper(PhysMesh.Vertices, PhysMesh.Normals, CachedPositions, CachedNormals, CachedIndices);
+
+		DestLod.ParameterMasks.Reset(NumSourceMasks);
+
+		for(int32 MaskIndex = 0; MaskIndex < NumSourceMasks; ++MaskIndex)
+		{
+			FClothParameterMask_PhysMesh& SourceMask = SourceMaskCopy[MaskIndex];
+
+			DestLod.ParameterMasks.AddDefaulted();
+			FClothParameterMask_PhysMesh& DestMask = DestLod.ParameterMasks.Last();
+
+			DestMask.Initialize(PhysMesh);
+			DestMask.CurrentTarget = SourceMask.CurrentTarget;
+			DestMask.bEnabled = SourceMask.bEnabled;
+
+			ParameterRemapper.Map(SourceMask.GetValueArray(), DestMask.Values);
+		}
+	}
+
+	return true;
 }
 
 void UClothingAssetFactory::ExtractLodPhysicalData(UClothingAsset* NewAsset, ClothingAsset &InApexAsset, int32 InLodIdx, FClothLODData &InLodData, TArray<FApexVertData>& OutApexVertData)

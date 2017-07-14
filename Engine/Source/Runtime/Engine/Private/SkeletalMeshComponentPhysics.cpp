@@ -293,7 +293,7 @@ void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bA
 	}
 }
 
-void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
+void USkeletalMeshComponent::SetAllPhysicsAngularVelocityInRadians(FVector const& NewAngVel, bool bAddToCurrent)
 {
 	if(RootBodyData.BodyIndex != INDEX_NONE && RootBodyData.BodyIndex < Bodies.Num())
 	{
@@ -310,7 +310,7 @@ void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngV
 			FBodyInstance* const BI = Bodies[i];
 			check(BI);
 
-			BI->SetAngularVelocity(NewAngVel, bAddToCurrent);
+			BI->SetAngularVelocityInRadians(NewAngVel, bAddToCurrent);
 		}
 	}
 }

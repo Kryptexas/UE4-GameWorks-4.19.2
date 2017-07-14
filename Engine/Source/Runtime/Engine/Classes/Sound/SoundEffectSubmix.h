@@ -37,7 +37,7 @@ struct FSoundEffectSubmixInputData
 	int32 NumChannels;
 
 	/** The raw input audio buffer. Size is NumFrames * NumChannels */
-	TArray<float>* AudioBuffer;
+	Audio::AlignedFloatBuffer* AudioBuffer;
 
 	/** Sample accurate audio clock. */
 	double AudioClock;
@@ -46,7 +46,7 @@ struct FSoundEffectSubmixInputData
 struct FSoundEffectSubmixOutputData
 {
 	/** The output audio buffer. */
-	TArray<float>* AudioBuffer;
+	Audio::AlignedFloatBuffer* AudioBuffer;
 
 	/** The number of channels in the output buffer. */
 	int32 NumChannels;

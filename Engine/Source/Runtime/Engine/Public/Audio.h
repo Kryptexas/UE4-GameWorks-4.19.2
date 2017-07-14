@@ -27,7 +27,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 
 // Special log category used for temporary programmer debugging code of audio
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
-
+ 
 /** 
  * Maximum number of channels that can be set using the ini setting
  */

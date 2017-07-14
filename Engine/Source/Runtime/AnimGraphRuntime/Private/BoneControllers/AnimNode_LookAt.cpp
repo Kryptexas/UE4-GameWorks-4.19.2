@@ -59,8 +59,8 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 	FTransform ComponentBoneTransform = Output.Pose.GetComponentSpaceTransform(ModifyBoneIndex);
 
 	// get target location
-	FTransform TargetTransform;
-	FVector TargetLocationInComponentSpace = LookAtTarget.GetTargetLocation(LookAtLocation, BoneContainer, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform(), TargetTransform);
+	FTransform TargetTransform = LookAtTarget.GetTargetTransform(LookAtLocation, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform());
+	FVector TargetLocationInComponentSpace = TargetTransform.GetLocation();
 	
 	FVector OldCurrentTargetLocation = CurrentTargetLocation;
 	FVector NewCurrentTargetLocation = TargetLocationInComponentSpace;
@@ -99,7 +99,7 @@ void FAnimNode_LookAt::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCont
 
 #if !UE_BUILD_SHIPPING
 	CachedOriginalTransform = ComponentBoneTransform;
-	CachedTargetTransform = TargetTransform;
+	CachedTargetCoordinate = LookAtTarget.GetTargetTransform(FVector::ZeroVector, Output.Pose, Output.AnimInstanceProxy->GetComponentTransform());
 	CachedPreviousTargetLocation = PreviousTargetLocation;
 	CachedCurrentLookAtLocation = CurrentLookAtLocation;
 #endif
@@ -177,7 +177,7 @@ void FAnimNode_LookAt::ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkele
 		FTransform LocalToWorld = MeshComp->GetComponentTransform();
 		FTransform ComponentTransform = CachedOriginalTransform * LocalToWorld;
 		FTransform LookAtTransform = CachedLookAtTransform * LocalToWorld;
-		FTransform TargetTrasnform = CachedTargetTransform * LocalToWorld;
+		FTransform TargetTrasnform = CachedTargetCoordinate * LocalToWorld;
 		FVector BoneLocation = LookAtTransform.GetLocation();
 
 		// we're using interpolation, so print previous location

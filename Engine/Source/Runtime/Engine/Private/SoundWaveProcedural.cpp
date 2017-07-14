@@ -44,6 +44,7 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 	{
 		bReset = false;
 		AudioBuffer.Reset();
+		AvailableByteCount.Reset();
 	}
 
 	int32 SamplesAvailable = AudioBuffer.Num() / sizeof(int16);

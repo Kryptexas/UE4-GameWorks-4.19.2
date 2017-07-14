@@ -82,7 +82,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("HRTF"), STAT_AudioMixerHRTF, STATGROUP_AudioMixe
 namespace Audio
 {
 
-	/** Structure to hold platform device information **/
+   	/** Structure to hold platform device information **/
 	struct FAudioPlatformDeviceInfo
 	{
 		/** The name of the audio device */
@@ -129,7 +129,7 @@ namespace Audio
 	{
 	public:
 		/** Callback to generate a new audio stream buffer. */
-		virtual bool OnProcessAudioStream(TArray<float>& OutputBuffer) = 0;
+		virtual bool OnProcessAudioStream(AlignedFloatBuffer& OutputBuffer) = 0;
 
 		/** Function to implement when an audio hardware device is added to the system. */
 		virtual void OnAudioDeviceAdded(const FString& DeviceId) {}
@@ -269,10 +269,13 @@ namespace Audio
 		void MixNextBuffer();
 
 		/** Returns the float buffer. */
-		TArray<float>& GetBuffer() { return Buffer; }
+		AlignedFloatBuffer& GetBuffer() { return Buffer; }
 
 		/** Submits the buffer to the audio mixer. */
 		const uint8* GetBufferData();
+
+		/** Returns size of the buffer in bytes. */
+		uint32 GetBufferSize() const { return FormattedBuffer.Num(); }
 
 		/** Returns if ready. */
 		bool IsReady() const { return bIsReady; }
@@ -283,12 +286,11 @@ namespace Audio
 		/** Resets the internal buffers to the new sample count. Used when device is changed. */
 		void Reset(const int32 InNewNumSamples);
 
+
 	private:
 		IAudioMixer* AudioMixer;
-		// TODO: Audio SIMD
-		//typedef TArray<float, TAlignedHeapAllocator<16>> AlignedFloatBuffer;
-		TArray<float> Buffer;
-		TArray<uint8> FormattedBuffer;
+		AlignedFloatBuffer Buffer;
+		AlignedByteBuffer FormattedBuffer;
  		EAudioMixerStreamDataFormat::Type DataFormat;
  		FThreadSafeBool bIsReady;
  	};
@@ -346,7 +348,7 @@ namespace Audio
 		virtual FAudioPlatformSettings GetPlatformSettings() const = 0;
 
 		/** Returns the default device index. */
-		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const = 0;
+		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const { OutDefaultDeviceIndex = 0; return true; }
 
 		/** Opens up a new audio stream with the given parameters. */
 		virtual bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) = 0;
@@ -409,6 +411,9 @@ namespace Audio
 
 		/** Retrieves the next generated buffer and feeds it to the platform mixer output stream. */
 		void ReadNextBuffer();
+
+		/** Reset the fade state (use if reusing audio platform interface, e.g. in main audio device. */
+		void FadeIn();
 
 		/** Start a fadeout. Prevents pops during shutdown. */
 		void FadeOut();

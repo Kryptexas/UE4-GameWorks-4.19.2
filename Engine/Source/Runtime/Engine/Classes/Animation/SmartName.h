@@ -106,10 +106,10 @@ struct ENGINE_API FSmartNameMapping
 	// @return bool - true if the name was found and removed, false if the name wasn't present in the mapping
 	bool Remove(const SmartName::UID_Type& Uid);
 
-	// Return SmartName::UID_Type * if it finds it
-	//  @param NewName - New name to set 
-	// @return SmartName::UID_Type pointer - null if it doesn't find. pointer if it finds. 
-	const SmartName::UID_Type* FindUID(const FName& Name) const;
+	// Return SmartName::UID_Type if it finds it
+	// @param Name - Name of curve to find UID for
+	// @return SmartName::UID_Type - MaxUID if it doesn't find, actual UID if it finds. 
+	SmartName::UID_Type FindUID(const FName& Name) const;
 
 	// Check whether a name already exists in the mapping
 	// @param Uid - the SmartName::UID_Type to check

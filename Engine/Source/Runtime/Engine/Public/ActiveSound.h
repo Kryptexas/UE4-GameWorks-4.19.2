@@ -544,4 +544,6 @@ private:
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
 
+	/** Internal Focus Factor value used to allow smooth interpolation in/out of Focus */
+	float InternalFocusFactor;
 };

@@ -169,6 +169,7 @@ bool pcmContactSphereConvex(GU_CONTACT_METHOD_ARGS)
 		const bool idtScale = shapeConvex.scale.isIdentity();
 		//use the original shape
 		ConvexHullV convexHull(hullData, zeroV, vScale, vQuat, idtScale);
+		convexHull.setMargin(0.f);
 		//transform capsule into the local space of convexHull
 		CapsuleV capsule(aToB.p, sphereRadius);
 

@@ -107,6 +107,7 @@ private:
 	void FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* HitProxy, const FViewportClick& Click);
 	void FillApplyClothingAssetMenu(FMenuBuilder& MenuBuilder, int32 InLodIndex, int32 InSectionIndex);
 	void FillCreateClothingMenu(FMenuBuilder& MenuBuilder, int32 InLodIndex, int32 InSectionIndex);
+	void FillCreateClothingLodMenu(FMenuBuilder& MenuBuilder, int32 InLodIndex, int32 InSectionIndex);
 	void OnRemoveClothingAssetMenuItemClicked(int32 InLodIndex, int32 InSectionIndex);
 	void OnCreateClothingAssetMenuItemClicked(FSkeletalMeshClothBuildParams& Params);
 	void OnApplyClothingAssetClicked(UClothingAssetBase* InAssetToApply, int32 InMeshLodIndex, int32 InMeshSectionIndex, int32 InClothLodIndex);
@@ -114,6 +115,7 @@ private:
 	bool CanApplyClothing(int32 InLodIndex, int32 InSectionIndex);
 	bool CanRemoveClothing(int32 InLodIndex, int32 InSectionIndex);
 	bool CanCreateClothing(int32 InLodIndex, int32 InSectionIndex);
+	bool CanCreateClothingLod(int32 InLodIndex, int32 InSectionIndex);
 
 	void ApplyClothing(UClothingAssetBase* InAsset, int32 InLodIndex, int32 InSectionIndex, int32 InClothingLod);
 	void RemoveClothing(int32 InLodIndex, int32 InSectionIndex);

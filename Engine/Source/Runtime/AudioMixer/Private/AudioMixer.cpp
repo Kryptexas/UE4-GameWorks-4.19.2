@@ -198,6 +198,13 @@ namespace Audio
 		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Closed);
 	}
 
+	void IAudioMixerPlatformInterface::FadeIn()
+	{
+		bFadingIn = true;
+		bFadingOut = false;
+		bFadedOut = false;
+	}
+
 	void IAudioMixerPlatformInterface::FadeOut()
 	{
 		if (FadeEnvelopeValue == 0.0f)
@@ -224,7 +231,7 @@ namespace Audio
 			}
 			else
 			{
-				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
+				AlignedFloatBuffer& Buffer = CurrentReadBuffer.GetBuffer();
 				const float Slope = 1.0f / Buffer.Num();
 				for (int32 i = 0; i < Buffer.Num(); ++i)
 				{
@@ -244,7 +251,7 @@ namespace Audio
 			}
 			else
 			{
-				TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
+				AlignedFloatBuffer& Buffer = CurrentReadBuffer.GetBuffer();
 				const float Slope = 1.0f / Buffer.Num();
 				for (int32 i = 0; i < Buffer.Num(); ++i)
 				{
@@ -260,7 +267,7 @@ namespace Audio
 		if (bFadedOut)
 		{
 			// If we're faded out, then just zero the data.
-			TArray<float>& Buffer = CurrentReadBuffer.GetBuffer();
+			AlignedFloatBuffer& Buffer = CurrentReadBuffer.GetBuffer();
 			FPlatformMemory::Memzero(Buffer.GetData(), sizeof(float)*Buffer.Num());
 		}
 	}

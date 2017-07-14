@@ -695,7 +695,7 @@ namespace physx
 				{
 					multiManifold.initialize();
 				}
-				cache.setManifold(&multiManifold);
+				cache.setMultiManifold(&multiManifold);
 
 				//Do collision detection, then write manifold out...
 				g_PCMContactMethodTable[type0][type1](geomUnion0, geomUnion1, transform0, transform1, params, cache, contactBuffer, NULL);

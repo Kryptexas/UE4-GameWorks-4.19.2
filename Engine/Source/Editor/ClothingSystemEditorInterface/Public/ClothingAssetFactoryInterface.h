@@ -39,6 +39,15 @@ public:
 	virtual UClothingAssetBase* CreateFromSkeletalMesh(USkeletalMesh* TargetMesh, FSkeletalMeshClothBuildParams& Params)
 	PURE_VIRTUAL(UClothingAssetFactoryBase::CreateFromSkeletalMesh, return nullptr;);
 
+	/** 
+	 * Given a target mesh and valid parameters, import a simulation mesh as a LOD for the clothing
+	 * specified by the build parameters, returning the modified clothing object
+	 * @param TargetMesh The owner mesh
+	 * @param Params Build parameters for the operation (target clothing object, source data)
+	 */
+	virtual UClothingAssetBase* ImportLodToClothing(USkeletalMesh* TargetMesh, FSkeletalMeshClothBuildParams& Params)
+	PURE_VIRTUAL(UClothingAssetFactoryBase::ImportLodToClothing, return nullptr;);
+
 	/**
 	 * Should return whether or not the factory can handle the incoming file (check validity etc.)
 	 */

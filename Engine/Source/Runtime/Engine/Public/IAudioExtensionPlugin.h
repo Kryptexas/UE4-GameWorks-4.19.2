@@ -249,6 +249,11 @@ public:
 	virtual void OnListenerShutdown(FAudioDevice* AudioDevice) = 0;
 };
 
+typedef TSharedPtr<IAudioSpatialization, ESPMode::ThreadSafe> TAudioSpatializationPtr;
+typedef TSharedPtr<IAudioOcclusion, ESPMode::ThreadSafe> TAudioOcclusionPtr;
+typedef TSharedPtr<IAudioReverb, ESPMode::ThreadSafe> TAudioReverbPtr;
+typedef TSharedPtr<IAudioListenerObserver, ESPMode::ThreadSafe> TAudioListenerObserverPtr;
+
 /**
 * The public interface of an audio plugin. Plugins that extend core features of the audio engine.
 */
@@ -328,22 +333,22 @@ public:
 		return true;
 	}
 
-	virtual TSharedPtr<IAudioSpatialization> CreateSpatializationInterface(class FAudioDevice* AudioDevice)
+	virtual TAudioSpatializationPtr CreateSpatializationInterface(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;
 	}
 
-	virtual TSharedPtr<IAudioOcclusion> CreateOcclusionInterface(class FAudioDevice* AudioDevice)
+	virtual TAudioOcclusionPtr CreateOcclusionInterface(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;
 	}
 
-	virtual TSharedPtr<IAudioReverb> CreateReverbInterface(class FAudioDevice* AudioDevice)
+	virtual TAudioReverbPtr CreateReverbInterface(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;
 	}
 
-	virtual TSharedPtr<IAudioListenerObserver> CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
+	virtual TAudioListenerObserverPtr CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;
 	}

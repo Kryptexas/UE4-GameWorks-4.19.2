@@ -394,16 +394,16 @@ public:
 		}
 	}
 
-	TSharedPtr<IAudioSpatialization> CreateSpatializationInterface(class FAudioDevice* AudioDevice) override
+	TAudioSpatializationPtr CreateSpatializationInterface(class FAudioDevice* AudioDevice) override
 	{
 		// If we are using the audio mixer, use a new implementation
 		if (AudioDevice->IsAudioMixerEnabled())
 		{
-			return TSharedPtr<IAudioSpatialization>(new FHrtfSpatializationAlgorithmAudioMixer(AudioDevice));
+			return TAudioSpatializationPtr(new FHrtfSpatializationAlgorithmAudioMixer(AudioDevice));
 		}
 
 		// Otherwise, use the xaudio2 implementation
-		return TSharedPtr<IAudioSpatialization>(new FHrtfSpatializationAlgorithmXAudio2(AudioDevice));
+		return TAudioSpatializationPtr(new FHrtfSpatializationAlgorithmXAudio2(AudioDevice));
 	}
 
 private:

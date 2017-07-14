@@ -66,6 +66,15 @@ void SClothPaintTab::Construct(const FArguments& InArgs)
 
 	DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
 	DetailsView->OnFinishedChangingProperties().AddSP(this, &SClothPaintTab::OnFinishedChangingClothConfigProperties);
+	
+	// Add delegate for editing enabled, which allows us to show a greyed out version with the CDO
+	// selected when we haven't got an asset selected to avoid the UI popping.
+	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SClothPaintTab::IsAssetDetailsPanelEnabled));
+
+	// Add the CDO by default
+	TArray<UObject*> Objects;
+	Objects.Add(UClothingAsset::StaticClass()->GetDefaultObject());
+	DetailsView->SetObjects(Objects, true);
 
 	HostingApp = InArgs._InHostingApp;
 
@@ -242,6 +251,22 @@ void SClothPaintTab::OnFinishedChangingClothConfigProperties(const FPropertyChan
 		// Reregister our preview component to apply the change
 		FComponentReregisterContext Context(PreviewComponent);
 	}
+}
+
+bool SClothPaintTab::IsAssetDetailsPanelEnabled()
+{
+	// Only enable editing if we have a valid details panel that is not observing the CDO
+	if(DetailsView.IsValid())
+	{
+		const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailsView->GetSelectedObjects();
+
+		if(SelectedObjects.Num() > 0)
+		{
+			return SelectedObjects[0].Get() != UClothingAsset::StaticClass()->GetDefaultObject();
+		}
+	}
+
+	return false;
 }
 
 TSharedRef<IPersonaToolkit> SClothPaintTab::GetPersonaToolkit() const

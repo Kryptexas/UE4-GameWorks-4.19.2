@@ -9,6 +9,12 @@
 // Data produced by a clothing simulation
 struct FClothSimulData
 {
+	void Reset()
+	{
+		Positions.Reset();
+		Normals.Reset();
+	}
+
 	// Positions of the simulation mesh particles
 	TArray<FVector4> Positions;
 

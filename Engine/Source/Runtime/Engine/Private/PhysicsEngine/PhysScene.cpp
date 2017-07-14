@@ -171,7 +171,54 @@ struct FBatchPhysXTasks
 
 static FAutoConsoleVariableSink CVarBatchPhysXTasks(FConsoleCommandDelegate::CreateStatic(&FBatchPhysXTasks::SetPhysXTasksSinkFunc));
 
+namespace DynamicStatsHelper
+{
+	struct FStatLookup
+	{
+		const char* StatName;
+		TStatId Stat;
+	} Stats[100];
 
+	int NumStats = 0;
+	FCriticalSection CS;
+
+	TStatId FindOrCreateStatId(const char* StatName)
+	{
+#if STATS
+		for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
+		{
+			FStatLookup& Lookup = Stats[StatIdx];
+			if (Lookup.StatName == StatName)
+			{
+				return Lookup.Stat;
+			}
+		}
+
+		if (ensureMsgf(NumStats < sizeof(Stats) / sizeof(Stats[0]), TEXT("Too many different physx task stats. This will make the stat search slow")))
+		{
+			FScopeLock ScopeLock(&CS);
+
+			//Do the search again in case another thread added
+			for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
+			{
+				FStatLookup& Lookup = Stats[StatIdx];
+				if (Lookup.StatName == StatName)
+				{
+					return Lookup.Stat;
+				}
+			}
+
+			FStatLookup& NewStat = Stats[NumStats];
+			NewStat.StatName = StatName;
+			NewStat.Stat = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_PhysXTasks>(FName(StatName));
+			FPlatformMisc::MemoryBarrier();
+			++NumStats;	//make sure to do this at the end in case another thread is currently iterating
+			return NewStat.Stat;
+		}
+#endif // STATS
+		return TStatId();
+	}
+}
 
 template <bool IsCloth>
 struct FPhysXCPUDispatcher;
@@ -216,56 +263,6 @@ public:
 
 	FPhysXRingBuffer RingBuffer;
 	FPhysXCPUDispatcher<IsCloth>& Dispatcher;
-private:
-
-	struct FStatLookup
-	{
-		const char* StatName;
-		TStatId Stat;
-	};
-	static FStatLookup Stats[100];
-
-	static int NumStats;
-	static FCriticalSection CS;
-
-	FORCEINLINE TStatId FindOrCreateStatId(const char* StatName)
-	{
-#if STATS
-		for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
-		{
-			FStatLookup& Lookup = Stats[StatIdx];
-			if (Lookup.StatName == StatName)
-			{
-				return Lookup.Stat;
-			}
-		}
-
-#if STATS
-		if (ensureMsgf(NumStats < sizeof(Stats) / sizeof(Stats[0]), TEXT("Too many different physx task stats. This will make the stat search slow")))
-		{
-			FScopeLock ScopeLock(&CS);
-
-			//Do the search again in case another thread added
-			for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
-			{
-				FStatLookup& Lookup = Stats[StatIdx];
-				if (Lookup.StatName == StatName)
-				{
-					return Lookup.Stat;
-				}
-			}
-
-			FStatLookup& NewStat = Stats[NumStats];
-			NewStat.StatName = StatName;
-			NewStat.Stat = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_PhysXTasks>(FName(StatName));
-			FPlatformMisc::MemoryBarrier();
-			++NumStats;	//make sure to do this at the end in case another thread is currently iterating
-			return NewStat.Stat;
-		}
-#endif
-#endif // STATS
-		return TStatId();
-	}
 };
 
 /** Used to dispatch physx tasks to task graph */
@@ -363,7 +360,7 @@ void FPhysXTask<IsCloth>::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 
 #if STATS
 		const char* StatName = Task->getName();
-		FScopeCycleCounter CycleCounter(FindOrCreateStatId(StatName));
+		FScopeCycleCounter CycleCounter(DynamicStatsHelper::FindOrCreateStatId(StatName));
 #endif
 		Task->run();
 		Task->release();
@@ -373,13 +370,6 @@ void FPhysXTask<IsCloth>::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 
 	}
 }
-
-template<> int FPhysXTask<true>::NumStats = 0;
-template<> int FPhysXTask<false>::NumStats = 0;
-template<> FCriticalSection FPhysXTask<true>::CS = {};
-template<> FCriticalSection FPhysXTask<false>::CS = {};
-template<> FPhysXTask<true>::FStatLookup FPhysXTask<true>::Stats[100] = {};
-template<> FPhysXTask<false>::FStatLookup FPhysXTask<false>::Stats[100] = {};
 
 
 DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
@@ -406,13 +396,27 @@ class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
 		{
 			return;
 		}
-		Task.run();
-		Task.release();
+
+		{
+#if STATS
+			const char* StatName = Task.getName();
+			FScopeCycleCounter CycleCounter(DynamicStatsHelper::FindOrCreateStatId(StatName));
+#endif
+			Task.run();
+			Task.release();
+		}
+		
 		while (TaskStack.Num() > 1)
 		{
 			PxBaseTask& ChildTask = *TaskStack.Pop();
-			ChildTask.run();
-			ChildTask.release();
+			{
+#if STATS
+				const char* StatName = ChildTask.getName();
+				FScopeCycleCounter CycleCounter(DynamicStatsHelper::FindOrCreateStatId(StatName));
+#endif
+				ChildTask.run();
+				ChildTask.release();
+			}
 		}
 		verify(&Task == TaskStack.Pop() && !TaskStack.Num());
 	}

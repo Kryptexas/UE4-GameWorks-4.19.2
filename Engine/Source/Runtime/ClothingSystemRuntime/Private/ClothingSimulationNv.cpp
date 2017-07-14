@@ -25,6 +25,7 @@
 #endif
 
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "SkeletalRenderPublic.h"
 
 DECLARE_CYCLE_STAT(TEXT("Compute Clothing Normals"), STAT_NvClothComputeNormals, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Internal Solve"), STAT_NvClothInternalSolve, STATGROUP_Physics);
@@ -452,6 +453,10 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 			continue;
 		}
 
+		// Set up scratch arrays
+		FClothingActorScratchData& Scratch = Actor.Scratch;
+		Scratch.Reset();
+
 		// Conditional rebuild. if bCollisionsDirty is set, will rebuild the aggregated collisions
 		Actor.ConditionalRebuildCollisions();
 
@@ -502,8 +507,6 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 			// Set collision spheres for this frame
 			FClothCollisionData& CollisionData = Actor.AggregatedCollisions;
 
-			TArray<physx::PxVec4> SphereData;
-			SphereData.Reserve(CollisionData.Spheres.Num());
 			for(FClothCollisionPrim_Sphere& Sphere : CollisionData.Spheres)
 			{
 				FVector SphereLocation = Sphere.LocalPosition;
@@ -520,40 +523,36 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 					}
 				}
 
-				SphereData.Add(physx::PxVec4(U2PVector(SphereLocation), Sphere.Radius + Actor.CollisionThickness));
+				Scratch.SphereData.Add(physx::PxVec4(U2PVector(SphereLocation), Sphere.Radius + Actor.CollisionThickness));
 			}
 
-			CurrentCloth->setSpheres(NvClothSupport::CreateRange(SphereData), 0, CurrentCloth->getNumSpheres());
+			CurrentCloth->setSpheres(NvClothSupport::CreateRange(Scratch.SphereData), 0, CurrentCloth->getNumSpheres());
 
 			const int32 NumCapsules = CollisionData.SphereConnections.Num();
-			TArray<uint32> CapsuleSphereIndices;
-			CapsuleSphereIndices.Reserve(NumCapsules * 2);
 
 			for(FClothCollisionPrim_SphereConnection& Capsule : CollisionData.SphereConnections)
 			{
-				CapsuleSphereIndices.Add(Capsule.SphereIndices[0]);
-				CapsuleSphereIndices.Add(Capsule.SphereIndices[1]);
+				Scratch.CapsuleSphereIndices.Add(Capsule.SphereIndices[0]);
+				Scratch.CapsuleSphereIndices.Add(Capsule.SphereIndices[1]);
 			}
 
-			CurrentCloth->setCapsules(NvClothSupport::CreateRange(CapsuleSphereIndices), 0, CurrentCloth->getNumCapsules());
+			CurrentCloth->setCapsules(NvClothSupport::CreateRange(Scratch.CapsuleSphereIndices), 0, CurrentCloth->getNumCapsules());
 
-			TArray<physx::PxVec4> CollisionPlanes;
-			TArray<uint32> ConvexMasks;
 			for(FClothCollisionPrim_Convex& Convex : CollisionData.Convexes)
 			{
-				if(CollisionPlanes.Num() >= 32)
+				if(Scratch.PlaneData.Num() >= 32)
 				{
 					// Skip, there's too many planes to collide against
 					continue;
 				}
 
-				ConvexMasks.AddZeroed();
-				uint32& ConvexMask = ConvexMasks.Last();
+				Scratch.ConvexMasks.AddZeroed();
+				uint32& ConvexMask = Scratch.ConvexMasks.Last();
 
 				for(FPlane& ConvexPlane : Convex.Planes)
 				{
-					CollisionPlanes.AddDefaulted();
-					physx::PxVec4& NewPlane = CollisionPlanes.Last();
+					Scratch.PlaneData.AddDefaulted();
+					physx::PxVec4& NewPlane = Scratch.PlaneData.Last();
 
 					FPlane TempPlane = ConvexPlane.TransformBy(RootBoneTransform.ToMatrixWithScale().Inverse());
 
@@ -562,17 +561,17 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 					NewPlane.z = TempPlane.Z;
 					NewPlane.w = -TempPlane.W;
 
-					ConvexMask |= (1 << (CollisionPlanes.Num() - 1));
+					ConvexMask |= (1 << (Scratch.PlaneData.Num() - 1));
 
-					if(CollisionPlanes.Num() >= 32)
+					if(Scratch.PlaneData.Num() >= 32)
 					{
 						break;
 					}
 				}
 			}
 
-			CurrentCloth->setPlanes(NvClothSupport::CreateRange(CollisionPlanes), 0, CurrentCloth->getNumPlanes());
-			CurrentCloth->setConvexes(NvClothSupport::CreateRange(ConvexMasks), 0, CurrentCloth->getNumConvexes());
+			CurrentCloth->setPlanes(NvClothSupport::CreateRange(Scratch.PlaneData), 0, CurrentCloth->getNumPlanes());
+			CurrentCloth->setConvexes(NvClothSupport::CreateRange(Scratch.ConvexMasks), 0, CurrentCloth->getNumConvexes());
 		}
 
 		Actor.UpdateWind(NvContext, RootBoneWorldTransform.InverseTransformVector(NvContext->WindVelocity));
@@ -708,7 +707,7 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 			continue;
 		}
 
-		FClothSimulData& ClothData = OutData.Add(Actor.SimDataIndex);
+		FClothSimulData& ClothData = OutData.FindOrAdd(Actor.SimDataIndex);
 		const int32 CurrentClothingLod = Actor.CurrentLodIndex;
 
 		{
@@ -720,6 +719,8 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 
 			const uint32 NumParticles = Actor.LodData[CurrentClothingLod].Cloth->getNumParticles();
 			
+			ClothData.Reset();
+
 			nv::cloth::MappedRange<physx::PxVec4> Particles = Actor.LodData[CurrentClothingLod].Cloth->getCurrentParticles();
 			for(uint32 ParticleIdx = 0; ParticleIdx < NumParticles; ++ParticleIdx)
 			{
@@ -1349,7 +1350,7 @@ void FClothingActorNv::UpdateWind(FClothingSimulationContextNv* InContext, const
 
 		case EClothingWindMethod::Legacy:
 		{
-			TArray<FVector> ParticleVelocities;
+			TArray<FVector>& ParticleVelocities = Scratch.ParticleVelocities;
 			CalculateParticleVelocities(ParticleVelocities);
 
 			const TArray<float>& MaxDistances = AssetCreatedFrom->LodData[CurrentLodIndex].PhysicalMeshData.MaxDistances;
@@ -1419,8 +1420,11 @@ void FClothingActorNv::CalculateParticleVelocities(TArray<FVector>& OutVelocitie
 	nv::cloth::Range<physx::PxVec4> PreviousPositions = LodData[CurrentLodIndex].Cloth->getPreviousParticles();
 	nv::cloth::Range<physx::PxVec4> CurrentPositions = LodData[CurrentLodIndex].Cloth->getCurrentParticles();
 
-	OutVelocities.Reset();
-	OutVelocities.AddDefaulted(NumParticles);
+	if(OutVelocities.Num() != NumParticles)
+	{
+		OutVelocities.Reset();
+		OutVelocities.AddDefaulted(NumParticles);
+	}
 
 	for(int32 ParticleIndex = 0; ParticleIndex < NumParticles; ++ParticleIndex)
 	{
@@ -1429,6 +1433,15 @@ void FClothingActorNv::CalculateParticleVelocities(TArray<FVector>& OutVelocitie
 
 		OutVelocities[ParticleIndex] = (NewPosition - OldPosition) * InverseTimestep;
 	}
+}
+
+void FClothingActorScratchData::Reset()
+{
+	SphereData.Reset();
+	CapsuleSphereIndices.Reset();
+	PlaneData.Reset();
+	ConvexMasks.Reset();
+	ParticleVelocities.Reset();
 }
 
 #endif

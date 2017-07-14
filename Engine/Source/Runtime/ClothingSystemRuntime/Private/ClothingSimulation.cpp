@@ -26,8 +26,8 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 
 	const uint32 NumVerts = InMesh.Vertices.Num();
 
-	OutPositions.Empty(NumVerts);
-	OutNormals.Empty(NumVerts);
+	OutPositions.Reset(NumVerts);
+	OutNormals.Reset(NumVerts);
 	OutPositions.AddZeroed(NumVerts);
 	OutNormals.AddZeroed(NumVerts);
 
@@ -41,19 +41,6 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 		const uint16* RESTRICT BoneIndices = InMesh.BoneData[VertIndex].BoneIndices;
 		const float* RESTRICT BoneWeights = InMesh.BoneData[VertIndex].BoneWeights;
 
-		int32 ActualNumInfluences = 0;
-
-		// MaxInflunces is the max of any particle, need to calculate the number for us
-		// #TODOCLOTH: Move this to precalc?
-		for(int32 InfluenceIndex = 0; InfluenceIndex < MaxInfluences; ++InfluenceIndex)
-		{
-			if(BoneWeights[InfluenceIndex] == 0.0f || BoneIndices[InfluenceIndex] == INDEX_NONE)
-			{
-				break;
-			}
-			++ActualNumInfluences;
-		}
-
 		// WARNING - HORRIBLE UNROLLED LOOP + JUMP TABLE BELOW
 		// done this way because this is a pretty tight and perf critical loop. essentially
 		// rather than checking each influence we can just jump into this switch and fall through
@@ -62,7 +49,7 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 		const FVector& RefNormal = InMesh.Normals[VertIndex];
 		FVector& OutPosition = OutPositions[VertIndex];
 		FVector& OutNormal = OutNormals[VertIndex];
-		switch(ActualNumInfluences)
+		switch(InMesh.BoneData[VertIndex].NumInfluences)
 		{
 			default: break;
 			case 8:
@@ -149,7 +136,7 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, f
 	{
 		const int32 NumBones = InComponent->MasterBoneMap.Num();
 
-		BaseContext->BoneTransforms.Empty(NumBones);
+		BaseContext->BoneTransforms.Reset(NumBones);
 		BaseContext->BoneTransforms.AddDefaulted(NumBones);
 
 		for(int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)

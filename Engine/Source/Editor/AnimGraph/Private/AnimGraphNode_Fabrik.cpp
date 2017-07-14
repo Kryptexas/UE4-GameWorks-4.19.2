@@ -3,6 +3,7 @@
 #include "AnimGraphNode_Fabrik.h"
 #include "Animation/AnimInstance.h"
 #include "AnimNodeEditModes.h"
+#include "AnimationCustomVersion.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Fabrik 
@@ -46,6 +47,23 @@ void UAnimGraphNode_Fabrik::CopyNodeDataToPreviewNode(FAnimNode_Base* InPreviewN
 FEditorModeID UAnimGraphNode_Fabrik::GetEditorMode() const
 {
 	return AnimNodeEditModes::Fabrik;
+}
+
+void UAnimGraphNode_Fabrik::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAnimationCustomVersion::GUID);
+
+	const int32 CustomAnimVersion = Ar.CustomVer(FAnimationCustomVersion::GUID);
+
+	if (CustomAnimVersion < FAnimationCustomVersion::ConvertIKToSupportBoneSocketTarget)
+	{
+		if (Node.EffectorTransformBone_DEPRECATED.BoneName != NAME_None)
+		{
+			Node.EffectorTarget = FBoneSocketTarget(Node.EffectorTransformBone_DEPRECATED.BoneName);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -2969,12 +2969,12 @@ void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 	{
 		UNavCollision* PrevNavCollision = NavCollision;
 
-		if (NavCollision == nullptr)
+		if (NavCollision == nullptr || bIsUpdate)
 		{
 			NavCollision = NewObject<UNavCollision>(this);
 		}
 
-		if (PrevNavCollision && PrevNavCollision != NavCollision)
+		if (PrevNavCollision)
 		{
 			NavCollision->CopyUserSettings(*PrevNavCollision);
 		}

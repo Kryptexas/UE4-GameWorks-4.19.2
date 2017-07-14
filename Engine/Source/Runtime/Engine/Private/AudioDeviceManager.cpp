@@ -83,6 +83,7 @@ bool FAudioDeviceManager::CreateAudioDevice(bool bCreateNewDevice, FCreateAudioD
 			{
 				OutResults.Handle = MainAudioDevice->DeviceHandle;
 				OutResults.AudioDevice = MainAudioDevice;
+				OutResults.AudioDevice->FadeIn();
 				return true;
 			}
 			return false;
@@ -152,6 +153,12 @@ bool FAudioDeviceManager::CreateAudioDevice(bool bCreateNewDevice, FCreateAudioD
 	{
 		ShutdownAudioDevice(OutResults.Handle);
 		OutResults = FCreateAudioDeviceResults();
+	}
+
+	// We need to call fade in, in case we're reusing audio devices
+	if (OutResults.AudioDevice)
+	{
+		OutResults.AudioDevice->FadeIn();
 	}
 
 	return (OutResults.AudioDevice != nullptr);

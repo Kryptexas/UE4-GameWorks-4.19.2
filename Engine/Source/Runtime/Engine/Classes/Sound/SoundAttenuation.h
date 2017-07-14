@@ -47,6 +47,10 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Focus, meta = (EditCondition = "bSpatialize"))
 	uint32 bEnableListenerFocus:1;
 
+	/** Whether or not smooth volume interpolation is enabled for sounds as they transition in/out of focus */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Focus, meta = (EditCondition = "bEnableListenerFocus"))
+	uint32 bEnableFocusInterpolation:1;
+
 	/** Whether or not to enable line-of-sight occlusion checking for the sound that plays in this audio component. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Occlusion, meta = (EditCondition = "bSpatialize"))
 	uint32 bEnableOcclusion:1;
@@ -128,6 +132,14 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Focus, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableListenerFocus"))
 	float NonFocusVolumeAttenuation;
 
+	/** Scalar used to increase interpolation speed upwards to the target Focus value */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Focus, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableFocusInterpolation"))
+	float FocusAttackInterpSpeed;
+
+	/** Scalar used to increase interpolation speed downwards to the target Focus value */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Focus, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bEnableFocusInterpolation"))
+	float FocusReleaseInterpSpeed;
+
 	/* Which trace channel to use for audio occlusion checks. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
 	TEnumAsByte<enum ECollisionChannel> OcclusionTraceChannel;
@@ -173,6 +185,7 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, bSpatialize(true)
 		, bAttenuateWithLPF(false)
 		, bEnableListenerFocus(false)
+		, bEnableFocusInterpolation(false)
 		, bEnableOcclusion(false)
 		, bUseComplexCollisionForOcclusion(false)
 		, DistanceType_DEPRECATED(SOUNDDISTANCE_Normal)
@@ -194,6 +207,8 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, NonFocusPriorityScale(1.0f)
 		, FocusVolumeAttenuation(1.0f)
 		, NonFocusVolumeAttenuation(1.0f)
+		, FocusAttackInterpSpeed(1.0f)
+		, FocusReleaseInterpSpeed(1.0f)
 		, OcclusionTraceChannel(ECC_Visibility)
 		, OcclusionLowPassFilterFrequency(20000.f)
 		, OcclusionVolumeAttenuation(1.0f)

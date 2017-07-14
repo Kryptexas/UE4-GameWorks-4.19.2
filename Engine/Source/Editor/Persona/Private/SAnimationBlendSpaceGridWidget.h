@@ -20,7 +20,7 @@ class FSlateWindowElementList;
 class UAnimSequence;
 class UBlendSpaceBase;
 
-DECLARE_DELEGATE_TwoParams(FOnSampleMoved, const int32, const FVector&);
+DECLARE_DELEGATE_ThreeParams(FOnSampleMoved, const int32, const FVector&, bool);
 DECLARE_DELEGATE_OneParam(FOnSampleRemoved, const int32 );
 DECLARE_DELEGATE_TwoParams(FOnSampleAdded, UAnimSequence*, const FVector&);
 DECLARE_DELEGATE_TwoParams(FOnSampleAnimationChanged, UAnimSequence*, const FVector&);
@@ -176,7 +176,7 @@ protected:
 	TOptional<float> GetInputBoxMaxValue(const int32 ParameterIndex) const;
 	float GetInputBoxDelta(const int32 ParameterIndex) const;
 	void OnInputBoxValueCommited(const float NewValue, ETextCommit::Type CommitType, const int32 ParameterIndex);
-	void OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex);
+	void OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex, bool bIsInteractive);
 
 	/** Updates the cached blend parameter data */
 	void UpdateCachedBlendParameterData();

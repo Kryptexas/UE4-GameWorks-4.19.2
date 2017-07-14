@@ -52,7 +52,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 
 	/** Target socket to look at. Used if LookAtBone is empty. - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
 	UPROPERTY(EditAnywhere, Category = Target)
-	FTargetReference LookAtTarget;
+	FBoneSocketTarget LookAtTarget;
 
 	/** Target Offset. It's in world space if LookAtBone is empty or it is based on LookAtBone or LookAtSocket in their local space*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target, meta = (PinHiddenByDefault))
@@ -159,7 +159,7 @@ private:
 	/** Debug draw cached data */
 	FTransform CachedOriginalTransform;
 	FTransform CachedLookAtTransform;
-	FTransform CachedTargetTransform;
+	FTransform CachedTargetCoordinate;
 	FVector CachedPreviousTargetLocation;
 	FVector CachedCurrentLookAtLocation;
 #endif // UE_BUILD_SHIPPING

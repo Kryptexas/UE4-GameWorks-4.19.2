@@ -81,7 +81,7 @@ namespace Audio
 		int64 GetNumFramesPlayed() const;
 
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(TArray<float>& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
 
 		// Sets the submix send levels
 		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel);

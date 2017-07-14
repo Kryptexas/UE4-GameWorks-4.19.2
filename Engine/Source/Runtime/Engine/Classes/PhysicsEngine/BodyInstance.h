@@ -814,22 +814,63 @@ public:
 	void AddForce(const FVector& Force, bool bAllowSubstepping = true, bool bAccelChange = false);
 	/** Add a force at a particular position (world space when bIsLocalForce = false, body space otherwise) */
 	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true, bool bIsLocalForce = false);
+
 	/** Add a torque to this body */
-	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
+	DEPRECATED(4.18, "Use AddTorqueInRadians instead.")
+	inline void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false)
+	{
+		AddTorqueInRadians(Torque, bAllowSubstepping, bAccelChange);
+	}
+
+	/** Add a torque to this body */
+	void AddTorqueInRadians(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
+
 	/** Add a rotational impulse to this body */
-	void AddAngularImpulse(const FVector& Impulse, bool bVelChange);
+	DEPRECATED(4.18, "Use AddAngularImpulseInRadians instead.")
+	inline void AddAngularImpulse(const FVector& Impulse, bool bVelChange)
+	{
+		AddAngularImpulseInRadians(Impulse, bVelChange);
+	}
+
+	/** Add a rotational impulse to this body */
+	void AddAngularImpulseInRadians(const FVector& Impulse, bool bVelChange);
+
 	/** Add an impulse to this body */
 	void AddImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body and a particular world position */
 	void AddImpulseAtPosition(const FVector& Impulse, const FVector& Position);
 	/** Set the linear velocity of this body */
 	void SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent);
+
 	/** Set the angular velocity of this body */
-	void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
+	DEPRECATED(4.18, "Use SetAngularVelocityInRadians instead - be sure to convert NewAngVel to radians first.")
+	inline void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent)
+	{
+		SetAngularVelocityInRadians(FMath::DegreesToRadians(NewAngVel), bAddToCurrent);
+	}
+
+	/** Set the angular velocity of this body */
+	void SetAngularVelocityInRadians(const FVector& NewAngVel, bool bAddToCurrent);
+
 	/** Set the maximum angular velocity of this body */
-	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true);
+	DEPRECATED(4.18, "Use SetMaxAngularVelocityInRadians instead - be sure to convert NewMaxAngVel to radians first.")
+	inline void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true)
+	{
+		SetMaxAngularVelocityInRadians(FMath::DegreesToRadians(NewMaxAngVel), bAddToCurrent, bUpdateOverrideMaxAngularVelocity);
+	}
+
+	/** Set the maximum angular velocity of this body */
+	void SetMaxAngularVelocityInRadians(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity = true);
+
 	/** Get the maximum angular velocity of this body */
-	float GetMaxAngularVelocity() const;
+	DEPRECATED(4.18, "Use GetMaxAngularVelocityInRadians instead - be sure to convert the return value to degrees if required.")
+	inline float GetMaxAngularVelocity() const
+	{
+		return FMath::RadiansToDegrees(GetMaxAngularVelocityInRadians());
+	}
+
+	/** Get the maximum angular velocity of this body */
+	float GetMaxAngularVelocityInRadians() const;
 
 	/** Set the maximum depenetration velocity the physics simulation will introduce */
 	void SetMaxDepenetrationVelocity(float MaxVelocity);
@@ -869,10 +910,24 @@ public:
 	FVector GetUnrealWorldVelocity_AssumesLocked() const;
 
 	/** Get current angular velocity in world space from physics body. */
-	FVector GetUnrealWorldAngularVelocity() const;
+	DEPRECATED(4.18, "Use GetUnrealWorldAngularVelocityInRadians instead - be sure to convert the return value to degrees if required.")
+	inline FVector GetUnrealWorldAngularVelocity() const
+	{
+		return FMath::DegreesToRadians(GetUnrealWorldAngularVelocityInRadians());
+	}
 
 	/** Get current angular velocity in world space from physics body. */
-	FVector GetUnrealWorldAngularVelocity_AssumesLocked() const;
+	FVector GetUnrealWorldAngularVelocityInRadians() const;
+
+	/** Get current angular velocity in world space from physics body. */
+	DEPRECATED(4.18, "Use GetUnrealWorldAngularVelocityInRadians_AssumesLocked instead - be sure to convert the return value to degrees if required.")
+	inline FVector GetUnrealWorldAngularVelocity_AssumesLocked() const
+	{
+		return FMath::DegreesToRadians(GetUnrealWorldAngularVelocityInRadians_AssumesLocked());
+	}
+
+	/** Get current angular velocity in world space from physics body. */
+	FVector GetUnrealWorldAngularVelocityInRadians_AssumesLocked() const;
 
 	/** Get current velocity of a point on this physics body, in world space. Point is specified in world space. */
 	FVector GetUnrealWorldVelocityAtPoint(const FVector& Point) const;

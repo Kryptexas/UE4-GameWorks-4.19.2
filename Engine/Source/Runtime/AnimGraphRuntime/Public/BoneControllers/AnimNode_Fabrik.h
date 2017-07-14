@@ -68,8 +68,12 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlB
 	TEnumAsByte<enum EBoneControlSpace> EffectorTransformSpace;
 
 	/** If EffectorTransformSpace is a bone, this is the bone to use. **/
-	UPROPERTY(EditAnywhere,  Category = EndEffector)
-	FBoneReference EffectorTransformBone;
+	UPROPERTY()
+	FBoneReference EffectorTransformBone_DEPRECATED;
+
+	/** If EffectorTransformSpace is a bone, this is the bone to use. **/
+	UPROPERTY(EditAnywhere, Category = EndEffector)
+	FBoneSocketTarget EffectorTarget;
 
 	UPROPERTY(EditAnywhere, Category = EndEffector)
 	TEnumAsByte<enum EBoneRotationSource> EffectorRotationSource;
@@ -99,6 +103,7 @@ public:
 
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
@@ -115,7 +120,7 @@ private:
 
 	// Convenience function to get current (pre-translation iteration) component space location of bone by bone index
 	FVector GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
-
+	static FTransform GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FTransform& InOffset);
 #if WITH_EDITOR
 	// Cached CS location when in editor for debug drawing
 	FTransform CachedEffectorCSTransform;
