@@ -3377,6 +3377,25 @@ namespace OculusHMD
 		BOOLEAN_COMMAND_HANDLER_BODY(TEXT("vr.oculus.bHQDistortion"), Settings->Flags.bHQDistortion);
 	}
 
+	void FOculusHMD::ShowGlobalMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+	{
+		CheckInGameThread();
+
+		if (!OVRP_SUCCESS(ovrp_ShowSystemUI2(ovrpUI::ovrpUI_GlobalMenu)))
+		{
+			Ar.Logf(TEXT("Could not show platform menu"));
+		}
+	}
+
+	void FOculusHMD::ShowQuitMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+	{
+		CheckInGameThread();
+
+		if (!OVRP_SUCCESS(ovrp_ShowSystemUI2(ovrpUI::ovrpUI_ConfirmQuit)))
+		{
+			Ar.Logf(TEXT("Could not show platform menu"));
+		}
+	}
 
 #if !UE_BUILD_SHIPPING
 	void FOculusHMD::UpdateOnGameThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)

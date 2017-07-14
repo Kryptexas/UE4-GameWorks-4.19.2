@@ -13,11 +13,13 @@ namespace OculusHMD
 // FConsoleCommands
 //-------------------------------------------------------------------------------------------------
 
-class FConsoleCommands
+class FConsoleCommands : private FSelfRegisteringExec
 {
 public:
 	FConsoleCommands(class FOculusHMD* InHMDPtr);
 
+	// FSelfRegisteringExec interface
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 private:
 	FAutoConsoleCommand UpdateOnRenderThreadCommand;
 	FAutoConsoleCommand PixelDensityCommand;
@@ -26,6 +28,8 @@ private:
 	FAutoConsoleCommand PixelDensityAdaptiveCommand;
 	FAutoConsoleCommand HQBufferCommand;
 	FAutoConsoleCommand HQDistortionCommand;
+	FAutoConsoleCommand ShowGlobalMenuCommand;
+	FAutoConsoleCommand ShowQuitMenuCommand;
 
 #if !UE_BUILD_SHIPPING
 	// Debug console commands
