@@ -16,13 +16,9 @@ UDEPRECATED_DeprecatedGearVRControllerComponent::UDEPRECATED_DeprecatedGearVRCon
 	PrimaryComponentTick.bCanEverTick = false;
 	bAutoActivate = true;
 
-	ConstructorHelpers::FObjectFinder<UStaticMesh> GearVRControllerMesh(TEXT("/OculusVR/Meshes/GearVRController"));
-	if (GearVRControllerMesh.Succeeded())
-	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		ControllerMesh = GearVRControllerMesh.Object;
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	}
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+    ControllerMesh = LoadObject<UStaticMesh>(/*Outer =*/nullptr, TEXT("/OculusVR/Meshes/GearVRController.GearVRController"));
+    PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 UMotionControllerComponent* UDEPRECATED_DeprecatedGearVRControllerComponent::GetMotionController() const
