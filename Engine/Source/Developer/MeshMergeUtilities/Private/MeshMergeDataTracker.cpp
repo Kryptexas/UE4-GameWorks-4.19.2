@@ -96,7 +96,7 @@ bool FMeshMergeDataTracker::DoesUVChannelContainData(int32 UVChannel, int32 LODI
 bool FMeshMergeDataTracker::DoesMeshLODRequireUniqueUVs(FMeshLODKey Key)
 {
 	// if we have vertex color, we require unique UVs
-	return RequiresUniqueUVs.Contains(Key) || bWithVertexColors[Key.GetLODIndex()];
+	return RequiresUniqueUVs.Contains(Key);
 }
 
 int32 FMeshMergeDataTracker::GetAvailableLightMapUVChannel() const

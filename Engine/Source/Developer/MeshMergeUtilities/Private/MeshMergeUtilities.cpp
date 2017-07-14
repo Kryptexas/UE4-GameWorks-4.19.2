@@ -1558,7 +1558,9 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 				if (InSettings.bUseVertexDataForBakingMaterial && (bDoesMaterialUseVertexData || bRequiresUniqueUVs))
 				{
 					MeshData.RawMesh = DataTracker.GetRawMeshPtr(Key);
-					if (bRequiresUniqueUVs)
+					// if it has vertex color/*WedgetColors.Num()*/, it should also use light map UV index
+					// we can't do this for all meshes, but only for the mesh that has vertex color.
+					if (bRequiresUniqueUVs || MeshData.RawMesh->WedgeColors.Num() > 0)
 					{
 						// Check if there are lightmap uvs available?
 						const int32 LightMapUVIndex = StaticMeshComponentsToMerge[Key.GetMeshIndex()]->GetStaticMesh()->LightMapCoordinateIndex;
