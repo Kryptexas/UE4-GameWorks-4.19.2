@@ -19,7 +19,7 @@
 		{
 			"Name" : "SteamVR",
 			"Type" : "Runtime",
-			"LoadingPhase" : "Default",
+			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :
 			[
 				"Win64",
