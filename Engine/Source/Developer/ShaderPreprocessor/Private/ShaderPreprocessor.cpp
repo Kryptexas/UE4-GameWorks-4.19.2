@@ -29,8 +29,9 @@ class FMcppFileLoader
 {
 public:
 	/** Initialization constructor. */
-	explicit FMcppFileLoader(const FShaderCompilerInput& InShaderInput)
+	explicit FMcppFileLoader(const FShaderCompilerInput& InShaderInput, FShaderCompilerOutput& InShaderOutput)
 		: ShaderInput(InShaderInput)
+		, ShaderOutput(InShaderOutput)
 	{
 		FString InputShaderSource;
 		if (LoadShaderSourceFile(*InShaderInput.VirtualSourceFilePath, InputShaderSource))
@@ -71,6 +72,11 @@ private:
 			}
 			else
 			{
+				if (!CheckVirtualShaderFilePath(*VirtualFilePath, &This->ShaderOutput.Errors))
+				{
+					return 0;
+				}
+
 				LoadShaderSourceFile(*VirtualFilePath, FileContents);
 			}
 
@@ -98,6 +104,8 @@ private:
 
 	/** Shader input data. */
 	const FShaderCompilerInput& ShaderInput;
+	/** Shader output data. */
+	FShaderCompilerOutput& ShaderOutput;
 	/** File contents are cached as needed. */
 	TMap<FString,FShaderContents> CachedFileContents;
 };
@@ -135,7 +143,7 @@ bool PreprocessShader(
 	static FCriticalSection McppCriticalSection;
 	FScopeLock McppLock(&McppCriticalSection);
 
-	FMcppFileLoader FileLoader(ShaderInput);
+	FMcppFileLoader FileLoader(ShaderInput, ShaderOutput);
 
 	AddMcppDefines(McppOptions, ShaderInput.Environment.GetDefinitions());
 	AddMcppDefines(McppOptions, AdditionalDefines.GetDefinitionMap());
