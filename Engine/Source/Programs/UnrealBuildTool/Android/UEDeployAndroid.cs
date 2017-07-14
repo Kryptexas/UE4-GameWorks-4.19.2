@@ -959,7 +959,7 @@ namespace UnrealBuildTool
 						if (Directory.Exists(RenderDocPath))
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
-							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\libs", NDKArch, "libVkLayer_RenderDoc.so");
+							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\lib", NDKArch, "libVkLayer_RenderDoc.so");
 							string RenderDocLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libVkLayer_RenderDoc.so");
 
 							Console.WriteLine("Copying {0} to {1}", RenderDocLibSrcPath, RenderDocLibDstPath);
