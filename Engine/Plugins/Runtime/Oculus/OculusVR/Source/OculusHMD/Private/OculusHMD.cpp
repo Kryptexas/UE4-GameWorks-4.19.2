@@ -2635,15 +2635,11 @@ namespace OculusHMD
 
 	bool FOculusHMD::IsHMDActive() const
 	{
-#if PLATFORM_ANDROID
-		return ovrp_GetInitialized() != ovrpBool_False;
-#else
 		if (FOculusHMDModule::Get().IsOVRPluginAvailable())
 		{
 			return ovrp_GetInitialized() != ovrpBool_False;
 		}
 		return false;
-#endif
 	}
 
 	float FOculusHMD::GetWorldToMetersScale() const
