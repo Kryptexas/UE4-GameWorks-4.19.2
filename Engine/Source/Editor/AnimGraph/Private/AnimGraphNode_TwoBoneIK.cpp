@@ -104,19 +104,42 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 		TwoBoneIKDelegate = MakeShareable(new FTwoBoneIKDelegate());
 	}
 
+	// do this first, so that we can include these properties first
+	const FString EffectorLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocationSpace));
+	const FString JointTargetLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocationSpace));
+
+	IDetailCategoryBuilder& IKCategory = DetailBuilder.EditCategory("IK");
+	IDetailCategoryBuilder& EffectorCategory = DetailBuilder.EditCategory("Effector");
+	IDetailCategoryBuilder& JointCategory = DetailBuilder.EditCategory("JointTarget");
+	// refresh UIs when bone space is changed
+	TSharedRef<IPropertyHandle> EffectorLocHandle = DetailBuilder.GetProperty(*EffectorLocationSpace, GetClass());
+	if (EffectorLocHandle->IsValidHandle())
+	{
+		EffectorCategory.AddProperty(EffectorLocHandle);
+
+		FSimpleDelegate UpdateEffectorSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
+		EffectorLocHandle->SetOnPropertyValueChanged(UpdateEffectorSpaceDelegate);
+	}
+
+	TSharedRef<IPropertyHandle> JointTragetLocHandle = DetailBuilder.GetProperty(*JointTargetLocationSpace, GetClass());
+	if (JointTragetLocHandle->IsValidHandle())
+	{
+		JointCategory.AddProperty(JointTragetLocHandle);
+		FSimpleDelegate UpdateJointSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
+		JointTragetLocHandle->SetOnPropertyValueChanged(UpdateJointSpaceDelegate);
+	}
+
 	EBoneControlSpace Space = Node.EffectorLocationSpace;
 	const FString TakeRotationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, bTakeRotationFromEffectorSpace));
-	const FString EffectorBoneName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorSpaceBoneName));
+	const FString EffectorTargetName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorTarget));
 	const FString EffectorLocationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation));
 
 	if (Space == BCS_BoneSpace || Space == BCS_ParentBoneSpace)
 	{
-		IDetailCategoryBuilder& IKCategory = DetailBuilder.EditCategory("IK");
-		IDetailCategoryBuilder& EffectorCategory = DetailBuilder.EditCategory("EndEffector");
 		TSharedPtr<IPropertyHandle> PropertyHandle;
 		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*EffectorTargetName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
 	}
 	else // hide all properties in EndEffector category
@@ -125,45 +148,25 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 		DetailBuilder.HideProperty(PropertyHandle);
 		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*EffectorTargetName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 	}
 
 	Space = Node.JointTargetLocationSpace;
 	bool bPinVisibilityChanged = false;
-	const FString JointTargetSpaceBoneName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetSpaceBoneName));
+	const FString JointTargetName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTarget));
 	const FString JointTargetLocation = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocation));
 
 	if (Space == BCS_BoneSpace || Space == BCS_ParentBoneSpace)
 	{
-		IDetailCategoryBuilder& IKCategory = DetailBuilder.EditCategory("IK");
-		IDetailCategoryBuilder& EffectorCategory = DetailBuilder.EditCategory("JointTarget");
 		TSharedPtr<IPropertyHandle> PropertyHandle;
-		PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
-		EffectorCategory.AddProperty(PropertyHandle);
+		PropertyHandle = DetailBuilder.GetProperty(*JointTargetName, GetClass());
+		JointCategory.AddProperty(PropertyHandle);
 	}
 	else // hide all properties in JointTarget category except for JointTargetLocationSpace
 	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
+		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*JointTargetName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-	}
-
-	const FString EffectorLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocationSpace));
-	const FString JointTargetLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocationSpace));
-
-	// refresh UIs when bone space is changed
-	TSharedRef<IPropertyHandle> EffectorLocHandle = DetailBuilder.GetProperty(*EffectorLocationSpace, GetClass());
-	if (EffectorLocHandle->IsValidHandle())
-	{
-		FSimpleDelegate UpdateEffectorSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
-		EffectorLocHandle->SetOnPropertyValueChanged(UpdateEffectorSpaceDelegate);
-	}
-
-	TSharedRef<IPropertyHandle> JointTragetLocHandle = DetailBuilder.GetProperty(*JointTargetLocationSpace, GetClass());
-	if (JointTragetLocHandle->IsValidHandle())
-	{
-		FSimpleDelegate UpdateJointSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
-		JointTragetLocHandle->SetOnPropertyValueChanged(UpdateJointSpaceDelegate);
 	}
 }
 
@@ -185,6 +188,19 @@ void UAnimGraphNode_TwoBoneIK::Serialize(FArchive& Ar)
 		// fix up deprecated variables
 		Node.StartStretchRatio = Node.StretchLimits_DEPRECATED.X;
 		Node.MaxStretchScale = Node.StretchLimits_DEPRECATED.Y;
+	}
+
+	if (CustomAnimVersion < FAnimationCustomVersion::ConvertIKToSupportBoneSocketTarget)
+	{
+		if (Node.EffectorSpaceBoneName_DEPRECATED != NAME_None)
+		{
+			Node.EffectorTarget = FBoneSocketTarget(Node.EffectorSpaceBoneName_DEPRECATED);
+		}
+
+		if (Node.JointTargetSpaceBoneName_DEPRECATED != NAME_None)
+		{
+			Node.JointTarget = FBoneSocketTarget(Node.JointTargetSpaceBoneName_DEPRECATED);
+		}
 	}
 }
 

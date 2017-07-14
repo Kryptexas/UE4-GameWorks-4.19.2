@@ -10,6 +10,7 @@
 #include "DetailLayoutBuilder.h"
 #include "SCheckBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "RHI.h"
 
 TSharedRef<IPropertyTypeCustomization> FPropertyEntryCustomization::MakeInstance()
 {
@@ -40,6 +41,8 @@ void FPropertyEntryCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 {
 	TSharedPtr<IPropertyHandle> CustomSizePropertyHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FPropertyEntry, CustomSize));
 	IDetailPropertyRow& SizeRow = ChildBuilder.AddProperty(CustomSizePropertyHandle.ToSharedRef());
+
+	AddTextureSizeClamping(CustomSizePropertyHandle);
 
 	TSharedPtr<IPropertyHandle> ConstantValuePropertyHandle = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FPropertyEntry, ConstantValue));
 	IDetailPropertyRow& ConstantValueRow = ChildBuilder.AddProperty(ConstantValuePropertyHandle.ToSharedRef());
@@ -96,6 +99,12 @@ void FMaterialOptionsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 	// Try and find material options instance in currently edited objects
 	UMaterialOptions* CurrentOptions = Cast<UMaterialOptions>((WeakObjects.FindByPredicate([](TWeakObjectPtr<UObject> Object) { return Cast<UMaterialOptions>(Object.Get()); }))->Get());
 
+	TSharedRef<IPropertyHandle> TextureSizePropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UMaterialOptions, TextureSize));
+	if (TextureSizePropertyHandle->IsValidHandle())
+	{
+		AddTextureSizeClamping(TextureSizePropertyHandle);
+	}
+
 	// Only allow changes to LOD indices if we have a valid options instance and if there is actually more than one index
 	ContentBox->SetEnabled(TAttribute<bool>::Create([=]() -> bool { return NumLODs > 1 && CurrentOptions != nullptr; }));
 	for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
@@ -128,4 +137,24 @@ void FMaterialOptionsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 			.Font(DetailBuilder.GetDetailFont())
 		];
 	}
+}
+
+void AddTextureSizeClamping(TSharedPtr<IPropertyHandle> TextureSizeProperty)
+{
+	TSharedPtr<IPropertyHandle> PropertyX = TextureSizeProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FIntPoint, X));
+	TSharedPtr<IPropertyHandle> PropertyY = TextureSizeProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FIntPoint, Y));
+
+	const FString MaxTextureResolutionString = FString::FromInt(GetMax2DTextureDimension());
+	TextureSizeProperty->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	TextureSizeProperty->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+
+	const FString MinTextureResolutionString("1");
+	PropertyX->GetProperty()->SetMetaData(TEXT("ClampMin"), *MinTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("UIMin"), *MinTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("ClampMin"), *MinTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("UIMin"), *MinTextureResolutionString);
 }

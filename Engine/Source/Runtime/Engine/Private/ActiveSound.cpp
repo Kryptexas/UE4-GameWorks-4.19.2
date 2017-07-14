@@ -86,6 +86,7 @@ FActiveSound::FActiveSound()
 	, CurrentInteriorVolume(1.f)
 	, CurrentInteriorLPF(MAX_FILTER_FREQUENCY)
 	, ClosestListenerPtr(nullptr)
+	, InternalFocusFactor(1.0f)
 {
 	if (!ActiveSoundTraceDelegate.IsBound())
 	{
@@ -921,19 +922,43 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 		if (Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
 		{
-			// Get the current focus factor
-			const float FocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, Azimuth, *Settings);
+			// Get the current target focus factor
+			const float TargetFocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, Azimuth, *Settings);
+
+			// User opt-in for focus interpolation
+			if (Settings->bEnableFocusInterpolation)
+			{
+				// Determine which interpolation speed to use (attack/release)
+				float InterpSpeed;
+				if (TargetFocusFactor <= InternalFocusFactor)
+				{
+					InterpSpeed = Settings->FocusAttackInterpSpeed;
+				}
+				else
+				{
+					InterpSpeed = Settings->FocusReleaseInterpSpeed;
+				}
+
+				// Interpolate the internal focus factor to the target value
+				const float DeviceDeltaTime = AudioDevice->GetDeviceDeltaTime();
+				InternalFocusFactor = FMath::FInterpTo(InternalFocusFactor, TargetFocusFactor, DeviceDeltaTime, InterpSpeed);
+			}
+			else
+			{
+				// Set focus directly to target value
+				InternalFocusFactor = TargetFocusFactor;
+			}
 
 			// Get the volume scale to apply the volume calculation based on the focus factor
-			const float FocusVolumeAttenuation = Settings->GetFocusAttenuation(FocusSettings, FocusFactor);
+			const float FocusVolumeAttenuation = Settings->GetFocusAttenuation(FocusSettings, InternalFocusFactor);
 			Volume *= FocusVolumeAttenuation;
 
 			// Scale the volume-weighted priority scale value we use for sorting this sound for voice-stealing
-			FocusPriorityScale = Settings->GetFocusPriorityScale(FocusSettings, FocusFactor);
+			FocusPriorityScale = Settings->GetFocusPriorityScale(FocusSettings, InternalFocusFactor);
 			ParseParams.Priority *= FocusPriorityScale;
 
 			// Get the distance scale to use when computing distance-calculations for 3d attenuation
-			FocusDistanceScale = Settings->GetFocusDistanceScale(FocusSettings, FocusFactor);
+			FocusDistanceScale = Settings->GetFocusDistanceScale(FocusSettings, InternalFocusFactor);
 		}
 	}
 

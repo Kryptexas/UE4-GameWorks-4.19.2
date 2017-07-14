@@ -548,8 +548,9 @@ public:
 	/** Update the active sound playback time. This is done here to do after all audio is updated. */
 	void UpdateActiveSoundPlaybackTime(bool bIsTimeTicking);
 
-	/** Optional fadeout of audio to avoid clicks when closing audio device. */
+	/** Optional fadeout and fade in of audio to avoid clicks when closing or opening/reusing audio device. */
 	virtual void FadeOut() {}
+	virtual void FadeIn() {}
 
 	/**
 	 * Stop all the audio components and sources attached to the world. nullptr world means all components.
@@ -1027,7 +1028,7 @@ public:
 	}
 
 	/** Return the spatialization plugin interface. */
-	TSharedPtr<IAudioSpatialization> GetSpatializationPluginInterface()
+	TAudioSpatializationPtr GetSpatializationPluginInterface()
 	{
 		return SpatializationPluginInterface;
 	}
@@ -1391,16 +1392,16 @@ public:
 	IAudioPlugin* AudioPlugin;
 
 	/** 3rd party audio spatialization interface. */
-	TSharedPtr<IAudioSpatialization> SpatializationPluginInterface;
+	TAudioSpatializationPtr SpatializationPluginInterface;
 
 	/** 3rd party reverb interface. */
-	TSharedPtr<IAudioReverb> ReverbPluginInterface;
+	TAudioReverbPtr ReverbPluginInterface;
 
 	/** 3rd party occlusion interface. */
-	TSharedPtr<IAudioOcclusion> OcclusionInterface;
+	TAudioOcclusionPtr OcclusionInterface;
 
 	/** 3rd party listener observer. */
-	TSharedPtr<IAudioListenerObserver> ListenerObserver;
+	TAudioListenerObserverPtr ListenerObserver;
 
 private:
 	// Audio thread representation of listeners

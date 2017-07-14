@@ -91,15 +91,19 @@ public:
 			// first gather indices. we don't want to add bones to replace if that "to-be-replace" will be removed as well
 			for (int32 Index = 0; Index < BonesToRemoveSetting.Num(); ++Index)
 			{
-				int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BonesToRemoveSetting[Index]);
-
-				// we don't allow root to be removed
-				if ( BoneIndex > 0 )
+				if (BonesToRemoveSetting[Index] != NAME_None)
 				{
-					BoneIndicesToRemove.AddUnique(BoneIndex);
-					// make sure all children for this joint is included
-					EnsureChildrenPresents(BoneIndex, RefBoneInfo, BoneIndicesToRemove);
+					int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BonesToRemoveSetting[Index]);
+
+					// we don't allow root to be removed
+					if (BoneIndex > 0)
+					{
+						BoneIndicesToRemove.AddUnique(BoneIndex);
+						// make sure all children for this joint is included
+						EnsureChildrenPresents(BoneIndex, RefBoneInfo, BoneIndicesToRemove);
+					}
 				}
+			
 			}
 		}
 
@@ -380,12 +384,19 @@ public:
 			{
 				for (const FBoneReference& BoneReference : SkeletalMesh->LODInfo[DesiredLOD].BonesToRemove)
 				{
-					BoneIndices.AddUnique(SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneReference.BoneName));
+					int32 BoneIndex = SkeletalMesh->RefSkeleton.FindRawBoneIndex(BoneReference.BoneName);
+					if (BoneIndex != INDEX_NONE)
+					{
+						BoneIndices.AddUnique(BoneIndex);
+					}
 				}
 
 				for (const TPair<FBoneIndexType, FBoneIndexType>& BonePair : BonesToRemove)
 				{
-					BoneIndices.AddUnique(BonePair.Key);
+					if (BonePair.Key != INDEX_NONE)
+					{
+						BoneIndices.AddUnique(BonePair.Key);
+					}
 				}
 
 				RetrieveBoneTransforms(SkeletalMesh, DesiredLOD, BoneIndices, RemovedBoneTransforms);

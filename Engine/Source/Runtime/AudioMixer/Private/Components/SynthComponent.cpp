@@ -236,9 +236,10 @@ void USynthComponent::OnGeneratePCMAudio(TArray<int16>& GeneratedPCMData)
 		this->OnGenerateAudio(AudioFloatData);
 
 		// Convert the float data to int16 data
+		const float* AudioFloatDataPtr = AudioFloatData.GetData();
 		for (int32 i = 0; i < GeneratedPCMData.Num(); ++i)
 		{
-			GeneratedPCMData[i] = (int16)(32767.0f * AudioFloatData[i]);
+			GeneratedPCMData[i] = (int16)(32767.0f * AudioFloatDataPtr[i]);
 		}
 	}
 #endif

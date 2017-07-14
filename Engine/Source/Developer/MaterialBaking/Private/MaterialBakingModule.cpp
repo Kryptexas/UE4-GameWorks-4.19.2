@@ -250,9 +250,10 @@ void FMaterialBakingModule::CleanupMaterialProxies()
 UTextureRenderTarget2D* FMaterialBakingModule::CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, const FIntPoint& InTargetSize)
 {
 	UTextureRenderTarget2D* RenderTarget = nullptr;
-	auto RenderTargetComparison = [bInForceLinearGamma, InPixelFormat, InTargetSize](const UTextureRenderTarget2D* CompareRenderTarget) -> bool
+	const FIntPoint ClampedTargetSize(FMath::Clamp(InTargetSize.X, 1, (int32)GetMax2DTextureDimension()), FMath::Clamp(InTargetSize.Y, 1, (int32)GetMax2DTextureDimension()));
+	auto RenderTargetComparison = [bInForceLinearGamma, InPixelFormat, ClampedTargetSize](const UTextureRenderTarget2D* CompareRenderTarget) -> bool
 	{
-		return (CompareRenderTarget->SizeX == InTargetSize.X && CompareRenderTarget->SizeY == InTargetSize.Y && CompareRenderTarget->OverrideFormat == InPixelFormat && CompareRenderTarget->bForceLinearGamma == bInForceLinearGamma);
+		return (CompareRenderTarget->SizeX == ClampedTargetSize.X && CompareRenderTarget->SizeY == ClampedTargetSize.Y && CompareRenderTarget->OverrideFormat == InPixelFormat && CompareRenderTarget->bForceLinearGamma == bInForceLinearGamma);
 	};
 
 	// Find any pooled render target with suitable properties.
@@ -271,7 +272,7 @@ UTextureRenderTarget2D* FMaterialBakingModule::CreateRenderTarget(bool bInForceL
 		RenderTarget->ClearColor = FLinearColor(1.0f, 0.0f, 1.0f);
 		RenderTarget->ClearColor.A = 1.0f;
 		RenderTarget->TargetGamma = 0.0f;
-		RenderTarget->InitCustomFormat(InTargetSize.X, InTargetSize.Y, InPixelFormat, bInForceLinearGamma);
+		RenderTarget->InitCustomFormat(ClampedTargetSize.X, ClampedTargetSize.Y, InPixelFormat, bInForceLinearGamma);
 
 		RenderTargetPool.Add(RenderTarget);
 	}

@@ -20,7 +20,7 @@ UAnimGraphNode_ModifyCurve::UAnimGraphNode_ModifyCurve()
 
 FString UAnimGraphNode_ModifyCurve::GetNodeCategory() const
 {
-	return TEXT("Skeletal Controls");
+	return TEXT("Skeletal Control Nodes");
 }
 
 FText UAnimGraphNode_ModifyCurve::GetTooltipText() const

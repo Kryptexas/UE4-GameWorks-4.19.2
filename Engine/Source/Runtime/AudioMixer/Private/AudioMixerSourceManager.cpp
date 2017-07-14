@@ -1112,7 +1112,7 @@ namespace Audio
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AudioMixerHRTF);
 
-				TSharedPtr<IAudioSpatialization> SpatializationPlugin = MixerDevice->SpatializationPluginInterface;
+				TAudioSpatializationPtr SpatializationPlugin = MixerDevice->SpatializationPluginInterface;
 
 				AUDIO_MIXER_CHECK(SpatializationPlugin.IsValid());
 				AUDIO_MIXER_CHECK(NumInputChans == 1);
@@ -1221,7 +1221,7 @@ namespace Audio
 		}
 	}
 
-	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, TArray<float>& OutWetBuffer, const float SendLevel) const
+	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
 	{
 		if (SendLevel > 0.0f)
 		{

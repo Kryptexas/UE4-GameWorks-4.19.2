@@ -380,6 +380,11 @@ struct FBoneReference
 
 	/** return true if has valid index, and required bones contain it **/
 	ENGINE_API bool IsValidToEvaluate(const FBoneContainer& RequiredBones) const;
+	/** return true if has valid compact index. This will return invalid if you're using skeleton index */
+	ENGINE_API bool IsValidToEvaluate() const
+	{
+		return (!bUseSkeletonIndex && CachedCompactPoseIndex != INDEX_NONE);
+	}
 
 	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const
 	{ 

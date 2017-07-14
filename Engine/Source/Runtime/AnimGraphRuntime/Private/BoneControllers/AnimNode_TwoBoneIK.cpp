@@ -17,16 +17,18 @@ DECLARE_CYCLE_STAT(TEXT("TwoBoneIK Eval"), STAT_TwoBoneIK_Eval, STATGROUP_Anim);
 // FAnimNode_TwoBoneIK
 
 FAnimNode_TwoBoneIK::FAnimNode_TwoBoneIK()
-	: EffectorLocation(FVector::ZeroVector)
-	, JointTargetLocation(FVector::ZeroVector)
-	, bTakeRotationFromEffectorSpace(false)
-	, bMaintainEffectorRelRot(false)
-	, bAllowStretching(false)
-	, StretchLimits_DEPRECATED(FVector2D::ZeroVector)
+	: bAllowStretching(false)
 	, StartStretchRatio(1.f)
 	, MaxStretchScale(1.2f)
+	, StretchLimits_DEPRECATED(FVector2D::ZeroVector)
+	, bTakeRotationFromEffectorSpace(false)
+	, bMaintainEffectorRelRot(false)
 	, EffectorLocationSpace(BCS_ComponentSpace)
+	, EffectorLocation(FVector::ZeroVector)
 	, JointTargetLocationSpace(BCS_ComponentSpace)
+	, JointTargetLocation(FVector::ZeroVector)
+	, CachedUpperLimbIndex(INDEX_NONE)
+	, CachedLowerLimbIndex(INDEX_NONE)
 {
 }
 
@@ -42,6 +44,24 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
+FTransform FAnimNode_TwoBoneIK::GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FVector& InOffset) 
+{
+	FTransform OutTransform;
+	if (Space == BCS_BoneSpace)
+	{
+		OutTransform = InTarget.GetTargetTransform(InOffset, MeshBases, InComponentTransform);
+	}
+	else
+	{
+		// parent bone space still goes through this way
+		// if your target is socket, it will try find parents of joint that socket belongs to
+		OutTransform.SetLocation(InOffset);
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(InComponentTransform, MeshBases, OutTransform, InTarget.GetCompactPoseBoneIndex(), Space);
+	}
+
+	return OutTransform;
+}
+
 void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TwoBoneIK_Eval);
@@ -55,46 +75,18 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 
 	FCompactPoseBoneIndex IKBoneCompactPoseIndex = IKBone.GetCompactPoseIndex(BoneContainer);
 
-	FCompactPoseBoneIndex UpperLimbIndex(INDEX_NONE);
-	const FCompactPoseBoneIndex LowerLimbIndex = BoneContainer.GetParentBoneIndex(IKBoneCompactPoseIndex);
-	if (LowerLimbIndex == INDEX_NONE)
-	{
-		bInvalidLimb = true;
-	}
-	else
-	{
-		UpperLimbIndex = BoneContainer.GetParentBoneIndex(LowerLimbIndex);
-		if (UpperLimbIndex == INDEX_NONE)
-		{
-			bInvalidLimb = true;
-		}
-	}
-
 	const bool bInBoneSpace = (EffectorLocationSpace == BCS_ParentBoneSpace) || (EffectorLocationSpace == BCS_BoneSpace);
-	const int32 EffectorBoneIndex = bInBoneSpace ? BoneContainer.GetPoseBoneIndexForBoneName(EffectorSpaceBoneName) : INDEX_NONE;
-	const FCompactPoseBoneIndex EffectorSpaceBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(EffectorBoneIndex));
-
-	if (bInBoneSpace && (EffectorSpaceBoneIndex == INDEX_NONE))
-	{
-		bInvalidLimb = true;
-	}
-
-	// If we walked past the root, this controlled is invalid, so return no affected bones.
-	if( bInvalidLimb )
-	{
-		return;
-	}
 
 	// Get Local Space transforms for our bones. We do this first in case they already are local.
 	// As right after we get them in component space. (And that does the auto conversion).
 	// We might save one transform by doing local first...
 	const FTransform EndBoneLocalTransform = Output.Pose.GetLocalSpaceTransform(IKBoneCompactPoseIndex);
-	const FTransform LowerLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(LowerLimbIndex);
-	const FTransform UpperLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(UpperLimbIndex);
+	const FTransform LowerLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(CachedLowerLimbIndex);
+	const FTransform UpperLimbLocalTransform = Output.Pose.GetLocalSpaceTransform(CachedUpperLimbIndex);
 
 	// Now get those in component space...
-	FTransform LowerLimbCSTransform = Output.Pose.GetComponentSpaceTransform(LowerLimbIndex);
-	FTransform UpperLimbCSTransform = Output.Pose.GetComponentSpaceTransform(UpperLimbIndex);
+	FTransform LowerLimbCSTransform = Output.Pose.GetComponentSpaceTransform(CachedLowerLimbIndex);
+	FTransform UpperLimbCSTransform = Output.Pose.GetComponentSpaceTransform(CachedUpperLimbIndex);
 	FTransform EndBoneCSTransform = Output.Pose.GetComponentSpaceTransform(IKBoneCompactPoseIndex);
 
 	// Get current position of root of limb.
@@ -104,20 +96,10 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 	const FVector InitialEndPos = EndBoneCSTransform.GetTranslation();
 
 	// Transform EffectorLocation from EffectorLocationSpace to ComponentSpace.
-	FTransform EffectorTransform(EffectorLocation);
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, EffectorTransform, EffectorSpaceBoneIndex, EffectorLocationSpace);
+	FTransform EffectorTransform = GetTargetTransform(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, EffectorTarget, EffectorLocationSpace, EffectorLocation);
 
 	// Get joint target (used for defining plane that joint should be in).
-	FTransform JointTargetTransform(JointTargetLocation);
-	FCompactPoseBoneIndex JointTargetSpaceBoneIndex(INDEX_NONE);
-
-	if (JointTargetLocationSpace == BCS_ParentBoneSpace || JointTargetLocationSpace == BCS_BoneSpace)
-	{
-		int32 Index = BoneContainer.GetPoseBoneIndexForBoneName(JointTargetSpaceBoneName);
-		JointTargetSpaceBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(Index));
-	}
-
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, JointTargetTransform, JointTargetSpaceBoneIndex, JointTargetLocationSpace);
+	FTransform JointTargetTransform = GetTargetTransform(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, JointTarget, JointTargetLocationSpace, JointTargetLocation);
 
 	FVector	JointTargetPos = JointTargetTransform.GetTranslation();
 
@@ -159,7 +141,7 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 			InOutTransform.NormalizeRotation();
 		};
 
-		const FCompactPoseBoneIndex UpperLimbParentIndex = BoneContainer.GetParentBoneIndex(UpperLimbIndex);
+		const FCompactPoseBoneIndex UpperLimbParentIndex = BoneContainer.GetParentBoneIndex(CachedUpperLimbIndex);
 		FVector AlignDir = TwistAxis.GetTransformedAxis(FTransform::Identity);
 		if (UpperLimbParentIndex != INDEX_NONE)
 		{
@@ -173,13 +155,13 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 	// Update transform for upper bone.
 	{
 		// Order important. First bone is upper limb.
-		OutBoneTransforms.Add( FBoneTransform(UpperLimbIndex, UpperLimbCSTransform) );
+		OutBoneTransforms.Add( FBoneTransform(CachedUpperLimbIndex, UpperLimbCSTransform) );
 	}
 
 	// Update transform for lower bone.
 	{
 		// Order important. Second bone is lower limb.
-		OutBoneTransforms.Add( FBoneTransform(LowerLimbIndex, LowerLimbCSTransform) );
+		OutBoneTransforms.Add( FBoneTransform(CachedLowerLimbIndex, LowerLimbCSTransform) );
 	}
 
 	// Update transform for end bone.
@@ -203,13 +185,62 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 
 bool FAnimNode_TwoBoneIK::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
-	// if both bones are valid
-	return (IKBone.IsValidToEvaluate(RequiredBones));
+	if (!IKBone.IsValidToEvaluate(RequiredBones))
+	{
+		return false;
+	}
+	
+	if (CachedUpperLimbIndex == INDEX_NONE || CachedLowerLimbIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	// check bone space here
+	if (EffectorLocationSpace == BCS_ParentBoneSpace || EffectorLocationSpace == BCS_BoneSpace)
+	{
+		if (!EffectorTarget.IsValidToEvaluate(RequiredBones))
+		{
+			return false;
+		}
+	}
+
+	if (JointTargetLocationSpace == BCS_ParentBoneSpace || JointTargetLocationSpace == BCS_BoneSpace)
+	{
+		if (!JointTarget.IsValidToEvaluate(RequiredBones))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void FAnimNode_TwoBoneIK::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
 	IKBone.Initialize(RequiredBones);
+
+	EffectorTarget.InitializeBoneReferences(RequiredBones);
+	JointTarget.InitializeBoneReferences(RequiredBones);
+
+	FCompactPoseBoneIndex IKBoneCompactPoseIndex = IKBone.GetCompactPoseIndex(RequiredBones);
+	CachedLowerLimbIndex = FCompactPoseBoneIndex(INDEX_NONE);
+	CachedUpperLimbIndex = FCompactPoseBoneIndex(INDEX_NONE);
+	if (IKBoneCompactPoseIndex != INDEX_NONE)
+	{
+		CachedLowerLimbIndex = RequiredBones.GetParentBoneIndex(IKBoneCompactPoseIndex);
+		if (CachedLowerLimbIndex != INDEX_NONE)
+		{
+			CachedUpperLimbIndex = RequiredBones.GetParentBoneIndex(CachedLowerLimbIndex);
+		}
+	}
+
+}
+
+void FAnimNode_TwoBoneIK::Initialize_AnyThread(const FAnimationInitializeContext& Context)
+{
+	Super::Initialize_AnyThread(Context);
+	EffectorTarget.Initialize(Context.AnimInstanceProxy);
+	JointTarget.Initialize(Context.AnimInstanceProxy);
 }
 
 #if WITH_EDITOR

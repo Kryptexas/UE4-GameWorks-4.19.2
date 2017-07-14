@@ -584,15 +584,15 @@ namespace MovementBaseUtility
 		{
 			if (const FBodyInstance* BodyInstance = MovementBase->GetBodyInstance(BoneName))
 			{
-				const FVector BaseAngVel = BodyInstance->GetUnrealWorldAngularVelocity();
-				if (!BaseAngVel.IsNearlyZero())
+				const FVector BaseAngVelInRad = BodyInstance->GetUnrealWorldAngularVelocityInRadians();
+				if (!BaseAngVelInRad.IsNearlyZero())
 				{
 					FVector BaseLocation;
 					FQuat BaseRotation;
 					if (MovementBaseUtility::GetMovementBaseTransform(MovementBase, BoneName, BaseLocation, BaseRotation))
 					{
 						const FVector RadialDistanceToBase = WorldLocation - BaseLocation;
-						const FVector TangentialVel = FVector::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+						const FVector TangentialVel = BaseAngVelInRad ^ RadialDistanceToBase;
 						return TangentialVel;
 					}
 				}

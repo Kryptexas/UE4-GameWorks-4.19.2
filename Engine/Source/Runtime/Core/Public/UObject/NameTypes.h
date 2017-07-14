@@ -929,7 +929,7 @@ public:
 	 * Inequality operator.
 	 *
 	 * @param	Other	String to compare this name to
-	 * @return true if name matches the string, false otherwise
+	 * @return true if name does not match the string, false otherwise
 	 */
 	template <typename CharType>
 	bool operator!=(const CharType* Other) const

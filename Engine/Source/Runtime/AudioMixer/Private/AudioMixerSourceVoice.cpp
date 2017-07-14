@@ -196,7 +196,7 @@ namespace Audio
 		return SourceManager->GetNumFramesPlayed(SourceId);
 	}
 
-	void FMixerSourceVoice::MixOutputBuffers(TArray<float>& OutWetBuffer, const float SendLevel) const
+	void FMixerSourceVoice::MixOutputBuffers(AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 

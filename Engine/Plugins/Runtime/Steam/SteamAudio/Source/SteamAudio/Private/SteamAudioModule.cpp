@@ -285,24 +285,24 @@ namespace SteamAudio
 		return true;
 	}
 
-	TSharedPtr<IAudioSpatialization> FSteamAudioModule::CreateSpatializationInterface(class FAudioDevice* AudioDevice)
+	TAudioSpatializationPtr FSteamAudioModule::CreateSpatializationInterface(class FAudioDevice* AudioDevice)
 	{
-		return SpatializationInstance = TSharedPtr<IAudioSpatialization>(new FPhononSpatialization());
+		return SpatializationInstance = TAudioSpatializationPtr(new FPhononSpatialization());
 	}
 
-	TSharedPtr<IAudioOcclusion> FSteamAudioModule::CreateOcclusionInterface(class FAudioDevice* AudioDevice)
+	TAudioOcclusionPtr FSteamAudioModule::CreateOcclusionInterface(class FAudioDevice* AudioDevice)
 	{
-		return OcclusionInstance = TSharedPtr<IAudioOcclusion>(new FPhononOcclusion());
+		return OcclusionInstance = TAudioOcclusionPtr(new FPhononOcclusion());
 	}
 
-	TSharedPtr<IAudioReverb> FSteamAudioModule::CreateReverbInterface(class FAudioDevice* AudioDevice)
+	TAudioReverbPtr FSteamAudioModule::CreateReverbInterface(class FAudioDevice* AudioDevice)
 	{
-		return ReverbInstance = TSharedPtr<IAudioReverb>(new FPhononReverb());
+		return ReverbInstance = TAudioReverbPtr(new FPhononReverb());
 	}
 
-	TSharedPtr<IAudioListenerObserver> FSteamAudioModule::CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
+	TAudioListenerObserverPtr FSteamAudioModule::CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
 	{
-		return ListenerObserverInstance = TSharedPtr<IAudioListenerObserver>(new FPhononListenerObserver());
+		return ListenerObserverInstance = TAudioListenerObserverPtr(new FPhononListenerObserver());
 	}
 
 	void FSteamAudioModule::SetSampleRate(const int32 InSampleRate)

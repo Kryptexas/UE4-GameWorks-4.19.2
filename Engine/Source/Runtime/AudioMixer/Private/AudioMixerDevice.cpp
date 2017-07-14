@@ -199,6 +199,11 @@ namespace Audio
 		return false;
 	}
 
+	void FMixerDevice::FadeIn()
+	{
+		AudioMixerPlatform->FadeIn();
+	}
+
 	void FMixerDevice::FadeOut()
 	{
 		AudioMixerPlatform->FadeOut();
@@ -314,9 +319,8 @@ namespace Audio
 		bDebugOutputEnabled = true;
 	}
 
-	bool FMixerDevice::OnProcessAudioStream(TArray<float>& Output)
+	bool FMixerDevice::OnProcessAudioStream(AlignedFloatBuffer& Output)
 	{
-	
 // Turn on to only hear PIE audio
 #if 0
 		if (IsMainAudioDevice())
@@ -902,7 +906,7 @@ namespace Audio
 		return bIsMain;
 	}
 
-	void FMixerDevice::WhiteNoiseTest(TArray<float>& Output)
+	void FMixerDevice::WhiteNoiseTest(AlignedFloatBuffer& Output)
 	{
 		const int32 NumFrames = OpenStreamParams.NumFrames;
 		const int32 NumChannels = PlatformInfo.NumChannels;
@@ -919,7 +923,7 @@ namespace Audio
 		}
 	}
 
-	void FMixerDevice::SineOscTest(TArray<float>& Output)
+	void FMixerDevice::SineOscTest(AlignedFloatBuffer& Output)
 	{
 		const int32 NumFrames = OpenStreamParams.NumFrames;
 		const int32 NumChannels = PlatformInfo.NumChannels;

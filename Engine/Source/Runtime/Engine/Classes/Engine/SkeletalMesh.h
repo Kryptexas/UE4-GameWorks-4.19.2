@@ -248,12 +248,26 @@ struct FSkeletalMeshOptimizationSettings
 	}
 };
 
+/** Struct holding parameters needed when creating a new clothing asset or sub asset (LOD) */
 USTRUCT()
 struct ENGINE_API FSkeletalMeshClothBuildParams
 {
 	GENERATED_BODY()
 
 	FSkeletalMeshClothBuildParams();
+
+	// Target asset when importing LODs
+	UPROPERTY(EditAnywhere, Category = Target)
+	TWeakObjectPtr<UClothingAssetBase> TargetAsset;
+
+	// Target LOD to import to when importing LODs
+	UPROPERTY(EditAnywhere, Category = Target)
+	int32 TargetLod;
+
+	// If reimporting, this will map the old LOD parameters to the new LOD mesh.
+	// If adding a new LOD this will map the parameters from the preceeding LOD.
+	UPROPERTY(EditAnywhere, Category = Target)
+	bool bRemapParameters;
 
 	// Name of the clothing asset 
 	UPROPERTY(EditAnywhere, Category = Basic)
@@ -274,15 +288,6 @@ struct ENGINE_API FSkeletalMeshClothBuildParams
 	// Physics asset to extract collisions from, note this will only extract spheres and Sphyls, as that is what the simulation supports.
 	UPROPERTY(EditAnywhere, Category = Collision)
 	TAssetPtr<UPhysicsAsset> PhysicsAsset;
-
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix)
-	bool bTryAutoFix;
-
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix, meta = (EditCondition = "bTryAutoFix"))
-	float AutoFixThreshold;
-
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = AutoFix, meta = (EditCondition = "bTryAutoFix"))
-	float SimulatedParticleMaxDistance;
 };
 
 /** Struct containing information for a particular LOD level, such as materials and info for when to use it. */
@@ -767,8 +772,14 @@ public:
 	/* Get the index in the clothing asset array for a given asset GUID (INDEX_NONE if there is no match) */
 	ENGINE_API int32 GetClothingAssetIndex(const FGuid& InAssetGuid) const;
 
+	/* Get whether or not any bound clothing assets exist for this mesh **/
+	ENGINE_API bool HasActiveClothingAssets() const;
+
 	/** Populates OutClothingAssets with all clothing assets that are mapped to sections in the mesh. */
 	ENGINE_API void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
+
+	/** Adds an asset to this mesh with validation and event broadcast */
+	ENGINE_API void AddClothingAsset(UClothingAssetBase* InNewAsset);
 
 protected:
 
@@ -1056,6 +1067,20 @@ private:
 	* since its a section flag.
 	*/
 	void MoveMaterialFlagsToSections();
+
+#if WITH_EDITOR
+	public:
+		/** Delegates for asset editor events */
+
+		ENGINE_API FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
+		ENGINE_API void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
+
+	private:
+
+		/** Called to notify a change to the clothing object array */
+		FSimpleMulticastDelegate OnClothingChange;
+
+#endif // WITH_EDITOR
 };
 
 

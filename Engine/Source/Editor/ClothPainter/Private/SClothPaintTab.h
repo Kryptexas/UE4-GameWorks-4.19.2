@@ -37,6 +37,9 @@ protected:
 	/** Called from the details panel holding the asset config so we can respond to a config change */
 	void OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent);
 
+	/** Whether or not the asset config section is enabled for editing */
+	bool IsAssetDetailsPanelEnabled();
+
 	/** Helpers for getting editor objects */
 	ISkeletalMeshEditor* GetSkeletalMeshEditor() const;
 	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const;

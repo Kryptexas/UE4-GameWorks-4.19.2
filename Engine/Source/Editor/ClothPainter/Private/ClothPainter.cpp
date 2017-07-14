@@ -378,9 +378,9 @@ FMeshPaintParameters FClothPainter::CreatePaintParameters(const FHitResult& HitR
 		Params.BrushDepthFalloffRange = BrushSettings->BrushFalloffAmount * BrushDepth;
 		Params.InnerBrushDepth = BrushDepth - Params.BrushDepthFalloffRange;
 		Params.BrushStrength = BrushStrength;
-		Params.BrushToWorldMatrix = FMatrix(BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition);
-		Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();		
 		Params.BrushNormal = HitResult.Normal;
+		Params.BrushToWorldMatrix = FMatrix(BrushXAxis, BrushYAxis, Params.BrushNormal, Params.BrushPosition);
+		Params.InverseBrushToWorldMatrix = Params.BrushToWorldMatrix.InverseFast();
 	}
 
 	return Params;

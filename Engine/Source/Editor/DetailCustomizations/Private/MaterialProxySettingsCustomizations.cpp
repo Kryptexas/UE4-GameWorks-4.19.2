@@ -8,6 +8,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
+#include "RHI.h"
 
 #define LOCTEXT_NAMESPACE "MaterialProxySettingsCustomizations"
 
@@ -65,18 +66,20 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 
 	auto Parent = StructPropertyHandle->GetParentHandle();
 	
-	for( auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter  )
+	for( auto Iter(PropertyHandles.CreateIterator()); Iter; ++Iter  )
 	{
 		// Handle special property cases (done inside the loop to maintain order according to the struct
 		if (PropertyTextureSizeHandles.Contains(Iter.Value()))
 		{
 			IDetailPropertyRow& SizeRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 			SizeRow.Visibility(TAttribute<EVisibility>(this, &FMaterialProxySettingsCustomizations::AreManualOverrideTextureSizesEnabled));
+			AddTextureSizeClamping(Iter.Value());
 		}
 		else if (Iter.Value() == TextureSizeHandle)
 		{
 			IDetailPropertyRow& SettingsRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 			SettingsRow.Visibility(TAttribute<EVisibility>(this, &FMaterialProxySettingsCustomizations::IsTextureSizeEnabled));
+			AddTextureSizeClamping(Iter.Value());
 		}
 		else if (Iter.Value() == GutterSpaceHandle)
 		{
@@ -90,6 +93,26 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 		}
 	}	
 
+}
+
+void FMaterialProxySettingsCustomizations::AddTextureSizeClamping(TSharedPtr<IPropertyHandle> TextureSizeProperty)
+{
+	TSharedPtr<IPropertyHandle> PropertyX = TextureSizeProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FIntPoint, X));
+	TSharedPtr<IPropertyHandle> PropertyY = TextureSizeProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FIntPoint, Y));
+
+	const FString MaxTextureResolutionString = FString::FromInt(GetMax2DTextureDimension());
+	TextureSizeProperty->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	TextureSizeProperty->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("ClampMax"), *MaxTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("UIMax"), *MaxTextureResolutionString);
+
+	const FString MinTextureResolutionString("1");
+	PropertyX->GetProperty()->SetMetaData(TEXT("ClampMin"), *MinTextureResolutionString);
+	PropertyX->GetProperty()->SetMetaData(TEXT("UIMin"), *MinTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("ClampMin"), *MinTextureResolutionString);
+	PropertyY->GetProperty()->SetMetaData(TEXT("UIMin"), *MinTextureResolutionString);
 }
 
 EVisibility FMaterialProxySettingsCustomizations::AreManualOverrideTextureSizesEnabled() const

@@ -155,17 +155,8 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 
 	// Imported meshes will have a filled RawMeshBulkData set
 	const bool bImportedMesh = !StaticMeshModel.RawMeshBulkData->IsEmpty();
-	// Check whether or not this mesh has been reduced in-engine
-	const bool bReducedMesh = (StaticMeshModel.ReductionSettings.PercentTriangles < 1.0f);
-	// Trying to retrieve rawmesh from SourceStaticMeshModel was giving issues, which causes a mismatch			
-	const bool bRenderDataMismatch = (LODIndex > 0) || StaticMeshModel.BuildSettings.bGenerateLightmapUVs;
-
-	// Legacy way of retrieving raw mesh data 
-	/*if (bImportedMesh && !bIsSplineMeshComponent && !bReducedMesh && !bRenderDataMismatch)
-	{
-		StaticMeshModel.RawMeshBulkData->LoadRawMesh(RawMesh);
-	}*/
-	
+		
+	// Export the raw mesh data using static mesh render data
 	ExportStaticMeshLOD(StaticMesh->RenderData->LODResources[LODIndex], RawMesh);	
 
 	// Make sure the raw mesh is not irreparably malformed.
@@ -212,8 +203,8 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 	const bool bIsMirrored = ComponentToWorldTransform.GetDeterminant() < 0.f;
 
 	// Figure out if we should recompute normals and tangents. By default generated LODs should not recompute normals	
-	bool bRecomputeNormals = (bImportedMesh && BuildSettings.bRecomputeNormals) || RawMesh.WedgeTangentZ.Num() == 0 || bIsMirrored;
-	bool bRecomputeTangents = (bImportedMesh && BuildSettings.bRecomputeTangents) || RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0 || bIsMirrored;
+	const bool bRecomputeNormals = RawMesh.WedgeTangentZ.Num() == 0 || bIsMirrored;
+	const bool bRecomputeTangents = RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0 || bIsMirrored;
 
 	if (bRecomputeNormals || bRecomputeTangents)
 	{

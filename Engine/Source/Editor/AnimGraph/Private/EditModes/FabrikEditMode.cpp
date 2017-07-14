@@ -25,35 +25,23 @@ FVector FFabrikEditMode::GetWidgetLocation() const
 {
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
 
-	FName& BoneName = GraphNode->Node.EffectorTransformBone.BoneName;
-	FVector Location = GraphNode->Node.EffectorTransform.GetLocation();
-	EBoneControlSpace Space = GraphNode->Node.EffectorTransformSpace;
-	FVector WidgetLoc = ConvertWidgetLocation(SkelComp, RuntimeNode->ForwardedPose, BoneName, Location, Space);
+	FBoneSocketTarget& Target = RuntimeNode->EffectorTarget;
+	FVector Location = RuntimeNode->EffectorTransform.GetLocation();
+	EBoneControlSpace Space = RuntimeNode->EffectorTransformSpace;
+	FVector WidgetLoc = ConvertWidgetLocation(SkelComp, RuntimeNode->ForwardedPose, Target, Location, Space);
 	return WidgetLoc;
 }
 
 FWidget::EWidgetMode FFabrikEditMode::GetWidgetMode() const
 {
-	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-	int32 BoneIndex = SkelComp->GetBoneIndex(GraphNode->Node.EffectorTransformBone.BoneName);
-
-	if (BoneIndex != INDEX_NONE)
-	{
-		return FWidget::WM_Translate;
-	}
-
-	return FWidget::WM_None;
-}
-
-FName FFabrikEditMode::GetSelectedBone() const
-{
-	return GraphNode->Node.EffectorTransformBone.BoneName;
+	// allow translation all the time for effectot target
+	return FWidget::WM_Translate;
 }
 
 void FFabrikEditMode::DoTranslation(FVector& InTranslation)
 {
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-	FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, RuntimeNode->ForwardedPose, GraphNode->Node.EffectorTransformBone.BoneName, GraphNode->Node.EffectorTransformSpace);
+	FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, InTranslation, RuntimeNode->ForwardedPose, RuntimeNode->EffectorTarget, RuntimeNode->EffectorTransformSpace);
 
 	RuntimeNode->EffectorTransform.AddToTranslation(Offset);
 	GraphNode->Node.EffectorTransform.SetTranslation(RuntimeNode->EffectorTransform.GetTranslation());

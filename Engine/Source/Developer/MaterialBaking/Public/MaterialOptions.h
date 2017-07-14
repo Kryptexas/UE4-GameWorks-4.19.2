@@ -41,7 +41,7 @@ struct FPropertyEntry
 	bool bUseCustomSize;
 
 	/** Defines the size of the output textures for the baked out material properties */
-	UPROPERTY(EditAnywhere, Category = Property, BlueprintReadWrite, meta = (EditCondition = bUseCustomSize, ExposeOnSpawn))
+	UPROPERTY(EditAnywhere, Category = Property, BlueprintReadWrite, meta = (EditCondition = bUseCustomSize, ExposeOnSpawn, ClampMin = "1", UIMin = "1"))
 	FIntPoint CustomSize;
 
 	/** Wheter or not to use Constant Value as the final 'baked out' value for the this property */
@@ -73,7 +73,7 @@ public:
 	TArray<FPropertyEntry> Properties;
 
 	/** Size of the final texture(s) containing the baked out property data */
-	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category = MaterialSettings, meta = (ExposeOnSpawn))
+	UPROPERTY(EditAnywhere, config, BlueprintReadWrite, Category = MaterialSettings, meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1"))
 	FIntPoint TextureSize;
 
 	/** LOD indices for which the materials should be baked out */

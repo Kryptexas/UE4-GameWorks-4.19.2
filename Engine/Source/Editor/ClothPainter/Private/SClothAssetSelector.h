@@ -43,6 +43,8 @@ public:
 		SLATE_EVENT(FOnClothAssetSelectionChanged, OnSelectionChanged)
 	SLATE_END_ARGS()
 
+	~SClothAssetSelector();
+
 	void Construct(const FArguments& InArgs, USkeletalMesh* InMesh);
 
 	TWeakObjectPtr<UClothingAsset> GetSelectedAsset() const;
@@ -100,4 +102,7 @@ protected:
 	int32 SelectedMask;
 
 	FOnClothAssetSelectionChanged OnSelectionChanged;
+
+	// Handle for mesh event callback when clothing changes.
+	FDelegateHandle MeshClothingChangedHandle;
 };

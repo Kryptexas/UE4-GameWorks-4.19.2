@@ -1148,7 +1148,7 @@ public:
 	virtual bool CanEditSimulatePhysics() override;
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	virtual void UpdatePhysicsToRBChannels() override;
-	virtual void SetAllPhysicsAngularVelocity(FVector const& NewVel, bool bAddToCurrent = false) override;
+	virtual void SetAllPhysicsAngularVelocityInRadians(FVector const& NewVel, bool bAddToCurrent = false) override;
 	virtual void SetAllPhysicsPosition(FVector NewPos) override;
 	virtual void SetAllPhysicsRotation(FRotator NewRot) override;
 	virtual void SetAllPhysicsRotation(const FQuat& NewRot) override;

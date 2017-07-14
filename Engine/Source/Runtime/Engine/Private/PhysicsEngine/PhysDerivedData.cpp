@@ -27,30 +27,38 @@ FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookF
 	bGenerateNormalMesh = BodySetup->bGenerateNonMirroredCollision;
 	bGenerateMirroredMesh = BodySetup->bGenerateMirroredCollision;
 	bGenerateUVInfo = UPhysicsSettings::Get()->bSupportUVFromHitResults;
+	BodyComplexity = (int32)BodySetup->GetCollisionTraceFlag();
 	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
 	if (CDP)
 	{
 		CDP->GetMeshId(MeshId);
 	}
 	InitCooker();
+
+	bVerifyDDC = FParse::Param(FCommandLine::Get(), TEXT("VerifyDDC"));
 }
 
 void FDerivedDataPhysXCooker::InitCooker()
 {
-#if WITH_EDITOR
 	// static here as an optimization
 	static ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	if (TPM)
 	{
 		Cooker = TPM->FindPhysXCooking( Format );
 	}
-#elif WITH_PHYSX_COOKING
-	IPhysXCookingModule* Module = FModuleManager::LoadModulePtr<IPhysXCookingModule>("PhysXCooking");
-	if (Module)
+}
+
+FString FDerivedDataPhysXCooker::GetDebugContextString() const
+{
+	if (BodySetup)
 	{
-		Cooker = Module->GetPhysXCooking();
+		UObject* Outer = BodySetup->GetOuter();
+		if (Outer)
+		{
+			return Outer->GetFullName();
+		}
 	}
-#endif
+	return TEXT("Unknown Context");
 }
 
 bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
@@ -59,7 +67,7 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 
 	check(Cooker != NULL);
 
-	if(bIsRuntime)
+	if(bIsRuntime && !bVerifyDDC)
 	{
 		return false;
 	}

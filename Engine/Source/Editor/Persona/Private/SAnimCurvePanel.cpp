@@ -438,13 +438,11 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 				const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
 				// If requested name exists, make sure it's not currently in use in this sequence.
-				SmartName::UID_Type RequestedNameUID;
+				SmartName::UID_Type RequestedNameUID = NameMapping->FindUID(RequestedName);
 				FGuid RequestedNameGuid;
 
-				if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
+				if (RequestedNameUID != SmartName::MaxUID)
 				{
-					RequestedNameUID = *RequestedNameUIDPtr;
-
 					FSmartName ExistingName;
 					bool bFoundSmartName = NameMapping->FindSmartNameByUID(RequestedNameUID, ExistingName);
 					check(bFoundSmartName);

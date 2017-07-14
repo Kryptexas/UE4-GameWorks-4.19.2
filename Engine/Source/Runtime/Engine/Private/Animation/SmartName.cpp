@@ -218,9 +218,13 @@ bool FSmartNameMapping::Exists(const FName& Name) const
 	return UidMap.FindKey(Name) != nullptr;
 }
 
-const SmartName::UID_Type* FSmartNameMapping::FindUID(const FName& Name) const
+SmartName::UID_Type FSmartNameMapping::FindUID(const FName& Name) const
 {
-	return UidMap.FindKey(Name);
+	if (const SmartName::UID_Type* Uid = UidMap.FindKey(Name))
+	{
+		return *Uid;
+	}
+	return SmartName::MaxUID;
 }
 
 FArchive& operator<<(FArchive& Ar, FSmartNameMapping& Elem)
@@ -268,14 +272,14 @@ bool FSmartNameMapping::FindOrAddSmartName(FName Name, SmartName::UID_Type& OutU
 
 bool FSmartNameMapping::FindSmartName(FName Name, FSmartName& OutName) const
 {
-	const SmartName::UID_Type* ExistingUID = FindUID(Name);
-	if (ExistingUID)
+	SmartName::UID_Type ExistingUID = FindUID(Name);
+	if (ExistingUID != SmartName::MaxUID)
 	{
 #if WITH_EDITOR
 		const FGuid* ExistingGuid = GuidMap.Find(Name);
-		OutName = FSmartName(Name, *ExistingUID, *ExistingGuid);
+		OutName = FSmartName(Name, ExistingUID, *ExistingGuid);
 #else
-		OutName = FSmartName(Name, *ExistingUID);
+		OutName = FSmartName(Name, ExistingUID);
 #endif // WITH_EDITOR
 		return true;
 	}

@@ -11,6 +11,12 @@
 
 #define LOCTEXT_NAMESPACE "LiveLinkAnimNode"
 
+FAnimNode_LiveLinkPose::FAnimNode_LiveLinkPose() 
+	: RetargetAsset(ULiveLinkRemapAsset::StaticClass())
+	, LiveLinkClient(nullptr)
+{
+}
+
 void FAnimNode_LiveLinkPose::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 	IModularFeatures& ModularFeatures = IModularFeatures::Get();
@@ -20,18 +26,22 @@ void FAnimNode_LiveLinkPose::Initialize_AnyThread(const FAnimationInitializeCont
 		LiveLinkClient = &IModularFeatures::Get().GetModularFeature<ILiveLinkClient>(ILiveLinkClient::ModularFeatureName);
 	}
 
-	PreviousRetargetAsset = nullptr;
+	CurrentRetargetAsset = nullptr;
 }
 
 void FAnimNode_LiveLinkPose::Update_AnyThread(const FAnimationUpdateContext & Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	ULiveLinkRetargetAsset* CurrentRetargetAsset = RetargetAsset ? RetargetAsset : ULiveLinkRemapAsset::StaticClass()->GetDefaultObject<ULiveLinkRetargetAsset>();
-	if (PreviousRetargetAsset != CurrentRetargetAsset)
+	// Protection as a class graph pin does not honour rules on abstract classes and NoClear
+	if (!RetargetAsset.Get() || RetargetAsset.Get()->HasAnyClassFlags(CLASS_Abstract))
 	{
-		RetargetContext = CurrentRetargetAsset->CreateRetargetContext();
-		PreviousRetargetAsset = CurrentRetargetAsset;
+		RetargetAsset = ULiveLinkRemapAsset::StaticClass();
+	}
+
+	if (!CurrentRetargetAsset || RetargetAsset != CurrentRetargetAsset->GetClass())
+	{
+		CurrentRetargetAsset = NewObject<ULiveLinkRetargetAsset>(Context.AnimInstanceProxy->GetAnimInstanceObject(), *RetargetAsset);
 	}
 }
 
@@ -39,7 +49,7 @@ void FAnimNode_LiveLinkPose::Evaluate_AnyThread(FPoseContext& Output)
 {
 	Output.ResetToRefPose();
 
-	if (!LiveLinkClient || !PreviousRetargetAsset)
+	if (!LiveLinkClient || !CurrentRetargetAsset)
 	{
 		return;
 	}
@@ -48,7 +58,7 @@ void FAnimNode_LiveLinkPose::Evaluate_AnyThread(FPoseContext& Output)
 
 	if(const FLiveLinkSubjectFrame* Subject = LiveLinkClient->GetSubjectData(SubjectName))
 	{
-		PreviousRetargetAsset->BuildPoseForSubject(*Subject, RetargetContext, Output.Pose, Output.Curve);
+		CurrentRetargetAsset->BuildPoseForSubject(*Subject, Output.Pose, Output.Curve);
 	}
 }
 

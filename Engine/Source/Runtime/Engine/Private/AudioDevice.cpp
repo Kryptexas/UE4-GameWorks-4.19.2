@@ -226,12 +226,13 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	TArray<IAudioPlugin *> AudioPlugins = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
 	for (IAudioPlugin* Plugin : AudioPlugins)
 	{
+#if WITH_EDITOR
 		// If the plugin doesn't support multiple instances, and this is the main audio device, then break. We'll only use it for PIE.
 		if (!Plugin->SupportsMultipleAudioDevices() && IsMainAudioDevice())
 		{
 			break;
 		}
-
+#endif
 		// Store the ptr to the audio plugin we're using
 		AudioPlugin = Plugin;
 

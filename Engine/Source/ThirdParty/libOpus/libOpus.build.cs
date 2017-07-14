@@ -17,7 +17,7 @@ public class libOpus : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			LibraryPath += "win32/VS2012/";
+			LibraryPath += "Windows/VS2012/";
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
 				LibraryPath += "x64/";

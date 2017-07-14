@@ -293,12 +293,6 @@ void FIOSAudioSoundSource::Stop(void)
 
 	if (WaveInstance)
 	{
-		
-		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
-
-		// At this point we are no longer in the render callback and we will not re-enter it either
-		
-		// This will turn off audio callbacks
 		Pause();
 
 		Paused = false;

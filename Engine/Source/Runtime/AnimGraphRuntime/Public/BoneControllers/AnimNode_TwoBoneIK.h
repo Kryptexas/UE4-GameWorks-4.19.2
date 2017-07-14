@@ -25,53 +25,58 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 	UPROPERTY(EditAnywhere, Category=IK)
 	FBoneReference IKBone;
 
-	/** Effector Location. Target Location to reach. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector, meta=(PinShownByDefault))
-	FVector EffectorLocation;
-
-	/** Joint Target Location. Location used to orient Joint bone. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = JointTarget, meta=(PinShownByDefault))
-	FVector JointTargetLocation;
-
-	/** If EffectorLocationSpace is a bone, this is the bone to use. **/
-	UPROPERTY(EditAnywhere, Category=EndEffector)
-	FName EffectorSpaceBoneName;
-
-	/** Set end bone to use End Effector rotation */
-	UPROPERTY(EditAnywhere, Category=EndEffector)
-	uint32 bTakeRotationFromEffectorSpace:1;
-
-	/** Keep local rotation of end bone */
-	UPROPERTY(EditAnywhere, Category=EndEffector)
-	uint32 bMaintainEffectorRelRot:1;
-
 	/** Should stretching be allowed, to be prevent over extension */
 	UPROPERTY(EditAnywhere, Category=IK)
 	uint32 bAllowStretching:1;
-
-	/** Limits to use if stretching is allowed - old property DEPRECATED */
-	UPROPERTY()
-	FVector2D StretchLimits_DEPRECATED;
 
 	/** Limits to use if stretching is allowed. This value determines when to start stretch. For example, 0.9 means once it reaches 90% of the whole length of the limb, it will start apply. */
 	UPROPERTY(EditAnywhere, Category=IK, meta = (editcondition = "bAllowStretching", ClampMin = "0.0", UIMin = "0.0"))
 	float StartStretchRatio;
 
 	/** Limits to use if stretching is allowed. This value determins what is the max stretch scale. For example, 1.5 means it will stretch until 150 % of the whole length of the limb.*/
-	UPROPERTY(EditAnywhere, Category = IK, meta = (editcondition = "bAllowStretching", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, Category= IK, meta = (editcondition = "bAllowStretching", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxStretchScale;
 
-	/** Reference frame of Effector Location. */
+	/** Limits to use if stretching is allowed - old property DEPRECATED */
+	UPROPERTY()
+	FVector2D StretchLimits_DEPRECATED;
+
+	/** Set end bone to use End Effector rotation */
+	UPROPERTY(EditAnywhere, Category=IK)
+	uint32 bTakeRotationFromEffectorSpace : 1;
+
+	/** Keep local rotation of end bone */
 	UPROPERTY(EditAnywhere, Category = IK)
+	uint32 bMaintainEffectorRelRot : 1;
+
+	/** Reference frame of Effector Location. */
+	UPROPERTY(EditAnywhere, Category=Effector)
 	TEnumAsByte<enum EBoneControlSpace> EffectorLocationSpace;
+	/** If EffectorLocationSpace is a bone, this is the bone to use. **/
+	UPROPERTY()
+	FName EffectorSpaceBoneName_DEPRECATED;
+
+	/** Effector Location. Target Location to reach. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effector, meta = (PinShownByDefault))
+	FVector EffectorLocation;
+
+	UPROPERTY(EditAnywhere, Category=Effector)
+	FBoneSocketTarget EffectorTarget;
 
 	/** Reference frame of Joint Target Location. */
 	UPROPERTY(EditAnywhere, Category=JointTarget)
 	TEnumAsByte<enum EBoneControlSpace> JointTargetLocationSpace;
 
+	/** Joint Target Location. Location used to orient Joint bone. **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget, meta=(PinShownByDefault))
+	FVector JointTargetLocation;
+
 	/** If JointTargetSpaceBoneName is a bone, this is the bone to use. **/
-	UPROPERTY(EditAnywhere, Category=JointTarget)
-	FName JointTargetSpaceBoneName;
+	UPROPERTY()
+	FName JointTargetSpaceBoneName_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, Category = JointTarget)
+	FBoneSocketTarget JointTarget;
 
 	/** Whether or not to apply twist on the chain of joints. This clears the twist value along the TwistAxis */
 	UPROPERTY(EditAnywhere, Category = IK)
@@ -85,6 +90,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 
 	// FAnimNode_Base interface
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
@@ -94,7 +100,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 	void ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* MeshComp) const;
 #endif // WITH_EDITOR
 	// End of FAnimNode_SkeletalControlBase interface
-
+	static FTransform GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FVector& InOffset);
 private:
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
@@ -104,4 +110,8 @@ private:
 	FVector CachedJoints[3];
 	FVector CachedJointTargetPos;
 #endif // WITH_EDITOR
+
+	// cached limb index for lower/upper
+	FCompactPoseBoneIndex CachedUpperLimbIndex;
+	FCompactPoseBoneIndex CachedLowerLimbIndex;
 };

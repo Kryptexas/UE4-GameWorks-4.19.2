@@ -22,10 +22,10 @@ namespace SteamAudio
 		virtual bool ImplementsOcclusion() const override;
 		virtual bool ImplementsReverb() const override;
 
-		virtual TSharedPtr<IAudioSpatialization> CreateSpatializationInterface(class FAudioDevice* AudioDevice) override;
-		virtual TSharedPtr<IAudioOcclusion> CreateOcclusionInterface(class FAudioDevice* AudioDevice) override;
-		virtual TSharedPtr<IAudioReverb> CreateReverbInterface(class FAudioDevice* AudioDevice) override;
-		virtual TSharedPtr<IAudioListenerObserver> CreateListenerObserverInterface(class FAudioDevice* AudioDevice) override;
+		virtual TAudioSpatializationPtr CreateSpatializationInterface(class FAudioDevice* AudioDevice) override;
+		virtual TAudioOcclusionPtr CreateOcclusionInterface(class FAudioDevice* AudioDevice) override;
+		virtual TAudioReverbPtr CreateReverbInterface(class FAudioDevice* AudioDevice) override;
+		virtual TAudioListenerObserverPtr CreateListenerObserverInterface(class FAudioDevice* AudioDevice) override;
 
 		void CreateEnvironment(UWorld* World, FAudioDevice* InAudioDevice);
 		void DestroyEnvironment(FAudioDevice* InAudioDevice);
@@ -40,10 +40,10 @@ namespace SteamAudio
 	private:
 		static void* PhononDllHandle;
 
-		TSharedPtr<IAudioSpatialization> SpatializationInstance;
-		TSharedPtr<IAudioOcclusion> OcclusionInstance;
-		TSharedPtr<IAudioReverb> ReverbInstance;
-		TSharedPtr<IAudioListenerObserver> ListenerObserverInstance;
+		TAudioSpatializationPtr SpatializationInstance;
+		TAudioOcclusionPtr OcclusionInstance;
+		TAudioReverbPtr ReverbInstance;
+		TAudioListenerObserverPtr ListenerObserverInstance;
 
 		int32 SampleRate;
 		FAudioDevice* OwningAudioDevice;

@@ -1292,13 +1292,7 @@ SmartName::UID_Type USkeleton::GetUIDByName(const FName& ContainerName, const FN
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
 	{
-		if (const SmartName::UID_Type* UID = RequestedMapping->FindUID(Name))
-		{
-			if (UID)
-			{
-				return *UID;
-			}
-		}
+		return RequestedMapping->FindUID(Name);
 	}
 
 	return SmartName::MaxUID;

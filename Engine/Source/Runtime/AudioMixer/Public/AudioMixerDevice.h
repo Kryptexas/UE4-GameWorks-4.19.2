@@ -51,6 +51,7 @@ namespace Audio
 		//~ Begin FAudioDevice
 		virtual void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const override;
 		virtual bool InitializeHardware() override;
+		virtual void FadeIn() override;
 		virtual void FadeOut() override;
 		virtual void TeardownHardware() override;
 		virtual void UpdateHardware() override;
@@ -82,7 +83,7 @@ namespace Audio
 		//~ End FAudioDevice
 
 		//~ Begin IAudioMixer
-		bool OnProcessAudioStream(TArray<float>& OutputBuffer) override;
+		virtual bool OnProcessAudioStream(AlignedFloatBuffer& OutputBuffer) override;
 		//~ End IAudioMixer
 
 		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);
@@ -143,8 +144,8 @@ namespace Audio
 
 		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);
 
-		void WhiteNoiseTest(TArray<float>& Output);
-		void SineOscTest(TArray<float>& Output);
+		void WhiteNoiseTest(AlignedFloatBuffer& Output);
+		void SineOscTest(AlignedFloatBuffer& Output);
 
 		bool IsMainAudioDevice() const;
 

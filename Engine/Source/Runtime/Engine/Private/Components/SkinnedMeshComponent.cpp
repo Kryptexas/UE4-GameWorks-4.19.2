@@ -2851,13 +2851,6 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 	OptimizeMode = TrailMode;
 	ThisTickDelta = DeltaTime;
 
-	const int32 ForceAnimRate = FAnimUpdateRateManager::CVarForceAnimRate.GetValueOnGameThread();
-	if (ForceAnimRate > 0)
-	{
-		NewUpdateRate = ForceAnimRate;
-		NewEvaluationRate = ForceAnimRate;
-	}
-
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
 	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);

@@ -2323,14 +2323,14 @@ void FSkeletalMeshResource::SyncUVChannelData(const TArray<FSkeletalMaterial>& O
 #endif
 
 FSkeletalMeshClothBuildParams::FSkeletalMeshClothBuildParams()
-	: AssetName("Clothing")
+	: TargetAsset(nullptr)
+	, TargetLod(INDEX_NONE)
+	, bRemapParameters(false)
+	, AssetName("Clothing")
 	, LodIndex(0)
 	, SourceSection(0)
 	, bRemoveFromMesh(false)
 	, PhysicsAsset(nullptr)
-	, bTryAutoFix(0)
-	, AutoFixThreshold(0.0f)
-	, SimulatedParticleMaxDistance(1.0f)
 {
 
 }
@@ -2420,6 +2420,20 @@ void USkeletalMesh::ValidateBoundsExtension()
 	NegativeBoundsExtension.Z = FMath::Clamp(NegativeBoundsExtension.Z, -HalfExtent.Z, MAX_flt);
 }
 
+void USkeletalMesh::AddClothingAsset(UClothingAssetBase* InNewAsset)
+{
+	// Check the outer is us
+	if(InNewAsset && InNewAsset->GetOuter() == this)
+	{
+		// Ok this should be a correctly created asset, we can add it
+		MeshClothingAssets.AddUnique(InNewAsset);
+
+#if WITH_EDITOR
+		OnClothingChange.Broadcast();
+#endif
+	}
+}
+
 void USkeletalMesh::RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex)
 {
 	UClothingAssetBase* Asset = GetSectionClothingAsset(InLodIndex, InSectionIndex);
@@ -2428,6 +2442,10 @@ void USkeletalMesh::RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex)
 	{
 		Asset->UnbindFromSkeletalMesh(this, InLodIndex);
 		MeshClothingAssets.Remove(Asset);
+
+#if WITH_EDITOR
+		OnClothingChange.Broadcast();
+#endif
 	}
 }
 
@@ -2526,6 +2544,28 @@ int32 USkeletalMesh::GetClothingAssetIndex(const FGuid& InAssetGuid) const
 	}
 
 	return INDEX_NONE;
+}
+
+bool USkeletalMesh::HasActiveClothingAssets() const
+{
+	if(FSkeletalMeshResource* Resource = GetImportedResource())
+	{
+		for(FStaticLODModel& LodModel : Resource->LODModels)
+		{
+			int32 NumNonClothingSections = LodModel.NumNonClothingSections();
+			for(int32 SectionIdx = 0; SectionIdx < NumNonClothingSections; ++SectionIdx)
+			{
+				FSkelMeshSection& Section = LodModel.Sections[SectionIdx];
+
+				if(Section.ClothingData.AssetGuid.IsValid())
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void USkeletalMesh::GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const
@@ -3526,7 +3566,7 @@ void USkeletalMesh::PostLoad()
 				// Pull the path across so reimports work as expected
 				NewAsset->ImportedFilePath = OldAssetData.ApexFileName;
 
-				MeshClothingAssets.Add(NewAsset);
+				AddClothingAsset(NewAsset);
 			}
 		}
 
@@ -4029,6 +4069,18 @@ void USkeletalMesh::MoveMaterialFlagsToSections()
 		}
 	}
 }
+
+#if WITH_EDITOR
+FDelegateHandle USkeletalMesh::RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate)
+{
+	return OnClothingChange.Add(InDelegate);
+}
+
+void USkeletalMesh::UnregisterOnClothingChange(const FDelegateHandle& InHandle)
+{
+	OnClothingChange.Remove(InHandle);
+}
+#endif
 
 bool USkeletalMesh::AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const
 {

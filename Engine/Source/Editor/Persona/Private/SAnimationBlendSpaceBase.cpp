@@ -80,7 +80,7 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 }
 
-void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector& NewValue)
+void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector& NewValue, bool bIsInteractive)
 {
 	bool bMoveSuccesful = true;
 	if (BlendSpace->IsValidBlendSampleIndex(SampleIndex) && BlendSpace->GetBlendSample(SampleIndex).SampleValue != NewValue && !BlendSpace->IsTooCloseToExistingSamplePoint(NewValue, SampleIndex))

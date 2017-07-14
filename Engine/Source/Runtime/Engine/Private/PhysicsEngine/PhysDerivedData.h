@@ -30,10 +30,12 @@ private:
 	bool bGenerateMirroredMesh;
 	bool bGenerateUVInfo;
 	EPhysXMeshCookFlags RuntimeCookFlags;
+	int32 BodyComplexity;
 	const class IPhysXCooking* Cooker;
 	FGuid DataGuid;
 	FString MeshId;
 	bool bIsRuntime;
+	bool bVerifyDDC;
 
 public:
 	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup, bool InIsRuntime);
@@ -63,7 +65,7 @@ public:
 				((PX_PHYSICS_VERSION_BUGFIX & 0xF) << 4) |
 				((UE_PHYSX_DERIVEDDATA_VER	& 0xF));
 
-		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%hu_%hu"),
+		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%d_%hu_%hu"),
 			*Format.ToString(),
 			*DataGuid.ToString(),
 			*MeshId,
@@ -71,6 +73,7 @@ public:
 			(int32)bGenerateMirroredMesh,
 			(int32)bGenerateUVInfo,
 			(int32)RuntimeCookFlags,
+			BodyComplexity,
 			PhysXVersion,
 			Cooker ? Cooker->GetVersion( Format ) : 0xffff
 			);
@@ -81,6 +84,13 @@ public:
 	{
 		return false;
 	}
+
+	virtual bool IsDeterministic() const override
+	{
+		return true;
+	}
+
+	virtual FString GetDebugContextString() const override;
 
 	virtual bool Build( TArray<uint8>& OutData ) override;
 

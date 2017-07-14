@@ -237,7 +237,7 @@ TSharedPtr<SWidget> SBlendSpaceGridWidget::CreateGridEntryBox(const int32 BoxInd
 		.Value(this, &SBlendSpaceGridWidget::GetInputBoxValue, BoxIndex)
 		.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 		.OnValueCommitted(this, &SBlendSpaceGridWidget::OnInputBoxValueCommited, BoxIndex)
-		.OnValueChanged(this, &SBlendSpaceGridWidget::OnInputBoxValueChanged, BoxIndex)
+		.OnValueChanged(this, &SBlendSpaceGridWidget::OnInputBoxValueChanged, BoxIndex, true)
 		.LabelVAlign(VAlign_Center)
 		.AllowSpin(true)
 		.MinValue(this, &SBlendSpaceGridWidget::GetInputBoxMinValue, BoxIndex)
@@ -638,10 +638,7 @@ FReply SBlendSpaceGridWidget::OnMouseMove(const FGeometry& MyGeometry, const FPo
 			ShowToolTip();			
 
 			// Set flag for showing advanced preview info in tooltip
-			if (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown())
-			{
-				bAdvancedPreview = true;
-			}
+			bAdvancedPreview = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
 		}
 		else if (bSamplePreviewing)
 		{
@@ -1207,10 +1204,10 @@ float SBlendSpaceGridWidget::GetInputBoxDelta(const int32 ParameterIndex) const
 
 void SBlendSpaceGridWidget::OnInputBoxValueCommited(const float NewValue, ETextCommit::Type CommitType, const int32 ParameterIndex)
 {
-	OnInputBoxValueChanged(NewValue, ParameterIndex);
+	OnInputBoxValueChanged(NewValue, ParameterIndex, false);
 }
 
-void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex)
+void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const int32 ParameterIndex, bool bIsInteractive)
 {
 	checkf(ParameterIndex < 3, TEXT("Invalid parameter index, suppose to be within FVector array range"));
 
@@ -1229,7 +1226,7 @@ void SBlendSpaceGridWidget::OnInputBoxValueChanged(const float NewValue, const i
 
 		// Temporary snap this value to closest point on grid (since the spin box delta does not provide the desired functionality)
 		SampleValue[ParameterIndex] = SampleValueMin[ParameterIndex] + (FlooredSteps * SampleGridDelta[ParameterIndex]);
-		OnSampleMoved.ExecuteIfBound(SelectedSampleIndex, SampleValue);
+		OnSampleMoved.ExecuteIfBound(SelectedSampleIndex, SampleValue, bIsInteractive);
 	}
 }
 
@@ -1350,9 +1347,6 @@ void SBlendSpaceGridWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPoi
 void SBlendSpaceGridWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseLeave(MouseEvent);
-	StopPreviewing();
-	DragState = EDragState::None;
-	ResetToolTip();
 	bMouseIsOverGeometry = false;
 }
 
@@ -1429,7 +1423,7 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 		if (SampleValue != LastDragPosition)
 		{
 			LastDragPosition = SampleValue;
-			OnSampleMoved.ExecuteIfBound(DraggedSampleIndex, SampleValue);
+			OnSampleMoved.ExecuteIfBound(DraggedSampleIndex, SampleValue, false);
 		}
 	}
 	else if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop || DragState == EDragState::DragDropOverride)

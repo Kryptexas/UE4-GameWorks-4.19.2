@@ -267,6 +267,15 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bEnableFocusInterpolation)).ToSharedRef())
+		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
+
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusAttackInterpSpeed)).ToSharedRef())
+		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
+
+	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusReleaseInterpSpeed)).ToSharedRef())
+		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
+
 	ChildBuilder.AddProperty(bIsOcclusionEnabledHandle.ToSharedRef());
 
 	// Hide the occlusion plugin settings slot if there's no occlusion plugin loaded.
@@ -292,7 +301,7 @@ void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IProp
 	ChildBuilder.AddProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	if (PropertyHandles.Num() != 39)
+	if (PropertyHandles.Num() != 42)
 	{
 		FString PropertyList;
 		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)

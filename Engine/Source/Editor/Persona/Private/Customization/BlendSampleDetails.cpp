@@ -23,6 +23,7 @@
 
 #include "PackageTools.h"
 #include "IDetailGroup.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "BlendSampleDetails"
 
@@ -96,7 +97,7 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 	for (int32 ParameterIndex = 0; ParameterIndex < NumParameters; ++ParameterIndex)
 	{
 		const FBlendParameter& BlendParameter = BlendSpace->GetBlendParameter(ParameterIndex);
-		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, BlendParameter, OnSampleMoved](const float NewValue)
+		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, BlendParameter, OnSampleMoved](const float NewValue, bool bIsInteractive)
 		{
 			const FBlendSample& Sample = BlendSpace->GetBlendSample(SampleIndex);
 			FVector SampleValue = Sample.SampleValue;
@@ -111,7 +112,9 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 
 			// Temporary snap this value to closest point on grid (since the spin box delta does not provide the desired functionality)
 			SampleValue[ParameterIndex] = BlendParameter.Min + (FlooredSteps * DeltaStep);
-			OnSampleMoved.ExecuteIfBound(SampleIndex, SampleValue);
+
+			OnSampleMoved.ExecuteIfBound(SampleIndex, SampleValue, bIsInteractive);
+		
 		};
 		
 		FDetailWidgetRow& ParameterRow = InFunctor();
@@ -138,13 +141,21 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 				return 0.0f;
 			})
 			.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
+			.OnBeginSliderMovement_Lambda([]()
+			{
+				GEditor->BeginTransaction(LOCTEXT("MoveSample", "Moving Blend Grid Sample"));
+			})
+			.OnEndSliderMovement_Lambda([](const float NewValue)
+			{
+				GEditor->EndTransaction();
+			})
 			.OnValueCommitted_Lambda([ValueChangedLambda](const float NewValue, ETextCommit::Type CommitType)
 			{
-				ValueChangedLambda(NewValue);
+				ValueChangedLambda(NewValue, false);
 			})
 			.OnValueChanged_Lambda([ValueChangedLambda](const float NewValue)
 			{
-				ValueChangedLambda(NewValue);
+				ValueChangedLambda(NewValue, true);
 			})
 			.LabelVAlign(VAlign_Center)
 			.AllowSpin(true)

@@ -1918,7 +1918,7 @@ struct FInitBodiesHelper
 						// Update damping
 						Instance->UpdateDampingProperties();
 
-						Instance->SetMaxAngularVelocity(Instance->GetMaxAngularVelocity(), false, false);
+						Instance->SetMaxAngularVelocityInRadians(Instance->GetMaxAngularVelocityInRadians(), false, false);
 
 						Instance->SetMaxDepenetrationVelocity(Instance->bOverrideMaxDepenetrationVelocity ? Instance->MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
 
@@ -3168,14 +3168,14 @@ FVector FBodyInstance::GetUnrealWorldVelocity_AssumesLocked() const
 }
 
 template <bool NeedsLock>
-FVector GetUnrealWorldAngularVelocityImp(const FBodyInstance* BodyInstance)
+FVector GetUnrealWorldAngularVelocityInRadiansImp(const FBodyInstance* BodyInstance)
 {
 	FVector AngVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
 	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidBodyReadOnly(BodyInstance, [&](const PxRigidBody* PRigidBody)
 	{
-		AngVel = FVector::RadiansToDegrees(P2UVector(PRigidBody->getAngularVelocity()));
+		AngVel = P2UVector(PRigidBody->getAngularVelocity());
 	});
 #endif // WITH_PHYSX
 
@@ -3190,15 +3190,15 @@ FVector GetUnrealWorldAngularVelocityImp(const FBodyInstance* BodyInstance)
 }
 
 /** Note: returns angular velocity in degrees per second. */
-FVector FBodyInstance::GetUnrealWorldAngularVelocity() const
+FVector FBodyInstance::GetUnrealWorldAngularVelocityInRadians() const
 {
-	return GetUnrealWorldAngularVelocityImp<true>(this);
+	return GetUnrealWorldAngularVelocityInRadiansImp<true>(this);
 }
 
 /** Note: returns angular velocity in degrees per second. */
-FVector FBodyInstance::GetUnrealWorldAngularVelocity_AssumesLocked() const
+FVector FBodyInstance::GetUnrealWorldAngularVelocityInRadians_AssumesLocked() const
 {
-	return GetUnrealWorldAngularVelocityImp<false>(this);
+	return GetUnrealWorldAngularVelocityInRadiansImp<false>(this);
 }
 
 template <bool NeedsLock>
@@ -3974,12 +3974,12 @@ void FBodyInstance::SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent)
 }
 
 /** Note NewAngVel is in degrees per second */
-void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent)
+void FBodyInstance::SetAngularVelocityInRadians(const FVector& NewAngVel, bool bAddToCurrent)
 {
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
 	{
-		PxVec3 PNewAngVel = U2PVector( FVector::DegreesToRadians(NewAngVel) );
+		PxVec3 PNewAngVel = U2PVector(NewAngVel);
 
 		if (bAddToCurrent)
 		{
@@ -4007,36 +4007,37 @@ void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurr
 #endif
 }
 
-float FBodyInstance::GetMaxAngularVelocity() const
+float FBodyInstance::GetMaxAngularVelocityInRadians() const
 {
-	return bOverrideMaxAngularVelocity ? MaxAngularVelocity : UPhysicsSettings::Get()->MaxAngularVelocity;
+	return bOverrideMaxAngularVelocity ? FMath::DegreesToRadians(MaxAngularVelocity) : FMath::DegreesToRadians(UPhysicsSettings::Get()->MaxAngularVelocity);
 }
 
-void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity)
+void FBodyInstance::SetMaxAngularVelocityInRadians(float NewMaxAngVel, bool bAddToCurrent, bool bUpdateOverrideMaxAngularVelocity)
 {
 #if WITH_PHYSX
+	float DegNewMaxAngVel = FMath::RadiansToDegrees(NewMaxAngVel);
+
 	const bool bIsDynamic = ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
-		float RadNewMaxAngVel = FMath::DegreesToRadians(NewMaxAngVel);
-		
 		if (bAddToCurrent)
 		{
-			float RadOldMaxAngVel = PRigidDynamic->getMaxAngularVelocity();
-			RadNewMaxAngVel += RadOldMaxAngVel;
+			float OldMaxAngVel = PRigidDynamic->getMaxAngularVelocity();
+			NewMaxAngVel += OldMaxAngVel;
 
 			//doing this part so our UI stays in degrees and not lose precision from the conversion
-			float OldMaxAngVel = FMath::RadiansToDegrees(RadOldMaxAngVel);
-			NewMaxAngVel += OldMaxAngVel;
+			float DegOldMaxAngVel = FMath::RadiansToDegrees(OldMaxAngVel);
+			DegNewMaxAngVel += DegOldMaxAngVel;
 		}
 
-		PRigidDynamic->setMaxAngularVelocity(RadNewMaxAngVel);
+		PRigidDynamic->setMaxAngularVelocity(NewMaxAngVel);
 
-		MaxAngularVelocity = NewMaxAngVel;
+		MaxAngularVelocity = DegNewMaxAngVel;
 	});
 
 	if(!bIsDynamic)
 	{
-		MaxAngularVelocity = NewMaxAngVel;	//doesn't really matter since we are not dynamic, but makes sense that we update this anyway
+		// Doesn't really matter since we are not dynamic, but makes sense that we update this anyway
+		MaxAngularVelocity = DegNewMaxAngVel;
 	}
 
 	if(bUpdateOverrideMaxAngularVelocity)
@@ -4160,7 +4161,7 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 #endif
 }
 
-void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
+void FBodyInstance::AddTorqueInRadians(const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
 {
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
@@ -4187,7 +4188,7 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping, boo
 #endif
 }
 
-void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelChange)
+void FBodyInstance::AddAngularImpulseInRadians(const FVector& AngularImpulse, bool bVelChange)
 {
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&](PxRigidBody* PRigidBody)
@@ -5242,7 +5243,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		{
 			UpdateMassProperties();
 			UpdateDampingProperties();
-			SetMaxAngularVelocity(GetMaxAngularVelocity(), false, false);
+			SetMaxAngularVelocityInRadians(GetMaxAngularVelocityInRadians(), false, false);
 			SetMaxDepenetrationVelocity(bOverrideMaxDepenetrationVelocity ? MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
 		}else
 		{

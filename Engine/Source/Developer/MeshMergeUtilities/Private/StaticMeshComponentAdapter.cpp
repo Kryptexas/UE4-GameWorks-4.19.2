@@ -76,6 +76,11 @@ int32 FStaticMeshComponentAdapter::AddMaterial(UMaterialInterface* Material)
 	return INDEX_NONE;
 }
 
+void FStaticMeshComponentAdapter::UpdateUVChannelData()
+{
+	StaticMesh->UpdateUVChannelData(false);
+}
+
 bool FStaticMeshComponentAdapter::IsAsset() const
 {
 	return false;

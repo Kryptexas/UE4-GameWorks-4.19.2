@@ -962,10 +962,37 @@ public:
 	*
 	*	@param	AngularImpulse	Magnitude and direction of impulse to apply. Direction is axis of rotation.
 	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
-	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no affect).
+	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no effect).
+	*/
+	DEPRECATED(4.18, "Use AddAngularImpulseInRadians instead.")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true", DeprecatedFunction, DeprecationMessage="Use AddAngularImpulseInRadians instead"))
+	virtual void AddAngularImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false)
+	{
+		AddAngularImpulseInRadians(Impulse, BoneName, bVelChange);
+	}
+
+	/**
+	*	Add an angular impulse to a single rigid body. Good for one time instant burst.
+	*
+	*	@param	AngularImpulse	Magnitude and direction of impulse to apply. Direction is axis of rotation.
+	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
+	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no effect).
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
-	virtual void AddAngularImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
+	virtual void AddAngularImpulseInRadians(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
+
+	/**
+	*	Add an angular impulse to a single rigid body. Good for one time instant burst.
+	*
+	*	@param	AngularImpulse	Magnitude and direction of impulse to apply. Direction is axis of rotation.
+	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
+	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no effect).
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
+	void AddAngularImpulseInDegrees(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false)
+	{
+		AddAngularImpulseInRadians(FMath::DegreesToRadians(Impulse), BoneName, bVelChange);
+	}
 
 	/**
 	 *	Add an impulse to a single rigid body at a specific location. 
@@ -1038,10 +1065,35 @@ public:
 	 *	Add a torque to a single rigid body.
 	 *	@param Torque		Torque to apply. Direction is axis of rotation and magnitude is strength of torque.
 	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply torque to. 'None' indicates root body.
-	 *  @param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no affect).
+	 *  @param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no effect).
+	 */
+	DEPRECATED(4.18, "Use AddTorqueInRadians instead.")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true", DeprecatedFunction, DeprecationMessage="Use AddTorqueInRadians instead"))
+	void AddTorque(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false)
+	{
+		AddTorqueInRadians(Torque, BoneName, bAccelChange);
+	}
+
+	/**
+	 *	Add a torque to a single rigid body.
+	 *	@param Torque		Torque to apply. Direction is axis of rotation and magnitude is strength of torque.
+	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply torque to. 'None' indicates root body.
+	 *  @param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no effect).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
-	void AddTorque(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false);
+	void AddTorqueInRadians(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false);
+
+	/**
+	 *	Add a torque to a single rigid body.
+	 *	@param Torque		Torque to apply. Direction is axis of rotation and magnitude is strength of torque.
+	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply torque to. 'None' indicates root body.
+	 *	@param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no effect).
+	 */
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
+	void AddTorqueInDegrees(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false)
+	{
+		AddTorqueInRadians(FMath::DegreesToRadians(Torque), BoneName, bAccelChange);
+	}
 
 	/**
 	 *	Set the linear velocity of a single body.
@@ -1086,8 +1138,51 @@ public:
 	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of the body.
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to modify angular velocity of. 'None' indicates root body.
 	 */
+	DEPRECATED(4.18, "Use SetPhysicsAngularVelocityInDegrees instead.")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true", DeprecatedFunction, DeprecationMessage="Use SetPhysicsAngularVelocityInDegrees instead"))
+	void SetPhysicsAngularVelocity(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None)
+	{
+		SetPhysicsAngularVelocityInDegrees(NewAngVel, bAddToCurrent, BoneName);
+	}
+
+	/**
+	 *	Set the angular velocity of a single body.
+	 *	This should be used cautiously - it may be better to use AddTorque or AddImpulse.
+	 *
+	 *	@param NewAngVel		New angular velocity to apply to body, in radians per second.
+	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of the body.
+	 *	@param BoneName			If a SkeletalMeshComponent, name of body to modify angular velocity of. 'None' indicates root body.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
-	void SetPhysicsAngularVelocity(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
+	void SetPhysicsAngularVelocityInRadians(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
+
+	/**
+	 *	Set the angular velocity of a single body.
+	 *	This should be used cautiously - it may be better to use AddTorque or AddImpulse.
+	 *
+	 *	@param NewAngVel		New angular velocity to apply to body, in degrees per second.
+	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of the body.
+	 *	@param BoneName			If a SkeletalMeshComponent, name of body to modify angular velocity of. 'None' indicates root body.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
+	void SetPhysicsAngularVelocityInDegrees(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None)
+	{
+		SetPhysicsAngularVelocityInRadians(FMath::DegreesToRadians(NewAngVel), bAddToCurrent, BoneName);
+	}
+
+	/**
+	*	Set the maximum angular velocity of a single body.
+	*
+	*	@param NewMaxAngVel		New maximum angular velocity to apply to body, in degrees per second.
+	*	@param bAddToCurrent	If true, NewMaxAngVel is added to the existing maximum angular velocity of the body.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to modify maximum angular velocity of. 'None' indicates root body.
+	*/
+	DEPRECATED(4.18, "Use SetPhysicsMaxAngularVelocityInDegrees instead.")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true", DeprecatedFunction, DeprecationMessage="Use SetPhysicsMaxAngularVelocityInDegrees instead"))
+	void SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None)
+	{
+		SetPhysicsMaxAngularVelocityInDegrees(NewMaxAngVel, bAddToCurrent, BoneName);
+	}
 
 	/**
 	*	Set the maximum angular velocity of a single body.
@@ -1097,14 +1192,48 @@ public:
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to modify maximum angular velocity of. 'None' indicates root body.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
-	void SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
+	void SetPhysicsMaxAngularVelocityInDegrees(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None)
+	{
+		SetPhysicsMaxAngularVelocityInRadians(FMath::DegreesToRadians(NewMaxAngVel), bAddToCurrent, BoneName);
+	}
+
+	/**
+	*	Set the maximum angular velocity of a single body.
+	*
+	*	@param NewMaxAngVel		New maximum angular velocity to apply to body, in radians per second.
+	*	@param bAddToCurrent	If true, NewMaxAngVel is added to the existing maximum angular velocity of the body.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to modify maximum angular velocity of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
+	void SetPhysicsMaxAngularVelocityInRadians(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
+
+	/** 
+	 *	Get the angular velocity of a single body, in degrees per second. 
+	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
+	 */
+	DEPRECATED(4.18, "Use GetPhysicsAngularVelocityInDegrees instead.")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true", DeprecatedFunction, DeprecationMessage="Use GetPhysicsAngularVelocityInDegrees instead"))	
+	FVector GetPhysicsAngularVelocity(FName BoneName = NAME_None)
+	{
+		return GetPhysicsAngularVelocityInDegrees(BoneName);
+	}
 
 	/** 
 	 *	Get the angular velocity of a single body, in degrees per second. 
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))	
-	FVector GetPhysicsAngularVelocity(FName BoneName = NAME_None);
+	FVector GetPhysicsAngularVelocityInDegrees(FName BoneName = NAME_None)
+	{
+		return FMath::RadiansToDegrees(GetPhysicsAngularVelocityInRadians(BoneName));
+	}
+
+	/** 
+	 *	Get the angular velocity of a single body, in radians per second. 
+	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))	
+	FVector GetPhysicsAngularVelocityInRadians(FName BoneName = NAME_None);
 
 	/**
 	*	Get the center of mass of a single body. In the case of a welded body this will return the center of mass of the entire welded body (including its parent and children)
@@ -1753,8 +1882,33 @@ public:
 	 *	@param NewAngVel		New angular velocity to apply to physics, in degrees per second.
 	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of all bodies.
 	 */
+	DEPRECATED(4.8, "Use SetAllPhysicsAngularVelocityInDegrees instead.")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (UnsafeDuringActorConstruction = "true", DeprecatedFunction, DeprecationMessage="Use SetAllPhysicsAngularVelocityInDegrees instead"))
+	virtual void SetAllPhysicsAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent = false)
+	{
+		SetAllPhysicsAngularVelocityInDegrees(NewAngVel, bAddToCurrent);
+	}
+
+	/**
+	 *	Set the angular velocity of all bodies in this component.
+	 *
+	 *	@param NewAngVel		New angular velocity to apply to physics, in degrees per second.
+	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of all bodies.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (UnsafeDuringActorConstruction = "true"))
-	virtual void SetAllPhysicsAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent = false);
+	void SetAllPhysicsAngularVelocityInDegrees(const FVector& NewAngVel, bool bAddToCurrent = false)
+	{
+		SetAllPhysicsAngularVelocityInRadians(FMath::DegreesToRadians(NewAngVel), bAddToCurrent);
+	}
+
+	/**
+	 *	Set the angular velocity of all bodies in this component.
+	 *
+	 *	@param NewAngVel		New angular velocity to apply to physics, in radians per second.
+	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of all bodies.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (UnsafeDuringActorConstruction = "true"))
+	virtual void SetAllPhysicsAngularVelocityInRadians(const FVector& NewAngVel, bool bAddToCurrent = false);
 
 	/**
 	 *	Set the position of all bodies in this component.

@@ -954,7 +954,6 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 		GetMeshElementsConditionallySelectable(Views, ViewFamily, /*bSelectable=*/true, VisibilityMap, Collector);
 	}
 
-	//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
 	if(MeshObject && DynamicData && (DynamicData->bDrawNormals || DynamicData->bDrawTangents || DynamicData->bDrawBinormals))
 	{
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)

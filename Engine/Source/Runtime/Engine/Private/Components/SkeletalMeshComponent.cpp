@@ -376,16 +376,7 @@ bool USkeletalMeshComponent::CanSimulateClothing() const
 		return false;
 	}
 
-	TArray<UClothingAssetBase*> AssetsInUse;
-	SkeletalMesh->GetClothingAssetsInUse(AssetsInUse);
-	bool bCanRun = AssetsInUse.Num() > 0 && !IsNetMode(NM_DedicatedServer);
-
-	if(bCanRun)
-	{
-		return true;
-	}
-
-	return	false;
+	return SkeletalMesh->HasActiveClothingAssets() && !IsNetMode(NM_DedicatedServer);
 }
 
 void USkeletalMeshComponent::UpdateClothTickRegisteredState()
@@ -1934,9 +1925,9 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		PostAnimEvaluation(AnimEvaluationContext);
 	}
 
-	if (TickFunction == nullptr)
+	if (TickFunction == nullptr && ShouldBlendPhysicsBones())
 	{
-		//Since we aren't doing this through the tick system, assume we want the buffer flipped now
+		//Since we aren't doing this through the tick system, and we wont have done it in PostAnimEvaluation, assume we want the buffer flipped now
 		FinalizeBoneTransform();
 	}
 }

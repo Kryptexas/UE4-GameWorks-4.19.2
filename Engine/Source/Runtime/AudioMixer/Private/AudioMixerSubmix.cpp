@@ -140,7 +140,7 @@ namespace Audio
 		EffectSubmixChain.Reset();
 	}
 
-	void FMixerSubmix::DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer)
+	void FMixerSubmix::DownmixBuffer(const int32 InputChannelCount, const AlignedFloatBuffer& InBuffer, const int32 DownMixChannelCount, AlignedFloatBuffer& OutDownmixedBuffer)
 	{
 		// Retrieve ptr to the cached downmix channel map from the mixer device
 		const float* DownmixChannelMap = MixerDevice->Get2DChannelMap(InputChannelCount, DownMixChannelCount, false);
@@ -171,7 +171,7 @@ namespace Audio
 		}
 	}
 
-	void FMixerSubmix::ProcessAudio(TArray<float>& OutAudioBuffer)
+	void FMixerSubmix::ProcessAudio(AlignedFloatBuffer& OutAudioBuffer)
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 

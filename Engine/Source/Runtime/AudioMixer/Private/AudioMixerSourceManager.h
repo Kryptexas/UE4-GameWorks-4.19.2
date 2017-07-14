@@ -255,7 +255,7 @@ namespace Audio
 		bool IsEffectTailsDone(const int32 SourceId) const;
 		bool NeedsSpeakerMap(const int32 SourceId) const;
 		void ComputeNextBlockOfSamples();
-		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutWetBuffer, const float SendLevel) const;
+		void MixOutputBuffers(const int32 SourceId, AlignedFloatBuffer& OutWetBuffer, const float SendLevel) const;
 
 		void SetSubmixSendInfo(const int32 SourceId, FMixerSubmixPtr Submix, const float SendLevel);
 

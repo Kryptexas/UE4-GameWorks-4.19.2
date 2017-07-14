@@ -351,15 +351,14 @@ void BuildStreamHierarchyData()
 
 			//MGlobal::displayInfo(MString("Iter: ") + JointPath.fullPathName() + JointIterator.depth());
 
-			MStringArray SA;
-			JointObject.name().split(':', SA);
-			int32 LastName = SA.length() - 1;
 			MGlobal::displayInfo(MString("Register Callback: ") + JointPath.fullPathName());
 			MCallbackId NewCB = MDagMessage::addWorldMatrixModifiedCallback(JointPath, (MDagMessage::MWorldMatrixModifiedFunction)OnDagChangedAll);
 			StreamHierarchyCallbackIds.append(NewCB);
 
-			JointsToStream.Add(FStreamHierarchy(FName(SA[LastName].asChar()), JointPath, ParentIndex));
-			JointNames.Add(FName(SA[LastName].asChar()));
+			FName JointName(JointObject.name().asChar());
+
+			JointsToStream.Add(FStreamHierarchy(JointName, JointPath, ParentIndex));
+			JointNames.Add(JointName);
 			JointParents.Add(ParentIndex);
 		}
 	}

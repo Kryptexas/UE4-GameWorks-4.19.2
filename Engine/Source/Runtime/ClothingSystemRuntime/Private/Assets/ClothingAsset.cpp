@@ -17,6 +17,7 @@
 #include "NotificationManager.h"
 #include "ComponentReregisterContext.h"
 #include "AnimPhysObjectVersion.h"
+#include "ClothingMeshUtils.h"
 
 DEFINE_LOG_CATEGORY(LogClothingAsset)
 
@@ -135,6 +136,7 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 	TArray<FVector> RenderPositions;
 	TArray<FVector> RenderNormals;
 	TArray<FVector> RenderTangents;
+	TArray<uint32> RenderIndices;
 
 	RenderPositions.Reserve(OriginalSection->SoftVertices.Num());
 	RenderNormals.Reserve(OriginalSection->SoftVertices.Num());
@@ -148,13 +150,14 @@ bool UClothingAsset::BindToSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InMeshL
 		RenderTangents.Add(UnrealVert.TangentX);
 	}
 
-	ClothingAssetUtils::GenerateMeshToMeshSkinningData(MeshToMeshData,
-													  RenderPositions,
-													  RenderNormals,
-													  RenderTangents,
-													  ClothLodData.PhysicalMeshData.Vertices,
-													  ClothLodData.PhysicalMeshData.Normals,
-													  ClothLodData.PhysicalMeshData.Indices);
+	SkelLod.MultiSizeIndexContainer.GetIndexBuffer(RenderIndices);
+	TArrayView<uint32> IndexView(RenderIndices);
+	IndexView.Slice(OriginalSection->BaseIndex, OriginalSection->NumTriangles * 3);
+
+	ClothingMeshUtils::ClothMeshDesc TargetMesh(RenderPositions, RenderNormals, IndexView);
+	ClothingMeshUtils::ClothMeshDesc SourceMesh(ClothLodData.PhysicalMeshData.Vertices, ClothLodData.PhysicalMeshData.Normals, ClothLodData.PhysicalMeshData.Indices);
+
+	ClothingMeshUtils::GenerateMeshToMeshSkinningData(MeshToMeshData, TargetMesh, &RenderTangents, SourceMesh);
 
 	if(MeshToMeshData.Num() == 0)
 	{
@@ -545,21 +548,45 @@ void UClothingAsset::InvalidateCachedData()
 			}
 		}
 
-		const float MassScale = (float)(NumVerts - PhysMesh.NumFixedVerts) / MassSum;
-
-		for(float& InvMass : InvMasses)
+		if(MassSum > 0.0f)
 		{
-			InvMass *= MassScale;
-			InvMass = 1.0f / InvMass;
+			const float MassScale = (float)(NumVerts - PhysMesh.NumFixedVerts) / MassSum;	
+
+			for(float& InvMass : InvMasses)
+			{
+				if(InvMass != 0.0f)
+				{
+					InvMass *= MassScale;
+					InvMass = 1.0f / InvMass;
+				}
+			}
+		}
+
+		// Calculate number of influences per vertex
+		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+		{
+			FClothVertBoneData& BoneData = PhysMesh.BoneData[VertIndex];
+			const uint16* BoneIndices = BoneData.BoneIndices;
+			const float* BoneWeights = BoneData.BoneWeights;
+
+			BoneData.NumInfluences = MAX_TOTAL_INFLUENCES;
+
+			int32 NumInfluences = 0;
+			for(int32 InfluenceIndex = 0; InfluenceIndex < MAX_TOTAL_INFLUENCES; ++InfluenceIndex)
+			{
+				if(BoneWeights[InfluenceIndex] == 0.0f || BoneIndices[InfluenceIndex] == INDEX_NONE)
+				{
+					BoneData.NumInfluences = NumInfluences;
+					break;
+				}
+				++NumInfluences;
+			}
 		}
 	}
 }
 
 void UClothingAsset::BuildLodTransitionData()
 {
-	// Temporary until mesh to mesh is refactored to allow not having all inputs available
-	TArray<FVector> DummyTangentArray;
-
 	const int32 NumLods = LodData.Num();
 	for(int32 LodIndex = 0; LodIndex < NumLods; ++LodIndex)
 	{
@@ -574,8 +601,7 @@ void UClothingAsset::BuildLodTransitionData()
 
 		const int32 CurrentLodNumVerts = CurrentPhysMesh.Vertices.Num();
 
-		DummyTangentArray.Empty(CurrentLodNumVerts);
-		DummyTangentArray.AddDefaulted(CurrentLodNumVerts);
+		ClothingMeshUtils::ClothMeshDesc CurrentMeshDesc(CurrentPhysMesh.Vertices, CurrentPhysMesh.Normals, CurrentPhysMesh.Indices);
 
 		if(PrevLod)
 		{
@@ -583,7 +609,9 @@ void UClothingAsset::BuildLodTransitionData()
 
 			CurrentLod.TransitionUpSkinData.Empty(CurrentLodNumVerts);
 
-			ClothingAssetUtils::GenerateMeshToMeshSkinningData(CurrentLod.TransitionUpSkinData, CurrentPhysMesh.Vertices, CurrentPhysMesh.Normals, DummyTangentArray, PrevPhysMesh.Vertices, PrevPhysMesh.Normals, PrevPhysMesh.Indices);
+			ClothingMeshUtils::ClothMeshDesc PrevMeshDesc(PrevPhysMesh.Vertices, PrevPhysMesh.Normals, PrevPhysMesh.Indices);
+
+			ClothingMeshUtils::GenerateMeshToMeshSkinningData(CurrentLod.TransitionUpSkinData, CurrentMeshDesc, nullptr, PrevMeshDesc);
 		}
 
 		if(NextLod)
@@ -592,7 +620,9 @@ void UClothingAsset::BuildLodTransitionData()
 
 			CurrentLod.TransitionDownSkinData.Empty(CurrentLodNumVerts);
 
-			ClothingAssetUtils::GenerateMeshToMeshSkinningData(CurrentLod.TransitionDownSkinData, CurrentPhysMesh.Vertices, CurrentPhysMesh.Normals, DummyTangentArray, NextPhysMesh.Vertices, NextPhysMesh.Normals, NextPhysMesh.Indices);
+			ClothingMeshUtils::ClothMeshDesc NextMeshDesc(NextPhysMesh.Vertices, NextPhysMesh.Normals, NextPhysMesh.Indices);
+
+			ClothingMeshUtils::GenerateMeshToMeshSkinningData(CurrentLod.TransitionDownSkinData, CurrentMeshDesc, nullptr, NextMeshDesc);
 		}
 	}
 }
@@ -779,6 +809,15 @@ void UClothingAsset::PostLoad()
 		// Make sure we're transactional
 		SetFlags(RF_Transactional);
 	}
+
+#if WITH_EDITOR
+	if(CustomVersion < FAnimPhysObjectVersion::CacheClothMeshInfluences)
+	{
+		// Rebuild data cache
+		InvalidateCachedData();
+	}
+#endif
+
 }
 
 void UClothingAsset::CalculateReferenceBoneIndex()
@@ -959,123 +998,6 @@ void ClothingAssetUtils::GetMeshClothingAssetBindings(USkeletalMesh* InSkelMesh,
 			}
 		}
 	}
-}
-
-void ClothingAssetUtils::GenerateMeshToMeshSkinningData(TArray<FMeshToMeshVertData>& OutSkinningData, const TArray<FVector>& Mesh0Verts, const TArray<FVector>& Mesh0Normals, const TArray<FVector>& Mesh0Tangents, const TArray<FVector>& Mesh1Verts, const TArray<FVector>& Mesh1Normals, const TArray<uint32>& Mesh1Indices)
-{
-	const int32 NumMesh0Verts = Mesh0Verts.Num();
-	const int32 NumMesh0Normals = Mesh0Normals.Num();
-	const int32 NumMesh0Tangents = Mesh0Tangents.Num();
-
-	const int32 NumMesh1Verts = Mesh1Verts.Num();
-	const int32 NumMesh1Normals = Mesh1Normals.Num();
-	const int32 NumMesh1Indices = Mesh1Indices.Num();
-
-	// Check we have properly formed triangles
-	check(NumMesh1Indices % 3 == 0);
-
-	const int32 NumMesh1Triangles = NumMesh1Indices / 3;
-
-	// Check mesh data to make sure we have the same number of each element
-	if((NumMesh0Verts + NumMesh0Normals) / NumMesh0Tangents != 2)
-	{
-		UE_LOG(LogClothingAsset, Warning, TEXT("Can't generate mesh to mesh skinning data, Mesh0 data is missing verts."));
-		return;
-	}
-
-	if(NumMesh1Verts != NumMesh1Normals)
-	{
-		UE_LOG(LogClothingAsset, Warning, TEXT("Can't generate mesh to mesh skinning data, Mesh1 data is missing verts."));
-		return;
-	}
-
-	OutSkinningData.Reserve(NumMesh0Verts);
-
-	// For all mesh0 verts
-	for(int32 VertIdx0 = 0; VertIdx0 < NumMesh0Verts; ++VertIdx0)
-	{
-		OutSkinningData.AddZeroed();
-		FMeshToMeshVertData& SkinningData = OutSkinningData.Last();
-
-		const FVector& VertPosition = Mesh0Verts[VertIdx0];
-		const FVector& VertNormal = Mesh0Normals[VertIdx0];
-		const FVector& VertTangent = Mesh0Tangents[VertIdx0];
-
-		float MinimumDistanceSq = MAX_flt;
-		int32 ClosestTriangleBaseIdx = INDEX_NONE;
-		// For all mesh1 triangles
-		for(int32 Mesh1TriangleIdx = 0; Mesh1TriangleIdx < NumMesh1Triangles; ++Mesh1TriangleIdx)
-		{
-			int32 TriangleBaseIdx = Mesh1TriangleIdx * 3;
-			const FVector& A = Mesh1Verts[Mesh1Indices[TriangleBaseIdx]];
-			const FVector& B = Mesh1Verts[Mesh1Indices[TriangleBaseIdx + 1]];
-			const FVector& C = Mesh1Verts[Mesh1Indices[TriangleBaseIdx + 2]];
-
-			FVector PointOnTri = FMath::ClosestPointOnTriangleToPoint(VertPosition, A, B, C);
-			float DistSq = (PointOnTri - VertPosition).SizeSquared();
-
-			if(DistSq < MinimumDistanceSq)
-			{
-				MinimumDistanceSq = DistSq;
-				ClosestTriangleBaseIdx = TriangleBaseIdx;
-			}
-		}
-
-		// Should have found at least one triangle
-		check(ClosestTriangleBaseIdx != INDEX_NONE);
-
-		const FVector& A = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx]];
-		const FVector& B = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx + 1]];
-		const FVector& C = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx + 2]];
-
-		const FVector& NA = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx]];
-		const FVector& NB = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 1]];
-		const FVector& NC = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 2]];
-
-		// Before generating the skinning data we need to check for a degenerate triangle.
-		// If we find _any_ degenerate triangles we will notify and fail to generate the skinning data
-		const FVector TriNormal = FVector::CrossProduct(B - A, C - A);
-		if(TriNormal.SizeSquared() < SMALL_NUMBER)
-		{
-			// Failed, we have 2 identical vertices
-			OutSkinningData.Reset();
-
-			// Log and toast
-			FText Error = FText::Format(LOCTEXT("DegenerateTriangleError", "Failed to generate skinning data, found conincident vertices in triangle A={0} B={1} C={2}"), FText::FromString(A.ToString()), FText::FromString(B.ToString()), FText::FromString(C.ToString()));
-
-			UE_LOG(LogClothingAsset, Warning, TEXT("%s"), *Error.ToString());
-
-#if WITH_EDITOR
-			FNotificationInfo Info(Error);
-			Info.ExpireDuration = 5.0f;
-			FSlateNotificationManager::Get().AddNotification(Info);
-#endif
-			return;
-		}
-
-		SkinningData.PositionBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition);
-		SkinningData.NormalBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertNormal);
-		SkinningData.TangentBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertTangent);
-		SkinningData.SourceMeshVertIndices[0] = Mesh1Indices[ClosestTriangleBaseIdx];
-		SkinningData.SourceMeshVertIndices[1] = Mesh1Indices[ClosestTriangleBaseIdx + 1];
-		SkinningData.SourceMeshVertIndices[2] = Mesh1Indices[ClosestTriangleBaseIdx + 2];
-		SkinningData.SourceMeshVertIndices[3] = 0;
-	}
-}
-
-FVector4 ClothingAssetUtils::GetPointBaryAndDist(const FVector& A, const FVector& B, const FVector& C, const FVector& NA, const FVector& NB, const FVector& NC, const FVector& Point)
-{
-	FPlane TrianglePlane(A, B, C);
-	const FVector PointOnTriPlane = FVector::PointPlaneProject(Point, TrianglePlane);
-	const FVector BaryCoords = FMath::ComputeBaryCentric2D(PointOnTriPlane, A, B, C);
-	const FVector NormalAtPoint = TrianglePlane;
-	FVector TriPointToVert = Point - PointOnTriPlane;
-	TriPointToVert = TriPointToVert.ProjectOnTo(NormalAtPoint);
-	float Dist = TriPointToVert.Size();
-
-	float Sign = TrianglePlane.PlaneDot(Point) < 0.0f ? -1.0f : 1.0f;
-
-	return FVector4(BaryCoords, TrianglePlane.PlaneDot(Point));
 }
 
 bool FClothConfig::HasSelfCollision() const

@@ -25,6 +25,10 @@ struct CORE_API FAnimPhysObjectVersion
 		CreateTargetReference,
 		// Tune soft limit stiffness and damping coefficients
 		TuneSoftLimitStiffnessAndDamping,
+		// Fix possible inf/nans in clothing particle masses
+		FixInvalidClothParticleMasses,
+		// Moved influence count to cached data
+		CacheClothMeshInfluences,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

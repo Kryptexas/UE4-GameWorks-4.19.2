@@ -57,7 +57,7 @@ FLinearColor UAnimGraphNode_SkeletalControlBase::GetNodeTitleColor() const
 
 FString UAnimGraphNode_SkeletalControlBase::GetNodeCategory() const
 {
-	return TEXT("Skeletal Controls");
+	return TEXT("Skeletal Control Nodes");
 }
 
 FText UAnimGraphNode_SkeletalControlBase::GetControllerDescription() const

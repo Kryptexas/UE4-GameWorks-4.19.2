@@ -815,9 +815,10 @@ void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, USkeletalMeshCompon
 			for (int32 NewCurveIndex = 0; NewCurveIndex < NewCurveValues.Num(); ++NewCurveIndex)
 			{
 				FAnimCurveBase& Curve = PoseContainer.Curves[NewCurveIndex];
-				if (const SmartName::UID_Type* CurveUID = Mapping->FindUID(Curve.Name.DisplayName))
+				SmartName::UID_Type CurveUID = Mapping->FindUID(Curve.Name.DisplayName);
+				if (CurveUID != SmartName::MaxUID)
 				{
-					const float MeshCurveValue = MeshCurves.Get(*CurveUID);
+					const float MeshCurveValue = MeshCurves.Get(CurveUID);
 					NewCurveValues[NewCurveIndex] = MeshCurveValue;
 				}
 			}

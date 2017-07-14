@@ -19,15 +19,13 @@ struct LIVELINK_API FAnimNode_LiveLinkPose : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SourceData, meta = (PinShownByDefault))
 	FName SubjectName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Retarget, meta = (PinShownByDefault))
-	ULiveLinkRetargetAsset* RetargetAsset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, NoClear, Category = Retarget, meta = (PinShownByDefault))
+	TSubclassOf<ULiveLinkRetargetAsset> RetargetAsset;
 
 	UPROPERTY(transient)
-	ULiveLinkRetargetAsset* PreviousRetargetAsset;
+	ULiveLinkRetargetAsset* CurrentRetargetAsset;
 
-	TSharedPtr<FLiveLinkRetargetContext> RetargetContext;
-
-	FAnimNode_LiveLinkPose() : LiveLinkClient(nullptr) {}
+	FAnimNode_LiveLinkPose();
 
 	// FAnimNode_Base interface
 	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;

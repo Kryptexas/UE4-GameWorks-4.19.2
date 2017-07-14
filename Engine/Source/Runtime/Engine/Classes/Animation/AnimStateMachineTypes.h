@@ -259,6 +259,7 @@ public:
 		, FullyBlendedNotify(INDEX_NONE)
 		, bIsAConduit(false)
 		, EntryRuleNodeIndex(INDEX_NONE)
+		, bAlwaysResetOnEntry(false)
 	{}
 };
 
