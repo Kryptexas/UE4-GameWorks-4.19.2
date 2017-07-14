@@ -41,6 +41,8 @@ DEFINE_LOG_CATEGORY(LogAudioMixerAndroid);
 		AUDIO_PLATFORM_ERROR(ErrorString);					\
 	}
 
+extern int32 AndroidThunkCpp_GetMetaDataInt(const FString& Key);
+
 namespace Audio
 {	
 	FMixerPlatformAndroid::FMixerPlatformAndroid()
@@ -162,7 +164,7 @@ namespace Audio
 		OutInfo.Name = TEXT("Android Audio Device");
 		OutInfo.DeviceId = 0;
 		OutInfo.bIsSystemDefault = true;
-		OutInfo.SampleRate = 44100; // We don't really know of a way to get sample rate from an android device
+		OutInfo.SampleRate = AndroidThunkCpp_GetMetaDataInt(TEXT("audiomanager.optimalSampleRate"));
 		OutInfo.NumChannels = 2; // Android doesn't support surround sound
 		OutInfo.Format = EAudioMixerStreamDataFormat::Int16;
 		OutInfo.OutputChannelArray.SetNum(2);
@@ -207,7 +209,7 @@ namespace Audio
 		SLDataFormat_PCM PCM_Format = {
 			SL_DATAFORMAT_PCM, 
 			(SLuint32)AudioStreamInfo.DeviceInfo.NumChannels,
-			(SLuint32)(Params.SampleRate * 1000), // NOTE: OpenSLES has sample rates specified in millihertz. 
+			(SLuint32)(AudioStreamInfo.DeviceInfo.SampleRate * 1000), // NOTE: OpenSLES has sample rates specified in millihertz. 
 			SL_PCMSAMPLEFORMAT_FIXED_16, 
 			SL_PCMSAMPLEFORMAT_FIXED_16, 
 			SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, 
@@ -309,8 +311,21 @@ namespace Audio
 
  	FAudioPlatformSettings FMixerPlatformAndroid::GetPlatformSettings() const
  	{
-		return FAudioPlatformSettings::GetPlatformSettings(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"));
- 	}
+		FAudioPlatformSettings PlatformSettings = FAudioPlatformSettings::GetPlatformSettings(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"));
+
+		// Override with platform-specific frames per buffer size
+		int32 MinFramesPerBuffer = AndroidThunkCpp_GetMetaDataInt(TEXT("audiomanager.framesPerBuffer"));
+
+		int32 BufferSizeToUse = MinFramesPerBuffer;
+		while (BufferSizeToUse < PlatformSettings.CallbackBufferFrameSize)
+		{
+			BufferSizeToUse += MinFramesPerBuffer;
+		}
+
+		PlatformSettings.CallbackBufferFrameSize = BufferSizeToUse;
+
+		return PlatformSettings;
+	}
 
 	void FMixerPlatformAndroid::SubmitBuffer(const uint8* Buffer)
 	{

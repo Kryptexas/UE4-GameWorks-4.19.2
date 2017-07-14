@@ -2562,6 +2562,26 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		{
 			return VulkanLevel;
 		}
+		else
+		if (key.equals("audiomanager.framesPerBuffer"))
+		{
+			AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+			String framesPerBuffer = am.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
+			int framesPerBufferInt = Integer.parseInt(framesPerBuffer);
+			if (framesPerBufferInt == 0) framesPerBufferInt = 256; // Use default
+			Log.debug("[JAVA] audiomanager.framesPerBuffer = " + framesPerBufferInt);
+			return framesPerBufferInt;
+		}
+		else
+		if (key.equals("audiomanager.optimalSampleRate"))
+		{
+			AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+			String sampleRateStr = am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+			int sampleRateInt = Integer.parseInt(sampleRateStr);
+			if (sampleRateInt == 0) sampleRateInt = 44100; // Use a default value if property not found
+			Log.debug("[JAVA] audiomanager.optimalSampleRate = " + sampleRateInt);
+			return sampleRateInt;
+		}
 		if (_bundle == null || key == null)
 		{
 			return 0;
