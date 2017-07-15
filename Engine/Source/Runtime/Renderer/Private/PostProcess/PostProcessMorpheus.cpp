@@ -30,7 +30,7 @@ class FPostProcessMorpheusPS : public FGlobalShader
 		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
 		// but a user will not necessarily have the Morpheus files
 		bool bEnableMorpheus = false;
-		if (Platform == EShaderPlatform::SP_PS4 && GConfig->GetBool(TEXT("/Script/MorpheusEditor.MorpheusRuntimeSettings"), TEXT("bEnableMorpheus"), bEnableMorpheus, GEngineIni))
+		if (GConfig->GetBool(TEXT("/Script/MorpheusEditor.MorpheusRuntimeSettings"), TEXT("bEnableMorpheus"), bEnableMorpheus, GEngineIni))
 		{
 			return bEnableMorpheus;
 		}
