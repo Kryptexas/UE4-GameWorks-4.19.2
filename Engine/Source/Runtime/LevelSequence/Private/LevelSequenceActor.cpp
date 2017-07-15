@@ -174,8 +174,15 @@ ULevelSequence* ALevelSequenceActor::GetSequence(bool bLoad, bool bInitializePla
 
 		if (bLoad)
 		{
-			LoadPackageAsync(LevelSequence.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &ALevelSequenceActor::OnSequenceLoaded, bInitializePlayer));
-			return nullptr;
+			if (IsAsyncLoading())
+			{
+				LoadPackageAsync(LevelSequence.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &ALevelSequenceActor::OnSequenceLoaded, bInitializePlayer));
+				return nullptr;
+			}
+			else
+			{
+				return Cast<ULevelSequence>(LevelSequence.TryLoad());
+			}
 		}
 	}
 
