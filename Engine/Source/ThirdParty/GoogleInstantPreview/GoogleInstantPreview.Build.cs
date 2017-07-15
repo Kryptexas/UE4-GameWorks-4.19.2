@@ -49,8 +49,11 @@ public class GoogleInstantPreview : ModuleRules
                 string IpSharedLibTargetDir = Path.Combine(GoogleInstantPreviewTargetDir, "Mac", "Release");
                 foreach (string dylib in dylibDeps)
                 {
-                    string dylibPath = Path.Combine(IpSharedLibTargetDir, dylib);                    
+                    
+                    string dylibPath = Path.Combine(IpSharedLibTargetDir, dylib);
+                    PublicDelayLoadDLLs.Add(dylibPath);
                     RuntimeDependencies.Add(new RuntimeDependency(dylibPath));
+                    
                 }
             }
         }
