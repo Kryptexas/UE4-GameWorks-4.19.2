@@ -31,10 +31,6 @@ public class GoogleInstantPreview : ModuleRules
                     "zlib.dll",
                 };
                 string IpSharedLibTargetDir = Path.Combine(GoogleInstantPreviewTargetDir, IpSharedPlatform, "Release");
-                if (!Directory.Exists(IpSharedLibTargetDir))
-                {
-                    Directory.CreateDirectory(IpSharedLibTargetDir);
-                }
                 foreach (string dll in dllDeps)
                 {
                     PublicDelayLoadDLLs.Add(dll);
@@ -51,13 +47,8 @@ public class GoogleInstantPreview : ModuleRules
                         "libgrpc.dylib",
                 };
                 string IpSharedLibTargetDir = Path.Combine(GoogleInstantPreviewTargetDir, "Mac", "Release");
-                if (!Directory.Exists(IpSharedLibTargetDir))
-                {
-                    Directory.CreateDirectory(IpSharedLibTargetDir);
-                }
                 foreach (string dylib in dylibDeps)
                 {
-                    PublicDelayLoadDLLs.Add(dylib);
                     string dylibPath = Path.Combine(IpSharedLibTargetDir, dylib);                    
                     RuntimeDependencies.Add(new RuntimeDependency(dylibPath));
                 }
