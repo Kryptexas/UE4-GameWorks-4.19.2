@@ -659,16 +659,16 @@ void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs,
 	}
 }
 
-void GetContactOffsetParams(float& ContactOffsetFactor, float& MinContactOffset, float& MaxContactOffset)
+void FBodySetupShapeIterator::GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset)
 {
 	// Get contact offset params
-	ContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
-	MaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
+	InOutContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
+	InOutMaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
 
-	ContactOffsetFactor = ContactOffsetFactor < 0.f ? UPhysicsSettings::Get()->ContactOffsetMultiplier : ContactOffsetFactor;
-	MaxContactOffset = MaxContactOffset < 0.f ? UPhysicsSettings::Get()->MaxContactOffset : MaxContactOffset;
+	InOutContactOffsetFactor = InOutContactOffsetFactor < 0.f ? UPhysicsSettings::Get()->ContactOffsetMultiplier : InOutContactOffsetFactor;
+	InOutMaxContactOffset = InOutMaxContactOffset < 0.f ? UPhysicsSettings::Get()->MaxContactOffset : InOutMaxContactOffset;
 
-	MinContactOffset = UPhysicsSettings::Get()->MinContactOffset;
+	InOutMinContactOffset = UPhysicsSettings::Get()->MinContactOffset;
 }
 
 PxMaterial* GetDefaultPhysMaterial()

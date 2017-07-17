@@ -424,6 +424,9 @@ struct ENGINE_API FBodySetupShapeIterator
 	template <typename ElemType, typename GeomType>
 	void ForEachShape(const TArray<ElemType>& Elements, TFunctionRef<void(const ElemType& Elem, const GeomType& Geom, const physx::PxTransform& LocalPose, float ContactOffset)> VisitorFunc) const;
 
+	/** Helper function to determine contact offset params */
+	static void GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset);
+
 private:
 
 	template <typename ElemType, typename GeomType> bool PopulatePhysXGeometryAndTransform(const ElemType& Elem, GeomType& Geom, physx::PxTransform& OutTM) const;
