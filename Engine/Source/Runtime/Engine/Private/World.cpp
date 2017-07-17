@@ -3510,12 +3510,11 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		}
 	}
 
+#if WITH_EDITOR
 	// Clear standalone flag when switching maps in the Editor. This causes resources placed in the map
 	// package to be garbage collected together with the world.
-	if( GIsEditor && !IsTemplate() && this != NewWorld )
+	if( GIsEditor && !IsTemplate() && bCleanupResources && this != NewWorld )
 	{
-		TArray<UObject*> WorldObjects;
-
 		// Iterate over all objects to find ones that reside in the same package as the world.
 		ForEachObjectWithOuter(GetOutermost(), [this](UObject* CurrentObject)
 		{
@@ -3525,7 +3524,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		});
 
-		if (bCleanupResources && WorldType != EWorldType::PIE)
+		if (WorldType != EWorldType::PIE)
 		{
 			for (int32 LevelIndex = 0; LevelIndex < GetNumLevels(); ++LevelIndex)
 			{
@@ -3538,6 +3537,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			}
 		}
 	}
+#endif //WITH_EDITOR
 
 	for (int32 LevelIndex=0; LevelIndex < GetNumLevels(); ++LevelIndex)
 	{
