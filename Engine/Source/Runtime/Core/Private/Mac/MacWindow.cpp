@@ -154,7 +154,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 				if( Definition->HasOSWindowBorder )
 				{
-					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
 				}
 				else
 				{
@@ -406,13 +406,6 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 	{
 		bool WindowIsFullScreen = !bMakeFullscreen;
 		
-		NSWindowCollectionBehavior Behaviour = [WindowHandle collectionBehavior];
-		if(bMakeFullscreen)
-		{
-			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenAuxiliary);
-			Behaviour |= NSWindowCollectionBehaviorFullScreenPrimary;
-		}
-		
 		if(!bIsFullscreen)
 		{
 			PreFullscreenWindowRect.origin = [WindowHandle frame].origin;
@@ -424,7 +417,6 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
-			[WindowHandle setCollectionBehavior: Behaviour];
 			[WindowHandle toggleFullScreen:nil];
 		}, UE4FullscreenEventMode, true);
 		
