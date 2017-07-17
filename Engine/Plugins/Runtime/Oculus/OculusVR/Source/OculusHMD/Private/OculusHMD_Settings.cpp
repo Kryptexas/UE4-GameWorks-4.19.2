@@ -42,40 +42,17 @@ TSharedPtr<FSettings, ESPMode::ThreadSafe> FSettings::Clone() const
 	return NewSettings;
 }
 
-void FSettings::UpdateScreenPercentageFromPixelDensity()
-{
-	if (IdealScreenPercentage > 0.f)
-	{
-		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-		// Set r.ScreenPercentage to reflect the change to PixelDensity. Set CurrentScreenPercentage as well so the CVar sink handler doesn't kick in as well.
-		CurrentScreenPercentage = PixelDensity * IdealScreenPercentage;
-		ScreenPercentageCVar->Set(CurrentScreenPercentage, EConsoleVariableFlags(ScreenPercentageCVar->GetFlags() & ECVF_SetByMask)); // Use same priority as the existing priority
-	}
-}
-
 bool FSettings::UpdatePixelDensityFromScreenPercentage()
 {
-	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	check(ScreenPercentageCVar);
-
-	int SetBy = (ScreenPercentageCVar->GetFlags() & ECVF_SetByMask);
-	float ScreenPercentage = ScreenPercentageCVar->GetFloat();
-
-	//<= 0 means disable override. As does 100.f if set the flags indicate its set via scalability settings, as we want to use the Oculus default in that case.
-	if (ScreenPercentage <= 0.f || SetBy == ECVF_SetByConstructor || (SetBy == ECVF_SetByScalability && CurrentScreenPercentage == 100.f) || FMath::IsNearlyEqual(ScreenPercentage, CurrentScreenPercentage))
+	if (!bPixelDensityAdaptive)
 	{
-		CurrentScreenPercentage = ScreenPercentage;
-		return false;
-	}
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		float ScreenPercentage = ScreenPercentageCVar->GetFloat() / 100.;
 
-	if (IdealScreenPercentage > 0.f)
-	{
-		PixelDensity = FMath::Clamp(ScreenPercentage / IdealScreenPercentage, ClampPixelDensityMin, ClampPixelDensityMax);
+		PixelDensity = FMath::Clamp(ScreenPercentage, ClampPixelDensityMin, ClampPixelDensityMax);
 		PixelDensityMin = FMath::Min(PixelDensity, PixelDensityMin);
 		PixelDensityMax = FMath::Max(PixelDensity, PixelDensityMax);
 	}
-
-	CurrentScreenPercentage = ScreenPercentage;
 	return true;
 }
 
