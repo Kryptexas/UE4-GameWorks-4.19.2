@@ -549,6 +549,7 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 		COOK_STAT(Timer.TrackCyclesOnly());
 		FAsyncDistanceFieldTask* NewTask = new FAsyncDistanceFieldTask;
 		NewTask->DDCKey = InDDCKey;
+		check(Mesh && GenerateSource);
 		NewTask->StaticMesh = Mesh;
 		NewTask->GenerateSource = GenerateSource;
 		NewTask->DistanceFieldResolutionScale = DistanceFieldResolutionScale;
@@ -780,19 +781,25 @@ void FDistanceFieldAsyncQueue::BlockUntilAllBuildsComplete()
 void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThreadPool& ThreadPool)
 {
 #if WITH_EDITOR
-	const FStaticMeshLODResources& LODModel = Task->GenerateSource->RenderData->LODResources[0];
 
-	MeshUtilities->GenerateSignedDistanceFieldVolumeData(
-		Task->StaticMesh->GetName(),
-		LODModel,
-		ThreadPool,
-		Task->MaterialBlendModes,
-		Task->GenerateSource->RenderData->Bounds,
-		Task->DistanceFieldResolutionScale,
-		Task->bGenerateDistanceFieldAsIfTwoSided,
-		*Task->GeneratedVolumeData);
+	// Editor 'force delete' can null any UObject pointers which are seen by reference collecting (eg UProperty or serialized)
+	if (Task->StaticMesh && Task->GenerateSource)
+	{
+		const FStaticMeshLODResources& LODModel = Task->GenerateSource->RenderData->LODResources[0];
 
-	CompletedTasks.Push(Task);
+		MeshUtilities->GenerateSignedDistanceFieldVolumeData(
+			Task->StaticMesh->GetName(),
+			LODModel,
+			ThreadPool,
+			Task->MaterialBlendModes,
+			Task->GenerateSource->RenderData->Bounds,
+			Task->DistanceFieldResolutionScale,
+			Task->bGenerateDistanceFieldAsIfTwoSided,
+			*Task->GeneratedVolumeData);
+	}
+
+    CompletedTasks.Push(Task);
+
 #endif
 }
 
@@ -820,29 +827,33 @@ void FDistanceFieldAsyncQueue::ProcessAsyncTasks()
 
 		ReferencedTasks.Remove(Task);
 
-		Task->GeneratedVolumeData->VolumeTexture.Initialize(Task->StaticMesh);
-		FDistanceFieldVolumeData* OldVolumeData = Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData;
-
+		// Editor 'force delete' can null any UObject pointers which are seen by reference collecting (eg UProperty or serialized)
+		if (Task->StaticMesh)
 		{
-			// Cause all components using this static mesh to get re-registered, which will recreate their proxies and primitive uniform buffers
-			FStaticMeshComponentRecreateRenderStateContext RecreateRenderStateContext(Task->StaticMesh, false);
+			Task->GeneratedVolumeData->VolumeTexture.Initialize(Task->StaticMesh);
+			FDistanceFieldVolumeData* OldVolumeData = Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData;
 
-			// Assign the new volume data
-			Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData = Task->GeneratedVolumeData;
-		}
+			{
+				// Cause all components using this static mesh to get re-registered, which will recreate their proxies and primitive uniform buffers
+				FStaticMeshComponentRecreateRenderStateContext RecreateRenderStateContext(Task->StaticMesh, false);
 
-		OldVolumeData->VolumeTexture.Release();
+				// Assign the new volume data
+				Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData = Task->GeneratedVolumeData;
+			}
 
-		// Rendering thread may still be referencing the old one, use the deferred cleanup interface to delete it next frame when it is safe
-		BeginCleanup(OldVolumeData);
+			OldVolumeData->VolumeTexture.Release();
 
-		{
-			TArray<uint8> DerivedData;
-			// Save built distance field volume to DDC
-			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
-			Ar << *(Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData);
-			GetDerivedDataCacheRef().Put(*Task->DDCKey, DerivedData);
-			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
+			// Rendering thread may still be referencing the old one, use the deferred cleanup interface to delete it next frame when it is safe
+			BeginCleanup(OldVolumeData);
+
+			{
+				TArray<uint8> DerivedData;
+				// Save built distance field volume to DDC
+				FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
+				Ar << *(Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData);
+				GetDerivedDataCacheRef().Put(*Task->DDCKey, DerivedData);
+				COOK_STAT(Timer.AddMiss(DerivedData.Num()));
+			}
 		}
 
 		delete Task;
