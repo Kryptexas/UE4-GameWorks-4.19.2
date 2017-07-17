@@ -268,22 +268,22 @@ bool FSequencerObjectChangeListener::CanKeyProperty_Internal(FCanKeyPropertyPara
 					InOutDelegate = *DelegatePtr;
 					return true;
 				}
-			}
 
-			if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
-			{
-				UClass* ClassType = ObjectProperty->PropertyClass ? ObjectProperty->PropertyClass->GetSuperClass() : nullptr;
-				while (ClassType)
+				if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
 				{
-					FAnimatedPropertyKey PropertyKey = FAnimatedPropertyKey::FromObjectType(ClassType);
-					const FOnAnimatablePropertyChanged* DelegatePtr = FindPropertySetter(*PropertyContainer, PropertyKey, *Property);
-					if (DelegatePtr != nullptr)
+					UClass* ClassType = ObjectProperty->PropertyClass ? ObjectProperty->PropertyClass->GetSuperClass() : nullptr;
+					while (ClassType)
 					{
-						InOutProperty = Property;
-						InOutDelegate = *DelegatePtr;
-						return true;
+						FAnimatedPropertyKey PropertyKey = FAnimatedPropertyKey::FromObjectType(ClassType);
+						const FOnAnimatablePropertyChanged* DelegatePtr = FindPropertySetter(*PropertyContainer, PropertyKey, *Property);
+						if (DelegatePtr != nullptr)
+						{
+							InOutProperty = Property;
+							InOutDelegate = *DelegatePtr;
+							return true;
+						}
+						ClassType = ClassType->GetSuperClass();
 					}
-					ClassType = ClassType->GetSuperClass();
 				}
 			}
 		}
