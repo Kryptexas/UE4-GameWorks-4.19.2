@@ -66,7 +66,7 @@ void UAppleARKitPlaneAnchorVisualisationComponent::TickComponent( float DeltaTim
 				// Fold in parent transform
 				if ( USceneComponent* ParentComponent = GetAttachParent() )
 				{
-					PlaneWorldTransform *= ParentComponent->ComponentToWorld;
+					PlaneWorldTransform *= ParentComponent->GetComponentTransform();
 				}
 
 				// Mesh local bounds

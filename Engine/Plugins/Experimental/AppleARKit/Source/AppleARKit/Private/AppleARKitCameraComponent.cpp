@@ -82,7 +82,7 @@ bool UAppleARKitCameraComponent::HitTestAtScreenPosition( const FVector2D Screen
 		for ( FAppleARKitHitTestResult& Result : OutResults )
 		{
 			// Apply parent transfrom
-			Result.Transform *= ParentComponent->ComponentToWorld;
+			Result.Transform *= ParentComponent->GetComponentTransform();
 		}
 	}
 
@@ -93,7 +93,7 @@ void UAppleARKitCameraComponent::SetOrientationAndPosition( const FRotator& Orie
 {
 	// First transform from world desired orientation & position to local space as we can't 
 	FTransform WorldDesired = FTransform( Orientation, Position, GetComponentScale() );
-	FTransform LocalDesired = GetAttachParent() ? WorldDesired * GetAttachParent()->ComponentToWorld.Inverse() : WorldDesired;
+	FTransform LocalDesired = GetAttachParent() ? WorldDesired * GetAttachParent()->GetComponentTransform().Inverse() : WorldDesired;
 
 	// Calculate BaseTransform by figuring out the offset required to get from the current
 	// camera transform to the desired one. This BaseTransform will then be pre-applied to
