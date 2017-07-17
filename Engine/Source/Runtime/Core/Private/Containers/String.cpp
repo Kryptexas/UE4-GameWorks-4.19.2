@@ -162,7 +162,7 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 		{
 			const int32 SearchStringLength=FMath::Max(1, FCString::Strlen(SubStr));
 			
-			if ( StartPosition == INDEX_NONE )
+			if ( StartPosition == INDEX_NONE || StartPosition >= Len() )
 			{
 				StartPosition = Len();
 			}
