@@ -64,7 +64,7 @@ public:
 
 	/** ISkeletonTree interface */
 	virtual TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const override { return EditableSkeleton.Pin().ToSharedRef(); }
-	virtual TSharedPtr<class IPersonaPreviewScene> GetPreviewScene() const override { return PreviewScene; }
+	virtual TSharedPtr<class IPersonaPreviewScene> GetPreviewScene() const override { return PreviewScene.Pin(); }
 	virtual void SetSkeletalMesh(USkeletalMesh* NewSkeletalMesh) override;
 	virtual void SetSelectedSocket(const struct FSelectedSocketInfo& InSocketInfo) override;
 	virtual void SetSelectedBone(const FName& InBoneName) override;
@@ -274,7 +274,7 @@ private:
 	TWeakPtr<FEditableSkeleton> EditableSkeleton;
 
 	/** Link to a preview scene */
-	TSharedPtr<IPersonaPreviewScene> PreviewScene;
+	TWeakPtr<IPersonaPreviewScene> PreviewScene;
 
 	/** SSearchBox to filter the tree */
 	TSharedPtr<SSearchBox>	NameFilterBox;
