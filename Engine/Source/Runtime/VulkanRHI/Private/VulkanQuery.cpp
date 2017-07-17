@@ -34,9 +34,9 @@ struct FRHICommandWaitForFence : public FRHICommand<FRHICommandWaitForFence>
 
 
 FVulkanRenderQuery::FVulkanRenderQuery(FVulkanDevice* Device, ERenderQueryType InQueryType)
-	: QueryType(InQueryType)
+	: CurrentQueryIdx(0)
+	, QueryType(InQueryType)
 	, CurrentCmdBuffer(nullptr)
-	, CurrentQueryIdx(0)
 {
 	for (int Index = 0; Index < NumQueries; ++Index)
 	{
