@@ -152,6 +152,27 @@ void YCbCrConvertPS(
 	OutColor.w = 1.0f;
 }
 
+// shader to convert a luma (Y) and chroma (CbCr) texture to RGBA using a full 4x4 matrix passed in
+void YCbCrConvertPS_4x4Matrix(
+    float4 InPosition : SV_POSITION,
+    float2 InUV : TEXCOORD0,
+    out float4 OutColor : SV_Target0)
+{
+    float4 YUV;
+    YUV.x = YCbCrConvertUB.LumaTexture.Sample(YCbCrConvertUB.LumaSampler, InUV.xy).x;
+    YUV.yz = YCbCrConvertUB.CbCrTexture.Sample(YCbCrConvertUB.CbCrSampler, InUV.xy).xy;
+    YUV.w = 1.0;
+
+    float4 sRGB = mul(YCbCrConvertUB.ColorTransform, YUV);
+    if (YCbCrConvertUB.SrgbToLinear == 0)
+    {
+        OutColor = sRGB;
+    }
+    else
+    {
+        OutColor = float4(sRGBToLinear(sRGB.xyz), 1.0);
+    }
+}
 
 // shader to convert a UYVY texture to RGBA
 void UYVYConvertPS(

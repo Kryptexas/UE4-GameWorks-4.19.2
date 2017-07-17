@@ -97,6 +97,13 @@ bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutTutori
 #if PLATFORM_MAC
 	OutTutorialPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
 	bool biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
+    
+    // Check for Xcode betas
+    if(!biOSSDKInstalled
+       && IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform")))
+    {
+        biOSSDKInstalled = true;
+    }
 #else
 	OutTutorialPath = FString("/Engine/Tutorial/Mobile/InstallingiTunesTutorial.InstallingiTunesTutorial");
 
