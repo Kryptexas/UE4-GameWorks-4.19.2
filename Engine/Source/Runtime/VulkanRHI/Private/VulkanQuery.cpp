@@ -148,7 +148,7 @@ inline bool FVulkanBufferedQueryPool::GetResults(FVulkanCommandListContext& Cont
 		}
 
 		OutResult = QueryOutput[Query->GetActiveQueryIndex()];
-		if (QueryType == RQT_AbsoluteTime)
+		if (QueryType == VK_QUERY_TYPE_TIMESTAMP)
 		{
 			double NanoSecondsPerTimestamp = Device->GetDeviceProperties().limits.timestampPeriod;
 			checkf(NanoSecondsPerTimestamp > 0, TEXT("Driver said it allowed timestamps but returned invalid period %f!"), NanoSecondsPerTimestamp);
