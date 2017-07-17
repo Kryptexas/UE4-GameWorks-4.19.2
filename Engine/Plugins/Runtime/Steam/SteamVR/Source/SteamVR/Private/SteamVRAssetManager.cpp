@@ -211,6 +211,7 @@ TMap< IDType, TSharedSteamVRResource<ResType> > TSteamVRResource<ResType, IDType
 typedef TSteamVRResource<vr::RenderModel_t, FString> TSteamVRModel;
 typedef TSteamVRResource<vr::RenderModel_TextureMap_t, int32> TSteamVRTexture;
 
+/// @cond DOXYGEN_WARNINGS
 template<>
 int32 TSteamVRModel::TickAsyncLoad_Internal(vr::IVRRenderModels* VRModelManager, vr::RenderModel_t** ResourceOut)
 {
@@ -220,6 +221,7 @@ int32 TSteamVRModel::TickAsyncLoad_Internal(vr::IVRRenderModels* VRModelManager,
 	return INDEX_NONE;
 #endif
 }
+/// @endcond
 
 template<>
 void TSteamVRModel::FreeResource(vr::IVRRenderModels* VRModelManager)
@@ -229,6 +231,7 @@ void TSteamVRModel::FreeResource(vr::IVRRenderModels* VRModelManager)
 #endif
 }
 
+/// @cond DOXYGEN_WARNINGS
 template<>
 int32 TSteamVRTexture::TickAsyncLoad_Internal(vr::IVRRenderModels* VRModelManager, vr::RenderModel_TextureMap_t** ResourceOut)
 {
@@ -238,6 +241,7 @@ int32 TSteamVRTexture::TickAsyncLoad_Internal(vr::IVRRenderModels* VRModelManage
 	return INDEX_NONE;
 #endif
 }
+/// @endcond
 
 template<>
 void TSteamVRTexture::FreeResource(vr::IVRRenderModels* VRModelManager)
