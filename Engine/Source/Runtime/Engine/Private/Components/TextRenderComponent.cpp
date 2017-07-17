@@ -785,6 +785,7 @@ void FTextRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 					const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false;
 					Mesh.MaterialRenderProxy = TextBatch.Material->GetRenderProxy(bUseSelectedMaterial);
 					Mesh.bCanApplyViewModeOverrides = !bAlwaysRenderAsText;
+					Mesh.LODIndex = 0;
 
 					Collector.AddMesh(ViewIndex, Mesh);
 				}
@@ -819,6 +820,7 @@ void FTextRenderSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 			Mesh.bDisableBackfaceCulling = false;
 			Mesh.Type = PT_TriangleList;
 			Mesh.DepthPriorityGroup = SDPG_World;
+			Mesh.LODIndex = 0;
 			PDI->DrawMesh(Mesh, 1.0f);
 		}
 	}
