@@ -12,57 +12,64 @@ using System.Windows.Forms;
 
 namespace UnrealGameSync
 {
-	public partial class SyncFilter : Form
+	partial class SyncFilter : Form
 	{
-		string[] DefaultLines =
-		{
-			"; Rules are specified one per line, and may use any standard Perforce wildcards:",
-			";    ?    Matches one character.",
-			";    *    Matches any sequence of characters, except for a directory separator.",
-			";    ...  Matches any sequence of characters, including directory separators.",
-			";",
-			"; Patterns may match any file fragment (eg. *.pdb), or may be rooted to the branch (eg. /Engine/Binaries/.../*.pdb).",
-			"; To exclude files which match a pattern, prefix the rule with the '-' character (eg. -/Engine/Documentation/...)",
-			";",
-			"; Global rules are applied to the files being synced first, followed by any workspace-specific patterns.",
-			"",
-			""
-		};
+		Dictionary<Guid, WorkspaceSyncCategory> UniqueIdToCategory;
+		public string[] GlobalView;
+		public Guid[] GlobalExcludedCategories;
+		public string[] WorkspaceView;
+		public Guid[] WorkspaceExcludedCategories;
 
-		public string[] GlobalFilter;
-		public string[] WorkspaceFilter;
-
-		public SyncFilter(string[] InGlobalFilter, string[] InWorkspaceFilter)
+		public SyncFilter(Dictionary<Guid, WorkspaceSyncCategory> InUniqueIdToCategory, string[] InGlobalView, Guid[] InGlobalExcludedCategories, string[] InWorkspaceView, Guid[] InWorkspaceExcludedCategories)
 		{
 			InitializeComponent();
 
-			GlobalFilter = InGlobalFilter;
-			WorkspaceFilter = InWorkspaceFilter;
-	
-			SetLines(GlobalFilter, FilterTextGlobal);
-			SetLines(WorkspaceFilter, FilterTextWorkspace);
+			UniqueIdToCategory = InUniqueIdToCategory;
+			GlobalExcludedCategories = InGlobalExcludedCategories;
+			GlobalView = InGlobalView;
+			WorkspaceExcludedCategories = InWorkspaceExcludedCategories;
+			WorkspaceView = InWorkspaceView;
+
+			GlobalControl.SetView(GlobalView);
+			SetExcludedCategories(GlobalControl.CategoriesCheckList, UniqueIdToCategory, GlobalExcludedCategories);
+			WorkspaceControl.SetView(WorkspaceView);
+			SetExcludedCategories(WorkspaceControl.CategoriesCheckList, UniqueIdToCategory, WorkspaceExcludedCategories);
 		}
 
-		private void SetLines(string[] Lines, TextBox FilterText)
+		private static void SetExcludedCategories(CheckedListBox ListBox, Dictionary<Guid, WorkspaceSyncCategory> UniqueIdToFilter, Guid[] ExcludedCategories)
 		{
-			if (Lines == null || !Lines.Any(x => x.Trim().Length > 0))
+			foreach(WorkspaceSyncCategory Filter in UniqueIdToFilter.Values)
 			{
-				FilterText.Lines = DefaultLines;
+				CheckState State = CheckState.Checked;
+				if(ExcludedCategories.Contains(Filter.UniqueId))
+				{
+					State = CheckState.Unchecked;
+				}
+				ListBox.Items.Add(Filter, State);
 			}
-			else
-			{
-				FilterText.Lines = Lines;
-			}
-			FilterText.Select(FilterText.Text.Length, 0);
 		}
 
-		private string[] GetLines(TextBox FilterText)
+		private static Guid[] GetExcludedCategories(CheckedListBox ListBox, Guid[] PreviousExcludedCategories)
+		{
+			HashSet<Guid> ExcludedCategories = new HashSet<Guid>(PreviousExcludedCategories);
+			for(int Idx = 0; Idx < ListBox.Items.Count; Idx++)
+			{
+				Guid UniqueId = ((WorkspaceSyncCategory)ListBox.Items[Idx]).UniqueId;
+				if(ListBox.GetItemCheckState(Idx) == CheckState.Unchecked)
+				{
+					ExcludedCategories.Add(UniqueId);
+				}
+				else
+				{
+					ExcludedCategories.Remove(UniqueId);
+				}
+			}
+			return ExcludedCategories.ToArray();
+		}
+
+		private static string[] GetView(TextBox FilterText)
 		{
 			List<string> NewLines = new List<string>(FilterText.Lines);
-			while (NewLines.Count > 0 && DefaultLines.Any(x => x == NewLines[0].Trim()))
-			{
-				NewLines.RemoveAt(0);
-			}
 			while (NewLines.Count > 0 && NewLines.Last().Trim().Length == 0)
 			{
 				NewLines.RemoveAt(NewLines.Count - 1);
@@ -72,14 +79,38 @@ namespace UnrealGameSync
 
 		private void OkButton_Click(object sender, EventArgs e)
 		{
-			GlobalFilter = GetLines(FilterTextGlobal);
-			WorkspaceFilter = GetLines(FilterTextWorkspace);
+			string[] NewGlobalView = GlobalControl.GetView();
+			string[] NewWorkspaceView = WorkspaceControl.GetView();
+
+			if(NewGlobalView.Any(x => x.Contains("//")) || NewWorkspaceView.Any(x => x.Contains("//")))
+			{
+				if(MessageBox.Show(this, "Custom views should be relative to the stream root (eg. -/Engine/...).\r\n\r\nFull depot paths (eg. //depot/...) will not match any files.\r\n\r\nAre you sure you want to continue?", "Invalid view", MessageBoxButtons.OKCancel) != System.Windows.Forms.DialogResult.OK)
+				{
+					return;
+				}
+			}
+		
+			GlobalView = NewGlobalView;
+			GlobalExcludedCategories = GetExcludedCategories(GlobalControl.CategoriesCheckList, GlobalExcludedCategories);
+			WorkspaceView = NewWorkspaceView;
+			WorkspaceExcludedCategories = GetExcludedCategories(WorkspaceControl.CategoriesCheckList, WorkspaceExcludedCategories);
+
 			DialogResult = DialogResult.OK;
 		}
 
 		private void CancButton_Click(object sender, EventArgs e)
 		{
 			DialogResult = DialogResult.Cancel;
+		}
+
+		private void ShowCombinedView_Click(object sender, EventArgs e)
+		{
+			string[] Filter = UserSettings.GetCombinedSyncFilter(UniqueIdToCategory, GlobalControl.GetView(), GetExcludedCategories(GlobalControl.CategoriesCheckList, GlobalExcludedCategories), WorkspaceControl.GetView(), GetExcludedCategories(WorkspaceControl.CategoriesCheckList, WorkspaceExcludedCategories));
+			if(Filter.Length == 0)
+			{
+				Filter = new string[]{ "All files will be synced." };
+			}
+			MessageBox.Show(String.Join("\r\n", Filter), "Combined View");
 		}
 	}
 }

@@ -176,14 +176,14 @@ public:
 		// the frontend will run the cross compiler
 		Frontend.CompileShader(Input, Output, WorkingDirectory, Version);
 
-		if (Version == GLSL_ES2 || Version == GLSL_150_ES2)
+		if (Version == GLSL_ES2 || Version == GLSL_150_ES2 || Version == GLSL_ES2_WEBGL)
 		{
 			if (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath))
 			{
 				FShaderCompilerInput ES2Input = Input;
 				ES2Input.DumpDebugInfoPath = ES2Input.DumpDebugInfoPath.Replace(
 					TEXT("GLSL_150_ES2"), 
-					(Version == GLSL_ES2 ? TEXT("GLSL_ES2") : TEXT("GLSL_ES2_150")),
+					(Version == GLSL_ES2 ? TEXT("GLSL_ES2") : Version == GLSL_150_ES2 ? TEXT("GLSL_ES2_150") : TEXT("GLSL_ES2_WEBGL")),
 					ESearchCase::CaseSensitive);
 				
 				if (!IFileManager::Get().DirectoryExists(*ES2Input.DumpDebugInfoPath))
@@ -192,7 +192,7 @@ public:
 				}
 
 				FShaderCompilerOutput ES2Output;
-				Frontend.CompileShader(ES2Input, ES2Output, WorkingDirectory, GLSL_ES2);
+				Frontend.CompileShader(ES2Input, ES2Output, WorkingDirectory, Version == GLSL_ES2_WEBGL ? GLSL_ES2_WEBGL : GLSL_ES2);
 			}
 		}
 	}

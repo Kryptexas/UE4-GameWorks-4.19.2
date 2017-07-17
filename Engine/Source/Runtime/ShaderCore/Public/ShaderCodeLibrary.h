@@ -105,7 +105,7 @@ struct SHADERCORE_API FShaderCodeLibrary
 
 #if WITH_EDITOR
 	// Save collected shader code to a file for each specified shader platform
-	static void SaveShaderCode(const FString& OutputDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats);
+	static bool SaveShaderCode(const FString& OutputDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats);
 	
 	// Package the separate shader bytecode files into a single native shader library.
 	static bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir, const TArray<FName>& ShaderFormats);

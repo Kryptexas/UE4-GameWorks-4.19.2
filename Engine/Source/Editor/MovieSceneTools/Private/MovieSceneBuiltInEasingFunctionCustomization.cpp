@@ -11,6 +11,7 @@
 #include "SGridPanel.h"
 #include "SButton.h"
 #include "SBox.h"
+#include "SlateApplication.h"
 
 #include "EditorStyleSet.h"
 
@@ -29,6 +30,8 @@ public:
 
 	void Construct(const FArguments& InArgs, EMovieSceneBuiltInEasing InValue)
 	{
+		InterpValue = FVector2D::ZeroVector;
+
 		UMovieSceneBuiltInEasingFunction* DefaultObject = GetMutableDefault<UMovieSceneBuiltInEasingFunction>();
 		EMovieSceneBuiltInEasing DefaultType = DefaultObject->Type;
 
@@ -42,6 +45,7 @@ public:
 		}
 
 		DefaultObject->Type = DefaultType;
+		EasingType = InValue;
 
 		ChildSlot
 		[
@@ -49,18 +53,60 @@ public:
 		];
 	}
 
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		if (!TimerHandle.IsValid())
+		{
+			MouseOverTime = FSlateApplication::Get().GetCurrentTime();
+			TimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBuiltInFunctionVisualizer::TickInterp));
+		}
+	}
+
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override
+	{
+		if (TimerHandle.IsValid())
+		{
+			InterpValue = FVector2D::ZeroVector;
+			UnRegisterActiveTimer(TimerHandle.ToSharedRef());
+			TimerHandle = nullptr;
+		}
+	}
+
+	EActiveTimerReturnType TickInterp(const double InCurrentTime, const float InDeltaTime)
+	{
+		static float InterpInPad = .25f, InterpOutPad = .5f;
+		static float InterpDuration = .5f;
+
+		float TotalInterpTime = InterpInPad + InterpDuration + InterpOutPad;
+		InterpValue.X = FMath::Clamp((FMath::Fmod(float(InCurrentTime - MouseOverTime), TotalInterpTime) - InterpInPad) / InterpDuration, 0.f, 1.f);
+
+		UMovieSceneBuiltInEasingFunction* DefaultObject = GetMutableDefault<UMovieSceneBuiltInEasingFunction>();
+
+		EMovieSceneBuiltInEasing DefaultType = DefaultObject->Type;
+		DefaultObject->Type = EasingType;
+
+		InterpValue.Y = DefaultObject->Evaluate(InterpValue.X);
+		DefaultObject->Type = DefaultType;
+
+		return EActiveTimerReturnType::Continue;
+	}
+
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		float VerticalPad = 0.2f;
 		FVector2D InverseVerticalSize(AllottedGeometry.Size.X, -AllottedGeometry.Size.Y);
 
+		const float VerticalBottom = AllottedGeometry.Size.Y-AllottedGeometry.Size.Y*VerticalPad*.5f;
+		const float CurveHeight = AllottedGeometry.Size.Y * (1.f-VerticalPad);
+		const float CurveWidth = AllottedGeometry.Size.X - 5.f;
+
 		TArray<FVector2D> Points;
 		for (FVector2D Sample : Samples)
 		{
-			FVector2D Offset(0.f, AllottedGeometry.Size.Y-AllottedGeometry.Size.Y*VerticalPad*.5f);
+			FVector2D Offset(5.f, VerticalBottom);
 			Points.Add(Offset + FVector2D(
-				AllottedGeometry.Size.X*Sample.X,
-				-AllottedGeometry.Size.Y * Sample.Y * (1.f-VerticalPad)
+				CurveWidth*Sample.X,
+				-CurveHeight * Sample.Y
 			));
 		}
 
@@ -71,11 +117,34 @@ public:
 			Points,
 			ESlateDrawEffect::None);
 
-		return LayerId;
+		if (TimerHandle.IsValid())
+		{
+			FVector2D PointOffset(0.f, VerticalBottom - CurveHeight*InterpValue.Y - 4.f);
+
+			static const FSlateBrush* InterpPointBrush = FEditorStyle::GetBrush("Sequencer.InterpLine");
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId+1,
+				AllottedGeometry.MakeChild(
+					FVector2D(AllottedGeometry.Size.X, 7.f),
+					FSlateLayoutTransform(PointOffset)
+				).ToPaintGeometry(),
+				InterpPointBrush,
+				ESlateDrawEffect::None,
+				FLinearColor::Green
+			);
+		}
+
+		return LayerId+1;
 	}
 
 private:
 
+	TSharedPtr<FActiveTimerHandle> TimerHandle;
+	double MouseOverTime;
+	EMovieSceneBuiltInEasing EasingType;
+
+	FVector2D InterpValue;
 	TArray<FVector2D> Samples;
 };
 

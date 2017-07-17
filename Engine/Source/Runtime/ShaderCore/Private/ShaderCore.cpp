@@ -810,5 +810,12 @@ void SerializeUniformBufferInfo(FShaderSaveArchive& Ar, const TMap<const TCHAR*,
 
 FString FShaderCompilerError::GetShaderSourceFilePath() const
 {
-	return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
+	if (IFileManager::Get().FileExists(*ErrorVirtualFilePath))
+	{
+		return ErrorVirtualFilePath;
+	}
+	else
+	{
+		return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
+	}
 }

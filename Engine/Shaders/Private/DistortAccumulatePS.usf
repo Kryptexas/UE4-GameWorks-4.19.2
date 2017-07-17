@@ -69,7 +69,7 @@ void Main(
 	// Sample depth at distortion offset
 	float2 DistortScreenUV = ScreenUV + Distortion;
 
-#if (ES2_PROFILE || ES3_1_PROFILE) 
+#if (ES2_PROFILE || ES3_1_PROFILE) && (!WEBGL)
 	float DistortSceneDepth = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, DistortScreenUV, 0).r);
 #else
 	float DistortSceneDepth = CalcSceneDepth(DistortScreenUV);
@@ -83,7 +83,7 @@ void Main(
 	float InvWidth = 1.0f / max(1.0f, Range );
 	Distortion *= saturate((Z - ZCompare) * InvWidth + Bias);
 
-#if (ES2_PROFILE || ES3_1_PROFILE) 
+#if (ES2_PROFILE || ES3_1_PROFILE)
 	// mobile path direclty outputs distorted colors
 	DistortScreenUV = ScreenUV + Distortion;
 	OutColor = CalcFullSceneColor(DistortScreenUV);

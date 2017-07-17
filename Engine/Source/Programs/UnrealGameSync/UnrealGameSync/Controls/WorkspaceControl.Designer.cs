@@ -30,6 +30,11 @@
 			this.OptionsContextMenu_UseIncrementalBuilds = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu_CustomizeBuildSteps = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+			this.tabLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.OptionsContextMenu_TabNames_Stream = new System.Windows.Forms.ToolStripMenuItem();
+			this.OptionsContextMenu_TabNames_WorkspaceName = new System.Windows.Forms.ToolStripMenuItem();
+			this.OptionsContextMenu_TabNames_WorkspaceRoot = new System.Windows.Forms.ToolStripMenuItem();
+			this.OptionsContextMenu_TabNames_ProjectFile = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu_EditorArguments = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu_TimeZone = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu_TimeZone_Local = new System.Windows.Forms.ToolStripMenuItem();
@@ -38,11 +43,6 @@
 			this.OptionsContextMenu_KeepInTray = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
 			this.OptionsContextMenu_Diagnostics = new System.Windows.Forms.ToolStripMenuItem();
-			this.tabLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.OptionsContextMenu_TabNames_Stream = new System.Windows.Forms.ToolStripMenuItem();
-			this.OptionsContextMenu_TabNames_WorkspaceName = new System.Windows.Forms.ToolStripMenuItem();
-			this.OptionsContextMenu_TabNames_WorkspaceRoot = new System.Windows.Forms.ToolStripMenuItem();
-			this.OptionsContextMenu_TabNames_ProjectFile = new System.Windows.Forms.ToolStripMenuItem();
 			this.OnlyShowReviewedCheckBox = new System.Windows.Forms.CheckBox();
 			this.RunAfterSyncCheckBox = new System.Windows.Forms.CheckBox();
 			this.BuildAfterSyncCheckBox = new System.Windows.Forms.CheckBox();
@@ -104,6 +104,11 @@
 			this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
 			this.SyncContexMenu_EnterChangelist = new System.Windows.Forms.ToolStripMenuItem();
 			this.StreamContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.RecentMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.RecentMenu_Browse = new System.Windows.Forms.ToolStripMenuItem();
+			this.toolStripSeparator9 = new System.Windows.Forms.ToolStripSeparator();
+			this.RecentMenu_Separator = new System.Windows.Forms.ToolStripSeparator();
+			this.RecentMenu_ClearList = new System.Windows.Forms.ToolStripMenuItem();
 			this.OptionsContextMenu.SuspendLayout();
 			this.BuildListContextMenu.SuspendLayout();
 			this.flowLayoutPanel1.SuspendLayout();
@@ -117,6 +122,7 @@
 			this.panel1.SuspendLayout();
 			this.MoreToolsContextMenu.SuspendLayout();
 			this.SyncContextMenu.SuspendLayout();
+			this.RecentMenu.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// OptionsContextMenu
@@ -140,7 +146,7 @@
             this.toolStripSeparator6,
             this.OptionsContextMenu_Diagnostics});
 			this.OptionsContextMenu.Name = "ToolsMenuStrip";
-			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 352);
+			this.OptionsContextMenu.Size = new System.Drawing.Size(268, 330);
 			// 
 			// OptionsContextMenu_ScheduledSync
 			// 
@@ -234,6 +240,45 @@
 			this.toolStripSeparator5.Name = "toolStripSeparator5";
 			this.toolStripSeparator5.Size = new System.Drawing.Size(264, 6);
 			// 
+			// tabLabelsToolStripMenuItem
+			// 
+			this.tabLabelsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.OptionsContextMenu_TabNames_Stream,
+            this.OptionsContextMenu_TabNames_WorkspaceName,
+            this.OptionsContextMenu_TabNames_WorkspaceRoot,
+            this.OptionsContextMenu_TabNames_ProjectFile});
+			this.tabLabelsToolStripMenuItem.Name = "tabLabelsToolStripMenuItem";
+			this.tabLabelsToolStripMenuItem.Size = new System.Drawing.Size(267, 22);
+			this.tabLabelsToolStripMenuItem.Text = "Tab Names";
+			// 
+			// OptionsContextMenu_TabNames_Stream
+			// 
+			this.OptionsContextMenu_TabNames_Stream.Name = "OptionsContextMenu_TabNames_Stream";
+			this.OptionsContextMenu_TabNames_Stream.Size = new System.Drawing.Size(167, 22);
+			this.OptionsContextMenu_TabNames_Stream.Text = "Stream";
+			this.OptionsContextMenu_TabNames_Stream.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_Stream_Click);
+			// 
+			// OptionsContextMenu_TabNames_WorkspaceName
+			// 
+			this.OptionsContextMenu_TabNames_WorkspaceName.Name = "OptionsContextMenu_TabNames_WorkspaceName";
+			this.OptionsContextMenu_TabNames_WorkspaceName.Size = new System.Drawing.Size(167, 22);
+			this.OptionsContextMenu_TabNames_WorkspaceName.Text = "Workspace Name";
+			this.OptionsContextMenu_TabNames_WorkspaceName.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_WorkspaceName_Click);
+			// 
+			// OptionsContextMenu_TabNames_WorkspaceRoot
+			// 
+			this.OptionsContextMenu_TabNames_WorkspaceRoot.Name = "OptionsContextMenu_TabNames_WorkspaceRoot";
+			this.OptionsContextMenu_TabNames_WorkspaceRoot.Size = new System.Drawing.Size(167, 22);
+			this.OptionsContextMenu_TabNames_WorkspaceRoot.Text = "Workspace Root";
+			this.OptionsContextMenu_TabNames_WorkspaceRoot.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_WorkspaceRoot_Click);
+			// 
+			// OptionsContextMenu_TabNames_ProjectFile
+			// 
+			this.OptionsContextMenu_TabNames_ProjectFile.Name = "OptionsContextMenu_TabNames_ProjectFile";
+			this.OptionsContextMenu_TabNames_ProjectFile.Size = new System.Drawing.Size(167, 22);
+			this.OptionsContextMenu_TabNames_ProjectFile.Text = "Project File";
+			this.OptionsContextMenu_TabNames_ProjectFile.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_ProjectFile_Click);
+			// 
 			// OptionsContextMenu_EditorArguments
 			// 
 			this.OptionsContextMenu_EditorArguments.Name = "OptionsContextMenu_EditorArguments";
@@ -290,52 +335,14 @@
 			this.OptionsContextMenu_Diagnostics.Text = "Diagnostics...";
 			this.OptionsContextMenu_Diagnostics.Click += new System.EventHandler(this.OptionsContextMenu_Diagnostics_Click);
 			// 
-			// tabLabelsToolStripMenuItem
-			// 
-			this.tabLabelsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.OptionsContextMenu_TabNames_Stream,
-            this.OptionsContextMenu_TabNames_WorkspaceName,
-            this.OptionsContextMenu_TabNames_WorkspaceRoot,
-            this.OptionsContextMenu_TabNames_ProjectFile});
-			this.tabLabelsToolStripMenuItem.Name = "tabLabelsToolStripMenuItem";
-			this.tabLabelsToolStripMenuItem.Size = new System.Drawing.Size(267, 22);
-			this.tabLabelsToolStripMenuItem.Text = "Tab Names";
-			// 
-			// OptionsContextMenu_TabNames_Stream
-			// 
-			this.OptionsContextMenu_TabNames_Stream.Name = "OptionsContextMenu_TabNames_Stream";
-			this.OptionsContextMenu_TabNames_Stream.Size = new System.Drawing.Size(167, 22);
-			this.OptionsContextMenu_TabNames_Stream.Text = "Stream";
-			this.OptionsContextMenu_TabNames_Stream.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_Stream_Click);
-			// 
-			// OptionsContextMenu_TabNames_WorkspaceName
-			// 
-			this.OptionsContextMenu_TabNames_WorkspaceName.Name = "OptionsContextMenu_TabNames_WorkspaceName";
-			this.OptionsContextMenu_TabNames_WorkspaceName.Size = new System.Drawing.Size(167, 22);
-			this.OptionsContextMenu_TabNames_WorkspaceName.Text = "Workspace Name";
-			this.OptionsContextMenu_TabNames_WorkspaceName.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_WorkspaceName_Click);
-			// 
-			// OptionsContextMenu_TabNames_WorkspaceRoot
-			// 
-			this.OptionsContextMenu_TabNames_WorkspaceRoot.Name = "OptionsContextMenu_TabNames_WorkspaceRoot";
-			this.OptionsContextMenu_TabNames_WorkspaceRoot.Size = new System.Drawing.Size(167, 22);
-			this.OptionsContextMenu_TabNames_WorkspaceRoot.Text = "Workspace Root";
-			this.OptionsContextMenu_TabNames_WorkspaceRoot.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_WorkspaceRoot_Click);
-			// 
-			// OptionsContextMenu_TabNames_ProjectFile
-			// 
-			this.OptionsContextMenu_TabNames_ProjectFile.Name = "OptionsContextMenu_TabNames_ProjectFile";
-			this.OptionsContextMenu_TabNames_ProjectFile.Size = new System.Drawing.Size(167, 22);
-			this.OptionsContextMenu_TabNames_ProjectFile.Text = "Project File";
-			this.OptionsContextMenu_TabNames_ProjectFile.Click += new System.EventHandler(this.OptionsContextMenu_TabNames_ProjectFile_Click);
-			// 
 			// OnlyShowReviewedCheckBox
 			// 
-			this.OnlyShowReviewedCheckBox.Anchor = System.Windows.Forms.AnchorStyles.Left;
 			this.OnlyShowReviewedCheckBox.AutoSize = true;
-			this.OnlyShowReviewedCheckBox.Location = new System.Drawing.Point(3, 11);
+			this.OnlyShowReviewedCheckBox.Dock = System.Windows.Forms.DockStyle.Left;
+			this.OnlyShowReviewedCheckBox.Location = new System.Drawing.Point(0, 16);
+			this.OnlyShowReviewedCheckBox.Margin = new System.Windows.Forms.Padding(0, 3, 3, 2);
 			this.OnlyShowReviewedCheckBox.Name = "OnlyShowReviewedCheckBox";
-			this.OnlyShowReviewedCheckBox.Size = new System.Drawing.Size(166, 17);
+			this.OnlyShowReviewedCheckBox.Size = new System.Drawing.Size(179, 21);
 			this.OnlyShowReviewedCheckBox.TabIndex = 3;
 			this.OnlyShowReviewedCheckBox.Text = "Only show reviewed changes";
 			this.OnlyShowReviewedCheckBox.UseVisualStyleBackColor = true;
@@ -344,9 +351,10 @@
 			// RunAfterSyncCheckBox
 			// 
 			this.RunAfterSyncCheckBox.AutoSize = true;
-			this.RunAfterSyncCheckBox.Location = new System.Drawing.Point(138, 3);
+			this.RunAfterSyncCheckBox.Location = new System.Drawing.Point(153, 0);
+			this.RunAfterSyncCheckBox.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
 			this.RunAfterSyncCheckBox.Name = "RunAfterSyncCheckBox";
-			this.RunAfterSyncCheckBox.Size = new System.Drawing.Size(45, 17);
+			this.RunAfterSyncCheckBox.Size = new System.Drawing.Size(47, 19);
 			this.RunAfterSyncCheckBox.TabIndex = 6;
 			this.RunAfterSyncCheckBox.Text = "Run";
 			this.RunAfterSyncCheckBox.UseVisualStyleBackColor = true;
@@ -355,9 +363,10 @@
 			// BuildAfterSyncCheckBox
 			// 
 			this.BuildAfterSyncCheckBox.AutoSize = true;
-			this.BuildAfterSyncCheckBox.Location = new System.Drawing.Point(84, 3);
+			this.BuildAfterSyncCheckBox.Location = new System.Drawing.Point(94, 0);
+			this.BuildAfterSyncCheckBox.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
 			this.BuildAfterSyncCheckBox.Name = "BuildAfterSyncCheckBox";
-			this.BuildAfterSyncCheckBox.Size = new System.Drawing.Size(48, 17);
+			this.BuildAfterSyncCheckBox.Size = new System.Drawing.Size(53, 19);
 			this.BuildAfterSyncCheckBox.TabIndex = 5;
 			this.BuildAfterSyncCheckBox.Text = "Build";
 			this.BuildAfterSyncCheckBox.UseVisualStyleBackColor = true;
@@ -368,8 +377,8 @@
 			this.AfterSyncingLabel.AutoSize = true;
 			this.AfterSyncingLabel.Location = new System.Drawing.Point(3, 0);
 			this.AfterSyncingLabel.Name = "AfterSyncingLabel";
-			this.AfterSyncingLabel.Padding = new System.Windows.Forms.Padding(0, 4, 0, 0);
-			this.AfterSyncingLabel.Size = new System.Drawing.Size(75, 17);
+			this.AfterSyncingLabel.Padding = new System.Windows.Forms.Padding(0, 1, 5, 0);
+			this.AfterSyncingLabel.Size = new System.Drawing.Size(85, 16);
 			this.AfterSyncingLabel.TabIndex = 4;
 			this.AfterSyncingLabel.Text = "After syncing:";
 			// 
@@ -585,18 +594,20 @@
 			this.flowLayoutPanel1.Controls.Add(this.BuildAfterSyncCheckBox);
 			this.flowLayoutPanel1.Controls.Add(this.RunAfterSyncCheckBox);
 			this.flowLayoutPanel1.Controls.Add(this.OpenSolutionAfterSyncCheckBox);
-			this.flowLayoutPanel1.Location = new System.Drawing.Point(458, 8);
+			this.flowLayoutPanel1.Location = new System.Drawing.Point(546, 17);
+			this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(0, 4, 0, 3);
 			this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-			this.flowLayoutPanel1.Size = new System.Drawing.Size(285, 23);
+			this.flowLayoutPanel1.Size = new System.Drawing.Size(311, 19);
 			this.flowLayoutPanel1.TabIndex = 8;
 			this.flowLayoutPanel1.WrapContents = false;
 			// 
 			// OpenSolutionAfterSyncCheckBox
 			// 
 			this.OpenSolutionAfterSyncCheckBox.AutoSize = true;
-			this.OpenSolutionAfterSyncCheckBox.Location = new System.Drawing.Point(189, 3);
+			this.OpenSolutionAfterSyncCheckBox.Location = new System.Drawing.Point(206, 0);
+			this.OpenSolutionAfterSyncCheckBox.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
 			this.OpenSolutionAfterSyncCheckBox.Name = "OpenSolutionAfterSyncCheckBox";
-			this.OpenSolutionAfterSyncCheckBox.Size = new System.Drawing.Size(93, 17);
+			this.OpenSolutionAfterSyncCheckBox.Size = new System.Drawing.Size(102, 19);
 			this.OpenSolutionAfterSyncCheckBox.TabIndex = 7;
 			this.OpenSolutionAfterSyncCheckBox.Text = "Open Solution";
 			this.OpenSolutionAfterSyncCheckBox.UseVisualStyleBackColor = true;
@@ -606,6 +617,7 @@
 			// 
 			this.tableLayoutPanel3.AutoSize = true;
 			this.tableLayoutPanel3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+			this.tableLayoutPanel3.BackColor = System.Drawing.SystemColors.Control;
 			this.tableLayoutPanel3.ColumnCount = 3;
 			this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
 			this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -614,14 +626,14 @@
 			this.tableLayoutPanel3.Controls.Add(this.flowLayoutPanel1, 1, 0);
 			this.tableLayoutPanel3.Controls.Add(this.OptionsButton, 2, 0);
 			this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.tableLayoutPanel3.Location = new System.Drawing.Point(0, 618);
+			this.tableLayoutPanel3.Location = new System.Drawing.Point(0, 713);
 			this.tableLayoutPanel3.Margin = new System.Windows.Forms.Padding(0);
 			this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-			this.tableLayoutPanel3.Padding = new System.Windows.Forms.Padding(0, 5, 0, 0);
+			this.tableLayoutPanel3.Padding = new System.Windows.Forms.Padding(0, 13, 0, 0);
 			this.tableLayoutPanel3.RowCount = 1;
 			this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-			this.tableLayoutPanel3.Size = new System.Drawing.Size(1168, 34);
+			this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
+			this.tableLayoutPanel3.Size = new System.Drawing.Size(1363, 39);
 			this.tableLayoutPanel3.TabIndex = 11;
 			// 
 			// OptionsButton
@@ -630,11 +642,12 @@
 			this.OptionsButton.AutoSize = true;
 			this.OptionsButton.Image = global::UnrealGameSync.Properties.Resources.DropList;
 			this.OptionsButton.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.OptionsButton.Location = new System.Drawing.Point(1033, 8);
+			this.OptionsButton.Location = new System.Drawing.Point(1222, 13);
+			this.OptionsButton.Margin = new System.Windows.Forms.Padding(0);
 			this.OptionsButton.Name = "OptionsButton";
-			this.OptionsButton.Size = new System.Drawing.Size(132, 23);
+			this.OptionsButton.Size = new System.Drawing.Size(141, 26);
 			this.OptionsButton.TabIndex = 7;
-			this.OptionsButton.Text = "Options";
+			this.OptionsButton.Text = "Options ";
 			this.OptionsButton.UseVisualStyleBackColor = true;
 			this.OptionsButton.Click += new System.EventHandler(this.OptionsButton_Click);
 			// 
@@ -643,23 +656,25 @@
 			this.tableLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
 			this.tableLayoutPanel2.ColumnCount = 1;
 			this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+			this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 23F));
 			this.tableLayoutPanel2.Controls.Add(this.Splitter, 0, 1);
 			this.tableLayoutPanel2.Controls.Add(this.tableLayoutPanel3, 0, 2);
 			this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.tableLayoutPanel2.GrowStyle = System.Windows.Forms.TableLayoutPanelGrowStyle.FixedSize;
 			this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
+			this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
 			this.tableLayoutPanel2.Name = "tableLayoutPanel2";
 			this.tableLayoutPanel2.RowCount = 3;
 			this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
 			this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
 			this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-			this.tableLayoutPanel2.Size = new System.Drawing.Size(1168, 652);
+			this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 23F));
+			this.tableLayoutPanel2.Size = new System.Drawing.Size(1363, 752);
 			this.tableLayoutPanel2.TabIndex = 12;
 			// 
 			// Splitter
 			// 
+			this.Splitter.Caption = "Log";
 			this.Splitter.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.Splitter.Location = new System.Drawing.Point(0, 0);
 			this.Splitter.Margin = new System.Windows.Forms.Padding(0);
@@ -674,8 +689,8 @@
 			// 
 			this.Splitter.Panel2.Controls.Add(this.panel1);
 			this.Splitter.Panel2MinSize = 50;
-			this.Splitter.Size = new System.Drawing.Size(1168, 618);
-			this.Splitter.SplitterDistance = 390;
+			this.Splitter.Size = new System.Drawing.Size(1363, 713);
+			this.Splitter.SplitterDistance = 444;
 			this.Splitter.SplitterWidth = 28;
 			this.Splitter.TabIndex = 0;
 			// 
@@ -689,9 +704,9 @@
 			this.tableLayoutPanel4.Location = new System.Drawing.Point(0, 0);
 			this.tableLayoutPanel4.Name = "tableLayoutPanel4";
 			this.tableLayoutPanel4.RowCount = 2;
-			this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 128F));
+			this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 148F));
 			this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel4.Size = new System.Drawing.Size(1168, 390);
+			this.tableLayoutPanel4.Size = new System.Drawing.Size(1363, 444);
 			this.tableLayoutPanel4.TabIndex = 1;
 			// 
 			// StatusPanel
@@ -703,7 +718,7 @@
 			this.StatusPanel.Location = new System.Drawing.Point(0, 0);
 			this.StatusPanel.Margin = new System.Windows.Forms.Padding(0, 0, 0, 3);
 			this.StatusPanel.Name = "StatusPanel";
-			this.StatusPanel.Size = new System.Drawing.Size(1168, 125);
+			this.StatusPanel.Size = new System.Drawing.Size(1363, 145);
 			this.StatusPanel.TabIndex = 1;
 			// 
 			// BuildList
@@ -719,12 +734,12 @@
 			this.BuildList.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.BuildList.FullRowSelect = true;
 			this.BuildList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-			this.BuildList.Location = new System.Drawing.Point(0, 128);
+			this.BuildList.Location = new System.Drawing.Point(0, 148);
 			this.BuildList.Margin = new System.Windows.Forms.Padding(0);
 			this.BuildList.MultiSelect = false;
 			this.BuildList.Name = "BuildList";
 			this.BuildList.OwnerDraw = true;
-			this.BuildList.Size = new System.Drawing.Size(1168, 262);
+			this.BuildList.Size = new System.Drawing.Size(1363, 296);
 			this.BuildList.TabIndex = 0;
 			this.BuildList.UseCompatibleStateImageBehavior = false;
 			this.BuildList.View = System.Windows.Forms.View.Details;
@@ -781,7 +796,7 @@
 			this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.panel1.Location = new System.Drawing.Point(0, 0);
 			this.panel1.Name = "panel1";
-			this.panel1.Size = new System.Drawing.Size(1168, 200);
+			this.panel1.Size = new System.Drawing.Size(1363, 241);
 			this.panel1.TabIndex = 0;
 			// 
 			// SyncLog
@@ -793,7 +808,7 @@
 			this.SyncLog.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(32)))), ((int)(((byte)(32)))), ((int)(((byte)(32)))));
 			this.SyncLog.Location = new System.Drawing.Point(0, 0);
 			this.SyncLog.Name = "SyncLog";
-			this.SyncLog.Size = new System.Drawing.Size(1166, 198);
+			this.SyncLog.Size = new System.Drawing.Size(1361, 239);
 			this.SyncLog.TabIndex = 0;
 			// 
 			// MoreToolsContextMenu
@@ -864,15 +879,51 @@
 			this.StreamContextMenu.Name = "StreamContextMenu";
 			this.StreamContextMenu.Size = new System.Drawing.Size(61, 4);
 			// 
+			// RecentMenu
+			// 
+			this.RecentMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.RecentMenu_Browse,
+            this.toolStripSeparator9,
+            this.RecentMenu_Separator,
+            this.RecentMenu_ClearList});
+			this.RecentMenu.Name = "RecentMenu";
+			this.RecentMenu.Size = new System.Drawing.Size(123, 60);
+			// 
+			// RecentMenu_Browse
+			// 
+			this.RecentMenu_Browse.Name = "RecentMenu_Browse";
+			this.RecentMenu_Browse.Size = new System.Drawing.Size(122, 22);
+			this.RecentMenu_Browse.Text = "Browse...";
+			this.RecentMenu_Browse.Click += new System.EventHandler(this.RecentMenu_Browse_Click);
+			// 
+			// toolStripSeparator9
+			// 
+			this.toolStripSeparator9.Name = "toolStripSeparator9";
+			this.toolStripSeparator9.Size = new System.Drawing.Size(119, 6);
+			// 
+			// RecentMenu_Separator
+			// 
+			this.RecentMenu_Separator.Name = "RecentMenu_Separator";
+			this.RecentMenu_Separator.Size = new System.Drawing.Size(119, 6);
+			// 
+			// RecentMenu_ClearList
+			// 
+			this.RecentMenu_ClearList.Name = "RecentMenu_ClearList";
+			this.RecentMenu_ClearList.Size = new System.Drawing.Size(122, 22);
+			this.RecentMenu_ClearList.Text = "Clear List";
+			this.RecentMenu_ClearList.Click += new System.EventHandler(this.RecentMenu_ClearList_Click);
+			// 
 			// WorkspaceControl
 			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+			this.BackColor = System.Drawing.SystemColors.Control;
 			this.Controls.Add(this.tableLayoutPanel2);
-			this.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.MinimumSize = new System.Drawing.Size(800, 350);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.Margin = new System.Windows.Forms.Padding(0);
+			this.MinimumSize = new System.Drawing.Size(933, 404);
 			this.Name = "WorkspaceControl";
-			this.Size = new System.Drawing.Size(1168, 652);
+			this.Size = new System.Drawing.Size(1363, 752);
 			this.Load += new System.EventHandler(this.MainWindow_Load);
 			this.OptionsContextMenu.ResumeLayout(false);
 			this.BuildListContextMenu.ResumeLayout(false);
@@ -890,6 +941,7 @@
 			this.panel1.ResumeLayout(false);
 			this.MoreToolsContextMenu.ResumeLayout(false);
 			this.SyncContextMenu.ResumeLayout(false);
+			this.RecentMenu.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}
@@ -984,5 +1036,10 @@
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_TabNames_WorkspaceName;
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_TabNames_WorkspaceRoot;
 		private System.Windows.Forms.ToolStripMenuItem OptionsContextMenu_TabNames_ProjectFile;
+		private System.Windows.Forms.ContextMenuStrip RecentMenu;
+		private System.Windows.Forms.ToolStripSeparator RecentMenu_Separator;
+		private System.Windows.Forms.ToolStripMenuItem RecentMenu_ClearList;
+		private System.Windows.Forms.ToolStripMenuItem RecentMenu_Browse;
+		private System.Windows.Forms.ToolStripSeparator toolStripSeparator9;
 	}
 }

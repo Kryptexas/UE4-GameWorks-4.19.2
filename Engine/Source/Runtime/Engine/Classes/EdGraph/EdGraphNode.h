@@ -323,7 +323,6 @@ public:
 	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
-	DEPRECATED(4.17, "Use version that takes PinContainerType instead of separate booleans for array, set, and map")
 	UEdGraphPin* CreatePin(
 		EEdGraphPinDirection Dir, 
 		const FString& PinCategory, 

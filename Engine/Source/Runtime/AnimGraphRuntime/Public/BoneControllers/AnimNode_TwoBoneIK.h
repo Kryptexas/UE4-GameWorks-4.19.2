@@ -80,12 +80,16 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalContr
 
 	/** Whether or not to apply twist on the chain of joints. This clears the twist value along the TwistAxis */
 	UPROPERTY(EditAnywhere, Category = IK)
-	bool bNoTwist;
+	bool bAllowTwist;
 
 	/** Specify which axis it's aligned. Used when removing twist */
-	UPROPERTY(EditAnywhere, Category = IK, meta = (editcondition = "bNoTwist"))
+	UPROPERTY(EditAnywhere, Category = IK, meta = (editcondition = "!bAllowTwist"))
 	FAxis TwistAxis;
-
+	
+	/** Whether or not to apply twist on the chain of joints. This clears the twist value along the TwistAxis */
+	UPROPERTY()
+	bool bNoTwist_DEPRECATED;
+	
 	FAnimNode_TwoBoneIK();
 
 	// FAnimNode_Base interface

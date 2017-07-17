@@ -37,8 +37,8 @@ namespace SteamAudio
 		FPhononOcclusion();
 		~FPhononOcclusion();
 
-		virtual void Initialize(const int32 SampleRate, const int32 NumSources) override;
-		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UOcclusionPluginSourceSettingsBase* InSettings) override;
+		virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize) override;
+		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UOcclusionPluginSourceSettingsBase* InSettings) override;
 		virtual void OnReleaseSource(const uint32 SourceId) override;
 		virtual void ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData) override;
 

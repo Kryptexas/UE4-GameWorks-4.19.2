@@ -5,6 +5,7 @@
 UMovieSceneMarginSection::UMovieSceneMarginSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+	BlendType = EMovieSceneBlendType::Absolute;
 }
 
 void UMovieSceneMarginSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )

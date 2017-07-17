@@ -28,6 +28,11 @@ namespace UnrealBuildTool
 		public readonly string Architecture;
 
 		/// <summary>
+		/// On Mac, indicates the path to the target's application bundle
+		/// </summary>
+		public DirectoryReference BundleDirectory;
+
+		/// <summary>
 		/// The directory to put the non-executable files in (PDBs, import library, etc)
 		/// </summary>
 		public DirectoryReference OutputDirectory;
@@ -289,6 +294,7 @@ namespace UnrealBuildTool
 			Platform = Other.Platform;
 			Configuration = Other.Configuration;
 			Architecture = Other.Architecture;
+			BundleDirectory = Other.BundleDirectory;
 			OutputDirectory = Other.OutputDirectory;
 			IntermediateDirectory = Other.IntermediateDirectory;
 			LocalShadowDirectory = Other.LocalShadowDirectory;

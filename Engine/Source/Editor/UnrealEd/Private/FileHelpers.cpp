@@ -3447,9 +3447,15 @@ bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText&
 			{
 				if ( BaseFilename.Equals(InvalidFilenames[NameIdx], ESearchCase::IgnoreCase) )
 				{
-					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
+					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, NONE, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
 					return false;
 				}
+			}
+
+			if (FName(*BaseFilename).IsNone())
+			{
+				OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_NoneFilename", "Filename '{0}' resolves to 'None' and cannot be used"), FText::FromString(BaseFilename));
+				return false;
 			}
 
 			// Check for invalid characters in the filename

@@ -72,6 +72,7 @@
 #include "ClothingSystemEditorInterfaceModule.h"
 #endif
 #include "SkeletalDebugRendering.h"
+#include "Misc/RuntimeErrors.h"
 
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
@@ -4823,19 +4824,22 @@ USkeletalMeshSocket::USkeletalMeshSocket(const FObjectInitializer& ObjectInitial
 
 void USkeletalMeshSocket::InitializeSocketFromLocation(const class USkeletalMeshComponent* SkelComp, FVector WorldLocation, FVector WorldNormal)
 {
-	BoneName = SkelComp->FindClosestBone(WorldLocation);
-	if( BoneName != NAME_None )
+	if (ensureAsRuntimeWarning(SkelComp))
 	{
-		SkelComp->TransformToBoneSpace(BoneName, WorldLocation, WorldNormal.Rotation(), RelativeLocation, RelativeRotation);
+		BoneName = SkelComp->FindClosestBone(WorldLocation);
+		if (BoneName != NAME_None)
+		{
+			SkelComp->TransformToBoneSpace(BoneName, WorldLocation, WorldNormal.Rotation(), RelativeLocation, RelativeRotation);
+		}
 	}
 }
 
 FVector USkeletalMeshSocket::GetSocketLocation(const class USkeletalMeshComponent* SkelComp) const
 {
-	if( SkelComp )
+	if (ensureAsRuntimeWarning(SkelComp))
 	{
 		FMatrix SocketMatrix;
-		if( GetSocketMatrix(SocketMatrix, SkelComp) )
+		if (GetSocketMatrix(SocketMatrix, SkelComp))
 		{
 			return SocketMatrix.GetOrigin();
 		}
@@ -4848,7 +4852,7 @@ FVector USkeletalMeshSocket::GetSocketLocation(const class USkeletalMeshComponen
 
 bool USkeletalMeshSocket::GetSocketMatrix(FMatrix& OutMatrix, const class USkeletalMeshComponent* SkelComp) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4869,7 +4873,7 @@ FTransform USkeletalMeshSocket::GetSocketTransform(const class USkeletalMeshComp
 {
 	FTransform OutTM;
 
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FTransform BoneTM = SkelComp->GetBoneTransform(BoneIndex);
@@ -4882,7 +4886,7 @@ FTransform USkeletalMeshSocket::GetSocketTransform(const class USkeletalMeshComp
 
 bool USkeletalMeshSocket::GetSocketMatrixWithOffset(FMatrix& OutMatrix, class USkeletalMeshComponent* SkelComp, const FVector& InOffset, const FRotator& InRotation) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4898,7 +4902,7 @@ bool USkeletalMeshSocket::GetSocketMatrixWithOffset(FMatrix& OutMatrix, class US
 
 bool USkeletalMeshSocket::GetSocketPositionWithOffset(FVector& OutPosition, class USkeletalMeshComponent* SkelComp, const FVector& InOffset, const FRotator& InRotation) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4923,28 +4927,30 @@ bool USkeletalMeshSocket::GetSocketPositionWithOffset(FVector& OutPosition, clas
 bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponent* SkelComp) const
 {
 	bool bAttached = false;
-
-	// Don't support attaching to own socket
-	if (Actor != SkelComp->GetOwner() && Actor->GetRootComponent())
+	if (ensureAlways(SkelComp))
 	{
-		FMatrix SocketTM;
-		if( GetSocketMatrix( SocketTM, SkelComp ) )
+		// Don't support attaching to own socket
+		if ((Actor != SkelComp->GetOwner()) && Actor->GetRootComponent())
 		{
-			Actor->Modify();
-
-			Actor->SetActorLocation(SocketTM.GetOrigin(), false);
-			Actor->SetActorRotation(SocketTM.Rotator());
-			Actor->GetRootComponent()->AttachToComponent(SkelComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-
-#if WITH_EDITOR
-			if (GIsEditor)
+			FMatrix SocketTM;
+			if (GetSocketMatrix(SocketTM, SkelComp))
 			{
-				Actor->PreEditChange(NULL);
-				Actor->PostEditChange();
-			}
-#endif // WITH_EDITOR
+				Actor->Modify();
 
-			bAttached = true;
+				Actor->SetActorLocation(SocketTM.GetOrigin(), false);
+				Actor->SetActorRotation(SocketTM.Rotator());
+				Actor->GetRootComponent()->AttachToComponent(SkelComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+
+	#if WITH_EDITOR
+				if (GIsEditor)
+				{
+					Actor->PreEditChange(NULL);
+					Actor->PostEditChange();
+				}
+	#endif // WITH_EDITOR
+
+				bAttached = true;
+			}
 		}
 	}
 	return bAttached;

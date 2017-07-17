@@ -1217,9 +1217,14 @@ void FSplineComponentVisualizer::OnResetToDefault()
 bool FSplineComponentVisualizer::CanResetToDefault() const
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
-	check(SplineComp != nullptr);
-	return SplineComp->SplineCurves != CastChecked<USplineComponent>(SplineComp->GetArchetype())->SplineCurves;
-//	return SplineComp->bSplineHasBeenEdited;
+	if(SplineComp != nullptr)
+    {
+        return SplineComp->SplineCurves != CastChecked<USplineComponent>(SplineComp->GetArchetype())->SplineCurves;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 

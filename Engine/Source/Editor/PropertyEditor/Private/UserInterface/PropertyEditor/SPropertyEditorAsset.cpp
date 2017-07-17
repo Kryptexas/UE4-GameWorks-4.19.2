@@ -274,18 +274,24 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		ValueContentBox->AddSlot()
 		.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
 		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SAssignNew( ThumbnailBorder, SBorder )
-			.Padding( 5.0f )
-			.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
-			.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew( SBox )
-				.ToolTipText(TooltipAttribute)
-				.WidthOverride( InArgs._ThumbnailSize.X ) 
-				.HeightOverride( InArgs._ThumbnailSize.Y )
+				SAssignNew( ThumbnailBorder, SBorder )
+				.Padding( 5.0f )
+				.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
+				.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
 				[
-					AssetThumbnail->MakeThumbnailWidget(AssetThumbnailConfig)
+					SNew( SBox )
+					.ToolTipText(TooltipAttribute)
+					.WidthOverride( InArgs._ThumbnailSize.X ) 
+					.HeightOverride( InArgs._ThumbnailSize.Y )
+					[
+						AssetThumbnail->MakeThumbnailWidget(AssetThumbnailConfig)
+					]
 				]
 			]
 		];

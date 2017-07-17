@@ -22,6 +22,18 @@ void TBlendableTokenStack<DataType>::ComputeAndActuate(UObject* InObject, FMovie
 
 	DataType FinalResult = WorkingTotal.Resolve(InitialValues);
 	Actuator->Actuate(InObject, FinalResult, *this, Context, PersistentData, Player);
+
+	if (Actuator->HasInitialValue(InObject))
+	{
+		if (InObject)
+		{
+			SavePreAnimatedStateForAllEntities(Player, *InObject, Actuator->GetActuatorID(), FMovieSceneRemoveInitialValueTokenProducer(Actuator->AsShared()));
+		}
+		else
+		{
+			SavePreAnimatedStateForAllEntities(Player, Actuator->GetActuatorID(), FMovieSceneRemoveInitialGlobalValueTokenProducer(Actuator->AsShared()));
+		}
+	}
 }
 
 

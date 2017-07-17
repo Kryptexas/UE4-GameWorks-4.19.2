@@ -1682,22 +1682,25 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 {
 	TArray<int32> Result;
 
-	FSphere Sphere(Center, Radius);
-	if (bSphereInWorldSpace)
+	if (UStaticMesh* Mesh = GetStaticMesh())
 	{
-		Sphere = Sphere.TransformBy(GetComponentTransform().Inverse());
-	}
-
-	float StaticMeshBoundsRadius = GetStaticMesh()->GetBounds().SphereRadius;
-
-	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
-	{
-		const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
-		FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
-
-		if (Sphere.Intersects(InstanceSphere))
+		FSphere Sphere(Center, Radius);
+		if (bSphereInWorldSpace)
 		{
-			Result.Add(Index);
+			Sphere = Sphere.TransformBy(GetComponentTransform().Inverse());
+		}
+
+		const float StaticMeshBoundsRadius = Mesh->GetBounds().SphereRadius;
+
+		for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+		{
+			const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
+			const FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
+
+			if (Sphere.Intersects(InstanceSphere))
+			{
+				Result.Add(Index);
+			}
 		}
 	}
 
@@ -1708,22 +1711,25 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 {
 	TArray<int32> Result;
 
-	FBox Box(InBox);
-	if (bBoxInWorldSpace)
+	if (UStaticMesh* Mesh = GetStaticMesh())
 	{
-		Box = Box.TransformBy(GetComponentTransform().Inverse());
-	}
-
-	FVector StaticMeshBoundsExtent = GetStaticMesh()->GetBounds().BoxExtent;
-
-	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
-	{
-		const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
-		FBox InstanceBox(Matrix.GetOrigin() - StaticMeshBoundsExtent, Matrix.GetOrigin() + StaticMeshBoundsExtent);
-
-		if (Box.Intersect(InstanceBox))
+		FBox Box(InBox);
+		if (bBoxInWorldSpace)
 		{
-			Result.Add(Index);
+			Box = Box.TransformBy(GetComponentTransform().Inverse());
+		}
+
+		const FVector StaticMeshBoundsExtent = Mesh->GetBounds().BoxExtent;
+
+		for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+		{
+			const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
+			FBox InstanceBox(Matrix.GetOrigin() - StaticMeshBoundsExtent, Matrix.GetOrigin() + StaticMeshBoundsExtent);
+
+			if (Box.Intersect(InstanceBox))
+			{
+				Result.Add(Index);
+			}
 		}
 	}
 

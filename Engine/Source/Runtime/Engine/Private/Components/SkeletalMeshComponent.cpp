@@ -31,7 +31,7 @@
 #include "ClothingSimulationFactoryInterface.h"
 #include "ClothingSimulationInterface.h"
 #include "Features/IModularFeatures.h"
-
+#include "Misc/RuntimeErrors.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
@@ -3130,42 +3130,49 @@ void USkeletalMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* Skinne
 
 void USkeletalMeshComponent::SnapshotPose(FPoseSnapshot& Snapshot)
 {
-	const TArray<FTransform>& ComponentSpaceTMs = GetComponentSpaceTransforms();
-	const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
-	const TArray<FTransform>& RefPoseSpaceBaseTMs = RefSkeleton.GetRefBonePose();
-
-	Snapshot.SkeletalMeshName = SkeletalMesh->GetFName();
-
-	const int32 NumSpaceBases = ComponentSpaceTMs.Num();
-	Snapshot.LocalTransforms.Reset(NumSpaceBases);
-	Snapshot.LocalTransforms.AddUninitialized(NumSpaceBases);
-	Snapshot.BoneNames.Reset(NumSpaceBases);
-	Snapshot.BoneNames.AddUninitialized(NumSpaceBases);
-
-	//Set root bone which is always evaluated.
-	Snapshot.LocalTransforms[0] = ComponentSpaceTMs[0];	
-	Snapshot.BoneNames[0] = RefSkeleton.GetBoneName(0);
-
-	int32 CurrentRequiredBone = 1;
-	for (int32 ComponentSpaceIdx = 1; ComponentSpaceIdx < NumSpaceBases; ++ComponentSpaceIdx)
+	if (ensureAsRuntimeWarning(SkeletalMesh != nullptr))
 	{
-		Snapshot.BoneNames[ComponentSpaceIdx] = RefSkeleton.GetBoneName(ComponentSpaceIdx);
+		const TArray<FTransform>& ComponentSpaceTMs = GetComponentSpaceTransforms();
+		const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
+		const TArray<FTransform>& RefPoseSpaceBaseTMs = RefSkeleton.GetRefBonePose();
 
-		const bool bBoneHasEvaluated = FillComponentSpaceTransformsRequiredBones.IsValidIndex(CurrentRequiredBone) && ComponentSpaceIdx == FillComponentSpaceTransformsRequiredBones[CurrentRequiredBone];
-		const int32 ParentIndex = RefSkeleton.GetParentIndex(ComponentSpaceIdx);
-		ensureMsgf(ParentIndex != INDEX_NONE, TEXT("Getting an invalid parent bone for bone %d, but this should not be possible since this is not the root bone!"), ComponentSpaceIdx);
+		Snapshot.SkeletalMeshName = SkeletalMesh->GetFName();
 
-		const FTransform& ParentTransform = ComponentSpaceTMs[ParentIndex];
-		const FTransform& ChildTransform = ComponentSpaceTMs[ComponentSpaceIdx];
-		Snapshot.LocalTransforms[ComponentSpaceIdx] = bBoneHasEvaluated ? ChildTransform.GetRelativeTransform(ParentTransform) : RefPoseSpaceBaseTMs[ComponentSpaceIdx];
+		const int32 NumSpaceBases = ComponentSpaceTMs.Num();
+		Snapshot.LocalTransforms.Reset(NumSpaceBases);
+		Snapshot.LocalTransforms.AddUninitialized(NumSpaceBases);
+		Snapshot.BoneNames.Reset(NumSpaceBases);
+		Snapshot.BoneNames.AddUninitialized(NumSpaceBases);
 
-		if (bBoneHasEvaluated)
+		//Set root bone which is always evaluated.
+		Snapshot.LocalTransforms[0] = ComponentSpaceTMs[0];
+		Snapshot.BoneNames[0] = RefSkeleton.GetBoneName(0);
+
+		int32 CurrentRequiredBone = 1;
+		for (int32 ComponentSpaceIdx = 1; ComponentSpaceIdx < NumSpaceBases; ++ComponentSpaceIdx)
 		{
-			CurrentRequiredBone++;
-		}
-	}
+			Snapshot.BoneNames[ComponentSpaceIdx] = RefSkeleton.GetBoneName(ComponentSpaceIdx);
 
-	Snapshot.bIsValid = true;
+			const bool bBoneHasEvaluated = FillComponentSpaceTransformsRequiredBones.IsValidIndex(CurrentRequiredBone) && ComponentSpaceIdx == FillComponentSpaceTransformsRequiredBones[CurrentRequiredBone];
+			const int32 ParentIndex = RefSkeleton.GetParentIndex(ComponentSpaceIdx);
+			ensureMsgf(ParentIndex != INDEX_NONE, TEXT("Getting an invalid parent bone for bone %d, but this should not be possible since this is not the root bone!"), ComponentSpaceIdx);
+
+			const FTransform& ParentTransform = ComponentSpaceTMs[ParentIndex];
+			const FTransform& ChildTransform = ComponentSpaceTMs[ComponentSpaceIdx];
+			Snapshot.LocalTransforms[ComponentSpaceIdx] = bBoneHasEvaluated ? ChildTransform.GetRelativeTransform(ParentTransform) : RefPoseSpaceBaseTMs[ComponentSpaceIdx];
+
+			if (bBoneHasEvaluated)
+			{
+				CurrentRequiredBone++;
+			}
+		}
+
+		Snapshot.bIsValid = true;
+	}
+	else
+	{
+		Snapshot.bIsValid = false;
+	}
 }
 
 void USkeletalMeshComponent::SetUpdateAnimationInEditor(const bool NewUpdateState)

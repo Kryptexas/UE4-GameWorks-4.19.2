@@ -1854,8 +1854,10 @@ void SDesignerView::PopulateWidgetGeometryCache_Loop(FArrangedWidget& CurrentWid
 		{
 			bIncludeInHitTestGrid = false;
 		}
-
-		bIncludeInHitTestGrid = true;
+		else
+		{
+			bIncludeInHitTestGrid = true;
+		}
 	}
 
 	int32 NewParentHitTestIndex = ParentHitTestIndex;

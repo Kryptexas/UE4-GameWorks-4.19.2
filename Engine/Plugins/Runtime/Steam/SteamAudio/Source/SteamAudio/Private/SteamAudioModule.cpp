@@ -14,8 +14,6 @@
 #include "PhononListenerObserver.h"
 
 #include "CoreMinimal.h"
-#include "CommandLine.h"
-#include "MessageDialog.h"
 #include "Stats/Stats.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
@@ -42,7 +40,6 @@ namespace SteamAudio
 		, OcclusionInstance(nullptr)
 		, ReverbInstance(nullptr)
 		, ListenerObserverInstance(nullptr)
-		, SampleRate(0.0f)
 		, OwningAudioDevice(nullptr)
 		, ComputeDevice(nullptr)
 		, PhononScene(nullptr)
@@ -78,19 +75,10 @@ namespace SteamAudio
 		PhononEnvironment = nullptr;
 		EnvironmentalRenderer = nullptr;
 		ProbeManager = nullptr;
-		SampleRate = 0;
 
-		if (FParse::Param(FCommandLine::Get(), TEXT("audiomixer")))
-		{
-			// We're overriding the IAudioSpatializationPlugin StartupModule, so we must be sure to register
-			// the modular features. Without this line, we will not see SPATIALIZATION HRTF in the editor UI.
-			IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
-		}
-		else
-		{
-			UE_LOG(LogSteamAudio, Warning, TEXT("Steam Audio requires that you run UE4 with the -audiomixer flag. See documentation for instructions."));
-			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Steam Audio requires that you run UE4 with the -audiomixer flag. See documentation for instructions."));
-		}
+		// We're overriding the IAudioSpatializationPlugin StartupModule, so we must be sure to register
+		// the modular features. Without this line, we will not see SPATIALIZATION HRTF in the editor UI.
+		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
 
 		if (!FSteamAudioModule::PhononDllHandle)
 		{
@@ -171,7 +159,7 @@ namespace SteamAudio
 		SimulationSettings.sceneType = IPL_SCENETYPE_PHONON;
 
 		RenderingSettings.convolutionType = IPL_CONVOLUTIONTYPE_PHONON;
-		RenderingSettings.frameSize = 1024; // FIXME
+		RenderingSettings.frameSize = OwningAudioDevice->GetBufferLength();
 		RenderingSettings.samplingRate = OwningAudioDevice->GetSampleRate();
 
 		EnvironmentalOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
@@ -303,11 +291,6 @@ namespace SteamAudio
 	TAudioListenerObserverPtr FSteamAudioModule::CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
 	{
 		return ListenerObserverInstance = TAudioListenerObserverPtr(new FPhononListenerObserver());
-	}
-
-	void FSteamAudioModule::SetSampleRate(const int32 InSampleRate)
-	{
-		SampleRate = InSampleRate;
 	}
 
 	FPhononSpatialization* FSteamAudioModule::GetSpatializationInstance() const

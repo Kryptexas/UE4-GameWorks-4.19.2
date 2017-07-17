@@ -221,27 +221,6 @@ bool CanCopyInterpMoveTrack(UInterpTrackMove* MoveTrack, UMovieScene3DTransformT
 	return bHasKeyframes;
 }
 
-TSharedPtr<SWidget> F3DTransformTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
-{
-	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
-
-	const int32 RowIndex = Params.TrackInsertRowIndex;
-	auto SubMenuCallback = [=]() -> TSharedRef<SWidget>
-	{
-		FMenuBuilder MenuBuilder(true, nullptr);
-		FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
-		return MenuBuilder.MakeWidget();
-	};
-
-	return SNew(SHorizontalBox)
-	+ SHorizontalBox::Slot()
-	.AutoWidth()
-	.VAlign(VAlign_Center)
-	[
-		FSequencerUtilities::MakeAddButton(LOCTEXT("AddSection", "Section"), FOnGetContent::CreateLambda(SubMenuCallback), Params.NodeIsHovered)
-	];
-}
-
 void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
 {
 	UInterpTrackMove* MoveTrack = nullptr;

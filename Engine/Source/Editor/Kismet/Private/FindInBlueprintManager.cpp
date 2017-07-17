@@ -1417,7 +1417,10 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 		}
 	}
 
-	if(AssetClass && (AssetClass->IsChildOf(UBlueprint::StaticClass()) || AssetClass->IsChildOf(UWorld::StaticClass())))
+	bool bIsLevel = AssetClass && AssetClass->IsChildOf(UWorld::StaticClass());
+	bool bIsBlueprint = AssetClass && AssetClass->IsChildOf(UBlueprint::StaticClass());
+
+	if(bIsLevel || bIsBlueprint)
 	{
 		// Confirm that the Blueprint has not been added already, this can occur during duplication of Blueprints.
 		int32* IndexPtr = SearchMap.Find(InAssetData.ObjectPath);
@@ -1425,7 +1428,7 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 		{
 			if(InAssetData.IsAssetLoaded())
 			{
-				if(AssetClass->IsChildOf(UBlueprint::StaticClass()))
+				if(bIsBlueprint)
 				{
 					if(UBlueprint* BlueprintAsset = Cast<UBlueprint>(InAssetData.GetAsset()))
 					{
@@ -1433,7 +1436,7 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 						AddOrUpdateBlueprintSearchMetadata(BlueprintAsset);
 					}
 				}
-				else if(AssetClass->IsChildOf(UWorld::StaticClass()))
+				else if(bIsLevel)
 				{
 					UWorld* WorldAsset = Cast<UWorld>(InAssetData.GetAsset());
 					if(WorldAsset->PersistentLevel)
@@ -1458,8 +1461,10 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 			{
 				if (FiBVersionedSearchData->Len() == 0)
 				{
-					// agrant TODO: Can we patch this up? Is it dangerous not to?
-					UncachedBlueprints.Add(InAssetData.ObjectPath);
+					if (bIsBlueprint)
+					{
+						UncachedBlueprints.Add(InAssetData.ObjectPath);
+					}
 				}
 				else
 				{
@@ -1469,7 +1474,11 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 			else
 			{
 				// The asset is uncached, we will want to inform the user that this is the case
-				UncachedBlueprints.Add(InAssetData.ObjectPath);
+				// Maps may have no data because they have no blueprints, assume they are empty instead of uncached
+				if (bIsBlueprint)
+				{
+					UncachedBlueprints.Add(InAssetData.ObjectPath);
+				}
 			}
 		}
 	}

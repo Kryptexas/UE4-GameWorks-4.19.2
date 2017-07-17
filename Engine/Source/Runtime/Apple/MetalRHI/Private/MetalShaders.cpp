@@ -871,52 +871,6 @@ FRHIShaderLibrary::FShaderLibraryEntry FMetalShaderLibrary::FMetalShaderLibraryI
 	return Entry;
 }
 
-#if !PLATFORM_MAC
-static FString ConvertToIOSPath(const FString& Filename, bool bForWrite)
-{
-	FString Result = Filename;
-	if (Result.Contains(TEXT("/OnDemandResources/")))
-	{
-		return Result;
-	}
-	
-	Result.ReplaceInline(TEXT("../"), TEXT(""));
-	Result.ReplaceInline(TEXT(".."), TEXT(""));
-	Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
-	
-	if(bForWrite)
-	{
-		static FString WritePathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
-		return WritePathBase + Result;
-	}
-	else
-	{
-		// if filehostip exists in the command line, cook on the fly read path should be used
-		FString Value;
-		// Cache this value as the command line doesn't change...
-		static bool bHasHostIP = FParse::Value(FCommandLine::Get(), TEXT("filehostip"), Value) || FParse::Value(FCommandLine::Get(), TEXT("streaminghostip"), Value);
-		static bool bIsIterative = FParse::Value(FCommandLine::Get(), TEXT("iterative"), Value);
-		if (bHasHostIP)
-		{
-			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
-			return ReadPathBase + Result;
-		}
-		else if (bIsIterative)
-		{
-			static FString ReadPathBase = FString([NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0]) + TEXT("/");
-			return ReadPathBase + Result.ToLower();
-		}
-		else
-		{
-			static FString ReadPathBase = FString([[NSBundle mainBundle] bundlePath]) + TEXT("/cookeddata/");
-			return ReadPathBase + Result.ToLower();
-		}
-	}
-	
-	return Result;
-}
-#endif
-
 FRHIShaderLibraryRef FMetalDynamicRHI::RHICreateShaderLibrary(EShaderPlatform Platform, FString FolderPath)
 {
 	@autoreleasepool {
@@ -939,7 +893,7 @@ FRHIShaderLibraryRef FMetalDynamicRHI::RHICreateShaderLibrary(EShaderPlatform Pl
 			FString MetalLibraryFilePath = FolderPath / PlatformName.GetPlainNameString() + METAL_LIB_EXTENSION;
 			MetalLibraryFilePath = FPaths::ConvertRelativePathToFull(MetalLibraryFilePath);
 #if !PLATFORM_MAC
-			MetalLibraryFilePath = ConvertToIOSPath(MetalLibraryFilePath.ToLower(), false);
+			MetalLibraryFilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*MetalLibraryFilePath);
 #endif
 			
 			NSError* Error;

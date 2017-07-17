@@ -46,7 +46,8 @@ namespace UnrealGameSync
 		public string[] ExpandedArchiveTypes;
 
 		// Workspace specific SyncFilters
-		public string[] SyncFilter;
+		public string[] SyncView;
+		public Guid[] SyncExcludedCategories;
 	}
 
 	class UserProjectSettings
@@ -70,10 +71,12 @@ namespace UnrealGameSync
 		public bool bShowLocalTimes;
 		public bool bShowAllStreams;
 		public bool bKeepInTray;
+		public int FilterIndex;
 		public string LastProjectFileName;
 		public string[] OpenProjectFileNames;
 		public string[] OtherProjectFileNames;
-		public string[] SyncFilter;
+		public string[] SyncView;
+		public Guid[] SyncExcludedCategories;
 		public LatestChangeType SyncType;
 		public BuildConfig CompiledEditorBuildConfig; // NB: This assumes not using precompiled editor. See CurrentBuildConfig.
 		public TabLabels TabLabels;
@@ -118,6 +121,7 @@ namespace UnrealGameSync
 			bShowLocalTimes = ConfigFile.GetValue("General.ShowLocalTimes", false);
 			bShowAllStreams = ConfigFile.GetValue("General.ShowAllStreams", false);
 			bKeepInTray = ConfigFile.GetValue("General.KeepInTray", true);
+			int.TryParse(ConfigFile.GetValue("General.FilterIndex", "0"), out FilterIndex);
 			LastProjectFileName = ConfigFile.GetValue("General.LastProjectFileName", null);
 
 			OpenProjectFileNames = ConfigFile.GetValues("General.OpenProjectFileNames", new string[0]);
@@ -127,7 +131,8 @@ namespace UnrealGameSync
 			}
 
 			OtherProjectFileNames = ConfigFile.GetValues("General.OtherProjectFileNames", new string[0]);
-			SyncFilter = ConfigFile.GetValues("General.SyncFilter", new string[0]);
+			SyncView = ConfigFile.GetValues("General.SyncFilter", new string[0]);
+			SyncExcludedCategories = ConfigFile.GetGuidValues("General.SyncExcludedCategories", new Guid[0]);
 			if(!Enum.TryParse(ConfigFile.GetValue("General.SyncType", ""), out SyncType))
 			{
 				SyncType = LatestChangeType.Good;
@@ -141,8 +146,8 @@ namespace UnrealGameSync
 			}
 
 			// Tab names
-			string TabLabelsValue = ConfigFile.GetValue("General.TabLabels", "");
-			if(!Enum.TryParse(TabLabelsValue, true, out TabLabels))
+			string TabNamesValue = ConfigFile.GetValue("General.TabNames", "");
+			if(!Enum.TryParse(TabNamesValue, true, out TabLabels))
 			{
 				TabLabels = TabLabels.ProjectFile;
 			}
@@ -274,7 +279,8 @@ namespace UnrealGameSync
 						}
 					}
 
-					CurrentWorkspace.SyncFilter = new string[0];
+					CurrentWorkspace.SyncView = new string[0];
+					CurrentWorkspace.SyncExcludedCategories = new Guid[0];
 				}
 				else
 				{
@@ -302,7 +308,8 @@ namespace UnrealGameSync
 					CurrentWorkspace.LastBuiltChangeNumber = WorkspaceSection.GetValue("LastBuiltChangeNumber", 0);
 					CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);
 
-					CurrentWorkspace.SyncFilter = WorkspaceSection.GetValues("SyncFilter", new string[0]);
+					CurrentWorkspace.SyncView = WorkspaceSection.GetValues("SyncFilter", new string[0]);
+					CurrentWorkspace.SyncExcludedCategories = WorkspaceSection.GetValues("SyncExcludedCategories", new Guid[0]);
 				}
 			}
 			return CurrentWorkspace;
@@ -340,8 +347,10 @@ namespace UnrealGameSync
 			GeneralSection.SetValue("LastProjectFileName", LastProjectFileName);
 			GeneralSection.SetValues("OpenProjectFileNames", OpenProjectFileNames);
 			GeneralSection.SetValue("KeepInTray", bKeepInTray);
+			GeneralSection.SetValue("FilterIndex", FilterIndex);
 			GeneralSection.SetValues("OtherProjectFileNames", OtherProjectFileNames);
-			GeneralSection.SetValues("SyncFilter", SyncFilter);
+			GeneralSection.SetValues("SyncFilter", SyncView);
+			GeneralSection.SetValues("SyncExcludedCategories", SyncExcludedCategories);
 			GeneralSection.SetValue("SyncType", SyncType.ToString());
 
 			// Build configuration
@@ -409,7 +418,8 @@ namespace UnrealGameSync
 				}
 				WorkspaceSection.SetValue("LastBuiltChangeNumber", CurrentWorkspace.LastBuiltChangeNumber);
 				WorkspaceSection.SetValues("ExpandedArchiveName", CurrentWorkspace.ExpandedArchiveTypes);
-				WorkspaceSection.SetValues("SyncFilter", CurrentWorkspace.SyncFilter);
+				WorkspaceSection.SetValues("SyncFilter", CurrentWorkspace.SyncView);
+				WorkspaceSection.SetValues("SyncExcludedCategories", CurrentWorkspace.SyncExcludedCategories);
 			}
 
 			// Current project settings
@@ -443,12 +453,21 @@ namespace UnrealGameSync
 			ConfigFile.Save(FileName);
 		}
 
-		public string[] GetCombinedSyncFilter(UserWorkspaceSettings CurrentWorkspace)
-		{			
-			string[] CombinedSyncFilter = new string[SyncFilter.Length + CurrentWorkspace.SyncFilter.Length];
-			SyncFilter.CopyTo(CombinedSyncFilter, 0);
-			CurrentWorkspace.SyncFilter.CopyTo(CombinedSyncFilter, SyncFilter.Length);
-			return CombinedSyncFilter;
+		public static string[] GetCombinedSyncFilter(Dictionary<Guid, WorkspaceSyncCategory> UniqueIdToFilter, string[] GlobalView, Guid[] GlobalExcludedCategories, string[] WorkspaceView, Guid[] WorkspaceExcludedCategories)
+		{
+			List<string> Lines = new List<string>();
+			foreach(string ViewLine in Enumerable.Concat(GlobalView, WorkspaceView).Select(x => x.Trim()).Where(x => x.Length > 0 && !x.StartsWith(";")))
+			{
+				Lines.Add(ViewLine);
+			}
+
+			HashSet<Guid> ExcludedCategories = new HashSet<Guid>(Enumerable.Concat(GlobalExcludedCategories, WorkspaceExcludedCategories));
+			foreach(WorkspaceSyncCategory Filter in UniqueIdToFilter.Values.Where(x => x.bEnable && ExcludedCategories.Contains(x.UniqueId)).OrderBy(x => x.Name))
+			{
+				Lines.AddRange(Filter.Paths.Select(x => "-" + x.Trim()));
+			}
+
+			return Lines.ToArray();
 		}
 
 		static string EscapeText(string Text)

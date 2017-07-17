@@ -176,7 +176,7 @@ public:
 	 * enabling this option will use the platform-specific library format if and only if one is available
 	 * This will reduce overall package size but might increase loading time
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	UPROPERTY(config, EditAnywhere, Category=Packaging, meta = (EditCondition = "bShareMaterialShaderCode"))
 	bool bSharedMaterialNativeLibraries;
 
 	/** A directory containing additional prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */

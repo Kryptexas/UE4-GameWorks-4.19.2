@@ -362,67 +362,8 @@ float UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACon
 	return 0.f;
 }
 
-bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract)
-{
-	bool bBlueprintType = true;
-#if WITH_EDITOR
-	{
-		static const FName BlueprintTypeName(TEXT("BlueprintType"));
-		static const FName NotBlueprintTypeName(TEXT("NotBlueprintType"));
-		const UClass* ParentClass = ObjectClass;
-		while (ParentClass)
-		{
-			// Climb up the class hierarchy and look for "BlueprintType" and "NotBlueprintType" to see if this class is allowed.
-			if (ParentClass->GetBoolMetaData(BlueprintTypeName))
-			{
-				bBlueprintType = true;
-				break;
-			}
-			else if (ParentClass->GetBoolMetaData(NotBlueprintTypeName))
-			{
-				bBlueprintType = false;
-				break;
-			}
-			ParentClass = ParentClass->GetSuperClass();
-		}
-	}
-#endif // WITH_EDITOR
-
-	bool bForbiddenSpawn = false;
-#if WITH_EDITOR
-	static const FName DontUseGenericSpawnObjectName(TEXT("DontUseGenericSpawnObject"));
-	const UClass* ParentClass = ObjectClass;
-	while (ParentClass)
-	{
-		if (ParentClass->HasMetaData(DontUseGenericSpawnObjectName))
-		{
-			bForbiddenSpawn = true;
-			break;
-		}
-		ParentClass = ParentClass->GetSuperClass();
-	}
-#endif // WITH_EDITOR
-
-	return (nullptr != *ObjectClass)
-		&& bBlueprintType
-		&& !bForbiddenSpawn
-		&& (bAllowAbstract || !ObjectClass->HasAnyClassFlags(CLASS_Abstract))
-		&& !ObjectClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists)
-		&& !ObjectClass->IsChildOf(AActor::StaticClass())
-		&& !ObjectClass->IsChildOf(UActorComponent::StaticClass());
-}
-
 UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject* Outer)
 {
-	if (!CanSpawnObjectOfClass(ObjectClass))
-	{
-#if WITH_EDITOR
-		FMessageLog("PIE").Error(FText::Format(LOCTEXT("SpawnObjectWrongClass", "SpawnObject wrong class: {0}'"), FText::FromString(GetNameSafe(*ObjectClass))));
-#endif // WITH_EDITOR
-		UE_LOG(LogScript, Error, TEXT("UGameplayStatics::SpawnObject wrong class: %s"), *GetPathNameSafe(*ObjectClass));
-		return nullptr;
-	}
-
 	if (!Outer)
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject null outer"));

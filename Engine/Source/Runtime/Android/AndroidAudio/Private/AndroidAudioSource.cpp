@@ -492,27 +492,31 @@ void FSLESSoundSource::Stop( void )
 {
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 
-	if( WaveInstance )
+	if (SL_PlayerPlayInterface)
 	{
 		// set the player's state to stopped
 		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
 		check(SL_RESULT_SUCCESS == result);
-		
-		// Unregister looping callback
-		if( WaveInstance->LoopingMode != LOOP_Never ) 
-		{
-			result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
-		}
-		
-		DestroyPlayer();
-		ReleaseResources();
-		
-		Paused = false;
-		Playing = false;
-		SLESBuffer = nullptr;
-		Buffer = nullptr;
 	}
-	
+
+	if (WaveInstance)
+	{
+		// Unregister looping callback
+		if (WaveInstance->LoopingMode != LOOP_Never)
+		{
+			SLresult result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
+			check(SL_RESULT_SUCCESS == result);
+		}
+	}
+
+	DestroyPlayer();
+	ReleaseResources();
+
+	Paused = false;
+	Playing = false;
+	SLESBuffer = nullptr;
+	Buffer = nullptr;
+
 	FSoundSource::Stop();
 }
 

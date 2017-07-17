@@ -522,8 +522,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
 
-	const bool bHasCustomPresent = IsValidRef(CustomPresent);
-	if (bHasCustomPresent)
+	if (IsValidRef(CustomPresent))
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -534,7 +533,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
 
-		if (bHasCustomPresent)
+		if (IsValidRef(CustomPresent))
 		{
 			CustomPresent->PostPresent();
 		}

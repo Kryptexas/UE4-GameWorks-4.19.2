@@ -2188,13 +2188,10 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 	UNetDriver* This = CastChecked<UNetDriver>(InThis);
 	Super::AddReferencedObjects(This, Collector);
 
+	// Compact any invalid entries
 	for (auto It = This->RepLayoutMap.CreateIterator(); It; ++It)
 	{
-		if (It.Value().IsValid())
-		{
-			It.Value()->AddReferencedObjects(Collector);
-		}
-		else
+		if (!It.Value().IsValid())
 		{
 			It.RemoveCurrent();
 		}
@@ -2202,15 +2199,7 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 
 	for (auto It = This->ReplicationChangeListMap.CreateIterator(); It; ++It)
 	{
-		if (It.Value().IsValid())
-		{
-			FRepChangelistState* const ChangelistState = It.Value()->GetRepChangelistState();
-			if (ChangelistState && ChangelistState->RepLayout.IsValid())
-			{
-				ChangelistState->RepLayout->AddReferencedObjects(Collector);
-			}
-		}
-		else
+		if (!It.Value().IsValid())
 		{
 			It.RemoveCurrent();
 		}

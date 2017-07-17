@@ -27,7 +27,7 @@ public:
 };
 
 // Any clothing simulation factory should derive from this interface object to interact with the engine
-UCLASS()
+UCLASS(Abstract)
 class CLOTHINGSYSTEMRUNTIMEINTERFACE_API UClothingSimulationFactory : public UObject
 {
 	GENERATED_BODY()

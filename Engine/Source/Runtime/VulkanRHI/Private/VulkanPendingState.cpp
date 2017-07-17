@@ -280,15 +280,7 @@ void FVulkanPendingGfxState::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd)
 	// Validate and update scissor rect
 	if ((NeedsUpdateMask & ENeedsScissor) == ENeedsScissor || bInCmdNeedsDynamicState)
 	{
-		// Make a copy to not overwrite what the RHI has set internally
-		VkRect2D InnerScissor = Scissor;
-		if (InnerScissor.extent.width == 0 || InnerScissor.extent.height == 0)
-		{
-			InnerScissor.extent.width = Viewport.width;
-			InnerScissor.extent.height = Viewport.height;
-		}
-
-		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &InnerScissor);
+		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &Scissor);
 	}
 
 	if ((NeedsUpdateMask & ENeedsStencilRef) == ENeedsStencilRef || bInCmdNeedsDynamicState)

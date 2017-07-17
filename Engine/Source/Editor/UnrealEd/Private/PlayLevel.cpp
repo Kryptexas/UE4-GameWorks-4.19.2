@@ -3402,13 +3402,13 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
-				if (bShouldMinimizeRootWindow)
+				if (bUseVRPreview)
 				{
 					GEngine->HMDDevice->EnableStereo(true);
 
 					// minimize the root window to provide max performance for the preview.
 					TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-					if (RootWindow.IsValid())
+					if (RootWindow.IsValid() && bShouldMinimizeRootWindow)
 					{
 						RootWindow->Minimize();
 					}

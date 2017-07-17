@@ -34,8 +34,8 @@ AStaticMeshActor::AStaticMeshActor(const FObjectInitializer& ObjectInitializer)
 
 	RootComponent = StaticMeshComponent;
 
-	// By default all static mesh actors can be put inside of a GC cluster (see ULevelActorContainer and ULevel::CreateCluster())
-	bCanBeInCluster = true;
+	// Only actors that are literally static mesh actors can be placed in clusters, native subclasses or BP subclasses are not safe by default
+	bCanBeInCluster = (GetClass() == AStaticMeshActor::StaticClass());
 }
 
 void AStaticMeshActor::BeginPlay()

@@ -30,7 +30,6 @@ namespace SteamAudio
 		void CreateEnvironment(UWorld* World, FAudioDevice* InAudioDevice);
 		void DestroyEnvironment(FAudioDevice* InAudioDevice);
 
-		void SetSampleRate(const int32 SampleRate);
 		FCriticalSection& GetEnvironmentCriticalSection();
 		class FPhononSpatialization* GetSpatializationInstance() const;
 		class FPhononOcclusion* GetOcclusionInstance() const;
@@ -45,7 +44,6 @@ namespace SteamAudio
 		TAudioReverbPtr ReverbInstance;
 		TAudioListenerObserverPtr ListenerObserverInstance;
 
-		int32 SampleRate;
 		FAudioDevice* OwningAudioDevice;
 
 		FCriticalSection EnvironmentCriticalSection;

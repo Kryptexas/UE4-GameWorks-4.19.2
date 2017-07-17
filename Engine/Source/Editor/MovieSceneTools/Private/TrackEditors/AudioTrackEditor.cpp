@@ -849,11 +849,6 @@ void FAudioTrackEditor::Resize(float NewSize, UMovieSceneTrack* InTrack)
 	}
 }
 
-EMultipleRowMode FAudioTrackEditor::GetMultipleRowMode() const
-{
-	return EMultipleRowMode::MultipleTrack;
-}
-
 TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );

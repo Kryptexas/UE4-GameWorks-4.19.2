@@ -970,6 +970,14 @@ namespace UnrealBuildTool
 				throw new BuildException("At least one architecture (armv7, x86, etc) needs to be selected in the project settings to build");
 			}
 
+			CPPOutput Result = new CPPOutput();
+
+			// Skip if nothing to do
+			if (SourceFiles.Count == 0)
+			{
+				return Result;
+			}
+
 			if (!bHasPrintedApiLevel)
 			{
 				Console.WriteLine("Compiling Native code with NDK API '{0}'", GetNdkApiLevel());
@@ -1007,7 +1015,6 @@ namespace UnrealBuildTool
 			}
 
 			// Create a compile action for each source file.
-			CPPOutput Result = new CPPOutput();
 			foreach (string Arch in Arches)
 			{
 				if (ShouldSkipModule(ModuleName, Arch))

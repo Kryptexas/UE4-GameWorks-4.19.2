@@ -12,6 +12,11 @@
 
 #define SPLINE_FAST_BOUNDS_CALCULATION 0
 
+const FInterpCurvePointVector USplineComponent::DummyPointPosition(0.0f, FVector::ZeroVector, FVector::ForwardVector, FVector::ForwardVector, CIM_Constant);
+const FInterpCurvePointQuat USplineComponent::DummyPointRotation(0.0f, FQuat::Identity);
+const FInterpCurvePointVector USplineComponent::DummyPointScale(0.0f, FVector::OneVector);
+
+
 USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bAllowSplineEditingPerInstance_DEPRECATED(true)
@@ -137,7 +142,7 @@ void FSplineCurves::UpdateSpline(bool bClosedLoop, bool bStationaryEndpoints, in
 	// Ensure input keys are strictly ascending
 	for (int32 Index = 1; Index < NumPoints; Index++)
 	{
-		check(Position.Points[Index - 1].InVal < Position.Points[Index].InVal);
+		ensureAlways(Position.Points[Index - 1].InVal < Position.Points[Index].InVal);
 	}
 #endif
 
@@ -824,110 +829,97 @@ int32 USplineComponent::GetNumberOfSplinePoints() const
 
 FVector USplineComponent::GetLocationAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	const FVector Location = SplineCurves.Position.Points[ClampedIndex].OutVal;
+	const FInterpCurvePointVector& Point = GetPositionPointSafe(PointIndex);
+	const FVector& Location = Point.OutVal;
 	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformPosition(Location) : Location;
 }
 
 
 FVector USplineComponent::GetDirectionAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent.GetSafeNormal();
+	const FInterpCurvePointVector& Point = GetPositionPointSafe(PointIndex);
+	const FVector Direction = Point.LeaveTangent.GetSafeNormal();
 	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
 FVector USplineComponent::GetTangentAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent;
+	const FInterpCurvePointVector& Point = GetPositionPointSafe(PointIndex);
+	const FVector& Direction = Point.LeaveTangent;
 	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
 FVector USplineComponent::GetArriveTangentAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].ArriveTangent;
+	const FInterpCurvePointVector& Point = GetPositionPointSafe(PointIndex);
+	const FVector& Direction = Point.ArriveTangent;
 	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
 FVector USplineComponent::GetLeaveTangentAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	const FVector Direction = SplineCurves.Position.Points[ClampedIndex].LeaveTangent;
+	const FInterpCurvePointVector& Point = GetPositionPointSafe(PointIndex);
+	const FVector& Direction = Point.LeaveTangent;
 	return (CoordinateSpace == ESplineCoordinateSpace::World) ? GetComponentTransform().TransformVector(Direction) : Direction;
 }
 
 
 FQuat USplineComponent::GetQuaternionAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetQuaternionAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetQuaternionAtSplineInputKey(Point.InVal, CoordinateSpace);
 }
 
 
 FRotator USplineComponent::GetRotationAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetRotationAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetRotationAtSplineInputKey(Point.InVal, CoordinateSpace);
 }
 
 
 FVector USplineComponent::GetUpVectorAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetUpVectorAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetUpVectorAtSplineInputKey(Point.InVal, CoordinateSpace);
 }
 
 
 FVector USplineComponent::GetRightVectorAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetRightVectorAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetRightVectorAtSplineInputKey(Point.InVal, CoordinateSpace);
 }
 
 
 float USplineComponent::GetRollAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetRollAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetRollAtSplineInputKey(Point.InVal, CoordinateSpace);
 }
 
 
 FVector USplineComponent::GetScaleAtSplinePoint(int32 PointIndex) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return SplineCurves.Scale.Points[ClampedIndex].OutVal;
+	const FInterpCurvePointVector& Point = GetScalePointSafe(PointIndex);
+	return Point.OutVal;
 }
 
 
 FTransform USplineComponent::GetTransformAtSplinePoint(int32 PointIndex, ESplineCoordinateSpace::Type CoordinateSpace, bool bUseScale) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	return GetTransformAtSplineInputKey(SplineCurves.Rotation.Points[ClampedIndex].InVal, CoordinateSpace, bUseScale);
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	return GetTransformAtSplineInputKey(Point.InVal, CoordinateSpace, bUseScale);
 }
 
 
 void USplineComponent::GetLocationAndTangentAtSplinePoint(int32 PointIndex, FVector& Location, FVector& Tangent, ESplineCoordinateSpace::Type CoordinateSpace) const
 {
-	const int32 NumPoints = SplineCurves.Position.Points.Num();
-	const int32 ClampedIndex = (bClosedLoop && PointIndex >= NumPoints) ? 0 : FMath::Clamp(PointIndex, 0, NumPoints - 1);
-	float InputKey = SplineCurves.Rotation.Points[ClampedIndex].InVal;
+	const FInterpCurvePointQuat& Point = GetRotationPointSafe(PointIndex);
+	const float InputKey = Point.InVal;
 	Location = GetLocationAtSplineInputKey(InputKey, CoordinateSpace);
 	Tangent = GetTangentAtSplineInputKey(InputKey, CoordinateSpace);
 }

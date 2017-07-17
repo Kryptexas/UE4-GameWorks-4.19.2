@@ -111,14 +111,64 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform);
 // helper to check if a preview feature level has been requested.
 RHI_API bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT);
 
+// Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
+template <typename TValueType>
+class TRHIGlobal
+{
+public:
+	explicit TRHIGlobal(const TValueType& InValue) : Value(InValue) {}
+
+	TRHIGlobal& operator=(const TValueType& InValue) 
+	{
+		Value = InValue; 
+		return *this;
+	}
+
+#if WITH_EDITOR
+	inline void SetPreviewOverride(const TValueType& InValue)
+	{
+		PreviewValue = InValue;
+	}
+
+	inline operator TValueType() const
+	{ 
+		return PreviewValue.IsSet() ? GetPreviewValue() : Value;
+	}
+#else
+	inline operator TValueType() const { return Value; }
+#endif
+
+private:
+	TValueType Value;
+#if WITH_EDITOR
+	TOptional<TValueType> PreviewValue;
+	TValueType GetPreviewValue() const { return PreviewValue.GetValue(); }
+#endif
+};
+
+#if WITH_EDITOR
+template<>
+inline int32 TRHIGlobal<int32>::GetPreviewValue() const 
+{
+	// ensure the preview values are subsets of RHI functionality.
+	return FMath::Min(PreviewValue.GetValue(), Value);
+}
+template<>
+inline bool TRHIGlobal<bool>::GetPreviewValue() const
+{
+	// ensure the preview values are subsets of RHI functionality.
+	return PreviewValue.GetValue() && Value;
+}
+#endif
+
 /** true if the GPU is AMD's Pre-GCN architecture */
 extern RHI_API bool GRHIDeviceIsAMDPreGCNArchitecture;
 
 /** true if PF_G8 render targets are supported */
-extern RHI_API bool GSupportsRenderTargetFormat_PF_G8;
+extern RHI_API TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_G8;
 
 /** true if PF_FloatRGBA render targets are supported */
-extern RHI_API bool GSupportsRenderTargetFormat_PF_FloatRGBA;
+extern RHI_API TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_FloatRGBA;
 
 /** true if mobile framebuffer fetch is supported */
 extern RHI_API bool GSupportsShaderFramebufferFetch;
@@ -166,7 +216,7 @@ extern RHI_API bool GSupportsImageExternal;
 extern RHI_API bool GSupportsResourceView;
 
 /** true if the RHI supports MRT */
-extern RHI_API bool GSupportsMultipleRenderTargets;
+extern RHI_API TRHIGlobal<bool> GSupportsMultipleRenderTargets;
 
 /** true if the RHI supports 256bit MRT */
 extern RHI_API bool GSupportsWideMRT;
@@ -199,19 +249,20 @@ extern RHI_API float GProjectionSignY;
 extern RHI_API bool GRHINeedsExtraDeletionLatency;
 
 /** The maximum size to allow for the shadow depth buffer in the X dimension.  This must be larger or equal to GMaxShadowDepthBufferSizeY. */
-extern RHI_API int32 GMaxShadowDepthBufferSizeX;
+extern RHI_API TRHIGlobal<int32> GMaxShadowDepthBufferSizeX;
 /** The maximum size to allow for the shadow depth buffer in the Y dimension. */
-extern RHI_API int32 GMaxShadowDepthBufferSizeY;
+extern RHI_API TRHIGlobal<int32> GMaxShadowDepthBufferSizeY;
 
 /** The maximum size allowed for 2D textures in both dimensions. */
-extern RHI_API int32 GMaxTextureDimensions;
+extern RHI_API TRHIGlobal<int32> GMaxTextureDimensions;
+
 FORCEINLINE uint32 GetMax2DTextureDimension()
 {
 	return GMaxTextureDimensions;
 }
 
 /** The maximum size allowed for cube textures. */
-extern RHI_API int32 GMaxCubeTextureDimensions;
+extern RHI_API TRHIGlobal<int32> GMaxCubeTextureDimensions;
 FORCEINLINE uint32 GetMaxCubeTextureDimension()
 {
 	return GMaxCubeTextureDimensions;
@@ -284,7 +335,7 @@ extern RHI_API int32 GNumPrimitivesDrawnRHI;
 extern RHI_API bool GRHISupportsBaseVertexIndex;
 
 /** True if the RHI supports hardware instancing */
-extern RHI_API bool GRHISupportsInstancing;
+extern RHI_API TRHIGlobal<bool> GRHISupportsInstancing;
 
 /** True if the RHI supports copying cubemap faces using CopyToResolveTarget */
 extern RHI_API bool GRHISupportsResolveCubemapFaces;

@@ -1037,6 +1037,9 @@ private:
 	/** Attempt to match the given enabled state for currently-selected nodes */
 	ECheckBoxState CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState);
 
+	/** Handle undo/redo */
+	void HandleUndoTransaction(const class FTransaction* Transaction);
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 

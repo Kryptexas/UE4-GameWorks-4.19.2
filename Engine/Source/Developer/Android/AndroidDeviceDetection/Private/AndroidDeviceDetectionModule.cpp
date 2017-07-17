@@ -397,13 +397,19 @@ public:
 		return &DeviceMapLock;
 	}
 
+	virtual FString GetADBPath() override
+	{
+		FScopeLock PathUpdateLock(&ADBPathCheckLock);
+		return ADBPath;
+	}
+
 	virtual void UpdateADBPath() override
 	{
 		FScopeLock PathUpdateLock(&ADBPathCheckLock);
 		TCHAR AndroidDirectory[32768] = { 0 };
 		FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), AndroidDirectory, 32768);
 
-		FString ADBPath;
+		ADBPath.Empty();
 		
 #if PLATFORM_MAC || PLATFORM_LINUX
 		if (AndroidDirectory[0] == 0)
@@ -462,6 +468,8 @@ public:
 
 private:
 
+	// path to the adb command (local)
+	FString ADBPath;
 
 	FRunnableThread* DetectionThread;
 	FAndroidDeviceDetectionRunnable* DetectionThreadRunnable;

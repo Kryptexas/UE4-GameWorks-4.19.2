@@ -48,7 +48,7 @@ private:
 	FRuntimeErrors() {}
 };
 
-#if UE_RAISE_RUNTIME_ERRORS
+#if UE_RAISE_RUNTIME_ERRORS && !USING_CODE_ANALYSIS
 	// Raises a runtime error to the log, possibly stopping in the BP debugger, but then returning execution to the caller
 	#define LogRuntimeError(Message) FRuntimeErrors::LogRuntimeIssue(ELogVerbosity::Error, __FILE__, __LINE__, Message)
 

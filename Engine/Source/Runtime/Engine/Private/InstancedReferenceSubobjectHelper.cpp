@@ -1,6 +1,92 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "InstancedReferenceSubobjectHelper.h"
+	
+UObject* FInstancedPropertyPath::Resolve(const UObject* Container) const
+{
+	UStruct* CurrentContainerType = Container->GetClass();
+
+	const TArray<FPropertyLink>& PropChainRef = PropertyChain;
+	auto GetProperty = [&CurrentContainerType, &PropChainRef](int32 ChainIndex)->UProperty*
+	{
+		const UProperty* SrcProperty = PropChainRef[ChainIndex].PropertyPtr;
+		return FindField<UProperty>(CurrentContainerType, SrcProperty->GetFName());
+	};
+
+	const UProperty* CurrentProp = GetProperty(0);
+	const uint8* ValuePtr = (CurrentProp) ? CurrentProp->ContainerPtrToValuePtr<uint8>(Container) : nullptr;
+
+	for (int32 ChainIndex = 1; CurrentProp && ChainIndex < PropertyChain.Num(); ++ChainIndex)
+	{
+		if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentProp))
+		{
+			check(PropertyChain[ChainIndex].PropertyPtr == ArrayProperty->Inner);
+
+			int32 TargetIndex = PropertyChain[ChainIndex].ArrayIndex;
+			check(TargetIndex != INDEX_NONE);
+
+			FScriptArrayHelper ArrayHelper(ArrayProperty, ValuePtr);
+			if (TargetIndex >= ArrayHelper.Num())
+			{
+				CurrentProp = nullptr;
+				break;
+			}
+
+			CurrentProp = ArrayProperty->Inner;
+			ValuePtr    = ArrayHelper.GetRawPtr(TargetIndex);
+		}
+		else if (const USetProperty* SetProperty = Cast<USetProperty>(CurrentProp))
+		{
+			check(PropertyChain[ChainIndex].PropertyPtr == SetProperty->ElementProp);
+
+			int32 TargetIndex = PropertyChain[ChainIndex].ArrayIndex;
+			check(TargetIndex != INDEX_NONE);
+
+			FScriptSetHelper SetHelper(SetProperty, ValuePtr);
+			if (TargetIndex >= SetHelper.Num())
+			{
+				CurrentProp = nullptr;
+				break;
+			}
+
+			CurrentProp = SetProperty->ElementProp;
+			ValuePtr    = SetHelper.GetElementPtr(TargetIndex);
+		}
+		else if (const UMapProperty* MapProperty = Cast<UMapProperty>(CurrentProp))
+		{
+			int32 TargetIndex = PropertyChain[ChainIndex].ArrayIndex;
+			check(TargetIndex != INDEX_NONE);
+				
+			FScriptMapHelper MapHelper(MapProperty, ValuePtr);
+			if(PropertyChain[ChainIndex].PropertyPtr == MapProperty->KeyProp)
+			{
+				ValuePtr = MapHelper.GetKeyPtr(TargetIndex);
+			}
+			else if(ensure(PropertyChain[ChainIndex].PropertyPtr == MapProperty->ValueProp))
+			{
+				ValuePtr = MapHelper.GetValuePtr(TargetIndex);
+			}
+			CurrentProp = PropertyChain[ChainIndex].PropertyPtr;
+		}
+		else if (ensure(PropertyChain[ChainIndex].ArrayIndex <= 0))
+		{
+			if (const UStructProperty* StructProperty = Cast<UStructProperty>(CurrentProp))
+			{
+				CurrentContainerType = StructProperty->Struct;
+			}
+
+			CurrentProp = GetProperty(ChainIndex);
+			ValuePtr    = (CurrentProp) ? CurrentProp->ContainerPtrToValuePtr<uint8>(ValuePtr) : nullptr;
+		}
+	}
+
+	const UObjectProperty* TargetPropety = Cast<UObjectProperty>(CurrentProp);
+	if (TargetPropety && TargetPropety->HasAnyPropertyFlags(CPF_InstancedReference))
+	{ 
+		return TargetPropety->GetObjectPropertyValue(ValuePtr);
+	}
+	return nullptr;
+}
 
 void FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects_Inner(FInstancedPropertyPath& PropertyPath, const uint8* ContainerAddress, TFunctionRef<void(const FInstancedSubObjRef& Ref)> OutObjects)
 {
@@ -102,7 +188,8 @@ void FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects_Inner(FInsta
 				{
 					if (MapHelper.IsValidIndex(ElementIndex))
 					{
-						const uint8* ValueAddress = MapHelper.GetValuePtr(ElementIndex);
+						// use of pair pointer is intentional, next call is going to offset from the pair entry:
+						const uint8* ValueAddress = MapHelper.GetPairPtr(ElementIndex);
 						for (UProperty* StructProp = Struct->RefLink; StructProp; StructProp = StructProp->NextRef)
 						{
 							PropertyPath.Push(ValueStructProperty, ElementIndex);
@@ -123,7 +210,8 @@ void FFindInstancedReferenceSubobjectHelper::GetInstancedSubObjects_Inner(FInsta
 				{
 					if (MapHelper.IsValidIndex(ElementIndex))
 					{
-						const uint8* ValueAddress = MapHelper.GetValuePtr(ElementIndex);
+						// use of pair pointer is intentional, next call is going to offset from the pair entry:
+						const uint8* ValueAddress = MapHelper.GetPairPtr(ElementIndex);
 						if (UObject* ObjectValue = ValueObjectProperty->GetObjectPropertyValue(ValueAddress))
 						{
 							PropertyPath.Push(ValueObjectProperty, ElementIndex);

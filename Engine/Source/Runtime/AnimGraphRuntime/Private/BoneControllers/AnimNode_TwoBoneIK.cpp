@@ -27,6 +27,7 @@ FAnimNode_TwoBoneIK::FAnimNode_TwoBoneIK()
 	, EffectorLocation(FVector::ZeroVector)
 	, JointTargetLocationSpace(BCS_ComponentSpace)
 	, JointTargetLocation(FVector::ZeroVector)
+	, bAllowTwist(true)
 	, CachedUpperLimbIndex(INDEX_NONE)
 	, CachedLowerLimbIndex(INDEX_NONE)
 {
@@ -121,7 +122,7 @@ void FAnimNode_TwoBoneIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseC
 #endif // WITH_EDITOR
 
 	// if no twist, we clear twist from each limb
-	if (bNoTwist)
+	if (!bAllowTwist)
 	{
 		auto RemoveTwist = [this](const FTransform& InParentTransform, FTransform& InOutTransform, const FTransform& OriginalLocalTransform, const FVector& InAlignVector) 
 		{

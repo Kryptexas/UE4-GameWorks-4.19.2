@@ -67,29 +67,33 @@ protected:
 	template<typename TTransaction>
 	int32 BeginInternal( const TCHAR* SessionContext, const FText& Description )
 	{
+		int32 Result = INDEX_NONE;
 		CheckState();
-		const int32 Result = ActiveCount;
-		if (ActiveCount++ == 0)
+		if (ensure(!GIsTransacting))
 		{
-			// Cancel redo buffer.
-			if (UndoCount)
+			Result = ActiveCount;
+			if (ActiveCount++ == 0)
 			{
-				UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
-			}
-			UndoCount = 0;
+				// Cancel redo buffer.
+				if (UndoCount)
+				{
+					UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
+				}
+				UndoCount = 0;
 
-			// Purge previous transactions if too much data occupied.
-			while (GetUndoSize() > MaxMemory)
-			{
-				UndoBuffer.RemoveAt(0);
-			}
+				// Purge previous transactions if too much data occupied.
+				while (GetUndoSize() > MaxMemory)
+				{
+					UndoBuffer.RemoveAt(0);
+				}
 
-			// Begin a new transaction.
-			GUndo = new(UndoBuffer) TTransaction(SessionContext, Description, 1);
+				// Begin a new transaction.
+				GUndo = new(UndoBuffer) TTransaction(SessionContext, Description, 1);
+			}
+			const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
+			ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
+			CheckState();
 		}
-		const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
-		ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
-		CheckState();
 		return Result;
 	}
 

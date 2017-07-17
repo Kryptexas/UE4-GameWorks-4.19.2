@@ -1248,13 +1248,6 @@ bool ContentBrowserUtils::IsValidFolderName(const FString& FolderName, FText& Re
 		Reason = LOCTEXT( "InvalidFolderName_IsTooShort", "Please provide a name for this folder." );
 		return false;
 	}
-		
-	// Make sure the new name doesn't start with an underscore
-	if ( FolderName[0] == TEXT('_') )
-	{
-		Reason = LOCTEXT("InvalidFolderName_StartsWithUnderscore", "The folder name cannot start with an underscore.");
-		return false;
-	}
 
 	if ( FolderName.Len() > MAX_UNREAL_FILENAME_LENGTH )
 	{
@@ -1671,14 +1664,6 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 	// Make sure the new name only contains valid characters
 	if ( !FName::IsValidXName( ObjectName, INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS, &OutErrorMessage ) )
 	{
-		// Return false to indicate that the user should enter a new name
-		return false;
-	}
-
-	// Make sure the new name doesn't start with an underscore
-	if (ObjectName.Len() > 0 && ObjectName[0] == TEXT('_'))
-	{
-		OutErrorMessage = LOCTEXT("AssetNameMustNotStartWithUnderscore", "The asset name cannot start with an underscore.");
 		// Return false to indicate that the user should enter a new name
 		return false;
 	}

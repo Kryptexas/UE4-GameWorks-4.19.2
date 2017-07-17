@@ -65,6 +65,7 @@ void UMovieSceneTrack::UpdateEasing()
 			UMovieSceneTrack* OuterTrack = CurrentSection->GetTypedOuter<UMovieSceneTrack>();
 			float MaxEaseIn = 0.f;
 			float MaxEaseOut = 0.f;
+			bool bIsEntirelyUnderlapped = false;
 
 			TRange<float> CurrentSectionRange = CurrentSection->GetRange();
 			for (int32 OtherIndex = 0; OtherIndex < RowSections.Num(); ++OtherIndex)
@@ -76,6 +77,8 @@ void UMovieSceneTrack::UpdateEasing()
 
 				UMovieSceneSection* Other = RowSections[OtherIndex];
 				TRange<float> OtherSectionRange = Other->GetRange();
+
+				bIsEntirelyUnderlapped = OtherSectionRange.Contains(CurrentSectionRange);
 
 				// Check the lower bound of the current section against the other section's upper bound
 				const bool bSectionRangeContainsOtherUpperBound = !OtherSectionRange.GetUpperBound().IsOpen() && !CurrentSectionRange.GetLowerBound().IsOpen() && CurrentSectionRange.Contains(OtherSectionRange.GetUpperBoundValue());
@@ -93,6 +96,11 @@ void UMovieSceneTrack::UpdateEasing()
 
 			const bool bIsFinite = CurrentSectionRange.HasLowerBound() && CurrentSectionRange.HasUpperBound();
 			const float Max = bIsFinite ? CurrentSectionRange.Size<float>() : TNumericLimits<float>::Max();
+
+			if (MaxEaseOut == 0.f && MaxEaseIn == 0.f && bIsEntirelyUnderlapped)
+			{
+				MaxEaseOut = MaxEaseIn = Max * 0.25f;
+			}
 
 			CurrentSection->Modify();
 			CurrentSection->Easing.AutoEaseInTime = FMath::Clamp(MaxEaseIn, 0.f, Max);

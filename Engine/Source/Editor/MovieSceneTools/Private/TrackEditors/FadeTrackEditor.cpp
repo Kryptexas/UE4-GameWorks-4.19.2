@@ -73,8 +73,11 @@ public:
 
 				float TimeFraction = (Time - StartTime) / SectionDuration;
 
-				GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ),
-					Color ) );
+				if (TimeFraction > 0)
+				{
+					GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ),
+						Color ) );
+				}
 			}
 
 			if ( GradientStops.Num() > 0 )

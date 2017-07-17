@@ -63,6 +63,9 @@ public:
 	/** check if NewName is a short name and is acceptable as name in given enum */
 	static bool IsProperNameForUserDefinedEnumerator(const UEnum* Enum, FString NewName);
 
+	/** Handles necessary notifications when the Enum has had a transaction undone or redone on it. */
+	static void PostEditUndo(UUserDefinedEnum* Enum);
+
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change
 	 *

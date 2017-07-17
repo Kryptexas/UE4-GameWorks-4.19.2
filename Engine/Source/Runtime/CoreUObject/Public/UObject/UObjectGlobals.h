@@ -1697,9 +1697,10 @@ public:
 	 */
 	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
 	/** 
-	 * Marks a specific object reference as a weak reference. This does not affect GC but will be freed at a later point 
+	 * Marks a specific object reference as a weak reference. This does not affect GC but will be freed at a later point
+	 * The default behavior returns false as weak references must be explicitly supported
 	 */
-	virtual void MarkWeakObjectReferenceForClearing(UObject** WeakReference) {}
+	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) { return false; }
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.

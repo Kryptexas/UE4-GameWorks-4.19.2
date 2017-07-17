@@ -422,8 +422,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 	HRESULT Result = S_OK;
 	bool bNeedNativePresent = true;
 
-	const bool bHasCustomPresent = IsValidRef(CustomPresent);
-	if (bHasCustomPresent)
+	if (IsValidRef(CustomPresent))
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -432,7 +431,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 		// Present the back buffer to the viewport window.
 		Result = PresentInternal(SyncInterval);
 
-		if (bHasCustomPresent)
+		if (IsValidRef(CustomPresent))
 		{
 			CustomPresent->PostPresent();
 		}

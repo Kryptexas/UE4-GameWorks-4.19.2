@@ -32,7 +32,7 @@ struct FOptionalMovieSceneBlendType
 	/**
 	 * Assignment from a EMovieSceneBlendType enumeration
 	 */
-	FOptionalMovieSceneBlendType operator=(EMovieSceneBlendType InBlendType)
+	FOptionalMovieSceneBlendType& operator=(EMovieSceneBlendType InBlendType)
 	{
 		bIsValid = true;
 		BlendType = InBlendType;

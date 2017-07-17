@@ -117,10 +117,8 @@ void FSequencerNodeTree::Update()
 		{
 			UMovieSceneTrack& TrackRef = *Track;
 
-			TSharedRef<FSequencerTrackNode> TrackNode = MakeShareable(new FSequencerTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef), true, nullptr, *this));
-			MasterTrackNodes.Add(TrackNode);
-
-			MakeSubTracksAndSectionInterfaces(TrackNode);
+			TSharedRef<FSequencerTrackNode> NodeToAdd = MakeSubTracksAndSectionInterfaces(MakeShared<FSequencerTrackNode>(TrackRef, *FindOrAddTypeEditor(TrackRef), true, nullptr, *this));
+			MasterTrackNodes.Add(NodeToAdd);
 		}
 	}
 
@@ -138,13 +136,14 @@ void FSequencerNodeTree::Update()
 	{
 		TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode = AddObjectBinding( Binding.GetName(), Binding.GetObjectGuid(), GuidToBindingMap, ObjectNodes );
 
-		const TArray<UMovieSceneTrack*>& Tracks = Binding.GetTracks();
-
-		for( UMovieSceneTrack* Track : Tracks )
+		for( UMovieSceneTrack* Track : Binding.GetTracks() )
 		{
-			UMovieSceneTrack& TrackRef = *Track;
-			TSharedRef<FSequencerTrackNode> TrackNode = ObjectBindingNode->AddTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef));
-			MakeSubTracksAndSectionInterfaces(TrackNode);
+			// Create the new track node
+			TSharedRef<FSequencerTrackNode> TrackNode = MakeShared<FSequencerTrackNode>(*Track, *FindOrAddTypeEditor(*Track), false, nullptr, *this);
+
+			// Make the sub tracks and section interfaces for this node, and add it to the object binding node
+			// Note: MakeSubTracksAndSectionInterfaces may return a new parent node
+			ObjectBindingNode->AddTrackNode(MakeSubTracksAndSectionInterfaces(TrackNode, ObjectBindingNode->GetObjectBinding()));
 		}
 	}
 
@@ -152,10 +151,8 @@ void FSequencerNodeTree::Update()
 	// Cinematic shot track always comes first
 	if (CinematicShotTrack)
 	{
-		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(*CinematicShotTrack, *FindOrAddTypeEditor(*CinematicShotTrack), false, nullptr, *this));
-
-		RootNodes.Add(SectionNode);
-		MakeSectionInterfaces(*CinematicShotTrack, SectionNode);
+		TSharedRef<FSequencerTrackNode> NodeToAdd = MakeSubTracksAndSectionInterfaces(MakeShared<FSequencerTrackNode>(*CinematicShotTrack, *FindOrAddTypeEditor(*CinematicShotTrack), false, nullptr, *this));
+		RootNodes.Add(NodeToAdd);
 	}
 
 	// Then comes the camera cut track
@@ -163,10 +160,8 @@ void FSequencerNodeTree::Update()
 	
 	if (CameraCutTrack)
 	{
-		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(*CameraCutTrack, *FindOrAddTypeEditor(*CameraCutTrack), false, nullptr, *this));
-
-		RootNodes.Add(SectionNode);
-		MakeSectionInterfaces(*CameraCutTrack, SectionNode);
+		TSharedRef<FSequencerTrackNode> NodeToAdd = MakeSubTracksAndSectionInterfaces(MakeShared<FSequencerTrackNode>(*CameraCutTrack, *FindOrAddTypeEditor(*CameraCutTrack), false, nullptr, *this));
+		RootNodes.Add(NodeToAdd);
 	}
 
 	// Add all other nodes after the camera cut track
@@ -197,6 +192,9 @@ void FSequencerNodeTree::Update()
 	{
 		RootNodes.Insert(MakeShareable(new FSequencerSpacerNode(1.f, nullptr, *this)), Index);
 	}
+
+	// Always make space at the end of the tree
+	RootNodes.Add(MakeShared<FSequencerSpacerNode>(20.f, nullptr, *this));
 
 	// Set up virtual offsets, expansion states, and tints
 	float VerticalOffset = 0.f;
@@ -249,60 +247,69 @@ TSharedRef<ISequencerTrackEditor> FSequencerNodeTree::FindOrAddTypeEditor( UMovi
 	return Editor.ToSharedRef();
 }
 
-void FSequencerNodeTree::MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode)
+
+TSharedRef<FSequencerTrackNode> FSequencerNodeTree::MakeSubTracksAndSectionInterfaces(TSharedRef<FSequencerTrackNode> TrackNode, const FGuid& ObjectBinding)
 {
+	using ESubTrackMode = FSequencerTrackNode::ESubTrackMode;
+
 	UMovieSceneTrack* Track = TrackNode->GetTrack();
-	ISequencerTrackEditor& TrackEditor = TrackNode->GetTrackEditor();
-	if (Track->SupportsMultipleRows() && TrackEditor.GetMultipleRowMode() == EMultipleRowMode::MultipleTrack)
+
+	check(Track);
+	check(!TrackNode->GetParent().IsValid());
+
+	TArray<UMovieSceneSection*> MovieSceneSections = Track->GetAllSections();
+	if (MovieSceneSections.Num() == 0)
 	{
-		TrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::ParentTrack);
-		TArray<UMovieSceneSection*> Sections = Track->GetAllSections();
-		if (Sections.Num() > 0)
-		{
-			int32 MaxRowIndex = Track->GetMaxRowIndex();
-			for (int32 i = 0; i <= MaxRowIndex; i++)
-			{
-				TSharedRef<FSequencerTrackNode> SubTrackNode = MakeShareable(new FSequencerTrackNode(*Track, TrackEditor, true, TrackNode, *this));
-				SubTrackNode->SetSubTrackMode(FSequencerTrackNode::ESubTrackMode::SubTrack);
-				SubTrackNode->SetRowIndex(i);
-
-				TrackNode->AddChildTrack(SubTrackNode);
-				MakeSectionInterfaces(*Track, SubTrackNode);
-			}
-		}
+		return TrackNode;
 	}
-	else
-	{
-		MakeSectionInterfaces(*Track, TrackNode);
-	}
-}
 
-void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<FSequencerTrackNode>& TrackNode )
-{
-	const TArray<UMovieSceneSection*>& MovieSceneSections = Track.GetAllSections();
+	Algo::SortBy(MovieSceneSections, &UMovieSceneSection::GetRowIndex);
 
-	TSharedRef<ISequencerTrackEditor> Editor = FindOrAddTypeEditor( Track );
+	const bool bHasMultipleRows = MovieSceneSections.Last()->GetRowIndex() != 0;
+
+	TSharedRef<ISequencerTrackEditor> Editor = FindOrAddTypeEditor( *Track );
+
+	TArray<TSharedRef<FSequencerTrackNode>, TInlineAllocator<4>> SubTrackNodes;
+
+	TSharedRef<FSequencerTrackNode> ParentNode = TrackNode;
+	TSharedRef<FSequencerTrackNode> CurrentTrackNode = TrackNode;
 
 	for (int32 SectionIndex = 0; SectionIndex < MovieSceneSections.Num(); ++SectionIndex)
 	{
 		UMovieSceneSection* SectionObject = MovieSceneSections[SectionIndex];
-		if (TrackNode->GetSubTrackMode() != FSequencerTrackNode::ESubTrackMode::SubTrack || TrackNode->GetRowIndex() == SectionObject->GetRowIndex())
+		const int32 RowIndex = SectionObject->GetRowIndex();
+
+		if (CurrentTrackNode->GetSubTrackMode() == ESubTrackMode::SubTrack && RowIndex != CurrentTrackNode->GetRowIndex())
 		{
-			FGuid ObjectBinding;
-			if (TrackNode->GetParent().IsValid() && TrackNode->GetParent()->GetType() == ESequencerNode::Object)
-			{
-				TSharedPtr<FSequencerObjectBindingNode> ParentObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(TrackNode->GetParent());
-				ObjectBinding = ParentObjectNode->GetObjectBinding();
-			}
+			CurrentTrackNode = MakeShared<FSequencerTrackNode>(*Track, *Editor, ParentNode->CanDrag(), ParentNode, *this);
 
-			TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface(*SectionObject, Track, ObjectBinding);
-
-			// Ask the section to generate it's inner layout
-			FSequencerSectionLayoutBuilder Builder(TrackNode);
-			Section->GenerateSectionLayout(Builder);
-			TrackNode->AddSection(Section);
+			CurrentTrackNode->SetSubTrackMode(ESubTrackMode::SubTrack);
+			CurrentTrackNode->SetRowIndex(RowIndex);
+			ParentNode->AddChildTrack(CurrentTrackNode);
 		}
+
+		// Make the section interface
+		TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface(*SectionObject, *Track, ObjectBinding);
+
+		// Ask the section to generate its inner layout
+		FSequencerSectionLayoutBuilder Builder(CurrentTrackNode);
+		Section->GenerateSectionLayout(Builder);
+
+		if (Builder.HasAnyLayout() && bHasMultipleRows && CurrentTrackNode == ParentNode)
+		{
+			// Create a new parent node
+			ParentNode = MakeShared<FSequencerTrackNode>(*Track, *Editor, CurrentTrackNode->CanDrag(), nullptr, *this);
+			ParentNode->SetSubTrackMode(ESubTrackMode::ParentTrack);
+
+			CurrentTrackNode->SetSubTrackMode(ESubTrackMode::SubTrack);
+			CurrentTrackNode->SetRowIndex(RowIndex);
+			ParentNode->AddChildTrack(CurrentTrackNode);
+		}
+
+		CurrentTrackNode->AddSection(Section);
 	}
+
+	return ParentNode;
 }
 
 

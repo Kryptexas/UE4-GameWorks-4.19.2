@@ -267,6 +267,12 @@ void FEnumEditorUtils::PrepareForChange(UUserDefinedEnum* Enum)
 	Enum->Modify();
 }
 
+void FEnumEditorUtils::PostEditUndo(UUserDefinedEnum* Enum)
+{
+	UpdateAfterPathChanged(Enum);
+	BroadcastChanges(Enum, TArray<TPair<FName, int64>>(), false);
+}
+
 void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int64>>& OldNames, bool bResolveData)
 {
 	check(NULL != Enum);

@@ -134,11 +134,18 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
 	const int32 MobileHDR32Mode = MobileHDR32bppModeCvar->GetValueOnAnyThread();
 
-	const bool bDeviceRequiresHDR32bpp = !FAndroidMisc::SupportsFloatingPointRenderTargets();
-	const bool bDeviceRequiresMosaic = bDeviceRequiresHDR32bpp && !FAndroidMisc::SupportsShaderFramebufferFetch();
+	bool bMosaicEnabled = false;
+	bool bHDR32ModeOverridden = false;
+	bool bDeviceRequiresHDR32bpp = false;
+	bool bDeviceRequiresMosaic = false;
+	if (!bIsGearVRApp && !bIsDaydreamApp)
+	{
+		bDeviceRequiresHDR32bpp = !FAndroidMisc::SupportsFloatingPointRenderTargets();
+		bDeviceRequiresMosaic = bDeviceRequiresHDR32bpp && !FAndroidMisc::SupportsShaderFramebufferFetch();
 
-	const bool bHDR32ModeOverridden = MobileHDR32Mode != 0;
-	const bool bMosaicEnabled = bDeviceRequiresMosaic && (!bHDR32ModeOverridden || MobileHDR32Mode == 1);
+		bHDR32ModeOverridden = MobileHDR32Mode != 0;
+		bMosaicEnabled = bDeviceRequiresMosaic && (!bHDR32ModeOverridden || MobileHDR32Mode == 1);
+	}
 
 	bool bUseResCache = WindowInit;
 

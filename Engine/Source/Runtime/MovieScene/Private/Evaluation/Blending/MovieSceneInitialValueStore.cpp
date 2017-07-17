@@ -3,36 +3,62 @@
 #include "MovieSceneInitialValueStore.h"
 #include "MovieSceneBlendingActuator.h"
 
-struct FMovieSceneRemoveInitialValueToken : IMovieScenePreAnimatedGlobalToken
+struct FMovieSceneRemoveInitialValueToken : IMovieScenePreAnimatedToken
 {
-	FMovieSceneRemoveInitialValueToken(FObjectKey InObjectKey, TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
-		: ObjectKey(InObjectKey), WeakActuator(InWeakActuator)
+	FMovieSceneRemoveInitialValueToken(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
+		: WeakActuator(InWeakActuator)
+	{}
+
+	virtual void RestoreState(UObject& Object, IMovieScenePlayer& Player) override
 	{
+		TSharedPtr<IMovieSceneBlendingActuator> Store = WeakActuator.Pin();
+		if (Store.IsValid())
+		{
+			Store->RemoveInitialValueForObject(FObjectKey(&Object));
+		}
 	}
+
+private:
+	/** The store to remove the initial value from */
+	TWeakPtr<IMovieSceneBlendingActuator> WeakActuator;
+};
+
+struct FMovieSceneRemoveInitialGlobalValueToken : IMovieScenePreAnimatedGlobalToken
+{
+	FMovieSceneRemoveInitialGlobalValueToken(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
+		: WeakActuator(InWeakActuator)
+	{}
 
 	virtual void RestoreState(IMovieScenePlayer& Player) override
 	{
 		TSharedPtr<IMovieSceneBlendingActuator> Store = WeakActuator.Pin();
 		if (Store.IsValid())
 		{
-			Store->RemoveInitialValueForObject(ObjectKey);
+			Store->RemoveInitialValueForObject(FObjectKey());
 		}
 	}
 
 private:
-
-	/** The object to remove an initial value for */
-	FObjectKey ObjectKey;
 	/** The store to remove the initial value from */
 	TWeakPtr<IMovieSceneBlendingActuator> WeakActuator;
 };
 
-FMovieSceneRemoveInitialValueTokenProducer::FMovieSceneRemoveInitialValueTokenProducer(FObjectKey InObjectKey, TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
-	: ObjectKey(InObjectKey), WeakActuator(InWeakActuator)
+FMovieSceneRemoveInitialValueTokenProducer::FMovieSceneRemoveInitialValueTokenProducer(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
+	: WeakActuator(InWeakActuator)
 {
 }
 
-IMovieScenePreAnimatedGlobalTokenPtr FMovieSceneRemoveInitialValueTokenProducer::CacheExistingState() const
+IMovieScenePreAnimatedTokenPtr FMovieSceneRemoveInitialValueTokenProducer::CacheExistingState(UObject& Object) const
 {
-	return FMovieSceneRemoveInitialValueToken(ObjectKey, WeakActuator);
+	return FMovieSceneRemoveInitialValueToken(WeakActuator);
+}
+
+FMovieSceneRemoveInitialGlobalValueTokenProducer::FMovieSceneRemoveInitialGlobalValueTokenProducer(TWeakPtr<IMovieSceneBlendingActuator> InWeakActuator)
+	: WeakActuator(InWeakActuator)
+{
+}
+
+IMovieScenePreAnimatedGlobalTokenPtr FMovieSceneRemoveInitialGlobalValueTokenProducer::CacheExistingState() const
+{
+	return FMovieSceneRemoveInitialGlobalValueToken(WeakActuator);
 }

@@ -14,7 +14,11 @@
         {
             "Name": "HTTPChunkInstaller",
             "Type": "Runtime",
-            "LoadingPhase" : "PostConfigInit"
+            "LoadingPhase" : "PostConfigInit",
+			"BlacklistPlatforms" :
+			[
+				"HTML5"
+			]
         }
     ],
 	"LocalizationTargets": [

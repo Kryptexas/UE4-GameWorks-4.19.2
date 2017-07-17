@@ -265,28 +265,27 @@ protected:
 	{ }
 
 	/**
-	 * Move constructor.
-	 *
-	 * @param Other The future holding the shared state to move.
+	 * Protected move construction
 	 */
-	TFutureBase(TFutureBase&& Other)
-		: State(MoveTemp(Other.State))
-	{
-		Other.State.Reset();
-	}
+	TFutureBase(TFutureBase&&) = default;
 
-	/** Hidden destructor. */
+	/**
+	 * Protected move assignment
+	 */
+	TFutureBase& operator=(TFutureBase&&) = default;
+
+	/**
+	 * Protected copy construction
+	 */
+	TFutureBase(const TFutureBase&) = default;
+
+	/**
+	 * Protected copy assignment
+	 */
+	TFutureBase& operator=(const TFutureBase&) = default;
+
+	/** Protected destructor. */
 	~TFutureBase() { }
-
-protected:
-
-	/** Move assignment operator. */
-	TFutureBase& operator=(TFutureBase&& Other)
-	{
-		State = MoveTemp(Other.State);
-		Other.State.Reset();
-		return *this;
-	}
 
 protected:
 
@@ -341,22 +340,18 @@ public:
 		: BaseType(InState)
 	{ }
 
-	/** Move constructor. */
-	TFuture(TFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/**
+	 * Move constructor.
+	 */
+	TFuture(TFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TFuture& operator=(TFuture&& Other) = default;
 
 	/** Destructor. */
 	~TFuture() { }
-
-public:
-
-	/** Move assignment operator. */
-	TFuture& operator=(TFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 
@@ -413,22 +408,18 @@ public:
 		: BaseType(InState)
 	{ }
 
-	/** Move constructor. */
-	TFuture(TFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/**
+	 * Move constructor.
+	 */
+	TFuture(TFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TFuture& operator=(TFuture&& Other) = default;
 
 	/** Destructor. */
 	~TFuture() { }
-
-public:
-
-	/** Move assignment operator. */
-	TFuture& operator=(TFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 
@@ -485,22 +476,18 @@ public:
 		: BaseType(InState)
 	{ }
 
-	/** Move constructor. */
-	TFuture(TFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/**
+	 * Move constructor.
+	 */
+	TFuture(TFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TFuture& operator=(TFuture&& Other) = default;
 
 	/** Destructor. */
 	~TFuture() { }
-
-public:
-
-	/** Move assignment operator. */
-	TFuture& operator=(TFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 
@@ -566,34 +553,28 @@ public:
 		: BaseType(MoveTemp(Future))
 	{ }
 
-	/** Copy constructor. */
-	TSharedFuture(const TSharedFuture& Other)
-		: BaseType(Other)
-	{ }
+	/**
+	 * Copy constructor.
+	 */
+	TSharedFuture(const TSharedFuture&) = default;
 
-	/** Move constructor. */
-	TSharedFuture(TSharedFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/**
+	 * Copy assignment operator.
+	 */
+	TSharedFuture& operator=(const TSharedFuture& Other) = default;
+
+	/**
+	 * Move constructor.
+	 */
+	TSharedFuture(TSharedFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TSharedFuture& operator=(TSharedFuture&& Other) = default;
 
 	/** Destructor. */
 	~TSharedFuture() { }
-
-public:
-
-	/** Copy assignment operator. */
-	TSharedFuture& operator=(const TSharedFuture& Other)
-	{
-		BaseType::operator=(Other);
-		return *this;
-	}
-
-	/** Move assignment operator. */
-	TSharedFuture& operator=(TSharedFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 
@@ -641,34 +622,26 @@ public:
 		: BaseType(MoveTemp(Future))
 	{ }
 
-	/** Copy constructor. */
-	TSharedFuture(const TSharedFuture& Other)
-		: BaseType(Other)
-	{ }
+	/**
+	 * Copy constructor.
+	 */
+	TSharedFuture(const TSharedFuture&) = default;
 
-	/** Move constructor. */
-	TSharedFuture(TSharedFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/** Copy assignment operator. */
+	TSharedFuture& operator=(const TSharedFuture& Other) = default;
+
+	/**
+	 * Move constructor.
+	 */
+	TSharedFuture(TSharedFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TSharedFuture& operator=(TSharedFuture&& Other) = default;
 
 	/** Destructor. */
 	~TSharedFuture() { }
-
-public:
-
-	/** Copy assignment operator. */
-	TSharedFuture& operator=(const TSharedFuture& Other)
-	{
-		BaseType::operator=(Other);
-		return *this;
-	}
-
-	/** Move assignment operator. */
-	TSharedFuture& operator=(TSharedFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 
@@ -716,34 +689,28 @@ public:
 		: BaseType(MoveTemp(Future))
 	{ }
 
-	/** Copy constructor. */
-/*	TSharedFuture(const TSharedFuture& Other)
-		: BaseType(Other)
-	{ }*/
+	/**
+	 * Copy constructor.
+	 */
+	TSharedFuture(const TSharedFuture&) = default;
 
-	/** Move constructor. */
-	TSharedFuture(TSharedFuture&& Other)
-		: BaseType(MoveTemp(Other))
-	{ }
+	/**
+	 * Copy assignment operator.
+	 */
+	TSharedFuture& operator=(const TSharedFuture& Other) = default;
+
+	/**
+	 * Move constructor.
+	 */
+	TSharedFuture(TSharedFuture&&) = default;
+
+	/**
+	 * Move assignment operator.
+	 */
+	TSharedFuture& operator=(TSharedFuture&& Other) = default;
 
 	/** Destructor. */
 	~TSharedFuture() { }
-
-public:
-
-	/** Copy assignment operator. */
-/*	TSharedFuture& operator=(const TSharedFuture& Other)
-	{
-		BaseType::operator=(Other);
-		return *this;
-	}*/
-
-	/** Move assignment operator. */
-	TSharedFuture& operator=(TSharedFuture&& Other)
-	{
-		BaseType::operator=(MoveTemp(Other));
-		return *this;
-	}
 
 public:
 

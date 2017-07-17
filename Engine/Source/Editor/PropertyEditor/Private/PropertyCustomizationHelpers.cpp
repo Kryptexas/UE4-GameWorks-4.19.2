@@ -758,7 +758,7 @@ public:
 						.OnSetObject(this, &FMaterialItemView::OnSetObject)
 						.DisplayThumbnail(true)
 						.ThumbnailPool(ThumbnailPool)
-						.ThumbnailSize(bDisplayCompactSize ? FIntPoint(48, 48) : FIntPoint(64, 64) )
+						.ThumbnailSize(FIntPoint(64, 64))
 						.DisplayCompactSize(bDisplayCompactSize)
 						.CustomContentSlot()
 						[

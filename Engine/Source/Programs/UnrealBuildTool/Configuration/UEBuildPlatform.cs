@@ -151,6 +151,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Get the bundle directory for the shared link environment
+		/// </summary>
+		/// <param name="Rules">The target rules</param>
+		/// <param name="OutputFiles">List of executable output files</param>
+		/// <returns>Path to the bundle directory</returns>
+		public virtual DirectoryReference GetBundleDirectory(ReadOnlyTargetRules Rules, List<FileReference> OutputFiles)
+		{
+			return null;
+		}
+
+		/// <summary>
 		/// Attempt to convert a string to an UnrealTargetPlatform enum entry
 		/// </summary>
 		/// <returns>UnrealTargetPlatform.Unknown on failure (the platform didn't match the enum)</returns>

@@ -243,6 +243,18 @@ namespace UnrealBuildTool
 			MacToolChain.PostCodeGeneration(Manifest);
 		}
 
+		public override DirectoryReference GetBundleDirectory(ReadOnlyTargetRules Rules, List<FileReference> OutputFiles)
+		{
+			if(Rules.bIsBuildingConsoleApplication)
+			{
+				return null;
+			}
+			else
+			{
+				return new DirectoryReference(OutputFiles[0].FullName + ".app");
+			}
+		}
+
 		/// <summary>
 		/// Modify the rules for a newly created module, in a target that's being built for this platform.
 		/// This is not required - but allows for hiding details of a particular platform.

@@ -4418,7 +4418,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMesh* Mesh)
 		RawAnimationData.AddZeroed(NumBones);
 		AnimationTrackNames.AddUninitialized(NumBones);
 
-		const TArray<FTransform>& RefBonePose = RefSkeleton.GetRefBonePose();
+		const TArray<FTransform>& RefBonePose = RefSkeleton.GetRawRefBonePose();
 
 		check (RefBonePose.Num() == NumBones);
 

@@ -33,6 +33,8 @@ namespace UnrealGameSync
 
 	interface IWorkspaceControlOwner
 	{
+		void BrowseForProject(WorkspaceControl Workspace);
+		void RequestProjectChange(WorkspaceControl Workspace, string ProjectFileName);
 		void ShowAndActivate();
 		void StreamChanged(WorkspaceControl Workspace);
 		void SetTabNames(TabLabels TabNames);
@@ -252,6 +254,14 @@ namespace UnrealGameSync
 			{
 				SelectChange(CurrentChangeNumber);
 			}
+		}
+
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			PerforceMonitor.Start();
+			EventMonitor.Start();
 		}
 
 		/// <summary>
@@ -491,7 +501,9 @@ namespace UnrealGameSync
 				return;
 			}
 
-			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, Settings.GetCombinedSyncFilter(WorkspaceSettings), GetDefaultBuildStepObjects(), ProjectSettings.BuildSteps, null, GetWorkspaceVariables());
+			string[] CombinedSyncFilter = UserSettings.GetCombinedSyncFilter(Workspace.GetSyncCategories(), Settings.SyncView, Settings.SyncExcludedCategories, WorkspaceSettings.SyncView, WorkspaceSettings.SyncExcludedCategories);
+
+			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, CombinedSyncFilter, GetDefaultBuildStepObjects(), ProjectSettings.BuildSteps, null, GetWorkspaceVariables());
 			if(Options.HasFlag(WorkspaceUpdateOptions.SyncArchives))
 			{
 				string EditorArchivePath = null;
@@ -1533,12 +1545,7 @@ namespace UnrealGameSync
 			StringBuilder CommandLine = new StringBuilder();
 			if(Workspace != null && Workspace.Perforce != null)
 			{
-				string ServerAndPort;
-				if(!Workspace.Perforce.GetSetting("P4PORT", out ServerAndPort, Log))
-				{
-					ServerAndPort = "perforce:1666";
-				}
-				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", ServerAndPort, Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
+				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", Workspace.Perforce.ServerAndPort, Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
 			}
 			Process.Start("p4v.exe", CommandLine.ToString());
 		}
@@ -1570,6 +1577,17 @@ namespace UnrealGameSync
 			}
 			else
 			{
+				// Project
+				StatusLine ProjectLine = new StatusLine();
+				ProjectLine.AddText(String.Format("Opened "));
+				ProjectLine.AddLink(SelectedFileName + " \u25BE", FontStyle.Regular, (P, R) => { SelectRecentProject(R); });
+				ProjectLine.AddText("  |  ");
+				ProjectLine.AddLink("Browse...", FontStyle.Regular, (P, R) => { Owner.BrowseForProject(this); });
+				Lines.Add(ProjectLine);
+
+				// Spacer
+				Lines.Add(new StatusLine(){ LineHeight = 0.5f });
+
 				// Sync status
 				StatusLine SummaryLine = new StatusLine();
 				if(Workspace.CurrentChangeNumber != -1)
@@ -1631,7 +1649,7 @@ namespace UnrealGameSync
 					string SummaryText;
 					if(WorkspaceSettings.LastSyncChangeNumber == Workspace.CurrentChangeNumber && WorkspaceSettings.LastSyncResult == WorkspaceUpdateResult.Success && WorkspaceSettings.LastSyncTime.HasValue)
 					{
-						Lines.Add(new StatusLine());
+						Lines.Add(new StatusLine(){ LineHeight = 0.5f });
 
 						StatusLine SuccessLine = new StatusLine();
 						SuccessLine.AddIcon(Properties.Resources.StatusIcons, new Size(16, 16), 0);
@@ -1640,7 +1658,7 @@ namespace UnrealGameSync
 					}
 					else if(GetLastUpdateMessage(WorkspaceSettings.LastSyncResult, WorkspaceSettings.LastSyncResultMessage, out SummaryText))
 					{
-						Lines.Add(new StatusLine());
+						Lines.Add(new StatusLine(){ LineHeight = 0.5f });
 
 						int SummaryTextLength = SummaryText.IndexOf('\n');
 						if(SummaryTextLength == -1)
@@ -1968,6 +1986,7 @@ namespace UnrealGameSync
 			OptionsContextMenu_SyncPrecompiledEditor.Visible = PerforceMonitor != null && PerforceMonitor.HasZippedBinaries;
 			OptionsContextMenu_SyncPrecompiledEditor.Checked = Settings.bSyncPrecompiledEditor;
 			OptionsContextMenu_EditorBuildConfiguration.Enabled = !ShouldSyncPrecompiledEditor;
+			UpdateCheckedBuildConfig();
 			OptionsContextMenu_UseIncrementalBuilds.Enabled = !ShouldSyncPrecompiledEditor;
 			OptionsContextMenu_UseIncrementalBuilds.Checked = Settings.bUseIncrementalBuilds;
 			OptionsContextMenu_CustomizeBuildSteps.Enabled = (Workspace != null);
@@ -2228,7 +2247,7 @@ namespace UnrealGameSync
 					Rectangle DescriptionBounds = Args.Item.SubItems[DescriptionColumn.Index].Bounds;
 					if(DescriptionBounds.Contains(ClientPoint))
 					{
-						BuildListToolTip.Show(Change.Description, BuildList, new Point(DescriptionBounds.Left, DescriptionBounds.Bottom));
+						BuildListToolTip.Show(Change.Description, BuildList, new Point(DescriptionBounds.Left, DescriptionBounds.Bottom + 2));
 						return;
 					}
 
@@ -2764,11 +2783,13 @@ namespace UnrealGameSync
 
 		private void OptionsContextMenu_SyncFilter_Click(object sender, EventArgs e)
 		{
-			SyncFilter Filter = new SyncFilter(Settings.SyncFilter, WorkspaceSettings.SyncFilter);
+			SyncFilter Filter = new SyncFilter(Workspace.GetSyncCategories(), Settings.SyncView, Settings.SyncExcludedCategories, WorkspaceSettings.SyncView, WorkspaceSettings.SyncExcludedCategories);
 			if(Filter.ShowDialog() == DialogResult.OK)
 			{
-				Settings.SyncFilter = Filter.GlobalFilter;
-				WorkspaceSettings.SyncFilter = Filter.WorkspaceFilter;
+				Settings.SyncExcludedCategories = Filter.GlobalExcludedCategories;
+				Settings.SyncView = Filter.GlobalView;
+				WorkspaceSettings.SyncExcludedCategories = Filter.WorkspaceExcludedCategories;
+				WorkspaceSettings.SyncView = Filter.WorkspaceView;
                 Settings.Save();
 			}
 		}
@@ -2847,6 +2868,42 @@ namespace UnrealGameSync
 		private void OptionsContextMenu_TabNames_ProjectFile_Click(object sender, EventArgs e)
 		{
 			Owner.SetTabNames(TabLabels.ProjectFile);
+		}
+
+		private void SelectRecentProject(Rectangle Bounds)
+		{
+			while(RecentMenu.Items[2] != RecentMenu_Separator)
+			{
+				RecentMenu.Items.RemoveAt(2);
+			}
+
+			HashSet<string> ProjectList = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+			foreach(string ProjectFileName in Settings.OtherProjectFileNames)
+			{
+				if(!String.IsNullOrEmpty(ProjectFileName))
+				{
+					string FullProjectFileName = Path.GetFullPath(ProjectFileName);
+					if(ProjectList.Add(FullProjectFileName))
+					{
+						ToolStripMenuItem Item = new ToolStripMenuItem(FullProjectFileName, null, new EventHandler((o, e) => Owner.RequestProjectChange(this, FullProjectFileName)));
+						RecentMenu.Items.Insert(RecentMenu.Items.Count - 2, Item);
+					}
+				}
+			}
+
+			RecentMenu_Separator.Visible = (RecentMenu.Items.Count >= 2);
+			RecentMenu.Show(StatusPanel, new Point(Bounds.Left, Bounds.Bottom), ToolStripDropDownDirection.BelowRight);
+		}
+
+		private void RecentMenu_Browse_Click(object sender, EventArgs e)
+		{
+			Owner.BrowseForProject(this);
+		}
+
+		private void RecentMenu_ClearList_Click(object sender, EventArgs e)
+		{
+			Settings.OtherProjectFileNames = new string[0];
+			Settings.Save();
 		}
 	}
 }

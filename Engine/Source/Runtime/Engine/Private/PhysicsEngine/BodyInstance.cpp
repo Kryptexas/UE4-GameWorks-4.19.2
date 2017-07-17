@@ -4945,7 +4945,10 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 			}
 			else
 			{
-				return PxGeometryQuery::overlap(PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody));
+				if(PxGeometryQuery::overlap(PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody)))
+				{
+					return true;
+				}
 			}
 					
 		}

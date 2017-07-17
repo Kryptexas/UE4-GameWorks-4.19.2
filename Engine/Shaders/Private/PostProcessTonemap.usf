@@ -626,12 +626,19 @@ void MainVS_ES2(
 	BRANCH
 	if (FringeIntensity > 0.0)
 	{
-		half2 FringeOffset = OutTexCoord.xy;
-		FringeOffset -= 0.5;
-		FringeOffset = abs(FringeOffset * 2.0);
-		FringeOffset *= FringeIntensity;
-		OutFringeTexCoords.xy = OutTexCoord.xy * half2(1.0 - FringeOffset.x * 0.5, 1.0 - FringeOffset.y * 0.5);
-		OutFringeTexCoords.zw = OutTexCoord.xy * half2(1.0 - FringeOffset.x, 1.0 - FringeOffset.y);
+		// Wavelength of primaries in nm
+		half PrimaryR = 611.3f;
+		half PrimaryG = 549.1f;
+		half PrimaryB = 464.3f;
+
+		// Simple lens chromatic aberration is roughly linear in wavelength
+		float ScaleR = 0.007f * (PrimaryR - PrimaryB);
+		float ScaleG = 0.007f * (PrimaryG - PrimaryB);
+
+		// Fringe
+		float2 ScreenPos = UVToScreenPos(OutTexCoord.xy);
+		OutFringeTexCoords.xy = ScreenPosToUV(ScreenPos * (1.0/(1.0 + (FringeIntensity * ScaleG))));
+		OutFringeTexCoords.zw = ScreenPosToUV(ScreenPos * (1.0/(1.0 + (FringeIntensity * ScaleR))));
 	}
 	else
 	{
@@ -691,9 +698,9 @@ void MainPS_ES2(
 	BRANCH
 	if (FringeIntensity > 0.0)
 	{
-		SceneColor.r = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).r;
+		SceneColor.r = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.zw).r;
 		SceneColor.g = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.xy).g;
-		SceneColor.b = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.zw).b;
+		SceneColor.b = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).b;
 		SceneColor.a = 1.0;
 	}
 	else

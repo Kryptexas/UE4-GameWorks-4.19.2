@@ -800,6 +800,8 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					}
 					else if(!BP->bIsRegeneratingOnLoad)
 					{
+						// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
+						TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 						// for non-interface changes, nodes with an external dependency have already been refreshed, and it is now safe to send a change notification event
 						Dependent->BroadcastChanged();
 					}
@@ -826,6 +828,8 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		{
 			if(CompilerData.ShouldCompileClassFunctions())
 			{
+				// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
+				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 				CompilerData.BP->BroadcastCompiled();
 				continue;
 			}
@@ -945,7 +949,7 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 			continue;
 		}
 
-		bool bParentLayoutChanged = FStructUtils::TheSameLayout(OldClass, CurrentReinstancer->ClassToReinstance);
+		bool bParentLayoutChanged = !FStructUtils::TheSameLayout(OldClass, CurrentReinstancer->ClassToReinstance);
 		if(bParentLayoutChanged)
 		{
 			// we need *all* derived types:
@@ -977,14 +981,8 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 		UClass** NewParent = InOutOldToNewClassMap.Find(Class->GetSuperClass());
 		check(NewParent && *NewParent);
 		Class->SetSuperStruct(*NewParent);
-		Class->Children = nullptr;
-		Class->Script.Empty();
-		Class->MinAlignment = 0;
-		Class->RefLink = nullptr;
-		Class->PropertyLink = nullptr;
-		Class->DestructorLink = nullptr;
-		Class->ScriptObjectReferences.Empty();
-		Class->PropertyLink = nullptr;
+		Class->Bind();
+		Class->StaticLink(true);
 	}
 
 	// make new hierarchy
@@ -1240,9 +1238,12 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 		{
 			ArchetypeReferencers.Add(BP->SkeletonGeneratedClass);
 			ensure(BP->bCachedDependenciesUpToDate);
-			for(TWeakObjectPtr<UBlueprint> Dependendency : BP->CachedDependencies)
+			for(const TWeakObjectPtr<UBlueprint>& Dependency : BP->CachedDependencies)
 			{
-				ArchetypeReferencers.Add(Dependendency.Get());
+				if (UBlueprint* DependencyBP = Dependency.Get())
+				{
+					ArchetypeReferencers.Add(DependencyBP);
+				}
 			}
 		}
 	}

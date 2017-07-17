@@ -10,6 +10,7 @@ attribute vec2 InPosition;
 attribute vec4 InColor;
 
 // Between vertex and pixel shader
+varying vec4 Position;
 varying vec4 TexCoords;
 varying vec4 Color;
 
@@ -38,5 +39,7 @@ void main()
 	Color.rgb = sRGBToLinear(InColor.rgb);
 	Color.a = InColor.a;
 
+    Position = vec4( InPosition, 0, 1 );
+    
 	gl_Position = ViewProjectionMatrix * vec4( InPosition, 0, 1 );
 }

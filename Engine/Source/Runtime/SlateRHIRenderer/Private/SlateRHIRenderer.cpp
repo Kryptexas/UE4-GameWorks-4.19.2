@@ -702,6 +702,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
 		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
+		
 		if( ViewportInfo.bRequiresStencilTest )
 		{
 			check(IsValidRef( ViewportInfo.DepthStencil ));
@@ -963,10 +964,8 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				// Update the font cache with new text after elements are batched
 				FontCache->UpdateCache();
 
-				bool bRequiresStencilTest = true;
-				bool bLockToVsync = false;
-
-				bLockToVsync = ElementBatcher->RequiresVsync();
+				bool bLockToVsync = ElementBatcher->RequiresVsync();
+				bool bRequiresStencilTest = ElementList.GetBatchData().IsStencilClippingRequired();
 
 				bool bForceVsyncFromCVar = false;
 				if(GIsEditor)

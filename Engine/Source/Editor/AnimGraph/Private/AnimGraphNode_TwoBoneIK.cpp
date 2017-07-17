@@ -2,7 +2,6 @@
 
 #include "AnimGraphNode_TwoBoneIK.h"
 #include "AnimNodeEditModes.h"
-#include "AnimationCustomVersion.h"
 #include "Animation/AnimInstance.h"
 
 // for customization details
@@ -10,7 +9,11 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 
-#define LOCTEXT_NAMESPACE "A3Nodes"
+// version handling
+#include "AnimationCustomVersion.h"
+#include "ReleaseObjectVersion.h"
+
+#define LOCTEXT_NAMESPACE "AnimGraphNode_TwoBoneIK"
 
 /////////////////////////////////////////////////////
 // FTwoBoneIKDelegate
@@ -188,6 +191,12 @@ void UAnimGraphNode_TwoBoneIK::Serialize(FArchive& Ar)
 		// fix up deprecated variables
 		Node.StartStretchRatio = Node.StretchLimits_DEPRECATED.X;
 		Node.MaxStretchScale = Node.StretchLimits_DEPRECATED.Y;
+	}
+
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::RenameNoTwistToAllowTwistInTwoBoneIK)
+	{
+		Node.bAllowTwist = !Node.bNoTwist_DEPRECATED;
 	}
 
 	if (CustomAnimVersion < FAnimationCustomVersion::ConvertIKToSupportBoneSocketTarget)

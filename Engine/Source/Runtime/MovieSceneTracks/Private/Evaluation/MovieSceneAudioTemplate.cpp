@@ -320,6 +320,7 @@ void FMovieSceneAudioSectionTemplateData::EnsureAudioIsPlaying(UAudioComponent& 
 		if (GIsEditor && World != nullptr && !World->IsPlayInEditor())
 		{
 			AudioComponent.bIsUISound = true;
+			AudioComponent.bIsPreviewSound = true;
 		}
 		else
 #endif // WITH_EDITOR

@@ -131,7 +131,7 @@ namespace UnrealGameSync
 		public Guid GetValue(string Key, Guid DefaultValue)
 		{
 			string StringValue = GetValue(Key);
-			if(StringValue == null)
+			if(StringValue != null)
 			{
 				Guid Value;
 				if(Guid.TryParse(StringValue, out Value))
@@ -145,7 +145,7 @@ namespace UnrealGameSync
 		public int GetValue(string Key, int DefaultValue)
 		{
 			string StringValue = GetValue(Key);
-			if(StringValue == null)
+			if(StringValue != null)
 			{
 				int Value;
 				if(int.TryParse(StringValue, out Value))
@@ -159,7 +159,7 @@ namespace UnrealGameSync
 		public bool GetValue(string Key, bool DefaultValue)
 		{
 			string StringValue = GetValue(Key);
-			if(StringValue == null)
+			if(StringValue != null)
 			{
 				bool Value;
 				if(bool.TryParse(StringValue, out Value))
@@ -310,6 +310,18 @@ namespace UnrealGameSync
 			}
 		}
 
+		public void SetValues(string Key, Guid[] Values)
+		{
+			if(Values == null)
+			{
+				RemoveValue(Key);
+			}
+			else
+			{
+				Pairs[Key] = String.Join("\n", Values.Select(x => x.ToString()));
+			}
+		}
+
 		public void AppendValue(string Key, string Value)
 		{
 			string CurrentValue;
@@ -368,6 +380,27 @@ namespace UnrealGameSync
 			{
 				return Value.Split('\n');
 			}
+		}
+
+		public Guid[] GetValues(string Key, Guid[] DefaultValue = null)
+		{
+			string[] StringValues = GetValues(Key, (string[])null);
+			if(StringValues == null)
+			{
+				return DefaultValue;
+			}
+
+			List<Guid> GuidValues = new List<Guid>();
+			foreach(string StringValue in StringValues)
+			{
+				Guid GuidValue;
+				if(Guid.TryParse(StringValue, out GuidValue))
+				{
+					GuidValues.Add(GuidValue);
+				}
+			}
+
+			return GuidValues.ToArray();
 		}
 	}
 
@@ -505,6 +538,13 @@ namespace UnrealGameSync
 		}
 
 		public string[] GetValues(string Key, string[] DefaultValue)
+		{
+			int DotIdx = Key.IndexOf('.');
+			ConfigSection Section = FindSection(Key.Substring(0, DotIdx));
+			return (Section == null)? DefaultValue : Section.GetValues(Key.Substring(DotIdx + 1), DefaultValue);
+		}
+
+		public Guid[] GetGuidValues(string Key, Guid[] DefaultValue)
 		{
 			int DotIdx = Key.IndexOf('.');
 			ConfigSection Section = FindSection(Key.Substring(0, DotIdx));

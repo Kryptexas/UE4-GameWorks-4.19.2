@@ -141,7 +141,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check(ElementSize==0);
 		check(DefaultConstructor==NULL);
 		check(Serializer==NULL);
-		Object->Serialize( Ar );
+		// Once UE-46691 this should probably become an ensure
+		if (UObject* Obj = Object.Get())
+		{
+			Obj->Serialize(Ar);
+		}
 	}
 	Ar.ArIgnoreOuterRef = bWasArIgnoreOuterRef;
 }
@@ -168,8 +172,11 @@ void FTransaction::FObjectRecord::Save(FTransaction* Owner)
 		FlipReferencedObjects.Empty();
 		FlipReferencedNames.Empty();
 		FlipObjectAnnotation = TSharedPtr<ITransactionObjectAnnotation>();
-
-		FlipObjectAnnotation = Object->GetTransactionAnnotation();
+		// Once UE-46691 this should probably become an ensure
+		if (UObject* Obj = Object.Get())
+		{
+			FlipObjectAnnotation = Obj->GetTransactionAnnotation();
+		}
 		FWriter Writer(FlipData, FlipReferencedObjects, FlipReferencedNames, bWantsBinarySerialization);
 		SerializeContents(Writer, -Oper);
 	}
@@ -652,34 +659,37 @@ int32 UTransBuffer::End()
 
 void UTransBuffer::Reset( const FText& Reason )
 {
-	CheckState();
-
-	if( ActiveCount != 0 )
+	if (ensure(!GIsTransacting))
 	{
-		FString ErrorMessage = TEXT("");
-		ErrorMessage += FString::Printf(TEXT("Non zero active count in UTransBuffer::Reset") LINE_TERMINATOR );
-		ErrorMessage += FString::Printf(TEXT("ActiveCount : %d"	) LINE_TERMINATOR, ActiveCount );
-		ErrorMessage += FString::Printf(TEXT("SessionName : %s"	) LINE_TERMINATOR, *GetUndoContext(false).Context );
-		ErrorMessage += FString::Printf(TEXT("Reason      : %s"	) LINE_TERMINATOR, *Reason.ToString() );
+		CheckState();
 
-		ErrorMessage += FString::Printf( LINE_TERMINATOR );
-		ErrorMessage += FString::Printf(TEXT("Purging the undo buffer...") LINE_TERMINATOR );
+		if (ActiveCount != 0)
+		{
+			FString ErrorMessage = TEXT("");
+			ErrorMessage += FString::Printf(TEXT("Non zero active count in UTransBuffer::Reset") LINE_TERMINATOR);
+			ErrorMessage += FString::Printf(TEXT("ActiveCount : %d") LINE_TERMINATOR, ActiveCount);
+			ErrorMessage += FString::Printf(TEXT("SessionName : %s") LINE_TERMINATOR, *GetUndoContext(false).Context);
+			ErrorMessage += FString::Printf(TEXT("Reason      : %s") LINE_TERMINATOR, *Reason.ToString());
 
-		UE_LOG(LogEditorTransaction, Log, TEXT("%s"), *ErrorMessage);
+			ErrorMessage += FString::Printf(LINE_TERMINATOR);
+			ErrorMessage += FString::Printf(TEXT("Purging the undo buffer...") LINE_TERMINATOR);
 
-	
-		// Clear out the transaction buffer...
-		Cancel(0);
+			UE_LOG(LogEditorTransaction, Log, TEXT("%s"), *ErrorMessage);
+
+
+			// Clear out the transaction buffer...
+			Cancel(0);
+		}
+
+		// Reset all transactions.
+		UndoBuffer.Empty();
+		UndoCount = 0;
+		ResetReason = Reason;
+		ActiveCount = 0;
+		ActiveRecordCounts.Empty();
+
+		CheckState();
 	}
-
-	// Reset all transactions.
-	UndoBuffer.Empty();
-	UndoCount    = 0;
-	ResetReason  = Reason;
-	ActiveCount  = 0;
-	ActiveRecordCounts.Empty();
-
-	CheckState();
 }
 
 

@@ -216,7 +216,7 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 
 		UObject* ParentObject = nullptr;
 		// Recursively build the parent tree
-		if (ParentName.Len() > 0)
+		if (ParentName.Len() > 0 && ParentName != ProfileName)
 		{
 			ParentObject = FindObject<UDeviceProfile>(GetTransientPackage(), *ParentName);
 			if (ParentObject == nullptr)

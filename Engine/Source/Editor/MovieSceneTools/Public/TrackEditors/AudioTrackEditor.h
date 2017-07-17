@@ -58,7 +58,6 @@ public:
 	virtual const FSlateBrush* GetIconBrush() const override;
 	virtual bool IsResizable(UMovieSceneTrack* InTrack) const override;
 	virtual void Resize(float NewSize, UMovieSceneTrack* InTrack) override;
-	virtual EMultipleRowMode GetMultipleRowMode() const override;
 	
 protected:
 

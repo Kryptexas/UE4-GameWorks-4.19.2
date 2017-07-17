@@ -45,9 +45,9 @@ namespace UnrealGameSync
 			// 
 			this.OkButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.OkButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.OkButton.Location = new System.Drawing.Point(573, 328);
+			this.OkButton.Location = new System.Drawing.Point(671, 381);
 			this.OkButton.Name = "OkButton";
-			this.OkButton.Size = new System.Drawing.Size(93, 23);
+			this.OkButton.Size = new System.Drawing.Size(108, 26);
 			this.OkButton.TabIndex = 0;
 			this.OkButton.Text = "Ok";
 			this.OkButton.UseVisualStyleBackColor = true;
@@ -56,9 +56,9 @@ namespace UnrealGameSync
 			// 
 			this.CancelBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.CancelBtn.Location = new System.Drawing.Point(573, 299);
+			this.CancelBtn.Location = new System.Drawing.Point(671, 349);
 			this.CancelBtn.Name = "CancelBtn";
-			this.CancelBtn.Size = new System.Drawing.Size(93, 23);
+			this.CancelBtn.Size = new System.Drawing.Size(108, 26);
 			this.CancelBtn.TabIndex = 2;
 			this.CancelBtn.Text = "Cancel";
 			this.CancelBtn.UseVisualStyleBackColor = true;
@@ -82,11 +82,11 @@ namespace UnrealGameSync
             listViewItem1,
             listViewItem2});
 			this.ArgumentsList.LabelEdit = true;
-			this.ArgumentsList.Location = new System.Drawing.Point(16, 12);
+			this.ArgumentsList.Location = new System.Drawing.Point(12, 12);
 			this.ArgumentsList.MultiSelect = false;
 			this.ArgumentsList.Name = "ArgumentsList";
 			this.ArgumentsList.OwnerDraw = true;
-			this.ArgumentsList.Size = new System.Drawing.Size(551, 339);
+			this.ArgumentsList.Size = new System.Drawing.Size(647, 393);
 			this.ArgumentsList.TabIndex = 5;
 			this.ArgumentsList.UseCompatibleStateImageBehavior = false;
 			this.ArgumentsList.View = System.Windows.Forms.View.Details;
@@ -106,9 +106,9 @@ namespace UnrealGameSync
 			// MoveUpButton
 			// 
 			this.MoveUpButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.MoveUpButton.Location = new System.Drawing.Point(573, 12);
+			this.MoveUpButton.Location = new System.Drawing.Point(671, 12);
 			this.MoveUpButton.Name = "MoveUpButton";
-			this.MoveUpButton.Size = new System.Drawing.Size(93, 23);
+			this.MoveUpButton.Size = new System.Drawing.Size(108, 26);
 			this.MoveUpButton.TabIndex = 6;
 			this.MoveUpButton.Text = "Move Up";
 			this.MoveUpButton.UseVisualStyleBackColor = true;
@@ -117,9 +117,9 @@ namespace UnrealGameSync
 			// MoveDownButton
 			// 
 			this.MoveDownButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.MoveDownButton.Location = new System.Drawing.Point(573, 41);
+			this.MoveDownButton.Location = new System.Drawing.Point(671, 44);
 			this.MoveDownButton.Name = "MoveDownButton";
-			this.MoveDownButton.Size = new System.Drawing.Size(93, 23);
+			this.MoveDownButton.Size = new System.Drawing.Size(108, 26);
 			this.MoveDownButton.TabIndex = 7;
 			this.MoveDownButton.Text = "Move Down";
 			this.MoveDownButton.UseVisualStyleBackColor = true;
@@ -127,14 +127,17 @@ namespace UnrealGameSync
 			// 
 			// ArgumentsWindow
 			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AcceptButton = this.OkButton;
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(678, 363);
+			this.CancelButton = this.CancelBtn;
+			this.ClientSize = new System.Drawing.Size(791, 419);
 			this.Controls.Add(this.MoveDownButton);
 			this.Controls.Add(this.MoveUpButton);
 			this.Controls.Add(this.ArgumentsList);
 			this.Controls.Add(this.CancelBtn);
 			this.Controls.Add(this.OkButton);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.Name = "ArgumentsWindow";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

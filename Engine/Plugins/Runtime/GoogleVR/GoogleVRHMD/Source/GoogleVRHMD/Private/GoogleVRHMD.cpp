@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #include "GoogleVRHMD.h"
 #include "Engine/LocalPlayer.h"
@@ -345,6 +332,7 @@ FGoogleVRHMD::FGoogleVRHMD()
 	, bUseOffscreenFramebuffers(false)
 	, bIsInDaydreamMode(false)
 	, bForceStopPresentScene(false)
+	, bIsMobileMultiViewDirect(false)
 	, NeckModelScale(1.0f)
 	, CurHmdOrientation(FQuat::Identity)
 	, CurHmdPosition(FVector::ZeroVector)
@@ -480,6 +468,13 @@ FGoogleVRHMD::FGoogleVRHMD()
 		bUseGVRApiDistortionCorrection = bUseOffscreenFramebuffers;
 		//bUseGVRApiDistortionCorrection = true;  //Uncomment this line is you want to use GVR distortion when async reprojection is not enabled.
 
+		// Query for direct multi-view
+		const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+		const auto CVarMobileMultiViewDirect = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
+		const bool bIsMobileMultiViewEnabled = (CVarMobileMultiView && CVarMobileMultiView->GetValueOnAnyThread() != 0);
+		const bool bIsMobileMultiViewDirectEnabled = (CVarMobileMultiViewDirect && CVarMobileMultiViewDirect->GetValueOnAnyThread() != 0);
+		bIsMobileMultiViewDirect = GSupportsMobileMultiView && gvr_is_feature_supported(GVRAPI, GVR_FEATURE_MULTIVIEW) && bIsMobileMultiViewEnabled && bIsMobileMultiViewDirectEnabled;
+
 		if(bUseOffscreenFramebuffers)
 		{
 			// Create custom present class
@@ -608,6 +603,19 @@ void FGoogleVRHMD::UpdateGVRViewportList() const
 	gvr_get_screen_buffer_viewports(GVRAPI, NonDistortedBufferViewportList);
 
 	ActiveViewportList = bDistortionCorrectionEnabled ? DistortedBufferViewportList : NonDistortedBufferViewportList;
+
+	if (IsMobileMultiViewDirect())
+	{
+		check(gvr_buffer_viewport_list_get_size(ActiveViewportList) == 2);
+		for (uint32 EyeIndex = 0; EyeIndex < 2; ++EyeIndex)
+		{
+			gvr_buffer_viewport_list_get_item(ActiveViewportList, EyeIndex, ScratchViewport);
+			const gvr_rectf ViewportRect = { 0, 1.0f, 0.0f, 1.0f };
+			gvr_buffer_viewport_set_source_uv(ScratchViewport, ViewportRect);
+			gvr_buffer_viewport_set_source_layer(ScratchViewport, EyeIndex);
+			gvr_buffer_viewport_list_set_item(ActiveViewportList, EyeIndex, ScratchViewport);
+		}
+	}
 
 	// Pass the viewport list used for rendering to CustomPresent for async reprojection
 	if(CustomPresent)
@@ -784,15 +792,17 @@ bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(int DesiredWidth, int DesiredHeight
 		return false;
 	}
 
+	const uint32 AdjustedDesiredWidth = (IsMobileMultiViewDirect()) ? DesiredWidth / 2 : DesiredWidth;
+	
 	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
 	const uint32 DividableBy = 4;
 
 	const uint32 Mask = ~(DividableBy - 1);
-	GVRRenderTargetSize.X = (DesiredWidth + DividableBy - 1) & Mask;
+	GVRRenderTargetSize.X = (AdjustedDesiredWidth + DividableBy - 1) & Mask;
 	GVRRenderTargetSize.Y = (DesiredHeight + DividableBy - 1) & Mask;
 
 	OutRenderTargetSize = GVRRenderTargetSize;
-	UE_LOG(LogHMD, Log, TEXT("Set Render Target Size to %d x %d, the deired size is %d x %d"), GVRRenderTargetSize.X, GVRRenderTargetSize.Y, DesiredWidth, DesiredHeight);
+	UE_LOG(LogHMD, Log, TEXT("Set Render Target Size to %d x %d, the deired size is %d x %d"), GVRRenderTargetSize.X, GVRRenderTargetSize.Y, AdjustedDesiredWidth, DesiredHeight);
 	return true;
 #else
 	return false;
@@ -1662,6 +1672,7 @@ bool FGoogleVRHMD::NeedReAllocateViewportRenderTarget(const class FViewport& Vie
 
 		uint32 NewSizeX = InSizeX, NewSizeY = InSizeY;
 		CalculateRenderTargetSize(Viewport, NewSizeX, NewSizeY);
+
 		if (NewSizeX != RenderTargetSize.X || NewSizeY != RenderTargetSize.Y)
 		{
 			UE_LOG(LogHMD, Log, TEXT("NeedReAllocateViewportRenderTarget() Needs realloc to new size: (%d, %d)"), NewSizeX, NewSizeY);

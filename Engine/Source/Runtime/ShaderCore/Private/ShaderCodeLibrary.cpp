@@ -453,6 +453,8 @@ struct FEditorShaderCodeArchive
 	
 	bool Finalize(FString OutputDir, FString DebugDir, bool bNativeFormat)
 	{
+		bool bSuccess = Shaders.Num() > 0;
+		
 		EShaderPlatform Platform = ShaderFormatToLegacyShaderPlatform(FormatName);
 		FString OutputPath = GetShaderCodeFilename(OutputDir, FormatName);
 		FString DebugPath = GetShaderCodeFilename(DebugDir, FormatName);
@@ -475,7 +477,10 @@ struct FEditorShaderCodeArchive
 					TArray<uint8> UCode;
 					TArray<uint8>& UncompressedCode = FShaderLibraryHelperUncompressCode(Platform, Size, Code, UCode);
 					
-					Format->StripShaderCode(UncompressedCode, DebugPath, bNativeFormat);
+					if(!Format->StripShaderCode(UncompressedCode, DebugPath, bNativeFormat))
+					{
+						bSuccess = false;
+					}
 					
 					TArray<uint8> CCode;
 					FShaderLibraryHelperCompressCode(Platform, UncompressedCode, CCode);
@@ -516,7 +521,7 @@ struct FEditorShaderCodeArchive
 			}
 		}
 		
-		return true;
+		return bSuccess;
 	}
 	
 	bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir)
@@ -879,8 +884,10 @@ public:
 		return bAdded;
 	}
 
-	void SaveShaderCode(const FString& ShaderCodeDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats)
+	bool SaveShaderCode(const FString& ShaderCodeDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats)
 	{
+		bool bOk = ShaderFormats.Num() > 0;
+		
 		for (int32 i = 0; i < ShaderFormats.Num(); ++i)	
 		{
 			FName ShaderFormatName = ShaderFormats[i];
@@ -889,9 +896,11 @@ public:
 
 			if (CodeArchive)
 			{
-				CodeArchive->Finalize(ShaderCodeDir, DebugOutputDir, bNativeFormat);
+				bOk &= CodeArchive->Finalize(ShaderCodeDir, DebugOutputDir, bNativeFormat);
 			}
 		}
+		
+		return bOk;
 	}
 	
 	bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir, const TArray<FName>& ShaderFormats)
@@ -1140,12 +1149,14 @@ EShaderPlatform FShaderCodeLibrary::GetRuntimeShaderPlatform(void)
 }
 
 #if WITH_EDITOR
-void FShaderCodeLibrary::SaveShaderCode(const FString& OutputDir, const FString& DebugDir, const TArray<FName>& ShaderFormats)
+bool FShaderCodeLibrary::SaveShaderCode(const FString& OutputDir, const FString& DebugDir, const TArray<FName>& ShaderFormats)
 {
 	if (Impl)
 	{
-		Impl->SaveShaderCode(OutputDir, DebugDir, ShaderFormats);
+		return Impl->SaveShaderCode(OutputDir, DebugDir, ShaderFormats);
 	}
+	
+	return false;
 }
 
 bool FShaderCodeLibrary::PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir, const TArray<FName>& ShaderFormats)
@@ -1154,7 +1165,8 @@ bool FShaderCodeLibrary::PackageNativeShaderLibrary(const FString& ShaderCodeDir
 	{
 		return Impl->PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
 	}
-	return true;
+	
+	return false;
 }
 
 void FShaderCodeLibrary::DumpShaderCodeStats()

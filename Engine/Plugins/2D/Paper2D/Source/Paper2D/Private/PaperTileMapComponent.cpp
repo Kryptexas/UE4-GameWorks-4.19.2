@@ -611,7 +611,7 @@ void UPaperTileMapComponent::SetTileMapColor(FLinearColor NewColor)
 
 FLinearColor UPaperTileMapComponent::GetLayerColor(int32 Layer) const
 {
-	if (TileMap->TileLayers.IsValidIndex(Layer))
+	if ((TileMap != nullptr) && TileMap->TileLayers.IsValidIndex(Layer))
 	{
 		return TileMap->TileLayers[Layer]->GetLayerColor();
 	}
@@ -736,7 +736,7 @@ void UPaperTileMapComponent::SetLayerCollision(int32 Layer, bool bHasCollision, 
 		}
 		else
 		{
-			UE_LOG(LogPaper2D, Warning, TEXT("Invalid layer index %d for %s"), Layer, *TileMap->GetPathName());
+			UE_LOG(LogPaper2D, Warning, TEXT("Invalid layer index %d for %s"), Layer, *GetPathNameSafe(TileMap));
 		}
 	}
 }

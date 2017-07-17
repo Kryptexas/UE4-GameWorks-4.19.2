@@ -109,27 +109,21 @@ namespace UnrealBuildTool
 
 		private string GetLatestSDKApiLevel(AndroidToolChain ToolChain)
 		{
-			// we expect there to be one, so use the first one
-			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android" + (Utils.IsRunningOnMono ? "" : ".bat"));
-
-			// run a command and capture output
-			var ExeInfo = new ProcessStartInfo(AndroidCommandPath, "list targets");
-			ExeInfo.UseShellExecute = false;
-			ExeInfo.RedirectStandardOutput = true;
-			using (var GameProcess = Process.Start(ExeInfo))
+			// get a list of SDK platforms
+			string PlatformsDir = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/platforms");
+			if (!Directory.Exists(PlatformsDir))
 			{
-				PossibleApiLevels = new List<string>();
-				GameProcess.BeginOutputReadLine();
-				GameProcess.OutputDataReceived += ParseApiLevel;
-				GameProcess.WaitForExit();
+				throw new BuildException("No platforms found in {0}", PlatformsDir);
 			}
 
-			if (PossibleApiLevels != null && PossibleApiLevels.Count > 0)
+			// return the latest of them
+			string[] PlatformDirectories = Directory.GetDirectories(PlatformsDir);
+			if (PlatformDirectories != null && PlatformDirectories.Length > 0)
 			{
-				return ToolChain.GetLargestApiLevel(PossibleApiLevels.ToArray());
+				return ToolChain.GetLargestApiLevel(PlatformDirectories);
 			}
 
-			throw new BuildException("Can't make an APK without an API installed (see \"android.bat list targets\")");
+			throw new BuildException("Can't make an APK without an API installed ({0} does not contain any SDKs)", PlatformsDir);
 		}
 
 		private int GetApiLevelInt(string ApiString)

@@ -806,28 +806,30 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 	{
 		TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
 		USkeletalMesh* Mesh = SkeletalMeshComponent->SkeletalMesh;
-
-		// Dirty the mesh
-		Mesh->SetFlags(RF_Transactional);
-		Mesh->Modify();
-		Mesh->bHasVertexColors = true;
-
-		// Release the static mesh's resources.
-		Mesh->ReleaseResources();
-
-		// Flush the resource release commands to the rendering thread to ensure that the build doesn't occur while a resource is still
-		// allocated, and potentially accessing the UStaticMesh.
-		Mesh->ReleaseResourcesFence.Wait();
-
-		if (Mesh->LODInfo.Num() > 0)
+		if (Mesh)
 		{
-			RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
-			const int32 NumLods = Mesh->LODInfo.Num();
-			for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
+			// Dirty the mesh
+			Mesh->SetFlags(RF_Transactional);
+			Mesh->Modify();
+			Mesh->bHasVertexColors = true;
+
+			// Release the static mesh's resources.
+			Mesh->ReleaseResources();
+
+			// Flush the resource release commands to the rendering thread to ensure that the build doesn't occur while a resource is still
+			// allocated, and potentially accessing the UStaticMesh.
+			Mesh->ReleaseResourcesFence.Wait();
+
+			if (Mesh->LODInfo.Num() > 0)
 			{
-				MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor);
+				RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
+				const int32 NumLods = Mesh->LODInfo.Num();
+				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
+				{
+					MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor);
+				}
+				Mesh->InitResources();
 			}
-			Mesh->InitResources();
 		}
 	}
 }
