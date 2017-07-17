@@ -23,6 +23,28 @@ void UComposureTonemapperPass::TonemapToRenderTarget()
 	ColorGradingSettings.ExportToPostProcessSettings(&SceneCapture->PostProcessSettings);
 	FilmStockSettings.ExportToPostProcessSettings(&SceneCapture->PostProcessSettings);
 
+	// Disables as much stuf as possible using showflags. 
+	FComposureUtils::SetEngineShowFlagsForPostprocessingOnly(SceneCapture->ShowFlags);
+
+	// Override some tone mapper non exposed settings to not have post process material changing them.
+	{
+		SceneCapture->PostProcessSettings.bOverride_SceneColorTint = true;
+		SceneCapture->PostProcessSettings.SceneColorTint = FLinearColor::White;
+
+		SceneCapture->PostProcessSettings.bOverride_VignetteIntensity = true;
+		SceneCapture->PostProcessSettings.VignetteIntensity = 0;
+
+		SceneCapture->PostProcessSettings.bOverride_GrainIntensity = true;
+		SceneCapture->PostProcessSettings.GrainIntensity = 0;
+
+		SceneCapture->PostProcessSettings.bOverride_BloomDirtMask = true;
+		SceneCapture->PostProcessSettings.BloomDirtMask = nullptr;
+		SceneCapture->PostProcessSettings.bOverride_BloomDirtMaskIntensity = true;
+		SceneCapture->PostProcessSettings.BloomDirtMaskIntensity = 0;
+	}
+
+	//SceneCapture->ShowFlags.EyeAdaptation = true;
+
 	SceneCapture->PostProcessSettings.bOverride_SceneFringeIntensity = true;
 	SceneCapture->PostProcessSettings.SceneFringeIntensity = ChromaticAberration;
 
@@ -32,11 +54,4 @@ void UComposureTonemapperPass::TonemapToRenderTarget()
 
 	// Update the render target output.
 	SceneCapture->CaptureScene();
-}
-
-void UComposureTonemapperPass::InitializeComponent()
-{
-	Super::InitializeComponent();
-
-	SceneCapture->ShowFlags.EyeAdaptation = true;
 }

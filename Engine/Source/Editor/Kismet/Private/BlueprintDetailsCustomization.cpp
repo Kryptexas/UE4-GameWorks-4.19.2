@@ -1838,6 +1838,18 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 			{
 				return EVisibility::Visible;
 			}
+			else if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(VariableProperty))
+			{
+				UClass* ClassType = ObjectProperty->PropertyClass ? ObjectProperty->PropertyClass->GetSuperClass() : nullptr;
+				while (ClassType)
+				{
+					if (SequencerModule->CanAnimateProperty(FAnimatedPropertyKey::FromObjectType(ClassType)))
+					{
+						return EVisibility::Visible;
+					}
+					ClassType = ClassType->GetSuperClass();
+				}
+			}
 		}
 	}
 	return EVisibility::Collapsed;

@@ -26,6 +26,10 @@ public:
 	UPROPERTY(EditAnywhere, Category="General")
 	UImagePlateFileSequence* FileSequence;
 
+	/** Specifies whether this section can reuse a texture or render target already specified on the property. When false, a dynamic texture 2D will be created at runtime and assigned to the property where possible. */
+	UPROPERTY(EditAnywhere, Category="Image Plate")
+	bool bReuseExistingTexture;
+
 #if WITH_EDITORONLY_DATA
 public:
 

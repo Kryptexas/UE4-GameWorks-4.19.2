@@ -131,6 +131,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void AddOrUpdateBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight = 1.0f) { PostProcessSettings.AddBlendable(InBlendableObject, InWeight); }
 
+	/** Removes a blendable. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void RemoveBlendable(TScriptInterface<IBlendableInterface> InBlendableObject) { PostProcessSettings.RemoveBlendable(InBlendableObject); }
+
 #if WITH_EDITORONLY_DATA
 	virtual void SetCameraMesh(UStaticMesh* Mesh);
 #endif

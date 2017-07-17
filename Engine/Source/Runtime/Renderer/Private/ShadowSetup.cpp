@@ -827,6 +827,13 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 					continue;
 				}
 
+				if ((CurrentView.ShowOnlyPrimitives.IsSet() &&
+					!CurrentView.ShowOnlyPrimitives->Contains(PrimitiveSceneInfo->Proxy->GetPrimitiveComponentId())) ||
+					CurrentView.HiddenPrimitives.Contains(PrimitiveSceneInfo->Proxy->GetPrimitiveComponentId()))
+				{
+					continue;
+				}
+
 				// Compute the subject primitive's view relevance since it wasn't cached
 				// Update the main view's PrimitiveViewRelevanceMap
 				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&CurrentView);

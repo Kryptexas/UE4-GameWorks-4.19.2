@@ -24,15 +24,15 @@ public:
 	UPROPERTY(Interp, BlueprintReadWrite, Category = "Lens Bloom Settings")
 	FLensBloomSettings Settings;
 	
+
+	/** Sets a custom tonemapper replacing material instance. */
+	UFUNCTION(BlueprintCallable, Category = "Lens Bloom Settings")
+	void SetTonemapperReplacingMaterial(UMaterialInstanceDynamic* Material);
+
 	
 	/** 
 	 * Blurs the input into the output.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Outputs")
 	void BloomToRenderTarget();
-
-
-	// Begins UActorComponent
-	virtual void InitializeComponent() override;
-	// Ends UActorComponent
 };

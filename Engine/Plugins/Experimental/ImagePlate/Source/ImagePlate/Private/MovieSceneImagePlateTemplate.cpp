@@ -9,7 +9,9 @@
 #include "MovieSceneImagePlateSection.h"
 #include "ImagePlateFileSequence.h"
 
+#include "Engine/Texture2D.h"
 #include "Engine/Texture2DDynamic.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 struct FImagePlateSequenceData : PropertyTemplate::FSectionData
 {
@@ -26,24 +28,35 @@ struct FRenderTexturePropertyPreAnimatedToken : IMovieScenePreAnimatedToken
 			: Bindings(InBindings)
 		{}
 
+		virtual void InitializeObjectForAnimation(UObject& Object) const
+		{
+			UTexture2DDynamic* DynamicRenderTexture = NewObject<UTexture2DDynamic>(&Object, FName(), RF_Transient|RF_DuplicateTransient);
+			DynamicRenderTexture->Init(256, 256, PF_R8G8B8A8);
+			Bindings->SetCurrentValue<UTexture*>(Object, DynamicRenderTexture);
+		}
+
 		virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const override
 		{
-			return FRenderTexturePropertyPreAnimatedToken(Bindings);
+			return FRenderTexturePropertyPreAnimatedToken(Bindings, Object);
 		}
 
 		TSharedPtr<FTrackInstancePropertyBindings> Bindings;
 	};
 
-	FRenderTexturePropertyPreAnimatedToken(const TSharedPtr<FTrackInstancePropertyBindings>& InBindings)
+	FRenderTexturePropertyPreAnimatedToken(const TSharedPtr<FTrackInstancePropertyBindings>& InBindings, UObject& Object)
 		: PropertyBindings(InBindings)
-	{}
+	{
+		OldTexture = InBindings->GetCurrentValue<UTexture*>(Object);
+	}
 
 	virtual void RestoreState(UObject& RestoreObject, IMovieScenePlayer& Player)
 	{
-		PropertyBindings->CallFunction<UTexture2DDynamic*>(RestoreObject, nullptr);
+		PropertyBindings->CallFunction<UTexture*>(RestoreObject, OldTexture.Get());
 	}
 
 private:
+
+	TWeakObjectPtr<UTexture> OldTexture;
 
 	/** Property bindings that allow us to set the property when we've finished evaluating */
 	TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
@@ -69,7 +82,8 @@ struct FImagePlatePreRollExecutionToken : IMovieSceneExecutionToken
 struct FImagePlateExecutionToken : IMovieSceneExecutionToken
 {
 	float ImageSequenceTime;
-	FImagePlateExecutionToken(float InImageSequenceTime) : ImageSequenceTime(InImageSequenceTime) {}
+	bool bReuseExistingTexture;
+	FImagePlateExecutionToken(float InImageSequenceTime, bool bInReuseExistingTexture) : ImageSequenceTime(InImageSequenceTime), bReuseExistingTexture(bInReuseExistingTexture) {}
 
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
@@ -83,15 +97,20 @@ struct FImagePlateExecutionToken : IMovieSceneExecutionToken
 				continue;
 			}
 
-			UTexture2DDynamic* RenderTexture = SectionData.PropertyBindings->GetCurrentValue<UTexture2DDynamic*>(*Object);
+			UTexture* RenderTexture = SectionData.PropertyBindings->GetCurrentValue<UTexture*>(*Object);
+			UObjectProperty* Property = Cast<UObjectProperty>(SectionData.PropertyBindings->GetProperty(*Object));
+
+			bool bCreateNewTexture = ( Property && UTexture2DDynamic::StaticClass()->IsChildOf(Property->PropertyClass) ) && ( !RenderTexture || !bReuseExistingTexture);
+			if (bCreateNewTexture)
+			{
+				// Save the render target assignment with the track
+				Player.SavePreAnimatedState(*Object, SectionData.PropertyID, FRenderTexturePropertyPreAnimatedToken::FProducer(SectionData.PropertyBindings), PersistentData.GetTrackKey());
+				RenderTexture = SectionData.PropertyBindings->GetCurrentValue<UTexture*>(*Object);
+			}
+
 			if (!RenderTexture)
 			{
-				RenderTexture = NewObject<UTexture2DDynamic>(Object, FName(), RF_Transient);
-				RenderTexture->Init(256, 256, PF_B8G8R8A8);
-
-				// Save the render target assignment with the track
-				Player.SavePreAnimatedState(*Object, TMovieSceneAnimTypeID<FImagePlateExecutionToken>(), FRenderTexturePropertyPreAnimatedToken::FProducer(SectionData.PropertyBindings), PersistentData.GetTrackKey());
-				SectionData.PropertyBindings->SetCurrentValue<UTexture2DDynamic*>(*Object, RenderTexture);
+				continue;
 			}
 
 			// Cache 10 frames in the play direction
@@ -123,6 +142,7 @@ FMovieSceneImagePlateSectionTemplate::FMovieSceneImagePlateSectionTemplate(const
 {
 	Params.FileSequence = InSection.FileSequence;
 	Params.SectionStartTime = InSection.GetStartTime();
+	Params.bReuseExistingTexture = InSection.bReuseExistingTexture;
 }
 
 void FMovieSceneImagePlateSectionTemplate::Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
@@ -149,6 +169,6 @@ void FMovieSceneImagePlateSectionTemplate::Evaluate(const FMovieSceneEvaluationO
 	else
 	{
 		const float ImageSequenceTime = Context.GetTime() - Params.SectionStartTime;
-		ExecutionTokens.Add(FImagePlateExecutionToken(ImageSequenceTime));
+		ExecutionTokens.Add(FImagePlateExecutionToken(ImageSequenceTime, Params.bReuseExistingTexture));
 	}
 }

@@ -8,7 +8,7 @@
 #include "Future.h"
 #include "ImagePlateFileSequence.generated.h"
 
-class UTexture2DDynamic;
+class UTexture;
 
 
 struct FImagePlateAsyncCache;
@@ -67,9 +67,12 @@ struct IMAGEPLATE_API FImagePlateSourceFrame
 	bool IsValid() const;
 
 	/** Copy the contents of this frame to the specified texture */
-	TFuture<void> CopyTo(UTexture2DDynamic* DestinationTexture);
+	TFuture<void> CopyTo(UTexture* DestinationTexture);
 
 private:
+
+	/** Ensure the specified texture metrics match this frame */
+	bool EnsureTextureMetrics(UTexture* DestinationTexture) const;
 
 	/** Metrics for the texture */
 	uint32 Width, Height, BitDepth, Pitch;

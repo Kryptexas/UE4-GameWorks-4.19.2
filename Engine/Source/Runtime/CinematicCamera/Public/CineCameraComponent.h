@@ -20,15 +20,15 @@ struct FCameraFilmbackSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** Horizontal size of filmback or digital sensor, in mm. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filmback", meta = (ClampMin = "0.001", ForceUnits = mm))
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Filmback", meta = (ClampMin = "0.001", ForceUnits = mm))
 	float SensorWidth;
 
 	/** Vertical size of filmback or digital sensor, in mm. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Filmback", meta = (ClampMin = "0.001", ForceUnits = mm))
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Filmback", meta = (ClampMin = "0.001", ForceUnits = mm))
 	float SensorHeight;
 
 	/** Read-only. Computed from Sensor dimensions. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Filmback")
+	UPROPERTY(Interp, VisibleAnywhere, BlueprintReadOnly, Category = "Filmback")
 	float SensorAspectRatio;
 };
 
@@ -205,7 +205,7 @@ public:
 	virtual void GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView) override;
 
 	/** Controls the filmback of the camera. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Current Camera Settings")
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Current Camera Settings")
 	FCameraFilmbackSettings FilmbackSettings;
 
 	/** Controls the camera's lens. */

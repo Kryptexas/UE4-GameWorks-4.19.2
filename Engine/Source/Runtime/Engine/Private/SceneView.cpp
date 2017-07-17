@@ -1485,7 +1485,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		{
 			UObject* Object = Src.WeightedBlendables.Array[i].Object;
 
-			if(!Object)
+			if(!Object || !Object->IsValidLowLevel())
 			{
 				continue;
 			}

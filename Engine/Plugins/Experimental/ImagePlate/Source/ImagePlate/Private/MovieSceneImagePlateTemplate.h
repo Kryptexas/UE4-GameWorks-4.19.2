@@ -20,6 +20,9 @@ struct FMovieSceneImagePlateSectionParams
 
 	UPROPERTY()
 	UImagePlateFileSequence* FileSequence;
+
+	UPROPERTY()
+	bool bReuseExistingTexture;
 };
 
 USTRUCT()
