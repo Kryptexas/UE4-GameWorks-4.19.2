@@ -988,6 +988,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 				if (HmdWornState == EHMDWornState::Worn)
 				{
 					HmdWornState = EHMDWornState::NotWorn;
+					FCoreDelegates::VRHeadsetRemovedFromHead.Broadcast();
 				}
 			}
 			break;
@@ -1035,6 +1036,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 		if (FVector::Dist(HMDStartLocation, Position) > HMDWornMovementThreshold)
 		{
 			HmdWornState = EHMDWornState::Worn;
+			FCoreDelegates::VRHeadsetPutOnHead.Broadcast();
 			bShouldCheckHMDPosition = false;
 		}
 	}

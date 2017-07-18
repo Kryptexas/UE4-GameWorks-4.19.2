@@ -1484,6 +1484,8 @@ namespace OculusHMD
 				}
 			}
 
+			UpdateHMDWornState();
+
 			// Update tracking
 			ovrp_Update3(ovrpStep_Game, Frame->FrameNumber, 0.0);
 
@@ -1501,6 +1503,23 @@ namespace OculusHMD
 		return retval;
 	}
 
+	void FOculusHMD::UpdateHMDWornState()
+	{
+		const EHMDWornState::Type NewHMDWornState = GetHMDWornState();
+
+		if (NewHMDWornState != HMDWornState)
+		{
+			HMDWornState = NewHMDWornState;
+			if (HMDWornState == EHMDWornState::Worn)
+			{
+				FCoreDelegates::VRHeadsetPutOnHead.Broadcast();
+			}
+			else if (HMDWornState == EHMDWornState::NotWorn)
+			{
+				FCoreDelegates::VRHeadsetRemovedFromHead.Broadcast();
+			}
+		}
+	}
 
 	bool FOculusHMD::OnEndGameFrame(FWorldContext& InWorldContext)
 	{

@@ -327,6 +327,9 @@ protected:
 	void SaveToIni();
 
 protected:
+	void UpdateHMDWornState();
+	EHMDWornState::Type HMDWornState = EHMDWornState::Unknown;
+		
 	union
 	{
 		struct

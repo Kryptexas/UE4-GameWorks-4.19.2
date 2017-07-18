@@ -47,6 +47,14 @@ class HEADMOUNTEDDISPLAY_API UHeadMountedDisplayFunctionLibrary : public UBluepr
 	static FName GetHMDDeviceName();
 
 	/**
+	* Returns the worn state of the device.
+	*
+	* @return	Unknown, Worn, NotWorn.  If the platform does not detect this it will always return Unknown.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
+	static EHMDWornState::Type GetHMDWornState();
+
+	/**
 	 * Grabs the current orientation and position for the HMD.  If positional tracking is not available, DevicePosition will be a zero vector
 	 *
 	 * @param DeviceRotation	(out) The device's current rotation
