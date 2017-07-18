@@ -310,12 +310,11 @@ void MainForGS(
 		OutPosition);
 }
 
-#define SUPPORTS_ONEPASS_POINT_VERTEX_LAYER	(FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER)
 
 #if POSITION_ONLY
 void PositionOnlyMain(
 	in FPositionOnlyVertexFactoryInput Input,
-#if SUPPORTS_ONEPASS_POINT_VERTEX_LAYER
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
@@ -326,32 +325,28 @@ void PositionOnlyMain(
 	ResolvedView = ResolveView();
 
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input);
-	OutPosition = WorldPos;
-
-#if INTERPOLATE_VF_ATTRIBUTES
-	OutParameters.FactoryInterpolants = (FVertexFactoryInterpolantsVSToPS)0;
-#endif
 
 #if ONEPASS_POINTLIGHT_SHADOW
-	OutParameters.GSPosition = WorldPos;
+	OutPosition = OutParameters.GSPosition = WorldPos;
 
-	#if SUPPORTS_ONEPASS_POINT_VERTEX_LAYER
-		LayerIndex = Input.InstanceId / InstanceCount;
-		OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
-		#if INTERPOLATE_VF_ATTRIBUTES
-			OutParameters.GSPosition = OutPosition;
-		#endif
-		ClipDistance = (MeshVisibleToFace[LayerIndex].x > 0) ? 1.0 : -1.0;
+#if USING_VERTEX_SHADER_LAYER && VERTEXSHADER
+	LayerIndex = Input.InstanceId / InstanceCount;
+	OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
+	#if INTERPOLATE_VF_ATTRIBUTES
+		OutParameters.GSPosition = OutPosition;
 	#endif
+	ClipDistance = (MeshVisibleToFace[LayerIndex].x > 0) ? 1.0 : -1.0;
+#endif
 
-#elif PERSPECTIVE_CORRECT_DEPTH
+#else // #if ONEPASS_POINTLIGHT_SHADOW
 	float ShadowDepth;
 	SetShadowDepthOutputs(WorldPos,OutPosition,ShadowDepth);
-	OutParameters.ShadowDepth = ShadowDepth;
-	
-#elif !COMPILER_SUPPORTS_EMPTY_STRUCTS
-	OutParameters.Dummy = 0;
-#endif
+	#if PERSPECTIVE_CORRECT_DEPTH
+		OutParameters.ShadowDepth = ShadowDepth;
+	#elif !COMPILER_SUPPORTS_EMPTY_STRUCTS
+		OutParameters.Dummy = 0;
+	#endif
+#endif // #if ONEPASS_POINTLIGHT_SHADOW
 
 #if INTERPOLATE_POSITION
 	OutParameters.PixelPosition = WorldPos;
@@ -361,7 +356,7 @@ void PositionOnlyMain(
 
 void PositionOnlyMainForGS(
 	in FPositionOnlyVertexFactoryInput Input,
-#if SUPPORTS_ONEPASS_POINT_VERTEX_LAYER
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
@@ -370,7 +365,7 @@ void PositionOnlyMainForGS(
 	)
 {
 	PositionOnlyMain(Input,
-#if SUPPORTS_ONEPASS_POINT_VERTEX_LAYER
+#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 		LayerIndex, ClipDistance,
 #endif
 		OutParameters, OutPosition);
