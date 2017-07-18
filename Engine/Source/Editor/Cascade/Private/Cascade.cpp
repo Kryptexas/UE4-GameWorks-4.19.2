@@ -139,20 +139,18 @@ FCascade::~FCascade()
 
 	if (ParticleSystemComponent)
 	{
+		ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
 		ParticleSystemComponent->CascadePreviewViewportPtr = nullptr;
-	}
 
-	
-	// Reset the detail mode values
-	for (TObjectIterator<UParticleSystemComponent> It;It;++It)
-	{
-		if (It->Template == ParticleSystemComponent->Template)
+		// Reset the detail mode values
+		for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
 		{
-			It->EditorDetailMode = -1;
+			if (It->Template == ParticleSystemComponent->Template)
+			{
+				It->EditorDetailMode = -1;
+			}
 		}
 	}
-
-	ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
 
 	if (ParticleSystem != NULL)
 	{
