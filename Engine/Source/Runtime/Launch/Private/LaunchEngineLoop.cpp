@@ -1742,7 +1742,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
 			CompileGlobalShaderMap(false);
-			if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == nullptr && GIsRequestingExit)
+			if (GIsRequestingExit)
 			{
 				// This means we can't continue without the global shader map.
 				return 1;
