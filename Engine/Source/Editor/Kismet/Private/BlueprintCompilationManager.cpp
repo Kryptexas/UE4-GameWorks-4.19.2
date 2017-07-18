@@ -3,6 +3,7 @@
 #include "BlueprintCompilationManager.h"
 
 #include "BlueprintEditorUtils.h"
+#include "BlueprintEditorSettings.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "CompilerResultsLog.h"
 #include "Components/TimelineComponent.h"
@@ -12,6 +13,7 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/TimelineTemplate.h"
+#include "FileHelpers.h"
 #include "FindInBlueprintManager.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
@@ -107,6 +109,9 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 	// Data stored for reinstancing, which finishes much later than compilation,
 	// populated by FlushCompilationQueueImpl, cleared by FlushReinstancingQueueImpl:
 	TMap<UClass*, UClass*> ClassesToReinstance;
+	
+	// Blueprints that should be saved after the compilation pass is complete:
+	TArray<UBlueprint*> CompiledBlueprintsToSave;
 
 	// State stored so that we can check what stage of compilation we're in:
 	bool bGeneratedClassLayoutReady;
@@ -199,6 +204,18 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 		{
 			GEditor->BroadcastBlueprintCompiled();	
 		}
+	}
+
+	if(CompiledBlueprintsToSave.Num() > 0)
+	{
+		TArray<UPackage*> PackagesToSave;
+		for(UBlueprint* BP : CompiledBlueprintsToSave)
+		{
+			PackagesToSave.Add(BP->GetOutermost());
+		}
+	
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+		CompiledBlueprintsToSave.Empty();
 	}
 }
 
@@ -681,6 +698,11 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		bGeneratedClassLayoutReady = true;
 	
 		// STAGE XIII: Compile functions
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+		
+		const bool bSaveBlueprintsAfterCompile = Settings->SaveOnCompile == SoC_Always;
+		const bool bSaveBlueprintAfterCompileSucceeded = Settings->SaveOnCompile == SoC_SuccessOnly;
+
 		for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 		{
 			UBlueprint* BP = CompilerData.BP;
@@ -734,6 +756,15 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				else
 				{
 					BP->Status = BS_Error; // do we still have the old version of the class?
+				}
+
+				// SOC settings only apply after compile on load:
+				if(!BP->bIsRegeneratingOnLoad)
+				{
+					if(bSaveBlueprintsAfterCompile || (bSaveBlueprintAfterCompileSucceeded && BP->Status == BS_UpToDate))
+					{
+						CompiledBlueprintsToSave.Add(BP);
+					}
 				}
 			}
 
@@ -1809,6 +1840,9 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 	if(BPCMImpl)
 	{
 		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false);
+
+		// we can't support save on compile when reinstancing is deferred:
+		BPCMImpl->CompiledBlueprintsToSave.Empty();
 	}
 }
 
