@@ -426,6 +426,7 @@ public:
 	virtual FText GetResetToDefaultLabel() const override;
 	virtual void MarkHiddenByCustomization() override;
 	virtual void MarkResetToDefaultCustomized() override;
+	virtual void ClearResetToDefaultCustomized() override;
 	virtual bool IsCustomized() const override;
 	virtual bool IsResetToDefaultCustomized() const override;
 	virtual FString GeneratePathToProperty() const override;

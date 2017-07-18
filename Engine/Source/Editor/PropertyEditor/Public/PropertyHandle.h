@@ -450,9 +450,14 @@ public:
 	virtual void MarkHiddenByCustomization() = 0;
 
 	/**
-	* Marks this property has having a custom reset to default (reset to default will not show up in the default place)
-	*/
+	 * Marks this property has having a custom reset to default (reset to default will not show up in the default place)
+	 */
 	virtual void MarkResetToDefaultCustomized() = 0;
+
+	/**
+	 * Marks this property as not having a custom reset to default (useful when a widget customizing reset to default goes away)
+	 */
+	virtual void ClearResetToDefaultCustomized() = 0;
 
 	/**
 	 * @return True if this property's UI is customized                                                              

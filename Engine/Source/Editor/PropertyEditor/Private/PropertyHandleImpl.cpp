@@ -1964,6 +1964,14 @@ void FPropertyHandleBase::MarkResetToDefaultCustomized()
 	}
 }
 
+void FPropertyHandleBase::ClearResetToDefaultCustomized()
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, false);
+	}
+}
+
 bool FPropertyHandleBase::IsCustomized() const
 {
 	return Implementation->GetPropertyNode()->HasNodeFlags( EPropertyNodeFlags::IsCustomized ) != 0;
