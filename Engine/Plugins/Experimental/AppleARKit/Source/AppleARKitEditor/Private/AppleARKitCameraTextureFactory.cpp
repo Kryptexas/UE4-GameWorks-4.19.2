@@ -1,6 +1,3 @@
-#pragma once
-
-// AppleARKit
 #include "AppleARKitCameraTextureFactory.h"
 #include "AppleARKitEditor.h"
 #include "AppleARKitCameraTexture.h"
