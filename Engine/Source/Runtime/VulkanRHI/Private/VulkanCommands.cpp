@@ -417,6 +417,8 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 	// The amount of samplers and textures should be proportional
 	check(SamplerBindings.Num() >= TextureBindings.Num());
 
+	float CurrentTime = (float)FApp::GetCurrentTime();
+
 	for(int32 Index = 0; Index < TextureBindings.Num(); Index++)
 	{
 		const FSrtResourceBinding& CurrTextureBinding = TextureBindings[Index];
@@ -434,6 +436,7 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 			{
 				// Do the binding...
 				PendingGfxState->SetTexture(Stage, CurrTextureBinding.BindingIndex, BaseTexture);
+				TexRef->SetLastRenderTime(CurrentTime);
 			}
 			else
 			{
@@ -528,6 +531,8 @@ void FVulkanCommandListContext::RHISetShaderUniformBuffer(FComputeShaderRHIParam
 	TArray<FSrtResourceBinding> SamplerBindings;
 	GatherUniformBufferResources<true>(ResourceBindingTable.SamplerMap, ResourceBindingTable.ResourceTableBits, UniformBuffer, BufferIndex, SamplerBindings);
 
+	float CurrentTime = (float)FApp::GetCurrentTime();
+
 	for (int32 Index = 0; Index < TextureBindings.Num(); Index++)
 	{
 		const FSrtResourceBinding& CurrTextureBinding = TextureBindings[Index];
@@ -545,6 +550,7 @@ void FVulkanCommandListContext::RHISetShaderUniformBuffer(FComputeShaderRHIParam
 			{
 				// Do the binding...
 				State.SetTexture(CurrTextureBinding.BindingIndex, BaseTexture);
+				TexRef->SetLastRenderTime(CurrentTime);
 			}
 			else
 			{
