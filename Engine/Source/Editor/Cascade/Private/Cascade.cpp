@@ -132,8 +132,6 @@ FCascade::~FCascade()
 	TSharedPtr<SWindow> WindowPtr = GeometryPropertiesWindow.Pin();
 	GeometryPropertiesWindow = NULL;
 
-	ParticleSystemComponent->CascadePreviewViewportPtr = nullptr;
-
 	if ( WindowPtr.IsValid() )
 	{
 		WindowPtr->RequestDestroyWindow();
