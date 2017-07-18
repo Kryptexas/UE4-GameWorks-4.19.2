@@ -27,6 +27,7 @@
 #include "UObject/ReferenceChainSearch.h"
 #include "UObject/UObjectHash.h"
 #include "WidgetBlueprint.h"
+#include "Kismet2/KismetDebugUtilities.h"
 
 /*
 	BLUEPRINT COMPILATION MANAGER IMPLEMENTATION NOTES
@@ -721,6 +722,14 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					// Blueprint is error free.  Go ahead and fix up debug info
 					BP->Status = (0 == CompilerData.ActiveResultsLog->NumWarnings) ? BS_UpToDate : BS_UpToDateWithWarnings;
+
+					BP->BlueprintSystemVersion = UBlueprint::GetCurrentBlueprintSystemVersion();
+
+					// Reapply breakpoints to the bytecode of the new class
+					for (UBreakpoint* Breakpoint  : BP->Breakpoints)
+					{
+						FKismetDebugUtilities::ReapplyBreakpoint(Breakpoint);
+					}
 				}
 				else
 				{
