@@ -322,8 +322,11 @@ bool UEnumProperty::SameType(const UProperty* Other) const
 
 bool UEnumProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {
-	check(Enum);
-	check(UnderlyingProp);
+	if ((Enum == nullptr) || (UnderlyingProp == nullptr))
+	{
+		bOutAdvanceProperty = false;
+		return false;
+	}
 
 	bOutAdvanceProperty = true;
 
