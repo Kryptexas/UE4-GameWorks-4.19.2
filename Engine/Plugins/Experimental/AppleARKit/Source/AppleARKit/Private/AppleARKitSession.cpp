@@ -9,6 +9,7 @@
 #include "Misc/ScopeLock.h"
 #include "Kismet/GameplayStatics.h"
 #include "RenderingCommon.h"
+#include "RenderingThread.h"
 
 UAppleARKitSession::~UAppleARKitSession()
 {
