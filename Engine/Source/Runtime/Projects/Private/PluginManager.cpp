@@ -156,10 +156,7 @@ FPluginManager::FPluginManager()
 	: bHaveConfiguredEnabledPlugins(false)
 	, bHaveAllRequiredPlugins(false)
 {
-	double Before = FPlatformTime::Seconds();
 	DiscoverAllPlugins();
-	double After= FPlatformTime::Seconds();
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\nPlugin discovery took %f seconds!\n\n"), After - Before);
 }
 
 FPluginManager::~FPluginManager()
