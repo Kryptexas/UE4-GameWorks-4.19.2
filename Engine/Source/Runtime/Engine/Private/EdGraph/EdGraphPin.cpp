@@ -1631,23 +1631,26 @@ void UEdGraphPin::SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef
 	// means we're serializing for undo/redo:
 	for (UEdGraphPin* Pin : OldPins)
 	{
-#if WITH_EDITOR
-		// More complexity to handle asymmetry in the transaction buffer. If our peer node is not in the transaction
-		// then we need to take ownership of the entire connection and clear both LinkedTo Arrays:
-		extern UNREALED_API UEditorEngine* GEditor;
-		for (int32 I = 0; I < Pin->LinkedTo.Num(); ++I )
+		if (!Pin->WasTrashed())
 		{
-			UEdGraphPin* Peer = Pin->LinkedTo[I];
-			// PeerNode will be null if the pin we were linked to was already thrown away:
-			UEdGraphNode* PeerNode = Peer->GetOwningNodeUnchecked();
-			if (PeerNode && !GEditor->Trans->IsObjectTransacting(PeerNode))
+#if WITH_EDITOR
+			// More complexity to handle asymmetry in the transaction buffer. If our peer node is not in the transaction
+			// then we need to take ownership of the entire connection and clear both LinkedTo Arrays:
+			extern UNREALED_API UEditorEngine* GEditor;
+			for (int32 I = 0; I < Pin->LinkedTo.Num(); ++I)
 			{
-				Pin->BreakLinkTo(Peer);
-				--I;
+				UEdGraphPin* Peer = Pin->LinkedTo[I];
+				// PeerNode will be null if the pin we were linked to was already thrown away:
+				UEdGraphNode* PeerNode = Peer->GetOwningNodeUnchecked();
+				if (PeerNode && !GEditor->Trans->IsObjectTransacting(PeerNode))
+				{
+					Pin->BreakLinkTo(Peer);
+					--I;
+				}
 			}
-		}
 #endif// WITH_EDITOR
-		Pin->DestroyImpl(false);
+			Pin->DestroyImpl(false);
+		}
 	}
 }
 
