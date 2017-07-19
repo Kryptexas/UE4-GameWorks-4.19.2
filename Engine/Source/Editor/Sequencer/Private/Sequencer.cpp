@@ -103,6 +103,7 @@
 #include "ISequencerEditorObjectBinding.h"
 #include "LevelSequence.h"
 #include "IVREditorModule.h"
+#include "SequencerKeyActor.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -4086,6 +4087,12 @@ void FSequencer::SynchronizeSequencerSelectionWithExternalSelection()
 	// based on selection.
 	bool bAllAlreadySelected = true;
 
+	USelection* ActorSelection = GEditor->GetSelectedActors();
+	
+	// Get the selected sequencer keys for viewport interaction
+	TArray<ASequencerKeyActor*> SelectedSequencerKeyActors;
+	ActorSelection->GetSelectedObjects<ASequencerKeyActor>(SelectedSequencerKeyActors);
+
 	TSet<TSharedRef<FSequencerDisplayNode>> NodesToSelect;
 	for (auto ObjectBinding : NodeTree->GetObjectBindingMap() )
 	{
@@ -4100,7 +4107,21 @@ void FSequencer::SynchronizeSequencerSelectionWithExternalSelection()
 			UObject* RuntimeObject = RuntimeObjectPtr.Get();
 			if ( RuntimeObject != nullptr)
 			{
-				bool bActorSelected = GEditor->GetSelectedActors()->IsSelected( RuntimeObject );
+				for (ASequencerKeyActor* KeyActor : SelectedSequencerKeyActors)
+				{
+					if (KeyActor->IsEditorOnly())
+					{
+						AActor* TrailActor = KeyActor->GetAssociatedActor();
+						if (TrailActor != nullptr && RuntimeObject == TrailActor)
+						{
+							NodesToSelect.Add(ObjectBindingNode);
+							bAllAlreadySelected = false;
+							break;
+						}
+					}
+				}
+
+				bool bActorSelected = ActorSelection->IsSelected( RuntimeObject );
 				bool bComponentSelected = GEditor->GetSelectedComponents()->IsSelected( RuntimeObject);
 
 				if (bActorSelected || bComponentSelected)
