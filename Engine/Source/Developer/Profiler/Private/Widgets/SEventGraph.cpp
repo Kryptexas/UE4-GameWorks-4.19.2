@@ -700,6 +700,7 @@ void SEventGraph::Construct( const FArguments& InArgs )
 								SNew(SBorder)
 									.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 									.Padding(2.0f)
+									.Clipping(EWidgetClipping::ClipToBounds)
 									[
 										SNew(SHorizontalBox)
 
@@ -711,16 +712,6 @@ void SEventGraph::Construct( const FArguments& InArgs )
 												GetVerticalBoxForFunctionDetails(VerticalBox_TopCalling, LOCTEXT("FunctionDetails_CallingFunctions","Calling Functions"))
 											]
 
-										// ->
-										+ SHorizontalBox::Slot()
-											.AutoWidth()
-											.HAlign(HAlign_Center)
-											.VAlign(VAlign_Top)
-											.Padding(2.0f)
-											[
-												SNew(SImage)
-													.Image(FEditorStyle::GetBrush("Animation.Forward"))
-											]
 
 										// Current Function
 										+ SHorizontalBox::Slot()
@@ -729,18 +720,6 @@ void SEventGraph::Construct( const FArguments& InArgs )
 											[
 												GetVerticalBoxForCurrentFunction()
 											]
-
-										// ->
-										+ SHorizontalBox::Slot()
-											.AutoWidth()
-											.HAlign(HAlign_Center)
-											.VAlign(VAlign_Top)
-											.Padding(2.0f)
-											[
-												SNew(SImage)
-													.Image(FEditorStyle::GetBrush("Animation.Forward"))
-											]
-
 										// Called Functions
 										+ SHorizontalBox::Slot()
 											.FillWidth(1.0f)

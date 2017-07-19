@@ -76,7 +76,9 @@ public:
 	SLATE_BEGIN_ARGS( SDataGraph )
 		: _OnGraphOffsetChanged()
 		, _OnViewModeChanged()
-		{}
+		{
+			_Clipping = EWidgetClipping::ClipToBounds;
+		}
 
 		SLATE_EVENT( FGraphOffsetChangedDelegate, OnGraphOffsetChanged )
 		SLATE_EVENT( FViewModeChangedDelegate, OnViewModeChanged )
