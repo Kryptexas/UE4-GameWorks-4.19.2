@@ -971,7 +971,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
 #else
-		if (PlatformData.HasValidPlatformData())
+		if (PlatformData.HasValidRuntimeData())
 		{
 			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
@@ -2224,36 +2224,6 @@ void FLandscapeComponentDerivedData::InitializeFromUncompressedData(const TArray
 	FinalArchive << UncompressedSize;
 	FinalArchive << CompressedSize;
 	FinalArchive.Serialize(TempCompressedMemory.GetData(), CompressedSize);
-}
-
-void FLandscapeComponentDerivedData::GetUncompressedData(TArray<uint8>& OutUncompressedData)
-{
-	check(CompressedLandscapeData.Num() > 0);
-
-	FMemoryReader Ar(CompressedLandscapeData);
-
-	// Note: change LANDSCAPE_FULL_DERIVEDDATA_VER when modifying the serialization layout
-	int32 UncompressedSize;
-	Ar << UncompressedSize;
-
-	int32 CompressedSize;
-	Ar << CompressedSize;
-
-	TArray<uint8> CompressedData;
-	CompressedData.Empty(CompressedSize);
-	CompressedData.AddUninitialized(CompressedSize);
-	Ar.Serialize(CompressedData.GetData(), CompressedSize);
-
-	OutUncompressedData.Empty(UncompressedSize);
-	OutUncompressedData.AddUninitialized(UncompressedSize);
-
-	verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, OutUncompressedData.GetData(), UncompressedSize, CompressedData.GetData(), CompressedSize));
-
-	if (FPlatformProperties::RequiresCookedData())
-	{
-		// free the compressed data now that we have the uncompressed version if running with cooked data
-		CompressedLandscapeData.Empty();
-	}
 }
 
 FArchive& operator<<(FArchive& Ar, FLandscapeComponentDerivedData& Data)

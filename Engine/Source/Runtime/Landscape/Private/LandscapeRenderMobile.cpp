@@ -6,6 +6,8 @@ LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetc
 
 #include "LandscapeRenderMobile.h"
 #include "ShaderParameterUtils.h"
+#include "Serialization/BufferArchive.h"
+#include "Serialization/MemoryReader.h"
 
 void FLandscapeVertexFactoryMobile::InitRHI()
 {
@@ -196,27 +198,63 @@ FVertexFactoryShaderParameters* FLandscapeVertexFactoryMobile::ConstructShaderPa
 
 IMPLEMENT_VERTEX_FACTORY_TYPE(FLandscapeVertexFactoryMobile, "/Engine/Private/LandscapeVertexFactory.ush", true, true, true, false, false);
 
-/** 
-* Initialize the RHI for this rendering resource 
+/**
+* Initialize the RHI for this rendering resource
 */
 void FLandscapeVertexBufferMobile::InitRHI()
 {
 	// create a static vertex buffer
 	FRHIResourceCreateInfo CreateInfo;
-	void* VertexData = nullptr;
-	VertexBufferRHI = RHICreateAndLockVertexBuffer(DataSize, BUF_Static, CreateInfo, VertexData);
-	
-	// Copy stored platform data
-	FMemory::Memcpy(VertexData, (uint8*)Data, DataSize);
+	void* VertexDataPtr = nullptr;
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(VertexData.Num(), BUF_Static, CreateInfo, VertexDataPtr);
+
+	// Copy stored platform data and free CPU copy
+	FMemory::Memcpy(VertexDataPtr, VertexData.GetData(), VertexData.Num());
+	VertexData.Empty();
+
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
+/**
+ * Container for FLandscapeVertexBufferMobile that we can reference from a thread-safe shared pointer
+ * while ensuring the vertex buffer is always destroyed on the render thread.
+ **/
+struct FLandscapeMobileRenderData
+{
+	FLandscapeVertexBufferMobile* VertexBuffer;
+
+	FLandscapeMobileRenderData(TArray<uint8> InVertexData)
+	:	VertexBuffer(new FLandscapeVertexBufferMobile(MoveTemp(InVertexData)))
+	{}
+
+	~FLandscapeMobileRenderData()
+	{
+		// Make sure the vertex buffer is always destroyed from the render thread 
+		if (VertexBuffer != nullptr)
+		{
+			if (IsInRenderingThread())
+			{
+				delete VertexBuffer;
+			}
+			else
+			{
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+					InitCommand,
+					FLandscapeVertexBufferMobile*, VertexBuffer, VertexBuffer,
+					{
+						delete VertexBuffer;
+					});
+			}
+		}
+	}
+};
+
 FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent)
 	: FLandscapeComponentSceneProxy(InComponent, {InComponent->MobileMaterialInterface})
+	, MobileRenderData(InComponent->PlatformData.GetRenderData())
 {
-	check(InComponent && InComponent->PlatformData.HasValidPlatformData());
-	InComponent->PlatformData.GetUncompressedData(PlatformData);
-
+	check(InComponent);
+	
 	check(InComponent->MobileMaterialInterface);
 	check(InComponent->MobileWeightNormalmapTexture);
 
@@ -251,16 +289,16 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 	SharedBuffers->AddRef();
 
-	int32 VertexBufferSize = PlatformData.Num();
-	// Copy platform data into vertex buffer
-	VertexBuffer = new FLandscapeVertexBufferMobile(PlatformData.GetData(), VertexBufferSize);
+	// Init vertex buffer
+	check(MobileRenderData->VertexBuffer);
+	MobileRenderData->VertexBuffer->InitResource();
 
 	FLandscapeVertexFactoryMobile* LandscapeVertexFactory = new FLandscapeVertexFactoryMobile();
-	LandscapeVertexFactory->MobileData.PositionComponent = FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,Position), sizeof(FLandscapeMobileVertex), VET_UByte4N);
+	LandscapeVertexFactory->MobileData.PositionComponent = FVertexStreamComponent(MobileRenderData->VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,Position), sizeof(FLandscapeMobileVertex), VET_UByte4N);
 	for( uint32 Index = 0; Index < LANDSCAPE_MAX_ES_LOD_COMP; ++Index )
 	{
 		LandscapeVertexFactory->MobileData.LODHeightsComponent.Add
-			(FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,LODHeights) + sizeof(uint8) * 4 * Index, sizeof(FLandscapeMobileVertex), VET_UByte4N));
+			(FVertexStreamComponent(MobileRenderData->VertexBuffer, STRUCT_OFFSET(FLandscapeMobileVertex,LODHeights) + sizeof(uint8) * 4 * Index, sizeof(FLandscapeMobileVertex), VET_UByte4N));
 	}
 
 	LandscapeVertexFactory->InitResource();
@@ -268,7 +306,52 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 	// Assign LandscapeUniformShaderParameters
 	LandscapeUniformShaderParameters.InitResource();
-
-	PlatformData.Empty();
 }
 
+TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> FLandscapeComponentDerivedData::GetRenderData()
+{
+	check(!IsInRenderingThread());
+
+	if (FPlatformProperties::RequiresCookedData() && CachedRenderData.IsValid())
+	{
+		// on device we can re-use the cached data if we are re-registering our component.
+		return CachedRenderData;
+	}
+	else
+	{
+		check(CompressedLandscapeData.Num() > 0);
+
+		FMemoryReader Ar(CompressedLandscapeData);
+
+		// Note: change LANDSCAPE_FULL_DERIVEDDATA_VER when modifying the serialization layout
+		int32 UncompressedSize;
+		Ar << UncompressedSize;
+
+		int32 CompressedSize;
+		Ar << CompressedSize;
+
+		TArray<uint8> CompressedData;
+		CompressedData.Empty(CompressedSize);
+		CompressedData.AddUninitialized(CompressedSize);
+		Ar.Serialize(CompressedData.GetData(), CompressedSize);
+
+		TArray<uint8> UncompressedData;
+		UncompressedData.Empty(UncompressedSize);
+		UncompressedData.AddUninitialized(UncompressedSize);
+
+		verify(FCompression::UncompressMemory((ECompressionFlags)COMPRESS_ZLIB, UncompressedData.GetData(), UncompressedSize, CompressedData.GetData(), CompressedSize));
+
+		TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> RenderData = MakeShareable(new FLandscapeMobileRenderData(MoveTemp(UncompressedData)));
+
+		// if running on device		
+		if (FPlatformProperties::RequiresCookedData())
+		{
+			// free the compressed data now that we have used it to create the render data.
+			CompressedLandscapeData.Empty();
+			// store a reference to the render data so we can use it again should the component be reregistered.
+			CachedRenderData = RenderData;
+		}
+
+		return RenderData;
+	}
+}

@@ -87,17 +87,16 @@ private:
 //
 class FLandscapeVertexBufferMobile : public FVertexBuffer
 {
-	const void* Data;
+	TArray<uint8> VertexData;
 	int32 DataSize;
 public:
 
 	/** Constructor. */
-	FLandscapeVertexBufferMobile(const void* InData, int32 InDataSize)
-	: 	Data(InData)
-	,	DataSize(InDataSize)
+	FLandscapeVertexBufferMobile(TArray<uint8> InVertexData)
+	:	VertexData(InVertexData)
+	,	DataSize(InVertexData.Num())
 	{
 		INC_DWORD_STAT_BY(STAT_LandscapeVertexMem, DataSize);
-		InitResource();
 	}
 
 	/** Destructor. */
@@ -118,10 +117,7 @@ public:
 //
 class FLandscapeComponentSceneProxyMobile : public FLandscapeComponentSceneProxy
 {
-	FLandscapeVertexBufferMobile* VertexBuffer;
-
-	// Cooked data
-	TArray<uint8> PlatformData;
+	TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> MobileRenderData;
 
 	virtual ~FLandscapeComponentSceneProxyMobile();
 
