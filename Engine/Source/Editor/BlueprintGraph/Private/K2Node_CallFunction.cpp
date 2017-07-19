@@ -1009,7 +1009,7 @@ void UK2Node_CallFunction::PostReconstructNode()
 			UClass* FunctionOwnerClass = Function->GetOuterUClass();
 			if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
 			{
-				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+				SelfPin->DefaultObject = FunctionOwnerClass->GetAuthoritativeClass()->GetDefaultObject();
 			}
 			else
 			{

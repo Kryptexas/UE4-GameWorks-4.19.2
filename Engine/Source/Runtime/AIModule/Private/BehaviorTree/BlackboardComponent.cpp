@@ -15,6 +15,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Name.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_String.h"
+#include "Misc/RuntimeErrors.h"
 
 UBlackboardComponent::UBlackboardComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -687,7 +688,7 @@ void UBlackboardComponent::ClearValue(const FName& KeyName)
 
 void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 {
-	if (!ensure(BlackboardAsset != nullptr))
+	if (!ensureAsRuntimeWarning(BlackboardAsset != nullptr))
 	{
 		return;
 	}

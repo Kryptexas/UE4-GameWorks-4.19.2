@@ -7,6 +7,7 @@
 #include "RuntimeAssetCachePluginInterface.h"
 #include "RuntimeAssetCacheBackend.h"
 #include "RuntimeAssetCacheBucket.h"
+#include "Misc/RuntimeErrors.h"
 
 DEFINE_STAT(STAT_RAC_ASyncWaitTime);
 
@@ -42,12 +43,12 @@ FRuntimeAssetCache::~FRuntimeAssetCache()
 
 int32 FRuntimeAssetCache::GetCacheSize(FName Bucket) const
 {
-	return ensure(Buckets.Contains(Bucket)) ? Buckets[Bucket]->GetSize() : 0;
+	return ensureAsRuntimeWarning(Buckets.Contains(Bucket)) ? Buckets[Bucket]->GetSize() : 0;
 }
 
 int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilder, const FOnRuntimeAssetCacheAsyncComplete& OnComplete)
 {
-	if (ensure(CacheBuilder != nullptr))
+	if (ensureAsRuntimeWarning(CacheBuilder != nullptr))
 	{
 		int32 Handle = GetNextHandle();
 
@@ -85,7 +86,7 @@ int32 FRuntimeAssetCache::GetAsynchronous(IRuntimeAssetCacheBuilder* CacheBuilde
 
 FVoidPtrParam FRuntimeAssetCache::GetSynchronous(IRuntimeAssetCacheBuilder* CacheBuilder)
 {
-	if (ensure(CacheBuilder))
+	if (ensureAsRuntimeWarning(CacheBuilder))
 	{
 		if (ensureMsgf(!CacheBuilder->ShouldBuildAsynchronously(), TEXT("CacheBuilder %s can be only called asynchronously."), CacheBuilder->GetBuilderName()))
 		{
@@ -153,7 +154,7 @@ void FRuntimeAssetCache::WaitAsynchronousCompletion(int32 Handle)
 			AsyncTask = PendingTasks.FindRef(Handle);
 		}
 
-		if (ensure(AsyncTask))
+		if (ensureAsRuntimeWarning(AsyncTask))
 		{
 			AsyncTask->EnsureCompletion();
 		}
@@ -167,13 +168,13 @@ FVoidPtrParam FRuntimeAssetCache::GetAsynchronousResults(int32 Handle)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		PendingTasks.RemoveAndCopyValue(Handle, AsyncTask);
-		if (ensure(AsyncTask))
+		if (ensureAsRuntimeWarning(AsyncTask))
 		{
 			AsyncTask->GetTask().FireCompletionDelegate();
 		}
 	}
 
-	if (ensure(AsyncTask))
+	if (ensureAsRuntimeWarning(AsyncTask))
 	{
 		FVoidPtrParam Data = AsyncTask->GetTask().GetDataAndSize();
 		delete AsyncTask;
@@ -192,7 +193,7 @@ bool FRuntimeAssetCache::PollAsynchronousCompletion(int32 Handle)
 		FScopeLock ScopeLock(&SynchronizationObject);
 		AsyncTask = PendingTasks.FindRef(Handle);
 	}
-	ensure(AsyncTask);
+	ensureAsRuntimeWarning(AsyncTask);
 	return AsyncTask ? AsyncTask->IsDone() : true;
 }
 

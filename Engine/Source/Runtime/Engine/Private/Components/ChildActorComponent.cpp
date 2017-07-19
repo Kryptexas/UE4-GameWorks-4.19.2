@@ -142,6 +142,13 @@ void UChildActorComponent::PostEditImport()
 	{
 		ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
 	}
+
+	// Any cached instance data is invalid if we've had data imported in to us
+	if (CachedInstanceData)
+	{
+		delete CachedInstanceData;
+		CachedInstanceData = nullptr;
+	}
 }
 
 void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

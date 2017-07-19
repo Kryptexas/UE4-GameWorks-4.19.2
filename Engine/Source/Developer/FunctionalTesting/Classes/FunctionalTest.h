@@ -14,6 +14,7 @@
 class Error;
 class UBillboardComponent;
 class UTraceQueryTestResults;
+class UWorld;
 
 //Experimental effort at automated cpu captures from the functional testing.
 class FFunctionalTestExternalProfiler : public FScopedExternalProfilerBase
@@ -158,6 +159,10 @@ class FUNCTIONALTESTING_API UAutomationPerformaceHelper : public UObject
 public:
 
 	UAutomationPerformaceHelper();
+
+	// UObject interface
+	virtual UWorld* GetWorld() const override;
+	// End of UObject interface
 
 	//Begin basic stat recording
 

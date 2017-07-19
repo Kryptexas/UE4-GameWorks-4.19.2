@@ -308,6 +308,8 @@ public:
 	{
 		TFieldType* ReturnField = NULL;
 
+		bool bUseUpToDateClass = SelfScope && SelfScope->GetAuthoritativeClass() != SelfScope;
+
 		if(bSelfContext && SelfScope == NULL)
 		{
 			UE_LOG(LogBlueprint, Warning, TEXT("FMemberReference::ResolveMember (%s) bSelfContext == true, but no scope supplied!"), *MemberName.ToString() );
@@ -368,6 +370,9 @@ public:
 #endif
 			if(TargetScope != NULL)
 			{
+#if WITH_EDITOR
+				TargetScope = GetClassToUse(TargetScope, bUseUpToDateClass);
+#endif
 				// Find in target scope
 				ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 
@@ -464,7 +469,9 @@ protected:
 
 	/** Init the field redirect map (if not already done) from .ini file entries */
 	ENGINE_API static void InitFieldRedirectMap();
-
+	
+	/** @return the 'real' generated class for blueprint classes, but only if we're already passed through CompileClassLayout */
+	ENGINE_API static UClass* GetClassToUse(UClass* InClass, bool bUseUpToDateClass);
 #endif
 
 public:

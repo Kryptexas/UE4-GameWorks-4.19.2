@@ -483,13 +483,9 @@ void UPrimitiveComponent::OnUnregister()
 	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
 		UWorld* World = GetWorld();
-		if (World)
+		if (World && World->Scene)
 		{
-			if (World->Scene)
-			{
-				World->Scene->ReleasePrimitive(this);
-			}
-			World->ClearActorComponentEndOfFrameUpdate(this);
+			World->Scene->ReleasePrimitive(this);
 		}
 	}
 

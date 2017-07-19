@@ -319,13 +319,6 @@ bool ACharacter::IsJumpProvidingForce() const
 	return (bPressedJump && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
-// Deprecated
-bool ACharacter::DoJump( bool bReplayingMoves )
-{
-	return CanJump() && CharacterMovement->DoJump(bReplayingMoves);
-}
-
-
 void ACharacter::RecalculateBaseEyeHeight()
 {
 	if (!bIsCrouched)

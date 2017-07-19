@@ -331,9 +331,6 @@ public:
 	/** Get scale at the provided input key value */
 	FVector GetScaleAtSplineInputKey(float InKey) const;
 
-	DEPRECATED(4.9, "This has been replaced by GetNumberOfSplinePoints(), as it is a clearer name for Blueprint users.")
-	int32 GetNumSplinePoints() const { return GetNumberOfSplinePoints(); }
-
 	/** Specify unselected spline component segment color in the editor */
 	UFUNCTION(BlueprintCallable, Category = Editor)
 	void SetUnselectedSplineSegmentColor(const FLinearColor& SegmentColor);

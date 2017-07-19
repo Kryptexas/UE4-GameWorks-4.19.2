@@ -2,6 +2,7 @@
 
 
 #include "K2Node.h"
+#include "BlueprintCompilationManager.h"
 #include "UObject/UnrealType.h"
 #include "UObject/CoreRedirects.h"
 #include "EdGraph/EdGraphPin.h"
@@ -210,6 +211,9 @@ bool UK2Node::CreatePinsForFunctionEntryExit(const UFunction* Function, bool bFo
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
+	// if the generated class is not up to date, use the skeleton's class function to create pins:
+	Function = FBlueprintEditorUtils::GetMostUpToDateFunction(Function);
+
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;
 	for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
@@ -361,10 +365,6 @@ void UK2Node::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNod
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "GraphNode" ) ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
-}
-
-void UK2Node::PreloadRequiredAssets()
-{
 }
 
 void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin) 
@@ -729,10 +729,6 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 	return RedirectType;
 }
 
-void UK2Node::CustomMapParamValue(UEdGraphPin& Pin)
-{
-}
-
 void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERedirectType RedirectType)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UK2Node::ReconstructSinglePin"), STAT_LinkerLoad_ReconstructSinglePin, STATGROUP_LoadTimeVerbose);
@@ -765,12 +761,6 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 					break;
 				}
 			}
-		}
-		else if (RedirectType == ERedirectType_Custom)
-		{
-			PRAGMA_DISABLE_DEPRECATION_WARNINGS
-			CustomMapParamValue(*NewPin);
-			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		}
 	}
 

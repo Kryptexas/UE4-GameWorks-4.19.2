@@ -688,6 +688,9 @@ public:
 	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
 	void MarkForNeededEndOfFrameRecreate();
 
+	/** If we belong to a world, clear the request to do a deferred update. */
+	void ClearNeedEndOfFrameUpdate();
+
 	/** return true if this component requires end of frame updates to happen from the game thread. */
 	virtual bool RequiresGameThreadEndOfFrameUpdates() const;
 
@@ -739,7 +742,7 @@ public:
 	/** Give a readable name for this component, including asset name if applicable */
 	virtual UObject const* AdditionalStatObject() const
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Always called immediately before properties are received from the remote.
@@ -865,13 +868,16 @@ protected:
 	 *		already been registered. Setting bForceUpdate to true overrides that check */
 	void HandleCanEverAffectNavigationChange(bool bForceUpdate = false);
 
+private:
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-private:
 	// this is the old name of the tick function. We just want to avoid mistakes with an attempt to override this
 	virtual void Tick( float DeltaTime ) final { check(0); }
 
 #endif
+
+	void ClearNeedEndOfFrameUpdate_Internal();
 
 public:
 
@@ -919,6 +925,14 @@ FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetMode(ENetMode Mode) const
 		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
 	}
 #endif // UE_EDITOR
+}
+
+FORCEINLINE void UActorComponent::ClearNeedEndOfFrameUpdate()
+{
+	if (MarkedForEndOfFrameUpdateState != 0)
+	{
+		ClearNeedEndOfFrameUpdate_Internal();
+	}
 }
 
 FORCEINLINE_DEBUGGABLE AActor* UActorComponent::GetOwner() const

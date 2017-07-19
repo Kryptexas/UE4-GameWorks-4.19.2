@@ -321,18 +321,6 @@ FRunnableThread::~FRunnableThread()
 }
 
 FRunnableThread* FRunnableThread::Create(
-	class FRunnable* InRunnable,
-	const TCHAR* ThreadName,
-	bool bAutoDeleteSelf,
-	bool bAutoDeleteRunnable,
-	uint32 InStackSize,
-	EThreadPriority InThreadPri,
-	uint64 InThreadAffinityMask)
-{
-	return Create(InRunnable, ThreadName, InStackSize, InThreadPri, InThreadAffinityMask);
-}
-
-FRunnableThread* FRunnableThread::Create(
 	class FRunnable* InRunnable, 
 	const TCHAR* ThreadName,
 	uint32 InStackSize,

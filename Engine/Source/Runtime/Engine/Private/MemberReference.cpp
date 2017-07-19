@@ -6,7 +6,10 @@
 
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintCompilationManager.h"
 #endif
+
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 //////////////////////////////////////////////////////////////////////////
 // FMemberReference
@@ -245,6 +248,18 @@ void FMemberReference::InitFieldRedirectMap()
 			FCoreRedirects::AddRedirectList(NewRedirects, GEngineIni);
 			bFieldRedirectMapInitialized = true;
 		}
+	}
+}
+
+UClass* FMemberReference::GetClassToUse(UClass* InClass, bool bUseUpToDateClass)
+{
+	if(GBlueprintUseCompilationManager && bUseUpToDateClass)
+	{
+		return FBlueprintEditorUtils::GetMostUpToDateClass(InClass);
+	}
+	else
+	{
+		return InClass;
 	}
 }
 

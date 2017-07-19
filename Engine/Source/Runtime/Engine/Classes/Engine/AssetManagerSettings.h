@@ -46,7 +46,7 @@ class ENGINE_API UAssetManagerSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
-	UAssetManagerSettings() : bOnlyCookProductionAssets(false), bShouldGuessTypeAndNameInEditor(true) {}
+	UAssetManagerSettings() : bOnlyCookProductionAssets(false), bShouldGuessTypeAndNameInEditor(true), bShouldAcquireMissingChunksOnLoad(false) {}
 
 	/** List of asset types to scan at startup */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
@@ -67,6 +67,10 @@ public:
 	/** If true, PrimaryAsset Type/Name will be implied for assets in the editor (cooked builds always must be explicit). This allows guessing for content that hasn't been resaved yet */
 	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
 	bool bShouldGuessTypeAndNameInEditor;
+
+	/** If true, this will query the platform chunk install interface to request missing chunks for any requested primary asset loads */
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager")
+	bool bShouldAcquireMissingChunksOnLoad;
 
 	/** Redirect from Type:Name to Type:NameNew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")

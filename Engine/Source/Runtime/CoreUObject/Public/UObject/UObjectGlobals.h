@@ -242,26 +242,6 @@ COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, con
 COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL, bool bAssumeTemplateIsArchetype = false);
 
 /**
- * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
- * are not instanced (this will instead occur in PostLoad()).  The different between StaticConstructObject and StaticAllocateObject is that StaticConstructObject will also call the class constructor on the object
- * and instance any components.
- * 
- * @param	Class		the class of the object to create
- * @param	InOuter		the object to create this object within (the Outer property for the new object will be set to the value specified here).
- * @param	Name		the name to give the new object. If no value (NAME_None) is specified, the object will be given a unique name in the form of ClassName_#.
- * @param	SetFlags	the ObjectFlags to assign to the new object. some flags can affect the behavior of constructing the object.
- * @param	Template	if specified, the property values from this object will be copied to the new object, and the new object's ObjectArchetype value will be set to this object.
- *						If NULL, the class default object is used instead.
- * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
- * @param	InstanceGraph
- *						contains the mappings of instanced objects and components to their templates
- *
- * @return	a pointer to a fully initialized object of the specified class.
- */
-DEPRECATED(4.8, "StaticConstructObject is deprecated, please use NewObject instead. For internal CoreUObject module usage, please use StaticConstructObject_Internal.")
-COREUOBJECT_API UObject* StaticConstructObject( UClass* Class, UObject* InOuter=(UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
-/**
  * Creates a copy of SourceObject using the Outer and Name specified, as well as copies of all objects contained by SourceObject.  
  * Any objects referenced by SourceOuter or RootObject and contained by SourceOuter are also copied, maintaining their name relative to SourceOuter.  Any
  * references to objects that are duplicated are automatically replaced with the copy of the object.
@@ -326,22 +306,6 @@ typedef int32 TAsyncLoadPriority;
  * @param	Result		Result of async loading.
  */
 DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/, EAsyncLoadingResult::Type /*Result*/)
-
-/**
- * [Deprecated] Asynchronously load a package and all contained objects that match context flags. Non- blocking.
- *
- * @param	InName					Name of package to load
- * @param	InGuid					GUID of the package to load, or NULL for "don't care"
- * @param	InType					A type name associated with this package for later use
- * @param	InPackageToLoadFrom		If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
- * @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
- * @param	InFlags					Package flags
- * @param	InPIEInstanceID			PIE instance ID
- * @param	InPackagePriority		Loading priority
- * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
- */
-DEPRECATED(4.9, "LoadPackageAsync override that takes package type parameter FName InType is deprecated.")
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, TAsyncLoadPriority InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -476,14 +440,6 @@ COREUOBJECT_API bool IsReferenced( UObject*& Res, EObjectFlags KeepFlags, EInter
  *        immediately without waiting for the remaining packages to finish loading.
  */
 COREUOBJECT_API void FlushAsyncLoading(int32 PackageID = INDEX_NONE);
-
-/**
-* [Deprecated] Blocks till all pending package/ linker requests are fulfilled.
-*
-* @param	ExcludeType		Do not flush packages associated with this specific type name
-*/
-DEPRECATED(4.9, "FlushAsyncLoading override that takes package type parameter FName ExcludeType is deprecated.")
-COREUOBJECT_API void FlushAsyncLoading(FName ExcludeType);
 
 /**
  * @return number of active async load package requests
@@ -1147,26 +1103,6 @@ public:
  * Helper class for deferred execution of 
 */
 
-/**
- * Construct an object of a particular class.
- * 
- * @param	Class		the class of object to construct
- * @param	Outer		the outer for the new object.  If not specified, object will be created in the transient package.
- * @param	Name		the name for the new object.  If not specified, the object will be given a transient name via
- *						MakeUniqueObjectName
- * @param	SetFlags	the object flags to apply to the new object
- * @param	Template	the object to use for initializing the new object.  If not specified, the class's default object will
- *						be used
- * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
- * @param	InstanceGraph
- *						contains the mappings of instanced objects and components to their templates
- *
- * @return	a pointer of type T to a new object of the specified class
- */
-template< class T >
-DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
-T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
 #if DO_CHECK
 /** Called by NewObject to make sure Child is actually a child of Parent */
 COREUOBJECT_API void CheckIsClassChildOf_Internal(UClass* Parent, UClass* Child);
@@ -1226,21 +1162,6 @@ FUNCTION_NON_NULL_RETURN_END
 
 	return static_cast<T*>(StaticConstructObject_Internal(T::StaticClass(), Outer, Name, Flags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InInstanceGraph));
 }
-
-/**
- * Convenience template for constructing a named object.
- *
- * @param	Outer	The outer for the new object.
- * @param	Name	The name of the new object.
- * @param	Flags	The object flags for the new object.
- */
-template< class TClass >
-DEPRECATED(4.8, "NewNamedObject is deprecated. Use NewObject instead")
-TClass* NewNamedObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template=NULL)
-{
-	return NewObject<TClass>(Outer, Name, Flags, Template);
-}
-
 
 /**
  * Convenience template for duplicating an object

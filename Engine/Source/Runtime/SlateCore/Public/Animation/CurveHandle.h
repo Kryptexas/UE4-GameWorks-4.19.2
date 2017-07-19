@@ -59,17 +59,6 @@ public:
 	float GetLerp( ) const;
 
 	/**
-	 * Just like GetLerp, but loops forever.
-	 *
-	 * @return Looped lerp value.
-	 * @see GetLerp
-	 */
-	DEPRECATED(4.8, "FCurveHandle::GetLerpLooping() is deprecated. Use GetLerp() instead. To play a sequence on a loop, pass \"true\" as the second parameter to FCurveSequence::Play / ::PlayReverse.")
-	float GetLerpLooping( ) const;
-	/** Shell to avoid generating internal deprecated warnings. Do not call. Will be removed when GetLerpLooping() is removed. */
-	float DEPRECATED_GetLerpLooping() const;
-
-	/**
 	 * Checks whether this handle is initialized.
 	 *
 	 * A curve handle is considered initialized if it has an owner sequence.

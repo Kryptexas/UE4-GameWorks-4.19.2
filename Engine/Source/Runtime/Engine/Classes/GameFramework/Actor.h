@@ -1268,9 +1268,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Time")
 	float GetActorTimeDilation() const;
 
-	DEPRECATED(4.5, "Actor::SetTickPrerequisite() will be removed, use AddTickPrerequisiteActor().")
-	void SetTickPrerequisite(AActor* PrerequisiteActor);
-
 	/** Make this actor tick after PrerequisiteActor. This only applies to this actor's tick function; dependencies for owned components must be set up separately if desired. */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void AddTickPrerequisiteActor(AActor* PrerequisiteActor);
@@ -1640,10 +1637,6 @@ public:
 	 */
 	virtual USceneComponent* GetDefaultAttachComponent() const { return GetRootComponent(); }
 
-	/** Returns this actor's root component cast to a primitive component */
-	DEPRECATED(4.5, "Use GetRootComponent() and cast manually if needed")
-	class UPrimitiveComponent* GetRootPrimitiveComponent() const;
-
 	/**
 	 * Sets root component to be the specified component.  NewRootComponent's owner should be this actor.
 	 * @return true if successful
@@ -1872,9 +1865,6 @@ public:
 	 */
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
-	DEPRECATED(4.8, "GetNetPriority now takes a ViewTarget, please override that version.")
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth);
-
 	/**
 	 * Similar to GetNetPriority, but will only be used for prioritizing actors while recording a replay.
 	 *
@@ -1889,9 +1879,6 @@ public:
 
 	/** Returns true if the actor should be dormant for a specific net connection. Only checked for DORM_DormantPartial */
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
-
-	DEPRECATED(4.8, "GetNetDormancy changed from PlayerController parameter to Actor parameter, please override that version.")
-	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
 	/** 
 	 * Allows for a specific response from the actor when the actor channel is opened (client side)
@@ -1995,10 +1982,6 @@ public:
 	/** ReplicatedMovement struct replication event */
 	UFUNCTION()
 	virtual void OnRep_ReplicatedMovement();
-
-	/** Update and smooth location, not called for simulated physics! */
-	DEPRECATED(4.4, "PostNetReceiveLocation() has been replaced by PostNetReceiveLocationAndRotation().")
-	virtual void PostNetReceiveLocation() {}
 
 	/** Update location and rotation from ReplicatedMovement. Not called for simulated physics! */
 	virtual void PostNetReceiveLocationAndRotation();
@@ -2107,9 +2090,6 @@ public:
 	* @return bool - true if this actor is replay relevant to the client associated with RealViewer
 	*/
 	virtual bool IsReplayRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation, const float CullDistanceSquared) const;
-
-	DEPRECATED(4.8, "IsNetRelevantFor changed from PlayerController parameter to Actor parameter, please override that version.")
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
 	/**
 	 * Check if this actor is the owner when doing relevancy checks for actors marked bOnlyRelevantToOwner
@@ -2949,12 +2929,6 @@ public:
 
 	/** A fence to track when the primitive is detached from the scene in the rendering thread. */
 	FRenderCommandFence DetachFence;
-
-// DEPRECATED FUNCTIONS
-
-	/** Get the class of this Actor. */
-	DEPRECATED(4.8, "Use GetClass() instead of GetActorClass()")
-	class UClass* GetActorClass() const;
 
 private:
 

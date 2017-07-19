@@ -60,10 +60,8 @@ static const FText& GetRequestContentErrorText(ERequestContentError ErrorCode)
 
 float UMobileInstalledContent::GetInstalledContentSize()
 {
-	check(InstalledManifest.IsValid())
-	
-	double BuildSize = (double)InstalledManifest->GetBuildSize();
-	double BuildSizeMB = FUnitConversion::Convert(BuildSize, EUnit::Bytes, EUnit::Megabytes);
+	const double BuildSize = InstalledManifest.IsValid() ? (double)InstalledManifest->GetBuildSize() : 0.0;
+	const double BuildSizeMB = FUnitConversion::Convert(BuildSize, EUnit::Bytes, EUnit::Megabytes);
 	return (float)BuildSizeMB;
 }
 
@@ -93,26 +91,33 @@ bool UMobileInstalledContent::Mount(int32 InPakOrder, const FString& InMountPoin
 	uint32 PakOrder = (uint32)FMath::Max(0, InPakOrder);
 	const TCHAR* MountPount = InMountPoint.GetCharArray().GetData();
 
-	TArray<FString> InstalledFileNames = InstalledManifest->GetBuildFileList();
-	for (const FString& FileName : InstalledFileNames)
+	if (InstalledManifest.IsValid())
 	{
-		if (FPaths::GetExtension(FileName) == TEXT("pak"))
+		TArray<FString> InstalledFileNames = InstalledManifest->GetBuildFileList();
+		for (const FString& FileName : InstalledFileNames)
 		{
-			FString PakFullName = InstallDir / FileName;
-			if (PakFileMgr->Mount(*PakFullName, PakOrder, MountPount))
+			if (FPaths::GetExtension(FileName) == TEXT("pak"))
 			{
-				UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, !MountPount ? TEXT("(null)") : MountPount);
-				bMounted = true;
-			}
-			else
-			{
-				UE_LOG(LogMobilePatchingUtils, Error, TEXT("Failed to mount pak = %s"), *PakFullName);
-				bMounted = false;
-				break;
+				FString PakFullName = InstallDir / FileName;
+				if (PakFileMgr->Mount(*PakFullName, PakOrder, MountPount))
+				{
+					UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, !MountPount ? TEXT("(null)") : MountPount);
+					bMounted = true;
+				}
+				else
+				{
+					UE_LOG(LogMobilePatchingUtils, Error, TEXT("Failed to mount pak = %s"), *PakFullName);
+					bMounted = false;
+					break;
+				}
 			}
 		}
 	}
-	
+	else
+	{
+		UE_LOG(LogMobilePatchingUtils, Log, TEXT("No installed manifest, failed to mount"));
+	}
+
 	return bMounted;
 }
 

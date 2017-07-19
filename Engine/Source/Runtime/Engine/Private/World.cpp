@@ -2750,7 +2750,7 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	// kicking off the async load.
 	if (bAreLevelsPendingPurge)
 	{
-		ForceGarbageCollection( false );
+		GEngine->ForceGarbageCollection( false );
 	}
 
 	// See whether level is already loaded
@@ -2857,7 +2857,7 @@ void UWorld::UpdateLevelStreaming()
 	// In case more levels has been requested to unload, force GC on next tick 
 	if (NumLevelsPendingPurge < FLevelStreamingGCHelper::GetNumLevelsPendingPurge())
 	{
-		ForceGarbageCollection(true); 
+		GEngine->ForceGarbageCollection(true); 
 	}
 }
 
@@ -2907,11 +2907,6 @@ void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType)
 	{
 		bRequestedBlockOnAsyncLoading = false;
 	}
-}
-
-void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType)
-{
-	FlushLevelStreaming(FlushType);
 }
 
 /**
@@ -3728,11 +3723,6 @@ FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelega
 void UWorld::RemoveOnActorSpawnedHandler( FDelegateHandle InHandle )
 {
 	OnActorSpawned.Remove(InHandle);
-}
-
-ABrush* UWorld::GetBrush() const
-{
-	return GetDefaultBrush();
 }
 
 ABrush* UWorld::GetDefaultBrush() const

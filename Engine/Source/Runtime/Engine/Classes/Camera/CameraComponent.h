@@ -196,18 +196,4 @@ public:
 	/** DEPRECATED: use bUsePawnControlRotation instead */
 	UPROPERTY()
 	uint32 bUseControllerViewRotation_DEPRECATED:1;
-
-	/**
-	 * DEPRECATED variable: use "bUsePawnControlRotation" instead. Existing code using this value may not behave correctly.
-	 *
-	 * The correct way to be backwards-compatible for existing saved content using CameraComponents is:
-	 *  - add "_DEPRECATED" to any constructor initialization of bUseControllerViewRotation (which becomes bUseControllerViewRotation_DEPRECATED).
-	 *	- add initialization of the new "bUsePawnControlRotation" to your desired default value.
-	 *	- if there was no previous initialization of bUseControllerViewRotation in code, then you MUST add initialization of bUsePawnControlRotation
-	 *    to "true" if you wish to maintain the same behavior as before (since the default has changed).
-	 *
-	 * This is not a UPROPERTY, with good reason: we don't want to serialize in old values (bUseControllerViewRotation_DEPRECATED handles that).
-	 */
-	DEPRECATED(4.5, "This variable is deprecated; please see the upgrade notes. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
-	bool bUseControllerViewRotation;
 };

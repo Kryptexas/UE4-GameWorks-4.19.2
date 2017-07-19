@@ -730,14 +730,6 @@ public:
 	ENGINE_API static void BuildStreamingData(UWorld* World, ULevel* TargetLevel=NULL, UTexture2D* TargetTexture=NULL);
 
 	/**
-	* Deprecated. Returns the default brush for this level.
-	*
-	* @return		The default brush for this level.
-	*/
-	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
-	ENGINE_API ABrush* GetBrush() const;
-
-	/**
 	 * Returns the default brush for this level.
 	 *
 	 * @return		The default brush for this level.

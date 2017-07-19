@@ -158,20 +158,6 @@ public:
 	/** @return true if currently flying (moving through a non-fluid volume without resting on the ground) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|NavMovement")
 	virtual bool IsFlying() const;
-
-	//----------------------------------------------------------------------//
-	// DEPRECATED
-	//----------------------------------------------------------------------//
-public:
-	DEPRECATED(4.7, "This function is deprecated. Please use GetNavAgentPropertiesRef instead.")
-	const FNavAgentProperties* GetNavAgentProperties() const;
-	DEPRECATED(4.7, "This function is deprecated. Please use GetNavAgentPropertiesRef instead.")
-	FNavAgentProperties* GetNavAgentProperties();
-
-	DEPRECATED(4.8, "This function is deprecated. Please use UpdateNavAgent version that's accepring a reference instead.")
-	void UpdateNavAgent(AActor* InOwner);
-	DEPRECATED(4.8, "This function is deprecated. Please use UpdateNavAgent version that's accepring a reference instead.")
-	void UpdateNavAgent(UCapsuleComponent* CapsuleComponent);
 };
 
 

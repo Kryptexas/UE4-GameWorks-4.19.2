@@ -545,6 +545,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	bIsVanillaProduct = false;
 
 	GameScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
+
+	LastGCFrame = TNumericLimits<uint64>::Max();
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

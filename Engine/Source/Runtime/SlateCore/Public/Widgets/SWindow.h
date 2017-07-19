@@ -526,16 +526,8 @@ public:
 	/** @return should this window show up in the taskbar */
 	bool AppearsInTaskbar() const;
 
-	/** Sets the delegate to execute when the window is activated */
-	DEPRECATED(4.9, "SetOnWindowActivated() is deprecated. Use GetOnWindowActivatedEvent() and subscribe to the multicast event.")
-	void SetOnWindowActivated( const FOnWindowActivated& InDelegate );
-
 	/** Gets the multicast delegate executed when the window is deactivated */
 	FOnWindowActivatedEvent& GetOnWindowActivatedEvent() { return WindowActivatedEvent; }
-
-	/** Sets the delegate to execute when the window is deactivated */
-	DEPRECATED(4.9, "SetOnWindowDeactivated() is deprecated. Use GetOnWindowDeactivatedEvent() and subscribe to the multicast event.")
-	void SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate );
 
 	/** Gets the multicast delegate executed when the window is deactivated */
 	FOnWindowDeactivatedEvent& GetOnWindowDeactivatedEvent() { return WindowDeactivatedEvent; }

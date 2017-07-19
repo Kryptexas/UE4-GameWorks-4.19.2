@@ -71,23 +71,6 @@ public:
 	{}
 
 	/**
-	 * [Deprecated] Pushes a new menu onto the stack.  Automatically removes windows from the stack that are no longer valid
-	 * Invalid windows are those that are not parents of the window menu being pushed and any windows on the same stack level
-	 * This is the old method for creating menus.
-	 *
-	 * @param InParentWindow		The parent window of the menu
-	 * @param InContent				The menu's content
-	 * @param SummonLocation		Location where the menu should appear
-	 * @param TransitionEffect		Animation to use when the popup appears
-	 * @param bFocusImmediately		Should the popup steal focus when shown?
-	 * @param bShouldAutoSize		True if the new window should automatically size itself to its content
-	 * @param WindowSize			When bShouldAutoSize=false, this must be set to the size of the window to be created
-	 * @param SummonLocationSize	An optional size around the summon location which describes an area in which the menu may not appear
-	 */
-	DEPRECATED(4.9, "PushMenu() returning an SWindow is deprecated. Use Push() that returns an IMenu instead.")
-	TSharedRef<SWindow> PushMenu( const TSharedRef<SWindow>& InParentWindow, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const bool bShouldAutoSize = true, const FVector2D& WindowSize = FVector2D::ZeroVector, const FVector2D& SummonLocationSize = FVector2D::ZeroVector );
-
-	/**
 	 * Pushes a new menu onto the stack. The widget path will be searched for existing menus and the new menu will be parented appropriately.
 	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
 	 * 
@@ -144,15 +127,6 @@ public:
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
 	TSharedRef<IMenu> PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
-
-	/**
-	 * [Deprecated] Dismisses the menu stack up to a certain level (by default removes all levels in the stack)
-	 * Dismisses in reverse order so to keep just the first level you would pass in 1
-	 *
-	 * @param FirstStackIndexToRemove	The first level of the stack to remove
-	 */
-	DEPRECATED(4.9, "Dismiss() taking a stack index is deprecated. Use DismissFrom() or DismissAll().")
-	void Dismiss( int32 FirstStackIndexToRemove = 0 );
 	
 	/**
 	 * Dismisses the menu stack including InFromMenu and all its child menus
@@ -168,14 +142,6 @@ public:
 	void DismissAll();
 
 	/**
-	 * Removes a window from the stack and all of its children.  Assumes the window is cleaned up elsewhere
-	 *
-	 * @param WindowToRemove	The window to remove (will remove all children of this window as well)	
-	 */
-	DEPRECATED(4.9, "RemoveWindow() is deprecated. Do not use.")
-	void RemoveWindow( TSharedRef<SWindow> WindowToRemove );
-
-	/**
 	 * Called by the application when any window is destroyed.
 	 *
 	 * @param InWindow	The window that was destroyed
@@ -188,15 +154,6 @@ public:
 	 * @param ActivatedWindow	The window that was just activated
 	 */
 	void OnWindowActivated( TSharedRef<SWindow> ActivatedWindow );
-
-	/**
-	 * [Deprecated] Finds a window in the stack.  (Deprecated but not using the deprecation macro. This is to avoid warnings as this is still called from a deprecated FSlateApplication method)
-	 * This is deprecated because menus are no longer necessarily windows. Callers should also not need to know the stack levels by index. Menus are identified using the IMenu interface.
-	 *
-	 * @param	WindowToFind	The window to look for
-	 * @return	The level of the stack where the window is located or INDEX_NONE if the window could not be found
-	 */
-	int32 FindLocationInStack( TSharedPtr<SWindow> WindowToFind ) const;
 
 	/**
 	 * Finds a menu in the stack that owns InWindow.
@@ -227,13 +184,6 @@ public:
 	FSlateRect GetToolTipForceFieldRect(TSharedRef<IMenu> InMenu, const FWidgetPath& PathContainingMenu) const;
 
 	/**
-	 * [Deprecated]
-	 * @return	Returns the size of the menu stack
-	 */
-	DEPRECATED(4.9, "GetNumStackLevels() is deprecated. Consider HasMenus().")
-	int32 GetNumStackLevels( ) const;
-
-	/**
 	 * @return	Returns the window that is the parent of everything in the stack, if any. If the stack is empty, returns an invalid ptr.
 	 */
 	TSharedPtr<SWindow> GetHostWindow() const;
@@ -244,27 +194,9 @@ public:
 	bool HasMenus() const;
 
 	/**
-	 * [Deprecated] This is deprecated because menus are no longer necessarily windows. Menus are identified using the IMenu interface.
-	 *
-	 * @return Returns whether the window has child menus. If the window is not a menu, returns false.
-	 */
-	DEPRECATED(4.9, "HasOpenSubMenus() taking a window is deprecated. Use HasOpenSubMenus() taking an IMenu as a parameter.")
-	bool HasOpenSubMenus( const TSharedRef<SWindow>& Window ) const;
-
-	/**
 	 * @return Returns whether the menu has child menus. If the menu isn't in the stack, returns false.
 	 */
 	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
-
-	/**
-	 * [Deprecated] Returned all of the windows at the specified stack level index. Always returns an empty list because it's deprecated and the return type is not supported.
-	 *
-	 * @param	StackLevelIndex	Index into the menu stack
-	 *
-	 * @return	List of windows at this stack level (returns an empty list because it's deprecated)
-	 */
-	DEPRECATED(4.9, "GetWindowsAtStackLevel() is deprecated. Do not use.")
-	FMenuWindowList& GetWindowsAtStackLevel( const int32 StackLevelIndex );
 
 private:
 	/**

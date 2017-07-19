@@ -3129,20 +3129,6 @@ UObject* StaticConstructObject_Internal
 	return Result;
 }
 
-UObject* StaticConstructObject
-(
-	UClass*			InClass,
-	UObject*		InOuter								/*=GetTransientPackage()*/,
-	FName			InName								/*=NAME_None*/,
-	EObjectFlags	InFlags								/*=0*/,
-	UObject*		InTemplate							/*=NULL*/,
-	bool			bCopyTransientsFromClassDefaults	/*=false*/, 
-	FObjectInstancingGraph* InInstanceGraph				/*=NULL*/
-)
-{
-	return StaticConstructObject_Internal(InClass, InOuter, InName, InFlags, EInternalObjectFlags::None, InTemplate, bCopyTransientsFromClassDefaults, InInstanceGraph);
-}
-
 void FObjectInitializer::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
 {
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();

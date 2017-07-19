@@ -22,9 +22,6 @@ public:
 	FORCEINLINE explicit FProcHandle( HandleType Other )
 		: TProcHandle( Other )
 	{}
-
-	DEPRECATED(4.8, "FProcHandle::Close() is redundant - handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc().")
-	FORCEINLINE bool Close();
 };
 
 
@@ -246,14 +243,3 @@ private:
 
 
 typedef FWindowsPlatformProcess FPlatformProcess;
-
-inline bool FProcHandle::Close()
-{
-	if (IsValid())
-	{
-		FPlatformProcess::CloseProc(*this);
-		return true;
-	}
-	return false;
-}
-

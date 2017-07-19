@@ -836,17 +836,177 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 UEngine::FOnNewStatRegistered UEngine::NewStatDelegate;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
+	TEXT("gc.StressTestGC"),
+	0,
+	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
+#endif
+
+static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
+	TEXT("gc.CollectGarbageEveryFrame"),
+	0,
+	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
+
+static float GTimeBetweenPurgingPendingKillObjects = 60.0f;
+static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
+	TEXT("gc.TimeBetweenPurgingPendingKillObjects"),
+	GTimeBetweenPurgingPendingKillObjects,
+	TEXT("Time in seconds (game time) we should wait between purging object references to objects that are pending kill."),
+	ECVF_Default
+);
+
+static float GTimeBetweenPurgingPendingKillObjectsOnIdleServerMultiplier = 10.0f;
+static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjectsOnIdleServerMultiplier(
+	TEXT("gc.TimeBetweenPurgingPendingKillObjectsOnIdleServerMultiplier"),
+	GTimeBetweenPurgingPendingKillObjectsOnIdleServerMultiplier,
+	TEXT("Multiplier to apply to time between purging pending kill objects when on an idle server."),
+	ECVF_Default
+);
+
 void UEngine::PreGarbageCollect()
 {
-	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
+	ForEachObjectOfClass(UWorld::StaticClass(), [](UObject* WorldObj)
 	{
-		UWorld* World = *WorldIt;
+		UWorld* World = CastChecked<UWorld>(WorldObj);
 
-		if (World && World->HasEndOfFrameUpdates())
+		if (World->HasEndOfFrameUpdates())
 		{
 			// Make sure deferred component updates have been sent to the rendering thread before deleting any UObjects which the rendering thread may be referencing
 			// This fixes rendering thread crashes in the following order of operations 1) UMeshComponent::SetMaterial 2) GC 3) Rendering command that dereferences the UMaterial
 			World->SendAllEndOfFrameUpdates();
+		}
+	});
+}
+
+float UEngine::GetTimeBetweenGarbageCollectionPasses() const
+{
+	float TimeBetweenGC = GTimeBetweenPurgingPendingKillObjects;
+
+	if (IsRunningDedicatedServer())
+	{
+		bool bAtLeastOnePlayerConnected = false;
+
+		ForEachObjectOfClass(UWorld::StaticClass(),[&bAtLeastOnePlayerConnected](UObject* WorldObj)
+		{
+			UWorld* World = CastChecked<UWorld>(WorldObj);
+			bAtLeastOnePlayerConnected = bAtLeastOnePlayerConnected || ((World->NetDriver != nullptr) && World->NetDriver->ClientConnections.Num() > 0);
+		});
+
+		if (!bAtLeastOnePlayerConnected)
+		{
+			TimeBetweenGC *= GTimeBetweenPurgingPendingKillObjectsOnIdleServerMultiplier;
+		}
+	}
+
+	return TimeBetweenGC;
+}
+
+void UEngine::ForceGarbageCollection(bool bForcePurge/*=false*/)
+{
+	TimeSinceLastPendingKillPurge = 1.0f + GetTimeBetweenGarbageCollectionPasses();
+	bFullPurgeTriggered = bFullPurgeTriggered || bForcePurge;
+}
+
+void UEngine::DelayGarbageCollection()
+{
+	bShouldDelayGarbageCollect = true;
+}
+
+void UEngine::SetTimeUntilNextGarbageCollection(const float MinTimeUntilNextPass)
+{
+	const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+	// This can make it go negative if the desired interval is longer than the typical interval, but it's only ever compared against TimeBetweenPurgingPendingKillObjects
+	TimeSinceLastPendingKillPurge = TimeBetweenPurgingPendingKillObjects - MinTimeUntilNextPass;
+}
+
+void UEngine::ConditionalCollectGarbage()
+{
+	if (GFrameCounter != LastGCFrame)
+	{
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVarStressTestGCWhileStreaming.GetValueOnGameThread() && IsAsyncLoading())
+		{
+			TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+		}
+		else
+	#endif
+		if (bFullPurgeTriggered)
+		{
+			if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true))
+			{
+				ForEachObjectOfClass(UWorld::StaticClass(),[](UObject* World)
+				{
+					CastChecked<UWorld>(World)->CleanupActors();
+				});
+				bFullPurgeTriggered = false;
+				bShouldDelayGarbageCollect = false;
+				TimeSinceLastPendingKillPurge = 0.0f;
+			}
+		}
+		else
+		{
+			bool bHasAWorldBegunPlay = false;
+			ForEachObjectOfClass(UWorld::StaticClass(), [&bHasAWorldBegunPlay](UObject* World)
+			{
+				bHasAWorldBegunPlay = bHasAWorldBegunPlay || CastChecked<UWorld>(World)->HasBegunPlay();
+			});
+
+			if (bHasAWorldBegunPlay)
+			{
+				TimeSinceLastPendingKillPurge += FApp::GetDeltaTime();
+
+				const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+				// See if we should delay garbage collect for this frame
+				if (bShouldDelayGarbageCollect)
+				{
+					bShouldDelayGarbageCollect = false;
+				}
+				// Perform incremental purge update if it's pending or in progress.
+				else if (!IsIncrementalPurgePending()
+					// Purge reference to pending kill objects every now and so often.
+					&& (TimeSinceLastPendingKillPurge > TimeBetweenPurgingPendingKillObjects) && TimeBetweenPurgingPendingKillObjects > 0.f)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_GCMarkTime);
+					PerformGarbageCollectionAndCleanupActors();
+				}
+				else
+				{
+					SCOPE_CYCLE_COUNTER(STAT_GCSweepTime);
+					IncrementalPurgeGarbage(true);
+				}
+			}
+		}
+
+		if (CVarCollectGarbageEveryFrame.GetValueOnGameThread() > 0)
+		{
+			ForceGarbageCollection(true);
+		}
+
+		LastGCFrame = GFrameCounter;
+	}
+}
+
+void UEngine::PerformGarbageCollectionAndCleanupActors()
+{
+	// We don't collect garbage while there are outstanding async load requests as we would need
+	// to block on loading the remaining data.
+	if (!IsAsyncLoading())
+	{
+		// Perform housekeeping.
+		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, false))
+		{
+			ForEachObjectOfClass(UWorld::StaticClass(), [](UObject* World)
+			{
+				CastChecked<UWorld>(World)->CleanupActors();
+			});
+
+			// Reset counter.
+			TimeSinceLastPendingKillPurge = 0.0f;
+			bFullPurgeTriggered = false;
+			LastGCFrame = GFrameCounter;
 		}
 	}
 }
@@ -2017,11 +2177,6 @@ FAudioDevice* UEngine::GetActiveAudioDevice()
 		return AudioDeviceManager->GetActiveAudioDevice();
 	}
 	return nullptr;
-}
-
-FAudioDevice* UEngine::GetAudioDevice()
-{
-	return GetMainAudioDevice();
 }
 
 /**
@@ -4888,7 +5043,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	if (PlayerPawn && SourceMeshList.Num() >= 2)
 	{
 		// create the composite mesh
-		auto CompositeMesh = NewObject<USkeletalMesh>( GetTransientPackage(), NAME_None, RF_Transient );
+		USkeletalMesh* CompositeMesh = NewObject<USkeletalMesh>( GetTransientPackage(), NAME_None, RF_Transient );
 
 		TArray<FSkelMeshMergeSectionMapping> InForceSectionMapping;
 		// create an instance of the FSkeletalMeshMerge utility
@@ -5196,13 +5351,9 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	if( FParse::Command(&Cmd,TEXT("GARBAGE")) || FParse::Command(&Cmd,TEXT("GC")) )
 	{
 		// Purge unclaimed objects.
-		Ar.Logf(TEXT("Collecting garbage and resetting GC timers on all worlds."));
+		Ar.Logf(TEXT("Collecting garbage and resetting GC timer."));
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UWorld* CurrentWorld = *It;
-			CurrentWorld->TimeSinceLastPendingKillPurge = 0;
-		}
+		TimeSinceLastPendingKillPurge = 0.f;
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("TRYGC")))
@@ -5210,12 +5361,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Purge unclaimed objects.		
 		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS))
 		{
-			Ar.Logf(TEXT("Collecting garbage and resetting GC timers on all worlds."));
-			for (TObjectIterator<UWorld> It; It; ++It)
-			{
-				UWorld* CurrentWorld = *It;
-				CurrentWorld->TimeSinceLastPendingKillPurge = 0;
-			}
+			Ar.Logf(TEXT("Collecting garbage and resetting GC timer."));
+			TimeSinceLastPendingKillPurge = 0.f;
 		}
 		else
 		{

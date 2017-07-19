@@ -30,7 +30,7 @@ struct FDiffSingleResult;
   * a structure, rather than implicitly defining names for containers.
   */
 USTRUCT()
-struct FEdGraphTerminalType
+struct ENGINE_API FEdGraphTerminalType
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -63,7 +63,10 @@ struct FEdGraphTerminalType
 	UPROPERTY()
 	bool bTerminalIsWeakPointer;
 
-	ENGINE_API friend FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& P);
+	/** Creates a TerminalType from the primary portion of the PinType */
+	static FEdGraphTerminalType FromPinType(const FEdGraphPinType& PinType);
+
+	friend FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& P);
 };
 
 /** Enum used to define which way data flows into or out of this pin. */
@@ -472,9 +475,6 @@ public:
 	 */
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const { return IsCompatibleWithGraph(TargetGraph); }
 
-	DEPRECATED(4.5, "The UEdGraphNode::CanPasteHere() that takes a UEdGraphSchema parameter is deprecated, instead use the CanPasteHere() that only takes a single UEdGraph param.")
-	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const { return CanPasteHere(TargetGraph); }
-
 	/**
 	 * Determine if this node can be created under the specified schema
      */
@@ -510,9 +510,6 @@ public:
 	 * Gets the tooltip to display when over the node
 	 */
 	virtual FText GetTooltipText() const;
-
-	DEPRECATED(4.5, "UEdGraphNode::GetTooltip() is deprecated, instead use GetTooltipText(), which returns localized text.")
-	virtual FString GetTooltip() const { return GetTooltipText().ToString(); }
 
 	/**
 	 * Returns the keywords that should be used when searching for this node

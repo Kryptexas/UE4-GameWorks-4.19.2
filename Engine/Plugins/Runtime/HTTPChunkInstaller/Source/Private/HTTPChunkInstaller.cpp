@@ -1176,6 +1176,8 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 				{
 					FoundDelegate->Broadcast(InstallingChunkID);
 				}
+
+				InstallDelegate.Broadcast(InstallingChunkID, true);
 			}
 			EndInstall();
 

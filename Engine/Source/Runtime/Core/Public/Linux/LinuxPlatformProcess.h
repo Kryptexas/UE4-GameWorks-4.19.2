@@ -106,14 +106,14 @@ protected:  // the below is not a public API!
 /** FProcHandle can be copied (and thus passed by value). */
 struct FProcHandle
 {
-	FProcState * 		ProcInfo;
+	FProcState* 		ProcInfo;
 
 	FProcHandle()
 	:	ProcInfo(nullptr)
 	{
 	}
 
-	FProcHandle(FProcState * InHandle)
+	FProcHandle(FProcState* InHandle)
 	:	ProcInfo(InHandle)
 	{
 	}
@@ -136,16 +136,8 @@ struct FProcHandle
 		return ProcInfo != nullptr;
 	}
 
-	/**
-	 * (Deprecated. Handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc())
-	 * Closes handle and frees this resource to the operating system.
-	 * @return true, if this handle was valid before closing it
-	 */
-	DEPRECATED(4.8, "FProcHandle::Close() is redundant - handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc().")
-	bool Close();
-
 	// the below is not part of FProcHandle API and is specific to Linux implementation
-	FORCEINLINE FProcState * GetProcessInfo() const
+	FORCEINLINE FProcState* GetProcessInfo() const
 	{
 		return ProcInfo;
 	}
@@ -273,7 +265,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static class FRunnableThread* CreateRunnableThread();
 	static bool CanLaunchURL(const TCHAR* URL);
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
-	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
+	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void* PipeReadChild = nullptr);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );
@@ -304,14 +296,3 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;
-
-inline bool FProcHandle::Close()
-{
-	if (IsValid())
-	{
-		FPlatformProcess::CloseProc(*this);
-		return true;
-	}
-	return false;
-}
-

@@ -340,7 +340,7 @@ struct FMontageEvaluationState
 	bool bIsActive;
 };
 
-UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType, meta=(BlueprintThreadSafe))
+UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType, meta=(BlueprintThreadSafe), Within=SkeletalMeshComponent)
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()

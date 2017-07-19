@@ -17,12 +17,6 @@
 
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWaveProcedural*, int32 );
 
-DEPRECATED(4.9, "FOnSoundWaveStreamingUnderflow has been renamed FOnSoundWaveProceduralUnderflow")
-typedef FOnSoundWaveProceduralUnderflow FOnSoundWaveStreamingUnderflow;
-
-DEPRECATED(4.9, "USoundWaveStreaming has been renamed USoundWaveProcedural.")
-typedef class USoundWaveProcedural USoundWaveStreaming;
-
 UCLASS()
 class ENGINE_API USoundWaveProcedural : public USoundWave
 {

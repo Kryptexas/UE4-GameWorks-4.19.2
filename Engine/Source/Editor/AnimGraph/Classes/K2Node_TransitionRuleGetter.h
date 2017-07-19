@@ -50,6 +50,7 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
+	virtual void PreloadRequiredAssets() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
 	virtual bool ShowPaletteIconOnNode() const override { return false; }

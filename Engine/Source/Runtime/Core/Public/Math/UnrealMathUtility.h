@@ -590,12 +590,6 @@ struct FMath : public FPlatformMath
 	/** Basically a Vector2d version of Lerp. */
 	static float GetRangeValue(FVector2D const& Range, float Pct);
 
-	DEPRECATED(4.9, "GetMappedRangeValue is deprecated. Use GetMappedRangeValueClamped instead.")
-	static FORCEINLINE float GetMappedRangeValue(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
-	{
-		return GetMappedRangeValueClamped(InputRange, OutputRange, Value);
-	}
-
 	/** For the given Value clamped to the [Input:Range] inclusive, returns the corresponding percentage in [Output:Range] Inclusive. */
 	static FORCEINLINE float GetMappedRangeValueClamped(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
 	{

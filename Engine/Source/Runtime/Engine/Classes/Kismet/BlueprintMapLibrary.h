@@ -15,6 +15,7 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
+public:
 	/** 
 	 * Adds a key and value to the map. If something already uses the provided key it will be overwritten with the new value.
 	 * After calling Key is guaranteed to be associated with Value until a subsequent mutation of the Map.
@@ -92,6 +93,13 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Clear", CompactNodeTitle = "CLEAR", MapParam = "TargetMap" ), Category = "Utilities|Map")
 	static void Map_Clear(const TMap<int32, int32>& TargetMap);
+
+	/** 
+	* Not exposed to users. Supports setting a map property on an object by name.
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", MapParam = "Value"))
+	static void SetMapPropertyByName(UObject* Object, FName PropertyName, const TMap<int32, int32>& Value);
+
 
 	DECLARE_FUNCTION(execMap_Add)
 	{
@@ -322,6 +330,21 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 		P_NATIVE_END
 	}
 
+	DECLARE_FUNCTION(execSetMapPropertyByName)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, MapPropertyName);
+
+		Stack.StepCompiledIn<UMapProperty>(nullptr);
+		void* SrcMapAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		P_NATIVE_BEGIN;
+		GenericMap_SetMapPropertyByName(OwnerObject, MapPropertyName, SrcMapAddr);
+		P_NATIVE_END;
+	}
+
 	static bool GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
 	static bool GenericMap_Remove(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr);
 	static bool GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* ValuePtr);
@@ -329,5 +352,6 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 	static void GenericMap_Values(const void* MapAddr, const UMapProperty* MapProperty, const void* ArrayAddr, const UArrayProperty* ArrayProperty);
 	static int32 GenericMap_Length(const void* TargetMap, const UMapProperty* MapProperty);
 	static void GenericMap_Clear(const void* TargetMap, const UMapProperty* MapProperty);
+	static void GenericMap_SetMapPropertyByName(UObject* OwnerObject, FName MapPropertyName, const void* SrcMapAddr);
 };
 

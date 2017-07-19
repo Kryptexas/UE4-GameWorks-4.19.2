@@ -1155,18 +1155,6 @@ bool SWindow::AppearsInTaskbar() const
 	return !bIsPopupWindow && Type != EWindowType::ToolTip && Type != EWindowType::CursorDecorator;
 }
 
-void SWindow::SetOnWindowActivated( const FOnWindowActivated& InDelegate )
-{
-	// deprecated
-	OnWindowActivated = InDelegate;
-}
-
-void SWindow::SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate )
-{
-	// deprecated
-	OnWindowDeactivated = InDelegate;
-}
-
 /** Sets the delegate to execute right before the window is closed */
 void SWindow::SetOnWindowClosed( const FOnWindowClosed& InDelegate )
 {

@@ -83,6 +83,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
 	void Insert(UMediaSource* MediaSource, int32 Index)
 	{
+		Index = FMath::Clamp(Index, 0, Items.Num());
 		Items.Insert(MediaSource, Index);
 	}
 
@@ -118,7 +119,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
 	void RemoveAt(int32 Index)
 	{
-		Items.RemoveAt(Index);
+		if (Items.IsValidIndex(Index))
+		{
+			Items.RemoveAt(Index);
+		}
 	}
 
 protected:

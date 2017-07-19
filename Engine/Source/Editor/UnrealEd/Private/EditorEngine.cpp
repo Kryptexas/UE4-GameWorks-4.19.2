@@ -4492,16 +4492,6 @@ TSharedPtr<SViewport> UEditorEngine::GetGameViewportWidget() const
 	return NULL;
 }
 
-bool UEditorEngine::SplitActorLabel( FString& InOutLabel, int32& OutIdx ) const
-{
-	return FActorLabelUtilities::SplitActorLabel(InOutLabel, OutIdx);
-}
-
-void UEditorEngine::SetActorLabelUnique(AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels) const
-{
-	FActorLabelUtilities::SetActorLabelUnique(Actor, NewActorLabel, InExistingActorLabels);
-}
-
 FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerStruct/* = NULL*/ )
 {
 	// first, try to pull the friendly name from the loc file

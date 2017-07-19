@@ -1516,6 +1516,22 @@ public:
 	// for IsInitialized()
 	bool bIsInitialized;
 
+private:
+
+	/** The last frame GC was run from ConditionalCollectGarbage to avoid multiple GCs in one frame */
+	uint64 LastGCFrame;
+
+	/** Time in seconds (game time so we respect time dilation) since the last time we purged references to pending kill objects */
+	float TimeSinceLastPendingKillPurge;
+
+	/** Whether a full purge has been triggered, so that the next GarbageCollect will do a full purge no matter what. */
+	bool bFullPurgeTriggered;
+
+	/** Whether we should delay GC for one frame to finish some pending operation */
+	bool bShouldDelayGarbageCollect; 
+
+public:
+
 	/**
 	 * Get the color to use for object selection
 	 */
@@ -2043,6 +2059,37 @@ public:
 	static void PreGarbageCollect();
 
 	/**
+	 *  Collect garbage once per frame driven by World ticks
+	 */
+	void ConditionalCollectGarbage();
+
+	/**
+	 *  Interface to allow WorldSettings to request immediate garbage collection
+	 */
+	void PerformGarbageCollectionAndCleanupActors();
+
+	/** Updates the timer between garbage collection such that at the next opportunity garbage collection will be run. */
+	void ForceGarbageCollection(bool bFullPurge = false);
+
+	/**
+	 *  Requests a one frame delay of Garbage Collection
+	 */
+	void DelayGarbageCollection();
+
+	/**
+	 * Updates the timer (as a one-off) that is used to trigger garbage collection; this should only be used for things
+	 * like performance tests, using it recklessly can dramatically increase memory usage and cost of the eventual GC.
+	 *
+	 * Note: Things that force a GC will still force a GC after using this method (and they will also reset the timer)
+	 */
+	void SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass);
+
+	/**
+	 * Returns the current desired time between garbage collection passes (not the time remaining)
+	 */
+	float GetTimeBetweenGarbageCollectionPasses() const;
+
+	/**
 	 * Returns whether we are running on a console platform or on the PC.
 	 * @param ConsoleType - if specified, only returns true if we're running on the specified platform
 	 *
@@ -2162,10 +2209,6 @@ public:
 
 	/** @return the currently active audio device */
 	class FAudioDevice* GetActiveAudioDevice();
-
-	DEPRECATED(4.8, "GetAudioDevice is deprecated UEngine::GetMainAudioDevice instead.")
-	/** @return the main audio device. */
-	class FAudioDevice* GetAudioDevice();
 
 	/** @return whether we're currently running in split screen (more than one local player) */
 	bool IsSplitScreen(UWorld *InWorld);

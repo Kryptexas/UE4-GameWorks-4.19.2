@@ -1802,8 +1802,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
-			TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject( ObjIndex );
-			UObject* Object = ObjectWeakPtr.Get();
+			UObject* Object = ObjectNode->GetUObject( ObjIndex );
 
 			// special case for UObject class - it has no defaults
 			if( Object && Object != UObject::StaticClass() && Object != UObject::StaticClass()->GetDefaultObject() )

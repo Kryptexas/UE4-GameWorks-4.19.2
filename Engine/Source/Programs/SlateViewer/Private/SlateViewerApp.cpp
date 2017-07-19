@@ -211,7 +211,7 @@ namespace
 
 			FSlateApplication::Get().AddWindowAsNativeChild(BrowserWindowWidget, ParentWindow.ToSharedRef());
 			BrowserWindowWidget->BringToFront();
-			FSlateApplication::Get().SetKeyboardFocus( BrowserWidget, EKeyboardFocusCause::SetDirectly );
+			FSlateApplication::Get().SetKeyboardFocus( BrowserWidget, EFocusCause::SetDirectly );
 
 			BrowserWindowWidgets.Add(NewBrowserWindow, BrowserWindowWidget);
 			return true;

@@ -125,7 +125,11 @@ void SSequencerTransformBox::ToggleVisibility()
 
 	if (Border->GetVisibility() == EVisibility::Visible)
 	{
-		SlateApplication.SetAllUserFocus(LastFocusedWidget.Pin(), EFocusCause::Navigation);
+		if (LastFocusedWidget.IsValid())
+		{
+			SlateApplication.SetAllUserFocus(LastFocusedWidget.Pin(), EFocusCause::Navigation);
+		}
+		
 		Border->SetVisibility(EVisibility::Collapsed);
 	}
 	else

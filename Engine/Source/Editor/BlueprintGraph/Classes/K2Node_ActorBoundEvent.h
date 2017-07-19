@@ -62,12 +62,10 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	BLUEPRINTGRAPH_API void InitializeActorBoundEventParams(AActor* InEventOwner, const UMulticastDelegateProperty* InDelegateProperty);
 
 	/** Return the delegate property that this event is bound to */
-	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegateProperty();
-	/** Const version of GetTargetDelegateProperty that does not search redirect table */
-	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegatePropertyConst() const;
+	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegateProperty() const;
 
-	/** Returns the delegate that this event is bound in */
-	BLUEPRINTGRAPH_API FMulticastScriptDelegate* GetTargetDelegate();
+	/** Returns the delegate that this event is bound in, for actors bound in level script */
+	BLUEPRINTGRAPH_API FMulticastScriptDelegate* GetTargetDelegate() const;
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

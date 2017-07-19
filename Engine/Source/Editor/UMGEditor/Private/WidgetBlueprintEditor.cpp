@@ -8,6 +8,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "WidgetBlueprint.h"
 #include "Editor.h"
 
@@ -842,7 +843,10 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		// Create the Widget, we have to do special swapping out of the widget tree.
 		{
 			// Assign the outer to the game instance if it exists, otherwise use the world
-			PreviewActor = NewObject<UUserWidget>(PreviewScene.GetWorld(), PreviewBlueprint->GeneratedClass);
+			{
+				FMakeClassSpawnableOnScope TemporarilySpawnable(PreviewBlueprint->GeneratedClass);
+				PreviewActor = NewObject<UUserWidget>(PreviewScene.GetWorld(), PreviewBlueprint->GeneratedClass);
+			}
 
 			// The preview widget should not be transactional.
 			PreviewActor->ClearFlags(RF_Transactional);

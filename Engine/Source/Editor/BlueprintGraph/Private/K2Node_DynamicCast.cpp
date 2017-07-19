@@ -121,44 +121,47 @@ void UK2Node_DynamicCast::GetContextMenuActions(const FGraphNodeContextMenuBuild
 {
 	Super::GetContextMenuActions(Context);
 
-	Context.MenuBuilder->BeginSection("K2NodeDynamicCast", LOCTEXT("DynamicCastHeader", "Cast"));
+	if (!Context.bIsDebugging)
 	{
-		FText MenuEntryTitle   = LOCTEXT("MakePureTitle",   "Convert to pure cast");
-		FText MenuEntryTooltip = LOCTEXT("MakePureTooltip", "Removes the execution pins to make the node more versatile (NOTE: the cast could still fail, resulting in an invalid output).");
-
-		bool bCanTogglePurity = true;
-		auto CanExecutePurityToggle = [](bool const bInCanTogglePurity)->bool
+		Context.MenuBuilder->BeginSection("K2NodeDynamicCast", LOCTEXT("DynamicCastHeader", "Cast"));
 		{
-			return bInCanTogglePurity;
-		};
+			FText MenuEntryTitle = LOCTEXT("MakePureTitle", "Convert to pure cast");
+			FText MenuEntryTooltip = LOCTEXT("MakePureTooltip", "Removes the execution pins to make the node more versatile (NOTE: the cast could still fail, resulting in an invalid output).");
 
-		if (bIsPureCast)
-		{
-			MenuEntryTitle   = LOCTEXT("MakeImpureTitle",   "Convert to impure cast");
-			MenuEntryTooltip = LOCTEXT("MakeImpureTooltip", "Adds in branching execution pins so that you can separatly handle when the cast fails/succeeds.");
-		
-			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
-			check(K2Schema != nullptr);
-
-			bCanTogglePurity = K2Schema->DoesGraphSupportImpureFunctions(GetGraph());
-			if (!bCanTogglePurity)
+			bool bCanTogglePurity = true;
+			auto CanExecutePurityToggle = [](bool const bInCanTogglePurity)->bool
 			{
-				MenuEntryTooltip = LOCTEXT("CannotMakeImpureTooltip", "This graph does not support impure calls (and you should therefore test the cast's result for validity).");
+				return bInCanTogglePurity;
+			};
+
+			if (bIsPureCast)
+			{
+				MenuEntryTitle = LOCTEXT("MakeImpureTitle", "Convert to impure cast");
+				MenuEntryTooltip = LOCTEXT("MakeImpureTooltip", "Adds in branching execution pins so that you can separatly handle when the cast fails/succeeds.");
+
+				const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+				check(K2Schema != nullptr);
+
+				bCanTogglePurity = K2Schema->DoesGraphSupportImpureFunctions(GetGraph());
+				if (!bCanTogglePurity)
+				{
+					MenuEntryTooltip = LOCTEXT("CannotMakeImpureTooltip", "This graph does not support impure calls (and you should therefore test the cast's result for validity).");
+				}
 			}
+
+			Context.MenuBuilder->AddMenuEntry(
+				MenuEntryTitle,
+				MenuEntryTooltip,
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateUObject(this, &UK2Node_DynamicCast::TogglePurity),
+					FCanExecuteAction::CreateStatic(CanExecutePurityToggle, bCanTogglePurity),
+					FIsActionChecked()
+				)
+			);
 		}
-		
-		Context.MenuBuilder->AddMenuEntry(
-			MenuEntryTitle,
-			MenuEntryTooltip,
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateUObject(this, &UK2Node_DynamicCast::TogglePurity),
-				FCanExecuteAction::CreateStatic(CanExecutePurityToggle, bCanTogglePurity),
-				FIsActionChecked()
-			)
-		);
+		Context.MenuBuilder->EndSection();
 	}
-	Context.MenuBuilder->EndSection();
 }
 
 void UK2Node_DynamicCast::PostReconstructNode()

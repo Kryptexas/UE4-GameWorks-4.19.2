@@ -47,6 +47,12 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 	}
 }
 
+void UK2Node_SwitchEnum::PreloadRequiredAssets()
+{
+	PreloadObject(Enum);
+	Super::PreloadRequiredAssets();
+}
+
 FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
 	if (Enum == nullptr)

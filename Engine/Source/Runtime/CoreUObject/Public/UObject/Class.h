@@ -2935,31 +2935,6 @@ FORCEINLINE bool UObject::Implements() const
 // UObjectGlobals.h
 
 /**
- * Construct an object of a particular class.
- * 
- * @param	Class		the class of object to construct
- * @param	Outer		the outer for the new object.  If not specified, object will be created in the transient package.
- * @param	Name		the name for the new object.  If not specified, the object will be given a transient name via
- *						MakeUniqueObjectName
- * @param	SetFlags	the object flags to apply to the new object
- * @param	Template	the object to use for initializing the new object.  If not specified, the class's default object will
- *						be used
- * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
- * @param	InstanceGraph
- *						contains the mappings of instanced objects and components to their templates
- *
- * @return	a pointer of type T to a new object of the specified class
- */
-template< class T >
-DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
-T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFlags, UObject* Template, bool bCopyTransientsFromClassDefaults, struct FObjectInstancingGraph* InstanceGraph )
-{
-	checkf(Class, TEXT("ConstructObject called with a NULL class object"));
-	checkSlow(Class->IsChildOf(T::StaticClass()));
-	return (T*)StaticConstructObject_Internal(Class, Outer, Name, SetFlags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InstanceGraph);
-}
-
-/**
  * Gets the default object of a class.
  *
  * In most cases, class default objects should not be modified. This method therefore returns

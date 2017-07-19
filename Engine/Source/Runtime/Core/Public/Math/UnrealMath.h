@@ -49,7 +49,6 @@
 #include "Math/Float16.h"
 #include "Math/Float16Color.h"
 #include "Math/Vector2DHalf.h"
-#include "Math/AlphaBlendType.h"
 #include "Math/ScalarRegister.h"
 #include "Math/Transform.h"
 #include "Math/ConvexHull2d.h"

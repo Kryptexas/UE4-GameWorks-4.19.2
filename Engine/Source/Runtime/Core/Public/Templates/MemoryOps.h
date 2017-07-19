@@ -138,14 +138,6 @@ FORCEINLINE typename TEnableIf<TIsBitwiseConstructible<DestinationElementType, S
 }
 
 
-template <typename ElementType>
-DEPRECATED(4.6, "CopyConstructItems is deprecated, use ConstructItems<ElementType> instead.")
-FORCEINLINE void CopyConstructItems(void* Dest, const ElementType* Source, int32 Count)
-{
-	ConstructItems<ElementType>(Dest, Source, Count);
-}
-
-
 /**
  * Copy assigns a range of items.
  *
@@ -209,14 +201,6 @@ FORCEINLINE typename TEnableIf<UE4MemoryOps_Private::TCanBitwiseRelocate<Destina
 
 	FMemory::Memmove(Dest, Source, sizeof(SourceElementType) * Count);
 }
-
-template <typename ElementType>
-DEPRECATED(4.6, "RelocateItems is deprecated, use RelocateConstructItems<ElementType> instead.")
-FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Count)
-{
-	RelocateConstructItems<ElementType>(Dest, Source, Count);
-}
-
 
 /**
  * Move constructs a range of items into memory.

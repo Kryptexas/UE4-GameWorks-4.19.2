@@ -36,6 +36,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void PreloadRequiredAssets() override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	//~ End UK2Node Interface
 

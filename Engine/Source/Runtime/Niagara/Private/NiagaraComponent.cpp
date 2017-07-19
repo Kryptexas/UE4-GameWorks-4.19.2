@@ -616,26 +616,34 @@ void UNiagaraComponent::SetNiagaraEmitterSpawnRate(const FString& InEmitterName,
 
 const FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::GetEffectDataInterface(FGuid Id) 
 {
-	UNiagaraEffect* Effect = GetAsset();
-	const TArray<FNiagaraScriptDataInterfaceInfo>& Params = Effect->GetEffectScript()->DataInterfaceInfo;
-	const FNiagaraScriptDataInterfaceInfo* SrcVariable = Params.FindByPredicate([&](const FNiagaraScriptDataInterfaceInfo& Var)
+	if (UNiagaraEffect* Effect = GetAsset())
 	{
-		return Var.Id == Id;
-	});
+		const TArray<FNiagaraScriptDataInterfaceInfo>& Params = Effect->GetEffectScript()->DataInterfaceInfo;
+		const FNiagaraScriptDataInterfaceInfo* SrcVariable = Params.FindByPredicate([&](const FNiagaraScriptDataInterfaceInfo& Var)
+		{
+			return Var.Id == Id;
+		});
 
-	return SrcVariable;
+		return SrcVariable;
+	}
+
+	return nullptr;
 }
 
 const FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::GetEffectDataInterface(FName InName)
 {
-	UNiagaraEffect* Effect = GetAsset();
-	const TArray<FNiagaraScriptDataInterfaceInfo>& Params = Effect->GetEffectScript()->DataInterfaceInfo;
-	const FNiagaraScriptDataInterfaceInfo* SrcVariable = Params.FindByPredicate([&](const FNiagaraScriptDataInterfaceInfo& Var)
+	if (UNiagaraEffect* Effect = GetAsset())
 	{
-		return Var.Name == InName;
-	});
+		const TArray<FNiagaraScriptDataInterfaceInfo>& Params = Effect->GetEffectScript()->DataInterfaceInfo;
+		const FNiagaraScriptDataInterfaceInfo* SrcVariable = Params.FindByPredicate([&](const FNiagaraScriptDataInterfaceInfo& Var)
+		{
+			return Var.Name == InName;
+		});
 
-	return SrcVariable;
+		return SrcVariable;
+	}
+
+	return nullptr;
 }
 
 FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::GetLocalOverrideDataInterface(FGuid Id)

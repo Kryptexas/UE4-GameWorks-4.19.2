@@ -314,10 +314,6 @@ public:
 	UPROPERTY()
 	uint32 bText:1;
 
-	/** Determines the order in which factories are tried when importing an object. */
-	DEPRECATED(4.8, "AutoPriority has been replaced with ImportPriority")
-	int32 AutoPriority;
-
 	/** Determines the order in which factories are tried when importing or reimporting an object.
 	Factories with higher priority values will go first. Factories with negative priorities will be excluded. */
 	UPROPERTY()
@@ -340,14 +336,6 @@ protected:
 	/** This is the HASH for the file being imported */
 	static FMD5Hash FileHash;
 	//@third party code END SIMPLYGON
-
-	/**
-	 * If this value is true, warning messages will be shown once for all objects
-	 * being imported at the same time. This value will be reset to false each time
-	 * a new import operation is started.
-	 */
-	DEPRECATED(4.8, "bAllowOneTimeWarningMessages is due to be removed in future.")
-	static bool bAllowOneTimeWarningMessages;
 
 	/**
 	 * For interactive object imports, this value indicates whether the user wants

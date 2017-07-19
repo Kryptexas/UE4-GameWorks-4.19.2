@@ -31,27 +31,6 @@ public:
 	static uint32 GetTlsSlot();
 
 	/**
-	* Factory method to create a thread with the specified stack size and thread priority.
-	*
-	* @param InRunnable The runnable object to execute
-	* @param ThreadName Name of the thread
-	* @param bAutoDeleteSelf Whether to delete this object on exit
-	* @param bAutoDeleteRunnable Whether to delete the runnable object on exit
-	* @param InStackSize The size of the stack to create. 0 means use the current thread's stack size
-	* @param InThreadPri Tells the thread whether it needs to adjust its priority or not. Defaults to normal priority
-	* @return The newly created thread or nullptr if it failed
-	*/
-	DEPRECATED(4.3, "Function deprecated. Use FRunnableThread::Create without bAutoDeleteSelf and bAutoDeleteRunnable params and delete thread and runnable manually.")
-	static FRunnableThread* Create(
-		class FRunnable* InRunnable,
-		const TCHAR* ThreadName,
-		bool bAutoDeleteSelf,
-		bool bAutoDeleteRunnable = false,
-		uint32 InStackSize = 0,
-		EThreadPriority InThreadPri = TPri_Normal,
-		uint64 InThreadAffinityMask = 0);
-
-	/**
 	 * Factory method to create a thread with the specified stack size and thread priority.
 	 *
 	 * @param InRunnable The runnable object to execute

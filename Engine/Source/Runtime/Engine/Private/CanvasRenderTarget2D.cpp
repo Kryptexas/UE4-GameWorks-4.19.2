@@ -79,7 +79,7 @@ void UCanvasRenderTarget2D::RepaintCanvas()
 			(FTextureRenderTarget2DResource*)GameThread_GetRenderTargetResource(),
 			{
 				SetRenderTarget(RHICmdList, TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef(), true);
-	RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
+				RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
 			}
 	);
 

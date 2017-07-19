@@ -77,12 +77,6 @@ private:
 	void SerializeRecastData(FArchive& Ar, int32 NavMeshVersion);
 #endif//WITH_RECAST
 
-	
-	DEPRECATED(4.8, "AttachTiles is deprecated. Use the version takin a reference instead.")
-	TArray<uint32> AttachTiles(FPImplRecastNavMesh* NavMeshImpl);
-	DEPRECATED(4.8, "DetachTiles is deprecated. Use the version takin a reference instead.")
-	TArray<uint32> DetachTiles(FPImplRecastNavMesh* NavMeshImpl);
-
 private:
 	TArray<FRecastTileData> Tiles;
 };

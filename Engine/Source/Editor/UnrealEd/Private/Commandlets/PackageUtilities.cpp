@@ -2575,7 +2575,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 				}
 
 				// collect garbage to delete replaced actors and any objects only referenced by them (components, etc)
-				World->PerformGarbageCollectionAndCleanupActors();
+				GEngine->PerformGarbageCollectionAndCleanupActors();
 
 				// save the world
 				if( ( Package->IsDirty() == true ) && ( bIsDirty == true ) )

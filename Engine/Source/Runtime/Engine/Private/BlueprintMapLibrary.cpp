@@ -22,17 +22,24 @@ bool UBlueprintMapLibrary::GenericMap_Remove(const void* TargetMap, const UMapPr
 	return false;
 }
 
-bool UBlueprintMapLibrary::GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* ValuePtr)
+bool UBlueprintMapLibrary::GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* OutValuePtr)
 {
 	if(TargetMap)
 	{
 		FScriptMapHelper MapHelper(MapProperty, TargetMap);
-		uint8* Result = MapHelper.FindValueFromHash(KeyPtr);
-		if(Result && ValuePtr)
+		uint8* FoundValuePtr = MapHelper.FindValueFromHash(KeyPtr);
+		if (OutValuePtr)
 		{
-			MapProperty->ValueProp->CopyCompleteValueFromScriptVM(ValuePtr, Result);
+			if (FoundValuePtr)
+			{
+				MapProperty->ValueProp->CopyCompleteValueFromScriptVM(OutValuePtr, FoundValuePtr);
+			}
+			else
+			{
+				MapProperty->ValueProp->InitializeValue(OutValuePtr);
+			}
 		}
-		return Result != nullptr;
+		return FoundValuePtr != nullptr;
 	}
 	return false;
 }
@@ -102,3 +109,14 @@ void UBlueprintMapLibrary::GenericMap_Clear(const void* TargetMap, const UMapPro
 	}
 }
 
+void UBlueprintMapLibrary::GenericMap_SetMapPropertyByName(UObject* OwnerObject, FName MapPropertyName, const void* SrcMapAddr)
+{
+	if (OwnerObject)
+	{
+		if (UMapProperty* MapProp = FindField<UMapProperty>(OwnerObject->GetClass(), MapPropertyName))
+		{
+			void* Dest = MapProp->ContainerPtrToValuePtr<void>(OwnerObject);
+			MapProp->CopyValuesInternal(Dest, SrcMapAddr, 1);
+		}
+	}
+}

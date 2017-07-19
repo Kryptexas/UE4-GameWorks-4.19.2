@@ -45,22 +45,6 @@ struct FRefPoseOverride
 	/**
 	 * Adds a bone to the list of poses to override.
 	 */
-	DEPRECATED(4.8, "Use AddOverride(FName, EBoneOverrideMode) instead.")
-	void AddOverride(FName BoneName, bool bOverrideChildren)
-	{
-		EBoneOverrideMode OverrideMode = BoneAndChildren;
-
-		if (!bOverrideChildren)
-		{
-			OverrideMode = BoneOnly;
-		}
-
-		AddOverride(BoneName, OverrideMode);
-	}
-
-	/**
-	 * Adds a bone to the list of poses to override.
-	 */
 	void AddOverride(FName BoneName, EBoneOverrideMode OverrideMode = BoneOnly)
 	{
 		FBoneOverrideInfo OverrideInfo;

@@ -7,7 +7,14 @@
 #include "Engine/AssetManager.h"
 #include "AssetRegistryModule.h"
 
+#if WITH_EDITOR
+#include "CollectionManagerTypes.h"
+#include "ICollectionManager.h"
+#include "CollectionManagerModule.h"
+#endif
+
 const FName UPrimaryAssetLabel::DirectoryBundle = FName("Directory");
+const FName UPrimaryAssetLabel::CollectionBundle = FName("Collection");
 
 UPrimaryAssetLabel::UPrimaryAssetLabel()
 {
@@ -53,6 +60,28 @@ void UPrimaryAssetLabel::UpdateAssetBundleData()
 
 		// Fast set, destroys NewPaths
 		AssetBundleData.SetBundleAssets(DirectoryBundle, MoveTemp(NewPaths));
+	}
+
+	if (AssetCollection.CollectionName != NAME_None)
+	{
+		TArray<FStringAssetReference> NewPaths;
+		TArray<FName> CollectionAssets;
+		ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
+		CollectionManager.GetAssetsInCollection(AssetCollection.CollectionName, ECollectionShareType::CST_All, CollectionAssets);
+		for (int32 Index = 0; Index < CollectionAssets.Num(); ++Index)
+		{
+			FAssetData FoundAsset = Manager.GetAssetRegistry().GetAssetByObjectPath(CollectionAssets[Index]);
+
+			FStringAssetReference AssetRef = Manager.GetAssetPathForData(FoundAsset);
+
+			if (!AssetRef.IsNull())
+			{
+				NewPaths.Add(AssetRef);
+			}
+		}
+
+		// Fast set, destroys NewPaths
+		AssetBundleData.SetBundleAssets(CollectionBundle, MoveTemp(NewPaths));
 	}
 	
 	// Update rules

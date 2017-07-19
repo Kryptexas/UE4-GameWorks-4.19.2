@@ -556,29 +556,10 @@ public:
 	/** If scene type is not specified return the first scene used. */
 	int32 GetSceneIndex(int32 SceneType = -1) const;
 
-
-	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
-	 */
-	DEPRECATED(4.8, "Please call InitDynamicProperties_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void InitDynamicProperties()
-	{
-		InitDynamicProperties_AssumesLocked();
-	}
-
 	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
 	 */
 	void InitDynamicProperties_AssumesLocked();
-
-	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
-	 *	@param ShapeData ShapeData to populate
-	 *	@param bForceSimpleAsComplex Whether to force simple colision as complex
-	 */
-	DEPRECATED(4.8, "Please call GetFilterData_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void GetFilterData(FShapeData& ShapeData, bool bForceSimpleAsComplex = false)
-	{
-		GetFilterData_AssumesLocked(ShapeData, bForceSimpleAsComplex);
-	}
 
 	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
 	 *	@param ShapeData ShapeData to populate. ShapeData.CollisionEnabled and ShapeData.FilterData will be filled in.
@@ -587,19 +568,7 @@ public:
 	 */
 	void GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bForceSimpleAsComplex = false);
 
-	/** Set initialisation flags on a provided shape
-	 *	@param UseCollisionEnabled Whether collision is enabled for the shape
-	 *	@param PShape The shape to set the flags on
-	 *	@param SceneType Which scene we are using
-	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
-	 */
-	DEPRECATED(4.8, "Please call SetShapeFlags_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void SetShapeFlags(TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, physx::PxShape* PShape, EPhysicsSceneType SceneType, const bool bUseComplexAsSimple = false)
-	{
-		SetShapeFlags_AssumesLocked(UseCollisionEnabled, PShape, SceneType, bUseComplexAsSimple);
-	}
-
-	/** Set initialisation flags on a provided shape
+	/** Set initialization flags on a provided shape
 	 *	@param UseCollisionEnabled Whether collision is enabled for the shape
 	 *	@param PShape The shape to set the flags on
 	 *	@param SceneType Which scene we are using
@@ -608,35 +577,13 @@ public:
 	 */
 	void SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, physx::PxShape* PShape, EPhysicsSceneType SceneType, const bool bUseComplexAsSimple = false);
 
-	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
-	 *	@param ShapeData ShapeData to populate
-	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
-	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
-	 */
-	DEPRECATED(4.8, "Please call GetShapeFlags_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void GetShapeFlags(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple = false)
-	{
-		GetShapeFlags_AssumesLocked(ShapeData, UseCollisionEnabled, bUseComplexAsSimple);
-	}
-
-	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
+	/** Populate the flag fields of the provided FShapeData with correct initialization flags
 	 *	@param ShapeData ShapeData to populate. ShapeData.FilterData will not be modified.
 	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
 	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
 	 */
 	void GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple = false);
-
-	/**
-	 * Return the PxRigidActor from the given scene (see EPhysicsSceneType), if SceneType is in the range [0, PST_MAX).
-	 * If SceneType < 0, the PST_Sync actor is returned if it is not NULL, otherwise the PST_Async actor is returned.
-	 * Invalid scene types will cause NULL to be returned.
-	 */
-	DEPRECATED(4.8, "Please call GetPxRigidActor_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const
-	{
-		return GetPxRigidActorFromScene_AssumesLocked(SceneType);
-	}
 
 	/**
 	 * Return the PxRigidActor from the given scene (see EPhysicsSceneType), if SceneType is in the range [0, PST_MAX).
@@ -651,46 +598,17 @@ public:
 
 	physx::PxRigidActor* GetPxRigidActorFromScene_AssumesLocked(int32 SceneType) const;
 
-
-	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
-	DEPRECATED(4.8, "Please call GetPxRigidDynamic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidDynamic* GetPxRigidDynamic() const
-	{
-		return GetPxRigidDynamic_AssumesLocked();
-	}
-
 	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes.
 	 *  Note: This function assumes the appropriate scene lock has been obtained.
 	 *  @see ExecuteOnPxRigidDynamicReadOnly, ExecuteOnPxRigidDynamicReadWrite
 	 */
 	physx::PxRigidDynamic* GetPxRigidDynamic_AssumesLocked() const;
 
-	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes. */
-	DEPRECATED(4.8, "Please call GetPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	physx::PxRigidBody* GetPxRigidBody() const
-	{
-		return GetPxRigidBody_AssumesLocked();
-	}
-
 	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes.
 	 *  Note: This function assumes the appropriate scene lock has been obtained.
 	 *  @see ExecuteOnPxRigidBodyReadOnly, ExecuteOnPxRigidBodyReadWrite
 	 */
 	physx::PxRigidBody* GetPxRigidBody_AssumesLocked() const;
-
-	
-
-	/** 
-	 *	Utility to get all the shapes from a FBodyInstance 
-	 *	Shapes belonging to sync actor are first, then async. Number of shapes belonging to sync actor is returned.
-	 */
-	DEPRECATED(4.8, "Please call GetAllShapes_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	TArray<physx::PxShape*> GetAllShapes(int32& OutNumSyncShapes) const
-	{
-		TArray<physx::PxShape*> Shapes;
-		OutNumSyncShapes = GetAllShapes_AssumesLocked(Shapes);
-		return Shapes;
-	}
 
 	/** 
 	 *	Utility to get all the shapes from a FBodyInstance 
@@ -766,10 +684,6 @@ public:
 
 	/** Sets a custom slope override struct for this instance. Implicitly sets bOverrideWalkableSlopeOnInstance to true. */
 	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
-
-	/** Returns whether this body wants (and can) use the async scene. */
-	DEPRECATED(4.8, "Please call UseAsyncScene and pass in the PhysScene of the owning component (GetWorld()->GetPhysicsScene()).")
-	bool UseAsyncScene() const;
 
 	bool UseAsyncScene(const FPhysScene* PhysScene) const;
 
@@ -900,9 +814,6 @@ public:
 	 */
 	void SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport);
 
-	DEPRECATED(4.9, "Please pass the teleport flag using the new ETeleportType enum ")
-	void SetBodyTransform(const FTransform& NewTransform, bool bTeleport);
-
 	/** Get current velocity in world space from physics body. */
 	FVector GetUnrealWorldVelocity() const;
 
@@ -1004,12 +915,6 @@ public:
 	void UpdatePhysicalMaterials();
 
 #if WITH_PHYSX
-	DEPRECATED(4.8, "Please call ApplyMaterialToShape_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	static void ApplyMaterialToShape(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
-	{
-		ApplyMaterialToShape_AssumesLocked(PShape, PSimpleMat, ComplexPhysMats, false);
-	}
-
 	/** 
 	 *  Apply a material directly to the passed in shape. Note this function is very advanced and requires knowledge of shape sharing as well as threading. Note: assumes the appropriate locks have been obtained
 	 *  @param  PShape					The shape we are applying the material to
@@ -1018,12 +923,6 @@ public:
 	 *	@param	bSharedShape			If this is true it means you've already detached the shape from all actors that use it (attached shared shapes are not writable).
 	 */
 	static void ApplyMaterialToShape_AssumesLocked(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, const TArray<UPhysicalMaterial*>& ComplexPhysMats, const bool bSharedShape);
-
-	DEPRECATED(4.8, "Please call ApplyMaterialToInstanceShapes_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
-	{
-		ApplyMaterialToInstanceShapes_AssumesLocked(PSimpleMat, ComplexPhysMats);
-	}
 
 	/** Note: This function is not thread safe. Make sure you obtain the appropriate PhysX scene lock before calling it*/
 	void ApplyMaterialToInstanceShapes_AssumesLocked(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
@@ -1061,20 +960,6 @@ public:
 	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& ShapeWorldRotation, const FCollisionShape& Shape, bool bTraceComplex) const;
 
 #if WITH_PHYSX
-	/**
-	 *  Test if the bodyinstance overlaps with the geometry in the Pos/Rot
-	 *
-	 *	@param	PGeom			Geometry it would like to test
-	 *  @param  ShapePose       Transform information in world. Use U2PTransform to convert from FTransform
-	 *  @param  OutMTD			The minimum translation direction needed to push the shape out of this BodyInstance. (Optional)
-	 *  @return true if PrimComp overlaps this component at the specified location/rotation
-	 */
-	DEPRECATED(4.8, "Please call OverlapPhysX_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	bool OverlapPhysX(const physx::PxGeometry& Geom, const physx::PxTransform&  ShapePose, FMTDResult* OutMTD = nullptr) const
-	{
-		return OverlapPhysX_AssumesLocked(Geom, ShapePose, OutMTD);
-	}
-
 	/**
 	 *  Test if the bodyinstance overlaps with the geometry in the Pos/Rot
 	 *

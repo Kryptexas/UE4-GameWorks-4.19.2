@@ -537,81 +537,25 @@ public:
 	ENGINE_API bool HasAsyncScene() const { return bAsyncSceneEnabled; }
 
 	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
-	DEPRECATED(4.8, "Please call AddCustomPhysics_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void TermBody(FBodyInstance* BodyInstance)
-	{
-		TermBody_AssumesLocked(BodyInstance);
-	}
-
-	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
 	void TermBody_AssumesLocked(FBodyInstance* BodyInstance);
-
-	/** Add a custom callback for next step that will be called on every substep */
-	DEPRECATED(4.8, "Please call AddCustomPhysics_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void AddCustomPhysics(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics)
-	{
-		AddCustomPhysics_AssumesLocked(BodyInstance, CalculateCustomPhysics);
-	}
 
 	/** Add a custom callback for next step that will be called on every substep */
 	void AddCustomPhysics_AssumesLocked(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics);
 
 	/** Adds a force to a body - We need to go through scene to support substepping */
-	DEPRECATED(4.8, "Please call AddForce_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping, bool bAccelChange)
-	{
-		AddForce_AssumesLocked(BodyInstance, Force, bAllowSubstepping, bAccelChange);
-	}
-
 	void AddForce_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping, bool bAccelChange);
-
-	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	DEPRECATED(4.8, "Please call AddForceAtPosition_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping)
-	{
-		AddForceAtPosition_AssumesLocked(BodyInstance, Force, Position, bAllowSubstepping);
-	}
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
 	void AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce=false);
 
 	/** Adds a radial force to a body - We need to go through scene to support substepping */
-	DEPRECATED(4.8, "Please call AddRadialForceToBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void AddRadialForceToBody(FBodyInstance* BodyInstance, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, bool bAccelChange, bool bAllowSubstepping)
-	{
-		AddRadialForceToBody_AssumesLocked(BodyInstance, Origin, Radius, Strength, Falloff, bAccelChange, bAllowSubstepping);
-	}
-
-	/** Adds a radial force to a body - We need to go through scene to support substepping */
 	void AddRadialForceToBody_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, bool bAccelChange, bool bAllowSubstepping);
-
-	/** Adds torque to a body - We need to go through scene to support substepping */
-	DEPRECATED(4.8, "Please call AddTorque_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
-	{
-		AddTorque_AssumesLocked(BodyInstance, Torque, bAllowSubstepping, bAccelChange);
-	}
 
 	/** Adds torque to a body - We need to go through scene to support substepping */
 	void AddTorque_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Torque, bool bAllowSubstepping, bool bAccelChange);
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
-	DEPRECATED(4.8, "Please call SetKinematicTarget_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	void SetKinematicTarget(FBodyInstance* BodyInstance, const FTransform& TargetTM, bool bAllowSubstepping)
-	{
-		SetKinematicTarget_AssumesLocked(BodyInstance, TargetTM, bAllowSubstepping);
-	}
-	
-	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
 	void SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, const FTransform& TargetTM, bool bAllowSubstepping);
-
-	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
-	  * Returns true if kinematic target has been set. If false the OutTM is invalid */
-	DEPRECATED(4.8, "Please call GetKinematicTarget_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-	bool GetKinematicTarget(const FBodyInstance* BodyInstance, FTransform& OutTM) const
-	{
-		return GetKinematicTarget_AssumesLocked(BodyInstance, OutTM);
-	}
 
 	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
 	  * Returns true if kinematic target has been set. If false the OutTM is invalid */

@@ -49,18 +49,6 @@ public:
 
 	/** An event should return FReply::Handled().SetUserFocus( SomeWidget ) as a means of asking the system to set users focus to the provided widget*/
 	FReply& SetUserFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly, bool bInAllUsers = false);
-	
-	DEPRECATED(4.6, "FReply::CaptureJoystick() is deprecated, use FReply::SetUserFocus() instead.")
-	FReply& CaptureJoystick(TSharedRef<SWidget> InJoystickCaptor, bool bInAllJoysticks = false)
-	{
-		return SetUserFocus(InJoystickCaptor, EFocusCause::SetDirectly, bInAllJoysticks);
-	}
-
-	DEPRECATED(4.6, "FReply::SetKeyboardFocus() is deprecated, use FReply::SetUserFocus() instead.")
-	FReply& SetKeyboardFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging)
-	{
-		return SetUserFocus(GiveMeFocus, ReasonFocusIsChanging, false);
-	}
 
 	/** An event should return a FReply::Handled().ClearUserFocus() to ask the system to clear user focus*/
 	FReply& ClearUserFocus(bool bInAllUsers = false)
@@ -70,12 +58,6 @@ public:
 
 	/** An event should return a FReply::Handled().ClearUserFocus() to ask the system to clear user focus*/
 	FReply& ClearUserFocus(EFocusCause ReasonFocusIsChanging, bool bInAllUsers = false);
-
-	DEPRECATED(4.6, "FReply::ReleaseJoystickCapture() is deprecated, use FReply::ClearUserFocus() instead.")
-	FReply& ReleaseJoystickCapture(bool bInAllJoysticks = false)
-	{
-		return ClearUserFocus(bInAllJoysticks);
-	}
 
 	/** An event should return FReply::Handled().SetNavigation( NavigationType ) as a means of asking the system to attempt a navigation*/
 	FReply& SetNavigation(EUINavigation InNavigationType, const ENavigationGenesis InNavigationGenesis, const ENavigationSource InNavigationSource = ENavigationSource::FocusedWidget)
@@ -182,9 +164,6 @@ public:
 	/** true if this reply indicated that we should release focus as a result of the event being handled */
 	bool ShouldReleaseUserFocus() const { return bReleaseUserFocus; }
 
-	DEPRECATED(4.6, "FReply::ShouldReleaseJoystick() is deprecated, use FReply::ShouldReleaseUserFocus() instead.")
-	bool ShouldReleaseJoystick() const { return ShouldReleaseUserFocus(); }
-
 	/** If the event replied with a request to change the user focus whether it should do it for all users or just the current UserIndex */
 	bool AffectsAllUsers() const { return bAllUsers; }
 
@@ -202,12 +181,6 @@ public:
 
 	/** When not nullptr, user focus has been requested to be set on the FocusRecipient. */
 	const TSharedPtr<SWidget>& GetUserFocusRecepient() const { return FocusRecipient; }
-
-	DEPRECATED(4.6, "FReply::GetFocusRecepient() is deprecated, use FReply::GetUserFocusRecepient() instead.")
-	const TSharedPtr<SWidget>& GetFocusRecepient() const { return GetUserFocusRecepient(); }
-
-	DEPRECATED(4.6, "FReply::GetJoystickCaptor() is deprecated, use FReply::GetUserFocusRecepient() instead.")
-	const TSharedPtr<SWidget>& GetJoystickCaptor() const { return GetUserFocusRecepient(); }
 
 	/** Get the reason that a focus change is being requested. */
 	EFocusCause GetFocusCause() const { return FocusChangeReason; }

@@ -534,7 +534,7 @@ void FAnimationBlueprintEditor::OnConvertToSequenceEvaluator()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -588,7 +588,7 @@ void FAnimationBlueprintEditor::OnConvertToSequencePlayer()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -644,7 +644,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpaceEvaluator()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				OldPosePin = OldNode->FindPin(TEXT("Y"));
@@ -652,7 +652,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpaceEvaluator()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 
@@ -661,7 +661,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpaceEvaluator()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -714,7 +714,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpacePlayer()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				OldPosePin = OldNode->FindPin(TEXT("Y"));
@@ -722,7 +722,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpacePlayer()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 
@@ -731,7 +731,7 @@ void FAnimationBlueprintEditor::OnConvertToBlendSpacePlayer()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -783,7 +783,7 @@ void FAnimationBlueprintEditor::OnConvertToPoseBlender()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -837,7 +837,7 @@ void FAnimationBlueprintEditor::OnConvertToPoseByName()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -893,7 +893,7 @@ void FAnimationBlueprintEditor::OnConvertToAimOffsetLookAt()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
@@ -901,7 +901,7 @@ void FAnimationBlueprintEditor::OnConvertToAimOffsetLookAt()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph
@@ -955,7 +955,7 @@ void FAnimationBlueprintEditor::OnConvertToAimOffsetSimple()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
@@ -963,7 +963,7 @@ void FAnimationBlueprintEditor::OnConvertToAimOffsetSimple()
 
 				if (ensure(OldPosePin && NewPosePin))
 				{
-					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+					NewPosePin->MovePersistentDataFromOldPin(*OldPosePin);
 				}
 
 				// remove from selection and from graph

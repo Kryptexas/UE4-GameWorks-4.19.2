@@ -27,6 +27,7 @@
 #include "UObject/ReferenceChainSearch.h"
 #include "UObject/UObjectHash.h"
 #include "WidgetBlueprint.h"
+#include "Kismet2/KismetDebugUtilities.h"
 
 /*
 	BLUEPRINT COMPILATION MANAGER IMPLEMENTATION NOTES
@@ -721,6 +722,14 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					// Blueprint is error free.  Go ahead and fix up debug info
 					BP->Status = (0 == CompilerData.ActiveResultsLog->NumWarnings) ? BS_UpToDate : BS_UpToDateWithWarnings;
+
+					BP->BlueprintSystemVersion = UBlueprint::GetCurrentBlueprintSystemVersion();
+
+					// Reapply breakpoints to the bytecode of the new class
+					for (UBreakpoint* Breakpoint  : BP->Breakpoints)
+					{
+						FKismetDebugUtilities::ReapplyBreakpoint(Breakpoint);
+					}
 				}
 				else
 				{
@@ -1236,7 +1245,12 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 		ArchetypeReferencers.Add(CurrentReinstancer->ClassToReinstance->ClassGeneratedBy);
 		if(UBlueprint* BP = Cast<UBlueprint>(CurrentReinstancer->ClassToReinstance->ClassGeneratedBy))
 		{
-			ArchetypeReferencers.Add(BP->SkeletonGeneratedClass);
+			// The only known way to cause this ensure to trip is to enqueue bluerpints for compilation
+			// while blueprints are already compiling:
+			if( ensure(BP->SkeletonGeneratedClass) )
+			{
+				ArchetypeReferencers.Add(BP->SkeletonGeneratedClass);
+			}
 			ensure(BP->bCachedDependenciesUpToDate);
 			for(const TWeakObjectPtr<UBlueprint>& Dependency : BP->CachedDependencies)
 			{
@@ -1480,6 +1494,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		return NewFunction;
 	};
 
+
 	// helpers:
 	const auto AddFunctionForGraphs = [Schema, &MessageLog, ParentClass, Ret, BP, MakeFunction](const TCHAR* FunctionNamePostfix, const TArray<UEdGraph*>& Graphs, UField**& InCurrentFieldStorageLocation, bool bIsStaticFunction)
 	{
@@ -1544,6 +1559,30 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	};
 
 	UField** CurrentFieldStorageLocation = &Ret->Children;
+	
+	// Helper function for making UFunctions generated for 'event' nodes, e.g. custom event and timelines
+	const auto MakeEventFunction = [&CurrentFieldStorageLocation, MakeFunction]( FName InName, EFunctionFlags ExtraFnFlags, const TArray<UEdGraphPin*>& InputPins, UFunction* InSourceFN )
+	{
+		UField** CurrentParamStorageLocation = nullptr;
+
+		UFunction* NewFunction = MakeFunction(
+			InName, 
+			CurrentFieldStorageLocation, 
+			CurrentParamStorageLocation, 
+			ExtraFnFlags|FUNC_BlueprintCallable|FUNC_BlueprintEvent,
+			TArray<UK2Node_FunctionResult*>(), 
+			InputPins,
+			false, 
+			true,
+			InSourceFN
+		);
+
+		if(NewFunction)
+		{
+			NewFunction->Bind();
+			NewFunction->StaticLink(true);
+		}
+	};
 
 	Ret->SetSuperStruct(ParentClass);
 	
@@ -1574,30 +1613,24 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		Graph->GetNodesOfClass(EventNodes);
 		for( UK2Node_Event* Event : EventNodes )
 		{
-			FName EventNodeName = CompilerContext.GetEventStubFunctionName(Event);
-
-			UFunction* SourceFN = Event->FindEventSignatureFunction();
-
-			UField** CurrentParamStorageLocation = nullptr;
-
-			UFunction* NewFunction = MakeFunction(
-				EventNodeName, 
-				CurrentFieldStorageLocation, 
-				CurrentParamStorageLocation, 
-				(EFunctionFlags)(Event->FunctionFlags|FUNC_BlueprintCallable),
-				TArray<UK2Node_FunctionResult*>(), 
-				Event->Pins,
-				false, 
-				true,
-				SourceFN
+			MakeEventFunction(
+				CompilerContext.GetEventStubFunctionName(Event), 
+				(EFunctionFlags)Event->FunctionFlags, 
+				Event->Pins, 
+				Event->FindEventSignatureFunction()
 			);
-
-			if(NewFunction)
-			{
-				NewFunction->Bind();
-				NewFunction->StaticLink(true);
-			}
 		}
+	}
+	
+	for ( const UTimelineTemplate* Timeline : BP->Timelines )
+	{
+		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
+		{
+			MakeEventFunction(Timeline->GetEventTrackFunctionName(EventTrackIdx), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
+		}
+		
+		MakeEventFunction(Timeline->GetUpdateFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
+		MakeEventFunction(Timeline->GetFinishedFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
 	}
 
 	CompilerContext.NewClass = Ret;

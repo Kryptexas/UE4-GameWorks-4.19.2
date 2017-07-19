@@ -2122,9 +2122,10 @@ bool UKismetSystemLibrary::CanLaunchURL(const FString& URL)
 
 	return false;
 }
+
 void UKismetSystemLibrary::CollectGarbage()
 {
-	GEngine->DeferredCommands.Add(TEXT("obj gc"));
+	GEngine->ForceGarbageCollection(true);
 }
 
 void UKismetSystemLibrary::ShowAdBanner(int32 AdIdIndex, bool bShowOnBottomOfScreen)

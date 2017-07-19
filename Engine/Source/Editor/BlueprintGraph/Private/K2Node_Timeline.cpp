@@ -124,6 +124,22 @@ void UK2Node_Timeline::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
+void UK2Node_Timeline::PreloadRequiredAssets()
+{
+	UBlueprint* Blueprint = GetBlueprint();
+	if(ensure(Blueprint))
+	{
+		UTimelineTemplate* Timeline = Blueprint->FindTimelineTemplateByVariableName(TimelineName);
+		if(Timeline)
+		{
+			// Ensure the timeline template is fully loaded or the node representation will be wrong.
+			PreloadObject(Timeline);
+		}
+	}
+	
+	Super::PreloadRequiredAssets();
+}
+
 void UK2Node_Timeline::DestroyNode()
 {
 	UBlueprint* Blueprint = GetBlueprint();

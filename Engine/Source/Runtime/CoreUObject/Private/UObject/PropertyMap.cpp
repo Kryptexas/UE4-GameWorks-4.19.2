@@ -843,10 +843,12 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 
 	const auto SerializeOrConvert = [](UProperty* CurrentType, const FPropertyTag& InTag, FArchive& InAr, uint8* InData, UStruct* InDefaultsStruct) -> bool
 	{
+		// Serialize wants the property address, while convert wants the container address. InData is the container address
 		bool bDummyAdvance = false;
 		if(CurrentType->GetID() == InTag.Type)
 		{
-			CurrentType->SerializeItem(InAr, InData, InDefaultsStruct);
+			uint8* DestAddress = CurrentType->ContainerPtrToValuePtr<uint8>(InData, InTag.ArrayIndex);
+			CurrentType->SerializeItem(InAr, DestAddress, InDefaultsStruct);
 			return true;
 		}
 		else if( CurrentType->ConvertFromType(InTag, InAr, InData, InDefaultsStruct, bDummyAdvance) )
@@ -948,7 +950,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 						KeyProp->CopyCompleteValue_InContainer(NextPairPtr, TempKeyStorage);
 
 						// Deserialize value
-						if( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr + MapLayout.ValueOffset, DefaultsStruct ) )
+						if( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr, DefaultsStruct ) )
 						{
 							// first entry went fine, convert the rest:
 							for(int32 I = 1; I < NumEntries; ++I)
@@ -963,7 +965,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 								NextPairPtr = MapHelper.GetPairPtrWithoutCheck(NextPairIndex);
 								// This copy is unnecessary when the key was already in the map:
 								KeyProp->CopyCompleteValue_InContainer(NextPairPtr, TempKeyStorage);
-								verify( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr + MapLayout.ValueOffset, DefaultsStruct ) );
+								verify( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr, DefaultsStruct ) );
 							}
 						}
 						else

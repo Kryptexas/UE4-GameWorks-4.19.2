@@ -343,10 +343,6 @@ public:
 	bool IsFullScreenViewport() const;
 
 	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
-	DEPRECATED(4.5, "Use GetMousePosition that returns a boolean if mouse is in window instead.")
-	FVector2D GetMousePosition() const;
-
-	/** @return mouse position in game viewport coordinates (does not account for splitscreen) */
 	bool GetMousePosition(FVector2D& MousePosition) const;
 
 	/**
@@ -362,12 +358,6 @@ public:
 	 * @return False if an error occurred, true if the viewport was initialized successfully.
 	 */
 	virtual ULocalPlayer* SetupInitialLocalPlayer(FString& OutError);
-
-	DEPRECATED(4.4, "CreatePlayer is deprecated UGameInstance::CreateLocalPlayer instead.")
-	virtual ULocalPlayer* CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
-
-	DEPRECATED(4.4, "RemovePlayer is deprecated UGameInstance::RemoveLocalPlayer instead.")
-	virtual bool RemovePlayer(class ULocalPlayer* ExPlayer);
 
 	/** @return Returns the splitscreen type that is currently being used */
 	FORCEINLINE ESplitScreenType::Type GetCurrentSplitscreenConfiguration() const

@@ -168,16 +168,6 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 	}
 }
 
-FVector ABrush::GetPrePivot() const
-{
-	return GetPivotOffset();
-}
-
-void ABrush::SetPrePivot( const FVector& InPrePivot )
-{
-	SetPivotOffset(InPrePivot);
-}
-
 void ABrush::PostLoad()
 {
 	Super::PostLoad();

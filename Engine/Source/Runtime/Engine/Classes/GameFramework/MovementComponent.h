@@ -221,10 +221,6 @@ public:
 	 */
 	virtual bool ShouldSkipUpdate(float DeltaTime) const;
 
-	DEPRECATED(4.5, "SkipUpdate has been renamed to ShouldSkipUpdate")
-	virtual bool SkipUpdate(float DeltaTime) { return ShouldSkipUpdate(DeltaTime); }
-
-
 	/** @return PhysicsVolume this MovementComponent is using, or the world's default physics volume if none. **/
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")
 	virtual APhysicsVolume* GetPhysicsVolume() const;

@@ -452,6 +452,20 @@ void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& Message
 	}	
 }
 
+void UK2Node_GetDataTableRow::PreloadRequiredAssets()
+{
+	if (UEdGraphPin* DataTablePin = GetDataTablePin())
+	{
+		if (UDataTable* DataTable = Cast<UDataTable>(DataTablePin->DefaultObject))
+		{
+			// make sure to properly load the data-table object so that we can 
+			// farm the "RowStruct" property from it (below, in GetDataTableRowStructType)
+			PreloadObject(DataTable);
+		}
+	}
+	return Super::PreloadRequiredAssets();
+}
+
 void UK2Node_GetDataTableRow::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);

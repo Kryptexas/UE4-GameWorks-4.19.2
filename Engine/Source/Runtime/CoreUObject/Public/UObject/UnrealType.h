@@ -2218,6 +2218,7 @@ public:
 	// UProperty interface
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
 	// End of UProperty interface
 
 	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;

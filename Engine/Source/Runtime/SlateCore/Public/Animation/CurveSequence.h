@@ -89,22 +89,6 @@ public:
 	 * @param InEaseFunction       Easing function to use for this curve.  Defaults to Linear.  Use this to smooth out your animation transitions.
 	 */
 	FCurveHandle AddCurveRelative( const float InOffset, const float InDurationSecond, const ECurveEaseFunction::Type InEaseFunction = ECurveEaseFunction::Linear );
-	
-	/**
-	 * Start playing this curve sequence
-	 *
-	 * @param	StartAtTime		Specifies a time offset relative to the animation to start at.  Defaults to zero (the actual start of the sequence.)
-	 */
-	DEPRECATED(4.8, "FCurveSequence::Play(const float StartAtTime) is deprecated. Curve sequences must be associated with a specific widget when played. Use Play(const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime) instead.")
-	void Play( const float StartAtTime = 0.0f );
-
-	/**
-	 * Start playing this curve sequence in reverse
-	 *
-	 * @param	StartAtTime		Specifies a time offset relative to the animation to start at.  Defaults to zero (the actual start of the sequence.)
-	 */
-	DEPRECATED(4.8, "FCurveSequence::PlayReverse(const float StartAtTime) is deprecated. Curve sequences must be associated with a specific widget when played. Use PlayReverse(const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime) instead.")
-	void PlayReverse( const float StartAtTime = 0.0f );
 
 	/**
 	 * Start playing this curve sequence. Registers an active timer with the widget being animated.
@@ -143,12 +127,6 @@ public:
 	/** @return the current time relative to the beginning of the sequence. */
 	float GetSequenceTime( ) const;
 
-	/** @return the current time relative to the beginning of the sequence as if the animation were a looping one. */
-	DEPRECATED(4.8, "FCurveSequence::GetSequenceTimeLooping() is deprecated. Use GetSequenceTime() instead. To play a sequence on a loop, pass \"true\" as the second parameter to Play or PlayReverse.")
-	float GetSequenceTimeLooping( ) const;
-	/** Shell to avoid generating internal deprecated warnings. Do not call. Will be removed when GetSequenceTimeLooping() is removed. */
-	float DEPRECATED_GetSequenceTimeLooping() const;
-
 	/** @return true if the animation is in reverse */
 	bool IsInReverse( ) const;
 
@@ -177,17 +155,6 @@ public:
 	 * @return A linearly interpolated value between 0 and 1 for this curve.
 	 */
 	float GetLerp() const;
-
-	/**
-	 * For single-curve animations, returns the looping interpolation alpha for the animation.  If you call this
-	 * function on a sequence with multiple curves, an assertion will trigger.
-	 *
-	 * @return A linearly interpolated value between 0 and 1 for this curve.
-	 */
-	DEPRECATED(4.8, "FCurveSequence::GetLerpLooping() is deprecated. Use GetLerp() instead. To play a sequence on a loop, pass \"true\" as the second parameter to Play or PlayReverse.")
-	float GetLerpLooping( ) const;
-	/** Shell to avoid generating internal deprecated warnings. Do not call. Will be removed when GetLerpLooping() is removed. */
-	float DEPRECATED_GetLerpLooping() const;
 
 	/**
 	 * @param CurveIndex  Index of a curve in the curves array.

@@ -1737,8 +1737,6 @@ public:
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithAPEXCloth() const override;
-	DEPRECATED(4.9, "IsUsedWithUI is now replaced by IsUIMaterial")
-	ENGINE_API virtual bool IsUsedWithUI() const override;
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const override;
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const override;
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const override;

@@ -167,7 +167,7 @@ class IToolTip;
  * 
  * SLATE_ATTRIBUTE(ECheckBoxState, IsChecked)
  *
- * DEPRECATED(4.3, "Please use IsChecked(TAttribute<ECheckBoxState>)")
+ * DEPRECATED(4.xx, "Please use IsChecked(TAttribute<ECheckBoxState>)")
  * FArguments& IsChecked(bool InIsChecked)
  * {
  * 		_IsChecked = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;

@@ -235,14 +235,6 @@ public:
 
 	// ABrush interface.
 
-	/** Returns the prepivot FVector of the RootComponent of this actor */
-	DEPRECATED(4.9, "This method has been superseded by AActor::GetPivotOffset.")
-	FVector GetPrePivot() const;
-
-	/** Set the PrePivot of the root component */
-	DEPRECATED(4.9, "This method has been superseded by AActor::SetPivotOffset.")
-	void SetPrePivot(const FVector& InPrePivot);
-
 	/** Figures out the best color to use for this brushes wireframe drawing.	*/
 	virtual FColor GetWireColor() const;
 

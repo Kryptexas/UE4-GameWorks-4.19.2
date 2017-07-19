@@ -6601,11 +6601,6 @@ int32 LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate Com
 	return LoadPackageAsync(PackageName, Guid, PackageToLoadFrom, CompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority );
 }
 
-int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, int32 InPackagePriority /*= 0*/)
-{
-	return LoadPackageAsync(InName, InGuid, InPackageToLoadFrom, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
-}
-
 void CancelAsyncLoading()
 {
 	// Cancelling async loading while loading is suspend will result in infinite stall
@@ -6689,11 +6684,6 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 		check(PackageID != INDEX_NONE || !IsAsyncLoading());
 
 	}
-}
-
-void FlushAsyncLoading(FName ExcludeType)
-{
-	FlushAsyncLoading();
 }
 
 EAsyncPackageState::Type ProcessAsyncLoadingUntilComplete(TFunctionRef<bool()> CompletionPredicate, float TimeLimit)

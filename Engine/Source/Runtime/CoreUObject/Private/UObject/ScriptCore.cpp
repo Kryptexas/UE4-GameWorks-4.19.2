@@ -2680,23 +2680,31 @@ IMPLEMENT_VM_FUNCTION( EX_SetArray, execSetArray );
 void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
 {
 	// Get the set address
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.MostRecentProperty = NULL;
-	Stack.Step( Stack.Object, NULL ); // Set to set
-	int32 Num = Stack.ReadInt<int32>();
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentProperty = nullptr;
+	Stack.Step( Stack.Object, nullptr ); // Set to set
+	const int32 Num = Stack.ReadInt<int32>();
 
 	USetProperty* SetProperty = CastChecked<USetProperty>(Stack.MostRecentProperty);
  	FScriptSetHelper SetHelper(SetProperty, Stack.MostRecentPropertyAddress);
  	SetHelper.EmptyElements(Num);
  
- 	// Read in the parameters one at a time
- 	while(*Stack.Code != EX_EndSet)
- 	{
-		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
- 		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
- 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
- 	}
-	SetHelper.Rehash();
+	if (Num > 0)
+	{
+		FDefaultConstructedPropertyElement TempElement(SetProperty->ElementProp);
+
+		// Read in the parameters one at a time
+		while (*Stack.Code != EX_EndSet)
+		{
+			// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
+			Stack.Step(Stack.Object, TempElement.GetObjAddress());
+			SetHelper.AddElement(TempElement.GetObjAddress());
+		}
+	}
+	else
+	{
+		check(*Stack.Code == EX_EndSet);
+	}
  
  	P_FINISH;
 }
@@ -2705,24 +2713,32 @@ IMPLEMENT_VM_FUNCTION( EX_SetSet, execSetSet );
 void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
 {
 	// Get the map address
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.MostRecentProperty = NULL;
-	Stack.Step( Stack.Object, NULL ); // Map to set
-	int32 Num = Stack.ReadInt<int32>();
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentProperty = nullptr;
+	Stack.Step( Stack.Object, nullptr ); // Map to set
+	const int32 Num = Stack.ReadInt<int32>();
 	
 	UMapProperty* MapProperty = CastChecked<UMapProperty>(Stack.MostRecentProperty);
  	FScriptMapHelper MapHelper(MapProperty, Stack.MostRecentPropertyAddress);
  	MapHelper.EmptyValues(Num);
  
- 	// Read in the parameters one at a time
- 	while(*Stack.Code != EX_EndMap)
- 	{
-		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over 
-		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
- 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
- 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
- 	}
-	MapHelper.Rehash();
+	if (Num > 0)
+	{
+		FDefaultConstructedPropertyElement TempKey(MapProperty->KeyProp);
+		FDefaultConstructedPropertyElement TempValue(MapProperty->ValueProp);
+
+		// Read in the parameters one at a time
+		while (*Stack.Code != EX_EndMap)
+		{
+			Stack.Step(Stack.Object, TempKey.GetObjAddress());
+			Stack.Step(Stack.Object, TempValue.GetObjAddress());
+			MapHelper.AddPair(TempKey.GetObjAddress(), TempValue.GetObjAddress());
+		}
+	}
+	else
+	{
+		check(*Stack.Code == EX_EndMap);
+	}
  
  	P_FINISH;
 }

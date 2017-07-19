@@ -1000,13 +1000,6 @@ void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedM
 	SetMovementMode(NetMovementMode, NetCustomMode);
 }
 
-// TODO: deprecated, remove
-void UCharacterMovementComponent::PerformAirControl(FVector Direction, float ZDiff)
-{
-	PerformAirControlForPathFollowing(Direction, ZDiff);
-}
-
-
 void UCharacterMovementComponent::PerformAirControlForPathFollowing(FVector Direction, float ZDiff)
 {
 	// use air control if low grav or above destination and falling towards it
@@ -2808,15 +2801,6 @@ FVector UCharacterMovementComponent::HandleSlopeBoosting(const FVector& SlideRes
 	return Result;
 }
 
-
-// TODO: deprecated, remove.
-FVector UCharacterMovementComponent::AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const
-{
-	const float ZScale = FMath::Clamp(1.f - (FMath::Abs(Hit.Normal.Z) * UpperImpactNormalScale_DEPRECATED), 0.f, 1.f);
-	return FVector(Delta.X, Delta.Y, Delta.Z * ZScale);
-}
-
-
 FVector UCharacterMovementComponent::NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const
 {
 	FVector Result = InitialVelocity;
@@ -4109,36 +4093,6 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		}
 	}
 }
-
-
-// Note: Deprecated for 4.9
-bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult)
-{
-	// Test for slope to avoid using air control to climb walls.
-	FVector TestWalk = Velocity * DeltaTime;
-	if (AdditionalTime > 0.f)
-	{
-		const FVector PostGravityVelocity = NewFallVelocity(FallVelocity, Gravity, AdditionalTime);
-		TestWalk += ((FallAcceleration * AdditionalTime) + PostGravityVelocity) * AdditionalTime;
-	}
-	
-	if (!TestWalk.IsZero())
-	{
-		FCollisionQueryParams CapsuleQuery(SCENE_QUERY_STAT(FallingTraceParam), false, CharacterOwner);
-		FCollisionResponseParams ResponseParam;
-		InitCollisionParams(CapsuleQuery, ResponseParam);
-		const FVector CapsuleLocation = UpdatedComponent->GetComponentLocation();
-		const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
-		
-		if (GetWorld()->SweepSingleByChannel(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, FQuat::Identity, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 
 FVector UCharacterMovementComponent::LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot)
 {

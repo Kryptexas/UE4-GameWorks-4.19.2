@@ -2181,10 +2181,14 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		Blueprint->bGenerateAbstractClass = (Class->ClassFlags & CLASS_Abstract) == CLASS_Abstract;	
 
 		// Add the description to the tooltip
+		static const FName NAME_Tooltip(TEXT("Tooltip"));
 		if (!Blueprint->BlueprintDescription.IsEmpty())
 		{
-			static const FName NAME_Tooltip(TEXT("Tooltip"));
 			Class->SetMetaData(NAME_Tooltip, *Blueprint->BlueprintDescription);
+		}
+		else
+		{
+			Class->RemoveMetaData(NAME_Tooltip);
 		}
 
 		// Copy the category info from the parent class

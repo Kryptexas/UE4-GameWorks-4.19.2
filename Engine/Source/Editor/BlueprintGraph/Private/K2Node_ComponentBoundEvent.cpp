@@ -133,6 +133,34 @@ FString UK2Node_ComponentBoundEvent::GetDocumentationExcerptName() const
 	return DelegatePropertyName.ToString();
 }
 
+void UK2Node_ComponentBoundEvent::ReconstructNode()
+{
+	// We need to fixup our event reference as it may have changed or been redirected
+	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+
+	// If we couldn't find the target delegate, then try to find it in the property remap table
+	if (!TargetDelegateProp)
+	{
+		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
+		if (NewProperty)
+		{
+			// Found a remapped property, update the node
+			TargetDelegateProp = NewProperty;
+			DelegatePropertyName = NewProperty->GetFName();
+			CachedNodeTitle.MarkDirty();
+		}
+	}
+
+	if (TargetDelegateProp && TargetDelegateProp->SignatureFunction)
+	{
+		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+	}
+
+	CachedNodeTitle.MarkDirty();
+
+	Super::ReconstructNode();
+}
+
 void UK2Node_ComponentBoundEvent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -140,17 +168,14 @@ void UK2Node_ComponentBoundEvent::Serialize(FArchive& Ar)
 	// Fix up legacy nodes that may not yet have a delegate pin
 	if(Ar.IsLoading())
 	{
-		bool bNeedsFixup = false;
 		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
 			DelegateOwnerClass = EventSignatureClass_DEPRECATED;
-			bNeedsFixup = true;
 		}
 
 		// Recover from the period where DelegateOwnerClass was transient
 		if (!DelegateOwnerClass && HasValidBlueprint())
 		{
-			bNeedsFixup = true;
 			// Search for a component property on the owning class, this should work in most cases
 			UBlueprint* ParentBlueprint = GetBlueprint();
 			UClass* ParentClass = ParentBlueprint ? ParentBlueprint->GeneratedClass : NULL;
@@ -166,27 +191,6 @@ void UK2Node_ComponentBoundEvent::Serialize(FArchive& Ar)
 			{
 				UE_LOG(LogBlueprint, Warning, TEXT("Repaired invalid component bound event in node %s."), *GetPathName());
 				DelegateOwnerClass = ComponentProperty->PropertyClass;
-			}
-		}
-
-		if (bNeedsFixup)
-		{
-			// We need to fixup our event reference as it may have been saved incorrectly
-			UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-			if (TargetDelegateProp && TargetDelegateProp->SignatureFunction)
-			{
-				FName ReferenceName = TargetDelegateProp->SignatureFunction->GetFName();
-				UClass* ReferenceClass = TargetDelegateProp->SignatureFunction->GetOwnerClass();
-
-				if (EventReference.GetMemberName() != ReferenceName || EventReference.GetMemberParentClass() != ReferenceClass)
-				{
-					// Set the reference if it wasn't already set properly, owner class may end up being NULL for native delegates
-					EventReference.SetExternalMember(ReferenceName, ReferenceClass);
-				}
-			}
-			else
-			{
-				UE_LOG(LogBlueprint, Warning, TEXT("Loaded invalid component bound event in node %s."), *GetPathName());
 			}
 		}
 	}

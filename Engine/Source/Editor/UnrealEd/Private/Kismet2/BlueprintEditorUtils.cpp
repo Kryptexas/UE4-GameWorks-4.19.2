@@ -208,10 +208,8 @@ static void ReplaceNode(UK2Node* OldNode, UK2Node* NewNode)
 	for (UEdGraphPin* OldPin : OldNode->Pins)
 	{
 		UEdGraphPin* NewPin = NewNode->FindPinChecked(OldPin->PinName);
-		NewPin->CopyPersistentDataFromOldPin(*OldPin);
+		NewPin->MovePersistentDataFromOldPin(*OldPin);
 	}
-
-	K2Schema->BreakNodeLinks(*OldNode);
 
 	NewNode->NodePosX = OldNode->NodePosX;
 	NewNode->NodePosY = OldNode->NodePosY;
@@ -1634,6 +1632,10 @@ void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass*
 	{
 		Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
 	}
+	else
+	{
+		Class->RemoveMetaData(TEXT("Category"));
+	}
 
 	if ((Blueprint->BlueprintType == BPTYPE_Normal) ||
 		(Blueprint->BlueprintType == BPTYPE_Const) ||
@@ -1666,6 +1668,10 @@ void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass*
 	if (AllHideCategories.Num() > 0)
 	{
 		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
+	}
+	else
+	{
+		Class->RemoveMetaData(TEXT("HideCategories"));
 	}
 }
 
@@ -2208,9 +2214,12 @@ UBlueprint* FBlueprintEditorUtils::FindBlueprintForGraphChecked(const UEdGraph* 
 
 UClass* FBlueprintEditorUtils::GetSkeletonClass(UClass* FromClass)
 {
-	if(UBlueprint* Generator = Cast<UBlueprint>(FromClass->ClassGeneratedBy))
+	if (FromClass)
 	{
-		return Generator->SkeletonGeneratedClass;
+		if (UBlueprint* Generator = Cast<UBlueprint>(FromClass->ClassGeneratedBy))
+		{
+			return Generator->SkeletonGeneratedClass;
+		}
 	}
 	return nullptr;
 }
@@ -2234,18 +2243,57 @@ UClass* FBlueprintEditorUtils::GetMostUpToDateClass(UClass* FromClass)
 	}
 }
 
+const UClass* FBlueprintEditorUtils::GetMostUpToDateClass(const UClass* FromClass)
+{
+	return GetMostUpToDateClass(const_cast<UClass*>(FromClass));
+}
+
 bool FBlueprintEditorUtils::PropertyStillExists(UProperty* Property)
 {
-	if (GBlueprintUseCompilationManager)
+	if(GBlueprintUseCompilationManager)
 	{
-		if (UClass* UpToDateClass = FBlueprintEditorUtils::GetMostUpToDateClass(Property->GetTypedOuter<UClass>()))
+		return GetMostUpToDateProperty(Property) != nullptr;
+	}
+
+	// We can't reliably know if the property still exists, but assume that it does:
+	return true;
+}
+
+UProperty* FBlueprintEditorUtils::GetMostUpToDateProperty(UProperty* Property)
+{
+	if(const UClass* OwningClass = Property->GetTypedOuter<UClass>())
+	{
+		const UClass* UpToDateClass = GetMostUpToDateClass(OwningClass);
+		if (UpToDateClass && UpToDateClass != OwningClass)
 		{
-			return (UpToDateClass->FindPropertyByName(Property->GetFName()) != nullptr);
+			Property = UpToDateClass->FindPropertyByName(Property->GetFName());
 		}
 	}
 
-	// We can't reliably know if the property still exists, but assume that it does
-	return true;
+	return Property;
+}
+
+const UProperty* FBlueprintEditorUtils::GetMostUpToDateProperty(const UProperty* Property)
+{
+	return GetMostUpToDateProperty(const_cast<UProperty*>(Property));
+}
+
+UFunction* FBlueprintEditorUtils::GetMostUpToDateFunction(UFunction* Function)
+{
+	if(const UClass* OwningClass = Function->GetTypedOuter<UClass>())
+	{
+		const UClass* UpToDateClass = GetMostUpToDateClass(OwningClass);
+		if (UpToDateClass && UpToDateClass != OwningClass)
+		{
+			Function = UpToDateClass->FindFunctionByName(Function->GetFName());
+		}
+	}
+	return Function;
+}
+
+const UFunction* FBlueprintEditorUtils::GetMostUpToDateFunction(const UFunction* Function)
+{
+	return GetMostUpToDateFunction(const_cast<UFunction*>(Function));
 }
 
 bool FBlueprintEditorUtils::IsGraphNameUnique(UBlueprint* Blueprint, const FName& InName)
@@ -5747,6 +5795,8 @@ void FBlueprintEditorUtils::PurgeNullGraphs(UBlueprint* Blueprint)
 	CleanNullGraphReferencesInArray(Blueprint, Blueprint->FunctionGraphs);
 	CleanNullGraphReferencesInArray(Blueprint, Blueprint->DelegateSignatureGraphs);
 	CleanNullGraphReferencesInArray(Blueprint, Blueprint->MacroGraphs);
+
+	Blueprint->LastEditedDocuments.RemoveAll([](const FEditedDocumentInfo& TestDoc) { return TestDoc.EditedObject == nullptr; });
 }
 
 // Makes sure that calls to parent functions are valid, and removes them if not
@@ -8028,7 +8078,7 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 		}
 	}
 
-	bool bSuccedded = true;
+	bool bSucceeded = true;
 	if (OutForm.IsEmpty())
 	{
 		const uint8* DefaultValue = DirectValue;
@@ -8041,9 +8091,9 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 			DefaultValue = StructOnScope.GetStructMemory();
 		}
 		
-		bSuccedded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, PPF_SerializedAsImportText);
+		bSucceeded = Property->ExportText_Direct(OutForm, DirectValue, DefaultValue, nullptr, PPF_SerializedAsImportText);
 	}
-	return bSuccedded;
+	return bSucceeded;
 }
 
 FName FBlueprintEditorUtils::GenerateUniqueGraphName(UBlueprint* const BlueprintOuter, FString const& ProposedName)

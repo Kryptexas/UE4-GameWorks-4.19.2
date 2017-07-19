@@ -13,6 +13,7 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/Paths.h"
 #include "AssetRegistryState.h"
+#include "HAL/PlatformFilemanager.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -102,6 +103,8 @@ UAssetManager::UAssetManager()
 	bIsGlobalAsyncScanEnvironment = false;
 	bShouldGuessTypeAndName = false;
 	bShouldUseSynchronousLoad = false;
+	bIsLoadingFromPakFiles = false;
+	bShouldAcquireMissingChunksOnLoad = false;
 	bIsBulkScanning = false;
 	bIsManagementDatabaseCurrent = false;
 	bUpdateManagementDatabaseAfterScan = false;
@@ -133,11 +136,17 @@ void UAssetManager::PostInitProperties()
 		FEditorDelegates::EndPIE.AddUObject(this, &UAssetManager::EndPIE);
 
 		// In editor builds guess the type/name if allowed
-		bShouldGuessTypeAndName = GetSettings().bShouldGuessTypeAndNameInEditor;
+		bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
+		bOnlyCookProductionAssets = Settings.bOnlyCookProductionAssets;
 #else 
 		// Never guess type in cooked builds
 		bShouldGuessTypeAndName = false;
+
+		// Only cooked builds supoprt pak files and chunk download
+		bIsLoadingFromPakFiles = FPlatformFileManager::Get().FindPlatformFile(TEXT("PakFile")) != nullptr;
+		bShouldAcquireMissingChunksOnLoad = Settings.bShouldAcquireMissingChunksOnLoad;
 #endif
+		
 		bShouldUseSynchronousLoad = IsRunningCommandlet();
 
 		LoadRedirectorMaps();
@@ -931,7 +940,7 @@ void UAssetManager::GetPrimaryAssetTypeInfoList(TArray<FPrimaryAssetTypeInfo>& A
 
 TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToChange, const TArray<FName>& AddBundles, const TArray<FName>& RemoveBundles, bool bRemoveAllBundles, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
 {
-	TArray<TSharedPtr<FStreamableHandle> > NewHandles;
+	TArray<TSharedPtr<FStreamableHandle> > NewHandles, ExistingHandles;
 	TArray<FPrimaryAssetId> NewAssets;
 	TSharedPtr<FStreamableHandle> ReturnHandle;
 
@@ -970,6 +979,8 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 			{
 				if (NameData->PendingState.BundleNames == NewBundleState)
 				{
+					// This will wait on any existing handles to finish
+					ExistingHandles.Add(NameData->PendingState.Handle);
 					continue;
 				}
 				// Clear pending state
@@ -1026,15 +1037,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 				DebugName += TEXT(")");
 			}
 
-			// Create the per asset handle
-			if (bShouldUseSynchronousLoad)
-			{
-				NewHandle = StreamableManager.RequestSyncLoad(PathsToLoad.Array(), false, DebugName);
-			}
-			else
-			{
-				NewHandle = StreamableManager.RequestAsyncLoad(PathsToLoad.Array(), FStreamableDelegate(), Priority, false, DebugName);
-			}
+			NewHandle = LoadAssetList(PathsToLoad.Array(), FStreamableDelegate(), Priority, DebugName);
 
 			if (!ensureMsgf(NewHandle.IsValid(), TEXT("Requested load of Primary Asset with no referenced assets!")))
 			{
@@ -1061,9 +1064,11 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 		}
 	}
 
-	if (NewHandles.Num() > 1)
+	if (NewHandles.Num() > 1 || ExistingHandles.Num() > 0)
 	{
-		// If multiple handles, need to make wrapper handle
+		// If multiple handles or we have an old handle, need to make wrapper handle
+		NewHandles.Append(ExistingHandles);
+
 		ReturnHandle = StreamableManager.CreateCombinedHandle(NewHandles, FString::Printf(TEXT("%s CreateCombinedHandle"), *GetName()));
 
 		// Call delegate or bind to meta handle
@@ -1172,15 +1177,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<F
 		}
 	}
 
-	if (bShouldUseSynchronousLoad)
-	{
-		ReturnHandle = StreamableManager.RequestSyncLoad(PathsToLoad.Array(), false, DebugName);
-		FStreamableHandle::ExecuteDelegate(DelegateToCall);
-	}
-	else
-	{
-		ReturnHandle = StreamableManager.RequestAsyncLoad(PathsToLoad.Array(), DelegateToCall, Priority, false, DebugName);
-	}
+	ReturnHandle = LoadAssetList(PathsToLoad.Array(), DelegateToCall, Priority, DebugName);
 
 	if (!ensureMsgf(ReturnHandle.IsValid(), TEXT("Requested preload of Primary Asset with no referenced assets!")))
 	{
@@ -1371,9 +1368,39 @@ int32 UAssetManager::UnloadPrimaryAssetsWithType(FPrimaryAssetType PrimaryAssetT
 	return UnloadPrimaryAssets(Assets);
 }
 
-TSharedPtr<FStreamableHandle> UAssetManager::LoadAssetList(const TArray<FStringAssetReference>& AssetList)
+TSharedPtr<FStreamableHandle> UAssetManager::LoadAssetList(const TArray<FStringAssetReference>& AssetList, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority, const FString& DebugName)
 {
-	return GetStreamableManager().RequestAsyncLoad(AssetList, FStreamableDelegate(), FStreamableManager::DefaultAsyncLoadPriority, false);
+	TSharedPtr<FStreamableHandle> NewHandle;
+	TArray<int32> MissingChunks, ErrorChunks;
+
+	if (bShouldAcquireMissingChunksOnLoad)
+	{
+		FindMissingChunkList(AssetList, MissingChunks, ErrorChunks);
+
+		if (ErrorChunks.Num() > 0)
+		{
+			// At least one chunk doesn't exist, fail
+			UE_LOG(LogAssetManager, Error, TEXT("Failure loading %s, Required chunk %d does not exist!"), *DebugName, ErrorChunks[0]);
+			return nullptr;
+		}
+	}
+
+	// SynchronousLoad doesn't make sense if chunks are missing
+	if (bShouldUseSynchronousLoad && MissingChunks.Num() > 0)
+	{
+		NewHandle = StreamableManager.RequestSyncLoad(AssetList, false, DebugName);
+	}
+	else
+	{
+		NewHandle = StreamableManager.RequestAsyncLoad(AssetList, DelegateToCall, Priority, false, MissingChunks.Num() > 0, DebugName);
+
+		if (MissingChunks.Num() > 0 && NewHandle.IsValid())
+		{
+			AcquireChunkList(MissingChunks, FAssetManagerAcquireResourceDelegate(), EChunkPriority::Immediate, NewHandle);
+		}
+	}
+
+	return NewHandle;
 }
 
 FAssetBundleEntry UAssetManager::GetAssetBundleEntry(const FPrimaryAssetId& BundleScope, FName BundleName) const
@@ -1409,6 +1436,242 @@ bool UAssetManager::GetAssetBundleEntries(const FPrimaryAssetId& BundleScope, TA
 		}
 	}
 	return bFoundAny;
+}
+
+bool UAssetManager::FindMissingChunkList(const TArray<FStringAssetReference>& AssetList, TArray<int32>& OutMissingChunkList, TArray<int32>& OutErrorChunkList) const
+{
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	if (!ChunkInstall || !bIsLoadingFromPakFiles)
+	{
+		return false;
+	}
+
+	for (const FStringAssetReference& Asset : AssetList)
+	{
+		FAssetData FoundData;
+		GetAssetDataForPath(Asset, FoundData);
+		
+		TSet<int32> FoundChunks, MissingChunks, ErrorChunks;
+
+		for (int32 ChunkId : FoundData.ChunkIDs)
+		{
+			EChunkLocation::Type ChunkLocation = ChunkInstall->GetChunkLocation(ChunkId);
+
+			switch (ChunkLocation)
+			{			
+			case EChunkLocation::DoesNotExist:
+				ErrorChunks.Add(ChunkId);
+				break;
+			case EChunkLocation::NotAvailable:
+				MissingChunks.Add(ChunkId);
+				break;
+			case EChunkLocation::LocalSlow:
+			case EChunkLocation::LocalFast:
+				FoundChunks.Add(ChunkId);
+				break;
+			}
+		}
+
+		// Assets may be redundantly in multiple chunks, if we have any of the chunks then we have the asset
+		if (FoundChunks.Num() == 0)
+		{
+			if (MissingChunks.Num() > 0)
+			{
+				int32 MissingChunkToAdd = -1;
+
+				for (int32 MissingChunkId : MissingChunks)
+				{
+					if (OutMissingChunkList.Contains(MissingChunkId))
+					{
+						// This chunk is already scheduled, don't add a new one
+						MissingChunkToAdd = -1;
+						break;
+					}
+					else if (MissingChunkToAdd == -1)
+					{
+						// Add the first mentioned missing chunk
+						MissingChunkToAdd = MissingChunkId;
+					}
+				}
+
+				if (MissingChunkToAdd != -1)
+				{
+					OutMissingChunkList.Add(MissingChunkToAdd);
+				}
+			}
+			else if (ErrorChunks.Num() > 0)
+			{
+				// Only have error chunks, report the errors
+				for (int32 ErrorChunkId : ErrorChunks)
+				{
+					OutErrorChunkList.Add(ErrorChunkId);
+				}
+			}
+		}
+	}
+
+	return OutMissingChunkList.Num() > 0 || OutErrorChunkList.Num() > 0;
+}
+
+void UAssetManager::AcquireChunkList(const TArray<int32>& ChunkList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority, TSharedPtr<FStreamableHandle> StalledHandle)
+{
+	FPendingChunkInstall* PendingChunkInstall = new(PendingChunkInstalls) FPendingChunkInstall;
+	PendingChunkInstall->ManualCallback = CompleteDelegate;
+	PendingChunkInstall->RequestedChunks = ChunkList;
+	PendingChunkInstall->PendingChunks = ChunkList;
+	PendingChunkInstall->StalledStreamableHandle = StalledHandle;
+
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	if (!ChunkInstallDelegateHandle.IsValid())
+	{
+		ChunkInstallDelegateHandle = ChunkInstall->AddChunkInstallDelegate(FPlatformChunkInstallDelegate::CreateUObject(this, &ThisClass::OnChunkDownloaded));
+	}
+
+	for (int32 MissingChunk : PendingChunkInstall->PendingChunks)
+	{
+		ChunkInstall->PrioritizeChunk(MissingChunk, Priority);
+	}
+}
+
+void UAssetManager::AcquireResourcesForAssetList(const TArray<FStringAssetReference>& AssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority)
+{
+	TArray<int32> MissingChunks, ErrorChunks;
+
+	FindMissingChunkList(AssetList, MissingChunks, ErrorChunks);
+
+	if (ErrorChunks.Num() > 0)
+	{
+		// At least one chunk doesn't exist, fail
+		FStreamableDelegate TempDelegate = FStreamableDelegate::CreateLambda([CompleteDelegate]() {CompleteDelegate.ExecuteIfBound(false); });
+		FStreamableHandle::ExecuteDelegate(TempDelegate);
+
+		return;
+	}
+
+	if (MissingChunks.Num() == 0)
+	{
+		// All here, schedule the callback
+		FStreamableDelegate TempDelegate = FStreamableDelegate::CreateLambda([CompleteDelegate]() {CompleteDelegate.ExecuteIfBound(true); });
+		FStreamableHandle::ExecuteDelegate(TempDelegate);
+
+		return;
+	}
+	
+	AcquireChunkList(MissingChunks, CompleteDelegate, Priority, nullptr);
+}
+
+void UAssetManager::AcquireResourcesForPrimaryAssetList(const TArray<FPrimaryAssetId>& PrimaryAssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority)
+{
+	TSet<FStringAssetReference> PathsToLoad;
+	TSharedPtr<FStreamableHandle> ReturnHandle;
+
+	for (const FPrimaryAssetId& PrimaryAssetId : PrimaryAssetList)
+	{
+		FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
+
+		if (NameData)
+		{
+			// Gather asset refs
+			const FStringAssetReference& AssetPath = NameData->AssetPtr.ToStringReference();
+
+			if (!AssetPath.IsNull())
+			{
+				// Dynamic types can have no base asset path
+				PathsToLoad.Add(AssetPath);
+			}
+
+			TArray<FAssetBundleEntry> BundleEntries;
+			GetAssetBundleEntries(PrimaryAssetId, BundleEntries);
+			for (const FAssetBundleEntry& Entry : BundleEntries)
+			{
+				if (Entry.IsValid())
+				{
+					PathsToLoad.Append(Entry.BundleAssets);
+				}
+			}
+		}
+	}
+
+	AcquireResourcesForAssetList(PathsToLoad.Array(), CompleteDelegate, Priority);
+}
+
+bool UAssetManager::GetResourceAcquireProgress(int32& OutAcquiredCount, int32& OutRequestedCount) const
+{
+	OutAcquiredCount = OutRequestedCount = 0;
+	// Iterate pending callbacks, in order they were added
+	for (const FPendingChunkInstall& PendingChunkInstall : PendingChunkInstalls)
+	{
+		OutRequestedCount += PendingChunkInstall.RequestedChunks.Num();
+		OutAcquiredCount += (PendingChunkInstall.RequestedChunks.Num() - PendingChunkInstall.PendingChunks.Num());
+	}
+
+	return PendingChunkInstalls.Num() > 0;
+}
+
+void UAssetManager::OnChunkDownloaded(uint32 ChunkId, bool bSuccess)
+{
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+
+	// Iterate pending callbacks, in order they were added
+	for (int32 i = 0; i < PendingChunkInstalls.Num(); i++)
+	{
+		// Make a copy so if we resize the array it's safe
+		FPendingChunkInstall PendingChunkInstall = PendingChunkInstalls[i];
+		if (PendingChunkInstall.PendingChunks.Contains(ChunkId))
+		{
+			bool bFailed = !bSuccess;
+			TArray<int32> NewPendingList;
+			
+			// Check all chunks if they are done or failed
+			for (int32 PendingChunkId : PendingChunkInstall.PendingChunks)
+			{
+				EChunkLocation::Type ChunkLocation = ChunkInstall->GetChunkLocation(PendingChunkId);
+
+				switch (ChunkLocation)
+				{
+				case EChunkLocation::DoesNotExist:
+					bFailed = true;
+					break;
+				case EChunkLocation::NotAvailable:
+					NewPendingList.Add(PendingChunkId);
+					break;
+				}
+			}
+
+			if (bFailed)
+			{
+				// Resize array first
+				PendingChunkInstalls.RemoveAt(i);
+				i--;
+
+				if (PendingChunkInstall.StalledStreamableHandle.IsValid())
+				{
+					PendingChunkInstall.StalledStreamableHandle->CancelHandle();
+				}
+
+				PendingChunkInstall.ManualCallback.ExecuteIfBound(false);
+			}
+			else if (NewPendingList.Num() == 0)
+			{
+				// Resize array first
+				PendingChunkInstalls.RemoveAt(i);
+				i--;
+
+				if (PendingChunkInstall.StalledStreamableHandle.IsValid())
+				{
+					PendingChunkInstall.StalledStreamableHandle->StartStalledHandle();
+				}
+
+				PendingChunkInstall.ManualCallback.ExecuteIfBound(true);
+			}
+			else
+			{
+				PendingChunkInstalls[i].PendingChunks = NewPendingList;
+			}
+		}
+	}
 }
 
 FPrimaryAssetData* UAssetManager::GetNameData(const FPrimaryAssetId& PrimaryAssetId, bool bCheckRedirector)
@@ -1682,7 +1945,7 @@ bool UAssetManager::GetAssetDataForPath(const FStringAssetReference& ObjectPath,
 
 FStringAssetReference UAssetManager::GetAssetPathForData(const FAssetData& AssetData) const
 {
-	FString AssetPath = AssetData.ObjectPath.ToString();
+	FString AssetPath = AssetData.IsValid() ? AssetData.ObjectPath.ToString() : FString();
 
 	// All blueprint types end with blueprint as the class, there is no better test unfortunately
 	if (AssetData.AssetClass.ToString().EndsWith(TEXT("Blueprint")))
@@ -1698,12 +1961,14 @@ void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, c
 	// We're a class if our path is foo.foo_C
 	bool bIsClass = AssetPath.EndsWith(TEXT("_C"), ESearchCase::CaseSensitive) && !AssetPath.Contains(TEXT("_C."), ESearchCase::CaseSensitive);
 
+	const bool bIncludeOnlyOnDiskAssets = !GIsEditor;
+
 	// If we're a class, first look for the asset data without the trailing _C
 	// We do this first because in cooked builds you have to search the asset registry for the Blueprint, not the class itself
 	if (bIsClass)
 	{
 		// We need to strip the class suffix because the asset registry has it listed by blueprint name
-		const bool bIncludeOnlyOnDiskAssets = !GIsEditor;
+		
 		OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath.LeftChop(2)), bIncludeOnlyOnDiskAssets);
 
 		if (OutAssetData.IsValid())
@@ -1712,7 +1977,7 @@ void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, c
 		}
 	}
 
-	OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath));
+	OutAssetData = AssetRegistry.GetAssetByObjectPath(FName(*AssetPath), bIncludeOnlyOnDiskAssets);
 }
 
 bool UAssetManager::WriteCustomReport(FString FileName, TArray<FString>& FileLines) const
@@ -2465,8 +2730,6 @@ EPrimaryAssetCookRule UAssetManager::GetPackageCookRule(FName PackageName) const
 
 bool UAssetManager::VerifyCanCookPackage(FName PackageName, bool bLogError) const
 {
-	const UAssetManagerSettings& Settings = GetSettings();
-
 	EPrimaryAssetCookRule CookRule = UAssetManager::Get().GetPackageCookRule(PackageName);
 	if (CookRule == EPrimaryAssetCookRule::NeverCook)
 	{
@@ -2477,7 +2740,7 @@ bool UAssetManager::VerifyCanCookPackage(FName PackageName, bool bLogError) cons
 		
 		return false;
 	}
-	else if (CookRule == EPrimaryAssetCookRule::DevelopmentCook && Settings.bOnlyCookProductionAssets)
+	else if (CookRule == EPrimaryAssetCookRule::DevelopmentCook && bOnlyCookProductionAssets)
 	{
 		if (bLogError)
 		{
@@ -2610,12 +2873,18 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 
 void UAssetManager::ReinitializeFromConfig()
 {
+	// We specifically do not reset AssetRuleOverrides as those can be set by something other than inis
 	AssetPathMap.Reset();
-	AssetRuleOverrides.Reset();
 	ManagementParentMap.Reset();
 	CachedAssetBundles.Reset();
 	AlreadyScannedDirectories.Reset();
 	AssetTypeMap.Reset();
+
+	// This code is editor only, so reinitialize globals
+	const UAssetManagerSettings& Settings = GetSettings();
+	bShouldGuessTypeAndName = Settings.bShouldGuessTypeAndNameInEditor;
+	bShouldAcquireMissingChunksOnLoad = Settings.bShouldAcquireMissingChunksOnLoad;
+	bOnlyCookProductionAssets = Settings.bOnlyCookProductionAssets;
 
 	LoadRedirectorMaps();
 	ScanPrimaryAssetTypesFromConfig();
@@ -2645,7 +2914,7 @@ void UAssetManager::OnInMemoryAssetCreated(UObject *Object)
 
 			GetAssetDataForPathInternal(AssetRegistry, Object->GetPathName(), NewAssetData);
 
-			if (ensure(NewAssetData.IsValid()))
+			if (NewAssetData.IsValid())
 			{
 				// Make sure it's in a valid path
 				bool bFoundPath = false;
