@@ -325,8 +325,8 @@ public:
 	
 	FReply OnAddNewInputClicked();
 
-	/** Called when blueprint graph changes */
-	void OnGraphChanged(const FEdGraphEditAction& Action);
+	/** Called when blueprint changes */
+	void OnPostEditorRefresh();
 
 protected:
 	/** Tries to create the result node (if there are output args) */
@@ -349,7 +349,7 @@ protected:
 	IDetailLayoutBuilder* DetailsLayoutPtr;
 
 	/** Handle for graph refresh delegate */
-	FDelegateHandle MyRegisteredGraphChangedDelegateHandle;
+	FDelegateHandle BlueprintEditorRefreshDelegateHandle;
 	
 	/** Array of nodes were were constructed to represent */
 	TArray< TWeakObjectPtr<UObject> > ObjectsBeingEdited;

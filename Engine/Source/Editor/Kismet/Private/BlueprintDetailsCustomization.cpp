@@ -3538,9 +3538,13 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 		}
 	}
 
-	if (bHasAGraph)
+	if (MyBlueprint.IsValid())
 	{
-		MyRegisteredGraphChangedDelegateHandle = GetGraph()->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateSP(this, &FBaseBlueprintGraphActionDetails::OnGraphChanged));
+		TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+		if (BlueprintEditor.IsValid())
+		{
+			BlueprintEditorRefreshDelegateHandle = BlueprintEditor.Pin()->OnRefresh().AddSP(this, &FBlueprintGraphActionDetails::OnPostEditorRefresh);
+		}
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -3628,17 +3632,22 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 
 FBaseBlueprintGraphActionDetails::~FBaseBlueprintGraphActionDetails()
 {
-	UEdGraph* MyGraph = GetGraph();
-	if (MyRegisteredGraphChangedDelegateHandle.IsValid() && MyGraph)
+	if (BlueprintEditorRefreshDelegateHandle.IsValid() && MyBlueprint.IsValid())
 	{
-		MyGraph->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
+		// Remove the callback delegate we registered for
+		TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+		if (BlueprintEditor.IsValid())
+		{
+			BlueprintEditor.Pin()->OnRefresh().Remove(BlueprintEditorRefreshDelegateHandle);
+		}
 	}
 }
 
-void FBaseBlueprintGraphActionDetails::OnGraphChanged(const FEdGraphEditAction& Action)
+void FBaseBlueprintGraphActionDetails::OnPostEditorRefresh()
 {
-	/** Graph changed, need to refresh inputs in case pin UI changed */
+	/** Blueprint changed, need to refresh inputs in case pin UI changed */
 	RegenerateInputsChildrenDelegate.ExecuteIfBound();
+	RegenerateOutputsChildrenDelegate.ExecuteIfBound();
 }
 
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
