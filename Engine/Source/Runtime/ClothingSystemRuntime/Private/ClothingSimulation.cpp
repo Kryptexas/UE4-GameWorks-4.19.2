@@ -147,38 +147,52 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, f
 
 	if(USkinnedMeshComponent* MasterComponent = InComponent->MasterPoseComponent.Get())
 	{
-		const int32 NumBones = InComponent->MasterBoneMap.Num();
+		int32 NumBones = InComponent->MasterBoneMap.Num();
 
-		BaseContext->BoneTransforms.Empty(NumBones);
-		BaseContext->BoneTransforms.AddDefaulted(NumBones);
-
-		for(int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+		if(NumBones == 0)
 		{
-			bool bFoundMaster = false;
-			if(InComponent->MasterBoneMap.IsValidIndex(BoneIndex))
+			if(InComponent->SkeletalMesh)
 			{
-				const int32 MasterIndex = InComponent->MasterBoneMap[BoneIndex];
+				// This case indicates an invalid master pose component (e.g. no skeletal mesh)
+				NumBones = InComponent->SkeletalMesh->RefSkeleton.GetNum();
 
-				if(MasterIndex != INDEX_NONE)
-				{
-					BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[MasterIndex];
-					bFoundMaster = true;
-				}
+				BaseContext->BoneTransforms.Empty(NumBones);
+				BaseContext->BoneTransforms.AddDefaulted(NumBones);
 			}
+		}
+		else
+		{
+			BaseContext->BoneTransforms.Empty(NumBones);
+			BaseContext->BoneTransforms.AddDefaulted(NumBones);
 
-			if(!bFoundMaster)
+			for(int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 			{
-				if(SkelMesh)
+				bool bFoundMaster = false;
+				if(InComponent->MasterBoneMap.IsValidIndex(BoneIndex))
 				{
-					const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
+					const int32 MasterIndex = InComponent->MasterBoneMap[BoneIndex];
 
-					if(ParentIndex != INDEX_NONE)
+					if(MasterIndex != INDEX_NONE)
 					{
-						BaseContext->BoneTransforms[BoneIndex] = BaseContext->BoneTransforms[ParentIndex] * SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+						BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[MasterIndex];
+						bFoundMaster = true;
 					}
-					else
+				}
+
+				if(!bFoundMaster)
+				{
+					if(SkelMesh)
 					{
-						BaseContext->BoneTransforms[BoneIndex] = SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+						const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
+
+						if(ParentIndex != INDEX_NONE)
+						{
+							BaseContext->BoneTransforms[BoneIndex] = BaseContext->BoneTransforms[ParentIndex] * SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+						}
+						else
+						{
+							BaseContext->BoneTransforms[BoneIndex] = SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+						}
 					}
 				}
 			}

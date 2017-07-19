@@ -814,11 +814,22 @@ FBoxSphereBounds FClothingSimulationNv::GetBounds(const USkeletalMeshComponent* 
 
 			if(bUsingMaster)
 			{
-				check(SimBoneIndex < InOwnerComponent->GetMasterBoneMap().Num());
-				SimBoneIndex = InOwnerComponent->GetMasterBoneMap()[SimBoneIndex];
+				if(SimBoneIndex < InOwnerComponent->GetMasterBoneMap().Num())
+				{
+					SimBoneIndex = InOwnerComponent->GetMasterBoneMap()[SimBoneIndex];
+					
+					if(SimBoneIndex == INDEX_NONE)
+					{
+						SimBoneIndex = 0;
+					}
+				}
+				else
+				{
+					SimBoneIndex = INDEX_NONE;
+				}
 			}
 
-			FTransform SimBoneTransformCS = ActualComponent->GetComponentSpaceTransforms()[SimBoneIndex];
+			FTransform SimBoneTransformCS = SimBoneIndex != INDEX_NONE ? ActualComponent->GetComponentSpaceTransforms()[SimBoneIndex] : FTransform::Identity;
 
 			const FClothingActorNv::FActorLodData& LodData = Actor.LodData[Actor.CurrentLodIndex];
 	
