@@ -165,9 +165,6 @@ void FGenericPlatformProcess::AddShaderSourceDirectoryMapping(const FString& Vir
 	check(!VirtualShaderDirectory.EndsWith(TEXT("/")));
 	check(!VirtualShaderDirectory.Contains(FString(TEXT("."))));
 
-	// Do sanity checks of the real shader directory to map.
-	check(FPaths::IsRelative(RealShaderDirectory));
-
 	// Detect collisions with any other mappings.
 	check(!GShaderSourceDirectoryMappings.Contains(VirtualShaderDirectory));
 

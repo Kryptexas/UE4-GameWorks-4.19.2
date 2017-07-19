@@ -346,8 +346,6 @@ static FString GetShaderSourceFilePath(const FString& VirtualFilePath)
 	// Make sure a directory mapping has matched.
 	checkf(!RealFilePath.IsEmpty(), TEXT("Could not map virtual shader source path \"%s\"."), *VirtualFilePath);
 	
-	// Normally, the return should be a relative path from process's base dir.
-	check(FPaths::IsRelative(RealFilePath));
 	return RealFilePath;
 }
 
