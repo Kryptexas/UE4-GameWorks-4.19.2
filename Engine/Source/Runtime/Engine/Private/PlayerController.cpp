@@ -4129,8 +4129,11 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 							const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
 							if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
 							{
-								NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+								// We are setting the ServerData timestamp BEFORE updating position below since that may cause ServerData to become deleted (like if the pawn was unpossessed as a result of the move)
+								// Also null the pointer to make sure no one accidentally starts using it below the call to ForcePositionUpdate
 								ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+								ServerData = nullptr;
+								NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
 							}
 						}
 					}
