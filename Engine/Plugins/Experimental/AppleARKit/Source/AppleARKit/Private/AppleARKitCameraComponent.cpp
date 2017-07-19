@@ -91,6 +91,8 @@ bool UAppleARKitCameraComponent::HitTestAtScreenPosition( const FVector2D Screen
 
 void UAppleARKitCameraComponent::SetOrientationAndPosition( const FRotator& Orientation, const FVector& Position )
 {
+	const bool bHasValidSession = (Session && Session->IsRunning());
+
 	// First transform from world desired orientation & position to local space as we can't 
 	FTransform WorldDesired = FTransform( Orientation, Position, GetComponentScale() );
 	FTransform LocalDesired = GetAttachParent() ? WorldDesired * GetAttachParent()->GetComponentTransform().Inverse() : WorldDesired;
@@ -99,14 +101,14 @@ void UAppleARKitCameraComponent::SetOrientationAndPosition( const FRotator& Orie
 	// camera transform to the desired one. This BaseTransform will then be pre-applied to
 	// subsequent frames, by the Session, to correct the camera into the desired orientation
 	// & position.
-	FTransform BaseTransform = ( GetRelativeTransform() * Session->GetBaseTransform().Inverse() ).Inverse() * LocalDesired;
+	FTransform BaseTransform = ( GetRelativeTransform() * (bHasValidSession ? Session->GetBaseTransform().Inverse() : FTransform::Identity) ).Inverse() * LocalDesired;
 
 	// Force the new orientation & position to account for non-IOS platforms that won't receive new 
 	// transforms during Tick with the new BaseTransform applied.
 	SetWorldTransform( FTransform( Orientation, Position, GetComponentScale() ) );
 
 	// Check the session is running
-	if ( !Session || !Session->IsRunning() )
+	if ( !bHasValidSession )
 	{
 		UE_LOG( LogAppleARKit, Warning, TEXT("%s SetOrientationAndPosition called while session not running"), *GetName() );
 		return;
@@ -168,7 +170,7 @@ void UAppleARKitCameraComponent::TickComponent( float DeltaTime, enum ELevelTick
 		}
 
 		// Update field of view
-		if ( CurrentFrame->Camera.GetHorizontalFieldOfView() > 0 && GEngine->GameViewport )
+		if ( CurrentFrame->Camera.GetHorizontalFieldOfView() > 0 && GEngine && GEngine->GameViewport )
 		{
 			// Get viewport size
 			FVector2D ViewportSize;
