@@ -7,6 +7,8 @@
   <Justification>Alembic is a popular format we would like to support, and a good way to import vertex animation.</Justification>
   <Eula>https://alembic.googlecode.com/hg/LICENSE.txt</Eula>
   <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
   <LicenseFolder>/Engine/Source/ThirdParty/Licenses/Alembic*</LicenseFolder>

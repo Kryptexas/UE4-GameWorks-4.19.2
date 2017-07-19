@@ -5,7 +5,7 @@
   <Date>2016-06-09T17:05:24.8627086-04:00</Date>
   <Function>Allows users to integrate Facebook Login, Sharing etc into their game/app</Function>
   <Justification>External provider authentication of users and access to social features provided by Facebook</Justification>
-  <Eula>1</Eula>
+  <Eula>https://github.com/facebook/facebook-ios-sdk/blob/sdk-version-4.0.1/LICENSE</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

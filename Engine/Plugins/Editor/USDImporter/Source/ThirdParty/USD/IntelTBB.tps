@@ -3,7 +3,7 @@
   <Name />
   <Location>/Engine/Plugins/Editor/USDImporter/Source/ThirdParty/USD/include/tbb/</Location>
   <Notification>
-Redirect: ../../../../../../../../Source/ThirdParty/IntelTBB/IntelTBB.tps
+Redirect: ../../../../../../Source/ThirdParty/IntelTBB/IntelTBB.tps
   </Notification>
   <LicenseFolder />
 </TpsData>
