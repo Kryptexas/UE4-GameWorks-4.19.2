@@ -198,6 +198,13 @@ namespace Audio
 		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Closed);
 	}
 
+	void IAudioMixerPlatformInterface::FadeIn()
+	{
+		bFadingIn = true;
+		bFadingOut = false;
+		bFadedOut = false;
+	}
+
 	void IAudioMixerPlatformInterface::FadeOut()
 	{
 		if (FadeEnvelopeValue == 0.0f)

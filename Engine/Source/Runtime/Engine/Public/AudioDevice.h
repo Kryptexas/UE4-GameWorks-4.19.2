@@ -548,8 +548,9 @@ public:
 	/** Update the active sound playback time. This is done here to do after all audio is updated. */
 	void UpdateActiveSoundPlaybackTime(bool bIsTimeTicking);
 
-	/** Optional fadeout of audio to avoid clicks when closing audio device. */
+	/** Optional fadeout and fade in of audio to avoid clicks when closing or opening/reusing audio device. */
 	virtual void FadeOut() {}
+	virtual void FadeIn() {}
 
 	/**
 	 * Stop all the audio components and sources attached to the world. nullptr world means all components.

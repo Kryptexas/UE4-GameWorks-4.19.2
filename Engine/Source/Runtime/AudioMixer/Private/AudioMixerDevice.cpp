@@ -199,9 +199,20 @@ namespace Audio
 		return false;
 	}
 
+	void FMixerDevice::FadeIn()
+	{
+		AudioMixerPlatform->FadeIn();
+	}
+
 	void FMixerDevice::FadeOut()
 	{
-		AudioMixerPlatform->FadeOut();
+		// In editor builds, we aren't going to fade out the main audio device.
+#if WITH_EDITOR
+		if (!IsMainAudioDevice())
+#endif
+		{
+			AudioMixerPlatform->FadeOut();
+		}
 	}
 
 	void FMixerDevice::TeardownHardware()
