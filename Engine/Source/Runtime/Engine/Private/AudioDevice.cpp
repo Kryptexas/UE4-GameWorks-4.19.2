@@ -3427,13 +3427,14 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		return;
 	}
 
-#if WITH_EDITOR
-	// If the sound played on an editor preview world, treat it as a preview sound (unpausable and ignoring the realtime volume slider)
-	if (const UWorld* World = NewActiveSound.GetWorld())
+	if (GIsEditor)
 	{
-		ActiveSound->bIsPreviewSound = (World->WorldType == EWorldType::EditorPreview);
+		// If the sound played on an editor preview world, treat it as a preview sound (unpausable and ignoring the realtime volume slider)
+		if (const UWorld* World = NewActiveSound.GetWorld())
+		{
+			ActiveSound->bIsPreviewSound = (World->WorldType == EWorldType::EditorPreview);
+		}
 	}
-#endif
 
 	++NewActiveSound.Sound->CurrentPlayCount;
 
