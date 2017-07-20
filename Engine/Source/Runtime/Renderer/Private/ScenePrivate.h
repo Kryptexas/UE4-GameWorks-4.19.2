@@ -489,11 +489,11 @@ public:
 		{
 		}
 
-		FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow)
+		FProjectedShadowKey(FPrimitiveComponentId InPrimitiveId, const ULightComponent* InLight, int32 InSplitIndex, bool bInTranslucentShadow, EShadowDepthCacheMode InCacheMode = SDCM_Uncached)
 			: PrimitiveId(InPrimitiveId)
 			, Light(InLight)
 			, ShadowSplitIndex(InSplitIndex)
-			, CacheMode(SDCM_Uncached)
+			, CacheMode(InCacheMode)
 			, bTranslucentShadow(bInTranslucentShadow)
 		{
 		}
@@ -906,7 +906,7 @@ public:
 	 * @param Primitive - The shadow subject.
 	 * @param Light - The shadow source.
 	 */
-	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow, int32 NumBufferedFrames) const;
+	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FSceneViewState::FProjectedShadowKey ShadowKey, int32 NumBufferedFrames) const;
 
 	/**
 	* Retrieve a single-pixel render targets with intra-frame state for use in eye adaptation post processing.

@@ -209,17 +209,13 @@ void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList,
 	}
 }
 
-bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 InShadowSplitIndex, bool bTranslucentShadow, int32 NumBufferedFrames) const
+bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FSceneViewState::FProjectedShadowKey ShadowKey, int32 NumBufferedFrames) const
 {
 	// Find the shadow's occlusion query from the previous frame.
-	const FSceneViewState::FProjectedShadowKey Key(PrimitiveId, Light, InShadowSplitIndex, bTranslucentShadow);
-
 	// Get the oldest occlusion query	
 	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(PendingPrevFrameNumber, NumBufferedFrames);
 	const FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ShadowOcclusionQueryMaps[QueryIndex];	
-
-
-	const FRenderQueryRHIRef* Query = ShadowOcclusionQueryMap.Find(Key);
+	const FRenderQueryRHIRef* Query = ShadowOcclusionQueryMap.Find(ShadowKey);
 
 	// Read the occlusion query results.
 	uint64 NumSamples = 0;

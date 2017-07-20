@@ -1452,19 +1452,23 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		// Check if the subject primitive is shadow relevant.
 		const bool bPrimitiveIsShadowRelevant = ViewRelevance.bShadowRelevance;
 
+		const FSceneViewState::FProjectedShadowKey OpaqueKey(PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false);
+
 		// Check if the shadow and preshadow are occluded.
 		const bool bOpaqueShadowIsOccluded = 
 			!bCreateOpaqueObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries &&	View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false, NumBufferedFrames)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, OpaqueKey, NumBufferedFrames)
 			);
+
+		const FSceneViewState::FProjectedShadowKey TranslucentKey(PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true);
 
 		const bool bTranslucentShadowIsOccluded = 
 			!bCreateTranslucentObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries && View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true, NumBufferedFrames)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, TranslucentKey, NumBufferedFrames)
 			);
 
 		const bool bSubjectIsVisibleInThisView = View.PrimitiveVisibilityMap[PrimitiveSceneInfo->GetIndex()];
@@ -2219,20 +2223,35 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 					// Check if the subject primitive's shadow is view relevant.
 					const bool bPrimitiveIsShadowRelevant = ViewRelevance.bShadowRelevance;
 
-					// Check if the shadow and preshadow are occluded.
-					const bool bShadowIsOccluded =
-						!View.bIgnoreExistingQueries &&
-						View.State &&
-						((FSceneViewState*)View.State)->IsShadowOccluded(
+					bool bShadowIsOccluded = false;
+
+					if (!View.bIgnoreExistingQueries && View.State)
+					{
+						// Check if the shadow is occluded.
+						bShadowIsOccluded =
+							((FSceneViewState*)View.State)->IsShadowOccluded(
 							RHICmdList,
-							ProjectedShadowInfo.GetParentSceneInfo() ? 
-								ProjectedShadowInfo.GetParentSceneInfo()->PrimitiveComponentId :
-								FPrimitiveComponentId(),
-							ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent(),
-							ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex,
-							ProjectedShadowInfo.bTranslucentShadow,
+							FSceneViewState::FProjectedShadowKey(ProjectedShadowInfo),
 							NumBufferedFrames
 							);
+
+						// StaticPrimitivesOnly renderings are not done every frame, use the occlusion query for the shadow doing the movable primitves of the same light
+						if (ProjectedShadowInfo.CacheMode == SDCM_StaticPrimitivesOnly && !bShadowIsOccluded)
+						{
+							FSceneViewState::FProjectedShadowKey MovableKey(ProjectedShadowInfo.GetParentSceneInfo() ? ProjectedShadowInfo.GetParentSceneInfo()->PrimitiveComponentId : FPrimitiveComponentId(),
+								ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent(),
+								ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex,
+								ProjectedShadowInfo.bTranslucentShadow,
+								SDCM_MovablePrimitivesOnly);
+	
+							bShadowIsOccluded =
+								((FSceneViewState*)View.State)->IsShadowOccluded(
+								RHICmdList,
+								MovableKey,
+								NumBufferedFrames
+								);
+						}
+					}
 
 					// The shadow is visible if it is view relevant and unoccluded.
 					if(bPrimitiveIsShadowRelevant && !bShadowIsOccluded)
