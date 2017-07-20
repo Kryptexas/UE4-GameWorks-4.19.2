@@ -2922,6 +2922,11 @@ void FBlueprintGraphArgumentLayout::OnArgNameChange(const FText& InNewText)
 
 	FText ErrorMessage;
 
+	if (!ParamItemPtr.IsValid())
+	{
+		return;
+	}
+
 	if (InNewText.IsEmpty())
 	{
 		ErrorMessage = LOCTEXT("EmptyArgument", "Name cannot be empty!");
@@ -5161,13 +5166,18 @@ void FBlueprintGlobalOptionsDetails::OnClassPicked(UClass* PickedClass)
 
 bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
 {
-	// If the parent is deprecated, we cannot modify deprecation on this Blueprint
-	if(GetBlueprintObj()->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		return false;
+		// If the parent is deprecated, we cannot modify deprecation on this Blueprint
+		if (Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+		{
+			return false;
+		}
+		
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ECheckBoxState InCheckState)
@@ -5178,7 +5188,11 @@ void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ECheckBoxState InCheck
 
 ECheckBoxState FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint() const
 {
-	return GetBlueprintObj()->bDeprecate? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		return Blueprint->bDeprecate ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
 }
 
 FText FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip() const
