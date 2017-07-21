@@ -154,6 +154,12 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 	}
 }
 
+void UK2Node_MakeStruct::PreloadRequiredAssets()
+{
+	PreloadObject(StructType);
+	Super::PreloadRequiredAssets();
+}
+
 void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);

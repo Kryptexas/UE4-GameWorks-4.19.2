@@ -1276,7 +1276,12 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 		ArchetypeReferencers.Add(CurrentReinstancer->ClassToReinstance->ClassGeneratedBy);
 		if(UBlueprint* BP = Cast<UBlueprint>(CurrentReinstancer->ClassToReinstance->ClassGeneratedBy))
 		{
-			ArchetypeReferencers.Add(BP->SkeletonGeneratedClass);
+			// The only known way to cause this ensure to trip is to enqueue bluerpints for compilation
+			// while blueprints are already compiling:
+			if( ensure(BP->SkeletonGeneratedClass) )
+			{
+				ArchetypeReferencers.Add(BP->SkeletonGeneratedClass);
+			}
 			ensure(BP->bCachedDependenciesUpToDate);
 			for(const TWeakObjectPtr<UBlueprint>& Dependency : BP->CachedDependencies)
 			{
