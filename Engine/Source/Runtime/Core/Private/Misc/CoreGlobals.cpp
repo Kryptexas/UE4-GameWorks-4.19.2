@@ -279,6 +279,18 @@ bool					GEnableVREditorHacks = false;
 
 bool CORE_API			GIsGPUCrashed = false;
 
+void ToggleGDebugPUCrashedFlag(const TArray<FString>& Args)
+{
+	GIsGPUCrashed = !GIsGPUCrashed;
+	UE_LOG(LogCore, Log, TEXT("Gpu crashed flag forcibly set to: %i"), GIsGPUCrashed ? 1 : 0);
+}
+
+FAutoConsoleCommand ToggleDebugGPUCrashedCmd(
+	TEXT("c.ToggleGPUCrashedFlagDbg"),
+	TEXT("Forcibly toggles the 'GPU Crashed' flag for testing crash analytics."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&ToggleGDebugPUCrashedFlag),
+	ECVF_Cheat);
+
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);

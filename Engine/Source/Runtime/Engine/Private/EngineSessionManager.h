@@ -26,7 +26,12 @@ public:
 		, bShutdown(false)
 		, HeartbeatTimeElapsed(0.0f)
 	{
+		CurrentSession.Mode = EEngineSessionManagerMode::Editor;
+		CurrentSession.Timestamp = FDateTime::MinValue();		
 		CurrentSession.bCrashed = false;
+		CurrentSession.bGPUCrashed = false;
+		CurrentSession.bIsDebugger = false;
+		CurrentSession.bWasEverDebugger = false;
 		CurrentSession.bIsDeactivated = false;
 		CurrentSession.bIsInBackground = false;
 		CurrentSession.bIsVanilla = false;
@@ -47,6 +52,7 @@ private:
 		FString EngineVersion;
 		FDateTime Timestamp;
 		bool bCrashed;
+		bool bGPUCrashed;
 		bool bIsDebugger;
 		bool bWasEverDebugger;
 		bool bIsDeactivated;
