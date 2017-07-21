@@ -2526,8 +2526,8 @@ public:
 			{
 				WaitEvent->Trigger();
 			}
+			SetAllComplete();
 		}
-		SetAllComplete();
 	}
 };
 
@@ -2604,8 +2604,8 @@ public:
 			{
 				WaitEvent->Trigger();
 			}
+			SetAllComplete();
 		}
-		SetAllComplete();
 	}
 };
 
@@ -2749,8 +2749,8 @@ public:
 			{
 				WaitEvent->Trigger();
 			}
+			SetAllComplete();
 		}
-		SetAllComplete();
 	}
 	void GatherResults();
 	void DoneWithRawRequests();
