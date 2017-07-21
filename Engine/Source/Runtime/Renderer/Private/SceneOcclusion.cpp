@@ -1257,6 +1257,12 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 								continue;
 							}
 
+							if (!IsShadowCacheModeOcclusionQueryable(ProjectedShadowInfo.CacheMode))
+							{
+								// Only query one of the cache modes for each shadow
+								continue;
+							}
+
 							if (ProjectedShadowInfo.bOnePassPointLightShadow)
 							{
 								FRenderQueryRHIRef ShadowOcclusionQuery;

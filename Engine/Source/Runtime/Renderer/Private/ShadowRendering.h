@@ -655,6 +655,14 @@ enum EShadowDepthCacheMode
 	SDCM_Uncached
 };
 
+inline bool IsShadowCacheModeOcclusionQueryable(EShadowDepthCacheMode CacheMode)
+{
+	// SDCM_StaticPrimitivesOnly shadowmaps are emitted randomly as the cache needs to be updated,
+	// And therefore not appropriate for occlusion queries which are latent and therefore need to be stable.
+	// Only one the cache modes from ComputeWholeSceneShadowCacheModes should be queryable
+	return CacheMode != SDCM_StaticPrimitivesOnly;
+}
+
 class FShadowMapRenderTargets
 {
 public:

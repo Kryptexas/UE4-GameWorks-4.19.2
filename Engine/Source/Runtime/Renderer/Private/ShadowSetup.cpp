@@ -1902,6 +1902,19 @@ void ComputeWholeSceneShadowCacheModes(
 		OutCacheModes[0] = SDCM_Uncached;
 		Scene->CachedShadowMaps.Remove(LightSceneInfo->Id);
 	}
+
+	if (OutNumShadowMaps > 0)
+	{
+		int32 NumOcclusionQueryableShadows = 0;
+
+		for (int32 i = 0; i < OutNumShadowMaps; i++)
+		{
+			NumOcclusionQueryableShadows += IsShadowCacheModeOcclusionQueryable(OutCacheModes[i]);
+		}
+
+		// Verify only one of the shadows will be occlusion queried, since they are all for the same light bounds
+		check(NumOcclusionQueryableShadows == 1);
+	}
 }
 
 /**  Creates a projected shadow for all primitives affected by a light.  If the light doesn't support whole-scene shadows, it returns false.
@@ -2234,23 +2247,6 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 							FSceneViewState::FProjectedShadowKey(ProjectedShadowInfo),
 							NumBufferedFrames
 							);
-
-						// StaticPrimitivesOnly renderings are not done every frame, use the occlusion query for the shadow doing the movable primitves of the same light
-						if (ProjectedShadowInfo.CacheMode == SDCM_StaticPrimitivesOnly && !bShadowIsOccluded)
-						{
-							FSceneViewState::FProjectedShadowKey MovableKey(ProjectedShadowInfo.GetParentSceneInfo() ? ProjectedShadowInfo.GetParentSceneInfo()->PrimitiveComponentId : FPrimitiveComponentId(),
-								ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent(),
-								ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex,
-								ProjectedShadowInfo.bTranslucentShadow,
-								SDCM_MovablePrimitivesOnly);
-	
-							bShadowIsOccluded =
-								((FSceneViewState*)View.State)->IsShadowOccluded(
-								RHICmdList,
-								MovableKey,
-								NumBufferedFrames
-								);
-						}
 					}
 
 					// The shadow is visible if it is view relevant and unoccluded.
