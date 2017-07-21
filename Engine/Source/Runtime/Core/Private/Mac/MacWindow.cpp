@@ -37,8 +37,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 	TSharedRef<FMacScreen> TargetScreen = FMacApplication::FindScreenBySlatePosition(Definition->XDesiredPositionOnScreen, Definition->YDesiredPositionOnScreen);
 
-	const int32 SizeX = FMath::Max(FMath::TruncToInt( Definition->WidthDesiredOnScreen ), 1);
-	const int32 SizeY = FMath::Max(FMath::TruncToInt( Definition->HeightDesiredOnScreen ), 1);
+	const int32 SizeX = FMath::Max(FMath::CeilToInt( Definition->WidthDesiredOnScreen ), 1);
+	const int32 SizeY = FMath::Max(FMath::CeilToInt( Definition->HeightDesiredOnScreen ), 1);
 
 	PositionX = Definition->XDesiredPositionOnScreen;
 	PositionY = Definition->YDesiredPositionOnScreen >= TargetScreen->VisibleFramePixels.origin.y ? Definition->YDesiredPositionOnScreen : TargetScreen->VisibleFramePixels.origin.y;
@@ -230,7 +230,8 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 				Rect = [WindowHandle frameRectForContentRect:Rect];
 			}
 			
-			if (!NSEqualRects([WindowHandle frame], Rect))
+			CGRect CurrRect = [WindowHandle frame];
+			if (!NSEqualRects(CurrRect, Rect))
 			{
 				MainThreadCall(^{
 					SCOPED_AUTORELEASE_POOL;
