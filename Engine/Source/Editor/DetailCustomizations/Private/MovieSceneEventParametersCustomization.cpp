@@ -12,7 +12,6 @@
 #include "IPropertyUtilities.h"
 #include "IDetailChildrenBuilder.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Serialization/ObjectWriter.h"
 
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
@@ -156,18 +155,12 @@ void FMovieSceneEventParametersCustomization::OnEditStructChildContentsChanged()
 		return;
 	}
 
-	TArray<uint8> Bytes;
-	{
-		FObjectWriter Writer(Bytes);
-		Struct->SerializeTaggedProperties(Writer, EditStructData->GetStructMemory(), Struct, nullptr);
-	}
-
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
 
 	for (void* Value : RawData)
 	{
-		static_cast<FMovieSceneEventParameters*>(Value)->OverwriteWith(Bytes);
+		static_cast<FMovieSceneEventParameters*>(Value)->OverwriteWith(EditStructData->GetStructMemory());
 	}
 
 	FPropertyChangedEvent BubbleChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);

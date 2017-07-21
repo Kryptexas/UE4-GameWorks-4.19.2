@@ -10,7 +10,6 @@
 #include "Curves/NameCurve.h"
 #include "Curves/CurveInterface.h"
 #include "UObject/StructOnScope.h"
-#include "Serialization/MemoryReader.h"
 #include "Engine/Engine.h"
 #include "StringAssetReference.h"
 #include "MovieSceneEventSection.generated.h"
@@ -18,7 +17,7 @@
 struct EventData;
 
 USTRUCT()
-struct FMovieSceneEventParameters
+struct MOVIESCENETRACKS_API FMovieSceneEventParameters
 {
 	GENERATED_BODY()
 
@@ -33,44 +32,21 @@ struct FMovieSceneEventParameters
 	FMovieSceneEventParameters(const FMovieSceneEventParameters& RHS) = default;
 	FMovieSceneEventParameters& operator=(const FMovieSceneEventParameters& RHS) = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FMovieSceneEventParameters(FMovieSceneEventParameters&&) = default;
 	FMovieSceneEventParameters& operator=(FMovieSceneEventParameters&&) = default;
-#else
-	FMovieSceneEventParameters(FMovieSceneEventParameters&& RHS)
-	{
-		*this = MoveTemp(RHS);
-	}
-	FMovieSceneEventParameters& operator=(FMovieSceneEventParameters&& RHS)
-	{
-		StructType = MoveTemp(RHS.StructType);
-		StructBytes = MoveTemp(RHS.StructBytes);
-		return *this;
-	}
-#endif
 
-	void OverwriteWith(const TArray<uint8>& Bytes)
-	{
-		StructBytes = Bytes;
-	}
-
-	void GetInstance(FStructOnScope& OutStruct) const
-	{
-		UStruct* StructPtr = GetStructType();
-		OutStruct.Initialize(StructPtr);
-		uint8* Memory = OutStruct.GetStructMemory();
-		if (StructPtr && StructPtr->GetStructureSize() > 0 && StructBytes.Num())
-		{
-			FMemoryReader Reader(StructBytes);
-			StructPtr->SerializeTaggedProperties(Reader, Memory, StructPtr, nullptr);
-		}
-	}
-
+	/**
+	 * Access the struct type of this event parameter payload
+	 * @return A valid UStruct* or nullptr if the struct is not set, or no longer available
+	 */
 	UStruct* GetStructType() const
 	{
 		return Cast<UStruct>(StructType.TryLoad());
 	}
 
+	/**
+	 * Change the type of this event parameter payload to be the specified struct
+	 */
 	void Reassign(UStruct* NewStruct)
 	{
 		StructType = NewStruct;
@@ -81,7 +57,24 @@ struct FMovieSceneEventParameters
 		}
 	}
 
-	MOVIESCENETRACKS_API bool Serialize(FArchive& Ar);
+	/**
+	 * Retrieve an instance of this payload
+	 *
+	 * @param OutStruct Structure to receive the instance
+	 */
+	void GetInstance(FStructOnScope& OutStruct) const;
+
+	/**
+	 * Overwrite this payload with another instance of the same type.
+	 *
+	 * @param InstancePtr A valid pointer to an instance of the type represented by GetStructType
+	 */
+	void OverwriteWith(uint8* InstancePtr);
+
+	/**
+	 * Serialization implementation
+	 */
+	bool Serialize(FArchive& Ar);
 
 	friend FArchive& operator<<(FArchive& Ar, FMovieSceneEventParameters& Payload)
 	{
@@ -91,7 +84,10 @@ struct FMovieSceneEventParameters
 
 private:
 
+	/** String asset reference to the type of this parameter payload */
 	FStringAssetReference StructType;
+
+	/** Serialized bytes that represent the payload. Serialized internally with FEventParameterArchive */
 	TArray<uint8> StructBytes;
 };
 
