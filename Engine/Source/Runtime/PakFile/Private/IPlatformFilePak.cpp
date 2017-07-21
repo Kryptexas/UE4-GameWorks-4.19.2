@@ -2735,13 +2735,16 @@ public:
 		{
 			GatherResults();
 		}
-		SetComplete();
-		FScopeLock Lock(&FPakReadRequestEvent);
-		bRequestOutstanding = false;
-		if (WaitEvent)
+		SetDataComplete();
 		{
-			WaitEvent->Trigger();
+			FScopeLock Lock(&FPakReadRequestEvent);
+			bRequestOutstanding = false;
+			if (WaitEvent)
+			{
+				WaitEvent->Trigger();
+			}
 		}
+		SetAllComplete();
 	}
 	void GatherResults();
 	void DoneWithRawRequests();
