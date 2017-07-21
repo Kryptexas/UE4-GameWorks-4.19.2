@@ -57,6 +57,13 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FN
 	{
 		NetworkFileDelegates->OnFileModifiedCallback->AddRaw(this, &FNetworkFileServerClientConnection::FileModifiedCallback);
 	}
+
+	LocalEngineDir = FPaths::EngineDir();
+	LocalGameDir = FPaths::GameDir();
+	if (FPaths::IsProjectFilePathSet())
+	{
+		LocalGameDir = FPaths::GetPath(FPaths::GetProjectFilePath()) + TEXT("/");
+	}
 }
 
 
@@ -130,9 +137,6 @@ TMap<FString, FDateTime> FNetworkFileServerClientConnection::FixupSandboxPathsFo
  */
 FString FNetworkFileServerClientConnection::FixupSandboxPathForClient(const FString& Filename)
 {
-	const FString& LocalEngineDir = FPaths::EngineDir();
-	const FString& LocalGameDir = FPaths::GameDir();
-
 	FString Fixed = Sandbox->ConvertToSandboxPath(*Filename);
 	Fixed = Fixed.Replace(*SandboxEngine, *LocalEngineDir);
 	Fixed = Fixed.Replace(*SandboxGame, *LocalGameDir);
@@ -791,14 +795,6 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 	ConnectedEngineDir = EngineRelativePath;
 	ConnectedGameDir = GameRelativePath;
-
-
-	FString LocalEngineDir = FPaths::EngineDir();
-	FString LocalGameDir = FPaths::GameDir();
-	if ( FPaths::IsProjectFilePathSet() )
-	{
-		LocalGameDir = FPaths::GetPath(FPaths::GetProjectFilePath()) + TEXT("/");
-	}
 
 	UE_LOG(LogFileServer, Display, TEXT("    Connected EngineDir = %s"), *ConnectedEngineDir);
 	UE_LOG(LogFileServer, Display, TEXT("        Local EngineDir = %s"), *LocalEngineDir);
