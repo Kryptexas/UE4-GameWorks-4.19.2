@@ -6,6 +6,7 @@
 
 #include "Commandlets/CookCommandlet.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
 #include "Misc/CommandLine.h"
@@ -543,7 +544,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bVerboseCookerWarnings = Switches.Contains(TEXT("verbosecookerwarnings"));
 	bPartialGC = Switches.Contains(TEXT("Partialgc"));
 	
-	COOK_STAT(DetailedCookStats::CookProject = FApp::GetGameName());
+	COOK_STAT(DetailedCookStats::CookProject = FApp::GetProjectName());
 
 	if ( bCookOnTheFly )
 	{
@@ -727,7 +728,7 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 
 	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
 	{
-		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 		for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 		{
@@ -1079,7 +1080,7 @@ void UCookCommandlet::ProcessDeferredCommands()
 {
 #if PLATFORM_MAC
 	// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
-	FPlatformMisc::PumpMessages(true);
+	FPlatformApplicationMisc::PumpMessages(true);
 #endif
 
 	// update task graph

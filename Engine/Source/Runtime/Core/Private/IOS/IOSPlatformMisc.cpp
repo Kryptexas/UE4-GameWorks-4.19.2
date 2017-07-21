@@ -14,7 +14,6 @@
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
 #include "IOSChunkInstaller.h"
-#include "IOSInputInterface.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Apple/ApplePlatformDebugEvents.h"
@@ -70,8 +69,6 @@ static int32 GetFreeMemoryMB()
 	return (Stats.free_count * PageSize) / 1024 / 1024;
 }
 
-FIOSApplication* FPlatformMisc::CachedApplication = nullptr;
-
 void FIOSPlatformMisc::PlatformInit()
 {
 	FAppEntry::PlatformInit();
@@ -100,12 +97,6 @@ void FIOSPlatformMisc::PlatformInit()
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
 //    GShowSplashScreen = ShowSplashScreen;
-}
-
-GenericApplication* FIOSPlatformMisc::CreateApplication()
-{
-	CachedApplication = FIOSApplication::CreateIOSApplication();
-	return CachedApplication;
 }
 
 void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
@@ -180,34 +171,6 @@ const TCHAR* FIOSPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 Buf
 	check(OutBuffer && BufferCount);
 	*OutBuffer = TEXT('\0');
 	return OutBuffer;
-}
-
-void FIOSPlatformMisc::ClipboardCopy(const TCHAR* Str)
-{
-#if !PLATFORM_TVOS
-	CFStringRef CocoaString = FPlatformString::TCHARToCFString(Str);
-	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
-	[Pasteboard setString:(NSString*)CocoaString];
-#endif
-}
-
-void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
-{
-#if !PLATFORM_TVOS
-	UIPasteboard* Pasteboard = [UIPasteboard generalPasteboard];
-	NSString* CocoaString = [Pasteboard string];
-	if(CocoaString)
-	{
-		TArray<TCHAR> Ch;
-		Ch.AddUninitialized([CocoaString length] + 1);
-		FPlatformString::CFStringToTCHAR((CFStringRef)CocoaString, Ch.GetData());
-		Result = Ch.GetData();
-	}
-	else
-	{
-		Result = TEXT("");
-	}
-#endif
 }
 
 FString FIOSPlatformMisc::GetDefaultLanguage()
@@ -362,34 +325,6 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 
 	return Result;
 #endif
-}
-
-uint32 FIOSPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-{
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, true);
-}
-
-uint32 FIOSPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
-	
-	uint32 NumMappings = 0;
-	
-	// we only handle a few "fake" keys from the IOS keyboard delegate stuff in IOSView.cpp
-	if (KeyCodes && KeyNames && (MaxMappings > 0))
-	{
-		ADDKEYMAP(KEYCODE_ENTER, TEXT("Enter"));
-		ADDKEYMAP(KEYCODE_BACKSPACE, TEXT("BackSpace"));
-		ADDKEYMAP(KEYCODE_ESCAPE, TEXT("Escape"));
-	}
-	return NumMappings;
-}
-
-bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
-{
-	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	[AppDelegate EnableIdleTimer : (Action == FGenericPlatformMisc::Enable)];
-	return true;
 }
 
 int FIOSPlatformMisc::GetAudioVolume()
@@ -1078,22 +1013,6 @@ bool FIOSPlatformMisc::HasActiveWiFiConnection()
 	return bHasActiveWiFiConnection; 
 }
 
-void FIOSPlatformMisc::ResetGamepadAssignments()
-{
-	UE_LOG(LogIOS, Warning, TEXT("Restting gamepad assignments is not allowed in IOS"))
-}
-
-void FIOSPlatformMisc::ResetGamepadAssignmentToController(int32 ControllerId)
-{
-	
-}
-
-bool FIOSPlatformMisc::IsControllerAssignedToGamepad(int32 ControllerId)
-{
-	FIOSInputInterface* InputInterface = (FIOSInputInterface*)CachedApplication->GetInputInterface();
-	return InputInterface->IsControllerAssignedToGamepad(ControllerId);
-}
-
 #if IOS_PROFILING_ENABLED
 void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
 {
@@ -1244,7 +1163,7 @@ struct FIOSApplicationInfo
     {
         SCOPED_AUTORELEASE_POOL;
         
-        AppName = FApp::GetGameName();
+        AppName = FApp::GetProjectName();
         FCStringAnsi::Strcpy(AppNameUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*AppName));
         
         ExecutableName = FPlatformProcess::ExecutableName();
@@ -1295,7 +1214,7 @@ struct FIOSApplicationInfo
        BranchBaseDir = FString::Printf( TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
         
         // Get the paths that the files will actually have been saved to
-        FString LogDirectory = FPaths::GameLogDir();
+        FString LogDirectory = FPaths::ProjectLogDir();
         TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
         
         // Use the log file specified on the commandline if there is one
@@ -1965,7 +1884,7 @@ void FIOSCrashContext::GenerateEnsureInfo() const
         
         // Use a slightly different output folder name to not conflict with a subequent crash
         const FGuid Guid = FGuid::NewGuid();
-        FString GameName = FApp::GetGameName();
+        FString GameName = FApp::GetProjectName();
         FString EnsureLogFolder = FString(GIOSAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
         
         const bool bIsEnsure = true;

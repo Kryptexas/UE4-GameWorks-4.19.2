@@ -66,8 +66,7 @@ namespace AutomationTool.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Get the full path to the project file
 			FileReference ProjectFile = null;
@@ -90,13 +89,11 @@ namespace AutomationTool.Tasks
 			// Make sure the editor exists
 			if(!FileReference.Exists(EditorExe))
 			{
-				CommandUtils.LogError("{0} does not exist", EditorExe.FullName);
-				return false;
+				throw new AutomationException("{0} does not exist", EditorExe.FullName);
 			}
 
 			// Run the commandlet
 			CommandUtils.RunCommandlet(ProjectFile, EditorExe.FullName, Parameters.Name, Parameters.Arguments);
-			return true;
 		}
 
 		/// <summary>

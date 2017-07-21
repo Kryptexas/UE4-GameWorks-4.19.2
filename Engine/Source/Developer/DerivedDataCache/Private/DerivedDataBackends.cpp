@@ -296,7 +296,7 @@ public:
 		FDerivedDataBackendInterface* VerifyNode = NULL;
 		if( InnerNode )
 		{
-			IFileManager::Get().DeleteDirectory(*(FPaths::GameSavedDir() / TEXT("VerifyDDC/")), false, true);
+			IFileManager::Get().DeleteDirectory(*(FPaths::ProjectSavedDir() / TEXT("VerifyDDC/")), false, true);
 
 			const bool bFix = GetParsedBool( Entry, TEXT("Fix=") );
 			VerifyNode = new FDerivedDataBackendVerifyWrapper( InnerNode, bFix );

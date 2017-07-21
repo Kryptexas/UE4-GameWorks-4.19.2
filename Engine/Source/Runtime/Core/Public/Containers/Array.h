@@ -293,6 +293,20 @@ public:
 	{}
 
 	/**
+	 * Constructor from a raw array of elements.
+	 *
+	 * @param Ptr   A pointer to an array of elements to copy.
+	 * @param Count The number of elements to copy from Ptr.
+	 * @see Append
+	 */
+	FORCEINLINE TArray(const ElementType* Ptr, int32 Count)
+	{
+		check(Ptr != nullptr || Count == 0);
+
+		CopyToEmpty(Ptr, Count, 0, 0);
+	}
+
+	/**
 	 * Initializer list constructor
 	 */
 	TArray(std::initializer_list<InElementType> InitList)
@@ -663,7 +677,7 @@ public:
 	FORCEINLINE ElementType Pop(bool bAllowShrinking = true)
 	{
 		RangeCheck(0);
-		ElementType Result = MoveTemp(GetData()[ArrayNum - 1]);
+		ElementType Result = MoveTempIfPossible(GetData()[ArrayNum - 1]);
 		RemoveAt(ArrayNum - 1, 1, bAllowShrinking);
 		return Result;
 	}
@@ -675,7 +689,7 @@ public:
 	 */
 	FORCEINLINE void Push(ElementType&& Item)
 	{
-		Add(MoveTemp(Item));
+		Add(MoveTempIfPossible(Item));
 	}
 
 	/**
@@ -1283,7 +1297,7 @@ public:
 		int32 Index = InIndex;
 		for (auto It = Items.CreateConstIterator(); It; ++It)
 		{
-			new (Data + Index++) ElementType(MoveTemp(*It));
+			new (Data + Index++) ElementType(*It);
 		}
 		return InIndex;
 	}
@@ -1336,7 +1350,7 @@ public:
 		// construct a copy in place at Index (this new operator will insert at 
 		// Index, then construct that memory with Item)
 		InsertUninitialized(Index, 1);
-		new(GetData() + Index) ElementType(MoveTemp(Item));
+		new(GetData() + Index) ElementType(MoveTempIfPossible(Item));
 		return Index;
 	}
 
@@ -1652,7 +1666,7 @@ public:
 	 */
 	void Append(const ElementType* Ptr, int32 Count)
 	{
-		check(Ptr != nullptr);
+		check(Ptr != nullptr || Count == 0);
 
 		int32 Pos = AddUninitialized(Count);
 		ConstructItems<ElementType>(GetData() + Pos, Ptr, Count);
@@ -1745,7 +1759,7 @@ public:
 	 * @return Index to the new item
 	 * @see AddDefaulted, AddUnique, AddZeroed, Append, Insert
 	 */
-	FORCEINLINE int32 Add(ElementType&& Item) { CheckAddress(&Item); return Emplace(MoveTemp(Item)); }
+	FORCEINLINE int32 Add(ElementType&& Item) { CheckAddress(&Item); return Emplace(MoveTempIfPossible(Item)); }
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -1821,7 +1835,7 @@ public:
 	 * @returns Index of the element in the array.
 	 * @see Add, AddDefaulted, AddZeroed, Append, Insert
 	 */
-	FORCEINLINE int32 AddUnique(ElementType&& Item) { return AddUniqueImpl(MoveTemp(Item)); }
+	FORCEINLINE int32 AddUnique(ElementType&& Item) { return AddUniqueImpl(MoveTempIfPossible(Item)); }
 
 	/**
 	 * Adds unique element to array if it doesn't exist.
@@ -2353,7 +2367,7 @@ public:
 	int32 HeapPush(ElementType&& InItem, const PREDICATE_CLASS& Predicate)
 	{
 		// Add at the end, then sift up
-		Add(MoveTemp(InItem));
+		Add(MoveTempIfPossible(InItem));
 		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
 		int32 Result = AlgoImpl::HeapSiftUp(GetData(), 0, Num() - 1, FIdentityFunctor(), PredicateWrapper);
 
@@ -2395,7 +2409,7 @@ public:
 	 */
 	int32 HeapPush(ElementType&& InItem)
 	{
-		return HeapPush(MoveTemp(InItem), TLess<ElementType>());
+		return HeapPush(MoveTempIfPossible(InItem), TLess<ElementType>());
 	}
 
 	/** 

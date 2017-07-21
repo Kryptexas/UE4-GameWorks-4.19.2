@@ -10,6 +10,7 @@
 #include "IDetailPropertyExtensionHandler.h"
 #include "DetailPropertyRow.h"
 #include "DetailGroup.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 namespace DetailWidgetConstants
 {
@@ -438,7 +439,7 @@ void SDetailSingleItemRow::OnCopyProperty()
 			FString Value;
 			if (Handle->GetValueAsFormattedString(Value, PPF_Copy) == FPropertyAccess::Success)
 			{
-				FPlatformMisc::ClipboardCopy(*Value);
+				FPlatformApplicationMisc::ClipboardCopy(*Value);
 			}
 		}
 	}
@@ -447,7 +448,7 @@ void SDetailSingleItemRow::OnCopyProperty()
 void SDetailSingleItemRow::OnPasteProperty()
 {
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	if (!ClipboardContent.IsEmpty() && OwnerTreeNode.IsValid())
 	{
@@ -486,7 +487,7 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 	FString ClipboardContent;
 	if( OwnerTreeNode.IsValid() )
 	{
-		FPlatformMisc::ClipboardPaste(ClipboardContent);
+		FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 	}
 
 	return !ClipboardContent.IsEmpty();

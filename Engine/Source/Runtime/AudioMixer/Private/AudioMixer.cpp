@@ -4,6 +4,7 @@
 #include "AudioMixerDevice.h"
 #include "HAL/RunnableThread.h"
 #include "Misc/ConfigCacheIni.h"
+#include "HAL/ThreadSafeCounter.h"
 
 // Command to enable logging to display accurate audio render times
 static int32 LogRenderTimesCVar = 0;
@@ -29,6 +30,8 @@ DEFINE_STAT(STAT_AudioMixerMasterEQ);
 namespace Audio
 {
 	int32 sRenderInstanceIds = 0;
+
+	FThreadSafeCounter AudioMixerTaskCounter;
 
 	FAudioRenderTimeAnalysis::FAudioRenderTimeAnalysis()
 		: AvgRenderTime(0.0)
@@ -364,7 +367,7 @@ namespace Audio
 		check(AudioFadeEvent != nullptr);
 
 		check(AudioRenderThread == nullptr);
-		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_Highest);
+		AudioRenderThread = FRunnableThread::Create(this, *FString::Printf(TEXT("AudioMixerRenderThread(%d)"), AudioMixerTaskCounter.Increment()), 0, TPri_Highest);
 		check(AudioRenderThread != nullptr);
 	}
 

@@ -611,11 +611,13 @@ private:
 		Rhs.CheckInvariants();
 
 		if (Lhs.IsEmpty())
-			return MoveTemp(Rhs);
+		{
+			return MoveTempIfPossible(Rhs);
+		}
 
 		int32 RhsLen = Rhs.Len();
 
-		FString Result(MoveTemp(Lhs), RhsLen);
+		FString Result(MoveTempIfPossible(Lhs), RhsLen);
 		Result.AppendChars(Rhs.Data.GetData(), RhsLen);
 		
 		return Result;
@@ -628,7 +630,9 @@ private:
 		Rhs.CheckInvariants();
 
 		if (!Lhs || !*Lhs)
-			return MoveTemp(Rhs);
+		{
+			return MoveTempIfPossible(Rhs);
+		}
 
 		int32 LhsLen = FCString::Strlen(Lhs);
 		int32 RhsLen = Rhs.Len();
@@ -654,11 +658,13 @@ private:
 		checkSlow(Rhs);
 
 		if (!Rhs || !*Rhs)
-			return MoveTemp(Lhs);
+		{
+			return MoveTempIfPossible(Lhs);
+		}
 
 		int32 RhsLen = FCString::Strlen(Rhs);
 
-		FString Result(MoveTemp(Lhs), RhsLen);
+		FString Result(MoveTempIfPossible(Lhs), RhsLen);
 		Result.AppendChars(Rhs, RhsLen);
 		
 		return Result;

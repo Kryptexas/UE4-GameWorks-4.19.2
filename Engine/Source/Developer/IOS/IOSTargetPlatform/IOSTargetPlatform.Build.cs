@@ -40,7 +40,7 @@ public class IOSTargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 		}

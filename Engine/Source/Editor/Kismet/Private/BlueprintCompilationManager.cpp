@@ -1344,7 +1344,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		
 		UFunction* NewFunction = NewObject<UFunction>(Ret, FunctionNameFName, RF_Public|RF_Transient);
 					
-		Ret->AddFunctionToFunctionMap(NewFunction);
+		Ret->AddFunctionToFunctionMap(NewFunction, NewFunction->GetFName());
 
 		*InCurrentFieldStorageLocation = NewFunction;
 		InCurrentFieldStorageLocation = &NewFunction->Next;

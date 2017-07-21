@@ -43,7 +43,7 @@ public class MessagingDebugger : ModuleRules
 			}
 		);
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

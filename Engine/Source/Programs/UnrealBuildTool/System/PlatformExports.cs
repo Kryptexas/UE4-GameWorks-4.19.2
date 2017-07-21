@@ -14,7 +14,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of restricted folder names
 		/// </summary>
-		public static string[] RestrictedFolderNames
+		public static FileSystemName[] RestrictedFolderNames
 		{
 			get { return UEBuildPlatform.RestrictedFolderNames; }
 		}

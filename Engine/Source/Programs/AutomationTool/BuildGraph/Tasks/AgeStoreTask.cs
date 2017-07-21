@@ -110,16 +110,14 @@ namespace Win.Automation
         /// <param name="Job">Information about the current job</param>
         /// <param name="BuildProducts">Set of build products produced by this node.</param>
         /// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-        /// <returns>True if the task succeeded</returns>
-        public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+        public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
         {
             // Get the list of symbol file name patterns from the platform.
             Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
             string[] DirectoryStructure = TargetPlatform.SymbolServerDirectoryStructure;
             if (DirectoryStructure == null)
             {
-                CommandUtils.LogError("Platform does not specify the symbol server structure. Cannot age the symbol server.");
-                return false;
+                throw new AutomationException("Platform does not specify the symbol server structure. Cannot age the symbol server.");
             }
 
             string Filter = string.IsNullOrWhiteSpace(Parameters.Filter)
@@ -136,8 +134,6 @@ namespace Win.Automation
             {
                 RecurseDirectory(ExpireTimeUtc, new DirectoryInfo(SymbolServerDirectory.FullName), DirectoryStructure, 0, Filter);
             });
-
-            return true;
         }
 
         /// <summary>

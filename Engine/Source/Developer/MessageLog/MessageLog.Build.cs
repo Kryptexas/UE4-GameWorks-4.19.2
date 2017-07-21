@@ -26,7 +26,7 @@ public class MessageLog : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bBuildEditor)
+		if (Target.bBuildEditor)
 		{
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {

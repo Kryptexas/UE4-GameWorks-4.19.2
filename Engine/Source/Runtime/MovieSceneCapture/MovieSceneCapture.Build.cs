@@ -12,7 +12,7 @@ public class MovieSceneCapture : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bBuildDeveloperTools)
+		if (Target.bBuildDeveloperTools)
 		{
 			PublicIncludePathModuleNames.Add("ImageWrapper");
 			DynamicallyLoadedModuleNames.Add("ImageWrapper");

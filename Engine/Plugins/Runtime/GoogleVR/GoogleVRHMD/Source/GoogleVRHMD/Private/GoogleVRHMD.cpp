@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/CoreDelegates.h"
+#include "HAL/PlatformApplicationMisc.h"
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
@@ -508,7 +509,7 @@ FGoogleVRHMD::FGoogleVRHMD()
 #endif // GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 
 		// By default, go ahead and disable the screen saver. The user can still change this freely
-		FPlatformMisc::ControlScreensaver(FGenericPlatformMisc::Disable);
+		FPlatformApplicationMisc::ControlScreensaver(FPlatformApplicationMisc::Disable);
 
 		// TODO: Get trigger event handler working again
 		// Setup GVRAPI delegates

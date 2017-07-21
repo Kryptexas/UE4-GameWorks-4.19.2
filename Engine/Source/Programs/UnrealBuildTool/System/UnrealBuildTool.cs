@@ -385,7 +385,7 @@ namespace UnrealBuildTool
 		private static int GuardedMain(string[] Arguments)
 		{
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
-			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: false, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new ConsoleTraceListener() });
+			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: true, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new ConsoleTraceListener() });
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
@@ -495,7 +495,7 @@ namespace UnrealBuildTool
 			Log.InitLogging(
 				bLogTimestamps: false,
 				InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
-				bLogSeverity: false,
+				bLogSeverity: true,
 				bLogSources: false,
 				bLogSourcesToConsole: false,
 				bColorConsoleOutput: true,
@@ -701,6 +701,10 @@ namespace UnrealBuildTool
 						{
 							ProjectFileTypes.Add(ProjectFileType.Eddie);
 						}
+						else if (LowercaseArg.StartsWith("-vscode"))
+						{
+							ProjectFileTypes.Add(ProjectFileType.VSCode);
+						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
 							//ConfigName = Arg;
@@ -861,6 +865,9 @@ namespace UnrealBuildTool
 									break;
 								case ProjectFileType.Eddie:
 									Generator = new EddieProjectFileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.VSCode:
+									Generator = new VSCodeProjectFileGenerator(ProjectFile);
 									break;
 								default:
 									throw new BuildException("Unhandled project file type '{0}", ProjectFileType);
@@ -1298,9 +1305,6 @@ namespace UnrealBuildTool
 								TargetDescs[0].TargetName,
 								TargetDescs.Count > 1 ? (" (and " + (TargetDescs.Count - 1).ToString() + " more)") : "",
 								ReasonNotLoaded);
-
-							// Invalidate UHT makefiles too
-							ExternalExecution.bInvalidateUHTMakefile = true;
 						}
 					}
 
@@ -1655,15 +1659,9 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-			catch (BuildException Exception)
+			catch (Exception Ex)
 			{
-				// Output the message only, without the call stack
-				Log.TraceInformation(Exception.Message);
-				BuildResult = ECompilationResult.OtherCompilationError;
-			}
-			catch (Exception Exception)
-			{
-				Log.TraceInformation("ERROR: {0}", Exception);
+				ExceptionUtils.PrintExceptionInfo(Ex, String.IsNullOrEmpty(BuildConfiguration.LogFilename)? null : BuildConfiguration.LogFilename);
 				BuildResult = ECompilationResult.OtherCompilationError;
 			}
 
@@ -1678,7 +1676,7 @@ namespace UnrealBuildTool
 			{
 				// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
 				//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
-				//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
+				//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successfully
 				//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
 
 				if (Headers.IncludeDependencyCache != null)

@@ -2568,6 +2568,46 @@ FString UWorld::BuildPIEPackagePrefix(int PIEInstanceID)
 	return FString::Printf(TEXT("%s_%d_"), PLAYWORLD_PACKAGE_PREFIX, PIEInstanceID);
 }
 
+/**
+ * Simple archive for updating lazy pointer GUIDs when a sub-level gets duplicated for PIE
+ */
+class FFixupSmartPointersForPIEArchive : public FArchiveUObject
+{
+	/** Keeps track of objects that have already been serialized */
+	TSet<UObject*> VisitedObjects;
+
+public:
+
+	FFixupSmartPointersForPIEArchive()
+	{
+		ArIsObjectReferenceCollector = true;
+		ArIsModifyingWeakAndStrongReferences = true;
+		ArIsPersistent = false;
+		ArIgnoreArchetypeRef = true;
+	}
+	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
+	{
+		FArchive& Ar = *this;
+		FUniqueObjectGuid ID = LazyObjectPtr.GetUniqueID();
+		
+		// Remap unique ID if necessary
+		ID = ID.FixupForPIE();
+
+		LazyObjectPtr = ID;
+		return Ar;
+	}
+
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+		if (Object && !VisitedObjects.Contains(Object))
+		{
+			VisitedObjects.Add(Object);
+			Object->Serialize(*this);
+		}
+		return *this;
+	}
+};
+
 UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(UWorld_DuplicateWorldForPIE);
@@ -2641,6 +2681,13 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::PIE));
+
+	{
+		// The owning world may contain lazy pointers to actors in the sub-level we just duplicated so make sure they are fixed up with the PIE GUIDs
+		FFixupSmartPointersForPIEArchive FixupLazyPointersAr;
+		FixupLazyPointersAr << OwningWorld;
+	}
+
 
 	// Ensure the feature level matches the editor's, this is required as FeatureLevel is not a UPROPERTY and is not duplicated from EditorLevelWorld.
 	PIELevelWorld->FeatureLevel = EditorLevelWorld->FeatureLevel;

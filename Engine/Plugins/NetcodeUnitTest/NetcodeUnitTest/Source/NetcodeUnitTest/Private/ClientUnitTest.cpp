@@ -1531,7 +1531,7 @@ void UClientUnitTest::StartUnitTestServer()
 FString UClientUnitTest::ConstructServerParameters()
 {
 	// Construct the server log parameter
-	FString GameLogDir = FPaths::GameLogDir();
+	FString GameLogDir = FPaths::ProjectLogDir();
 	FString ServerLogParam;
 
 	if (!UnitLogDir.IsEmpty() && UnitLogDir.StartsWith(GameLogDir))
@@ -1547,7 +1547,7 @@ FString UClientUnitTest::ConstructServerParameters()
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
 	// NOTE: Without '?bIsLanMatch', the Steam net driver will be active, when OnlineSubsystemSteam is in use
-	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + BaseServerURL + TEXT("?bIsLanMatch") + TEXT(" -server ") +
+	FString Parameters = FString(FApp::GetProjectName()) + TEXT(" ") + BaseServerURL + TEXT("?bIsLanMatch") + TEXT(" -server ") +
 							BaseServerParameters + ServerLogParam +
 							TEXT(" -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared") +
 							TEXT(" -unattended -CrashForUAT -UseAutoReporter");
@@ -1589,7 +1589,7 @@ TWeakPtr<FUnitTestProcess> UClientUnitTest::StartUnitTestClient(FString ConnectI
 FString UClientUnitTest::ConstructClientParameters(FString ConnectIP)
 {
 	// Construct the client log parameter
-	FString GameLogDir = FPaths::GameLogDir();
+	FString GameLogDir = FPaths::ProjectLogDir();
 	FString ClientLogParam;
 
 	if (!UnitLogDir.IsEmpty() && UnitLogDir.StartsWith(GameLogDir))
@@ -1604,7 +1604,7 @@ FString UClientUnitTest::ConstructClientParameters(FString ConnectIP)
 	// NOTE: In the absence of "-ddc=noshared", a VPN connection can cause UE4 to take a long time to startup
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
-	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
+	FString Parameters = FString(FApp::GetProjectName()) + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
 							ClientLogParam + TEXT(" -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared -nosplash") +
 							TEXT(" -unattended -CrashForUAT -nosound -UseAutoReporter");
 

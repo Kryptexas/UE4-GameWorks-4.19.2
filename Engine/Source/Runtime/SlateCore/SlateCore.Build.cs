@@ -39,7 +39,7 @@ public class SlateCore : ModuleRules
 
         if (Target.Type != TargetType.Server)
 		{
-			if (UEBuildConfiguration.bCompileFreeType)
+			if (Target.bCompileFreeType)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 				Definitions.Add("WITH_FREETYPE=1");
@@ -49,7 +49,7 @@ public class SlateCore : ModuleRules
 				Definitions.Add("WITH_FREETYPE=0");
 			}
 
-			if (UEBuildConfiguration.bCompileICU)
+			if (Target.bCompileICU)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "ICU");
 			}

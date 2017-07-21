@@ -16,7 +16,7 @@ public class LauncherCheck : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bUseLauncherChecks)
+		if (Target.bUseLauncherChecks)
 		{
 			Definitions.Add("WITH_LAUNCHERCHECK=1");
 			PublicDependencyModuleNames.Add("LauncherPlatform");

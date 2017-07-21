@@ -46,6 +46,9 @@
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "Modules/ModuleManager.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "UObject/MetaData.h"
 #include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
@@ -2454,7 +2457,7 @@ UObject::UObject()
 	FObjectInitializer* ObjectInitializerPtr = FUObjectThreadContext::Get().TopInitializer();
 	UE_CLOG(!ObjectInitializerPtr, LogUObjectGlobals, Fatal, TEXT("%s is not being constructed with either NewObject, NewNamedObject or ConstructObject."), *GetName());
 	FObjectInitializer& ObjectInitializer = *ObjectInitializerPtr;
-	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject() constructor called but it's not the object that's currently being constructed with NewObject. Maybe you trying to construct it on the stack which is not supported."));
+	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject() constructor called but it's not the object that's currently being constructed with NewObject. Maybe you are trying to construct it on the stack, which is not supported."));
 	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;
 	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();
 }
@@ -2463,7 +2466,7 @@ UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
 	EnsureNotRetrievingVTablePtr();
 
-	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject(const FObjectInitializer&) constructor called but it's not the object that's currently being constructed with NewObject. Maybe you trying to construct it on the stack which is not supported."));
+	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject(const FObjectInitializer&) constructor called but it's not the object that's currently being constructed with NewObject. Maybe you are trying to construct it on the stack, which is not supported."));
 	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;
 	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();
 }
@@ -3230,6 +3233,130 @@ void ConstructorHelpers::StripObjectClass( FString& PathName, bool bAssertOnBadP
 	}
 }
 
+/*----------------------------------------------------------------------------
+FSimpleObjectReferenceCollectorArchive.
+----------------------------------------------------------------------------*/
+class FSimpleObjectReferenceCollectorArchive : public FArchiveUObject
+{
+public:
+
+	/**
+	* Constructor
+	*
+	* @param	InObjectArray			Array to add object references to
+	*/
+	FSimpleObjectReferenceCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: Collector(InCollector)
+		, SerializingObject(InSerializingObject)
+	{
+		ArIsObjectReferenceCollector = true;
+		ArIsPersistent = Collector.IsIgnoringTransient();
+		ArIgnoreArchetypeRef = Collector.IsIgnoringArchetypeRef();
+	}
+
+protected:
+
+	/**
+	* UObject serialize operator implementation
+	*
+	* @param Object	reference to Object reference
+	* @return reference to instance of this class
+	*/
+	FArchive& operator<<(UObject*& Object)
+	{
+		if (Object)
+		{
+			UProperty* OldCollectorSerializedProperty = Collector.GetSerializedProperty();
+			Collector.SetSerializedProperty(GetSerializedProperty());
+			Collector.AddReferencedObject(Object, SerializingObject, GetSerializedProperty());
+			Collector.SetSerializedProperty(OldCollectorSerializedProperty);
+		}
+		return *this;
+	}
+
+	/** Stored pointer to reference collector. */
+	FReferenceCollector& Collector;
+	/** Object which is performing the serialization. */
+	const UObject* SerializingObject;
+};
+
+class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
+{
+public:
+	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
+	{}
+
+protected:
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+		if (!ensureMsgf((Object == nullptr) || Object->IsValidLowLevelFast()
+			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
+			, (int64)(PTRINT)Object
+			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
+			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL")))
+		{
+			// clear the property value (it's garbage)... the ubergraph-frame
+			// has just lost a reference to whatever it was attempting to hold onto
+			Object = nullptr;
+		}
+#endif
+		if (Object)
+		{
+			bool bWeakRef = false;
+
+			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
+			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
+			{
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
+
+				if (ObjectProperty)
+				{
+					// This was a raw UObject* serialized by UObjectProperty, so just save the address
+					bWeakRef = true;
+				}
+			}
+
+			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
+			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
+
+			if (!bWeakRef)
+			{
+				// This is a hard reference or we don't know what's serializing it, so serialize it normally
+				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			}
+		}
+
+		return *this;
+	}
+};
+
+
+FReferenceCollector::FReferenceCollector()
+	: DefaultReferenceCollectorArchive(nullptr)
+	, PersistentFrameReferenceCollectorArchive(nullptr)
+{
+}
+
+FReferenceCollector::~FReferenceCollector()
+{
+	delete DefaultReferenceCollectorArchive;
+	delete PersistentFrameReferenceCollectorArchive;
+}
+
+void FReferenceCollector::CreateVerySlowReferenceCollectorArchive()
+{
+	check(DefaultReferenceCollectorArchive == nullptr);
+	DefaultReferenceCollectorArchive = new FSimpleObjectReferenceCollectorArchive(nullptr, *this);
+}
+
+void FReferenceCollector::CreatePersistentFrameReferenceCollectorArchive()
+{
+	check(PersistentFrameReferenceCollectorArchive == nullptr);
+	PersistentFrameReferenceCollectorArchive = new FPersistentFrameCollectorArchive(nullptr, *this);
+}
+
 /**
  * Archive for tagging unreachable objects in a non recursive manner.
  */
@@ -3611,4 +3738,667 @@ COREUOBJECT_API UFunction* FindDelegateSignature(FName DelegateSignatureName)
 	}
 
 	return nullptr;
+}
+
+namespace UE4CodeGen_Private
+{
+	void ConstructUProperty(UObject* Outer, const FPropertyParamsBase* const*& PropertyArray, int32& NumProperties)
+	{
+		const FPropertyParamsBase* PropBase = *PropertyArray++;
+
+		uint32 ReadMore = 0;
+
+#if WITH_METADATA
+		const FMetaDataPairParam* MetaDataArray = nullptr;
+		int32                     NumMetaData   = 0;
+#endif
+
+		UProperty* NewProp = nullptr;
+		switch (PropBase->Type)
+		{
+			default:
+			{
+				// Unsupported property type
+				check(false);
+			}
+
+			case EPropertyClass::Byte:
+			{
+				const FBytePropertyParams* Prop = (const FBytePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UByteProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->EnumFunc ? Prop->EnumFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Int8:
+			{
+				const FInt8PropertyParams* Prop = (const FInt8PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UInt8Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Int16:
+			{
+				const FInt16PropertyParams* Prop = (const FInt16PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UInt16Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Int:
+			{
+				const FIntPropertyParams* Prop = (const FIntPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UIntProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Int64:
+			{
+				const FInt64PropertyParams* Prop = (const FInt64PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UInt64Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::UInt16:
+			{
+				const FUInt16PropertyParams* Prop = (const FUInt16PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UUInt16Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::UInt32:
+			{
+				const FUInt32PropertyParams* Prop = (const FUInt32PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UUInt32Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::UInt64:
+			{
+				const FUInt64PropertyParams* Prop = (const FUInt64PropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UUInt64Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::UnsizedInt:
+			{
+				const FUnsizedIntPropertyParams* Prop = (const FUnsizedIntPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UUInt64Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::UnsizedUInt:
+			{
+				const FUnsizedUIntPropertyParams* Prop = (const FUnsizedUIntPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UUInt64Property(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Float:
+			{
+				const FFloatPropertyParams* Prop = (const FFloatPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UFloatProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Double:
+			{
+				const FDoublePropertyParams* Prop = (const FDoublePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UDoubleProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Bool:
+			{
+				auto DoDetermineBitfieldOffsetAndMask = [](uint32& Offset, uint32& BitMask, void (*SetBit)(void* Obj), const SIZE_T SizeOf)
+				{
+					TUniquePtr<uint8[]> Buffer = MakeUnique<uint8[]>(SizeOf);
+
+					SetBit(Buffer.Get());
+
+					// Here we are making the assumption that bitfields are aligned in the struct. Probably true.
+					// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
+					// Have faith.
+					for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
+					{
+						if (uint8 Mask = Buffer[TestOffset])
+						{
+							Offset = TestOffset;
+							BitMask = (uint32)Mask;
+							check(FMath::RoundUpToPowerOfTwo(BitMask) == BitMask); // better be only one bit on
+							break;
+						}
+					}
+				};
+
+				const FBoolPropertyParams* Prop = (const FBoolPropertyParams*)PropBase;
+				uint32 Offset = 0;
+				uint32 BitMask = 0;
+				if (Prop->SetBitFunc)
+				{
+					DoDetermineBitfieldOffsetAndMask(Offset, BitMask, Prop->SetBitFunc, Prop->SizeOfOuter);
+					check(BitMask);
+				}
+
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UBoolProperty(FObjectInitializer(), EC_CppProperty, Offset, Prop->PropertyFlags, BitMask, Prop->ElementSize, Prop->NativeBool == ENativeBool::Native);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Object:
+			{
+				const FObjectPropertyParams* Prop = (const FObjectPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::WeakObject:
+			{
+				const FWeakObjectPropertyParams* Prop = (const FWeakObjectPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UWeakObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::LazyObject:
+			{
+				const FLazyObjectPropertyParams* Prop = (const FLazyObjectPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) ULazyObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::AssetObject:
+			{
+				const FAssetObjectPropertyParams* Prop = (const FAssetObjectPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UAssetObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Class:
+			{
+				const FClassPropertyParams* Prop = (const FClassPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UClassProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->MetaClassFunc ? Prop->MetaClassFunc() : nullptr, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::AssetClass:
+			{
+				const FAssetClassPropertyParams* Prop = (const FAssetClassPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UAssetClassProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->MetaClassFunc ? Prop->MetaClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Interface:
+			{
+				const FInterfacePropertyParams* Prop = (const FInterfacePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UInterfaceProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->InterfaceClassFunc ? Prop->InterfaceClassFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Name:
+			{
+				const FNamePropertyParams* Prop = (const FNamePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UNameProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Str:
+			{
+				const FStrPropertyParams* Prop = (const FStrPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UStrProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Array:
+			{
+				const FArrayPropertyParams* Prop = (const FArrayPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UArrayProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+				// Next property is the array inner
+				ReadMore = 1;
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Map:
+			{
+				const FMapPropertyParams* Prop = (const FMapPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UMapProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+				// Next two properties are the map key and value inners
+				ReadMore = 2;
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Set:
+			{
+				const FSetPropertyParams* Prop = (const FSetPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) USetProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+				// Next property is the set inner
+				ReadMore = 1;
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Struct:
+			{
+				const FStructPropertyParams* Prop = (const FStructPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UStructProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ScriptStructFunc ? Prop->ScriptStructFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Delegate:
+			{
+				const FDelegatePropertyParams* Prop = (const FDelegatePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UDelegateProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->SignatureFunctionFunc ? Prop->SignatureFunctionFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::MulticastDelegate:
+			{
+				const FMulticastDelegatePropertyParams* Prop = (const FMulticastDelegatePropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UMulticastDelegateProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->SignatureFunctionFunc ? Prop->SignatureFunctionFunc() : nullptr);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Text:
+			{
+				const FTextPropertyParams* Prop = (const FTextPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UTextProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+
+			case EPropertyClass::Enum:
+			{
+				const FEnumPropertyParams* Prop = (const FEnumPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UEnumProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->EnumFunc ? Prop->EnumFunc() : nullptr);
+
+				// Next property is the underlying integer property
+				ReadMore = 1;
+
+#if WITH_METADATA
+				MetaDataArray = Prop->MetaDataArray;
+				NumMetaData   = Prop->NumMetaData;
+#endif
+			}
+			break;
+		}
+
+#if WITH_METADATA
+		if (NumMetaData)
+		{
+			UMetaData* MetaData = NewProp->GetOutermost()->GetMetaData();
+			for (const FMetaDataPairParam* MetaDataData = MetaDataArray, *MetaDataEnd = MetaDataData + NumMetaData; MetaDataData != MetaDataEnd; ++MetaDataData)
+			{
+				MetaData->SetValue(NewProp, UTF8_TO_TCHAR(MetaDataData->NameUTF8), UTF8_TO_TCHAR(MetaDataData->ValueUTF8));
+			}
+		}
+#endif
+
+		NewProp->ArrayDim = PropBase->ArrayDim;
+		if (PropBase->RepNotifyFuncUTF8)
+		{
+			NewProp->RepNotifyFunc = FName(UTF8_TO_TCHAR(PropBase->RepNotifyFuncUTF8));
+		}
+
+		--NumProperties;
+
+		for (; ReadMore; --ReadMore)
+		{
+			ConstructUProperty(NewProp, PropertyArray, NumProperties);
+		}
+	}
+
+	void ConstructUProperties(UObject* Outer, const FPropertyParamsBase* const* PropertyArray, int32 NumProperties)
+	{
+		while (NumProperties)
+		{
+			ConstructUProperty(Outer, PropertyArray, NumProperties);
+		}
+	}
+
+#if WITH_METADATA
+	void AddMetaData(UObject* Object, const FMetaDataPairParam* MetaDataArray, int32 NumMetaData)
+	{
+		if (NumMetaData)
+		{
+			UMetaData* MetaData = Object->GetOutermost()->GetMetaData();
+			for (const FMetaDataPairParam* MetaDataParam = MetaDataArray, *MetaDataParamEnd = MetaDataParam + NumMetaData; MetaDataParam != MetaDataParamEnd; ++MetaDataParam)
+			{
+				MetaData->SetValue(Object, UTF8_TO_TCHAR(MetaDataParam->NameUTF8), UTF8_TO_TCHAR(MetaDataParam->ValueUTF8));
+			}
+		}
+	}
+#endif
+
+	void ConstructUFunction(UFunction*& OutFunction, const FFunctionParams& Params)
+	{
+		UObject*   (*OuterFunc)() = Params.OuterFunc;
+		UFunction* (*SuperFunc)() = Params.SuperFunc;
+
+		UObject*   Outer = OuterFunc ? OuterFunc() : nullptr;
+		UFunction* Super = SuperFunc ? SuperFunc() : nullptr;
+
+		if (OutFunction)
+		{
+			return;
+		}
+
+		UFunction* NewFunction;
+		if (Params.FunctionFlags & FUNC_Delegate)
+		{
+			NewFunction = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Params.NameUTF8), Params.ObjectFlags) UDelegateFunction(
+				FObjectInitializer(),
+				Super,
+				Params.FunctionFlags,
+				Params.StructureSize
+			);
+		}
+		else
+		{
+			NewFunction = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Params.NameUTF8), Params.ObjectFlags) UFunction(
+				FObjectInitializer(),
+				Super,
+				Params.FunctionFlags,
+				Params.StructureSize
+			);
+		}
+		OutFunction = NewFunction;
+
+#if WITH_METADATA
+		AddMetaData(NewFunction, Params.MetaDataArray, Params.NumMetaData);
+#endif
+
+		ConstructUProperties(NewFunction, Params.PropertyArray, Params.NumProperties);
+
+		NewFunction->Bind();
+		NewFunction->StaticLink();
+	}
+
+	void ConstructUEnum(UEnum*& OutEnum, const FEnumParams& Params)
+	{
+		UObject* (*OuterFunc)() = Params.OuterFunc;
+
+		UObject* Outer = OuterFunc ? OuterFunc() : nullptr;
+
+		if (OutEnum)
+		{
+			return;
+		}
+
+		UEnum* NewEnum = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Params.NameUTF8), Params.ObjectFlags) UEnum(FObjectInitializer());
+		OutEnum = NewEnum;
+
+		TArray<TPair<FName, int64>> EnumNames;
+		EnumNames.Reserve(Params.NumEnumerators);
+		for (const FEnumeratorParam* Enumerator = Params.EnumeratorParams, *EnumeratorEnd = Enumerator + Params.NumEnumerators; Enumerator != EnumeratorEnd; ++Enumerator)
+		{
+			EnumNames.Emplace(UTF8_TO_TCHAR(Enumerator->NameUTF8), Enumerator->Value);
+		}
+
+		NewEnum->SetEnums(EnumNames, (UEnum::ECppForm)Params.CppForm, Params.DynamicType == EDynamicType::NotDynamic);
+		NewEnum->CppType = UTF8_TO_TCHAR(Params.CppTypeUTF8);
+
+		if (Params.DisplayNameFunc)
+		{
+			NewEnum->SetEnumDisplayNameFn(Params.DisplayNameFunc);
+		}
+
+#if WITH_METADATA
+		AddMetaData(NewEnum, Params.MetaDataArray, Params.NumMetaData);
+#endif
+	}
+
+	void ConstructUScriptStruct(UScriptStruct*& OutStruct, const FStructParams& Params)
+	{
+		UObject*                      (*OuterFunc)()     = Params.OuterFunc;
+		UScriptStruct*                (*SuperFunc)()     = Params.SuperFunc;
+		UScriptStruct::ICppStructOps* (*StructOpsFunc)() = (UScriptStruct::ICppStructOps* (*)())Params.StructOpsFunc;
+
+		UObject*                      Outer     = OuterFunc     ? OuterFunc() : nullptr;
+		UScriptStruct*                Super     = SuperFunc     ? SuperFunc() : nullptr;
+		UScriptStruct::ICppStructOps* StructOps = StructOpsFunc ? StructOpsFunc() : nullptr;
+
+		if (OutStruct)
+		{
+			return;
+		}
+
+		UScriptStruct* NewStruct = new(EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Params.NameUTF8), Params.ObjectFlags) UScriptStruct(FObjectInitializer(), Super, StructOps, (EStructFlags)Params.StructFlags, Params.SizeOf, Params.AlignOf);
+		OutStruct = NewStruct;
+
+		ConstructUProperties(NewStruct, Params.PropertyArray, Params.NumProperties);
+
+		NewStruct->StaticLink();
+
+#if WITH_METADATA
+		AddMetaData(NewStruct, Params.MetaDataArray, Params.NumMetaData);
+#endif
+	}
+
+	void ConstructUPackage(UPackage*& OutPackage, const FPackageParams& Params)
+	{
+		if (OutPackage)
+		{
+			return;
+		}
+
+		UPackage* NewPackage = CastChecked<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, FName(UTF8_TO_TCHAR(Params.NameUTF8)), false, false));
+		OutPackage = NewPackage;
+
+#if WITH_METADATA
+		AddMetaData(NewPackage, Params.MetaDataArray, Params.NumMetaData);
+#endif
+
+		NewPackage->SetPackageFlags(Params.PackageFlags);
+		NewPackage->SetGuid(FGuid(Params.BodyCRC, Params.DeclarationsCRC, 0u, 0u));
+
+		for (UObject* (*const *SingletonFunc)() = Params.SingletonFuncArray, *(*const *SingletonFuncEnd)() = SingletonFunc + Params.NumSingletons; SingletonFunc != SingletonFuncEnd; ++SingletonFunc)
+		{
+			(*SingletonFunc)();
+		}
+	}
+
+	void ConstructUClass(UClass*& OutClass, const FClassParams& Params)
+	{
+		if (OutClass && (OutClass->ClassFlags & CLASS_Constructed))
+		{
+			return;
+		}
+
+		for (UObject* (*const *SingletonFunc)() = Params.DependencySingletonFuncArray, *(*const *SingletonFuncEnd)() = SingletonFunc + Params.NumDependencySingletons; SingletonFunc != SingletonFuncEnd; ++SingletonFunc)
+		{
+			(*SingletonFunc)();
+		}
+
+		UClass* NewClass = Params.ClassNoRegisterFunc();
+		OutClass = NewClass;
+
+		if (NewClass->ClassFlags & CLASS_Constructed)
+		{
+			return;
+		}
+
+		UObjectForceRegistration(NewClass);
+
+		NewClass->ClassFlags = (EClassFlags)(Params.ClassFlags | CLASS_Constructed);
+		// Make sure the reference token stream is empty since it will be reconstructed later on
+		// This should not apply to intrinsic classes since they emit native references before AssembleReferenceTokenStream is called.
+		if ((NewClass->ClassFlags & CLASS_Intrinsic) != CLASS_Intrinsic)
+		{
+			check((NewClass->ClassFlags & CLASS_TokenStreamAssembled) != CLASS_TokenStreamAssembled);
+			NewClass->ReferenceTokenStream.Empty();
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+			NewClass->DebugTokenMap.Empty();
+#endif
+		}
+		NewClass->CreateLinkAndAddChildFunctionsToMap(Params.FunctionLinkArray, Params.NumFunctions);
+
+		ConstructUProperties(NewClass, Params.PropertyArray, Params.NumProperties);
+
+		if (Params.ClassConfigNameUTF8)
+		{
+			NewClass->ClassConfigName = FName(UTF8_TO_TCHAR(Params.ClassConfigNameUTF8));
+		}
+
+		NewClass->SetCppTypeInfoStatic(Params.CppClassInfo);
+
+		if (int32 NumImplementedInterfaces = Params.NumImplementedInterfaces)
+		{
+			NewClass->Interfaces.Reserve(NumImplementedInterfaces);
+			for (const FImplementedInterfaceParams* ImplementedInterface = Params.ImplementedInterfaceArray, *ImplementedInterfaceEnd = ImplementedInterface + NumImplementedInterfaces; ImplementedInterface != ImplementedInterfaceEnd; ++ImplementedInterface)
+			{
+				UClass* (*ClassFunc)() = ImplementedInterface->ClassFunc;
+				UClass* InterfaceClass = ClassFunc ? ClassFunc() : nullptr;
+
+				NewClass->Interfaces.Emplace(InterfaceClass, ImplementedInterface->Offset, ImplementedInterface->bImplementedByK2);
+			}
+		}
+
+#if WITH_METADATA
+		AddMetaData(NewClass, Params.MetaDataArray, Params.NumMetaData);
+#endif
+
+		NewClass->StaticLink();
+	}
 }

@@ -82,7 +82,7 @@ namespace UnrealBuildTool
 		/// <summary>
         /// List of additional plugin directories to scan for available plugins
 		/// </summary>
-        public List<DirectoryReference> AdditionalPluginDirectories;
+        public string[] AdditionalPluginDirectories;
 
 		/// <summary>
 		/// Array of platforms that this project is targeting
@@ -119,6 +119,61 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="RawObject">Raw JSON object to parse</param>
+		public ProjectDescriptor(JsonObject RawObject)
+		{
+			// Read the version
+			if (!RawObject.TryGetIntegerField("FileVersion", out FileVersion))
+			{
+				if (!RawObject.TryGetIntegerField("ProjectFileVersion", out FileVersion))
+				{
+					throw new BuildException("Project does not contain a valid FileVersion entry");
+				}
+			}
+
+			// Check it's not newer than the latest version we can parse
+			if (FileVersion > (int)PluginDescriptorVersion.Latest)
+			{
+				throw new BuildException("Project descriptor appears to be in a newer version ({0}) of the file format that we can load (max version: {1}).", FileVersion, (int)ProjectDescriptorVersion.Latest);
+			}
+
+			// Read simple fields
+			RawObject.TryGetStringField("EngineAssociation", out EngineAssociation);
+			RawObject.TryGetStringField("Category", out Category);
+			RawObject.TryGetStringField("Description", out Description);
+			RawObject.TryGetBoolField("Enterprise", out IsEnterpriseProject);
+
+			// Read the modules
+			JsonObject[] ModulesArray;
+			if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
+			{
+				Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
+			}
+
+			// Read the plugins
+			JsonObject[] PluginsArray;
+			if (RawObject.TryGetObjectArrayField("Plugins", out PluginsArray))
+			{
+				Plugins = Array.ConvertAll(PluginsArray, x => PluginReferenceDescriptor.FromJsonObject(x));
+			}
+
+			// Read the additional plugin directories
+            RawObject.TryGetStringArrayField("AdditionalPluginDirectories", out AdditionalPluginDirectories);
+
+            // Read the target platforms
+            RawObject.TryGetStringArrayField("TargetPlatforms", out TargetPlatforms);
+
+            // Get the sample name hash
+            RawObject.TryGetUnsignedIntegerField("EpicSampleNameHash", out EpicSampleNameHash);
+
+			// Read the pre and post-build steps
+			CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out PreBuildSteps);
+			CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out PostBuildSteps);
+		}
+
+		/// <summary>
 		/// Creates a plugin descriptor from a file on disk
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
@@ -128,81 +183,77 @@ namespace UnrealBuildTool
 			JsonObject RawObject = JsonObject.Read(FileName);
 			try
 			{
-				ProjectDescriptor Descriptor = new ProjectDescriptor();
-
-				// Read the version
-				if (!RawObject.TryGetIntegerField("FileVersion", out Descriptor.FileVersion))
-				{
-					if (!RawObject.TryGetIntegerField("ProjectFileVersion", out Descriptor.FileVersion))
-					{
-						throw new BuildException("Project descriptor '{0}' does not contain a valid FileVersion entry", FileName);
-					}
-				}
-
-				// Check it's not newer than the latest version we can parse
-				if (Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
-				{
-					throw new BuildException("Project descriptor '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)ProjectDescriptorVersion.Latest);
-				}
-
-				// Read simple fields
-				RawObject.TryGetStringField("EngineAssociation", out Descriptor.EngineAssociation);
-				RawObject.TryGetStringField("Category", out Descriptor.Category);
-				RawObject.TryGetStringField("Description", out Descriptor.Description);
-				RawObject.TryGetBoolField("Enterprise", out Descriptor.IsEnterpriseProject);
-
-				// Read the modules
-				JsonObject[] ModulesArray;
-				if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
-				{
-					Descriptor.Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
-				}
-
-				// Read the plugins
-				JsonObject[] PluginsArray;
-				if (RawObject.TryGetObjectArrayField("Plugins", out PluginsArray))
-				{
-					Descriptor.Plugins = Array.ConvertAll(PluginsArray, x => PluginReferenceDescriptor.FromJsonObject(x));
-				}
-
-                string[] Dirs;
-                Descriptor.AdditionalPluginDirectories = new List<DirectoryReference>();
-                // Read the additional plugin directories
-                if (RawObject.TryGetStringArrayField("AdditionalPluginDirectories", out Dirs))
-                {
-                    for (int Index = 0; Index < Dirs.Length; Index++)
-                    {
-                        if (Path.IsPathRooted(Dirs[Index]))
-                        {
-                            // Absolute path so create in place
-                            Descriptor.AdditionalPluginDirectories.Add(new DirectoryReference(Dirs[Index]));
-                            Log.TraceVerbose("Project ({0}) : Added additional absolute plugin directory ({1})", FileName, Dirs[Index]);
-                        }
-                        else
-                        {
-                            // This path is relative to the project path so build that out
-                            string RelativePath = Path.Combine(Path.GetDirectoryName(FileName), Dirs[Index]);
-                            Descriptor.AdditionalPluginDirectories.Add(new DirectoryReference(RelativePath));
-                            Log.TraceVerbose("Project ({0}) : Added additional relative plugin directory ({1})", FileName, Dirs[Index]);
-                        }
-                    }
-                }
-
-                // Read the target platforms
-                RawObject.TryGetStringArrayField("TargetPlatforms", out Descriptor.TargetPlatforms);
-
-                // Get the sample name hash
-                RawObject.TryGetUnsignedIntegerField("EpicSampleNameHash", out Descriptor.EpicSampleNameHash);
-
-				// Read the pre and post-build steps
-				CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out Descriptor.PreBuildSteps);
-				CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out Descriptor.PostBuildSteps);
-
-				return Descriptor;
+				return new ProjectDescriptor(RawObject);
 			}
 			catch (JsonParseException ParseException)
 			{
 				throw new JsonParseException("{0} (in {1})", ParseException.Message, FileName);
+			}
+		}
+
+		/// <summary>
+		/// Saves the descriptor to disk
+		/// </summary>
+		/// <param name="FileName">The filename to write to</param>
+		public void Save(string FileName)
+		{
+			using (JsonWriter Writer = new JsonWriter(FileName))
+			{
+				Writer.WriteObjectStart();
+				Write(Writer);
+				Writer.WriteObjectEnd();
+			}
+		}
+
+		/// <summary>
+		/// Writes the plugin descriptor to an existing Json writer
+		/// </summary>
+		/// <param name="Writer">The writer to receive plugin data</param>
+		public void Write(JsonWriter Writer)
+		{
+			Writer.WriteValue("FileVersion", (int)ProjectDescriptorVersion.Latest);
+			Writer.WriteValue("EngineAssociation", EngineAssociation);
+			Writer.WriteValue("Category", Category);
+			Writer.WriteValue("Description", Description);
+
+			// Write the enterprise flag
+			if (IsEnterpriseProject)
+			{
+				Writer.WriteValue("Enterprise", IsEnterpriseProject);
+			}
+
+			// Write the module list
+			ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
+
+			// Write the plugin list
+			PluginReferenceDescriptor.WriteArray(Writer, "Plugins", Plugins);
+
+			// Write out the additional plugin directories to scan
+			if(AdditionalPluginDirectories != null && AdditionalPluginDirectories.Length > 0)
+			{
+				Writer.WriteStringArrayField("AdditionalPluginDirectories", AdditionalPluginDirectories);
+			}
+
+			// Write the target platforms
+			if(TargetPlatforms != null && TargetPlatforms.Length > 0)
+			{
+				Writer.WriteStringArrayField("TargetPlatforms", TargetPlatforms);
+			}
+
+			// If it's a signed sample, write the name hash
+			if(EpicSampleNameHash != 0)
+			{
+				Writer.WriteValue("EpicSampleNameHash", (uint)EpicSampleNameHash);
+			}
+
+			// Write the custom build steps
+			if(PreBuildSteps != null)
+			{
+				PreBuildSteps.Write(Writer, "PreBuildSteps");
+			}
+			if(PostBuildSteps != null)
+			{
+				PostBuildSteps.Write(Writer, "PostBuildSteps");
 			}
 		}
 	}

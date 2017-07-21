@@ -49,7 +49,7 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 {
 	if (!CachedAbsoluteFilename[0])
 	{
-		FCString::Strcpy(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename), *FPaths::GameLogDir());
+		FCString::Strcpy(CachedAbsoluteFilename, ARRAY_COUNT(CachedAbsoluteFilename), *FPaths::ProjectLogDir());
 		FString LogFilename;
 		if (!FParse::Value(FCommandLine::Get(), TEXT("LOG="), LogFilename))
 		{
@@ -68,9 +68,9 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 
 		if (LogFilename.Len() == 0)
 		{
-			if (FCString::Strlen(FApp::GetGameName()) != 0)
+			if (FCString::Strlen(FApp::GetProjectName()) != 0)
 			{
-				LogFilename = FApp::GetGameName();
+				LogFilename = FApp::GetProjectName();
 			}
 			else
 			{

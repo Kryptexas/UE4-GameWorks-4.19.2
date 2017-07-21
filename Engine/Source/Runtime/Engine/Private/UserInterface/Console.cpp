@@ -28,6 +28,7 @@
 #include "GameFramework/InputSettings.h"
 #include "Stats/StatsData.h"
 #include "Misc/TextFilter.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 
@@ -235,7 +236,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		TArray<FString> Packages;
 		for (int32 PathIdx = 0; PathIdx < ConsoleSettings->AutoCompleteMapPaths.Num(); ++PathIdx)
 		{
-			FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::GameDir(), *ConsoleSettings->AutoCompleteMapPaths[PathIdx]));
+			FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::ProjectDir(), *ConsoleSettings->AutoCompleteMapPaths[PathIdx]));
 		}
 	
 		// also include maps in this user's developer dir
@@ -656,14 +657,14 @@ bool UConsole::ProcessControlKey(FKey Key, EInputEvent Event)
 		{
 			// paste
 			FString ClipboardContent;
-			FPlatformMisc::ClipboardPaste(ClipboardContent);
+			FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 			AppendInputText(ClipboardContent);
 			return true;
 		}
 		else if (Key == EKeys::C)
 		{
 			// copy
-			FPlatformMisc::ClipboardCopy(*TypedStr);
+			FPlatformApplicationMisc::ClipboardCopy(*TypedStr);
 			return true;
 		}
 		else if (Key == EKeys::X)
@@ -671,7 +672,7 @@ bool UConsole::ProcessControlKey(FKey Key, EInputEvent Event)
 			// cut
 			if (!TypedStr.IsEmpty())
 			{
-				FPlatformMisc::ClipboardCopy(*TypedStr);
+				FPlatformApplicationMisc::ClipboardCopy(*TypedStr);
 				SetInputText(TEXT(""));
 				SetCursorPos(0);
 			}

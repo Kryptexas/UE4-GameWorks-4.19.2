@@ -46,6 +46,7 @@ EditorLevelUtils.cpp: Editor-specific level management routines
 #include "Engine/LevelStreamingVolume.h"
 #include "Components/ModelComponent.h"
 #include "Misc/RuntimeErrors.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 
@@ -68,7 +69,7 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 		// Backup the current contents of the clipboard string as we'll be using cut/paste features to move actors
 		// between levels and this will trample over the clipboard data.
 		FString OriginalClipboardContent;
-		FPlatformMisc::ClipboardPaste(OriginalClipboardContent);
+		FPlatformApplicationMisc::ClipboardPaste(OriginalClipboardContent);
 
 		// The final list of actors to move after invalid actors were removed
 		TArray<AActor*> FinalMoveList;
@@ -158,7 +159,7 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 		}
 
 		// Restore the original clipboard contents
-		FPlatformMisc::ClipboardCopy(*OriginalClipboardContent);
+		FPlatformApplicationMisc::ClipboardCopy(*OriginalClipboardContent);
 	}
 
 	return NumMovedActors;

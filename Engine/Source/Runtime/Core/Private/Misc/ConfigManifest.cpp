@@ -236,7 +236,7 @@ EConfigManifestVersion FConfigManifest::UpgradeFromVersion(EConfigManifestVersio
 
 	if (FromVersion < EConfigManifestVersion::MigrateProjectSpecificInisToAgnostic)
 	{
-		if (!FApp::HasGameName())
+		if (!FApp::HasProjectName())
 		{
 			// We can't upgrade game settings if there is no game.
 			return FromVersion;

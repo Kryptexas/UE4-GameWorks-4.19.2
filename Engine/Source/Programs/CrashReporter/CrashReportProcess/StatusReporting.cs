@@ -218,8 +218,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					                        StringBuilder StatusReportMessage = new StringBuilder();
 											// #WRH Hack to disable sending status reports when the queue size is low. A more efficient solution would avoid writing the string values as well. This is just a surgical strike.
 											bool bSendStatusReport = false;
-											// clamp the min queue waiting time for alert to be 15 sec. But still allow for 0 to mean "never do it"
-											TimeSpan QueueWaitTimeThreshold = (Config.Default.QueueWaitingTimeAlertThreshold > TimeSpan.Zero && Config.Default.QueueWaitingTimeAlertThreshold.TotalSeconds < 15.0) ? TimeSpan.FromSeconds(15.0) : Config.Default.QueueWaitingTimeAlertThreshold;
+											double QueueWaitTimeThreshold = Config.Default.QueueWaitingTimeAlertThresholdMinutes;
 
 											lock (DataLock)
 					                        {
@@ -259,7 +258,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 									                        WaitTimeString = string.Format("{0} minutes", WaitMinutes);
 								                        }
 
-														if (MeanWaitTime >= QueueWaitTimeThreshold && QueueWaitTimeThreshold > TimeSpan.Zero)
+														if (MeanWaitTime.TotalMinutes >= QueueWaitTimeThreshold && QueueWaitTimeThreshold > 0)
 														{
 															bSendStatusReport = true;
 														}
@@ -290,10 +289,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 					                        }
 					                        return bSendStatusReport ? StatusReportMessage.ToString() : "";
 				                        }));
-			if (Config.Default.DiskSpaceAvailableAlertInterval > TimeSpan.Zero)
+			if (Config.Default.DiskSpaceAvailableAlertIntervalMinutes > 0)
 			{
-				// clamp to min 15 sec interval.
-				TimeSpan DiskStatusReportInterval = Config.Default.DiskSpaceAvailableAlertInterval.TotalSeconds < 15.0 ? TimeSpan.FromSeconds(15.0) : Config.Default.DiskSpaceAvailableAlertInterval;
+				TimeSpan DiskStatusReportInterval = TimeSpan.FromMinutes(Config.Default.DiskSpaceAvailableAlertIntervalMinutes);
 				StatusReportLoops.Add(
 					new DiskStatusReport(DiskStatusReportInterval, (InLoop, InPeriod) =>
 										 {

@@ -72,8 +72,7 @@ namespace Win.Automation
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Find the matching files
 			FileReference[] PdbFiles = ResolveFilespec(CommandUtils.RootDirectory, Parameters.BinaryFiles, TagNameToFileSet).Where(x => x.HasExtension(".pdb")).ToArray();
@@ -85,8 +84,7 @@ namespace Win.Automation
 			FileReference PdbStrExe;
 			if (!TryGetPdbStrExe("v10.0", out PdbStrExe) && !TryGetPdbStrExe("v8.1", out PdbStrExe) && !TryGetPdbStrExe("v8.0", out PdbStrExe))
 			{
-				CommandUtils.LogError("Couldn't find PDBSTR.EXE in any Windows SDK installation");
-				return false;
+				throw new AutomationException("Couldn't find PDBSTR.EXE in any Windows SDK installation");
 			}
 
 			// Get the path to the generated SRCSRV.INI file
@@ -114,9 +112,7 @@ namespace Win.Automation
 			}
 
             // Execute PDBSTR on the PDB files in parallel.
-            bool[] Results = new bool[PdbFiles.Length];
-            Parallel.For(0, PdbFiles.Length, (Idx, State) => { Results[Idx] = ExecuteTool(PdbStrExe, PdbFiles[Idx], SrcSrvIni, State); });
-            return Results.All(x => x);
+            Parallel.For(0, PdbFiles.Length, (Idx, State) => { ExecuteTool(PdbStrExe, PdbFiles[Idx], SrcSrvIni, State); });
 		}
 
         /// <summary>
@@ -127,7 +123,7 @@ namespace Win.Automation
         /// <param name="SrcSrvIni">Ini file containing settings to embed</param>
         /// <param name="State">The current loop state</param>
         /// <returns>True if the tool executed succesfully</returns>
-        bool ExecuteTool(FileReference PdbStrExe, FileReference PdbFile, FileReference SrcSrvIni, ParallelLoopState State)
+        void ExecuteTool(FileReference PdbStrExe, FileReference PdbFile, FileReference SrcSrvIni, ParallelLoopState State)
         {
             using (Process Process = new Process())
             {
@@ -163,7 +159,10 @@ namespace Win.Automation
                     }
                 }
 
-                return Process.ExitCode == 0;
+				if(Process.ExitCode != 0)
+				{
+					throw new AutomationException("Failed to embed source server data for {0}", PdbFile);
+				}
             }
         }
 

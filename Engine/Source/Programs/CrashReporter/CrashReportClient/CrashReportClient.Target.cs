@@ -32,29 +32,29 @@ public class CrashReportClientTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 
 		// CrashReportClient doesn't ever compile with the engine linked in
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
-		UEBuildConfiguration.bUseLoggingInShipping = true;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = true;
+		bUseLoggingInShipping = true;
 
-		UEBuildConfiguration.bIncludeADO = false;
+		bIncludeADO = false;
 		
 		// Do not include ICU for Linux (this is a temporary workaround, separate headless CrashReportClient target should be created, see UECORE-14 for details).
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			UEBuildConfiguration.bCompileICU = false;
+			bCompileICU = false;
 		}
 
 		// CrashReportClient.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 
-		UEBuildConfiguration.bUseChecksInShipping = true;
+		bUseChecksInShipping = true;
 
 		// Epic Games Launcher needs to run on OS X 10.9, so CrashReportClient needs this as well
 		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;

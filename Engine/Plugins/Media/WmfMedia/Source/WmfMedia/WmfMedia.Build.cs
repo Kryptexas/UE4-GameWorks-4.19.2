@@ -35,7 +35,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (UEBuildConfiguration.bCompileAgainstEngine)
+			if (Target.bCompileAgainstEngine)
 			{
 				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
 			}

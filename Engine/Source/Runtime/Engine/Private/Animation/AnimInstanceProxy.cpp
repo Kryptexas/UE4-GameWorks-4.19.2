@@ -303,7 +303,7 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 		UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
 		FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
 		DebugData.RecordNodeVisitArray(UpdatedNodesThisFrame);
-		DebugData.AnimNodePoseWatch = MoveTemp(PoseWatchEntriesForThisFrame);
+		DebugData.AnimNodePoseWatch = PoseWatchEntriesForThisFrame;
 	}
 #endif
 

@@ -245,7 +245,7 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 	if (SourceDirectory.StartsWith("../"))
 	{
 		// Normalize. Interpret setting as a relative path from the Game User directory (Named after the Game)
-		SourceDirectory = FPaths::ConvertRelativePathToFull(FPaths::GameUserDir() / SourceDirectory);
+		SourceDirectory = FPaths::ConvertRelativePathToFull(FPaths::ProjectUserDir() / SourceDirectory);
 	}
 
 	// Check if the source directory is actually a mount point
@@ -660,7 +660,7 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 			//       FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(); if you alter this (or either of those) then you need to update the others
 			const FString NativizedPluginDir  = TEXT("./Intermediate/Plugins");
 			const FString NativizedPluginName = TEXT("NativizedAssets");
-			const FString FullPluginPath = FPaths::ConvertRelativePathToFull( FPaths::ConvertRelativePathToFull(FPaths::GameDir()), NativizedPluginDir );
+			const FString FullPluginPath = FPaths::ConvertRelativePathToFull( FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), NativizedPluginDir );
 
 			if (BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled)
 			{

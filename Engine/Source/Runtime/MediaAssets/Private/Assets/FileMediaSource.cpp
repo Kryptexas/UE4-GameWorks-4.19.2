@@ -23,7 +23,7 @@ void UFileMediaSource::SetFilePath(const FString& Path)
 	else
 	{
 		FString FullPath = FPaths::ConvertRelativePathToFull(Path);
-		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 
 		if (FullPath.StartsWith(FullGameContentDir))
 		{
@@ -88,7 +88,7 @@ FString UFileMediaSource::GetFullPath() const
 
 	if (FilePath.StartsWith(TEXT("./")))
 	{
-		return FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), FilePath.RightChop(2));
+		return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), FilePath.RightChop(2));
 	}
 
 	return FPaths::ConvertRelativePathToFull(FilePath);

@@ -1430,58 +1430,6 @@ void UBlueprintGeneratedClass::Bind()
 	}
 }
 
-class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
-{
-public:
-	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
-		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
-	{}
-
-protected:
-	virtual FArchive& operator<<(UObject*& Object) override
-	{
-#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		if (!ensureMsgf( (Object == nullptr) || Object->IsValidLowLevelFast()
-			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
-			, (int64)(PTRINT)Object
-			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
-			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL") ))
-		{
-			// clear the property value (it's garbage)... the ubergraph-frame
-			// has just lost a reference to whatever it was attempting to hold onto
-			Object = nullptr;
-		}
-#endif
-		if (Object)
-		{
-			bool bWeakRef = false;
-
-			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
-			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
-			{
-				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
-
-				if (ObjectProperty)
-				{
-					// This was a raw UObject* serialized by UObjectProperty, so just save the address
-					bWeakRef = true;
-				}
-			}
-
-			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
-			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
-
-			if (!bWeakRef)
-			{
-				// This is a hard reference or we don't know what's serializing it, so serialize it normally
-				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
-			}
-		}
-
-		return *this;
-	}
-};
-
 void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector)
 {
 	checkSlow(InThis);
@@ -1496,8 +1444,7 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				if (PointerToUberGraphFrame->RawPointer)
 				{
 					checkSlow(BPGC->UberGraphFunction);
-					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
-					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
+					BPGC->UberGraphFunction->SerializeBin(Collector.GetInternalPersisnentFrameReferenceCollectorArchive(), PointerToUberGraphFrame->RawPointer);
 				}
 			}
 		}

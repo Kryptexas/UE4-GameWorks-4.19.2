@@ -13,7 +13,7 @@ public class NetworkFile : ModuleRules
 		PublicIncludePaths.Add("Runtime/CoreUObject/Public/UObject");
 		PublicIncludePaths.Add("Runtime/CoreUObject/Public");
 
-		if (!UEBuildConfiguration.bBuildRequiresCookedData)
+		if (!Target.bBuildRequiresCookedData)
 		{
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[]

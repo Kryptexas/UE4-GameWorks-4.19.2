@@ -639,8 +639,8 @@ void FOneSkyLocalizationServiceProvider::ImportAllCulturesForTargetFromOneSky(TW
 		DownloadTargetFileOp->SetInLocale(CultureStats.CultureName);
 
 		// Put the intermediary .po files in a temporary directory in Saved for now
-		FString Path = FPaths::GameSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name / CultureStats.CultureName / LocalizationTarget->Settings.Name + ".po";
-		FPaths::MakePathRelativeTo(Path, *FPaths::GameDir());
+		FString Path = FPaths::ProjectSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name / CultureStats.CultureName / LocalizationTarget->Settings.Name + ".po";
+		FPaths::MakePathRelativeTo(Path, *FPaths::ProjectDir());
 		DownloadTargetFileOp->SetInRelativeOutputFilePathAndName(Path);
 
 		FilesDownloadingForImportFromOneSky.Add(Path);
@@ -702,7 +702,7 @@ void FOneSkyLocalizationServiceProvider::ImportCultureForTargetFromOneSky_Callba
 			TotalNumber,
 			LOCTEXT("DownloadingFilesFromLocalizationService", "Downloading Files from Localization Service..."));
 
-		AbsoluteFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / InRelativeOutputFilePathAndName);
+		AbsoluteFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / InRelativeOutputFilePathAndName);
 
 		// Once we have gotten the callback for each file for this import, then start importing
 		if (FilesDownloadingForImportFromOneSky.Num() == 0)
@@ -797,7 +797,7 @@ void FOneSkyLocalizationServiceProvider::ExportAllCulturesForTargetToOneSky(TWea
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
 		FString EngineOrGamePath = LocalizationTarget->IsMemberOfEngineTargetSet() ? "Engine" : "Game";
-		FString AbsoluteFolderPath = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name);
+		FString AbsoluteFolderPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name);
 		
 		// Delete old files if they exists so we don't accidentally export old data
 		IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -818,8 +818,8 @@ void FOneSkyLocalizationServiceProvider::ExportAllCulturesForTargetToOneSky(TWea
 		FString EngineOrGamePath = LocalizationTarget->IsMemberOfEngineTargetSet() ? "Engine" : "Game";
 
 		// Put the intermediary .po files in a temporary directory in Saved for now
-		FString Path = FPaths::GameSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name / CultureStats.CultureName / LocalizationTarget->Settings.Name + ".po";
-		FPaths::MakePathRelativeTo(Path, *FPaths::GameDir());
+		FString Path = FPaths::ProjectSavedDir() / "Temp" / EngineOrGamePath / LocalizationTarget->Settings.Name / CultureStats.CultureName / LocalizationTarget->Settings.Name + ".po";
+		FPaths::MakePathRelativeTo(Path, *FPaths::ProjectDir());
 		UploadFileOp->SetInRelativeInputFilePathAndName(Path);
 
 		FilesUploadingForExportToOneSky.Add(Path);
@@ -954,7 +954,7 @@ void FOneSkyLocalizationServiceProvider::ExportAllTargetsForTargetSetToOneSky(TW
 
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	FString AbsoluteFolderPath = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / "Temp" / EngineOrGamePath / "");
+	FString AbsoluteFolderPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / "Temp" / EngineOrGamePath / "");
 
 	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	// Delete old files if they exists so we don't accidentally export old data

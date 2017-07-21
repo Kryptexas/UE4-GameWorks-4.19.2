@@ -543,7 +543,7 @@ bool FPerfCounters::StopMachineLoadTracking()
 
 bool FPerfCounters::ReportUnplayableCondition(const FString& ConditionDescription)
 {
-	FString UnplayableConditionFile(FPaths::Combine(*FPaths::GameSavedDir(), *FString::Printf(TEXT("UnplayableConditionForPid_%d.txt"), FPlatformProcess::GetCurrentProcessId())));
+	FString UnplayableConditionFile(FPaths::Combine(*FPaths::ProjectSavedDir(), *FString::Printf(TEXT("UnplayableConditionForPid_%d.txt"), FPlatformProcess::GetCurrentProcessId())));
 
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*UnplayableConditionFile);
 	if (UNLIKELY(ReportFile == nullptr))

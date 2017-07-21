@@ -23,7 +23,7 @@ FArchive* FRuntimeAssetCacheFilesystemBackend::CreateWriteArchive(FName Bucket, 
 FRuntimeAssetCacheFilesystemBackend::FRuntimeAssetCacheFilesystemBackend()
 {
 	GConfig->GetString(TEXT("RuntimeAssetCache"), TEXT("PathToRAC"), PathToRAC, GEngineIni);
-	PathToRAC = FPaths::GameSavedDir() / PathToRAC;
+	PathToRAC = FPaths::ProjectSavedDir() / PathToRAC;
 }
 
 bool FRuntimeAssetCacheFilesystemBackend::RemoveCacheEntry(const FName Bucket, const TCHAR* CacheKey)

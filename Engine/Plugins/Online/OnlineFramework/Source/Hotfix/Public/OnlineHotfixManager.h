@@ -271,7 +271,7 @@ protected:
 	 */
 	virtual FString GetCachedDirectory()
 	{
-		return FPaths::GamePersistentDownloadDir();
+		return FPaths::ProjectPersistentDownloadDir();
 	}
 
 	/** Finds the header associated with the file name */

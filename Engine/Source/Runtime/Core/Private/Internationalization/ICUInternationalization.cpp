@@ -97,7 +97,7 @@ bool FICUInternationalization::Initialize()
 
 	const FString PotentialDataDirectories[] = 
 	{
-		FPaths::GameContentDir() / DataDirectoryRelativeToContent, // Try game content directory.
+		FPaths::ProjectContentDir() / DataDirectoryRelativeToContent, // Try game content directory.
 		FPaths::EngineContentDir() / DataDirectoryRelativeToContent, // Try engine content directory.
 	};
 

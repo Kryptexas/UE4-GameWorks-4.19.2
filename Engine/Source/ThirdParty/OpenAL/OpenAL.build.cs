@@ -9,7 +9,7 @@ public class OpenAL : ModuleRules
 		Type = ModuleType.External;
 		string version = "1.15.1";
 
-		string OpenALPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenAL/" + version + "/";
+		string OpenALPath = Target.UEThirdPartySourceDirectory + "OpenAL/" + version + "/";
 		PublicIncludePaths.Add(OpenALPath + "include");
         
 		if (Target.Platform == UnrealTargetPlatform.HTML5)

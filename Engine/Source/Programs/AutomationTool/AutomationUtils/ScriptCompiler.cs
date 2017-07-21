@@ -62,16 +62,6 @@ namespace AutomationTool
 				DoCompile = true;
 			}
 
-			// Change to Engine\Source (if exists) to properly discover all UBT classes
-			var OldCWD = Environment.CurrentDirectory;
-			var UnrealBuildToolCWD = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
-			if (Directory.Exists(UnrealBuildToolCWD))
-			{
-				Environment.CurrentDirectory = UnrealBuildToolCWD;
-			}
-			// Register all the classes inside UBT
-			Environment.CurrentDirectory = OldCWD;
-
 			// Compile only if not disallowed.
 			if (DoCompile && !String.IsNullOrEmpty(CommandUtils.CmdEnv.MsBuildExe))
 			{

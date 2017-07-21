@@ -29,7 +29,7 @@ public class AndroidDeviceDetection : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 		}

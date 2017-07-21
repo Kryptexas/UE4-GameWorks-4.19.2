@@ -7,6 +7,7 @@
 #include "VisualLoggerDatabase.h"
 #include "LogVisualizerStyle.h"
 #include "Widgets/Views/SListView.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SVisualLoggerLogsList"
 
@@ -68,7 +69,7 @@ FReply SVisualLoggerLogsList::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 
 			ClipboardString += TEXT("\n");
 		}
-		FPlatformMisc::ClipboardCopy(*ClipboardString);
+		FPlatformApplicationMisc::ClipboardCopy(*ClipboardString);
 		return FReply::Handled();
 	}
 

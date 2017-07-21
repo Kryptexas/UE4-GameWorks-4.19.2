@@ -10,7 +10,7 @@ namespace UnrealBuildTool.Rules
 		{
 			bFasterWithoutUnity = true;
 
-			string GoogleVRSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "GoogleVR/";
+			string GoogleVRSDKDir = Target.UEThirdPartySourceDirectory + "GoogleVR/";
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"GoogleVRController/Private",
@@ -42,7 +42,7 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("Launch");
 			}
 
-			if (UEBuildConfiguration.bBuildEditor == true)
+			if (Target.bBuildEditor == true)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 				if(Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
@@ -62,7 +62,7 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "GoogleVR" });
 
-				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GoogleVRController_APL.xml")));
 			}
 		}

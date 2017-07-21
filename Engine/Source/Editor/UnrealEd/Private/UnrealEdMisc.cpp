@@ -1614,9 +1614,9 @@ void FUnrealEdMisc::RestartEditor(bool bWarn)
 	{
 		SwitchProject(FPaths::GetProjectFilePath(), bWarn);
 	}
-	else if(FApp::HasGameName())
+	else if(FApp::HasProjectName())
 	{
-		SwitchProject(FApp::GetGameName(), bWarn);
+		SwitchProject(FApp::GetProjectName(), bWarn);
 	}
 	else
 	{
@@ -1645,7 +1645,7 @@ void FUnrealEdMisc::BeginPerformanceSurvey()
 void FUnrealEdMisc::TickPerformanceAnalytics()
 {
 	// Don't run if we've not yet loaded a project
-	if( !FApp::HasGameName() )
+	if( !FApp::HasProjectName() )
 	{
 		return;
 	}

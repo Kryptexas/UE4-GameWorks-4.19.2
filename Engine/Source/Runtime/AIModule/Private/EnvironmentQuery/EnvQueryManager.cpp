@@ -962,7 +962,7 @@ bool UEnvQueryManager::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar
 #if USE_EQS_DEBUGGER
 	if (FParse::Command(&Cmd, TEXT("DumpEnvQueryStats")))
 	{
-		const FString FileName = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("EnvQueryStats"), TEXT(".ue4eqs"));
+		const FString FileName = FPaths::CreateTempFilename(*FPaths::ProjectLogDir(), TEXT("EnvQueryStats"), TEXT(".ue4eqs"));
 
 		FEQSDebugger::SaveStats(FileName);
 		return true;

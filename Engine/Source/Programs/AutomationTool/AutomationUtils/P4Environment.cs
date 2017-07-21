@@ -137,13 +137,16 @@ namespace AutomationTool
 			// Log all vars
 			const bool bQuiet = true;
 
-			Log.TraceInformation("Detected Perforce Settings:");
-			Log.TraceInformation("    Port: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));
-			Log.TraceInformation("    User: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.User, "", bQuiet));
-			Log.TraceInformation("    Client: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Client, "", bQuiet));
-			Log.TraceInformation("    Branch: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootP4, "", bQuiet));
-			Log.TraceInformation("    Last Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Changelist, "", bQuiet));
-			Log.TraceInformation("    Last Code Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.CodeChangelist, "", bQuiet));
+			if (!CommandUtils.CmdEnv.IsChildInstance)
+			{
+				Log.TraceInformation("Detected Perforce Settings:");
+				Log.TraceInformation("  Port: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));
+				Log.TraceInformation("  User: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.User, "", bQuiet));
+				Log.TraceInformation("  Client: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Client, "", bQuiet));
+				Log.TraceInformation("  Branch: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.BuildRootP4, "", bQuiet));
+				Log.TraceInformation("  Last Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.Changelist, "", bQuiet));
+				Log.TraceInformation("  Last Code Change: {0}", InternalUtils.GetEnvironmentVariable(EnvVarNames.CodeChangelist, "", bQuiet));
+			}
 
 			Log.TraceLog("Perforce Environment Variables:");
 			Log.TraceLog("    {0}={1}", EnvVarNames.P4Port, InternalUtils.GetEnvironmentVariable(EnvVarNames.P4Port, "", bQuiet));

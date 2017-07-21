@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Misc/AutomationTest.h"
@@ -126,7 +127,7 @@ namespace EditorBuildPromotionTestUtils
 	*/
 	static FString GetFullPath()
 	{
-		return FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("EditorPromotionTest"));
+		return FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir() + TEXT("EditorPromotionTest"));
 	}
 
 	/**
@@ -632,12 +633,12 @@ namespace EditorBuildPromotionTestUtils
 		//Remove the directory
 		bool bEnsureExists = false;
 		bool bDeleteEntireTree = true;
-		FString PackageDirectory = FPaths::GameContentDir() / TEXT("BuildPromotionTest");
+		FString PackageDirectory = FPaths::ProjectContentDir() / TEXT("BuildPromotionTest");
 		IFileManager::Get().DeleteDirectory(*PackageDirectory, bEnsureExists, bDeleteEntireTree);
 		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Deleting Folder: %s"), *PackageDirectory);
 
 		//Remove the map
-		FString MapFilePath = FPaths::GameContentDir() / TEXT("Maps/EditorBuildPromotionTest.umap");
+		FString MapFilePath = FPaths::ProjectContentDir() / TEXT("Maps/EditorBuildPromotionTest.umap");
 		IFileManager::Get().Delete(*MapFilePath, false, true, true);
 		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Deleting Map: %s"), *MapFilePath);
 	}
@@ -2097,7 +2098,7 @@ namespace BuildPromotionTestHelper
 				{
 					FString OutNodeText;
 					FEdGraphUtilities::ExportNodesToText(NodesToExport, OutNodeText);
-					FPlatformMisc::ClipboardCopy(*OutNodeText);
+					FPlatformApplicationMisc::ClipboardCopy(*OutNodeText);
 
 					UEdGraph* LevelEventGraph = FBlueprintEditorUtils::FindEventGraph(LSB);
 					FKismetEditorUtilities::PasteNodesHere(LevelEventGraph, FVector2D(0, 0));
@@ -2363,7 +2364,7 @@ bool FBuildPromotionPIETest::RunTest(const FString& Parameters)
 
 	bool bLoadAsTemplate = false;
 	bool bShowProgress = false;
-	const FString MapName = FPaths::GameContentDir() + TEXT("Maps/EditorBuildPromotionTest.umap");
+	const FString MapName = FPaths::ProjectContentDir() + TEXT("Maps/EditorBuildPromotionTest.umap");
 	FEditorFileUtils::LoadMap(MapName, bLoadAsTemplate, bShowProgress);
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Loading Map: %s"), *MapName);
 

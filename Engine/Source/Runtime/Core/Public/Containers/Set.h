@@ -160,16 +160,15 @@ public:
 	{}
 
 	/** Initialization constructor. */
-	template <typename InitType, typename = typename TEnableIf<!TAreTypesEqual<TSetElement, typename TDecay<InitType>::Type>::Value>::Type> explicit FORCEINLINE TSetElement(const InitType&  InValue) : Value(         InValue ) {}
-	template <typename InitType, typename = typename TEnableIf<!TAreTypesEqual<TSetElement, typename TDecay<InitType>::Type>::Value>::Type> explicit FORCEINLINE TSetElement(      InitType&& InValue) : Value(MoveTemp(InValue)) {}
+	template <typename InitType, typename = typename TEnableIf<!TAreTypesEqual<TSetElement, typename TDecay<InitType>::Type>::Value>::Type> explicit FORCEINLINE TSetElement(InitType&& InValue) : Value(Forward<InitType>(InValue)) {}
 
 	/** Copy/move constructors */
-	FORCEINLINE TSetElement(const TSetElement&  Rhs) : Value(         Rhs.Value ), HashNextId(         Rhs.HashNextId ), HashIndex(Rhs.HashIndex) {}
-	FORCEINLINE TSetElement(      TSetElement&& Rhs) : Value(MoveTemp(Rhs.Value)), HashNextId(MoveTemp(Rhs.HashNextId)), HashIndex(Rhs.HashIndex) {}
+	FORCEINLINE TSetElement(const TSetElement&  Rhs) : Value(                   Rhs.Value ), HashNextId(         Rhs.HashNextId ), HashIndex(Rhs.HashIndex) {}
+	FORCEINLINE TSetElement(      TSetElement&& Rhs) : Value(MoveTempIfPossible(Rhs.Value)), HashNextId(MoveTemp(Rhs.HashNextId)), HashIndex(Rhs.HashIndex) {}
 
 	/** Copy/move assignment */
-	FORCEINLINE TSetElement& operator=(const TSetElement&  Rhs) { Value =          Rhs.Value ; HashNextId =          Rhs.HashNextId ; HashIndex = Rhs.HashIndex; return *this; }
-	FORCEINLINE TSetElement& operator=(      TSetElement&& Rhs) { Value = MoveTemp(Rhs.Value); HashNextId = MoveTemp(Rhs.HashNextId); HashIndex = Rhs.HashIndex; return *this; }
+	FORCEINLINE TSetElement& operator=(const TSetElement&  Rhs) { Value =                    Rhs.Value ; HashNextId =          Rhs.HashNextId ; HashIndex = Rhs.HashIndex; return *this; }
+	FORCEINLINE TSetElement& operator=(      TSetElement&& Rhs) { Value = MoveTempIfPossible(Rhs.Value); HashNextId = MoveTemp(Rhs.HashNextId); HashIndex = Rhs.HashIndex; return *this; }
 
 	/** Serializer. */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar,TSetElement& Element)
@@ -472,8 +471,8 @@ public:
 	 * @param	bIsAlreadyInSetPtr	[out]	Optional pointer to bool that will be set depending on whether element is already in set
 	 * @return	A pointer to the element stored in the set.
 	 */
-	FORCEINLINE FSetElementId Add(const InElementType&  InElement, bool* bIsAlreadyInSetPtr = NULL) { return Emplace(         InElement , bIsAlreadyInSetPtr); }
-	FORCEINLINE FSetElementId Add(      InElementType&& InElement, bool* bIsAlreadyInSetPtr = NULL) { return Emplace(MoveTemp(InElement), bIsAlreadyInSetPtr); }
+	FORCEINLINE FSetElementId Add(const InElementType&  InElement, bool* bIsAlreadyInSetPtr = NULL) { return Emplace(                   InElement , bIsAlreadyInSetPtr); }
+	FORCEINLINE FSetElementId Add(      InElementType&& InElement, bool* bIsAlreadyInSetPtr = NULL) { return Emplace(MoveTempIfPossible(InElement), bIsAlreadyInSetPtr); }
 
 	/**
 	 * Adds an element to the set.
@@ -548,7 +547,7 @@ public:
 		Reserve(Elements.Num() + InElements.Num());
 		for (ElementType& Element : InElements)
 		{
-			Add(MoveTemp(Element));
+			Add(MoveTempIfPossible(Element));
 		}
 		InElements.Reset();
 	}
@@ -573,7 +572,7 @@ public:
 		Reserve(Elements.Num() + OtherSet.Num());
 		for (ElementType& Element : OtherSet)
 		{
-			Add(MoveTemp(Element));
+			Add(MoveTempIfPossible(Element));
 		}
 		OtherSet.Reset();
 	}
@@ -1371,7 +1370,7 @@ public:
 	{
 		check(IsValidIndex(Index));
 
-		auto* ElementBeingRemoved = Elements.GetData(Index, Layout.SparseArrayLayout);
+		void* ElementBeingRemoved = Elements.GetData(Index, Layout.SparseArrayLayout);
 
 		// Remove the element from the hash.
 		for (FSetElementId* NextElementId = &GetTypedHash(GetHashIndexRef(ElementBeingRemoved, Layout)); NextElementId->IsValidId(); NextElementId = &GetHashNextIdRef(Elements.GetData(NextElementId->AsInteger(), Layout.SparseArrayLayout), Layout))
@@ -1443,7 +1442,7 @@ public:
 		}
 	}
 
-	uint8* Find(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> EqualityFn)
+	int32 FindIndex(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> EqualityFn)
 	{
 		if (Elements.Num())
 		{
@@ -1458,30 +1457,40 @@ public:
 				CurrentElement = (uint8*)Elements.GetData(ElementId, Layout.SparseArrayLayout);
 				if (EqualityFn(Element, CurrentElement))
 				{
-					return CurrentElement;
+					return ElementId;
 				}
 			}
 		}
 
-		return nullptr;
+		return INDEX_NONE;
 	}
 
-	uint8* Add(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> ConstructFn)
+	void Add(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> ConstructFn, TFunctionRef<void(void*)> DestructFn)
 	{
-		// Minor efficiency concern: we hash the element both here in the Find() call and below
-		// when we link the new element into the set
-		uint8* ExistingEntry = Find(Element, Layout, GetKeyHash, EqualityFn);
-		if (ExistingEntry == nullptr)
-		{
-			// add the set element
-			FSetElementId	ElementId(AddUninitialized(Layout));
-			void* CurrentElement = Elements.GetData(ElementId, Layout.SparseArrayLayout);
+		// Minor efficiency concern: we hash the element both here and in the FindIndex() call
+		uint32 ElementHash = GetKeyHash(Element);
 
-			ConstructFn(CurrentElement);
+		int32 NewElementIndex = FindIndex(Element, Layout, GetKeyHash, EqualityFn);
+		if (NewElementIndex != INDEX_NONE)
+		{
+			void* ElementPtr = Elements.GetData(NewElementIndex, Layout.SparseArrayLayout);
+
+			DestructFn(ElementPtr);
+			ConstructFn(ElementPtr);
+
+			// We don't update the hash because we don't need to - the new element
+			// should have the same hash, but let's just check.
+			check(ElementHash == GetKeyHash(ElementPtr));
+		}
+		else
+		{
+			NewElementIndex = Elements.AddUninitialized(Layout.SparseArrayLayout);
+
+			void* ElementPtr = Elements.GetData(NewElementIndex, Layout.SparseArrayLayout);
+			ConstructFn(ElementPtr);
 
 			const int32 DesiredHashSize = FDefaultSetAllocator::GetNumberOfHashBuckets(Num());
-			if (!HashSize ||
-				HashSize < DesiredHashSize)
+			if (!HashSize || HashSize < DesiredHashSize)
 			{
 				// rehash, this will link in our new element if needed:
 				Rehash(Layout, GetKeyHash);
@@ -1489,15 +1498,13 @@ public:
 			else
 			{
 				// link the new element into the set:
-				const uint32	ElementHash = GetKeyHash(Element);
-				const int32		HashIndex = ElementHash & (HashSize - 1);
+				int32 HashIndex = ElementHash & (HashSize - 1);
 				FSetElementId& TypedHash = GetTypedHash(HashIndex);
-				GetHashIndexRef(CurrentElement, Layout) = HashIndex;
-				GetHashNextIdRef(CurrentElement, Layout) = TypedHash;
-				TypedHash = ElementId;
+				GetHashIndexRef(ElementPtr, Layout) = HashIndex;
+				GetHashNextIdRef(ElementPtr, Layout) = TypedHash;
+				TypedHash = FSetElementId(NewElementIndex);
 			}
 		}
-		return ExistingEntry;
 	}
 
 private:

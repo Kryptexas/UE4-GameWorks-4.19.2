@@ -52,8 +52,8 @@ void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TShar
 	DefaultSettings = UAssetViewerSettings::Get();
 	AdditionalSettings = InArgs._AdditionalSettings;
 	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;
-	DetailCustomizations = MoveTemp(InArgs._DetailCustomizations);
-	PropertyTypeCustomizations = MoveTemp(InArgs._PropertyTypeCustomizations);
+	DetailCustomizations = InArgs._DetailCustomizations;
+	PropertyTypeCustomizations = InArgs._PropertyTypeCustomizations;
 
 	CreateSettingsView();
 

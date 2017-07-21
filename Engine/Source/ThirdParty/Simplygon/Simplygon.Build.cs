@@ -15,7 +15,7 @@ public class Simplygon : ModuleRules
 
         //@third party code BEGIN SIMPLYGON
         //Change the path to make it easier to update Simplygon
-        string SimplygonPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon/Simplygon-latest/";
+        string SimplygonPath = Target.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon/Simplygon-latest/";
         //@third party code END SIMPLYGON
 		PublicIncludePaths.Add(SimplygonPath + "Inc");
 
@@ -25,21 +25,21 @@ public class Simplygon : ModuleRules
 		{
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x64" );
+				PublicLibraryPaths.Add( Target.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x64" );
 			}
 			else
 			{
-				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x86" );
+				PublicLibraryPaths.Add( Target.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x86" );
 			}
 			PublicAdditionalLibraries.Add(
-				(Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d3dx9d.lib" : "d3dx9.lib"
+				(Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "d3dx9d.lib" : "d3dx9.lib"
 				);
 
 			// Simplygon requires GetProcessMemoryInfo exported by psapi.dll. http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
 			PublicAdditionalLibraries.Add("psapi.lib");
 
             PublicDelayLoadDLLs.Add("d3dcompiler_47.dll");
-            string EngineDir = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
+            string EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
             if (Target.Platform == UnrealTargetPlatform.Win32)
             {
                 RuntimeDependencies.Add(new RuntimeDependency(EngineDir + "Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll"));

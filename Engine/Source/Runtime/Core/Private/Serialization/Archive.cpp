@@ -34,7 +34,7 @@ FArchive::FArchive()
 #if DEVIRTUALIZE_FLinkerLoad_Serialize
 	ActiveFPLB = &InlineFPLB;
 #endif
-	CustomVersionContainer = new FCustomVersionContainer;
+	CustomVersionContainer = nullptr;
 
 #if USE_STABLE_LOCALIZATION_KEYS
 	LocalizationNamespacePtr = nullptr;
@@ -58,7 +58,14 @@ FArchive::FArchive(const FArchive& ArchiveToCopy)
 	ArIsFilterEditorOnly  = false;
 
 	bCustomVersionsAreReset = ArchiveToCopy.bCustomVersionsAreReset;
-	CustomVersionContainer = new FCustomVersionContainer(*ArchiveToCopy.CustomVersionContainer);
+	if (ArchiveToCopy.CustomVersionContainer)
+	{
+		CustomVersionContainer = new FCustomVersionContainer(*ArchiveToCopy.CustomVersionContainer);
+	}
+	else
+	{
+		CustomVersionContainer = nullptr;
+	}
 }
 
 FArchive& FArchive::operator=(const FArchive& ArchiveToCopy)
@@ -73,7 +80,23 @@ FArchive& FArchive::operator=(const FArchive& ArchiveToCopy)
 	ArIsFilterEditorOnly  = false;
 
 	bCustomVersionsAreReset = ArchiveToCopy.bCustomVersionsAreReset;
-	*CustomVersionContainer = *ArchiveToCopy.CustomVersionContainer;
+	if (ArchiveToCopy.CustomVersionContainer)
+	{
+		if (!CustomVersionContainer)
+		{
+			CustomVersionContainer = new FCustomVersionContainer(*ArchiveToCopy.CustomVersionContainer);
+		}
+		else
+		{
+			*CustomVersionContainer = *ArchiveToCopy.CustomVersionContainer;
+		}
+	}
+	else if (CustomVersionContainer)
+	{
+		delete CustomVersionContainer;
+		CustomVersionContainer = nullptr;
+	}
+
 	return *this;
 }
 
@@ -309,6 +332,11 @@ void FArchive::SerializeBool( bool& D )
 
 const FCustomVersionContainer& FArchive::GetCustomVersions() const
 {
+	if (!CustomVersionContainer)
+	{
+		CustomVersionContainer = new FCustomVersionContainer;
+	}
+
 	if (bCustomVersionsAreReset)
 	{
 		bCustomVersionsAreReset = false;
@@ -330,7 +358,14 @@ const FCustomVersionContainer& FArchive::GetCustomVersions() const
 
 void FArchive::SetCustomVersions(const FCustomVersionContainer& NewVersions)
 {
-	*CustomVersionContainer = NewVersions;
+	if (!CustomVersionContainer)
+	{
+		CustomVersionContainer = new FCustomVersionContainer(NewVersions);
+	}
+	else
+	{
+		*CustomVersionContainer = NewVersions;
+	}
 	bCustomVersionsAreReset = false;
 }
 
@@ -343,7 +378,9 @@ void FArchive::UsingCustomVersion(const FGuid& Key)
 {
 	// If we're loading, we want to use the version that the archive was serialized with, not register a new one.
 	if (IsLoading())
+	{
 		return;
+	}
 
 	auto* RegisteredVersion = FCustomVersionContainer::GetRegistered().GetVersion(Key);
 

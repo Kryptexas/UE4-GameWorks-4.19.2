@@ -9,7 +9,7 @@ public class OpenSubdiv : ModuleRules
 		Type = ModuleType.External;
 
 		// Compile and link with OpenSubDiv
-        string OpenSubdivPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSubdiv/3.0.2";
+        string OpenSubdivPath = Target.UEThirdPartySourceDirectory + "OpenSubdiv/3.0.2";
 
 		PublicIncludePaths.Add( OpenSubdivPath + "/opensubdiv" );
 
@@ -18,7 +18,7 @@ public class OpenSubdiv : ModuleRules
 		{
             string LibFolder = "";
             {
-                switch (WindowsPlatform.Compiler)
+                switch (Target.WindowsPlatform.Compiler)
                 {
                     case WindowsCompiler.VisualStudio2017:
                     case WindowsCompiler.VisualStudio2015:
@@ -29,7 +29,7 @@ public class OpenSubdiv : ModuleRules
 
             if (LibFolder != "")
             {
-                bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT);
+                bool bDebug = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT);
                 string ConfigFolder = bDebug ? "/Debug" : "/RelWithDebInfo";
 
                 PublicLibraryPaths.Add(OpenSubdivPath + LibFolder + ConfigFolder);

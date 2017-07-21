@@ -1989,7 +1989,7 @@ bool UAssetManager::WriteCustomReport(FString FileName, TArray<FString>& FileLin
 	if (FileLines.Num())
 	{
 		// Create the file name		
-		FString FileLocation = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() + TEXT("Reports/"));
+		FString FileLocation = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() + TEXT("Reports/"));
 		FString FullPath = FString::Printf(TEXT("%s%s"), *FileLocation, *FileName);
 
 		// save file

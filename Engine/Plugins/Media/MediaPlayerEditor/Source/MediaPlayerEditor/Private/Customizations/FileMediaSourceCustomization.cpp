@@ -70,7 +70,7 @@ void FFileMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 							.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
 							.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 							.BrowseButtonToolTip(LOCTEXT("FilePathBrowseButtonToolTip", "Choose a file from this computer"))
-							.BrowseDirectory(FPaths::GameContentDir() / TEXT("Movies"))
+							.BrowseDirectory(FPaths::ProjectContentDir() / TEXT("Movies"))
 							.FilePath(this, &FFileMediaSourceCustomization::HandleFilePathPickerFilePath)
 							.FileTypeFilter(this, &FFileMediaSourceCustomization::HandleFilePathPickerFileTypeFilter)
 							.OnPathPicked(this, &FFileMediaSourceCustomization::HandleFilePathPickerPathPicked)
@@ -141,7 +141,7 @@ void FFileMediaSourceCustomization::HandleFilePathPickerPathPicked(const FString
 	else
 	{	
 		FString FullPath = FPaths::ConvertRelativePathToFull(PickedPath);
-		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 
 		if (FullPath.StartsWith(FullGameContentDir))
 		{
@@ -163,8 +163,8 @@ EVisibility FFileMediaSourceCustomization::HandleFilePathWarningIconVisibility()
 		return EVisibility::Hidden;
 	}
 
-	const FString FullMoviesPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Movies"));
-	const FString FullPath = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(FilePath) ? FPaths::GameContentDir() / FilePath : FilePath);
+	const FString FullMoviesPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Movies"));
+	const FString FullPath = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(FilePath) ? FPaths::ProjectContentDir() / FilePath : FilePath);
 
 	if (FullPath.StartsWith(FullMoviesPath))
 	{

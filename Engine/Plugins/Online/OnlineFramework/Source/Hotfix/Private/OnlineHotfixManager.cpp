@@ -48,7 +48,7 @@ UOnlineHotfixManager::UOnlineHotfixManager() :
 #if !UE_BUILD_SHIPPING
 	bLogMountedPakContents = FParse::Param(FCommandLine::Get(), TEXT("LogHotfixPakContents"));
 #endif
-	GameContentPath = FString() / FApp::GetGameName() / TEXT("Content");
+	GameContentPath = FString() / FApp::GetProjectName() / TEXT("Content");
 }
 
 UOnlineHotfixManager* UOnlineHotfixManager::Get(UWorld* World)

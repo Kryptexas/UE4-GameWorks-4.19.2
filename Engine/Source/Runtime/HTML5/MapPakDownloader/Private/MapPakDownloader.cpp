@@ -121,7 +121,7 @@ bool FMapPakDownloader::Init()
 
 	HostName = FString(ANSI_TO_TCHAR(LocationString));
 
-	PakLocation = FString(FApp::GetGameName()) / FString(TEXT("Content")) / FString(TEXT("Paks"));
+	PakLocation = FString(FApp::GetProjectName()) / FString(TEXT("Content")) / FString(TEXT("Paks"));
 
 	// Create directory.
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();

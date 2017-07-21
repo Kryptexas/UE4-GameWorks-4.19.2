@@ -264,12 +264,12 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 		// We need to insert additional packs before we import the main assets since the code in the main pack may reference them
 		// TODO - handle errors from this
 		TArray<FString> FilesCopied;
-		InsertAdditionalResources(AdditionalFeaturePacks,EFeaturePackDetailLevel::High, FPaths::GameDir(),FilesCopied);
+		InsertAdditionalResources(AdditionalFeaturePacks,EFeaturePackDetailLevel::High, FPaths::ProjectDir(),FilesCopied);
 
  		if (AdditionalFilesForPack.AdditionalFilesList.Num() != 0)
  		{
  			bool bHasSourceFiles = false;
- 			CopyAdditionalFilesToFolder( FPaths::GameDir(), FilesCopied, bHasSourceFiles/*,AdditionalFilesFolder*/);
+ 			CopyAdditionalFilesToFolder( FPaths::ProjectDir(), FilesCopied, bHasSourceFiles/*,AdditionalFilesFolder*/);
  		}
 
 		if( bContentsInPakFile == true)
@@ -606,7 +606,7 @@ void FFeaturePackContentSource::InsertAdditionalFeaturePacks()
 	EFeaturePackDetailLevel RequiredLevel = EFeaturePackDetailLevel::High;
 	for (int32 iExtraPack = 0; iExtraPack < AdditionalFeaturePacks.Num(); iExtraPack++)
 	{
-		FString DestinationFolder = FPaths::GameDir();
+		FString DestinationFolder = FPaths::ProjectDir();
 		FString FullPath = FPaths::FeaturePackDir() + AdditionalFeaturePacks[iExtraPack].GetFeaturePackNameForLevel(RequiredLevel);
 		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
 		{

@@ -169,12 +169,12 @@ unshift @::gMatchers, (
 	{
 		id =>				"ubtError",
 		pattern =>			q{^ERROR:},
-		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error")}
+		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error", 0, forwardWhile("^       [^ ]"))}
 	},
 	{
 		id =>				"ubtWarning",
 		pattern =>			q{^WARNING:},
-		action =>			q{incValue("warnings"); diagnostic("AutomationTool", "warning")}
+		action =>			q{incValue("warnings"); diagnostic("AutomationTool", "warning", 0, forwardWhile("^         [^ ]"))}
 	},
     {
         id =>               "genericError",

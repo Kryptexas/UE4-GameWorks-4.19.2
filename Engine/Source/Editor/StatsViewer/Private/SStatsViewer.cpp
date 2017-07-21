@@ -431,12 +431,12 @@ FReply SStatsViewer::OnExportClicked()
 	bool bSuccessful = false;
 
 	// CSV: Human-readable spreadsheet format.
-	FString CSVFilename = FPaths::GameLogDir();
+	FString CSVFilename = FPaths::ProjectLogDir();
 	CSVFilename /= CurrentStats->GetName().ToString();
 	CSVFilename /= GWorld->GetOutermost()->GetName();
 	CSVFilename /= FString::Printf(
 		TEXT("%s-%i-%s.csv"),
-		FApp::GetGameName(),
+		FApp::GetProjectName(),
 		FEngineVersion::Current().GetChangelist(),
 		*FDateTime::Now().ToString() );
 

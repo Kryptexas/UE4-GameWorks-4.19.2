@@ -85,8 +85,8 @@ void FRichTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout
 }
 
 FRichTextLayoutMarshaller::FRichTextLayoutMarshaller(TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet)
-	: Parser(MoveTemp(FDefaultRichTextMarkupParser::Create()))
-	, Writer(MoveTemp(FDefaultRichTextMarkupWriter::Create()))
+	: Parser(FDefaultRichTextMarkupParser::Create())
+	, Writer(FDefaultRichTextMarkupWriter::Create())
 	, Decorators(MoveTemp(InDecorators))
 	, InlineDecorators()
 	, DecoratorStyleSet(InDecoratorStyleSet)

@@ -120,6 +120,7 @@
 #include "Engine/LevelScriptActor.h"
 #include "IHardwareSurveyModule.h"
 #include "HAL/LowLevelMemTracker.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -725,7 +726,7 @@ public:
 			{
 				FPlatformProcess::Sleep( 1 );
 			}
-			FPlatformMisc::PreventScreenSaver();
+			FPlatformApplicationMisc::PreventScreenSaver();
 		}
 		return 0;
 	}
@@ -1079,6 +1080,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Assign thumbnail compressor/decompressor
 	FObjectThumbnail::SetThumbnailCompressor( new FPNGThumbnailCompressor() );
 
+	//UEngine::StaticClass()->GetDefaultObject(true);
 	LoadObject<UClass>(UEngine::StaticClass()->GetOuter(), *UEngine::StaticClass()->GetName(), NULL, LOAD_Quiet|LOAD_NoWarn, NULL );
 	// This reads the Engine.ini file to get the proper DefaultMaterial, etc.
 	LoadConfig();
@@ -1183,7 +1185,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Manually delete any potential leftover crash videos in case we can't access the module
 	// because the crash reporter will upload any leftover crash video from last session
-	FString CrashVideoPath = FPaths::GameLogDir() + TEXT("CrashVideo.avi");
+	FString CrashVideoPath = FPaths::ProjectLogDir() + TEXT("CrashVideo.avi");
 	IFileManager::Get().Delete(*CrashVideoPath);
 	
 	// register the engine with the travel and network failure broadcasts
@@ -3311,7 +3313,7 @@ bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), FApp::GetBuildVersion(), FCommandLine::Get() );
 
 	Ar.Logf( TEXT("%s"), *VersionString );
-	FPlatformMisc::ClipboardCopy( *VersionString );
+	FPlatformApplicationMisc::ClipboardCopy( *VersionString );
 
 	if (FCString::Stristr(Cmd, TEXT("-display")))
 	{
@@ -3497,7 +3499,7 @@ static void DumpHelp(UWorld* InWorld)
 
 	UE_LOG(LogEngine, Display, TEXT(" "));
 
-	FString FilePath = FPaths::GameSavedDir() + TEXT("ConsoleHelp.html");
+	FString FilePath = FPaths::ProjectSavedDir() + TEXT("ConsoleHelp.html");
 
 	UE_LOG(LogEngine, Display, TEXT("To browse console variables open this: '%s'"), *FilePath);
 	UE_LOG(LogEngine, Display, TEXT(" "));
@@ -7278,7 +7280,7 @@ void UEngine::EnableScreenSaver( bool bEnable )
 	if( !bDisallowScreenSaverInhibitor )
 	{
 		// try a simpler API first
-		if ( !FPlatformMisc::ControlScreensaver( bEnable ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable ) )
+		if ( !FPlatformApplicationMisc::ControlScreensaver( bEnable ? FPlatformApplicationMisc::EScreenSaverAction::Enable : FPlatformApplicationMisc::EScreenSaverAction::Disable ) )
 		{
 			// Screen saver inhibitor disabled if no multithreading is available.
 			if (FPlatformProcess::SupportsMultithreading() )
@@ -9013,7 +9015,7 @@ static class FCDODump : private FSelfRegisteringExec
 			{
 				All += ObjectString(Classes[Index]->GetDefaultObject());
 			}
-			FString Filename = FPaths::GameSavedDir() / TEXT("CDO.txt");
+			FString Filename = FPaths::ProjectSavedDir() / TEXT("CDO.txt");
 			verify(FFileHelper::SaveStringToFile(All, *Filename));
 			return true;
 		}

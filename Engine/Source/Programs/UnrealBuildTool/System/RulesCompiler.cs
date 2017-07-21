@@ -253,7 +253,8 @@ namespace UnrealBuildTool
 		{
 			if (EngineRulesAssembly == null)
 			{
-				EngineRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EngineDirectory, ProjectFileGenerator.EngineProjectFileNameBase, null);
+				IReadOnlyList<PluginInfo> IncludedPlugins = Plugins.ReadEnginePlugins(UnrealBuildTool.EngineDirectory);
+				EngineRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EngineDirectory, ProjectFileGenerator.EngineProjectFileNameBase, IncludedPlugins, null);
 			}
 			return EngineRulesAssembly;
 		}
@@ -266,7 +267,8 @@ namespace UnrealBuildTool
 		{
 			if (EnterpriseRulesAssembly == null && DirectoryReference.Exists(UnrealBuildTool.EnterpriseDirectory))
 			{
-				EnterpriseRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EnterpriseDirectory, ProjectFileGenerator.EnterpriseProjectFileNameBase, CreateEngineRulesAssembly());
+				IReadOnlyList<PluginInfo> IncludedPlugins = Plugins.ReadEnterprisePlugins(UnrealBuildTool.EnterpriseDirectory);
+				EnterpriseRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EnterpriseDirectory, ProjectFileGenerator.EnterpriseProjectFileNameBase, IncludedPlugins, CreateEngineRulesAssembly());
 			}
 			return EnterpriseRulesAssembly;
 		}
@@ -276,9 +278,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="RootDirectory">The root directory to create rules for</param>
 		/// <param name="AssemblyPrefix">A prefix for the assembly file name</param>
+		/// <param name="Plugins">List of plugins to include in this assembly</param>
 		/// <param name="Parent">The parent rules assembly</param>
 		/// <returns>New rules assembly</returns>
-		private static RulesAssembly CreateRulesAssembly(DirectoryReference RootDirectory, string AssemblyPrefix, RulesAssembly Parent)
+		private static RulesAssembly CreateRulesAssembly(DirectoryReference RootDirectory, string AssemblyPrefix, IReadOnlyList<PluginInfo> Plugins, RulesAssembly Parent)
 		{
 			DirectoryReference SourceDirectory = DirectoryReference.Combine(RootDirectory, "Source");
 
@@ -287,13 +290,12 @@ namespace UnrealBuildTool
 			List<FileReference> TargetFiles = new List<FileReference>(FindAllRulesFiles(SourceDirectory, RulesFileType.Target));
 
 			// Add all the plugin modules too
-			IReadOnlyList<PluginInfo> PluginInfos = Plugins.ReadEnginePlugins(RootDirectory);
 			Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
-			FindModuleRulesForPlugins(PluginInfos, ModuleFiles, ModuleFileToPluginInfo);
+			FindModuleRulesForPlugins(Plugins, ModuleFiles, ModuleFileToPluginInfo);
 
 			// Create a path to the assembly that we'll either load or compile
 			FileReference AssemblyFileName = FileReference.Combine(RootDirectory, "Intermediate", "Build", "BuildRules", AssemblyPrefix + "Rules.dll");
-			return new RulesAssembly(PluginInfos, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
+			return new RulesAssembly(Plugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 		}
 
 		/// <summary>
@@ -330,7 +332,15 @@ namespace UnrealBuildTool
 				List<PluginInfo> ProjectPlugins = new List<PluginInfo>(Plugins.ReadProjectPlugins(ProjectFileName.Directory));
 
                 // Add the project's additional plugin directories plugins too
-                ProjectPlugins.AddRange(Plugins.ReadAdditionalPlugins(Project.AdditionalPluginDirectories));
+				if(Project.AdditionalPluginDirectories != null)
+				{
+					foreach(string AdditionalPluginDirectory in Project.AdditionalPluginDirectories)
+					{
+						ProjectPlugins.AddRange(Plugins.ReadAdditionalPlugins(DirectoryReference.Combine(ProjectFileName.Directory, AdditionalPluginDirectory)));
+					}
+				}
+
+				// Find all the plugin module rules
                 Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
 				FindModuleRulesForPlugins(ProjectPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
@@ -369,7 +379,7 @@ namespace UnrealBuildTool
 				List<PluginInfo> ForeignPlugins = new List<PluginInfo>();
 				if (Parent == null || !Parent.EnumeratePlugins().Any(x => x.File == PluginFileName))
 				{
-					ForeignPlugins.Add(new PluginInfo(PluginFileName, PluginLoadedFrom.GameProject));
+					ForeignPlugins.Add(new PluginInfo(PluginFileName, PluginType.External));
 				}
 
 				// Find all the modules

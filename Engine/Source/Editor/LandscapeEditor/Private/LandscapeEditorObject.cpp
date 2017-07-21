@@ -56,7 +56,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, bUseSelectedRegion(true)
 	, bUseNegativeMask(true)
 
-	, PasteMode(ELandscapeToolNoiseMode::Both)
+	, PasteMode(ELandscapeToolPasteMode::Both)
 	, bApplyToAllTargets(true)
 	, bSnapGizmo(false)
 	, bSmoothGizmoBrush(true)
@@ -211,9 +211,9 @@ void ULandscapeEditorObject::Load()
 	AlphaTextureChannel = (EColorChannel::Type)InAlphaTextureChannel;
 	SetAlphaTexture(LoadObject<UTexture2D>(NULL, *AlphaTextureName, NULL, LOAD_NoWarn), AlphaTextureChannel);
 
-	int32 InFlattenMode = ELandscapeToolFlattenMode::Both;
+	int32 InFlattenMode = (int32)ELandscapeToolFlattenMode::Both;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("FlattenMode"), InFlattenMode, GEditorPerProjectIni);
-	FlattenMode = (ELandscapeToolFlattenMode::Type)InFlattenMode;
+	FlattenMode = (ELandscapeToolFlattenMode)InFlattenMode;
 
 	bool InbUseSlopeFlatten = bUseSlopeFlatten;
 	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bUseSlopeFlatten"), InbUseSlopeFlatten, GEditorPerProjectIni);
@@ -234,26 +234,26 @@ void ULandscapeEditorObject::Load()
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ErodeThresh"), ErodeThresh, GEditorPerProjectIni);
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ErodeIterationNum"), ErodeIterationNum, GEditorPerProjectIni);
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ErodeSurfaceThickness"), ErodeSurfaceThickness, GEditorPerProjectIni);
-	int32 InErosionNoiseMode = ErosionNoiseMode;
+	int32 InErosionNoiseMode = (int32)ErosionNoiseMode;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ErosionNoiseMode"), InErosionNoiseMode, GEditorPerProjectIni);
-	ErosionNoiseMode = (ELandscapeToolErosionMode::Type)InErosionNoiseMode;
+	ErosionNoiseMode = (ELandscapeToolErosionMode)InErosionNoiseMode;
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("ErosionNoiseScale"), ErosionNoiseScale, GEditorPerProjectIni);
 
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("RainAmount"), RainAmount, GEditorPerProjectIni);
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("SedimentCapacity"), SedimentCapacity, GEditorPerProjectIni);
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("HErodeIterationNum"), HErodeIterationNum, GEditorPerProjectIni);
-	int32 InRainDistMode = RainDistMode;
+	int32 InRainDistMode = (int32)RainDistMode;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("RainDistNoiseMode"), InRainDistMode, GEditorPerProjectIni);
-	RainDistMode = (ELandscapeToolHydroErosionMode::Type)InRainDistMode;
+	RainDistMode = (ELandscapeToolHydroErosionMode)InRainDistMode;
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("RainDistScale"), RainDistScale, GEditorPerProjectIni);
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("HErosionDetailScale"), HErosionDetailScale, GEditorPerProjectIni);
 	bool InbHErosionDetailSmooth = bHErosionDetailSmooth;
 	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bHErosionDetailSmooth"), InbHErosionDetailSmooth, GEditorPerProjectIni);
 	bHErosionDetailSmooth = InbHErosionDetailSmooth;
 
-	int32 InNoiseMode = NoiseMode;
+	int32 InNoiseMode = (int32)NoiseMode;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("NoiseMode"), InNoiseMode, GEditorPerProjectIni);
-	NoiseMode = (ELandscapeToolNoiseMode::Type)InNoiseMode;
+	NoiseMode = (ELandscapeToolNoiseMode)InNoiseMode;
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("NoiseScale"), NoiseScale, GEditorPerProjectIni);
 
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("SmoothFilterKernelSize"), SmoothFilterKernelSize, GEditorPerProjectIni);
@@ -268,18 +268,18 @@ void ULandscapeEditorObject::Load()
 	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bSmoothGizmoBrush"), InbSmoothGizmoBrush, GEditorPerProjectIni);
 	bSmoothGizmoBrush = InbSmoothGizmoBrush;
 
-	int32 InPasteMode = ELandscapeToolNoiseMode::Both; 
+	int32 InPasteMode = (int32)ELandscapeToolPasteMode::Both;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("PasteMode"), InPasteMode, GEditorPerProjectIni);
-	//PasteMode = (ELandscapeToolPasteMode::Type)InPasteMode;
-	SetPasteMode((ELandscapeToolPasteMode::Type)InPasteMode);
+	//PasteMode = (ELandscapeToolPasteMode)InPasteMode;
+	SetPasteMode((ELandscapeToolPasteMode)InPasteMode);
 
 	int32 InMirrorOp = (int32)ELandscapeMirrorOperation::MinusXToPlusX;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("MirrorOp"), InMirrorOp, GEditorPerProjectIni);
 	MirrorOp = (ELandscapeMirrorOperation)InMirrorOp;
 
-	int32 InConvertMode = ResizeLandscape_ConvertMode;
+	int32 InConvertMode = (int32)ResizeLandscape_ConvertMode;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ConvertMode"), InConvertMode, GEditorPerProjectIni);
-	ResizeLandscape_ConvertMode = (ELandscapeConvertMode::Type)InConvertMode;
+	ResizeLandscape_ConvertMode = (ELandscapeConvertMode)InConvertMode;
 
 	// Region
 	//GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bUseSelectedRegion"), bUseSelectedRegion, GEditorPerProjectIni);
@@ -342,7 +342,7 @@ void ULandscapeEditorObject::Save()
 	GConfig->SetString(TEXT("LandscapeEdit"), TEXT("AlphaTextureName"), *AlphaTextureName, GEditorPerProjectIni);
 	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("AlphaTextureChannel"), (int32)AlphaTextureChannel, GEditorPerProjectIni);
 
-	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("FlattenMode"), FlattenMode, GEditorPerProjectIni);
+	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("FlattenMode"), (int32)FlattenMode, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bUseSlopeFlatten"), bUseSlopeFlatten, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bPickValuePerApply"), bPickValuePerApply, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bUseFlattenTarget"), bUseFlattenTarget, GEditorPerProjectIni);
@@ -417,9 +417,9 @@ void ULandscapeEditorObject::SetbUseNegativeMask(bool InbUseNegativeMask)
 	}
 }
 
-void ULandscapeEditorObject::SetPasteMode(ELandscapeToolPasteMode::Type InPasteMode)
+void ULandscapeEditorObject::SetPasteMode(ELandscapeToolPasteMode InPasteMode)
 {
-	GLandscapePreviewMeshRenderMode = PasteMode = InPasteMode;
+	PasteMode = InPasteMode;
 }
 
 void ULandscapeEditorObject::SetbSnapGizmo(bool InbSnapGizmo)

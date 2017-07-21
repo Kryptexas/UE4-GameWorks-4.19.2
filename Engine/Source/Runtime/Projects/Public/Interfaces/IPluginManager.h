@@ -14,7 +14,28 @@ enum class EPluginLoadedFrom
 	Engine,
 
 	/** Project-specific plugin, stored within a game project directory */
-	GameProject
+	Project
+};
+
+/**
+ * Enum for the type of a plugin
+ */
+enum class EPluginType
+{
+	/** Plugin is built-in to the engine */
+	Engine,
+
+	/** Standard enterprise plugin */
+	Enterprise,
+
+	/** Project-specific plugin, stored within a game project directory */
+	Project,
+
+	/** Plugin found in an external directory (found in an AdditionalPluginDirectory listed in the project file, or referenced on the command line) */
+	External,
+
+	/** Project-specific mod plugin */
+	Mod,
 };
 
 
@@ -85,11 +106,25 @@ public:
 	virtual FString GetMountedAssetPath() const = 0;
 
 	/**
+	 * Gets the type of a plugin
+	 *
+	 * @return The plugin type
+	 */
+	virtual EPluginType GetType() const = 0;
+
+	/**
 	 * Determines if the plugin is enabled.
 	 *
 	 * @return True if the plugin is currently enabled.
 	 */
 	virtual bool IsEnabled() const = 0;
+
+	/**
+	 * Determines if the plugin is enabled by default.
+	 *
+	 * @return True if the plugin is currently enabled by default.
+	 */
+	virtual bool IsEnabledByDefault() const = 0;
 
 	/**
 	 * Determines if the plugin is should be displayed in-editor for the user to enable/disable freely.
@@ -209,6 +244,7 @@ public:
 	 *
 	 * @return	 Array of plug-in status objects.
 	 */
+	DEPRECATED(4.18, "QueryStatusForAllPlugins() has been deprecated. Please use GetDiscoveredPlugins() instead.")
 	virtual TArray<FPluginStatus> QueryStatusForAllPlugins() const = 0;
 
 	/**

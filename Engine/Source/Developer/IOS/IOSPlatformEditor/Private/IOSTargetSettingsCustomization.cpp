@@ -59,9 +59,9 @@ TSharedRef<IDetailCustomization> FIOSTargetSettingsCustomization::MakeInstance()
 
 FIOSTargetSettingsCustomization::FIOSTargetSettingsCustomization()
 	: EngineInfoPath(FString::Printf(TEXT("%sBuild/IOS/UE4Game-Info.plist"), *FPaths::EngineDir()))
-	, GameInfoPath(FString::Printf(TEXT("%sBuild/IOS/Info.plist"), *FPaths::GameDir()))
+	, GameInfoPath(FString::Printf(TEXT("%sBuild/IOS/Info.plist"), *FPaths::ProjectDir()))
 	, EngineGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::EngineDir()))
-	, GameGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::GameDir()))
+	, GameGraphicsPath(FString::Printf(TEXT("%sBuild/IOS/Resources/Graphics"), *FPaths::ProjectDir()))
 {
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29.png"), LOCTEXT("SettingsIcon_iPhone", "iPhone Settings Icon"), FText::GetEmpty(), 29, 29, FPlatformIconInfo::Optional);// also iOS6 spotlight search
 	new (IconNames) FPlatformIconInfo(TEXT("Icon29@2x.png"), LOCTEXT("SettingsIcon_iPhoneRetina", "iPhone Retina Settings Icon"), FText::GetEmpty(), 58, 58, FPlatformIconInfo::Optional); // also iOS6 spotlight search
@@ -1054,7 +1054,7 @@ void FIOSTargetSettingsCustomization::BuildImageRow(IDetailLayoutBuilder& Detail
 void FIOSTargetSettingsCustomization::FindRequiredFiles()
 {
 	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
-	FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetGameName());
+	FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetProjectName());
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("_"), TEXT(""));
 #if PLATFORM_MAC
 	FString CmdExe = TEXT("/bin/sh");
@@ -1084,7 +1084,7 @@ void FIOSTargetSettingsCustomization::FindRequiredFiles()
 FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 {
 	// pass the file to IPP to install
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString ProvisionPath;
 
 	// get the provision by popping up the file dialog
@@ -1118,11 +1118,11 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 #if PLATFORM_MAC
 		FPlatformMisc::GetEnvironmentVariable(TEXT("HOME"), Path, ARRAY_COUNT(Path));
 		FString Destination = FString::Printf(TEXT("\"%s/Library/MobileDevice/Provisioning Profiles/%s.mobileprovision\""), Path, *DestName);
-		FString Destination2 = FString::Printf(TEXT("\"%s/Library/MobileDevice/Provisioning Profiles/%s.mobileprovision\""), Path, FApp::GetGameName());
+		FString Destination2 = FString::Printf(TEXT("\"%s/Library/MobileDevice/Provisioning Profiles/%s.mobileprovision\""), Path, FApp::GetProjectName());
 #else
 		FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA"), Path, ARRAY_COUNT(Path));
 		FString Destination = FString::Printf(TEXT("%s\\Apple Computer\\MobileDevice\\Provisioning Profiles\\%s.mobileprovision"), Path, *DestName);
-		FString Destination2 = FString::Printf(TEXT("%s\\Apple Computer\\MobileDevice\\Provisioning Profiles\\%s.mobileprovision"), Path, FApp::GetGameName());
+		FString Destination2 = FString::Printf(TEXT("%s\\Apple Computer\\MobileDevice\\Provisioning Profiles\\%s.mobileprovision"), Path, FApp::GetProjectName());
 #endif
 		if (FPaths::FileExists(Destination) || FPaths::FileExists(Destination2))
 		{
@@ -1134,7 +1134,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 		}
 
 		const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
-		FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetGameName());
+		FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetProjectName());
 		BundleIdentifier = BundleIdentifier.Replace(TEXT("_"), TEXT(""));
 #if PLATFORM_MAC
 		FString CmdExe = TEXT("/bin/sh");
@@ -1163,7 +1163,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 {
 	// pass the file to IPP to install
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString CertPath;
 
 	// get the provision by popping up the file dialog
@@ -1190,7 +1190,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 	if ( bOpened )
 	{
 		const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
-		FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetGameName());
+		FString BundleIdentifier = Settings.BundleIdentifier.Replace(*gProjectNameText, FApp::GetProjectName());
 		BundleIdentifier = BundleIdentifier.Replace(TEXT("_"), TEXT(""));
 		CertPath = FPaths::ConvertRelativePathToFull(OpenFilenames[0]);
 #if PLATFORM_MAC

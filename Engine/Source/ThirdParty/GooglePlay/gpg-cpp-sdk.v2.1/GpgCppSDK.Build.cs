@@ -11,7 +11,7 @@ public class GpgCppSDK : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			string GPGAndroidPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "GooglePlay/gpg-cpp-sdk.v2.1/gpg-cpp-sdk/android/");
+			string GPGAndroidPath = Path.Combine(Target.UEThirdPartySourceDirectory, "GooglePlay/gpg-cpp-sdk.v2.1/gpg-cpp-sdk/android/");
 
 			PublicIncludePaths.Add(Path.Combine(GPGAndroidPath, "include/"));
 			PublicLibraryPaths.Add(Path.Combine(GPGAndroidPath, "lib/gnustl/armeabi-v7a/"));

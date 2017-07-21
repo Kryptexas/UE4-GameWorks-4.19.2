@@ -153,7 +153,7 @@ void LineCheckTracker::DumpLineChecks(int32 Threshold)
 {
 	if( LineCheckStackTracker )
 	{
-		const FString Filename = FString::Printf(TEXT("%sLineCheckLog-%s.csv"), *FPaths::GameLogDir(), *FDateTime::Now().ToString());
+		const FString Filename = FString::Printf(TEXT("%sLineCheckLog-%s.csv"), *FPaths::ProjectLogDir(), *FDateTime::Now().ToString());
 		FOutputDeviceFile OutputFile(*Filename);
 		LineCheckStackTracker->DumpStackTraces( Threshold, OutputFile );
 		OutputFile.TearDown();
@@ -161,7 +161,7 @@ void LineCheckTracker::DumpLineChecks(int32 Threshold)
 
 	if( LineCheckScriptStackTracker )
 	{
-		const FString Filename = FString::Printf(TEXT("%sScriptLineCheckLog-%s.csv"), *FPaths::GameLogDir(), *FDateTime::Now().ToString());
+		const FString Filename = FString::Printf(TEXT("%sScriptLineCheckLog-%s.csv"), *FPaths::ProjectLogDir(), *FDateTime::Now().ToString());
 		FOutputDeviceFile OutputFile(*Filename);
 		LineCheckScriptStackTracker->DumpStackTraces( Threshold, OutputFile );
 		OutputFile.TearDown();

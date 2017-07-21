@@ -432,7 +432,7 @@ FString FRemoteConfig::GenerateRemotePath(const TCHAR* Filename)
 	FString PathSuffix = GConfig->GetStr(TEXT("RemoteConfiguration"), TEXT("ConfigPathSuffix"), GEngineIni);
 	FString UserName = FPlatformProcess::UserName(false);
 		
-	return FString::Printf(TEXT("%s/%s/%s/%s/%s.ini"), *PathPrefix, *UserName, *PathSuffix, FApp::GetGameName(), *BaseFilename);
+	return FString::Printf(TEXT("%s/%s/%s/%s/%s.ini"), *PathPrefix, *UserName, *PathSuffix, FApp::GetProjectName(), *BaseFilename);
 }
 
 

@@ -35,7 +35,7 @@ int32 UParticleSystemAuditCommandlet::Main(const FString& Params)
 	if (!FParse::Value(*Params, TEXT("AuditOutputFolder="), AuditOutputFolder))
 	{
 		// No output folder specified. Use the default folder.
-		AuditOutputFolder = FPaths::GameSavedDir() / TEXT("Audit");
+		AuditOutputFolder = FPaths::ProjectSavedDir() / TEXT("Audit");
 	}
 
 	// Add a timestamp to the folder

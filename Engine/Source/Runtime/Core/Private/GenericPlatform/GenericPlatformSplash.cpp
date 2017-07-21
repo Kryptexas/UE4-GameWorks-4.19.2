@@ -49,7 +49,7 @@ bool FGenericPlatformSplash::GetSplashPath(const TCHAR* SplashFilename, FString&
 	FString Filename = FString(TEXT("Splash/")) + SplashFilename;
 
 	// first look in game's splash directory
-	OutPath = FPaths::ConvertRelativePathToFull(GetSplashFilename(FPaths::GameContentDir(), Filename));
+	OutPath = FPaths::ConvertRelativePathToFull(GetSplashFilename(FPaths::ProjectContentDir(), Filename));
 	OutIsCustom = true;
 
 	// if this was found, then we're done
@@ -74,8 +74,8 @@ bool FGenericPlatformSplash::GetSplashPath(const TCHAR* SplashFilename, const TC
 	FString IconName = FString(TEXT("Splash/")) + IconFilename;
 
 	// first look in game's splash directory
-	OutPath = FPaths::ConvertRelativePathToFull(GetSplashFilename(FPaths::GameContentDir(), Filename));
-	OutIconPath = GetSplashFilename(FPaths::GameContentDir(), IconName);
+	OutPath = FPaths::ConvertRelativePathToFull(GetSplashFilename(FPaths::ProjectContentDir(), Filename));
+	OutIconPath = GetSplashFilename(FPaths::ProjectContentDir(), IconName);
 	OutIsCustom = true;
 
 	// if this was found, then we're done

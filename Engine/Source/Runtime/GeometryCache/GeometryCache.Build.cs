@@ -26,7 +26,7 @@ public class GeometryCache : ModuleRules
 
         PublicIncludePathModuleNames.Add("TargetPlatform");
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
             PublicIncludePathModuleNames.Add("GeometryCacheEd");
             DynamicallyLoadedModuleNames.Add("GeometryCacheEd");

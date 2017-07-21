@@ -6,7 +6,7 @@ public class cxademangle : ModuleRules
 	public cxademangle(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
-		string cxademanglepath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/";
+		string cxademanglepath = Target.UEThirdPartySourceDirectory + "Android/cxa_demangle/";
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{

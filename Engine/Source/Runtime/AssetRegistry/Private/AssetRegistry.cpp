@@ -92,7 +92,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// Allow loading development asset registry
-		FString DevAssetRegistryFilename = (FPaths::GameDir() / TEXT("DevelopmentAssetRegistry.bin"));
+		FString DevAssetRegistryFilename = (FPaths::ProjectDir() / TEXT("DevelopmentAssetRegistry.bin"));
 		if (FParse::Param(FCommandLine::Get(), TEXT("LoadDevAssetRegistry")) && IFileManager::Get().FileExists(*DevAssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevAssetRegistryFilename))
 		{
 			SerializationOptions.ModifyForDevelopment();
@@ -101,7 +101,7 @@ UAssetRegistryImpl::UAssetRegistryImpl(const FObjectInitializer& ObjectInitializ
 			bLoadedDevelopment = true;
 		}
 #endif
-		FString AssetRegistryFilename = (FPaths::GameDir() / TEXT("AssetRegistry.bin"));
+		FString AssetRegistryFilename = (FPaths::ProjectDir() / TEXT("AssetRegistry.bin"));
 		if (SerializationOptions.bSerializeAssetRegistry && !bLoadedDevelopment && IFileManager::Get().FileExists(*AssetRegistryFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryFilename))
 		{
 			// serialize the data with the memory reader (will convert FStrings to FNames, etc)

@@ -145,8 +145,8 @@ int32 UImportLocalizedDialogueCommandlet::Main(const FString& Params)
 		}
 	}
 	
-	const FString RootAssetPath = FApp::HasGameName() ? TEXT("/Game") : TEXT("/Engine");
-	const FString RootContentDir = FApp::HasGameName() ? FPaths::GameContentDir() : FPaths::EngineContentDir();
+	const FString RootAssetPath = FApp::HasProjectName() ? TEXT("/Game") : TEXT("/Engine");
+	const FString RootContentDir = FApp::HasProjectName() ? FPaths::ProjectContentDir() : FPaths::EngineContentDir();
 
 	// Prepare the asset registry
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));

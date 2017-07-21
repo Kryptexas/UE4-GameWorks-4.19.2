@@ -118,9 +118,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private void Init()
 		{
 			ProcessorTask = new Task(() =>
-			                         {
-										 // parse out hte list of blacklisted games.
+									 {
+										 // parse out the list of blacklisted games.
 										 string[] GameNamesToBlacklist = (Config.Default.GameNamesToBlacklist == null ? "" : Config.Default.GameNamesToBlacklist).ToLowerInvariant().Split(',');
+
+										 // and the list of blacklisted builds
+										 string[] EngineVersionsToBlacklist = (Config.Default.EngineVersionsToBlacklist == null ? "" : Config.Default.EngineVersionsToBlacklist).ToLowerInvariant().Split(',');
 
 										 while (!CancelSource.IsCancellationRequested)
 				                         {
@@ -138,6 +141,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 														 if (bIsBlacklistedGame)
 														 {
 															 CrashReporterProcessServicer.WriteEvent(string.Format("Discarding crash from blacklisted GameName '{0}'", NewContext.PrimaryCrashProperties.GameName));
+															 // delete the report from disk since we don't care about it.
+															 FinalizeReport(AddReportResult.Added, new DirectoryInfo(NewContext.CrashDirectory), NewContext);
+														 }
+														 else if (NewContext.PrimaryCrashProperties.EngineVersion != null && EngineVersionsToBlacklist.Contains(NewContext.PrimaryCrashProperties.EngineVersion.ToLowerInvariant()))
+														 {
+															 CrashReporterProcessServicer.WriteEvent(string.Format("Discarding crash from blacklisted build '{0}'", NewContext.PrimaryCrashProperties.EngineVersion));
 															 // delete the report from disk since we don't care about it.
 															 FinalizeReport(AddReportResult.Added, new DirectoryInfo(NewContext.CrashDirectory), NewContext);
 														 }

@@ -291,7 +291,7 @@ public class UnrealEd : ModuleRules
 
 		SetupModulePhysXAPEXSupport(Target);
 
-		if (UEBuildConfiguration.bCompileRecast)
+		if (Target.bCompileRecast)
 		{
 			PrivateDependencyModuleNames.Add("Navmesh");
 			Definitions.Add( "WITH_RECAST=1" );

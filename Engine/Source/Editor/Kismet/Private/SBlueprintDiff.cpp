@@ -23,6 +23,7 @@
 #include "WorkflowOrientedApp/SModeWidget.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "WidgetBlueprint.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
@@ -1090,7 +1091,7 @@ void FDiffPanel::CopySelectedNodes()
 
 	FString ExportedText;
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 bool FDiffPanel::CanCopyNodes() const

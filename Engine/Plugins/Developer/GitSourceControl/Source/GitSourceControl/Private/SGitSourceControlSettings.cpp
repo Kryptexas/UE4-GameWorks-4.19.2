@@ -340,12 +340,12 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 {
 	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
 	const FString& PathToGitBinary = GitSourceControl.AccessSettings().GetBinaryPath();
-	const FString PathToGameDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+	const FString PathToProjectDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	TArray<FString> InfoMessages;
 	TArray<FString> ErrorMessages;
 
 	// 1. Synchronous (very quick) "git init" operation: initialize a Git local repository with a .git/ subdirectory
-	GitSourceControlUtils::RunCommand(TEXT("init"), PathToGitBinary, PathToGameDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+	GitSourceControlUtils::RunCommand(TEXT("init"), PathToGitBinary, PathToProjectDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
 
 	// Check the new repository status to enable connection (branch, user e-mail)
 	GitSourceControl.GetProvider().CheckRepositoryStatus(PathToGitBinary);
@@ -354,8 +354,8 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 		// List of files to add to Source Control (.uproject, Config/, Content/, Source/ files and .gitignore/.gitattributes if any)
 		TArray<FString> ProjectFiles;
 		ProjectFiles.Add(FPaths::GetProjectFilePath());
-		ProjectFiles.Add(FPaths::GameConfigDir());
-		ProjectFiles.Add(FPaths::GameContentDir());
+		ProjectFiles.Add(FPaths::ProjectConfigDir());
+		ProjectFiles.Add(FPaths::ProjectContentDir());
 		if (FPaths::DirectoryExists(FPaths::GameSourceDir()))
 		{
 			ProjectFiles.Add(FPaths::GameSourceDir());
@@ -363,7 +363,7 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 		if(bAutoCreateGitIgnore)
 		{
 			// 2.a. Create a standard ".gitignore" file with common patterns for a typical Blueprint & C++ project
-			const FString GitIgnoreFilename = FPaths::Combine(FPaths::GameDir(), TEXT(".gitignore"));
+			const FString GitIgnoreFilename = FPaths::Combine(FPaths::ProjectDir(), TEXT(".gitignore"));
 			const FString GitIgnoreContent = TEXT("Binaries\nDerivedDataCache\nIntermediate\nSaved\n.vs\n*.VC.db\n*.opensdf\n*.opendb\n*.sdf\n*.sln\n*.suo\n*.xcodeproj\n*.xcworkspace");
 			if(FFileHelper::SaveStringToFile(GitIgnoreContent, *GitIgnoreFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 			{
@@ -373,10 +373,10 @@ FReply SGitSourceControlSettings::OnClickedInitializeGitRepository()
 		if (bAutoCreateGitAttributes)
 		{
 			// 2.b. Synchronous (very quick) "lfs install" operation: needs only to be run once by user
-			GitSourceControlUtils::RunCommand(TEXT("lfs install"), PathToGitBinary, PathToGameDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+			GitSourceControlUtils::RunCommand(TEXT("lfs install"), PathToGitBinary, PathToProjectDir, TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
 
 			// 2.c. Create a ".gitattributes" file to enable Git LFS (Large File System) for the whole "Content/" subdir
-			const FString GitAttributesFilename = FPaths::Combine(FPaths::GameDir(), TEXT(".gitattributes"));
+			const FString GitAttributesFilename = FPaths::Combine(FPaths::ProjectDir(), TEXT(".gitattributes"));
 			const FString GitAttributesContent = TEXT("Content/** filter=lfs diff=lfs merge=lfs -text\n");
 			if (FFileHelper::SaveStringToFile(GitAttributesContent, *GitAttributesFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 			{

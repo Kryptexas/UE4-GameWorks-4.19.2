@@ -342,7 +342,7 @@ namespace AutomationTool
 		/// return true if we need to change the case of filenames outside of pak files
 		/// </summary>
 		/// <returns></returns>
-		public virtual bool DeployLowerCaseFilenames(bool bUFSFile)
+		public virtual bool DeployLowerCaseFilenames()
 		{
 			return false;
 		}
@@ -478,7 +478,7 @@ namespace AutomationTool
 		public virtual HashSet<StagedFileReference> GetFilesForCRCCheck()
 		{
 			string CmdLine = "UE4CommandLine.txt";
-			if (DeployLowerCaseFilenames(true))
+			if (DeployLowerCaseFilenames())
 			{
 				CmdLine = CmdLine.ToLowerInvariant();
 			}

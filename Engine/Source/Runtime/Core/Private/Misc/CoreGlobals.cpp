@@ -172,10 +172,10 @@ FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers = nullptr;
 /** Game name, used for base game directory and ini among other things										*/
 #if (!IS_MONOLITHIC && !IS_PROGRAM)
 // In modular game builds, the game name will be set when the application launches
-TCHAR					GInternalGameName[64]					= TEXT("None");
+TCHAR					GInternalProjectName[64]					= TEXT("None");
 #elif !IS_MONOLITHIC && IS_PROGRAM
 // In non-monolithic programs builds, the game name will be set by the module, but not just yet, so we need to NOT initialize it!
-TCHAR					GInternalGameName[64];
+TCHAR					GInternalProjectName[64];
 #else
 // For monolithic builds, the game name variable definition will be set by the IMPLEMENT_GAME_MODULE
 // macro for the game's main game module.

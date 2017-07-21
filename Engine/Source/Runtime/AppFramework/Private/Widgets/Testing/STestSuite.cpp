@@ -79,6 +79,7 @@
 #include "Widgets/Input/SComboBox.h"
 #include "Framework/Docking/WorkspaceItem.h"
 #include "Framework/Docking/TabManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if !UE_BUILD_SHIPPING
 
@@ -5863,7 +5864,7 @@ void RestoreSlateTestSuite()
 		.SetDisplayName(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
 		.SetGroup(TestSuiteMenu::MenuRoot);
 
-	const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(10, 10);
+	const float DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(10, 10);
 
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea

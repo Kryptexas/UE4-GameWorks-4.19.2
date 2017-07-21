@@ -10,6 +10,7 @@
 #include "ScopedTransaction.h"
 #include "EdGraphUtilities.h"
 #include "Framework/Commands/GenericCommands.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "AIGraph"
 
@@ -271,7 +272,7 @@ void FAIGraphEditor::CopySelectedNodes()
 	}
 
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 
 	for (FGraphPanelSelectionSet::TIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
 	{
@@ -358,7 +359,7 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	// Import the nodes
 	TSet<UEdGraphNode*> PastedNodes;
@@ -471,7 +472,7 @@ bool FAIGraphEditor::CanPasteNodes() const
 	}
 
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return FEdGraphUtilities::CanImportNodesFromText(CurrentGraphEditor->GetCurrentGraph(), ClipboardContent);
 }

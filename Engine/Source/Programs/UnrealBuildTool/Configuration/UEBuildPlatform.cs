@@ -34,17 +34,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// List of all confidential folder names
 		/// </summary>
-		public static readonly string[] RestrictedFolderNames =
+		public static readonly FileSystemName[] RestrictedFolderNames =
 		{
-			"EpicInternal",
-			"CarefullyRedist",
-			"NotForLicensees",
-			"NoRedist",
-			"PS4",
-			"XboxOne",
-			"Switch",
-			"Wolf",
-			"WolfPlat",
+			new FileSystemName("EpicInternal"),
+			new FileSystemName("CarefullyRedist"),
+			new FileSystemName("NotForLicensees"),
+			new FileSystemName("NoRedist"),
+			new FileSystemName("PS4"),
+			new FileSystemName("XboxOne"),
+			new FileSystemName("Switch"),
+			new FileSystemName("Wolf"),
+			new FileSystemName("WolfPlat"),
 		};
 
 		/// <summary>

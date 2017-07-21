@@ -9,6 +9,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SButton.h"
 #include "EditorStyleSet.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorStats"
 
@@ -49,7 +50,7 @@ void SMediaPlayerEditorStats::Construct(const FArguments& InArgs, UMediaPlayer& 
 							.Text(LOCTEXT("CopyClipboardButtonText", "Copy to Clipboard"))
 							.ToolTipText(LOCTEXT("CopyClipboardButtonHint", "Copy the media statistics to the the clipboard"))
 							.OnClicked_Lambda([this]() -> FReply {
-								FPlatformMisc::ClipboardCopy(*StatsTextBlock->GetText().ToString());
+								FPlatformApplicationMisc::ClipboardCopy(*StatsTextBlock->GetText().ToString());
 								return FReply::Handled();
 							})
 					]

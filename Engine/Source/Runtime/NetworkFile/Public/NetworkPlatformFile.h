@@ -19,7 +19,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile, public FSelfRegisteringExec
 {
 	friend class FAsyncFileSync;
-	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
+	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerProjectDir);
 
 protected:
 	/**
@@ -152,7 +152,7 @@ public:
 	bool SendReadMessage(uint8* Destination, int64 BytesToRead);
 	bool SendWriteMessage(const uint8* Source, int64 BytesToWrite);
 
-	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
+	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerProjectDir);
 
 
 	virtual FString GetVersionInfo() const;
@@ -244,7 +244,7 @@ protected:
 	FString ServerEngineDir;
 
 	/** The server game dir */
-	FString ServerGameDir;
+	FString ServerProjectDir;
 
 
 	/** This is the "TOC" of the server */

@@ -32,6 +32,7 @@
 #include "UserActivityTracking.h"
 #include "KismetTraceUtils.h"
 #include "Engine/AssetManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -86,7 +87,7 @@ FString UKismetSystemLibrary::GetEngineVersion()
 
 FString UKismetSystemLibrary::GetGameName()
 {
-	return FString(FApp::GetGameName());
+	return FString(FApp::GetProjectName());
 }
 
 FString UKismetSystemLibrary::GetGameBundleId()
@@ -2246,7 +2247,7 @@ void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName Pro
 
 void UKismetSystemLibrary::ControlScreensaver(bool bAllowScreenSaver)
 {
-	FPlatformMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable);
+	FPlatformApplicationMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformApplicationMisc::EScreenSaverAction::Enable : FPlatformApplicationMisc::EScreenSaverAction::Disable);
 }
 
 void UKismetSystemLibrary::SetVolumeButtonsHandledBySystem(bool bEnabled)
@@ -2261,17 +2262,17 @@ bool UKismetSystemLibrary::GetVolumeButtonsHandledBySystem()
 
 void UKismetSystemLibrary::ResetGamepadAssignments()
 {
-	FPlatformMisc::ResetGamepadAssignments();
+	FPlatformApplicationMisc::ResetGamepadAssignments();
 }
 
 void UKismetSystemLibrary::ResetGamepadAssignmentToController(int32 ControllerId)
 {
-	FPlatformMisc::ResetGamepadAssignmentToController(ControllerId);
+	FPlatformApplicationMisc::ResetGamepadAssignmentToController(ControllerId);
 }
 
 bool UKismetSystemLibrary::IsControllerAssignedToGamepad(int32 ControllerId)
 {
-	return FPlatformMisc::IsControllerAssignedToGamepad(ControllerId);
+	return FPlatformApplicationMisc::IsControllerAssignedToGamepad(ControllerId);
 }
 
 void UKismetSystemLibrary::SetSuppressViewportTransitionMessage(UObject* WorldContextObject, bool bState)

@@ -5,11 +5,10 @@
 #include "UnrealTypeDefinitionInfo.h"
 #include "ClassMaps.h"
 
-FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType InType, FString&& InId, bool bInAutoInclude/* = false*/)
+FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType InType, FString&& InId)//, bool bInAutoInclude/* = false*/)
 	: Type(InType)
 	, Id(MoveTemp(InId))
 	, Cache(nullptr)
-	, bAutoInclude(bInAutoInclude)
 {
 
 }
@@ -59,14 +58,15 @@ FUnrealSourceFile* FHeaderProvider::Resolve()
 				{
 					FString SlashId     = TEXT("/") + Id;
 					FString BackslashId = TEXT("\\") + Id;
-				TryFindSourceFileWithPredicate(Cache,
+					TryFindSourceFileWithPredicate(
+						Cache,
 						[&SlashId, &BackslashId](const FUnrealSourceFile& SourceFile)
-					{
+						{
 							return SourceFile.GetFilename().EndsWith(SlashId) || SourceFile.GetFilename().EndsWith(BackslashId);
-					}
-				);
+						}
+					);
+				}
 			}
-		}
 		}
 
 		Type = EHeaderProviderSourceType::Resolved;
@@ -90,29 +90,7 @@ EHeaderProviderSourceType FHeaderProvider::GetType() const
 	return Type;
 }
 
-const FUnrealSourceFile* FHeaderProvider::GetResolved() const
-{
-	check(Type == EHeaderProviderSourceType::Resolved);
-	return Cache;
-}
-
-FUnrealSourceFile* FHeaderProvider::GetResolved()
-{
-	check(Type == EHeaderProviderSourceType::Resolved);
-	return Cache;
-}
-
 bool operator==(const FHeaderProvider& A, const FHeaderProvider& B)
 {
-	if (A.Cache != B.Cache)
-	{
-		return false;
-	}
-
-	if (A.Cache == nullptr)
-	{
-		return A.Id == B.Id && A.Type == B.Type;
-	}
-
-	return true;
+	return A.Id == B.Id && A.Type == B.Type;
 }

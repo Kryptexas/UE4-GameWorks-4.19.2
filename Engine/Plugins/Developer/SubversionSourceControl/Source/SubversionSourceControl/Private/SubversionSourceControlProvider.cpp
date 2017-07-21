@@ -299,7 +299,7 @@ bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryN
 	// run a command on the server to see check connection.
 	// If our credentials have not been cached then this will fail.
 	TArray<FString> Files;
-	Files.Add(FPaths::GameDir());
+	Files.Add(FPaths::ProjectDir());
 	TArray<class FXmlFile> ResultsXml;
 	TArray<FString> Errors;
 

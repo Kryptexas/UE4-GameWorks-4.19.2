@@ -41,7 +41,7 @@ public:
 
 
 	SLATE_BEGIN_ARGS( SPropertyEditorLevelPackage )
-		: _RootPath(FPackageName::FilenameToLongPackageName(FPaths::GameContentDir())) 
+		: _RootPath(FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir())) 
 		, _SortAlphabetically(false)
 		{}
 		/** Root folder path for gathering level packages */	

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
+using System.Linq;
 
 public struct StageTarget
 {
@@ -13,22 +14,46 @@ public struct StageTarget
 	public bool RequireFilesExist;
 }
 
+/// <summary>
+/// Controls which directories are searched when staging files
+/// </summary>
+public enum StageFilesSearch
+{
+	/// <summary>
+	/// Only search the top directory
+	/// </summary>
+	TopDirectoryOnly,
+
+	/// <summary>
+	/// Search the entire directory tree
+	/// </summary>
+	AllDirectories,
+}
+
+/// <summary>
+/// Contains the set of files to be staged
+/// </summary>
 public class FilesToStage
 {
 	/// <summary>
+	/// After staging, this is a map from staged file to source file. These file are content, and can go into a pak file.
+	/// </summary>
+	public Dictionary<StagedFileReference, FileReference> UFSFiles = new Dictionary<StagedFileReference, FileReference>();
+
+	/// <summary>
 	/// After staging, this is a map from staged file to source file. These file are binaries, etc and can't go into a pak file.
 	/// </summary>
-	public Dictionary<StagedFileReference, FileReference> NonUFSStagingFiles = new Dictionary<StagedFileReference, FileReference>();
+	public Dictionary<StagedFileReference, FileReference> NonUFSFiles = new Dictionary<StagedFileReference, FileReference>();
 
 	/// <summary>
 	/// After staging, this is a map from staged file to source file. These file are for debugging, and should not go into a pak file.
 	/// </summary>
-	public Dictionary<StagedFileReference, FileReference> NonUFSStagingFilesDebug = new Dictionary<StagedFileReference, FileReference>();
+	public Dictionary<StagedFileReference, FileReference> NonUFSDebugFiles = new Dictionary<StagedFileReference, FileReference>();
 
 	/// <summary>
-	/// After staging, this is a map from staged file to source file. These file are content, and can go into a pak file.
+	/// After staging, this is a map from staged file to source file. These files are system files, and should not be renamed or remapped.
 	/// </summary>
-	public Dictionary<StagedFileReference, FileReference> UFSStagingFiles = new Dictionary<StagedFileReference, FileReference>();
+	public Dictionary<StagedFileReference, FileReference> NonUFSSystemFiles = new Dictionary<StagedFileReference, FileReference>();
 
 	/// <summary>
 	/// Adds a file to be staged as the given type
@@ -40,15 +65,19 @@ public class FilesToStage
 	{
 		if (FileType == StagedFileType.UFS)
 		{
-			AddToDictionary(UFSStagingFiles, StagedFile, InputFile);
+			AddToDictionary(UFSFiles, StagedFile, InputFile);
 		}
 		else if (FileType == StagedFileType.NonUFS)
 		{
-			AddToDictionary(NonUFSStagingFiles, StagedFile, InputFile);
+			AddToDictionary(NonUFSFiles, StagedFile, InputFile);
 		}
 		else if (FileType == StagedFileType.DebugNonUFS)
 		{
-			AddToDictionary(NonUFSStagingFilesDebug, StagedFile, InputFile);
+			AddToDictionary(NonUFSDebugFiles, StagedFile, InputFile);
+		}
+		else if(FileType == StagedFileType.SystemNonUFS)
+		{
+			AddToDictionary(NonUFSSystemFiles, StagedFile, InputFile);
 		}
 	}
 
@@ -180,6 +209,16 @@ public class DeploymentContext //: ProjectParams
 	/// List of files to be archived
 	/// </summary>
 	public Dictionary<string, string> ArchivedFiles = new Dictionary<string, string>();
+
+	/// <summary>
+	/// List of restricted folder names which are not permitted in staged build
+	/// </summary>
+	public HashSet<FileSystemName> RestrictedFolderNames = new HashSet<FileSystemName>();
+
+	/// <summary>
+	/// List of directories to remap during the stage
+	/// </summary>
+	public List<Tuple<StagedDirectoryReference, StagedDirectoryReference>> RemapDirectories = new List<Tuple<StagedDirectoryReference, StagedDirectoryReference>>();
 
 	/// <summary>
 	///  Directory to archive all of the files in: d:\archivedir\WindowsNoEditor
@@ -341,6 +380,44 @@ public class DeploymentContext //: ProjectParams
 		ProjectArgForCommandLines = ProjectArgForCommandLines.Replace("\\", "/");
 		ProjectBinariesFolder = DirectoryReference.Combine(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetType.Game, IsCodeBasedProject), PlatformDir);
 
+		// Build a list of restricted folder names. This will comprise all other restricted platforms, plus standard restricted folder names such as NoRedist, NotForLicensees, etc...
+		RestrictedFolderNames.UnionWith(Enum.GetNames(typeof(UnrealTargetPlatform)).Select(x => new FileSystemName(x)));
+		RestrictedFolderNames.UnionWith(PlatformExports.RestrictedFolderNames);
+		RestrictedFolderNames.ExceptWith(StageTargetPlatform.GetStagePlatforms().Select(x => new FileSystemName(x.ToString())));
+		RestrictedFolderNames.Remove(new FileSystemName(UnrealTargetPlatform.Unknown.ToString()));
+		RestrictedFolderNames.Remove(new FileSystemName(StageTargetPlatform.IniPlatformType.ToString()));
+
+		// Read the game config files
+		ConfigHierarchy GameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, ProjectRoot, InTargetPlatform.PlatformType);
+
+		// Read the list of directories to remap when staging
+		List<string> RemapDirectoriesList;
+		if (GameConfig.GetArray("Staging", "RemapDirectories", out RemapDirectoriesList))
+		{
+			foreach (string RemapDirectory in RemapDirectoriesList)
+			{
+				Dictionary<string, string> Properties;
+				if (!ConfigHierarchy.TryParse(RemapDirectory, out Properties))
+				{
+					throw new AutomationException("Unable to parse '{0}'", RemapDirectory);
+				}
+
+				string FromDir;
+				if (!Properties.TryGetValue("From", out FromDir))
+				{
+					throw new AutomationException("Missing 'From' property in '{0}'", RemapDirectory);
+				}
+
+				string ToDir;
+				if(!Properties.TryGetValue("To", out ToDir))
+				{
+					throw new AutomationException("Missing 'To' property in '{0}'", RemapDirectory);
+				}
+
+				RemapDirectories.Add(Tuple.Create(new StagedDirectoryReference(FromDir), new StagedDirectoryReference(ToDir)));
+			}
+		}
+
         // If we were configured to use manifests across the whole project, then this platform should use manifests.
         // Otherwise, read whether we are generating chunks from the ProjectPackagingSettings ini.
         if (InForceChunkManifests)
@@ -359,43 +436,185 @@ public class DeploymentContext //: ProjectParams
         }
     }
 
-	public void StageFile(StagedFileType FileType, FileReference InputFile, StagedFileReference OutputFile = null, bool bRemap = true)
+	/// <summary>
+	/// Finds files to stage under a given base directory.
+	/// </summary>
+	/// <param name="BaseDir">The directory to search under</param>
+	/// <param name="Option">Options for the search</param>
+	/// <returns>List of files to be staged</returns>
+	public List<FileReference> FindFilesToStage(DirectoryReference BaseDir, StageFilesSearch Option)
 	{
-		if(OutputFile == null)
+		return FindFilesToStage(BaseDir, "*", Option);
+	}
+
+	/// <summary>
+	/// Finds files to stage under a given base directory.
+	/// </summary>
+	/// <param name="BaseDir">The directory to search under</param>
+	/// <param name="Pattern">Pattern for files to match</param>
+	/// <param name="Option">Options for the search</param>
+	/// <returns>List of files to be staged</returns>
+	public List<FileReference> FindFilesToStage(DirectoryReference BaseDir, string Pattern, StageFilesSearch Option)
+	{
+		List<FileReference> Files = new List<FileReference>();
+		FindFilesToStageInternal(BaseDir, Pattern, Option, Files);
+		return Files;
+	}
+
+	/// <summary>
+	/// Finds files to stage under a given base directory.
+	/// </summary>
+	/// <param name="BaseDir">The directory to search under</param>
+	/// <param name="Pattern">Pattern for files to match</param>
+	/// <param name="ExcludePatterns">Patterns to exclude from staging</param>
+	/// <param name="Option">Options for the search</param>
+	/// <param name="Files">List to receive the enumerated files</param>
+	private void FindFilesToStageInternal(DirectoryReference BaseDir, string Pattern, StageFilesSearch Option, List<FileReference> Files)
+	{
+		// Enumerate all the files in this directory
+		Files.AddRange(DirectoryReference.EnumerateFiles(BaseDir, Pattern));
+
+		// Recurse through subdirectories if necessary
+		if(Option == StageFilesSearch.AllDirectories)
 		{
-			if(InputFile.IsUnderDirectory(ProjectRoot))
+			foreach(DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(BaseDir))
 			{
-				OutputFile = StagedFileReference.Combine(RelativeProjectRootForStage, InputFile.MakeRelativeTo(ProjectRoot));
-			}
-            else if (InputFile.HasExtension(".uplugin"))
-            {
-                if (InputFile.IsUnderDirectory(EngineRoot))
+				FileSystemName Name = new FileSystemName(SubDir);
+				if(!RestrictedFolderNames.Contains(Name))
 				{
-					OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
+					FindFilesToStageInternal(SubDir, Pattern, Option, Files);
 				}
-                else
-				{
-					// This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
-					// We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
-					OutputFile = new StagedFileReference(String.Format("RemappedPlugins/{0}/{1}", InputFile.GetFileNameWithoutExtension(), InputFile.GetFileName()));
-				}
-            }
-            else if (InputFile.IsUnderDirectory(LocalRoot))
-            {
-				OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
-            }
-            else
-            {
-				throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputFile, ProjectRoot, LocalRoot);
 			}
 		}
+	}
 
-		if(bRemap)
+	/// <summary>
+	/// Stage a single file to its default location
+	/// </summary>
+	/// <param name="FileType">The type of file being staged</param>
+	/// <param name="InputFile">Path to the file</param>
+	public void StageFile(StagedFileType FileType, FileReference InputFile)
+	{
+		StagedFileReference OutputFile;
+		if(InputFile.IsUnderDirectory(ProjectRoot))
 		{
-			OutputFile = StageTargetPlatform.Remap(OutputFile);
+			OutputFile = StagedFileReference.Combine(RelativeProjectRootForStage, InputFile.MakeRelativeTo(ProjectRoot));
 		}
+        else if (InputFile.HasExtension(".uplugin"))
+        {
+            if (InputFile.IsUnderDirectory(EngineRoot))
+			{
+				OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
+			}
+            else
+			{
+				// This is a plugin that lives outside of the Engine/Plugins or Game/Plugins directory so needs to be remapped for staging/packaging
+				// We need to remap C:\SomePath\PluginName\PluginName.uplugin to RemappedPlugins\PluginName\PluginName.uplugin
+				OutputFile = new StagedFileReference(String.Format("RemappedPlugins/{0}/{1}", InputFile.GetFileNameWithoutExtension(), InputFile.GetFileName()));
+			}
+        }
+        else if (InputFile.IsUnderDirectory(LocalRoot))
+        {
+			OutputFile = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
+        }
+        else
+        {
+			throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputFile, ProjectRoot, LocalRoot);
+		}
+		StageFile(FileType, InputFile, OutputFile);
+	}
 
+	/// <summary>
+	/// Stage a single file
+	/// </summary>
+	/// <param name="FileType">The type for the staged file</param>
+	/// <param name="InputFile">The source file</param>
+	/// <param name="OutputFile">The staged file location</param>
+	public void StageFile(StagedFileType FileType, FileReference InputFile, StagedFileReference OutputFile)
+	{
 		FilesToStage.Add(FileType, OutputFile, InputFile);
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="Files">The files to stage</param>
+	public void StageFiles(StagedFileType FileType, IEnumerable<FileReference> Files)
+	{
+		foreach (FileReference File in Files)
+		{
+			StageFile(FileType, File);
+		}
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="Files">The files to stage</param>
+	public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, IEnumerable<FileReference> Files, StagedDirectoryReference OutputDir)
+	{
+		foreach (FileReference File in Files)
+		{
+			StagedFileReference OutputFile = StagedFileReference.Combine(OutputDir, File.MakeRelativeTo(InputDir));
+			StageFile(FileType, File, OutputFile);
+		}
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="InputDir">Input directory</param>
+	/// <param name="Option">Whether to stage all subdirectories or just the top-level directory</param>
+	public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, StageFilesSearch Option)
+	{
+		StageFiles(FileType, InputDir, "*", Option);
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="InputDir">Input directory</param>
+	/// <param name="Option">Whether to stage all subdirectories or just the top-level directory</param>
+	/// <param name="OutputDir">Base directory for output files</param>
+	public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, StageFilesSearch Option, StagedDirectoryReference OutputDir)
+	{
+		StageFiles(FileType, InputDir, "*", Option, OutputDir);
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="InputDir">Input directory</param>
+	/// <param name="InputFiles">List of input files</param>
+	public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, string Pattern, StageFilesSearch Option)
+	{
+		List<FileReference> InputFiles = FindFilesToStage(InputDir, Pattern, Option);
+		foreach (FileReference InputFile in InputFiles)
+		{
+			StageFile(FileType, InputFile);
+		}
+	}
+
+	/// <summary>
+	/// Stage multiple files
+	/// </summary>
+	/// <param name="FileType">The type for the staged files</param>
+	/// <param name="InputDir">Input directory</param>
+	/// <param name="InputFiles">List of input files</param>
+	/// <param name="OutputDir">Output directory</param>
+	public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, string Pattern, StageFilesSearch Option, StagedDirectoryReference OutputDir)
+	{
+		List<FileReference> InputFiles = FindFilesToStage(InputDir, Pattern, Option);
+		foreach (FileReference InputFile in InputFiles)
+		{
+			StagedFileReference OutputFile = StagedFileReference.Combine(OutputDir, InputFile.MakeRelativeTo(InputDir));
+			StageFile(FileType, InputFile, OutputFile);
+		}
 	}
 
 	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool TreatNonShippingBinariesAsDebugFiles)
@@ -443,192 +662,9 @@ public class DeploymentContext //: ProjectParams
 			// allow missing files if needed
 			if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || FileReference.Exists(RuntimeDependency.Path))
 			{
-				bool bRemap = RuntimeDependency.Type != StagedFileType.UFS || !bUsingPakFile;
-				StageFile(RuntimeDependency.Type, RuntimeDependency.Path, bRemap: bRemap);
+				StageFile(RuntimeDependency.Type, RuntimeDependency.Path);
 			}
 		}
-	}
-
-	/// <summary>
-	/// Correctly collapses any ../ or ./ entries in a path.
-	/// </summary>
-	/// <param name="InPath">The path to be collapsed</param>
-	/// <returns>true if the path could be collapsed, false otherwise.</returns>
-	static bool CollapseRelativeDirectories(ref string InPath)
-	{
-		string LocalString = InPath;
-		bool bHadBackSlashes = false;
-		// look to see what kind of slashes we had
-		if (LocalString.IndexOf("\\") != -1)
-		{
-			LocalString = LocalString.Replace("\\", "/");
-			bHadBackSlashes = true;
-		}
-
-		string ParentDir = "/..";
-		int ParentDirLength = ParentDir.Length;
-
-		for (; ; )
-		{
-			// An empty path is finished
-			if (string.IsNullOrEmpty(LocalString))
-				break;
-
-			// Consider empty paths or paths which start with .. or /.. as invalid
-			if (LocalString.StartsWith("..") || LocalString.StartsWith(ParentDir))
-				return false;
-
-			// If there are no "/.."s left then we're done
-			int Index = LocalString.IndexOf(ParentDir);
-			if (Index == -1)
-				break;
-
-			int PreviousSeparatorIndex = Index;
-			for (; ; )
-			{
-				// Find the previous slash
-				PreviousSeparatorIndex = Math.Max(0, LocalString.LastIndexOf("/", PreviousSeparatorIndex - 1));
-
-				// Stop if we've hit the start of the string
-				if (PreviousSeparatorIndex == 0)
-					break;
-
-				// Stop if we've found a directory that isn't "/./"
-				if ((Index - PreviousSeparatorIndex) > 1 && (LocalString[PreviousSeparatorIndex + 1] != '.' || LocalString[PreviousSeparatorIndex + 2] != '/'))
-					break;
-			}
-
-			// If we're attempting to remove the drive letter, that's illegal
-			int Colon = LocalString.IndexOf(":", PreviousSeparatorIndex);
-			if (Colon >= 0 && Colon < Index)
-				return false;
-
-			LocalString = LocalString.Substring(0, PreviousSeparatorIndex) + LocalString.Substring(Index + ParentDirLength);
-		}
-
-		LocalString = LocalString.Replace("./", "");
-
-		// restore back slashes now
-		if (bHadBackSlashes)
-		{
-			LocalString = LocalString.Replace("/", "\\");
-		}
-
-		// and pass back out
-		InPath = LocalString;
-		return true;
-	}
-
-	bool IsFileForOtherPlatform(FileReference InputFile)
-	{
-        foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
-        {
-			bool bMatchesIniPlatform = (InputFile.HasExtension(".ini") && Plat == StageTargetPlatform.IniPlatformType); // filter ini files for the ini file platform
-			bool bMatchesTargetPlatform = (Plat == StageTargetPlatform.PlatformType || Plat == UnrealTargetPlatform.Unknown); // filter platform files for the target platform
-			if (!bMatchesIniPlatform && !bMatchesTargetPlatform)
-			{
-				FileSystemName PlatformName = new FileSystemName(Plat.ToString());
-				if (InputFile.IsUnderDirectory(ProjectRoot))
-				{
-					if (InputFile.ContainsName(PlatformName, ProjectRoot))
-					{
-						return true;
-					}
-				}
-				else if (InputFile.IsUnderDirectory(LocalRoot))
-				{
-					if (InputFile.ContainsName(PlatformName, LocalRoot))
-					{
-						return true;
-					}
-				}
-			}
-        }
-		return false;
-	}
-
-    public void StageFiles(StagedFileType FileType, DirectoryReference InputDir, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcards = null, StagedDirectoryReference NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
-	{
-		int FilesAdded = 0;
-
-		if (DirectoryReference.Exists(InputDir))
-		{
-			FileReference[] InputFiles = CommandUtils.FindFiles(Wildcard, bRecursive, InputDir);
-
-			HashSet<FileReference> ExcludeFiles = new HashSet<FileReference>();
-			if (ExcludeWildcards != null)
-			{
-				foreach (string ExcludeWildcard in ExcludeWildcards)
-				{
-					ExcludeFiles.UnionWith(CommandUtils.FindFiles(ExcludeWildcard, bRecursive, InputDir));
-				}
-			}
-
-			foreach (FileReference InputFile in InputFiles)
-			{
-				if (ExcludeFiles.Contains(InputFile))
-				{
-					continue;
-				}
-                
-				if (bStripFilesForOtherPlatforms && !bIsCombiningMultiplePlatforms && IsFileForOtherPlatform(InputFile))
-                {
-					continue;
-                }
-
-				// Get the staged location for this file
-				StagedFileReference Dest;
-				if (NewPath != null)
-				{
-					// If the specified a new directory, first we deal with that, then apply the other things. This is used to collapse the sandbox, among other things.
-					Dest = StagedFileReference.Combine(NewPath, InputFile.MakeRelativeTo(InputDir));
-                }
-				else if (InputFile.IsUnderDirectory(ProjectRoot))
-				{
-					// Project relative file
-					Dest = StagedFileReference.Combine(RelativeProjectRootForStage, InputFile.MakeRelativeTo(ProjectRoot));
-				}
-				else if (InputFile.IsUnderDirectory(LocalRoot))
-				{
-					// Engine relative file
-					Dest = new StagedFileReference(InputFile.MakeRelativeTo(LocalRoot));
-				}
-				else
-				{
-					throw new AutomationException("Can't deploy {0} because it doesn't start with {1} or {2}", InputFile, ProjectRoot, LocalRoot);
-				}
-
-                if (!bAllowNotForLicenseesFiles && (Dest.ContainsName(new FileSystemName("NotForLicensees")) || Dest.ContainsName(new FileSystemName("NoRedist"))))
-                {
-                    continue;
-                }
-
-				if (NewName != null)
-				{
-					Dest = StagedFileReference.Combine(Dest.Directory, NewName);
-				}
-
-				if (bRemap)
-				{
-					Dest = StageTargetPlatform.Remap(Dest);
-				}
-
-				if (bConvertToLower)
-				{
-					Dest = Dest.ToLowerInvariant();
-				}
-
-				FilesToStage.Add(FileType, Dest, InputFile);
-
-				FilesAdded++;
-			}
-		}
-
-		if (FilesAdded == 0 && !bAllowNone && !bIsCombiningMultiplePlatforms)
-		{
-			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InputDir, Wildcard, String.Join(", ", ExcludeWildcards));
-		}
-
 	}
 
 	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null)

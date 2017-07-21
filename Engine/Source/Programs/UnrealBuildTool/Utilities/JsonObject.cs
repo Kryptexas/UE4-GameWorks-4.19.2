@@ -48,7 +48,14 @@ namespace UnrealBuildTool
 		public static JsonObject Read(string FileName)
 		{
 			string Text = File.ReadAllText(FileName);
-			return Parse(Text);
+			try
+			{
+				return Parse(Text);
+			}
+			catch(Exception Ex)
+			{
+				throw new BuildException("Unable to parse {0}: {1}", FileName, Ex.Message);
+			}
 		}
 
 		/// <summary>
@@ -496,7 +503,7 @@ namespace UnrealBuildTool
 		{
 			WriteCommaNewline();
 
-			Writer.Write("{0}\"{1}\" : ", Indent, ObjectName);
+			Writer.Write("{0}\"{1}\": ", Indent, ObjectName);
 
 			bRequiresComma = false;
 
@@ -525,8 +532,7 @@ namespace UnrealBuildTool
 		{
 			WriteCommaNewline();
 
-			Writer.WriteLine("{0}\"{1}\" :", Indent, ArrayName);
-			Writer.Write("{0}[", Indent);
+			Writer.Write("{0}\"{1}\": [", Indent, ArrayName);
 
 			Indent += "\t";
 			bRequiresComma = false;
@@ -593,7 +599,7 @@ namespace UnrealBuildTool
 		{
 			WriteCommaNewline();
 
-			Writer.Write("{0}\"{1}\" : ", Indent, Name);
+			Writer.Write("{0}\"{1}\": ", Indent, Name);
 			WriteEscapedString(Value);
 
 			bRequiresComma = true;
@@ -645,7 +651,7 @@ namespace UnrealBuildTool
 		{
 			WriteCommaNewline();
 
-			Writer.Write("{0}\"{1}\" : {2}", Indent, Name, Value);
+			Writer.Write("{0}\"{1}\": {2}", Indent, Name, Value);
 
 			bRequiresComma = true;
 		}

@@ -62,7 +62,7 @@ public class Core : ModuleRules
 			}
 			);
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			DynamicallyLoadedModuleNames.Add("SourceCodeAccess");
 
@@ -93,7 +93,7 @@ public class Core : ModuleRules
 				);
 			PublicFrameworks.AddRange(new string[] { "Cocoa", "Carbon", "IOKit", "Security" });
 			
-			if (UEBuildConfiguration.bBuildEditor == true)
+			if (Target.bBuildEditor == true)
 			{
 				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
 			}
@@ -165,16 +165,16 @@ public class Core : ModuleRules
             PublicAdditionalLibraries.Add("SceRtc_stub_weak"); //ORBIS SDK rtc.h, used in PS4Time.cpp
         }
 
-        if ( UEBuildConfiguration.bCompileICU == true ) 
+        if ( Target.bCompileICU == true ) 
         {
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "ICU");
         }
-        Definitions.Add("UE_ENABLE_ICU=" + (UEBuildConfiguration.bCompileICU ? "1" : "0")); // Enable/disable (=1/=0) ICU usage in the codebase. NOTE: This flag is for use while integrating ICU and will be removed afterward.
+        Definitions.Add("UE_ENABLE_ICU=" + (Target.bCompileICU ? "1" : "0")); // Enable/disable (=1/=0) ICU usage in the codebase. NOTE: This flag is for use while integrating ICU and will be removed afterward.
 
         // If we're compiling with the engine, then add Core's engine dependencies
-		if (UEBuildConfiguration.bCompileAgainstEngine == true)
+		if (Target.bCompileAgainstEngine == true)
 		{
-			if (!UEBuildConfiguration.bBuildRequiresCookedData)
+			if (!Target.bBuildRequiresCookedData)
 			{
 				DynamicallyLoadedModuleNames.AddRange(new string[] { "DerivedDataCache" });
 			}

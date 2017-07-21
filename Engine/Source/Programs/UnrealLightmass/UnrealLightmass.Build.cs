@@ -62,7 +62,7 @@ public class UnrealLightmass : ModuleRules
         // EMBREE
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/Win64/";
+            string SDKDir = Target.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/Win64/";
 
             PublicIncludePaths.Add(SDKDir + "include");
             PublicLibraryPaths.Add(SDKDir + "lib");
@@ -74,7 +74,7 @@ public class UnrealLightmass : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/MacOSX/";
+            string SDKDir = Target.UEThirdPartySourceDirectory + "IntelEmbree/Embree270/MacOSX/";
 
             PublicIncludePaths.Add(SDKDir + "include");
             PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.dylib");

@@ -835,7 +835,7 @@ private:
 	*/
 	FString GetLocalCachePath()
 	{
-		return FPaths::GamePersistentDownloadDir() / TEXT("EMS/");
+		return FPaths::ProjectPersistentDownloadDir() / TEXT("EMS/");
 	}
 
 	/**
@@ -1638,7 +1638,7 @@ void FHTTPChunkInstall::InitialiseSystem()
 	}*/
 	else
 	{
-		FString LocalTileFileDirectory = FPaths::GameConfigDir();
+		FString LocalTileFileDirectory = FPaths::ProjectConfigDir();
 		auto bGetConfigDir = GConfig->GetString(TEXT("HTTPChunkInstall"), TEXT("LocalTitleFileDirectory"), LocalTileFileDirectory, GEngineIni);
 		OnlineTitleFile = MakeShareable(new FLocalTitleFile(LocalTileFileDirectory));
 #if !UE_BUILD_SHIPPING
@@ -1646,13 +1646,13 @@ void FHTTPChunkInstall::InitialiseSystem()
 #endif
 	}
 	CloudDirectory = TEXT("");
-	CloudDir = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Cloud"));
-	StageDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Staged"));
-	InstallDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Installed")); // By default this should match ContentDir
-	BackupDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Backup"));
-	CacheDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Cache"));
-	HoldingDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Hold"));
-	ContentDir = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Chunks"), TEXT("Installed")); // By default this should match InstallDir
+	CloudDir = FPaths::Combine(*FPaths::ProjectContentDir(), TEXT("Cloud"));
+	StageDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Staged"));
+	InstallDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Installed")); // By default this should match ContentDir
+	BackupDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Backup"));
+	CacheDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Cache"));
+	HoldingDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Hold"));
+	ContentDir = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Chunks"), TEXT("Installed")); // By default this should match InstallDir
 
 	FString TmpString1;
 	FString TmpString2;

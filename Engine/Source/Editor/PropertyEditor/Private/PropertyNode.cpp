@@ -2936,19 +2936,7 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 				bool bShouldImport = false;
 				{
 					uint8* TempComplexPropAddr = (uint8*)FMemory::Malloc(ComplexProperty->GetSize(), ComplexProperty->GetMinAlignment());
-					
-					if (ComplexProperty->ArrayDim > 1)
-					{
-						for (int32 i = 0; i < ComplexProperty->ArrayDim; ++i)
-						{
-							ComplexProperty->InitializeValue((uint8*)TempComplexPropAddr + i * ComplexProperty->ElementSize);
-						}
-					}
-					else
-					{
-						ComplexProperty->InitializeValue(TempComplexPropAddr);
-					}
-					
+					ComplexProperty->InitializeValue(TempComplexPropAddr);
 					ON_SCOPE_EXIT
 					{
 						ComplexProperty->DestroyValue(TempComplexPropAddr);

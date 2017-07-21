@@ -13,6 +13,7 @@
 #include "Editor.h"
 #include "EditorStyleSet.h"
 
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptGraphViewModel"
 
@@ -254,7 +255,7 @@ void FNiagaraScriptGraphViewModel::CopySelectedNodes()
 
 	FString ExportedText;
 	FEdGraphUtilities::ExportNodesToText(NodesToCopy, ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 bool FNiagaraScriptGraphViewModel::CanCopyNodes() const
@@ -393,7 +394,7 @@ void FNiagaraScriptGraphViewModel::PasteNodes()
 
 		// Grab the text to paste from the clipboard.
 		FString TextToImport;
-		FPlatformMisc::ClipboardPaste(TextToImport);
+		FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 		// Import the nodes
 		TSet<UEdGraphNode*> PastedNodes;
@@ -428,7 +429,7 @@ bool FNiagaraScriptGraphViewModel::CanPasteNodes() const
 	}
 
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return FEdGraphUtilities::CanImportNodesFromText(Graph, ClipboardContent);
 }

@@ -29,7 +29,7 @@ FStringTableRegistry::FStringTableRegistry()
 		{
 			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::EngineContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), EngineDirectoryWatcherHandle);
 
-			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::GameContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), GameDirectoryWatcherHandle);
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle(FPaths::ProjectContentDir(), IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FStringTableRegistry::OnDirectoryChanged), GameDirectoryWatcherHandle);
 		}
 	}
 #endif // WITH_EDITOR
@@ -52,7 +52,7 @@ FStringTableRegistry::~FStringTableRegistry()
 				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::EngineContentDir(), EngineDirectoryWatcherHandle);
 				EngineDirectoryWatcherHandle.Reset();
 
-				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::GameContentDir(), GameDirectoryWatcherHandle);
+				DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FPaths::ProjectContentDir(), GameDirectoryWatcherHandle);
 				GameDirectoryWatcherHandle.Reset();
 			}
 		}

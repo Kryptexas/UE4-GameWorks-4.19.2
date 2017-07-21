@@ -22,18 +22,18 @@ public class UnrealVersionSelectorTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-		BuildConfiguration.bUseMallocProfiler = false;
+		bCompileLeanAndMeanUE = true;
+		bUseMallocProfiler = false;
 
 		// No editor needed
-		UEBuildConfiguration.bCompileICU = false;
-		UEBuildConfiguration.bBuildEditor = false;
+		bCompileICU = false;
+		bBuildEditor = false;
 		// Editor-only data, however, is needed
-		UEBuildConfiguration.bBuildWithEditorOnlyData = false;
+		bBuildWithEditorOnlyData = false;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		//OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

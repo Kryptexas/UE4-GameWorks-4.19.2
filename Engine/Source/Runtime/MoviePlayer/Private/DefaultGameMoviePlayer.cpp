@@ -19,6 +19,7 @@
 #include "FileManager.h"
 #include "SVirtualWindow.h"
 #include "SlateDrawBuffer.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 
@@ -405,7 +406,7 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 					break;
 				}
 
-				FPlatformMisc::PumpMessages(true);
+				FPlatformApplicationMisc::PumpMessages(true);
 
 				SlateApp.PollGameDeviceState();
 				// Gives widgets a chance to process any accumulated input
@@ -585,7 +586,7 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 		// We dont know the extension so compare against any file in the directory with the same name for now
 		// @todo New Movie Player: movies should have the extension on them when set via the project settings
 		TArray<FString> ExistingMovieFiles;
-		IFileManager::Get().FindFiles(ExistingMovieFiles, *(FPaths::GameContentDir() + TEXT("Movies")));
+		IFileManager::Get().FindFiles(ExistingMovieFiles, *(FPaths::ProjectContentDir() + TEXT("Movies")));
 
 		bool bHasValidMovie = false;
 		for(const FString& Movie : StartupMovies)

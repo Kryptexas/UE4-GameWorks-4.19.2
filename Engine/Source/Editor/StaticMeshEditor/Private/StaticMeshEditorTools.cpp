@@ -34,6 +34,7 @@
 #include "JsonObjectConverter.h"
 #include "Engine/SkeletalMesh.h"
 #include "IMeshReductionManagerModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -1396,7 +1397,7 @@ void FMeshSectionSettingsLayout::OnCopySectionList(int32 CurrentLODIndex)
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -1418,7 +1419,7 @@ bool FMeshSectionSettingsLayout::OnCanCopySectionList(int32 CurrentLODIndex) con
 void FMeshSectionSettingsLayout::OnPasteSectionList(int32 CurrentLODIndex)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -1497,7 +1498,7 @@ void FMeshSectionSettingsLayout::OnCopySectionItem(int32 CurrentLODIndex, int32 
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -1519,7 +1520,7 @@ bool FMeshSectionSettingsLayout::OnCanCopySectionItem(int32 CurrentLODIndex, int
 void FMeshSectionSettingsLayout::OnPasteSectionItem(int32 CurrentLODIndex, int32 SectionIndex)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -2093,7 +2094,7 @@ void FMeshMaterialsLayout::OnCopyMaterialList()
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -2105,7 +2106,7 @@ bool FMeshMaterialsLayout::OnCanCopyMaterialList() const
 void FMeshMaterialsLayout::OnPasteMaterialList()
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonValue> RootJsonValue;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -2155,7 +2156,7 @@ void FMeshMaterialsLayout::OnCopyMaterialItem(int32 CurrentSlot)
 
 	if (!CopyStr.IsEmpty())
 	{
-		FPlatformMisc::ClipboardCopy(*CopyStr);
+		FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 	}
 }
 
@@ -2167,7 +2168,7 @@ bool FMeshMaterialsLayout::OnCanCopyMaterialItem(int32 CurrentSlot) const
 void FMeshMaterialsLayout::OnPasteMaterialItem(int32 CurrentSlot)
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	TSharedPtr<FJsonObject> RootJsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);

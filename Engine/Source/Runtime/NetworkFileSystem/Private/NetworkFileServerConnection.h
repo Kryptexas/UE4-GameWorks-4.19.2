@@ -194,13 +194,13 @@ private:
 	FString ConnectedEngineDir;
 
 	// Hold the game directory from the connected platform.
-	FString ConnectedGameDir;
+	FString ConnectedProjectDir;
 
 	// Hold the sandbox engine directory for the connected platform
 	FString SandboxEngine;
 
 	// hold the sandbox game directory for the connected platform
-	FString SandboxGame;
+	FString SandboxProject;
 
 	// Should we send the filenames in lowercase
 	bool bSendLowerCase;

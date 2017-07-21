@@ -30,6 +30,7 @@
 #include "ImaginaryBlueprintData.h"
 #include "FiBSearchInstance.h"
 #include "BlueprintEditorTabs.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprints"
 
@@ -1404,7 +1405,7 @@ void SFindInBlueprints::OnCopyAction()
 	}
 
 	// Copy text to clipboard
-	FPlatformMisc::ClipboardCopy( *SelectedText );
+	FPlatformApplicationMisc::ClipboardCopy( *SelectedText );
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -297,7 +297,7 @@ namespace ImagePlateFrameCache
 			{
 				if (SequenceFolder.StartsWith(TEXT("./")))
 				{
-					SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), SequenceFolder.RightChop(2));
+					SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), SequenceFolder.RightChop(2));
 				}
 				else
 				{

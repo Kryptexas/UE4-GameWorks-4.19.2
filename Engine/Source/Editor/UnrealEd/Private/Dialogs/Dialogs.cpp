@@ -18,6 +18,8 @@
 #include "ObjectTools.h"
 #include "DesktopPlatformModule.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "HAL/PlatformApplicationMisc.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogDialogs, Log, All);
 
 #define LOCTEXT_NAMESPACE "Dialogs"
@@ -233,7 +235,7 @@ protected:
 	 */
 	void CopyMessageToClipboard( )
 	{
-		FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
+		FPlatformApplicationMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 	}
 
 
@@ -383,7 +385,7 @@ public:
 	{
 		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
-			FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
+			FPlatformApplicationMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 			return FReply::Handled();
 		}
 		return FReply::Unhandled();
@@ -605,7 +607,7 @@ public:
 
 		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
-			FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
+			FPlatformApplicationMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 			return FReply::Handled();
 		}
 

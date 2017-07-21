@@ -129,7 +129,7 @@ void FNativeClassHierarchy::GetClassFolders(TArray<FName>& OutClassRoots, TArray
 		bool bRootNodePassesFilter =
 			(RootNode.Key == GameRootNodeName) ||								// Always include game classes
 			(RootNode.Key == EngineRootNodeName && bIncludeEngineClasses) ||  	// Only include engine classes if we were asked for them
-			(bIncludePluginClasses && RootNode.Value->LoadedFrom == EPluginLoadedFrom::GameProject) || // Only include Game plugin classes if we were asked for them
+			(bIncludePluginClasses && RootNode.Value->LoadedFrom == EPluginLoadedFrom::Project) || // Only include Game plugin classes if we were asked for them
 			(bIncludePluginClasses && bIncludeEngineClasses && RootNode.Value->LoadedFrom == EPluginLoadedFrom::Engine); //  Only include engine plugin classes if we were asked for them
 
 		if(bRootNodePassesFilter)
@@ -532,7 +532,7 @@ FName FNativeClassHierarchy::GetClassPathRootForModule(const FName& InModuleName
 	if(InGameModules.Contains(InModuleName))
 	{
 		RootNodeName = GameRootNodeName;
-		OutWhereLoadedFrom = EPluginLoadedFrom::GameProject;
+		OutWhereLoadedFrom = EPluginLoadedFrom::Project;
 	}
 	else if(InPluginModules.Contains(InModuleName))
 	{
@@ -569,15 +569,15 @@ TMap<FName, FNativeClassHierarchyPluginModuleInfo> FNativeClassHierarchy::GetPlu
 	// Build up a map of plugin modules -> plugin names - used to work out which modules populate a given Classes_PluginName
 	TMap<FName, FNativeClassHierarchyPluginModuleInfo> PluginModules;
 	{
-		TArray<FPluginStatus> Plugins = PluginManager.QueryStatusForAllPlugins();
-		for(const FPluginStatus& Plugin: Plugins)
+		TArray<TSharedRef<IPlugin>> Plugins = PluginManager.GetDiscoveredPlugins();
+		for(const TSharedRef<IPlugin>& Plugin: Plugins)
 		{
-			for(const FModuleDescriptor& PluginModule: Plugin.Descriptor.Modules)
+			for(const FModuleDescriptor& PluginModule: Plugin->GetDescriptor().Modules)
 			{
-				FNativeClassHierarchyPluginModuleInfo info;
-				info.Name = FName(*Plugin.Name);
-				info.LoadedFrom = Plugin.LoadedFrom;
-				PluginModules.Add(PluginModule.Name, info);
+				FNativeClassHierarchyPluginModuleInfo Info;
+				Info.Name = FName(*Plugin->GetName());
+				Info.LoadedFrom = Plugin->GetLoadedFrom();
+				PluginModules.Add(PluginModule.Name, Info);
 			}
 		}
 	}

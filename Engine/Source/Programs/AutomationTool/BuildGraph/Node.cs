@@ -154,26 +154,46 @@ namespace AutomationTool
 			for(int Idx = 0; Idx < Tasks.Count; Idx++)
 			{
 				ITaskExecutor Executor = Tasks[Idx].GetExecutor();
-				if(Executor == null)
+				if (Executor == null)
 				{
 					// Execute this task directly
-					if(!Tasks[Idx].Execute(Job, BuildProducts, TagNameToFileSet))
+					try
 					{
-						CommandUtils.Log("Failed to execute task.");
-						return false;
+						Tasks[Idx].Execute(Job, BuildProducts, TagNameToFileSet);
+					}
+					catch (Exception Ex)
+					{
+						ExceptionUtils.AddContext(Ex, "while executing task {0}", Tasks[Idx].GetTraceString());
+						if(Tasks[Idx].SourceLocation != null)
+						{
+							ExceptionUtils.AddContext(Ex, "at {0}({1})", GetReadablePathForDiagnostics(Tasks[Idx].SourceLocation.Item1), Tasks[Idx].SourceLocation.Item2);
+						}
+						throw;
 					}
 				}
 				else
 				{
 					// The task has a custom executor, which may be able to execute several tasks simultaneously. Try to add the following tasks.
-					while(Idx + 1 < Tasks.Count && Executor.Add(Tasks[Idx + 1]))
+					int FirstIdx = Idx; 
+					while (Idx + 1 < Tasks.Count && Executor.Add(Tasks[Idx + 1]))
 					{
 						Idx++;
 					}
-					if(!Executor.Execute(Job, BuildProducts, TagNameToFileSet))
+					try
 					{
-						CommandUtils.Log("Failed to execute task.");
-						return false;
+						Executor.Execute(Job, BuildProducts, TagNameToFileSet);
+					}
+					catch (Exception Ex)
+					{
+						for(int TaskIdx = FirstIdx; TaskIdx <= Idx; TaskIdx++)
+						{
+							ExceptionUtils.AddContext(Ex, "while executing {0}", Tasks[TaskIdx].GetTraceString());
+						}
+						if (Tasks[FirstIdx].SourceLocation != null)
+						{
+							ExceptionUtils.AddContext(Ex, "at {0}({1})", GetReadablePathForDiagnostics(Tasks[FirstIdx].SourceLocation.Item1), Tasks[FirstIdx].SourceLocation.Item2);
+						}
+						throw;
 					}
 				}
 			}
@@ -181,6 +201,23 @@ namespace AutomationTool
 			// Remove anything that doesn't exist, since these files weren't explicitly tagged
 			BuildProducts.RemoveWhere(x => !FileReference.Exists(x));
 			return true;
+		}
+
+		/// <summary>
+		/// Converts a file into a more readable form for diangostic messages
+		/// </summary>
+		/// <param name="File">Path to the file</param>
+		/// <returns>Readable form of the path</returns>
+		static string GetReadablePathForDiagnostics(FileReference File)
+		{
+			if(File.IsUnderDirectory(CommandUtils.RootDirectory))
+			{
+				return File.MakeRelativeTo(CommandUtils.RootDirectory);
+			}
+			else
+			{
+				return File.FullName;
+			}
 		}
 
 		/// <summary>

@@ -358,7 +358,7 @@ UObject* UPackFactory::FactoryCreateBinary
 	if (PakFile.IsValid())
 	{
 		static FString ContentFolder(TEXT("/Content/"));
-		FString ContentDestinationRoot = FPaths::GameContentDir();
+		FString ContentDestinationRoot = FPaths::ProjectContentDir();
 
 		const int32 ChopIndex = PakFile.GetMountPoint().Find(ContentFolder);
 		if (ChopIndex != INDEX_NONE)
@@ -710,7 +710,7 @@ UObject* UPackFactory::FactoryCreateBinary
 						const bool bReloadAfterCompiling = true;
 						const bool bForceCodeProject = true;
 						const bool bFailIfGeneratedCodeChanges = false;
-						if (!HotReloadSupport.RecompileModule(FApp::GetGameName(), bReloadAfterCompiling, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
+						if (!HotReloadSupport.RecompileModule(FApp::GetProjectName(), bReloadAfterCompiling, *GWarn, bFailIfGeneratedCodeChanges, bForceCodeProject))
 						{
 							FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("PackFactory", "FailedToCompileNewGameModule", "Failed to compile newly created game module."));
 						}
@@ -736,7 +736,7 @@ UObject* UPackFactory::FactoryCreateBinary
 				if (Filename.EndsWith(AssetExtension))
 				{
 					FString GameFileName = Filename;
-					if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()))
+					if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::ProjectContentDir()))
 					{
 						int32 SlashIndex = INDEX_NONE;
 						GameFileName = FString(TEXT("/Game/")) / GameFileName.LeftChop(AssetExtension.Len());

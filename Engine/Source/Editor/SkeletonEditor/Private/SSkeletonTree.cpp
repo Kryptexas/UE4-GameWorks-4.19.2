@@ -60,6 +60,8 @@
 #include "BoneSelectionWidget.h"
 #include "BoneProxy.h"
 
+#include "HAL/PlatformApplicationMisc.h"
+
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
 const FName	ISkeletonTree::Columns::Name("Name");
@@ -967,7 +969,7 @@ void SSkeletonTree::OnCopyBoneNames()
 			BoneNames += BoneName.ToString();
 			BoneNames += "\r\n";
 		}
-		FPlatformMisc::ClipboardCopy( *BoneNames );
+		FPlatformApplicationMisc::ClipboardCopy( *BoneNames );
 	}
 }
 
@@ -1025,7 +1027,7 @@ void SSkeletonTree::OnCopySockets() const
 
 		FString CopyString = FString::Printf( TEXT("%s\nNumSockets=%d\n%s"), *FEditableSkeleton::SocketCopyPasteHeader, NumSocketsToCopy, *SocketsDataString );
 
-		FPlatformMisc::ClipboardCopy( *CopyString );
+		FPlatformApplicationMisc::ClipboardCopy( *CopyString );
 	}
 }
 

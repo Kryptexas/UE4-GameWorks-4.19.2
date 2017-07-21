@@ -144,6 +144,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		[XmlElement( ElementName = "PlatformProperties" )]
 		public object UntypedXMLNodes;
 
+		/// <summary>Optional, list of enabled plugins</summary>
+		[XmlElement( ElementName = "EnabledPlugins")]
+		public object UntypedEnabledPlugins;
+
 		/// <summary> Directory of the crash. </summary>
 		public string CrashDirectory;
 
@@ -201,6 +205,15 @@ namespace Tools.CrashReporter.CrashReportCommon
 				bool bIgnore = TagsToIgnore.Contains( XMLLine );
 				if (bIgnore)
 				{
+					continue;
+				}
+
+				if(XMLText[LineIndex].Contains("<EnabledPlugins>"))
+				{
+					while(LineIndex < XMLText.Length && !XMLText[LineIndex].Contains("</EnabledPlugins>"))
+					{
+						LineIndex++;
+					}
 					continue;
 				}
 

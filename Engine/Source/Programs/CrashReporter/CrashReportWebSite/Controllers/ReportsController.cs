@@ -257,7 +257,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	            var crashQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
 	                // Only Crashes and asserts
-                    .Where(crash => crash.CrashType == 1 || crash.CrashType == 2)
+                    .Where(crash => crash.CrashType == 1 || crash.CrashType == 2 || crash.CrashType == 4)
 	                // Only anonymous user
                     .Where(crash => crash.UserId == anonymousId)
                     .Where(crash => crash.BuggId.HasValue);
@@ -575,7 +575,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             var CrashesQuery = _unitOfWork.CrashRepository.ListAll()
                 .Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
                 // Only Crashes and asserts
-                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2)
+                .Where(crash => crash.CrashType == 1 || crash.CrashType == 2 || crash.CrashType == 4)
                 // Only anonymous user
                 .Where(crash => crash.UserId == anonymousId);
 

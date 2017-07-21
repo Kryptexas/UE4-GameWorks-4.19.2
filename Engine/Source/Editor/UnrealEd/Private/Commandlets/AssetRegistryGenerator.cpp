@@ -125,7 +125,7 @@ bool FAssetRegistryGenerator::CleanTempPackagingDirectory(const FString& Platfor
 		}
 	}
 
-	FString ChunkListDir = FPaths::Combine(*FPaths::GameLogDir(), TEXT("ChunkLists"));
+	FString ChunkListDir = FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists"));
 	if (IFileManager::Get().DirectoryExists(*ChunkListDir))
 	{
 		if (!IFileManager::Get().DeleteDirectory(*ChunkListDir, false, true))
@@ -174,7 +174,7 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 {
 	const FString Platform = TargetPlatform->PlatformName();
 
-	FString GameNameLower = FString(FApp::GetGameName()).ToLower();
+	FString GameNameLower = FString(FApp::GetProjectName()).ToLower();
 
 	// empty out the current paklist directory
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);
@@ -416,7 +416,7 @@ bool FAssetRegistryGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 		if (!bUseAssetManager)
 		{
-			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::GameLogDir(), TEXT("ChunkLists")));
+			GenerateAssetChunkInformationCSV(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("ChunkLists")));
 		}
 	}
 
@@ -779,7 +779,7 @@ bool FAssetRegistryGenerator::WriteCookerOpenOrder()
 
 	if (CookerFileOrderString.Len())
 	{
-		auto OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::GameDir(), *TargetPlatform->PlatformName());
+		auto OpenOrderFilename = FString::Printf(TEXT("%sBuild/%s/FileOpenOrder/CookerOpenOrder.log"), *FPaths::ProjectDir(), *TargetPlatform->PlatformName());
 		FFileHelper::SaveStringToFile(CookerFileOrderString, *OpenOrderFilename);
 	}
 
@@ -789,13 +789,13 @@ bool FAssetRegistryGenerator::WriteCookerOpenOrder()
 /** Helper function which reroots a sandbox path to the staging area directory which UnrealPak expects */
 inline void ConvertFilenameToPakFormat(FString& InOutPath)
 {
-	auto GameDir = FPaths::GameDir();
+	auto ProjectDir = FPaths::ProjectDir();
 	auto EngineDir = FPaths::EngineDir();
-	auto GameName = FApp::GetGameName();
+	auto GameName = FApp::GetProjectName();
 
-	if (InOutPath.Contains(GameDir))
+	if (InOutPath.Contains(ProjectDir))
 	{
-		FPaths::MakePathRelativeTo(InOutPath, *GameDir);
+		FPaths::MakePathRelativeTo(InOutPath, *ProjectDir);
 		InOutPath = FString::Printf(TEXT("../../../%s/%s"), GameName, *InOutPath);
 	}
 	else if (InOutPath.Contains(EngineDir))

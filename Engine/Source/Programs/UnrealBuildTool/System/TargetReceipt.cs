@@ -140,7 +140,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Debug file which must be kept as part of the loose filesystem.
 		/// </summary>
-		DebugNonUFS
+		DebugNonUFS,
+
+		/// <summary>
+		/// System file which must be kept as part of the loose filesystem. System files are not subject to being automatic remapping or renaming by the platform layer.
+		/// </summary>
+		SystemNonUFS,
 	}
 
 	/// <summary>

@@ -96,7 +96,7 @@ namespace BuildPatchServices
 
 	TArray<FChunkMatch> FDataScanner::GetResultWhenComplete()
 	{
-		return MoveTemp(FutureResult.Get());
+		return FutureResult.Get();
 	}
 
 	uint32 FDataScanner::ConsumeData(const uint8* DataPtr, uint32 DataLen)

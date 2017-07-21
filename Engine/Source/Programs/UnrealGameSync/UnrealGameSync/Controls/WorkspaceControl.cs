@@ -515,6 +515,7 @@ namespace UnrealGameSync
 						MessageBox.Show("There are no compiled editor binaries for this change. To sync it, you must disable syncing of precompiled editor binaries.");
 						return;
 					}
+					Context.Options &= ~WorkspaceUpdateOptions.GenerateProjectFiles;
 				}
 				Context.ArchiveTypeToDepotPath.Add(EditorArchiveType, EditorArchivePath);
 			}
@@ -1545,7 +1546,7 @@ namespace UnrealGameSync
 			StringBuilder CommandLine = new StringBuilder();
 			if(Workspace != null && Workspace.Perforce != null)
 			{
-				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", Workspace.Perforce.ServerAndPort, Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
+				CommandLine.AppendFormat("-p \"{0}\" -c \"{1}\" -u \"{2}\"", Workspace.Perforce.ServerAndPort ?? "perforce:1666", Workspace.Perforce.ClientName, Workspace.Perforce.UserName);
 			}
 			Process.Start("p4v.exe", CommandLine.ToString());
 		}
@@ -1562,9 +1563,16 @@ namespace UnrealGameSync
 				Tuple<string, float> Progress = Workspace.CurrentProgress;
 
 				StatusLine SummaryLine = new StatusLine();
-				SummaryLine.AddText("Updating to changelist ");
-				SummaryLine.AddLink(Workspace.PendingChangeNumber.ToString(), FontStyle.Regular, () => { SelectChange(Workspace.PendingChangeNumber); });
-				SummaryLine.AddText("... | ");
+				if(Workspace.PendingChangeNumber == -1)
+				{
+					SummaryLine.AddText("Working... | ");
+				}
+				else
+				{
+					SummaryLine.AddText("Updating to changelist ");
+					SummaryLine.AddLink(Workspace.PendingChangeNumber.ToString(), FontStyle.Regular, () => { SelectChange(Workspace.PendingChangeNumber); });
+					SummaryLine.AddText("... | ");
+				}
 				SummaryLine.AddLink(Splitter.IsLogVisible()? "Hide Log" : "Show Log", FontStyle.Bold | FontStyle.Underline, () => { ToggleLogVisibility(); });
 				SummaryLine.AddText(" | ");
 				SummaryLine.AddLink("Cancel", FontStyle.Bold | FontStyle.Underline, () => { CancelWorkspaceUpdate(); });
@@ -2571,7 +2579,7 @@ namespace UnrealGameSync
 					{
 						if(Step.bShowAsTool)
 						{
-							ToolStripMenuItem NewMenuItem = new ToolStripMenuItem(Step.Description);
+							ToolStripMenuItem NewMenuItem = new ToolStripMenuItem(Step.Description.Replace("&", "&&"));
 							NewMenuItem.Click += new EventHandler((sender, e) => { RunCustomTool(Step.UniqueId); });
 							CustomToolMenuItems.Add(NewMenuItem);
 							MoreToolsContextMenu.Items.Insert(InsertIdx++, NewMenuItem);

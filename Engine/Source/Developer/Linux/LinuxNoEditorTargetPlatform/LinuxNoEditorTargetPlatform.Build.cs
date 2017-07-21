@@ -17,7 +17,7 @@ public class LinuxNoEditorTargetPlatform : ModuleRules
 			}
         );
 
-        if (UEBuildConfiguration.bCompileAgainstEngine)
+        if (Target.bCompileAgainstEngine)
         {
             PrivateDependencyModuleNames.AddRange(new string[] {
 				"Engine"

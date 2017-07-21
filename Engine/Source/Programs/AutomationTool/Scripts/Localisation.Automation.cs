@@ -136,7 +136,7 @@ class Localise : BuildCommand
 		if (ShouldGatherPlugins)
 		{
 			var PluginsRootDirectory = CombinePaths(UEProjectRoot, UEProjectDirectory, "Plugins");
-			IReadOnlyList<PluginInfo> AllPlugins = Plugins.ReadPluginsFromDirectory(new DirectoryReference(PluginsRootDirectory), UEProjectName.Length == 0 ? PluginLoadedFrom.Engine : PluginLoadedFrom.GameProject);
+			IReadOnlyList<PluginInfo> AllPlugins = Plugins.ReadPluginsFromDirectory(new DirectoryReference(PluginsRootDirectory), UEProjectName.Length == 0 ? PluginType.Engine : PluginType.Project);
 
 			// Add a batch for each plugin that meets our criteria
 			foreach (var PluginInfo in AllPlugins)

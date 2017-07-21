@@ -67,7 +67,7 @@ void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionI
 	int32 ChangelistNumber = 10000;
 	FString ProcessName = TEXT("instance_name");
 
-	MessageEndpoint->Publish(new FAutomationWorkerFindWorkers(ChangelistNumber, FApp::GetGameName(), ProcessName, SessionId), EMessageScope::Network);
+	MessageEndpoint->Publish(new FAutomationWorkerFindWorkers(ChangelistNumber, FApp::GetProjectName(), ProcessName, SessionId), EMessageScope::Network);
 
 	// Reset the check test timers
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
@@ -876,7 +876,7 @@ void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPon
 
 void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context)
 {
-	FString ScreenshotIncomingFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
+	FString ScreenshotIncomingFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Incoming/");
 
 	bool bTree = true;
 	FString FileName = ScreenshotIncomingFolder / Message.ScreenShotName;
@@ -903,7 +903,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 
 void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context)
 {
-	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Test"));
+	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Test"));
 	const FString DataFile = Message.DataType / Message.DataPlatform / Message.DataTestName / Message.DataName + TEXT(".json");
 	const FString DataFullPath = TestDataRoot / DataFile;
 
@@ -928,7 +928,7 @@ void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorker
 
 	if ( bIsNew )
 	{
-		FString IncomingTestData = FPaths::GameSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
+		FString IncomingTestData = FPaths::ProjectSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
 		if ( FFileHelper::SaveStringToFile(Message.JsonData, *IncomingTestData) )
 		{
 			//TODO Anything extra to do here?

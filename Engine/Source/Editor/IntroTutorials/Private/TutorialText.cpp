@@ -170,7 +170,7 @@ static void ParseCodeLink(const FString &InternalLink)
 	if (Path.Contains(ProjectSpecifier) == true)
 	{
 		// replace project specifier with path to project
-		Path.ReplaceInline(*ProjectSpecifier, FApp::GetGameName());
+		Path.ReplaceInline(*ProjectSpecifier, FApp::GetProjectName());
 	}
 
 	if (Path.Contains(ProjectPathSpecifier) == true)

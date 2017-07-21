@@ -2242,7 +2242,7 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 	const bool bPlayWorldValid = GEditor->PlayWorld != nullptr;
 	const bool bAnyMenusVisible = (FSlateApplication::IsInitialized() && FSlateApplication::Get().AnyMenusVisible());
 	//const bool bIsInteratcting = false;// FSlateApplication::Get().GetMouseCaptor().IsValid() || GEditor->IsUserInteracting();
-	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
+	const bool bHasGameOrProjectLoaded = FApp::HasProjectName();
 
 	return ( bAutoApplyEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible/* && !bIsInteratcting */&& !GIsDemoMode && bHasGameOrProjectLoaded );
 }
@@ -2252,7 +2252,7 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
  */
 void FStaticLightingSystem::ClearBinaryDumps()
 {
-	IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sLogs/Lighting_%s"), *FPaths::GameDir(), TEXT("Lightmass")), false, true);
+	IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sLogs/Lighting_%s"), *FPaths::ProjectDir(), TEXT("Lightmass")), false, true);
 }
 
 /** Marks all lights used in the calculated lightmap as used in a lightmap, and calls Apply on the texture mapping. */

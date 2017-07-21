@@ -6,6 +6,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
@@ -961,7 +962,7 @@ void ContentBrowserUtils::CopyAssetReferencesToClipboard(const TArray<FAssetData
 		ClipboardText += (*AssetIt).GetExportTextName();
 	}
 
-	FPlatformMisc::ClipboardCopy( *ClipboardText );
+	FPlatformApplicationMisc::ClipboardCopy( *ClipboardText );
 }
 
 void ContentBrowserUtils::CaptureThumbnailFromViewport(FViewport* InViewport, const TArray<FAssetData>& InAssetsToAssign)
@@ -1153,7 +1154,7 @@ ContentBrowserUtils::ECBFolderCategory ContentBrowserUtils::GetFolderCategory( c
 			return ECBFolderCategory::EngineContent;
 		}
 
-		const bool bIsPluginContent = IsPluginFolder(InPath, EPluginLoadedFrom::GameProject);
+		const bool bIsPluginContent = IsPluginFolder(InPath, EPluginLoadedFrom::Project);
 		if(bIsPluginContent)
 		{
 			return ECBFolderCategory::PluginContent;
@@ -1754,7 +1755,7 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 int32 ContentBrowserUtils::GetPackageLengthForCooking(const FString& PackageName, bool IsInternalBuild)
 {
 	// Pad out the game name to the maximum allowed
-	const FString GameName = FApp::GetGameName();
+	const FString GameName = FApp::GetProjectName();
 	FString GameNamePadded = GameName;
 	while (GameNamePadded.Len() < MaxGameNameLen)
 	{
@@ -1763,7 +1764,7 @@ int32 ContentBrowserUtils::GetPackageLengthForCooking(const FString& PackageName
 
 	// We use "WindowsNoEditor" below as it's the longest platform name, so will also prove that any shorter platform names will validate correctly
 	const FString AbsoluteRootPath = FPaths::ConvertRelativePathToFull(FPaths::RootDir());
-	const FString AbsoluteGamePath = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+	const FString AbsoluteGamePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	const FString AbsoluteCookPath = AbsoluteGamePath / TEXT("Saved") / TEXT("Cooked") / TEXT("WindowsNoEditor") / GameName;
 
 	const FString RelativePathToAsset = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());

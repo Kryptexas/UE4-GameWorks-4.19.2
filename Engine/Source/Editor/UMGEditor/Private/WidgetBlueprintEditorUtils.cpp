@@ -10,6 +10,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "MovieScene.h"
 #include "WidgetBlueprint.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if WITH_EDITOR
 	#include "Exporters/Exporter.h"
@@ -914,7 +915,7 @@ void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidget
 
 	FString ExportedText;
 	FWidgetBlueprintEditorUtils::ExportWidgetsToText(FinalWidgets, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TArray<UWidget*> WidgetsToExport, /*out*/ FString& ExportedText)
@@ -969,7 +970,7 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(TSharedRef<FWidgetBlueprintEditor
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	// Import the nodes
 	TSet<UWidget*> PastedWidgets;

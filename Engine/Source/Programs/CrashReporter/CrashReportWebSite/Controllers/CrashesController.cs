@@ -16,7 +16,6 @@ using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
 using Tools.CrashReporter.CrashReportWebSite.ViewModels;
-using Tools.DotNETCommon.XmlHandler;
 using Tools.CrashReporter.CrashReportCommon;
 using System.Data.SqlClient;
 using System.Runtime.Caching;
@@ -584,8 +583,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     case "Ensure":
                         results = results.Where(CrashInstance => CrashInstance.CrashType == 3);
                         break;
+                    case "GPUCrash":
+                        results = results.Where(CrashInstance => CrashInstance.CrashType == 4);
+                        break;
                     case "CrashesAsserts":
-                        results = results.Where(CrashInstance => CrashInstance.CrashType == 1 || CrashInstance.CrashType == 2);
+                        results = results.Where(CrashInstance => CrashInstance.CrashType == 1 || CrashInstance.CrashType == 2 || CrashInstance.CrashType == 4);
                         break;
                 }
             }
@@ -828,7 +830,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        {
 	            switch (description.CrashType.ToLower())
 	            {
-	                case "Crash":
+	                case "crash":
 	                    newCrash.CrashType = 1;
 	                    break;
 	                case "assert":
@@ -836,7 +838,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                    break;
 	                case "ensure":
 	                    newCrash.CrashType = 3;
-	                    break;
+                        break;
+                    case "gpucrash":
+                        newCrash.CrashType = 4;
+                        break;
 	                case "":
 	                case null:
 	                default:

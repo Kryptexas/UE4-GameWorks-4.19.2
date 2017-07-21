@@ -21,7 +21,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMobilePatchingUtils, Log, All);
 
 static FString GetStagingDir()
 {
-	return FPaths::GamePersistentDownloadDir() / TEXT("PatchStaging");
+	return FPaths::ProjectPersistentDownloadDir() / TEXT("PatchStaging");
 }
 
 static IBuildPatchServicesModule* GetBuildPatchServices()
@@ -294,7 +294,7 @@ static IBuildManifestPtr GetInstalledManifest(const FString& InstallDirectory)
 {
 	IBuildManifestPtr InstalledManifest;
 	
-	FString FullInstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+	FString FullInstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 	TArray<FString> InstalledManifestNames;
 	IFileManager::Get().FindFiles(InstalledManifestNames, *(FullInstallDir / TEXT("*.manifest")), true, false);
 
@@ -316,7 +316,7 @@ UMobileInstalledContent* UMobilePatchingLibrary::GetInstalledContent(const FStri
 	if (InstalledManifest.IsValid())
 	{
 		InstalledContent = NewObject<UMobileInstalledContent>();
-		InstalledContent->InstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+		InstalledContent->InstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 		InstalledContent->InstalledManifest = InstalledManifest;
 	}
 	
@@ -355,7 +355,7 @@ void UMobilePatchingLibrary::RequestContent(const FString& RemoteManifestURL, co
 	}
 		
 	UMobilePendingContent* MobilePendingContent = NewObject<UMobilePendingContent>();
-	MobilePendingContent->InstallDir = FPaths::GamePersistentDownloadDir() / InstallDirectory;
+	MobilePendingContent->InstallDir = FPaths::ProjectPersistentDownloadDir() / InstallDirectory;
 	MobilePendingContent->RemoteManifestURL = RemoteManifestURL;
 	MobilePendingContent->CloudURL = CloudURL;
 	MobilePendingContent->InstalledManifest = GetInstalledManifest(InstallDirectory);

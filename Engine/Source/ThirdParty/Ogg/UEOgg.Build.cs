@@ -8,7 +8,7 @@ public class UEOgg : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string OggPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Ogg/libogg-1.2.2/";
+		string OggPath = Target.UEThirdPartySourceDirectory + "Ogg/libogg-1.2.2/";
 
 		PublicSystemIncludePaths.Add(OggPath + "include");
 
@@ -16,25 +16,25 @@ public class UEOgg : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			OggLibPath += "Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			OggLibPath += "Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add( OggLibPath );
 
 			PublicAdditionalLibraries.Add("libogg_64.lib");
 
 			PublicDelayLoadDLLs.Add("libogg_64.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Ogg/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libogg_64.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Ogg/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libogg_64.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 )
 		{
-			OggLibPath += "Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			OggLibPath += "Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add( OggLibPath );
 
 			PublicAdditionalLibraries.Add("libogg.lib");
 
 			PublicDelayLoadDLLs.Add("libogg.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Ogg/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libogg.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Ogg/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libogg.dll"));
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
         {
@@ -49,7 +49,7 @@ public class UEOgg : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             string OpimizationSuffix = "";
-            if (UEBuildConfiguration.bCompileForSize)
+            if (Target.bCompileForSize)
             {
                 OpimizationSuffix = "_Oz";
             }

@@ -496,29 +496,7 @@ enum EObjectFlags
 #define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_DuplicateTransient | RF_NonPIEDuplicateTransient)) // Flags to load from Unrealfiles.
 #define RF_PropagateToSubObjects	((EObjectFlags)(RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient))		// Sub-objects will inherit these flags from their SuperObject.
 
-FORCEINLINE EObjectFlags operator|(EObjectFlags Arg1,EObjectFlags Arg2)
-{
-	return EObjectFlags(uint32(Arg1) | uint32(Arg2));
-}
-
-FORCEINLINE EObjectFlags operator&(EObjectFlags Arg1,EObjectFlags Arg2)
-{
-	return EObjectFlags(uint32(Arg1) & uint32(Arg2));
-}
-
-FORCEINLINE EObjectFlags operator~(EObjectFlags Arg)
-{
-	return EObjectFlags(RF_AllFlags & ~uint32(Arg));
-}
-
-FORCEINLINE void operator&=(EObjectFlags& Dest,EObjectFlags Arg)
-{
-	Dest = EObjectFlags(Dest & Arg);
-}
-FORCEINLINE void operator|=(EObjectFlags& Dest,EObjectFlags Arg)
-{
-	Dest = EObjectFlags(Dest | Arg);
-}
+ENUM_CLASS_FLAGS(EObjectFlags)
 
 //@}
 

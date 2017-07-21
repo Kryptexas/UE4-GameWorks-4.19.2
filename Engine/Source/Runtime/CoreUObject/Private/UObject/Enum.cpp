@@ -288,14 +288,14 @@ FString UEnum::GenerateEnumPrefix() const
 	FString Prefix;
 	if (Names.Num() > 0)
 	{
-		Prefix = Names[0].Key.ToString();
+		Names[0].Key.ToString(Prefix);
 
 		// For each item in the enumeration, trim the prefix as much as necessary to keep it a prefix.
 		// This ensures that once all items have been processed, a common prefix will have been constructed.
 		// This will be the longest common prefix since as little as possible is trimmed at each step.
 		for (int32 NameIdx = 1; NameIdx < Names.Num(); NameIdx++)
 		{
-			FString EnumItemName = *Names[NameIdx].Key.ToString();
+			FString EnumItemName = Names[NameIdx].Key.ToString();
 
 			// Find the length of the longest common prefix of Prefix and EnumItemName.
 			int32 PrefixIdx = 0;

@@ -487,7 +487,7 @@ bool FPerforceConnection::GetWorkspaceList(const FPerforceConnectionInfo& InConn
 
 		if (bCommandOK)
 		{
-			FString ApplicationPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::GameDir()).ToLower();
+			FString ApplicationPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::ProjectDir()).ToLower();
 
 			FString LocalHostName = InConnectionInfo.HostOverride;
 			if(LocalHostName.Len() == 0)

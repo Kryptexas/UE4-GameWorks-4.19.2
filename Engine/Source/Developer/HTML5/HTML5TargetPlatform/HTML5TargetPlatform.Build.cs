@@ -21,7 +21,7 @@ public class HTML5TargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("Engine");
 //			PrivateIncludePathModuleNames.Add("TextureCompressor");

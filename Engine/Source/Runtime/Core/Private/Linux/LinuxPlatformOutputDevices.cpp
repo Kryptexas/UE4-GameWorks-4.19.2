@@ -16,6 +16,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
 #include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformApplicationMisc.h"
 #include "Linux/LinuxPlatformOutputDevicesPrivate.h"
 #include "Linux/LinuxPlatformFeedbackContextPrivate.h"
 
@@ -166,7 +167,7 @@ void FOutputDeviceLinuxError::HandleError()
 		// do not copy if graphics have not been initialized or if we're on the wrong thread
 		if (FApp::CanEverRender() && IsInGameThread())
 		{
-			FPlatformMisc::ClipboardCopy(GErrorHist);
+			FPlatformApplicationMisc::ClipboardCopy(GErrorHist);
 		}
 
 		FPlatformMisc::SubmitErrorReport(GErrorHist, EErrorReportMode::Interactive);

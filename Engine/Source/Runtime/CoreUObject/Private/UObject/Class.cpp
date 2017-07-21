@@ -111,19 +111,11 @@ void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDEC
 	Class->AddNativeFunction(InName, InPointer);
 }
 
-void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<ANSICHAR>* InArray, int32 NumFunctions)
+void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const FNameNativePtrPair* InArray, int32 NumFunctions)
 {
 	for (; NumFunctions; ++InArray, --NumFunctions)
 	{
-		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
-	}
-}
-
-void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<WIDECHAR>* InArray, int32 NumFunctions)
-{
-	for (; NumFunctions; ++InArray, --NumFunctions)
-	{
-		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
+		Class->AddNativeFunction(UTF8_TO_TCHAR(InArray->NameUTF8), InArray->Pointer);
 	}
 }
 
@@ -2471,7 +2463,7 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 -----------------------------------------------------------------------------*/
 
 /** Default C++ class type information, used for all new UClass objects. */
-static TCppClassTypeInfo<FCppClassTypeTraitsBase> DefaultCppClassTypeInfo;
+static const FCppClassTypeInfoStatic DefaultCppClassTypeInfoStatic = { false };
 
 void UClass::PostInitProperties()
 {
@@ -3597,7 +3589,7 @@ void UClass::Serialize( FArchive& Ar )
 		{
 			Ar << ClassDefaultObject;
 		}
-		else if( !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate) || ClassDefaultObject != nullptr )
+		else if( (ClassDefaultObject != nullptr && !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate)) || ClassDefaultObject != nullptr )
 		{
 			ClassDefaultObject->Serialize(Ar);
 		}
@@ -3800,9 +3792,10 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
 ,	ClassDefaultObject(nullptr)
-,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
+
+	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
 }
 
 /**
@@ -3817,9 +3810,10 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 ,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
 ,	ClassDefaultObject(nullptr)
-,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
+
+	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
 
 	UClass* ParentClass = GetSuperClass();
 	if (ParentClass)
@@ -3870,9 +3864,10 @@ UClass::UClass
 ,	bCooked					( false )
 ,	NetFields				()
 ,	ClassDefaultObject		( nullptr )
-,	CppTypeInfo				( &DefaultCppClassTypeInfo )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
+
+	CppTypeInfo.Emplace(&DefaultCppClassTypeInfoStatic);
 
 	// We store the pointer to the ConfigName in an FName temporarily, this cast is intentional
 	// as we expect the mis-typed data to get picked up in UClass::DeferredRegister. PVS-Studio
@@ -4059,6 +4054,20 @@ void UClass::AddNativeFunction(const WIDECHAR* InName, Native InPointer)
 	}
 #endif
 	new(NativeFunctionLookupTable)FNativeFunctionLookup(InFName, InPointer);
+}
+
+void UClass::CreateLinkAndAddChildFunctionsToMap(const FClassFunctionLinkInfo* Functions, uint32 NumFunctions)
+{
+	for (; NumFunctions; --NumFunctions, ++Functions)
+	{
+		const char* FuncNameUTF8 = Functions->FuncNameUTF8;
+		UFunction*  Func         = Functions->CreateFuncPtr();
+
+		Func->Next = Children;
+		Children = Func;
+
+		AddFunctionToFunctionMap(Func, FName(UTF8_TO_TCHAR(FuncNameUTF8)));
+	}
 }
 
 UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper) const
@@ -4390,10 +4399,9 @@ void GetPrivateStaticClassBody(
 	UFunction.
 -----------------------------------------------------------------------------*/
 
-UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
+UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, SIZE_T ParamsSize )
 : UStruct( ObjectInitializer, InSuperFunction, ParamsSize )
 , FunctionFlags(InFunctionFlags)
-, RepOffset(InRepOffset)
 , RPCId(0)
 , RPCResponseId(0)
 , FirstPropertyToInit(nullptr)
@@ -4404,10 +4412,9 @@ UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InS
 {
 }
 
-UFunction::UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UFunction::UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, SIZE_T ParamsSize)
 	: UStruct(InSuperFunction, ParamsSize)
 	, FunctionFlags(InFunctionFlags)
-	, RepOffset(InRepOffset)
 	, RPCId(0)
 	, RPCResponseId(0)
 	, FirstPropertyToInit(NULL)
@@ -4478,6 +4485,8 @@ void UFunction::Serialize( FArchive& Ar )
 	// Replication info.
 	if (FunctionFlags & FUNC_Net)
 	{
+		// Unused
+		int16 RepOffset = 0;
 		Ar << RepOffset;
 	}
 
@@ -4822,14 +4831,14 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	}
 );
 
-UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
-	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
+UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, SIZE_T ParamsSize)
+	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, ParamsSize)
 {
 
 }
 
-UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
-	: UFunction(InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
+UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, SIZE_T ParamsSize)
+	: UFunction(InSuperFunction, InFunctionFlags, ParamsSize)
 {
 
 }

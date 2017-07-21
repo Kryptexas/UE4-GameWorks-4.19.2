@@ -3,6 +3,7 @@
 #include "InputCoreTypes.h"
 #include "UObject/UnrealType.h"
 #include "UObject/PropertyPortFlags.h"
+#include "PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY(LogInput);
 
@@ -1096,8 +1097,8 @@ void FInputKeyManager::InitKeyMappings()
 	uint32 KeyCodes[MAX_KEY_MAPPINGS], CharCodes[MAX_KEY_MAPPINGS];
 	FString KeyNames[MAX_KEY_MAPPINGS], CharKeyNames[MAX_KEY_MAPPINGS];
 
-	uint32 const CharKeyMapSize(FPlatformMisc::GetCharKeyMap(CharCodes, CharKeyNames, MAX_KEY_MAPPINGS));
-	uint32 const KeyMapSize(FPlatformMisc::GetKeyMap(KeyCodes, KeyNames, MAX_KEY_MAPPINGS));
+	uint32 const CharKeyMapSize(FPlatformApplicationMisc::GetCharKeyMap(CharCodes, CharKeyNames, MAX_KEY_MAPPINGS));
+	uint32 const KeyMapSize(FPlatformApplicationMisc::GetKeyMap(KeyCodes, KeyNames, MAX_KEY_MAPPINGS));
 
 	for (uint32 Idx=0; Idx<KeyMapSize; ++Idx)
 	{

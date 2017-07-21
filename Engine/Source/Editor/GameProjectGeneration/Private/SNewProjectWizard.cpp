@@ -1165,12 +1165,13 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 	TemplateRootFolders.Add( FPaths::RootDir() + TEXT("Templates") );
 
 	// allow plugins to define templates
-	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
-	for (const auto& PluginStatus : PluginStatuses)
+	TArray<TSharedRef<IPlugin>> Plugins = IPluginManager::Get().GetEnabledPlugins();
+	for (const TSharedRef<IPlugin>& Plugin : Plugins)
 	{
-		if (PluginStatus.bIsEnabled && !PluginStatus.PluginDirectory.IsEmpty())
+		FString PluginDirectory = Plugin->GetBaseDir();
+		if (!PluginDirectory.IsEmpty())
 		{
-			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginStatus.PluginDirectory, TEXT("Templates"));
+			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginDirectory, TEXT("Templates"));
 
 			if (IFileManager::Get().DirectoryExists(*PluginTemplatesDirectory))
 			{
@@ -1212,7 +1213,7 @@ TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& SNewProjectWizard::FindTemplate
 					if( TemplateDefs->bAllowProjectCreation == false )
 						continue;
 					// Found a template. Add it to the template items list.
-					const FString ProjectFilename = Root / FoundProjectFiles[0];
+					FString ProjectFilename = Root / FoundProjectFiles[0];
 					FText TemplateName = TemplateDefs->GetDisplayNameText();
 					FText TemplateDescription = TemplateDefs->GetLocalizedDescription();
 					FString ClassTypes = TemplateDefs->ClassTypes;
@@ -1550,7 +1551,7 @@ bool SNewProjectWizard::OpenCodeIDE( const FString& ProjectFile )
 
 void SNewProjectWizard::CloseWindowIfAppropriate( bool ForceClose )
 {
-	if ( ForceClose || FApp::HasGameName() )
+	if ( ForceClose || FApp::HasProjectName() )
 	{
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> ContainingWindow = FSlateApplication::Get().FindWidgetWindow( AsShared(), WidgetPath);

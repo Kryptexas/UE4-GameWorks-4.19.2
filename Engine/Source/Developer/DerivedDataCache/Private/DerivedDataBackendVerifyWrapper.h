@@ -95,9 +95,9 @@ public:
 				if (OutData != InData)
 				{
 					UE_LOG(LogDerivedDataCache, Error, TEXT("Verify: Cached data differs from newly generated data %s."), CacheKey);
-					FString Cache = FPaths::GameSavedDir() / TEXT("VerifyDDC") / CacheKey + TEXT(".fromcache");
+					FString Cache = FPaths::ProjectSavedDir() / TEXT("VerifyDDC") / CacheKey + TEXT(".fromcache");
 					FFileHelper::SaveArrayToFile(OutData, *Cache);
-					FString Verify = FPaths::GameSavedDir() / TEXT("VerifyDDC") / CacheKey + TEXT(".verify");;
+					FString Verify = FPaths::ProjectSavedDir() / TEXT("VerifyDDC") / CacheKey + TEXT(".verify");;
 					FFileHelper::SaveArrayToFile(InData, *Verify);
 					if (bFixProblems)
 					{

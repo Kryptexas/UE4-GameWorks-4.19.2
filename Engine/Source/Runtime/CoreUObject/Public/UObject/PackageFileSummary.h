@@ -169,11 +169,6 @@ public:
 	uint32	PackageSource;
 
 	/**
-	* Array of compressed chunks in case this package was stored compressed.
-	*/
-	TArray<FCompressedChunk> CompressedChunks;
-
-	/**
 	* If true, this file will not be saved with version numbers or was saved without version numbers. In this case they are assumed to be the current version.
 	* This is only used for full cooks for distribution because it is hard to guarantee correctness
 	**/

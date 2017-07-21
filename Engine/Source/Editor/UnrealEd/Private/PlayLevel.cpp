@@ -1281,7 +1281,7 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 		return;
 	}
 
-	const FString PlayOnConsolePackageName = FPackageName::FilenameToLongPackageName(FPaths::Combine(*FPaths::GameSavedDir(), *PlayOnConsoleSaveDir)) + TEXT("/");
+	const FString PlayOnConsolePackageName = FPackageName::FilenameToLongPackageName(FPaths::Combine(*FPaths::ProjectSavedDir(), *PlayOnConsoleSaveDir)) + TEXT("/");
 
 	// make a per-platform name for the map
 	const FString ConsoleName = FString(TEXT("PC"));
@@ -1414,7 +1414,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 	else
 	{
-		GameNameOrProjectFile = FApp::GetGameName();
+		GameNameOrProjectFile = FApp::GetProjectName();
 	}
 
 	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
@@ -1637,7 +1637,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	}
 	else if (InStage.Contains(TEXT("Run Task")))
 	{
-		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetGameName()));
+		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetProjectName()));
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
 		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
@@ -2232,7 +2232,7 @@ bool UEditorEngine::SavePlayWorldPackages(UWorld* InWorld, const TCHAR* Prefix, 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
 	// Save temporary copies of all levels to be used for playing in editor or using standalone PC/console
-	return FEditorFileUtils::SaveWorlds(InWorld, FPaths::Combine(*FPaths::GameSavedDir(), *PlayOnConsoleSaveDir), Prefix, OutSavedFilenames);
+	return FEditorFileUtils::SaveWorlds(InWorld, FPaths::Combine(*FPaths::ProjectSavedDir(), *PlayOnConsoleSaveDir), Prefix, OutSavedFilenames);
 }
 
 
@@ -3097,7 +3097,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("GameName"), FText::FromString( FString( WindowTitleOverride.IsEmpty() ? FApp::GetGameName() : WindowTitleOverride.ToString() ) ) );
+	Args.Add( TEXT("GameName"), FText::FromString( FString( WindowTitleOverride.IsEmpty() ? FApp::GetProjectName() : WindowTitleOverride.ToString() ) ) );
 	Args.Add( TEXT("PlatformBits"), FText::FromString( PlatformBitsString ) );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ) );
 

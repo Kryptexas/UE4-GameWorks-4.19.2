@@ -7,16 +7,16 @@ public class HACD : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string HACDDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "HACD/HACD_1.0/";
+		string HACDDirectory = Target.UEThirdPartySourceDirectory + "HACD/HACD_1.0/";
 		string HACDLibPath = HACDDirectory;
 		PublicIncludePaths.Add(HACDDirectory + "public");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			HACDLibPath = HACDLibPath + "lib/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			HACDLibPath = HACDLibPath + "lib/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(HACDLibPath);
 
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add("HACDd_64.lib");
             }
@@ -27,10 +27,10 @@ public class HACD : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			HACDLibPath = HACDLibPath + "lib/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			HACDLibPath = HACDLibPath + "lib/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(HACDLibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add("HACDd.lib");
 			}
@@ -42,7 +42,7 @@ public class HACD : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string LibPath = HACDDirectory + "lib/Mac/";
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add(LibPath + "libhacd_debug.a");
 			}

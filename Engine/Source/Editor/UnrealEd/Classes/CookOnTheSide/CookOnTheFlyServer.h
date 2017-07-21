@@ -330,7 +330,7 @@ private:
 			check(PlatformNames.Num() == bSucceededSavePackage.Num());
 		}
 		FFilePlatformCookedPackage(const FName& InFilename, const TArray<FName>& InPlatformName, const TArray<bool>& bInSuccededSavePackage) : FFilePlatformRequest(InFilename, InPlatformName), bSucceededSavePackage(bInSuccededSavePackage) { check(PlatformNames.Num() == bSucceededSavePackage.Num()); }
-		FFilePlatformCookedPackage(const FName& InFilename, TArray<FName>&& InPlatformName, const TArray<bool>&& bInSuccededSavePackage) : FFilePlatformRequest(InFilename, MoveTemp(InPlatformName)), bSucceededSavePackage(MoveTemp(bInSuccededSavePackage)) { check(PlatformNames.Num() == bSucceededSavePackage.Num()); }
+		FFilePlatformCookedPackage(const FName& InFilename, TArray<FName>&& InPlatformName, TArray<bool>&& bInSuccededSavePackage) : FFilePlatformRequest(InFilename, MoveTemp(InPlatformName)), bSucceededSavePackage(MoveTemp(bInSuccededSavePackage)) { check(PlatformNames.Num() == bSucceededSavePackage.Num()); }
 		FFilePlatformCookedPackage(const FFilePlatformCookedPackage& InFilePlatformRequest) : FFilePlatformRequest(InFilePlatformRequest.Filename, InFilePlatformRequest.PlatformNames), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { check(PlatformNames.Num() == bSucceededSavePackage.Num());  }
 		FFilePlatformCookedPackage(FFilePlatformCookedPackage&& InFilePlatformRequest) : FFilePlatformRequest(MoveTemp(InFilePlatformRequest.Filename), MoveTemp(InFilePlatformRequest.PlatformNames)), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { check(PlatformNames.Num() == bSucceededSavePackage.Num()); }
 
@@ -605,7 +605,7 @@ private:
 				Queue.RemoveAt(0);
 				TArray<FName> Platforms = PlatformList.FindChecked(Filename);
 				PlatformList.Remove(Filename);
-				*Result = MoveTemp(FFilePlatformRequest(MoveTemp(Filename), MoveTemp(Platforms)));
+				*Result = FFilePlatformRequest(MoveTemp(Filename), MoveTemp(Platforms));
 				return true;
 			}
 			return false;
@@ -973,7 +973,7 @@ private:
 
 	/** Map of platform name to asset registry generators, which hold the state of asset registry data for a platform */
 	TMap<FName, FAssetRegistryGenerator*> RegistryGenerators;
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	// iterative ini settings checking
 	// growing list of ini settings which are accessed over the course of the cook
@@ -1426,6 +1426,7 @@ private:
 	 */
 	FString HandleNetworkGetSandboxPath();
 
+	void GetCookOnTheFlyUnsolicitedFiles( const FName& PlatformName, TArray<FString>& UnsolicitedFiles );
 
 	/**
 	 * HandleNetworkGetPrecookedList 
@@ -1616,11 +1617,11 @@ private:
 	}
 
 	/**
-	* GetDLCContentPath
+	* GetBaseDirectoryForDLC
 	* 
-	* @return return the path to the source dlc content
+	* @return return the path to the DLC
 	*/
-	FString GetDLCContentPath();
+	FString GetBaseDirectoryForDLC() const;
 
 	inline bool IsCreatingReleaseVersion()
 	{

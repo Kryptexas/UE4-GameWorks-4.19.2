@@ -278,7 +278,7 @@ const FString FProjectDescriptor::MakePathRelativeToProject(const FString& Dir, 
 
 void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
 {
-	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir())));
+	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::ProjectPluginsDir())));
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
 
 	// Detect calls where the path is not absolute

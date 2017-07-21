@@ -4,7 +4,6 @@
 #include "ParserHelper.h"
 #include "UnrealHeaderTool.h"
 #include "Misc/DefaultValueHelper.h"
-#include "UHTMakefile/UHTMakefile.h"
 
 /////////////////////////////////////////////////////
 // FClassMetaData
@@ -82,16 +81,14 @@ FTokenData* FClassMetaData::FindTokenData( UProperty* Prop )
 	return Result;
 }
 
-void FClassMetaData::AddInheritanceParent(const FString& InParent, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+void FClassMetaData::AddInheritanceParent(const FString& InParent, FUnrealSourceFile* UnrealSourceFile)
 {
 	MultipleInheritanceParents.Add(new FMultipleInheritanceBaseClass(InParent));
-	UHTMakefile.AddMultipleInheritanceBaseClass(UnrealSourceFile, MultipleInheritanceParents.Last());
 }
 
-void FClassMetaData::AddInheritanceParent(UClass* ImplementedInterfaceClass, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+void FClassMetaData::AddInheritanceParent(UClass* ImplementedInterfaceClass, FUnrealSourceFile* UnrealSourceFile)
 {
 	MultipleInheritanceParents.Add(new FMultipleInheritanceBaseClass(ImplementedInterfaceClass));
-	UHTMakefile.AddMultipleInheritanceBaseClass(UnrealSourceFile, MultipleInheritanceParents.Last());
 }
 
 /////////////////////////////////////////////////////
@@ -253,22 +250,18 @@ bool FFunctionData::TryFindForFunction(UFunction* Function, FFunctionData*& OutD
 	return true;
 }
 
-FClassMetaData* FCompilerMetadataManager::AddClassData(UStruct* Struct, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+FClassMetaData* FCompilerMetadataManager::AddClassData(UStruct* Struct, FUnrealSourceFile* UnrealSourceFile)
 {
 	TUniquePtr<FClassMetaData>* pClassData = Find(Struct);
 	if (pClassData == NULL)
 	{
 		pClassData = &Emplace(Struct, new FClassMetaData());
-		if (UnrealSourceFile)
-		{
-			UHTMakefile.AddClassMetaData(UnrealSourceFile, MakeUnique<FClassMetaData>(*pClassData->Get()));
-		}
 	}
 
 	return pClassData->Get();
 }
 
-FTokenData* FPropertyData::Set(UProperty* InKey, const FTokenData& InValue, FUHTMakefile& UHTMakefile, FUnrealSourceFile* UnrealSourceFile)
+FTokenData* FPropertyData::Set(UProperty* InKey, const FTokenData& InValue, FUnrealSourceFile* UnrealSourceFile)
 {
 	FTokenData* Result = NULL;
 
@@ -282,7 +275,6 @@ FTokenData* FPropertyData::Set(UProperty* InKey, const FTokenData& InValue, FUHT
 	{
 		pResult = &Super::Emplace(InKey, new FTokenData(InValue));
 		Result = pResult->Get();
-		UHTMakefile.AddPropertyDataEntry(UnrealSourceFile, *pResult, InKey);
 	}
 
 	return Result;
@@ -307,12 +299,10 @@ const TCHAR* FNameLookupCPP::GetNameCPP(UStruct* Struct, bool bForceInterface /*
 	if (bForceInterface)
 	{
 		InterfaceAllocations.Add(NameCPP);
-		UHTMakefile->AddInterfaceAllocation(UnrealSourceFile, NameCPP);
 	}
 	else
 	{
 		StructNameMap.Add(Struct, NameCPP);
-		UHTMakefile->AddStructNameMapEntry(UnrealSourceFile, Struct, NameCPP);
 	}
 
 	return NameCPP;

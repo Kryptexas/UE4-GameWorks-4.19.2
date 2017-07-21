@@ -12,10 +12,10 @@ namespace AutomationTool
 	#region LogUtils
 
 
-    //@todo: This class should be moved somewhere else or the file should be renamed LogUtils.cs
+	//@todo: This class should be moved somewhere else or the file should be renamed LogUtils.cs
 	public class LogUtils
 	{
-        private static string LogFilename;
+		private static string LogFilename;
 
 		/// <summary>
 		/// Initializes trace logging.
@@ -34,7 +34,7 @@ namespace AutomationTool
 				InLogLevel: (UnrealBuildTool.LogEventType)Enum.Parse(typeof(UnrealBuildTool.LogEventType), CommandUtils.ParseParamValue(CommandLine, "-Verbose=", "Log")),
                 bLogSeverity: true,
                 bLogSources: true,
-				bLogSourcesToConsole: true,
+				bLogSourcesToConsole: false,
                 bColorConsoleOutput: true,
                 TraceListeners: new TraceListener[]
                 {
@@ -44,7 +44,24 @@ namespace AutomationTool
                     //@todo - this is only used by GUBP nodes. Ideally we don't waste this 20MB if we are not running GUBP.
                     new AutomationMemoryLogListener(),
                 });
-        }
+	    }
+
+		public static string FinalLogFileName
+		{
+			get
+			{
+				var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
+				if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
+						!String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
+				{
+					return CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
+				}
+				else
+				{
+					return LogFilename;
+				}
+			}
+		}
 
         /// <summary>
         /// Shuts down logging. This is a nothrow function as shutdown errors are ignored.
@@ -57,14 +74,12 @@ namespace AutomationTool
                 // This closes all the output streams immediately, inside the Global Lock, so it's threadsafe.
                 Trace.Close();
 
-                // Try to copy the log file to the log folder. The reason why it's done here is that
-                // at the time the log file is being initialized the env var may not yet be set (this 
-                // applies to local log folder in particular)
-                var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
-                if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
-                        !String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
-                {
-                    var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
+				// Try to copy the log file to the log folder. The reason why it's done here is that
+				// at the time the log file is being initialized the env var may not yet be set (this 
+				// applies to local log folder in particular)
+				string DestFilename = FinalLogFileName;
+				if(DestFilename != LogFilename)
+				{
                     SafeCopyLogFile(LogFilename, DestFilename);
                 }
             }

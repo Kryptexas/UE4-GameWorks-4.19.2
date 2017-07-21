@@ -2154,7 +2154,7 @@ void UAssetToolsImpl::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedP
 			}
 			else
 			{
-				const FString DestFilename = SrcFilename.Replace(*FPaths::GameContentDir(), *DestinationFolder);
+				const FString DestFilename = SrcFilename.Replace(*FPaths::ProjectContentDir(), *DestinationFolder);
 
 				bool bFileOKToCopy = true;
 				if ( IFileManager::Get().FileSize(*DestFilename) > 0 )

@@ -14,112 +14,109 @@ class ULandscapeMaterialInstanceConstant;
 class UTexture2D;
 
 UENUM()
-namespace ELandscapeToolFlattenMode
+enum class ELandscapeToolFlattenMode : int8
 {
-	enum Type
-	{
-		// Invalid = -1,
+	Invalid = -1,
 
-		/** Flatten may both raise and lower values */
-		Both = 0,
+	/** Flatten may both raise and lower values */
+	Both = 0,
 
-		/** Flatten may only raise values, values above the clicked point will be left unchanged */
-		Raise = 1,
+	/** Flatten may only raise values, values above the clicked point will be left unchanged */
+	Raise = 1,
 
-		/** Flatten may only lower values, values below the clicked point will be left unchanged */
-		Lower = 2,
-	};
-}
+	/** Flatten may only lower values, values below the clicked point will be left unchanged */
+	Lower = 2,
+};
 
 UENUM()
-namespace ELandscapeToolErosionMode
+enum class ELandscapeToolErosionMode : int8
 {
-	enum Type
-	{
-		// Invalid = -1,
+	Invalid = -1,
 
-		/** Apply all erosion effects, both raising and lowering the heightmap */
-		Both = 0,
+	/** Apply all erosion effects, both raising and lowering the heightmap */
+	Both = 0,
 
-		/** Only applies erosion effects that result in raising the heightmap */
-		Raise = 1,
+	/** Only applies erosion effects that result in raising the heightmap */
+	Raise = 1,
 
-		/** Only applies erosion effects that result in lowering the heightmap */
-		Lower = 2,
-	};
-}
+	/** Only applies erosion effects that result in lowering the heightmap */
+	Lower = 2,
+};
 
 UENUM()
-namespace ELandscapeToolHydroErosionMode
+enum class ELandscapeToolHydroErosionMode : int8
 {
-	enum Type
-	{
-		// Invalid = -1,
+	Invalid = -1,
 
-		/** Rains in some places and not others, randomly */
-		Both = 0,
+	/** Rains in some places and not others, randomly */
+	Both = 0,
 
-		/** Rain is applied to the entire area */
-		Positive = 1,
-	};
-}
+	/** Rain is applied to the entire area */
+	Positive = 1,
+};
 
-// Temp
-#if !CPP
 UENUM()
-namespace ELandscapeToolNoiseMode
+enum class ELandscapeToolNoiseMode : int8
 {
-	enum Type
+	Invalid = -1,
+
+	/** Noise will both raise and lower the heightmap */
+	Both = 0,
+
+	/** Noise will only raise the heightmap */
+	Add = 1,
+
+	/** Noise will only lower the heightmap */
+	Sub = 2,
+};
+
+#if CPP
+inline float NoiseModeConversion(ELandscapeToolNoiseMode Mode, float NoiseAmount, float OriginalValue)
+{
+	switch (Mode)
 	{
-		// Invalid = -1,
-
-		/** Noise will both raise and lower the heightmap */
-		Both = 0,
-
-		/** Noise will only raise the heightmap */
-		Raise = 1,
-
-		/** Noise will only lower the heightmap */
-		Lower = 2,
-	};
+	case ELandscapeToolNoiseMode::Add: // always +
+		OriginalValue += NoiseAmount;
+		break;
+	case ELandscapeToolNoiseMode::Sub: // always -
+		OriginalValue -= NoiseAmount;
+		break;
+	case ELandscapeToolNoiseMode::Both:
+		break;
+	}
+	return OriginalValue;
 }
 #endif
 
 UENUM()
-namespace ELandscapeToolPasteMode
+enum class ELandscapeToolPasteMode : int8
 {
-	enum Type
-	{
-		// Invalid = -1,
+	Invalid = -1,
 
-		/** Paste may both raise and lower values */
-		Both = 0,
+	/** Paste may both raise and lower values */
+	Both = 0,
 
-		/** Paste may only raise values, places where the pasted data would be below the heightmap are left unchanged. Good for copy/pasting mountains */
-		Raise = 1,
+	/** Paste may only raise values, places where the pasted data would be below the heightmap are left unchanged. Good for copy/pasting mountains */
+	Raise = 1,
 
-		/** Paste may only lower values, places where the pasted data would be above the heightmap are left unchanged. Good for copy/pasting valleys or pits */
-		Lower = 2,
-	};
-}
+	/** Paste may only lower values, places where the pasted data would be above the heightmap are left unchanged. Good for copy/pasting valleys or pits */
+	Lower = 2,
+};
 
 UENUM()
-namespace ELandscapeConvertMode
+enum class ELandscapeConvertMode : int8
 {
-	enum Type
-	{
-		// Invalid = -1,
+	Invalid = -1,
 
-		/** Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components. */
-		Expand = 0,
+	/** Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components. */
+	Expand = 0,
 
-		/** Given the new component size, the edges of the landscape will be trimmed until its overall size is a whole number of landscape components. */
-		Clip = 1,
+	/** Given the new component size, the edges of the landscape will be trimmed until its overall size is a whole number of landscape components. */
+	Clip = 1,
 
-		/** The landscape will have the same overall size in the world, and have the same number of components. Existing landscape geometry and layer data will be resampled to match the new resolution. */
-		Resample = 2,
-	};
-}
+	/** The landscape will have the same overall size in the world, and have the same number of components. Existing landscape geometry and layer data will be resampled to match the new resolution. */
+	Resample = 2,
+};
 
 UENUM()
 namespace EColorChannel
@@ -169,18 +166,15 @@ struct FGizmoImportLayer
 };
 
 UENUM()
-namespace ELandscapeImportHeightmapError
+enum class ELandscapeImportHeightmapError
 {
-	enum Type
-	{
-		None,
-		FileNotFound,
-		InvalidSize,
-		CorruptFile,
-		ColorPng,
-		LowBitDepth,
-	};
-}
+	None,
+	FileNotFound,
+	InvalidSize,
+	CorruptFile,
+	ColorPng,
+	LowBitDepth,
+};
 
 UENUM()
 enum class ELandscapeImportLayerError : uint8
@@ -268,7 +262,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Whether to flatten by lowering, raising, or both
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(ShowForTools="Flatten"))
-	TEnumAsByte<ELandscapeToolFlattenMode::Type> FlattenMode;
+	ELandscapeToolFlattenMode FlattenMode;
 
 	// Flattens to the angle of the clicked point, instead of horizontal
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(ShowForTools="Flatten", ShowForTargetTypes="Heightmap"))
@@ -338,7 +332,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Whether to erode by lowering, raising, or both
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Noise Mode", ShowForTools="Erosion"))
-	TEnumAsByte<ELandscapeToolErosionMode::Type> ErosionNoiseMode;
+	ELandscapeToolErosionMode ErosionNoiseMode;
 
 	// The size of the perlin noise filter used
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Noise Scale", ShowForTools="Erosion", ClampMin="1", ClampMax="512", UIMin="1.1", UIMax="256"))
@@ -360,7 +354,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Initial Rain Distribution
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Initial Rain Distribution", ShowForTools="HydraErosion"))
-	TEnumAsByte<ELandscapeToolHydroErosionMode::Type> RainDistMode;
+	ELandscapeToolHydroErosionMode RainDistMode;
 
 	// The size of the noise filter for applying initial rain to the surface
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(ShowForTools="HydraErosion", ClampMin="1", ClampMax="512", UIMin="1.1", UIMax="256"))
@@ -378,7 +372,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Whether to apply noise that raises, lowers, or both
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Noise Mode", ShowForTools="Noise"))
-	TEnumAsByte<ELandscapeToolNoiseMode::Type> NoiseMode;
+	ELandscapeToolNoiseMode NoiseMode;
 
 	// The size of the perlin noise filter used
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Noise Scale", ShowForTools="Noise", ClampMin="1", ClampMax="512", UIMin="1.1", UIMax="256"))
@@ -399,7 +393,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Whether to paste will only raise, only lower, or both
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(ShowForTools="CopyPaste"))
-	TEnumAsByte<ELandscapeToolPasteMode::Type> PasteMode;
+	ELandscapeToolPasteMode PasteMode;
 
 	// If set, copies/pastes all layers, otherwise only copy/pastes the layer selected in the targets panel
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Gizmo copy/paste all layers", ShowForTools="CopyPaste"))
@@ -454,7 +448,7 @@ class ULandscapeEditorObject : public UObject
 
 	// Determines how the new component size will be applied to the existing landscape geometry.
 	UPROPERTY(Category="Change Component Size", EditAnywhere, NonTransactional, meta=(DisplayName="Resize Mode", ShowForTools="ResizeLandscape"))
-	TEnumAsByte<ELandscapeConvertMode::Type> ResizeLandscape_ConvertMode;
+	ELandscapeConvertMode ResizeLandscape_ConvertMode;
 
 	int32 ResizeLandscape_Original_QuadsPerSection;
 	int32 ResizeLandscape_Original_SectionsPerComponent;
@@ -608,7 +602,7 @@ public:
 	void SetbUseNegativeMask(bool InbUseNegativeMask);
 
 	// Copy/Paste
-	void SetPasteMode(ELandscapeToolPasteMode::Type InPasteMode);
+	void SetPasteMode(ELandscapeToolPasteMode InPasteMode);
 	void GuessGizmoImportSize();
 
 	// Alpha/Pattern Brush

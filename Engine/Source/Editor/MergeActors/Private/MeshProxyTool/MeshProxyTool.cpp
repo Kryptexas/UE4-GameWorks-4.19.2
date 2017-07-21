@@ -68,7 +68,7 @@ FString FMeshProxyTool::GetDefaultPackageName() const
 
 	if (PackageName.IsEmpty())
 	{
-		PackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("PROXY"));
+		PackageName = FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir() + TEXT("PROXY"));
 		PackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *PackageName).ToString();
 	}
 

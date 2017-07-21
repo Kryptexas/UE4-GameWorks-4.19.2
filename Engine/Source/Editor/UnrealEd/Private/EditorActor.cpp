@@ -59,6 +59,7 @@
 #include "Engine/LODActor.h"
 #include "Settings/LevelEditorMiscSettings.h"
 #include "ActorGroupingUtils.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -187,7 +188,7 @@ void UUnrealEdEngine::edactCopySelected( UWorld* InWorld, FString* DestinationDa
 		FStringOutputDevice Ar;
 		const FSelectedActorExportObjectInnerContext Context;
 		UExporter::ExportToOutputDevice(&Context, InWorld, NULL, Ar, TEXT("copy"), 0, PPF_DeepCompareInstances | PPF_ExportsNotFullyQualified);
-		FPlatformMisc::ClipboardCopy(*Ar);
+		FPlatformApplicationMisc::ClipboardCopy(*Ar);
 		if (DestinationData)
 		{
 			*DestinationData = MoveTemp(Ar);
@@ -333,7 +334,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 		}
 		else
 		{
-			FPlatformMisc::ClipboardPaste(PasteString);
+			FPlatformApplicationMisc::ClipboardPaste(PasteString);
 		}
 		const TCHAR* Paste = *PasteString;
 

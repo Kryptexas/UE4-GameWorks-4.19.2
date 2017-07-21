@@ -92,8 +92,8 @@ protected:
 	(
 		const EEventPropertyIndex InIndex,
 		const FName InSearchID,
-		const FText InShortName,
-		const FText InDescription,
+		FText InShortName,
+		FText InDescription,
 		const bool bInCanBeHidden,
 		const bool bInIsVisible,
 		const bool bInCanBeSorted,

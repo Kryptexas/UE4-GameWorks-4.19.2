@@ -1345,7 +1345,7 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 		check(SourceString);
 
 		// Create/update the display string instance for this identity in the text localization manager...
-		const FTextDisplayStringRef DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, SourceString);
+		FTextDisplayStringRef DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, SourceString);
 
 		// ... and update the data on the text instance
 		TextToPersist.TextData = MakeShared<TLocalizedTextData<FTextHistory_Base>, ESPMode::ThreadSafe>(MoveTemp(DisplayString), FTextHistory_Base(FString(*SourceString)));

@@ -293,7 +293,7 @@ FReply FAutoReimportDirectoryCustomization::BrowseForFolder()
 
 	if (InitialDir.IsEmpty())
 	{
-		InitialDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		InitialDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 	}
 	else if (!FPackageName::GetPackageMountPoint(InitialDir).IsNone())
 	{

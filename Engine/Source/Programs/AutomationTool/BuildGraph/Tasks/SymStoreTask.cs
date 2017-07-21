@@ -67,11 +67,8 @@ namespace AutomationTool
         /// <param name="Job">Information about the current job</param>
         /// <param name="BuildProducts">Set of build products produced by this node.</param>
         /// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-        /// <returns>True if the task succeeded</returns>
-        public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+        public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
         {
-            bool bSuccess = false;
-
             // Find the matching files
             List<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).ToList();
             
@@ -82,13 +79,11 @@ namespace AutomationTool
             Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
             LockFile.TakeLock(StoreDir, TimeSpan.FromMinutes(15), () =>
             {
-                bSuccess = TargetPlatform.PublishSymbols(StoreDir, Files, Parameters.Product);
+				if (!TargetPlatform.PublishSymbols(StoreDir, Files, Parameters.Product))
+				{
+					throw new AutomationException("Failure publishing symbol files.");
+				}
             });
-
-            if (!bSuccess)
-                CommandUtils.LogError("Failure publishing symbol files.");
-
-            return bSuccess;
         }
 
         /// <summary>

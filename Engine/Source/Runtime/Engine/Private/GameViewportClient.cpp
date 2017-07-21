@@ -3282,7 +3282,7 @@ bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FNam
 	TSharedPtr<FHardwareCursor> HardwareCursor = HardwareCursorCache.FindRef(GameContentPath);
 	if ( HardwareCursor.IsValid() == false )
 	{
-		HardwareCursor = MakeShared<FHardwareCursor>(FPaths::GameContentDir() / GameContentPath.ToString(), HotSpot);
+		HardwareCursor = MakeShared<FHardwareCursor>(FPaths::ProjectContentDir() / GameContentPath.ToString(), HotSpot);
 		if ( HardwareCursor->GetHandle() == nullptr )
 		{
 			return false;

@@ -4025,8 +4025,8 @@ void FPakPlatformFile::GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutP
 
 	// @todo plugin urgent: Needs to handle plugin Pak directories, too
 	// Hardcoded locations
-	OutPakFolders.Add(FString::Printf(TEXT("%sPaks/"), *FPaths::GameContentDir()));
-	OutPakFolders.Add(FString::Printf(TEXT("%sPaks/"), *FPaths::GameSavedDir()));
+	OutPakFolders.Add(FString::Printf(TEXT("%sPaks/"), *FPaths::ProjectContentDir()));
+	OutPakFolders.Add(FString::Printf(TEXT("%sPaks/"), *FPaths::ProjectSavedDir()));
 	OutPakFolders.Add(FString::Printf(TEXT("%sPaks/"), *FPaths::EngineContentDir()));
 }
 
@@ -4116,11 +4116,11 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 				// hardcode default load ordering of game main pak -> game content -> engine content -> saved dir
 				// would be better to make this config but not even the config system is initialized here so we can't do that
 				uint32 PakOrder = 0;
-				if (PakFilename.StartsWith(FString::Printf(TEXT("%sPaks/%s-"), *FPaths::GameContentDir(), FApp::GetGameName())))
+				if (PakFilename.StartsWith(FString::Printf(TEXT("%sPaks/%s-"), *FPaths::ProjectContentDir(), FApp::GetProjectName())))
 				{
 					PakOrder = 4;
 				}
-				else if (PakFilename.StartsWith(FPaths::GameContentDir()))
+				else if (PakFilename.StartsWith(FPaths::ProjectContentDir()))
 				{
 					PakOrder = 3;
 				}
@@ -4128,7 +4128,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 				{
 					PakOrder = 2;
 				}
-				else if (PakFilename.StartsWith(FPaths::GameSavedDir()))
+				else if (PakFilename.StartsWith(FPaths::ProjectSavedDir()))
 				{
 					PakOrder = 1;
 				}

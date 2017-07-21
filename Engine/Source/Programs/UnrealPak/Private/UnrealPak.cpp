@@ -2078,8 +2078,8 @@ bool ExportDependencies(const TCHAR * PakFilename, const TCHAR* GameName, const 
 
 		// Combine with dependency information from asset registry.
 		{
-			FString GameDir = FString(TEXT("../../../")) + GameFolderName + TEXT("/");
-			FPlatformMisc::SetOverrideGameDir(*GameDir);
+			FString ProjectDir = FString(TEXT("../../../")) + GameFolderName + TEXT("/");
+			FPlatformMisc::SetOverrideProjectDir(*ProjectDir);
 			FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		
 			AssetRegistryModule.Get().SearchAllAssets(true);

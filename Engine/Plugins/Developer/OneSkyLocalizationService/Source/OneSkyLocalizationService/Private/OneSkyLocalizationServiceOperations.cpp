@@ -807,7 +807,7 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 						if (TranslationExportOp.IsValid())
 						{
 							// Path is relative to game directory
-							FString Filename = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TranslationExportOp->GetInRelativeOutputFilePathAndName());
+							FString Filename = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TranslationExportOp->GetInRelativeOutputFilePathAndName());
 
 							if (Filename.IsEmpty())
 							{
@@ -950,7 +950,7 @@ bool FOneSkyUploadFileWorker::Execute(class FOneSkyLocalizationServiceCommand& I
 		InTargetGuid = UploadFileOp->GetInTargetGuid();
 		InLocale = UploadFileOp->GetInLocale();
 		// Path is relative to game directory
-		InFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / UploadFileOp->GetInRelativeInputFilePathAndName());
+		InFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / UploadFileOp->GetInRelativeInputFilePathAndName());
 		bInIsKeepingAllStrings = UploadFileOp->GetPreserveAllText();
 		InFileFormat = GetFileFormat(FPaths::GetExtension(InFilePathAndName, true));
 	}

@@ -7,15 +7,34 @@
 
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.ProcessQueue"), STAT_FChunkCacheWorker_ProcessQueue, STATGROUP_PakFile);
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.CheckSignature"), STAT_FChunkCacheWorker_CheckSignature, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.RequestQueueUpdate"), STAT_FChunkCacheWorker_RequestQueueUpdate, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.RequestWaitTime"), STAT_FChunkCacheWorker_RequestWaitTime, STATGROUP_PakFile);
 
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.Serialize"), STAT_FChunkCacheWorker_Serialize, STATGROUP_PakFile);
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.HashBuffer"), STAT_FChunkCacheWorker_HashBuffer, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.WaitingForEvent"), STAT_FChunkCacheWorker_WaitingForEvent, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.GetFreeBuffer"), STAT_FChunkCacheWorker_GetFreeBuffer, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.ReleaseBuffer"), STAT_FChunkCacheWorker_ReleaseBuffer, STATGROUP_PakFile);
+
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.NumProcessQueues"), STAT_FChunkCacheWorker_NumProcessQueue, STATGROUP_PakFile);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.NumProcessQueuesWithWork"), STAT_FChunkCacheWorker_NumProcessQueueWithWork, STATGROUP_PakFile);
 
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.Serialize"), STAT_SignedArchiveReader_Serialize, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.PreCacheChunks"), STAT_SignedArchiveReader_PreCacheChunks, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.CopyFromNewCache"), STAT_SignedArchiveReader_CopyFromNewCache, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.CopyFromExistingCache"), STAT_SignedArchiveReader_CopyFromExistingCache, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.ProcessChunkRequests"), STAT_SignedArchiveReader_ProcessChunkRequests, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.WaitingForChunkWorker"), STAT_SignedArchiveReader_WaitForChunkWorker, STATGROUP_PakFile);
+
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.NumSerializes"), STAT_SignedArchiveReader_NumSerializes, STATGROUP_PakFile);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.NumChunkRequests"), STAT_SignedArchiveReader_NumChunkRequests, STATGROUP_PakFile);
+
 
 FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader, const TCHAR* Filename)
-	: Reader(InReader)
-	, QueuedRequestsEvent(NULL)
+	: Thread(nullptr)
+	, Reader(InReader)
+	, QueuedRequestsEvent(nullptr)
+	, ChunkRequestAvailable(nullptr)
 {
 	SetupDecryptionKey();
 
@@ -37,16 +56,29 @@ FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader, const TCHAR* Filename)
 	FEncryption::DecryptSignature(MasterSignature, DecryptedMasterSignature, DecryptionKey);
 	ensure(DecryptedMasterSignature.Data == ChunkHashesCRC);
 
-	QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
-	Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), 0, TPri_BelowNormal);
+	const bool bEnableMultithreading = FPlatformProcess::SupportsMultithreading();
+	if (bEnableMultithreading)
+	{
+		QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
+		ChunkRequestAvailable = FPlatformProcess::GetSynchEventFromPool();
+		Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), 0, TPri_BelowNormal);
+	}
 }
 
 FChunkCacheWorker::~FChunkCacheWorker()
 {
 	delete Thread;
-	Thread = NULL;
-	FPlatformProcess::ReturnSynchEventToPool(QueuedRequestsEvent);
-	QueuedRequestsEvent = nullptr;
+	Thread = nullptr;
+	if (QueuedRequestsEvent != nullptr)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(QueuedRequestsEvent);
+		QueuedRequestsEvent = nullptr;
+	}
+	if (ChunkRequestAvailable != nullptr)
+	{ 
+		FPlatformProcess::ReturnSynchEventToPool(ChunkRequestAvailable);
+		ChunkRequestAvailable = nullptr;
+	}
 }
 
 bool FChunkCacheWorker::Init()
@@ -84,11 +116,12 @@ void FChunkCacheWorker::SetupDecryptionKey()
 
 uint32 FChunkCacheWorker::Run()
 {	
+	check(QueuedRequestsEvent);
 	while (StopTaskCounter.GetValue() == 0)
 	{
-		if (ProcessQueue() == 0)
+		if (QueuedRequestsEvent->Wait())
 		{
-			QueuedRequestsEvent->Wait(500);
+			ProcessQueue();
 		}
 	}
 	return 0;
@@ -97,6 +130,10 @@ uint32 FChunkCacheWorker::Run()
 void FChunkCacheWorker::Stop()
 {
 	StopTaskCounter.Increment();
+	if (QueuedRequestsEvent)
+	{
+		QueuedRequestsEvent->Trigger();
+	}
 }
 
 FChunkBuffer* FChunkCacheWorker::GetCachedChunkBuffer(int32 ChunkIndex)
@@ -116,6 +153,8 @@ FChunkBuffer* FChunkCacheWorker::GetCachedChunkBuffer(int32 ChunkIndex)
 
 FChunkBuffer* FChunkCacheWorker::GetFreeBuffer()
 {
+	SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_GetFreeBuffer);
+
 	// Find the least recently accessed, free buffer.
 	FChunkBuffer* LeastRecentFreeBuffer = NULL;
 	for (int32 BufferIndex = 0; BufferIndex < MaxCachedChunks; ++BufferIndex)
@@ -137,6 +176,8 @@ FChunkBuffer* FChunkCacheWorker::GetFreeBuffer()
 
 void FChunkCacheWorker::ReleaseBuffer(int32 ChunkIndex)
 {
+	SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_ReleaseBuffer);
+
 	for (int32 BufferIndex = 0; BufferIndex < MaxCachedChunks; ++BufferIndex)
 	{
 		if (CachedChunks[BufferIndex].ChunkIndex == ChunkIndex)
@@ -150,16 +191,26 @@ void FChunkCacheWorker::ReleaseBuffer(int32 ChunkIndex)
 int32 FChunkCacheWorker::ProcessQueue()
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_ProcessQueue);
+	INC_DWORD_STAT(STAT_FChunkCacheWorker_NumProcessQueue);
 
 	// Add the queue to the active requests list
+	if (PendingQueueCounter.GetValue() > 0)
 	{
-		FScopeLock LockQueue(&QueueLock);	
+		SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_RequestQueueUpdate);
+
+		FScopeLock LockQueue(&QueueLock);
 		ActiveRequests.Append(RequestQueue);
+		PendingQueueCounter.Subtract(RequestQueue.Num());
 		RequestQueue.Empty();
 	}
 
 	// Keep track how many request have been process this loop
 	int32 ProcessedRequests = ActiveRequests.Num();
+
+	if (ProcessedRequests)
+	{
+		INC_DWORD_STAT(STAT_FChunkCacheWorker_NumProcessQueueWithWork);
+	}
 
 	for (int32 RequestIndex = 0; RequestIndex < ActiveRequests.Num(); ++RequestIndex)
 	{
@@ -170,7 +221,7 @@ int32 FChunkCacheWorker::ProcessQueue()
 			// and release the associated buffer.
 			ReleaseBuffer(Request.Index);
 			ActiveRequests.RemoveAt(RequestIndex--);
-			FreeChunkRequests.Push(&Request);			
+			FreeChunkRequests.Push(&Request);
 		}
 		else if (Request.Buffer == NULL)
 		{
@@ -179,13 +230,13 @@ int32 FChunkCacheWorker::ProcessQueue()
 			if (!CachedBuffer)
 			{
 				// This chunk is not cached. Get a free buffer if possible.
-				CachedBuffer = GetFreeBuffer();				
+				CachedBuffer = GetFreeBuffer();
 				if (!!CachedBuffer)
 				{
 					// Load and verify.
 					CachedBuffer->ChunkIndex = Request.Index;
 					Request.Buffer = CachedBuffer;
-					CheckSignature(Request);					
+					CheckSignature(Request);
 				}
 			}
 			else
@@ -198,8 +249,12 @@ int32 FChunkCacheWorker::ProcessQueue()
 				check(Request.Buffer == CachedBuffer);
 				// Chunk is cached and trusted. We no longer need the request handle on this thread.
 				// Let the other thread know the chunk is ready to read.
-				Request.RefCount.Decrement();				
+				Request.RefCount.Decrement();
 				Request.IsTrusted.Increment();
+				if (ChunkRequestAvailable != nullptr)
+				{
+					ChunkRequestAvailable->Trigger();
+				}
 			}
 		}
 	}
@@ -256,14 +311,38 @@ FChunkRequest& FChunkCacheWorker::RequestChunk(int32 ChunkIndex, int64 StartOffs
 
 	QueueLock.Lock();
 	RequestQueue.Add(NewChunk);
+	PendingQueueCounter.Increment();
 	QueueLock.Unlock();
-	QueuedRequestsEvent->Trigger();
+	if (QueuedRequestsEvent)
+	{
+		QueuedRequestsEvent->Trigger();
+	}
+	
 	return *NewChunk;
+}
+
+void FChunkCacheWorker::WaitForNextChunk()
+{
+	if (ChunkRequestAvailable != nullptr)
+	{
+		ChunkRequestAvailable->Wait();
+	}
+}
+
+void FChunkCacheWorker::FlushRemainingChunkCompletionEvents()
+{
+	if (ChunkRequestAvailable != nullptr)
+	{
+		ChunkRequestAvailable->Reset();
+	}
 }
 
 void FChunkCacheWorker::ReleaseChunk(FChunkRequest& Chunk)
 {
-	Chunk.RefCount.Decrement();
+	if (Chunk.RefCount.Decrement() == 0 && QueuedRequestsEvent != nullptr)
+	{
+		QueuedRequestsEvent->Trigger();
+	}
 }
 
 FSignedArchiveReader::FSignedArchiveReader(FArchive* InPakReader, FChunkCacheWorker* InSignatureChecker)
@@ -311,6 +390,8 @@ int64 FSignedArchiveReader::CalculateChunkSize(int64 ChunkIndex) const
 
 int64 FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo>& Chunks, int64 Length)
 {
+	SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_PreCacheChunks);
+
 	// Request all the chunks that are needed to complete this read
 	int64 DataOffset;
 	int64 DestOffset = 0;
@@ -352,6 +433,7 @@ int64 FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInf
 		{
 			const int64 ChunkSize = CalculateChunkSize(ChunkIndex);	
 			ChunkInfo.Request = &SignatureChecker->RequestChunk(ChunkIndex, ChunkStartOffset, ChunkSize);
+			INC_DWORD_STAT(STAT_SignedArchiveReader_NumChunkRequests);
 			ChunkInfo.PreCachedChunk = NULL;
 		}
 
@@ -368,67 +450,87 @@ int64 FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInf
 void FSignedArchiveReader::Serialize(void* Data, int64 Length)
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_Serialize);
+	INC_DWORD_STAT(STAT_SignedArchiveReader_NumSerializes);
 
 	// First make sure the chunks we're going to read are actually cached.
 	TArray<FReadInfo> QueuedChunks;
 	int64 ChunksToRead = PrecacheChunks(QueuedChunks, Length);
 	int64 FirstPrecacheChunkIndex = ChunksToRead;
 
+	// If we aren't multithreaded then flush the signature checking now so there will be some data ready
+	// for us in the loop
+	if (!SignatureChecker->IsMultithreaded())
+	{
+		SignatureChecker->ProcessQueue();
+	}
+
 	// Read data from chunks.
 	int64 RemainingLength = Length;
 	uint8* DestData = (uint8*)Data;
 
-	const int32 LastRequestIndex = ChunksToRead - 1;
-	do
 	{
-		int32 ChunksReadThisLoop = 0;
-		// Try to read cached chunks. If a chunk is not yet ready, skip to the next chunk - it's possible
-		// that it has already been precached in one of the previous reads.
-		for (int32 QueueIndex = 0; QueueIndex <= LastRequestIndex; ++QueueIndex)
+		SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_ProcessChunkRequests);
+		const int32 LastRequestIndex = ChunksToRead - 1;
+		do
 		{
-			FReadInfo& ChunkInfo = QueuedChunks[QueueIndex];
-			if (ChunkInfo.Request && ChunkInfo.Request->IsReady())
+			int32 ChunksReadThisLoop = 0;
+			// Try to read cached chunks. If a chunk is not yet ready, skip to the next chunk - it's possible
+			// that it has already been precached in one of the previous reads.
+			for (int32 QueueIndex = 0; QueueIndex <= LastRequestIndex; ++QueueIndex)
 			{
-				// Read
-				FMemory::Memcpy(DestData + ChunkInfo.DestOffset, ChunkInfo.Request->Buffer->Data + ChunkInfo.SourceOffset, ChunkInfo.Size);
-				// Is this the last chunk? if so, copy it to pre-cache
-				if (LastRequestIndex == QueueIndex && ChunkInfo.Request->Index != LastCachedChunk.ChunkIndex)
+				FReadInfo& ChunkInfo = QueuedChunks[QueueIndex];
+				if (ChunkInfo.Request && ChunkInfo.Request->IsReady())
 				{
-					LastCachedChunk.ChunkIndex = ChunkInfo.Request->Index;
-					FMemory::Memcpy(LastCachedChunk.Data, ChunkInfo.Request->Buffer->Data, FPakInfo::MaxChunkDataSize);
+					SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_CopyFromNewCache);
+
+					// Read
+					FMemory::Memcpy(DestData + ChunkInfo.DestOffset, ChunkInfo.Request->Buffer->Data + ChunkInfo.SourceOffset, ChunkInfo.Size);
+					// Is this the last chunk? if so, copy it to pre-cache
+					if (LastRequestIndex == QueueIndex && ChunkInfo.Request->Index != LastCachedChunk.ChunkIndex)
+					{
+						LastCachedChunk.ChunkIndex = ChunkInfo.Request->Index;
+						FMemory::Memcpy(LastCachedChunk.Data, ChunkInfo.Request->Buffer->Data, FPakInfo::MaxChunkDataSize);
+					}
+					// Let the worker know we're done with this chunk for now.
+					SignatureChecker->ReleaseChunk(*ChunkInfo.Request);
+					ChunkInfo.Request = NULL;
+					// One less chunk remaining
+					ChunksToRead--;
+					ChunksReadThisLoop++;
 				}
-				// Let the worker know we're done with this chunk for now.
-				SignatureChecker->ReleaseChunk(*ChunkInfo.Request);
-				ChunkInfo.Request = NULL;
-				// One less chunk remaining
-				ChunksToRead--;
-				ChunksReadThisLoop++;
+				else if (ChunkInfo.PreCachedChunk)
+				{
+					SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_CopyFromExistingCache);
+
+					// Copy directly from the pre-cached chunk.
+					FMemory::Memcpy(DestData + ChunkInfo.DestOffset, ChunkInfo.PreCachedChunk->Data + ChunkInfo.SourceOffset, ChunkInfo.Size);
+					ChunkInfo.PreCachedChunk = NULL;
+					// One less chunk remaining
+					ChunksToRead--;
+					ChunksReadThisLoop++;
+				}
 			}
-			else if (ChunkInfo.PreCachedChunk)
-			{
-				// Copy directly from the pre-cached chunk.
-				FMemory::Memcpy(DestData + ChunkInfo.DestOffset, ChunkInfo.PreCachedChunk->Data + ChunkInfo.SourceOffset, ChunkInfo.Size);
-				ChunkInfo.PreCachedChunk = NULL;
-				// One less chunk remaining
-				ChunksToRead--;
-				ChunksReadThisLoop++;
-			}
-		}
-		if (FPlatformProcess::SupportsMultithreading())
-		{
+
 			if (ChunksReadThisLoop == 0)
 			{
-				// No chunks read, avoid tight spinning loops and give up some time to the other threads
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_FSignedArchiveReader_Spin);
-				FPlatformProcess::SleepNoStats(0.001f);
+				if (SignatureChecker->IsMultithreaded())
+				{
+					SignatureChecker->WaitForNextChunk();
+				}
+				else
+				{
+					// Process some more buffers
+					SignatureChecker->ProcessQueue();
+				}
 			}
 		}
-		else
-		{
-			SignatureChecker->ProcessQueue();
-		}
+		while (ChunksToRead > 0);
 	}
-	while (ChunksToRead > 0);
+
+	// Need to flush out any remaining request events here. Each time the loop above wakes up on the event,
+	// it will process EVERY chunk available. It may process 2 available chunks from that one trigger then complete,
+	// leaving a single event trigger outstanding which will break the next call into this reader
+	SignatureChecker->FlushRemainingChunkCompletionEvents();
 
 	PakOffset += Length;
 

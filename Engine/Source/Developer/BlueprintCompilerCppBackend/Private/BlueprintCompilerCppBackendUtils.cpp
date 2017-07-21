@@ -804,7 +804,7 @@ FString FEmitHelper::GetPCHFilename()
 
 FString FEmitHelper::GetGameMainHeaderFilename()
 {
-	return FString::Printf(TEXT("%s.h"), FApp::GetGameName());
+	return FString::Printf(TEXT("%s.h"), FApp::GetProjectName());
 }
 
 FString FEmitHelper::EmitUFuntion(UFunction* Function, const TArray<FString>& AdditionalTags, const TArray<FString>& AdditinalMetaData)

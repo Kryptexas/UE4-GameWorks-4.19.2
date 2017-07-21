@@ -17,6 +17,7 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "Internationalization/BreakIterator.h"
 #include "SlateSettings.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 /**
  * Ensure that text transactions are always completed.
@@ -1424,7 +1425,7 @@ void FSlateEditableTextLayout::DeleteSelectedText()
 
 			if (Lines.Num() == 0)
 			{
-				const TSharedRef< FString > EmptyText = MakeShareable(new FString());
+				TSharedRef< FString > EmptyText = MakeShared<FString>();
 				TArray< TSharedRef< IRun > > Runs;
 				Runs.Add(CreateTextOrPasswordRun(FRunInfo(), EmptyText, TextStyle));
 
@@ -1616,7 +1617,7 @@ void FSlateEditableTextLayout::CutSelectedTextToClipboard()
 		TextLayout->GetSelectionAsText(SelectedText, Selection);
 
 		// Copy text to clipboard
-		FPlatformMisc::ClipboardCopy(*SelectedText);
+		FPlatformApplicationMisc::ClipboardCopy(*SelectedText);
 
 		DeleteSelectedText();
 
@@ -1661,7 +1662,7 @@ void FSlateEditableTextLayout::CopySelectedTextToClipboard()
 		TextLayout->GetSelectionAsText(SelectedText, Selection);
 
 		// Copy text to clipboard
-		FPlatformMisc::ClipboardCopy(*SelectedText);
+		FPlatformApplicationMisc::ClipboardCopy(*SelectedText);
 	}
 }
 
@@ -1677,7 +1678,7 @@ bool FSlateEditableTextLayout::CanExecutePaste() const
 
 	// Can't paste unless the clipboard has a string in it
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 	if (ClipboardContent.IsEmpty())
 	{
 		bCanExecute = false;
@@ -1699,7 +1700,7 @@ void FSlateEditableTextLayout::PasteTextFromClipboard()
 
 	// Paste from the clipboard
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	if (PastedText.Len() > 0)
 	{

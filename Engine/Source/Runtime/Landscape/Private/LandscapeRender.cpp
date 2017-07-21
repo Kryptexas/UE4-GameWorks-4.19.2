@@ -453,7 +453,6 @@ FLandscapeDebugOptions GLandscapeDebugOptions;
 LANDSCAPE_API bool GLandscapeEditModeActive = false;
 LANDSCAPE_API ELandscapeViewMode::Type GLandscapeViewMode = ELandscapeViewMode::Normal;
 LANDSCAPE_API int32 GLandscapeEditRenderMode = ELandscapeEditRenderMode::None;
-LANDSCAPE_API int32 GLandscapePreviewMeshRenderMode = 0;
 UMaterialInterface* GLayerDebugColorMaterial = nullptr;
 UMaterialInterface* GSelectionColorMaterial = nullptr;
 UMaterialInterface* GSelectionRegionMaterial = nullptr;

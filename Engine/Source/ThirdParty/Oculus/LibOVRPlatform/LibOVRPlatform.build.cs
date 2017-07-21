@@ -9,7 +9,7 @@ public class LibOVRPlatform : ModuleRules
 	{
 		Type = ModuleType.External;		
 		
-		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVRPlatform/LibOVRPlatform";
+		string OculusThirdPartyDirectory = Target.UEThirdPartySourceDirectory + "Oculus/LibOVRPlatform/LibOVRPlatform";
 
 		bool isLibrarySupported = false;
 		
@@ -26,7 +26,7 @@ public class LibOVRPlatform : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			PublicAdditionalLibraries.Add(OculusThirdPartyDirectory + "/lib/libovrplatformloader.so");
-			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+			string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "LibOVRPlatform_APL.xml")));
 			isLibrarySupported = true;
 		}

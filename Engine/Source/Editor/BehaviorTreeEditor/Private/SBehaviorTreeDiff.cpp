@@ -21,6 +21,7 @@
 #include "BehaviorTreeEditorUtils.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "Framework/Commands/GenericCommands.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 
@@ -571,7 +572,7 @@ void SBehaviorTreeDiff::FBehaviorTreeDiffPanel::CopySelectedNodes()
 
 	FString ExportedText;
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::CanCopyNodes() const

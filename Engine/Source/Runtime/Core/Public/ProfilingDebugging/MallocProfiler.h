@@ -180,16 +180,16 @@ public:
 
 /** This is an utility class that handles specific malloc profiler mutex locking. */
 class FScopedMallocProfilerLock
-{	
-	/** Copy constructor hidden on purpose. */
-	FScopedMallocProfilerLock(FScopedMallocProfilerLock* InScopeLock);
+{
+	/* Non-copyable */
+	FScopedMallocProfilerLock(const FScopedMallocProfilerLock&) = delete;
+	FScopedMallocProfilerLock& operator=(const FScopedMallocProfilerLock&) = delete;
 
-	/** Assignment operator hidden on purpose. */
-	FScopedMallocProfilerLock& operator=(FScopedMallocProfilerLock& InScopedMutexLock) { return *this; }
+	FMallocProfiler& Profiler;
 
 public:
 	/** Constructor that performs a lock on the malloc profiler tracking methods. */
-	FScopedMallocProfilerLock();
+	explicit FScopedMallocProfilerLock(FMallocProfiler& InProfiler);
 
 	/** Destructor that performs a release on the malloc profiler tracking methods. */
 	~FScopedMallocProfilerLock();
@@ -241,14 +241,8 @@ protected:
 	/** Whether the output file has been closed. */
 	bool									bOutputFileClosed;
 
-	/** Critical section used to detect when malloc profiler is inside one of the tracking functions. */
-	FCriticalSection						SyncObject;
-
-	/** Whether operations should be tracked. false e.g. in tracking internal functions.			*/
-	int32									SyncObjectLockCount;
-
-	/** The currently executing thread's id. */
-	uint32									ThreadId;
+	/** Guards against recursive tracking of allocations caused by tracking */
+	int32									TrackingDepth;
 
 	/** Simple count of memory operations															*/
 	uint64									MemoryOperationCount;
@@ -256,8 +250,7 @@ protected:
 	/** Returns true if malloc profiler is outside one of the tracking methods, returns false otherwise. */
 	bool IsOutsideTrackingFunction() const
 	{
-		const uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
-		return (SyncObjectLockCount == 0) || (ThreadId != CurrentThreadId);
+		return TrackingDepth == 0;
 	}
 
 	/** 
@@ -445,10 +438,21 @@ public:
 	 */
 	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
+		if (Size == 0)
+		{
+			return nullptr;
+		}
+
 		FScopeLock Lock( &CriticalSection );
 		void* Ptr = UsedMalloc->Malloc( Size, Alignment );
-		TrackMalloc( Ptr, (uint32)Size );
-		TrackSpecialMemory();
+
+		if (IsOutsideTrackingFunction())
+		{
+			FScopedMallocProfilerLock MallocProfilerLock(*this);
+			TrackMalloc( Ptr, (uint32)Size );
+			TrackSpecialMemory();
+		}
+
 		return Ptr;
 	}
 
@@ -459,8 +463,14 @@ public:
 	{
 		FScopeLock Lock( &CriticalSection );
 		void* NewPtr = UsedMalloc->Realloc( OldPtr, NewSize, Alignment );
-		TrackRealloc( OldPtr, NewPtr, (uint32)NewSize );
-		TrackSpecialMemory();
+
+		if (IsOutsideTrackingFunction())
+		{
+			FScopedMallocProfilerLock MallocProfilerLock(*this);
+			TrackRealloc( OldPtr, NewPtr, (uint32)NewSize );
+			TrackSpecialMemory();
+		}
+
 		return NewPtr;
 	}
 
@@ -469,10 +479,19 @@ public:
 	 */
 	virtual void Free( void* Ptr ) override
 	{
+		if (Ptr == nullptr)
+		{
+			return;
+		}
 		FScopeLock Lock( &CriticalSection );
 		UsedMalloc->Free( Ptr );
-		TrackFree( Ptr );
-		TrackSpecialMemory();
+
+		if (IsOutsideTrackingFunction())
+		{
+			FScopedMallocProfilerLock MallocProfilerLock(*this);
+			TrackFree( Ptr );
+			TrackSpecialMemory();
+		}
 	}
 
 	/**

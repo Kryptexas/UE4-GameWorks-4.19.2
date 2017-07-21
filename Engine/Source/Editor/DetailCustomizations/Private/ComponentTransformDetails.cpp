@@ -32,6 +32,7 @@
 #include "Math/UnitConversion.h"
 #include "Widgets/Input/NumericUnitTypeInterface.inl"
 #include "EditorProjectSettings.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "FComponentTransformDetails"
 
@@ -292,14 +293,14 @@ void FComponentTransformDetails::OnCopy( ETransformField::Type TransformField )
 
 	if( !CopyStr.IsEmpty() )
 	{
-		FPlatformMisc::ClipboardCopy( *CopyStr );
+		FPlatformApplicationMisc::ClipboardCopy( *CopyStr );
 	}
 }
 
 void FComponentTransformDetails::OnPaste( ETransformField::Type TransformField )
 {
 	FString PastedText;
-	FPlatformMisc::ClipboardPaste(PastedText);
+	FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 	switch (TransformField)
 	{

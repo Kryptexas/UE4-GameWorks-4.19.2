@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Web;
+using System.Web.Helpers;
+using System.Xml;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Models;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
@@ -28,6 +30,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         private string SitePath = Properties.Settings.Default.SitePath;
 
         public static AmazonClient AmazonClient { get; private set; }
+
+        public List<String> Plugins { get; private set; }
 
         static Crash()
         {
@@ -53,6 +57,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             {
                 //\\epicgames.net\Root\Projects\Paragon\QA_CrashReports
                 bool bHasCrashContext = HasCrashContextFile();
+                Plugins = new List<string>();
                 if (bHasCrashContext)
                 {
                     //_CrashContext = FGenericCrashContext.FromFile(SitePath + GetCrashContextUrl());
@@ -83,6 +88,31 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                         //End of temporary code.
 
                         FLogger.Global.WriteEvent("ReadCrashContextIfAvailable " + _CrashContext.PrimaryCrashProperties.FullCrashDumpLocation + " is " + _bUseFullMinidumpPath);
+                    }
+
+                    if (_CrashContext.UntypedEnabledPlugins != null)
+                    {
+                        XmlNode[] nodes = _CrashContext.UntypedEnabledPlugins as XmlNode[];
+
+                        if (nodes != null)
+                        {
+                            foreach (var node in nodes)
+                            {
+                                try
+                                {
+                                    dynamic data = Json.Decode(node.InnerText);
+
+                                    String printName = data.FriendlyName + " " + data.VersionName;
+                                    System.Diagnostics.Debug.WriteLine(printName);
+
+                                    Plugins.Add(printName);
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.WriteLine("Error trying to add a plugin entry: " + e.ToString());
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -254,6 +284,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             else if (CrashType == 3)
             {
                 return "Ensure";
+            }
+            else if (CrashType == 4)
+            {
+                return "GPUCrash";
             }
             return "Unknown";
         }

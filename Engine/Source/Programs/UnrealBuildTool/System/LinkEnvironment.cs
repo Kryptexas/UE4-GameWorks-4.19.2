@@ -319,6 +319,8 @@ namespace UnrealBuildTool
 			bIsCrossReferenced = Other.bIsCrossReferenced;
 			bHasExports = Other.bHasExports;
 			bIsBuildingDotNetAssembly = Other.bIsBuildingDotNetAssembly;
+			DefaultStackSize = Other.DefaultStackSize;
+			DefaultStackSizeCommit = Other.DefaultStackSizeCommit;
 			bOptimizeForSize = Other.bOptimizeForSize;
 			bOmitFramePointers = Other.bOmitFramePointers;
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;

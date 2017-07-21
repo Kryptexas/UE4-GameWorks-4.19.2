@@ -18,14 +18,14 @@ public class FreeType2 : ModuleRules
             Target.Platform == UnrealTargetPlatform.Linux ||
 		    Target.Platform == UnrealTargetPlatform.HTML5)
 		{
-			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.6/";
+			FreeType2Path = Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.6/";
 			
 			PublicSystemIncludePaths.Add(FreeType2Path + "Include");
 		}
 		else
 		{
 			
-			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
+			FreeType2Path = Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
 			
 			PublicSystemIncludePaths.Add(FreeType2Path + "include");
 		}
@@ -39,7 +39,7 @@ public class FreeType2 : ModuleRules
 		{
 
             FreeType2LibPath += (Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/";
-            FreeType2LibPath += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+            FreeType2LibPath += "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 
 			PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
@@ -55,12 +55,12 @@ public class FreeType2 : ModuleRules
 			if (Target.Architecture == "-simulator")
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Simulator");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
             }
             else
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Device");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
             }
 
 			PublicAdditionalLibraries.Add("freetype2412");
@@ -70,12 +70,12 @@ public class FreeType2 : ModuleRules
 			if (Target.Architecture == "-simulator")
 			{
 				PublicLibraryPaths.Add(FreeType2LibPath + "TVOS/Simulator");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/TVOS/Simulator/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/TVOS/Simulator/libfreetype2412.a");
 			}
 			else
 			{
 				PublicLibraryPaths.Add(FreeType2LibPath + "TVOS/Device");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/TVOS/Device/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(Target.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/TVOS/Device/libfreetype2412.a");
 			}
 
 			PublicAdditionalLibraries.Add("freetype2412");
@@ -114,7 +114,7 @@ public class FreeType2 : ModuleRules
         {
             PublicLibraryPaths.Add(FreeType2Path + "Lib/HTML5");
             string OpimizationSuffix = "";
-            if (UEBuildConfiguration.bCompileForSize)
+            if (Target.bCompileForSize)
             {
                 OpimizationSuffix = "_Oz";
             }

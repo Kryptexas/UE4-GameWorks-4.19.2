@@ -3,6 +3,7 @@
 #include "Linux/LinuxCursor.h"
 #include "Misc/App.h"
 #include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformApplicationMisc.h"
 
 FLinuxCursor::FLinuxCursor()
 	: 	bHidden(false)
@@ -17,9 +18,9 @@ FLinuxCursor::FLinuxCursor()
 		return;
 	}
 
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (!FLinuxPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Fatal, TEXT("FLinuxCursor::FLinuxCursor() : PlatformInitMultimedia() failed, cannot construct cursor."));
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxCursor::FLinuxCursor() : InitSDL() failed, cannot construct cursor."));
 		// unreachable
 		return;
 	}

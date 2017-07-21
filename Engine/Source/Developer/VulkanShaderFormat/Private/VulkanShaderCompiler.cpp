@@ -1192,7 +1192,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 //					}
 //					else
 //					{
-//						FString WorkDirectory = *(FPaths::Combine(*(FPaths::ConvertRelativePathToFull(*FPaths::GameSavedDir())), TEXT("VulkanShaderWork")));
+//						FString WorkDirectory = *(FPaths::Combine(*(FPaths::ConvertRelativePathToFull(*FPaths::ProjectSavedDir())), TEXT("VulkanShaderWork")));
 //
 //						GLSLFile = FPaths::CreateTempFilename(*WorkDirectory, TEXT("VSW"), *(TEXT(".") + GetExtension(Frequency, false)));
 //						StringToFile(GLSLFile, PatchedGlslSource);

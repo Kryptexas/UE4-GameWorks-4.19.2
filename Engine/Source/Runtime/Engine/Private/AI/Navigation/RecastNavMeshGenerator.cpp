@@ -4637,7 +4637,7 @@ public:
 					if (const FNavDataGenerator* Generator = NavData->GetGenerator())
 					{
 						const FString Name = NavData->GetName();
-						Generator->ExportNavigationData( FString::Printf( TEXT("%s/%s"), *FPaths::GameSavedDir(), *Name ));
+						Generator->ExportNavigationData( FString::Printf( TEXT("%s/%s"), *FPaths::ProjectSavedDir(), *Name ));
 						return true;
 					}
 					else

@@ -6,6 +6,7 @@
 #include "Misc/OutputDeviceHelper.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 @implementation FMacNativeFeedbackContextWindowController
 
@@ -271,7 +272,7 @@ FMacNativeFeedbackContext::~FMacNativeFeedbackContext()
 {
 	do
 	{
-		FPlatformMisc::PumpMessages( true );
+		FPlatformApplicationMisc::PumpMessages( true );
 	} while(OutstandingTasks);
 	
 	MainThreadCall(^{
@@ -366,7 +367,7 @@ void FMacNativeFeedbackContext::Serialize( const TCHAR* Data, ELogVerbosity::Typ
 				
 				if(!MacApplication)
 				{
-					FPlatformMisc::PumpMessages( true );
+					FPlatformApplicationMisc::PumpMessages( true );
 				}
 			}
 		}

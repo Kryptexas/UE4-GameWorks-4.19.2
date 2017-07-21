@@ -164,7 +164,7 @@ struct FPrimaryCrashProperties
 	 * The name of the game that crashed. (AppID)
 	 * @GameName	varchar(64)
 	 * 
-	 * FApp::GetGameName()
+	 * FApp::GetProjectName()
 	 */
 	FString GameName;
 

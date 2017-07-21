@@ -11,7 +11,7 @@ public class Perforce : ModuleRules
 		string LibFolder = "lib/";
 		string LibPrefix = "";
 		string LibPostfixAndExt = ".";
-		string P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2015.2/";
+		string P4APIPath = Target.UEThirdPartySourceDirectory + "Perforce/p4api-2015.2/";
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
@@ -23,18 +23,18 @@ public class Perforce : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2014.1/";
+			P4APIPath = Target.UEThirdPartySourceDirectory + "Perforce/p4api-2014.1/";
 			LibFolder += "mac";
 		}
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2014.1/" ;
+            P4APIPath = Target.UEThirdPartySourceDirectory + "Perforce/p4api-2014.1/" ;
             LibFolder += "linux/" + Target.Architecture;
         }
 
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
         {
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
                 LibPostfixAndExt = "d.";
 
             LibPostfixAndExt += "lib";

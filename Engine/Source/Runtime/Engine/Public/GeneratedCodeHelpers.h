@@ -333,14 +333,9 @@ public:
 	
 	//Replacements for CustomThunk functions from UBlueprintSetLibrary
 	template<typename T, typename U>
-	static bool Set_Add(TSet<T>& TargetSet, const U& NewItem)
+	static void Set_Add(TSet<T>& TargetSet, const U& NewItem)
 	{
-		if(T* Result = TargetSet.Find(NewItem))
-		{
-			return false;
-		}
 		TargetSet.Add(NewItem);
-		return true;
 	}
 	
 	template<typename T, typename U>
@@ -415,18 +410,9 @@ public:
 
 	//Replacements for CustomThunk functions from UBlueprintMapLibrary
 	template<typename T, typename U, typename V, typename W>
-	static bool Map_Add(TMap<T, U>& TargetMap, const V& Key, const W& Value)
+	static void Map_Add(TMap<T, U>& TargetMap, const V& Key, const W& Value)
 	{
-		if(U* CurrentValue = TargetMap.Find(Key))
-		{
-			*CurrentValue = Value;
-			return false;
-		}
-		else
-		{
-			TargetMap.Add(Key, Value);
-			return true;
-		}
+		TargetMap.Add(Key, Value);
 	}
 	
 	template<typename T, typename U, typename V>

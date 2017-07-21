@@ -11,32 +11,20 @@
 class FJsonObject;
 
 /**
- * Version numbers for plugin descriptors.
+ * Setting for whether a plugin is enabled by default
  */ 
-namespace EPluginDescriptorVersion
+enum class EPluginEnabledByDefault : uint8
 {
-	enum Type
-	{
-		Invalid = 0,
-		Initial = 1,
-		NameHash = 2,
-		ProjectPluginUnification = 3,
-		// !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
-		// -----<new versions can be added before this line>-------------------------------------------------
-		// - this needs to be the last line (see note below)
-		LatestPlusOne,
-		Latest = LatestPlusOne - 1
-	};
-}
+	Unspecified,
+	Enabled,
+	Disabled,
+};
 
 /**
  * Descriptor for plugins. Contains all the information contained within a .uplugin file.
  */
 struct PROJECTS_API FPluginDescriptor
 {
-	/** Descriptor version number */
-	int32 FileVersion;
-
 	/** Version number for the plugin.  The version number must increase with every version of the plugin, so that the system 
 	    can determine whether one version of a plugin is newer than another, or to enforce other requirements.  This version
 		number is not displayed in front-facing UI.  Use the VersionName for that. */
@@ -73,6 +61,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Version of the engine that this plugin is compatible with */
 	FString EngineVersion;
 
+	/** List of target platforms supported by this plugin. This list will be copied to any plugin reference from a project file, to allow filtering entire plugins from staged builds. */
+	TArray<FString> SupportedTargetPlatforms;
+
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
@@ -80,16 +71,13 @@ struct PROJECTS_API FPluginDescriptor
 	TArray<FLocalizationTargetDescriptor> LocalizationTargets;
 
 	/** Whether this plugin should be enabled by default for all projects */
-	bool bEnabledByDefault;
+	EPluginEnabledByDefault EnabledByDefault;
 
 	/** Can this plugin contain content? */
 	bool bCanContainContent;
 
 	/** Marks the plugin as beta in the UI */
 	bool bIsBetaVersion;
-
-	/** Indicates that this plugin is a mod */
-	bool bIsMod;
 
 	/** Signifies that the plugin was installed on top of the engine */
 	bool bInstalled;
@@ -113,15 +101,24 @@ struct PROJECTS_API FPluginDescriptor
 	FPluginDescriptor();
 
 	/** Loads the descriptor from the given file. */
-	bool Load(const FString& FileName, bool bPluginTypeEnabledByDefault, FText& OutFailReason);
+	bool Load(const FString& FileName, FText& OutFailReason);
+
+	/** Reads the descriptor from the given string */
+	bool Read(const FString& Text, FText& OutFailReason);
 
 	/** Reads the descriptor from the given JSON object */
-	bool Read(const FString& Text, bool bPluginTypeEnabledByDefault, FText& OutFailReason);
+	bool Read(const FJsonObject& Object, FText& OutFailReason);
 
 	/** Saves the descriptor from the given file. */
-	bool Save(const FString& FileName, bool bPluginTypeEnabledByDefault, FText& OutFailReason) const;
+	bool Save(const FString& FileName, FText& OutFailReason) const;
 
 	/** Writes a descriptor to JSON */
-	void Write(FString& Text, bool bPluginTypeEnabledByDefault) const;
+	void Write(FString& Text) const;
+
+	/** Writes a descriptor to JSON */
+	void Write(TJsonWriter<>& Writer) const;
+
+	/** Determines whether the plugin supports the given platform */
+	bool SupportsTargetPlatform(const FString& Platform) const;
 };
 

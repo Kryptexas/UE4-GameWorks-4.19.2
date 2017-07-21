@@ -944,6 +944,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FStrin
 
 		ReplaceReferencesToReconstructedCDOs();
 
+		// Force GC to collect reinstanced objects
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+
 		Result = ECompilationResult::Succeeded;
 	}
 
@@ -1381,12 +1384,12 @@ void FHotReloadModule::RefreshHotReloadWatcher()
 	if (DirectoryWatcher)
 	{
 		// Watch the game directory
-		AddHotReloadDirectory(DirectoryWatcher, FPaths::GameDir());
+		AddHotReloadDirectory(DirectoryWatcher, FPaths::ProjectDir());
 
 		// Also watch all the game plugin directories
 		for(const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
 		{
-			if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin->GetDescriptor().Modules.Num() > 0)
+			if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project && Plugin->GetDescriptor().Modules.Num() > 0)
 			{
 				AddHotReloadDirectory(DirectoryWatcher, Plugin->GetBaseDir());
 			}
@@ -1567,7 +1570,7 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
 	const bool bFailIfGeneratedCodeChanges = false;
 	const bool bForceCodeProject = false;
-	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetGameName(), ModulesToRecompile, MoveTemp(InRecompileModulesCallback), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
+	bool bWasSuccessful = StartCompilingModuleDLLs(FApp::GetProjectName(), ModulesToRecompile, MoveTemp(InRecompileModulesCallback), Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject);
 	if (bWasSuccessful)
 	{
 		// Go ahead and check for completion right away.  This is really just so that we can handle the case
@@ -1621,7 +1624,7 @@ bool FHotReloadModule::RecompileModuleDLLs(const TArray< FModuleToRecompile >& M
 	bool bCompileSucceeded = false;
 #if WITH_HOT_RELOAD
 	const FString AdditionalArguments = MakeUBTArgumentsForModuleCompiling();
-	if (StartCompilingModuleDLLs(FApp::GetGameName(), ModuleNames, nullptr, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
+	if (StartCompilingModuleDLLs(FApp::GetProjectName(), ModuleNames, nullptr, Ar, bFailIfGeneratedCodeChanges, AdditionalArguments, bForceCodeProject))
 	{
 		const bool bWaitForCompletion = true;	// Always wait
 		bool bCompileStillInProgress = false;
@@ -2094,12 +2097,12 @@ bool FHotReloadModule::IsAnyGameModuleLoaded()
 
 bool FHotReloadModule::ContainsOnlyGameModules(const TArray<FModuleToRecompile>& ModulesToCompile) const
 {
-	const FString AbsoluteGameDir(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+	const FString AbsoluteProjectDir(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
 	bool bOnlyGameModules = true;
 	for (auto& ModuleToCompile : ModulesToCompile)
 	{
 		const FString FullModulePath(FPaths::ConvertRelativePathToFull(ModuleToCompile.NewModuleFilename));
-		if (!FullModulePath.StartsWith(AbsoluteGameDir))
+		if (!FullModulePath.StartsWith(AbsoluteProjectDir))
 		{
 			bOnlyGameModules = false;
 			break;
@@ -2128,7 +2131,7 @@ void FHotReloadModule::PluginMountedCallback(IPlugin& Plugin)
 	IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 	if (DirectoryWatcher)
 	{
-		if (Plugin.GetLoadedFrom() == EPluginLoadedFrom::GameProject && Plugin.GetDescriptor().Modules.Num() > 0)
+		if (Plugin.GetLoadedFrom() == EPluginLoadedFrom::Project && Plugin.GetDescriptor().Modules.Num() > 0)
 		{
 			AddHotReloadDirectory(DirectoryWatcher, Plugin.GetBaseDir());
 		}

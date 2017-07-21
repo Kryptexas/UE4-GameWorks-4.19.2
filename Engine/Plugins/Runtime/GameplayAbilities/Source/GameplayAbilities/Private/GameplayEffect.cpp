@@ -2721,7 +2721,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 			{
 				// We already had memory allocated to put a pending GE, move in.
 				// [#2] If you change this, please change #1-3!!!
-				**PendingGameplayEffectNext = MoveTemp(FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey));
+				**PendingGameplayEffectNext = FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey);
 				AppliedActiveGE = *PendingGameplayEffectNext;
 			}
 

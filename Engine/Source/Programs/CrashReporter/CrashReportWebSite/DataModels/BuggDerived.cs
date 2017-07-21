@@ -96,6 +96,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             {
                 return "Ensure";
             }
+            else if (CrashType == 4)
+            {
+                return "GPUCrash";
+            }
             return "Unknown";
         }
 

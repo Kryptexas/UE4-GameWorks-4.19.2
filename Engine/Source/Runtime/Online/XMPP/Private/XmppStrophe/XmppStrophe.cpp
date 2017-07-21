@@ -52,7 +52,7 @@ FXmppUserJid FXmppStrophe::JidFromString(const FString& JidString)
 		if (!JidString.Split(TEXT("/"), &User, &Resource), ESearchCase::CaseSensitive, ESearchDir::FromEnd)
 		{
 			// If we don't have a resource, we only have the user in the JidString
-			User = MoveTemp(JidString);
+			User = JidString;
 		}
 	}
 

@@ -104,7 +104,7 @@ void UK2Node::Serialize(FArchive& Ar)
 					// Serialize the asset reference, this will do the save fixup. It won't actually serialize the string if this is a real archive like linkersave
 					TempRef.SerializePath(Ar, true);
 
-					Pin->DefaultValue = MoveTemp(TempRef.ToString());
+					Pin->DefaultValue = TempRef.ToString();
 				}
 			}
 		}

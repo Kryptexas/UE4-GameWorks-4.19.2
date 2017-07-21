@@ -10,7 +10,7 @@ public class Bolts : ModuleRules
 
         Definitions.Add("WITH_BOLTS=1");
 
-		string BoltsPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "IOS/Bolts/";
+		string BoltsPath = Target.UEThirdPartySourceDirectory + "IOS/Bolts/";
         if (Target.Platform == UnrealTargetPlatform.IOS)
         {
             BoltsPath += "Bolts/";

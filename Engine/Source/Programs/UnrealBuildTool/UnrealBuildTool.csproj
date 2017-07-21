@@ -140,6 +140,8 @@
     <Compile Include="System\BuildVersion.cs" />
     <Compile Include="System\CppCompileEnvironment.cs" />
     <Compile Include="System\DirectoryReference.cs" />
+    <Compile Include="System\ExceptionUtils.cs" />
+    <Compile Include="System\PluginReferenceDescriptor.cs" />
     <Compile Include="System\RulesDocumentation.cs" />
     <Compile Include="System\FileFilter.cs" />
     <Compile Include="System\FileFilterNode.cs" />
@@ -176,6 +178,7 @@
     <Compile Include="System\TargetReceipt.cs" />
     <Compile Include="System\UBTMakefile.cs" />
     <Compile Include="System\VersionManifest.cs" />
+    <Compile Include="System\VSCodeProjectFileGenerator.cs" />
     <Compile Include="System\XmlConfig.cs" />
     <Compile Include="System\XmlConfigData.cs" />
     <Compile Include="System\XmlConfigFile.cs" />

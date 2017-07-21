@@ -1454,8 +1454,9 @@ private:
 	/**
 	* All the custom versions stored in the archive.
 	* Stored as a pointer to a heap-allocated object because of a 3-way dependency between TArray, FCustomVersionContainer and FArchive, which is too much work to change right now.
+	* Keeping it as a heap-allocated object also helps with performance in some cases as we don't need to construct it for archives that don't care about custom versions.
 	*/
-	FCustomVersionContainer* CustomVersionContainer;
+	mutable FCustomVersionContainer* CustomVersionContainer;
 
 public:
 

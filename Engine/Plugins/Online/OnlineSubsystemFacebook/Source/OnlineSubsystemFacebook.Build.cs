@@ -59,7 +59,7 @@ public class OnlineSubsystemFacebook : ModuleRules
 				}
 				);
 
-				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemFacebook_UPL.xml")));
 			}
 			else

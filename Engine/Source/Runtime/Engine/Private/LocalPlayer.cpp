@@ -27,7 +27,7 @@
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
 #include "SkeletalMeshTypes.h"
-
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
@@ -483,7 +483,7 @@ public:
 
 			// Also copy to the clipboard.
 			FString ViewPointString = ViewPointToString(PlayerState.ViewPoint);
-			FPlatformMisc::ClipboardCopy(*ViewPointString);
+			FPlatformApplicationMisc::ClipboardCopy(*ViewPointString);
 		}
 
 		if (bPrintHelp)
@@ -606,7 +606,7 @@ private:
 				);
 			bFirst = false;
 		}
-		FPlatformMisc::ClipboardCopy(*LockedViewsStr);
+		FPlatformApplicationMisc::ClipboardCopy(*LockedViewsStr);
 		UE_LOG(LogConsoleResponse,Display,TEXT("%s"),*LockedViewsStr);
 	}
 

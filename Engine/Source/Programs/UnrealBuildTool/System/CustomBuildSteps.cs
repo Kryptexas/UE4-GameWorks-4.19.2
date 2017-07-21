@@ -74,29 +74,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Determines whether there are custom build steps for the given host platform
-		/// </summary>
-		/// <param name="HostPlatform">The host platform to check for</param>
-		/// <returns>True if the host platform exists</returns>
-		public bool HasHostPlatform(UnrealTargetPlatform HostPlatform)
-		{
-			string[] Commands;
-			return HostPlatformToCommands.TryGetValue(HostPlatform, out Commands) && Commands.Length > 0;
-		}
-
-		/// <summary>
 		/// Tries to get the commands for a given host platform
 		/// </summary>
 		/// <param name="HostPlatform">The host platform to look for</param>
-		/// <param name="Variables">Lookup of additional environment variables to expand</param>
 		/// <param name="OutCommands">Array of commands</param>
 		/// <returns>True if a list of commands was generated</returns>
-		public bool TryGetCommands(UnrealTargetPlatform HostPlatform, Dictionary<string, string> Variables, out string[] OutCommands)
+		public bool TryGetCommands(UnrealTargetPlatform HostPlatform, out string[] OutCommands)
 		{
 			string[] Commands;
 			if(HostPlatformToCommands.TryGetValue(HostPlatform, out Commands) && Commands.Length > 0)
 			{
-				OutCommands = Commands.Select(x => Utils.ExpandVariables(x, Variables)).ToArray();
+				OutCommands = Commands;
 				return true;
 			}
 			else

@@ -99,7 +99,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::bIsSourceDistribution = FEngineBuildSettings::IsSourceDistribution();
 	NCachedCrashContextProperties::bIsUE4Release = FApp::IsEngineInstalled();
 
-	NCachedCrashContextProperties::GameName = FString::Printf( TEXT("UE4-%s"), FApp::GetGameName() );
+	NCachedCrashContextProperties::GameName = FString::Printf( TEXT("UE4-%s"), FApp::GetProjectName() );
 	NCachedCrashContextProperties::ExecutableName = FPlatformProcess::ExecutableName();
 	NCachedCrashContextProperties::PlatformName = FPlatformProperties::PlatformName();
 	NCachedCrashContextProperties::PlatformNameIni = FPlatformProperties::IniPlatformName();

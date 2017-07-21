@@ -99,9 +99,10 @@
     <Compile Include="MegaXGE.Automation.cs" />
     <Compile Include="PackageCommand.Automation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResavePluginDescriptors.cs" />
+    <Compile Include="ResaveProjectDescriptors.cs" />
     <Compile Include="RunProjectCommand.Automation.cs" />
     <Compile Include="SharedCookedBuild.cs" />
-    <Compile Include="StreamCopyDescription.Automation.cs" />
     <Compile Include="SubmitUtililzationReportToEC.Automation.cs" />
     <Compile Include="SyncDDC.cs" />
     <Compile Include="SyncDepotPath.cs" />

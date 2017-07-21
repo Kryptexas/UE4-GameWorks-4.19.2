@@ -4,6 +4,7 @@
 #include "SlateOptMacros.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 /* SMultiColumnTableRow overrides
@@ -104,7 +105,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 				SNew(SHyperlink)
 				.ToolTipText(NSLOCTEXT("SWidgetReflector", "ClickToCopy", "Click to copy address."))
 				.Text(Address)
-				.OnNavigate_Lambda([Address](){ FPlatformMisc::ClipboardCopy(*Address.ToString()); })
+				.OnNavigate_Lambda([Address](){ FPlatformApplicationMisc::ClipboardCopy(*Address.ToString()); })
 			];
 	}
 	else

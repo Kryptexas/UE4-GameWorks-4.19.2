@@ -35,6 +35,7 @@
 #include "Editor.h"
 #include "MaterialEditorModule.h"
 #include "MaterialEditingLibrary.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
@@ -1268,7 +1269,7 @@ FText FMaterialEditor::GetCodeViewText() const
 
 FReply FMaterialEditor::CopyCodeViewTextToClipboard()
 {
-	FPlatformMisc::ClipboardCopy(*HLSLCode);
+	FPlatformApplicationMisc::ClipboardCopy(*HLSLCode);
 	return FReply::Handled();
 }
 
@@ -3283,7 +3284,7 @@ void FMaterialEditor::CopySelectedNodes()
 	}
 
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 
 	// Make sure Material remains the owner of the copied nodes
 	for (FGraphPanelSelectionSet::TConstIterator SelectedIter(SelectedNodes); SelectedIter; ++SelectedIter)
@@ -3331,7 +3332,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Grab the text to paste from the clipboard.
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	// Import the nodes
 	TSet<UEdGraphNode*> PastedNodes;
@@ -3448,7 +3449,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 bool FMaterialEditor::CanPasteNodes() const
 {
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return FEdGraphUtilities::CanImportNodesFromText(Material->MaterialGraph, ClipboardContent);
 }

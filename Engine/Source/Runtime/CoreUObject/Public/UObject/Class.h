@@ -18,6 +18,7 @@
 #include "Templates/HasGetTypeHash.h"
 #include "Templates/IsAbstract.h"
 #include "Templates/IsEnum.h"
+#include "Misc/Optional.h"
 
 struct FCustomPropertyListNode;
 struct FFrame;
@@ -393,13 +394,6 @@ public:
 
 	/** Serializes the SuperStruct pointer */
 	virtual void SerializeSuperStruct(FArchive& Ar);
-
-	/** Called to add a Field to the front of the linked list for the parent struct */
-	void LinkChild(UField* Child)
-	{
-		Child->Next = Children;
-		Children = Child;
-	}
 
 	/** Returns the a human readable string for a property, overridden for user defined structs */
 	virtual FString PropertyNameToDisplayName(FName InName) const 
@@ -1277,9 +1271,6 @@ public:
 	/** EFunctionFlags set defined for this function */
 	EFunctionFlags FunctionFlags;
 
-	/** Memory Offset of replicated data, only valid if Net flag set */
-	uint16 RepOffset;
-
 	// Variables in memory only.
 	
 	/** Number of parameters total */
@@ -1339,8 +1330,8 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
-	explicit UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
+	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, SIZE_T ParamsSize = 0 );
+	explicit UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, SIZE_T ParamsSize = 0);
 
 	/** Initializes transient members like return value offset */
 	void InitializeDerivedMembers();
@@ -1429,8 +1420,8 @@ class COREUOBJECT_API UDelegateFunction : public UFunction
 	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateFunction, UFunction, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UDelegateFunction)
 	DECLARE_WITHIN(UObject)
 public:
-	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
-	explicit UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0);
+	explicit UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, SIZE_T ParamsSize = 0);
+	explicit UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags = FUNC_None, SIZE_T ParamsSize = 0);
 };
 
 /*-----------------------------------------------------------------------------
@@ -1860,11 +1851,32 @@ struct ICppClassTypeInfo
 };
 
 
-/** Implements the type information interface for specific C++ class types */
-template<typename TTraits>
-struct TCppClassTypeInfo : ICppClassTypeInfo
+struct FCppClassTypeInfoStatic
 {
-	bool IsAbstract() const { return TTraits::IsAbstract; }
+	bool bIsAbstract;
+};
+
+
+/** Implements the type information interface for specific C++ class types */
+struct FCppClassTypeInfo : ICppClassTypeInfo
+{
+	explicit FCppClassTypeInfo(const FCppClassTypeInfoStatic* InInfo)
+		: Info(InInfo)
+	{
+	}
+
+	// Non-copyable
+	FCppClassTypeInfo(const FCppClassTypeInfo&) = delete;
+	FCppClassTypeInfo& operator=(const FCppClassTypeInfo&) = delete;
+
+	// ICppClassTypeInfo implementation
+	bool IsAbstract() const
+	{
+		return Info->bIsAbstract;
+	}
+
+private:
+	const FCppClassTypeInfoStatic* Info;
 };
 
 
@@ -1971,6 +1983,13 @@ namespace EIncludeSuperFlag
 #endif
 
 
+struct FClassFunctionLinkInfo
+{
+	UFunction* (*CreateFuncPtr)();
+	const char* FuncNameUTF8;
+};
+
+
 /**
  * An object class.
  */
@@ -2069,8 +2088,8 @@ public:
 	static void AssembleReferenceTokenStreams();
 
 private:
-	/** Provides access to attributes of the underlying C++ class. Should never be NULL. */
-	ICppClassTypeInfo* CppTypeInfo;
+	/** Provides access to attributes of the underlying C++ class. Should never be unset. */
+	TOptional<FCppClassTypeInfo> CppTypeInfo;
 
 	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
@@ -2180,20 +2199,12 @@ public:
 	void AddNativeFunction(const WIDECHAR* InName, Native InPointer);
 
 	/** Add a function to the function map */
-	void AddFunctionToFunctionMap(UFunction* NewFunction)
+	void AddFunctionToFunctionMap(UFunction* Function, FName FuncName)
 	{
-		FuncMap.Add(NewFunction->GetFName(), NewFunction);
+		FuncMap.Add(FuncName, Function);
 	}
 
-	/** 
-	 * This is used by the code generator, which instantiates UFunctions with a name that is later overridden. Overridden names
-	 * are needed to support generated versions of blueprint classes, properties of which do not have the same naming 
-	 * restrictions as native C++ properties
-	 */
-	void AddFunctionToFunctionMapWithOverriddenName(UFunction* NewFunction, FName OverriddenName)
-	{
-		FuncMap.Add(OverriddenName, NewFunction);
-	}
+	void CreateLinkAndAddChildFunctionsToMap(const FClassFunctionLinkInfo* Functions, uint32 NumFunctions);
 
 	/** Remove a function from the function map */
 	void RemoveFunctionFromFunctionMap(UFunction* Function)
@@ -2241,14 +2252,14 @@ public:
 	/** Provides access to C++ type info. */
 	const ICppClassTypeInfo* GetCppTypeInfo() const
 	{
-		return CppTypeInfo;
+		return CppTypeInfo ? &CppTypeInfo.GetValue() : nullptr;
 	}
 
 	/** Sets C++ type information. Should not be NULL. */
-	void SetCppTypeInfo(ICppClassTypeInfo* InCppTypeInfo)
+	void SetCppTypeInfoStatic(const FCppClassTypeInfoStatic* InCppTypeInfoStatic)
 	{
-		check(InCppTypeInfo);
-		CppTypeInfo = InCppTypeInfo;
+		check(InCppTypeInfoStatic);
+		CppTypeInfo.Emplace(InCppTypeInfoStatic);
 	}
 	
 	/**

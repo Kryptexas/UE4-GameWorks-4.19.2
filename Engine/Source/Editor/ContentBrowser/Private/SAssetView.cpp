@@ -46,6 +46,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "SSplitter.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1499,7 +1500,7 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 		TArray<FString> AssetPathsSplit;
 
 		// Get the copied asset paths
-		FPlatformMisc::ClipboardPaste(AssetPaths);
+		FPlatformApplicationMisc::ClipboardPaste(AssetPaths);
 
 		// Make sure the clipboard does not contain T3D
 		if (!ContainsT3D(AssetPaths.TrimTrailing()))
@@ -1804,7 +1805,7 @@ void SAssetView::RefreshSourceItems()
 		// If this is an engine folder, and we don't want to show them, remove
 		const bool IsHiddenEngineFolder = !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString());
 		// If this is a plugin folder, and we don't want to show them, remove
-		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::GameProject);
+		const bool IsAHiddenGameProjectPluginFolder = !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Project);
 		// If this is an engine plugin folder, and we don't want to show them, remove
 		const bool IsAHiddenEnginePluginFolder = (!bDisplayEngine || !bDisplayPlugins) && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString(), EPluginLoadedFrom::Engine);
 		// Do not show localized content folders.

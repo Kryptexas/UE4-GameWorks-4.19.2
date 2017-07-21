@@ -39,26 +39,15 @@ public class MacPlatform : Platform
 		return "Mac";
 	}
 
-	private void StageAppBundle(DeploymentContext SC, StagedFileType InStageFileType, DirectoryReference InPath, StagedDirectoryReference NewName)
+	private void StageAppBundle(DeploymentContext SC, DirectoryReference InPath, StagedDirectoryReference NewName)
 	{
-		if (InStageFileType != StagedFileType.DebugNonUFS)
+		// Files with DebugFileExtensions should always be DebugNonUFS
+		List<string> DebugExtensions = GetDebugFileExtentions();
+		foreach(FileReference InputFile in DirectoryReference.EnumerateFiles(InPath, "*", SearchOption.AllDirectories))
 		{
-			// Files with DebugFileExtensions should always be DebugNonUFS
-			List<string> DebugExtentionWildCards = new List<string>();
-			foreach(string DebugExtention in GetDebugFileExtentions())
-			{
-				string ExtensionWildcard = "*" + DebugExtention;
-				DebugExtentionWildCards.Add(ExtensionWildcard);
-				SC.StageFiles(StagedFileType.DebugNonUFS, InPath, ExtensionWildcard, true, null, NewName, true, true, null);
-			}
-
-			// Also stage the non-debug files, excluding the debug ones staged above
-			SC.StageFiles(InStageFileType, InPath, "*", true, DebugExtentionWildCards.ToArray(), NewName, false, true, null);
-		}
-		else
-		{
-			// We are already DebugNonUFS, no need to do any special-casing
-			SC.StageFiles(InStageFileType, InPath, "*", true, null, NewName, false, true, null);
+			StagedFileReference OutputFile = StagedFileReference.Combine(NewName, InputFile.MakeRelativeTo(InPath));
+			StagedFileType FileType = DebugExtensions.Any(x => InputFile.HasExtension(x))? StagedFileType.DebugNonUFS : StagedFileType.NonUFS;
+			SC.StageFile(FileType, InputFile, OutputFile);
 		}
 	}
 
@@ -73,32 +62,40 @@ public class MacPlatform : Platform
 		if (SC.bStageCrashReporter)
 		{
 			StagedDirectoryReference CrashReportClientPath = StagedDirectoryReference.Combine("Engine/Binaries", SC.PlatformDir, "CrashReportClient.app");
-			StageAppBundle(SC, StagedFileType.NonUFS, DirectoryReference.Combine(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "CrashReportClient.app"), CrashReportClientPath);
+			StageAppBundle(SC, DirectoryReference.Combine(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "CrashReportClient.app"), CrashReportClientPath);
 		}
 
 		// Find the app bundle path
 		List<FileReference> Exes = GetExecutableNames(SC);
 		foreach (var Exe in Exes)
 		{
-			string AppBundlePath = "";
+			StagedDirectoryReference AppBundlePath = null;
 			if (Exe.IsUnderDirectory(DirectoryReference.Combine(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
 			{
-				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe.FullName) + ".app");
+				AppBundlePath = StagedDirectoryReference.Combine(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe.FullName) + ".app");
 			}
 			else if (Exe.IsUnderDirectory(DirectoryReference.Combine(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
 			{
-				AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe.FullName) + ".app");
+				AppBundlePath = StagedDirectoryReference.Combine("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe.FullName) + ".app");
 			}
 
 			// Copy the custom icon and Steam dylib, if needed
-			if (!string.IsNullOrEmpty(AppBundlePath))
+			if (AppBundlePath != null)
 			{
-				SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, new StagedDirectoryReference(CombinePaths(AppBundlePath, "Contents/Resources")), true);
+				FileReference AppIconsFile = FileReference.Combine(SC.ProjectRoot, "Build", "Mac", "Application.icns");
+				if(FileReference.Exists(AppIconsFile))
+				{
+					SC.StageFile(StagedFileType.NonUFS, AppIconsFile, StagedFileReference.Combine(AppBundlePath, "Contents", "Resources", "Application.icns"));
+				}
 			}
 		}
 
 		// Copy the splash screen, Mac specific
-		SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+		FileReference SplashImage = FileReference.Combine(SC.ProjectRoot, "Content", "Splash", "Splash.bmp");
+		if(FileReference.Exists(SplashImage))
+		{
+			SC.StageFile(StagedFileType.NonUFS, SplashImage);
+		}
 
 		// Stage the bootstrap executable
 		if (!Params.NoBootstrapExe)
@@ -109,7 +106,7 @@ public class MacPlatform : Platform
 				if (Executable != null)
 				{
 					// only create bootstraps for executables
-					List<StagedFileReference> StagedFiles = SC.FilesToStage.NonUFSStagingFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
+					List<StagedFileReference> StagedFiles = SC.FilesToStage.NonUFSFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
 					if (StagedFiles.Count > 0 && Executable.Path.FullName.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
 					{
 						string BootstrapArguments = "";
@@ -151,8 +148,17 @@ public class MacPlatform : Platform
 		}
 
 		// Copy the ShaderCache files, if they exist
-		SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Content"), "DrawCache.ushadercache", false, null, null, true);
-		SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Content"), "ByteCodeCache.ushadercode", false, null, null, true);
+		FileReference DrawCacheFile = FileReference.Combine(SC.ProjectRoot, "Content", "DrawCache.ushadercache");
+		if(FileReference.Exists(DrawCacheFile))
+		{
+			SC.StageFile(StagedFileType.UFS, DrawCacheFile);
+		}
+
+		FileReference ByteCodeCacheFile = FileReference.Combine(SC.ProjectRoot, "Content", "ByteCodeCache.ushadercode");
+		if(FileReference.Exists(ByteCodeCacheFile))
+		{
+			SC.StageFile(StagedFileType.UFS, ByteCodeCacheFile);
+		}
 	}
 
 	string GetValueFromInfoPlist(string InfoPlist, string Key, string DefaultValue = "")
@@ -229,7 +235,7 @@ public class MacPlatform : Platform
 
 			File.WriteAllText(DestInfoPlistPath, DestInfoPlist);
 
-			StageAppBundle(SC, StagedFileType.NonUFS, IntermediateApp, new StagedDirectoryReference(ExeName));
+			StageAppBundle(SC, IntermediateApp, new StagedDirectoryReference(ExeName));
 		}
 	}
 

@@ -3035,7 +3035,7 @@ void FOpenGLProgramBinaryCache::Initialize()
 		CacheFolderPath = GExternalFilePath / TEXT("ProgramBinaryCache");
 			
 #else
-		CacheFolderPath = FPaths::GameSavedDir() / TEXT("ProgramBinaryCache");
+		CacheFolderPath = FPaths::ProjectSavedDir() / TEXT("ProgramBinaryCache");
 #endif
 
 		ANSICHAR* GLVersion = (ANSICHAR*)glGetString(GL_VERSION);

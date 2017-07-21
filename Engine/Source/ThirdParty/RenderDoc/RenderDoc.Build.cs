@@ -10,7 +10,7 @@ public class RenderDoc : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
         {
-            string ApiPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "RenderDoc/";
+            string ApiPath = Target.UEThirdPartySourceDirectory + "RenderDoc/";
             PublicSystemIncludePaths.Add(ApiPath);
         }
     }

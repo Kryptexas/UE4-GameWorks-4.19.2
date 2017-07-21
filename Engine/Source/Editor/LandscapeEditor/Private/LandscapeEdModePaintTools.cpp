@@ -730,20 +730,20 @@ public:
 						int32 Delta = DataScanline[X] - FlattenHeight;
 						switch (UISettings->FlattenMode)
 						{
-						case ELandscapeToolNoiseMode::Add:
+						case ELandscapeToolFlattenMode::Raise:
 							if (Delta < 0)
 							{
 								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
 							}
 							break;
-						case ELandscapeToolNoiseMode::Sub:
+						case ELandscapeToolFlattenMode::Lower:
 							if (Delta > 0)
 							{
 								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
 							}
 							break;
 						default:
-						case ELandscapeToolNoiseMode::Both:
+						case ELandscapeToolFlattenMode::Both:
 							if (Delta > 0)
 							{
 								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
@@ -763,20 +763,20 @@ public:
 						DestValue = DataScanline[X] - PlaneDist * Strength;
 						switch (UISettings->FlattenMode)
 						{
-						case ELandscapeToolNoiseMode::Add:
+						case ELandscapeToolFlattenMode::Raise:
 							if (PlaneDist < 0)
 							{
 								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
 							}
 							break;
-						case ELandscapeToolNoiseMode::Sub:
+						case ELandscapeToolFlattenMode::Lower:
 							if (PlaneDist > 0)
 							{
 								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
 							}
 							break;
 						default:
-						case ELandscapeToolNoiseMode::Both:
+						case ELandscapeToolFlattenMode::Both:
 							if (PlaneDist > 0)
 							{
 								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
@@ -984,7 +984,7 @@ public:
 					if (bUseWeightTargetValue)
 					{
 						FNoiseParameter NoiseParam(0, UISettings->NoiseScale, 255.0f / 2.0f);
-						float DestValue = ELandscapeToolNoiseMode::Conversion(ELandscapeToolNoiseMode::Add, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y)) * UISettings->WeightTargetValue;
+						float DestValue = NoiseModeConversion(ELandscapeToolNoiseMode::Add, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y)) * UISettings->WeightTargetValue;
 						switch (UISettings->NoiseMode)
 						{
 						case ELandscapeToolNoiseMode::Add:
@@ -1007,7 +1007,7 @@ public:
 					{
 						float TotalStrength = BrushValue * UISettings->ToolStrength * Pressure * ToolTarget::StrengthMultiplier(this->LandscapeInfo, UISettings->BrushRadius);
 						FNoiseParameter NoiseParam(0, UISettings->NoiseScale, TotalStrength * BrushSizeAdjust);
-						float PaintAmount = ELandscapeToolNoiseMode::Conversion(UISettings->NoiseMode, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
+						float PaintAmount = NoiseModeConversion(UISettings->NoiseMode, NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
 						DataScanline[X] = ToolTarget::CacheClass::ClampValue(OriginalValue + PaintAmount);
 					}
 				}

@@ -8,7 +8,7 @@ public class OnlineSubsystemSteam : ModuleRules
 	public OnlineSubsystemSteam(ReadOnlyTargetRules Target) : base(Target)
 	{
 		string SteamVersion = "Steamv139";
-		bool bSteamSDKFound = Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
+		bool bSteamSDKFound = Directory.Exists(Target.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 
 		Definitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
 		Definitions.Add("WITH_STEAMWORKS=" + (bSteamSDKFound ? "1" : "0"));

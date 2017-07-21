@@ -19,8 +19,6 @@ class TFunction;
  */
 struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 {
-	static class GenericApplication* CreateApplication();
-
 	static void RequestMinimize();
 	static void RequestExit( bool Force );
 	static void LowLevelOutputDebugString(const TCHAR *Message);
@@ -34,10 +32,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void* GetHardwareWindow();
 	static void SetHardwareWindow(void* InWindow);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool AllowRenderThread();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
@@ -84,14 +79,9 @@ public:
 	// NOTE: THIS FUNCTION IS DEFINED IN ANDROIDOPENGL.CPP
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool GetUseVirtualJoysticks();
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static const TCHAR* GetDefaultDeviceProfileName() { return TEXT("Android_Default"); }
 	static bool GetVolumeButtonsHandledBySystem();
 	static void SetVolumeButtonsHandledBySystem(bool enabled);
-	static void ResetGamepadAssignments();
-	static void ResetGamepadAssignmentToController(int32 ControllerId);
-	static bool IsControllerAssignedToGamepad(int32 ControllerId);
 	// Returns current volume, 0-15
 	static int GetVolumeState(double* OutTimeOfChangeInSec = nullptr);
 	static const TCHAR* GamePersistentDownloadDir();

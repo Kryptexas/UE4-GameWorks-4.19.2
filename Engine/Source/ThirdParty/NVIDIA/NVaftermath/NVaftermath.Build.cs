@@ -10,7 +10,7 @@ public class NVAftermath : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-            String NVAftermathPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/NVaftermath/";
+            String NVAftermathPath = Target.UEThirdPartySourceDirectory + "NVIDIA/NVaftermath/";
             PublicSystemIncludePaths.Add(NVAftermathPath);
             
             String NVAftermathLibPath = NVAftermathPath + "amd64/";

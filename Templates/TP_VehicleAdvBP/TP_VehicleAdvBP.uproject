@@ -1,8 +1,8 @@
 {
 	"FileVersion": 3,
-	"EngineVersion": "4.5.0-0+UE4",
-	"PackageFileUE4Version": "363",
-	"PackageFileLicenseeUE4Version": "0",
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": "",
 	"Plugins": [
 		{
 			"Name": "PhysXVehicles",

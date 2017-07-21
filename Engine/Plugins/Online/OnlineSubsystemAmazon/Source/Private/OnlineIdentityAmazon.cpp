@@ -4,6 +4,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "OnlineSubsystemAmazon.h"
 #include "OnlineError.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 // FUserOnlineAccountAmazon
 
@@ -106,7 +107,7 @@ void FOnlineIdentityAmazon::TickLogin(float DeltaTime)
 		{
 			LastCheckElapsedTime = 0.f;
 			FString Title;
-			if (FPlatformMisc::GetWindowTitleMatchingText(TEXT("accessToken"), Title))
+			if (FPlatformApplicationMisc::GetWindowTitleMatchingText(TEXT("accessToken"), Title))
 			{
 				bHasLoginOutstanding = false;
 				FUserOnlineAccountAmazon User;

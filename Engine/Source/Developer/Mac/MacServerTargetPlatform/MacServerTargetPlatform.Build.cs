@@ -14,7 +14,7 @@ public class MacServerTargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateDependencyModuleNames.Add("CoreUObject"); // @todo Mac: for some reason it's needed to link in debug on Mac
 			PrivateDependencyModuleNames.Add("Engine");

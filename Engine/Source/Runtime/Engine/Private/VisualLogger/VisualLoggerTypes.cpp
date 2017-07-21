@@ -466,8 +466,8 @@ FString FVisualLoggerHelpers::GenerateTemporaryFilename(const FString& FileExt)
 
 FString FVisualLoggerHelpers::GenerateFilename(const FString& TempFileName, const FString& Prefix, float StartRecordingTime, float EndTimeStamp)
 {
-	const FString TempFullFilename = FString::Printf(TEXT("%s%s"), *FPaths::GameLogDir(), *TempFileName);
-	const FString FullFilename = FString::Printf(TEXT("%s%s_%s"), *FPaths::GameLogDir(), *Prefix, *TempFileName);
+	const FString TempFullFilename = FString::Printf(TEXT("%s%s"), *FPaths::ProjectLogDir(), *TempFileName);
+	const FString FullFilename = FString::Printf(TEXT("%s%s_%s"), *FPaths::ProjectLogDir(), *Prefix, *TempFileName);
 	const FString TimeFrameString = FString::Printf(TEXT("%d-%d_"), FMath::TruncToInt(StartRecordingTime), FMath::TruncToInt(EndTimeStamp));
 	return FullFilename.Replace(TEXT("VTEMP_"), *TimeFrameString, ESearchCase::CaseSensitive);
 }

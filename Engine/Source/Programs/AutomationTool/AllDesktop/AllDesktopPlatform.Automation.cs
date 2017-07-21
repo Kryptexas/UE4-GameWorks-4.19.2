@@ -114,7 +114,7 @@ public class AllDesktopPlatform : Platform
 		return "AllDesktop";
 	}
 
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		return false;
 	}

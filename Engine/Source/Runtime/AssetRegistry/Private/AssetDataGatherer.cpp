@@ -397,7 +397,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, const TAr
 		if (AssetDataCacheMode == EAssetDataCacheMode::UseMonolithicCache)
 		{
 			bLoadAndSaveCache = true;
-			CacheFilename = FPaths::GameIntermediateDir() / TEXT("CachedAssetRegistry.bin");
+			CacheFilename = FPaths::ProjectIntermediateDir() / TEXT("CachedAssetRegistry.bin");
 		}
 		else if (InPaths.Num() > 0)
 		{
@@ -409,7 +409,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, const TAr
 			}
 
 			bLoadAndSaveCache = true;
-			CacheFilename = FPaths::GameIntermediateDir() / TEXT("AssetRegistryCache") / FString::Printf(TEXT("%08x.bin"), CacheHash);
+			CacheFilename = FPaths::ProjectIntermediateDir() / TEXT("AssetRegistryCache") / FString::Printf(TEXT("%08x.bin"), CacheHash);
 		}
 	}
 

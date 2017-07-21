@@ -217,7 +217,6 @@ struct CORE_API FGenericPlatformMisc
 	 * Called during AppExit(). Log, Config still exist at this point, but not much else does.
 	 */
 	static void PlatformTearDown() { }
-	static GenericApplication* CreateApplication();
 
 	static void* GetHardwareWindow()
 	{
@@ -429,41 +428,12 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 
-	/**
-	 *	Pumps Windows messages.
-	 *	@param bFromMainLoop if true, this is from the main loop, otherwise we are spinning waiting for the render thread
-	 */
-	FORCEINLINE static void PumpMessages(bool bFromMainLoop)
-	{
-	}
-
-	FORCEINLINE static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-	{
-		return 0;
-	}
-
-	FORCEINLINE static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-	{
-		return 0;
-	}
-
 	FORCEINLINE static uint32 GetLastError()
 	{
 		return 0;
 	}
 
 	static void RaiseException( uint32 ExceptionCode );
-
-protected:
-
-	/**
-	* Retrieves some standard key code mappings (usually called by a subclass's GetCharKeyMap)
-	*
-	* @param OutKeyMap Key map to add to.
-	* @param bMapUppercaseKeys If true, will map A, B, C, etc to EKeys::A, EKeys::B, EKeys::C
-	* @param bMapLowercaseKeys If true, will map a, b, c, etc to EKeys::A, EKeys::B, EKeys::C
-	*/
-	static uint32 GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys);
 
 public:
 
@@ -587,9 +557,11 @@ public:
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 
 	/** Copies text to the operating system clipboard. */
+	DEPRECATED(4.18, "FPlatformMisc::ClipboardCopy() has been superseded by FPlatformApplicationMisc::ClipboardCopy()")
 	static void ClipboardCopy(const TCHAR* Str);
 
 	/** Pastes in text from the operating system clipboard. */
+	DEPRECATED(4.18, "FPlatformMisc::ClipboardPaste() has been superseded by FPlatformApplicationMisc::ClipboardPaste()")
 	static void ClipboardPaste(class FString& Dest);
 
 	/** Create a new globally unique identifier. **/
@@ -603,31 +575,6 @@ public:
 	 * @return Very strange convention...not really EAppReturnType, see implementation
 	 */
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-
-	/**
-	 * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
-	 * Vista in the presence of a group policy for password protected screen saver.
-	 */
-	static void PreventScreenSaver()
-	{
-	}
-
-	enum EScreenSaverAction
-	{
-		Disable,
-		Enable
-	};
-
-	/**
-	 * Disables screensaver (if platform supports such an API)
-	 *
-	 * @param Action enable or disable
-	 * @return true if succeeded, false if platform does not have this API and PreventScreenSaver() hack is needed
-	 */
-	static bool ControlScreensaver(EScreenSaverAction Action)
-	{
-		return false;
-	}
 
 	/**
 	 * Handles Game Explorer, Firewall and FirstInstall commands, typically from the installer
@@ -751,9 +698,9 @@ public:
 	static void CacheLaunchDir();
 
 	/**
-	 *	Return the GameDir
+	 *	Return the project directory
 	 */
-	static const TCHAR* GameDir();
+	static const TCHAR* ProjectDir();
 
 	/**
 	*	Return the CloudDir.  CloudDir can be per-user.
@@ -832,20 +779,6 @@ public:
 	}
 
 	/**
-	 * Searches for a window that matches the window name or the title starts with a particular text. When
-	 * found, it returns the title text for that window
-	 *
-	 * @param TitleStartsWith an alternative search method that knows part of the title text
-	 * @param OutTitle the string the data is copied into
-	 *
-	 * @return whether the window was found and the text copied or not
-	 */
-	static bool GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle)
-	{
-		return false;
-	}
-
-	/**
 	* Generates the SHA256 signature of the given data.
 	* 
 	*
@@ -892,15 +825,6 @@ public:
 	/** @return Get the name of the platform specific file manager (eg, Explorer on Windows, Finder on OS X) */
 	static FText GetFileManagerName();
 
-	/**
-	 * Sample the displayed pixel color from anywhere on the screen using the OS
-	 *
-	 * @param	InScreenPos		The screen coords to sample for current pixel color
-	 * @param	InGamma			Optional gamma correction to apply to the screen color
-	 * @return					The color of the pixel displayed at the chosen location
-	 */
-	static struct FLinearColor GetScreenPixelColor(const struct FVector2D& InScreenPos, float InGamma = 1.0f);
-
 #if !UE_BUILD_SHIPPING
 	static void SetShouldPromptForRemoteDebugging(bool bInShouldPrompt)
 	{
@@ -946,7 +870,10 @@ public:
 	/** 
 	 * Allows a game/program/etc to control the game directory in a special place (for instance, monolithic programs that don't have .uprojects)
 	 */
-	static void SetOverrideGameDir(const FString& InOverrideDir);
+	static void SetOverrideProjectDir(const FString& InOverrideDir);
+
+	DEPRECATED(4.18, "FPaths::SetOverrideGameDir() has been superseded by FPaths::SetOverrideProjectDir().")
+	static FORCEINLINE void SetOverrideGameDir(const FString& InOverrideDir) { return SetOverrideProjectDir(InOverrideDir); }
 
 	/**
 	 * Return an ordered list of target platforms this runtime can support (ie Android_DXT, Android
@@ -968,26 +895,6 @@ public:
 	static bool GetVolumeButtonsHandledBySystem()
 	{
 		return true;
-	}
-
-	/*
-	 * Resets the gamepad to player controller id assignments
-	 */
-	static void ResetGamepadAssignments()
-	{}
-
-	/*
-	* Resets the gamepad assignment to player controller id
-	*/
-	static void ResetGamepadAssignmentToController(int32 ControllerId)
-	{}
-
-	/*
-	 * Returns true if controller id assigned to a gamepad
-	 */
-	static bool IsControllerAssignedToGamepad(int32 ControllerId)
-	{
-		return (ControllerId == 0);
 	}
 
 	/*
@@ -1143,15 +1050,6 @@ public:
 	*/
 	static const void PreLoadMap(FString&, FString&, void*)
 	{}
-
-	/**
-	* Returns monitor's DPI scale factor at given screen coordinates (expressed in pixels)
-	* @return Monitor's DPI scale factor at given point
-	*/
-	static float GetDPIScaleFactorAtPoint(float X, float Y)
-	{
-		return 1.0f;
-	}
 
 	/**
 	 * Allows platform at runtime to disable unsupported plugins

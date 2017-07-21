@@ -13,6 +13,7 @@
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 int32 SVerbChoiceDialog::ShowModal(const FText& InTitle, const FText& InText, const TArray<FText>& InButtons)
 {
@@ -175,7 +176,7 @@ bool SVerbChoiceDialog::SupportsKeyboardFocus() const
 
 void SVerbChoiceDialog::CopyMessageToClipboard( )
 {
-	FPlatformMisc::ClipboardCopy( *Message.Get().ToString() );
+	FPlatformApplicationMisc::ClipboardCopy( *Message.Get().ToString() );
 }
 
 void SVerbChoiceDialog::HandleCopyMessageHyperlinkNavigate( )

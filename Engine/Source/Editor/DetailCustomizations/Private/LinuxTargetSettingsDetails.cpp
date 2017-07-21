@@ -107,7 +107,7 @@ static FString GetSplashFilename(EImageScope::Type Scope, bool bIsEditorSplash)
 	}
 	else
 	{
-		Filename = FPaths::GameContentDir();
+		Filename = FPaths::ProjectContentDir();
 	}
 
 	if(bIsEditorSplash)
@@ -136,10 +136,10 @@ static FString GetIconFilename(EImageScope::Type Scope)
 	}
 	else
 	{
-		FString Filename = FPaths::GameDir() / TEXT("Build/Linux/Application.png");
+		FString Filename = FPaths::ProjectDir() / TEXT("Build/Linux/Application.png");
 		if(!FPaths::FileExists(Filename))
 		{
-			FString LegacyFilename = FPaths::GameSourceDir() / FString(FApp::GetGameName()) / FString(TEXT("Resources")) / PlatformName / FString(FApp::GetGameName()) + TEXT(".icns");
+			FString LegacyFilename = FPaths::GameSourceDir() / FString(FApp::GetProjectName()) / FString(TEXT("Resources")) / PlatformName / FString(FApp::GetProjectName()) + TEXT(".icns");
 			if(FPaths::FileExists(LegacyFilename))
 			{
 				Filename = LegacyFilename;

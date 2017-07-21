@@ -76,7 +76,7 @@ FMainFrameCommands::FMainFrameCommands()
 void FMainFrameCommands::RegisterCommands()
 {
 	// Some commands cannot be processed in a commandlet or if the editor is started without a project
-	if ( !IsRunningCommandlet() && FApp::HasGameName() )
+	if ( !IsRunningCommandlet() && FApp::HasProjectName() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
 		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
@@ -397,7 +397,7 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
 
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -skipstage -ue4exe=%s %s"),
 		GetUATCompilationFlags(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
@@ -475,7 +475,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		if (Platform)
 		{
 			FString NotInstalledTutorialLink;
-			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
 
 			// report to analytics
@@ -561,7 +561,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	// let the user pick a target directory
 	if (PackagingSettings->StagingDirectory.Path.IsEmpty())
 	{
-		PackagingSettings->StagingDirectory.Path = FPaths::GameDir();
+		PackagingSettings->StagingDirectory.Path = FPaths::ProjectDir();
 	}
 
 	FString OutFolderName;
@@ -694,7 +694,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetNameStringByValue(PackagingSettings->BuildConfiguration);
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
-	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString CommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun %s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
 		*ProjectPath,
 		GetUATCompilationFlags(),
@@ -782,8 +782,8 @@ void FMainFrameActionCallbacks::ZipUpProject()
 		bOpened = DesktopPlatform->SaveFileDialog(
 			NULL,
 			NSLOCTEXT("UnrealEd", "ZipUpProject", "Zip file location").ToString(),
-			FPaths::GameDir(),
-			FApp::GetGameName(),
+			FPaths::ProjectDir(),
+			FApp::GetProjectName(),
 			TEXT("Zip file|*.zip"),
 			EFileDialogFlags::None,
 			SaveFilenames);
@@ -795,7 +795,7 @@ void FMainFrameActionCallbacks::ZipUpProject()
 		{
 			// Ensure path is full rather than relative (for macs)
 			FString FinalFileName = FPaths::ConvertRelativePathToFull(FileName);
-			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GameDir()) : FPaths::RootDir() / FApp::GetGameName();
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()) : FPaths::RootDir() / FApp::GetProjectName();
 
 			FString CommandLine = FString::Printf(TEXT("ZipProjectUp %s -project=\"%s\" -install=\"%s\""), GetUATCompilationFlags(), *ProjectPath, *FinalFileName);
 
@@ -895,7 +895,7 @@ void FMainFrameActionCallbacks::SaveLayout()
 
 void FMainFrameActionCallbacks::ToggleFullscreen_Execute()
 {
-	if ( GIsEditor && FApp::HasGameName() )
+	if ( GIsEditor && FApp::HasProjectName() )
 	{
 		static TWeakPtr<SDockTab> LevelEditorTabPtr = FGlobalTabmanager::Get()->InvokeTab(FTabId("LevelEditor"));
 		const TSharedPtr<SWindow> LevelEditorWindow = FSlateApplication::Get().FindWidgetWindow( LevelEditorTabPtr.Pin().ToSharedRef() );
@@ -927,7 +927,7 @@ bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 
 bool FMainFrameActionCallbacks::CanSwitchToProject( int32 InProjectIndex )
 {
-	if (FApp::HasGameName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetGameName()))
+	if (FApp::HasProjectName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetProjectName()))
 	{
 		return false;
 	}

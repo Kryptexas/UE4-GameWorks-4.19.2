@@ -21,18 +21,18 @@ public class UnrealAtoSTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 
 		// DsymExporter doesn't ever compile with the engine linked in
-		UEBuildConfiguration.bCompileAgainstEngine = false;
+		bCompileAgainstEngine = false;
 
 		// DsymExporter has no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 
-        UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+        bCompileAgainstCoreUObject = false;
 
 		// Do NOT produce additional console app exe
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

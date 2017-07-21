@@ -14,6 +14,7 @@
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 #include "Modules/ModuleManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 	#include "SCrashReportClient.h"
@@ -187,7 +188,7 @@ static void OnRequestExit()
 bool RunWithUI(FPlatformErrorReport ErrorReport)
 {
 	// create the platform slate application (what FSlateApplication::Get() returns)
-	TSharedRef<FSlateApplication> Slate = FSlateApplication::Create(MakeShareable(FPlatformMisc::CreateApplication()));
+	TSharedRef<FSlateApplication> Slate = FSlateApplication::Create(MakeShareable(FPlatformApplicationMisc::CreateApplication()));
 
 	// initialize renderer
 	TSharedRef<FSlateRenderer> SlateRenderer = GetStandardStandaloneRenderer();
@@ -250,7 +251,7 @@ bool RunWithUI(FPlatformErrorReport ErrorReport)
 		SNew(SWindow)
 		.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
 		.HasCloseButton(FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
-		.ClientSize(InitialWindowDimensions * FPlatformMisc::GetDPIScaleFactorAtPoint(WorkArea.Left, WorkArea.Top))
+		.ClientSize(InitialWindowDimensions * FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(WorkArea.Left, WorkArea.Top))
 		[
 			ClientControl
 		]);

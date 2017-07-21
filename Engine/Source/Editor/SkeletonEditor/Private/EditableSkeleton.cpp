@@ -27,6 +27,7 @@
 #include "SSkeletonWidget.h"
 #include "Engine/DataAsset.h"
 #include "PreviewCollectionInterface.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 const FString FEditableSkeleton::SocketCopyPasteHeader = TEXT("SocketCopyPasteBuffer");
 
@@ -519,7 +520,7 @@ void FEditableSkeleton::SetSocketParent(const FName& SocketName, const FName& Ne
 void FEditableSkeleton::HandlePasteSockets(const FName& InBoneName, USkeletalMesh* InSkeletalMesh)
 {
 	FString PasteString;
-	FPlatformMisc::ClipboardPaste(PasteString);
+	FPlatformApplicationMisc::ClipboardPaste(PasteString);
 	const TCHAR* PastePtr = *PasteString;
 
 	FString PasteLine;

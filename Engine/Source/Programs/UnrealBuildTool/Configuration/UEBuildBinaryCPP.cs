@@ -51,7 +51,7 @@ namespace UnrealBuildTool
 			{
 				foreach (UEBuildModule Module in Modules)
 				{
-					Module.RecursivelyCreateModules(CreateModule);
+					Module.RecursivelyCreateModules(CreateModule, "Target");
 				}
 			}
 		}

@@ -67,8 +67,7 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			DirectoryReference FromDir = ResolveDirectory(Parameters.FromDir);
 
@@ -95,7 +94,6 @@ namespace BuildGraph.Tasks
 
 			// Add the archive to the set of build products
 			BuildProducts.Add(ArchiveFile);
-			return true;
 		}
 
 		/// <summary>

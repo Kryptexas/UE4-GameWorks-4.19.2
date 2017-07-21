@@ -21,7 +21,7 @@ void FUnitTestEnvironment::AddUnitTestEnvironment(FString Game, FUnitTestEnviron
 	{
 		UnitTestEnvironments.Add(Game, Env);
 
-		if (Game == FApp::GetGameName())
+		if (Game == FApp::GetProjectName())
 		{
 			UUnitTest::UnitEnv = Env;
 		}

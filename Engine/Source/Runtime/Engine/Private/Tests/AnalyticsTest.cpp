@@ -31,7 +31,7 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LoginID"),		FPlatformMisc::GetLoginId()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AccountID"),		FPlatformMisc::GetEpicAccountId()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OSID"),			FPlatformMisc::GetOperatingSystemId()));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"),		FApp::GetGameName()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"),		FApp::GetProjectName()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("CommandLine"),	FCommandLine::Get()));
 		
 		//Record the event with the 'Engine.AutomationTest.Analytics.ProgramStartedEvent' title
@@ -41,7 +41,7 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 		FString LoginIDTest		=	FPlatformMisc::GetLoginId();
 		FString AccountIDTest	=	FPlatformMisc::GetEpicAccountId();
 		FString OSID			=	FPlatformMisc::GetOperatingSystemId();
-		FString GameNameTest	=	FApp::GetGameName();
+		FString GameNameTest	=	FApp::GetProjectName();
 		FString CommandLineArgs	=	FCommandLine::Get();
 
 		//Test the strings to verify they have data.

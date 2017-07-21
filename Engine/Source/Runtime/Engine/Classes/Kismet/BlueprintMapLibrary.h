@@ -26,7 +26,7 @@ public:
 	 * @return	True if a Value was added, or False if the Key was already present and has been overwritten
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Add", CompactNodeTitle = "ADD", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value"), Category = "Utilities|Map")
-	static bool Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
+	static void Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
 	
 	/** 
 	 * Removes a key and its associated value from the map.
@@ -133,7 +133,7 @@ public:
 		P_FINISH;
 
 		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
+		GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
 		P_NATIVE_END;
 		
 		CurrValueProp->DestroyValue(ValueStorageSpace);
@@ -345,7 +345,7 @@ public:
 		P_NATIVE_END;
 	}
 
-	static bool GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
+	static void GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
 	static bool GenericMap_Remove(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr);
 	static bool GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* ValuePtr);
 	static void GenericMap_Keys(const void* MapAddr, const UMapProperty* MapProperty, const void* ArrayAddr, const UArrayProperty* ArrayProperty);

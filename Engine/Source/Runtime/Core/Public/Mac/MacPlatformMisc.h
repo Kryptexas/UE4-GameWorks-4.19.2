@@ -23,7 +23,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void PlatformInit();
 	static void PlatformPostInit();
 	static void PlatformTearDown();
-	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
 	static const TCHAR* GetPathVarDelimiter()
@@ -88,16 +87,11 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	}
 
 	static void PumpMessages(bool bFromMainLoop);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static void RequestExit(bool Force);
 	static void RequestMinimize();
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
 	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
@@ -120,16 +114,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	{ 
 		return TEXT("GLSL_150"); 
 	}
-
-	/**
-	 * Sample the displayed pixel color from anywhere on the screen using the OS
-	 *
-	 * @param	InScreenPos		The screen coords to sample for current pixel color
-	 * @param	InGamma			Optional gamma correction to apply to the screen color
-	 *
-	 * @return					The color of the pixel displayed at the chosen location
-	 */
-	static struct FLinearColor GetScreenPixelColor(const FVector2D& InScreenPos, float InGamma = 1.0f);
 
 	/**
 	 * Uses cpuid instruction to get the vendor string
@@ -230,8 +214,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
     /** Update the driver monitor statistics for the given GPU - called once a frame by the Mac RHI's, no need to call otherwise - use GetPerformanceStatistics instead. */
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
-	static float GetDPIScaleFactorAtPoint(float X, float Y);
-	
 #if MAC_PROFILING_ENABLED
 	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
 	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);

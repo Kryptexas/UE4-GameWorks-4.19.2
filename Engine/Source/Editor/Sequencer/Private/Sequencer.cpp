@@ -103,6 +103,7 @@
 #include "ISequencerEditorObjectBinding.h"
 #include "LevelSequence.h"
 #include "IVREditorModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -4548,7 +4549,7 @@ void FSequencer::CopySelectedTracks(TArray<TSharedPtr<FSequencerTrackNode>>& Tra
 
 	FString ExportedText;
 	FSequencer::ExportTracksToText(TracksToCopy, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 
@@ -4598,7 +4599,7 @@ void FSequencer::PasteCopiedTracks()
 	FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 	// Grab the text to paste from the clipboard
 	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
+	FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 	TArray<UMovieSceneTrack*> ImportedTracks;
 	FSequencer::ImportTracksFromText(TextToImport, ImportedTracks);

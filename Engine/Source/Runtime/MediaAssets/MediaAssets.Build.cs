@@ -33,7 +33,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (UEBuildConfiguration.bBuildEditor)
+			if (Target.bBuildEditor)
 			{
 				PrivateIncludePathModuleNames.Add("TargetPlatform");
 			}

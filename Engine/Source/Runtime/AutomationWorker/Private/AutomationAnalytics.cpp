@@ -34,7 +34,7 @@ void FAutomationAnalytics::Initialize()
 	checkf(!bIsInitialized, TEXT("FAutomationAnalytics::Initialize called more than once."));
 
 	//Set the config for Analytics
-	Analytics = FAnalyticsET::Get().CreateAnalyticsProvider(FAnalyticsET::Config(FString::Printf(TEXT("AutomationAnalytics.%s"), GInternalGameName), TEXT("https://datarouter.ol.epicgames.com/")));
+	Analytics = FAnalyticsET::Get().CreateAnalyticsProvider(FAnalyticsET::Config(FString::Printf(TEXT("AutomationAnalytics.%s"), GInternalProjectName), TEXT("https://datarouter.ol.epicgames.com/")));
 	if (Analytics.IsValid())
 	{
 		Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));

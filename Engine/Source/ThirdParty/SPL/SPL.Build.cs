@@ -9,17 +9,17 @@ public class SPL : ModuleRules
 
 		bOutputPubliclyDistributable = true;
 
-        string SPLDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SPL/";
+        string SPLDirectory = Target.UEThirdPartySourceDirectory + "NotForLicensees/SPL/";
         string SPLLibPath = SPLDirectory;
         PublicIncludePaths.Add(SPLDirectory + "Public/Include");
 		PublicIncludePaths.Add(SPLDirectory + "Public/json");
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            SPLLibPath = SPLLibPath + "lib/win64/vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+            SPLLibPath = SPLLibPath + "lib/win64/vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
             PublicLibraryPaths.Add(SPLLibPath );
 
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add("SPLd.lib");
             }
@@ -31,7 +31,7 @@ public class SPL : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string LibPath = SPLDirectory + "lib/Mac/";
-            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 PublicAdditionalLibraries.Add(LibPath + "libspl_debug.a");
             }

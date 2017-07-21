@@ -27,7 +27,7 @@ public:
 	virtual FString GetDefaultMap(EUnitTestFlags UnitTestFlags) override
 	{
 		FString ReturnVal = FUnitTestEnvironment::GetDefaultMap(UnitTestFlags);
-		FString CurrentGame = FApp::GetGameName();
+		FString CurrentGame = FApp::GetProjectName();
 
 		if (CurrentGame == TEXT("ShooterGame"))
 		{
@@ -57,7 +57,7 @@ public:
 	virtual FString GetDefaultMap(EUnitTestFlags UnitTestFlags) override
 	{
 		FString ReturnVal = FUnitTestEnvironment::GetDefaultMap(UnitTestFlags);
-		FString CurrentGame = FApp::GetGameName();
+		FString CurrentGame = FApp::GetProjectName();
 
 		if (CurrentGame == TEXT("QAGame"))
 		{
@@ -89,7 +89,7 @@ public:
 	virtual FString GetDefaultMap(EUnitTestFlags UnitTestFlags) override
 	{
 		FString ReturnVal = FUnitTestEnvironment::GetDefaultMap(UnitTestFlags);
-		FString CurrentGame = FApp::GetGameName();
+		FString CurrentGame = FApp::GetProjectName();
 
 		if (CurrentGame == TEXT("UnrealTournament"))
 		{
@@ -102,7 +102,7 @@ public:
 	virtual FString GetDefaultClientConnectURL() override
 	{
 		FString ReturnVal = FUnitTestEnvironment::GetDefaultClientConnectURL();
-		FString CurrentGame = FApp::GetGameName();
+		FString CurrentGame = FApp::GetProjectName();
 
 		if (CurrentGame == TEXT("UnrealTournament"))
 		{

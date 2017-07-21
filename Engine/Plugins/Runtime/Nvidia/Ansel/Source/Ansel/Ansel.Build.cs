@@ -60,7 +60,7 @@ public class Ansel : ModuleRules
 
             if (HaveDebugLib &&
                 Target.Configuration == UnrealTargetConfiguration.Debug &&
-                BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+                Target.bDebugBuildsActuallyUseDebugCRT)
             {
                 LibName += "d";
             }

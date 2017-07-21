@@ -17,6 +17,7 @@
 #include "Misc/CoreDelegates.h"
 #include "GenericPlatform/GenericApplication.h"
 #include "Misc/App.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "HAL/FeedbackContextAnsi.h"
 #include "WindowsPlatformOutputDevicesPrivate.h"
@@ -161,7 +162,7 @@ void FOutputDeviceWindowsError::HandleError()
 	::ClipCursor(NULL);
 	
 	// Copy to clipboard in non-cooked editor builds.
-	FPlatformMisc::ClipboardCopy(GErrorHist);
+	FPlatformApplicationMisc::ClipboardCopy(GErrorHist);
 
 	FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
 

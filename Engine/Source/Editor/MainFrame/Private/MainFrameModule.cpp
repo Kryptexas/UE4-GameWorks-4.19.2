@@ -27,6 +27,7 @@
 #include "Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "Editor/EditorPerformanceSettings.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -36,10 +37,10 @@ const FText StaticGetApplicationTitle( const bool bIncludeGameName )
 {
 	static const FText ApplicationTitle = NSLOCTEXT("UnrealEditor", "ApplicationTitle", "Unreal Editor");
 
-	if (bIncludeGameName && FApp::HasGameName())
+	if (bIncludeGameName && FApp::HasProjectName())
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("GameName"), FText::FromString( FString( FApp::GetGameName())));
+		Args.Add(TEXT("GameName"), FText::FromString( FString( FApp::GetProjectName())));
 		Args.Add(TEXT("AppTitle"), ApplicationTitle);
 
 		const EBuildConfigurations::Type BuildConfig = FApp::GetBuildConfiguration();
@@ -85,7 +86,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 
 			FDisplayMetrics DisplayMetrics;
 			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-			const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+			const float DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
 			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize() * DPIScaleFactor;
 			DefaultWindowLocation.ScreenPosition = DefaultWindowLocation.GetCenteredScreenPosition();
 
@@ -584,7 +585,7 @@ void FMainFrameModule::ShutdownModule( )
 
 bool FMainFrameModule::ShouldShowProjectDialogAtStartup( ) const
 {
-	return !FApp::HasGameName();
+	return !FApp::HasProjectName();
 }
 
 

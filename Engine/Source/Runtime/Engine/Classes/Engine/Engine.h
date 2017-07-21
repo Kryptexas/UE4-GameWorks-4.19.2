@@ -752,7 +752,7 @@ public:
 	UPROPERTY()
 	class UAssetManager *AssetManager;
 
-	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
+	/** Path that levels for play on console will be saved to (relative to FPaths::ProjectSavedDir()) */
 	UPROPERTY(config)
 	FString PlayOnConsoleSaveDir;
 

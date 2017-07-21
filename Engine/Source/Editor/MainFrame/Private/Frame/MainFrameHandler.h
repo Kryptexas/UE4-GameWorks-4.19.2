@@ -131,7 +131,7 @@ public:
 			}
 
 			// Prompt for save and quit only if we did not launch a gameless rocket exe or are in demo mode
-			if ( FApp::HasGameName() && !GIsDemoMode )
+			if ( FApp::HasProjectName() && !GIsDemoMode )
 			{
 				// Prompt the user to save packages/maps.
 				bool bHadPackagesToSave = false;

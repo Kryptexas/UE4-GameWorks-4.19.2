@@ -417,9 +417,9 @@ class FTextureFormatPVR : public ITextureFormat
 		FGuid Guid;
 		FPlatformMisc::CreateGuid(Guid);
 		FString InputFilePath = FString::Printf(TEXT("Cache/%x%x%x%xRGBToPVRIn.pvr"), Guid.A, Guid.B, Guid.C, Guid.D);
-		InputFilePath = FPaths::GameIntermediateDir() + InputFilePath;
+		InputFilePath = FPaths::ProjectIntermediateDir() + InputFilePath;
 		FString OutputFilePath = FString::Printf(TEXT("Cache/%x%x%x%xRGBToPVROut.pvr"), Guid.A, Guid.B, Guid.C, Guid.D);
-		OutputFilePath = FPaths::GameIntermediateDir() + OutputFilePath;
+		OutputFilePath = FPaths::ProjectIntermediateDir() + OutputFilePath;
 
 		FArchive* PVRFile = NULL;
 		while(!PVRFile)

@@ -253,7 +253,7 @@ namespace UnrealGameSync
 		{
 			if(bSyncing)
 			{
-				Log.WriteLine("SYNC ABORTED");
+				Log.WriteLine("OPERATION ABORTED");
 				if(WorkerThread != null)
 				{
 					WorkerThread.Abort();
@@ -876,9 +876,16 @@ namespace UnrealGameSync
 			// Find the valid config file paths
 			List<string> ProjectConfigFileNames = new List<string>();
 			ProjectConfigFileNames.Add(Path.Combine(LocalRootPath, "Engine", "Programs", "UnrealGameSync", "UnrealGameSync.ini"));
+			ProjectConfigFileNames.Add(Path.Combine(LocalRootPath, "Engine", "Programs", "UnrealGameSync", "NotForLicensees", "UnrealGameSync.ini"));
 			if(SelectedLocalFileName.EndsWith(".uproject", StringComparison.InvariantCultureIgnoreCase))
 			{
 				ProjectConfigFileNames.Add(Path.Combine(Path.GetDirectoryName(SelectedLocalFileName), "Build", "UnrealGameSync.ini"));
+				ProjectConfigFileNames.Add(Path.Combine(Path.GetDirectoryName(SelectedLocalFileName), "Build", "NotForLicensees", "UnrealGameSync.ini"));
+			}
+			else
+			{
+				ProjectConfigFileNames.Add(Path.Combine(LocalRootPath, "Engine", "Programs", "UnrealGameSync", "DefaultProject.ini"));
+				ProjectConfigFileNames.Add(Path.Combine(LocalRootPath, "Engine", "Programs", "UnrealGameSync", "NotForLicensees", "DefaultProject.ini"));
 			}
 
 			// Read them in

@@ -7,7 +7,7 @@ public class libWebSockets : ModuleRules
 	public libWebSockets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
-		string WebsocketPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
+		string WebsocketPath = Path.Combine(Target.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
 		string PlatformSubdir = Target.Platform.ToString();
 		
 		switch (Target.Platform)
@@ -22,8 +22,8 @@ public class libWebSockets : ModuleRules
 
 		case UnrealTargetPlatform.Win64:
 	 	case UnrealTargetPlatform.Win32:
-			PlatformSubdir = Path.Combine(PlatformSubdir, WindowsPlatform.GetVisualStudioCompilerVersionName());
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			PlatformSubdir = Path.Combine(PlatformSubdir, Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add("websockets_static_d.lib");
 			}

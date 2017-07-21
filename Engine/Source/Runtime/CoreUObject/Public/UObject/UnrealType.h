@@ -3264,14 +3264,14 @@ public:
 	}
 
 	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
-	bool AddPair(const void* KeyPtr, const void* ValuePtr)
+	void AddPair(const void* KeyPtr, const void* ValuePtr)
 	{
 		UProperty* LocalKeyPropForCapture = KeyProp;
 		UProperty* LocalValuePropForCapture = ValueProp;
 		FScriptMapLayout& LocalMapLayoutForCapture = MapLayout;
-		return Map->Add(
-			KeyPtr, 
-			ValuePtr, 
+		Map->Add(
+			KeyPtr,
+			ValuePtr,
 			MapLayout,
 			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
 			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); },
@@ -3304,6 +3304,20 @@ public:
 			[LocalValuePropForCapture, ValuePtr](void* ExistingElementValue)
 			{
 				LocalValuePropForCapture->CopySingleValueToScriptVM(ExistingElementValue, ValuePtr);
+			},
+			[LocalKeyPropForCapture](void* ElementKey)
+			{
+				if (!(LocalKeyPropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalKeyPropForCapture->DestroyValue(ElementKey);
+				}
+			},
+			[LocalValuePropForCapture](void* ElementValue)
+			{
+				if (!(LocalValuePropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalValuePropForCapture->DestroyValue(ElementValue);
+				}
 			}
 		);
 	}
@@ -3762,24 +3776,24 @@ public:
 		return Result;
 	}
 
-	/** Finds element from hash, rather than linearly searching */
-	FORCEINLINE uint8* FindElementFromHash(const void* ElementToFind) const
+	/** Finds element index from hash, rather than linearly searching */
+	FORCEINLINE int32 FindElementIndexFromHash(const void* ElementToFind) const
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		return Set->Find(
-				ElementToFind, 
-				SetLayout, 
-				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
-			);
+		return Set->FindIndex(
+			ElementToFind,
+			SetLayout,
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+		);
 	}
 
 	/** Adds the element to the set, returning true if the element was added, or false if the element was already present */
-	bool AddElement(const void* ElementToAdd)
+	void AddElement(const void* ElementToAdd)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
 		FScriptSetLayout& LocalSetLayoutForCapture = SetLayout;
-		return Set->Add(
+		Set->Add(
 			ElementToAdd,
 			SetLayout,
 			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
@@ -3796,23 +3810,30 @@ public:
 				}
 
 				LocalElementPropForCapture->CopySingleValueToScriptVM(NewElement, ElementToAdd);
+			},
+			[LocalElementPropForCapture](void* Element)
+			{
+				if (!(LocalElementPropForCapture->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
+				{
+					LocalElementPropForCapture->DestroyValue(Element);
+				}
 			}
-		) == nullptr;
+		);
 	}
 
 	/** Removes the element from the set */
 	bool RemoveElement(const void* ElementToRemove)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		if( uint8_t* Entry = Set->Find(
-				ElementToRemove, 
-				SetLayout, 
-				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); } )
-			)
+		int32 FoundIndex = Set->FindIndex(
+			ElementToRemove,
+			SetLayout,
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+		);
+		if (FoundIndex != INDEX_NONE)
 		{
-			int32 Idx = (Entry - (uint8*)Set->GetData(0, SetLayout)) / SetLayout.Size;
-			RemoveAt(Idx);
+			RemoveAt(FoundIndex);
 			return true;
 		}
 		else
@@ -4899,102 +4920,7 @@ inline bool UObject::IsBasedOnArchetype(  const UObject* const SomeObject ) cons
 	C++ property macros.
 -----------------------------------------------------------------------------*/
 
-#define CPP_PROPERTY(name)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(ThisClass, name)
-#define CPP_PROPERTY_BASE(name, base)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(base, name)
-
 static_assert(sizeof(bool) == sizeof(uint8), "Bool is not one byte.");
-
-struct COREUOBJECT_API DetermineBitfieldOffsetAndMask
-{
-	int32 Offset;
-	uint32 BitMask;
-	DetermineBitfieldOffsetAndMask()
-		: Offset(0)
-		, BitMask(0)
-	{
-	}
-
-	/**
-	 * Allocates a buffer large enough to hold the entire class which is being processed.
-	 *
-	 * @param SizeOf size of the class to calculate the bitfield properties for.
-	 */
-	void* AllocateBuffer(const SIZE_T SizeOf)
-	{
-		static SIZE_T CurrentSize = 0;
-		static void *Buffer = NULL;
-		if (!Buffer || SizeOf > CurrentSize)
-		{
-			FMemory::Free(Buffer);
-			Buffer = FMemory::Malloc(SizeOf);
-			FMemory::Memzero(Buffer, SizeOf);
-			CurrentSize = SizeOf;
-		}
-	#if DO_GUARD_SLOW
-		// make sure the memory is zero
-		{
-			uint8* ByteBuffer = (uint8*)Buffer;
-			for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
-			{
-				checkSlow(!ByteBuffer[TestOffset]);
-			}
-		}
-	#endif
-		return Buffer;
-	}
-
-	/**
-	 * Determines bitfield offset and mask
-	 * 
-	 * @param SizeOf Size of the class with the bitfield.
-	 */
-	void DoDetermineBitfieldOffsetAndMask(const SIZE_T SizeOf)
-	{
-		uint8* Buffer = (uint8*)AllocateBuffer(SizeOf);
-		Offset = 0;
-		BitMask = 0;
-		SetBit(Buffer, true);
-		// Here we are making the assumption that bitfields are aligned in the struct. Probably true. 
-		// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
-		// Have faith.
-		for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
-		{
-			if (Buffer[TestOffset])
-			{
-				Offset = TestOffset;
-				BitMask = (uint32)Buffer[TestOffset];
-				check(FMath::RoundUpToPowerOfTwo(uint32(BitMask)) == uint32(BitMask)); // better be only one bit on
-				break;
-			}
-		}
-		SetBit(Buffer, false); // return the memory to zero
-		check(BitMask); // or there was not a uint32 aligned chunk of memory that actually got the one.
-	}
-protected:
-	virtual void SetBit(void* Scratch, bool Value) = 0;
-};
-
-/** build a struct that has a method that will return the bitmask for a bitfield **/
-#define CPP_BOOL_PROPERTY_BITMASK_STRUCT(BitFieldName, ClassName) \
-	struct FDetermineBitMask_##ClassName##_##BitFieldName : public DetermineBitfieldOffsetAndMask\
-	{ \
-		FDetermineBitMask_##ClassName##_##BitFieldName() \
-		{ \
-			DoDetermineBitfieldOffsetAndMask(sizeof(ClassName)); \
-		} \
-		virtual void SetBit(void* Scratch, bool Value) \
-		{ \
-			((ClassName*)Scratch)->BitFieldName = Value ? 1 : 0; \
-		} \
-	} DetermineBitMask_##ClassName##_##BitFieldName
-
-/** helper to retrieve the bitmask **/
-#define CPP_BOOL_PROPERTY_BITMASK(BitFieldName, ClassName) \
-	DetermineBitMask_##ClassName##_##BitFieldName.BitMask
-
-/** helper to retrieve the offset **/
-#define CPP_BOOL_PROPERTY_OFFSET(BitFieldName, ClassName) \
-	DetermineBitMask_##ClassName##_##BitFieldName.Offset
 
 /** helper to calculate an array's dimensions **/
 #define CPP_ARRAY_DIM(ArrayName, ClassName) \

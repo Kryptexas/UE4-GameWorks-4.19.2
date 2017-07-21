@@ -130,6 +130,14 @@ namespace UnrealBuildTool
 				get;
 				private set;
 			}
+
+			/// <summary>
+			/// Define ToString() so the debugger can show the name in watch windows
+			/// </summary>
+			public override string ToString()
+			{
+				return Reference.ToString();
+			}
 		}
 
 

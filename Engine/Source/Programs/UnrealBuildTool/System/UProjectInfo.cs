@@ -348,7 +348,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the plugin should be enabled for this project</returns>
 		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
 		{
-			bool bEnabled = Plugin.Descriptor.bEnabledByDefault;
+			bool bEnabled = Plugin.EnabledByDefault;
 			if (Project != null && Project.Plugins != null)
 			{
 				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)

@@ -1422,7 +1422,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	// tick the directory watcher
 	// @todo: Put me into an FTicker that is created when the DW module is loaded
-	if( !FApp::IsGameNameEmpty() )
+	if( !FApp::IsProjectNameEmpty() )
 	{
 		static FName DirectoryWatcherName("DirectoryWatcher");
 		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(DirectoryWatcherName);

@@ -129,7 +129,7 @@ bool FAndroidMediaPlayerStreamer::StartNextMovie()
 
 		// Construct a canonical path for the movie.
 		MoviePath
-			= FPaths::GameContentDir() + FString("Movies/")
+			= FPaths::ProjectContentDir() + FString("Movies/")
 			+ MovieQueue[0] + FString(".") + FString(MOVIE_FILE_EXTENSION);
 		FPaths::NormalizeFilename(MoviePath);
 		MovieQueue.RemoveAt(0);

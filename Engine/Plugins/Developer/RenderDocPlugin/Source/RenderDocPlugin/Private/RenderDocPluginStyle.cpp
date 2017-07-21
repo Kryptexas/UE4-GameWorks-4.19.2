@@ -29,7 +29,7 @@ void FRenderDocPluginStyle::Initialize()
 
 	StyleSet = MakeShareable(new FSlateStyleSet("RenderDocPluginStyle"));
 
-	FString ProjectResourceDir = FPaths::GamePluginsDir() / TEXT("RenderDocPlugin/Resources");
+	FString ProjectResourceDir = FPaths::ProjectPluginsDir() / TEXT("RenderDocPlugin/Resources");
 	FString EngineResourceDir = FPaths::EnginePluginsDir() / TEXT("RenderDocPlugin/Resources");
 
 	if (IFileManager::Get().DirectoryExists(*ProjectResourceDir)) //Is the plugin in the project? In that case, use those resources
