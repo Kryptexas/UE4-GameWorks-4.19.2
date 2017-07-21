@@ -10,6 +10,8 @@ using UnrealBuildTool;
 using System.Reflection;
 using Tools.DotNETCommon;
 using System.IO;
+using System.Collections.Generic;
+using System.Text;
 
 namespace AutomationTool
 {
@@ -23,6 +25,9 @@ namespace AutomationTool
 		[STAThread]
 		public static int Main()
 		{
+			// Set the working directory to the UE4 root
+			Environment.CurrentDirectory = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", ".."));
+
             var CommandLine = SharedUtils.ParseCommandLine();
             LogUtils.InitLogging(CommandLine);
 
@@ -57,16 +62,10 @@ namespace AutomationTool
 				ReturnCode = InternalUtils.RunSingleInstance(MainProc, CommandLine);
 
 			}
-			catch (AutomationException Ex)
-			{
-				Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
-				ReturnCode = Ex.ErrorCode;
-			}
 			catch (Exception Ex)
 			{
-				// Catch all exceptions and propagate the ErrorCode if we are given one.
-				Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
-				ReturnCode = ExitCode.Error_Unknown;
+				ExceptionUtils.PrintExceptionInfo(Ex, LogUtils.FinalLogFileName);
+				ReturnCode = (Ex is AutomationException)? ((AutomationException)Ex).ErrorCode : ExitCode.Error_Unknown;
 			}
             finally
             {
@@ -89,13 +88,13 @@ namespace AutomationTool
             return (int)ReturnCode;
         }
 
-        /// <summary>
-        /// Wraps an action in an exception block.
-        /// Ensures individual actions can be performed and exceptions won't prevent further actions from being executed.
-        /// Useful for shutdown code where shutdown may be in several stages and it's important that all stages get a chance to run.
-        /// </summary>
-        /// <param name="Action"></param>
-        private static void NoThrow(System.Action Action, string ActionDesc)
+		/// <summary>
+		/// Wraps an action in an exception block.
+		/// Ensures individual actions can be performed and exceptions won't prevent further actions from being executed.
+		/// Useful for shutdown code where shutdown may be in several stages and it's important that all stages get a chance to run.
+		/// </summary>
+		/// <param name="Action"></param>
+		private static void NoThrow(System.Action Action, string ActionDesc)
         {
             try
             {

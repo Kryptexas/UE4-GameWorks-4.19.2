@@ -14,43 +14,22 @@ void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const T
 
 	InPropertyHandle->MarkResetToDefaultCustomized();
 
-	if (OptionalCustomResetToDefault.IsSet())
-	{
-		ChildSlot
+	// Indicator for a value that differs from default. Also offers the option to reset to default.
+	ChildSlot
+	[
+		SNew(SButton)
+		.IsFocusable(false)
+		.ToolTipText(this, &SResetToDefaultPropertyEditor::GetResetToolTip)
+		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ContentPadding(0) 
+		.Visibility( this, &SResetToDefaultPropertyEditor::GetDiffersFromDefaultAsVisibility )
+		.OnClicked( this, &SResetToDefaultPropertyEditor::OnResetClicked )
+		.Content()
 		[
-			SNew(SButton)
-			.ToolTipText(NSLOCTEXT("PropertyEditor", "ResetToDefaultToolTip", "Reset to Default"))
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.ContentPadding(0.0f) 
-			.Visibility( this, &SResetToDefaultPropertyEditor::GetDiffersFromDefaultAsVisibility )
-			.OnClicked( this, &SResetToDefaultPropertyEditor::OnCustomResetClicked )
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-			]
-		];
-	}
-	else
-	{
-
-		// Indicator for a value that differs from default. Also offers the option to reset to default.
-		ChildSlot
-		[
-			SNew(SButton)
-			.IsFocusable(false)
-			.ToolTipText(this, &SResetToDefaultPropertyEditor::GetResetToolTip)
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.ContentPadding(0) 
-			.Visibility( this, &SResetToDefaultPropertyEditor::GetDiffersFromDefaultAsVisibility )
-			.OnClicked( this, &SResetToDefaultPropertyEditor::OnDefaultResetClicked )
-			.Content()
-			[
-				SNew(SImage)
-				.Image( FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault") )
-			]
-		];
-	}
+			SNew(SImage)
+			.Image( FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault") )
+		]
+	];
 
 	UpdateDiffersFromDefaultState();
 }
@@ -79,20 +58,18 @@ FText SResetToDefaultPropertyEditor::GetResetToolTip() const
 	return FText::FromString(Tooltip);
 }
 
-FReply SResetToDefaultPropertyEditor::OnDefaultResetClicked()
+FReply SResetToDefaultPropertyEditor::OnResetClicked()
 {
 	if (PropertyHandle.IsValid())
 	{
-		PropertyHandle->ResetToDefault();
-	}
-	return FReply::Handled();
-}
-
-FReply SResetToDefaultPropertyEditor::OnCustomResetClicked()
-{
-	if (PropertyHandle.IsValid())
-	{
-		PropertyHandle->ExecuteCustomResetToDefault(OptionalCustomResetToDefault.GetValue());
+		if (OptionalCustomResetToDefault.IsSet())
+		{
+			PropertyHandle->ExecuteCustomResetToDefault(OptionalCustomResetToDefault.GetValue());
+		}
+		else
+		{
+			PropertyHandle->ResetToDefault();
+		}
 	}
 	return FReply::Handled();
 }

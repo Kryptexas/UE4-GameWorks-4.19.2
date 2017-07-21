@@ -528,7 +528,7 @@ struct FEditorShaderCodeArchive
 	{
 		bool bOK = false;
 		
-		FString IntermediateFormatPath = GetShaderCodeFilename(FPaths::GameIntermediateDir(), FormatName);
+		FString IntermediateFormatPath = GetShaderCodeFilename(FPaths::ProjectIntermediateDir(), FormatName);
 		FString IntermediateCookedByteCodePath = IntermediateFormatPath / TEXT("NativeCookedByteCode");
 		FString TempPath = IntermediateFormatPath / TEXT("NativeLibrary");
 		
@@ -956,7 +956,7 @@ void FShaderCodeLibrary::InitForRuntime(EShaderPlatform ShaderPlatform)
 	if (!FPlatformProperties::IsServerOnly() && FApp::CanEverRender())
 	{
 		Impl = new FShaderCodeLibraryImpl(false);
-		if (!Impl->OpenShaderCode(FPaths::GameContentDir(), ShaderPlatform))
+		if (!Impl->OpenShaderCode(FPaths::ProjectContentDir(), ShaderPlatform))
 		{
 			Shutdown();
 		}

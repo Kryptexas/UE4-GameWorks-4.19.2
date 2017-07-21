@@ -10,11 +10,11 @@ public class libcurl : ModuleRules
 
 		Definitions.Add("WITH_LIBCURL=1");
 
-		string NewLibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/7_48_0/";
-		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1/";
+		string NewLibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/7_48_0/";
+		string LibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1/";
 
 		// TODO: latest recompile for consoles and mobile platforms
-		string OldLibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";
+		string OldLibCurlPath = Target.UEThirdPartySourceDirectory + "libcurl/";
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
@@ -58,8 +58,8 @@ public class libcurl : ModuleRules
 		{
 			string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5) ? "Win32" : Target.Platform.ToString();
 			
-			PublicIncludePaths.Add(LibCurlPath + "/include/" + PlatformSubdir +  "/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
-			PublicLibraryPaths.Add(LibCurlPath + "/lib/" + PlatformSubdir +  "/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+			PublicIncludePaths.Add(LibCurlPath + "/include/" + PlatformSubdir +  "/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+			PublicLibraryPaths.Add(LibCurlPath + "/lib/" + PlatformSubdir +  "/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 
 			PublicAdditionalLibraries.Add("libcurl_a.lib");
 			Definitions.Add("CURL_STATICLIB=1");

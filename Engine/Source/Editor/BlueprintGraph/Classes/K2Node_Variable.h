@@ -138,6 +138,11 @@ public:
 	UProperty* GetPropertyForVariable() const;
 	UProperty* GetPropertyForVariableFromSkeleton() const;
 
+private:
+	UProperty* GetPropertyForVariable_Internal(UClass* OwningClass) const;
+
+public:
+
 	/** Accessor for the value output pin of the node */
 	UEdGraphPin* GetValuePin() const;
 

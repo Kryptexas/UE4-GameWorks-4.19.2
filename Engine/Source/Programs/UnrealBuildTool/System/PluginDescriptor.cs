@@ -114,6 +114,11 @@ namespace UnrealBuildTool
 		public string EngineVersion;
 
 		/// <summary>
+		/// List of platforms supported by this plugin. This list will be copied to any plugin reference from a project file, to allow filtering entire plugins from staged builds.
+		/// </summary>
+		public UnrealTargetPlatform[] SupportedTargetPlatforms;
+
+		/// <summary>
 		/// List of all modules associated with this plugin
 		/// </summary>
 		public ModuleDescriptor[] Modules;
@@ -126,7 +131,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether this plugin should be enabled by default for all projects
 		/// </summary>
-		public bool bEnabledByDefault;
+		public Nullable<bool> bEnabledByDefault;
 
 		/// <summary>
 		/// Can this plugin contain content?
@@ -137,11 +142,6 @@ namespace UnrealBuildTool
 		/// Marks the plugin as beta in the UI
 		/// </summary>
 		public bool bIsBetaVersion;
-
-		/// <summary>
-		/// Whether this plugin is a mod
-		/// </summary>
-		public bool bIsMod;
 
 		/// <summary>
 		/// Whether this plugin can be used by UnrealHeaderTool
@@ -179,97 +179,102 @@ namespace UnrealBuildTool
 		private PluginDescriptor()
 		{
 			FileVersion = (int)PluginDescriptorVersion.Latest;
-			bRequiresBuildPlatform = true;
+		}
+
+		/// <summary>
+		/// Reads a plugin descriptor from a json object
+		/// </summary>
+		/// <param name="RawObject">The object to read from</param>
+		/// <returns>New plugin descriptor</returns>
+		public PluginDescriptor(JsonObject RawObject)
+		{
+			// Read the version
+			if (!RawObject.TryGetIntegerField("FileVersion", out FileVersion))
+			{
+				if (!RawObject.TryGetIntegerField("PluginFileVersion", out FileVersion))
+				{
+					throw new BuildException("Plugin descriptor does not contain a valid FileVersion entry");
+				}
+			}
+
+			// Check it's not newer than the latest version we can parse
+			if (FileVersion > (int)PluginDescriptorVersion.Latest)
+			{
+				throw new BuildException("Plugin descriptor appears to be in a newer version ({0}) of the file format that we can load (max version: {1}).", FileVersion, (int)PluginDescriptorVersion.Latest);
+			}
+
+			// Read the other fields
+			RawObject.TryGetIntegerField("Version", out Version);
+			RawObject.TryGetStringField("VersionName", out VersionName);
+			RawObject.TryGetStringField("FriendlyName", out FriendlyName);
+			RawObject.TryGetStringField("Description", out Description);
+
+			if (!RawObject.TryGetStringField("Category", out Category))
+			{
+				// Category used to be called CategoryPath in .uplugin files
+				RawObject.TryGetStringField("CategoryPath", out Category);
+			}
+
+			// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
+			// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
+			if (Category != null && Category.Length >= 2 && Category.StartsWith("\"") && Category.EndsWith("\""))
+			{
+				Category = Category.Substring(1, Category.Length - 2);
+			}
+
+			RawObject.TryGetStringField("CreatedBy", out CreatedBy);
+			RawObject.TryGetStringField("CreatedByURL", out CreatedByURL);
+			RawObject.TryGetStringField("DocsURL", out DocsURL);
+			RawObject.TryGetStringField("MarketplaceURL", out MarketplaceURL);
+			RawObject.TryGetStringField("SupportURL", out SupportURL);
+			RawObject.TryGetStringField("EngineVersion", out EngineVersion);
+			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("SupportedTargetPlatforms", out SupportedTargetPlatforms);
+
+			JsonObject[] ModulesArray;
+			if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
+			{
+				Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
+			}
+
+			JsonObject[] LocalizationTargetsArray;
+			if (RawObject.TryGetObjectArrayField("LocalizationTargets", out LocalizationTargetsArray))
+			{
+				LocalizationTargets = Array.ConvertAll(LocalizationTargetsArray, x => LocalizationTargetDescriptor.FromJsonObject(x));
+			}
+
+			bool bEnabledByDefaultValue;
+			if(RawObject.TryGetBoolField("EnabledByDefault", out bEnabledByDefaultValue))
+			{
+				bEnabledByDefault = bEnabledByDefaultValue;
+			}
+
+			RawObject.TryGetBoolField("CanContainContent", out bCanContainContent);
+			RawObject.TryGetBoolField("IsBetaVersion", out bIsBetaVersion);
+			RawObject.TryGetBoolField("Installed", out bInstalled);
+			RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out bCanBeUsedWithUnrealHeaderTool);
+			RawObject.TryGetBoolField("RequiresBuildPlatform", out bRequiresBuildPlatform);
+
+			CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out PreBuildSteps);
+			CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out PostBuildSteps);
+
+			JsonObject[] PluginsArray;
+			if(RawObject.TryGetObjectArrayField("Plugins", out PluginsArray))
+			{
+				Plugins = Array.ConvertAll(PluginsArray, x => PluginReferenceDescriptor.FromJsonObject(x));
+			}
 		}
 
 		/// <summary>
 		/// Creates a plugin descriptor from a file on disk
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
-		/// <param name="bPluginTypeEnabledByDefault">Whether this plugin should be enabled by default based on its location</param>
 		/// <returns>New plugin descriptor</returns>
-		public static PluginDescriptor FromFile(FileReference FileName, bool bPluginTypeEnabledByDefault)
+		public static PluginDescriptor FromFile(FileReference FileName)
 		{
 			JsonObject RawObject = JsonObject.Read(FileName.FullName);
 			try
 			{
-				PluginDescriptor Descriptor = new PluginDescriptor();
-
-				// Read the version
-				if (!RawObject.TryGetIntegerField("FileVersion", out Descriptor.FileVersion))
-				{
-					if (!RawObject.TryGetIntegerField("PluginFileVersion", out Descriptor.FileVersion))
-					{
-						throw new BuildException("Plugin descriptor file '{0}' does not contain a valid FileVersion entry", FileName);
-					}
-				}
-
-				// Check it's not newer than the latest version we can parse
-				if (Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
-				{
-					throw new BuildException("Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)PluginDescriptorVersion.Latest);
-				}
-
-				// Read the other fields
-				RawObject.TryGetIntegerField("Version", out Descriptor.Version);
-				RawObject.TryGetStringField("VersionName", out Descriptor.VersionName);
-				RawObject.TryGetStringField("FriendlyName", out Descriptor.FriendlyName);
-				RawObject.TryGetStringField("Description", out Descriptor.Description);
-
-				if (!RawObject.TryGetStringField("Category", out Descriptor.Category))
-				{
-					// Category used to be called CategoryPath in .uplugin files
-					RawObject.TryGetStringField("CategoryPath", out Descriptor.Category);
-				}
-
-				// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
-				// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
-				if (Descriptor.Category != null && Descriptor.Category.Length >= 2 && Descriptor.Category.StartsWith("\"") && Descriptor.Category.EndsWith("\""))
-				{
-					Descriptor.Category = Descriptor.Category.Substring(1, Descriptor.Category.Length - 2);
-				}
-
-				RawObject.TryGetStringField("CreatedBy", out Descriptor.CreatedBy);
-				RawObject.TryGetStringField("CreatedByURL", out Descriptor.CreatedByURL);
-				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
-				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
-				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
-				RawObject.TryGetStringField("EngineVersion", out Descriptor.EngineVersion);
-
-				JsonObject[] ModulesArray;
-				if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
-				{
-					Descriptor.Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
-				}
-
-				JsonObject[] LocalizationTargetsArray;
-				if (RawObject.TryGetObjectArrayField("LocalizationTargets", out LocalizationTargetsArray))
-				{
-					Descriptor.LocalizationTargets = Array.ConvertAll(LocalizationTargetsArray, x => LocalizationTargetDescriptor.FromJsonObject(x));
-				}
-
-				if(!RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault))
-				{
-					Descriptor.bEnabledByDefault = bPluginTypeEnabledByDefault;
-				}
-
-				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
-				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
-				RawObject.TryGetBoolField("IsMod", out Descriptor.bIsMod);
-				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
-				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
-				RawObject.TryGetBoolField("RequiresBuildPlatform", out Descriptor.bRequiresBuildPlatform);
-
-				CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out Descriptor.PreBuildSteps);
-				CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out Descriptor.PostBuildSteps);
-
-				JsonObject[] PluginsArray;
-				if(RawObject.TryGetObjectArrayField("Plugins", out PluginsArray))
-				{
-					Descriptor.Plugins = Array.ConvertAll(PluginsArray, x => PluginReferenceDescriptor.FromJsonObject(x));
-				}
-
-				return Descriptor;
+				return new PluginDescriptor(RawObject);
 			}
 			catch (JsonParseException ParseException)
 			{
@@ -281,199 +286,76 @@ namespace UnrealBuildTool
 		/// Saves the descriptor to disk
 		/// </summary>
 		/// <param name="FileName">The filename to write to</param>
-		/// <param name="bPluginTypeEnabledByDefault">Whether the plugin is enabled by default based on its location</param>
-		public void Save(string FileName, bool bPluginTypeEnabledByDefault)
+		public void Save(string FileName)
 		{
 			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
 				Writer.WriteObjectStart();
-
-				Writer.WriteValue("FileVersion", (int)ProjectDescriptorVersion.Latest);
-				Writer.WriteValue("Version", Version);
-				Writer.WriteValue("VersionName", VersionName);
-				Writer.WriteValue("FriendlyName", FriendlyName);
-				Writer.WriteValue("Description", Description);
-				Writer.WriteValue("Category", Category);
-				Writer.WriteValue("CreatedBy", CreatedBy);
-				Writer.WriteValue("CreatedByURL", CreatedByURL);
-				Writer.WriteValue("DocsURL", DocsURL);
-				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
-				Writer.WriteValue("SupportURL", SupportURL);
-				if(!String.IsNullOrEmpty(EngineVersion))
-				{
-					Writer.WriteValue("EngineVersion", EngineVersion);
-				}
-				if(bEnabledByDefault != bPluginTypeEnabledByDefault)
-				{
-					Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
-				}
-				Writer.WriteValue("CanContainContent", bCanContainContent);
-				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
-				if(bIsMod)
-				{
-					Writer.WriteValue("IsMod", bIsMod);
-				}
-				Writer.WriteValue("Installed", bInstalled);
-				Writer.WriteValue("RequiresBuildPlatform", bRequiresBuildPlatform);
-
-				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
-
-				if(PreBuildSteps != null)
-				{
-					PreBuildSteps.Write(Writer, "PreBuildSteps");
-				}
-
-				if(PostBuildSteps != null)
-				{
-					PostBuildSteps.Write(Writer, "PostBuildSteps");
-				}
-
-				PluginReferenceDescriptor.WriteArray(Writer, "Plugins", Plugins);
-
+				Write(Writer);
 				Writer.WriteObjectEnd();
 			}
 		}
-	}
-
-	/// <summary>
-	/// Representation of a reference to a plugin from a project file
-	/// </summary>
-	[DebuggerDisplay("Name={Name}")]
-	public class PluginReferenceDescriptor
-	{
-		/// <summary>
-		/// Name of the plugin
-		/// </summary>
-		public string Name;
 
 		/// <summary>
-		/// Whether it should be enabled by default
+		/// Writes the plugin descriptor to an existing Json writer
 		/// </summary>
-		public bool bEnabled;
-
-		/// <summary>
-		/// Whether this plugin is optional, and the game should silently ignore it not being present
-		/// </summary>
-		public bool bOptional;
-
-		/// <summary>
-		/// Description of the plugin for users that do not have it installed.
-		/// </summary>
-		public string Description;
-
-		/// <summary>
-		/// URL for this plugin on the marketplace, if the user doesn't have it installed.
-		/// </summary>
-		public string MarketplaceURL;
-
-		/// <summary>
-		/// If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank).
-		/// </summary>
-		UnrealTargetPlatform[] WhitelistPlatforms;
-
-		/// <summary>
-		/// If enabled, list of platforms for which the plugin should be disabled.
-		/// </summary>
-		UnrealTargetPlatform[] BlacklistPlatforms;
-
-		/// <summary>
-		/// If enabled, list of targets for which the plugin should be enabled (or all targets if blank).
-		/// </summary>
-		TargetType[] WhitelistTargets;
-
-		/// <summary>
-		/// If enabled, list of targets for which the plugin should be disabled.
-		/// </summary>
-		TargetType[] BlacklistTargets;
-
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="InName">Name of the plugin</param>
-		/// <param name="InMarketplaceURL">The marketplace URL for plugins which are not installed</param>
-		/// <param name="bInEnabled">Whether the plugin is enabled</param>
-		public PluginReferenceDescriptor(string InName, string InMarketplaceURL, bool bInEnabled)
-		{
-			Name = InName;
-			MarketplaceURL = InMarketplaceURL;
-			bEnabled = bInEnabled;
-		}
-
-		/// <summary>
-		/// Construct a PluginReferenceDescriptor from a Json object
-		/// </summary>
-		/// <param name="Writer">The writer for output fields</param>
+		/// <param name="Writer">The writer to receive plugin data</param>
 		public void Write(JsonWriter Writer)
 		{
-			Writer.WriteObjectStart();
-			Writer.WriteValue("Name", Name);
-			Writer.WriteValue("Enabled", bEnabled);
-			if(bEnabled && bOptional)
+			Writer.WriteValue("FileVersion", (int)ProjectDescriptorVersion.Latest);
+			Writer.WriteValue("Version", Version);
+			Writer.WriteValue("VersionName", VersionName);
+			Writer.WriteValue("FriendlyName", FriendlyName);
+			Writer.WriteValue("Description", Description);
+			Writer.WriteValue("Category", Category);
+			Writer.WriteValue("CreatedBy", CreatedBy);
+			Writer.WriteValue("CreatedByURL", CreatedByURL);
+			Writer.WriteValue("DocsURL", DocsURL);
+			Writer.WriteValue("MarketplaceURL", MarketplaceURL);
+			Writer.WriteValue("SupportURL", SupportURL);
+			if(!String.IsNullOrEmpty(EngineVersion))
 			{
-				Writer.WriteValue("Optional", bOptional);
+				Writer.WriteValue("EngineVersion", EngineVersion);
 			}
-			if(!String.IsNullOrEmpty(Description))
+			if(bEnabledByDefault.HasValue)
 			{
-				Writer.WriteValue("Description", Description);
+				Writer.WriteValue("EnabledByDefault", bEnabledByDefault.Value);
 			}
-			if(!String.IsNullOrEmpty(MarketplaceURL))
+			Writer.WriteValue("CanContainContent", bCanContainContent);
+			if(bIsBetaVersion)
 			{
-				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
+				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
 			}
-			if(WhitelistPlatforms != null && WhitelistPlatforms.Length > 0)
+			if(bInstalled)
 			{
-				Writer.WriteEnumArrayField("WhitelistPlatforms", WhitelistPlatforms);
+				Writer.WriteValue("Installed", bInstalled);
 			}
-			if(BlacklistPlatforms != null && BlacklistPlatforms.Length > 0)
-			{
-				Writer.WriteEnumArrayField("BlacklistPlatforms", BlacklistPlatforms);
-			}
-			if(WhitelistTargets != null && WhitelistTargets.Length > 0)
-			{
-				Writer.WriteEnumArrayField("WhitelistTargets", WhitelistTargets);
-			}
-			if(BlacklistTargets != null && BlacklistTargets.Length > 0)
-			{
-				Writer.WriteEnumArrayField("BlacklistTargets", BlacklistTargets);
-			}
-			Writer.WriteObjectEnd();
-		}
 
-		/// <summary>
-		/// Write an array of module descriptors
-		/// </summary>
-		/// <param name="Writer">The Json writer to output to</param>
-		/// <param name="Name">Name of the array</param>
-		/// <param name="Plugins">Array of plugins</param>
-		public static void WriteArray(JsonWriter Writer, string Name, PluginReferenceDescriptor[] Plugins)
-		{
-			if (Plugins != null && Plugins.Length > 0)
+			if(bRequiresBuildPlatform)
 			{
-				Writer.WriteArrayStart(Name);
-				foreach (PluginReferenceDescriptor Plugin in Plugins)
-				{
-					Plugin.Write(Writer);
-				}
-				Writer.WriteArrayEnd();
+				Writer.WriteValue("RequiresBuildPlatform", bRequiresBuildPlatform);
 			}
-		}
 
-		/// <summary>
-		/// Construct a PluginReferenceDescriptor from a Json object
-		/// </summary>
-		/// <param name="RawObject">The Json object containing a plugin reference descriptor</param>
-		/// <returns>New PluginReferenceDescriptor object</returns>
-		public static PluginReferenceDescriptor FromJsonObject(JsonObject RawObject)
-		{
-			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor(RawObject.GetStringField("Name"), null, RawObject.GetBoolField("Enabled"));
-			RawObject.TryGetBoolField("Optional", out Descriptor.bOptional);
-			RawObject.TryGetStringField("Description", out Descriptor.Description);
-			RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
-			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);
-			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("BlacklistPlatforms", out Descriptor.BlacklistPlatforms);
-			RawObject.TryGetEnumArrayField<TargetType>("WhitelistTargets", out Descriptor.WhitelistTargets);
-			RawObject.TryGetEnumArrayField<TargetType>("BlacklistTargets", out Descriptor.BlacklistTargets);
-			return Descriptor;
+			if(SupportedTargetPlatforms != null && SupportedTargetPlatforms.Length > 0)
+			{
+				Writer.WriteEnumArrayField<UnrealTargetPlatform>("SupportedTargetPlatforms", SupportedTargetPlatforms);
+			}
+
+			ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
+
+			LocalizationTargetDescriptor.WriteArray(Writer, "LocalizationTargets", LocalizationTargets);
+
+			if(PreBuildSteps != null)
+			{
+				PreBuildSteps.Write(Writer, "PreBuildSteps");
+			}
+
+			if(PostBuildSteps != null)
+			{
+				PostBuildSteps.Write(Writer, "PostBuildSteps");
+			}
+
+			PluginReferenceDescriptor.WriteArray(Writer, "Plugins", Plugins);
 		}
 
 		/// <summary>
@@ -481,43 +363,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Platform">The platform to check</param>
 		/// <returns>True if the plugin should be enabled</returns>
-		public bool IsEnabledForPlatform(UnrealTargetPlatform Platform)
+		public bool SupportsTargetPlatform(UnrealTargetPlatform Platform)
 		{
-			if (!bEnabled)
-			{
-				return false;
-			}
-			if (WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
-			{
-				return false;
-			}
-			if (BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
-			{
-				return false;
-			}
-			return true;
-		}
-
-		/// <summary>
-		/// Determines if this reference enables the plugin for a given target
-		/// </summary>
-		/// <param name="Target">The target to check</param>
-		/// <returns>True if the plugin should be enabled</returns>
-		public bool IsEnabledForTarget(TargetType Target)
-		{
-			if (!bEnabled)
-			{
-				return false;
-			}
-			if (WhitelistTargets != null && WhitelistTargets.Length > 0 && !WhitelistTargets.Contains(Target))
-			{
-				return false;
-			}
-			if (BlacklistTargets != null && BlacklistTargets.Contains(Target))
-			{
-				return false;
-			}
-			return true;
+			return SupportedTargetPlatforms == null || SupportedTargetPlatforms.Length == 0 || SupportedTargetPlatforms.Contains(Platform);
 		}
 	}
 }

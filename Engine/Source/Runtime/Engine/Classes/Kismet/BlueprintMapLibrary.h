@@ -15,6 +15,7 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
+public:
 	/** 
 	 * Adds a key and value to the map. If something already uses the provided key it will be overwritten with the new value.
 	 * After calling Key is guaranteed to be associated with Value until a subsequent mutation of the Map.
@@ -25,7 +26,7 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 	 * @return	True if a Value was added, or False if the Key was already present and has been overwritten
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Add", CompactNodeTitle = "ADD", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value"), Category = "Utilities|Map")
-	static bool Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
+	static void Map_Add(const TMap<int32, int32>& TargetMap, const int32& Key, const int32& Value);
 	
 	/** 
 	 * Removes a key and its associated value from the map.
@@ -93,6 +94,13 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Clear", CompactNodeTitle = "CLEAR", MapParam = "TargetMap" ), Category = "Utilities|Map")
 	static void Map_Clear(const TMap<int32, int32>& TargetMap);
 
+	/** 
+	* Not exposed to users. Supports setting a map property on an object by name.
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", MapParam = "Value"))
+	static void SetMapPropertyByName(UObject* Object, FName PropertyName, const TMap<int32, int32>& Value);
+
+
 	DECLARE_FUNCTION(execMap_Add)
 	{
 		Stack.MostRecentProperty = nullptr;
@@ -125,7 +133,7 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 		P_FINISH;
 
 		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
+		GenericMap_Add(MapAddr, MapProperty, KeyStorageSpace, ValueStorageSpace);
 		P_NATIVE_END;
 		
 		CurrValueProp->DestroyValue(ValueStorageSpace);
@@ -322,12 +330,28 @@ class ENGINE_API UBlueprintMapLibrary : public UBlueprintFunctionLibrary
 		P_NATIVE_END
 	}
 
-	static bool GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
+	DECLARE_FUNCTION(execSetMapPropertyByName)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, MapPropertyName);
+
+		Stack.StepCompiledIn<UMapProperty>(nullptr);
+		void* SrcMapAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		P_NATIVE_BEGIN;
+		GenericMap_SetMapPropertyByName(OwnerObject, MapPropertyName, SrcMapAddr);
+		P_NATIVE_END;
+	}
+
+	static void GenericMap_Add(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, const void* ValuePtr);
 	static bool GenericMap_Remove(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr);
 	static bool GenericMap_Find(const void* TargetMap, const UMapProperty* MapProperty, const void* KeyPtr, void* ValuePtr);
 	static void GenericMap_Keys(const void* MapAddr, const UMapProperty* MapProperty, const void* ArrayAddr, const UArrayProperty* ArrayProperty);
 	static void GenericMap_Values(const void* MapAddr, const UMapProperty* MapProperty, const void* ArrayAddr, const UArrayProperty* ArrayProperty);
 	static int32 GenericMap_Length(const void* TargetMap, const UMapProperty* MapProperty);
 	static void GenericMap_Clear(const void* TargetMap, const UMapProperty* MapProperty);
+	static void GenericMap_SetMapPropertyByName(UObject* OwnerObject, FName MapPropertyName, const void* SrcMapAddr);
 };
 

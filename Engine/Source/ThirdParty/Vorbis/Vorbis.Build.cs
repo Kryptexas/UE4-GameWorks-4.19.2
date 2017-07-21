@@ -7,30 +7,30 @@ public class Vorbis : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
+		string VorbisPath = Target.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 
 		PublicIncludePaths.Add(VorbisPath + "include");
 		Definitions.Add("WITH_OGGVORBIS=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			string VorbisLibPath = VorbisPath + "Lib/win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			string VorbisLibPath = VorbisPath + "Lib/win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(VorbisLibPath);
 
 			PublicAdditionalLibraries.Add("libvorbis_64.lib");
 			PublicDelayLoadDLLs.Add("libvorbis_64.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Vorbis/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libvorbis_64.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Vorbis/Win64/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libvorbis_64.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			string VorbisLibPath = VorbisPath + "Lib/win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			string VorbisLibPath = VorbisPath + "Lib/win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(VorbisLibPath);
 
 			PublicAdditionalLibraries.Add("libvorbis.lib");
 			PublicDelayLoadDLLs.Add("libvorbis.dll");
 
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Vorbis/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libvorbis.dll"));
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Vorbis/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libvorbis.dll"));
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
         {
@@ -52,7 +52,7 @@ public class Vorbis : ModuleRules
             PublicLibraryPaths.Add(VorbisLibPath);
 
             string OpimizationSuffix = "";
-            if (UEBuildConfiguration.bCompileForSize)
+            if (Target.bCompileForSize)
             {
                 OpimizationSuffix = "_Oz";
             }

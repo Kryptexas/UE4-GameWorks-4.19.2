@@ -131,6 +131,7 @@ namespace UnrealBuildTool
 		VisualStudio,
 		XCode,
 		Eddie,
+		VSCode,
 	}
 
 	/// <summary>
@@ -1034,15 +1035,19 @@ namespace UnrealBuildTool
 			foreach (UProjectInfo GameProject in AllGameProjects)
 			{
 				ProjectDescriptor ProjectDesc = ProjectDescriptor.FromFile(GameProject.FilePath.FullName);
-				foreach (DirectoryReference PluginDir in ProjectDesc.AdditionalPluginDirectories)
+				if (ProjectDesc.AdditionalPluginDirectories != null)
 				{
-					// @TODO: Right now, we're only including additional plugins that are still inside a game directory.
-					//        This is so FindProjectForModule() succeeds in matching up a project with the plugin. If 
-					//        the plugin is outside of a game directory, then we'll need to add special handling to AddProjectsForAllModules()
-					//        and generate a standalone project, since multiple games could share the same plugin
-					if (PluginDir.IsUnderDirectory(GameProject.Folder))
+					foreach (string AdditionalPluginDirectory in ProjectDesc.AdditionalPluginDirectories)
 					{
-						AddedPlugins.AddRange(Plugins.EnumeratePlugins(PluginDir));
+						// @TODO: Right now, we're only including additional plugins that are still inside a game directory.
+						//        This is so FindProjectForModule() succeeds in matching up a project with the plugin. If 
+						//        the plugin is outside of a game directory, then we'll need to add special handling to AddProjectsForAllModules()
+						//        and generate a standalone project, since multiple games could share the same plugin
+						DirectoryReference PluginDir = DirectoryReference.Combine(GameProject.Folder, AdditionalPluginDirectory);
+						if (PluginDir.IsUnderDirectory(GameProject.Folder))
+						{
+							AddedPlugins.AddRange(Plugins.EnumeratePlugins(PluginDir));
+						}
 					}
 				}
 			}
@@ -2005,7 +2010,7 @@ namespace UnrealBuildTool
 				KeyValuePair<DirectoryReference, ProjectFile> GameProject = GameProjects.First();
 				foreach(PluginInfo PluginInfo in Plugins.ReadProjectPlugins(GameProject.Key))
 				{
-					if(PluginInfo.Descriptor.Modules != null && PluginInfo.Descriptor.Modules.Length > 0 && PluginInfo.Descriptor.bIsMod)
+					if(PluginInfo.Descriptor.Modules != null && PluginInfo.Descriptor.Modules.Length > 0 && PluginInfo.Type == PluginType.Mod)
 					{
 						FileReference ModProjectFilePath = FileReference.Combine(PluginInfo.Directory, "Mods", PluginInfo.Name + ProjectFileExtension);
 

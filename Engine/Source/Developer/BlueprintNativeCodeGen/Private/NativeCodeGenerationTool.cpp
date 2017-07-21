@@ -113,13 +113,13 @@ struct FGeneratedCodeData
 
 	static FString DefaultHeaderDir()
 	{
-		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir());
+		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir());
 		return FPaths::Combine(*DefaultSourceDir, TEXT("NativizationTest"), TEXT("Public"));
 	}
 
 	static FString DefaultSourceDir()
 	{
-		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir());
+		auto DefaultSourceDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir());
 		return FPaths::Combine(*DefaultSourceDir, TEXT("NativizationTest"), TEXT("Private"));
 	}
 

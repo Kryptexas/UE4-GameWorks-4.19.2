@@ -17,6 +17,17 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
+FEdGraphTerminalType FEdGraphTerminalType::FromPinType(const FEdGraphPinType& PinType)
+{
+	FEdGraphTerminalType TerminalType;
+	TerminalType.TerminalCategory = PinType.PinCategory;
+	TerminalType.TerminalSubCategory = PinType.PinSubCategory;
+	TerminalType.TerminalSubCategoryObject = PinType.PinSubCategoryObject;
+	TerminalType.bTerminalIsConst = PinType.bIsConst;
+	TerminalType.bTerminalIsWeakPointer = PinType.bIsWeakPointer;
+	return TerminalType;
+}
+
 FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
 {
 	Ar << T.TerminalCategory;

@@ -55,7 +55,7 @@ namespace
 		FEditorFileUtils::FindAllPackageFiles(FileList);
 #else
 		// Look directly on disk. Very slow!
-		FPackageName::FindPackagesInDirectory(FileList, *FPaths::GameContentDir());
+		FPackageName::FindPackagesInDirectory(FileList, *FPaths::ProjectContentDir());
 #endif
 
 		// Iterate over all files, adding the ones with the map extension..

@@ -34,6 +34,7 @@
 #include "Animation/BlendSpaceBase.h"
 #include "TabSpawners.h"
 #include "SInlineEditableTextBlock.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -80,7 +81,7 @@ bool ReadNotifyPasteHeader(FString& OutPropertyString, const TCHAR*& OutBuffer, 
 	OutBuffer = NULL;
 	OutOriginalTime = -1.f;
 
-	FPlatformMisc::ClipboardPaste(OutPropertyString);
+	FPlatformApplicationMisc::ClipboardPaste(OutPropertyString);
 
 	if (!OutPropertyString.IsEmpty())
 	{
@@ -4469,7 +4470,7 @@ void SAnimNotifyPanel::CopySelectedNodesToClipboard() const
 
 			NodeObject->ExportForCopy(Sequence, StrValue);
 		}
-		FPlatformMisc::ClipboardCopy(*StrValue);
+		FPlatformApplicationMisc::ClipboardCopy(*StrValue);
 	}
 }
 

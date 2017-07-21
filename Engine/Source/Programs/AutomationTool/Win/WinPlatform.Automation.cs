@@ -39,7 +39,11 @@ public abstract class BaseWinPlatform : Platform
 		}
 
 		// Copy the splash screen, windows specific
-		SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+		FileReference SplashImage = FileReference.Combine(SC.ProjectRoot, "Content", "Splash", "Splash.bmp");
+		if(FileReference.Exists(SplashImage))
+		{
+			SC.StageFile(StagedFileType.NonUFS, SplashImage);
+		}
 
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
@@ -50,7 +54,7 @@ public abstract class BaseWinPlatform : Platform
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
-					List<StagedFileReference> StagedFiles = SC.FilesToStage.NonUFSStagingFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
+					List<StagedFileReference> StagedFiles = SC.FilesToStage.NonUFSFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
 					if (StagedFiles.Count > 0 && Executable.Path.HasExtension(".exe"))
 					{
 						string BootstrapArguments = "";
@@ -103,9 +107,9 @@ public abstract class BaseWinPlatform : Platform
 			DirectoryReference IntermediateDir = DirectoryReference.Combine(SC.ProjectRoot, "Intermediate", "Staging");
 			DirectoryReference.CreateDirectory(IntermediateDir);
 
-			string IntermediateFile = CombinePaths(IntermediateDir.FullName, ExeName);
-			CommandUtils.CopyFile(InputFile.FullName, IntermediateFile);
-			CommandUtils.SetFileAttributes(IntermediateFile, ReadOnly: false);
+			FileReference IntermediateFile = FileReference.Combine(IntermediateDir, ExeName);
+			CommandUtils.CopyFile(InputFile.FullName, IntermediateFile.FullName);
+			CommandUtils.SetFileAttributes(IntermediateFile.FullName, ReadOnly: false);
 	
 			// currently the icon updating doesn't run under mono
 			if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 ||
@@ -123,7 +127,7 @@ public abstract class BaseWinPlatform : Platform
 				}
 
 				// Update the resources in the new file
-				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile, true))
+				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile.FullName, true))
 				{
 					const int IconResourceId = 101;
 					if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
@@ -137,7 +141,7 @@ public abstract class BaseWinPlatform : Platform
 			}
 
 			// Copy it to the staging directory
-			SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, StagedDirectoryReference.Root);
+			SC.StageFile(StagedFileType.SystemNonUFS, IntermediateFile, new StagedFileReference(ExeName));
 		}
 	}
 
@@ -229,9 +233,9 @@ public abstract class BaseWinPlatform : Platform
 			Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
 
 			foreach (DirectoryReference DependencyDirectory in DirectoryReference.EnumerateDirectories(BaseAppLocalDependenciesPath))
-			{	
-				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, ProjectBinaryPath);
-				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, EngineBinaryPath);
+			{
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, ProjectBinaryPath);
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, EngineBinaryPath);
 			}
 		}
 		else
@@ -367,8 +371,7 @@ public class Win64Platform : BaseWinPlatform
 		
 		if(Params.Prereqs)
 		{
-			StagedDirectoryReference InstallerRelativePath = StagedDirectoryReference.Combine("Engine", "Extras", "Redist", "en-us");
-			SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.LocalRoot, InstallerRelativePath.Name), "UE4PrereqSetup_x64.exe", false, null, InstallerRelativePath);
+			SC.StageFile(StagedFileType.NonUFS, FileReference.Combine(SC.EngineRoot, "Extras", "Redist", "en-us", "UE4PrereqSetup_x64.exe"));
 		}
 
 		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
@@ -393,8 +396,7 @@ public class Win32Platform : BaseWinPlatform
 
 		if (Params.Prereqs)
 		{
-			StagedDirectoryReference InstallerRelativePath = StagedDirectoryReference.Combine("Engine", "Extras", "Redist", "en-us");
-			SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.LocalRoot, InstallerRelativePath.Name), "UE4PrereqSetup_x86.exe", false, null, InstallerRelativePath);
+			SC.StageFile(StagedFileType.NonUFS, FileReference.Combine(SC.EngineRoot, "Extras", "Redist", "en-us", "UE4PrereqSetup_x86.exe"));
 		}
 
 		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))

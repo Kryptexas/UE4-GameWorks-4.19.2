@@ -24,7 +24,7 @@ namespace UnrealBuildTool.Rules
 			}
             );
 
-            if (UEBuildConfiguration.bBuildEditor)
+            if (Target.bBuildEditor)
             {
                 PrivateDependencyModuleNames.AddRange(
                     new string[] {

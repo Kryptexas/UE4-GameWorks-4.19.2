@@ -251,7 +251,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 						// If we're unloading any levels, we need to request a one frame delay of garbage collection to make sure it happens after the level is actually unloaded
 						if (LevelStreamingObject->bShouldBeLoaded && !bNewShouldBeLoaded)
 						{
-							GetWorld()->DelayGarbageCollection();
+							GEngine->DelayGarbageCollection();
 						}
 
 						LevelStreamingObject->bShouldBeLoaded		= bNewShouldBeLoaded;
@@ -286,7 +286,7 @@ void APlayerController::ClientFlushLevelStreaming_Implementation()
 		GetWorld()->UpdateLevelStreaming();
 		GetWorld()->bRequestedBlockOnAsyncLoading = true;
 		// request GC as soon as possible to remove any unloaded levels from memory
-		GetWorld()->ForceGarbageCollection();
+		GEngine->ForceGarbageCollection();
 	}
 }
 
@@ -3093,7 +3093,7 @@ void APlayerController::ClientSetCinematicMode_Implementation(bool bInCinematicM
 
 void APlayerController::ClientForceGarbageCollection_Implementation()
 {
-	GetWorld()->ForceGarbageCollection();
+	GEngine->ForceGarbageCollection();
 }
 
 /// @endcond

@@ -29,7 +29,7 @@ bool UNiagaraNode::ReallocatePins()
 
 	// Move the existing pins to a saved array
 	TArray<UEdGraphPin*> OldPins(Pins);
-	Pins.Empty();
+	Pins.Reset();
 
 	// Recreate the new pins
 	AllocateDefaultPins();
@@ -77,7 +77,7 @@ bool UNiagaraNode::ReallocatePins()
 			}
 			
 			// This copies the existing default values, pin linkages, advanced pin view, pin splitting, etc.
-			(*MatchingNewPin)->CopyPersistentDataFromOldPin(*OldPin);
+			(*MatchingNewPin)->MovePersistentDataFromOldPin(*OldPin);
 
 			// The prior call would have clobbered our default values, which causes a crash down the line when we attempt to compile.
 			// This resets to the default values prior to copying over the persistent data.
@@ -101,10 +101,8 @@ bool UNiagaraNode::ReallocatePins()
 		{
 			bAllSame = false;
 		}
-		OldPin->BreakAllPinLinks();
 		OldPin->MarkPendingKill();
 	}
-	OldPins.Empty();
 
 	GetGraph()->NotifyGraphChanged();
 	if (!bAllSame)

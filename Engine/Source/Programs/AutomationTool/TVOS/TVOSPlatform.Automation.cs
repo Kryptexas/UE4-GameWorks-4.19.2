@@ -42,8 +42,11 @@ public class TVOSPlatform : IOSPlatform
         {
             // copy the icons/launch screens from the engine
             {
-                DirectoryReference SourcePath = DirectoryReference.Combine(SC.LocalRoot, "Engine", "Binaries", "TVOS");
-                SC.StageFiles(StagedFileType.NonUFS, SourcePath, "Assets.car", false, null, StagedDirectoryReference.Root, true, false);
+				FileReference SourcePath = FileReference.Combine(SC.LocalRoot, "Engine", "Binaries", "TVOS", "Assets.car");
+				if(FileReference.Exists(SourcePath))
+				{
+					SC.StageFile(StagedFileType.SystemNonUFS, SourcePath, new StagedFileReference("Assets.car"));
+				}
             }
 
             // copy any additional framework assets that will be needed at runtime
@@ -51,14 +54,17 @@ public class TVOSPlatform : IOSPlatform
                 DirectoryReference SourcePath = DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Intermediate", "TVOS", "FrameworkAssets");
                 if (DirectoryReference.Exists(SourcePath))
                 {
-                    SC.StageFiles(StagedFileType.NonUFS, SourcePath, "*.*", true, null, StagedDirectoryReference.Root, true, false);
+					SC.StageFiles(StagedFileType.SystemNonUFS, SourcePath, StageFilesSearch.AllDirectories, StagedDirectoryReference.Root);
                 }
             }
 
             // copy the icons/launch screens from the game (may stomp the engine copies)
             {
-                DirectoryReference SourcePath = DirectoryReference.Combine(SC.ProjectRoot, "Binaries", "TVOS");
-                SC.StageFiles(StagedFileType.NonUFS, SourcePath, "Assets.car", false, null, StagedDirectoryReference.Root, true, false);
+                FileReference SourcePath = FileReference.Combine(SC.ProjectRoot, "Binaries", "TVOS", "Assets.car");
+				if(FileReference.Exists(SourcePath))
+				{
+	                SC.StageFile(StagedFileType.SystemNonUFS, SourcePath, new StagedFileReference("Assets.car"));
+				}
             }
 
             // copy the plist (only if code signing, as it's protected by the code sign blob in the executable and can't be modified independently)
@@ -87,14 +93,23 @@ public class TVOSPlatform : IOSPlatform
                     DeployGeneratePList(SC.RawProjectPath, TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.EngineRoot, DirectoryReference.Combine((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.EngineRoot), "Binaries", "TVOS", "Payload", (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app"), out bSupportsPortrait, out bSupportsLandscape);
                 }
 
-                SC.StageFiles(StagedFileType.NonUFS, SourcePath, TargetPListFile.GetFileName(), false, null, StagedDirectoryReference.Root, false, false, "Info.plist");
+                SC.StageFile(StagedFileType.SystemNonUFS, TargetPListFile, new StagedFileReference("Info.plist"));
             }
         }
 
         // copy the movies from the project
         {
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Build/TVOS/Resources/Movies"), "*", false, null, StagedDirectoryReference.Root, true, false);
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content/Movies"), "*", true, null, StagedDirectoryReference.Root, true, false);
+			DirectoryReference PlatformMovies = DirectoryReference.Combine(SC.ProjectRoot, "Build", "TVOS", "Resources", "Movies");
+			if(DirectoryReference.Exists(PlatformMovies))
+			{
+				SC.StageFiles(StagedFileType.SystemNonUFS, PlatformMovies, StageFilesSearch.TopDirectoryOnly, StagedDirectoryReference.Root);
+			}
+
+			DirectoryReference AllMovies = DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies");
+			if(DirectoryReference.Exists(AllMovies))
+			{
+				SC.StageFiles(StagedFileType.SystemNonUFS, AllMovies, StageFilesSearch.AllDirectories, StagedDirectoryReference.Root);
+			}
         }
     }
 }

@@ -3,6 +3,7 @@
 #include "VehicleWheel.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "PhysxUserData.h"
 #include "Engine/StaticMesh.h"
 #include "Vehicles/TireType.h"
@@ -10,7 +11,6 @@
 #include "TireConfig.h"
 #include "PhysXVehicleManager.h"
 #include "PhysXPublic.h"
-
 
 UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -38,37 +38,55 @@ UVehicleWheel::UVehicleWheel(const FObjectInitializer& ObjectInitializer)
 	SweepType = EWheelSweepType::SimpleAndComplex;
 }
 
+FPhysXVehicleManager* UVehicleWheel::GetVehicleManager() const
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(VehicleSim, EGetWorldErrorMode::LogAndReturnNull);
+	return World ? FPhysXVehicleManager::GetVehicleManagerFromScene(World->GetPhysicsScene()) : nullptr;
+}
+
 float UVehicleWheel::GetSteerAngle() const
 {
-	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
-	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
-	return FMath::RadiansToDegrees( VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].steerAngle );
+	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
+	{
+		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+		return FMath::RadiansToDegrees(VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].steerAngle);
+	}
+	return 0.0f;
 }
 
 float UVehicleWheel::GetRotationAngle() const
 {
-	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
-	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
+	{
+		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
-	float RotationAngle = -1.0f * FMath::RadiansToDegrees( VehicleSim->PVehicle->mWheelsDynData.getWheelRotationAngle( WheelIndex ) );
-	check(!FMath::IsNaN(RotationAngle));
-	return RotationAngle;
+		float RotationAngle = -1.0f * FMath::RadiansToDegrees(VehicleSim->PVehicle->mWheelsDynData.getWheelRotationAngle(WheelIndex));
+		ensure(!FMath::IsNaN(RotationAngle));
+		return RotationAngle;
+	}
+	return 0.0f;
 }
 
 float UVehicleWheel::GetSuspensionOffset() const
 {
-	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
-	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
+	{
+		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
-	return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].suspJounce;
+		return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].suspJounce;
+	}
+	return 0.0f;
 }
 
 bool UVehicleWheel::IsInAir() const
 {
-	FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
-	SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+	if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
+	{
+		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
-	return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].isInAir;
+		return VehicleManager->GetWheelsStates_AssumesLocked(VehicleSim)[WheelIndex].isInAir;
+	}
+	return false;
 }
 
 void UVehicleWheel::Init( UWheeledVehicleMovementComponent* InVehicleSim, int32 InWheelIndex )
@@ -114,14 +132,16 @@ FVector UVehicleWheel::GetPhysicsLocation()
 {
 	if ( WheelShape )
 	{
-		FPhysXVehicleManager* VehicleManager = FPhysXVehicleManager::GetVehicleManagerFromScene(VehicleSim->GetWorld()->GetPhysicsScene());
-		SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
+		if (FPhysXVehicleManager* VehicleManager = GetVehicleManager())
+		{
+			SCOPED_SCENE_READ_LOCK(VehicleManager->GetScene());
 
-		PxVec3 PLocation = VehicleSim->PVehicle->getRigidDynamicActor()->getGlobalPose().transform( WheelShape->getLocalPose() ).p;
-		return P2UVector( PLocation );
+			PxVec3 PLocation = VehicleSim->PVehicle->getRigidDynamicActor()->getGlobalPose().transform(WheelShape->getLocalPose()).p;
+			return P2UVector(PLocation);
+		}
 	}
 
-	return FVector(0.0f);
+	return FVector::ZeroVector;
 }
 
 #if WITH_EDITOR

@@ -738,8 +738,8 @@ void FShaderCache::LoadBinaryCache()
 	LoadTimeStart = FPlatformTime::Seconds();
 	Cache->ShadersToPrecompile = 0;
 
-	FString UserBinaryShaderFile = FPaths::GameSavedDir() / GShaderCacheFileName;
-	FString GameBinaryShaderFile = FPaths::GameContentDir() / GShaderCacheFileName;
+	FString UserBinaryShaderFile = FPaths::ProjectSavedDir() / GShaderCacheFileName;
+	FString GameBinaryShaderFile = FPaths::ProjectContentDir() / GShaderCacheFileName;
 
 	// Try to load user cache, making sure that if we fail version test we still try game-content version.
 	bool bLoadedUserCache = LoadShaderCache(UserBinaryShaderFile, &Cache->Caches);
@@ -852,7 +852,7 @@ void FShaderCache::LoadBinaryCache()
 				ShaderCacheLib->AddRef();
 					
 				// Try to load user cache, making sure that if we fail version test we still try game-content version.
-				bool bLoadedCache = ShaderCacheLib->Load(FPaths::GameSavedDir());
+				bool bLoadedCache = ShaderCacheLib->Load(FPaths::ProjectSavedDir());
 				Cache->CodeCache.Add(ShaderPlat,ShaderCacheLib);
 					
 				Cache->CachedShaderLibraries.Add( ShaderPlat, ShaderCacheLib );
@@ -961,10 +961,10 @@ FShaderCache::FShaderCache(uint32 InOptions)
 
 FShaderCache::~FShaderCache()
 {
-	FString BinaryShaderFile = FPaths::GameSavedDir() / GShaderCacheFileName;
+	FString BinaryShaderFile = FPaths::ProjectSavedDir() / GShaderCacheFileName;
 	SaveShaderCache(BinaryShaderFile, &Caches);
 	
-	SaveBinaryCache(FPaths::GameSavedDir(), FPlatformProperties::PlatformName());
+	SaveBinaryCache(FPaths::ProjectSavedDir(), FPlatformProperties::PlatformName());
 }
 
 FVertexShaderRHIRef FShaderCache::GetVertexShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)

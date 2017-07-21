@@ -141,7 +141,7 @@ namespace AutomationTool
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
-		bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet);
+		void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet);
 	}
 
 	/// <summary>
@@ -150,13 +150,22 @@ namespace AutomationTool
 	public abstract class CustomTask
 	{
 		/// <summary>
+		/// Line number in a source file that this task was declared. Optional; used for log messages.
+		/// </summary>
+		public Tuple<FileReference, int> SourceLocation
+		{
+			get;
+			set;
+		}
+
+		/// <summary>
 		/// Execute this node.
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
-		public abstract bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet);
+		public abstract void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet);
 
 		/// <summary>
 		/// Creates a proxy to execute this node.
@@ -203,6 +212,19 @@ namespace AutomationTool
 			}
 
 			Writer.WriteEndElement();
+		}
+
+		/// <summary>
+		/// Returns a string used for trace messages
+		/// </summary>
+		public string GetTraceString()
+		{
+			StringBuilder Builder = new StringBuilder();
+			using (XmlWriter Writer = XmlWriter.Create(new StringWriter(Builder), new XmlWriterSettings() { OmitXmlDeclaration = true }))
+			{
+				Write(Writer);
+			}
+			return Builder.ToString();
 		}
 
 		/// <summary>

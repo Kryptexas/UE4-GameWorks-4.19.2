@@ -29,7 +29,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 	// Set defaults for the editor
 	FString LoadedFileName = LOCTEXT("PListNoFileLoaded", "No File Loaded").ToString();
 	bFileLoaded = false;
-	InOutLastPath = FPaths::GameDir() + TEXT("Build/IOS/");
+	InOutLastPath = FPaths::ProjectDir() + TEXT("Build/IOS/");
 	bPromptSave = true;
 	bNewFile = false;
 	bDirty = false;
@@ -223,7 +223,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 	];
 
 	// Default try to load the file GameName-Info.plist file when widget is opened
-	FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
+	FString DefaultFile = FString(FApp::GetProjectName()) + TEXT("-Info.plist");
 	InOutLastPath += DefaultFile;
 	OpenFile(InOutLastPath);
 
@@ -810,7 +810,7 @@ FReply SPListEditorPanel::OnNewClicked()
 	InternalTree->RequestTreeRefresh();
 
 	// Set some flags and other misc
-	InOutLastPath = FPaths::GameDir() + TEXT("Build/IOS/UnnamedPList");
+	InOutLastPath = FPaths::ProjectDir() + TEXT("Build/IOS/UnnamedPList");
 	bFileLoaded = false;
 	bPromptSave = false;
 	bNewFile = true;
@@ -834,7 +834,7 @@ bool SPListEditorPanel::OpenFile(FString FilePath)
 	if( !bLoadResult )
 	{
 		// try Info.plist
-		FilePath = FilePath.Replace(*(FString(FApp::GetGameName()) + TEXT("-")), TEXT(""));
+		FilePath = FilePath.Replace(*(FString(FApp::GetProjectName()) + TEXT("-")), TEXT(""));
 		bLoadResult = Doc.LoadFile(FilePath);
 	}
 
@@ -913,8 +913,8 @@ FReply SPListEditorPanel::OnOpenClicked()
 	TArray<FString> OutOpenFilenames;
 	if ( DesktopPlatform )
 	{
-		//FString DefaultPath = FPaths::GameDir() + TEXT("Build/IOS/");
-		//FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
+		//FString DefaultPath = FPaths::ProjectDir() + TEXT("Build/IOS/");
+		//FString DefaultFile = FString(FApp::GetProjectName()) + TEXT("-Info.plist");
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->OpenFileDialog(
 			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),

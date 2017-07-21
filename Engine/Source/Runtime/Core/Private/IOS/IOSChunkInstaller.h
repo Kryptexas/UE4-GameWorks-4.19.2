@@ -14,8 +14,7 @@ struct FIOSChunkStatus
 /**
  * IOS implementation of FGenericPlatformChunkInstall.
  */
-class CORE_API FIOSChunkInstall
-: public IPlatformChunkInstall
+class CORE_API FIOSChunkInstall : public FGenericPlatformChunkInstall
 {
 public:
     
@@ -78,29 +77,7 @@ public:
      * @return true if the operation succeeds.
      */
     virtual bool DebugStartNextChunk( ) override;
-    
-    /**
-     * Request a delegate callback on chunk install completion. Request may not be respected.
-     * @param ChunkID		The id of the chunk of interest.
-     * @param Delegate		The delegate when the chunk is installed.
-     * @return				False if the delegate was not registered or the chunk is already installed. True on success.
-     */
-    virtual FDelegateHandle SetChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate) override
-    {
-		return FDelegateHandle();
-    }
-    
-    /**
-     * Remove a delegate callback on chunk install completion.
-     * @param ChunkID		The id of the chunk of interest.
-     * @param Delegate		The delegate to remove.
-     * @return				False if the delegate was not registered with a call to SetChunkInstallDelgate. True on success.
-     */
-	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FDelegateHandle Delegate) override
-    {
-        return;
-    }
-    
+
 private:
     
     /**

@@ -180,6 +180,32 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Failed to delete logs: {0}", Ex.Message));
 			}
+
+			try
+			{
+				DirectoryInfo BaseFolder = new DirectoryInfo(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Config.Default.MDDExecutablePath), "..", "..", "Programs", "MinidumpDiagnostics", "Saved", "Logs")));
+				if (BaseFolder.Exists)
+				{
+					foreach(FileInfo File in BaseFolder.EnumerateFiles("*", SearchOption.AllDirectories))
+					{
+						try
+						{
+							if (File.LastWriteTimeUtc < DeleteTime)
+							{
+								File.Delete();
+							}
+						}
+						catch (Exception Ex)
+						{
+							CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Unable to delete {0}: {1}", File.FullName, Ex.Message));
+						}
+					}
+				}
+			}
+			catch (Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Failed to delete logs from program folder: {0}", Ex.Message));
+			}
 		}
 
 		private Task<bool>[] Tasks;

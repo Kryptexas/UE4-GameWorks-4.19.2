@@ -75,7 +75,7 @@ bool FHTML5SaveGameSystem::DeleteGame(bool bAttemptToUseUI, const TCHAR* Name, c
 
 const char* FHTML5SaveGameSystem::GetSaveGamePath(const TCHAR* Name, const int32 UserIndex)
 {
-	FString path = FString::Printf(TEXT("%s""SaveGames/%s%d.sav"), *FPaths::GameSavedDir(), Name, UserIndex);
+	FString path = FString::Printf(TEXT("%s""SaveGames/%s%d.sav"), *FPaths::ProjectSavedDir(), Name, UserIndex);
 	return TCHAR_TO_ANSI(*path);
 }
 

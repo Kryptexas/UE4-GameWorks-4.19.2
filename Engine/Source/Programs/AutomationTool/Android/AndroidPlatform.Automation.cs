@@ -1551,10 +1551,13 @@ public class AndroidPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-        // Add any Android shader cache files
-        DirectoryReference ProjectShaderDir = DirectoryReference.Combine(Params.RawProjectPath.Directory, "Build/ShaderCaches/Android");
-        SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, "*.*", true, null, null, true);
-    }
+		// Add any Android shader cache files
+		DirectoryReference ProjectShaderDir = DirectoryReference.Combine(Params.RawProjectPath.Directory, "Build", "ShaderCaches", "Android");
+		if(DirectoryReference.Exists(ProjectShaderDir))
+		{
+			SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, StageFilesSearch.AllDirectories);
+		}
+	}
 
     /// <summary>
     /// Gets cook platform name for this platform.
@@ -1565,7 +1568,7 @@ public class AndroidPlatform : Platform
 		return "Android";
 	}
 
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		return false;
 	}

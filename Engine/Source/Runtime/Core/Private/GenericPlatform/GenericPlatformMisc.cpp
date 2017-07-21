@@ -27,6 +27,7 @@
 #include "HAL/ExceptionHandling.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Misc/UProjectInfo.h"
 
@@ -39,7 +40,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);
 
 /** Holds an override path if a program has special needs */
-FString OverrideGameDir;
+FString OverrideProjectDir;
 
 
 /* EBuildConfigurations interface
@@ -186,11 +187,6 @@ int32 FGenericPlatformMisc::CachedPhysicalScreenDensity = 0;
 	bool FGenericPlatformMisc::bShouldPromptForRemoteDebugging = false;
 	bool FGenericPlatformMisc::bPromptForRemoteDebugOnEnsure = false;
 #endif	//#if !UE_BUILD_SHIPPING
-
-GenericApplication* FGenericPlatformMisc::CreateApplication()
-{
-	return new GenericApplication( nullptr );
-}
 
 void FGenericPlatformMisc::SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value)
 {
@@ -492,11 +488,12 @@ const TCHAR* FGenericPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32
 
 void FGenericPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
-
+	FPlatformApplicationMisc::ClipboardCopy(Str);
 }
+
 void FGenericPlatformMisc:: ClipboardPaste(class FString& Dest)
 {
-	Dest = FString();
+	FPlatformApplicationMisc::ClipboardPaste(Dest);
 }
 
 void FGenericPlatformMisc::CreateGuid(FGuid& Guid)
@@ -566,7 +563,7 @@ const TCHAR* FGenericPlatformMisc::RootDir()
 
 			// keep going until we've removed Binaries
 #if IS_MONOLITHIC && !IS_PROGRAM
-			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetGameName()));
+			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetProjectName()));
 #else
 			int32 pos = Path.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase);
 #endif
@@ -671,12 +668,7 @@ IPlatformCompression* FGenericPlatformMisc::GetPlatformCompression()
 	return &Singleton;
 }
 
-FLinearColor FGenericPlatformMisc::GetScreenPixelColor(const struct FVector2D& InScreenPos, float InGamma)
-{ 
-	return FLinearColor::Black;
-}
-
-void GenericPlatformMisc_GetProjectFilePathGameDir(FString& OutGameDir)
+void GenericPlatformMisc_GetProjectFilePathProjectDir(FString& OutGameDir)
 {
 	// Here we derive the game path from the project file location.
 	FString BasePath = FPaths::GetPath(FPaths::GetProjectFilePath());
@@ -686,61 +678,61 @@ void GenericPlatformMisc_GetProjectFilePathGameDir(FString& OutGameDir)
 	OutGameDir = BasePath;
 }
 
-const TCHAR* FGenericPlatformMisc::GameDir()
+const TCHAR* FGenericPlatformMisc::ProjectDir()
 {
-	static FString GameDir = TEXT("");
+	static FString ProjectDir = TEXT("");
 
 	// track if last time we called this function the .ini was ready and had fixed the GameName case
 	static bool bWasIniReady = false;
 	bool bIsIniReady = GConfig && GConfig->IsReadyForUse();
 	if (bWasIniReady != bIsIniReady)
 	{
-		GameDir = TEXT("");
+		ProjectDir = TEXT("");
 		bWasIniReady = bIsIniReady;
 	}
 
 	// try using the override game dir if it exists, which will override all below logic
-	if (GameDir.Len() == 0)
+	if (ProjectDir.Len() == 0)
 	{
-		GameDir = OverrideGameDir;
+		ProjectDir = OverrideProjectDir;
 	}
 
-	if (GameDir.Len() == 0)
+	if (ProjectDir.Len() == 0)
 	{
 		if (FPlatformProperties::IsProgram())
 		{
 			// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
-			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), FApp::GetGameName());
+			ProjectDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), FApp::GetProjectName());
 		}
 		else
 		{
 			if (FPaths::IsProjectFilePathSet())
 			{
-				GenericPlatformMisc_GetProjectFilePathGameDir(GameDir);
+				GenericPlatformMisc_GetProjectFilePathProjectDir(ProjectDir);
 			}
-			else if ( FApp::HasGameName() )
+			else if ( FApp::HasProjectName() )
 			{
 				if (FPlatformProperties::IsMonolithicBuild() == false)
 				{
 					// No game project file, but has a game name, use the game folder next to the working directory
-					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
-					FString GameBinariesDir = GameDir / TEXT("Binaries/");
+					ProjectDir = FString::Printf(TEXT("../../../%s/"), FApp::GetProjectName());
+					FString GameBinariesDir = ProjectDir / TEXT("Binaries/");
 					if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*GameBinariesDir) == false)
 					{
 						// The game binaries folder was *not* found
 						// 
-						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find game directory: %s\n"), *GameDir);
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find game directory: %s\n"), *ProjectDir);
 
 						// Use the uprojectdirs
-						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetGameName(), FPlatformProcess::BaseDir());
+						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetProjectName(), FPlatformProcess::BaseDir());
 						if (GameProjectFile.IsEmpty() == false)
 						{
 							// We found a project folder for the game
 							FPaths::SetProjectFilePath(GameProjectFile);
-							GameDir = FPaths::GetPath(GameProjectFile);
-							if (GameDir.EndsWith(TEXT("/")) == false)
+							ProjectDir = FPaths::GetPath(GameProjectFile);
+							if (ProjectDir.EndsWith(TEXT("/")) == false)
 							{
-								GameDir += TEXT("/");
+								ProjectDir += TEXT("/");
 							}
 						}
 					}
@@ -748,35 +740,35 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				else
 				{
 #if !PLATFORM_DESKTOP
-					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
+					ProjectDir = FString::Printf(TEXT("../../../%s/"), FApp::GetProjectName());
 #else
 					// This assumes the game executable is in <GAME>/Binaries/<PLATFORM>
-					GameDir = TEXT("../../");
+					ProjectDir = TEXT("../../");
 
 					// Determine a relative path that includes the game folder itself, if possible...
 					FString LocalBaseDir = FString(FPlatformProcess::BaseDir());
 					FString LocalRootDir = FPaths::RootDir();
 					FString BaseToRoot = LocalRootDir;
 					FPaths::MakePathRelativeTo(BaseToRoot, *LocalBaseDir);
-					FString LocalGameDir = LocalBaseDir / TEXT("../../");
-					FPaths::CollapseRelativeDirectories(LocalGameDir);
-					FPaths::MakePathRelativeTo(LocalGameDir, *(FPaths::RootDir()));
-					LocalGameDir = BaseToRoot / LocalGameDir;
-					if (LocalGameDir.EndsWith(TEXT("/")) == false)
+					FString LocalProjectDir = LocalBaseDir / TEXT("../../");
+					FPaths::CollapseRelativeDirectories(LocalProjectDir);
+					FPaths::MakePathRelativeTo(LocalProjectDir, *(FPaths::RootDir()));
+					LocalProjectDir = BaseToRoot / LocalProjectDir;
+					if (LocalProjectDir.EndsWith(TEXT("/")) == false)
 					{
-						LocalGameDir += TEXT("/");
+						LocalProjectDir += TEXT("/");
 					}
 
-					FString CheckLocal = FPaths::ConvertRelativePathToFull(LocalGameDir);
-					FString CheckGame = FPaths::ConvertRelativePathToFull(GameDir);
+					FString CheckLocal = FPaths::ConvertRelativePathToFull(LocalProjectDir);
+					FString CheckGame = FPaths::ConvertRelativePathToFull(ProjectDir);
 					if (CheckLocal == CheckGame)
 					{
-						GameDir = LocalGameDir;
+						ProjectDir = LocalProjectDir;
 					}
 
-					if (GameDir.EndsWith(TEXT("/")) == false)
+					if (ProjectDir.EndsWith(TEXT("/")) == false)
 					{
-						GameDir += TEXT("/");
+						ProjectDir += TEXT("/");
 					}
 #endif
 				}
@@ -784,20 +776,20 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 			else
 			{
 				// Get a writable engine directory
-				GameDir = FPaths::EngineUserDir();
-				FPaths::NormalizeFilename(GameDir);
-				GameDir = FFileManagerGeneric::DefaultConvertToRelativePath(*GameDir);
-				if(!GameDir.EndsWith(TEXT("/"))) GameDir += TEXT("/");
+				ProjectDir = FPaths::EngineUserDir();
+				FPaths::NormalizeFilename(ProjectDir);
+				ProjectDir = FFileManagerGeneric::DefaultConvertToRelativePath(*ProjectDir);
+				if(!ProjectDir.EndsWith(TEXT("/"))) ProjectDir += TEXT("/");
 			}
 		}
 	}
 
-	return *GameDir;
+	return *ProjectDir;
 }
 
 FString FGenericPlatformMisc::CloudDir()
 {
-	return FPaths::GameSavedDir() + TEXT("Cloud/");
+	return FPaths::ProjectSavedDir() + TEXT("Cloud/");
 }
 
 const TCHAR* FGenericPlatformMisc::GamePersistentDownloadDir()
@@ -806,125 +798,14 @@ const TCHAR* FGenericPlatformMisc::GamePersistentDownloadDir()
 
 	if (GamePersistentDownloadDir.Len() == 0)
 	{
-		FString BaseGameDir = GameDir();
+		FString BaseProjectDir = ProjectDir();
 
-		if (BaseGameDir.Len() > 0)
+		if (BaseProjectDir.Len() > 0)
 		{
-			GamePersistentDownloadDir = BaseGameDir / TEXT("PersistentDownloadDir");
+			GamePersistentDownloadDir = BaseProjectDir / TEXT("PersistentDownloadDir");
 		}
 	}
 	return *GamePersistentDownloadDir;
-}
-
-uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys)
-{
-	uint32 NumMappings = 0;
-
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
-
-	ADDKEYMAP( '0', TEXT("Zero") );
-	ADDKEYMAP( '1', TEXT("One") );
-	ADDKEYMAP( '2', TEXT("Two") );
-	ADDKEYMAP( '3', TEXT("Three") );
-	ADDKEYMAP( '4', TEXT("Four") );
-	ADDKEYMAP( '5', TEXT("Five") );
-	ADDKEYMAP( '6', TEXT("Six") );
-	ADDKEYMAP( '7', TEXT("Seven") );
-	ADDKEYMAP( '8', TEXT("Eight") );
-	ADDKEYMAP( '9', TEXT("Nine") );
-
-	// we map both upper and lower
-	if (bMapUppercaseKeys)
-	{
-		ADDKEYMAP( 'A', TEXT("A") );
-		ADDKEYMAP( 'B', TEXT("B") );
-		ADDKEYMAP( 'C', TEXT("C") );
-		ADDKEYMAP( 'D', TEXT("D") );
-		ADDKEYMAP( 'E', TEXT("E") );
-		ADDKEYMAP( 'F', TEXT("F") );
-		ADDKEYMAP( 'G', TEXT("G") );
-		ADDKEYMAP( 'H', TEXT("H") );
-		ADDKEYMAP( 'I', TEXT("I") );
-		ADDKEYMAP( 'J', TEXT("J") );
-		ADDKEYMAP( 'K', TEXT("K") );
-		ADDKEYMAP( 'L', TEXT("L") );
-		ADDKEYMAP( 'M', TEXT("M") );
-		ADDKEYMAP( 'N', TEXT("N") );
-		ADDKEYMAP( 'O', TEXT("O") );
-		ADDKEYMAP( 'P', TEXT("P") );
-		ADDKEYMAP( 'Q', TEXT("Q") );
-		ADDKEYMAP( 'R', TEXT("R") );
-		ADDKEYMAP( 'S', TEXT("S") );
-		ADDKEYMAP( 'T', TEXT("T") );
-		ADDKEYMAP( 'U', TEXT("U") );
-		ADDKEYMAP( 'V', TEXT("V") );
-		ADDKEYMAP( 'W', TEXT("W") );
-		ADDKEYMAP( 'X', TEXT("X") );
-		ADDKEYMAP( 'Y', TEXT("Y") );
-		ADDKEYMAP( 'Z', TEXT("Z") );
-	}
-
-	if (bMapLowercaseKeys)
-	{
-		ADDKEYMAP( 'a', TEXT("A") );
-		ADDKEYMAP( 'b', TEXT("B") );
-		ADDKEYMAP( 'c', TEXT("C") );
-		ADDKEYMAP( 'd', TEXT("D") );
-		ADDKEYMAP( 'e', TEXT("E") );
-		ADDKEYMAP( 'f', TEXT("F") );
-		ADDKEYMAP( 'g', TEXT("G") );
-		ADDKEYMAP( 'h', TEXT("H") );
-		ADDKEYMAP( 'i', TEXT("I") );
-		ADDKEYMAP( 'j', TEXT("J") );
-		ADDKEYMAP( 'k', TEXT("K") );
-		ADDKEYMAP( 'l', TEXT("L") );
-		ADDKEYMAP( 'm', TEXT("M") );
-		ADDKEYMAP( 'n', TEXT("N") );
-		ADDKEYMAP( 'o', TEXT("O") );
-		ADDKEYMAP( 'p', TEXT("P") );
-		ADDKEYMAP( 'q', TEXT("Q") );
-		ADDKEYMAP( 'r', TEXT("R") );
-		ADDKEYMAP( 's', TEXT("S") );
-		ADDKEYMAP( 't', TEXT("T") );
-		ADDKEYMAP( 'u', TEXT("U") );
-		ADDKEYMAP( 'v', TEXT("V") );
-		ADDKEYMAP( 'w', TEXT("W") );
-		ADDKEYMAP( 'x', TEXT("X") );
-		ADDKEYMAP( 'y', TEXT("Y") );
-		ADDKEYMAP( 'z', TEXT("Z") );
-	}
-
-	ADDKEYMAP( ';', TEXT("Semicolon") );
-	ADDKEYMAP( '=', TEXT("Equals") );
-	ADDKEYMAP( ',', TEXT("Comma") );
-	ADDKEYMAP( '-', TEXT("Hyphen") );
-	ADDKEYMAP( '.', TEXT("Period") );
-	ADDKEYMAP( '/', TEXT("Slash") );
-	ADDKEYMAP( '`', TEXT("Tilde") );
-	ADDKEYMAP( '[', TEXT("LeftBracket") );
-	ADDKEYMAP( '\\', TEXT("Backslash") );
-	ADDKEYMAP( ']', TEXT("RightBracket") );
-	ADDKEYMAP( '\'', TEXT("Apostrophe") );
-	ADDKEYMAP(' ', TEXT("SpaceBar"));
-
-	// AZERTY Keys
-	ADDKEYMAP( '&', TEXT("Ampersand") );
-	ADDKEYMAP( '*', TEXT("Asterix") );
-	ADDKEYMAP( '^', TEXT("Caret") );
-	ADDKEYMAP( ':', TEXT("Colon") );
-	ADDKEYMAP( '$', TEXT("Dollar") );
-	ADDKEYMAP( '!', TEXT("Exclamation") );
-	ADDKEYMAP( '(', TEXT("LeftParantheses") );
-	ADDKEYMAP( ')', TEXT("RightParantheses") );
-	ADDKEYMAP( '"', TEXT("Quote") );
-	ADDKEYMAP( '_', TEXT("Underscore") );
-	ADDKEYMAP( 224, TEXT("A_AccentGrave") );
-	ADDKEYMAP( 231, TEXT("C_Cedille") );
-	ADDKEYMAP( 233, TEXT("E_AccentAigu") );
-	ADDKEYMAP( 232, TEXT("E_AccentGrave") );
-	ADDKEYMAP( 167, TEXT("Section") );
-
-	return NumMappings;
 }
 
 const TCHAR* FGenericPlatformMisc::GetUBTPlatform()
@@ -942,9 +823,9 @@ const TCHAR* FGenericPlatformMisc::GetDefaultDeviceProfileName()
 	return TEXT("Default");
 }
 
-void FGenericPlatformMisc::SetOverrideGameDir(const FString& InOverrideDir)
+void FGenericPlatformMisc::SetOverrideProjectDir(const FString& InOverrideDir)
 {
-	OverrideGameDir = InOverrideDir;
+	OverrideProjectDir = InOverrideDir;
 }
 
 bool FGenericPlatformMisc::AllowThreadHeartBeat()

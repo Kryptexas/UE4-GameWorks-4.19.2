@@ -355,7 +355,7 @@ void FLocalizationTargetSetDetailCustomization::ImportTextAllTargets()
 		}
 
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -406,7 +406,7 @@ void FLocalizationTargetSetDetailCustomization::ExportTextAllTargets()
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -453,7 +453,7 @@ void FLocalizationTargetSetDetailCustomization::ImportDialogueScriptAllTargets()
 		}
 
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;
@@ -504,7 +504,7 @@ void FLocalizationTargetSetDetailCustomization::ExportDialogueScriptAllTargets()
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Localization"));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("Localization"));
 
 		// Prompt the user for the directory
 		FString OutputDirectory;

@@ -5,6 +5,7 @@
 #include "Parent.h"
 #include "Stats/StatsMisc.h"
 #include "HAL/RunnableThread.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "GenericPlatform/GenericApplication.h"
 
 #include "TestDirectoryWatcher.h"
@@ -264,7 +265,7 @@ int32 SysInfoTest(const TCHAR* CommandLine)
 	bool bIsRunningOnBattery = FPlatformMisc::IsRunningOnBattery();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::IsRunningOnBattery() = %s"), bIsRunningOnBattery ? TEXT("true") : TEXT("false"));
 
-	GenericApplication * PlatformApplication = FPlatformMisc::CreateApplication();
+	GenericApplication * PlatformApplication = FPlatformApplicationMisc::CreateApplication();
 	checkf(PlatformApplication, TEXT("Could not create platform application!"));
 	bool bIsMouseAttached = PlatformApplication->IsMouseAttached();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::IsMouseAttached() = %s"), bIsMouseAttached ? TEXT("true") : TEXT("false"));

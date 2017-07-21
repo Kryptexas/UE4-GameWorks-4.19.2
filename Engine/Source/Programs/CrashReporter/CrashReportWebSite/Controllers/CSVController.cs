@@ -84,7 +84,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			else if (CrashType == 3)
 			{
 				return "Ensure";
-			}
+            }
+            else if (CrashType == 4)
+            {
+                return "GPUCrash";
+            }
 			return "Unknown";
 		}
 	}
@@ -129,8 +133,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 var filteringQueryJoin = _unitOfWork.CrashRepository
                     .ListAll()
                     .Where(c => c.EpicAccountId != "")
-                    // Only Crashes and asserts
-                    .Where(c => c.CrashType == 1 || c.CrashType == 2)
+                    // Only Crashes, GPUCrashes and asserts
+                    .Where(c => c.CrashType == 1 || c.CrashType == 2 || c.CrashType == 4)
                     // Only anonymous user
                     .Where(c => c.UserId == anonymousId)
                     // Filter be date
@@ -159,7 +163,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     .ListAll()
                     .Where(c => c.EpicAccountId != null)
                     // Only Crashes and asserts
-                    .Where(c => c.CrashType == 1 || c.CrashType == 2)
+                    .Where(c => c.CrashType == 1 || c.CrashType == 2 || c.CrashType == 4)
                     // Only anonymous user
                     .Where(c => c.UserId == anonymousId);//44
 

@@ -340,7 +340,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 
 	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle and ProjectDebugTitleInfo properties
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetGameName() ) );
+	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetProjectName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
@@ -545,6 +545,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	bIsVanillaProduct = false;
 
 	GameScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
+
+	LastGCFrame = TNumericLimits<uint64>::Max();
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

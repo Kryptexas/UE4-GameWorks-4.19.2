@@ -662,8 +662,8 @@ void FReferenceFinder::FindReferences(UObject* Object, UObject* InReferencingObj
 
 	if (!Object->GetClass()->IsChildOf(UClass::StaticClass()))
 	{
-		FSimpleObjectReferenceCollectorArchive CollectorArchive(Object, *this);
-		CollectorArchive.SetSerializedProperty(SerializedProperty);
+		FArchive& CollectorArchive = GetVerySlowReferenceCollectorArchive();
+		FSerializedPropertyScope PropertyScope(CollectorArchive, SerializedProperty);
 		Object->SerializeScriptProperties(CollectorArchive);
 	}
 	Object->CallAddReferencedObjects(*this);
@@ -1574,8 +1574,7 @@ static void AddReferencedObjectsViaSerialization( UObject* Object, FReferenceCol
 	check( Object != NULL );
 
 	// Collect object references by serializing the object
-	FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( Object, Collector );
-	Object->Serialize( ObjectReferenceCollector );
+	Object->Serialize(Collector.GetVerySlowReferenceCollectorArchive());
 }
 #endif
 
@@ -2012,30 +2011,32 @@ void UClass::EmitFixedArrayEnd()
 	ReferenceTokenStream.EmitReturn();
 }
 
+struct FScopeLockIfNotNative
+{
+	FCriticalSection& ScopeCritical;
+	const bool bNotNative;
+	FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
+		: ScopeCritical(InScopeCritical)
+		, bNotNative(bIsNotNative)
+	{
+		if (bNotNative)
+		{
+			ScopeCritical.Lock();
+		}
+	}
+	~FScopeLockIfNotNative()
+	{
+		if (bNotNative)
+		{
+			ScopeCritical.Unlock();
+		}
+	}
+};
+
 void UClass::AssembleReferenceTokenStream(bool bForce)
 {
 	// Lock for non-native classes
-	struct FScopeLockIfNotNative
-	{
-		FCriticalSection& ScopeCritical;
-		const bool bNotNative;
-		FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
-			: ScopeCritical(InScopeCritical)
-			, bNotNative(bIsNotNative)
-		{
-			if (bNotNative)
-			{
-				ScopeCritical.Lock();
-			}
-		}
-		~FScopeLockIfNotNative()
-		{
-			if (bNotNative)
-			{
-				ScopeCritical.Unlock();
-			}
-		}
-	} ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
+	FScopeLockIfNotNative ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
 
 	UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogGarbage, Fatal, TEXT("AssembleReferenceTokenStream for %s called on a non-game thread while GC is not locked."), *GetFullName());
 
@@ -2058,14 +2059,17 @@ void UClass::AssembleReferenceTokenStream(bool bForce)
 			Property->EmitReferenceInfo(*this, 0, EncounteredStructProps);
 		}
 
-		if (GetSuperClass())
+		if (UClass* SuperClass = GetSuperClass())
 		{
+			// We also need to lock the super class stream in case something (like PostLoad) wants to reconstruct it on GameThread
+			FScopeLockIfNotNative SuperClassReferenceTokenStreamLock(SuperClass->ReferenceTokenStreamCritical, !(SuperClass->ClassFlags & CLASS_Native));
+			
 			// Make sure super class has valid token stream.
-			GetSuperClass()->AssembleReferenceTokenStream();
-			if (!GetSuperClass()->ReferenceTokenStream.IsEmpty())
+			SuperClass->AssembleReferenceTokenStream();
+			if (!SuperClass->ReferenceTokenStream.IsEmpty())
 			{
 				// Prepend super's stream. This automatically handles removing the EOS token.
-				PrependStreamWithSuperClass(*GetSuperClass());
+				PrependStreamWithSuperClass(*SuperClass);
 			}
 		}
 		else
@@ -2116,7 +2120,7 @@ void FGCReferenceTokenStream::PrependStream( const FGCReferenceTokenStream& Othe
 	}
 	// TArray doesn't have a general '+' operator.
 	TempTokens += Tokens;
-	Tokens = TempTokens;
+	Tokens = MoveTemp(TempTokens);
 }
 
 void FGCReferenceTokenStream::ReplaceOrAddAddReferencedObjectsCall(void (*AddReferencedObjectsPtr)(UObject*, class FReferenceCollector&))

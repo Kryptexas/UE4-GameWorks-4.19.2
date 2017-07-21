@@ -9,7 +9,7 @@ public class LibOVRAudio : ModuleRules
 		/** Mark the current version of the Oculus SDK */
 		Type = ModuleType.External;
 
-		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVRAudio/LibOVRAudio";
+		string OculusThirdPartyDirectory = Target.UEThirdPartySourceDirectory + "Oculus/LibOVRAudio/LibOVRAudio";
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{

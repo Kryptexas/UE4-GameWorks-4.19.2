@@ -191,7 +191,7 @@ void FPerformanceMonitorModule::StartRecordingPerfTimers(FString FileNameToUse, 
 		}
 		LogFileName = FileNameToUse;
 
-		FString NewLogFileName = FString::Printf(TEXT("%sFXPerformance/%s.csv"), *FPaths::GameSavedDir(), *LogFileName);
+		FString NewLogFileName = FString::Printf(TEXT("%sFXPerformance/%s.csv"), *FPaths::ProjectSavedDir(), *LogFileName);
 		FileToLogTo = IFileManager::Get().CreateFileWriter(*NewLogFileName, false);
 	}
 

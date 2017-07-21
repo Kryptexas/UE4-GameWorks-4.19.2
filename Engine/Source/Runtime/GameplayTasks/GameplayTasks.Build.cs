@@ -45,7 +45,7 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
-			if (UEBuildConfiguration.bBuildEditor == true)
+			if (Target.bBuildEditor == true)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 				CircularlyReferencedDependentModules.Add("UnrealEd");

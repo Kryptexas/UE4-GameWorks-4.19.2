@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 #include "Interfaces/IImageWrapperModule.h"
 #include "SlateApplication.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if PLATFORM_LINUX
 #include "SDL.h"
@@ -257,7 +258,7 @@ bool FHardwareCursor::LoadCursorFromPngs(const FString& InPathToCursorWithoutExt
 	{
 		// @TODO NDarnell Support all resolutions by building multi-resolution cursors in memory.
 		TSharedPtr<FPngFileData> NearestCursor = CursorPngFiles[0];
-		float PlatformScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(0, 0);
+		float PlatformScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(0, 0);
 		for ( TSharedPtr<FPngFileData>& FileData : CursorPngFiles )
 		{
 			const float NewDelta = FMath::Abs(FileData->ScaleFactor - PlatformScaleFactor);

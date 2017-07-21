@@ -68,6 +68,16 @@ public abstract class StagedFileSystemReference
 	}
 
 	/// <summary>
+	/// Checks if this path is equal to or under the given directory
+	/// </summary>
+	/// <param name="Directory">The directory to check against</param>
+	/// <returns>True if the path is under the given directory</returns>
+	public bool IsUnderDirectory(StagedDirectoryReference Directory)
+	{
+		return CanonicalName.StartsWith(Directory.CanonicalName) && (CanonicalName.Length == Directory.CanonicalName.Length || CanonicalName[Directory.CanonicalName.Length] == '/');
+	}
+
+	/// <summary>
 	/// Create a full path by concatenating multiple strings
 	/// </summary>
 	/// <returns></returns>

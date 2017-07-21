@@ -4,17 +4,21 @@
 
 #include "DataAsset.h"
 #include "Engine/AssetManagerTypes.h"
+#include "Engine/EngineTypes.h"
 #include "PrimaryAssetLabel.generated.h"
 
 /** A seed file that is created to mark referenced assets as part of this primary asset */
-UCLASS(MinimalAPI)
-class UPrimaryAssetLabel : public UPrimaryDataAsset
+UCLASS()
+class ENGINE_API UPrimaryAssetLabel : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
 	/** Bundle name used for directory-tagged assets */
 	static const FName DirectoryBundle;
+
+	/** Bundle used for collection assets */
+	static const FName CollectionBundle;
 
 	/** Constructor */
 	UPrimaryAssetLabel();
@@ -39,17 +43,19 @@ public:
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel, meta = (AssetBundles = "Explicit", BlueprintBaseOnly))
 	TArray<TAssetSubclassOf<UObject>> ExplicitBlueprints;
 
+	/** Collection to load asset references out of */
+	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel)
+	FCollectionReference AssetCollection;
+
 	/** Set to editor only if this is not available in a cooked build */
 	virtual bool IsEditorOnly() const
 	{
 		return !bIsRuntimeLabel;
 	}
 
-	// TODO add collections
-
 #if WITH_EDITORONLY_DATA
 	/** This scans the class for AssetBundles metadata on asset properties and initializes the AssetBundleData with InitializeAssetBundlesFromMetadata */
-	ENGINE_API virtual void UpdateAssetBundleData();
+	virtual void UpdateAssetBundleData();
 #endif
 
 };

@@ -32,7 +32,6 @@ struct FWriteDescriptorParams
 	FWriteDescriptorParams()
 		: bCanContainContent(false)
 		, bHasModules(false)
-		, bIsMod(false)
 		, ModuleDescriptorType(EHostType::Runtime)
 		, LoadingPhase(ELoadingPhase::Default)
 	{
@@ -43,9 +42,6 @@ struct FWriteDescriptorParams
 
 	/** Does this plugin have Source files? */
 	bool bHasModules;
-
-	/** Whether this plugin should be flagged as a mod */
-	bool bIsMod;
 
 	/** If this plugin has Source, what is the type of Source included(so it can potentially be excluded in the right builds) */
 	EHostType::Type ModuleDescriptorType;

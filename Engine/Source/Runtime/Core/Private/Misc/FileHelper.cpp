@@ -523,10 +523,10 @@ void FMaintenance::DeleteOldLogs()
 	{
 		// get a list of files in the log dir
 		TArray<FString> Files;
-		IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::GameLogDir()), true, false);
+		IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::ProjectLogDir()), true, false);
 		for (FString& Filename : Files)
 		{
-			Filename = FPaths::GameLogDir() / Filename;
+			Filename = FPaths::ProjectLogDir() / Filename;
 		}
 
 		struct FSortByDateNewestFirst
@@ -569,11 +569,11 @@ void FMaintenance::DeleteOldLogs()
 
 	// Remove all legacy UE4 crash contexts (regardless of age and purge settings, these are deprecated)
 	TArray<FString> Directories;
-	IFileManager::Get().FindFiles(Directories, *FString::Printf(TEXT("%s/UE4CC*"), *FPaths::GameLogDir()), false, true);
+	IFileManager::Get().FindFiles(Directories, *FString::Printf(TEXT("%s/UE4CC*"), *FPaths::ProjectLogDir()), false, true);
 
 	for (const FString& Dir : Directories)
 	{
-		const FString CrashConfigDirectory = FPaths::GameLogDir() / Dir;
+		const FString CrashConfigDirectory = FPaths::ProjectLogDir() / Dir;
 		IFileManager::Get().DeleteDirectory(*CrashConfigDirectory, false, true);
 	}
 }

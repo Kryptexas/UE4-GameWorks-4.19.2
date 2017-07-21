@@ -17,6 +17,7 @@
 #include "Widgets/StatDragDropOp.h"
 #include "Widgets/SEventGraphTooltip.h"
 #include "Widgets/Input/SSearchBox.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SEventGraph"
 
@@ -2373,7 +2374,7 @@ void SEventGraph::ContextMenu_CopySelectedToClipboard_Execute()
 
 	if( Result.Len() )
 	{
-		FPlatformMisc::ClipboardCopy( *Result );
+		FPlatformApplicationMisc::ClipboardCopy( *Result );
 	}
 }
 

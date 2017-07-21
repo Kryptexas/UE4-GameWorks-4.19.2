@@ -26,6 +26,7 @@
 #include "Misc/EngineBuildSettings.h"
 #include "Modules/ModuleManager.h"
 #include "ScopeLock.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if WITH_EDITOR
 
@@ -576,9 +577,9 @@ bool LinuxSplash_InitSplashResources()
 	checkf(GSplashWindow == nullptr, TEXT("LinuxSplash_InitSplashResources() has been called multiple times."));
 	checkf(GSplashIconImage == nullptr, TEXT("LinuxSplash_InitSplashResources() has been called multiple times."));
 
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (!FPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Warning, TEXT("LinuxSplash_InitSplashResources() : PlatformInitMultimedia() failed, there will be no splash."));
+		UE_LOG(LogInit, Warning, TEXT("LinuxSplash_InitSplashResources() : InitSDL() failed, there will be no splash."));
 		return false;
 	}
 
@@ -925,7 +926,7 @@ void FLinuxPlatformSplash::Show( )
 	}
 
 	// decide on which splash screen to show
-	const FText GameName = FText::FromString(FApp::GetGameName());
+	const FText GameName = FText::FromString(FApp::GetProjectName());
 
 	bool IsCustom = false;
 

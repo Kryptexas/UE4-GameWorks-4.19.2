@@ -1558,11 +1558,6 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 #endif
 }
 
-ABrush* ULevel::GetBrush() const
-{
-	return GetDefaultBrush();
-}
-
 ABrush* ULevel::GetDefaultBrush() const
 {
 	ABrush* DefaultBrush = nullptr;

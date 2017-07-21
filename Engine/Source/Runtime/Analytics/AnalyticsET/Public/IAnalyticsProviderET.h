@@ -18,7 +18,7 @@ public:
 	 *
 	 * @param AppID The new AppID to set
 	 */
-	virtual void SetAppID(const FString&& AppID) = 0;
+	virtual void SetAppID(FString&& AppID) = 0;
 
 	
 	/**

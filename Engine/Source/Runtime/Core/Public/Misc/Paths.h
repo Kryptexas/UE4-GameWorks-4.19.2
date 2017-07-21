@@ -104,61 +104,92 @@ public:
 	static FString RootDir();
 
 	/**
-	 * Returns the base directory of the current game by looking at FApp::GetGameName().
+	 * Returns the base directory of the current project by looking at FApp::GetProjectName().
 	 * This is usually a subdirectory of the installation
 	 * root directory and can be overridden on the command line to allow self
 	 * contained mod support.
 	 *
 	 * @return base directory
 	 */
-	static FString GameDir();
+	static FString ProjectDir();
+
+	DEPRECATED(4.18, "FPaths::GameDir() has been superseded by FPaths::ProjectDir().")
+	static FORCEINLINE FString GameDir() { return ProjectDir(); }
 
 	/**
 	* Returns the root directory for user-specific game files.
 	*
 	* @return game user directory
 	*/
-	static FString GameUserDir();
+	static FString ProjectUserDir();
+
+	DEPRECATED(4.18, "FPaths::GameUserDir() has been superseded by FPaths::ProjectUserDir().")
+	static FORCEINLINE FString GameUserDir() { return ProjectUserDir(); }
 
 	/**
-	 * Returns the content directory of the current game by looking at FApp::GetGameName().
+	 * Returns the content directory of the current game by looking at FApp::GetProjectName().
 	 *
 	 * @return content directory
 	 */
-	static FString GameContentDir();
+	static FString ProjectContentDir();
+
+	DEPRECATED(4.18, "FPaths::GameContentDir() has been superseded by FPaths::ProjectContentDir().")
+	static FORCEINLINE FString GameContentDir() { return ProjectContentDir(); }
 
 	/**
 	* Returns the directory the root configuration files are located.
 	*
 	* @return root config directory
 	*/
-	static FString GameConfigDir();
+	static FString ProjectConfigDir();
+
+	DEPRECATED(4.18, "FPaths::GameConfigDir() has been superseded by FPaths::ProjectConfigDir().")
+	static FORCEINLINE FString GameConfigDir() { return ProjectConfigDir(); }
 
 	/**
-	 * Returns the saved directory of the current game by looking at FApp::GetGameName().
+	 * Returns the saved directory of the current game by looking at FApp::GetProjectName().
 	 *
 	 * @return saved directory
 	 */
-	static FString GameSavedDir();
+	static FString ProjectSavedDir();
+
+	DEPRECATED(4.18, "FPaths::GameSavedDir() has been superseded by FPaths::ProjectSavedDir().")
+	static FORCEINLINE FString GameSavedDir() { return ProjectSavedDir(); }
 
 	/**
-	 * Returns the intermediate directory of the current game by looking at FApp::GetGameName().
+	 * Returns the intermediate directory of the current game by looking at FApp::GetProjectName().
 	 *
 	 * @return intermediate directory
 	 */
-	static FString GameIntermediateDir();
+	static FString ProjectIntermediateDir();
+
+	DEPRECATED(4.18, "FPaths::GameIntermediateDir() has been superseded by FPaths::ProjectIntermediateDir().")
+	static FORCEINLINE FString GameIntermediateDir() { return ProjectIntermediateDir(); }
 
 	/**
-	 * Returns the plugins directory of the current game by looking at FApp::GetGameName().
+	 * Returns the plugins directory of the current game by looking at FApp::GetProjectName().
 	 *
 	 * @return plugins directory
 	 */
-	static FString GamePluginsDir();
+	static FString ProjectPluginsDir();
+
+	DEPRECATED(4.18, "FPaths::GamePluginsDir() has been superseded by FPaths::ProjectPluginsDir().")
+	static FORCEINLINE FString GamePluginsDir() { return ProjectPluginsDir(); }
+
+	/**
+	 * Returns the mods directory of the current project by looking at FApp::GetProjectName().
+	 *
+	 * @return mods directory
+	 */
+	static FString ProjectModsDir();
 
 	/*
 	* Returns the writable directory for downloaded data that persists across play sessions.
 	*/
-	static FString GamePersistentDownloadDir();
+	static FString ProjectPersistentDownloadDir();
+
+	DEPRECATED(4.18, "FPaths::GamePersistentDownloadDir() has been superseded by FPaths::ProjectPersistentDownloadDir().")
+	static FORCEINLINE FString GamePersistentDownloadDir() { return ProjectPersistentDownloadDir(); }
 
 	/**
 	 * Returns the directory the engine uses to look for the source leaf ini files. This
@@ -217,7 +248,10 @@ public:
 	 *
 	 * @return log directory
 	 */
-	static FString GameLogDir();
+	static FString ProjectLogDir();
+
+	DEPRECATED(4.18, "FPaths::GameLogDir() has been superseded by FPaths::ProjectLogDir().")
+	static FORCEINLINE FString GameLogDir() { return ProjectLogDir(); }
 
 	/**
 	 * @return The directory for automation save files

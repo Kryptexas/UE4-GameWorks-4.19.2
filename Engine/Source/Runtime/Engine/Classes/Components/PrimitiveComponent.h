@@ -2184,16 +2184,6 @@ public:
 	 */
 
 	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot);
-	
-	/**
-	 * Return true if the given Pawn can step up onto this component.
-	 * @param APawn is the pawn that wants to step onto this component.
-	 */
-	DEPRECATED(4.3, "UPrimitiveComponent::CanBeBaseForCharacter() is deprecated, use CanCharacterStepUp() instead.")
-	virtual bool CanBeBaseForCharacter(class APawn* Pawn) const
-	{
-		return CanCharacterStepUp(Pawn);
-	}
 
 	/**
 	 * Return true if the given Pawn can step up onto this component.
@@ -2203,12 +2193,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Collision)
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
-	
-	DEPRECATED(4.5, "UPrimitiveComponent::DisableNavigationRelevance() is deprecated, use SetCanEverAffectNavigation() instead.")
-	void DisableNavigationRelevance()
-	{
-		SetCanEverAffectNavigation(false);
-	}
 
 	//~ Begin INavRelevantInterface Interface
 	virtual FBox GetNavigationBounds() const override;
@@ -2219,10 +2203,6 @@ public:
 
 	void SetCustomNavigableGeometry(const EHasCustomNavigableGeometry::Type InType);
 
-	/** Collects custom navigable geometry of component.
-	 *	@return true if regular navigable geometry exporting should be run as well */
-	DEPRECATED(4.8, "UPrimitiveComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) is deprecated, use UPrimitiveComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) instead (takes ref instead of a pointer)")
-	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) const { return DoCustomNavigableGeometryExport(*GeomExport); }
 	/** Collects custom navigable geometry of component.
 	*	@return true if regular navigable geometry exporting should be run as well */
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const { return true; }

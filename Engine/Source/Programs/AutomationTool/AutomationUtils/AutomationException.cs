@@ -6,8 +6,8 @@ using System.Text;
 
 namespace AutomationTool
 {
-    // NOTE: this needs to be kept in sync with EditorAnalytics.h and iPhonePackager.cs
-    public enum ExitCode
+	// NOTE: this needs to be kept in sync with EditorAnalytics.h and iPhonePackager.cs
+	public enum ExitCode
     {
         Error_UATNotFound = -1,
         Success = 0,
@@ -101,5 +101,10 @@ namespace AutomationTool
         {
             this.ErrorCode = ErrorCode;
         }
-    }
+
+		public override string ToString()
+		{
+			return Message;
+		}
+	}
 }

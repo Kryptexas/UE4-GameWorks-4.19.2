@@ -1062,17 +1062,17 @@ namespace AutomationTool
 
 						// Parse it and assign it to the parameters object
 						object Value;
-						if (Parameter.FieldInfo.FieldType.IsEnum)
+						if (Parameter.ValueType.IsEnum)
 						{
-							Value = Enum.Parse(Parameter.FieldInfo.FieldType, ExpandedValue);
+							Value = Enum.Parse(Parameter.ValueType, ExpandedValue);
 						}
-						else if (Parameter.FieldInfo.FieldType == typeof(Boolean))
+						else if (Parameter.ValueType == typeof(Boolean))
 						{
 							Value = Condition.Evaluate(ExpandedValue);
 						}
 						else
 						{
-							Value = Convert.ChangeType(ExpandedValue, Parameter.FieldInfo.FieldType);
+							Value = Convert.ChangeType(ExpandedValue, Parameter.ValueType);
 						}
 						Parameter.FieldInfo.SetValue(ParametersObject, Value);
 					}
@@ -1084,6 +1084,9 @@ namespace AutomationTool
 					// Add it to the list
 					CustomTask NewTask = (CustomTask)Activator.CreateInstance(Task.TaskClass, ParametersObject);
 					ParentNode.Tasks.Add(NewTask);
+
+					// Set up the source location for diagnostics
+					NewTask.SourceLocation = Tuple.Create(Element.File, Element.LineNumber);
 
 					// Make sure all the read tags are local or listed as a dependency
 					foreach(string ReadTagName in NewTask.FindConsumedTagNames())

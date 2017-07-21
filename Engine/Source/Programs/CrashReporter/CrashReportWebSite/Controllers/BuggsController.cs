@@ -366,9 +366,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                         case "Ensure":
                             results = results.Where(buggInstance => buggInstance.CrashType == 3);
                             break;
+                        case "GPUCrash":
+                            results = results.Where(buggInstance => buggInstance.CrashType == 4);
+                            break;
                         case "CrashAsserts":
                             results =
-                                results.Where(buggInstance => buggInstance.CrashType == 1 || buggInstance.CrashType == 2);
+                                results.Where(buggInstance => buggInstance.CrashType == 1 || buggInstance.CrashType == 2 || buggInstance.CrashType == 4);
                             break;
                     }
                 }

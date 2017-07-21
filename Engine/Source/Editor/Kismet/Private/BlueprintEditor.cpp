@@ -94,6 +94,7 @@
 #include "Kismet2/DebuggerCommands.h"
 #include "Editor.h"
 #include "IDetailsView.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "BlueprintEditorTabs.h"
 
@@ -5648,7 +5649,7 @@ void FBlueprintEditor::CopySelectedNodes()
 	}
 
 	FEdGraphUtilities::ExportNodesToText(SelectedNodes, /*out*/ ExportedText);
-	FPlatformMisc::ClipboardCopy(*ExportedText);
+	FPlatformApplicationMisc::ClipboardCopy(*ExportedText);
 }
 
 bool FBlueprintEditor::CanCopyNodes() const
@@ -5898,7 +5899,7 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 
 		// Grab the text to paste from the clipboard.
 		FString TextToImport;
-		FPlatformMisc::ClipboardPaste(TextToImport);
+		FPlatformApplicationMisc::ClipboardPaste(TextToImport);
 
 		// Import the nodes
 		TSet<UEdGraphNode*> PastedNodes;
@@ -6010,7 +6011,7 @@ bool FBlueprintEditor::CanPasteNodes() const
 	}
 
 	FString ClipboardContent;
-	FPlatformMisc::ClipboardPaste(ClipboardContent);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardContent);
 
 	return IsEditable(GetFocusedGraph()) && FEdGraphUtilities::CanImportNodesFromText(FocusedGraphEd->GetCurrentGraph(), ClipboardContent);
 }

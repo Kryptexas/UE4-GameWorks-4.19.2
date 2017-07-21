@@ -12,7 +12,7 @@ public class OpenVR : ModuleRules
 		string OpenVRVersion = "v1_0_7";
 		Type = ModuleType.External;
 
-		string SdkBase = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenVR/OpenVR" + OpenVRVersion;
+		string SdkBase = Target.UEThirdPartySourceDirectory + "OpenVR/OpenVR" + OpenVRVersion;
 		if (!Directory.Exists(SdkBase))
 		{
 			string Err = string.Format("OpenVR SDK not found in {0}", SdkBase);
@@ -56,7 +56,7 @@ public class OpenVR : ModuleRules
 			PublicLibraryPaths.Add(LibraryPath + "linux64");
 			PublicAdditionalLibraries.Add("openvr_api");
 
-			string DylibPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "OpenVR/OpenVR" + OpenVRVersion + "/linux64/libopenvr_api.so";
+			string DylibPath = Target.UEThirdPartyBinariesDirectory + "OpenVR/OpenVR" + OpenVRVersion + "/linux64/libopenvr_api.so";
 			PublicDelayLoadDLLs.Add(DylibPath);
 			RuntimeDependencies.Add(new RuntimeDependency(DylibPath));
 		}

@@ -317,30 +317,6 @@ public:
 		return false;
 	}
 
-	/**
-	 * Equal operator.
-	 *
-	 * @param InOther The other attribute to compare with.
-	 * @return true if the attributes are not equal, false otherwise.
-	 */
-	DEPRECATED(4.9, "Comparing an attribute directly to an attribute is deprecated.  Please call Get() on the attributes before comparing them.  If you were actually testing if the Attributes were the same functionally, call IdenticalTo")
-	bool operator==( const TAttribute& InOther ) const
-	{
-		return Get() == InOther.Get();
-	}
-
-	/**
-	 * Not equal operator.
-	 *
-	 * @param InOther The other attribute to compare with.
-	 * @return true if the attributes are not equal, false otherwise.
-	 */
-	DEPRECATED(4.9, "Comparing an attribute directly to an attribute is deprecated.  Please call Get() on the attributes before comparing them.  If you were actually testing if the Attributes were the same functionally, call IdenticalTo")
-	bool operator!=( const TAttribute& InOther ) const
-	{
-		return Get() != InOther.Get();
-	}
-	
 private:
 
 	/** Special explicit constructor for TAttribute::Create() */

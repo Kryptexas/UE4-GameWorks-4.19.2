@@ -166,7 +166,7 @@ public:
 		TSet<FNetworkGUID> UnmappedGuids;
 
 		FRPCPendingLocalCall(const FFieldNetCache* InRPCField, const FReplicationFlags& InRepFlags, FNetBitReader& InReader, const TSet<FNetworkGUID>& InUnmappedGuids)
-			: RPCFieldIndex(InRPCField->FieldNetIndex), RepFlags(InRepFlags), Buffer(MoveTemp(InReader.GetBuffer())), NumBits(InReader.GetNumBits()), UnmappedGuids(InUnmappedGuids)
+			: RPCFieldIndex(InRPCField->FieldNetIndex), RepFlags(InRepFlags), Buffer(InReader.GetBuffer()), NumBits(InReader.GetNumBits()), UnmappedGuids(InUnmappedGuids)
 		{}
 	};
 

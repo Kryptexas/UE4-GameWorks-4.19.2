@@ -191,7 +191,7 @@ void FMaterialBakingModule::BakeMaterials(const TArray<FMaterialData*>& Material
 						FString TrimmedPropertyName = PropertyName.ToString();
 						TrimmedPropertyName.RemoveFromStart(TEXT("MP_"));
 
-						const FString DirectoryPath = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir() + TEXT("MaterialBaking/"));
+						const FString DirectoryPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir() + TEXT("MaterialBaking/"));
 						FString FilenameString = FString::Printf(*(DirectoryPath + TEXT("%s-%d-%s.bmp")),
 							*CurrentMaterialSettings->Material->GetName(), MaterialIndex, *TrimmedPropertyName);
 						FFileHelper::CreateBitmap(*FilenameString, CurrentOutput.PropertySizes[Property].X, CurrentOutput.PropertySizes[Property].Y, CurrentOutput.PropertyData[Property].GetData());

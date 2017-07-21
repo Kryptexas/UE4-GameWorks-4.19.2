@@ -7,7 +7,7 @@ public class SDL2 : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string SDL2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "SDL2/SDL-gui-backend/";
+		string SDL2Path = Target.UEThirdPartySourceDirectory + "SDL2/SDL-gui-backend/";
 		string SDL2LibPath = SDL2Path + "lib/";
 
 		// assume SDL to be built with extensions
@@ -39,8 +39,8 @@ public class SDL2 : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
         {
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/include/");
-            SDL2LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/libs/";
+            PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/include/");
+            SDL2LibPath = Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/libs/";
             PublicAdditionalLibraries.Add(SDL2LibPath + "/libSDL2.a");
         }
      

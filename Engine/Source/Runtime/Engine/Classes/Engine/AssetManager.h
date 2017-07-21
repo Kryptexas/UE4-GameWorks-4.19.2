@@ -8,11 +8,15 @@
 #include "StreamableManager.h"
 #include "AssetBundleData.h"
 #include "AssetRegistryModule.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "AssetManager.generated.h"
 
 /** Defined in C++ file */
 struct FPrimaryAssetTypeData;
 struct FPrimaryAssetData;
+
+/** Delegate called when acquiring resources/chunks for assets, parameter will be true if all resources were acquired, false if any failed */
+DECLARE_DELEGATE_OneParam(FAssetManagerAcquireResourceDelegate, bool);
 
 /** 
  * A singleton UObject that is responsible for loading and unloading PrimaryAssets, and maintaining game-specific asset references
@@ -243,7 +247,7 @@ public:
 	virtual TSharedPtr<FStreamableHandle> PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
 	/** Quick wrapper to async load some non primary assets with the primary streamable manager. This will not auto release the handle, release it if needed */
-	virtual TSharedPtr<FStreamableHandle> LoadAssetList(const TArray<FStringAssetReference>& AssetList);
+	virtual TSharedPtr<FStreamableHandle> LoadAssetList(const TArray<FStringAssetReference>& AssetList, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority, const FString& DebugName = TEXT("LoadAssetList"));
 
 	/** Returns a single AssetBundleInfo, matching Scope and Name */
 	virtual FAssetBundleEntry GetAssetBundleEntry(const FPrimaryAssetId& BundleScope, FName BundleName) const;
@@ -251,7 +255,36 @@ public:
 	/** Appends all AssetBundleInfos inside a given scope */
 	virtual bool GetAssetBundleEntries(const FPrimaryAssetId& BundleScope, TArray<FAssetBundleEntry>& OutEntries) const;
 
+	/** 
+	 * Returns the list of Chunks that are not currently mounted, and are required to load the referenced assets. Returns true if any chunks are missing
+	 *
+	 * @param AssetList				Asset Paths to check chunks for
+	 * @param OutMissingChunkList	Chunks that are known about but not yet installed
+	 * @param OutErrorChunkList		Chunks that do not exist at all and are not installable
+	 */
+	virtual bool FindMissingChunkList(const TArray<FStringAssetReference>& AssetList, TArray<int32>& OutMissingChunkList, TArray<int32>& OutErrorChunkList) const;
+
+	/** 
+	 * Acquires a set of chunks using the platform chunk layer, then calls the passed in callback
+	 *
+	 * @param AssetList				Asset Paths to get resources for
+	 * @param CompleteDelegate		Delegate called when chunks have been acquired or failed. If any chunks fail the entire operation is considered a failure
+	 * @param Priority				Priority to use when acquiring chunks
+	 */
+	virtual void AcquireResourcesForAssetList(const TArray<FStringAssetReference>& AssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority = EChunkPriority::Immediate);
+
+	/** 
+	 * Acquires a set of chunks using the platform chunk layer, then calls the passed in callback. This will download all bundles of a primary asset
+	 *
+	 * @param PrimaryAssetList		Primary assets to get chunks for
+	 * @param CompleteDelegate		Delegate called when chunks have been acquired or failed. If any chunks fail the entire operation is considered a failure
+	 * @param Priority				Priority to use when acquiring chunks
+	 */
+	virtual void AcquireResourcesForPrimaryAssetList(const TArray<FPrimaryAssetId>& PrimaryAssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority = EChunkPriority::Immediate);
 	
+	/** Returns the chunk download/install progress. AcquiredCount is the number of chunks that were requested and have already been insatlled, Requested includes both installed and pending */
+	virtual bool GetResourceAcquireProgress(int32& OutAcquiredCount, int32& OutRequestedCount) const;
+
 	// FUNCTIONS FOR MANAGEMENT/COOK RULES
 
 	/** Changes the default management rules for a specified type */
@@ -410,6 +443,12 @@ protected:
 	/** Returns true if path should be excluded from primary asset scans */
 	virtual bool IsPathExcludedFromScan(const FString& Path) const;
 
+	/** Call to start acquiring a list of chunks */
+	virtual void AcquireChunkList(const TArray<int32>& ChunkList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority, TSharedPtr<FStreamableHandle> StalledHandle);
+
+	/** Called when a new chunk has been downloaded */
+	virtual void OnChunkDownloaded(uint32 ChunkId, bool bSuccess);
+
 #if WITH_EDITOR
 	/** Function used during creating Management references to decide when to recurse and set references */
 	virtual EAssetSetManagerResult::Type ShouldSetManager(const FAssetIdentifier& Manager, const FAssetIdentifier& Source, const FAssetIdentifier& Target, EAssetRegistryDependencyType::Type DependencyType, EAssetSetManagerFlags::Type Flags) const;
@@ -461,6 +500,25 @@ protected:
 	/** The streamable manager used for all primary asset loading */
 	FStreamableManager StreamableManager;
 
+	/** Defines a set of chunk installs that are waiting */
+	struct FPendingChunkInstall
+	{
+		/** Chunks we originally requested */
+		TArray<int32> RequestedChunks;
+
+		/** Chunks we are still waiting for */
+		TArray<int32> PendingChunks;
+
+		/** Stalled streamable handle waiting for this install, may be null */
+		TSharedPtr<FStreamableHandle> StalledStreamableHandle;
+
+		/** Delegate to call on completion, may be empty */
+		FAssetManagerAcquireResourceDelegate ManualCallback;
+	};
+
+	/** List of chunk installs that are being waited for */
+	TArray<FPendingChunkInstall> PendingChunkInstalls;
+
 	/** List of UObjects that are being kept from being GCd, derived from the asset type map. Arrays are currently more efficient than Sets */
 	UPROPERTY()
 	TArray<UObject*> ObjectReferenceList;
@@ -476,6 +534,18 @@ protected:
 	/** True if we should always use synchronous loads, this speeds up cooking */
 	UPROPERTY()
 	bool bShouldUseSynchronousLoad;
+
+	/** True if we are loading from pak files */
+	UPROPERTY()
+	bool bIsLoadingFromPakFiles;
+
+	/** True if the chunk install interface should be queries before loading assets */
+	UPROPERTY()
+	bool bShouldAcquireMissingChunksOnLoad;
+
+	/** If true, DevelopmentCook assets will error when they are cooked */
+	UPROPERTY()
+	bool bOnlyCookProductionAssets;
 
 	/** True if we are currently in bulk scanning mode */
 	UPROPERTY()
@@ -497,6 +567,9 @@ protected:
 	TMap<FName, FName> PrimaryAssetTypeRedirects;
 	TMap<FString, FString> PrimaryAssetIdRedirects;
 	TMap<FName, FName> AssetPathRedirects;
+
+	/** Delegate bound to chunk install */
+	FDelegateHandle ChunkInstallDelegateHandle;
 
 private:
 	/** Per-type asset information, cannot be accessed by children as it is defined in CPP file */

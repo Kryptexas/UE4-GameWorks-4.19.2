@@ -171,7 +171,7 @@ int32 UExportDialogueScriptCommandlet::Main(const FString& Params)
 		}
 	}
 
-	const FString RootAssetPath = FApp::HasGameName() ? TEXT("/Game") : TEXT("/Engine");
+	const FString RootAssetPath = FApp::HasProjectName() ? TEXT("/Game") : TEXT("/Engine");
 
 	// Prepare the asset registry
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));

@@ -215,7 +215,7 @@ namespace AutomationTool
 					foreach(PluginInfo Plugin in AvailablePlugins)
 					{
 						bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetType.Game);
-						if ((bPluginEnabledForProject && !Plugin.Descriptor.bEnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
+						if ((bPluginEnabledForProject && !Plugin.EnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
 						{
 							// NOTE: this code was only marking plugins that compiled for the platform to upgrade to code project, however
 							// this doesn't work in practice, because the runtime code will look for the plugin, without a .uplugin file,

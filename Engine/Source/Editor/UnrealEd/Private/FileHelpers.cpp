@@ -729,7 +729,7 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 		if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / DefaultName, PackageName))
 		{
 			// Initial location is invalid (e.g. lies outside of the project): set location to /Game/Maps instead
-			DefaultDirectory = FPaths::GameContentDir() / TEXT("Maps");
+			DefaultDirectory = FPaths::ProjectContentDir() / TEXT("Maps");
 			ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / DefaultName, PackageName));
 		}
 		FString Name;
@@ -2579,7 +2579,7 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 			if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
 			{
 				// Original location is invalid; set default location to /Game/Maps
-				DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
+				DefaultLocation = FPaths::ProjectContentDir() / TEXT("Maps");
 				ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
 			}
 
@@ -3589,14 +3589,14 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 static void FindAllConfigFilesRecursive(TArray<FString>& OutConfigFiles, const FString& ParentDirectory)
 {
 	TArray<FString> IniFilenames;
-	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*.ini")), true, false);
+	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::ProjectConfigDir() / ParentDirectory / TEXT("*.ini")), true, false);
 	for (const FString& IniFilename : IniFilenames)
 	{
-		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / ParentDirectory / IniFilename));
+		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir() / ParentDirectory / IniFilename));
 	}
 
 	TArray<FString> Subdirectories;
-	IFileManager::Get().FindFiles(Subdirectories, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*")), false, true);
+	IFileManager::Get().FindFiles(Subdirectories, *(FPaths::ProjectConfigDir() / ParentDirectory / TEXT("*")), false, true);
 	for (const FString& Subdirectory : Subdirectories)
 	{
 		FindAllConfigFilesRecursive(OutConfigFiles, ParentDirectory / Subdirectory);

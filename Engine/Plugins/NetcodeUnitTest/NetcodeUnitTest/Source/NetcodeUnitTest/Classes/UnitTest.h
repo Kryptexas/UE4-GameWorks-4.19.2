@@ -249,7 +249,7 @@ public:
 	{
 		EUnitTestVerification Result = EUnitTestVerification::Unverified;
 
-		FString CurGame = FApp::GetGameName();
+		FString CurGame = FApp::GetProjectName();
 
 		if (ExpectedResult.Contains(CurGame))
 		{

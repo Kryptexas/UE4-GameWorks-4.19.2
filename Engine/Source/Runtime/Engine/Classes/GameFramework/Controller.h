@@ -183,9 +183,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DisplayName="Get Controlled Pawn"))
 	APawn* K2_GetPawn() const;
 
-	DEPRECATED(4.4, "Use GetPawn() instead of GetControlledPawn()")
-	APawn* GetControlledPawn() const { return GetPawn(); }
-
 public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -259,9 +256,6 @@ public:
 	 * (other unpossession handled by UnPossess())
 	 */
 	virtual void PawnPendingDestroy(APawn* inPawn);
-
-	DEPRECATED(4.5, "NotifyKilled is unused in engine code and will be removed from AController.")
-	virtual void NotifyKilled(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType) {}
 
 	/** Called when this controller instigates ANY damage */
 	virtual void InstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);

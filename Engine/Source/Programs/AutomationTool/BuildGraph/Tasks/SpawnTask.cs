@@ -3,6 +3,7 @@
 using AutomationTool;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,11 +62,13 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			IProcessResult Result = CommandUtils.Run(Parameters.Exe, Parameters.Arguments);
-			return Result.ExitCode >= 0 && Result.ExitCode < Parameters.ErrorLevel;
+			if(Result.ExitCode < 0 || Result.ExitCode >= Parameters.ErrorLevel)
+			{
+				throw new AutomationException("{0} terminated with an exit code indicating an error ({1})", Path.GetFileName(Parameters.Exe), Result.ExitCode);
+			}
 		}
 
 		/// <summary>

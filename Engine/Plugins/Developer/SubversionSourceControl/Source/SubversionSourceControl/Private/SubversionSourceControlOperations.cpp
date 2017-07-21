@@ -32,7 +32,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 	{
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
-		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 		// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 		SubversionSourceControlUtils::QuoteFilename(GameRoot);
 		Parameters.Add(GameRoot);
@@ -48,7 +48,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 	{
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Files;
-		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 		Files.Add(GameRoot);
 
 		TArray<FString> StatusParameters;
@@ -676,7 +676,7 @@ bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
 	// Now we need to move the file out of directory, copy then restore over the top, as SVN wont allow us 
 	// to 'svn copy' over an existing file, even if it is not already added to the working copy.
 	// This will be OK as far as the asset registry/directory watcher goes as it will just see the file being modified several times
-	const FString TempFileName = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("SVN-CopyTemp"), TEXT(".uasset"));
+	const FString TempFileName = FPaths::CreateTempFilename(*FPaths::ProjectLogDir(), TEXT("SVN-CopyTemp"), TEXT(".uasset"));
 	const bool bReplace = true;
 	const bool bEvenIfReadOnly = true;
 	

@@ -40,8 +40,8 @@ public class Launch : ModuleRules
 		);
 
 		// Enable the LauncherCheck module to be used for platforms that support the Launcher.
-		// Projects should set UEBuildConfiguration.bUseLauncherChecks in their Target.cs to enable the functionality.
-		if (UEBuildConfiguration.bUseLauncherChecks &&
+		// Projects should set Target.bUseLauncherChecks in their Target.cs to enable the functionality.
+		if (Target.bUseLauncherChecks &&
             ((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Mac)))
@@ -117,7 +117,7 @@ public class Launch : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
+		if (Target.bCompileAgainstEngine)
 		{
 			PrivateIncludePathModuleNames.Add("Messaging");
 			PublicDependencyModuleNames.Add("SessionServices");
@@ -139,12 +139,12 @@ public class Launch : ModuleRules
 		
 		// The engine can use AutomationController in any connfiguration besides shipping.  This module is loaded
 		// dynamically in LaunchEngineLoop.cpp in non-shipping configurations
-		if (UEBuildConfiguration.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
+		if (Target.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "AutomationController" });
 		}
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			PublicIncludePathModuleNames.Add("ProfilerClient");
 

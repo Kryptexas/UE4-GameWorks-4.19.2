@@ -644,7 +644,7 @@ public class HTML5Platform : Platform
 		return Compressed ? " -compress" : "";
 	}
 
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		return false;
 	}

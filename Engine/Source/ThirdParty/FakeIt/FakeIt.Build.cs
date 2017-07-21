@@ -10,7 +10,7 @@ public class FakeIt : ModuleRules
 		Type = ModuleType.External;
 
 		string Version = "2.0.2";
-		string RootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "FakeIt/" + Version + "/";
+		string RootPath = Target.UEThirdPartySourceDirectory + "FakeIt/" + Version + "/";
 
 		// Includes
         PublicSystemIncludePaths.Add(RootPath + "config/standalone");

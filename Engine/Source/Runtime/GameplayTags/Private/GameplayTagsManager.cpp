@@ -151,7 +151,7 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 		
 			// Read all tags from the ini
 			TArray<FString> FilesInDirectory;
-			IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::GameConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
+			IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::ProjectConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
 			FilesInDirectory.Sort();
 			for (FString& FileName : FilesInDirectory)
 			{

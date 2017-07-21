@@ -221,7 +221,7 @@ void FSourceFileDatabase::UpdateIfNeeded()
 	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Developer")), TEXT("*.Build.cs"));
 	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Editor")), TEXT("*.Build.cs"));
 	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime")), TEXT("*.Build.cs"));
-	FindRootFilesRecursive(ModuleNames, *(FPaths::GameDir() / TEXT("Source")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::ProjectDir() / TEXT("Source")), TEXT("*.Build.cs"));
 
 	// Find list of disallowed header names in native (non-plugin) directories
 	TArray<FString> HeaderFiles;
@@ -245,7 +245,7 @@ void FSourceFileDatabase::UpdateIfNeeded()
 	TArray<FString> PluginNames;
 
 	FindRootFilesRecursive(PluginNames, *(FPaths::EngineDir() / TEXT("Plugins")), TEXT("*.uplugin"));
-	FindRootFilesRecursive(PluginNames, *(FPaths::GameDir() / TEXT("Plugins")), TEXT("*.uplugin"));
+	FindRootFilesRecursive(PluginNames, *(FPaths::ProjectDir() / TEXT("Plugins")), TEXT("*.uplugin"));
 
 	// Add all the files within plugin directories
 	for (const FString& PluginName : PluginNames)

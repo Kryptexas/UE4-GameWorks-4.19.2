@@ -225,7 +225,7 @@ namespace UnrealBuildTool
 			// Display compilation warnings and errors
 			if (CompileResults.Errors.Count > 0)
 			{
-				Log.TraceInformation("Messages while compiling {0}:", OutputAssemblyPath);
+				Log.TraceInformation("While compiling {0}:", OutputAssemblyPath);
 				foreach (CompilerError CurError in CompileResults.Errors)
 				{
 					if (CurError.IsWarning)
@@ -239,7 +239,7 @@ namespace UnrealBuildTool
 				}
 				if (CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
 				{
-					throw new BuildException("UnrealBuildTool encountered an error while compiling source files");
+					throw new BuildException("Unable to compile source files.");
 				}
 			}
 

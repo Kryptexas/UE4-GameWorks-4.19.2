@@ -241,7 +241,7 @@ extern CORE_API FString GGameUserSettingsIni;
 extern CORE_API float GNearClippingPlane;
 
 extern CORE_API bool GExitPurge;
-extern CORE_API TCHAR GInternalGameName[64];
+extern CORE_API TCHAR GInternalProjectName[64];
 extern CORE_API const TCHAR* GForeignEngineDir;
 
 /** Exec handler for game debugging tool, allowing commands like "editactor" */

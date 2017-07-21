@@ -9,7 +9,7 @@ public class TangoSDK : ModuleRules
 	{
         Type = ModuleType.External;
 
-		string TangoSDKSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "TangoSDK/";
+		string TangoSDKSDKDir = Target.UEThirdPartySourceDirectory + "TangoSDK/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					TangoSDKSDKDir + "include/",

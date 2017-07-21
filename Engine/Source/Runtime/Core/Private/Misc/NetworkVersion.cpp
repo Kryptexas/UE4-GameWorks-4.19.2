@@ -78,7 +78,7 @@ uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=tr
 	}
 
 	FString VersionString = FString::Printf(TEXT("%s %s, NetCL: %d, EngineNetVer: %d, GameNetVer: %d"),
-		FApp::GetGameName(),
+		FApp::GetProjectName(),
 		*ProjectVersion,
 		GetNetworkCompatibleChangelist(),
 		FNetworkVersion::GetEngineNetworkProtocolVersion(),
@@ -107,5 +107,5 @@ FNetworkReplayVersion FNetworkVersion::GetReplayVersion()
 {
 	const uint32 ReplayVersion = ( GameCompatibleNetworkProtocolVersion << 16 ) | EngineCompatibleNetworkProtocolVersion;
 
-	return FNetworkReplayVersion( FApp::GetGameName(), ReplayVersion, GetReplayCompatibleChangelist() );
+	return FNetworkReplayVersion( FApp::GetProjectName(), ReplayVersion, GetReplayCompatibleChangelist() );
 }

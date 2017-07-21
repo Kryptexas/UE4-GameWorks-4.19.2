@@ -6,7 +6,6 @@
 
 #include "ProfilingDebugging/MallocProfiler.h"
 #include "Misc/DateTime.h"
-#include "GenericPlatform/GenericPlatformStackWalk.h"
 #include "Logging/LogMacros.h"
 #include "HAL/FileManager.h"
 #include "Misc/Parse.h"
@@ -18,7 +17,6 @@
 
 #if USE_MALLOC_PROFILER
 
-#include "MallocProfiler.h"
 #include "ModuleManager.h"
 #include "MemoryMisc.h"
 #include "HAL/PlatformStackWalk.h"
@@ -446,7 +444,7 @@ FMallocProfiler::FMallocProfiler(FMalloc* InMalloc)
 ,   bEndProfilingHasBeenCalled( false )
 ,	CallStackInfoBuffer( 512 * 1024, COMPRESS_ZLIB )
 ,	bOutputFileClosed(false)
-,	SyncObjectLockCount(0)
+,	TrackingDepth(0)
 ,	MemoryOperationCount( 0 )
 {
 	StartTime = FPlatformTime::Seconds();
@@ -471,10 +469,8 @@ FMallocProfiler::FMallocProfiler(FMalloc* InMalloc)
 void FMallocProfiler::TrackMalloc( void* Ptr, uint32 Size )
 {	
 	// Avoid tracking operations caused by tracking!
-	if( !bEndProfilingHasBeenCalled && IsOutsideTrackingFunction() )
+	if( !bEndProfilingHasBeenCalled )
 	{
-		FScopedMallocProfilerLock MallocProfilerLock;
-
 		// Gather information about operation.
 		FProfilerAllocInfo AllocInfo;
 		AllocInfo.Pointer			= (uint64)(UPTRINT) Ptr | TYPE_Malloc;
@@ -495,10 +491,8 @@ void FMallocProfiler::TrackMalloc( void* Ptr, uint32 Size )
 void FMallocProfiler::TrackFree( void* Ptr )
 {
 	// Avoid tracking operations caused by tracking!
-	if( !bEndProfilingHasBeenCalled && Ptr && IsOutsideTrackingFunction() )
+	if( !bEndProfilingHasBeenCalled )
 	{
-		FScopedMallocProfilerLock MallocProfilerLock;
-
 		// Gather information about operation.
 		FProfilerFreeInfo FreeInfo;
 		FreeInfo.Pointer = (uint64)(UPTRINT) Ptr | TYPE_Free;
@@ -518,10 +512,8 @@ void FMallocProfiler::TrackFree( void* Ptr )
 void FMallocProfiler::TrackRealloc( void* OldPtr, void* NewPtr, uint32 NewSize )
 {
 	// Avoid tracking operations caused by tracking!
-	if( !bEndProfilingHasBeenCalled && (OldPtr || NewPtr) && IsOutsideTrackingFunction() )
+	if( !bEndProfilingHasBeenCalled )
 	{
-		FScopedMallocProfilerLock MallocProfilerLock;
-
 		// Gather information about operation.
 		FProfilerReallocInfo ReallocInfo;
 		ReallocInfo.OldPointer		= (uint64)(UPTRINT) OldPtr | TYPE_Realloc;
@@ -542,20 +534,15 @@ void FMallocProfiler::TrackSpecialMemory()
 {
 	if (!bEndProfilingHasBeenCalled && ((MemoryOperationCount++ & 0x3FF) == 0))
 	{
-		// Avoid tracking operations caused by tracking!
-		if (SyncObjectLockCount == 0)
-		{
-			FScopedMallocProfilerLock MallocProfilerLock;
+		// Write marker snapshot to stream.
+		FProfilerOtherInfo SnapshotMarker;
+		SnapshotMarker.DummyPointer	= TYPE_Other;
+		SnapshotMarker.SubType = SUBTYPE_MemoryAllocationStats;
+		SnapshotMarker.Payload = 0;
+		BufferedFileWriter << SnapshotMarker;
 
-			// Write marker snapshot to stream.
-			FProfilerOtherInfo SnapshotMarker;
-			SnapshotMarker.DummyPointer	= TYPE_Other;
-			SnapshotMarker.SubType = SUBTYPE_MemoryAllocationStats;
-			SnapshotMarker.Payload = 0;
-			BufferedFileWriter << SnapshotMarker;
+		WriteMemoryAllocationStats();
 
-			WriteMemoryAllocationStats();
-		}
 	}
 }
 
@@ -564,8 +551,6 @@ void FMallocProfiler::TrackSpecialMemory()
  */
 void FMallocProfiler::BeginProfiling()
 {
-	FScopedMallocProfilerLock MallocProfilerLock;
-
 	// Serialize dummy header, overwritten in EndProfiling.
 	FProfilerHeader DummyHeader;
 	FMemory::Memzero( &DummyHeader, sizeof(DummyHeader) );
@@ -648,9 +633,7 @@ void FMallocProfiler::PanicDump(EProfilingPayloadType FailedOperation, void* Ptr
 
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FMallocProfiler::PanicDump called! Failed operation: %s, Ptr1: %08x, Ptr2: %08x"), *OperationString, Ptr1, Ptr2);
 
-	CriticalSection.Unlock();
 	EndProfiling();
-	CriticalSection.Lock();
 }
 
 /**
@@ -661,7 +644,7 @@ void FMallocProfiler::EndProfiling()
 	UE_LOG(LogProfilingDebugging, Log, TEXT("FMallocProfiler: dumping file [%s]"),*BufferedFileWriter.FullFilepath);
 	{
 		FScopeLock Lock( &CriticalSection );
-		FScopedMallocProfilerLock MallocProfilerLock;
+		FScopedMallocProfilerLock MallocProfilerLock(*this);
 
 		bEndProfilingHasBeenCalled = true;
 
@@ -1099,7 +1082,7 @@ bool FMallocProfiler::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 void FMallocProfiler::SnapshotMemory(EProfilingPayloadSubType SubType, const FString& MarkerName)
 {
 	FScopeLock Lock( &CriticalSection );
-	FScopedMallocProfilerLock MallocProfilerLock;
+	FScopedMallocProfilerLock MallocProfilerLock(*this);
 
 	// Write snapshot marker to stream.
 	FProfilerOtherInfo SnapshotMarker;
@@ -1117,7 +1100,7 @@ void FMallocProfiler::SnapshotMemory(EProfilingPayloadSubType SubType, const FSt
 void FMallocProfiler::EmbedFloatMarker(EProfilingPayloadSubType SubType, float DeltaTime)
 {
 	FScopeLock Lock( &CriticalSection );
-	FScopedMallocProfilerLock MallocProfilerLock;
+	FScopedMallocProfilerLock MallocProfilerLock(*this);
 
 	union { float f; uint32 ui; } TimePacker;
 	TimePacker.f = DeltaTime;
@@ -1138,7 +1121,7 @@ void FMallocProfiler::EmbedDwordMarker(EProfilingPayloadSubType SubType, uint32 
 	if (Info != 0)
 	{
 		FScopeLock Lock( &CriticalSection );
-		FScopedMallocProfilerLock MallocProfilerLock;
+		FScopedMallocProfilerLock MallocProfilerLock(*this);
 
 		// Write marker snapshot to stream.
 		FProfilerOtherInfo SnapshotMarker;
@@ -1311,7 +1294,7 @@ void FMallocProfilerBufferedFileWriter::Serialize( void* V, int64 Length )
 		if (BaseFilePath == TEXT(""))
 		{
 			const FString SysTime = FDateTime::Now().ToString();
-			BaseFilePath = FPaths::ProfilingDir() + FApp::GetGameName() + TEXT("-") + SysTime + TEXT("/") + FApp::GetGameName();
+			BaseFilePath = FPaths::ProfilingDir() + TEXT("/") + FApp::GetGameName() + TEXT("-") + SysTime;
 		}
 			
 		// Create file writer to serialize data to HDD.
@@ -1379,20 +1362,16 @@ uint32 FMallocProfilerBufferedFileWriter::GetAllocatedSize()
 -----------------------------------------------------------------------------*/
 
 /** Constructor that performs a lock on the malloc profiler tracking methods. */
-FScopedMallocProfilerLock::FScopedMallocProfilerLock()
+FScopedMallocProfilerLock::FScopedMallocProfilerLock(FMallocProfiler& InProfiler)
+	: Profiler(InProfiler)
 {
-	check( GMallocProfiler );
-
-	GMallocProfiler->SyncObject.Lock();
-	GMallocProfiler->ThreadId = FPlatformTLS::GetCurrentThreadId();
-	GMallocProfiler->SyncObjectLockCount++;
+	Profiler.TrackingDepth++;
 }
 
 /** Destructor that performs a release on the malloc profiler tracking methods. */
 FScopedMallocProfilerLock::~FScopedMallocProfilerLock()
 {
-	GMallocProfiler->SyncObjectLockCount--;
-	GMallocProfiler->SyncObject.Unlock();
+	Profiler.TrackingDepth--;
 }
 
 #else //USE_MALLOC_PROFILER

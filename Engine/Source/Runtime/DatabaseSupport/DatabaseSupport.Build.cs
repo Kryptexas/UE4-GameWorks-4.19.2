@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 	{
 		public DatabaseSupport(ReadOnlyTargetRules Target) : base(Target)
 		{
-			if ((UEBuildConfiguration.bIncludeADO == true) || (UEBuildConfiguration.bCompileAgainstEngine == true))
+			if ((Target.bIncludeADO == true) || (Target.bCompileAgainstEngine == true))
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "ADO");
 				bBuildLocallyWithSNDBS = true;

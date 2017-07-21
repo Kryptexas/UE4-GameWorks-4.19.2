@@ -111,7 +111,7 @@ namespace PropertyTemplate
 	template<typename PropertyValueType, typename IntermediateType = PropertyValueType>
 	IntermediateType ConvertToIntermediateType(PropertyValueType&& NewValue)
 	{
-		return MoveTemp(NewValue);
+		return Forward<PropertyValueType>(NewValue);
 	}
 
 	template<typename T>
@@ -125,7 +125,7 @@ namespace PropertyTemplate
 	struct TCachedState : IMovieScenePreAnimatedToken
 	{
 		TCachedState(typename TCallTraits<IntermediateType>::ParamType InValue, const FTrackInstancePropertyBindings& InBindings)
-			: Value(MoveTemp(InValue))
+			: Value(MoveTempIfPossible(InValue))
 			, Bindings(InBindings)
 		{
 		}

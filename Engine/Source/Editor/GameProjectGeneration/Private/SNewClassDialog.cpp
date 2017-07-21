@@ -134,7 +134,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	// Otherwise, set out default target module as the first runtime module in the list
 	if(ClassDomain == EClassDomain::Native && !SelectedModuleInfo.IsValid())
 	{
-		const FString ProjectName = FApp::GetGameName();
+		const FString ProjectName = FApp::GetProjectName();
 		for(const auto& AvailableModule : AvailableModules)
 		{
 			if(AvailableModule->ModuleName == ProjectName)

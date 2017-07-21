@@ -83,7 +83,7 @@ public:
 
 		TGraphTask<FRenderDocAsyncGraphTask>::CreateTask().ConstructAndDispatchWhenReady(ENamedThreads::GameThread, [Plugin]()
 		{
-			Plugin->StartRenderDoc(FPaths::Combine(*FPaths::GameSavedDir(), *FString("RenderDocCaptures")));
+			Plugin->StartRenderDoc(FPaths::Combine(*FPaths::ProjectSavedDir(), *FString("RenderDocCaptures")));
 		});
 	}
 
@@ -165,7 +165,7 @@ void FRenderDocPluginModule::StartupModule()
 	TickNumber = 0;
 
 	// Setup RenderDoc settings
-	FString RenderDocCapturePath = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("RenderDocCaptures"));
+	FString RenderDocCapturePath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("RenderDocCaptures"));
 	if (!IFileManager::Get().DirectoryExists(*RenderDocCapturePath))
 	{
 		IFileManager::Get().MakeDirectory(*RenderDocCapturePath, true);

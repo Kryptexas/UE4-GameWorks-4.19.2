@@ -491,7 +491,7 @@ static FString GenerateBlueprintAPIUtils::BuildDumpFilePath(UClass* BlueprintCla
 
 	if (CommandOptions.SaveDir.IsEmpty())
 	{
-		CommandletSaveDir = FPaths::GameSavedDir() + TEXT("Commandlets/");
+		CommandletSaveDir = FPaths::ProjectSavedDir() + TEXT("Commandlets/");
 		CommandletSaveDir = FPaths::ConvertRelativePathToFull(CommandletSaveDir);
 	}
 	else

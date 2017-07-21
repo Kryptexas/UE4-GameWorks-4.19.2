@@ -334,10 +334,3 @@ namespace ESpritePivotMode
 		Custom
 	};
 }
-
-// Allow the old name to continue to work for one release
-DEPRECATED(4.7, "FSpritePolygon has been renamed to FSpriteGeometryShape")
-typedef FSpriteGeometryShape FSpritePolygon;
-
-DEPRECATED(4.7, "FSpritePolygon has been renamed to FSpriteGeometryShape")
-typedef FSpriteGeometryCollection FSpritePolygonCollection;

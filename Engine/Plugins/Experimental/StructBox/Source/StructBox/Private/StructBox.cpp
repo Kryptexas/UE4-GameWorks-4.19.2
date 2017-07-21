@@ -103,9 +103,8 @@ bool FStructBox::Identical(const FStructBox* Other, uint32 PortFlags) const
 void FStructBox::AddStructReferencedObjects(class FReferenceCollector& Collector) const
 {
 	Collector.AddReferencedObject(const_cast<FStructBox*>(this)->ScriptStruct);
-	if (ScriptStruct && StructMemory)
+	if (ScriptStruct && StructMemory && ScriptStruct->RefLink)
 	{
-		FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(nullptr, Collector);
-		ScriptStruct->SerializeBin(ObjectReferenceCollector, StructMemory);
+		ScriptStruct->SerializeBin(Collector.GetVerySlowReferenceCollectorArchive(), StructMemory);
 	}
 }

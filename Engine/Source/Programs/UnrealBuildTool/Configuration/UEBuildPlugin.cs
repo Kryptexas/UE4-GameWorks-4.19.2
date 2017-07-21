@@ -62,6 +62,14 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Accessor for the type of the plugin
+		/// </summary>
+		public PluginType Type
+		{
+			get { return Info.Type; }
+		}
+
+		/// <summary>
 		/// Accessor for this plugin's root directory
 		/// </summary>
 		public DirectoryReference Directory

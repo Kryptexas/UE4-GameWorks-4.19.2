@@ -19,9 +19,6 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
 	static void PlatformPostInit();
-	static class GenericApplication* CreateApplication();
-	static uint32 GetKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static const TCHAR* GetPlatformFeaturesModuleName();
 	static FString GetDefaultLocale();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));

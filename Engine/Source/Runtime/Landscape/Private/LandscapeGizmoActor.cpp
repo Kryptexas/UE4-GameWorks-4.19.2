@@ -24,6 +24,7 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Components/BillboardComponent.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 namespace
 {
@@ -690,11 +691,11 @@ void ALandscapeGizmoActiveActor::ClearGizmoData()
 
 	// If the clipboard contains copied gizmo data, clear it also
 	FString ClipboardString;
-	FPlatformMisc::ClipboardPaste(ClipboardString);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardString);
 	const TCHAR* Str = *ClipboardString;
 	if (FParse::Command(&Str, TEXT("GizmoData=")))
 	{
-		FPlatformMisc::ClipboardCopy(TEXT(""));
+		FPlatformApplicationMisc::ClipboardCopy(TEXT(""));
 	}
 
 	ReregisterAllComponents();
@@ -1095,7 +1096,7 @@ void ALandscapeGizmoActiveActor::ExportToClipboard()
 			}
 		}
 
-		FPlatformMisc::ClipboardCopy(*ClipboardString);
+		FPlatformApplicationMisc::ClipboardCopy(*ClipboardString);
 
 		//GWarn->EndSlowTask();
 	}
@@ -1106,7 +1107,7 @@ void ALandscapeGizmoActiveActor::ExportToClipboard()
 void ALandscapeGizmoActiveActor::ImportFromClipboard()
 {
 	FString ClipboardString;
-	FPlatformMisc::ClipboardPaste(ClipboardString);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardString);
 	const TCHAR* Str = *ClipboardString;
 	
 	if(FParse::Command(&Str,TEXT("GizmoData=")))

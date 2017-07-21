@@ -100,5 +100,5 @@ void FHTML5PlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FStr
 
 const TCHAR* FHTML5PlatformProcess::ExecutableName(bool bRemoveExtension)
 {
-	return FApp::GetGameName();
+	return FApp::GetProjectName();
 }

@@ -9,7 +9,7 @@
 #include "CoreMinimal.h"
 
 /** Helper class to set and restore serialized property on an archive */
-class FSerializedPropertyScope
+class COREUOBJECT_API FSerializedPropertyScope
 {
 	FArchive& Ar;
 	UProperty* Property;

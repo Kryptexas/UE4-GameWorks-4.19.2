@@ -55,7 +55,7 @@ void UGeometryCache::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 #if WITH_EDITORONLY_DATA
-	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(AssetImportData)); //-V568
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*AssetImportData));
 #endif
 	// Calculate Resource Size according to what is serialized
 	const int32 NumTracks = Tracks.Num();

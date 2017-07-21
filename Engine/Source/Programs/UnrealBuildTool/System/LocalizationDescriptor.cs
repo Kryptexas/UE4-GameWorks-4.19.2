@@ -101,7 +101,7 @@ namespace UnrealBuildTool
 		/// <param name="Targets">Array of targets</param>
 		public static void WriteArray(JsonWriter Writer, string Name, LocalizationTargetDescriptor[] Targets)
 		{
-			if (Targets.Length > 0)
+			if (Targets != null && Targets.Length > 0)
 			{
 				Writer.WriteArrayStart(Name);
 				foreach (LocalizationTargetDescriptor Target in Targets)

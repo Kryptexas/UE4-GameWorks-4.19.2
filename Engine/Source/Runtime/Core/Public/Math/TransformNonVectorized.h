@@ -1101,45 +1101,6 @@ public:
 	}
 
 	/**
-	* Returns an opaque copy of the rotation component
-	* This method should be used when passing rotation from one FTransform to another
-	*
-	* @return The rotation component
-	*/
-	DEPRECATED(4.5, "FTransform::GetRotationV() is deprecated, use FTransform::GetRotation() instead.")
-		FORCEINLINE FQuat GetRotationV() const
-	{
-		DiagnosticCheckNaN_Rotate();
-		return Rotation;
-	}
-
-	/**
-	* Returns an opaque copy of the translation component
-	* This method should be used when passing translation from one FTransform to another
-	*
-	* @return The translation component
-	*/
-	DEPRECATED(4.5, "FTransform::GetTranslationV() is deprecated, use FTransform::GetTranslation() instead.")
-		FORCEINLINE FVector GetTranslationV() const
-	{
-		DiagnosticCheckNaN_Translate();
-		return Translation;
-	}
-
-	/**
-	* Returns an opaque copy of the Scale3D component
-	* This method should be used when passing Scale3D from one FTransform to another
-	*
-	* @return The Scale3D component
-	*/
-	DEPRECATED(4.5, "FTransform::GetScale3DV() is deprecated, use FTransform::GetScale3D() instead.")
-		FORCEINLINE FVector GetScale3DV() const
-	{
-		DiagnosticCheckNaN_Scale3D();
-		return Scale3D;
-	}
-
-	/**
 	* Sets the Rotation and Scale3D of this transformation from another transform
 	*
 	* @param SrcBA The transform to copy rotation and Scale3D from

@@ -50,9 +50,9 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 	if(FPaths::IsRelative(GatherTextConfigPath))
 	{
 		FString ProjectBasePath;
-		if (!FPaths::GameDir().IsEmpty())
+		if (!FPaths::ProjectDir().IsEmpty())
 		{
-			ProjectBasePath = FPaths::GameDir();
+			ProjectBasePath = FPaths::ProjectDir();
 		}
 		else
 		{
@@ -202,7 +202,7 @@ FText UGatherTextCommandlet::GetChangelistDescription( const FString& InConfigPa
 	// Find the project info to include in the changelist description from the config file path
 	const FString AbsoluteConfigPath = FPaths::ConvertRelativePathToFull( InConfigPath );
 	const FString RootDir = FPaths::RootDir();
-	const FString PluginsDir = FPaths::ConvertRelativePathToFull( FPaths::GamePluginsDir() );
+	const FString PluginsDir = FPaths::ConvertRelativePathToFull( FPaths::ProjectPluginsDir() );
 	bool bIsPlugin = false;
 	FString ProjectName;
 	if( AbsoluteConfigPath.StartsWith( RootDir ) )
@@ -227,9 +227,9 @@ FText UGatherTextCommandlet::GetChangelistDescription( const FString& InConfigPa
 	else
 	{
 		// The config file falls outside of the root directory, we will use the game name if we have it
-		if (FCString::Strlen(FApp::GetGameName()) != 0)
+		if (FCString::Strlen(FApp::GetProjectName()) != 0)
 		{
-			ProjectName = FApp::GetGameName();
+			ProjectName = FApp::GetProjectName();
 		}
 	}
 

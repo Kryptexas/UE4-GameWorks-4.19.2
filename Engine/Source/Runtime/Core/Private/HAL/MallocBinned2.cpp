@@ -1084,6 +1084,7 @@ void FMallocBinned2::FFreeBlock::CanaryFail() const
 
 void FMallocBinned2::GetAllocatorStats( FGenericMemoryStats& OutStats )
 {
+#if BINNED2_ALLOCATOR_STATS
 	OutStats.Add(TEXT("AllocatedSmallPoolMemory"), AllocatedSmallPoolMemory );
 	OutStats.Add(TEXT("AllocatedOSSmallPoolMemory"), AllocatedOSSmallPoolMemory);
 	OutStats.Add(TEXT("AllocatedLargePoolMemory"), AllocatedLargePoolMemory);
@@ -1095,6 +1096,7 @@ void FMallocBinned2::GetAllocatorStats( FGenericMemoryStats& OutStats )
 
 	OutStats.Add(TEXT("TotalAllocated"), TotalAllocated);
 	OutStats.Add(TEXT("TotalOSAllocated"), TotalOSAllocated);
+#endif
 }
 
 void FMallocBinned2::DumpAllocatorStats(class FOutputDevice& Ar)

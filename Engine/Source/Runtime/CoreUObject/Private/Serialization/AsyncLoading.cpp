@@ -5202,7 +5202,7 @@ void FAsyncPackage::AddObjectReference(UObject* InObject)
 {
 	if (InObject)
 	{
-		UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogStreaming, Fatal, TEXT("Trying to add an object %s to FAsyncPackage referenced objects list outside of a FGCScopeLock."), *InObject->GetFullName());
+		UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogStreaming, Fatal, TEXT("Trying to add an object %s to FAsyncPackage referenced objects list outside of a FGCScopeGuard."), *InObject->GetFullName());
 		{
 			FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
 			if (!ReferencedObjects.Contains(InObject))
@@ -6348,6 +6348,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 		}
 
 		FStringAssetReference::InvalidateTag();
+		FUniqueObjectGuid::InvalidateTag();
 	}
 
 	return Result;
@@ -6601,11 +6602,6 @@ int32 LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate Com
 	return LoadPackageAsync(PackageName, Guid, PackageToLoadFrom, CompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority );
 }
 
-int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType /* Unused, deprecated */, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, int32 InPackagePriority /*= 0*/)
-{
-	return LoadPackageAsync(InName, InGuid, InPackageToLoadFrom, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
-}
-
 void CancelAsyncLoading()
 {
 	// Cancelling async loading while loading is suspend will result in infinite stall
@@ -6689,11 +6685,6 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 		check(PackageID != INDEX_NONE || !IsAsyncLoading());
 
 	}
-}
-
-void FlushAsyncLoading(FName ExcludeType)
-{
-	FlushAsyncLoading();
 }
 
 EAsyncPackageState::Type ProcessAsyncLoadingUntilComplete(TFunctionRef<bool()> CompletionPredicate, float TimeLimit)
@@ -6817,6 +6808,7 @@ void NotifyRegistrationComplete()
 	GetGEDLBootNotificationManager().NotifyRegistrationComplete();
 }
 
+static FCriticalSection SummaryRacePreventer;
 
 FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName, TFunction<void()>&& InSummaryReadyCallback)
 	: Handle(nullptr)
@@ -6926,6 +6918,8 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 		if (!Mem)
 		{
 			ArIsError = true;
+			FPlatformMisc::MemoryBarrier();
+			LoadPhase = ELoadPhase::WaitingForHeader;
 		}
 		else
 		{
@@ -6938,6 +6932,7 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 			}
 			else
 			{
+				FScopeLock Lock(&SummaryRacePreventer);
 				//@todoio change header format to put the TotalHeaderSize at the start of the file
 				// we need to be sure that we can at least get the size from the initial request. This is an early warning that custom versions are starting to get too big, relocate the total size to be at offset 4!
 				checkf(Ar.Tell() < FAsyncLoadingThread::Get().MaxPackageSummarySize.Value / 2, 
@@ -6946,12 +6941,12 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 				HeaderSize = Sum.TotalHeaderSize;
 				LogItem(TEXT("Starting Header"), 0, HeaderSize);
 				PrecacheInternal(0, HeaderSize);
+				FPlatformMisc::MemoryBarrier();
+				LoadPhase = ELoadPhase::WaitingForHeader;
 			}
 			FMemory::Free(Mem);
 			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, FMath::Min<int64>(FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, FileSize));
 		}
-		FPlatformMisc::MemoryBarrier();
-		LoadPhase = ELoadPhase::WaitingForHeader;
 	}
 	else
 	{
@@ -7100,6 +7095,7 @@ bool FArchiveAsync2::WaitRead(float TimeLimit)
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FArchiveAsync2_WaitRead);
 		int64 Offset = ReadRequestOffset;
 		int64 Size = ReadRequestSize;
+		check(Size > 0);
 		double StartTime = FPlatformTime::Seconds();
 		bool bResult = ReadRequestPtr->WaitCompletion(TimeLimit);
 		LogItem(TEXT("Wait Read"), Offset, Size, StartTime);
@@ -7133,6 +7129,7 @@ void FArchiveAsync2::CompleteRead()
 			PrecacheBuffer = Mem;
 			PrecacheStartPos = ReadRequestOffset;
 			PrecacheEndPos = ReadRequestOffset + ReadRequestSize;
+			check(ReadRequestSize > 0 && PrecacheStartPos >= 0);
 			INC_MEMORY_STAT_BY(STAT_FArchiveAsync2Mem, PrecacheEndPos - PrecacheStartPos);
 			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, ReadRequestSize);
 
@@ -7175,6 +7172,8 @@ void FArchiveAsync2::CancelRead()
 		CanceledReadRequestPtr = ReadRequestPtr;
 		ReadRequestPtr = nullptr;
 	}
+	ReadRequestOffset = 0;
+	ReadRequestSize = 0;
 }
 
 bool FArchiveAsync2::WaitForIntialPhases(float InTimeLimit)
@@ -7253,7 +7252,10 @@ bool FArchiveAsync2::WaitForIntialPhases(float InTimeLimit)
 bool FArchiveAsync2::PrecacheInternal(int64 RequestOffset, int64 RequestSize, bool bApplyMinReadSize)
 {
 	// CAUTION! This is possibly called the first time from a random IO thread.
-	if (LoadPhase != ELoadPhase::WaitingForSummary)
+
+	bool bIsWaitingForSummary =( LoadPhase == ELoadPhase::WaitingForSummary);
+
+	if (!bIsWaitingForSummary)
 	{
 		if (RequestSize == 0 || (RequestOffset >= PrecacheStartPos && RequestOffset + RequestSize <= PrecacheEndPos))
 		{
@@ -7283,7 +7285,7 @@ bool FArchiveAsync2::PrecacheInternal(int64 RequestOffset, int64 RequestSize, bo
 	ReadRequestSize = RequestSize;
 
 
-	if (bApplyMinReadSize && LoadPhase != ELoadPhase::WaitingForSummary)
+	if (bApplyMinReadSize && !bIsWaitingForSummary)
 	{
 #if WITH_EDITOR
 		static int64 MinimumReadSize = 1024 * 1024;
@@ -7310,18 +7312,20 @@ bool FArchiveAsync2::PrecacheInternal(int64 RequestOffset, int64 RequestSize, bo
 		UE_LOG(LogAsyncArchive, Warning, TEXT("Handy Breakpoint Read"));
 	}
 #endif
-	check(ReadRequestOffset - HeaderSizeWhenReadingExportsFromSplitFile >= 0);
+	check(ReadRequestOffset - HeaderSizeWhenReadingExportsFromSplitFile >= 0 && ReadRequestSize > 0);
+
+	// caution, this callback can fire before this even returns....and so bIsWaitingForSummary must be a local variable or we could get all confused by concurrency!
 	ReadRequestPtr = Handle->ReadRequest(ReadRequestOffset - HeaderSizeWhenReadingExportsFromSplitFile, ReadRequestSize, AIOP_Normal
-		, (GEventDrivenLoaderEnabled && LoadPhase == ELoadPhase::WaitingForSummary) ? &ReadCallbackFunctionForLinkerLoad : nullptr
+		, (GEventDrivenLoaderEnabled && bIsWaitingForSummary) ? &ReadCallbackFunctionForLinkerLoad : nullptr
 		);
-	if (LoadPhase != ELoadPhase::WaitingForSummary && ReadRequestPtr->PollCompletion())
+	if (!bIsWaitingForSummary && ReadRequestPtr->PollCompletion())
 	{
 		LogItem(TEXT("Read Start Hot"), ReadRequestOffset - HeaderSizeWhenReadingExportsFromSplitFile, ReadRequestSize, StartTime);
 		CompleteRead();
 		check(RequestOffset >= PrecacheStartPos && RequestOffset + RequestSize <= PrecacheEndPos);
 		return true;
 	}
-	else if (LoadPhase == ELoadPhase::WaitingForSummary)
+	else if (bIsWaitingForSummary)
 	{
 		LogItem(TEXT("Read Start Summary"), ReadRequestOffset - HeaderSizeWhenReadingExportsFromSplitFile, ReadRequestSize, StartTime);
 	}
@@ -7467,6 +7471,10 @@ void FArchiveAsync2::StartReadingHeader()
 	WaitForIntialPhases();
 	if (!ArIsError)
 	{
+		if (int32(LoadPhase) < int32(ELoadPhase::WaitingForHeader))
+		{
+			FScopeLock Lock(&SummaryRacePreventer);
+		}
 		check(LoadPhase == ELoadPhase::WaitingForHeader && ReadRequestPtr);
 		WaitRead();
 	}
@@ -7532,6 +7540,7 @@ void FArchiveAsync2::Serialize(void* Data, int64 Count)
 
 	DiscardInlineBufferAndUpdateCurrentPos();
 #endif
+
 #if TRACK_SERIALIZE
 	CallSerializeHook();
 #endif
@@ -7601,8 +7610,14 @@ void FArchiveAsync2::Serialize(void* Data, int64 Count)
 	{
 		UE_CLOG(GEventDrivenLoaderEnabled, LogAsyncArchive, Warning, TEXT("FArchiveAsync2::Serialize Backwards streaming in %s  CurrentPos = %lld   BeforeBlockOffset = %lld"), *FileName, CurrentPos, BeforeBlockOffset);
 		LogItem(TEXT("Sync Before Block"), BeforeBlockOffset, BeforeBlockSize);
-		PrecacheInternal(BeforeBlockOffset, BeforeBlockSize);
+		if (!PrecacheInternal(BeforeBlockOffset, BeforeBlockSize))
+		{
 		WaitRead();
+		}
+		if (ArIsError)
+		{
+			return;
+		}
 		check(BeforeBlockOffset >= PrecacheStartPos && BeforeBlockOffset + BeforeBlockSize <= PrecacheEndPos);
 		FMemory::Memcpy(Data, PrecacheBuffer + BeforeBlockOffset - PrecacheStartPos, BeforeBlockSize);
 	}
@@ -7615,9 +7630,40 @@ void FArchiveAsync2::Serialize(void* Data, int64 Count)
 		}
 #endif
 		LogItem(TEXT("Sync After Block"), AfterBlockOffset, AfterBlockSize);
-		PrecacheInternal(AfterBlockOffset, AfterBlockSize);
-		WaitRead();
-		check(AfterBlockOffset >= PrecacheStartPos && AfterBlockOffset + AfterBlockSize <= PrecacheEndPos);
+		check(int32(LoadPhase) > int32(ELoadPhase::WaitingForSummary));
+
+		int64_t OldPrecacheStartPos = PrecacheStartPos;
+		int64_t OldPrecacheEndPos = PrecacheEndPos;
+		void* OldRead = ReadRequestPtr;
+		int64_t OldReadRequestOffset = ReadRequestOffset;
+		int64_t OldReadRequestSize = ReadRequestSize;
+
+		int64_t OldFileSize = FileSize;
+		int64_t OldHeaderSizeWhenReadingExportsFromSplitFile = HeaderSizeWhenReadingExportsFromSplitFile;
+
+
+
+		if (!PrecacheInternal(AfterBlockOffset, AfterBlockSize))
+		{
+			verify(WaitRead());
+			void* OldRead2 = ReadRequestPtr;
+			if (!ArIsError)
+			{
+				checkf(AfterBlockOffset >= PrecacheStartPos && AfterBlockOffset + AfterBlockSize <= PrecacheEndPos, 
+					TEXT("Sync After Block Wait ????  %lld %lld     %lld %lld <-  %lld %lld     %lld %lld <-  %lld %lld    %p <- %p <- %p    %lld %lld <-  %lld %lld"), 
+					AfterBlockOffset, AfterBlockSize, 
+					PrecacheStartPos, PrecacheEndPos, OldPrecacheStartPos, OldPrecacheEndPos,
+					ReadRequestOffset, ReadRequestSize, OldReadRequestOffset, OldReadRequestSize,
+					ReadRequestPtr, OldRead2, OldRead,
+					HeaderSizeWhenReadingExportsFromSplitFile, FileSize, OldHeaderSizeWhenReadingExportsFromSplitFile, OldFileSize
+				);
+			}
+		}
+		if (ArIsError)
+		{
+			return;
+		}
+		checkf(AfterBlockOffset >= PrecacheStartPos && AfterBlockOffset + AfterBlockSize <= PrecacheEndPos, TEXT("Sync After Block ????   %lld %lld %lld %lld"), AfterBlockOffset, AfterBlockSize, PrecacheStartPos, PrecacheEndPos);
 		FMemory::Memcpy(((uint8*)Data) + Count - AfterBlockSize, PrecacheBuffer + AfterBlockOffset - PrecacheStartPos, AfterBlockSize);
 	}
 #if DEVIRTUALIZE_FLinkerLoad_Serialize

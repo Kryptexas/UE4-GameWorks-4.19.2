@@ -157,7 +157,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 	}
 	if (OutputFolder.IsEmpty())
 	{
-		OutputFolder = FPaths::GameDir() + TEXT("Build/");
+		OutputFolder = FPaths::ProjectDir() + TEXT("Build/");
 	}
 	OutputFilename = OutputFolder + OutputFilename;
 
@@ -175,7 +175,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 	{
 		if (TemplateFolder.IsEmpty())
 		{
-			TemplateFolder = FPaths::GameDir() + TEXT("Build/");
+			TemplateFolder = FPaths::ProjectDir() + TEXT("Build/");
 		}
 		TemplateFilename = TemplateFolder + TemplateFilename;
 
@@ -251,7 +251,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 	}
 
 	// Add assets from additional directories to always cook
-	const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+	const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 	for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 	{
 		FString DirectoryPath = AbsoluteGameContentDir / DirToCook.Path;
@@ -310,10 +310,10 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 	else
 	{
 		OutputFileContents = TemplateFileContents.Replace(TEXT("%INSTALLEDCONTENTFILESETS%"), *AllFileSets, ESearchCase::CaseSensitive);
-		if (FApp::HasGameName())
+		if (FApp::HasProjectName())
 		{
-			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Replacing %%GAMENAME%% with (%s)..."), FApp::GetGameName());
-			OutputFileContents = OutputFileContents.Replace(TEXT("%GAMENAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Replacing %%GAMENAME%% with (%s)..."), FApp::GetProjectName());
+			OutputFileContents = OutputFileContents.Replace(TEXT("%GAMENAME%"), FApp::GetProjectName(), ESearchCase::CaseSensitive);
 		}
 		else
 		{

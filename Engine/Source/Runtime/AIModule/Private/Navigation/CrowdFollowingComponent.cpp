@@ -332,7 +332,8 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	}
 
 	// CrowdAgentMoveDirection either direction on path or aligned with current velocity
-	if (CharacterMovement->MovementMode != MOVE_Falling)
+	const bool bIsNotFalling = (CharacterMovement == nullptr || CharacterMovement->MovementMode != MOVE_Falling);
+	if (bIsNotFalling)
 	{
 		if (bUpdateDirectMoveVelocity)
 		{
@@ -382,7 +383,8 @@ void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocit
 	bCanCheckMovingTooFar = !bTraversingLink && bIsNearEndOfPath;
 	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving && MovementComp)
 	{
-		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
+		const bool bIsNotFalling = (CharacterMovement == nullptr || CharacterMovement->MovementMode != MOVE_Falling);
+		if (bAffectFallingVelocity || bIsNotFalling)
 		{
 			UpdateCachedDirections(NewVelocity, DestPathCorner, bTraversingLink);
 

@@ -2625,7 +2625,7 @@ bool FLightmassProcessor::BeginRun()
 	FString MapNameStr = System.GetWorld()->GetMapName();
 	const TCHAR* MapName = MapNameStr.GetCharArray().GetData();
 	// Get the game name
-	const TCHAR* GameName = FApp::GetGameName();
+	const TCHAR* GameName = FApp::GetProjectName();
 	// Get the quality level
 	TCHAR QualityLevel[MAX_SPRINTF] = TEXT("");
 	FCString::Sprintf( QualityLevel, TEXT("%d"), ( int32 )Exporter->QualityLevel );

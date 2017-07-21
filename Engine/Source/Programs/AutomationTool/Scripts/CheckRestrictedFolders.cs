@@ -23,7 +23,7 @@ namespace AutomationTool
 			}
 
 			// Find a list of restricted folders, and remove any names which are explicitly whitelisted
-			HashSet<string> RestrictedNames = new HashSet<string>(PlatformExports.RestrictedFolderNames, StringComparer.InvariantCultureIgnoreCase);
+			HashSet<string> RestrictedNames = new HashSet<string>(PlatformExports.RestrictedFolderNames.Select(x => x.DisplayName), StringComparer.InvariantCultureIgnoreCase);
 			foreach (string AllowParam in ParseParamValues("Allow"))
 			{
 				RestrictedNames.ExceptWith(AllowParam.Split('+'));

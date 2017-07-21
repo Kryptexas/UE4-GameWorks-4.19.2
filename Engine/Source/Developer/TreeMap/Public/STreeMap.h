@@ -184,10 +184,6 @@ protected:
 
 	/** Recursively applies the active visualization to all nodes, such as size by attribute, or color by attribute */
 	void ApplyVisualizationToNodesRecursively( const FTreeMapNodeDataRef& Node, const FLinearColor& DefaultColor, const int32 TreeDepth );
-		
-	/** Displays a context menu at the specified location with options for configuring the tree display */
-	DEPRECATED(4.9, "ShowOptionsMenuAt() taking a FVector2D param is deprecated. Use ShowOptionsMenuAt() that takes an FPointerEvent instead.")
-	void ShowOptionsMenuAt(const FVector2D& ScreenSpacePosition);
 
 	/** Displays a context menu at the specified location with options for configuring the tree display */
 	void ShowOptionsMenuAt( const FPointerEvent& InMouseEvent );

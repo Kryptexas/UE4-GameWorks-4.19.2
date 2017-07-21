@@ -387,6 +387,11 @@ bool FWidgetBlueprintCompiler::CanAllowTemplate(FCompilerResultsLog& MessageLog,
 		return false;
 	}
 
+	if (WidgetBP->bGenerateAbstractClass)
+	{
+		return false;
+	}
+
 	return true;
 }
 

@@ -87,7 +87,7 @@ public:
 
 			for (int32 Platform = 0;Platform < PlatformNames.Num(); ++Platform)
 			{
-				LogFileDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Build" ), *PlatformNames[Platform], TEXT("FileOpenOrder"));
+				LogFileDirectory = FPaths::Combine( FPlatformMisc::ProjectDir(), TEXT( "Build" ), *PlatformNames[Platform], TEXT("FileOpenOrder"));
 #if WITH_EDITOR
 				LogFilePath = FPaths::Combine( *LogFileDirectory, TEXT("EditorOpenOrder.log"));
 #else 
@@ -103,7 +103,7 @@ public:
 		}
 		else
 		{
-			LogFileDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Build" ), StringCast<TCHAR>(FPlatformProperties::PlatformName()).Get(), TEXT("FileOpenOrder"));
+			LogFileDirectory = FPaths::Combine( FPlatformMisc::ProjectDir(), TEXT( "Build" ), StringCast<TCHAR>(FPlatformProperties::PlatformName()).Get(), TEXT("FileOpenOrder"));
 #if WITH_EDITOR
 			LogFilePath = FPaths::Combine( *LogFileDirectory, TEXT("EditorOpenOrder.log"));
 #else 

@@ -939,25 +939,6 @@ void FPkgInfoReporter_Log::GeneratePackageReport( FLinkerLoad* InLinker/*=NULL*/
 		UE_LOG(LogPackageUtilities, Warning,TEXT("\t\t\t%d) ExportCount=%d, NameCount=%d "), i, generationInfo.ExportCount, generationInfo.NameCount );
 	}
 
-
-	if( (InfoFlags&PKGINFO_Chunks) != 0 )
-	{
-		UE_LOG(LogPackageUtilities, Warning, TEXT("--------------------------------------------") );
-		GWarn->Log ( TEXT("Compression Chunks"));
-		GWarn->Log ( TEXT("=========="));
-
-		for ( int32 ChunkIndex = 0; ChunkIndex < Linker->Summary.CompressedChunks.Num(); ChunkIndex++ )
-		{
-			FCompressedChunk& Chunk = Linker->Summary.CompressedChunks[ChunkIndex];
-			GWarn->Log ( TEXT("\t*************************"));
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\tChunk %d:"), ChunkIndex );
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\t\tUncompressedOffset: %d"), Chunk.UncompressedOffset);
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t  UncompressedSize: %d"), Chunk.UncompressedSize);
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t  CompressedOffset: %d"), Chunk.CompressedOffset);
-			UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t    CompressedSize: %d"), Chunk.CompressedSize);
-		}
-	}
-
 	if( (InfoFlags&PKGINFO_Names) != 0 )
 	{
 		UE_LOG(LogPackageUtilities, Warning, TEXT("--------------------------------------------") );
@@ -1421,10 +1402,6 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 	if ( Switches.Contains(TEXT("simple")) )
 	{
 		InfoFlags |= PKGINFO_Compact;
-	}
-	if ( Switches.Contains(TEXT("chunks")) )
-	{
-		InfoFlags |= PKGINFO_Chunks;
 	}
 	if ( Switches.Contains(TEXT("depends")) )
 	{
@@ -2575,7 +2552,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 				}
 
 				// collect garbage to delete replaced actors and any objects only referenced by them (components, etc)
-				World->PerformGarbageCollectionAndCleanupActors();
+				GEngine->PerformGarbageCollectionAndCleanupActors();
 
 				// save the world
 				if( ( Package->IsDirty() == true ) && ( bIsDirty == true ) )

@@ -18,21 +18,21 @@
 	 *
 	 * Sample usage (note the slightly different syntax for classes and structures):
 	 *
-	 *		DEPRECATED(4.6, "Message")
+	 *		DEPRECATED(4.xx, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		struct DEPRECATED(4.xx, "Message") MODULE_API MyStruct
 	 *		{
 	 *			// StructImplementation
 	 *		};
-	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		class DEPRECATED(4.xx, "Message") MODULE_API MyClass
 	 *		{
 	 *			// ClassImplementation
 	 *		};
 	 *
 	 *		Unfortunately, VC++ will complain about using member functions and fields from deprecated
 	 *		class/structs even for class/struct implementation e.g.:
-	 *		class DEPRECATED(4.8, "") DeprecatedClass
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}
@@ -55,7 +55,7 @@
 	 *			float MyFloat;
 	 *		};
 	 *
-	 *		class DEPRECATED(4.8, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
+	 *		class DEPRECATED(4.xx, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
 	 *		{
 	 *		public:
 	 *			DeprecatedClass() {}

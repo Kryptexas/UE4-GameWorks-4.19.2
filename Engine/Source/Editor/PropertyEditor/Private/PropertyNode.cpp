@@ -1802,8 +1802,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
-			TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject( ObjIndex );
-			UObject* Object = ObjectWeakPtr.Get();
+			UObject* Object = ObjectNode->GetUObject( ObjIndex );
 
 			// special case for UObject class - it has no defaults
 			if( Object && Object != UObject::StaticClass() && Object != UObject::StaticClass()->GetDefaultObject() )
@@ -2937,19 +2936,7 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 				bool bShouldImport = false;
 				{
 					uint8* TempComplexPropAddr = (uint8*)FMemory::Malloc(ComplexProperty->GetSize(), ComplexProperty->GetMinAlignment());
-					
-					if (ComplexProperty->ArrayDim > 1)
-					{
-						for (int32 i = 0; i < ComplexProperty->ArrayDim; ++i)
-						{
-							ComplexProperty->InitializeValue((uint8*)TempComplexPropAddr + i * ComplexProperty->ElementSize);
-						}
-					}
-					else
-					{
-						ComplexProperty->InitializeValue(TempComplexPropAddr);
-					}
-					
+					ComplexProperty->InitializeValue(TempComplexPropAddr);
 					ON_SCOPE_EXIT
 					{
 						ComplexProperty->DestroyValue(TempComplexPropAddr);

@@ -116,6 +116,7 @@ enum EPixelFormat
 	op(PF_R8G8) \
 	op(PF_ATC_RGB) \
 	op(PF_ATC_RGBA_E) \
+	op(PF_ATC_RGBA_I) \
 	op(PF_X24_G8) \
 	op(PF_ETC1) \
 	op(PF_ETC2_RGB) \

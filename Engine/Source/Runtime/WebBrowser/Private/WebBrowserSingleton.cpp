@@ -130,7 +130,7 @@ FString FWebBrowserSingleton::ApplicationCacheDir() const
 	return FString(Result);
 #else
 	// Other platforms use the application data directory
-	return FPaths::GameSavedDir();
+	return FPaths::ProjectSavedDir();
 #endif
 }
 
@@ -232,7 +232,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	Settings.no_sandbox = true;
 	Settings.command_line_args_disabled = true;
 
-	FString CefLogFile(FPaths::Combine(*FPaths::GameLogDir(), TEXT("cef3.log")));
+	FString CefLogFile(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("cef3.log")));
 	CefLogFile = FPaths::ConvertRelativePathToFull(CefLogFile);
 	CefString(&Settings.log_file) = *CefLogFile;
 	Settings.log_severity = bVerboseLogging ? LOGSEVERITY_VERBOSE : LOGSEVERITY_WARNING;
@@ -248,7 +248,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf(TEXT("%s/%s UnrealEngine/%s"), FApp::GetGameName(), FApp::GetBuildVersion(), *FEngineVersion::Current().ToString());
+	FString ProductVersion = FString::Printf(TEXT("%s/%s UnrealEngine/%s"), FApp::GetProjectName(), FApp::GetBuildVersion(), *FEngineVersion::Current().ToString());
 	CefString(&Settings.product_version) = *ProductVersion;
 
 #if CEF3_DEFAULT_CACHE

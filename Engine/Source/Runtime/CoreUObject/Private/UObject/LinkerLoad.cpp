@@ -3318,15 +3318,17 @@ void FLinkerLoad::Preload( UObject* Object )
 				}
 
 				// Make sure we serialized the right amount of stuff.
-				if( Tell()-Export.SerialOffset != Export.SerialSize )
+				int64 Pos = Tell();
+				int64 SizeSerialized = Pos - Export.SerialOffset;
+				if( SizeSerialized != Export.SerialSize )
 				{
 					if (Object->GetClass()->HasAnyClassFlags(CLASS_Deprecated))
 					{
-						UE_LOG(LogLinker, Warning, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)(Tell()-Export.SerialOffset), Export.SerialSize ) );
+						UE_LOG(LogLinker, Warning, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)SizeSerialized, Export.SerialSize ) );
 					}
 					else
 					{
-						UE_LOG(LogLinker, Fatal, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)(Tell()-Export.SerialOffset), Export.SerialSize ) );
+						UE_LOG(LogLinker, Fatal, TEXT("%s"), *FString::Printf( TEXT("%s: Serial size mismatch: Got %d, Expected %d"), *Object->GetFullName(), (int32)SizeSerialized, Export.SerialSize ) );
 					}
 				}
 
@@ -4455,10 +4457,14 @@ void FLinkerLoad::BadNameIndexError(NAME_INDEX NameIndex)
  */
 void FLinkerLoad::MarkScriptSerializationStart( const UObject* Obj )
 {
-	if ( Obj != NULL && Obj->GetLinker() == this && ExportMap.IsValidIndex(Obj->GetLinkerIndex()) )
+	if (Obj && Obj->GetLinker() == this)
 	{
-		FObjectExport& Export = ExportMap[Obj->GetLinkerIndex()];
-		Export.ScriptSerializationStartOffset = Tell();
+		int32 Index = Obj->GetLinkerIndex();
+		if (ExportMap.IsValidIndex(Index))
+		{
+			FObjectExport& Export = ExportMap[Index];
+			Export.ScriptSerializationStartOffset = Tell();
+		}
 	}
 }
 
@@ -4467,10 +4473,14 @@ void FLinkerLoad::MarkScriptSerializationStart( const UObject* Obj )
  */
 void FLinkerLoad::MarkScriptSerializationEnd( const UObject* Obj )
 {
-	if (Obj != NULL && Obj->GetLinker() == this && ExportMap.IsValidIndex(Obj->GetLinkerIndex()))
+	if (Obj && Obj->GetLinker() == this)
 	{
-		FObjectExport& Export = ExportMap[Obj->GetLinkerIndex()];
-		Export.ScriptSerializationEndOffset = Tell();
+		int32 Index = Obj->GetLinkerIndex();
+		if (ExportMap.IsValidIndex(Index))
+		{
+			FObjectExport& Export = ExportMap[Index];
+			Export.ScriptSerializationEndOffset = Tell();
+		}
 	}
 }
 

@@ -53,7 +53,7 @@ void FCookerStatsPage::Generate( TArray<TWeakObjectPtr<UObject>>& OutObjects ) c
 		{
 			if (!bIsDirectory)
 			{
-				FString OriginalFileName = FString(FilenameOrDirectory).Replace(*(FPaths::GameSavedDir() / TEXT("Cooked") / PlatformName), *FPaths::RootDir());
+				FString OriginalFileName = FString(FilenameOrDirectory).Replace(*(FPaths::ProjectSavedDir() / TEXT("Cooked") / PlatformName), *FPaths::RootDir());
 
 				if (OriginalFileName.EndsWith(TEXT(".uasset")) || OriginalFileName.EndsWith(TEXT(".umap")))
 				{
@@ -99,7 +99,7 @@ void FCookerStatsPage::Generate( TArray<TWeakObjectPtr<UObject>>& OutObjects ) c
 	// create data objects for each cooked asset
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FPlatformDirectoryVisitor PlatformDirectoryVisitor(AssetRegistryModule.Get(), OutObjects, SelectedPlatformName);
-	FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*(FPaths::GameSavedDir() / TEXT("Cooked") / SelectedPlatformName), PlatformDirectoryVisitor);
+	FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*(FPaths::ProjectSavedDir() / TEXT("Cooked") / SelectedPlatformName), PlatformDirectoryVisitor);
 }
 
 
@@ -203,7 +203,7 @@ TSharedRef<SWidget> FCookerStatsPage::HandleFilterComboButtonGetMenuContent( ) c
 	FMenuBuilder MenuBuilder(true, nullptr);
 	{
 		FCookedDirectoryVisitor CookedDirectoryVisitor(*this, MenuBuilder);
-		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*(FPaths::GameSavedDir() / TEXT("Cooked")), CookedDirectoryVisitor);
+		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*(FPaths::ProjectSavedDir() / TEXT("Cooked")), CookedDirectoryVisitor);
 	}
 
 	return MenuBuilder.MakeWidget();

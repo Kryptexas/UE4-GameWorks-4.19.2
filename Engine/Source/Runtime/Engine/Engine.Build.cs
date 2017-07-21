@@ -200,7 +200,7 @@ public class Engine : ModuleRules
 			PrivateDependencyModuleNames.Add("PerfCounters");
 		}
 
-		if (UEBuildConfiguration.bBuildDeveloperTools)
+		if (Target.bBuildDeveloperTools)
 		{
 			// Add "BlankModule" so that it gets compiled as an example and will be maintained and tested.  This can be removed
 			// at any time if needed.  The module isn't actually loaded by the engine so there is no runtime cost.
@@ -288,7 +288,7 @@ public class Engine : ModuleRules
 
 		WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 
-		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bCompileAgainstEngine)
+		if (!Target.bBuildRequiresCookedData && Target.bCompileAgainstEngine)
 		{
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
@@ -299,7 +299,7 @@ public class Engine : ModuleRules
 			);
 		}
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
                 
 			PublicDependencyModuleNames.AddRange(
@@ -331,18 +331,18 @@ public class Engine : ModuleRules
         }
 
 		SetupModulePhysXAPEXSupport(Target);
-        if(UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bCompileAPEX))
+        if(Target.bCompilePhysX && (Target.bBuildEditor || Target.bCompileAPEX))
         {
             DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }
             
-        if(UEBuildConfiguration.bCompilePhysX)
+        if(Target.bCompilePhysX)
         {
             // Engine public headers need to know about some types (enums etc.)
             PublicIncludePathModuleNames.Add("ClothingSystemRuntimeInterface");
             PublicDependencyModuleNames.Add("ClothingSystemRuntimeInterface");
 
-            if (UEBuildConfiguration.bBuildEditor)
+            if (Target.bBuildEditor)
             {
                 PrivateDependencyModuleNames.Add("ClothingSystemEditorInterface");
                 PrivateIncludePathModuleNames.Add("ClothingSystemEditorInterface");
@@ -408,7 +408,7 @@ public class Engine : ModuleRules
 				);
 		}
 
-		if (UEBuildConfiguration.bCompileRecast)
+		if (Target.bCompileRecast)
 		{
             PrivateDependencyModuleNames.Add("Navmesh");
             Definitions.Add("WITH_RECAST=1");
@@ -422,7 +422,7 @@ public class Engine : ModuleRules
 		}
 
 		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
-		if(UEBuildConfiguration.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
+		if(Target.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}

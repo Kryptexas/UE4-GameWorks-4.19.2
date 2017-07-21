@@ -57,7 +57,7 @@ public class SimplygonSwarm : ModuleRules
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "SPL");
 		AddEngineThirdPartyPrivateDynamicDependencies(Target, "PropertyEditor");
 
-		string SimplygonPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon/Simplygon-latest/Inc/SimplygonSDK.h";
+		string SimplygonPath = Target.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon/Simplygon-latest/Inc/SimplygonSDK.h";
 		if (Target.Platform == UnrealTargetPlatform.Win64 && File.Exists(SimplygonPath))
 		{
 			PrecompileForTargets = PrecompileTargetsType.Editor;

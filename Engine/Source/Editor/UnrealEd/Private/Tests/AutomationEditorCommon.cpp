@@ -516,7 +516,7 @@ FString FAutomationEditorCommonUtils::ConvertPackagePathToAssetPath(const FStrin
 		const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
 		return AssetName;
 	}
-	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
+	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::ProjectContentDir()) && !GameFileName.Contains(TEXT("../")))
 	{
 		const FString ShortName = FPaths::GetBaseFilename(GameFileName);
 		const FString PathName = FPaths::GetPath(GameFileName);
@@ -924,7 +924,7 @@ bool FSaveLevelCommand::Update()
 		UWorld* World = GEditor->GetEditorWorldContext().World();
 		ULevel* Level = World->GetCurrentLevel();
 		MapName += TEXT("_Copy.umap");
-		FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"), *MapName);
+		FString TempMapLocation = FPaths::Combine(*FPaths::ProjectContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"), *MapName);
 		FEditorFileUtils::SaveLevel(Level, TempMapLocation);
 
 		return true;

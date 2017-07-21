@@ -116,8 +116,7 @@ namespace AutomationTool.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Set the Engine directory
 			DirectoryReference EngineDir = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine");
@@ -142,8 +141,7 @@ namespace AutomationTool.Tasks
 				// check all files are .target files
 				if (TargetFile.GetExtension() != ".target")
 				{
-					CommandUtils.LogError("Invalid file passed to TagReceipt task ({0})",TargetFile.FullName);
-					continue;
+					throw new AutomationException("Invalid file passed to TagReceipt task ({0})", TargetFile.FullName);
 				}
 
 				// Read the receipt
@@ -222,8 +220,6 @@ namespace AutomationTool.Tasks
 
 			// Apply the tag to all the matching files
 			FindOrAddTagSet(TagNameToFileSet, Parameters.With).UnionWith(Files);
-
-			return true;
 		}
 
 		/// <summary>

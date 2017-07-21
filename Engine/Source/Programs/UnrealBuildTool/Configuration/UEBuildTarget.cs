@@ -1692,7 +1692,7 @@ namespace UnrealBuildTool
 			// If we're in an installed project build, only allow cleaning stuff that's under the mod directories
 			if(UnrealBuildTool.IsProjectInstalled())
 			{
-				List<DirectoryReference> ModDirs = EnabledPlugins.Where(x => x.Descriptor.bIsMod).Select(x => x.Directory).ToList();
+				List<DirectoryReference> ModDirs = EnabledPlugins.Where(x => x.Type == PluginType.Mod).Select(x => x.Directory).ToList();
 				FilesToDelete.RemoveWhere(x => !ModDirs.Any(y => x.IsUnderDirectory(y)));
 				DirectoriesToDelete.RemoveWhere(x => !ModDirs.Any(y => x.IsUnderDirectory(y)));
 			}
@@ -1757,7 +1757,7 @@ namespace UnrealBuildTool
 			{
 				// Create the module rules
 				FileReference ModuleRulesFileName;
-				ModuleRules Rules = CreateModuleRulesAndSetDefaults(Module.Name, out ModuleRulesFileName);
+				ModuleRules Rules = CreateModuleRulesAndSetDefaults(Module.Name, "external file list option", out ModuleRulesFileName);
 
 				// Add Additional Bundle Resources for all modules
 				foreach (UEBuildBundleResource Resource in Rules.AdditionalBundleResources)
@@ -2305,7 +2305,7 @@ namespace UnrealBuildTool
 			// For installed builds, filter out all the binaries that aren't in mods
 			if (!ProjectFileGenerator.bGenerateProjectFiles && UnrealBuildTool.IsProjectInstalled())
 			{
-				List<DirectoryReference> ModDirectories = EnabledPlugins.Where(x => x.Descriptor.bIsMod).Select(x => x.Directory).ToList();
+				List<DirectoryReference> ModDirectories = EnabledPlugins.Where(x => x.Type == PluginType.Mod).Select(x => x.Directory).ToList();
 
 				List<UEBuildBinary> FilteredBinaries = new List<UEBuildBinary>();
 				foreach (UEBuildBinary DLLBinary in AppBinaries)
@@ -2778,7 +2778,7 @@ namespace UnrealBuildTool
 			{
 				foreach (string ModuleName in Binary.Config.ModuleNames)
 				{
-					UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
+					UEBuildModule Module = FindOrCreateModuleByName(ModuleName, TargetRulesFile.GetFileName());
 					Module.Binary = Binary;
 					Binary.AddModule(Module);
 				}
@@ -2821,7 +2821,7 @@ namespace UnrealBuildTool
 			// Create all the modules referenced by the existing binaries
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
-				Binary.CreateAllDependentModules(x => FindOrCreateModuleByName(x));
+				Binary.CreateAllDependentModules(FindOrCreateModuleByName);
 			}
 
 			// Bind every referenced C++ module to a binary
@@ -2899,28 +2899,51 @@ namespace UnrealBuildTool
 			}
 
 			// Find all the pre-build steps
-			List<Tuple<CustomBuildSteps, UEBuildPlugin>> PreBuildSteps = new List<Tuple<CustomBuildSteps,UEBuildPlugin>>();
+			List<Tuple<string[], UEBuildPlugin>> PreBuildCommandBatches = new List<Tuple<string[], UEBuildPlugin>>();
 			if(ProjectDescriptor != null && ProjectDescriptor.PreBuildSteps != null)
 			{
-				PreBuildSteps.Add(Tuple.Create(ProjectDescriptor.PreBuildSteps, (UEBuildPlugin)null));
+				AddCustomBuildSteps(ProjectDescriptor.PreBuildSteps, null, PreBuildCommandBatches);
+			}
+			if(Rules.PreBuildSteps.Count > 0)
+			{
+				PreBuildCommandBatches.Add(new Tuple<string[], UEBuildPlugin>(Rules.PreBuildSteps.ToArray(), null));
 			}
 			foreach(UEBuildPlugin BuildPlugin in BuildPlugins.Where(x => x.Descriptor.PreBuildSteps != null))
 			{
-				PreBuildSteps.Add(Tuple.Create(BuildPlugin.Descriptor.PreBuildSteps, BuildPlugin));
+				AddCustomBuildSteps(BuildPlugin.Descriptor.PreBuildSteps, BuildPlugin, PreBuildCommandBatches);
 			}
-			PreBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PreBuild", PreBuildSteps);
+			PreBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PreBuild", PreBuildCommandBatches);
 
 			// Find all the post-build steps
-			List<Tuple<CustomBuildSteps, UEBuildPlugin>> PostBuildSteps = new List<Tuple<CustomBuildSteps,UEBuildPlugin>>();
+			List<Tuple<string[], UEBuildPlugin>> PostBuildCommandBatches = new List<Tuple<string[], UEBuildPlugin>>();
 			if(ProjectDescriptor != null && ProjectDescriptor.PostBuildSteps != null)
 			{
-				PostBuildSteps.Add(Tuple.Create(ProjectDescriptor.PostBuildSteps, (UEBuildPlugin)null));
+				AddCustomBuildSteps(ProjectDescriptor.PostBuildSteps, null, PostBuildCommandBatches);
+			}
+			if(Rules.PostBuildSteps.Count > 0)
+			{
+				PostBuildCommandBatches.Add(new Tuple<string[], UEBuildPlugin>(Rules.PostBuildSteps.ToArray(), null));
 			}
 			foreach(UEBuildPlugin BuildPlugin in BuildPlugins.Where(x => x.Descriptor.PostBuildSteps != null))
 			{
-				PostBuildSteps.Add(Tuple.Create(BuildPlugin.Descriptor.PostBuildSteps, BuildPlugin));
+				AddCustomBuildSteps(ProjectDescriptor.PostBuildSteps, BuildPlugin, PostBuildCommandBatches);
 			}
-			PostBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PostBuild", PostBuildSteps);
+			PostBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PostBuild", PostBuildCommandBatches);
+		}
+
+		/// <summary>
+		/// Adds custom build steps from the given JSON object to the list of command batches
+		/// </summary>
+		/// <param name="BuildSteps">The custom build steps</param>
+		/// <param name="Plugin">The plugin to associate with these commands</param>
+		/// <param name="CommandBatches">List to receive the command batches</param>
+		private void AddCustomBuildSteps(CustomBuildSteps BuildSteps, UEBuildPlugin Plugin, List<Tuple<string[], UEBuildPlugin>> CommandBatches)
+		{
+			string[] Commands;
+			if(BuildSteps.TryGetCommands(BuildHostPlatform.Current.Platform, out Commands))
+			{
+				CommandBatches.Add(Tuple.Create(Commands, Plugin));
+			}
 		}
 
 		/// <summary>
@@ -2929,53 +2952,48 @@ namespace UnrealBuildTool
 		/// <param name="HostPlatform">The current host platform</param>
 		/// <param name="Directory">The output directory for the scripts</param>
 		/// <param name="FilePrefix">Bare prefix for all the created script files</param>
-		/// <param name="BuildStepsAndPluginInfo">List of custom build steps, and their matching PluginInfo (if appropriate)</param>
+		/// <param name="CommandBatches">List of custom build steps, and their matching PluginInfo (if appropriate)</param>
 		/// <returns>List of created script files</returns>
-		private FileReference[] WriteCustomBuildStepScripts(UnrealTargetPlatform HostPlatform, DirectoryReference Directory, string FilePrefix, List<Tuple<CustomBuildSteps, UEBuildPlugin>> BuildStepsAndPluginInfo)
+		private FileReference[] WriteCustomBuildStepScripts(UnrealTargetPlatform HostPlatform, DirectoryReference Directory, string FilePrefix, List<Tuple<string[], UEBuildPlugin>> CommandBatches)
 		{
 			List<FileReference> ScriptFiles = new List<FileReference>();
-			foreach(Tuple<CustomBuildSteps, UEBuildPlugin> Pair in BuildStepsAndPluginInfo)
+			foreach(Tuple<string[], UEBuildPlugin> CommandBatch in CommandBatches)
 			{
-				CustomBuildSteps BuildSteps = Pair.Item1;
-				if(BuildSteps.HasHostPlatform(HostPlatform))
+				// Find all the standard variables
+				Dictionary<string, string> Variables = new Dictionary<string,string>();
+				Variables.Add("EngineDir", UnrealBuildTool.EngineDirectory.FullName);
+				Variables.Add("ProjectDir", ProjectDirectory.FullName);
+				Variables.Add("TargetName", TargetName);
+				Variables.Add("TargetPlatform", Platform.ToString());
+				Variables.Add("TargetConfiguration", Configuration.ToString());
+				Variables.Add("TargetType", TargetType.ToString());
+				if(ProjectFile != null)
 				{
-					// Find all the standard variables
-					Dictionary<string, string> Variables = new Dictionary<string,string>();
-					Variables.Add("EngineDir", UnrealBuildTool.EngineDirectory.FullName);
-					Variables.Add("ProjectDir", ProjectDirectory.FullName);
-					Variables.Add("TargetName", TargetName);
-					Variables.Add("TargetPlatform", Platform.ToString());
-					Variables.Add("TargetConfiguration", Configuration.ToString());
-					Variables.Add("TargetType", TargetType.ToString());
-					if(ProjectFile != null)
-					{
-						Variables.Add("ProjectFile", ProjectFile.FullName);
-					}
-					if(Pair.Item2 != null)
-					{
-						Variables.Add("PluginDir", Pair.Item2.Directory.FullName);
-					}
-
-					// Get the commands to execute
-					string[] Commands;
-					if(BuildSteps.TryGetCommands(HostPlatform, Variables, out Commands))
-					{
-						// Get the output path to the script
-						string ScriptExtension = (HostPlatform == UnrealTargetPlatform.Win64)? ".bat" : ".sh";
-						FileReference ScriptFile = FileReference.Combine(Directory, String.Format("{0}-{1}{2}", FilePrefix, ScriptFiles.Count + 1, ScriptExtension));
-
-						// Write it to disk
-						List<string> AllCommands = new List<string>(Commands);
-						if(HostPlatform == UnrealTargetPlatform.Win64)
-						{
-							AllCommands.Insert(0, "@echo off");
-						}
-						File.WriteAllLines(ScriptFile.FullName, AllCommands);
-
-						// Add the output file to the list of generated scripts
-						ScriptFiles.Add(ScriptFile);
-					}
+					Variables.Add("ProjectFile", ProjectFile.FullName);
 				}
+				if(CommandBatch.Item2 != null)
+				{
+					Variables.Add("PluginDir", CommandBatch.Item2.Directory.FullName);
+				}
+
+				// Get the output path to the script
+				string ScriptExtension = (HostPlatform == UnrealTargetPlatform.Win64)? ".bat" : ".sh";
+				FileReference ScriptFile = FileReference.Combine(Directory, String.Format("{0}-{1}{2}", FilePrefix, ScriptFiles.Count + 1, ScriptExtension));
+
+				// Write it to disk
+				List<string> Contents = new List<string>();
+				if(HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					Contents.Insert(0, "@echo off");
+				}
+				foreach(string Command in CommandBatch.Item1)
+				{
+					Contents.Add(Utils.ExpandVariables(Command, Variables));
+				}
+				File.WriteAllLines(ScriptFile.FullName, Contents);
+
+				// Add the output file to the list of generated scripts
+				ScriptFiles.Add(ScriptFile);
 			}
 			return ScriptFiles.ToArray();
 		}
@@ -3074,7 +3092,7 @@ namespace UnrealBuildTool
 				List<UEBuildModule> GameModules = DLLBinary.FindGameModules();
 				if (GameModules != null && GameModules.Count > 0)
 				{
-					if(!UnrealBuildTool.IsProjectInstalled() || EnabledPlugins.Where(x => x.Descriptor.bIsMod).Any(x => DLLBinary.Config.OutputFilePaths[0].IsUnderDirectory(x.Directory)))
+					if(!UnrealBuildTool.IsProjectInstalled() || EnabledPlugins.Where(x => x.Type == PluginType.Mod).Any(x => DLLBinary.Config.OutputFilePaths[0].IsUnderDirectory(x.Directory)))
 					{
 						Result.Add(DLLBinary);
 
@@ -3142,7 +3160,7 @@ namespace UnrealBuildTool
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
 				NewModule.bSkipDefinitionsForCompileEnvironment = true;
 				NewModule.Rules.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
-				NewModule.RecursivelyCreateModules(x => FindOrCreateModuleByName(x));
+				NewModule.RecursivelyCreateModules(FindOrCreateModuleByName, LinkerFixupsName);
 				BindArtificialModuleToBinary(NewModule, ExecutableBinary, GlobalCompileEnvironment);
 
 				// Create the cpp file
@@ -3382,7 +3400,7 @@ namespace UnrealBuildTool
 			// Add extra modules that will either link into the main binary (monolithic), or be linked into separate DLL files (modular)
 			foreach (string ModuleName in ExtraModuleNames)
 			{
-				UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
+				UEBuildModule Module = FindOrCreateModuleByName(ModuleName, TargetRulesFile.GetFileName());
 				if (Module.Binary == null)
 				{
 					AddModuleToBinary(Module, false);
@@ -3485,6 +3503,7 @@ namespace UnrealBuildTool
 					}
 
 					// Create rules for each remaining module, and check that it's set to be precompiled
+					const string PrecompileReferenceChain = "precompile option";
 					foreach(string FilteredModuleName in FilteredModuleNames)
 					{
 						FileReference ModuleFileName = null;
@@ -3493,7 +3512,7 @@ namespace UnrealBuildTool
 						ModuleRules ModuleRules;
 						try
 						{
-							ModuleRules = RulesAssembly.CreateModuleRules(FilteredModuleName, this.Rules, out ModuleFileName);
+							ModuleRules = RulesAssembly.CreateModuleRules(FilteredModuleName, this.Rules, PrecompileReferenceChain, out ModuleFileName);
 						}
 						catch (BuildException)
 						{
@@ -3527,8 +3546,8 @@ namespace UnrealBuildTool
 						// Create the module
 						if (bCanPrecompile)
 						{
-							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName);
-							Module.RecursivelyCreateModules(x => FindOrCreateModuleByName(x));
+							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName, PrecompileReferenceChain);
+							Module.RecursivelyCreateModules(FindOrCreateModuleByName, PrecompileReferenceChain);
 							PrecompiledModules.Add(Module);
 						}
 					}
@@ -3767,13 +3786,27 @@ namespace UnrealBuildTool
 			// Get an array of folders to filter out
 			FileSystemName[] ExcludeFolders = MissingPlatforms.Select(x => new FileSystemName(x.ToString())).ToArray();
 
+			// Set of all the plugins that have been referenced
+			HashSet<string> ReferencedNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
+			// Map of plugin names to instances of that plugin
+			Dictionary<string, UEBuildPlugin> NameToInstance = new Dictionary<string, UEBuildPlugin>(StringComparer.InvariantCultureIgnoreCase);
+
 			// Find a map of plugins which are explicitly referenced in the project file
-			Dictionary<string, PluginReferenceDescriptor> NameToReference = new Dictionary<string, PluginReferenceDescriptor>(StringComparer.InvariantCultureIgnoreCase);
 			if(ProjectDescriptor != null && ProjectDescriptor.Plugins != null)
 			{
+				string ProjectReferenceChain = ProjectFile.GetFileName();
 				foreach(PluginReferenceDescriptor PluginReference in ProjectDescriptor.Plugins)
 				{
-					NameToReference[PluginReference.Name] = PluginReference;
+					// Make sure we don't have multiple references to the same plugin
+					if(!ReferencedNames.Add(PluginReference.Name))
+					{
+						Log.TraceWarning("Plugin '{0}' is listed multiple times in project file '{1}'.", PluginReference.Name, ProjectFile);
+					}
+					else
+					{
+						AddPlugin(PluginReference, ProjectReferenceChain, ExcludeFolders, NameToInstance, NameToInfo);
+					}
 				}
 			}
 
@@ -3782,13 +3815,16 @@ namespace UnrealBuildTool
 			{
 				foreach(PluginInfo Plugin in NameToInfo.Values)
 				{
-					if(Plugin.Descriptor.bEnabledByDefault && !NameToReference.ContainsKey(Plugin.Name))
+					if(Plugin.EnabledByDefault && !ReferencedNames.Contains(Plugin.Name))
 					{
 						if (Plugin.Descriptor.bCanContainContent || Plugin.Descriptor.Modules.Any(x => x.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData)))
 						{
+							ReferencedNames.Add(Plugin.Name);
+
 							PluginReferenceDescriptor PluginReference = new PluginReferenceDescriptor(Plugin.Name, null, true);
 							PluginReference.bOptional = true;
-							NameToReference[Plugin.Name] = PluginReference;
+
+							AddPlugin(PluginReference, "default plugins", ExcludeFolders, NameToInstance, NameToInfo);
 						}
 					}
 				}
@@ -3804,20 +3840,13 @@ namespace UnrealBuildTool
 				{
 					foreach(string PluginName in PluginNames)
 					{
-						if(!NameToReference.ContainsKey(PluginName))
+						if(ReferencedNames.Add(PluginName))
 						{
 							PluginReferenceDescriptor PluginReference = new PluginReferenceDescriptor(PluginName, null, true);
-							NameToReference[PluginName] = PluginReference;
+							AddPlugin(PluginReference, "DefaultEngine.ini", ExcludeFolders, NameToInstance, NameToInfo);
 						}
 					}
 				}
-			}
-
-			// Create all the plugin instances
-			Dictionary<string, UEBuildPlugin> NameToInstance = new Dictionary<string, UEBuildPlugin>(StringComparer.InvariantCultureIgnoreCase);
-			foreach(PluginReferenceDescriptor PluginReference in NameToReference.Values)
-			{
-				AddPlugin(PluginReference, ExcludeFolders, NameToInstance, NameToInfo);
 			}
 
 			// Create the list of enabled plugins
@@ -3831,7 +3860,7 @@ namespace UnrealBuildTool
 					if(!NameToInstance.ContainsKey(Plugin.Name))
 					{
 						PluginReferenceDescriptor Reference = new PluginReferenceDescriptor(Plugin.Name, null, true);
-						AddPlugin(Reference, ExcludeFolders, NameToInstance, NameToInfo);
+						AddPlugin(Reference, TargetRulesFile.GetFileName(), ExcludeFolders, NameToInstance, NameToInfo);
 					}
 				}
 			}
@@ -3845,7 +3874,7 @@ namespace UnrealBuildTool
 					if (!NameToInstance.ContainsKey(ForeignPluginInfo.Name))
 					{
 						PluginReferenceDescriptor Reference = new PluginReferenceDescriptor(ForeignPluginInfo.Name, null, true);
-						AddPlugin(Reference, ExcludeFolders, NameToInstance, NameToInfo);
+						AddPlugin(Reference, "foreign plugin argument", ExcludeFolders, NameToInstance, NameToInfo);
 					}
 				}
 			}
@@ -3862,7 +3891,7 @@ namespace UnrealBuildTool
 					if (!NameToInstance.ContainsKey(Plugin.Name) && Plugin.Descriptor.Modules != null)
 					{
 						PluginReferenceDescriptor Reference = new PluginReferenceDescriptor(Plugin.Name, null, true);
-						AddPlugin(Reference, ExcludeFolders, NameToInstance, NameToInfo);
+						AddPlugin(Reference, "precompile argument", ExcludeFolders, NameToInstance, NameToInfo);
 					}
 				}
 				PrecompilePlugins = new List<UEBuildPlugin>(NameToInstance.Values.Except(BuildPlugins));
@@ -3873,11 +3902,12 @@ namespace UnrealBuildTool
 		/// Creates a plugin instance from a reference to it
 		/// </summary>
 		/// <param name="Reference">Reference to the plugin</param>
+		/// <param name="ReferenceChain">Textual representation of the chain of references, for error reporting</param>
 		/// <param name="ExcludeFolders">Array of folder names to be excluded</param>
 		/// <param name="NameToInstance">Map from plugin name to instance of it</param>
 		/// <param name="NameToInfo">Map from plugin name to information</param>
 		/// <returns>Instance of the plugin, or null if it should not be used</returns>
-		private UEBuildPlugin AddPlugin(PluginReferenceDescriptor Reference, FileSystemName[] ExcludeFolders, Dictionary<string, UEBuildPlugin> NameToInstance, Dictionary<string, PluginInfo> NameToInfo)
+		private UEBuildPlugin AddPlugin(PluginReferenceDescriptor Reference, string ReferenceChain, FileSystemName[] ExcludeFolders, Dictionary<string, UEBuildPlugin> NameToInstance, Dictionary<string, PluginInfo> NameToInfo)
 		{
 			// Ignore disabled references
 			if(!Reference.bEnabled)
@@ -3897,7 +3927,8 @@ namespace UnrealBuildTool
 					{
 						foreach(PluginReferenceDescriptor NextReference in Instance.Descriptor.Plugins)
 						{
-							AddPlugin(NextReference, ExcludeFolders, NameToInstance, NameToInfo);
+							string NextReferenceChain = String.Format("{0} -> {1}", ReferenceChain, Instance.File.GetFileName());
+							AddPlugin(NextReference, NextReferenceChain, ExcludeFolders, NameToInstance, NameToInfo);
 						}
 					}
 				}
@@ -3907,7 +3938,14 @@ namespace UnrealBuildTool
 				// Check if the plugin is required for this platform
 				if(!Reference.IsEnabledForPlatform(Platform) || !Reference.IsEnabledForTarget(TargetType))
 				{
-					Log.TraceVerbose("Ignoring plugin '{0}' for platform/configuration", Reference.Name);
+					Log.TraceVerbose("Ignoring plugin '{0}' (referenced via {1}) for platform/configuration", Reference.Name, ReferenceChain);
+					return null;
+				}
+
+				// Disable any plugin reference which does not support the target platform
+				if (!Rules.bIncludePluginsForTargetPlatforms && !Reference.IsSupportedTargetPlatform(Platform))
+				{
+					Log.TraceVerbose("Ignoring plugin '{0}' (referenced via {1}) due to unsupported target platform.", Reference.Name, ReferenceChain);
 					return null;
 				}
 
@@ -3921,14 +3959,21 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						throw new BuildException("{0} requires the '{1}' plugin. Install it and try again, or remove it from the required plugin list.", TargetName, Reference.Name);
+						throw new BuildException("Unable to find plugin '{0}' (referenced via {1}). Install it and try again, or remove it from the required plugin list.", Reference.Name, ReferenceChain);
 					}
+				}
+
+				// Disable any plugin which does not support the target platform. The editor should update such references in the .uproject file on load.
+				if (!Rules.bIncludePluginsForTargetPlatforms && !Info.Descriptor.SupportsTargetPlatform(Platform))
+				{
+					Log.TraceVerbose("Ignoring plugin '{0}' (referenced via {1}) due to target platform not supported by descriptor.", Reference.Name, ReferenceChain);
+					return null;
 				}
 
 				// Disable any plugin that requires the build platform
 				if(Info.Descriptor.bRequiresBuildPlatform && ShouldExcludePlugin(Info, ExcludeFolders))
 				{
-					Log.TraceVerbose("Excluding plugin '%s' due to missing build platform", Reference.Name);
+					Log.TraceVerbose("Ignoring plugin '{0}' (referenced via {1}) due to missing build platform", Reference.Name, ReferenceChain);
 					return null;
 				}
 
@@ -3936,6 +3981,9 @@ namespace UnrealBuildTool
 				Instance = new UEBuildPlugin(Info);
 				Instance.bDescriptorReferencedExplicitly = !Reference.bOptional;
 				NameToInstance.Add(Info.Name, Instance);
+
+				// Get the reference chain for this plugin
+				string PluginReferenceChain = String.Format("{0} -> {1}", ReferenceChain, Info.File.GetFileName());
 
 				// Create modules for this plugin
 				UEBuildBinaryType BinaryType = ShouldCompileMonolithic() ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
@@ -3945,10 +3993,10 @@ namespace UnrealBuildTool
 					{
 						if (ModuleInfo.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData))
 						{
-							UEBuildModule Module = FindOrCreateModuleByName(ModuleInfo.Name);
+							UEBuildModule Module = FindOrCreateModuleByName(ModuleInfo.Name, PluginReferenceChain);
 							if (!Module.RulesFile.IsUnderDirectory(Info.Directory))
 							{
-								throw new BuildException("Plugin '{0}' does not contain the '{1}' module, but lists it in '{2}'.", Info.Name, ModuleInfo.Name, Info.File);
+								throw new BuildException("Plugin '{0}' (referenced via {1}) does not contain the '{2}' module, but lists it in '{3}'.", Info.Name, ReferenceChain, ModuleInfo.Name, Info.File);
 							}
 							Instance.bDescriptorNeededAtRuntime = true;
 							Instance.Modules.Add(Module);
@@ -3962,7 +4010,7 @@ namespace UnrealBuildTool
 				{
 					foreach(PluginReferenceDescriptor NextReference in Info.Descriptor.Plugins)
 					{
-						UEBuildPlugin NextInstance = AddPlugin(NextReference, ExcludeFolders, NameToInstance, NameToInfo);
+						UEBuildPlugin NextInstance = AddPlugin(NextReference, PluginReferenceChain, ExcludeFolders, NameToInstance, NameToInfo);
 						if(NextInstance != null)
 						{
 							Dependencies.Add(NextInstance);
@@ -4424,10 +4472,10 @@ namespace UnrealBuildTool
         /// <summary>
         /// Create a rules object for the given module, and set any default values for this target
         /// </summary>
-        private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, out FileReference ModuleFileName)
+        private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, string ReferenceChain, out FileReference ModuleFileName)
 		{
 			// Create the rules from the assembly
-			ModuleRules RulesObject = RulesAssembly.CreateModuleRules(ModuleName, Rules, out ModuleFileName);
+			ModuleRules RulesObject = RulesAssembly.CreateModuleRules(ModuleName, Rules, ReferenceChain, out ModuleFileName);
 
 			// Reads additional dependencies array for project module from project file and fills PrivateDependencyModuleNames. 
 			if (ProjectDescriptor != null && ProjectDescriptor.Modules != null)
@@ -4487,7 +4535,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Finds a module given its name.  Throws an exception if the module couldn't be found.
 		/// </summary>
-		public UEBuildModule FindOrCreateModuleByName(string ModuleName)
+		public UEBuildModule FindOrCreateModuleByName(string ModuleName, string ReferenceChain)
 		{
 			UEBuildModule Module;
 			if (!Modules.TryGetValue(ModuleName, out Module))
@@ -4495,7 +4543,7 @@ namespace UnrealBuildTool
 				// @todo projectfiles: Cross-platform modules can appear here during project generation, but they may have already
 				//   been filtered out by the project generator.  This causes the projects to not be added to directories properly.
 				FileReference ModuleFileName;
-				ModuleRules RulesObject = CreateModuleRulesAndSetDefaults(ModuleName, out ModuleFileName);
+				ModuleRules RulesObject = CreateModuleRulesAndSetDefaults(ModuleName, ReferenceChain, out ModuleFileName);
 				DirectoryReference ModuleDirectory = ModuleFileName.Directory;
 
 				// Get the type of module we're creating
@@ -4576,7 +4624,7 @@ namespace UnrealBuildTool
 
 				if (!ModuleType.HasValue)
 				{
-					throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+					throw new BuildException("Unable to determine module type for {0}\n(referenced via {1})", ModuleFileName, ReferenceChain);
 				}
 
 				// Get the base directory for paths referenced by the module. If the module's under the UProject source directory use that, otherwise leave it relative to the Engine source directory.
@@ -4616,7 +4664,7 @@ namespace UnrealBuildTool
 				if (RulesObject.Type != ModuleRules.ModuleType.External && RulesObject.bAddDefaultIncludePaths)
 				{
 					// Add the default include paths to the module rules, if they exist. Would be nice not to include game plugins here, but it would be a regression to change now.
-					bool bIsGameModuleOrProgram = ModuleFileName.IsUnderDirectory(TargetRulesFile.Directory) || (Plugin != null && Plugin.LoadedFrom == PluginLoadedFrom.GameProject);
+					bool bIsGameModuleOrProgram = ModuleFileName.IsUnderDirectory(TargetRulesFile.Directory) || (Plugin != null && Plugin.LoadedFrom == PluginLoadedFrom.Project);
 					AddDefaultIncludePathsToModuleRules(ModuleFileName, bIsGameModuleOrProgram, Plugin, RulesObject);
 
 					// Add the path to the generated headers 

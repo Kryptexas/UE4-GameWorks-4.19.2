@@ -1612,7 +1612,7 @@ void FAudioDevice::UpdateHighestPriorityReverb()
 		FAudioThread::RunCommandOnAudioThread([AudioDevice, NewActiveReverbRef]()
 		{
 			AudioDevice->bHasActivatedReverb = true;
-			AudioDevice->HighestPriorityActivatedReverb = MoveTemp(NewActiveReverbRef);
+			AudioDevice->HighestPriorityActivatedReverb = NewActiveReverbRef;
 		}, GET_STATID(STAT_AudioUpdateHighestPriorityReverb));
 	}
 	else
@@ -3338,8 +3338,8 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 					AudioDevice->CurrentReverbEffect = ReverbEffect;
 #if !UE_BUILD_SHIPPING
 					AudioDevice->AudioStats.ListenerLocation = ListenerPosition;
-					AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
-					AudioDevice->AudioStats.StatSoundMixes = MoveTemp(StatSoundMixes);
+					AudioDevice->AudioStats.StatSoundInfos = StatSoundInfos;
+					AudioDevice->AudioStats.StatSoundMixes = StatSoundMixes;
 					AudioDevice->AudioStats.bStale = bStatsStale;
 #endif
 				}

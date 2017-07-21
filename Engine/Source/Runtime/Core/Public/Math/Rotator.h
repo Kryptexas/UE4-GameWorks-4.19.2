@@ -128,16 +128,6 @@ public:
 	 */
 	FRotator operator*=( float Scale );
 
-	// Unary operators.
-
-	/**
-	 * Get a negated copy of the rotator.
-	 *
-	 * @return A negated copy of the rotator.
-	 */
-	DEPRECATED(4.9, "The unary negation operator has been deprecated as componentwise negation is not meaningful for a Rotator. To get the inverse, please use FRotator::GetInverse()")
-	FORCEINLINE FRotator operator-() const;
-
 	// Binary comparison operators.
 
 	/**
@@ -491,12 +481,6 @@ FORCEINLINE FRotator FRotator::operator*= (float Scale)
 	Pitch = Pitch*Scale; Yaw = Yaw*Scale; Roll = Roll*Scale;
 	DiagnosticCheckNaN();
 	return *this;
-}
-
-
-FORCEINLINE FRotator FRotator::operator-() const
-{
-	return FRotator( -Pitch, -Yaw, -Roll );
 }
 
 

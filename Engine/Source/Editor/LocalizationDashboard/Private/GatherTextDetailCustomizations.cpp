@@ -109,7 +109,7 @@ namespace
 				[
 					SNew(STextBlock)
 					.Font(Args._Font)
-					.Text( FText::FromString( FString::Printf( TEXT("%s/"), *(FPaths::GetBaseFilename(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir())) ) ) )
+					.Text( FText::FromString( FString::Printf( TEXT("%s/"), *(FPaths::GetBaseFilename(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir())) ) ) )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -155,7 +155,7 @@ namespace
 		TArray<UObject*> OuterObjects;
 		PathStringPropertyHandle->GetOuterObjects(OuterObjects);
 		ULocalizationTarget* const LocalizationTarget = CastChecked<ULocalizationTarget>(OuterObjects.Top());
-		const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+		const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 
 		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 		const TSharedPtr<FGenericWindow> ParentGenericWindow = ParentWindow.IsValid() ? ParentWindow->GetNativeWindow() : nullptr;
@@ -213,7 +213,7 @@ void FGatherTextSearchDirectoryStructCustomization::CustomizeStructHeader( TShar
 			ULocalizationTarget* const LocalizationTarget = Cast<ULocalizationTarget>(OuterObjects.Top());
 			if (LocalizationTarget)
 			{
-				const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+				const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 				FText Error;
 				if (!Struct.Validate(DesiredRootPath, Error))
 				{
@@ -266,7 +266,7 @@ void FGatherTextIncludePathStructCustomization::CustomizeStructHeader( TSharedRe
 			ULocalizationTarget* const LocalizationTarget = Cast<ULocalizationTarget>(OuterObjects.Top());
 			if (LocalizationTarget)
 			{
-				const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+				const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 				FText Error;
 				if (!Struct.Validate(DesiredRootPath, Error))
 				{
@@ -475,7 +475,7 @@ void FGatherTextFromTextFilesConfigurationStructCustomization::CustomizeStructHe
 		ULocalizationTarget* const LocalizationTarget = Cast<ULocalizationTarget>(OuterObjects.Top());
 		if (LocalizationTarget)
 		{
-			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 			FText Error;
 			if (!Struct.Validate(DesiredRootPath, Error))
 			{
@@ -566,7 +566,7 @@ void FGatherTextFromPackagesConfigurationStructCustomization::CustomizeStructHea
 		ULocalizationTarget* const LocalizationTarget = Cast<ULocalizationTarget>(OuterObjects.Top());
 		if (LocalizationTarget)
 		{
-			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 			FText Error;
 			if (!Struct.Validate(DesiredRootPath, Error))
 			{
@@ -924,7 +924,7 @@ void FGatherTextFromMetaDataConfigurationStructCustomization::CustomizeStructHea
 		ULocalizationTarget* const LocalizationTarget = Cast<ULocalizationTarget>(OuterObjects.Top());
 		if (LocalizationTarget)
 		{
-			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::GameDir());
+			const FString DesiredRootPath = FPaths::ConvertRelativePathToFull(LocalizationTarget->IsMemberOfEngineTargetSet() ? FPaths::EngineDir() : FPaths::ProjectDir());
 			FText Error;
 			if (!Struct.Validate(DesiredRootPath, Error))
 			{

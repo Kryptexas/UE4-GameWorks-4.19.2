@@ -44,48 +44,6 @@ FConcurrencyGroup::FConcurrencyGroup(FActiveSound* ActiveSound)
 	ActiveSound->ConcurrencyGroupID = ConcurrencyGroupID;
 }
 
-FConcurrencyGroup::FConcurrencyGroup(const FConcurrencyGroup& Other)
-	: ActiveSounds(Other.ActiveSounds)
-	, MaxActiveSounds(Other.MaxActiveSounds)
-	, ConcurrencyGroupID(Other.ConcurrencyGroupID)
-	, ResolutionRule(Other.ResolutionRule)
-	, Generation(Other.Generation)
-{
-	check(ConcurrencyGroupID != 0);
-}
-
-FConcurrencyGroup::FConcurrencyGroup(const FConcurrencyGroup&& Other)
-	: ActiveSounds(MoveTemp(Other.ActiveSounds))
-	, MaxActiveSounds(Other.MaxActiveSounds)
-	, ConcurrencyGroupID(Other.ConcurrencyGroupID)
-	, ResolutionRule(Other.ResolutionRule)
-	, Generation(Other.Generation)
-{
-	check(ConcurrencyGroupID != 0);
-}
-
-FConcurrencyGroup& FConcurrencyGroup::operator=(const FConcurrencyGroup& Other)
-{
-	ActiveSounds = Other.ActiveSounds;
-	MaxActiveSounds = Other.MaxActiveSounds;
-	ConcurrencyGroupID = Other.ConcurrencyGroupID;
-	ResolutionRule = Other.ResolutionRule;
-	Generation = Other.Generation;
-	check(ConcurrencyGroupID != 0);
-	return *this;
-}
-
-FConcurrencyGroup& FConcurrencyGroup::operator=(const FConcurrencyGroup&& Other)
-{
-	ActiveSounds = MoveTemp(Other.ActiveSounds);
-	MaxActiveSounds = Other.MaxActiveSounds;
-	ConcurrencyGroupID = Other.ConcurrencyGroupID;
-	ResolutionRule = Other.ResolutionRule;
-	Generation = Other.Generation;
-	check(ConcurrencyGroupID != 0);
-	return *this;
-}
-
 TArray<FActiveSound*>& FConcurrencyGroup::GetActiveSounds()
 {
 	return ActiveSounds;
@@ -505,7 +463,7 @@ FConcurrencyGroupID FSoundConcurrencyManager::MakeNewConcurrencyGroupAndSound(FA
 	FConcurrencyGroup ConcurrencyGroup(*OutActiveSound);
 
 	// Add it to the concurrency group map
-	ConcurrencyGroups.Add(ConcurrencyGroup.GetID(), ConcurrencyGroup);
+	ConcurrencyGroups.Add(ConcurrencyGroup.GetID(), MoveTemp(ConcurrencyGroup));
 
 	return ConcurrencyGroup.GetID();
 }

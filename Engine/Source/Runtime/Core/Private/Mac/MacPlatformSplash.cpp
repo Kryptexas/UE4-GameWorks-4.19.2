@@ -178,7 +178,7 @@ void FMacPlatformSplash::Show()
 	{
 		SCOPED_AUTORELEASE_POOL;
 
-		const FText GameName = FText::FromString(FApp::GetGameName());
+		const FText GameName = FText::FromString(FApp::GetProjectName());
 
 		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
 
@@ -303,7 +303,7 @@ void FMacPlatformSplash::Show()
 			}
 		}, NSDefaultRunLoopMode, true);
 
-		FPlatformMisc::PumpMessages(true);
+		FMacPlatformMisc::PumpMessages(true);
 	}
 }
 
@@ -321,7 +321,7 @@ void FMacPlatformSplash::Hide()
 			GSplashScreenImage = NULL;
 		}, NSDefaultRunLoopMode, true);
 
-		FPlatformMisc::PumpMessages(true);
+		FMacPlatformMisc::PumpMessages(true);
 	}
 }
 
@@ -356,7 +356,7 @@ void FMacPlatformSplash::SetSplashText(const SplashTextType::Type InType, const 
 				// Repaint the window
 				[[GSplashWindow contentView] setNeedsDisplayInRect: GSplashScreenTextRects[InType]];
 
-				FPlatformMisc::PumpMessages(true);
+				FMacPlatformMisc::PumpMessages(true);
 			}
 		}
 	}

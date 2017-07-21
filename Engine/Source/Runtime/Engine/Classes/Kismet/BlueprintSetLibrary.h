@@ -26,7 +26,7 @@ public:
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(DisplayName = "Add", CompactNodeTitle = "ADD", SetParam = "TargetSet|NewItem", AutoCreateRefTerm = "NewItem"), Category="Utilities|Set")
-	static bool Set_Add(const TSet<int32>& TargetSet, const int32& NewItem);
+	static void Set_Add(const TSet<int32>& TargetSet, const int32& NewItem);
 	
 	/**
 	 * Adds all elements from an Array to a Set
@@ -130,6 +130,12 @@ public:
 	UFUNCTION(BlueprintCallable, CustomThunk, meta = (DisplayName = "Difference", CompactNodeTitle = "DIFFERENCE", SetParam = "A|B|Result"), Category = "Utilities|Set")
 	static void Set_Difference(const TSet<int32>& A, const TSet<int32>& B, TSet<int32>& Result );
 
+	/** 
+	* Not exposed to users. Supports setting a set property on an object by name.
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", SetParam = "Value"))
+	static void SetSetPropertyByName(UObject* Object, FName PropertyName, const TSet<int32>& Value);
+
 	DECLARE_FUNCTION(execSet_Add)
 	{
 		Stack.MostRecentProperty = nullptr;
@@ -155,7 +161,7 @@ public:
 		P_FINISH;
 
 		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericSet_Add(SetAddr, SetProperty, ItemPtr);
+		GenericSet_Add(SetAddr, SetProperty, ItemPtr);
 		P_NATIVE_END;
 
 		ElementProp->DestroyValue(StorageSpace);
@@ -469,7 +475,22 @@ public:
 		P_NATIVE_END;
 	}
 
-	static bool GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
+	DECLARE_FUNCTION(execSetSetPropertyByName)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, SetPropertyName);
+
+		Stack.StepCompiledIn<USetProperty>(nullptr);
+		void* SrcSetAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		P_NATIVE_BEGIN;
+		GenericSet_SetSetPropertyByName(OwnerObject, SetPropertyName, SrcSetAddr);
+		P_NATIVE_END;
+	}
+
+	static void GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
 	static void GenericSet_AddItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty);
 	static bool GenericSet_Remove(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr);
 	static void GenericSet_RemoveItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty);
@@ -480,5 +501,6 @@ public:
 	static void GenericSet_Intersect(const void* SetA, const USetProperty* SetPropertyA, const void* SetB, const USetProperty* SetPropertyB, const void* SetResult, const USetProperty* SetPropertyResult);
 	static void GenericSet_Union(const void* SetA, const USetProperty* SetPropertyA, const void* SetB, const USetProperty* SetPropertyB, const void* SetResult, const USetProperty* SetPropertyResult);
 	static void GenericSet_Difference(const void* SetA, const USetProperty* SetPropertyA, const void* SetB, const USetProperty* SetPropertyB, const void* SetResult, const USetProperty* SetPropertyResult);
+	static void GenericSet_SetSetPropertyByName(UObject* OwnerObject, FName SetPropertyName, const void* SrcSetAddr);
 };
 

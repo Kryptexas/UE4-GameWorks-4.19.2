@@ -34,7 +34,7 @@ void FEditorDirectories::LoadLastDirectories()
 	GConfig->GetString( TEXT("Directories2"), TEXT("Project"),			LastDir[ELastDirectory::PROJECT],				GEditorPerProjectIni );
 
 	// Set up some defaults if they're note defined in the ini
-	const FString DefaultDir = FPaths::GameContentDir();
+	const FString DefaultDir = FPaths::ProjectContentDir();
 	for( int32 CurDirectoryIndex = 0; CurDirectoryIndex < ARRAY_COUNT( LastDir ); ++CurDirectoryIndex )
 	{
 		if (LastDir[ CurDirectoryIndex ].IsEmpty())
@@ -42,7 +42,7 @@ void FEditorDirectories::LoadLastDirectories()
 			// Default all directories to the game content folder
 			if (CurDirectoryIndex == ELastDirectory::LEVEL)
 			{
-				const FString DefaultMapDir = FPaths::GameContentDir() / TEXT("Maps");
+				const FString DefaultMapDir = FPaths::ProjectContentDir() / TEXT("Maps");
 				if( IFileManager::Get().DirectoryExists( *DefaultMapDir ) )
 				{
 					LastDir[CurDirectoryIndex] = DefaultMapDir;
@@ -85,7 +85,7 @@ FString FEditorDirectories::GetLastDirectory( const ELastDirectory::Type InLastD
 	{
 		return LastDir[InLastDir];
 	}
-	return FPaths::GameContentDir();
+	return FPaths::ProjectContentDir();
 }
 
 void FEditorDirectories::SetLastDirectory( const ELastDirectory::Type InLastDir, const FString& InLastStr )

@@ -157,43 +157,6 @@ namespace
 
 }	// anon namespace
 
-
-TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindow, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bShouldAutoSize, const FVector2D& WindowSize, const FVector2D& SummonLocationSize)
-{
-	// Deprecated method that is no longer called by its deprecated counterpart in FSlateApplication so it will only create a dummy message warning the caller not to use this method
-	// Backwards compatibility of the API is taken care of by FSlateApplication.
-	ensureMsgf(false, TEXT("PushMenu() returning an SWindow is deprecated. Use Push() that returns an IMenu instead."));
-
-	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
-	FVector2D ExpectedSize(300, 200);
-	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, FVector2D::ZeroVector, Orient_Vertical);
-
-	TSharedRef<SWindow> NewMenuWindow =
-		SNew(SWindow)
-		.Type(EWindowType::Menu)
-		.IsPopupWindow(true)
-		.SizingRule(bShouldAutoSize ? ESizingRule::Autosized : ESizingRule::UserSized)
-		.ScreenPosition(AdjustedSummonLocation)
-		.AutoCenter(EAutoCenter::None)
-		.ClientSize(ExpectedSize)
-		.FocusWhenFirstShown(true)
-		.ActivationPolicy(EWindowActivationPolicy::Always)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("PushMenuDeprecatedWarning", "WARNING: PushMenu() returning an SWindow is deprecated. Use Push() that returns an IMenu instead."))
-			]
-		];
-
-	FSlateApplication::Get().AddWindowAsNativeChild(NewMenuWindow, ParentWindow, true);
-
-	return NewMenuWindow;
-}
-
 TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> InMethod, const bool bIsCollapsedByParent, const bool bEnablePerPixelTransparency)
 {
 	// We want to ensure that when the window is restored to restore the current keyboard focus
@@ -559,12 +522,6 @@ FPopupMethodReply FMenuStack::QueryPopupMethod(const FWidgetPath& PathToQuery)
 	return FPopupMethodReply::UseMethod(EPopupMethod::CreateNewWindow);
 }
 
-void FMenuStack::Dismiss(int32 FirstStackIndexToRemove)
-{
-	// deprecated
-	DismissInternal(FirstStackIndexToRemove);
-}
-
 void FMenuStack::DismissFrom(const TSharedPtr<IMenu>& InFromMenu)
 {
 	int32 Index = Stack.IndexOfByKey(InFromMenu);
@@ -721,12 +678,6 @@ TSharedPtr<IMenu> FMenuStack::FindMenuInWidgetPath(const FWidgetPath& PathToQuer
 	return TSharedPtr<IMenu>();
 }
 
-void FMenuStack::RemoveWindow( TSharedRef<SWindow> WindowToRemove )
-{
-	// deprecated
-	OnWindowDestroyed(WindowToRemove);
-}
-
 void FMenuStack::OnWindowDestroyed(TSharedRef<SWindow> InWindow)
 {
 	if (HostWindow == InWindow)
@@ -779,21 +730,6 @@ void FMenuStack::OnWindowActivated( TSharedRef<SWindow> ActivatedWindow )
 	}
 }
 
-
-int32 FMenuStack::FindLocationInStack( TSharedPtr<SWindow> WindowToFind ) const
-{
-	// deprecated
-	if (WindowToFind.IsValid())
-	{
-		TWeakPtr<IMenu> Menu = FindMenuFromWindow(WindowToFind.ToSharedRef());
-
-		return Stack.IndexOfByKey(Menu);
-	}
-
-	// The window was not found
-	return INDEX_NONE;
-}
-
 TSharedPtr<IMenu> FMenuStack::FindMenuFromWindow(TSharedRef<SWindow> InWindow) const
 {
 	const TSharedPtr<FMenuBase>* FoundMenu = Stack.FindByPredicate([InWindow](TSharedPtr<FMenuBase> Menu) { return Menu->GetOwnedWindow() == InWindow; });
@@ -839,41 +775,15 @@ bool FMenuStack::HasMenus() const
 	return Stack.Num() > 0;
 }
 
-bool FMenuStack::HasOpenSubMenus( const TSharedRef<SWindow>& Window ) const
-{
-	// deprecated
-	TWeakPtr<IMenu> Menu = FindMenuFromWindow(Window);
-	if (Menu.IsValid())
-	{
-		return Menu != Stack.Last();
-	}
-	return false;
-}
-
 bool FMenuStack::HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const
 {
 	int32 StackIndex = Stack.IndexOfByKey(InMenu);
 	return StackIndex != INDEX_NONE && StackIndex < Stack.Num() - 1;
 }
 
-int32 FMenuStack::GetNumStackLevels() const
-{
-	return Stack.Num();
-}
-
 TSharedPtr<SWindow> FMenuStack::GetHostWindow() const
 {
 	return HostWindow;
-}
-
-
-FMenuWindowList& FMenuStack::GetWindowsAtStackLevel( const int32 StackLevelIndex )
-{
-	// deprecated
-	// can't support this so return an empty list
-	ensure(false);
-	static FMenuWindowList EmptyList;
-	return EmptyList;
 }
 
 #undef LOCTEXT_NAMESPACE

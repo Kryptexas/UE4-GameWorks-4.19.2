@@ -45,7 +45,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
     static void PlatformPreInit();
 	static void PlatformInit();
     static void PlatformHandleSplashScreen(bool ShowSplashScreen = false);
-	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
 
@@ -118,10 +117,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void ClipboardCopy(const TCHAR* Str);
-	static void ClipboardPaste(class FString& Dest);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static bool ControlScreensaver(EScreenSaverAction Action);
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext& Context));
@@ -133,17 +129,11 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static bool DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName);
 	static TArray<uint8> GetSystemFontBytes();
 	static TArray<FString> GetPreferredLanguages();
-	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
-	static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static FString GetLocalCurrencyCode();
 	static FString GetLocalCurrencySymbol();
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool HasActiveWiFiConnection();
 	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& ScreenDensity);
-
-	static void ResetGamepadAssignments();
-	static void ResetGamepadAssignmentToController(int32 ControllerId);
-	static bool IsControllerAssignedToGamepad(int32 ControllerId);
 
 	static int GetAudioVolume();
 	static bool AreHeadphonesPluggedIn();
@@ -253,8 +243,6 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	
     static void SetGracefulTerminationHandler();
     static void SetCrashHandler(void(*CrashHandler)(const FGenericCrashContext& Context));
-private:
-	static class FIOSApplication* CachedApplication;
 };
 
 typedef FIOSPlatformMisc FPlatformMisc;

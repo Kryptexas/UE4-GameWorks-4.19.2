@@ -483,6 +483,11 @@ namespace UnrealBuildTool
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport")]
 		public bool bCompileWithPluginSupport = false;
 
+		/// <summary>
+		/// Whether to allow plugins which support all target platforms.
+		/// </summary>
+		public bool bIncludePluginsForTargetPlatforms = false;
+
         /// <summary>
         /// Whether to include PerfCounters support.
         /// </summary>
@@ -930,6 +935,20 @@ namespace UnrealBuildTool
 		public TargetBuildEnvironment BuildEnvironment = TargetBuildEnvironment.Default;
 
 		/// <summary>
+		/// Specifies a list of steps which should be executed before this target is built, in the context of the host platform's shell.
+		/// The following variables will be expanded before execution: 
+		/// $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+		/// </summary>
+		public List<string> PreBuildSteps = new List<string>();
+
+		/// <summary>
+		/// Specifies a list of steps which should be executed after this target is built, in the context of the host platform's shell.
+		/// The following variables will be expanded before execution: 
+		/// $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+		/// </summary>
+		public List<string> PostBuildSteps = new List<string>();
+
+		/// <summary>
 		/// Android-specific target settings.
 		/// </summary>
 		public AndroidTargetRules AndroidPlatform = new AndroidTargetRules();
@@ -1092,6 +1111,9 @@ namespace UnrealBuildTool
 				//enable PerfCounters
 				bWithPerfCounters = true;
 
+				// Include all plugins
+				bIncludePluginsForTargetPlatforms = true;
+
 				// Tag it as a 'Editor' build
 				GlobalDefinitions.Add("UE_EDITOR=1");
 			}
@@ -1162,6 +1184,14 @@ namespace UnrealBuildTool
 				return LinkType;
 			}
 #pragma warning restore 0612
+		}
+
+		/// <summary>
+		/// Gets the host platform being built on
+		/// </summary>
+		public UnrealTargetPlatform HostPlatform
+		{
+			get { return BuildHostPlatform.Current.Platform; }
 		}
 
 		/// <summary>
@@ -1329,6 +1359,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("BuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
 		public TargetRules BuildConfiguration
 		{
 			get { return this; }
@@ -1337,6 +1368,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("UEBuildConfiguration is deprecated in 4.18. Set the same properties on the current TargetRules instance instead.")]
 		public TargetRules UEBuildConfiguration
 		{
 			get { return this; }
@@ -1608,6 +1640,11 @@ namespace UnrealBuildTool
 		public bool bCompileWithPluginSupport
 		{
 			get { return Inner.bCompileWithPluginSupport; }
+		}
+
+		public bool bIncludePluginsForTargetPlatforms
+		{
+			get { return Inner.bIncludePluginsForTargetPlatforms; }
 		}
 
         public bool bWithPerfCounters
@@ -1944,6 +1981,16 @@ namespace UnrealBuildTool
 		public TargetBuildEnvironment BuildEnvironment
 		{
 			get { return Inner.BuildEnvironment; }
+		}
+
+		public IReadOnlyList<string> PreBuildSteps
+		{
+			get { return Inner.PreBuildSteps; }
+		}
+
+		public IReadOnlyList<string> PostBuildSteps
+		{
+			get { return Inner.PostBuildSteps; }
 		}
 
 		public ReadOnlyAndroidTargetRules AndroidPlatform

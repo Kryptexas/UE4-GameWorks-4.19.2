@@ -24,7 +24,7 @@ FString GetWorldStateFilename(UPackage* Package)
 {
 	const FString PathName = Package->GetPathName();
 	const uint32 PathNameCrc = FCrc::MemCrc32(*PathName, sizeof(TCHAR)*PathName.Len());
-	return FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Config"), TEXT("WorldState"), *FString::Printf(TEXT("%u.json"), PathNameCrc));
+	return FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("WorldState"), *FString::Printf(TEXT("%u.json"), PathNameCrc));
 }
 
 /** Convert an old path to a new path, replacing an ancestor branch with something else */

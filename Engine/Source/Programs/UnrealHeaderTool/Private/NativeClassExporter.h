@@ -8,7 +8,6 @@
 class FUnrealSourceFile;
 class UPackage;
 class UProperty;
-class FUHTMakefile;
 class UFunction;
 class UStruct;
 class UField;
@@ -64,6 +63,18 @@ enum class EExportCallbackType
 	Class
 };
 
+struct FPropertyNamePointerPair
+{
+	FPropertyNamePointerPair(FString InName, UProperty* InProp)
+		: Name(MoveTemp(InName))
+		, Prop(InProp)
+	{
+	}
+
+	FString Name;
+	UProperty* Prop;
+};
+
 struct FNativeClassHeaderGenerator
 {
 private:
@@ -100,9 +111,6 @@ private:
 	/** Forward declarations that we need. */
 	TSet<FString> ForwardDeclarations;
 
-	/** Makefile to save parsing data to. */
-	FUHTMakefile& UHTMakefile;
-
 	/**
 	 * Exports the struct's C++ properties to the HeaderText output device and adds special
 	 * compiler directives for GCC to pack as we expect.
@@ -119,17 +127,25 @@ private:
 	/** Return the name of the singleton function that returns the UObject for Item */
 	FString GetSingletonName(UField* Item, bool bRequiresValidObject=true);
 
-	/** 
+	/** Return the address of the singleton function - handles nullptr */
+	FString GetSingletonNameFuncAddr(UField* Item, bool bRequiresValidObject=true);
+
+	/**
 	 * Returns the name (overridden if marked up) with TEXT("") or "" wrappers for use in a string literal.
 	 */
 	static FString GetOverriddenNameForLiteral(const UField* Item);
 
-	/** 
+	/**
+	 * Returns the name (overridden if marked up) or "" wrappers for use in a string literal.
+	 */
+	static FString GetUTF8OverriddenNameForLiteral(const UField* Item);
+
+	/**
 	 * Export functions used to find and call C++ or script implementation of a script function in the interface 
 	 */
 	void ExportInterfaceCallFunctions(FOutputDevice& OutCpp, FUHTStringBuilder& Out, const TArray<UFunction*>& CallbackFunctions, const TCHAR* ClassName);
 
-	/** 
+	/**
 	 * Export UInterface boilerplate.
 	 *
 	 * @param UInterfaceBoilerplate Device to export to.
@@ -346,7 +362,7 @@ private:
 	 * @param	Properties		Array of properties to export
 	 * @param	Spaces			String of spaces to use as an indent
 	 */
-	void OutputProperties(FString& Meta, FOutputDevice& OutputDevice, const FString& OuterString, const TArray<UProperty*>& Properties, const TCHAR* Spaces);
+	void OutputProperties(FOutputDevice& OutputDevice, FString& OutPropertyRange, const TArray<UProperty*>& Properties, const TCHAR* Spaces);
 
 	/**
 	 * Function to output the C++ code necessary to set up a property
@@ -356,20 +372,19 @@ private:
 	 * @param	Prop			Property to export
 	 * @param	Spaces			String of spaces to use as an indent
 	**/
-	void OutputProperty(FString& Meta, FOutputDevice& OutputDevice, const FString& OuterString, UProperty* Prop, const TCHAR* Spaces);
+	void OutputProperty(FOutputDevice& OutputDevice, TArray<FPropertyNamePointerPair>& PropertyNamesAndPointers, UProperty* Prop, const TCHAR* Spaces);
 
 	/**
 	 * Function to output the C++ code necessary to set up a property, including an array property and its inner, array dimensions, etc.
-	 * 
-	 * @param	Meta			Returned string of meta data generator code
+	 *
+	 * @param	Out				The destination to write to.
 	 * @param	Prop			Property to export
-	 * @param	OuterString		String that specifies the outer to add the properties to
-	 * @param	PropMacro		String specifying the macro to call to get the property offset
+	 * @param	OffsetStr		String specifying the property offset
 	 * @param	Name			Name for the generated variable
 	 * @param	Spaces			String of spaces to use as an indent
 	 * @param	SourceStruct	Structure that the property offset is relative to
 	**/
-	FString PropertyNew(FString& Meta, UProperty* Prop, const FString& OuterString, const FString& PropMacro, const TCHAR* Name, const TCHAR* Spaces, const TCHAR* SourceStruct = NULL);
+	void PropertyNew(FOutputDevice& Out, UProperty* Prop, const TCHAR* OffsetStr, const TCHAR* Name, const TCHAR* Spaces, const TCHAR* SourceStruct = NULL);
 
 	/**
 	 * Exports the proxy definitions for the list of enums specified
@@ -446,8 +461,7 @@ public:
 		const UPackage* InPackage,
 		const TArray<FUnrealSourceFile*>& SourceFiles,
 		FClasses& AllClasses,
-		bool InAllowSaveExportedHeaders,
-		FUHTMakefile& UHTMakefile
+		bool InAllowSaveExportedHeaders
 	);
 
 	/**

@@ -8,18 +8,18 @@ public class HLSLCC : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicSystemIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "hlslcc/hlslcc/src/hlslcc_lib");
+		PublicSystemIncludePaths.Add(Target.UEThirdPartySourceDirectory + "hlslcc/hlslcc/src/hlslcc_lib");
 
-		string LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "hlslcc/hlslcc/lib/";
+		string LibPath = Target.UEThirdPartySourceDirectory + "hlslcc/hlslcc/lib/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			LibPath = LibPath + (Target.Platform == UnrealTargetPlatform.Win32 ? "Win32/" : "Win64/");
-			LibPath = LibPath + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			LibPath = LibPath + "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			
 			PublicLibraryPaths.Add(LibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				if (Target.Platform == UnrealTargetPlatform.Win64)
 				{
@@ -44,7 +44,7 @@ public class HLSLCC : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add(LibPath + "Mac/libhlslccd.a");
 			}

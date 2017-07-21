@@ -67,8 +67,7 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Parse all the source patterns
 			FilePattern SourcePattern = new FilePattern(CommandUtils.RootDirectory, Parameters.From);
@@ -85,17 +84,13 @@ namespace BuildGraph.Tasks
 			}
 
 			// Build the file mapping
-			Dictionary<FileReference, FileReference> TargetFileToSourceFile;
-			if(!FilePattern.TryCreateMapping(Files, SourcePattern, TargetPattern, out TargetFileToSourceFile))
-			{
-				return false;
-			}
+			Dictionary<FileReference, FileReference> TargetFileToSourceFile = FilePattern.CreateMapping(Files, SourcePattern, TargetPattern);
 
 			// Check we got some files
 			if(TargetFileToSourceFile.Count == 0)
 			{
 				CommandUtils.Log("No files found matching '{0}'", SourcePattern);
-				return true;
+				return;
 			}
 
 			// Copy them all
@@ -111,7 +106,6 @@ namespace BuildGraph.Tasks
 			{
 				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(TargetFileToSourceFile.Keys);
 			}
-			return true;
 		}
 
 		/// <summary>

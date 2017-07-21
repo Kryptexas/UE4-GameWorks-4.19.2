@@ -983,7 +983,7 @@ bool FBuildPatchInstaller::RunPrereqInstaller()
 	static const TCHAR* Quote = TEXT("\"");
 	const FString InstallDirWithSlash = Configuration.InstallDirectory / TEXT("");
 	const FString StageDirWithSlash = InstallStagingDir / TEXT("");
-	const FString LogDirWithSlash = FPaths::ConvertRelativePathToFull(FPaths::GameLogDir() / TEXT(""));
+	const FString LogDirWithSlash = FPaths::ConvertRelativePathToFull(FPaths::ProjectLogDir() / TEXT(""));
 
 	// Get the hash string for the prereq so we can use it to check and set if already installed previously
 	FString PrereqHashString;

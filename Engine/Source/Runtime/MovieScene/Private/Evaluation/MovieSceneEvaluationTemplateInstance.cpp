@@ -202,7 +202,7 @@ void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Cont
 
 	ensureMsgf(Instance, TEXT("Could not find instance for supplied sequence ID."));
 
-	const int32 FieldIndex = Instance ? Instance->Template->EvaluationField.GetSegmentFromTime(Context.GetTime() * Instance->RootToSequenceTransform) : INDEX_NONE;
+	const int32 FieldIndex = (Instance && Instance->Template) ? Instance->Template->EvaluationField.GetSegmentFromTime(Context.GetTime() * Instance->RootToSequenceTransform) : INDEX_NONE;
 	if (FieldIndex == INDEX_NONE)
 	{
 		CallSetupTearDown(Player);

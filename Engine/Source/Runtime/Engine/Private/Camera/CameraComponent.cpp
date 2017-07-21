@@ -19,9 +19,6 @@
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
-static void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue);
-
-
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
@@ -48,9 +45,6 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	bUsePawnControlRotation = false;
 	bAutoActivate = true;
 	bLockToHmd = true;
-
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -121,9 +115,6 @@ void UCameraComponent::OnRegister()
 #endif
 
 	Super::OnRegister();
-
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 void UCameraComponent::PostLoad()
@@ -136,9 +127,6 @@ void UCameraComponent::PostLoad()
 	{
 		bUsePawnControlRotation = bUseControllerViewRotation_DEPRECATED;
 	}
-
-	// Init deprecated var, for old code that may refer to it.
-	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
 #if WITH_EDITORONLY_DATA
@@ -332,14 +320,6 @@ bool UCameraComponent::GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& V
 	return bIsActive;
 }
 #endif	// WITH_EDITOR
-
-
-void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValue)
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	Component.bUseControllerViewRotation = bValue;
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
 
 void UCameraComponent::NotifyCameraCut()
 {

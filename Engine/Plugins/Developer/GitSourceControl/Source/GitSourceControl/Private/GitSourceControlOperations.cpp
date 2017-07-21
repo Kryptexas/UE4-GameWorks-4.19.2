@@ -245,7 +245,7 @@ bool FGitUpdateStatusWorker::Execute(FGitSourceControlCommand& InCommand)
 		if(Operation->ShouldGetOpenedOnly())
 		{
 			TArray<FString> Files;
-			Files.Add(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+			Files.Add(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
 			InCommand.bCommandSuccessful = GitSourceControlUtils::RunUpdateStatus(InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, Files, InCommand.ErrorMessages, States);
 		}
 	}

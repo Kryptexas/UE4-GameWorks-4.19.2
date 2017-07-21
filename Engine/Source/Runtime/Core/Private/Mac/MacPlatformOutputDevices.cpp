@@ -11,6 +11,7 @@
 
 #include "FeedbackContextAnsi.h"
 #include "MacApplication.h"
+#include "MacPlatformApplicationMisc.h"
 #include "MacPlatformOutputDevicesPrivate.h"
 #include "MacPlatformFeedbackContextPrivate.h"
 #include "CocoaThread.h"
@@ -140,7 +141,7 @@ void FOutputDeviceMacError::HandleError()
 	// Release capture and allow mouse to freely roam around.
 	CGAssociateMouseAndMouseCursorPosition(true);
 
-	FPlatformMisc::ClipboardCopy(GErrorHist);
+	FPlatformApplicationMisc::ClipboardCopy(GErrorHist);
 
 	FPlatformMisc::SubmitErrorReport( GErrorHist, EErrorReportMode::Interactive );
 
@@ -253,7 +254,7 @@ void FOutputDeviceConsoleMac::CreateConsole()
 		{
 			do
 			{
-				FPlatformMisc::PumpMessages( true );
+				FMacPlatformMisc::PumpMessages( true );
 			} while(ConsoleHandle && ![ConsoleHandle isVisible]);
 		}
 		
@@ -267,7 +268,7 @@ void FOutputDeviceConsoleMac::DestroyConsole()
 	{
 		do
 		{
-			FPlatformMisc::PumpMessages( true );
+			FMacPlatformMisc::PumpMessages( true );
 		} while(OutstandingTasks);
 
 		SaveToINI();
@@ -383,7 +384,7 @@ void FOutputDeviceConsoleMac::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 				
 				if(!MacApplication)
 				{
-					FPlatformMisc::PumpMessages( true );
+					FMacPlatformMisc::PumpMessages( true );
 				}
 			}
 		}

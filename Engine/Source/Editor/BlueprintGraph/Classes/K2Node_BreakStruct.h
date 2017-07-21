@@ -41,6 +41,7 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
+	virtual void PreloadRequiredAssets() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;

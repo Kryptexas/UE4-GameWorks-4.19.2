@@ -91,8 +91,7 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Get the project path, and check it exists
 			FileReference ProjectFile = null;
@@ -101,8 +100,7 @@ namespace BuildGraph.Tasks
 				ProjectFile = ResolveFile(Parameters.Project);
 				if(!FileReference.Exists(ProjectFile))
 				{
-					CommandUtils.LogError("Couldn't find project '{0}'", ProjectFile.FullName);
-					return false;
+					throw new AutomationException("Couldn't find project '{0}'", ProjectFile.FullName);
 				}
 			}
 
@@ -122,8 +120,7 @@ namespace BuildGraph.Tasks
 			TargetReceipt Receipt;
 			if(!TargetReceipt.TryRead(ReceiptFileName, SourceEngineDir, SourceProjectDir, out Receipt))
 			{
-				CommandUtils.LogError("Couldn't read receipt '{0}'", ReceiptFileName);
-				return false;
+				throw new AutomationException("Couldn't read receipt '{0}'", ReceiptFileName);
 			}
 
 			// Stage all the build products needed at runtime
@@ -177,7 +174,6 @@ namespace BuildGraph.Tasks
 
 			// Add the target file to the list of build products
 			BuildProducts.UnionWith(TargetFiles);
-			return true;
 		}
 
 		/// <summary>

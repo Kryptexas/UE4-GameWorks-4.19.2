@@ -6,6 +6,7 @@
 #include "Misc/ScopeLock.h"
 #include "Framework/Application/SlateApplication.h"
 #include "DefaultGameMoviePlayer.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 FThreadSafeCounter FSlateLoadingSynchronizationMechanism::LoadingThreadInstanceCounter;
 
@@ -72,7 +73,7 @@ void FSlateLoadingSynchronizationMechanism::DestroySlateThread()
 
 		while (MainLoop.IsLocked())
 		{
-			FPlatformMisc::PumpMessages(false);
+			FPlatformApplicationMisc::PumpMessages(false);
 
 			FPlatformProcess::Sleep(0.1f);
 		}

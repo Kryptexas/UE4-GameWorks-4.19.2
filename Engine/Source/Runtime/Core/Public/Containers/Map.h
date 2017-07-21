@@ -295,10 +295,10 @@ public:
 	 * @param InValue - The value to associate with the key.
 	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& Add(const KeyType&  InKey, const ValueType&  InValue) { return Emplace(         InKey ,          InValue ); }
-	FORCEINLINE ValueType& Add(const KeyType&  InKey,       ValueType&& InValue) { return Emplace(         InKey , MoveTemp(InValue)); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey, const ValueType&  InValue) { return Emplace(MoveTemp(InKey),          InValue ); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey,       ValueType&& InValue) { return Emplace(MoveTemp(InKey), MoveTemp(InValue)); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey, const ValueType&  InValue) { return Emplace(                   InKey ,                    InValue ); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey,       ValueType&& InValue) { return Emplace(                   InKey , MoveTempIfPossible(InValue)); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey, const ValueType&  InValue) { return Emplace(MoveTempIfPossible(InKey),                    InValue ); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey,       ValueType&& InValue) { return Emplace(MoveTempIfPossible(InKey), MoveTempIfPossible(InValue)); }
 
 	/**
 	 * Sets a default value associated with a key.
@@ -306,8 +306,8 @@ public:
 	 * @param InKey - The key to associate the value with.
 	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& Add(const KeyType&  InKey) { return Emplace(         InKey ); }
-	FORCEINLINE ValueType& Add(      KeyType&& InKey) { return Emplace(MoveTemp(InKey)); }
+	FORCEINLINE ValueType& Add(const KeyType&  InKey) { return Emplace(                   InKey ); }
+	FORCEINLINE ValueType& Add(      KeyType&& InKey) { return Emplace(MoveTempIfPossible(InKey)); }
 
 	/**
 	 * Sets the value associated with a key.
@@ -410,8 +410,8 @@ public:
 	 * @param	Key - The key to search for.
 	 * @return	A reference to the value associated with the specified key.
 	 */
-	FORCEINLINE ValueType& FindOrAdd(const KeyType&  Key) { return FindOrAddImpl(         Key ); }
-	FORCEINLINE ValueType& FindOrAdd(      KeyType&& Key) { return FindOrAddImpl(MoveTemp(Key)); }
+	FORCEINLINE ValueType& FindOrAdd(const KeyType&  Key) { return FindOrAddImpl(                   Key ); }
+	FORCEINLINE ValueType& FindOrAdd(      KeyType&& Key) { return FindOrAddImpl(MoveTempIfPossible(Key)); }
 
 	/**
 	 * Returns the value associated with a specified key, or if none exists, 
@@ -930,7 +930,7 @@ public:
 		if(!PairId.IsValidId())
 			return false;
 
-		OutRemovedValue = MoveTemp(Super::Pairs[PairId].Value);
+		OutRemovedValue = MoveTempIfPossible(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return true;
 	}
@@ -945,7 +945,7 @@ public:
 	{
 		const FSetElementId PairId = Super::Pairs.FindId(Key);
 		check(PairId.IsValidId());
-		ValueType Result = MoveTemp(Super::Pairs[PairId].Value);
+		ValueType Result = MoveTempIfPossible(Super::Pairs[PairId].Value);
 		Super::Pairs.Remove(PairId);
 		return Result;
 	}
@@ -960,7 +960,7 @@ public:
 		this->Reserve(this->Num() + OtherMap.Num());
 		for (auto& Pair : OtherMap)
 		{
-			this->Add(MoveTemp(Pair.Key), MoveTemp(Pair.Value));
+			this->Add(MoveTempIfPossible(Pair.Key), MoveTempIfPossible(Pair.Value));
 		}
 
 		OtherMap.Reset();
@@ -1105,10 +1105,10 @@ public:
 	 * @param InValue - The value to associate.
 	 * @return A reference to the value as stored in the map; the reference is only valid until the next change to any key in the map.
 	 */
-	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey, const ValueType&  InValue) { return EmplaceUnique(         InKey ,          InValue ); }
-	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey,       ValueType&& InValue) { return EmplaceUnique(         InKey , MoveTemp(InValue)); }
-	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey, const ValueType&  InValue) { return EmplaceUnique(MoveTemp(InKey),          InValue ); }
-	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey,       ValueType&& InValue) { return EmplaceUnique(MoveTemp(InKey), MoveTemp(InValue)); }
+	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey, const ValueType&  InValue) { return EmplaceUnique(                   InKey ,                    InValue ); }
+	FORCEINLINE ValueType& AddUnique(const KeyType&  InKey,       ValueType&& InValue) { return EmplaceUnique(                   InKey , MoveTempIfPossible(InValue)); }
+	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey, const ValueType&  InValue) { return EmplaceUnique(MoveTempIfPossible(InKey),                    InValue ); }
+	FORCEINLINE ValueType& AddUnique(      KeyType&& InKey,       ValueType&& InValue) { return EmplaceUnique(MoveTempIfPossible(InKey), MoveTempIfPossible(InValue)); }
 
 	/**
 	 * Adds a key-value association to the map.  The association doesn't replace any of the key's existing associations.
@@ -1322,16 +1322,16 @@ public:
 	}
 	
 	/** Finds the associated key, value from hash of Key, rather than linearly searching */
-	uint8* FindPair(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
+	int32 FindPairIndex(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
 	{
 		if (Pairs.Num())
 		{
-			// !unsafe! 'Pairs' is mostly treated as a set of TPair<Key, Value>, so anything in 
-			// FScriptSet could assume that Key is actually a TPair<Key, Value>, we can hide this 
+			// !unsafe! 'Pairs' is mostly treated as a set of TPair<Key, Value>, so anything in
+			// FScriptSet could assume that Key is actually a TPair<Key, Value>, we can hide this
 			// complexity from our caller, at least (so their GetKeyHash/EqualityFn is unaware):
-			return Pairs.Find(
-				Key, 
-				MapLayout.SetLayout, 
+			return Pairs.FindIndex(
+				Key,
+				MapLayout.SetLayout,
 				GetKeyHash, // We 'know' that the implementation of Find doesn't call GetKeyHash on anything except Key
 				[KeyEqualityFn, MapLayout](const void* InKey, const void* InPair )
 				{
@@ -1340,47 +1340,51 @@ public:
 			);
 		}
 
-		return nullptr;
+		return INDEX_NONE;
 	}
 
 	/** Finds the associated value from hash of Key, rather than linearly searching */
 	uint8* FindValue(const void* Key, const FScriptMapLayout& MapLayout, TFunctionRef<uint32 (const void*)> GetKeyHash, TFunctionRef<bool (const void*, const void*)> KeyEqualityFn)
 	{
-		if(uint8* Result = FindPair(Key, MapLayout, GetKeyHash, KeyEqualityFn))
+		int32 FoundIndex = FindPairIndex(Key, MapLayout, GetKeyHash, KeyEqualityFn);
+		if (FoundIndex != INDEX_NONE)
 		{
-			return Result + MapLayout.ValueOffset;
+			uint8* Result = (uint8*)GetData(FoundIndex, MapLayout) + MapLayout.ValueOffset;
+			return Result;
 		}
 
 		return nullptr;
 	}
 
 	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
-	bool Add(	const void* Key, 
-				const void* Value, 
-				const FScriptMapLayout& Layout, 
-				TFunctionRef<uint32(const void*)> GetKeyHash, 
-				TFunctionRef<bool(const void*, const void*)> KeyEqualityFn, 
-				TFunctionRef<void(void*)> KeyConstructAndAssignFn, 
-				TFunctionRef<void(void*)> ValueConstructAndAssignFn, 
-				TFunctionRef<void(void*)> ValueAssignFn)
+	void Add(
+		const void* Key,
+		const void* Value,
+		const FScriptMapLayout& Layout,
+		TFunctionRef<uint32(const void*)> GetKeyHash,
+		TFunctionRef<bool(const void*, const void*)> KeyEqualityFn,
+		TFunctionRef<void(void*)> KeyConstructAndAssignFn,
+		TFunctionRef<void(void*)> ValueConstructAndAssignFn,
+		TFunctionRef<void(void*)> ValueAssignFn,
+		TFunctionRef<void(void*)> DestructKeyFn,
+		TFunctionRef<void(void*)> DestructValueFn)
 	{
-		if (uint8* CurrentValue = Pairs.Add(
-				Key, 
-				Layout.SetLayout, 
-				GetKeyHash, 
-				KeyEqualityFn, 
-				[KeyConstructAndAssignFn, ValueConstructAndAssignFn, Layout](void* NewPair)
-				{
-					KeyConstructAndAssignFn((uint8*)NewPair + Layout.KeyOffset);
-					ValueConstructAndAssignFn((uint8*)NewPair + Layout.ValueOffset);
-				} )
-			)
-		{
-			ValueAssignFn(CurrentValue + Layout.ValueOffset);
-			return false;
-		}
-
-		return true;
+		Pairs.Add(
+			Key,
+			Layout.SetLayout,
+			GetKeyHash,
+			KeyEqualityFn,
+			[KeyConstructAndAssignFn, ValueConstructAndAssignFn, Layout](void* NewPair)
+			{
+				KeyConstructAndAssignFn((uint8*)NewPair + Layout.KeyOffset);
+				ValueConstructAndAssignFn((uint8*)NewPair + Layout.ValueOffset);
+			},
+			[DestructKeyFn, DestructValueFn, Layout](void* NewPair)
+			{
+				DestructValueFn((uint8*)NewPair + Layout.ValueOffset);
+				DestructKeyFn((uint8*)NewPair + Layout.KeyOffset);
+			}
+		);
 	}
 
 private:

@@ -185,7 +185,7 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
 	/** Sets from a ImportText string, used in asset registry */
-	void FromExportString(FString ExportString);
+	void FromExportString(const FString& ExportString);
 
 	/** Handles importing tag strings without (TagName=) in it */
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);

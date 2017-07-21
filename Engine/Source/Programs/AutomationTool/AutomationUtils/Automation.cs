@@ -486,9 +486,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 				return ExitCode.Error_Unknown;
 			}
 
-			// Change CWD to UE4 root.
-			Environment.CurrentDirectory = CommandUtils.CmdEnv.LocalRoot;
-
 			// Fill in the project info
 			UnrealBuildTool.UProjectInfo.FillProjectInfo();
 

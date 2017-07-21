@@ -157,7 +157,7 @@ void FUserDefinedChords::LoadChords()
 			if (!ChordsObj.IsValid())
 			{
 				// Chords have not been loaded from the ini file, try reading them from the txt file now
-				TSharedPtr<FArchive> Ar = MakeShareable( IFileManager::Get().CreateFileReader( *( FPaths::GameSavedDir() / TEXT("Preferences/EditorKeyBindings.txt") ) ) );
+				TSharedPtr<FArchive> Ar = MakeShareable( IFileManager::Get().CreateFileReader( *( FPaths::ProjectSavedDir() / TEXT("Preferences/EditorKeyBindings.txt") ) ) );
 				if( Ar.IsValid() )
 				{
 					auto TextReader = TJsonReaderFactory<ANSICHAR>::Create( Ar.Get() );

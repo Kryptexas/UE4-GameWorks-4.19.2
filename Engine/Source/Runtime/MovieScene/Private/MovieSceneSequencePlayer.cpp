@@ -4,7 +4,7 @@
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
 #include "Engine/Engine.h"
-
+#include "Misc/RuntimeErrors.h"
 
 bool FMovieSceneSequencePlaybackSettings::SerializeFromMismatchedTag( const FPropertyTag& Tag, FArchive& Ar )
 {
@@ -98,9 +98,10 @@ void UMovieSceneSequencePlayer::PlayInternal()
 		}
 
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
-		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+		const bool bHasValidMovieScene = (MovieSceneSequence && MovieSceneSequence->GetMovieScene());
+		TOptional<float> FixedFrameInterval = bHasValidMovieScene ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-		if (FixedFrameInterval.IsSet() && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
+		if (FixedFrameInterval.IsSet() && bHasValidMovieScene && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
 		{
 			OldMaxTickRate = GEngine->GetMaxFPS();
 			GEngine->SetMaxFPS(1.f / FixedFrameInterval.GetValue());
@@ -181,9 +182,12 @@ void UMovieSceneSequencePlayer::Scrub()
 	// @todo Sequencer playback: Should we recreate the instance every time?
 	// We must not recreate the instance since it holds stateful information (such as which objects it has spawned). Recreating the instance would break any 
 	// @todo: Is this still the case now that eval state is stored (correctly) in the player?
-	if (!RootTemplateInstance.IsValid())
+	if (ensureAsRuntimeWarning(Sequence != nullptr))
 	{
-		RootTemplateInstance.Initialize(*Sequence, *this);
+		if (!RootTemplateInstance.IsValid())
+		{
+			RootTemplateInstance.Initialize(*Sequence, *this);
+		}
 	}
 
 	Status = EMovieScenePlayerStatus::Scrubbing;
@@ -327,7 +331,7 @@ void UMovieSceneSequencePlayer::UpdateTimeCursorPosition(float NewPosition, TOpt
 	float Length = GetLength();
 
 	UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
-	TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+	TOptional<float> FixedFrameInterval = (MovieSceneSequence && MovieSceneSequence->GetMovieScene()) ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
 	if (bPendingFirstUpdate)
 	{

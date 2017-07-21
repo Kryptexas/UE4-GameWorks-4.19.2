@@ -9,6 +9,7 @@
 #include "GenericPlatform/GenericWindowDefinition.h"
 #include "Windows/WindowsApplication.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Windows/AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
@@ -59,7 +60,7 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	const float WidthInitial = Definition->WidthDesiredOnScreen;
 	const float HeightInitial = Definition->HeightDesiredOnScreen;
 
-	DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(XInitialRect, YInitialRect);
+	DPIScaleFactor = FPlatformApplicationMisc::GetDPIScaleFactorAtPoint(XInitialRect, YInitialRect);
 
 	int32 ClientX = FMath::TruncToInt( XInitialRect );
 	int32 ClientY = FMath::TruncToInt( YInitialRect );

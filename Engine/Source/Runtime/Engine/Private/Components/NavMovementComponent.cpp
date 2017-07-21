@@ -124,29 +124,3 @@ void UNavMovementComponent::SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWi
 {
 	bUpdateNavAgentWithOwnersCollision = bUpdateWithOwner;
 }
-
-//----------------------------------------------------------------------//
-// DEPRECATED
-//----------------------------------------------------------------------//
-const FNavAgentProperties* UNavMovementComponent::GetNavAgentProperties() const
-{
-	return &GetNavAgentPropertiesRef();
-}
-FNavAgentProperties* UNavMovementComponent::GetNavAgentProperties()
-{
-	return &GetNavAgentPropertiesRef();
-}
-void UNavMovementComponent::UpdateNavAgent(AActor* Owner)
-{
-	if (Owner)
-	{
-		UpdateNavAgent(*Owner);
-	}
-}
-void UNavMovementComponent::UpdateNavAgent(UCapsuleComponent* CapsuleComponent)
-{
-	if (CapsuleComponent)
-	{
-		UpdateNavAgent(*CapsuleComponent);
-	}
-}

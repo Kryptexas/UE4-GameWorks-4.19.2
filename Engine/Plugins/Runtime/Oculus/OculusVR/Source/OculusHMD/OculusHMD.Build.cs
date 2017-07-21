@@ -43,7 +43,7 @@ namespace UnrealBuildTool.Rules
 					"OVRPlugin",
 				});
 
-			if (UEBuildConfiguration.bBuildEditor == true)
+			if (Target.bBuildEditor == true)
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
@@ -136,14 +136,14 @@ namespace UnrealBuildTool.Rules
 						else
 						{
 							// Fall back to the Windows Vulkan SDK (the headers are the same)
-							PrivateIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
+							PrivateIncludePaths.Add(Target.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
 						}
 					}
 				}
 
 				// AndroidPlugin
 				{
-					string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+					string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
 					AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml")));
 				}
 			}

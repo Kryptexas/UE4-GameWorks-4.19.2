@@ -9,12 +9,12 @@ namespace
 {
 	FString GetConfigDir(const ULocalizationTarget* const Target)
 	{
-		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineConfigDir() : FPaths::GameConfigDir();
+		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineConfigDir() : FPaths::ProjectConfigDir();
 	}
 
 	FString GetContentDir(const ULocalizationTarget* const Target)
 	{
-		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineContentDir() : FPaths::GameContentDir();
+		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineContentDir() : FPaths::ProjectContentDir();
 	}
 }
 
@@ -23,7 +23,7 @@ namespace LocalizationConfigurationScript
 	FString MakePathRelativeForCommandletProcess(const FString& Path, const bool IsUsingProjectFile)
 	{
 		FString Result = Path;
-		const FString ProjectDir = !IsUsingProjectFile ? FPaths::EngineDir() : FPaths::GameDir();
+		const FString ProjectDir = !IsUsingProjectFile ? FPaths::EngineDir() : FPaths::ProjectDir();
 		if (!FPaths::MakePathRelativeTo(Result, *ProjectDir))
 		{
 			Result = FPaths::ConvertRelativePathToFull(Path);

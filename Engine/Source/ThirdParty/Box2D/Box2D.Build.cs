@@ -22,9 +22,9 @@ public class Box2D : ModuleRules
 		{
 			bSupported = true;
 
-			string WindowsVersion = "vs" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			string WindowsVersion = "vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			string ArchitectureVersion = (Target.Platform == UnrealTargetPlatform.Win64) ? "x64" : "x32";
-			string ConfigVersion = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
+			string ConfigVersion = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 			string Box2DLibDir = Path.Combine(Box2DBaseDir, "build", WindowsVersion, "bin", ArchitectureVersion, ConfigVersion);
 			PublicLibraryPaths.Add(Box2DLibDir);

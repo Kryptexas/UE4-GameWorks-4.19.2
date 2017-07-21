@@ -18,22 +18,24 @@ namespace AutomationTool
 	static class EnvVarNames
 	{
 		// Command Environment
-		static public readonly string LocalRoot = "uebp_LOCAL_ROOT";
-		static public readonly string LogFolder = "uebp_LogFolder";
-        static public readonly string CSVFile = "uebp_CSVFile";
-		static public readonly string EngineSavedFolder = "uebp_EngineSavedFolder";
-		static public readonly string MacMallocNanoZone = "MallocNanoZone";
+		public const string LocalRoot = "uebp_LOCAL_ROOT";
+		public const string LogFolder = "uebp_LogFolder";
+		public const string CSVFile = "uebp_CSVFile";
+		public const string EngineSavedFolder = "uebp_EngineSavedFolder";
+		public const string MacMallocNanoZone = "MallocNanoZone";
+		public const string DisableStartupMutex = "uebp_UATMutexNoWait";
+		public const string IsChildInstance = "uebp_UATChildInstance";
 
 		// Perforce Environment
-		static public readonly string P4Port = "uebp_PORT";		
-		static public readonly string ClientRoot = "uebp_CLIENT_ROOT";
-		static public readonly string Changelist = "uebp_CL";
-		static public readonly string CodeChangelist = "uebp_CodeCL";
-		static public readonly string User = "uebp_USER";
-		static public readonly string Client = "uebp_CLIENT";
-		static public readonly string BuildRootP4 = "uebp_BuildRoot_P4";
-		static public readonly string BuildRootEscaped = "uebp_BuildRoot_Escaped";		
-		static public readonly string P4Password = "uebp_PASS";
+		public const string P4Port = "uebp_PORT";
+		public const string ClientRoot = "uebp_CLIENT_ROOT";
+		public const string Changelist = "uebp_CL";
+		public const string CodeChangelist = "uebp_CodeCL";
+		public const string User = "uebp_USER";
+		public const string Client = "uebp_CLIENT";
+		public const string BuildRootP4 = "uebp_BuildRoot_P4";
+		public const string BuildRootEscaped = "uebp_BuildRoot_Escaped";
+		public const string P4Password = "uebp_PASS";
 	}
 
 
@@ -61,6 +63,7 @@ namespace AutomationTool
 		public bool HasCapabilityToCompile { get; protected set; }
 		public string MsBuildExe { get; protected set; }
 		public string MallocNanoZone { get; protected set; }
+		public bool IsChildInstance { get; protected set; }
 
 		#endregion
 
@@ -134,6 +137,10 @@ namespace AutomationTool
 			{
 				throw new AutomationException("Environment is not set up correctly: EngineSavedFolder is not set!");
 			}
+
+			int IsChildInstanceInt;
+			int.TryParse(CommandUtils.GetEnvVar("uebp_UATChildInstance", "0"), out IsChildInstanceInt);
+			IsChildInstance = (IsChildInstanceInt != 0);
 
 			// Make sure that the log folder exists
 			var LogFolderInfo = new DirectoryInfo(LogFolder);

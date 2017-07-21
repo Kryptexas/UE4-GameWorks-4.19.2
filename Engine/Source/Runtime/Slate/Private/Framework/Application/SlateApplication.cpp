@@ -25,6 +25,7 @@
 #include "Input/HittestGrid.h"
 #include "Stats/SlateStats.h"
 #include "HardwareCursor.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Framework/Application/IWidgetReflector.h"
 #include "Framework/Commands/GenericCommands.h"
@@ -872,7 +873,7 @@ void FSlateApplication::SetPlatformApplication(const TSharedRef<class GenericApp
 
 void FSlateApplication::Create()
 {
-	Create(MakeShareable(FPlatformMisc::CreateApplication()));
+	Create(MakeShareable(FPlatformApplicationMisc::CreateApplication()));
 }
 
 TSharedRef<FSlateApplication> FSlateApplication::Create(const TSharedRef<class GenericApplication>& InPlatformApplication)
@@ -6825,7 +6826,7 @@ void FSlateApplication::OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDi
 
 TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplication(const TSharedRef<FSlateRenderer>& PlatformRenderer)
 {
-	return InitializeAsStandaloneApplication(PlatformRenderer, MakeShareable(FPlatformMisc::CreateApplication()));
+	return InitializeAsStandaloneApplication(PlatformRenderer, MakeShareable(FPlatformApplicationMisc::CreateApplication()));
 }
 
 

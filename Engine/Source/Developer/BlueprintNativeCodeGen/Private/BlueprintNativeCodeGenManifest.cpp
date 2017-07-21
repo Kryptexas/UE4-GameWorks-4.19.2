@@ -326,7 +326,7 @@ FBlueprintNativeCodeGenPaths FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPath
 	// NOTE: in UProjectPackagingSettings::PostEditChangeProperty() there are a hardcoded file path/name that are set to match these; 
 	//       if you alter these defaults then you need to update that and likely AddBlueprintPluginPathArgument() in UAT as well
 	FString DefaultPluginName = TEXT("NativizedAssets");
-	FString DefaultPluginDir = FPaths::Combine(*FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("Plugins")), *DefaultPluginName);
+	FString DefaultPluginDir = FPaths::Combine(*FPaths::Combine(*FPaths::ProjectIntermediateDir(), TEXT("Plugins")), *DefaultPluginName);
 	return FBlueprintNativeCodeGenPaths(DefaultPluginName, DefaultPluginDir, PlatformName);
 }
 
@@ -369,7 +369,7 @@ FString FBlueprintNativeCodeGenPaths::ManifestFilename(const int32 ChunkId) cons
 {
 	using namespace BlueprintNativeCodeGenManifestImpl;
 
-	FString Filename = FApp::GetGameName() + (TEXT("_") + PlatformName.ToString());
+	FString Filename = FApp::GetProjectName() + (TEXT("_") + PlatformName.ToString());
 	if (ChunkId != RootManifestId)
 	{
 		Filename += FString::Printf(TEXT("-%02d"), ChunkId);
@@ -590,7 +590,7 @@ void FBlueprintNativeCodeGenManifest::InitDestPaths(const FString& PluginPath)
 
 		if (FPaths::IsRelative(OutputDir))
 		{
-			FPaths::MakePathRelativeTo(OutputDir, *FPaths::GameDir());
+			FPaths::MakePathRelativeTo(OutputDir, *FPaths::ProjectDir());
 		}
 	}
 	else
@@ -611,7 +611,7 @@ FString FBlueprintNativeCodeGenManifest::GetTargetDir() const
 	FString TargetPath = OutputDir;
 	if (FPaths::IsRelative(TargetPath))
 	{
-		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir(), TargetPath);
+		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir(), TargetPath);
 		TargetPath = FPaths::ConvertRelativePathToFull(TargetPath);
 	}
 	return TargetPath;

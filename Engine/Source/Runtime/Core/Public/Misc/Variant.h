@@ -210,10 +210,17 @@ public:
 	 * @param InArray The byte array to assign.
 	 * @return This instance.
 	 */
-	FVariant& operator=( const TArray<uint8> InArray )
+	FVariant& operator=( TArray<uint8>&& InArray )
 	{
 		Type = EVariantTypes::ByteArray;
 		Value = MoveTemp(InArray);
+
+		return *this;
+	}
+	FVariant& operator=( const TArray<uint8>& InArray )
+	{
+		Type = EVariantTypes::ByteArray;
+		Value = InArray;
 
 		return *this;
 	}

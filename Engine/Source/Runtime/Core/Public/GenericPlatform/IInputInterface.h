@@ -101,8 +101,6 @@ public:
 	* @param ChannelType the type of channel whose value should be set
 	* @param Value strength or speed of feedback, 0.0f to 1.0f. 0.0f will disable
 	*/
-	DEPRECATED(4.7, "Please use SetForceFeedbackChannel()")
-	void SetChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) { SetForceFeedbackChannelValue(ControllerId, ChannelType, Value); }
 	virtual void SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) = 0;
 
 	/**
@@ -112,8 +110,6 @@ public:
 	* @param ControllerId the id of the controller whose value is to be set
 	* @param FForceFeedbackChannelValues strength or speed of feedback for all channels
 	*/
-	DEPRECATED(4.7, "Please use SetForceFeedbackChannelValues()")
-	void SetChannelValues(int32 ControllerId, const FForceFeedbackValues &Values) { SetForceFeedbackChannelValues(ControllerId, Values); }
 	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values) = 0;
 
 	/**

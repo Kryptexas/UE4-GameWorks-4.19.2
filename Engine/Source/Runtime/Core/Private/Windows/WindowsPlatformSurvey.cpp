@@ -648,7 +648,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 
 FString FWindowsPlatformSurvey::GetDxDiagOutputFilepath()
 {
-	FString RelativePath = FPaths::Combine(*FPaths::GameSavedDir(), TEXT( "HardwareSurvey" ), TEXT("dxdiag.txt"));
+	FString RelativePath = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT( "HardwareSurvey" ), TEXT("dxdiag.txt"));
 	return FPaths::ConvertRelativePathToFull(RelativePath);
 }
 

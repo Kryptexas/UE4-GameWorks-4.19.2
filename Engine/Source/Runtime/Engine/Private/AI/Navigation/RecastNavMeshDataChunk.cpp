@@ -352,26 +352,3 @@ void URecastNavMeshDataChunk::GatherTiles(const FPImplRecastNavMesh* NavMeshImpl
 	}
 }
 #endif// WITH_EDITOR
-
-//----------------------------------------------------------------------//
-// DEPRECATED
-//----------------------------------------------------------------------//
-TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh* NavMeshImpl)
-{
-	if (NavMeshImpl)
-	{
-		return AttachTiles(*NavMeshImpl);
-	}
-
-	return TArray<uint32>();
-}
-
-TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh* NavMeshImpl)
-{
-	if (NavMeshImpl)
-	{
-		return DetachTiles(*NavMeshImpl);
-	}
-
-	return TArray<uint32>();
-}

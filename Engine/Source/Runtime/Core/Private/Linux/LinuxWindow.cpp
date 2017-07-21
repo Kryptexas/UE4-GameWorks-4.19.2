@@ -8,6 +8,7 @@
 #include "GenericPlatform/GenericWindowDefinition.h"
 #include "Misc/App.h"
 #include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformApplicationMisc.h"
 #include "Internationalization.h" // LOCTEXT
 
 #define LOCTEXT_NAMESPACE "LinuxWindow"
@@ -67,9 +68,9 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	OwningApplication = Application;
 	ParentWindow = InParent;
 
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (!FPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Fatal, TEXT("FLinuxWindow::Initialize() : PlatformInitMultimedia() failed, cannot initialize window."));
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxWindow::Initialize() : InitSDL() failed, cannot initialize window."));
 		// unreachable
 		return;
 	}
@@ -99,7 +100,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 
-	WindowStyle |= FLinuxPlatformMisc::WindowStyle() | SDL_WINDOW_SHOWN;
+	WindowStyle |= FLinuxPlatformApplicationMisc::WindowStyle() | SDL_WINDOW_SHOWN;
 
 	if ( !Definition->HasOSWindowBorder )
 	{
@@ -254,7 +255,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	if (Definition->AppearsInTaskbar)
 	{
 		// Try to find an icon for the window
-		const FText GameName = FText::FromString(FApp::GetGameName());
+		const FText GameName = FText::FromString(FApp::GetProjectName());
 		FString Iconpath;
 		SDL_Surface *IconImage = nullptr;
 
@@ -262,11 +263,11 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		{
 			if (GIsEditor)
 			{
-				Iconpath = FPaths::GameContentDir() / TEXT("Splash/EdIcon.bmp");
+				Iconpath = FPaths::ProjectContentDir() / TEXT("Splash/EdIcon.bmp");
 			}
 			else
 			{
-				Iconpath = FPaths::GameContentDir() / TEXT("Splash/Icon.bmp");
+				Iconpath = FPaths::ProjectContentDir() / TEXT("Splash/Icon.bmp");
 			}
 
 			Iconpath = FPaths::FPaths::ConvertRelativePathToFull(Iconpath);

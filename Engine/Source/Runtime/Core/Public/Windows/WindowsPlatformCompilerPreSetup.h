@@ -14,14 +14,14 @@
 	 *
 	 * Sample usage (note the slightly different syntax for classes and structures):
 	 *
-	 *		DEPRECATED(4.6, "Message")
+	 *		DEPRECATED(4.xx, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		struct DEPRECATED(4.xx, "Message") MODULE_API MyStruct
 	 *		{
 	 *			// StructImplementation
 	 *		};
-	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		class DEPRECATED(4.xx, "Message") MODULE_API MyClass
 	 *		{
 	 *			// ClassImplementation
 	 *		};

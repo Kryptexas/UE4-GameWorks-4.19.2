@@ -88,6 +88,7 @@
 #include "ShaderCompiler.h"
 #include "UniquePtr.h"
 #include "Engine/MapBuildDataRegistry.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -1121,7 +1122,7 @@ namespace ObjectTools
 			Ref += SelectedObjects[Index]->GetPathName();
 		}
 
-		FPlatformMisc::ClipboardCopy( *Ref );
+		FPlatformApplicationMisc::ClipboardCopy( *Ref );
 	}
 
 	/**
@@ -2839,7 +2840,7 @@ namespace ObjectTools
 								FString Path;
 
 								// Newly renamed objects must have the single asset package extension
-								Path = FPaths::Combine(*FPaths::GameDir(), TEXT("Content"), TEXT("Sounds"), *LanguageExt, *(FPackageName::GetLongPackageAssetName(NewPackageName) + FPackageName::GetAssetPackageExtension()));
+								Path = FPaths::Combine(*FPaths::ProjectDir(), TEXT("Content"), TEXT("Sounds"), *LanguageExt, *(FPackageName::GetLongPackageAssetName(NewPackageName) + FPackageName::GetAssetPackageExtension()));
 
 								// Move the package into the correct file location by saving it
 								GUnrealEd->Exec( NULL, *FString::Printf(TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\""), *NewPackageName, *Path) );

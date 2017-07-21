@@ -120,7 +120,7 @@ private:
 	}
 
 	/** log file to use. */
-	FOutputDeviceFile LogFile{ *FPaths::Combine(*FPaths::GameSavedDir(), TEXT("AnalyticsTiming.csv")) };
+	FOutputDeviceFile LogFile{ *FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("AnalyticsTiming.csv")) };
 	FString StartDate;
 	FString CL;
 	FString RunID = FGuid().ToString().ToLower();
@@ -181,7 +181,7 @@ public:
 	virtual void EndSession() override;
 	virtual void FlushEvents() override;
 
-	virtual void SetAppID(const FString&& AppID) override;
+	virtual void SetAppID(FString&& AppID) override;
 	virtual const FString& GetAppID() const override;
 	virtual void SetUserID(const FString& InUserID) override;
 	virtual FString GetUserID() const override;
@@ -301,7 +301,7 @@ public:
 	virtual void EndSession() override { }
 	virtual void FlushEvents() override { }
 
-	virtual void SetAppID(const FString&& AppID) override { APIKey = AppID; }
+	virtual void SetAppID(FString&& AppID) override { APIKey = MoveTemp(AppID); }
 	virtual const FString& GetAppID() const override { return APIKey; }
 	virtual void SetUserID(const FString& InUserID) override { UserID = InUserID; }
 	virtual FString GetUserID() const override { return UserID; }
@@ -705,7 +705,7 @@ void FAnalyticsProviderET::FlushEvents()
 	ANALYTICS_FLUSH_TRACKING_END(PayloadSize, EventCount);
 }
 
-void FAnalyticsProviderET::SetAppID(const FString&& InAppID)
+void FAnalyticsProviderET::SetAppID(FString&& InAppID)
 {
 	if (APIKey != InAppID)
 	{

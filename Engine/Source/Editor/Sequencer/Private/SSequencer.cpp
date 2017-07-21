@@ -62,6 +62,7 @@
 #include "ISequencerModule.h"
 #include "IVREditorModule.h"
 #include "EditorFontGlyphs.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -2188,7 +2189,7 @@ bool SSequencer::CanPaste()
 	if (SelectedNodes.Num() != 0)
 	{
 		FString TexttoImport;
-		FPlatformMisc::ClipboardPaste(TexttoImport);
+		FPlatformApplicationMisc::ClipboardPaste(TexttoImport);
 
 		if (Sequencer->CanPaste(TexttoImport))
 		{

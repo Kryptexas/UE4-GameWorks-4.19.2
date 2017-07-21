@@ -2943,27 +2943,6 @@ public:
 	/** Function to run the Play On command for automation testing. */
 	void AutomationPlayUsingLauncher(const FString& InLauncherDeviceId);	
 
-	/**
-	 * Given a label, attempts to split this into its alpha/numeric parts.
-	 *
-	 * @param	InOutLabel	The label to start with, this will only be modified if it ends in a number.
-	 * @param	OutIdx		The number which the string ends with, if any.
-	 *
-	 * @return	true if the label ends with a number.
-	 */
-	DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SplitActorLabel instead")
-	bool SplitActorLabel( FString& InOutLabel, int32& OutIdx ) const;
-
-	/**
-	 * Assigns a new label to an actor. If the name exists it will be appended with a number to make it unique. Actor labels are only available in development builds.
-	 *
-	 * @param	Actor					The actor to change the label of
-	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
-	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
-	 */
-	DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SetActorLabelUnique instead")
-	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
-
 	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
 
 	void AutomationLoadMap(const FString& MapName, FString* OutError);

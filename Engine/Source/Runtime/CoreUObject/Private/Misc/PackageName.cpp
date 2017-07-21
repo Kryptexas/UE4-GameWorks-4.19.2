@@ -220,12 +220,12 @@ private:
 		ContentPathShort       = TEXT("../../Content/");
 		EngineShadersPath      = FPaths::EngineDir() / TEXT("Shaders/");
 		EngineShadersPathShort = TEXT("../../Shaders/");
-		GameContentPath        = FPaths::GameContentDir();
-		GameConfigPath         = FPaths::GameConfigDir();
-		GameScriptPath         = FPaths::GameDir() / TEXT("Script/");
-		GameSavedPath          = FPaths::GameSavedDir();
+		GameContentPath        = FPaths::ProjectContentDir();
+		GameConfigPath         = FPaths::ProjectConfigDir();
+		GameScriptPath         = FPaths::ProjectDir() / TEXT("Script/");
+		GameSavedPath          = FPaths::ProjectSavedDir();
 
-		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
+		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetProjectName());
 
 		GameContentPathRebased = RebasedGameDir / TEXT("Content/");
 		GameConfigPathRebased  = RebasedGameDir / TEXT("Config/");

@@ -69,8 +69,7 @@ namespace BuildGraph.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Get the pattern to match against. If it's a simple pattern (eg. *.cpp, Engine/Build/...), automatically infer the source wildcard
 			string FromPattern = Parameters.From;
@@ -79,8 +78,7 @@ namespace BuildGraph.Tasks
 				List<string> Patterns = SplitDelimitedList(Parameters.Files);
 				if (Patterns.Count != 1 || Patterns[0].StartsWith("#"))
 				{
-					CommandUtils.LogError("Missing 'From' attribute specifying pattern to match source files against");
-					return false;
+					throw new AutomationException("Missing 'From' attribute specifying pattern to match source files against");
 				}
 
 				FromPattern = Patterns[0];
@@ -107,8 +105,7 @@ namespace BuildGraph.Tasks
 			string[] ToFragments = Parameters.To.Split('*', '?');
 			if(FromFragments.Length < ToFragments.Length)
 			{
-				CommandUtils.LogError("Too few capture groups in source pattern '{0}' to rename to '{1}'", FromPattern, Parameters.To);
-				return false;
+				throw new AutomationException("Too few capture groups in source pattern '{0}' to rename to '{1}'", FromPattern, Parameters.To);
 			}
 
 			// Find the input files
@@ -145,7 +142,6 @@ namespace BuildGraph.Tasks
 			{
 				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(RenameFiles.Values);
 			}
-			return true;
 		}
 
 		/// <summary>

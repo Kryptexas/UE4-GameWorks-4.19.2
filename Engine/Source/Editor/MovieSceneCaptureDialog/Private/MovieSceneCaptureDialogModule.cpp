@@ -795,7 +795,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 	FText CaptureInNewProcess(UMovieSceneCapture* CaptureObject, const FString& MapNameToLoad)
 	{
 		// Save out the capture manifest to json
-		FString Filename = FPaths::GameSavedDir() / TEXT("MovieSceneCapture/Manifest.json");
+		FString Filename = FPaths::ProjectSavedDir() / TEXT("MovieSceneCapture/Manifest.json");
 
 		TSharedRef<FJsonObject> Object = MakeShareable(new FJsonObject);
 		if (FJsonObjectConverter::UStructToJsonObject(CaptureObject->GetClass(), CaptureObject, Object, 0, 0))
@@ -864,7 +864,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 		}
 		else
 		{
-			Params = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
+			Params = FString::Printf(TEXT("%s %s %s"), FApp::GetProjectName(), *EditorCommandLine, *FCommandLine::GetSubprocessCommandline());
 		}
 
 		FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());

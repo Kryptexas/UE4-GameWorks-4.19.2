@@ -102,7 +102,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 #if OUTPUT_TIMING
 #include "ProfilingDebugging/ScopedTimers.h"
 
-#define HEIRARCHICAL_TIMER 1
+#define HIERARCHICAL_TIMER 1
 #define PERPACKAGE_TIMER 0
 
 #define REMAPPED_PLUGGINS TEXT("RemappedPlugins")
@@ -129,7 +129,7 @@ public:
 	double Length;
 };
 
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 struct FHierarchicalTimerInfo : public FTimerInfo
 {
 public:
@@ -205,7 +205,7 @@ void IncIntStat(const FName& Name, const int32 Amount)
 }
 
 
-static FHierarchicalTimerInfo RootTimerInfo(MoveTemp(FString(TEXT("Root"))));
+static FHierarchicalTimerInfo RootTimerInfo(FString(TEXT("Root")));
 static FHierarchicalTimerInfo* CurrentTimerInfo = &RootTimerInfo;
 #endif
 
@@ -220,7 +220,7 @@ private:
 	bool Started;
 	bool DecrementScope;
 	static int GScopeDepth;
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 	FHierarchicalTimerInfo* HeirarchyTimerInfo;
 #endif
 public:
@@ -246,7 +246,7 @@ public:
 			++GScopeDepth;
 		}
 
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 		HeirarchyTimerInfo = CurrentTimerInfo->FindChild(Name);
 		CurrentTimerInfo = HeirarchyTimerInfo;
 #endif
@@ -264,7 +264,7 @@ public:
 			GTimerInfo[Index].Length -= FPlatformTime::Seconds();
 #endif
 			Started = true;
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 			HeirarchyTimerInfo->Length -= FPlatformTime::Seconds();
 #endif
 		}
@@ -274,7 +274,7 @@ public:
 	{
 		if ( Started )
 		{
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 			HeirarchyTimerInfo->Length += FPlatformTime::Seconds();
 #endif
 #if PERPACKAGE_TIMER
@@ -287,7 +287,7 @@ public:
 	~FScopeTimer()
 	{
 		Stop();
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 		check(CurrentTimerInfo == HeirarchyTimerInfo);
 		CurrentTimerInfo = HeirarchyTimerInfo->Parent;
 #endif
@@ -389,34 +389,32 @@ void OutputTimers()
 	GTimerInfo.Empty();
 #endif
 }
-#if HEIRARCHICAL_TIMER
-void OutputHierarchyTimers(const FHierarchicalTimerInfo* TimerInfo, FString& Output, int32& Depth)
-{	
-	Output += FString::Printf(TEXT("%s: %fms\r\n"), *TimerInfo->Name, TimerInfo->Length * 1000);
+#if HIERARCHICAL_TIMER
+void OutputHierarchyTimers(const FHierarchicalTimerInfo* TimerInfo, int32& Depth)
+{
+	UE_LOG(LogCook, Display, TEXT("  %s: %fms"), *TimerInfo->Name, TimerInfo->Length * 1000);
 
 	++Depth;
 	for (const auto& ChildInfo : TimerInfo->Children)
 	{
-		OutputHierarchyTimers(ChildInfo.Value, Output, Depth);
+		OutputHierarchyTimers(ChildInfo.Value, Depth);
 	}
 	--Depth;
 }
 
 void OutputHierarchyTimers()
 {
+	UE_LOG(LogCook, Display, TEXT("Hierarchy Timer Information:"));
+
 	FHierarchicalTimerInfo* TimerInfo = &RootTimerInfo;
-
 	int32 Depth = 0;
-	FString Output = TEXT("Hierarchy timer information\nName:  Length(ms)");
-	OutputHierarchyTimers(TimerInfo, Output, Depth);
+	OutputHierarchyTimers(TimerInfo, Depth);
 
-	Output += FString::Printf(TEXT("IntStats\n"));
+	UE_LOG(LogCook, Display, TEXT("IntStats:"));
 	for (const auto& IntStat : IntStats)
 	{
-		Output += FString::Printf(TEXT("%s=%d\r\n"), *IntStat.Key.ToString(), IntStat.Value);
+		UE_LOG(LogCook, Display, TEXT("  %s=%d"), *IntStat.Key.ToString(), IntStat.Value);
 	}
-
-	UE_LOG(LogCook, Display, TEXT("%s"), *Output);
 }
 
 void ClearHierarchyTimers()
@@ -435,7 +433,7 @@ void ClearHierarchyTimers()
 #define ACCUMULATE_TIMER_SCOPE(name) FScopeTimer ScopeTimerInner##name(ScopeTimer##name); ScopeTimerInner##name.Start();
 #define ACCUMULATE_TIMER_START(name) ScopeTimer##name.Start();
 #define ACCUMULATE_TIMER_STOP(name) ScopeTimer##name.Stop();
-#if HEIRARCHICAL_TIMER
+#if HIERARCHICAL_TIMER
 #define INC_INT_STAT( name, amount ) { static FName StaticName##name(#name); IncIntStat(StaticName##name, amount); }
 #else
 #define INC_INT_STAT( name, amount ) 
@@ -624,7 +622,7 @@ public:
 
 const FString& GetAssetRegistryPath()
 {
-	static const FString AssetRegistryPath = FPaths::GameDir();
+	static const FString AssetRegistryPath = FPaths::ProjectDir();
 	return AssetRegistryPath;
 }
 
@@ -645,9 +643,9 @@ FString GetChildCookerManifestFilename(const FString ResponseFilename)
  */
 FString GetReleaseVersionAssetRegistryPath(const FString& ReleaseVersion, const FName& PlatformName )
 {
-	// cache the part of the path which is static because getting the GameDir is really slow and also string manipulation
-	const static FString GameDirectory = FPaths::GameDir() / FString(TEXT("Releases"));
-	return  GameDirectory / ReleaseVersion / PlatformName.ToString();
+	// cache the part of the path which is static because getting the ProjectDir is really slow and also string manipulation
+	const static FString ProjectDirectory = FPaths::ProjectDir() / FString(TEXT("Releases"));
+	return  ProjectDirectory / ReleaseVersion / PlatformName.ToString();
 }
 
 const FString& GetAssetRegistryFilename()
@@ -773,7 +771,7 @@ const UCookOnTheFlyServer::FCachedPackageFilename& UCookOnTheFlyServer::Cache(co
 		StandardFileFName = FName(*StandardFilename);
 	}
 	PackageFilenameToPackageFNameCache.Add(StandardFileFName, PackageName);
-	return PackageFilenameCache.Emplace( PackageName, MoveTemp(FCachedPackageFilename(MoveTemp(PackageFilename),MoveTemp(StandardFilename), StandardFileFName)) );
+	return PackageFilenameCache.Emplace( PackageName, FCachedPackageFilename(MoveTemp(PackageFilename),MoveTemp(StandardFilename), StandardFileFName) );
 }
 
 
@@ -1368,9 +1366,11 @@ bool UCookOnTheFlyServer::IsCookOnTheFlyMode() const
 	return CurrentCookMode == ECookMode::CookOnTheFly || CurrentCookMode == ECookMode::CookOnTheFlyFromTheEditor; 
 }
 
-FString UCookOnTheFlyServer::GetDLCContentPath()
+FString UCookOnTheFlyServer::GetBaseDirectoryForDLC() const
 {
-	return FPaths::GamePluginsDir() / CookByTheBookOptions->DlcName / FString(TEXT("Content"));
+	TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(CookByTheBookOptions->DlcName);
+	check(Plugin.IsValid());
+	return Plugin->GetBaseDir();
 }
 
 COREUOBJECT_API extern bool GOutputCookingWarnings;
@@ -1609,7 +1609,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		if( CookByTheBookOptions && CookByTheBookOptions->bErrorOnEngineContentUse )
 		{
 			check(IsCookingDLC());
-			FString DLCPath = GetDLCContentPath();
+			FString DLCPath = FPaths::Combine(*GetBaseDirectoryForDLC(), TEXT("Content"));
 			if ( ToBuild.GetFilename().ToString().StartsWith(DLCPath) == false ) // if we don't start with the dlc path then we shouldn't be cooking this data 
 			{
 				UE_LOG(LogCook, Error, TEXT("Engine or Game content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
@@ -2426,7 +2426,6 @@ bool UCookOnTheFlyServer::SaveCookedPackages(TArray<UPackage*>& PackagesToSave, 
 
 void UCookOnTheFlyServer::PostLoadPackageFixup(UPackage* Package)
 {
-	
 	if (Package->ContainsMap())
 	{
 		// load sublevels
@@ -3560,17 +3559,17 @@ FString UCookOnTheFlyServer::GetOutputDirectoryOverride() const
 		if ( IsCookingDLC() )
 		{
 			check( IsCookByTheBookMode() );
-			OutputDirectory = FPaths::Combine(*FPaths::GamePluginsDir(), *CookByTheBookOptions->DlcName, TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+			OutputDirectory = FPaths::Combine(*GetBaseDirectoryForDLC(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
 		}
 		else if ( IsCookingInEditor() )
 		{
 			// Full path so that the sandbox wrapper doesn't try to re-base it under Sandboxes
-			OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("EditorCooked"), TEXT("[Platform]"));
+			OutputDirectory = FPaths::Combine(*FPaths::ProjectDir(), TEXT("Saved"), TEXT("EditorCooked"), TEXT("[Platform]"));
 		}
 		else
 		{
 			// Full path so that the sandbox wrapper doesn't try to re-base it under Sandboxes
-			OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+			OutputDirectory = FPaths::Combine(*FPaths::ProjectDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
 		}
 		
 		OutputDirectory = FPaths::ConvertRelativePathToFull(OutputDirectory);
@@ -3742,7 +3741,7 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 
 	if ( FParse::Param( FCommandLine::Get(), TEXT("fastcook") ) )
 	{
-		IniVersionMap.Add(MoveTemp( FString(TEXT("fastcook"))));
+		IniVersionMap.Add(TEXT("fastcook"));
 	}
 
 
@@ -3865,7 +3864,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 
 bool UCookOnTheFlyServer::GetCookedIniVersionStrings(const ITargetPlatform* TargetPlatform, FIniSettingContainer& OutIniSettings, TMap<FString,FString>& OutAdditionalSettings) const
 {
-	const FString EditorIni = FPaths::GameDir() / TEXT("CookedIniVersion.txt");
+	const FString EditorIni = FPaths::ProjectDir() / TEXT("CookedIniVersion.txt");
 	const FString SandboxEditorIni = ConvertToFullSandboxPath(*EditorIni, true);
 
 
@@ -4199,7 +4198,7 @@ bool UCookOnTheFlyServer::SaveCurrentIniSettings(const ITargetPlatform* TargetPl
 	FIniSettingContainer CurrentIniSettings;
 	GetCurrentIniVersionStrings(TargetPlatform, CurrentIniSettings);
 
-	const FString EditorIni = FPaths::GameDir() / TEXT("CookedIniVersion.txt");
+	const FString EditorIni = FPaths::ProjectDir() / TEXT("CookedIniVersion.txt");
 	const FString SandboxEditorIni = ConvertToFullSandboxPath(*EditorIni, true);
 
 
@@ -4351,11 +4350,11 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 		FString EngineSandboxPath = SandboxFile->ConvertToSandboxPath(*FPaths::EngineDir()) + TEXT("/");
 		EngineSandboxPath.ReplaceInline(TEXT("[Platform]"), *Target->PlatformName());
 
-		FString GameSandboxPath = SandboxFile->ConvertToSandboxPath(*(FPaths::GameDir() + TEXT("a.txt")));
+		FString GameSandboxPath = SandboxFile->ConvertToSandboxPath(*(FPaths::ProjectDir() + TEXT("a.txt")));
 		GameSandboxPath.ReplaceInline(TEXT("a.txt"), TEXT(""));
 		GameSandboxPath.ReplaceInline(TEXT("[Platform]"), *Target->PlatformName());
 
-		FString LocalGamePath = FPaths::GameDir();
+		FString LocalGamePath = FPaths::ProjectDir();
 		if (FPaths::IsProjectFilePathSet())
 		{
 			LocalGamePath = FPaths::GetPath(FPaths::GetProjectFilePath()) + TEXT("/");
@@ -4369,7 +4368,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 		FAssetRegistryGenerator* PlatformAssetRegistry = RegistryGenerators.FindRef(PlatformFName);
 
 		// Load the platform cooked asset registry file
-		const FString CookedAssetRegistry = FPaths::GameDir() / GetDevelopmentAssetRegistryFilename();
+		const FString CookedAssetRegistry = FPaths::ProjectDir() / GetDevelopmentAssetRegistryFilename();
 		const FString SandboxCookedAssetRegistryFilename = ConvertToFullSandboxPath(*CookedAssetRegistry, true, Target->PlatformName());
 
 		bool bIsIterateSharedBuild = IsCookFlagSet(ECookInitializationFlags::IterateSharedBuild);
@@ -4380,7 +4379,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			FDateTime CurrentLocalCookedBuild = IFileManager::Get().GetTimeStamp(*SandboxCookedAssetRegistryFilename);
 
 			// iterate on the shared build if the option is set
-			FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), GetDevelopmentAssetRegistryFilename());
+			FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), GetDevelopmentAssetRegistryFilename());
 
 			FDateTime CurrentIterativeCookedBuild = IFileManager::Get().GetTimeStamp(*SharedCookedAssetRegistry);
 
@@ -4396,8 +4395,8 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 
 				// SaveCurrentIniSettings(Target); // use this if we don't care about ini safty.
 				// copy the ini settings from the shared cooked build. 
-				const FString SharedCookedIniFile = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("CookedIniVersion.txt"));
-				const FString SandboxCookedIniFile = ConvertToFullSandboxPath(*(FPaths::GameDir() / TEXT("CookedIniVersion.txt")), true).Replace(TEXT("[Platform]"), *Target->PlatformName());
+				const FString SharedCookedIniFile = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("CookedIniVersion.txt"));
+				const FString SandboxCookedIniFile = ConvertToFullSandboxPath(*(FPaths::ProjectDir() / TEXT("CookedIniVersion.txt")), true).Replace(TEXT("[Platform]"), *Target->PlatformName());
 
 				IFileManager::Get().Copy(*SandboxCookedIniFile, *SharedCookedIniFile);
 
@@ -4526,7 +4525,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				if ( IsCookByTheBookMode() ) // cook on the fly will requeue this package when it wants it 
 				{
 					// Force cook the modified file
-					CookRequests.EnqueueUnique(MoveTemp(FFilePlatformRequest(UncookedFilename, PlatformNames)));
+					CookRequests.EnqueueUnique(FFilePlatformRequest(UncookedFilename, PlatformNames));
 				}
 				if (CookedFile != NAME_DummyCookedFilename)
 				{
@@ -4554,7 +4553,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 
 			ensure(CookedPackages.Exists(UncookedFilename, PlatformNames, false) == false);
 
-			CookedPackages.Add(MoveTemp(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames))));
+			CookedPackages.Add(FFilePlatformCookedPackage(UncookedFilename, MoveTemp(PlatformNames)));
 			++NumMarkedFailedSaveKept;
 		}
 
@@ -4696,7 +4695,7 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 	{
 		// we want to register the temporary save directory if we are cooking outside the editor.  
 		// If we are cooking inside the editor we never use this directory so don't worry about registring it
-		FPackageName::RegisterMountPoint(TEXT("/TempAutosave/"), FPaths::GameSavedDir() / GEngine->PlayOnConsoleSaveDir);
+		FPackageName::RegisterMountPoint(TEXT("/TempAutosave/"), FPaths::ProjectSavedDir() / GEngine->PlayOnConsoleSaveDir);
 	}
 
 	double GenerateAssetRegistryTime = 0.0;
@@ -4891,7 +4890,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 		// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
 		{
-			const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+			const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 			for (const FDirectoryPath& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 			{
 				UE_LOG(LogCook, Verbose, TEXT("Loading directory to always cook %s"), *DirToCook.Path);
@@ -5054,7 +5053,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 			for (const FString& L10NSubdirectoryName : CultureNamesToSearchFor)
 			{
 				TArray<FString> Files;
-				const FString DirectoryToSearch = FPaths::Combine(*FPaths::GameContentDir(), *FString::Printf(TEXT("L10N/%s"), *L10NSubdirectoryName));
+				const FString DirectoryToSearch = FPaths::Combine(*FPaths::ProjectContentDir(), *FString::Printf(TEXT("L10N/%s"), *L10NSubdirectoryName));
 				IFileManager::Get().FindFilesRecursive(Files, *DirectoryToSearch, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false);
 				for (FString StdFile : Files)
 				{
@@ -5068,7 +5067,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		if (IsCookingDLC())
 		{
 			// get the dlc and make sure we cook that directory 
-			FString DLCPath = FPaths::GamePluginsDir() / CookByTheBookOptions->DlcName / FString(TEXT("Content"));
+			FString DLCPath = FPaths::Combine(*GetBaseDirectoryForDLC(), TEXT("Content"));
 
 			TArray<FString> Files;
 			IFileManager::Get().FindFilesRecursive(Files, *DLCPath, *(FString(TEXT("*")) + FPackageName::GetAssetPackageExtension()), true, false, false);
@@ -5315,12 +5314,12 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 
 const FString UCookOnTheFlyServer::GetSandboxAssetRegistryFilename()
 {
-	static const FString RegistryFilename = FPaths::GameDir() / GetAssetRegistryFilename();
+	static const FString RegistryFilename = FPaths::ProjectDir() / GetAssetRegistryFilename();
 
 	if (IsCookingDLC())
 	{
 		check(IsCookByTheBookMode());
-		const FString DLCRegistryFilename = FPaths::Combine(*FPaths::GamePluginsDir(), *CookByTheBookOptions->DlcName, GetAssetRegistryFilename());
+		const FString DLCRegistryFilename = FPaths::Combine(*GetBaseDirectoryForDLC(), GetAssetRegistryFilename());
 		return ConvertToFullSandboxPath(*DLCRegistryFilename, true);
 	}
 
@@ -5360,7 +5359,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 			{
 				FString TargetPlatformNameString = TargetPlatformName.ToString();
 				const ITargetPlatform* TargetPlatform = TPM.FindTargetPlatform(TargetPlatformNameString);
-				FString ShaderCodeDir = ConvertToFullSandboxPath(*FPaths::GameContentDir(), true, TargetPlatformNameString);
+				FString ShaderCodeDir = ConvertToFullSandboxPath(*FPaths::ProjectContentDir(), true, TargetPlatformNameString);
 				FString DebugShaderCodeDir = ShaderCodeDir + TEXT("ShaderDebug");
 				
 				TArray<FName> ShaderFormats;
@@ -5428,7 +5427,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				{
 					FString TargetPlatformNameString = TargetPlatformName.ToString();
 					const ITargetPlatform* TargetPlatform = TPM.FindTargetPlatform(TargetPlatformNameString);
-					FString ShaderCodeDir = ConvertToFullSandboxPath(*FPaths::GameContentDir(), true, TargetPlatformNameString);
+					FString ShaderCodeDir = ConvertToFullSandboxPath(*FPaths::ProjectContentDir(), true, TargetPlatformNameString);
 					FString DebugShaderCodeDir = ShaderCodeDir + TEXT("ShaderDebug");
 					
 					TArray<FName> ShaderFormats;
@@ -5600,7 +5599,7 @@ void UCookOnTheFlyServer::WriteMapDependencyGraph(const FName& PlatformName)
 {
 	auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraphs.FindChecked(PlatformName);
 
-	FString MapDependencyGraphFile = FPaths::GameDir() / TEXT("MapDependencyGraph.json");
+	FString MapDependencyGraphFile = FPaths::ProjectDir() / TEXT("MapDependencyGraph.json");
 	// dump dependency graph. 
 	FString DependencyString;
 	DependencyString += "{";
@@ -5800,7 +5799,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 	NeverCookPackageList.Empty();
 	{
-		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 
 		TArray<FString> NeverCookDirectories = CookByTheBookStartupOptions.NeverCookDirectories;
 
@@ -5969,7 +5968,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				Succeeded.Add(true);
 				for (const FName& PackageFilename : PackageList)
 				{
-					CookedPackages.Add( MoveTemp( FFilePlatformCookedPackage( PackageFilename, PlatformNames, Succeeded) ) );
+					CookedPackages.Add( FFilePlatformCookedPackage( PackageFilename, PlatformNames, Succeeded) );
 				}
 			}
 			CookByTheBookOptions->BasedOnReleaseCookedPackages.Add(PlatformName, MoveTemp(PackageList));
@@ -6037,7 +6036,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		
 		if (PackageFileFName != NAME_None)
 		{
-			CookRequests.EnqueueUnique( MoveTemp( FFilePlatformRequest( PackageFileFName, TargetPlatformNames ) ) );
+			CookRequests.EnqueueUnique( FFilePlatformRequest( PackageFileFName, TargetPlatformNames ) );
 		}
 		else if (!FLinkerLoad::IsKnownMissingPackage(FileFName))
 		{
@@ -6070,7 +6069,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 				for ( const FName& PackageFilename : PackageFiles )
 				{
-					CookRequests.EnqueueUnique( MoveTemp( FFilePlatformRequest( PackageFilename, PlatformArray) ) );
+					CookRequests.EnqueueUnique( FFilePlatformRequest( PackageFilename, PlatformArray) );
 				}
 
 			}
@@ -6084,7 +6083,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	// if too many packages are being recooked after resume then we may need to figure out a different way to do this
 	for ( const FFilePlatformRequest& PreviousRequest : CookByTheBookOptions->PreviousCookRequests )
 	{
-		CookRequests.EnqueueUnique( MoveTemp( PreviousRequest ) );
+		CookRequests.EnqueueUnique( PreviousRequest );
 	}
 	CookByTheBookOptions->PreviousCookRequests.Empty();
 	
@@ -6292,7 +6291,7 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 		int32 ChildCookerIndex = CookByTheBookOptions->ChildCookers.AddDefaulted(1);
 		FChildCooker& ChildCooker = CookByTheBookOptions->ChildCookers[ChildCookerIndex];
 
-		ChildCooker.ResponseFileName = FPaths::CreateTempFilename(*(FPaths::GameSavedDir() / TEXT("CookingTemp")));
+		ChildCooker.ResponseFileName = FPaths::CreateTempFilename(*(FPaths::ProjectSavedDir() / TEXT("CookingTemp")));
 		ChildCooker.BaseResponseFileName = FPaths::GetBaseFilename(ChildCooker.ResponseFileName);
 
 		// FArchive* ResponseFile = IFileManager::CreateFileWriter(ChildCooker.UniqueTempName);

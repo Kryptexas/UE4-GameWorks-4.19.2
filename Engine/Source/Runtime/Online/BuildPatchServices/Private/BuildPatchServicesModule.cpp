@@ -98,7 +98,7 @@ void FBuildPatchServicesModule::StartupModule()
 	FRollingHashConst::Init();
 
 	// Set the local machine config filename
-	LocalMachineConfigFile = FPaths::Combine(FPlatformProcess::ApplicationSettingsDir(), FApp::GetGameName(), TEXT("BuildPatchServicesLocal.ini"));
+	LocalMachineConfigFile = FPaths::Combine(FPlatformProcess::ApplicationSettingsDir(), FApp::GetProjectName(), TEXT("BuildPatchServicesLocal.ini"));
 
 	// Fix up any legacy configuration data
 	FixupLegacyConfig();
@@ -443,7 +443,7 @@ const FString& FBuildPatchServicesModule::GetStagingDirectory()
 	// Default staging directory
 	if( StagingDirectory.IsEmpty() )
 	{
-		StagingDirectory = FPaths::GameDir() + TEXT( "BuildStaging/" );
+		StagingDirectory = FPaths::ProjectDir() + TEXT( "BuildStaging/" );
 	}
 	return StagingDirectory;
 }

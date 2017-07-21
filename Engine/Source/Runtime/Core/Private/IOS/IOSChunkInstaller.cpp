@@ -158,10 +158,12 @@ bool FIOSChunkInstall::PrioritizeChunk( uint32 ChunkID, EChunkPriority::Type Pri
                 if (bMounted)
                 {
                     MountedChunks.Add(BlockID);
+					InstallDelegate.Broadcast(BlockID, true);
                 }
                 else
                 {
-                    UE_LOG(LogChunkInstaller, Warning, TEXT("NSBundle Chunk %i couldn't be mounted."), ID);
+                    UE_LOG(LogChunkInstaller, Warning, TEXT("NSBundle Chunk %i couldn't be mounted."), BlockID);
+					InstallDelegate.Broadcast(BlockID, false);
                 }
             }
         }

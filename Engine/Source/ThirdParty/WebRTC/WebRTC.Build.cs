@@ -29,12 +29,12 @@ public class WebRTC : ModuleRules
 
 		if (bShouldUseWebRTC)
 		{
-			string VS2013Friendly_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/VS2013_friendly";
-			string LinuxTrunk_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/sdk_trunk_linux";
+			string VS2013Friendly_WebRtcSdkPath = Target.UEThirdPartySourceDirectory + "WebRTC/VS2013_friendly";
+			string LinuxTrunk_WebRtcSdkPath = Target.UEThirdPartySourceDirectory + "WebRTC/sdk_trunk_linux";
 
 			string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
 				Target.Platform.ToString();
-			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
+			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 
 			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
@@ -42,7 +42,7 @@ public class WebRTC : ModuleRules
 			{
 				Definitions.Add("WEBRTC_WIN=1");
 
-				string VisualStudioVersionFolder = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+				string VisualStudioVersionFolder = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 				
 				string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir, VisualStudioVersionFolder);
 				PublicSystemIncludePaths.Add(IncludePath);

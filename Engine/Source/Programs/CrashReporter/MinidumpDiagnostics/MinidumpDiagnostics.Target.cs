@@ -21,17 +21,17 @@ public class MinidumpDiagnosticsTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-		UEBuildConfiguration.bCompileICU = false;
+		bCompileLeanAndMeanUE = true;
+		bCompileICU = false;
 
 		// Don't need editor
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 
 		// MinidumpDiagnostics doesn't ever compile with the engine linked in
-		UEBuildConfiguration.bCompileAgainstEngine = false;
+		bCompileAgainstEngine = false;
 
-		UEBuildConfiguration.bIncludeADO = false;
-		//UEBuildConfiguration.bCompileICU = false;
+		bIncludeADO = false;
+		//bCompileICU = false;
 
 		// MinidumpDiagnostics.exe has no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;

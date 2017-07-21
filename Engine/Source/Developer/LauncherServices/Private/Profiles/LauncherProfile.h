@@ -840,7 +840,7 @@ public:
                 << ForceClose
                 << Timeout;
 
-		if (LAUNCHERSERVICES_SHAREABLEPROJECTPATHS)
+		if (Version >= LAUNCHERSERVICES_SHAREABLEPROJECTPATHS)
 		{
 			FullProjectPath = FPaths::ConvertRelativePathToFull(FPaths::RootDir(), ShareableProjectPath);
 		}
@@ -1731,9 +1731,9 @@ public:
 		{
 			FullProjectPath = FPaths::GetProjectFilePath();
 		}
-		else if (FGameProjectHelper::IsGameAvailable(FApp::GetGameName()))
+		else if (FGameProjectHelper::IsGameAvailable(FApp::GetProjectName()))
 		{
-			FullProjectPath = FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+			FullProjectPath = FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 		}
 		else
 		{

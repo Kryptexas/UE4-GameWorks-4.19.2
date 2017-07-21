@@ -632,7 +632,7 @@ public:
 	 */
 	static FString GetTempDir()
 	{
-		return FPaths::GameSavedDir() + TEXT("Automation/");
+		return FPaths::ProjectSavedDir() + TEXT("Automation/");
 	}
 
 	/**

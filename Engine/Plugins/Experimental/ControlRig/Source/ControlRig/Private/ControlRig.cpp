@@ -107,21 +107,26 @@ float UControlRig::GetDeltaTime() const
 
 UControlRig* UControlRig::GetOrAllocateSubControlRig(TSubclassOf<UControlRig> ControlRigClass, int32 AllocationIndex)
 {
-	// Must have a valid index
-	check(AllocationIndex >= 0);
-
-	// reallocate the sub ControlRig reserve to accommodate this index
-	if (!SubControlRigs.IsValidIndex(AllocationIndex))
+	if (ensureAsRuntimeWarning(ControlRigClass != nullptr))
 	{
-		SubControlRigs.SetNum(FMath::Max(SubControlRigs.Num(), AllocationIndex + 1), false);
+		if (ensureAsRuntimeWarning(AllocationIndex >= 0))
+		{
+			// reallocate the sub ControlRig reserve to accommodate this index
+			if (!SubControlRigs.IsValidIndex(AllocationIndex))
+			{
+				SubControlRigs.SetNum(FMath::Max(SubControlRigs.Num(), AllocationIndex + 1), false);
+			}
+
+			if (SubControlRigs[AllocationIndex] == nullptr)
+			{
+				SubControlRigs[AllocationIndex] = NewObject<UControlRig>(this, ControlRigClass.Get(), "SubControlRig");
+			}
+
+			return SubControlRigs[AllocationIndex];
+		}
 	}
 
-	if(SubControlRigs[AllocationIndex] == nullptr)
-	{
-		SubControlRigs[AllocationIndex] = NewObject<UControlRig>(this, ControlRigClass.Get(), "SubControlRig");
-	}
-
-	return SubControlRigs[AllocationIndex];
+	return nullptr;
 }
 
 AActor* UControlRig::GetHostingActor() const

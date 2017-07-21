@@ -251,7 +251,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	Parsables.Add(new FStringTableFromFileMacroDescriptor(TEXT("LOCTABLE_FROMFILE_ENGINE"), FPaths::EngineContentDir()));
 
-	Parsables.Add(new FStringTableFromFileMacroDescriptor(TEXT("LOCTABLE_FROMFILE_GAME"), FPaths::GameContentDir()));
+	Parsables.Add(new FStringTableFromFileMacroDescriptor(TEXT("LOCTABLE_FROMFILE_GAME"), FPaths::ProjectContentDir()));
 
 	Parsables.Add(new FStringTableEntryMacroDescriptor());
 
@@ -273,9 +273,9 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	for ( FString& SourceFile : FilesToProcess)
 	{
 		FString ProjectBasePath;
-		if (!FPaths::GameDir().IsEmpty())
+		if (!FPaths::ProjectDir().IsEmpty())
 		{
-			ProjectBasePath = FPaths::GameDir();
+			ProjectBasePath = FPaths::ProjectDir();
 		}
 		else
 		{

@@ -355,12 +355,12 @@ private:
 
 				// Setup browser widget.
 				TSharedPtr<SWebBrowser> BrowserWidget;
-				BrowserWindowWidget->SetContent(
-					SNew(SBorder)
-					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Fill)
-					.Padding(0)
-					[
+					BrowserWindowWidget->SetContent(
+						SNew(SBorder)
+						.VAlign(VAlign_Fill)
+						.HAlign(HAlign_Fill)
+						.Padding(0)
+						[
 						SAssignNew(BrowserWidget, SWebBrowser, NewBrowserWindowSP)
 						.ShowControls(PopupFeaturesSP->IsToolBarVisible())
 						.ShowAddressBar(PopupFeaturesSP->IsLocationBarVisible())
@@ -370,38 +370,38 @@ private:
 					]);
 
 				// Setup some OnClose stuff.
+			{
+				struct FLocal
 				{
-					struct FLocal
+					static void RequestDestroyWindowOverride(const TSharedRef<SWindow>& Window, TWeakPtr<IWebBrowserWindow> BrowserWindowPtr)
 					{
-						static void RequestDestroyWindowOverride(const TSharedRef<SWindow>& Window, TWeakPtr<IWebBrowserWindow> BrowserWindowPtr)
+						TSharedPtr<IWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+						if (BrowserWindow.IsValid())
 						{
-							TSharedPtr<IWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-							if (BrowserWindow.IsValid())
+							if (BrowserWindow->IsClosing())
 							{
-								if (BrowserWindow->IsClosing())
-								{
-									FSlateApplicationBase::Get().RequestDestroyWindow(Window);
-								}
-								else
-								{
-									// Notify the browser window that we would like to close it.  On the CEF side, this will 
-									//  result in a call to FWebBrowserHandler::DoClose only if the JavaScript onbeforeunload
-									//  event handler allows it.
-									BrowserWindow->CloseBrowser(false);
-								}
+								FSlateApplicationBase::Get().RequestDestroyWindow(Window);
+							}
+							else
+							{
+								// Notify the browser window that we would like to close it.  On the CEF side, this will 
+								//  result in a call to FWebBrowserHandler::DoClose only if the JavaScript onbeforeunload
+								//  event handler allows it.
+								BrowserWindow->CloseBrowser(false);
 							}
 						}
-					};
+					}
+				};
 
-					BrowserWindowWidget->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateStatic(&FLocal::RequestDestroyWindowOverride, TWeakPtr<IWebBrowserWindow>(NewBrowserWindow)));
-				}
+				BrowserWindowWidget->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateStatic(&FLocal::RequestDestroyWindowOverride, TWeakPtr<IWebBrowserWindow>(NewBrowserWindow)));
+			}
 
-				FSlateApplication::Get().AddWindow(BrowserWindowWidget);
-				BrowserWindowWidget->BringToFront();
-				FSlateApplication::Get().SetKeyboardFocus(BrowserWidget, EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().AddWindow(BrowserWindowWidget);
+			BrowserWindowWidget->BringToFront();
+			FSlateApplication::Get().SetKeyboardFocus(BrowserWidget, EFocusCause::SetDirectly);
 
-				BrowserWindowWidgets.Add(NewBrowserWindow, BrowserWindowWidget);
-				return true;
+			BrowserWindowWidgets.Add(NewBrowserWindow, BrowserWindowWidget);
+			return true;
 			}
 		}
 		else

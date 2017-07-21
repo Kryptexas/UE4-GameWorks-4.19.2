@@ -15,7 +15,6 @@ class UPackage;
 class UEnum;
 class FClassDeclarationMetaData;
 class FArchive;
-class FUHTMakefile;
 struct FManifestModule;
 class FUnrealSourceFile;
 class FUnrealTypeDefinitionInfo;
@@ -58,15 +57,3 @@ inline FArchive& operator<<(FArchive& Ar, EAccessSpecifier& ObjectType)
 
 	return Ar;
 }
-
-/**
- * Add type definition info to global map.
- *
- * @param UHTMakefile Makefile to which data is saved.
- * @param SourceFile SourceFile in which type was defined.
- * @param Field Defined type.
- * @param Line Line on which the type was defined.
- *
- * @returns Type definition info.
- */
-TSharedRef<FUnrealTypeDefinitionInfo> AddTypeDefinition(FUHTMakefile& UHTMakefile, FUnrealSourceFile* SourceFile, UField* Field, int32 Line);

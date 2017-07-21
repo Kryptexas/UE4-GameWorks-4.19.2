@@ -112,7 +112,7 @@ public:
 		check(FileHandle > -1);
 		check(Filename.Len() > 0);
 
-		bUseLocalStorage = Filename.Contains(FString(FApp::GetGameName()) + TEXT("/Saved/"));
+		bUseLocalStorage = Filename.Contains(FString(FApp::GetProjectName()) + TEXT("/Saved/"));
 		if ( bUseLocalStorage )
 		{
 			// currently, need to setup IndexDB mount point -- but this is going to change in the near future to ASMFS

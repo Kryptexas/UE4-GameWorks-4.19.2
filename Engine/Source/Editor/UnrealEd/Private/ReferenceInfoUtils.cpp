@@ -633,7 +633,7 @@ namespace ReferenceInfoUtils
 
 		// Create log file
 		
-		const FString PathName = *(FPaths::GameLogDir() + TEXT("RefInfo/"));
+		const FString PathName = *(FPaths::ProjectLogDir() + TEXT("RefInfo/"));
 		IFileManager::Get().MakeDirectory(*PathName);
 		const FString Filename = FString::Printf(TEXT("Output-%s.txt"), *FDateTime::Now().ToString(TEXT("%m.%d-%H.%M.%S")));
 		const FString FilenameFull = PathName + Filename;

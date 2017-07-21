@@ -118,6 +118,14 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 	}
 }
 
+void UK2Node_MacroInstance::PreloadRequiredAssets()
+{
+	PreloadObject(MacroGraphReference.GetBlueprint());
+	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	PreloadObject(MacroGraph);
+	Super::PreloadRequiredAssets();
+}
+
 FText UK2Node_MacroInstance::GetTooltipText() const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();

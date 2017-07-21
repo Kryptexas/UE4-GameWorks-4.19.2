@@ -440,54 +440,6 @@ private:
 	TArray<uint32>	Tokens;
 };
 
-/*----------------------------------------------------------------------------
-	FSimpleObjectReferenceCollectorArchive.
-----------------------------------------------------------------------------*/
-
-class FSimpleObjectReferenceCollectorArchive : public FArchiveUObject
-{
-public:
-
-	/**
-	 * Constructor
-	 *
-	 * @param	InObjectArray			Array to add object references to
-	 */
-	FSimpleObjectReferenceCollectorArchive( const UObject* InSerializingObject, FReferenceCollector& InCollector )
-		:	Collector( InCollector )
-		, SerializingObject( InSerializingObject )
-	{
-		ArIsObjectReferenceCollector = true;
-		ArIsPersistent = Collector.IsIgnoringTransient();
-		ArIgnoreArchetypeRef = Collector.IsIgnoringArchetypeRef();
-	}
-
-protected:
-
-	/** 
-	 * UObject serialize operator implementation
-	 *
-	 * @param Object	reference to Object reference
-	 * @return reference to instance of this class
-	 */
-	FArchive& operator<<( UObject*& Object )
-	{
-		if( Object )
-		{
-			auto OldCollectorSerializedProperty = Collector.GetSerializedProperty();
-			Collector.SetSerializedProperty(GetSerializedProperty());
-			Collector.AddReferencedObject(Object, SerializingObject, GetSerializedProperty());
-			Collector.SetSerializedProperty(OldCollectorSerializedProperty);
-		}
-		return *this;
-	}
-
-	/** Stored pointer to reference collector. */
-	FReferenceCollector& Collector;
-	/** Object which is performing the serialization. */
-	const UObject* SerializingObject;
-};
-
 /** Prevent GC from running in the current scope */
 class COREUOBJECT_API FGCScopeGuard
 {

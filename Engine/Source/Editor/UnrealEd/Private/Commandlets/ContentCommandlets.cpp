@@ -1561,14 +1561,14 @@ FString MakeCutdownFilename(const FString& Filename, const TCHAR* CutdownDirecto
 {
 	// replace the .. with ..\GAMENAME\CutdownContent
 	FString CutdownDirectory = FPaths::GetPath(Filename);
-	if ( CutdownDirectory.Contains(FPaths::GameDir()) )
+	if ( CutdownDirectory.Contains(FPaths::ProjectDir()) )
 	{
 		// Content from the game directory may not be relative to the engine folder
-		CutdownDirectory = CutdownDirectory.Replace(*FPaths::GameDir(), *FString::Printf(TEXT("%s%s/Game/"), *FPaths::GameSavedDir(), CutdownDirectoryName));
+		CutdownDirectory = CutdownDirectory.Replace(*FPaths::ProjectDir(), *FString::Printf(TEXT("%s%s/Game/"), *FPaths::ProjectSavedDir(), CutdownDirectoryName));
 	}
 	else
 	{
-		CutdownDirectory = CutdownDirectory.Replace(TEXT("../../../"), *FString::Printf(TEXT("%s%s/"), *FPaths::GameSavedDir(), CutdownDirectoryName));
+		CutdownDirectory = CutdownDirectory.Replace(TEXT("../../../"), *FString::Printf(TEXT("%s%s/"), *FPaths::ProjectSavedDir(), CutdownDirectoryName));
 	}
 
 	// make sure it exists
@@ -1612,7 +1612,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 
 	if (bShouldRestoreFromPreviousRun)
 	{
-		FArchive* Ar = IFileManager::Get().CreateFileReader(*(FPaths::GameDir() + TEXT("Wrangle.bin")));
+		FArchive* Ar = IFileManager::Get().CreateFileReader(*(FPaths::ProjectDir() + TEXT("Wrangle.bin")));
 		if( Ar != NULL )
 		{
 			*Ar << AllReferencedPublicObjects;
@@ -1648,8 +1648,8 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 
 		if (bShouldCleanOldDirectories)
 		{
-			IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sCutdownPackages"), *FPaths::GameSavedDir()), false, true);
-			IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sNFSContent"), *FPaths::GameSavedDir()), false, true);
+			IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sCutdownPackages"), *FPaths::ProjectSavedDir()), false, true);
+			IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sNFSContent"), *FPaths::ProjectSavedDir()), false, true);
 		}
 
 		// copy the packages to load, since we are modifying it
@@ -1849,7 +1849,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		}
 
 		// save out the referenced objects so we can restore
-		FArchive* Ar = IFileManager::Get().CreateFileWriter(*(FPaths::GameDir() + TEXT("Wrangle.bin")));
+		FArchive* Ar = IFileManager::Get().CreateFileWriter(*(FPaths::ProjectDir() + TEXT("Wrangle.bin")));
 		*Ar << AllReferencedPublicObjects;
 		delete Ar;
 	}
@@ -2103,7 +2103,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		CLEAR_WARN_COLOR();
 
 		// create a .csv
-		FString CSVFilename = FString::Printf(TEXT("%sUnreferencedObjects-%s.csv"), *FPaths::GameLogDir(), *FDateTime::Now().ToString());
+		FString CSVFilename = FString::Printf(TEXT("%sUnreferencedObjects-%s.csv"), *FPaths::ProjectLogDir(), *FDateTime::Now().ToString());
 		FArchive* CSVFile = IFileManager::Get().CreateFileWriter(*CSVFilename);
 
 		if (!CSVFile)

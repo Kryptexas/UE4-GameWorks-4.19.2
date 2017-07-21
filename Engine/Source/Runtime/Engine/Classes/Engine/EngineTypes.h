@@ -3540,6 +3540,21 @@ struct FDirectoryPath
 
 
 /**
+ * Reference to an editor collection of assets. This allows an editor-only picker UI
+ */
+USTRUCT(BlueprintType)
+struct FCollectionReference
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * Name of the collection
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CollectionReference)
+	FName CollectionName;
+};
+
+/**
 * This is used for redirecting old name to new name
 * We use manually parsing array, but that makes harder to modify from property setting
 * So adding this USTRUCT to support it properly

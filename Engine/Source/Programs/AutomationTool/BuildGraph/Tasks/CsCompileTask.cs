@@ -85,8 +85,7 @@ namespace AutomationTool.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Get the project file
 			HashSet<FileReference> ProjectFiles = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Project, TagNameToFileSet);
@@ -94,13 +93,11 @@ namespace AutomationTool.Tasks
 			{
 				if(!FileReference.Exists(ProjectFile))
 				{
-					CommandUtils.LogError("Couldn't find project file '{0}'", ProjectFile.FullName);
-					return false;
+					throw new AutomationException("Couldn't find project file '{0}'", ProjectFile.FullName);
 				}
 				if(!ProjectFile.HasExtension(".csproj"))
 				{
-					CommandUtils.LogError("File '{0}' is not a C# project", ProjectFile.FullName);
-					return false;
+					throw new AutomationException("File '{0}' is not a C# project", ProjectFile.FullName);
 				}
 			}
 
@@ -138,10 +135,7 @@ namespace AutomationTool.Tasks
 			// Try to figure out the output files
 			HashSet<FileReference> ProjectBuildProducts;
 			HashSet<FileReference> ProjectReferences;
-			if(!FindBuildProducts(ProjectFiles, Properties, out ProjectBuildProducts, out ProjectReferences))
-			{
-				return false;
-			}
+			FindBuildProducts(ProjectFiles, Properties, out ProjectBuildProducts, out ProjectReferences);
 
 			// Apply the optional tag to the produced archive
 			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
@@ -160,7 +154,6 @@ namespace AutomationTool.Tasks
 
 			// Merge them into the standard set of build products
 			BuildProducts.UnionWith(ProjectBuildProducts);
-			return true;
 		}
 
 		/// <summary>
@@ -205,18 +198,13 @@ namespace AutomationTool.Tasks
 		/// <param name="OutBuildProducts">Receives a set of build products on success</param>
 		/// <param name="OutReferences">Receives a set of non-private references on success</param>
 		/// <returns>True if the build products were found, false otherwise.</returns>
-		static bool FindBuildProducts(HashSet<FileReference> ProjectFiles, Dictionary<string, string> InitialProperties, out HashSet<FileReference> OutBuildProducts, out HashSet<FileReference> OutReferences)
+		static void FindBuildProducts(HashSet<FileReference> ProjectFiles, Dictionary<string, string> InitialProperties, out HashSet<FileReference> OutBuildProducts, out HashSet<FileReference> OutReferences)
 		{
 			// Read all the project information into a dictionary
 			Dictionary<FileReference, CsProjectInfo> FileToProjectInfo = new Dictionary<FileReference,CsProjectInfo>();
 			foreach(FileReference ProjectFile in ProjectFiles)
 			{
-				if(!ReadProjectsRecursively(ProjectFile, InitialProperties, FileToProjectInfo))
-				{
-					OutBuildProducts = null;
-					OutReferences = null;
-					return false;
-				}
+				ReadProjectsRecursively(ProjectFile, InitialProperties, FileToProjectInfo);
 			}
 
 			// Find all the build products and references
@@ -268,7 +256,6 @@ namespace AutomationTool.Tasks
 			// Update the output set
 			OutBuildProducts = BuildProducts;
 			OutReferences = References;
-			return true;
 		}
 
 		/// <summary>
@@ -278,25 +265,25 @@ namespace AutomationTool.Tasks
 		/// <param name="InitialProperties">Mapping of property name to value for the initial project</param>
 		/// <param name="FileToProjectInfo"></param>
 		/// <returns>True if the projects were read correctly, false (and prints an error to the log) if not</returns>
-		static bool ReadProjectsRecursively(FileReference File, Dictionary<string, string> InitialProperties, Dictionary<FileReference, CsProjectInfo> FileToProjectInfo)
+		static void ReadProjectsRecursively(FileReference File, Dictionary<string, string> InitialProperties, Dictionary<FileReference, CsProjectInfo> FileToProjectInfo)
 		{
-			// Early out if we've already read this project, return success
-			if(FileToProjectInfo.ContainsKey(File))
+			// Early out if we've already read this project
+			if (!FileToProjectInfo.ContainsKey(File))
 			{
-				return true;
-			}
+				// Try to read this project
+				CsProjectInfo ProjectInfo;
+				if (!CsProjectInfo.TryRead(File, InitialProperties, out ProjectInfo))
+				{
+					throw new AutomationException("Couldn't read project '{0}'", File.FullName);
+				}
 
-			// Try to read this project
-			CsProjectInfo ProjectInfo;
-			if(!CsProjectInfo.TryRead(File, InitialProperties, out ProjectInfo))
-			{
-				CommandUtils.LogError("Couldn't read project '{0}'", File.FullName);
-				return false;
+				// Add it to the project lookup, and try to read all the projects it references
+				FileToProjectInfo.Add(File, ProjectInfo);
+				foreach(FileReference ProjectReference in ProjectInfo.ProjectReferences.Keys)
+				{
+					ReadProjectsRecursively(ProjectReference, InitialProperties, FileToProjectInfo);
+				}
 			}
-
-			// Add it to the project lookup, and try to read all the projects it references
-			FileToProjectInfo.Add(File, ProjectInfo);
-			return ProjectInfo.ProjectReferences.Keys.All(x => ReadProjectsRecursively(x, InitialProperties, FileToProjectInfo));
 		}
 	}
 

@@ -151,7 +151,7 @@ static bool UpdateCachedStates(const TMap<FString, EPerforceState::Type>& InResu
 
 static bool CheckWorkspaceRecordSet(const FP4RecordSet& InRecords, TArray<FText>& OutErrorMessages, FText& OutNotificationText)
 {
-	FString ApplicationPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::GameDir()).ToLower();
+	FString ApplicationPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::ProjectDir()).ToLower();
 	ApplicationPath = ApplicationPath.Replace(TEXT("\\"), TEXT("/"));
 
 	for(const auto& Record : InRecords)

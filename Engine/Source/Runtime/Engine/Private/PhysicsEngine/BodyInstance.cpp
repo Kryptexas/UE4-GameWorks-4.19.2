@@ -3032,11 +3032,6 @@ FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked(bool bWithProjec
 	return GetUnrealWorldTransformImp<false>(this, bWithProjection);
 }
 
-void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTeleport)
-{
-	SetBodyTransform(NewTransform, TeleportFlagToEnum(bTeleport));
-}
-
 void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportType Teleport)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SetBodyTransform);
@@ -5087,13 +5082,6 @@ void FBodyInstance::FixupData(class UObject* Loader)
 			CollisionResponses.UpdateResponseContainerFromArray();
 		}
 	}
-}
-
-bool FBodyInstance::UseAsyncScene() const
-{
-	UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
-	UWorld* World = OwnerComponentInst ? OwnerComponentInst->GetWorld() : nullptr;
-	return UseAsyncScene(World ? World->GetPhysicsScene() : nullptr);
 }
 
 bool FBodyInstance::UseAsyncScene(const FPhysScene* PhysScene) const

@@ -42,10 +42,21 @@ struct ASSETREGISTRY_API FAssetBundleEntry
 	}
 
 	/** Returns true if this represents a real entry */
-	bool IsValid() { return BundleName != NAME_None; }
+	bool IsValid() const { return BundleName != NAME_None; }
 
 	/** Returns true if it has a valid scope, if false is a global entry or in the process of being created */
-	bool IsScoped() { return BundleScope.IsValid(); }
+	bool IsScoped() const { return BundleScope.IsValid(); }
+
+	/** Equality */
+	bool operator==(const FAssetBundleEntry& Other) const
+	{
+		return BundleScope == Other.BundleScope && BundleName == Other.BundleName && BundleAssets == Other.BundleAssets;
+	}
+	bool operator!=(const FAssetBundleEntry& Other) const
+	{
+		return !(*this == Other);
+	}
+
 };
 
 /** A struct with a list of asset bundle entries. If one of these is inside a UObject it will get automatically exported as the asset registry tag AssetBundleData */
@@ -61,6 +72,16 @@ struct ASSETREGISTRY_API FAssetBundleData
 	/** List of bundles defined */
 	UPROPERTY()
 	TArray<FAssetBundleEntry> Bundles;
+
+	/** Equality */
+	bool operator==(const FAssetBundleData& Other) const
+	{
+		return Bundles == Other.Bundles;
+	}
+	bool operator!=(const FAssetBundleData& Other) const
+	{
+		return !(*this == Other);
+	}
 
 	/** Extract this out of an AssetData */
 	bool SetFromAssetData(const struct FAssetData& AssetData);

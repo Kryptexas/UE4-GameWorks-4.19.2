@@ -260,21 +260,6 @@ FORCEINLINE T* ExactCast( UObject* Src )
 
 #endif
 
-
-template <typename InterfaceType>
-DEPRECATED(4.6, "InterfaceCast is deprecated, use Cast or dynamic_cast instead.")
-FORCEINLINE InterfaceType* InterfaceCast(UObject* Src)
-{
-	return Cast<InterfaceType>(Src);
-}
-
-template <typename InterfaceType>
-DEPRECATED(4.6, "InterfaceCast is deprecated, use Cast or dynamic_cast instead.")
-FORCEINLINE InterfaceType* InterfaceCast(const UObject* Src)
-{
-	return Cast<InterfaceType>(const_cast<UObject*>(Src));
-}
-
 // auto weak versions
 template< class T, class U > FORCEINLINE T* Cast       ( const TAutoWeakObjectPtr<U>& Src                                                                   ) { return Cast       <T>(Src.Get()); }
 template< class T, class U > FORCEINLINE T* ExactCast  ( const TAutoWeakObjectPtr<U>& Src                                                                   ) { return ExactCast  <T>(Src.Get()); }

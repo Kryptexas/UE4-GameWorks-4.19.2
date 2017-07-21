@@ -1520,7 +1520,6 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 #endif
 
 		Context.Function->SetSuperStruct( ParentFunction );
-		Context.Function->RepOffset = MAX_uint16;
 		Context.Function->ReturnValueOffset = MAX_uint16;
 		Context.Function->FirstPropertyToInit = NULL;
 
@@ -1619,7 +1618,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		Context.NewClass->Children = Context.Function;
 
 		// Add the function to it's owner class function name -> function map
-		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
+		Context.NewClass->AddFunctionToFunctionMap(Context.Function, Context.Function->GetFName());
 		if (UsePersistentUberGraphFrame() && Context.bIsUbergraph)
 		{
 			ensure(!NewClass->UberGraphFunction);
@@ -2181,10 +2180,14 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		Blueprint->bGenerateAbstractClass = (Class->ClassFlags & CLASS_Abstract) == CLASS_Abstract;	
 
 		// Add the description to the tooltip
+		static const FName NAME_Tooltip(TEXT("Tooltip"));
 		if (!Blueprint->BlueprintDescription.IsEmpty())
 		{
-			static const FName NAME_Tooltip(TEXT("Tooltip"));
 			Class->SetMetaData(NAME_Tooltip, *Blueprint->BlueprintDescription);
+		}
+		else
+		{
+			Class->RemoveMetaData(NAME_Tooltip);
 		}
 
 		// Copy the category info from the parent class

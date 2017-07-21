@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Linq;
 using UnrealBuildTool;
+using System.Text;
 
 /// <summary>
 /// Helper command used for cooking.
@@ -126,8 +127,8 @@ public partial class Project : CommandUtils
 		}
         if (!String.IsNullOrEmpty(PatchSourceContentPath))
         {
-            CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath) + " -tempfiles=" + CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "TempFiles"));
-        }
+			CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath) + " -tempfiles=" + CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "TempFiles" + PakName));
+		}
         if (EncryptPakIndex)
         {
             CmdLine += " -encryptindex";
@@ -161,41 +162,19 @@ public partial class Project : CommandUtils
         LogLog("End Deployment Context **************");
 	}
 
-	public static Dictionary<StagedFileReference, FileReference> ConvertToLower(Dictionary<StagedFileReference, FileReference> Mapping)
+	private static void StageLocalizationDataForTarget(DeploymentContext SC, List<string> CulturesToStage, DirectoryReference SourceDirectory)
 	{
-		Dictionary<StagedFileReference, FileReference> Result = new Dictionary<StagedFileReference, FileReference>();
-		foreach (KeyValuePair<StagedFileReference, FileReference> Pair in Mapping)
+		foreach(FileReference SourceFile in DirectoryReference.EnumerateFiles(SourceDirectory, "*.locmeta"))
 		{
-			Result.Add(Pair.Key.ToLowerInvariant(), Pair.Value);
+			SC.StageFile(StagedFileType.UFS, SourceFile);
 		}
-		return Result;
-	}
-
-	public static void MaybeConvertToLowerCase(ProjectParams Params, DeploymentContext SC)
-	{
-		var BuildPlatform = SC.StageTargetPlatform;
-
-		if (BuildPlatform.DeployLowerCaseFilenames(false))
-		{
-			SC.FilesToStage.NonUFSStagingFiles = ConvertToLower(SC.FilesToStage.NonUFSStagingFiles);
-			SC.FilesToStage.NonUFSStagingFilesDebug = ConvertToLower(SC.FilesToStage.NonUFSStagingFilesDebug);
-		}
-		else if (!Params.UsePak(SC.StageTargetPlatform) && BuildPlatform.DeployLowerCaseFilenames(true))
-		{
-			SC.FilesToStage.UFSStagingFiles = ConvertToLower(SC.FilesToStage.UFSStagingFiles);
-		}
-	}
-
-	private static void StageLocalizationDataForTarget(DeploymentContext SC, List<string> CulturesToStage, DirectoryReference SourceDirectory, StagedDirectoryReference DestinationDirectory = null, bool bRemap = true)
-	{
-		SC.StageFiles(StagedFileType.UFS, SourceDirectory, "*.locmeta", false, null, DestinationDirectory, true, bRemap);
 		foreach (string Culture in CulturesToStage)
 		{
-			StageLocalizationDataForCulture(SC, Culture, SourceDirectory, DestinationDirectory, bRemap);
+			StageLocalizationDataForCulture(SC, Culture, SourceDirectory);
 		}
 	}
 
-	private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, DirectoryReference SourceDirectory, StagedDirectoryReference DestinationDirectory = null, bool bRemap = true)
+	private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, DirectoryReference SourceDirectory)
     {
         CultureName = CultureName.Replace('-', '_');
 
@@ -227,7 +206,10 @@ public partial class Project : CommandUtils
 
             if (PotentialParentCultures.Contains(CanonicalizedPotentialCulture))
             {
-                SC.StageFiles(StagedFileType.UFS, FoundDirectory, "*.locres", true, null, (DestinationDirectory != null) ? StagedDirectoryReference.Combine(DestinationDirectory, DirectoryName) : null, true, bRemap);
+				foreach(FileReference SourceFile in DirectoryReference.EnumerateFiles(FoundDirectory, "*.locres", SearchOption.AllDirectories))
+				{
+					SC.StageFile(StagedFileType.UFS, SourceFile);
+				}
             }
         }
     }
@@ -248,26 +230,30 @@ public partial class Project : CommandUtils
 			//check( Params.HasDLCName == false );
 
 			// stage all the previously staged files
-			SC.StageFiles(StagedFileType.NonUFS, new DirectoryReference(CombinePaths(SC.ProjectRoot.FullName, "Saved", "SharedIterativeBuild", SC.CookPlatform, "Staged")), "*", true, null, new StagedDirectoryReference(""), true); // remap to the root directory
+			SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Saved", "SharedIterativeBuild", SC.CookPlatform, "Staged"), StageFilesSearch.AllDirectories, StagedDirectoryReference.Root); // remap to the root directory
 		}
         if (Params.HasDLCName)
         {
-            string DLCName = Params.DLCName;
+            DirectoryReference DLCRoot = Params.DLCFile.Directory;
 
             // Making a plugin, grab the binaries too
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName), "*.uplugin", false, null, null, true);
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "libUE4-*.so", true, null, null, true);
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4-*.dll", true, null, null, true);
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "libUE4Server-*.so", true, null, null, true);
-            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4Server-*.dll", true, null, null, true);
+            SC.StageFile(StagedFileType.NonUFS, Params.DLCFile);
+
+			DirectoryReference BinariesDir = DirectoryReference.Combine(DLCRoot, "Binaries");
+			if(DirectoryReference.Exists(BinariesDir))
+			{
+				SC.StageFiles(StagedFileType.NonUFS, BinariesDir, "libUE4-*.so", StageFilesSearch.AllDirectories);
+				SC.StageFiles(StagedFileType.NonUFS, BinariesDir, "UE4-*.dll", StageFilesSearch.AllDirectories);
+				SC.StageFiles(StagedFileType.NonUFS, BinariesDir, "libUE4Server-*.so", StageFilesSearch.AllDirectories);
+				SC.StageFiles(StagedFileType.NonUFS, BinariesDir, "UE4Server-*.dll", StageFilesSearch.AllDirectories);
+			}
 
             // Put all of the cooked dir into the staged dir
-            DirectoryReference PlatformCookDir = String.IsNullOrEmpty(Params.CookOutputDir)? DirectoryReference.Combine(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform) : DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
-			string[] ExcludeWildCards = null; //{"AssetRegistry.bin"};
+            DirectoryReference PlatformCookDir = String.IsNullOrEmpty(Params.CookOutputDir)? DirectoryReference.Combine(DLCRoot, "Saved", "Cooked", SC.CookPlatform) : DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
 
             // Stage any loose files in the root folder
 			// TODO: not sure if we should stage the loose files if we have pak files enabled... 
-			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, NewPath: SC.RelativeProjectRootForStage, bAllowNone: true, bRemap: !Params.UsePak(SC.StageTargetPlatform));
+			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, StageFilesSearch.TopDirectoryOnly, SC.RelativeProjectRootForStage);
 
 			// Stage each sub directory separately so that we can skip Engine if need be
 			foreach(DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(PlatformCookDir))
@@ -278,9 +264,9 @@ public partial class Project : CommandUtils
                 {
                     continue;
                 }
-				// SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { CommandUtils.CombinePaths("Engine", "*") }, "", true, !Params.UsePak(SC.StageTargetPlatform));
-				SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, MountPoint, true, !Params.UsePak(SC.StageTargetPlatform));
-				//SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
+				// SC.StageFilesUFS(CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { CommandUtils.CombinePaths("Engine", "*") }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileType.UFS, SubDir, "*", StageFilesSearch.AllDirectories, MountPoint);
+				//SC.StageFilesUFS(SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 			}
 
             return;
@@ -296,21 +282,20 @@ public partial class Project : CommandUtils
 				SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.UsePak(SC.StageTargetPlatform));
 			}
 		}
-		// Get the build.properties file
-		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
-		// @todo: Maybe there should be a new category - UFSNotForPak
-		DirectoryReference BuildPropertiesPath = DirectoryReference.Combine(SC.ProjectRoot, "Engine", "Build");
-		SC.StageFiles(StagedFileType.NonUFS, BuildPropertiesPath, "Build.version", false, null, null, true, bConvertToLower: SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
 
 		// move the UE4Commandline.txt file to the root of the stage
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
 		// @todo: Maybe there should be a new category - UFSNotForPak
-		string CommandLineFile = "UE4CommandLine.txt";
-		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
+		FileReference CommandLineFile = FileReference.Combine(GetIntermediateCommandlineDir(SC), "UE4CommandLine.txt");
+		if(FileReference.Exists(CommandLineFile))
 		{
-			CommandLineFile = CommandLineFile.ToLowerInvariant();
+			StagedFileReference StagedCommandLineFile = new StagedFileReference("UE4CommandLine.txt");
+			if (SC.StageTargetPlatform.DeployLowerCaseFilenames())
+			{
+				StagedCommandLineFile = StagedCommandLineFile.ToLowerInvariant();
+			}
+			SC.StageFile(StagedFileType.SystemNonUFS, CommandLineFile, StagedCommandLineFile);
 		}
-		SC.StageFiles(StagedFileType.NonUFS, GetIntermediateCommandlineDir(SC), CommandLineFile, false, null, new StagedDirectoryReference(""), true, false);
 
         ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
         DirectoryReference ProjectContentRoot = DirectoryReference.Combine(SC.ProjectRoot, "Content");
@@ -363,17 +348,17 @@ public partial class Project : CommandUtils
             }
 
             // Stage ICU internationalization data from Engine.
-            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, new StagedDirectoryReference("Engine/Content/Internationalization"), true, !Params.UsePak(SC.StageTargetPlatform));
+            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), StageFilesSearch.AllDirectories, new StagedDirectoryReference("Engine/Content/Internationalization"));
 
             // Engine ufs (content)
-            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
+            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Config"), StageFilesSearch.AllDirectories); // TODO: Exclude localization data generation config files.
 
-            StageLocalizationDataForTarget(SC, CulturesToStage, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Content", "Localization", "Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
+            StageLocalizationDataForTarget(SC, CulturesToStage, DirectoryReference.Combine(SC.LocalRoot, "Engine", "Content", "Localization", "Engine"));
 			
             // Game ufs (content)
-			SC.StageFiles(StagedFileType.UFS, SC.ProjectRoot, "*.uproject", false, null, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
+			SC.StageFile(StagedFileType.UFS, SC.RawProjectPath);
 
-			SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Config"), "*", true, null, bAllowNone: true, bRemap: !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
+			SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Config"), "*", StageFilesSearch.AllDirectories); // TODO: Exclude localization data generation config files.
 
 			// Stage all project localization targets
 			{
@@ -382,43 +367,27 @@ public partial class Project : CommandUtils
 				{
 					foreach(DirectoryReference ProjectLocTargetDirectory in DirectoryReference.EnumerateDirectories(ProjectLocRootDirectory))
 					{
-						StageLocalizationDataForTarget(SC, CulturesToStage, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
+						StageLocalizationDataForTarget(SC, CulturesToStage, ProjectLocTargetDirectory);
 					}
 				}
 			}
 
 			// Stage all plugin localization targets
+			List<KeyValuePair<StagedFileReference, FileReference>> StagedPlugins = SC.FilesToStage.UFSFiles.Where(x => x.Value.HasExtension(".uplugin")).ToList();
+			foreach(KeyValuePair<StagedFileReference, FileReference> StagedPlugin in StagedPlugins)
 			{
-				ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
-
-				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(SC.EngineRoot, SC.RawProjectPath, Project.AdditionalPluginDirectories);
-				foreach (PluginInfo Plugin in AvailablePlugins)
+				PluginDescriptor Descriptor = PluginDescriptor.FromFile(StagedPlugin.Value);
+				if(Descriptor.LocalizationTargets != null)
 				{
-					if (!UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetType.Game) &&
-						UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetType.Client))
+					foreach (LocalizationTargetDescriptor LocalizationTarget in Descriptor.LocalizationTargets)
 					{
-						// skip editor plugins
-						continue;
-					}
-
-					if (Plugin.Descriptor.LocalizationTargets == null || Plugin.Descriptor.LocalizationTargets.Length == 0)
-					{
-						// skip plugins with no localization targets
-						continue;
-					}
-
-					foreach (var LocalizationTarget in Plugin.Descriptor.LocalizationTargets)
-					{
-						if (LocalizationTarget.LoadingPolicy != LocalizationTargetDescriptorLoadingPolicy.Always && LocalizationTarget.LoadingPolicy != LocalizationTargetDescriptorLoadingPolicy.Game)
+						if (LocalizationTarget.LoadingPolicy == LocalizationTargetDescriptorLoadingPolicy.Always || LocalizationTarget.LoadingPolicy == LocalizationTargetDescriptorLoadingPolicy.Game)
 						{
-							// skip targets not loaded by the game
-							continue;
-						}
-
-						DirectoryReference PluginLocTargetDirectory = DirectoryReference.Combine(Plugin.Directory, "Content", "Localization", LocalizationTarget.Name);
-						if (DirectoryReference.Exists(PluginLocTargetDirectory))
-						{
-							StageLocalizationDataForTarget(SC, CulturesToStage, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
+							DirectoryReference PluginLocTargetDirectory = DirectoryReference.Combine(StagedPlugin.Value.Directory, "Content", "Localization", LocalizationTarget.Name);
+							if (DirectoryReference.Exists(PluginLocTargetDirectory))
+							{
+								StageLocalizationDataForTarget(SC, CulturesToStage, PluginLocTargetDirectory);
+							}
 						}
 					}
 				}
@@ -430,57 +399,56 @@ public partial class Project : CommandUtils
                 List<string> ExtraUFSDirs;
                 if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsUFS", out ExtraUFSDirs))
                 {
-                    // Each string has the format '(Path="TheDirToStage")'
-                    foreach (var PathStr in ExtraUFSDirs)
-                    {
-                        var PathParts = PathStr.Split('"');
-                        if (PathParts.Length == 3)
-                        {
-                            var RelativePath = PathParts[1];
-                            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), "*", true, new string[] { "*.uasset", "*.umap" }, StagedDirectoryReference.Combine(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
-                        }
-                        else if (PathParts.Length == 1)
-                        {
-                            var RelativePath = PathParts[0];
-                            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), "*", true, new string[] { "*.uasset", "*.umap" }, StagedDirectoryReference.Combine(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
-                        }
-                    }
+					List<string> InputPaths = ParseInputPaths(ExtraUFSDirs);
+					foreach(string InputPath in InputPaths)
+					{
+						DirectoryReference InputDir = DirectoryReference.Combine(ProjectContentRoot, InputPath);
+						if(DirectoryReference.Exists(InputDir))
+						{
+							StagedDirectoryReference OutputDir = StagedDirectoryReference.Combine(StageContentRoot, InputPath);
+
+							List<FileReference> Files = SC.FindFilesToStage(InputDir, StageFilesSearch.AllDirectories);
+							Files.RemoveAll(x => x.HasExtension(".uasset") || x.HasExtension(".umap"));
+
+							SC.StageFiles(StagedFileType.UFS, InputDir, Files, OutputDir);
+						}
+					}
                 }
 
                 List<string> ExtraNonUFSDirs;
                 if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsNonUFS", out ExtraNonUFSDirs))
                 {
-                    // Each string has the format '(Path="TheDirToStage")'
-					// NonUFS files are never in pak files and should always be remapped
-                    foreach (var PathStr in ExtraNonUFSDirs)
-                    {
-						var PathParts = PathStr.Split('"');
-						if (PathParts.Length == 3)
+					List<string> InputPaths = ParseInputPaths(ExtraNonUFSDirs);
+					foreach(string InputPath in InputPaths)
+					{
+						DirectoryReference InputDir = DirectoryReference.Combine(ProjectContentRoot, InputPath);
+						if(DirectoryReference.Exists(InputDir))
 						{
-							var RelativePath = PathParts[1];
-							SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), "*", true, null, StagedDirectoryReference.Combine(StageContentRoot, RelativePath), true, true);
+							StagedDirectoryReference OutputDir = StagedDirectoryReference.Combine(StageContentRoot, InputPath);
+							SC.StageFiles(StagedFileType.NonUFS, InputDir, StageFilesSearch.AllDirectories, OutputDir);
 						}
-						else if (PathParts.Length == 1)
-						{
-							var RelativePath = PathParts[0];
-							SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), "*", true, null, StagedDirectoryReference.Combine(StageContentRoot, RelativePath), true, true);
-						}
-                    }
+					}
                 }
-            }
-
-            StagedFileType StagedFileTypeForMovies = StagedFileType.NonUFS;
-            if (Params.FileServer)
-            {
-                // UFS is required when using a file server
-                StagedFileTypeForMovies = StagedFileType.UFS;
             }
 
             if (SC.StageTargetPlatform.StageMovies && !SC.DedicatedServer)
             {
-                bool bRemap = (StagedFileTypeForMovies == StagedFileType.NonUFS);
-				SC.StageFiles(StagedFileTypeForMovies, DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, bAllowNone: true, bRemap: bRemap);
-				SC.StageFiles(StagedFileTypeForMovies, DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, bAllowNone: true, bRemap: bRemap);
+                // UFS is required when using a file server
+				StagedFileType MovieFileType = Params.FileServer? StagedFileType.UFS : StagedFileType.NonUFS;
+
+				DirectoryReference EngineMoviesDir = DirectoryReference.Combine(SC.EngineRoot, "Content", "Movies");
+				if(DirectoryReference.Exists(EngineMoviesDir))
+				{
+					List<FileReference> MovieFiles = SC.FindFilesToStage(EngineMoviesDir, StageFilesSearch.AllDirectories);
+					SC.StageFiles(MovieFileType, MovieFiles.Where(x => !x.HasExtension(".uasset") && !x.HasExtension(".umap")));
+				}
+
+				DirectoryReference ProjectMoviesDir = DirectoryReference.Combine(SC.ProjectRoot, "Content", "Movies");
+				if(DirectoryReference.Exists(ProjectMoviesDir))
+				{
+					List<FileReference> MovieFiles = SC.FindFilesToStage(ProjectMoviesDir, StageFilesSearch.AllDirectories);
+					SC.StageFiles(MovieFileType, MovieFiles.Where(x => !x.HasExtension(".uasset") && !x.HasExtension(".umap")));
+				}
             }
 
 			// shader cache
@@ -492,15 +460,29 @@ public partial class Project : CommandUtils
 				}
 			}
 
-			// eliminate the sand box
-			// eliminate the sand box
-			if (Params.CookInEditor)
+			// Get the final output directory for cooked data
+			DirectoryReference CookOutputDir;
+			if(!String.IsNullOrEmpty(Params.CookOutputDir))
 			{
-				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? DirectoryReference.Combine(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform) : DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform), "*", true, new string[] { "*.json" }, StagedDirectoryReference.Root, true, !Params.UsePak(SC.StageTargetPlatform)); 
+				CookOutputDir = DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform);
+			}
+			else if(Params.CookInEditor)
+			{
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform);
 			}
 			else
 			{
-				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform) : DirectoryReference.Combine(new DirectoryReference(Params.CookOutputDir), SC.CookPlatform), "*", true, new string[] { "*.json" }, StagedDirectoryReference.Root, true, !Params.UsePak(SC.StageTargetPlatform));
+				CookOutputDir = DirectoryReference.Combine(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform);
+			}
+
+			// Stage all the cooked data. Currently not filtering this by restricted folders, since we shouldn't mask invalid references by filtering them out.
+			List<FileReference> CookedFiles = DirectoryReference.EnumerateFiles(CookOutputDir, "*", SearchOption.AllDirectories).ToList();
+			foreach(FileReference CookedFile in CookedFiles)
+			{
+				if(!CookedFile.HasExtension(".json"))
+				{
+					SC.StageFile(StagedFileType.UFS, CookedFile, new StagedFileReference(CookedFile.MakeRelativeTo(CookOutputDir)));
+				}
 			}
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
@@ -508,10 +490,10 @@ public partial class Project : CommandUtils
             if (SC.bStageCrashReporter && PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType) && (Params.IterateSharedBuildUsePrecompiledExe == false))
             {
                 //If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
-                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Content", "Slate"));
-                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Shaders", "StandaloneRenderer"));
+                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Content", "Slate"), StageFilesSearch.AllDirectories);
+                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Shaders", "StandaloneRenderer"), StageFilesSearch.AllDirectories);
 
-                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Content", "Internationalization", InternationalizationPreset), "*", true, null, new StagedDirectoryReference("Engine/Content/Internationalization"), false, true);
+                SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Content", "Internationalization", InternationalizationPreset), StageFilesSearch.AllDirectories, new StagedDirectoryReference("Engine/Content/Internationalization"));
 
                 // Get the architecture in use
                 string Architecture = Params.SpecifiedArchitecture;
@@ -542,7 +524,7 @@ public partial class Project : CommandUtils
                 SC.StageRuntimeDependenciesFromReceipt(Receipt, true, Params.UsePak(SC.StageTargetPlatform));
 
 				// Add config files.
-				SC.StageFiles( StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Programs", "CrashReportClient", "Config" ), bAllowNotForLicenseesFiles:false );
+				SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.EngineRoot, "Programs", "CrashReportClient", "Config" ), StageFilesSearch.AllDirectories);
 			}
 
 			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
@@ -556,18 +538,40 @@ public partial class Project : CommandUtils
 			if (bStageSSLCertificates)
 			{
 				// Game's SSL certs
-				int NumFilesBeforeGameCert = SC.FilesToStage.UFSStagingFiles.Count;
-				SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Content", "Certificates"), "cacert.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
-
-				// if the game had any files to be staged, then we don't need to stage the engine one - it will just added hundreds of kb of data that is never used
-				if (SC.FilesToStage.UFSStagingFiles.Count == NumFilesBeforeGameCert)
+				FileReference ProjectCertFile = FileReference.Combine(SC.ProjectRoot, "Content", "Certificates", "cacert.pem");
+				if(FileReference.Exists(ProjectCertFile))
 				{
-					// Engine SSL certs
-					SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.EngineRoot, "Content", "Certificates", "ThirdParty"), "cacert.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+					SC.StageFile(StagedFileType.UFS, ProjectCertFile);
+				}
+				else
+				{
+					// if the game had any files to be staged, then we don't need to stage the engine one - it will just added hundreds of kb of data that is never used
+					FileReference EngineCertFile = FileReference.Combine(SC.EngineRoot, "Content", "Certificates", "ThirdParty", "cacert.pem");
+					if(FileReference.Exists(EngineCertFile))
+					{
+						SC.StageFile(StagedFileType.UFS, EngineCertFile);
+					}
 				}
 
 				// now stage any other game certs besides cacert
-				SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(SC.ProjectRoot, "Certificates"), "*.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+				DirectoryReference CertificatesDir = DirectoryReference.Combine(SC.ProjectRoot, "Certificates");
+				if(DirectoryReference.Exists(CertificatesDir))
+				{
+					SC.StageFiles(StagedFileType.UFS, CertificatesDir, "*.pem", StageFilesSearch.AllDirectories);
+				}
+			}
+
+			// Generate a plugin manifest if we're using a pak file and not creating a mod. Mods can be enumerated independently by users copying them into the Mods directory.
+			if (Params.UsePak(SC.StageTargetPlatform))
+			{
+				if (Params.HasDLCName)
+				{
+					CreatePluginManifest(SC, SC.FilesToStage.NonUFSFiles, StagedFileType.NonUFS, Params.DLCFile.GetFileNameWithoutExtension());
+				}
+				else
+				{
+					CreatePluginManifest(SC, SC.FilesToStage.UFSFiles, StagedFileType.UFS, Params.ShortProjectName);
+				}
 			}
 		}
         else
@@ -584,17 +588,145 @@ public partial class Project : CommandUtils
                         if (PathParts.Length == 3)
                         {
                             var RelativePath = PathParts[1];
-                            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath));
+                            SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), StageFilesSearch.AllDirectories);
                         }
                         else if (PathParts.Length == 1)
                         {
                             var RelativePath = PathParts[0];
-                            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), "*", true, null, StagedDirectoryReference.Combine(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+                            SC.StageFiles(StagedFileType.UFS, DirectoryReference.Combine(ProjectContentRoot, RelativePath), StageFilesSearch.AllDirectories, StagedDirectoryReference.Combine(StageContentRoot, RelativePath));
                         }
                     }
                 }
             }
         }
+
+		// Apply all the directory mappings
+		SC.FilesToStage.UFSFiles = SC.FilesToStage.UFSFiles.ToDictionary(x => ApplyDirectoryRemap(SC, x.Key), x => x.Value);
+		SC.FilesToStage.NonUFSFiles = SC.FilesToStage.NonUFSFiles.ToDictionary(x => ApplyDirectoryRemap(SC, x.Key), x => x.Value);
+		SC.FilesToStage.NonUFSDebugFiles = SC.FilesToStage.NonUFSDebugFiles.ToDictionary(x => ApplyDirectoryRemap(SC, x.Key), x => x.Value);
+		SC.FilesToStage.NonUFSSystemFiles = SC.FilesToStage.NonUFSSystemFiles.ToDictionary(x => ApplyDirectoryRemap(SC, x.Key), x => x.Value);
+
+		// Make all the filenames lowercase
+		if (SC.StageTargetPlatform.DeployLowerCaseFilenames())
+		{
+			SC.FilesToStage.NonUFSFiles = SC.FilesToStage.NonUFSFiles.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
+			if(!Params.UsePak(SC.StageTargetPlatform))
+			{
+				SC.FilesToStage.UFSFiles = SC.FilesToStage.UFSFiles.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
+			}
+		}
+
+		// Remap all the non-ufs files if not using a PAK file
+		SC.FilesToStage.NonUFSFiles = SC.FilesToStage.NonUFSFiles.ToDictionary(x => SC.StageTargetPlatform.Remap(x.Key), x => x.Value);
+		if(!Params.UsePak(SC.StageTargetPlatform))
+		{
+			SC.FilesToStage.UFSFiles = SC.FilesToStage.UFSFiles.ToDictionary(x => SC.StageTargetPlatform.Remap(x.Key), x => x.Value);
+		}
+
+		// Merge all the NonUFS system files back into the NonUFS list. Deployment is currently only set up to read from that.
+		foreach(KeyValuePair<StagedFileReference, FileReference> Pair in SC.FilesToStage.NonUFSSystemFiles)
+		{
+			SC.FilesToStage.NonUFSFiles[Pair.Key] = Pair.Value;
+		}
+
+		// Make sure there are no restricted folders in the output
+		HashSet<StagedFileReference> RestrictedFiles = new HashSet<StagedFileReference>();
+		foreach(FileSystemName RestrictedName in SC.RestrictedFolderNames)
+		{
+			RestrictedFiles.UnionWith(SC.FilesToStage.UFSFiles.Keys.Where(x => x.ContainsName(RestrictedName)));
+			RestrictedFiles.UnionWith(SC.FilesToStage.NonUFSFiles.Keys.Where(x => x.ContainsName(RestrictedName)));
+			RestrictedFiles.UnionWith(SC.FilesToStage.NonUFSDebugFiles.Keys.Where(x => x.ContainsName(RestrictedName)));
+		}
+		if(RestrictedFiles.Count > 0)
+		{
+			StringBuilder Message = new StringBuilder("The following files are set to be staged, but contain restricted folder names:");
+			foreach(StagedFileReference RestrictedFile in RestrictedFiles.OrderBy(x => x.Name))
+			{
+				Message.AppendFormat("\n{0}", RestrictedFile);
+			}
+			Message.Append("\nIf these files are intended to be distributed in packaged builds, move the source files out of a restricted folder, or remap them during staging using the following syntax in DefaultGame.ini:");
+			Message.Append("\n[Staging]");
+			Message.Append("\n+RemapDirectory=(From=\"Foo/NoRedist\", To=\"Foo\")");
+			throw new AutomationException(Message.ToString());
+		}
+	}
+
+	static StagedFileReference ApplyDirectoryRemap(DeploymentContext SC, StagedFileReference InputFile)
+	{
+		StagedFileReference CurrentFile = InputFile;
+		foreach(Tuple<StagedDirectoryReference, StagedDirectoryReference> RemapDirectory in SC.RemapDirectories)
+		{
+			StagedFileReference NewFile;
+			if(StagedFileReference.TryRemap(CurrentFile, RemapDirectory.Item1, RemapDirectory.Item2, out NewFile))
+			{
+				CurrentFile = NewFile;
+			}
+		}
+		return CurrentFile;
+	}
+
+	static List<string> ParseInputPaths(List<string> ConfigLines)
+	{
+        // Each string has the format '(Path="TheDirToStage")'
+		List<string> InputPaths = new List<string>();
+        foreach (string ConfigLine in ConfigLines)
+        {
+            string[] PathParts = ConfigLine.Split('"');
+            if (PathParts.Length == 3)
+            {
+				InputPaths.Add(PathParts[1]);
+            }
+            else if (PathParts.Length == 1)
+            {
+				InputPaths.Add(PathParts[0]);
+            }
+        }
+		return InputPaths;
+	}
+
+	static void CreatePluginManifest(DeploymentContext SC, Dictionary<StagedFileReference, FileReference> FileMapping, StagedFileType FileType, string ManifestName)
+	{
+		// Get the path to the project's mods directory. We wont include anything under here in the manifest
+		DirectoryReference ModsDir = DirectoryReference.Combine(SC.ProjectRoot, "Mods");
+
+		// Find all the plugins that are being staged
+		Dictionary<StagedFileReference, PluginDescriptor> StagedPlugins = new Dictionary<StagedFileReference, PluginDescriptor>();
+		foreach (KeyValuePair<StagedFileReference, FileReference> File in FileMapping)
+		{
+			if (!File.Value.IsUnderDirectory(ModsDir) && File.Value.HasExtension(".uplugin"))
+			{
+				PluginDescriptor Descriptor = PluginDescriptor.FromFile(File.Value);
+				StagedPlugins[File.Key] = Descriptor;
+			}
+		}
+
+		// If we have plugins, write out the manifest
+		if (StagedPlugins.Count > 0)
+		{
+			string PluginManifestName = String.Format("{0}.upluginmanifest", ManifestName);
+
+			FileReference PluginManifestFile = FileReference.Combine(SC.ProjectRoot, "Intermediate", "Staging", PluginManifestName);
+			DirectoryReference.CreateDirectory(PluginManifestFile.Directory);
+
+			using (JsonWriter Writer = new JsonWriter(PluginManifestFile.FullName))
+			{
+				Writer.WriteObjectStart();
+				Writer.WriteArrayStart("Contents");
+				foreach (KeyValuePair<StagedFileReference, PluginDescriptor> StagedPlugin in StagedPlugins)
+				{
+					Writer.WriteObjectStart();
+					Writer.WriteValue("File", String.Format("../../../{0}", StagedPlugin.Key.Name));
+					Writer.WriteObjectStart("Descriptor");
+					StagedPlugin.Value.Write(Writer);
+					Writer.WriteObjectEnd();
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteArrayEnd();
+				Writer.WriteObjectEnd();
+			}
+
+			SC.StageFile(FileType, PluginManifestFile, StagedFileReference.Combine(SC.RelativeProjectRootForStage, "Plugins", PluginManifestName));
+		}
 	}
 
 	public static void DumpTargetManifest(Dictionary<StagedFileReference, FileReference> Mapping, FileReference Filename, DirectoryReference StageDir, HashSet<StagedFileReference> CRCFiles)
@@ -671,27 +803,27 @@ public partial class Project : CommandUtils
 
 	public static void DumpManifest(DeploymentContext SC, string BaseFilename, bool DumpUFSFiles = true)
 	{
-		DumpManifest(SC.FilesToStage.NonUFSStagingFiles, BaseFilename + "_NonUFSFiles.txt");
+		DumpManifest(SC.FilesToStage.NonUFSFiles, BaseFilename + "_NonUFSFiles.txt");
 		if (DumpUFSFiles)
 		{
-			DumpManifest(SC.FilesToStage.NonUFSStagingFilesDebug, BaseFilename + "_NonUFSFilesDebug.txt");
+			DumpManifest(SC.FilesToStage.NonUFSDebugFiles, BaseFilename + "_NonUFSFilesDebug.txt");
 		}
-		DumpManifest(SC.FilesToStage.UFSStagingFiles, BaseFilename + "_UFSFiles.txt");
+		DumpManifest(SC.FilesToStage.UFSFiles, BaseFilename + "_UFSFiles.txt");
 	}
 
 	public static void CopyUsingStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
-		CopyManifestFilesToStageDir(SC.FilesToStage.NonUFSStagingFiles, SC.StageDirectory, "NonUFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
+		CopyManifestFilesToStageDir(SC.FilesToStage.NonUFSFiles, SC.StageDirectory, "NonUFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
 
 		if (!Params.NoDebugInfo)
 		{
-			CopyManifestFilesToStageDir(SC.FilesToStage.NonUFSStagingFilesDebug, SC.StageDirectory, "DebugFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
+			CopyManifestFilesToStageDir(SC.FilesToStage.NonUFSDebugFiles, SC.StageDirectory, "DebugFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
 		}
 
 		bool bStageUnrealFileSystemFiles = !Params.CookOnTheFly && !Params.UsePak(SC.StageTargetPlatform) && !Params.FileServer;
 		if (bStageUnrealFileSystemFiles)
 		{
-			CopyManifestFilesToStageDir(SC.FilesToStage.UFSStagingFiles, SC.StageDirectory, "UFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
+			CopyManifestFilesToStageDir(SC.FilesToStage.UFSFiles, SC.StageDirectory, "UFSFiles", SC.StageTargetPlatform.GetFilesForCRCCheck(), SC.StageTargetPlatform.PlatformType.ToString());
 		}
 	}
 
@@ -750,7 +882,7 @@ public partial class Project : CommandUtils
 		}
 
 		var UnrealPakResponseFile = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-		foreach (KeyValuePair<StagedFileReference, FileReference> Pair in SC.FilesToStage.UFSStagingFiles)
+		foreach (KeyValuePair<StagedFileReference, FileReference> Pair in SC.FilesToStage.UFSFiles)
 		{
 			FileReference Src = Pair.Value;
 			string Dest = Pair.Key.Name;
@@ -867,13 +999,13 @@ public partial class Project : CommandUtils
 		StagedFileReference OutputRelativeLocation;
 		if(Params.HasDLCName)
 		{
-			OutputRelativeLocation = StagedFileReference.Combine(SC.RelativeProjectRootForStage, "Plugins", Params.DLCName, "Content", "Paks", SC.FinalCookPlatform, Params.DLCName + ".pak");
+			OutputRelativeLocation = StagedFileReference.Combine(SC.RelativeProjectRootForStage, Params.DLCFile.Directory.MakeRelativeTo(SC.ProjectRoot), "Content", "Paks", SC.FinalCookPlatform, Params.DLCFile.GetFileNameWithoutExtension() + ".pak");
 		}
 		else
 		{
 			OutputRelativeLocation = StagedFileReference.Combine(SC.RelativeProjectRootForStage, "Content", "Paks", OutputFilename + OutputFilenameExtension);
 		}
-		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
+		if (SC.StageTargetPlatform.DeployLowerCaseFilenames())
 		{
 			OutputRelativeLocation = OutputRelativeLocation.ToLowerInvariant();
 		}
@@ -903,7 +1035,7 @@ public partial class Project : CommandUtils
 			// Check to see if we have an existing pak file we can use
 
 			StagedFileReference SourceOutputRelativeLocation = StagedFileReference.Combine(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.CookPlatform + PostFix + ".pak");
-			if (SC.CookSourcePlatform.DeployLowerCaseFilenames(true))
+			if (SC.CookSourcePlatform.DeployLowerCaseFilenames())
 			{
 				SourceOutputRelativeLocation = SourceOutputRelativeLocation.ToLowerInvariant();
 			}
@@ -1060,13 +1192,13 @@ public partial class Project : CommandUtils
 			else
 			{
 				// add the first pak file as needing deployment and convert to lower case again if needed
-				SC.FilesToStage.UFSStagingFiles.Add(OutputRelativeLocation, OutputLocation);
+				SC.FilesToStage.UFSFiles.Add(OutputRelativeLocation, OutputLocation);
 			}
 		}
 		else
 		{
 			// add the pak file as needing deployment and convert to lower case again if needed
-			SC.FilesToStage.UFSStagingFiles.Add(OutputRelativeLocation, OutputLocation);
+			SC.FilesToStage.UFSFiles.Add(OutputRelativeLocation, OutputLocation);
 
 			// add the base pak files to deployment as well
 			if (bShouldGeneratePatch)
@@ -1082,12 +1214,12 @@ public partial class Project : CommandUtils
 						{
 							InternalUtils.SafeCopyFile(PakFilePath, OutputDestinationPath.FullName);
 							StagedFileReference OutputDestinationRelativeLocation = StagedFileReference.Combine(SC.RelativeProjectRootForStage, "Content/Paks/", Path.GetFileName(PakFilePath));
-							if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
+							if (SC.StageTargetPlatform.DeployLowerCaseFilenames())
 							{
 								OutputDestinationRelativeLocation = OutputDestinationRelativeLocation.ToLowerInvariant();
 							}
 							OutputDestinationRelativeLocation = SC.StageTargetPlatform.Remap(OutputDestinationRelativeLocation);
-							SC.FilesToStage.UFSStagingFiles.Add(OutputDestinationRelativeLocation, OutputDestinationPath);
+							SC.FilesToStage.UFSFiles.Add(OutputDestinationRelativeLocation, OutputDestinationPath);
 						}
 					}
 				}
@@ -1258,7 +1390,6 @@ public partial class Project : CommandUtils
 
 	public static void CleanStagingDirectory(ProjectParams Params, DeploymentContext SC)
 	{
-		MaybeConvertToLowerCase(Params, SC);
 		Log("Cleaning Stage Directory: {0}", SC.StageDirectory.FullName);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
@@ -1320,7 +1451,7 @@ public partial class Project : CommandUtils
 	{
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file. 
 		// @todo: Maybe there should be a new category - UFSNotForPak
-		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
+		if (SC.StageTargetPlatform.DeployLowerCaseFilenames())
 		{
 			IntermediateCmdLineFile = new FileReference(CombinePaths(Path.GetDirectoryName(IntermediateCmdLineFile.FullName), Path.GetFileName(IntermediateCmdLineFile.FullName).ToLowerInvariant()));
 		}

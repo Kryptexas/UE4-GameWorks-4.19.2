@@ -564,7 +564,7 @@ void SVisualLogger::HandleLoadCommandExecute()
 	bool bOpened = false;
 	if (DesktopPlatform)
 	{
-		const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::GameSavedDir());
+		const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::ProjectSavedDir());
 
 		bOpened = DesktopPlatform->OpenFileDialog(
 			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
@@ -639,7 +639,7 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 		bool bSaved = false;
 		if (DesktopPlatform)
 		{
-			const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::GameSavedDir());
+			const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::ProjectSavedDir());
 			bSaved = DesktopPlatform->SaveFileDialog(
 				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 				LOCTEXT("NewProjectBrowseTitle", "Choose a project location").ToString(),

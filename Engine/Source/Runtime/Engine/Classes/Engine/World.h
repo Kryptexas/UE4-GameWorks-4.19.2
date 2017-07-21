@@ -1096,15 +1096,6 @@ public:
 	/** Counter for allocating game- unique controller player numbers															*/
 	int32										PlayerNum;
 
-	/** Time in seconds (game time so we respect time dilation) since the last time we purged references to pending kill objects */
-	float										TimeSinceLastPendingKillPurge;
-
-	/** Whether a full purge has been triggered, so that the next GarbageCollect will do a full purge no matter what.			*/
-	bool										FullPurgeTriggered;
-	
-	/** Whether we should delay GC for one frame to finish some pending operation												*/
-	bool										bShouldDelayGarbageCollect;
-
 	/** Whether world object has been initialized via Init()																	*/
 	bool										bIsWorldInitialized;
 	
@@ -1917,8 +1908,6 @@ private:
 
 public:
 
-	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
-	ABrush* GetBrush() const;
 	/** 
 	 * Returns the default brush for the persistent level.
 	 * This is usually the 'builder brush' for editor builds, undefined for non editor instances and may be NULL.
@@ -2230,17 +2219,6 @@ public:
 	void FlushLevelStreaming(EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full);
 
 	/**
-	 * [Deprecated] Flushes level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden
-	 * so further calls to UpdateLevelStreaming won't do any work unless state changes. Basically blocks
-	 * on all async operation like updating components.
-	 *
-	 * @param FlushType					Whether to only flush level visibility operations
-	 * @param ExcludeType				Exclude packages of this type from flushing
-	 */
-	DEPRECATED(4.9, "FlushLevelStreaming override that takes ExcludeType parameter is deprecated.")
-	void FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType);
-
-	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.
 	 */
 	void TriggerStreamingDataRebuild();
@@ -2369,11 +2347,13 @@ public:
 	/**
 	 *  Interface to allow WorldSettings to request immediate garbage collection
 	 */
+	DEPRECATED(4.18, "Use GEngine->PerformGarbageCollectionAndCleanupActors instead.")
 	void PerformGarbageCollectionAndCleanupActors();
 
 	/**
 	 *  Requests a one frame delay of Garbage Collection
 	 */
+	DEPRECATED(4.18, "Use GEngine->DelayGarbageCollection instead.")
 	void DelayGarbageCollection();
 
 	/**
@@ -2382,14 +2362,14 @@ public:
 	 *
 	 * Note: Things that force a GC will still force a GC after using this method (and they will also reset the timer)
 	 */
+	DEPRECATED(4.18, "Use GEngine->SetTimeUntilNextGarbageCollection instead.")
 	void SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass);
 
 	/**
 	 * Returns the current desired time between garbage collection passes (not the time remaining)
 	 */
+	DEPRECATED(4.18, "Call GEngine->GetTimeBetweenGarbageCollectionPasses instead")
 	float GetTimeBetweenGarbageCollectionPasses() const;
-
-protected:
 
 	/**
 	 *	Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting. 
@@ -2753,33 +2733,6 @@ public:
 	{
 		return CastChecked<T>(SpawnActorAbsolute(Class, Transform, SpawnParameters), ECastCheckedType::NullAllowed);
 	}
-	/**
-	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
-	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
-	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
-	*/
-	template< class T >
-	DEPRECATED(4.9, "This version of SpawnActorDeferred is deprecated. Please use the version that takes an FTransform and ESpawnActorCollisionHandlingMethod.")
-	T* SpawnActorDeferred(
-		UClass* Class,
-		FVector const& Location,
-		FRotator const& Rotation,
-		AActor* Owner = nullptr,
-		APawn* Instigator = nullptr,
-		bool bNoCollisionFail = false
-		)
-	{
-		if( Owner )
-		{
-			check(this==Owner->GetWorld());
-		}
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AlwaysSpawn : ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		SpawnInfo.Owner = Owner;
-		SpawnInfo.Instigator = Instigator;
-		SpawnInfo.bDeferConstruction = true;
-		return (Class != NULL) ? Cast<T>(SpawnActor(Class, &Location, &Rotation, SpawnInfo )) : NULL;
-	}
 
 	/**
 	 * Spawns given class and returns class T pointer, forcibly sets world transform (note this allows scale as well). WILL NOT run Construction Script of Blueprints 
@@ -3113,6 +3066,7 @@ public:
 	int32 GetDetailMode();
 
 	/** Updates the timer between garbage collection such that at the next opportunity garbage collection will be run. */
+	DEPRECATED(4.18, "Call GEngine->ForceGarbageCollection instead")
 	void ForceGarbageCollection( bool bFullPurge = false );
 
 	/** asynchronously loads the given levels in preparation for a streaming map transition.

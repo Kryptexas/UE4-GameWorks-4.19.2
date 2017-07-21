@@ -144,14 +144,4 @@ protected:
 	 * by default it returns bHitSomething ? TraceHitLocation : DesiredArmLocation
 	 */
 	virtual FVector BlendLocations(const FVector& DesiredArmLocation, const FVector& TraceHitLocation, bool bHitSomething, float DeltaTime);
-
-public:
-
-	/**
-	* DEPRECATED variable: use "bUsePawnControlRotation" instead. Existing code using this value may not behave correctly.
-	* This is not a UPROPERTY, with good reason: we don't want to serialize in old values.
-	*/
-	DEPRECATED(4.5, "This variable is deprecated; existing code using this value may not behave correctly. It only exists to allow compilation of old projects, and code should stop using it in favor of the new bUsePawnControlRotation.")
-	bool bUseControllerViewRotation;
-
 };

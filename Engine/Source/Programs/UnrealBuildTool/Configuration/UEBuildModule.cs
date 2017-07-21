@@ -709,26 +709,38 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public delegate UEBuildModule CreateModuleDelegate(string Name);
+		public delegate UEBuildModule CreateModuleDelegate(string Name, string ReferenceChain);
 
 		/// <summary>
 		/// Creates all the modules required for this target
 		/// </summary>
-		public void RecursivelyCreateModules(CreateModuleDelegate CreateModule)
+		/// <param name="CreateModule">Delegate to create a module with a given name</param>
+		/// <param name="ReferenceChain">Chain of references before reaching this module</param>
+		public void RecursivelyCreateModules(CreateModuleDelegate CreateModule, string ReferenceChain)
 		{
-			// Create all the include path modules. These modules may not be added to the target (and we don't process their dependencies), but they need 
-			// to be created to set up their compile environment.
-			RecursivelyCreateIncludePathModulesByName(Rules.PublicIncludePathModuleNames, ref PublicIncludePathModules, CreateModule);
-			RecursivelyCreateIncludePathModulesByName(Rules.PrivateIncludePathModuleNames, ref PrivateIncludePathModules, CreateModule);
+			// Get the reference chain for anything referenced by this module
+			string NextReferenceChain = String.Format("{0} -> {1}", ReferenceChain, (RulesFile == null)? Name : RulesFile.GetFileName());
 
-			// Create all the dependency modules
-			RecursivelyCreateModulesByName(Rules.PublicDependencyModuleNames, ref PublicDependencyModules, CreateModule);
-			RecursivelyCreateModulesByName(Rules.PrivateDependencyModuleNames, ref PrivateDependencyModules, CreateModule);
-			RecursivelyCreateModulesByName(Rules.DynamicallyLoadedModuleNames, ref DynamicallyLoadedModules, CreateModule);
-			RecursivelyCreateModulesByName(Rules.PlatformSpecificDynamicallyLoadedModuleNames, ref PlatformSpecificDynamicallyLoadedModules, CreateModule);
+			// Recursively create all the public include path modules. These modules may not be added to the target (and we don't process their referenced 
+			// dependencies), but they need to be created to set up their include paths.
+			RecursivelyCreateIncludePathModulesByName(Rules.PublicIncludePathModuleNames, ref PublicIncludePathModules, CreateModule, NextReferenceChain);
+
+			// Create all the referenced modules. This path can be recursive, so we check against PrivateIncludePathModules to ensure we don't recurse through the 
+			// same module twice (it produces better errors if something fails).
+			if(PrivateIncludePathModules == null)
+			{
+				// Create the private include path modules
+				RecursivelyCreateIncludePathModulesByName(Rules.PrivateIncludePathModuleNames, ref PrivateIncludePathModules, CreateModule, NextReferenceChain);
+
+				// Create all the dependency modules
+				RecursivelyCreateModulesByName(Rules.PublicDependencyModuleNames, ref PublicDependencyModules, CreateModule, NextReferenceChain);
+				RecursivelyCreateModulesByName(Rules.PrivateDependencyModuleNames, ref PrivateDependencyModules, CreateModule, NextReferenceChain);
+				RecursivelyCreateModulesByName(Rules.DynamicallyLoadedModuleNames, ref DynamicallyLoadedModules, CreateModule, NextReferenceChain);
+				RecursivelyCreateModulesByName(Rules.PlatformSpecificDynamicallyLoadedModuleNames, ref PlatformSpecificDynamicallyLoadedModules, CreateModule, NextReferenceChain);
+			}
 		}
 
-		private static void RecursivelyCreateModulesByName(List<string> ModuleNames, ref List<UEBuildModule> Modules, CreateModuleDelegate CreateModule)
+		private static void RecursivelyCreateModulesByName(List<string> ModuleNames, ref List<UEBuildModule> Modules, CreateModuleDelegate CreateModule, string ReferenceChain)
 		{
 			// Check whether the module list is already set. We set this immediately (via the ref) to avoid infinite recursion.
 			if (Modules == null)
@@ -736,17 +748,17 @@ namespace UnrealBuildTool
 				Modules = new List<UEBuildModule>();
 				foreach (string ModuleName in ModuleNames)
 				{
-					UEBuildModule Module = CreateModule(ModuleName);
+					UEBuildModule Module = CreateModule(ModuleName, ReferenceChain);
 					if (!Modules.Contains(Module))
 					{
-						Module.RecursivelyCreateModules(CreateModule);
+						Module.RecursivelyCreateModules(CreateModule, ReferenceChain);
 						Modules.Add(Module);
 					}
 				}
 			}
 		}
 
-		private static void RecursivelyCreateIncludePathModulesByName(List<string> ModuleNames, ref List<UEBuildModule> Modules, CreateModuleDelegate CreateModule)
+		private static void RecursivelyCreateIncludePathModulesByName(List<string> ModuleNames, ref List<UEBuildModule> Modules, CreateModuleDelegate CreateModule, string ReferenceChain)
 		{
 			// Check whether the module list is already set. We set this immediately (via the ref) to avoid infinite recursion.
 			if (Modules == null)
@@ -754,8 +766,8 @@ namespace UnrealBuildTool
 				Modules = new List<UEBuildModule>();
 				foreach (string ModuleName in ModuleNames)
 				{
-					UEBuildModule Module = CreateModule(ModuleName);
-					RecursivelyCreateIncludePathModulesByName(Module.Rules.PublicIncludePathModuleNames, ref Module.PublicIncludePathModules, CreateModule);
+					UEBuildModule Module = CreateModule(ModuleName, ReferenceChain);
+					RecursivelyCreateIncludePathModulesByName(Module.Rules.PublicIncludePathModuleNames, ref Module.PublicIncludePathModules, CreateModule, ReferenceChain);
 					Modules.Add(Module);
 				}
 			}

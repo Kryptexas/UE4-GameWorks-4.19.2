@@ -208,6 +208,12 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	}
 }
 
+void UK2Node_BreakStruct::PreloadRequiredAssets()
+{
+	PreloadObject(StructType);
+	Super::PreloadRequiredAssets();
+}
+
 FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (StructType == nullptr)

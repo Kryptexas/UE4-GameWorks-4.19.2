@@ -5,6 +5,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Editor/Cascade/Public/CascadeModule.h"
 #include "Particles/ParticleEmitter.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -97,7 +98,7 @@ void FAssetTypeActions_ParticleSystem::ExecuteCopyParameters(TArray<TWeakObjectP
 		}
 	}
 
-	FPlatformMisc::ClipboardCopy(*ClipboardString);
+	FPlatformApplicationMisc::ClipboardCopy(*ClipboardString);
 }
 
 void FAssetTypeActions_ParticleSystem::ConvertToSeeded(TArray<TWeakObjectPtr<UParticleSystem>> Objects)

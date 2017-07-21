@@ -781,10 +781,12 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 
 			if (!bCreatingSubObjectsOfClass && Property->HasAnyPropertyFlags(CPF_InstancedReference))
 			{
-				const FString CreateAsInstancedSubobject = HandleInstancedSubobject(Context, Object, Object->HasAnyFlags(RF_ArchetypeObject));
-				if (!CreateAsInstancedSubobject.IsEmpty())
+				// Emit ctor code to create the instance only if it's not a default subobject; otherwise, just access it.
+				const bool bCreateInstance = !Object->IsDefaultSubobject();
+				const FString GetOrCreateAsInstancedSubobject = HandleInstancedSubobject(Context, Object, bCreateInstance);
+				if (!GetOrCreateAsInstancedSubobject.IsEmpty())
 				{
-					return CreateAsInstancedSubobject;
+					return GetOrCreateAsInstancedSubobject;
 				}
 			}
 
@@ -1968,6 +1970,8 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 		}
 		else
 		{
+			check(Object->IsDefaultSubobject());
+
 			Context.AddLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(%s(TEXT(\"%s\")));")
 				, *LocalNativeName
 				, *FEmitHelper::GetCppName(ObjectClass)

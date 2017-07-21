@@ -45,7 +45,11 @@ public abstract class BaseLinuxPlatform : Platform
 			++BuildProductIdx;
         }
 
-		SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+		FileReference SplashImage = FileReference.Combine(SC.ProjectRoot, "Content", "Splash", "Splash.bmp");
+		if(FileReference.Exists(SplashImage))
+		{
+			SC.StageFile(StagedFileType.NonUFS, SplashImage);
+		}
 
 		// Stage the bootstrap executable
 		if (!Params.NoBootstrapExe)
@@ -86,7 +90,7 @@ public abstract class BaseLinuxPlatform : Platform
 							BootstrapExeName = SC.ShortProjectName;
 						}
 
-						List<StagedFileReference> StagePaths = SC.FilesToStage.NonUFSStagingFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
+						List<StagedFileReference> StagePaths = SC.FilesToStage.NonUFSFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
 						foreach (StagedFileReference StagePath in StagePaths)
 						{
 							StageBootstrapExecutable(SC, BootstrapExeName + ".sh", FullExecutablePath, StagePath.Name, BootstrapArguments);
@@ -106,8 +110,8 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		// create a temp script file location
 		DirectoryReference IntermediateDir = DirectoryReference.Combine(SC.ProjectRoot, "Intermediate", "Staging");
-		string IntermediateFile = CombinePaths(IntermediateDir.FullName, ExeName);
-		InternalUtils.SafeCreateDirectory(IntermediateDir.FullName);
+		FileReference IntermediateFile = FileReference.Combine(IntermediateDir, ExeName);
+		DirectoryReference.CreateDirectory(IntermediateDir);
 
 		// make sure slashes are good
 		StagedRelativeTargetPath = StagedRelativeTargetPath.Replace("\\", "/");
@@ -123,7 +127,7 @@ public abstract class BaseLinuxPlatform : Platform
 		Script.AppendFormat("\"$UE4_PROJECT_ROOT/{0}\" {1} $@ " + EOL, StagedRelativeTargetPath, StagedArguments);
 
 		// write out the 
-		File.WriteAllText(IntermediateFile, Script.ToString());
+		FileReference.WriteAllText(IntermediateFile, Script.ToString());
 
 		if (Utils.IsRunningOnMono)
 		{
@@ -134,7 +138,7 @@ public abstract class BaseLinuxPlatform : Platform
 			}
 		}
 
-		SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, StagedDirectoryReference.Root);
+		SC.StageFile(StagedFileType.NonUFS, IntermediateFile, new StagedFileReference(ExeName));
 	}
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
@@ -166,7 +170,7 @@ public abstract class BaseLinuxPlatform : Platform
 	/// return true if we need to change the case of filenames outside of pak files
 	/// </summary>
 	/// <returns></returns>
-	public override bool DeployLowerCaseFilenames(bool bUFSFile)
+	public override bool DeployLowerCaseFilenames()
 	{
 		return false;
 	}

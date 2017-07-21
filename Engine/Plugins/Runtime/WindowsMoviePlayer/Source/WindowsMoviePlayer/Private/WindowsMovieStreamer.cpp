@@ -123,7 +123,7 @@ void FMediaFoundationMovieStreamer::Cleanup()
 void FMediaFoundationMovieStreamer::OpenNextMovie()
 {
 	check(StoredMoviePaths.Num() > 0 && MovieIndex < StoredMoviePaths.Num());
-	FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + StoredMoviePaths[MovieIndex];
+	FString MoviePath = FPaths::ProjectContentDir() + TEXT("Movies/") + StoredMoviePaths[MovieIndex];
 
 	SampleGrabberCallback = new FSampleGrabberCallback(TextureData);
 	

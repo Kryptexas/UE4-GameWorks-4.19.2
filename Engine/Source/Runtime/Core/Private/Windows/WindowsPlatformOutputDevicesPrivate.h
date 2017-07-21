@@ -41,13 +41,13 @@ public:
 		// Build a name to uniquely identify this instance
 		if (FParse::Value(FCommandLine::Get(),TEXT("-Login="),ServerName))
 		{
-			InstanceName = FApp::GetGameName();
+			InstanceName = FApp::GetProjectName();
 			InstanceName += ServerName;
 		}
 		else
 		{
 			uint32 ProcID = GetCurrentProcessId();
-			InstanceName = FString::Printf(TEXT("%s-PID%d"),FApp::GetGameName(),ProcID);
+			InstanceName = FString::Printf(TEXT("%s-PID%d"),FApp::GetProjectName(),ProcID);
 		}
 		// Open the event log using the name built above
 		EventLog = RegisterEventSource(NULL,*InstanceName);

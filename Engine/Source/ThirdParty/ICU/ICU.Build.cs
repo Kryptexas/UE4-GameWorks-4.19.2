@@ -19,7 +19,7 @@ public class ICU : ModuleRules
 		bool bNeedsDlls = false;
 
 		string ICUVersion = "icu4c-53_1";
-		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/" + ICUVersion + "/";
+		string ICURootPath = Target.UEThirdPartySourceDirectory + "ICU/" + ICUVersion + "/";
 
 		// Includes
 		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");
@@ -37,7 +37,7 @@ public class ICU : ModuleRules
             (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
         )
 		{
-			string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			string VSVersionFolderName = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			TargetSpecificPath += VSVersionFolderName + "/";
 
 			string[] LibraryNameStems =
@@ -49,7 +49,7 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ?
 				"d" : string.Empty;
 
             // Library Paths
@@ -80,7 +80,7 @@ public class ICU : ModuleRules
 
 				if(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 				{
-					string BinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/ICU/{0}/{1}/VS{2}/", ICUVersion, Target.Platform.ToString(), WindowsPlatform.GetVisualStudioCompilerVersionName());
+					string BinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/ICU/{0}/{1}/VS{2}/", ICUVersion, Target.Platform.ToString(), Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 					foreach(string Stem in LibraryNameStems)
 					{
 						string LibraryName = BinariesDir + String.Format("icu{0}{1}53.dll", Stem, LibraryNamePostfix);
@@ -119,7 +119,7 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ?
                 "d" : string.Empty;
 
             // Library Paths
@@ -152,7 +152,7 @@ public class ICU : ModuleRules
                         foreach (string Stem in LibraryNameStems)
                         {
                             string LibraryName = "icu" + Stem + LibraryNamePostfix;
-                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
+                            string LibraryPath = Target.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
 
                             PublicLibraryPaths.Add(LibraryPath);
                             PublicAdditionalLibraries.Add(LibraryName);
@@ -179,7 +179,7 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ?
                 "d" : string.Empty;
 
 			EICULinkType ICULinkType = (Target.Platform == UnrealTargetPlatform.IOS || (Target.LinkType == TargetLinkType.Monolithic)) ? EICULinkType.Static : EICULinkType.Dynamic;
@@ -200,7 +200,7 @@ public class ICU : ModuleRules
                         if (Target.Platform == UnrealTargetPlatform.Mac)
                         {
                             string LibraryName = "libicu" + Stem + ".53.1" + LibraryNamePostfix + "." + DynamicLibraryExtension;
-                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName;
+                            string LibraryPath = Target.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName;
 
                             PublicDelayLoadDLLs.Add(LibraryPath);
                             PublicAdditionalShadowFiles.Add(LibraryPath);
@@ -229,7 +229,7 @@ public class ICU : ModuleRules
 			};
 
             string OpimizationSuffix = "";
-            if (UEBuildConfiguration.bCompileForSize)
+            if (Target.bCompileForSize)
             {
                 OpimizationSuffix = "_Oz";
             }
@@ -284,7 +284,7 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-			string LibraryNamePostfix = ""; //(Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d" : string.Empty;
+			string LibraryNamePostfix = ""; //(Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "d" : string.Empty;
 			string LibraryExtension = "a";
 			foreach (string Stem in LibraryNameStems)
 			{
@@ -308,7 +308,7 @@ public class ICU : ModuleRules
 					"lx",   // Layout Extensions
 					"io"	// Input/Output
 				};
-				string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+				string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ?
 					"d" : string.Empty;
 				string LibraryExtension = "lib";
 				foreach (string Stem in LibraryNameStems)

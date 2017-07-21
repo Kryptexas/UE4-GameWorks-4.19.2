@@ -9,7 +9,7 @@ public class FBX : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string FBXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "FBX/2016.1.1/";
+		string FBXSDKDir = Target.UEThirdPartySourceDirectory + "FBX/2016.1.1/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					FBXSDKDir + "include",
@@ -20,7 +20,7 @@ public class FBX : ModuleRules
 
 		if ( Target.Platform == UnrealTargetPlatform.Win64 )
 		{
-			string FBxLibPath = FBXSDKDir + "lib/vs" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
+			string FBxLibPath = FBXSDKDir + "lib/vs" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 
 			FBxLibPath += "x64/release/";
 			PublicLibraryPaths.Add(FBxLibPath);

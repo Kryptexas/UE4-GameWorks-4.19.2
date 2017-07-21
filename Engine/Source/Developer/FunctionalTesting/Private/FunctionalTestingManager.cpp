@@ -101,7 +101,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObjec
 	}
 	
 	UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject);
-	World->ForceGarbageCollection(true);
+	GEngine->ForceGarbageCollection(true);
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;

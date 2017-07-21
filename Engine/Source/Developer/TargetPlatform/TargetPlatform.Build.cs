@@ -14,7 +14,7 @@ public class TargetPlatform : ModuleRules
         PrivateIncludePathModuleNames.Add("Engine");
 
 		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
-		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
+		if (!Target.bBuildRequiresCookedData && Target.bBuildDeveloperTools)
 		{
             // these are needed by multiple platform specific target platforms, so we make sure they are built with the base editor
             DynamicallyLoadedModuleNames.Add("ShaderPreprocessor");
@@ -23,7 +23,7 @@ public class TargetPlatform : ModuleRules
 
 			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 			{
-				if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+				if (Target.bCompileLeanAndMeanUE == false)
 				{
 					DynamicallyLoadedModuleNames.Add("TextureFormatIntelISPCTexComp");
 				}
@@ -38,7 +38,7 @@ public class TargetPlatform : ModuleRules
                 DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 				DynamicallyLoadedModuleNames.Add("MetalShaderFormat");
 
-                if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+                if (Target.bCompileLeanAndMeanUE == false)
 				{
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
@@ -47,7 +47,7 @@ public class TargetPlatform : ModuleRules
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
 
-				if (UEBuildConfiguration.bCompileAgainstEngine)
+				if (Target.bCompileAgainstEngine)
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatADPCM"); // For IOS cooking
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
@@ -75,7 +75,7 @@ public class TargetPlatform : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+				if (Target.bCompileLeanAndMeanUE == false)
 				{
 					DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
@@ -84,7 +84,7 @@ public class TargetPlatform : ModuleRules
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
 
-				if (UEBuildConfiguration.bCompileAgainstEngine)
+				if (Target.bCompileAgainstEngine)
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
 					DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
@@ -106,7 +106,7 @@ public class TargetPlatform : ModuleRules
 			}
             else if (Target.Platform == UnrealTargetPlatform.Linux)
             {
-                if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+                if (Target.bCompileLeanAndMeanUE == false)
                 {
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
@@ -115,7 +115,7 @@ public class TargetPlatform : ModuleRules
 
                 DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
 
-				if (UEBuildConfiguration.bCompileAgainstEngine)
+				if (Target.bCompileAgainstEngine)
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
 					DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
@@ -136,7 +136,7 @@ public class TargetPlatform : ModuleRules
             }
 		}
         
-        if (UEBuildConfiguration.bBuildDeveloperTools == true && UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
+        if (Target.bBuildDeveloperTools == true && Target.bBuildRequiresCookedData && Target.bCompileAgainstEngine && Target.bCompilePhysX)
         {
             DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }

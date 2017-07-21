@@ -38,29 +38,6 @@ float FCurveHandle::GetLerp( ) const
 	return ApplyEasing(Time, TheCurve.EaseFunction);
 }
 
-float FCurveHandle::GetLerpLooping() const
-{
-	return DEPRECATED_GetLerpLooping();
-}
-float FCurveHandle::DEPRECATED_GetLerpLooping() const
-{
-	if (OwnerSequence == nullptr)
-	{
-		return 0.0f;
-	}
-
-	// How far we've played through the curve sequence so far.
-	const float CurSequenceTime = OwnerSequence->DEPRECATED_GetSequenceTimeLooping();
-
-	const FCurveSequence::FSlateCurve& TheCurve = OwnerSequence->GetCurve(CurveIndex);
-	const float TimeSinceStarted = CurSequenceTime - TheCurve.StartTime;
-
-	// How far we passed through the current curve scaled between 0 and 1.
-	const float Time = FMath::Clamp(TimeSinceStarted / TheCurve.DurationSeconds, 0.0f, 1.0f);
-
-	return ApplyEasing(Time, TheCurve.EaseFunction);
-}
-
 
 /* FCurveHandle static functions
  *****************************************************************************/

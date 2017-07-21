@@ -773,11 +773,6 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesEditor(
 	0,
 	TEXT("Used to control async renderthread updates in the editor."));
 
-static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
-	TEXT("gc.CollectGarbageEveryFrame"),
-	0,
-	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
-
 namespace EComponentMarkedForEndOfFrameUpdateState
 {
 	enum Type
@@ -1100,13 +1095,6 @@ public:
 extern bool GCollisionAnalyzerIsRecording;
 #endif // ENABLE_COLLISION_ANALYZER
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
-	TEXT("gc.StressTestGC"),
-	0,
-	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
-#endif
-
 DECLARE_CYCLE_STAT(TEXT("TG_PrePhysics"), STAT_TG_PrePhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_StartPhysics"), STAT_TG_StartPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("Start TG_DuringPhysics"), STAT_TG_DuringPhysics, STATGROUP_TickGroups);
@@ -1114,14 +1102,6 @@ DECLARE_CYCLE_STAT(TEXT("TG_EndPhysics"), STAT_TG_EndPhysics, STATGROUP_TickGrou
 DECLARE_CYCLE_STAT(TEXT("TG_PostPhysics"), STAT_TG_PostPhysics, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_PostUpdateWork"), STAT_TG_PostUpdateWork, STATGROUP_TickGroups);
 DECLARE_CYCLE_STAT(TEXT("TG_LastDemotable"), STAT_TG_LastDemotable, STATGROUP_TickGroups);
-
-static float GTimeBetweenPurgingPendingKillObjects = 60.0f;
-static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
-	TEXT("gc.TimeBetweenPurgingPendingKillObjects"),
-	GTimeBetweenPurgingPendingKillObjects,
-	TEXT("Time in seconds (game time) we should wait between purging object references to objects that are pending kill."),
-	ECVF_Default
-	);
 
 #include "GameFramework/SpawnActorTimer.h"
 
@@ -1556,55 +1536,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	bInTick = false;
 	Mark.Pop();
 
-	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (CVarStressTestGCWhileStreaming.GetValueOnGameThread() && IsAsyncLoading())
-	{
-		TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
-	}
-	else 
-#endif
-	if (FullPurgeTriggered)
-	{
-		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true))
-		{
-			CleanupActors();
-			FullPurgeTriggered = false;
-			TimeSinceLastPendingKillPurge = 0.0f;
-		}
-	}
-	else if( HasBegunPlay() )
-	{
-		TimeSinceLastPendingKillPurge += DeltaSeconds;
-
-		const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
-
-		
-
-		// See if we should delay garbage collect for this frame
-		if (bShouldDelayGarbageCollect)
-		{
-			bShouldDelayGarbageCollect = false;
-		}
-		// Perform incremental purge update if it's pending or in progress.
-		else if( !IsIncrementalPurgePending() 
-		// Purge reference to pending kill objects every now and so often.
-		&&	(TimeSinceLastPendingKillPurge > TimeBetweenPurgingPendingKillObjects) && TimeBetweenPurgingPendingKillObjects > 0 )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GCMarkTime);
-			PerformGarbageCollectionAndCleanupActors();
-		}
-		else
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GCSweepTime);
-			IncrementalPurgeGarbage( true );
-		}
-	}
-
-	if (CVarCollectGarbageEveryFrame.GetValueOnGameThread() > 0)
-	{
-		ForceGarbageCollection(true);
-	}
+	GEngine->ConditionalCollectGarbage();
 
 	// players only request from last frame
 	if (bPlayersOnlyPending)
@@ -1685,23 +1617,22 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
  */
 void UWorld::DelayGarbageCollection()
 {
-	bShouldDelayGarbageCollect = true;
+	GEngine->DelayGarbageCollection();
 }
 
-void UWorld::SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass)
+void UWorld::ForceGarbageCollection( bool bFullPurge)
 {
-	const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+	GEngine->ForceGarbageCollection(bFullPurge);
+}
 
-	// This can make it go negative if the desired interval is longer than the typical interval, but it's only ever compared against TimeBetweenPurgingPendingKillObjects
-	TimeSinceLastPendingKillPurge = TimeBetweenPurgingPendingKillObjects - MinTimeUntilNextPass;
+void UWorld::SetTimeUntilNextGarbageCollection(const float MinTimeUntilNextPass)
+{
+	GEngine->SetTimeUntilNextGarbageCollection(MinTimeUntilNextPass);
 }
 
 float UWorld::GetTimeBetweenGarbageCollectionPasses() const
 {
-	const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
-	const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
-
-	return bShouldUseLowFrequencyGC ? (GTimeBetweenPurgingPendingKillObjects * 10) : GTimeBetweenPurgingPendingKillObjects;
+	return GEngine->GetTimeBetweenGarbageCollectionPasses();
 }
 
 /**
@@ -1709,50 +1640,42 @@ float UWorld::GetTimeBetweenGarbageCollectionPasses() const
  */
 void UWorld::PerformGarbageCollectionAndCleanupActors()
 {
-	// We don't collect garbage while there are outstanding async load requests as we would need
-	// to block on loading the remaining data.
-	if( !IsAsyncLoading() )
-	{
-		// Perform housekeeping.
-		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, false))
-		{
-			CleanupActors();
-
-			// Reset counter.
-			TimeSinceLastPendingKillPurge = 0.0f;
-		}
-	}
+	GEngine->PerformGarbageCollectionAndCleanupActors();
 }
-
 
 void UWorld::CleanupActors()
 {
 	// Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting; in theory static 
 	// actors shouldn't be deleted during gameplay.
-	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
+	for (ULevel* Level : Levels)
 	{
-		ULevel* Level = Levels[LevelIndex];
 		// Don't compact actors array for levels that are currently in the process of being made visible as the
 		// code that spreads this work across several frames relies on the actor count not changing as it keeps
 		// an index into the array.
 		if( CurrentLevelPendingVisibility != Level )
 		{
 			// Actor 0 (world info) and 1 (default brush) are special and should never be removed from the actor array even if NULL
-			int32 FirstDynamicIndex = 2;
+			const int32 FirstDynamicIndex = 2;
+			int32 NumActorsToRemove = 0;
 			// Remove NULL entries from array, we're iterating backwards to avoid unnecessary memcpys during removal.
 			for( int32 ActorIndex=Level->Actors.Num()-1; ActorIndex>=FirstDynamicIndex; ActorIndex-- )
 			{
-				if( Level->Actors[ActorIndex] == NULL )
+				// To avoid shuffling things down repeatedly when not necessary count nulls and then remove in bunches
+				if (Level->Actors[ActorIndex] == nullptr)
 				{
-					Level->Actors.RemoveAt( ActorIndex );
+					++NumActorsToRemove;
 				}
+				else if (NumActorsToRemove > 0)
+				{
+					Level->Actors.RemoveAt(ActorIndex+1, NumActorsToRemove, false);
+					NumActorsToRemove = 0;
+				}
+			}
+			if (NumActorsToRemove > 0)
+			{
+				// If our FirstDynamicIndex (and any immediately following it) were null it won't get caught in the loop, so do a cleanup pass here
+				Level->Actors.RemoveAt(FirstDynamicIndex, NumActorsToRemove, false);
 			}
 		}
 	}
-}
-
-void UWorld::ForceGarbageCollection( bool bForcePurge/*=false*/ )
-{
-	TimeSinceLastPendingKillPurge = 1.0f + GetTimeBetweenGarbageCollectionPasses();
-	FullPurgeTriggered = FullPurgeTriggered || bForcePurge;
 }

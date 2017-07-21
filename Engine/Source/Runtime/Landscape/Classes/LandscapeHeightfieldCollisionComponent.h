@@ -31,7 +31,7 @@ namespace physx
 }
 #endif // WITH_PHYSX
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, Within=LandscapeProxy)
 class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

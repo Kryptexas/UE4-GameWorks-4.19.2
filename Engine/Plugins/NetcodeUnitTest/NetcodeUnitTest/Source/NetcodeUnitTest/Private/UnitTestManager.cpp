@@ -185,7 +185,7 @@ void UUnitTestManager::InitializeLogs()
 			{
 				if (PurgeLogsDays != INDEX_NONE || MaxLogFilesOnDisk != INDEX_NONE)
 				{
-					FM.IterateDirectory(*FPaths::GameLogDir(), *this);
+					FM.IterateDirectory(*FPaths::ProjectLogDir(), *this);
 
 					DirList.ValueSort(TLess<FDateTime>());
 
@@ -251,7 +251,7 @@ void UUnitTestManager::InitializeLogs()
 
 
 		// Determine if the log folder already exists, and if so, advance the session count until there is an empty directory
-		BaseUnitLogDir = FPaths::GameLogDir() + TEXT("UnitTests");
+		BaseUnitLogDir = FPaths::ProjectLogDir() + TEXT("UnitTests");
 
 		for (int32 DirCount=0; FPaths::DirectoryExists(BaseUnitLogDir + FString::Printf(TEXT("_%i"), UnitTestSessionCount)); DirCount++)
 		{
@@ -304,7 +304,7 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 	if (bValidUnitTestClass && (UUnitTest::UnitEnv != NULL || bSupportsAllGames))
 	{
 		FString UnitTestName = UnitTestDefault->GetUnitTestName();
-		bool bCurrentGameSupported = bSupportsAllGames || UnitTestDefault->GetSupportedGames().Contains(FApp::GetGameName());
+		bool bCurrentGameSupported = bSupportsAllGames || UnitTestDefault->GetSupportedGames().Contains(FApp::GetProjectName());
 
 		if (bCurrentGameSupported)
 		{
@@ -351,7 +351,7 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 
 
 			FString LogMsg = FString::Printf(TEXT("Unit test '%s' doesn't support the current game ('%s'). Supported games: %s"),
-												*UnitTestName, FApp::GetGameName(), *SupportedGames);
+												*UnitTestName, FApp::GetProjectName(), *SupportedGames);
 
 			UnsupportedUnitTests.Add(UnitTestName, LogMsg);
 
@@ -383,7 +383,7 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 
 		STATUS_LOG(StatusType,
 				TEXT("No unit test environment found (need to load unit test environment module for this game '%s', or create it)."),
-				FApp::GetGameName());
+				FApp::GetProjectName());
 	}
 
 	return bSuccess;

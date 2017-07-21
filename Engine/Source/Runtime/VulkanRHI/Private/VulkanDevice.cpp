@@ -516,9 +516,9 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	TArray<FString> CacheFilenames;
 	if (PLATFORM_ANDROID)
 	{
-		CacheFilenames.Add(FPaths::GameDir() / TEXT("Build") / TEXT("ShaderCaches") / TEXT("Android") / TEXT("VulkanPSO.cache"));
+		CacheFilenames.Add(FPaths::ProjectDir() / TEXT("Build") / TEXT("ShaderCaches") / TEXT("Android") / TEXT("VulkanPSO.cache"));
 	}
-	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));	
+	CacheFilenames.Add(FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache"));	
 
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)

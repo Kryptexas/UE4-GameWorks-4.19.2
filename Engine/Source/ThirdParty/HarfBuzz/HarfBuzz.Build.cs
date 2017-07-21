@@ -10,14 +10,14 @@ public class HarfBuzz : ModuleRules
 		Type = ModuleType.External;
 		
 		// Can't be used without our dependencies
-		if (!UEBuildConfiguration.bCompileFreeType || !UEBuildConfiguration.bCompileICU)
+		if (!Target.bCompileFreeType || !Target.bCompileICU)
 		{
 			Definitions.Add("WITH_HARFBUZZ=0");
 			return;
 		}
 
 		string HarfBuzzVersion = "harfbuzz-1.2.4";
-		string HarfBuzzRootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "HarfBuzz/" + HarfBuzzVersion + "/";
+		string HarfBuzzRootPath = Target.UEThirdPartySourceDirectory + "HarfBuzz/" + HarfBuzzVersion + "/";
 
 		// Includes
 		PublicSystemIncludePaths.Add(HarfBuzzRootPath + "src" + "/");
@@ -36,10 +36,10 @@ public class HarfBuzz : ModuleRules
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 			
-			string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			string VSVersionFolderName = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			HarfBuzzLibPath += VSVersionFolderName + "/";
 
-			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug"
 				: "RelWithDebInfo";
 			HarfBuzzLibPath += BuildTypeFolderName + "/";
@@ -53,7 +53,7 @@ public class HarfBuzz : ModuleRules
 			Definitions.Add("WITH_HARFBUZZ=1");
 
 			string OpimizationSuffix = "_Oz"; // i.e. bCompileForSize
-			if ( ! UEBuildConfiguration.bCompileForSize )
+			if ( ! Target.bCompileForSize )
 			{
 				switch(Target.Configuration)
 				{
@@ -81,7 +81,7 @@ public class HarfBuzz : ModuleRules
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 
-			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug"
 				: "Release";
 			HarfBuzzLibPath += BuildTypeFolderName + "/";
@@ -94,7 +94,7 @@ public class HarfBuzz : ModuleRules
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 
-			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug"
 				: "Release";
 			HarfBuzzLibPath += "VS2015/" + BuildTypeFolderName + "/";
@@ -107,7 +107,7 @@ public class HarfBuzz : ModuleRules
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 
-			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			string BuildTypeFolderName = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 				? "Debug/"
 				: "Release/";
 

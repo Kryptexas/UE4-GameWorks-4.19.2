@@ -183,8 +183,8 @@ static bool CompressSliceToASTC(
 	FString InputFilePath = FString::Printf(TEXT("Cache/%08x-%08x-%08x-%08x-RGBToASTCIn.png"), Guid.A, Guid.B, Guid.C, Guid.D);
 	FString OutputFilePath = FString::Printf(TEXT("Cache/%08x-%08x-%08x-%08x-RGBToASTCOut.astc"), Guid.A, Guid.B, Guid.C, Guid.D);
 
-	InputFilePath  = FPaths::GameIntermediateDir() + InputFilePath;
-	OutputFilePath = FPaths::GameIntermediateDir() + OutputFilePath;
+	InputFilePath  = FPaths::ProjectIntermediateDir() + InputFilePath;
+	OutputFilePath = FPaths::ProjectIntermediateDir() + OutputFilePath;
 
 	FArchive* PNGFile = NULL;
 	while (!PNGFile)

@@ -38,6 +38,7 @@
 #include "ScopedTransaction.h"
 #include "Editor.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #if WITH_APEX_CLOTHING
 	#include "ApexClothingUtils.h"
@@ -708,7 +709,7 @@ void FPersonaMeshDetails::OnCopySectionList(int32 LODIndex)
 
 			if (!CopyStr.IsEmpty())
 			{
-				FPlatformMisc::ClipboardCopy(*CopyStr);
+				FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 			}
 		}
 	}
@@ -738,7 +739,7 @@ void FPersonaMeshDetails::OnPasteSectionList(int32 LODIndex)
 	if (Mesh != nullptr)
 	{
 		FString PastedText;
-		FPlatformMisc::ClipboardPaste(PastedText);
+		FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 		TSharedPtr<FJsonObject> RootJsonObject;
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -811,7 +812,7 @@ void FPersonaMeshDetails::OnCopySectionItem(int32 LODIndex, int32 SectionIndex)
 
 			if (!CopyStr.IsEmpty())
 			{
-				FPlatformMisc::ClipboardCopy(*CopyStr);
+				FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 			}
 		}
 	}
@@ -841,7 +842,7 @@ void FPersonaMeshDetails::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
 	if (Mesh != nullptr)
 	{
 		FString PastedText;
-		FPlatformMisc::ClipboardPaste(PastedText);
+		FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 		TSharedPtr<FJsonObject> RootJsonObject;
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -896,7 +897,7 @@ void FPersonaMeshDetails::OnCopyMaterialList()
 
 		if (!CopyStr.IsEmpty())
 		{
-			FPlatformMisc::ClipboardCopy(*CopyStr);
+			FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 		}
 	}
 }
@@ -920,7 +921,7 @@ void FPersonaMeshDetails::OnPasteMaterialList()
 	if (Mesh != nullptr)
 	{
 		FString PastedText;
-		FPlatformMisc::ClipboardPaste(PastedText);
+		FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 		TSharedPtr<FJsonValue> RootJsonValue;
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
@@ -974,7 +975,7 @@ void FPersonaMeshDetails::OnCopyMaterialItem(int32 CurrentSlot)
 
 		if (!CopyStr.IsEmpty())
 		{
-			FPlatformMisc::ClipboardCopy(*CopyStr);
+			FPlatformApplicationMisc::ClipboardCopy(*CopyStr);
 		}
 	}
 }
@@ -998,7 +999,7 @@ void FPersonaMeshDetails::OnPasteMaterialItem(int32 CurrentSlot)
 	if (Mesh != nullptr)
 	{
 		FString PastedText;
-		FPlatformMisc::ClipboardPaste(PastedText);
+		FPlatformApplicationMisc::ClipboardPaste(PastedText);
 
 		TSharedPtr<FJsonObject> RootJsonObject;
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);

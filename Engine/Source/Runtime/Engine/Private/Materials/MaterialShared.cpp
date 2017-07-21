@@ -888,11 +888,6 @@ bool FMaterialResource::IsUsedWithAPEXCloth() const
 	return Material->bUsedWithClothing;
 }
 
-bool FMaterialResource::IsUsedWithUI() const
-{
-	return IsUIMaterial();
-}
-
 EMaterialTessellationMode FMaterialResource::GetTessellationMode() const 
 { 
 	return (EMaterialTessellationMode)Material->D3D11TessellationMode; 

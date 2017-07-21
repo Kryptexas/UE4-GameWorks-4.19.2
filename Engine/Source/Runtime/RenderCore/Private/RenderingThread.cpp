@@ -8,6 +8,7 @@
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 #include "HAL/ExceptionHandling.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/CoreStats.h"
 #include "Misc/TimeGuard.h"
@@ -821,7 +822,7 @@ void CheckRenderingThreadHealth()
 		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
 		SCOPE_CYCLE_COUNTER(STAT_PumpMessages);
-		FPlatformMisc::PumpMessages(false);
+		FPlatformApplicationMisc::PumpMessages(false);
 	}
 }
 

@@ -88,7 +88,7 @@ static TAutoConsoleVariable<int32> CVarDriverDetectionMethod(
 	ECVF_RenderThreadSafe);
 
 typedef HRESULT(STDAPICALLTYPE *GetDpiForMonitorProc)(HMONITOR Monitor, int32 DPIType, uint32 *DPIX, uint32 *DPIY);
-static GetDpiForMonitorProc GetDpiForMonitor;
+CORE_API GetDpiForMonitorProc GetDpiForMonitor = nullptr;
 
 namespace
 {
@@ -586,32 +586,6 @@ void FWindowsPlatformMisc::SetHighDPIMode()
 
 }
 
-float FWindowsPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
-{
-	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
-	{
-		if (GetDpiForMonitor)
-		{
-			POINT Position = { X, Y };
-			HMONITOR Monitor = MonitorFromPoint(Position, MONITOR_DEFAULTTONEAREST);
-			if (Monitor)
-			{
-				uint32 DPIX = 0;
-				uint32 DPIY = 0;
-				return SUCCEEDED(GetDpiForMonitor(Monitor, 0/*MDT_EFFECTIVE_DPI_VALUE*/, &DPIX, &DPIY)) ? DPIX / 96.0f : 1.0f;
-			}
-		}
-		else
-		{
-			HDC Context = GetDC(nullptr);
-			const float DPIScaleFactor = GetDeviceCaps(Context, LOGPIXELSX) / 96.0f;
-			ReleaseDC(nullptr, Context);
-			return DPIScaleFactor;
-		}
-	}
-	return 1.0f;
-}
-
 void FWindowsPlatformMisc::PlatformPreInit()
 {
 	//SetProcessMemoryLimit( 92 );
@@ -661,21 +635,6 @@ void FWindowsPlatformMisc::PlatformInit()
 }
 
 
-void FWindowsPlatformMisc::PreventScreenSaver()
-{
-	INPUT Input = { 0 };
-	Input.type = INPUT_MOUSE;
-	Input.mi.dx = 0;
-	Input.mi.dy = 0;	
-	Input.mi.mouseData = 0;
-	Input.mi.dwFlags = MOUSEEVENTF_MOVE;
-	Input.mi.time = 0;
-	Input.mi.dwExtraInfo = 0; 	
-	SendInput(1,&Input,sizeof(INPUT));
-}
-
-
-
 /**
  * Handler called for console events like closure, CTRL-C, ...
  *
@@ -710,17 +669,6 @@ static BOOL WINAPI ConsoleCtrlHandler( ::DWORD /*Type*/ )
 		TerminateProcess(GetCurrentProcess(), 0);
 	}
 	return true;
-}
-
-GenericApplication* FWindowsPlatformMisc::CreateApplication()
-{
-	HICON AppIconHandle = LoadIcon( hInstance, MAKEINTRESOURCE( GetAppIcon() ) );
-	if( AppIconHandle == NULL )
-	{
-		AppIconHandle = LoadIcon( (HINSTANCE)NULL, IDI_APPLICATION ); 
-	}
-
-	return FWindowsApplication::CreateWindowsApplication( hInstance, AppIconHandle );
 }
 
 void FWindowsPlatformMisc::SetGracefulTerminationHandler()
@@ -814,7 +762,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 		FString ReportDumpPath;
 		{
 			const TCHAR ReportDumpFilename[] = TEXT("UnrealAutoReportDump");
-			ReportDumpPath = FPaths::CreateTempFilename( *FPaths::GameLogDir(), ReportDumpFilename, TEXT( ".txt" ) );
+			ReportDumpPath = FPaths::CreateTempFilename( *FPaths::ProjectLogDir(), ReportDumpFilename, TEXT( ".txt" ) );
 		}
 
 		FArchive * AutoReportFile = IFileManager::Get().CreateFileWriter(*ReportDumpPath, FILEWRITE_EvenIfReadOnly);
@@ -825,7 +773,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			TCHAR UserName[MAX_STRING_LEN];
 			FCString::Strncpy(UserName, FPlatformProcess::UserName(), MAX_STRING_LEN);
 			TCHAR GameName[MAX_STRING_LEN];
-			FCString::Strncpy(GameName, *FString::Printf(TEXT("%s %s"), *FApp::GetBranchName(), FApp::GetGameName()), MAX_STRING_LEN);
+			FCString::Strncpy(GameName, *FString::Printf(TEXT("%s %s"), *FApp::GetBranchName(), FApp::GetProjectName()), MAX_STRING_LEN);
 			TCHAR PlatformName[MAX_STRING_LEN];
 #if PLATFORM_64BITS
 			FCString::Strncpy(PlatformName, TEXT("PC 64-bit"), MAX_STRING_LEN);
@@ -913,10 +861,10 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				TCHAR AutoReportExe[] = TEXT("../../../Engine/Binaries/DotNET/AutoReporter.exe");
 
 				FString IniDumpPath;
-				if (!FApp::IsGameNameEmpty())
+				if (!FApp::IsProjectNameEmpty())
 				{
 					const TCHAR IniDumpFilename[] = TEXT("UnrealAutoReportIniDump");
-					IniDumpPath = FPaths::CreateTempFilename(*FPaths::GameLogDir(), IniDumpFilename, TEXT(".txt"));
+					IniDumpPath = FPaths::CreateTempFilename(*FPaths::ProjectLogDir(), IniDumpFilename, TEXT(".txt"));
 					//build the ini dump
 					FOutputDeviceFile AutoReportIniFile(*IniDumpPath);
 					GConfig->Dump(AutoReportIniFile);
@@ -924,7 +872,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 					AutoReportIniFile.TearDown();
 				}
 
-				FString CrashVideoPath = FPaths::GameLogDir() + TEXT("CrashVideo.avi");
+				FString CrashVideoPath = FPaths::ProjectLogDir() + TEXT("CrashVideo.avi");
 
 				//get the paths that the files will actually have been saved to
 				FString UserIniDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*IniDumpPath);
@@ -975,190 +923,6 @@ bool FWindowsPlatformMisc::IsDebuggerPresent()
 	return !GIgnoreDebugger && !!::IsDebuggerPresent();
 }
 #endif // UE_BUILD_SHIPPING
-
-static void WinPumpMessages()
-{
-	{
-		MSG Msg;
-		while( PeekMessage(&Msg,NULL,0,0,PM_REMOVE) )
-		{
-			TranslateMessage( &Msg );
-			DispatchMessage( &Msg );
-		}
-	}
-}
-
-static void WinPumpSentMessages()
-{
-	MSG Msg;
-	PeekMessage(&Msg,NULL,0,0,PM_NOREMOVE | PM_QS_SENDMESSAGE);
-}
-
-void FWindowsPlatformMisc::PumpMessages(bool bFromMainLoop)
-{
-	if (!bFromMainLoop)
-	{
-		TGuardValue<bool> PumpMessageGuard( GPumpingMessagesOutsideOfMainLoop, true );
-		// Process pending windows messages, which is necessary to the rendering thread in some rare cases where D3D
-		// sends window messages (from IDXGISwapChain::Present) to the main thread owned viewport window.
-		WinPumpSentMessages();
-		return;
-	}
-
-	GPumpingMessagesOutsideOfMainLoop = false;
-	WinPumpMessages();
-
-	// Determine if application has focus
-	bool HasFocus = FApp::UseVRFocus() ? FApp::HasVRFocus() : FWindowsPlatformProcess::IsThisApplicationForeground();
-
-	// If editor thread doesn't have the focus, don't suck up too much CPU time.
-	if( GIsEditor )
-	{
-		static bool HadFocus=1;
-		if( HadFocus && !HasFocus )
-		{
-			// Drop our priority to speed up whatever is in the foreground.
-			SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL );
-		}
-		else if( HasFocus && !HadFocus )
-		{
-			// Boost our priority back to normal.
-			SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_NORMAL );
-		}
-		if( !HasFocus )
-		{
-			// Sleep for a bit to not eat up all CPU time.
-			FPlatformProcess::Sleep(0.005f);
-		}
-		HadFocus = HasFocus;
-	}
-
-	// if its our window, allow sound, otherwise apply multiplier
-	FApp::SetVolumeMultiplier( HasFocus ? 1.0f : FApp::GetUnfocusedVolumeMultiplier() );
-}
-
-uint32 FWindowsPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
-{
-	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, false);
-}
-
-uint32 FWindowsPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
-{
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
-
-	uint32 NumMappings = 0;
-
-	if ( KeyCodes && KeyNames && (MaxMappings > 0) )
-	{
-		ADDKEYMAP( VK_LBUTTON, TEXT("LeftMouseButton") );
-		ADDKEYMAP( VK_RBUTTON, TEXT("RightMouseButton") );
-		ADDKEYMAP( VK_MBUTTON, TEXT("MiddleMouseButton") );
-
-		ADDKEYMAP( VK_XBUTTON1, TEXT("ThumbMouseButton") );
-		ADDKEYMAP( VK_XBUTTON2, TEXT("ThumbMouseButton2") );
-
-		ADDKEYMAP( VK_BACK, TEXT("BackSpace") );
-		ADDKEYMAP( VK_TAB, TEXT("Tab") );
-		ADDKEYMAP( VK_RETURN, TEXT("Enter") );
-		ADDKEYMAP( VK_PAUSE, TEXT("Pause") );
-
-		ADDKEYMAP( VK_CAPITAL, TEXT("CapsLock") );
-		ADDKEYMAP( VK_ESCAPE, TEXT("Escape") );
-		ADDKEYMAP( VK_SPACE, TEXT("SpaceBar") );
-		ADDKEYMAP( VK_PRIOR, TEXT("PageUp") );
-		ADDKEYMAP( VK_NEXT, TEXT("PageDown") );
-		ADDKEYMAP( VK_END, TEXT("End") );
-		ADDKEYMAP( VK_HOME, TEXT("Home") );
-
-		ADDKEYMAP( VK_LEFT, TEXT("Left") );
-		ADDKEYMAP( VK_UP, TEXT("Up") );
-		ADDKEYMAP( VK_RIGHT, TEXT("Right") );
-		ADDKEYMAP( VK_DOWN, TEXT("Down") );
-
-		ADDKEYMAP( VK_INSERT, TEXT("Insert") );
-		ADDKEYMAP( VK_DELETE, TEXT("Delete") );
-
-		ADDKEYMAP( VK_NUMPAD0, TEXT("NumPadZero") );
-		ADDKEYMAP( VK_NUMPAD1, TEXT("NumPadOne") );
-		ADDKEYMAP( VK_NUMPAD2, TEXT("NumPadTwo") );
-		ADDKEYMAP( VK_NUMPAD3, TEXT("NumPadThree") );
-		ADDKEYMAP( VK_NUMPAD4, TEXT("NumPadFour") );
-		ADDKEYMAP( VK_NUMPAD5, TEXT("NumPadFive") );
-		ADDKEYMAP( VK_NUMPAD6, TEXT("NumPadSix") );
-		ADDKEYMAP( VK_NUMPAD7, TEXT("NumPadSeven") );
-		ADDKEYMAP( VK_NUMPAD8, TEXT("NumPadEight") );
-		ADDKEYMAP( VK_NUMPAD9, TEXT("NumPadNine") );
-
-		ADDKEYMAP( VK_MULTIPLY, TEXT("Multiply") );
-		ADDKEYMAP( VK_ADD, TEXT("Add") );
-		ADDKEYMAP( VK_SUBTRACT, TEXT("Subtract") );
-		ADDKEYMAP( VK_DECIMAL, TEXT("Decimal") );
-		ADDKEYMAP( VK_DIVIDE, TEXT("Divide") );
-
-		ADDKEYMAP( VK_F1, TEXT("F1") );
-		ADDKEYMAP( VK_F2, TEXT("F2") );
-		ADDKEYMAP( VK_F3, TEXT("F3") );
-		ADDKEYMAP( VK_F4, TEXT("F4") );
-		ADDKEYMAP( VK_F5, TEXT("F5") );
-		ADDKEYMAP( VK_F6, TEXT("F6") );
-		ADDKEYMAP( VK_F7, TEXT("F7") );
-		ADDKEYMAP( VK_F8, TEXT("F8") );
-		ADDKEYMAP( VK_F9, TEXT("F9") );
-		ADDKEYMAP( VK_F10, TEXT("F10") );
-		ADDKEYMAP( VK_F11, TEXT("F11") );
-		ADDKEYMAP( VK_F12, TEXT("F12") );
-
-		ADDKEYMAP( VK_NUMLOCK, TEXT("NumLock") );
-
-		ADDKEYMAP( VK_SCROLL, TEXT("ScrollLock") );
-
-		ADDKEYMAP( VK_LSHIFT, TEXT("LeftShift") );
-		ADDKEYMAP( VK_RSHIFT, TEXT("RightShift") );
-		ADDKEYMAP( VK_LCONTROL, TEXT("LeftControl") );
-		ADDKEYMAP( VK_RCONTROL, TEXT("RightControl") );
-		ADDKEYMAP( VK_LMENU, TEXT("LeftAlt") );
-		ADDKEYMAP( VK_RMENU, TEXT("RightAlt") );
-		ADDKEYMAP( VK_LWIN, TEXT("LeftCommand") );
-		ADDKEYMAP( VK_RWIN, TEXT("RightCommand") );
-
-		TMap<uint32, uint32> ScanToVKMap;
-#define MAP_OEM_VK_TO_SCAN(KeyCode) { const uint32 CharCode = MapVirtualKey(KeyCode,2); if (CharCode != 0) { ScanToVKMap.Add(CharCode,KeyCode); } }
-		MAP_OEM_VK_TO_SCAN(VK_OEM_1);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_2);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_3);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_4);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_5);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_6);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_7);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_8);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_PLUS);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_COMMA);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_MINUS);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_PERIOD);
-		MAP_OEM_VK_TO_SCAN(VK_OEM_102);
-#undef  MAP_OEM_VK_TO_SCAN
-
-		static const uint32 MAX_KEY_MAPPINGS(256);
-		uint32 CharCodes[MAX_KEY_MAPPINGS];
-		FString CharKeyNames[MAX_KEY_MAPPINGS];
-		const int32 CharMappings = GetCharKeyMap(CharCodes, CharKeyNames, MAX_KEY_MAPPINGS);
-
-		for (int32 MappingIndex = 0; MappingIndex < CharMappings; ++MappingIndex)
-		{
-			ScanToVKMap.Remove(CharCodes[MappingIndex]);
-		}
-
-		for (auto It(ScanToVKMap.CreateConstIterator()); It; ++It)
-		{
-			ADDKEYMAP(It.Value(), FString::Chr(It.Key()));
-		}
-	}
-
-	check(NumMappings < MaxMappings);
-	return NumMappings;
-
-#undef ADDKEYMAP
-}
 
 void FWindowsPlatformMisc::SetUTF8Output()
 {
@@ -1229,75 +993,6 @@ const TCHAR* FWindowsPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32
 	}
 	return OutBuffer;
 }
-
-// Disabling optimizations helps to reduce the frequency of OpenClipboard failing with error code 0. It still happens
-// though only with really large text buffers and we worked around this by changing the editor to use an intermediate
-// text buffer for internal operations.
-PRAGMA_DISABLE_OPTIMIZATION 
-
-void FWindowsPlatformMisc::ClipboardCopy(const TCHAR* Str)
-{
-	if( OpenClipboard(GetActiveWindow()) )
-	{
-		verify(EmptyClipboard());
-		HGLOBAL GlobalMem;
-		int32 StrLen = FCString::Strlen(Str);
-		GlobalMem = GlobalAlloc( GMEM_MOVEABLE, sizeof(TCHAR)*(StrLen+1) );
-		check(GlobalMem);
-		TCHAR* Data = (TCHAR*) GlobalLock( GlobalMem );
-		FCString::Strcpy( Data, (StrLen+1), Str );
-		GlobalUnlock( GlobalMem );
-		if( SetClipboardData( CF_UNICODETEXT, GlobalMem ) == NULL )
-			UE_LOG(LogWindows, Fatal,TEXT("SetClipboardData failed with error code %i"), (uint32)GetLastError() );
-		verify(CloseClipboard());
-	}
-}
-
-void FWindowsPlatformMisc::ClipboardPaste(class FString& Result)
-{
-	if( OpenClipboard(GetActiveWindow()) )
-	{
-		HGLOBAL GlobalMem = NULL;
-		bool Unicode = 0;
-		GlobalMem = GetClipboardData( CF_UNICODETEXT );
-		Unicode = 1;
-		if( !GlobalMem )
-		{
-			GlobalMem = GetClipboardData( CF_TEXT );
-			Unicode = 0;
-		}
-		if( !GlobalMem )
-		{
-			Result = TEXT("");
-		}
-		else
-		{
-			void* Data = GlobalLock( GlobalMem );
-			check( Data );	
-			if( Unicode )
-				Result = (TCHAR*) Data;
-			else
-			{
-				ANSICHAR* ACh = (ANSICHAR*) Data;
-				int32 i;
-				for( i=0; ACh[i]; i++ );
-				TArray<TCHAR> Ch;
-				Ch.AddUninitialized(i+1);
-				for( i=0; i<Ch.Num(); i++ )
-					Ch[i]=CharCast<TCHAR>(ACh[i]);
-				Result.GetCharArray() = MoveTemp(Ch);
-			}
-			GlobalUnlock( GlobalMem );
-		}
-		verify(CloseClipboard());
-	}
-	else 
-	{
-		Result=TEXT("");
-	}
-}
-
-PRAGMA_ENABLE_OPTIMIZATION 
 
 void FWindowsPlatformMisc::CreateGuid(FGuid& Result)
 {
@@ -1915,11 +1610,6 @@ bool FWindowsPlatformMisc::Is64bitOperatingSystem()
 #endif
 }
 
-int32 FWindowsPlatformMisc::GetAppIcon()
-{
-	return IDICON_UE4Game;
-}
-
 bool FWindowsPlatformMisc::VerifyWindowsVersion(uint32 MajorVersion, uint32 MinorVersion)
 {
 	OSVERSIONINFOEX Version;
@@ -2103,36 +1793,6 @@ HWND FWindowsPlatformMisc::GetTopLevelWindowHandle(uint32 ProcessId)
 	::EnumWindows(GetMainWindowHandleCallback, (LPARAM)&Data);
 
 	return Data.Handle;
-}
-
-bool FWindowsPlatformMisc::GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle)
-{
-	bool bWasFound = false;
-	WCHAR Buffer[8192];
-	// Get the first window so we can start walking the window chain
-	HWND hWnd = FindWindowW(NULL,NULL);
-	if (hWnd != NULL)
-	{
-		size_t TitleStartsWithLen = _tcslen(TitleStartsWith);
-		do
-		{
-			GetWindowText(hWnd,Buffer,8192);
-			// If this matches, then grab the full text
-			if (_tcsnccmp(TitleStartsWith, Buffer, TitleStartsWithLen) == 0)
-			{
-				OutTitle = Buffer;
-				hWnd = NULL;
-				bWasFound = true;
-			}
-			else
-			{
-				// Get the next window to interrogate
-				hWnd = GetWindow(hWnd, GW_HWNDNEXT);
-			}
-		}
-		while (hWnd != NULL);
-	}
-	return bWasFound;
 }
 
 void FWindowsPlatformMisc::RaiseException( uint32 ExceptionCode )
@@ -2320,20 +1980,6 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 	}
 }
 #endif	//#if !UE_BUILD_SHIPPING
-
-FLinearColor FWindowsPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)
-{
-	COLORREF PixelColorRef = GetPixel(GetDC(HWND_DESKTOP), InScreenPos.X, InScreenPos.Y);
-
-	FColor sRGBScreenColor(
-		(PixelColorRef & 0xFF),
-		((PixelColorRef & 0xFF00) >> 8),
-		((PixelColorRef & 0xFF0000) >> 16),
-		255);
-
-	// Assume the screen color is coming in as sRGB space
-	return FLinearColor(sRGBScreenColor);
-}
 
 /**
 * Class that caches __cpuid queried data.

@@ -9,9 +9,9 @@ public class ANGLE : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "ANGLE");
-			PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "ANGLE/lib/libGLESv2.lib");
-			PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "ANGLE/lib/libEGL.lib");
+			PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "ANGLE");
+			PublicAdditionalLibraries.Add(Target.UEThirdPartySourceDirectory + "ANGLE/lib/libGLESv2.lib");
+			PublicAdditionalLibraries.Add(Target.UEThirdPartySourceDirectory + "ANGLE/lib/libEGL.lib");
 
             PublicDelayLoadDLLs.AddRange(
                        new string[] {

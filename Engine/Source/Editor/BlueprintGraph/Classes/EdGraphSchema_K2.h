@@ -844,26 +844,6 @@ public:
 	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UFunction* FunctionSignature) const;
 
 	/**
-	 * Converts a pin type into a fully qualified string (e.g., object'ObjectName').
-	 *
-	 * @param	Type	The type to convert into a string.
-	 *
-	 * @return	The converted type string.
-	 */
-	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
-	static FString TypeToString(const FEdGraphPinType& Type);
-
-	/**
-	 * Converts the type of a property into a fully qualified string (e.g., object'ObjectName').
-	 *
-	 * @param	Property	The property to convert into a string.
-	 *
-	 * @return	The converted type string.
-	 */
-	DEPRECATED(4.5, "UEdGraphSchema_K2::TypeToString is deprecated.  Use TypeToText instead.")
-	static FString TypeToString(UProperty* const Property);
-
-	/**
 	 * Converts the type of a property into a fully qualified string (e.g., object'ObjectName').
 	 *
 	 * @param	Property	The property to convert into a string.

@@ -242,26 +242,6 @@ COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, con
 COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL, bool bAssumeTemplateIsArchetype = false);
 
 /**
- * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
- * are not instanced (this will instead occur in PostLoad()).  The different between StaticConstructObject and StaticAllocateObject is that StaticConstructObject will also call the class constructor on the object
- * and instance any components.
- * 
- * @param	Class		the class of the object to create
- * @param	InOuter		the object to create this object within (the Outer property for the new object will be set to the value specified here).
- * @param	Name		the name to give the new object. If no value (NAME_None) is specified, the object will be given a unique name in the form of ClassName_#.
- * @param	SetFlags	the ObjectFlags to assign to the new object. some flags can affect the behavior of constructing the object.
- * @param	Template	if specified, the property values from this object will be copied to the new object, and the new object's ObjectArchetype value will be set to this object.
- *						If NULL, the class default object is used instead.
- * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
- * @param	InstanceGraph
- *						contains the mappings of instanced objects and components to their templates
- *
- * @return	a pointer to a fully initialized object of the specified class.
- */
-DEPRECATED(4.8, "StaticConstructObject is deprecated, please use NewObject instead. For internal CoreUObject module usage, please use StaticConstructObject_Internal.")
-COREUOBJECT_API UObject* StaticConstructObject( UClass* Class, UObject* InOuter=(UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
-/**
  * Creates a copy of SourceObject using the Outer and Name specified, as well as copies of all objects contained by SourceObject.  
  * Any objects referenced by SourceOuter or RootObject and contained by SourceOuter are also copied, maintaining their name relative to SourceOuter.  Any
  * references to objects that are duplicated are automatically replaced with the copy of the object.
@@ -326,22 +306,6 @@ typedef int32 TAsyncLoadPriority;
  * @param	Result		Result of async loading.
  */
 DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/, EAsyncLoadingResult::Type /*Result*/)
-
-/**
- * [Deprecated] Asynchronously load a package and all contained objects that match context flags. Non- blocking.
- *
- * @param	InName					Name of package to load
- * @param	InGuid					GUID of the package to load, or NULL for "don't care"
- * @param	InType					A type name associated with this package for later use
- * @param	InPackageToLoadFrom		If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
- * @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
- * @param	InFlags					Package flags
- * @param	InPIEInstanceID			PIE instance ID
- * @param	InPackagePriority		Loading priority
- * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
- */
-DEPRECATED(4.9, "LoadPackageAsync override that takes package type parameter FName InType is deprecated.")
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, TAsyncLoadPriority InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -476,14 +440,6 @@ COREUOBJECT_API bool IsReferenced( UObject*& Res, EObjectFlags KeepFlags, EInter
  *        immediately without waiting for the remaining packages to finish loading.
  */
 COREUOBJECT_API void FlushAsyncLoading(int32 PackageID = INDEX_NONE);
-
-/**
-* [Deprecated] Blocks till all pending package/ linker requests are fulfilled.
-*
-* @param	ExcludeType		Do not flush packages associated with this specific type name
-*/
-DEPRECATED(4.9, "FlushAsyncLoading override that takes package type parameter FName ExcludeType is deprecated.")
-COREUOBJECT_API void FlushAsyncLoading(FName ExcludeType);
 
 /**
  * @return number of active async load package requests
@@ -1147,26 +1103,6 @@ public:
  * Helper class for deferred execution of 
 */
 
-/**
- * Construct an object of a particular class.
- * 
- * @param	Class		the class of object to construct
- * @param	Outer		the outer for the new object.  If not specified, object will be created in the transient package.
- * @param	Name		the name for the new object.  If not specified, the object will be given a transient name via
- *						MakeUniqueObjectName
- * @param	SetFlags	the object flags to apply to the new object
- * @param	Template	the object to use for initializing the new object.  If not specified, the class's default object will
- *						be used
- * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
- * @param	InstanceGraph
- *						contains the mappings of instanced objects and components to their templates
- *
- * @return	a pointer of type T to a new object of the specified class
- */
-template< class T >
-DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
-T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
 #if DO_CHECK
 /** Called by NewObject to make sure Child is actually a child of Parent */
 COREUOBJECT_API void CheckIsClassChildOf_Internal(UClass* Parent, UClass* Child);
@@ -1226,21 +1162,6 @@ FUNCTION_NON_NULL_RETURN_END
 
 	return static_cast<T*>(StaticConstructObject_Internal(T::StaticClass(), Outer, Name, Flags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InInstanceGraph));
 }
-
-/**
- * Convenience template for constructing a named object.
- *
- * @param	Outer	The outer for the new object.
- * @param	Name	The name of the new object.
- * @param	Flags	The object flags for the new object.
- */
-template< class TClass >
-DEPRECATED(4.8, "NewNamedObject is deprecated. Use NewObject instead")
-TClass* NewNamedObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template=NULL)
-{
-	return NewObject<TClass>(Outer, Name, Flags, Template);
-}
-
 
 /**
  * Convenience template for duplicating an object
@@ -1578,6 +1499,10 @@ private:
 class COREUOBJECT_API FReferenceCollector
 {
 public:
+
+	FReferenceCollector();
+	virtual ~FReferenceCollector();
+
 	/**
 	 * Adds object reference.
 	 *
@@ -1674,8 +1599,7 @@ public:
 			}
 		}
 	}
-
-	virtual ~FReferenceCollector() { }
+	
 	/**
 	 * If true archetype references should not be added to this collector.
 	 */
@@ -1701,6 +1625,33 @@ public:
 	 * The default behavior returns false as weak references must be explicitly supported
 	 */
 	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) { return false; }
+
+	/**
+	* Returns the collector archive associated with this collector.
+	* NOTE THAT COLLECTING REFERENCES THROUGH SERIALIZATION IS VERY SLOW.
+	*/
+	FArchive& GetVerySlowReferenceCollectorArchive()
+	{
+		if (!DefaultReferenceCollectorArchive)
+		{
+			CreateVerySlowReferenceCollectorArchive();
+		}
+		return *DefaultReferenceCollectorArchive;
+	}
+
+	/**
+	* INTERNAL USE ONLY: returns the persistent frame collector archive associated with this collector.
+	* NOTE THAT COLLECTING REFERENCES THROUGH SERIALIZATION IS VERY SLOW.
+	*/
+	FArchive& GetInternalPersisnentFrameReferenceCollectorArchive()
+	{
+		if (!PersistentFrameReferenceCollectorArchive)
+		{
+			CreatePersistentFrameReferenceCollectorArchive();
+		}
+		return *PersistentFrameReferenceCollectorArchive;
+	}
+
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
@@ -1727,6 +1678,18 @@ protected:
 			HandleObjectReference(Object, InReferencingObject, InReferencingProperty);
 		}
 	}
+
+private:
+
+	/** Creates the roxy archive that uses serialization to add objects to this collector */
+	void CreateVerySlowReferenceCollectorArchive();
+	/** Creates persistent frame proxy archive that uses serialization to add objects to this collector */
+	void CreatePersistentFrameReferenceCollectorArchive();
+
+	/** Default proxy archive that uses serialization to add objects to this collector */
+	FArchive* DefaultReferenceCollectorArchive;
+	/** Persistent frame proxy archive that uses serialization to add objects to this collector */
+	FArchive* PersistentFrameReferenceCollectorArchive;
 };
 
 /**
@@ -1990,3 +1953,440 @@ COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
  */
 COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject);
 #endif //WITH_EDITOR
+
+struct FClassFunctionLinkInfo;
+struct FCppClassTypeInfoStatic;
+
+namespace UE4CodeGen_Private
+{
+	enum class EPropertyClass
+	{
+		Byte,
+		Int8,
+		Int16,
+		Int,
+		Int64,
+		UInt16,
+		UInt32,
+		UInt64,
+		UnsizedInt,
+		UnsizedUInt,
+		Float,
+		Double,
+		Bool,
+		AssetClass,
+		WeakObject,
+		LazyObject,
+		AssetObject,
+		Class,
+		Object,
+		Interface,
+		Name,
+		Str,
+		Array,
+		Map,
+		Set,
+		Struct,
+		Delegate,
+		MulticastDelegate,
+		Text,
+		Enum,
+	};
+
+	enum class EDynamicType
+	{
+		NotDynamic,
+		Dynamic
+	};
+
+	enum class ENativeBool
+	{
+		NotNative,
+		Native
+	};
+
+	// These templates exist to help generate better code for pointers to lambdas in Clang.
+	// They simply provide a static function which, when called, will call the lambda, and we can take the
+	// address of this function.  Using lambdas' implicit conversion to function type will generate runtime code bloat.
+	template <typename LambdaType>
+	struct TBoolSetBitWrapper
+	{
+		static void SetBit(void* Ptr)
+		{
+			TBoolSetBitWrapper Empty;
+			(*(LambdaType*)&Empty)(Ptr);
+		}
+	};
+
+	template <typename LambdaType>
+	struct TNewCppStructOpsWrapper
+	{
+		static void* NewCppStructOps()
+		{
+			TNewCppStructOpsWrapper Empty;
+			return (*(LambdaType*)&Empty)();
+		}
+	};
+
+#if WITH_METADATA
+	struct FMetaDataPairParam
+	{
+		const char* NameUTF8;
+		const char* ValueUTF8;
+	};
+#endif
+
+	struct FEnumeratorParam
+	{
+		const char*               NameUTF8;
+		int64                     Value;
+#if WITH_METADATA
+		const FMetaDataPairParam* MetaDataArray;
+		int32                     NumMetaData;
+#endif
+	};
+
+	// This is not a base class but is just a common initial sequence of all of the F*PropertyParams types below.
+	// We don't want to use actual inheritance because we want to construct aggregated compile-time tables of these things.
+	struct FPropertyParamsBase
+	{
+		EPropertyClass Type;
+		const char*    NameUTF8;
+		EObjectFlags   ObjectFlags;
+		uint64         PropertyFlags;
+		int32          ArrayDim;
+		const char*    RepNotifyFuncUTF8;
+	};
+
+	struct FPropertyParamsBaseWithOffset // : FPropertyParamsBase
+	{
+		EPropertyClass Type;
+		const char*    NameUTF8;
+		EObjectFlags   ObjectFlags;
+		uint64         PropertyFlags;
+		int32          ArrayDim;
+		const char*    RepNotifyFuncUTF8;
+		int32          Offset;
+	};
+
+	struct FGenericPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FBytePropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UEnum*         (*EnumFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FBoolPropertyParams // : FPropertyParamsBase
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		uint32           ElementSize;
+		ENativeBool      NativeBool;
+		SIZE_T           SizeOfOuter;
+		void           (*SetBitFunc)(void* Obj);
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FObjectPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UClass*        (*ClassFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FClassPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UClass*        (*MetaClassFunc)();
+		UClass*        (*ClassFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FAssetClassPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UClass*        (*MetaClassFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FInterfacePropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UClass*        (*InterfaceClassFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FStructPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UScriptStruct* (*ScriptStructFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FDelegatePropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UFunction*     (*SignatureFunctionFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FMulticastDelegatePropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UFunction*     (*SignatureFunctionFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FEnumPropertyParams // : FPropertyParamsBaseWithOffset
+	{
+		EPropertyClass   Type;
+		const char*      NameUTF8;
+		EObjectFlags     ObjectFlags;
+		uint64           PropertyFlags;
+		int32            ArrayDim;
+		const char*      RepNotifyFuncUTF8;
+		int32            Offset;
+		UEnum*         (*EnumFunc)();
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	// These property types don't add new any construction parameters to their base property
+	typedef FGenericPropertyParams FInt8PropertyParams;
+	typedef FGenericPropertyParams FInt16PropertyParams;
+	typedef FGenericPropertyParams FIntPropertyParams;
+	typedef FGenericPropertyParams FInt64PropertyParams;
+	typedef FGenericPropertyParams FUInt16PropertyParams;
+	typedef FGenericPropertyParams FUInt32PropertyParams;
+	typedef FGenericPropertyParams FUInt64PropertyParams;
+	typedef FGenericPropertyParams FUnsizedIntPropertyParams;
+	typedef FGenericPropertyParams FUnsizedUIntPropertyParams;
+	typedef FGenericPropertyParams FFloatPropertyParams;
+	typedef FGenericPropertyParams FDoublePropertyParams;
+	typedef FGenericPropertyParams FNamePropertyParams;
+	typedef FGenericPropertyParams FStrPropertyParams;
+	typedef FGenericPropertyParams FArrayPropertyParams;
+	typedef FGenericPropertyParams FMapPropertyParams;
+	typedef FGenericPropertyParams FSetPropertyParams;
+	typedef FGenericPropertyParams FTextPropertyParams;
+	typedef FObjectPropertyParams  FWeakObjectPropertyParams;
+	typedef FObjectPropertyParams  FLazyObjectPropertyParams;
+	typedef FObjectPropertyParams  FAssetObjectPropertyParams;
+
+	struct FFunctionParams
+	{
+		UObject*                          (*OuterFunc)();
+		const char*                         NameUTF8;
+		EObjectFlags                        ObjectFlags;
+		UFunction*                        (*SuperFunc)();
+		EFunctionFlags                      FunctionFlags;
+		SIZE_T                              StructureSize;
+		const FPropertyParamsBase* const*   PropertyArray;
+		int32                               NumProperties;
+		uint16                              RPCId;
+		uint16                              RPCResponseId;
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FEnumParams
+	{
+		UObject*                  (*OuterFunc)();
+		EDynamicType                DynamicType;
+		const char*                 NameUTF8;
+		EObjectFlags                ObjectFlags;
+		FText                     (*DisplayNameFunc)(int32);
+		uint8                       CppForm; // this is of type UEnum::ECppForm
+		const char*                 CppTypeUTF8;
+		const FEnumeratorParam*     EnumeratorParams;
+		int32                       NumEnumerators;
+#if WITH_METADATA
+		const FMetaDataPairParam*   MetaDataArray;
+		int32                       NumMetaData;
+#endif
+	};
+
+	struct FStructParams
+	{
+		UObject*                          (*OuterFunc)();
+		UScriptStruct*                    (*SuperFunc)();
+		void*                             (*StructOpsFunc)(); // really returns UScriptStruct::ICppStructOps*
+		const char*                         NameUTF8;
+		EObjectFlags                        ObjectFlags;
+		uint32                              StructFlags; // EStructFlags
+		SIZE_T                              SizeOf;
+		SIZE_T                              AlignOf;
+		const FPropertyParamsBase* const*   PropertyArray;
+		int32                               NumProperties;
+#if WITH_METADATA
+		const FMetaDataPairParam*           MetaDataArray;
+		int32                               NumMetaData;
+#endif
+	};
+
+	struct FPackageParams
+	{
+		const char*                        NameUTF8;
+		uint32                             PackageFlags; // EPackageFlags
+		uint32                             BodyCRC;
+		uint32                             DeclarationsCRC;
+		UObject*                  (*const *SingletonFuncArray)();
+		int32                              NumSingletons;
+#if WITH_METADATA
+		const FMetaDataPairParam*          MetaDataArray;
+		int32                              NumMetaData;
+#endif
+	};
+
+	struct FImplementedInterfaceParams
+	{
+		UClass* (*ClassFunc)();
+		int32     Offset;
+		bool      bImplementedByK2;
+	};
+
+	struct FClassParams
+	{
+		UClass*                                   (*ClassNoRegisterFunc)();
+		UObject*                           (*const *DependencySingletonFuncArray)();
+		int32                                       NumDependencySingletons;
+		uint32                                      ClassFlags; // EClassFlags
+		const FClassFunctionLinkInfo*               FunctionLinkArray;
+		int32                                       NumFunctions;
+		const FPropertyParamsBase* const*           PropertyArray;
+		int32                                       NumProperties;
+		const char*                                 ClassConfigNameUTF8;
+		const FCppClassTypeInfoStatic*              CppClassInfo;
+		const FImplementedInterfaceParams*          ImplementedInterfaceArray;
+		int32                                       NumImplementedInterfaces;
+#if WITH_METADATA
+		const FMetaDataPairParam*                   MetaDataArray;
+		int32                                       NumMetaData;
+#endif
+	};
+
+	COREUOBJECT_API void ConstructUFunction(UFunction*& OutFunction, const FFunctionParams& Params);
+	COREUOBJECT_API void ConstructUEnum(UEnum*& OutEnum, const FEnumParams& Params);
+	COREUOBJECT_API void ConstructUScriptStruct(UScriptStruct*& OutStruct, const FStructParams& Params);
+	COREUOBJECT_API void ConstructUPackage(UPackage*& OutPackage, const FPackageParams& Params);
+	COREUOBJECT_API void ConstructUClass(UClass*& OutClass, const FClassParams& Params);
+}
+
+// METADATA_PARAMS(x, y) expands to x, y, if WITH_METADATA is set, otherwise expands to nothing
+#if WITH_METADATA
+	#define METADATA_PARAMS(x, y) x, y,
+#else
+	#define METADATA_PARAMS(x, y)
+#endif
+
+// IF_WITH_EDITOR(x, y) expands to x if WITH_EDITOR is set, otherwise expands to y
+#if WITH_EDITOR
+	#define IF_WITH_EDITOR(x, y) x
+#else
+	#define IF_WITH_EDITOR(x, y) y
+#endif
+
+// IF_WITH_EDITORONLY_DATA(x, y) expands to x if WITH_EDITORONLY_DATA is set, otherwise expands to y
+#if WITH_EDITORONLY_DATA
+	#define IF_WITH_EDITORONLY_DATA(x, y) x
+#else
+	#define IF_WITH_EDITORONLY_DATA(x, y) y
+#endif

@@ -38,7 +38,7 @@ public class ShaderCompileWorker : ModuleRules
 		PrivateIncludePaths.Add("Runtime/Launch/Private");      // For LaunchEngineLoop.cpp include
 
         // Include D3D compiler binaries
-        string EngineDir = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
+        string EngineDir = Path.GetFullPath(Target.RelativeEnginePath);
 
         if (Target.Platform == UnrealTargetPlatform.Win32)
         {

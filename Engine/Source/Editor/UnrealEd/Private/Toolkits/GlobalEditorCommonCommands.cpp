@@ -95,16 +95,6 @@ void FGlobalEditorCommonCommands::OnSummonedAssetPicker()
 	OpenPopupMenu(MenuBuilder.MakeWidget(), AssetPickerSize);
 }
 
-TSharedPtr<SWindow> FGlobalEditorCommonCommands::OpenPopup(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize)
-{
-	TSharedPtr<IMenu> Menu = OpenPopupMenu(WindowContents, PopupDesiredSize);
-	if (Menu.IsValid())
-	{
-		return Menu->GetOwnedWindow();
-	}
-	return TSharedPtr<SWindow>();
-}
-
 TSharedPtr<IMenu> FGlobalEditorCommonCommands::OpenPopupMenu(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize)
 {
 	// Determine where the pop-up should open

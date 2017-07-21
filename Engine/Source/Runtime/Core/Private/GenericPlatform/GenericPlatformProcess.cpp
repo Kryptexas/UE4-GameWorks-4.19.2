@@ -191,7 +191,7 @@ void FGenericPlatformProcess::AddShaderSourceDirectoryMapping(const FString& Vir
  */
 const FString FGenericPlatformProcess::ShaderWorkingDir()
 {
-	return (FPaths::GameIntermediateDir() / TEXT("Shaders/tmp/"));
+	return (FPaths::ProjectIntermediateDir() / TEXT("Shaders/tmp/"));
 }
 
 /**
@@ -203,7 +203,7 @@ void FGenericPlatformProcess::CleanShaderWorkingDir()
 	FString ShaderWorkingDirectory =  FPlatformProcess::ShaderWorkingDir();
 	IFileManager::Get().DeleteDirectory(*ShaderWorkingDirectory, false, true);
 
-	FString LegacyShaderWorkingDirectory = FPaths::GameIntermediateDir() / TEXT("Shaders/WorkingDirectory/");
+	FString LegacyShaderWorkingDirectory = FPaths::ProjectIntermediateDir() / TEXT("Shaders/WorkingDirectory/");
 	IFileManager::Get().DeleteDirectory(*LegacyShaderWorkingDirectory, false, true);
 }
 

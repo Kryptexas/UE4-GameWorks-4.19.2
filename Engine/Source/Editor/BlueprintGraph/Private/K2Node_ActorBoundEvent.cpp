@@ -50,8 +50,26 @@ FNodeHandlingFunctor* UK2Node_ActorBoundEvent::CreateNodeHandler(FKismetCompiler
 
 void UK2Node_ActorBoundEvent::ReconstructNode()
 {
-	// Ensure that we try to update the delegate we're bound to if its moved
-	GetTargetDelegate();
+	// We need to fixup our event reference as it may have changed or been redirected
+	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+
+	// If we couldn't find the target delegate, then try to find it in the property remap table
+	if (!TargetDelegateProp)
+	{
+		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
+		if (NewProperty)
+		{
+			// Found a remapped property, update the node
+			TargetDelegateProp = NewProperty;
+			DelegatePropertyName = NewProperty->GetFName();
+			CachedNodeTitle.MarkDirty();
+		}
+	}
+
+	if (TargetDelegateProp && TargetDelegateProp->SignatureFunction)
+	{
+		EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+	}
 
 	CachedNodeTitle.MarkDirty();
 
@@ -133,7 +151,7 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 
 FText UK2Node_ActorBoundEvent::GetTooltipText() const
 {
-	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegatePropertyConst();
+	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
 	if(TargetDelegateProp)
 	{
 		return TargetDelegateProp->GetToolTipText();
@@ -180,32 +198,12 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 	}
 }
 
-UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyConst() const
+UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty() const
 {
 	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 }
 
-UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
-{
-	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
-
-	// If we couldn't find the target delegate, then try to find it in the property remap table
-	if (!TargetDelegateProp)
-	{
-		UMulticastDelegateProperty* NewProperty = FMemberReference::FindRemappedField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName);
-		if (NewProperty)
-		{
-			// Found a remapped property, update the node
-			TargetDelegateProp = NewProperty;
-			DelegatePropertyName = NewProperty->GetFName();
-			CachedNodeTitle.MarkDirty();
-		}
-	}
-
-	return TargetDelegateProp;
-}
-
-FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate()
+FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate() const 
 {
 	if( EventOwner )
 	{
@@ -234,10 +232,7 @@ void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
 	{
 		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
-			DelegateOwnerClass = EventSignatureClass_DEPRECATED;
-			UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-			check(TargetDelegateProp);
-			EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+			DelegateOwnerClass = EventSignatureClass_DEPRECATED;	
 		}
 	}
 }

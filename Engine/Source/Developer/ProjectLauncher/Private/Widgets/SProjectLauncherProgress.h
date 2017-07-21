@@ -11,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "Interfaces/ILauncherWorker.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Types/SlateStructs.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBorder.h"
@@ -600,7 +601,7 @@ private:
 				SelectedText += LINE_TERMINATOR;
 			}
 
-			FPlatformMisc::ClipboardCopy( *SelectedText );
+			FPlatformApplicationMisc::ClipboardCopy( *SelectedText );
 		}
 	}
 

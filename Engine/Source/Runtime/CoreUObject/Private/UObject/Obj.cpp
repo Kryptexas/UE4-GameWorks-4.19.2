@@ -1385,8 +1385,7 @@ public:
 	{
 		if( !ReferencingObject->GetClass()->IsChildOf(UClass::StaticClass()) )
 		{
-			FSimpleObjectReferenceCollectorArchive CollectorArchive( ReferencingObject, *this );
-			ReferencingObject->SerializeScriptProperties( CollectorArchive );
+			ReferencingObject->SerializeScriptProperties(GetVerySlowReferenceCollectorArchive());
 		}
 		ReferencingObject->CallAddReferencedObjects(*this);
 	}
@@ -2266,14 +2265,14 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 				TCHAR TempKey[MAX_SPRINTF]=TEXT("");
 				for( int32 Index=0; Index<Property->ArrayDim; Index++ )
 				{
+					if( Property->ArrayDim!=1 )
+					{
+						FCString::Sprintf( TempKey, TEXT("%s[%i]"), *Property->GetName(), Index );
+						Key = TempKey;
+					}
+
 					if ( !bShouldCheckIfIdenticalBeforeAdding || !Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{
-						if( Property->ArrayDim!=1 )
-						{
-							FCString::Sprintf( TempKey, TEXT("%s[%i]"), *Property->GetName(), Index );
-							Key = TempKey;
-						}
-
 						FString	Value;
 						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
 						Config->SetString( *Section, *Key, *Value, *PropFileName );

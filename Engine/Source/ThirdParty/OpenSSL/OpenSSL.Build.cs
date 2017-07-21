@@ -9,13 +9,13 @@ public class OpenSSL : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string OpenSSL101Path = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1.0.1g");
-		string OpenSSL102hPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1_0_2h");
-		string OpenSSL102Path = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1.0.2g");
+		string OpenSSL101Path = Path.Combine(Target.UEThirdPartySourceDirectory, "OpenSSL", "1.0.1g");
+		string OpenSSL102hPath = Path.Combine(Target.UEThirdPartySourceDirectory, "OpenSSL", "1_0_2h");
+		string OpenSSL102Path = Path.Combine(Target.UEThirdPartySourceDirectory, "OpenSSL", "1.0.2g");
 
         string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
         	Target.Platform.ToString();
-		string ConfigFolder = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
+		string ConfigFolder = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -29,8 +29,8 @@ public class OpenSSL : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
-			string IncludePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSSL/1.0.2g" + "/" + "include/PS4";
-			string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenSSL/1.0.2g" + "/" + "lib/PS4/release";
+			string IncludePath = Target.UEThirdPartySourceDirectory + "OpenSSL/1.0.2g" + "/" + "include/PS4";
+			string LibraryPath = Target.UEThirdPartySourceDirectory + "OpenSSL/1.0.2g" + "/" + "lib/PS4/release";
 			PublicIncludePaths.Add(IncludePath);
 			PublicAdditionalLibraries.Add(LibraryPath + "/" + "libssl.a");
 			PublicAdditionalLibraries.Add(LibraryPath + "/" + "libcrypto.a");
@@ -38,9 +38,9 @@ public class OpenSSL : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
 				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
-			string LibPath = Path.Combine(OpenSSL102Path, "lib", PlatformSubdir, "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
-			string LibPostfixAndExt = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d.lib" : ".lib";
-			PublicIncludePaths.Add(Path.Combine(OpenSSL102Path, "include", PlatformSubdir, "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()));
+			string LibPath = Path.Combine(OpenSSL102Path, "lib", PlatformSubdir, "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string LibPostfixAndExt = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "d.lib" : ".lib";
+			PublicIncludePaths.Add(Path.Combine(OpenSSL102Path, "include", PlatformSubdir, "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName()));
 			PublicLibraryPaths.Add(LibPath);
 
 

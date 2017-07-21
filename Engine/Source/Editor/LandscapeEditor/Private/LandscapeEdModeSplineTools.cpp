@@ -31,6 +31,7 @@
 #include "LandscapeSplineControlPoint.h"
 #include "ControlPointMeshComponent.h"
 #include "Containers/Algo/Copy.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -1626,7 +1627,7 @@ public:
 	virtual EEditAction::Type GetActionEditPaste() override
 	{
 		FString PasteString;
-		FPlatformMisc::ClipboardPaste(PasteString);
+		FPlatformApplicationMisc::ClipboardPaste(PasteString);
 		if (PasteString.StartsWith("BEGIN SPLINES"))
 		{
 			return EEditAction::Process;
@@ -1746,7 +1747,7 @@ public:
 			}
 			else
 			{
-				FPlatformMisc::ClipboardCopy(*Ar);
+				FPlatformApplicationMisc::ClipboardCopy(*Ar);
 			}
 		}
 	}
@@ -1775,7 +1776,7 @@ public:
 		}
 		else
 		{
-			FPlatformMisc::ClipboardPaste(PasteString);
+			FPlatformApplicationMisc::ClipboardPaste(PasteString);
 			Data = *PasteString;
 		}
 

@@ -146,30 +146,6 @@ struct CORE_API FMemory
 		FPlatformMemory::Memswap(Ptr1,Ptr2,Size);
 	}
 
-	template< class T >
-	DEPRECATED(4.8, "Please use Memset.")
-	static FORCEINLINE void MemSet( T& Src, uint8 ValueToSet )
-	{
-		static_assert( !TIsPointer<T>::Value, "For pointers use the three parameters function");
-		FMemory::Memset( &Src, ValueToSet, sizeof( T ) );
-	}
-
-	template< class T > 
-	DEPRECATED(4.8, "Please use Memzero.")
-	static FORCEINLINE void MemZero( T& Src )
-	{
-		static_assert( !TIsPointer<T>::Value, "For pointers use the two parameters function");
-		FMemory::Memset( &Src, 0, sizeof( T ) );
-	}
-
-	template< class T >
-	DEPRECATED(4.8, "Please use Memcpy.")
-	static FORCEINLINE void MemCopy( T& Dest, const T& Src )
-	{
-		static_assert( !TIsPointer<T>::Value, "For pointers use the three parameters function");
-		FMemory::Memcpy( &Dest, &Src, sizeof( T ) );
-	}
-
 	//
 	// C style memory allocation stubs that fall back to C runtime
 	//

@@ -8,7 +8,7 @@ public class OVRPlugin : ModuleRules
     {
         Type = ModuleType.External;
 
-		string SourceDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/OVRPlugin/OVRPlugin/";
+		string SourceDirectory = Target.UEThirdPartySourceDirectory + "Oculus/OVRPlugin/OVRPlugin/";
 
 		PublicIncludePaths.Add(SourceDirectory + "Include");
 

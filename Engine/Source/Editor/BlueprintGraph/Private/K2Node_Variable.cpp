@@ -77,7 +77,7 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction, FStr
 			UBlueprint* VariableBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy, ECastCheckedType::NullAllowed);
 			if (VariableBlueprint)
 			{
-				if (UProperty* SkelProperty = FindField<UProperty>(VariableBlueprint->SkeletonGeneratedClass, VariableReference.GetMemberName()))
+				if (UProperty* SkelProperty = GetPropertyForVariableFromSkeleton())
 				{
 					VariableProperty = SkelProperty;
 				}
@@ -387,74 +387,58 @@ UClass* UK2Node_Variable::GetVariableSourceClass() const
 	return Result;
 }
 
+UProperty* UK2Node_Variable::GetPropertyForVariable_Internal(UClass* OwningClass) const
+{
+	const FName VarName = GetVarName();
+	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
+
+	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(OwningClass);
+
+	// if the variable has been deprecated, don't use it
+	if (VariableProperty != nullptr)
+	{
+		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
+		{
+			VariableProperty = nullptr;
+		}
+		// If the variable has been remapped update the pin
+		else if (VariablePin && VarName != GetVarName())
+		{
+			VariablePin->PinName = GetVarNameString();
+		}
+	}
+
+	return VariableProperty;
+}
+
 UProperty* UK2Node_Variable::GetPropertyForVariable() const
 {
-	if(!FBlueprintCompilationManager::IsGeneratedClassLayoutReady())
+	if (!FBlueprintCompilationManager::IsGeneratedClassLayoutReady())
 	{
 		// first look in the skeleton class:
-		if(UProperty* SkeletonProperty = GetPropertyForVariableFromSkeleton())
+		if (UProperty* SkeletonProperty = GetPropertyForVariableFromSkeleton())
 		{
 			return SkeletonProperty;
 		}
 	}
 
-	const FName VarName = GetVarName();
-	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
-
-	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-
-	// if the variable has been deprecated, don't use it
-	if(VariableProperty != nullptr)
-	{
-		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
-		{
-			VariableProperty = nullptr;
-		}
-		// If the variable has been remapped update the pin
-		else if (VariablePin && VarName != GetVarName())
-		{
-			VariablePin->PinName = GetVarNameString();
-		}
-	}
-
-	return VariableProperty;
+	return GetPropertyForVariable_Internal(GetBlueprintClassFromNode());
 }
 
 UProperty* UK2Node_Variable::GetPropertyForVariableFromSkeleton() const
 {
-	const FName VarName = GetVarName();
-	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
-	
-	UClass* ParentClass = VariableReference.GetMemberParentClass( GetBlueprintClassFromNode() );
-	UBlueprint* OwningBP = ParentClass ? Cast<UBlueprint>( ParentClass->ClassGeneratedBy ) : nullptr;
-	
-	UProperty* VariableProperty = nullptr;
-	if( UClass* SkeletonClass = OwningBP ? OwningBP->SkeletonGeneratedClass : nullptr )
+	if (UClass* SkeletonClass = FBlueprintEditorUtils::GetSkeletonClass(VariableReference.GetMemberParentClass(GetBlueprintClassFromNode())))
 	{
-		VariableProperty = SkeletonClass->FindPropertyByName( VariableReference.GetMemberName() );
+		return GetPropertyForVariable_Internal(SkeletonClass);
 	}
 
-	// if the variable has been deprecated, don't use it
-	if(VariableProperty != nullptr)
-	{
-		if (VariableProperty->HasAllPropertyFlags(CPF_Deprecated))
-		{
-			VariableProperty = nullptr;
-		}
-		// If the variable has been remapped update the pin
-		else if (VariablePin && VarName != GetVarName())
-		{
-			VariablePin->PinName = GetVarNameString();
-		}
-	}
-
-	return VariableProperty;
+	return nullptr;
 }
 
 UEdGraphPin* UK2Node_Variable::GetValuePin() const
 {
 	UEdGraphPin* Pin = FindPin(GetVarNameString());
-	check(Pin == NULL || Pin->Direction == EGPD_Output);
+	check(Pin == nullptr || Pin->Direction == EGPD_Output);
 	return Pin;
 }
 

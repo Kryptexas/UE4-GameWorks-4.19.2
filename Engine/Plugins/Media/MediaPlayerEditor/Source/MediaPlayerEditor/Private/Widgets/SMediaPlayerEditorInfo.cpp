@@ -10,6 +10,7 @@
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
 #include "MediaPlayer.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorInfo"
@@ -50,7 +51,7 @@ void SMediaPlayerEditorInfo::Construct(const FArguments& InArgs, UMediaPlayer& I
 							.Text(LOCTEXT("CopyClipboardButtonText", "Copy to Clipboard"))
 							.ToolTipText(LOCTEXT("CopyClipboardButtonHint", "Copy the media information to the the clipboard"))
 							.OnClicked_Lambda([this]() -> FReply {
-								FPlatformMisc::ClipboardCopy(*InfoTextBlock->GetText().ToString());
+								FPlatformApplicationMisc::ClipboardCopy(*InfoTextBlock->GetText().ToString());
 								return FReply::Handled();
 							})
 					]

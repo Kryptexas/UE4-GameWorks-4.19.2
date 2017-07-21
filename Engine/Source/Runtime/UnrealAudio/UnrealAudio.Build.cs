@@ -33,7 +33,7 @@ public class UnrealAudio : ModuleRules
 		);
 
 		// Libsndfile DLL
-		string LibSndFilePath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "libsndfile/";
+		string LibSndFilePath = Target.UEThirdPartyBinariesDirectory + "libsndfile/";
 		if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			LibSndFilePath += "Win32";

@@ -28,22 +28,22 @@ public class ShaderCompileWorkerTarget : TargetRules
 		// Turn off various third party features we don't need
 
 		// Currently we force Lean and Mean mode
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// ShaderCompileWorker isn't localized, so doesn't need ICU
-		UEBuildConfiguration.bCompileICU = false;
+		bCompileICU = false;
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
-		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
-		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
-		UEBuildConfiguration.bCompileCEF3 = false;
+		bCompileAgainstEngine = false;
+		bCompileAgainstCoreUObject = false;
+		bBuildWithEditorOnlyData = true;
+		bCompileCEF3 = false;
 
 		// Never use malloc profiling in ShaderCompileWorker.
-		BuildConfiguration.bUseMallocProfiler = false;
+		bUseMallocProfiler = false;
 
 		// Force all shader formats to be built and included.
-        UEBuildConfiguration.bForceBuildShaderFormats = true;
+        bForceBuildShaderFormats = true;
 
 		// ShaderCompileWorker is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

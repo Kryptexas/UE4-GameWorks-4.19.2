@@ -212,17 +212,6 @@ public:
 
 	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const = 0;
 
-	/**
-	* Gets the Widget that currently captures the mouse.
-	*
-	* @return The captor widget, or nullptr if no widget captured the mouse.
-	*/
-	DEPRECATED(4.5, "This API is no longer supported.  You can check if a specific widget has capture using the SWidget::HasMouseCapture() API")
-	inline TSharedPtr< SWidget > GetMouseCaptor() const
-	{
-		return GetMouseCaptorImpl();
-	}
-
 protected:
 	/**
 	 * Implementation of GetMouseCaptor which can be overridden without warnings.

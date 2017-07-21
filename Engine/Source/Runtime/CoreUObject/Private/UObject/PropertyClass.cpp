@@ -148,6 +148,16 @@ bool UClassProperty::SameType(const UProperty* Other) const
 	return Super::SameType(Other) && (MetaClass == ((UClassProperty*)Other)->MetaClass);
 }
 
+bool UClassProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const
+{
+	UObject* ObjectA = A ? GetObjectPropertyValue(A) : nullptr;
+	UObject* ObjectB = B ? GetObjectPropertyValue(B) : nullptr;
+
+	check(ObjectA == nullptr || ObjectA->IsA<UClass>());
+	check(ObjectB == nullptr || ObjectB->IsA<UClass>());
+	return (ObjectA == ObjectB);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClassProperty, UObjectProperty,
 	{
 		Class->EmitObjectReference(STRUCT_OFFSET(UClassProperty, MetaClass), TEXT("MetaClass"));

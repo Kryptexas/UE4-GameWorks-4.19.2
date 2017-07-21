@@ -41,6 +41,12 @@ struct ENGINE_API FStreamableHandle : public TSharedFromThis<FStreamableHandle, 
 		return !bCanceled && !bReleased;
 	}
 
+	/** If this handle is stalled and waiting for another event to occur before it is actually requested */
+	bool IsStalled() const
+	{
+		return bStalled;
+	}
+
 	/** Returns true if this is a combined handle that depends on child handles */
 	bool IsCombinedHandle() const
 	{
@@ -53,11 +59,20 @@ struct ENGINE_API FStreamableHandle : public TSharedFromThis<FStreamableHandle, 
 		return DebugName;
 	}
 
+	/** Returns the streaming priority */
+	TAsyncLoadPriority GetPriority() const
+	{
+		return Priority;
+	}
+
 	/** Release this handle, called from normal gameplay code to indicate that the loaded assets are no longer needed. If called before completion will release on completion */
 	void ReleaseHandle();
 
 	/** Cancel a request, callable from within the manager or externally. Will stop delegate from being called */
 	void CancelHandle();
+
+	/** Tells a stalled handle to start it's actual request */
+	void StartStalledHandle();
 
 	/** Bind delegate that is called when load completes, only works if loading is in progress. This will overwrite any already bound delegate! */
 	bool BindCompleteDelegate(FStreamableDelegate NewDelegate);
@@ -108,7 +123,7 @@ private:
 	/** Callback when async load finishes, it's here so we can use a shared pointer for callback safety */
 	void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, EAsyncLoadingResult::Type Result, FStringAssetReference TargetName);
 
-	/** Called on meta handle when a child handle has completed/cancelled */
+	/** Called on meta handle when a child handle has completed/canceled */
 	void UpdateCombinedHandle();
 
 	/** Call to call the update delegate if bound, will propagate to parents */
@@ -120,8 +135,11 @@ private:
 	/** True if this request was released, which will stop it from keeping hard GC references */
 	bool bReleased;
 
-	/** True if this request was explicitly cancelled, which stops it from calling the completion delegate and immediately releases it */
+	/** True if this request was explicitly canceled, which stops it from calling the completion delegate and immediately releases it */
 	bool bCanceled;
+
+	/** True if this handle has been created but not yet actually requested. This handle is probably waiting for a resource like a chunk to be available */
+	bool bStalled;
 
 	/** If true, this handle will be released when it finishes loading */
 	bool bReleaseWhenLoaded;
@@ -140,7 +158,10 @@ private:
 
 	/** Name of this handle, passed in by caller to help in debugging */
 	FString DebugName;
-	
+
+	/** The async priority for this request */
+	TAsyncLoadPriority Priority;
+
 	/** How many FStreamables is this waiting on to finish loading */
 	int32 StreamablesLoading;
 
@@ -160,8 +181,10 @@ private:
 		: bLoadCompleted(false)
 		, bReleased(false)
 		, bCanceled(false)
+		, bStalled(false)
 		, bReleaseWhenLoaded(false)
 		, bIsCombinedHandle(false)
+		, Priority(0)
 		, StreamablesLoading(0)
 		, OwningManager(nullptr)
 	{
@@ -183,14 +206,15 @@ struct ENGINE_API FStreamableManager : public FGCObject
 	 * @param DelegateToCall		Delegate to call when load finishes. Will be called on the next tick if asset is already loaded, or many seconds later
 	 * @param Priority				Priority to pass to the streaming system, higher priority will be loaded first
 	 * @param bManageActiveHandle	If true, the manager will keep the streamable handle active until explicitly released
+	 * @param bStartStalled			If true, the handle will start in a stalled state and will not attempt to actually async load until StartStalledHandle is called on it
 	 * @param DebugName				Name of this handle, will be reported in debug tools
 	 */
-	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, const FString& DebugName = TEXT("RequestAsyncLoad ArrayDelegate"));
-	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, const FString& DebugName = TEXT("RequestAsyncLoad SingleDelegate"));
+	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, bool bStartStalled = false, const FString& DebugName = TEXT("RequestAsyncLoad ArrayDelegate"));
+	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, bool bStartStalled = false, const FString& DebugName = TEXT("RequestAsyncLoad SingleDelegate"));
 
 	/** Lambda Wrappers. Be aware that Callback may go off multiple seconds in the future */
-	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, const FString& DebugName = TEXT("RequestAsyncLoad ArrayLambda"));
-	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, const FString& DebugName = TEXT("RequestAsyncLoad SingleLambda"));
+	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, bool bStartStalled = false, const FString& DebugName = TEXT("RequestAsyncLoad ArrayLambda"));
+	TSharedPtr<FStreamableHandle> RequestAsyncLoad(const FStringAssetReference& TargetToStream, TFunction<void()>&& Callback, TAsyncLoadPriority Priority = DefaultAsyncLoadPriority, bool bManageActiveHandle = false, bool bStartStalled = false, const FString& DebugName = TEXT("RequestAsyncLoad SingleLambda"));
 
 	/** 
 	 * Synchronously load a set of assets, and return a handle.
@@ -290,6 +314,7 @@ private:
 	friend FStreamableHandle;
 
 	void RemoveReferencedAsset(const FStringAssetReference& Target, TSharedRef<FStreamableHandle> Handle);
+	void StartHandleRequests(TSharedRef<FStreamableHandle> Handle);
 	FStringAssetReference ResolveRedirects(const FStringAssetReference& Target) const;
 	void FindInMemory(FStringAssetReference& InOutTarget, struct FStreamable* Existing);
 	struct FStreamable* FindStreamable(const FStringAssetReference& Target) const;

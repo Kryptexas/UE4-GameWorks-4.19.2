@@ -154,6 +154,7 @@
 #include "ActorGroupingUtils.h"
 #include "ILauncherPlatform.h"
 #include "LauncherPlatformModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -3296,7 +3297,7 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 				}
 
 				// Update the clipboard with the final string
-				FPlatformMisc::ClipboardCopy( *ClipboardString );
+				FPlatformApplicationMisc::ClipboardCopy( *ClipboardString );
 
 				// Cleanup.
 				for ( CopyJobMap::TIterator It( CopyJobs ) ; It ; ++It )
@@ -3333,7 +3334,7 @@ bool UEditorEngine::CanPasteSelectedActorsFromClipboard( UWorld* InWorld )
 	// Intentionally not checking if the level is locked/hidden here, as it's better feedback for the user if they attempt to paste
 	// and get the message explaining why it's failed, than just not having the option available to them.
 	FString PasteString;
-	FPlatformMisc::ClipboardPaste(PasteString);
+	FPlatformApplicationMisc::ClipboardPaste(PasteString);
 	return PasteString.StartsWith( "BEGIN MAP" );
 }
 

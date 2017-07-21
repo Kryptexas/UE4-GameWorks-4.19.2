@@ -23,6 +23,7 @@
 #include "DelayForFramesLatentAction.h"
 #include "Engine/DebugCameraController.h"
 #include "TraceQueryTestResults.h"
+#include "Misc/RuntimeErrors.h"
 
 namespace
 {
@@ -198,7 +199,7 @@ bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 	FailureMessage = TEXT("");
 	
 	//Do not collect garbage during the test. We force GC at the end.
-	GetWorld()->DelayGarbageCollection();
+	GEngine->DelayGarbageCollection();
 
 	RunFrame = GFrameNumber;
 	RunTime = GetWorld()->GetTimeSeconds();
@@ -249,7 +250,7 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 	}
 
 	//Do not collect garbage during the test. We force GC at the end.
-	GetWorld()->DelayGarbageCollection();
+	GEngine->DelayGarbageCollection();
 
 	if ( !bIsReady )
 	{
@@ -300,7 +301,7 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 	}
 
 	//Force GC at the end of every test.
-	GetWorld()->ForceGarbageCollection();
+	GEngine->ForceGarbageCollection();
 
 	Result = TestResult;
 
@@ -1031,13 +1032,23 @@ UAutomationPerformaceHelper::UAutomationPerformaceHelper()
 {
 }
 
+UWorld* UAutomationPerformaceHelper::GetWorld() const
+{
+	UWorld* OuterWorld = GetOuter()->GetWorld();
+	ensureAsRuntimeWarning(OuterWorld != nullptr);
+	return OuterWorld;
+}
+
 void UAutomationPerformaceHelper::BeginRecordingBaseline(FString RecordName)
 {
-	bRecordingBasicStats = true;
-	bRecordingBaselineBasicStats = true;
-	bGPUTraceIfBelowBudget = false;
-	Records.Add(FPerfStatsRecord(RecordName));
-	GEngine->SetEngineStat(GetOuter()->GetWorld(), GetOuter()->GetWorld()->GetGameViewport(), TEXT("Unit"), true);
+	if (UWorld* World = GetWorld())
+	{
+		bRecordingBasicStats = true;
+		bRecordingBaselineBasicStats = true;
+		bGPUTraceIfBelowBudget = false;
+		Records.Add(FPerfStatsRecord(RecordName));
+		GEngine->SetEngineStat(World, World->GetGameViewport(), TEXT("Unit"), true);
+	}
 }
 
 void UAutomationPerformaceHelper::EndRecordingBaseline()
@@ -1048,21 +1059,24 @@ void UAutomationPerformaceHelper::EndRecordingBaseline()
 
 void UAutomationPerformaceHelper::BeginRecording(FString RecordName, float InGPUBudget, float InRenderThreadBudget, float InGameThreadBudget)
 {
-	//Ensure we're recording engine stats.
-	GEngine->SetEngineStat(GetOuter()->GetWorld(), GetOuter()->GetWorld()->GetGameViewport(), TEXT("Unit"), true);
-	bRecordingBasicStats = true;
-	bRecordingBaselineBasicStats = false;
-	bGPUTraceIfBelowBudget = false;
-
-	FPerfStatsRecord* CurrRecord = GetCurrentRecord();
-	if (!CurrRecord || CurrRecord->Name != RecordName)
+	if (UWorld* World = GetWorld())
 	{
-		Records.Add(FPerfStatsRecord(RecordName));
-		CurrRecord = GetCurrentRecord();
-	}
+		//Ensure we're recording engine stats.
+		GEngine->SetEngineStat(World, World->GetGameViewport(), TEXT("Unit"), true);
+		bRecordingBasicStats = true;
+		bRecordingBaselineBasicStats = false;
+		bGPUTraceIfBelowBudget = false;
 
-	check(CurrRecord);
-	CurrRecord->SetBudgets(InGPUBudget, InRenderThreadBudget, InGameThreadBudget);
+		FPerfStatsRecord* CurrRecord = GetCurrentRecord();
+		if (!CurrRecord || CurrRecord->Name != RecordName)
+		{
+			Records.Add(FPerfStatsRecord(RecordName));
+			CurrRecord = GetCurrentRecord();
+		}
+
+		check(CurrRecord);
+		CurrRecord->SetBudgets(InGPUBudget, InRenderThreadBudget, InGameThreadBudget);
+	}
 }
 
 void UAutomationPerformaceHelper::EndRecording()
@@ -1101,10 +1115,13 @@ void UAutomationPerformaceHelper::Tick(float DeltaSeconds)
 
 void UAutomationPerformaceHelper::Sample(float DeltaSeconds)
 {
-	int32 Index = Records.Num() - 1;
-	if (Index >= 0 && bRecordingBasicStats)
+	if (UWorld* World = GetWorld())
 	{
-		Records[Index].Sample(GetOuter()->GetWorld(), DeltaSeconds, bRecordingBaselineBasicStats);
+		int32 Index = Records.Num() - 1;
+		if (Index >= 0 && bRecordingBasicStats)
+		{
+			Records[Index].Sample(World, DeltaSeconds, bRecordingBaselineBasicStats);
+		}
 	}
 }
 
@@ -1262,12 +1279,18 @@ void UAutomationPerformaceHelper::TriggerGPUTraceIfRecordFallsBelowBudget()
 
 void UAutomationPerformaceHelper::BeginStatsFile(const FString& RecordName)
 {
-	FString MapName = GetOuter()->GetWorld()->GetMapName();
-	FString Cmd = FString::Printf(TEXT("Stat StartFile %s-%s/%s.ue4stats"), *MapName, *StartOfTestingTime, *RecordName);
-	GEngine->Exec(GetOuter()->GetWorld(), *Cmd);
+	if (UWorld* World = GetWorld())
+	{
+		FString MapName = World->GetMapName();
+		FString Cmd = FString::Printf(TEXT("Stat StartFile %s-%s/%s.ue4stats"), *MapName, *StartOfTestingTime, *RecordName);
+		GEngine->Exec(World, *Cmd);
+	}
 }
 
 void UAutomationPerformaceHelper::EndStatsFile()
 {
-	GEngine->Exec(GetOuter()->GetWorld(), TEXT("Stat StopFile"));
+	if (UWorld* World = GetWorld())
+	{
+		GEngine->Exec(World, TEXT("Stat StopFile"));
+	}
 }

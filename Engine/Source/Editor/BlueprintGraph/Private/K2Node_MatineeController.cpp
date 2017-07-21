@@ -64,6 +64,15 @@ void UK2Node_MatineeController::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
+void UK2Node_MatineeController::PreloadRequiredAssets()
+{
+	if(MatineeActor)
+	{
+		PreloadObject(MatineeActor);
+		PreloadObject(MatineeActor->MatineeData);
+	}
+	Super::PreloadRequiredAssets();
+}
 
 FLinearColor UK2Node_MatineeController::GetNodeTitleColor() const
 {

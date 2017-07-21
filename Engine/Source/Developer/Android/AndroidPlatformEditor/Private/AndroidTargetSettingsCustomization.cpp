@@ -53,7 +53,7 @@ TSharedRef<IDetailCustomization> FAndroidTargetSettingsCustomization::MakeInstan
 FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
 	: AndroidRelativePath(TEXT(""))
 	, EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
-	, GameAndroidPath(FPaths::GameDir() + TEXT("Build/Android"))
+	, GameAndroidPath(FPaths::ProjectDir() + TEXT("Build/Android"))
 	, EngineGooglePlayAppIDPath(EngineAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, GameGooglePlayAppIDPath(GameAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, EngineProguardPath(EngineAndroidPath / TEXT("proguard-project.txt"))

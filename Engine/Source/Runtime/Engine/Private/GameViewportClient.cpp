@@ -700,18 +700,6 @@ bool UGameViewportClient::GetMousePosition(FVector2D& MousePosition) const
 	return bGotMousePosition;
 }
 
-FVector2D UGameViewportClient::GetMousePosition() const
-{
-	FVector2D MousePosition;
-	if (!GetMousePosition(MousePosition))
-	{
-		MousePosition = FVector2D::ZeroVector;
-	}
-
-	return MousePosition;
-}
-
-
 bool UGameViewportClient::RequiresUncapturedAxisInput() const
 {
 	bool bRequired = false;
@@ -1737,18 +1725,6 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 
 	// Create the initial player - this is necessary or we can't render anything in-game.
 	return ViewportGameInstance->CreateInitialPlayer(OutError);
-}
-
-ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
-{
-	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
-	return ( ViewportGameInstance != NULL ) ? ViewportGameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
-}
-
-bool UGameViewportClient::RemovePlayer(class ULocalPlayer* ExPlayer)
-{
-	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
-	return (ViewportGameInstance != NULL) ? ViewportGameInstance->RemoveLocalPlayer(ExPlayer) : false;
 }
 
 void UGameViewportClient::UpdateActiveSplitscreenType()
@@ -3306,7 +3282,7 @@ bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FNam
 	TSharedPtr<FHardwareCursor> HardwareCursor = HardwareCursorCache.FindRef(GameContentPath);
 	if ( HardwareCursor.IsValid() == false )
 	{
-		HardwareCursor = MakeShared<FHardwareCursor>(FPaths::GameContentDir() / GameContentPath.ToString(), HotSpot);
+		HardwareCursor = MakeShared<FHardwareCursor>(FPaths::ProjectContentDir() / GameContentPath.ToString(), HotSpot);
 		if ( HardwareCursor->GetHandle() == nullptr )
 		{
 			return false;

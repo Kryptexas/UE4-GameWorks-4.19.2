@@ -41,9 +41,16 @@ FUniqueObjectGuid FUniqueObjectGuid::FixupForPIE(int32 PlayInEditorID) const
 	return Temp;
 }
 
-UObject *FUniqueObjectGuid::ResolveObject() const
+UObject* FUniqueObjectGuid::ResolveObject() const
 {
-	return GuidAnnotation.Find(*this);
+	UObject* Result = GuidAnnotation.Find(*this);
+	// If the object is still being loaded, we can't return it yet as it may
+	// cause undesired side-effects if client code starts changing it.
+	if (Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+	{
+		Result = nullptr;
+	}
+	return Result;
 }
 
 FString FUniqueObjectGuid::ToString() const
@@ -99,6 +106,11 @@ void FLazyObjectPtr::PossiblySerializeObjectGuid(UObject *Object, FArchive& Ar)
 		{
 			if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 			{
+				if (Object->GetName().StartsWith(TEXT("CorePointerTestBP3")))
+				{
+					static volatile int32 xx = 0;
+					xx++;
+				}
 				check(GPlayInEditorID != -1);
 				FGuid &FoundGuid = PIEGuidMap[GPlayInEditorID % MAX_PIE_INSTANCES].FindOrAdd(Guid.GetGuid());
 				if (!FoundGuid.IsValid())

@@ -528,7 +528,7 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 				Definitions.Add("WITH_APEX_CLOTHING=0");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
-				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+				Definitions.Add(string.Format("WITH_PHYSX_COOKING={0}", Target.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
 			}
 
 			if (Target.bCompileNvCloth == true)
@@ -574,6 +574,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("The BuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyTargetRules BuildConfiguration
 		{
 			get { return Target; }
@@ -582,6 +583,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
+		[Obsolete("The UEBuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyTargetRules UEBuildConfiguration
 		{
 			get { return Target; }
@@ -590,6 +592,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Hack to allow deprecating existing code which references the static WindowsPlatform object; redirect it to use properties on the target rules.
 		/// </summary>
+		[Obsolete("The WindowsPlatform alias is deprecated in 4.18. Set the same properties on the WindowsPlatform member of the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]
 		public ReadOnlyWindowsTargetRules WindowsPlatform
 		{
 			get { return Target.WindowsPlatform; }

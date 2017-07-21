@@ -9,6 +9,7 @@
 #include "Async/TaskGraphInterfaces.h"
 #include "ILauncherPlatform.h"
 #include "LauncherPlatformModule.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -148,7 +149,7 @@ FReply FCrashReportClient::SubmitAndRestart()
 
 FReply FCrashReportClient::CopyCallstack()
 {
-	FPlatformMisc::ClipboardCopy(*DiagnosticText.ToString());
+	FPlatformApplicationMisc::ClipboardCopy(*DiagnosticText.ToString());
 	return FReply::Handled();
 }
 

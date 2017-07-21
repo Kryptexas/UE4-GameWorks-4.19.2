@@ -75,13 +75,21 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 		SearchPaths.Add(DllDirectories[Idx]);
 	}
 
-	static bool SuppressErrors =  !FParse::Param(::GetCommandLineW(), TEXT("dllerrors"));
-
 	// Load the DLL, avoiding windows dialog boxes if missing
-	int32 PrevErrorMode = ::SetErrorMode(SuppressErrors ? SEM_NOOPENFILEERRORBOX : 0);
+	DWORD ErrorMode = 0;
+	if(!FParse::Param(::GetCommandLineW(), TEXT("dllerrors")))
+	{
+		ErrorMode |= SEM_NOOPENFILEERRORBOX;
+		if(FParse::Param(::GetCommandLineW(), TEXT("unattended")))
+		{
+			ErrorMode |= SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX;
+		}
+	}
+
+	DWORD PrevErrorMode = 0;
+	BOOL bHavePrevErrorMode = ::SetThreadErrorMode(ErrorMode, &PrevErrorMode);
 
 	void* Handle = LoadLibraryWithSearchPaths(FileName, SearchPaths);
-
 	if (!Handle)
 	{
 		DWORD LastError = ::GetLastError();
@@ -101,7 +109,10 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 		}
 	}
 	
-	::SetErrorMode(PrevErrorMode);
+	if(bHavePrevErrorMode)
+	{
+		::SetThreadErrorMode(PrevErrorMode, NULL);
+	}
 	return Handle;
 }
 
@@ -556,7 +567,7 @@ bool FWindowsPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 		{
 			do
 			{
-				if( FCString::Strcmp( *ProcNameWithExtension, Entry.szExeFile ) == 0 )
+				if( FCString::Stricmp( *ProcNameWithExtension, Entry.szExeFile ) == 0 )
 				{
 					::CloseHandle( SnapShot );
 					return true;

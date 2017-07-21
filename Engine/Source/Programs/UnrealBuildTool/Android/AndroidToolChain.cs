@@ -669,6 +669,11 @@ namespace UnrealBuildTool
 			Result += " -Wl,--no-undefined";
 			Result += " -Wl,-gc-sections"; // Enable garbage collection of unused input sections. works best with -ffunction-sections, -fdata-sections
 
+			if (!LinkEnvironment.bCreateDebugInfo)
+			{
+				Result += " -Wl,--strip-debug";
+			}
+
 			if (Architecture == "-arm64")
 			{
 				Result += ToolchainParamsArm64;

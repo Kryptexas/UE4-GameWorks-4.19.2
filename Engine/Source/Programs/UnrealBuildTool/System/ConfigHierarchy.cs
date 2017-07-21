@@ -473,6 +473,187 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Attempts to parse the given line as a UE4 config object (eg. (Name="Foo",Number=1234)).
+		/// </summary>
+		/// <param name="Line">Line of text to parse</param>
+		/// <param name="Properties">Receives key/value pairs for the config object</param>
+		/// <returns>True if an object was parsed, false otherwise</returns>
+		public static bool TryParse(string Line, out Dictionary<string, string> Properties)
+		{
+			// Convert the string to a zero-terminated array, to make parsing easier.
+			char[] Chars = new char[Line.Length + 1];
+			Line.CopyTo(0, Chars, 0, Line.Length);
+
+			// Get the opening paren
+			int Idx = 0;
+			while(Char.IsWhiteSpace(Chars[Idx]))
+			{
+				Idx++;
+			}
+			if(Chars[Idx] != '(')
+			{
+				Properties = null;
+				return false;
+			}
+
+			// Read to the next token
+			Idx++;
+			while(Char.IsWhiteSpace(Chars[Idx]))
+			{
+				Idx++;
+			}
+
+			// Create the dictionary to receive the new properties
+			Dictionary<string, string> NewProperties = new Dictionary<string, string>();
+
+			// Read a sequence of key/value pairs
+			StringBuilder Value = new StringBuilder();
+			if(Chars[Idx] != ')')
+			{
+				for (;;)
+				{
+					// Find the end of the name
+					int NameIdx = Idx;
+					while(Char.IsLetterOrDigit(Chars[Idx]) || Chars[Idx] == '_')
+					{
+						Idx++;
+					}
+					if(Idx == NameIdx)
+					{
+						Properties = null;
+						return false;
+					}
+
+					// Extract the key string, and make sure it hasn't already been added
+					string Key = new string(Chars, NameIdx, Idx - NameIdx);
+					if(NewProperties.ContainsKey(Key))
+					{
+						Properties = null;
+						return false;
+					}
+
+					// Consume the equals character
+					while(Char.IsWhiteSpace(Chars[Idx]))
+					{
+						Idx++;
+					}
+					if(Chars[Idx] != '=')
+					{
+						Properties = null;
+						return false;
+					}
+
+					// Move to the value
+					Idx++;
+					while (Char.IsWhiteSpace(Chars[Idx]))
+					{
+						Idx++;
+					}
+
+					// Parse the value
+					Value.Clear();
+					if (Char.IsLetterOrDigit(Chars[Idx]) || Chars[Idx] == '_')
+					{
+						while (Char.IsLetterOrDigit(Chars[Idx]) || Chars[Idx] == '_' || Chars[Idx] == '.')
+						{
+							Value.Append(Chars[Idx]);
+							Idx++;
+						}
+					}
+					else if (Chars[Idx] == '\"')
+					{
+						Idx++;
+						for(; Chars[Idx] != '\"'; Idx++)
+						{
+							if (Chars[Idx] == '\0')
+							{
+								Properties = null;
+								return false;
+							}
+							else
+							{
+								Value.Append(Chars[Idx]);
+							}
+						}
+						Idx++;
+					}
+					else if (Chars[Idx] == '(')
+					{
+						Value.Append(Chars[Idx++]);
+
+						bool bInQuotes = false;
+						for (int Nesting = 1; Nesting > 0; Idx++)
+						{
+							if (Chars[Idx] == '\0')
+							{
+								Properties = null;
+								return false;
+							}
+							else if (Chars[Idx] == '(' && !bInQuotes)
+							{
+								Nesting++;
+							}
+							else if (Chars[Idx] == ')' && !bInQuotes)
+							{
+								Nesting--;
+							}
+							else if (Chars[Idx] == '\"' || Chars[Idx] == '\'')
+							{
+								bInQuotes ^= true;
+							}
+							Value.Append(Chars[Idx]);
+						}
+					}
+					else
+					{
+						Properties = null;
+						return false;
+					}
+
+					// Extract the value string
+					NewProperties[Key] = Value.ToString();
+
+					// Move to the separator
+					while(Char.IsWhiteSpace(Chars[Idx]))
+					{
+						Idx++;
+					}
+					if(Chars[Idx] == ')')
+					{
+						break;
+					}
+					if(Chars[Idx] != ',')
+					{
+						Properties = null;
+						return false;
+					}
+
+					// Move to the next field
+					Idx++;
+					while (Char.IsWhiteSpace(Chars[Idx]))
+					{
+						Idx++;
+					}
+				}
+			}
+
+			// Make sure we're at the end of the string
+			Idx++;
+			while(Char.IsWhiteSpace(Chars[Idx]))
+			{
+				Idx++;
+			}
+			if(Chars[Idx] != '\0')
+			{
+				Properties = null;
+				return false;
+			}
+
+			Properties = NewProperties;
+			return true;
+		}
+
+		/// <summary>
 		/// Returns a list of INI filenames for the given project
 		/// </summary>
 		public static IEnumerable<FileReference> EnumerateConfigFileLocations(ConfigHierarchyType Type, DirectoryReference ProjectDir, UnrealTargetPlatform Platform)

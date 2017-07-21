@@ -180,9 +180,9 @@ protected:
 		{
 			ProjectPath = FPaths::GetProjectFilePath();
 		}
-		else if (FGameProjectHelper::IsGameAvailable(FApp::GetGameName()))
+		else if (FGameProjectHelper::IsGameAvailable(FApp::GetProjectName()))
 		{
-			ProjectPath = FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+			ProjectPath = FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 		}
 		else if (GConfig != NULL)
 		{
@@ -196,7 +196,7 @@ protected:
 	 */
 	void SaveConfig()
 	{
-		if (GConfig != NULL && !FPaths::IsProjectFilePathSet() && !FGameProjectHelper::IsGameAvailable(FApp::GetGameName()))
+		if (GConfig != NULL && !FPaths::IsProjectFilePathSet() && !FGameProjectHelper::IsGameAvailable(FApp::GetProjectName()))
 		{
 			FString ProjectPath = ProfileManager->GetProjectPath();
 			GConfig->SetString(TEXT("FProjectLauncherModel"), TEXT("SelectedProjectPath"), *ProjectPath, GEngineIni);

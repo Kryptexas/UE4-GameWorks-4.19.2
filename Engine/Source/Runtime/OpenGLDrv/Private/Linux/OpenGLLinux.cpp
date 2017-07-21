@@ -10,6 +10,7 @@
 #include "SDL.h"
 #include "OpenGLDrvPrivate.h"
 #include "ComponentReregisterContext.h"
+#include "Linux/LinuxPlatformApplicationMisc.h"
 
 /*------------------------------------------------------------------------------
 	OpenGL function pointers.
@@ -862,9 +863,9 @@ bool PlatformInitOpenGL()
 	static bool bInitialized = false;
 	static bool bOpenGLSupported = false;
 
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (!FLinuxPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Error, TEXT("PlatformInitOpenGL() : PlatformInitMultimedia() failed, cannot initialize OpenGL."));
+		UE_LOG(LogInit, Error, TEXT("PlatformInitOpenGL() : InitSDL() failed, cannot initialize OpenGL."));
 		// unreachable
 		return false;
 	}

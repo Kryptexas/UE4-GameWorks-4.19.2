@@ -26,16 +26,16 @@ public class SlateViewerTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		bCompileLeanAndMeanUE = true;
 
 		// Don't need editor
-		UEBuildConfiguration.bBuildEditor = false;
+		bBuildEditor = false;
 
 		// SlateViewer doesn't ever compile with the engine linked in
-		UEBuildConfiguration.bCompileAgainstEngine = false;
+		bCompileAgainstEngine = false;
 
 		// We need CoreUObject compiled in as the source code access module requires it
-		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
+		bCompileAgainstCoreUObject = true;
 
 		// SlateViewer.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.

@@ -27,7 +27,7 @@ namespace UnrealBuildTool.Rules
                     "Developer/Settings/Public",
                 });
 
-            if (UEBuildConfiguration.bBuildEditor)
+            if (Target.bBuildEditor)
 			{
                 PrivateDependencyModuleNames.AddRange(
                     new string[] {

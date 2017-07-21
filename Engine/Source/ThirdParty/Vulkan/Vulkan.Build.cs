@@ -12,7 +12,7 @@ public class Vulkan : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			string RootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows";
+			string RootPath = Target.UEThirdPartySourceDirectory + "Vulkan/Windows";
 			string LibPath = RootPath + "/Bin";
 			if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
@@ -32,7 +32,7 @@ public class Vulkan : ModuleRules
 		else if(Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			// no need to add the library, should be loaded via SDL
-			string RootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Linux";
+			string RootPath = Target.UEThirdPartySourceDirectory + "Vulkan/Linux";
 
 			PublicSystemIncludePaths.Add(RootPath + "/include");
 			PublicSystemIncludePaths.Add(RootPath + "/include/vulkan");

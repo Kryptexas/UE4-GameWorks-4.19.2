@@ -6,6 +6,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
 #include "Features/IModularFeatures.h"
+#include "Linux/LinuxPlatformApplicationMisc.h"
 #include "IInputDeviceModule.h"
 
 //
@@ -31,9 +32,9 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 		return new FLinuxApplication();
 	}
 
-	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (!FLinuxPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 	{
-		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
+		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : InitSDL() failed, cannot create application instance."));
 		// unreachable
 		return nullptr;
 	}
@@ -172,7 +173,7 @@ TSharedPtr< FLinuxWindow > FLinuxApplication::FindWindowBySDLWindow(SDL_Window *
 
 void FLinuxApplication::PumpMessages( const float TimeDelta )
 {
-	FPlatformMisc::PumpMessages( true );
+	FPlatformApplicationMisc::PumpMessages( true );
 }
 
 bool FLinuxApplication::IsCursorDirectlyOverSlateWindow() const
@@ -1518,13 +1519,13 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 
 	if (LIKELY(FApp::CanEverRender()))
 	{
-		if (FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+		if (FLinuxPlatformApplicationMisc::InitSDL()) //	will not initialize more than once
 		{
 			NumDisplays = SDL_GetNumVideoDisplays();
 		}
 		else
 		{
-			UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+			UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: InitSDL() failed, cannot get display metrics"));
 		}
 	}
 

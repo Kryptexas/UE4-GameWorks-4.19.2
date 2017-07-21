@@ -34,8 +34,7 @@ private:
 
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
-	FReply OnDefaultResetClicked();
-	FReply OnCustomResetClicked();
+	FReply OnResetClicked();
 
 	void UpdateDiffersFromDefaultState();
 private:

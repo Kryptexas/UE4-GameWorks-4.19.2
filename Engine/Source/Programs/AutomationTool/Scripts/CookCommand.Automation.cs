@@ -231,7 +231,7 @@ public partial class Project : CommandUtils
 				}
 				if (Params.HasDLCName)
                 {
-                    CommandletParams += " -dlcname=" + Params.DLCName;
+                    CommandletParams += " -dlcname=" + Params.DLCFile.GetFileNameWithoutExtension();
                     if ( !Params.DLCIncludeEngineContent )
                     {
                         CommandletParams += " -errorOnEngineContentUse";

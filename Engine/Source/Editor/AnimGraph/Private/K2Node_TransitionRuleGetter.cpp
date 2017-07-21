@@ -37,6 +37,13 @@ void UK2Node_TransitionRuleGetter::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
+void UK2Node_TransitionRuleGetter::PreloadRequiredAssets()
+{
+	PreloadObject(AssociatedAnimAssetPlayerNode);
+	PreloadObject(AssociatedStateNode);
+	Super::PreloadRequiredAssets();
+}
+
 FText UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type TypeID)
 {
 	FText FriendlyName;

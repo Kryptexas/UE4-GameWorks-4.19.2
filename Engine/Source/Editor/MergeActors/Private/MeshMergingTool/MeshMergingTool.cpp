@@ -43,7 +43,7 @@ FText FMeshMergingTool::GetTooltipText() const
 
 FString FMeshMergingTool::GetDefaultPackageName() const
 {
-	FString PackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("SM_MERGED"));
+	FString PackageName = FPackageName::FilenameToLongPackageName(FPaths::ProjectContentDir() + TEXT("SM_MERGED"));
 
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	// Iterate through selected actors and find first static mesh asset

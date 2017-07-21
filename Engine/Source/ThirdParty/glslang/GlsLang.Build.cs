@@ -8,18 +8,18 @@ public class GlsLang : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicSystemIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "glslang/glslang/src/glslang_lib");
+		PublicSystemIncludePaths.Add(Target.UEThirdPartySourceDirectory + "glslang/glslang/src/glslang_lib");
 
-		string LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "glslang/glslang/lib/";
+		string LibPath = Target.UEThirdPartySourceDirectory + "glslang/glslang/lib/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			LibPath = LibPath + (Target.Platform == UnrealTargetPlatform.Win32 ? "Win32/" : "Win64/");
-			LibPath = LibPath + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			LibPath = LibPath + "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			
 			PublicLibraryPaths.Add(LibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				if (Target.Platform == UnrealTargetPlatform.Win64)
 				{
@@ -44,7 +44,7 @@ public class GlsLang : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				PublicAdditionalLibraries.Add(LibPath + "Mac/libglslangd.a");
 				PublicAdditionalLibraries.Add(LibPath + "Mac/libOSDependentd.a");

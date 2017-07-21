@@ -14,7 +14,7 @@ public class AssetRegistry : ModuleRules
 			}
 			);
 
-		if (UEBuildConfiguration.bBuildEditor == true)
+		if (Target.bBuildEditor == true)
 		{
 			PrivateIncludePathModuleNames.AddRange(new string[] { "DirectoryWatcher" });
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "DirectoryWatcher" });

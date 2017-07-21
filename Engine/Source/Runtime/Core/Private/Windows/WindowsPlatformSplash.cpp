@@ -18,6 +18,7 @@
 #include "Stats/Stats.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Windows/WindowsPlatformApplicationMisc.h"
 #include "Windows/WindowsHWrapper.h"
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Misc/EngineBuildSettings.h"
@@ -386,7 +387,7 @@ uint32 WINAPI StartSplashScreenThread( LPVOID unused )
 	wc.cbWndExtra  = 0; 
 	wc.hInstance   = hInstance; 
 
-	wc.hIcon       = LoadIcon(hInstance, MAKEINTRESOURCE(FWindowsPlatformMisc::GetAppIcon()));
+	wc.hIcon       = LoadIcon(hInstance, MAKEINTRESOURCE(FWindowsPlatformApplicationMisc::GetAppIcon()));
 	if(wc.hIcon == NULL)
 	{
 		wc.hIcon   = LoadIcon((HINSTANCE) NULL, IDI_APPLICATION); 
@@ -604,7 +605,7 @@ void FWindowsPlatformSplash::Show()
 {
 	if( !GSplashScreenThread && FParse::Param(FCommandLine::Get(),TEXT("NOSPLASH")) != true )
 	{
-		const FText GameName = FText::FromString( FApp::GetGameName() );
+		const FText GameName = FText::FromString( FApp::GetProjectName() );
 
 		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
 

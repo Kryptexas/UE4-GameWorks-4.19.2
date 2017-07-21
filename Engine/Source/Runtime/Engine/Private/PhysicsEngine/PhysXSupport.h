@@ -76,38 +76,12 @@ ENGINE_API void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidB
 
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
-DEPRECATED(4.8, "Please call AddRadialImpulseToPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-inline void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
-{
-	AddRadialImpulseToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bVelChange);
-}
-
 ENGINE_API void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange);
 
-/** Calculates correct force at the body's center of mass and adds force to the body. */
-DEPRECATED(4.8, "Please call AddRadialImpulseToPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-inline void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
-{
-	AddRadialForceToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
-}
-
+/** Util to see if a PxRigidBody is non-kinematic */
 bool IsRigidBodyKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
 
 bool IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(const PxRigidBody* PRigidBody);
-
-DEPRECATED(4.12, "Please call IsRigidBodyKinematic_AssumesLocked")
-inline bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
-{
-	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
-}
-
-/** Util to see if a PxRigidActor is non-kinematic */
-DEPRECATED(4.8, "Please call IsRigidBodyKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
-inline bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
-{
-	return !IsRigidBodyKinematic_AssumesLocked(PRigidBody);
-}
-
 
 /////// GLOBAL POINTERS
 

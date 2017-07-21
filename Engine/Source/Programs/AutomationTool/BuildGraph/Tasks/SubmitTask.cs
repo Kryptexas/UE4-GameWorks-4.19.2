@@ -84,8 +84,7 @@ namespace AutomationTool.Tasks
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
-		/// <returns>True if the task succeeded</returns>
-		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public override void Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
 			if (CommandUtils.AllowSubmit && Files.Count > 0)
@@ -96,7 +95,7 @@ namespace AutomationTool.Tasks
 				{
 					// Create a brand new workspace
 					P4ClientInfo Client = new P4ClientInfo();
-					Client.Owner = Environment.UserName;
+					Client.Owner = CommandUtils.P4Env.User;
 					Client.Host = Environment.MachineName;
 					Client.Stream = Parameters.Stream ?? CommandUtils.P4Env.BuildRootP4;
 					Client.RootPath = Parameters.RootDir ?? CommandUtils.RootDirectory.FullName;
@@ -130,7 +129,7 @@ namespace AutomationTool.Tasks
 					if(SubmitP4.TryDeleteEmptyChange(NewCL))
 					{
 						CommandUtils.Log("No files to submit; ignored.");
-						return true;
+						return;
 					}
 				}
 
@@ -143,7 +142,6 @@ namespace AutomationTool.Tasks
 				}
 				CommandUtils.Log("Submitted in changelist {0}", SubmittedCL);
 			}
-			return true;
 		}
 
 		/// <summary>

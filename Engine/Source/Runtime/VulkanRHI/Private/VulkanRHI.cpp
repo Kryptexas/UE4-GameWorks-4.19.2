@@ -1320,7 +1320,7 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 
 void FVulkanDynamicRHI::SavePipelineCache()
 {
-	FString CacheFile = FPaths::GameSavedDir() / TEXT("VulkanPSO.cache");
+	FString CacheFile = FPaths::ProjectSavedDir() / TEXT("VulkanPSO.cache");
 
 	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->Save(CacheFile);

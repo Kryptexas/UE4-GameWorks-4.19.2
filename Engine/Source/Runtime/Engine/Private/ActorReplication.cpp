@@ -27,24 +27,8 @@ static bool		SavedbHidden;
 static AActor*	SavedOwner;
 static bool		SavedbRepPhysics;
 
-#define DEPRECATED_NET_PRIORITY -17.0f // Pick an arbitrary invalid priority, check for that
-
-float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
-{
-	return DEPRECATED_NET_PRIORITY;
-}
-
 float AActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	// Call the deprecated version so subclasses will still work for a version
-	float DeprecatedValue = AActor::GetNetPriority(ViewPos, ViewDir, Cast<APlayerController>(Viewer), InChannel, Time, bLowBandwidth);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	if (DeprecatedValue != DEPRECATED_NET_PRIORITY)
-	{
-		return DeprecatedValue;
-	}
-
 	if (bNetUseOwnerRelevancy && Owner)
 	{
 		// If we should use our owner's priority, pass it through
@@ -133,11 +117,6 @@ bool AActor::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AAct
 {
 	// For now, per peer dormancy is not supported
 	return false;
-}
-
-bool AActor::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
-{
-	return GetNetDormancy(ViewPos, ViewDir, Cast<AActor>(Viewer), ViewTarget, InChannel, Time, bLowBandwidth);
 }
 
 void AActor::PreNetReceive()
@@ -254,11 +233,6 @@ void AActor::SyncReplicatedPhysicsSimulation()
 			RootPrimComp->SetSimulatePhysics(ReplicatedMovement.bRepPhysics);
 		}
 	}
-}
-
-bool AActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
-{
-	return IsNetRelevantFor(Cast<AActor>(RealViewer), ViewTarget, SrcLocation);
 }
 
 bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const

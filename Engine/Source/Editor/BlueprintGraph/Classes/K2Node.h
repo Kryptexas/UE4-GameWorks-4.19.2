@@ -339,7 +339,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
 
 	/** Called before compilation begins, giving a blueprint time to force the linker to load data */
-	BLUEPRINTGRAPH_API virtual void PreloadRequiredAssets();
+	BLUEPRINTGRAPH_API virtual void PreloadRequiredAssets() { }
 
 	/** 
 	 * Replacement for GetMenuEntries(). Override to add specific 
@@ -395,8 +395,7 @@ protected:
 	{
 		ERedirectType_None,
 		ERedirectType_Name,
-		ERedirectType_Value,
-		ERedirectType_Custom // DEPRECATED
+		ERedirectType_Value
 	};
 
 	// Handles the actual reconstruction (copying data, links, name, etc...) from two pins that have already been matched together
@@ -407,9 +406,6 @@ protected:
 
 	// Helper function to properly destroy a set of pins
 	BLUEPRINTGRAPH_API void DestroyPinList(TArray<UEdGraphPin*>& InPins);
-
-	DEPRECATED(4.16, "This function is deprecated, override ReconstructSinglePin instead ")
-	BLUEPRINTGRAPH_API virtual void CustomMapParamValue(UEdGraphPin& Pin);
 
 	/** Whether or not two pins match for purposes of reconnection after reconstruction.  This allows pins that may have had their names changed via reconstruction to be matched to their old values on a node-by-node basis, if needed*/
 	BLUEPRINTGRAPH_API virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const;

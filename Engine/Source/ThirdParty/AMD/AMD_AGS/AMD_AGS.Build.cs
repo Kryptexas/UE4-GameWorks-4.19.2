@@ -7,17 +7,17 @@ public class AMD_AGS : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string AmdAgsPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "AMD/AMD_AGS/";
+		string AmdAgsPath = Target.UEThirdPartySourceDirectory + "AMD/AMD_AGS/";
 		PublicSystemIncludePaths.Add(AmdAgsPath + "inc/");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			string AmdApiLibPath = AmdAgsPath + "lib/";
-			AmdApiLibPath = AmdApiLibPath + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			AmdApiLibPath = AmdApiLibPath + "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(AmdApiLibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{
 				if (Target.Platform == UnrealTargetPlatform.Win64)
 				{

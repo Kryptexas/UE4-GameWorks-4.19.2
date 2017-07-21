@@ -347,7 +347,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void ExcludeRestrictedFolders()
 		{
-			foreach(string RestrictedFolderName in PlatformExports.RestrictedFolderNames)
+			foreach(FileSystemName RestrictedFolderName in PlatformExports.RestrictedFolderNames)
 			{
 				AddRule(String.Format(".../{0}/...", RestrictedFolderName), FileFilterType.Exclude);
 			}

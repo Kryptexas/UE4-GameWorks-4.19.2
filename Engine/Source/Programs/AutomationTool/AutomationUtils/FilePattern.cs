@@ -266,10 +266,8 @@ namespace AutomationTool
 		/// <param name="TargetPattern">Matching output pattern</param>
 		/// <param name="Filter">Filter to apply to source files</param>
 		/// <param name="TargetFileToSourceFile">Dictionary to receive a mapping from target file to source file. An exception is thrown if multiple source files map to one target file, or a source file is also used as a target file.</param>
-		public static bool TryCreateMapping(HashSet<FileReference> Files, FilePattern SourcePattern, FilePattern TargetPattern, out Dictionary<FileReference, FileReference> OutTargetFileToSourceFile)
+		public static Dictionary<FileReference, FileReference> CreateMapping(HashSet<FileReference> Files, FilePattern SourcePattern, FilePattern TargetPattern)
 		{
-			bool bResult = true;
-
 			// If the source pattern ends in a directory separator, or a set of input files are specified and it doesn't contain wildcards, treat it as a full directory match
 			if(SourcePattern.EndsWithDirectorySeparator())
 			{
@@ -312,9 +310,7 @@ namespace AutomationTool
 				// Check the two patterns are compatible
 				if(!SourcePattern.IsCompatibleWith(TargetPattern))
 				{
-					CommandUtils.LogError("File patterns '{0}' and '{1}' do not have matching wildcards", SourcePattern, TargetPattern);
-					OutTargetFileToSourceFile = null;
-					return false;
+					throw new AutomationException("File patterns '{0}' and '{1}' do not have matching wildcards", SourcePattern, TargetPattern);
 				}
 
 				// Create a filter to match the source files
@@ -329,7 +325,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					SourceFiles = CheckInputFiles(Files, SourcePattern.BaseDirectory, ref bResult);
+					SourceFiles = CheckInputFiles(Files, SourcePattern.BaseDirectory);
 				}
 
 				// Map them onto output files
@@ -351,8 +347,7 @@ namespace AutomationTool
 					FileReference ExistingSourceFile;
 					if(TargetFileToSourceFile.TryGetValue(TargetFiles[Idx], out ExistingSourceFile) && ExistingSourceFile != SourceFiles[Idx])
 					{
-						CommandUtils.LogError("Output file '{0}' is mapped from '{1}' and '{2}'", TargetFiles[Idx], ExistingSourceFile, SourceFiles[Idx]);
-						bResult = false;
+						throw new AutomationException("Output file '{0}' is mapped from '{1}' and '{2}'", TargetFiles[Idx], ExistingSourceFile, SourceFiles[Idx]);
 					}
 					TargetFileToSourceFile[TargetFiles[Idx]] = SourceFiles[Idx];
 				}
@@ -368,8 +363,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					CommandUtils.LogError("Source file '{0}' does not exist", SourceFile);
-					bResult = false;
+					throw new AutomationException("Source file '{0}' does not exist", SourceFile);
 				}
 			}
 
@@ -378,22 +372,12 @@ namespace AutomationTool
 			{
 				if(TargetFileToSourceFile.ContainsKey(SourceFile))
 				{
-					CommandUtils.LogError("'{0}' is listed as a source and target file", SourceFile);
-					bResult = false;
+					throw new AutomationException("'{0}' is listed as a source and target file", SourceFile);
 				}
 			}
 
-			// Set the output map
-			if(bResult)
-			{
-				OutTargetFileToSourceFile = TargetFileToSourceFile;
-				return true;
-			}
-			else
-			{
-				OutTargetFileToSourceFile = null;
-				return false;
-			}
+			// Return the map
+			return TargetFileToSourceFile;
 		}
 
 		/// <summary>
@@ -401,22 +385,19 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="InputFiles">Input files to check</param>
 		/// <param name="BaseDirectory">Base directory for files</param>
-		/// <param name="bResult">Set to false if a check fails, otherwise unmodified</param>
 		/// <returns>List of valid files</returns>
-		public static List<FileReference> CheckInputFiles(IEnumerable<FileReference> InputFiles, DirectoryReference BaseDirectory, ref bool bResult)
+		public static List<FileReference> CheckInputFiles(IEnumerable<FileReference> InputFiles, DirectoryReference BaseDirectory)
 		{
 			List<FileReference> Files = new List<FileReference>();
 			foreach(FileReference InputFile in InputFiles)
 			{
 				if(!InputFile.IsUnderDirectory(BaseDirectory))
 				{
-					CommandUtils.LogError("Source file '{0}' is not under '{1}'", InputFile, BaseDirectory);
-					bResult = false;
+					throw new AutomationException("Source file '{0}' is not under '{1}'", InputFile, BaseDirectory);
 				}
 				else if(!FileReference.Exists(InputFile))
 				{
-					CommandUtils.LogError("Source file '{0}' does not exist", InputFile);
-					bResult = false;
+					throw new AutomationException("Source file '{0}' does not exist", InputFile);
 				}
 				else
 				{

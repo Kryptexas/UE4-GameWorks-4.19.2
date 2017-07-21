@@ -64,10 +64,10 @@ bool FConfigValue::ExpandValue(const FString& InCollapsedValue, FString& OutExpa
 	OutExpandedValue = InCollapsedValue;
 
 	// Replace %GAME% with game name.
-	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAME%"), FApp::GetProjectName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
-	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive);
+	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%GAMEDIR%"), *FPaths::ProjectDir(), ESearchCase::CaseSensitive);
 
 	// Replace %ENGINEUSERDIR% with the user's engine directory.
 	NumReplacements += OutExpandedValue.ReplaceInline(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
@@ -112,7 +112,7 @@ bool FConfigValue::CollapseValue(const FString& InExpandedValue, FString& OutCol
 	};
 
 	// Replace the game directory with %GAMEDIR%.
-	ExpandPathValueInline(FPaths::GameDir(), TEXT("%GAMEDIR%"));
+	ExpandPathValueInline(FPaths::ProjectDir(), TEXT("%GAMEDIR%"));
 
 	// Replace the user's engine directory with %ENGINEUSERDIR%.
 	ExpandPathValueInline(FPaths::EngineUserDir(), TEXT("%ENGINEUSERDIR%"));
@@ -972,7 +972,7 @@ static bool LoadIniFileHierarchy(const FConfigFileHierarchy& HierarchyToLoad, FC
 				{
 					if (IniToLoad.bRequired)
 					{
-						//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetGameName() );
+						//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetProjectName() );
 						return false;
 					}
 					else
@@ -1473,7 +1473,7 @@ void FConfigFile::SaveSourceToBackupFile()
 {
 	FString Text;
 
-	FString BetweenRunsDir = (FPaths::GameIntermediateDir() / TEXT("Config/CoalescedSourceConfigs/"));
+	FString BetweenRunsDir = (FPaths::ProjectIntermediateDir() / TEXT("Config/CoalescedSourceConfigs/"));
 	FString Filename = FString::Printf( TEXT( "%s%s.ini" ), *BetweenRunsDir, *Name.ToString() );
 
 	for( TMap<FString,FConfigSection>::TIterator SectionIterator(*SourceConfigFile); SectionIterator; ++SectionIterator )
@@ -1503,7 +1503,7 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 {
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		FString BetweenRunsDir = (FPaths::GameIntermediateDir() / TEXT("Config/CoalescedSourceConfigs/"));
+		FString BetweenRunsDir = (FPaths::ProjectIntermediateDir() / TEXT("Config/CoalescedSourceConfigs/"));
 		FString BackupFilename = FString::Printf( TEXT( "%s%s.ini" ), *BetweenRunsDir, *Name.ToString() );
 
 		FConfigFile BackupFile;
@@ -3099,8 +3099,8 @@ void FConfigCacheIni::InitializeConfigSystem()
 	GConfig = new FConfigCacheIni(EConfigCacheType::DiskBacked);
 
 	// load the main .ini files (unless we're running a program or a gameless UE4Editor.exe, DefaultEngine.ini is required).
-	const bool bIsGamelessExe = !FApp::HasGameName();
-	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FApp::IsGameNameEmpty());
+	const bool bIsGamelessExe = !FApp::HasProjectName();
+	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FApp::IsProjectNameEmpty());
 	bool bEngineConfigCreated = FConfigCacheIni::LoadGlobalIniFile(GEngineIni, TEXT("Engine"), nullptr, bDefaultEngineIniRequired);
 
 	if ( !bIsGamelessExe )
@@ -3115,7 +3115,7 @@ void FConfigCacheIni::InitializeConfigSystem()
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, Message);
 			}
-			FApp::SetGameName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
+			FApp::SetProjectName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
 			if (!GIsBuildMachine)
 			{
 				exit(1);

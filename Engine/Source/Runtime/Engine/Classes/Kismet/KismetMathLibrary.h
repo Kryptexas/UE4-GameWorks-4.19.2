@@ -1489,12 +1489,6 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 		UPARAM(DisplayName="Y (Pitch)") float Pitch,
 		UPARAM(DisplayName="Z (Yaw)") float Yaw);
 
-	DEPRECATED(4.9, "Method renamed to MakeRotator as the parameter order changed")
-	static inline FRotator MakeRot(float Pitch, float Yaw, float Roll)
-	{
-		return MakeRotator(Roll, Pitch, Yaw);
-	}
-
 	/** Find a rotation for an object at Start location to point at Target location. */
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate"))
 	static FRotator FindLookAtRotation(const FVector& Start, const FVector& Target);
@@ -1542,12 +1536,6 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 		UPARAM(DisplayName="X (Roll)") float& Roll,
 		UPARAM(DisplayName="Y (Pitch)") float& Pitch,
 		UPARAM(DisplayName="Z (Yaw)") float& Yaw);
-
-	DEPRECATED(4.9, "Method renamed to BreakRotator as the parameter order changed")
-	static inline void BreakRot(FRotator InRot, float& Pitch, float& Yaw, float& Roll)
-	{
-		BreakRotator(InRot, Roll, Pitch, Yaw);
-	}
 
 	/** Breaks apart a rotator into its component axes */
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotation rotate rotator breakrotator"))

@@ -32,6 +32,7 @@
 #include "ISizeMapModule.h"
 #include "Engine/AssetManager.h"
 #include "Widgets/Input/SComboBox.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "ObjectTools.h"
 
@@ -1104,13 +1105,13 @@ FString SReferenceViewer::GetReferencingObjectsList() const
 void SReferenceViewer::CopyReferencedObjects()
 {
 	const FString ReferencedObjectsList = GetReferencedObjectsList();
-	FPlatformMisc::ClipboardCopy(*ReferencedObjectsList);
+	FPlatformApplicationMisc::ClipboardCopy(*ReferencedObjectsList);
 }
 
 void SReferenceViewer::CopyReferencingObjects()
 {
 	const FString ReferencingObjectsList = GetReferencingObjectsList();
-	FPlatformMisc::ClipboardCopy(*ReferencingObjectsList);
+	FPlatformApplicationMisc::ClipboardCopy(*ReferencingObjectsList);
 }
 
 void SReferenceViewer::ShowReferencedObjects()

@@ -123,26 +123,8 @@ private:
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
-	EAlphaBlendType GetInterpolationType()
-	{
-		switch (InterpolationType)
-		{
-		case EInterpolationBlend::Cubic:
-			return ABT_Cubic;
-		case EInterpolationBlend::Sinusoidal:
-			return ABT_Cubic;
-		case EInterpolationBlend::EaseInOutExponent2:
-			return ABT_EaseInOutExponent2;
-		case EInterpolationBlend::EaseInOutExponent3:
-			return ABT_EaseInOutExponent3;
-		case EInterpolationBlend::EaseInOutExponent4:
-			return ABT_EaseInOutExponent4;
-		case EInterpolationBlend::EaseInOutExponent5:
-			return ABT_EaseInOutExponent5;
-		}
-
-		return ABT_Linear;
-	}
+	/** Turn a linear interpolated alpha into the corresponding AlphaBlendType */
+	static float AlphaToBlendType(float InAlpha, EInterpolationBlend::Type BlendType);
 
 	/** Debug transient data */
 	FVector CurrentLookAtLocation;

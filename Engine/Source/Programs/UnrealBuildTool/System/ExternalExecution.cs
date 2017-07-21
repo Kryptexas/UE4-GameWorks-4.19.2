@@ -541,13 +541,21 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets the path to the receipt for UHT
+		/// </summary>
+		/// <returns>Path to the UHT receipt</returns>
+		static FileReference GetHeaderToolReceiptFile()
+		{
+			UnrealTargetConfiguration Config = BuildConfiguration.bForceDebugUnrealHeaderTool ? UnrealTargetConfiguration.Debug : UnrealTargetConfiguration.Development;
+			return TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
+		}
+
+		/// <summary>
 		/// Gets UnrealHeaderTool.exe path. Does not care if UnrealheaderTool was build as a monolithic exe or not.
 		/// </summary>
 		static string GetHeaderToolPath()
 		{
-			UnrealTargetConfiguration Config = BuildConfiguration.bForceDebugUnrealHeaderTool ? UnrealTargetConfiguration.Debug : UnrealTargetConfiguration.Development;
-
-			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
+			FileReference ReceiptFileName = GetHeaderToolReceiptFile();
 			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName, UnrealBuildTool.EngineDirectory, null);
 
 			string HeaderToolPath = Receipt.BuildProducts[0].Path.FullName;
@@ -565,7 +573,9 @@ namespace UnrealBuildTool
 			using (ScopedTimer TimestampTimer = new ScopedTimer("GetHeaderToolTimestamp"))
 			{
 				// Try to read the receipt for UHT.
-				FileReference ReceiptPath = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
+
+
+				FileReference ReceiptPath = GetHeaderToolReceiptFile();
 				if (!FileReference.Exists(ReceiptPath))
 				{
 					Timestamp = DateTime.MaxValue;
@@ -929,9 +939,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		// Set to true if makefiles need invalidating
-		static public bool bInvalidateUHTMakefile = false;
-
 		/// <summary>
 		/// Builds and runs the header tool and touches the header directories.
 		/// Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
@@ -1073,11 +1080,6 @@ namespace UnrealBuildTool
 					{
 						CmdLine += " -FailIfGeneratedCodeChanges";
 					}
-
-                    if (!bInvalidateUHTMakefile && BuildConfiguration.bUseUHTMakefiles)
-                    {
-                        CmdLine += " -UseMakefiles";
-                    }
 
 					if (Target.Rules != null && !Target.Rules.bCompileAgainstEngine)
 					{

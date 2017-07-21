@@ -273,7 +273,7 @@ int32 UFixConflictingLocalizationKeysCommandlet::Main(const FString& Params)
 	}
 
 	const FString LocTargetName = TEXT("Game");
-	const FString LocTargetPath = FPaths::GameContentDir() / TEXT("Localization") / LocTargetName;
+	const FString LocTargetPath = FPaths::ProjectContentDir() / TEXT("Localization") / LocTargetName;
 
 	FLocTextHelper LocTextHelper(LocTargetPath, FString::Printf(TEXT("%s.manifest"), *LocTargetName), FString::Printf(TEXT("%s.archive"), *LocTargetName), TEXT("en"), TArray<FString>(), MakeShared<FLocFileSCCNotifies>(SourceControlInfo));
 

@@ -202,17 +202,6 @@ struct CORE_API FDebug
 
 namespace UE4Asserts_Private
 {
-	DEPRECATED(4.9, "ensureMsg is deprecated, please use ensureMsgf instead.")
-	FORCEINLINE bool DeprecatedEnsure(bool bValue)
-	{
-		return bValue;
-	}
-}
-
-#define ensureMsg(InExpression, InMsg) UE4Asserts_Private::DeprecatedEnsure(ensureMsgf(InExpression, InMsg))
-
-namespace UE4Asserts_Private
-{
 	// A junk function to allow us to use sizeof on a member variable which is potentially a bitfield
 	template <typename T>
 	bool GetMemberNameCheckedJunk(const T&);

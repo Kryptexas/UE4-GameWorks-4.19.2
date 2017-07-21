@@ -18,6 +18,7 @@
 #include "AndroidWindow.h"
 #include <android/sensor.h>
 #include "AndroidApplication.h"
+#include "PlatformApplicationMisc.h"
 #include "IHeadMountedDisplayModule.h"
 #include "ISessionServicesModule.h"
 #include "ISessionService.h"
@@ -178,7 +179,7 @@ static void InitCommandLine()
 	FCommandLine::Set(TEXT(""));
 
 	// read in the command line text file from the sdcard if it exists
-	FString CommandLineFilePath = GFilePathBase + FString("/UE4Game/") + (!FApp::IsGameNameEmpty() ? FApp::GetGameName() : FPlatformProcess::ExecutableName()) + FString("/UE4CommandLine.txt");
+	FString CommandLineFilePath = GFilePathBase + FString("/UE4Game/") + (!FApp::IsProjectNameEmpty() ? FApp::GetProjectName() : FPlatformProcess::ExecutableName()) + FString("/UE4CommandLine.txt");
 	FILE* CommandLineFile = fopen(TCHAR_TO_UTF8(*CommandLineFilePath), "r");
 	if(CommandLineFile == NULL)
 	{
@@ -259,7 +260,7 @@ int32 AndroidMain(struct android_app* state)
 	// setup key filtering
 	static const uint32 MAX_KEY_MAPPINGS(256);
 	uint32 KeyCodes[MAX_KEY_MAPPINGS];
-	uint32 NumKeyCodes = FPlatformMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
+	uint32 NumKeyCodes = FPlatformApplicationMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
 
 	for (int i = 0; i < NumKeyCodes; ++i)
 	{

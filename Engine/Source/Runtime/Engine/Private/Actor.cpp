@@ -420,11 +420,6 @@ bool AActor::K2_TeleportTo( FVector DestLocation, FRotator DestRotation )
 	return TeleportTo(DestLocation, DestRotation, false, false);
 }
 
-void AActor::SetTickPrerequisite(AActor* PrerequisiteActor)
-{
-	AddTickPrerequisiteActor(PrerequisiteActor);
-}
-
 void AActor::AddTickPrerequisiteActor(AActor* PrerequisiteActor)
 {
 	if (PrimaryActorTick.bCanEverTick && PrerequisiteActor && PrerequisiteActor->PrimaryActorTick.bCanEverTick)
@@ -2019,11 +2014,6 @@ FVector AActor::GetPlacementExtent() const
 	return Extent;
 }
 
-class UClass* AActor::GetActorClass() const
-{
-	return GetClass();
-}
-
 void AActor::Destroyed()
 {
 	RouteEndPlay(EEndPlayReason::Destroyed);
@@ -3605,11 +3595,6 @@ void AActor::K2_DestroyComponent(UActorComponent* Component)
 	{
 		Component->DestroyComponent();
 	}
-}
-
-UPrimitiveComponent* AActor::GetRootPrimitiveComponent() const
-{ 
-	return Cast<class UPrimitiveComponent>(RootComponent); 
 }
 
 bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)

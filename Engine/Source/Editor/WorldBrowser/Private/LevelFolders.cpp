@@ -20,7 +20,7 @@ FString GetLevelModelFilename(TSharedPtr<FLevelModel> LevelModel)
 {
 	const FString LevelPackage = LevelModel->GetLongPackageName().ToString();
 	const uint32 PackageNameCrc = FCrc::MemCrc32(*LevelPackage, sizeof(TCHAR)*LevelPackage.Len());
-	return FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Config"), TEXT("LevelState"), *FString::Printf(TEXT("%u.json"), PackageNameCrc));
+	return FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("LevelState"), *FString::Printf(TEXT("%u.json"), PackageNameCrc));
 }
 
 FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, const FString& PathToMove)

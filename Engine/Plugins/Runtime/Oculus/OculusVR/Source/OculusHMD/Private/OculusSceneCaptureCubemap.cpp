@@ -94,7 +94,7 @@ void UOculusSceneCaptureCubemap::StartCapture(UWorld* World, uint32 InCaptureBox
 	AStaticMeshActor* InGameActor;
 	InGameActor = World->SpawnActor<AStaticMeshActor>(SpawnInfo);
 
-	OutputDir = FPaths::GameSavedDir() + TEXT("/Cubemaps");
+	OutputDir = FPaths::ProjectSavedDir() + TEXT("/Cubemaps");
 	IFileManager::Get().MakeDirectory(*OutputDir);
 }
 

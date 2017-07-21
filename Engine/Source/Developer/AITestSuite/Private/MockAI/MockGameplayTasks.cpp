@@ -29,7 +29,10 @@ UMockTask_Log* UMockTask_Log::CreateTask(IGameplayTaskOwnerInterface& TaskOwner,
 
 void UMockTask_Log::Activate()
 {
-	Logger->Log(ETestTaskMessage::Activate);
+	if (Logger)
+	{
+		Logger->Log(ETestTaskMessage::Activate);
+	}
 	Super::Activate();
 	if (bShoudEndAsPartOfActivation)
 	{
@@ -39,25 +42,37 @@ void UMockTask_Log::Activate()
 
 void UMockTask_Log::OnDestroy(bool bInOwnerFinished)
 {
-	Logger->Log(ETestTaskMessage::Ended);
+	if (Logger)
+	{
+		Logger->Log(ETestTaskMessage::Ended);
+	}
 	Super::OnDestroy(bInOwnerFinished);
 }
 
 void UMockTask_Log::TickTask(float DeltaTime)
 {
-	Logger->Log(ETestTaskMessage::Tick);
+	if (Logger)
+	{
+		Logger->Log(ETestTaskMessage::Tick);
+	}
 	Super::TickTask(DeltaTime);
 }
 
 void UMockTask_Log::ExternalConfirm(bool bEndTask)
 {
-	Logger->Log(ETestTaskMessage::ExternalConfirm);
+	if (Logger)
+	{
+		Logger->Log(ETestTaskMessage::ExternalConfirm);
+	}
 	Super::ExternalConfirm(bEndTask);
 }
 
 void UMockTask_Log::ExternalCancel()
 {
-	Logger->Log(ETestTaskMessage::ExternalCancel);
+	if (Logger)
+	{
+		Logger->Log(ETestTaskMessage::ExternalCancel);
+	}
 	Super::ExternalCancel();
 }
 

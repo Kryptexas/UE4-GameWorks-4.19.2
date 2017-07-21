@@ -58,16 +58,6 @@ FCurveHandle FCurveSequence::AddCurveRelative( const float InOffset, const float
 	return AddCurve(CurveStartTime, InDurationSecond, InEaseFunction);
 }
 
-
-void FCurveSequence::Play( const float StartAtTime )
-{
-	// Playing forward
-	bInReverse = false;
-
-	// We start playing NOW.
-	SetStartTime(FSlateApplicationBase::Get().GetCurrentTime() - StartAtTime);
-}
-
 void FCurveSequence::Play( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime )
 {
 	RegisterActiveTimerIfNeeded(InOwnerWidget);
@@ -97,15 +87,6 @@ void FCurveSequence::Reverse( )
 	// its place if playing in reverse.
 	const double NewStartTime = CurTime - TotalDuration * (bInReverse ? (1 - FractionCompleted) : FractionCompleted);
 	SetStartTime(NewStartTime);
-}
-
-
-void FCurveSequence::PlayReverse( const float StartAtTime )
-{
-	bInReverse = true;
-
-	// We start reversing NOW.
-	SetStartTime(FSlateApplicationBase::Get().GetCurrentTime() - StartAtTime);
 }
 
 void FCurveSequence::PlayReverse( const TSharedRef<SWidget>& InOwnerWidget, bool bPlayLooped, const float StartAtTime )
@@ -166,26 +147,6 @@ float FCurveSequence::GetSequenceTime( ) const
 	return bIsLooping ? FMath::Fmod( SequenceTime, TotalDuration ) : SequenceTime;
 }
 
-float FCurveSequence::GetSequenceTimeLooping( ) const
-{
-	return DEPRECATED_GetSequenceTimeLooping();
-}
-float FCurveSequence::DEPRECATED_GetSequenceTimeLooping() const
-{
-	if (!bIsLooping)
-	{
-		auto MutableThis = const_cast<FCurveSequence*>( this );
-
-		// Fake that we're looping to get the lerp
-		MutableThis->bIsLooping = true;
-		float SequenceTime = GetSequenceTime();
-		MutableThis->bIsLooping = false;
-
-		return SequenceTime;
-	}
-
-	return GetSequenceTime();
-}
 
 bool FCurveSequence::IsInReverse( ) const
 {
@@ -240,19 +201,6 @@ float FCurveSequence::GetLerp( ) const
 	checkSlow(Curves.Num() == 1);
 
 	return FCurveHandle( this, 0 ).GetLerp();
-}
-
-float FCurveSequence::GetLerpLooping() const
-{
-	return DEPRECATED_GetLerpLooping();
-}
-float FCurveSequence::DEPRECATED_GetLerpLooping() const
-{
-	// Only supported for sequences with a single curve.  If you have multiple curves, use your FCurveHandle to compute
-	// interpolation alpha values.
-	checkSlow(Curves.Num() == 1);
-
-	return bIsLooping ? GetLerp() : FCurveHandle(this, 0).DEPRECATED_GetLerpLooping();
 }
 
 const FCurveSequence::FSlateCurve& FCurveSequence::GetCurve( int32 CurveIndex ) const

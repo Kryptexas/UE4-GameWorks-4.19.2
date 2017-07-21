@@ -1230,7 +1230,7 @@ void FLaunchOnTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FStrin
 					{
 						//If true it will proceed to add the asset to the test list.
 						//This will be false if the map is on a different drive.
-						if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
+						if (FPaths::MakePathRelativeTo(Filename, *FPaths::ProjectContentDir()))
 						{
 							FString ShortName = FPaths::GetBaseFilename(Filename);
 							FString PathName = FPaths::GetPath(Filename);
@@ -1260,9 +1260,9 @@ bool FLaunchOnTest::RunTest(const FString& Parameters)
 	DeviceID.Trim();
 
 	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
-	FString CookedLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Cooked"));
-	FString StagedBuildsLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("StagedBuilds"));
-	FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"));
+	FString CookedLocation = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("Cooked"));
+	FString StagedBuildsLocation = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("StagedBuilds"));
+	FString TempMapLocation = FPaths::Combine(*FPaths::ProjectContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"));
 	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(CookedLocation));
 	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(StagedBuildsLocation));
 	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(TempMapLocation));

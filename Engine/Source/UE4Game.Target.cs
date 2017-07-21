@@ -27,13 +27,13 @@ public class UE4GameTarget : TargetRules
 		{
 			// to make World Explorers as small as possible we excluded some items from the engine.
 			// uncomment below to make a smaller iOS build
-			/*UEBuildConfiguration.bCompileRecast = false;
-			UEBuildConfiguration.bCompileSpeedTree = false;
-			UEBuildConfiguration.bCompileAPEX = false;
-			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-			UEBuildConfiguration.bCompilePhysXVehicle = false;
-			UEBuildConfiguration.bCompileFreeType = false;
-			UEBuildConfiguration.bCompileForSize = true;*/
+			/*bCompileRecast = false;
+			bCompileSpeedTree = false;
+			bCompileAPEX = false;
+			bCompileLeanAndMeanUE = true;
+			bCompilePhysXVehicle = false;
+			bCompileFreeType = false;
+			bCompileForSize = true;*/
 		}
 	}
 }

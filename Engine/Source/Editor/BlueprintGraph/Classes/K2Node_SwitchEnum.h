@@ -45,6 +45,7 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool CanEverRemoveExecutionPin() const override { return false; }
 	virtual bool CanUserEditPinAdvancedViewFlag() const override { return true; }
+	virtual void PreloadRequiredAssets() override;
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface

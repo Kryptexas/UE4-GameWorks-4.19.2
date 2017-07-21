@@ -49,7 +49,7 @@ public class AndroidPermission : ModuleRules
 			);
         if (Target.Platform == UnrealTargetPlatform.Android)
         {
-            string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+            string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
             AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "AndroidPermission_APL.xml")));
         }
     }

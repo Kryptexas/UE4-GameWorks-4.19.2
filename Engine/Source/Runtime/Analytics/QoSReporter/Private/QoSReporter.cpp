@@ -68,7 +68,7 @@ QOSREPORTER_API void FQoSReporter::Initialize()
 		if (ConfigMap.Num() == 0)
 		{
 			ConfigMap.Add(TEXT("ProviderModuleName"), TEXT("QoSReporter"));
-			ConfigMap.Add(TEXT("APIKeyQoS"), FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), AnalyticsBuildTypeToString(GetAnalyticsBuildType())));
+			ConfigMap.Add(TEXT("APIKeyQoS"), FString::Printf(TEXT("%s.%s"), FApp::GetProjectName(), AnalyticsBuildTypeToString(GetAnalyticsBuildType())));
 		}
 
 		// Check for overrides

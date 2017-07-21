@@ -84,15 +84,15 @@ void FMainFrameHandler::ShutDownEditor()
 	}
 
 	// Take a screenshot of this project for the project browser
-	if (FApp::HasGameName())
+	if (FApp::HasProjectName())
 	{
-		const FString ExistingBaseFilename = FString(FApp::GetGameName()) + TEXT(".png");
-		const FString ExistingScreenshotFilename = FPaths::Combine(*FPaths::GameDir(), *ExistingBaseFilename);
+		const FString ExistingBaseFilename = FString(FApp::GetProjectName()) + TEXT(".png");
+		const FString ExistingScreenshotFilename = FPaths::Combine(*FPaths::ProjectDir(), *ExistingBaseFilename);
 
 		// If there is already a screenshot, no need to take an auto screenshot
 		if (!FPaths::FileExists(ExistingScreenshotFilename))
 		{
-			const FString ScreenShotFilename = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("AutoScreenshot.png"));
+			const FString ScreenShotFilename = FPaths::Combine(*FPaths::ProjectSavedDir(), TEXT("AutoScreenshot.png"));
 			FViewport* Viewport = GEditor->GetActiveViewport();
 			if (Viewport)
 			{

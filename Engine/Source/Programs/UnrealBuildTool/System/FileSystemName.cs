@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,25 @@ namespace UnrealBuildTool
 		{
 			this.DisplayName = DisplayName;
 			CanonicalName = DisplayName.ToLowerInvariant();
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Reference">Reference to a file or directory in the filesystem</param>
+		public FileSystemName(FileSystemReference Reference)
+		{
+			int Idx = Reference.FullName.LastIndexOf(Path.DirectorySeparatorChar);
+			if(Idx == Reference.FullName.Length - 1)
+			{
+				DisplayName = Reference.FullName;
+				CanonicalName = Reference.CanonicalName;
+			}
+			else
+			{
+				DisplayName = Reference.FullName.Substring(Idx + 1);
+				CanonicalName = Reference.CanonicalName.Substring(Idx + 1);
+			}
 		}
 
 		/// <summary>
@@ -76,7 +96,7 @@ namespace UnrealBuildTool
 		/// <returns>Hash code for this object</returns>
 		public override int GetHashCode()
 		{
-			return base.GetHashCode();
+			return CanonicalName.GetHashCode();
 		}
 
 		/// <summary>

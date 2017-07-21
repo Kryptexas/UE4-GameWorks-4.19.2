@@ -35,7 +35,7 @@ DirectoryWatcher::FFileCacheConfig GenerateFileCacheConfig(const FString& InPath
 
 	const FString& HashString = InMountedContentPath.IsEmpty() ? Directory : InMountedContentPath;
 	const uint32 CRC = FCrc::MemCrc32(*HashString, HashString.Len()*sizeof(TCHAR));	
-	FString CacheFilename = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
+	FString CacheFilename = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir()) / TEXT("ReimportCache") / FString::Printf(TEXT("%u.bin"), CRC);
 
 	DirectoryWatcher::FFileCacheConfig Config(Directory, MoveTemp(CacheFilename));
 	Config.Rules = InMatchRules;

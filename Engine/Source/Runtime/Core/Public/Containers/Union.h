@@ -40,6 +40,12 @@ public:
 	{
 		return false;
 	}
+
+	friend FArchive& operator<<(FArchive& Ar, FNull& Value)
+	{
+		// nothing
+		return Ar;
+	}
 };
 
 

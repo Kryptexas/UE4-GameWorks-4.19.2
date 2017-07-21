@@ -12,6 +12,7 @@
 #include "Widgets/Input/SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "UObjectIterator.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 
@@ -525,7 +526,7 @@ void SPoseViewer::OnPastePoseNamesFromClipBoard(bool bSelectedOnly)
 {
 	FString PastedString;
 
-	FPlatformMisc::ClipboardPaste(PastedString);
+	FPlatformApplicationMisc::ClipboardPaste(PastedString);
 
 	if (PastedString.IsEmpty() == false)
 	{

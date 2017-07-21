@@ -168,7 +168,7 @@ protected:
 	 */
 	static FString GetPresetFolder()
 	{
-		return FPaths::GameConfigDir() / TEXT("Automation/Presets");
+		return FPaths::ProjectConfigDir() / TEXT("Automation/Presets");
 	}
 
 private:

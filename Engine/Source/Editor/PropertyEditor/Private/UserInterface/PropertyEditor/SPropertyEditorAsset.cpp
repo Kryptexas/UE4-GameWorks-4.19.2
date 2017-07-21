@@ -22,6 +22,7 @@
 #include "Engine/Selection.h"
 #include "ObjectPropertyNode.h"
 #include "PropertyHandleImpl.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -929,14 +930,14 @@ void SPropertyEditorAsset::OnCopy()
 
 	if( Value.AssetData.IsValid() )
 	{
-		FPlatformMisc::ClipboardCopy(*Value.AssetData.GetExportTextName());
+		FPlatformApplicationMisc::ClipboardCopy(*Value.AssetData.GetExportTextName());
 	}
 }
 
 void SPropertyEditorAsset::OnPaste()
 {
 	FString DestPath;
-	FPlatformMisc::ClipboardPaste(DestPath);
+	FPlatformApplicationMisc::ClipboardPaste(DestPath);
 
 	if(DestPath == TEXT("None"))
 	{
@@ -960,7 +961,7 @@ void SPropertyEditorAsset::OnPaste()
 bool SPropertyEditorAsset::CanPaste()
 {
 	FString ClipboardText;
-	FPlatformMisc::ClipboardPaste(ClipboardText);
+	FPlatformApplicationMisc::ClipboardPaste(ClipboardText);
 
 	const FString PossibleObjectPath = FPackageName::ExportTextPathToObjectPath(ClipboardText);
 
