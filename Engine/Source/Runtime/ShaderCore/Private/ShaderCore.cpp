@@ -310,15 +310,18 @@ void VerifyShaderSourceFiles()
 			SlowTask.EnterProgressFrame(1);
 			FString FileContents;
 			// load each shader source file. This will cache the shader source data after it has been verified
-			LoadShaderSourceFileChecked(*VirtualShaderSourcePaths[ShaderFileIdx], FileContents);
+			LoadShaderSourceFile(*VirtualShaderSourcePaths[ShaderFileIdx], FileContents, nullptr);
 		}
 	}
 }
 
-static FString GetShaderSourceFilePath(const FString& VirtualFilePath)
+static FString GetShaderSourceFilePath(const FString& VirtualFilePath, TArray<FShaderCompilerError>* CompileErrors)
 {
 	// Make sure the .usf extension is correctly set.
-	check(CheckVirtualShaderFilePath(VirtualFilePath));
+	if (!CheckVirtualShaderFilePath(VirtualFilePath, CompileErrors))
+	{
+		return FString();
+	}
 
 	// We don't cache the output of this function because only used in LoadShaderSourceFile that is cached, or when there
 	// is shader compilation errors.
@@ -344,7 +347,17 @@ static FString GetShaderSourceFilePath(const FString& VirtualFilePath)
 	}
 
 	// Make sure a directory mapping has matched.
-	checkf(!RealFilePath.IsEmpty(), TEXT("Could not map virtual shader source path \"%s\"."), *VirtualFilePath);
+	if (RealFilePath.IsEmpty())
+	{
+		FString Error = FString::Printf(TEXT("Can't map virtual shader source path \"%s\"."), *VirtualFilePath);
+		Error += TEXT("\nDirectory mappings are:");
+		for (const auto& Iter : ShaderSourceDirectoryMappings)
+		{
+			Error += FString::Printf(TEXT("\n  %s -> %s"), *Iter.Key, *Iter.Value);
+		}
+
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+	}
 	
 	return RealFilePath;
 }
@@ -404,7 +417,7 @@ FString ParseVirtualShaderFilename(const FString& InFilename)
 	return OutputFilename;
 }
 
-bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents) // TODO: const FString&
+bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents, TArray<FShaderCompilerError>* OutCompileErrors) // TODO: const FString&
 {
 	// it's not expected that cooked platforms get here, but if they do, this is the final out
 	if (FPlatformProperties::RequiresCookedData())
@@ -431,10 +444,10 @@ bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents
 		}
 		else
 		{
-			FString ShaderFilePath = GetShaderSourceFilePath(VirtualFilePath);
+			FString ShaderFilePath = GetShaderSourceFilePath(VirtualFilePath, OutCompileErrors);
 
 			// verify SHA hash of shader files on load. missing entries trigger an error
-			if (FFileHelper::LoadFileToString(OutFileContents, *ShaderFilePath, FFileHelper::EHashOptions::EnableVerify|FFileHelper::EHashOptions::ErrorMissingHash) )
+			if (!ShaderFilePath.IsEmpty() && FFileHelper::LoadFileToString(OutFileContents, *ShaderFilePath, FFileHelper::EHashOptions::EnableVerify|FFileHelper::EHashOptions::ErrorMissingHash) )
 			{
 				//update the shader file cache
 				GShaderFileCache.Add(VirtualFilePath, *OutFileContents);
@@ -449,7 +462,7 @@ bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents
 
 void LoadShaderSourceFileChecked(const TCHAR* VirtualFilePath, FString& OutFileContents)
 {
-	if (!LoadShaderSourceFile(VirtualFilePath, OutFileContents))
+	if (!LoadShaderSourceFile(VirtualFilePath, OutFileContents, nullptr))
 	{
 		UE_LOG(LogShaders, Fatal, TEXT("Couldn't find source file of virtual shader path \'%s\'"), VirtualFilePath);
 	}
@@ -478,14 +491,19 @@ const TCHAR* SkipToCharOnCurrentLine(const TCHAR* InStr, TCHAR TargetChar)
 /**
  * Recursively populates IncludeFilenames with the unique include filenames found in the shader file named Filename.
  */
-void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit)
+static void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit, bool AddToIncludeFile)
 {
 	FString FileContents;
-	LoadShaderSourceFileChecked(VirtualFilePath, FileContents);
+	LoadShaderSourceFile(VirtualFilePath, FileContents, nullptr);
 
 	//avoid an infinite loop with a 0 length string
 	if (FileContents.Len() > 0)
 	{
+		if (AddToIncludeFile)
+		{
+			IncludeVirtualFilePaths.Add(VirtualFilePath);
+		}
+
 		//find the first include directive
 		const TCHAR* IncludeBegin = FCString::Strstr(*FileContents, TEXT("#include "));
 
@@ -550,8 +568,7 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 					{
 						if (!IncludeVirtualFilePaths.Contains(ExtractedIncludeFilename))
 						{
-							IncludeVirtualFilePaths.Add(ExtractedIncludeFilename);
-							GetShaderIncludes(EntryPointVirtualFilePath, *ExtractedIncludeFilename, IncludeVirtualFilePaths, DepthLimit - 1);
+							GetShaderIncludes(EntryPointVirtualFilePath, *ExtractedIncludeFilename, IncludeVirtualFilePaths, DepthLimit - 1, true);
 						}
 					}
 				}
@@ -577,6 +594,11 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 				DepthLimit);
 		}
 	}
+}
+
+void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit)
+{
+	GetShaderIncludes(EntryPointVirtualFilePath, VirtualFilePath, IncludeVirtualFilePaths, DepthLimit, false);
 }
 
 static void UpdateSingleShaderFilehash(FSHA1& InOutHashState, const TCHAR* VirtualFilePath)
@@ -839,6 +861,6 @@ FString FShaderCompilerError::GetShaderSourceFilePath() const
 	}
 	else
 	{
-		return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
+		return ::GetShaderSourceFilePath(ErrorVirtualFilePath, nullptr);
 	}
 }

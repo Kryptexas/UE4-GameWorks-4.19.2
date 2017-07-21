@@ -171,12 +171,6 @@ void FGenericPlatformProcess::AddShaderSourceDirectoryMapping(const FString& Vir
 	// Make sur the real directory to map exists.
 	check(FPaths::DirectoryExists(RealShaderDirectory));
 
-	// Make sure there is at least a Public or Private directory in the Shaders directory.
-	checkf(
-		FPaths::DirectoryExists(RealShaderDirectory / TEXT("Public")) ||
-		FPaths::DirectoryExists(RealShaderDirectory / TEXT("Private")),
-		TEXT("\"%s\" directory requires at either a Public or Private directory."), *RealShaderDirectory);
-
 	// Make sure the Generated directory does not exist, because is reserved for C++ generated shader source
 	// by the FShaderCompilerEnvironment::IncludeVirtualPathToContentsMap member.
 	checkf(!FPaths::DirectoryExists(RealShaderDirectory / TEXT("Generated")),
