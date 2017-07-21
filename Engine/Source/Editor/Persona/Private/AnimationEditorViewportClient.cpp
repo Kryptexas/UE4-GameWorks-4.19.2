@@ -1118,7 +1118,7 @@ EBoneDrawMode::Type FAnimationViewportClient::GetBoneDrawMode() const
 
 void FAnimationViewportClient::DrawBonesFromTransforms(TArray<FTransform>& Transforms, UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI, FLinearColor BoneColour, FLinearColor RootBoneColour) const
 {
-	if ( Transforms.Num() > 0 )
+	if ( Transforms.Num() > 0 && MeshComponent->SkeletalMesh )
 	{
 		TArray<FTransform> WorldTransforms;
 		WorldTransforms.AddUninitialized(Transforms.Num());
@@ -1398,7 +1398,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 
 void FAnimationViewportClient::DrawSockets(const UDebugSkelMeshComponent* InPreviewMeshComponent, TArray<USkeletalMeshSocket*>& InSockets, FSelectedSocketInfo InSelectedSocket, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor)
 {
-	if (InPreviewMeshComponent)
+	if (InPreviewMeshComponent && InPreviewMeshComponent->SkeletalMesh)
 	{
 		ELocalAxesMode::Type LocalAxesMode = (ELocalAxesMode::Type)GetDefault<UPersonaOptions>()->DefaultLocalAxesSelection;
 
