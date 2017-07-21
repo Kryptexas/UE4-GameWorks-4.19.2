@@ -306,6 +306,7 @@ protected:
 public:
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
+	ENGINE_API virtual void PreEditUndo() override;
 	ENGINE_API virtual void PostEditUndo() override;
 #endif
 
@@ -317,10 +318,6 @@ public:
 
 	/** Accessor for the array of virtual bones on this skeleton */
 	const TArray<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
-
-	/** Non-serialised cache of linkups between different skeletal meshes and this Skeleton. */
-	UPROPERTY(transient)
-	TArray<struct FSkeletonToMeshLinkup> LinkupCache;
 
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
@@ -529,6 +526,9 @@ public:
 
 
 	typedef TArray<FBoneNode> FBoneTreeType;
+
+	/** Non-serialised cache of linkups between different skeletal meshes and this Skeleton. */
+	TArray<struct FSkeletonToMeshLinkup> LinkupCache;
 
 	/** Runtime built mapping table between SkeletalMeshes, and LinkupCache array indices. */
 	TMap<TWeakObjectPtr<USkeletalMesh>, int32> SkelMesh2LinkupCache;
