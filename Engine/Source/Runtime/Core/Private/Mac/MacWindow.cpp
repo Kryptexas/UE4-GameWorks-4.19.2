@@ -5,6 +5,7 @@
 #include "MacCursor.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
+#include "MacPlatformApplicationMisc.h"
 
 FMacWindow::FMacWindow()
 :	WindowHandle(NULL)
