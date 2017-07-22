@@ -856,7 +856,7 @@ void FStreamingManagerTexture::SyncStates(bool bCompleteFullUpdateCycle)
 	TextureInstanceAsyncWork->EnsureCompletion();
 
 	// Update any pending states, including added/removed textures.
-	UpdatePendingStates(bCompleteFullUpdateCycle);
+	UpdatePendingStates(false);
 }
 
 /**

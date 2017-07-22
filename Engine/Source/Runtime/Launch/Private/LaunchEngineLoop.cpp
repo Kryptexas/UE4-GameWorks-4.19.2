@@ -3933,7 +3933,30 @@ void FEngineLoop::PreInitHMDDevice()
 		{
 			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
-			if ((bUseExplicitHMDName && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase)) || !HMDModule->PreInit())
+
+			bool bUnregisterHMDModule = false;
+			if (bUseExplicitHMDName)
+			{
+				TArray<FString> HMDAliases;
+				HMDModule->GetModuleAliases(HMDAliases);
+				HMDAliases.Add(HMDModule->GetModuleKeyName());
+
+				bUnregisterHMDModule = true;
+				for (const FString& HMDModuleName : HMDAliases)
+				{
+					if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+					{
+						bUnregisterHMDModule = false;
+						break;
+					}
+				}
+			}
+			else
+			{
+				bUnregisterHMDModule = !HMDModule->PreInit();
+			}
+
+			if (bUnregisterHMDModule)
 			{
 				// Unregister modules which don't match ExplicitHMDName, or which fail PreInit
 				ModularFeatures.UnregisterModularFeature(Type, HMDModule);

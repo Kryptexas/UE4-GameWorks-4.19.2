@@ -606,13 +606,15 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 		TargetPlatform == SP_PCD3D_ES3_1 ||
 		CurrentPlatform == SP_PCD3D_ES2;
 		
+		// For Metal in Editor we can switch feature-levels, but not in cooked projects when using Metal shader librariss.
 		bool const bIsCurrentMetal = IsMetalPlatform(CurrentPlatform);
 		bool const bIsTargetMetal = IsMetalPlatform(TargetPlatform);
+		bool const bIsMetalCompatible = ((bIsCurrentMetal == bIsTargetMetal) && (!IsMetalPlatform(CurrentPlatform) || (WITH_EDITOR || (CurrentPlatform == TargetPlatform))));
 		
 		bool const bIsCurrentOpenGL = IsOpenGLPlatform(CurrentPlatform);
 		bool const bIsTargetOpenGL = IsOpenGLPlatform(TargetPlatform);
 		
-		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D && bIsCurrentMetal == bIsTargetMetal && bIsCurrentOpenGL == bIsTargetOpenGL);
+		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D && bIsMetalCompatible && bIsCurrentOpenGL == bIsTargetOpenGL);
 	}
 
 	return bFeatureLevelCompatible;
@@ -1911,7 +1913,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
     {
         // Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
         bool bArchive = false;
-        GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bShareMaterialShaderCode"), bArchive, GGameIni);
+        GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
         if (bArchive)
         {
             KeyString += TEXT("_ARCHIVE");

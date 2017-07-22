@@ -245,7 +245,7 @@ static void SpectatorScreenMode(const TArray<FString>& Args, UWorld* , FOutputDe
 		{
 			ModeVal = ScreenModeEnum->GetIndexByName(*Args[0]);
 		}
-		if (ModeVal >= ESpectatorScreenModeFirst && ModeVal <= ESpectatorScreenModeLast)
+		if (ModeVal < ESpectatorScreenModeFirst || ModeVal > ESpectatorScreenModeLast)
 		{
 			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid spectator screen mode: %s"), *Args[0]);
 		}

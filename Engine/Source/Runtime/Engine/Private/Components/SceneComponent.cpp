@@ -542,13 +542,15 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 	bool bHasChanged;
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_HasChanged);
-		bHasChanged = !ComponentToWorld.Equals(NewTransform, SMALL_NUMBER);
+		bHasChanged = !GetComponentTransform().Equals(NewTransform, SMALL_NUMBER);
 	}
 	if (bHasChanged)
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Changed);
 		// Update transform
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = NewTransform;
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		PropagateTransformUpdate(true, UpdateTransformFlags, Teleport);
 	}
 	else
@@ -1148,7 +1150,7 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 
 	const FTransform DesiredRelTransform((bNaN ? FQuat::Identity : NewRotation), NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
-	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
+	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, GetComponentTransform());
 
 	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 }
@@ -1234,8 +1236,9 @@ void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, 
 
 void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * GetComponentTransform().GetRotation();
-	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, ComponentToWorld); // ComponentToWorld is sure to be accurate due to GetComponentTransform() on previous line
+	const FTransform& LocalComponentTransform = GetComponentTransform();
+	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * LocalComponentTransform.GetRotation();
+	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, LocalComponentTransform);
 	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)),bSweep, OutSweepHitResult, Teleport);
 }
 
@@ -2922,7 +2925,9 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	// We do this because at level load/duplication ComponentToWorld is uninitialized
 	{
 		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// Update bounds
@@ -2935,7 +2940,9 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 		
 		// Calculate the new ComponentToWorld transform
 		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	// Physics move is skipped if physics state is not created or physics scene supports origin shifting
@@ -3252,7 +3259,9 @@ void FScopedMovementUpdate::RevertMove()
 		if (IsTransformDirty())
 		{
 			// Teleport to start
+			PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			Component->ComponentToWorld = InitialTransform;
+			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			Component->RelativeLocation = InitialRelativeLocation;
 			Component->RelativeRotation = InitialRelativeRotation;
 			Component->RelativeScale3D = InitialRelativeScale;

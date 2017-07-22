@@ -4,7 +4,6 @@
 #include "TangoPluginPrivate.h"
 #include "TangoLifecycle.h"
 
-
 UTangoPointCloudComponent::UTangoPointCloudComponent(const FObjectInitializer& Init) : Super(Init)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -17,12 +16,14 @@ bool UTangoPointCloudComponent::FindPlane(const FVector2D& ScreenPoint, FTransfo
 
 void UTangoPointCloudComponent::FindFloorPlane()
 {
+#if PLATFORM_ANDROID
 	bFindFloorPlaneRequested = true;
 	// Reset
 	LastPointCloudTimestamp = 0;
 	NumFramesToFindFloorPlane = 0;
 	NumUpPoints.Reset();
 	NonNoiseBuckets.clear();
+#endif
 }
 
 bool UTangoPointCloudComponent::GetRawDepthToWorldTransform(const FTangoTimestamp& Timestamp, FTransform& DepthToWorldTransform)
@@ -38,6 +39,7 @@ void UTangoPointCloudComponent::TickComponent(
 	FActorComponentTickFunction * ThisTickFunction
 )
 {
+#if PLATFORM_ANDROID
 	if (bFindFloorPlaneRequested)
 	{
 		NumFramesToFindFloorPlane++;
@@ -55,6 +57,7 @@ void UTangoPointCloudComponent::TickComponent(
 			OnFloorPlaneFound.Broadcast(PlaneZ);
 		}
 	}
+#endif
 }
 
 #if PLATFORM_ANDROID

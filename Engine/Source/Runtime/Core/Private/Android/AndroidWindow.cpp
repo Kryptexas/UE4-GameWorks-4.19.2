@@ -125,7 +125,19 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 			Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 		}
 	}
-	check(Window != NULL);
+//	check(Window != NULL);
+	if (Window == NULL)
+	{
+		FPlatformRect ScreenRect;
+		ScreenRect.Left = 0;
+		ScreenRect.Top = 0;
+		ScreenRect.Right = GAndroidIsPortrait ? 720 : 1280;
+		ScreenRect.Bottom = GAndroidIsPortrait ? 1280 : 720;
+
+		UE_LOG(LogAndroid, Log, TEXT("FAndroidWindow::GetScreenRect: Window was NULL, returned default resolution: %d x %d"), ScreenRect.Right, ScreenRect.Bottom);
+
+		return ScreenRect;
+	}
 
 	// determine mosaic requirements:
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
@@ -221,13 +233,17 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 				if (GAndroidIsPortrait)
 				{
 					MaxHeight = FPlatformMath::Min(MaxHeight, 1024);
-					MaxWidth = MaxHeight * AspectRatio;
+					MaxWidth = (MaxHeight * AspectRatio + 0.5f);
 				}
 				else
 				{
 					MaxWidth = FPlatformMath::Min(MaxWidth, 1024);
-					MaxHeight = MaxWidth / AspectRatio;
+					MaxHeight = (MaxWidth / AspectRatio + 0.5f);
 				}
+
+				// ensure Width and Height is multiple of 8
+				MaxWidth = (MaxWidth / 8) * 8; 
+				MaxHeight = (MaxHeight / 8) * 8;
 
 				UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering on ES2 device (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
 			}
@@ -254,7 +270,10 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 		}
 
 		// apply the aspect ration to get the width
-		Width = Height * AspectRatio;
+		Width = (Height * AspectRatio + 0.5f);
+		// ensure Width and Height is multiple of 8
+		Width = (Width / 8) * 8; 
+		Height = (Height / 8) * 8;
 
 		// clamp to native resolution
 		Width = FPlatformMath::Min(Width, MaxWidth);

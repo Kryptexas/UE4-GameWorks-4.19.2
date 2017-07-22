@@ -851,6 +851,15 @@ void FAndroidAppEntry::ReInitWindow(void* NewNativeWindowHandle)
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInitWindow()"));
 
+	// Check for and call a registered window re-init callback. 
+	// RHIs may wish to perform additional operations when the window handle changes.
+	// Currently only vulkan RHI uses this.
+	const auto& OnReinitWindowCallback = FAndroidMisc::GetOnReInitWindowCallback();
+	if (OnReinitWindowCallback)
+	{
+		OnReinitWindowCallback(NewNativeWindowHandle);
+	}
+
 	// It isn't safe to call ShouldUseVulkan if AndroidEGL is not initialized.
 	// However, since we don't need to ReInit the window in that case anyways we
 	// can return early.
@@ -863,12 +872,6 @@ void FAndroidAppEntry::ReInitWindow(void* NewNativeWindowHandle)
 	if (!FAndroidMisc::ShouldUseVulkan())
 	{
 		AndroidEGL::GetInstance()->ReInit();
-	}
-
-	const auto& OnReinitWindowCallback = FAndroidMisc::GetOnReInitWindowCallback();
-	if (OnReinitWindowCallback)
-	{
-		OnReinitWindowCallback(NewNativeWindowHandle);
 	}
 }
 

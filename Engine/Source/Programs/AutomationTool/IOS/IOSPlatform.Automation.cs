@@ -916,19 +916,19 @@ public class IOSPlatform : Platform
 			List<string> ImageFileNames = new List<string>();
 			if (bSupportsPortrait)
 			{
-				ImageFileNames.Add("Default-IPhone6.jpg");
-				ImageFileNames.Add("Default-IPhone6Plus-Portrait.jpg");
-				ImageFileNames.Add("Default-Portrait@2x.jpg");
-				ImageFileNames.Add("Default-Portrait-1336@2x.jpg");
+				ImageFileNames.Add("Default-IPhone6.png");
+				ImageFileNames.Add("Default-IPhone6Plus-Portrait.png");
+				ImageFileNames.Add("Default-Portrait@2x.png");
+				ImageFileNames.Add("Default-Portrait-1336@2x.png");
 			}
 			if (bSupportsLandscape)
 			{
-				ImageFileNames.Add("Default-IPhone6-Landscape.jpg");
-				ImageFileNames.Add("Default-IPhone6Plus-Landscape.jpg");
-				ImageFileNames.Add("Default-Landscape@2x.jpg");
-				ImageFileNames.Add("Default-Landscape-1336@2x.jpg");
+				ImageFileNames.Add("Default-IPhone6-Landscape.png");
+				ImageFileNames.Add("Default-IPhone6Plus-Landscape.png");
+				ImageFileNames.Add("Default-Landscape@2x.png");
+				ImageFileNames.Add("Default-Landscape-1336@2x.png");
 			}
-			ImageFileNames.Add("Default@2x.jpg");
+			ImageFileNames.Add("Default@2x.png");
 			ImageFileNames.Add("Default-568h@2x.png");
 
 			foreach(string ImageFileName in ImageFileNames)

@@ -130,9 +130,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Stop();
 
-	/** Stop playback and go to the end. */
-	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
-	void StopAndGoToEnd();
+	/** Go to end and stop. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta = (ToolTip = "Go to end of the sequence and stop. Adheres to 'When Finished' section rules."))
+	void GoToEndAndStop();
 
 	/** Get the current playback position */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")

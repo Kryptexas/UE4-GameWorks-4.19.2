@@ -646,12 +646,12 @@ FTransform UPaperFlipbookComponent::GetSocketTransform(FName InSocketName, ERela
 			switch (TransformSpace)
 			{
 			case RTS_World:
-				return SocketLocalTransform * ComponentToWorld;
+				return SocketLocalTransform * GetComponentTransform();
 
 			case RTS_Actor:
 				if (const AActor* Actor = GetOwner())
 				{
-					const FTransform SocketTransform = SocketLocalTransform * ComponentToWorld;
+					const FTransform SocketTransform = SocketLocalTransform * GetComponentTransform();
 					return SocketTransform.GetRelativeTransform(Actor->GetTransform());
 				}
 				break;

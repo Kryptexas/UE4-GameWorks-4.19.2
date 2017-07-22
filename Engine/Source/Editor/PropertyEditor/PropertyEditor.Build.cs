@@ -60,8 +60,9 @@ public class PropertyEditor : ModuleRules
 				"Documentation",
                 "RHI",
 				"ConfigEditor",
-			}
-		);
+                "SceneOutliner",
+            }
+        );
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

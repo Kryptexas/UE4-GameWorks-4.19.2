@@ -1398,6 +1398,8 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 		{
 			static const FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
 
+			TArray<int32> PackageIndexesToClear;
+
 			bool bDone = false;
 			while (!bDone)
 			{
@@ -1450,36 +1452,45 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 
 					if (NewObjectName != OldObjectName)
 					{
-						// If right below package and package has changed, need to swap outer
-						if (NewObjectName.OuterName == NAME_None && NewObjectName.PackageName != OldObjectName.PackageName)
+						if (Import.OuterIndex.IsNull())
 						{
-							FPackageIndex NewPackageIndex;
-
-							if (FindImportPackage(NewObjectName.PackageName, NewPackageIndex))
+							// If this has no outer it's a package and we don't want to rename it, the subobject renames will handle creating the new package import
+							// We do need to clear these at the end so it doesn't try to load nonexistent packages
+							PackageIndexesToClear.Add(i);
+						}
+						else
+						{
+							// If right below package and package has changed, need to swap outer
+							if (NewObjectName.OuterName == NAME_None && NewObjectName.PackageName != OldObjectName.PackageName)
 							{
-								// Already in import table, set it
-								Import.OuterIndex = NewPackageIndex;
+								FPackageIndex NewPackageIndex;
+
+								if (FindImportPackage(NewObjectName.PackageName, NewPackageIndex))
+								{
+									// Already in import table, set it
+									Import.OuterIndex = NewPackageIndex;
+								}
+								else
+								{
+									// Need to add package import and try again
+									NewPackageImports.AddUnique(NewObjectName.PackageName);
+									bDone = false;
+									break;
+								}
 							}
-							else
-							{
-								// Need to add package import and try again
-								NewPackageImports.AddUnique(NewObjectName.PackageName);
-								bDone = false;
-								break;
-							}							
-						}
 #if WITH_EDITOR
-						// If this is a class, set old name here 
-						if (ObjectRedirectFlags == ECoreRedirectFlags::Type_Class)
-						{
-							Import.OldClassName = Import.ObjectName;
-						}
-						
-#endif
-						// Change object name
-						Import.ObjectName = NewObjectName.ObjectName;
+							// If this is a class, set old name here 
+							if (ObjectRedirectFlags == ECoreRedirectFlags::Type_Class)
+							{
+								Import.OldClassName = Import.ObjectName;
+							}
 
-						UE_LOG(LogLinker, Verbose, TEXT("FLinkerLoad::FixupImportMap() - Renamed Object %s -> %s"), *LinkerRoot->GetName(), *OldObjectName.ToString(), *NewObjectName.ToString());
+#endif
+							// Change object name
+							Import.ObjectName = NewObjectName.ObjectName;
+
+							UE_LOG(LogLinker, Verbose, TEXT("FLinkerLoad::FixupImportMap() - Renamed Object %s -> %s"), *LinkerRoot->GetName(), *OldObjectName.ToString(), *NewObjectName.ToString());
+						}
 					}
 
 					if (NewClassName != OldClassName)
@@ -1532,6 +1543,14 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 					NewImport->SourceLinker = 0;
 					NewImport->SourceIndex = -1;
 				}
+			}
+
+			// Clear any packages that got renamed, once all children have been fixed up
+			for (int32 PackageIndex : PackageIndexesToClear)
+			{
+				FObjectImport& Import = ImportMap[PackageIndex];
+				check(Import.OuterIndex.IsNull());
+				Import.ObjectName = NAME_None;
 			}
 		}
 		// Avoid duplicate work in async case.
@@ -4037,7 +4056,8 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 	DeferPotentialCircularImport(Index); 
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-	if( Import.XObject == NULL )
+	// Imports can have no name if they were filtered out due to package redirects, skip in that case
+	if (Import.XObject == nullptr && Import.ObjectName != NAME_None)
 	{
 		if (!GIsEditor && !IsRunningCommandlet())
 		{

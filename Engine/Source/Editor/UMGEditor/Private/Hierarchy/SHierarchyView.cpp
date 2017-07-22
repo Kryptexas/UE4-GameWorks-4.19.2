@@ -164,7 +164,7 @@ FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 void SHierarchyView::BeginRename()
 {
 	TArray< TSharedPtr<FHierarchyModel> > SelectedItems = WidgetTreeView->GetSelectedItems();
-	SelectedItems[0]->BeginRename();
+	SelectedItems[0]->RequestBeginRename();
 }
 
 bool SHierarchyView::CanRename() const

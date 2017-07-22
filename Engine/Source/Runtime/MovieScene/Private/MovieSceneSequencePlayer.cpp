@@ -228,11 +228,11 @@ void UMovieSceneSequencePlayer::Stop()
 	}
 }
 
-void UMovieSceneSequencePlayer::StopAndGoToEnd()
+void UMovieSceneSequencePlayer::GoToEndAndStop()
 {
-	Stop();
-
 	SetPlaybackPosition(GetLength());
+
+	Stop();
 }
 
 float UMovieSceneSequencePlayer::GetPlaybackPosition() const

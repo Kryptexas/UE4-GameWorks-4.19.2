@@ -105,7 +105,7 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 				{
 					if (InstanceData.SourceSprite != nullptr)
 					{
-						const FTransform InstanceTransform(FTransform(InstanceData.Transform) * SourceBatchComponent->ComponentToWorld);
+						const FTransform InstanceTransform(FTransform(InstanceData.Transform) * SourceBatchComponent->GetComponentTransform());
 
 						FActorSpawnParameters SpawnParams;
 						SpawnParams.bDeferConstruction = true;

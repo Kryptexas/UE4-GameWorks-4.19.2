@@ -1201,11 +1201,19 @@ bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName,
 	FSmartNameMapping* RequestedMapping = GetOrAddSmartNameContainer(ContainerName);
 	if (RequestedMapping)
 	{
-		if (RequestedMapping->FindOrAddSmartName(NewDisplayName, NewName))
+		if (RequestedMapping->FindSmartName(NewDisplayName, NewName))
 		{
-			Modify(true);
 			Successful = true;
-			IncreaseAnimCurveUidVersion();
+		}
+		else
+		{
+			// if it didn't find, mark modify
+			Modify(true);
+			if (RequestedMapping->FindOrAddSmartName(NewDisplayName, NewName))
+			{
+				Successful = true;
+				IncreaseAnimCurveUidVersion();
+			}
 		}
 	}
 	return Successful;

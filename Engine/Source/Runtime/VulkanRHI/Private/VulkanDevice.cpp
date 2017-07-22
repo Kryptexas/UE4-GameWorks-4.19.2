@@ -15,7 +15,9 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, Device(VK_NULL_HANDLE)
 	, ResourceHeapManager(this)
 	, DeferredDeletionQueue(this)
-	, DefaultSampler(VK_NULL_HANDLE)
+	, DefaultSampler(nullptr)
+	, DefaultImage(nullptr)
+	, DefaultImageView(VK_NULL_HANDLE)
 	, TimestampQueryPool(nullptr)
 	, GfxQueue(nullptr)
 	, TransferQueue(nullptr)
@@ -539,6 +541,10 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	{
 		FSamplerStateInitializerRHI Default(SF_Point);
 		DefaultSampler = new FVulkanSamplerState(Default, *this);
+
+		FRHIResourceCreateInfo CreateInfo;
+		DefaultImage = new FVulkanSurface(*this, VK_IMAGE_VIEW_TYPE_2D, PF_B8G8R8A8, 1, 1, 1, false, 0, 1, 1, TexCreate_RenderTargetable | TexCreate_ShaderResource, CreateInfo);
+		DefaultImageView = FVulkanTextureView::StaticCreate(*this, DefaultImage->Image, VK_IMAGE_VIEW_TYPE_2D, DefaultImage->GetFullAspectMask(), PF_B8G8R8A8, VK_FORMAT_B8G8R8A8_UNORM, 0, 1, 0, 1);
 	}
 }
 
@@ -549,6 +555,14 @@ void FVulkanDevice::PrepareForDestroy()
 
 void FVulkanDevice::Destroy()
 {
+	VulkanRHI::vkDestroyImageView(GetInstanceHandle(), DefaultImageView, nullptr);
+
+	delete DefaultSampler;
+	DefaultSampler = nullptr;
+
+	delete DefaultImage;
+	DefaultImage = nullptr;
+
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
 
@@ -567,9 +581,6 @@ void FVulkanDevice::Destroy()
 
 	delete PipelineStateCache;
 	PipelineStateCache = nullptr;
-
-	delete DefaultSampler;
-	DefaultSampler = nullptr;
 
 	StagingManager.Deinit();
 
@@ -634,6 +645,12 @@ void FVulkanDevice::NotifyDeletedRenderTarget(VkImage Image)
 {
 	//#todo-rco: Loop through all contexts!
 	GetImmediateContext().NotifyDeletedRenderTarget(Image);
+}
+
+void FVulkanDevice::NotifyDeletedImage(VkImage Image)
+{
+	//#todo-rco: Loop through all contexts!
+	GetImmediateContext().NotifyDeletedImage(Image);
 }
 
 void FVulkanDevice::PrepareForCPURead()

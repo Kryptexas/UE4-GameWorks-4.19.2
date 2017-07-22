@@ -144,6 +144,11 @@ public:
 		TransitionState.NotifyDeletedRenderTarget(*Device, Image);
 	}
 
+	inline void NotifyDeletedImage(VkImage Image)
+	{
+		TransitionState.NotifyDeletedImage(Image);
+	}
+
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
 		return TransitionState.CurrentRenderPass;
@@ -256,6 +261,11 @@ protected:
 		TMap<uint32, FFramebufferList*> Framebuffers;
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
+
+		inline void NotifyDeletedImage(VkImage Image)
+		{
+			CurrentLayout.Remove(Image);
+		}
 
 		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
 		{

@@ -4,7 +4,13 @@
 #include <vector>
 
 #ifdef UNREALUSDWRAPPER_EXPORTS
-#define UNREALUSDWRAPPER_API __declspec(dllexport)
+	#if _WINDOWS
+		#define UNREALUSDWRAPPER_API __declspec(dllexport)
+	#elif defined(__linux__) || defined(__APPLE__)
+		#define UNREALUSDWRAPPER_API __attribute__((visibility("default")))
+	#else
+		#error "Add definition for UNREALUSDWRAPPER_API macro for your platform."
+	#endif
 #else
 #define UNREALUSDWRAPPER_API //__declspec(dllimport)
 #endif

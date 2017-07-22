@@ -27,5 +27,15 @@
 			"Type" : "Runtime",
 			"WhitelistPlatforms" : [ "Win64", "Win32", "Android" ]
 		},
+		{
+			"Name" : "OculusEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "PreDefault",
+			"WhitelistPlatforms" :
+			[
+				"Win64"
+			]
+		},
+
 	]
 }

@@ -24,6 +24,26 @@ THIRD_PARTY_INCLUDES_START
 	#include "Windows/MinWindows.h"
 THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
+#elif PLATFORM_MAC
+#pragma clang diagnostic ignored "-Wnullability-completeness"
+typedef enum {
+
+    /* Commonly-available encoders */
+    COMPRESSION_LZ4     = 0x100,       // available starting OS X 10.11, iOS 9.0
+    COMPRESSION_ZLIB    = 0x205,       // available starting OS X 10.11, iOS 9.0
+    COMPRESSION_LZMA    = 0x306,       // available starting OS X 10.11, iOS 9.0
+
+    COMPRESSION_LZ4_RAW = 0x101,       // available starting OS X 10.11, iOS 9.0
+
+    /* Apple-specific encoders */
+    COMPRESSION_LZFSE    = 0x801,      // available starting OS X 10.11, iOS 9.0
+
+} compression_algorithm;
+typedef size_t (*compression_encode_scratch_buffer_size_ptr)(compression_algorithm algorithm);
+typedef size_t (*compression_encode_buffer_ptr)(uint8_t * __restrict dst_buffer, size_t dst_size,
+                          const uint8_t * __restrict src_buffer, size_t src_size,
+                          void * __restrict __nullable scratch_buffer,
+                          compression_algorithm algorithm);
 #endif
 
 #include "ShaderPreprocessor.h"
@@ -1085,8 +1105,9 @@ static void BuildMetalShaderOutput(
 		FString DebugInfo = (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) || ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive)) ? TEXT("-gline-tables-only") : TEXT("");
 		FString MathMode = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath) ? TEXT("-fno-fast-math") : TEXT("-ffast-math");
 
-#if METAL_OFFLINE_COMPILE
+		TArray<uint8> CompressedCode;
 		const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
+#if METAL_OFFLINE_COMPILE
 		bool bRemoteBuildingConfigured = IsRemoteBuildingConfigured();
 		
 		FString MetalPath = GetMetalBinaryPath(ShaderInput.Target.Platform);
@@ -1110,10 +1131,19 @@ static void BuildMetalShaderOutput(
 					GMetalLoggedRemoteCompileNotConfigured = true;
 				}
 				bRemoteBuildingConfigured = false;
+				bSucceeded = true;
 			}
-			else
+#if PLATFORM_MAC
+			else if (FPlatformMisc::IsSupportedXcodeVersionInstalled())
 			{
 				bCompileAtRuntime = false;
+				bSucceeded = true;
+			}
+#endif
+			else
+			{
+				UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Installed Xcode's metal shader compiler is too old, please update Xcode on this Mac. Falling back to online compiled text shaders which will be slower."));
+				bCompileAtRuntime = true;
 				bSucceeded = true;
 			}
 		}
@@ -1172,6 +1202,35 @@ static void BuildMetalShaderOutput(
 			
 			if (PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING)
 			{
+#if PLATFORM_MAC && !UNIXLIKE_TO_MAC_REMOTE_BUILDING
+				dispatch_block_t CompressCode = nullptr;
+		        static void* DLL = FPlatformProcess::GetDllHandle(TEXT("/usr/lib/libcompression.dylib"));
+		        static compression_encode_scratch_buffer_size_ptr compression_encode_scratch_buffer_size = (compression_encode_scratch_buffer_size_ptr)(DLL ? FPlatformProcess::GetDllExport(DLL, TEXT("compression_encode_scratch_buffer_size")) : nullptr);
+				static compression_encode_buffer_ptr compression_encode_buffer = (compression_encode_buffer_ptr)(DLL ? FPlatformProcess::GetDllExport(DLL, TEXT("compression_encode_buffer")) : nullptr);
+				
+				// Compress the Metal code with LZMA while we invoke the Metal compiler
+				if (compression_encode_scratch_buffer_size && compression_encode_buffer)
+				{
+					TArray<uint8>* CaptureCode = &CompressedCode;
+			        CompressCode = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+			            size_t BufferSize = compression_encode_scratch_buffer_size(COMPRESSION_LZFSE);
+						void* ScratchData = FMemory::Malloc(BufferSize);
+						
+						uint32 CodeSize = strlen(TCHAR_TO_UTF8(*MetalCode))+1;
+						CaptureCode->AddUninitialized(CodeSize);
+						
+						size_t OutputSize = compression_encode_buffer(CaptureCode->GetData(), CodeSize, (uint8 const*)TCHAR_TO_UTF8(*MetalCode), CodeSize, ScratchData, COMPRESSION_LZFSE);
+						if (OutputSize == 0)
+						{
+							CaptureCode->Empty();
+						}
+						
+						FMemory::Free(ScratchData);
+			        });
+			        dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), CompressCode);
+		        }
+#endif
+			
 				FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 				
 				// handle compile error
@@ -1211,6 +1270,10 @@ static void BuildMetalShaderOutput(
 				{
 					setenv("SDKROOT", TCHAR_TO_UTF8(SdkRoot), 1);
 				}
+				if (CompressCode)
+				{
+		        	dispatch_block_wait(CompressCode, DISPATCH_TIME_FOREVER);
+		        }
 #endif
 			}
 			else if (bRemoteBuildingConfigured)
@@ -1316,6 +1379,16 @@ static void BuildMetalShaderOutput(
 			ShaderOutput.bSucceeded = bSucceeded || ShaderOutput.bSucceeded;
 		}
 
+		// Keep the text as LZMA compressed data for error reporting on Mac, but not iOS and not if we compiled from a PC
+		if (!bIsMobile && !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Archive) && !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) && PLATFORM_MAC && !bCompileAtRuntime && CompressedCode.Num())
+		{
+			ShaderOutput.ShaderCode.AddOptionalData('z', CompressedCode.GetData(), CompressedCode.Num());
+			ShaderOutput.ShaderCode.AddOptionalData('p', TCHAR_TO_UTF8(*InputFilePath));
+			
+			uint32 CodeSize = strlen(TCHAR_TO_UTF8(*MetalCode));
+			ShaderOutput.ShaderCode.AddOptionalData('u', (const uint8*)&CodeSize, sizeof(CodeSize));
+		}
+		
 		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
 		{
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
@@ -1722,16 +1795,15 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 	// was the shader already compiled offline?
 	uint8 OfflineCompiledFlag;
 	Ar << OfflineCompiledFlag;
-	check(OfflineCompiledFlag == 0 || OfflineCompiledFlag == 1);
 	
-	if(bNative == false || OfflineCompiledFlag == 1)
+	if(bNative && OfflineCompiledFlag == 1)
 	{
 		// get the header
 		FMetalCodeHeader Header = { 0 };
 		Ar << Header;
 		
 		// Must be compiled for archiving or something is very wrong.
-		if(Header.CompileFlags & (1 << CFLAG_Archive))
+		if(bNative == false || Header.CompileFlags & (1 << CFLAG_Archive))
 		{
 			bSuccess = true;
 			
@@ -1776,9 +1848,6 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 			// Strip any optional data
 			if (bNative || ShaderCode.GetOptionalDataSize() > 0)
 			{
-				// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
-				Header.CompileFlags |= (1 << CFLAG_Archive);
-				
 				// Write out the header and compiled shader code
 				FShaderCode NewCode;
 				FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
@@ -1791,6 +1860,14 @@ bool StripShader_Metal(TArray<uint8>& Code, class FString const& DebugPath, bool
 				Code = NewCode.GetReadAccess();
 			}
 		}
+		else
+		{
+			UE_LOG(LogShaders, Error, TEXT("Shader stripping failed: shader %s (Len: %0.8x, CRC: %0.8x) was not compiled for archiving into a native library (Native: %s, Compile Flags: %0.8x)!"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, bNative ? TEXT("true") : TEXT("false"), (uint32)Header.CompileFlags);
+		}
+	}
+	else
+	{
+		UE_LOG(LogShaders, Error, TEXT("Shader stripping failed: shader %s (Native: %s, Offline Compiled: %d) was not compiled to bytecode for native archiving!"), *DebugPath, bNative ? TEXT("true") : TEXT("false"), OfflineCompiledFlag);
 	}
 	
 	return bSuccess;
@@ -1839,69 +1916,79 @@ uint64 AppendShader_Metal(FName const& Format, FString const& WorkingDir, const 
 		// was the shader already compiled offline?
 		uint8 OfflineCompiledFlag;
 		Ar << OfflineCompiledFlag;
-		check(OfflineCompiledFlag == 0 || OfflineCompiledFlag == 1);
-		
-		// get the header
-		FMetalCodeHeader Header = { 0 };
-		Ar << Header;
-		
-		// Must be compiled for archiving or something is very wrong.
-		check(Header.CompileFlags & (1 << CFLAG_Archive));
-		
-		// remember where the header ended and code (precompiled or source) begins
-		int32 CodeOffset = Ar.Tell();
-		const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
-		
-		// Copy the non-optional shader bytecode
-		int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
-		TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
-		
-		// Object code segment
-		FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
-		
-		bool const bHasObjectData = (ObjectCodeDataSize > 0) || IFileManager::Get().FileExists(*ObjFilename);
-		if (bHasObjectData)
+		if (OfflineCompiledFlag == 1)
 		{
-			// metal commandlines
-			int32 ReturnCode = 0;
-			FString Results;
-			FString Errors;
+			// get the header
+			FMetalCodeHeader Header = { 0 };
+			Ar << Header;
 			
-			bool bHasObjectFile = IFileManager::Get().FileExists(*ObjFilename);
-			if (ObjectCodeDataSize > 0)
+			// Must be compiled for archiving or something is very wrong.
+			if(Header.CompileFlags & (1 << CFLAG_Archive))
 			{
-				// write out shader object code source (IR) for archiving to a single library file later
-				if( FFileHelper::SaveArrayToFile(ObjectCodeArray, *ObjFilename) )
+				// remember where the header ended and code (precompiled or source) begins
+				int32 CodeOffset = Ar.Tell();
+				const uint8* SourceCodePtr = (uint8*)InShaderCode.GetData() + CodeOffset;
+				
+				// Copy the non-optional shader bytecode
+				int32 ObjectCodeDataSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
+				TArrayView<const uint8> ObjectCodeArray(SourceCodePtr, ObjectCodeDataSize);
+				
+				// Object code segment
+				FString ObjFilename = WorkingDir / FString::Printf(TEXT("Main_%0.8x_%0.8x.o"), Header.SourceLen, Header.SourceCRC);
+				
+				bool const bHasObjectData = (ObjectCodeDataSize > 0) || IFileManager::Get().FileExists(*ObjFilename);
+				if (bHasObjectData)
 				{
-					bHasObjectFile = true;
+					// metal commandlines
+					int32 ReturnCode = 0;
+					FString Results;
+					FString Errors;
+					
+					bool bHasObjectFile = IFileManager::Get().FileExists(*ObjFilename);
+					if (ObjectCodeDataSize > 0)
+					{
+						// write out shader object code source (IR) for archiving to a single library file later
+						if( FFileHelper::SaveArrayToFile(ObjectCodeArray, *ObjFilename) )
+						{
+							bHasObjectFile = true;
+						}
+					}
+					
+					if (bHasObjectFile)
+					{
+						Id = ((uint64)Header.SourceLen << 32) | Header.SourceCRC;
+						
+						// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
+						Header.CompileFlags |= (1 << CFLAG_Archive);
+						
+						// Write out the header and compiled shader code
+						FShaderCode NewCode;
+						FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
+						NewAr << OfflineCompiledFlag;
+						NewAr << Header;
+						
+						InShaderCode = NewCode.GetReadAccess();
+						
+						UE_LOG(LogShaders, Display, TEXT("Archiving succeeded: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+					}
+					else
+					{
+						UE_LOG(LogShaders, Error, TEXT("Archiving failed: failed to write temporary file %s for shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *ObjFilename, *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+					}
 				}
-			}
-			
-			if (bHasObjectFile)
-			{
-				Id = ((uint64)Header.SourceLen << 32) | Header.SourceCRC;
-				
-				// This is going to get serialised into the shader resource archive we don't anything but the header info now with the archive flag set
-				Header.CompileFlags |= (1 << CFLAG_Archive);
-				
-				// Write out the header and compiled shader code
-				FShaderCode NewCode;
-				FMemoryWriter NewAr(NewCode.GetWriteAccess(), true);
-				NewAr << OfflineCompiledFlag;
-				NewAr << Header;
-				
-				InShaderCode = NewCode.GetReadAccess();
-				
-				UE_LOG(LogShaders, Display, TEXT("Archiving succeeded: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				else
+				{
+					UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) has no object data"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				}
 			}
 			else
 			{
-				UE_LOG(LogShaders, Error, TEXT("Archiving failed: failed to write temporary file %s for shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s)"), *ObjFilename, *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+				UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) was not compiled for archiving (Compile Flags: %0.8x)!"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString(), (uint32)Header.CompileFlags);
 			}
 		}
 		else
 		{
-			UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader %s (Len: %0.8x, CRC: %0.8x, SHA: %s) has no object data"), *Header.ShaderName, Header.SourceLen, Header.SourceCRC, *Hash.ToString());
+			UE_LOG(LogShaders, Error, TEXT("Archiving failed: shader SHA: %s was not compiled to bytecode (%d)!"), *Hash.ToString(), OfflineCompiledFlag);
 		}
 	}
 	else

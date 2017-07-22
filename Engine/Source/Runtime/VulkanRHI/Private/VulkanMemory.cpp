@@ -194,6 +194,22 @@ namespace VulkanRHI
 		}
 	}
 #endif
+
+	uint64 FDeviceMemoryManager::GetTotalMemory(bool bGPU) const
+	{
+		uint64 TotalMemory = 0;
+		for (uint32 Index = 0; Index < MemoryProperties.memoryHeapCount; ++Index)
+		{
+			const bool bIsGPUHeap = ((MemoryProperties.memoryHeaps[Index].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+
+			if (bIsGPUHeap == bGPU)
+			{
+				TotalMemory += HeapInfos[Index].TotalSize;
+			}
+		}
+		return TotalMemory;
+	}
+
 	FDeviceMemoryAllocation::~FDeviceMemoryAllocation()
 	{
 		checkf(bFreedBySystem, TEXT("Memory has to released calling FDeviceMemory::Free()!"));
@@ -216,30 +232,35 @@ namespace VulkanRHI
 		MappedPointer = nullptr;
 	}
 
-	void FDeviceMemoryAllocation::FlushMappedMemory()
+	void FDeviceMemoryAllocation::FlushMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize)
 	{
-		check(!IsCoherent());
-		check(IsMapped());
-		VkMappedMemoryRange Range;
-		FMemory::Memzero(Range);
-		Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		Range.memory = Handle;
-		//Range.offset = 0;
-		Range.size = Size;
-		VERIFYVULKANRESULT(VulkanRHI::vkFlushMappedMemoryRanges(DeviceHandle, 1, &Range));
+		if (!IsCoherent())
+		{
+			check(IsMapped());
+			check(InOffset + InSize <= Size);
+			VkMappedMemoryRange Range;
+			FMemory::Memzero(Range);
+			Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			Range.memory = Handle;
+			Range.offset = InOffset;
+			Range.size = InSize;
+			VERIFYVULKANRESULT(VulkanRHI::vkFlushMappedMemoryRanges(DeviceHandle, 1, &Range));
+		}
 	}
 
 	void FDeviceMemoryAllocation::InvalidateMappedMemory()
 	{
-		check(!IsCoherent());
-		check(IsMapped());
-		VkMappedMemoryRange Range;
-		FMemory::Memzero(Range);
-		Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		Range.memory = Handle;
-		//Range.offset = 0;
-		Range.size = Size;
-		VERIFYVULKANRESULT(VulkanRHI::vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
+		if (!IsCoherent())
+		{
+			check(IsMapped());
+			VkMappedMemoryRange Range;
+			FMemory::Memzero(Range);
+			Range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			Range.memory = Handle;
+			//Range.offset = 0;
+			Range.size = Size;
+			VERIFYVULKANRESULT(VulkanRHI::vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
+		}
 	}
 
 	void FRange::JoinConsecutiveRanges(TArray<FRange>& Ranges)

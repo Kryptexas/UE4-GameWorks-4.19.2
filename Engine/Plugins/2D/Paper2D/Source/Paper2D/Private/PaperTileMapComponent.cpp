@@ -665,7 +665,7 @@ FVector UPaperTileMapComponent::GetTileCornerPosition(int32 TileX, int32 TileY, 
 
 	if (bWorldSpace)
 	{
-		Result = ComponentToWorld.TransformPosition(Result);
+		Result = GetComponentTransform().TransformPosition(Result);
 	}
 	return Result;
 }
@@ -681,7 +681,7 @@ FVector UPaperTileMapComponent::GetTileCenterPosition(int32 TileX, int32 TileY, 
 
 	if (bWorldSpace)
 	{
-		Result = ComponentToWorld.TransformPosition(Result);
+		Result = GetComponentTransform().TransformPosition(Result);
 	}
 	return Result;
 }
@@ -697,9 +697,10 @@ void UPaperTileMapComponent::GetTilePolygon(int32 TileX, int32 TileY, TArray<FVe
 
 	if (bWorldSpace)
 	{
+		const FTransform& ComponentTransform = GetComponentTransform();
 		for (FVector& Point : Points)
 		{
-			Point = ComponentToWorld.TransformPosition(Point);
+			Point = ComponentTransform.TransformPosition(Point);
 		}
 	}
 }

@@ -598,7 +598,7 @@ static bool SaveWorld(UWorld* World,
 		if (bSuccess && !bAutosaving)
 		{
 			// Also save MapBuildData packages when saving the current level
-			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
+			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty || bPIESaving);
 		}
 
 		SlowTask.EnterProgressFrame(25);

@@ -133,7 +133,7 @@ namespace VulkanRHI
 			return bIsCoherent != 0;
 		}
 
-		void FlushMappedMemory();
+		void FlushMappedMemory(VkDeviceSize InOffset, VkDeviceSize InSize);
 		void InvalidateMappedMemory();
 
 		inline VkDeviceMemory GetHandle() const
@@ -259,6 +259,8 @@ namespace VulkanRHI
 		void DumpMemory();
 #endif
 
+		uint64 GetTotalMemory(bool bGPU) const;
+
 	protected:
 		VkPhysicalDeviceMemoryProperties MemoryProperties;
 		VkDevice DeviceHandle;
@@ -330,6 +332,11 @@ namespace VulkanRHI
 		inline uint32 GetMemoryTypeIndex() const
 		{
 			return DeviceMemoryAllocation->GetMemoryTypeIndex();
+		}
+
+		inline void FlushMappedMemory()
+		{
+			DeviceMemoryAllocation->FlushMappedMemory(AllocationOffset, AllocationSize);
 		}
 
 		void BindBuffer(FVulkanDevice* Device, VkBuffer Buffer);
@@ -854,6 +861,11 @@ namespace VulkanRHI
 		inline VkDeviceMemory GetDeviceMemoryHandle() const
 		{
 			return ResourceAllocation->GetHandle();
+		}
+
+		inline void FlushMappedMemory()
+		{
+			ResourceAllocation->FlushMappedMemory();
 		}
 
 	protected:

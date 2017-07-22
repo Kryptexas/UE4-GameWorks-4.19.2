@@ -41,7 +41,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -137,7 +137,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -225,7 +225,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -322,7 +322,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

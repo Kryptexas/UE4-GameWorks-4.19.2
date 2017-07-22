@@ -3992,18 +3992,18 @@ bool FBlueprintEditor::CanRemoveExecutionPin() const
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 	if (FocusedGraphEd.IsValid())
 	{
-		const FScopedTransaction Transaction(LOCTEXT("RemoveExecutionPin", "Remove Execution Pin"));
-
-		UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu();
-		UEdGraphNode* OwningNode = SelectedPin->GetOwningNode();
-
-		if (UK2Node_ExecutionSequence* SeqNode = Cast<UK2Node_ExecutionSequence>(OwningNode))
+		if (UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			return SeqNode->CanRemoveExecutionPin();
-		}
-		else if (UK2Node_Switch* SwitchNode = Cast<UK2Node_Switch>(OwningNode))
-		{
-			return SwitchNode->CanRemoveExecutionPin(SelectedPin);
+			UEdGraphNode* OwningNode = SelectedPin->GetOwningNode();
+
+			if (UK2Node_ExecutionSequence* SeqNode = Cast<UK2Node_ExecutionSequence>(OwningNode))
+			{
+				return SeqNode->CanRemoveExecutionPin();
+			}
+			else if (UK2Node_Switch* SwitchNode = Cast<UK2Node_Switch>(OwningNode))
+			{
+				return SwitchNode->CanRemoveExecutionPin(SelectedPin);
+			}
 		}
 	}
 	return false;

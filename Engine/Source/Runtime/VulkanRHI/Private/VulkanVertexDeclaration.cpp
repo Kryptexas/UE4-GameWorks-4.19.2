@@ -46,6 +46,8 @@ FVertexDeclarationRHIRef FVulkanDynamicRHI::RHICreateVertexDeclaration(const FVe
 {
 	FVulkanVertexDeclarationKey Key(Elements);
 
+	static FCriticalSection CS;
+	FScopeLock ScopeLock(&CS);
 	FVertexDeclarationRHIRef* VertexDeclarationRefPtr = GVertexDeclarationCache.Find(Key);
 	if (VertexDeclarationRefPtr == nullptr)
 	{

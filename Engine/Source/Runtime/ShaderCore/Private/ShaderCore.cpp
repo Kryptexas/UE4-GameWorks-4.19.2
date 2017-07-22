@@ -197,19 +197,44 @@ void FShaderCompilerOutput::GenerateOutputHash()
 	HashState.GetHash(&OutputHash.Hash[0]);
 }
 
-
-#if DO_CHECK
-bool CheckVirtualShaderFilePath(const FString& VirtualFilePath)
+static void ReportVirtualShaderFilePathError(TArray<FShaderCompilerError>* CompileErrors, FString ErrorString)
 {
-	checkf(VirtualFilePath.StartsWith(TEXT("/")),
-		TEXT("Virtual shader source file name \"%s\" should be absolute from the virtual root directory \"/\"."), *VirtualFilePath);
-	checkf((FPaths::GetExtension(VirtualFilePath) == TEXT("usf") || FPaths::GetExtension(VirtualFilePath) == TEXT("ush")) && !VirtualFilePath.EndsWith(TEXT(".usf.usf")),
-		TEXT("Extension on virtual shader source file name \"%s\" is wrong."), *VirtualFilePath);
-	checkf(!VirtualFilePath.Contains(TEXT("\\")),
-		TEXT("Backslashes are not permitted in Virtual shader source file name \"%s\""), *VirtualFilePath);
-	return true;
+	if (CompileErrors)
+	{
+		CompileErrors->Add(FShaderCompilerError(*ErrorString));
+	}
+
+	UE_LOG(LogShaders, Error, TEXT("%s"), *ErrorString);
 }
-#endif
+
+bool CheckVirtualShaderFilePath(const FString& VirtualFilePath, TArray<FShaderCompilerError>* CompileErrors /*= nullptr*/)
+{
+	bool bSuccess = true;
+
+	if (!VirtualFilePath.StartsWith(TEXT("/")))
+	{
+		FString Error = FString::Printf(TEXT("Virtual shader source file name \"%s\" should be absolute from the virtual root directory \"/\"."), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	if (VirtualFilePath.Contains(TEXT("\\")))
+	{
+		FString Error = FString::Printf(TEXT("Backslashes are not permitted in virtual shader source file name \"%s\""), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	FString Extension = FPaths::GetExtension(VirtualFilePath);
+	if ((Extension != TEXT("usf") && Extension != TEXT("ush")) || VirtualFilePath.EndsWith(TEXT(".usf.usf")))
+	{
+		FString Error = FString::Printf(TEXT("Extension on virtual shader source file name \"%s\" is wrong. Only .usf or .ush allowed."), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	return bSuccess;
+}
 
 /**
 * Add a new entry to the list of shader source files
@@ -490,9 +515,6 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 						ExtractedIncludeFilename = FPaths::GetPath(VirtualFilePath) / ExtractedIncludeFilename;
 					}
 
-					// Check virtual.
-					check(CheckVirtualShaderFilePath(ExtractedIncludeFilename));
-
 					//CRC the template, not the filled out version so that this shader's CRC will be independent of which material references it.
 					if (ExtractedIncludeFilename == TEXT("/Engine/Generated/Material.ush"))
 					{
@@ -501,6 +523,9 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 
 					// Ignore uniform buffer, vertex factory and instanced stereo includes
 					bool bIgnoreInclude = ExtractedIncludeFilename.StartsWith(TEXT("/Engine/Generated/"));
+
+					// Check virtual.
+					bIgnoreInclude |= !CheckVirtualShaderFilePath(ExtractedIncludeFilename);
 			
 					// Some headers aren't required to be found (platforms that the user doesn't have access to)
 					// @todo: Is there some way to generalize this"

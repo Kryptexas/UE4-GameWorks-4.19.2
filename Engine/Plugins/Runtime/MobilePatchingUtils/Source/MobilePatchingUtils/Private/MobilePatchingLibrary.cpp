@@ -196,6 +196,13 @@ float UMobilePendingContent::GetInstallProgress()
 
 static void OnInstallComplete(bool bSuccess, IBuildManifestRef RemoteManifest, UMobilePendingContent* MobilePendingContent, FOnContentInstallSucceeded OnSucceeded, FOnContentInstallFailed OnFailed)
 {
+	if (MobilePendingContent == nullptr)
+	{
+		// Don't do anything if owner is gone
+		UE_LOG(LogMobilePatchingUtils, Error, TEXT("Installation Failed. MobilePendingContent is null"));
+		return;
+	}
+	
 	if (bSuccess)
 	{
 		IBuildPatchServicesModule* BuildPatchServices = GetBuildPatchServices();
@@ -213,8 +220,15 @@ static void OnInstallComplete(bool bSuccess, IBuildManifestRef RemoteManifest, U
 	}
 	else
 	{
-		FText ErrorText = MobilePendingContent->Installer->GetErrorText();
-		EBuildPatchInstallError ErrorCode = MobilePendingContent->Installer->GetErrorType();
+		EBuildPatchInstallError ErrorCode = EBuildPatchInstallError::NumInstallErrors;
+		FText ErrorText = LOCTEXT("Error_Unknown", "An unknown error ocurred");
+		
+		if (MobilePendingContent->Installer.IsValid())
+		{
+			ErrorText = MobilePendingContent->Installer->GetErrorText();
+			ErrorCode = MobilePendingContent->Installer->GetErrorType();
+		}
+		
 		UE_LOG(LogMobilePatchingUtils, Error, TEXT("Installation Failed. Code %d Msg: %s"), (int32)ErrorCode, *ErrorText.ToString());
 		OnFailed.ExecuteIfBound(ErrorText, (int32)ErrorCode);
 	}
@@ -286,8 +300,11 @@ static void OnRemoteManifestReady(FHttpRequestPtr Request, FHttpResponsePtr Resp
 		return;
 	}
 
-	MobilePendingContent->RemoteManifest = RemoteManifest;
-	OnSucceeded.ExecuteIfBound(MobilePendingContent);
+	if (MobilePendingContent)
+	{
+		MobilePendingContent->RemoteManifest = RemoteManifest;
+		OnSucceeded.ExecuteIfBound(MobilePendingContent);
+	}
 }
 
 static IBuildManifestPtr GetInstalledManifest(const FString& InstallDirectory)

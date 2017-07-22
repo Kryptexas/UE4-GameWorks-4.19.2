@@ -459,12 +459,12 @@ namespace UnrealBuildTool
 				// eventually we want to generate this based on what the user has set in the project settings
 				string[] IPhoneConfigs =  
 					{
-                        "Default-IPhone6-Landscape.jpg", "Landscape", "{375, 667}", "8.0",
-                        "Default-IPhone6.jpg", "Portrait", "{375, 667}",  "8.0",
-                        "Default-IPhone6Plus-Landscape.jpg", "Landscape", "{414, 736}",  "8.0",
-                        "Default-IPhone6Plus-Portrait.jpg", "Portrait", "{414, 736}",  "8.0",
-                        "Default.jpg", "Landscape", "{320, 480}", "7.0",
-                        "Default.jpg", "Portrait", "{320, 480}", "7.0",
+                        "Default-IPhone6-Landscape.png", "Landscape", "{375, 667}", "8.0",
+                        "Default-IPhone6.png", "Portrait", "{375, 667}",  "8.0",
+                        "Default-IPhone6Plus-Landscape.png", "Landscape", "{414, 736}",  "8.0",
+                        "Default-IPhone6Plus-Portrait.png", "Portrait", "{414, 736}",  "8.0",
+                        "Default.png", "Landscape", "{320, 480}", "7.0",
+                        "Default.png", "Portrait", "{320, 480}", "7.0",
                         "Default-568h.png", "Landscape", "{320, 568}", "7.0",
                         "Default-568h.png", "Portrait", "{320, 568}", "7.0",
 					};
@@ -496,10 +496,10 @@ namespace UnrealBuildTool
 				// eventually we want to generate this based on what the user has set in the project settings
 				string[] IPadConfigs =  
 					{
-                        "Default-Landscape.jpg", "Landscape", "{768, 1024}", "7.0",
-                        "Default-Portrait.jpg", "Portrait", "{768, 1024}",  "7.0",
-                        "Default-Landscape-1336.jpg", "Landscape", "{1024, 1366}",  "9.0",
-                        "Default-Portrait-1336.jpg", "Portrait", "{1024, 1366}",  "9.0",
+                        "Default-Landscape.png", "Landscape", "{768, 1024}", "7.0",
+                        "Default-Portrait.png", "Portrait", "{768, 1024}",  "7.0",
+                        "Default-Landscape-1336.png", "Landscape", "{1024, 1366}",  "9.0",
+                        "Default-Portrait-1336.png", "Portrait", "{1024, 1366}",  "9.0",
 					};
 
 				Text.AppendLine("\t<key>UILaunchImages~ipad</key>");
@@ -671,24 +671,24 @@ namespace UnrealBuildTool
                 CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Icon*.png", true);
                 if (bSupportsPortrait)
                 {
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Portrait.jpg", true);
- //                   CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait@2x.jpg", true);
-//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.jpg", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Portrait.png", true);
+ //                   CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait@2x.png", true);
+//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.png", true);
                 }
                 if (bSupportsLandscape)
                 {
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6-Landscape.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Landscape.jpg", true);
-//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape@2x.jpg", true);
-//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336.jpg", true);
-                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.jpg", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6-Landscape.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Landscape.png", true);
+//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape@2x.png", true);
+//                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336.png", true);
+                    CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.png", true);
                 }
-//                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default.jpg", true);
-                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default@2x.jpg", true);
+//                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default.png", true);
+                CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default@2x.png", true);
                 CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "Default-568h@2x.png", true);
             }
             // merge game assets on top
@@ -698,24 +698,24 @@ namespace UnrealBuildTool
                 CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Icon*.png", true);
                 if (bSupportsPortrait)
                 {
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Portrait.jpg", true);
-//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait@2x.jpg", true);
-//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.jpg", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Portrait.png", true);
+//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait@2x.png", true);
+//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Portrait-1336@2x.png", true);
                 }
                 if (bSupportsLandscape)
                 {
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6-Landscape.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Landscape.jpg", true);
-//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape@2x.jpg", true);
-//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336.jpg", true);
-                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.jpg", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6-Landscape.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-IPhone6Plus-Landscape.png", true);
+//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape@2x.png", true);
+//                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336.png", true);
+                    CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-Landscape-1336@2x.png", true);
                 }
-//                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default.jpg", true);
-                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default@2x.jpg", true);
+//                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default.png", true);
+                CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default@2x.png", true);
                 CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "Default-568h@2x.png", true);
             }
         }

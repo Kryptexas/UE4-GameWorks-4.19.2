@@ -106,7 +106,15 @@ FDebugCanvasDrawer::~FDebugCanvasDrawer()
 
 	if( RenderThreadCanvas )
 	{
-		delete RenderThreadCanvas;
+		FCanvasProxy* RTCanvas = RenderThreadCanvas;
+		ENQUEUE_RENDER_COMMAND(DeleteDebugRenderThreadCanvas)(
+			[RTCanvas](FRHICommandListImmediate& RHICmdList)
+		{
+			check(RTCanvas);
+			delete RTCanvas;
+		});
+
+		RenderThreadCanvas = nullptr;
 	}
 }
 

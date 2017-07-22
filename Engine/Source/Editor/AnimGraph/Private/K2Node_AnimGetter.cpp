@@ -203,7 +203,9 @@ bool UK2Node_AnimGetter::IsActionFilteredOut(FBlueprintActionFilter const& Filte
 {
 	if(Filter.Context.Graphs.Num() > 0)
 	{
-		if(Filter.Context.Blueprints.Num() > 0)
+		UEdGraph* CurrGraph = Filter.Context.Graphs[0];
+
+		if(CurrGraph && Filter.Context.Blueprints.Num() > 0)
 		{
 			UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Filter.Context.Blueprints[0]);
 			check(AnimBlueprint);
@@ -223,7 +225,7 @@ bool UK2Node_AnimGetter::IsActionFilteredOut(FBlueprintActionFilter const& Filte
 					return true;
 				}
 
-				const UEdGraphSchema* Schema = Filter.Context.Graphs[0]->GetSchema();
+				const UEdGraphSchema* Schema = CurrGraph->GetSchema();
 				
 				// Bail if we aren't meant for this graph at all
 				if(!IsContextValidForSchema(Schema))
@@ -242,56 +244,38 @@ bool UK2Node_AnimGetter::IsActionFilteredOut(FBlueprintActionFilter const& Filte
 					// Inside a transition graph
 					if(SourceNode)
 					{
-						if(UAnimBlueprintGeneratedClass* BPSkelClass = AnimBlueprint->GetAnimBlueprintSkeletonClass())
+						if(UAnimStateTransitionNode* TransitionNode = Cast<UAnimStateTransitionNode>(CurrGraph->GetOuter()))
 						{
-							auto GetTransitionNodeFromGraphLambda = [](const FAnimBlueprintDebugData& DebugData, const UEdGraph* Graph) -> UAnimStateTransitionNode*
+							if(SourceStateNode)
 							{
-								if(const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = DebugData.TransitionGraphToNodeMap.Find(Graph))
+								if(UAnimStateTransitionNode* SourceTransitionNode = Cast<UAnimStateTransitionNode>(SourceStateNode))
 								{
-									return TransNodePtr->Get();
-								}
-
-								if(const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = DebugData.TransitionBlendGraphToNodeMap.Find(Graph))
-								{
-									return TransNodePtr->Get();
-								}
-
-								return NULL;
-							};
-
-							if(UAnimStateTransitionNode* TransitionNode = GetTransitionNodeFromGraphLambda(BPSkelClass->GetAnimBlueprintDebugData(), Filter.Context.Graphs[0]))
-							{
-								if(SourceStateNode)
-								{
-									if(UAnimStateTransitionNode* SourceTransitionNode = Cast<UAnimStateTransitionNode>(SourceStateNode))
-									{
-										// if we have a transition node, make sure it's the same as the one we're in
-										if(SourceTransitionNode == TransitionNode)
-										{
-											return false;
-										}
-									}
-									else if(UAnimStateNode* PreviousStateNode = Cast<UAnimStateNode>(TransitionNode->GetPreviousState()))
-									{
-										// Only allow actions using states that are referencing the previous state
-										if(SourceStateNode == PreviousStateNode)
-										{
-											return false;
-										}
-									}
-								}
-								else if(UAnimGraphNode_StateMachine* MachineNode = Cast<UAnimGraphNode_StateMachine>(SourceNode))
-								{
-									// Available everywhere
-									return false;
-								}
-								else if(UAnimStateNode* PrevStateNode = Cast<UAnimStateNode>(TransitionNode->GetPreviousState()))
-								{
-									// Make sure the attached asset node is in the source graph
-									if(SourceNode && SourceNode->GetGraph() == PrevStateNode->BoundGraph)
+									// if we have a transition node, make sure it's the same as the one we're in
+									if(SourceTransitionNode == TransitionNode)
 									{
 										return false;
 									}
+								}
+								else if(UAnimStateNode* PreviousStateNode = Cast<UAnimStateNode>(TransitionNode->GetPreviousState()))
+								{
+									// Only allow actions using states that are referencing the previous state
+									if(SourceStateNode == PreviousStateNode)
+									{
+										return false;
+									}
+								}
+							}
+							else if(UAnimGraphNode_StateMachine* MachineNode = Cast<UAnimGraphNode_StateMachine>(SourceNode))
+							{
+								// Available everywhere
+								return false;
+							}
+							else if(UAnimStateNode* PrevStateNode = Cast<UAnimStateNode>(TransitionNode->GetPreviousState()))
+							{
+								// Make sure the attached asset node is in the source graph
+								if(SourceNode && SourceNode->GetGraph() == PrevStateNode->BoundGraph)
+								{
+									return false;
 								}
 							}
 						}

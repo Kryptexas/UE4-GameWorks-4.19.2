@@ -103,7 +103,7 @@ void FBlueprintSupport::InitializeCompilationManager()
 {
 	// 'real' initialization is done lazily because we're in a pretty tough
 	// spot in terms of dependencies:
-	GConfig->GetBool(TEXT("Blueprints"), TEXT("bUseCompilationManager"), GBlueprintUseCompilationManager, GEditorIni);
+	GConfig->GetBool(TEXT("/Script/UnrealEd.BlueprintEditorProjectSettings"), TEXT("bUseCompilationManager"), GBlueprintUseCompilationManager, GEditorIni);
 }
 
 static FFlushReinstancingQueueFPtr FlushReinstancingQueueFPtr = nullptr;

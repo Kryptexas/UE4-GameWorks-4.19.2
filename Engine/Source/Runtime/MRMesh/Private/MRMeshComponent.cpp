@@ -480,8 +480,11 @@ void UMRMeshComponent::SendBrickData_Internal(IMRMesh::FSendBrickDataArgs Args, 
 				MyBS->CollisionTraceFlag = CTF_UseComplexAsSimple;
 
 				FCookBodySetupInfo CookInfo;
-				MyBS->GetCookInfo(CookInfo, EPhysXMeshCookFlags::FastCook | EPhysXMeshCookFlags::DeformableMesh);
+				// Disable mesh cleaning by passing in EPhysXMeshCookFlags::DeformableMesh
+				static const EPhysXMeshCookFlags CookFlags = EPhysXMeshCookFlags::FastCook | EPhysXMeshCookFlags::DeformableMesh;
+				MyBS->GetCookInfo(CookInfo, CookFlags);
 				CookInfo.bCookTriMesh = true;
+				CookInfo.TriMeshCookFlags = CookInfo.ConvexCookFlags = CookFlags;
 				CookInfo.TriangleMeshDesc.bFlipNormals = true;
 				CookInfo.TriangleMeshDesc.Vertices = Args.PositionData;
 				const int NumFaces = Args.Indices.Num() / 3;

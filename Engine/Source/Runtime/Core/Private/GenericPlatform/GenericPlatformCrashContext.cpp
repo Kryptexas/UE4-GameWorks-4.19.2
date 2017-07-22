@@ -40,6 +40,7 @@ const FString FGenericCrashContext::CrashGUIDRootPrefix = TEXT("UE4CC-");
 const FString FGenericCrashContext::CrashContextExtension = TEXT(".runtime-xml");
 const FString FGenericCrashContext::RuntimePropertiesTag = TEXT( "RuntimeProperties" );
 const FString FGenericCrashContext::PlatformPropertiesTag = TEXT( "PlatformProperties" );
+const FString FGenericCrashContext::EnabledPluginsTag = TEXT("EnabledPlugins");
 const FString FGenericCrashContext::UE4MinidumpName = TEXT( "UE4Minidump.dmp" );
 const FString FGenericCrashContext::NewLineTag = TEXT( "&nl;" );
 
@@ -89,6 +90,8 @@ namespace NCachedCrashContextProperties
 	static FString CommandLine;
 	static int32 LanguageLCID;
 	static FString CrashReportClientRichText;
+	static TArray<FString> EnabledPluginsList;
+
 }
 
 void FGenericCrashContext::Initialize()
@@ -333,6 +336,18 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddPlatformSpecificProperties();
 	EndSection( *PlatformPropertiesTag );
 
+	if(NCachedCrashContextProperties::EnabledPluginsList.Num() > 0)
+	{
+		BeginSection(*EnabledPluginsTag);
+
+		for (const FString& Str : NCachedCrashContextProperties::EnabledPluginsList)
+		{
+			AddCrashProperty(TEXT("Plugin"), *Str);
+		}
+
+		EndSection(*EnabledPluginsTag);
+	}
+
 	AddFooter();
 }
 
@@ -410,26 +425,22 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 FString FGenericCrashContext::EscapeXMLString( const FString& Text )
 {
 	return Text
-		.Replace( TEXT( "&" ), TEXT( "&amp;" ) )
-		.Replace( TEXT( "\"" ), TEXT( "&quot;" ) )
-		.Replace( TEXT( "'" ), TEXT( "&apos;" ) )
-		.Replace( TEXT( "<" ), TEXT( "&lt;" ) )
-		.Replace( TEXT( ">" ), TEXT( "&gt;" ) )
-		// Replace newline for FXMLFile.
-		.Replace( TEXT( "\n" ), *NewLineTag )
-		// Ignore return carriage.
+		.Replace(TEXT("&"), TEXT("&amp;"))
+		.Replace(TEXT("\""), TEXT("&quot;"))
+		.Replace(TEXT("'"), TEXT("&apos;"))
+		.Replace(TEXT("<"), TEXT("&lt;"))
+		.Replace(TEXT(">"), TEXT("&gt;"))
 		.Replace( TEXT( "\r" ), TEXT("") );
 }
 
 FString FGenericCrashContext::UnescapeXMLString( const FString& Text )
 {
 	return Text
-		.Replace( TEXT( "&amp;" ), TEXT( "&" ) )
-		.Replace( TEXT( "&quot;" ), TEXT( "\"" ) )
-		.Replace( TEXT( "&apos;" ), TEXT( "'" ) )
-		.Replace( TEXT( "&lt;" ), TEXT( "<" ) )
-		.Replace( TEXT( "&gt;" ), TEXT( ">" ) )
-		.Replace( *NewLineTag, TEXT( "\n" ) );
+		.Replace(TEXT("&amp;"), TEXT("&"))
+		.Replace(TEXT("&quot;"), TEXT("\""))
+		.Replace(TEXT("&apos;"), TEXT("'"))
+		.Replace(TEXT("&lt;"), TEXT("<"))
+		.Replace(TEXT("&gt;"), TEXT(">"));
 }
 
 const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIsAssert, bool bIsGPUCrashed)
@@ -499,6 +510,11 @@ void FGenericCrashContext::PurgeOldCrashConfig()
 			}
 		}
 	}
+}
+
+void FGenericCrashContext::AddPlugin(const FString& PluginDesc)
+{
+	NCachedCrashContextProperties::EnabledPluginsList.Add(PluginDesc);
 }
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :

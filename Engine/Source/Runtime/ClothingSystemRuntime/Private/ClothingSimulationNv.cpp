@@ -210,7 +210,7 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 	Solver->addCloth(NewActor.LodData[0].Cloth);
 
 	// Force update LODs so we're in the correct state now
-	UpdateLod(InOwnerComponent->PredictedLODLevel, InOwnerComponent->ComponentToWorld, InOwnerComponent->GetComponentSpaceTransforms(), true);
+	UpdateLod(InOwnerComponent->PredictedLODLevel, InOwnerComponent->GetComponentTransform(), InOwnerComponent->GetComponentSpaceTransforms(), true);
 
 	// Compute normals for all active actors for first frame
 	for(FClothingActorNv& Actor : Actors)

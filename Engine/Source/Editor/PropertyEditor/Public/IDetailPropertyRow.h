@@ -10,8 +10,8 @@
 
 class FDetailWidgetRow;
 
-DECLARE_DELEGATE_RetVal_OneParam(bool, FIsResetToDefaultVisible, TSharedRef<IPropertyHandle> /* PropertyHandle */);
-DECLARE_DELEGATE_OneParam(FResetToDefaultHandler, TSharedRef<IPropertyHandle> /* PropertyHandle*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FIsResetToDefaultVisible, TSharedPtr<IPropertyHandle> /* PropertyHandle */);
+DECLARE_DELEGATE_OneParam(FResetToDefaultHandler, TSharedPtr<IPropertyHandle> /* PropertyHandle*/);
 
 /**
  * Structure describing the delegates needed to override the behavior of reset to default in detail properties
@@ -53,7 +53,7 @@ public:
 	}
 
 	/** Called by the UI to show/hide the reset widgets */
-	bool IsResetToDefaultVisible(TSharedRef<IPropertyHandle> Property) const
+	bool IsResetToDefaultVisible(TSharedPtr<IPropertyHandle> Property) const
 	{
 		if (bForceShow)
 		{

@@ -82,7 +82,7 @@ void UK2Node_MakeArray::GetContextMenuActions(const FGraphNodeContextMenuBuilder
 
 		if (Context.Pin != NULL)
 		{
-			if (Context.Pin->Direction == EGPD_Input)
+			if (Context.Pin->Direction == EGPD_Input && Context.Pin->ParentPin == nullptr)
 			{
 				Context.MenuBuilder->AddMenuEntry(
 					LOCTEXT("RemovePin", "Remove array element pin"),

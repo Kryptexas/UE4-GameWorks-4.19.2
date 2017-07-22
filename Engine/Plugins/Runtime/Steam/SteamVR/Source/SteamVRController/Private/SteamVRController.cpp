@@ -574,13 +574,17 @@ public:
 						{
 							if (CurrentStates[ButtonIndex] != ControllerState.ButtonStates[ButtonIndex])
 							{
-								if (CurrentStates[ButtonIndex])
+								const FGamepadKeyNames::Type ButtonId = Buttons[(int32)HandToUse][ButtonIndex];
+								if (ButtonId != FGamepadKeyNames::Invalid)
 								{
-									MessageHandler->OnControllerButtonPressed( Buttons[ (int32)HandToUse ][ ButtonIndex ], ControllerIndex, false );
-								}
-								else
-								{
-									MessageHandler->OnControllerButtonReleased( Buttons[ (int32)HandToUse ][ ButtonIndex ], ControllerIndex, false );
+									if (CurrentStates[ButtonIndex])
+									{
+										MessageHandler->OnControllerButtonPressed(ButtonId, ControllerIndex, /*IsRepeat =*/false);
+									}
+									else
+									{
+										MessageHandler->OnControllerButtonReleased(ButtonId, ControllerIndex, /*IsRepeat =*/false);
+									}
 								}
 
 								if (CurrentStates[ButtonIndex] != 0)
@@ -602,7 +606,11 @@ public:
 				{
 					if ( ControllerState.ButtonStates[ButtonIndex] != 0 && ControllerState.NextRepeatTime[ButtonIndex] <= CurrentTime)
 					{
-						MessageHandler->OnControllerButtonPressed( Buttons[ (int32)HandToUse ][ ButtonIndex ], ControllerIndex, true );
+						const FGamepadKeyNames::Type ButtonId = Buttons[(int32)HandToUse][ButtonIndex];
+						if (ButtonId != FGamepadKeyNames::Invalid)
+						{
+							MessageHandler->OnControllerButtonPressed(ButtonId, ControllerIndex, /*IsRepeat =*/true);
+						}
 
 						// set the button's NextRepeatTime to the ButtonRepeatDelay
 						ControllerState.NextRepeatTime[ButtonIndex] = CurrentTime + ButtonRepeatDelay;
@@ -921,7 +929,9 @@ private:
 };
 
 FName FSteamVRController::DeviceTypeName(TEXT("SteamVRController"));
+/// @cond DOXYGEN_WARNINGS
 ESteamVRTouchDPadMapping FSteamVRController::DefaultDPadMapping = ESteamVRTouchDPadMapping::FaceButtons;
+/// @endcond
 
 // defined here in this .cpp file so we have access to FSteamVRController
 void USteamVRControllerLibrary::SetTouchDPadMapping(ESteamVRTouchDPadMapping NewMapping)

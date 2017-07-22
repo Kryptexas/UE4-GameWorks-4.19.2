@@ -154,6 +154,8 @@ namespace MovieScene
 
 		virtual void Actuate(UObject* InObject, const FBlendedAnimation& InFinalValue, const TBlendableTokenStack<FBlendedAnimation>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 		{
+			ensureMsgf(InObject, TEXT("Attempting to evaluate an Animation track with a null object."));
+
 			USkeletalMeshComponent* SkeletalMeshComponent = SkeletalMeshComponentFromObject(InObject);
 			if (!SkeletalMeshComponent)
 			{

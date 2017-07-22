@@ -33,10 +33,10 @@ private:
 	EVisibility GetMarginPropertyVisibility() const;
 
 	/** Callback for determining image size reset button visibility */
-	bool IsImageSizeResetToDefaultVisible(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	bool IsImageSizeResetToDefaultVisible(TSharedPtr<IPropertyHandle> PropertyHandle) const;
 
 	/** Callback for clicking the image size reset button */
-	void OnImageSizeResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	void OnImageSizeResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle) const;
 
 	/** Gets the current default image size based on the current texture resource */
 	FVector2D GetDefaultImageSize() const;

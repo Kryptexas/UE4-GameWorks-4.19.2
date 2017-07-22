@@ -269,8 +269,10 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 	// Set the display text based on whether we're dragging a single or multiple widgets
 	if (InWidgets.Num() == 1)
 	{
-		Operation->DefaultHoverText = InWidgets[0].Widget.GetTemplate()->GetLabelText();
-		Operation->CurrentHoverText = InWidgets[0].Widget.GetTemplate()->GetLabelText();
+		FText DisplayText = InWidgets[0].Widget.GetTemplate()->GetLabelText();
+
+		Operation->DefaultHoverText = DisplayText;
+		Operation->CurrentHoverText = DisplayText;
 	}
 	else
 	{

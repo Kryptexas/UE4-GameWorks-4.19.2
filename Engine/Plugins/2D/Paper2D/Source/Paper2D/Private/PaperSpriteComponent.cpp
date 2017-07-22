@@ -165,12 +165,12 @@ FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelati
 			switch (TransformSpace)
 			{
 				case RTS_World:
-					return SocketLocalTransform * ComponentToWorld;
+					return SocketLocalTransform * GetComponentTransform();
 
 				case RTS_Actor:
 					if (const AActor* Actor = GetOwner())
 					{
-						const FTransform SocketTransform = SocketLocalTransform * ComponentToWorld;
+						const FTransform SocketTransform = SocketLocalTransform * GetComponentTransform();
 						return SocketTransform.GetRelativeTransform(Actor->GetTransform());
 					}
 					break;
@@ -362,7 +362,7 @@ void UPaperSpriteComponent::CheckForErrors()
 		UBodySetup* BodySetup = SourceSprite->BodySetup;
 
 		// Overall scale factor for this mesh.
-		const FVector& TotalScale3D = ComponentToWorld.GetScale3D();
+		const FVector& TotalScale3D = GetComponentTransform().GetScale3D();
 		if (!TotalScale3D.IsUniform() && ((BodySetup->AggGeom.BoxElems.Num() > 0) || (BodySetup->AggGeom.SphylElems.Num() > 0) || (BodySetup->AggGeom.SphereElems.Num() > 0)))
 		{
 			FFormatNamedArguments Arguments;

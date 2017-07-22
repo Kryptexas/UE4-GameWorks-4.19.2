@@ -539,6 +539,7 @@ private:
 	FCriticalSection ShaderHashToGfxEntriesMapCS;
 
 	TMap<FVulkanDescriptorSetsLayoutInfo, FVulkanLayout*> LayoutMap;
+	FCriticalSection LayoutMapCS;
 
 	FVulkanGraphicsPipelineState* FindInLoadedLibrary(const FGraphicsPipelineStateInitializer& PSOInitializer, uint32 PSOInitializerHash, const FShaderHashes& ShaderHashes, FGfxPipelineEntry* outGfxEntry);
 	

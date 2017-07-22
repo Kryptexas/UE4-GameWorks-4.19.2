@@ -637,7 +637,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 			{
 				UPaperTileLayer* Layer = TileMap->TileLayers[LayerIndex];
 
-				ComponentToWorld = TileMapComponent->ComponentToWorld;
+				ComponentToWorld = TileMapComponent->GetComponentTransform();
 				const FVector LocalStart = ComponentToWorld.InverseTransformPosition(TraceStart);
 				const FVector LocalDirection = ComponentToWorld.InverseTransformVector(TraceDir);
 				const FVector LocalEnd = LocalStart + (LocalDirection * HALF_WORLD_MAX);

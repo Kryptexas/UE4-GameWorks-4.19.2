@@ -373,7 +373,15 @@ bool FSmartName::Serialize(FArchive& Ar)
 		SmartName::UID_Type TempUID;
 		Ar << TempUID;
 	}
-
+	else
+	{
+#if WITH_EDITOR
+		if (Ar.IsTransacting())
+		{
+			Ar << UID;
+		}
+#endif // WITH_EDITOR
+	}
 	// only save if it's editor build and not cooking
 #if WITH_EDITORONLY_DATA
 	if (!Ar.IsSaving() || !Ar.IsCooking())

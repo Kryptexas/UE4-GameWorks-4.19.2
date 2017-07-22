@@ -80,6 +80,11 @@ public:
 		return DefaultSampler->Sampler;
 	}
 
+	inline VkImageView GetDefaultImageView() const
+	{
+		return DefaultImageView;
+	}
+
 	inline const VkFormatProperties* GetFormatProperties() const
 	{
 		return FormatProperties;
@@ -116,6 +121,7 @@ public:
 	}
 
 	void NotifyDeletedRenderTarget(VkImage Image);
+	void NotifyDeletedImage(VkImage Image);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 	PFN_vkCmdDebugMarkerBeginEXT GetCmdDbgMarkerBegin() const
@@ -197,6 +203,8 @@ private:
 	VulkanRHI::FFenceManager FenceManager;
 
 	FVulkanSamplerState* DefaultSampler;
+	FVulkanSurface* DefaultImage;
+	VkImageView DefaultImageView;
 
 	TArray<VkQueueFamilyProperties> QueueFamilyProps;
 	VkFormatProperties FormatProperties[VK_FORMAT_RANGE_SIZE];

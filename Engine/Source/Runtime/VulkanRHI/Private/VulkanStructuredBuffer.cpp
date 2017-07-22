@@ -4,35 +4,25 @@
 #include "VulkanRHIPrivate.h"
 #include "Containers/ResourceArray.h"
 
-FVulkanStructuredBuffer::FVulkanStructuredBuffer(uint32 Stride, uint32 Size, FResourceArrayInterface* ResourceArray, uint32 Usage)
-	: FRHIStructuredBuffer(Stride, Size, Usage)
+FVulkanStructuredBuffer::FVulkanStructuredBuffer(FVulkanDevice* InDevice, uint32 InStride, uint32 InSize, FRHIResourceCreateInfo& CreateInfo, uint32 InUsage)
+	: FRHIStructuredBuffer(InStride, InSize, InUsage)
+	, FVulkanResourceMultiBuffer(InDevice, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, InSize, InUsage, CreateInfo)
 {
-	check((Size % Stride) == 0);
-
-	// copy any resources to the CPU address
-	if (ResourceArray)
-	{
-// 		FMemory::Memcpy( , ResourceArray->GetResourceData(), Size);
-		ResourceArray->Discard();
-	}
 }
 
 FVulkanStructuredBuffer::~FVulkanStructuredBuffer()
 {
-
 }
 
 
-
-
-FStructuredBufferRHIRef FVulkanDynamicRHI::RHICreateStructuredBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+FStructuredBufferRHIRef FVulkanDynamicRHI::RHICreateStructuredBuffer(uint32 InStride, uint32 InSize, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;//new FVulkanStructuredBuffer(Stride, Size, ResourceArray, InUsage);
+	return new FVulkanStructuredBuffer(Device, InStride, InSize, CreateInfo, InUsage);
 }
 
 void* FVulkanDynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBufferRHI,uint32 Offset,uint32 Size,EResourceLockMode LockMode)
 {
+	VULKAN_SIGNAL_UNIMPLEMENTED();
 	FVulkanStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 
 	return nullptr;
@@ -40,5 +30,5 @@ void* FVulkanDynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef St
 
 void FVulkanDynamicRHI::RHIUnlockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
-
+	VULKAN_SIGNAL_UNIMPLEMENTED();
 }

@@ -1038,6 +1038,7 @@ FVulkanPipelineStateCache::FShaderHashes::FShaderHashes()
 
 inline FVulkanLayout* FVulkanPipelineStateCache::FindOrAddLayout(const FVulkanDescriptorSetsLayoutInfo& DescriptorSetLayoutInfo)
 {
+	FScopeLock Lock(&LayoutMapCS);
 	if (FVulkanLayout** FoundLayout = LayoutMap.Find(DescriptorSetLayoutInfo))
 	{
 		return *FoundLayout;

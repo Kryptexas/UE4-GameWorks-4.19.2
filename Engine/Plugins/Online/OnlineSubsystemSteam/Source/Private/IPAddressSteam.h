@@ -52,7 +52,7 @@ public:
 	 */
 	void SetIp(uint32 InAddr) override
 	{
-		check("Invalid interface for Steam P2P addresses" && 0);
+		UE_LOG_ONLINE(Warning, TEXT("FInternetAddrSteam::SetIp is not supported."));
 	}
 
 	/**
@@ -68,8 +68,9 @@ public:
 	 * @param OutAddr the out param receiving the ip address
 	 */
 	void GetIp(uint32& OutAddr) const override
-	{ 
-		check("Invalid interface for Steam P2P addresses" && 0);
+	{
+		OutAddr = 0;
+		UE_LOG_ONLINE(Warning, TEXT("FInternetAddrSteam::GetIp is not supported and will set OutAddr to 0."));
 	}
 
 	/**

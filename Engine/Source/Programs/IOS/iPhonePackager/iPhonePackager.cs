@@ -878,7 +878,7 @@ namespace iPhonePackager
                             X509Certificate2 Cert;
                             bool bNameMatch;
                             bool bHasOverrideFile;
-                            if (CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrideFile, out bNameMatch))
+                            if (CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrideFile, out bNameMatch) && Cert != null)
                             {
                                 // print out the provision and cert name
                                 Program.LogVerbose("CERTIFICATE-{0},PROVISION-{1}", Cert.FriendlyName, Path.GetFileName(Provision.FileName));

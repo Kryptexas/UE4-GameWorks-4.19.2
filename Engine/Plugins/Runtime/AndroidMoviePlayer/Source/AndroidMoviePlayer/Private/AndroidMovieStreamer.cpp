@@ -23,7 +23,7 @@ FAndroidMediaPlayerStreamer::FAndroidMediaPlayerStreamer()
 	: JavaMediaPlayer(nullptr)
 	, CurrentPosition(-1)
 {
-	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(false));
+	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(FAndroidMisc::ShouldUseVulkan()));
 	MovieViewport = MakeShareable(new FMovieViewport());
 }
 
@@ -80,8 +80,23 @@ bool FAndroidMediaPlayerStreamer::Tick(float DeltaTime)
 				CurrentTexture->InitResource();
 			}
 
-			int32 DestTexture = *reinterpret_cast<int32*>(CurrentTexture->GetTypedResource().GetReference()->GetNativeResource());
-			bool frameSuccess = JavaMediaPlayer->GetVideoLastFrame(DestTexture);
+			if (!FAndroidMisc::ShouldUseVulkan())
+			{
+				int32 DestTexture = *reinterpret_cast<int32*>(CurrentTexture->GetTypedResource().GetReference()->GetNativeResource());
+				bool frameSuccess = JavaMediaPlayer->GetVideoLastFrame(DestTexture);
+			}
+			else
+			{
+				uint32 Stride = 0;
+				int64 SampleCount = 0;
+				void* LastFrameData = nullptr;
+				if(JavaMediaPlayer->GetVideoLastFrameData(LastFrameData, SampleCount))
+				{
+					void* DestTextureData = RHILockTexture2D(CurrentTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
+					FMemory::Memcpy(DestTextureData, LastFrameData, SampleCount);
+					RHIUnlockTexture2D(CurrentTexture->GetTypedResource(), 0, false);
+				}
+			}
 
 			CurrentPosition = NextPosition;
 		}

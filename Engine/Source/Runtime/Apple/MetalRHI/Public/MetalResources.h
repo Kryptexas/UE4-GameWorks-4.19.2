@@ -58,7 +58,7 @@ protected:
 
 };
 
-
+extern NSString* DecodeMetalSourceCode(uint32 CodeSize, TArray<uint8> const& CompressedSource);
 
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
 template<typename BaseResourceType, int32 ShaderType>
@@ -72,9 +72,10 @@ public:
 	: Function(nil)
 	, Library(nil)
 	, SideTableBinding(-1)
-	, GlslCodeNSString(nil)
 	, SourceLen(0)
 	, SourceCRC(0)
+	, GlslCodeNSString(nil)
+	, CodeSize(0)
 	{
 	}
 	
@@ -84,6 +85,15 @@ public:
 	/** Destructor */
 	virtual ~TMetalBaseShader();
 
+	/** @returns The Metal source code as an NSString if available or nil if not. Will dynamically decompress from compressed data on first invocation. */
+	inline NSString* GetSourceCode()
+	{
+		if (!GlslCodeNSString && CodeSize && CompressedSource.Num())
+		{
+			GlslCodeNSString = DecodeMetalSourceCode(CodeSize, CompressedSource);
+		}
+		return GlslCodeNSString;
+	}
 
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
@@ -111,13 +121,20 @@ public:
 	
 	/** The binding for the buffer side-table if present */
 	int32 SideTableBinding;
-	
-	/** The debuggable text source */
-	NSString* GlslCodeNSString;
 
 	/** CRC & Len for name disambiguation */
 	uint32 SourceLen;
 	uint32 SourceCRC;
+	
+private:
+	/** The debuggable text source */
+	NSString* GlslCodeNSString;
+	
+	/** The compressed text source */
+	TArray<uint8> CompressedSource;
+	
+	/** The uncompressed text source size */
+	uint32 CodeSize;
 };
 
 class FMetalVertexShader : public TMetalBaseShader<FRHIVertexShader, SF_Vertex>

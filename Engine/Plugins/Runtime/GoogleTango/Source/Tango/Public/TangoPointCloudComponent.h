@@ -3,13 +3,11 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include <set>
 #include "TangoPrimitives.h"
 #if PLATFORM_ANDROID
-#include "tango_client_api.h"
+#include <set>
+struct TangoPointCloud;
 #endif
-
-
 #include "TangoPointCloudComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloorPlaneFound, float, PlaneZ);
@@ -66,7 +64,9 @@ private:
 	// based on the below state
 	bool bFindFloorPlaneRequested = false;
 	TMap<int32, int32> NumUpPoints;
+#if PLATFORM_ANDROID
 	std::set<int32> NonNoiseBuckets; // UE4 doesn't have a sorted set
+#endif
 	int32 NumFramesToFindFloorPlane;
 	double LastPointCloudTimestamp;
 };

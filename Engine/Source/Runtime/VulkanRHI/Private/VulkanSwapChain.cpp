@@ -206,8 +206,20 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	{
 		PreTransform = SurfProperties.currentTransform;
 	}
+
+	VkCompositeAlphaFlagBitsKHR CompositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+	if (SurfProperties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
+	{
+		CompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	}
+	
 	// 0 means no limit, so use the requested number
 	uint32 DesiredNumBuffers = SurfProperties.maxImageCount > 0 ? FMath::Clamp(*InOutDesiredNumBackBuffers, SurfProperties.minImageCount, SurfProperties.maxImageCount) : *InOutDesiredNumBackBuffers;
+
+	uint32 SizeX = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == 0xFFFFFFFF ? Width : SurfProperties.currentExtent.width);
+	uint32 SizeY = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == 0xFFFFFFFF ? Height : SurfProperties.currentExtent.height);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Create swapchain: %ux%u \n"), SizeX, SizeY);
+
 
 	VkSwapchainCreateInfoKHR SwapChainInfo;
 	FMemory::Memzero(SwapChainInfo);
@@ -216,10 +228,10 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.minImageCount = DesiredNumBuffers;
 	SwapChainInfo.imageFormat = CurrFormat.format;
 	SwapChainInfo.imageColorSpace = CurrFormat.colorSpace;
-	SwapChainInfo.imageExtent.width = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == 0xFFFFFFFF ? Width : SurfProperties.currentExtent.width);
-	SwapChainInfo.imageExtent.height = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == 0xFFFFFFFF ? Height : SurfProperties.currentExtent.height);
+	SwapChainInfo.imageExtent.width = SizeX;
+	SwapChainInfo.imageExtent.height = SizeY;
 	SwapChainInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	if (GCVarDelayAcquireBackBuffer->GetInt() != 0)
+	//if (GCVarDelayAcquireBackBuffer->GetInt() != 0) Android does not use DelayAcquireBackBuffer, still has to have VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 	{
 		SwapChainInfo.imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	}
@@ -229,7 +241,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.presentMode = PresentMode;
 	SwapChainInfo.oldSwapchain = VK_NULL_HANDLE;
 	SwapChainInfo.clipped = VK_TRUE;
-	SwapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	SwapChainInfo.compositeAlpha = CompositeAlpha;
 
 	*InOutDesiredNumBackBuffers = DesiredNumBuffers;
 

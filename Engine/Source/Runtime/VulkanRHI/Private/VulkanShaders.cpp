@@ -260,6 +260,7 @@ void FVulkanDescriptorSetWriter::SetupDescriptorWrites(const FNEWVulkanShaderDes
 		{
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+		case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 			InWriteDescriptors->pBufferInfo = InBufferInfo++;
 			break;
 		case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -433,13 +434,7 @@ FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const V
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
 	VkResult Result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
-	int32 ValidationLayerEnabled = 0;
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	extern TAutoConsoleVariable<int32> GValidationCvar;
-	ValidationLayerEnabled = GValidationCvar->GetInt();
-#endif
-	// Only try to find if it will fit in the pool if we're in validation mode
-	if (ValidationLayerEnabled == 0 || Pool->CanAllocate(Layout))
+	if (Pool->CanAllocate(Layout))
 	{
 		DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 		Result = VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets);

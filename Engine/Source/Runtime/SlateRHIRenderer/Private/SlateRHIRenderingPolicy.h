@@ -23,11 +23,13 @@ class ILayoutCache;
 struct FSlateRenderingOptions
 {
 	FMatrix ViewProjectionMatrix;
+	FVector2D ViewOffset;
 	bool bAllowSwitchVerticalAxis;
 	bool bWireFrame;
 
 	FSlateRenderingOptions(const FMatrix& InViewProjectionMatrix)
 		: ViewProjectionMatrix(InViewProjectionMatrix)
+		, ViewOffset(0, 0)
 		, bAllowSwitchVerticalAxis(true)
 		, bWireFrame(false)
 	{
@@ -66,7 +68,7 @@ protected:
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer);
 
 private:
-	ETextureSamplerFilter GetSamplerFilter(const UTexture* Texture) const;
+	ETextureSamplerFilter GetSamplerFilter(const TArray<FTextureLODGroup>& TextureLODGroups, const UTexture* Texture) const;
 
 	/**
 	 * Returns the pixel shader that should be used for the specified ShaderType and DrawEffects
@@ -93,8 +95,6 @@ private:
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 
 	bool bGammaCorrect;
-
-	TArray<FTextureLODGroup> TextureLODGroups;
 
 	TOptional<int32> InitialBufferSizeOverride;
 };

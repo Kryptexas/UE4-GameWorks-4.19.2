@@ -733,7 +733,7 @@ void FColorGradingCustomBuilder::OnDetailGroupReset()
 	}
 }
 
-void FColorGradingCustomBuilder::ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle)
+void FColorGradingCustomBuilder::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle)
 {
 	PropertyHandle->ResetToDefault();
 
@@ -754,7 +754,7 @@ void FColorGradingCustomBuilder::ResetToDefault(TSharedRef<IPropertyHandle> Prop
 	}
 }
 
-bool FColorGradingCustomBuilder::CanResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle)
+bool FColorGradingCustomBuilder::CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle)
 {
 	return PropertyHandle->DiffersFromDefault();
 }

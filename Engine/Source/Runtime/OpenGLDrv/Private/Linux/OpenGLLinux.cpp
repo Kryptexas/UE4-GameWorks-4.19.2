@@ -248,7 +248,16 @@ struct FPlatformOpenGLDevice
 		_PlatformCreateDummyGLWindow( &SharedContext );
 		_PlatformCreateOpenGLContextCore( &SharedContext );
 
-		check	( SharedContext.hGLContext )
+		if (SharedContext.hGLContext == nullptr)
+		{
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
+				*(NSLOCTEXT("Renderer", "LinuxInsufficientDriversText", "Cannot create OpenGL context. Check that the drivers and hardware support at least OpenGL 4.3 (or re-run with -opengl3)").ToString()),
+				*(NSLOCTEXT("Renderer", "LinuxInsufficientDriversTitle", "Insufficient drivers or hardware").ToString()));
+			FPlatformMisc::RequestExit(true);
+			// unreachable
+			return;
+		}
+
 		{
 			FScopeContext ScopeContext( &SharedContext );
 			InitDebugContext();

@@ -222,14 +222,6 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 {
 	if(ExpressionPreview)
 	{
-		// Clip the canvas to avoid having to set UV values
-		FIntRect ClippingRect = RenderTarget->GetClippingRect();
-
-		RHICmdList.SetScissorRect(true,
-			ClippingRect.Min.X,
-			ClippingRect.Min.Y,
-			ClippingRect.Max.X,
-			ClippingRect.Max.Y);
 		RenderTarget->SetRenderTargetTexture(*(FTexture2DRHIRef*)InWindowBackBuffer);
 		{
 			// Check realtime mode for whether to pass current time to canvas
@@ -240,6 +232,7 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 			{
 				Canvas.SetAllowedModes(0);
 				Canvas.SetRenderTargetRect(RenderTarget->GetViewRect());
+				Canvas.SetRenderTargetScissorRect(RenderTarget->GetClippingRect());
 
 				FCanvasTileItem TileItem(FVector2D::ZeroVector, ExpressionPreview, RenderTarget->GetSizeXY());
 				Canvas.DrawItem(TileItem);

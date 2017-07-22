@@ -448,7 +448,7 @@ namespace UnrealBuildTool
 			{
 				string RenderDocPath;
 				AndroidPlatformSDK.GetPath(Ini, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "RenderDocPath", out RenderDocPath);
-				string RenderDocLibPath = Path.Combine(RenderDocPath, @"android\libs\armeabi-v7a");
+				string RenderDocLibPath = Path.Combine(RenderDocPath, @"android\lib\armeabi-v7a");
 				if (Directory.Exists(RenderDocLibPath))
 				{
 					LinkEnvironment.LibraryPaths.Add(RenderDocLibPath);

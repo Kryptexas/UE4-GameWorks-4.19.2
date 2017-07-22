@@ -26,6 +26,7 @@ public:
 
 	// IHeadMountedDisplayModule
 	virtual FString GetModuleKeyName() const override;
+	virtual void GetModuleAliases(TArray<FString>& AliasesOut) const override;
 	virtual bool PreInit() override;
 	virtual bool IsHMDConnected() override;
 	virtual int GetGraphicsAdapter() override;
@@ -77,7 +78,11 @@ public:
 	bool IsOVRPluginAvailable() const
 	{
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
+	#if PLATFORM_WINDOWS
 		return OVRPluginHandle != nullptr;
+	#else
+		return true;
+	#endif
 #else
 		return false;
 #endif

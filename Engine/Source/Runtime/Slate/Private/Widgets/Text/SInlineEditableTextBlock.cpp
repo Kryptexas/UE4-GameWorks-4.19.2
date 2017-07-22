@@ -21,6 +21,9 @@ void SInlineEditableTextBlock::Construct( const FArguments& InArgs )
 	bIsMultiLine = InArgs._MultiLine;
 	DoubleSelectDelay = 0.0f;
 
+	OnEnterEditingMode = InArgs._OnEnterEditingMode;
+	OnExitEditingMode = InArgs._OnExitEditingMode;
+
 	ChildSlot
 	[
 		SAssignNew(HorizontalBox, SHorizontalBox)
@@ -104,6 +107,8 @@ void SInlineEditableTextBlock::EnterEditingMode()
 	{
 		if(TextBlock->GetVisibility() == EVisibility::Visible)
 		{
+			OnEnterEditingMode.ExecuteIfBound();
+
 			const FText CurrentText = TextBlock->GetText();
 			SetEditableText( CurrentText );
 
@@ -125,6 +130,8 @@ void SInlineEditableTextBlock::EnterEditingMode()
 
 void SInlineEditableTextBlock::ExitEditingMode()
 {
+	OnExitEditingMode.ExecuteIfBound();
+
 	HorizontalBox->RemoveSlot( GetEditableTextWidget().ToSharedRef() );
 	TextBlock->SetVisibility(EVisibility::Visible);
 	// Clear the error so it will vanish.
@@ -178,9 +185,9 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 		return FReply::Unhandled();
 	}
 
-	if(IsSelected.IsBound())
+	if (IsSelected.IsBound())
 	{
-		if(IsSelected.Execute() && !bIsReadOnly.Get() && !ActiveTimerHandle.IsValid())
+		if (IsSelected.Execute() && !bIsReadOnly.Get() && !ActiveTimerHandle.IsValid())
 		{
 			RegisterActiveTimer(0.5f, FWidgetActiveTimerDelegate::CreateSP(this, &SInlineEditableTextBlock::TriggerEditMode));
 		}
@@ -188,7 +195,7 @@ FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry,
 	else
 	{
 		// The widget is not managed by another widget, so handle the mouse input and enter edit mode if ready.
-		if(HasKeyboardFocus() && !bIsReadOnly.Get())
+		if (HasKeyboardFocus() && !bIsReadOnly.Get())
 		{
 			EnterEditingMode();
 			return FReply::Handled();

@@ -109,6 +109,8 @@ public:
 		, _DisplayUseSelected( true )
 		, _DisplayBrowse( true )
 		, _EnableContentPicker(true)
+		, _DisplayCompactSize(false)
+		, _DisplayThumbnail(true)
 	{}
 		/** The path to the object */
 		SLATE_ATTRIBUTE( FString, ObjectPath )
@@ -136,6 +138,12 @@ public:
 		SLATE_ARGUMENT(bool, EnableContentPicker)
 		/** A custom reset to default override */
 		SLATE_ARGUMENT(TOptional<FResetToDefaultOverride>, CustomResetToDefault)
+		/** Whether or not to display a smaller, compact size for the asset thumbnail */ 
+		SLATE_ARGUMENT(bool, DisplayCompactSize)
+		/** Whether or not to display the asset thumbnail */ 
+		SLATE_ARGUMENT(bool, DisplayThumbnail)
+		/** A custom content slot for widgets */ 
+		SLATE_NAMED_SLOT(FArguments, CustomContentSlot)
 	SLATE_END_ARGS()
 
 	PROPERTYEDITOR_API void Construct( const FArguments& InArgs );
