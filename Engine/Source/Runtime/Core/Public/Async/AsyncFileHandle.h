@@ -145,7 +145,7 @@ protected:
 	/** Cancel the request. This is a non-blocking async call and so does not ensure completion! **/
 	virtual void CancelImpl() = 0;
 
-	void SetComplete()
+	void SetDataComplete()
 	{
 		bDataIsReady = true;
 		FPlatformMisc::MemoryBarrier();
@@ -154,8 +154,18 @@ protected:
 			Callback(bCanceled, this);
 		}
 		FPlatformMisc::MemoryBarrier();
+	}
+
+	void SetAllComplete()
+	{
 		bCompleteAndCallbackCalled = true;
 		FPlatformMisc::MemoryBarrier();
+	}
+
+	void SetComplete()
+	{
+		SetDataComplete();
+		SetAllComplete();
 	}
 };
 

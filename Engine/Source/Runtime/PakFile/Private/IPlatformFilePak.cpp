@@ -2455,6 +2455,7 @@ public:
 				{
 					WaitEvent->Wait(TimeLimitSeconds * 1000.0f);
 				}
+				FScopeLock Lock(&FPakReadRequestEvent);
 				FPlatformProcess::ReturnSynchEventToPool(WaitEvent);
 				WaitEvent = nullptr;
 			}
@@ -2470,7 +2471,6 @@ public:
 			bRequestOutstanding = false;
 			SetComplete();
 		}
-		check(!WaitEvent); // you canceled from a different thread that you waited from
 	}
 
 	// IPakRequestor Interface
@@ -2518,12 +2518,15 @@ public:
 				check(bCanceled);
 			}
 		}
-		SetComplete();
-		FScopeLock Lock(&FPakReadRequestEvent);
-		bRequestOutstanding = false;
-		if (WaitEvent)
+		SetDataComplete();
 		{
-			WaitEvent->Trigger();
+			FScopeLock Lock(&FPakReadRequestEvent);
+			bRequestOutstanding = false;
+			if (WaitEvent)
+			{
+				WaitEvent->Trigger();
+			}
+			SetAllComplete();
 		}
 	}
 };
@@ -2593,13 +2596,15 @@ public:
 				DecryptData(Memory, Align(OriginalSize, FAES::AESBlockSize));
 			}
 		}
-
-		SetComplete();
-		FScopeLock Lock(&FPakReadRequestEvent);
-		bRequestOutstanding = false;
-		if (WaitEvent)
+		SetDataComplete();
 		{
-			WaitEvent->Trigger();
+			FScopeLock Lock(&FPakReadRequestEvent);
+			bRequestOutstanding = false;
+			if (WaitEvent)
+			{
+				WaitEvent->Trigger();
+			}
+			SetAllComplete();
 		}
 	}
 };
@@ -2712,6 +2717,7 @@ public:
 				{
 					WaitEvent->Wait(TimeLimitSeconds * 1000.0f);
 				}
+				FScopeLock Lock(&FPakReadRequestEvent);
 				FPlatformProcess::ReturnSynchEventToPool(WaitEvent);
 				WaitEvent = nullptr;
 			}
@@ -2726,7 +2732,6 @@ public:
 			bRequestOutstanding = false;
 			SetComplete();
 		}
-		check(!WaitEvent); // you canceled from a different thread that you waited from
 	}
 
 	void RequestIsComplete()
@@ -2736,12 +2741,15 @@ public:
 		{
 			GatherResults();
 		}
-		SetComplete();
-		FScopeLock Lock(&FPakReadRequestEvent);
-		bRequestOutstanding = false;
-		if (WaitEvent)
+		SetDataComplete();
 		{
-			WaitEvent->Trigger();
+			FScopeLock Lock(&FPakReadRequestEvent);
+			bRequestOutstanding = false;
+			if (WaitEvent)
+			{
+				WaitEvent->Trigger();
+			}
+			SetAllComplete();
 		}
 	}
 	void GatherResults();
