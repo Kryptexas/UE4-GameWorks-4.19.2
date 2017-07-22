@@ -104,6 +104,8 @@ $ bCompileWithStatsWithoutEngine (Boolean): Whether to include stats support eve
 
 $ bCompileWithPluginSupport (Boolean): Whether to include plugin support.
 
+$ bIncludePluginsForTargetPlatforms (Boolean): Whether to allow plugins which support all target platforms.
+
 $ bWithPerfCounters (Boolean): Whether to include PerfCounters support.
 
 $ bUseLoggingInShipping (Boolean): Whether to turn on logging for test/shipping builds.
@@ -233,6 +235,10 @@ $ GlobalDefinitions (List&lt;String&gt;): Macros to define globally across the w
 $ ExtraModuleNames (List&lt;String&gt;): List of additional modules to be compiled into the target.
 
 $ BuildEnvironment (TargetBuildEnvironment): Specifies the build environment for this target. See TargetBuildEnvironment for more infomation on the available options.
+
+$ PreBuildSteps (List&lt;String&gt;): Specifies a list of steps which should be executed before this target is built, in the context of the host platform's shell. The following variables will be expanded before execution: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
+
+$ PostBuildSteps (List&lt;String&gt;): Specifies a list of steps which should be executed after this target is built, in the context of the host platform's shell. The following variables will be expanded before execution: $(EngineDir), $(ProjectDir), $(TargetName), $(TargetPlatform), $(TargetConfiguration), $(TargetType), $(ProjectFile).
 
 $ OverrideExecutableFileExtension (String): Can be set to override the file extension of the executable file (normally .exe or .dll on Windows, for example)
 
