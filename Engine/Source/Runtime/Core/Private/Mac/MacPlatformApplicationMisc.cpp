@@ -5,6 +5,7 @@
 #include "MacApplication.h"
 #include "Math/Color.h"
 #include "Mac/MacMallocZone.h"
+#include "Misc/App.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
