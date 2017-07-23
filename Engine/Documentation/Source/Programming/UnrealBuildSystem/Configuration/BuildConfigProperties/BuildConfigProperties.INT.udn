@@ -120,8 +120,6 @@ $ bUseUBTMakefiles : Enables support for very fast iterative builds by caching t
     * You can force regeneration of the 'UBT Makefile' by passing the '-gather' argument, or simply regenerating project files 
     * This also enables the fast include file dependency scanning and caching system that allows Unreal Build Tool to detect out of date dependencies very quickly.  When enabled, a deep C++ include graph does not have to be generated, and instead we only scan and cache indirect includes for after a dependent build product was already found to be out of date.  During the next build, we'll load those cached indirect includes and check for outdatedness.
 
-$ bUseUHTMakefiles : Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or *.uhtmanifest gets changed, all modules up to first changed one get loaded from makefile and the rest is parsed regularly. This feature is new and can have issues that weren't discovered in isolated testing so disabling by default.
-
 $ bAllowDistcc : Whether DMUCS/Distcc may be used. Distcc requires some setup - so by default disable it so we don't break local or remote building
 
 $ bIgnoreJunk : Whether to skip checking for files identified by the junk manifest

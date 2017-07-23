@@ -162,17 +162,18 @@ Renames a file, or group of files.
 
 Updates the local version files (Engine/Source/Runtime/Launch/Resources/Version.h, Engine/Build/Build.version, and Engine/Source/Programs/DotNETCommon/Metadata.cs) with the given version information.
 
-|                  |           |          |                                                                                                                           |
-| ---------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Change           | Int32     | Required | The changelist to set in the version files                                                                                |
-| CompatibleChange | Int32     | Optional | The engine compatible changelist to set in the version files                                                              |
-| Branch           | String    | Required | The branch string                                                                                                         |
-| Build            | String    | Optional | The build version string                                                                                                  |
-| Licensee         | Boolean   | Optional | Whether to set the IS_LICENSEE_VERSION flag to true                                                                       |
-| Promoted         | Boolean   | Optional | Whether to set the ENGINE_IS_PROMOTED_BUILD flag to true                                                                  |
-| SkipWrite        | Boolean   | Optional | If set, don't actually write to the files - just return the version files that would be updated. Useful for local builds. |
-| Tag              | Tag List  | Optional | Tag to be applied to build products of this task                                                                          |
-| If               | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                         |
+|                  |           |          |                                                                                                                                                                  |
+| ---------------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Change           | Int32     | Required | The changelist to set in the version files                                                                                                                       |
+| CompatibleChange | Int32     | Optional | The engine compatible changelist to set in the version files                                                                                                     |
+| Branch           | String    | Required | The branch string                                                                                                                                                |
+| Build            | String    | Optional | The build version string                                                                                                                                         |
+| Licensee         | Boolean   | Optional | Whether to set the IS_LICENSEE_VERSION flag to true                                                                                                              |
+| Promoted         | Boolean   | Optional | Whether to set the ENGINE_IS_PROMOTED_BUILD flag to true                                                                                                         |
+| SkipHeader       | Boolean   | Optional | If set, don't update Version.h; just update data files (eg. Build.version, Metadata.cs). The editor can read the build changelist at runtime from build.version. |
+| SkipWrite        | Boolean   | Optional | If set, don't actually write to the files - just return the version files that would be updated. Useful for local builds.                                        |
+| Tag              | Tag List  | Optional | Tag to be applied to build products of this task                                                                                                                 |
+| If               | Condition | Optional | Whether to execute this task. It is ignored if this condition evaluates to false.                                                                                |
 
 ### Sign
 
