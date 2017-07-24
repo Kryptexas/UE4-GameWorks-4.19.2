@@ -1430,7 +1430,14 @@ namespace UnrealBuildTool
 									{
 										CurrentElement.Add(new XElement(Element));
 									}
+
+									// make sure we don't recurse forever if Tag is in Element
+									List<XElement> AddSet = new List<XElement>();
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
+									{
+										AddSet.Add(WorkNode);
+									}
+									foreach (var WorkNode in AddSet)
 									{
 										WorkNode.Add(new XElement(Element));
 									}
@@ -1466,7 +1473,14 @@ namespace UnrealBuildTool
 									{
 										AddElements(CurrentElement, Node);
 									}
+
+									// make sure we don't recurse forever if Tag is in Node
+									List<XElement> AddSet = new List<XElement>();
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
+									{
+										AddSet.Add(WorkNode);
+									}
+									foreach (var WorkNode in AddSet)
 									{
 										AddElements(WorkNode, Node);
 									}
