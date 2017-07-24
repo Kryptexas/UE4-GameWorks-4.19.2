@@ -5652,7 +5652,8 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		{
 			AActor* ActorToConvert = ActorsToConvert[ ActorIdx ];
 
-			if (ActorToConvert && ActorToConvert->IsPendingKill())
+
+			if (ActorToConvert->IsPendingKill())
 			{
 				UE_LOG(LogEditor, Error, TEXT("Actor '%s' is marked pending kill and cannot be converted"), *ActorToConvert->GetFullName());
 				continue;
