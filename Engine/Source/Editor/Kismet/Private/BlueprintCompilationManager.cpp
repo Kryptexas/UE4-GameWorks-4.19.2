@@ -119,6 +119,7 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 
 // free function that we use to cross a module boundary (from CoreUObject to here)
 void FlushReinstancingQueueImplWrapper();
+void MoveSkelCDOAside(UClass* Class, TMap<UClass*, UClass*>& OldToNewMap);
 
 FBlueprintCompilationManagerImpl::FBlueprintCompilationManagerImpl()
 {
@@ -502,11 +503,10 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 			{
 				UBlueprint* BP = CompilerData.BP;
-				if(BP->SkeletonGeneratedClass)
+				UClass* OldSkeletonClass = BP->SkeletonGeneratedClass;
+				if(OldSkeletonClass)
 				{
-					UClass* CopyOfOldClass = FBlueprintCompileReinstancer::MoveCDOToNewClass(BP->SkeletonGeneratedClass, OldSkeletonToNewSkeleton, true);
-					OldSkeletonToNewSkeleton.Add(BP->SkeletonGeneratedClass, CopyOfOldClass);
-					// Child types will need to use CopyOfOldClass
+					MoveSkelCDOAside(OldSkeletonClass, OldSkeletonToNewSkeleton);
 				}
 			}
 		}
@@ -1824,6 +1824,38 @@ void FlushReinstancingQueueImplWrapper()
 {
 	BPCMImpl->FlushReinstancingQueueImpl();
 }
+
+// Recursive function to move CDOs aside to immutable versions of classes
+// so that CDOs can be safely GC'd. Recursion is necessary to find REINST_ classes
+// that are still parented to a valid SKEL (e.g. from MarkBlueprintAsStructurallyModified)
+// and therefore need to be REINST_'d again before the SKEL is mutated... Normally
+// these old REINST_ classes are GC'd but, there is no guarantee of that:
+void MoveSkelCDOAside(UClass* Class, TMap<UClass*, UClass*>& OutOldToNewMap)
+{
+	UClass* CopyOfOldClass = FBlueprintCompileReinstancer::MoveCDOToNewClass(Class, OutOldToNewMap, true);
+	OutOldToNewMap.Add(Class, CopyOfOldClass);
+
+	// Child types that are associated with a BP will be compiled by the compilation
+	// manager, but old REINST_ or TRASH_ types need to be handled explicitly:
+	TArray<UClass*> Children;
+	GetDerivedClasses(Class, Children);
+	for(UClass* Child : Children)
+	{
+		if(UBlueprint* BP = Cast<UBlueprint>(Child->ClassGeneratedBy))
+		{
+			if(BP->SkeletonGeneratedClass != Child)
+			{
+				if(	ensureMsgf ( 
+					BP->GeneratedClass != Child, 
+					TEXT("Class in skeleton hierarchy is cached as GeneratedClass"))
+				)
+				{
+					MoveSkelCDOAside(Child, OutOldToNewMap);
+				}
+			}
+		}
+	}
+};
 
 void FBlueprintCompilationManager::Initialize()
 {
