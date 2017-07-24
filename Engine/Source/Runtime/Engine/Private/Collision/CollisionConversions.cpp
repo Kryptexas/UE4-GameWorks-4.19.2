@@ -713,7 +713,8 @@ static bool ComputeInflatedMTD_Internal(const float MtdInflation, const PxLocati
 
 	PxVec3 PxMtdNormal(0.f);
 	PxF32 PxMtdDepth = 0.f;
-	const PxGeometry& POtherGeom = PHit.shape->getGeometry().any();
+	PxGeometryHolder Holder = PHit.shape->getGeometry();
+	const PxGeometry& POtherGeom = Holder.any();
 	const bool bMtdResult = PxGeometryQuery::computePenetration(PxMtdNormal, PxMtdDepth, Geom, QueryTM, POtherGeom, PShapeWorldPose);
 	if (bMtdResult)
 	{
@@ -993,7 +994,8 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 				{
 					// MTD failed, use point distance. This is not ideal.
 					// Note: faceIndex seems to be unreliable for convex meshes in these cases, so not using FindGeomOpposingNormal() for them here.
-					PxGeometry& PGeom = PShape->getGeometry().any();
+					PxGeometryHolder Holder = PShape->getGeometry();
+					PxGeometry& PGeom = Holder.any();
 					PxVec3 PClosestPoint;
 					const float Distance = PxGeometryQuery::pointDistance(QueryTM.p, PGeom, PShapeWorldPose, &PClosestPoint);
 
