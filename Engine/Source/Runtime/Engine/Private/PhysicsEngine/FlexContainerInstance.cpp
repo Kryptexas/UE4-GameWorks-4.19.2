@@ -161,7 +161,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 			{
 				FVector vert = FVector(float(i), float(sampleBuffer[j + (i*NumCols)].height), float(j));
 
-				TriMeshVerts.push_back(vert);
+				TriMeshVerts.push_back(FVector4(vert));
 
 				LocalBounds.include(U2PVector(vert));
 			}
@@ -241,7 +241,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 		TriMeshIndices.resize(0);
 
 		for (int32 v=0; v < NumVerts; ++v)
-			TriMeshVerts.push_back(P2UVector(Verts[v]));
+			TriMeshVerts.push_back(FVector4(P2UVector(Verts[v])));
 
 		if (TriMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::e16_BIT_INDICES)
 		{
