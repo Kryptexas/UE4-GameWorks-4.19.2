@@ -1201,6 +1201,13 @@ void UEditorEngine::FinishDestroy()
 
 		// Remove editor array from root.
 		UE_LOG(LogExit, Log, TEXT("Editor shut down") );
+
+		// Any access of GEditor after finish destroy is invalid
+		// Null out GEditor so that potential module shutdown that happens after can check for nullptr
+		if (GEditor == this)
+		{
+			GEditor = nullptr;
+		}
 	}
 
 	Super::FinishDestroy();
