@@ -300,7 +300,7 @@ public:
 			FPlane Far;
 			FPlane Near;
 			const FVector LightDirection = -GetDirection();
-			ComputeShadowCullingVolume( View.bReverseCulling, CascadeFrustumVerts, LightDirection, OutInitializer.CascadeSettings.ShadowBoundsAccurate, Near, Far );
+			ComputeShadowCullingVolume(View.bReverseCulling, CascadeFrustumVerts, LightDirection, OutInitializer.CascadeSettings.ShadowBoundsAccurate, Near, Far);
 		}
 		return true;
 	}
@@ -396,8 +396,11 @@ private:
 	}
 
 	// Computes a shadow culling volume (convex hull) based on a set of 8 vertices and a light direction
-	void ComputeShadowCullingVolume(const bool bReverseCulling, const FVector* CascadeFrustumVerts, const FVector& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) const
+	void ComputeShadowCullingVolume(bool bReverseCulling, const FVector* CascadeFrustumVerts, const FVector& LightDirection, FConvexVolume& ConvexVolumeOut, FPlane& NearPlaneOut, FPlane& FarPlaneOut) const
 	{
+		// For mobile platforms that switch vertical axis and MobileHDR == false the sense of bReverseCulling is inverted.
+		bReverseCulling = XOR(bReverseCulling, (RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) && !IsMobileHDR()));
+
 		// Pairs of plane indices from SubFrustumPlanes whose intersections
 		// form the edges of the frustum.
 		static const int32 AdjacentPlanePairs[12][2] =
