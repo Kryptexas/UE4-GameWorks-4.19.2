@@ -249,7 +249,6 @@ TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers(
 
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
-DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer UpdateMotionBlurCache"), STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache, STATGROUP_SceneRendering);
 
 
@@ -2008,14 +2007,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
 
-		bool bWorldIsPaused = ViewFamily->bWorldIsPaused;
-
-		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
-			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
-			{
-				SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
-				Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
-			});
+		Scene->EnsureMotionBlurCacheIsUpToDate(ViewFamily->bWorldIsPaused);
 
 		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
@@ -2049,6 +2041,8 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			RenderViewFamily_RenderThread(RHICmdList, SceneRenderer);
 			FlushPendingDeleteRHIResources_RenderThread();
 		});
+
+		Scene->ResetMotionBlurCacheTracking();
 	}
 }
 

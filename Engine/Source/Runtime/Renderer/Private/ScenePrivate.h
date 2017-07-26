@@ -2301,6 +2301,13 @@ public:
 		++SceneFrameNumber;
 	}
 
+	void EnsureMotionBlurCacheIsUpToDate(bool bWorldIsPaused);
+
+	void ResetMotionBlurCacheTracking()
+	{
+		CurrentFrameUpdatedMotionBlurCache = false;
+	}
+
 private:
 
 	/**
@@ -2405,6 +2412,9 @@ private:
 
 	/** Frame number incremented per-family viewing this scene. */
 	uint32 SceneFrameNumber;
+
+	/** Whether the motion blur cache has been updated already for this frame. */
+	bool CurrentFrameUpdatedMotionBlurCache;
 };
 
 inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
