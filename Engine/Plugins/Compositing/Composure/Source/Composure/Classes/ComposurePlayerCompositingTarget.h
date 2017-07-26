@@ -17,7 +17,7 @@ class UTextureRenderTarget2D;
  * Object to bind to a APlayerCameraManager with a UTextureRenderTarget2D to be used as a player's render target.
  */
 UCLASS(BlueprintType)
-class UComposurePlayerCompositingTarget : public UObject
+class COMPOSURE_API UComposurePlayerCompositingTarget : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

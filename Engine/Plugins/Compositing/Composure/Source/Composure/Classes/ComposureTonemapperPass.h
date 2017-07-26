@@ -14,7 +14,7 @@
  * Tonemapper only pass implemented on top of the in-engine tonemapper.
  */
 UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent, Transform), ClassGroup = "Composure", editinlinenew, meta = (BlueprintSpawnableComponent))
-class UComposureTonemapperPass : public UComposurePostProcessPass
+class COMPOSURE_API UComposureTonemapperPass : public UComposurePostProcessPass
 {
 	GENERATED_UCLASS_BODY()
 

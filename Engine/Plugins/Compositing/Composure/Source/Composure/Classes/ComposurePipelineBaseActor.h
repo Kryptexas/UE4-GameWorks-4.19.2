@@ -11,7 +11,7 @@
  * Actor designed to implement compositing pipeline in a blueprint.
  */
 UCLASS(BlueprintType, Blueprintable, config=Engine, meta=(ShortTooltip="Actor designed to implement compositing pipeline in a blueprint."))
-class AComposurePipelineBaseActor
+class COMPOSURE_API AComposurePipelineBaseActor
 	: public AActor
 {
 	GENERATED_UCLASS_BODY()
