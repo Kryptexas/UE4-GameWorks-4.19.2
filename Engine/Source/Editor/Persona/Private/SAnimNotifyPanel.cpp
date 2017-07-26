@@ -2083,6 +2083,7 @@ void SAnimNotifyTrack::Construct(const FArguments& InArgs)
 {
 	FAnimSequenceEditorCommands::Register();
 	CreateCommands();
+	SetClipping(EWidgetClipping::ClipToBounds);
 
 	Sequence = InArgs._Sequence;
 	ViewInputMin = InArgs._ViewInputMin;
