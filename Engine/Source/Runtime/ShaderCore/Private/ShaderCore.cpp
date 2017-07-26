@@ -315,6 +315,15 @@ void VerifyShaderSourceFiles()
 	}
 }
 
+static void LogShaderSourceDirectoryMappings()
+{
+	const TMap<FString, FString>& ShaderSourceDirectoryMappings = FPlatformProcess::AllShaderSourceDirectoryMappings();
+	for (const auto& Iter : ShaderSourceDirectoryMappings)
+	{
+		UE_LOG(LogShaders, Log, TEXT("Shader directory mapping %s -> %s"), *Iter.Key, *Iter.Value);
+	}
+}
+
 static FString GetShaderSourceFilePath(const FString& VirtualFilePath, TArray<FShaderCompilerError>* CompileErrors)
 {
 	// Make sure the .usf extension is correctly set.
@@ -748,6 +757,10 @@ void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& Sha
 
 void InitializeShaderTypes()
 {
+	UE_LOG(LogShaders, Log, TEXT("InitializeShaderTypes() begin"));
+
+	LogShaderSourceDirectoryMappings();
+
 	TMap<FString, TArray<const TCHAR*> > ShaderFileToUniformBufferVariables;
 	BuildShaderFileToUniformBufferMap(ShaderFileToUniformBufferVariables);
 
@@ -755,14 +768,20 @@ void InitializeShaderTypes()
 	FVertexFactoryType::Initialize(ShaderFileToUniformBufferVariables);
 
 	FShaderPipelineType::Initialize();
+
+	UE_LOG(LogShaders, Log, TEXT("InitializeShaderTypes() end"));
 }
 
 void UninitializeShaderTypes()
 {
+	UE_LOG(LogShaders, Log, TEXT("UninitializeShaderTypes() begin"));
+
 	FShaderPipelineType::Uninitialize();
 
 	FShaderType::Uninitialize();
 	FVertexFactoryType::Uninitialize();
+
+	UE_LOG(LogShaders, Log, TEXT("UninitializeShaderTypes() end"));
 }
 
 /**
@@ -771,11 +790,15 @@ void UninitializeShaderTypes()
  */
 void FlushShaderFileCache()
 {
+	UE_LOG(LogShaders, Log, TEXT("FlushShaderFileCache() begin"));
+
 	GShaderHashCache.Empty();
 	GShaderFileCache.Empty();
 
 	if (!FPlatformProperties::RequiresCookedData())
 	{
+		LogShaderSourceDirectoryMappings();
+
 		TMap<FString, TArray<const TCHAR*> > ShaderFileToUniformBufferVariables;
 		BuildShaderFileToUniformBufferMap(ShaderFileToUniformBufferVariables);
 
@@ -798,6 +821,8 @@ void FlushShaderFileCache()
 			It->FlushShaderFileCache(ShaderFileToUniformBufferVariables);
 		}
 	}
+
+	UE_LOG(LogShaders, Log, TEXT("FlushShaderFileCache() end"));
 }
 
 void GenerateReferencedUniformBuffers(
