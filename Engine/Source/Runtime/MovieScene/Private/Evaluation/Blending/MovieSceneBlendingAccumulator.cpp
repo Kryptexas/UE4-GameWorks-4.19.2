@@ -3,6 +3,12 @@
 #include "MovieSceneBlendingAccumulator.h"
 #include "MovieSceneTemplateInterrogation.h"
 
+FMovieSceneAnimTypeID GetInitialValueTypeID()
+{
+	static FMovieSceneAnimTypeID ID = FMovieSceneAnimTypeID::Unique();
+	return ID;
+}
+
 void FMovieSceneBlendingAccumulator::Apply(const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
 {
 	TMap<UObject*, TMap<FMovieSceneBlendingActuatorID, FActuatorTokenStackPtr>> BlendState;

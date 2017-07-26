@@ -35,6 +35,8 @@ struct FMovieSceneAnimTypeID
 
 	MOVIESCENE_API static FMovieSceneAnimTypeID Unique();
 
+	MOVIESCENE_API static FMovieSceneAnimTypeID Combine(FMovieSceneAnimTypeID A, FMovieSceneAnimTypeID B);
+
 protected:
 
 	friend FString Lex::ToString(const FMovieSceneAnimTypeID&);
