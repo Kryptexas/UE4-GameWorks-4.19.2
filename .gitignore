@@ -47,6 +47,7 @@
 
 # Shader formats
 !*.usf
+!*.ush
 !*.hlsl
 !*.glsl
 
