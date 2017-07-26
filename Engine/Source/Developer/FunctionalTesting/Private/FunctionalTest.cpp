@@ -664,7 +664,7 @@ bool AFunctionalTest::AssertEqual_Name(const FName Actual, const FName Expected,
 	}
 	else
 	{
-		LogStep(ELogVerbosity::Log, FString::Printf(TEXT("Bool assertion passed (%s)"), *What));
+		LogStep(ELogVerbosity::Log, FString::Printf(TEXT("FName assertion passed (%s)"), *What));
 		return true;
 	}
 }

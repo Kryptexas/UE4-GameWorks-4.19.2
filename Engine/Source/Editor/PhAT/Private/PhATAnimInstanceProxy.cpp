@@ -17,7 +17,7 @@ void FPhATAnimInstanceProxy::ConstructNodes()
 	//ComponentToLocalSpace.ComponentPose.SetLinkNode(&RagdollNode);
 	ComponentToLocalSpace.ComponentPose.SetLinkNode(&LocalToComponentSpace);
 	
-	//RagdollNode.bComponentSpaceSimulation = false;
+	//RagdollNode.SimulationSpace = ESimulationSpace::WorldSpace;
 }
 
 void FPhATAnimInstanceProxy::GetCustomNodes(TArray<FAnimNode_Base*>& OutNodes)

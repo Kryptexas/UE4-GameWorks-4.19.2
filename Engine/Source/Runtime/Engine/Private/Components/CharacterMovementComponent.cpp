@@ -26,7 +26,6 @@
 #include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/AvoidanceManager.h"
 #include "Components/BrushComponent.h"
-#include "Components/DestructibleComponent.h"
 
 #include "Engine/DemoNetDriver.h"
 #include "Engine/NetworkObjectList.h"
@@ -9049,8 +9048,7 @@ void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 					continue;
 				}
 
-				// Early out if this is not a destructible and the body is not simulated
-				if (!OverlapBody->IsInstanceSimulatingPhysics() && !Cast<UDestructibleComponent>(OverlapComp))
+				if (!OverlapBody->IsInstanceSimulatingPhysics())
 				{
 					continue;
 				}

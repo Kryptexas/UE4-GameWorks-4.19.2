@@ -10,8 +10,18 @@
 #include "AudioMixer.h"
 #include "AudioMixerDevice.h"
 #include "HAL/PlatformAffinity.h"
+
+#ifndef WITH_XMA2
+#define WITH_XMA2 0
+#endif
+
+#if WITH_XMA2
+#include "XMAAudioInfo.h"
+#endif  //#if WITH_XMA2
 #include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
+
+
 #include "CoreGlobals.h"
 #include "Misc/ConfigCacheIni.h"
 
@@ -111,14 +121,25 @@ namespace Audio
 
 		}
 
-		// Load ogg and vorbis dlls if they haven't been loaded yet
-		LoadVorbisLibraries();
-
 #if PLATFORM_WINDOWS
 		bIsComInitialized = FWindowsPlatformMisc::CoInitialize();
+#endif //#if PLATFORM_WINDOWS
+
+		uint32 Flags = 0;
+
+#if WITH_XMA2
+		// We need to raise this flag explicitly to prevent initializing SHAPE twice, because we are allocating SHAPE in FXMAAudioInfo
+		Flags |= XAUDIO2_DO_NOT_USE_SHAPE;
 #endif
 
-		XAUDIO2_RETURN_ON_FAIL(XAudio2Create(&XAudio2System, 0, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()));
+		XAUDIO2_RETURN_ON_FAIL(XAudio2Create(&XAudio2System, Flags, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()));
+
+#if WITH_XMA2
+		//Initialize our XMA2 decoder context
+		FXMAAudioInfo::Initialize();
+#endif //#if WITH_XMA2
+		// Load ogg and vorbis dlls if they haven't been loaded yet
+		LoadVorbisLibraries();
 
 		bIsInitialized = true;
 
@@ -258,7 +279,7 @@ namespace Audio
 		OutInfo.SampleRate = 44100;
 		OutInfo.DeviceId = 0;
 		OutInfo.Format = EAudioMixerStreamDataFormat::Float;
-		OutInfo.Name = TEXT("XBoxOne Audio Device.");
+		OutInfo.Name = TEXT("XboxOne Audio Device.");
 		OutInfo.NumChannels = 8;
 
 		OutInfo.OutputChannelArray.Add(EAudioMixerChannel::FrontLeft);
@@ -294,13 +315,18 @@ namespace Audio
 			return false;
 		}
 
-		checkf(Params.OutputDeviceIndex != INDEX_NONE, TEXT("OpenAudioStream params must specify a output device index."));
 		check(XAudio2System);
 		check(OutputAudioStreamMasteringVoice == nullptr);
 
 		WAVEFORMATEX Format = { 0 };
 
 		OpenStreamParams = Params;
+
+		// On windows, default device index is 0
+		if (Params.OutputDeviceIndex == AUDIO_MIXER_DEFAULT_DEVICE_INDEX)
+		{
+			OpenStreamParams.OutputDeviceIndex = 0;
+		}
 
 		AudioStreamInfo.Reset();
 
@@ -366,12 +392,9 @@ namespace Audio
 			return false;
 		}
 
-		if (bIsDeviceOpen)
+		if (bIsDeviceOpen && !StopAudioStream())
 		{
-			if (!StopAudioStream())
-			{
-				return false;
-			}
+			return false;
 		}
 
 		check(XAudio2System);
@@ -491,8 +514,15 @@ namespace Audio
 			SAFE_RELEASE(XAudio2System);
 		}
 
+		uint32 Flags = 0;
+
+#if WITH_XMA2
+		// We need to raise this flag explicitly to prevent initializing SHAPE twice, because we are allocating SHAPE in FXMAAudioInfo
+		Flags |= XAUDIO2_DO_NOT_USE_SHAPE;
+#endif
+
 		// Create a new xaudio2 system
-		XAUDIO2_RETURN_ON_FAIL(XAudio2Create(&XAudio2System, 0, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()));
+		XAUDIO2_RETURN_ON_FAIL(XAudio2Create(&XAudio2System, Flags, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()));
 
 		uint32 NumDevices = 0;
 		XAUDIO2_RETURN_ON_FAIL(XAudio2System->GetDeviceCount(&NumDevices));
@@ -584,8 +614,17 @@ namespace Audio
 	{
 		if (InSoundWave->IsStreaming())
 		{
-			return FName(TEXT("OPUS"));
+			static FName NAME_OPUS(TEXT("OPUS"));
+			return NAME_OPUS;
 		}
+
+#if WITH_XMA2
+		if (InSoundWave->NumChannels <= 2)
+		{
+			static FName NAME_XMA(TEXT("XMA"));
+			return NAME_XMA;
+		}
+#endif //#if WITH_XMA2
 
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
@@ -593,11 +632,7 @@ namespace Audio
 
 	bool FMixerPlatformXAudio2::HasCompressedAudioInfoClass(USoundWave* InSoundWave)
 	{
-#if WITH_OGGVORBIS
 		return true;
-#else
-		return false;
-#endif
 	}
 
 	ICompressedAudioInfo* FMixerPlatformXAudio2::CreateCompressedAudioInfo(USoundWave* InSoundWave)
@@ -609,13 +644,21 @@ namespace Audio
 			return new FOpusAudioInfo();
 		}
 
-		ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
-		if (!CompressedInfo)
+		static const FName NAME_OGG(TEXT("OGG"));
+		if (FPlatformProperties::RequiresCookedData() ? InSoundWave->HasCompressedData(NAME_OGG) : (InSoundWave->GetCompressedData(NAME_OGG) != nullptr))
 		{
-			UE_LOG(LogAudioMixer, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *InSoundWave->GetName());
-			return nullptr;
+			return new FVorbisAudioInfo();
 		}
-		return CompressedInfo;
+
+#if WITH_XMA2
+		static const FName NAME_XMA(TEXT("XMA"));
+		if (FPlatformProperties::RequiresCookedData() ? InSoundWave->HasCompressedData(NAME_XMA) : (InSoundWave->GetCompressedData(NAME_XMA) != nullptr))
+		{
+			return new FXMAAudioInfo();
+		}
+#endif
+
+		return nullptr;
 	}
 
 	FString FMixerPlatformXAudio2::GetDefaultDeviceName()

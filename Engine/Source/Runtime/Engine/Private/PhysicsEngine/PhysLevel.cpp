@@ -37,6 +37,7 @@ FPhysicsDelegates::FOnUpdatePhysXMaterial FPhysicsDelegates::OnUpdatePhysXMateri
 FPhysicsDelegates::FOnPhysicsAssetChanged FPhysicsDelegates::OnPhysicsAssetChanged;
 FPhysicsDelegates::FOnPhysSceneInit FPhysicsDelegates::OnPhysSceneInit;
 FPhysicsDelegates::FOnPhysSceneTerm FPhysicsDelegates::OnPhysSceneTerm;
+FPhysicsDelegates::FOnPhysDispatchNotifications FPhysicsDelegates::OnPhysDispatchNotifications;
 
 // CVars
 TAutoConsoleVariable<float> CVarToleranceScaleLength(
@@ -50,25 +51,6 @@ TAutoConsoleVariable<float> CVarToleranceScaleSpeed(
 	1000.f,
 	TEXT("The typical magnitude of velocities of objects in simulation. Default: 1000"),
 	ECVF_ReadOnly);
-
-static TAutoConsoleVariable<int32> CVarAPEXMaxDestructibleDynamicChunkIslandCount(
-	TEXT("p.APEXMaxDestructibleDynamicChunkIslandCount"),
-	2000,
-	TEXT("APEX Max Destructilbe Dynamic Chunk Island Count."),
-	ECVF_Default);
-
-
-static TAutoConsoleVariable<int32> CVarAPEXMaxDestructibleDynamicChunkCount(
-	TEXT("p.APEXMaxDestructibleDynamicChunkCount"),
-	2000,
-	TEXT("APEX Max Destructible dynamic Chunk Count."),
-	ECVF_Default);
-
-static TAutoConsoleVariable<int32> CVarAPEXSortDynamicChunksByBenefit(
-	TEXT("p.bAPEXSortDynamicChunksByBenefit"),
-	1,
-	TEXT("True if APEX should sort dynamic chunks by benefit."),
-	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarUseUnifiedHeightfield(
 	TEXT("p.bUseUnifiedHeightfield"),
@@ -275,7 +257,7 @@ void InitGamePhys()
 	}
 
 	// Make sure 
-	LoadPhysXModules(/*bLoadCookingModule=*/ false);
+	PhysDLLHelper::LoadPhysXModules(/*bLoadCookingModule=*/ false);
 
 	// Create Foundation
 	GPhysXAllocator = new FPhysXAllocator();
@@ -371,9 +353,6 @@ void InitGamePhys()
 
 
 #if APEX_STATICALLY_LINKED
-	// We need to instantiate the module if we have statically linked them
-	// Otherwise all createModule functions will fail
-	instantiateModuleDestructible();
 
 #if WITH_APEX_CLOTHING
 	instantiateModuleClothing();
@@ -391,34 +370,12 @@ void InitGamePhys()
 	check(GApexModuleLegacy);
 #endif // WITH_APEX_LEGACY
 
-	// Load APEX Destruction module
-	GApexModuleDestructible = static_cast<apex::ModuleDestructible*>(GApexSDK->createModule("Destructible"));
-	check(GApexModuleDestructible);
-
-	// Set Destructible module parameters
-	NvParameterized::Interface* ModuleParams = GApexModuleDestructible->getDefaultModuleDesc();
-	// ModuleParams contains the default module descriptor, which may be modified here before calling the module init function
-	GApexModuleDestructible->init(*ModuleParams);
-	// Set chunk report for fracture effect callbacks
-	GApexModuleDestructible->setChunkReport(&GApexChunkReport);
-
-	
-	GApexModuleDestructible->setMaxDynamicChunkIslandCount((physx::PxU32)FMath::Max(CVarAPEXMaxDestructibleDynamicChunkIslandCount.GetValueOnGameThread(), 0));
-	GApexModuleDestructible->setMaxChunkCount((physx::PxU32)FMath::Max(CVarAPEXMaxDestructibleDynamicChunkCount.GetValueOnGameThread(), 0));
-	GApexModuleDestructible->setSortByBenefit(CVarAPEXSortDynamicChunksByBenefit.GetValueOnGameThread() != 0);
-
-	GApexModuleDestructible->scheduleChunkStateEventCallback(apex::DestructibleCallbackSchedule::FetchResults);
-
-	// APEX 1.3 to preserve 1.2 behavior
-	GApexModuleDestructible->setUseLegacyDamageRadiusSpread(true); 
-	GApexModuleDestructible->setUseLegacyChunkBoundsTesting(true);
-
 #if WITH_APEX_CLOTHING
 	// Load APEX Clothing module
 	GApexModuleClothing = static_cast<apex::ModuleClothing*>(GApexSDK->createModule("Clothing"));
 	check(GApexModuleClothing);
 	// Set Clothing module parameters
-	ModuleParams = GApexModuleClothing->getDefaultModuleDesc();
+	NvParameterized::Interface* ModuleParams = GApexModuleClothing->getDefaultModuleDesc();
 
 	// Can be tuned for switching between more memory and more spikes.
 	NvParameterized::setParamU32(*ModuleParams, "maxUnusedPhysXResources", 5);
@@ -518,7 +475,7 @@ void TermGamePhys()
 	// @todo delete FPhysXAllocator
 	// @todo delete FPhysXOutputStream
 
-	UnloadPhysXModules();
+	PhysDLLHelper::UnloadPhysXModules();
 #endif
 }
 

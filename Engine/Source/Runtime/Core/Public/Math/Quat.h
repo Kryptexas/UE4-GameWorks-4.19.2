@@ -309,6 +309,10 @@ public:
 	 */
 	FORCEINLINE float SizeSquared() const;
 
+
+	/** Get the angle of this quaternion */
+	FORCEINLINE float GetAngle() const;
+
 	/** 
 	 * get the axis and angle of rotation of this quaternion
 	 *
@@ -950,10 +954,15 @@ FORCEINLINE float FQuat::SizeSquared() const
 	return (X * X + Y * Y + Z * Z + W * W);
 }
 
+FORCEINLINE float FQuat::GetAngle() const
+{
+	return 2.f * FMath::Acos(W);
+}
+
 
 FORCEINLINE void FQuat::ToAxisAndAngle(FVector& Axis, float& Angle) const
 {
-	Angle = 2.f * FMath::Acos(W);
+	Angle = GetAngle();
 	Axis = GetRotationAxis();
 }
 

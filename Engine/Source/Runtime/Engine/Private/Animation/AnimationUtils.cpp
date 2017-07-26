@@ -97,7 +97,7 @@ void FAnimationUtils::BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneDat
 	// Enumerate end effectors.  For each end effector, propagate its index up to all ancestors.
 	if( bEnableLogging )
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Enumerate End Effectors for %s"), *Skeleton->GetFName().ToString());
+		UE_LOG(LogAnimation, Log, TEXT("Enumerate End Effectors for %s"), *Skeleton->GetFName().ToString());
 	}
 	for ( int32 BoneIndex = 0 ; BoneIndex < OutBoneData.Num() ; ++BoneIndex )
 	{
@@ -125,7 +125,7 @@ void FAnimationUtils::BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneDat
 			}
 			if( bEnableLogging )
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("\t %s bKeyEndEffector: %d"), *BoneData.Name.ToString(), BoneData.bKeyEndEffector);
+				UE_LOG(LogAnimation, Log, TEXT("\t %s bKeyEndEffector: %d"), *BoneData.Name.ToString(), BoneData.bKeyEndEffector);
 			}
 		}
 	}
@@ -385,7 +385,7 @@ static inline UAnimCompress* ConstructDefaultCompressionAlgorithm()
 	{
 		// if can't find back out to bitwise
 		CompressionAlgorithmClass = UAnimCompress_BitwiseCompressOnly::StaticClass();
-		UE_LOG(LogAnimation, Warning, TEXT("Couldn't find animation compression, default to AnimCompress_BitwiseCompressOnly") );
+		UE_LOG(LogAnimationCompression, Warning, TEXT("Couldn't find animation compression, default to AnimCompress_BitwiseCompressOnly") );
 	}
 
 	UAnimCompress* NewAlgorithm = NewObject<UAnimCompress>(GetTransientPackage(), CompressionAlgorithmClass);
@@ -525,8 +525,8 @@ bool FAnimationUtils::GetForcedRecompressionSetting()
 
 #define TRYCOMPRESSION(Name, CompressionAlgorithm) TRYCOMPRESSION_INNER(TEXT(#Name), Name ## CompressorWins, Name ## CompressorSumError, Name ## CompressorWinMargin, CompressionAlgorithm)
 
-#define WARN_COMPRESSION_STATUS(Name) \
-	UE_LOG(LogAnimation, Warning, TEXT("\t\tWins for '%32s': %4i\t\t%f\t%i bytes"), TEXT(#Name), Name ## CompressorWins, (Name ## CompressorWins > 0) ? Name ## CompressorSumError / Name ## CompressorWins : 0.0f, Name ## CompressorWinMargin)
+#define LOG_COMPRESSION_STATUS(Name) \
+	UE_LOG(LogAnimationCompression, Log, TEXT("\t\tWins for '%32s': %4i\t\t%f\t%i bytes"), TEXT(#Name), Name ## CompressorWins, (Name ## CompressorWins > 0) ? Name ## CompressorSumError / Name ## CompressorWins : 0.0f, Name ## CompressorWinMargin)
 
 #define DECLARE_ANIM_COMP_ALGORITHM(Algorithm) \
 	static int32 Algorithm ## CompressorWins = 0; \
@@ -744,7 +744,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 			{
 				if (NewErrorStats.MaxError > MasterTolerance)
 				{
-					UE_LOG(LogAnimation, Warning, TEXT("  Boosting MasterTolerance to %f, as existing MaxDiff was higher than %f and bRaiseMaxErrorToExisting=true"), NewErrorStats.MaxError, MasterTolerance);
+					UE_LOG(LogAnimationCompression, Log, TEXT("  Boosting MasterTolerance to %f, as existing MaxDiff was higher than %f and bRaiseMaxErrorToExisting=true"), NewErrorStats.MaxError, MasterTolerance);
 					MasterTolerance = NewErrorStats.MaxError;
 				}
 			}
@@ -778,14 +778,14 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				float WinningCompressorError = OriginalErrorStats.MaxError;
 				bool bKeepNewCompressionMethod = false;
 
-				UE_LOG(LogAnimation, Warning, TEXT("Compressing %s (%s)\n\tSkeleton: %s\n\tOriginal Size: %i   MaxDiff: %f"),
+				UE_LOG(LogAnimationCompression, Log, TEXT("Compressing %s (%s)\n\tSkeleton: %s\n\tOriginal Size: %i   MaxDiff: %f"),
 					*AnimSeq->GetName(),
 					*AnimSeq->GetFullName(),
 					Skeleton ? *Skeleton->GetFName().ToString() : TEXT("NULL - Not all compression techniques can be used!"),
 					OriginalSize,
 					TrueOriginalErrorStats.MaxError);
 
-				UE_LOG(LogAnimation, Warning, TEXT("Original Key Encoding: %s\n\tOriginal Rotation Format: %s\n\tOriginal Translation Format: %s\n\tNumFrames: %i\n\tSequenceLength: %f (%2.1f fps)"),
+				UE_LOG(LogAnimationCompression, Log, TEXT("Original Key Encoding: %s\n\tOriginal Rotation Format: %s\n\tOriginal Translation Format: %s\n\tNumFrames: %i\n\tSequenceLength: %f (%2.1f fps)"),
 					*GetAnimationKeyFormatString(static_cast<AnimationKeyFormat>(OriginalKeyEncodingFormat)),
 					*FAnimationUtils::GetAnimationCompressionFormatString(static_cast<AnimationCompressionFormat>(OriginalRotationFormat)),
 					*FAnimationUtils::GetAnimationCompressionFormatString(static_cast<AnimationCompressionFormat>(OriginalTranslationFormat)),
@@ -795,7 +795,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 				if (bFirstRecompressUsingCurrentOrDefault)
 				{
-					UE_LOG(LogAnimation, Warning, TEXT("Recompressed using current/default\n\tRecompress Size: %i   MaxDiff: %f\n\tRecompress Scheme: %s"),
+					UE_LOG(LogAnimationCompression, Log, TEXT("Recompressed using current/default\n\tRecompress Size: %i   MaxDiff: %f\n\tRecompress Scheme: %s"),
 						AfterOriginalRecompression,
 						OriginalErrorStats.MaxError,
 						AnimSeq->CompressionScheme ? *AnimSeq->CompressionScheme->GetClass()->GetName() : TEXT("NULL"));
@@ -817,7 +817,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 					if( NewErrorStats.MaxError >= MasterTolerance )
 					{
-						UE_LOG(LogAnimation, Warning, TEXT("\tStandard bitwise compressor too aggressive, lower default settings."));
+						UE_LOG(LogAnimationCompression, Log, TEXT("\tStandard bitwise compressor too aggressive, lower default settings."));
 					}
 					else
 					{
@@ -828,14 +828,14 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				
 							// Try PerTrackCompression, down sample to 5 Hz
 							PerTrackCompressor->ResampledFramerate = 5.0f;
-							UE_LOG(LogAnimation, Warning, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
+							UE_LOG(LogAnimationCompression, Log, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
 							TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 
 							// If too much error, try 6Hz
 							if( NewErrorStats.MaxError >= MasterTolerance )
 							{
 								PerTrackCompressor->ResampledFramerate = 6.0f;
-								UE_LOG(LogAnimation, Warning, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
+								UE_LOG(LogAnimationCompression, Log, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
 								TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 
 								// if too much error go 10Hz, 15Hz, 20Hz.
@@ -846,7 +846,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 									while( PerTrackCompressor->ResampledFramerate < 20.f && NewErrorStats.MaxError >= MasterTolerance )
 									{
 										PerTrackCompressor->ResampledFramerate += 5.f;
-										UE_LOG(LogAnimation, Warning, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
+										UE_LOG(LogAnimationCompression, Log, TEXT("\tResampledFramerate: %f"), PerTrackCompressor->ResampledFramerate);
 										TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 									}
 								}
@@ -855,7 +855,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 							// Give up downsampling if it didn't work.
 							if( NewErrorStats.MaxError >= MasterTolerance )
 							{
-								UE_LOG(LogAnimation, Warning, TEXT("\tDownsampling didn't work."));
+								UE_LOG(LogAnimationCompression, Log, TEXT("\tDownsampling didn't work."));
 								PerTrackCompressor->bResampleAnimation = false;
 							}
 						}
@@ -876,7 +876,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 							PerTrackCompressor->MaxEffectorDiff /= MaxScale;
 							PerTrackCompressor->MinEffectorDiff /= MaxScale;
 							PerTrackCompressor->EffectorDiffSocket /= MaxScale;
-							UE_LOG(LogAnimation, Warning, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
+							UE_LOG(LogAnimationCompression, Log, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
 							TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);							
 							PerTrackCompressor->MaxPosDiff *= MaxScale;
 							PerTrackCompressor->MaxAngleDiff *= MaxScale;
@@ -888,7 +888,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 							if( NewErrorStats.MaxError < MasterTolerance )
 							{
 								// Start super aggressive, and go down until we find something that works.
-								UE_LOG(LogAnimation, Warning, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
+								UE_LOG(LogAnimationCompression, Log, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
 								TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 
 								for(int32 Step=0; Step<TestSteps && (NewErrorStats.MaxError >= MasterTolerance); Step++)
@@ -899,7 +899,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 									PerTrackCompressor->MaxEffectorDiff /= 2.f;
 									PerTrackCompressor->MinEffectorDiff /= 2.f;
 									PerTrackCompressor->EffectorDiffSocket /= 2.f;
-									UE_LOG(LogAnimation, Warning, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
+									UE_LOG(LogAnimationCompression, Log, TEXT("\tLinearKeys. MaxPosDiff: %f, MaxAngleDiff: %f, MaxScaleDiff : %f"), PerTrackCompressor->MaxPosDiff, PerTrackCompressor->MaxAngleDiff, PerTrackCompressor->MaxScaleDiff);
 									TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 								}
 							}
@@ -923,14 +923,14 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 							PerTrackCompressor->MaxPosDiffBitwise *= MaxScale;
 							PerTrackCompressor->MaxAngleDiffBitwise *= MaxScale;
 							PerTrackCompressor->MaxScaleDiffBitwise *= MaxScale;
-							UE_LOG(LogAnimation, Warning, TEXT("\tBitwise. MaxPosDiffBitwise: %f, MaxAngleDiffBitwise: %f, MaxScaleDiffBitwise: %f"), PerTrackCompressor->MaxPosDiffBitwise, PerTrackCompressor->MaxAngleDiffBitwise, PerTrackCompressor->MaxScaleDiffBitwise);
+							UE_LOG(LogAnimationCompression, Log, TEXT("\tBitwise. MaxPosDiffBitwise: %f, MaxAngleDiffBitwise: %f, MaxScaleDiffBitwise: %f"), PerTrackCompressor->MaxPosDiffBitwise, PerTrackCompressor->MaxAngleDiffBitwise, PerTrackCompressor->MaxScaleDiffBitwise);
 							TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 							PerTrackCompressor->MaxPosDiffBitwise /= 2.f;
 							PerTrackCompressor->MaxAngleDiffBitwise /= 2.f;
 							PerTrackCompressor->MaxScaleDiffBitwise /= 2.f;
 							for(int32 Step=0; Step<TestSteps && (NewErrorStats.MaxError >= MasterTolerance) && (PerTrackCompressor->MaxPosDiffBitwise >= PerTrackCompressor->MaxZeroingThreshold); Step++)
 							{
-								UE_LOG(LogAnimation, Warning, TEXT("\tBitwise. MaxPosDiffBitwise: %f, MaxAngleDiffBitwise: %f, MaxScaleDiffBitwise: %f"), PerTrackCompressor->MaxPosDiffBitwise, PerTrackCompressor->MaxAngleDiffBitwise, PerTrackCompressor->MaxScaleDiffBitwise);
+								UE_LOG(LogAnimationCompression, Log, TEXT("\tBitwise. MaxPosDiffBitwise: %f, MaxAngleDiffBitwise: %f, MaxScaleDiffBitwise: %f"), PerTrackCompressor->MaxPosDiffBitwise, PerTrackCompressor->MaxAngleDiffBitwise, PerTrackCompressor->MaxScaleDiffBitwise);
 								TRYCOMPRESSION(Progressive_PerTrack, PerTrackCompressor);
 								PerTrackCompressor->MaxPosDiffBitwise /= 2.f;
 								PerTrackCompressor->MaxAngleDiffBitwise /= 2.f;
@@ -1222,7 +1222,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 						*WinningCompressorMarginalSavingsSum += WinningCompressorMarginalSavings;
 						check(WinningCompressorSavings == SizeDecrease);
 
-					UE_LOG(LogAnimation, Warning, TEXT("  Recompressing '%s' with compressor '%s' saved %i bytes (%i -> %i -> %i) (max diff=%f)\n"),
+					UE_LOG(LogAnimationCompression, Log, TEXT("  Recompressing '%s' with compressor '%s' saved %i bytes (%i -> %i -> %i) (max diff=%f)\n"),
 							*AnimSeq->GetName(),
 							*WinningCompressorName,
 							SizeDecrease,
@@ -1232,7 +1232,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 					else
 					{
 						TotalNoWinnerRounds++;
-						UE_LOG(LogAnimation, Warning, TEXT("  Recompressing '%s' with original/default compressor saved %i bytes (%i -> %i -> %i) (max diff=%f)\n"), 
+						UE_LOG(LogAnimationCompression, Log, TEXT("  Recompressing '%s' with original/default compressor saved %i bytes (%i -> %i -> %i) (max diff=%f)\n"),
 							*AnimSeq->GetName(),
 							SizeDecrease,
 							OriginalSize, AfterOriginalRecompression, CurrentSize,
@@ -1261,7 +1261,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				TotalSizeNow += CurrentSize;
 
 				PctSaving = TotalSizeBefore > 0 ? 100.f - (100.f * float(TotalSizeNow) / float(TotalSizeBefore)) : 0.f;
-				UE_LOG(LogAnimation, Warning, TEXT("Compression Stats Summary [%i total, %i Bytes saved, %i before, %i now, %3.1f%% savings. Uncompressed: %i TotalRatio: %i:1]"), 
+				UE_LOG(LogAnimationCompression, Log, TEXT("Compression Stats Summary [%i total, %i Bytes saved, %i before, %i now, %3.1f%% savings. Uncompressed: %i TotalRatio: %i:1]"),
 				TotalRecompressions,
 				AlternativeCompressorSavings,
 				TotalSizeBefore, 
@@ -1270,69 +1270,69 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				TotalUncompressed,
 				(TotalUncompressed / TotalSizeNow));
 
-				UE_LOG(LogAnimation, Warning, TEXT("\t\tDefault compressor wins:                      %i"), TotalNoWinnerRounds);
+				UE_LOG(LogAnimationCompression, Log, TEXT("\t\tDefault compressor wins:                      %i"), TotalNoWinnerRounds);
 
 				if (bTryFixedBitwiseCompression)
 				{
-					WARN_COMPRESSION_STATUS(BitwiseACF_Float96);
-					WARN_COMPRESSION_STATUS(BitwiseACF_Fixed48);
-// 					WARN_COMPRESSION_STATUS(BitwiseACF_IntervalFixed32);
-// 					WARN_COMPRESSION_STATUS(BitwiseACF_Fixed32);
+					LOG_COMPRESSION_STATUS(BitwiseACF_Float96);
+					LOG_COMPRESSION_STATUS(BitwiseACF_Fixed48);
+// 					LOG_COMPRESSION_STATUS(BitwiseACF_IntervalFixed32);
+// 					LOG_COMPRESSION_STATUS(BitwiseACF_Fixed32);
 				}
 
 				if (bTryFixedBitwiseCompression && bTryIntervalKeyRemoval)
 				{
-					WARN_COMPRESSION_STATUS(HalfOddACF_Float96);
-					WARN_COMPRESSION_STATUS(HalfOddACF_Fixed48);
-// 					WARN_COMPRESSION_STATUS(HalfOddACF_IntervalFixed32);
-// 					WARN_COMPRESSION_STATUS(HalfOddACF_Fixed32);
+					LOG_COMPRESSION_STATUS(HalfOddACF_Float96);
+					LOG_COMPRESSION_STATUS(HalfOddACF_Fixed48);
+// 					LOG_COMPRESSION_STATUS(HalfOddACF_IntervalFixed32);
+// 					LOG_COMPRESSION_STATUS(HalfOddACF_Fixed32);
 
-					WARN_COMPRESSION_STATUS(HalfEvenACF_Float96);
-					WARN_COMPRESSION_STATUS(HalfEvenACF_Fixed48);
-// 					WARN_COMPRESSION_STATUS(HalfEvenACF_IntervalFixed32);
-// 					WARN_COMPRESSION_STATUS(HalfEvenACF_Fixed32);
+					LOG_COMPRESSION_STATUS(HalfEvenACF_Float96);
+					LOG_COMPRESSION_STATUS(HalfEvenACF_Fixed48);
+// 					LOG_COMPRESSION_STATUS(HalfEvenACF_IntervalFixed32);
+// 					LOG_COMPRESSION_STATUS(HalfEvenACF_Fixed32);
 				}
 
 				if (bTryLinearKeyRemovalCompression)
 				{
-					WARN_COMPRESSION_STATUS(LinearACF_Float96);
-					WARN_COMPRESSION_STATUS(LinearACF_Fixed48);
-// 					WARN_COMPRESSION_STATUS(LinearACF_IntervalFixed32);
-// 					WARN_COMPRESSION_STATUS(LinearACF_Fixed32);
+					LOG_COMPRESSION_STATUS(LinearACF_Float96);
+					LOG_COMPRESSION_STATUS(LinearACF_Fixed48);
+// 					LOG_COMPRESSION_STATUS(LinearACF_IntervalFixed32);
+// 					LOG_COMPRESSION_STATUS(LinearACF_Fixed32);
 				}
 
 				if (bTryPerTrackBitwiseCompression)
 				{
-					WARN_COMPRESSION_STATUS(Progressive_PerTrack);
-					WARN_COMPRESSION_STATUS(Bitwise_PerTrack);
-					WARN_COMPRESSION_STATUS(Linear_PerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive1_LinPerTrackNoRT);
-					WARN_COMPRESSION_STATUS(Adaptive1_LinPerTrack);
-
-					WARN_COMPRESSION_STATUS(Linear_PerTrackExp1);
-					WARN_COMPRESSION_STATUS(Linear_PerTrackExp2);
+					LOG_COMPRESSION_STATUS(Progressive_PerTrack);
+					LOG_COMPRESSION_STATUS(Bitwise_PerTrack);
+					LOG_COMPRESSION_STATUS(Linear_PerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive1_LinPerTrackNoRT);
+					LOG_COMPRESSION_STATUS(Adaptive1_LinPerTrack);
+					
+					LOG_COMPRESSION_STATUS(Linear_PerTrackExp1);
+					LOG_COMPRESSION_STATUS(Linear_PerTrackExp2);
 				}
 
 				if (bTryPerTrackBitwiseCompression && bTryIntervalKeyRemoval)
 				{
-					WARN_COMPRESSION_STATUS(Downsample20Hz_PerTrack);
-					WARN_COMPRESSION_STATUS(Downsample15Hz_PerTrack);
-					WARN_COMPRESSION_STATUS(Downsample10Hz_PerTrack);
-					WARN_COMPRESSION_STATUS(Downsample5Hz_PerTrack);
+					LOG_COMPRESSION_STATUS(Downsample20Hz_PerTrack);
+					LOG_COMPRESSION_STATUS(Downsample15Hz_PerTrack);
+					LOG_COMPRESSION_STATUS(Downsample10Hz_PerTrack);
+					LOG_COMPRESSION_STATUS(Downsample5Hz_PerTrack);
 
-					WARN_COMPRESSION_STATUS(Adaptive1_15Hz_LinPerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive1_10Hz_LinPerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive1_5Hz_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive1_15Hz_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive1_10Hz_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive1_5Hz_LinPerTrack);
 
-					WARN_COMPRESSION_STATUS(Adaptive2_15Hz_LinPerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive2_10Hz_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive2_15Hz_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive2_10Hz_LinPerTrack);
 				}
 
 				if (bTryPerTrackBitwiseCompression)
 				{
-					WARN_COMPRESSION_STATUS(Adaptive2_PerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive2_LinPerTrack);
-					WARN_COMPRESSION_STATUS(Adaptive2_LinPerTrackNoRT);
+					LOG_COMPRESSION_STATUS(Adaptive2_PerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive2_LinPerTrack);
+					LOG_COMPRESSION_STATUS(Adaptive2_LinPerTrackNoRT);
 				}
 			}
 		}
@@ -1345,7 +1345,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 	else
 	{
 		// this can happen if the animation only contains curve - i.e. blendshape curves
-		UE_LOG(LogAnimation, Log, TEXT("Compression Requested for Empty Animation %s"), *AnimSeq->GetName() );
+		UE_LOG(LogAnimationCompression, Log, TEXT("Compression Requested for Empty Animation %s"), *AnimSeq->GetName() );
 	}
 #endif // WITH_EDITORONLY_DATA
 }

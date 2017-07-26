@@ -12,7 +12,6 @@
 #include "Model.h"
 #include "ISourceControlModule.h"
 #include "Settings/ContentBrowserSettings.h"
-#include "Settings/DestructableMeshEditorSettings.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "Settings/LevelEditorViewportSettings.h"
 #include "Settings/EditorProjectSettings.h"
@@ -35,6 +34,7 @@
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "IProjectManager.h"
 #include "ProjectDescriptor.h"
+#include "Settings/SkeletalMeshEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SettingsClasses"
 
@@ -92,10 +92,11 @@ void UClassViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	SettingChangedEvent.Broadcast(Name);
 }
 
-/* UDestructableMeshEditorSettings interface
- *****************************************************************************/
 
-UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectInitializer& ObjectInitializer )
+/* USkeletalMeshEditorSettings interface
+*****************************************************************************/
+
+USkeletalMeshEditorSettings::USkeletalMeshEditorSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	AnimPreviewLightingDirection = FRotator(-45.0f, 45.0f, 0);
@@ -105,7 +106,6 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 	AnimPreviewDirectionalColor = FColor::White;
 	AnimPreviewLightBrightness = 1.0f * PI;
 }
-
 
 /* UEditorExperimentalSettings interface
  *****************************************************************************/

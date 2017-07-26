@@ -451,9 +451,19 @@ void FAssetTypeActions_SkeletalMesh::GetActions( const TArray<UObject*>& InObjec
 		LOCTEXT("SkeletalMesh_LODImportTooltip", "Select which LODs to import."),
 		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::GetLODMenu, Meshes)
 		);
+	
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ImportClothing_Entry", "Import Clothing Asset..."),
+		LOCTEXT("ImportClothing_ToolTip", "Import a clothing asset from a supported file on disk into this skeletal mesh."),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteImportClothing, Meshes)));
 
-	// Add actions that do not apply to destructible meshes
-	GetNonDestructibleActions(Meshes, MenuBuilder);
+	// skeleton menu
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("SkeletonSubmenu", "Skeleton"),
+		LOCTEXT("SkeletonSubmenu_ToolTip", "Skeleton related actions"),
+		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::FillSkeletonMenu, Meshes)
+	);
 }
 
 void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
@@ -470,22 +480,6 @@ void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, T
 	TArray<TWeakObjectPtr<UObject>> Objects;
 	Algo::Transform(Meshes, Objects, [](const TWeakObjectPtr<USkeletalMesh>& SkelMesh) { return SkelMesh; });
 	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Objects, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_SkeletalMesh::OnAssetCreated));
-}
-
-void FAssetTypeActions_SkeletalMesh::GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder)
-{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ImportClothing_Entry", "Import Clothing Asset..."),
-		LOCTEXT("ImportClothing_ToolTip", "Import a clothing asset from a supported file on disk into this skeletal mesh."),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteImportClothing, Meshes)));
-
-	// skeleton menu
-	MenuBuilder.AddSubMenu(
-			LOCTEXT("SkeletonSubmenu", "Skeleton"),
-			LOCTEXT("SkeletonSubmenu_ToolTip", "Skeleton related actions"),
-			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::FillSkeletonMenu, Meshes)
-			);
 }
 
 void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )

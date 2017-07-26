@@ -23,6 +23,16 @@ public:
 #endif
 	}
 
+	/** Sets the kinematic target. This will affect velocities as expected*/
+	void SetKinematicTarget(const FTransform& WorldTM)
+	{
+#if WITH_PHYSX
+		FKinematicTarget& KinematicTarget = OwningSimulation.GetKinematicTarget(ActorDataIndex);
+		KinematicTarget.BodyToWorld = U2PTransform(ActorToBody * WorldTM);
+		KinematicTarget.bTargetSet = true;
+#endif
+	}
+
 	/** Whether the body is simulating */
 	bool IsSimulated() const
 	{
@@ -72,6 +82,13 @@ public:
 		return P2UVector(OwningSimulation.GetLowLevelBody(ActorDataIndex).angularVelocity);
 #else
 		return FVector::ZeroVector;
+#endif
+	}
+
+	void AddForce(const FVector& Force)
+	{
+#if WITH_PHYSX
+		OwningSimulation.AddForce(ActorDataIndex, Force);
 #endif
 	}
 

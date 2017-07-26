@@ -26,8 +26,6 @@ public:
 	// End IAssetTypeActions
 
 private:
-	/** Handler for when CreateDestructibleMesh is selected */
-	void ExecuteCreateDestructibleMesh(TArray<TWeakObjectPtr<UStaticMesh>> Objects);
 
 	/** Handler for when CopyLODDData is selected */
 	void ExecuteCopyLODSettings(TArray<TWeakObjectPtr<UStaticMesh>> Objects);

@@ -27,5 +27,10 @@ public class AudioMixerXAudio2 : ModuleRules
 			"Vorbis",
 			"VorbisFile"
 		);
+
+        if(Target.Platform == UnrealTargetPlatform.XboxOne)
+        {
+            PrivateDependencyModuleNames.Add("XMA2");
+        }
 	}
 }

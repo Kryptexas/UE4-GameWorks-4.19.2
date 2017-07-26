@@ -3,11 +3,11 @@
 #include "Collision/CollisionConversions.h"
 #include "Engine/World.h"
 #include "Components/PrimitiveComponent.h"
+#include "CustomPhysXPayload.h"
 
 #if WITH_PHYSX
 #include "Collision/PhysXCollision.h"
 #include "Collision/CollisionDebugDrawing.h"
-#include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicsEngine/PhysicsSettings.h"
@@ -356,36 +356,45 @@ static FVector FindGeomOpposingNormal(PxGeometryType::Enum QueryGeomType, const 
 static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRigidActor* PActor, const uint32 FaceIndex, FHitResult& OutResult, bool bReturnPhysMat)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CollisionSetHitResultFromShapeAndFaceIndex);
-	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
-	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PShape->userData);
-	UPrimitiveComponent* PrimComp = FPhysxUserData::Get<UPrimitiveComponent>(PShape->userData);
-
-	if(BodyInst)
+	
+	UPrimitiveComponent* OwningComponent = nullptr;
+	if(const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData))
 	{
 		BodyInst = BodyInst->GetOriginalBodyInstance(PShape);
-	}
 
-	if (ChunkInfo == NULL)
-	{
-		ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
-	}
+		//Normal case where we hit a body
+		OutResult.Item = BodyInst->InstanceBodyIndex;
+		const UBodySetup* BodySetup = BodyInst->BodySetup.Get();	//this data should be immutable at runtime so ok to check from worker thread.
+		if (BodySetup)
+		{
+			OutResult.BoneName = BodySetup->BoneName;
+		}
 
-	UPrimitiveComponent* OwningComponent = ChunkInfo != NULL ? ChunkInfo->OwningComponent.Get() : NULL;
-	if (OwningComponent == NULL && BodyInst != NULL)
-	{
 		OwningComponent = BodyInst->OwnerComponent.Get();
 	}
-
-	// If the shape has a different parent component, we take that one instead of the ChunkInfo. This can happen in some 
-	// cases where APEX moves shapes internally to another actor ( ex. FormExtended structures )
-	if (PrimComp != NULL && OwningComponent != PrimComp)
+	else if(const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(PShape->userData))
 	{
-		OwningComponent = PrimComp;
+		//Custom payload case
+		OwningComponent = CustomPayload->GetOwningComponent().Get();
+		if(OwningComponent->bMultiBodyOverlap)
+		{
+			OutResult.Item = CustomPayload->GetItemIndex();
+			OutResult.BoneName = CustomPayload->GetBoneName();
+		}
+		else
+		{
+			OutResult.Item = INDEX_NONE;
+			OutResult.BoneName = NAME_None;
+		
+		}
+		
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("SetHitResultFromShapeAndFaceIndex hit shape with invalid userData"));
 	}
 
-	OutResult.PhysMaterial = NULL;
-
-	bool bReturnBody = false;
+	OutResult.PhysMaterial = nullptr;
 
 	// Grab actor/component
 	if( OwningComponent )
@@ -401,34 +410,6 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 				OutResult.PhysMaterial = FPhysxUserData::Get<UPhysicalMaterial>(PxMat->userData);
 			}
 		}
-
-		bReturnBody = OwningComponent->bMultiBodyOverlap;
-	}
-
-	// For destructibles give the ChunkInfo-Index as Item
-	if (bReturnBody && ChunkInfo)
-	{
-		OutResult.Item = ChunkInfo->ChunkIndex;
-
-		UDestructibleComponent* DMComp = Cast<UDestructibleComponent>(OwningComponent);
-		OutResult.BoneName = DMComp->GetBoneName(UDestructibleComponent::ChunkIdxToBoneIdx(ChunkInfo->ChunkIndex));
-	}
-	// If BodyInstance and not destructible, give BodyIndex as Item
-	else if (BodyInst)
-	{
-		OutResult.Item = BodyInst->InstanceBodyIndex;
-
-		const UBodySetup* BodySetup = BodyInst->BodySetup.Get();	//this data should be immutable at runtime so ok to check from worker thread.
-		if (BodySetup)
-		{
-			OutResult.BoneName = BodySetup->BoneName;
-		}
-	}
-	else
-	{
-		// invalid index
-		OutResult.Item = INDEX_NONE;
-		OutResult.BoneName = NAME_None;
 	}
 
 	OutResult.FaceIndex = INDEX_NONE;
@@ -1022,40 +1003,33 @@ void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOve
 {
 	const bool bBlock = IsBlocking(PShape, QueryFilter);
 
-	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
-	const FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
-
 	// Grab actor/component
-	const UPrimitiveComponent* OwnerComponent = nullptr;
-
+	
 	// Try body instance
-	if (BodyInst)
+	if (const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData))
 	{
         BodyInst = BodyInst->GetOriginalBodyInstance(PShape);
-
-		OwnerComponent = BodyInst->OwnerComponent.Get(); // cache weak pointer object, avoid multiple derefs below.
-		if (OwnerComponent)
+		if (const UPrimitiveComponent* OwnerComponent = BodyInst->OwnerComponent.Get())
 		{
 			OutOverlap.Actor = OwnerComponent->GetOwner();
 			OutOverlap.Component = BodyInst->OwnerComponent; // Copying weak pointer is faster than assigning raw pointer.
 			OutOverlap.ItemIndex = OwnerComponent->bMultiBodyOverlap ? BodyInst->InstanceBodyIndex : INDEX_NONE;
 		}
 	}
-	
-	if (!OwnerComponent)
+	else if(const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(PShape->userData))
 	{
-		// Try chunk info
-		if (ChunkInfo)
+		TWeakObjectPtr<UPrimitiveComponent> OwnerComponent = CustomPayload->GetOwningComponent();
+		if (UPrimitiveComponent* OwnerComponentRaw = OwnerComponent.Get())
 		{
-			OwnerComponent = ChunkInfo->OwningComponent.Get(); // cache weak pointer object, avoid multiple derefs below.
-			if (OwnerComponent)
-			{
-				OutOverlap.Actor = OwnerComponent->GetOwner();
-				OutOverlap.Component = ChunkInfo->OwningComponent; // Copying weak pointer is faster than assigning raw pointer.
-				OutOverlap.ItemIndex = OwnerComponent->bMultiBodyOverlap ? UDestructibleComponent::ChunkIdxToBoneIdx(ChunkInfo->ChunkIndex) : INDEX_NONE;
-			}
+			OutOverlap.Actor = OwnerComponentRaw->GetOwner();
+			OutOverlap.Component = OwnerComponent; // Copying weak pointer is faster than assigning raw pointer.
+			OutOverlap.ItemIndex = OwnerComponent->bMultiBodyOverlap ? CustomPayload->GetItemIndex() : INDEX_NONE;
 		}
-	}	
+	}
+	else
+	{
+		ensureMsgf(false, TEXT("ConvertQueryOverlap called with bad payload type"));
+	}
 
 	// Other info
 	OutOverlap.bBlockingHit = bBlock;

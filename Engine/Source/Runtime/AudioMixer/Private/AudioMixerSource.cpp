@@ -6,6 +6,7 @@
 #include "ActiveSound.h"
 #include "IAudioExtensionPlugin.h"
 #include "Sound/AudioSettings.h"
+#include "ContentStreaming.h"
 
 static int32 DisableHRTFCvar = 0;
 FAutoConsoleVariableRef CVarDisableHRTF(
@@ -354,6 +355,8 @@ namespace Audio
 	void FMixerSource::Stop()
 	{
 		bInitialized = false;
+		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
 		if (WaveInstance)
 		{
 			FScopeLock Lock(&RenderThreadCritSect);
@@ -857,22 +860,24 @@ namespace Audio
 				FMixerSubmixPtr MasterReverbPluginSubmix = MixerDevice->GetMasterReverbPluginSubmix();
 				MixerSourceVoice->SetSubmixSendInfo(MasterReverbPluginSubmix, 1.0f);
 			}
-
-			// Get fraction of the sound to the 
-			if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+			else // don't send reverb to the built-in reverb if there's a plugin reverb being used.
 			{
-				float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
-				Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
-				float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
-				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WetLevel);
-			}
-			else
-			{
-				// If we're not 3d spatializing a sound, then use the default send amount, which is
-				// set to ReverbWetLevelMin in the WaveInstance initialization
-				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WaveInstance->ReverbWetLevelMin);
+				// Get fraction of the sound to the 
+				if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+				{
+					float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
+					Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+					float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
+					FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+					MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WetLevel);
+				}
+				else
+				{
+					// If we're not 3d spatializing a sound, then use the default send amount, which is
+					// set to ReverbWetLevelMin in the WaveInstance initialization
+					FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+					MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WaveInstance->ReverbWetLevelMin);
+				}
 			}
 		}
 

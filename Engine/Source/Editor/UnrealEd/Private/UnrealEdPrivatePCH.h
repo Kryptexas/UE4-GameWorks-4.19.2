@@ -672,7 +672,7 @@
 #include "FileHelpers.h"
 #include "Factories/FbxImportUI.h"
 #include "ThumbnailRendering/ThumbnailRenderer.h"
-#include "Editor/UnrealEd/Private/FbxImporter.h"
+#include "FbxImporter.h"
 #include "Toolkits/BaseToolkit.h"
 #include "EditorModes.h"
 #include "Toolkits/AssetEditorToolkit.h"

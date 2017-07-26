@@ -9,11 +9,11 @@
 #include "Components/PrimitiveComponent.h"
 #include "PhysicsEngine/RigidBodyIndexPair.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "CustomPhysXPayload.h"
 
 #if WITH_PHYSX
 
 #include "PhysXPublic.h"
-#include "Components/DestructibleComponent.h"
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/BodySetup.h"
 
@@ -24,7 +24,7 @@ FPhysXAllocator*		GPhysXAllocator = NULL;
 
 #if WITH_APEX
 ENGINE_API apex::ApexSDK*				GApexSDK = NULL;
-ENGINE_API apex::ModuleDestructible*	GApexModuleDestructible = NULL;
+ENGINE_API nvidia::apex::PhysX3Interface* GPhysX3Interface = nullptr;
 
 #if WITH_APEX_LEGACY
 ENGINE_API apex::Module*				GApexModuleLegacy = NULL;
@@ -37,8 +37,6 @@ ENGINE_API apex::ModuleClothing*		GApexModuleClothing		= NULL;
 TMap<int16, apex::Scene*>				GPhysXSceneMap;
 FApexNullRenderResourceManager		GApexNullRenderResourceManager;
 FApexResourceCallback				GApexResourceCallback;
-FApexPhysX3Interface				GApexPhysX3Interface;
-FApexChunkReport					GApexChunkReport;
 #else	// #if WITH_APEX
 TMap<int16, PxScene*>		GPhysXSceneMap;
 #endif	// #if WITH_APEX
@@ -300,21 +298,21 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	//UE_LOG(LogPhysics, Log, TEXT("filterData0 (%s): %x %x %x %x"), *ObjTypeToString(attributes0), filterData0.word0, filterData0.word1, filterData0.word2, filterData0.word3);
 	//UE_LOG(LogPhysics, Log, TEXT("filterData1 (%s): %x %x %x %x"), *ObjTypeToString(attributes1), filterData1.word0, filterData1.word1, filterData1.word2, filterData1.word3);
 
-
 	bool k0 = PxFilterObjectIsKinematic(attributes0);
 	bool k1 = PxFilterObjectIsKinematic(attributes1);
 
-	// Find out which channels the objects are in
-	ECollisionChannel Channel0 = GetCollisionChannel(filterData0.word3);
-	ECollisionChannel Channel1 = GetCollisionChannel(filterData1.word3);
+	PxU32 FilterFlags0 = (filterData0.word3 & 0xFFFFFF);
+	PxU32 FilterFlags1 = (filterData1.word3 & 0xFFFFFF);
 
-	// ignore kinematic-kinematic interactions which don't involve a destructible
-	if(k0 && k1 && (Channel0 != ECC_Destructible) && (Channel1 != ECC_Destructible))
+	if (k0 && k1)
 	{
-		//return PxFilterFlag::eKILL;
-		return PxFilterFlag::eSUPPRESS;	//NOTE: Waiting on physx fix for refiltering on aggregates. For now use supress which automatically tests when changes to simulation happen
+		//Ignore kinematic kinematic pairs unless they are explicitly requested
+		if(!(FilterFlags0&EPDF_KinematicKinematicPairs) && !(FilterFlags1&EPDF_KinematicKinematicPairs))
+		{
+			return PxFilterFlag::eSUPPRESS;	//NOTE: Waiting on physx fix for refiltering on aggregates. For now use supress which automatically tests when changes to simulation happen
+		}
 	}
-
+	
 	bool s0 = PxGetFilterObjectType(attributes0) == PxFilterObjectType::eRIGID_STATIC;
 	bool s1 = PxGetFilterObjectType(attributes1) == PxFilterObjectType::eRIGID_STATIC;
 
@@ -324,7 +322,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	{
 		return PxFilterFlag::eSUPPRESS;
 	}
-
+	
 	// if these bodies are from the same component, use the disable table to see if we should disable collision. This case should only happen for things like skeletalmesh and destruction. The table is only created for skeletal mesh components at the moment
 	if(filterData0.word2 == filterData1.word2)
 	{
@@ -347,6 +345,10 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 
 		}
 	}
+
+	// Find out which channels the objects are in
+	ECollisionChannel Channel0 = GetCollisionChannel(filterData0.word3);
+	ECollisionChannel Channel1 = GetCollisionChannel(filterData1.word3);
 	
 	// see if 0/1 would like to block the other 
 	PxU32 BlockFlagTo1 = (ECC_TO_BITFIELD(Channel1) & filterData0.word1);
@@ -360,8 +362,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 		return PxFilterFlag::eSUPPRESS;
 	}
 
-	PxU32 FilterFlags0 = (filterData0.word3 & 0xFFFFFF);
-	PxU32 FilterFlags1 = (filterData1.word3 & 0xFFFFFF);
+	
 
 	pairFlags = PxPairFlag::eCONTACT_DEFAULT;
 
@@ -407,37 +408,37 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	const FBodyInstance* BodyInst0 = FPhysxUserData::Get<FBodyInstance>(PActor0->userData);
 	const FBodyInstance* BodyInst1 = FPhysxUserData::Get<FBodyInstance>(PActor1->userData);
 	
-	bool bEitherDestructible = false;
+	bool bEitherCustomPayload = false;
 
-	// check if it's a destructible actor
-	if (BodyInst0 == NULL)
+	// check if it is a custom payload with special body instance conversion
+	if (BodyInst0 == nullptr)
 	{
-		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor0->userData))
+		if (const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(PActor0->userData))
 		{
-			bEitherDestructible = true;
-			BodyInst0 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
+			bEitherCustomPayload = true;
+			BodyInst0 = CustomPayload->GetBodyInstance();
 		}
 	}
 
-	if (BodyInst1 == NULL)
+	if (BodyInst1 == nullptr)
 	{
-		if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor1->userData))
+		if (const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(PActor1->userData))
 		{
-			bEitherDestructible = true;
-			BodyInst1 = DestructibleChunkInfo->OwningComponent.IsValid() ? &DestructibleChunkInfo->OwningComponent->BodyInstance : NULL;
+			bEitherCustomPayload = true;
+			BodyInst1 = CustomPayload->GetBodyInstance();
 		}
 	}
 
 	//if nothing valid just exit
-	//if a destructible mesh you can get chunks that hit other chunks from the same body... this causes a lot of spam and doesn't seem like a very useful notification so I'm turning it off
-	if(BodyInst0 == NULL || BodyInst1 == NULL || BodyInst0 == BodyInst1)
+	//if a custom payload (like apex destruction) generates collision between the same body instance we ignore it. This is potentially bad, but in general we have not had a need for this
+	if(BodyInst0 == nullptr || BodyInst1 == nullptr || BodyInst0 == BodyInst1)
 	{
 		return;
 	}
 
-	//destruction applies damage when it hits something. Unfortunately it relies on the same flag that generates onContact.
-	//We only want onContact events to happen if the user actually selected bNotifyRigidBodyCollision so we have to check if this is the case
-	if (bEitherDestructible)
+	//custom payloads may (hackily) rely on the onContact flag. Apex Destruction needs this for being able to apply damage as a result of collision.
+	//Because of this we only want onContact events to happen if the user actually selected bNotifyRigidBodyCollision so we have to check if this is the case
+	if (bEitherCustomPayload)
 	{
 		if (BodyInst0->bNotifyRigidBodyCollision == false && BodyInst1->bNotifyRigidBodyCollision == false)
 		{
@@ -660,64 +661,7 @@ SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection)
 	return Out.UsedMemory;
 }
 
-#if WITH_APEX
-///////// FApexChunkReport //////////////////////////////////
 
-void FApexChunkReport::onDamageNotify(const apex::DamageEventReportData& damageEvent)
-{
-	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
-	check(DestructibleComponent);
-
-	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
-	{
-		return;
-	}
-
-	DestructibleComponent->GetWorld()->GetPhysicsScene()->AddPendingDamageEvent(DestructibleComponent, damageEvent);
-}
-
-void FApexChunkReport::onStateChangeNotify(const apex::ChunkStateEventData& visibilityEvent)
-{
-	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(visibilityEvent.destructible->userData));
-	check(DestructibleComponent);
-
-	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
-	{
-		return;
-	}
-
-	DestructibleComponent->OnVisibilityEvent(visibilityEvent);
-}
-
-bool FApexChunkReport::releaseOnNoChunksVisible(const apex::DestructibleActor* destructible)
-{
-	return false;
-}
-
-void FApexChunkReport::onDestructibleWake(apex::DestructibleActor** destructibles, physx::PxU32 count)
-{
-}
-
-void FApexChunkReport::onDestructibleSleep(apex::DestructibleActor** destructibles, physx::PxU32 count)
-{
-}
-
-///////// FApexPhysX3Interface //////////////////////////////////
-void FApexPhysX3Interface::setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, apex::DestructibleActor* actor, PxU16 actorChunkIndex)
-{
-	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(PShape->userData));
-	check(DestructibleComponent);
-
-	DestructibleComponent->Pair(actorChunkIndex, PShape);
-}
-
-physx::PxPairFlags FApexPhysX3Interface::getContactReportFlags(const physx::PxShape* PShape) const
-{
-	PxFilterData FilterData = PShape->getSimulationFilterData();
-	return (physx::PxPairFlags)FilterData.word3;
-}
-
-#endif	// WITH_APEX
 
 FPhysxSharedData* FPhysxSharedData::Singleton = nullptr;
 

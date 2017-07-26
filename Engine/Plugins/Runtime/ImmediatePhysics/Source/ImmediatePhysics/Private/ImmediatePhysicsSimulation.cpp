@@ -131,6 +131,7 @@ uint32 FSimulation::CreateActor(PxRigidActor* RigidActor, const FTransform& Worl
 	NewRigidBodyData->maxLinearVelocitySq = PX_MAX_F32;	//NOTE: rigid dynamics don't seem to have this max property.
 
 	PendingAcceleration.AddZeroed();
+	KinematicTargets.AddZeroed();
 
 	if(RigidDynamic)
 	{
@@ -217,6 +218,7 @@ void FSimulation::SwapActorData(uint32 Actor1DataIdx, uint32 Actor2DataIdx)
 	Swap(RigidBodiesData[Actor1DataIdx], RigidBodiesData[Actor2DataIdx]);
 	Swap(SolverBodiesData[Actor1DataIdx], SolverBodiesData[Actor2DataIdx]);
 	Swap(PendingAcceleration[Actor1DataIdx], PendingAcceleration[Actor2DataIdx]);
+	Swap(KinematicTargets[Actor1DataIdx], KinematicTargets[Actor2DataIdx]);
 
 	//Update entity index on the handle
 	ActorHandles[Actor1DataIdx]->ActorDataIndex = Actor1DataIdx;
@@ -247,8 +249,10 @@ void FSimulation::ValidateArrays() const
 	check(Actors.Num() == RigidBodiesData.Num());
 	check(Actors.Num() == SolverBodiesData.Num());
 	check(Actors.Num() == PendingAcceleration.Num());
+	check(Actors.Num() == KinematicTargets.Num());
 	check(Joints.Num() == JointData.Num());
 	check(Joints.Num() == JointHandles.Num());
+	
 #endif
 }
 
@@ -337,7 +341,32 @@ void FSimulation::ConstructSolverBodies(float DeltaTime, const FVector& Gravity)
 	FMemory::Memzero(SolverBodies, NumBytes);
 	immediate::PxConstructSolverBodies(RigidBodiesData.GetData(), SolverBodiesData.GetData(), NumActiveSimulatedBodies, U2PVector(Gravity), DeltaTime);
 	
-	//kinematic have their velocities set directly, but we have to construct every frame because it could have changed
+	const float DeltaTimeInv = 1.f / DeltaTime;
+
+	//compute velocity for kinematic targets
+	const uint32 NumActors = Actors.Num();
+	for (uint32 KinematicBodyIdx = NumSimulatedBodies; KinematicBodyIdx < NumActors; ++KinematicBodyIdx)
+	{
+		const FKinematicTarget& KinematicTarget = KinematicTargets[KinematicBodyIdx];
+		if(KinematicTarget.bTargetSet)
+		{
+			immediate::PxRigidBodyData& RigidBodyData = RigidBodiesData[KinematicBodyIdx];
+			const PxTransform& CurrentTM = RigidBodyData.body2World;
+			PxVec3 LinearDelta = KinematicTarget.BodyToWorld.p - CurrentTM.p;
+			PxQuat AngularDelta = KinematicTarget.BodyToWorld.q * CurrentTM.q.getConjugate();
+
+			if (AngularDelta.w < 0)	//shortest angle.
+				AngularDelta = -AngularDelta;
+
+			PxReal Angle;
+			PxVec3 Axis;
+			AngularDelta.toRadiansAndUnitAxis(Angle, Axis);
+			
+			RigidBodyData.linearVelocity = LinearDelta * DeltaTimeInv;
+			RigidBodyData.angularVelocity = Axis * Angle * DeltaTimeInv;
+		}
+	}
+
 	immediate::PxConstructSolverBodies(RigidBodiesData.GetData() + NumActiveSimulatedBodies, SolverBodiesData.GetData() + NumActiveSimulatedBodies, NumKinematicBodies + (NumSimulatedBodies - NumActiveSimulatedBodies), PxVec3(PxZero), DeltaTime);
 #endif
 }
@@ -710,7 +739,7 @@ void FSimulation::PrepareConstraints(float DeltaTime)
 			JointDescriptor.angBreakForce = FLT_MAX;
 
 			JointDescriptor.minResponseThreshold = 0;//Constraint.getMinResponseThreshold();
-			JointDescriptor.disablePreprocessing = true;//!!(Constraint.getFlags() & PxConstraintFlag::eDISABLE_PREPROCESSING);
+			JointDescriptor.disablePreprocessing = false;//!!(Constraint.getFlags() & PxConstraintFlag::eDISABLE_PREPROCESSING);
 			JointDescriptor.improvedSlerp = true;//!!(Constraint.getFlags() & PxConstraintFlag::eIMPROVED_SLERP);
 			JointDescriptor.driveLimitsAreForces = false;//!!(Constraint.getFlags() & PxConstraintFlag::eDRIVE_LIMITS_ARE_FORCES);
 
@@ -830,6 +859,20 @@ void FSimulation::SolveAndIntegrate(float DeltaTime)
 		RigidBodiesData[DynamicsBodyIdx].angularVelocity = SolverBodiesData[DynamicsBodyIdx].angularVelocity;
 		RigidBodiesData[DynamicsBodyIdx].body2World = SolverBodiesData[DynamicsBodyIdx].body2World;
 	}
+
+	//Copy kinematic targets
+	const uint32 NumActors = Actors.Num();
+	for(uint32 KinematicBodyIdx = NumSimulatedBodies; KinematicBodyIdx < NumActors; ++KinematicBodyIdx)
+	{
+		if(KinematicTargets[KinematicBodyIdx].bTargetSet)
+		{
+			RigidBodiesData[KinematicBodyIdx].body2World = KinematicTargets[KinematicBodyIdx].BodyToWorld;
+			RigidBodiesData[KinematicBodyIdx].linearVelocity = PxVec3(PxZero);
+			RigidBodiesData[KinematicBodyIdx].angularVelocity = PxVec3(PxZero);
+		}
+	}
+
+	FMemory::Memzero(KinematicTargets.GetData(), NumActors * sizeof(KinematicTargets[0]));
 #endif
 }
 
@@ -869,6 +912,17 @@ void FSimulation::AddRadialForce(int32 ActorDataIndex, const FVector& InOrigin, 
 		{
 			PendingAcceleration[ActorDataIndex] += ApplyDelta;
 		}
+	}
+#endif
+}
+
+void FSimulation::AddForce(int32 ActorDataIndex, const FVector& Force)
+{
+#if WITH_PHYSX
+	if (IsSimulated(ActorDataIndex))
+	{
+		immediate::PxRigidBodyData& LowLevelBody = GetLowLevelBody(ActorDataIndex);
+		PendingAcceleration[ActorDataIndex] += U2PVector(Force) * LowLevelBody.invMass;
 	}
 #endif
 }

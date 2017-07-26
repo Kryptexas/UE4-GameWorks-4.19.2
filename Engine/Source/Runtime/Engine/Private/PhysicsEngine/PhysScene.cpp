@@ -16,6 +16,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "PhysicsEngine/RigidBodyIndexPair.h"
 #include "PhysicsPublic.h"
+#include "CustomPhysXPayload.h"
 
 #if WITH_PHYSX
 	#include "PhysXPublic.h"
@@ -24,7 +25,6 @@
 
 #include "PhysicsEngine/PhysSubstepTasks.h"
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
-#include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -97,36 +97,6 @@ FORCEINLINE static bool FrameLagAsync()
 	}
 	return true;
 }
-
-#if WITH_APEX
-
-//This level of indirection is needed because we don't want to expose apex::ApexDamageEventReportData in a public engine header
-struct FPendingApexDamageEvent
-{
-	TWeakObjectPtr<class UDestructibleComponent> DestructibleComponent;
-	apex::DamageEventReportData DamageEvent;
-	TArray<apex::ChunkData> ApexChunkData;
-
-	FPendingApexDamageEvent(UDestructibleComponent* InDestructibleComponent, const apex::DamageEventReportData& InDamageEvent)
-		: DestructibleComponent(InDestructibleComponent)
-		, DamageEvent(InDamageEvent)
-	{
-		ApexChunkData.AddUninitialized(InDamageEvent.fractureEventListSize);
-		for(uint32 ChunkIdx = 0; ChunkIdx < InDamageEvent.fractureEventListSize; ++ChunkIdx)
-		{
-			ApexChunkData[ChunkIdx] = InDamageEvent.fractureEventList[ChunkIdx];
-		}
-
-		DamageEvent.fractureEventList = ApexChunkData.GetData();
-	}
-
-};
-
-struct FPendingApexDamageManager
-{
-	TArray<FPendingApexDamageEvent> PendingDamageEvents;
-};
-#endif
 
 #if WITH_PHYSX
 
@@ -454,9 +424,6 @@ static FAutoConsoleCommandWithWorldAndArgs GSetPhysXTreeRebuildRate(TEXT("p.Phys
 
 /** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
 FPhysScene::FPhysScene()
-#if WITH_APEX
-	: PendingApexDamageManager(new FPendingApexDamageManager)
-#endif
 {
 	LineBatcher = NULL;
 	OwningWorld = NULL;
@@ -496,18 +463,7 @@ FPhysScene::FPhysScene()
 	{
 		PhysXSceneIndex[PST_Async] = 0;
 	}
-
-	// Make sure we use the sync scene for apex world support of destructibles in the async scene
-#if WITH_APEX
-	apex::Scene* ApexScene = GetApexScene(bAsyncSceneEnabled ? PST_Async : PST_Sync);
-	check(ApexScene);
-	PxScene* SyncPhysXScene = GetPhysXScene(PST_Sync);
-	check(SyncPhysXScene);
-	check(GApexModuleDestructible);
-	GApexModuleDestructible->setWorldSupportPhysXScene(*ApexScene, SyncPhysXScene);
-	GApexModuleDestructible->setDamageApplicationRaycastFlags(apex::DestructibleActorRaycastFlags::AllChunks, *ApexScene);
-#endif
-
+	
 	PreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FPhysScene::WaitPhysScenes);
 
 #if WITH_PHYSX
@@ -744,11 +700,11 @@ void FPhysScene::AddTorque_AssumesLocked(FBodyInstance* BodyInstance, const FVec
 #if WITH_PHYSX
 void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType)
 {
-	int32 BodyIndex = ActiveBodyInstances[SceneType].Find(BodyInstance);
-	if (BodyIndex != INDEX_NONE)
+	if(PxRigidActor* RigidActor = BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType))
 	{
-		ActiveBodyInstances[SceneType][BodyIndex] = nullptr;
+		RemoveActiveRigidActor(SceneType, RigidActor);
 	}
+	
 
 	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType));
 }
@@ -777,14 +733,6 @@ void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
 	RemoveActiveBody_AssumesLocked(BodyInstance, PST_Async);
 #endif
 }
-
-#if WITH_APEX
-void FPhysScene::AddPendingDamageEvent(UDestructibleComponent* DestructibleComponent, const apex::DamageEventReportData& DamageEvent)
-{
-	check(IsInGameThread());
-	FPendingApexDamageEvent* Pending = new (PendingApexDamageManager->PendingDamageEvents) FPendingApexDamageEvent(DestructibleComponent, DamageEvent);
-}
-#endif
 
 FAutoConsoleTaskPriority CPrio_PhysXStepSimulation(
 	TEXT("TaskGraph.TaskPriorities.PhysXStepSimulation"),
@@ -1240,6 +1188,7 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	// Reset execution flag
 
 	bool bSuccess = false;
+	IgnoreActiveActors[SceneType].Empty();
 
 //This fetches and gets active transforms. It's important that the function that calls this locks because getting the transforms and using the data must be an atomic operation
 #if WITH_PHYSX
@@ -1258,11 +1207,6 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	bSuccess = ApexScene->fetchResults(true, &OutErrorCode);
 #endif	//	#if !WITH_APEX
 
-	if(bSuccess)
-	{
-		UpdateActiveTransforms(SceneType);
-	}
-	
 	if (OutErrorCode != 0)
 	{
 		UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
@@ -1277,45 +1221,6 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 	FlushDeferredActors((EPhysicsSceneType)SceneType);
 #endif
 }
-#if WITH_PHYSX
-void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
-{
-	checkSlow(SceneType < PST_MAX);
-
-	if (SceneType == PST_Cloth)	//cloth doesn't bother with updating components to bodies so we don't need to store any transforms
-	{
-		return;
-	}
-	PxScene* PScene = GetPhysXScene(SceneType);
-	check(PScene);
-	SCOPED_SCENE_READ_LOCK(PScene);
-
-	PxU32 NumActors = 0;
-	PxActor** PActiveActors = PScene->getActiveActors(NumActors);
-	ActiveBodyInstances[SceneType].Empty(NumActors);
-	ActiveDestructibleActors[SceneType].Empty(NumActors);
-
-	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
-	{
-		PxActor* PActiveActor = PActiveActors[TransformIdx];
-		PxRigidActor* RigidActor = PActiveActor->is<PxRigidActor>();
-		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
-
-		if (FBodyInstance* BodyInstance = FPhysxUserData::Get<FBodyInstance>(RigidActor->userData))
-		{
-			if (BodyInstance->InstanceBodyIndex == INDEX_NONE && BodyInstance->OwnerComponent.IsValid() && BodyInstance->IsInstanceSimulatingPhysics())
-			{
-				ActiveBodyInstances[SceneType].Add(BodyInstance);
-			}
-		}
-		else if (const FDestructibleChunkInfo* DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
-		{
-			ActiveDestructibleActors[SceneType].Add(RigidActor);
-		}
-		
-	}
-}
-#endif
 
 void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 {
@@ -1326,37 +1231,71 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies_Cloth, SceneType == PST_Cloth);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_SyncComponentsToBodies_Async, SceneType == PST_Async);
 
-	for (FBodyInstance* BodyInstance : ActiveBodyInstances[SceneType])
+#if WITH_PHYSX
+	PxScene* PScene = GetPhysXScene(SceneType);
+	check(PScene);
+	
+	/** Array of custom sync handlers (plugins) */
+	TArray<FCustomPhysXSyncActors*> CustomPhysXSyncActors;
+
+	PxU32 NumActors = 0;
+	PxActor** PActiveActors = PScene->getActiveActors(NumActors);
+	
+	for (PxU32 TransformIdx = 0; TransformIdx < NumActors; ++TransformIdx)
 	{
-		if (BodyInstance == nullptr) { continue; }
+		PxActor* PActiveActor = PActiveActors[TransformIdx];
+		PxRigidActor* RigidActor = PActiveActor->is<PxRigidActor>();
 
-		check(BodyInstance->OwnerComponent->IsRegistered()); // shouldn't have a physics body for a non-registered component!
-
-		AActor* Owner = BodyInstance->OwnerComponent->GetOwner();
-
-		// See if the transform is actually different, and if so, move the component to match physics
-		const FTransform NewTransform = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
-		if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->GetComponentTransform()))
+		if (IgnoreActiveActors[SceneType].Find(RigidActor) != INDEX_NONE)
 		{
-			const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->GetComponentTransform().GetLocation();
-			const FQuat NewRotation = NewTransform.GetRotation();
-
-			//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
-			BodyInstance->OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+			continue;
 		}
 
-		// Check if we didn't fall out of the world
-		if (Owner != NULL && !Owner->IsPendingKill())
+		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
+
+		if (FBodyInstance* BodyInstance = FPhysxUserData::Get<FBodyInstance>(RigidActor->userData))
 		{
-			Owner->CheckStillInWorld();
+			if (BodyInstance->InstanceBodyIndex == INDEX_NONE && BodyInstance->OwnerComponent.IsValid())
+			{
+				check(BodyInstance->OwnerComponent->IsRegistered()); // shouldn't have a physics body for a non-registered component!
+
+				AActor* Owner = BodyInstance->OwnerComponent->GetOwner();
+
+				// See if the transform is actually different, and if so, move the component to match physics
+				const FTransform NewTransform = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
+				if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->GetComponentTransform()))
+				{
+					const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->GetComponentTransform().GetLocation();
+					const FQuat NewRotation = NewTransform.GetRotation();
+
+					//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
+					BodyInstance->OwnerComponent->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+				}
+
+				// Check if we didn't fall out of the world
+				if (Owner != NULL && !Owner->IsPendingKill())
+				{
+					Owner->CheckStillInWorld();
+				}
+			}
+		}
+		else if (const FCustomPhysXPayload* CustomPayload = FPhysxUserData::Get<FCustomPhysXPayload>(RigidActor->userData))
+		{
+			if(CustomPayload->CustomSyncActors)
+			{
+				CustomPhysXSyncActors.AddUnique(CustomPayload->CustomSyncActors);	//NOTE: AddUnique because the assumed number of plugins that rely on this is very small
+				CustomPayload->CustomSyncActors->Actors.Add(RigidActor);
+			}
 		}
 	}
 
-#if WITH_APEX
-	if (ActiveDestructibleActors[SceneType].Num())
+	for(FCustomPhysXSyncActors* CustomSync : CustomPhysXSyncActors)
 	{
-		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
+		CustomSync->SyncToActors_AssumesLocked(SceneType, CustomSync->Actors);
+		CustomSync->Actors.Empty(CustomSync->Actors.Num());
 	}
+
+	IgnoreActiveActors[SceneType].Empty();
 #endif
 }
 
@@ -1396,20 +1335,6 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 		PendingCollisionNotifies.Reset();
 	}
 
-#if WITH_APEX
-	for (const FPendingApexDamageEvent& PendingDamageEvent : PendingApexDamageManager->PendingDamageEvents)
-	{
-		if(UDestructibleComponent* DestructibleComponent = PendingDamageEvent.DestructibleComponent.Get())
-		{
-			const apex::DamageEventReportData & damageEvent = PendingDamageEvent.DamageEvent;
-			check(DestructibleComponent == Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData)))	//we store this as a weak pointer above in case one of the callbacks decided to call DestroyComponent
-			DestructibleComponent->OnDamageEvent(damageEvent);
-		}
-	}
-
-	PendingApexDamageManager->PendingDamageEvents.Empty();
-#endif
-
 #if WITH_PHYSX
 	for (int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
 	{
@@ -1439,6 +1364,9 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 
 		ConstraintData.PendingConstraintBroken.Empty();
 	}
+
+
+	FPhysicsDelegates::OnPhysDispatchNotifications.Broadcast(this);
 }
 
 void FPhysScene::SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds, float InMaxPhysicsDeltaTime)
@@ -1962,6 +1890,8 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Create sim event callback
 	SimEventCallback[SceneType] = SimEventCallbackFactory.IsValid() ? SimEventCallbackFactory->Create(this, SceneType) : new FPhysXSimEventCallback(this, SceneType);
 
+
+
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());
 	PSceneDesc.cpuDispatcher = CPUDispatcher[SceneType];
@@ -1991,10 +1921,6 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	{
 		PSceneDesc.flags &= ~PxSceneFlag::eENABLE_STABILIZATION;
 	}
-
-	//LOC_MOD enable kinematic vs kinematic for APEX destructibles. This is for the kinematic cube moving horizontally in QA-Destructible map to collide with the destructible.
-	// Was this flag turned off in UE4? Do we want to turn it on for both sync and async scenes?
-	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;
 
 	// Set bounce threshold
 	PSceneDesc.bounceThresholdVelocity = UPhysicsSettings::Get()->BounceThresholdVelocity;
@@ -2049,7 +1975,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	apex::SceneDesc ApexSceneDesc;
 	ApexSceneDesc.scene = PScene;
 	// This interface allows us to modify the PhysX simulation filter shader data with contact pair flags 
-	ApexSceneDesc.physX3Interface = &GApexPhysX3Interface;
+	ApexSceneDesc.physX3Interface = GPhysX3Interface;
 
 	// Create the APEX scene from our descriptor
 	apex::Scene* ApexScene = GApexSDK->createScene(ApexSceneDesc);

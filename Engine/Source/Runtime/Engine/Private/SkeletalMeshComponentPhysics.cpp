@@ -1527,9 +1527,9 @@ int32 USkeletalMeshComponent::ForEachBodyBelow(FName BoneName, bool bIncludeSelf
 		PhysicsAsset->GetBodyIndicesBelow(BodyIndices, BoneName, SkeletalMesh, bIncludeSelf);
 
 		int32 NumBodiesFound = 0;
-		for (int32 BodyIdx = 0; BodyIdx < BodyIndices.Num(); BodyIdx++)
+		for (int32 BodyIdx : BodyIndices)
 		{
-			FBodyInstance* BI = Bodies[BodyIndices[BodyIdx]];
+			FBodyInstance* BI = Bodies[BodyIdx];
 			if (bSkipCustomType)
 			{
 				if (UBodySetup* PhysAssetBodySetup = PhysicsAsset->SkeletalBodySetups[BodyIdx])

@@ -70,8 +70,12 @@ public class Launch : ModuleRules
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
 				DynamicallyLoadedModuleNames.Add("XAudio2");
 				DynamicallyLoadedModuleNames.Add("AudioMixerXAudio2");
-			}
-			else if (Target.Platform == UnrealTargetPlatform.Mac)
+                if (Target.Platform == UnrealTargetPlatform.Win64)
+                {
+                    DynamicallyLoadedModuleNames.Add("AudioMixerSDL");
+                }
+            }
+            else if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				DynamicallyLoadedModuleNames.Add("CoreAudio");
 				DynamicallyLoadedModuleNames.Add("AudioMixerAudioUnit");

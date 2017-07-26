@@ -90,7 +90,6 @@ DEFINE_STAT(STAT_Navigation_RecastTick);
 DEFINE_STAT(STAT_Navigation_RecastPathfinding);
 DEFINE_STAT(STAT_Navigation_RecastBuildCompressedLayers);
 DEFINE_STAT(STAT_Navigation_RecastBuildNavigation);
-DEFINE_STAT(STAT_Navigation_DestructiblesShapesExported);
 DEFINE_STAT(STAT_Navigation_UpdateNavOctree);
 DEFINE_STAT(STAT_Navigation_CollisionTreeMemory);
 DEFINE_STAT(STAT_Navigation_NavDataMemory);

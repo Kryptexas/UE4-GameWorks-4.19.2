@@ -19,17 +19,17 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Delegate property name that this event is associated with */
-	UPROPERTY()
-	FName DelegatePropertyName;
+		/** Delegate property name that this event is associated with */
+		UPROPERTY()
+		FName DelegatePropertyName;
 
 	/** Delegate property's owner class that this event is associated with */
 	UPROPERTY()
-	UClass* DelegateOwnerClass;
+		UClass* DelegateOwnerClass;
 
 	/** The event that this event is bound to */
 	UPROPERTY()
-	class AActor* EventOwner;
+		class AActor* EventOwner;
 
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -54,11 +54,11 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	virtual bool IsUsedByAuthorityOnlyDelegate() const override;
 
 	/**
-	 * Initialized the members of the node, given the specified owner and delegate property.  This will fill out all the required members for the event, such as CustomFunctionName
-	 *
-	 * @param InEventOwner			The target for this bound event
-	 * @param InDelegateProperty	The multicast delegate property associated with the event, which will have a delegate added to it in the level script actor, matching its signature
-	 */
+	* Initialized the members of the node, given the specified owner and delegate property.  This will fill out all the required members for the event, such as CustomFunctionName
+	*
+	* @param InEventOwner			The target for this bound event
+	* @param InDelegateProperty	The multicast delegate property associated with the event, which will have a delegate added to it in the level script actor, matching its signature
+	*/
 	BLUEPRINTGRAPH_API void InitializeActorBoundEventParams(AActor* InEventOwner, const UMulticastDelegateProperty* InDelegateProperty);
 
 	/** Return the delegate property that this event is bound to */

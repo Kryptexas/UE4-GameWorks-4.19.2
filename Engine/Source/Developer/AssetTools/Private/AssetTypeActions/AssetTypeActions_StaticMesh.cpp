@@ -9,10 +9,6 @@
 
 #include "Editor/StaticMeshEditor/Public/StaticMeshEditorModule.h"
 
-#include "Editor/DestructibleMeshEditor/Public/DestructibleMeshEditorModule.h"
-
-#include "Engine/DestructibleMesh.h"
-
 #include "FbxMeshUtils.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -43,16 +39,6 @@ void FAssetTypeActions_StaticMesh::GetActions( const TArray<UObject*>& InObjects
 				)
 			);
 	}
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMesh", "Create Destructible Mesh"),
-		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_CreateDestructibleMeshTooltip", "Creates a DestructibleMesh from the StaticMesh and opens it in the DestructibleMesh editor."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.DestructibleComponent"),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh, Meshes ),
-			FCanExecuteAction()
-			)
-		);
 
 	MenuBuilder.AddSubMenu(
 		NSLOCTEXT("AssetTypeActions_StaticMesh", "StaticMesh_LODMenu", "Level Of Detail"),
@@ -247,35 +233,6 @@ void FAssetTypeActions_StaticMesh::ExecutePasteLODSettings(TArray<TWeakObjectPtr
 bool FAssetTypeActions_StaticMesh::CanPasteLODSettings(TArray<TWeakObjectPtr<UStaticMesh>> Objects) const
 {
 	return LODCopyMesh.IsValid();
-}
-
-void FAssetTypeActions_StaticMesh::ExecuteCreateDestructibleMesh(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
-{
-	TArray< UObject* > Assets;
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
-		{
-			FText ErrorMsg;
-			FDestructibleMeshEditorModule& DestructibleMeshEditorModule = FModuleManager::LoadModuleChecked<FDestructibleMeshEditorModule>( "DestructibleMeshEditor" );
-			UDestructibleMesh* DestructibleMesh = DestructibleMeshEditorModule.CreateDestructibleMeshFromStaticMesh(Object->GetOuter(), Object, NAME_None, Object->GetFlags(), ErrorMsg);
-			if ( DestructibleMesh )
-			{
-				FAssetEditorManager::Get().OpenEditorForAsset(DestructibleMesh);
-				Assets.Add(DestructibleMesh);
-			}
-			else if ( !ErrorMsg.IsEmpty() )
-			{
-				FNotificationInfo ErrorNotification( ErrorMsg );
-				FSlateNotificationManager::Get().AddNotification(ErrorNotification);
-			}
-		}
-	}
-	if ( Assets.Num() > 0 )
-	{
-		FAssetTools::Get().SyncBrowserToAssets(Assets);
-	}
 }
 
 void FAssetTypeActions_StaticMesh::ExecuteSaveGeneratedLODsInPackage(TArray<TWeakObjectPtr<UStaticMesh>> Objects)

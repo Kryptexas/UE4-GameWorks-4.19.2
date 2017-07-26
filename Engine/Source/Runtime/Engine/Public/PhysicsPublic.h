@@ -24,7 +24,6 @@ class UPhysicsAsset;
 class UPrimitiveComponent;
 class USkeletalMeshComponent;
 struct FConstraintInstance;
-struct FPendingApexDamageManager;
 
 /**
  * Physics stats
@@ -75,6 +74,7 @@ namespace nvidia
 struct FConstraintInstance;
 class UPhysicsAsset;
 
+
 struct FConstraintBrokenDelegateData
 {
 	FConstraintBrokenDelegateData(FConstraintInstance* ConstraintInstance);
@@ -112,8 +112,6 @@ namespace NvParameterized
 
 /** Pointer to APEX SDK object */
 extern ENGINE_API apex::ApexSDK*			GApexSDK;
-/** Pointer to APEX Destructible module object */
-extern ENGINE_API apex::ModuleDestructible*	GApexModuleDestructible;
 /** Pointer to APEX legacy module object */
 extern ENGINE_API apex::Module* 			GApexModuleLegacy;
 #if WITH_APEX_CLOTHING
@@ -573,10 +571,11 @@ public:
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
 	ENGINE_API void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
-#if WITH_APEX
-	/** Adds a damage event to be fired when fetchResults is done */
-	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const apex::DamageEventReportData& DamageEvent);
-#endif
+	/** Marks actor as being deleted to ensure it is not updated as an actor actor. This should only be called by very advanced code that is using physx actors directly (not recommended!) */
+	void RemoveActiveRigidActor(uint32 SceneType, physx::PxRigidActor* ActiveRigidActor)
+	{
+		IgnoreActiveActors[SceneType].Add(ActiveRigidActor);
+	}
 
 	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */
 	void MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning);
@@ -616,21 +615,11 @@ private:
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
 
-	/** Cache of active transforms sorted into types */ //TODO: this solution is not great
-	TArray<struct FBodyInstance*> ActiveBodyInstances[PST_MAX];	//body instances that have moved
-	TArray<const physx::PxRigidActor*> ActiveDestructibleActors[PST_MAX];	//destructible actors that have moved
-
-	/** Fetch results from simulation and get the active transforms. Make sure to lock before calling this function as the fetch and data you use must be treated as an atomic operation */
-	void UpdateActiveTransforms(uint32 SceneType);
+	TArray<physx::PxRigidActor*> IgnoreActiveActors[PST_MAX];	//Active actors that have been deleted after fetchResults but before EndFrame and must be ignored
 	void RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType);
-
 #endif
 
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
-	
-#if WITH_APEX
-	TUniquePtr<struct FPendingApexDamageManager> PendingApexDamageManager;
-#endif
 
 	struct FPendingCollisionDisableTable
 	{
@@ -797,14 +786,24 @@ public:
 	}
 };
 
+namespace PhysDLLHelper
+{
 /**
  *	Load the required modules for PhysX
  */
 ENGINE_API void LoadPhysXModules(bool bLoadCooking);
+
+
+#if WITH_APEX
+	ENGINE_API void* LoadAPEXModule(const FString& Path);
+	ENGINE_API void UnloadAPEXModule(void* Handle);
+#endif
+
 /** 
  *	Unload the required modules for PhysX
  */
 void UnloadPhysXModules();
+}
 
 ENGINE_API void	InitGamePhys();
 ENGINE_API void	TermGamePhys();
@@ -835,6 +834,8 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPhysSceneTerm, FPhysScene*, EPhysicsSceneType);
 	static FOnPhysSceneTerm OnPhysSceneTerm;
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPhysDispatchNotifications, FPhysScene*);
+	static FOnPhysDispatchNotifications OnPhysDispatchNotifications;
 };
 
 extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule();

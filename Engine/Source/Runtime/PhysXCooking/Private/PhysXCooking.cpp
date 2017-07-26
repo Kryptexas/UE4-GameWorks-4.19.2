@@ -519,7 +519,7 @@ void FPhysXPlatformModule::InitPhysXCooking()
 	if (IsInGameThread())
 	{
 		// Make sure PhysX libs are loaded
-		LoadPhysXModules(/*bLoadCookingModule=*/true);
+		PhysDLLHelper::LoadPhysXModules(/*bLoadCookingModule=*/true);
 	}
 }
 

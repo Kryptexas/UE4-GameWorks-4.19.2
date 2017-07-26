@@ -52,7 +52,6 @@
 #include "AssetTypeActions/AssetTypeActions_CurveLinearColor.h"
 #include "AssetTypeActions/AssetTypeActions_DataAsset.h"
 #include "AssetTypeActions/AssetTypeActions_DataTable.h"
-#include "AssetTypeActions/AssetTypeActions_DestructibleMesh.h"
 #include "AssetTypeActions/AssetTypeActions_Enum.h"
 #include "AssetTypeActions/AssetTypeActions_Class.h"
 #include "AssetTypeActions/AssetTypeActions_Struct.h"
@@ -165,7 +164,6 @@ UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveLinearColor));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataAsset));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataTable));
-	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DestructibleMesh));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Enum));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Class));
 	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Struct));

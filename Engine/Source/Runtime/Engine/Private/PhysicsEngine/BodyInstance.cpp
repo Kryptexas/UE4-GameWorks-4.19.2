@@ -473,6 +473,7 @@ FBodyInstance::FBodyInstance()
 	, CustomDOFPlaneNormal(FVector::ZeroVector)
 	, COMNudge(ForceInit)
 	, MassScale(1.f)
+	, InertiaScale(1.f)
 	, DOFConstraint(NULL)
 	, WeldParent(NULL)
 	, PhysMaterialOverride(NULL)
@@ -3684,6 +3685,7 @@ PxMassProperties ComputeMassProperties(const FBodyInstance* OwningBodyInstance, 
 	PxMassProperties FinalMassProps = MassProps * MassRatio;
 
 	FinalMassProps.centerOfMass += U2PVector(MassModifierTransform.TransformVector(OwningBodyInstance->COMNudge));
+	FinalMassProps.inertiaTensor *= OwningBodyInstance->InertiaScale;
 
 	return FinalMassProps;
 }

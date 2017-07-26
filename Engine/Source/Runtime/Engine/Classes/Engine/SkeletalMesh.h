@@ -509,8 +509,8 @@ class FSkeletalMeshResource;
  *
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  */
-UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
-class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
+UCLASS(hidecategories=Object, BlueprintType)
+class ENGINE_API USkeletalMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -559,26 +559,40 @@ public:
 
 	/** Get the extended bounds of this mesh (imported bounds plus bounds extension) */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
-	ENGINE_API FBoxSphereBounds GetBounds();
+	FBoxSphereBounds GetBounds();
 
 	/** Get the original imported bounds of the skel mesh */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
-	ENGINE_API FBoxSphereBounds GetImportedBounds();
+	FBoxSphereBounds GetImportedBounds();
 
 	/** Set the original imported bounds of the skel mesh, will recalculate extended bounds */
-	ENGINE_API void SetImportedBounds(const FBoxSphereBounds& InBounds);
+	void SetImportedBounds(const FBoxSphereBounds& InBounds);
 
 	/** Set bound extension values in the positive direction of XYZ, positive value increases bound size */
-	ENGINE_API void SetPositiveBoundsExtension(const FVector& InExtension);
+	void SetPositiveBoundsExtension(const FVector& InExtension);
 
 	/** Set bound extension values in the negative direction of XYZ, positive value increases bound size */
-	ENGINE_API void SetNegativeBoundsExtension(const FVector& InExtension);
+	void SetNegativeBoundsExtension(const FVector& InExtension);
 
 	/** Calculate the extended bounds based on the imported bounds and the extension values */
 	void CalculateExtendedBounds();
 
 	/** Alters the bounds extension values to fit correctly into the current bounds (so negative values never extend the bounds etc.) */
 	void ValidateBoundsExtension();
+
+#if WITH_EDITOR
+	/** This is a bit hacky. If you are inherriting from SkeletalMesh you can opt out of using the skeletal mesh actor factory. Note that this only works for one level of inherritence and is not a good long term solution */
+	virtual bool HasCustomActorFactory() const
+	{
+		return false;
+	}
+
+	/** This is a bit hacky. If you are inherriting from SkeletalMesh you can opt out of using the skeletal mesh actor factory. Note that this only works for one level of inherritence and is not a good long term solution */
+	virtual bool HasCustomActorReimportFactory() const
+	{
+		return false;
+	}
+#endif
 
 	/** List of materials applied to this mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, duplicatetransient, Category=SkeletalMesh)
@@ -637,7 +651,7 @@ public:
 	TArray<class UNodeMappingContainer*> NodeMappingData;
 
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	ENGINE_API class UNodeMappingContainer* GetNodeMappingContainer(class UBlueprint* SourceAsset) const;
+	class UNodeMappingContainer* GetNodeMappingContainer(class UBlueprint* SourceAsset) const;
 
 #if WITH_EDITORONLY_DATA
 
@@ -746,14 +760,14 @@ public:
 	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
 
 	/** If the given section of the specified LOD has a clothing asset, unbind it's data and remove it from the asset array */
-	ENGINE_API void RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+	void RemoveClothingAsset(int32 InLodIndex, int32 InSectionIndex);
 
 	/**
 	 * Given an LOD and section index, retrieve a clothing asset bound to that section.
 	 * If no clothing asset is in use, returns nullptr
 	 */
-	ENGINE_API UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex);
-	ENGINE_API const UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex) const;
+	UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex);
+	const UClothingAssetBase* GetSectionClothingAsset(int32 InLodIndex, int32 InSectionIndex) const;
 
 	/** 
 	 * Clothing assets imported to this mesh. May or may not be in use currently on the mesh.
@@ -764,22 +778,22 @@ public:
 	TArray<UClothingAssetBase*> MeshClothingAssets;
 
 	/** Get a clothing asset from its associated GUID (returns nullptr if no match is found) */
-	ENGINE_API UClothingAssetBase* GetClothingAsset(const FGuid& InAssetGuid) const;
+	UClothingAssetBase* GetClothingAsset(const FGuid& InAssetGuid) const;
 
 	/* Get the index in the clothing asset array for a given asset (INDEX_NONE if InAsset isn't in the array) */
-	ENGINE_API int32 GetClothingAssetIndex(UClothingAssetBase* InAsset) const;
+	int32 GetClothingAssetIndex(UClothingAssetBase* InAsset) const;
 
 	/* Get the index in the clothing asset array for a given asset GUID (INDEX_NONE if there is no match) */
-	ENGINE_API int32 GetClothingAssetIndex(const FGuid& InAssetGuid) const;
+	int32 GetClothingAssetIndex(const FGuid& InAssetGuid) const;
 
 	/* Get whether or not any bound clothing assets exist for this mesh **/
-	ENGINE_API bool HasActiveClothingAssets() const;
+	bool HasActiveClothingAssets() const;
 
 	/** Populates OutClothingAssets with all clothing assets that are mapped to sections in the mesh. */
-	ENGINE_API void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
+	void GetClothingAssetsInUse(TArray<UClothingAssetBase*>& OutClothingAssets) const;
 
 	/** Adds an asset to this mesh with validation and event broadcast */
-	ENGINE_API void AddClothingAsset(UClothingAssetBase* InNewAsset);
+	void AddClothingAsset(UClothingAssetBase* InNewAsset);
 
 protected:
 
@@ -805,12 +819,12 @@ public:
 	/**
 	* Initialize the mesh's render resources.
 	*/
-	ENGINE_API void InitResources();
+	void InitResources();
 
 	/**
 	* Releases the mesh's render resources.
 	*/
-	ENGINE_API void ReleaseResources();
+	void ReleaseResources();
 
 
 	/** Release CPU access version of buffer */
@@ -821,7 +835,7 @@ public:
 	 *
 	 * @param bResetOverrides		True if overridden values should be reset.
 	 */
-	ENGINE_API void UpdateUVChannelData(bool bResetOverrides);
+	void UpdateUVChannelData(bool bResetOverrides);
 
 	/**
 	 * Returns the UV channel data for a given material index. Used by the texture streamer.
@@ -830,17 +844,17 @@ public:
 	 * @param MaterialIndex		the material index for which to get the data for.
 	 * @return the data, or null if none exists.
 	 */
-	ENGINE_API const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
+	const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
 	 * Gets the center point from which triangles should be sorted, if any.
 	 */
-	ENGINE_API bool GetSortCenterPoint(FVector& OutSortCenter) const;
+	bool GetSortCenterPoint(FVector& OutSortCenter) const;
 
 	/**
 	 * Computes flags for building vertex buffers.
 	 */
-	ENGINE_API uint32 GetVertexBufferFlags() const;
+	uint32 GetVertexBufferFlags() const;
 
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
@@ -865,17 +879,17 @@ public:
 
 	/** Setup-only routines - not concerned with the instance. */
 
-	ENGINE_API void CalculateInvRefMatrices();
+	void CalculateInvRefMatrices();
 
 	/** Calculate the required bones for a Skeletal Mesh LOD, including possible extra influences */
-	ENGINE_API static void CalculateRequiredBones(class FStaticLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
+	static void CalculateRequiredBones(class FStaticLODModel& LODModel, const struct FReferenceSkeleton& RefSkeleton, const TMap<FBoneIndexType, FBoneIndexType> * BonesToRemove);
 
 	/** 
 	 *	Find a socket object in this SkeletalMesh by name. 
 	 *	Entering NAME_None will return NULL. If there are multiple sockets with the same name, will return the first one.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	ENGINE_API USkeletalMeshSocket* FindSocket(FName InSocketName) const;
+	USkeletalMeshSocket* FindSocket(FName InSocketName) const;
 
 	/**
 	*	Find a socket object in this SkeletalMesh by name.
@@ -883,75 +897,75 @@ public:
 	*   Also returns the index for the socket allowing for future fast access via GetSocketByIndex()
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	ENGINE_API USkeletalMeshSocket* FindSocketAndIndex(FName InSocketName, int32& OutIndex) const;
+	USkeletalMeshSocket* FindSocketAndIndex(FName InSocketName, int32& OutIndex) const;
 
 	/** Returns the number of sockets available. Both on this mesh and it's skeleton. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	ENGINE_API int32 NumSockets() const;
+	int32 NumSockets() const;
 
 	/** Returns a socket by index. Max index is NumSockets(). The meshes sockets are accessed first, then the skeletons.  */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	ENGINE_API USkeletalMeshSocket* GetSocketByIndex(int32 Index) const;
+	USkeletalMeshSocket* GetSocketByIndex(int32 Index) const;
 
 	// @todo document
-	ENGINE_API FMatrix GetRefPoseMatrix( int32 BoneIndex ) const;
+	FMatrix GetRefPoseMatrix( int32 BoneIndex ) const;
 
 	/** 
 	 *	Get the component orientation of a bone or socket. Transforms by parent bones.
 	 */
-	ENGINE_API FMatrix GetComposedRefPoseMatrix( FName InBoneName ) const;
-	ENGINE_API FMatrix GetComposedRefPoseMatrix( int32 InBoneIndex ) const;
+	FMatrix GetComposedRefPoseMatrix( FName InBoneName ) const;
+	FMatrix GetComposedRefPoseMatrix( int32 InBoneIndex ) const;
 
 	/** Allocate and initialise bone mirroring table for this skeletal mesh. Default is source = destination for each bone. */
 	void InitBoneMirrorInfo();
 
 	/** Utility for copying and converting a mirroring table from another USkeletalMesh. */
-	ENGINE_API void CopyMirrorTableFrom(USkeletalMesh* SrcMesh);
-	ENGINE_API void ExportMirrorTable(TArray<FBoneMirrorExport> &MirrorExportInfo);
-	ENGINE_API void ImportMirrorTable(TArray<FBoneMirrorExport> &MirrorExportInfo);
+	void CopyMirrorTableFrom(USkeletalMesh* SrcMesh);
+	void ExportMirrorTable(TArray<FBoneMirrorExport> &MirrorExportInfo);
+	void ImportMirrorTable(TArray<FBoneMirrorExport> &MirrorExportInfo);
 
 	/** 
 	 *	Utility for checking that the bone mirroring table of this mesh is good.
 	 *	Return true if mirror table is OK, false if there are problems.
 	 *	@param	ProblemBones	Output string containing information on bones that are currently bad.
 	 */
-	ENGINE_API bool MirrorTableIsGood(FString& ProblemBones);
+	bool MirrorTableIsGood(FString& ProblemBones);
 
 	/**
 	 * Returns the mesh only socket list - this ignores any sockets in the skeleton
 	 * Return value is a non-const reference so the socket list can be changed
 	 */
-	ENGINE_API TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList();
+	TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList();
 
 	/**
 	 * Const version
 	 * Returns the mesh only socket list - this ignores any sockets in the skeleton
 	 * Return value is a non-const reference so the socket list can be changed
 	 */
-	ENGINE_API const TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList() const;
+	const TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList() const;
 
 	/**
 	* Returns the "active" socket list - all sockets from this mesh plus all non-duplicates from the skeleton
 	* Const ref return value as this cannot be modified externally
 	*/
-	ENGINE_API TArray<USkeletalMeshSocket*> GetActiveSocketList() const;
+	TArray<USkeletalMeshSocket*> GetActiveSocketList() const;
 
 #if WITH_EDITOR
 	/** Retrieves the source model for this skeletal mesh. */
-	ENGINE_API FStaticLODModel& GetSourceModel();
+	FStaticLODModel& GetSourceModel();
 
 	/**
 	 * Copies off the source model for this skeletal mesh if necessary and returns it. This function should always be called before
 	 * making destructive changes to the mesh's geometry, e.g. simplification.
 	 */
-	ENGINE_API FStaticLODModel& PreModifyMesh();
+	FStaticLODModel& PreModifyMesh();
 
 	/**
 	* Makes sure all attached objects are valid and removes any that aren't.
 	*
 	* @return		NumberOfBrokenAssets
 	*/
-	ENGINE_API int32 ValidatePreviewAttachedObjects();
+	int32 ValidatePreviewAttachedObjects();
 
 	/**
 	 * Removes a specified section from the skeletal mesh, this is a destructive action
@@ -959,7 +973,7 @@ public:
 	 * @param InLodIndex Lod index to remove section from
 	 * @param InSectionIndex Section index to remove
 	 */
-	ENGINE_API void RemoveMeshSection(int32 InLodIndex, int32 InSectionIndex);
+	void RemoveMeshSection(int32 InLodIndex, int32 InSectionIndex);
 
 #endif // #if WITH_EDITOR
 
@@ -976,16 +990,16 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	ENGINE_API UMorphTarget* FindMorphTarget(FName MorphTargetName) const;
-	ENGINE_API UMorphTarget* FindMorphTargetAndIndex(FName MorphTargetName, int32& OutIndex) const;
+	UMorphTarget* FindMorphTarget(FName MorphTargetName) const;
+	UMorphTarget* FindMorphTargetAndIndex(FName MorphTargetName, int32& OutIndex) const;
 
 	/** if name conflicts, it will overwrite the reference */
-	ENGINE_API void RegisterMorphTarget(UMorphTarget* MorphTarget);
+	void RegisterMorphTarget(UMorphTarget* MorphTarget);
 
-	ENGINE_API void UnregisterMorphTarget(UMorphTarget* MorphTarget);
+	void UnregisterMorphTarget(UMorphTarget* MorphTarget);
 
 	/** Initialize MorphSets look up table : MorphTargetIndexMap */
-	ENGINE_API void InitMorphTargets();
+	void InitMorphTargets();
 
 	/** 
 	 * Checks whether the provided section is using APEX cloth. if bCheckCorrespondingSections is true
@@ -996,16 +1010,16 @@ public:
 	 * @param bCheckCorrespondingSections Whether to check corresponding sections for disabled sections
 	 */
 	UFUNCTION(BlueprintCallable, Category="Cloth")
-	ENGINE_API bool IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections = true) const;
+	bool IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections = true) const;
 
-	ENGINE_API void CreateBodySetup();
-	ENGINE_API UBodySetup* GetBodySetup();
+	void CreateBodySetup();
+	UBodySetup* GetBodySetup();
 
 #if WITH_EDITOR
 	/** Trigger a physics build to ensure per poly collision is created */
-	ENGINE_API void BuildPhysicsData();
-	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
-	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
+	void BuildPhysicsData();
+	void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
+	void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
 #endif
 	
 #if WITH_EDITORONLY_DATA
@@ -1072,8 +1086,8 @@ private:
 	public:
 		/** Delegates for asset editor events */
 
-		ENGINE_API FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
-		ENGINE_API void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
+		FDelegateHandle RegisterOnClothingChange(const FSimpleMulticastDelegate::FDelegate& InDelegate);
+		void UnregisterOnClothingChange(const FDelegateHandle& InHandle);
 
 	private:
 

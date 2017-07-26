@@ -84,7 +84,6 @@ public class APEX : ModuleRules
 			new string[] {
                 APEXDir + "include",
                 APEXDir + "include/clothing",
-                APEXDir + "include/destructible",
                 APEXDir + "include/nvparameterized",
                 APEXDir + "include/legacy",
                 APEXDir + "include/PhysX3",
@@ -107,7 +106,6 @@ public class APEX : ModuleRules
 				"ApexCommon{0}",
 				"ApexFramework{0}",
 				"ApexShared{0}",
-				"APEX_Destructible{0}",
 				"APEX_Clothing{0}",
 			});
 		string LibraryFormatString = null;
@@ -127,7 +125,6 @@ public class APEX : ModuleRules
 			string[] RuntimeDependenciesX64 =
 			{
 				"APEX_Clothing{0}_x64.dll",
-				"APEX_Destructible{0}_x64.dll",
 				"APEX_Legacy{0}_x64.dll",
 				"ApexFramework{0}_x64.dll",
 			};
@@ -156,7 +153,6 @@ public class APEX : ModuleRules
 			string[] RuntimeDependenciesX86 =
 			{
 				"APEX_Clothing{0}_x86.dll",
-				"APEX_Destructible{0}_x86.dll",
 				"APEX_Legacy{0}_x86.dll",
 				"ApexFramework{0}_x86.dll",
 			};
@@ -189,7 +185,6 @@ public class APEX : ModuleRules
 
 			string[] DynamicLibrariesMac = new string[] {
 				"/libAPEX_Clothing{0}.dylib",
-				"/libAPEX_Destructible{0}.dylib",
 				"/libAPEX_Legacy{0}.dylib",
 				"/libApexFramework{0}.dylib"
 			};
@@ -214,7 +209,6 @@ public class APEX : ModuleRules
 				bIsApexStaticallyLinked = true;
 
 				ApexLibraries.Add("APEX_Clothing{0}");
-				ApexLibraries.Add("APEX_Destructible{0}");
 				ApexLibraries.Add("APEX_Legacy{0}");
 				ApexLibraries.Add("ApexFramework{0}");
 				LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";

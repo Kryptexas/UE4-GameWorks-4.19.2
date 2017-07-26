@@ -5700,7 +5700,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set("ClassIcon.GroupActor", new IMAGE_BRUSH("Icons/ActorIcons/GroupActor_16x", Icon16x16));
 		Set("ClassIcon.VectorFieldVolume", new IMAGE_BRUSH("Icons/ActorIcons/VectorFieldVolume_16x", Icon16x16));
 		Set("ClassIcon.Deleted", new IMAGE_BRUSH("Icons/ActorIcons/DeletedActor_16px", Icon16x16));
-		Set("ClassIcon.DestructibleActor", new IMAGE_BRUSH("Icons/ActorIcons/Destructable_16px", Icon16x16));
 		Set("ClassIcon.StaticMeshActor", new IMAGE_BRUSH("Icons/AssetIcons/StaticMesh_16x", Icon16x16));
 		Set("ClassIcon.SkeletalMeshActor", new IMAGE_BRUSH("Icons/AssetIcons/SkeletalMesh_16x", Icon16x16));
 
@@ -5727,7 +5726,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set("ClassIcon.AtmosphericFogComponent", new IMAGE_BRUSH("Icons/AssetIcons/AtmosphericFog_16x", Icon16x16));
 		Set("ClassIcon.BoxComponent", new IMAGE_BRUSH("Icons/ActorIcons/Box_16px", Icon16x16));
 		Set("ClassIcon.CapsuleComponent", new IMAGE_BRUSH("Icons/ActorIcons/Capsule_16px", Icon16x16));
-		Set("ClassIcon.DestructibleComponent", new IMAGE_BRUSH("Icons/ActorIcons/Destructable_16px", Icon16x16));
 		Set("ClassIcon.InstancedStaticMeshComponent", new IMAGE_BRUSH("Icons/ActorIcons/InstancedStaticMesh_16px", Icon16x16));
 		Set("ClassIcon.MaterialBillboardComponent", new IMAGE_BRUSH("Icons/ActorIcons/MaterialSprite_16px", Icon16x16));
 		Set("ClassIcon.SceneCaptureComponent2D", new IMAGE_BRUSH("Icons/AssetIcons/SceneCapture2D_16x", Icon16x16));
@@ -6410,22 +6408,6 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 	// StringTable Editor
 	{
 		Set("StringTableEditor.Tabs.Properties", new IMAGE_BRUSH("/Icons/icon_tab_SelectionDetails_16x", Icon16x16));
-	}
-
-	// DestructibleMesh Editor
-	{
-		Set( "DestructibleMeshEditor.Tabs.Properties", new IMAGE_BRUSH( "/Icons/icon_tab_SelectionDetails_16x", Icon16x16 ) );
-		Set( "DestructibleMeshEditor.Tabs.DestructibleSettings", new IMAGE_BRUSH( "/Icons/icon_DestructibleMeshEd_Destructable_Settings_16x", Icon16x16 ) );
-		Set( "DestructibleMeshEditor.Tabs.ChunkParameters", new IMAGE_BRUSH( "/Icons/icon_DestructibleMeshEd_Chunk_Parameters_16x", Icon16x16 ) );
-		Set( "DestructibleMeshEditor.Tabs.FractureSettings", new IMAGE_BRUSH( "/Icons/icon_DestructibleMeshEd_Fracture_Settings_16x", Icon16x16 ) );
-
-		Set( "DestructibleMeshEditor.Fracture", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Fracture_40x", Icon40x40 ) );
-		Set( "DestructibleMeshEditor.Fracture.Small", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Fracture_20x", Icon20x20 ) );
-		Set( "DestructibleMeshEditor.Refresh", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Refresh_40x", Icon40x40 ) );
-		Set( "DestructibleMeshEditor.Refresh.Small", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_Refresh_40x", Icon20x20 ) );
-		Set( "DestructibleMeshEditor.ImportFBXChunks", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_ImportFBX_40x", Icon40x40 ) );
-		Set( "DestructibleMeshEditor.ImportFBXChunks.Small", new IMAGE_BRUSH( "Icons/icon_DestructibleMeshEd_ImportFBX_40x", Icon20x20 ) );
-
 	}
 #endif //#if WITH_EDITOR
 
