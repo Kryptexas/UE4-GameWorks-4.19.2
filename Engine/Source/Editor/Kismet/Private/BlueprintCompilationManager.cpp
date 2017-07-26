@@ -1525,6 +1525,7 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		return NewFunction;
 	};
 
+
 	// helpers:
 	const auto AddFunctionForGraphs = [Schema, &MessageLog, ParentClass, Ret, BP, MakeFunction](const TCHAR* FunctionNamePostfix, const TArray<UEdGraph*>& Graphs, UField**& InCurrentFieldStorageLocation, bool bIsStaticFunction)
 	{
@@ -1589,6 +1590,30 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	};
 
 	UField** CurrentFieldStorageLocation = &Ret->Children;
+	
+	// Helper function for making UFunctions generated for 'event' nodes, e.g. custom event and timelines
+	const auto MakeEventFunction = [&CurrentFieldStorageLocation, MakeFunction]( FName InName, EFunctionFlags ExtraFnFlags, const TArray<UEdGraphPin*>& InputPins, UFunction* InSourceFN )
+	{
+		UField** CurrentParamStorageLocation = nullptr;
+
+		UFunction* NewFunction = MakeFunction(
+			InName, 
+			CurrentFieldStorageLocation, 
+			CurrentParamStorageLocation, 
+			ExtraFnFlags|FUNC_BlueprintCallable|FUNC_BlueprintEvent,
+			TArray<UK2Node_FunctionResult*>(), 
+			InputPins,
+			false, 
+			true,
+			InSourceFN
+		);
+
+		if(NewFunction)
+		{
+			NewFunction->Bind();
+			NewFunction->StaticLink(true);
+		}
+	};
 
 	Ret->SetSuperStruct(ParentClass);
 	
@@ -1619,30 +1644,24 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 		Graph->GetNodesOfClass(EventNodes);
 		for( UK2Node_Event* Event : EventNodes )
 		{
-			FName EventNodeName = CompilerContext.GetEventStubFunctionName(Event);
-
-			UFunction* SourceFN = Event->FindEventSignatureFunction();
-
-			UField** CurrentParamStorageLocation = nullptr;
-
-			UFunction* NewFunction = MakeFunction(
-				EventNodeName, 
-				CurrentFieldStorageLocation, 
-				CurrentParamStorageLocation, 
-				(EFunctionFlags)(Event->FunctionFlags|FUNC_BlueprintCallable),
-				TArray<UK2Node_FunctionResult*>(), 
-				Event->Pins,
-				false, 
-				true,
-				SourceFN
+			MakeEventFunction(
+				CompilerContext.GetEventStubFunctionName(Event), 
+				(EFunctionFlags)Event->FunctionFlags, 
+				Event->Pins, 
+				Event->FindEventSignatureFunction()
 			);
-
-			if(NewFunction)
-			{
-				NewFunction->Bind();
-				NewFunction->StaticLink(true);
-			}
 		}
+	}
+	
+	for ( const UTimelineTemplate* Timeline : BP->Timelines )
+	{
+		for(int32 EventTrackIdx=0; EventTrackIdx<Timeline->EventTracks.Num(); EventTrackIdx++)
+		{
+			MakeEventFunction(Timeline->GetEventTrackFunctionName(EventTrackIdx), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
+		}
+		
+		MakeEventFunction(Timeline->GetUpdateFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
+		MakeEventFunction(Timeline->GetFinishedFunctionName(), EFunctionFlags::FUNC_None, TArray<UEdGraphPin*>(), nullptr);
 	}
 
 	CompilerContext.NewClass = Ret;
