@@ -184,6 +184,9 @@ private:
 	void OnColorGradingPickerChanged(FVector4 &NewValue, bool ShouldCommitValueChanges);
 	bool GetCurrentColorGradingValue(FVector4 &OutCurrentValue);
 
+	void OnBeginMainValueSliderMovement();
+	void OnEndMainValueSliderMovement();
+
 	/** Callback when user click the Group reset button */
 	void OnDetailGroupReset();
 
