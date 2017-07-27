@@ -49,10 +49,11 @@ void FComposurePostMoveSettingsPropertyTrackEditor::BuildTrackContextMenu(FMenuB
 void FComposurePostMoveSettingsPropertyTrackEditor::ShowImportPostMoveSettingsDialog(UMovieSceneComposurePostMoveSettingsTrack* PostMoveSettingsTrack)
 {
 	UMovieScene* ParentMovieScene = PostMoveSettingsTrack->GetTypedOuter<UMovieScene>();
-	float FrameInterval = ParentMovieScene->GetFixedFrameInterval();
-	int32 StartFrame = FMath::RoundToInt(ParentMovieScene->GetPlaybackRange().GetLowerBoundValue() / FrameInterval);
 	if (ParentMovieScene != nullptr)
 	{
+		float FrameInterval = ParentMovieScene->GetFixedFrameInterval();
+		int32 StartFrame = FMath::RoundToInt(ParentMovieScene->GetPlaybackRange().GetLowerBoundValue() / FrameInterval);
+
 		TSharedPtr<SWindow> TopLevelWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 		if (TopLevelWindow.IsValid())
 		{
