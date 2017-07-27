@@ -12,7 +12,7 @@ public:
 	DECLARE_DELEGATE(FOnImportCanceled);
 
 public:
-	SLATE_BEGIN_ARGS(SWindow) {}
+	SLATE_BEGIN_ARGS(SComposurePostMoveSettingsImportDialog) {}
 		/** Event which is executed when the user selects import. */
 		SLATE_EVENT(FOnImportSelected, OnImportSelected)
 		/** Event which is executed when the user cancels the import. */
