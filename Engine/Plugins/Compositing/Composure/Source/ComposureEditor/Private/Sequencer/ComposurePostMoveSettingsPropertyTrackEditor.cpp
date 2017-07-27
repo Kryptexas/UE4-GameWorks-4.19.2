@@ -9,6 +9,7 @@
 #include "Misc/FileHelper.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "ComposureEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "ComposurePostMoveSettingsPropertyTrackEditor"
 
