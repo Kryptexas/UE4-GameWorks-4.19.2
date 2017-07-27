@@ -20,6 +20,11 @@
 			"Name" : "Composure",
 			"Type" : "Developer",
 			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "ComposureEditor",
+			"Type" : "Editor",
+			"LoadingPhase" : "Default"
 		}
 	],
 	"Plugins": [
