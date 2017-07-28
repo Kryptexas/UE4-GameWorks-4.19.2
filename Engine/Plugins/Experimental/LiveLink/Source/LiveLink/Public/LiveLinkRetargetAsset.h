@@ -20,8 +20,8 @@ struct FLiveLinkRetargetContext
 };
 
 // Base class for retargeting live link data. 
-UCLASS(abstract)
-class LIVELINKINTERFACE_API ULiveLinkRetargetAsset : public UObject
+UCLASS(Abstract)
+class LIVELINK_API ULiveLinkRetargetAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
