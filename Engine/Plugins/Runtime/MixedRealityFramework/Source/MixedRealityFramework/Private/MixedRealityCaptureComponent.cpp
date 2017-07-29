@@ -292,7 +292,7 @@ float UMixedRealityCaptureComponent::GetDesiredAspectRatio() const
 	float DesiredAspectRatio = 0.0f;
 	if (MediaSource)
 	{
-		TSharedPtr<IMediaPlayer> MediaPlayer = MediaSource->GetBasePlayer().GetNativePlayer();
+		TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> MediaPlayer = MediaSource->GetBasePlayer().GetNativePlayer();
 		if (MediaPlayer.IsValid())
 		{
 			IMediaTracks& Tracks = MediaPlayer->GetTracks();

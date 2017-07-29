@@ -68,7 +68,7 @@ TSharedRef<SWidget> FMediaTextureCustomization::HandleVideoTrackComboButtonMenuC
 	}
 
 	// get media tracks
-	TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> Player = MediaPlayer->GetPlayer();
 
 	if (!Player.IsValid())
 	{
@@ -131,7 +131,7 @@ FText FMediaTextureCustomization::HandleVideoTrackComboButtonText() const
 	}
 
 	// get selected media track
-	TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> Player = MediaPlayer->GetPlayer();
 
 	if (!Player.IsValid())
 	{
