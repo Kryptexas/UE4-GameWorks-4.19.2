@@ -1102,7 +1102,9 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
-	if (Obj && Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	/** Macros should not create uber graph frames as they have no uber graph. If UBlueprints are cooked out the macro class probably does not exist as well */
+	UBlueprint* Blueprint = Cast<UBlueprint>(ClassGeneratedBy);
+	if (Blueprint && Blueprint->BlueprintType == BPTYPE_MacroLibrary)
 	{
 		return;
 	}

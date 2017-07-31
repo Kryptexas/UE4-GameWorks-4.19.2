@@ -346,6 +346,8 @@ bool UUserWidget::Initialize()
 
 		if ( bCookedWidgetTree == false )
 		{
+			WidgetTree->SetFlags(RF_Transient);
+
 			const bool bReparentToWidgetTree = false;
 			InitializeNamedSlots(bReparentToWidgetTree);
 		}

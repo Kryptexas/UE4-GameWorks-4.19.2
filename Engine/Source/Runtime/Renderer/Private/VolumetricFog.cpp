@@ -799,10 +799,10 @@ FVector GetVolumetricFogGridZParams(float NearPlane, float FarPlane, int32 GridS
 	double N = NearPlane + NearOffset;
 	double F = FarPlane;
 
-	double O = (F - N * exp2((GridSizeZ - 1) / S)) / (F - N);
+	double O = (F - N * FMath::Exp2((GridSizeZ - 1) / S)) / (F - N);
 	double B = (1 - O) / N;
 
-	double O2 = (exp2((GridSizeZ - 1) / S) - F / N) / (-F / N + 1);
+	double O2 = (FMath::Exp2((GridSizeZ - 1) / S) - F / N) / (-F / N + 1);
 
 	float FloatN = (float)N;
 	float FloatF = (float)F;
@@ -810,9 +810,9 @@ FVector GetVolumetricFogGridZParams(float NearPlane, float FarPlane, int32 GridS
 	float FloatO = (float)O;
 	float FloatS = (float)S;
 
-	float NSlice = log2(FloatN*FloatB + FloatO) * FloatS;
-	float NearPlaneSlice = log2(NearPlane*FloatB + FloatO) * FloatS;
-	float FSlice = log2(FloatF*FloatB + FloatO) * FloatS;
+	float NSlice = FMath::Log2(FloatN*FloatB + FloatO) * FloatS;
+	float NearPlaneSlice = FMath::Log2(NearPlane*FloatB + FloatO) * FloatS;
+	float FSlice = FMath::Log2(FloatF*FloatB + FloatO) * FloatS;
 	// y = log2(z*B + O) * S
 	// f(N) = 0 = log2(N*B + O) * S
 	// 1 = N*B + O

@@ -29,6 +29,8 @@ It is important to realize that this feature applies only to UActorComponent or 
 automatically nulled or prevent garbage collection. Note this does not mean that all UObject* variables must be UProperties. If you want a non-UProperty Object pointer, consider using TWeakObjectPtr<>. 
 This is a weak pointer, so it will not prevent garbage collection, but it can be queried for validity before being accessed.
 
+Another case where a referenced UObject UProperty will be automatically null'ed is when using 'Force Delete' on an asset in the editor.  As a result, all code operating on UObjects which are assets must handle these pointers becoming null.
+
 ## Serialization
 
 When a UObject is serialized, all UProperty values are automatically written or read unless explicitly marked as "transient". For example, you could place an AEnemy instance in a level, set its 

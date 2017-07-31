@@ -500,7 +500,7 @@
 	if (IMMContext.IsValid())
 	{
 		FVector2D Pos(aPoint.x, aPoint.y);
-		int32 Index = GameThreadReturn(^{ return IMMContext->GetCharacterIndexFromPoint(Pos); }, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
+		int32 Index = GameThreadReturn(^{ return IMMContext.IsValid() ? IMMContext->GetCharacterIndexFromPoint(Pos) : INDEX_NONE; }, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 		NSUInteger Idx = Index == INDEX_NONE ? NSNotFound : (NSUInteger)Index;
 		return Idx;
 	}

@@ -218,7 +218,7 @@ namespace UnrealBuildTool
 			
 
 			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
-			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
+			if (Settings.Value.IOSSDKVersionFloat >= 10.3f || (CppPlatform == CppPlatform.TVOS && Settings.Value.IOSSDKVersionFloat >= 10.2f))
 			{
 				Result += " -Wno-nonportable-include-path";
 			}

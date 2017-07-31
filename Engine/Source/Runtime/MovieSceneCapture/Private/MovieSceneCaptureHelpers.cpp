@@ -498,6 +498,11 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 		}
 	}
 
+	if (ShotDataArray.Num() == 0)
+	{
+		return false;
+	}
+
 	ShotDataArray.Sort();
 
 	for (auto SaveFilename : SaveFilenames)

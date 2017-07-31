@@ -1183,6 +1183,10 @@ void RestoreExistingMeshSettings(ExistingStaticMeshData* ExistingMesh, UStaticMe
 
 void UpdateSomeLodsImportMeshData(UStaticMesh* NewMesh, TArray<int32> *ReimportLodList)
 {
+	if (NewMesh == nullptr)
+	{
+		return;
+	}
 	UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(NewMesh->AssetImportData);
 	//Update the LOD import data before restoring the data
 	if (ReimportLodList != nullptr && ImportData != nullptr)

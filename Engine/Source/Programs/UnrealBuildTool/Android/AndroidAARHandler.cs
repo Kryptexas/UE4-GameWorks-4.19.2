@@ -164,6 +164,26 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		private uint GetVersionValue(string VersionString)
+		{
+			// read up to 4 sections (ie. 20.0.3.5), first section most significant
+			// each section assumed to be 0 to 255 range
+			uint Value = 0;
+			try
+			{
+				string[] Sections = VersionString.Split(".".ToCharArray());
+				Value |= (Sections.Length > 0) ? (uint.Parse(Sections[0]) << 24) : 0;
+				Value |= (Sections.Length > 1) ? (uint.Parse(Sections[1]) << 16) : 0;
+				Value |= (Sections.Length > 2) ? (uint.Parse(Sections[2]) << 8) : 0;
+				Value |= (Sections.Length > 3) ? uint.Parse(Sections[3]) : 0;
+			}
+			catch (Exception)
+			{
+				// ignore poorly formed version
+			}
+			return Value;
+		}
+
 		// clean up the version (Maven version info here: https://docs.oracle.com/middleware/1212/core/MAVEN/maven_version.htm)
 		// only going to handle a few cases, not proper ranges (keeps the rightmost valid version which should be highest)
 		// will still return something but will include an error in log, but don't want to throw an exception
@@ -224,41 +244,16 @@ namespace UnrealBuildTool
 			string BaseFilename = Path.Combine(BasePath, BaseName + "-" + Version);
 
 			// Check if already added
+			uint NewVersionValue = GetVersionValue(Version);
 			for (int JARIndex = 0; JARIndex < JARList.Count; JARIndex++)
 			{
 				if (JARList[JARIndex].BaseName == BaseName)
 				{
-					// Is it the same version?
-					if (JARList[JARIndex].Version == Version)
+					// Is it the same version or older?  ignore if so
+					uint EntryVersionValue = GetVersionValue(JARList[JARIndex].Version);
+					if (NewVersionValue <= EntryVersionValue)
 					{
 						return;
-					}
-
-					// Ignore if older version
-					string[] EntryVersionParts = JARList[JARIndex].Version.Split('.');
-					string[] NewVersionParts = Version.Split('.');
-					for (int Index = 0; Index < EntryVersionParts.Length; Index++)
-					{
-						int EntryVersionInt = 0;
-						if (int.TryParse(EntryVersionParts[Index], out EntryVersionInt))
-						{
-							int NewVersionInt = 0;
-							if (int.TryParse(NewVersionParts[Index], out NewVersionInt))
-							{
-								if (NewVersionInt < EntryVersionInt)
-								{
-									return;
-								}
-							}
-							else
-							{
-								return;
-							}
-						}
-						else
-						{
-							return;
-						}
 					}
 
 					Log.TraceInformation("AAR: {0}: {1} newer than {2}", JARList[JARIndex].BaseName, Version, JARList[JARIndex].Version);
@@ -346,41 +341,16 @@ namespace UnrealBuildTool
 			string BaseFilename = Path.Combine(BasePath, BaseName + "-" + Version);
 
 			// Check if already added
+			uint NewVersionValue = GetVersionValue(Version);
 			for (int AARIndex = 0; AARIndex < AARList.Count; AARIndex++)
 			{
 				if (AARList[AARIndex].BaseName == BaseName)
 				{
-					// Is it the same version?
-					if (AARList[AARIndex].Version == Version)
+					// Is it the same version or older?  ignore if so
+					uint EntryVersionValue = GetVersionValue(AARList[AARIndex].Version);
+					if (NewVersionValue <= EntryVersionValue)
 					{
 						return;
-					}
-
-					// Ignore if older version
-					string[] EntryVersionParts = AARList[AARIndex].Version.Split('.');
-					string[] NewVersionParts = Version.Split('.');
-					for (int Index = 0; Index < EntryVersionParts.Length; Index++)
-					{
-						int EntryVersionInt = 0;
-						if (int.TryParse(EntryVersionParts[Index], out EntryVersionInt))
-						{
-							int NewVersionInt = 0;
-							if (int.TryParse(NewVersionParts[Index], out NewVersionInt))
-							{
-								if (NewVersionInt < EntryVersionInt)
-								{
-									return;
-								}
-							}
-							else
-							{
-								return;
-							}
-						}
-						else
-						{
-							return;
-						}
 					}
 
 					Log.TraceInformation("AAR: {0}: {1} newer than {2}", AARList[AARIndex].BaseName, Version, AARList[AARIndex].Version);

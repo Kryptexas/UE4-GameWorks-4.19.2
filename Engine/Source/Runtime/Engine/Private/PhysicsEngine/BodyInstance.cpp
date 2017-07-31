@@ -4633,7 +4633,8 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 				continue;
 			}
 
-			PxGeometry& PGeom = PShape->getGeometry().any();
+			PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
+			PxGeometry& PGeom = Holder.any();
 			PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
 			PxGeometryType::Enum GeomType = PShape->getGeometryType();
 
@@ -4931,7 +4932,10 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 			}
 			else
 			{
-				return PxGeometryQuery::overlap(PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody));
+				if(PxGeometryQuery::overlap(PGeom, ShapePose, PShape->getGeometry().any(), GetPxTransform_AssumesLocked(PShape, RigidBody)))
+				{
+					return true;
+				}
 			}
 					
 		}

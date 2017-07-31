@@ -7,13 +7,15 @@
 // basic stuff needed by everybody
 #pragma warning( disable: 4799 )		// function '...' has no EMMS instruction)
 
-#if PLATFORM_MAC || PLATFORM_LINUX
+#if (PLATFORM_MAC || PLATFORM_LINUX)
+#if !__has_builtin(__rdtsc)
 inline unsigned long long __rdtsc()
 {
 	unsigned long long Low, High;
 	__asm__ __volatile__ ("rdtsc" : "=a" (Low), "=d" (High));
 	return (High << 32) | Low;
 }
+#endif //!__has_builtin(__rdtsc))
 #endif
 
 namespace Lightmass

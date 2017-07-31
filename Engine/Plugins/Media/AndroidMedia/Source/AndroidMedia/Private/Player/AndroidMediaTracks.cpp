@@ -352,6 +352,14 @@ bool FAndroidMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
+		if (TrackIndex == INDEX_NONE)
+		{
+			JavaMediaPlayer->SetAudioEnabled(false);
+			SelectedAudioTrack = TrackIndex;
+
+			return true;
+		}
+		
 		if (AudioTracks.IsValidIndex(TrackIndex))
 		{
 			if (!JavaMediaPlayer->SelectTrack(AudioTracks[TrackIndex].Index))
@@ -359,6 +367,7 @@ bool FAndroidMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackInde
 				return false;
 			}
 
+			JavaMediaPlayer->SetAudioEnabled(true);
 			SelectedAudioTrack = TrackIndex;
 			InitializeAudioSink();
 
