@@ -286,7 +286,7 @@ USceneComponent* FComponentEditorUtils::FindClosestParentInList(UActorComponent*
 	{
 		USceneComponent* ChildAsScene = Cast<USceneComponent>(ChildComponent);
 		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-		if (ChildAsScene && SceneComponent)
+		if (ChildAsScene && SceneComponent && (ChildAsScene != SceneComponent))
 		{
 			// Check to see if any parent is also in the list
 			USceneComponent* Parent = ChildAsScene->GetAttachParent();
