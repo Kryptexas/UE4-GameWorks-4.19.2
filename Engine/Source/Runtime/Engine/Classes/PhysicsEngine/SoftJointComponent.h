@@ -15,17 +15,21 @@ struct NvFlexExtJoint;
 *	Used to emit a soft joint that can affect flex objects.
 */
 UCLASS(hidecategories = (Object, Mobility, LOD, Physics), ClassGroup = Physics, showcategories = Trigger, meta = (BlueprintSpawnableComponent))
-class ENGINE_API USoftJointComponent : public USceneComponent
+class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexContainerClient
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The radius to apply the soft joint in */
 	UPROPERTY(interp, EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent)
-		float Radius;
+	float Radius;
 
 	/** Stiffness parameter allows small scale elastic deformation  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent)
-		float Stiffness;
+	float Stiffness;
+
+	/** The simulation container the joint belongs to */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent, meta = (editcondition = "OverrideAsset"))
+	UFlexContainer* ContainerTemplate;
 
 	/** The global particle indice*/
 	TArray<int32> ParticleIndices;
@@ -42,19 +46,34 @@ class ENGINE_API USoftJointComponent : public USceneComponent
 	NvFlexExtJoint* Joint;
 
 	/** Add an object type for this soft joint to affect */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|RadialForce")
-		virtual void AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|SoftJoint")
+	virtual void AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
 
 	/** Remove an object type that is affected by this soft joint */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|RadialForce")
-		virtual void RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|SoftJoint")
+	virtual void RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
 
 	/** Add a collision channel for this soft joint to affect */
 	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
 
 public:
+	/* The simulation container the joint belongs to */
+	FFlexContainerInstance* ContainerInstance;
+
 	/** Returns the number of particles in the joint**/
 	FORCEINLINE int32 GetNumParticles() const { return NumParticles; }
+
+	/**
+	* Get the joint container template
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SoftJoint")
+	virtual UFlexContainer* GetContainerTemplate();
+
+	// Begin IFlexContainerClient Interface
+	virtual bool IsEnabled() { return true; }
+	virtual FBoxSphereBounds GetBounds() { return Bounds; }
+	virtual void Synchronize() {}
+	// End IFlexContainerClient Interface
 
 protected:
 

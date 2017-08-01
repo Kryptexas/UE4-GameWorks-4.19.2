@@ -66,6 +66,10 @@ struct FFlexContainerInstance : public PxDeletionListener
 	NvFlexExtInstance* CreateInstance(const NvFlexExtAsset* Asset, const FMatrix& Mat, const FVector& Velocity, int32 Phase);
 	void DestroyInstance(NvFlexExtInstance* Asset);
 
+	// spawns a new instance of a soft joint into the container
+	NvFlexExtJoint* CreateJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroyJointInstance(NvFlexExtJoint* joint);
+
 	// convert a phase to the solver format, will allocate a new group if requested
 	int32 GetPhase(const FFlexPhase& Phase);
 
@@ -99,10 +103,6 @@ struct FFlexContainerInstance : public PxDeletionListener
 	void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff);
 	// add a radial impulse for one frame 
 	void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
-
-	// Create a soft joint
-	NvFlexExtJoint* CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
-	void DestroySoftJoint(NvFlexExtJoint* joint);
 
 	// helper methods
 	void ComputeSteppingParam(float& Dt, int32& NumSubsteps, float& NewLeftOverTime, float DeltaTime) const;

@@ -1796,6 +1796,22 @@ FFlexContainerInstance*	FPhysScene::GetFlexContainer(UFlexContainer* Template)
 	}
 }
 
+FFlexContainerInstance*	FPhysScene::GetJointContainer(UFlexContainer* Template)
+{
+	if (GFlexIsInitialized == false)
+		return NULL;
+
+	FFlexContainerInstance** Instance = FlexContainerMap.Find(Template);
+	if (Instance)
+	{
+		return *Instance;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void FPhysScene::StartFlexRecord()
 {
 	/*
@@ -1828,30 +1844,6 @@ void FPhysScene::AddRadialForceToFlex(FVector Origin, float Radius, float Streng
 	{
 		FFlexContainerInstance* Container = It->Value;
 		Container->AddRadialForce(Origin, Radius, Strength, Falloff);
-	}
-}
-
-NvFlexExtJoint* FPhysScene::CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
-{
-	NvFlexExtJoint* joint = nullptr;
-
-	// TODO: joints for Maps from Flex container template to instances
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		joint = Container->CreateSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
-	}
-
-	return joint;
-}
-
-void FPhysScene::DestroySoftJoint(NvFlexExtJoint* joint)
-{
-	// TODO: joints for Maps from Flex container template to instances
-	for (auto It = FlexContainerMap.CreateIterator(); It; ++It)
-	{
-		FFlexContainerInstance* Container = It->Value;
-		Container->DestroySoftJoint(joint);
 	}
 }
 

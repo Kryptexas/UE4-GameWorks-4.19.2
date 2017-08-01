@@ -28,6 +28,8 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	PrimaryComponentTick.TickGroup = TG_PostPhysics; //  TG_PostUpdateWork
 	Radius = 200.0f;
 	Stiffness = 0.0002f;
+	ContainerTemplate = nullptr;
+	ContainerInstance = nullptr;
 	bAutoActivate = true;
 	NumParticles = 0;
 	bAutoActivate = true;
@@ -44,8 +46,17 @@ void USoftJointComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
-	if (GetWorld() && GetWorld()->GetPhysicsScene() && Joint)
-		GetWorld()->GetPhysicsScene()->DestroySoftJoint(Joint);
+	if (ContainerInstance && Joint)
+	{
+		ContainerInstance->DestroyJointInstance(Joint);
+		Joint = nullptr;
+	}
+
+	if (ContainerInstance)
+	{
+		ContainerInstance->Unregister(this);
+		ContainerInstance = nullptr;
+	}
 }
 
 void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
@@ -100,7 +111,14 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
 		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
 		{
-			Joint = PhysScene->CreateSoftJoint(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+			FFlexContainerInstance* Container = PhysScene->GetJointContainer(ContainerTemplate);
+			if (Container)
+			{
+				ContainerInstance = Container;
+				ContainerInstance->Register(this);
+
+				Joint = ContainerInstance->CreateJointInstance(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+			}
 		}
 
 		JointIsInitialized = true;
@@ -139,6 +157,11 @@ void USoftJointComponent::RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQ
 {
 	ObjectTypesToAffect.Remove(ObjectType);
 	UpdateCollisionObjectQueryParams();
+}
+
+UFlexContainer* USoftJointComponent::GetContainerTemplate()
+{
+	return ContainerInstance ? ContainerInstance->Template : nullptr;
 }
 
 #if WITH_EDITOR

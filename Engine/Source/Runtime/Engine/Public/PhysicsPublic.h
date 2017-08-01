@@ -496,6 +496,10 @@ public:
 #if WITH_FLEX
 	/** Retrive the container instance for a template, will create the instance if it doesn't already exist */
 	FFlexContainerInstance*	GetFlexContainer(UFlexContainer* Template);
+
+	/** Retrive the container instance for a joint, will return a nullptr if it doesn't already exist */
+	FFlexContainerInstance*	GetJointContainer(UFlexContainer* Template);
+
 	void StartFlexRecord();
 	void StopFlexRecord();
 
@@ -505,9 +509,6 @@ public:
 	/** Adds a radial force to all flex container instances */
 	void AddRadialImpulseToFlex(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
-	/** Adds a soft joint to all flex container instances */
-	NvFlexExtJoint* CreateSoftJoint(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
-	void DestroySoftJoint(NvFlexExtJoint* joint);
 #endif
 
 	ENGINE_API FPhysScene();
